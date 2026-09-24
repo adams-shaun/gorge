@@ -16,7 +16,8 @@ import (
 
 // CostPart is one non-mana cost component: Sac<N/Spec> (sacrifice N
 // permanents matching Spec), Discard<N/Spec> (discard N matching cards), or
-// SubCounter<N/Kind> (remove N counters of Kind from the source).
+// SubCounter<N/Kind> (remove N counters of Kind from the source), or
+// announced-count ExileFromGrave<X/Spec>.
 type CostPart struct {
 	N    int32
 	Spec string
@@ -25,11 +26,9 @@ type CostPart struct {
 	// ExileFromGrave or ExileAnyGrave token. Sac/Discard/SubCounter parts
 	// never read it.
 	Zone state.Zone
-	// Announced marks the variable-count form of a Sac part (Sac<X/Spec> --
-	// Dargo's "sacrifice any number"): the player announces the count as the
-	// cast's X (CR 601.2b) and exactly that many permanents matching Spec are
-	// sacrificed; a ReduceCost static reading the paid X composes with it.
-	// N is unused for an Announced part.
+	// Announced marks a variable-count Sac<X/Spec> or ExileFromGrave<X/Spec>
+	// part: the player announces the count as the cast's X (CR 601.2b)
+	// and exactly that many matching objects are paid. N is unused for an Announced part.
 	Announced bool
 	// Dyn is the non-literal amount token of a Draw part (Forge's
 	// Draw<X/Spec>): N is unused and the count is resolved at payment from
@@ -112,10 +111,17 @@ type HybridPhyrexian struct{ A, B byte }
 // it; rule/cast.go's payment stage resolves the announced choice and spends
 // against both the pool and the payer's life (see Cost.payable).
 type Cost struct {
-	Colored         state.Mana
-	Generic         int32
-	Life            int32
-	X               int
+	Colored state.Mana
+	Generic int32
+	Life    int32
+	X       int
+	// XMin is the LOWER BOUND an XMin<N> cost token places on the announced
+	// X ("X can't be 0"): XMin1 means the cost's {X} must be at least 1.
+	// It is not a payment -- it adds no generic mana and reports no Unknown
+	// -- only a floor for xAsk's option list and the offer gate's minimum-X
+	// price. XMin is a property of the shared announced X, so Plus takes the
+	// max of the two bounds and WithX (the announcement) clears it.
+	XMin            int32
 	Hybrid          []ManaPair
 	Phyrexian       []byte
 	Twobrid         []Twobrid
@@ -287,7 +293,7 @@ var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/([^>]*))?>$`)
 // ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...), the
 // AlternateAdditionalCost ExileFromGrave line and the ExileAnyGrave
 // trigger-cost family are the corpus users.
-var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
+var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(X|\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -480,6 +486,17 @@ var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X|\d+)/([^/>]+
 // of Cost.Unknown.
 var damageYouCost = regexp.MustCompile(`^DamageYou<(\d+)(?:/([^>]*))?>$`)
 var rollDiceCost = regexp.MustCompile(`^RollDice<([^>]*)>$`)
+
+// xMinCost matches Forge's XMin<N> cost token -- the announced-X LOWER
+// BOUND, "X can't be 0" (XMin1) or "X can't be less than 4" (XMin4). It is
+// not a payment at all: it costs no mana and announces no X of its own, it
+// only constrains the value the cost's {X} may take. The Suspend-only
+// suspendCost special case was the sole reader until this head; every other
+// carrier (Kicker's Thieving Skydiver, Flashback's Light Up the Night, a
+// plain Cost$) fell through to the unrecognised-symbol fallback and charged
+// one phantom generic pip. 29 corpus files carry the token at the pin (27
+// XMin1, 2 XMin4).
+var xMinCost = regexp.MustCompile(`^XMin(\d+)$`)
 
 var costBraces = strings.NewReplacer("{", " ", "}", " ")
 
@@ -770,6 +787,16 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			if m := exileCost.FindStringSubmatch(sym); m != nil {
+				if m[2] == "X" {
+					if m[1] != "FromGrave" {
+						c.Generic = addClampedGeneric(c.Generic, 1)
+						c.reportUnknown(sym)
+						continue
+					}
+					spec := strings.ReplaceAll(m[3], ";", ",")
+					c.Exile = append(c.Exile, CostPart{Spec: spec, Zone: state.ZGraveyard, Announced: true, Desc: m[4]})
+					continue
+				}
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// Same safe fallback as every other malformed cost token --
@@ -882,6 +909,22 @@ func ParseCost(s string) Cost {
 					part.Zone = state.ZBattlefield
 				}
 				c.PutToLib = append(c.PutToLib, part)
+				continue
+			}
+			// XMin<N> is the announced-X lower bound, NOT a payment: it adds
+			// no generic mana and reports no Unknown. A malformed or
+			// out-of-range instance keeps the ordinary one-generic fallback
+			// and reports the recognised head, the PayLife<N> shape.
+			if m := xMinCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				if int32(n) > c.XMin {
+					c.XMin = int32(n)
+				}
 				continue
 			}
 			// Try to parse as a numeric token. Negative and out-of-range values
@@ -1151,6 +1194,10 @@ func (c Cost) CMC() int32 {
 func (c Cost) WithX(x int32) Cost {
 	c.Generic = addClampedGeneric(c.Generic, int64(c.X)*int64(x))
 	c.X = 0
+	// The lower bound is consumed by the announcement: once an X is chosen
+	// the bound has served its purpose, and clearing it keeps a later
+	// WithX from double-charging the floor as if it were generic mana.
+	c.XMin = 0
 	return c
 }
 
@@ -1164,6 +1211,12 @@ func (c Cost) Plus(d Cost) Cost {
 	c.Generic += d.Generic
 	c.Life = addClampedGeneric(c.Life, int64(d.Life))
 	c.X += d.X
+	// The shared announced X takes the higher of the two lower bounds
+	// (Thieving Skydiver: the printed cost carries none, the kicked Kicker
+	// part carries XMin1, so the composed cast's X must be at least 1).
+	if d.XMin > c.XMin {
+		c.XMin = d.XMin
+	}
 	c.Tap = c.Tap || d.Tap
 	if len(d.Hybrid) > 0 {
 		c.Hybrid = append(append([]ManaPair(nil), c.Hybrid...), d.Hybrid...)
@@ -1761,7 +1814,11 @@ func formatCost(c Cost) string {
 		default:
 			head = "ExileFromHand"
 		}
-		parts = append(parts, head+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
+		n := strconv.FormatInt(int64(part.N), 10)
+		if part.Announced {
+			n = "X"
+		}
+		parts = append(parts, head+"<"+n+"/"+part.Spec+">")
 	}
 	appendCostParts("Reveal", c.Reveal)
 	for _, part := range c.RevealChosen {
@@ -2177,6 +2234,11 @@ func costAnnouncesCastX(c Cost) bool {
 		}
 	}
 	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.Exile {
 		if part.Announced {
 			return true
 		}

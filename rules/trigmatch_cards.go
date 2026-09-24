@@ -151,6 +151,35 @@ func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev eve
 	return true
 }
 
+// giveGiftMatches implements the "whenever you give a gift" trigger family
+// (Forge Mode$ GiveGift, CR 702.168; Jolly Gerbils -- the one corpus carrier).
+// The causing event is the completed events.GiveGift record, a pure Apply
+// no-op marker the spell's resolution emits beside a promised gift (the
+// Investigate/Explore shape -- a dedicated Kind, not a Note, so an unrelated
+// draw or token creation never fires this mode). Player is the giver (the
+// resolving spell's controller), which ValidPlayer$ You matches; Obj is the
+// resolving source, which a ValidCard$ spec would match (no corpus carrier
+// carries one, but the grammar is read so a future line is not silently
+// inert). A gift marker with no giver never matches.
+func (e *Engine) giveGiftMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.GiveGift {
+		return false
+	}
+	if int(ev.Player) >= len(e.G.Players) {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
+}
+
 // discoverMatches implements the "whenever you discover" trigger family
 // (Forge Mode$ Discover, task trigdisc1 -- Val, Marooned Surveyor, Curator of
 // Sun's Creation; 2 corpus files / 2 raw lines at the corpus pin). The causing
@@ -317,6 +346,72 @@ func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events
 	if spec := t.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
 		return false
 	}
+	return true
+}
+
+// discardedAllMatches implements Mode$ DiscardedAll, the BATCH "whenever you
+// discard one or more [filtered] cards" trigger family (CR 701.8; 21 corpus
+// T: lines over 21 files plus Pure Intentions' one SVar-carried body at the
+// pin). It fires on the discard MoveZone event events.Discard emits -- the
+// same action marker IsDiscard/IsSacrifice/IsMill use -- so the discard
+// (effects' api:Discard, effDiscard) and the payoff agree on what a discard
+// is.
+//
+// The cadence -- once for the WHOLE discard action, not once per card -- is
+// the dispatcher's job, not this matcher's: a latch in checkFaceTriggers
+// (rules/trigger_match.go) keys on the trigger line inside effDiscard's open
+// discard batch, and closeDiscardBatch patches the matched-card COUNT into
+// the queued trigger's TriggerAmount and their set into its Remembered/
+// Captured. This matcher therefore still returns true for EVERY matching
+// discarded card, because the latch accumulates its count from each accepted
+// event. Outside a batch (a cost discard, a cleanup discard) the mode
+// fires per event with the referent below already carrying count 1.
+//
+// Parameters matched here, in the corpus's own spelling:
+//
+//   - ValidPlayer$ names whose discard counts. ev.Player is the discarding
+//     player, and "you" is the trigger source's controller, so the corpus's
+//     `ValidPlayer$ You` admits only the controller's own discard while
+//     `ValidPlayer$ Player` (Hostile Investigator, Tinybones) admits any
+//     player's. An absent clause matches any player.
+//   - ValidCard$ is the discarded card's filter (Card.nonLand on Veronica
+//     and Conspiracy Theorist, Card.Artifact on Mishra/Urza and the two
+//     Arena rebalances, Land on Doctor Doom, the plain Card on Inti and
+//     Diviner). It is matched against ev.Obj, the discarded card, with the
+//     trigger source's controller as the filter perspective.
+//   - ValidCause$ (Pure Intentions' one SVar body, the only carrier) is read
+//     through the shared discardCauseAdmits, exactly as the per-card
+//     Discarded matcher reads it.
+//
+// FirstTime$ True (Veronica, Rielle) is deliberately NOT read here:
+// firstMarkerThisTurn's per-EVENT log scan cannot tell one discard BATCH
+// from the next, and "for the first time each turn" is a batch-level fact.
+// The latch in checkFaceTriggers enforces it instead, at the one point that
+// knows batch identity (the Engine.discardAllTurn stamp). ActivationLimit$
+// is likewise enforced at queue time through actionTriggerModes membership.
+func (e *Engine) discardedAllMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if !events.IsDiscard(ev) {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidCard"]; v != "" && !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if spec := t.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
+		return false
+	}
+	// FirstTime$ True (Veronica, Rielle: "for the first time each turn") is a
+	// BATCH-level fact the dispatcher's latch enforces, because batch identity
+	// lives in the latch and firstMarkerThisTurn's per-EVENT log scan cannot
+	// tell one discard batch from the next. The param is read HERE, in the
+	// matcher REGISTERED for DiscardedAll, rather than in the shared
+	// checkFaceTriggers dispatcher, so the parameter census attributes the read
+	// to mode DiscardedAll alone; the dispatcher captures this scratch value
+	// immediately after the match call and applies it at the queue point.
+	e.discardAllFirstTime = strings.EqualFold(t.Params["FirstTime"], "True")
 	return true
 }
 
@@ -780,6 +875,7 @@ func init() {
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
 	registerTrigMatcher((*Engine).connivesMatches, "Connives")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
+	registerTrigMatcher((*Engine).giveGiftMatches, "GiveGift")
 	registerTrigMatcher((*Engine).searchedLibraryMatches, "SearchedLibrary")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")
@@ -789,6 +885,10 @@ func init() {
 		return e.discardedMatches(t, source, ev)
 	}, "Discarded")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.discardedAllMatches(t, source, ev)
+	}, "DiscardedAll")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.drawnMatches(t, source, ev)
 	}, "Drawn")
+	effects.RegisterNonAPI("trig:DiscardedAll")
 }

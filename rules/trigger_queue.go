@@ -443,7 +443,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	}
 	// A layer-6 Melee instance has no printed trigger index. Its captured
 	// attacked-opponent player refs are logged in IDs, so replay and stack
-	// copies read the same Count$RememberedNumber as a printed instance.
+	// copies read the same cards.MeleePumpCount as a printed instance.
 	if pt.Melee {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return

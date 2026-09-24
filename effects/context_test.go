@@ -141,6 +141,19 @@ func (h *fakeHost) EmitTokenCreate(e events.Event) []state.ObjID {
 	return []state.ObjID{want}
 }
 
+// EmitStackCopy mirrors rules.Engine's: the StackCopy fold mints exactly the
+// one copy object the event names (there is no CopySpell replacement in this
+// engine), and that id is the whole return. The empty return is the fold's
+// early break (no source, source already left the stack).
+func (h *fakeHost) EmitStackCopy(e events.Event) []state.ObjID {
+	want := h.g.NextID
+	h.Emit(e)
+	if h.g.Obj(want) == nil {
+		return nil
+	}
+	return []state.ObjID{want}
+}
+
 // EmitTap has no trigger matcher to hand the tapper and entry provenance to,
 // so the double records the same plain Tap event the engine logs.
 func (h *fakeHost) EmitTap(obj state.ObjID, _ state.PlayerID, _ bool) {

@@ -1719,21 +1719,58 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // CantAttack static: the shared CantRestrictionParamsReadable core EXTENDED by
 // exactly the conditional parameter family rules' attackBlocked reads --
 // UnlessDefender$ (through effects.UnlessDefenderHolds) and the shared
-// rules-side continuous gate (rules/layers.go continuousGateHolds), which
+// rules-side continuous gate rules/layers.go continuousGateHolds, which
 // evaluates CheckSVar$ / SVarCompare$ / Condition$ / ClassBand$ and the
-// IsPresent$ / IsPresent2$ / PresentCompare$ / PresentZone$ count family. It
-// lives here, beside CantRestrictionParamsReadable and mirrors
-// MustAttackParamsReadableForRules below, so the face whitelist and the gate
-// evaluators cannot drift apart unseen. Measured over the corpus: of the 24
-// real `Mode$ CantAttack` files carrying this family, 20 spell the battlefield
-// IsPresent$/PresentCompare$ count shape (Desperate Castaways, Gadrak the
-// Crown-Scourge, War Falcon, ...), one a bare IsPresent$ "if" shape (Wirecat,
-// Shauku Endbringer with PresentCompare$ GT1), one PresentZone$ Hand (Kefnet
-// the Mindful) and one PresentZone$ Exile (Ketramose, the New Dawn);
-// IsPresent2$/ClassBand$ have zero CantAttack carriers but are whitelisted
-// anyway because continuousGateHolds evaluates them, the same fail-closed
-// principle MinMaxBlocker's whitelist states. The Effect-delivered
-// registration gate (effEffect, which keeps the narrower
+// IsPresent$ / IsPresent2$ / PresentCompare$ / PresentZone$ count family
+// (PresentZone$ Battlefield/Graveyard/Exile/Hand/Stack; see
+// countStaticPresent). It lives here, beside CantRestrictionParamsReadable and
+// mirrors MustAttackParamsReadableForRules below, so the face whitelist and the
+// gate evaluators cannot drift apart unseen.
+//
+// The present family joined this list with compound-statics1. The earlier
+// measurement (271 `Mode$ CantAttack` files, 63 raw lines carrying the gate
+// family, NONE pairing it with IsPresent$/PresentCompare$) predated commit
+// f81f996e ("split compound S:Mode$ comma lists into one static per mode"):
+// the split makes a compound line's CantAttack half inherit the SHARED Params
+// map, so an `S:Mode$ CantAttack,CantBlock | ... | IsPresent$ Creature.YouCtrl
+// | PresentCompare$ LE2` line (Bast, Panther Goddess) now reaches
+// attackBlocked as a CantAttack static carrying IsPresent. The gate machinery
+// already evaluates it, so excluding the keys only skipped the attack half
+// whole while the block half (blockRestricted's CantBlock loop, which runs
+// continuousGateHolds with no whitelist) bound at runtime -- the asymmetry
+// this ticket fixes.
+//
+// Measured over the corpus: of the 24 real `Mode$ CantAttack` files carrying
+// this family, 20 spell the battlefield IsPresent$/PresentCompare$ count shape
+// (Desperate Castaways, Gadrak the Crown-Scourge, War Falcon, ...), one a bare
+// IsPresent$ "if" shape (Wirecat, Shauku Endbringer with PresentCompare$ GT1),
+// one PresentZone$ Hand (Kefnet the Mindful) and one PresentZone$ Exile
+// (Ketramose, the New Dawn); IsPresent2$/ClassBand$ have zero CantAttack
+// carriers but are whitelisted anyway because continuousGateHolds evaluates
+// them, the same fail-closed principle MinMaxBlocker's whitelist states. None
+// is a repo-deck card.
+//
+// A line carrying PresentCompare$ WITHOUT IsPresent$/IsPresent2$ is rejected:
+// presentGate is the only reader of PresentCompare and it runs only when a
+// present spec is present, so an orphan compare would fall through the gate
+// unread and restrict blanket, over-restricting. A present KEY whose spec is
+// empty or whitespace-only is rejected the same way (and even with no compare):
+// countPresent("") matches nothing, so the "gate" reads count 0 forever and an
+// EQ0 compare would hold unconditionally. Measured 0 corpus rows for both
+// shapes; the guards keep it that way.
+//
+// A present spec carrying a predicate this build's matcher does not recognise
+// is rejected too: countPresent counts through the matcher, so an unparseable
+// spec matches nothing and an EQ0 compare ("restrict unless X is ABSENT")
+// would read count 0 unconditionally and blanket-restrict. The one corpus row
+// (Flowering Lumberknot, `IsPresent$ Creature.PairedWith+withSoulbond |
+// PresentCompare$ EQ0`) names the unimplemented `withSoulbond` predicate, so
+// it stays skipped -- the permissive direction -- rather than over-restricting.
+// UnknownPredicates (this package) is the same census the matcher's
+// recognisedPredicate classifier drives, so the check cannot drift from what
+// countPresent really resolves.
+//
+// The Effect-delivered registration gate (effEffect, which keeps the narrower
 // CantRestrictionParamsReadable for BOTH modes) cannot share this list: its
 // continuous path reads neither evaluator, so a gate-bearing body must not
 // register blanket -- a gated "can't attack" would become unconditional,
@@ -1743,7 +1780,17 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // permissive direction. Iterating the params map only yields a boolean, so map
 // order never reaches an event/option/view -- determinism is preserved.
 func CantAttackParamsReadableForRules(params map[string]string) bool {
-	for k := range params {
+	var present1, present2 string
+	hasCmp, has1, has2 := false, false, false
+	for k, v := range params {
+		switch k {
+		case "PresentCompare":
+			hasCmp = true
+		case "IsPresent":
+			present1, has1 = v, true
+		case "IsPresent2":
+			present2, has2 = v, true
+		}
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary",
 			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender",
@@ -1751,6 +1798,32 @@ func CantAttackParamsReadableForRules(params map[string]string) bool {
 		default:
 			return false
 		}
+	}
+	// presentGate is dispatched on the KEY being present, not on the value:
+	// an empty/whitespace `IsPresent$` still calls countPresent(""), which
+	// matches nothing (count 0). So a blank present spec is not "no gate" --
+	// it is a gate that can never see its object, and `PresentCompare$ EQ0`
+	// would hold unconditionally and restrict blanket. Reject a present key
+	// whose spec is blank, whichever key carries the compare (and whether or
+	// not one does).
+	spec1 := strings.TrimSpace(present1)
+	spec2 := strings.TrimSpace(present2)
+	if (has1 && spec1 == "") || (has2 && spec2 == "") {
+		return false
+	}
+	// An orphan compare (PresentCompare$ with no present spec at all) would
+	// never be evaluated: presentGate is its only reader and it runs only when
+	// a present key is set. Admit the line only when a NON-BLANK spec is there.
+	if hasCmp && spec1 == "" && spec2 == "" {
+		return false
+	}
+	// An unread present spec would match nothing, so an EQ0 compare would hold
+	// unconditionally and over-restrict; keep such a line skipped whole.
+	if spec1 != "" && len(UnknownPredicates(spec1)) != 0 {
+		return false
+	}
+	if spec2 != "" && len(UnknownPredicates(spec2)) != 0 {
+		return false
 	}
 	return true
 }
@@ -2647,10 +2720,54 @@ func hasChosenPlayers(ts []state.Target) bool {
 // `AB$ SetState | Mode$ TurnFaceUp` lines carry (Woolly Loxodon and its 22
 // siblings); a non-face-down permanent is left alone, matching the marker's
 // own battlefield gate.
+//
+// Optional$ True is a real may election (Dowsing Dagger's "you may transform
+// this Equipment", High Marshal Arguel's "you may transform it"): the ask is
+// posed before the change -- but only when at least one Defined$ object would
+// actually change, so a no-op shape asks nothing (the Attach/PutCounter
+// len(legal) == 0 gate). Option 0 is "yes" and option 1 "no", so the
+// deterministic bot clamp answers "yes" and bot games stay byte-identical to
+// the pre-ask always-change. The answer rides Ctx.SetStateOpt (fx42 scoping:
+// consumed and cleared at the top); a decline changes nothing and the chained
+// SubAbility$ still runs (the chain is owned by Resolve, never by a decline).
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
+	// fx42 scoping: consume and clear the answered Optional$ election at the
+	// top, so a nested SetState in the same chain poses its own ask.
+	optAns := c.SetStateOpt
+	c.SetStateOpt = ""
 	mode := sa.Params["Mode"]
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
 	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
+	if optional && optAns == "" {
+		// Unanswered: pose the yes/no election -- but only when the change
+		// would actually do something; with nothing to change, decline and
+		// accept are the same, so no ask (the Attach precedent's
+		// len(legal) == 0 gate). AskAsked suspends; the answer re-enters
+		// with Ctx.SetStateOpt set. AskNoHost is the deterministic decline
+		// stand-in (R-9): the clamp-answered bot path answers option 0 =
+		// "yes", so a bot game stays byte-identical to the pre-ask
+		// always-change.
+		if setStateWouldChange(h, c, sa, turnUp, turnDown) {
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source: c.Source, ResumeKind: "setstate_optional", ResumeSA: sa,
+				ResumeRemembered: copyTargets(c.Remembered),
+				Prompt:           "Change this permanent's face?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}}
+			_ = Ask(h, d)
+			return
+		}
+	}
+	if optional && optAns != "" && optAns != "yes" {
+		// Answered "no" (or any non-affirmative marker): the decline. No
+		// face change and no Note is emitted; the chained SubAbility$ STILL
+		// RUNS -- the chain is owned by Resolve, not by this body (the
+		// PutCounter/Attach.Optional precedent).
+		return
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -2679,6 +2796,39 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
 		h.Emit(events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: int32(next)})
 	}
+}
+
+// setStateWouldChange reports whether the SetState resolution would change at
+// least one of its Defined$ objects' faces -- the gate that keeps an Optional$
+// ask from being posed when decline and accept are the same outcome. It is the
+// exact per-object predicate the emitting loop below applies, so the gate can
+// never disagree with what the loop would do.
+func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown bool) bool {
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		if turnUp {
+			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
+				return true
+			}
+			continue
+		}
+		if turnDown {
+			if o.Zone == state.ZBattlefield && !o.FaceDown {
+				return true
+			}
+			continue
+		}
+		if o.Card != nil && len(o.Card.Faces) >= 2 {
+			return true
+		}
+	}
+	return false
 }
 
 // effCounter removes the targeted spell from the stack to its owner's

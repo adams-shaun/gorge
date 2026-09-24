@@ -687,3 +687,54 @@ func TestPotentialActionsJitteThaliaCorpusScriptIsNotCastable(t *testing.T) {
 		t.Fatal("real-script Jitte board without Thalia: the cast must be a potential action (pool {C}{W} pays {2})")
 	}
 }
+
+// TestPotentialActionsMountDoomDamageAbility pins the engine half of
+// fb-20260923T033148Z-877b8f8f ("mount doom -- can only play tap for mana").
+// Measured: with Mount Doom untapped beside enough other mana, the empty-pool
+// priority window offers Mount Doom ONLY its mana activation (the
+// float-then-cast model, pinned by TestLanderTokenAbilityOfferedOnlyWhenPool
+// Funded), while the potential-action projection carries its
+// "{1}{B}{R}, {T}: deal 1 damage" ability. The client's card affordance reads
+// that projection so the player is not left with a one-click tap that spends
+// the {T} the damage ability needs; this test holds the engine contract the
+// client relies on.
+func TestPotentialActionsMountDoomDamageAbility(t *testing.T) {
+	e := layerEngine(t)
+	e.G.Step = state.StepMain1
+	e.G.SetZone(state.ZHand, 0, nil)
+	e.G.Players[0].LandsPlayed = 1
+	doom := onBoard(t, e, 0, "Name:Mount Doom\nTypes:Legendary Land\n"+
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Combo B R | SpellDescription$ Add {B} or {R}.\n"+
+		"A:AB$ DealDamage | Cost$ 1 B R T | Defined$ Opponent | NumDmg$ 1 | SpellDescription$ CARDNAME deals 1 damage to each opponent.\n"+
+		"Oracle:x\n")
+	onBoard(t, e, 0, "Name:Badlands\nTypes:Land Swamp Mountain\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n")
+	onBoard(t, e, 0, jitteSnapshotPlains)
+	onBoard(t, e, 0, "Name:Swamp\nTypes:Basic Land Swamp\nA:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\nOracle:x\n")
+	onBoard(t, e, 0, "Name:Mountain\nTypes:Basic Land Mountain\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n")
+	if o := e.G.Obj(doom); o == nil || o.Tapped || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Mount Doom must be an untapped permanent: %+v", o)
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("precondition: empty floating pool, got %v", e.G.Players[0].Pool)
+	}
+	var live []string
+	for _, o := range e.legalActions(0) {
+		if o.Obj == doom {
+			live = append(live, o.Kind)
+		}
+	}
+	if len(live) != 1 || live[0] != "activate" {
+		t.Fatalf("empty-pool offers on Mount Doom = %v, want only its mana activation", live)
+	}
+	found := false
+	for _, a := range e.PotentialActions(0) {
+		if a.Kind == "ability" && a.Obj == doom && a.Ability == 1 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("Mount Doom's {1}{B}{R},{T} damage ability missing from the potential actions: %+v", e.PotentialActions(0))
+	}
+}

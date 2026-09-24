@@ -216,6 +216,12 @@ func (e *Engine) scanActiveStatics(mode string, out []staticView) []staticView {
 				// exist while it is face down (the shared gate in layers.go).
 				continue
 			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so its statics do not function (and it is not
+				// an affected permanent either).
+				continue
+			}
 			for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
 				pst, ok := o.PileStaticAt(si)
 				if !ok {
@@ -1573,6 +1579,16 @@ func (m costMods) hasFloor() bool {
 // tree.
 func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
 	composed := func(c Cost) bool {
+		// A cost carrying an XMin<N> lower bound is priced at its smallest
+		// LEGAL announcement: "X can't be 0" means the offer must be able
+		// to pay {X}=XMin, never {X}=0 (Thieving Skydiver's kicked Kicker).
+		// The fold is on a LOCAL copy, so the payment descriptor's
+		// announced-X marker (set from the raw cost's own Cost.X by
+		// paymentFor) still reports CostContainsX. WithX clears XMin, so
+		// an already-announced cost (XMin==0) is untouched here.
+		if c.XMin > 0 {
+			c = c.WithX(c.XMin)
+		}
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
 		if cc.Generic > delve {
