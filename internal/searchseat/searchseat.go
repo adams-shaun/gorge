@@ -43,6 +43,7 @@ import (
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 	"github.com/adams-shaun/gorge/rules"
 )
@@ -110,6 +111,20 @@ type Options struct {
 	// ceiling (cmd/searchteacher's -oracle); a playing seat must leave it
 	// false.
 	Clairvoyant bool
+	// Prior, when non-nil, is a trained policynet checkpoint that chooses
+	// WHICH candidates get the rollout budget (pn10): the attackers and cast
+	// arms enumerate up to PriorWiden candidates, the non-bot candidates are
+	// ranked by the policy head scored on the actor's own view, and the top
+	// PriorTopK are kept behind the bot's answer (see applyPrior). nil is
+	// today's fixed, hand-ordered list, byte for byte. The Model is only read
+	// (Model.Score allocates), so one Model may be shared across goroutines.
+	Prior *policynet.Model
+	// PriorTopK is how many non-bot candidates a Prior keeps; 0 means
+	// Limit-1, the unguided list's own non-bot budget.
+	PriorTopK int
+	// PriorWiden is the enumeration cap (bot answer included) used when a
+	// Prior is set; 0 means max(Limit, 16).
+	PriorWiden int
 }
 
 // Defaults are cmd/searchteacher's flag defaults, which are also the knobs the
@@ -166,6 +181,17 @@ type Trace struct {
 	Terminal int
 	Capped   int
 	HasValue bool
+
+	// Prior diagnostics (Options.Prior set, attackers or cast arm only).
+	// PriorEnumerated is how many candidates the widened enumeration produced,
+	// PriorKept how many the prior kept (bot answer included), PriorRanked
+	// whether the policy head actually ranked them (false: a cast decision
+	// outside the head's trained distribution, or a candidate that could not
+	// be mapped back to option indices -- today's list was kept), and
+	// PriorChanged whether the kept set differs from the same-budget unguided
+	// list (the first PriorKept candidates in enumeration order).
+	PriorEnumerated, PriorKept int
+	PriorRanked, PriorChanged  bool
 }
 
 // Eligible reports whether Choose would attempt this decision at all, without
@@ -222,6 +248,9 @@ func Choose(
 	var tr Trace
 
 	cands, kind, ok := candidates(collector, e, d, bot, f, opts)
+	if ok {
+		cands = applyPrior(collector, e, d, bot, kind, cands, opts, &tr)
+	}
 	tr.Kind, tr.Candidates = kind, cands
 	if !ok || len(cands) < 2 {
 		return bot, false, tr
@@ -297,7 +326,7 @@ func candidates(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 	switch {
 	case d.Kind == decision.KAttackers && opts.Kinds["attackers"]:
 		var out [][]searchprobe.Action
-		for _, in := range searchprobe.AttackCandidates(d, bot, opts.Limit) {
+		for _, in := range searchprobe.AttackCandidates(d, bot, opts.enumLimit()) {
 			a, err := collector.Actions(d, in)
 			if err != nil {
 				return nil, "attackers", false
@@ -333,7 +362,7 @@ func candidates(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 			return nil, "cast", false
 		}
 		var out [][]searchprobe.Action
-		for _, c := range searchprobe.Candidates(f.Decision, a[0], opts.Limit) {
+		for _, c := range searchprobe.Candidates(f.Decision, a[0], opts.enumLimit()) {
 			out = append(out, []searchprobe.Action{c})
 		}
 		return out, "cast", true
