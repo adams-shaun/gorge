@@ -9474,6 +9474,9 @@ func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUn
 	p := pc.player
 	pl := e.G.Players[p]
 	poolTotal := pl.Pool.Total()
+	// Pool.Total omits spend restrictions. Generic activation costs are only
+	// certified when every floating unit is unrestricted; otherwise the pool
+	// may be numerically sufficient but unable to pay this activation.
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Tapped || o.Face() == nil {
@@ -9498,7 +9501,7 @@ func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUn
 				if pl.Life <= lifeCost {
 					continue
 				}
-			case castWindowGenericCost(cost, poolTotal):
+			case len(pl.RestrictedMana) == 0 && castWindowGenericCost(cost, poolTotal):
 				netCost = cost.Generic
 			case e.castWindowSelfSacCost(p, id, cost):
 			default:
