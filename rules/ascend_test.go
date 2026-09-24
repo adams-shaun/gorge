@@ -217,3 +217,42 @@ func TestCantBlockByConditionGateThresholdNotBlessingSpecific(t *testing.T) {
 		t.Fatalf("Inkmage still blockable at threshold")
 	}
 }
+
+// TestAscendGrantedKeywordStillGrantsTheBlessing pins the exactness of the
+// scan's pre-filter (baseMayHaveKeyword + activeGrantsKeyword): an object
+// whose printed face has no Ascend is skipped only while no active layer-6
+// effect grants Ascend, so a lord's AddKeyword$ Ascend still makes its
+// controller's tenth permanent latch the blessing, while an opponent with
+// the same board shape and only printed-less creatures does not.
+func TestAscendGrantedKeywordStillGrantsTheBlessing(t *testing.T) {
+	e := layerEngine(t)
+	onBoard(t, e, 0, "Name:Ascend Lord\nManaCost:2\nTypes:Creature Lord\nPT:1/1\nS:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Ascend | Description$ Creatures you control have ascend.\nOracle:x\n")
+	vanillaBears(t, e, 0, 8)
+	vanillaBears(t, e, 1, 9)
+	enterOnBattlefield(t, e, 1, corpusCard(t, "Grizzly Bears"))
+	if e.G.Players[1].Blessing {
+		t.Fatalf("seat 1 holds the blessing with no Ascend permanent (the lord grants only its controller's creatures)")
+	}
+	enterOnBattlefield(t, e, 0, corpusCard(t, "Grizzly Bears"))
+	if !e.G.Players[0].Blessing {
+		t.Fatalf("ten permanents under a lord granting Ascend did not latch the blessing")
+	}
+}
+
+// TestAscendScanSkipsOnlyObjectsThatCannotHaveIt pins baseMayHaveKeyword's
+// two answers on real objects: a printed Ascend carrier and a vanilla
+// creature.
+func TestAscendScanSkipsOnlyObjectsThatCannotHaveIt(t *testing.T) {
+	e := layerEngine(t)
+	dusk := onBoardCard(t, e, 0, corpusCard(t, "Dusk Charger"))
+	bear := onBoardCard(t, e, 0, corpusCard(t, "Grizzly Bears"))
+	if !baseMayHaveKeyword(e.G.Obj(dusk), "Ascend") {
+		t.Fatalf("Dusk Charger's printed Ascend was pre-filtered away")
+	}
+	if baseMayHaveKeyword(e.G.Obj(bear), "Ascend") {
+		t.Fatalf("a vanilla Grizzly Bears reads as a possible Ascend carrier")
+	}
+	if e.activeGrantsKeyword("Ascend") {
+		t.Fatalf("an active Ascend grant with no granting static on the board")
+	}
+}

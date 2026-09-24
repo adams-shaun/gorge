@@ -11,7 +11,11 @@
 //
 // Runs go in batches: every deck of a batch is generated sequentially from
 // (-seed, game index) and the coverage snapshot taken at the batch's start,
-// then the batch plays on -workers goroutines. Every failure is appended to
+// then the batch plays on -workers goroutines.
+//
+// A game whose live object count passes -max-objects (a runaway token
+// engine) is ended by the harness and recorded as kind "bigboard", distinct
+// from an engine "hang" or "livelock". Every failure is appended to
 // -failures as one JSON line carrying both full deck lists, the game seed
 // and the diagnostic, and `cardfuzz -repro <file> -line N` replays it.
 package main
@@ -378,7 +382,7 @@ func played(e *rules.Engine) (cast, ability map[string]bool) {
 	return cast, ability
 }
 
-func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents int, verify bool) (fail *failure, cast, ability map[string]bool) {
+func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify bool) (fail *failure, cast, ability map[string]bool) {
 	mk := func(kind, diag string, o gbench.Outcome) *failure {
 		return &failure{Kind: kind, Seed: seed, Decks: decks, Turns: o.Turns, Intents: o.Intents, Diag: diag, Sig: signature(kind, diag)}
 	}
@@ -406,7 +410,7 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 				err = fmt.Errorf("panic outside drive loop: %v", r)
 			}
 		}()
-		o, e, err = gbench.PlayGame(cfg, seats, maxTurns, maxIntents, gbench.Hooks{})
+		o, e, err = gbench.PlayGame(cfg, seats, maxTurns, maxIntents, gbench.Hooks{Guard: boardGuard(maxObjects)})
 	}()
 	if err != nil {
 		return mk("error", err.Error(), o), nil, nil
@@ -425,6 +429,12 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 		return withCtx(o.StallOn, o.Livelock), cast, ability
 	case o.StallOn == "intents":
 		return withCtx("intents", fmt.Sprintf("intent cap %d hit at turn %d", maxIntents, o.Turns)), cast, ability
+	case o.StallOn == "bigboard":
+		// Not an engine bug: the game grew a board past the harness's
+		// budget. Its own kind lets triage separate it from hangs, and the
+		// signature names the card with the most battlefield copies (the
+		// usual token engine) rather than the log tail.
+		return mk("bigboard", o.Livelock, o), cast, ability
 	}
 	if verify {
 		var rerr error
@@ -441,6 +451,58 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 		}
 	}
 	return nil, cast, ability
+}
+
+// boardGuard is the harness-side board-size watchdog: once the live
+// (non-ceased) object count exceeds max, the game ends as a "bigboard"
+// stall. The arena length bounds the live count from above, so a game that
+// never grows past max never pays the scan. max <= 0 disables it.
+func boardGuard(max int) func(*rules.Engine) (string, string) {
+	if max <= 0 {
+		return nil
+	}
+	return func(e *rules.Engine) (string, string) {
+		if len(e.G.Objs) <= max {
+			return "", ""
+		}
+		live := 0
+		counts := map[string]int{}
+		for i := range e.G.Objs {
+			o := &e.G.Objs[i]
+			if o.Zone == state.ZCeased {
+				continue
+			}
+			live++
+			if o.Zone == state.ZBattlefield && o.Card != nil {
+				counts[cardName(o.Card)]++
+			}
+		}
+		if live <= max {
+			return "", ""
+		}
+		type nc struct {
+			n string
+			c int
+		}
+		var top []nc
+		for n, c := range counts {
+			top = append(top, nc{n, c})
+		}
+		sort.Slice(top, func(a, b int) bool { return top[a].c > top[b].c || (top[a].c == top[b].c && top[a].n < top[b].n) })
+		var b strings.Builder
+		fmt.Fprintf(&b, "live object count %d exceeds -max-objects %d at turn %d", live, max, e.G.Turn)
+		if len(top) > 0 {
+			fmt.Fprintf(&b, " (most on battlefield: %s)", top[0].n)
+		}
+		b.WriteString("\n-- battlefield --\n")
+		for i, t := range top {
+			if i == 10 {
+				break
+			}
+			fmt.Fprintf(&b, "%6d %s\n", t.c, t.n)
+		}
+		return "bigboard", b.String()
+	}
 }
 
 // tailContext renders the last n log events with object names, and returns
@@ -501,7 +563,7 @@ var hang *time.Duration
 // The budget is harness-only (the engine never sees the clock): a game that
 // overruns is recorded as a "hang" carrying its goroutine's stack, and the
 // goroutine is abandoned since Go cannot kill it.
-func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents int, verify bool, budget time.Duration) (*failure, map[string]bool, map[string]bool, bool) {
+func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify bool, budget time.Duration) (*failure, map[string]bool, map[string]bool, bool) {
 	type res struct {
 		f      *failure
 		cs, ab map[string]bool
@@ -517,7 +579,7 @@ func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, ma
 		} else {
 			gid <- ""
 		}
-		f, cs, ab := playOne(reg, decks, seed, maxTurns, maxIntents, verify)
+		f, cs, ab := playOne(reg, decks, seed, maxTurns, maxIntents, maxObjects, verify)
 		done <- res{f, cs, ab}
 	}()
 	id := <-gid
@@ -561,6 +623,7 @@ func main() {
 	failPath := flag.String("failures", "cardfuzz-failures.jsonl", "append failure records here")
 	maxTurns := flag.Int("max-turns", 100, "turn cap (a stall, not a failure)")
 	maxIntents := flag.Int("max-intents", 20000, "intent cap (recorded as an 'intents' failure)")
+	maxObjects := flag.Int("max-objects", 20000, "live object cap (recorded as a 'bigboard' failure; 0 disables)")
 	verify := flag.Bool("verify", true, "replay every finished game and compare")
 	repro := flag.String("repro", "", "replay a failure record from this JSONL file (with -line)")
 	line := flag.Int("line", 1, "1-based line of -repro to replay")
@@ -591,12 +654,12 @@ func main() {
 				fmt.Fprintln(os.Stderr, "cardfuzz:", err)
 				os.Exit(1)
 			}
-			code := runRepro(reg, *repro, *line, *maxTurns, *maxIntents)
+			code := runRepro(reg, *repro, *line, *maxTurns, *maxIntents, *maxObjects)
 			pprof.StopCPUProfile()
 			pf.Close()
 			os.Exit(code)
 		}
-		os.Exit(runRepro(reg, *repro, *line, *maxTurns, *maxIntents))
+		os.Exit(runRepro(reg, *repro, *line, *maxTurns, *maxIntents, *maxObjects))
 	}
 	c, err := loadCov(*statePath)
 	if err != nil {
@@ -651,7 +714,7 @@ func main() {
 						results[j.idx] = gameResult{idx: -1}
 						continue
 					}
-					f, cs, ab, hung := playWatched(reg, j.decks, j.seed, *maxTurns, *maxIntents, *verify, *hang)
+					f, cs, ab, hung := playWatched(reg, j.decks, j.seed, *maxTurns, *maxIntents, *maxObjects, *verify, *hang)
 					if hung {
 						if hangs.Add(1) > int64(*maxHangs) {
 							fmt.Fprintln(os.Stderr, "cardfuzz: too many leaked hung games; stopping")
@@ -790,7 +853,7 @@ func mix(a, b uint64) uint64 {
 	return x
 }
 
-func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents int) int {
+func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents, maxObjects int) int {
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -808,7 +871,7 @@ func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents int) 
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
-		fl, _, _ := playOne(reg, rec.Decks, rec.Seed, maxTurns, maxIntents, true)
+		fl, _, _ := playOne(reg, rec.Decks, rec.Seed, maxTurns, maxIntents, maxObjects, true)
 		if fl == nil {
 			fmt.Println("REPRO: game completed cleanly (not reproduced)")
 			return 0
