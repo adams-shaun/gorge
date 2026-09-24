@@ -3019,7 +3019,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
 					Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id,
-					GainedSource: ga.gainedFrom, GainedIdx: ga.gainedIdx})
+					GainedSource: ga.gainedFrom, GainedIdx: ga.gainedIdx, Attach: ab.API == "Attach"})
 				continue
 			}
 			// kw:Boast (CR 702.142): the granted twin of the printed loop's
@@ -3059,7 +3059,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
 				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar,
-				GrantSource: ga.source})
+				GrantSource: ga.source, Attach: ab.API == "Attach"})
 		}
 	}
 

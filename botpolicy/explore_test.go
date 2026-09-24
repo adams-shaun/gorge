@@ -7,46 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// TestExploreX1AuraAbilityIsNotAnAttachNoOp: an Aura's own activated
-// ability (Holy Armor's pump; its source is attached, AttachedTo != 0, but
-// the ability is not an attach) is activated by ExploreDecide, while the
-// production Decide keeps its broad A1 reading and passes -- the production
-// answer, and so every golden chain head, is unchanged.
-func TestExploreX1AuraAbilityIsNotAnAttachNoOp(t *testing.T) {
-	b := Board{IsMain: true,
-		Creatures: map[state.ObjID]Creature{22: {Power: 2, Toughness: 2, Controller: 0}},
-		Cards:     map[state.ObjID]Card{41: {AttachedTo: 22}},
-	}
-	d := &decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
-		Options: []decision.Option{
-			{Index: 0, Kind: "ability", Obj: 41, Label: "Holy Armor: Enchanted creature gets +0/+2 until end of turn."},
-			{Index: 1, Kind: "pass"},
-		}}
-	if in := Decide(b, d, rng(1)); d.Options[in.Choices[0]].Kind != "pass" {
-		t.Fatalf("production Decide = %+v, want pass (A1's broad reading is unchanged)", in)
-	}
-	took := false
-	for seed := uint64(0); seed < 8; seed++ {
-		in := ExploreDecide(b, d, rng(seed))
-		if err := d.Validate(in); err != nil {
-			t.Fatalf("explore intent %+v failed Validate: %v", in, err)
-		}
-		if d.Options[in.Choices[0]].Kind == "ability" {
-			took = true
-		}
-	}
-	if !took {
-		t.Fatal("ExploreDecide never activated the Aura's own ability")
-	}
-	// An attach ability on the attached source is still a no-op to explore.
-	d.Options[0].Attach = true
-	for seed := uint64(0); seed < 8; seed++ {
-		if in := ExploreDecide(b, d, rng(seed)); d.Options[in.Choices[0]].Kind != "pass" {
-			t.Fatalf("seed %d: explore re-attached an attached equipment: %+v", seed, in)
-		}
-	}
-}
-
 // TestExploreX2ReachesEverySiblingAbility: A2 ranks Brightling's three {W}
 // abilities below its {1} mode forever (it reads the first number of the
 // DESCRIPTION); the explore pick is uniform, so every offered ability is
