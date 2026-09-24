@@ -782,6 +782,19 @@ type Object struct {
 	// survives the hand/stack path and Move consumes it on battlefield entry,
 	// exactly like RiotChoice.
 	UnleashChoice string
+	// PromisedGift / GiftPromisedTo are the CR 702.168 Gift promise: the
+	// caster's optional election to promise an opponent a gift as this spell
+	// is cast, and which opponent was promised. They are folded by
+	// events.GiftPromise, the replayable record of the cast-flow election,
+	// and survive the stack->battlefield move (Move deliberately does not
+	// reset them on entry, the X/CastFlags window) so a permanent's own ETB
+	// trigger can read Card.PromisedGift -- Kitnap's "if the gift wasn't
+	// promised, put three stun counters on it". They reset only when the
+	// object genuinely leaves the stack to a non-battlefield zone or leaves
+	// the battlefield, like CastFlags, and a stack COPY (never cast) carries
+	// neither.
+	PromisedGift   bool
+	GiftPromisedTo PlayerID
 	// Protector is the CR 310.10 Siege protector: the opponent its
 	// controller chose to protect this Battle as it entered. It is a property
 	// of the battle (not a counter), recorded through a Choose "protector"

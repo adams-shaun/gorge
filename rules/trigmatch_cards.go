@@ -151,6 +151,35 @@ func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev eve
 	return true
 }
 
+// giveGiftMatches implements the "whenever you give a gift" trigger family
+// (Forge Mode$ GiveGift, CR 702.168; Jolly Gerbils -- the one corpus carrier).
+// The causing event is the completed events.GiveGift record, a pure Apply
+// no-op marker the spell's resolution emits beside a promised gift (the
+// Investigate/Explore shape -- a dedicated Kind, not a Note, so an unrelated
+// draw or token creation never fires this mode). Player is the giver (the
+// resolving spell's controller), which ValidPlayer$ You matches; Obj is the
+// resolving source, which a ValidCard$ spec would match (no corpus carrier
+// carries one, but the grammar is read so a future line is not silently
+// inert). A gift marker with no giver never matches.
+func (e *Engine) giveGiftMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.GiveGift {
+		return false
+	}
+	if int(ev.Player) >= len(e.G.Players) {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	return true
+}
+
 // discoverMatches implements the "whenever you discover" trigger family
 // (Forge Mode$ Discover, task trigdisc1 -- Val, Marooned Surveyor, Curator of
 // Sun's Creation; 2 corpus files / 2 raw lines at the corpus pin). The causing
@@ -780,6 +809,7 @@ func init() {
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
 	registerTrigMatcher((*Engine).connivesMatches, "Connives")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
+	registerTrigMatcher((*Engine).giveGiftMatches, "GiveGift")
 	registerTrigMatcher((*Engine).searchedLibraryMatches, "SearchedLibrary")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")

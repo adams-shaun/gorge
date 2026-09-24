@@ -859,7 +859,32 @@ const (
 	// CloneStatic appends one named SVar static to a copy's layer-1 face.
 	// Text is the original SVar body; appended to preserve existing ordinals.
 	CloneStatic
-	NumKinds = int(CloneStatic) + 1
+	// GiftPromise records the cast-time CR 702.168 Gift election: whether the
+	// caster promised an opponent a gift and which opponent. Obj is the
+	// spell on the stack (the object the promise attaches to), Player is the
+	// promised opponent when one was named, and Amount is 1 for a promise
+	// and 0 for a decline. Apply folds it onto Object.PromisedGift /
+	// GiftPromisedTo, which the PromisedGift filter predicate, the
+	// Count$PromisedGift head and Defined$ Promised all read. It is a real
+	// state-bearing event rather than a Choose marker because the promise
+	// SURVIVES the stack->battlefield move (a permanent's gift is given on
+	// entry) and must be replay-derived. Appended after CloneStatic,
+	// following every prior Kind's own append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected.
+	GiftPromise
+	// GiveGift records one completed gift action (CR 702.168b): Player is
+	// the giver (the cast spell's controller) and Obj the resolving source
+	// (the spell on the stack, or the permanent whose ETB gift resolved). It
+	// is an Apply no-op marker, exactly like Investigate: the gift's own
+	// state change (the drawn card, the created token) is its own event that
+	// precedes this one, and the record is what trig:GiveGift matches
+	// ("whenever you give a gift" -- Jolly Gerbils). The marker is separate
+	// from the gift's own effects so an unrelated draw or token creation
+	// never fires a gift trigger. Appended after GiftPromise, still after
+	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
+	// is affected.
+	GiveGift
+	NumKinds = int(GiveGift) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the

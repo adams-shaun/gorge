@@ -3716,7 +3716,31 @@ func (e *Engine) resolveTop() {
 	// before condition checks"; rules/ascend.go). Permanent faces are
 	// excluded -- their grant is the emit-side continuous scan.
 	e.grantSpellBlessing(o, f)
-	if sa != nil {
+	// CR 702.168b: a promised gift resolves BEFORE the spell's other effects
+	// (the gift's own "before its other effects"). The body is the face's
+	// GiftAbility SVar; it is spliced as the HEAD of the spell's own chain so
+	// the ordinary suspension/continuation machinery handles a mid-gift ask
+	// and then runs the rest of the spell, and it shares the spell's Ctx so
+	// Defined$ Promised / TokenOwner$ Promised read the promise. The
+	// events.GiveGift marker is emitted just before the gift body runs, so
+	// "whenever you give a gift" (Jolly Gerbils) queues and resolves after
+	// the whole spell, exactly as a gift given during resolution should. The
+	// splice is a SHALLOW COPY of the resolved gift SA, never a mutation of
+	// the card's parsed table.
+	resolveSA := sa
+	if o.PromisedGift {
+		if gift := cards.ResolveSVar(f.SVars, "GiftAbility"); gift != nil {
+			e.emit(events.Event{Kind: events.GiveGift, Player: o.Controller, Obj: id})
+			head := *gift
+			tail := &head
+			for tail.Sub != nil {
+				tail = tail.Sub
+			}
+			tail.Sub = sa
+			resolveSA = &head
+		}
+	}
+	if resolveSA != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
 			ModeTargets: charmModeTargets, ResolvingObj: id,
@@ -3751,7 +3775,7 @@ func (e *Engine) resolveTop() {
 		e.contChain = e.contChain[:0]
 		e.repeatReported = nil
 		e.contChainOwners++
-		effects.Resolve(e, ctx, sa)
+		effects.Resolve(e, ctx, resolveSA)
 		e.contChainOwners--
 		e.damaging = 0
 		if e.resume != nil {

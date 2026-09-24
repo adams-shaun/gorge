@@ -122,6 +122,12 @@ var addedAfterTheSplit = []string{
 	// which was appended for it, so it could not have been in the pre-split
 	// switch.
 	"Surveil",
+	// agent-20260919T183016Z-886b1a86: "Whenever you give a gift ..."
+	// (CR 702.168; Jolly Gerbils, the one corpus carrier). It matches the
+	// events.GiveGift marker Kind, which was appended for it alongside the
+	// GiftPromise election record, so it could not have been in the pre-split
+	// switch -- no prior engine action produced a gift-completion event.
+	"GiveGift",
 	// agent-20260920T063816Z-abb68c8f: "Whenever CARDNAME becomes unattached
 	// from a permanent ..." (CR 701.3b; Captain's Hook, Grafted Exoskeleton,
 	// Grafted Wargear, Stitcher's Graft). It matches the events.Unattached

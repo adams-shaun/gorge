@@ -88,7 +88,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
 		events.GainedAbilityPush, events.GainedTriggerPush,
-		events.StoreSVar:
+		events.StoreSVar, events.GiftPromise, events.GiveGift:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -224,6 +224,13 @@ func triggerModeEvents(mode string) triggerEventMask {
 	case "SearchedLibrary":
 		// This marker is appended beyond the 64-bit trigger-mask range, so
 		// naming it keeps a SearchedLibrary-only face narrow on older Kinds.
+		return 0
+	case "GiveGift":
+		// The GiveGift marker's ordinal is past the 64-bit mask's reach, the
+		// Investigated/Surveil shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path. Naming the mode here
+		// keeps a GiveGift-only face's mask narrow for every other kind.
 		return 0
 	case "Investigated":
 		// The Kind's ordinal (67) is past the 64-bit mask's reach, the

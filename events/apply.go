@@ -1798,6 +1798,28 @@ func Apply(g *state.Game, e Event) {
 			o.X = e.Amount
 		}
 
+	case GiftPromise:
+		// CR 702.168: the cast-time gift election. Obj is the spell on the
+		// stack, Player the promised opponent (valid only when Amount != 0),
+		// Amount 1 for a promise and 0 for a decline. Folded onto the object
+		// so the PromisedGift predicate, the Count$PromisedGift head and
+		// Defined$ Promised read one home, and preserved across the
+		// stack->battlefield move by events.Move (the X/CastFlags window).
+		if o := g.Obj(e.Obj); o != nil {
+			o.PromisedGift = e.Amount != 0
+			o.GiftPromisedTo = 0
+			if o.PromisedGift {
+				o.GiftPromisedTo = e.Player
+			}
+		}
+
+	case GiveGift:
+		// A completed gift action (CR 702.168b), matched by trig:GiveGift.
+		// Like Investigate it is a pure Apply no-op marker: the gift's own
+		// state change is its own preceding event, and the record exists only
+		// so "whenever you give a gift" fires on a promise actually kept
+		// rather than on any draw or token creation.
+
 	case NoteNumber:
 		// A trigger's Execute$ body noted a number onto the CARD (DB$ Pump
 		// NoteNumber$ <expr> -- Lupine Harbingers' exile trigger noting
@@ -3392,7 +3414,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
-			// CR 400.7: the runtime SVar store is the old permanent's, not the
+			// CR 702.168: the gift promise is cast-time provenance, not a
+			// battlefield characteristic -- a re-entering permanent carries no
+			// promise from its old cast (CR 400.7), the CastFlags window's own
+			// discipline.
+			o.PromisedGift, o.GiftPromisedTo = false, 0
 			// new object's -- a blunk/reanimated StoreSVar carrier starts with
 			// no stored value (the printed default stands).
 			o.RuntimeSVars = nil
@@ -3443,6 +3469,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
+			// CR 702.168: a spell leaving the stack for a non-battlefield zone
+			// (a resolving instant/sorcery, a countered spell) carries its gift
+			// promise no further -- the same X/CastFlags window reset.
+			o.PromisedGift, o.GiftPromisedTo = false, 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).

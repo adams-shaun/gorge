@@ -122,6 +122,18 @@ type pendingCast struct {
 	// card registers no cleanup sacrifice. Plain data, so Clone carries it.
 	offSorcery bool
 
+	// giftDone / giftPromise / giftTo are the CR 702.168 Gift election
+	// (Bloomburrow): the caster's optional promise of a gift to an opponent,
+	// announced as a free cast-time choice (giftAsk) and folded onto the
+	// stack object as an events.GiftPromise by pushCast so the target ask and
+	// resolution read one event-backed home. giftDone marks the one ask
+	// already posed (the forageDone/replicateDone shape), giftPromise is the
+	// answer (false = declined, the plain-cast direction) and giftTo names
+	// the promised opponent. Plain data, so Clone carries them.
+	giftDone    bool
+	giftPromise bool
+	giftTo      state.PlayerID
+
 	cost Cost
 
 	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
@@ -2684,6 +2696,13 @@ func (e *Engine) continueCast() {
 	if e.altAddAsk() {
 		return
 	}
+	// CR 702.168: the Gift promise is announced as a free cast-time choice.
+	// It must settle before CR 601.2c's target ask, because a TargetMin$/Max$
+	// X bound of Count$PromisedGift.2.1 resolves when that ask is built -- a
+	// promise settled after targeting would be invisible to it.
+	if e.giftAsk() {
+		return
+	}
 	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
 		return
 	}
@@ -2884,6 +2903,47 @@ func (e *Engine) altAddAsk() bool {
 	for _, i := range order {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "altaddcost",
 			Label: capitaliseFirst(costPhrase(ParseCost(pc.altAddParts[i]))), Amount: i})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// giftAsk poses the CR 702.168 Gift election: "You may promise an opponent a
+// gift as you cast this spell." The election is FREE -- no mana, no card --
+// and is a single KChoose offering a decline plus one option per legal
+// opponent (CR 702.168a: the caster chooses WHICH opponent), so a two-seat
+// game offers exactly one opponent plus the decline. The answer goes nowhere
+// here: it rides pc and pushCast folds it onto the stack object as an
+// events.GiftPromise, the replay-derived home the target bound and the
+// resolution read. Only a face printing K:Gift with a GiftAbility SVar poses
+// the ask, so no unrelated cast gains a decision. The one-home answer rule
+// is the generic KChoose contract (Min 1 / Max 1 over the offered options),
+// which already drives Decision.Validate; the bot's own answer is proven
+// against it in botpolicy's gift test, so no parallel rule can drift.
+func (e *Engine) giftAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.giftDone || pc.isAbility() {
+		return false
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil || !o.Face().HasKeyword("Gift") {
+		return false
+	}
+	if _, ok := o.Face().SVars["GiftAbility"]; !ok {
+		return false
+	}
+	pc.giftDone = true
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Promise a gift?", Source: pc.card}
+	d.Options = append(d.Options, decision.Option{Index: 0, Kind: "gift_decline",
+		Label: "Don't promise a gift"})
+	for _, p := range e.G.AliveFrom(pc.player) {
+		if p == pc.player {
+			continue
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "gift_promise",
+			Player: p, Label: "Promise " + tossName(e.G, p) + " a gift"})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
@@ -6645,6 +6705,22 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		if len(chosen) > 0 {
 			pc.mutateTop = chosen[0].Amount == 1
 		}
+	case "gift_decline":
+		// CR 702.168: a declined gift is the plain cast -- no promise, and
+		// pushCast emits only the Amount-0 record. The byte-identical shape
+		// for every non-Gift carrier, which never reaches this ask at all.
+		pc.giftPromise = false
+	case "gift_promise":
+		// The promised opponent rides Option.Player, the field the
+		// protector/player elections share. An answer naming no live seat
+		// (only reachable from a hand-built decision) degrades to a decline
+		// rather than silently promising seat 0.
+		pc.giftPromise = false
+		if len(chosen) > 0 && chosen[0].Player != pc.player &&
+			int(chosen[0].Player) < len(e.G.Players) && !e.G.Players[chosen[0].Player].Lost {
+			pc.giftPromise = true
+			pc.giftTo = chosen[0].Player
+		}
 	case "conspire":
 		// CR 702.78a: the two chosen creatures are the tap the conspired cast
 		// pays. They settle through pc.taps (payCast taps them) and
@@ -7824,6 +7900,19 @@ func (e *Engine) pushCast() bool {
 	}
 	pc.stackObj = pc.card
 	pc.pushed = true
+	// CR 702.168: the Gift election was announced before CR 601.2a, so fold
+	// it onto the now-existing stack object here -- the target ask that
+	// follows reads Count$PromisedGift off it, and events.Move carries the
+	// promise across the stack->battlefield move for a permanent's ETB. Only
+	// a cast that actually reached the Gift ask emits (Amount 1 for a
+	// promise, 0 for a decline); every unrelated cast stays byte-identical.
+	if pc.giftDone {
+		amt := int32(0)
+		if pc.giftPromise {
+			amt = 1
+		}
+		e.emit(events.Event{Kind: events.GiftPromise, Obj: pc.card, Player: pc.giftTo, Amount: amt})
+	}
 	// CR 903.8: the cast counter increments the INSTANT the spell is put on
 	// the stack, never when it resolves -- so a commander spell that is later
 	// countered still raises the next cast's tax. Only a cast FROM the
