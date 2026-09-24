@@ -258,10 +258,12 @@ func registerTextSubstitution(h Host, c *Ctx, id state.ObjID, from, to, dur stri
 
 // effExchangeTextBox implements api:ExchangeTextBox: two objects swap their
 // rules text for the effect's duration. Each object gets a layer-3 TextSet
-// holding the OTHER's printed Oracle text, so rules.Engine.Text renders the
-// exchange. Source and Affects use the same per-object binding as ChangeText.
-// A single object (or a player target) is a no-op with a loud Note: an
-// exchange needs a pair.
+// holding the OTHER's current derived text (Host.ObjectText, CR 613.1d), so
+// rules.Engine.Text renders the exchange EXACTLY as the two boxes read at
+// resolution -- including any earlier ChangeText substitution on either side.
+// Source and Affects use the same per-object binding as ChangeText. A single
+// object (or a player target) is a no-op with a loud Note: an exchange needs a
+// pair.
 func effExchangeTextBox(h Host, c *Ctx, sa *cards.SA) {
 	var objs []state.ObjID
 	for _, t := range Defined(h, c, sa) {
@@ -279,8 +281,14 @@ func effExchangeTextBox(h Host, c *Ctx, sa *cards.SA) {
 	if oa == nil || oa.Face() == nil || ob == nil || ob.Face() == nil {
 		return
 	}
-	registerTextSet(h, c, a, ob.Face().Oracle, sa.Params["Duration"])
-	registerTextSet(h, c, b, oa.Face().Oracle, sa.Params["Duration"])
+	// CR 612.1: the boxes exchanged are the objects' text AS THEY EXIST at
+	// resolution, so each side's CURRENT derived text is captured (a prior
+	// ChangeText substitution on either object is carried across), not the
+	// printed Oracle. Reading both before registering either keeps the
+	// capture independent of this effect's own registrations.
+	textA, textB := h.ObjectText(oa), h.ObjectText(ob)
+	registerTextSet(h, c, a, textB, sa.Params["Duration"])
+	registerTextSet(h, c, b, textA, sa.Params["Duration"])
 }
 
 // registerTextSet registers one layer-3 TextSet (an outright text replacement)

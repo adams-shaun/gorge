@@ -211,36 +211,84 @@ var changeTextCarriers = []string{
 	"Deadpool, Trading Card", "Exchange of Words",
 }
 
-// TestChangeTextCarriersAreFullySupported is the brief's registration gate:
-// every api:ChangeText/api:ExchangeTextBox carrier in the corpus must no
-// longer report its text primitive unsupported, which is what raises make
-// report's playable count by the carriers whose only gap was this family.
-// (Two carriers carry an unrelated remaining gap -- Spectral Shift's
-// kw:Entwine and Trait Doctoring's kw:Cipher -- so the assertion is scoped to
-// the text primitives rather than the whole card.)
-func TestChangeTextCarriersAreFullySupported(t *testing.T) {
+// changeTextCarrierGaps is the complete measured Unsupported result for every
+// corpus api:ChangeText/api:ExchangeTextBox carrier at FORGE_REF, as a golden:
+// a nil entry means the card is fully playable (every carrier's text primitive
+// is now registered), and a non-nil entry is the exact remaining gap a
+// DIFFERENT primitive owns. It is asserted in full -- empty and non-empty
+// alike -- so the gate cannot pass by scoping itself to the text family, and a
+// card whose gap later closes (or opens) makes this table stale and fails.
+//
+// The two non-nil entries are unrelated to this ticket and already tracked:
+//   - Spectral Shift: kw:Entwine (no `case "Entwine"` in cards/keywords.go).
+//   - Trait Doctoring: kw:Cipher -- open ledger entry
+//     issue-agent-20260919T181215Z-71ad9572.
+var changeTextCarrierGaps = map[string][]string{
+	"Alter Reality":          nil,
+	"Artificial Evolution":   nil,
+	"Balduvian Shaman":       nil,
+	"Crystal Spray":          nil,
+	"Glamerdye":              nil,
+	"Magical Hack":           nil,
+	"Mind Bend":              nil,
+	"New Blood":              nil,
+	"Sleight of Mind":        nil,
+	"Whim of Volrath":        nil,
+	"Deadpool, Trading Card": nil,
+	"Exchange of Words":      nil,
+	"Spectral Shift":         {"kw:Entwine"},
+	"Trait Doctoring":        {"kw:Cipher"},
+}
+
+// TestChangeTextCarriersUnsupportedIsExact is the brief's registration gate in
+// its strongest satisfiable form: it asserts the COMPLETE Unsupported result
+// for all 14 carriers, not merely that the text primitives are absent. Twelve
+// carriers must be fully playable; the two whose only remaining gap is an
+// unrelated keyword must report EXACTLY that keyword, so the two facts are
+// pinned rather than hidden behind a text-family filter. A card that gains or
+// loses any unsupported primitive makes this table stale and fails.
+func TestChangeTextCarriersUnsupportedIsExact(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	supported := effects.Supported()
+	// The table must cover every carrier and no extra name, so a corpus rename
+	// or a missing carrier entry cannot silently shrink the check.
+	if len(changeTextCarrierGaps) != len(changeTextCarriers) {
+		t.Fatalf("gap table has %d entries, %d carriers", len(changeTextCarrierGaps), len(changeTextCarriers))
+	}
 	for _, name := range changeTextCarriers {
+		want, ok := changeTextCarrierGaps[name]
+		if !ok {
+			t.Fatalf("carrier %q has no entry in the gap table", name)
+		}
 		c, ok := reg.Lookup(name)
 		if !ok {
 			t.Fatalf("carrier %q not found in the corpus", name)
 		}
-		if m := reg.Unsupported(c, supported); containsPrim(m, "api:ChangeText") || containsPrim(m, "api:ExchangeTextBox") {
-			t.Errorf("%s still reports a text primitive unsupported: %v", name, m)
+		got := reg.Unsupported(c, supported)
+		if !sameStringSet(got, want) {
+			t.Errorf("%s Unsupported = %v, want %v", name, got, want)
 		}
 	}
 }
 
-// containsPrim reports whether the unsupported list names prim.
-func containsPrim(prims []string, prim string) bool {
-	for _, p := range prims {
-		if p == prim {
-			return true
+// sameStringSet compares two string lists as sets (order-insensitive, exact
+// multiplicity by length).
+func sameStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	m := make(map[string]int, len(a))
+	for _, s := range a {
+		m[s]++
+	}
+	for _, s := range b {
+		m[s]--
+		if m[s] < 0 {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // TestExchangeTextBoxSwapsTwoObjectsText pins api:ExchangeTextBox: after it

@@ -130,6 +130,16 @@ type fakeHost struct {
 
 func (h *fakeHost) Game() *state.Game                   { return h.g }
 func (h *fakeHost) ObjectColors(o *state.Object) string { return ColorsOf(o) }
+
+// ObjectText mirrors rules.Engine.ObjectText's derived-text read at the only
+// fidelity the effects double has: it has no layer walk, so it returns the
+// object's printed Oracle (an object with no face reads "").
+func (h *fakeHost) ObjectText(o *state.Object) string {
+	if o == nil || o.Face() == nil {
+		return ""
+	}
+	return o.Face().Oracle
+}
 func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)

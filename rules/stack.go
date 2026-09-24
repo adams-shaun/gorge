@@ -4302,7 +4302,20 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // grew a method of the same name, and needed no change to satisfy it.
 func (e *Engine) Game() *state.Game                   { return e.G }
 func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
-func (e *Engine) Emit(ev events.Event)                { e.emit(ev) }
+
+// ObjectText is effects.Host's derived-text read (CR 613.1d): the object's
+// printed Oracle after every layer-3 text effect already registered on it, in
+// timestamp order. It is the same render Engine.Text exposes, so
+// api:ExchangeTextBox exchanges each object's text AS IT CURRENTLY READS
+// rather than its printed face, carrying an earlier ChangeText substitution
+// across the swap instead of discarding it.
+func (e *Engine) ObjectText(o *state.Object) string {
+	if o == nil {
+		return ""
+	}
+	return e.Text(o.ID)
+}
+func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 
 // EmitScryRecord is effects.Host's completed-scry-record emit (task
 // scrybottom): the stand-in completion in effects' effLookAndArrange goes

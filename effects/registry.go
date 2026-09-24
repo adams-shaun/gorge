@@ -43,6 +43,14 @@ type Host interface {
 	// ObjectColors returns the object's live layer-5 colours when it is on the
 	// battlefield, and its face/CDA colours in other zones.
 	ObjectColors(*state.Object) string
+	// ObjectText returns the object's CURRENT derived rules text (CR 613.1d)
+	// -- printed Oracle after every layer-3 text effect already registered on
+	// it, in timestamp order. rules.Engine implements it through the same
+	// Derived.Text render the engine's own Text accessor uses; the effects
+	// test double returns the printed Oracle. api:ExchangeTextBox reads it to
+	// exchange the text boxes AS THEY EXIST at resolution, so a prior
+	// ChangeText substitution is carried across rather than discarded.
+	ObjectText(*state.Object) string
 	Emit(events.Event)
 	// EmitTokenCreate emits a token-creation event and returns every object
 	// it actually created, in mint order. A token-creation replacement may
