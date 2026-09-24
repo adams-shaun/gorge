@@ -498,15 +498,22 @@ func (e *Engine) EventMark() int { return len(e.L.Events) }
 // StateChangedSince implements effects' optional eventMarker seam: whether
 // any event other than a Note was logged after mark. A Note is the log's
 // commentary and folds into no game state (events.Apply), so a span holding
-// only Notes left the game exactly as it found it.
+// only Notes left the game exactly as it found it. A ZERO-amount Damage
+// event is the same kind of no-op: CR 120.8 says 0 damage is never dealt,
+// and the fold marks nothing for it (a DamageAll whose NumDmg$ counts an
+// empty Remembered set -- Kindle the Carnage repeated over an empty hand
+// logs one per creature per pass, and counting it as progress let a bot's
+// "Repeat" answer loop forever, cardfuzz batch8 line 1).
 func (e *Engine) StateChangedSince(mark int) bool {
 	if mark < 0 {
 		mark = 0
 	}
 	for i := mark; i < len(e.L.Events); i++ {
-		if e.L.Events[i].Kind != events.Note {
-			return true
+		ev := e.L.Events[i]
+		if ev.Kind == events.Note || (ev.Kind == events.Damage && ev.Amount == 0) {
+			continue
 		}
+		return true
 	}
 	return false
 }

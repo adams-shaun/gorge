@@ -1240,7 +1240,7 @@ func (e *Engine) continueManaReplacements(ev events.Event, candidates []replMatc
 				return ev, false
 			}
 			stored := events.Emit(e.G, e.L, ev)
-			e.loop.observe(stored)
+			e.loop.observeFrom(stored, e.damaging)
 			e.checkTriggers(stored, nil, 0, 0, false)
 			return stored, true
 		}
@@ -1576,7 +1576,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// still on the stack is a no-op to effTap).
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
 		stored := e.foldEntryMove(ev)
-		e.loop.observe(stored)
+		e.loop.observeFrom(stored, e.damaging)
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
 		// ordering; the raw events.Emit above bypasses that path, so the sweep
@@ -1635,7 +1635,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	}
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
 	stored := e.foldEntryMove(ev)
-	e.loop.observe(stored)
+	e.loop.observeFrom(stored, e.damaging)
 	// The move-driven Effect lifetimes, replayed inline exactly as the
 	// single-match Updated branch does (the raw events.Emit above bypasses
 	// Engine.emit's own sweep point).
@@ -1763,7 +1763,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		// Updated arm does, and never re-runs the replacement dispatch (so
 		// the just-answered competition cannot re-pose).
 		stored := e.foldEntryMove(rc.ev)
-		e.loop.observe(stored)
+		e.loop.observeFrom(stored, e.damaging)
 		// The move-driven Effect lifetimes, replayed inline exactly as the
 		// synchronous composition does (see applyReplacement's Updated arm).
 		e.effectMoveSweep(rc.ev)
@@ -2280,7 +2280,7 @@ func (e *Engine) emitTokenPlanMints(ev events.Event, plan []tokenPlanMint) event
 		if e.tokenMintSink != nil && e.G.Obj(want) != nil {
 			*e.tokenMintSink = append(*e.tokenMintSink, want)
 		}
-		e.loop.observe(stored)
+		e.loop.observeFrom(stored, e.damaging)
 		e.checkTriggers(stored, nil, 0, 0, false)
 		last = stored
 	}

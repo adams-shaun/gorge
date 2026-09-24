@@ -210,7 +210,18 @@ func newLivelockWatcherFromGuard(g LoopGuard) livelockWatcher {
 // game byte-identical to an un-watched one. A Disabled guard observes
 // nothing at all -- an explicitly opted-out game is supervised by whoever
 // set the flag, exactly as the host stall-guard opt-out intends.
-func (w *livelockWatcher) observe(ev events.Event) {
+func (w *livelockWatcher) observe(ev events.Event) { w.observeFrom(ev, 0) }
+
+// observeFrom is observe with the engine's current damage source (the
+// e.damaging scratch the emit ran under). A Damage event's payload names
+// only its RECIPIENT -- a player hit carries no object at all -- so the
+// combat damage step of a wide board (1790 Goblin tokens from Krenko, Mob
+// Boss, each dealing 1 to the same player: cardfuzz batch8 lines 2-3) logs
+// hundreds of byte-identical Damage events that are each a DIFFERENT
+// creature's damage. Folding the source into a Damage event's signature
+// keeps those distinct, while a real loop -- one source damaging the same
+// recipient again and again -- still repeats its signature exactly.
+func (w *livelockWatcher) observeFrom(ev events.Event, damageSource state.ObjID) {
 	if w.guard.Disabled {
 		return
 	}
@@ -248,6 +259,11 @@ func (w *livelockWatcher) observe(ev events.Event) {
 		return
 	}
 	sig := eventSignature(ev)
+	if ev.Kind == events.Damage && damageSource != 0 {
+		var u4 [4]byte
+		binary.LittleEndian.PutUint32(u4[:], uint32(damageSource))
+		sigBytes(&sig, u4[:])
+	}
 	if mintingKinds[ev.Kind] {
 		w.mints++
 		var u8 [8]byte
