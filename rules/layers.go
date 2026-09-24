@@ -2310,6 +2310,23 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	if o.FaceDown && o.Zone == state.ZBattlefield {
 		base = o.FaceDownTypeWords()
 	}
+	if o.CopyNonLegendary {
+		// CopySpellAbility NonLegendary$ True (The Sixth Doctor and the
+		// corpus's six-carrier family): the copy's characteristic set has
+		// the Legendary supertype removed. It is a layer-4 base strip in
+		// exactly the sense CopyPermanent's RemoveLegendary$ is, and it
+		// must reach the DERIVED list -- not just the printed face --
+		// because CR 704.5j's legendGroups reads the derived types. An
+		// instant/sorcery copy never reaches the battlefield, so this is
+		// harmless there.
+		stripped := make([]string, 0, len(base))
+		for _, t := range base {
+			if !strings.EqualFold(t, "Legendary") {
+				stripped = append(stripped, t)
+			}
+		}
+		base = stripped
+	}
 	zone := o.Zone
 	if atStack != 0 {
 		zone = atStack

@@ -2481,6 +2481,14 @@ func Apply(g *state.Game, e Event) {
 		// the copied spell's own text still grants the election on replay,
 		// and effects/copy.go never has to reach into rules to ask.
 		o.CopyMayChooseTarget = e.Amount == 1
+		// NonLegendary$ True on the creating CopySpellAbility (The Sixth
+		// Doctor et al.): the copy resolves with the Legendary supertype
+		// stripped. The rider rides the event's Counter (StackCopy uses no
+		// other Counter value), so it is folded into the mint here, exactly
+		// as ClonePermanent folds its own Counter riders -- no new event
+		// field is added or reordered, and every pre-existing StackCopy
+		// (empty Counter) keeps its legendary characteristics.
+		o.CopyNonLegendary = e.Counter == "nonlegendary"
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
