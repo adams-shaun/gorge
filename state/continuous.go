@@ -89,6 +89,19 @@ type ContinuousEffect struct {
 	// SetName is a layer-3 name overwrite (SetName$), resolved by rules' layer walk.
 	SetName string
 
+	// TextFrom/TextTo carry a layer-3 TEXT-substitution effect (CR 613.1d /
+	// CR 612, Forge's api:ChangeText): while the effect applies, every
+	// whole-word, case-insensitive instance of TextFrom in the affected
+	// object's printed Oracle text is replaced by TextTo, applied in
+	// timestamp order by rules' layer walk. An empty TextFrom substitutes
+	// nothing (a substitution whose source word is empty is never
+	// meaningful), so a zero value leaves the printed text untouched.
+	// TextSet, when non-empty, REPLACES the printed text outright (the
+	// sibling api:ExchangeTextBox swaps two objects' text boxes): the walk
+	// starts from TextSet and then applies any TextFrom/TextTo substitutions.
+	TextFrom, TextTo string
+	TextSet          string
+
 	// AddPowerExpr preserves a static P/T parameter that must be evaluated
 	// against its source each time characteristics are derived (for example
 	// +X or -X). An empty expression retains the already-resolved numeric

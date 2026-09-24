@@ -1,0 +1,244 @@
+package rules
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// newBloodCard is New Blood verbatim from the corpus: the GainControl's
+// SubAbility is the ChangeText body the test drives.
+func newBloodCard(t testing.TB) *cards.Card {
+	return card(t, "Name:New Blood\nManaCost:2 B B\nTypes:Sorcery\n"+
+		"A:SP$ GainControl | Cost$ 2 B B tapXType<1/Vampire> | ValidTgts$ Creature | SubAbility$ DBChangeText | SpellDescription$ x\n"+
+		"SVar:DBChangeText:DB$ ChangeText | Defined$ ParentTarget | ChangeTypeWord$ ChooseCreatureType Vampire | Duration$ Permanent\n"+
+		"Oracle:x\n")
+}
+
+// TestNewBloodChangeTextEndToEnd casts New Blood for real and pins its compiled
+// ChangeText body end to end: after the cast resolves, the stolen creature's
+// text carries the chosen creature type replaced by Vampire. Preconditions
+// make the assertion non-vacuous -- the victim is on the battlefield, its
+// printed text names the chosen type and not the replacement, and the
+// creature-type ask really was posed and answered.
+func TestNewBloodChangeTextEndToEnd(t *testing.T) {
+	t.Parallel()
+	newBlood := newBloodCard(t)
+	vampire := card(t, "Name:Vampire Source\nManaCost:1 B\nTypes:Creature Vampire\nPT:2/2\nOracle:x\n")
+	elf := card(t, "Name:Llanowar Elves\nManaCost:G\nTypes:Creature Elf Druid\nPT:1/1\nOracle:x\n")
+	victim := card(t, "Name:Elf Lord\nManaCost:1 G\nTypes:Creature Elf\nPT:1/1\nOracle:Other Elf creatures you control get +1/+1.\n")
+	e, cfg, _ := corpusDeckEngine(t, []*cards.Card{newBlood}, []*cards.Card{vampire, elf, victim})
+
+	var victimID, vampireID state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Zone != state.ZBattlefield {
+			continue
+		}
+		switch o.Card {
+		case victim:
+			victimID = o.ID
+		case vampire:
+			vampireID = o.ID
+		}
+	}
+	if victimID == 0 || vampireID == 0 {
+		t.Fatalf("setup: victim=%d vampire=%d, both must be on the battlefield", victimID, vampireID)
+	}
+	printed := e.G.Obj(victimID).Face().Oracle
+	if !strings.Contains(printed, "Elf") || strings.Contains(printed, "Vampire") {
+		t.Fatalf("precondition: printed text must name Elf and not Vampire, got %q", printed)
+	}
+	if before := e.Text(victimID); before != printed {
+		t.Fatalf("precondition: Text before the cast must be the printed Oracle %q, got %q", printed, before)
+	}
+
+	// Fund the {2}{B}{B} cost (generic may be paid with black) and cast.
+	addMana(t, e, 0, "BBBB")
+	castCardNow(t, e, "New Blood")
+
+	// Drive the cast to completion, answering the additional tap cost (the
+	// Vampire), the spell's target (the victim) and the creature-type ask.
+	sawTypeAsk := false
+	for i := 0; i < 60; i++ {
+		d := e.Pending()
+		if d == nil {
+			break
+		}
+		if sawTypeAsk && len(e.G.Stack) == 0 {
+			break
+		}
+		switch d.Kind {
+		case decision.KTarget:
+			if idx := indexOfObjOption(d, victimID); idx >= 0 {
+				submitChoices(t, e, idx)
+			} else if idx := indexOfObjOption(d, vampireID); idx >= 0 {
+				submitChoices(t, e, idx)
+			} else {
+				t.Fatalf("target ask offers neither victim nor Vampire: %+v", d.Options)
+			}
+		case decision.KChoose:
+			if strings.HasPrefix(d.Prompt, "Choose the text word") {
+				sawTypeAsk = true
+				submitTextChoice(t, e, "Elf")
+			} else {
+				t.Fatalf("unexpected KChoose prompt %q: %+v", d.Prompt, d.Options)
+			}
+		case decision.KPriority:
+			passOnceP(t, e)
+		default:
+			t.Fatalf("unexpected pending decision %v (%s)", d.Kind, d.Prompt)
+		}
+	}
+	if !sawTypeAsk {
+		t.Fatal("api:ChangeText never posed its creature-type ask")
+	}
+
+	got := e.Text(victimID)
+	want := "Other Vampire creatures you control get +1/+1."
+	if got != want {
+		t.Fatalf("New Blood substituted text = %q, want %q", got, want)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestChangeTextSubstitutesAChosenColorWord pins the ChangeColorWord$ Choose
+// Choose shape (alter_reality/magical_hack): both the from and the to words are
+// chosen, asked one at a time, and the substitution is whole-word.
+func TestChangeTextSubstitutesAChosenColorWord(t *testing.T) {
+	t.Parallel()
+	recolor := card(t, "Name:Test Recolor\nManaCost:B\nTypes:Sorcery\n"+
+		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ +0 | NumDef$ +0 | SubAbility$ DBRecolor\n"+
+		"SVar:DBRecolor:DB$ ChangeText | Defined$ ParentTarget | ChangeColorWord$ Choose Choose | Duration$ Permanent\n"+
+		"Oracle:x\n")
+	target := card(t, "Name:Black Knight\nManaCost:B B\nTypes:Creature Human Knight\nPT:2/2\nOracle:Protection from black.\n")
+	e, cfg, _ := corpusDeckEngine(t, []*cards.Card{recolor}, []*cards.Card{target})
+	var id state.ObjID
+	for i := range e.G.Objs {
+		if e.G.Objs[i].Card == target && e.G.Objs[i].Zone == state.ZBattlefield {
+			id = e.G.Objs[i].ID
+		}
+	}
+	if id == 0 {
+		t.Fatal("setup: no target creature on the battlefield")
+	}
+	if e.Text(id) != "Protection from black." {
+		t.Fatalf("precondition: printed text = %q", e.Text(id))
+	}
+
+	addMana(t, e, 0, "B")
+	castCardNow(t, e, "Test Recolor")
+	sawAsks := 0
+	for i := 0; i < 60; i++ {
+		d := e.Pending()
+		if d == nil {
+			break
+		}
+		if sawAsks >= 1 && len(e.G.Stack) == 0 {
+			break
+		}
+		switch d.Kind {
+		case decision.KTarget:
+			if idx := indexOfObjOption(d, id); idx >= 0 {
+				submitChoices(t, e, idx)
+			} else {
+				t.Fatalf("target ask does not offer the target: %+v", d.Options)
+			}
+		case decision.KChoose:
+			sawAsks++
+			fromIdx, toIdx := -1, -1
+			for _, o := range d.Options {
+				if o.Kind == "changetext_from" && o.Label == "black" {
+					fromIdx = o.Index
+				}
+				if o.Kind == "changetext_to" && o.Label == "white" {
+					toIdx = o.Index
+				}
+			}
+			if fromIdx < 0 || toIdx < 0 {
+				t.Fatalf("combined ChangeText ask must offer from=black and to=white: %+v", d.Options)
+			}
+			submitChoices(t, e, fromIdx, toIdx)
+		case decision.KPriority:
+			passOnceP(t, e)
+		default:
+			t.Fatalf("unexpected pending decision %v (%s)", d.Kind, d.Prompt)
+		}
+	}
+	if sawAsks != 1 {
+		t.Fatalf("ChangeColorWord$ Choose Choose posed %d word asks, want 1 combined ask", sawAsks)
+	}
+	got := e.Text(id)
+	if got != "Protection from white." {
+		t.Fatalf("color-word substituted text = %q, want %q", got, "Protection from white.")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// submitTextChoice answers the pending ChangeText KChoose with the option whose
+// label is label, proving the ask was posed (a missing pending ask fails loudly
+// rather than letting the test pass with the primitive inert).
+func submitTextChoice(t *testing.T, e *Engine, label string) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision: api:ChangeText never posed its word ask")
+	}
+	if d.Kind != decision.KChoose {
+		t.Fatalf("pending decision kind = %v, want KChoose", d.Kind)
+	}
+	for _, o := range d.Options {
+		if o.Label == label {
+			submitChoices(t, e, o.Index)
+			return
+		}
+	}
+	t.Fatalf("option %q not offered by the ChangeText ask: %+v", label, d.Options)
+}
+
+// changeTextCarriers is every corpus card whose compiled script references
+// api:ChangeText or api:ExchangeTextBox (measured at FORGE_REF: 12 ChangeText
+// files + 2 ExchangeTextBox files).
+var changeTextCarriers = []string{
+	"Alter Reality", "Artificial Evolution", "Balduvian Shaman", "Crystal Spray",
+	"Glamerdye", "Magical Hack", "Mind Bend", "New Blood", "Sleight of Mind",
+	"Spectral Shift", "Trait Doctoring", "Whim of Volrath",
+	"Deadpool, Trading Card", "Exchange of Words",
+}
+
+// TestChangeTextCarriersAreFullySupported is the brief's registration gate:
+// every api:ChangeText/api:ExchangeTextBox carrier in the corpus must no
+// longer report its text primitive unsupported, which is what raises make
+// report's playable count by the carriers whose only gap was this family.
+// (Two carriers carry an unrelated remaining gap -- Spectral Shift's
+// kw:Entwine and Trait Doctoring's kw:Cipher -- so the assertion is scoped to
+// the text primitives rather than the whole card.)
+func TestChangeTextCarriersAreFullySupported(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	supported := effects.Supported()
+	for _, name := range changeTextCarriers {
+		c, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("carrier %q not found in the corpus", name)
+		}
+		if m := reg.Unsupported(c, supported); containsPrim(m, "api:ChangeText") || containsPrim(m, "api:ExchangeTextBox") {
+			t.Errorf("%s still reports a text primitive unsupported: %v", name, m)
+		}
+	}
+}
+
+// containsPrim reports whether the unsupported list names prim.
+func containsPrim(prims []string, prim string) bool {
+	for _, p := range prims {
+		if p == prim {
+			return true
+		}
+	}
+	return false
+}

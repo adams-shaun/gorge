@@ -1929,6 +1929,16 @@ type Ctx struct {
 	// top of its walk (the fx42 scoping discipline), so a nested
 	// ChooseColor cannot inherit the outer answer.
 	ChosenColor string
+	// ChangeTextFrom/ChangeTextTo are the answered mid-resolution api:ChangeText
+	// word asks: the pair of words the chooser picked for the substitution's
+	// "from" and "to" halves. rules' "changetext" resume arm sets whichever
+	// the answered option's Kind names before the suspended sub-ability is
+	// re-run; effChangeText's re-entry consumes and clears both once it has
+	// resolved the pair (the fx42 scoping discipline), so a nested ChangeText
+	// cannot inherit the outer answer. Non-empty IS the answered marker for
+	// each half independently (the option labels are never empty), because the
+	// two halves may be asked sequentially across re-entries.
+	ChangeTextFrom, ChangeTextTo string
 	// ETBColorRecorded marks the ONE ChooseColor invocation that must not
 	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
 	// ChooseColor). The entry machinery (rules' applyETBChoiceReplacement ->

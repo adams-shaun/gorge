@@ -2472,6 +2472,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 {
 				ctx.ChosenColor = chosen[0].Label
 			}
+		case "changetext":
+			// A mid-resolution api:ChangeText word ask (the Choose/
+			// ChooseCreatureType/ChooseBasicLandType halves of a
+			// ChangeColorWord$/ChangeTypeWord$ substitution) was answered.
+			// Each answered option's Kind says which half it is
+			// ("changetext_from"/"changetext_to"), so a one-pick ask and a
+			// future combined ask use the same transport. The re-entered
+			// effChangeText consumes and clears whichever halves it now has
+			// (fx42 scoping), so a nested ChangeText asks its own words.
+			for _, o := range chosen {
+				switch o.Kind {
+				case "changetext_from":
+					ctx.ChangeTextFrom = o.Label
+				case "changetext_to":
+					ctx.ChangeTextTo = o.Label
+				}
+			}
 		case "choosenumber":
 			// A mid-resolution ChooseNumber ask (task
 			// cli-20260923T060000Z-choose-number: SP$/AB$/DB$ ChooseNumber
