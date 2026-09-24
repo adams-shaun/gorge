@@ -2904,11 +2904,14 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 // len(lib)) cards. The unchosen pile B's destination is the shared
 // Option.Kind passed in; only that differs between the two primitives.
 //
-// markSurveil selects the one verb-specific record: Surveil emits ONE
-// events.Surveil marker per acting player -- the canonical record
+// markSurveil selects the one verb-specific record emitted HERE: Surveil
+// emits ONE events.Surveil marker per acting player -- the canonical record
 // trig:Surveil matches ("whenever you surveil" -- Mirko, Obsessive
-// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch) --
-// while Scry emits none. The marker is emitted INSIDE the per-player loop,
+// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch) -- while
+// Scry's events.Scry record is emitted by rules (handleArrange for an
+// answered ask; the stand-in's EmitScryRecord below for one that never was),
+// so effects emits no Scry record of its own here. The marker is emitted
+// INSIDE the per-player loop,
 // at the point that player's arrangement is actually performed, NOT for
 // every defined target up front. A suspended player's re-entry
 // (Ctx.Arrange set) skips the completed target, so its marker is not
@@ -3021,6 +3024,17 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		h.Emit(events.Event{Kind: events.LibraryOrder, Player: p,
 			IDs:    append([]state.ObjID(nil), lib...),
 			Secret: true})
+		// A Scry that completes HERE -- no-host, or the never-posted empty
+		// KArrange an empty library or ScryNum$ 0 produces -- still completed:
+		// record its zero-card bottom pile (task scrybottom) through
+		// EmitScryRecord, the same outside-the-replacement-pass route
+		// handleArrange uses, so trig:Scry's plain "whenever you scry" fires
+		// once per instruction and the ToBottom$ True gate stays closed. The
+		// Surveil marker above already covers both routes for Surveil.
+		if verb == "Scry" {
+			h.EmitScryRecord(events.Event{Kind: events.Scry, Player: p,
+				Obj: c.Source, Amount: 0})
+		}
 	}
 }
 

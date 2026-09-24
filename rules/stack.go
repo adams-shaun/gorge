@@ -4042,6 +4042,14 @@ func (e *Engine) Game() *state.Game                   { return e.G }
 func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
 func (e *Engine) Emit(ev events.Event)                { e.emit(ev) }
 
+// EmitScryRecord is effects.Host's completed-scry-record emit (task
+// scrybottom): the stand-in completion in effects' effLookAndArrange goes
+// through emitScryRecord, the exact site handleArrange uses, so a scry that
+// finishes without an answerable KArrange (an empty library, ScryNum$ 0, a
+// no-host run) still records its zero-card bottom pile outside the
+// replacement pass.
+func (e *Engine) EmitScryRecord(ev events.Event) { e.emitScryRecord(ev) }
+
 // EmitTokenCreate emits a token-creation event and returns every object it
 // actually created. A CreateToken replacement may rewrite one would-be token
 // into several mints (Divine Visitation, Doubling Season, Xorn);
