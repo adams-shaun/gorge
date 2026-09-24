@@ -1037,7 +1037,21 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	4: "b3bf75f0c56512ae",
+	// cli-20260924T034908Z-be6139b0 (CR 614.12 entry-counter fold):
+	// eldrazi-stompy's K:etbCounter cards now fold their entry counters into
+	// the entry MoveZone. Measured over the acceptance games (all three
+	// affected seat counts): Endless One (K:etbCounter:P1P1:X, X:Count$xPaid)
+	// enters at seq 472 (4 seats), 182 (6 seats) and 795 (8 seats) with the
+	// move carrying Pairs = one P1P1 grant, and its body's CounterChange is
+	// now the notification-only EntryCounterNotice instead of a real
+	// placement -- every later event payload differs. Chalice of the Void
+	// carries CHARGE counters, a kind the frozen MoveZone Pairs tag cannot
+	// encode, so those stay on the body path and enter correctly rather than
+	// being dropped. The 2-seat game is unchanged because neither
+	// death-n-taxes (index 0) nor dimir-tempo (index 1) carries a
+	// K:etbCounter card; eldrazi-stompy (index 2) first joins the deck
+	// rotation at 4 seats.
+	4: "1bb310282d7dd96b",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1180,7 +1194,10 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	6: "a93593d452866261",
+	// cli-20260924T034908Z-be6139b0 (CR 614.12 entry-counter fold): see the
+	// 4-seat note. eldrazi-stompy is in this game too, so Endless One's
+	// entry counters fold into the MoveZone here as well.
+	6: "93fbe0e6cfac99d6",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1371,7 +1388,10 @@ var acceptanceHeads = map[int]string{
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
 	// bot-x1: 8 seats moves to beac5729b0e63dcc (see the 2-seat note).
-	8: "beac5729b0e63dcc",
+	// cli-20260924T034908Z-be6139b0 (CR 614.12 entry-counter fold): see the
+	// 4-seat note; eldrazi-stompy is in this game, so Endless One's entry
+	// counters fold into the MoveZone here too.
+	8: "5b6fa6b65b319120",
 }
 
 func TestHeads(t *testing.T) {

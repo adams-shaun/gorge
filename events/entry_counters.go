@@ -37,6 +37,21 @@ func applyEntryCounterPairs(o *state.Object, pairs [][2]state.ObjID) {
 	}
 }
 
+// EntryCounterKindEncodable reports whether a counter kind can travel in the
+// MoveZone EntryCounterPairs payload. The payload is a fixed-index tag (the
+// hash-chained event shape is frozen), so only the kinds the table names can
+// be folded; a body-defined grant of any other kind must be placed by its
+// own body instead, or it would be silently dropped. rules/entry_counters.go
+// gates body-grant absorption on this predicate.
+func EntryCounterKindEncodable(kind string) bool {
+	for i := 1; i < len(entryCounterKinds); i++ {
+		if kind == entryCounterKinds[i] {
+			return true
+		}
+	}
+	return false
+}
+
 // EntryCounterGrant is one counter kind a permanent enters the battlefield
 // with as an entry characteristic, and the amount of that kind.
 type EntryCounterGrant struct {

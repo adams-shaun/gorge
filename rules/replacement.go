@@ -1576,7 +1576,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// so a Tap lands on an object already in its new zone (an object
 		// still on the stack is a no-op to effTap).
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
-		stored := e.foldEntryMove(ev)
+		stored, absorbed := e.foldEntryMove(ev)
 		e.loop.observeFrom(stored, e.damaging)
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
@@ -1586,7 +1586,9 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// not linger to re-upgrade the same remembered card's next entry).
 		e.effectMoveSweep(ev)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
-		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
+		if !bodyAbsorbed(absorbed, m) {
+			e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
+		}
 		// The entry's own triggers are matched AFTER the Updated body: the
 		// body is how the permanent ENTERS (CR 614.1c/614.12 -- "enters
 		// tapped", "enters with counters"), so a leaves/enters trigger's
@@ -1715,7 +1717,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 			Text: "entry awaiting replacement-order choice"}, true
 	}
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
-	stored := e.foldEntryMove(ev)
+	stored, absorbed := e.foldEntryMove(ev)
 	e.loop.observeFrom(stored, e.damaging)
 	// The move-driven Effect lifetimes, replayed inline exactly as the
 	// single-match Updated branch does (the raw events.Emit above bypasses
@@ -1724,6 +1726,12 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	e.finishSourceLifelinkLKI(ev, departing, link, controller)
 	for _, m := range matches {
 		if m.repl.With == nil {
+			continue
+		}
+		if bodyAbsorbed(absorbed, m) {
+			// Its PutCounter|ETB$ True placement was folded into the move's
+			// Pairs payload (rules/entry_counters.go); running the body would
+			// place the counters twice.
 			continue
 		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
@@ -1844,7 +1852,8 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		// folds the grants with the move exactly as applyReplacement's
 		// Updated arm does, and never re-runs the replacement dispatch (so
 		// the just-answered competition cannot re-pose).
-		stored := e.foldEntryMove(rc.ev)
+		stored, absorbed := e.foldEntryMove(rc.ev)
+		rc.absorbed = absorbed
 		e.loop.observeFrom(stored, e.damaging)
 		// The move-driven Effect lifetimes, replayed inline exactly as the
 		// synchronous composition does (see applyReplacement's Updated arm).
@@ -1854,7 +1863,9 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		rc.emitted = true
 	}
 	chosen := rc.cands[selected]
-	e.runReplaceWith(e.replCtx(chosen, rc.ev), rc.ev.Obj, chosen.repl.With, nil)
+	if !bodyAbsorbed(rc.absorbed, chosen) {
+		e.runReplaceWith(e.replCtx(chosen, rc.ev), rc.ev.Obj, chosen.repl.With, nil)
+	}
 	var remaining []replMatch
 	for i, m := range rc.cands {
 		if i == selected {
@@ -1874,6 +1885,9 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		return
 	}
 	for _, m := range remaining {
+		if bodyAbsorbed(rc.absorbed, m) {
+			continue
+		}
 		e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
 	}
 	if e.pending == nil && rc.ev.Kind == events.MoveZone && rc.ev.To == state.ZBattlefield {
@@ -5360,6 +5374,13 @@ type replChoice struct {
 	// emitted (the composition's preamble ran); a re-parked continuation
 	// skips the emit and resolves only the remaining bodies.
 	emitted bool
+	// absorbed is kind == replChoiceUpdated's set of Updated PutCounter|
+	// ETB$ True bodies (replIdentity) whose placement the entry move's Pairs
+	// payload already carries (rules/entry_counters.go). It is captured from
+	// foldEntryMove on the preamble pass and consulted again on every
+	// re-parked continuation, so a later-answered absorbed body is never run
+	// a second time.
+	absorbed []string
 	// stage is kind == replChoiceEntryOrder's parked entry (rules/
 	// entry_counters.go): the move that has not folded and the competition
 	// state its resume continues. Pointer data, the same Clone class as
