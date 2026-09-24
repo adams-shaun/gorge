@@ -12,6 +12,11 @@ import (
 func fullModel() *Model {
 	m := NewModel(TableRows, 8, 4, rand.New(rand.NewPCG(3, 4)))
 	m.ResidualW = 2.5 // a non-zero prior so the round trip proves it is carried
+	m.InitValue(3, rand.New(rand.NewPCG(5, 6)))
+	for i := range m.VHidB {
+		m.VHidB[i] = 0.05 * float32(i+1) // non-zero so the round trip proves they are carried
+	}
+	m.VOutB = -0.25
 	return m
 }
 
@@ -43,6 +48,13 @@ func TestCheckpointRoundTrip(t *testing.T) {
 		!slices.Equal(m.StateB, m2.StateB) || !slices.Equal(m.HidW, m2.HidW) ||
 		!slices.Equal(m.HidB, m2.HidB) || !slices.Equal(m.OutW, m2.OutW) || m.OutB != m2.OutB || m.ResidualW != m2.ResidualW {
 		t.Fatal("round trip changed at least one weight")
+	}
+	if m2.ValueHidden != m.ValueHidden || !slices.Equal(m.VHidW, m2.VHidW) || !slices.Equal(m.VHidB, m2.VHidB) ||
+		!slices.Equal(m.VOutW, m2.VOutW) || m.VOutB != m2.VOutB {
+		t.Fatal("round trip changed the value head")
+	}
+	if a, b := m.Value(st), m2.Value(st); a != b {
+		t.Fatalf("value %g after round trip, want %g", b, a)
 	}
 	got := m2.Score(st, opts)
 	for i := range want {
@@ -159,5 +171,45 @@ func TestCheckpointV1Refused(t *testing.T) {
 		t.Fatal("a version-1 checkpoint was silently accepted — the doc's refusal claim is unpinned")
 	} else if !bytes.Contains([]byte(err.Error()), []byte("version")) {
 		t.Fatalf("v1 refusal should name the version, got: %v", err)
+	}
+}
+
+// TestCheckpointV2Refused pins the v3 tripwire: a genuine version-2
+// checkpoint (six geometry words, body ending at ResidualW) is refused, never
+// silently loaded as a model without a value head. Built from a real v3
+// serialisation of a model WITHOUT a value head: drop the seventh geometry
+// word (valueHidden, bytes 40..44) and the trailing VOutB float, and set the
+// version field to 2 — exactly the bytes the v2 writer produced.
+func TestCheckpointV2Refused(t *testing.T) {
+	m := NewModel(TableRows, 8, 4, rand.New(rand.NewPCG(3, 4)))
+	m.ResidualW = 2.5
+	var buf bytes.Buffer
+	if err := WriteCheckpoint(m, &buf); err != nil {
+		t.Fatalf("WriteCheckpoint: %v", err)
+	}
+	b := buf.Bytes()
+	v2 := append(append([]byte{}, b[:40]...), b[44:len(b)-4]...)
+	copy(v2[4:8], []byte{2, 0, 0, 0})
+	if _, err := LoadCheckpoint(bytes.NewReader(v2)); err == nil {
+		t.Fatal("a version-2 checkpoint was silently accepted — the v3 refusal is unpinned")
+	} else if !bytes.Contains([]byte(err.Error()), []byte("version")) {
+		t.Fatalf("v2 refusal should name the version, got: %v", err)
+	}
+}
+
+// TestCheckpointNoValueHeadRoundTrip: a policy-only model (ValueHidden 0,
+// what -value-weight 0 trains) round-trips as a policy-only model.
+func TestCheckpointNoValueHeadRoundTrip(t *testing.T) {
+	m := NewModel(TableRows, 8, 4, rand.New(rand.NewPCG(3, 4)))
+	var buf bytes.Buffer
+	if err := WriteCheckpoint(m, &buf); err != nil {
+		t.Fatalf("WriteCheckpoint: %v", err)
+	}
+	m2, err := LoadCheckpoint(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("LoadCheckpoint: %v", err)
+	}
+	if m2.HasValue() || m2.ValueHidden != 0 || len(m2.VHidW)+len(m2.VHidB)+len(m2.VOutW) != 0 || m2.VOutB != 0 {
+		t.Fatalf("policy-only model loaded with a value head: hidden %d", m2.ValueHidden)
 	}
 }

@@ -22,7 +22,8 @@ import (
 //	"GPOL"                    4 bytes magic
 //	uint32                    schema version (CheckpointVersion)
 //	uint64                    EncoderHash() at training time
-//	uint32 × 6                rows, H, hidden, stateDenseW, optSlotW, optDenseW
+//	uint32 × 7                rows, H, hidden, stateDenseW, optSlotW, optDenseW,
+//	                          valueHidden (schema version 3+; 0 = no value head)
 //	float32 × rows·H          Table
 //	float32 × DenseWidth·H    StateW
 //	float32 × H               StateB
@@ -31,6 +32,10 @@ import (
 //	float32 × hidden          OutW
 //	float32 × 1               OutB
 //	float32 × 1               ResidualW (schema version 2+)
+//	float32 × valueHidden·H   VHidW     (schema version 3+)
+//	float32 × valueHidden     VHidB     (schema version 3+)
+//	float32 × valueHidden     VOutW     (schema version 3+)
+//	float32 × 1               VOutB     (schema version 3+; 0 when valueHidden is 0)
 //
 // The loader rejects a wrong magic, an unknown version, an encoder-hash
 // mismatch, a geometry that does not match the encoder contract (rows must
@@ -40,9 +45,15 @@ import (
 // Schema version 2 appends ResidualW (the bot-prior residual weight).
 // Version 1 checkpoints are refused rather than silently loaded with
 // ResidualW 0: the version bump is the tripwire that says the body grew.
+//
+// Schema version 3 adds the value head (ticket pn08): a seventh geometry
+// word, valueHidden, and the four value blocks after ResidualW. VOutB is
+// always written (one float) so the layout has no conditional block; with
+// valueHidden 0 the three sized blocks are empty and VOutB is 0. Version 2
+// (and 1) checkpoints are refused, by the same tripwire.
 const (
 	CheckpointMagic   = "GPOL"
-	CheckpointVersion = 2
+	CheckpointVersion = 3
 )
 
 // EncoderHash is the encoder contract's golden hash id: a FNV-1a 64 over
@@ -113,12 +124,12 @@ func WriteCheckpoint(m *Model, w io.Writer) error {
 		_, err := bw.Write(b4[:])
 		return err
 	}
-	for _, v := range []uint32{uint32(m.Hidden), uint32(DenseWidth), uint32(OptionSlotWidth), uint32(OptionDenseWidth)} {
+	for _, v := range []uint32{uint32(m.Hidden), uint32(DenseWidth), uint32(OptionSlotWidth), uint32(OptionDenseWidth), uint32(m.ValueHidden)} {
 		if err := put32(v); err != nil {
 			return err
 		}
 	}
-	for _, block := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}} {
+	for _, block := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}, m.VHidW, m.VHidB, m.VOutW, {m.VOutB}} {
 		if err := writeFloats(bw, block); err != nil {
 			return err
 		}
@@ -188,6 +199,10 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
+	valueHidden, err := get32("value hidden")
+	if err != nil {
+		return nil, err
+	}
 	if rows != TableRows {
 		return nil, fmt.Errorf("checkpoint geometry: table rows %d, want %d", rows, TableRows)
 	}
@@ -203,11 +218,18 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 	if hh <= 0 || hidden <= 0 {
 		return nil, fmt.Errorf("checkpoint geometry: h %d hidden %d", hh, hidden)
 	}
+	// A value width large enough to overflow the block size is corrupt, not a
+	// model; bound it by the hidden-layer scale any trainer would use.
+	if valueHidden < 0 || valueHidden > 1<<16 {
+		return nil, fmt.Errorf("checkpoint geometry: value hidden %d", valueHidden)
+	}
 	m := &Model{
 		Rows:   rows,
 		H:      hh,
 		Hidden: hidden,
 		InW:    2*hh + slotW + optDenseW,
+
+		ValueHidden: valueHidden,
 	}
 	blocks := []struct {
 		name string
@@ -222,6 +244,10 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 		{"output", hidden, func(fs []float32) { m.OutW = fs }},
 		{"output bias", 1, func(fs []float32) { m.OutB = fs[0] }},
 		{"residual weight", 1, func(fs []float32) { m.ResidualW = fs[0] }},
+		{"value hidden", valueHidden * hh, func(fs []float32) { m.VHidW = fs }},
+		{"value hidden bias", valueHidden, func(fs []float32) { m.VHidB = fs }},
+		{"value output", valueHidden, func(fs []float32) { m.VOutW = fs }},
+		{"value output bias", 1, func(fs []float32) { m.VOutB = fs[0] }},
 	}
 	for _, blk := range blocks {
 		fs, err := readFloats(br, blk.n)

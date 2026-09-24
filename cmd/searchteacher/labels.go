@@ -14,7 +14,11 @@ import (
 	"github.com/adams-shaun/gorge/view"
 )
 
-const labelSchemaVersion = 1
+// labelSchemaVersion is the schema this writer emits. Schema 2 added
+// Outcome/OutcomeKnown; the record type stays "label-v1" (the record's shape
+// grew, its meaning did not change), and internal/policynet still loads
+// schema 1 corpora.
+const labelSchemaVersion = 2
 
 // LabelRecord is one search-teacher decision the teacher COVERED (it scored
 // every candidate on worlds and produced values): the deciding seat's board
@@ -76,6 +80,15 @@ type LabelRecord struct {
 	Attempts int   `json:"attempts"`
 	Accepted int   `json:"accepted"`
 	Horizon  int32 `json:"horizon"`
+	// Outcome is the deciding seat's result in the SEARCH game this decision
+	// was taken in: 1 win, 0.5 draw, 0 loss. Labels are emitted only for the
+	// search seat's own decisions in the search game, so the outcome is always
+	// that seat's. OutcomeKnown is false when the search game has no result --
+	// it stalled at the turn/step cap or errored -- and Outcome is then 0 and
+	// must be ignored. Both are filled in collectLabels once every game has
+	// finished (schema 2).
+	Outcome      float64 `json:"outcome"`
+	OutcomeKnown bool    `json:"outcome_known"`
 }
 
 // LabelCandidate is one evaluated candidate answer: its option set (the
@@ -122,10 +135,16 @@ func checkLabelsDestination(path string) error {
 // pair (lexicographic), game index, decision sequence. Each game is played
 // by one goroutine, so its records are already in sequence order; the sort
 // is stable belt-and-braces so the corpus contract does not depend on it.
+// Every record is stamped with its own game's search outcome (searchOutcome)
+// before sorting.
 func collectLabels(all []GameRecord) []LabelRecord {
 	var out []LabelRecord
 	for _, r := range all {
-		out = append(out, r.Labels...)
+		outcome, known := searchOutcome(r)
+		for _, l := range r.Labels {
+			l.Outcome, l.OutcomeKnown = outcome, known
+			out = append(out, l)
+		}
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
@@ -138,6 +157,22 @@ func collectLabels(all []GameRecord) []LabelRecord {
 		return a.Sequence < b.Sequence
 	})
 	return out
+}
+
+// searchOutcome is the search seat's result in r's search game: 1 win, 0.5
+// draw, 0 loss, and known=false (outcome 0) for a game that errored or
+// stalled without finishing.
+func searchOutcome(r GameRecord) (outcome float64, known bool) {
+	switch {
+	case r.Error != "" || !r.SearchOver:
+		return 0, false
+	case r.SearchDraw:
+		return 0.5, true
+	case r.SearchWon:
+		return 1, true
+	default:
+		return 0, true
+	}
 }
 
 // writeLabels publishes the corpus to a NEW file atomically: every record is
