@@ -144,6 +144,25 @@ type untapStep struct {
 // against the untapped card's own controller, and a foreign card's controller
 // is not the step's active player.
 func (e *Engine) finishUntapStep(next int) bool {
+	if next == 0 {
+		// CR 702.25d: a phased-out permanent phases in at its controller's
+		// untap step, as the step begins -- before that step's untap action,
+		// so it untaps with everything else that step. Each permanent gets
+		// its own PhaseOut event (CR 702.25a's one-at-a-time phasing), and
+		// the scan is gated on `next == 0` so a resumed scan (an untap-step
+		// choice parked this scan at untapResume) never re-emits the
+		// phase-ins.
+		for _, p := range e.G.AliveFrom(0) {
+			if p != e.G.Active {
+				continue
+			}
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				if o := e.G.Obj(id); o != nil && o.PhasedOut {
+					e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
+				}
+			}
+		}
+	}
 	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
 	for i := next; i < len(ids); i++ {
 		o := e.G.Obj(ids[i])

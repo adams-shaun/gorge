@@ -216,6 +216,12 @@ func (e *Engine) scanActiveStatics(mode string, out []staticView) []staticView {
 				// exist while it is face down (the shared gate in layers.go).
 				continue
 			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so its statics do not function (and it is not
+				// an affected permanent either).
+				continue
+			}
 			for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
 				pst, ok := o.PileStaticAt(si)
 				if !ok {
