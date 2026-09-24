@@ -19,8 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 18 data rows (measured with
-	// approximationRows() against the merged AGENTS.md). This merge keeps four
+	// After deleting the CR 103.1 toss-choice row, AGENTS.md measures 14
+	// data rows (main had 15; its constant had not yet been lowered from 16).
+	// Earlier merges kept four
 	// disjoint closures alongside the prior deletions: this branch's rv1
 	// RevealAllValid$ closure (effects/cardflow.go effReveal,
 	// agent-20260922T191943Z-4ffa25b7), main's task scrybottom
