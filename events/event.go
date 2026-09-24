@@ -11,6 +11,11 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// UntapReplacedByStunNotice marks CR 122.1d's CounterChange substitution.
+// Like EntryCounterNotice, it uses the existing Text field; Apply still places
+// the counter because only EntryCounterNotice suppresses placement.
+const UntapReplacedByStunNotice = "__untap_replaced_by_stun_notice"
+
 type Kind uint8
 
 const (
