@@ -4304,7 +4304,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
 	rider := classifyAttackingEntry(c, sa, to)
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
-		h.Emit(moveZoneEvent(c, id, z, to))
+		ev := moveZoneEvent(c, id, z, to)
+		applyFaceDownMarker(h, sa, c, &ev, to)
+		h.Emit(ev)
 		moved = append(moved, id)
 		// Tapped$ True (Splendid Reclamation's "Return all land cards
 		// ... tapped"): a battlefield entry is followed by the same

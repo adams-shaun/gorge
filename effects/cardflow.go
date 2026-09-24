@@ -1369,6 +1369,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			ev.Player, ev.Secret = p, true
+			applyFaceDownMarker(h, sa, c, &ev, dest)
 			if dest == state.ZLibrary {
 				primaryMoved = append(primaryMoved, id)
 			}
@@ -1378,10 +1379,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// Hideaway's move uses -- the exiling source rides in Amount --
 			// so a replay derives FaceDown identically and a projection
 			// withholds the card.
-			if strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True") && dest == state.ZExile {
-				ev.Counter = "exiled_with_face_down"
-				ev.Amount = int32(c.Source)
-			}
+			// applyFaceDownMarker preserves ExileFaceDown$'s source-carrying
+			// payload (Counter, Amount and nil IDs), while also stamping
+			// battlefield FaceDown$ entries.
 			h.Emit(ev)
 			if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 				if moved := g.Obj(id); moved != nil && moved.Zone == dest && !moved.IsToken {
@@ -1393,6 +1393,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 			}
 			rider.apply(h, c, id, p, dest)
+			if dest == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["GainControl"]), "True") {
+				h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: c.Controller})
+			}
 			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's
 			// "put it onto the battlefield ... it's an enchantment"): the same
 			// rider registration every ChangeZone mover applies.
