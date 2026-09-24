@@ -204,7 +204,31 @@ func run(l *events.Log, cfg rules.Config, n int) (*rules.Engine, error) {
 	}
 	cfg.Seed = l.Seed // Ruling P5: the log's seed wins over the caller's.
 
-	e := rules.New(cfg)
+	// CR 103.1's winner-chooses ask is posed only by a harness that can
+	// answer it, so a log that recorded it carries a DecisionAsk event for
+	// the kind. A log that asked is reconstructed through the choice
+	// constructor (rules.NewStartingPlayerChoice), which defers the pregame
+	// rounds the original run deferred, and the ask is re-posed here so the
+	// recorded choice Intent lands on the decision it answered. A log that
+	// never asked is reconstructed through plain rules.New -- byte-identical
+	// to the run that produced it -- and advances through the R-9 fallback
+	// exactly as the original run did.
+	var e *rules.Engine
+	asked := startingPlayerAsked(l)
+	if asked {
+		e = rules.NewStartingPlayerChoice(cfg)
+	} else {
+		e = rules.New(cfg)
+	}
+	if asked {
+		// Re-pose the recorded ask, before Advance's R-9 fallback would
+		// default it, so the recorded choice Intent lands on the decision it
+		// answered. The re-pose emits the same DecisionAsk event at the same
+		// log position the original run recorded.
+		if e.AskStartingPlayer() == nil {
+			return e, fmt.Errorf("replay: log recorded a starting_player ask but none is available")
+		}
+	}
 	e.Advance()
 	checked, err := compare(e, l, 0)
 	if err != nil {
@@ -233,6 +257,22 @@ func run(l *events.Log, cfg rules.Config, n int) (*rules.Engine, error) {
 		}
 	}
 	return e, nil
+}
+
+// startingPlayerAsked reports whether l recorded the CR 103.1 winner-chooses
+// ask (a DecisionAsk whose Text is the kind). Replay must pose exactly the
+// decisions the original game posed, and this one is conditional, so the log
+// is the only source of truth for whether it happened.
+func startingPlayerAsked(l *events.Log) bool {
+	if l == nil {
+		return false
+	}
+	for _, ev := range l.Events {
+		if ev.Kind == events.DecisionAsk && ev.Text == "starting_player" {
+			return true
+		}
+	}
+	return false
 }
 
 // compare checks e's own event log, from index checked onward, against l's

@@ -65,6 +65,12 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 		}
 		raw = raw[1:]
 	}
+	if v, ok := runtimeSVar(c, raw); ok {
+		// A runtime write (api:StoreSVar) shadows the printed body of the same
+		// name -- checked BEFORE the table, or LifePaidOnETB:Number$0 would
+		// win over the stored value.
+		return sign * v, true
+	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[raw]; ok {
 			return sign * EvalCount(h, c, body), true
@@ -303,7 +309,11 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if rest, ok := strings.CutPrefix(expr, "SVar$"); ok {
 		name, op, hasOp := strings.Cut(rest, "/")
 		n, ok3 := int32(0), false
-		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
+		if v, ok2 := runtimeSVar(c, strings.TrimSpace(name)); ok2 {
+			// A runtime write (api:StoreSVar) shadows the printed body of the
+			// same name -- checked first, or LifePaidOnETB:Number$0 would win.
+			n, ok3 = v, true
+		} else if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
 			n, ok3 = evalCountExprOK(h, c, body, depth+1)
 		} else if v, ok2 := runtimePublished(c, strings.TrimSpace(name)); ok2 {
 			n, ok3 = v, true
@@ -872,7 +882,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 // forms can never disagree about what one argument selects.
 type castManaSpentTotals struct {
 	total, snow int32
-	typed       [3]int32
+	typed       [4]int32
 }
 
 // manaSpentTotalsOf reads a cast object's recorded spend breakdown. The typed
@@ -2209,8 +2219,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return 0, true
 	}
 	// Kicked.<yes>.<no> is <yes> when the source was kicked, else <no>.
+	// A pending cast's announcement ask reads it BEFORE payment stamps the
+	// stack object, so Ctx.PendingKicked (rules' targetBoundCtx binding) is
+	// ORed with the object's FlagKicked; at resolution no pending cast exists
+	// and the object read is authoritative.
 	if rest, ok := strings.CutPrefix(head, "Kicked."); ok {
 		yes, no := splitDot(rest)
+		if c.PendingKicked {
+			return yes, true
+		}
 		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagKicked != 0 {
 			return yes, true
 		}
@@ -3774,7 +3791,7 @@ func manaCostColourSymbols(cost string, col byte) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(cost) {
+	for sym := range strings.FieldsSeq(cost) {
 		n += int32(strings.Count(sym, string(col)))
 	}
 	return n

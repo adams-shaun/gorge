@@ -2,10 +2,8 @@ package effects
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -17,35 +15,15 @@ func init() { Register("SacrificeAll", effSacrificeAll) }
 // every player sacrifices every permanent matching ValidCards$ (default
 // Permanent). RememberSacrificed$ preserves LKI for a following sub-ability.
 //
-// UnlessCost$ is a real may-pay continuation: the named payer can pay to
-// prevent the whole sacrifice. The common engine continuation owns mana
-// payment, so this effect only poses the ask and interprets its answer.
+// UnlessCost$ ("sacrifice it unless you pay ...") is owned entirely by the
+// shared unless gate in Resolve (unlessProceed): it poses the pay ask to the
+// UnlessPayer$, rules' unless_pay arm charges the cost, and a paid answer
+// skips this body. This body therefore NEVER reads Ctx.UnlessPay. It used to
+// pose a second ask of its own; the gate had already consumed and cleared
+// the answer by the time the body ran, so the body's ask was re-posed on
+// every answered re-entry (the Flash / Slow Motion livelock the cardfuzz
+// run found: decision_ask modes -> decision_made -> mode_chosen forever).
 func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
-	if cost := strings.TrimSpace(sa.Params["UnlessCost"]); cost != "" {
-		ans := c.UnlessPay
-		c.UnlessPay = ""
-		switch ans {
-		case "pay":
-			return
-		case "decline":
-			// Continue into the sacrifice below.
-		default:
-			payer := sacrificeAllPayer(h, c, sa)
-			d := &decision.Decision{Player: payer, Kind: decision.KModes,
-				Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay", ResumeSA: sa,
-				Prompt: "Pay " + cost + " to prevent the sacrifice, or decline",
-				Options: []decision.Option{
-					{Index: 0, Kind: "mode", Label: "Pay " + cost + " — prevent the sacrifice", Obj: c.Source, Player: payer},
-					{Index: 1, Kind: "mode", Label: "Don't pay — sacrifice", Obj: c.Source, Player: payer},
-				}}
-			if h.Ask(d) {
-				return
-			}
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "may pay declined (UnlessCost not asked on this host)"})
-		}
-	}
-
 	g := h.Game()
 	spec := sa.Params["ValidCards"]
 	if spec == "" {
@@ -108,27 +86,4 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-}
-
-// sacrificeAllPayer resolves every payer spelling used by the corpus's six
-// compensated-sacrifice scripts. EnchantedController is the controller of
-// this Aura's attached permanent; the target is deliberately not used because
-// the trigger has no target. Unknown future spellings fail conservatively to
-// the resolving controller, the same default the other unless-pay effects use.
-func sacrificeAllPayer(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
-	switch strings.TrimSpace(sa.Params["UnlessPayer"]) {
-	case "", "You":
-		return c.Controller
-	case "EnchantedController":
-		if src := h.Game().Obj(c.Source); src != nil && src.AttachedTo != 0 {
-			if enchanted := h.Game().Obj(src.AttachedTo); enchanted != nil {
-				return enchanted.Controller
-			}
-		}
-	case "Targeted", "TargetedController", "TargetedOrController":
-		if len(c.Targets) > 0 {
-			return PlayerOf(h, c, c.Targets[0])
-		}
-	}
-	return c.Controller
 }

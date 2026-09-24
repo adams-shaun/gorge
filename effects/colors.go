@@ -210,8 +210,8 @@ func CDASetColourClaim(f *cards.Face) (ColorMask, bool) {
 func colorLetters(list string) ([]string, bool) {
 	var set [5]bool
 	ok := true
-	for _, entry := range strings.Split(list, ",") {
-		for _, word := range strings.Split(strings.TrimSpace(entry), " & ") {
+	for entry := range strings.SplitSeq(list, ",") {
+		for word := range strings.SplitSeq(strings.TrimSpace(entry), " & ") {
 			switch strings.ToLower(strings.TrimSpace(word)) {
 			case "":
 			case "all":

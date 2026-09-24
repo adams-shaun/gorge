@@ -114,6 +114,10 @@ type CompiledCatalog struct {
 
 	facePointers    []*Face
 	abilityPointers []*SA
+	// manaAbilityPointers[i] is abilityPointers[ManaAbilityIDs[i]-1] (nil for
+	// an id out of range), built once at CompileMetadata so Face.ManaAbilities
+	// can serve a face's span without allocating.
+	manaAbilityPointers []*SA
 }
 
 func (c *CompiledCatalog) CanonicalBytes() []byte {
@@ -228,6 +232,12 @@ func (r *Registry) CompileMetadata() error {
 
 	canonical := canonicalCatalogBytes(&b.catalog)
 	b.catalog.Identity = CatalogIdentity{Schema: CompiledCatalogSchema, CorpusHash: sha256.Sum256(canonical)}
+	b.catalog.manaAbilityPointers = make([]*SA, len(b.catalog.ManaAbilityIDs))
+	for i, id := range b.catalog.ManaAbilityIDs {
+		if id != 0 && int(id) <= len(b.catalog.abilityPointers) {
+			b.catalog.manaAbilityPointers[i] = b.catalog.abilityPointers[id-1]
+		}
+	}
 	for _, binding := range faces {
 		binding.face.compiledCatalog = &b.catalog
 		binding.face.compiledID = binding.id
@@ -527,7 +537,7 @@ func printedColourMask(face *Face) ColourMask {
 	if mask != 0 {
 		return mask
 	}
-	for _, colour := range strings.Split(face.Colors, ",") {
+	for colour := range strings.SplitSeq(face.Colors, ",") {
 		switch strings.ToLower(strings.TrimSpace(colour)) {
 		case "white":
 			mask |= ColourMaskWhite

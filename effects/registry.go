@@ -814,6 +814,14 @@ type Ctx struct {
 	// spell, on a synthetic push, and in any test Ctx that never binds it --
 	// a modelled head reading a legitimate zero.
 	ResolvedThisTurn int32
+	// ActivationsThisTurn is how many times the resolving ACTIVATED ability
+	// has been activated this turn, INCLUDING the current activation (its own
+	// AbilityPush / ManaActivate marker is already in the log). rules binds
+	// it wherever it binds ResolvedThisTurn; zero means unbound (a spell, a
+	// trigger, a synthetic Ctx). It backs ConditionActivationLimit$
+	// (Farrelite Priest's "if this ability has been activated four or more
+	// times this turn").
+	ActivationsThisTurn int32
 	// EffectiveNames is the layer-3 rename table (SetName$, CR 613.1d) in force
 	// on the battlefield, published by the resolving Host at the top of every
 	// effects.Resolve walk and bound onto every SpecContext (*Ctx).SpecContext
@@ -999,6 +1007,17 @@ type Ctx struct {
 	// the source object's stamped field -- the same priority the xPaid head
 	// gives ctx.X over the object read.
 	TimesKicked int32
+	// PendingKicked is the pending cast's CHOSEN kicked mode (CR 702.4/702.33),
+	// seeded by rules' targetBoundCtx when the spell's OWN announcement ask
+	// resolves a Count$Kicked body BEFORE payment has stamped the stack
+	// object's CastFlags. Tear Asunder's kicked main SA is
+	// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1, so pre-payment
+	// the object reads Kicked false and X stays 1 -- the ask then demands an
+	// artifact/enchantment the kicked spell must not take. The Kicked count
+	// head ORs this bit with the object's FlagKicked, so a mid-resolution read
+	// (no pending cast, the flag actually stamped) is unaffected. Zero (false)
+	// everywhere else; it is derived data, never event-encoded.
+	PendingKicked bool
 	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
 	// wildgrowth1): the number the Effect resolved at creation, threaded into
 	// a registered replacement's body Ctx by rules' replCtx so the body's
@@ -1424,6 +1443,17 @@ type Ctx struct {
 	CloneChoiceValid bool
 	CloneBecome      state.ObjID
 	CloneBecomeValid bool
+	// ClonePick is the answered DB$ Clone Choices$ <filter> copy-source pick
+	// (the standalone "becomes a copy of any creature" family). rules'
+	// resumeResolution sets it from the recorded answer before re-running the
+	// suspended ability, and ClonePickDone distinguishes "answered" from the
+	// first pass. The asking effect consumes and clears both at the top of its
+	// own walk (the fx42 scoping discipline), so a nested Clone cannot inherit
+	// the outer answer. A no-host run (AskNoHost) keeps the deterministic
+	// first-eligible stand-in without setting either field, so a fuzz run is
+	// byte-identical to the pre-ask build.
+	ClonePick     state.ObjID
+	ClonePickDone bool
 	// TwoPiles is the answered Fact or Fiction pile-split pick (task
 	// twopiles1): the cards the Separator$ player picked into pile A, in the
 	// separator's answer order — the rest of the card set, in the order it
@@ -2533,10 +2563,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// the ask poseUnlessAsk posed — stops the loop here. Compare against
 		// the pre-gate state instead of the raw predicate.
 		wasSuspended := h.Suspended()
+		asksBefore := askCount(h)
 		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
 			runBody, paid = unlessProceed(h, c, sa)
 		}
-		if !wasSuspended && h.Suspended() {
+		// askCount catches the gate ask the host DEFERRED behind an
+		// already-suspended resolution (rules' Engine.Ask: a second shock
+		// land's pay-2-life ask while the first one's is still pending),
+		// which leaves Suspended() unchanged.
+		if (!wasSuspended && h.Suspended()) || askCount(h) != asksBefore {
 			// The gate posed the unless-pay ask and suspended the
 			// resolution: stop here exactly as an asking effect body
 			// would. The resume re-enters THIS SA (the ask's ResumeSA),

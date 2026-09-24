@@ -174,6 +174,10 @@ var baseBuckets = map[string]bucket{
 	// whose activation cost/UnlessCost$ the off-stack mana-activation
 	// window reads (resolveManaEffect / askManaUnless / the settle path).
 	"m.ability": bSA,
+	// ma.ability is manaColorActivation's resolved *cards.SA — the paid
+	// mana ability whose Cost$ (its T part) answerNestedManaColor re-binds
+	// as manaFromTap when a routed SubAbility$ colour answer re-enters.
+	"ma.ability": bSA,
 	// selector bases: r.With and m.repl.With are cards.Repl's resolved
 	// With *cards.SA (the ReplaceWith$ body: a real SA parameter map, read
 	// as generic machinery), rp.sa the resume plan's SA, o.Ability the
@@ -1127,7 +1131,8 @@ var stringMapParams = map[string]string{
 	// effects/misc.go parseStaticLine: svars is the face's SVars table (a
 	// cards.SA's SVar: bodies), read by NAME to fetch a static line -- not a
 	// card Params map.
-	"effects:parseStaticLine:svars": "SVars table lookup by static-line name, not a card Params map",
+	"effects:parseStaticLine:svars":          "SVars table lookup by static-line name, not a card Params map",
+	"effects:CloneStaticGrantReadable:svars": "SVars table lookup by named Clone static, not a card Params map",
 	// Goad-static helpers inspect map arguments copied from parsed SVar
 	// statics, not card SA Params; their callers classify the actual source.
 	"effects:goadStaticGrantReadable:params": "parsed Goad static-line Params map, not a card SA Params map",
@@ -1732,6 +1737,12 @@ var handRoots = struct {
 		// like the drain above -- a granted trigger of ANY mode matches through
 		// triggerMatches' own dispatch.
 		"Engine.checkGrantedStaticTriggers",
+		// The live trigger walk's zone-skip classifier (trigger_zoneskip.go)
+		// re-reads zoneGate's TriggerZones$/ActiveZones$ and the Phase$
+		// diagnostic's spec as pure syntax, mode-shared, to decide which
+		// hidden zones the walk may pass over; the reads that give those
+		// params meaning stay in zoneGate/phaseGate under triggerMatches.
+		"Engine.faceTriggerZones",
 		// The event-matched delayed registrations (Chancellor of the Annex's
 		// opening-hand Mode$ SpellCast shape): the registration re-parses the
 		// stored trigger body, and the firing walker re-evaluates its
@@ -2770,15 +2781,8 @@ var knownUnsupportedParams = map[string][]string{
 	// Controller$ read landed and the play resume arm's rider reads were
 	// attributed to api:Play — ticket agent-20260918T221252Z-d504b33b; the
 	// vaan_forget_played_test.go pair is the free-cast end-to-end pin.)
-	// Vesuva's api:Clone body carries IntoPlayTapped$ True. The parameter
-	// means "the copy ENTERS tapped", which only has a referent on the
-	// ETB-replacement route -- the route Vesuva takes and the one this build
-	// does not implement yet (the open ETB-copy ticket). effClone records it
-	// as unread rather than tapping a permanent that never entered, so the
-	// label is honest until that ticket lands and can read it against real
-	// entry provenance.
+	// Vesuva's IntoPlayTapped$ is read on the ETB replacement path.
 	"Sundering Eruption": {"param:stat:Continuous.AddHiddenKeyword"},
-	"Vesuva":             {"param:api:Clone.IntoPlayTapped"},
 	// West Coast Expansion's param:api:Play.Controller /
 	// param:api:Play.WithoutManaCost row retired with the same attribution
 	// fix (see the Spinerock Knoll note above).

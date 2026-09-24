@@ -92,7 +92,7 @@ func TestActionCoverageNeverAskedKindsUseTheDecisionUniverse(t *testing.T) {
 	var buf bytes.Buffer
 	c.write(&buf)
 	out := buf.String()
-	if !strings.Contains(out, "decision kinds asked: 1/12") {
+	if !strings.Contains(out, fmt.Sprintf("decision kinds asked: 1/%d", len(decision.Kinds))) {
 		t.Errorf("asked count must be 1 of the %d decision kinds, got:\n%s", len(decision.Kinds), out)
 	}
 	for _, k := range decision.Kinds {

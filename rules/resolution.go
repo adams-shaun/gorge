@@ -140,6 +140,13 @@ type resumePoint struct {
 	remembered       []state.Target
 	digUntilMove     string
 	digUntilMoveDone bool
+	// clonePick/clonePickDone ride a DB$ Clone's answered Choices$ pick across
+	// a later Optional$ may-copy ask in the same walk (the Decision.ResumeClonePick
+	// rider, Ask copies them here): the re-entry's Choices$ branch consumes
+	// the selection instead of posing a second Choices$ ask. Zero/false for
+	// every other ask.
+	clonePick     state.ObjID
+	clonePickDone bool
 	// unlessPay is set only after a nested non-mana unless-cost payment has
 	// completed. It prevents the resumed `unless_pay` arm from charging that
 	// payment a second time.
@@ -337,6 +344,12 @@ type resumePoint struct {
 	// on a Dredge ask (CR 702.55) mid-replacement, and the answered dredge
 	// re-drives the rest from this cursor. Zero for every other frame.
 	lifeDraws int32
+	// deferredAsk / deferredResume make a kind "deferred_ask" frame: a
+	// mid-resolution ask that arrived while an earlier ask of the same pass
+	// was still pending (Engine.Ask). Reaching the frame poses deferredAsk
+	// and parks on deferredResume (with this frame's outer as its outer).
+	deferredAsk    *decision.Decision
+	deferredResume *resumePoint
 }
 
 // repeatCursor is the loop position a kind "repeat" frame re-enters with.
@@ -391,6 +404,15 @@ type contFrame struct {
 	villainousRest    bool
 	villainousVictims []state.Target
 	villainousIndex   int
+	// deferredAsk marks a frame carrying a mid-resolution ask posed while an
+	// earlier ask of the same pass was still pending (Engine.Ask). It becomes
+	// a "deferred_ask" resume frame that poses deferredAsk and parks on
+	// deferredResume when the chain reaches it. deferredClaimed records that
+	// the asking loop's own SuspendContinuation report was already dropped
+	// (the deferred frame re-enters sa itself and walks sa.Sub).
+	deferredAsk     *decision.Decision
+	deferredResume  *resumePoint
+	deferredClaimed bool
 	// genericChoiceRest marks a frame that re-enters a multi-player
 	// api:GenericChoice's own SA (not sa.Sub) with the chooser cursor below,
 	// continuing with the choosers a chosen body's nested ask left unasked.
@@ -417,6 +439,12 @@ type contFrame struct {
 // (which owns the continuation of the SA it was re-entering) links it once
 // effects.Resolve returns. Always returns true: this engine can always ask.
 func (e *Engine) Ask(d *decision.Decision) bool {
+	// A colour choice posed from inside an off-stack mana resolution (a mana
+	// ability's SubAbility$ Mana | Produced$ Any) has no stack object to park
+	// on: it is carried by the rules-owned mana colour flow instead.
+	if e.askOffStackManaColor(d) {
+		return true
+	}
 	obj := state.ObjID(0)
 	direct := false
 	if n := len(e.G.Stack); n > 0 {
@@ -429,7 +457,64 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	if kind == "" {
 		kind = "modes"
 	}
+	if e.resume != nil && e.pending != nil && e.contChainOwners > 0 {
+		// A SECOND mid-resolution ask while an earlier one of the same
+		// resolution pass is still unanswered: the first ask was posed from
+		// inside a move the asking effect made (a ReplaceWith$ body -- a
+		// shock land's "you may pay 2 life" -- suspends the resolution, but
+		// the effect that moved the land keeps running its own body: the
+		// search reaches its may-shuffle confirm, a mass return moves the
+		// next shock land). Posing it now would overwrite the pending
+		// decision (Engine.ask's guard). Defer it instead: the fully built
+		// resume point rides a "deferred_ask" continuation frame appended to
+		// this pass's contChain, so it is posed exactly when the answered
+		// earlier frame (and every continuation reported before this ask)
+		// has run, and before the continuations the enclosing loops report
+		// after it. The asking caller sees an ordinary suspended ask.
+		rp := e.buildAskResume(d, obj, direct, kind)
+		e.contChain = append(e.contChain, contFrame{sa: d.ResumeSA, deferredAsk: d, deferredResume: rp})
+		e.lastDeferred = rp
+		e.askCount++
+		return true
+	}
 	e.ask(d)
+	e.resume = e.buildAskResume(d, obj, direct, kind)
+	e.lastDeferred = nil
+	e.askCount++
+	return true
+}
+
+// AskCount implements effects' optional askCounter seam: the number of
+// mid-resolution asks this engine has taken (posed or deferred). effects.
+// Resolve's UnlessCost$ gate compares it across the gate, because a gate ask
+// deferred behind an already-suspended resolution leaves Suspended()
+// unchanged. Engine scratch, never logged.
+func (e *Engine) AskCount() uint64 { return e.askCount }
+
+// EventMark implements effects' optional eventMarker seam: the event log's
+// current length, a mark StateChangedSince compares against.
+func (e *Engine) EventMark() int { return len(e.L.Events) }
+
+// StateChangedSince implements effects' optional eventMarker seam: whether
+// any event other than a Note was logged after mark. A Note is the log's
+// commentary and folds into no game state (events.Apply), so a span holding
+// only Notes left the game exactly as it found it.
+func (e *Engine) StateChangedSince(mark int) bool {
+	if mark < 0 {
+		mark = 0
+	}
+	for i := mark; i < len(e.L.Events); i++ {
+		if e.L.Events[i].Kind != events.Note {
+			return true
+		}
+	}
+	return false
+}
+
+// buildAskResume builds the resume point of the mid-resolution ask d from
+// the engine's ambient resolution state at the moment the ask is posed (or
+// deferred). See Engine.Ask.
+func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bool, kind string) *resumePoint {
 	var replacementTarget state.Target
 	var replacementAmount int32
 	if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
@@ -438,6 +523,20 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 			replacementTarget = state.Target{Player: e.replacingEvent.Player, IsPlayer: true}
 		}
 		replacementAmount = e.replacingEvent.Amount
+	}
+	replacementSource := e.protectionSource(e.damaging)
+	if e.replacingEvent == nil && e.applyingReplacement && e.resolutionCtx != nil &&
+		e.resolutionCtx.ReplacementTarget != (state.Target{}) {
+		// A replacement body re-entered from a resume frame (a second ask of
+		// a resumed body, or a body queued behind an earlier ask by
+		// resolveReplacementBody) runs with no live replacingEvent: the
+		// frame's rebuilt Ctx is the only record of what the body replaced,
+		// so this ask's resume must carry it on, or the answered re-entry
+		// (Nefarious Lich's DefinedPlayer$ ReplacedTarget pick) resolves
+		// against nobody and moves nothing.
+		replacementTarget = e.resolutionCtx.ReplacementTarget
+		replacementAmount = e.resolutionCtx.ReplacementAmount
+		replacementSource = e.resolutionCtx.ReplacementSource
 	}
 	// Capture whether the ask is being posed from inside a replacement
 	// effect's ReplaceWith$ body (fx44). e.applyingReplacement is true for
@@ -480,10 +579,10 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 			obj = d.Source
 		}
 	}
-	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
+	return &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
 		replacedPlayer:    e.replReplacedPlayer,
-		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
+		replacementTarget: replacementTarget, replacementSource: replacementSource,
 		replacementAmount: replacementAmount,
 		effectFrame:       e.currentEffectFrame,
 		before:            e.triggerBefore, target: d.ResumeTarget, player: d.Player,
@@ -491,6 +590,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
+		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
 		villainousVictims:       append([]state.Target(nil), d.ResumeVillainousVictims...),
@@ -517,7 +617,6 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI),
 		targetCountersLKI:   resolutionTargetCounters(e.resolutionCtx),
 		flipMemory:          e.resolvingFlipMemory}
-	return true
 }
 
 // Suspended implements effects.Host.Suspended: the resolution is suspended
@@ -659,12 +758,24 @@ func (e *Engine) SuspendUnless(sa *cards.SA, paid bool) {
 	if paid {
 		marker = "resolved-pay"
 	}
-	if e.resume != nil && e.resume.sa == sa {
-		e.resume.unlessResolved = marker
+	if e.resume == nil {
+		return
+	}
+	// The most recent ask owns the marker: a DEFERRED one (Engine.Ask) when
+	// this pass deferred one after the pending ask was posed.
+	target := e.resume
+	if e.lastDeferred != nil {
+		target = e.lastDeferred
+	}
+	if target.sa == sa {
+		target.unlessResolved = marker
 	}
 }
 
 func (e *Engine) Suspended() bool {
+	if f := e.offStackMana; f != nil {
+		return f.suspended(e)
+	}
 	return e.resume != nil || e.unlessPayment != nil || e.cumulative != nil || e.triggerCost != nil
 }
 
@@ -680,6 +791,17 @@ func (e *Engine) Suspended() bool {
 func (e *Engine) SuspendContinuation(sa *cards.SA) {
 	if e.resume == nil {
 		return
+	}
+	for i := len(e.contChain) - 1; i >= 0; i-- {
+		if cf := &e.contChain[i]; cf.deferredAsk != nil && !cf.deferredClaimed && cf.sa == sa {
+			// The loop that posed a DEFERRED ask (Engine.Ask): the deferred
+			// frame re-enters sa itself and walks sa.Sub, so this loop's own
+			// continuation is dropped exactly as the pending ask's is below.
+			// Checked first: two copies of one card share their SA pointers,
+			// so a second shock land's body loop also matches e.resume.sa.
+			cf.deferredClaimed = true
+			return
+		}
 	}
 	if sa == e.resume.sa {
 		return // this loop is the one that asked; its own re-entry walks sa.Sub.
@@ -1119,61 +1241,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		return
 	}
 	if d.ResumeKind == "cast_modes" {
-		pc := e.cast
-		if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
-			e.emit(events.Event{Kind: events.Note, Player: in.Player,
-				Text: "cast modes answered with no spell proposal pending"})
-			return
-		}
-		chosen := d.Chosen(in)
-		names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
-		labels := chosenModeLabels(chosen)
-		// ChoiceRestriction$: log each announced mode on the SPELL object so a
-		// later Charm of the same source sees the pick. A no-op unless the SA
-		// carries the param.
-		effects.RecordCharmChoices(e, pc.card, d.ResumeSA, names)
-		if o := e.G.Obj(pc.stackObj); o != nil {
-			if !pc.modeChosen {
-				pc.preModes = append([]string(nil), o.ChosenModes...)
-				pc.modeChosen = true
-			}
-			o.ChosenModes = append([]string(nil), names...)
-		}
-		// CR 702.171b: a Spree/Tiered cast pays each chosen mode's own
-		// ModeCost$ on top of the printed cost -- the same additional-cost
-		// composition beginCast folds for Kicker, but per chosen mode and so
-		// only known once the CR 601.2b mode answer is in. Folded into pc.cost
-		// here (once; the guard survives a Clone) so the CR 601.2g mana window,
-		// the cost modifiers and the final payment all see the composed total.
-		// An unaffordable total aborts through the ordinary payment-reversal
-		// path (CR 733.1) -- this branch never silently discounts or drops a
-		// chosen mode.
-		if !pc.modeCostsDone {
-			pc.modeCostsDone = true
-			pc.cost = pc.cost.Plus(modeCostTotal(e.G.Obj(pc.card).Face(), names))
-		}
-		// Escalate (the modal additional cost): a cast choosing N modes pays
-		// the escalate cost N-1 times. Folded into pc.cost once, exactly like
-		// the ModeCost$ fold above, so the tap/discard part asks the
-		// continueCast re-entry below walks ask for the extra resources and
-		// the payment window charges the composed total. An unpriceable
-		// parameter (ParseCost's degraded Unknown tokens) is a loud no-charge,
-		// never a fabricated generic. A one-mode cast folds nothing and stays
-		// byte-identical.
-		if pc.escalateSet && !pc.escalateDone && len(names) > 1 {
-			pc.escalateDone = true
-			if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
-				for i := 1; i < len(names); i++ {
-					pc.cost = pc.cost.Plus(esc)
-				}
-			} else {
-				e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
-					Text: "escalate cost unpriceable; casting without the escalate charge"})
-			}
-		}
-		e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: in.Player,
-			Text: strings.Join(labels, ",")})
-		e.continueCast()
+		e.applyCastModes(d, in.Player, d.Chosen(in))
 		return
 	}
 
@@ -1196,6 +1264,8 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			var so *state.Object
 			if o := e.G.Obj(id); o != nil {
 				so = o
+				// modeChoiceNames is non-nil even for zero chosen modes,
+				// so a zero-mode placement resolves as nothing.
 				o.ChosenModes = names
 			}
 			// ChoiceRestriction$: record the placement pick on the trigger's
@@ -1350,6 +1420,25 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) {
 			ids = []state.ObjID{opt.Obj}
 		}
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "clone", IDs: ids})
+	case "paylife":
+		// The announced life payment of an "as CARDNAME enters, pay any amount
+		// of life" replacement (Minion of the Wastes / Phyrexian Processor /
+		// Nameless Race). The announced X is recorded as a Choose "number"
+		// entry (the same fold a ChooseNumber uses), bound onto the object as
+		// its paid X (events.XChange, so replCtx's `X: o.X` hands it to the
+		// replacement body's Count$xPaid), and paid as one LifeChange before
+		// the move is re-emitted -- the body then stores the paid amount
+		// through events.StoreSVar. CR 118.3 (paying life), CR 601.2b
+		// (announcing X).
+		x := int32(opt.Amount)
+		if x < 0 {
+			x = 0
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: x})
+		e.emit(events.Event{Kind: events.XChange, Obj: move.Obj, Amount: x})
+		if x > 0 {
+			e.emit(events.Event{Kind: events.LifeChange, Player: opt.Player, Amount: -x})
+		}
 	}
 	e.choosing = chooseNone
 	e.emit(move)
@@ -1397,6 +1486,17 @@ func (e *Engine) continueAfterETBEntry(rp *resumePoint) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	if rp.kind == "deferred_ask" {
+		// A deferred second ask (Engine.Ask): everything chained before it
+		// has run, so pose it now and park on the resume point captured when
+		// it was asked. Its answer continues at this frame's outer.
+		inner := rp.deferredResume
+		inner.outer = rp.outer
+		e.lastDeferred = nil
+		e.ask(rp.deferredAsk)
+		e.resume = inner
+		return
+	}
 	if rp.kind == "copy_targets" {
 		e.resume = nil
 		if rp.obj != 0 {
@@ -1559,7 +1659,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// wrong ordinal (Sephiroth would transform a turn early on the
 		// resumed pass). resolvedAbilityTally is the same read resolveTop's
 		// ability branch makes, in one home.
-		ResolvedThisTurn: e.resolvedAbilityTally(o),
+		ResolvedThisTurn:    e.resolvedAbilityTally(o),
+		ActivationsThisTurn: e.activationsThisTurnFor(o.Source, o.Ability),
 		// alltargeted1: a re-entered walk keeps consuming the cast flow's
 		// pre-asked sub-ability target answers (kept until the stack object
 		// leaves, so both a later sub and a suspended body can use theirs).
@@ -1571,6 +1672,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		ModeTargets: cloneCharmTargetGroups(e.charmTargets[rp.obj]),
 		Chosen:      append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		DigUntilMove: rp.digUntilMove, DigUntilMoveDone: rp.digUntilMoveDone,
+		ClonePick: rp.clonePick, ClonePickDone: rp.clonePickDone,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
 		ChoiceTarget:      rp.target,
@@ -2410,6 +2512,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.CopyPermanentChoiceDone = true
 			if len(chosen) > 0 {
 				ctx.CopyPermanentChoice = chosen[0].Obj
+			}
+		case "clone_choice":
+			// A DB$ Clone Choices$ <filter> copy-source pick was answered:
+			// the chooser named one object for the copy source. The effect
+			// consumes and clears the field at the top of its walk (fx42
+			// scoping), so a nested Clone cannot inherit the outer answer. A
+			// malformed or empty answer leaves a zero id, which the re-entered
+			// effect records as one loud Note and resolves as no copy -- never
+			// a silent fall-through to an object the chooser did not name.
+			ctx.ClonePickDone = true
+			if len(chosen) > 0 {
+				ctx.ClonePick = chosen[0].Obj
 			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
@@ -3387,7 +3501,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// (Tidus, Yuna's Guardian's non-RL BeginCombat line) must not spend
 			// the ResolvedLimit$ line's count.
 			if o != nil {
-				if t, ok := e.findTriggerForAbility(o.Source, rp.sa); ok {
+				if t, ok := e.triggerForAbilityObject(rp.obj, o); ok {
 					if _, limited := resolvedLimitValue(t); limited {
 						e.noteTriggerResolved(o.Source)
 					}
@@ -3525,7 +3639,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.windowPaidX = savedWinX
 			e.villainousRemembered, e.villainousRememberedSet = savedVill, savedVillSet
 		}()
+		e.contChainOwners++
 		effects.Resolve(e, ctx, rp.sa)
+		e.contChainOwners--
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
@@ -3594,6 +3710,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ask (the nested-ask branch above returns), so the entry is done
 		// either way and the land play settles here.
 		e.settleLandPlayIfDone(rp.replaced)
+		if rp.outer != nil {
+			// The body interrupted a stack resolution whose frame was chained
+			// behind this one (settleReplacementQueue: a replacement-order
+			// answer whose chosen body asked, e.g. a shock land's UnlessCost
+			// under a mass return). The body is done; the interrupted
+			// resolution continues -- dropping it here left the resolving
+			// object on the stack for resolveTop to re-resolve from the top.
+			e.resumeResolution(rp.outer, nil)
+		}
 		return
 	}
 	if rp.outer != nil { // No nested ask this pass and the frame itself completed: continue
@@ -3763,7 +3888,12 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.replacementAmount = e.replacingEvent.Amount
 			f.replacementSource = e.protectionSource(e.damaging)
 		}
-		if cf.charmRest != nil {
+		if cf.deferredAsk != nil {
+			// A deferred second ask (Engine.Ask): its own resume point was
+			// fully built when it was asked; this frame only poses it.
+			f = &resumePoint{kind: "deferred_ask", obj: obj,
+				deferredAsk: cf.deferredAsk, deferredResume: cf.deferredResume}
+		} else if cf.charmRest != nil {
 			// The Charm re-enters ITSELF (rp.sa = the Charm SA, not sa.Sub — a
 			// Charm body has no SubAbility$ chain of its own to resume) with
 			// Ctx.Modes = the remaining chosen modes.
@@ -4031,4 +4161,69 @@ func (e *Engine) charmModeScopeSA() *cards.SA {
 		return nil
 	}
 	return e.resolutionCtx.CharmModeSA
+}
+
+// applyCastModes records a CR 601.2b cast-time mode announcement (the
+// "cast_modes" answer) on the proposed spell and re-enters continueCast. It is
+// the answer handler's body, shared with castModeAsk's no-ask path: a modal
+// spell whose only legal announcement is the empty one ("choose up to two"
+// with no mode that has a legal target) announces zero modes without posting
+// a decision nobody could answer differently.
+func (e *Engine) applyCastModes(d *decision.Decision, player state.PlayerID, chosen []decision.Option) {
+	pc := e.cast
+	if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
+		e.emit(events.Event{Kind: events.Note, Player: player,
+			Text: "cast modes answered with no spell proposal pending"})
+		return
+	}
+	names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
+	labels := chosenModeLabels(chosen)
+	// ChoiceRestriction$: log each announced mode on the SPELL object so a
+	// later Charm of the same source sees the pick. A no-op unless the SA
+	// carries the param.
+	effects.RecordCharmChoices(e, pc.card, d.ResumeSA, names)
+	if o := e.G.Obj(pc.stackObj); o != nil {
+		if !pc.modeChosen {
+			pc.preModes = state.CloneChosenModes(o.ChosenModes)
+			pc.modeChosen = true
+		}
+		// Non-nil even for a zero-mode announcement: resolution must run
+		// no mode, not re-pose the modal ask (state.CloneChosenModes).
+		o.ChosenModes = append(make([]string, 0, len(names)), names...)
+	}
+	// CR 702.171b: a Spree/Tiered cast pays each chosen mode's own
+	// ModeCost$ on top of the printed cost -- the same additional-cost
+	// composition beginCast folds for Kicker, but per chosen mode and so
+	// only known once the CR 601.2b mode answer is in. Folded into pc.cost
+	// here (once; the guard survives a Clone) so the CR 601.2g mana window,
+	// the cost modifiers and the final payment all see the composed total.
+	// An unaffordable total aborts through the ordinary payment-reversal
+	// path (CR 733.1) -- this branch never silently discounts or drops a
+	// chosen mode.
+	if !pc.modeCostsDone {
+		pc.modeCostsDone = true
+		pc.cost = pc.cost.Plus(modeCostTotal(e.G.Obj(pc.card).Face(), names))
+	}
+	// Escalate (the modal additional cost): a cast choosing N modes pays
+	// the escalate cost N-1 times. Folded into pc.cost once, exactly like
+	// the ModeCost$ fold above, so the tap/discard part asks the
+	// continueCast re-entry below walks ask for the extra resources and
+	// the payment window charges the composed total. An unpriceable
+	// parameter (ParseCost's degraded Unknown tokens) is a loud no-charge,
+	// never a fabricated generic. A one-mode cast folds nothing and stays
+	// byte-identical.
+	if pc.escalateSet && !pc.escalateDone && len(names) > 1 {
+		pc.escalateDone = true
+		if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
+			for i := 1; i < len(names); i++ {
+				pc.cost = pc.cost.Plus(esc)
+			}
+		} else {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+				Text: "escalate cost unpriceable; casting without the escalate charge"})
+		}
+	}
+	e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: player,
+		Text: strings.Join(labels, ",")})
+	e.continueCast()
 }

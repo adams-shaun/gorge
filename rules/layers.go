@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
@@ -80,11 +81,17 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					continue
 				}
 				onBattlefield := z == state.ZBattlefield
-				if !onBattlefield && len(f.Statics) == 0 {
+				if !onBattlefield && !f.ContinuousStaticsMayFunctionOffBattlefield() {
 					// Off the battlefield only the object's own face is walked
 					// (an unlocked Room face and a mutated pile's under-cards
 					// are battlefield-only, below), so a face printing no
-					// statics emits nothing. Most of every library is this.
+					// statics emits nothing -- most of every library is this --
+					// and neither does one none of whose Continuous statics can
+					// pass the source-zone gate below off the battlefield (the
+					// face's derived probe; see cards.Face.
+					// ContinuousStaticsMayFunctionOffBattlefield). Every such
+					// static would be skipped at the Mode or zone check before
+					// emitting or queueing anything.
 					continue
 				}
 				if onBattlefield && e.faceDownPrintedHides(o) {
@@ -876,6 +883,15 @@ func (e *Engine) cdaValue(ctx *effects.Ctx, raw string) (int32, bool) {
 	if n, err := strconv.Atoi(raw); err == nil {
 		return int32(n), true
 	}
+	// A runtime SVar write (api:StoreSVar) shadows the printed body of the
+	// same name: Minion of the Wastes / Nameless Race store the life paid as
+	// they entered under LifePaidOnETB, whose printed default is Number$0, so
+	// the stored value must be checked BEFORE the face table is consulted.
+	if o := e.G.Obj(ctx.Source); o != nil {
+		if v, ok := o.RuntimeSVars[raw]; ok {
+			return v, true
+		}
+	}
 	if strings.HasPrefix(raw, "Count$") {
 		return effects.EvalCountOK(e, ctx, raw)
 	}
@@ -1175,8 +1191,8 @@ func statKeywords(st cards.Static) []string {
 // ampersand grammar is specific to keyword parameters.
 func statList(st cards.Static, key string) []string {
 	var out []string
-	for _, v := range strings.Split(st.Params[key], ",") {
-		for _, part := range strings.Split(strings.TrimSpace(v), " & ") {
+	for v := range strings.SplitSeq(st.Params[key], ",") {
+		for part := range strings.SplitSeq(strings.TrimSpace(v), " & ") {
 			part = strings.TrimSpace(part)
 			if part != "" {
 				out = append(out, part)
@@ -1719,17 +1735,18 @@ func (e *Engine) EndOfTurnCleanup() {
 // them as one is behaviourally identical; two units whose lifetimes differ
 // differ in at least one field, so one can never drop the other.
 type cloneExpiry struct {
-	Target    state.ObjID
-	Duration  string
-	UntilEOT  bool
-	UntilTurn int32
+	Target         state.ObjID
+	Duration       string
+	UntilEOT       bool
+	UntilTurn      int32
+	DurationTarget state.ObjID
 }
 
 func cloneExpiryOf(ce ContinuousEffect) cloneExpiry {
 	return cloneExpiry{Target: ce.CloneTarget,
 		Duration:  strings.ToLower(strings.TrimSpace(ce.Duration)),
 		UntilEOT:  ce.UntilEOT,
-		UntilTurn: ce.UntilTurn}
+		UntilTurn: ce.UntilTurn, DurationTarget: ce.CloneDurationTarget}
 }
 
 func cloneExpiryIn(keys []cloneExpiry, k cloneExpiry) bool {
@@ -1739,6 +1756,38 @@ func cloneExpiryIn(keys []cloneExpiry, k cloneExpiry) bool {
 		}
 	}
 	return false
+}
+
+// expireClonesOnEvent ends copy effects at their event-driven boundaries.
+// The marker owns expiry; its sibling modifiers carry the same unit key.
+// Run after Apply so the replay-visible re-base follows the untap/turn-down.
+func (e *Engine) expireClonesOnEvent(ev events.Event, wasTapped bool) {
+	var expired []cloneExpiry
+	for _, ce := range e.continuous {
+		if ce.Layer != LCopy || ce.CloneTarget == 0 {
+			continue
+		}
+		dur := strings.ToLower(strings.TrimSpace(ce.Duration))
+		match := dur == "untilfacedown" && ev.Kind == events.TurnFaceDown && ev.Obj == ce.CloneTarget ||
+			dur == "untiltargeteduntaps" && ev.Obj == ce.CloneDurationTarget &&
+				(ev.Kind == events.Untap && wasTapped || ev.Kind == events.MoveZone && ev.From == state.ZBattlefield)
+		if match && !cloneExpiryIn(expired, cloneExpiryOf(ce)) {
+			expired = append(expired, cloneExpiryOf(ce))
+		}
+	}
+	if len(expired) == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	for _, ce := range e.continuous {
+		if ce.CloneTarget != 0 && cloneExpiryIn(expired, cloneExpiryOf(ce)) {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	e.continuous = kept
+	e.continuousChanged()
+	e.settleExpiredClones(expired)
 }
 
 // settleExpiredClones rewrites the CopyFace basis of every permanent whose
@@ -1792,10 +1841,17 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 		ev := events.Event{Kind: events.ClonePermanent, Obj: k.Target,
 			IDs: []state.ObjID{survivor.CloneSource}, Player: survivor.Controller,
 			Text: survivor.CloneName}
-		if survivor.CloneGainThisAbility {
+		if survivor.CloneChosenName != "" {
+			ev.Counter = "chosen-name"
+			ev.Text = survivor.CloneChosenName
+		} else if survivor.CloneGainThisAbility {
 			ev.Counter = "gain-this-ability"
+			ev.Amount = survivor.CloneAbilityIndex
 		}
 		e.emit(ev)
+		for _, raw := range survivor.CloneStaticBodies {
+			e.emit(events.Event{Kind: events.CloneStatic, Obj: k.Target, Text: raw})
+		}
 	}
 }
 
@@ -1977,6 +2033,33 @@ func isCombatStep(s state.Step) bool {
 	return s >= state.StepBeginCombat && s <= state.StepEndCombat
 }
 
+// continuousLive is active()'s duration-honouring filter over one registered
+// effect (see active()): whether it still exists right now. It is the one
+// predicate active() and anyLayer4Active's registered-effect check share, so
+// the two cannot disagree about which registered effects are live.
+func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
+	if ce.Permanent {
+		return true
+	}
+	if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
+		return isCombatStep(e.G.Step)
+	}
+	if ce.UntilEOT {
+		return true
+	}
+	if ce.UntilTurn != 0 {
+		// A turn-boundary effect outlives its source (a one-shot spell is
+		// already gone) and is active through its own expiry turn, dropped
+		// only by EndOfTurnCleanup when e.G.Turn reaches UntilTurn. Keep it
+		// while the current turn is at or before that boundary; the
+		// `<=` is the guard that keeps an effect from lingering if a
+		// cleanup were ever skipped.
+		return e.G.Turn <= ce.UntilTurn
+	}
+	o := e.G.Obj(ce.Source)
+	return o != nil && o.Zone == state.ZBattlefield
+}
+
 // active returns the effects that still exist, sorted into CR 613 order:
 // layer, then sublayer, then timestamp. Ties within a (layer, sublayer,
 // timestamp) triple — two effects created in the same AddContinuous batch
@@ -2000,8 +2083,20 @@ func (e *Engine) active() []ContinuousEffect {
 	if e.activeEpoch == len(e.L.Events) && e.activeVersion == e.continuousVersion {
 		return e.activeBuf
 	}
+	// Layer-inert reuse (layercache.go): the log moved only by events whose
+	// Apply writes nothing active() reads, and neither e.continuous nor the
+	// object table moved, so the cached list is still the answer. Only a
+	// depth-1 call adopts it (a re-entrant build never owns activeBuf).
+	if e.activeDepth == 1 && e.activeVersion == e.continuousVersion && e.activeObjs == len(e.G.Objs) && e.layerInertSince(e.activeEpoch) {
+		if layerInertVerify {
+			e.verifyInertActive()
+		}
+		e.activeEpoch = len(e.L.Events)
+		return e.activeBuf
+	}
 	e.activeEpoch = len(e.L.Events)
 	e.activeVersion = e.continuousVersion
+	e.activeObjs = len(e.G.Objs)
 	buf := e.activeBuf[:0]
 	if e.activeDepth > 1 {
 		// Re-entrant (a nested Derived mid-rebuild): own a private list rather
@@ -2018,37 +2113,10 @@ func (e *Engine) active() []ContinuousEffect {
 	// moment play moves past end combat. These take precedence over the
 	// UntilEOT/source-leaves rules below, which model the other two
 	// lifetimes.
-	for _, ce := range e.continuous {
-		if ce.Permanent {
-			buf = append(buf, ce)
-			continue
+	for i := range e.continuous {
+		if e.continuousLive(&e.continuous[i]) {
+			buf = append(buf, e.continuous[i])
 		}
-		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
-			if isCombatStep(e.G.Step) {
-				buf = append(buf, ce)
-			}
-			continue
-		}
-		if ce.UntilEOT {
-			buf = append(buf, ce)
-			continue
-		}
-		if ce.UntilTurn != 0 {
-			// A turn-boundary effect outlives its source (a one-shot spell is
-			// already gone) and is active through its own expiry turn, dropped
-			// only by EndOfTurnCleanup when e.G.Turn reaches UntilTurn. Keep it
-			// while the current turn is at or before that boundary; the
-			// `<=` is the guard that keeps an effect from lingering if a
-			// cleanup were ever skipped.
-			if e.G.Turn <= ce.UntilTurn {
-				buf = append(buf, ce)
-			}
-			continue
-		}
-		if o := e.G.Obj(ce.Source); o == nil || o.Zone != state.ZBattlefield {
-			continue
-		}
-		buf = append(buf, ce)
 	}
 	// The static-derived effects come from the memoized scan (see
 	// Engine.staticContinuous): refreshed once per emitted event, not per
@@ -2057,10 +2125,7 @@ func (e *Engine) active() []ContinuousEffect {
 	// subset of the rebuild condition that leaves the battlefield permanent
 	// set, and therefore the static memo, untouched — so the two are checked
 	// independently exactly as before.
-	if e.staticEpoch != len(e.L.Events) {
-		e.staticEpoch = len(e.L.Events)
-		e.staticContinuous = e.staticEffects(e.staticContinuous)
-	}
+	e.refreshStaticContinuous()
 	buf = append(buf, e.staticContinuous...)
 	slices.SortStableFunc(buf, func(a, b ContinuousEffect) int {
 		if a.Layer != b.Layer {
@@ -2166,7 +2231,12 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	if !anyLType {
 		return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))
 	}
-	ty := append([]string(nil), base...)
+	// Copy-on-write: the printed list is copied only once an effect actually
+	// applies to this object (most objects are untouched by the layer-4
+	// effects in play). Every modification below -- the in-place filters
+	// and the appends -- runs on the owned copy, never on the face's array.
+	ty := base
+	owned := false
 	for _, ce := range e.active() {
 		if ce.Layer != LType || !e.matchesWithTypes(ce, id, ty, atStack) {
 			continue
@@ -2175,6 +2245,10 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
 				continue
 			}
+		}
+		if !owned {
+			ty = append([]string(nil), ty...)
+			owned = true
 		}
 		if ce.RemoveCardTypes {
 			// RemoveCardTypes$ keeps only the SUPERTYPES: a subtype is tied to
@@ -2190,10 +2264,18 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			}
 			ty = kept
 		}
-		if ce.RemoveCreatureTypes {
+		if ce.RemoveCreatureTypes || ce.RemoveSubTypes || ce.SetCreatureTypes {
 			kept := ty[:0]
 			for _, t := range ty {
-				if !isCreatureSubtype(t) {
+				if ce.RemoveSubTypes {
+					if isCardType(t) || isSupertype(t) {
+						kept = append(kept, t)
+					}
+				} else if ce.SetCreatureTypes {
+					if !effects.CreatureTypeWords(t) {
+						kept = append(kept, t)
+					}
+				} else if !isCreatureSubtype(t) {
 					kept = append(kept, t)
 				}
 			}
@@ -2217,7 +2299,28 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			ty = appendAllCreatureTypes(ty)
 		}
 	}
+	if !owned && len(ty) == 0 {
+		// The copy of an empty list was nil; keep that exact value.
+		ty = nil
+	}
 	return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))
+}
+
+// landTypeWordsCache memoises corpusLandTypeWords per universe, keyed by the
+// universe slice's identity (first element address + length). The universe
+// is immutable by contract (state.Game.NameUniverse) and shared by every game
+// an embedder starts from one registry, so the ~24k-card walk runs once per
+// registry instead of once per game. The cached list is shared read-only:
+// its one reader, appendLandTypes, only appends it into another slice.
+// Bounded: dropped wholesale on overflow, which only costs a recomputation.
+var landTypeWordsCache struct {
+	mu sync.Mutex
+	m  map[landTypeWordsKey][]string
+}
+
+type landTypeWordsKey struct {
+	first **cards.Card
+	n     int
 }
 
 // corpusLandTypeWords derives the land-subtype vocabulary from the parsed
@@ -2225,6 +2328,34 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 // words, plus creature subtypes printed on creature lands, are excluded.
 // Sorting makes the derived layer list deterministic.
 func corpusLandTypeWords(universe []*cards.Card) []string {
+	if len(universe) == 0 {
+		return buildCorpusLandTypeWords(universe)
+	}
+	k := landTypeWordsKey{first: &universe[0], n: len(universe)}
+	landTypeWordsCache.mu.Lock()
+	if out, ok := landTypeWordsCache.m[k]; ok {
+		landTypeWordsCache.mu.Unlock()
+		return out
+	}
+	landTypeWordsCache.mu.Unlock()
+	out := buildCorpusLandTypeWords(universe)
+	out = out[:len(out):len(out)]
+	landTypeWordsCache.mu.Lock()
+	defer landTypeWordsCache.mu.Unlock()
+	if prev, ok := landTypeWordsCache.m[k]; ok {
+		return prev
+	}
+	if len(landTypeWordsCache.m) >= 64 {
+		landTypeWordsCache.m = nil
+	}
+	if landTypeWordsCache.m == nil {
+		landTypeWordsCache.m = make(map[landTypeWordsKey][]string)
+	}
+	landTypeWordsCache.m[k] = out
+	return out
+}
+
+func buildCorpusLandTypeWords(universe []*cards.Card) []string {
 	words := make(map[string]struct{})
 	for _, card := range universe {
 		if card == nil {
@@ -2376,9 +2507,9 @@ func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, ke
 	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
 	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
-	// filter match, through the combined entry point; its Contains guard is
-	// the early-out, so every Affected$ spec without the tokens costs three
-	// Contains calls on this shared hot path.
+	// filter match, through the combined entry point; its one-probe
+	// specProvenanceGate is the early-out, so every Affected$ spec
+	// without the tokens costs one cached lookup on this shared hot path.
 	affects, ok := e.castProvenanceAdmitsWindow(ce.Affects, id, ce.Controller, atStack != 0)
 	if !ok {
 		return false
@@ -2596,6 +2727,11 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 // load-bearing; derivedDepth guards re-entry the way active()'s activeDepth
 // guards its cache (a nested Derived mid-build gets private owned buffers
 // instead of clobbering the outer build's).
+//
+// Inside a legal-actions walk (legalActionsPriced) a top-level Derived is
+// memoized per object for that walk only (rules/derivedmemo.go); a memo hit's
+// slices are owned by the memo entry rather than the scratch, and the same
+// read-only, do-not-retain discipline applies to them.
 func (e *Engine) Derived(id state.ObjID) Derived {
 	return e.derivedWith(id, 0)
 }
@@ -2616,6 +2752,17 @@ func (e *Engine) Characteristics(id state.ObjID) (power, toughness int32, keywor
 // AffectedZone$ Stack grant against ZStack via this override; everything
 // else reads the live zone.
 func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
+	if (atStack == 0 || atStack == state.ZStack) && e.derivedMemoDepth > 0 && e.derivedMemoUsable() {
+		return e.derivedMemoizedAt(id, atStack)
+	}
+	return e.derivedCompute(id, atStack)
+}
+
+// derivedCompute is derivedWith's uncached build: the full layer walk, its
+// Keywords/Types aliasing the derivedKW/derivedTypes scratch as documented on
+// Derived. derivedmemo.go's walk-scoped memo calls it on a miss (and on every
+// hit in verify mode) and copies the result into owned storage.
+func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return Derived{}
@@ -3532,7 +3679,7 @@ func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, contro
 	if spec == "" {
 		return true
 	}
-	for _, part := range strings.Split(spec, ",") {
+	for part := range strings.SplitSeq(spec, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
@@ -3612,7 +3759,7 @@ func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controll
 	if !strings.Contains(spec, "IsRemembered") && !strings.Contains(spec, "CardOwner") {
 		return effects.MatchesPlayerSpec(g, spec, defender, controller)
 	}
-	for _, clause := range strings.Split(spec, "+") {
+	for clause := range strings.SplitSeq(spec, "+") {
 		clause = strings.TrimSpace(clause)
 		if clause == "" {
 			continue
@@ -3667,7 +3814,7 @@ func playerIsSourceOwner(g *state.Game, source state.ObjID, p state.PlayerID) bo
 // the IsRemembered qualifier (in either polarity, under the spec's own
 // dot-separated token grammar) and which polarity it is.
 func clauseIsRemembered(clause string) (neg, has bool) {
-	for _, tok := range strings.Split(clause, ".") {
+	for tok := range strings.SplitSeq(clause, ".") {
 		tok = strings.TrimSpace(tok)
 		if strings.EqualFold(tok, "!IsRemembered") {
 			return true, true

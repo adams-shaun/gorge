@@ -722,7 +722,7 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 // producedNeedsChosen reports whether a Produced$ grammar token needs the
 // source's recorded as-enters colour before it can be priced.
 func producedNeedsChosen(produced string) bool {
-	for _, tok := range strings.Fields(produced) {
+	for tok := range strings.FieldsSeq(produced) {
 		switch strings.Trim(tok, "{}") {
 		case "Chosen", "ChosenColor", "ComboChosen":
 			return true

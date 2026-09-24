@@ -44,7 +44,7 @@ func kwEtbCounter(f *Face, i int, k, head, param string, has func(kind, line str
 	// dropped, exactly as before -- the later colon fields remain
 	// display metadata.
 	if first, _, _ := strings.Cut(extra, ":"); strings.Contains(first, "$") {
-		for _, part := range strings.Split(first, " | ") {
+		for part := range strings.SplitSeq(first, " | ") {
 			name, val, ok := strings.Cut(strings.TrimSpace(part), "$")
 			if !ok {
 				continue
