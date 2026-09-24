@@ -134,6 +134,8 @@ func etbCounterEntryChargeReader(t testing.TB) *cards.Card {
 func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
 	constrictor := tokenReplCorpusCard(t, "Winding Constrictor")
 	season := tokenReplCorpusCard(t, "Doubling Season")
+	scales := tokenReplCorpusCard(t, "Hardened Scales")
+	evolution := tokenReplCorpusCard(t, "Branching Evolution")
 
 	type tc struct {
 		name  string
@@ -143,6 +145,7 @@ func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
 	}
 	for _, c := range []tc{
 		{name: "plain", want: 2},
+		{name: "hardened-scales-and-branching-evolution", board: []*cards.Card{scales, evolution}, want: 2},
 		{name: "winding-first", board: []*cards.Card{constrictor, season}, pick: "Winding Constrictor", want: 6},
 		{name: "season-first", board: []*cards.Card{constrictor, season}, pick: "Doubling Season", want: 5},
 	} {
