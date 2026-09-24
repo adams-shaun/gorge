@@ -219,7 +219,8 @@ func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
 	}
 }
 
-// an object enters with from a real K:etbCounter line are present in the
+// An object enters with counters from a real K:etbCounter line; those counters
+// are present in the
 // entry MoveZone fold, so an ETB trigger reading them sees them and the log
 // replays. It runs the plain case, the commuting-modifier case, the
 // non-commuting CR 616.1 order choice (the body suspended behind the ask,
