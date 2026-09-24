@@ -975,12 +975,6 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		return false
 	})
 	if !switched {
-		// effDigUntil enumerates Imprint* and NoneFound* to emit one loud
-		// Note per withheld key. These are NOT consumed parameters, so do
-		// not add a read for them (including future keys in either family).
-		if pkg == "effects" && fname == "effDigUntil" && digUntilWithheldRange(rs, keyIdent.Name) {
-			return
-		}
 		// saMentionsGoaded recognizes IsGoaded in any inline filter value so
 		// effects can install the matching filter resolver. Recognition only;
 		// it does not consume any SA parameter.
@@ -1025,40 +1019,6 @@ func damageSourceRiderCopy(rs *ast.RangeStmt, key string) bool {
 	}
 	return strings.Contains(body.String(), `if k == "DamageSource"`) &&
 		strings.Contains(body.String(), "saRider.Params[k] = v")
-}
-
-// digUntilWithheldRange accepts only the two DigUntil key-gathering loops.
-// A changed prefix or a body that does more than collect keys must be
-// reclassified rather than silently marking an implemented param as unread.
-func digUntilWithheldRange(rs *ast.RangeStmt, key string) bool {
-	if len(rs.Body.List) != 1 {
-		return false
-	}
-	gate, ok := rs.Body.List[0].(*ast.IfStmt)
-	if !ok || gate.Else != nil || len(gate.Body.List) != 1 {
-		return false
-	}
-	call, ok := gate.Cond.(*ast.CallExpr)
-	if !ok || exprText(call.Fun) != "strings.HasPrefix" || len(call.Args) != 2 || exprText(call.Args[0]) != key {
-		return false
-	}
-	prefix, ok := call.Args[1].(*ast.BasicLit)
-	if !ok || prefix.Kind != token.STRING || (prefix.Value != `"Imprint"` && prefix.Value != `"NoneFound"`) {
-		return false
-	}
-	assign, ok := gate.Body.List[0].(*ast.AssignStmt)
-	if !ok || assign.Tok != token.ASSIGN || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
-		return false
-	}
-	collected, ok := assign.Lhs[0].(*ast.Ident)
-	if !ok {
-		return false
-	}
-	appendCall, ok := assign.Rhs[0].(*ast.CallExpr)
-	if !ok || exprText(appendCall.Fun) != "append" || len(appendCall.Args) != 2 || exprText(appendCall.Args[0]) != collected.Name || exprText(appendCall.Args[1]) != key {
-		return false
-	}
-	return true
 }
 
 // rangeKeyIsWriteOnly reports whether the range body is a pure Params copy
@@ -1511,6 +1471,16 @@ var apiSpecificRulesSA = map[string][]string{
 	// gate, striveAffordableTargets' hint); its Produced$ read is over
 	// api:Mana sources only, not over the spell or ability being priced.
 	"Engine.castWindowUnits": {"Mana"},
+	// The cast-payment window's paid/dynamic layer: castWindowPaidUnits walks
+	// the same availableManaAbilitiesForWindow set as windowManaUnits and
+	// reads each api:Mana ability's Cost$/RestrictValid$/Produced$, while
+	// castWindowAmount reads its Amount$ (and the SVar body behind it). Both
+	// are cast-window-only readers of api:Mana abilities, so their reads
+	// belong to api:Mana alone -- left in the generic union they mask every
+	// other API's unread Amount$/Produced$ (measured:
+	// api:ChangeZone/api:Sacrifice/api:DealDamage).
+	"Engine.castWindowPaidUnits": {"Mana"},
+	"Engine.castWindowAmount":    {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1582,6 +1552,18 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.counterReplaceOp":  {"ReplaceCounter"},
 	"tokenReplacementsCommute": {"ReplaceToken"},
 	"tokenReplApplies":         {"ReplaceToken"},
+	// The body-defined entry-counter fold (rules/entry_counters.go): these
+	// read the ReplaceWith$ body of an R:Event$ Moved replacement line ONLY,
+	// and only when its DB$ body is a PutCounter|ETB$ True ability (every
+	// reader short-circuits on `r.With.API == "PutCounter"` first), so the
+	// ETB$/Defined$/CounterNum$/CounterType$ reads plus entryBodyAbsorbable's
+	// withheld-modifier keys belong to api:PutCounter alone -- left in the
+	// generic union they would mark CounterType$/Optional$/ETB$ read for
+	// every other API (measured: api:Mill's World Shaper Optional$ gap).
+	"Engine.entryBodyCandidates":    {"PutCounter"},
+	"Engine.entryBodyCounterGrants": {"PutCounter"},
+	"entryBodyKindEncodable":        {"PutCounter"},
+	"entryBodyAbsorbable":           {"PutCounter"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
@@ -1743,8 +1725,13 @@ var handRoots = struct {
 		// ValidDefender$ against the attacker and its actual defender.
 		"Engine.checkAttackerUnblockedTriggers",
 		// The static-grant's trigger walk (AddTrigger$): mode-SHARED machinery
-		// like the drain above -- a granted trigger of ANY mode matches through
-		// triggerMatches' own dispatch.
+		// like the drain above -- a granted trigger whose mode has a
+		// trigMatchers entry matches through triggerMatches' own dispatch. The
+		// dedicated-hook modes (AttackerBlocked/AttackerBlockedByCreature,
+		// AttackerUnblocked/AttackerUnblockedOnce, Blocks, Chapter, Attached,
+		// …) have no trigMatchers entry and are dispatched by their own
+		// granted walks instead, so a granted instance of one of those matches
+		// elsewhere -- not here.
 		"Engine.checkGrantedStaticTriggers",
 		// The live trigger walk's zone-skip classifier (trigger_zoneskip.go)
 		// re-reads zoneGate's TriggerZones$/ActiveZones$ and the Phase$

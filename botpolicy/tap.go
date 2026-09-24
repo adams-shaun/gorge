@@ -297,7 +297,7 @@ func (b Board) chooseTap(d *decision.Decision) int {
 			continue
 		}
 		for i := 0; i < 5; i++ {
-			if card.Produces.Colour[i] > 0 || card.Produces.Reflected {
+			if card.Produces.Colour[i] > 0 || card.Produces.Reflected || card.Produces.Any {
 				offered[i] = true
 			}
 		}
@@ -331,7 +331,7 @@ func (b Board) chooseTap(d *decision.Decision) int {
 		prod := b.Cards[o.Obj].Produces
 		matches := false
 		for i := 0; i < 5; i++ {
-			if need[i] && (prod.ProducesColour(i) || prod.Reflected) {
+			if need[i] && (prod.ProducesColour(i) || prod.Reflected || prod.Any) {
 				matches = true
 				break
 			}

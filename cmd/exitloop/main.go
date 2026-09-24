@@ -12,6 +12,13 @@
 // the default bot on ONE fixed seed block (the same seeds for every generation
 // and for the bot self-control), so the generations are comparable.
 //
+// -mode ppo (ppo.go, ticket pn13) is the on-policy alternative: each round
+// the previous checkpoint plays the bot as the deployed seat and records its
+// own scored decisions (botbench -onpolicy-corpus), policytrain -ppo-corpus
+// fine-tunes it on that corpus alone (PPO, or VDWM with -vdwm in
+// -ppo-train-args), and the result is evaluated on the same fixed block;
+// -gate chains the rounds through mtgbld's never-regress gate.
+//
 // The loop never changes a stage's behaviour: it only plans argv lists, runs
 // them, and reads their machine-readable outputs (the teacher's GameRecord
 // JSONL, botbench's -out json) to write summary.tsv. The wall clock is read
@@ -66,6 +73,23 @@ type config struct {
 	evalKinds        []string
 	workers          int
 	cards            string
+
+	// -mode ppo (ppo.go): the on-policy PPO loop's own knobs.
+	mode         string
+	rounds       int
+	seedCkpt     string
+	collectGames int
+	collectSeed  uint64
+	pnKinds      string
+	admission    string
+	gate         bool
+	// ticket pn14: stochastic collection (botbench -policynet-temperature)
+	// on a linear schedule from collectTemp (round 1) to collectTempFinal
+	// (the last round; <= 0 keeps collectTemp throughout), and the collection
+	// opponent mix (botbench -opp-mix). Eval is always greedy against -b bot.
+	collectTemp      float64
+	collectTempFinal float64
+	oppMix           string
 }
 
 // stage is one command the loop runs: the binary, its argv, the file its
@@ -172,8 +196,27 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 	fs.IntVar(&cfg.workers, "workers", 16, "parallel games for the teacher and every botbench stage (policytrain is single-threaded)")
 	fs.StringVar(&cfg.cards, "cards", ".cards", "compiled corpus directory passed to every stage")
 	planOnly := fs.Bool("plan", false, "print the plan and exit")
+	fs.StringVar(&cfg.mode, "mode", "exit", "loop: exit (expert iteration: teacher labels -> policytrain -> eval) or ppo (on-policy PPO: the checkpoint's own games -> policytrain -ppo-corpus -> eval; ticket pn13)")
+	fs.IntVar(&cfg.rounds, "rounds", 6, "ppo mode: PPO rounds after the seed checkpoint")
+	fs.StringVar(&cfg.seedCkpt, "seed-checkpoint", "", "ppo mode: round 0's checkpoint (required)")
+	fs.IntVar(&cfg.collectGames, "collect-games", 100, "ppo mode: on-policy games per pair per round")
+	fs.Uint64Var(&cfg.collectSeed, "collect-seed", 110_000_000, "ppo mode: collection base seed (round r uses collect-seed + (r-1)*seed-stride)")
+	fs.BoolVar(&cfg.gate, "gate", false, "ppo mode: gate every round (mtgbld's never-regress rule): round r+1 collects from and trains from checkpoint r only when its eval is >= the incumbent's, else from the incumbent; every checkpoint is still evaluated")
+	fs.StringVar(&cfg.admission, "policynet-admission", "auto", "ppo mode: the deployed seat's subset admission vote (botbench -policynet-admission: auto or sign), for collection and eval alike")
+	fs.StringVar(&cfg.pnKinds, "policynet-kinds", "attackers,priority", "ppo mode: the deployed seat's scored kinds, for collection and eval alike")
+	fs.Float64Var(&cfg.collectTemp, "collect-temp", 0, "ppo mode (pn14): sample the collection seat at this temperature (botbench -policynet-temperature); 0 = greedy collection (pn13)")
+	fs.Float64Var(&cfg.collectTempFinal, "collect-temp-final", 0, "ppo mode (pn14): anneal the collection temperature linearly from -collect-temp (round 1) to this value (the last round); 0 = constant")
+	fs.StringVar(&cfg.oppMix, "opp-mix", "", "ppo mode (pn14): collection-only opponent mix, botbench -opp-mix (e.g. explore:0.3)")
+	ppoTrain := fs.String("ppo-train-args", "-epochs 4 -lr 0.05 -batch 64 -value-weight 0.5 -ppo-clip 0.2 -ppo-kl 0.1", "ppo mode: extra policytrain arguments (whitespace separated)")
 	if err := fs.Parse(args); err != nil {
 		return cfg, false, err
+	}
+	if cfg.mode == "ppo" {
+		cfg.trainArgs = *ppoTrain
+		return cfg, *planOnly, validatePPO(cfg)
+	}
+	if cfg.mode != "exit" {
+		return cfg, false, fmt.Errorf("-mode %q (want exit or ppo)", cfg.mode)
 	}
 	for _, k := range strings.Split(*evalKinds, ";") {
 		if k = strings.TrimSpace(k); k != "" {
@@ -229,6 +272,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		fmt.Fprintln(stderr, "exitloop:", err)
 		return 2
+	}
+	if cfg.mode == "ppo" {
+		return runPPOLoop(cfg, planOnly, stdout, stderr)
 	}
 	st := plan(cfg)
 	if planOnly {
@@ -641,4 +687,55 @@ func timingTSV(cfg config, ts []timing) string {
 		fmt.Fprintf(&b, "%s\t%s\t%.1f\t%d\t%d\t%s\n", gen, t.Stage, t.Seconds, workers, games, gph)
 	}
 	return b.String()
+}
+
+// runPPOLoop is run for -mode ppo.
+func runPPOLoop(cfg config, planOnly bool, stdout, stderr io.Writer) int {
+	st := planPPO(cfg)
+	if planOnly {
+		fmt.Fprint(stdout, renderPlan(st))
+		return 0
+	}
+	fail := func(err error) int {
+		fmt.Fprintln(stderr, "exitloop:", err)
+		return 1
+	}
+	if err := createPPOOut(cfg); err != nil {
+		return fail(err)
+	}
+	if err := os.WriteFile(filepath.Join(cfg.out, "plan.txt"), []byte(renderPlan(st)), 0o644); err != nil {
+		return fail(err)
+	}
+	var timings []timing
+	for _, s := range st {
+		fmt.Fprintf(stderr, "exitloop: [round %d] %s ...\n", s.Gen, s.Name)
+		var secs float64
+		var err error
+		if s.Name == "gate" {
+			err = gateRound(cfg, s.Gen)
+		} else {
+			secs, err = execStage(s)
+		}
+		if err != nil {
+			return fail(err)
+		}
+		fmt.Fprintf(stderr, "exitloop: [round %d] %s done in %.1fs\n", s.Gen, s.Name, secs)
+		timings = append(timings, timing{Gen: s.Gen, Stage: s.Name, Seconds: secs})
+		// timing.tsv is rewritten after every stage so a long run's progress
+		// is readable before it ends.
+		_ = os.WriteFile(filepath.Join(cfg.out, "timing.tsv"), []byte(ppoTimingTSV(cfg, timings)), 0o644)
+	}
+	rows, control, err := collectPPO(cfg)
+	if err != nil {
+		return fail(err)
+	}
+	tsv := ppoSummaryTSV(rows, control)
+	if err := os.WriteFile(filepath.Join(cfg.out, "summary.tsv"), []byte(tsv), 0o644); err != nil {
+		return fail(err)
+	}
+	tim := ppoTimingTSV(cfg, timings)
+	fmt.Fprint(stdout, tsv)
+	fmt.Fprintln(stdout)
+	fmt.Fprint(stdout, tim)
+	return 0
 }

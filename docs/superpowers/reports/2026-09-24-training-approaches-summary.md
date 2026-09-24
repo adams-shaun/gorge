@@ -22,7 +22,10 @@ seats traded).
 | 7 | Value head, value leaf, policy prior (pn08–pn10) | Value head predicts outcomes (log loss 0.24 vs 0.46 base rate); no win-rate gain | Merged; inert on its own |
 | 8 | Priority-context encoder v2 (pn03) | Top-1 = bot; 0/52 overrides right | Branch, not merged |
 | 9 | Expert iteration loop (pn11, `cmd/exitloop`) | 3 gens: eval 45.7 / 44.9 / 45.4% vs 48.7% control | Merged; does not compound |
-| 10 | Prior art: mtgbld self-distillation PPO (XMage) | 44.7% → 54.5% vs CP7 over 6 gated rounds | The one recipe that compounded; not yet ported |
+| 10 | Prior art: mtgbld self-distillation PPO (XMage) | 44.7% → 54.5% vs CP7 over 6 gated rounds | The one recipe that compounded there |
+| 11 | On-policy PPO / VDWM, the mtgbld recipe ported (pn13) | Flat: 10 rounds within ±0.3pp of round 0; sign-admission fix alone +4.8pp (46.7 → 51.5%, control 51.0%) | Merged; does not compound; fixed the attackers override bug |
+| 12 | Data / features / action / hidden-info grid (pn12) | No axis helps: override top-1 3–10% at every size and feature set; best in-play 51.2% vs 50.3% control | Merged (flag-gated); oracle override labels are unlearnable |
+| 13 | Sampled collection + per-card entity features + outcome PPO (pn14) | Flat: 8 arms × 10 rounds, best held-out 50.54% vs 50.18% control (5,000 games); greedy PPO drifts down to 48.5% | Merged plumbing (flag-gated); no arm beats the bot |
 | — | MageZero reference run (2 vCPU) | Gen 0: 44% vs minimax pool (baseline 34.5%) | Throughput reference |
 
 **The one durable finding:** the search teacher beats the bot. Every attempt
@@ -238,6 +241,116 @@ decisions are overrides of the bot.
     generation takes 52 s (gen 0; about 16.5k teacher games/h counting the bot
     twin) or 29 s (guided; about 65k games/h).
 
+## 8b. On-policy PPO and VDWM (pn13)
+
+- **What:** mtgbld's self-distillation recipe ported. Each round the deployed
+  net (argmax, `attackers,priority`) plays 2,000 games against `bot`; every
+  decision it scored is recorded with its exact π_old (verified: 0 mismatches
+  on re-score). Update = clipped PPO (ε 0.2) + KL anchor, advantage =
+  outcome − V(s) from the jointly trained value head. Eval 4,000 games on a
+  fixed disjoint block. Code: `seat.SetRecorder`, `botbench -onpolicy-corpus`,
+  `policytrain -ppo-corpus`, `exitloop -mode ppo`.
+- **Result — flat in every arm** (control 50.95% [49.4, 52.5], CI ±1.55pp):
+
+| Arm | Round 0 | Rounds 1–10 | Best vs round 0 |
+|---|---|---|---|
+| PPO, default admission, ungated | 46.70% | 46.47–46.72% | +0.02pp |
+| PPO, sign admission, ungated | 51.48% | 50.65–51.68% | +0.20pp |
+| PPO, sign admission, gated | 51.48% | every round failed the gate | — |
+| VDWM, sign admission, gated | 51.48% | exactly 50.95% (= bot) | collapsed to the bot in one round |
+
+- **The real find is a seat bug, not a training gain.** 93% of the attackers
+  net's in-play "overrides" (the pn06 34%-in-play mystery) were all-positive
+  score decisions where the default admission rule falls back to the decision
+  mean and drops every below-mean attacker. That rule is shift-invariant, so no
+  weight update can reach it. Voting on the sign instead
+  (`-policynet-admission sign`, opt-in) takes round 0 from 46.7% to 51.5% —
+  back to control, not above it.
+- **Why PPO has nothing to push:** priority never deviated from the bot (at
+  most 1 decision per round) — the `-residual-init 2` prior's 2-logit gap
+  survives every step. With sign admission only 6.9% of attackers decisions
+  deviate. The outcome signal over those is too weak to move the win rate.
+- **Why VDWM collapsed:** with y = the seat's own answer and an unsigned
+  |outcome − V| weight, it reinforces the majority (bot-matching) answer and
+  erases the deviations. mtgbld's rows partly carried CP7's labels, which gorge's
+  on-policy corpus does not.
+- **Value head** on on-policy states: AUC .85 / .92 / .95 for turns 1–6 / 7–12
+  / 13+ by round 10 — good late, as mtgbld found — but calibration swings
+  (round 6 blew up to log loss 5.1).
+- **Throughput:** 22 workers ≈ 47 s per round (collect 7 s, train 26 s
+  single-threaded, eval 13 s). At 2 vCPU: 118k games/h collect and eval, one
+  full round (500 collect + 1,000 eval games) in 53 s.
+
+## 8c. What limits the net: the pn12 grid
+
+- **What:** one oracle-teacher corpus (29,214 training games, 35 min on 22
+  cores; disjoint held-out block with 648 cast-override and 84
+  attackers-override labels), re-encoded under every arm. The score is
+  override top-1 on held-out overrides, plus the same readout on the
+  TRAINING overrides (can the net even fit what it was shown?).
+  Code: `searchteacher -label-extras` (schema 3 labels), `policytrain
+  -features v1|mz|mz-opphand|mz-oracle -actions joint -arm/-eval-json`.
+  The hidden-information feature sets refuse to checkpoint.
+
+| Arm (residual 0 unless noted) | Train games | Cast override top-1, held-out (n=648) | Same, on training overrides (n=3,580) | Keeps bot's answer |
+|---|---|---|---|---|
+| v1 features | 1k | 9.7% | 8.3% | 74% |
+| v1 | 3k | 8.5% | – | 79% |
+| v1 | 10k | 7.1% | – | 81% |
+| v1 | 30k | 6.8% | 4.9% | 84% |
+| v1, lr 1 | 30k | 3.5% | 2.7% | 91% |
+| v1, 30 epochs | 30k | 4.2% | 3.4% | 88% |
+| MageZero-style per-card features | 30k | 5.7% | 4.3% | 85% |
+| + opponent's hand (diagnostic) | 30k | 5.7% | 4.4% | 85% |
+| + hand and next draws (diagnostic) | 30k | 5.7% | 4.3% | 85% |
+| + hand and draws, lr 1 | 30k | 2.8% | 2.0% | 93% |
+| Joint (cast, target) action | 30k | 6.8% | 5.1% | 86% |
+| Any arm, residual prior 2 | any | 0–0.2% | 0% | ~100% |
+
+- **In play** (5,000 games, ±1.4pp; control 50.3%): 30k residual 0 50.3%;
+  residual 2 51.2%; MZ features residual 2 51.0%; the same two under the
+  default (auto) attackers admission 46.1% — the pn13 admission bug again.
+- **Verdicts:**
+  - *More data:* **no.** Override accuracy falls as data grows; the net
+    spends capacity on matching the bot.
+  - *Richer features:* **no.** MZ-style per-card features are slightly worse.
+  - *Joint action:* **no change.**
+  - *Hidden information:* **not the whole story.** Even a net that sees the
+    opponent's hand and the next draws fits only 2–4% of its OWN training
+    overrides. Training harder fits the bot better and the overrides worse.
+    The override labels are close to noise relative to anything encodable.
+  - An audit agrees: on oracle cast overrides the honest (PIMC) teacher
+    picks the same card 20% of the time and ranks it above the bot's 30% vs
+    below 29% — a coin flip. Attackers overrides are ~54% recoverable but
+    rare (13 of 827 covered decisions).
+- **Implication:** argmax labels from a search teacher mostly encode
+  near-ties and world-specific luck. Distilling them needs margin filtering
+  (only large value gaps) or regressing the value differences, not
+  imitation of the pick — or ship the search seat and stop distilling.
+
+## 8d. Exploration, entity features, outcome PPO (pn14)
+
+- **What:** Three changes, tested together:
+  - stochastic collection (`botbench -policynet-temperature`, behaviour
+    log-prob in the corpus, PPO ratio π_new/π_behaviour);
+  - an `entity` feature set: a per-card encoder with sum+max pools and the
+    option's own and related card encodings;
+  - outcome-only PPO.
+- **Arms:** {mz, entity} × {greedy, T=1, T 2→0.5}, 10 rounds each, plus a
+  residual-0.5 ablation. Full report:
+  `2026-09-24-pn14-explore-entity-outcome.md`.
+- **Result:** flat.
+  - Held out (5,000 games), the best checkpoint plays 50.54% against the
+    control's 50.18%.
+  - Greedy PPO with a real step size drifts down (48.5% held out). Sampling
+    keeps it stable, and recovers a residual-0.5 start from 48.3% to 50.3%.
+  - Entity and mz are indistinguishable.
+- **Also found:**
+  - pn13's `-clip 1` made each PPO round move the policy by about 0.0006
+    KL, so it barely trained at all.
+  - At residual 2 the deployed priority answer never changes, even under
+    sampling (greedy-flip 0.00%).
+
 ## 9. MageZero reference (external, for throughput and curve shape)
 
 - **What:** MageZero, AlphaZero-style MCTS plus a transformer on an XMage
@@ -284,6 +397,25 @@ bot and decks. The lessons do. Sources are the mtgbld project memories
 | **Self-distillation PPO** | 6 gated rounds took mirror 44.7% → 54.5% and cross-deck 34.6% → 40.4%. It was the first run to beat CP7, and the only multi-round recipe that compounded. About 10 min per round. |
 | Matchup conditioning (archetype and matchup tokens) | Mono-green +27pp (24.3% → 50.5%); tempo/control +2 to +9pp; aggro −4 to −5pp. |
 
+**More from the same notes** (`project_vdwm_novel_synthesis`,
+`reference_checkpoint_scoreboard`, `project_beat_cp7_exhausted`,
+`project_puct_attempts`, `project_llm_oracle_exhausted`,
+`project_phase5_iter_regression`, `project_phase2_joint_slots_promotion`,
+`project_noncp7_parity`):
+
+| Finding | Evidence | Relevance to gorge |
+|---|---|---|
+| **VDWM loss beat CE and PPO on a multi-deck policy.** Margin loss weighted by (1 − π_old) × \|outcome − V(s)\| | Universal policy +3 to +14pp per deck (uw-tempo +14.1pp). Compound VDWM drifted about 1pp; compound PPO drifted −3.8pp. | Our CE and residual-prior heads spend their gradient agreeing with the bot. VDWM puts it on disagreement rows. Added to pn13 as a second arm. |
+| **Split card and target decisions lose the target signal** | A separate target head trained on CP7's picks lost 7–16pp. Joint (card, target) labels gave +5.9pp from under 1% of rows. | gorge asks cast and target as separate decisions (`KPriority` then `KTarget`) and trains them separately. That is the shape that failed there. |
+| **Search whose rollouts are played by the baseline is capped at the baseline** | "Our rollouts ARE CP7": PUCT with any leaf signal lost 11–20pp. | gorge's PIMC rollouts are played by `bot`. Search beats the bot through hidden-world sampling, but an ExIt loop that keeps `bot` rollouts cannot compound past what that sampling adds. |
+| **Value nets look accurate but don't rank moves** | 90% win-prediction accuracy, but dominated by easy late-game states. Value-guided move choice lost 19–30%. Static-position correlation (Spearman ρ 0.44–0.66) never turned into better action choices. | Matches pn09: the value leaf roughly equals the heuristic, despite a good holdout log loss. Judge a value head by its discrimination at decision points, per turn bucket. |
+| **Imitating a weaker teacher destroys the policy** | Trained on PUCT N=4 decisions (36% as a player), the policy fell to 9.7%. | pn11 gens 1+ trained on a horizon-2 teacher that is weaker and noisier than gen 0's. |
+| **Ungated iteration walks at random** | 10 naive generations: [31, 47, 40, 23, 12, 45, 26, 4, 29, 30]%. | Gate every round against a fixed seed block. |
+| **Bench variance beyond binomial** | ±7pp run to run at n = 200–300, from correlated games. | gorge's fixed seed blocks remove most of this, but still pool ≥1,000 games per arm. |
+| **Training opponent strength must match deployment** | EASY-trained policy lost 7pp vs HARD; retraining on HARD games recovered 3.5pp. | Train and eval against the same `bot`. |
+| **Multi-deck training beat per-deck** | Universal model: mono-green +27pp. Per-deck fine-tunes of it regressed 4pp. The opponent-deck tag turned out to be noise. | gorge's net is already universal. Keep it that way. |
+| **Owning the whole decision surface matters more than priority alone** | A CP7-free agent went 0% → ~40% once it had combat heuristics. Learned combat heads (4 variants) all lost to the heuristic: game-level credit was too weak. | Per-decision credit (search labels, or advantage against V) is needed for combat; game outcome alone isn't enough. |
+
 **How self-distillation PPO worked.** The corpus is the *deployed*
 argmax policy's own games against the fixed opponent, not sampled play and
 not a teacher's. Each row records π_old = the probability the policy gave
@@ -325,4 +457,13 @@ gated each round.
 4. **Open:**
    - Whether ExIt compounds with game-end rollouts (pn11's run changed the
      leaf and the prior at once, and was flat).
-   - Why the attackers net overrides 34% in play against about 1% on holdout.
+   - ~~Why the attackers net overrides 34% in play against about 1% on
+     holdout.~~ Answered by pn13: the mean-fallback admission rule, not the
+     weights (section 8b).
+   - ~~Whether data volume, features, a joint cast+target action, or hidden
+     information is the binding limit.~~ None of them (pn12, section 8c):
+     the oracle override labels are not learnable even with full
+     information.
+5. **On-policy PPO does not compound here** (pn13). The net barely deviates
+   from the bot, so there is no on-policy signal to amplify; the residual
+   prior has to be relaxed before priority can learn at all.

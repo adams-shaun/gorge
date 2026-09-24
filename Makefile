@@ -62,6 +62,8 @@ help:
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
+	@echo "  make clean-seats    — delete finished pi-agent seat dirs (~/.cache/pi-agent); dry run unless APPLY=1"
+	@echo "  make clean-worktrees — remove merged, clean .worktrees/* and their branches; dry run unless APPLY=1"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
@@ -287,6 +289,15 @@ clean:
 .PHONY: clean-cards
 clean-cards:
 	rm -rf $(CARDS_DIR)
+
+# clean-seats / clean-worktrees reclaim disk from finished agent work. Both
+# are dry runs that only list what they would delete; pass APPLY=1 to delete.
+# See scripts/cleanup.sh for exactly what is kept.
+.PHONY: clean-seats clean-worktrees
+clean-seats:
+	@APPLY=$(APPLY) scripts/cleanup.sh seat-cache
+clean-worktrees:
+	@APPLY=$(APPLY) scripts/cleanup.sh worktrees
 
 .PHONY: ledger
 ## ledger: rebuild the judge-lane issue ledger the agent dashboard renders

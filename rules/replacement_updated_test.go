@@ -279,6 +279,25 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 			}
 			continue
 		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "damage_split" {
+			// A DealDamage DividedAsYouChoose$ allocation now suspends
+			// mid-resolution where it used to round-robin silently. Drains
+			// written around that stand-in reproduce the round-robin split:
+			// the ask is Min == Max == the scripted total over one option per
+			// chosen target in order, so cycling the option indices assigns
+			// one damage at a time in that same order and leaves these tests
+			// the board their assertions were written against. A test that
+			// wants a different allocation answers the ask itself first
+			// (fury_damage_split_test.go).
+			choices := make([]int, 0, d.Min)
+			for i := 0; i < d.Min && len(d.Options) > 0; i++ {
+				choices = append(choices, d.Options[i%len(d.Options)].Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+				t.Fatalf("submit damage split round-robin: %v", err)
+			}
+			continue
+		}
 		if d.Kind != decision.KPriority {
 			if d.Kind == decision.KTarget && d.ResumeKind == "copy_targets" {
 				// CR 707.10c: a copy with MayChooseTarget$ asks its

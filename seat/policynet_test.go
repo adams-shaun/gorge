@@ -985,3 +985,240 @@ func TestPolicyNetBlockersTargetsRandomHeadLegal(t *testing.T) {
 	}
 	t.Logf("kinds answered: %v", seen)
 }
+
+// TestPolicyNetRecorderObservesWithoutChangingPlay pins the on-policy
+// recorder (ticket pn13): whole games played with a recorder installed
+// submit exactly the intent stream of the same seat without one; every
+// record is a decision the seat answered FROM ITS SCORES (its Chosen is the
+// submitted intent, in option positions); the recorded scores are the
+// scorer's own on the recorded state and options; and the action space and
+// distribution shape follow the kind.
+func TestPolicyNetRecorderObservesWithoutChangingPlay(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	kinds := []decision.Kind{decision.KAttackers, decision.KPriority, decision.KBlockers, decision.KTarget}
+	seenKinds := map[decision.Kind]int{}
+	for _, seed := range []uint64{300, 301, 302} {
+		sc := withResidual(t, seed, 0.5)
+		plain := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+			return NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+		})
+		var recs []PolicyNetDecision
+		recorded := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+			b := NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+			b.SetRecorder(func(d PolicyNetDecision) { recs = append(recs, d) })
+			return b
+		})
+		if !slices.EqualFunc(plain, recorded, sameIntent) {
+			t.Fatalf("seed %d: installing the recorder changed the intent stream", seed)
+		}
+		if len(recs) == 0 {
+			t.Fatalf("seed %d: nothing recorded", seed)
+		}
+		bySeq := map[[2]uint64]decision.Intent{}
+		for _, in := range recorded {
+			bySeq[[2]uint64{in.Seq, uint64(in.Player)}] = in
+		}
+		for _, r := range recs {
+			seenKinds[r.Kind]++
+			in, ok := bySeq[[2]uint64{r.Seq, uint64(r.Player)}]
+			if !ok {
+				t.Fatalf("seed %d: record seq %d has no submitted intent", seed, r.Seq)
+			}
+			// Index == position for engine-built options (rules/legal.go).
+			if !slices.Equal(r.Chosen, in.Choices) {
+				t.Fatalf("seed %d seq %d %s: recorded chosen %v, submitted %v", seed, r.Seq, r.Kind, r.Chosen, in.Choices)
+			}
+			if got := sc.Score(r.State, r.Options); !slices.Equal(got, r.Scores) {
+				t.Fatalf("seed %d seq %d: recorded scores differ from a re-score", seed, r.Seq)
+			}
+			if r.Subset != (r.Kind == decision.KAttackers || r.Kind == decision.KBlockers) || len(r.InSpace) != len(r.Options) {
+				t.Fatalf("seed %d seq %d %s: subset %v / in-space %d of %d", seed, r.Seq, r.Kind, r.Subset, len(r.InSpace), len(r.Options))
+			}
+			for i, b := range r.InSpace {
+				if r.Kind != decision.KPriority && !b {
+					t.Fatalf("seed %d seq %d %s: option %d outside the action space", seed, r.Seq, r.Kind, i)
+				}
+			}
+			for _, c := range r.BotChosen {
+				if !r.Options[c].BotPick {
+					t.Fatalf("seed %d seq %d: bot answer position %d not BotPick-marked", seed, r.Seq, c)
+				}
+			}
+		}
+	}
+	if seenKinds[decision.KAttackers] == 0 || seenKinds[decision.KPriority] == 0 {
+		t.Fatalf("the recorder never saw attackers and priority: %v", seenKinds)
+	}
+	t.Logf("recorded kinds: %v", seenKinds)
+}
+
+// TestPolicyNetSignAdmission pins the opt-in sign vote (ticket pn13): on an
+// ALL-POSITIVE multi-option attackers decision the default auto vote falls
+// back to the decision mean and drops the below-mean attackers, while the
+// sign vote admits every positive option; a straddling decision votes the
+// same under both; an exact positive tie, which auto refuses, is admitted
+// whole; and an unknown mode is refused.
+func TestPolicyNetSignAdmission(t *testing.T) {
+	atkOpt := func(idx int, obj state.ObjID) decision.Option {
+		return decision.Option{Index: idx, Kind: "attacker", Obj: obj, Player: 1}
+	}
+	d := &decision.Decision{Kind: decision.KAttackers, Min: 0, Max: 3, Seq: 12, Player: 0,
+		Options: []decision.Option{atkOpt(0, 10), atkOpt(1, 11), atkOpt(2, 12)}}
+	auto, _ := attackersFromScoresVote(d, []float32{2.5, 1.0, 2.0}, false)
+	sign, _ := attackersFromScoresVote(d, []float32{2.5, 1.0, 2.0}, true)
+	if !slices.Equal(auto.Choices, []int{0, 2}) || !slices.Equal(sign.Choices, []int{0, 1, 2}) {
+		t.Fatalf("all-positive: auto %v sign %v, want [0 2] and [0 1 2]", auto.Choices, sign.Choices)
+	}
+	a2, _ := attackersFromScoresVote(d, []float32{1, -1, 0.5}, false)
+	s2, _ := attackersFromScoresVote(d, []float32{1, -1, 0.5}, true)
+	if !slices.Equal(a2.Choices, s2.Choices) || !slices.Equal(s2.Choices, []int{0, 2}) {
+		t.Fatalf("straddle: auto %v sign %v", a2.Choices, s2.Choices)
+	}
+	if _, ok := attackersFromScoresVote(d, []float32{2, 2, 2}, false); ok {
+		t.Fatal("auto must refuse an exact tie")
+	}
+	if in, ok := attackersFromScoresVote(d, []float32{2, 2, 2}, true); !ok || len(in.Choices) != 3 {
+		t.Fatalf("sign on a positive tie: %v %v", in.Choices, ok)
+	}
+	b := NewPolicyNetBot(1, nil)
+	if err := b.SetAdmission("mean"); err == nil || b.admission() != AdmissionAuto {
+		t.Fatal("an unknown admission must be refused and leave auto in place")
+	}
+	if err := b.SetAdmission(AdmissionSign); err != nil || b.admission() != AdmissionSign {
+		t.Fatal("sign admission not set")
+	}
+}
+
+// TestPolicyNetSignAdmissionReproducesTheBotWithAZeroHead: with the sign
+// vote, a zero-head model with an active residual answers attackers exactly
+// as the default bot does over whole games (the residual prior's contract,
+// now without the auto vote's tie refusal).
+func TestPolicyNetSignAdmissionReproducesTheBotWithAZeroHead(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	m := policynet.NewModel(policynet.TableRows, 8, 4, rand.New(rand.NewPCG(1, 1)))
+	for _, blk := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW} {
+		for i := range blk {
+			blk[i] = 0
+		}
+	}
+	m.ResidualW = 2
+	sc := policynet.NewScorer(m)
+	for _, seed := range []uint64{400, 401} {
+		defRun := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer { return NewBot(seed ^ uint64(p+1)) })
+		pnRun := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+			b := NewPolicyNetBot(seed^uint64(p+1), sc)
+			if err := b.SetAdmission(AdmissionSign); err != nil {
+				t.Fatal(err)
+			}
+			return b
+		})
+		if !slices.EqualFunc(defRun, pnRun, sameIntent) {
+			t.Fatalf("seed %d: a zero head under the sign vote diverged from the default bot", seed)
+		}
+	}
+}
+
+// entityCheckpoint is withResidual's model upgraded to the entity feature
+// set (ticket pn14) with a non-zero pooled projection, round-tripped through
+// the schema-4 checkpoint.
+func entityCheckpoint(t *testing.T, seed uint64, w float32) *policynet.Scorer {
+	t.Helper()
+	m := policynet.NewModel(policynet.TableRows, 16, 8, rand.New(rand.NewPCG(seed, seed^0x5eed)))
+	m.ResidualW = w
+	m.Features = policynet.FeaturesMZ
+	if err := policynet.UpgradeEntity(m, 4, rand.New(rand.NewPCG(seed, 3))); err != nil {
+		t.Fatal(err)
+	}
+	for i := range m.EntP {
+		m.EntP[i] = float32(i%11-5) * 0.02
+	}
+	for i := range m.HidW {
+		if m.HidW[i] == 0 {
+			m.HidW[i] = float32(i%5-2) * 0.05
+		}
+	}
+	var buf bytes.Buffer
+	if err := policynet.WriteCheckpoint(m, &buf); err != nil {
+		t.Fatalf("WriteCheckpoint: %v", err)
+	}
+	sc, err := policynet.LoadScorer(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("LoadScorer: %v", err)
+	}
+	return sc
+}
+
+// TestPolicyNetSamplingIsSeededLegalAndRecorded pins ticket pn14's
+// collection mode over whole games: SetSampling(0) is the default seat
+// byte for byte; a sampling seat plays only legal intents (the engine is the
+// validator), replays identically from the same seed, differs from the
+// greedy seat, and records every scored decision with its temperature and a
+// behaviour log-probability that re-derives from the recorded scores. An
+// entity-feature checkpoint drives the same path (its recorded scores
+// re-score bit for bit).
+func TestPolicyNetSamplingIsSeededLegalAndRecorded(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	kinds := []decision.Kind{decision.KAttackers, decision.KPriority, decision.KBlockers, decision.KTarget}
+	for _, arm := range []string{"mz-free", "entity"} {
+		deviated, scored := 0, 0
+		for _, seed := range []uint64{310, 311} {
+			sc := withResidual(t, seed, 0.5)
+			if arm == "entity" {
+				sc = entityCheckpoint(t, seed, 0.5)
+			}
+			greedy := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+				return NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+			})
+			off := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+				b := NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+				b.SetSampling(0, seed)
+				return b
+			})
+			if !slices.EqualFunc(greedy, off, sameIntent) {
+				t.Fatalf("%s seed %d: SetSampling(0) changed play", arm, seed)
+			}
+			play := func() ([]decision.Intent, []PolicyNetDecision) {
+				var recs []PolicyNetDecision
+				ins := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+					b := NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+					b.SetSampling(1.25, seed^uint64(p+1))
+					b.SetRecorder(func(d PolicyNetDecision) { recs = append(recs, d) })
+					return b
+				})
+				return ins, recs
+			}
+			a, recs := play()
+			b, _ := play()
+			if !slices.EqualFunc(a, b, sameIntent) {
+				t.Fatalf("%s seed %d: sampling is not a pure function of the seed", arm, seed)
+			}
+			if slices.EqualFunc(a, greedy, sameIntent) {
+				t.Fatalf("%s seed %d: the sampling seat played exactly the greedy game", arm, seed)
+			}
+			for _, r := range recs {
+				scored++
+				if !r.Sampled || r.Temperature != 1.25 {
+					t.Fatalf("%s seed %d seq %d: not marked sampled at T 1.25", arm, seed, r.Seq)
+				}
+				chosen := make([]bool, len(r.Options))
+				for _, c := range r.Chosen {
+					chosen[c] = true
+				}
+				lp, ok := policynet.TemperedLogProb(r.Scores, r.InSpace, chosen, r.Subset, 1.25)
+				if !ok || lp != r.LogPBehaviour || lp > 0 {
+					t.Fatalf("%s seed %d seq %d: behaviour log-prob %v (re-derived %v ok %v)", arm, seed, r.Seq, r.LogPBehaviour, lp, ok)
+				}
+				if got := sc.Score(r.State, r.Options); !slices.Equal(got, r.Scores) {
+					t.Fatalf("%s seed %d seq %d: recorded scores differ from a re-score", arm, seed, r.Seq)
+				}
+				if !slices.Equal(r.Chosen, r.BotChosen) {
+					deviated++
+				}
+			}
+		}
+		if scored == 0 || deviated == 0 {
+			t.Fatalf("%s: %d scored, %d deviating from the bot: sampling never explored", arm, scored, deviated)
+		}
+		t.Logf("%s: %d sampled decisions, %d off the bot's pick", arm, scored, deviated)
+	}
+}

@@ -310,6 +310,14 @@ type Option struct {
 	// of the game. A bare tap (every plain land) omits the field, so every
 	// existing option list and every plain-land window serialises
 	// byte-identically. omitempty: only a beyond-tap activation carries it.
+	//
+	// An "ability" option (a printed non-mana activated ability) carries its
+	// offer-time cost here too, the same string the card's AbilityCosts
+	// projects: its label is "<card name>: <description>" for every ability
+	// of the card, and a planeswalker's description omits the loyalty cost,
+	// so the cost is what lets the client's radial tell them apart. Every
+	// Cost reader that means the mana-activation marker filters on
+	// Kind == "activate".
 	Cost string `json:"cost,omitempty"`
 	// Grant is server-side only (json:"-") and present only on an "ability"
 	// option whose whole activation is a PURE, IDEMPOTENT keyword grant (the

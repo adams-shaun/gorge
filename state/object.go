@@ -449,6 +449,14 @@ type Object struct {
 	EnteredThisTurn        bool
 	EnteredFrom            Zone
 	WasDealtDamageThisTurn bool
+	// DamageTakenByGame lists, in append order, every damage SOURCE that has
+	// dealt this object damage this game (game-long; never cleared at
+	// TurnChange). Appended by events.Apply's DamageProvenance case with a
+	// dedup, the object-side twin of Player.DamageTakenByGame, so the
+	// wasDealtDamageByThisGame / wasDealtDamageThisGameBy object predicates
+	// read it as a membership test. CloneDeep deep-copies it so a snapshot
+	// never aliases the live object's backing array.
+	DamageTakenByGame []ObjID
 	// The control-acquisition tuple (AcqTurn, AcqStep) records WHEN this
 	// object last came under its current controller's control on the
 	// battlefield: stamped by events.Apply on every battlefield ENTRY (Move,
@@ -1320,6 +1328,7 @@ func (o *Object) CloneDeep() Object {
 	c.ChosenModes = CloneChosenModes(o.ChosenModes)
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
+	c.DamageTakenByGame = append([]ObjID(nil), o.DamageTakenByGame...)
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
 	c.SeekFound = append([]ObjID(nil), o.SeekFound...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)

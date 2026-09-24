@@ -182,6 +182,20 @@ async function driveToCardOptionsWindow(
       continue;
     }
 
+    // CR 103.1's toss ask precedes the mulligan round, so the panel poses it
+    // first. Answer it through the same panel-option click, or the game never
+    // enters the round this driver walks (fb-20260923T050205Z smoke triage).
+    if (d.kind === 'starting_player') {
+      const first = d.options[0];
+      if (first) {
+        const btn = page.locator(`.seat-panel [data-option="${first.index}"]`);
+        await btn.waitFor({ state: 'visible', timeout: WAIT_MS });
+        await btn.click();
+        await page.waitForTimeout(600);
+      }
+      continue;
+    }
+
     // Any other shape before the target (an empty priority window the
     // skip-empty floor is about to pass) — wait for the game to advance.
     await page.waitForTimeout(400);
@@ -212,6 +226,56 @@ async function postFixtureIntent(request: APIRequestContext, base: string, d: Wi
   expect(resp.status(), `fixture intent for ${d.kind} seat ${d.player}`).toBe(204);
 }
 
+/**
+ * settleStartingPlayer answers CR 103.1's pre-game toss ask for one seat of a
+ * real game, so a fixture that does not drive the engine by hand still reaches
+ * turn 1. gorged poses `starting_player` (the toss winner choosing who takes
+ * the first turn) BEFORE the mulligan round, and every surface that reads "the
+ * mulligan round is under way" -- the rail's log toggle, the OPTIONS drop -- is
+ * gated on that round having begun. A seated smoke test that navigates straight
+ * into a game whose toss ask is unanswered therefore sits parked on the ask
+ * instead of the round it means to assert.
+ *
+ * The ask may legitimately not be posed (the R-9 no-ask fallback) or belong to
+ * the other seat (the bot answers its own), so this returns as soon as the
+ * seat's pending decision is anything else, and waits out the 409 the seat gets
+ * while the toss belongs to its opponent.
+ */
+async function settleStartingPlayer(
+  request: APIRequestContext,
+  base: string,
+  table: string,
+  match: number,
+  seat: number,
+  token: string,
+): Promise<void> {
+  const deadline = Date.now() + STALL_MS;
+  const pendingURL = `${base}/api/tables/${table}/matches/${match}/pending?seat=${seat}&token=${encodeURIComponent(token)}`;
+  while (Date.now() < deadline) {
+    const p = await request.get(pendingURL);
+    // 409: the toss belongs to the other seat (the bot answers its own), so
+    // nothing is pending for this seat yet. 404: the match exists but its
+    // first decision is not registered in the instant after POST /api/games.
+    // Both are transient; anything else is a real error and is asserted.
+    if (p.status() === 409 || p.status() === 404) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      continue;
+    }
+    expect(p.ok(), `toss pending ${table} seat ${seat} (status ${p.status()})`).toBe(true);
+    const d = await p.json() as WireDecision;
+    if (d.kind !== 'starting_player') return;
+    const first = d.options[0];
+    expect(first, `toss ask ${table} seat ${seat} must offer an option`).toBeDefined();
+    const resp = await request.post(`${base}/api/tables/${table}/matches/${match}/intent`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { seq: d.seq, player: seat, choices: [first.index] },
+    });
+    expect(resp.status(), `toss intent ${table} seat ${seat}`).toBe(204);
+    return;
+  }
+  throw new Error(`settleStartingPlayer: ${table} seat ${seat} never resolved the toss`);
+}
+
 async function driveFixtureUntil(
   request: APIRequestContext,
   base: string,
@@ -233,6 +297,13 @@ async function driveFixtureUntil(
         const pass = d.options.find((o) => o.kind === 'pass');
         if (cast) choices = [cast.index];
         else if (pass) choices = [pass.index];
+      } else if (d.kind === 'starting_player') {
+        // CR 103.1's toss ask: echo its first option so the shared fixture
+        // reaches turn 1. Every OTHER non-priority ask keeps its original
+        // empty answer -- an early attackers window's empty answer, for
+        // instance, is the legal "declare no attackers", and echoing an
+        // option there would attack with a creature instead of declining.
+        choices = d.options.length > 0 ? [d.options[0].index] : [];
       }
       await postFixtureIntent(request, base, d, choices);
     }
@@ -541,8 +612,12 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
     async function createVsBotJoin(request: APIRequestContext, b: string): Promise<{ join: string; seat: number }> {
       const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed' } });
       expect(resp.ok(), `POST /api/games on ${b} should succeed`).toBe(true);
-      const g = (await resp.json()) as { join: string; seat: number };
+      const g = (await resp.json()) as { join: string; seat: number; table: string; match: number; token: string };
       expect(g.join, `POST /api/games on ${b} should return a join path`).toBeTruthy();
+      // Answer the pre-game toss before the test mounts a client, so the game
+      // is in the mulligan round (controls null) and not still parked on the
+      // CR 103.1 ask -- the round the rail's log toggle is drawn in.
+      await settleStartingPlayer(request, b, g.table, g.match, g.seat, g.token);
       return { join: g.join, seat: g.seat };
     }
 
@@ -987,6 +1062,10 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
             const pass = d.options.find((o) => o.kind === 'pass');
             choices = pass ? [pass.index] : [];
           }
+        } else if (d.kind === 'starting_player') {
+          // CR 103.1's toss ask: echo its first option so the setup reaches
+          // turn 1. Other non-priority asks keep the original empty answer.
+          choices = d.options.length > 0 ? [d.options[0].index] : [];
         }
         const status = await postTalismanIntent(request, base, d, choices);
         // A 409 is a lost race against a decision that changed between the
