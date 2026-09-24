@@ -2795,3 +2795,175 @@ proposed: this is a param-specific trigger-resolution behavior test, not a new
 CR conformance finding.
 
 Commit: `30f3fc7a test(rules): cover Sentinel Sarah Lyons battalion trigger`
+
+
+# Task replcensus1 — api:ReplaceDamage census token
+
+Ticket: `agent-20260919T055356Z-504b1359`
+Branch: `wt/agent-20260919T055356Z-504b1359`
+Commit: `b5c35e4d`
+
+## What changed and why
+
+### `rules/replacement.go` (the one production change)
+
+Added `"api:ReplaceDamage"` to the `effects.RegisterNonAPI(...)` list inside
+the package `init()`, with a comment naming the inline handler:
+
+```go
+"repl:AddCounter", "api:ReplaceCounter",
+// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+// file) via the ReplaceDamage intercept in applyReplacements, never
+// through effects.Resolve/runReplaceWith -- this registration is the
+// census token only; a stub effects.Register handler would be dead code.
+"api:ReplaceDamage")
+```
+
+Root cause as briefed: `rules/replacement.go`'s `applyReplacements`
+intercepts a `ReplaceWith$` body whose API is `ReplaceDamage` and applies it
+inline through `applyReplaceDamageBody`, so it never reaches
+`effects.Register`; `effects.Supported()` therefore had no
+`api:ReplaceDamage` and the census false-reported the 38 carrier cards as
+unsupported. This is a census-token-only registration — no behaviour code
+(`applyReplaceDamageBody`, the intercept) was touched, and no stub
+`effects.Register` handler was added.
+
+**Premap spot-check:** the brief's `Workspace facts` put the list at
+`rules/replacement.go:4583` with `func init()` at 4545. At this base (main
+`6ec869e5`) the list is actually at **line 6164** (`func init()` at 6126) —
+the line numbers had drifted but the anchor (the `RegisterNonAPI` list
+containing `"repl:AddCounter", "api:ReplaceCounter"`) was found and is
+unique. Everything else in the premap held: `effects/registry.go` needed no
+edit, and the four behaviour pins are untouched.
+
+### `rules/replacedamage_registration_test.go` (new test file)
+
+Per the "new tests go in a new file" rule, the pin lives in its own file
+rather than appended to `coverage_test.go`:
+
+- `TestReplaceDamagePrimitiveIsRegistered` — pins
+  `effects.Supported()["api:ReplaceDamage"]`.
+- `TestReplaceDamageCarrierHasNoGap` — loads the real corpus
+  (`sharedCorpus`), finds Heart-Shaped Herb with the precondition
+  `herb.Primitives()` contains `api:ReplaceDamage` (fails loudly if the card
+  shape changes), then asserts `reg.Unsupported(herb, effects.Supported())`
+  no longer contains `api:ReplaceDamage`.
+
+## Gates run (real output)
+
+### Targeted gate (Done-means command)
+
+```
+$ go test -v -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/
+=== RUN   TestReplaceDamagePrimitiveIsRegistered
+--- PASS: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+=== RUN   TestReplaceDamageCarrierHasNoGap
+--- PASS: TestReplaceDamageCarrierHasNoGap (0.61s)
+=== RUN   TestBattletideAlchemistAsksItsControllerAndPreventsClerics
+--- PASS: TestBattletideAlchemistAsksItsControllerAndPreventsClerics (0.00s)
+=== RUN   TestThunderstaffPreventsExactlyItsAmount
+--- PASS: TestThunderstaffPreventsExactlyItsAmount (0.00s)
+=== RUN   TestSpiderPunkStopsProtectionPrevention
+=== RUN   TestSpiderPunkStopsReplaceDamagePreventionBodies
+--- PASS: TestSpiderPunkStopsReplaceDamagePreventionBodies (0.00s)
+=== RUN   TestDamageReplacementSupportedBodyFamilies
+--- PASS: TestDamageReplacementSupportedBodyFamilies (0.00s)
+ok  	github.com/adams-shaun/gorge/rules	0.661s
+```
+
+The corpus test took 0.61s and ran — not skipped (`.cards` was present as a
+symlink; see "Workspace facts found"). All four pre-existing behaviour pins
+pass.
+
+### `## Fails without the fix`
+
+Copied `rules/replacement.go` to `.ds4/scratch/replacement.go.bak`, removed
+the registration line, ran only the new tests:
+
+```
+$ go test -run 'TestReplaceDamage' ./rules/
+--- FAIL: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+    replacedamage_registration_test.go:21: effects.Supported() is missing "api:ReplaceDamage"
+--- FAIL: TestReplaceDamageCarrierHasNoGap (0.65s)
+    replacedamage_registration_test.go:38: Heart-Shaped Herb still reports api:ReplaceDamage unsupported: [api:ReplaceDamage]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.668s
+FAIL
+```
+
+Both new tests fail with the registration reverted. The file was restored and
+verified byte-identical:
+
+```
+$ cmp .ds4/scratch/replacement.go.bak rules/replacement.go && echo "RESTORED BYTE-IDENTICAL"
+RESTORED BYTE-IDENTICAL
+```
+
+### `go test ./internal/archtest/`
+
+```
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.935s
+```
+
+No allowlist edits.
+
+### `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+
+```
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.305s
+```
+
+Byte-identical, as expected: a pure registration emits no event and no repo
+deck carries a carrier.
+
+### `gofmt -l` on touched files
+
+```
+$ gofmt -l rules/replacement.go rules/replacedamage_registration_test.go
+(no output)
+```
+
+## Head / ratchet movement
+
+None. `rules/acceptance_test.go` `knownUnsupported` and `rules/heads_test.go`
+are untouched; no repo deck carries any of the 38 carriers (the corpus
+probe and the empty `git diff` for those files confirm it). TestHeads was not
+run (daemon gate), but a registration emits no event so no chain head can
+move; `cmd/botbench`'s split stayed byte-identical, which is the same signal.
+
+## Workspace facts found
+
+- `.cards` was **present** (symlink resolved) at task start — the
+  `TestReplaceDamageCarrierHasNoGap` run took 0.61s, proving the corpus
+  loaded rather than skipped.
+- The brief's PREMAP line numbers for `rules/replacement.go` had drifted from
+  4583/4545 (main `18644593`) to 6164/6126 (base `6ec869e5`); the list was
+  located by anchor and is the only such list in the file.
+- Pre-existing worktree: `pwd` is the assigned worktree; `git status` was
+  clean at start; no rebase was needed (branch was already at `6ec869e5`).
+
+## Deviations from the brief
+
+1. **Test lives in a new file, not `rules/coverage_test.go`.** The brief's
+   Done-means says "New test in `rules/coverage_test.go`", but the dispatch's
+   "New tests go in a new file (2026-09-22)" rule and the gorge context both
+   require a new `_test.go` file to avoid merge conflicts with sibling
+   tickets. The tests follow the `TestAddCounterReplacementPrimitivesAreRegistered`
+   style exactly and use the same `sharedCorpus` helper. This is the only
+   intentional deviation.
+
+## Issues
+
+No new defects found. The five carriers with other real gaps (Divine
+Deflection, Errant Minion, Power Leak — `api:StoreSVar`; Nothing Can Stop Me
+Now — `api:Abandon`; Urza Academy Headmaster —
+`api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) were scoped out
+per the brief and left untouched; the `api:StoreSVar` and `api:Abandon` gaps
+are the known body-family remainders already tracked by other work, not new
+findings.
+
+```
+STATUS=DONE
+COMMITS=b5c35e4d
+TESTS=go test -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ → ok 0.66s (6 tests, incl. corpus carrier); new tests fail with the registration reverted; archtest + botbench byte-identical ok
+```
