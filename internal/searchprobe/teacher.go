@@ -27,8 +27,21 @@ type TeacherOptions struct {
 	// candidate (common random numbers across candidates).
 	Seed uint64
 	// HorizonTurns stops a rollout this many engine turns after the root and
-	// scores the leaf with LeafValue. Zero rolls every rollout to game end.
+	// scores the leaf with Leaf (LeafValue when Leaf is nil). Zero rolls every
+	// rollout to game end.
 	HorizonTurns int32
+	// Leaf scores a NON-TERMINAL leaf -- a rollout stopped by HorizonTurns or
+	// MaxSubmits -- from the deciding seat's redacted projection of it, as a
+	// win probability for actor. Nil means LeafValue (the frozen material
+	// heuristic), and a nil Leaf reproduces the pre-Leaf results bit for bit.
+	// A terminal leaf never reaches it: game over stays 1 / 0 / 0.5.
+	//
+	// Its result is clamped into [0,1]; NaN reads as 0.5, the no-information
+	// value. With Parallelism > 1 it is called from several goroutines at once,
+	// so it must be safe for concurrent use (policynet.Model.Value is), and it
+	// must be a pure function of its arguments or the result stops being
+	// independent of Parallelism.
+	Leaf func(v view.View, actor state.PlayerID) float64
 	// MaxSubmits caps each rollout; a capped rollout is scored as a leaf.
 	MaxSubmits int
 	// Margin is how much a candidate's mean value must exceed candidate 0's
@@ -69,6 +82,24 @@ func LeafValue(v view.View, actor state.PlayerID) float64 {
 		}
 	}
 	return 1 / (1 + math.Exp(-LeafScore(v, actor)/20))
+}
+
+// leafValue scores a rollout's final view: terminal states and a nil leaf go
+// to LeafValue, anything else to leaf, clamped into [0,1] (NaN -> 0.5).
+func leafValue(leaf func(view.View, state.PlayerID) float64, v view.View, actor state.PlayerID) float64 {
+	if leaf == nil || v.Over {
+		return LeafValue(v, actor)
+	}
+	x := leaf(v, actor)
+	switch {
+	case math.IsNaN(x):
+		return 0.5
+	case x < 0:
+		return 0
+	case x > 1:
+		return 1
+	}
+	return x
 }
 
 // TeacherChoice rolls every candidate on every world. candidates[0] must be
@@ -151,7 +182,7 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 		o.over = e.G.Over
 		o.won = e.G.Over && !e.G.Draw && e.G.Winner == actor
 		o.capped = !e.G.Over && o.submits >= opts.MaxSubmits
-		o.value = LeafValue(view.Project(e.G, e, actor, e.Pending()), actor)
+		o.value = leafValue(opts.Leaf, view.Project(e.G, e, actor, e.Pending()), actor)
 	}
 	if workers := min(opts.Parallelism, len(outs)); workers > 1 {
 		engines := make([]*rules.Engine, len(outs))

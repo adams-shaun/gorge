@@ -46,6 +46,8 @@ import (
 	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 	"github.com/adams-shaun/gorge/rules"
+	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // Options are the search knobs, defaulted by Defaults() to cmd/searchteacher's
@@ -74,6 +76,16 @@ type Options struct {
 	// submits per rollout and per sample attempt.
 	HorizonTurns int32
 	MaxSubmits   int
+	// Value, when non-nil and carrying a value head (Model.HasValue), scores
+	// every non-terminal rollout leaf with the value head
+	// (searchprobe.TeacherOptions.Leaf) instead of the frozen material
+	// heuristic. Nil is off. A model WITHOUT a value head is a configuration
+	// error the caller must reject up front (cmd/searchteacher does); Choose
+	// ignores it rather than score every leaf 0.5. It only matters with
+	// HorizonTurns > 0 or a MaxSubmits cap: a game-end rollout has no
+	// non-terminal leaf. The Model is shared read-only across rollout
+	// goroutines, which Model.Value allows.
+	Value *policynet.Model
 	// SampleSeed is the fixed sampler seed base. The teacher's own seed is
 	// derived from it per decision exactly as cmd/searchteacher derives it, so
 	// a seat and the generator score a given decision identically.
@@ -278,6 +290,7 @@ func Choose(
 		Margin:       opts.Margin,
 		Clairvoyant:  opts.Clairvoyant,
 		Parallelism:  opts.Parallelism,
+		Leaf:         valueLeaf(opts.Value),
 	})
 	if opts.AfterSearch != nil {
 		opts.AfterSearch()
@@ -304,6 +317,19 @@ func Choose(
 		return bot, false, tr
 	}
 	return in, true, tr
+}
+
+// valueLeaf is the rollout leaf evaluator for a value model: the value head
+// on the leaf encoded exactly as a training state (policynet.EncodeState of
+// the deciding seat's redacted view). Nil -- the heuristic leaf -- for no
+// model or a model without a value head.
+func valueLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
+	if m == nil || !m.HasValue() {
+		return nil
+	}
+	return func(v view.View, actor state.PlayerID) float64 {
+		return float64(m.Value(policynet.EncodeState(v, actor)))
+	}
 }
 
 // teacherSeed derives the per-decision teacher seed. It is deliberately the
