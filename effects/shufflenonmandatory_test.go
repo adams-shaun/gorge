@@ -21,8 +21,10 @@ import (
 // but the effects package drives the primitive directly so each precondition
 // (nothing moved / the compared zone actually differs) is asserted here and
 // the mandatory object-path and fail-to-find corpus paths are pinned in
-// rules. This direct test does not prove that SP-parented DB subs reach this
-// tail: their inherited parent targets still prevent that in live play.
+// rules. Since task spcz1 SP-parented DB subs ask their own graveyard
+// targeting at resolution (changeZoneChosenTargets no longer inherits the
+// parent's targets), so they DO reach this tail in live play; rules/
+// searchmay-style pins cover that live path end to end.
 
 // shuffleTailBoard builds a 2-seat board with one graveyard card owned by
 // seat 0 and a resolving source object. Returns the recording+suspending
@@ -54,9 +56,10 @@ func shuffleEvents(h *fakeHost, p state.PlayerID) int {
 // Graveyard -> Library move with Shuffle$ True | ShuffleNonMandatory$ True
 // (Cathartic Parting, Devious Cover-Up, Covetous Castaway, Put Away) moves
 // the card, poses Forge's may-shuffle confirm, and shuffles ONLY if the
-// searcher says yes when this SA receives its own graveyard target. Three
-// named SP-parented DB carriers do NOT receive that target in live play;
-// this fixture exercises the tail, not their parent/sub targeting.
+// searcher says yes when this SA receives its own graveyard target. The
+// named SP-parented DB carriers DO receive their own target since task spcz1
+// (rules/ pins the live path); this fixture exercises the tail machinery
+// itself, decoupled from any parent/sub targeting.
 func TestObjectPathShuffleNonMandatoryAsks(t *testing.T) {
 	for _, accept := range []bool{true, false} {
 		name := "decline keeps order"
