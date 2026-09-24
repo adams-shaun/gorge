@@ -98,6 +98,23 @@ var predicates = map[string]predFn{
 		s := g.Obj(src)
 		return s != nil && o.Attacking == s.Controller
 	},
+	// Mangara/Tomik count attackers at you or your planeswalkers. Attacking
+	// and AttackingBattle (state/object.go) distinguish a battle protector
+	// from a planeswalker defender; battles must not be counted.
+	"attackingYouOrYourPWLKI": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
+		if !o.IsAttacking || o.Attacking != you {
+			return false
+		}
+		if o.AttackingBattle == 0 {
+			return true
+		}
+		b := g.Obj(o.AttackingBattle)
+		if b == nil || b.Controller != you || b.Face() == nil {
+			return false
+		}
+		f := b.Face()
+		return f.IsPlaneswalker() && !f.IsCreature()
+	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
