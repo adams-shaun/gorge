@@ -1,3 +1,130 @@
+# Report — r2 (agent-20260918T233200Z-e0817443) — dynamic `TargetMin$`/`TargetMax$` bounds
+
+**Round 2 = the controller-ordered rebase round.** The substantive work was
+completed, committed and verified in round t1 (commit `033acdd5`, reported in
+`.ds4/report-t1.md`). Round r2's findings (`findings-r2.md`) named exactly two
+mechanical blockers, both now resolved:
+
+1. *"cannot rebase: You have unstaged changes"* — the uncommitted
+   `.ds4/report-t1.md` held this ticket's round-t1 report. Committed as
+   `8b7844f9`, resolved so that **nothing from any other ticket is destroyed**:
+   this ticket's report is prepended and main's accumulated report file
+   (2,162 lines of other tickets' reports) is preserved verbatim below it.
+2. *"Your local changes to .ds4/report-t1.md would be overwritten by merge"* —
+   the same file, the same cause. Resolved inside the rebase.
+
+## Rebase
+
+```
+$ git add -f .ds4/report-t1.md && git commit -m "docs: report dynamic TargetMin/TargetMax round-t1 and preserve accumulated reports"
+[wt/agent-20260918T233200Z-e0817443 8b7844f9]
+$ git rebase main
+Rebasing (1/2) … Rebasing (2/2)
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+```
+
+Resolution: the file was rebuilt as the union — my t1 report (221 lines) +
+separator + `git show main:.ds4/report-t1.md` (2,162 lines) — `git add`,
+`git rebase --continue`. Result:
+
+```
+$ git log --oneline -4
+3a3d4f24 docs: report dynamic TargetMin/TargetMax round-t1 and preserve accumulated reports
+e1ec6436 fix(rules): honour a resolved-zero dynamic TargetMin$/TargetMax$ pair
+f8e330c3 merge(agent-20260919T062939Z-4b5f8950): RepeatOptional$ … (main tip)
+```
+
+The branch is now linear on main tip `f8e330c3`; the old merge commit
+`c6c3b2fa` was dropped by the rebase (its only purpose — carrying main — is
+satisfied by the rebase itself). The replayed code commit is `e1ec6436`,
+byte-identical in content to `033acdd5`. The branch's tracked diff vs main is
+the code fix + its new test file + the two report insertions (227 + 0 deletions
+to any other ticket's text — `git diff --stat main...HEAD`:
+`.ds4/report-t1.md | 227 +++`, plus the five code/test files, all
+insertions-only except the two lines `modeIsKicked` refactoring touched in
+`rules/statics.go`).
+
+## Post-rebase verification (fresh, at main tip `f8e330c3` base)
+
+All commands run once each, in this worktree, `.cards` present (symlink to the
+shared corpus — confirmed `lrwxrwxrwx .cards -> /home/sadams/projects/gorge/.cards`).
+
+```
+$ go build ./...
+(clean)
+
+$ go test -run 'TargetMax|TargetMin|TearAsunder|PestInfestation|ResolvedTargetBounds|TriggerPlacementAsk' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.044s
+
+$ go test -v -run 'TestResolvedTargetBoundsResolvedZeroIsHonoured|TestTearAsunderKickedTakesOnlyTheSubTarget|TestTearAsunderUnkickedStillTargetsArtifact|TestPestInfestationZeroXAsksNothing|TestTriggerPlacementAskResolvedZeroPosesNothing|TestAnnouncementAskBareXReadsThePaidX' ./rules/
+--- PASS: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+--- PASS: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+--- PASS: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+--- PASS: TestTearAsunderUnkickedStillTargetsArtifact (0.00s)
+--- PASS: TestPestInfestationZeroXAsksNothing (0.00s)
+--- PASS: TestAnnouncementAskBareXReadsThePaidX (0.00s)
+ok  	github.com/adams-shaun/gorge/rules	0.071s
+
+$ go test -run 'Kicked|Count' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	2.567s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.321s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.230s
+
+$ gofmt -l <changed files>          (no output)
+$ go run ./cmd/gentypes -check      (no output)
+```
+
+`TestConstructedDefaultIsByteIdentical` is **unmoved** — no repo deck
+exercises the resolved-zero shape. `internal/archtest` green. No forbidden
+trailers in `e1ec6436` (`grep -i 'ref:\|co-authored'` on its message → no
+match).
+
+The per-part failure proofs ("Fails without the fix") were executed in round
+t1 with the revert-restore-`cmp` protocol and are pasted in
+`.ds4/report-t1.md`; the code is byte-identical since, so they stand.
+
+## Substantive summary (unchanged from t1 — details in `.ds4/report-t1.md`)
+
+- The brief's headline premise is stale at main: the X/Y resolver already
+  landed as `b3786f11` (merged), including the Pest Infestation `X=3 → Max 3`
+  test.
+- What this ticket adds (`e1ec6436`): `resolvedTargetBounds` honours a
+  **resolved-zero** bound as written (Tear Asunder's kicked `TargetMin$ X |
+  TargetMax$ X` over `Count$Kicked.0.1`), keeps the 1-clamp only for an
+  unresolved token, seeds `Ctx.PendingKicked` from the pending cast's chosen
+  mode at the announcement ask, and makes the three target-ask sites
+  (`targetAsk`, `subTargetAsk`, `askTarget`) decline to pose a Min 0/Max 0 ask
+  (a hard engine panic shape). 5 new tests in `rules/targetmax_resolved_zero_test.go`.
+- Deviations from the brief's letter (all measured, stated in the t1 report):
+  no deck-side ratchet row exists for either carrier (neither card is in
+  `internal/testutil/decks/`); the World Shaper precon census deck is not
+  committed to the repo.
+
+## Issues
+
+- **Coverage gap (not fixed):** `subTargetAsk`'s resolved-zero arm is covered
+  only by the shared resolver unit test and the identical `targetAsk`/`askTarget`
+  panic proofs — no in-budget fixture reaches `castCostReadsAllTargeted` with a
+  sub whose dynamic pair resolves to 0 (corpus carriers: Wayta, Urgent
+  Necropsy). Would deserve a targeted test if a carrier lands in a repo deck.
+- **No CR-lane test** for the resolved-zero pose/clamp shape: it is a
+  decision-pose/clamp defect, not a CR rule the conformance lane cites. A lane
+  test citing CR 601.2c/608.2b target-count feasibility (I-2 territory) would
+  make the shape visible to the ledger.
+- Adjacent, untouched: `modeFlags` still spells the five kicked modes in its
+  own switch (it must — they map to different flag bits); `modeIsKicked` is now
+  the `Kicked`-predicate home and both must be updated together if a new
+  kicked-cast mode lands.
+
+## Commits
+
+- `e1ec6436` fix(rules): honour a resolved-zero dynamic TargetMin$/TargetMax$ pair
+- `3a3d4f24` docs: report dynamic TargetMin/TargetMax round-t1 and preserve accumulated reports
+
 # Report — r2 (agent-20260918T195920Z-2fd3b568) — Loamcrafter Faun `TriggerRemembered$Amount`
 
 **Historical reconciliation round (before the sol1 review).** The ticket's

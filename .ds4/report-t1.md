@@ -1,3 +1,230 @@
+# Task agent-20260918T233200Z-e0817443 — dynamic `TargetMin$`/`TargetMax$` bounds
+
+## Summary
+
+The brief's headline premise is **stale at current main**: the X/Y resolver it
+asks for already landed in commit `b3786f11` ("fix(rules): resolve TargetMax$ X
+/ TargetMin$ X dynamic target bounds at both target asks"), which is an
+ancestor of this branch's base (`git merge-base --is-ancestor b3786f11 HEAD` →
+true). That commit already routes a non-literal bound through
+`effects.NumResolved`, binds the cast's announced X, keeps the unresolvable
+1-clamp, and ships `rules/targetmax_x_test.go` pinning exactly the brief's Pest
+Infestation `X=3 → Max 3` case (`TestAnnouncementAskBareXReadsThePaidX`) and the
+unresolvable-to-1 case (`TestUnresolvableTargetMaxXKeepsTheDefault`).
+
+What genuinely remained, and what this round lands, is the **resolved-zero
+half** of the same class: the post-resolution clamp still forced `max >= 1` for
+a bound the grammar had *successfully resolved to 0*. That is Tear Asunder's
+"instead" idiom, the brief's second deck carrier.
+
+## What changed and why (per file)
+
+**`rules/stack.go` — `resolvedTargetBounds`** (the core fix). Track whether the
+`TargetMax$` token actually resolved (`resolvedMax`). Honour a resolved `0` as
+written; keep the documented `max >= 1` clamp only for an **unresolved** token
+(the `b3786f11` contract) or a literal (already clamped by `targetBounds`). The
+existing `max < min` clamp still lifts a resolved `0` when a genuine minimum is
+present, so a bare `TargetMax$ X` announced 0 with the default Min 1 still
+becomes Max 1 — pinned by `stack_test.go`'s "bare X zero clamps back to one".
+
+**`rules/stack.go` — `targetBoundCtx`.** At the CR 601.2c announcement ask the
+stack object has not yet been stamped with its cast flags, so a
+`Count$Kicked` bound reads `0` off it regardless of the chosen mode. Seed
+`ctx.PendingKicked` from the pending cast's chosen mode — the same pre-payment
+gap the existing `ctx.TimesKicked` seeding closes.
+
+**`rules/stack.go` — `askTarget`** (the trigger placement ask): decline to pose
+when the resolved max is 0, the same class as the cast ask and matching the
+landed effects-side `effects/targets_ask.go` `max <= 0` arm.
+
+**`rules/cast.go` — `targetAsk` and `subTargetAsk`**: decline to pose a
+resolved-zero ask (skip to payment / record an answered-empty stage). Both
+mirror existing N2 arms directly above them and are required: a Min 0 / Max 0
+target decision is a **hard engine panic** (see "Fails without the fix").
+
+**`rules/cast.go` — `modeIsKicked`** (new): the one home of the kicked-mode set
+(`kicked`, `kicked1`, `kicked2`, `kickedboth`, `multikicked`).
+
+**`rules/statics.go` — `spellConstraintMatches`**: the `CastStatic$ Kicked`
+match now calls `modeIsKicked` instead of re-spelling the five modes, so the
+constraint and the new `PendingKicked` binding cannot drift.
+
+**`effects/registry.go` — `Ctx`**: add `PendingKicked bool` (derived data,
+never event-encoded; zero everywhere except the cast's own announcement ask).
+
+**`effects/count.go` — `evalCountBody`**: the `Kicked.<yes>.<no>` head ORs
+`Ctx.PendingKicked` with the object's `FlagKicked`. At resolution no pending
+cast exists, so the object read remains authoritative.
+
+**`rules/targetmax_resolved_zero_test.go`** (new file): 5 tests (see gates).
+
+## Head / ratchet movement
+
+- `TestHeads` was **not** run (daemon gate). No `events.Kind` or replay shape
+  changed; the change is a decision-pose + arithmetic clamp.
+- `cmd/botbench` `TestConstructedDefaultIsByteIdentical` — **unmoved** (ran it,
+  see gates). No repo deck exercises the resolved-zero shape.
+- `internal/archtest` — green.
+- No `acceptance_test.go` / `paramcensus_test.go` / `count_head_ratchet_test.go`
+  rows moved: neither Pest Infestation nor Tear Asunder appears in any repo deck
+  (`grep -rl 'Pest Infestation\|Tear Asunder' internal/testutil/decks/` → none),
+  so the brief's "DECK-side ratchet then admits both cards" has no row to
+  shrink in this tree. See Deviations.
+- No AGENTS.md "Known approximations" row names this shape, so nothing was
+  deleted and `knownApproximationRows` is unchanged.
+
+## Gate commands and real output
+
+All targeted, run once each, logs under `.ds4/scratch/`.
+
+Green set (after the merge with main):
+
+```
+$ go build ./...
+(clean)
+
+$ go test -run 'TargetMax|TargetMin|TearAsunder|TriggerPlacementAsk|ResolvedTargetBounds|PestInfestation|Wayta|UrgentNecropsy' ./rules/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/rules	0.061s
+
+$ go test -run 'Kicked|Count' ./effects/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/effects	2.530s
+
+$ go test ./internal/archtest/ 2>&1 | tail -2
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.888s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.897s
+
+$ gofmt -l effects/count.go effects/registry.go rules/cast.go rules/stack.go rules/statics.go rules/targetmax_resolved_zero_test.go
+(empty)
+$ go run ./cmd/gentypes -check
+(empty)
+```
+
+`.cards` was **present** in this worktree (symlink to the shared corpus), so
+corpus-backed tests ran, not skipped.
+
+The 5 added tests, individually:
+
+```
+--- PASS: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+--- PASS: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+--- PASS: TestTearAsunderUnkickedStillTargetsArtifact (0.00s)
+--- PASS: TestPestInfestationZeroXAsksNothing (0.00s)
+--- PASS: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+```
+
+(`go test -run 'TargetMax|...'` also re-ran the landed `b3786f11` tests
+`TestAnnouncementAskResolvesTargetMaxX`,
+`TestAnnouncementAskBareXReadsThePaidX`, `TestUnresolvableTargetMaxXKeepsTheDefault`,
+`TestResolvedTargetBoundsDynamic`, `TestMantleOfTheAncientsEtbAttaches` — all
+still pass.)
+
+## Fails without the fix
+
+The fix has three independent load-bearing parts. Each was proved by copying the
+file to `.ds4/scratch/<f>.fixed`, reverting the hunk in the real file, running
+the one test, then restoring and `cmp`-ing byte-identically against the scratch
+copy.
+
+**(1) The clamp change alone reverted** (`resolvedMax` removed, `max < 1`
+restored), keeping `PendingKicked` and the ask guards:
+
+```
+$ go test -v -run 'TestResolvedTargetBoundsResolvedZeroIsHonoured|TestTearAsunderKickedTakesOnlyTheSubTarget|TestPestInfestationZeroXAsksNothing' ./rules/
+    targetmax_resolved_zero_test.go:58: resolvedTargetBounds = (0, 1), want (0, 0) for a resolved-zero dynamic pair
+--- FAIL: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+    targetmax_resolved_zero_test.go:91: kicked main SA asked for 0 target(s) (max=1); want none
+--- FAIL: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+    targetmax_resolved_zero_test.go:212: Pest Infestation with X=0 asked for 0 target(s) (max=1); want none
+--- FAIL: TestPestInfestationZeroXAsksNothing (0.00s)
+FAIL
+```
+
+**(2) `PendingKicked` binding (and ask guards) removed:**
+
+```
+$ go test -v -run 'TestTearAsunderKickedTakesOnlyTheSubTarget|TestPestInfestationZeroXAsksNothing' ./rules/
+    targetmax_resolved_zero_test.go:91: kicked main SA asked for 1 target(s) (max=1); want none
+--- FAIL: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+panic: rules: decision target for seat 0 posed with only the empty answer legal (Min 0 Max 0, 1 options) -- asking primitives must resolve this shape silently (effects.Ask), never post it [recovered, repanicked]
+    .../rules/cast.go  targetAsk ...
+--- FAIL: TestPestInfestationZeroXAsksNothing (0.00s)
+```
+
+The panic is the engine's own invariant: a Min 0 / Max 0 target decision must
+never be posted. That is why the `targetAsk`/`subTargetAsk`/`askTarget` guards
+are required, not cosmetic.
+
+**(3) The `askTarget` guard disabled** (all else intact):
+
+```
+$ go test -v -run 'TestTriggerPlacementAskResolvedZeroPosesNothing' ./rules/
+--- FAIL: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+panic: rules: decision target for seat 0 posed with only the empty answer legal (Min 0 Max 0, 1 options) -- asking primitives must resolve this shape silently (effects.Ask), never post it [recovered, repanicked]
+```
+
+The control test (`TestTearAsunderUnkickedStillTargetsArtifact`) passes in every
+revert configuration, as it must: the resolved-zero path did not widen into the
+ordinary case.
+
+## Deviations from the brief
+
+1. **The brief's premise is stale.** The X/Y resolver and the Pest Infestation
+   `X=3` behaviour already exist on main (`b3786f11`). The brief's claim
+   "there is no SVar-resolving or Count$-evaluating fallback anywhere" is false
+   at this tree. I did not re-implement the resolver; I fixed the part that was
+   still wrong (resolved-zero).
+2. **The Pest `X=3` regression test the brief asks for already exists** as
+   `rules/targetmax_x_test.go`'s `TestAnnouncementAskBareXReadsThePaidX`, so I
+   did not duplicate it. I added a Pest test for the shape my change actually
+   affects (`X=0` → no ask), which fails without the fix.
+3. **The deck-side ratchet has no row to shrink**: neither carrier is in
+   `internal/testutil/decks/`. The originating World Shaper precon census deck
+   is not committed to this repo, so "the DECK-side ratchet then admits both
+   cards" was not actionable in-tree.
+
+## Structural approach (fix the class, not the instance)
+
+The panic invariant ("a Min 0 / Max 0 target decision must never be posted")
+applies at **every** site that poses a target ask. I found all of them
+(`grep -rn 'resolvedTargetBounds\|resolvedTargetMin' rules/`):
+`targetAsk`, `subTargetAsk`, `askTarget`, plus the resolver's consumers. The fix
+is anchored in the shared resolver (one source of truth for the bound) and every
+pose site declines on `max == 0`, matching the already-landed effects-side
+`effects/targets_ask.go` `max <= 0` convention. The kicked-mode set likewise
+gets one home (`modeIsKicked`), so the next sibling (a new kicked-cast mode)
+cannot drift.
+
+## Issues
+
+- **`subTargetAsk`'s resolved-zero arm is covered only by the shared resolver
+  unit test and the identical `targetAsk`/`askTarget` panic proofs; no in-budget
+  fixture reached the `castCostReadsAllTargeted` pre-ask gate with a sub whose
+  dynamic pair resolves to 0.** The arm is correct (it mirrors the N2 arm
+  directly above it) and cheap, but a dedicated alltargeted-plus-resolved-zero
+  card would pin it directly. Corpus prevalence of the exact shape
+  (`Count$AllTargeted`) is tiny (Wayta / Urgent Necropsy are the named
+  carriers). Not a defect — a coverage gap.
+- **No CR-lane test.** This is a decision-pose/clamp defect, not a CR rule the
+  conformance lane currently cites; I did not add one.
+- Adjacent, NOT touched: `modeFlags` still spells the kicked modes in its own
+  switch (it must, because `kicked1`/`kicked2`/`kickedboth` map to different
+  flag bits). If a future mode is added, `modeFlags` and `modeIsKicked` must
+  both be updated; `modeIsKicked` is now the `Kicked`-predicate home.
+
+## Commits
+
+- `033acdd5` fix(rules): honour a resolved-zero dynamic TargetMin$/TargetMax$ pair
+- `c6c3b2fa` Merge branch 'main' into wt/agent-20260918T233200Z-e0817443
+
+`.cards` present (symlink); working tree clean.
+
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Report — kw:Melee (hn1, agent-20260918T231813Z-9bab5889)
 
 ## Changes

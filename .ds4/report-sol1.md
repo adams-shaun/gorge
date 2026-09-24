@@ -1,3 +1,53 @@
+# Dynamic TargetMin$/TargetMax$ — sol1 gate repair (agent-20260918T233200Z-e0817443)
+
+## Finding resolved
+
+The module gate in `.ds4/findings-sol1.md` failed `TestMarshalsAnthemPlainCastETBAsksForNothing`: the older test expected a Min 0 / Max 1 placement ask for zero kicks. The dynamic-bound fix correctly resolves `TargetMin$ 0 | TargetMax$ X` to (0,0) when `Count$TimesKicked` is zero and does not pose a target ask. `rules/multikicker_test.go` now drains the stack without accepting an unexpected target ask in both plain and declined-multikick branches; it asserts a real `TriggerPush` for the Anthem so the absence is not vacuous, and retains the graveyard/flags assertions. Its kicked-count-positive test still expects Max 2 and passes. This only changes the stale test, not engine behavior.
+
+Earlier commits on this branch implement and exercise X/Y bound resolution and the kicked Tear Asunder zero main / one sub target (`ddb4c661`, prior report in `.ds4/report-t1.md` and `.ds4/report-r2.md`). `.cards` was present (shared corpus symlink); no golden, deck ratchet, Known-approximations row, or state mutation was changed this round. No new test was added; this corrects an existing test whose old expectation contradicted the fix. The controller-ordered `git rebase main` returned `Current branch ... is up to date` before edits; the worktree was clean.
+
+## Fails without the fix
+
+Copied `rules/stack.go` to `.ds4/scratch/dynamic-sol1-stack.orig`, temporarily restored the old `max >= 1` clamp (removed the resolvedMax binding), ran the existing corrected test, then restored the file byte-identically (`cmp` passed). The output was:
+
+```
+$ go test -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$' ./rules/
+--- FAIL: TestMarshalsAnthemPlainCastETBAsksForNothing (0.55s)
+    multikicker_test.go:179: non-priority decision &{Seq:68 Player:0 Kind:target Prompt:Choose a target for Marshal's Anthem Min:0 Max:1 Options:[...]} while draining the stack
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.565s
+FAIL
+exit=1
+restored-byte-identical
+```
+
+The full failure line is in `.ds4/scratch/dynamic-sol1-revert-real.log`. An initial revert attempt left an unused `resolvedMax` local and failed at compilation, so the proof above used a compiling revert instead.
+
+## Gates (real output)
+
+```
+$ go test -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestTriggerPlacementAsk' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.638s
+$ go test -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestTriggerPlacementAsk' ./rules/ # after restoring the source
+ok   github.com/adams-shaun/gorge/rules (cached)
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 1.224s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.259s
+$ gofmt -l rules/multikicker_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+$ git diff --check
+(no output)
+```
+
+The full module run is the controller's gate; this round used only the focused test plus the two mandatory goldens. Botbench split unchanged by the test correction. `git status` after restoration showed only `rules/multikicker_test.go` modified, which is committed as `6ab25d60`.
+
+## Issues
+
+- No new defect. Prior round's unresolved `subTargetAsk` zero-path coverage and no CR-lane case remain documented in `.ds4/report-r2.md`; no new ticket needed for this gate repair.
+
 # count:CardManaCostLKI — round 3 (review fixes)
 
 STATUS: DONE. Rebasing this clean worktree onto `main` succeeded before editing. `.cards` is present (symlink to shared corpus). Commits: `7454592e` (trigger SVar resolver), `57707664` (round-2 report), `10ec74fc` (restore placement-time announced X precedence); report restoration is committed separately.
