@@ -125,8 +125,8 @@ func clipBoardStatics(v boardStatics) boardStatics {
 // scanBoardStatics is scanCostStatics + scanActionStatics +
 // scanManaConvSources in one walk. Each arm keeps its collector's own gate:
 // CantBeCast/CantBeActivated battlefield-only; Continuous and the cost modes
-// through effectZoneOK; ManaConvert through effectZoneOK plus the CR 708.8
-// face-down skip on the battlefield. The Effect-delivered cost statics are
+// through effectZoneOK; ManaConvert through effectZoneOK; and every arm skips
+// a face-down battlefield permanent (CR 708.8). The Effect-delivered cost statics are
 // appended after the printed walk, exactly as scanCostStatics does.
 func (e *Engine) scanBoardStatics() boardStatics {
 	var out boardStatics
@@ -140,7 +140,12 @@ func (e *Engine) scanBoardStatics() boardStatics {
 				if o == nil || o.Face() == nil || offBattlefieldStaticsInert(z, o) {
 					continue
 				}
-				hidesMC := z == state.ZBattlefield && e.faceDownPrintedHides(o)
+				// CR 708.8: a face-down battlefield permanent's printed
+				// statics do not exist -- every arm, the scanActionStatics /
+				// scanCostStatics / scanManaConvSources gate alike.
+				if z == state.ZBattlefield && e.faceDownPrintedHides(o) {
+					continue
+				}
 				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
 					pst, ok := o.PileStaticAt(si)
 					if !ok {
@@ -171,7 +176,7 @@ func (e *Engine) scanBoardStatics() boardStatics {
 					case "OptionalCost":
 						dst = &out.cost.optional
 					case "ManaConvert":
-						if hidesMC || !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
 							continue
 						}
 						out.manaConv = append(out.manaConv, manaConvSource{sv: staticView{Source: id,

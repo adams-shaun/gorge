@@ -1911,6 +1911,10 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 			changed = true
 			continue // the effect ends: not kept
 		}
+		if forget == "" && exile == "" && mayPlayRememberedLeftZone(ce, ev) {
+			ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)
+			changed = true
+		}
 		kept = append(kept, ce)
 	}
 	if !changed {
@@ -1918,6 +1922,34 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	}
 	e.continuous = kept
 	e.continuousChanged()
+}
+
+// mayPlayRememberedLeftZone reports whether ev moves one of a may-play
+// grant's REMEMBERED cards out of a zone the grant names (AffectedZone$),
+// for a grant that spells no move-driven lifetime of its own. CR 400.7: a
+// card that leaves the zone is a new object with no memory of the old one,
+// so "you may cast THAT card this turn" (Reezug, the Bonecobbler's graveyard
+// grant) cannot follow it back once it has been cast, resolved and put into
+// the graveyard again -- without this the one-shot permission recast the
+// same Blood Pet for {B} forever within one turn (cardfuzz b12). Only an
+// Affected$ spec that reads the remembered set (Card.IsRemembered) and an
+// explicit zone list qualify: a grant naming Any/All zones, or one whose
+// remembered set parameterises something else, keeps its old behaviour.
+func mayPlayRememberedLeftZone(ce state.ContinuousEffect, ev events.Event) bool {
+	if !ce.MayPlay || ce.AffectedZone == "" || !strings.Contains(ce.Affects, "IsRemembered") ||
+		!objIDIn(ce.Remembered, ev.Obj) {
+		return false
+	}
+	zones, all, _ := effects.ParseZones(ce.AffectedZone)
+	if all {
+		return false
+	}
+	for _, z := range zones {
+		if z == ev.From {
+			return true
+		}
+	}
+	return false
 }
 
 // effectCastSweep is the cast-driven lifetime of Effect-created continuous
@@ -3628,14 +3660,16 @@ func counterKindMatches(restriction, kind string) bool {
 // attackDutyDischargeable gate (CR 508.1d's "if able").
 //
 // A face static's conditional parameter family is read here (task
-// combatres-cantattack): continuousGateHolds evaluates CheckSVar$/
-// SVarCompare$/Condition$ and UnlessDefenderHolds evaluates UnlessDefender$
-// against the defender (the creature may attack exactly when the defended
-// player satisfies the predicate), so a line carrying them is ENFORCED, not
-// skipped. A static carrying any OTHER parameter still fails
-// CantAttackParamsReadableForRules and is skipped whole -- the deliberate
-// permissive direction, so a gate this build cannot evaluate never becomes
-// an unconditional restriction.
+// combatres-cantattack, extended by combatres-cantattack-present):
+// continuousGateHolds evaluates ClassBand$, the IsPresent$/IsPresent2$ +
+// PresentCompare$ count family (PresentZone$ Battlefield/Graveyard/Exile/Hand/
+// Stack; see countStaticPresent), CheckSVar$/SVarCompare$/Condition$, and
+// UnlessDefenderHolds evaluates UnlessDefender$ against the defender (the
+// creature may attack exactly when the defended player satisfies the
+// predicate), so a line carrying them is ENFORCED, not skipped. A static
+// carrying any OTHER parameter still fails CantAttackParamsReadableForRules and
+// is skipped whole -- the deliberate permissive direction, so a gate this
+// build cannot evaluate never becomes an unconditional restriction.
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {

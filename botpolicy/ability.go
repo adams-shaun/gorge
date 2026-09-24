@@ -120,16 +120,18 @@ func (b Board) abilityScore(o decision.Option, me state.PlayerID) (score int32, 
 // really sits the equipment somewhere. A1 therefore only ever fires where
 // the activation provably reproduces the current attach state.
 //
-// Broadness note (an approximation, not a guess): "no own creature at all"
-// is judged on the creature census alone, so an "ability" on a NON-attach
-// source (a Rishadan Port's tap-a-land, a Karakas bounce) is also declined
-// while the bot controls no creatures -- a minor tempo misplay the Board
-// cannot distinguish from a no-target equip (it carries no per-ability
-// target spec). It never hangs the game: declining an ability is a pass,
-// and a pass advances the turn. This is A1's "where the Board cannot tell,
-// err toward not churning" boundary, documented so the regression stays
-// explicit rather than a guessed behaviour.
+// Scope (X1, promoted from the explore policy): both halves are facts about
+// an ATTACH, so equipNoOp fires only on an option whose ability is an AB$
+// Attach (decision.Option.Attach -- K:Equip, Reconfigure, Fortify, a gained
+// Equip). Every other activated ability of an Aura or an attached Equipment
+// (Holy Armor's pump, Flickerform's flicker) and every non-attach ability
+// while the seat controls no creature (Tower of Eons, Well of Knowledge, a
+// Rishadan Port) is not a re-site and is scored like any other ability. The
+// production policy and ExploreDecide share this one implementation.
 func (b Board) equipNoOp(o decision.Option, me state.PlayerID) bool {
+	if !o.Attach {
+		return false
+	}
 	if !b.hasOwnCreature(me) {
 		// No battlefield creature to attach to: an equip has no legal target
 		// and fizzles unchanged.

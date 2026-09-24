@@ -19,10 +19,28 @@ import (
 // writer constants. The record type itself is mirrored below (the writer is
 // package main and cannot be imported); a drift between the two shapes is a
 // decoder error on the fields that matter, not a silent misread.
+//
+// LabelSchemaVersion is the version the writer EMITS (schema 2 added
+// outcome/outcome_known); AcceptedLabelSchemaVersions is every version Load
+// reads. A schema 1 record loads with Example.HasOutcome false.
 const (
-	LabelSchemaVersion = 1
+	LabelSchemaVersion = 2
 	LabelRecordType    = "label-v1"
 )
+
+// AcceptedLabelSchemaVersions is the allow-list of label schema versions a
+// reader accepts, in ascending order. Callers must treat it as read-only.
+var AcceptedLabelSchemaVersions = []int{1, 2}
+
+// LabelSchemaAccepted reports whether v is in AcceptedLabelSchemaVersions.
+func LabelSchemaAccepted(v int) bool {
+	for _, a := range AcceptedLabelSchemaVersions {
+		if a == v {
+			return true
+		}
+	}
+	return false
+}
 
 // labelRecord mirrors cmd/searchteacher/labels.go's LabelRecord: the merged
 // search-teacher label corpus record, one JSON object per line. Field names
@@ -48,6 +66,11 @@ type labelRecord struct {
 	Attempts      int               `json:"attempts"`
 	Accepted      int               `json:"accepted"`
 	Horizon       int32             `json:"horizon"`
+	// Outcome/OutcomeKnown are schema 2: the deciding (search) seat's game
+	// result, 1 win / 0.5 draw / 0 loss, meaningful only when OutcomeKnown.
+	// Absent in a schema 1 record, where they decode as zero/false.
+	Outcome      float64 `json:"outcome"`
+	OutcomeKnown bool    `json:"outcome_known"`
 }
 
 // labelCandidate mirrors cmd/searchteacher/labels.go's LabelCandidate.
@@ -75,8 +98,19 @@ type Example struct {
 	Margin        float64
 	TeacherChoice int
 	BotIndex      int
-	State         State
-	Options       []Option
+	// Outcome is the deciding seat's game result (1 win, 0.5 draw, 0 loss)
+	// and is meaningful only when HasOutcome. HasOutcome is false for a
+	// schema 1 record and for a game that stalled or errored.
+	Outcome    float64
+	HasOutcome bool
+	// TeacherValue is the teacher-chosen candidate's rollout mean
+	// (candidates[TeacherChoice].Value), the value head's second, lower-
+	// variance target; HasTeacherValue is false when TeacherChoice is out of
+	// the candidate range.
+	TeacherValue    float64
+	HasTeacherValue bool
+	State           State
+	Options         []Option
 }
 
 // Stats counts what Load saw.
@@ -86,14 +120,17 @@ type Stats struct {
 	// Skipped is the records whose candidates list was empty (the writer
 	// never emits one, but a consumer must not train on them).
 	Skipped int
+	// WithOutcome is the loaded (not skipped) examples whose HasOutcome is
+	// true.
+	WithOutcome int
 }
 
 // Load streams a label corpus (plain or gzip-compressed JSONL, detected by
 // magic bytes) into decoded, encoded Examples without holding the whole file
 // in memory: records are read one at a time and encoded as they arrive.
 //
-// A record whose record_type or schema_version does not match the writer's
-// constants is a hard error (a wrong-shape corpus must not train anything).
+// A record whose record_type is not LabelRecordType or whose schema_version
+// is not in AcceptedLabelSchemaVersions is a hard error (a wrong-shape corpus must not train anything).
 // A record whose candidates list is empty is skipped and counted in
 // Stats.Skipped.
 func Load(path string) ([]Example, Stats, error) {
@@ -129,8 +166,8 @@ func Load(path string) ([]Example, Stats, error) {
 		if rec.RecordType != LabelRecordType {
 			return nil, stats, fmt.Errorf("label corpus record %d: wrong record_type %q, want %q", stats.Records, rec.RecordType, LabelRecordType)
 		}
-		if rec.SchemaVersion != LabelSchemaVersion {
-			return nil, stats, fmt.Errorf("label corpus record %d: unsupported schema_version %d, want %d", stats.Records, rec.SchemaVersion, LabelSchemaVersion)
+		if !LabelSchemaAccepted(rec.SchemaVersion) {
+			return nil, stats, fmt.Errorf("label corpus record %d: unsupported schema_version %d, want one of %v", stats.Records, rec.SchemaVersion, AcceptedLabelSchemaVersions)
 		}
 		if len(rec.Candidates) == 0 {
 			stats.Skipped++
@@ -158,6 +195,13 @@ func Load(path string) ([]Example, Stats, error) {
 			BotIndex:      rec.BotIndex,
 			State:         EncodeState(v, rec.Seat),
 			Options:       make([]Option, len(rec.Options)),
+		}
+		if rec.SchemaVersion >= 2 && rec.OutcomeKnown {
+			ex.Outcome, ex.HasOutcome = rec.Outcome, true
+			stats.WithOutcome++
+		}
+		if rec.TeacherChoice >= 0 && rec.TeacherChoice < len(rec.Candidates) {
+			ex.TeacherValue, ex.HasTeacherValue = rec.Candidates[rec.TeacherChoice].Value, true
 		}
 		for i := range rec.Options {
 			ex.Options[i] = EncodeOption(v, rec.Seat, rec.Kind, rec.Options[i], i, len(rec.Options))
