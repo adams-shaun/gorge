@@ -76,12 +76,12 @@ func (c Cost) manaPipCount() int {
 // supplies) and by a hard node budget; beyond that it fails closed, which is
 // the conservative direction (never offer a Pay the window cannot complete).
 func (e *Engine) unlessManaReachable(p state.PlayerID, cost Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, conv *manaConv, units []windowManaUnit) bool {
-	payable := func(pool state.Mana) bool {
-		_, ok := cost.resolveManaWith(pool, snow, typed, life,
+	payable := func(pool state.Mana, lifeNow int32) bool {
+		_, ok := cost.resolveManaWith(pool, snow, typed, lifeNow,
 			e.payerGrantsPayLifeInsteadOfB(p), pipRider{}, conv)
 		return ok
 	}
-	if payable(pool) {
+	if payable(pool, life) {
 		return true
 	}
 	budget := cost.manaPipCount()
@@ -89,9 +89,9 @@ func (e *Engine) unlessManaReachable(p state.PlayerID, cost Cost, pool, snow sta
 		return false
 	}
 	nodes := 0
-	var rec func(start, remaining int, acc state.Mana) bool
-	rec = func(start, remaining int, acc state.Mana) bool {
-		if payable(manaAdd(pool, acc)) {
+	var rec func(start, remaining int, acc state.Mana, lifeLeft int32) bool
+	rec = func(start, remaining int, acc state.Mana, lifeLeft int32) bool {
+		if payable(manaAdd(pool, acc), lifeLeft) {
 			return true
 		}
 		if remaining <= 0 {
@@ -103,14 +103,21 @@ func (e *Engine) unlessManaReachable(p state.PlayerID, cost Cost, pool, snow sta
 		}
 		for i := start; i < len(units); i++ {
 			for _, a := range units[i].alts {
-				if rec(i+1, remaining-1, manaAdd(acc, a.mana())) {
+				// A PayLife activation spends real life: it must be
+				// present before the tap and is gone for the priced cost
+				// afterwards. Every shared-window alt carries life 0, so
+				// this is inert for the attack and unless windows.
+				if a.life > lifeLeft {
+					continue
+				}
+				if rec(i+1, remaining-1, manaAdd(acc, a.mana()), lifeLeft-a.life) {
 					return true
 				}
 			}
 		}
 		return false
 	}
-	return rec(0, budget, state.Mana{})
+	return rec(0, budget, state.Mana{}, life)
 }
 
 // UnlessCostPayable is the rules-side offer gate for the generic unless
