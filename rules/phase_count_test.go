@@ -67,6 +67,14 @@ func TestLostMonarchOfIfnirPhaseCountSecondMain(t *testing.T) {
 func TestLostMonarchOfIfnirTriggerMatchesSecondMainOnly(t *testing.T) {
 	e, id := phaseCardEngine(t, "Lost Monarch of Ifnir")
 	tr := crTriggerFixture(t, e, id, "Phase", "Mill")
+	// Clone before deleting: tr.Params is the SHARED corpus registry card's
+	// map, and deleting from it in place polluted every later test that read
+	// Lost Monarch of Ifnir (its CheckSVar$ gate silently vanished).
+	params := make(map[string]string, len(tr.Params))
+	for k, v := range tr.Params {
+		params[k] = v
+	}
+	tr.Params = params
 	delete(tr.Params, "CheckSVar")
 	for s := state.Step(0); s <= state.StepCleanup; s++ {
 		stepOnce(e, s)

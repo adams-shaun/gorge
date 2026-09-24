@@ -3,6 +3,7 @@ package searchseat
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 )
@@ -55,6 +56,27 @@ func TestCastOptionsCountsDistinctObjects(t *testing.T) {
 				t.Errorf("CastOptions = %d, want %d", got, tc.want)
 			}
 		})
+	}
+}
+
+// CastOptions IS botpolicy.CastableObjects: the teacher's priority
+// eligibility and the learned seat's priority gate (seat.PolicyNetBot) read
+// one definition, so the distribution the head is trained on and the one it
+// is asked to answer cannot drift. Pinned on hand-built decisions covering
+// every branch of the count.
+func TestCastOptionsIsTheBotpolicyCount(t *testing.T) {
+	for _, opts := range [][]decision.Option{
+		nil,
+		{{Kind: "pass"}},
+		{{Kind: "cast", Obj: 10}, {Kind: "pass"}},
+		{{Kind: "cast", Obj: 10}, {Kind: "cast", Obj: 10}, {Kind: "pass"}},
+		{{Kind: "cast", Obj: 10}, {Kind: "cast", Obj: 11}, {Kind: "ability", Obj: 12}, {Kind: "pass"}},
+		{{Kind: "play_land", Obj: 9}, {Kind: "activate", Obj: 8}, {Kind: "cast", Obj: 10}, {Kind: "cast", Obj: 11}, {Kind: "cast", Obj: 12}},
+	} {
+		d := &decision.Decision{Kind: decision.KPriority, Options: opts}
+		if got, want := CastOptions(d), botpolicy.CastableObjects(d); got != want {
+			t.Errorf("options %+v: CastOptions = %d, botpolicy.CastableObjects = %d", opts, got, want)
+		}
 	}
 }
 
@@ -179,5 +201,50 @@ func TestEligibleHonoursTheKindsGate(t *testing.T) {
 	none.Kinds = nil
 	if Eligible(twoCasts, none) || Eligible(&decision.Decision{Kind: decision.KAttackers}, none) {
 		t.Error("a nil Kinds map must delegate everything rather than defaulting to on")
+	}
+}
+
+// "blockers" is opt-in: Defaults leaves it off (so the measured seat is
+// unchanged), and turning it on admits every KBlockers decision -- the
+// candidate builder, not Eligible, decides whether it has two to compare.
+func TestEligibleBlockersIsOptIn(t *testing.T) {
+	blockers := &decision.Decision{Kind: decision.KBlockers}
+	if Eligible(blockers, Defaults()) {
+		t.Error("Defaults must keep blockers off")
+	}
+	on := Defaults()
+	on.Kinds = map[string]bool{"blockers": true}
+	if !Eligible(blockers, on) {
+		t.Error("blockers is on, so a KBlockers decision must be eligible")
+	}
+	if Eligible(&decision.Decision{Kind: decision.KAttackers}, on) {
+		t.Error("attackers is off, so an attackers decision must delegate")
+	}
+}
+
+// "target" is opt-in and admits only the single-choice, unbudgeted KTarget
+// shape (searchprobe.SingleTarget); every other target ask stays the bot's.
+func TestEligibleTargetIsOptInAndSingleChoice(t *testing.T) {
+	opts := []decision.Option{{Index: 0, Kind: "target", Obj: 1}, {Index: 1, Kind: "target", Player: 1}}
+	single := &decision.Decision{Kind: decision.KTarget, Min: 1, Max: 1, Options: opts}
+	if Eligible(single, Defaults()) {
+		t.Error("Defaults must keep target off")
+	}
+	on := Defaults()
+	on.Kinds = map[string]bool{"target": true}
+	if !Eligible(single, on) {
+		t.Error("target is on, so a single-choice KTarget must be eligible")
+	}
+	for name, d := range map[string]*decision.Decision{
+		"max 2":      {Kind: decision.KTarget, Min: 1, Max: 2, Options: opts},
+		"min 0":      {Kind: decision.KTarget, Min: 0, Max: 1, Options: opts},
+		"max sum":    {Kind: decision.KTarget, Min: 1, Max: 1, MaxSum: 3, Options: opts},
+		"budgeted":   {Kind: decision.KTarget, Min: 1, Max: 1, Budgeted: true, Options: opts},
+		"one option": {Kind: decision.KTarget, Min: 1, Max: 1, Options: opts[:1]},
+		"attackers":  {Kind: decision.KAttackers},
+	} {
+		if Eligible(d, on) {
+			t.Errorf("%s: want ineligible", name)
+		}
 	}
 }

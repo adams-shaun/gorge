@@ -324,7 +324,7 @@ func TestMysticReflectionShapeStaysLoud(t *testing.T) {
 // SVar:X:Count$ChosenNumber feeding a ValidCards$ cmcEQX DestroyAll. Void's
 // chosen number lives on state.Object.ChosenNumber (effects/choose.go's
 // Choose event), NEVER on Ctx -- the Choose-event population the
-// Count$ChosenNumber head must NOT answer for.
+// Count$ChosenNumber head answers from the source object when unbound.
 const voidShapeSrc = "Name:Void Shape\nManaCost:3 B R\nTypes:Sorcery\n" +
 	"A:SP$ ChooseNumber | SubAbility$ DBVoidDestroyAll | SpellDescription$ Choose a number. Destroy all artifacts and creatures with mana value equal to that number.\n" +
 	"SVar:DBVoidDestroyAll:DB$ DestroyAll | ValidCards$ Artifact.cmcEQX,Creature.cmcEQX\n" +
@@ -334,72 +334,80 @@ const voidShapeSrc = "Name:Void Shape\nManaCost:3 B R\nTypes:Sorcery\n" +
 const wgConstructSrc = "Name:Fixture Construct\nManaCost:0\nTypes:Artifact Creature Construct\nPT:0/2\nOracle:x\n"
 const wgBaubleSrc = "Name:Fixture Bauble\nManaCost:0\nTypes:Artifact\nOracle:x\n"
 
-// TestVoidChooseNumberPopulationStaysUnresolved pins the OTHER side of the
-// Count$ChosenNumber verdict (the review-measured regression class): on a
-// non-effect shape the head is UNRESOLVED, so void's cmcEQX numeric RHS
-// never matches and the DestroyAll destroys NOTHING -- not even the MV-0
-// board. The first draft's unconditionally-true verdict made X resolve to a
-// meaningless 0, and every MV-0 artifact/creature died (and
-// plague_of_vermin's GE1 SVar gate went fail-closed). Unresolved also means
-// fail-open at CheckSVarHolds, so the same fix covers both consumer classes.
-func TestVoidChooseNumberPopulationStaysUnresolved(t *testing.T) {
-	e, cfg, find := etbConfig(t, seedTossSeat0(251), []string{voidShapeSrc, wgConstructSrc, wgBaubleSrc}, nil)
-	construct := putCreature(t, e, 0, wgConstructSrc)
-	bauble := putCreature(t, e, 0, wgBaubleSrc)
-	voidID := find("Void Shape", 0)
-	addMana(t, e, 0, "BBRRRR")
-	// Cast explicitly rather than through castObj: the ChooseNumber body now
-	// suspends mid-resolution. Answer 0 (the old deterministic stand-in) so
-	// this test isolates the unresolved Count$ChosenNumber comparison.
-	if o := e.G.Obj(voidID); o == nil || o.Zone != state.ZHand {
-		t.Fatalf("precondition: Void Shape must be in hand: %+v", o)
-	}
-	d := e.Pending()
-	if d == nil {
-		t.Fatal("no decision pending to cast Void Shape")
-	}
-	cast := -1
-	for _, opt := range d.Options {
-		if opt.Kind == "cast" && opt.Obj == voidID {
-			cast = opt.Index
-		}
-	}
-	if cast < 0 {
-		t.Fatalf("no cast option for Void Shape: %+v", d.Options)
-	}
-	submitChoices(t, e, cast)
-	for i := 0; i < 20; i++ {
-		d = e.Pending()
-		if d == nil {
-			t.Fatal("no decision pending before the number ask")
-		}
-		if d.Kind == decision.KChoose && d.ResumeKind == "choosenumber" {
-			break
-		}
-		if d.Kind != decision.KPriority {
-			t.Fatalf("unexpected decision before the number ask: %+v", d)
-		}
-		passPriorityOnce(t, e)
-	}
-	if d.Kind != decision.KChoose || d.ResumeKind != "choosenumber" {
-		t.Fatalf("Void Shape did not pose its number ask: %+v", d)
-	}
-	if len(d.Options) == 0 || d.Options[0].Kind != "number" || d.Options[0].Amount != 0 {
-		t.Fatalf("number 0 is not the first offered answer: %+v", d.Options)
-	}
-	submitChoices(t, e, d.Options[0].Index)
-	passUntilStackEmpty(t, e, 20)
+// TestVoidChooseNumberReadsTheLoggedChoice pins the OTHER side of the
+// Count$ChosenNumber verdict: on a non-effect shape (void's SP$ ChooseNumber
+// chain) the chosen number lives on the SOURCE object (effects/choose.go's
+// logged Choose fold), never on Ctx. Before fuzz-cov3 the unbound head stayed
+// UNRESOLVED, so void's cmcEQX never matched and Void destroyed nothing
+// whatever number was chosen; the head now falls back to the source's own
+// recorded answer, so the comparison reads the number the player actually
+// chose -- never Ctx's meaningless zero (the first wildgrowth draft's bug,
+// which killed every MV-0 permanent regardless of the answer). Choosing 1
+// spares the MV-0 board; choosing 0 destroys it, exactly as the oracle says.
+func TestVoidChooseNumberReadsTheLoggedChoice(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		id   state.ObjID
-	}{{"MV-0 artifact creature", construct}, {"MV-0 artifact", bauble}} {
-		o := e.G.Obj(tc.id)
-		if o == nil || o.Zone != state.ZBattlefield {
-			t.Fatalf("%s was destroyed by the MV=chosen(0) comparison -- the unbound Count$ChosenNumber resolved instead of staying unresolved", tc.name)
+		answer   int
+		survives bool
+	}{{1, true}, {0, false}} {
+		e, cfg, find := etbConfig(t, seedTossSeat0(251), []string{voidShapeSrc, wgConstructSrc, wgBaubleSrc}, nil)
+		construct := putCreature(t, e, 0, wgConstructSrc)
+		bauble := putCreature(t, e, 0, wgBaubleSrc)
+		voidID := find("Void Shape", 0)
+		addMana(t, e, 0, "BBRRRR")
+		if o := e.G.Obj(voidID); o == nil || o.Zone != state.ZHand {
+			t.Fatalf("precondition: Void Shape must be in hand: %+v", o)
 		}
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision pending to cast Void Shape")
+		}
+		cast := -1
+		for _, opt := range d.Options {
+			if opt.Kind == "cast" && opt.Obj == voidID {
+				cast = opt.Index
+			}
+		}
+		if cast < 0 {
+			t.Fatalf("no cast option for Void Shape: %+v", d.Options)
+		}
+		submitChoices(t, e, cast)
+		for i := 0; i < 20; i++ {
+			d = e.Pending()
+			if d == nil {
+				t.Fatal("no decision pending before the number ask")
+			}
+			if d.Kind == decision.KChoose && d.ResumeKind == "choosenumber" {
+				break
+			}
+			if d.Kind != decision.KPriority {
+				t.Fatalf("unexpected decision before the number ask: %+v", d)
+			}
+			passPriorityOnce(t, e)
+		}
+		if d.Kind != decision.KChoose || d.ResumeKind != "choosenumber" {
+			t.Fatalf("Void Shape did not pose its number ask: %+v", d)
+		}
+		pick := -1
+		for _, opt := range d.Options {
+			if opt.Kind == "number" && int(opt.Amount) == tc.answer {
+				pick = opt.Index
+			}
+		}
+		if pick < 0 {
+			t.Fatalf("number %d is not offered: %+v", tc.answer, d.Options)
+		}
+		submitChoices(t, e, pick)
+		passUntilStackEmpty(t, e, 20)
+		for _, obj := range []struct {
+			name string
+			id   state.ObjID
+		}{{"MV-0 artifact creature", construct}, {"MV-0 artifact", bauble}} {
+			o := e.G.Obj(obj.id)
+			alive := o != nil && o.Zone == state.ZBattlefield
+			if alive != tc.survives {
+				t.Fatalf("chose %d: %s on battlefield = %v, want %v", tc.answer, obj.name, alive, tc.survives)
+			}
+		}
+		replayCheck(t, e, cfg)
 	}
-	if hasNote(e, "continuous replacement unimplemented") {
-		t.Fatal("unrelated Note present")
-	}
-	replayCheck(t, e, cfg)
 }

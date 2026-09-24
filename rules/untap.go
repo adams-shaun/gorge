@@ -60,7 +60,7 @@ func (e *Engine) staticPresentHolds(st cards.Static, source state.ObjID) bool {
 	if cmp == "" {
 		return n > 0
 	}
-	return comparePresent(n, cmp)
+	return comparePresent(n, e.presentCompareFor(cmp, source, e.controllerOf(source)))
 }
 
 // untapOtherStaticsMatch reports whether subject untaps during a foreign
