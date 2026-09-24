@@ -664,6 +664,54 @@ is 105 insertions, 0 deletions; the old accumulator content is untouched.
 
 ---
 
+# Merge-conflict resolution — wt/agent-20260918T234402Z-c77011ce (mrg1), round 6 (2026-09-23 22:30)
+
+## Entry state
+
+`git status` clean, no rebase or merge in flight. HEAD was `824fbbd3` ("Merge
+branch 'main' into wt/agent-20260918T234402Z-c77011ce", 10:50 today) — the
+previous resolver's merge had already completed and committed, but `main` had
+since advanced by 156 commits (tip `dbc5683d`, the fuzz-panics merge at
+22:27). `.cards` was present (real corpus, so no vacuous skips).
+
+## Operation
+
+```text
+$ git merge main
+Auto-merging (many files: rules/, host/, web/, docs …)
+Merge made by the 'ort' strategy.
+```
+
+**No conflict arose this round.** The merge auto-committed as `c0791f1e`
+("Merge branch 'main' into wt/agent-20260918T234402Z-c77011ce", default
+message). After it, `git log HEAD..main` is empty (main fully integrated) and
+the tree is clean. The `.ds4/report-*` accumulation files, which conflicted
+in earlier rounds, auto-merged cleanly this time. I edited no source file —
+there was nothing to hand-resolve.
+
+## Verification
+
+```text
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules   0.627s
+$ go test ./rules -run 'Companion'          # branch's own fix (kw:Companion registration)
+ok   github.com/adams-shaun/gorge/rules   0.441s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest   3.834s
+```
+
+The post-merge ratchets pass: this branch registers `kw:Companion` (a
+deck-construction keyword, not a `Mode$` matcher) and closes no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry, so no ratchet table adjustment was indicated. Merge brought main's
+start-of-game choice, trigger-zoneskip, TargetMin/Max and fuzz-panics work;
+the Companion tests still pass on top of it.
+
+## Issues
+
+None new. Integration only; no source conflict, no golden moved.
+
+---
 # Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 5 (2026-09-23)
 
 ## Entry state
@@ -4625,6 +4673,103 @@ unioning it — a controller-side note to those seats would stop the churn;
 (2) the per-branch prepend/append to `.ds4/report-*.md` accumulators conflicts
 on every integration; the union convention keeps everything but costs a round
 each time. The branch closes no Known-approximations row.
+
+---
+
+---
+
+# Merge-conflict resolution report — Companion (mrg1)
+
+## Entry state and operation
+
+The worktree was clean on `wt/agent-20260918T234402Z-c77011ce` at
+`9497e794`, with no merge or rebase in flight. The reviewed Companion commits
+were already present (`f7e41c45`, `1bb5e863`, `9497e794`); `main` was at
+`767f3dd4`. The supplied daemon transcript named `.ds4/report-t1.md` as the
+conflict. I ran `git merge main`; it reproduced that conflict and reported
+`rules/trigger_match.go` as an automatic merge.
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Conflicted file and resolution
+
+`.ds4/report-t1.md` is an accumulated report file. The branch side adds the
+Companion registration report; main adds the independent GenericChoice and
+Sentinel Sarah Lyons reports. I kept both sides, removing only the three merge
+marker lines. The Companion text remains intact, followed by main's reports.
+No engine-code conflict required manual resolution: `rules/trigger_match.go`
+auto-merged and retains the Companion registration alongside main's changes.
+All other changed files in the merge were automatic main integration, not
+conflicts, and were left as merged.
+
+## Commands and output
+
+```text
+$ git status --short --branch
+## wt/agent-20260918T234402Z-c77011ce
+
+$ git merge main
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Auto-merging rules/trigger_match.go
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git diff --check
+(no output; exit 0)
+
+$ go test -run 'TestCompanionPrimitiveIsRegistered|TestCompanionCarrierIsUnderstood|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.801s
+
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  4.113s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.584s
+```
+
+The combined rules run includes the Companion regression and the required
+post-merge trigger-mode, deck, parameter, and count-head ratchets. No new
+trigger matcher or ratchet entry was introduced/closed by this change. Both
+behavior goldens passed; no pin change was needed.
+
+---
+
+# Merge-conflict resolution — Companion (current integration)
+
+The worktree was clean before integrating the current `main`; the earlier
+merge commit `a5312bff` integrated the then-current `main` (`767f3dd4`), while
+`main` has since advanced to `b493bc15`. `git merge main` produced one conflict,
+`.ds4/report-mrg1.md`. The branch side contained the Companion report appended
+to the shared 114-line base; main carried the accumulated report history plus
+its own new report material. I preserved main's full accumulated content and
+appended the branch's unique Companion report, retaining both intents.
+`.ds4/report-t1.md` auto-merged; its Companion report and main's newer sections
+are both present. No production source needed manual conflict resolution.
+
+Verification (the corpus symlink was present at `.cards`):
+
+```text
+$ go test ./rules -run 'TestCompanionPrimitiveIsRegistered|TestCompanionCarrierIsUnderstood|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.916s
+
+$ go test -run 'TestTriggerRemembered|TestLoamcrafterFaun|TestRefProperty' ./effects/ ./rules/
+ok   github.com/adams-shaun/gorge/effects  0.658s
+ok   github.com/adams-shaun/gorge/rules  0.735s
+
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  4.101s
+
+$ git diff --cached --check
+(no output; exit 0)
+```
+
+The post-merge trigger/deck/parameter/count-head ratchets and Companion tests
+passed. No ratchet table or botbench pin changes were needed. The merge is
+completed with the default merge message.
+
+## Issues
+
+No additional issue was found in the report-only conflict resolution.
 
 ---
 
