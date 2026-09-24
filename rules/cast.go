@@ -3474,6 +3474,16 @@ func (e *Engine) castModeAsk() bool {
 	}
 	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
 	d.ResumeKind = "cast_modes"
+	if effects.OnlyEmptyAnswer(d) {
+		// "Choose up to N" (MinCharmNum$ 0) with no mode that has a legal
+		// target or an affordable cost: the only legal announcement is zero
+		// modes (Call Damage Control with an empty graveyard). Nobody could
+		// answer differently, so record it without posting the decision --
+		// the same silent resolution effects.Ask gives this shape, and what
+		// Engine.ask requires of every asking site.
+		e.applyCastModes(d, pc.player, nil)
+		return true
+	}
 	e.ask(d)
 	return true
 }
@@ -8824,7 +8834,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player,
 					Text: strings.Join(modeLabels(sa, o.Face().SVars, pc.preModes), ",")})
 			}
-			o.ChosenModes = append([]string(nil), pc.preModes...)
+			o.ChosenModes = state.CloneChosenModes(pc.preModes)
 		}
 	}
 	e.deferredPush = nil
