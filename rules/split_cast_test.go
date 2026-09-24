@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
-	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -97,15 +96,17 @@ func TestKillerHalfIsCastable(t *testing.T) {
 // TestGallifreyFallsFuseCastsBothHalves pins the brief's second carrier: the
 // fused cast of Gallifrey Falls // No More is offered only at the SUMMED cost
 // ({4}{R}{R} + {2}{W} = {6}{R}{R}{W}) and dispatches BOTH halves: Falls
-// damages the 2/2; No More's currently unimplemented Phases API emits its
-// fallback Note. The Note distinguishes dispatch from silently skipping No
-// More, but does not claim that phasing itself is implemented.
+// damages every creature, then No More's real Phases half (effects/phases.go)
+// phases out seat 0's own 9/9, which survives Falls' 4. The phased-out status
+// is the proof the second half was visited after the first, rather than
+// silently skipped.
 func TestGallifreyFallsFuseCastsBothHalves(t *testing.T) {
 	reg := searchTestRegistry(t)
 	falls := searchCorpusCard(t, reg, "Gallifrey Falls")
 	bear := searchCorpusCard(t, reg, "Grizzly Bears")
+	brontodon := searchCorpusCard(t, reg, "Ancient Brontodon")
 	island := searchCorpusCard(t, reg, "Island")
-	deck := []*cards.Card{falls}
+	deck := []*cards.Card{falls, brontodon}
 	for len(deck) < 40 {
 		deck = append(deck, island)
 	}
@@ -119,9 +120,14 @@ func TestGallifreyFallsFuseCastsBothHalves(t *testing.T) {
 	e.Advance()
 	toMain1(t, e)
 	bearID := splitMoveFromLibrary(t, e, 1, "Grizzly Bears")
+	// No More's target: seat 0's own creature, a 9/9 that survives Falls' 4.
+	ownID := moveByName(t, e, 0, "Ancient Brontodon", state.ZBattlefield)
 	id := searchMoveByName(t, e, "Gallifrey Falls", state.ZHand)
 	if z := e.G.Obj(bearID).Zone; z != state.ZBattlefield {
 		t.Fatalf("precondition: bear zone=%s, want battlefield", z)
+	}
+	if o := e.G.Obj(ownID); o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
+		t.Fatalf("precondition: seat 0's Brontodon not a phased-in battlefield permanent: %+v", o)
 	}
 
 	// Cost exactness: fund exactly {4}{R}{R} = 7 red (4 generic + R + R). The
@@ -142,35 +148,40 @@ func TestGallifreyFallsFuseCastsBothHalves(t *testing.T) {
 	if fuse == nil {
 		t.Fatalf("fused offer missing at the summed cost: %+v", castOptions(t, e))
 	}
-	if n := len(e.G.Zone(state.ZBattlefield, 0)); n != 0 {
-		t.Fatalf("precondition: No More's controller has %d battlefield objects, want none", n)
+	if n := len(e.G.Zone(state.ZBattlefield, 0)); n != 1 {
+		t.Fatalf("precondition: No More's controller has %d battlefield objects, want only the Brontodon", n)
 	}
-	before := len(e.L.Events)
 	submitChoices(t, e, fuse.Index)
-
 	// The Falls half targets nothing; the No More half asks any number of
-	// seat 0's creatures (TargetMin 0) -- seat 0 controls none, so the ask,
-	// if posed, is legally answered with zero targets.
+	// seat 0's creatures (TargetMin 0). Answer with the Brontodon so its
+	// phase-out is the observable second-half effect.
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
-		submitChoices(t, e)
+		tgt := -1
+		for _, o := range d.Options {
+			if o.Obj == ownID {
+				tgt = o.Index
+			}
+		}
+		if tgt < 0 {
+			t.Fatalf("No More offered no option for seat 0's Brontodon: %+v", d.Options)
+		}
+		submitChoices(t, e, tgt)
 	}
 	passUntilStackEmpty(t, e, 20)
 
-	// Falls dealt its 4 to the bear. Its exile-instead rider on DamageAll
-	// is currently inert, so the bear dies to the graveyard. No More's
-	// Phases API is not implemented: its specific fallback Note proves the
-	// second half was visited after the first, rather than silently skipped.
-	phasesNotes := 0
-	for _, ev := range e.L.Events[before:] {
-		if ev.Kind == events.Note && ev.Text == "unimplemented API Phases" {
-			phasesNotes++
-		}
+	// Falls dealt its 4 to every creature. No More's real Phases half then
+	// phased out seat 0's 9/9 (it survives Falls' 4). The phased-out status
+	// proves the second half was visited after the first.
+	if o := e.G.Obj(ownID); o == nil || !o.PhasedOut || o.Zone != state.ZBattlefield {
+		t.Fatalf("fused No More half did not phase out seat 0's Brontodon: %+v", o)
 	}
-	if phasesNotes != 1 {
-		t.Fatalf("No More dispatch emitted %d Phases fallback notes, want 1", phasesNotes)
+	if phasesHasNote(e, "unimplemented API Phases") {
+		t.Fatal("api:Phases is unregistered (fallback Note present)")
 	}
+	// The Falls half's 4 damage on the 2/2 opposing bear is the first half's
+	// observable effect.
 	if z := e.G.Obj(bearID).Zone; z != state.ZGraveyard {
-		t.Fatalf("fused Falls left the bear at zone=%s, want graveyard (4 damage on a 2/2)", z)
+		t.Fatalf("fused Falls left the opposing bear at zone=%s, want graveyard (4 damage on a 2/2)", z)
 	}
 	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
 		t.Fatalf("resolved fused spell zone=%s, want graveyard", z)
