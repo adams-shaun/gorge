@@ -142,6 +142,13 @@ type resumePoint struct {
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
+	// pendingDamage is the DamageMap$ True mark set of the resolution that
+	// posed this ask (effects.Ctx.PendingDamage at suspension time): the
+	// resumed Ctx is rebuilt from scratch, so without this ride a mark left
+	// before a mid-chain ask (a DamageResolve-defeating suspension) would be
+	// lost and the later flush would deal nothing. Runtime continuation
+	// state, never client input, the same class as remembered.
+	pendingDamage []effects.PendingDamage
 	// searchKnown rides the effects.Ctx.SearchKnown set of a search chain
 	// across a planted placement leg's own suspension (Decision
 	// .ResumeSearchKnown): the leg's answer rebuilds a fresh Ctx, and the next
@@ -606,8 +613,9 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
-		searchKnown:  append([]state.Target(nil), d.ResumeSearchKnown...),
-		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
+		pendingDamage: effects.ClonePendingDamage(e.resolutionPendingDamage()),
+		searchKnown:   append([]state.Target(nil), d.ResumeSearchKnown...),
+		digUntilMove:  d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
@@ -693,6 +701,18 @@ func resolutionTargetCounters(c *effects.Ctx) map[state.ObjID][]state.Counter {
 		return nil
 	}
 	return effects.CloneTargetCountersLKI(c.TargetCountersLKI)
+}
+
+// resolutionPendingDamage is the DamageMap$ True mark set a pending ask
+// carries onto its resume point: the live Resolve chain's marks (published
+// through SetResolutionCtx), cloned so the frame owns its storage. Nil
+// outside a chain (a combat or mulligan ask) or when the chain has marked
+// nothing.
+func (e *Engine) resolutionPendingDamage() []effects.PendingDamage {
+	if e.resolutionCtx == nil {
+		return nil
+	}
+	return effects.ClonePendingDamage(e.resolutionCtx.PendingDamage)
 }
 
 // snapshotDepartingTargetCounters refreshes the resolving chain's target-
@@ -1983,6 +2003,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// exclusion set survives the suspension untouched.
 	if len(rp.targetsUnique) > 0 {
 		ctx.TargetsUnique = append(ctx.TargetsUnique, rp.targetsUnique...)
+	}
+	// The DamageMap$ True mark set, captured at ask time from the live
+	// resolution Ctx: a chain that marks damage and then suspends on a
+	// mid-resolution ask before its DB$ DamageResolve re-enters here, and the
+	// rebuilt Ctx must still carry the marks the flush is owed (a fresh Ctx
+	// would drop them and the flush would silently deal nothing).
+	if len(rp.pendingDamage) > 0 {
+		ctx.PendingDamage = effects.ClonePendingDamage(rp.pendingDamage)
 	}
 	// Task mvts1: carry the SA whose targeting the placement/announcement
 	// ask covered, exactly as resolveTop's first pass does. An optional

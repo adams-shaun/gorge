@@ -1092,6 +1092,15 @@ type Ctx struct {
 	// the head falls through to the list-length read every pre-existing
 	// consumer keeps.
 	RememberedCMCBound bool
+	// PendingDamage holds the damage a DealDamage with DamageMap$ True MARKED
+	// for this chain's later DB$ DamageResolve flush instead of dealing it
+	// (Forge's mark-then-resolve damage pattern). It is resolution-scratch
+	// like Remembered -- never event-encoded; a replay re-derives it by
+	// re-running the same resolution -- and rules carries it across a
+	// mid-chain ask on the pending frame, the same way Remembered rides
+	// ResumeRemembered. The marks are unexported-typed so the rules package
+	// holds them opaquely. See effects/damage.go's effDamageResolve.
+	PendingDamage []PendingDamage
 	// EffectFrame names the Effect-created continuous-effect registration
 	// whose replacement body this Ctx is resolving (rules' seedEffectReplCtx
 	// sets it from the match's "effect:<source>:<timestamp>" key; zero Source
