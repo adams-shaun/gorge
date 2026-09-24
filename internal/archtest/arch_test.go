@@ -76,6 +76,8 @@ func set(s string) map[string]bool {
 // cmd/searchteacher (the 2026-09-19 search-teacher spike) is exempt on the
 // same terms: it reads the clock only to report per-decision sampling and
 // search milliseconds; no proposal, rollout, label or game reads it.
+// cmd/cardfuzz reads it only for its per-game hang watchdog and its
+// games/s progress line; every deck and game is a pure function of its seed.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
 		module + "/host":              true,
@@ -86,6 +88,7 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 		module + "/cmd/ledger":        true,
 		module + "/cmd/searchprobe":   true,
 		module + "/cmd/searchteacher": true,
+		module + "/cmd/cardfuzz":      true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {
