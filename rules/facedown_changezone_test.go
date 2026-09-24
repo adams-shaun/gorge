@@ -308,6 +308,8 @@ func TestFaceDownCarriersAreNotInRepoDecks(t *testing.T) {
 		"The Moonbase":                true,
 		"The Cyber-Controller":        true,
 		"Tezzeret's Reckoning":        true,
+		"Cybership":                   true,
+		"Death in Heaven":             true,
 	}
 	for _, name := range testutil.RepoDeckNames() {
 		f, err := testutil.LoadRepoDeckFile(name)
