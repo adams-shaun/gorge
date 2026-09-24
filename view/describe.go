@@ -318,6 +318,16 @@ func Describe(g *state.Game, ev events.Event) string {
 		// line names only the investigating seat (Player; Obj is the source
 		// permanent, which may be 0 for a game-rule investigate).
 		return player(g, ev.Player) + " investigates"
+	case events.GiftPromise:
+		// CR 702.168: the promise is attached to the cast object; Amount
+		// distinguishes a decline from the promised-opponent seat in Player.
+		if ev.Amount != 0 {
+			return player(g, objController(g, ev.Obj)) + " promises a gift to " + player(g, ev.Player)
+		}
+		return player(g, objController(g, ev.Obj)) + " declines to promise a gift"
+	case events.GiveGift:
+		// The completed gift marker follows the gift action's own events.
+		return player(g, ev.Player) + " gives a gift"
 	case events.Exploit:
 		// The exploit record (CR 702.58a, task exploit1): Obj is the
 		// exploiting creature, IDs[0] the exploited (sacrificed) one. The
