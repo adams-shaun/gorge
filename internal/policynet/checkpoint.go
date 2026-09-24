@@ -51,9 +51,23 @@ import (
 // always written (one float) so the layout has no conditional block; with
 // valueHidden 0 the three sized blocks are empty and VOutB is 0. Version 2
 // (and 1) checkpoints are refused, by the same tripwire.
+//
+// Schema version 4 (ticket pn14) is written ONLY for an entity model
+// (Model.EntK > 0; every other model is still written as version 3, byte for
+// byte): two more geometry words after valueHidden, entK and the raw entity
+// width (EntityRawWidth), and three blocks after VOutB:
+//
+//	float32 × entK·(entRaw+H)          EntW
+//	float32 × entK                     EntB
+//	float32 × EntityGroups·2·entK·H    EntP
+//
+// The hidden layer's input width is then 2H + slots + dense + 2·entK. A
+// version 4 checkpoint must carry the entity encoder hash, and a version 3
+// one must not.
 const (
-	CheckpointMagic   = "GPOL"
-	CheckpointVersion = 3
+	CheckpointMagic         = "GPOL"
+	CheckpointVersion       = 3
+	CheckpointVersionEntity = 4
 )
 
 // EncoderHash is the encoder contract's golden hash id: a FNV-1a 64 over
@@ -114,7 +128,11 @@ func WriteCheckpoint(m *Model, w io.Writer) error {
 	bw := bufio.NewWriter(w)
 	var hdr [24]byte
 	copy(hdr[0:4], CheckpointMagic)
-	binary.LittleEndian.PutUint32(hdr[4:8], CheckpointVersion)
+	version := uint32(CheckpointVersion)
+	if m.EntK > 0 {
+		version = CheckpointVersionEntity
+	}
+	binary.LittleEndian.PutUint32(hdr[4:8], version)
 	binary.LittleEndian.PutUint64(hdr[8:16], EncoderHashFor(m.Features))
 	binary.LittleEndian.PutUint32(hdr[16:20], uint32(m.Rows))
 	binary.LittleEndian.PutUint32(hdr[20:24], uint32(m.H))
@@ -127,12 +145,18 @@ func WriteCheckpoint(m *Model, w io.Writer) error {
 		_, err := bw.Write(b4[:])
 		return err
 	}
-	for _, v := range []uint32{uint32(m.Hidden), uint32(DenseWidth), uint32(OptionSlotWidth), uint32(OptionDenseWidth), uint32(m.ValueHidden)} {
+	geom := []uint32{uint32(m.Hidden), uint32(DenseWidth), uint32(OptionSlotWidth), uint32(OptionDenseWidth), uint32(m.ValueHidden)}
+	blocks := [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}, m.VHidW, m.VHidB, m.VOutW, {m.VOutB}}
+	if m.EntK > 0 {
+		geom = append(geom, uint32(m.EntK), uint32(EntityRawWidth))
+		blocks = append(blocks, m.EntW, m.EntB, m.EntP)
+	}
+	for _, v := range geom {
 		if err := put32(v); err != nil {
 			return err
 		}
 	}
-	for _, block := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}, m.VHidW, m.VHidB, m.VOutW, {m.VOutB}} {
+	for _, block := range blocks {
 		if err := writeFloats(bw, block); err != nil {
 			return err
 		}
@@ -171,13 +195,17 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 	if string(hdr[0:4]) != CheckpointMagic {
 		return nil, fmt.Errorf("checkpoint: bad magic %q, want %q", hdr[0:4], CheckpointMagic)
 	}
-	if v := binary.LittleEndian.Uint32(hdr[4:8]); v != CheckpointVersion {
-		return nil, fmt.Errorf("checkpoint: unsupported schema version %d, want %d", v, CheckpointVersion)
+	version := binary.LittleEndian.Uint32(hdr[4:8])
+	if version != CheckpointVersion && version != CheckpointVersionEntity {
+		return nil, fmt.Errorf("checkpoint: unsupported schema version %d, want %d", version, CheckpointVersion)
 	}
 	h := binary.LittleEndian.Uint64(hdr[8:16])
 	features, ok := FeaturesForHash(h)
 	if !ok {
 		return nil, fmt.Errorf("checkpoint: encoder hash %#x does not match this build's encoder %#x — the encoder drifted since this checkpoint was trained", h, EncoderHash())
+	}
+	if (version == CheckpointVersionEntity) != (features == FeaturesEntity) {
+		return nil, fmt.Errorf("checkpoint: schema version %d does not match feature set %s (version %d is the entity layout only)", version, features, CheckpointVersionEntity)
 	}
 	rows := int(binary.LittleEndian.Uint32(hdr[16:20]))
 	hh := int(binary.LittleEndian.Uint32(hdr[20:24]))
@@ -208,6 +236,23 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
+	entK := 0
+	if version == CheckpointVersionEntity {
+		if entK, err = get32("entity width"); err != nil {
+			return nil, err
+		}
+		entRaw, err := get32("entity raw width")
+		if err != nil {
+			return nil, err
+		}
+		if entRaw != EntityRawWidth {
+			return nil, fmt.Errorf("checkpoint geometry: entity raw width %d, want %d", entRaw, EntityRawWidth)
+		}
+		if entK < 1 || entK > 1<<12 {
+			return nil, fmt.Errorf("checkpoint geometry: entity width %d", entK)
+		}
+	}
+
 	if rows != TableRows {
 		return nil, fmt.Errorf("checkpoint geometry: table rows %d, want %d", rows, TableRows)
 	}
@@ -232,10 +277,11 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 		Rows:   rows,
 		H:      hh,
 		Hidden: hidden,
-		InW:    2*hh + slotW + optDenseW,
+		InW:    2*hh + slotW + optDenseW + 2*entK,
 
 		ValueHidden: valueHidden,
 		Features:    features,
+		EntK:        entK,
 	}
 	blocks := []struct {
 		name string
@@ -254,6 +300,17 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 		{"value hidden bias", valueHidden, func(fs []float32) { m.VHidB = fs }},
 		{"value output", valueHidden, func(fs []float32) { m.VOutW = fs }},
 		{"value output bias", 1, func(fs []float32) { m.VOutB = fs[0] }},
+	}
+	if entK > 0 {
+		blocks = append(blocks, []struct {
+			name string
+			n    int
+			set  func(fs []float32)
+		}{
+			{"entity encoder", entK * (EntityRawWidth + hh), func(fs []float32) { m.EntW = fs }},
+			{"entity encoder bias", entK, func(fs []float32) { m.EntB = fs }},
+			{"entity projection", EntityGroups * 2 * entK * hh, func(fs []float32) { m.EntP = fs }},
+		}...)
 	}
 	for _, blk := range blocks {
 		fs, err := readFloats(br, blk.n)

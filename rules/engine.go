@@ -148,6 +148,10 @@ type Engine struct {
 	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
 	ascend ascendScan
 
+	// storied is checkEnduringStoryGrants' incremental "could anything carry
+	// Storied" arena scan (rules/storied.go); a pure cache, zero = rescan.
+	storied storiedScan
+
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
 	// both together, while an Engine assembled around an existing log lazily
@@ -2392,6 +2396,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				lkiPTValid = true
 			}
 		}
+	case events.DoorUnlock:
+		// CR 709.5: Mode$ FullyUnlock (rules/trigmatch_room.go) must tell a
+		// real locked->unlocked transition from a repeated DoorUnlock on an
+		// already-unlocked room (the latter no game action produces, but a
+		// direct emit can). Apply flips Unlocked before this event's triggers
+		// are matched, so the pre-fold flag has to ride the LKI snapshot.
+		if o := e.G.Obj(ev.Obj); o != nil {
+			cp := o.CloneDeep()
+			lki = &cp
+		}
 	case events.CounterChange:
 		// Vanishing's last-counter trigger must distinguish a real removal
 		// from a redundant decrement at zero. Keep the pre-fold TIME count
@@ -2788,6 +2802,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
 		ev.Kind == events.ControlChange {
 		e.checkBlessingGrants()
+		e.checkEnduringStoryGrants()
 	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,

@@ -1400,7 +1400,9 @@ var apiSpecificRulesSA = map[string][]string{
 	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
 	// all run on mana abilities (api:Mana) only.
 	"Engine.manaAbilityPayablePool": {"Mana"},
-	"manaAbilityLabel":              {"Mana"},
+	"manaProducedLabel":             {"Mana"},
+	"manaAmountPips":                {"Mana"},
+	"manaAbilityCostPrefix":         {"Mana"},
 	// The intrinsic-append dedup read (rules/mana_activation.go): the CR 305.6
 	// all-land-types walk reads a mana ability's Produced$ ONLY, so left in
 	// the generic union it would mask every other API's unread Produced$
@@ -3473,6 +3475,11 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>", nil},
 		{"ExiledMoveToGrave<2/Card.OppOwn>", nil},
 		{"ExiledMoveToGrave<99999999999999999999/Creature>", []string{"ExiledMoveToGrave"}},
+		// XMin<N> (task cost-xmin1) is the announced-X LOWER BOUND, "X can't
+		// be 0": modelled as Cost.XMin with no phantom generic pip and no
+		// Unknown entry, for both corpus values (XMin1 and XMin4).
+		{"XMin1 X", nil},
+		{"XMin4", nil},
 		{"", nil},
 	}
 	for _, tc := range cases {

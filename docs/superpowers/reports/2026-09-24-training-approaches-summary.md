@@ -25,6 +25,7 @@ seats traded).
 | 10 | Prior art: mtgbld self-distillation PPO (XMage) | 44.7% → 54.5% vs CP7 over 6 gated rounds | The one recipe that compounded there |
 | 11 | On-policy PPO / VDWM, the mtgbld recipe ported (pn13) | Flat: 10 rounds within ±0.3pp of round 0; sign-admission fix alone +4.8pp (46.7 → 51.5%, control 51.0%) | Merged; does not compound; fixed the attackers override bug |
 | 12 | Data / features / action / hidden-info grid (pn12) | No axis helps: override top-1 3–10% at every size and feature set; best in-play 51.2% vs 50.3% control | Merged (flag-gated); oracle override labels are unlearnable |
+| 13 | Sampled collection + per-card entity features + outcome PPO (pn14) | Flat: 8 arms × 10 rounds, best held-out 50.54% vs 50.18% control (5,000 games); greedy PPO drifts down to 48.5% | Merged plumbing (flag-gated); no arm beats the bot |
 | — | MageZero reference run (2 vCPU) | Gen 0: 44% vs minimax pool (baseline 34.5%) | Throughput reference |
 
 **The one durable finding:** the search teacher beats the bot. Every attempt
@@ -326,6 +327,29 @@ decisions are overrides of the bot.
   near-ties and world-specific luck. Distilling them needs margin filtering
   (only large value gaps) or regressing the value differences, not
   imitation of the pick — or ship the search seat and stop distilling.
+
+## 8d. Exploration, entity features, outcome PPO (pn14)
+
+- **What:** Three changes, tested together:
+  - stochastic collection (`botbench -policynet-temperature`, behaviour
+    log-prob in the corpus, PPO ratio π_new/π_behaviour);
+  - an `entity` feature set: a per-card encoder with sum+max pools and the
+    option's own and related card encodings;
+  - outcome-only PPO.
+- **Arms:** {mz, entity} × {greedy, T=1, T 2→0.5}, 10 rounds each, plus a
+  residual-0.5 ablation. Full report:
+  `2026-09-24-pn14-explore-entity-outcome.md`.
+- **Result:** flat.
+  - Held out (5,000 games), the best checkpoint plays 50.54% against the
+    control's 50.18%.
+  - Greedy PPO with a real step size drifts down (48.5% held out). Sampling
+    keeps it stable, and recovers a residual-0.5 start from 48.3% to 50.3%.
+  - Entity and mz are indistinguishable.
+- **Also found:**
+  - pn13's `-clip 1` made each PPO round move the policy by about 0.0006
+    KL, so it barely trained at all.
+  - At residual 2 the deployed priority answer never changes, even under
+    sampling (greedy-flip 0.00%).
 
 ## 9. MageZero reference (external, for throughput and curve shape)
 

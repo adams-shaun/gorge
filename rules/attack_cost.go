@@ -50,9 +50,9 @@ const chooseBlockPay chooseFor = 41
 // CantAttackUnless static must pass before this build enforces it. The gate
 // parameters (IsPresent$/IsPresent2$/CheckSVar$/SVarCompare$/Condition$) are
 // evaluated by the shared continuousGateHolds grammar; every other parameter
-// fails the whitelist and the static is skipped permissively. The corpus's
-// carriers all pass except Dain's Condition$ EnduringStory (whose gate
-// continuousConditionHolds fails closed, Storied being unimplemented).
+// fails the whitelist and the static is skipped permissively. Every corpus
+// carrier passes, Dáin's Condition$ EnduringStory included now that rules/
+// storied.go reads the CR 702.175 latch.
 //
 // RememberingAttacker$ True is readable: attackUnlessPrice binds the
 // attacking creature into the pricing context as Remembered, which is what

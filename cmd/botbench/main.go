@@ -111,6 +111,7 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -196,7 +197,17 @@ var policies = map[string]func(seed uint64) seat.Seat{
 		if err := b.SetAdmission(policynetAdmission); err != nil {
 			panic("botbench: " + err.Error()) // validated by mainExit before any game
 		}
+		// -policynet-temperature (ticket pn14): collection-only sampling,
+		// seeded from this seat's per-game seed.
+		b.SetSampling(policynetTemperature, seed)
 		return b
+	},
+	// explore is the coverage-exploration bot (seat.NewExploreBot,
+	// botpolicy.ExploreDecide): the production bot with uniform picks among
+	// sibling abilities and early-game ability detours. Bench-only; ticket
+	// pn14 mixes it in as a collection opponent (-opp-mix explore:0.3).
+	"explore": func(seed uint64) seat.Seat {
+		return seat.NewExploreBot(seed)
 	},
 	// search is the PIMC search teacher as a playable seat
 	// (searchseat.SearchBot): the default bot wrapped with the teacher
@@ -244,6 +255,77 @@ var policynetModel *policynet.Model
 // policynetAdmission is the -policynet-admission value (seat.AdmissionAuto by
 // default), validated by mainExit and applied to every policynet seat.
 var policynetAdmission = seat.AdmissionAuto
+
+// policynetTemperature is -policynet-temperature: 0 (the default) is the
+// deterministic argmax/vote seat; > 0 samples every scored answer at that
+// temperature (seat.PolicyNetBot.SetSampling; ticket pn14, collection only).
+var policynetTemperature float64
+
+// oppMixArg / oppMix are -opp-mix (ticket pn14): per game, with the listed
+// probabilities, side B's seat is replaced by another built-in policy (the
+// draw is a pure function of the game seed). The report still names side B;
+// the mix only changes who sits there.
+var (
+	oppMixArg string
+	oppMix    []oppMixEntry
+)
+
+type oppMixEntry struct {
+	name string
+	frac float64
+}
+
+// parseOppMix parses "name:frac[,name:frac]" (fractions in (0,1], summing to
+// at most 1; names must be built-in policies).
+func parseOppMix(spec string) ([]oppMixEntry, error) {
+	if strings.TrimSpace(spec) == "" {
+		return nil, nil
+	}
+	var out []oppMixEntry
+	total := 0.0
+	for _, part := range strings.Split(spec, ",") {
+		name, fs, ok := strings.Cut(strings.TrimSpace(part), ":")
+		if !ok {
+			return nil, fmt.Errorf("-opp-mix entry %q: want name:fraction", part)
+		}
+		f, err := strconv.ParseFloat(fs, 64)
+		if err != nil || f <= 0 || f > 1 {
+			return nil, fmt.Errorf("-opp-mix entry %q: fraction must be in (0,1]", part)
+		}
+		if _, ok := policies[name]; !ok || name == "policynet" || name == "search" {
+			return nil, fmt.Errorf("-opp-mix entry %q: %q is not a mixable built-in policy", part, name)
+		}
+		total += f
+		out = append(out, oppMixEntry{name: name, frac: f})
+	}
+	if total > 1+1e-9 {
+		return nil, fmt.Errorf("-opp-mix fractions sum to %g > 1", total)
+	}
+	return out, nil
+}
+
+// oppMixPick returns the mixed-in policy for the game with this seed, or ""
+// to keep side B's own policy: one splitmix64 draw of the seed, compared
+// against the cumulative fractions in listed order.
+func oppMixPick(seed uint64) string {
+	if len(oppMix) == 0 {
+		return ""
+	}
+	z := seed ^ 0x6f70702d6d697821
+	z += 0x9e3779b97f4a7c15
+	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9
+	z = (z ^ (z >> 27)) * 0x94d049bb133111eb
+	z ^= z >> 31
+	u := float64(z>>11) / (1 << 53)
+	acc := 0.0
+	for _, e := range oppMix {
+		acc += e.frac
+		if u < acc {
+			return e.name
+		}
+	}
+	return ""
+}
 
 // policynetKindsArg / policynetKindsGiven are the raw -policynet-kinds value
 // and whether the flag was given at all (main sets both after flag.Parse);
@@ -1736,9 +1818,13 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 	// resolution depends on; a built-in name resolves identically for every
 	// deck, a deck policy only for the deck that declares it.
 	seatCtors := make(map[[2]string]func(seed uint64) seat.Seat, len(pairs)*4)
+	polNames := []string{aName, bName}
+	for _, e := range oppMix {
+		polNames = append(polNames, e.name)
+	}
 	for _, pd := range pairs {
 		for _, deckName := range []string{pd.a, pd.b} {
-			for _, polName := range []string{aName, bName} {
+			for _, polName := range polNames {
 				key := [2]string{polName, deckName}
 				if _, ok := seatCtors[key]; ok {
 					continue
@@ -1756,6 +1842,7 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 		pd := pairs[pos]
 		deckNames := [2]string{pd.a, pd.b}
 		botSeats := make([]seat.Seat, 2)
+		mixed := oppMixPick(seed)
 		for seat := 0; seat < 2; seat++ {
 			// Same per-seat seed derivation as run(): policy RNG is distinct
 			// from the engine's and from every other seat's.
@@ -1766,7 +1853,11 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 			// picks up deck 0's policy in the games it sits at seat 0 and deck
 			// 1's in the games it sits at seat 1. The pre-resolved table above
 			// means this hot path does no parsing.
-			botSeats[seat] = seatCtors[[2]string{pols[seat], deckNames[seat]}](seed ^ uint64(seat+1))
+			pol := pols[seat]
+			if mixed != "" && pol == bName {
+				pol = mixed // -opp-mix: this game's side B sits another policy
+			}
+			botSeats[seat] = seatCtors[[2]string{pol, deckNames[seat]}](seed ^ uint64(seat+1))
 		}
 		var commanders [][]int
 		if commander {
@@ -2058,6 +2149,8 @@ func main() {
 	checkpoint := flag.String("checkpoint", "", "path to a trained policynet checkpoint (L9c binary format), required by any side named policynet; no embedded checkpoint exists")
 	flag.StringVar(&policynetKindsArg, "policynet-kinds", "attackers", "comma list of the decision kinds the policynet seat scores (attackers, priority, blockers, target); every other kind delegates to the default bot. Refused unless a side is policynet. priority and target are scored only on a ResidualW > 0 checkpoint and only in the trained distribution; blockers follows the attackers contract (seat.PolicyNetBot)")
 	flag.StringVar(&policynetAdmission, "policynet-admission", seat.AdmissionAuto, "the policynet seat's subset (attackers, blockers) admission vote: auto (the default: the calibrated sign when a decision's scores straddle 0, else the decision's mean, refusing an exact tie) or sign (score > 0 alone, the BCE head's calibrated vote; ticket pn13)")
+	flag.Float64Var(&policynetTemperature, "policynet-temperature", 0, "ticket pn14, collection only: > 0 makes every policynet seat SAMPLE its scored answers (softmax of score/T for priority and target; a per-option Bernoulli of sigmoid(score/T) for attackers and blockers) from a stream seeded by the game seed; 0 (default) keeps the deterministic argmax/vote seat")
+	flag.StringVar(&oppMixArg, "opp-mix", "", "ticket pn14, matrix mode only: name:fraction[,name:fraction] -- per game (a pure function of the game seed), with these probabilities side B's seat plays another built-in policy (e.g. explore:0.3) instead of -b")
 	flag.StringVar(&onpolicyCorpusPath, "onpolicy-corpus", "", "write every decision a policynet seat SCORED (encoded state and options, the scores, its answer and the bot's, the game outcome for that seat) as the on-policy PPO corpus JSONL to this new file (matrix mode only; parent must exist, destination must not). Observational: the bench result is unchanged")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
@@ -2174,6 +2267,25 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 	}
 	if err := (&seat.PolicyNetBot{}).SetAdmission(policynetAdmission); err != nil {
 		return fail(fmt.Errorf("-policynet-admission: %w", err))
+	}
+	if policynetTemperature < 0 {
+		return fail(fmt.Errorf("-policynet-temperature %g < 0", policynetTemperature))
+	}
+	if policynetTemperature > 0 && !policynetSide {
+		return fail(fmt.Errorf("-policynet-temperature was given but neither side is policynet"))
+	}
+	if oppMixArg != "" {
+		mix, err := parseOppMix(oppMixArg)
+		if err != nil {
+			return fail(err)
+		}
+		switch {
+		case pairs == "" || grind != "":
+			return fail(fmt.Errorf("-opp-mix requires -pairs"))
+		case aName == bName:
+			return fail(fmt.Errorf("-opp-mix needs distinct -a and -b (it replaces side B)"))
+		}
+		oppMix = mix
 	}
 	// -onpolicy-corpus records the policynet seats' scored decisions: it
 	// needs a policynet side, the -pairs matrix and no decision trace (one

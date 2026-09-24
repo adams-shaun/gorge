@@ -84,7 +84,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CopyToken, events.Exert, events.PlanarRoll,
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent, events.CloneStatic, events.TurnFaceDown,
-		events.DamageProvenance,
+		events.DamageProvenance, events.EnduringStoryChange,
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
@@ -138,6 +138,18 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// the audit complete if the bound ever widens, and keeps it out of
 		// the catch-all default that would otherwise run a full trigger scan
 		// on every cleared label.
+		//
+		// EnduringStoryChange (storied1) is CR 702.175's one-way "enduring
+		// story" designation latch -- the exact BlessingChange shape: a
+		// seat-status fact the corpus reads through the state predicate
+		// (rules/layers.go's `EnduringStory` SVar read; Dáin's Condition$
+		// EnduringStory; Balin Loremaster's "if you have an enduring story"
+		// trigger rider), never through a trigger mode -- no T: line in the
+		// corpus fires on the designation being GAINED. Its ordinal (94) sits
+		// past triggerMaskKindBits, so both classifiers fail open before this
+		// map is consulted; naming it keeps the audit complete if the bound
+		// ever widens and keeps it out of the catch-all default that would
+		// otherwise claim the kind trigger-relevant.
 		//
 		return 0
 	case events.Attach:
@@ -290,6 +302,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "FullyUnlock":
+		// CR 709.5's "whenever you fully unlock a Room" (task
+		// agent-20260919T191104Z-95f1e316): the Eerie enchantments' other-
+		// permanent half, matched by fullyUnlockMatches (rules/
+		// trigmatch_room.go). It fires on the single DoorUnlock transition
+		// event the unlock activation emits, whose ordinal (41) is inside the
+		// 64-bit mask's reach, so an exact bit is encodable -- naming the mode
+		// rather than letting it fall to the allTriggerEvents default keeps a
+		// FullyUnlock-only face's mask narrow for every other kind.
+		return 1 << events.DoorUnlock
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past

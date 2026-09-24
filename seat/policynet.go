@@ -98,6 +98,7 @@ package seat
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"slices"
 	"strings"
 
@@ -130,6 +131,39 @@ type PolicyNetBot struct {
 	// signAdmission selects the subset kinds' SIGN admission vote
 	// (SetAdmission(AdmissionSign)); false is the default AdmissionAuto.
 	signAdmission bool
+	// sampleT > 0 switches the scored kinds from the deterministic vote to
+	// SAMPLING (SetSampling, ticket pn14's stochastic collection): softmax of
+	// score/T for the single-choice kinds, a per-option Bernoulli of
+	// σ(score/T) for the subset kinds. sampleRng is the seat's own stream,
+	// seeded from the game seed; nothing else reads it.
+	sampleT   float64
+	sampleRng *rand.Rand
+}
+
+// SetSampling makes the seat SAMPLE its scored answers at temperature temp
+// (> 0) from a PCG stream seeded by seed — the collection-only exploration
+// mode of ticket pn14. temp <= 0 restores the default argmax/vote seat. The
+// stream is the seat's own (the wrapped default bot's rng is untouched), so
+// a sampling game is a pure function of the game seed and the flags.
+//
+//   - priority, target: one draw u, the option at u on the inverse CDF of
+//     softmax(score/T) over the scored action space (option order);
+//   - attackers, blockers: one draw per option, included when
+//     u < σ(score/T); the included set is then repaired exactly as the vote's
+//     admitted set is (one option per attacker/blocker, requirements, Max,
+//     the block guard), and a repaired answer the engine would refuse falls
+//     back to the bot as before.
+//
+// The recorder then also reports the behaviour log-probability of the
+// answer actually played (policynet.TemperedLogProb), which is what PPO's
+// importance ratio must divide by.
+func (b *PolicyNetBot) SetSampling(temp float64, seed uint64) {
+	if temp <= 0 {
+		b.sampleT, b.sampleRng = 0, nil
+		return
+	}
+	b.sampleT = temp
+	b.sampleRng = rand.New(rand.NewPCG(seed^0x70e14c0115ec7ed5, seed+0x9e3779b97f4a7c15))
 }
 
 // Subset admission votes (SetAdmission). AdmissionAuto is the default
@@ -207,6 +241,12 @@ type PolicyNetDecision struct {
 	// Admission is the subset kinds' admission vote the answer was read
 	// with (AdmissionAuto or AdmissionSign).
 	Admission string
+	// Sampled is true when the answer was SAMPLED (SetSampling) at
+	// Temperature; LogPBehaviour is then log π_T(Chosen) over the InSpace
+	// options (policynet.TemperedLogProb).
+	Sampled       bool
+	Temperature   float64
+	LogPBehaviour float64
 }
 
 // SetRecorder installs fn to receive every decision this seat scores (nil
@@ -427,6 +467,16 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 	scores := b.scorer.Score(st, opts)
 	var in decision.Intent
 	var scored bool
+	if b.sampleT > 0 {
+		in, scored = b.sampleAnswer(v, &d, scores, botIn)
+		if scored && b.record != nil {
+			b.report(v, &d, st, opts, scores, in, botIn)
+		}
+		if scored {
+			return in, nil
+		}
+		return botIn, nil
+	}
 	switch d.Kind {
 	case decision.KAttackers:
 		in, scored = attackersFromScoresVote(&d, scores, b.signAdmission)
@@ -479,10 +529,82 @@ func (b *PolicyNetBot) report(v view.View, d *decision.Decision, st policynet.St
 			rec.InSpace[i] = true
 		}
 	}
+	if b.sampleT > 0 {
+		chosen := make([]bool, len(opts))
+		for _, p := range rec.Chosen {
+			chosen[p] = true
+		}
+		rec.Sampled, rec.Temperature = true, b.sampleT
+		rec.LogPBehaviour, _ = policynet.TemperedLogProb(scores, rec.InSpace, chosen, rec.Subset, b.sampleT)
+	}
 	if b.scorer.HasValue() {
 		rec.Value, rec.HasValue = b.scorer.Value(st), true
 	}
 	b.record(rec)
+}
+
+// priorityInSpace marks the priority action space (cast / ability / pass).
+func priorityInSpace(d *decision.Decision) []bool {
+	in := make([]bool, len(d.Options))
+	for i := range d.Options {
+		switch d.Options[i].Kind {
+		case "cast", "ability", "pass":
+			in[i] = true
+		}
+	}
+	return in
+}
+
+// sampleAnswer is Decide's scored step under SetSampling: draw the answer
+// from the tempered policy, then repair it exactly as the vote's answer is
+// repaired. ok false means the repaired answer was refused (the bot's
+// declaration stands, as for the vote).
+func (b *PolicyNetBot) sampleAnswer(v view.View, d *decision.Decision, scores []float32, botIn decision.Intent) (decision.Intent, bool) {
+	t := b.sampleT
+	switch d.Kind {
+	case decision.KPriority, decision.KTarget:
+		inSpace := make([]bool, len(d.Options))
+		if d.Kind == decision.KPriority {
+			inSpace = priorityInSpace(d)
+		} else {
+			for i := range inSpace {
+				inSpace[i] = true
+			}
+		}
+		p := policynet.SampleSoftmax(scores, inSpace, t, b.sampleRng.Float64())
+		if p < 0 {
+			return decision.Intent{}, false
+		}
+		in := botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[p].Index}})
+		if d.Kind == decision.KTarget && d.Validate(in) != nil {
+			return decision.Intent{}, false
+		}
+		return in, true
+	case decision.KAttackers, decision.KBlockers:
+		// The draw becomes a pseudo-score the sign vote reads: an included
+		// option lands far above 0, an excluded one far below, each keeping
+		// its own score's order so the per-attacker / per-blocker "best
+		// admitted option" repair still prefers the higher-scored pair.
+		pseudo := make([]float32, len(scores))
+		for i, s := range scores {
+			c := s
+			if c > 100 {
+				c = 100
+			} else if c < -100 {
+				c = -100
+			}
+			if policynet.SampleInclusion(s, t, b.sampleRng.Float64()) {
+				pseudo[i] = 1000 + c
+			} else {
+				pseudo[i] = -1000 + c
+			}
+		}
+		if d.Kind == decision.KAttackers {
+			return attackersFromScoresVote(d, pseudo, true)
+		}
+		return blockersFromScoresVote(d, pseudo, boardFromView(v), botIn, true)
+	}
+	return decision.Intent{}, false
 }
 
 // markBotPicks sets Option.BotPick on every option whose Index the given

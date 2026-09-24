@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>traindash</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #1b1f24; --muted: #5d6671; --line: #d9dde3;
+  --good: #1a7f37; --bad: #c62828; --warn: #b26a00; --accent: #2f62c9;
+  --band: 0.14; --grid: #eceff3;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418; --panel: #1a1e24; --ink: #e5e8ec; --muted: #9aa4af; --line: #2e343d;
+    --good: #4cc36a; --bad: #ff6b6b; --warn: #f0a93b; --accent: #7aa5ff; --grid: #242a31;
+    --band: 0.2;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
+  position: sticky; top: 0; z-index: 2; }
+header h1 { font-size: 17px; margin: 0; }
+header .meta { color: var(--muted); font-size: 12px; }
+.stale-badge { background: var(--warn); color: #000; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+nav { display: flex; gap: 4px; margin-left: auto; }
+nav a { color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; }
+nav a.on { background: var(--accent); color: #fff; }
+main { padding: 12px 16px 48px; max-width: 1300px; margin: 0 auto; }
+section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px; margin-bottom: 12px; overflow: hidden; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+h3 { font-size: 13px; margin: 12px 0 6px; color: var(--muted); font-weight: 600; }
+.muted { color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+td.num, th.num { text-align: right; }
+.scroll { overflow-x: auto; }
+.pill { display: inline-block; padding: 0 7px; border-radius: 10px; font-size: 12px; border: 1px solid currentColor; }
+.s-running { color: var(--good); } .s-stale { color: var(--warn); } .s-done { color: var(--muted); }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+a { color: var(--accent); }
+#alerts { border-color: var(--bad); }
+#alerts.quiet { border-color: var(--line); }
+#alerts ul { margin: 4px 0 0; padding-left: 18px; }
+#alerts li { margin: 2px 0; }
+#alerts li.hist { color: var(--muted); }
+.alert-run { font-weight: 600; }
+.tag { font-size: 11px; padding: 0 5px; border-radius: 3px; background: var(--bad); color: #fff; margin-right: 4px; }
+.tag.kl { background: var(--warn); color: #000; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; }
+svg.chart { width: 100%; height: auto; display: block; }
+svg text { fill: var(--muted); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin-top: 4px; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 3px; margin-right: 4px;
+  vertical-align: middle; background: var(--c); }
+.picker { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 8px; }
+.picker fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 0; padding: 4px 8px; }
+.picker legend { font-size: 12px; color: var(--muted); }
+.picker label { display: inline-block; margin-right: 10px; white-space: nowrap; }
+pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); padding: 8px;
+  border-radius: 6px; font-size: 12px; max-height: 70vh; overflow: auto; margin: 0; }
+select { font: inherit; background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 6px; padding: 3px 6px; max-width: 100%; }
+.hl { background: color-mix(in srgb, var(--bad) 16%, transparent); }
+.empty { color: var(--muted); padding: 12px 0; }
+.kv { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; }
+.kv b { font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>traindash</h1>
+  <span class="meta" id="meta">loading…</span>
+  <nav id="nav">
+    <a href="#overview" data-v="overview">Overview</a>
+    <a href="#compare" data-v="compare">Compare</a>
+    <a href="#run" data-v="run">Run</a>
+    <a href="#reports" data-v="reports">Reports</a>
+  </nav>
+</header>
+<main>
+  <section class="panel" id="alerts"></section>
+  <div id="view"></div>
+</main>
+<script>
+"use strict";
+const POLL_MS = 10000, STALE_MS = 30000;
+const PALETTE = ["#2f7ed8", "#e8743b", "#19a979", "#d64d8f", "#8e6bd6", "#c9a227", "#13a4b4", "#a0522d", "#6c8a1f", "#e0474c"];
+let snap = null, lastOK = 0, lastErr = "", view = "overview", runSel = "", artSel = "";
+let compareSel = null; // Set of run ids; null = default
+let alertsAll = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const f3 = v => v == null ? "–" : v.toFixed(3);
+const pp = v => v == null ? "–" : (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + "pp";
+const allRuns = () => snap ? snap.experiments.flatMap(e => e.runs) : [];
+const runById = id => allRuns().find(r => r.id === id);
+const latestEval = r => { for (let i = r.rounds.length - 1; i >= 0; i--) if (r.rounds[i].eval && r.rounds[i].eval.win_rate != null) return r.rounds[i]; return null; };
+const ctl = r => r.control && r.control.win_rate != null ? r.control.win_rate : null;
+const ago = t => { const s = Math.round((Date.now() - new Date(t)) / 1000); if (s < 90) return s + "s ago"; if (s < 5400) return Math.round(s / 60) + "m ago"; if (s < 172800) return Math.round(s / 3600) + "h ago"; return Math.round(s / 86400) + "d ago"; };
+
+function parseHash() {
+  const h = location.hash.slice(1), [v, q] = h.split("?");
+  view = ["overview", "compare", "run", "reports"].includes(v) ? v : "overview";
+  const p = new URLSearchParams(q || "");
+  if (p.get("id")) { if (view === "run") runSel = p.get("id"); if (view === "reports") artSel = p.get("id"); }
+}
+window.addEventListener("hashchange", () => { parseHash(); render(); });
+
+async function poll() {
+  try {
+    const res = await fetch("api/runs", {cache: "no-store"});
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    snap = await res.json(); lastOK = Date.now(); lastErr = "";
+  } catch (e) { lastErr = String(e); }
+  render();
+}
+
+function renderMeta() {
+  const m = $("#meta");
+  if (!snap) { m.textContent = lastErr ? "error: " + lastErr : "loading…"; return; }
+  const stale = Date.now() - lastOK > STALE_MS;
+  m.innerHTML = esc(snap.roots.join(", ")) + " · updated " + new Date(lastOK).toLocaleTimeString() +
+    (stale ? ' <span class="stale-badge">STALE' + (lastErr ? ": " + esc(lastErr) : "") + "</span>" : "");
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.v === view));
+}
+
+// ---- charts ------------------------------------------------------------
+// lineChart draws series [{name,color,pts:[[x,y]],band:[[x,lo,hi]],dash}] and
+// hlines [{y,label,color,dash}] into an inline SVG string.
+function lineChart(o) {
+  const W = 640, H = o.h || 220, L = 46, R = 12, T = 10, B = 26;
+  const pts = o.series.flatMap(s => s.pts.concat((s.band || []).flatMap(b => [[b[0], b[1]], [b[0], b[2]]])));
+  const hy = (o.hlines || []).map(h => h.y);
+  if (!pts.length) return '<div class="empty">no data yet</div>';
+  let xs = pts.map(p => p[0]), ys = pts.map(p => p[1]).concat(hy);
+  if (o.ylog) ys = ys.filter(v => v > 0);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs); if (x0 === x1) { x0 -= 1; x1 += 1; }
+  let y0 = o.ymin ?? Math.min(...ys), y1 = o.ymax ?? Math.max(...ys);
+  if (o.ylog) { y0 = Math.log10(Math.max(y0, 1e-6)); y1 = Math.log10(Math.max(y1, 1e-6)); }
+  if (y0 === y1) { y0 -= 0.05; y1 += 0.05; }
+  const pad = (y1 - y0) * 0.06; if (o.ymin == null) y0 -= pad; if (o.ymax == null) y1 += pad;
+  const tx = x => L + (x - x0) / (x1 - x0) * (W - L - R);
+  const ty = v => { const y = o.ylog ? Math.log10(Math.max(v, 1e-6)) : v; return T + (1 - (y - y0) / (y1 - y0)) * (H - T - B); };
+  const fmt = o.yfmt || (v => v.toFixed(2));
+  let g = "";
+  const ticks = o.ylog ? logTicks(y0, y1) : niceTicks(y0, y1, 5);
+  for (const t of ticks) { const y = o.ylog ? ty(Math.pow(10, t)) : ty(t);
+    g += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="var(--grid)"/><text x="${L - 4}" y="${y + 4}" text-anchor="end">${esc(fmt(o.ylog ? Math.pow(10, t) : t))}</text>`; }
+  const step = Math.max(1, Math.ceil((x1 - x0) / 12));
+  for (let x = Math.ceil(x0); x <= x1; x += step) g += `<text x="${tx(x)}" y="${H - 8}" text-anchor="middle">${o.xprefix ?? "r"}${x}</text>`;
+  for (const h of o.hlines || []) { if (o.ylog && h.y <= 0) continue; const y = ty(h.y);
+    g += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="${h.color}" stroke-dasharray="${h.dash || "5 4"}" stroke-width="1.2" opacity="0.9"/>`;
+    if (h.label) g += `<text x="${W - R - 2}" y="${y - 3}" text-anchor="end" style="fill:${h.color}">${esc(h.label)}</text>`; }
+  for (const s of o.series) {
+    if (s.band && s.band.length > 1) {
+      const up = s.band.map(b => `${tx(b[0])},${ty(b[2])}`), dn = s.band.slice().reverse().map(b => `${tx(b[0])},${ty(b[1])}`);
+      g += `<polygon points="${up.concat(dn).join(" ")}" fill="${s.color}" style="opacity:var(--band)"/>`;
+    }
+    const p = s.pts.filter(q => !o.ylog || q[1] > 0);
+    if (p.length) {
+      g += `<polyline fill="none" stroke="${s.color}" stroke-width="2" ${s.dash ? `stroke-dasharray="${s.dash}"` : ""} points="${p.map(q => tx(q[0]) + "," + ty(q[1])).join(" ")}"/>`;
+      for (const q of p) g += `<circle cx="${tx(q[0])}" cy="${ty(q[1])}" r="2.6" fill="${s.color}"><title>${esc(s.name)} ${o.xprefix ?? "r"}${q[0]}: ${esc(fmt(q[1]))}</title></circle>`;
+    }
+  }
+  const legend = o.series.filter(s => s.name).map(s => `<span style="--c:${s.color}">${esc(s.name)}</span>`).join("") +
+    (o.hlines || []).filter(h => h.legend).map(h => `<span style="--c:${h.color}">${esc(h.legend)}</span>`).join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>` + (legend ? `<div class="legend">${legend}</div>` : "");
+}
+function niceTicks(a, b, n) {
+  const span = b - a, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+  const st = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag, out = [];
+  for (let t = Math.ceil(a / st) * st; t <= b + 1e-12; t += st) out.push(+t.toFixed(10));
+  return out;
+}
+function logTicks(a, b) { const out = []; for (let e = Math.ceil(a); e <= Math.floor(b); e++) out.push(e); if (out.length < 2) return niceTicks(a, b, 3); return out; }
+
+function sparkline(r) {
+  const pts = r.rounds.filter(d => d.eval && d.eval.win_rate != null).map(d => [d.n, d.eval.win_rate]);
+  if (pts.length < 1) return "";
+  const W = 120, H = 28, c = ctl(r);
+  const ys = pts.map(p => p[1]).concat(c != null ? [c] : []);
+  let lo = Math.min(...ys), hi = Math.max(...ys); if (hi - lo < 0.02) { lo -= 0.01; hi += 0.01; }
+  const xs = pts.map(p => p[0]), x0 = Math.min(...xs), x1 = Math.max(x0 + 1, Math.max(...xs));
+  const tx = x => 2 + (x - x0) / (x1 - x0) * (W - 4), ty = y => 2 + (1 - (y - lo) / (hi - lo)) * (H - 4);
+  let g = c != null ? `<line x1="0" x2="${W}" y1="${ty(c)}" y2="${ty(c)}" stroke="var(--muted)" stroke-dasharray="3 3"/>` : "";
+  g += `<polyline fill="none" stroke="var(--accent)" stroke-width="1.6" points="${pts.map(p => tx(p[0]) + "," + ty(p[1])).join(" ")}"/>`;
+  const l = pts[pts.length - 1]; g += `<circle cx="${tx(l[0])}" cy="${ty(l[1])}" r="2.4" fill="var(--accent)"/>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+
+// ---- alerts ------------------------------------------------------------
+function renderAlerts() {
+  const el = $("#alerts");
+  if (!snap) { el.innerHTML = ""; return; }
+  const rank = {running: 0, stale: 1, done: 2};
+  const list = snap.alerts.filter(a => alertsAll || a.run_status !== "done");
+  const byRun = new Map();
+  for (const a of list) { if (!byRun.has(a.run)) byRun.set(a.run, []); byRun.get(a.run).push(a); }
+  const runs = [...byRun.keys()].sort((a, b) => (rank[byRun.get(a)[0].run_status] - rank[byRun.get(b)[0].run_status]) || a.localeCompare(b));
+  const total = snap.alerts.length, hidden = total - list.length;
+  el.classList.toggle("quiet", list.length === 0);
+  let h = `<h2>Alerts <span class="muted">(${list.length}${hidden ? `, ${hidden} on finished runs hidden` : ""})</span>
+    <label class="muted" style="font-weight:normal;font-size:12px;margin-left:10px"><input type="checkbox" id="alertsAll" ${alertsAll ? "checked" : ""}> include finished runs</label></h2>`;
+  if (!list.length) h += '<div class="muted">No alert rule fires' + (hidden ? " on a running or stale run" : "") + ".</div>";
+  for (const id of runs) {
+    const as = byRun.get(id);
+    h += `<div><span class="alert-run"><a href="#run?id=${encodeURIComponent(id)}">${esc(id)}</a></span> <span class="pill s-${as[0].run_status}">${as[0].run_status}</span><ul>`;
+    for (const a of as) h += `<li class="${a.latest ? "" : "hist"}"><span class="tag ${a.rule === "kl" ? "kl" : ""}">${esc(a.rule)}</span>${esc(a.message)}${a.latest ? " <b>(latest)</b>" : ""}</li>`;
+    h += "</ul></div>";
+  }
+  el.innerHTML = h;
+  $("#alertsAll").onchange = e => { alertsAll = e.target.checked; renderAlerts(); };
+}
+
+// ---- views ----------------------------------------------------------------
+function renderOverview() {
+  if (!snap.experiments.length) return '<section class="panel empty">No run directories found under the root.</section>';
+  let h = '<div class="cards">';
+  const exps = snap.experiments.slice().sort((a, b) => maxMod(b) - maxMod(a));
+  for (const e of exps) {
+    h += `<section class="panel"><h2>${esc(e.name)} <span class="muted">· ${e.runs.length} run${e.runs.length === 1 ? "" : "s"} · ${ago(new Date(maxMod(e)))}</span></h2><div class="scroll"><table>
+      <tr><th>run</th><th>status</th><th>round / stage</th><th class="num">eval</th><th class="num">control</th><th class="num">Δ</th><th>trend</th><th class="num">alerts</th></tr>`;
+    let group = null;
+    for (const r of e.runs) {
+      if (r.group !== group) { group = r.group; h += `<tr><td colspan="8" class="muted" style="font-size:12px">${esc(group)}/</td></tr>`; }
+      const le = latestEval(r), c = ctl(r), wr = le ? le.eval.win_rate : null, d = wr != null && c != null ? wr - c : null;
+      const cur = r.current_round != null ? `r${r.current_round}${r.planned_rounds != null ? "/" + r.planned_rounds : ""}` : "";
+      const stage = r.stage ? r.stage.replace(/^\[(round|gen) \d+\]\s*/, "") : "";
+      const na = r.alerts ? r.alerts.length : 0, nl = r.alerts ? r.alerts.filter(a => a.latest).length : 0;
+      h += `<tr><td><a href="#run?id=${encodeURIComponent(r.id)}">${esc(r.name)}</a></td>
+        <td><span class="pill s-${r.status}">${r.status}</span></td>
+        <td>${esc(cur)} <span class="muted">${esc(stage)}</span></td>
+        <td class="num">${le ? f3(wr) + ` <span class="muted">r${le.n}</span>` : "–"}</td>
+        <td class="num">${f3(c)}</td>
+        <td class="num ${d == null ? "" : d >= 0 ? "pos" : "neg"}">${pp(d)}</td>
+        <td>${sparkline(r)}</td>
+        <td class="num ${nl ? "neg" : ""}">${na ? (nl ? `<b>${nl}</b>/` : "") + na : ""}</td></tr>`;
+    }
+    h += "</table></div></section>";
+  }
+  return h + "</div>";
+}
+const maxMod = e => Math.max(0, ...e.runs.map(r => +new Date(r.last_modified)));
+
+function renderCompare() {
+  const runs = allRuns().filter(r => r.rounds.some(d => d.eval));
+  if (!compareSel) {
+    const exps = snap.experiments.slice().sort((a, b) => maxMod(b) - maxMod(a));
+    compareSel = new Set(exps.length ? exps[0].runs.map(r => r.id) : []);
+  }
+  let h = '<section class="panel"><h2>Eval win rate by round</h2><div class="picker">';
+  for (const e of snap.experiments) {
+    const rs = e.runs.filter(r => runs.includes(r)); if (!rs.length) continue;
+    h += `<fieldset><legend>${esc(e.name)}</legend>` + rs.map(r => `<label><input type="checkbox" data-id="${esc(r.id)}" ${compareSel.has(r.id) ? "checked" : ""}> ${esc(r.id.slice(e.name.length + 1))}</label>`).join("") + "</fieldset>";
+  }
+  h += "</div>";
+  const sel = runs.filter(r => compareSel.has(r.id));
+  const series = [], hlines = [];
+  sel.forEach((r, i) => {
+    const color = PALETTE[i % PALETTE.length], ev = r.rounds.filter(d => d.eval && d.eval.win_rate != null);
+    series.push({name: r.id, color, pts: ev.map(d => [d.n, d.eval.win_rate]),
+      band: ev.filter(d => d.eval.ci && d.eval.ci.length === 2).map(d => [d.n, d.eval.ci[0], d.eval.ci[1]])});
+    const c = ctl(r); if (c != null) hlines.push({y: c, color, dash: "2 4"});
+  });
+  const ctls = [...new Set(hlines.map(x => x.y.toFixed(4)))];
+  if (ctls.length === 1) { hlines.length = 0; hlines.push({y: +ctls[0], color: "var(--muted)", label: "control " + ctls[0], legend: "bot control"}); }
+  h += sel.length ? lineChart({series, hlines, h: 300}) : '<div class="empty">Select arms above.</div>';
+  h += '<div class="muted" style="font-size:12px;margin-top:4px">Band: 95% CI of the pooled eval win rate. Dashed: each arm\'s bot-vs-bot control on the same seeds.</div></section>';
+  return h;
+}
+function bindCompare() {
+  document.querySelectorAll(".picker input").forEach(i => i.onchange = () => {
+    i.checked ? compareSel.add(i.dataset.id) : compareSel.delete(i.dataset.id); render();
+  });
+}
+
+function kindSeries(r, field) {
+  const kinds = [...new Set(r.rounds.flatMap(d => d.stats && d.stats.kinds ? d.stats.kinds.map(k => k.kind) : []))];
+  return kinds.map((k, i) => ({name: k, color: PALETTE[i % PALETTE.length],
+    pts: r.rounds.filter(d => d.stats && d.stats.kinds).map(d => { const x = d.stats.kinds.find(q => q.kind === k); return x && x[field] != null ? [d.n, x[field]] : null; }).filter(Boolean)}));
+}
+
+function renderRun() {
+  const runs = allRuns();
+  if (!runs.length) return '<section class="panel empty">No runs.</section>';
+  let r = runById(runSel);
+  if (!r) { r = runs.slice().sort((a, b) => +new Date(b.last_modified) - +new Date(a.last_modified))[0]; runSel = r.id; }
+  let h = `<section class="panel"><select id="runPick">` + snap.experiments.map(e => `<optgroup label="${esc(e.name)}">` +
+    e.runs.map(x => `<option value="${esc(x.id)}" ${x.id === r.id ? "selected" : ""}>${esc(x.id)} (${x.status})</option>`).join("") + "</optgroup>").join("") + "</select>";
+  const le = latestEval(r), c = ctl(r);
+  h += `<div class="kv" style="margin-top:8px"><span><span class="pill s-${r.status}">${r.status}</span></span>
+    <span><b>stage</b> ${esc(r.stage || "–")}</span>
+    <span><b>round</b> ${r.current_round ?? "–"}${r.planned_rounds != null ? "/" + r.planned_rounds : ""}</span>
+    <span><b>eval</b> ${le ? f3(le.eval.win_rate) + " (r" + le.n + ")" : "–"}</span>
+    <span><b>control</b> ${f3(c)}</span>
+    <span><b>KL target</b> ${r.kl_target ?? "–"}</span>
+    <span><b>updated</b> ${r.last_modified && +new Date(r.last_modified) > 0 ? ago(r.last_modified) : "–"}</span></div>
+    <div class="muted" style="font-size:12px">${esc(r.path)}</div>`;
+  if (r.warnings && r.warnings.length) h += `<div class="muted" style="margin-top:4px">⚠ ${r.warnings.map(esc).join("; ")}</div>`;
+  if (r.alerts && r.alerts.length) h += "<ul>" + r.alerts.map(a => `<li class="${a.latest ? "neg" : "muted"}"><span class="tag ${a.rule === "kl" ? "kl" : ""}">${esc(a.rule)}</span>${esc(a.message)}</li>`).join("") + "</ul>";
+  h += "</section>";
+
+  const ev = r.rounds.filter(d => d.eval && d.eval.win_rate != null), co = r.rounds.filter(d => d.collect && d.collect.win_rate != null);
+  const wrSeries = [{name: "eval", color: PALETTE[0], pts: ev.map(d => [d.n, d.eval.win_rate]), band: ev.filter(d => d.eval.ci && d.eval.ci.length === 2).map(d => [d.n, d.eval.ci[0], d.eval.ci[1]])},
+    {name: "collect", color: PALETTE[1], dash: "5 3", pts: co.map(d => [d.n, d.collect.win_rate])}];
+  const klT = r.kl_target, klH = klT ? [{y: klT, color: "var(--good)", label: "target " + klT}, {y: 3 * klT, color: "var(--bad)", label: "3× target"}] : [];
+  const stats = r.rounds.filter(d => d.stats);
+  const sv = f => stats.filter(d => d.stats[f] != null).map(d => [d.n, d.stats[f]]);
+  h += '<div class="grid2">';
+  h += `<section class="panel"><h2>Win rate</h2>${lineChart({series: wrSeries, hlines: c != null ? [{y: c, color: "var(--muted)", label: "control " + c.toFixed(3), legend: "control"}] : []})}</section>`;
+  h += `<section class="panel"><h2>Per-kind final KL <span class="muted">(log)</span></h2>${lineChart({series: kindSeries(r, "final_kl").concat([{name: "pooled", color: "var(--muted)", dash: "3 3", pts: sv("final_kl")}]), hlines: klH, ylog: true, yfmt: v => v >= 0.1 ? v.toFixed(2) : v.toPrecision(1)})}</section>`;
+  h += `<section class="panel"><h2>Per-kind final clip fraction</h2>${lineChart({series: kindSeries(r, "final_clip"), ymin: 0})}</section>`;
+  h += `<section class="panel"><h2>Per-kind final flip / greedy flip</h2>${lineChart({series: kindSeries(r, "final_flip").concat(kindSeries(r, "greedy_flip").map(s => ({...s, name: s.name + " greedy", dash: "4 3"}))), ymin: 0})}</section>`;
+  h += `<section class="panel"><h2>Advantage</h2>${lineChart({series: [{name: "mean_adv", color: PALETTE[0], pts: sv("mean_adv")}].concat(kindSeries(r, "mean_abs_adv").map((s, i) => ({...s, name: s.name + " |adv|", color: PALETTE[(i + 2) % PALETTE.length], dash: "4 3"}))), hlines: [{y: 0, color: "var(--muted)", dash: "1 3"}], yfmt: v => v.toFixed(2)})}</section>`;
+  h += `<section class="panel"><h2>Value log loss</h2>${lineChart({series: [{name: "final", color: PALETTE[0], pts: sv("value_log_loss")}, {name: "init", color: PALETTE[1], dash: "4 3", pts: sv("init_value_log_loss")}, {name: "base rate", color: "var(--muted)", dash: "2 3", pts: sv("base_log_loss")}]})}</section>`;
+  h += "</div>";
+
+  // per-pair table
+  const pairs = [...new Set(r.rounds.flatMap(d => d.eval && d.eval.pairs ? d.eval.pairs.map(p => p.pair) : []).concat(r.control && r.control.pairs ? r.control.pairs.map(p => p.pair) : []))];
+  if (pairs.length) {
+    const cp = new Map((r.control && r.control.pairs || []).map(p => [p.pair, p.win_rate]));
+    h += '<section class="panel"><h2>Per-pair eval win rate</h2><div class="scroll"><table><tr><th>round</th><th class="num">pooled</th>' + pairs.map(p => `<th class="num" title="${esc(p)}">${esc(p.split(":").pop())}</th>`).join("") + "</tr>";
+    h += `<tr><td class="muted">control</td><td class="num muted">${f3(c)}</td>` + pairs.map(p => `<td class="num muted">${f3(cp.get(p))}</td>`).join("") + "</tr>";
+    for (const d of ev) {
+      const pm = new Map((d.eval.pairs || []).map(p => [p.pair, p.win_rate]));
+      const cell = (v, cv) => { const dd = v != null && cv != null ? v - cv : null; return `<td class="num ${dd == null ? "" : dd < -0.05 ? "neg" : dd > 0.02 ? "pos" : ""}" title="${dd == null ? "" : pp(dd) + " vs control"}">${f3(v)}</td>`; };
+      h += `<tr><td>r${d.n}</td>${cell(d.eval.win_rate, c)}` + pairs.map(p => cell(pm.get(p), cp.get(p))).join("") + "</tr>";
+    }
+    h += "</table></div></section>";
+  }
+
+  // per-kind latest table
+  const ls = stats.length ? stats[stats.length - 1] : null;
+  if (ls && ls.stats.kinds && ls.stats.kinds.length) {
+    const cols = [["n", 0], ["deviated_pct", 1], ["off_greedy_pct", 1], ["final_kl", 4], ["final_clip", 3], ["final_flip", 3], ["greedy_flip", 3], ["mean_adv", 3], ["mean_abs_adv", 3]];
+    h += `<section class="panel"><h2>By kind, r${ls.n} <span class="muted">(shape ${ls.stats.shape ?? "–"})</span></h2><div class="scroll"><table><tr><th>kind</th>` + cols.map(c => `<th class="num">${c[0]}</th>`).join("") + "</tr>";
+    for (const k of ls.stats.kinds) {
+      h += `<tr><td>${esc(k.kind)}</td>` + cols.map(([f, dp]) => `<td class="num ${f === "final_kl" && klT && k[f] > 3 * klT ? "neg hl" : ""}">${k[f] == null ? "–" : k[f].toFixed(dp)}</td>`).join("") + "</tr>";
+    }
+    h += "</table></div>";
+    if (ls.stats.epochs && ls.stats.epochs.length) {
+      h += '<h3>Epochs</h3><div class="scroll"><table><tr><th>epoch</th><th class="num">surrogate</th><th class="num">clip_frac</th><th class="num">kl</th><th class="num">value_log_loss</th></tr>' +
+        ls.stats.epochs.map(e => `<tr><td>${e.epoch ?? "–"}</td><td class="num">${e.surrogate == null ? "–" : e.surrogate.toExponential(2)}</td><td class="num">${f3(e.clip_frac)}</td><td class="num">${e.kl == null ? "–" : e.kl.toFixed(4)}</td><td class="num">${f3(e.value_log_loss)}</td></tr>`).join("") + "</table></div>";
+    }
+    h += "</section>";
+  }
+
+  if (r.timing && r.timing.rows.length) {
+    const idx = n => r.timing.header.indexOf(n), si = idx("stage"), se = idx("seconds");
+    const tot = {}; let all = 0;
+    if (si >= 0 && se >= 0) for (const row of r.timing.rows) { const v = parseFloat(row[se]); if (!isNaN(v)) { tot[row[si]] = (tot[row[si]] || 0) + v; all += v; } }
+    h += `<section class="panel"><h2>Timing</h2><div class="kv">${Object.entries(tot).map(([k, v]) => `<span><b>${esc(k)}</b> ${(v / 60).toFixed(1)}m</span>`).join("")}<span><b>total</b> ${(all / 60).toFixed(1)}m</span></div>
+      <div class="scroll"><table><tr>${r.timing.header.map(x => `<th>${esc(x)}</th>`).join("")}</tr>${r.timing.rows.map(row => "<tr>" + row.map(x => `<td>${esc(x)}</td>`).join("") + "</tr>").join("")}</table></div></section>`;
+  }
+  if (r.stderr_tail && r.stderr_tail.length) h += `<section class="panel"><h2>stderr tail</h2><pre>${esc(r.stderr_tail.join("\n"))}</pre></section>`;
+  return h;
+}
+
+async function renderReports() {
+  const arts = snap.artifacts;
+  if (!arts.length) return '<section class="panel empty">No reports found.</section>';
+  if (!arts.find(a => a.id === artSel)) artSel = arts.slice().sort((a, b) => +new Date(b.modified) - +new Date(a.modified))[0].id;
+  let h = '<section class="panel"><h2>Reports</h2><div class="scroll"><table><tr><th>file</th><th>modified</th><th class="num">size</th></tr>' +
+    arts.map(a => `<tr${a.id === artSel ? ' class="hl"' : ""}><td><a href="#reports?id=${encodeURIComponent(a.id)}">${esc(a.id)}</a></td><td class="muted">${ago(a.modified)}</td><td class="num">${(a.size / 1024).toFixed(1)}K</td></tr>`).join("") +
+    `</table></div></section><section class="panel"><h2>${esc(artSel)}</h2><pre id="artBody">loading…</pre></section>`;
+  return h;
+}
+let artCache = {id: "", mod: "", text: ""};
+async function loadArtifact() {
+  const a = snap.artifacts.find(x => x.id === artSel); if (!a) return;
+  if (artCache.id !== a.id || artCache.mod !== a.modified) {
+    try { const res = await fetch("api/artifact?id=" + encodeURIComponent(a.id)); artCache = {id: a.id, mod: a.modified, text: res.ok ? await res.text() : "HTTP " + res.status}; }
+    catch (e) { artCache = {id: a.id, mod: "", text: String(e)}; }
+  }
+  const el = $("#artBody"); if (el) el.textContent = artCache.text;
+}
+
+async function render() {
+  renderMeta();
+  if (!snap) return;
+  renderAlerts();
+  const v = $("#view");
+  const y = window.scrollY;
+  if (view === "overview") v.innerHTML = renderOverview();
+  else if (view === "compare") { v.innerHTML = renderCompare(); bindCompare(); }
+  else if (view === "run") { v.innerHTML = renderRun(); $("#runPick") && ($("#runPick").onchange = e => { location.hash = "run?id=" + encodeURIComponent(e.target.value); }); }
+  else if (view === "reports") { v.innerHTML = await renderReports(); loadArtifact(); }
+  window.scrollTo(0, y);
+}
+
+parseHash();
+poll();
+setInterval(poll, POLL_MS);
+setInterval(renderMeta, 5000);
+</script>
+</body>
+</html>
