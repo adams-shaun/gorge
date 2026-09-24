@@ -53,8 +53,9 @@ func answerManaChoose(t *testing.T, e *Engine, want string) {
 }
 
 // answerRitualistAbility answers Oasis Ritualist's ability pick with its
-// exert ability (exert true) or its plain {T} ability. Both are labelled
-// "Add any color", so the option is matched by the ability's own cost.
+// exert ability (exert true) or its plain {T} ability. Both produce "Add any
+// color" (the exert one behind its "Exert it: " cost prefix), so the option
+// is matched by the ability's own cost.
 func answerRitualistAbility(t *testing.T, e *Engine, rit state.ObjID, exert bool) {
 	t.Helper()
 	d := e.Pending()
@@ -96,7 +97,7 @@ func TestManaCostPartsParsePrecisely(t *testing.T) {
 func TestAetherHubManaAbilityPaysEnergy(t *testing.T) {
 	e, cfg, hub := manaCostBoard(t, 81, "Aether Hub", 1)
 	submitChoices(t, e, activateOption(t, e, hub))
-	answerManaChoose(t, e, "Add any color")
+	answerManaChoose(t, e, "Pay 1 energy: Add any color")
 	answerManaChoose(t, e, "Add G")
 	if got := e.G.Players[0].Counter("ENERGY"); got != 0 {
 		t.Fatalf("energy after Aether Hub's PayEnergy<1> ability = %d, want 0", got)
