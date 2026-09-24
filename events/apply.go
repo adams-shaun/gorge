@@ -1614,6 +1614,31 @@ func Apply(g *state.Game, e Event) {
 		// (CR 400.7) starts phased in.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
 			o.PhasedOut = e.Amount >= 1
+			// CR 702.25c: "A permanent that phases out is removed from
+			// combat." Phasing is deliberately NOT a zone change, so no Move
+			// fold runs to clear the combat members the way a departure does;
+			// clear them here with the exact EndCombatReset{Obj} shape, so a
+			// phased-out ATTACKER stops assigning and receiving combat damage
+			// and a phased-out BLOCKER stops absorbing it. A zero tombstone is
+			// left in each attacking creature's BlockedBy (CR 509.1h: the
+			// attacker stays blocked even though its blocker is gone), which
+			// is exactly what liveBlockers and damageStep already read.
+			if o.PhasedOut {
+				for i := range g.Objs {
+					other := &g.Objs[i]
+					if other.ID == e.Obj {
+						other.IsAttacking = false
+						other.AttackingBattle = 0
+						other.BlockedBy = nil
+						continue
+					}
+					for j, id := range other.BlockedBy {
+						if id == e.Obj {
+							other.BlockedBy[j] = 0
+						}
+					}
+				}
+			}
 		}
 
 	case ClockTick:
