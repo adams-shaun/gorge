@@ -2816,6 +2816,20 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.PutOpt = "yes"
 			}
+		case "setstate_optional":
+			// An Optional$ True SetState's yes/no election (Dowsing Dagger's
+			// "you may transform this Equipment", High Marshal Arguel's "you
+			// may transform it") was answered. The answer is a bare yes/no,
+			// recorded here as a marker the re-entered effect consumes and
+			// clears (fx42 scoping): "yes" runs the ordinary face change,
+			// "no" -- the decline -- changes nothing and the chained
+			// SubAbility$ still runs (the put_optional convention). A
+			// malformed or empty answer keeps the decline, the conservative
+			// read of an ambiguous one.
+			ctx.SetStateOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.SetStateOpt = "yes"
+			}
 		case "imprint":
 			// An Imprint$ True public-zone choice. The effect consumes this
 			// answer on re-entry and emits the persistent Imprint event.
