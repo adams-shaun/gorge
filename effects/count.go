@@ -217,11 +217,16 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	}
 	expr = strings.TrimSpace(expr)
 	// A Remembered$... expression answers a question about the objects this
-	// resolving spell/ability has remembered so far (Ctx.Remembered). It is
-	// cut BEFORE evalRefProperty so its "Amount" head keeps answering
-	// len(Ctx.Remembered) -- the resolution's own remembered set -- rather
-	// than refTargets' Remembered read (rememberedWithSource), which unions
-	// the source's persistent list and drops the ctx's own-source entry.
+	// resolving spell/ability has remembered so far -- Forge's host remembered
+	// list, which never contains the event object the trigger fired on. It is
+	// cut BEFORE evalRefProperty so its "Amount" head answers the
+	// CAPTURE-EXCLUDED remembered set (Ctx.Remembered minus Ctx.Captured, via
+	// the one-home helper rememberedExcludingCapture) rather than refTargets'
+	// Remembered read (rememberedWithSource, which unions the source's
+	// persistent list). A firing trigger's ctx is seeded with Remembered ==
+	// Captured == its event capture, so a raw len(Ctx.Remembered) would count
+	// the capture as something the resolution itself remembered -- a phase
+	// trigger body with an empty remembered set would read 1.
 	// The one head this build models directly is Amount -- the number of
 	// remembered objects, which is Swift Silence's "Draw a card for each
 	// spell countered this way" (SVar:X:Remembered$Amount after effCounter's
@@ -693,7 +698,7 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	switch strings.TrimSpace(body) {
 	case "Amount":
-		n := int32(len(c.Remembered))
+		n := int32(len(rememberedExcludingCapture(h, c)))
 		if hasOp {
 			n = applyCountOp(n, op)
 		}
@@ -717,14 +722,17 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 // rememberedExcludingCapture is the ctx's Remembered list minus its
 // fire-time event capture (Ctx.Captured) -- Forge's host remembered list,
 // which never contains the event object the trigger fired on. The exclusion
-// lives in ONE helper because two callers must agree byte for byte:
+// lives in ONE helper every plain-Remembered reader goes through:
 // effImmediateTrigger (which builds each "when you do" instance's ctx from
-// it, so its exclusion and the TriggerRemembered count head's cannot drift)
-// and refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
-// TriggerRemembered$Amount). A no-capture ctx (captured empty) returns the
-// list unchanged; the helper is idempotent -- the instance ctx
-// effImmediateTrigger builds has Captured and Remembered disjoint, so
-// applying it a second time there answers the same set.
+// it, so its exclusion and the TriggerRemembered count head's cannot drift),
+// refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
+// TriggerRemembered$Amount), evalRememberedOK's Amount head,
+// rememberedWithSource (the plain Remembered$ group every Valid/condition
+// reader resolves through) and evalRefProperty's Remembered$<Property> heads.
+// A no-capture ctx (captured empty) returns the list unchanged; the helper
+// is idempotent -- the instance ctx effImmediateTrigger builds has Captured
+// and Remembered disjoint, so applying it a second time there answers the
+// same set.
 func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
 	if len(c.Captured) == 0 {
 		return c.Remembered
