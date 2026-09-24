@@ -109,5 +109,8 @@ func TestBastCompoundModeStaticGates(t *testing.T) {
 	if e.blockRestricted(bastID, otherID) {
 		t.Fatal("Bast still block-restricted with 3 creatures: PresentCompare LE2 did not release")
 	}
+	if e.attackBlocked(bearBoard, 2) || e.blockRestricted(bearBoard, otherID) {
+		t.Fatal("the plain bear (Card.Self control) became restricted after the third creature arrived")
+	}
 	replayCheck(t, e, cfg)
 }
