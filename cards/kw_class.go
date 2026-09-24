@@ -174,10 +174,10 @@ func splitGrantNames(v string) []string {
 // addLevelGate attaches a Class level band to a granted body as its own
 // dedicated ClassBand$ N parameter. It deliberately does NOT write
 // IsPresent$/IsPresent2$: those carry per-family semantics this band must not
-// inherit. The trigger gate reads IsPresent$+IsPresent2$ as a UNION (the
-// "Name Sticker" Goblin two-set clause), so a band in IsPresent2$ would be ORed
-// with the body's own IsPresent$ and fire the level-N grant at level 1
-// (Hunter's Talent's end-step draw); replacementConditionHolds reads no
+// inherit. The trigger gate once read IsPresent$+IsPresent2$ as a UNION, so a
+// band in IsPresent2$ was ORed with the body's own IsPresent$ and fired the
+// level-N grant at level 1 (Hunter's Talent's end-step draw); a body may also
+// carry its own IsPresent2$; and replacementConditionHolds reads no
 // IsPresent2$ at all, so the band would vanish (wrong-wide). ClassBand$ is
 // read as an independent AND gate by every family a Class grant can reach --
 // rules/class_level.go holds the one evaluator, and each gate family calls it

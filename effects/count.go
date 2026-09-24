@@ -142,6 +142,33 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	return 0, false
 }
 
+// NumResolvedStrict is NumResolved with the SVar-body verdict honoured: where
+// NumResolved reports a named SVar as resolved whatever its body evaluates to
+// (an effect amount's degrade-to-zero contract), this reports it resolved
+// only when EvalCountOK understood the body. A caller whose unresolved
+// default differs from zero -- a target BOUND, where a silent zero forbids
+// targeting altogether -- reads this form so an unmodelled body falls back
+// to its default instead of a fake 0.
+func NumResolvedStrict(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bool) {
+	n, ok := NumResolved(h, c, sa, key, def)
+	if !ok || c == nil || c.SVars == nil {
+		return n, ok
+	}
+	raw := strings.TrimSpace(sa.Params[key])
+	if len(raw) > 1 && (raw[0] == '+' || raw[0] == '-') {
+		raw = raw[1:]
+	}
+	if _, runtime := runtimeSVar(c, raw); runtime {
+		return n, ok
+	}
+	if body, named := c.SVars[raw]; named {
+		if _, evaluated := EvalCountOK(h, c, body); !evaluated {
+			return def, false
+		}
+	}
+	return n, ok
+}
+
 // EvalCount evaluates a "Count$..." expression. The grammar in the corpus is a
 // head, an optional space-separated argument, and an optional "/Op" suffix.
 func EvalCount(h Host, c *Ctx, expr string) int32 {
@@ -386,6 +413,22 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// through, not evaluated.
 		if n, ok2 := evalCountBody(h, c, strings.TrimSpace(expr), depth); ok2 {
 			return n, true
+		}
+		// The same bare body with the shared /Op suffix (Avacyn's Judgment's
+		// SVar:MaxTgts:PlayerCountPlayers$Amount/Plus.MaxPermanents): the
+		// Count$ branch below cuts the suffix before the head dispatch, and
+		// a prefix-less body must too, or the whole bound reads as an
+		// unmodelled zero -- a TargetMax$ that silently forbids targeting.
+		// Tried only after the whole body missed, so a head whose argument
+		// legitimately carries a slash keeps its reading, and only for an
+		// operator this evaluator models (a literal arithmetic op, or a
+		// Plus/Minus/Times operand naming one of this face's SVars) -- an
+		// unmodelled operator stays unresolved rather than silently
+		// returning the bare head's value.
+		if head, op, hasOp := strings.Cut(strings.TrimSpace(expr), "/"); hasOp && modelledCountOp(c, op) {
+			if n, ok2 := evalCountBody(h, c, strings.TrimSpace(head), depth); ok2 {
+				return applyCountOpOperand(h, c, n, op, depth), true
+			}
 		}
 		// A bare SVar-name body (Spark Fiend's StoreSVar Expression$ Result)
 		// resolves a DB$ RollDice publication of this same resolution -- the
@@ -4145,6 +4188,24 @@ func hasSubtype(o *state.Object, sub string) bool {
 // unimplemented operator as a successful read of the base amount. Other
 // heads retain their existing operator fallback; the two corpus carriers
 // need only the bare value and /Twice.
+// modelledCountOp reports whether op is an arithmetic suffix the Count$
+// evaluator actually applies: a literal op validConvokedCountOp accepts, or a
+// Plus./Minus./Times. operand naming one of c's SVars (applyCountOpOperandOK's
+// SVar-operand arm, Avacyn's Judgment's /Plus.MaxPermanents).
+func modelledCountOp(c *Ctx, op string) bool {
+	op = strings.TrimSpace(op)
+	if validConvokedCountOp(op) {
+		return true
+	}
+	for _, prefix := range []string{"Plus.", "Minus.", "Times."} {
+		if operand, ok := strings.CutPrefix(op, prefix); ok && c != nil && c.SVars != nil {
+			_, named := c.SVars[strings.TrimSpace(operand)]
+			return named
+		}
+	}
+	return false
+}
+
 func validConvokedCountOp(op string) bool {
 	switch op {
 	case "Twice", "Thrice", "HalfDown", "HalfUp", "Negative":

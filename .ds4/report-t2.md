@@ -1,3 +1,53 @@
+# Report — agent-20260919T181318Z-86535368 (verification round)
+
+## Result
+
+The requested implementation is already present in this worktree's history as `eb1b0d97` (`fix(rules): batch a RepeatEach ChangeZoneTable loop's zone changes for ChangesZoneAll`), an ancestor of HEAD. `effRepeatEach` reads `ChangeZoneTable$ True`, opens/closes the zone batch around the loop, and leaves it open across suspension/resumption. The real-corpus test `TestRepeatEachChangeZoneTableBatchesChangesZoneAll` covers Organ Harvest's zone-changing loop and verifies Simic Slaw (`ChangesZoneAll`) fires once while Black Market (`ChangesZone`) fires once per moved creature; the adjacent control pins non-batched behavior. The stale Adeline parameter entry has been removed. I made no production or test changes in this round and did not touch `UseImprinted$` or the Curse of the Swine assertions.
+
+The worktree's `.cards` is a symlink to `/home/sadams/projects/gorge/.cards`; corpus-backed gates therefore had access to the corpus. The brief's measurements (47 ChangeZoneTable carrier files and 43 UseImprinted files) are recorded in the prior verification report `.ds4/report-t1.md`; no prevalence-sensitive source edit was needed here.
+
+## Verification
+
+Exact targeted command and output:
+
+```text
+$ go test -run 'TestRepeatEachChangeZoneTable|TestEveryRepoDeckParamsAreRead' ./rules/ 2>&1 | tail -30
+ok   github.com/adams-shaun/gorge/rules (cached)
+```
+
+The cache hit is for the unchanged, already-verified test inputs; `rules/zone_table_batch_test.go` contains the dedicated real-corpus test and its control.
+
+```text
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+```
+
+No source was changed, so there was no botbench split movement attributable to this round.
+
+## Fails without the fix
+
+Not applicable to this verification-only round: the fix is an ancestor commit and no fix hunk was authored or reverted here. Reverting it locally would test an artificial rewrite of already-landed history, not changes made in this round. The existing regression's preconditions and assertions are in `rules/zone_table_batch_test.go`; the prior report documents their verification.
+
+## Done-means checklist
+
+- [x] Correct per-loop ChangeZoneTable batching and suspension bracket are present on current branch.
+- [x] Real-corpus regression and non-batched control are present.
+- [x] Adeline's stale parameter-census entry is absent; targeted ratchet passes.
+- [x] Existing UseImprinted implementation remains untouched; no Curse of the Swine changes.
+- [x] Required targeted test, archtest, and botbench gates pass (outputs above).
+- [x] No Known-approximations row is implicated or changed.
+
+## Issues
+
+No unfixed implementation issue was found in the requested scope. The report's original premise is stale relative to this branch: `eb1b0d97` already implements the behavior and regression. No follow-up ticket is warranted.
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Task report — replcensus1: `api:ReplaceDamage` census token
 
 Ticket: `agent-20260919T055356Z-504b1359`
@@ -972,3 +1022,65 @@ Not applicable: no test was added. The already-existing regression test is part 
 ## Issues
 
 This defect is already fixed by `4fe4eadc`. No other defect was investigated or fixed. The reported prevalence of 27 corpus files describes the mechanic, not a remaining defect; no acceptance census or approximation entry requires a change.
+# Report — `pred:hasANonBasicLandType`
+
+## What changed
+
+The implementation is already committed at `1952fa4c` (`pred(hasanonbasiclandtype): read Forge's Card.hasANonBasicLandType filter predicate`). In `effects/filter.go`, `wordPredicate` recognizes `hasANonBasicLandType`, keeping matching and `UnknownPredicates` on the same classifier. The matcher requires Land and checks the vocabulary shared through `chooseNonbasicLandTypes`. The test in `effects/hasanonbasiclandtype_test.go` covers Desert/Gate positives, basic lands, Wasteland, nonlands, and census agreement; `rules/hasanonbasiclandtype_test.go` exercises the Wonderscape Sage carrier.
+
+The committed implementation also adds `ConditionDefined$ Returned` support needed to make the brief's requested Wonderscape Sage end-to-end behavior work. The brief's claim that an unknown predicate makes the rider never fire was not borne out: without the Returned group the condition was unresolved and the rider ran unconditionally. This is a scope deviation, documented in the committed code/report; it reuses the existing cost-provenance window pattern.
+
+Structural choice: reuse `chooseNonbasicLandTypes` and the shared predicate classifier, rather than maintaining a second list/recognizer, so future land types and census behavior remain aligned.
+
+## Verification (this run)
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+```
+$ go test -run 'TestHasANonBasicLandTypePredicate|TestWonderscapeSageNonbasicLandTypeSuppressesDiscard|TestWonderscapeSageBasicLandTypeKeepsDiscard' ./effects ./rules
+ok   github.com/adams-shaun/gorge/effects 0.639s
+ok   github.com/adams-shaun/gorge/rules 0.652s
+
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+
+$ gofmt -l effects/filter.go effects/hasanonbasiclandtype_test.go rules/hasanonbasiclandtype_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+## Fails without the fix
+
+Saved `effects/filter.go`, temporarily removed the `wordPredicate` classification case, ran the effects regression, then restored the source and verified it byte-identically (`RESTORE_CMP=0`).
+
+```
+$ go test -run '^TestHasANonBasicLandTypePredicate$' ./effects/
+--- FAIL: TestHasANonBasicLandTypePredicate (0.78s)
+    hasanonbasiclandtype_test.go:49: Land.hasANonBasicLandType must match Desert (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Land.hasANonBasicLandType must match Boros Guildgate (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Card.hasANonBasicLandType must match Desert (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Card.hasANonBasicLandType must match Boros Guildgate (a nonbasic land type)
+    hasanonbasiclandtype_test.go:87: UnknownPredicates(Land.hasANonBasicLandType) = [hasANonBasicLandType], want empty
+    hasanonbasiclandtype_test.go:93: UnknownPredicates of a mixed spec = [hasANonBasicLandType totallyNotAPredicate], want exactly the unknown token
+FAIL
+effects: exit 1
+RESTORE_CMP=0
+```
+
+## Findings / issues
+
+The attached merge finding was an unstaged overwrite of `.ds4/report-t1.md` (the file contained an unrelated long merged-report history). I preserved the task report here and restored that tracked file to its committed version, clearing the unintended working-tree change; no rebase or merge was attempted.
+
+`ConditionDefined$` families other than the supported set, including `ChosenCard`, `RememberedLKI`, `ParentTarget`, and `Sacrificed`, remain unsupported and may fail open in `effects/conditions.go:conditionMet`; outside this ticket. The prior task report records measured prevalence and a proposed follow-up. The `ReturnedInWindow` path is scoped to the resolving ability's activation-cost window; no corpus carrier for broader use was identified.
+
+No chain-head or ratchet movement was measured in this run. The behaviour goldens passed as shown; no additional gates were run.
+
+## Commit
+
+`1952fa4c` — implementation and tests (already present in branch HEAD).

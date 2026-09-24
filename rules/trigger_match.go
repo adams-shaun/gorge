@@ -2268,5 +2268,8 @@ func init() {
 		// shape is understood; the chosen-companion pregame pick and the
 		// outside-the-game activation are separate play-side work.
 		"kw:Companion",
+		// Graft (CR 702.57): the optional move-counter trigger is expanded
+		// from the keyword line in cards/kw_graft.go.
+		"kw:Graft",
 	)
 }

@@ -512,3 +512,45 @@ func conversionDeficit(c Card, pips [5]int32, pool state.Mana) int32 {
 	}
 	return d
 }
+
+// T4 -- the payment-window converter gate (cardfuzz batch3 lines 9/11). T3
+// keeps a converter from looping at PRIORITY, but the engine also offers
+// mana sources as "activate" options inside KChoose payment windows (the
+// cast payment window, the UnlessCost$ and Ward windows, cumulative upkeep),
+// and those were answered by a first-"activate" pick. A converter is never
+// tapped, so it is re-offered after every activation: once the lands were
+// spent, Farrelite Priest's "{1}: Add {W}" paid {1} out of the pool and added
+// the {W} back, one decision per loop, until the livelock watcher fired
+// (Peacekeeper's upkeep "unless you pay {1}{W}").
+//
+// A payment window carries no fact naming the charge, so a conversion's
+// progress cannot be priced there; the gate fails closed toward Done, the
+// T3 direction: the first offered source that is NOT a converter is taken,
+// and when only converters remain the window is closed with Done. Every
+// non-converter activation taps a source (converterCost's definition), so
+// the activations a window can take are bounded by the untapped sources,
+// and every window ends. This is a class rule over the option's
+// engine-supplied cost marker, read the same way T3 reads it; a window with
+// no "activate" option is not a payment window and is left to the caller.
+func chooseManaWindow(d *decision.Decision) (int, bool) {
+	isWindow := false
+	for _, o := range d.Options {
+		if o.Kind != "activate" {
+			continue
+		}
+		isWindow = true
+		if conv, _ := converterCost(o.Cost); conv {
+			continue
+		}
+		return o.Index, true
+	}
+	if !isWindow {
+		return 0, false
+	}
+	for _, o := range d.Options {
+		if o.Kind == "done" {
+			return o.Index, true
+		}
+	}
+	return 0, false
+}

@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strings"
 	"sync"
@@ -566,6 +567,7 @@ func main() {
 	report := flag.Bool("report", false, "print coverage summary from -state and exit")
 	hang = flag.Duration("hang", 90*time.Second, "wall-clock budget per game before it is recorded as a 'hang' (its goroutine is abandoned)")
 	maxHangs := flag.Int("max-hangs", 6, "stop the run once this many hung games are leaked (each burns a core)")
+	cpuProfile := flag.String("cpuprofile", "", "with -repro: write a CPU profile of the replay here")
 	flag.Parse()
 
 	reg, err := cards.OpenCorpus(*dir)
@@ -579,6 +581,21 @@ func main() {
 		os.Exit(1)
 	}
 	if *repro != "" {
+		if *cpuProfile != "" {
+			pf, err := os.Create(*cpuProfile)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "cardfuzz:", err)
+				os.Exit(1)
+			}
+			if err := pprof.StartCPUProfile(pf); err != nil {
+				fmt.Fprintln(os.Stderr, "cardfuzz:", err)
+				os.Exit(1)
+			}
+			code := runRepro(reg, *repro, *line, *maxTurns, *maxIntents)
+			pprof.StopCPUProfile()
+			pf.Close()
+			os.Exit(code)
+		}
 		os.Exit(runRepro(reg, *repro, *line, *maxTurns, *maxIntents))
 	}
 	c, err := loadCov(*statePath)

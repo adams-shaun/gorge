@@ -29,11 +29,12 @@ import (
 var chooseBasicLandTypes = []string{"Forest", "Island", "Mountain", "Plains", "Swamp"}
 
 // chooseNonbasicLandTypes is the land-type vocabulary outside the five basic
-// land types (CR 205.3i, plus the Cave subtype later sets added): the option
-// list a Type$ Nonbasic Land choose ranges over (March from Velis Vel).
+// land types (CR 205.3i, including later Omenpath, Planet and Town): the
+// option list a Type$ Nonbasic Land choose ranges over (March from Velis Vel).
+// Keep this list shared with the hasANonBasicLandType filter predicate.
 var chooseNonbasicLandTypes = []string{
-	"Cave", "Desert", "Gate", "Lair", "Locus", "Mine",
-	"Power-Plant", "Sphere", "Tower", "Urza's",
+	"Cave", "Desert", "Gate", "Lair", "Locus", "Mine", "Omenpath",
+	"Planet", "Power-Plant", "Sphere", "Tower", "Town", "Urza's",
 }
 
 // chooseLandTypes is every land subtype -- the option list a Type$ Land choose
