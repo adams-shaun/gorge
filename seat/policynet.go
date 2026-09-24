@@ -6,9 +6,10 @@ package seat
 // internal/archtest), so the encoder — which reads a projected view.View —
 // is reached from here, where the view is already in hand.
 //
-// What the policy answers itself is ONLY the KAttackers subset. KPriority is
-// trained and fully wired, but DELEGATED — see the KPriority note below for
-// the measurement that forces it.
+// Which kinds the policy answers itself is a per-seat selection
+// (NewPolicyNetBotKinds; botbench -policynet-kinds). The DEFAULT is the
+// KAttackers subset only; KPriority is opt-in and gated to the distribution
+// the head was trained on.
 //
 //   - KAttackers: one scored subset. The per-option inclusion vote compares
 //     each score against admissionThreshold's per-decision reference: the
@@ -27,34 +28,35 @@ package seat
 //     is then repaired the way chooseAttackersMode repairs it: one option per
 //     attacker (CR 506.2), every required attacker declared (CR 508.1d) and
 //     the Max ceiling applied required-first (CR 508.1j).
-//   - KPriority: DELEGATED, and delegation is load-bearing, not a tidy-up.
-//     Measured on the merged tree (this file, with the residual prior's
-//     inference half below present and the attackers fix in place): with
-//     priority SCORED the seat wins 0/1000 against the default bot at mean
-//     13.4 turns; with priority DELEGATED and nothing else changed it wins
-//     474/1000 (47.4% [44.3%, 50.5%]) against the bot self-control's 51.5%
-//     [48.4%, 54.6%]. (Ten approved mono pairs, 100 games/pair, seed
-//     10000000, checkpoint bce-big.gpol.) Two reasons the scored path loses:
-//     its surface omits the tap ("activate") and play_land options the
-//     teacher never labelled, so the argmax cannot answer the whole decision;
-//     and the head is worse than the bot even at the cast/ability/pass
-//     ternary it does cover (0.355-0.371 top-1 vs a 0.678 bot baseline). In
-//     play it vetoes the bot's own casts and starves its development.
+//   - KPriority (opt-in): scored ONLY when priorityScorable holds — the
+//     checkpoint's ResidualW > 0, the decision offers >= 2 distinct castable
+//     objects (botpolicy.CastableObjects, the count searchseat.Eligible gates
+//     the teacher's labels on) and the default bot's own answer is one
+//     cast/ability/pass option (the only bot answers the teacher labels).
+//     Every other priority decision returns the bot's answer unscored.
 //
-//     The residual prior (below) is the intended fix for exactly this, and
-//     priorityFromScores implements its admission rule — but it can only help
-//     a model with a POSITIVE ResidualW, and that weight only exists in a
-//     schema-v2 checkpoint. Every checkpoint available to this branch is v1
-//     and loads ResidualW == 0 (measured), so the prior is inactive, the
-//     BotPick mark is a documented no-op, and priorityFromScores reduces
-//     exactly to the pre-existing argmax the 0/1000 above measures. The
-//     delegation therefore CANNOT be cleared on any checkpoint that exists
-//     today; re-scoring priority needs a ResidualW > 0 checkpoint and a bench
-//     that beats the bar above, not just the wiring. scoredKind is the single
-//     switch, and TestPolicyNetDelegatesPriority pins it. The head's
-//     learnability is owned by agent-20260921T012459Z-cb7a7077; see
-//     docs/superpowers/plans/2026-09-19-learned-cast-profile.md.
+//     Why the gate, measured (pn01; ten approved mono pairs, 100 games/pair,
+//     seed 10000000, 1000 games per arm; control bot-vs-bot 50.1%
+//     [47.0%, 53.2%], 15.4 turns): priority scored UNGATED on a ResidualW 0
+//     checkpoint wins 0/1000 at 13.3 turns, reproducing the historical
+//     0/1000 (bce-big.gpol, merge e9945e79). Every one of its ~13
+//     disagreements per game with the bot was OUT of distribution — a
+//     one-castable-object window or a play_land answer — where the scored
+//     argmax (which cannot pick the untrained tap/land surface) passed
+//     instead of casting or playing the land; the head never even reached an
+//     in-distribution decision, because it starved its own development. With
+//     the gate, the ResidualW 0 configuration is unreachable and the
+//     out-of-distribution windows (~190 of every ~195 priority decisions per
+//     game) belong to the bot.
 //
+//     What the gated path does NOT yet do is beat the bot: on the three
+//     trained checkpoints measured (dev corpus ResidualInit 2 and 8, oracle
+//     corpus ResidualInit 2) the head overrode the bot's answer at ZERO of
+//     ~5,150 scored in-distribution priority decisions, so every
+//     priority-scored arm played byte-identically to the same checkpoint's
+//     attackers-only arm (dev r2 46.3% [43.2%, 49.4%]; dev r8 40.5%; oracle
+//     r2 47.1%). The prior is inert-safe, not a source of edge; any gap to
+//     the control is the attackers path's.
 // Every other decision kind delegates to the current default bot (NewBot,
 // same seed derivation) UNCHANGED — so the policy consumes no rng of its
 // own, and a decision whose scored surface encodes to nothing (no options,
@@ -67,16 +69,13 @@ package seat
 // wrapped default bot the same question and marks its answer's options
 // (Option.BotPick) before scoring, so a model trained with a positive
 // ResidualInit scores the same contract it trained under and reproduces the
-// bot baseline unless the learned head overrides. The default bot's answer
-// is also the fallback whenever the scored surface declines to answer. No
-// scored kind consumes the default bot's rng (both answers are pure
-// functions of the offered options and the board facts), so the marking
-// changes no rng stream. With the prior inactive (ResidualWeight 0 — every
-// v1-schema checkpoint, which today is all of them) the mark is a no-op:
-// scores and answers are exactly the pre-wiring ones, and the residual is
-// then honestly a train/eval-only device with the delegation path as the
-// deployed fallback. Since KPriority now delegates, the mark reaches only
-// KAttackers in this build.
+// bot baseline unless the learned head overrides. Checkpoints are schema v2
+// and carry ResidualW (policytrain -residual-init); a checkpoint trained
+// without it loads ResidualW == 0, the mark is then a no-op for attackers and
+// KPriority is never scored. The default bot's answer is also the fallback
+// whenever the scored surface declines to answer. No scored kind consumes
+// the default bot's rng (both answers are pure functions of the offered
+// options and the board facts), so the marking changes no rng stream.
 
 import (
 	"context"
