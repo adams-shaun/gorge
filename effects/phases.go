@@ -64,6 +64,11 @@ func effPhases(h Host, c *Ctx, sa *cards.SA) {
 	affected := phasesAffectedObjects(h, c, sa, toggle)
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAffected"]), "True")
 	wontPhaseIn := strings.EqualFold(strings.TrimSpace(sa.Params["WontPhaseInNormal"]), "True")
+	// CR 702.25a: each permanent gets its own PhaseOut event, but the whole
+	// resolution is ONE "one or more permanents phase out" batch for the
+	// batch-level Mode$ PhaseOutAll trigger (The War Doctor), so its latency
+	// fires once for the group rather than once per permanent.
+	h.BeginZoneBatch()
 	for _, id := range affected {
 		o := g.Obj(id)
 		if o == nil || o.Zone != state.ZBattlefield {
@@ -103,6 +108,7 @@ func effPhases(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Tap, Obj: id})
 		}
 	}
+	h.EndZoneBatch()
 }
 
 // phasesAffectedObjects is effPhases' affected-set resolver: the AllValid$
