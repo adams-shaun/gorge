@@ -1236,6 +1236,17 @@ const (
 	// (Clockspinning's and Jhoira's Timebug's TgtZone$ Exile targets, Amy
 	// Pond's Choices$ card election).
 	wordSuspended
+	// Forge's Card.canReceiveCounters <kind>: the object can have a counter of
+	// <kind> placed on it. key is the counter kind. The corpus's only use is
+	// the +1/+1 spelling on Experimental Lab // Staff Room's DBPutCounter
+	// presence gate; a +1/+1 counter is hostable by a creature
+	// (state.Object.EffectiveIsCreature, CR 708.5-aware), any other counter
+	// kind by any battlefield permanent.
+	wordCanReceiveCounters
+	// Forge's Card.canBeTurnedFaceUp: the face-down battlefield permanent
+	// has a real card face to reveal (CR 708.6). The corpus's only use is
+	// Experimental Lab // Staff Room's DBTurnFaceUp presence gate.
+	wordCanBeTurnedFaceUp
 	// Forge's OppProtect: the object is a battle whose CR 310.10 protector
 	// is an opponent of the evaluating controller (SpecContext's You). The
 	// protector state lives on the battle object itself (state.Object
@@ -1471,6 +1482,15 @@ func wordPredicate(p string) (wordKind, string) {
 	if rest, ok := strings.CutPrefix(p, "wasDealtDamageThisGameBy "); ok {
 		return wordDealtDamageThisGameBy, strings.TrimSpace(rest)
 	}
+	// Forge's argument-taking canReceiveCounters <kind> (Experimental Lab //
+	// Staff Room's DBPutCounter presence gate is the corpus's only carrier):
+	// the trimmed counter kind is the key, the same shape the `kicked <n>`
+	// index form above uses. An empty argument stays wordUnknown.
+	if rest, ok := strings.CutPrefix(p, "canReceiveCounters "); ok {
+		if kind := strings.TrimSpace(rest); kind != "" {
+			return wordCanReceiveCounters, kind
+		}
+	}
 	switch p {
 	case "Colorless":
 		return wordColorless, ""
@@ -1520,6 +1540,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordTopLibrary, ""
 	case "faceDown":
 		return wordFaceDown, ""
+	case "canBeTurnedFaceUp":
+		return wordCanBeTurnedFaceUp, ""
 	case "IsRingbearer":
 		return wordRingBearer, ""
 	case "HasCounters":
@@ -1766,6 +1788,17 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ActivePlayerCtrl: the object is controlled by the active
 		// player -- the seat whose turn it is, g.Active.
 		return o.Controller == g.Active
+	case wordCanReceiveCounters:
+		return canReceiveCounter(key, o)
+	case wordCanBeTurnedFaceUp:
+		// Forge's Card.canBeTurnedFaceUp: a face-down battlefield permanent
+		// with a real card face to reveal (CR 708.6) -- morph/megamorph/
+		// disguise, manifest or cloak. gorge's turn-up path (effects'
+		// effSetState Mode$ TurnFaceUp) reveals any face-down battlefield
+		// permanent, so this live FaceDown read is the engine's own answer;
+		// the corpus's `+faceDown` qualifier beside it is redundant but
+		// harmless.
+		return o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil
 	case wordFaceDown:
 		// Forge's faceDown: the object is a face-down battlefield permanent
 		// (CR 708.5 -- a manifested or cloaked card). The same live state read
@@ -3140,6 +3173,23 @@ func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (r
 		return !r, true
 	}
 	return matchPositive(g, p, o, sc)
+}
+
+// canReceiveCounter answers Forge's Card.canReceiveCounters <kind>: the object
+// can have a counter of kind placed on it. A +1/+1 (or -1/-1) counter is
+// hostable by a creature -- read through EffectiveIsCreature so a face-down
+// permanent's folded set type decides -- and any other counter kind by any
+// battlefield permanent with a face. Off the battlefield (or a face-less
+// object) never matches.
+func canReceiveCounter(kind string, o *state.Object) bool {
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	switch strings.ToUpper(kind) {
+	case "P1P1", "M1M1":
+		return o.EffectiveIsCreature()
+	}
+	return true
 }
 
 // hasType reads a printed type plus Changeling's type-defining ability. The
