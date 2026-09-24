@@ -76,7 +76,7 @@ func TestBoardGuardRecordsBigboard(t *testing.T) {
 	r := rand.New(rand.NewPCG(3, 5))
 	decks := []genDeck{generate(r, p, c), generate(r, p, c)}
 
-	f, _ := playOne(reg, decks, 11, 3, 20000, 100, false)
+	f, _ := playOne(reg, decks, 11, 3, 20000, 100, false, false)
 	if f == nil || f.Kind != "bigboard" {
 		t.Fatalf("failure = %+v, want kind bigboard", f)
 	}
@@ -88,7 +88,7 @@ func TestBoardGuardRecordsBigboard(t *testing.T) {
 	}
 	// Under the cap the guard is inert: the 3-turn cap ends the game as a
 	// plain stall (not a failure record).
-	if f, _ := playOne(reg, decks, 11, 3, 20000, 100000, false); f != nil {
+	if f, _ := playOne(reg, decks, 11, 3, 20000, 100000, false, false); f != nil {
 		t.Fatalf("game under the object cap recorded %+v", f)
 	}
 }
@@ -115,9 +115,6 @@ func TestAbilityInventory(t *testing.T) {
 	if strings.Join(got, " ") != strings.Join(want, " ") {
 		t.Fatalf("Gilded Goose inventory = %v, want %v", got, want)
 	}
-	if goose[1].produced != "Any" {
-		t.Fatalf("Gilded Goose mana Produced = %q, want Any", goose[1].produced)
-	}
 	if inv := look("Lightning Bolt"); len(inv) != 0 {
 		t.Fatalf("Lightning Bolt's spell ability must not be in the inventory: %v", inv)
 	}
@@ -126,25 +123,6 @@ func TestAbilityInventory(t *testing.T) {
 	}
 	if inv := look("Delver of Secrets"); len(inv) != 1 || inv[0].key != "f0/t0" {
 		t.Fatalf("Delver of Secrets inventory = %+v, want its front-face upkeep trigger", inv)
-	}
-}
-
-func TestProducesColour(t *testing.T) {
-	for _, tc := range []struct {
-		produced    string
-		colour      byte
-		exact, wild bool
-	}{
-		{"G", 'G', true, false},
-		{"G", 'U', false, false},
-		{"Combo W U", 'U', true, false},
-		{"Any", 'R', false, true},
-		{"", 'C', false, true},
-	} {
-		ex, wd := producesColour(tc.produced, tc.colour)
-		if ex != tc.exact || wd != tc.wild {
-			t.Errorf("producesColour(%q, %c) = %v,%v want %v,%v", tc.produced, tc.colour, ex, wd, tc.exact, tc.wild)
-		}
 	}
 }
 
@@ -167,7 +145,7 @@ func TestAbilitiesUsedFromPlayedGame(t *testing.T) {
 			d.Cards = append(d.Cards, "Solemn Simulacrum")
 		}
 	}
-	f, gc := playOne(reg, []genDeck{d, d}, 5, 14, 20000, 0, false)
+	f, gc := playOne(reg, []genDeck{d, d}, 5, 14, 20000, 0, false, false)
 	if f != nil {
 		t.Fatalf("game failed: %s", f.Diag)
 	}
@@ -191,6 +169,106 @@ func TestAbilitiesUsedFromPlayedGame(t *testing.T) {
 	}
 	if !gc.used["Wastes"]["f0/a0"] {
 		t.Errorf("Wastes' mana ability not credited: used=%v", gc.used)
+	}
+	// A land play counts as the land being played: LandPlayed carries no
+	// object, so played() finds the land by its preceding move.
+	if !gc.cast["Wastes"] {
+		t.Errorf("Wastes was never credited as played: cast=%v", gc.cast)
+	}
+	if !gc.offered["Mind Stone"]["f0/a1"] {
+		t.Errorf("Mind Stone's draw activation was never recorded as offered: offered=%v", gc.offered)
+	}
+}
+
+// TestManaAbilityChoosingColourCredited pins the exact mana credit: a
+// "one mana of any colour" rock asks its colour between the Tap and the
+// ManaAdd, which the old log proxy stopped at, so Manalith and every
+// Darksteel Ingot-shaped source read as never used. The engine hook
+// (rules.Engine.ManaAbilityHook) credits the activation itself.
+func TestManaAbilityChoosingColourCredited(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	var d genDeck
+	d.Colour = "C"
+	for i := 0; i < 60; i++ {
+		switch {
+		case i < 20:
+			d.Cards = append(d.Cards, "Wastes")
+		case i < 40:
+			d.Cards = append(d.Cards, "Manalith")
+		default:
+			d.Cards = append(d.Cards, "Solemn Simulacrum")
+		}
+	}
+	f, gc := playOne(reg, []genDeck{d, d}, 5, 14, 20000, 0, false, false)
+	if f != nil {
+		t.Fatalf("game failed: %s", f.Diag)
+	}
+	if !gc.cast["Manalith"] {
+		t.Fatalf("setup: Manalith never cast")
+	}
+	if !gc.used["Manalith"]["f0/a0"] {
+		t.Errorf("Manalith's any-colour mana ability not credited: used=%v", gc.used["Manalith"])
+	}
+}
+
+// TestBookkeepingTriggersExcluded: Chrome Mox's Static$ True DBCleanup /
+// DBForget riders (no TriggerDescription$) are Forge's internal
+// state-tracking, not abilities; its imprint ETB and mana ability stay.
+func TestBookkeepingTriggersExcluded(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	c, ok := reg.Lookup("Chrome Mox")
+	if !ok {
+		t.Fatal("Chrome Mox not in corpus")
+	}
+	var got []string
+	for _, s := range abilityInventory(c) {
+		got = append(got, s.key+":"+s.desc)
+	}
+	if want := "f0/a0:ManaReflected f0/t0:ChangesZone"; strings.Join(got, " ") != want {
+		t.Fatalf("Chrome Mox inventory = %v, want %s", got, want)
+	}
+	// A Static$ True triggered MANA ability is a real ability and stays.
+	cg, ok := reg.Lookup("Crypt Ghast")
+	if !ok {
+		t.Fatal("Crypt Ghast not in corpus")
+	}
+	found := false
+	for _, s := range abilityInventory(cg) {
+		if s.desc == "TapsForMana" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("Crypt Ghast's triggered mana ability dropped from %v", abilityInventory(cg))
+	}
+}
+
+// TestExploreSeatIsDeterministicAndRecorded: an -explore game plays one
+// exploration seat (by seed parity), replays byte-identically, and a
+// failure record carries the flag so -repro rebuilds the same seats.
+func TestExploreSeatIsDeterministicAndRecorded(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	p, err := buildPool(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, _ := loadCov(t.TempDir() + "/none.json")
+	r := rand.New(rand.NewPCG(3, 5))
+	decks := []genDeck{generate(r, p, c), generate(r, p, c)}
+	for _, seed := range []uint64{21, 22} {
+		f, gc := playOne(reg, decks, seed, 12, 20000, 0, true, true)
+		if f != nil {
+			t.Fatalf("explore game seed %d failed: %s %s", seed, f.Kind, f.Diag)
+		}
+		_, gc2 := playOne(reg, decks, seed, 12, 20000, 0, false, true)
+		if fmt.Sprint(gc.used) != fmt.Sprint(gc2.used) || fmt.Sprint(gc.cast) != fmt.Sprint(gc2.cast) {
+			t.Fatalf("explore game seed %d is not deterministic", seed)
+		}
+	}
+	// The 100-object cap forces a (bigboard) failure record.
+	f, _ := playOne(reg, decks, 11, 3, 20000, 100, false, true)
+	if f == nil || !f.Explore {
+		t.Fatalf("failure record %+v does not carry Explore", f)
 	}
 }
 

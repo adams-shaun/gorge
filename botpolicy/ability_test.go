@@ -1,6 +1,7 @@
 package botpolicy
 
 import (
+	"math/rand/v2"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -18,7 +19,7 @@ import (
 func abilityPriority(src state.ObjID, lab string) *decision.Decision {
 	return &decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
-			{Index: 0, Kind: "ability", Obj: src, Label: lab},
+			{Index: 0, Kind: "ability", Obj: src, Label: lab, Attach: true},
 			{Index: 1, Kind: "pass"},
 		}}
 }
@@ -232,5 +233,56 @@ func TestA4NoWorthtakingFallsThroughToPass(t *testing.T) {
 	}
 	if got := d.Options[in.Choices[0]].Kind; got != "pass" {
 		t.Fatalf("A4 = %s (option %d), want the explicit pass when nothing ranks as worth taking", got, in.Choices[0])
+	}
+}
+
+// TestA1ScopedToAttachAbilities pins X1's promotion into the production
+// policy: A1's attachment no-op rule is a fact about an ATTACH only
+// (decision.Option.Attach). An attached Aura's or Equipment's own
+// non-attach ability (Holy Armor's pump; AttachedTo != 0) and a creatureless
+// seat's non-attach ability (Tower of Eons) are activated by Decide and by
+// ExploreDecide alike, while a re-equip of an attached Equipment and an
+// equip with no creature to land on are still declined by both. The gate
+// restores the broad reading (equipNoOp ignoring Attach) and the two
+// non-attach halves fail: the policy passes instead of activating.
+func TestA1ScopedToAttachAbilities(t *testing.T) {
+	policies := []struct {
+		name string
+		fn   func(Board, *decision.Decision, *rand.Rand) decision.Intent
+	}{{"Decide", Decide}, {"ExploreDecide", ExploreDecide}}
+	attached := Board{IsMain: true,
+		Creatures: map[state.ObjID]Creature{22: {Power: 2, Toughness: 2, Controller: 0}},
+		Cards:     map[state.ObjID]Card{41: {AttachedTo: 22}},
+	}
+	creatureless := Board{IsMain: true,
+		Creatures: map[state.ObjID]Creature{},
+		Cards:     map[state.ObjID]Card{41: {}},
+	}
+	cases := []struct {
+		name   string
+		b      Board
+		label  string
+		attach bool
+		want   string
+	}{
+		{"attached aura pump", attached, "Holy Armor: Enchanted creature gets +0/+2 until end of turn.", false, "ability"},
+		{"creatureless non-attach", creatureless, "Tower of Eons: 8, T: You gain 10 life.", false, "ability"},
+		{"attached re-equip", attached, "Lightning Greaves: Equip 0", true, "pass"},
+		{"creatureless equip", creatureless, "Lightning Greaves: Equip 0", true, "pass"},
+	}
+	for _, p := range policies {
+		for _, c := range cases {
+			d := abilityPriority(41, c.label)
+			d.Options[0].Attach = c.attach
+			for seed := uint64(0); seed < 8; seed++ {
+				in := p.fn(c.b, d, rng(seed))
+				if err := d.Validate(in); err != nil {
+					t.Fatalf("%s %s seed %d: intent %+v failed Validate: %v", p.name, c.name, seed, in, err)
+				}
+				if got := d.Options[in.Choices[0]].Kind; got != c.want {
+					t.Fatalf("%s %s seed %d = %s, want %s", p.name, c.name, seed, got, c.want)
+				}
+			}
+		}
 	}
 }

@@ -1585,9 +1585,16 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// counters" Effect must end exactly after the one entry it upgraded,
 		// not linger to re-upgrade the same remembered card's next entry).
 		e.effectMoveSweep(ev)
-		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
+		// The entry's own triggers are matched AFTER the Updated body: the
+		// body is how the permanent ENTERS (CR 614.1c/614.12 -- "enters
+		// tapped", "enters with counters"), so a leaves/enters trigger's
+		// ValidCard$ must see the permanent as it entered. Matched before the
+		// body, Amulet of Vigor's and Tiller Engine's `Permanent.tapped`
+		// never matched an enters-tapped land (cardfuzz coverage audit: zero
+		// fires in ~800 casts each).
+		e.checkTriggers(stored, nil, 0, 0, false)
 		if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
 			e.finishLandPlay(stored.Obj)
 		}
@@ -1714,7 +1721,6 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	// single-match Updated branch does (the raw events.Emit above bypasses
 	// Engine.emit's own sweep point).
 	e.effectMoveSweep(ev)
-	e.checkTriggers(stored, nil, 0, 0, false)
 	e.finishSourceLifelinkLKI(ev, departing, link, controller)
 	for _, m := range matches {
 		if m.repl.With == nil {
@@ -1722,6 +1728,8 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
+	// Matched after every Updated body, as in the single-match branch.
+	e.checkTriggers(stored, nil, 0, 0, false)
 	if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
 		e.finishLandPlay(stored.Obj)
 	}
@@ -4546,7 +4554,7 @@ func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you
 		} else {
 			n = e.countPresent(spec, source, you)
 		}
-		if !comparePresent(n, cmp) {
+		if !comparePresent(n, e.presentCompareFor(cmp, source, you)) {
 			return false
 		}
 	}
