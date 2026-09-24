@@ -99,7 +99,19 @@ func (e *Engine) finishEnteredStep() {
 	// CR 728.1: the rad-counter drain is an inherent triggered ability.
 	if e.G.Step == state.StepMain1 && int(e.G.Active) < len(e.G.Players) &&
 		!e.G.Players[e.G.Active].Lost && e.G.Players[e.G.Active].Counter("RAD") > 0 {
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Controller: e.G.Active, RadiationDrain: true})
+		// DelayedPush's event-sourced minting path needs a face-bearing object
+		// as its event anchor. The ability itself remains source-less; this
+		// anchor is only used to recreate the synthetic stack object on replay.
+		var anchor state.ObjID
+		for i := range e.G.Objs {
+			if e.G.Objs[i].Face() != nil {
+				anchor = e.G.Objs[i].ID
+				break
+			}
+		}
+		if anchor != 0 {
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: anchor, Controller: e.G.Active, RadiationDrain: true})
+		}
 	}
 	// CR 724.2a: the monarch's draw is a triggered ability at the beginning
 	// of the end step, not an immediate turn-based action. Queue it here; the
