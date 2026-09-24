@@ -242,7 +242,7 @@ func (ps *PredicatePrograms) evaluate(spec string, g *state.Game, o *state.Objec
 			maybe = true
 			continue
 		}
-		baseOK := matchesCompiledBase(alt.base, o)
+		baseOK := matchesCompiledBase(alt.base, o, sc)
 		if !baseOK {
 			continue
 		}
@@ -250,6 +250,17 @@ func (ps *PredicatePrograms) evaluate(spec string, g *state.Game, o *state.Objec
 		altMaybe := false
 		for _, term := range alt.terms {
 			if term.maybe {
+				altMaybe = true
+				continue
+			}
+			// A colour-bearing term on a face-down battlefield permanent
+			// (CR 708.5: its printed characteristics do not exist) is left to
+			// the textual oracle: the compiled colour path and the text colour
+			// path both read ColorsOf's printed face today, so a definite
+			// answer here would be a new printed-colour claim for a context
+			// that has no colours. Maybe keeps that answer textual.
+			if (term.kind == predicateTermColor || term.kind == predicateTermColorless) &&
+				o.FaceDown && o.Zone == state.ZBattlefield {
 				altMaybe = true
 				continue
 			}
@@ -273,11 +284,11 @@ func (ps *PredicatePrograms) evaluate(spec string, g *state.Game, o *state.Objec
 	return PredicateNo
 }
 
-func matchesCompiledBase(base predicateBase, o *state.Object) bool {
+func matchesCompiledBase(base predicateBase, o *state.Object, sc *SpecContext) bool {
 	var matched bool
 	switch base.kind {
 	case predicateBaseAny:
-		matched = hasType(o, "Creature") || hasType(o, "Planeswalker") || hasType(o, "Battle")
+		matched = hasTypeCtx(o, "Creature", *sc) || hasTypeCtx(o, "Planeswalker", *sc) || hasTypeCtx(o, "Battle", *sc)
 	case predicateBaseCard:
 		matched = true
 	case predicateBasePermanent:
@@ -291,7 +302,13 @@ func matchesCompiledBase(base predicateBase, o *state.Object) bool {
 	case predicateBaseSpell, predicateBaseSpellAbility:
 		matched = o.Zone == state.ZStack
 	case predicateBaseType:
-		matched = hasType(o, base.arg)
+		// hasTypeCtx, not hasType: the layer walk binds its types-so-far
+		// list through ExtraTypes, and the published layer-4 table through
+		// DerivedTypes. The textual oracle answers both through this same
+		// helper, so the compiled base cannot return a definite No for a
+		// derived type the text path grants (a manifested Forest under
+		// Maskwood Nexus, or an animated manland).
+		matched = hasTypeCtx(o, base.arg, *sc)
 	}
 	if base.negated {
 		return !matched
@@ -331,7 +348,7 @@ func matchesCompiledTerm(term predicateTerm, g *state.Game, o *state.Object, sc 
 	case predicateTermColor:
 		matched = strings.Contains(ColorsOf(o), term.arg)
 	case predicateTermType:
-		matched = hasType(o, term.arg)
+		matched = hasTypeCtx(o, term.arg, *sc)
 	case predicateTermColorless:
 		matched = ColorsOf(o) == ""
 	case predicateTermAttachedBy:
