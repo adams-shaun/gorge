@@ -18,6 +18,11 @@
 package rules
 
 import (
+	"slices"
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -32,7 +37,7 @@ import (
 // entryStageDone.
 type entryCounterStage struct {
 	move     events.Event               // the staged entry as the pose received it
-	grants   []events.EntryCounterGrant // the origin-zone snapshot
+	grants   []entryGrant               // the origin-zone snapshot plus body-defined grants
 	placed   []events.EntryCounterGrant // grants finalized so far, in grant order
 	counter  events.Event               // the parked grant's counter event
 	cands    []replMatch                // its competition
@@ -41,6 +46,23 @@ type entryCounterStage struct {
 	inRes    bool                       // the pose's in-resolution provenance
 	idx      int                        // index into grants of the parked grant
 	complete bool                       // every grant finalized; the fold may consume
+	// bodyIDs names every Updated PutCounter|ETB$ True replacement body whose
+	// placement this stage's grant set folded (replIdentity). The completed
+	// fold returns them so the Updated dispatch skips running those bodies;
+	// their counters are already in the move's Pairs payload.
+	bodyIDs []string
+}
+
+// entryGrant is one planned entry counter: the kind and amount a grant will
+// place, plus the source id it came from when it is a BODY-defined grant
+// (0 for an intrinsic grant). The body id is what the settlement uses to
+// hand the AddCounter matcher the same replacement-body provenance the live
+// body path carries (rules/engine.go's replacementBodyCounterAdder), so
+// EffectOnly$/ValidSource$ read it identically.
+type entryGrant struct {
+	kind   string
+	amount int32
+	body   state.ObjID
 }
 
 // sameEntryMove reports whether ev is (a re-drive of) the staged move. The
@@ -79,7 +101,196 @@ func (e *Engine) entryCounterGrants(ev events.Event) []events.EntryCounterGrant 
 	return nil
 }
 
-// entryPreview builds the isolated preview a grant settlement runs against:
+// entryBodyCandidates reports whether an entry might carry a body-defined
+// counter grant -- a PutCounter|ETB$ True Updated replacement body on the
+// entering object, or a bloodthirst/sunburst grant. It is the cheap gate the
+// emit pre-pass and foldEntryMove take BEFORE building the (costly) isolated
+// preview, so an ordinary entry with no such body pays nothing. It reads only
+// state: the entering face's own Replacement lines and the derived keyword
+// list. A battlefield->battlefield stay grants nothing (the same guard
+// entryCounterGrants keeps).
+func (e *Engine) entryBodyCandidates(ev events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || events.IsFaceDownEntry(ev.Counter) {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	f := o.Face()
+	for i := range f.Repls {
+		r := &f.Repls[i]
+		if r.Event == "Moved" && r.With != nil && r.With.API == "PutCounter" &&
+			strings.EqualFold(strings.TrimSpace(r.With.Params["ETB"]), "True") &&
+			entryBodyKindEncodable(r.With) {
+			return true
+		}
+	}
+	// kw:Bloodthirst and kw:Sunburst are synthesised by the replacement
+	// dispatch rather than expanded onto the face (rules/replacement.go), so
+	// a granted or printed keyword carries no face Repl to scan.
+	if _, ok := e.derivedKeywordParam(ev.Obj, "Bloodthirst"); ok {
+		return true
+	}
+	if _, ok := e.derivedKeywordParam(ev.Obj, "Sunburst"); ok {
+		return true
+	}
+	return false
+}
+
+// entryBodyKindEncodable reports whether a PutCounter|ETB$ True body's
+// counter kind can be folded into the entry move. The MoveZone Pairs payload
+// carries the four table kinds by fixed index and every other kind by a
+// length-prefixed UTF-8 payload (events.EntryCounterPairs), so any non-empty
+// kind the parser produces is encodable and may be absorbed. It stays a named
+// gate so the absorption walk and the cheap pre-pass read one predicate, and
+// so an empty kind (a body the parser could not name) still fails closed.
+func entryBodyKindEncodable(sa *cards.SA) bool {
+	if sa == nil {
+		return false
+	}
+	kind := strings.TrimSpace(sa.Params["CounterType"])
+	if kind == "" {
+		kind = "P1P1"
+	}
+	return events.EntryCounterKindEncodable(kind)
+}
+
+// entryBodyAbsorbable reports whether a replacement body is the bare
+// self-entry counter shape this engine may fold into the entry move: a single
+// DB$ PutCounter | ETB$ True on the entering object itself with a resolvable
+// CounterNum$ and one counter kind. Anything carrying a rider (SubAbility$),
+// an asking modifier (Optional$/Choices$/Bolster$/Support$/Adapt$/
+// Monstrosity$), a per-recipient count or a composite kind is left to the
+// ordinary body path -- the conservative direction, so a body this build
+// cannot fully fold never loses its own resolution.
+func entryBodyAbsorbable(sa *cards.SA) bool {
+	if sa == nil || sa.API != "PutCounter" || !strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True") {
+		return false
+	}
+	if sa.Sub != nil {
+		return false
+	}
+	if strings.TrimSpace(sa.Params["Defined"]) != "Self" {
+		return false
+	}
+	if _, ok := sa.Params["CounterNum"]; !ok {
+		return false
+	}
+	if saHasParam(sa, "Optional") || saHasParam(sa, "Choices") || saHasParam(sa, "Divided") ||
+		saHasParam(sa, "DividedAsYouChoose") || saHasParam(sa, "RandomType") || saHasParam(sa, "Bolster") ||
+		saHasParam(sa, "Support") || saHasParam(sa, "Adapt") || saHasParam(sa, "Monstrosity") ||
+		saHasParam(sa, "CounterNumPerDefined") || saHasParam(sa, "CounterTypePerDefined") ||
+		saHasParam(sa, "EachFromSource") || saHasParam(sa, "PerDefined") {
+		return false
+	}
+	kind := strings.TrimSpace(sa.Params["CounterType"])
+	if kind == "" {
+		kind = "P1P1"
+	}
+	if strings.Contains(kind, ",") || strings.EqualFold(kind, "EachFromSource") {
+		return false
+	}
+	return true
+}
+
+// saHasParam reports whether the named key is present on the SA's parameter
+// map. The key is this helper's own string parameter and every call site
+// passes a string literal, so the paramcensus attributes each read (its
+// dynamic-key rule: a key reached through a parameter is resolved at the
+// call sites). Presence alone is the test -- an absent key and an
+// empty-valued key are equally "not carried" for the entry fold.
+func saHasParam(sa *cards.SA, key string) bool {
+	_, present := sa.Params[key]
+	return present
+}
+
+// entryBodyCounterGrants returns the body-defined entry-counter grants an
+// entry's Updated PutCounter|ETB$ True replacement bodies would place on the
+// entering object itself, plus each body's replIdentity so the Updated
+// dispatch can skip running it (its placement is folded into the move
+// instead). e is the ISOLATED post-entry preview: the body's count reads the
+// board it would see after the move (X paid, a Count$ head over the settled
+// permanent), and the replacement matcher gates it exactly as the live
+// dispatch's collection would (a CheckSVar$/SVarCompare$ gate fails closed).
+// A body whose count resolves to zero (Solemnity, an X of zero) is still
+// absorbed -- its placement is nothing, and running it would only duplicate
+// the zero -- but contributes no grant.
+func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([]entryGrant, []string) {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || events.IsFaceDownEntry(ev.Counter) {
+		return nil, nil
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Face() == nil {
+		return nil, nil
+	}
+	f := o.Face()
+	var grants []entryGrant
+	var ids []string
+	absorb := func(m replMatch) {
+		if !e.replacementMatches(*m.repl, m.id, ev) || !entryBodyAbsorbable(m.repl.With) ||
+			!entryBodyKindEncodable(m.repl.With) {
+			return
+		}
+		// Recognised shape: absorb it whether or not the count resolves, so
+		// its placement is never run twice. An unresolvable count degrades to
+		// zero exactly as the ordinary body's Num would, so nothing is lost.
+		ids = append(ids, replIdentity(m))
+		n, ok := effects.NumResolved(e, e.replCtx(m, ev), m.repl.With, "CounterNum", 1)
+		if !ok || n <= 0 {
+			return
+		}
+		kind := strings.TrimSpace(m.repl.With.Params["CounterType"])
+		if kind == "" {
+			kind = "P1P1"
+		}
+		grants = append(grants, entryGrant{kind: kind, amount: n, body: ev.Obj})
+	}
+	for i := range f.Repls {
+		r := &f.Repls[i]
+		if r.Event != "Moved" || r.With == nil || r.With.API != "PutCounter" ||
+			!strings.EqualFold(strings.TrimSpace(r.With.Params["ETB"]), "True") {
+			continue
+		}
+		absorb(replMatch{id: ev.Obj, face: f, repl: r})
+	}
+	if m := e.bloodthirstEntryMatch(ev); m != nil {
+		absorb(*m)
+	}
+	if m := e.sunburstEntryMatch(ev); m != nil {
+		absorb(*m)
+	}
+	return grants, ids
+}
+
+// entryGrantPlan is the entry's whole counter plan: its intrinsic grants
+// (events.EntryCounterGrants, read on the ORIGIN board) plus the body-defined
+// grants its Updated PutCounter|ETB$ True bodies would place (read on the
+// post-entry preview). preview is the isolated post-entry board; entrant is
+// the entry's battlefield object id. bodyIDs names each absorbed body by
+// replIdentity for the Updated dispatch to skip.
+func (e *Engine) entryGrantPlan(ev events.Event, preview *Engine, entrant state.ObjID) ([]entryGrant, []string) {
+	var grants []entryGrant
+	for _, g := range e.entryCounterGrants(ev) {
+		grants = append(grants, entryGrant{kind: g.Kind, amount: g.Amount})
+	}
+	if preview == nil {
+		return grants, nil
+	}
+	bodyGrants, bodyIDs := preview.entryBodyCounterGrants(ev, entrant)
+	return append(grants, bodyGrants...), bodyIDs
+}
+
+// bodyAbsorbed reports whether m's placement was folded into the entry move
+// (its replIdentity is in the plan's absorbed set), so the Updated dispatch
+// must not run its body a second time.
+func bodyAbsorbed(absorbed []string, m replMatch) bool {
+	if len(absorbed) == 0 {
+		return false
+	}
+	return slices.Contains(absorbed, replIdentity(m))
+}
+
 // a cloned game with the entry move applied, a private log and a private
 // replacement-choice queue, so no speculative event, ask or pose can leak
 // into the real chain. The returned entrant is the object ID the entry will
@@ -115,21 +326,32 @@ func (e *Engine) entryPreview(ev events.Event) (*Engine, state.ObjID) {
 // the first grant whose AddCounter competition parked a CR 616.1 order
 // choice on the PREVIEW: the pose is appended to preview.replChoices for the
 // caller to extract (everything from the length the caller snapshotted).
-func (e *Engine) settleEntryGrants(entrant state.ObjID, grants []events.EntryCounterGrant) ([]events.EntryCounterGrant, int) {
+func (e *Engine) settleEntryGrants(entrant state.ObjID, grants []entryGrant) ([]events.EntryCounterGrant, int) {
 	var placed []events.EntryCounterGrant
 	for i, g := range grants {
-		if g.Amount <= 0 || e.PutCounterBlocked(g.Kind, entrant, 0, false) {
+		if g.amount <= 0 || e.PutCounterBlocked(g.kind, entrant, 0, false) {
 			continue
 		}
-		counter := events.Event{Kind: events.CounterChange, Obj: entrant, Counter: g.Kind, Amount: g.Amount}
+		counter := events.Event{Kind: events.CounterChange, Obj: entrant, Counter: g.kind, Amount: g.amount}
+		// A body-defined grant is settled with the replacement-body provenance
+		// the body itself would carry (applyingReplacement + replacingSource),
+		// so the AddCounter matcher's EffectOnly$/ValidSource$ gates read the
+		// same cause they read on the live body path (Doubling Season,
+		// Vorinclex). An intrinsic grant keeps its own provenance -- the
+		// preview's pinned action cause.
+		savedApplying, savedSource := e.applyingReplacement, e.replacingSource
+		if g.body != 0 {
+			e.applyingReplacement, e.replacingSource = true, g.body
+		}
 		rewritten, handled := e.applyReplacements(counter)
+		e.applyingReplacement, e.replacingSource = savedApplying, savedSource
 		if handled {
 			// A noncommuting CR 616.1 choice must remain a real decision;
 			// the pose sits at the tail of the preview's private queue.
 			return placed, i
 		}
 		if rewritten.Amount > 0 {
-			placed = append(placed, events.EntryCounterGrant{Kind: g.Kind, Amount: rewritten.Amount})
+			placed = append(placed, events.EntryCounterGrant{Kind: g.kind, Amount: rewritten.Amount})
 		}
 	}
 	return placed, -1
@@ -152,7 +374,7 @@ func extractEntryPose(preview *Engine, n0 int) *replChoice {
 // the preview parked for grant idx, and asks the affected player. inRes is
 // the pose's in-resolution provenance, captured by the caller at the moment
 // the entry was emitted. Returns true (the caller must not fold the move).
-func (e *Engine) stageEntryCounterOrder(ev events.Event, preview *Engine, n0 int, grants []events.EntryCounterGrant, placed []events.EntryCounterGrant, idx int, inRes bool) bool {
+func (e *Engine) stageEntryCounterOrder(ev events.Event, preview *Engine, n0 int, grants []entryGrant, placed []events.EntryCounterGrant, idx int, inRes bool, bodyIDs []string) bool {
 	posed := extractEntryPose(preview, n0)
 	if posed == nil {
 		return false
@@ -160,7 +382,7 @@ func (e *Engine) stageEntryCounterOrder(ev events.Event, preview *Engine, n0 int
 	st := &entryCounterStage{
 		move: ev, grants: grants, placed: placed,
 		counter: posed.ev, cands: posed.cands, player: posed.player,
-		inRes: inRes, idx: idx,
+		inRes: inRes, idx: idx, bodyIDs: bodyIDs,
 	}
 	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceEntryOrder,
 		ev: posed.ev, cands: posed.cands, player: posed.player,
@@ -215,12 +437,15 @@ func (e *Engine) entryCounterOrderParks(ev events.Event) bool {
 	if e.entryETBChoiceOutstanding(ev) {
 		return false
 	}
-	grants := e.entryCounterGrants(ev)
-	if len(grants) == 0 {
+	if len(e.entryCounterGrants(ev)) == 0 && !e.entryBodyCandidates(ev) {
 		return false
 	}
 	preview, entrant := e.entryPreview(ev)
 	if o := preview.G.Obj(entrant); o == nil || o.Zone != state.ZBattlefield {
+		return false
+	}
+	grants, bodyIDs := e.entryGrantPlan(ev, preview, entrant)
+	if len(grants) == 0 {
 		return false
 	}
 	n0 := len(preview.replChoices)
@@ -228,7 +453,7 @@ func (e *Engine) entryCounterOrderParks(ev events.Event) bool {
 	if park < 0 {
 		return false
 	}
-	return e.stageEntryCounterOrder(ev, preview, n0, grants, placed, park, e.resolvingObj != 0)
+	return e.stageEntryCounterOrder(ev, preview, n0, grants, placed, park, e.resolvingObj != 0, bodyIDs)
 }
 
 // resumeEntryCounterOrder answers one staged competition: the chosen body
@@ -291,14 +516,14 @@ func (e *Engine) resumeEntryCounterOrder(rc replChoice, idx int) {
 		if park < 0 {
 			break
 		}
-		if !e.stageEntryCounterOrder(st.move, preview, n0, st.grants, st.placed, j+park, st.inRes) {
+		if !e.stageEntryCounterOrder(st.move, preview, n0, st.grants, st.placed, j+park, st.inRes, st.bodyIDs) {
 			continue
 		}
 		// stageEntryCounterOrder built a fresh stage for the new park; graft
-		// the accumulated placement onto it so the next resume continues
-		// this entry rather than starting over.
+		// the accumulated placement AND the absorbed-body set onto it so the
+		// next resume continues this entry rather than starting over.
 		fresh := e.replChoices[len(e.replChoices)-1].stage
-		fresh.placed = st.placed
+		fresh.placed, fresh.bodyIDs = st.placed, st.bodyIDs
 		return
 	}
 	st.complete = true
@@ -313,19 +538,20 @@ func (e *Engine) resumeEntryCounterOrder(rc replChoice, idx int) {
 // payload (MoveZone, TokenCreate or CardToken): events.Apply installs them IN
 // the entry, before any observer runs. CounterChange records after the entry
 // are notification-only: they do not place counters twice on replay.
-func (e *Engine) foldEntryMove(ev events.Event) events.Event {
+func (e *Engine) foldEntryMove(ev events.Event) (events.Event, []string) {
 	if st := e.entryStageDone; st != nil && st.complete && st.sameEntryMove(ev) {
 		e.entryStageDone = nil
-		return e.foldEntryWithPlaced(ev, st.placed)
+		return e.foldEntryWithPlaced(ev, st.placed), st.bodyIDs
 	}
-	grants := e.entryCounterGrants(ev)
-	if len(grants) == 0 {
-		return events.Emit(e.G, e.L, ev)
+	intrinsic := e.entryCounterGrants(ev)
+	if len(intrinsic) == 0 && !e.entryBodyCandidates(ev) {
+		return events.Emit(e.G, e.L, ev), nil
 	}
 	preview, entrant := e.entryPreview(ev)
 	if o := preview.G.Obj(entrant); o == nil || o.Zone != state.ZBattlefield {
-		return events.Emit(e.G, e.L, ev)
+		return events.Emit(e.G, e.L, ev), nil
 	}
+	grants, bodyIDs := e.entryGrantPlan(ev, preview, entrant)
 	placed, park := preview.settleEntryGrants(entrant, grants)
 	if park >= 0 {
 		// Residual: only reachable where the emit pre-pass does not run --
@@ -333,13 +559,14 @@ func (e *Engine) foldEntryMove(ev events.Event) events.Event {
 		// CardToken mint. There the ordinary counter path owns its park and
 		// resume, and the placements follow the move (the pre-staging
 		// behaviour this task's pre-pass replaces for ordinary entries).
+		// No body is absorbed here: its own placement run owns the park.
 		stored := events.Emit(e.G, e.L, ev)
-		for _, grant := range grants {
+		for _, grant := range intrinsic {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: entrant, Counter: grant.Kind, Amount: grant.Amount})
 		}
-		return stored
+		return stored, nil
 	}
-	return e.foldEntryWithPlaced(ev, placed)
+	return e.foldEntryWithPlaced(ev, placed), bodyIDs
 }
 
 // foldEntryWithPlaced folds the entry move with the finalized grant amounts
@@ -348,7 +575,7 @@ func (e *Engine) foldEntryMove(ev events.Event) events.Event {
 // trig:CounterAdded and the per-turn ledger see the placement exactly once.
 func (e *Engine) foldEntryWithPlaced(ev events.Event, placed []events.EntryCounterGrant) events.Event {
 	for _, g := range placed {
-		ev.Pairs = append(ev.Pairs, events.EntryCounterPair(g))
+		ev.Pairs = append(ev.Pairs, events.EntryCounterPairs(g)...)
 	}
 	stored := events.Emit(e.G, e.L, ev)
 	entrant := ev.Obj

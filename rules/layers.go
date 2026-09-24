@@ -551,11 +551,22 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// queue and a replayed one mint the same stack object. A
 						// self-grant degenerates to the affected object; a body that
 						// fails to parse grants nothing.
-						if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
-							if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
-								gt := base
-								gt.AddTrigger = &t
-								out = append(out, gt)
+						if raw := strings.TrimSpace(st.Params["AddTrigger"]); raw != "" {
+							// The value may name SEVERAL SVar triggers joined by Forge's
+							// " & " separator (Mirror Shield's TrigBlocks &
+							// TrigBecomeBlocked). Split through the ONE exported grammar
+							// helper the K:Class: grant path also uses -- reading the
+							// whole value as one name would look up a nil SVar and
+							// silently grant nothing. Order is the value's left-to-right
+							// order, so replay is deterministic; each name still fails
+							// closed on its own (a missing or unparseable body grants
+							// nothing, and no longer suppresses its valid sibling).
+							for _, name := range cards.SplitGrantNames(raw) {
+								if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
+									gt := base
+									gt.AddTrigger = &t
+									out = append(out, gt)
+								}
 							}
 						}
 						// A named-variable grant (Sword of Fire and Ice): AddSVar$ names an SVar
@@ -3660,14 +3671,16 @@ func counterKindMatches(restriction, kind string) bool {
 // attackDutyDischargeable gate (CR 508.1d's "if able").
 //
 // A face static's conditional parameter family is read here (task
-// combatres-cantattack): continuousGateHolds evaluates CheckSVar$/
-// SVarCompare$/Condition$ and UnlessDefenderHolds evaluates UnlessDefender$
-// against the defender (the creature may attack exactly when the defended
-// player satisfies the predicate), so a line carrying them is ENFORCED, not
-// skipped. A static carrying any OTHER parameter still fails
-// CantAttackParamsReadableForRules and is skipped whole -- the deliberate
-// permissive direction, so a gate this build cannot evaluate never becomes
-// an unconditional restriction.
+// combatres-cantattack, extended by combatres-cantattack-present):
+// continuousGateHolds evaluates ClassBand$, the IsPresent$/IsPresent2$ +
+// PresentCompare$ count family (PresentZone$ Battlefield/Graveyard/Exile/Hand/
+// Stack; see countStaticPresent), CheckSVar$/SVarCompare$/Condition$, and
+// UnlessDefenderHolds evaluates UnlessDefender$ against the defender (the
+// creature may attack exactly when the defended player satisfies the
+// predicate), so a line carrying them is ENFORCED, not skipped. A static
+// carrying any OTHER parameter still fails CantAttackParamsReadableForRules and
+// is skipped whole -- the deliberate permissive direction, so a gate this
+// build cannot evaluate never becomes an unconditional restriction.
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {

@@ -294,6 +294,14 @@ func (e *Engine) checkStateBased() {
 			}
 			return
 		}
+		// CR 704.5k: the world rule. Deterministic -- it poses no choice, so
+		// it sits with the other automatic SBAs rather than on the parked-
+		// batch channel the legend rule uses. It runs only once no legend
+		// batch is parked (the halt above), so a pass that parks a legend ask
+		// settles it before applying the world rule on the answer's next pass.
+		if e.worldRule() {
+			changed = true
+		}
 		if e.planeswalkerZeroLoyalty(tried) {
 			changed = true
 		}
@@ -591,6 +599,128 @@ func legendaryUnderLayers(e *Engine, id state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// worldUnderLayers reports whether the object's DERIVED type list still
+// carries the World supertype. "World" is a characteristic the layer system
+// can change (CR 613.1c AddTypes$/RemoveCardTypes$ at layer 4), so the world
+// rule reads the derived list exactly as the legend rule reads Legendary -- a
+// printed World permanent whose layers stripped the supertype is not a World
+// permanent for CR 704.5k, and a printed non-World permanent a layer-4 effect
+// granted it to is.
+func worldUnderLayers(e *Engine, id state.ObjID) bool {
+	for _, t := range e.typeCharacteristics(id, 0) {
+		if strings.EqualFold(t, "World") {
+			return true
+		}
+	}
+	return false
+}
+
+// worldPermanents returns every permanent on the battlefield that carries the
+// World supertype, GLOBALLY across all controllers, in a deterministic order:
+// seat order (AliveFrom(0)), then each seat's battlefield zone in scan order.
+// CR 704.5k's scope is global -- the rule counts every world permanent, not
+// just one controller's -- and the departure order must not depend on a map
+// iteration, so the result is one flat slice in that fixed order.
+func (e *Engine) worldPermanents() []state.ObjID {
+	var out []state.ObjID
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			if !worldUnderLayers(e, id) {
+				continue
+			}
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// worldRule applies CR 704.5k: "If two or more permanents have the supertype
+// world, all except the one that has had the world supertype for the shortest
+// amount of time are put into their owners' graveyards. In the event of a tie
+// for the shortest amount of time, all are put into their owners'
+// graveyards."
+//
+// The rule poses NO choice -- unlike the CR 704.5j legend rule it is fully
+// deterministic -- so it is an automatic SBA, not a parked ask. It is called
+// directly from checkStateBased's pass loop (beside planeswalkerZeroLoyalty),
+// not through a tried-set batch helper: it reads the whole battlefield every
+// pass and converges because each call leaves at most one World permanent, so
+// the next pass sees <2 and returns false. It does not consume the same-pass
+// lethal casualties the tried-set batches carry, because a World enchantment
+// is almost never a lethal casualty and nothing about CR 704.5k depends on it.
+// With fewer than two world permanents it falls through false. Otherwise it
+// finds the YOUNGEST permanent(s) by entry order: Object.Timestamp is assigned from
+// Game.Clock on every battlefield entry and increases monotonically, so the
+// greatest Timestamp is the most recently entered permanent, the one that has
+// had the world supertype for the shortest amount of time. If exactly one
+// permanent holds the maximum it survives and every other world permanent is
+// put into its owner's graveyard; a tie for the maximum (two permanents that
+// entered at the same instant, so neither has held it longer) puts ALL of them
+// into their owners' graveyards.
+//
+// APPROXIMATION (recorded in the commit message and the ticket report, not in
+// AGENTS.md): the engine tracks when a permanent ENTERED, not when it gained
+// the world supertype. For the printed World permanents the two coincide (they
+// have the supertype as they enter); a layer-4 effect that GRANTS World to an
+// older permanent makes "shortest amount of time" really mean "most recently
+// granted", which would need a supertype-gain timestamp the engine does not
+// record. Entry order is therefore the honest stand-in, and the tie case still
+// fires exactly as the CR requires.
+//
+// The departures are placements, not destruction: an ordinary MoveZone
+// battlefield->graveyard with Text "world rule", so no regeneration or
+// destruction-replacement applies (the same treatment the legend rule gives
+// its non-kept members).
+func (e *Engine) worldRule() bool {
+	worlds := e.worldPermanents()
+	if len(worlds) < 2 {
+		return false
+	}
+	newest := worlds[0]
+	newestCount := 0
+	for _, id := range worlds {
+		o := e.G.Obj(id)
+		n := e.G.Obj(newest)
+		switch {
+		case o.Timestamp > n.Timestamp:
+			newest, newestCount = id, 1
+		case o.Timestamp == n.Timestamp:
+			newestCount++
+		}
+	}
+	// A unique youngest survives; a tie for the youngest spares none. Every
+	// permanent that is not the unique survivor departs, in the deterministic
+	// scan order worldPermanents established.
+	//
+	// CR 704.3/603.10a: every departure in this simultaneous batch observes the
+	// SAME pre-departure board, including sources already serialized into the
+	// graveyard -- exactly the snapshot discipline destroyLethalDamage,
+	// planeswalkerZeroLoyalty and battleZeroDefense follow. Without it a
+	// departing World permanent's leaves-the-battlefield trigger is matched
+	// against the live board and misses a sibling's simultaneous departure
+	// (3 queued triggers where CR 603.10a requires 4 when two World permanents
+	// tie and both depart; TestWorldRuleTieSendsAllUsesPreDepartureBoard pins
+	// it). The snapshot never receives mutations and the log retains ordinary
+	// MoveZone events.
+	before := e.triggerBefore
+	e.triggerBefore = e.snapshotTriggerBoard()
+	defer func() { e.triggerBefore = before }()
+	changed := false
+	for _, id := range worlds {
+		if newestCount == 1 && id == newest {
+			continue
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "world rule"})
+		changed = true
+	}
+	return changed
 }
 
 // chooseLegend is the CR 704.5j legend-rule controller choice (rules/sba.go),

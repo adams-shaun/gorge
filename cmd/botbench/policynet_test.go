@@ -11,7 +11,11 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
+
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/seat"
 
 	"github.com/adams-shaun/gorge/internal/policynet"
 )
@@ -73,6 +77,39 @@ func TestPolicynetCheckpointFlagValidation(t *testing.T) {
 		200, 20000, ".cards", "", false, false, "", 0, 0, "", "", "", "", bad)
 	if code == 0 {
 		t.Error("a drifted checkpoint must exit non-zero")
+	}
+}
+
+// TestPolicynetKindsFlagValidation pins -policynet-kinds' front door: an
+// unknown or repeated kind is refused, the flag is refused without a
+// policynet side, and the validated default is attackers only (the default
+// seat, byte for byte).
+func TestPolicynetKindsFlagValidation(t *testing.T) {
+	defer func(arg string, given bool, kinds []decision.Kind) {
+		policynetKindsArg, policynetKindsGiven, policynetKinds = arg, given, kinds
+	}(policynetKindsArg, policynetKindsGiven, policynetKinds)
+
+	if !slices.Equal(policynetKinds, []decision.Kind{decision.KAttackers}) || policynetKindsArg != "attackers" {
+		t.Fatalf("default -policynet-kinds = %q / %v, want attackers only", policynetKindsArg, policynetKinds)
+	}
+	ck := writeZeroCheckpoint(t)
+	for _, bad := range []string{"blocker", "attackers,attackers", "attackers,", ""} {
+		policynetKindsArg, policynetKindsGiven = bad, true
+		code := mainExit("policynet", "bot", 1, 0, 2, 0, "mono-red-goblins:mono-blue-tempo", "constructed", "text", 0,
+			200, 20000, ".cards", "", false, false, "", 0, 0, "", "", "", "", ck)
+		if code == 0 {
+			t.Errorf("-policynet-kinds %q must exit non-zero", bad)
+		}
+	}
+	policynetKindsArg, policynetKindsGiven = "attackers,priority", true
+	code := mainExit("bot", "bot", 1, 0, 2, 0, "mono-red-goblins:mono-blue-tempo", "constructed", "text", 0,
+		200, 20000, ".cards", "", false, false, "", 0, 0, "", "", "", "", "")
+	if code == 0 {
+		t.Error("-policynet-kinds without a policynet side must exit non-zero")
+	}
+	kinds, err := seat.ParsePolicyNetKinds("attackers, priority")
+	if err != nil || !slices.Equal(kinds, []decision.Kind{decision.KAttackers, decision.KPriority}) {
+		t.Errorf("ParsePolicyNetKinds(attackers, priority) = %v, %v", kinds, err)
 	}
 }
 
