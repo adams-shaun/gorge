@@ -242,17 +242,22 @@ func TestDigUntilShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan(t *testing.T
 // --- NoMoveFound$ / FoundLibraryPosition$ -------------------------------
 
 // TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary: the found card is not
-// moved to its destination and, at FoundLibraryPosition$ 0, stays on top with
-// no event; the revealed rest still take RevealedDestination$.
+// moved to its (non-library) destination and stays on top with no event; the
+// revealed rest still take RevealedDestination$.
 func TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary(t *testing.T) {
 	h, _, ids := riderBoard(t, riderLand, riderHalo, riderLand)
 	if o := h.g.Obj(ids[1]); o.Zone != state.ZLibrary {
 		t.Fatalf("precondition: found Aura is not in the library: %s", o.Zone)
 	}
+	// FoundDestination$ Hand is deliberately NOT the library: without the
+	// rider the found card would move, so the assertion below can fail.
 	Resolve(h, &Ctx{Controller: 0},
-		sa(t, "SP$ DigUntil | Valid$ Aura | NoMoveFound$ True | FoundDestination$ Library | FoundLibraryPosition$ 0 | RevealedDestination$ Graveyard"))
+		sa(t, "SP$ DigUntil | Valid$ Aura | NoMoveFound$ True | FoundDestination$ Hand | FoundLibraryPosition$ 0 | RevealedDestination$ Graveyard"))
 	if o := h.g.Obj(ids[1]); o.Zone != state.ZLibrary {
 		t.Fatalf("found Aura zone = %s, want library (NoMoveFound$ True)", o.Zone)
+	}
+	if o := h.g.Obj(ids[1]); o.Zone == state.ZHand {
+		t.Fatal("found Aura reached FoundDestination$ Hand: NoMoveFound$ True was ignored")
 	}
 	if riderMoved(h, ids[1]) {
 		t.Fatal("NoMoveFound$ True emitted a move for the found card")
@@ -437,5 +442,127 @@ func TestDigUntilRidersEmitOnceAcrossTheOptionalAsk(t *testing.T) {
 	}
 	if imp := riderImprints(h, src)[0]; len(imp.IDs) != 1 || imp.IDs[0] != ids[1] {
 		t.Fatalf("Imprint payload = %v, want the found Aura [%d]", imp.IDs, ids[1])
+	}
+}
+
+// --- Real-carrier coverage: kindred_summons, empty_the_laboratory,
+// tunnel_vision ----------------------------------------------------------
+
+const (
+	riderBearCreature = "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	riderZombie       = "Name:Zombie\nTypes:Creature Zombie\nPT:2/2\nOracle:x\n"
+	riderRing         = "Name:Ring\nTypes:Artifact\nOracle:x\n"
+)
+
+// TestDigUntilKindredSummonsAmountSVarCountsChosenTypeCreatures drives the
+// REAL Kindred Summons DBDigUntil SA (Amount$ X,
+// SVar:X:Count$Valid Creature.ChosenType+YouCtrl): with two chosen-type
+// creatures controlled, the scan must find TWO, not one.
+func TestDigUntilKindredSummonsAmountSVarCountsChosenTypeCreatures(t *testing.T) {
+	_, sa, svars := corpusRiderSA(t, "Kindred Summons", "DBDigUntil")
+	if sa.API != "DigUntil" || sa.Params["Amount"] != "X" {
+		t.Fatalf("precondition: Kindred Summons DBDigUntil = API %q Amount %q, want DigUntil/X", sa.API, sa.Params["Amount"])
+	}
+	h, src, ids := riderBoard(t, riderBearCreature, riderBearCreature, riderBearCreature, riderLand)
+	// The chosen creature type lives on the resolving source; two Bears on
+	// seat 0's battlefield make the tally 2.
+	h.g.Obj(src).ChosenType = "Bear"
+	b1 := h.g.AddObject(mkCard(t, riderBearCreature), 0).ID
+	b2 := h.g.AddObject(mkCard(t, riderBearCreature), 0).ID
+	h.g.SetZone(state.ZBattlefield, 0, []state.ObjID{src, b1, b2})
+	c := &Ctx{Controller: 0, Source: src, SVars: svars}
+	if n, ok := EvalCountOK(h, c, "Valid Creature.ChosenType+YouCtrl"); !ok || n != 2 {
+		t.Fatalf("precondition: chosen-type creature count = (%d,%v), want (2,true)", n, ok)
+	}
+	Resolve(h, c, sa)
+	for _, want := range []state.ObjID{ids[0], ids[1]} {
+		if o := h.g.Obj(want); o.Zone != state.ZBattlefield {
+			t.Fatalf("found Bear %d zone = %s, want battlefield (Amount$ X = 2, not 1)", want, o.Zone)
+		}
+	}
+	if o := h.g.Obj(ids[2]); o.Zone != state.ZLibrary {
+		t.Fatalf("third Bear zone = %s, want library (the scan stops after two matches)", o.Zone)
+	}
+	if got := len(riderShuffles(h, 0)); got != 1 {
+		t.Fatalf("Shuffle events = %d, want 1 (Kindred Summons' Shuffle$ True)", got)
+	}
+}
+
+// TestDigUntilEmptyTheLaboratoryAmountSVarCountsRemembered drives the REAL
+// Empty the Laboratory DBDigUntil SA (Amount$ Y, SVar:Y:Remembered$Amount):
+// the number of Zombies found must equal the sacrificed-and-remembered count.
+func TestDigUntilEmptyTheLaboratoryAmountSVarCountsRemembered(t *testing.T) {
+	_, sa, svars := corpusRiderSA(t, "Empty the Laboratory", "DBDigUntil")
+	if sa.API != "DigUntil" || sa.Params["Amount"] != "Y" {
+		t.Fatalf("precondition: Empty the Laboratory DBDigUntil = API %q Amount %q, want DigUntil/Y", sa.API, sa.Params["Amount"])
+	}
+	h, src, ids := riderBoard(t, riderZombie, riderZombie, riderZombie, riderLand)
+	rem1 := h.g.AddObject(mkCard(t, riderZombie), 0).ID
+	rem2 := h.g.AddObject(mkCard(t, riderZombie), 0).ID
+	c := &Ctx{Controller: 0, Source: src, SVars: svars, Remembered: []state.Target{{Obj: rem1}, {Obj: rem2}}}
+	if n, ok := EvalCountOK(h, c, "Remembered$Amount"); !ok || n != 2 {
+		t.Fatalf("precondition: Remembered$Amount = (%d,%v), want (2,true)", n, ok)
+	}
+	Resolve(h, c, sa)
+	for _, want := range []state.ObjID{ids[0], ids[1]} {
+		if o := h.g.Obj(want); o.Zone != state.ZBattlefield {
+			t.Fatalf("found Zombie %d zone = %s, want battlefield (Amount$ Y = 2, not 1)", want, o.Zone)
+		}
+	}
+	if o := h.g.Obj(ids[2]); o.Zone != state.ZLibrary {
+		t.Fatalf("third Zombie zone = %s, want library (the scan stops after two matches)", o.Zone)
+	}
+}
+
+// TestDigUntilTunnelVisionNoneFoundShufflesAndKeepsLibrary drives the REAL
+// Tunnel Vision FindThePrecious SA (NoMoveFound$ True, NoneFoundDestination$
+// Library, Shuffle$ True, ShuffleCondition$ NoneFound) through both branches:
+// a named card that is not in the library keeps the revealed cards in the
+// library and shuffles; one that is found stays put and does not shuffle.
+func TestDigUntilTunnelVisionNoneFoundShufflesAndKeepsLibrary(t *testing.T) {
+	_, sa, svars := corpusRiderSA(t, "Tunnel Vision", "FindThePrecious")
+	if sa.API != "DigUntil" || sa.Params["NoMoveFound"] != "True" || sa.Params["ShuffleCondition"] != "NoneFound" {
+		t.Fatalf("precondition: FindThePrecious = API %q NoMoveFound %q ShuffleCondition %q, want DigUntil/True/NoneFound",
+			sa.API, sa.Params["NoMoveFound"], sa.Params["ShuffleCondition"])
+	}
+	// Nothing named: the whole library is revealed, stays in the library (the
+	// NoneFoundDestination$ Library override) and the library shuffles.
+	h, src, _ := riderBoard(t)
+	h.g.Obj(src).ChosenName = "Ring"
+	var lib []state.ObjID
+	for range 4 {
+		lib = append(lib, h.g.AddObject(mkCard(t, riderLand), 1).ID)
+	}
+	h.g.SetZone(state.ZLibrary, 1, lib)
+	Resolve(h, &Ctx{Controller: 0, Source: src, SVars: svars,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}, sa)
+	if got := len(riderShuffles(h, 1)); got != 1 {
+		t.Fatalf("Shuffle events = %d, want 1 (ShuffleCondition$ NoneFound with nothing found)", got)
+	}
+	for _, id := range lib {
+		if o := h.g.Obj(id); o.Zone != state.ZLibrary {
+			t.Fatalf("revealed card %d zone = %s, want library (NoneFoundDestination$ Library)", id, o.Zone)
+		}
+	}
+	// Found: the named card is not moved (NoMoveFound$ True) and no shuffle
+	// runs under ShuffleCondition$ NoneFound.
+	h2, src2, _ := riderBoard(t)
+	h2.g.Obj(src2).ChosenName = "Ring"
+	other := h2.g.AddObject(mkCard(t, riderLand), 1).ID
+	ring := h2.g.AddObject(mkCard(t, riderRing), 1).ID
+	h2.g.SetZone(state.ZLibrary, 1, []state.ObjID{other, ring})
+	Resolve(h2, &Ctx{Controller: 0, Source: src2, SVars: svars,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}, sa)
+	if o := h2.g.Obj(ring); o.Zone != state.ZLibrary {
+		t.Fatalf("found named card zone = %s, want library (NoMoveFound$ True)", o.Zone)
+	}
+	if riderMoved(h2, ring) {
+		t.Fatal("NoMoveFound$ True emitted a move for the found card")
+	}
+	if got := len(riderShuffles(h2, 1)); got != 0 {
+		t.Fatalf("Shuffle events = %d, want 0 when the named card was found", got)
+	}
+	if o := h2.g.Obj(other); o.Zone != state.ZGraveyard {
+		t.Fatalf("revealed rest zone = %s, want graveyard (RevealedDestination$ Graveyard)", o.Zone)
 	}
 }
