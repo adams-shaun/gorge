@@ -2798,15 +2798,9 @@ var knownUnsupportedParams = map[string][]string{
 	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
 	"Conjurer's Mantle":            {"param:api:Dig.RestRandomOrder"},
 	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
-	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted
-	// when the ChangeZone AttachedTo$ read landed (effects/zone.go
-	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
-	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
-	// unread.
-	"Gift of Immortality":       {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":   {"param:trig:DamageDoneOnce.FirstTime"},
-	"Haakon, Stromgald Scourge": {"param:stat:Continuous.MayPlay.ValidAfterStack"},
-	"Heroic Return":             {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Hercules, Olympian Hero":      {"param:trig:DamageDoneOnce.FirstTime"},
+	"Haakon, Stromgald Scourge":    {"param:stat:Continuous.MayPlay.ValidAfterStack"},
+	"Heroic Return":                {"param:api:ChangeZone.ValidTgtsDesc"},
 	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
 	// when the CounterType$ EachFromSource copy-each-kind shape was read
 	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --

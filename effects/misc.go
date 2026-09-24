@@ -299,6 +299,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	// Capture the effect's own subjects before discarding older source memory.
+	forgetOtherRemembered(h, c, sa)
 	if imprintOnHost && len(remembered) > 0 {
 		// ImprintOnHost$ retains the objects captured by this Effect on its
 		// host card. Keep the association event-backed so replay and later

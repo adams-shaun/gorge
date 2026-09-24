@@ -424,6 +424,8 @@ func chooseEachPool(g *state.Game, c *Ctx, pool []state.Target, chooser state.Pl
 
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	choosers := choiceChoosers(h, c, sa)
+	selection := *c // candidate filters read the pre-clear remembered set
+	forgetOtherRemembered(h, c, sa)
 	// Reveal$ True (Planetary Annihilation's "each player chooses six lands
 	// they keep" is public knowledge — CR 701.x's open choice): each chooser's
 	// ANSWERED choice is revealed to every seat with the same ids-Note
@@ -486,9 +488,9 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	total := len(choosers) * groups
 	for ; i < total; i++ {
 		chooser := choosers[i/groups]
-		choices := cardChoices(h, c, sa, chooser)
+		choices := cardChoices(h, &selection, sa, chooser)
 		if each != nil {
-			choices = chooseEachPool(h.Game(), c, choices, chooser, each[i%groups])
+			choices = chooseEachPool(h.Game(), &selection, choices, chooser, each[i%groups])
 		}
 		// A card whose own power exceeds the budget can never be picked,
 		// however few are taken (effDig's `affordable` rule): narrow the pool
