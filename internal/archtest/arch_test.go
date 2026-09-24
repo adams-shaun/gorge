@@ -93,6 +93,11 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 		module + "/cmd/searchteacher": true,
 		module + "/cmd/cardfuzz":      true,
 		module + "/cmd/exitloop":      true,
+		// cmd/traindash (7aa36330e, the live read-only dashboard over PPO
+		// training runs) reads the clock for its scan cache (mtime+size
+		// freshness), its LastModified/Generated fields and the -since live
+		// window; no game, label, checkpoint or report input reads it.
+		module + "/cmd/traindash": true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {
