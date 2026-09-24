@@ -3487,6 +3487,11 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>", nil},
 		{"ExiledMoveToGrave<2/Card.OppOwn>", nil},
 		{"ExiledMoveToGrave<99999999999999999999/Creature>", []string{"ExiledMoveToGrave"}},
+		// XMin<N> (task cost-xmin1) is the announced-X LOWER BOUND, "X can't
+		// be 0": modelled as Cost.XMin with no phantom generic pip and no
+		// Unknown entry, for both corpus values (XMin1 and XMin4).
+		{"XMin1 X", nil},
+		{"XMin4", nil},
 		{"", nil},
 	}
 	for _, tc := range cases {
