@@ -140,11 +140,11 @@ func (e *Engine) entryBodyCandidates(ev events.Event) bool {
 
 // entryBodyKindEncodable reports whether a PutCounter|ETB$ True body's
 // counter kind can be folded into the entry move. The MoveZone Pairs payload
-// is a fixed-index tag (events.EntryCounterKindEncodable), so a kind it
-// cannot carry -- a Class's LEVEL, an artifact Sunburst's CHARGE, the OIL and
-// M1M1 families -- must stay with the body's own placement: absorbing it
-// would silently drop the counters, since EntryCounterPair emits an
-// unencodable kind as a zero tag that applyEntryCounterPairs skips.
+// carries the four table kinds by fixed index and every other kind by a
+// length-prefixed UTF-8 payload (events.EntryCounterPairs), so any non-empty
+// kind the parser produces is encodable and may be absorbed. It stays a named
+// gate so the absorption walk and the cheap pre-pass read one predicate, and
+// so an empty kind (a body the parser could not name) still fails closed.
 func entryBodyKindEncodable(sa *cards.SA) bool {
 	if sa == nil {
 		return false
@@ -564,7 +564,7 @@ func (e *Engine) foldEntryMove(ev events.Event) (events.Event, []string) {
 // trig:CounterAdded and the per-turn ledger see the placement exactly once.
 func (e *Engine) foldEntryWithPlaced(ev events.Event, placed []events.EntryCounterGrant) events.Event {
 	for _, g := range placed {
-		ev.Pairs = append(ev.Pairs, events.EntryCounterPair(g))
+		ev.Pairs = append(ev.Pairs, events.EntryCounterPairs(g)...)
 	}
 	stored := events.Emit(e.G, e.L, ev)
 	entrant := ev.Obj

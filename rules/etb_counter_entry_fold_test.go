@@ -109,50 +109,111 @@ func entryLabelHas(label, want string) bool {
 	return false
 }
 
-// etbCounterEntryCharge is a real K:etbCounter carrier whose kind (CHARGE)
-// the frozen MoveZone Pairs tag cannot encode. Its placement must stay on
-// the body path -- absorbing it would drop the counters silently, since
-// events.EntryCounterPair emits an unencodable kind as a zero tag.
-func etbCounterEntryCharge(t testing.TB) *cards.Card {
+// etbCounterEntryChargeReader is a real K:etbCounter carrier whose kind
+// (CHARGE) is not one of the fixed-index table kinds, plus the brief's ETB
+// observer: it draws one card per charge counter on it, so the log records
+// exactly what an ETB observer saw at entry. The historic Pairs tag could
+// not encode CHARGE, so this entry used to stay on the body path. The general
+// payload form (events.EntryCounterPairs) folds it like any P1P1 grant.
+func etbCounterEntryChargeReader(t testing.TB) *cards.Card {
 	return card(t, "Name:Entry Charge\nTypes:Artifact\n"+
 		"K:etbCounter:CHARGE:2:no Condition:CARDNAME enters with two charge counters on it.\n"+
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ When CARDNAME enters, draw a card for each charge counter on it.\n"+
+		"SVar:TrigDraw:DB$ Draw | NumCards$ Count$CardCounters.CHARGE\n"+
 		"Oracle:x\n")
 }
 
-// TestEtbCounterNonEncodableKindStaysOnBodyPath locks the absorption gate:
-// a counter kind the MoveZone Pairs payload cannot carry (CHARGE) is placed
-// by its own body, not folded and lost. The entry move therefore carries no
-// counter pair, and the real CounterChange is the placement.
-func TestEtbCounterNonEncodableKindStaysOnBodyPath(t *testing.T) {
-	cre := etbCounterEntryCharge(t)
-	e, cfg := tokenReplGame(t, 421, cre)
-	e.SetCounterAdder(0)
-	cid := moveSeededCard(t, e, 0, cre, state.ZBattlefield)
-	o := e.G.Obj(cid)
-	if o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("precondition: artifact not on the battlefield: %+v", o)
+// TestEtbCounterNonP1P1KindFoldsIntoMove is the consolidated acceptance's
+// non-P1P1 half: a real K:etbCounter:CHARGE carrier's counters are present in
+// the entry MoveZone fold, so its ETB observer sees them and the log replays.
+// The competing pair (Winding Constrictor, Doubling Season) replaces ANY
+// counter kind on an artifact or permanent, so unlike the P1P1 +1/+1 pair it
+// actually contests a CHARGE placement and parks the CR 616.1 order ask: the
+// entry must not fold, and the counters must still be in the move once the
+// answer finalizes the amount.
+func TestEtbCounterNonP1P1KindFoldsIntoMove(t *testing.T) {
+	constrictor := tokenReplCorpusCard(t, "Winding Constrictor")
+	season := tokenReplCorpusCard(t, "Doubling Season")
+
+	type tc struct {
+		name  string
+		board []*cards.Card
+		pick  string // CR 616.1 order option to submit ("" = none expected)
+		want  int32  // final CHARGE counters, and what the ETB observer must draw
 	}
-	if got := o.Counter("CHARGE"); got != 2 {
-		t.Fatalf("CHARGE entry counters = %d, want 2 (the body path must place them)", got)
+	for _, c := range []tc{
+		{name: "plain", want: 2},
+		{name: "winding-first", board: []*cards.Card{constrictor, season}, pick: "Winding Constrictor", want: 6},
+		{name: "season-first", board: []*cards.Card{constrictor, season}, pick: "Doubling Season", want: 5},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			cre := etbCounterEntryChargeReader(t)
+			deck := append(append([]*cards.Card{}, c.board...), cre)
+			e, cfg := tokenReplGame(t, 431, deck...)
+			for _, b := range c.board {
+				moveSeededCard(t, e, 0, b, state.ZBattlefield)
+			}
+			for _, b := range c.board {
+				name := b.Faces[0].Name
+				found := false
+				for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+					if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+						found = true
+					}
+				}
+				if !found {
+					t.Fatalf("precondition: %s not on the battlefield", name)
+				}
+			}
+			e.SetCounterAdder(0)
+			cid := moveSeededCard(t, e, 0, cre, state.ZHand)
+			if o := e.G.Obj(cid); o == nil || o.Zone != state.ZHand {
+				t.Fatal("precondition: artifact not in hand")
+			}
+			before := etbCounterEntryDraws(e, 0)
+			e.emit(events.Event{Kind: events.MoveZone, Obj: cid, From: state.ZHand, To: state.ZBattlefield})
+			if d := e.Pending(); d != nil && d.Kind == decision.KReplacement {
+				if c.pick == "" {
+					t.Fatalf("unexpected order ask: %+v", d)
+				}
+				etbCounterEntryAnswerOrder(t, e, cid, c.pick)
+			} else if c.pick != "" {
+				t.Fatalf("expected a CR 616.1 order ask naming %q, got %+v", c.pick, d)
+			}
+			e.Advance()
+			passUntilStackEmpty(t, e, 20)
+
+			o := e.G.Obj(cid)
+			if o == nil || o.Zone != state.ZBattlefield {
+				t.Fatalf("precondition: artifact not on the battlefield: %+v", o)
+			}
+			mv, ok := etbCounterEntryMove(e, cid)
+			if !ok {
+				t.Fatal("precondition: no entry MoveZone in the log")
+			}
+			if got := o.Counter("CHARGE"); got != c.want {
+				t.Fatalf("entry CHARGE counters = %d, want %d", got, c.want)
+			}
+			// The counters must be INSTALLED by the entry move's Pairs payload,
+			// not by a later real CounterChange.
+			if c.want > 0 && len(mv.Pairs) == 0 {
+				t.Fatalf("entry move carries no CHARGE counter grant: %+v", mv)
+			}
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.CounterChange && ev.Obj == cid && ev.Counter == "CHARGE" &&
+					ev.Amount > 0 && ev.Text != events.EntryCounterNotice {
+					t.Fatalf("CHARGE entry counter placed as a real event after the move: %+v", ev)
+				}
+			}
+			if !etbCounterEntryTriggered(e, cid) {
+				t.Fatal("precondition: the ETB trigger never fired")
+			}
+			if got := etbCounterEntryDraws(e, 0) - before; got != int(c.want) {
+				t.Fatalf("ETB trigger drew %d, want %d (it must see the entry CHARGE counters)", got, c.want)
+			}
+			replayCheck(t, e, cfg)
+		})
 	}
-	mv, ok := etbCounterEntryMove(e, cid)
-	if !ok {
-		t.Fatal("precondition: no entry MoveZone in the log")
-	}
-	if len(mv.Pairs) != 0 {
-		t.Fatalf("unencodable kind folded into the move (would be dropped): %+v", mv.Pairs)
-	}
-	real := false
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == cid && ev.Counter == "CHARGE" &&
-			ev.Amount > 0 && ev.Text != events.EntryCounterNotice {
-			real = true
-		}
-	}
-	if !real {
-		t.Fatal("no real CounterChange placed the CHARGE counters")
-	}
-	replayCheck(t, e, cfg)
 }
 
 // an object enters with from a real K:etbCounter line are present in the
