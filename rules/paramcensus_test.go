@@ -159,7 +159,7 @@ var baseBuckets = map[string]bucket{
 	// source.original is the attack window's choice-shaped mana source's
 	// compiled pile ability (attackManaSource.original, a *cards.SA like the
 	// bare "original" entry): the targeted-equip window probe (cast.go
-	// affordableTargetCandidates) re-prices its Produced$ against the chosen
+	// castWindowUnits) re-prices its Produced$ against the chosen
 	// colour, reading the same SA parameter map every bSA entry covers.
 	"source.original": bSA,
 	// spell.Ability is the stack object's resolved *cards.SA, checked before
@@ -1498,10 +1498,11 @@ var apiSpecificRulesSA = map[string][]string{
 	// api:Mana alone -- left in the generic union they mask every other API's
 	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
 	"Engine.attackChoiceManaSources": {"Mana"},
-	// affordableTargetCandidates folds choice-shaped mana sources into the
-	// targeted-equip payment-window reachability probe; its Produced$ read is
-	// over api:Mana sources only, not over the activated ability being priced.
-	"Engine.affordableTargetCandidates": {"Mana"},
+	// castWindowUnits folds choice-shaped mana sources into the cast-payment
+	// window reachability probe (affordableTargetCandidates' targeted-equip
+	// gate, striveAffordableTargets' hint); its Produced$ read is over
+	// api:Mana sources only, not over the spell or ability being priced.
+	"Engine.castWindowUnits": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -3464,7 +3465,10 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"PayLife<abc>", []string{"PayLife"}},
 		{"Sac</Creature>", []string{"Sac"}},
 		{"2 U U Sac<1/Creature>", nil},
-		{"AddCounter<1/M1M1>", []string{"AddCounter"}},
+		// A source-anchored AddCounter<N/KIND> is modelled (Wall of Roots);
+		// a chooser-anchored one is still the reported fallback.
+		{"AddCounter<1/M1M1>", nil},
+		{"AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>", []string{"AddCounter"}},
 		// The ExiledMoveToGrave family (the Eldrazi processor costs and
 		// Shelob, Dread Weaver's {2}{B} ability) is now MODELLED -- cards
 		// matching Spec move from exile to their owner's graveyard, with no
