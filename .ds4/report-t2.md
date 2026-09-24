@@ -1,3 +1,239 @@
+# fb-20260923T020655Z-232ca3dc — hand fan hover inspector + smoke-gate toss repair
+
+## Result
+
+The player bug is fixed and the two failures the round's findings named are
+repaired and independently verified. The remaining `make smoke` failure is a
+third, separate pre-existing CR 103.1 race (the rail log toggle), filed as
+`.ds4/new-tickets/smoke-log-toggle-toss-race.md`; it is not caused by this
+ticket's change.
+
+Two commits on `wt/fb-20260923T020655Z-232ca3dc`:
+
+- `86156024` `fix(web): keep hand-fan hover inspector open across a view refresh`
+  (round 1, reviewer-APPROVED) — the ticket deliverable.
+- `256c9c8f` `test(web): answer CR 103.1's toss ask in the smoke drive helpers`
+  (this round) — the minimal repair for the exact two failures in
+  `findings-t2.md`.
+
+## What changed and why (per file)
+
+### `web/src/components/HandFan.svelte` (commit `86156024`) — the fix
+
+Two hover-inspector gates compared `CardView` OBJECT IDENTITY, the only such
+gates left in the client:
+
+- line 208 (aria): `hover.show && hovered === c` → `hover.show && hovered?.id === c.id`
+- line 276 (panel): `{#if hover.show && hovered === c && anchor}` with
+  `<CardDetail card={hovered} …/>` → `{#if hover.show && hovered?.id === c.id && anchor}`
+  with `<CardDetail card={c} …/>`.
+
+`hovered` is captured once at pointer-enter/focus. Every live view refresh
+(`MatchState.refreshLive` → `setRenderedView`) replaces the rendered graph with
+a freshly deserialized one; the keyed each `{#each hand as c, i (c.id)}` keeps
+the DOM node but hands it a fresh `CardView` for the same id, so the identity
+gate flipped false and unmounted the panel while the pointer never left the
+element. Gating on id fixes the lifetime; rendering the fresh `c` (not the
+stale `hovered`) makes the open inspector show refreshed data, mirroring
+`CardTile`. `HoverCard`/`CardHover` semantics, the dwell, and the
+leave/blur/Escape closes are untouched. This is the round-1 deliverable and it
+was already committed; no change was needed this round.
+
+### `web/e2e/smoke.spec.ts` (commit `256c9c8f`) — the findings' smoke repair
+
+**This is an out-of-brief hunk and is called out as such.** The round's
+`findings-t2.md` is the smoke gate output: two tests failed —
+
+```
+✘  e2e/smoke.spec.ts:766:5 › … a card menu posts its own index … (R-E4-1)
+     Error: driveToCardOptionsWindow: did not reach a card-options window
+✘  e2e/smoke.spec.ts:1004:3 › … a wheel-answered stage-1 re-opens the stage-2 colour wheel …
+     Error: talisman fixture did not reach the Talisman activation window
+```
+
+Measured root cause: `1444363d feat(rules): the toss winner chooses who takes
+the first turn (CR 103.1)` (in `main`, merged here as `2444a679`) added
+`decision.KStartingPlayer`, and `host/match.go` poses it in every hosted game.
+The three smoke drive helpers predate it and only knew `priority`/`mulligan`,
+so both fixture games sat at the toss and the drives timed out. (The wheel1
+setup loop already has the generic cleanup `land ?? pass ?? d.options[0]`, which
+is why its shared fixture server got past the toss; the seat/R-E4-1, ui24 and
+talisman loops did not.)
+
+The change answers the toss with the first option, in the same three drivers:
+
+```ts
+} else if (d.kind === 'starting_player' && d.options.length > 0) {
+  choices = [d.options[0].index];
+}
+```
+
+and, in `driveToCardOptionsWindow` (which has no shared intent poster) a direct
+POST to `/intent` with the seat token, extending the inline wire type with
+`seq`/`player`. Nothing else in the driver logic changes.
+
+Scope note: the brief says touch only `HandFan.svelte` + its fixture/test files.
+The findings demanded this gate pass, and this hunk is the minimal, mechanical
+repair for exactly the two named failures; I judged the alternative (file a
+ticket and leave the gate red) worse for the pipeline. The third smoke failure
+(`a seated player sees the log hidden by default…`, the rail log toggle) is a
+separate pre-existing race and is filed, not fixed — see `## Issues`.
+
+## Verification
+
+Corpus: `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`
+(the worktree already had it; no `ln` was needed). `web/node_modules` was
+present as the prescribed hardlink copy.
+
+### Findings' two failures now pass
+
+Full smoke after the repair (`scripts/smoke.sh`, `.ds4/scratch/smoke3.log`):
+
+```
+✓  e2e/smoke.spec.ts:1025:3 › gorged [talisman] … (1.1s)
+-  e2e/smoke.spec.ts:783:5 › gorged [seated] … (R-E4-1)      <- blocked by test 7
+✓  e2e/smoke.spec.ts:1073:3 › gorged [ui24] … (R-E4-1) (3.2s)
+1 failed
+9 passed (40.0s)
+```
+
+Talisman passes where it was failing. The seated R-E4-1 test is the 8th in a
+`mode: 'serial'` describe and is skipped when test 7 fails, so it was verified
+in isolation against a fresh seated server (`.ds4/scratch/seat-re41.log`):
+
+```
+✓  1 e2e/smoke.spec.ts:783:5 › gorged [seated] seated 1v1 smoke › a card menu posts its own index, not a position in a rebuilt list (R-E4-1) (40.8s)
+1 skipped
+1 passed (41.1s)
+```
+
+Before the repair the same test failed in the findings with
+`driveToCardOptionsWindow: did not reach a card-options window`.
+
+### Targeted Done-means web test
+
+```
+$ cd web && npx vitest run src/components/HandFan.hover.test.ts src/components/HandFan.svelte.test.ts 2>&1 | tail -12
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  04:28:51
+   Duration  2.16s
+```
+
+### Web gates
+
+```
+$ cd web && npm test
+ Test Files  102 passed (102)
+      Tests  1292 passed (1292)
+   Duration  11.09s
+
+$ cd web && npm run build
+../cmd/gorged/webdist/assets/index-CCaLqbOm.js   272.26 kB │ gzip: 83.72 kB
+✓ built in 498ms
+
+$ cd web && npx svelte-check
+1790245713268 COMPLETED 501 FILES 0 ERRORS 1 WARNINGS 1 FILES_WITH_PROBLEMS
+```
+
+The single warning is the pre-existing `ResolvedCard.svelte:97` `anchorProp`
+capture warning, also present verbatim in `findings-t2.md`.
+
+### Go gates
+
+```
+$ gofmt -l .            # empty, exit 0
+$ go vet ./...          # empty, exit 0
+$ go run ./cmd/gentypes -check   # empty, exit 0
+$ go test ./internal/archtest/   # ok  … 1.827s (no allowlist edits)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  0.679s
+```
+
+No chain head or ratchet movement (web-only diff; no `rules/heads_test.go` or
+`knownUnsupported` change).
+
+## Fails without the fix
+
+### HandFan gate (`86156024`)
+
+`HandFan.svelte` copied to `.ds4/scratch/HandFan.svelte.bak`; the two gates
+restored to object identity (`hovered === c`, `card={hovered}`); ran the new
+browser test (`.ds4/scratch/mut-handfan.log`):
+
+```
+ FAIL  src/components/HandFan.hover.test.ts > … a live view refresh that rebuilds the hand with fresh objects keeps the open inspector on the same card
+AssertionError: expected false to be true // Object.is equality
+ ❯ src/components/HandFan.hover.test.ts:80:47
+     80|     expect(await stillConnected(page, panel)).toBe(true); // the very node survived
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+```
+
+The positive test fails on the same panel node unmounting; the two negative
+tests still pass (they do not depend on the id gate, as the round-1 MINOR
+noted). File restored byte-identically: `RESTORE_CMP=0`, `git diff HEAD --
+web/src/components/HandFan.svelte` empty.
+
+### Smoke drive helper (`256c9c8f`)
+
+`smoke.spec.ts` copied to `.ds4/scratch/smoke.spec.ts.bak`; the
+`driveTalismanUntil` toss branch removed; ran the talisman test against a fresh
+talisman server (`.ds4/scratch/mut-talis.log`):
+
+```
+✘  1 e2e/smoke.spec.ts:1021:3 › gorged [talisman] … (30.1s)
+    Error: talisman fixture did not reach the Talisman activation window
+1 failed
+```
+
+File restored byte-identically: `RESTORE_CMP=0`. With the branch present the
+same test passes (1.1s in `smoke3.log`). (Set up per the dispatch: copy, revert
+hunk, run the one test, confirm FAIL, restore, `cmp` — never `git stash` or
+`git checkout <path>`.)
+
+## Deviations from the brief
+
+- **`web/e2e/smoke.spec.ts` changed** (brief scope says HandFan files only).
+  Reason and blast radius above; it is the minimal repair for the two failures
+  `findings-t2.md` named. The remaining smoke failure is filed, not fixed.
+- **`make smoke` was run** even though it is not in Done-means: the findings
+  were the smoke gate output, so confirming the repair required it.
+- Everything else follows the brief: `HandList.svelte`, `HoverCard`,
+  `CardTile`, `Quadrant`, `board.ts`, `SeatPanel`, `PileModal`, the wire, the
+  catalog and every Go package are untouched.
+
+## Issues
+
+1. **`smoke.spec.ts:720` log-toggle test is a CR 103.1 toss race** — filed as
+   `.ds4/new-tickets/smoke-log-toggle-toss-race.md`. The rail
+   `[data-log-toggle]` renders only when the OPTIONS drop is absent
+   (`Table.svelte`), i.e. during the mulligan round / finished / spectator
+   states; the new `starting_player` toss now precedes the mulligan round, so a
+   freshly mounted seated game is at the toss (`mulligan === null`,
+   `controls !== null`) and the toggle is hidden. The test passes alone (0.9s)
+   and fails deterministically after the four preceding seated tests (20.8s).
+   Pre-existing: recorded failing in `.ds4/scratch/smoke.log`, run 1 of this
+   ticket before any of my edits.
+
+2. **`HandList.svelte:77` renders its inspector from the possibly-stale
+   `hovered` object** across a view refresh (brief's adjacent observation).
+   Left unchanged: id and names are stable, so there is no visible symptom
+   today. If a future hand-list field changes on refresh, the panel would show
+   the stale value.
+
+3. **Shared report-file churn (process, not product):** `.ds4/report-t1.md` in
+   the working tree holds this ticket's round-1 report while the committed
+   version holds other tickets' merged history, and `.ds4/report-t2.md` begins
+   with another ticket's report. This round appended its report to the top of
+   `report-t2.md` rather than overwrite the shared content.
+
+## Commit
+
+`256c9c8f` — smoke drive helpers (this round). `86156024` — the HandFan fix
+(round 1, approved).
+
+---
 # Report — agent-20260919T181318Z-86535368 (verification round)
 
 ## Result
