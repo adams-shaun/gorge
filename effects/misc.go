@@ -4674,29 +4674,39 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool)
 	return produced, false
 }
 
-// ManaProducerTag reads the producer-type provenance a positive mana
-// production carries: the Treasure/Cave/Desert tag word (state.TypedManaTags
-// order) when the producing permanent prints one of those types, else
-// snow=true when it prints the Snow supertype, else neither. It is the ONE
-// home for the tag read, shared by EVERY positive ManaAdd producer (the
-// acted AB$ Mana ability in effMana, the AB$ ManaReflected body in
-// effManaReflected -- both the activated ability's resolution and a
-// standalone DB$ ManaReflected -- and the cumulative-upkeep AddMana action
-// in rules/cumulative.go), so a producer type can never be
-// tagged on one path and missed on another. The Snow/typed combination is
-// unmeasured at the corpus pin (no producer prints both): a typed tag wins
-// the single Counter encoding, exactly as it did before this helper existed.
+// ManaProducerTag encodes producer provenance in one exclusive unit tag.
+// The Artifact bit composes with Treasure/Cave/Desert rather than replacing
+// their historical type: a Treasure Artifact emits ArtifactTreasure, while
+// Sol Ring emits Artifact. All mana producers use this same helper (effMana,
+// effManaReflected, and cumulative-upkeep AddMana). Snow/typed overlap is
+// unmeasured at the corpus pin and retains typed precedence.
 func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 	o := h.Game().Obj(source)
 	if o == nil || o.Face() == nil {
 		return "", false
 	}
+	artifact := false
+	for _, t := range o.Face().Types {
+		if t == "Artifact" {
+			artifact = true
+			break
+		}
+	}
 	for _, tagWord := range state.TypedManaTags {
+		if tagWord == "Artifact" {
+			continue
+		}
 		for _, t := range o.Face().Types {
 			if t == tagWord {
+				if artifact {
+					return "Artifact" + tagWord, false
+				}
 				return tagWord, false
 			}
 		}
+	}
+	if artifact {
+		return "Artifact", false
 	}
 	for _, t := range o.Face().Types {
 		if t == "Snow" {
@@ -4871,13 +4881,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// likewise tagged — Counter "<Tag><colour>" — into Player.TypedMana so
 	// the filtered Count$CastTotalManaSpent Treasure/Cave/Desert heads can
 	// read the per-unit producer provenance (Marut, Bat Colony, Cataclysmic
-	// Prospecting). The tag is COLOUR-INDEPENDENT of what the unit pays as:
-	// a Treasure token's Produced$ Any degrades to colourless (the M4
-	// stand-in) and lands in the MC slot, but the tag still names Treasure.
-	// Precedence is the fixed Treasure > Cave > Desert when a face carries
-	// several (measured: no corpus producer carries two); no corpus producer
-	// is both Snow and typed, and the tagged form takes the Counter (one
-	// encoding per unit) — the combination is unmeasured.
+	// Prospecting). Artifact provenance composes with those tags in the
+	// per-unit counter; it never replaces the Treasure/Cave/Desert type or
+	// contributes a second pool unit. An untyped Artifact uses ArtifactC.
 	tag, snow := ManaProducerTag(h, c.Source)
 	// TriggersWhenSpent$ is retained alongside any spend restriction: the
 	// ManaRestriction event encoding carries both the restriction and source

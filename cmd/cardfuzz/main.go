@@ -395,7 +395,7 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 		names[i] = fmt.Sprintf("%s-%d", decks[i].Colour, i)
 		seats[i] = botSeat(seed ^ (0x9e3779b97f4a7c15 * uint64(i+1)))
 	}
-	cfg := rules.Config{Names: names, Decks: dk, Tokens: reg.Tokens, Seed: seed}
+	cfg := rules.Config{Names: names, Decks: dk, Tokens: reg.Tokens, Seed: seed, NameUniverse: reg.Cards}
 	var o gbench.Outcome
 	var e *rules.Engine
 	var err error

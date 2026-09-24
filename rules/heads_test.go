@@ -1337,7 +1337,12 @@ var acceptanceHeads = map[int]string{
 	// check is sensitive to bot-choice quality, only engine correctness.
 	// CR 103.1: the same toss-choice ask/answer moves the 8-seat chain;
 	// disabling only the ask restores 5c90b1b3a0b38f25.
-	8: "380fae895d0906a3",
+	// mayplay-mfa: 8 seats now tags artifact-produced white mana. A scratch
+	// comparison with only the producer tag disabled reproduced the old
+	// golden; all 14,889 events have identical ordering and actions, with
+	// exactly two changed payloads: events 2441 (W -> ArtifactW, 1 unit)
+	// and 2492 (W -> ArtifactW, 3 units from Lion's Eye Diamond).
+	8: "2e4538482acfcde8",
 }
 
 func TestHeads(t *testing.T) {

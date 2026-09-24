@@ -28,23 +28,31 @@ func gameWithSiege(t *testing.T) (*state.Game, state.ObjID) {
 	return g, o.ID
 }
 
-// TestBattleMoveGrantsDefenseCounters is CR 310.6/310.8's entry grant: a
-// Battle enters with defense counters equal to its printed Defense, folded
-// inside Move so every entry path (cast, blink, search, reanimate) is
-// covered by construction.
-func TestBattleMoveGrantsDefenseCounters(t *testing.T) {
+// TestEntryCounterGrantsBattleDefense is CR 310.6/310.8's entry grant:
+// a Battle enters with defense counters equal to its printed Defense. The
+// arithmetic now lives in EntryCounterGrants; events.Move no longer folds it
+// itself (rules places it through a real CounterChange so the CR 614
+// replacement class and the CantPutCounter prohibition see it, task
+// addcounter1/2), so this test also pins that a bare MoveZone fold grants
+// nothing -- a re-added fold would double every entry counter.
+func TestEntryCounterGrantsBattleDefense(t *testing.T) {
 	g, id := gameWithSiege(t)
+	if grants := EntryCounterGrants(g.Obj(id), false); len(grants) != 1 ||
+		grants[0].Kind != "DEFENSE" || grants[0].Amount != 5 {
+		t.Fatalf("EntryCounterGrants = %+v, want one DEFENSE 5", grants)
+	}
 	Apply(g, Event{Kind: MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
-	if got := g.Obj(id).Counter("DEFENSE"); got != 5 {
-		t.Fatalf("battle entered with %d defense counters, want 5", got)
+	if got := g.Obj(id).Counter("DEFENSE"); got != 0 {
+		t.Fatalf("bare MoveZone fold granted %d defense counters, want 0 (rules is the sole placement path)", got)
 	}
 }
 
-// TestBattleFaceDownEntryGrantsNothing is the manifest/cloak boundary: a
-// face-down entry (CR 708.5) is a 2/2 creature, not a Battle, and gains no
-// defense counters -- the same boundary the loyalty and lore grants document.
-// Both battlefield face-down entry markers are pinned.
-func TestBattleFaceDownEntryGrantsNothing(t *testing.T) {
+// TestEntryCounterGrantsFaceDownGrantsNothing is the manifest/cloak
+// boundary: a face-down entry (CR 708.5) is a 2/2 creature, not a Battle,
+// and grants no defense counters -- nor any other entry counter. Both
+// battlefield face-down entry markers reach the same gate, via the shared
+// IsFaceDownEntry predicate the rules snapshot uses.
+func TestEntryCounterGrantsFaceDownGrantsNothing(t *testing.T) {
 	for _, tc := range []struct {
 		name, counter string
 		cloaked       bool
@@ -63,8 +71,11 @@ func TestBattleFaceDownEntryGrantsNothing(t *testing.T) {
 			if o.Cloaked != tc.cloaked {
 				t.Fatalf("Cloaked=%v, want %v", o.Cloaked, tc.cloaked)
 			}
-			if got := o.Counter("DEFENSE"); got != 0 {
-				t.Fatalf("face-down battle entered with %d defense counters, want 0", got)
+			if !IsFaceDownEntry(tc.counter) {
+				t.Fatalf("IsFaceDownEntry(%q) = false, want true", tc.counter)
+			}
+			if got := EntryCounterGrants(o, IsFaceDownEntry(tc.counter)); len(got) != 0 {
+				t.Fatalf("face-down EntryCounterGrants = %+v, want none", got)
 			}
 		})
 	}
@@ -93,15 +104,18 @@ func TestIsFaceDownEntryCoversBothMarkers(t *testing.T) {
 	}
 }
 
-// TestBattleSameZoneMoveDoesNotRegrant is the wasBattlefield boundary: a
-// battlefield-internal move (the fold removes and re-appends within the
-// zone) must not run the entry arm a second time and double the grant.
+// TestBattleSameZoneMoveDoesNotRegrant pins the wasBattlefield boundary at
+// the point it now lives: EntryCounterGrants is zone-agnostic (it reads only
+// the object's own characteristics and the logged elections), so the RULES
+// snapshot -- not the fold -- is what skips a battlefield-internal move by
+// checking the object's live zone. rules/entry_counters_test.go's
+// TestEntryCounterStayDoesNotRegrant pins that engine gate on a real battle.
 func TestBattleSameZoneMoveDoesNotRegrant(t *testing.T) {
 	g, id := gameWithSiege(t)
 	Apply(g, Event{Kind: MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
 	Apply(g, Event{Kind: MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZBattlefield})
-	if got := g.Obj(id).Counter("DEFENSE"); got != 5 {
-		t.Fatalf("battlefield-internal move re-granted: %d defense counters, want 5", got)
+	if got := EntryCounterGrants(g.Obj(id), false); len(got) != 1 || got[0].Amount != 5 {
+		t.Fatalf("EntryCounterGrants on a battlefield Siege = %+v, want one DEFENSE 5 (the zone skip is the rules snapshot's)", got)
 	}
 }
 

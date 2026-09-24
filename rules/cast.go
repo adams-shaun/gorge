@@ -269,6 +269,7 @@ type pendingCast struct {
 	manaSpentTreasure int32
 	manaSpentCave     int32
 	manaSpentDesert   int32
+	manaSpentArtifact int32
 
 	sacs    []state.ObjID
 	sacPart int
@@ -1113,7 +1114,7 @@ func (e *Engine) countComposedCost(pc *pendingCast, cand Cost) Cost {
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].TypedMana) {
+	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].ManaUnits()) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
@@ -3474,6 +3475,16 @@ func (e *Engine) castModeAsk() bool {
 	}
 	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
 	d.ResumeKind = "cast_modes"
+	if effects.OnlyEmptyAnswer(d) {
+		// "Choose up to N" (MinCharmNum$ 0) with no mode that has a legal
+		// target or an affordable cost: the only legal announcement is zero
+		// modes (Call Damage Control with an empty graveyard). Nobody could
+		// answer differently, so record it without posting the decision --
+		// the same silent resolution effects.Ask gives this shape, and what
+		// Engine.ask requires of every asking site.
+		e.applyCastModes(d, pc.player, nil)
+		return true
+	}
 	e.ask(d)
 	return true
 }
@@ -4650,6 +4661,24 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 				opts = e.etbOptions(you, o.ID, kind,
 					r.With.Params["ValidCards"], selector,
 					r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
+			}
+			if kind == "name" && len(opts) == 0 {
+				// No name passes the filter: the legacy (no-universe) builder
+				// only sees public objects, so "choose a nonbasic land card
+				// name" with none in view (Alpine Moon, cardfuzz batch1 line
+				// 14) built a Min 1 ask with zero options that no answer
+				// could satisfy. Mirror effNameCard's own empty-list rule so
+				// the two NameCard paths agree: without a corpus universe (or
+				// with no ChooseFromList$) it names the deterministic legacy
+				// stand-in; a universe-backed ChooseFromList$ with nothing
+				// eligible names nothing, so there is no choice to pose and
+				// the entry proceeds (the body's effNameCard then returns
+				// without naming, as it does mid-resolution).
+				if len(e.G.NameUniverse) > 0 && strings.TrimSpace(r.With.Params["ChooseFromList"]) != "" {
+					continue
+				}
+				opts = []decision.Option{{Index: 0, Kind: "name",
+					Label: effects.LegacyNameFallback(e.G, you)}}
 			}
 			if kind == "copy" {
 				// ":Optional" on the keyword line is the "you MAY have it
@@ -8331,9 +8360,10 @@ func (e *Engine) payCast() {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
 		pc.manaSpentSnow = manaSpentTotal(spentSnow)
-		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure])
-		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave])
-		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert])
+		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure])
+		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave]) + manaSpentTotal(spentTyped[state.TypedArtifactCave])
+		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
+		pc.manaSpentArtifact = manaSpentTotal(spentTyped[state.TypedArtifact]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactCave]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -8661,13 +8691,14 @@ func (e *Engine) payCast() {
 		// a tag is a real zero, not an absent one -- so the filtered
 		// Count$CastTotalManaSpent Treasure/Cave/Desert read is exact for
 		// their carriers without a second gate. The emission order is total,
-		// then Snow, then Treasure, then Cave, then Desert; since every later
-		// event carries all earlier flags, events.Apply's CastInfo switch
-		// checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then
-		// the total) or every later event would route into the first tag's
-		// field.
-		typedAmounts := [3]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert}
-		typedFlags := [3]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
+		// then Snow, then Treasure, then Cave, then Desert, then Artifact;
+		// since every later event carries all earlier flags,
+		// events.Apply's CastInfo switch
+		// checks the NEWEST flag first (Artifact, Desert, Cave, Treasure,
+		// Snow, then the total) or every later event would route into the
+		// first tag's field.
+		typedAmounts := [4]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert, pc.manaSpentArtifact}
+		typedFlags := [4]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent, state.FlagManaArtifactSpent}
 		acc := events.FlagsFrom(flags)
 		for t := range typedFlags {
 			acc |= typedFlags[t]
@@ -8824,7 +8855,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player,
 					Text: strings.Join(modeLabels(sa, o.Face().SVars, pc.preModes), ",")})
 			}
-			o.ChosenModes = append([]string(nil), pc.preModes...)
+			o.ChosenModes = state.CloneChosenModes(pc.preModes)
 		}
 	}
 	e.deferredPush = nil

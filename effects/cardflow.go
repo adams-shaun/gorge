@@ -3129,6 +3129,13 @@ func containsObj(ids []state.ObjID, want state.ObjID) bool {
 // kept byte-identical to the behaviour an older binary logged so a persisted
 // match replays (host/persist.go sidecar.NameUniverse).
 func legacyName(g *state.Game, p state.PlayerID) string {
+	return LegacyNameFallback(g, p)
+}
+
+// LegacyNameFallback is legacyName exported for rules' as-enters NameCard ask
+// (entryETBChoice), so the entry-boundary and mid-resolution NameCard paths
+// fall back to the SAME stand-in name when their filtered name list is empty.
+func LegacyNameFallback(g *state.Game, p state.PlayerID) string {
 	if g == nil {
 		return "a card"
 	}
