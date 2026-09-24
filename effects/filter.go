@@ -1737,12 +1737,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		chosen := colourLetter(src.ChosenColor)
 		return chosen != 0 && strings.Contains(ColorsOf(o), string(chosen))
 	case wordType:
-		for _, typeWord := range strings.Fields(key) {
-			if !hasTypePredicateCtx(o, typeWord, sc) {
-				return false
-			}
-		}
-		return true
+		return hasTypePredicateCtx(o, key, sc)
 	case wordColorless:
 		return ColorsOf(o) == ""
 	case wordControllerDealtCombatDamageBySource:
@@ -3384,13 +3379,24 @@ func chosenCtrlMatches(g *state.Game, o *state.Object, src state.ObjID) bool {
 	return false
 }
 
+// hasTypePredicateCtx matches a type word, or a space-separated multi-word
+// subtype (Time Lord) as every one of its words. strings.Cut rather than
+// strings.Fields: this is the filter hot path and must not allocate
+// (TestSimpleFilterMatchingDoesNotAllocate).
 func hasTypePredicateCtx(o *state.Object, t string, sc SpecContext) bool {
-	for _, word := range strings.Fields(t) {
-		if !hasTypeCtx(o, word, sc) {
+	if t == "" {
+		return false
+	}
+	for {
+		word, rest, more := strings.Cut(t, " ")
+		if word != "" && !hasTypeCtx(o, word, sc) {
 			return false
 		}
+		if !more {
+			return true
+		}
+		t = rest
 	}
-	return t != ""
 }
 
 func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
