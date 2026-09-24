@@ -108,6 +108,13 @@ type windowManaAlt struct {
 	ma     *cards.SA
 	counts [6]int32
 	amt    int32
+	// life is the life the activation pays (a PayLife<N> activation cost).
+	// Every alt the shared windowManaUnits builds carries 0; only the
+	// cast-payment probe's paid-cost layer sets it, so the affordability
+	// search can debit that life from the payer's budget -- an activation
+	// that spends life must not be promised as if the life were still
+	// available for the cost being priced.
+	life int32
 }
 
 // mana is the alt's production as a mana vector, the form the walk's

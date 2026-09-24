@@ -861,7 +861,13 @@ var acceptanceHeads = map[int]string{
 	// declined. Measured: the base commit's heads were green and this change
 	// alone moves 2 seats a613e26b20d46eea -> 3ddcc4e3ba5bb799 and 8 seats
 	// af5b2fc1561b5f56 -> beac5729b0e63dcc; 4 and 6 seats are unchanged.
-	2: "3ddcc4e3ba5bb799",
+	// agent-20260923T114033Z-a57ee463 (game-long damage-by-source provenance)
+	// merged into this ticket's branch: it separately moves 2 seats
+	// 3ddcc4e3ba5bb799 -> 9b4759db7fe10fdd (see the 8-seat note). The
+	// cli-20260924T034908Z-be6139b0 entry-counter fold leaves the 2-seat game
+	// at 9b4759db7fe10fdd -- measured on the merged tip with the entry-body
+	// absorption disabled, which reproduces 9b4759db7fe10fdd exactly.
+	2: "9b4759db7fe10fdd",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1054,8 +1060,17 @@ var acceptanceHeads = map[int]string{
 	// P1P1 zero case already behaved. The 2-seat game is unchanged because
 	// neither death-n-taxes (index 0) nor dimir-tempo (index 1) carries a
 	// K:etbCounter card; eldrazi-stompy (index 2) first joins the deck
-	// rotation at 4 seats.
-	4: "ada5fab32de2381b",
+	// rotation at 4 seats. MERGED-TREE ATTRIBUTION (this ticket merged main's
+	// game-long damage-by-source provenance, task agent-20260923T114033Z-
+	// a57ee463): the merged 4/6/8-seat heads are the superposition of the two
+	// changes. Measured on the merged tip, disabling ONLY the entry-body
+	// absorption (entryBodyCounterGrants returns nil) restores main's three
+	// goldens exactly -- 4 9b3aab4e0336ba8c, 6 c4ce39421c473963,
+	// 8 d2ebb7cbf40ccd12 -- so provenance alone gives main's values and the
+	// entry-fold is the only further cause. Provenance alone leaves the 2-seat
+	// head at 9b4759db7fe10fdd, unchanged by the entry-fold (the merged tip
+	// reads exactly that), matching main.
+	4: "3d6d44e9d27bb44a",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1202,7 +1217,7 @@ var acceptanceHeads = map[int]string{
 	// 4-seat note. eldrazi-stompy is in this game too, so Endless One's entry
 	// counters fold into the MoveZone and Chalice of the Void's zero-amount
 	// CHARGE placement is absorbed (obj 170, seq 5040, one removed event).
-	6: "6c9ca1b054ccb266",
+	6: "61cd3bbfc8190773",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1397,7 +1412,7 @@ var acceptanceHeads = map[int]string{
 	// 4-seat note; eldrazi-stompy is in this game, so Endless One's entry
 	// counters fold into the MoveZone and Chalice of the Void's zero-amount
 	// CHARGE placement is absorbed (obj 170, seq 9081, one removed event).
-	8: "82a8fd284bb1bef1",
+	8: "956e4f040144faab",
 }
 
 func TestHeads(t *testing.T) {

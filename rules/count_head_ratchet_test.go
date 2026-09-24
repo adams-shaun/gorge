@@ -46,11 +46,6 @@ import (
 // three bodies remain (Count$ResolvedThisTurn and Count$CardNumAttacksThisTurn
 // were modelled and removed).
 var knownUnmodelledCountHeads = map[string][]string{
-	// Forge's Count$MaxOppDamageThisTurn (Spinerock Knoll's "X = the highest
-	// combat damage an opponent was dealt this turn" hideaway unlock): a
-	// per-opponent combat-damage extreme the damage-tally machinery does not
-	// expose yet.
-	"Count$MaxOppDamageThisTurn": {"Spinerock Knoll"},
 	// Forge's Count$NonCombatDamageThisTurn <spec> Any (Temple of Power's
 	// "X = noncombat damage you've dealt this turn" payoff): a filtered
 	// non-combat damage tally.
@@ -58,8 +53,10 @@ var knownUnmodelledCountHeads = map[string][]string{
 	// NOT an unmodelled head: Count$ChosenNumber IS implemented
 	// (state.ContinuousEffect.ChosenNumber, wildgrowth1) — its (0, false)
 	// verdict here is the documented UNBOUND-context read, because this
-	// ratchet's Ctx binds nothing. The entry holds the table shape; a change
-	// that makes an unbound ChosenNumber resolvable must delete it.
+	// ratchet's Ctx binds nothing. Since fuzz-cov3 an unbound read falls back
+	// to the SOURCE object's logged ChosenNumber (effects/choose.go's Choose
+	// fold), so the head resolves whenever a source exists; this ratchet's
+	// Ctx names none (Source 0), which keeps the verdict unresolvable here.
 	"Count$ChosenNumber": {"Nahiri's Lithoforming"},
 }
 

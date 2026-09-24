@@ -307,7 +307,15 @@ func TestRingResumesExactlyTheMissedFrames(t *testing.T) {
 	var s *Session
 	var frames []protocol.Frame
 	o := testOptions(t)
-	o.Ring = 64
+	// Ring is the resumable stream's CHANNEL capacity; the engine must never
+	// block on a client, so a burst longer than the channel between the
+	// drain hooks' Sleep calls overflows it. The game-long damage-provenance
+	// ticket (2026-09-23) emits one extra event per point of damage through
+	// the one emit tail, which densifies a damage-heavy four-seat burst
+	// enough that 64 occasionally lost the race (measured: 19855 frames,
+	// 1 dropped). 256 restores the headroom without changing what this test
+	// asserts (the last-10 frame resumption); it is not a behaviour pin.
+	o.Ring = 256
 	o.Sleep = func(time.Duration, <-chan struct{}) { drainNonBlocking(s, &frames) }
 	r, _ := New(o)
 	defer r.Close()

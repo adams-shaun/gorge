@@ -4568,7 +4568,7 @@ func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you
 		} else {
 			n = e.countPresent(spec, source, you)
 		}
-		if !comparePresent(n, cmp) {
+		if !comparePresent(n, e.presentCompareFor(cmp, source, you)) {
 			return false
 		}
 	}
