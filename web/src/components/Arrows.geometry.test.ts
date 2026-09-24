@@ -149,7 +149,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail (real
 
     const m = (await page.evaluate(`${IN_PAGE}
       (() => {
-        const scroller = document.querySelector('section.stack');
+        const scroller = document.querySelector('.history-frame');
         return {
           ovs: overlays(),
           counterspell: tile(900),
@@ -165,7 +165,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail (real
     // (the counterspell is the upper entry), and the stack genuinely
     // overflows its scroller, so the scroll leaf below is not vacuous.
     expect(m.counterspell.top).toBeLessThan(m.bolt.top - 1);
-    expect(m.scrollable, 'section.stack really overflows at the test viewport').toBe(true);
+    expect(m.scrollable, 'the history frame really overflows at the test viewport').toBe(true);
 
     // --- fb-20260914T121642Z: the overlay escapes the felt clip ---
     // Exactly ONE overlay, and it is the route's: mounted by Table.svelte as
@@ -192,19 +192,19 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail (real
       expect(near(o.rect.top + m.line.y1, m.counterspell.top + m.counterspell.height / 2), 'line y1 is the counterspell tile centre').toBe(true);
     }
 
-    // --- and it stays aligned when the rail's stack scrolls ---
+    // --- and it stays aligned when the rail's history/stack frame scrolls ---
     const before = (await page.evaluate(`${IN_PAGE}
       (() => {
         const o = overlays()[0].rect;
         const l = lineAttrs();
         return { bolt: tile(890), endpointX: o.left + l.x2, endpointY: o.top + l.y2 };
       })()`)) as unknown as Endpoint;
-    // The stack is the rail's one scroller and scroll does not bubble, so
+    // The history frame is the rail's one scroller and scroll does not bubble, so
     // the test scrolls it and dispatches the scroll event a real scroll
     // would fire; the overlay must recompute from that signal alone (no
     // polling, no timer).
     await page.evaluate(() => {
-      const scroller = document.querySelector('section.stack')!;
+      const scroller = document.querySelector('.history-frame')!;
       scroller.scrollTop += 140;
       scroller.dispatchEvent(new Event('scroll'));
     });
