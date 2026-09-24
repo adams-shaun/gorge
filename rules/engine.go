@@ -2576,7 +2576,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if _, _, loss := lifeLoss(stored); loss && e.lifeLossBatchDepth > 0 {
 			e.lifeLossBatch = append(e.lifeLossBatch, stored)
 		}
+		before := len(e.pendingTriggers)
 		e.checkTriggers(stored, lki, lkiPower, lkiToughness, lkiPTValid)
+		// A pushed spell proposal's own target choice (CR 601.2c): remember
+		// which queue entries it produced so abortCast can drop them if the
+		// cast is reversed (CR 733.1 -- see pendingCast.proposalTriggers).
+		if stored.Kind == events.TargetsChosen && e.cast != nil && e.cast.pushed &&
+			!e.cast.isAbility() && stored.Obj == e.cast.stackObj && len(e.pendingTriggers) > before {
+			e.cast.proposalTriggers = append(e.cast.proposalTriggers, [2]int{before, len(e.pendingTriggers)})
+		}
 	}
 	if onlyEventBatch {
 		e.closeDamageBatch()

@@ -459,6 +459,19 @@ type pendingCast struct {
 	// no cast push is in flight.
 	preAborts map[state.ObjID]int32
 
+	// proposalTriggers are the [start, end) pendingTriggers index ranges a
+	// pushed SPELL proposal's own TargetsChosen events queued (Ward, "becomes
+	// the target" and every other matcher of a CR 601.2c target choice). They
+	// are recorded by emit and removed by abortCast: CR 733.1 "no abilities
+	// trigger ... as a result of an undone action", so a reversed cast must
+	// leave nothing on the queue. Without it a bot re-attempting the same
+	// unpayable Strive cast queued a fresh Ward/Silverfur Partisan trigger per
+	// attempt, and that trigger's push was the state change that cleared the
+	// F05-2 no-progress suppression -- an endless cast/reverse cycle.
+	// Engine-side scratch rebuilt by replay (the same intents reach the same
+	// emits); nil outside a spell proposal with targets.
+	proposalTriggers [][2]int
+
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
 	// spell, sacrifice a creature or pay {3}{B}"): one KChoose over them at
@@ -5357,35 +5370,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 	targetDiscount := pc.isAbility() && pc.ownReduce > e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), nil, nil, pc.abilityMerged)
 	var windowUnits []windowManaUnit
 	if targetDiscount {
-		windowUnits = e.windowManaUnits(pc.player)
-		// The payment window can also tap a choice-shaped source (Any,
-		// Combo, Chosen). The shared fixed-production census omits these
-		// because an unless-pay window cannot pose their colour sub-ask;
-		// cast payment can. Add each possible single-colour production as
-		// an alternative of the SAME permanent, never as another tap.
-		for _, source := range e.attackChoiceManaSources(pc.player) {
-			produced := substituteChosenProduced(source.original.Params["Produced"], e.chosenProducedColour(source.id))
-			counts, _ := cards.ProducedCounts(produced)
-			idx := -1
-			for i := range windowUnits {
-				if windowUnits[i].id == source.id {
-					idx = i
-					break
-				}
-			}
-			if idx == -1 {
-				windowUnits = append(windowUnits, windowManaUnit{id: source.id})
-				idx = len(windowUnits) - 1
-			}
-			for colour, n := range counts {
-				if n == 0 {
-					continue
-				}
-				var single [6]int32
-				single[colour] = 1
-				windowUnits[idx].alts = append(windowUnits[idx].alts, windowManaAlt{counts: single, amt: source.units})
-			}
-		}
+		windowUnits = e.castWindowUnits(pc.player)
 	}
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -7110,6 +7095,13 @@ func (e *Engine) targetAsk() bool {
 		Prompt: "Choose a target for " + e.targetName(pc.card),
 		Source: src, TargetEffect: e.describeTargetEffect(pc.player, pc.card, sa, pc.x),
 		TargetsWithSameController: sameController}
+	if !pc.isAbility() && pc.stackObj == pc.card {
+		lim := max
+		if lim < 0 || lim > len(candidates) {
+			lim = len(candidates)
+		}
+		d.AffordableTargets = e.striveAffordableTargets(pc, lim)
+	}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
@@ -8237,6 +8229,14 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: part.N})
 			}
 		}
+		// Exert<1/CARDNAME> (CR 701.39a): one Exert event on the source, the
+		// same fold the declare-attackers election emits, so the untap skip
+		// and "whenever you exert" triggers read one path.
+		for range pc.cost.Exert {
+			if o := e.G.Obj(pc.card); o != nil && o.Zone == state.ZBattlefield {
+				e.emit(events.Event{Kind: events.Exert, Obj: pc.card, Player: pc.player})
+			}
+		}
 		// Capture the sacrifice LKI (Task sac1) BEFORE the MoveZone events
 		// drain the permanents: each chosen object is still on the battlefield
 		// here, so SacrificedInfoOf reads its live face and +1/+1 counters (the
@@ -8887,6 +8887,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			o.ChosenModes = state.CloneChosenModes(pc.preModes)
 		}
 	}
+	e.dropProposalTriggers(pc)
 	e.deferredPush = nil
 	e.deferredPushLKI = nil
 	e.cast, e.choosing = nil, chooseNone
@@ -9225,4 +9226,126 @@ func init() {
 func (e *Engine) emitProposalFlip(id state.ObjID, before uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32) {
 	e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
 	e.suppressedCast, e.castAborts = preSuppress, preAborts
+}
+
+// dropProposalTriggers removes the pending triggers a reversed spell
+// proposal's own CR 601.2c target choice queued (pc.proposalTriggers). CR
+// 733.1: "No abilities trigger and no effects apply as a result of an undone
+// action." Only the recorded ranges go -- a trigger an unreversed mana
+// ability produced during the payment window (Manabarbs) stays queued, since
+// the engine never reverses those activations. Ranges are removed back to
+// front so an earlier range's indices are unaffected; a range the queue no
+// longer covers (it was drained, which a live proposal never does) is skipped
+// rather than trusted, and an ordered prefix is never touched.
+func (e *Engine) dropProposalTriggers(pc *pendingCast) {
+	ranges := pc.proposalTriggers
+	pc.proposalTriggers = nil
+	for i := len(ranges) - 1; i >= 0; i-- {
+		start, end := ranges[i][0], ranges[i][1]
+		if start < e.orderedTriggers || start >= end || end > len(e.pendingTriggers) {
+			continue
+		}
+		e.pendingTriggers = append(e.pendingTriggers[:start], e.pendingTriggers[end:]...)
+	}
+}
+
+// castWindowUnits is the CR 601.2g cast-payment window's provable mana reach:
+// the shared fixed-production census (windowManaUnits) plus each
+// choice-shaped source (Any, Combo, Chosen) as single-colour alternatives of
+// the SAME permanent, never as another tap. The shared census omits those
+// because an unless-pay window cannot pose their colour sub-ask; cast
+// payment can.
+func (e *Engine) castWindowUnits(p state.PlayerID) []windowManaUnit {
+	windowUnits := e.windowManaUnits(p)
+	for _, source := range e.attackChoiceManaSources(p) {
+		produced := substituteChosenProduced(source.original.Params["Produced"], e.chosenProducedColour(source.id))
+		counts, _ := cards.ProducedCounts(produced)
+		idx := -1
+		for i := range windowUnits {
+			if windowUnits[i].id == source.id {
+				idx = i
+				break
+			}
+		}
+		if idx == -1 {
+			windowUnits = append(windowUnits, windowManaUnit{id: source.id})
+			idx = len(windowUnits) - 1
+		}
+		for colour, n := range counts {
+			if n == 0 {
+				continue
+			}
+			var single [6]int32
+			single[colour] = 1
+			windowUnits[idx].alts = append(windowUnits[idx].alts, windowManaAlt{counts: single, amt: source.units})
+		}
+	}
+	return windowUnits
+}
+
+// striveAffordableTargets is the Decision.AffordableTargets hint for a Strive
+// spell's target ask: the largest n in [1, max] whose total cost -- the
+// resolved cost, n-1 Strive payments (CR 702.52a), the proposal's modifier
+// snapshot, commander tax, Delve credit and announced Convoke -- the caster
+// can provably pay from the pool plus the window's fixed productions
+// (castWindowUnits, the same probe the target-discount gate trusts). It
+// returns 0 (no hint) when the proposal carries no priceable Strive or max is
+// at most one; it returns at least 1 otherwise, since one target adds no
+// Strive charge and the ask's own gate already admitted the base cost. A pure
+// read: nothing is emitted.
+func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
+	if pc.isAbility() || !pc.striveSet || max <= 1 {
+		return 0
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	if _, ok := o.Face().KeywordParam("Strive"); !ok {
+		return 0
+	}
+	sc := ParseCost(pc.striveParam)
+	if len(sc.Unknown) > 0 {
+		return 0
+	}
+	pl := e.G.Players[pc.player]
+	var units []windowManaUnit
+	unitsBuilt := false
+	affordable := func(n int) bool {
+		cost := pc.resolvedMana()
+		for i := int(pc.striveUnits); i < n-1; i++ {
+			cost = cost.Plus(sc)
+		}
+		cost = pc.mods.apply(cost)
+		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
+		cost.Generic -= int32(len(pc.delve))
+		if cost.Generic < 0 {
+			cost.Generic = 0
+		}
+		convoked := e.applyConvoke(pc, cost)
+		pay := paymentForCast(pc, convoked)
+		rider := pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}
+		if e.manaFeasibleDescriptor(pc.player, pay, convoked, costMods{}, 0, 0, rider) {
+			return true
+		}
+		if !convoked.hasManaPayment() {
+			return false
+		}
+		if !unitsBuilt {
+			units, unitsBuilt = e.castWindowUnits(pc.player), true
+		}
+		av := e.manaAvailableFor(pc.player, pay)
+		return e.unlessManaReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
+			e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), units)
+	}
+	// Ascending: the price is monotone in n, so the first unaffordable count
+	// ends the walk and at most one exhaustive (failing) window search runs.
+	best := 1
+	for n := 2; n <= max; n++ {
+		if !affordable(n) {
+			break
+		}
+		best = n
+	}
+	return best
 }

@@ -1062,3 +1062,57 @@ The exact brief's narrower test command, the test-revert proof, and the original
 ## Issues
 
 No new unresolved Emerge defect observed. Other cost grammar remains intentionally outside this brief; unsupported Emerge cost shapes are withheld rather than mispriced. No new Known-approximations row or CR-lane test was added.
+
+---
+
+# DigUntil RememberFound/RememberRevealed — sol1 review response
+
+## Finding resolved / changes
+
+The MAJOR in `.ds4/findings-sol1.md` was that the first fix cleared `Remembered` on scripts with BOTH `RememberFound$ True` and `RememberRevealed$ True`: the revealed arm appended to `c.Remembered` while the final assignment replaced it with the untouched empty accumulator. `effects/cardflow.go` now accumulates the revealed prefix into the replacement set when both flags are set, preserving the deterministic scan order and leaving `Captured` untouched; revealed-only retains its existing append semantics. `effects/diguntil_rememberrevealed_test.go` (new file, per dispatch's new-test rule) checks both combinations against a distinct battlefield trigger, with a nonmatching first library card and matching second card; both are exiled and the exact Remembered/Captured contents and fixture preconditions are asserted. The original found-only regression remains in `effects/diguntil_rememberfound_test.go`. No event, parameter registration, PutCounter implementation, Known-approximations row, or heads golden was changed. `.cards` was present as a symlink to the corpus; three distinct corpus files have `DB$ DigUntil` with both flags on one line (`/usr/bin/grep -rlE 'DB\\$ DigUntil.*RememberFound\\$ True.*RememberRevealed\\$ True|DB\\$ DigUntil.*RememberRevealed\\$ True.*RememberFound\\$ True' .cards/cardsfolder | wc -l` -> `3`); Chaos Wand uses `AB$` instead.
+
+## Fails without the fix
+
+Saved `effects/cardflow.go` to `.ds4/scratch/cardflow-sol1-fixed.go`; temporarily restored just the production file from `HEAD` (the first fix), kept the new test, ran `go test -run '^TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix$' ./effects/`, and restored the file with `cp` and `cmp` (exit 0). First attempt revealed a bad test precondition: `SetZone` only populates the zone slice, so the fixture's Bear's `Object.Zone` remained its AddObject default; corrected the precondition to test membership in the battlefield zone and reran the revert proof. The *valid* failing output (exit 1) was:
+
+```
+--- FAIL: TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix (0.00s)
+    --- FAIL: TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix/both (0.00s)
+        diguntil_rememberrevealed_test.go:41: Remembered = [], want ids [2 3]
+FAIL
+FAIL github.com/adams-shaun/gorge/effects 0.002s
+FAIL
+reverted_test_exit=1
+restore_cmp=0
+```
+
+The original found-only regression's production-revert failure is documented in `.ds4/report-t2.md` (Doctor plus found card instead of just found). No fresh rerun was needed for that existing test.
+
+## Gates (exact commands and output)
+
+```
+$ go test -run 'TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix|TestDigUntilRememberFoundDoesNotRetainTriggerCapture|TestDigUntilKetriaRememberFoundFeedsTheChainedMove|TestEveryRepoDeckParamsAreRead' ./effects/ ./rules/
+ok   github.com/adams-shaun/gorge/effects 1.211s
+ok   github.com/adams-shaun/gorge/rules 0.863s
+focused_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.226s
+bot_exit=0
+$ gofmt -l effects/cardflow.go effects/diguntil_rememberfound_test.go effects/diguntil_rememberrevealed_test.go effects/diguntil_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+gentypes_exit=0
+$ git diff --check
+diff_check_exit=0
+```
+
+Botbench golden did not move; no split re-pin. No head/ratchet movement measured (full gates reserved for controller). The earlier round's exact brief targeted command passed as documented in `.ds4/report-t2.md`; this round's targeted command additionally includes the paired-flags regression.
+
+## Issues
+
+- The separate `PutCounter` non-battlefield defect is tracked as `agent-20260922T183530Z-cbf0a7d3`; not changed here.
+- The earlier report also notes `effects/zone.go:effSeek` appends `RememberFound$` to trigger Remembered; this distinct primitive is out of scope. `/usr/bin/grep -rlE '(DB\\$|AB\\$|SP\\$) Seek.*RememberFound\\$ True' .cards/cardsfolder | wc -l` measured 36 same-line carrier files (not necessarily triggered). Filed `.ds4/new-tickets/seek-rememberfound-trigger-capture.md` for separate investigation.
+- `.ds4/report-t2.md` has unrelated uncommitted modifications in this worktree, not written by this round; it was not staged or overwritten. It may block controller integration until its owner resolves it. No CR-lane test is warranted for this Forge-local remembered-set discipline.
