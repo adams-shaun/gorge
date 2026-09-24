@@ -57,14 +57,8 @@ func TestChooseTapAimsAReflectedSourceAtANeededPip(t *testing.T) {
 	}
 }
 
-// TestChooseTapIgnoresAPlainAnySourceForAPip is the scoping half: a plain
-// conditional "Any" source (Cavern of Souls and 500+ other corpus cards, none
-// of which is reflected) must keep the pre-ticket behaviour -- it does not
-// claim a needed pip, so chooseTap passes rather than tapping it toward a
-// colour the pool may never receive. Widening the gate to every Any source is
-// a separate change (it moves the botbench golden), so only Reflected sources
-// are aimed.
-func TestChooseTapIgnoresAPlainAnySourceForAPip(t *testing.T) {
+// TestChooseTapAimsPlainAnySourceAtANeededPip checks conditional any-colour production.
+func TestChooseTapAimsPlainAnySourceAtANeededPip(t *testing.T) {
 	const (
 		spell  = state.ObjID(1)
 		anySrc = state.ObjID(2)
@@ -83,7 +77,7 @@ func TestChooseTapIgnoresAPlainAnySourceForAPip(t *testing.T) {
 	if pips := colourPips("U"); pips[state.MU] != 1 || b.Pool[state.MU] != 0 {
 		t.Fatalf("precondition failed: pips=%v poolU=%d", pips, b.Pool[state.MU])
 	}
-	if !anyProd.Any || anyProd.Reflected {
+	if !anyProd.Any || anyProd.Reflected || anyProd.ProducesColour(state.MU) {
 		t.Fatalf("precondition failed: want a plain Any (non-reflected) source: %+v", anyProd)
 	}
 
@@ -92,7 +86,7 @@ func TestChooseTapIgnoresAPlainAnySourceForAPip(t *testing.T) {
 			{Index: 0, Kind: "activate", Obj: anySrc},
 			{Index: 1, Kind: "pass"},
 		}}
-	if got := b.chooseTap(d); got != -1 {
-		t.Fatalf("chooseTap = %d, want -1 (a plain Any source must not be aimed at a pip)", got)
+	if got := b.chooseTap(d); got != 0 {
+		t.Fatalf("chooseTap = %d, want the plain Any source (option 0) aimed at the U pip", got)
 	}
 }
