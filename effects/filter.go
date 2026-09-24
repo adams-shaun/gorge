@@ -1674,6 +1674,18 @@ func wordPredicate(p string) (wordKind, string) {
 	if predicateTypeWords[p] {
 		return wordType, p
 	}
+	// Multi-word subtype names are represented by their constituent words in
+	// the generated vocabulary (e.g. Time Lord). Accept only canonical
+	// space-joined sequences of known type words; arbitrary spaced predicates
+	// and malformed whitespace remain unknown.
+	if fields := strings.Fields(p); len(fields) > 1 && strings.Join(fields, " ") == p {
+		for _, field := range fields {
+			if !predicateTypeWords[field] {
+				return wordUnknown, ""
+			}
+		}
+		return wordType, p
+	}
 	return wordUnknown, ""
 }
 
@@ -1731,7 +1743,12 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		chosen := colourLetter(src.ChosenColor)
 		return chosen != 0 && strings.Contains(ColorsOf(o), string(chosen))
 	case wordType:
-		return hasTypeCtx(o, key, sc)
+		for _, typeWord := range strings.Fields(key) {
+			if !hasTypeCtx(o, typeWord, sc) {
+				return false
+			}
+		}
+		return true
 	case wordColorless:
 		return ColorsOf(o) == ""
 	case wordControllerDealtCombatDamageBySource:
