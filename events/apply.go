@@ -1535,6 +1535,14 @@ func Apply(g *state.Game, e Event) {
 			o.FaceIdx = uint8(e.Amount)
 		}
 
+	case TurnFaceDown:
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && !o.FaceDown {
+			o.FaceDown = true
+			o.FaceDownSetType = ""
+			o.FaceDownPower, o.FaceDownToughness = 0, 0
+			o.FaceDownHasPT = false
+		}
+
 	case TurnFaceUp:
 		// CR 708.6: turning a face-down permanent face up reveals the face it
 		// already had -- no FaceIdx change -- and retires the CR 708.5
@@ -1984,6 +1992,15 @@ func Apply(g *state.Game, e Event) {
 			o.IsMyriad = true
 		}
 
+	case CloneStatic:
+		if o := g.Obj(e.Obj); o != nil && o.CopyFace != nil {
+			if statics, ok := cards.ParseStaticLines(e.Text); ok {
+				face := *o.CopyFace
+				face.Statics = append(append([]cards.Static(nil), face.Statics...), statics...)
+				o.CopyFace = &face
+			}
+		}
+
 	case ClonePermanent:
 		// CR 613.1a's layer-1 copy basis (DB$ Clone, api:Clone). Obj is the
 		// object that becomes the copy and IDs[0] the object copied from; an
@@ -2000,29 +2017,42 @@ func Apply(g *state.Game, e Event) {
 		if o == nil {
 			break
 		}
-		if len(e.IDs) == 0 || e.IDs[0] == 0 {
+		if e.Counter != "chosen-name" && (len(e.IDs) == 0 || e.IDs[0] == 0) {
 			o.CopyFace = nil
 			o.CopyGainThisAbility = false
 			break
 		}
-		src := g.Obj(e.IDs[0])
-		if src == nil || src.Face() == nil {
+		var face *cards.Face
+		if e.Counter == "chosen-name" {
+			for _, card := range g.NameUniverse {
+				if len(card.Faces) > 0 && card.Faces[0].Name == e.Text {
+					face = card.Faces[0]
+					break
+				}
+			}
+		} else if src := g.Obj(e.IDs[0]); src != nil {
+			face = src.Face()
+		}
+		if face == nil {
 			break
 		}
-		sf := *src.Face()
-		if e.Text != "" {
+		sf := *face
+		if e.Counter != "chosen-name" && e.Text != "" {
 			sf.Name = e.Text
 		}
-		// GainThisAbility$ True: "...except it has this ability" (Lazav,
-		// Vesuvan Doppelganger). The original object's own abilities and SVar
-		// table are appended/merged onto the copied face so the ability that
-		// produced the copy survives it. Appending the original face's whole
-		// ability list is the structural approximation recorded in AGENTS.md:
-		// for the corpus's clone carriers the clone ability IS the card's only
-		// other ability, so this is exact for them.
+		// GainThisAbility$ True: "...except it has this ability". New
+		// events carry a one-based index of the resolving ability; old events
+		// without one retain their original whole-list replay semantics. The
+		// original face's SVar table is still merged to retain references used
+		// by the granted ability.
 		if e.Counter == "gain-this-ability" {
 			if of := o.Face(); of != nil {
-				if len(of.Abilities) > 0 {
+				// Amount is a one-based index into the become object's face
+				// abilities. Zero retains the legacy whole-list form for old
+				// logs; new Clone effects identify the resolving ability.
+				if e.Amount > 0 && int(e.Amount) <= len(of.Abilities) {
+					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities[e.Amount-1])
+				} else if e.Amount == 0 && len(of.Abilities) > 0 {
 					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)
 				}
 				if len(of.SVars) > 0 {

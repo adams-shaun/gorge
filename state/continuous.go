@@ -139,6 +139,12 @@ type ContinuousEffect struct {
 	// the face. A printed planeswalker's name-subtype ("Sarkhan") is stripped
 	// with the rest while the walker is animated as a creature.
 	RemoveCreatureTypes bool
+	// RemoveSubTypes strips every subtype (creature, land and other kinds)
+	// before this effect's AddTypes are applied.
+	RemoveSubTypes bool
+	// SetCreatureTypes strips only creature subtypes, preserving land and
+	// other subtype words; its replacement types live in AddTypes.
+	SetCreatureTypes bool
 	// AddAllCreatureTypes is Forge's AddAllCreatureTypes$ True (Maskwood
 	// Nexus's "creatures you control are every creature type", the manland
 	// family): while this effect applies, the affected object is EVERY
@@ -577,6 +583,9 @@ type ContinuousEffect struct {
 	// effect. Engine-runtime, rebuilt by re-execution on replay like the
 	// other resolution-created fields.
 	CloneTarget ObjID
+	// CloneDurationTarget is the tapped object whose actual untap ends a
+	// Duration$ UntilTargetedUntaps copy (not necessarily CloneTarget).
+	CloneDurationTarget ObjID
 
 	// CloneSource, CloneName and CloneGainThisAbility describe the copy the
 	// layer-1 LCopy MARKER of a clone unit owns: the object whose printed
@@ -598,7 +607,10 @@ type ContinuousEffect struct {
 	// AGENTS.md's clone row.
 	CloneSource          ObjID
 	CloneName            string
+	CloneChosenName      string
+	CloneStaticBodies    []string
 	CloneGainThisAbility bool
+	CloneAbilityIndex    int32
 
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn

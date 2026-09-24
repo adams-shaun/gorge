@@ -2460,6 +2460,7 @@ func hasChosenPlayers(ts []state.Target) bool {
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
+	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -2471,6 +2472,12 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if turnUp {
 			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
+			}
+			continue
+		}
+		if turnDown {
+			if o.Zone == state.ZBattlefield && !o.FaceDown {
+				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID})
 			}
 			continue
 		}

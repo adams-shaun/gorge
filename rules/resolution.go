@@ -140,6 +140,13 @@ type resumePoint struct {
 	remembered       []state.Target
 	digUntilMove     string
 	digUntilMoveDone bool
+	// clonePick/clonePickDone ride a DB$ Clone's answered Choices$ pick across
+	// a later Optional$ may-copy ask in the same walk (the Decision.ResumeClonePick
+	// rider, Ask copies them here): the re-entry's Choices$ branch consumes
+	// the selection instead of posing a second Choices$ ask. Zero/false for
+	// every other ask.
+	clonePick     state.ObjID
+	clonePickDone bool
 	// unlessPay is set only after a nested non-mana unless-cost payment has
 	// completed. It prevents the resumed `unless_pay` arm from charging that
 	// payment a second time.
@@ -549,6 +556,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
+		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
 		villainousVictims:       append([]state.Target(nil), d.ResumeVillainousVictims...),
@@ -1681,6 +1689,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		ModeTargets: cloneCharmTargetGroups(e.charmTargets[rp.obj]),
 		Chosen:      append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		DigUntilMove: rp.digUntilMove, DigUntilMoveDone: rp.digUntilMoveDone,
+		ClonePick: rp.clonePick, ClonePickDone: rp.clonePickDone,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
 		ChoiceTarget:      rp.target,
@@ -2520,6 +2529,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.CopyPermanentChoiceDone = true
 			if len(chosen) > 0 {
 				ctx.CopyPermanentChoice = chosen[0].Obj
+			}
+		case "clone_choice":
+			// A DB$ Clone Choices$ <filter> copy-source pick was answered:
+			// the chooser named one object for the copy source. The effect
+			// consumes and clears the field at the top of its walk (fx42
+			// scoping), so a nested Clone cannot inherit the outer answer. A
+			// malformed or empty answer leaves a zero id, which the re-entered
+			// effect records as one loud Note and resolves as no copy -- never
+			// a silent fall-through to an object the chooser did not name.
+			ctx.ClonePickDone = true
+			if len(chosen) > 0 {
+				ctx.ClonePick = chosen[0].Obj
 			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
