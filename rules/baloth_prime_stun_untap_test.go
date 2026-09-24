@@ -45,6 +45,15 @@ func TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping(t *tes
 	if !o.Tapped {
 		t.Fatal("Baloth Prime untapped; a stun counter should have replaced the untap (CR 122.1d)")
 	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == baloth && ev.Counter == "STUN" && ev.Amount == -1 {
+			found = ev.Text == events.UntapReplacedByStunNotice
+		}
+	}
+	if !found {
+		t.Fatal("Baloth Prime substitution event lacks CR 122.1d provenance marker")
+	}
 }
 
 // TestBalothPrimeUntapsOnceTheLastStunCounterIsGone is the other half of

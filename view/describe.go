@@ -297,14 +297,10 @@ func Describe(g *state.Game, ev events.Event) string {
 		if n != 1 {
 			s += "s"
 		}
-		// CR 122.1d: a stun counter is removed instead of untapping. The
-		// event carries no provenance (a direct RemoveCounter effect emits
-		// the identical CounterChange), so the suffix states the rule rather
-		// than asserting this event was an untap replacement -- but it is the
-		// line that connects "lost a STUN counter" to the untap the player
-		// was watching for (feedback 20260921T204701Z).
 		if ev.Counter == "STUN" && ev.Amount < 0 {
-			s += " (stun counters are removed instead of untapping)"
+			if ev.Text == events.UntapReplacedByStunNotice {
+				return obj(g, ev.Obj) + " would untap, but a stun counter is removed instead"
+			}
 		}
 		return s
 	case events.Explore:
