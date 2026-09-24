@@ -1635,31 +1635,79 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // CantAttackParamsReadableForRules is the FACE S:-line whitelist for a
 // CantAttack static: the shared CantRestrictionParamsReadable core EXTENDED by
 // exactly the conditional parameter family rules' attackBlocked reads --
-// UnlessDefender$ (through effects.UnlessDefenderHolds) and CheckSVar$ /
-// SVarCompare$ / Condition$ (through the shared rules-side gate evaluator,
-// rules/layers.go continuousGateHolds). It lives here, beside
+// UnlessDefender$ (through effects.UnlessDefenderHolds) and the shared
+// rules-side gate evaluator rules/layers.go continuousGateHolds, which reads
+// CheckSVar$ / SVarCompare$ / Condition$ AND the present family
+// IsPresent$ / IsPresent2$ / PresentCompare$. It lives here, beside
 // CantRestrictionParamsReadable and mirrors MustAttackParamsReadableForRules
 // below, so the face whitelist and the gate evaluators cannot drift apart
-// unseen. Measured over the corpus's 271 `Mode$ CantAttack` files: 63 raw
-// lines carry this family, and NONE of them pairs it with the other
-// continuous-gate keys (IsPresent$/PresentCompare$/PresentZone$/ClassBand$),
-// so those keys stay off this list -- a line carrying only them is still
-// skipped whole, unchanged. The Effect-delivered registration gate (effEffect,
-// which keeps the narrower CantRestrictionParamsReadable for BOTH modes)
-// cannot share this list: its continuous path reads neither evaluator, so a
-// gate-bearing body must not register blanket -- a gated "can't attack" would
-// become unconditional, over-restricting, and could leave a MustAttack
-// creature with no legal pair. A static carrying any OTHER parameter
-// (ValidCause$, ForCost$, ValidSA$, Cost$, ...) still fails the whitelist and
-// is skipped whole, the deliberate permissive direction. Iterating the params
+// unseen.
+//
+// The present family joined this list with compound-statics1. The earlier
+// measurement (271 `Mode$ CantAttack` files, 63 raw lines carrying the gate
+// family, NONE pairing it with IsPresent$/PresentCompare$) predated commit
+// f81f996e ("split compound S:Mode$ comma lists into one static per mode"):
+// the split makes a compound line's CantAttack half inherit the SHARED Params
+// map, so an `S:Mode$ CantAttack,CantBlock | ... | IsPresent$ Creature.YouCtrl
+// | PresentCompare$ LE2` line (Bast, Panther Goddess) now reaches
+// attackBlocked as a CantAttack static carrying IsPresent. The gate machinery
+// already evaluates it, so excluding the keys only skipped the attack half
+// whole while the block half (blockRestricted's CantBlock loop, which runs
+// continuousGateHolds with no whitelist) bound at runtime -- the asymmetry
+// this ticket fixes. Measured over the corpus: 25 files carry a CantAttack
+// line with IsPresent$, none in any repo deck.
+//
+// A line carrying PresentCompare$ WITHOUT IsPresent$/IsPresent2$ is rejected:
+// presentGate is the only reader of PresentCompare and it runs only when a
+// present spec is present, so an orphan compare would fall through the gate
+// unread and restrict blanket, over-restricting. Measured 0 corpus rows; the
+// guard keeps it that way.
+//
+// A present spec carrying a predicate this build's matcher does not recognise
+// is rejected too: countPresent counts through the matcher, so an unparseable
+// spec matches nothing and an EQ0 compare ("restrict unless X is ABSENT")
+// would read count 0 unconditionally and blanket-restrict. The one corpus row
+// (Flowering Lumberknot, `IsPresent$ Creature.PairedWith+withSoulbond |
+// PresentCompare$ EQ0`) names the unimplemented `withSoulbond` predicate, so
+// it stays skipped -- the permissive direction -- rather than over-restricting.
+// UnknownPredicates (this package) is the same census the matcher's
+// recognisedPredicate classifier drives, so the check cannot drift from what
+// countPresent really resolves.
+//
+// The Effect-delivered registration gate (effEffect, which keeps the narrower
+// CantRestrictionParamsReadable for BOTH modes) cannot share this list: its
+// continuous path reads neither evaluator, so a gate-bearing body must not
+// register blanket -- a gated "can't attack" would become unconditional,
+// over-restricting, and could leave a MustAttack creature with no legal pair.
+// A static carrying any OTHER parameter (ValidCause$, ForCost$, ValidSA$,
+// Cost$, PresentZone$, ClassBand$, ...) still fails the whitelist and is
+// skipped whole, the deliberate permissive direction. Iterating the params
 // map only yields a boolean, so map order never reaches an
 // event/option/view -- determinism is preserved.
 func CantAttackParamsReadableForRules(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary",
-			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender":
+			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender",
+			"IsPresent", "IsPresent2", "PresentCompare":
 		default:
+			return false
+		}
+	}
+	// presentGate reads PresentCompare only when a present spec is set; an
+	// orphan compare would never be evaluated, so admit the line only when the
+	// spec it compares against is really there.
+	if _, hasCmp := params["PresentCompare"]; hasCmp {
+		_, has1 := params["IsPresent"]
+		_, has2 := params["IsPresent2"]
+		if !has1 && !has2 {
+			return false
+		}
+	}
+	// An unread present spec would match nothing, so an EQ0 compare would hold
+	// unconditionally and over-restrict; keep such a line skipped whole.
+	for _, key := range []string{"IsPresent", "IsPresent2"} {
+		if spec := strings.TrimSpace(params[key]); spec != "" && len(UnknownPredicates(spec)) != 0 {
 			return false
 		}
 	}

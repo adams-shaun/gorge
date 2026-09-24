@@ -3661,13 +3661,18 @@ func counterKindMatches(restriction, kind string) bool {
 //
 // A face static's conditional parameter family is read here (task
 // combatres-cantattack): continuousGateHolds evaluates CheckSVar$/
-// SVarCompare$/Condition$ and UnlessDefenderHolds evaluates UnlessDefender$
+// SVarCompare$/Condition$ and the present family IsPresent$/IsPresent2$/
+// PresentCompare$, and UnlessDefenderHolds evaluates UnlessDefender$
 // against the defender (the creature may attack exactly when the defended
 // player satisfies the predicate), so a line carrying them is ENFORCED, not
-// skipped. A static carrying any OTHER parameter still fails
-// CantAttackParamsReadableForRules and is skipped whole -- the deliberate
-// permissive direction, so a gate this build cannot evaluate never becomes
-// an unconditional restriction.
+// skipped. The present family became reachable on this path with
+// compound-statics1: commit f81f996e split a compound `S:Mode$
+// CantAttack,CantBlock` line into one static per mode sharing one Params map,
+// so Bast, Panther Goddess's CantAttack half now carries the shared
+// IsPresent$ Creature.YouCtrl | PresentCompare$ LE2 gate. A static carrying
+// any OTHER parameter still fails CantAttackParamsReadableForRules and is
+// skipped whole -- the deliberate permissive direction, so a gate this build
+// cannot evaluate never becomes an unconditional restriction.
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {
