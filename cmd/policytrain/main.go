@@ -64,8 +64,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "policytrain: %v\n", err)
 			return 1
 		}
-		fmt.Fprintf(stdout, "corpus %s: %d records, %d skipped (no candidates), %d loaded\n",
-			path, stats.Records, stats.Skipped, len(exs))
+		fmt.Fprintf(stdout, "corpus %s: %d records, %d skipped (no candidates), %d loaded (%d with outcome)\n",
+			path, stats.Records, stats.Skipped, len(exs), stats.WithOutcome)
 		examples = append(examples, exs...)
 	}
 	if len(examples) == 0 {

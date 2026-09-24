@@ -589,7 +589,7 @@ func decodeExpRecords(path string) ([]expRecord, error) {
 		if err := json.Unmarshal(line, &r); err != nil {
 			return nil, fmt.Errorf("record %d: %w", seen, err)
 		}
-		if r.RecordType != policynet.LabelRecordType || r.SchemaVersion != policynet.LabelSchemaVersion {
+		if r.RecordType != policynet.LabelRecordType || !policynet.LabelSchemaAccepted(r.SchemaVersion) {
 			continue
 		}
 		if len(r.Candidates) == 0 {
