@@ -1152,3 +1152,212 @@ func TestTrainerBCEAttackersHeadIsCalibratedAtZero(t *testing.T) {
 	t.Logf("bce: preferred>0 %d/%d, other>0 %d/%d | ce (one-signed): preferred>0 %d/%d, other>0 %d/%d",
 		bp, half, bo, half, cp, half, co, half)
 }
+
+// legacySplitCorpus is a verbatim copy of splitCorpus as it stood before the
+// -holdout-by flag (ticket pn02), kept so the default split is pinned
+// against the pre-change function rather than against itself.
+func legacySplitCorpus(examples []policynet.Example, frac float64, rng *rand.Rand) split {
+	n := len(examples)
+	idx := make([]int, n)
+	for i := range idx {
+		idx[i] = i
+	}
+	rng.Shuffle(n, func(i, j int) { idx[i], idx[j] = idx[j], idx[i] })
+	hn := int(frac * float64(n))
+	return split{train: idx[hn:], hold: idx[:hn]}
+}
+
+func trainRNG(seed int64) *rand.Rand {
+	return rand.New(rand.NewPCG(uint64(seed), 0x9E3779B97F4A7C15^uint64(seed)))
+}
+
+// gameCorpus is syntheticCorpus regrouped into games of uneven size: the
+// game identity is (Pair, Seed, GameIndex), and two games share a
+// GameIndex under different pairs so the key's every field matters.
+func gameCorpus(n int) []policynet.Example {
+	ex := syntheticCorpus(n)
+	for i := range ex {
+		g := i / (2 + i%3) // uneven group sizes
+		ex[i].Pair = fmt.Sprintf("pair%d", g%2)
+		ex[i].GameIndex = g / 2
+		ex[i].Seed = uint64(7000 + g/2)
+	}
+	return ex
+}
+
+// TestHoldoutByExampleReproducesLegacySplit pins that the default split
+// (HoldoutBy "" and "example") is the pre-flag split bit for bit, and that
+// Train's rng draw sequence is unchanged: "" and "example" train the same
+// model.
+func TestHoldoutByExampleReproducesLegacySplit(t *testing.T) {
+	for _, n := range []int{1, 7, 48, 131} {
+		ex := syntheticCorpus(n)
+		for _, frac := range []float64{0, 0.1, 0.125, 0.5} {
+			for seed := int64(1); seed <= 5; seed++ {
+				got := splitCorpus(ex, frac, trainRNG(seed))
+				want := legacySplitCorpus(ex, frac, trainRNG(seed))
+				if fmt.Sprint(got.hold, got.train) != fmt.Sprint(want.hold, want.train) {
+					t.Fatalf("n=%d frac=%g seed=%d: split %v|%v, legacy %v|%v", n, frac, seed, got.hold, got.train, want.hold, want.train)
+				}
+			}
+		}
+	}
+
+	ex := syntheticCorpus(40)
+	cfg := testConfig(3)
+	cfg.Epochs = 3
+	a, err := Train(ex, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.HoldoutBy = HoldoutByExample
+	b, err := Train(ex, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(a.Model.Table, a.Model.HidW, a.Model.OutW, a.Epochs, a.ByKind) !=
+		fmt.Sprint(b.Model.Table, b.Model.HidW, b.Model.OutW, b.Epochs, b.ByKind) {
+		t.Fatal(`HoldoutBy "" and "example" trained different models`)
+	}
+}
+
+// TestHoldoutByGameKeepsGamesWhole: the by-game split never puts two
+// examples of one game on different sides, partitions the corpus, holds out
+// at least the fraction, and is deterministic given the seed.
+func TestHoldoutByGameKeepsGamesWhole(t *testing.T) {
+	ex := gameCorpus(97)
+	key := func(e policynet.Example) gameKey { return gameKey{e.Pair, e.Seed, e.GameIndex} }
+	for _, frac := range []float64{0, 0.1, 0.25, 0.5} {
+		for seed := int64(1); seed <= 5; seed++ {
+			sp := splitCorpusByGame(ex, frac, trainRNG(seed))
+			again := splitCorpusByGame(ex, frac, trainRNG(seed))
+			if fmt.Sprint(sp.hold, sp.train) != fmt.Sprint(again.hold, again.train) {
+				t.Fatalf("frac=%g seed=%d: two runs split differently", frac, seed)
+			}
+			if float64(len(sp.hold)) < frac*float64(len(ex)) {
+				t.Fatalf("frac=%g seed=%d: held %d < %g", frac, seed, len(sp.hold), frac*float64(len(ex)))
+			}
+			seen := make([]int, len(ex))
+			side := map[gameKey]bool{} // true = hold
+			for s, idx := range [][]int{sp.train, sp.hold} {
+				for _, i := range idx {
+					seen[i]++
+					k := key(ex[i])
+					if prev, ok := side[k]; ok && prev != (s == 1) {
+						t.Fatalf("frac=%g seed=%d: game %v is on both sides", frac, seed, k)
+					}
+					side[k] = s == 1
+				}
+			}
+			for i, c := range seen {
+				if c != 1 {
+					t.Fatalf("frac=%g seed=%d: example %d appears %d times", frac, seed, i, c)
+				}
+			}
+		}
+	}
+	// The per-example split on the same corpus does split games (the defect
+	// this flag exists for); pin it so the test demonstrates the difference.
+	leaky := splitCorpus(ex, 0.25, trainRNG(1))
+	held := map[gameKey]bool{}
+	for _, i := range leaky.hold {
+		held[key(ex[i])] = true
+	}
+	shared := false
+	for _, i := range leaky.train {
+		if held[key(ex[i])] {
+			shared = true
+			break
+		}
+	}
+	if !shared {
+		t.Fatal("expected the per-example split to share a game across sides on this corpus")
+	}
+
+	// Through Train: a game split trains, is deterministic, and a bad unit or
+	// a one-game corpus is refused.
+	cfg := testConfig(4)
+	cfg.Epochs = 3
+	cfg.Holdout = 0.25
+	cfg.HoldoutBy = HoldoutByGame
+	a, err := Train(ex, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := Train(ex, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.HoldoutN < int(0.25*float64(len(ex))) || a.TrainN+a.HoldoutN != len(ex) {
+		t.Fatalf("train %d holdout %d of %d", a.TrainN, a.HoldoutN, len(ex))
+	}
+	if fmt.Sprint(a.Model.Table, a.Epochs, a.ByKind) != fmt.Sprint(b.Model.Table, b.Epochs, b.ByKind) {
+		t.Fatal("two game-split runs trained different models")
+	}
+	cfg.HoldoutBy = "turn"
+	if _, err := Train(ex, cfg); err == nil {
+		t.Fatal("HoldoutBy turn accepted")
+	}
+	one := syntheticCorpus(8)
+	for i := range one {
+		one[i].GameIndex, one[i].Seed = 0, 1
+	}
+	cfg.HoldoutBy = HoldoutByGame
+	if _, err := Train(one, cfg); err == nil {
+		t.Fatal("a one-game corpus with a positive holdout accepted (nothing left to train on)")
+	}
+}
+
+// TestOverrideColumnsKnownAnswer pins the override-subset readout on a
+// hand-built holdout whose model argmax is known: every learned output
+// weight is zeroed, so an option scores exactly its bot-prior residual and
+// the argmax is the first BotPick labelled option, else the first labelled.
+func TestOverrideColumnsKnownAnswer(t *testing.T) {
+	m := policynet.NewModel(policynet.TableRows, 4, 4, trainRNG(1))
+	for i := range m.OutW {
+		m.OutW[i] = 0
+	}
+	m.OutB = 0
+	m.ResidualW = 1
+	opt := func(bot, pref bool) policynet.Option {
+		return policynet.Option{
+			Dense:   make([]float32, policynet.OptionDenseWidth),
+			BotPick: bot,
+			Target:  policynet.OptionTarget{Labelled: true, Preferred: pref, Value: 0.5},
+		}
+	}
+	ex := func(kind decision.Kind, teacher int, opts ...policynet.Option) policynet.Example {
+		return policynet.Example{
+			Kind: kind, TeacherChoice: teacher, BotIndex: 0,
+			State: policynet.State{Dense: make([]float32, policynet.DenseWidth)}, Options: opts,
+		}
+	}
+	corpus := []policynet.Example{
+		// priority, kept, model picks the bot option A = preferred: agree, bot.
+		ex(decision.KPriority, 0, opt(true, true), opt(false, false)),
+		// priority, override to B; model picks bot A: disagree, bot.
+		ex(decision.KPriority, 1, opt(true, false), opt(false, true)),
+		// priority, override, no bot pick marked: tie -> first = preferred: agree, not bot.
+		ex(decision.KPriority, 1, opt(false, true), opt(false, false)),
+		// priority, kept, bot pick is B and preferred: agree, bot.
+		ex(decision.KPriority, 0, opt(false, false), opt(true, true)),
+		// priority, no preferred option: ineligible, not counted.
+		ex(decision.KPriority, 1, opt(true, false), opt(false, false)),
+		// attackers, kept, model picks bot A, preferred is B: disagree, bot.
+		ex("attackers", 0, opt(true, false), opt(false, true)),
+	}
+	idx := make([]int, len(corpus))
+	for i := range idx {
+		idx[i] = i
+	}
+	got := evaluateByKind(m, corpus, idx)
+	want := []KindStat{
+		{Kind: "attackers", Eligible: 1, ModelTop1: 0, BotTop1: 1, FirstTop1: 0, RandomTop1: 0.5,
+			OverrideN: 0, ModelOverrideTop1: 0, ModelKeepTop1: 0, ModelPicksBot: 1},
+		{Kind: decision.KPriority, Eligible: 4, ModelTop1: 0.75, BotTop1: 0.5, FirstTop1: 0.5, RandomTop1: 0.5,
+			OverrideN: 2, ModelOverrideTop1: 0.5, ModelKeepTop1: 1, ModelPicksBot: 0.75},
+	}
+	if fmt.Sprintf("%+v", got) != fmt.Sprintf("%+v", want) {
+		t.Fatalf("per-kind readout\n got %+v\nwant %+v", got, want)
+	}
+}

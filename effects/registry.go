@@ -442,6 +442,21 @@ type Host interface {
 	// turn" read: Bloodsoaked Champion's CheckSVar$ activation gate and ten
 	// ConditionCheckSVar$ bodies).
 	AttackersThisTurn() int
+	// AttackersDeclaredThisTurn lists the objects declared as attackers THIS
+	// turn, each once, in declaration order -- the same DeclareAttackers log
+	// fold AttackersThisTurn counts (Count$CreaturesAttackedThisTurn).
+	AttackersDeclaredThisTurn() []state.ObjID
+	// LifeLostLastTurn reports the total life player p lost during the
+	// PREVIOUS turn: the negative LifeChanges between the last two
+	// TurnChange events of the log (PlayerCount*$LifeLostLastTurn). Zero on
+	// the first turn.
+	LifeLostLastTurn(p state.PlayerID) int32
+	// AttackedDuringLastTurn reports whether player q declared an attack on
+	// player defender during q's most recent COMPLETED turn (a
+	// DeclareAttackers naming defender inside that turn's TurnChange window
+	// of the log) -- Forge's attackedYouTheirLastTurn player property
+	// (Avenge's "if a player attacked you during their last turn").
+	AttackedDuringLastTurn(q, defender state.PlayerID) bool
 	// CommanderIdentityColourCount reports how many colours seat p's
 	// commander colour identity names (the WUBRG-ordered union of every
 	// commander's Card.ColourIdentity, read off state.Player.Commanders —
@@ -1318,6 +1333,20 @@ type Ctx struct {
 	// its own confirm.
 	SearchShuffle      string
 	SearchShuffleMoved []state.ObjID
+	// SearchKnown names, per choosing player, the library cards whose identity
+	// that player has legitimately learned during this resolution's search
+	// chain (effects/zone.go applyLibrarySearch): a card the head ask publicly
+	// revealed is known to every seat, and a card the head ask offered BY NAME
+	// is known to the player who picked it. A Cultivate-family placement leg
+	// (NoLooking$ True, ChangeType$ ...IsRemembered) must label its options
+	// with those real names -- the blind "a card" label would hide information
+	// the chooser already holds -- while an option the chooser genuinely never
+	// saw stays fail-closed blind. It rides the ask via Decision
+	// .ResumeSearchKnown, because the first leg's own suspension rebuilds a
+	// fresh Ctx and a plain field would be lost before the second leg asks.
+	// Resolution-scratch like Remembered -- never event-encoded; a replay
+	// re-derives the same set by replaying the same resolution.
+	SearchKnown []state.Target
 	// AttachOpt is the answered Optional$ True attach election ("yes"/"no")
 	// on a re-entered Attach resolution (Ajani's Chosen's "you may attach it
 	// to the token", Cori-Steel Cutter's "you may attach this Equipment to

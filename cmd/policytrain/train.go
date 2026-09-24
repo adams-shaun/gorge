@@ -38,9 +38,16 @@ type Config struct {
 	LR      float64
 	Seed    int64
 	Holdout float64 // fraction of examples held out of the update, [0, 1)
-	Embed   int     // H, the shared embedding width
-	Hidden  int     // hidden layer width
-	Mode    policynet.LossMode
+	// HoldoutBy is the split's unit. "" or HoldoutByExample (the default)
+	// shuffles EXAMPLES and holds out the first ⌊Holdout·n⌋ -- the historical
+	// split, same rng draws, bit for bit. HoldoutByGame groups the examples by
+	// game (Pair, Seed, GameIndex), shuffles the GROUPS with the same rng and
+	// holds out whole games until at least Holdout·n examples are held, so no
+	// board state from a held-out game is ever trained on.
+	HoldoutBy string
+	Embed     int // H, the shared embedding width
+	Hidden    int // hidden layer width
+	Mode      policynet.LossMode
 	// RankWeight is the ranking term's weight against the value term (a
 	// TERM-MIX weight, see policynet.LossConfig). In pure CE mode the rank
 	// term is the whole loss, so a non-zero, non-one RankWeight is a uniform
@@ -132,7 +139,21 @@ type KindStat struct {
 	BotTop1    float64 // pick the bot's candidate: teacher kept the bot
 	FirstTop1  float64 // pick the first labelled option
 	RandomTop1 float64 // expected agreement of a uniform pick; #pref/#labelled averaged
+
+	// The override subset. On an oracle corpus the teacher keeps the bot on
+	// ~98% of decisions, so BotTop1 is ~0.98 and ModelTop1 alone cannot show
+	// whether the model learned any override; these split it.
+	OverrideN         int     // eligible examples where the teacher overrode the bot (Example.Override)
+	ModelOverrideTop1 float64 // model's argmax is teacher-preferred, over the OverrideN override examples
+	ModelKeepTop1     float64 // model's argmax is teacher-preferred, over the Eligible-OverrideN kept examples
+	ModelPicksBot     float64 // fraction of eligible examples whose model argmax is a BotPick option
 }
+
+// Holdout split units (Config.HoldoutBy, the -holdout-by flag).
+const (
+	HoldoutByExample = "example"
+	HoldoutByGame    = "game"
+)
 
 type split struct {
 	train []int
@@ -156,6 +177,8 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 		return nil, fmt.Errorf("policytrain: geometry embed %d hidden %d", cfg.Embed, cfg.Hidden)
 	case cfg.Holdout < 0 || cfg.Holdout >= 1:
 		return nil, fmt.Errorf("policytrain: holdout fraction %g outside [0,1)", cfg.Holdout)
+	case cfg.HoldoutBy != "" && cfg.HoldoutBy != HoldoutByExample && cfg.HoldoutBy != HoldoutByGame:
+		return nil, fmt.Errorf("policytrain: holdout-by %q (want %s or %s)", cfg.HoldoutBy, HoldoutByExample, HoldoutByGame)
 	case cfg.ResidualInit < 0:
 		return nil, fmt.Errorf("policytrain: residual init %g < 0 (a positive bot-prior weight is the residual; 0 disables)", cfg.ResidualInit)
 	}
@@ -201,7 +224,15 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	// math/rand/v2 with an explicit seeded source (the repo forbids v1; the
 	// PCG seed pair is a fixed deterministic function of cfg.Seed).
 	rng := rand.New(rand.NewPCG(uint64(cfg.Seed), 0x9E3779B97F4A7C15^uint64(cfg.Seed)))
-	sp := splitCorpus(usable, cfg.Holdout, rng)
+	var sp split
+	if cfg.HoldoutBy == HoldoutByGame {
+		sp = splitCorpusByGame(usable, cfg.Holdout, rng)
+		if len(sp.train) == 0 {
+			return nil, fmt.Errorf("policytrain: holdout-by game: holding out %g of %d examples takes every game, leaving nothing to train on", cfg.Holdout, len(usable))
+		}
+	} else {
+		sp = splitCorpus(usable, cfg.Holdout, rng)
+	}
 
 	model := policynet.NewModelExtra(policynet.TableRows, cfg.Embed, cfg.Hidden, cfg.ExtraW, rng)
 	model.ResidualW = float32(cfg.ResidualInit)
@@ -255,7 +286,7 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 				epoch, cfg.Epochs, trainLoss, trainTop1, holdLoss, holdTop1)
 		}
 	}
-	res.ByKind = evaluateByKind(model, usable, sp.hold, lc)
+	res.ByKind = evaluateByKind(model, usable, sp.hold)
 	return res, nil
 }
 
@@ -301,6 +332,46 @@ func splitCorpus(examples []policynet.Example, frac float64, rng *rand.Rand) spl
 	return split{train: idx[hn:], hold: idx[:hn]}
 }
 
+// gameKey identifies one game in a label corpus.
+type gameKey struct {
+	pair  string
+	seed  uint64
+	index int
+}
+
+// splitCorpusByGame is the by-game holdout: examples are grouped by game
+// (Pair, Seed, GameIndex) with the groups numbered in first-seen corpus
+// order (the map is only a lookup, never ranged), the GROUP order is
+// shuffled with the run's rng, and whole groups are held out until at least
+// frac·n examples are held. Every example of one game lands on one side.
+// Called at the same point in the rng sequence as splitCorpus, it is
+// deterministic given the seed.
+func splitCorpusByGame(examples []policynet.Example, frac float64, rng *rand.Rand) split {
+	lookup := map[gameKey]int{}
+	var groups [][]int
+	for i := range examples {
+		k := gameKey{examples[i].Pair, examples[i].Seed, examples[i].GameIndex}
+		g, ok := lookup[k]
+		if !ok {
+			g = len(groups)
+			lookup[k] = g
+			groups = append(groups, nil)
+		}
+		groups[g] = append(groups[g], i)
+	}
+	rng.Shuffle(len(groups), func(i, j int) { groups[i], groups[j] = groups[j], groups[i] })
+	target := frac * float64(len(examples))
+	var sp split
+	for _, g := range groups {
+		if float64(len(sp.hold)) < target {
+			sp.hold = append(sp.hold, g...)
+		} else {
+			sp.train = append(sp.train, g...)
+		}
+	}
+	return sp
+}
+
 // evaluate runs the forward-only loss over a set of examples.
 func evaluate(m *policynet.Model, examples []policynet.Example, idx []int, lc policynet.LossConfig) (loss float64, top1 float64) {
 	if len(idx) == 0 {
@@ -331,15 +402,21 @@ func ratio(a, b int) float64 {
 // top-1 agreement and the bot-copy, first-labelled and random-pick baselines,
 // all over the same eligible examples. An example is eligible when it has a
 // teacher-preferred option (nothing to agree or disagree with otherwise).
-// Kinds are visited in sorted order so the output never depends on map
-// iteration order.
-func evaluateByKind(m *policynet.Model, examples []policynet.Example, idx []int, lc policynet.LossConfig) []KindStat {
+// It also splits the model's agreement over the override subset (the
+// teacher overrode the bot) and the kept subset, and counts how often the
+// model's own pick is a bot-pick option. Kinds are visited in sorted order
+// so the output never depends on map iteration order.
+func evaluateByKind(m *policynet.Model, examples []policynet.Example, idx []int) []KindStat {
 	type acc struct {
-		eligible int
-		model    int
-		bot      int
-		first    int
-		random   float64
+		eligible  int
+		model     int
+		bot       int
+		first     int
+		random    float64
+		overrides int
+		modelOvr  int
+		modelKeep int
+		picksBot  int
 	}
 	byKind := map[decision.Kind]*acc{}
 	for _, ix := range idx {
@@ -368,9 +445,21 @@ func evaluateByKind(m *policynet.Model, examples []policynet.Example, idx []int,
 			byKind[ex.Kind] = a
 		}
 		a.eligible++
-		st := m.Loss(ex, lc)
-		if st.Agree {
+		best, _ := m.Argmax(ex) // labelled is non-empty here
+		agree := ex.Options[best].Target.Preferred
+		if agree {
 			a.model++
+		}
+		if ex.Options[best].BotPick {
+			a.picksBot++
+		}
+		if ex.Override() {
+			a.overrides++
+			if agree {
+				a.modelOvr++
+			}
+		} else if agree {
+			a.modelKeep++
 		}
 		if ex.TeacherChoice == ex.BotIndex {
 			a.bot++
@@ -395,6 +484,11 @@ func evaluateByKind(m *policynet.Model, examples []policynet.Example, idx []int,
 			BotTop1:    ratio(a.bot, a.eligible),
 			FirstTop1:  ratio(a.first, a.eligible),
 			RandomTop1: a.random / float64(a.eligible),
+
+			OverrideN:         a.overrides,
+			ModelOverrideTop1: ratio(a.modelOvr, a.overrides),
+			ModelKeepTop1:     ratio(a.modelKeep, a.eligible-a.overrides),
+			ModelPicksBot:     ratio(a.picksBot, a.eligible),
 		})
 	}
 	return out

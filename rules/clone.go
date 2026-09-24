@@ -1012,6 +1012,7 @@ func cloneDecision(p *decision.Decision) *decision.Decision {
 	d.ResumeChoices = append([]state.Target(nil), p.ResumeChoices...)
 	d.ResumeChosenValid = p.ResumeChosenValid
 	d.ResumeRemembered = append([]state.Target(nil), p.ResumeRemembered...)
+	d.ResumeSearchKnown = append([]state.Target(nil), p.ResumeSearchKnown...)
 	d.ResumeVillainousVictims = append([]state.Target(nil), p.ResumeVillainousVictims...)
 	d.ResumeVillainousIndex = p.ResumeVillainousIndex
 	d.ResumeGenericChoosers = append([]state.Target(nil), p.ResumeGenericChoosers...)

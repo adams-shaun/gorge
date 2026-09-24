@@ -560,16 +560,93 @@ func TestLoaderPrefersTheTeachersCandidateValue(t *testing.T) {
 func TestLoaderRejectsWrongSchema(t *testing.T) {
 	recs := fixtureRecords()
 	bad := recs[:1]
-	bad[0].SchemaVersion = 2
+	bad[0].SchemaVersion = 3
 	path := writeCorpus(t, bad, false)
 	if _, _, err := Load(path); err == nil {
-		t.Fatal("schema_version 2 accepted")
+		t.Fatal("schema_version 3 accepted")
 	}
 	bad[0].SchemaVersion = LabelSchemaVersion
 	bad[0].RecordType = "label-v0"
 	path = writeCorpus(t, bad, false)
 	if _, _, err := Load(path); err == nil {
 		t.Fatal("record_type label-v0 accepted")
+	}
+}
+
+// TestLoaderOutcomes round-trips schema 2's outcome fields (a known win, a
+// known draw, an unknown outcome whose stray value must be ignored) and loads
+// a genuine schema 1 record -- no outcome keys on the wire at all -- with
+// HasOutcome false.
+func TestLoaderOutcomes(t *testing.T) {
+	base := fixtureRecords()[0]
+	win, draw, unknown := base, base, base
+	win.Sequence, win.Outcome, win.OutcomeKnown = 1, 1, true
+	draw.Sequence, draw.Outcome, draw.OutcomeKnown = 2, 0.5, true
+	unknown.Sequence, unknown.Outcome, unknown.OutcomeKnown = 3, 1, false // Outcome is ignored when unknown
+	path := writeCorpus(t, []labelRecord{win, draw, unknown}, false)
+	examples, stats, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(examples) != 3 || stats.WithOutcome != 2 {
+		t.Fatalf("loaded %d examples, WithOutcome %d; want 3, 2", len(examples), stats.WithOutcome)
+	}
+	for i, want := range []struct {
+		outcome float64
+		has     bool
+	}{{1, true}, {0.5, true}, {0, false}} {
+		if got := examples[i]; got.Outcome != want.outcome || got.HasOutcome != want.has {
+			t.Fatalf("example %d: outcome %g has %v, want %g %v", i, got.Outcome, got.HasOutcome, want.outcome, want.has)
+		}
+	}
+
+	// A schema 1 record, written without the schema 2 keys. Even a stray
+	// outcome_known on a v1 line must not be trusted.
+	v1 := base
+	v1.SchemaVersion = 1
+	var lines []byte
+	for _, stray := range []bool{false, true} {
+		b, err := json.Marshal(v1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var m map[string]json.RawMessage
+		if err := json.Unmarshal(b, &m); err != nil {
+			t.Fatal(err)
+		}
+		delete(m, "outcome")
+		delete(m, "outcome_known")
+		if stray {
+			m["outcome"], m["outcome_known"] = json.RawMessage("1"), json.RawMessage("true")
+		}
+		if b, err = json.Marshal(m); err != nil {
+			t.Fatal(err)
+		}
+		lines = append(append(lines, b...), '\n')
+	}
+	v1Path := filepath.Join(t.TempDir(), "v1.jsonl")
+	if err := os.WriteFile(v1Path, lines, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	examples, stats, err = Load(v1Path)
+	if err != nil {
+		t.Fatalf("schema 1 corpus refused: %v", err)
+	}
+	if len(examples) != 2 || stats.WithOutcome != 0 {
+		t.Fatalf("schema 1: %d examples, WithOutcome %d; want 2, 0", len(examples), stats.WithOutcome)
+	}
+	for i, ex := range examples {
+		if ex.HasOutcome || ex.Outcome != 0 {
+			t.Fatalf("schema 1 example %d: HasOutcome %v Outcome %g, want false 0", i, ex.HasOutcome, ex.Outcome)
+		}
+	}
+	for _, v := range []int{0, 3} {
+		if LabelSchemaAccepted(v) {
+			t.Fatalf("schema %d accepted", v)
+		}
+	}
+	if !LabelSchemaAccepted(LabelSchemaVersion) {
+		t.Fatalf("the writer's own schema %d is not accepted", LabelSchemaVersion)
 	}
 }
 
