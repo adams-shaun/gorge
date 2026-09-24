@@ -1,3 +1,550 @@
+# Report — game-long damage-by-source provenance (The Fallen, Diseased Vermin)
+
+Ticket: `agent-20260923T114033Z-a57ee463`
+Branch: `wt/agent-20260923T114033Z-a57ee463`
+HEAD: `102a93451588e3b38c228864349ceb304e32aaad`
+Base: `29ca6faa` (main at dispatch) — ancestry `87901df9` (merge base), then
+  `c2f63152` (implementation) and `102a9345` (review-gate head re-pin).
+
+## Round status
+
+**The `findings-t1.md` note said round t1 was lost before it reported.** I
+checked the worktree: `git status` was already **clean**, no uncommitted work
+from the lost seat existed, and the implementation was already complete and
+committed as `c2f63152`. Review round r1 then ran and returned **VERDICT:
+APPROVE** (`.ds4/verdict-r1.md`), committing the head re-pin `102a9345`.
+
+So my round did what the findings note asked: kept what is sound (everything —
+it was committed) and verified/finished the brief. I re-ran every gate the
+brief names and independently re-proved the bite of the new tests with targeted
+revert probes (below). No code changes were needed; the tree at `102a9345` is
+the finished brief.
+
+## What the implementation is (per file, as committed in `c2f63152`)
+
+- **`events/event.go`** — appended `DamageProvenance` after `CloneStatic`;
+  `NumKinds = int(DamageProvenance) + 1`; `"damage_provenance"` added to
+  `kindNames` (array length is `NumKinds`, so it is covered by construction).
+- **`events/apply.go`** — new `case DamageProvenance`: appends the source to
+  the recipient's game-long record (dedup, never cleared). `Obj` = damage
+  source, `IDs[0]` = recipient. Encoding: a plain `ObjID` for an object
+  recipient, `state.PlayerRef`-encoded for a seat (keeps seat 0 distinct from
+  "no recipient"; `PlayerRef` bit-31 encoding cannot collide with a real object
+  id). Chosen over a `Counter` discriminator because `PlayerRef` is the
+  established `[]ObjID` player-reference precedent (TriggerPush).
+- **`state/game.go` / `state/object.go`** — `Player.DamageTakenByGame []ObjID`
+  and `Object.DamageTakenByGame []ObjID`; deep-copied in `Game.Clone` /
+  `Object.CloneDeep`.
+- **`rules/engine.go`** — one emission choke point in `emit`'s post-fold tail
+  beside the infect/wither conversions: `stored.Kind == Damage && stored.Amount
+  > 0`, source from `e.inFlightDamageSource()`, recipient from the APPLIED
+  `stored` event. `Amount > 0` excludes cleanup negatives; a zero source emits
+  nothing (no false `(0, recipient)` fact). **No emitter file changed.**
+- **`effects/filter.go`** — both object spellings classified
+  (`wasDealtDamageByThisGame`, argument-taking `wasDealtDamageThisGameBy <ref>`)
+  and matched; the player base-qualifier `wasDealtDamageThisGameBy <ref>` and
+  the bare compound clause both read the record through the single shared
+  helper `playerDamageByRefThisGame` -> `damageGameRecordHas`;
+  `contextPredicateBound` refuses the unbound source positively and under `!`.
+- **`effects/damage.go`** — the ValidPlayers fall-through walk binds the sweep's
+  source (`MatchesPlayerSpecFrom(..., c.Source)`); `validPlayersSelectorUnknown`
+  consults the shared bare-clause list, so the census gate and the matcher agree
+  with no parallel vocabulary.
+
+## Gates — real output (this round)
+
+```
+=== effects gate ===
+go test -run 'TestDamageAllValidPlayers|TestContextWordPredicates|TestUnimplementedPredicateFailsClosed' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+
+=== rules census ===
+go test -run 'TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	(cached)
+
+=== rules provenance ===
+go test -run 'TestEmitRecordsGameLongDamageProvenance|TestEmitRecordsObjectDamageProvenance|TestDiseasedVerminAskOffersOnlyPreviouslyDamagedOpponents' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.452s
+
+=== effects provenance ===
+go test -run 'TestDamageAllValidPlayersTheFallenResolves|TestPlayerDamageByRefThisGameFailsClosedOnUnboundRef|TestDamageProvenanceWordsAreClassified' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.422s
+
+=== repro fixture gate ===
+go test -run TestGenerateCommittedFixture ./cmd/repro/
+ok  	github.com/adams-shaun/gorge/cmd/repro	(cached)
+# non-regen gate: SKIP (no REPRO_REGEN_FIXTURE)
+
+=== archtest ===
+go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.287s
+
+=== botbench ===
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+
+=== fixture replay (full package, once) ===
+go test ./cmd/repro/
+ok  	github.com/adams-shaun/gorge/cmd/repro	14.490s
+```
+
+Formatting / types (the Go half of `make lint`):
+
+```
+gofmt -l <changed .go files>   -> (no output)
+go run ./cmd/gentypes -check    -> (no output)
+```
+
+`git status --short` at HEAD -> (empty; tree clean).
+
+## Fails without the fix (independent revert probes this round)
+
+Method: copy the target file to `.ds4/scratch/<name>.orig`, revert ONLY the
+relevant hunk with a Python string replace in the real file, `go build ./...`,
+run the one test, then restore with `cp` and `cmp` against the scratch copy
+(never `git stash` / `git checkout <path>`). Every restore passed `cmp` and
+left `git status` clean.
+
+### Probe 1 — remove the `rules/engine.go` emission block
+
+```
+--- FAIL: TestEmitRecordsGameLongDamageProvenance (0.00s)
+    damage_provenance_test.go:42: want exactly one DamageProvenance event for one landed hit, got 0 ([])
+FAIL	github.com/adams-shaun/gorge/rules	0.003s
+```
+Restored: `cmp rules/engine.go .ds4/scratch/engine.go.orig` OK.
+
+### Probe 2 — disable the bare-word classification in `effects/filter.go`
+
+```
+--- FAIL: TestDamageProvenanceWordsAreClassified (0.00s)
+    damage_provenance_test.go:129: spec "Creature.wasDealtDamageByThisGame" reports unknown predicates [wasDealtDamageByThisGame], want none
+FAIL	github.com/adams-shaun/gorge/effects	0.002s
+```
+Restored: `cmp effects/filter.go .ds4/scratch/filter.go.orig` OK.
+
+### Probe 3 — make the shared player body `playerDamageByRefThisGame` return false
+
+```
+--- FAIL: TestDamageAllValidPlayersTheFallenResolves (0.43s)
+    damage_provenance_test.go:71: the damaged opponent must take The Fallen's 1 damage, life 20 want 19
+--- FAIL: TestPlayerDamageByRefThisGameFailsClosedOnUnboundRef (0.00s)
+    damage_provenance_test.go:103: with the source bound, the damaged opponent must qualify
+FAIL	github.com/adams-shaun/gorge/effects	0.449s
+```
+Restored: `cmp effects/filter.go .ds4/scratch/filter.go.orig` OK.
+
+Each new test asserts its own precondition (The Fallen's script still carries
+the compound; the walker is a planeswalker with loyalty > 0; seat 1's record is
+non-empty after seeding; the compared life values differ), so a vacuous setup
+fails loudly rather than passing silently.
+
+## Goldens / heads (the brief's expected movement)
+
+- **`TestHeads` — all four moved, measured, and now green** after the re-pin
+  the review gate committed in `102a9345`:
+  `2 f107be40dc2792c6`, `4 9b3aab4e0336ba8c`, `6 c4ce39421c473963`,
+  `8 3d1974a1859d9676`. Cause is mechanical: every repo-deck game now carries
+  one extra `DamageProvenance` event per landed point of damage. Attribution
+  proven by reverting only the emission block (restores all four old golden
+  heads exactly) and corroborated by `TestConstructedDefaultIsByteIdentical`
+  staying green (no decision moved). The brief said not to edit
+  `heads_test.go`; the review gate made the bookkeeping re-pin under its
+  2026-09-23 ruling. `go test -run 'TestHeads$' ./rules/` -> ok (1.658s).
+- **Committed feedback fixture `20260915T094418Z-e484f1db` — regenerated**
+  (sanctioned). Verified this round: its `log.json` carries exactly **23**
+  `kind: 93` events = `DamageProvenance` (the log serializes kind as an
+  ordinal, not a name). `go test ./cmd/repro/` -> ok (14.490s, byte-identical
+  replay).
+- **Committed feedback fixture `20260914T120000Z-fb01` — NOT regenerated.**
+  The brief's premise that both would DIVERGE is false: that fixture's captured
+  window deals no damage (0 provenance events needed) and it replays
+  byte-identically. Regenerating it would instead pick up unrelated generator
+  drift (`bot_policy: "bot"`, 24 -> 26 intents); the review gate independently
+  reproduced this. Correct call: kept the committed original.
+- **`TestConstructedDefaultIsByteIdentical` (cmd/botbench) — GREEN**, no re-pin
+  needed: the repo decks carry neither card and provenance emission changes no
+  decision.
+
+## Brief premises checked (counts are claims)
+
+- Corpus prevalence: 2 game-long spellings, 2 cards
+  (`diseased_vermin`, `the_fallen`), both arguments literally `Self` — **held**.
+- The brief's "FALSE premise" correction (Diseased Vermin carries only the
+  ThisGame line, not the ThisTurn sibling) — **held**.
+- "Both committed fixtures will DIVERGE and need regeneration" — **FALSE for
+  fb01**; only e484f1db needed it. Reported, not silently followed.
+- "Expect NO Known-approximations row edit" — **held**; no row added, grown or
+  deleted, `knownApproximationRows` untouched (still 9 at this commit).
+
+## Issues (found, not fixed)
+
+1. **Per-turn by-source siblings remain unknown-word fail-closed** —
+   `wasDealtDamageThisTurnBySource` and `wasDealtCombatDamageThisTurnBySource`.
+   Out of scope per the brief (only the two ThisGame spellings). They need the
+   per-turn twin (cleared at TurnChange) plus LKI, not the game-long record.
+   Measured carriers (4 files): `hidetsugu_consumes_all_vessel_of_the_all_consuming`,
+   `hope_of_ghirapur`, `raphael_tag_team_tough`, `wicked_akuba`. CR 120.3.
+   Natural follow-up ticket.
+
+2. **`cmd/repro/testdata/feedback/20260914T120000Z-fb01` is stale relative to
+   its generator.** `REPRO_REGEN_FIXTURE=1 go test ./cmd/repro -run
+   TestGenerateCommittedFixture` no longer reproduces it (`bot_policy: "bot"`,
+   26 intents vs the committed 24, new head, view churn) — independent of this
+   ticket (the review gate reproduced it with the feature reverted). Invisible
+   today because the non-regen gate SKIPs and the committed fixture still
+   replays. A future legitimate corpus-pin regen will churn the hard-coded
+   expectations in `cmd/repro/repro_test.go` (24 intents, head `6fd99d48...`).
+
+3. **`DamageTakenByGame` is unbounded in a long game** — one `ObjID` per
+   distinct source per recipient, never cleared (game-long by design). Bounded
+   by distinct damage sources in a match; a future snapshot/compact path should
+   be aware.
+
+4. **`host/session_test.go` ring headroom** — the test's channel capacity was
+   raised 64 -> 256 to absorb the denser frame stream (extra provenance events);
+   the review gate verified the production default is already 256 and every
+   assertion is unchanged. If a real damage-heavy deployment is tight, that is
+   a capacity-tuning question outside this ticket.
+
+## Deviations from the brief
+
+- **No regeneration of fb01** (brief premise false; see above) — inherited from
+  `c2f63152`, re-verified this round.
+- **`rules/heads_test.go` was edited (re-pinned)** by the review gate in
+  `102a9345`, not by the implementer; the brief said not to, but the movement
+  was expected and the re-pin carries measured attribution.
+- **`host/session_test.go` and `host/overshoot_tail_test.go`** were touched
+  (un-named by the brief) because the always-emit design the brief mandated
+  moved them; both attributed.
+
+No Known-approximations row added or grown.
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — agent-20260923T042552Z-0936e140
+
+Implement DigUntil withheld rider semantics.
+
+## Summary
+
+`effects/cardflow.go` `effDigUntil` used to parse a withhold list, emit one
+loud Note per parameter, and run only the core reveal-until move. All riders in
+the brief except `DigZone$ PlanarDeck` are now implemented; the withhold list
+and Note emission shrank accordingly.
+
+## Round 2 (this fix round) — the one finding in `findings-t2.md`
+
+`findings-t2.md` carried exactly one MAJOR and no re-verification list:
+
+- **[MAJOR] `.ds4/report-t1.md` replaced the shared report archive (3,587 lines
+  removed) with only this ticket's report.** Confirmed: commit `01c37234`
+  rewrote `.ds4/report-t1.md` from 3,429 lines to 248, dropping 3,384 lines of
+  other tickets' accumulated report history. Every other checked item in that
+  findings file was a break attempt that HELD, and its regression/gate checks
+  passed.
+
+**Fixed** in `b92d89f8`. The shared-report-file preserve convention
+(`6bc24448`, model `472d095d`) is: restore the prior file byte-exact and prepend
+the current ticket's report above a separator. `.ds4/report-t1.md` is now the
+DigUntil report followed by a separator and the prior archive restored
+byte-exact (`tail -n +255` of the new file `cmp`s clean against
+`01c37234^:.ds4/report-t1.md`). Because the dispatch names `.ds4/report-t2.md`
+as the report path, the same DigUntil report is written there with its own
+prior contents preserved byte-exact below a separator. No other file changed
+this round; no code, test or census change.
+
+Gates re-run this round (no source changed, so several report `(cached)`; the
+`-count=1` DigUntil run proves the tests actually execute):
+
+```text
+$ go build ./...
+(clean)
+
+$ go test -count=1 -run 'TestDigUntil' -v ./effects/
+--- PASS: TestDigUntilAmountSVarCountsMatchesToTheTally (0.48s)
+--- PASS: TestDigUntilAmountSVarZeroRevealsNothing (0.00s)
+--- PASS: TestDigUntilAmountSVarUnresolvableStillWithholds (0.00s)
+--- PASS: TestDigUntilShuffleShufflesTheDugLibrary (0.00s)
+--- PASS: TestDigUntilShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan (0.00s)
+--- PASS: TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary (0.00s)
+--- PASS: TestDigUntilFoundLibraryPositionPlacesOrKeepsTheFoundCard (0.00s)
+--- PASS: TestDigUntilImprintFoundFeedsTheExileReader (0.00s)
+--- PASS: TestDigUntilImprintRevealedRecordsEveryRevealedCard (0.00s)
+--- PASS: TestDigUntilNoneFoundBranchSwapsTheRevealedDestination (0.00s)
+--- PASS: TestDigUntilRidersEmitOnceAcrossTheOptionalAsk (0.00s)
+--- PASS: TestDigUntilKindredSummonsAmountSVarCountsChosenTypeCreatures (0.00s)
+--- PASS: TestDigUntilEmptyTheLaboratoryAmountSVarCountsRemembered (0.00s)
+--- PASS: TestDigUntilTunnelVisionNoneFoundShufflesAndKeepsLibrary (0.00s)
+(plus the 5 pre-existing DigUntil tests)
+PASS
+ok  github.com/adams-shaun/gorge/effects  0.497s
+
+$ go test -run 'TestParamCensusScanIsComplete|TestEveryRepoDeckParamsAreRead' ./rules/
+ok  github.com/adams-shaun/gorge/rules  (cached)
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  (cached)
+
+$ gofmt -l effects/cardflow.go effects/diguntil_riders_test.go effects/diguntil_aura_test.go rules/paramcensus_test.go
+(empty)
+$ go run ./cmd/gentypes -check
+(empty)
+```
+
+`.cards` is a symlink to the shared corpus (present), so corpus-backed tests ran
+rather than skipped.
+
+NOTE ON ROUND HISTORY: an earlier t1 run was lost mid-task (per
+`.ds4/findings-t1.md`). It had already implemented the riders and committed them
+as `c749b700` (`feat(effects): implement DigUntil withheld rider semantics`).
+I audited that work, found and fixed one real defect in its tests (below), added
+the three real-carrier tests the brief names but the earlier run omitted, and
+re-ran every gate myself. The report below covers the whole deliverable, not
+just my delta.
+
+## What changed, per file
+
+### `effects/cardflow.go` (committed in `c749b700`, part of this ticket)
+`effDigUntil` (~line 1744 onward):
+
+- **`Amount$ <token>` non-literal** — resolves the token as an SVar name via
+  the new `digUntilAmountSVar` (reads `Ctx.SVars[token]` and runs
+  `EvalCountOK`), the same read `effDig`'s `DigNum$ X` arm uses. `X`, `MassX`,
+  `Y`, `VoteNum` bodies (`Count$xPaid`, `Count$Valid …`, `Remembered$Amount`,
+  `Number$<n>`) all resolve. An absent/unresolvable SVar keeps its loud Note
+  and amount 1 (fail-safe).
+- **`Shuffle$ True`** — after the found move and revealed-rest moves, shuffles
+  the dug player's library (`h.ShuffleLibrary(p, …)` + one Secret
+  `events.Shuffle`), the exact `effShuffle` contract.
+- **`ShuffleCondition$ NoneFound`** — restricts that shuffle to a scan that
+  found nothing; any other value is withheld loudly.
+- **`NoMoveFound$ True`** — skips the found-card move; the card stays in the
+  library (and a `FoundLibraryPosition$ -1` still bottoms it).
+- **`FoundLibraryPosition$`** — `-1` = one library-to-library `MoveZone`
+  (bottom); `0`/absent = top = the card never left, no event. Any other value
+  is withheld loudly.
+- **`ImprintFound$` / `ImprintRevealed$`** — accumulate the found / all-revealed
+  cards across the player walk and emit one `events.Imprint` on the resolving
+  source after the walk, on the Seek `<Text:"seek-found">` list rather than the
+  ordinary `Imprinted` list. This is the brief's sanctioned fallback: the
+  ordinary list's CR 607.2a exile-only reader (`effects/context.go`
+  `imprintPileTargets`) would hide a card in Exile-from-library / on the
+  battlefield, which is exactly what Venture Forth's `Defined$ Imprinted |
+  Origin$ Exile` continuation needs. Both real carriers (Venture Forth, Part in
+  Friendship) verify against the association.
+- **`NoneFoundDestination$` / `NoneFoundLibraryPosition$`** — when the scan
+  found nothing, the revealed pile takes these instead of
+  `RevealedDestination$`/`RevealedLibraryPosition$`.
+- **Still withheld (fail-safe + loud Note):** `DigZone$` (every corpus value is
+  `PlanarDeck`; no planar tier), an unresolvable `Amount$`, and any unmodelled
+  value for a modelled key (`ShuffleCondition$` other than `NoneFound`,
+  `Imprint*` other than `True`, non-`0`/`-1` positions).
+- Helpers added: `digUntilAmountSVar`, `digUntilTrueFlag`.
+
+### `effects/diguntil_aura_test.go` (committed in `c749b700`)
+`TestDigUntilWithholdsUnsupportedParamsAndStillMoves` shrank its want list to
+`{"Amount$ X", "DigZone$ PlanarDeck"}` (the SA carries no `SVar:X`, so
+`Amount$ X` stays withheld; `DigZone$ PlanarDeck` stays withheld), keeping the
+"core move still runs" assertion.
+
+### `rules/paramcensus_test.go` (committed in `c749b700`)
+Dropped the `digUntilWithheldRange` key-gathering-loop exemption and the
+`scanRangeWhitelist` call site. The loops are gone: `ImprintFound`,
+`ImprintRevealed`, `NoneFoundDestination`, `NoneFoundLibraryPosition` are now
+read through `digUntilParamValue`/`digUntilTrueFlag` call sites and attributed
+by the ordinary dynamic-key rule. This is the reclassification the brief asks
+for — no other census edit. `grep -rn digUntilWithheldRange` returns nothing.
+
+### `effects/diguntil_riders_test.go` (new file; `c749b700` + `85810ba1` + `ed321875`)
+14 `TestDigUntil*` tests in the ticket's own file (a new file, per the
+"new tests go in a new file" rule):
+
+| rider | test |
+|---|---|
+| `Amount$` SVar | `…AmountSVarCountsMatchesToTheTally` (real Mass Polymorph), `…AmountSVarZeroRevealsNothing` (real Selvala's Stampede), `…AmountSVarUnresolvableStillWithholds` |
+| `Shuffle$` / `ShuffleCondition$` | `…ShuffleShufflesTheDugLibrary`, `…ShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan` |
+| `NoMoveFound$` / `FoundLibraryPosition$` | `…NoMoveFoundKeepsTheFoundCardInTheLibrary`, `…FoundLibraryPositionPlacesOrKeepsTheFoundCard` |
+| `ImprintFound$` / `ImprintRevealed$` | `…ImprintFoundFeedsTheExileReader` (real Venture Forth), `…ImprintRevealedRecordsEveryRevealedCard` (real Part in Friendship) |
+| `NoneFound*$` | `…NoneFoundBranchSwapsTheRevealedDestination` |
+| re-entry | `…RidersEmitOnceAcrossTheOptionalAsk` |
+| real carriers (added this round) | `…KindredSummonsAmountSVarCountsChosenTypeCreatures`, `…EmptyTheLaboratoryAmountSVarCountsRemembered`, `…TunnelVisionNoneFoundShufflesAndKeepsLibrary` |
+
+**Defect found in the earlier run and fixed (`85810ba1`):** the earlier
+`TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary` used
+`FoundDestination$ Library`, so the found card stayed in the library whether or
+not the rider ran — the test could not fail. Proven: with the rider reverted,
+the original test still passed. Rewritten to `FoundDestination$ Hand` so the
+rider is observable; with the rider reverted it now fails (evidence below).
+`ed321875` removed one redundant post-`t.Fatalf` assertion in the same test.
+
+Brief claim checked: the brief says empty_the_laboratory carries
+`SVar:X:Count$xPaid`. Measured at the pin, `Empty the Laboratory`'s DigUntil
+reads `Amount$ Y` with `SVar:Y:Remembered$Amount` — the `X:Count$xPaid` SVar
+belongs to its Sacrifice sub. I tested the actual carrier (`Y:Remembered$Amount`).
+
+## Fails without the fix
+
+Every new/changed test is proven to fail with its rider reverted. Method:
+copy `effects/cardflow.go` to `.ds4/scratch/`, neuter one rider, run, restore
+with `cp` and verify with `cmp` (never `git checkout`/`stash`).
+
+Batch 1 — `Shuffle$` + `Imprint*$` neutered
+(`go test -count=1 -run 'TestDigUntilShuffle|TestDigUntilImprint|TestDigUntilAmountSVar' ./effects/`, exit 1):
+
+```
+--- FAIL: TestDigUntilAmountSVarZeroRevealsNothing (0.00s)
+    diguntil_riders_test.go:169: Shuffle events = 0, want 1 (the DigUntil ran; Amount$ 0 only empties the scan)
+--- FAIL: TestDigUntilShuffleShufflesTheDugLibrary (0.00s)
+    diguntil_riders_test.go:208: Shuffle events = [], want exactly one Secret Shuffle
+--- FAIL: TestDigUntilShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan (0.00s)
+    diguntil_riders_test.go:238: Shuffle events = 0, want 1 when the scan found nothing (ShuffleCondition$ NoneFound)
+--- FAIL: TestDigUntilImprintFoundFeedsTheExileReader (0.00s)
+    diguntil_riders_test.go:322: found land zone = library, want battlefield via DBToPlay's Defined$ Imprinted reader
+--- FAIL: TestDigUntilImprintRevealedRecordsEveryRevealedCard (0.00s)
+    diguntil_riders_test.go:360: seek-found Imprint events = [], want one association of the revealed [3 4]
+FAIL
+```
+
+Batch 2 — `Amount$` SVar, `NoMoveFound$`, `FoundLibraryPosition$`, `NoneFound*$`
+neutered (exit 1):
+
+```
+--- FAIL: TestDigUntilAmountSVarCountsMatchesToTheTally (0.44s)
+    diguntil_riders_test.go:133: found creature 6 zone = library, want battlefield (Amount$ MassX = 2, not 1)
+--- FAIL: TestDigUntilFoundLibraryPositionPlacesOrKeepsTheFoundCard (0.00s)
+    diguntil_riders_test.go:277: library = [3 4 5 6], want the found Aura 4 at the bottom (FoundLibraryPosition$ -1)
+--- FAIL: TestDigUntilNoneFoundBranchSwapsTheRevealedDestination (0.00s)
+    diguntil_riders_test.go:399: revealed card 3 zone = graveyard, want library (NoneFoundDestination$ Library)
+FAIL
+```
+
+Batch 3 — the three carrier tests added this round, with `Amount$` SVar,
+`Shuffle$` and `NoneFound*$` neutered (exit 1):
+
+```
+--- FAIL: TestDigUntilKindredSummonsAmountSVarCountsChosenTypeCreatures (0.40s)
+    diguntil_riders_test.go:480: found Bear 4 zone = library, want battlefield (Amount$ X = 2, not 1)
+--- FAIL: TestDigUntilEmptyTheLaboratoryAmountSVarCountsRemembered (0.00s)
+    diguntil_riders_test.go:509: found Zombie 4 zone = library, want battlefield (Amount$ Y = 2, not 1)
+--- FAIL: TestDigUntilTunnelVisionNoneFoundShufflesAndKeepsLibrary (0.00s)
+    diguntil_riders_test.go:540: Shuffle events = 0, want 1 (ShuffleCondition$ NoneFound with nothing found)
+FAIL
+```
+
+NoMoveFound fix proof, rider reverted (exit 1):
+
+```
+--- FAIL: TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary (0.00s)
+    diguntil_riders_test.go:257: found Aura zone = hand, want library (NoMoveFound$ True)
+FAIL
+```
+
+`cmp effects/cardflow.go .ds4/scratch/cardflow.go.fixed` printed
+"restored byte-identically" after each revert.
+
+## Gates (exact commands + real output)
+
+Worktree fixture check: `.cards` was already present as a symlink to
+`/home/sadams/projects/gorge/.cards` (found, not created), so the corpus tests
+really ran (the `effects` run took ~0.4 s with corpus lookups, not a skip).
+
+```
+$ go build ./...
+build ok
+
+$ go test -count=1 -run 'TestDigUntil' ./effects/
+ok  github.com/adams-shaun/gorge/effects  0.414s
+# 24 --- PASS TestDigUntil* (verbose list below, abridged):
+#   WithholdsUnsupportedParams, AuraEntryAsksForBearer, AuraCanEnchantOpponentsCreature,
+#   RememberFoundDoesNotRetainTriggerCapture, RememberFoundAndRevealedPreserveRevealedPrefix,
+#   AmountSVarCountsMatchesToTheTally, AmountSVarZeroRevealsNothing,
+#   AmountSVarUnresolvableStillWithholds, ShuffleShufflesTheDugLibrary,
+#   ShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan, NoMoveFoundKeepsTheFoundCardInTheLibrary,
+#   FoundLibraryPositionPlacesOrKeepsTheFoundCard, ImprintFoundFeedsTheExileReader,
+#   ImprintRevealedRecordsEveryRevealedCard, NoneFoundBranchSwapsTheRevealedDestination,
+#   RidersEmitOnceAcrossTheOptionalAsk, KindredSummons…, EmptyTheLaboratory…, TunnelVision…,
+#   RevealsUntilTheMatchMovesFoundAndRest, DefaultDestinationsAreHandAndStayInPlace,
+#   OptionalFoundMoveAsksAndHonoursBothBranches, NoHostDeclinesToTheRevealedPile,
+#   KetriaRememberFoundFeedsTheChainedMove
+
+$ go test -count=1 -run 'TestParamCensusScanIsComplete|TestEveryRepoDeckParamsAreRead' ./rules/
+ok  github.com/adams-shaun/gorge/rules  0.745s
+
+$ gofmt -l effects/cardflow.go effects/diguntil_riders_test.go effects/diguntil_aura_test.go rules/paramcensus_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(exit 0, no output)
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  1.388s
+
+$ go test -count=1 -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  0.684s
+```
+
+botbench did not move (as the brief predicted: no repo-deck card carries
+DigUntil). No re-pin, no attribution needed. No Known-approximations row to
+delete — the diguntil1 row was already gone and `DigZone$`'s remainder is
+covered by the placeholder planechase row, which this ticket does not touch.
+`go test -race` was not run (not required; daemon gate).
+
+## Issues
+
+- **Imprint riders use the Seek `seek-found` list, not the plain `Imprinted`
+  list.** Sanctioned by the brief ("if a measured corpus reader fails because
+  of the CR 607.2a exile-only filter … mirror the Seek-found pattern and name
+  the deviation in the commit message"). Named in `c749b700`'s message. A
+  generic (non-Seek) `Defined$ Imprinted` reader that wants a DigUntil-imprinted
+  association where the card sits outside exile reads it correctly because
+  `imprintPileTargets` merges `SeekFound`; readers that inspect
+  `state.Object.Imprinted` directly would not. No measured corpus reader of the
+  latter kind was found.
+- **`DigZone$ PlanarDeck` stays withheld** (4 corpus carriers, all the
+  planechase dig bodies) — gorge has no planar tier. Additionally, those
+  carriers' `FoundDestination$ PlanarDeck` still falls through `ParseZone` to
+  the graveyard; that pre-existing fallback is not this ticket's problem and
+  was deliberately left unchanged (the brief says so).
+- **Unresolvable `Amount$` stays withheld with amount 1** (fail-safe). If a
+  corpus carrier's SVar body uses a count head the evaluator does not model, it
+  silently digs 1 instead of the intended N. Measured: 12 non-literal `Amount$`
+  DigUntil lines; the four carrier families named in the brief all resolve.
+- **`RevealRandomOrder$`** remains the pre-existing deterministic existing-order
+  stand-in (the brief explicitly scopes it out; ambient randomness is forbidden).
+- **Testing note (not a defect):** a DigUntil SA with `ValidTgts$` (Tunnel
+  Vision's `FindThePrecious`) cannot be driven through `effects.Resolve` in a
+  unit test without also setting `Ctx.TargetsOffered` (or `Ctx.OfferedSA`),
+  because the generic ValidTgts pre-ask (`effects/targets_ask.go`
+  `chosenTargetsFor`) otherwise poses a target ask and suspends the walk before
+  the body runs. The carrier test documents this. Anyone adding a real-carrier
+  DigUntil test for a `ValidTgts$` body should set it.
+- **No new CR-lane test proposed:** the riders are engine-internal placement
+  semantics, not a CR rule with an obvious conformance citation.
+
+STATUS handoff is in the final message.
+
+## Deviations from the brief
+
+- The brief listed empty_the_laboratory as the `SVar:X:Count$xPaid` carrier; the
+  real DigUntil SVar at the pin is `SVar:Y:Remembered$Amount` (`X:Count$xPaid`
+  is the Sacrifice sub's). Tested the real body. See the claim-check above.
+- The brief's rider list included `one Shuffle$ carrier` as a real-carrier test;
+  `Shuffle$ True` is exercised on real carriers inside
+  `…KindredSummons…` and `…TunnelVision…` in addition to the inline tests.
+
+
+
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Report — agent-20260919T181318Z-86535368
 
 ## Summary: the brief's premise is FALSE — the ticket is already implemented on current main
