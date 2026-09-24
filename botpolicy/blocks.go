@@ -468,9 +468,22 @@ func legalBlockChoices(b Board, d *decision.Decision, choices []int) []int {
 	for _, aid := range attacker {
 		count[aid]++
 	}
+	// CR 702.111b: Menace is a Min$ 2 floor. The engine publishes it on the
+	// option (MinBlockers), but a Board census that knows the keyword is
+	// read too, so an adapter whose options predate the published floor
+	// still never submits a lone blocker the engine rejects.
+	for aid := range count {
+		if c, ok := b.Creatures[aid]; ok && c.hasKeyword("Menace") {
+			bd := bounds[aid]
+			if bd[0] < 2 {
+				bd[0] = 2
+			}
+			bounds[aid] = bd
+		}
+	}
 	drop := make(map[state.ObjID]bool)
-	for aid, b := range bounds {
-		if b[0] != 0 && count[aid] < b[0] {
+	for aid, bd := range bounds {
+		if bd[0] != 0 && (count[aid] < bd[0] || (bd[1] != 0 && bd[1] < bd[0])) {
 			drop[aid] = true
 		}
 	}
@@ -485,9 +498,9 @@ func legalBlockChoices(b Board, d *decision.Decision, choices []int) []int {
 		if drop[aid] {
 			continue
 		}
-		if b := bounds[aid]; b[1] != 0 {
+		if bd := bounds[aid]; bd[1] != 0 {
 			trimmed[aid]++
-			if trimmed[aid] > b[1] {
+			if trimmed[aid] > bd[1] {
 				continue
 			}
 		}

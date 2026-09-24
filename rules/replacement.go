@@ -1755,7 +1755,14 @@ func updatedReplacementsCommute(matches []replMatch) bool {
 func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 	if !rc.emitted {
 		departing, link, controller := e.captureSourceLifelinkLKI(rc.ev)
-		stored := events.Emit(e.G, e.L, rc.ev)
+		// The fold, not a raw Emit: the original event may carry entry-
+		// characteristic counter grants (rules/entry_counters.go), which a
+		// raw Emit would silently drop -- a walker entering under a parked
+		// tap-vs-untap competition would land at zero loyalty. foldEntryMove
+		// folds the grants with the move exactly as applyReplacement's
+		// Updated arm does, and never re-runs the replacement dispatch (so
+		// the just-answered competition cannot re-pose).
+		stored := e.foldEntryMove(rc.ev)
 		e.loop.observe(stored)
 		// The move-driven Effect lifetimes, replayed inline exactly as the
 		// synchronous composition does (see applyReplacement's Updated arm).
@@ -2560,6 +2567,31 @@ func sameReplMatchIn(applied []replMatch, m replMatch) bool {
 // at the queue's front, and the fully rewritten event is emitted once none
 // is left (the emitLifeReplacement convention -- no new replacement pass).
 func (e *Engine) continueAddCounterReplacements(rc replChoice) {
+	e.driveAddCounterCompetition(rc,
+		func(ev events.Event, _ []replMatch) { e.emitAddCounterReplacement(ev) },
+		e.reposeAddCounterCompetition)
+}
+
+// reposeAddCounterCompetition is the live re-pose of a non-commuting
+// remainder: the competition returns to the FRONT of the queue (the same
+// event, partially applied) and the affected player is asked again.
+func (e *Engine) reposeAddCounterCompetition(rc replChoice, p state.PlayerID) {
+	e.replChoices = append([]replChoice{rc}, e.replChoices...)
+	if e.pending == nil {
+		e.askReplacementChoice(p)
+	}
+}
+
+// driveAddCounterCompetition is the CR 616.1e loop shared by the live
+// counter path (continueAddCounterReplacements) and the staged-entry resume
+// (rules/entry_counters.go): it re-prices the unapplied candidates against
+// the running amount, applies the first remaining one until the competition
+// empties or a live non-commuting remainder must be ordered, and reports the
+// fully rewritten event through complete (with the bodies applied, in
+// answer order). repose parks a remainder that needs another answer; the
+// live path re-queues at the front, the staged path mirrors a real pose.
+func (e *Engine) driveAddCounterCompetition(rc replChoice,
+	complete func(events.Event, []replMatch), repose func(replChoice, state.PlayerID)) {
 	ev := rc.ev
 	applied := rc.appliedRepls
 	for {
@@ -2572,16 +2604,13 @@ func (e *Engine) continueAddCounterReplacements(rc replChoice) {
 			}
 		}
 		if len(remaining) == 0 {
-			e.emitAddCounterReplacement(ev)
+			complete(ev, applied)
 			return
 		}
 		if p, ok := e.addCounterAffectedPlayer(ev); ok && !e.G.Players[p].Lost &&
 			len(remaining) > 1 && !e.addCounterReplacementsCommute(remaining) {
 			rc.ev, rc.appliedRepls = ev, applied
-			e.replChoices = append([]replChoice{rc}, e.replChoices...)
-			if e.pending == nil {
-				e.askReplacementChoice(p)
-			}
+			repose(rc, p)
 			return
 		}
 		m := remaining[0]
@@ -4312,7 +4341,19 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// (a cumulative-upkeep age counter, rules/cumulative.go) IS an effect
 		// (CR 609.1), so it still qualifies.
 		if r.Params["EffectOnly"] == "True" && e.actionCause() == 0 {
-			return false
+			// A replacement BODY's counter placement (the K:etbCounter entry
+			// body's DB$ PutCounter) also has no stack cause by the time it
+			// emits -- the entry move has already applied and the wrapper is
+			// off the stack -- but it IS the action of a replacement effect
+			// (CR 614.1c), and this wording reaches it: CR 614.5, the
+			// replacement's instruction is a new event the AddCounter class
+			// modifies (Doubling Season doubles a planeswalker's starting
+			// loyalty, the class's own precedent). A cost or turn-based
+			// placement is never made from inside a replacement body, so the
+			// exclusion keeps its teeth there.
+			if _, isBody := e.replacementBodyCounterAdder(); !isBody {
+				return false
+			}
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "RollPlanarDice":
@@ -5154,6 +5195,12 @@ const (
 	// fighting over the same tapped bit; the last body applied wins).
 	replChoiceUpdated
 	replChoiceScry
+	// replChoiceEntryOrder parks the CR 616.1 order competition over an
+	// ENTRY-CHARACTERISTIC counter grant (rules/entry_counters.go): the
+	// staged move has not folded, and the answer resumes the competition on
+	// an isolated post-entry preview before the staged entry re-emits. It is
+	// appended so existing in-memory enum values remain unchanged.
+	replChoiceEntryOrder
 )
 
 type lifeExchangeTransaction struct {
@@ -5231,6 +5278,12 @@ type replChoice struct {
 	// emitted (the composition's preamble ran); a re-parked continuation
 	// skips the emit and resolves only the remaining bodies.
 	emitted bool
+	// stage is kind == replChoiceEntryOrder's parked entry (rules/
+	// entry_counters.go): the move that has not folded and the competition
+	// state its resume continues. Pointer data, the same Clone class as
+	// before (*triggerSnapshot) -- the stage is reached only through its
+	// own answer.
+	stage *entryCounterStage
 	// inResolution marks a competition posed while a stack resolution was in
 	// flight (e.resolvingObj != 0): the pose's Engine.Ask then parked that
 	// resolution on e.resume with the interrupted object still on the stack,
@@ -5272,9 +5325,10 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 		// -- a redirect or an OptionalDecider$ can make the asking player
 		// differ from that.
 		return rc.player, int(rc.player) < len(e.G.Players)
-	case replChoiceAddCounter, replChoiceToken:
+	case replChoiceAddCounter, replChoiceEntryOrder:
 		// Resolved at pose time (the counter's recipient or the affected
-		// object's controller; the token's creator) and recomputed at every
+		// object's controller; the entry order's posed player; the token's
+		// creator) and recomputed at every
 		// re-pose (continueAddCounterReplacements / the drive).
 		return rc.player, int(rc.player) < len(e.G.Players)
 	default:
@@ -5459,6 +5513,8 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		d.Prompt = "Several replacement effects would modify this counter event: choose which applies."
 	case replChoiceAddCounter:
 		d.Prompt = "Several replacement effects would modify how many counters are put: choose which applies first."
+	case replChoiceEntryOrder:
+		d.Prompt = "Several replacement effects would modify how many counters this permanent enters with: choose which applies first."
 	case replChoiceToken:
 		d.Prompt = "Several replacement effects would modify this token creation: choose which applies first."
 	case replChoiceScry:
@@ -5841,6 +5897,14 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		rc.appliedRepls = append(rc.appliedRepls, m)
 		e.continueAddCounterReplacements(rc)
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
+	case replChoiceEntryOrder:
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) || rc.stage == nil {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "entry counter replacement-order answer out of range"})
+			return
+		}
+		e.resumeEntryCounterOrder(rc, chosen[0].Index)
 	case replChoiceToken:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
 			e.triggerBefore = before
