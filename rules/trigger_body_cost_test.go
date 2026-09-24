@@ -881,14 +881,15 @@ func TestTymnaUnresolvableFixedXDeclineOnly(t *testing.T) {
 
 // TestUnregisteredBodyXCostStaysDeclineOnly pins the registered-API gate: a
 // `Cost$ PayLife<X>` body whose API is not implemented (Maralen of the
-// Mornsong Avatar's AB$ StoreSVar shape) must NOT get the X fold -- posing
+// Mornsong Avatar's shape, with a deliberately unknown API now that
+// StoreSVar itself is registered) must NOT get the X fold -- posing
 // the choose-X ask would let the payer charge real life for a body that can
 // only emit the unimplemented-API Note. The window stays decline-only, the
 // pre-fold behaviour.
 func TestUnregisteredBodyXCostStaysDeclineOnly(t *testing.T) {
 	const script = "Name:Life Scribe\nManaCost:2 B\nTypes:Creature Human Cleric\nPT:2/2\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigPay | TriggerDescription$ When CARDNAME enters, pay any amount of life.\n" +
-		"SVar:TrigPay:AB$ StoreSVar | Cost$ PayLife<X> | SVar$ LifePaid | Type$ CountSVar | Expression$ X\n" +
+		"SVar:TrigPay:AB$ NoSuchUnregisteredAPI | Cost$ PayLife<X> | SVar$ LifePaid | Type$ CountSVar | Expression$ X\n" +
 		"SVar:X:Count$xPaid\n" +
 		"Oracle:x\n"
 	e := handEngine(t)

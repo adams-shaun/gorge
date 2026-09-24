@@ -87,7 +87,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
-		events.GainedAbilityPush, events.GainedTriggerPush:
+		events.GainedAbilityPush, events.GainedTriggerPush,
+		events.StoreSVar:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter

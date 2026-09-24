@@ -19,8 +19,8 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 17 data rows after this closure
-	// (measured with approximationRows()). This merge keeps four
+	// The merged AGENTS.md measures 18 data rows (measured with
+	// approximationRows() against the merged AGENTS.md). This merge keeps four
 	// disjoint closures alongside the prior deletions: this branch's rv1
 	// RevealAllValid$ closure (effects/cardflow.go effReveal,
 	// agent-20260922T191943Z-4ffa25b7), main's task scrybottom
@@ -41,8 +41,9 @@ const (
 	// NonCombatDamageThisTurn, ChosenNumber) remain tracked bidirectionally by
 	// rules/count_head_ratchet_test.go's knownUnmodelledCountHeads and are
 	// recorded in that ticket's commit message and report, not a new row.
-	// PayLife<X> replacement closure removes one further row.
-	knownApproximationRows = 17
+	// The PayLife<X> replacement closure (cli-20260922T225142Z-226d3d19)
+	// deletes one further row (main measured 15 against a stale constant of 16).
+	knownApproximationRows = 14
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
