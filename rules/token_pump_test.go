@@ -16,10 +16,8 @@ import (
 //
 //   - Loyal Apprentice's Lieutenant trigger (PumpDuration$ EOT), the filing
 //     card, and
-//   - Legion Warboss's begin-combat trigger (PumpDuration$ EndOfTurn), the
-//     corpus's other measured duration spelling, which must also EXPIRE at
-//     cleanup (so a keyword granted until end of turn is asserted to be gone
-//     the following turn, not merely present on the turn it was granted).
+//   - Legion Warboss's begin-combat trigger (PumpDuration$ EndOfTurn), and
+//   - Baral and Kari Zev's no-free-spell branch (PumpDuration$ EOT).
 
 // tokenOnSeatID returns seat p's battlefield object whose face name is
 // exactly name, or 0 when no such token exists. Prefer this over
@@ -163,6 +161,67 @@ func TestLoyalApprenticeLieutenantThopterGainsHasteUntilEOT(t *testing.T) {
 // TestLegionWarbossTokenGainsHasteEndOfTurnSpelling pins the corpus's other
 // measured PumpDuration$ spelling, `EndOfTurn` (Legion Warboss), on the same
 // real trigger shape and asserts the same expiry at the following turn.
+func TestBaralAndKariZevNoFreeSpellCreatesHastyRagavan(t *testing.T) {
+	baral := tokenReplCorpusCard(t, "Baral and Kari Zev")
+	spell := cardByName(t, "Name:Zero Mana Instant\nManaCost:0\nTypes:Instant\nOracle:x\n")
+	e, cfg := tokenReplGame(t, 79, baral, spell)
+	baralID := moveSeededCard(t, e, 0, baral, state.ZBattlefield)
+	spellID := moveSeededCard(t, e, 0, spell, state.ZHand)
+	e.pending = nil
+	e.Advance()
+	if o := e.G.Obj(baralID); o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 {
+		t.Fatalf("precondition: Baral and Kari Zev not controlled on battlefield: %+v", o)
+	}
+	toMain1(t, e)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("priority = %+v", d)
+	}
+	castIdx := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == spellID {
+			castIdx = o.Index
+		}
+	}
+	if castIdx < 0 {
+		t.Fatalf("no cast option for spell %d: %+v", spellID, d.Options)
+	}
+	submitChoices(t, e, castIdx)
+	// The triggered optional free-play decision is declined; with no other
+	// instant in hand the no-free-spell branch must mint Ragavan.
+	for i := 0; i < 100; i++ {
+		if id := tokenOnSeatID(t, e, 0, "First Mate Ragavan"); id != 0 {
+			if !e.HasKeyword(id, "Haste") {
+				t.Fatal("Ragavan lacks EOT haste")
+			}
+			replayCheck(t, e, cfg)
+			return
+		}
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision while resolving Baral trigger")
+		}
+		switch d.Kind {
+		case decision.KChoose:
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "decline" || o.Kind == "no" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("no decline option: %+v", d)
+			}
+			submitChoices(t, e, idx)
+		case decision.KPriority:
+			passPriorityOnce(t, e)
+		default:
+			t.Fatalf("unexpected decision while resolving trigger: %+v", d)
+		}
+	}
+	t.Fatal("Baral trigger did not create Ragavan")
+}
+
 func TestLegionWarbossTokenGainsHasteEndOfTurnSpelling(t *testing.T) {
 	warboss := tokenReplCorpusCard(t, "Legion Warboss")
 	e, _ := tokenReplGame(t, 78, warboss)
