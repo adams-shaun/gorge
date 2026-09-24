@@ -47,4 +47,13 @@ func TestLegacyDecideBlockNeverLoneBlocksATeamNeedingAttacker(t *testing.T) {
 	if len(first) == 0 {
 		t.Fatal("expected pinned choices")
 	}
+	want := []int{0, 1, 2, 0, 1, 2, 0, 1}
+	if len(first) != len(want) {
+		t.Fatalf("first choices %v, want %v", first, want)
+	}
+	for i := range want {
+		if first[i] != want[i] {
+			t.Fatalf("first choices %v, want %v", first, want)
+		}
+	}
 }

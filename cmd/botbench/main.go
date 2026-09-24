@@ -36,8 +36,9 @@
 // play/draw figure to read beside it is the starting-player split, not the
 // seat split. The head-to-head
 // that credits a policy: -a bot -b legacy, where legacy is the pre-B2
-// fuzz-driver combat frozen in botpolicy.LegacyDecide. Registering a
-// third policy is one entry in the policies map. Same names on both sides
+// fuzz-driver heuristic in botpolicy.LegacyDecide, with blocker legality
+// facts supplied to that arm. Registering a third policy is one entry in the
+// policies map. Same names on both sides
 // is a valid and expected run.
 //
 // -pairs switches the bench to a deck-pair matrix. The default run (no
@@ -171,8 +172,8 @@ var policies = map[string]func(seed uint64) seat.Seat{
 		return seat.NewCastProfileBotWithWeights(seed, w)
 	},
 	// legacy is the benchmark's historical heuristic, with blocker legality
-	// facts supplied by the same view adapter as the production bot. It is
-	// not a production policy -- nothing but the bench drives it.
+	// blocker legality facts supplied by the shared view adapter. It is not
+	// a production policy -- nothing but the bench drives it.
 	"legacy": func(seed uint64) seat.Seat {
 		return &legacySeat{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 	},
