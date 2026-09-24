@@ -1674,16 +1674,10 @@ func wordPredicate(p string) (wordKind, string) {
 	if predicateTypeWords[p] {
 		return wordType, p
 	}
-	// Multi-word subtype names are represented by their constituent words in
-	// the generated vocabulary (e.g. Time Lord). Accept only canonical
-	// space-joined sequences of known type words; arbitrary spaced predicates
-	// and malformed whitespace remain unknown.
-	if fields := strings.Fields(p); len(fields) > 1 && strings.Join(fields, " ") == p {
-		for _, field := range fields {
-			if !predicateTypeWords[field] {
-				return wordUnknown, ""
-			}
-		}
+	// Forge spells the established subtype Time Lord as two separate type
+	// words on the face, but as one token in filters. Do not accept arbitrary
+	// pairs of known type words as new subtype names.
+	if p == "Time Lord" {
 		return wordType, p
 	}
 	return wordUnknown, ""
