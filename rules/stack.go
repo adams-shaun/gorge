@@ -1677,18 +1677,22 @@ func (e *Engine) candidatesForLimit(p state.PlayerID, source, excludeSelf state.
 	// alternatives whose base is not a player base, so a mixed
 	// `Creature,Opponent` spec keeps the object half and matches only the
 	// player half's seats.
-	// CR 702.18 (player shroud) and CR 702.11 (player hexproof): a seat a
-	// live `Affected$ You | AddKeyword$` static grants those keywords is
-	// withheld here exactly as a permanent carrying them is withheld in the
-	// object arm below -- the grant is read off the same layer walk, through
-	// playerKeywords (rules/playerkeywords.go). Only the targeting arm
-	// consults them; the affected census (targeting=false) does not, the
-	// same split the permanent shroud gate applies.
+	// CR 702.18 (player shroud), CR 702.11 (player hexproof) and CR 702.16c
+	// (player protection): a seat a live `Affected$ You | AddKeyword$`
+	// static grants those keywords is withheld here exactly as a permanent
+	// carrying them is withheld in the object arm below -- the grant is read
+	// off the same layer walk, through playerKeywords (rules/playerkeywords.go).
+	// Protection is judged against the same census-wide protSrc the object
+	// arm's protectedFrom uses, so the two arms resolve "the source"
+	// identically (CR 702.16c). Only the targeting arm consults them; the
+	// affected census (targeting=false) does not, the same split the
+	// permanent shroud gate applies.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
 			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) &&
 				(!targeting || !e.playerShroudBlocksTarget(q)) &&
-				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) {
+				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) &&
+				(!targeting || !e.playerProtectedFrom(q, protSrc)) {
 				out = append(out, targetCandidate{kind: "player", player: q})
 			}
 		}
@@ -3926,9 +3930,9 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
-			// CR 702.18 / CR 702.11 for players: a target that GAINED player
-			// shroud or (opponent-only) hexproof between placement and
-			// resolution is dropped here, exactly as the object arm below
+			// CR 702.18 / CR 702.11 / CR 702.16c for players: a target that
+			// GAINED player shroud, hexproof or protection between placement
+			// and resolution is dropped here, exactly as the object arm below
 			// drops a permanent that gained them -- the same judge the offer
 			// (candidatesFor's player loop) applies, so offer and recheck
 			// cannot disagree (the one-definition rule). Players have no zone:
@@ -3936,7 +3940,8 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
 				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) &&
 				!e.playerShroudBlocksTarget(t.Player) &&
-				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) {
+				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) &&
+				!e.playerProtectedFrom(t.Player, e.protectionSource(source)) {
 				legal = append(legal, t)
 			}
 			continue

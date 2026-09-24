@@ -119,3 +119,59 @@ func (e *Engine) playerHexproofBlocksTarget(p, targeting state.PlayerID, source 
 	}
 	return false
 }
+
+// playerProtectedFrom reports whether player p carries protection from the
+// targeting/affecting source's quality (CR 702.16c): Absolute Virtue's "You
+// have protection from each of your opponents" and Gor Muldrak's "You and
+// permanents you control have protection from Salamanders" are `Affected$
+// You` statics whose grant reaches this surface through playerKeywords, but
+// only the permanent arm of protectedFrom ever read it, so the player half
+// stayed targetable. It mirrors playerHexproofBlocksTarget for players, with
+// protection's asymmetry taken from CR 702.16c's quality test rather than a
+// controller comparison: a plain protection grant with no quality is not a
+// thing (protectionQuality yields ok=false), so every supported quality
+// reads the source.
+//
+// The quality is judged in two steps, in this order so an unresolvable
+// player spec never widens a quality the object grammar already answers:
+//   - the shared source-quality evaluator (sourceHasQuality) covers the
+//     colour/type words and every parameterised object spec the permanent
+//     arm already evaluates (Gor Muldrak's `Salamander` is a bare type word
+//     that resolves through the object filter);
+//   - Forge's PLAYER-relative family (`Player.Opponent`, Absolute Virtue)
+//     is not an object quality at all: the SOURCE'S CONTROLLER is judged as
+//     a seat against the spec through the same shared player filter every
+//     other Opponent spec resolves through, so `Player.Opponent` means "the
+//     incoming source is controlled by an opponent of the protected player".
+//
+// A quality neither path resolves -- the Chosen-bound `ChosenType` (Serra's
+// Emissary) and `ChosenName` (Runed Halo), whose value lives on the GRANTING
+// static's own source object and is not carried by the flat keyword string --
+// fails closed and never withholds, exactly as hexproofQuality's unresolvable
+// arm does. source == 0 (no live source object) returns false for the same
+// reason: no supported quality can be evaluated without it.
+func (e *Engine) playerProtectedFrom(p state.PlayerID, source state.ObjID) bool {
+	if source == 0 {
+		return false
+	}
+	for _, kw := range e.playerKeywords(p) {
+		q, ok := protectionQuality(kw)
+		if !ok {
+			continue
+		}
+		if e.sourceHasQuality(source, q) {
+			return true
+		}
+		// Player-relative qualities (Player.Opponent): judge the SOURCE'S
+		// CONTROLLER as the seat the spec names, with the protected player p
+		// as the "you" the Opponent relation is measured against. Only a live
+		// source object is judged -- e.controllerOf on a dead id degrades to
+		// seat 0, which would falsely name a controller, so a missing object
+		// skips this arm.
+		if e.G.Obj(source) != nil &&
+			effects.MatchesPlayerSpecFrom(e.G, q, e.controllerOf(source), p, 0) {
+			return true
+		}
+	}
+	return false
+}
