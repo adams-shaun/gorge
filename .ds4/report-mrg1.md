@@ -6635,3 +6635,56 @@ The required ratchet command passed (above). The branch registers no new `Mode$`
 ## Issues
 
 None introduced by integration; the sole conflict was in an accumulated report file. Note for the controller: the resolved file's tail (the branch-side DigUntil report) retains its original `## Issues` observations (effSeek trigger capture, tracked as `agent-20260922T183530Z-cbf0a7d3`).
+
+---
+
+# Graft branch round-2 main integration — merge-conflict resolution (agent-20260920T061844Z-e23bd9de, mrg1)
+
+## State found
+
+`git status` on `wt/agent-20260920T061844Z-e23bd9de` was CLEAN at `76fd5785`, no rebase or merge in flight: the daemon's rebase (`Rebasing (1/2)`, applying `33330eb5` "feat(cards): implement Graft keyword", conflict in `rules/trigger_match.go`) and its merge fallback had both been aborted before the handoff. Meanwhile `main` had advanced from `b493bc15` (the tip the branch's own prior merge `cd736171` had already integrated) to `88bd78e7`, carrying substantial `rules/trigger_*` rework (zoneskip, walkcache, granted-copy plural fixes). So the integration of CURRENT main had to be redone here.
+
+## Conflicted files and how each side's intent was kept
+
+1. `rules/trigger_match.go` — both sides appended a new keyword registration at the same spot at the end of the keyword list, right after `"kw:Doctor's companion",`:
+   - ours (branch, `33330eb5`): `kw:Graft` (CR 702.57, expanded by `cards/kw_graft.go`), the reviewed fix.
+   - theirs (main): `kw:Companion` (CR 702.139 deck-construction keyword, the Partner-class registration).
+   Both are independent registrations; kept BOTH (main's Companion block first, then the branch's Graft block). No textual or semantic overlap.
+2. `.ds4/report-sol1.md` — pure report-file union. Measured structure: base (`b493bc15`, 839 lines) is byte-identical to ours' first 839 lines (`head -n 839 ours | cmp - base` exit 0); theirs = 117 lines PREPENDED before the shared base ("Dynamic TargetMin$/TargetMax$ — sol1 gate repair") + base + 162 lines APPENDED after it (replcensus1 round, Emerge integration section). ours = base + 54-line Graft merge-resolution section appended. Union built deterministically: theirs[1..117] + ours(base+Graft) + theirs[957..1118] = 1172 lines, zero conflict markers, all four sections retained. (Note: `.ds4` is gitignored yet these report files are tracked — staging required `git add -f`.)
+
+## Commands run and output
+
+```
+git merge main --no-edit
+→ Auto-merging .ds4/report-sol1.md / CONFLICT in .ds4/report-sol1.md
+  Auto-merging rules/trigger_match.go / CONFLICT in rules/trigger_match.go
+  (cards/kw_registry_test.go and rules/keyword_registration_test.go auto-merged cleanly)
+git add -f .ds4/report-sol1.md && git add rules/trigger_match.go && git commit --no-edit
+→ 705a97dc "Merge branch 'main' into wt/agent-20260920T061844Z-e23bd9de"
+git status → clean
+```
+
+## Post-merge ratchets and goldens (all real output; `.cards` present as the shared-corpus symlink, so nothing skipped)
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestRegisteredKeywordsAreHonoured|TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt' -v
+7 tests --- PASS, zero --- SKIP, zero --- FAIL:
+  TestEveryRepoDeckIsFullySupported (0.44s), TestEveryRepoDeckCountHeadResolves,
+  TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt, TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched,
+  TestEveryRepoDeckParamsAreRead, TestRegisteredKeywordsAreHonoured, TestEveryDispatchedTriggerMode
+ok  github.com/adams-shaun/gorge/rules 0.666s (exit 0)
+$ go test ./cards -run 'TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded|TestAnUnregisteredKeywordIsNotExpanded'
+ok  github.com/adams-shaun/gorge/cards 0.003s (exit 0)
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest 3.993s (exit 0)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench 0.676s (exit 0 — split did NOT move; expected: repo decks contain 0 Graft carriers, measured in the branch's Graft report)
+$ gofmt -l rules/trigger_match.go   → (no output)
+$ go run ./cmd/gentypes -check      → exit 0
+```
+
+No ratchet table entry needed removal (`TestEveryRepoDeck*` green on the merged tree) and no new `Mode$` matcher was registered (`kw:Graft` is a keyword registration, and the trigmatch registry ratchet is green), so no `addedAfterTheSplit` edit was needed.
+
+## Issues
+
+No new defect found in this resolution round. The only engine-side change versus main's tip is the branch's `kw:Graft` registration + expander + tests, previously reviewed and gated.
