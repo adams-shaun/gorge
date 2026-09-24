@@ -30,6 +30,10 @@ describe('a panel-answered treasure activation raises the radial colour wheel (f
     // below cannot pass on a fixture that pre-seeded the expectation.
     expect(await page.evaluate(() => window.__armState())).toBeNull();
 
+    // Model the race: the follow-up decision is already available before the
+    // POST response arms the expectation. Its first decode must be inert;
+    // arming then triggers the second decode (Table tracks followUpRevision).
+    expect(await page.evaluate(() => window.__decode())).toBeNull();
     await page.locator('#panel-option-1').click();
     await page.waitForFunction(() => window.__armState() !== null);
     const armed = await page.evaluate((): Arm => window.__armState());

@@ -502,6 +502,8 @@ export class SeatPanelState {
    * decode opened a picker.
    */
   followUpExpected = $state<{ seq: number; obj: number } | null>(null);
+  /** Changes whenever the expectation is armed, letting Table decode even if the follow-up view arrived first. */
+  followUpRevision = $state(0);
   /** confirming arms the concede option's required second confirmation (R-E4-1). */
   confirming = $state(false);
   /** error surfaces a rejected intent — never swallowed (a stale seq must be seen and recovered from, not silently dropped). */
@@ -2061,7 +2063,10 @@ export class SeatPanelState {
       // expectation can never survive into an unrelated window. Only a hand
       // post arms: the machine paths post a pass/resolve index and their
       // options carry no obj regardless.
-      if (hand) this.followUpExpected = followUpArm(d, choices);
+      if (hand) {
+        this.followUpExpected = followUpArm(d, choices);
+        this.followUpRevision++;
+      }
       // The hand answers that can carry a real action are click()'s post-on-click
       // (min == max == 1) and submit()'s multi-pick commit; both funnel through
       // here, so the pass-after-arming test lives on the ACCEPTED post — a

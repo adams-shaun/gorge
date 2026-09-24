@@ -207,17 +207,14 @@
   // on the expected object, and disarms otherwise.
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   //
-  // The effect tracks only the ARRIVING decision (m.view?.decision): the
-  // armed expectation is read untracked, because the arm rides the POST and
-  // it is the follow-up decision's new seq that must trigger the decode.
-  // Reading the panel's $state reactively here added the panel instance to
-  // this effect's dependency graph, and that extra edge fired during the
-  // starting_player -> mulligan transition -- a flush in which BoardStage
-  // unmounts HotButtonStrip (its `controls` just became null) while a child
-  // SeatPanel derived read `controls().ctx` one evaluation too late. The
-  // decision read alone is sufficient and cannot outlive the transition.
+  // Track a scalar arm revision rather than the panel object/expectation
+  // itself: arming after an accepted POST must retrigger decoding even when
+  // SSE delivered the follow-up decision first, while avoiding a reactive
+  // dependency on SeatPanelState's derived UI graph during view transitions.
   $effect(() => {
     const d = m.view?.decision ?? null;
+    const followUpRevision = panel?.followUpRevision;
+    void followUpRevision;
     const expected = untrack(() => panel?.followUpExpected ?? null);
     if (d === null || panel === null || expected === null || d.seq === expected.seq) return;
     autoOpenCardDecision = resolveCardFollowUp(expected, d);
