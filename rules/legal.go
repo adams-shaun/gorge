@@ -425,7 +425,7 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 // before it could ever be announced (CR 602.1/601.2c: an illegal activation
 // is not offered). Deterministic pure read -- no map range, tokens trimmed.
 func activationGameTypesOK(f Format, raw string) bool {
-	for _, tok := range strings.Split(raw, ",") {
+	for tok := range strings.SplitSeq(raw, ",") {
 		switch strings.TrimSpace(tok) {
 		case "Commander":
 			if f == FormatCommander {
@@ -1412,7 +1412,7 @@ func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
 	if spec == "" {
 		return true
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1429,7 +1429,7 @@ func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
 			continue
 		}
 		ok := true
-		for _, q := range strings.Split(tail, ".") {
+		for q := range strings.SplitSeq(tail, ".") {
 			switch strings.TrimSpace(q) {
 			case "":
 				// A trailing dot ("Activated."): no qualifier, vacuous.
@@ -1510,6 +1510,22 @@ func (e *Engine) adjustLandPlays(p state.PlayerID) int {
 	return total
 }
 
+// manaActivateLabel is the "Activate <name> for mana" option label, built
+// once per card name per Engine: the offer walk mints it for every untapped
+// mana source on every priority walk, and the string is immutable, so each
+// walk's options can share it.
+func (e *Engine) manaActivateLabel(name string) string {
+	if l, ok := e.manaLabels[name]; ok {
+		return l
+	}
+	l := "Activate " + name + " for mana"
+	if e.manaLabels == nil {
+		e.manaLabels = make(map[string]string)
+	}
+	e.manaLabels[name] = l
+	return l
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -1554,7 +1570,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// walk's duration (rules/derivedmemo.go).
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
-	var out []decision.Option
+	// Build into the engine's scratch list (legalOptBuf) and hand the caller
+	// an exactly-sized copy at the end: the growth reallocations stay on the
+	// reusable buffer, never on the returned, retained Options.
+	out := e.legalOptBuf[:0]
+	e.legalOptBuf = nil
 	add := func(kind, label string, obj state.ObjID) {
 		out = append(out, decision.Option{Index: len(out), Kind: kind, Label: label, Obj: obj})
 	}
@@ -2536,6 +2556,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// Mana abilities may explicitly function from the battlefield, hand or
 	// graveyard (Spirit Guides and Jack-o'-Lantern). availableManaAbilities
 	// applies each ability's ActivationZone and full cost gate.
+	// The walk only inspects each object's mana-ability list, so one scratch
+	// buffer serves every object (taken from the Engine for the loop, so a
+	// re-entrant walk allocates its own).
+	masBuf := e.manaAbBuf
+	e.manaAbBuf = nil
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
@@ -2543,11 +2568,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if f == nil {
 				continue
 			}
-			mas := e.availableManaAbilitiesUsing(&actionStatics, p, id)
+			mas := e.appendAvailableManaAbilities(masBuf[:0], &actionStatics, p, id)
+			masBuf = mas
 			if len(mas) == 0 {
 				continue
 			}
-			opt := decision.Option{Index: len(out), Kind: "activate", Label: "Activate " + f.Name + " for mana", Obj: id}
+			opt := decision.Option{Index: len(out), Kind: "activate", Label: e.manaActivateLabel(f.Name), Obj: id}
 			// fb-led1: a mana ability that costs more than a bare tap is the
 			// play the window exists for — carry its cost so the client's
 			// empty-priority-window floor stops instead of passing it away.
@@ -2557,6 +2583,8 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, opt)
 		}
 	}
+	clear(masBuf)
+	e.manaAbBuf = masBuf[:0]
 
 	// Activated abilities (Task 10): every non-mana AB$ ability on a
 	// permanent p controls, and every one on a card in p's graveyard whose
@@ -3078,11 +3106,34 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// living seat: grantPriority never hands a Lost seat priority, so no
 	// extra guard is needed here.
 	add("concede", "Concede", 0)
-	return out
+	res := make([]decision.Option, len(out))
+	copy(res, out)
+	// Drop the scratch's string/Grant references so a retained buffer does
+	// not pin the last walk's labels, then keep the grown array.
+	clear(out)
+	e.legalOptBuf = out[:0]
+	return res
+}
+
+// firstChosen is d.Chosen(in)[0] without materialising the chosen list (a
+// heap copy of every chosen Option on every priority answer). It keeps
+// Chosen's all-or-nothing contract: any out-of-range index, or no choice at
+// all, is the same index-out-of-range panic the [0] of a nil list raised.
+func firstChosen(d *decision.Decision, in decision.Intent) decision.Option {
+	var none []decision.Option
+	for _, c := range in.Choices {
+		if c < 0 || c >= len(d.Options) {
+			return none[0]
+		}
+	}
+	if len(in.Choices) == 0 {
+		return none[0]
+	}
+	return d.Options[in.Choices[0]]
 }
 
 func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
-	opt := d.Chosen(in)[0]
+	opt := firstChosen(d, in)
 	switch opt.Kind {
 	case "pass":
 		passes := e.G.Passes + 1

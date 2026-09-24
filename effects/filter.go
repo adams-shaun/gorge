@@ -832,12 +832,12 @@ func faceIsTheChosenType(r *state.Object) bool {
 		if st.Mode != "Continuous" || !strings.Contains(st.Params["Affected"], "Self") {
 			continue
 		}
-		for _, v := range strings.Split(st.Params["AddType"], ",") {
+		for v := range strings.SplitSeq(st.Params["AddType"], ",") {
 			if strings.TrimSpace(v) == "ChosenType" {
 				return true
 			}
 		}
-		for _, v := range strings.Split(st.Params["AddTypes"], ",") {
+		for v := range strings.SplitSeq(st.Params["AddTypes"], ",") {
 			if strings.TrimSpace(v) == "ChosenType" {
 				return true
 			}
@@ -3420,7 +3420,7 @@ func parseCMC(cost string) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(cost) {
+	for sym := range strings.FieldsSeq(cost) {
 		if v, err := strconv.Atoi(sym); err == nil {
 			n += int32(v)
 			continue
@@ -4052,7 +4052,7 @@ type PlayerSpecCtx struct {
 // Every rule resolves here, so a trigger match, a static actor match and a
 // layer restriction agree by construction rather than by parallel copies.
 func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -4077,7 +4077,7 @@ func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc 
 // that admits no target. A clause with no `+` is a one-clause conjunction and
 // behaves exactly as before, so the single-qualifier grammar is unchanged.
 func matchesPlayerCompoundCtx(g *state.Game, alt string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
-	for _, clause := range strings.Split(alt, "+") {
+	for clause := range strings.SplitSeq(alt, "+") {
 		clause = strings.TrimSpace(clause)
 		if clause == "" {
 			return false
@@ -4150,7 +4150,7 @@ func isBarePlayerProperty(clause string) bool {
 // matchesPlayerSingleSpec is the original single-alternative player-spec
 // evaluator: one clause, no `,` or `+` (the callers above split those).
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
 		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
 			o := g.Obj(pc.Source)
@@ -4516,7 +4516,7 @@ func MatchesPlayerSpecWithSVars(h Host, c *Ctx, spec string, p, you state.Player
 	if h == nil || c == nil {
 		return false
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		clauses := strings.Split(strings.TrimSpace(alt), "+")
 		resolved := true
 		for i, clause := range clauses {

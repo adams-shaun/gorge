@@ -95,6 +95,13 @@ type Config struct {
 	// observation either way: it emits no event and holds no state the
 	// engine reads.
 	LoopGuard *LoopGuard
+
+	// Spare, when non-nil, is a finished game's storage (Engine.Release)
+	// the new engine reuses for its log and object arena. It never changes
+	// the game -- see Spare. It is consumed: New empties *Spare, so a copy
+	// of this Config that builds a second engine (a replay, a coverage
+	// rebuild) allocates fresh instead of sharing the first engine's arrays.
+	Spare *Spare
 }
 
 type triggerObjectLKI struct {
@@ -1368,6 +1375,29 @@ type Engine struct {
 	// re-entrant nested walk.
 	foreachBuf   []state.ObjID
 	foreachDepth int
+
+	// legalOptBuf is legalActionsPriced's scratch option list. The walk
+	// appends into it (so the doubling growth that used to reallocate the
+	// list several times per walk settles at the largest walk seen) and
+	// returns an exactly-sized COPY: the returned slice is owned by the
+	// caller -- it becomes a pending Decision's Options, which seats, views,
+	// traces and search forks retain -- so the scratch never escapes. The
+	// walk takes the buffer (leaving nil) for its duration, so a re-entrant
+	// walk allocates its own rather than clobbering the outer one. Owned by
+	// this Engine alone: Clone leaves it nil, like foreachBuf.
+	legalOptBuf []decision.Option
+	// manaAbBuf is the offer walk's per-object mana-ability scratch list
+	// (legal.go), and manaLabels its "Activate <name> for mana" label cache
+	// (manaActivateLabel; a pure function of the name, only ever looked up,
+	// never ranged). Both are Engine-owned scratch: Clone leaves them nil.
+	manaAbBuf  []*cards.SA
+	manaLabels map[string]string
+	// intentBuf is a recycled intent array from Config.Spare, installed as
+	// the log's Intents on the first Submit (see there). Not cloned.
+	intentBuf []decision.Intent
+	// sbaIDBuf is the battlefield-snapshot scratch attachmentSBAs and
+	// checkSagas range (taken for the walk, restored after). Not cloned.
+	sbaIDBuf []state.ObjID
 }
 
 // inFlightDamageSource is the one reader for Damage-event provenance: the
@@ -1596,6 +1626,58 @@ func (c *Config) commandersFor(i, deckLen int) []int {
 
 const openingHand = 7
 
+// Spare is a finished game's reusable backing storage -- its event log array
+// and its object arena -- handed from Engine.Release to the next game a batch
+// runner builds (Config.Spare). Those two arrays are an engine's largest
+// per-game allocations (~450 KB and ~200 KB for a 60-card 2-seat game), and a
+// runner that plays thousands of games back to back otherwise allocates,
+// zeroes and collects them once per game; the intent array and the Derived
+// memo tables ride along. Reuse is invisible to the game: events.NewLogInto
+// and state.NewGameInto re-cap their arrays to exactly the capacity a fresh
+// allocation would have had, so growth points are unchanged; every slot of
+// every array is cleared by Release and overwritten before it is read; the
+// memo tables are a cache whose capacity no answer depends on; and the
+// intent array is only ever appended to (Log.Clone caps it). The zero Spare
+// is "none"; TestSpareReuseIsInvisible pins the contract.
+type Spare struct {
+	events  []events.Event
+	objs    []state.Object
+	intents []decision.Intent
+	// The Derived memo tables (derivedmemo.go): indexed by ObjID, grown to
+	// the arena's size; cleared by Release, which is exactly the zeroed
+	// never-written state derivedMemoizedAt's growth relies on.
+	memo, memoStack []derivedMemoEntry
+}
+
+// Release returns e's log and object-arena arrays as a Spare for the next
+// game (pass its address as Config.Spare) and leaves e unusable (its Objs and Events are nil, so a stray later
+// use fails loudly rather than reading a recycled array). It must be the
+// LAST use of e and of anything sharing its arrays -- a Clone's log shares
+// the Events prefix (events.Log.Clone) -- which is why only a batch runner
+// that owns the finished engine outright calls it. The arrays are cleared so
+// the Spare does not pin the finished game's cards, strings and slices.
+func (e *Engine) Release() Spare {
+	sp := Spare{
+		events:    e.L.Events[:cap(e.L.Events)],
+		objs:      e.G.Objs[:cap(e.G.Objs)],
+		intents:   e.L.Intents[:cap(e.L.Intents)],
+		memo:      e.derivedMemo[:cap(e.derivedMemo)],
+		memoStack: e.derivedMemoStack[:cap(e.derivedMemoStack)],
+	}
+	clear(sp.events)
+	clear(sp.objs)
+	clear(sp.intents)
+	clear(sp.memo)
+	clear(sp.memoStack)
+	e.L.Events, e.G.Objs, e.L.Intents = nil, nil, nil
+	e.derivedMemo, e.derivedMemoStack, e.intentBuf = nil, nil, nil
+	return sp
+}
+
+// objectHeadroom is the extra Objs capacity newWithRNG reserves beyond the
+// dealt decks and sideboards (see its use there).
+const objectHeadroom = 128
+
 func New(cfg Config) *Engine {
 	return newWithRNG(cfg, newRNG(cfg.Seed))
 }
@@ -1615,9 +1697,22 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 			initialObjects += len(cfg.Sideboards[i])
 		}
 	}
+	// Headroom past the dealt cards for the objects a game mints as it plays
+	// (tokens, ability objects on the stack, copies): measured over the repo
+	// deck matrix (botbench -pairs all, constructed and commander), a game
+	// adds a median ~50 and a 99th-percentile ~125 objects to its dealt
+	// cards, and without headroom EVERY game regrew Objs (a full doubling of
+	// an ~800-byte-per-element array) on its first minted object.
+	if initialObjects > 0 {
+		initialObjects += objectHeadroom
+	}
+	var spare Spare
+	if cfg.Spare != nil {
+		spare, *cfg.Spare = *cfg.Spare, Spare{}
+	}
 	e := &Engine{
-		G:             state.NewGameLife(cfg.Names, life, initialObjects),
-		L:             events.NewLog(cfg.Seed),
+		G:             state.NewGameInto(cfg.Names, life, initialObjects, spare.objs),
+		L:             events.NewLogInto(cfg.Seed, spare.events),
 		format:        cfg.Format,
 		rng:           random,
 		loop:          newLivelockWatcher(cfg.LoopGuard),
@@ -1629,6 +1724,14 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		// The per-turn ManaExpend tally (rules/cast.go) starts empty; payCast
 		// stamps and resets it lazily on e.G.Turn.
 		manaExpended: make([]int32, len(cfg.Names)),
+	}
+	// The rest of a Spare: the memo tables start empty over the cleared
+	// arrays (derivedMemoizedAt only reslices up into zeroed capacity), and
+	// the intent array waits for the first Submit (the log's Intents stays
+	// nil until an intent exists, as it always has).
+	e.derivedMemo, e.derivedMemoStack = spare.memo[:0], spare.memoStack[:0]
+	if cap(spare.intents) > 0 {
+		e.intentBuf = spare.intents[:0]
 	}
 	e.G.Tokens = cfg.Tokens
 	e.setNameInPool = poolHasSetNameStatic(cfg)
@@ -2730,6 +2833,26 @@ func (e *Engine) ask(d *decision.Decision) {
 	e.pending = d
 }
 
+// decisionMadeText is the DecisionMade event text, byte-identical to
+// fmt.Sprintf("%s:%v", kind, choices) ("priority:[0 3]") -- the text is
+// hash-chained, so its bytes are fixed -- built without fmt's reflection and
+// boxing, since every Submit pays it.
+func decisionMadeText(kind decision.Kind, choices []int) string {
+	var sb strings.Builder
+	sb.Grow(len(kind) + 3 + 4*len(choices))
+	sb.WriteString(string(kind))
+	sb.WriteString(":[")
+	var num [20]byte
+	for i, c := range choices {
+		if i > 0 {
+			sb.WriteByte(' ')
+		}
+		sb.Write(strconv.AppendInt(num[:0], int64(c), 10))
+	}
+	sb.WriteByte(']')
+	return sb.String()
+}
+
 // drainDeferredAsks poses the front decision ask deferred behind a
 // commander-zone choice, once nothing is pending. A deferred decision is
 // posed through ask exactly as it would have been, so its DecisionAsk event,
@@ -2810,9 +2933,15 @@ func (e *Engine) Submit(in decision.Intent) error {
 			return err
 		}
 	}
+	if e.L.Intents == nil && e.intentBuf != nil {
+		// A recycled intent array (Config.Spare) backs the log from its first
+		// intent on; Log.Clone caps Intents, so no clone ever shares its
+		// spare capacity.
+		e.L.Intents, e.intentBuf = e.intentBuf, nil
+	}
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
-		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
+		Text: decisionMadeText(d.Kind, in.Choices)})
 	e.pending = nil
 	e.handle(d, in)
 	// A decision posed while a commander-zone choice was outstanding waited

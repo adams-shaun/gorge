@@ -62,7 +62,7 @@ func KeywordHead(k string) string {
 // different Forge grammar.
 func SplitKeywordList(list string) []string {
 	var out []string
-	for _, part := range strings.Split(list, "&") {
+	for part := range strings.SplitSeq(list, "&") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}
@@ -444,7 +444,7 @@ func oracleColours(oracle string) uint8 {
 // ignored.
 func colourIndicator(s string) uint8 {
 	var m uint8
-	for _, part := range strings.Split(s, ",") {
+	for part := range strings.SplitSeq(s, ",") {
 		switch strings.ToLower(strings.TrimSpace(part)) {
 		case "white":
 			m |= ColourWhite
@@ -571,7 +571,7 @@ func cmcFromManaCost(mc string) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(mc) {
+	for sym := range strings.FieldsSeq(mc) {
 		if sym == "X" { // {X} is 0 off the stack
 			continue
 		}

@@ -538,7 +538,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var grantTriggers []*cards.Trigger
-	for _, name := range strings.Split(sa.Params["AddTriggers"], ",") {
+	for name := range strings.SplitSeq(sa.Params["AddTriggers"], ",") {
 		name = strings.TrimSpace(name)
 		if name == "" {
 			continue
@@ -560,7 +560,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	grantSVars := make(map[string]string)
-	for _, name := range strings.Split(sa.Params["AddSVars"], ",") {
+	for name := range strings.SplitSeq(sa.Params["AddSVars"], ",") {
 		name = strings.TrimSpace(name)
 		if name != "" {
 			if raw, ok := sourceSVars[name]; ok {
@@ -569,7 +569,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var grantAbilities []string
-	for _, name := range strings.Split(sa.Params["AddAbilities"], ",") {
+	for name := range strings.SplitSeq(sa.Params["AddAbilities"], ",") {
 		name = strings.TrimSpace(name)
 		if name != "" {
 			if _, ok := sourceSVars[name]; ok {
@@ -581,7 +581,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// AddKeywords$ precedent -- never a silent drop.
 	var lostGrants []string
 	for _, raw := range []string{sa.Params["AddTriggers"], sa.Params["AddSVars"], sa.Params["AddAbilities"]} {
-		for _, name := range strings.Split(raw, ",") {
+		for name := range strings.SplitSeq(raw, ",") {
 			name = strings.TrimSpace(name)
 			if name == "" {
 				continue
@@ -795,7 +795,7 @@ func cloneStringMap(in map[string]string) map[string]string {
 
 func copyTypeList(list string) []string {
 	var out []string
-	for _, part := range strings.Split(list, ",") {
+	for part := range strings.SplitSeq(list, ",") {
 		out = append(out, cards.SplitKeywordList(part)...)
 	}
 	return out

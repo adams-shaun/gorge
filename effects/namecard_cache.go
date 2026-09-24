@@ -231,7 +231,7 @@ func pureNameSpec(spec string) bool {
 	if !hasRest {
 		return true
 	}
-	for _, w := range strings.Split(rest, "+") {
+	for w := range strings.SplitSeq(rest, "+") {
 		lw := strings.ToLower(w)
 		lw = strings.TrimPrefix(lw, "non")
 		if !pureNameWords[lw] {

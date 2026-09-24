@@ -933,7 +933,7 @@ func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
 // riders) for any other Text.
 func DecodeExtraPhaseRiders(text string) ExtraPhaseRiders {
 	var r ExtraPhaseRiders
-	for _, part := range strings.Split(text, "|") {
+	for part := range strings.SplitSeq(text, "|") {
 		if v, ok := strings.CutPrefix(part, extraPhaseDelayKey); ok {
 			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
 				r.HasDelayedPhase, r.DelayedPhase = true, state.Step(n)
@@ -1303,7 +1303,7 @@ var flagNames = [...]struct {
 // flag name in an untrusted log must not make this panic.
 func FlagsFrom(s string) uint64 {
 	var f uint64
-	for _, part := range strings.Split(s, ",") {
+	for part := range strings.SplitSeq(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
 				f |= fn.bit

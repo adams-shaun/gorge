@@ -2938,7 +2938,7 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint 
 // stem. An empty result leaves the caller's plan untouched.
 func (e *Engine) knownTokenScripts(source state.ObjID, csv string) []string {
 	var out []string
-	for _, s := range strings.Split(csv, ",") {
+	for s := range strings.SplitSeq(csv, ",") {
 		s = strings.TrimSpace(s)
 		if s == "" {
 			continue
@@ -3314,7 +3314,7 @@ func attachedChoiceZones(raw string) map[state.Zone]bool {
 		return nil
 	}
 	out := map[state.Zone]bool{}
-	for _, z := range strings.Split(raw, ",") {
+	for z := range strings.SplitSeq(raw, ",") {
 		switch strings.TrimSpace(z) {
 		case "Battlefield":
 			out[state.ZBattlefield] = true
@@ -4869,7 +4869,7 @@ func (e *Engine) counterValidSA(target *state.Object, spec string, you state.Pla
 	if spec == "" {
 		return true
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		isKind := (kind == "Spell" && target.Ability == nil) ||
 			(kind == "SpellAbility") ||
@@ -4908,7 +4908,7 @@ func (e *Engine) counterValidSA(target *state.Object, spec string, you state.Pla
 
 func (e *Engine) counterSpellQualifiers(target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
 	var ordinary []string
-	for _, q := range strings.Split(quals, "+") {
+	for q := range strings.SplitSeq(quals, "+") {
 		switch q {
 		case "hasKeywordFlash":
 			if target.Face() == nil || !target.Face().HasKeyword("Flash") {

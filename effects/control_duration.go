@@ -35,7 +35,7 @@ func (d ControlDuration) Permanent() bool { return d == ControlDuration{} }
 // this build does not model; a caller must then not change control at all,
 // because a silently permanent steal is the wrong answer for any lifetime.
 func ParseControlDuration(raw string) (d ControlDuration, unknown string) {
-	for _, tok := range strings.Split(raw, ",") {
+	for tok := range strings.SplitSeq(raw, ",") {
 		switch strings.TrimSpace(tok) {
 		case "":
 		case "EOT":

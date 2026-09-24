@@ -262,7 +262,7 @@ type dieRange struct {
 
 func parseDieRanges(v string) []dieRange {
 	var out []dieRange
-	for _, part := range strings.Split(v, ",") {
+	for part := range strings.SplitSeq(v, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue

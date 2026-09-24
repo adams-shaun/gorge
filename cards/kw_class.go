@@ -93,7 +93,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 	// may name several bodies joined with " & " (SMayLook & SMayPlay), and a
 	// line may carry several Add* keys at once (ProdigysWill | AddTrigger$ ...),
 	// so every segment is read independently.
-	for _, seg := range strings.Split(body, "|") {
+	for seg := range strings.SplitSeq(body, "|") {
 		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
 		if !ok {
 			continue
@@ -163,7 +163,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 // are dropped.
 func splitGrantNames(v string) []string {
 	var out []string
-	for _, part := range strings.Split(v, "&") {
+	for part := range strings.SplitSeq(v, "&") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}

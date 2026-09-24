@@ -62,7 +62,7 @@ func FaceDownEntryFields(counter string) (setType string, power, toughness int32
 	}
 	ok = true
 	rest := strings.TrimPrefix(counter, FaceDownEntryCounter)
-	for _, part := range strings.Split(rest, ";") {
+	for part := range strings.SplitSeq(rest, ";") {
 		part = strings.TrimSpace(part)
 		switch {
 		case part == "":

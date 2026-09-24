@@ -452,7 +452,24 @@ func NewGameLife(names []string, life int32, objectCapacity ...int) *Game {
 	if len(objectCapacity) > 0 && objectCapacity[0] > 0 {
 		capacity = objectCapacity[0]
 	}
-	g := &Game{NextID: 1, Objs: make([]Object, 0, capacity), zones: make([][]ObjID, numZones*len(names))}
+	return NewGameInto(names, life, capacity, nil)
+}
+
+// NewGameInto is NewGameLife with an explicit object capacity, backed by a
+// spent object arena a batch runner recycled from a finished game
+// (rules.Engine.Release). The arena is reused only when it can hold capacity
+// objects, and it is re-capped to exactly capacity, so Objs grows at the same
+// points a fresh arena would. AddObject overwrites every slot it claims with
+// a fresh Object, so spare's contents are never read; its caller must hold no
+// other reference into it.
+func NewGameInto(names []string, life int32, capacity int, spare []Object) *Game {
+	objs := spare[:0]
+	if capacity > 0 && cap(objs) >= capacity {
+		objs = objs[:0:capacity]
+	} else {
+		objs = make([]Object, 0, capacity)
+	}
+	g := &Game{NextID: 1, Objs: objs, zones: make([][]ObjID, numZones*len(names))}
 	for i, n := range names {
 		g.Players = append(g.Players, Player{ID: PlayerID(i), Name: n, Life: life})
 	}

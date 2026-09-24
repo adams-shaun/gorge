@@ -144,7 +144,7 @@ func filterNameList(names []string, chooseFromList string) []string {
 		return names
 	}
 	listed := make(map[string]bool)
-	for _, name := range strings.Split(chooseFromList, ",") {
+	for name := range strings.SplitSeq(chooseFromList, ",") {
 		name = strings.TrimSpace(name)
 		if name != "" {
 			listed[name] = true

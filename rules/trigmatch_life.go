@@ -162,7 +162,7 @@ func (e *Engine) lifeLossCauseMatches(spec string, you state.PlayerID) bool {
 	if cause == nil {
 		return false
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
 		if base != "SpellAbility" {
 			continue

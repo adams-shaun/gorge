@@ -344,7 +344,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     ask the delayed push path never poses; registering it would fire the
 	//     effect MANDATORILY, the opposite of the card text, so it notes.
 	//   - a body with no Execute$ has nothing to resolve.
-	for _, name := range strings.Fields(sa.Params["Triggers"]) {
+	for name := range strings.FieldsSeq(sa.Params["Triggers"]) {
 		raw := ""
 		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
 			raw = o.Face().SVars[name]
@@ -1305,7 +1305,7 @@ func parseReplacementLine(svars map[string]string, name string) (string, map[str
 		return "", nil
 	}
 	params := make(map[string]string)
-	for _, seg := range strings.Split(body, "|") {
+	for seg := range strings.SplitSeq(body, "|") {
 		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
 		if !ok {
 			continue
@@ -1365,7 +1365,7 @@ func parseStaticLine(svars map[string]string, name string) (string, staticLinePa
 	}
 	params := make(staticLineParams)
 	mode := ""
-	for _, seg := range strings.Split(body, "|") {
+	for seg := range strings.SplitSeq(body, "|") {
 		seg = strings.TrimSpace(seg)
 		if seg == "" {
 			continue
@@ -2280,7 +2280,7 @@ func effectSelfExileOnCastTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
 // "Card" for a body that names none. Empty when no entry has the shape, so a
 // Triggers$-only Effect keeps its existing registrations untouched.
 func effectSelfExileOnCastSpec(h Host, c *Ctx, names string) string {
-	for _, name := range strings.Fields(names) {
+	for name := range strings.FieldsSeq(names) {
 		raw := effectTriggerBody(h, c, name)
 		if raw == "" {
 			continue
