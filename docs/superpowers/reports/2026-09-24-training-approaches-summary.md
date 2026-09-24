@@ -22,7 +22,8 @@ seats traded).
 | 7 | Value head, value leaf, policy prior (pn08–pn10) | Value head predicts outcomes (log loss 0.24 vs 0.46 base rate); no win-rate gain | Merged; inert on its own |
 | 8 | Priority-context encoder v2 (pn03) | Top-1 = bot; 0/52 overrides right | Branch, not merged |
 | 9 | Expert iteration loop (pn11, `cmd/exitloop`) | 3 gens: eval 45.7 / 44.9 / 45.4% vs 48.7% control | Merged; does not compound |
-| 10 | Prior art: mtgbld self-distillation PPO (XMage) | 44.7% → 54.5% vs CP7 over 6 gated rounds | The one recipe that compounded; not yet ported |
+| 10 | Prior art: mtgbld self-distillation PPO (XMage) | 44.7% → 54.5% vs CP7 over 6 gated rounds | The one recipe that compounded there |
+| 11 | On-policy PPO / VDWM, the mtgbld recipe ported (pn13) | Flat: 10 rounds within ±0.3pp of round 0; sign-admission fix alone +4.8pp (46.7 → 51.5%, control 51.0%) | Merged; does not compound; fixed the attackers override bug |
 | — | MageZero reference run (2 vCPU) | Gen 0: 44% vs minimax pool (baseline 34.5%) | Throughput reference |
 
 **The one durable finding:** the search teacher beats the bot. Every attempt
@@ -238,6 +239,46 @@ decisions are overrides of the bot.
     generation takes 52 s (gen 0; about 16.5k teacher games/h counting the bot
     twin) or 29 s (guided; about 65k games/h).
 
+## 8b. On-policy PPO and VDWM (pn13)
+
+- **What:** mtgbld's self-distillation recipe ported. Each round the deployed
+  net (argmax, `attackers,priority`) plays 2,000 games against `bot`; every
+  decision it scored is recorded with its exact π_old (verified: 0 mismatches
+  on re-score). Update = clipped PPO (ε 0.2) + KL anchor, advantage =
+  outcome − V(s) from the jointly trained value head. Eval 4,000 games on a
+  fixed disjoint block. Code: `seat.SetRecorder`, `botbench -onpolicy-corpus`,
+  `policytrain -ppo-corpus`, `exitloop -mode ppo`.
+- **Result — flat in every arm** (control 50.95% [49.4, 52.5], CI ±1.55pp):
+
+| Arm | Round 0 | Rounds 1–10 | Best vs round 0 |
+|---|---|---|---|
+| PPO, default admission, ungated | 46.70% | 46.47–46.72% | +0.02pp |
+| PPO, sign admission, ungated | 51.48% | 50.65–51.68% | +0.20pp |
+| PPO, sign admission, gated | 51.48% | every round failed the gate | — |
+| VDWM, sign admission, gated | 51.48% | exactly 50.95% (= bot) | collapsed to the bot in one round |
+
+- **The real find is a seat bug, not a training gain.** 93% of the attackers
+  net's in-play "overrides" (the pn06 34%-in-play mystery) were all-positive
+  score decisions where the default admission rule falls back to the decision
+  mean and drops every below-mean attacker. That rule is shift-invariant, so no
+  weight update can reach it. Voting on the sign instead
+  (`-policynet-admission sign`, opt-in) takes round 0 from 46.7% to 51.5% —
+  back to control, not above it.
+- **Why PPO has nothing to push:** priority never deviated from the bot (at
+  most 1 decision per round) — the `-residual-init 2` prior's 2-logit gap
+  survives every step. With sign admission only 6.9% of attackers decisions
+  deviate. The outcome signal over those is too weak to move the win rate.
+- **Why VDWM collapsed:** with y = the seat's own answer and an unsigned
+  |outcome − V| weight, it reinforces the majority (bot-matching) answer and
+  erases the deviations. mtgbld's rows partly carried CP7's labels, which gorge's
+  on-policy corpus does not.
+- **Value head** on on-policy states: AUC .85 / .92 / .95 for turns 1–6 / 7–12
+  / 13+ by round 10 — good late, as mtgbld found — but calibration swings
+  (round 6 blew up to log loss 5.1).
+- **Throughput:** 22 workers ≈ 47 s per round (collect 7 s, train 26 s
+  single-threaded, eval 13 s). At 2 vCPU: 118k games/h collect and eval, one
+  full round (500 collect + 1,000 eval games) in 53 s.
+
 ## 9. MageZero reference (external, for throughput and curve shape)
 
 - **What:** MageZero, AlphaZero-style MCTS plus a transformer on an XMage
@@ -344,4 +385,11 @@ gated each round.
 4. **Open:**
    - Whether ExIt compounds with game-end rollouts (pn11's run changed the
      leaf and the prior at once, and was flat).
-   - Why the attackers net overrides 34% in play against about 1% on holdout.
+   - ~~Why the attackers net overrides 34% in play against about 1% on
+     holdout.~~ Answered by pn13: the mean-fallback admission rule, not the
+     weights (section 8b).
+   - Whether data volume, features, a joint cast+target action, or hidden
+     information is the binding limit (pn12, running).
+5. **On-policy PPO does not compound here** (pn13). The net barely deviates
+   from the bot, so there is no on-policy signal to amplify; the residual
+   prior has to be relaxed before priority can learn at all.
