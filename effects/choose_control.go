@@ -1042,7 +1042,35 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	var ts []state.Target
-	if spec := sa.Params["AllValid"]; spec != "" {
+	if strings.TrimSpace(sa.Params["Choices"]) != "" {
+		if c.ChoiceDone {
+			ts = append([]state.Target(nil), c.Choice...)
+			c.ChoiceDone, c.Choice = false, nil
+		} else {
+			chooser := c.Controller
+			choices := cardChoices(h, c, sa, chooser)
+			if len(choices) == 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControl Choices$ has no eligible cards"})
+				return
+			}
+			if len(choices) > 1 {
+				d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: 1, Max: 1, ResumeKind: "choice", ResumeSA: sa, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
+				for i, t := range choices {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "card", Obj: t.Obj, Player: chooser})
+				}
+				if d.Prompt == "" {
+					d.Prompt = "Choose card"
+				}
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				ts = choices[:1]
+			} else {
+				ts = choices
+			}
+			choiceRecord(h, c, sa, ts, false)
+		}
+	} else if spec := sa.Params["AllValid"]; spec != "" {
 		for i := range g.Objs {
 			o := &g.Objs[i]
 			if o.Zone == state.ZBattlefield && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller)) {
