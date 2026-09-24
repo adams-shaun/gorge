@@ -27,8 +27,21 @@ type TeacherOptions struct {
 	// candidate (common random numbers across candidates).
 	Seed uint64
 	// HorizonTurns stops a rollout this many engine turns after the root and
-	// scores the leaf with LeafValue. Zero rolls every rollout to game end.
+	// scores the leaf with Leaf (LeafValue when Leaf is nil). Zero rolls every
+	// rollout to game end.
 	HorizonTurns int32
+	// Leaf scores a NON-TERMINAL leaf -- a rollout stopped by HorizonTurns or
+	// MaxSubmits -- from the deciding seat's redacted projection of it, as a
+	// win probability for actor. Nil means LeafValue (the frozen material
+	// heuristic), and a nil Leaf reproduces the pre-Leaf results bit for bit.
+	// A terminal leaf never reaches it: game over stays 1 / 0 / 0.5.
+	//
+	// Its result is clamped into [0,1]; NaN reads as 0.5, the no-information
+	// value. With Parallelism > 1 it is called from several goroutines at once,
+	// so it must be safe for concurrent use (policynet.Model.Value is), and it
+	// must be a pure function of its arguments or the result stops being
+	// independent of Parallelism.
+	Leaf func(v view.View, actor state.PlayerID) float64
 	// MaxSubmits caps each rollout; a capped rollout is scored as a leaf.
 	MaxSubmits int
 	// Margin is how much a candidate's mean value must exceed candidate 0's
@@ -69,6 +82,24 @@ func LeafValue(v view.View, actor state.PlayerID) float64 {
 		}
 	}
 	return 1 / (1 + math.Exp(-LeafScore(v, actor)/20))
+}
+
+// leafValue scores a rollout's final view: terminal states and a nil leaf go
+// to LeafValue, anything else to leaf, clamped into [0,1] (NaN -> 0.5).
+func leafValue(leaf func(view.View, state.PlayerID) float64, v view.View, actor state.PlayerID) float64 {
+	if leaf == nil || v.Over {
+		return LeafValue(v, actor)
+	}
+	x := leaf(v, actor)
+	switch {
+	case math.IsNaN(x):
+		return 0.5
+	case x < 0:
+		return 0
+	case x > 1:
+		return 1
+	}
+	return x
 }
 
 // TeacherChoice rolls every candidate on every world. candidates[0] must be
@@ -151,7 +182,7 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 		o.over = e.G.Over
 		o.won = e.G.Over && !e.G.Draw && e.G.Winner == actor
 		o.capped = !e.G.Over && o.submits >= opts.MaxSubmits
-		o.value = LeafValue(view.Project(e.G, e, actor, e.Pending()), actor)
+		o.value = leafValue(opts.Leaf, view.Project(e.G, e, actor, e.Pending()), actor)
 	}
 	if workers := min(opts.Parallelism, len(outs)); workers > 1 {
 		engines := make([]*rules.Engine, len(outs))
@@ -401,4 +432,50 @@ func sameChoices(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+// SingleTarget reports whether d is the one KTarget shape the teacher
+// answers: exactly one object or player to pick (Min == Max == 1), no
+// MaxSum/Budgeted budget, and at least two options to choose between. Every
+// other KTarget -- multi-choice, budgeted, optional (Min 0) -- is left to the
+// bot, whose Clamp repairs shapes a single-option swap cannot keep legal.
+// searchseat.Eligible and TargetCandidates share this test so the cheap
+// pre-check and the candidate builder cannot disagree.
+func SingleTarget(d *decision.Decision) bool {
+	return d != nil && d.Kind == decision.KTarget && d.Min == 1 && d.Max == 1 &&
+		!d.HasBudget() && len(d.Options) >= 2
+}
+
+// TargetCandidates enumerates the answers to compare at a single-choice
+// KTarget root (SingleTarget): the bot's own pick first (index 0, the label
+// contract), then every other option in index order, each as a one-choice
+// intent that d.Validate accepts. Capped at limit; nil unless the decision
+// has the single-target shape, the bot answered with exactly one valid
+// choice, and at least two candidates survive.
+func TargetCandidates(d *decision.Decision, bot decision.Intent, limit int) []decision.Intent {
+	if !SingleTarget(d) || limit < 2 || len(bot.Choices) != 1 {
+		return nil
+	}
+	first := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{bot.Choices[0]}}
+	if d.Validate(first) != nil {
+		return nil
+	}
+	out := []decision.Intent{first}
+	for _, o := range d.Options {
+		if len(out) >= limit {
+			break
+		}
+		if o.Index == bot.Choices[0] {
+			continue
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}
+		if d.Validate(in) != nil {
+			continue
+		}
+		out = append(out, in)
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	return out
 }

@@ -14,27 +14,111 @@ const EntryCounterNotice = "__entry_counter_notice"
 
 var entryCounterKinds = [...]string{"", "LOYALTY", "P1P1", "LORE", "DEFENSE"}
 
-// EntryCounterPair encodes a replacement-adjusted entry grant in MoveZone's
-// previously-unused Pairs payload. Both values use a high-bit tag so generic
-// event-reference walkers never mistake counter metadata for an object ID.
-func EntryCounterPair(g EntryCounterGrant) [2]state.ObjID {
+// The MoveZone Pairs payload tags every entry-counter word with the top bit
+// so generic event-reference walkers (trigMustVisit, trigZonesCatchUp, the
+// combat matchers) never mistake counter metadata for an object ID: a real
+// object id can never carry the bit (state/ids.go's NextID range), so G.Obj
+// returns nil for every tagged word and a tagged word never equals a real
+// referent. The table kinds (LOYALTY/P1P1/LORE/DEFENSE) keep their historic
+// fixed-index tag -- the one committed shape -- while every other kind rides
+// a second tag bit plus a length-prefixed UTF-8 byte payload in the pairs
+// that follow it. Both forms stay inside the existing Pairs field, so the
+// frozen events.Event struct and the log encoding are untouched.
+const (
+	entryCounterMarker       = state.ObjID(1) << 31
+	entryCounterStringMarker = state.ObjID(1) << 30
+	// entryCounterKindBytes bounds a decoded UTF-8 payload. The longest real
+	// counter kind is a short word; the cap only rejects a corrupt log.
+	entryCounterKindBytes = 64
+	// entryCounterPayloadMask is the bit field a string payload pair may use
+	// for its three packed bytes. Three bytes (not four) leave the two marker
+	// bits clear, so a byte's own high bits can never be clipped by the
+	// marker OR at encode or decode time.
+	entryCounterPayloadMask = state.ObjID(0x00FFFFFF)
+)
+
+// EntryCounterPairs encodes one replacement-adjusted entry grant into the
+// MoveZone Pairs payload. A table kind is one pair; any other non-empty kind
+// is a header pair (tag + byte length, tag + amount) followed by as many
+// three-byte little-endian payload pairs as the kind needs. A grant with no
+// amount encodes nothing (a fully blocked or zero placement).
+func EntryCounterPairs(g EntryCounterGrant) [][2]state.ObjID {
+	if g.Amount <= 0 || g.Kind == "" {
+		return nil
+	}
 	for i := 1; i < len(entryCounterKinds); i++ {
 		if g.Kind == entryCounterKinds[i] {
-			return [2]state.ObjID{state.ObjID(i) | 0x80000000, state.ObjID(g.Amount) | 0x80000000}
+			return [][2]state.ObjID{{state.ObjID(i) | entryCounterMarker, state.ObjID(g.Amount) | entryCounterMarker}}
 		}
 	}
-	return [2]state.ObjID{}
+	if len(g.Kind) > entryCounterKindBytes {
+		return nil
+	}
+	n := len(g.Kind)
+	out := [][2]state.ObjID{{
+		entryCounterMarker | entryCounterStringMarker | state.ObjID(n),
+		entryCounterMarker | state.ObjID(uint32(g.Amount)),
+	}}
+	for off := 0; off < n; off += 3 {
+		var w state.ObjID
+		for b := 0; b < 3 && off+b < n; b++ {
+			w |= state.ObjID(g.Kind[off+b]) << (8 * b)
+		}
+		out = append(out, [2]state.ObjID{entryCounterMarker | entryCounterStringMarker | w, entryCounterMarker})
+	}
+	return out
 }
 
+// applyEntryCounterPairs installs the encoded grants on the entering object
+// during its MoveZone/TokenCreate/CardToken fold. It is a sequential decode:
+// a table pair is one grant, a string header consumes exactly the payload
+// pairs its length names, so the two forms cannot be confused. Malformed or
+// truncated payloads are skipped whole, never half-decoded.
 func applyEntryCounterPairs(o *state.Object, pairs [][2]state.ObjID) {
-	for _, pair := range pairs {
-		kind := pair[0] &^ state.ObjID(0x80000000)
-		amount := pair[1] &^ state.ObjID(0x80000000)
-		if pair[0]&0x80000000 != 0 && pair[1]&0x80000000 != 0 &&
-			kind > 0 && int(kind) < len(entryCounterKinds) && amount > 0 {
+	for i := 0; i < len(pairs); i++ {
+		pair := pairs[i]
+		if pair[0]&entryCounterMarker == 0 {
+			continue
+		}
+		if pair[0]&entryCounterStringMarker != 0 {
+			n := int(pair[0] &^ (entryCounterMarker | entryCounterStringMarker))
+			amount := int32(pair[1] &^ entryCounterMarker)
+			if n <= 0 || n > entryCounterKindBytes {
+				continue
+			}
+			buf := make([]byte, 0, (n+2)/3*3)
+			for c := 0; c < (n+2)/3 && i+1 < len(pairs); c++ {
+				i++
+				if pairs[i][0]&(entryCounterMarker|entryCounterStringMarker) != (entryCounterMarker | entryCounterStringMarker) {
+					buf = buf[:0]
+					break
+				}
+				w := pairs[i][0] & entryCounterPayloadMask
+				buf = append(buf, byte(w), byte(w>>8), byte(w>>16))
+			}
+			if len(buf) < n {
+				continue
+			}
+			if amount > 0 {
+				o.AddCounter(string(buf[:n]), amount)
+			}
+			continue
+		}
+		kind := pair[0] &^ entryCounterMarker
+		amount := pair[1] &^ entryCounterMarker
+		if kind > 0 && int(kind) < len(entryCounterKinds) && amount > 0 {
 			o.AddCounter(entryCounterKinds[kind], int32(amount))
 		}
 	}
+}
+
+// EntryCounterKindEncodable reports whether a counter kind can travel in the
+// MoveZone EntryCounterPairs payload. Every non-empty kind up to the payload's
+// length bound is encodable -- the table kinds by their fixed index, every
+// other kind by the UTF-8 payload form -- so rules/entry_counters.go may fold
+// any body-defined entry grant without silently dropping it.
+func EntryCounterKindEncodable(kind string) bool {
+	return kind != "" && len(kind) <= entryCounterKindBytes
 }
 
 // EntryCounterGrant is one counter kind a permanent enters the battlefield

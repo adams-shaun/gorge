@@ -555,15 +555,30 @@ func TestLoaderPrefersTheTeachersCandidateValue(t *testing.T) {
 	if !got.Labelled || !got.Preferred || got.Value != -0.1 {
 		t.Fatalf("teacher-preferred option target = %+v, want {Labelled:true Preferred:true Value:-0.1}", got)
 	}
+	// The value head's teacher target is the same chosen candidate's mean.
+	if ex := examples[0]; !ex.HasTeacherValue || ex.TeacherValue != -0.1 {
+		t.Fatalf("TeacherValue %g (has %v), want -0.1 (true)", ex.TeacherValue, ex.HasTeacherValue)
+	}
+
+	// An out-of-range teacher choice has no teacher value.
+	rec.TeacherChoice = 5
+	path = writeCorpus(t, []labelRecord{rec}, false)
+	examples, _, err = Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ex := examples[0]; ex.HasTeacherValue || ex.TeacherValue != 0 {
+		t.Fatalf("out-of-range teacher choice: TeacherValue %g (has %v), want 0 (false)", ex.TeacherValue, ex.HasTeacherValue)
+	}
 }
 
 func TestLoaderRejectsWrongSchema(t *testing.T) {
 	recs := fixtureRecords()
 	bad := recs[:1]
-	bad[0].SchemaVersion = 3
+	bad[0].SchemaVersion = 4 // schema 3 is pn12's extras schema
 	path := writeCorpus(t, bad, false)
 	if _, _, err := Load(path); err == nil {
-		t.Fatal("schema_version 3 accepted")
+		t.Fatal("schema_version 4 accepted")
 	}
 	bad[0].SchemaVersion = LabelSchemaVersion
 	bad[0].RecordType = "label-v0"
@@ -640,7 +655,7 @@ func TestLoaderOutcomes(t *testing.T) {
 			t.Fatalf("schema 1 example %d: HasOutcome %v Outcome %g, want false 0", i, ex.HasOutcome, ex.Outcome)
 		}
 	}
-	for _, v := range []int{0, 3} {
+	for _, v := range []int{0, 4} { // 3 is pn12's extras schema
 		if LabelSchemaAccepted(v) {
 			t.Fatalf("schema %d accepted", v)
 		}

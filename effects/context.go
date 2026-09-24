@@ -1274,6 +1274,55 @@ func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return playerIDsFromTargets(h, c, sa.Params["Defined"], Defined(h, c, sa))
 }
 
+// EffectOwnerPlayers resolves an Effect's EffectOwner$ selector to the seats
+// the created effect belongs to (CR 611.2): `""`/`You` is the resolving
+// controller, `Opponent`/`Other` every other surviving seat, and every other
+// spelling is a Defined$ referent resolved through the SHARED referent
+// grammar and then mapped to seats under Forge's getDefinedPlayers rule --
+// TriggeredTarget (the player the triggering event hit, Valiant Batrider),
+// TriggeredDefendingPlayer (Nuka-Nuke Launcher), TargetedOwner (Palace
+// Jailer), Targeted (Loch Larent), Player.IsRemembered (Chandra, Fire of
+// Kaladesh). Every spelling but the owner-suffix one is resolved through the
+// SHARED referent grammar (definedSpec/knownDefinedTargets), so the
+// effect-owner read and every other Defined$ consumer cannot drift apart;
+// TargetedOwner is the one owner-suffix spelling that grammar does not model,
+// so it is mapped here from the same resolved target set.
+//
+// The second result is false when the spelling is one this build does not
+// model; a true result with NO players means the selector named nobody. The
+// caller fails closed on either -- it registers nothing rather than guessing
+// the source controller as the owner.
+func EffectOwnerPlayers(h Host, c *Ctx, raw string) ([]state.PlayerID, bool) {
+	sel := strings.TrimSpace(raw)
+	switch sel {
+	case "", "You":
+		return []state.PlayerID{c.Controller}, true
+	case "Opponent", "Other":
+		out := make([]state.PlayerID, 0, len(h.Game().Players))
+		for _, p := range h.Game().AliveFrom(0) {
+			if p != c.Controller {
+				out = append(out, p)
+			}
+		}
+		return out, true
+	case "TargetedOwner":
+		// The OWNER (CR 108.3) of the resolving ability's targets, not
+		// their controller: Palace Jailer's exiled creature's owner. This
+		// spelling is not a general Defined$ referent (the 18 corpus
+		// `Defined$ TargetedOwner` lines are a separate, unmodelled
+		// shape), so it lives HERE rather than widening definedSpec and
+		// silently changing unrelated cards. A player target maps to
+		// itself, an object to its owner; no targets yields nobody -- the
+		// fail-closed direction, never the source controller.
+		return playerIDsFromTargets(h, c, sel, ownersOf(h.Game(), c.Targets)), true
+	}
+	ts, ok := knownDefinedTargets(h, c, sel)
+	if !ok {
+		return nil, false
+	}
+	return playerIDsFromTargets(h, c, sel, ts), true
+}
+
 func playersOf(ts []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range ts {

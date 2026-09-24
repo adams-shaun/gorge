@@ -30,7 +30,12 @@ const (
 
 // AcceptedLabelSchemaVersions is the allow-list of label schema versions a
 // reader accepts, in ascending order. Callers must treat it as read-only.
-var AcceptedLabelSchemaVersions = []int{1, 2}
+//
+// Schema 3 (pn12) is schema 2 plus the optional "extras" object
+// (LabelExtras, written by cmd/searchteacher -label-extras): Load reads a
+// schema 3 record exactly as schema 2 and ignores the extras; LoadWith reads
+// them.
+var AcceptedLabelSchemaVersions = []int{1, 2, 3}
 
 // LabelSchemaAccepted reports whether v is in AcceptedLabelSchemaVersions.
 func LabelSchemaAccepted(v int) bool {
@@ -103,8 +108,23 @@ type Example struct {
 	// schema 1 record and for a game that stalled or errored.
 	Outcome    float64
 	HasOutcome bool
-	State      State
-	Options    []Option
+	// TeacherValue is the teacher-chosen candidate's rollout mean
+	// (candidates[TeacherChoice].Value), the value head's second, lower-
+	// variance target; HasTeacherValue is false when TeacherChoice is out of
+	// the candidate range.
+	TeacherValue    float64
+	HasTeacherValue bool
+	State           State
+	Options         []Option
+	// PPO is the on-policy PPO target (ticket pn13, LoadOnPolicy): non-nil
+	// makes the example train the PPO objective instead of the supervised
+	// loss. nil for every label-corpus example.
+	PPO *PPOTarget
+	// JointCard is the joint (card, target) action encoding's option map
+	// (pn12, LoadWith with Joint): JointCard[k] is the index in the RECORD's
+	// option list of the card Options[k] casts. nil for the split encoding,
+	// where Options parallels the record's options one to one.
+	JointCard []int
 }
 
 // Stats counts what Load saw.
@@ -193,6 +213,9 @@ func Load(path string) ([]Example, Stats, error) {
 		if rec.SchemaVersion >= 2 && rec.OutcomeKnown {
 			ex.Outcome, ex.HasOutcome = rec.Outcome, true
 			stats.WithOutcome++
+		}
+		if rec.TeacherChoice >= 0 && rec.TeacherChoice < len(rec.Candidates) {
+			ex.TeacherValue, ex.HasTeacherValue = rec.Candidates[rec.TeacherChoice].Value, true
 		}
 		for i := range rec.Options {
 			ex.Options[i] = EncodeOption(v, rec.Seat, rec.Kind, rec.Options[i], i, len(rec.Options))

@@ -32,6 +32,11 @@ type Scorer struct {
 	s []float32
 	x []float32
 	a []float32
+	// va is the value head's hidden activations (ValueHidden; empty when the
+	// model has no value head).
+	va []float32
+	// ec is the loaded state's entity forward (entity models only).
+	ec *entCache
 }
 
 // NewScorer wraps a trained (or zero) Model for inference. The Model is
@@ -41,11 +46,28 @@ func NewScorer(m *Model) *Scorer {
 		panic("policynet: NewScorer on a nil or degenerate model")
 	}
 	return &Scorer{
-		m: m,
-		s: make([]float32, m.H),
-		x: make([]float32, m.InW),
-		a: make([]float32, m.Hidden),
+		m:  m,
+		s:  make([]float32, m.H),
+		x:  make([]float32, m.InW),
+		a:  make([]float32, m.Hidden),
+		va: make([]float32, m.ValueHidden),
 	}
+}
+
+// HasValue reports whether the wrapped model carries a value head.
+func (sc *Scorer) HasValue() bool { return sc.m.HasValue() }
+
+// Value is the scratch variant of Model.Value for single-threaded callers:
+// it loads st as the scorer's state (exactly SetState, so a following
+// ScoreOption scores against it) and returns V(s) ∈ (0,1), bit-identical to
+// Model.Value (TestScorerValueMatchesModelValue). 0.5 on a model without a
+// value head.
+func (sc *Scorer) Value(st State) float32 {
+	sc.SetState(st)
+	if !sc.m.HasValue() {
+		return 0.5
+	}
+	return float32(sigmoidFloat(float64(sc.m.valueForward(sc.s, sc.va))))
 }
 
 // ResidualWeight reports the model's fixed bot-prior residual weight
@@ -87,6 +109,15 @@ func LoadScorerFile(path string) (*Scorer, error) {
 func (sc *Scorer) SetState(st State) {
 	m := sc.m
 	s := sc.s
+	if m.EntK > 0 {
+		// An entity model's trunk is Model.stateTrunkEnt's (the per-card
+		// encoder allocates per card; the pinned zero-allocation path below
+		// stays exactly as it was for every other model).
+		t, c := m.stateTrunkEnt(st)
+		copy(s, t)
+		sc.ec = c
+		return
+	}
 	copy(s, m.StateB)
 	for _, f := range st.Sparse {
 		base := int(f.Row) * m.H
@@ -134,6 +165,7 @@ func (sc *Scorer) ScoreOption(o Option) float32 {
 	}
 	off += OptionSlotWidth
 	copy(x[off:], o.Dense)
+	m.entFillInput(x, o, sc.ec)
 	return sc.scoreHead(x) + m.residual(o)
 }
 

@@ -100,6 +100,19 @@ type Config struct {
 	// model cannot be checkpointed (the format has no ExtraW field), which is
 	// deliberate -- it is a measurement vehicle, not a deployable scorer.
 	ExtraW int
+
+	// The value head (ticket pn08). ValueWeight 0 (the default) trains no
+	// value head: the model is built without one (ValueHidden 0 in the
+	// checkpoint) and the run is bit-identical to the pre-value-head trainer
+	// — the value head's init draws come from a SEPARATE rng
+	// (valueRNG), so even a value-on run moves no policy init draw and no
+	// shuffle. ValueHidden is the head's width (used only when ValueWeight >
+	// 0); ValueBlend b ∈ [0,1] mixes the target (1-b)·Outcome +
+	// b·TeacherValue (policynet.LossConfig.ValueTarget).
+	ValueHidden int
+	ValueWeight float64
+	ValueBlend  float64
+
 	// Log receives one line per epoch (nil discards).
 	Log io.Writer
 }
@@ -111,6 +124,25 @@ type EpochStat struct {
 	TrainTop1   float64 // argmax-in-preferred agreement over eligible examples
 	HoldoutLoss float64
 	HoldoutTop1 float64
+	// The value head's holdout readout (zero when the value head is off):
+	// the mean BCE (log loss) and Brier score of V(s) over the holdout
+	// examples that have a value target.
+	HoldoutValueLogLoss float64
+	HoldoutValueBrier   float64
+}
+
+// ValueStat is the value head's holdout readout beside the base-rate
+// predictor: a constant prediction equal to the TRAIN split's mean target,
+// scored over the same holdout examples. The value head earns its place only
+// by beating it.
+type ValueStat struct {
+	TrainN      int     // train-split examples with a value target
+	HoldoutN    int     // holdout examples with a value target
+	BaseRate    float64 // mean train-split target
+	LogLoss     float64 // model's holdout log loss
+	Brier       float64 // model's holdout Brier score
+	BaseLogLoss float64 // base-rate predictor's holdout log loss
+	BaseBrier   float64 // base-rate predictor's holdout Brier score
 }
 
 // Result carries the trained model and the run's bookkeeping.
@@ -127,6 +159,9 @@ type Result struct {
 	// first-index pick already agrees most of the time, a cast decision where
 	// it does not), so it must be labelled as blended wherever it is shown.
 	ByKind []KindStat
+	// Value is the final value-head holdout readout; nil when the value head
+	// is off.
+	Value *ValueStat
 }
 
 // KindStat is one decision kind's holdout agreement and the baselines it
@@ -181,6 +216,12 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 		return nil, fmt.Errorf("policytrain: holdout-by %q (want %s or %s)", cfg.HoldoutBy, HoldoutByExample, HoldoutByGame)
 	case cfg.ResidualInit < 0:
 		return nil, fmt.Errorf("policytrain: residual init %g < 0 (a positive bot-prior weight is the residual; 0 disables)", cfg.ResidualInit)
+	case cfg.ValueWeight < 0 || math.IsNaN(cfg.ValueWeight):
+		return nil, fmt.Errorf("policytrain: value weight %g < 0 (0 disables the value head)", cfg.ValueWeight)
+	case cfg.ValueBlend < 0 || cfg.ValueBlend > 1 || math.IsNaN(cfg.ValueBlend):
+		return nil, fmt.Errorf("policytrain: value blend %g outside [0,1]", cfg.ValueBlend)
+	case cfg.ValueWeight > 0 && cfg.ValueHidden < 1:
+		return nil, fmt.Errorf("policytrain: value weight %g needs a value head (value hidden %d < 1)", cfg.ValueWeight, cfg.ValueHidden)
 	}
 	mode, err := policynet.ParseLossMode(string(cfg.Mode))
 	if err != nil {
@@ -236,10 +277,24 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 
 	model := policynet.NewModelExtra(policynet.TableRows, cfg.Embed, cfg.Hidden, cfg.ExtraW, rng)
 	model.ResidualW = float32(cfg.ResidualInit)
+	if cfg.ValueWeight > 0 {
+		// After the policy blocks, from its own rng: the main rng's draw
+		// sequence (split, policy init, every epoch shuffle) is untouched.
+		model.InitValue(cfg.ValueHidden, valueRNG(cfg.Seed))
+	}
 	grads := model.NewGrads()
-	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight, KindModes: cfg.KindModes}
+	lc := policynet.LossConfig{Mode: cfg.Mode, HuberDelta: cfg.HuberDelta, RankWeight: cfg.RankWeight, OverrideWeight: cfg.OverrideWeight, KindModes: cfg.KindModes,
+		ValueWeight: cfg.ValueWeight, ValueBlend: cfg.ValueBlend}
 
 	res := &Result{Model: model, TrainN: len(sp.train), HoldoutN: len(sp.hold), Skipped: skipped}
+	var vbase valueBase
+	if model.HasValue() {
+		vbase = newValueBase(usable, sp, lc)
+		if cfg.Log != nil {
+			fmt.Fprintf(cfg.Log, "value head: hidden %d weight %g blend %g; targets on %d train / %d holdout examples; base rate (train mean target) %.4f\n",
+				model.ValueHidden, cfg.ValueWeight, cfg.ValueBlend, vbase.trainN, len(vbase.hold), vbase.rate)
+		}
+	}
 	order := make([]int, len(sp.train))
 	for epoch := 1; epoch <= cfg.Epochs; epoch++ {
 		copy(order, sp.train)
@@ -277,17 +332,98 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 		trainTop1 := ratio(agree, eligible)
 
 		holdLoss, holdTop1 := evaluate(model, usable, sp.hold, lc)
-		res.Epochs = append(res.Epochs, EpochStat{
+		es := EpochStat{
 			Epoch: epoch, TrainLoss: trainLoss, TrainTop1: trainTop1,
 			HoldoutLoss: holdLoss, HoldoutTop1: holdTop1,
-		})
+		}
 		if cfg.Log != nil {
 			fmt.Fprintf(cfg.Log, "epoch %d/%d train loss %.6f top1 %.3f | holdout loss %.6f top1 %.3f\n",
 				epoch, cfg.Epochs, trainLoss, trainTop1, holdLoss, holdTop1)
 		}
+		if model.HasValue() {
+			vs := vbase.evaluate(model, usable)
+			es.HoldoutValueLogLoss, es.HoldoutValueBrier = vs.LogLoss, vs.Brier
+			res.Value = &vs
+			if cfg.Log != nil {
+				fmt.Fprintf(cfg.Log, "epoch %d/%d value holdout n %d log loss %.6f brier %.6f | base rate %.4f log loss %.6f brier %.6f\n",
+					epoch, cfg.Epochs, vs.HoldoutN, vs.LogLoss, vs.Brier, vs.BaseRate, vs.BaseLogLoss, vs.BaseBrier)
+			}
+		}
+		res.Epochs = append(res.Epochs, es)
 	}
 	res.ByKind = evaluateByKind(model, usable, sp.hold)
 	return res, nil
+}
+
+// valueRNG is the value head's init source: seeded from the run seed but a
+// different PCG stream from the trainer's main rng, so drawing the value
+// blocks moves nothing the main rng draws.
+func valueRNG(seed int64) *rand.Rand {
+	return rand.New(rand.NewPCG(uint64(seed), 0x76616c7565)) // "value"
+}
+
+// valueBase is the value readout's fixed half: the holdout examples that
+// have a target (with their targets) and the base-rate predictor, the train
+// split's mean target.
+type valueBase struct {
+	trainN int
+	rate   float64
+	hold   []int
+	target []float64
+}
+
+func newValueBase(examples []policynet.Example, sp split, lc policynet.LossConfig) valueBase {
+	var vb valueBase
+	sum := 0.0
+	for _, ix := range sp.train {
+		if t, ok := lc.ValueTarget(examples[ix]); ok {
+			sum += t
+			vb.trainN++
+		}
+	}
+	vb.rate = 0.5
+	if vb.trainN > 0 {
+		vb.rate = sum / float64(vb.trainN)
+	}
+	for _, ix := range sp.hold {
+		if t, ok := lc.ValueTarget(examples[ix]); ok {
+			vb.hold = append(vb.hold, ix)
+			vb.target = append(vb.target, t)
+		}
+	}
+	return vb
+}
+
+// evaluate scores the model's value head and the base-rate predictor over
+// the holdout examples with a target: mean log loss (BCE) and mean Brier.
+func (vb valueBase) evaluate(m *policynet.Model, examples []policynet.Example) ValueStat {
+	vs := ValueStat{TrainN: vb.trainN, HoldoutN: len(vb.hold), BaseRate: vb.rate}
+	if len(vb.hold) == 0 {
+		return vs
+	}
+	for k, ix := range vb.hold {
+		t := vb.target[k]
+		v := float64(m.Value(examples[ix].State))
+		vs.LogLoss += m.ValueLogLoss(examples[ix].State, t)
+		vs.Brier += (v - t) * (v - t)
+		vs.BaseLogLoss += bceProb(vb.rate, t)
+		vs.BaseBrier += (vb.rate - t) * (vb.rate - t)
+	}
+	n := float64(len(vb.hold))
+	vs.LogLoss /= n
+	vs.Brier /= n
+	vs.BaseLogLoss /= n
+	vs.BaseBrier /= n
+	return vs
+}
+
+// bceProb is the binary cross-entropy of a probability p against a soft
+// target t, with p clamped away from 0 and 1 so a degenerate base rate (an
+// all-win train split) stays finite.
+func bceProb(p, t float64) float64 {
+	const eps = 1e-12
+	p = math.Min(math.Max(p, eps), 1-eps)
+	return -(t*math.Log(p) + (1-t)*math.Log(1-p))
 }
 
 // firstNonFiniteParameter scans learned blocks in ApplyGrads order so the
@@ -304,6 +440,12 @@ func firstNonFiniteParameter(m *policynet.Model) (block string, index int, value
 		{"HidW", m.HidW},
 		{"HidB", m.HidB},
 		{"OutW", m.OutW},
+		{"VHidW", m.VHidW},
+		{"VHidB", m.VHidB},
+		{"VOutW", m.VOutW},
+		{"EntW", m.EntW},
+		{"EntB", m.EntB},
+		{"EntP", m.EntP},
 	}
 	for _, b := range blocks {
 		for i, v := range b.data {
@@ -314,6 +456,9 @@ func firstNonFiniteParameter(m *policynet.Model) (block string, index int, value
 	}
 	if math.IsNaN(float64(m.OutB)) || math.IsInf(float64(m.OutB), 0) {
 		return "OutB", 0, m.OutB, true
+	}
+	if math.IsNaN(float64(m.VOutB)) || math.IsInf(float64(m.VOutB), 0) {
+		return "VOutB", 0, m.VOutB, true
 	}
 	return "", 0, 0, false
 }
