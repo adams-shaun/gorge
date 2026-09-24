@@ -1399,6 +1399,13 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	e.resume = nil
 	chosen := d.Chosen(in)
 	labels := chosenModeLabels(chosen)
+	if d.ResumeSA != nil && strings.EqualFold(d.ResumeSA.Params["SetChosenMode"], "True") && len(chosen) == 1 {
+		// An as-enters GenericChoice records its mode on the permanent via
+		// the event fold; the ModeChosen marker alone stores no object state.
+		if names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes); len(names) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: d.Source, Counter: "mode", Text: names[0]})
+		}
+	}
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
 		Text: strings.Join(labels, ",")})
 	// ChoiceRestriction$: a mid-resolution Charm's pick is recorded on its
