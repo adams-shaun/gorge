@@ -221,12 +221,16 @@ bisected (none of the 26 World cards is in a repo deck, measured now).
    add a strip-direction case with no engine change. Not ledgible to AGENTS.md
    (frozen, and it is not debt).
 
-2. **`Face.IsWorld()` has no rules-side caller outside the derived-type
-   string read** — `worldUnderLayers` compares the string `"World"` (shared
-   with the generic `sbaSupertypeUnderLayers`), and the world pre-filter uses
-   `o.Face().IsWorld()`. So `IsWorld()` IS used (the perf pre-filter), but if
-   a reviewer looks for a `worldUnderLayers` call to `IsWorld()`, it is not
-   there by design. Not a defect; noted for clarity.
+2. **`Face.IsWorld()` has no non-test caller in the shipped implementation.**
+   `worldPermanents` (rules/sba.go) calls only `worldUnderLayers`, which
+   compares the derived-type string `"World"`; it must NOT pre-filter on the
+   printed face, because a printed non-World enchantment a layer-4
+   `AddTypes$ World` grants the supertype to is a World permanent for
+   CR 704.5k (`TestWorldRuleReadsDerivedSupertype`). `/usr/bin/grep -rn IsWorld
+   --include=*.go` therefore finds the definition and the test precondition in
+   `world_rule_test.go`, and nothing else. The accessor is harmless and the
+   brief asked for it, but there is no non-test caller. Not a defect; noted
+   for clarity.
 
 3. **`Config.Commanders` de-duplicates same-named commanders.** While
    building the per-controller test I found that

@@ -59,6 +59,73 @@ func worldMoveText(e *Engine, id state.ObjID) (string, bool) {
 	return "", false
 }
 
+// worldBatchWitness is a World enchantment whose leaves-the-battlefield
+// trigger watches EVERY World permanent departure, so the world-rule batch
+// (rules/sba.go worldRule, CR 704.5k) must give both tied departing sources
+// the same pre-departure board -- 4 queued triggers (each source observing
+// both departures), not the 3 a missing snapshot produces. Its twin is
+// walkerBatchWitness in rules/sba_batch_test.go for the zero-loyalty batch.
+const worldBatchWitness = "Name:Batch world\nManaCost:2 B\nTypes:World Enchantment\n" +
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Enchantment | Execute$ Gain\n" +
+	"SVar:Gain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+
+// TestWorldRuleTieSendsAllUsesPreDepartureBoard pins CR 704.3/603.10a for the
+// world rule's simultaneous departure batch: two tied World permanents both
+// depart, and each departing source's leaves-the-battlefield trigger must
+// observe BOTH departures off the same pre-departure board. Without the
+// trigger-board snapshot around the loop, the source moved first is already
+// gone when the second move is matched, so only 3 triggers queue. The test
+// asserts the tie precondition (equal Timestamps) and the World supertype so
+// a vacuous setup fails loudly.
+func TestWorldRuleTieSendsAllUsesPreDepartureBoard(t *testing.T) {
+	e := layerEngine(t)
+	a := onBoard(t, e, 0, worldBatchWitness)
+	b := onBoard(t, e, 0, worldBatchWitness)
+	// Precondition: both are World permanents on the battlefield, and their
+	// timestamps tie (so both depart -- a unique-newest survivor would leave
+	// only one source to observe, defeating the pin).
+	for _, id := range []state.ObjID{a, b} {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("fixture: world batch member %d not on the battlefield (zone %v)", id, o)
+		}
+		if !o.Face().IsWorld() {
+			t.Fatalf("fixture: %q printed face is not World", o.Face().Name)
+		}
+	}
+	stamp := e.G.Obj(a).Timestamp
+	e.G.Obj(b).Timestamp = stamp
+	if e.G.Obj(a).Timestamp != e.G.Obj(b).Timestamp {
+		t.Fatalf("fixture: timestamps %d/%d differ; the tie is not exercised",
+			e.G.Obj(a).Timestamp, e.G.Obj(b).Timestamp)
+	}
+	e.checkStateBased()
+	for _, id := range []state.ObjID{a, b} {
+		if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
+			t.Fatalf("tied world permanent %d stayed in %v; a tie sends ALL of them", id, o.Zone)
+		}
+	}
+	// Each of the two sources observes both departures: 4 queued triggers.
+	if len(e.pendingTriggers) != 4 {
+		t.Fatalf("queued %d triggers, want 4 (both sources observe both departures)", len(e.pendingTriggers))
+	}
+	seen := map[[2]state.ObjID]bool{}
+	for _, pt := range e.pendingTriggers {
+		lki := pt.Ctx.LKI
+		if lki == nil || lki.Zone != state.ZBattlefield {
+			t.Fatalf("missing pre-batch LKI: %+v", lki)
+		}
+		key := [2]state.ObjID{pt.Source, lki.ID}
+		if seen[key] {
+			t.Fatalf("duplicate observation: %v", key)
+		}
+		seen[key] = true
+	}
+	if e.triggerBefore != nil {
+		t.Fatal("look-back leaked beyond batch")
+	}
+}
+
 // TestWorldRuleNewestSurvives pins CR 704.5k's deterministic core: with two
 // world permanents, the one that has had the supertype for the shortest amount
 // of time (the most recently entered, largest Object.Timestamp) survives and

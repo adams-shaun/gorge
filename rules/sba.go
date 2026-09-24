@@ -647,9 +647,15 @@ func (e *Engine) worldPermanents() []state.ObjID {
 // graveyards."
 //
 // The rule poses NO choice -- unlike the CR 704.5j legend rule it is fully
-// deterministic -- so it is an automatic SBA, not a parked ask. With fewer
-// than two world permanents it falls through false. Otherwise it finds the
-// YOUNGEST permanent(s) by entry order: Object.Timestamp is assigned from
+// deterministic -- so it is an automatic SBA, not a parked ask. It is called
+// directly from checkStateBased's pass loop (beside planeswalkerZeroLoyalty),
+// not through a tried-set batch helper: it reads the whole battlefield every
+// pass and converges because each call leaves at most one World permanent, so
+// the next pass sees <2 and returns false. It does not consume the same-pass
+// lethal casualties the tried-set batches carry, because a World enchantment
+// is almost never a lethal casualty and nothing about CR 704.5k depends on it.
+// With fewer than two world permanents it falls through false. Otherwise it
+// finds the YOUNGEST permanent(s) by entry order: Object.Timestamp is assigned from
 // Game.Clock on every battlefield entry and increases monotonically, so the
 // greatest Timestamp is the most recently entered permanent, the one that has
 // had the world supertype for the shortest amount of time. If exactly one
@@ -691,6 +697,20 @@ func (e *Engine) worldRule() bool {
 	// A unique youngest survives; a tie for the youngest spares none. Every
 	// permanent that is not the unique survivor departs, in the deterministic
 	// scan order worldPermanents established.
+	//
+	// CR 704.3/603.10a: every departure in this simultaneous batch observes the
+	// SAME pre-departure board, including sources already serialized into the
+	// graveyard -- exactly the snapshot discipline destroyLethalDamage,
+	// planeswalkerZeroLoyalty and battleZeroDefense follow. Without it a
+	// departing World permanent's leaves-the-battlefield trigger is matched
+	// against the live board and misses a sibling's simultaneous departure
+	// (3 queued triggers where CR 603.10a requires 4 when two World permanents
+	// tie and both depart; TestWorldRuleTieSendsAllUsesPreDepartureBoard pins
+	// it). The snapshot never receives mutations and the log retains ordinary
+	// MoveZone events.
+	before := e.triggerBefore
+	e.triggerBefore = e.snapshotTriggerBoard()
+	defer func() { e.triggerBefore = before }()
 	changed := false
 	for _, id := range worlds {
 		if newestCount == 1 && id == newest {
