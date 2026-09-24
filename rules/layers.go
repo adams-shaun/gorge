@@ -1911,6 +1911,10 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 			changed = true
 			continue // the effect ends: not kept
 		}
+		if forget == "" && exile == "" && mayPlayRememberedLeftZone(ce, ev) {
+			ce.Remembered = objIDWithout(ce.Remembered, ev.Obj)
+			changed = true
+		}
 		kept = append(kept, ce)
 	}
 	if !changed {
@@ -1918,6 +1922,34 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	}
 	e.continuous = kept
 	e.continuousChanged()
+}
+
+// mayPlayRememberedLeftZone reports whether ev moves one of a may-play
+// grant's REMEMBERED cards out of a zone the grant names (AffectedZone$),
+// for a grant that spells no move-driven lifetime of its own. CR 400.7: a
+// card that leaves the zone is a new object with no memory of the old one,
+// so "you may cast THAT card this turn" (Reezug, the Bonecobbler's graveyard
+// grant) cannot follow it back once it has been cast, resolved and put into
+// the graveyard again -- without this the one-shot permission recast the
+// same Blood Pet for {B} forever within one turn (cardfuzz b12). Only an
+// Affected$ spec that reads the remembered set (Card.IsRemembered) and an
+// explicit zone list qualify: a grant naming Any/All zones, or one whose
+// remembered set parameterises something else, keeps its old behaviour.
+func mayPlayRememberedLeftZone(ce state.ContinuousEffect, ev events.Event) bool {
+	if !ce.MayPlay || ce.AffectedZone == "" || !strings.Contains(ce.Affects, "IsRemembered") ||
+		!objIDIn(ce.Remembered, ev.Obj) {
+		return false
+	}
+	zones, all, _ := effects.ParseZones(ce.AffectedZone)
+	if all {
+		return false
+	}
+	for _, z := range zones {
+		if z == ev.From {
+			return true
+		}
+	}
+	return false
 }
 
 // effectCastSweep is the cast-driven lifetime of Effect-created continuous

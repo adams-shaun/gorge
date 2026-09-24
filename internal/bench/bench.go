@@ -112,9 +112,13 @@ func IsAbort(stallOn string) bool { return stallOn == "livelock" || stallOn == "
 // (cmd/cardfuzz's board-size cap) that needs the engine rather than the
 // seat's board. It must only read the engine. Nil costs nothing.
 type Hooks struct {
-	Decision  func(seatIdx int, d *decision.Decision, in decision.Intent, board *botpolicy.Board) error
-	Finish    func(o Outcome)
-	Guard     func(e *rules.Engine) (stallOn, diag string)
+	Decision func(seatIdx int, d *decision.Decision, in decision.Intent, board *botpolicy.Board) error
+	Finish   func(o Outcome)
+	Guard    func(e *rules.Engine) (stallOn, diag string)
+	// Setup, when non-nil, sees the engine once, right after rules.New and
+	// before the first Advance: the place a collector installs an engine-side
+	// observer (rules.Engine.ManaAbilityHook) that must be live from genesis.
+	Setup     func(e *rules.Engine)
 	NeedBoard bool
 }
 
@@ -129,6 +133,9 @@ type Hooks struct {
 // the engine replays from cfg.Seed, and nothing reads the wall clock.
 func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hooks Hooks) (Outcome, *rules.Engine, error) {
 	e := rules.New(cfg)
+	if hooks.Setup != nil {
+		hooks.Setup(e)
+	}
 	e.Advance()
 	board := botpolicy.NewBoard(len(seats))
 	// Search-seat feeds (the seat.BoardSeat branch, mirrored one level up):

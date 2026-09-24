@@ -742,9 +742,15 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// and the new pair measures 7/13. Removing only the deck fixture restores
 	// the previous 6/14 default pair, attributing the movement to adding
 	// Cavalry Charge to the default deck pool.
-	const wantSeat0, wantSeat1 = 7, 13
+	//
+	// bot-x1 re-measured 7/13 to 6/14: the production bot's A1 attachment
+	// no-op rule is scoped to attach abilities (botpolicy equipNoOp, the
+	// explore policy's X1 promoted), so an attached Equipment's own
+	// non-attach abilities and a creatureless seat's non-attach abilities are
+	// activated. The base commit measures 7/13; this change alone moves it.
+	const wantSeat0, wantSeat1 = 6, 14
 	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != wantSeat0 || seat1 != wantSeat1 {
-		t.Errorf("constructed default split = %d/%d, want %d/%d after adding Cavalry Charge / Battle cry coverage (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
+		t.Errorf("constructed default split = %d/%d, want %d/%d after scoping A1 to attach abilities (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")
