@@ -733,6 +733,24 @@ func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cos
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
 func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [3]state.Mana) bool {
+	if !cost.hasPips() {
+		// The B-life grant, the may-play riders and the ManaConvert set only
+		// ever widen or narrow a PIP's alternatives (costPips, pipAccepts);
+		// a pip-free cost -- the bare {T} of nearly every mana ability --
+		// resolves to exactly the life and generic totals whatever they
+		// are, so the three whole-board reads are skipped, not changed.
+		_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life, false, pipRider{}, nil)
+		if walkCacheVerify {
+			_, slow := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life,
+				e.payerGrantsPayLifeInsteadOfB(p),
+				pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
+				e.paymentConv(p, id, ability))
+			if slow != ok {
+				panic("rules: pip-free costPayablePool fast path disagrees with the full resolve")
+			}
+		}
+		return ok
+	}
 	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
@@ -1566,6 +1584,20 @@ func (e *Engine) affectedCandidates(p state.PlayerID, source, excludeSelf state.
 }
 
 func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool) []targetCandidate {
+	return e.candidatesForLimit(p, source, excludeSelf, sa, targeting, 0)
+}
+
+// candidatesForLimit is candidatesFor that may stop enumerating once limit
+// (> 0) candidates are collected. The early stop is taken only when neither
+// post-filter (TargetsWithDefinedController$, TargetValidTargeting$) is
+// present -- both can only DROP candidates, so without them the census is
+// append-only and its first limit entries are exactly the full list's. The
+// feasibility gate (targetSAAvailable) needs a count, never the list.
+func (e *Engine) candidatesForLimit(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool, limit int) []targetCandidate {
+	if limit > 0 && (strings.TrimSpace(sa.Params["TargetsWithDefinedController"]) != "" ||
+		strings.TrimSpace(sa.Params["TargetValidTargeting"]) != "") {
+		limit = 0
+	}
 	spec := sa.Params["ValidTgts"]
 	// The spec-relative source (Self/Other/CARDNAME/sameName predicates read
 	// it) is the SOURCE PERMANENT when the ask belongs to a minted ability
@@ -1625,6 +1657,10 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 			}
 		}
 	}
+	if limit > 0 && len(out) >= limit {
+		return out
+	}
+zoneLoop:
 	for _, z := range zones {
 		if z == state.ZStack {
 			// The stack is a single, shared sequence, not a per-seat zone, so
@@ -1667,6 +1703,9 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				}
 				if e.matchesSpec(tspec, oid, sc) {
 					out = append(out, targetCandidate{kind: stackTargetOptionKind(e.stackObjKind(o)), obj: oid, player: o.Controller})
+					if limit > 0 && len(out) >= limit {
+						break zoneLoop
+					}
 				}
 			}
 			continue
@@ -1702,6 +1741,9 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
 						out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
+						if limit > 0 && len(out) >= limit {
+							break zoneLoop
+						}
 					}
 				}
 			}

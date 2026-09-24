@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -128,6 +129,15 @@ func (f *Face) ManaAbilities() []*SA {
 		if end <= uint64(len(f.compiledCatalog.ManaAbilityIDs)) {
 			if span.Count == 0 {
 				return nil
+			}
+			// The precomputed pointer span, when every entry resolved, is
+			// returned clipped (an append by the caller reallocates, never
+			// writing the shared catalog slice).
+			if ptrs := f.compiledCatalog.manaAbilityPointers; end <= uint64(len(ptrs)) {
+				sp := ptrs[span.Start:uint32(end):uint32(end)]
+				if !slices.Contains(sp, nil) {
+					return sp
+				}
 			}
 			out := make([]*SA, 0, span.Count)
 			for _, id := range f.compiledCatalog.ManaAbilityIDs[span.Start:uint32(end)] {

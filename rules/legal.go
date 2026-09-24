@@ -190,6 +190,12 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 // MoveZone came from a granted (never hand) zone. Only a MayPlayLimit$ cap
 // consults it; an unlimited grant ignores the count.
 func (e *Engine) mayPlaysThisTurn(p state.PlayerID) int {
+	// A log scan back to the turn's start, asked per candidate card: served
+	// from the walk cache inside a legal-actions walk (rules/walkcache.go).
+	return e.mayPlaysThisTurnCached(p)
+}
+
+func (e *Engine) scanMayPlaysThisTurn(p state.PlayerID) int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
@@ -1060,14 +1066,19 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 		return true
 	}
 	min, _ := e.resolvedTargetBounds(p, id, sa, x)
-	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
-	if min == 0 {
+	// The census is a pure read, so the two answers that never look at it
+	// return before it runs, and the count stops at min (candidatesForLimit).
+	if min <= 0 {
 		return true
 	}
 	if xPending && specNamesXBound(sa.Params["ValidTgts"]) {
 		return true
 	}
-	return len(candidates) >= min
+	ok := len(e.candidatesForLimit(p, id, excludeSelf, sa, true, min)) >= min
+	if walkCacheVerify && ok != (len(e.legalTargetCandidates(p, id, excludeSelf, sa)) >= min) {
+		panic("rules: limited target census disagrees with the full census")
+	}
+	return ok
 }
 
 // charmTargetsAvailable evaluates the possible CR 601.2b mode announcement
@@ -2197,14 +2208,20 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// transaction, then spellRestZone exiles it after resolution.
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+		if o == nil || o.Face() == nil {
 			continue
 		}
 		f := o.Face()
+		// The printed-keyword read is the cheap gate, so it runs first: every
+		// gate here is a pure read, so the order changes no answer.
+		hc, ok := harmonizeCost(f)
+		if !ok || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
-		if hc, ok := harmonizeCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
+		if e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			hc, _ = e.harmonizePayment(p, id, hc)
 			if offerCastable(p, id, hc, spellScope("harmonize"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (harmonize)", Obj: id, Mode: "harmonize"})
@@ -2311,10 +2328,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
-			continue
-		}
-		if !e.HasKeyword(id, "Escape") {
+		if f == nil || !e.HasKeyword(id, "Escape") || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		ec, ok := e.escapeCost(id)
@@ -2340,10 +2354,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
-			continue
-		}
-		if !e.HasKeyword(id, "Retrace") {
+		if f == nil || !e.HasKeyword(id, "Retrace") || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) ||
@@ -2373,10 +2384,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
-			continue
-		}
-		if !e.HasKeyword(id, "Jump-start") {
+		if f == nil || !e.HasKeyword(id, "Jump-start") || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) ||
@@ -2409,11 +2417,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil {
 			continue
 		}
 		mc, ok := e.mayhemCastCost(id)
-		if !ok || !e.mayhemDiscardedThisTurn(p, id) {
+		if !ok || castRestricted(p, id) || e.castSuppressed(p, id) || !e.mayhemDiscardedThisTurn(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) ||
