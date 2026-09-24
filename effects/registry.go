@@ -510,6 +510,9 @@ type Host interface {
 	// and a replay derives it from the folded state like the other
 	// zone-census helpers.
 	DeliriumHolds(p state.PlayerID) bool
+	// MetalcraftHolds reports whether the controller has three or more artifacts;
+	// bare Condition$ gates share rules.Engine's census with static and offer gates.
+	MetalcraftHolds(p state.PlayerID) bool
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
