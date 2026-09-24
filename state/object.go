@@ -607,6 +607,22 @@ type Object struct {
 	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
 	Monstrous bool
 
+	// PhasedOut is CR 702.25's phased-out status (api:Phases): the
+	// permanent is on the battlefield but is treated as though it does not
+	// exist. It is NOT a zone change -- the object keeps its Zone and its
+	// Zone() membership -- so no Move fires and no leaves/enters trigger
+	// sees it; the status is folded by events.PhaseOut and cleared by
+	// events.Apply's Move when the permanent actually leaves the
+	// battlefield (CR 400.7: a later entry is a new object, CR 702.25e).
+	// Phase-in happens at its controller's untap step (CR 702.25d, rules
+	// finishUntapStep). Every reader that treats a permanent as existing
+	// gates on it: targeting (rules/stack.go candidatesFor), the layer
+	// static/level walk (rules/layers.go staticEffects/activeStatics),
+	// combat (rules/combat.go canAttack), the SBA sweep (rules/sba.go)
+	// and the view projection (view). A plain value copy in CloneDeep
+	// carries it.
+	PhasedOut bool
+
 	// SuspendGranted is the replayed characteristic grant made by a
 	// Pump/PumpAll KW$ Suspend effect. It is separate from CastFlags.FlagSuspend:
 	// the latter records the suspend action, while this records gaining the

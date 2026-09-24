@@ -390,6 +390,11 @@ func (e *Engine) legendGroups() []legendGroup {
 			if o == nil || o.Face() == nil || !o.Face().IsLegendary() {
 				continue
 			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so it is not a duplicate legend.
+				continue
+			}
 			if !legendaryUnderLayers(e, id) {
 				continue
 			}
@@ -741,6 +746,11 @@ func (e *Engine) annihilateOppositeCounters() bool {
 			if o == nil {
 				continue
 			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so no state-based action sees it.
+				continue
+			}
 			n := min(o.Counter("P1P1"), o.Counter("M1M1"))
 			if n <= 0 {
 				continue
@@ -969,6 +979,11 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 			if o == nil {
 				continue
 			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so lethal damage does not destroy it.
+				continue
+			}
 			f := o.Face()
 			// CR 702.114e: a bestowed-attached card is an Aura, not a creature,
 			// so the creature SBAs (lethal damage/toughness) do not hit it.
@@ -1111,6 +1126,11 @@ func (e *Engine) planeswalkerZeroLoyalty(tried *sbaAttempts) bool {
 			if o == nil {
 				continue
 			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so zero loyalty does not bin it.
+				continue
+			}
 			f := o.Face()
 			if f == nil || !f.IsPlaneswalker() {
 				continue
@@ -1170,6 +1190,11 @@ func (e *Engine) battleZeroDefense(tried *sbaAttempts) bool {
 			}
 			o := e.G.Obj(id)
 			if o == nil {
+				continue
+			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so zero defense does not defeat it.
 				continue
 			}
 			// A face-down card is a vanilla 2/2 creature (CR 708.5), never a

@@ -1216,6 +1216,7 @@ const (
 	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
 	// binding comes from SpecContext rather than a new state tracker.
 	wordTargetedPlayerCtrl
+	wordTargetedPlayerOwn
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
@@ -1521,6 +1522,9 @@ func wordPredicate(p string) (wordKind, string) {
 	// anyway, so a bare `Card.hasABasicLandType` stays correct too).
 	case "hasABasicLandType":
 		return wordHasBasicLandType, ""
+	}
+	if p == "TargetedPlayerOwn" {
+		return wordTargetedPlayerOwn, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -1834,6 +1838,9 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return count >= n
 	case wordTargetedPlayerCtrl:
 		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
+		return ok && matched
+	case wordTargetedPlayerOwn:
+		matched, ok := matchTargetedPlayerOwn(g, o, sc)
 		return ok && matched
 	case wordThisTurnEntered:
 		// Forge's ThisTurnEntered: the object entered a zone this turn (any

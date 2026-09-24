@@ -339,7 +339,15 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 // returns exactly what availableManaAbilitiesUsing always returned.
 func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
+	// CR 702.25b: a phased-out permanent is treated as though it does not
+	// exist, so its mana abilities do not exist. PhasedOut is only ever set on
+	// a battlefield permanent (events.Apply's PhaseOut fold is
+	// battlefield-gated, the Move fold clears it), so testing the flag directly
+	// avoids existsOnBattlefield's Zone == ZBattlefield requirement -- this
+	// walk is shared by the battlefield, hand and graveyard offers, and a mana
+	// ability may explicitly function from hand or graveyard (CR 605.2a,
+	// Spirit Guides and Jack-o'-Lantern).
+	if o == nil || o.PhasedOut || o.Face() == nil {
 		return out
 	}
 	f := o.Face()

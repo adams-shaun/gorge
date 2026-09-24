@@ -147,8 +147,13 @@ var knownUnsupported = map[string][]string{
 	// because Primitive() walked the Sub chain only: an SVar-naming
 	// parameter (Charm's Choices$, Repeat's RepeatSubAbility$) resolved
 	// the body at runtime, so Face.Primitives never surfaced the API
-	// (prims1).
-	"Vision, Synthezoid Avenger": {"api:Phases"},
+	// (prims1). Vision, Synthezoid Avenger's entry was deleted when
+	// api:Phases was registered (effects/phases.go, task phases1): its
+	// Charm branch reaches `DB$ Phases | Defined$ Self`, and the real card
+	// tests rules/phases_test.go (Talon Gates of Madara, Guardian of
+	// Faith) drive the primitive end to end, so the measured gap set no
+	// longer holds it and leaving the entry would fail the ratchet as
+	// stale.
 	// Raw Effect child census correction surfaced these existing unsupported
 	// capabilities; the underlying primitives were not changed.
 	"Incinerate":        {"stat:CantRegenerate"},

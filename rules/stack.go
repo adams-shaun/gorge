@@ -1766,7 +1766,7 @@ zoneLoop:
 				// or ability, its controller's included.
 				// All function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
-				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) {
+				if o != nil && o.Face() != nil && !o.PhasedOut && (excludeSelf == 0 || oid != excludeSelf) {
 					// The cast-provenance split at the non-battlefield target
 					// zones too (wascastfrom): the token evaluates against the
 					// candidate's cast log before the ordinary filter.

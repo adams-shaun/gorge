@@ -97,11 +97,13 @@ func TestVanishingTidewalkerDynamicCountUpkeepAndLastCounter(t *testing.T) {
 // outOfTimeEngine puts the REAL corpus Out of Time -- the other bare
 // K:Vanishing carrier -- on seat 0's battlefield with `creatures` real
 // Grizzly Bears already on that battlefield, each TAPPED, and resolves Out of
-// Time's own printed enters trigger. Phasing is not implemented, so the
-// fixture records affected creatures as remembered through Choose events
-// before resolving the trigger. Its printed DB$ PutCounter then reads
+// Time's own printed enters trigger. api:Phases is registered
+// (effects/phases.go), so its printed AllValid$ Creature body phases the
+// bears out for real; its RememberAffected$ rider is a separate follow-up, so
+// the fixture supplies the remembered set through Choose events before
+// resolving the trigger. Its printed DB$ PutCounter then reads
 // Count$RememberedSize from that event-backed list. This tests the real
-// count expression and Vanishing clock, NOT phase-out or phase-in.
+// count expression and Vanishing clock, NOT the phase-in half.
 func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
@@ -138,9 +140,10 @@ func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Out of Time is not on battlefield: %+v", o)
 	}
-	// The unimplemented Phases effect cannot remember or hide permanents.
-	// Model ONLY its affected-set capture for this test; leave Phases on the
-	// loud unimplemented path rather than claiming general phasing support.
+	// api:Phases is registered (effects/phases.go), so the printed Phases body
+	// phases the bears out for real. Its RememberAffected$ rider is a separate
+	// follow-up ticket, so the fixture supplies the remembered set this test's
+	// count expression needs via Choose events.
 	for _, bid := range bears {
 		e.emit(events.Event{Kind: events.Choose, Obj: id, Counter: "remembered", IDs: []state.ObjID{bid}})
 	}
@@ -178,16 +181,16 @@ func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
 	if got := e.G.Obj(id).Counter("TIME"); got == 0 {
 		t.Fatal("precondition: dynamic count must be positive before the clock runs")
 	}
-	// The unsupported phase-out remains loud; this test does not mistake
-	// event-captured count inputs for a working Phases implementation.
-	var unsupported bool
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && ev.Text == "unimplemented API Phases" {
-			unsupported = true
-		}
+	// api:Phases is registered: Out of Time's real printed AllValid$ Creature
+	// body phases every bear out. The status proves the primitive ran, not
+	// merely that the fixture captured a count input.
+	if phasesHasNote(e, "unimplemented API Phases") {
+		t.Fatal("api:Phases is unregistered (fallback Note present)")
 	}
-	if !unsupported {
-		t.Fatal("precondition: Phases fallback was not exercised")
+	for _, bid := range bears {
+		if o := e.G.Obj(bid); o == nil || !o.PhasedOut || o.Zone != state.ZBattlefield {
+			t.Fatalf("precondition: bear %d not phased out by Out of Time's printed Phases: %+v", bid, o)
+		}
 	}
 
 	// The controller's upkeep queues the Vanishing removal trigger; removal
@@ -223,11 +226,11 @@ func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
 	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
 		t.Fatalf("after resolving last-counter trigger zone = %s, want graveyard", z)
 	}
-	// The fixture did not phase the creatures out; the fallback leaves them
-	// on the battlefield throughout.
+	// The bears are phased out, so they stayed on the battlefield (CR 702.25:
+	// phasing is not a zone change) for the whole Vanishing clock.
 	for _, bid := range bears {
-		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield {
-			t.Fatalf("bear %d left the battlefield despite unsupported phasing: %+v", bid, o)
+		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield || !o.PhasedOut {
+			t.Fatalf("bear %d should be phased out on the battlefield: %+v", bid, o)
 		}
 	}
 }

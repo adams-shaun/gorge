@@ -100,6 +100,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					// activeStatics, the trigger scan and the offer loops).
 					continue
 				}
+				if onBattlefield && o.PhasedOut {
+					// CR 702.25b/d: a phased-out permanent is treated as though it
+					// does not exist, so its own statics do not function (the same
+					// one gate shared with activeStatics).
+					continue
+				}
 				// Enchantment Rooms (rules/rooms.go): once the room's second door
 				// is unlocked, the ALTERNATE face's statics are live too -- a room
 				// permanent's rules text is both halves' combined after the
@@ -2555,6 +2561,15 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 // `Creature.withFlying+Other+YouCtrl` +1/+0 over a creature an earlier
 // layer-6 effect granted flying is the measured case.
 func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone) bool {
+	// CR 702.25b: a phased-out permanent is treated as though it does not
+	// exist, so NO continuous effect applies to it -- a lord's pump, a
+	// keyword grant, a type change. This is the one applicability gate every
+	// layer walk goes through, so the exclusion cannot be missed by a layer
+	// the way a per-layer check could. PhasedOut is only ever true on a
+	// battlefield permanent.
+	if o := e.G.Obj(id); o != nil && o.PhasedOut {
+		return false
+	}
 	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
 	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
@@ -3674,16 +3689,21 @@ func counterKindMatches(restriction, kind string) bool {
 // attackDutyDischargeable gate (CR 508.1d's "if able").
 //
 // A face static's conditional parameter family is read here (task
-// combatres-cantattack, extended by combatres-cantattack-present):
+// combatres-cantattack, extended by combatres-cantattack-present; the present
+// family became reachable on this path with compound-statics1):
 // continuousGateHolds evaluates ClassBand$, the IsPresent$/IsPresent2$ +
 // PresentCompare$ count family (PresentZone$ Battlefield/Graveyard/Exile/Hand/
-// Stack; see countStaticPresent), CheckSVar$/SVarCompare$/Condition$, and
-// UnlessDefenderHolds evaluates UnlessDefender$ against the defender (the
+// Stack; see countStaticPresent), and CheckSVar$/SVarCompare$/Condition$,
+// and UnlessDefenderHolds evaluates UnlessDefender$ against the defender (the
 // creature may attack exactly when the defended player satisfies the
-// predicate), so a line carrying them is ENFORCED, not skipped. A static
-// carrying any OTHER parameter still fails CantAttackParamsReadableForRules and
-// is skipped whole -- the deliberate permissive direction, so a gate this
-// build cannot evaluate never becomes an unconditional restriction.
+// predicate), so a line carrying them is ENFORCED, not skipped. Commit
+// f81f996e split a compound `S:Mode$ CantAttack,CantBlock` line into one
+// static per mode sharing one Params map, so Bast, Panther Goddess's CantAttack
+// half now carries the shared IsPresent$ Creature.YouCtrl | PresentCompare$
+// LE2 gate. A static carrying any OTHER parameter still fails
+// CantAttackParamsReadableForRules and is skipped whole -- the deliberate
+// permissive direction, so a gate this build cannot evaluate never becomes an
+// unconditional restriction.
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {

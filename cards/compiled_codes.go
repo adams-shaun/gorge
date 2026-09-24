@@ -840,7 +840,7 @@ const (
 
 func triggerInterestForMode(mode string) TriggerInterest {
 	switch mode {
-	case "ChangesZone", "Sacrificed", "Discarded", "LandPlayed", "Cycled", "Milled", "MilledAll":
+	case "ChangesZone", "Sacrificed", "Discarded", "DiscardedAll", "LandPlayed", "Cycled", "Milled", "MilledAll":
 		return TriggerInterestZoneChange
 	case "SpellCast":
 		return TriggerInterestStackPut

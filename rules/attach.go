@@ -56,6 +56,12 @@ func (e *Engine) attachmentSBAs() bool {
 			if o == nil {
 				continue
 			}
+			if o.PhasedOut {
+				// CR 702.25b/d: a phased-out permanent is treated as though it
+				// does not exist, so attachment SBAs do not fire on it (it and
+				// anything attached to it phase out together).
+				continue
+			}
 			if o.HasAttachedPlayer {
 				// Enchant:Player Auras have no object bearer. A lost seat
 				// cannot remain enchanted (CR 800.4), and an illegal
