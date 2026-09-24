@@ -977,6 +977,10 @@ type Engine struct {
 	// boundary preserves the entry exactly.
 	etbMove *events.Event
 	etbNext int
+	// causePin is the action cause an entry-settle preview pins while its
+	// cloned stack no longer holds the entrant (rules/entry_counters.go).
+	// Zero on every live engine.
+	causePin state.ObjID
 	// etbLandPlay identifies the land whose LandPlayed event must wait for its
 	// final battlefield entry. A replacement can suspend and later re-emit the
 	// move, so the object id is needed to avoid consuming this continuation on
@@ -1000,6 +1004,13 @@ type Engine struct {
 	// answer, so every entry path records the protector beside the entry and a
 	// log-only replay re-derives it. Clone-copied (clone.go).
 	siegeMove *events.Event
+	// entryStageDone holds an entry stage (rules/entry_counters.go) whose
+	// characteristic-counter order competition has fully resolved and whose
+	// move is being re-emitted for its fold: the fold consumes the finalized
+	// amounts from it. Set immediately before the completion re-emit,
+	// consumed by the very fold that emit reaches -- the same set-then-
+	// consume window the parked-move fields use. Clone-copied (clone.go).
+	entryStageDone *entryCounterStage
 	// attachedChoice parks an Attach event while an Attached replacement asks
 	// for its name and creature type.
 	attachedChoice   *attachedChoice
@@ -2209,6 +2220,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if e.applyingReplacement {
 		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
+	}
+	// Entry-counter staging (task agent-20260923T084704Z-b2386c25): an entry
+	// whose characteristic counters compete under non-commuting AddCounter
+	// replacements stages behind CR 616.1's order choice, BEFORE anything
+	// folds -- no observer (an ETB trigger, an SBA, a chapter queue) may see
+	// the un-replaced entry while the ask is outstanding. The pre-pass sits
+	// here, before the replacement dispatch and the whole fold tail, so a
+	// staged entry returns the same handled shape a parked replacement does
+	// and the re-drive after the answer runs the ordinary emit exactly once.
+	// A completed stage returns false and falls through: the fold below
+	// consumes it (rules/entry_counters.go).
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && !e.applyingReplacement &&
+		e.entryCounterOrderParks(ev) {
+		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+			Text: "entry awaiting counter-replacement-order choice"}
 	}
 	// A replacement body's counter placement is a NEW event, not the event
 	// whose replacement body is resolving. Give it its own AddCounter pass;
