@@ -82,12 +82,12 @@ const NoSeat state.PlayerID = 255
 func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, d *decision.Decision) View {
 	switch vis {
 	case Public:
-		v := project(g, ch, NoSeat, nil)
+		v := project(g, ch, NoSeat, nil, false)
 		v.Viewer = viewer
 		v.Visibility = vis.String()
 		return v
 	case Omniscient:
-		v := project(g, ch, viewer, nil)
+		v := project(g, ch, viewer, nil, true)
 		if g != nil {
 			for i := range v.Players {
 				p := &g.Players[i]
@@ -100,7 +100,7 @@ func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, 
 		v.Visibility = vis.String()
 		return v
 	default:
-		v := project(g, ch, viewer, d)
+		v := project(g, ch, viewer, d, false)
 		v.Visibility = Seat.String()
 		return v
 	}

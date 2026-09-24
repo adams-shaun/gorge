@@ -4067,7 +4067,25 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	}
 	id := o.ID
 	if f := o.Face(); f != nil && f.IsPermanent() {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
+		// Morph / Megamorph / Disguise (CR 708.5): a face-down cast's spell
+		// enters the battlefield face down. The entry marker re-carries the
+		// same payload events.Apply folded onto the stack object at the
+		// PutOnStack, so the battlefield entry takes the manifest decode's
+		// face-down fold: CR 708.5's 2/2 colourless creature, with the cloak
+		// marker adding the ward {2} a Disguise entry carries. The morph
+		// flags (not the stack object's transient FaceDown bit) are the
+		// gate, so a stack COPY of a face-down spell -- it inherits the
+		// flags, the StackCopy way -- enters face down too, and every
+		// ordinary permanent's entry stays byte-identical.
+		if morph := o.CastFlags & (state.FlagMorphed | state.FlagMegamorphed | state.FlagDisguised); morph != 0 {
+			marker := events.FaceDownEntryCounter
+			if morph&state.FlagDisguised != 0 {
+				marker = events.CloakEntryCounter
+			}
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield, Counter: marker})
+		} else {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
+		}
 		// An as-enters choice parks this move through the mid-resolution ask
 		// path. Keep the object on the stack until the answer re-emits it.
 		if e.pending != nil || e.resume != nil {
