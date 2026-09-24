@@ -3223,6 +3223,16 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 				continue
 			}
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true, &rider)
+			// AttachedTo$ on a hidden public-origin pick (Cass, Hand of
+			// Vengeance's returned `AttachedTo$ Targeted` Aura; Bruna,
+			// Stormkeld Curator, Sovereigns of Lost Alara): the same rider every
+			// other mover applies. Without it a returned Aura enters unattached
+			// and the CR 704.5m SBA sweeps it before the chained SubAbility
+			// runs -- silent for all 8 corpus Hidden$+AttachedTo$ lines, and
+			// the reason Cass's returned Auras would not sit on the target.
+			if to == state.ZBattlefield {
+				changeZoneAttachedTo(h, c, sa, id)
+			}
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 				// Keep the resolution-local set with the event-backed source
@@ -3250,10 +3260,45 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		scheduleAtEOT(h, c, sa, moved)
 		return moved
 	}
+	// ChooseFromDefined$ narrows the offered pool to the objects a defined
+	// selector names -- Cass, Hand of Vengeance's `ChooseFromDefined$ AttachedTo
+	// TriggeredCardLKICopy.Aura` offers only the Aura cards that WERE attached
+	// to the creature that died, not every Aura in the origin zone. The value
+	// is a full Defined selector resolved through knownDefinedTargets, so an
+	// unknown or unresolvable value fails CLOSED (an empty pool, plus one
+	// Note) rather than silently offering the whole zone. Only the
+	// AttachedTo <referent> spelling is a modelled value here; the other
+	// ChooseFromDefined spellings are out of this ticket's scope (see the
+	// report's Issues) and reach the same fail-closed Note.
+	chooseFromDefined := make(map[state.ObjID]bool)
+	hasChooseFromDefined := false
+	chooseFromDefinedResolved := false
+	if raw := strings.TrimSpace(sa.Params["ChooseFromDefined"]); raw != "" {
+		hasChooseFromDefined = true
+		if ts, ok := knownDefinedTargets(h, c, raw); ok {
+			chooseFromDefinedResolved = true
+			for _, t := range ts {
+				if !t.IsPlayer && t.Obj != 0 {
+					chooseFromDefined[t.Obj] = true
+				}
+			}
+		}
+	}
+	if hasChooseFromDefined && !chooseFromDefinedResolved {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "ChangeZone ChooseFromDefined$ " + strings.TrimSpace(sa.Params["ChooseFromDefined"]) + " is not resolvable; nothing is offered"})
+	}
+	// "Any number" (Cass's OptionalPrompt$ text) is the absent-ChangeNum$
+	// reading when ChooseFromDefined$ is present: the pool itself bounds the
+	// pick. A caller that names ChangeNum$ keeps it.
+	chooseFromAll := hasChooseFromDefined && strings.TrimSpace(sa.Params["ChangeNum"]) == ""
 	for i, owner := range players {
 		var eligible []state.ObjID
 		addPool := func(ids []state.ObjID) {
 			for _, id := range ids {
+				if hasChooseFromDefined && !chooseFromDefined[id] {
+					continue
+				}
 				o := h.Game().Obj(id)
 				if o == nil || !MatchesSpecCtx(h.Game(), spec, id, c.SpecContext(c.Controller)) {
 					continue
@@ -3288,6 +3333,11 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			}
 		}
 		m := max
+		if chooseFromAll {
+			// "Any number" from the ChooseFromDefined$ pool: every eligible
+			// card may be taken (Min stays 0 unless Mandatory$).
+			m = int32(len(budgetEligible))
+		}
 		if m > int32(len(budgetEligible)) {
 			m = int32(len(budgetEligible))
 		}
@@ -3335,6 +3385,13 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		}
 		chooser := hiddenPickChooser(h, c, sa, owner)
 		prompt := strings.TrimSpace(sa.Params["SelectPrompt"])
+		// OptionalPrompt$ is the script's own wording for the optional pick
+		// (Cass's "Select any number of Aura cards that were attached to
+		// it"); it wins the default text, the same precedence the
+		// library-search path gives it.
+		if op := strings.TrimSpace(sa.Params["OptionalPrompt"]); op != "" {
+			prompt = op
+		}
 		if prompt == "" {
 			prompt = "Choose up to " + strconv.Itoa(int(m)) + " card(s)"
 		}
