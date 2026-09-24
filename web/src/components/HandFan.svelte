@@ -205,7 +205,7 @@
           onfocus={(e) => openFor(c, e.currentTarget)}
           onblur={() => hover.close()}
           onkeydown={(e) => hover.keydown(e)}
-          aria-describedby={hover.show && hovered === c ? `card-detail-${c.id}` : undefined}
+          aria-describedby={hover.show && hovered?.id === c.id ? `card-detail-${c.id}` : undefined}
         >
           <CardImage card={c} />
         </div>
@@ -267,8 +267,14 @@
             {/if}
           </div>
         {/if}
-        {#if hover.show && hovered === c && anchor}
-          <CardDetail card={hovered} anchor={anchor} />
+        <!-- Gate on the object ID, never object identity: every live view
+             refresh hands this keyed each a FRESH CardView for the same id,
+             so `hovered === c` flipped false and unmounted the open panel
+             while the pointer never left the (kept) element. Render the
+             fresh `c` so the open inspector shows the refreshed data, the
+             same contract a board tile's CardDetail has. -->
+        {#if hover.show && hovered?.id === c.id && anchor}
+          <CardDetail card={c} anchor={anchor} />
         {/if}
       </div>
     {/each}
