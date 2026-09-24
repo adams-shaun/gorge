@@ -77,11 +77,26 @@ var predicates = map[string]predFn{
 	"firstTurnControlled": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Zone == state.ZBattlefield && o.SummonSick
 	},
-	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
-	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
-	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
-	"tapped":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
-	"untapped":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
+	"OppOwn":   func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
+	"Self":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
+	"Other":    func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
+	"tapped":   func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
+	"untapped": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
+	// phasedOut is Forge's Card.isPhasedOut (CR 702.25b): a phased-out
+	// BATTLEFIELD permanent. Phasing is a status, not a zone, so a card that
+	// left the battlefield (its PhasedOut cleared by the Move fold, CR
+	// 702.25e) never matches; the zone half is read here rather than in the
+	// predicate name to keep every phased-out spec in one home.
+	"phasedOut": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.PhasedOut && o.Zone == state.ZBattlefield
+	},
+	// phasedOutOther is the source-relative spelling (The War Doctor's
+	// `Permanent.phasedOutOther`): a phased-out battlefield permanent that is
+	// not the source itself. Like every bare `Other`, an unbound source
+	// (id 0) matches nothing rather than widening to every permanent.
+	"phasedOutOther": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ID != src && o.PhasedOut && o.Zone == state.ZBattlefield
+	},
 	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
 	// unblocked is the CR 509.1h "attacking creature ... with no creatures
 	// blocking it" predicate: the object is attacking and no blocker is

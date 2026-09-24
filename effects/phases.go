@@ -61,7 +61,15 @@ func effPhases(h Host, c *Ctx, sa *cards.SA) {
 	// phaseInOnly is the explicit `Phaseout$ False` override (non-Forge, no
 	// corpus carrier): an unconditional phase-in.
 	phaseInOnly := strings.EqualFold(strings.TrimSpace(sa.Params["Phaseout"]), "False")
-	for _, id := range phasesAffectedObjects(h, c, sa, toggle) {
+	affected := phasesAffectedObjects(h, c, sa, toggle)
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAffected"]), "True")
+	wontPhaseIn := strings.EqualFold(strings.TrimSpace(sa.Params["WontPhaseInNormal"]), "True")
+	// CR 702.25a: each permanent gets its own PhaseOut event, but the whole
+	// resolution is ONE "one or more permanents phase out" batch for the
+	// batch-level Mode$ PhaseOutAll trigger (The War Doctor), so its latency
+	// fires once for the group rather than once per permanent.
+	h.BeginZoneBatch()
+	for _, id := range affected {
 		o := g.Obj(id)
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
@@ -87,8 +95,20 @@ func effPhases(h Host, c *Ctx, sa *cards.SA) {
 			}
 			amount = 1
 		}
-		h.Emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: amount})
+		if remember && amount > 0 {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
+		}
+		text := ""
+		if wontPhaseIn && amount > 0 {
+			text = "wont-phase-in-normal"
+		}
+		h.Emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: amount, Text: text})
+		if amount < 0 && strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True") {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id})
+		}
 	}
+	h.EndZoneBatch()
 }
 
 // phasesAffectedObjects is effPhases' affected-set resolver: the AllValid$

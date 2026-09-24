@@ -162,7 +162,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 				continue
 			}
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				if o := e.G.Obj(id); o != nil && o.PhasedOut {
+				if o := e.G.Obj(id); o != nil && o.PhasedOut && !o.WontPhaseInNormal {
 					e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
 				}
 			}

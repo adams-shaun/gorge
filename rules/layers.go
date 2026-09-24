@@ -1463,6 +1463,20 @@ func (e *Engine) EndEffectSource(source state.ObjID) {
 	if source == 0 {
 		return
 	}
+	// The Effect's own lifetime also ends its EffectRepeat DELAYED-trigger
+	// registrations (the |EF form): Out of Time's comeback trigger is a
+	// registration, not a continuous effect, and its DBExileSelf body ends
+	// the effect that owns it. Removal is logged (DelayedRemove) so a replay
+	// folds the same registration set.
+	var remove []uint32
+	for i := range e.G.Delayed {
+		if e.G.Delayed[i].Source == source && e.G.Delayed[i].EffectRepeat {
+			remove = append(remove, e.G.Delayed[i].ID)
+		}
+	}
+	for _, id := range remove {
+		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
+	}
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {

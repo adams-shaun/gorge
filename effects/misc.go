@@ -282,6 +282,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			Text: "unmodelled Effect ImprintOnHost$ " + v})
 	}
 	imprintOnHost := strings.EqualFold(strings.TrimSpace(sa.Params["ImprintOnHost"]), "True")
+	// ForgetOnPhasedIn$ True (CR 702.25, the "phase out until CARDNAME leaves
+	// the battlefield" family: Out of Time, Oubliette, The Moment). The
+	// Effect's comeback trigger is a printed ChangesZone trigger
+	// (Origin$ Battlefield | Destination$ Any | ValidCard$ Card.IsImprinted,
+	// Static$ True) whose Duration$ Permanent lifetime has no turn ceiling:
+	// it lives until the Effect's own DBExileSelf body runs. The turn-ceiling
+	// registration below cannot express that, so a Permanent lifetime is
+	// allowed only for this marker and only for a ChangesZone body (the
+	// comeback idiom); every other Effect trigger lifetime stays loud.
+	forgetOnPhasedIn := strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOnPhasedIn"]), "True")
 	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
 	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
 	// "True", which is Targeted in the corpus's spelling) is exactly the
@@ -492,9 +502,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// The "until CARDNAME leaves the battlefield" comeback idiom (CR
+		// 702.25): a Duration$ Permanent Effect owns a ChangesZone trigger
+		// that fires when the imprinted host leaves. It carries no turn
+		// ceiling -- |TT= is deliberately omitted so the registration survives
+		// every TurnChange -- and its retirement is the Effect's own
+		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
+		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
+			strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
 		// Delayed promises only encode a turn ceiling. Never let an explicit
-		// longer Effect lifetime silently turn into a permanent promise.
-		if !effectTriggerThisTurnDuration(rawDur) || forgetOn != "" || exileOn != "" ||
+		// longer Effect lifetime silently turn into a permanent promise,
+		// except for the comeback idiom above whose lifetime the Effect's own
+		// self-exile ends.
+		if (!effectTriggerThisTurnDuration(rawDur) && !permanentComeback) ||
+			forgetOn != "" || exileOn != "" ||
 			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
@@ -510,6 +531,35 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		expiry := "|TT=" + strconv.Itoa(int(h.Game().Turn))
+		if permanentComeback {
+			expiry = ""
+		}
+		// The Effect's own capture is what an Effect-owned trigger's
+		// `Defined$ Remembered` names. Register it so the comeback body
+		// phases the Effect's memory (Oubliette's `RememberObjects$
+		// Targeted`, Out of Time's `RememberObjects$ Remembered`) rather than
+		// the host that just left. Every other Effect trigger keeps its
+		// existing registration set untouched.
+		regIDs := c.Remembered
+		if permanentComeback {
+			regIDs = make([]state.Target, 0, len(remembered))
+			for _, id := range remembered {
+				regIDs = append(regIDs, state.Target{Obj: id})
+			}
+		}
+		// The comeback body matches the HOST card leaving: the printed
+		// `ValidCard$ Card.IsImprinted` pairs with the Effect's
+		// `ImprintCards$ Self`, which in Forge imprints the host on its own
+		// effect. This build's Card.IsImprinted predicate is deliberately
+		// exile-scoped (the dig-and-play association: a linked card stops
+		// matching once it leaves exile), so a host still on the battlefield
+		// as it leaves would never match. Normalise exactly this comeback
+		// body to Card.Self -- the same object the Self-imprint names -- and
+		// leave the predicate's exile rule untouched for every other carrier.
+		regTrigger := name
+		if permanentComeback && strings.Contains(raw, "Card.IsImprinted") {
+			regTrigger = strings.ReplaceAll(raw, "Card.IsImprinted", "Card.Self")
+		}
 		switch tr.Mode {
 		case "SpellCast", "ChangesZone":
 			// Fire-time match re-parses the named body on the source face.
@@ -526,7 +576,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + efMarker})
 			}
 			registered = true
 		case "Phase":

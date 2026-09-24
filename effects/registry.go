@@ -574,6 +574,17 @@ type Host interface {
 	// effects-package test double reports no-ops. Neither suspends.
 	BeginDamageBatch()
 	EndDamageBatch()
+	// BeginZoneBatch/EndZoneBatch bracket the PhaseOut events one api:Phases
+	// resolution emits (CR 702.25a's "permanents phase out one at a time"
+	// still emits one event each, but the group is ONE batch for the
+	// batch-level "whenever one or more permanents phase out" trigger,
+	// Mode$ PhaseOutAll). Within the bracket the first matching PhaseOut event
+	// queues the single instance and every later one accumulates into it.
+	// rules.Engine implements the bracket with its zone-batch machinery (the
+	// same depth/reentrancy discipline ChangesZoneAll uses); the effects-package
+	// test double reports no-ops. Neither suspends.
+	BeginZoneBatch()
+	EndZoneBatch()
 	// ReplaceEvent applies a ReplaceEffect body's requested change to the
 	// event currently being replaced. It is inert outside replacement
 	// resolution; rules owns the event and records the resulting delta.

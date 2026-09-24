@@ -635,6 +635,9 @@ type Object struct {
 	// and the view projection (view). A plain value copy in CloneDeep
 	// carries it.
 	PhasedOut bool
+	// WontPhaseInNormal is the CR 702.25d exception carried by a Phases
+	// effect; its phase-in must come from that effect's return instruction.
+	WontPhaseInNormal bool
 
 	// SuspendGranted is the replayed characteristic grant made by a
 	// Pump/PumpAll KW$ Suspend effect. It is separate from CastFlags.FlagSuspend:
