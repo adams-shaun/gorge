@@ -483,7 +483,7 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 	case decision.KPriority:
 		in, scored = priorityFromScores(&d, scores)
 	case decision.KBlockers:
-		in, scored = blockersFromScoresVote(&d, scores, boardFromView(v), botIn, b.signAdmission)
+		in, scored = blockersFromScoresVote(&d, scores, BoardFromView(v), botIn, b.signAdmission)
 	case decision.KTarget:
 		in, scored = targetFromScores(&d, scores)
 	}

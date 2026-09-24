@@ -148,7 +148,7 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 // TestBotAdaptersAgree* (integration_test.go) pins the two halves to the
 // same Board for the same game facts.
 func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	return b.decide(boardFromView(v), &d), nil
+	return b.decide(BoardFromView(v), &d), nil
 }
 
 // DecideBoard is the game-shaped half of Decide: the Board is already built
@@ -161,7 +161,7 @@ func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Dec
 	return b.decide(brd, &d), nil
 }
 
-// boardFromView is the view-shaped adapter: the Board the policy reads,
+// BoardFromView is the view-shaped adapter: the Board the policy reads,
 // lifted off the projected View a real client would receive. The combat
 // half (Creatures, Life) is every public battlefield creature and life
 // total the seat can see -- exactly the facts botpolicy.BoardFromGame
@@ -172,7 +172,7 @@ func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Dec
 // list). The rules test host computes the same Board from the engine;
 // seat/integration_test.go's TestBotAdaptersAgreeOverWholeGame pins the
 // two halves to the same facts over a whole game.
-func boardFromView(v view.View) botpolicy.Board {
+func BoardFromView(v view.View) botpolicy.Board {
 	b := botpolicy.Board{
 		IsMain: v.Phase == "main1" || v.Phase == "main2",
 		// The cast scorer's two board-half features (botpolicy/cast.go):

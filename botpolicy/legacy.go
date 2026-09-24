@@ -7,23 +7,13 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// LegacyDecide is the pre-B2 bot policy, frozen for one purpose: the
-// botbench head-to-head that measures whether the combat heuristic is any
-// better than the fuzz driver it replaced. It is the old Decide body
-// verbatim — KAttackers attacks with every legal attacker, KBlockers takes
-// roughly half the legal pairs on a per-option coin with one blocker per
-// attacker, everything else unchanged except the Effect-specific no-host
-// decline — and it deliberately has no Board
-// facts to read, matching what the policy was before B2.
-//
-// Ruling F7's one-copy rule governs the production policy (Decide), whose
-// two adapter halves must answer the same; this is not a second production
-// policy but the historical snapshot the benchmark compares against, so it
-// carries no adapters of its own — the bench's legacy seat feeds it the
-// plain IsMain board the old policy knew and nothing else. The Effect-specific
-// election is the sole exception to the frozen snapshot: like the production
-// bot, this unattended driver must decline that no-host election (R-9).
-// Anything that ships in the game (seats, acceptance, fuzz) calls Decide.
+// LegacyDecide preserves the pre-B2 heuristic for the botbench head-to-head:
+// attackers are still all declared, and blockers are still selected by the
+// historical per-option coin. Its blocker arm additionally reads attacker
+// keyword facts and the decision's published blocker bounds to avoid emitting
+// a whole declaration the engine rejects. This remains a benchmark snapshot,
+// not a production policy. The Effect-specific no-host decline remains the
+// other deliberate deviation; game seats, acceptance and fuzz use Decide.
 func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
@@ -100,7 +90,27 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 				ch = append(ch, o.Index)
 			}
 		}
-		in.Choices = ch
+		// Preserve every coin draw above; only then remove lone blocks that
+		// violate a team-size requirement. Clamp repairs required attackers.
+		counts := make(map[state.ObjID]int)
+		for _, ci := range ch {
+			if ci >= 0 && ci < len(d.Options) {
+				counts[d.Options[ci].Attacker]++
+			}
+		}
+		filtered := make([]int, 0, len(ch))
+		for _, ci := range ch {
+			if ci < 0 || ci >= len(d.Options) {
+				filtered = append(filtered, ci)
+				continue
+			}
+			o := d.Options[ci]
+			if counts[o.Attacker] == 1 && (b.Creatures[o.Attacker].hasKeyword("Menace") || o.MinBlockers > 1) {
+				continue
+			}
+			filtered = append(filtered, ci)
+		}
+		in.Choices = filtered
 		return Clamp(d, in)
 
 	case decision.KTriggerOrder:
