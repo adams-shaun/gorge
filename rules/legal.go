@@ -3166,6 +3166,9 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// CR 118.6: a no-mana-cost card is never cast by paying its mana cost
 	// (rules/nomanacost.go).
 	out = e.filterNoManaCostCasts(p, out)
+	// Options the inert backstop caught changing nothing this window
+	// (rules/priority_guard.go) stay out until the game changes state.
+	out = e.filterInertHeldOut(out)
 	if e.splitSecondHolds() {
 		out = e.filterSplitSecondActions(out)
 	}
@@ -3209,6 +3212,13 @@ func firstChosen(d *decision.Decision, in decision.Intent) decision.Option {
 
 func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 	opt := firstChosen(d, in)
+	if opt.Kind != "pass" && opt.Kind != "concede" {
+		// The inert backstop (rules/priority_guard.go): an action whose
+		// handler emits nothing past the priority reset is recorded and
+		// held out instead of being re-offered forever.
+		mark := len(e.L.Events)
+		defer e.inertPriorityBackstop(in.Player, opt, mark)
+	}
 	switch opt.Kind {
 	case "pass":
 		passes := e.G.Passes + 1

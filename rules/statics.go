@@ -137,6 +137,17 @@ func (e *Engine) scanActionStatics() actionStaticViews {
 				if o == nil || o.Face() == nil || offBattlefieldStaticsInert(z, o) {
 					continue
 				}
+				// CR 708.8: a face-down permanent's printed statics do not
+				// exist while it is face down -- the same gate
+				// scanActiveStatics runs. Without it a legal-actions pass
+				// saw a manifested Citanul Hierophants still granting
+				// "{T}: Add {G}" (the offer's cached snapshot) while the
+				// activation's fresh activeStatics walk did not, so the
+				// offered "Activate ... for mana" was a silent no-op
+				// re-offered forever (cardfuzz batch9 line 1).
+				if e.faceDownPrintedHides(o) {
+					continue
+				}
 				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
 					pst, ok := o.PileStaticAt(si)
 					if !ok {
@@ -1732,6 +1743,11 @@ func (e *Engine) scanCostStatics() costStaticViews {
 	add := func(o *state.Object, id state.ObjID) {
 		f := o.Face()
 		if f == nil {
+			return
+		}
+		// CR 708.8: a face-down permanent has no printed cost statics
+		// (scanActionStatics' and scanActiveStatics' gate).
+		if e.faceDownPrintedHides(o) {
 			return
 		}
 		for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
