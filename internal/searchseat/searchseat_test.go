@@ -221,3 +221,30 @@ func TestEligibleBlockersIsOptIn(t *testing.T) {
 		t.Error("attackers is off, so an attackers decision must delegate")
 	}
 }
+
+// "target" is opt-in and admits only the single-choice, unbudgeted KTarget
+// shape (searchprobe.SingleTarget); every other target ask stays the bot's.
+func TestEligibleTargetIsOptInAndSingleChoice(t *testing.T) {
+	opts := []decision.Option{{Index: 0, Kind: "target", Obj: 1}, {Index: 1, Kind: "target", Player: 1}}
+	single := &decision.Decision{Kind: decision.KTarget, Min: 1, Max: 1, Options: opts}
+	if Eligible(single, Defaults()) {
+		t.Error("Defaults must keep target off")
+	}
+	on := Defaults()
+	on.Kinds = map[string]bool{"target": true}
+	if !Eligible(single, on) {
+		t.Error("target is on, so a single-choice KTarget must be eligible")
+	}
+	for name, d := range map[string]*decision.Decision{
+		"max 2":      {Kind: decision.KTarget, Min: 1, Max: 2, Options: opts},
+		"min 0":      {Kind: decision.KTarget, Min: 0, Max: 1, Options: opts},
+		"max sum":    {Kind: decision.KTarget, Min: 1, Max: 1, MaxSum: 3, Options: opts},
+		"budgeted":   {Kind: decision.KTarget, Min: 1, Max: 1, Budgeted: true, Options: opts},
+		"one option": {Kind: decision.KTarget, Min: 1, Max: 1, Options: opts[:1]},
+		"attackers":  {Kind: decision.KAttackers},
+	} {
+		if Eligible(d, on) {
+			t.Errorf("%s: want ineligible", name)
+		}
+	}
+}

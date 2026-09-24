@@ -803,14 +803,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					in.Choices = append(in.Choices, o.Index)
 				}
 			}
-		case "multikick":
-			// CR 702.43: the multikicker count ask. Option 0 is "No multikick"
-			// (Amount 0) and the options ascend to the largest count the board
-			// can still pay, so taking the highest Amount is the same "most it
-			// can pay for" rule the "x" arm reads. Paying a kick is the
-			// positive play -- the multikicked cast mode was chosen for the
-			// kicker's effect -- and the count is bounded by affordability, so
-			// the maximum is deterministic and legal.
+		case "multikick", "replicate", "squad":
+			// CR 702.43 (multikicker), CR 702.55a (replicate) and CR 702.66
+			// (squad) pose the same optional-count ask: option 0 is the
+			// decline ("No multikick"/"No replicate"/"No squad", Amount 0)
+			// and the options ascend to the largest count the board can still
+			// pay, so taking the highest Amount is the same "most it can pay
+			// for" rule the "x" arm reads. Paying the count is the positive
+			// play -- the kicked/replicated/squadded cast mode was chosen for
+			// the cost's effect -- and the count is bounded by affordability,
+			// so the maximum is deterministic and legal.
 			in.Choices = []int{d.Options[0].Index}
 			best := d.Options[0].Amount
 			for _, o := range d.Options {

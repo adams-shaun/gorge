@@ -119,7 +119,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	fs.SetOutput(progress)
 	games := fs.Int("games", 10, "games per approved pair")
 	seed := fs.Uint64("seed", 30_000_000, "base development seed (the held-out range [1000000,2000000) is refused)")
-	kinds := fs.String("kinds", "attackers", "comma list of decision kinds the teacher answers: attackers, blockers, cast")
+	kinds := fs.String("kinds", "attackers", "comma list of decision kinds the teacher answers: attackers, blockers, cast, target")
 	worlds := fs.Int("worlds", 8, "K sampled worlds per decision")
 	attempts := fs.Int("attempts", 64, "sampler proposal attempts per decision")
 	minESS := fs.Float64("min-ess", 0, "ESS gate for resampling K worlds (0 = K, the calibration contract)")
@@ -181,7 +181,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	}
 	for _, k := range strings.Split(*kinds, ",") {
 		k = strings.TrimSpace(k)
-		if k != "attackers" && k != "blockers" && k != "cast" && k != "" {
+		if k != "attackers" && k != "blockers" && k != "cast" && k != "target" && k != "" {
 			return fmt.Errorf("unknown kind %q", k)
 		}
 		if k != "" {
