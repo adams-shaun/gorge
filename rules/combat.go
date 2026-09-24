@@ -399,6 +399,26 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(e.objColors(b), 'B') {
 		return false
 	}
+	// CR 702.13a: an Intimidate attacker can be blocked only by artifact
+	// creatures and/or creatures that share a colour with it -- the Fear
+	// predicate generalised from one fixed colour (black) to a colour
+	// INTERSECTION. Attacker-keyed and per-pair like Fear/Shadow/Skulk, with
+	// derived (layer-5) colours on both sides; a colourless Intimidate
+	// attacker has no colour to share, so only an artifact creature blocks
+	// it.
+	if e.HasKeyword(attacker, "Intimidate") {
+		attColors, blockColors := e.objColors(a), e.objColors(b)
+		shared := false
+		for i := 0; i < len(attColors); i++ {
+			if strings.ContainsRune(blockColors, rune(attColors[i])) {
+				shared = true
+				break
+			}
+		}
+		if !bf.IsArtifact() && !shared {
+			return false
+		}
+	}
 	// CR 702.31b: a creature with horsemanship can be blocked only by a
 	// creature with horsemanship. The rule is asymmetric and attacker-keyed
 	// -- unlike Shadow, a horsemanship creature MAY block a creature without
@@ -3059,6 +3079,11 @@ func init() {
 		"kw:Infect", "kw:Wither",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
 		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
+		// kw:Intimidate (CR 702.13a): an Intimidate attacker is blocked only
+		// by artifact creatures and/or creatures sharing a colour with it --
+		// read directly in canBlock as a colour-intersection generalisation
+		// of Fear. Proof test: TestIntimidateBlocksOnlyArtifactsAndSharedColors.
+		"kw:Intimidate",
 		// kw:Landwalk (CR 702.14): a walker can't be blocked while the
 		// defending player controls a land of the named type. The family is
 		// read directly in canBlock/landwalkEvades against the defender's
