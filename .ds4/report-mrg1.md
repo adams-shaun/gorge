@@ -1,3 +1,57 @@
+# Merge-conflict resolution — agent-20260919T192133Z-f7463cbe (round 5, mrg1)
+
+## State found
+
+Found MID-MERGE: `git status` said "All conflicts fixed but you are still
+merging" with all paths already staged by the previous resolver run (a
+partial-integration continuation). MERGE_HEAD was `3eadee08` (current main);
+merge base `6a83fb34`. `.cards` present (symlink to the shared corpus), so
+all runs below are corpus-backed.
+
+## Resolution verified and completed
+
+Staged content, checked against both sides before committing:
+
+- `rules/trigger_referents.go`, `rules/card_mana_cost_lki_test.go`,
+  `effects/ref_property_lki_test.go`, `README.md`, `docs/coverage.md` —
+  byte-identical to `MERGE_HEAD` (main). Correct: the branch never
+  independently touched these since the merge base (branch log on them shows
+  only the earlier merge `a721a669`); main's side carries the reviewed
+  CardManaCostLKI fix (`7454592e`, `10ec74fc`), so main's version wins and no
+  branch behaviour is lost.
+- `.ds4/report-mrg1.md`, `.ds4/report-sol1.md`, `.ds4/report-t2.md` — clean
+  unions: `git diff HEAD -- .ds4/` shows only additions (main's reports
+  arriving) and `git diff MERGE_HEAD -- .ds4/` shows only additions (this
+  branch's reports retained); no prose lost on either side. Only Git's
+  conflict-marker lines were removed by the previous resolver.
+- No conflict markers remain in any code file (grep over the tree hits only
+  historical prose inside the .ds4 report accumulators). No unstaged or
+  untracked leftovers; `git diff --name-only --diff-filter=U` empty.
+
+## Commands and results
+
+```text
+$ go build ./...
+build=0 (no output)
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.736s
+$ go test -run 'TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue|TestCardManaCostLKIReadsRememberedSnapshot|TestChthonianNightmarePaysEnergySacsAndReturns' ./rules/ ./effects/
+ok  github.com/adams-shaun/gorge/rules   0.593s
+ok  github.com/adams-shaun/gorge/effects 0.013s
+```
+
+Post-merge ratchets pass; no ratchet table adjustment needed (this merge
+introduces no new trigger `Mode$` matcher and closes no
+`knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads`
+entry). Merge concluded with the default message.
+
+## Issues
+
+None found during integration — this round only verified and completed the
+previous resolver's staged work; no new defect surfaced.
+
+---
+
 # Merge-conflict resolution — agent-20260919T192133Z-f7463cbe (round 4, mrg1)
 
 ## State found
@@ -493,6 +547,54 @@ is 105 insertions, 0 deletions; the old accumulator content is untouched.
   `merge(...)` subject prefix; the brief said to complete the operation with
   the default message, so I left it as committed.
 
+
+---
+
+
+---
+
+# Merge-conflict resolution — mrg1 (agent-20260919T203859Z-cf55fee2)
+
+## Entry state and operation
+
+`git status` was clean on `wt/agent-20260919T203859Z-cf55fee2`; no rebase or merge was in flight. The supplied daemon transcript described a failed rebase and merge fallback, but that operation had left no active state. HEAD was `a8240913`; `main` was `b493bc15`, with merge-base `2424c005`. Per the working method, I started a merge of current `main`. `.cards` was present.
+
+```text
+$ git status --short --branch; git status
+## wt/agent-20260919T203859Z-cf55fee2
+On branch wt/agent-20260919T203859Z-cf55fee2
+nothing to commit, working tree clean
+$ git merge main
+Auto-merging .ds4/report-sol1.md
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+## Conflicted file and resolution
+
+Only `.ds4/report-t2.md` conflicted. HEAD's side held this branch's CardManaCostLKI round-3 implementation report and the previous round's report. Main's side held the independent `agent-20260922T201246Z-000e743d` report and continuation. These are independent report histories, not contradictory product changes. I removed only Git's conflict-marker/separator lines and retained all prose from both sides, including each side's `Fails without the fix` / `Issues` material. The remainder of the accumulated history below the conflict was preserved. No source or test file conflicted.
+
+`.ds4/report-sol1.md` auto-merged. The other staged changes are main's auto-merged changes; I did not manually edit them. `.ds4/report-mrg1.md` retains its prior accumulated history with this report prepended.
+
+## Commands and results
+
+```text
+$ git add -f .ds4/report-t2.md
+$ git diff --name-only --diff-filter=U
+(no output; no unresolved paths)
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.930s
+$ go test -run 'TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue|TestChthonianNightmarePaysEnergySacsAndReturns|TestCardManaCostLKIReadsRememberedSnapshot' ./rules/ ./effects/
+ok   github.com/adams-shaun/gorge/rules  0.678s
+ok   github.com/adams-shaun/gorge/effects  0.013s
+```
+
+The focused branch regressions and required post-merge ratchets passed. No ratchet table adjustment was indicated: this branch registers no trigger mode or closes a count-head/deck parameter entry. No engine behavior conflict required a judgement call.
+
+## Issues
+
+No new defect found during integration. The branch's report continues to record its out-of-scope `SpellTargeted$CardManaCostLKI` ref gap and trigger-stack authored-X issue; integration did not alter either.
 
 ---
 
