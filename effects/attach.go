@@ -202,16 +202,28 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		// keeps NO source fallback, and an unbound one (absent or plural
 		// bearer) fails closed the same way, so the card can never attach
 		// itself in place of the attachments (Fumble on a bare creature).
-		// A resolved list of several objects (Fumble's and Rhuk's AttachedTo
-		// plural selectors) is kept WHOLE: the card attaches every one.
+		//
+		// Only the dotted `AttachedTo` family is PLURAL: it is the one Object$
+		// spelling whose card text names a whole set ("attach them"). Every
+		// other selector -- TriggeredCardLKICopy, Remembered, Targeted and
+		// friends -- keeps the historical first-take (os[0]), because its
+		// referent can resolve several entries for unrelated reasons (Ajani's
+		// Chosen remembers BOTH the entering Aura and the Cat token, and only
+		// the Aura is the object to attach). Widening the first-take to every
+		// selector would attach the attachments to each other.
 		spec := sa.Params["Object"]
 		if ts, ok := definedSpec(h, c, spec); ok {
-			objs = objs[:0]
-			for _, t := range objectsOf(ts) {
-				objs = append(objs, t.Obj)
+			os := objectsOf(ts)
+			if len(os) > 0 {
+				obj = os[0].Obj
 			}
-			if len(objs) > 0 {
-				obj = objs[0]
+			objs = objs[:0]
+			if strings.HasPrefix(spec, "AttachedTo ") {
+				for _, t := range os {
+					objs = append(objs, t.Obj)
+				}
+			} else if len(os) > 0 {
+				objs = append(objs, obj)
 			}
 		} else if strings.HasPrefix(spec, "AttachedTo ") {
 			// The dotted selector resolved unknown (an absent or plural

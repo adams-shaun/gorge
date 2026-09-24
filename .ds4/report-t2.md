@@ -1,3 +1,160 @@
+# Report — agent-20260923T144746Z-b284de7f (fix round 2)
+
+Dotted `AttachedTo <spec>` Defined-selector — verifying round-1 review finding
+on Cass, Hand of Vengeance.
+
+## Findings addressed
+
+The fix round's `findings-t2.md` carries exactly one finding:
+
+- **[MAJOR] `rules/attachedto_defined_card_test.go` — the Cass test verified
+  the Aura pick/return only; it never resolved Cass's real `DBAttach` body or
+  asserted the were-attached Equipment's resulting bearer.**
+
+FIXED. I rewrote `TestCassHandOfVengeanceReturnsOnlyTheWereAttachedAuras` into
+three phases on three fresh engines:
+
+- **Phase A** resolves Cass's **real `DBAttach` SA** (`Object$ AttachedTo
+  TriggeredCardLKICopy.Equipment | Optional$ True | Defined$ Targeted`) with the
+  captured trigger referent (`Remembered` = the dead creature) and the target
+  bound, and asserts the were-attached Equipment ends up attached to that target
+  — not to Cass, not to the `Object$`-unknown source fallback — and that
+  `LastBearer` is cleared by the re-attach.
+- **Phase B** pins the `ChooseFromDefined$ AttachedTo TriggeredCardLKICopy.Aura`
+  offer filter: the were-attached Aura is offered, the never-attached decoy is
+  not.
+- **Phase C** drives the answered re-entry through the engine and asserts the
+  Aura returns attached to the target; the DBChangeZone chain then reaches the
+  real DBAttach body and poses its Optional$ True yes/no election, which the
+  test asserts was posed.
+
+Phase A is ordered first (it needs no hidden pick), so the revert proof lands
+directly on the Equipment-bearer assertion rather than on an earlier phase.
+
+## What changed, per file
+
+- `rules/attachedto_defined_card_test.go` — only file changed this round.
+  Rewrote the Cass real-card test as above. No production code changed this
+  round; the selector (`effects/context.go` `attachedToDefinedSelector`) landed
+  in round 1 (commit `397ba4d6`).
+
+## Why the DBAttach phase resolves the body directly
+
+The engine's own `resumeResolution` rebuilds `ctx.Targets` from the **stack
+object** (`o.Targets`, rules/resolution.go:1665). This hand-driven harness has
+no stack object owning the trigger's announced target, so a `Submit`-driven
+resume reaches DBAttach with an empty `Targets` and the `Defined$ Targeted`
+destination vanishes ("cannot attach: no legal target"). That is a harness
+artifact, not a production defect: in a real trigger resolution the announced
+target rides the stack object. Phase A therefore binds the captured referent and
+target on the Ctx and resolves the real DBAttach body directly — the same
+direct shape the DBChangeZone re-entry uses, and the shape the finding asked for
+("resolve the real `DBAttach` with the captured trigger referent and assert the
+Equipment's resulting bearer").
+
+## Gates — real output
+
+Targeted command from the brief's Done means (one command, both packages):
+
+```text
+$ go test -run 'TestAttachedToDefined|TestAttachedToSelector|TestRhuk|TestCassHand|TestFumble|TestMurderousSpoils' ./effects/ ./rules/ 2>&1 | tail -30
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+ok  	github.com/adams-shaun/gorge/rules	0.833s
+```
+
+Behaviour goldens:
+
+```text
+$ go test ./internal/archtest/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/internal/archtest	5.936s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+```
+
+The botbench split is unchanged and not re-pinned: no repo deck in
+`internal/testutil/decks/` carries any of the four carriers
+(Murderous Spoils, Fumble, Rhuk, Cass), so no repo deck exercises this
+behaviour.
+
+Format / types:
+
+```text
+$ gofmt -l rules/attachedto_defined_card_test.go
+(empty)
+
+$ go run ./cmd/gentypes -check
+exit 0 (no output)
+```
+
+`.cards` presence: the worktree's `.cards` is a symlink to
+`/home/sadams/projects/gorge/.cards` (confirmed at start), so the corpus-backed
+tests genuinely ran (rules suite 0.8s with real corpus; not a vacuous skip).
+
+## Fails without the fix
+
+Non-test file changed by the fix (round 1) is `effects/context.go`. I copied it
+to `.ds4/scratch/context.go.orig`, disabled the selector at the top of
+`attachedToDefinedSelector` (`return nil, false`), ran the one test, and
+restored the file byte-identically:
+
+```text
+$ (selector disabled) go test -run 'TestCassHand' ./rules/ 2>&1 | tail -15
+--- FAIL: TestCassHandOfVengeanceReturnsOnlyTheWereAttachedAuras (0.65s)
+    attachedto_defined_card_test.go:314: DBAttach: the were-attached Equipment AttachedTo = 0, want the target 2
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.669s
+FAIL
+
+$ cmp effects/context.go .ds4/scratch/context.go.orig && echo RESTORED_BYTE_IDENTICAL
+RESTORED_BYTE_IDENTICAL
+```
+
+The failure lands exactly on the new Equipment-bearer assertion the finding
+said was missing. This is the class the test now covers.
+
+## Done-means checklist
+
+- [x] Targeted command passes (output above).
+- [x] New assertion fails with the fix reverted; output pasted.
+- [x] `go test ./internal/archtest/` passes; no allowlist edits.
+- [x] `TestConstructedDefaultIsByteIdentical` passes, split not moved.
+- [x] `gofmt -l` empty; `go run ./cmd/gentypes -check` exit 0.
+- [x] No `events.Event` field changed; no production code touched this round.
+      TestHeads is not expected to move (round 1 report already recorded it did
+      not move); as this round changes a test file only, it cannot move.
+- [x] No TEST_HISTORY budget trailer needed: this round adds no new test
+      function (it extends an existing one); `rules/TEST_HISTORY.md` budget_s
+      is 300 and is unchanged.
+- [x] No `Known approximations` row added or grown.
+
+## Issues
+
+- The engine-resume path for a mid-resolution attach ask loses the chain's
+  object targets (`ctx.Targets` is rebuilt from the stack object in
+  `resumeResolution`, rules/resolution.go:1665). In a real trigger the target
+  rides the stack object, so this is not a production defect I can demonstrate
+  on a real card; but any effect that needs a chain-local `Defined$ Targeted`
+  binding across a suspension without a stack object would lose it. Worth a
+  CR-lane note under CR 608.2 (resolution of a spell/ability's targets) if a
+  real carrier is found. Not in this ticket's scope; no ticket filed because I
+  could not produce a real-card repro.
+- Out-of-scope remainder already filed by round 1 as
+  `.ds4/new-tickets/choosefromdefined-remaining-values.md` (the other
+  `ChooseFromDefined$` value spellings). Unchanged.
+
+## Status
+
+Round-2 finding FIXED; all named gates pass.
+
+STATUS=DONE
+COMMITS=b1c1afd0
+TESTS=go test -run 'TestAttachedToDefined|TestAttachedToSelector|TestRhuk|TestCassHand|TestFumble|TestMurderousSpoils' ./effects/ ./rules/ → ok (both packages); archtest, botbench pin, gofmt, gentypes -check pass
+
+---
+
+# Reports appended below are from other tickets (preserved verbatim)
+
 # Report — agent-20260919T181318Z-86535368 (verification round)
 
 ## Result
