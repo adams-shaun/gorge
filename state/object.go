@@ -437,7 +437,10 @@ type Object struct {
 	AcqStep Step
 	// ActivatedThisTurn counts the non-mana activated abilities whose
 	// activation minted an AbilityPush with this source this turn
-	// (events.Apply's AbilityPush case). Mana abilities never mint one (CR
+	// (events.Apply's AbilityPush case, and the granted/gained mints --
+	// GrantAbilityPush, GainedAbilityPush, KeywordAbilityPush and a
+	// self-grant's "granted ability" DelayedPush -- which are activations
+	// of the same recipient). Mana abilities never mint one (CR
 	// 605.3a: they are structurally off the stack), so the count is exactly
 	// the repeatable-ability churn a bot policy needs to bound its own
 	// loop-shaped activations (Basalt Monolith's "{3}: Untap this artifact"
