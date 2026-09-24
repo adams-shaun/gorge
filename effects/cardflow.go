@@ -1733,8 +1733,9 @@ func digDestPhrase(dest state.Zone) string {
 // non-literal (X/MassX/VoteNum/Y — amount 1 then; literal 1..5 ARE honoured
 // as "keep revealing until N matches"), DigZone$, NoMoveFound$ /
 // FoundLibraryPosition$, Shuffle$ / ShuffleCondition$, Imprint*$ and
-// NoneFound*$. RevealRandomOrder$ remains a deterministic existing-order
-// stand-in because ambient randomness is forbidden.
+// NoneFound*$. RevealRandomOrder$ True is implemented for the library-bottom
+// return (h.Rand, seeded and replay-exact); a stay-in-place placement keeps
+// the existing order behind one loud Note.
 func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	spec := sa.Params["Valid"]
 	if spec == "" {
