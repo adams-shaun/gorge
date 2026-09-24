@@ -334,9 +334,6 @@ func applyUnlessCostModifier(shown, op, arg string) string {
 // false.
 func unlessProceed(h Host, c *Ctx, sa *cards.SA) (bool, bool) {
 	cost := UnlessCostResolved(h, c, sa)
-	if sa.API == "GainControl" {
-		println("DEBUG gate cost=", cost, "ntargets=", len(c.Targets), "sv=", c.SVars != nil)
-	}
 	if strings.TrimSpace(sa.Params["UnlessCost"]) == "" {
 		return true, false
 	}
