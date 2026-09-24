@@ -1262,7 +1262,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	dest := ParseZone(destName)
 	optional := sa.Params["Optional"] == "True"
 	promptToSkipOptional := strings.EqualFold(strings.TrimSpace(sa.Params["PromptToSkipOptionalAbility"]), "True") ||
-		strings.EqualFold(strings.TrimSpace(sa.Params["OptionalAbilityPrompt"]), "True")
+		strings.TrimSpace(sa.Params["OptionalAbilityPrompt"]) != ""
 	// The variant params (see the comment block above the function for what
 	// each means and which corpus card carries it).
 	revealWin := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") &&
@@ -1331,6 +1331,12 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		top := append([]state.ObjID(nil), lib[:n]...)
 		if fromBottom {
 			top = append([]state.ObjID(nil), lib[int32(len(lib))-n:]...)
+		}
+		// An empty answer to the optional-ability election declines the entire
+		// Dig ability: leave the looked-at window in place and do not process
+		// its remainder, reveal, or destination side effects.
+		if digDone && targetIndex == digTarget && promptToSkipOptional && len(digAns) == 0 {
+			continue
 		}
 		// primaryMoved is the temporary library pile for a primary
 		// DestinationZone$ Library move. It is placed after the remainder has
