@@ -83,3 +83,27 @@ func TestTriggerReferentGrammarScope(t *testing.T) {
 		}
 	}
 }
+
+// TestNextOpponentToYourLeftReferent: Barroom Brawl's "target creature the
+// opponent to your left controls" (Creature.ControlledBy
+// NextOpponentToYourLeft) names the next living seat after You. The
+// referent used to be unrecognised, so the fight's second target never
+// matched anything.
+func TestNextOpponentToYourLeftReferent(t *testing.T) {
+	g, ids := board(t)
+	spec := "Creature.ControlledBy NextOpponentToYourLeft"
+	if unknown := UnknownPredicates(spec); len(unknown) != 0 {
+		t.Fatalf("%s reported unknown %v", spec, unknown)
+	}
+	sc := SpecContext{You: 0}
+	if !MatchesSpecCtx(g, spec, ids["theirBig"], sc) {
+		t.Error("seat 1's creature is not controlled by seat 0's next opponent")
+	}
+	if MatchesSpecCtx(g, spec, ids["myBear"], sc) {
+		t.Error("seat 0's own creature matched its next opponent")
+	}
+	sc.You = 1
+	if !MatchesSpecCtx(g, spec, ids["myBear"], sc) {
+		t.Error("from seat 1 the next seat wraps to seat 0")
+	}
+}

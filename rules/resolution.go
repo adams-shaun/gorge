@@ -491,6 +491,26 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // unchanged. Engine scratch, never logged.
 func (e *Engine) AskCount() uint64 { return e.askCount }
 
+// EventMark implements effects' optional eventMarker seam: the event log's
+// current length, a mark StateChangedSince compares against.
+func (e *Engine) EventMark() int { return len(e.L.Events) }
+
+// StateChangedSince implements effects' optional eventMarker seam: whether
+// any event other than a Note was logged after mark. A Note is the log's
+// commentary and folds into no game state (events.Apply), so a span holding
+// only Notes left the game exactly as it found it.
+func (e *Engine) StateChangedSince(mark int) bool {
+	if mark < 0 {
+		mark = 0
+	}
+	for i := mark; i < len(e.L.Events); i++ {
+		if e.L.Events[i].Kind != events.Note {
+			return true
+		}
+	}
+	return false
+}
+
 // buildAskResume builds the resume point of the mid-resolution ask d from
 // the engine's ambient resolution state at the moment the ask is posed (or
 // deferred). See Engine.Ask.
@@ -503,6 +523,20 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 			replacementTarget = state.Target{Player: e.replacingEvent.Player, IsPlayer: true}
 		}
 		replacementAmount = e.replacingEvent.Amount
+	}
+	replacementSource := e.protectionSource(e.damaging)
+	if e.replacingEvent == nil && e.applyingReplacement && e.resolutionCtx != nil &&
+		e.resolutionCtx.ReplacementTarget != (state.Target{}) {
+		// A replacement body re-entered from a resume frame (a second ask of
+		// a resumed body, or a body queued behind an earlier ask by
+		// resolveReplacementBody) runs with no live replacingEvent: the
+		// frame's rebuilt Ctx is the only record of what the body replaced,
+		// so this ask's resume must carry it on, or the answered re-entry
+		// (Nefarious Lich's DefinedPlayer$ ReplacedTarget pick) resolves
+		// against nobody and moves nothing.
+		replacementTarget = e.resolutionCtx.ReplacementTarget
+		replacementAmount = e.resolutionCtx.ReplacementAmount
+		replacementSource = e.resolutionCtx.ReplacementSource
 	}
 	// Capture whether the ask is being posed from inside a replacement
 	// effect's ReplaceWith$ body (fx44). e.applyingReplacement is true for
@@ -548,7 +582,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 	return &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
 		replacedPlayer:    e.replReplacedPlayer,
-		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
+		replacementTarget: replacementTarget, replacementSource: replacementSource,
 		replacementAmount: replacementAmount,
 		effectFrame:       e.currentEffectFrame,
 		before:            e.triggerBefore, target: d.ResumeTarget, player: d.Player,
@@ -1625,7 +1659,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// wrong ordinal (Sephiroth would transform a turn early on the
 		// resumed pass). resolvedAbilityTally is the same read resolveTop's
 		// ability branch makes, in one home.
-		ResolvedThisTurn: e.resolvedAbilityTally(o),
+		ResolvedThisTurn:    e.resolvedAbilityTally(o),
+		ActivationsThisTurn: e.activationsThisTurnFor(o.Source, o.Ability),
 		// alltargeted1: a re-entered walk keeps consuming the cast flow's
 		// pre-asked sub-ability target answers (kept until the stack object
 		// leaves, so both a later sub and a suspended body can use theirs).

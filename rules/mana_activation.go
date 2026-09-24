@@ -209,6 +209,7 @@ func (e *Engine) answerNestedManaColor(ma *manaColorActivation, chosen []decisio
 	} else {
 		ctx = effects.Ctx{Source: ma.source, Controller: ma.player}
 		ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(ma.source, ma.ability)
+		ctx.ActivationsThisTurn = e.activationsThisTurnFor(ma.source, ma.ability)
 		if o := e.G.Obj(ma.source); o != nil && o.Face() != nil {
 			effects.SetSVars(&ctx, ma.gained.svars(o.Face().SVars))
 		}
@@ -824,11 +825,44 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if len(cost.LifeX) > 0 {
 		return false
 	}
+	if !manaCostPartsSettleable(cost) {
+		return false
+	}
 	for _, part := range cost.SubCounter {
 		if part.Announced {
 			return false
 		}
 		if o.Counter(part.Spec) < part.N {
+			return false
+		}
+	}
+	// PayEnergy<N> (Aether Hub, Servant of the Conduit): the payer's energy
+	// total must cover every fixed part (CR 107.14); the settle spends it
+	// through chargeEnergyCost, the cast path's one energy-charging site.
+	energy := int32(0)
+	for _, part := range cost.Energy {
+		energy += part.N
+	}
+	if energy > e.G.Players[p].Counter("ENERGY") {
+		return false
+	}
+	// AddCounter<N/KIND> and Exert<1/CARDNAME> are source-anchored: the
+	// source must still be the permanent that receives the counter or the
+	// exert (a mana ability is activated from the battlefield).
+	if (len(cost.AddCounter) > 0 || len(cost.Exert) > 0) && o.Zone != state.ZBattlefield {
+		return false
+	}
+	// Return<N/Spec> parts: the mana path pays only the self-return
+	// (Spec CARDNAME, Forge's payCostFromSource -- Grinning Ignus's
+	// "{R}, Return this creature to its owner's hand"), which needs no
+	// choice. Any other Return spec, or a Return beside a part the
+	// discard/sacrifice continuation owns, is refused rather than activated
+	// with the return silently unpaid.
+	if !manaReturnCostSupported(cost) {
+		return false
+	}
+	for range cost.Return {
+		if o.Zone != state.ZBattlefield {
 			return false
 		}
 	}
@@ -1074,9 +1108,7 @@ func (e *Engine) commitManaDiscard() {
 	if md.cost.Tap {
 		manaTriggers = e.emitManaTap(md.player, md.source, md.ability)
 	}
-	for _, part := range md.cost.SubCounter {
-		e.emit(events.Event{Kind: events.CounterChange, Obj: md.source, Counter: part.Spec, Amount: -part.N})
-	}
+	e.payManaSourceParts(md.player, md.source, md.cost)
 	for _, id := range md.sacs {
 		e.emit(events.Sacrifice(id))
 	}
@@ -1546,7 +1578,8 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	// attribution, so an ability that carries EITHER limit records its
 	// activation here (events.ManaActivate's own comment). Emitted only for a
 	// limit-bearing ability so no existing game's log shape changes.
-	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" {
+	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" ||
+		chainGatesOnActivationCount(original) {
 		// The flat pile index (top face first, then under-cards) is the SAME
 		// identity availableManaAbilitiesUsing's limit gate checks, so an
 		// under-card mana ability's census cannot be counted against a
@@ -1583,13 +1616,36 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	if cost.Tap {
 		manaTriggers = e.emitManaTap(p, source, ma)
 	}
-	for _, part := range cost.SubCounter {
-		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})
-	}
+	e.payManaSourceParts(p, source, cost)
 	for _, id := range sacs {
 		e.emit(events.Sacrifice(id))
 	}
+	// Return<1/CARDNAME>: the source goes to its OWNER's hand as part of the
+	// payment (the cast path's Return settle, rules/cast.go), after the {T}
+	// tap so a tap-and-return cost never taps a hand card.
+	// manaAbilityPayablePool admitted only the self-return shape.
+	for range cost.Return {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+		}
+	}
 	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers, sacs, gained)
+}
+
+// manaReturnCostSupported reports whether a mana ability's Return<N/Spec>
+// parts are the shape the off-stack mana path pays: none at all, or exactly
+// the self-return Return<1/CARDNAME> with no sacrifice/discard/exile part
+// beside it (those route through the manaDiscardActivation continuation,
+// which does not settle a return).
+func manaReturnCostSupported(cost Cost) bool {
+	if len(cost.Return) == 0 {
+		return true
+	}
+	if len(cost.Return) != 1 || len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Exile) > 0 {
+		return false
+	}
+	part := cost.Return[0]
+	return part.N == 1 && strings.EqualFold(sacrificeMatchSpec(part.Spec), "CARDNAME")
 }
 
 // resolveManaEffect resolves the mana a paid ability produces. sacs carries
@@ -2077,4 +2133,76 @@ func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
 // Config order, so a replay derives the identical count.
 func (e *Engine) CommanderIdentityColourCount(p state.PlayerID) int {
 	return len(e.commanderIdentityColours(p))
+}
+
+// chainGatesOnActivationCount reports whether sa's SubAbility$ chain carries
+// a ConditionActivationLimit$ gate ("if this ability has been activated four
+// or more times this turn" -- Farrelite Priest, Initiates of the Ebon Hand).
+// A mana ability has no AbilityPush, so such a chain needs the ManaActivate
+// census marker for Ctx.ActivationsThisTurn to count it; the marker is
+// emitted only for these carriers so no other game's log changes.
+func chainGatesOnActivationCount(sa *cards.SA) bool {
+	for sub, n := sa, 0; sub != nil && n < 32; sub, n = sub.Sub, n+1 {
+		if strings.TrimSpace(sub.Params["ConditionActivationLimit"]) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// manaCostPartsSettleable is the mana path's fail-closed whitelist: a mana
+// ability is activated off the stack by resolveManaAbilityRefOriginal and
+// the manaDiscardActivation continuation, which settle exactly mana/life
+// (payManaConvFor), {T}, Mill, SubCounter on the source, PayEnergy<N>,
+// AddCounter on the source, Exert<1/CARDNAME>, Sac, Discard, Exile and the
+// self-Return. Every other part -- an unmodelled token (Cost.Unknown: Pili-Pala's
+// {Q}, Benthic Explorers' untapYType, both of which used to be priced as one
+// phantom generic), CollectEvidence (Cryptex), a Draw/DamageYou/PutToLib/
+// MoveToGrave/RollDice part, a dynamic PayEnergy<X> or a SubCounter
+// anchored to another permanent (Jetfire's RemoveAnyCounter) -- has no
+// settle here, so the ability is refused rather than activated with that
+// part silently free. The remaining refusals (X, Reveal, Behold, tapXType,
+// Blight, Forage, LifeX, an unsupported Return) live beside the call site.
+func manaCostPartsSettleable(cost Cost) bool {
+	if len(cost.Unknown) > 0 || len(cost.Evidence) > 0 || len(cost.Draw) > 0 ||
+		len(cost.DamageYou) > 0 || len(cost.PutToLib) > 0 || len(cost.MoveToGrave) > 0 ||
+		len(cost.RollDice) > 0 || cost.LifeHalfUp {
+		return false
+	}
+	for _, part := range cost.Energy {
+		if part.Spec == "X" {
+			return false
+		}
+	}
+	for _, part := range cost.SubCounter {
+		if !subCounterTargetsSource(part.Target) {
+			return false
+		}
+	}
+	return true
+}
+
+// payManaSourceParts settles a mana ability's source-anchored non-mana cost
+// parts, after the {T} tap and before any sacrifice (so a counter or exert
+// lands on the still-present source): SubCounter removals, the PayEnergy<N>
+// spend (chargeEnergyCost, the cast path's one energy-charging site), the
+// AddCounter<N/KIND> placement (Wall of Roots' -0/-1 counter; the same
+// CounterChange the activation settle emits) and the Exert<1/CARDNAME>
+// exert (Oasis Ritualist; the same events.Exert the attack election emits).
+// manaAbilityPayablePool gated each one, so every part here is payable.
+func (e *Engine) payManaSourceParts(p state.PlayerID, source state.ObjID, cost Cost) {
+	for _, part := range cost.SubCounter {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})
+	}
+	e.chargeEnergyCost(p, cost, 0)
+	for _, part := range cost.AddCounter {
+		if part.N != 0 {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: part.N})
+		}
+	}
+	for range cost.Exert {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+			e.emit(events.Event{Kind: events.Exert, Obj: source, Player: p})
+		}
+	}
 }

@@ -143,6 +143,63 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 	return &replMatch{id: ev.Obj, repl: r}
 }
 
+// sunburstEntryMatch builds the synthetic Moved replacement a permanent with
+// sunburst enters by (CR 702.47: "This object enters with a +1/+1 counter on
+// it for each color of mana spent to cast it. If it isn't a creature, it
+// instead enters with that many charge counters on it.").
+//
+// The keyword is read from the entering object's DERIVED keyword list
+// (derivedKeywordParam), but this synthetic covers the layer-6
+// `DB$ Animate | Keywords$ Sunburst` GRANT shape only (Solar Array, Lux
+// Artillery): a PRINTED K:Sunburst line is expanded cards-side
+// (cards/kw_sunburst.go) onto the face's own Repls, which the face-Repl scan
+// above already collects, so the printed-face check below skips it -- a
+// synthetic on top of the expansion would put the entry counters twice. The
+// counter KIND follows Forge's own Sunburst expansion
+// (CardFactoryUtil: `host.isCreature() ? P1P1 : CHARGE`), decided from the
+// entering object's PRINTED face (CR 702.47a's "if it isn't a creature" is
+// evaluated on the card's own types, ignoring type-changing effects), so a
+// creature gets +1/+1 counters and an artifact gets charge counters.
+//
+// The count is the existing CR 107.4f converge head: the number of DISTINCT
+// colours spent to cast the spell, carried on the object as ConvergeColours
+// by the pay-time FlagConverged CastInfo (rules/cast.go's faceWantsConverge
+// gate, widened to cover sunburst's cast faces). An inline Count body keeps
+// this a one-line body with no SVar minted on the face.
+func (e *Engine) sunburstEntryMatch(ev events.Event) *replMatch {
+	if _, ok := e.derivedKeywordParam(ev.Obj, "Sunburst"); !ok {
+		return nil
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	if o.Face().HasKeyword("Sunburst") {
+		// Printed K:Sunburst: already expanded cards-side (cards/kw_sunburst.go);
+		// the face-Repl scan collected it. The grant shape's printed face never
+		// carries the line, so this gate admits only the granted case.
+		return nil
+	}
+	kind := "CHARGE"
+	if o.Face().IsCreature() {
+		kind = "P1P1"
+	}
+	body := &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"Defined":     "Self",
+		"CounterType": kind,
+		"CounterNum":  "Count$Converge",
+		"ETB":         "True",
+	}}
+	r := &cards.Repl{Event: "Moved", Params: map[string]string{
+		"Destination":       "Battlefield",
+		"ValidCard":         "Card.Self",
+		"ReplacementResult": "Updated",
+		"Keyword":           "Sunburst",
+		"KeywordLine":       "Sunburst",
+	}, With: body}
+	return &replMatch{id: ev.Obj, repl: r}
+}
+
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
 	if ev.Kind == events.Attach && e.attachedApplying {
 		return ev, false
@@ -293,6 +350,15 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// result; it only fixes the scan order.
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		if m := e.bloodthirstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
+			matches = append(matches, *m)
+		}
+		// kw:Sunburst (CR 702.47): the layer-6 `Keywords$ Sunburst` GRANT shape
+		// (Solar Array, Lux Artillery) is one more Updated entry replacement,
+		// collected after the face-Repl scan for the same deterministic
+		// composition reason bloodthirst's is; a printed K:Sunburst face carries
+		// the cards-side expansion (cards/kw_sunburst.go) instead, which this
+		// scan already collected, and the synthetic skips it.
+		if m := e.sunburstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
 			matches = append(matches, *m)
 		}
 	}
@@ -1430,10 +1496,60 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		replaced, ev, ctx.Source, action, ctx.ReplacedPlayer
-	e.resolveReplacementWith(ctx, with)
+	e.resolveReplacementBody(ctx, with)
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		savedRepl, savedEvent, savedSource, savedAction, savedPlayer
 	e.applyingReplacement = savedApplying
+}
+
+// resolveReplacementBody resolves a ReplaceWith$ body. Inside a resolution
+// pass (contChainOwners > 0) the pass already owns the continuation chain and
+// this is resolveReplacementWith. OUTSIDE one -- an event emitted by turn
+// structure, above all combat damage, where runCombatAssignments emits one
+// Damage event per assignment -- two things differ:
+//
+//   - A body reached while an earlier body's ask is still unanswered (two
+//     attackers hitting a Nefarious Lich / Immortal Coil controller: one
+//     hidden graveyard pick per Damage event) must not run now. Its ask would
+//     overwrite the pending decision (Engine.ask's guard panics), and even
+//     deferred it would offer the cards the first pick is about to take. The
+//     WHOLE body is queued instead, as a continuation frame at the tail of the
+//     pending chain, so it runs -- and asks, against the then-current state --
+//     once everything before it has been answered: event order, one decision
+//     at a time. A ReplaceEffect body rewrites the held event synchronously
+//     and never asks, so it always runs in place.
+//   - A body that posts the first ask becomes its own continuation-chain
+//     owner, so the rest of its SubAbility$ chain (the Lich's lose-the-game
+//     check and cleanup) is linked after the ask instead of reported into a
+//     contChain no pass drains.
+func (e *Engine) resolveReplacementBody(ctx *effects.Ctx, with *cards.SA) {
+	if e.contChainOwners > 0 || with.API == "ReplaceEffect" {
+		e.resolveReplacementWith(ctx, with)
+		return
+	}
+	if e.resume != nil && e.pending != nil {
+		// buildContinuationChain resumes each frame at sa.Sub, so a parent
+		// whose Sub is the body makes the frame run the body from its start.
+		// Its replacement context (replaced object, damage target and amount,
+		// damage source) is read from the live replacement state here.
+		frame := e.buildContinuationChain([]contFrame{{sa: &cards.SA{Sub: with}}}, ctx.Source, nil)
+		tail := e.resume
+		for tail.outer != nil {
+			tail = tail.outer
+		}
+		tail.outer = frame
+		return
+	}
+	savedChain, savedReported := e.contChain, e.repeatReported
+	e.contChain, e.repeatReported = nil, nil
+	prior := e.resume
+	e.contChainOwners++
+	e.resolveReplacementWith(ctx, with)
+	e.contChainOwners--
+	if e.resume != nil && e.resume != prior && len(e.contChain) > 0 {
+		e.resume.outer = e.buildContinuationChain(e.contChain, ctx.Source, e.resume.outer)
+	}
+	e.contChain, e.repeatReported = savedChain, savedReported
 }
 
 // applyReplacement applies the ONE chosen replacement to a MoveZone event,
@@ -6490,11 +6606,16 @@ func init() {
 	// expansion exists: bloodthirst is a static ability whose whole meaning
 	// is an entry-time conditional counter put, which is exactly what the
 	// synthetic Repl below expresses.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst", "kw:Sunburst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
-		"repl:AddCounter", "api:ReplaceCounter")
+		"repl:AddCounter", "api:ReplaceCounter",
+		// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+		// file) via the ReplaceDamage intercept in applyReplacements, never
+		// through effects.Resolve/runReplaceWith -- this registration is the
+		// census token only; a stub effects.Register handler would be dead code.
+		"api:ReplaceDamage")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

@@ -856,8 +856,15 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// would read 0 off the stack object. When the asking source IS the card
 	// the pending cast is casting, seed the count the ask just settled --
 	// exactly the `x` resolvedTargetBounds threads for a Count$xPaid bound.
-	if pc := e.cast; pc != nil && pc.card == source && pc.multikickSet {
-		ctx.TimesKicked = pc.multikickTimes
+	if pc := e.cast; pc != nil && pc.card == source {
+		if pc.multikickSet {
+			ctx.TimesKicked = pc.multikickTimes
+		}
+		// The CHOSEN cast mode's kicked bit (Tear Asunder's kicked main SA is
+		// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1): the same
+		// pre-payment gap TimesKicked closes, for the FlagKicked half. The
+		// mode was settled when the cast OPTION was picked, before this ask.
+		ctx.PendingKicked = modeIsKicked(pc.mode)
 	}
 	if f := o.Face(); f != nil {
 		ctx.Source = source
@@ -931,15 +938,30 @@ func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *
 			min = int(n)
 		}
 	}
+	resolvedMax := false
 	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
 		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMax", 1); resolved {
 			max = int(n)
+			resolvedMax = true
 		}
 	}
 	if min < 0 {
 		min = 1
 	}
-	if max < 1 {
+	if max < 0 {
+		max = 0
+	}
+	// A dynamic bound the grammar RESOLVED is honoured as written, zero
+	// included. The "instead" idiom writes exactly that: Tear Asunder's
+	// kicked main SA is TargetMin$ X | TargetMax$ X over
+	// SVar:X:Count$Kicked.0.1, meaning "target nothing here, the chained sub
+	// (Condition$ Kicked, SVar:Y:Count$Kicked.1.0) does the work". Clamping
+	// that resolved 0 up to 1 asks for an artifact/enchantment the kicked
+	// spell must not exile. Only an UNRESOLVED token -- and a literal, already
+	// clamped by targetBounds -- keep the documented max >= 1 clamp; the
+	// max < min clamp below still lifts a resolved 0 when a genuine minimum
+	// is present (a bare TargetMax$ X announced 0, min defaulting to 1).
+	if !resolvedMax && max < 1 {
 		max = 1
 	}
 	if max < min {
@@ -2663,6 +2685,11 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
+	if max == 0 {
+		// A dynamic bound RESOLVED to zero: this stage takes no targets, so
+		// pose no ask (the effects-side askTargets has the same max <= 0 arm).
+		return
+	}
 	candidates := e.legalTargetCandidates(p, source, source, sa)
 	// MaxTotalTargetPower$ (Reunion of the House): prune the candidates that
 	// can provably join no legal selection (individually over the cap unless
@@ -3081,6 +3108,39 @@ func (e *Engine) resolvedAbilityTallyFor(source state.ObjID, sa *cards.SA) int32
 	return e.G.ResolvedThisTurn[events.ResolvedAbilityKey(source, sa)]
 }
 
+// activationsThisTurnFor is the ConditionActivationLimit$ read
+// (Ctx.ActivationsThisTurn): how many times the activated ability sa on
+// source has been activated this turn, INCLUDING the resolving one -- its
+// AbilityPush (a stack ability) or ManaActivate marker (a mana ability,
+// emitted for a chain carrying the gate) is already in the log. sa is located
+// in the source's pile by identity, else by its script line (a mana
+// ability's colour-pinned or Produced$-rewritten copy keeps Line). Zero --
+// the unbound value the effects gate fails open on -- for a nil SA, a
+// source that has left, or an SA that is not one of the source's own
+// activated abilities (a trigger, a spell, a granted body).
+func (e *Engine) activationsThisTurnFor(source state.ObjID, sa *cards.SA) int32 {
+	if sa == nil {
+		return 0
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return 0
+	}
+	idx, _, found := pileAbilityRefOf(o, sa)
+	if !found && sa.Line != "" {
+		for i, n := 0, o.PileAbilityCount(); i < n; i++ {
+			if pa, ok := o.PileAbilityAt(i); ok && pa.SA != nil && pa.SA.Line == sa.Line {
+				idx, found = i, true
+				break
+			}
+		}
+	}
+	if !found {
+		return 0
+	}
+	return int32(e.activationUsedCount(source, idx, "", true))
+}
+
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
@@ -3400,7 +3460,8 @@ func (e *Engine) resolveTop() {
 			// Resolve event's Apply folded: the count INCLUDES this resolution,
 			// because the Resolve event is emitted above before this Ctx is
 			// built (the Sephiroth "if this is the fourth time" gate).
-			ResolvedThisTurn: e.resolvedAbilityTally(o),
+			ResolvedThisTurn:    e.resolvedAbilityTally(o),
+			ActivationsThisTurn: e.activationsThisTurnFor(o.Source, o.Ability),
 			// An Effect-created delayed trigger body resolves under the Effect's
 			// source-scoped frame (queued by rules' delayed-trigger fire), so the
 			// one-shot self-exile idiom it may run ends the Effect. Zero for every
@@ -3948,6 +4009,7 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	// direct resolution that never went through the stack (the map carries no
 	// entry for it), the modelled-head zero the effects case gives.
 	ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(source, sa)
+	ctx.ActivationsThisTurn = e.activationsThisTurnFor(source, sa)
 	// The caller supplies the chosen targets -- the announcement or placement
 	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
 	// for an SA that declares targets (task mvts1).

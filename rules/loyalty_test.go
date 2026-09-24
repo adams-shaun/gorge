@@ -664,8 +664,14 @@ func TestParseCostLoyaltyTokens(t *testing.T) {
 	if len(minus.SubCounter) != 1 || minus.SubCounter[0].N != 1 || minus.SubCounter[0].Spec != "LOYALTY" {
 		t.Fatalf("SubCounter<1/LOYALTY> = %+v", minus)
 	}
-	other := ParseCost("AddCounter<1/M1M1>")
+	// A source-anchored non-loyalty AddCounter is a real free part (Wall of
+	// Roots, Devoted Druid); a chooser-anchored one keeps the fallback.
+	self := ParseCost("AddCounter<1/M1M1>")
+	if len(self.AddCounter) != 1 || self.AddCounter[0].Spec != "M1M1" || self.Generic != 0 {
+		t.Fatalf("AddCounter<1/M1M1> must be a source counter part, got %+v", self)
+	}
+	other := ParseCost("AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>")
 	if len(other.AddCounter) != 0 || other.Generic != 1 {
-		t.Fatalf("non-loyalty AddCounter must keep the fallback, got %+v", other)
+		t.Fatalf("chooser-anchored AddCounter must keep the fallback, got %+v", other)
 	}
 }

@@ -479,6 +479,24 @@ type Decision struct {
 	// optional triggers and Miracle retain their existing policy. This is
 	// runtime-only policy context, not a new legal-answer or wire rule.
 	EffectOptional bool `json:"-"`
+	// CopyOfCopy marks a "copy_optional" may-copy election (effects/copy.go,
+	// CopySpellAbility | Optional$ True) whose spell to be copied is ITSELF a
+	// copy: the continuation of a chain (Chain of Smog's "that player may
+	// copy this spell", Barroom Brawl's), not its first link. Unattended
+	// bots decline it, so a chain the two bots would otherwise extend
+	// forever ends after one hand-over. Runtime-only policy context, like
+	// EffectOptional: not a legal-answer or wire rule.
+	CopyOfCopy bool `json:"-"`
+	// AffordableTargets is a cast-time target ask's engine-computed hint:
+	// the largest number of targets whose total cost (a Strive spell's
+	// per-extra-target additional cost, CR 702.52a) the caster can provably
+	// pay from the pool and the payment window's fixed-production sources.
+	// Zero means no hint (the count does not change the price). It never
+	// narrows Max -- CR 601.2c lets the player choose any number, and the
+	// cost is determined afterwards (601.2f) -- but an unattended bot that
+	// fires the full width of such a spell only reverses it (CR 733.1).
+	// Runtime-only policy context, like CopyOfCopy.
+	AffordableTargets int `json:"-"`
 	// TargetsWithSameController marks a target decision whose selected options
 	// must all have one Controller. It is server-side metadata, so the wire
 	// payload remains unchanged while Validate and bot repair share the rule.

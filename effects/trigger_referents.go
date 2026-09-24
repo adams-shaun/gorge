@@ -256,7 +256,10 @@ func controlReferent(p string) (op, ref string, ok bool) {
 		// bare "Remembered" referent above stays players-only. Resolution-only,
 		// like the bare case: the tail maps each remembered target by op
 		// (ControlledBy -> Controller, OwnedBy -> Owner).",
-		"RememberedController", "RememberedOwner":
+		"RememberedController", "RememberedOwner",
+		// Barroom Brawl's "target creature the opponent to your left
+		// controls": the next living seat after You (not resolution-only).
+		"NextOpponentToYourLeft", "NextPlayerToYourLeft":
 		return op, ref, true
 	}
 	return "", "", false
@@ -338,6 +341,16 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			return nil, false
 		}
 		targets = sc.Remembered
+	case "NextOpponentToYourLeft", "NextPlayerToYourLeft":
+		// Barroom Brawl's "target creature the opponent to your left
+		// controls": the next living seat after You in turn order (Forge's
+		// getNextPlayerAfter; this build has no teams, so the next seat is
+		// also the next opponent). Unbound with no other living seat.
+		alive := g.AliveFrom(sc.You)
+		if len(alive) < 2 {
+			return nil, false
+		}
+		targets = []state.Target{{Player: alive[1], IsPlayer: true}}
 	case "ChosenPlayer", "Player.Chosen":
 		// vow1: the resolution's own ChoosePlayer answer (Gluntch's
 		// "ControlledBy ChosenPlayer"), the same current-resolution set the
