@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import { session } from '../lib/session.svelte';
   import { tables } from '../lib/tables.svelte';
   import { MatchState } from '../lib/match.svelte';
@@ -85,6 +85,9 @@
     if (!seated || seatCtx === null || mm === null || finished) return null;
     if (panelCache === null || panelCache.match !== mm) {
       const state = new SeatPanelState(table, mm, seatCtx);
+      state.onFollowUpArm = (arm) => {
+        expectedCardFollowUp = arm;
+      };
       // Seed the first SSR/client paint. SeatPanel's effect keeps later views
       // adopted; doing the first one here lets the route place mulligan and
       // the page-level concede control correctly before that child mounts.
@@ -205,20 +208,22 @@
   // The effect is the one decoder of the expectation -- resolveCardFollowUp
   // opens the picker only when the next decision really carries 2-6 options
   // on the expected object, and disarms otherwise.
-  let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   //
-  // Track a scalar arm revision rather than the panel object/expectation
-  // itself: arming after an accepted POST must retrigger decoding even when
-  // SSE delivered the follow-up decision first, while avoiding a reactive
-  // dependency on SeatPanelState's derived UI graph during view transitions.
+  // The panel hands each arm to expectedCardFollowUp through its
+  // onFollowUpArm callback (wired where the panel is built). The effect reads
+  // only this route's own state -- never the panel -- so its dependencies are
+  // the decision and the mirror: an arm that lands AFTER SSE already
+  // delivered the follow-up still retriggers it (a fresh object each arm),
+  // and no reactive edge reaches the panel's derived UI graph (the null-ctx
+  // hang, agent-20260924T114750Z-ba517e3b).
+  let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
+  let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   $effect(() => {
     const d = m.view?.decision ?? null;
-    const followUpRevision = panel?.followUpRevision;
-    void followUpRevision;
-    const expected = untrack(() => panel?.followUpExpected ?? null);
-    if (d === null || panel === null || expected === null || d.seq === expected.seq) return;
+    const expected = expectedCardFollowUp;
+    if (d === null || expected === null || d.seq === expected.seq) return;
     autoOpenCardDecision = resolveCardFollowUp(expected, d);
-    panel.followUpExpected = null;
+    expectedCardFollowUp = null;
   });
 
   // The board's card-options index (ui21): the pending decision grouped by

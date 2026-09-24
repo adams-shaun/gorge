@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
   import type { CardView, Decision } from '../protocol';
   import { SeatPanelState } from '../lib/seatpanel.svelte';
   import { resolveCardFollowUp } from '../lib/cardoptions';
@@ -14,15 +13,17 @@
    *  - the captured treasure activate option is posted through the REAL
    *    SeatPanelState.click (the path SeatPanel.svelte's own option buttons
    *    use), so the panel's post arms followUpExpected;
-   *  - the $effect below is Table.svelte's decode effect body, VERBATIM: it
-   *    tracks the arriving decision AND panel.followUpRevision, reads the
-   *    armed expectation untracked, decodes with resolveCardFollowUp and
-   *    mounts the stage-2 tile open.
+   *  - the arm reaches the route the way Table.svelte receives it: the
+   *    panel's onFollowUpArm callback mirrors it into a local $state, and the
+   *    $effect below is Table.svelte's decode effect body, VERBATIM (it reads
+   *    only that mirror and the arriving decision, never the panel), decodes
+   *    with resolveCardFollowUp and mounts the stage-2 tile open.
    *
    * Running the effect reactively (not a manual decode call) is what lets a
    * test deliver the follow-up decision BEFORE the post promise resolves —
    * the SSE-first ordering the L2 finding named — and still see the wheel
-   * open, because arming bumps followUpRevision and retriggers the effect.
+   * open, because each arm writes a fresh object into the mirror and so
+   * retriggers the effect.
    *
    * The stage-two mount is deferred one macrotask, exactly as
    * CardMenu.fixture.ts defers it: synchronously it would happen inside the
@@ -41,33 +42,46 @@
   const ctx = { seat: 0, token: 'fixture-token' };
   const panel = new SeatPanelState('fixture-treasure', 1, ctx, null, null);
 
+  // ?scenario=stage1 swaps in the multi-ability mana source's stage-1 pick
+  // (fb-e079def5, the round-2 review break): a `choose` decision of Kind
+  // "mana" options on Vivid Marsh (obj 512), whose "Add any color" answer is
+  // followed by askManaColor's five-colour wheel on the same object. The
+  // default scenario is the captured treasure report.
+  const stage1 = new URLSearchParams(window.location.search).get('scenario') === 'stage1';
+  const obj = stage1 ? 512 : 207;
+  const colours = (seq: number, prompt: string): Decision => ({
+    seq, player: 0, kind: 'choose', prompt, min: 1, max: 1, source: obj,
+    options: ['W', 'U', 'B', 'R', 'G'].map((c, index) => ({ index, kind: 'mana', label: `Add ${c}`, obj, player: 0 })),
+  });
+
   // The captured priority decision (capture seq 688): two identical Treasure
   // activations (obj 205, 207), pass, concede. min == max == 1, so a click IS
   // the answer and posts.
-  const priority: Decision = {
-    seq: 688, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1,
-    options: [
-      { index: 0, kind: 'activate', label: 'Activate Treasure Token for mana', obj: 205, player: 0 },
-      { index: 1, kind: 'activate', label: 'Activate Treasure Token for mana', obj: 207, player: 0 },
-      { index: 2, kind: 'pass', label: 'Pass priority', player: 0 },
-      { index: 3, kind: 'concede', label: 'Concede', player: 0 },
-    ],
-  };
+  const priority: Decision = stage1
+    ? {
+        seq: 400, player: 0, kind: 'choose', prompt: 'Choose a mana ability of Vivid Marsh', min: 1, max: 1, source: 512,
+        options: [
+          { index: 0, kind: 'mana', label: 'Add B', obj: 512, player: 0 },
+          { index: 1, kind: 'mana', label: 'Add any color', obj: 512, player: 0 },
+        ],
+      }
+    : {
+        seq: 688, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1,
+        options: [
+          { index: 0, kind: 'activate', label: 'Activate Treasure Token for mana', obj: 205, player: 0 },
+          { index: 1, kind: 'activate', label: 'Activate Treasure Token for mana', obj: 207, player: 0 },
+          { index: 2, kind: 'pass', label: 'Pass priority', player: 0 },
+          { index: 3, kind: 'concede', label: 'Concede', player: 0 },
+        ],
+      };
   panel.adoptView(priority);
 
   // The captured follow-up colour ask (capture seq 693): five Kind "mana"
-  // options all on obj 207 — the 2-6 all-mana shape resolveCardFollowUp opens.
-  const choose: Decision = {
-    seq: 693, player: 0, kind: 'choose', prompt: 'Add 1 mana of any one color — choose the colour', min: 1, max: 1,
-    source: 207,
-    options: [
-      { index: 0, kind: 'mana', label: 'Add W', obj: 207, player: 0 },
-      { index: 1, kind: 'mana', label: 'Add U', obj: 207, player: 0 },
-      { index: 2, kind: 'mana', label: 'Add B', obj: 207, player: 0 },
-      { index: 3, kind: 'mana', label: 'Add R', obj: 207, player: 0 },
-      { index: 4, kind: 'mana', label: 'Add G', obj: 207, player: 0 },
-    ],
-  };
+  // options all on obj 207 — the 2-6 all-mana shape resolveCardFollowUp
+  // opens. The stage1 scenario's stage-2 ask is the same shape on obj 512.
+  const choose: Decision = stage1
+    ? colours(403, 'Add one mana of any color — choose the colour')
+    : colours(693, 'Add 1 mana of any one color — choose the colour');
 
   const card = (id: number, name: string, types: string): CardView => ({
     id, name, types, mana_cost: '',
@@ -82,19 +96,21 @@
   let autoOpen = $state<{ seq: number; obj: number } | null>(null);
   let stageTwoMounted = $state(false);
 
-  // Table.svelte's decode effect, reproduced verbatim. Tracking
-  // followUpRevision is what retriggers after the POST arms the expectation
-  // when the follow-up decision already arrived; untracking the expectation
-  // keeps the panel's derived UI graph out of this effect's dependencies (the
-  // dfa4bb5c crash).
+  // Table.svelte's arm mirror and decode effect, reproduced verbatim. The
+  // effect reads only the mirror and the decision -- never the panel -- so an
+  // arm that lands after the follow-up decision still retriggers it.
+  let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
+  let arms = 0;
+  panel.onFollowUpArm = (arm) => {
+    arms++;
+    expectedCardFollowUp = arm;
+  };
   $effect(() => {
     const d = followUp;
-    const followUpRevision = panel.followUpRevision;
-    void followUpRevision;
-    const expected = untrack(() => panel.followUpExpected);
+    const expected = expectedCardFollowUp;
     if (d === null || expected === null || d.seq === expected.seq) return;
     autoOpen = resolveCardFollowUp(expected, d);
-    panel.followUpExpected = null;
+    expectedCardFollowUp = null;
     if (autoOpen !== null) {
       stageTwoMounted = false;
       setTimeout(() => (stageTwoMounted = true), 0);
@@ -109,13 +125,13 @@
     __deliverFollowUp: () => void;
     __armState: () => { seq: number; obj: number } | null;
     __autoOpen: () => { seq: number; obj: number } | null;
-    __revision: () => number;
+    __arms: () => number;
   };
   w.__click = (index) => panel.click(index);
   w.__deliverFollowUp = () => (followUp = choose);
   w.__armState = () => panel.followUpExpected;
   w.__autoOpen = () => autoOpen;
-  w.__revision = () => panel.followUpRevision;
+  w.__arms = () => arms;
 </script>
 
 <div id="panel">
@@ -130,7 +146,7 @@
 <div id="followup" style="width: 220px; height: 320px; margin: 260px">
   {#if stageTwoMounted && autoOpen !== null}
     <CardTile
-      card={card(207, 'Treasure Token', 'Artifact Token')}
+      card={stage1 ? card(512, 'Vivid Marsh', 'Land') : card(207, 'Treasure Token', 'Artifact Token')}
       tileOptions={{
         list: choose.options,
         pickedOrder: [],
