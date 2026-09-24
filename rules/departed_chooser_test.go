@@ -200,8 +200,14 @@ func TestDepartedChooserResumptionEventStreamIsDeterministic(t *testing.T) {
 	// rv2a starting-player state is genesis-derived through events.Apply, so
 	// it preserves this recorded stream while a replay of Config derives the
 	// same designation before folding it.
-	if got := e.L.Head(); got != "17b98ee3668c4c1b" {
-		t.Fatalf("chain head = %s, want 17b98ee3668c4c1b", got)
+	// Regenerated for game-long damage-by-source provenance
+	// (agent-20260923T114033Z-a57ee463): every landed Damage event now emits a
+	// DamageProvenance bookkeeping event beside it, so the whole-log head
+	// moves while this resumption TAIL -- the departure sweep's 60 MoveZone
+	// events, the one completion move, the resumed preface, and `other == 0`
+	// -- is unchanged, which is what says only the added record moved it.
+	if got := e.L.Head(); got != "77b3b266283ab5a9" {
+		t.Fatalf("chain head = %s, want 77b3b266283ab5a9", got)
 	}
 
 	// T21-e: a log-only replay must reconstruct the identical Game. If any

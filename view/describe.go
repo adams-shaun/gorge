@@ -172,6 +172,21 @@ func Describe(g *state.Game, ev events.Event) string {
 		return text
 	case events.CloneStatic:
 		return obj(g, ev.Obj) + " gains a copy static ability"
+	case events.DamageProvenance:
+		// Game-long damage-by-source provenance (the_fallen, diseased_vermin):
+		// Obj is the damage SOURCE and IDs[0] the recipient -- PlayerRef-
+		// encoded for a seat, a plain ObjID for an object. This is the record
+		// fact the damage predicates read, not a second damage announcement
+		// (the Damage event already says "Bob takes N damage"), so the line
+		// names the pair and the amount that landed. A hostile/fuzz event
+		// with no recipient (or a stale id) degrades rather than panics.
+		if len(ev.IDs) == 0 {
+			return obj(g, ev.Obj) + " damaged something"
+		}
+		if p, isPlayer := ev.IDs[0].PlayerRef(); isPlayer {
+			return obj(g, ev.Obj) + " damaged " + player(g, p) + " this game"
+		}
+		return obj(g, ev.Obj) + " damaged " + obj(g, ev.IDs[0]) + " this game"
 	case events.ClonePermanent:
 		// CR 613.1a's layer-1 copy basis (api:Clone, task api-clone): Obj is
 		// the object that becomes the copy and IDs[0] the object copied from;

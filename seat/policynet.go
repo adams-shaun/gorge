@@ -123,7 +123,96 @@ type PolicyNetBot struct {
 	priority  bool
 	blockers  bool
 	target    bool
+	// record, when set (SetRecorder), receives every decision this seat
+	// SCORED and answered from its scores (ticket pn13's on-policy corpus).
+	// nil records nothing and costs nothing.
+	record func(PolicyNetDecision)
+	// signAdmission selects the subset kinds' SIGN admission vote
+	// (SetAdmission(AdmissionSign)); false is the default AdmissionAuto.
+	signAdmission bool
 }
+
+// Subset admission votes (SetAdmission). AdmissionAuto is the default
+// admissionThreshold rule: the calibrated sign when a decision's scores
+// straddle 0, else the decision's own mean, refusing an exact tie.
+// AdmissionSign (opt-in, ticket pn13) always votes on the calibrated sign,
+// score > 0 — the per-option inclusion probability σ(score) > ½ the BCE head
+// is trained under and the on-policy PPO objective models. Measured on the
+// pn11 gen-0 checkpoint's own games (pn13): 93% of the auto rule's attackers
+// "overrides" came from ALL-POSITIVE multi-option decisions, where the mean
+// fallback drops every below-mean attacker the head (and the residual prior)
+// voted to include; no weight update can reach those, because the mean rule
+// is shift-invariant and admits all options only on an exact tie.
+const (
+	AdmissionAuto = "auto"
+	AdmissionSign = "sign"
+)
+
+// AdmissionNames is the admission vocabulary, in listing order.
+var AdmissionNames = []string{AdmissionAuto, AdmissionSign}
+
+// SetAdmission selects the subset kinds' admission vote (AdmissionAuto or
+// AdmissionSign); any other value is an error and changes nothing.
+func (b *PolicyNetBot) SetAdmission(mode string) error {
+	switch mode {
+	case AdmissionAuto:
+		b.signAdmission = false
+	case AdmissionSign:
+		b.signAdmission = true
+	default:
+		return fmt.Errorf("unknown policynet admission %q (want %s)", mode, strings.Join(AdmissionNames, " or "))
+	}
+	return nil
+}
+
+// admission reports the seat's admission mode name.
+func (b *PolicyNetBot) admission() string {
+	if b.signAdmission {
+		return AdmissionSign
+	}
+	return AdmissionAuto
+}
+
+// PolicyNetDecision is one decision the seat scored and answered from its
+// scores — the on-policy corpus's unit (policynet.OnPolicyRecord). A decision
+// the seat delegated to the default bot (an unscored kind, a closed
+// distribution gate, an exactly-tied or refused scored answer) is never
+// reported. Options carry the residual BotPick mark exactly as scored; the
+// slices are the seat's own, handed over (the seat keeps no reference).
+type PolicyNetDecision struct {
+	Kind   decision.Kind
+	Seq    uint64
+	Player state.PlayerID
+	Turn   int32
+	State  policynet.State
+	// Options parallel the decision's options; InSpace marks the scored
+	// action space (every option for attackers, blockers and target; the
+	// cast/ability/pass options priorityFromScores argmaxes over).
+	Options []policynet.Option
+	InSpace []bool
+	// Subset is true for the subset kinds (attackers, blockers), whose
+	// policy is the per-option inclusion vote; false for the single-choice
+	// kinds (priority, target), whose policy is the argmax.
+	Subset bool
+	// Scores are the full scores the answer was read from (head + residual).
+	Scores []float32
+	// Chosen and BotChosen are option POSITIONS: the seat's answer and the
+	// wrapped default bot's answer to the same decision.
+	Chosen    []int
+	BotChosen []int
+	// Value is the checkpoint's V(s) for the deciding seat (HasValue false:
+	// the checkpoint has no value head).
+	Value    float32
+	HasValue bool
+	// Admission is the subset kinds' admission vote the answer was read
+	// with (AdmissionAuto or AdmissionSign).
+	Admission string
+}
+
+// SetRecorder installs fn to receive every decision this seat scores (nil
+// removes it). Recording reads the scores the answer was built from and asks
+// the value head once more; it never changes an answer or consumes rng.
+func (b *PolicyNetBot) SetRecorder(fn func(PolicyNetDecision)) { b.record = fn }
 
 // compile-time assertions: PolicyNetBot is a Seat and deliberately NOT a
 // BoardSeat (its encoder needs the projected View).
@@ -337,18 +426,60 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 	var scored bool
 	switch d.Kind {
 	case decision.KAttackers:
-		in, scored = attackersFromScores(&d, scores)
+		in, scored = attackersFromScoresVote(&d, scores, b.signAdmission)
 	case decision.KPriority:
 		in, scored = priorityFromScores(&d, scores)
 	case decision.KBlockers:
-		in, scored = blockersFromScores(&d, scores, boardFromView(v), botIn)
+		in, scored = blockersFromScoresVote(&d, scores, boardFromView(v), botIn, b.signAdmission)
 	case decision.KTarget:
 		in, scored = targetFromScores(&d, scores)
 	}
 	if scored {
+		if b.record != nil {
+			b.report(v, &d, st, opts, scores, in, botIn)
+		}
 		return in, nil
 	}
 	return botIn, nil
+}
+
+// report builds and hands one scored decision to the recorder.
+func (b *PolicyNetBot) report(v view.View, d *decision.Decision, st policynet.State, opts []policynet.Option, scores []float32, in, botIn decision.Intent) {
+	pos := make(map[int]int, len(d.Options)) // option Index -> position; probed only
+	for i := range d.Options {
+		pos[d.Options[i].Index] = i
+	}
+	positions := func(choices []int) []int {
+		out := make([]int, 0, len(choices))
+		for _, c := range choices {
+			if p, ok := pos[c]; ok {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+	rec := PolicyNetDecision{
+		Kind: d.Kind, Seq: d.Seq, Player: d.Player, Turn: v.Turn,
+		State: st, Options: opts, InSpace: make([]bool, len(opts)),
+		Subset: d.Kind == decision.KAttackers || d.Kind == decision.KBlockers,
+		Scores: scores, Chosen: positions(in.Choices), BotChosen: positions(botIn.Choices),
+		Admission: b.admission(),
+	}
+	for i := range d.Options {
+		switch d.Kind {
+		case decision.KPriority:
+			switch d.Options[i].Kind {
+			case "cast", "ability", "pass":
+				rec.InSpace[i] = true
+			}
+		default:
+			rec.InSpace[i] = true
+		}
+	}
+	if b.scorer.HasValue() {
+		rec.Value, rec.HasValue = b.scorer.Value(st), true
+	}
+	b.record(rec)
 }
 
 // markBotPicks sets Option.BotPick on every option whose Index the given
@@ -376,6 +507,12 @@ func markBotPicks(d *decision.Decision, opts []policynet.Option, in decision.Int
 // chooseAttackersMode already does. ok is false only when no option was
 // scored (the empty decision).
 func attackersFromScores(d *decision.Decision, scores []float32) (decision.Intent, bool) {
+	return attackersFromScoresVote(d, scores, false)
+}
+
+// attackersFromScoresVote is attackersFromScores under the chosen admission
+// vote (sign: the calibrated sign alone; see SetAdmission).
+func attackersFromScoresVote(d *decision.Decision, scores []float32, sign bool) (decision.Intent, bool) {
 	if len(d.Options) == 0 || len(scores) != len(d.Options) {
 		return decision.Intent{}, false
 	}
@@ -394,7 +531,7 @@ func attackersFromScores(d *decision.Decision, scores []float32) (decision.Inten
 	// a reference shift-invariant like the loss, so a checkpoint whose scores
 	// are all one sign (the measured failure this rule exists to stop) ranks
 	// options against each other instead of admitting every one or none.
-	threshold, inclusive := admissionThreshold(scores)
+	threshold, inclusive := admissionVote(scores, sign)
 
 	// An EXACTLY TIED multi-option decision carries no information at all:
 	// not a calibrated sign (the tie is one-signed by construction) and not a
@@ -552,10 +689,16 @@ func priorityFromScores(d *decision.Decision, scores []float32) (decision.Intent
 // answer still fails Validate or the Required quota (the guard can drop a
 // required pair); the caller then uses the bot's declaration.
 func blockersFromScores(d *decision.Decision, scores []float32, board botpolicy.Board, botIn decision.Intent) (decision.Intent, bool) {
+	return blockersFromScoresVote(d, scores, board, botIn, false)
+}
+
+// blockersFromScoresVote is blockersFromScores under the chosen admission
+// vote (see SetAdmission).
+func blockersFromScoresVote(d *decision.Decision, scores []float32, board botpolicy.Board, botIn decision.Intent, sign bool) (decision.Intent, bool) {
 	if len(d.Options) == 0 || len(scores) != len(d.Options) {
 		return decision.Intent{}, false
 	}
-	threshold, inclusive := admissionThreshold(scores)
+	threshold, inclusive := admissionVote(scores, sign)
 	if len(scores) > 1 && inclusive && allEqual(scores) {
 		return decision.Intent{}, false
 	}
@@ -636,6 +779,18 @@ func targetFromScores(d *decision.Decision, scores []float32) (decision.Intent, 
 		return decision.Intent{}, false
 	}
 	return in, true
+}
+
+// admissionVote is the admission reference under the seat's vote: the
+// calibrated boundary 0 (strict) for the sign vote, admissionThreshold for
+// the default auto vote. The sign vote is never inclusive, so it never
+// refuses an exact tie: a zero head with a positive residual admits exactly
+// the bot's own picks.
+func admissionVote(scores []float32, sign bool) (float32, bool) {
+	if sign {
+		return 0, false
+	}
+	return admissionThreshold(scores)
 }
 
 // admissionThreshold returns the reference score for the per-option admission
