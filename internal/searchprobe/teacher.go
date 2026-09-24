@@ -402,3 +402,49 @@ func sameChoices(a, b []int) bool {
 	}
 	return true
 }
+
+// SingleTarget reports whether d is the one KTarget shape the teacher
+// answers: exactly one object or player to pick (Min == Max == 1), no
+// MaxSum/Budgeted budget, and at least two options to choose between. Every
+// other KTarget -- multi-choice, budgeted, optional (Min 0) -- is left to the
+// bot, whose Clamp repairs shapes a single-option swap cannot keep legal.
+// searchseat.Eligible and TargetCandidates share this test so the cheap
+// pre-check and the candidate builder cannot disagree.
+func SingleTarget(d *decision.Decision) bool {
+	return d != nil && d.Kind == decision.KTarget && d.Min == 1 && d.Max == 1 &&
+		!d.HasBudget() && len(d.Options) >= 2
+}
+
+// TargetCandidates enumerates the answers to compare at a single-choice
+// KTarget root (SingleTarget): the bot's own pick first (index 0, the label
+// contract), then every other option in index order, each as a one-choice
+// intent that d.Validate accepts. Capped at limit; nil unless the decision
+// has the single-target shape, the bot answered with exactly one valid
+// choice, and at least two candidates survive.
+func TargetCandidates(d *decision.Decision, bot decision.Intent, limit int) []decision.Intent {
+	if !SingleTarget(d) || limit < 2 || len(bot.Choices) != 1 {
+		return nil
+	}
+	first := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{bot.Choices[0]}}
+	if d.Validate(first) != nil {
+		return nil
+	}
+	out := []decision.Intent{first}
+	for _, o := range d.Options {
+		if len(out) >= limit {
+			break
+		}
+		if o.Index == bot.Choices[0] {
+			continue
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}
+		if d.Validate(in) != nil {
+			continue
+		}
+		out = append(out, in)
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	return out
+}
