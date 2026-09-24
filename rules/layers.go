@@ -1735,17 +1735,18 @@ func (e *Engine) EndOfTurnCleanup() {
 // them as one is behaviourally identical; two units whose lifetimes differ
 // differ in at least one field, so one can never drop the other.
 type cloneExpiry struct {
-	Target    state.ObjID
-	Duration  string
-	UntilEOT  bool
-	UntilTurn int32
+	Target         state.ObjID
+	Duration       string
+	UntilEOT       bool
+	UntilTurn      int32
+	DurationTarget state.ObjID
 }
 
 func cloneExpiryOf(ce ContinuousEffect) cloneExpiry {
 	return cloneExpiry{Target: ce.CloneTarget,
 		Duration:  strings.ToLower(strings.TrimSpace(ce.Duration)),
 		UntilEOT:  ce.UntilEOT,
-		UntilTurn: ce.UntilTurn}
+		UntilTurn: ce.UntilTurn, DurationTarget: ce.CloneDurationTarget}
 }
 
 func cloneExpiryIn(keys []cloneExpiry, k cloneExpiry) bool {
@@ -1755,6 +1756,38 @@ func cloneExpiryIn(keys []cloneExpiry, k cloneExpiry) bool {
 		}
 	}
 	return false
+}
+
+// expireClonesOnEvent ends copy effects at their event-driven boundaries.
+// The marker owns expiry; its sibling modifiers carry the same unit key.
+// Run after Apply so the replay-visible re-base follows the untap/turn-down.
+func (e *Engine) expireClonesOnEvent(ev events.Event, wasTapped bool) {
+	var expired []cloneExpiry
+	for _, ce := range e.continuous {
+		if ce.Layer != LCopy || ce.CloneTarget == 0 {
+			continue
+		}
+		dur := strings.ToLower(strings.TrimSpace(ce.Duration))
+		match := dur == "untilfacedown" && ev.Kind == events.TurnFaceDown && ev.Obj == ce.CloneTarget ||
+			dur == "untiltargeteduntaps" && ev.Obj == ce.CloneDurationTarget &&
+				(ev.Kind == events.Untap && wasTapped || ev.Kind == events.MoveZone && ev.From == state.ZBattlefield)
+		if match && !cloneExpiryIn(expired, cloneExpiryOf(ce)) {
+			expired = append(expired, cloneExpiryOf(ce))
+		}
+	}
+	if len(expired) == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	for _, ce := range e.continuous {
+		if ce.CloneTarget != 0 && cloneExpiryIn(expired, cloneExpiryOf(ce)) {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	e.continuous = kept
+	e.continuousChanged()
+	e.settleExpiredClones(expired)
 }
 
 // settleExpiredClones rewrites the CopyFace basis of every permanent whose
@@ -1808,10 +1841,17 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 		ev := events.Event{Kind: events.ClonePermanent, Obj: k.Target,
 			IDs: []state.ObjID{survivor.CloneSource}, Player: survivor.Controller,
 			Text: survivor.CloneName}
-		if survivor.CloneGainThisAbility {
+		if survivor.CloneChosenName != "" {
+			ev.Counter = "chosen-name"
+			ev.Text = survivor.CloneChosenName
+		} else if survivor.CloneGainThisAbility {
 			ev.Counter = "gain-this-ability"
+			ev.Amount = survivor.CloneAbilityIndex
 		}
 		e.emit(ev)
+		for _, raw := range survivor.CloneStaticBodies {
+			e.emit(events.Event{Kind: events.CloneStatic, Obj: k.Target, Text: raw})
+		}
 	}
 }
 
@@ -2224,10 +2264,18 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			}
 			ty = kept
 		}
-		if ce.RemoveCreatureTypes {
+		if ce.RemoveCreatureTypes || ce.RemoveSubTypes || ce.SetCreatureTypes {
 			kept := ty[:0]
 			for _, t := range ty {
-				if !isCreatureSubtype(t) {
+				if ce.RemoveSubTypes {
+					if isCardType(t) || isSupertype(t) {
+						kept = append(kept, t)
+					}
+				} else if ce.SetCreatureTypes {
+					if !effects.CreatureTypeWords(t) {
+						kept = append(kept, t)
+					}
+				} else if !isCreatureSubtype(t) {
 					kept = append(kept, t)
 				}
 			}

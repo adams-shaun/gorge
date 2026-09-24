@@ -83,7 +83,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
 		events.CopyToken, events.Exert, events.PlanarRoll,
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
-		events.BlessingChange, events.ClonePermanent,
+		events.BlessingChange, events.ClonePermanent, events.CloneStatic, events.TurnFaceDown,
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,

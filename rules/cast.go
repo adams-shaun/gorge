@@ -4969,7 +4969,7 @@ func etbChoicePrompt(kind string) string {
 func etbCloneWhitelist(sa *cards.SA, svars map[string]string) bool {
 	for k := range sa.Params {
 		switch k {
-		case "Choices", "AddKeywords", "AddTypes", "SpellDescription", "AddStaticAbilities":
+		case "Choices", "AddKeywords", "AddTypes", "SpellDescription", "AddStaticAbilities", "IntoPlayTapped":
 			// supported: the copy-template selector, the CR 707.9e
 			// copy modifiers, and (staticgoad1) the granted Goad$ static
 			// effClone registers -- value-checked below.
@@ -5007,19 +5007,18 @@ func etbCloneWhitelist(sa *cards.SA, svars map[string]string) bool {
 			return false
 		}
 	}
-	// AddStaticAbilities$ (staticgoad1, Mocking Doppelganger's FamilyTease):
-	// every named member must resolve to an entirely readable Goad$ True
-	// static — the same gate effClone's registration and effEffect's
-	// StaticAbilities$ arm call — or the copy election would silently drop
-	// the exception, the exact failure this whitelist exists to prevent. An
-	// unresolvable member name fails closed the same way.
+	// A named static is installed on the cloned face by CloneStatic, so
+	// every static reader sees it through its normal printed-S: path. An
+	// unresolvable member still fails closed before posing the ETB election.
 	for _, name := range strings.FieldsFunc(sa.Params["AddStaticAbilities"], func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
-		mode, params := effects.ParseStaticLine(svars, name)
-		if mode != "Continuous" || !effects.GoadStaticGrantReadable(params) {
+		if !effects.CloneStaticGrantReadable(svars, name) {
 			return false
 		}
+	}
+	if raw, ok := sa.Params["IntoPlayTapped"]; ok && !strings.EqualFold(raw, "True") {
+		return false
 	}
 	return true
 }

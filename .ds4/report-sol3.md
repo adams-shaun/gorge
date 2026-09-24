@@ -176,3 +176,76 @@ Earlier implementation reuses existing head-only RemoveKeywords matching rather 
 - Spellweaver Volute's graveyard cast works, but `DB$ Attach | Choices$ Instant | ChoiceZone$ Graveyard` reattachment remains battlefield-only in `effects/attach.go` (`effAttach`); `ChoiceZone$` is unread.
 - Dance of the Dead's `DBAnimate` `OverwriteSpells$ True` is unread by `effects/combatfx.go` (`parseAnimateGrant`). Takklemaggot's `ConditionDefined$ ChosenCard`, `Triggers$`, and `RememberObjects$` also remain unread there.
 - Necromancy's delayed-trigger order ask shows a sibling trigger's label (`rules` `triggerLabel` resolves `pt.Idx` against the printed face rather than the delayed trigger), and `Static$ True` triggers still use the stack (173 measured corpus files, `rules` trigger queue); see `.ds4/report-r2-animate-dead.md` for exact repro and CR 603.3 scope. Its remembered LKI set also emits a benign already-departed-source Note.
+
+
+---
+
+# api:Clone closing register — hn1
+
+STATUS: DONE_WITH_CONCERNS. Rebased twice onto moving `main` (last base `540554fc`); main's Clone row still existed. `git diff main -- AGENTS.md` removes **only** that row; `knownApproximationRows` goes from main's **12** to **11**. `.cards` was present and nonempty (`cards.lock`, `cardsfolder`, IR caches).
+
+## Changes
+
+- `effects/clone.go`: real `Choices$` answer continuation and narrow `GainThisAbility$` were retained from prior rounds; this round adds `AttachedTo$` battlefield resolution, chosen-name lookup in the immutable name universe, `CloneZone$` source-zone gate, face-down/up events, ETB-only `IntoPlayTapped$`, and all named `AddStaticAbilities$` SVar bodies. Unsupported source/name fails closed. Standalone entry-tap still emits its existing loud Note.
+- `events/apply.go`, `events/event.go`, `view/describe.go`, `rules/trigger_eligibility.go`, `state/continuous.go`, `rules/layers.go`: appended replay-visible `CloneStatic` kind (after `TurnFaceDown`), folded named statics on the copied face, and retained their bodies on the clone marker for deterministic expiry/rebase. Event interest and view coverage updated. `ClonePermanent` also resolves a chosen card from `NameUniverse` during Apply, not by direct state mutation.
+- `rules/cast.go`: admits Vesuva's supported entry tapping and any parsed named static; rejects malformed names/values. `rules/etb_clone_whitelist_census_test.go`, `rules/paramcensus_test.go`: re-pinned Vesuva and Sakashima of a Thousand Faces, retired Vesuva's unread-parameter entry, classified the SVar-name lookup (not a card Params lookup).
+- `effects/clone_riders_test.go` and `rules/clone_vesuva_entry_test.go`: real corpus Cephalid Facetaker, Killer Cosplay, Permeating Mass, Vesuva, and Sakashima; fixture-only AttachedTo/FaceDown/KeepFacedown where the corpus has no DB$ Clone carriers. Each test checks distinct operands and relevant zone/status. Real Vesuva and Sakashima tests drive the as-enters election.
+
+Measured raw `DB$ Clone` rider lines at the pinned corpus: `AttachedTo$` **0**, `CopyFromChosenName$` **1**, `CloneZone$` **2**, `FaceDown$` **0**, `KeepFacedown$` **0**, `IntoPlayTapped$` **3**, `AddStaticAbilities$` **3**. The other two IntoPlayTapped carriers also have separately unsupported ETB keys (`ChoiceZone$` on Echoing Deeps; additional riders on Callidus Assassin); only Vesuva's supported template is newly offered. No chain-head or deck-ratchet golden edited; botbench stayed green (no re-pin).
+
+## Fails without the fix
+
+Saved `effects/clone.go` under `.ds4/scratch/`, temporarily replaced it with its pre-rider revision, ran the new effects tests, restored byte-identically (`cmp` exit 0). Actual output:
+
+```
+--- FAIL: TestCloneNamedStaticFromCephalidFacetaker (0.76s)
+    clone_riders_test.go:32: named static not granted
+--- FAIL: TestCloneKillerCosplayCopiesNamedCard (0.00s)
+    clone_riders_test.go:66: chosen-name copy = &{Forest ...}
+--- FAIL: TestClonePermeatingMassHonorsCloneZone (0.00s)
+    clone_riders_test.go:95: CloneZone Battlefield copied an object in graveyard
+--- FAIL: TestCloneVesuvaIntoPlayTapped (0.00s)
+    clone_riders_test.go:116: Vesuva entry: tapped=false face=Forest
+FAIL
+no_fix_exit=1 restored_cmp=0
+```
+
+The two additional fixture tests with the pre-rider revision also failed (restored_cmp=0):
+
+```
+--- FAIL: TestCloneAttachedToNamesBattlefieldBearer
+    clone_riders_test.go:128: clone attachment = 0, want bearer 2
+--- FAIL: TestCloneFaceDownAndKeepFacedown
+    clone_riders_test.go:139: FaceDown$ did not turn the copy face down
+```
+
+For the rules-level tests, removed *only* each production event emission temporarily and restored byte-identically (`cmp` exit 0): `TestCloneVesuvaETBEntersAsTappedLand` failed because `Tapped:false` on its Forest copy; `TestCloneSakashimaETBGrantsNamedIgnoreLegendRule` failed because the copy had no static (`clone_vesuva_entry_test.go:73`). Full outputs: `.ds4/scratch/clone-vesuva-without2.log`, `.ds4/scratch/clone-sakashima-without.log`.
+
+## Gates (exact commands, output)
+
+```
+$ go test -run 'TestClone|TestETBCloneWhitelist|TestTriggerEventInterestMapping|TestEveryRepoDeckParamsAreRead' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.909s
+$ go test -run 'TestClone' ./effects/
+ok   github.com/adams-shaun/gorge/effects (cached)
+$ go test -run 'TestDescribe' ./view/
+ok   github.com/adams-shaun/gorge/view 0.029s
+$ go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/
+ok   github.com/adams-shaun/gorge/internal/testutil 0.002s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.498s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 0.627s
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ gofmt -l effects/clone.go effects/clone_riders_test.go events/apply.go events/event.go rules/cast.go rules/clone_vesuva_entry_test.go rules/etb_clone_whitelist_census_test.go rules/layers.go rules/paramcensus_test.go rules/trigger_eligibility.go state/continuous.go view/describe.go
+(no output)
+$ git diff --check main
+(no output)
+```
+
+## Issues
+
+- `rules/cast.go` (`etbCloneWhitelist`): other ETB Clone bodies remain withheld, notably Mockingbird (`cmcLEY` needs a paid-X resolver), Flesh Duplicate (`IfNew Vanishing` keyword), Echoing Deeps (`ChoiceZone$ Graveyard`) and Callidus Assassin (additional rider grammar). Separately owned ETB-copy ticket must broaden those templates safely. Not a claim that *every* ETB-copy carrier is now supported. `IntoPlayTapped$` appears on **3** raw DB$ Clone lines; only Vesuva is newly admitted. Follow-up issue already tracked by the ETB-copy ticket; no new closing-register row added.
+- `effects/clone.go` (`CopyFromChosenName$`): if a match has no `NameUniverse`, the named copy now emits a Note and does nothing rather than inventing a printed template. **1** raw DB$ Clone carrier (Killer Cosplay); a legacy no-universe match would need its historical chosen card face carried on a replayable event to support this route.
+- `effects/clone.go` (`FaceDown$`, `KeepFacedown$`): no raw DB$ Clone corpus carriers at this pin. This implementation uses `TurnFaceDown`/`TurnFaceUp`, not a turn-face-up *choice* for manifested/cloaked cards (different existing ticket). A `FaceDown$ True` on a copy with `Duration$ UntilFacedown` would turn it down before its marker is registered; should such a combined corpus line appear, the marker lifetime needs an entry-time turn-down check.

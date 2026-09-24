@@ -532,6 +532,12 @@ type Decision struct {
 	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
 	ResumeDigUntilMove     string `json:"-"`
 	ResumeDigUntilMoveDone bool   `json:"-"`
+	// ResumeClonePick carries an earlier DB$ Clone Choices$ copy-source pick
+	// through a later Optional$ may-copy ask in the same walk, so the answered
+	// re-entry consumes the selection rather than posing the Choices$ ask
+	// again. Runtime continuation state only.
+	ResumeClonePick     state.ObjID `json:"-"`
+	ResumeClonePickDone bool        `json:"-"`
 	// ResumeTargetsUnique carries the TargetUnique$ accumulator of the
 	// resolution that posed this ask (Ctx.TargetsUnique at suspension time):
 	// the resume rebuilds a fresh Ctx, which without the ride loses every
