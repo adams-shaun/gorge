@@ -462,7 +462,17 @@ func (b Board) conversionProgresses(c Card, spend manaSpend, prod cards.ManaProd
 	if spend.unknown || prod.Indeterminate {
 		return false
 	}
-	pool := b.Pool
+	// Only the unrestricted pool (see Board.PoolRestricted) pays a
+	// converter or the intended card in this simulation: a restricted unit
+	// the engine would refuse must not stand in for the unit it will spend.
+	base := b.Pool
+	for i := range base {
+		base[i] -= b.PoolRestricted[i]
+		if base[i] < 0 {
+			base[i] = 0
+		}
+	}
+	pool := base
 	for i := range pool {
 		if pool[i] < spend.pips[i] {
 			return false
@@ -493,7 +503,23 @@ func (b Board) conversionProgresses(c Card, spend manaSpend, prod cards.ManaProd
 			pool[i] += prod.Colour[i]
 		}
 	}
-	return conversionDeficit(c, pips, pool) < conversionDeficit(c, pips, b.Pool)
+	return conversionDeficit(c, pips, pool) < conversionDeficit(c, pips, base)
+}
+
+// RestrictedPool folds a seat's RestrictValid$ mana batches into per-slot
+// counts (Board.PoolRestricted). A batch with an empty Valid (an
+// AddsNoCounter$-only provenance batch) imposes no spend limit and is not
+// counted -- the same batches view.PoolRestrictions omits, so the Board's
+// game half and its view half agree.
+func RestrictedPool(rs []state.ManaRestriction) state.Mana {
+	var m state.Mana
+	for _, r := range rs {
+		if strings.TrimSpace(r.Valid) == "" || r.Amount <= 0 {
+			continue
+		}
+		m[state.ManaSlot(r.Color)] += r.Amount
+	}
+	return m
 }
 
 // conversionDeficit is how far pool is from paying card c: the coloured pips

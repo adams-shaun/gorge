@@ -1225,10 +1225,21 @@ func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *card
 // the transaction aborts it (CR 602.2b / 601.2c: such an ability cannot be
 // activated at all). Unlike a cast, an activated ability CAN target its own
 // Source permanent (Mother of Runes targeting itself), so no self-exclusion
-// applies. An ability cost that announces an X (a {X} mana symbol or
-// PayEnergy<X>) relaxes an X-bound spec to the post-announcement backstop.
+// applies -- EXCEPT for an attach ability (API$ Attach, the Equip/Reconfigure
+// expansion): CR 701.3a attaches to ANOTHER permanent, and targetAsk
+// excludes the source from an attach SA's pool, so the offer must exclude it
+// too. Without that, a creature that GAINED an Equip ability (Trazyn the
+// Infinite with an Equipment in its owner's graveyard) as the only creature
+// its controller had was offered an Equip whose ask then found no legal
+// target and aborted, forever (cardfuzz batch5 line 1). An ability cost that
+// announces an X (a {X} mana symbol or PayEnergy<X>) relaxes an X-bound spec
+// to the post-announcement backstop.
 func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
-	return e.targetsAvailable(p, id, 0, ab, costAnnouncesX(e.parseCost(ab.Params["Cost"])))
+	var excludeSelf state.ObjID
+	if ab != nil && ab.API == "Attach" {
+		excludeSelf = id
+	}
+	return e.targetsAvailable(p, id, excludeSelf, ab, costAnnouncesX(e.parseCost(ab.Params["Cost"])))
 }
 
 // grantedAbility is one ability a continuous ability grant (CR 613.1f,
@@ -2941,7 +2952,14 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 					continue
 				}
 			}
-			if abilityRestricted(p, id, ab) {
+			// F05-2 (CR 733.2): the granted twin of the printed loop's
+			// no-progress hold-out. abortCast keys the suppression on the
+			// activation's source (pc.card), which for a granted or gained
+			// ability is this recipient -- without the check a granted
+			// activation whose transaction aborts (no legal target, an
+			// unpayable cost) was re-offered inside one priority window
+			// forever (cardfuzz batch5 line 1: Trazyn's gained Equip).
+			if abilityRestricted(p, id, ab) || e.castSuppressed(p, id) {
 				continue
 			}
 			cost := e.parseCost(ab.Params["Cost"])
@@ -3065,7 +3083,10 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			continue
 		}
 		for _, ab := range e.maxSpeedAbilities(p, id) {
-			if abilityRestricted(p, id, ab) {
+			// castSuppressed: the F05-2 no-progress hold-out every other
+			// activation offer reads (an aborted activation is keyed on its
+			// source).
+			if abilityRestricted(p, id, ab) || e.castSuppressed(p, id) {
 				continue
 			}
 			cost := e.parseCost(ab.Params["Cost"])
