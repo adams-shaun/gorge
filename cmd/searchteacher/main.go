@@ -53,6 +53,9 @@ type config struct {
 	noLandExclusion          bool
 	comparePotential         bool
 	labelsPath               string
+	// labelExtras (pn12) writes schema 3 label records carrying
+	// policynet.LabelExtras; off, the corpus is schema 2 byte for byte.
+	labelExtras bool
 	// value is the -value-checkpoint model (nil: the heuristic leaf). It is
 	// loaded once before any game and shared read-only by every worker.
 	value *policynet.Model
@@ -141,7 +144,8 @@ func run(args []string, stdout, progress io.Writer) error {
 	pairsFlag := fs.String("pairs", "", "restrict to comma list of a:b pairs (default: the ten approved pairs)")
 	outPath := fs.String("out", "", "JSONL of GameRecords (new file)")
 	valueCheckpoint := fs.String("value-checkpoint", "", "score non-terminal rollout leaves with this policynet checkpoint's value head instead of the material heuristic (needs -horizon > 0 and a checkpoint trained with -value-weight > 0)")
-	labelsPath := fs.String("labels", "", "JSONL label corpus of covered decisions (new file only, atomic publish)")
+	labelsPath := fs.String("labels", "", "JSONL label corpus of covered decisions (new file only, atomic publish; gzip-compressed when the path ends in .gz)")
+	labelExtrasFlag := fs.Bool("label-extras", false, "pn12: write schema 3 label records with the extras object (the opponent's hand and next draws, flagged diagnostic; every cast/activate option's follow-up target decision; the in-game target answer)")
 	corpus := fs.String("cards", ".cards", "compiled corpus directory")
 	cpuprofile := fs.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
 	priorPath := fs.String("prior-checkpoint", "", "policynet checkpoint whose policy head ranks the attackers/cast candidates: enumerate -prior-widen, keep the bot answer plus the top -prior-topk (empty = off, today's fixed candidate list)")
@@ -176,6 +180,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	cfg := config{kinds: map[string]bool{}, worlds: *worlds, attempts: *attempts, limit: *limit, minESS: *minESS, margin: *margin,
 		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath, decisionWorkers: *decisionWorkers, noLandExclusion: *noLandExclusion, comparePotential: *comparePotential}
 	cfg.priorTopK, cfg.priorWiden = *priorTopK, *priorWiden
+	cfg.labelExtras = *labelExtrasFlag
 	if *priorPath != "" {
 		m, err := policynet.LoadCheckpointFile(*priorPath)
 		if err != nil {
@@ -341,6 +346,7 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 	actor := state.PlayerID(searchSeat)
 	feed := searchseat.NewFeed(actor)
 	observing := search
+	track := targetTracker{label: -1}
 	for steps := 0; !e.G.Over; steps++ {
 		if steps >= 20000 || e.G.Turn >= 200 {
 			return e, nil // stall: Over=false
@@ -357,10 +363,15 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 				observing = false
 				rec.Unsupported = feed.StopReason()
 			} else if d.Player == actor {
+				before := len(rec.Labels)
 				if e.G.Turn <= cfg.maxTurn {
 					if chosen, ok := teach(setup, feed.HistoryRef(), feed.Collector(), e, d, in, f, cfg, rec, &b); ok {
 						in = chosen
 					}
+				}
+				if cfg.labelExtras {
+					track.observe(rec, d, in, actor)
+					track.afterLabel(rec, before, d, in)
 				}
 				if err := feed.RecordAnswer(d, in); err != nil {
 					return e, err
@@ -473,6 +484,10 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 		Sequence: d.Seq, Seat: d.Player, Kind: d.Kind, Turn: e.G.Turn, Horizon: cfg.horizon, BotIndex: 0,
 		Board: traceboard.Project(b), View: raw, Options: append([]decision.Option(nil), d.Options...)}
 	lbl.Worlds = tr.Worlds
+	if cfg.labelExtras {
+		lbl.SchemaVersion = labelSchemaExtras
+		lbl.Extras = labelExtras(e, d)
+	}
 	lbl.Attempts, lbl.Accepted = tr.Attempts, tr.Accepted
 	lbl.Candidates = make([]LabelCandidate, len(tr.Candidates))
 	for i, cand := range tr.Candidates {
