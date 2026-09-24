@@ -2199,6 +2199,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
+		if rest == "HasPropertycontrolsCreature.powerGE4" && arg == "" {
+			// Yojimbo's chapter IV counts opponents, not creatures. Read the
+			// battlefield and derived power (including continuous effects).
+			seen := make(map[state.PlayerID]bool)
+			for i := range g.Objs {
+				o := &g.Objs[i]
+				if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
+					h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
+					seen[o.Controller] = true
+				}
+			}
+			var n int32
+			for _, p := range opponentGroup(g, c) {
+				if seen[p] {
+					n++
+				}
+			}
+			return n, true
+		}
 		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true
 		}
@@ -2349,6 +2368,28 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return yes, true
 		}
 		return no, true
+	}
+
+	// DifferentCounterKinds_<spec> counts distinct real counter kinds over
+	// matching battlefield objects. These are the three corpus selectors;
+	// other spellings are unreadable, not an evaluated zero.
+	if spec, ok := strings.CutPrefix(head, "DifferentCounterKinds_"); ok {
+		if arg != "" || (spec != "Card.Self" && spec != "Creature.YouCtrl" && spec != "Permanent.YouCtrl") {
+			return 0, false
+		}
+		kinds := make(map[string]bool)
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.Zone != state.ZBattlefield || !matchesZoneSpecCtx(g, spec, o.ID, c.SpecContext(c.Controller), state.ZBattlefield) {
+				continue
+			}
+			for _, counter := range o.Counters {
+				if counter.N > 0 && !state.InternalCounterMarker(counter.Kind) {
+					kinds[counter.Kind] = true
+				}
+			}
+		}
+		return int32(len(kinds)), true
 	}
 
 	// CardCounters.<KIND> counts a counter kind on the source; ALL is the

@@ -38,6 +38,7 @@ var modelledValueHeads = []string{
 	"Delirium",
 	"Devotion",
 	"DevotionDual",
+	"DifferentCounterKinds",
 	"Domain",
 	"DomainActivePlayer",
 	"FatefulHour",
