@@ -1844,6 +1844,11 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// rather than against either of the two destinations the walk picks
 	// between.
 	rider := classifyAttackingEntry(c, sa, state.ZBattlefield)
+	// RememberFound$ replaces the resolution's Remembered set with found
+	// cards, or with all revealed cards when RememberRevealed$ is also set.
+	// Trigger referents remain in Ctx.Captured. Accumulate across the
+	// player walk so a later player's reveal does not erase earlier ones.
+	var digRemembered []state.Target
 	for _, p := range playerIDsFromTargets(h, c, sa.Params["Defined"], targets) {
 		lib := zoneOf(g, state.ZLibrary, p)
 		if len(lib) == 0 {
@@ -1885,14 +1890,19 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		}
 		switch {
 		case rememberRevealed:
-			// The revealed set already carries every found card (it is a
-			// prefix scan), so RememberFound$ adds nothing new.
+			// The revealed set already includes every found card. Alone,
+			// RememberRevealed$ retains its append semantics; paired with
+			// RememberFound$ it replaces the trigger capture at the end.
 			for _, id := range revealed {
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				if rememberFound {
+					digRemembered = append(digRemembered, state.Target{Obj: id})
+				} else {
+					c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				}
 			}
 		case rememberFound:
 			for _, id := range found {
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				digRemembered = append(digRemembered, state.Target{Obj: id})
 			}
 		}
 		foundJoinedRevealed := false
@@ -2013,6 +2023,9 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			ev.Player, ev.Secret = p, true
 			h.Emit(ev)
 		}
+	}
+	if rememberFound {
+		c.Remembered = digRemembered
 	}
 }
 

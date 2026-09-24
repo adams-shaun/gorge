@@ -825,6 +825,9 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if len(cost.LifeX) > 0 {
 		return false
 	}
+	if !manaCostPartsSettleable(cost) {
+		return false
+	}
 	for _, part := range cost.SubCounter {
 		if part.Announced {
 			return false
@@ -832,6 +835,22 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		if o.Counter(part.Spec) < part.N {
 			return false
 		}
+	}
+	// PayEnergy<N> (Aether Hub, Servant of the Conduit): the payer's energy
+	// total must cover every fixed part (CR 107.14); the settle spends it
+	// through chargeEnergyCost, the cast path's one energy-charging site.
+	energy := int32(0)
+	for _, part := range cost.Energy {
+		energy += part.N
+	}
+	if energy > e.G.Players[p].Counter("ENERGY") {
+		return false
+	}
+	// AddCounter<N/KIND> and Exert<1/CARDNAME> are source-anchored: the
+	// source must still be the permanent that receives the counter or the
+	// exert (a mana ability is activated from the battlefield).
+	if (len(cost.AddCounter) > 0 || len(cost.Exert) > 0) && o.Zone != state.ZBattlefield {
+		return false
 	}
 	// Return<N/Spec> parts: the mana path pays only the self-return
 	// (Spec CARDNAME, Forge's payCostFromSource -- Grinning Ignus's
@@ -1089,9 +1108,7 @@ func (e *Engine) commitManaDiscard() {
 	if md.cost.Tap {
 		manaTriggers = e.emitManaTap(md.player, md.source, md.ability)
 	}
-	for _, part := range md.cost.SubCounter {
-		e.emit(events.Event{Kind: events.CounterChange, Obj: md.source, Counter: part.Spec, Amount: -part.N})
-	}
+	e.payManaSourceParts(md.player, md.source, md.cost)
 	for _, id := range md.sacs {
 		e.emit(events.Sacrifice(id))
 	}
@@ -1599,9 +1616,7 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	if cost.Tap {
 		manaTriggers = e.emitManaTap(p, source, ma)
 	}
-	for _, part := range cost.SubCounter {
-		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})
-	}
+	e.payManaSourceParts(p, source, cost)
 	for _, id := range sacs {
 		e.emit(events.Sacrifice(id))
 	}
@@ -2133,4 +2148,61 @@ func chainGatesOnActivationCount(sa *cards.SA) bool {
 		}
 	}
 	return false
+}
+
+// manaCostPartsSettleable is the mana path's fail-closed whitelist: a mana
+// ability is activated off the stack by resolveManaAbilityRefOriginal and
+// the manaDiscardActivation continuation, which settle exactly mana/life
+// (payManaConvFor), {T}, Mill, SubCounter on the source, PayEnergy<N>,
+// AddCounter on the source, Exert<1/CARDNAME>, Sac, Discard, Exile and the
+// self-Return. Every other part -- an unmodelled token (Cost.Unknown: Pili-Pala's
+// {Q}, Benthic Explorers' untapYType, both of which used to be priced as one
+// phantom generic), CollectEvidence (Cryptex), a Draw/DamageYou/PutToLib/
+// MoveToGrave/RollDice part, a dynamic PayEnergy<X> or a SubCounter
+// anchored to another permanent (Jetfire's RemoveAnyCounter) -- has no
+// settle here, so the ability is refused rather than activated with that
+// part silently free. The remaining refusals (X, Reveal, Behold, tapXType,
+// Blight, Forage, LifeX, an unsupported Return) live beside the call site.
+func manaCostPartsSettleable(cost Cost) bool {
+	if len(cost.Unknown) > 0 || len(cost.Evidence) > 0 || len(cost.Draw) > 0 ||
+		len(cost.DamageYou) > 0 || len(cost.PutToLib) > 0 || len(cost.MoveToGrave) > 0 ||
+		len(cost.RollDice) > 0 || cost.LifeHalfUp {
+		return false
+	}
+	for _, part := range cost.Energy {
+		if part.Spec == "X" {
+			return false
+		}
+	}
+	for _, part := range cost.SubCounter {
+		if !subCounterTargetsSource(part.Target) {
+			return false
+		}
+	}
+	return true
+}
+
+// payManaSourceParts settles a mana ability's source-anchored non-mana cost
+// parts, after the {T} tap and before any sacrifice (so a counter or exert
+// lands on the still-present source): SubCounter removals, the PayEnergy<N>
+// spend (chargeEnergyCost, the cast path's one energy-charging site), the
+// AddCounter<N/KIND> placement (Wall of Roots' -0/-1 counter; the same
+// CounterChange the activation settle emits) and the Exert<1/CARDNAME>
+// exert (Oasis Ritualist; the same events.Exert the attack election emits).
+// manaAbilityPayablePool gated each one, so every part here is payable.
+func (e *Engine) payManaSourceParts(p state.PlayerID, source state.ObjID, cost Cost) {
+	for _, part := range cost.SubCounter {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})
+	}
+	e.chargeEnergyCost(p, cost, 0)
+	for _, part := range cost.AddCounter {
+		if part.N != 0 {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: part.N})
+		}
+	}
+	for range cost.Exert {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+			e.emit(events.Event{Kind: events.Exert, Obj: source, Player: p})
+		}
+	}
 }
