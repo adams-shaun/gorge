@@ -3,6 +3,7 @@ package searchseat
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 )
@@ -55,6 +56,27 @@ func TestCastOptionsCountsDistinctObjects(t *testing.T) {
 				t.Errorf("CastOptions = %d, want %d", got, tc.want)
 			}
 		})
+	}
+}
+
+// CastOptions IS botpolicy.CastableObjects: the teacher's priority
+// eligibility and the learned seat's priority gate (seat.PolicyNetBot) read
+// one definition, so the distribution the head is trained on and the one it
+// is asked to answer cannot drift. Pinned on hand-built decisions covering
+// every branch of the count.
+func TestCastOptionsIsTheBotpolicyCount(t *testing.T) {
+	for _, opts := range [][]decision.Option{
+		nil,
+		{{Kind: "pass"}},
+		{{Kind: "cast", Obj: 10}, {Kind: "pass"}},
+		{{Kind: "cast", Obj: 10}, {Kind: "cast", Obj: 10}, {Kind: "pass"}},
+		{{Kind: "cast", Obj: 10}, {Kind: "cast", Obj: 11}, {Kind: "ability", Obj: 12}, {Kind: "pass"}},
+		{{Kind: "play_land", Obj: 9}, {Kind: "activate", Obj: 8}, {Kind: "cast", Obj: 10}, {Kind: "cast", Obj: 11}, {Kind: "cast", Obj: 12}},
+	} {
+		d := &decision.Decision{Kind: decision.KPriority, Options: opts}
+		if got, want := CastOptions(d), botpolicy.CastableObjects(d); got != want {
+			t.Errorf("options %+v: CastOptions = %d, botpolicy.CastableObjects = %d", opts, got, want)
+		}
 	}
 }
 

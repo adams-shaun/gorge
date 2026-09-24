@@ -45,7 +45,6 @@ import (
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 	"github.com/adams-shaun/gorge/rules"
-	"github.com/adams-shaun/gorge/state"
 )
 
 // Options are the search knobs, defaulted by Defaults() to cmd/searchteacher's
@@ -187,15 +186,12 @@ func Eligible(d *decision.Decision, opts Options) bool {
 // CastOptions counts the DISTINCT castable objects a priority decision offers.
 // Distinct objects, not options: one card can be offered several ways (an
 // alternative cost, a kicked mode), and those are the same choice of card for
-// candidate purposes.
+// candidate purposes. It IS botpolicy.CastableObjects, the definition the
+// learned seat's priority gate (seat.PolicyNetBot) also reads, so the
+// teacher's label distribution and the seat's scored distribution share one
+// eligibility test.
 func CastOptions(d *decision.Decision) int {
-	seen := map[state.ObjID]bool{}
-	for _, o := range d.Options {
-		if o.Kind == "cast" {
-			seen[o.Obj] = true
-		}
-	}
-	return len(seen)
+	return botpolicy.CastableObjects(d)
 }
 
 // Choose runs the teacher at one decision and returns the intent to play.
