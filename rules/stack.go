@@ -1677,18 +1677,22 @@ func (e *Engine) candidatesForLimit(p state.PlayerID, source, excludeSelf state.
 	// alternatives whose base is not a player base, so a mixed
 	// `Creature,Opponent` spec keeps the object half and matches only the
 	// player half's seats.
-	// CR 702.18 (player shroud) and CR 702.11 (player hexproof): a seat a
-	// live `Affected$ You | AddKeyword$` static grants those keywords is
-	// withheld here exactly as a permanent carrying them is withheld in the
-	// object arm below -- the grant is read off the same layer walk, through
-	// playerKeywords (rules/playerkeywords.go). Only the targeting arm
-	// consults them; the affected census (targeting=false) does not, the
-	// same split the permanent shroud gate applies.
+	// CR 702.18 (player shroud), CR 702.11 (player hexproof) and CR 702.16c
+	// (player protection): a seat a live `Affected$ You | AddKeyword$`
+	// static grants those keywords is withheld here exactly as a permanent
+	// carrying them is withheld in the object arm below -- the grant is read
+	// off the same layer walk, through playerKeywords (rules/playerkeywords.go).
+	// Protection is judged against the same census-wide protSrc the object
+	// arm's protectedFrom uses, so the two arms resolve "the source"
+	// identically (CR 702.16c). Only the targeting arm consults them; the
+	// affected census (targeting=false) does not, the same split the
+	// permanent shroud gate applies.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
 			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) &&
 				(!targeting || !e.playerShroudBlocksTarget(q)) &&
-				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) {
+				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) &&
+				(!targeting || !e.playerProtectedFrom(q, protSrc)) {
 				out = append(out, targetCandidate{kind: "player", player: q})
 			}
 		}
@@ -1922,13 +1926,23 @@ func charmTargetSlots(svars map[string]string, root *cards.SA, modes []string) [
 	return slots
 }
 
-// askCharmModeTargets is the ordinary distinct-mode target ask. One option
-// group is allocated per target-bearing mode; with Min == Max == number of
-// modes, Decision.Validate therefore requires exactly one target from every
-// mode's own candidate set. The explicit single-target shape is intentional:
-// it is the independently-targeted Charm family and leaves multi-target and
-// repeatable declarations on their existing paths. infeasible means a mandatory
-// mode has no legal target: callers must not fall back to the first-mode ask.
+// askCharmModeTargets is the ordinary distinct-mode target ask (CR 601.2c).
+// Every target-bearing chosen mode declares its own targets, so one option
+// group per mode is allocated with each mode's OWN bounds. When every mode is
+// exactly 1..1 the single combined decision is kept -- Min == Max == number of
+// modes, so Decision.Validate requires exactly one target from every mode's
+// own candidate set, and that wire form is pinned by
+// charm_distinct_targets_test.go. A mode with bounds outside 1..1 (an "up to N"
+// plural declaration, a mandatory minimum above one, differing maxes) cannot
+// be expressed in that one decision: a Decision has ONE global Min/Max, one
+// shared GroupLimit and no per-group minimum, so a plural mode could otherwise
+// satisfy the count while a mandatory single-target mode contributes nothing
+// (and, with the mode chosen first, steal its target). Those shapes are asked
+// SEQUENTIALLY, one mode at a time in chosen-mode order, through the same
+// binding machinery (each answer lands as one group in pc.charmTargets /
+// e.charmTargets, which recheckCharmTargets and charmDistinctTargetRun already
+// consume positionally). infeasible means a mandatory mode's minimum cannot be
+// met: callers must not fall back to the first-mode ask.
 func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars map[string]string, root *cards.SA, modes []string) (asked, infeasible bool) {
 	slots := charmTargetSlots(svars, root, modes)
 	if len(slots) < 2 {
@@ -1948,17 +1962,35 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 		cs   []targetCandidate
 	}
 	var all []slot
+	allSimple := true
 	for _, name := range slots {
 		sa := cards.ResolveSVar(svars, name)
 		min, max := e.resolvedTargetBounds(p, source, sa, 0)
 		if min != 1 || max != 1 {
-			return false, false
+			allSimple = false
 		}
 		cs := e.legalTargetCandidates(p, source, source, sa)
-		if len(cs) == 0 {
+		if len(cs) < min {
+			// A mandatory minimum the board cannot meet makes the whole
+			// announcement impossible (CR 601.2c): abort rather than pose an
+			// unanswerable ask or silently drop the mode.
 			return false, true
 		}
 		all = append(all, slot{name: name, sa: sa, cs: cs})
+	}
+	if !allSimple {
+		// A shape the one combined decision cannot express: pose each mode's
+		// own ask in turn. Seed the binding storage -- the cast's scratch or
+		// the triggered object's map, discriminated exactly as handleTarget's
+		// answer arm does -- so a skipped optional mode's empty group is
+		// recorded where resolution reads it.
+		var groups [][]state.Target
+		groups, asked, infeasible = e.askCharmSeqSlot(p, source, svars, root, slots, groups)
+		if infeasible {
+			return false, true
+		}
+		e.storeCharmSeqGroups(source, groups)
+		return asked, false
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: len(all), Max: len(all),
 		Prompt: fmt.Sprintf("Choose one target for each of %d modes", len(all)), Source: source,
@@ -1973,6 +2005,161 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 	}
 	e.ask(d)
 	return true, false
+}
+
+// askCharmSeqSlot poses the next per-mode target ask of a sequential
+// distinct-mode Charm. It walks slots from len(groups) forward: a mode whose
+// mandatory minimum the board cannot meet reports infeasible; an optional mode
+// with no legal candidates records an EMPTY group (keeping the positional
+// binding aligned) and moves on; the first mode with candidates poses its own
+// bounded KTarget and returns asked. It returns (groups,false,false) when
+// every remaining slot was satisfied by an empty optional group, so the caller
+// finishes the announcement. The accumulated groups are the same value the
+// combined answer would have produced, in the same target-bearing-mode order,
+// so charmTargetGroups/recheckCharmTargets/charmDistinctTargetRun bind them
+// positionally without change.
+func (e *Engine) askCharmSeqSlot(p state.PlayerID, source state.ObjID, svars map[string]string,
+	root *cards.SA, slots []string, groups [][]state.Target) ([][]state.Target, bool, bool) {
+	out := append([][]state.Target(nil), groups...)
+	for idx := len(out); idx < len(slots); idx++ {
+		sa := cards.ResolveSVar(svars, slots[idx])
+		if sa == nil {
+			out = append(out, nil)
+			continue
+		}
+		min, max := e.resolvedTargetBounds(p, source, sa, 0)
+		cs := e.legalTargetCandidates(p, source, source, sa)
+		if len(cs) < min {
+			return out, false, true
+		}
+		if len(cs) == 0 {
+			out = append(out, nil)
+			continue
+		}
+		if max > len(cs) {
+			max = len(cs)
+		}
+		prompt := strings.TrimSpace(sa.Params["TgtPrompt"])
+		if prompt == "" {
+			prompt = "Choose a target"
+		}
+		d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
+			Prompt: prompt, Source: source, TargetEffect: e.describeTargetEffect(p, source, sa, 0),
+			ResumeKind: "charm_mode_seq", ResumeSA: root,
+			ResumeModes: append([]string(nil), slots...)}
+		for _, candidate := range cs {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: candidate.kind, Label: e.targetOptionLabel(candidate), Obj: candidate.obj,
+				Player: candidate.player, Controller: e.candidateControllerSeat(candidate)})
+		}
+		e.ask(d)
+		return out, true, false
+	}
+	return out, false, false
+}
+
+// charmSeqGroups reads the sequential distinct-mode answer groups recorded so
+// far, from the cast's scratch or the triggered object's map -- the same split
+// storeCharmSeqGroups writes and handleTarget's combined arm discriminates.
+// It is the ONE reader of that choice so the two halves cannot disagree about
+// where a sequential group lives.
+func (e *Engine) charmSeqGroups(source state.ObjID) [][]state.Target {
+	if e.cast != nil {
+		return e.cast.charmTargets
+	}
+	return e.charmTargets[source]
+}
+
+// storeCharmSeqGroups writes the sequential answer groups to the same place
+// charmSeqGroups reads them and the combined answer's groups land: the cast's
+// pc.charmTargets (committed to e.charmTargets by payCast) or the triggered
+// stack object's e.charmTargets entry.
+func (e *Engine) storeCharmSeqGroups(source state.ObjID, groups [][]state.Target) {
+	if e.cast != nil {
+		e.cast.charmTargets = groups
+		return
+	}
+	if e.charmTargets == nil {
+		e.charmTargets = make(map[state.ObjID][][]state.Target)
+	}
+	e.charmTargets[source] = groups
+}
+
+// charmSeqSVars resolves the SVars map and root Charm SA for a sequential ask's
+// source object, so a re-asked slot resolves its mode body the same way the
+// first pass did: a triggered ability reads its source permanent's face, a
+// spell its own declared face.
+func (e *Engine) charmSeqSVars(source state.ObjID) (map[string]string, *cards.SA, bool) {
+	o := e.G.Obj(source)
+	if o == nil {
+		return nil, nil, false
+	}
+	if o.Ability != nil {
+		src := e.G.Obj(o.Source)
+		if src == nil || src.Face() == nil {
+			return nil, nil, false
+		}
+		return src.Face().SVars, o.Ability, true
+	}
+	f := o.Face()
+	if f == nil {
+		return nil, nil, false
+	}
+	return f.SVars, f.SpellAbility(), true
+}
+
+// charmSeqAnswer records one answered per-mode group of a sequential
+// distinct-mode Charm target declaration and either poses the next mode's ask
+// or finalizes the announcement. It is the sequential twin of the
+// charm_targets arm below: the group lands in the same positional storage
+// (pc.charmTargets for a cast, e.charmTargets for a trigger), the flat target
+// list and its TargetsChosen events are recorded in the same order, and the
+// final group triggers the same payCast/trigger-drain tail -- so resolution's
+// charmDistinctTargetRun and CR 608.2b's recheckCharmTargets need no change.
+func (e *Engine) charmSeqAnswer(d *decision.Decision, in decision.Intent, chosen []decision.Option) {
+	svars, root, ok := e.charmSeqSVars(d.Source)
+	if !ok {
+		return
+	}
+	thisGroup := targetOptions(chosen)
+	prev := e.charmSeqGroups(d.Source)
+	groups := append([][]state.Target(nil), prev...)
+	groups = append(groups, thisGroup)
+	appendFirst := len(prev) > 0
+	if e.cast != nil {
+		pc := e.cast
+		pc.charmTargets = groups
+		stageBase := len(pc.targets)
+		pc.targets = append(pc.targets, thisGroup...)
+		e.repriceForTargets(pc)
+		if pc.stackObj != 0 {
+			e.recordChosenTargets(pc.stackObj, chosen, stageBase > 0)
+		}
+	} else {
+		e.storeCharmSeqGroups(d.Source, groups)
+		e.recordChosenTargets(d.Source, chosen, appendFirst)
+	}
+	next, asked, infeasible := e.askCharmSeqSlot(d.Player, d.Source, svars, root, d.ResumeModes, groups)
+	if infeasible {
+		// The first pass pre-checked every slot's mandatory minimum, so this
+		// cannot newly fail between asks; keep the callers' own infeasible
+		// arms authoritative if it ever does.
+		return
+	}
+	e.storeCharmSeqGroups(d.Source, next)
+	if asked {
+		return
+	}
+	if e.cast != nil {
+		e.payCast()
+		return
+	}
+	if e.drainAwaitsTarget {
+		e.drainAwaitsTarget = false
+		e.resumeTriggerDrain()
+	} else if e.pending == nil {
+		e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+	}
 }
 
 // charmTargetGroups partitions a combined Charm target answer by its
@@ -2841,6 +3028,10 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		} else if e.pending == nil {
 			e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
 		}
+		return
+	}
+	if d.ResumeKind == "charm_mode_seq" {
+		e.charmSeqAnswer(d, in, chosen)
 		return
 	}
 	// A cast-flow target decision (CR 601.2c, asked by targetAsk after the
@@ -3926,9 +4117,9 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
-			// CR 702.18 / CR 702.11 for players: a target that GAINED player
-			// shroud or (opponent-only) hexproof between placement and
-			// resolution is dropped here, exactly as the object arm below
+			// CR 702.18 / CR 702.11 / CR 702.16c for players: a target that
+			// GAINED player shroud, hexproof or protection between placement
+			// and resolution is dropped here, exactly as the object arm below
 			// drops a permanent that gained them -- the same judge the offer
 			// (candidatesFor's player loop) applies, so offer and recheck
 			// cannot disagree (the one-definition rule). Players have no zone:
@@ -3936,7 +4127,8 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
 				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) &&
 				!e.playerShroudBlocksTarget(t.Player) &&
-				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) {
+				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) &&
+				!e.playerProtectedFrom(t.Player, e.protectionSource(source)) {
 				legal = append(legal, t)
 			}
 			continue
