@@ -71,6 +71,19 @@ type Host interface {
 	// hash chain is unaffected; rules.Engine keeps the provenance as event
 	// context while the event's triggers are matched.
 	EmitTap(obj state.ObjID, tapper state.PlayerID, entering bool)
+	// EmitScryRecord logs a COMPLETED scry instruction's events.Scry record
+	// (task scrybottom): the marker trig:Scry's ToBottom$ gate reads, carrying
+	// in Amount the number of cards actually put on the bottom. rules' ordinary
+	// completion site is handleArrange, which emits it through emitScryRecord
+	// -- OUTSIDE the replacement pass, because a finished action is nothing
+	// left to replace (CR 614.4's R:Event$ Scry window is before the scry, and
+	// re-matching the completed record as a fresh proposal would let Kenessos
+	// rewrite or Eligeth consume an action that already happened). The asking
+	// primitive's own stand-in (no-host, or the never-posted empty KArrange an
+	// empty library or ScryNum$ 0 produces) completes the scry in effects, so
+	// it records its zero-card bottom pile through this method instead of
+	// plain Emit -- the event, not the route, is identical to handleArrange's.
+	EmitScryRecord(events.Event)
 	// Rand is the engine's seeded generator. Effects that need randomness must
 	// use it and nothing else, or replay breaks.
 	Rand(n int) int
