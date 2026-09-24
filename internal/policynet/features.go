@@ -31,6 +31,12 @@ import (
 //     information, so WriteCheckpoint refuses it and no seat can load it.
 //   - FeaturesMZOracle ("mz-oracle"): FeaturesMZOppHand plus the next draws
 //     of both libraries. DIAGNOSTIC ONLY, same refusal.
+//   - FeaturesEntity ("entity", ticket pn14): FeaturesMZ plus one ENTITY
+//     vector per visible card (entity.go: State.Cards, Option.EntA/EntB).
+//     Unlike every set above it changes the model geometry: an entity model
+//     carries a per-card encoder, a pooled projection into the state trunk
+//     and 2·EntK extra hidden inputs per option (Model.EntK > 0). Read from
+//     the redacted view only: checkpointable (schema version 4) and playable.
 type FeatureSet uint8
 
 const (
@@ -38,9 +44,10 @@ const (
 	FeaturesMZ
 	FeaturesMZOppHand
 	FeaturesMZOracle
+	FeaturesEntity
 )
 
-var featureSetNames = [...]string{"v1", "mz", "mz-opphand", "mz-oracle"}
+var featureSetNames = [...]string{"v1", "mz", "mz-opphand", "mz-oracle", "entity"}
 
 // String is the flag spelling.
 func (fs FeatureSet) String() string {
@@ -66,7 +73,7 @@ func ParseFeatureSet(s string) (FeatureSet, error) {
 // Diagnostic reports whether the set reads hidden information (the opponent's
 // hand or future draws). A diagnostic model is a measurement vehicle only:
 // it is never checkpointed and never played by a seat.
-func (fs FeatureSet) Diagnostic() bool { return fs >= FeaturesMZOppHand }
+func (fs FeatureSet) Diagnostic() bool { return fs == FeaturesMZOppHand || fs == FeaturesMZOracle }
 
 // Diag is the hidden information a diagnostic feature set reads: recorded by
 // cmd/searchteacher -label-extras (LabelExtras) and never available to a
@@ -88,6 +95,9 @@ func EncoderHashFor(fs FeatureSet) uint64 {
 	}
 	s := fmt.Sprintf("gorge-policynet-features\x1fbase=%#016x\x1fset=%s\x1fmz-format=1\x1fpins=%d,%d",
 		EncoderHash(), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
+	if fs == FeaturesEntity {
+		s += entityHashSuffix()
+	}
 	h := uint64(14695981039346656037)
 	for i := 0; i < len(s); i++ {
 		h ^= uint64(s[i])
@@ -99,7 +109,7 @@ func EncoderHashFor(fs FeatureSet) uint64 {
 // FeaturesForHash maps a checkpoint's encoder hash back to the non-diagnostic
 // feature set it was written under.
 func FeaturesForHash(h uint64) (FeatureSet, bool) {
-	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ} {
+	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity} {
 		if EncoderHashFor(fs) == h {
 			return fs, true
 		}
@@ -126,6 +136,9 @@ func EncodeStateWith(fs FeatureSet, v view.View, seat state.PlayerID, diag *Diag
 	}
 	st.Sparse = append(st.Sparse, extra...)
 	sort.SliceStable(st.Sparse, func(i, j int) bool { return st.Sparse[i].Row < st.Sparse[j].Row })
+	if fs == FeaturesEntity {
+		st.Cards, _ = entityCards(v, seat)
+	}
 	return st
 }
 
@@ -153,6 +166,9 @@ func EncodeOptionWith(fs FeatureSet, v view.View, seat state.PlayerID, d decisio
 		if ref, ok := cardIndex(v, seat)[o.Obj]; ok && ref.cv.SpellAPI != "" {
 			opt.Hashed = append(opt.Hashed, Feature{Row: hashID("mz|api|" + ref.cv.SpellAPI), Value: 1})
 		}
+	}
+	if fs == FeaturesEntity {
+		opt.EntA, opt.EntB = entityOptionRefs(v, seat, o)
 	}
 	return opt
 }

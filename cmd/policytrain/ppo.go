@@ -100,6 +100,21 @@ type PPOKindStat struct {
 	// options whose admission changed.
 	FinalFlip   float64 `json:"final_flip"`
 	FinalAdmits float64 `json:"final_admits"`
+	// Sampled counts the kind's decisions a stochastic collection seat
+	// SAMPLED (they carry a behaviour log-probability; ticket pn14), and
+	// OffGreedy those whose played answer differs from π_old's own greedy
+	// answer (the argmax; the subset kinds' admission vote before repair) —
+	// the exploration that actually happened. MeanPBeh is the mean behaviour
+	// probability of the played answer over the sampled decisions.
+	// GreedyFlip is the share of decisions whose GREEDY answer (the argmax;
+	// the subset kinds' admission vote) under the final model differs from
+	// π_old's greedy answer — what the round changed in the deployed seat.
+	// For a greedy corpus it equals FinalFlip.
+	GreedyFlip   float64 `json:"greedy_flip"`
+	Sampled      int     `json:"sampled"`
+	OffGreedy    int     `json:"off_greedy"`
+	OffGreedyPct float64 `json:"off_greedy_pct"`
+	MeanPBeh     float64 `json:"mean_p_beh"`
 }
 
 // PPOEpochStat is one epoch's training readout.
@@ -434,6 +449,8 @@ func TrainPPO(examples []policynet.Example, init *policynet.Model, cfg PPOConfig
 		disagree, absAdv           float64
 		clip, flip, flipN, admitsD float64
 		admitsN                    int
+		sampled, offGreedy         int
+		pbeh, gflip                float64
 	}
 	byKind := map[decision.Kind]*acc{}
 	nAll := 0
@@ -455,6 +472,13 @@ func TrainPPO(examples []policynet.Example, init *policynet.Model, cfg PPOConfig
 		a.pold += math.Exp(lpOld)
 		a.disagree += policynet.VDWMRowWeight(ex)
 		a.absAdv += math.Abs(raw[i])
+		if p.HasBehaviour {
+			a.sampled++
+			a.pbeh += math.Exp(p.BehaviourLogP)
+		}
+		if offGreedy(ex) {
+			a.offGreedy++
+		}
 		probe := ex
 		pc := *p
 		pc.PolicyOff, pc.Advantage, pc.VDWM = false, 0, false
@@ -481,6 +505,7 @@ func TrainPPO(examples []policynet.Example, init *policynet.Model, cfg PPOConfig
 			a.flipN++
 			if d > 0 {
 				a.flip++
+				a.gflip++
 			}
 		} else {
 			played := -1
@@ -498,6 +523,15 @@ func TrainPPO(examples []policynet.Example, init *policynet.Model, cfg PPOConfig
 			a.flipN++
 			if best != played {
 				a.flip++
+			}
+			oldBest := -1
+			for k := range p.OldScores {
+				if ex.Options[k].Target.Labelled && (oldBest < 0 || p.OldScores[k] > p.OldScores[oldBest]) {
+					oldBest = k
+				}
+			}
+			if best != oldBest {
+				a.gflip++
 			}
 		}
 	}
@@ -519,13 +553,48 @@ func TrainPPO(examples []policynet.Example, init *policynet.Model, cfg PPOConfig
 			FinalKL: a.kl / n, FinalClip: a.clip / n}
 		if a.flipN > 0 {
 			ks.FinalFlip = a.flip / a.flipN
+			ks.GreedyFlip = a.gflip / a.flipN
 		}
 		if a.admitsN > 0 {
 			ks.FinalAdmits = a.admitsD / float64(a.admitsN)
 		}
+		ks.Sampled, ks.OffGreedy, ks.OffGreedyPct = a.sampled, a.offGreedy, 100*float64(a.offGreedy)/n
+		if a.sampled > 0 {
+			ks.MeanPBeh = a.pbeh / float64(a.sampled)
+		}
 		res.ByKind = append(res.ByKind, ks)
 	}
 	return res, nil
+}
+
+// offGreedy reports whether the played answer differs from π_old's own
+// greedy answer: the argmax over the labelled options (ties to the first)
+// for the softmax kinds; for the subset kinds the admission vote over the
+// old scores (admittedSet) against the played set.
+func offGreedy(ex policynet.Example) bool {
+	p := ex.PPO
+	if p.Subset {
+		adm := admittedSet(p.OldScores, p.SignVote)
+		for k := range adm {
+			if adm[k] != p.Chosen[k] {
+				return true
+			}
+		}
+		return false
+	}
+	best, played := -1, -1
+	for k := range p.OldScores {
+		if !ex.Options[k].Target.Labelled {
+			continue
+		}
+		if best < 0 || p.OldScores[k] > p.OldScores[best] {
+			best = k
+		}
+		if p.Chosen[k] {
+			played = k
+		}
+	}
+	return best != played
 }
 
 // setAdvantages writes each batch example's advantage: the raw advantage,

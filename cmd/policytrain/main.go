@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"os"
 	"strings"
 
@@ -59,6 +60,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		vdwm           = fs.Bool("vdwm", false, "PPO mode: train the value-disagreement-weighted margin loss (VDWM) on the on-policy corpus instead of the PPO objective (weight (1 - p_old)*|outcome - baseline|, normalised per batch; -ppo-clip/-ppo-kl/-ppo-adv-norm unused)")
 		vdwmMargin     = fs.Float64("vdwm-margin", 1, "PPO mode with -vdwm: the hinge margin m")
 		statsOut       = fs.String("stats-out", "", "PPO mode: write the round's machine-readable readout (JSON) to this path")
+		upgradeEntity  = fs.Int("upgrade-entity", 0, "pn14: write -init (an mz checkpoint) upgraded to the entity feature set with a per-card encoder of this width to -out, and exit. The pooled projection and the new option inputs start at zero, so the upgraded checkpoint scores exactly as -init until trained")
+		setResidual    = fs.Float64("set-residual", -1, "pn14: write -init with its fixed bot-prior residual weight replaced by this value (>= 0) to -out, and exit (the residual-prior ablation: a smaller prior no longer pins the greedy answer to the bot's)")
 		kindLoss       = fs.String("kind-loss", "attackers=bce", "per-kind loss overrides as kind=mode,... (e.g. attackers=bce); kinds not listed keep -loss. The attackers default is bce: a per-option binary logistic loss trains the score LEVEL the seat's per-option admission rule reads, which argmax CE (shift-invariant) cannot")
 	)
 	var grid gridFlags
@@ -70,6 +73,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	fs.StringVar(&grid.arm, "arm", "", "pn12: arm name recorded in the -eval-json report")
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	if *setResidual >= 0 {
+		return runSetResidual(*initCkpt, *out, float32(*setResidual), stdout, stderr)
+	}
+	if *upgradeEntity > 0 {
+		return runUpgradeEntity(*initCkpt, *out, *upgradeEntity, *seed, stdout, stderr)
 	}
 	lo, gridLoad, err := grid.loadOptions()
 	if err != nil {
@@ -266,6 +275,7 @@ func runPPO(a runPPOArgs, stdout, stderr io.Writer) int {
 		}
 	}
 	var examples []policynet.Example
+	var features []policynet.FeatureSet
 	for _, path := range strings.Split(a.corpora, ",") {
 		path = strings.TrimSpace(path)
 		if path == "" {
@@ -276,13 +286,21 @@ func runPPO(a runPPOArgs, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "policytrain: %v\n", err)
 			return 1
 		}
-		fmt.Fprintf(stdout, "on-policy corpus %s: %d records (%d with outcome, %d deviating from the bot)\n", path, stats.Records, stats.WithOutcome, stats.Deviated)
+		fmt.Fprintf(stdout, "on-policy corpus %s: %d records (%d with outcome, %d deviating from the bot, %d sampled), features %s\n",
+			path, stats.Records, stats.WithOutcome, stats.Deviated, stats.Sampled, stats.Features)
 		examples = append(examples, exs...)
+		features = append(features, stats.Features)
 	}
 	m, err := policynet.LoadCheckpointFile(a.init)
 	if err != nil {
 		fmt.Fprintf(stderr, "policytrain: -init %s: %v\n", a.init, err)
 		return 1
+	}
+	for _, fs := range features {
+		if fs != m.Features {
+			fmt.Fprintf(stderr, "policytrain: on-policy corpus is feature set %s, -init is %s\n", fs, m.Features)
+			return 1
+		}
 	}
 	res, err := TrainPPO(examples, m, a.cfg)
 	if err != nil {
@@ -306,6 +324,11 @@ func runPPO(a runPPOArgs, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stdout, "  %-10s %6d %6d %7.2f %7.4f %+8.4f %7.4f %8.5f %7.4f %7.4f %7.4f %8.4f %7.4f\n",
 			k.Kind, k.N, k.Deviated, k.DeviatedPct, k.WinRate, k.MeanAdv, k.MeanPOld, k.FinalKL, k.FinalClip, k.FinalFlip, k.FinalAdmits, k.MeanDisagree, k.MeanAbsAdv)
 	}
+	for _, k := range res.ByKind {
+		if k.Sampled > 0 || k.OffGreedy > 0 {
+			fmt.Fprintf(stdout, "  %-10s sampled %d, off-greedy %d (%.2f%%), mean p_beh %.4f, greedy flip %.4f\n", k.Kind, k.Sampled, k.OffGreedy, k.OffGreedyPct, k.MeanPBeh, k.GreedyFlip)
+		}
+	}
 	f := res.Final
 	fmt.Fprintf(stdout, "final vs pi_old: kl %.6f clip-frac %.4f; value holdout n %d log loss %.6f (init %.6f) vs base rate %.4f log loss %.6f\n",
 		f.KL, f.ClipFrac, f.ValueHoldoutN, f.ValueLogLoss, f.InitValueLogLoss, f.BaseRate, f.BaseLogLoss)
@@ -313,5 +336,53 @@ func runPPO(a runPPOArgs, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stdout, "  value turns %-5s n %5d log loss %.4f vs bucket base rate %.4f log loss %.4f; AUC %.4f\n",
 			b.Turns, b.N, b.LogLoss, b.BaseRate, b.BaseLogLoss, b.AUC)
 	}
+	return 0
+}
+
+// runUpgradeEntity is -upgrade-entity: load an mz checkpoint, add a k-wide
+// entity encoder (policynet.UpgradeEntity; the encoder drawn from the run
+// seed, the projection and the option columns zero) and save it.
+func runUpgradeEntity(init, out string, k int, seed int64, stdout, stderr io.Writer) int {
+	if init == "" || out == "" {
+		fmt.Fprintln(stderr, "policytrain: -upgrade-entity needs -init and -out")
+		return 2
+	}
+	m, err := policynet.LoadCheckpointFile(init)
+	if err != nil {
+		fmt.Fprintf(stderr, "policytrain: -init %s: %v\n", init, err)
+		return 1
+	}
+	rng := rand.New(rand.NewPCG(uint64(seed), 0x656e74697479^uint64(seed)))
+	if err := policynet.UpgradeEntity(m, k, rng); err != nil {
+		fmt.Fprintf(stderr, "policytrain: %v\n", err)
+		return 1
+	}
+	if err := m.SaveCheckpoint(out); err != nil {
+		fmt.Fprintf(stderr, "policytrain: %v\n", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "checkpoint %s: %s from %s, entity width %d, encoder hash %#016x\n", out, m.Features, init, k, policynet.EncoderHashFor(m.Features))
+	return 0
+}
+
+// runSetResidual is -set-residual: rewrite a checkpoint with a different
+// fixed residual prior weight (nothing else changes).
+func runSetResidual(init, out string, w float32, stdout, stderr io.Writer) int {
+	if init == "" || out == "" {
+		fmt.Fprintln(stderr, "policytrain: -set-residual needs -init and -out")
+		return 2
+	}
+	m, err := policynet.LoadCheckpointFile(init)
+	if err != nil {
+		fmt.Fprintf(stderr, "policytrain: -init %s: %v\n", init, err)
+		return 1
+	}
+	old := m.ResidualW
+	m.ResidualW = w
+	if err := m.SaveCheckpoint(out); err != nil {
+		fmt.Fprintf(stderr, "policytrain: %v\n", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "checkpoint %s: residual %g -> %g\n", out, old, w)
 	return 0
 }

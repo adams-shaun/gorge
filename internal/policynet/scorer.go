@@ -35,6 +35,8 @@ type Scorer struct {
 	// va is the value head's hidden activations (ValueHidden; empty when the
 	// model has no value head).
 	va []float32
+	// ec is the loaded state's entity forward (entity models only).
+	ec *entCache
 }
 
 // NewScorer wraps a trained (or zero) Model for inference. The Model is
@@ -107,6 +109,15 @@ func LoadScorerFile(path string) (*Scorer, error) {
 func (sc *Scorer) SetState(st State) {
 	m := sc.m
 	s := sc.s
+	if m.EntK > 0 {
+		// An entity model's trunk is Model.stateTrunkEnt's (the per-card
+		// encoder allocates per card; the pinned zero-allocation path below
+		// stays exactly as it was for every other model).
+		t, c := m.stateTrunkEnt(st)
+		copy(s, t)
+		sc.ec = c
+		return
+	}
 	copy(s, m.StateB)
 	for _, f := range st.Sparse {
 		base := int(f.Row) * m.H
@@ -154,6 +165,7 @@ func (sc *Scorer) ScoreOption(o Option) float32 {
 	}
 	off += OptionSlotWidth
 	copy(x[off:], o.Dense)
+	m.entFillInput(x, o, sc.ec)
 	return sc.scoreHead(x) + m.residual(o)
 }
 
