@@ -161,20 +161,7 @@ async function driveToCardOptionsWindow(
       continue;
     }
     expect(p.ok(), `GET ${pendingURL} should succeed`).toBe(true);
-    const d = (await p.json()) as { seq: number; player: number; kind: string; options: Array<{ index: number; kind: string; obj?: number }> };
-
-    // CR 103.1's toss ask (decision.KStartingPlayer, host/match.go). The
-    // drivers predate it (commit 1444363d) and this seat never answers it, so
-    // the game sat at the pregame round until the drive timed out. A fixed
-    // option clears it; the same shape the wheel1 setup already uses.
-    if (d.kind === 'starting_player' && d.options.length > 0) {
-      const r = await request.post(`${b}/api/tables/${table}/matches/${match}/intent`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { seq: d.seq, player: d.player, choices: [d.options[0].index] },
-      });
-      expect(r.status(), `starting_player intent for seat ${seat}`).toBe(204);
-      continue;
-    }
+    const d = (await p.json()) as { kind: string; options: Array<{ index: number; kind: string; obj?: number }> };
 
     // Target: a card-options window — a priority ask that offers a card from
     // hand (obj defined) at a NON-ZERO index. That is the discriminating
@@ -246,10 +233,6 @@ async function driveFixtureUntil(
         const pass = d.options.find((o) => o.kind === 'pass');
         if (cast) choices = [cast.index];
         else if (pass) choices = [pass.index];
-      } else if (d.kind === 'starting_player' && d.options.length > 0) {
-        // CR 103.1's toss ask (1444363d): answer the first option so the
-        // fixture clears the pregame round instead of stalling at it.
-        choices = [d.options[0].index];
       }
       await postFixtureIntent(request, base, d, choices);
     }
@@ -1004,10 +987,6 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
             const pass = d.options.find((o) => o.kind === 'pass');
             choices = pass ? [pass.index] : [];
           }
-        } else if (d.kind === 'starting_player' && d.options.length > 0) {
-          // CR 103.1's toss ask (1444363d): answer the first option so the
-          // fixture clears the pregame round instead of stalling at it.
-          choices = [d.options[0].index];
         }
         const status = await postTalismanIntent(request, base, d, choices);
         // A 409 is a lost race against a decision that changed between the
