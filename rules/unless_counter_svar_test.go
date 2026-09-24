@@ -177,7 +177,10 @@ var counterUnlessSVarCensus = []string{
 	"Countervailing Winds#0|ability0|UnlessCost$Y => resolves:{0}",
 	"Dazzling Denial#0|ability0|UnlessCost$Y => resolves:{2}",
 	"Dispelling Exhale#0|ability0|UnlessCost$X => resolves:{2}",
-	"Evasive Action#0|ability0|UnlessCost$Y => decline",
+	// fuzz-cov3 modelled Count$Domain: the census board has no basic land
+	// types, so Evasive Action's domain toll prices {0} (was the fail-closed
+	// decline on an unevaluable body).
+	"Evasive Action#0|ability0|UnlessCost$Y => resolves:{0}",
 	"In the Eye of Chaos#0|svar[TrigCounter]|UnlessCost$X => resolves:{3}",
 	"In the Eye of Chaos#0|trigger0|UnlessCost$X => resolves:{3}",
 	"Invoke Prejudice#0|svar[TrigCounter]|UnlessCost$X => resolves:{4}",

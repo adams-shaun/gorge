@@ -339,6 +339,7 @@ func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you sta
 	if !hasCmp {
 		cmp = "GE1"
 	}
+	cmp = e.presentCompareFor(cmp, source, you)
 	if pd := strings.TrimSpace(t.Params[definedKey]); pd != "" {
 		if pd != "Self" {
 			return false
@@ -402,8 +403,40 @@ func compareLife(have int32, cmp string) bool {
 	return applyCompare(int(have), op, n)
 }
 
+// presentCompareFor folds a PresentCompare$ whose right-hand side names an
+// SVar (Zealots en-Dal's and Mob Mentality's EQX, X a Count$Valid over the
+// same set -- "if ALL nonland permanents you control are white") into the
+// numeric literal comparePresent reads: the SVar is looked up on the
+// source's own face and evaluated with effects.EvalCountOK from you's
+// perspective. A numeric rhs, an unknown name or an unresolvable body is
+// returned unchanged, so comparePresent keeps failing it closed.
+func (e *Engine) presentCompareFor(cmp string, source state.ObjID, you state.PlayerID) string {
+	cmp = strings.TrimSpace(cmp)
+	if len(cmp) < 3 {
+		return cmp
+	}
+	rhs := cmp[2:]
+	if _, err := strconv.Atoi(rhs); err == nil {
+		return cmp
+	}
+	o := e.G.Obj(source)
+	if o == nil || o.Face() == nil {
+		return cmp
+	}
+	body, ok := o.Face().SVars[rhs]
+	if !ok {
+		return cmp
+	}
+	v, ok := effects.EvalCountOK(e, &effects.Ctx{Source: source, Controller: you, SVars: o.Face().SVars}, body)
+	if !ok {
+		return cmp
+	}
+	return cmp[:2] + strconv.Itoa(int(v))
+}
+
 // comparePresent compares a present-count against the same comparison literal
-// grammar. A non-numeric rhs (PresentCompare$ EQX) fails closed.
+// grammar. A non-numeric rhs (PresentCompare$ EQX) fails closed; callers
+// that hold a source fold an SVar rhs first (presentCompareFor).
 func comparePresent(have int, cmp string) bool {
 	op, n, ok := splitCompare(strings.TrimSpace(cmp))
 	if !ok {
