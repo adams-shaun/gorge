@@ -2311,7 +2311,7 @@ func Apply(g *state.Game, e Event) {
 		// A copy of a HAS-ALL-ABILITIES-OF wrapper keeps the minted foreign-face
 		// provenance (r3): the copy resolves the same compiled SA, so it reads
 		// the same owning face.
-		gainedFace := src.GainedFace
+		gainedFace, gainedFrom := src.GainedFace, src.GainedFrom
 		// The copy inherits the original's CastFlags -- a copy of a fused,
 		// bestowed or kicked spell resolves as one -- EXCEPT the cast
 		// provenance a later reader turns into an "if you cast it"
@@ -2347,7 +2347,7 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.FaceIdx, o.Ability, o.Source = faceIdx, ability, source
 		o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
-		o.GainedFace = gainedFace
+		o.GainedFace, o.GainedFrom = gainedFace, gainedFrom
 		o.Targets = targets
 		o.Remembered = remembered
 		o.ChosenModes = chosenModes
@@ -2821,6 +2821,7 @@ func Apply(g *state.Game, e Event) {
 		// Setting it here (never in rules/) is what makes a log-only replay
 		// reproduce the exact face the live mint resolved.
 		o.GainedFace = foreign.Face()
+		o.GainedFrom = foreign.ID
 
 	case GainedTriggerPush:
 		// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$,
@@ -2871,6 +2872,7 @@ func Apply(g *state.Game, e Event) {
 		// (r3): the foreign face's own SVar table, OptionalDecider$ gate,
 		// intervening-if and label all stay resolvable after the grant ends.
 		o.GainedFace = foreign.Face()
+		o.GainedFrom = foreign.ID
 		// pushTrigger serializes the queue-time ctx Remembered AFTER the
 		// provenance slot (IDs[0] is the foreign card): the same decode
 		// TriggerPush/AbilityPush run through rememberedFrom, so a gained

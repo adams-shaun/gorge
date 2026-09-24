@@ -3026,6 +3026,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if e.activationLimitBlocked(p, id, ab, -1, ga.svar, 0) {
 				continue
 			}
+			// Offer only what the activation can resolve. The collector
+			// above reads the body off the emitting effect's captured SVar
+			// table (ce.SVars), while beginGrantedActivation -- and the
+			// GrantAbilityPush/DelayedPush mint a replay re-runs -- resolve
+			// the NAME against the grantor object's faces. When the two
+			// disagree (the grantor's face does not carry the table the
+			// effect captured) the option was a silent no-op: chosen, it
+			// emitted nothing and the identical board re-offered it forever
+			// (cardfuzz batch7 line 2: a gained-Animate grant on Manascape
+			// Refractor, 100x "Regenerate CARDNAME" in one main phase).
+			if e.grantedSAFrom(ga.source, id, ga.svar) == nil {
+				continue
+			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
 				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar,
 				GrantSource: ga.source})
