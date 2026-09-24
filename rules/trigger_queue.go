@@ -1203,6 +1203,12 @@ func (e *Engine) recordTriggerLine(id state.ObjID, pt pendingTrigger) {
 		e.triggerLines = make(map[state.ObjID]cards.Trigger)
 	}
 	e.triggerLines[id] = pt.Trigger
+	if pt.TriggerSVars != nil {
+		if e.triggerLineSVars == nil {
+			e.triggerLineSVars = make(map[state.ObjID]map[string]string)
+		}
+		e.triggerLineSVars[id] = pt.TriggerSVars
+	}
 }
 
 // triggerForAbilityObject resolves the trigger line for an ability stack
@@ -1617,6 +1623,9 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		} else if sf := so.Face(); sf != nil {
 			svars = sf.SVars
 		}
+	}
+	if owned, ok := e.triggerLineSVars[obj]; ok {
+		svars = owned
 	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {

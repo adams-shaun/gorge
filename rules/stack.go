@@ -879,7 +879,9 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// trigger's owning face is the top face, so nothing else moves. A
 	// HAS-ALL-ABILITIES-OF wrapper (r3) is covered inside the recovery
 	// functions themselves, so every caller shares the one read.
-	if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+	if owned, ok := e.triggerLineSVars[source]; ok {
+		effects.SetSVars(ctx, owned)
+	} else if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
 		effects.SetSVars(ctx, mf.SVars)
 	} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {
 		// An activated ability of a MUTATED pile (CR 702.140d): the ask's SVar
@@ -3136,7 +3138,7 @@ func (e *Engine) resolveTop() {
 			// AttackedPlayerWithMostLife) be re-checked with the defender the
 			// trigger queued against, which no current state can re-derive.
 			tc := e.triggerContexts[id]
-			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc) {
+			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc, e.triggerLineSVars[id]) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
@@ -3344,11 +3346,10 @@ func (e *Engine) resolveTop() {
 		// The ability object itself has no Face, so its SVar table (needed
 		// for Num's SVar indirection, e.g. Goblin Piledriver's "NumAtt$ +X")
 		// comes from the permanent that granted it (o.Source) instead.
-		// SVars are static card-script text that never changes after
-		// parsing, so reading them live from the source's current Face at
-		// resolution time is equivalent to a snapshot taken when the
-		// trigger was queued, with no need for a new field to carry one
-		// through the stack. A source that has since left the battlefield
+		// Printed face SVars are static card-script text, but a granted
+		// trigger's owner may be a different card (or its grant may have ended).
+		// For those wrappers the recorded line carries its owning SVar table.
+		// A source that has since left the battlefield
 		// (or ceased to exist) has nothing to read here and degrades to a
 		// nil SVar table, same as before this ability object existed at
 		// all, rather than panicking.
@@ -3378,6 +3379,9 @@ func (e *Engine) resolveTop() {
 			} else if sf := src.Face(); sf != nil {
 				svars = sf.SVars
 			}
+		}
+		if owned, ok := e.triggerLineSVars[id]; ok {
+			svars = owned
 		}
 		// Ruling T20-b: Source must be o.Source (the permanent that has this
 		// ability), not id (the transient stack-object wrapper) -- Defined$

@@ -477,13 +477,14 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			continue
 		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-			Source:     dt.Source,
-			Controller: dt.Controller,
-			Delayed:    true,
-			DelayedID:  dt.ID,
-			Execute:    dt.Execute,
-			SA:         f.sa,
-			Trigger:    f.trigger,
+			Source:       dt.Source,
+			Controller:   dt.Controller,
+			Delayed:      true,
+			DelayedID:    dt.ID,
+			Execute:      dt.Execute,
+			SA:           f.sa,
+			Trigger:      f.trigger,
+			TriggerSVars: f.svars,
 			Ctx: effects.Ctx{
 				Source:     dt.Source,
 				Controller: dt.Controller,

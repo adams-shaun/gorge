@@ -721,14 +721,15 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				}
 				e.triggerFireCount[key]++
 				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-					Source:     id,
-					Controller: o.Controller,
-					Idx:        ti,
-					SA:         t.Effect,
-					Gained:     true,
-					GainedFrom: gf.Obj,
-					Execute:    t.Params["Execute"],
-					Trigger:    t,
+					Source:       id,
+					Controller:   o.Controller,
+					Idx:          ti,
+					SA:           t.Effect,
+					Gained:       true,
+					GainedFrom:   gf.Obj,
+					Execute:      t.Params["Execute"],
+					Trigger:      t,
+					TriggerSVars: gf.Face.SVars,
 					Ctx: effects.Ctx{
 						Source:         id,
 						Controller:     o.Controller,
@@ -781,9 +782,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 		if grantor == nil || grantor.Face() == nil {
 			continue
 		}
-		if t.Effect = grantedTriggerExecute(grantor, t.Params["Execute"]); t.Effect == nil {
+		grantFace := grantedTriggerFace(grantor, t.Params["Execute"])
+		if grantFace == nil {
 			continue
 		}
+		t.Effect = cards.ResolveSVar(grantFace.SVars, t.Params["Execute"])
 		// CR 603.8's outstanding-instance latch, mirrored from the face walk
 		// (a state trigger already queued or on the stack does not re-fire).
 		if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
@@ -801,14 +804,15 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 		}
 		e.triggerFireCount[key]++
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-			Source:     id,
-			Controller: o.Controller,
-			Idx:        -1,
-			SA:         t.Effect,
-			Granted:    true,
-			Grantor:    grantorID,
-			Execute:    t.Params["Execute"],
-			Trigger:    t,
+			Source:       id,
+			Controller:   o.Controller,
+			Idx:          -1,
+			SA:           t.Effect,
+			Granted:      true,
+			Grantor:      grantorID,
+			Execute:      t.Params["Execute"],
+			Trigger:      t,
+			TriggerSVars: grantFace.SVars,
 			Ctx: effects.Ctx{
 				Source:         id,
 				Controller:     o.Controller,
@@ -871,20 +875,27 @@ func grantedTriggerStaticObserves(ce *ContinuousEffect, kind events.Kind) bool {
 // self-grant shape grantor == recipient, so passing the grantor covers both
 // arms.) nil when no face resolves it.
 func grantedTriggerExecute(o *state.Object, execute string) *cards.SA {
-	if execute == "" {
+	if f := grantedTriggerFace(o, execute); f != nil {
+		return cards.ResolveSVar(f.SVars, execute)
+	}
+	return nil
+}
+
+// grantedTriggerFace uses the same current-then-other-face order as Apply's
+// by-name body lookup. The SVar table of that face owns the entire body,
+// including its nested names, even after the grant leaves play.
+func grantedTriggerFace(o *state.Object, execute string) *cards.Face {
+	if o == nil || execute == "" {
 		return nil
 	}
-	if f := o.Face(); f != nil {
-		if sa := cards.ResolveSVar(f.SVars, execute); sa != nil {
-			return sa
-		}
+	if f := o.Face(); f != nil && cards.ResolveSVar(f.SVars, execute) != nil {
+		return f
 	}
-	if o.Card == nil {
-		return nil
-	}
-	for _, cf := range o.Card.Faces {
-		if sa := cards.ResolveSVar(cf.SVars, execute); sa != nil {
-			return sa
+	if o.Card != nil {
+		for _, f := range o.Card.Faces {
+			if cards.ResolveSVar(f.SVars, execute) != nil {
+				return f
+			}
 		}
 	}
 	return nil

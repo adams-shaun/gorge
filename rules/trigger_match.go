@@ -101,6 +101,10 @@ type pendingTrigger struct {
 	// compiled Trigger, the Granted arm from the AddTrigger$ static and the
 	// Delayed arm from the registration's re-parsed body.
 	Trigger cards.Trigger
+	// TriggerSVars is the owning face's immutable script table captured with
+	// the granted/delayed line. Source may be a different card, and the grant
+	// can end before this ability resolves.
+	TriggerSVars map[string]string
 	// Gained marks a has-all-abilities-of trigger (Forge's
 	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
 	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's

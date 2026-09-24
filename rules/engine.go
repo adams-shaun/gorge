@@ -510,6 +510,10 @@ type Engine struct {
 	// lines in the same order. Appended to (not a redefinition of) the existing
 	// map fields so a zero Engine stays valid.
 	triggerLines map[state.ObjID]cards.Trigger
+	// triggerLineSVars snapshots the owning script table of each recorded line.
+	// The recipient's face is not necessarily the grantor's, and a grant can
+	// disappear before the stack object resolves.
+	triggerLineSVars map[state.ObjID]map[string]string
 	// currentEffectFrame is the Effect-created continuous-effect registration
 	// the effects.Resolve walk currently running belongs to. effects.Resolve
 	// publishes it (through the optional effectFrameHost interface) for the
@@ -2400,6 +2404,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				e.triggerLines = make(map[state.ObjID]cards.Trigger)
 			}
 			e.triggerLines[copyID] = line
+			if svars, ok := e.triggerLineSVars[ev.Obj]; ok {
+				if e.triggerLineSVars == nil {
+					e.triggerLineSVars = make(map[state.ObjID]map[string]string)
+				}
+				e.triggerLineSVars[copyID] = svars
+			}
 		}
 		if lki, ok := e.triggerLKI[ev.Obj]; ok {
 			if e.triggerLKI == nil {
@@ -2444,6 +2454,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.triggerEffectFrames, ev.Obj)
 		delete(e.triggerLines, ev.Obj)
+		delete(e.triggerLineSVars, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)

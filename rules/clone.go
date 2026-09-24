@@ -292,6 +292,14 @@ func (e *Engine) Clone() *Engine {
 			c.triggerLines[id] = line
 		}
 	}
+	if e.triggerLineSVars != nil {
+		c.triggerLineSVars = make(map[state.ObjID]map[string]string, len(e.triggerLineSVars))
+		for id, svars := range e.triggerLineSVars {
+			// Card script tables are immutable after parsing; only the lookup
+			// index is engine-owned. An undo clone retains the same owning face.
+			c.triggerLineSVars[id] = svars
+		}
+	}
 	if e.triggerLKI != nil {
 		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
 		for id, lki := range e.triggerLKI {
