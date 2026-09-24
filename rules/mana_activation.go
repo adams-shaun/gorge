@@ -317,7 +317,7 @@ func (e *Engine) manaReflectedPresentHolds(p state.PlayerID, source state.ObjID,
 	}
 	n := e.countPresent(spec, source, p)
 	if cmp := strings.TrimSpace(ma.Params["PresentCompare"]); cmp != "" {
-		return comparePresent(n, cmp)
+		return comparePresent(n, e.presentCompareFor(cmp, source, p))
 	}
 	return n > 0
 }
@@ -603,7 +603,7 @@ func (e *Engine) manaActivationGateHolds(p state.PlayerID, id state.ObjID, ma *c
 	if spec, ok := ma.Params["IsPresent"]; ok && strings.TrimSpace(spec) != "" {
 		n := e.countPresent(strings.TrimSpace(spec), id, p)
 		if cmp := strings.TrimSpace(ma.Params["PresentCompare"]); cmp != "" {
-			if !comparePresent(n, cmp) {
+			if !comparePresent(n, e.presentCompareFor(cmp, id, p)) {
 				return false
 			}
 		} else if n <= 0 {
