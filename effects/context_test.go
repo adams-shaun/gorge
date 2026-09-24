@@ -263,6 +263,10 @@ func (h *fakeHost) Scry(p state.PlayerID, source state.ObjID, count int32, sa *c
 	return count, true, false
 }
 
+// EmitScryRecord routes through the double's ordinary Emit: it has no
+// replacement pipeline to bypass, the same discipline as its Scry above.
+func (h *fakeHost) EmitScryRecord(e events.Event) { h.Emit(e) }
+
 // RememberExploitedLKI records the snapshot so an effects-level test can see
 // what effExploit published (the real engine attaches it to the trig:Exploited
 // pending trigger's LKI; that half is pinned in rules).
