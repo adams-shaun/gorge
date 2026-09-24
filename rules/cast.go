@@ -9327,6 +9327,9 @@ func init() {
 		// ordinary ReduceCost cost-static machinery (rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.
 		"kw:Affinity",
+		// kw:Undaunted: CR 702.105, expanded by cards/kw_undaunted.go into
+		// the ordinary ReduceCost cost-static machinery.
+		"kw:Undaunted",
 		// kw:Embalm / kw:Eternalize: CR 702.128 / 702.129, expanded by
 		// cards/keywords.go into one graveyard-zone CopyPermanent activation
 		// whose cost exiles the card itself (ExileFromGrave<1/CARDNAME>) and
