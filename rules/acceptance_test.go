@@ -153,6 +153,15 @@ var knownUnsupported = map[string][]string{
 	// capabilities; the underlying primitives were not changed.
 	"Incinerate":        {"stat:CantRegenerate"},
 	"Vines of Vastwood": {"stat:CantTarget"},
+	// fuzz-cov3's registration-honesty gate (cards.Registry.Unsupported now
+	// checks the count heads a card's referenced value SVars read): Temple of
+	// Power's transform gate reads Count$NonCombatDamageThisTurn Card.Red+
+	// YouCtrl Any, a source-filtered noncombat damage tally the log cannot
+	// answer (a Damage event does not record its source). The gate failed
+	// OPEN (an AB's CheckSVar$), so the land transformed unconditionally; it
+	// was never fully supported, only counted so. Also held by
+	// count_head_ratchet_test.go's knownUnmodelledCountHeads.
+	"Ojer Axonil, Deepest Might": {"count:NonCombatDamageThisTurn"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
