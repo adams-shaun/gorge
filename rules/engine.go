@@ -819,6 +819,18 @@ type Engine struct {
 	// asks (Breathstealer's Crypt's unless-pay discard) and the resume must
 	// restore Ctx.ReplacedPlayer. Only a Draw replacement sets it.
 	replReplacedPlayer state.Target
+	// replRedirect is the destination-changing ("Replaced") move replacement
+	// whose ReplaceWith$ body is resolving, with every replacement already
+	// applied to that event (CR 614.5). A body move of the same object to a
+	// DIFFERENT zone is the modified event of CR 616.1f and gets one more
+	// replacement pass that skips those (Engine.emit). Immutable once set;
+	// threaded across a suspension by resumePoint.redirect; nil at every
+	// intent boundary outside a suspended body.
+	replRedirect *replRedirect
+	// replExclude is the applied set replRedirect carried into that one
+	// recheck pass: applyReplacementsDispatch drops those matches and
+	// applyReplacement extends it for a nested redirect. Nil otherwise.
+	replExclude []string
 	// triggerFireCount and the damage-batch fields below are trigger_match.go's
 	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-damage-batch gate); see there.
@@ -2313,6 +2325,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// Not replaced, but possibly REWRITTEN in place (a DamageDone
 		// ReplaceEffect body changed the amount): the returned event is what
 		// gets logged, not the emit caller's copy.
+		ev = replaced
+	} else if e.redirectRecheck(ev) {
+		replaced, handled := e.applyRedirectReplacements(ev)
+		if handled {
+			return replaced
+		}
 		ev = replaced
 	}
 	// CountersRemain is a departure property of the battlefield object. Tag the
