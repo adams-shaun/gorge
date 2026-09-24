@@ -256,9 +256,6 @@ func TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary(t *testing.T) {
 	if o := h.g.Obj(ids[1]); o.Zone != state.ZLibrary {
 		t.Fatalf("found Aura zone = %s, want library (NoMoveFound$ True)", o.Zone)
 	}
-	if o := h.g.Obj(ids[1]); o.Zone == state.ZHand {
-		t.Fatal("found Aura reached FoundDestination$ Hand: NoMoveFound$ True was ignored")
-	}
 	if riderMoved(h, ids[1]) {
 		t.Fatal("NoMoveFound$ True emitted a move for the found card")
 	}
