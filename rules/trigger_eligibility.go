@@ -291,7 +291,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// face's mask narrow for every other kind.
 		return 0
 	case "FullyUnlock":
-		// CR 309.5's "whenever you fully unlock a Room" (task
+		// CR 709.5's "whenever you fully unlock a Room" (task
 		// agent-20260919T191104Z-95f1e316): the Eerie enchantments' other-
 		// permanent half, matched by fullyUnlockMatches (rules/
 		// trigmatch_room.go). It fires on the single DoorUnlock transition

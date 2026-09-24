@@ -161,7 +161,7 @@ var addedAfterTheSplit = []string{
 	// KArrange answer is known (the count actually put on the bottom), so
 	// no pre-split switch arm could have dispatched it.
 	"Scry",
-	// trig:FullyUnlock (task agent-20260919T191104Z-95f1e316): CR 309.5's
+	// trig:FullyUnlock (task agent-20260919T191104Z-95f1e316): CR 709.5's
 	// "Eerie -- whenever ... you fully unlock a Room" (17 corpus carriers,
 	// the Eerie enchantments e.g. Fear of Sleep Paralysis). It matches the
 	// pre-existing events.DoorUnlock transition, but the MODE did not exist:

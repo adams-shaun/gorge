@@ -2393,7 +2393,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 		}
 	case events.DoorUnlock:
-		// CR 309.5: Mode$ FullyUnlock (rules/trigmatch_room.go) must tell a
+		// CR 709.5: Mode$ FullyUnlock (rules/trigmatch_room.go) must tell a
 		// real locked->unlocked transition from a repeated DoorUnlock on an
 		// already-unlocked room (the latter no game action produces, but a
 		// direct emit can). Apply flips Unlocked before this event's triggers

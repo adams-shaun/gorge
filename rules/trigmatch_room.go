@@ -8,7 +8,7 @@ import (
 )
 
 // trigmatch_room.go implements Mode$ FullyUnlock, the "Eerie -- whenever
-// ... you fully unlock a Room" half of the Room mechanic (CR 309; 17 corpus
+// ... you fully unlock a Room" half of the Room mechanic (CR 709.5; 17 corpus
 // files carry the line: the Eerie enchantments, e.g. Fear of Sleep
 // Paralysis). It is the OTHER-permanent sibling of Mode$ UnlockDoor
 // (rules/rooms.go's checkUnlockTriggers), which is the unlocked door's OWN
