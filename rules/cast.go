@@ -547,6 +547,13 @@ type pendingCast struct {
 	revealPart, beholdPart, tapPart, blightPart int
 	forageDone                                  bool
 
+	// blightRaised counts the RaiseCost composition's Blight parts already
+	// folded from pc.mods into pc.cost (foldRaiseBlight). It makes the fold
+	// idempotent across the re-prices (continueCast's provenance re-price and
+	// repriceForTargets), which re-derive pc.mods and would otherwise append
+	// the same part again. Plain data, so a Clone copies it.
+	blightRaised int
+
 	// ninjutsuDefender is the defender (CR 702.49b: the player, planeswalker
 	// or battle the returned creature was attacking) captured when a
 	// K:Ninjutsu activation paid its Return cost. ninjutsuHasDefender
@@ -2421,6 +2428,15 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		scope = foretellScope()
 	}
 	mods := e.costModifiers(p, id, scope)
+	// The RaiseCost composition's Blight parts (Soul Immolation's
+	// `Cost$ Blight<X>`) must be visible to the cast flow's own Blight stages,
+	// which read pc.cost -- not only to the mana composition pc.mods.apply
+	// performs at payment. Fold them in before the pendingCast exists by
+	// staging the same append the constructor would: build the cost with the
+	// part already present, and record the folded count.
+	if len(mods.raiseBlight) > 0 {
+		cost.Blight = append(cost.Blight, mods.raiseBlight...)
+	}
 	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) -- the same helper
 	// offerCastable shaped the offered cost with, so the stored cost and the
 	// gated charge agree. A fixed face's value folds into Life here; the
@@ -2435,10 +2451,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt, optionalCost: optionalCost}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt, optionalCost: optionalCost,
+			blightRaised: len(mods.raiseBlight)}
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, optionalCost: optionalCost}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, optionalCost: optionalCost,
+			blightRaised: len(mods.raiseBlight)}
 	}
 	// Emerge (CR 702.118a): sacAsk folds the chosen sacrifice's mana value out
 	// of pc.cost once the mandatory creature sacrifice is settled. The mark is
@@ -2872,6 +2890,7 @@ func (e *Engine) continueCast() {
 	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.costProvenanceSeen {
 		pc.provenanceRepriced = true
 		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
+		foldRaiseBlight(pc)
 	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
@@ -3203,6 +3222,23 @@ func (e *Engine) tapPermanentCostAsk() bool {
 		return true
 	}
 	return false
+}
+
+// foldRaiseBlight projects the RaiseCost composition's Blight parts
+// (costMods.raiseBlight, e.g. Soul Immolation's
+// `S:Mode$ RaiseCost | Cost$ Blight<X>`) into pc.cost. The cast flow's
+// Blight stages -- xAsk's announcement bound, blightCostAsk's pick and
+// payMana's counter placement -- all read pc.cost.Blight, so the part must
+// live there; the offer gate and the mana charge compose pc.mods.apply, so
+// the two never disagree. Idempotent: pc.blightRaised records how many parts
+// are already folded, so the re-prices that re-derive pc.mods (the
+// provenance re-price, repriceForTargets) add nothing on a second pass. A
+// ValidTarget$ blight raise absent from beginCast's nil-target snapshot can
+// only APPEAR once a real target is chosen, so the count only grows.
+func foldRaiseBlight(pc *pendingCast) {
+	for ; pc.blightRaised < len(pc.mods.raiseBlight); pc.blightRaised++ {
+		pc.cost.Blight = append(pc.cost.Blight, pc.mods.raiseBlight[pc.blightRaised])
+	}
 }
 
 func (e *Engine) blightCostAsk() bool {
@@ -5529,6 +5565,7 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		}
 	}
 	pc.mods = e.costModifiersForTargets(pc.player, pc.card, scope, pc.targets)
+	foldRaiseBlight(pc)
 }
 
 // foldStriveCost prices the Strive keyword's per-extra-target additional

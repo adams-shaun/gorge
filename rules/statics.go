@@ -1462,15 +1462,23 @@ type costMods struct {
 	raiseCol  state.Mana
 	raiseGen  int32
 	raiseLife int32
-	reduces   []costMod
-	setFloor  int32
+	// raiseBlight carries RaiseCost `Cost$ Blight<X>` ([Soul Immolation]) as
+	// the SAME announced CostPart ParseCost produces for an activated Blight
+	// cost, so one payment mechanism serves both. apply appends it to the
+	// composed cost (the offer gate's nonManaCastable and the mana charge both
+	// read the composed cost); the pending cast additionally folds it into
+	// pc.cost via foldRaiseBlight so the X-announcement and blight-pick stages
+	// see it.
+	raiseBlight []CostPart
+	reduces     []costMod
+	setFloor    int32
 }
 
 // empty reports whether the composition would change nothing, so a caller can
 // keep its old zero-value shorthand.
 func (m costMods) empty() bool {
 	return len(m.raises) == 0 && m.raiseGen == 0 && m.raiseLife == 0 &&
-		m.raiseCol.Total() == 0 && len(m.reduces) == 0 && m.setFloor == 0
+		m.raiseCol.Total() == 0 && len(m.raiseBlight) == 0 && len(m.reduces) == 0 && m.setFloor == 0
 }
 
 // apply composes c with the modifiers, CR 601.2f: increases before
@@ -1488,6 +1496,7 @@ func (m costMods) apply(c Cost) Cost {
 	}
 	c.Generic = addClampedGeneric(c.Generic, int64(m.raiseGen))
 	c.Life = addClampedGeneric(c.Life, int64(m.raiseLife))
+	c.Blight = append(c.Blight, m.raiseBlight...)
 	for _, red := range m.reduces {
 		leftover := red.generic
 		if red.hasColor {
@@ -1916,15 +1925,18 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	return effects.EvalCount(e, ctx, raw)
 }
 
-// raiseFromCost parses a RaiseCost Cost$ into its mana and life raise. Only
-// the plain shapes apply: single colour letters, numeric tokens, and the
-// fixed PayLife<N> token. Anything else — hybrid pips (none in the corpus's
-// cost raises), X/T, or a <...> component this build does not model as an
-// additional raise (Waterbend, ExileFromHand, BeholdExile, Sac<...>,
-// AddCounter, tapXType) — reports false, so the static degrades to the
-// Amount$ reading (absent → the zero raise) rather than silently pricing an
-// unmodelled cost as one generic mana.
-func raiseFromCost(s string) (col state.Mana, gen, life int32, ok bool) {
+// raiseFromCost parses a RaiseCost Cost$ into its mana, life and Blight
+// raise. Only the shapes this build models as an additional raise apply:
+// single colour letters, numeric tokens, the fixed PayLife<N> token, and the
+// announced Blight<X> component (Soul Immolation's "blight X" additional
+// cost). Anything else — hybrid pips (none in the corpus's cost raises),
+// X/T, or a <...> component this build does not model (Waterbend,
+// ExileFromHand, BeholdExile, Sac<...>, AddCounter, tapXType) — reports
+// false, so the static degrades to the Amount$ reading (absent → the zero
+// raise) rather than silently pricing an unmodelled cost as one generic
+// mana. The returned Blight parts are the same ones ParseCost models for the
+// activated-cost path, so there is one Blight payment mechanism.
+func raiseFromCost(s string) (col state.Mana, gen, life int32, blight []CostPart, ok bool) {
 	for toks := (costTokenIter{s: s}); ; {
 		sym, more := toks.next()
 		if !more {
@@ -1936,22 +1948,30 @@ func raiseFromCost(s string) (col state.Mana, gen, life int32, ok bool) {
 		case isDigitRun(sym):
 			n, err := strconv.ParseInt(sym, 10, 64)
 			if err != nil || n < 0 || n > int64(math.MaxInt32) {
-				return col, 0, 0, false
+				return col, 0, 0, nil, false
 			}
 			gen = addClampedGeneric(gen, n)
 		default:
+			if sym == "Blight<X>" {
+				parsed := ParseCost(sym)
+				if len(parsed.Blight) != 1 || !parsed.Blight[0].Announced || len(parsed.Unknown) != 0 {
+					return col, 0, 0, nil, false
+				}
+				blight = append(blight, parsed.Blight...)
+				continue
+			}
 			if m := lifeCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
-					return col, 0, 0, false
+					return col, 0, 0, nil, false
 				}
 				life = addClampedGeneric(life, n)
 				continue
 			}
-			return col, 0, 0, false
+			return col, 0, 0, nil, false
 		}
 	}
-	return col, gen, life, true
+	return col, gen, life, blight, true
 }
 
 // costActorMatches is the cost-modifier actor gate: a RaiseCost/ReduceCost
@@ -2046,12 +2066,13 @@ func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state
 				// with an Amount$ ("you may pay {1}{G} any number of times")
 				// is an OPTIONAL additional-cost shape this build does not
 				// model -- the exotic Amount$ skips the static below, so only
-				// the plain raise applies. Cost$ shapes that are not plain
-				// mana/life (Waterbend, ExileFromHand, Sac<...>) parse
-				// nowhere and are skipped by raiseFromCost.
-				rc, rg, rl, costOK := raiseFromCost(sv.Params["Cost"])
+				// the plain raise applies. Cost$ shapes this build does not model
+				// (Waterbend, ExileFromHand, Sac<...>) parse nowhere and are skipped by
+				// raiseFromCost; the modelled Blight<X> component is carried through.
+				rc, rg, rl, rb, costOK := raiseFromCost(sv.Params["Cost"])
 				if costOK {
 					if _, hasAmt := sv.Params["Amount"]; !hasAmt {
+						mods.raiseBlight = append(mods.raiseBlight, rb...)
 						for i := range rc {
 							mods.raiseCol[i] = addClampedGeneric(mods.raiseCol[i], int64(rc[i]))
 						}
@@ -2147,12 +2168,13 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 				// with an Amount$ ("you may pay {1}{G} any number of times")
 				// is an OPTIONAL additional-cost shape this build does not
 				// model — the exotic Amount$ skips the static below, so only
-				// the plain raise applies. Cost$ shapes that are not plain
-				// mana/life (Waterbend, ExileFromHand, Sac<...>) parse
-				// nowhere and are skipped by raiseFromCost.
-				rc, rg, rl, costOK := raiseFromCost(sv.Params["Cost"])
+				// the plain raise applies. Cost$ shapes this build does not model
+				// (Waterbend, ExileFromHand, Sac<...>) parse nowhere and are skipped by
+				// raiseFromCost; the modelled Blight<X> component is carried through.
+				rc, rg, rl, rb, costOK := raiseFromCost(sv.Params["Cost"])
 				if costOK {
 					if _, hasAmt := sv.Params["Amount"]; !hasAmt {
+						mods.raiseBlight = append(mods.raiseBlight, rb...)
 						for i := range rc {
 							mods.raiseCol[i] = addClampedGeneric(mods.raiseCol[i], int64(rc[i]))
 						}
