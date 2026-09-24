@@ -1,3 +1,53 @@
+# Dynamic TargetMin$/TargetMax$ — sol1 gate repair (agent-20260918T233200Z-e0817443)
+
+## Finding resolved
+
+The module gate in `.ds4/findings-sol1.md` failed `TestMarshalsAnthemPlainCastETBAsksForNothing`: the older test expected a Min 0 / Max 1 placement ask for zero kicks. The dynamic-bound fix correctly resolves `TargetMin$ 0 | TargetMax$ X` to (0,0) when `Count$TimesKicked` is zero and does not pose a target ask. `rules/multikicker_test.go` now drains the stack without accepting an unexpected target ask in both plain and declined-multikick branches; it asserts a real `TriggerPush` for the Anthem so the absence is not vacuous, and retains the graveyard/flags assertions. Its kicked-count-positive test still expects Max 2 and passes. This only changes the stale test, not engine behavior.
+
+Earlier commits on this branch implement and exercise X/Y bound resolution and the kicked Tear Asunder zero main / one sub target (`ddb4c661`, prior report in `.ds4/report-t1.md` and `.ds4/report-r2.md`). `.cards` was present (shared corpus symlink); no golden, deck ratchet, Known-approximations row, or state mutation was changed this round. No new test was added; this corrects an existing test whose old expectation contradicted the fix. The controller-ordered `git rebase main` returned `Current branch ... is up to date` before edits; the worktree was clean.
+
+## Fails without the fix
+
+Copied `rules/stack.go` to `.ds4/scratch/dynamic-sol1-stack.orig`, temporarily restored the old `max >= 1` clamp (removed the resolvedMax binding), ran the existing corrected test, then restored the file byte-identically (`cmp` passed). The output was:
+
+```
+$ go test -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$' ./rules/
+--- FAIL: TestMarshalsAnthemPlainCastETBAsksForNothing (0.55s)
+    multikicker_test.go:179: non-priority decision &{Seq:68 Player:0 Kind:target Prompt:Choose a target for Marshal's Anthem Min:0 Max:1 Options:[...]} while draining the stack
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.565s
+FAIL
+exit=1
+restored-byte-identical
+```
+
+The full failure line is in `.ds4/scratch/dynamic-sol1-revert-real.log`. An initial revert attempt left an unused `resolvedMax` local and failed at compilation, so the proof above used a compiling revert instead.
+
+## Gates (real output)
+
+```
+$ go test -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestTriggerPlacementAsk' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.638s
+$ go test -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestTriggerPlacementAsk' ./rules/ # after restoring the source
+ok   github.com/adams-shaun/gorge/rules (cached)
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 1.224s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.259s
+$ gofmt -l rules/multikicker_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+$ git diff --check
+(no output)
+```
+
+The full module run is the controller's gate; this round used only the focused test plus the two mandatory goldens. Botbench split unchanged by the test correction. `git status` after restoration showed only `rules/multikicker_test.go` modified, which is committed as `6ab25d60`.
+
+## Issues
+
+- No new defect. Prior round's unresolved `subTargetAsk` zero-path coverage and no CR-lane case remain documented in `.ds4/report-r2.md`; no new ticket needed for this gate repair.
+
 # count:CardManaCostLKI — round 3 (review fixes)
 
 STATUS: DONE. Rebasing this clean worktree onto `main` succeeded before editing. `.cards` is present (symlink to shared corpus). Commits: `7454592e` (trigger SVar resolver), `57707664` (round-2 report), `10ec74fc` (restore placement-time announced X precedence); report restoration is committed separately.
@@ -904,6 +954,69 @@ $ git diff --check
 ## Issues
 
 No additional defect found in this fix round. Rest in Peace currently emits an unmarked exile move; a replacement preserving `Text: "milled"` is exercised explicitly by the test's second action, so the next such replacement is covered by the same predicate. No CR-lane test requested; this is a card-trigger regression, not a new untracked CR shape.
+
+---
+
+# replcensus1 — ReplaceDamage census-token fix round (agent-20260919T055356Z-504b1359)
+
+STATUS: DONE. Rebased this worktree onto `main` before continuing; the working tree was clean, so no preliminary commit was needed. `.cards` was already present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Changes and finding resolution
+
+- `rules/replacement.go` (existing implementation commit `6fcf1fcd`): registers only the `api:ReplaceDamage` census token in `RegisterNonAPI`, with a comment pointing to `applyReplaceDamageBody`, which already handles the replacement inline. No prevention behavior changed and no dead effects handler was added.
+- `rules/replacedamage_registration_test.go` (same commit): pins `effects.Supported()` and a real Heart-Shaped Herb corpus carrier's primitive and Unsupported result. These assertions fail without the registration, not merely when the corpus card is absent.
+- `.ds4/report-t1.md` (this fix round): **MAJOR finding fixed**. The prior report commit inadvertently deleted 1,941 lines of other tickets' report history. Restored the entire 2,162-line `main` version byte-for-byte and appended this ticket's 172-line round-1 report. `git diff main -- .ds4/report-t1.md` now shows insertions only, after the old final line. No unrelated historical record was removed. `.ds4/report-t2.md` remains an append-only 207-line change; `.ds4/report-sol1.md` is append-only too.
+
+No heads/ratchet movement is expected from this registration; `rules/heads_test.go` and `rules/acceptance_test.go` were not edited. Neither was run here (daemon gates). The botbench byte-identity gate passed. Deviation from the original brief: tests live in a new file rather than `rules/coverage_test.go`, per dispatch's later explicit new-test-file rule. `make report` was not run, as directed.
+
+## Gates (actual output on rebased tree)
+
+`go test -v -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ > .ds4/scratch/sol1-rules.log 2>&1` (exit 0; output excerpt):
+
+```text
+=== RUN   TestReplaceDamagePrimitiveIsRegistered
+--- PASS: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+=== RUN   TestReplaceDamageCarrierHasNoGap
+--- PASS: TestReplaceDamageCarrierHasNoGap (0.61s)
+--- PASS: TestBattletideAlchemistAsksItsControllerAndPreventsClerics (0.00s)
+--- PASS: TestThunderstaffPreventsExactlyItsAmount (0.00s)
+--- PASS: TestSpiderPunkStopsReplaceDamagePreventionBodies (0.00s)
+--- PASS: TestDamageReplacementSupportedBodyFamilies (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.654s
+```
+
+`go test ./internal/archtest/ > .ds4/scratch/sol1-arch.log 2>&1` (exit 0):
+
+```text
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.487s
+```
+
+`go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-botbench.log 2>&1` (exit 0):
+
+```text
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.514s
+```
+
+`gofmt -l rules/replacement.go rules/replacedamage_registration_test.go` and `git diff --check`: no output.
+
+## Fails without the fix
+
+Copied `rules/replacement.go` to `.ds4/scratch/sol1-replacement.go.saved`, removed **only** its registration/comment, ran `go test -run 'TestReplaceDamage' ./rules/ > .ds4/scratch/sol1-without-fix.log 2>&1` (exit 1), restored the original file and verified with `cmp` (`RESTORED BYTE-IDENTICAL`):
+
+```text
+--- FAIL: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+    replacedamage_registration_test.go:21: effects.Supported() is missing "api:ReplaceDamage"
+--- FAIL: TestReplaceDamageCarrierHasNoGap (0.68s)
+    replacedamage_registration_test.go:38: Heart-Shaped Herb still reports api:ReplaceDamage unsupported: [api:ReplaceDamage]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.693s
+FAIL
+```
+
+## Issues
+
+No new defects found. The five carriers with additional real gaps (`api:StoreSVar`, `api:Abandon`, `api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) remain outside this census-only ticket; no new CR-lane issue identified.
 
 ---
 

@@ -421,12 +421,24 @@ func TestCreaturePlaneswalkerTakesMarkedDamageAndLoyaltyLoss(t *testing.T) {
 	if !o.WasDealtDamageThisTurn {
 		t.Fatal("the creature-walker's Damage event did not record WasDealtDamageThisTurn")
 	}
-	sawDamage, sawCounter := false, false
-	for _, ev := range e.L.Events {
+	sawDamage := false
+	dmgIdx := -1
+	for i, ev := range e.L.Events {
 		if ev.Kind == events.Damage && ev.Obj == walkerID && ev.Amount == 2 {
 			sawDamage = true
+			dmgIdx = i
 		}
-		if ev.Kind == events.CounterChange && ev.Obj == walkerID && ev.Counter == "LOYALTY" {
+	}
+	// The conversion itself must fold into the Damage event's events.Apply
+	// (no CounterChange of its own). The walker's ENTRY loyalty is a real
+	// CounterChange since task addcounter1/2 -- every entry counter rides one
+	// so the CR 614 replacement class sees it -- but that placement precedes
+	// the damage entirely, so the scan starts at the Damage event: a
+	// CounterChange at or after it could only be the conversion leaking out
+	// of the fold.
+	sawCounter := false
+	for i, ev := range e.L.Events {
+		if i > dmgIdx && ev.Kind == events.CounterChange && ev.Obj == walkerID && ev.Counter == "LOYALTY" {
 			sawCounter = true
 		}
 	}

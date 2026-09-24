@@ -54,6 +54,9 @@ func NameChoices(g *state.Game, spec, description string) []string {
 // NameChoicesFromList applies ChooseFromList$ after the ordinary card filter.
 // The universe snapshot remains authoritative during replay; list order is
 // normalized to the same sorted option order as other name choices.
+//
+// The returned list may be SHARED across games (namecard_cache.go): callers
+// must treat it as read-only.
 func NameChoicesFromList(g *state.Game, spec, description, chooseFromList string, strictFilter ...bool) []string {
 	if g == nil {
 		return nil
@@ -61,18 +64,49 @@ func NameChoicesFromList(g *state.Game, spec, description, chooseFromList string
 	if spec == "" {
 		spec = descriptionSpec(description)
 	}
+	strict := len(strictFilter) > 0 && strictFilter[0]
+	if !pureNameSpec(spec) {
+		return nameChoicesFiltered(g, spec, chooseFromList, strict)
+	}
+	key := nameFilterKey{
+		universe:       cardsKey(g.NameUniverse),
+		snapshot:       namesKey(g.NameUniverseNames),
+		spec:           spec,
+		chooseFromList: chooseFromList,
+		strict:         strict,
+	}
 	if spec == "" {
-		filtered := nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
-		return filterNameList(filtered, chooseFromList)
+		if chooseFromList == "" {
+			// The snapshot (or the memoised universe list) is itself
+			// immutable and shared; hand it out directly.
+			return nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
+		}
+		return cachedNameChoices(key, func() []string {
+			return filterNameList(nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames), chooseFromList)
+		})
+	}
+	return cachedNameChoices(key, func() []string {
+		return nameChoicesFiltered(g, spec, chooseFromList, strict)
+	})
+}
+
+// nameChoicesFiltered is the uncached ValidCards$ filter walk.
+func nameChoicesFiltered(g *state.Game, spec, chooseFromList string, strict bool) []string {
+	if spec == "" {
+		return filterNameList(nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames), chooseFromList)
 	}
 	allowed := nameSet(g.NameUniverseNames)
 	seen := make(map[string]bool)
 	filtered := make([]string, 0, len(g.NameUniverse))
+	// One scratch object serves every card: the matcher reads it and keeps
+	// no reference, and a fresh ~1 KB Object per universe card was the
+	// dominant allocation of a NameCard ask.
+	o := new(state.Object)
 	for _, c := range g.NameUniverse {
 		if c == nil || len(c.Faces) == 0 || c.Faces[0] == nil {
 			continue
 		}
-		o := &state.Object{Card: c}
+		*o = state.Object{Card: c}
 		if !MatchesObjectCtx(g, spec, o, SpecContext{}) {
 			continue
 		}
@@ -88,7 +122,7 @@ func NameChoicesFromList(g *state.Game, spec, description, chooseFromList string
 	if len(filtered) == 0 {
 		// Ordinary asks retain the totality fallback. Random selection must
 		// never turn an unevaluable/empty filter into an unrestricted lottery.
-		if chooseFromList != "" || (len(strictFilter) > 0 && strictFilter[0]) {
+		if chooseFromList != "" || strict {
 			return nil
 		}
 		return nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
@@ -110,7 +144,7 @@ func filterNameList(names []string, chooseFromList string) []string {
 		return names
 	}
 	listed := make(map[string]bool)
-	for _, name := range strings.Split(chooseFromList, ",") {
+	for name := range strings.SplitSeq(chooseFromList, ",") {
 		name = strings.TrimSpace(name)
 		if name != "" {
 			listed[name] = true
@@ -145,9 +179,9 @@ func descriptionSpec(description string) string {
 	return ""
 }
 
-// NameUniverseNames returns the sorted, distinct primary-face-name list a
-// live match snapshots at genesis.
-func NameUniverseNames(universe []*cards.Card) []string {
+// buildNameUniverseNames computes the sorted, distinct primary-face-name
+// list NameUniverseNames memoises.
+func buildNameUniverseNames(universe []*cards.Card) []string {
 	seen := make(map[string]bool, len(universe))
 	out := make([]string, 0, len(universe))
 	for _, c := range universe {
@@ -166,10 +200,12 @@ func NameUniverseNames(universe []*cards.Card) []string {
 }
 
 // nameUniverseSnapshot prefers a persisted match's immutable list over the
-// current corpus so a later corpus update cannot renumber an answer.
+// current corpus so a later corpus update cannot renumber an answer. Both
+// lists are immutable, so the result is returned without a copy and is
+// read-only for the caller.
 func nameUniverseSnapshot(universe []*cards.Card, snapshot []string) []string {
 	if len(snapshot) > 0 {
-		return append([]string(nil), snapshot...)
+		return snapshot[:len(snapshot):len(snapshot)]
 	}
 	return NameUniverseNames(universe)
 }

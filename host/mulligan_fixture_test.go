@@ -91,11 +91,31 @@ func TestTheMulliganStarterFixtureIsTheEngineSOwnWireBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// CR 103.1 first: the hosted game opens with the toss winner's
+	// winner-chooses ask, whose answer is Bob naming himself (the seat's own
+	// option). Only then does the London round ask seat 1 first.
+	d0 := waitPending(t, r, "t1", 1, 1)
+	if d0.Kind != decision.KStartingPlayer || d0.Player != 1 {
+		t.Fatalf("first pending = seat %d kind %v, want seat 1's CR 103.1 toss-choice ask", d0.Player, d0.Kind)
+	}
+	self := -1
+	for _, o := range d0.Options {
+		if o.Player == 1 {
+			self = o.Index
+		}
+	}
+	if self < 0 {
+		t.Fatalf("toss ask offers no option for seat 1: %+v", d0.Options)
+	}
+	if err := r.SubmitIntent("t1", 1, 1, decision.Intent{Seq: d0.Seq, Player: 1, Choices: []int{self}}); err != nil {
+		t.Fatalf("SubmitIntent(toss choice): %v", err)
+	}
+
 	// First ask: the toss winner's keep/mulligan. The preconditions keep the
 	// fixture honest — if the engine ever stops asking seat 1 first here, or
 	// the prompt stops naming the display player, the fixture would silently
 	// pin the wrong thing — so fail loudly instead.
-	d1 := waitPending(t, r, "t1", 1, 1)
+	d1 := waitNextPending(t, r, "t1", 1, 1, d0.Seq)
 	if d1.Player != 1 || d1.Kind != decision.KMulligan {
 		t.Fatalf("first pending = seat %d kind %v, want seat 1's mulligan ask", d1.Player, d1.Kind)
 	}

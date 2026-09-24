@@ -377,7 +377,7 @@ func listAdmits(list, token string) bool {
 	if list == "" {
 		return true
 	}
-	for _, part := range strings.Split(list, ",") {
+	for part := range strings.SplitSeq(list, ",") {
 		if strings.TrimSpace(part) == token {
 			return true
 		}
@@ -403,6 +403,52 @@ func (e *Engine) abilityCastStackObject(perm state.ObjID) state.ObjID {
 		return o.ID
 	}
 	return 0
+}
+
+// specResolveEnv is targetSpecContext's Resolve closure state.
+type specResolveEnv struct {
+	e                      *Engine
+	source                 state.ObjID
+	you                    state.PlayerID
+	tcx                    effects.TriggerContext
+	remembered             []state.Target
+	svars                  map[string]string
+	lki                    *state.Object
+	lkiPower, lkiToughness int32
+	lkiPTValid             bool
+	x                      int32
+	ctx                    *effects.Ctx
+}
+
+func (r *specResolveEnv) countCtx() *effects.Ctx {
+	if r.ctx == nil {
+		r.ctx = &effects.Ctx{Source: r.source, Controller: r.you, TriggerContext: r.tcx,
+			Remembered: r.remembered, SVars: r.svars, LKI: r.lki, LKIPower: r.lkiPower,
+			LKIToughness: r.lkiToughness, LKIPTValid: r.lkiPTValid, X: r.x}
+		r.ctx.Host = r.e
+	}
+	return r.ctx
+}
+
+func (r *specResolveEnv) resolve(name string) (int32, bool) {
+	body, hasBody := r.svars[name]
+	if strings.EqualFold(name, "X") {
+		// Forge's two-shape SVar:X contract: Count$xPaid means the
+		// causing cast's announced X; every other body is a fixed count
+		// evaluated against the trigger's captured referents. Without an
+		// authored SVar:X, retain the paid/stack X binding.
+		if hasBody && strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+			return r.x, true
+		}
+		if hasBody {
+			return effects.EvalCountOK(r.e, r.countCtx(), body)
+		}
+		return r.x, true
+	}
+	if !hasBody || strings.TrimSpace(body) == "" {
+		return 0, false
+	}
+	return effects.EvalCountOK(r.e, r.countCtx(), body)
 }
 
 // targetSpecContext accepts the actual stack id, so simultaneous triggers of
@@ -448,32 +494,17 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 	if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
 		x = e.cast.x
 	}
-	ctx := &effects.Ctx{Source: source, Controller: you, TriggerContext: tcx,
-		Remembered: remembered, SVars: svars, LKI: lki, LKIPower: lkiPower,
-		LKIToughness: lkiToughness, LKIPTValid: lkiPTValid, X: x}
-	ctx.Host = e
+	// Resolve's captured referents live in ONE heap record (specResolveEnv)
+	// rather than as separately heap-moved closure variables. The count Ctx
+	// is only needed when Resolve evaluates an SVar body, which most target
+	// offers never do; it is built on first use (once, and then reused
+	// exactly as the eager one was). Every field it reads is final by now, so
+	// a late build is identical to an eager one.
+	env := &specResolveEnv{e: e, source: source, you: you, tcx: tcx, remembered: remembered,
+		svars: svars, lki: lki, lkiPower: lkiPower, lkiToughness: lkiToughness, lkiPTValid: lkiPTValid, x: x}
 	sc := effects.SpecContext{You: you, Source: source, TriggerContext: tcx,
 		Remembered: remembered,
-		Resolve: func(name string) (int32, bool) {
-			body, hasBody := svars[name]
-			if strings.EqualFold(name, "X") {
-				// Forge's two-shape SVar:X contract: Count$xPaid means the
-				// causing cast's announced X; every other body is a fixed count
-				// evaluated against the trigger's captured referents. Without an
-				// authored SVar:X, retain the paid/stack X binding.
-				if hasBody && strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
-					return x, true
-				}
-				if hasBody {
-					return effects.EvalCountOK(e, ctx, body)
-				}
-				return x, true
-			}
-			if !hasBody || strings.TrimSpace(body) == "" {
-				return 0, false
-			}
-			return effects.EvalCountOK(e, ctx, body)
-		}}
+		Resolve:    env.resolve}
 	// The stack object's Remembered and fire-time LKI are bound above, beside
 	// TriggerContext, so placement-time numeric SVars read the same captured
 	// referents the resolving Ctx receives later.

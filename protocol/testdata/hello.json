@@ -17,7 +17,8 @@
         "match": 7,
         "perpetual": true,
         "format": "commander",
-        "bot_policy": "bot"
+        "bot_policy": "bot",
+        "mulligans": 2
       }
     ]
   }

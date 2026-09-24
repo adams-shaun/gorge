@@ -340,11 +340,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     carriers) is owned by agent-20260922T193437Z-a964eea4, which adds
 	//     the generic effect-created trigger registration; it is named in the
 	//     Note here, not silently dropped.
-	//   - OptionalDecider$ (Beck's "you may draw a card") needs a "you may"
-	//     ask the delayed push path never poses; registering it would fire the
-	//     effect MANDATORILY, the opposite of the card text, so it notes.
+	//   - an OptionalDecider$ body (Beck's "you may draw a card") IS
+	//     registered: registering it without the election would fire the
+	//     effect MANDATORILY, the opposite of the card text, so the spec
+	//     rides the registration ("|OD=<spec>") and rules' resolveTop poses
+	//     the yes/no to the named decider when the minted ability resolves.
 	//   - a body with no Execute$ has nothing to resolve.
-	for _, name := range strings.Fields(sa.Params["Triggers"]) {
+	for name := range strings.FieldsSeq(sa.Params["Triggers"]) {
 		raw := ""
 		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
 			raw = o.Face().SVars[name]
@@ -379,6 +381,37 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// An Effect trigger body's OptionalDecider$ is the card's own "you
+		// may" election (Beck's "whenever a creature enters this turn, you
+		// may draw a card"). The trigger is registered like any other
+		// Effect trigger and the election is posed when the minted ability
+		// resolves (rules' resolveTop, the CR 603.5 optional gate), never
+		// withheld: withholding it would fire the body mandatorily, the
+		// opposite of the card text. The spec rides the registration Text
+		// as "|OD=<spec>" so a Mode$ Phase registration, whose body is not
+		// re-parsed at fire time, still names its decider (events.Apply's
+		// DelayedRegister decode -> state.DelayedTrigger.OptionalSpec ->
+		// checkDelayedTriggers/checkEventDelayedTriggers ->
+		// effects.TriggerContext.OptionalSpec).
+		optionalSpec := strings.TrimSpace(tr.Params["OptionalDecider"])
+		odSuffix := ""
+		if optionalSpec != "" {
+			// A Static$ True body cannot carry the election: rules'
+			// checkEventDelayedTriggers resolves a static-marked delayed
+			// registration INLINE at fire time -- never minting a stack
+			// object -- so there is no resolution gate to pose the CR 603.5
+			// yes/no at, and registering it would execute the "you may"
+			// mandatorily. Withheld loudly (cli-20260923T060218Z round 2);
+			// the static firing arm carries a matching fail-closed guard so
+			// no future "|OD=" minter can misexecute there either.
+			if strings.TrimSpace(tr.Params["Static"]) != "" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unmodelled Effect trigger Static$ with OptionalDecider$ " + optionalSpec + " (not registered)"})
+				registered = true
+				continue
+			}
+			odSuffix = "|OD=" + optionalSpec
+		}
 		if tr.Mode == "BecomeMonarch" {
 			// Palace Jailer's one-shot command-zone promise. It is CONSUMED
 			// by its own firing, not retired by a turn ceiling, and its
@@ -387,7 +420,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// lifetime guard below does not apply to it.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
+				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix})
 			registered = true
 			continue
 		}
@@ -397,12 +430,6 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
-			registered = true
-			continue
-		}
-		if v := strings.TrimSpace(tr.Params["OptionalDecider"]); v != "" {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unmodelled Effect trigger OptionalDecider$ " + v})
 			registered = true
 			continue
 		}
@@ -425,7 +452,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// the registration and the |TT= turn bound retires it.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
 			registered = true
 		case "Phase":
 			// A phase promise fires at the FIRST listed step still ahead
@@ -446,7 +473,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				continue
 			}
-			text := tr.Params["Phase"] + expiry
+			text := tr.Params["Phase"] + expiry + odSuffix
 			if vp := strings.TrimSpace(tr.Params["ValidPlayer"]); vp != "" {
 				text += "|VP=" + vp
 			}
@@ -466,7 +493,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// DelayedTrigger and makes its mode self-describing for replay.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
 			registered = true
 		}
 	}
@@ -1305,7 +1332,7 @@ func parseReplacementLine(svars map[string]string, name string) (string, map[str
 		return "", nil
 	}
 	params := make(map[string]string)
-	for _, seg := range strings.Split(body, "|") {
+	for seg := range strings.SplitSeq(body, "|") {
 		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
 		if !ok {
 			continue
@@ -1365,7 +1392,7 @@ func parseStaticLine(svars map[string]string, name string) (string, staticLinePa
 	}
 	params := make(staticLineParams)
 	mode := ""
-	for _, seg := range strings.Split(body, "|") {
+	for seg := range strings.SplitSeq(body, "|") {
 		seg = strings.TrimSpace(seg)
 		if seg == "" {
 			continue
@@ -2280,7 +2307,7 @@ func effectSelfExileOnCastTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
 // "Card" for a body that names none. Empty when no entry has the shape, so a
 // Triggers$-only Effect keeps its existing registrations untouched.
 func effectSelfExileOnCastSpec(h Host, c *Ctx, names string) string {
-	for _, name := range strings.Fields(names) {
+	for name := range strings.FieldsSeq(names) {
 		raw := effectTriggerBody(h, c, name)
 		if raw == "" {
 			continue
@@ -2433,6 +2460,7 @@ func hasChosenPlayers(ts []state.Target) bool {
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
+	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -2444,6 +2472,12 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if turnUp {
 			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
+			}
+			continue
+		}
+		if turnDown {
+			if o.Zone == state.ZBattlefield && !o.FaceDown {
+				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID})
 			}
 			continue
 		}
@@ -2946,6 +2980,8 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 			}
 			return
 		}
+		mark, marked := eventMark(h)
+		asksBefore := askCount(h)
 		Resolve(h, c, sub)
 		if h.Suspended() {
 			// A RepeatOptional body can itself ask (Forbidden Ritual's
@@ -2966,6 +3002,19 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if optional {
 			if i+1 >= n {
+				return
+			}
+			if marked && askCount(h) == asksBefore && !stateChangedSince(h, mark) {
+				// The iteration posed no decision and changed nothing (only
+				// Notes: Forbidden Ritual's "sacrifice a nontoken permanent"
+				// once none is left, its GenericChoice gated off, its Cleanup
+				// clearing an empty Remembered). A body with no decision run
+				// from an unchanged state is the same no-op every time, so
+				// every number of further repeats yields this same state (CR
+				// 732.2a's shortcut): end the do/while instead of offering an
+				// election whose "repeat" answer can only loop forever.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "the repeated process changed nothing; it is not offered again"})
 				return
 			}
 			if !poseRepeatOptionalElection(h, c, sa, i+1) {
@@ -3037,6 +3086,11 @@ func poseRepeatOptionalElection(h Host, c *Ctx, sa *cards.SA, next int32) bool {
 func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 	if check == "" {
 		return true, true // no gate; the loop's own run count governs
+	}
+	if _, ok := sourceRuntimeSVar(h.Game(), c, check); ok {
+		// A StoreSVar write shadows the printed body, so the printed
+		// body's predicates are irrelevant (CheckSVarHolds reads the store).
+		return CheckSVarHolds(h, c, check, cmp)
 	}
 	body := check
 	if c.SVars != nil {
@@ -4635,29 +4689,39 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool)
 	return produced, false
 }
 
-// ManaProducerTag reads the producer-type provenance a positive mana
-// production carries: the Treasure/Cave/Desert tag word (state.TypedManaTags
-// order) when the producing permanent prints one of those types, else
-// snow=true when it prints the Snow supertype, else neither. It is the ONE
-// home for the tag read, shared by EVERY positive ManaAdd producer (the
-// acted AB$ Mana ability in effMana, the AB$ ManaReflected body in
-// effManaReflected -- both the activated ability's resolution and a
-// standalone DB$ ManaReflected -- and the cumulative-upkeep AddMana action
-// in rules/cumulative.go), so a producer type can never be
-// tagged on one path and missed on another. The Snow/typed combination is
-// unmeasured at the corpus pin (no producer prints both): a typed tag wins
-// the single Counter encoding, exactly as it did before this helper existed.
+// ManaProducerTag encodes producer provenance in one exclusive unit tag.
+// The Artifact bit composes with Treasure/Cave/Desert rather than replacing
+// their historical type: a Treasure Artifact emits ArtifactTreasure, while
+// Sol Ring emits Artifact. All mana producers use this same helper (effMana,
+// effManaReflected, and cumulative-upkeep AddMana). Snow/typed overlap is
+// unmeasured at the corpus pin and retains typed precedence.
 func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 	o := h.Game().Obj(source)
 	if o == nil || o.Face() == nil {
 		return "", false
 	}
+	artifact := false
+	for _, t := range o.Face().Types {
+		if t == "Artifact" {
+			artifact = true
+			break
+		}
+	}
 	for _, tagWord := range state.TypedManaTags {
+		if tagWord == "Artifact" {
+			continue
+		}
 		for _, t := range o.Face().Types {
 			if t == tagWord {
+				if artifact {
+					return "Artifact" + tagWord, false
+				}
 				return tagWord, false
 			}
 		}
+	}
+	if artifact {
+		return "Artifact", false
 	}
 	for _, t := range o.Face().Types {
 		if t == "Snow" {
@@ -4832,13 +4896,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// likewise tagged — Counter "<Tag><colour>" — into Player.TypedMana so
 	// the filtered Count$CastTotalManaSpent Treasure/Cave/Desert heads can
 	// read the per-unit producer provenance (Marut, Bat Colony, Cataclysmic
-	// Prospecting). The tag is COLOUR-INDEPENDENT of what the unit pays as:
-	// a Treasure token's Produced$ Any degrades to colourless (the M4
-	// stand-in) and lands in the MC slot, but the tag still names Treasure.
-	// Precedence is the fixed Treasure > Cave > Desert when a face carries
-	// several (measured: no corpus producer carries two); no corpus producer
-	// is both Snow and typed, and the tagged form takes the Counter (one
-	// encoding per unit) — the combination is unmeasured.
+	// Prospecting). Artifact provenance composes with those tags in the
+	// per-unit counter; it never replaces the Treasure/Cave/Desert type or
+	// contributes a second pool unit. An untyped Artifact uses ArtifactC.
 	tag, snow := ManaProducerTag(h, c.Source)
 	// TriggersWhenSpent$ is retained alongside any spend restriction: the
 	// ManaRestriction event encoding carries both the restriction and source

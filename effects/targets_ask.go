@@ -189,7 +189,7 @@ func DefinedIsTargetReuse(defined string) bool {
 }
 
 func definedIsTargetReuse(defined string) bool {
-	for _, tok := range strings.Split(defined, ",") {
+	for tok := range strings.SplitSeq(defined, ",") {
 		tok = strings.TrimSpace(tok)
 		if i := strings.IndexByte(tok, '.'); i >= 0 {
 			tok = tok[:i]

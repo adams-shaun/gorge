@@ -851,7 +851,10 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	2: "a867ac1768ab4993",
+	// CR 103.1 (cli-20260922T225141Z-e771720d): the hosted toss winner
+	// answers starting_player before mulligans. DecisionAsk/DecisionMade enter
+	// the chain; without that ask this head returns to a867ac1768ab4993.
+	2: "a613e26b20d46eea",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1018,7 +1021,9 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "2114abdd282628ca",
+	// CR 103.1: the same toss-choice ask/answer moves the 4-seat chain;
+	// disabling only the ask restores 2114abdd282628ca.
+	4: "1fb9d6682652d3ee",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1152,7 +1157,9 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	6: "3bd695df72d9d4c9",
+	// CR 103.1: the same toss-choice ask/answer moves the 6-seat chain;
+	// disabling only the ask restores 3bd695df72d9d4c9.
+	6: "5f6b6745a8736596",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1328,7 +1335,14 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "5c90b1b3a0b38f25",
+	// CR 103.1: the same toss-choice ask/answer moves the 8-seat chain;
+	// disabling only the ask restores 5c90b1b3a0b38f25.
+	// mayplay-mfa: 8 seats now tags artifact-produced white mana. A scratch
+	// comparison with only the producer tag disabled reproduced the old
+	// golden; all 14,889 events have identical ordering and actions, with
+	// exactly two changed payloads: events 2441 (W -> ArtifactW, 1 unit)
+	// and 2492 (W -> ArtifactW, 3 units from Lion's Eye Diamond).
+	8: "2e4538482acfcde8",
 }
 
 func TestHeads(t *testing.T) {

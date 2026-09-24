@@ -58,7 +58,7 @@ func choiceZones(sa *cards.SA) map[state.Zone]bool {
 		return map[state.Zone]bool{state.ZBattlefield: true}
 	}
 	out := map[state.Zone]bool{}
-	for _, z := range strings.Split(s, ",") {
+	for z := range strings.SplitSeq(s, ",") {
 		switch strings.TrimSpace(z) {
 		case "Battlefield":
 			out[state.ZBattlefield] = true
@@ -394,7 +394,7 @@ func chooseEachGroups(sa *cards.SA) []string {
 		return []string{"Cleric", "Rogue", "Warrior", "Wizard"}
 	}
 	var out []string
-	for _, part := range strings.Split(raw, " & ") {
+	for part := range strings.SplitSeq(raw, " & ") {
 		if p := strings.TrimSpace(part); p != "" {
 			out = append(out, p)
 		}
@@ -1389,7 +1389,7 @@ func repeatedCards(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	zones := map[state.Zone]bool{state.ZBattlefield: true}
 	if raw := strings.TrimSpace(sa.Params["Zone"]); raw != "" {
 		zones = map[state.Zone]bool{}
-		for _, z := range strings.Split(raw, ",") {
+		for z := range strings.SplitSeq(raw, ",") {
 			switch strings.TrimSpace(z) {
 			case "Battlefield":
 				zones[state.ZBattlefield] = true

@@ -38,10 +38,10 @@ func TestLegalActionsReusesCostStaticMembership(t *testing.T) {
 		t.Fatalf("ability-only tax changed spell offers: got %d, want %d", got, len(hand))
 	}
 
-	controlAllocs := testing.AllocsPerRun(100, func() {
+	controlAllocs := allocsWithoutWalkCacheVerify(100, func() {
 		costStaticOptionsSink = control.legalActions(0)
 	})
-	staticAllocs := testing.AllocsPerRun(100, func() {
+	staticAllocs := allocsWithoutWalkCacheVerify(100, func() {
 		costStaticOptionsSink = withStatic.legalActions(0)
 	})
 	if extra := staticAllocs - controlAllocs; extra > 3 {

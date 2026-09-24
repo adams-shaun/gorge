@@ -1480,8 +1480,18 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 		// exactly those potential reductions; target-dependent raises/floors
 		// remain absent until the actual target is known (see the helper's
 		// contract).
-		potential := e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
-		if e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
+		//
+		// The two passes differ ONLY through ValidTarget$: it is the one
+		// place costStaticApplies reads the targets, and the potential pass
+		// skips just the ValidTarget$ raises/floors. With no cost static
+		// carrying the key, both passes compose the same modifier set, so the
+		// retry would re-ask the exact question that just failed: the target
+		// census (a pure read) is skipped, not changed.
+		var potential costMods
+		if statics.validTarget {
+			potential = e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
+		}
+		if statics.validTarget && e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
 			mods = potential
 		} else if accepted, ok := e.offerSacXMods(p, id, ability, base, statics, scope, tax, delve, hyp); ok {
 			// The cost announces a Sac<X/Spec> count whose resulting X-dependent
@@ -2243,14 +2253,38 @@ type pipRider struct {
 // of any type can be spent to cast those spells") is the wider reading: under
 // it EVERY pip — coloured and {C} alike — accepts all six mana types
 // (anyTypeAlts), since "any type" is every mana type, colourless included.
+// hasPips reports whether costPips would return any pip. Every pip source
+// costPips reads is listed here; a cost without one resolves against only
+// its life and generic totals (resolveManaWith), whatever the rider, the
+// B-life grant and the conversion set are.
+func (c Cost) hasPips() bool {
+	return c.Colored != (state.Mana{}) || len(c.Hybrid) > 0 || len(c.Twobrid) > 0 || len(c.Phyrexian) > 0 ||
+		len(c.HybridPhyrexian) > 0 || c.Snow > 0
+}
+
 func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
-	var out []pip
+	// Size the list once: every pip source below contributes exactly one
+	// pip per unit counted here.
+	n := len(c.Hybrid) + len(c.Twobrid) + len(c.Phyrexian) + len(c.HybridPhyrexian)
+	if c.Snow > 0 {
+		n += int(c.Snow)
+	}
+	for _, letter := range pipLetters {
+		if k := c.Colored[state.ManaIndex(letter)]; k > 0 {
+			n += int(k)
+		}
+	}
+	out := make([]pip, 0, n)
 	// The coloured slots including the colourless one: a plain {C} pip is a
 	// strict colourless requirement generic must not satisfy by stealing the
 	// pool's only colourless, so it is reserved like any coloured pip.
-	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
+	for _, letter := range pipLetters {
 		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
-			alts := []pipAlt{{color: letter}}
+			// The strict one-colour alternative list is shared read-only
+			// (every pip consumer only ranges alts); it is capped at its
+			// length, so the K'rrik append below copies rather than
+			// writing into the shared array.
+			alts := strictColourAlts[state.ManaIndex(letter)][:1:1]
 			if rider.anyType {
 				alts = anyTypeAlts()
 			} else if rider.anyColor && letter != 'C' {
@@ -2310,6 +2344,18 @@ func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
 	return out
 }
 
+// pipLetters is costPips' fixed exact-colour order (colourless last).
+var pipLetters = [...]byte{'W', 'U', 'B', 'R', 'G', 'C'}
+
+// strictColourAlts holds, per mana index, the one-element strict colour
+// alternative list costPips hands every plain coloured pip (read-only).
+var strictColourAlts = func() (t [len(pipLetters)][1]pipAlt) {
+	for _, letter := range pipLetters {
+		t[state.ManaIndex(letter)][0] = pipAlt{color: letter}
+	}
+	return t
+}()
+
 // anyColorAlts is the colour alternatives a coloured pip accepts under the
 // may-play ignore-colour rider (MayPlayIgnoreColor$ True, CR 401.5): any of
 // the five colours, tried in fixed WUBRG order. A {C} pip never reaches this
@@ -2336,7 +2382,7 @@ func anyTypeAlts() []pipAlt {
 type manaPayment struct {
 	pool      state.Mana
 	snow      state.Mana
-	typed     [3]state.Mana
+	typed     [7]state.Mana
 	lifeSpent int32
 }
 
@@ -2347,7 +2393,7 @@ type manaPayment struct {
 // they go before snow but after plain); the backtracking search undoes the
 // choice if the rest of the cost cannot be paid that way. plain is the
 // slot's untagged remainder; each tally is <= the pool by construction.
-func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
+func takeUnit(rem, sn *state.Mana, typed *[7]state.Mana, i int) {
 	plain := (*rem)[i] - (*sn)[i]
 	for t := range *typed {
 		plain -= (*typed)[t][i]
@@ -2385,7 +2431,7 @@ func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
 // only as though it were colorless"). A nil conv is the plain exact-colour
 // match every pre-existing caller keeps, so games with no ManaConvert static
 // on the battlefield resolve byte-identically.
-func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveMana(pool, snow state.Mana, typed [7]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
 	return c.resolveManaWith(pool, snow, typed, life, false, pipRider{}, conv)
 }
 
@@ -2400,7 +2446,7 @@ func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32
 // never includes colourless. Both grants keep main search's deterministic
 // first-alternative preference; the expanded alternatives are tried in fixed
 // WUBRG order (see anyColorAlts).
-func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveManaWith(pool, snow state.Mana, typed [7]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
 		return manaPayment{}, false
 	}
@@ -2566,7 +2612,7 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life i
 // "is there ANY way this cost can be paid right now" -- the same resolveMana
 // the payment stage uses, so an offered cost and the cost it charges can
 // never disagree.
-func (c Cost) payable(pool, snow state.Mana, typed [3]state.Mana, life int32) bool {
+func (c Cost) payable(pool, snow state.Mana, typed [7]state.Mana, life int32) bool {
 	_, ok := c.resolveMana(pool, snow, typed, life, nil)
 	return ok
 }
@@ -2578,7 +2624,7 @@ func (c Cost) CanPay(p state.Mana) bool {
 	// here) and a {S} pip is unpayable. This is the pure pricing question the
 	// corpus invariants ask, and it never treats a hybrid as generic nor lets
 	// colourless `pay` it.
-	_, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
+	_, ok := c.resolveMana(p, state.Mana{}, [7]state.Mana{}, 0, nil)
 	return ok
 }
 
@@ -2595,7 +2641,7 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// a fully resolved cost here). resolveMana already reserves the coloured
 	// pips and deducts generic, so the returned pool is fully spent. A failed
 	// search returns the input pool untouched.
-	pay, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
+	pay, ok := c.resolveMana(p, state.Mana{}, [7]state.Mana{}, 0, nil)
 	if !ok {
 		return p, false
 	}
