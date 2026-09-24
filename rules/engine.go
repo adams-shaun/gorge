@@ -148,6 +148,10 @@ type Engine struct {
 	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
 	ascend ascendScan
 
+	// storied is checkEnduringStoryGrants' incremental "could anything carry
+	// Storied" arena scan (rules/storied.go); a pure cache, zero = rescan.
+	storied storiedScan
+
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
 	// both together, while an Engine assembled around an existing log lazily
