@@ -838,6 +838,18 @@ type Engine struct {
 	// asks (Breathstealer's Crypt's unless-pay discard) and the resume must
 	// restore Ctx.ReplacedPlayer. Only a Draw replacement sets it.
 	replReplacedPlayer state.Target
+	// replRedirect is the destination-changing ("Replaced") move replacement
+	// whose ReplaceWith$ body is resolving, with every replacement already
+	// applied to that event (CR 614.5). A body move of the same object to a
+	// DIFFERENT zone is the modified event of CR 616.1f and gets one more
+	// replacement pass that skips those (Engine.emit). Immutable once set;
+	// threaded across a suspension by resumePoint.redirect; nil at every
+	// intent boundary outside a suspended body.
+	replRedirect *replRedirect
+	// replExclude is the applied set replRedirect carried into that one
+	// recheck pass: applyReplacementsDispatch drops those matches and
+	// applyReplacement extends it for a nested redirect. Nil otherwise.
+	replExclude []string
 	// triggerFireCount and the damage-batch fields below are trigger_match.go's
 	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-damage-batch gate); see there.
@@ -850,6 +862,19 @@ type Engine struct {
 	// again. The stamp is (Turn, CombatsThisTurn), the event-folded per-turn
 	// combat count, so it uniquely names a combat and needs no reset hook.
 	unblockedOnceFired map[triggerKey]combatFires
+	// unblockedRoundChecked stamps the (Turn, CombatsThisTurn) combat whose
+	// declare-blockers round-complete trigger walk (checkAttackerUnblocked-
+	// Triggers / checkAttackerUnblockedOnceTriggers, rules/turn.go step) has
+	// already run. step() re-enters the StepDeclareBlockers arm every time
+	// nothing is pending -- after an aborted cast (CR 733.1 reversal) no
+	// handler re-grants priority, so the Advance loop calls step() again --
+	// and "attacks and isn't blocked" is ONE event per combat (CR 509.2): a
+	// second walk queued Senu, Keen-Eyed Protector's trigger again on every
+	// aborted cast attempt, and the TriggerPush it drained cleared the F05-2
+	// held-out cast suppression, so the no-progress abort re-offered forever
+	// (cardfuzz batch10). The zero value names no combat (CombatsThisTurn is
+	// at least 1 inside combat), so it needs no reset hook.
+	unblockedRoundChecked combatFires
 	// attackersDeclaredFired latches a BATCH trig:AttackersDeclared trigger
 	// (Mode$ AttackersDeclared with no per-defender AttackedTarget$) to ONE
 	// fire per declare step (rules.trigger_match.go's checkFaceTriggers;
@@ -2319,6 +2344,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// Not replaced, but possibly REWRITTEN in place (a DamageDone
 		// ReplaceEffect body changed the amount): the returned event is what
 		// gets logged, not the emit caller's copy.
+		ev = replaced
+	} else if e.redirectRecheck(ev) {
+		replaced, handled := e.applyRedirectReplacements(ev)
+		if handled {
+			return replaced
+		}
 		ev = replaced
 	}
 	// CountersRemain is a departure property of the battlefield object. Tag the

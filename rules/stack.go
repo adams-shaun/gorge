@@ -168,39 +168,47 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 		// one before snow wherever a choice existed, so the split here is
 		// exactly what the payment search did. The emission order (plain,
 		// Treasure, Cave, Desert, snow) is fixed and deterministic.
+		//
+		// Every form is attributed ordinary-first against ONE running fresh
+		// share for the slot (the exception mana is spent last): the part of
+		// an emission past what is left of perFresh is the persistent
+		// remainder and rides a MARKED event, so the fold moves the tally
+		// with the units that were actually consumed. The carve above already
+		// charged its own consumption against perVis/perFresh by the consumed
+		// batch's flag. A TYPED or SNOW unit can be persistent too -- Tanuki
+		// Transplanter is an artifact, so its PersistentMana$ G arrives as
+		// "ArtifactG" -- and an unmarked typed spend of it left
+		// PersistentMana above the emptied pool, which the next payment read
+		// as a negative fresh share and over-charged into a negative pool
+		// (cardfuzz fuzz-b13).
+		fresh := perFresh[i]
+		if fresh < 0 {
+			fresh = 0
+		}
+		emitSpend := func(counter string, n int32) {
+			if n <= 0 {
+				return
+			}
+			ord := min(n, fresh)
+			fresh -= ord
+			if ord > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: counter, Amount: -ord})
+			}
+			if per := n - ord; per > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: counter,
+					Amount: -per, Text: events.ManaPersistentText("")})
+			}
+		}
 		snowSpent := emitSnow[i]
 		typedSpent := int32(0)
 		for t := range emitTyped {
 			typedSpent += emitTyped[t][i]
 		}
-		if plain := spent[i] - snowSpent - typedSpent; plain > 0 {
-			// The slot's ordinary units are attributed first (the exception
-			// mana is spent last); the plain share past perFresh is the
-			// persistent remainder and rides a MARKED event so the fold moves
-			// the tally with the units that were actually consumed. The carve
-			// above already charged its own consumption against perVis/perFresh
-			// by the consumed batch's flag, so the marked remainder can never
-			// exceed the visible persistent share.
-			ord := plain
-			if perFresh[i] < ord {
-				ord = perFresh[i]
-			}
-			if ord > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -ord})
-			}
-			if per := plain - ord; per > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter,
-					Amount: -per, Text: events.ManaPersistentText("")})
-			}
-		}
+		emitSpend(letter, spent[i]-snowSpent-typedSpent)
 		for t, tag := range state.ManaUnitTags {
-			if emitTyped[t][i] > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -emitTyped[t][i]})
-			}
+			emitSpend(tag+letter, emitTyped[t][i])
 		}
-		if snowSpent > 0 {
-			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
-		}
+		emitSpend("S"+letter, snowSpent)
 	}
 	// Fixed life costs and any Phyrexian pips paid with life are deducted
 	// through the ordinary LifeChange event so a replay learns them.
