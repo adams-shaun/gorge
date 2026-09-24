@@ -93,7 +93,7 @@ func TestPolicynetKindsFlagValidation(t *testing.T) {
 		t.Fatalf("default -policynet-kinds = %q / %v, want attackers only", policynetKindsArg, policynetKinds)
 	}
 	ck := writeZeroCheckpoint(t)
-	for _, bad := range []string{"blockers", "attackers,attackers", "attackers,", ""} {
+	for _, bad := range []string{"blocker", "attackers,attackers", "attackers,", ""} {
 		policynetKindsArg, policynetKindsGiven = bad, true
 		code := mainExit("policynet", "bot", 1, 0, 2, 0, "mono-red-goblins:mono-blue-tempo", "constructed", "text", 0,
 			200, 20000, ".cards", "", false, false, "", 0, 0, "", "", "", "", ck)

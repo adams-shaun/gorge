@@ -22,6 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 	"github.com/adams-shaun/gorge/internal/searchseat"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -52,6 +53,14 @@ type config struct {
 	noLandExclusion          bool
 	comparePotential         bool
 	labelsPath               string
+	// value is the -value-checkpoint model (nil: the heuristic leaf). It is
+	// loaded once before any game and shared read-only by every worker.
+	value *policynet.Model
+	// prior is the -prior-checkpoint policy head (nil = off, today's
+	// candidate lists); priorTopK / priorWiden are searchseat.Options'
+	// PriorTopK / PriorWiden (0 = that field's default).
+	prior                 *policynet.Model
+	priorTopK, priorWiden int
 }
 
 // DecisionRecord is one search-seat decision the teacher was asked about.
@@ -80,6 +89,11 @@ type DecisionRecord struct {
 	BoardPAOnly           int
 	IncompatibleProposals int
 	ChosenDiffersFromBot  bool
+	// Prior diagnostics (searchseat.Trace's), zero with no -prior-checkpoint.
+	PriorEnumerated int  `json:",omitempty"`
+	PriorKept       int  `json:",omitempty"`
+	PriorRanked     bool `json:",omitempty"`
+	PriorChanged    bool `json:",omitempty"`
 }
 
 // GameRecord is one seed: the search game and its bot-vs-bot twin.
@@ -108,7 +122,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	fs.SetOutput(progress)
 	games := fs.Int("games", 10, "games per approved pair")
 	seed := fs.Uint64("seed", 30_000_000, "base development seed (the held-out range [1000000,2000000) is refused)")
-	kinds := fs.String("kinds", "attackers", "comma list of decision kinds the teacher answers: attackers, blockers, cast")
+	kinds := fs.String("kinds", "attackers", "comma list of decision kinds the teacher answers: attackers, blockers, cast, target")
 	worlds := fs.Int("worlds", 8, "K sampled worlds per decision")
 	attempts := fs.Int("attempts", 64, "sampler proposal attempts per decision")
 	minESS := fs.Float64("min-ess", 0, "ESS gate for resampling K worlds (0 = K, the calibration contract)")
@@ -126,9 +140,13 @@ func run(args []string, stdout, progress io.Writer) error {
 	noLandExclusion := fs.Bool("no-land-exclusion", false, "measurement only: sample without the declined-land-drop exclusion (the pre-2026-09-21 proposal; reproduces that sampler's label corpus byte for byte)")
 	pairsFlag := fs.String("pairs", "", "restrict to comma list of a:b pairs (default: the ten approved pairs)")
 	outPath := fs.String("out", "", "JSONL of GameRecords (new file)")
+	valueCheckpoint := fs.String("value-checkpoint", "", "score non-terminal rollout leaves with this policynet checkpoint's value head instead of the material heuristic (needs -horizon > 0 and a checkpoint trained with -value-weight > 0)")
 	labelsPath := fs.String("labels", "", "JSONL label corpus of covered decisions (new file only, atomic publish)")
 	corpus := fs.String("cards", ".cards", "compiled corpus directory")
 	cpuprofile := fs.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
+	priorPath := fs.String("prior-checkpoint", "", "policynet checkpoint whose policy head ranks the attackers/cast candidates: enumerate -prior-widen, keep the bot answer plus the top -prior-topk (empty = off, today's fixed candidate list)")
+	priorTopK := fs.Int("prior-topk", 0, "with -prior-checkpoint: non-bot candidates kept (0 = -candidates minus 1)")
+	priorWiden := fs.Int("prior-widen", 0, "with -prior-checkpoint: candidate enumeration cap, bot answer included (0 = max(-candidates, 16))")
 	memprofile := fs.String("memprofile", "", "write a heap profile to this pprof file after the last game (empty = off)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -145,20 +163,51 @@ func run(args []string, stdout, progress io.Writer) error {
 	if *games < 1 || *worlds < 1 || *attempts < 1 || *workers < 1 || *limit < 2 {
 		return fmt.Errorf("games, worlds, attempts, workers must be >0 and candidates >=2")
 	}
+	if *priorTopK < 0 || *priorWiden < 0 {
+		return fmt.Errorf("prior-topk and prior-widen must be >= 0")
+	}
+	if *priorPath == "" && (*priorTopK != 0 || *priorWiden != 0) {
+		return fmt.Errorf("-prior-topk / -prior-widen need -prior-checkpoint")
+	}
 	last := *seed + uint64(10**games)
 	if *seed < 2_000_000 && last > 1_000_000 {
 		return fmt.Errorf("seed range [%d,%d) overlaps held-out [1000000,2000000)", *seed, last)
 	}
 	cfg := config{kinds: map[string]bool{}, worlds: *worlds, attempts: *attempts, limit: *limit, minESS: *minESS, margin: *margin,
 		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath, decisionWorkers: *decisionWorkers, noLandExclusion: *noLandExclusion, comparePotential: *comparePotential}
+	cfg.priorTopK, cfg.priorWiden = *priorTopK, *priorWiden
+	if *priorPath != "" {
+		m, err := policynet.LoadCheckpointFile(*priorPath)
+		if err != nil {
+			return fmt.Errorf("prior checkpoint: %w", err)
+		}
+		cfg.prior = m
+	}
 	for _, k := range strings.Split(*kinds, ",") {
 		k = strings.TrimSpace(k)
-		if k != "attackers" && k != "blockers" && k != "cast" && k != "" {
+		if k != "attackers" && k != "blockers" && k != "cast" && k != "target" && k != "" {
 			return fmt.Errorf("unknown kind %q", k)
 		}
 		if k != "" {
 			cfg.kinds[k] = true
 		}
+	}
+	if *valueCheckpoint != "" {
+		// A game-end rollout (-horizon 0) ends at game over, which is scored
+		// 1 / 0 / 0.5 and never reaches the leaf evaluator; only a MaxSubmits
+		// cap would, so a value checkpoint there would silently do (almost)
+		// nothing.
+		if cfg.horizon <= 0 {
+			return fmt.Errorf("-value-checkpoint needs -horizon > 0: a game-end rollout (-horizon 0) never stops at a non-terminal leaf, so the value head would never be read")
+		}
+		m, err := policynet.LoadCheckpointFile(*valueCheckpoint)
+		if err != nil {
+			return fmt.Errorf("-value-checkpoint: %w", err)
+		}
+		if !m.HasValue() {
+			return fmt.Errorf("-value-checkpoint %s has no value head (train it with policytrain -value-weight > 0)", *valueCheckpoint)
+		}
+		cfg.value = m
 	}
 	if cfg.labelsPath != "" {
 		if err := checkLabelsDestination(cfg.labelsPath); err != nil {
@@ -357,9 +406,14 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 		SampleSeed:   cfg.sampleSeed,
 		Clairvoyant:  cfg.oracle,
 		Parallelism:  cfg.decisionWorkers,
+		Value:        cfg.value,
 
 		NoLandExclusion:         cfg.noLandExclusion,
 		ComparePotentialActions: cfg.comparePotential,
+
+		Prior:      cfg.prior,
+		PriorTopK:  cfg.priorTopK,
+		PriorWiden: cfg.priorWiden,
 	}
 	// The phase split is timed HERE, not in searchseat: internal/archtest
 	// allows the time import in host, host/httpapi and cmd/gorged only, so the
@@ -397,6 +451,8 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 	dr.IncompatibleProposals = tr.IncompatibleProposals
 	dr.BoardPAOnly = tr.BoardPotentialActionsOnly
 	dr.TopRejection = tr.TopRejection
+	dr.PriorEnumerated, dr.PriorKept = tr.PriorEnumerated, tr.PriorKept
+	dr.PriorRanked, dr.PriorChanged = tr.PriorRanked, tr.PriorChanged
 
 	if !tr.Covered {
 		dr.Fallback = tr.Fallback
@@ -485,13 +541,18 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 		kinds = append(kinds, k)
 	}
 	sort.Strings(kinds)
-	fmt.Fprintf(w, "search-teacher spike: oracle=%v kinds=%s K=%d attempts=%d minESS=%g horizon=%d margin=%g candidates<=%d seed=%d games/pair=%d wall=%.0fs\n",
-		cfg.oracle, strings.Join(kinds, ","), cfg.worlds, cfg.attempts, cfg.minESS, cfg.horizon, cfg.margin, cfg.limit, seed, games, wall.Seconds())
+	leaf := "heuristic"
+	if cfg.value != nil {
+		leaf = "value"
+	}
+	fmt.Fprintf(w, "search-teacher spike: oracle=%v kinds=%s K=%d attempts=%d minESS=%g horizon=%d leaf=%s margin=%g candidates<=%d seed=%d games/pair=%d wall=%.0fs %s\n",
+		cfg.oracle, strings.Join(kinds, ","), cfg.worlds, cfg.attempts, cfg.minESS, cfg.horizon, leaf, cfg.margin, cfg.limit, seed, games, wall.Seconds(), priorHeader(cfg))
 	var n, errs, stalls, unsupported int
 	var sWins, bWins float64
 	var diffs []float64
 	byPair := map[string][3]float64{}
 	var nd, covered, overrides, accepted, attemptsN int
+	var priorCovered, priorChanged int
 	var compExclusions, compResidual, compUnguided, boardPAOnly int
 	var sampleMS, searchMS, coveredSampleMS, coveredSearchMS []float64
 	fallbacks := map[string]int{}
@@ -559,6 +620,12 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 				if d.ChosenDiffersFromBot {
 					overrides++
 				}
+				if d.PriorEnumerated > 0 {
+					priorCovered++
+					if d.PriorChanged {
+						priorChanged++
+					}
+				}
 			} else {
 				fallbacks[d.Fallback]++
 			}
@@ -580,6 +647,9 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 		fmt.Fprintf(w, "paired delta:          %+.2fpp ± %.2f (95%%, n=%d; %d games changed outcome)\n", 100*mean, 196*sd/math.Sqrt(float64(n)), n, changed)
 	}
 	fmt.Fprintf(w, "decisions asked %d, covered %d (%.1f%%), overrides %d (%.1f%% of covered)\n", nd, covered, pct(covered, nd), overrides, pct(overrides, covered))
+	if cfg.prior != nil {
+		fmt.Fprintf(w, "prior changed the candidate set on %d of %d covered decisions\n", priorChanged, priorCovered)
+	}
 	fmt.Fprintf(w, "sampler acceptance %d/%d (%.2f%%)\n", accepted, attemptsN, pct(accepted, attemptsN))
 	fmt.Fprintf(w, "  competition: exclusions taught %d, residual rejections %d, unguided %d\n", compExclusions, compResidual, compUnguided)
 	if cfg.comparePotential {
@@ -628,6 +698,17 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 			fmt.Fprintf(w, "  kind %s fallback %q: %d\n", k, f, ks.fallbacks[f])
 		}
 	}
+}
+
+// priorHeader is the summary header's prior field: "prior=off", or
+// "prior=on topk=K widen=W" with the EFFECTIVE values (searchseat's
+// defaults applied), so a log names the budget it actually ran.
+func priorHeader(cfg config) string {
+	if cfg.prior == nil {
+		return "prior=off"
+	}
+	topK, widen := searchseat.Options{Limit: cfg.limit, PriorTopK: cfg.priorTopK, PriorWiden: cfg.priorWiden}.PriorBudget()
+	return fmt.Sprintf("prior=on topk=%d widen=%d", topK, widen)
 }
 
 // kindStats is summarize's per-decision-kind census.
