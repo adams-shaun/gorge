@@ -24,6 +24,7 @@ seats traded).
 | 9 | Expert iteration loop (pn11, `cmd/exitloop`) | 3 gens: eval 45.7 / 44.9 / 45.4% vs 48.7% control | Merged; does not compound |
 | 10 | Prior art: mtgbld self-distillation PPO (XMage) | 44.7% → 54.5% vs CP7 over 6 gated rounds | The one recipe that compounded there |
 | 11 | On-policy PPO / VDWM, the mtgbld recipe ported (pn13) | Flat: 10 rounds within ±0.3pp of round 0; sign-admission fix alone +4.8pp (46.7 → 51.5%, control 51.0%) | Merged; does not compound; fixed the attackers override bug |
+| 12 | Data / features / action / hidden-info grid (pn12) | No axis helps: override top-1 3–10% at every size and feature set; best in-play 51.2% vs 50.3% control | Merged (flag-gated); oracle override labels are unlearnable |
 | — | MageZero reference run (2 vCPU) | Gen 0: 44% vs minimax pool (baseline 34.5%) | Throughput reference |
 
 **The one durable finding:** the search teacher beats the bot. Every attempt
@@ -279,6 +280,53 @@ decisions are overrides of the bot.
   single-threaded, eval 13 s). At 2 vCPU: 118k games/h collect and eval, one
   full round (500 collect + 1,000 eval games) in 53 s.
 
+## 8c. What limits the net: the pn12 grid
+
+- **What:** one oracle-teacher corpus (29,214 training games, 35 min on 22
+  cores; disjoint held-out block with 648 cast-override and 84
+  attackers-override labels), re-encoded under every arm. The score is
+  override top-1 on held-out overrides, plus the same readout on the
+  TRAINING overrides (can the net even fit what it was shown?).
+  Code: `searchteacher -label-extras` (schema 3 labels), `policytrain
+  -features v1|mz|mz-opphand|mz-oracle -actions joint -arm/-eval-json`.
+  The hidden-information feature sets refuse to checkpoint.
+
+| Arm (residual 0 unless noted) | Train games | Cast override top-1, held-out (n=648) | Same, on training overrides (n=3,580) | Keeps bot's answer |
+|---|---|---|---|---|
+| v1 features | 1k | 9.7% | 8.3% | 74% |
+| v1 | 3k | 8.5% | – | 79% |
+| v1 | 10k | 7.1% | – | 81% |
+| v1 | 30k | 6.8% | 4.9% | 84% |
+| v1, lr 1 | 30k | 3.5% | 2.7% | 91% |
+| v1, 30 epochs | 30k | 4.2% | 3.4% | 88% |
+| MageZero-style per-card features | 30k | 5.7% | 4.3% | 85% |
+| + opponent's hand (diagnostic) | 30k | 5.7% | 4.4% | 85% |
+| + hand and next draws (diagnostic) | 30k | 5.7% | 4.3% | 85% |
+| + hand and draws, lr 1 | 30k | 2.8% | 2.0% | 93% |
+| Joint (cast, target) action | 30k | 6.8% | 5.1% | 86% |
+| Any arm, residual prior 2 | any | 0–0.2% | 0% | ~100% |
+
+- **In play** (5,000 games, ±1.4pp; control 50.3%): 30k residual 0 50.3%;
+  residual 2 51.2%; MZ features residual 2 51.0%; the same two under the
+  default (auto) attackers admission 46.1% — the pn13 admission bug again.
+- **Verdicts:**
+  - *More data:* **no.** Override accuracy falls as data grows; the net
+    spends capacity on matching the bot.
+  - *Richer features:* **no.** MZ-style per-card features are slightly worse.
+  - *Joint action:* **no change.**
+  - *Hidden information:* **not the whole story.** Even a net that sees the
+    opponent's hand and the next draws fits only 2–4% of its OWN training
+    overrides. Training harder fits the bot better and the overrides worse.
+    The override labels are close to noise relative to anything encodable.
+  - An audit agrees: on oracle cast overrides the honest (PIMC) teacher
+    picks the same card 20% of the time and ranks it above the bot's 30% vs
+    below 29% — a coin flip. Attackers overrides are ~54% recoverable but
+    rare (13 of 827 covered decisions).
+- **Implication:** argmax labels from a search teacher mostly encode
+  near-ties and world-specific luck. Distilling them needs margin filtering
+  (only large value gaps) or regressing the value differences, not
+  imitation of the pick — or ship the search seat and stop distilling.
+
 ## 9. MageZero reference (external, for throughput and curve shape)
 
 - **What:** MageZero, AlphaZero-style MCTS plus a transformer on an XMage
@@ -388,8 +436,10 @@ gated each round.
    - ~~Why the attackers net overrides 34% in play against about 1% on
      holdout.~~ Answered by pn13: the mean-fallback admission rule, not the
      weights (section 8b).
-   - Whether data volume, features, a joint cast+target action, or hidden
-     information is the binding limit (pn12, running).
+   - ~~Whether data volume, features, a joint cast+target action, or hidden
+     information is the binding limit.~~ None of them (pn12, section 8c):
+     the oracle override labels are not learnable even with full
+     information.
 5. **On-policy PPO does not compound here** (pn13). The net barely deviates
    from the bot, so there is no on-policy signal to amplify; the residual
    prior has to be relaxed before priority can learn at all.
