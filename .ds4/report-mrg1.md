@@ -1,3 +1,77 @@
+# Merge-conflict resolution — agent-20260919T181318Z-86535368 (mrg1), round 10 (2026-09-24)
+
+## Entry state
+
+`git status` clean on `wt/agent-20260919T181318Z-86535368`, HEAD `6bc24448`;
+no rebase or merge in flight — the daemon's failed integration had been reset
+before this seat started, so this seat ran the merge itself. Measured at
+entry: the branch was 2 commits ahead (both docs-only, touching only
+`.ds4/report-t1.md` and `.ds4/report-t2.md`) and 249 behind main; merge-base
+`7e7031bd` (= the branch's own HEAD~1, i.e. the branch's only unique content
+is those two report commits). `.cards` present as a symlink to the shared
+corpus — the ratchet run below is real, not vacuous.
+
+## Operation
+
+`git merge main --no-edit`. 303 files changed on main's side; everything
+AUTO-MERGED except the branch's own two touched files, both content
+conflicts:
+
+- `.ds4/report-t1.md` — conflict region lines 1–166 (one conflict only)
+- `.ds4/report-t2.md` — conflict region lines 1–53 (one conflict only)
+
+## Resolution
+
+Same shape in both files, mirroring round 9's accumulator case:
+
+- Ours (`:2:`): the branch's verification reports for
+  agent-20260919T181318Z-86535368 PREPENDED at the top (t1: 163 lines;
+  t2: 50 lines), each ending in the established separator line
+  `# Reports appended below are from other tickets on the shared report file
+  (preserved verbatim from main):` — this is exactly commit `6bc24448`'s
+  documented intent ("prepended this ticket's round reports above a
+  separator").
+- Theirs (`:3:`): main's current full file — the conflict region on main's
+  side is EMPTY (main prepended nothing new at the top); main's content
+  begins with the e0817443 (t1) / replcensus1 (t2) report.
+
+Resolution: keep ours' prepended report + separator, then main's full
+current content — i.e. the branch report rides above main's newest state of
+the accumulator. Verified mechanically for both files:
+
+    git show :2:.ds4/report-<f>.md | head -<163|50> > /tmp/h
+    git show :3:.ds4/report-<f>.md            > /tmp/T
+    cat /tmp/h /tmp/T > /tmp/expected
+    diff -q /tmp/expected .ds4/report-<f>.md   -> "resolved == ours[N lines] + main-full  OK"
+
+and the post-merge tail was separately confirmed byte-identical to main's
+full stage file before staging. No prose from either side dropped; no code
+file touched. (Mechanical note: the stage files carry no conflict markers, so
+the union was reconstructed from `git show :2:` / `:3:` directly.)
+
+## Commands run and output
+
+    $ git status                 # clean, nothing in flight; 2 ahead / 249 behind
+    $ git merge main --no-edit   # CONFLICT (content) in the two .ds4 report files; all else auto-merged
+    $ git add -f .ds4/report-t1.md .ds4/report-t2.md   # -f: .ds4/ is gitignored (files are tracked)
+    $ git commit --no-edit       # default merge message; tree clean after
+
+Ratchets after the merge (brief's 2026-09-22 instruction):
+
+    $ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+    ok  github.com/adams-shaun/gorge/rules  0.627s   (exit 0)
+
+The cached 0.627s is legitimate: the branch's two commits touch no Go
+source, so the merged tree's `rules` package inputs are byte-identical to
+main's already-gated run.
+
+## Issues
+
+None. Docs-only integration; no engine behaviour changed, no ratchet entry
+touched, no approximation row involved. Targeted `rules` ratchet run green.
+
+---
+
 # Merge-conflict resolution — agent-20260923T160306Z-167d672f (mrg1), round 9 (2026-09-24)
 
 ## Entry state
