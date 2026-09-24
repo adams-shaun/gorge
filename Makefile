@@ -89,6 +89,14 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 gorged: $(BIN_DIR)/gorged
 	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed -vsbot
 
+.PHONY: traindash
+# traindash serves the read-only live training dashboard over the policynet/PPO
+# runs under TRAIN_ROOT (cmd/traindash). Port range 8082-8089, never 8080/8081.
+TRAIN_ROOT ?= /mnt/sata/gorge-training
+TRAINDASH_ADDR ?= 127.0.0.1:8086
+traindash:
+	go run ./cmd/traindash -root $(TRAIN_ROOT) -addr $(TRAINDASH_ADDR)
+
 .PHONY: deploy-demo stop-demo
 # deploy-demo refreshes the local demo: two servers on 127.0.0.1, public
 # spectator on :8080 and omniscient on :8081, each with two Commander and

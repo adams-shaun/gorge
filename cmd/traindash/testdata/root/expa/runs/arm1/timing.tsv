@@ -1,0 +1,4 @@
+round	stage	seconds	workers	games	games_per_hour
+control	control	15.9	7	4000	903789
+0	eval	40.4	7	4000	356078
+1	collect	25.6
