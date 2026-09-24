@@ -3435,7 +3435,7 @@ func (e *Engine) castModeAsk() bool {
 	if sa == nil || sa.API != "Charm" || strings.TrimSpace(sa.Params["Choices"]) == "" {
 		return false
 	}
-	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
+	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player, PendingKicked: modeIsKicked(pc.mode)}
 	effects.SetSVars(ctx, f.SVars)
 	if effects.CharmRandomChosen(e, ctx, sa) {
 		// param:api:Charm.Random: a random Charm's mode announcement is not
