@@ -228,8 +228,12 @@ func TestPreeminentCaptainSoldierEntersAttacking(t *testing.T) {
 // resolved cost; rules/alesha_hybrid_trigger_test.go drives that real card
 // end to end. This test keeps the cost-free Yore-Tiller carrier because it
 // isolates the graveyard object path itself from any cost window.
-// Thunderkin Awakener, the other object-path carrier, is blocked the same way
-// by its ValidTgts$ ...toughnessLTX SVar-X comparison resolving no target
+// Thunderkin Awakener, the other object-path carrier, was blocked by its
+// ValidTgts$ ...toughnessLTX SVar-X comparison resolving no target; that was
+// fixed by 7454592e ("fix(rules): resolve trigger target X from source
+// SVar") and is now pinned by
+// rules/thunderkin_awakener_test.go
+// TestThunderkinAwakenerReturnsToughnessLessElementalTappedAndAttacking
 // (agent-20260922T221917Z-aa93a144). Yore-Tiller carries the same inlined
 // object-loop move with a literal spec and no cost, so the path under test is
 // identical.

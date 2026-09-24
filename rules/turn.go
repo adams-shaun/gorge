@@ -572,8 +572,14 @@ func (e *Engine) step() {
 			// checkAttackerUnblockedOnceTriggers. Queued here, the trigger
 			// drains onto a stack at the priorityRound below (CR 509.2),
 			// before combat damage.
-			e.checkAttackerUnblockedTriggers()
-			e.checkAttackerUnblockedOnceTriggers()
+			// step() re-enters here whenever nothing is pending (an aborted
+			// cast re-grants no priority itself), so the walk is latched to
+			// ONE run per combat (unblockedRoundChecked, engine.go).
+			if stamp := (combatFires{Turn: e.G.Turn, Combat: e.G.CombatsThisTurn}); e.unblockedRoundChecked != stamp {
+				e.unblockedRoundChecked = stamp
+				e.checkAttackerUnblockedTriggers()
+				e.checkAttackerUnblockedOnceTriggers()
+			}
 			e.priorityRound()
 		} else {
 			e.askBlockers()

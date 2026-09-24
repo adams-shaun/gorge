@@ -362,6 +362,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			matches = append(matches, *m)
 		}
 	}
+	matches = e.dropAppliedReplacements(matches)
 	if ev.Kind == events.ManaAdd {
 		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap, e.manaProducer)
 	}
@@ -1584,16 +1585,96 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// counters" Effect must end exactly after the one entry it upgraded,
 		// not linger to re-upgrade the same remembered card's next entry).
 		e.effectMoveSweep(ev)
-		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
+		// The entry's own triggers are matched AFTER the Updated body: the
+		// body is how the permanent ENTERS (CR 614.1c/614.12 -- "enters
+		// tapped", "enters with counters"), so a leaves/enters trigger's
+		// ValidCard$ must see the permanent as it entered. Matched before the
+		// body, Amulet of Vigor's and Tiller Engine's `Permanent.tapped`
+		// never matched an enters-tapped land (cardfuzz coverage audit: zero
+		// fires in ~800 casts each).
+		e.checkTriggers(stored, nil, 0, 0, false)
 		if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
 			e.finishLandPlay(stored.Obj)
 		}
 		return stored, true
 	}
+	savedRedirect := e.replRedirect
+	if ev.Kind == events.MoveZone {
+		e.replRedirect = &replRedirect{orig: ev,
+			applied: append(append([]string(nil), e.replExclude...), replIdentity(m))}
+	} else {
+		e.replRedirect = nil
+	}
 	e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
+	e.replRedirect = savedRedirect
 	return ev, true
+}
+
+// replRedirect records one destination-changing move replacement in flight:
+// the move it replaced and the identities (replIdentity) of every
+// replacement already applied to that event.
+type replRedirect struct {
+	orig    events.Event
+	applied []string
+}
+
+// replIdentity names one replacement match stably across re-collection: an
+// Effect-created one by its registration key, a printed one by its source
+// object and line.
+func replIdentity(m replMatch) string {
+	if m.key != "" {
+		return m.key
+	}
+	return strconv.Itoa(int(m.id)) + "|" + m.repl.Event + "|" + m.repl.Params["ReplaceWith"] +
+		"|" + m.repl.Params["Description"]
+}
+
+// redirectRecheck reports whether a move emitted inside a replacement body is
+// the MODIFIED event of the in-flight destination-changing replacement: the
+// replaced object going to a zone other than the one it originally would
+// have. CR 616.1f: once a replacement has applied, any other replacement
+// that now applies to the modified event gets its opportunity -- Magus of
+// the Will exiling the Mox Diamond its own replacement puts into the
+// graveyard. The one already applied never re-applies (CR 614.5).
+func (e *Engine) redirectRecheck(ev events.Event) bool {
+	r := e.replRedirect
+	return r != nil && ev.Kind == events.MoveZone && r.orig.Kind == events.MoveZone &&
+		ev.Obj == r.orig.Obj && ev.To != r.orig.To
+}
+
+// applyRedirectReplacements is the CR 616.1f pass over a redirect's modified
+// move, skipping every replacement already applied to it.
+func (e *Engine) applyRedirectReplacements(ev events.Event) (events.Event, bool) {
+	savedExclude, savedRedirect := e.replExclude, e.replRedirect
+	e.replExclude = e.replRedirect.applied
+	e.replRedirect = nil
+	replaced, handled := e.applyReplacements(ev)
+	e.replExclude, e.replRedirect = savedExclude, savedRedirect
+	return replaced, handled
+}
+
+// dropAppliedReplacements removes the matches a CR 616.1f recheck excludes.
+func (e *Engine) dropAppliedReplacements(matches []replMatch) []replMatch {
+	if len(e.replExclude) == 0 {
+		return matches
+	}
+	out := matches[:0:0]
+	for _, m := range matches {
+		skip := false
+		id := replIdentity(m)
+		for _, x := range e.replExclude {
+			if x == id {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // composeUpdatedReplacements applies every applicable "Updated" replacement
@@ -1640,7 +1721,6 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	// single-match Updated branch does (the raw events.Emit above bypasses
 	// Engine.emit's own sweep point).
 	e.effectMoveSweep(ev)
-	e.checkTriggers(stored, nil, 0, 0, false)
 	e.finishSourceLifelinkLKI(ev, departing, link, controller)
 	for _, m := range matches {
 		if m.repl.With == nil {
@@ -1648,6 +1728,8 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 	}
+	// Matched after every Updated body, as in the single-match branch.
+	e.checkTriggers(stored, nil, 0, 0, false)
 	if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
 		e.finishLandPlay(stored.Obj)
 	}
@@ -4472,7 +4554,7 @@ func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you
 		} else {
 			n = e.countPresent(spec, source, you)
 		}
-		if !comparePresent(n, cmp) {
+		if !comparePresent(n, e.presentCompareFor(cmp, source, you)) {
 			return false
 		}
 	}
@@ -5384,7 +5466,7 @@ func (e *Engine) poseReplacementChoice(ev events.Event, matches []replMatch) {
 		return
 	}
 	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceMove,
-		ev: ev, cands: matches, before: e.triggerBefore})
+		ev: ev, cands: matches, before: e.triggerBefore, inResolution: e.resolvingObj != 0})
 	if e.pending == nil {
 		e.askReplacementChoice(p)
 	}

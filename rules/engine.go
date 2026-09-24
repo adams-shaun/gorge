@@ -125,6 +125,25 @@ type Engine struct {
 	compiledText  *compiledText
 	landTypeWords []string
 
+	// ManaAbilityHook, when non-nil, is called once per mana ability
+	// activation the engine resolves (resolveManaAbilityRefOriginal, the one
+	// choke point every activation path -- the priority "activate" option,
+	// the cast payment window, the unless-cost and attack/block-cost windows
+	// -- funnels through), after the activation is judged payable and before
+	// its cost and effect are applied, and once per triggered mana ability
+	// (CR 605.1b, a Static$ True TapsForMana trigger) the batch after it
+	// resolves off the stack (resolveTriggeredManaAbilities). sa is the
+	// ability's compiled identity: the printed Face().Abilities pointer
+	// (never the colour-pinned copy a Combo pick resolves through), the
+	// foreign card's pointer for a gained ability, or the printed
+	// Trigger.Effect body for a triggered one. It is a harness-only
+	// OBSERVER (cmd/cardfuzz credits mana-ability use with it, because a
+	// mana ability never uses the stack and ManaAdd carries no source): it
+	// emits nothing, mutates nothing, is
+	// not copied by Clone, and a nil hook -- every host, replay and test --
+	// leaves the event stream and every chain head byte-identical.
+	ManaAbilityHook func(p state.PlayerID, source state.ObjID, sa *cards.SA)
+
 	// ascend is checkBlessingGrants' incremental "could anything carry
 	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
 	ascend ascendScan
@@ -819,6 +838,18 @@ type Engine struct {
 	// asks (Breathstealer's Crypt's unless-pay discard) and the resume must
 	// restore Ctx.ReplacedPlayer. Only a Draw replacement sets it.
 	replReplacedPlayer state.Target
+	// replRedirect is the destination-changing ("Replaced") move replacement
+	// whose ReplaceWith$ body is resolving, with every replacement already
+	// applied to that event (CR 614.5). A body move of the same object to a
+	// DIFFERENT zone is the modified event of CR 616.1f and gets one more
+	// replacement pass that skips those (Engine.emit). Immutable once set;
+	// threaded across a suspension by resumePoint.redirect; nil at every
+	// intent boundary outside a suspended body.
+	replRedirect *replRedirect
+	// replExclude is the applied set replRedirect carried into that one
+	// recheck pass: applyReplacementsDispatch drops those matches and
+	// applyReplacement extends it for a nested redirect. Nil otherwise.
+	replExclude []string
 	// triggerFireCount and the damage-batch fields below are trigger_match.go's
 	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-damage-batch gate); see there.
@@ -831,6 +862,19 @@ type Engine struct {
 	// again. The stamp is (Turn, CombatsThisTurn), the event-folded per-turn
 	// combat count, so it uniquely names a combat and needs no reset hook.
 	unblockedOnceFired map[triggerKey]combatFires
+	// unblockedRoundChecked stamps the (Turn, CombatsThisTurn) combat whose
+	// declare-blockers round-complete trigger walk (checkAttackerUnblocked-
+	// Triggers / checkAttackerUnblockedOnceTriggers, rules/turn.go step) has
+	// already run. step() re-enters the StepDeclareBlockers arm every time
+	// nothing is pending -- after an aborted cast (CR 733.1 reversal) no
+	// handler re-grants priority, so the Advance loop calls step() again --
+	// and "attacks and isn't blocked" is ONE event per combat (CR 509.2): a
+	// second walk queued Senu, Keen-Eyed Protector's trigger again on every
+	// aborted cast attempt, and the TriggerPush it drained cleared the F05-2
+	// held-out cast suppression, so the no-progress abort re-offered forever
+	// (cardfuzz batch10). The zero value names no combat (CombatsThisTurn is
+	// at least 1 inside combat), so it needs no reset hook.
+	unblockedRoundChecked combatFires
 	// attackersDeclaredFired latches a BATCH trig:AttackersDeclared trigger
 	// (Mode$ AttackersDeclared with no per-defender AttackedTarget$) to ONE
 	// fire per declare step (rules.trigger_match.go's checkFaceTriggers;
@@ -1180,6 +1224,14 @@ type Engine struct {
 	// state.Game field, so a replay re-derives it by re-running the same
 	// aborts rather than reading it from the log.
 	castAborts map[state.ObjID]int32
+
+	// inertHeldOut holds the priority options the inert backstop
+	// (rules/priority_guard.go) caught changing nothing: each is left out of
+	// the re-offer until the next state-changing event, exactly the
+	// suppressedCast lifetime (cleared beside it in emit). Transient window
+	// bookkeeping like suppressedCast: a replay re-derives it by re-running
+	// the same inert answer, whose Note is in the log.
+	inertHeldOut map[inertKey]bool
 
 	// drainAwaitsTarget is true while a decision asked from inside the trigger
 	// drain is pending, so its answer resumes the drain rather than granting
@@ -2293,6 +2345,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// ReplaceEffect body changed the amount): the returned event is what
 		// gets logged, not the emit caller's copy.
 		ev = replaced
+	} else if e.redirectRecheck(ev) {
+		replaced, handled := e.applyRedirectReplacements(ev)
+		if handled {
+			return replaced
+		}
+		ev = replaced
 	}
 	// CountersRemain is a departure property of the battlefield object. Tag the
 	// final, replacement-adjusted MoveZone so events.Apply and replay preserve
@@ -2715,6 +2773,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind != events.DecisionMade && ev.Kind != events.Note {
 		e.suppressedCast = nil
 		e.castAborts = nil
+		e.inertHeldOut = nil
 		// CR 611.2b: a "for as long as" control effect ends the moment its
 		// condition stops holding, not at the next state-based check.
 		e.expireControl(controlOnEvent)
@@ -3133,6 +3192,14 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// survives for a legal (or smaller) answer. Single-card answers are
 		// trivially legal.
 		if err := e.validateSearch(d, in); err != nil {
+			return err
+		}
+	}
+	if d.Kind == decision.KPriority {
+		// A priority answer whose handler would no-op at its first guard is
+		// rejected before it is recorded (rules/priority_guard.go), so a
+		// stale or mis-offered option errors instead of spinning.
+		if err := e.validatePriorityChoice(d, in); err != nil {
 			return err
 		}
 	}

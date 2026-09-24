@@ -61,6 +61,9 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// unblockedRoundChecked (engine.go): the plain-value per-combat latch
+		// of the declare-blockers round-complete trigger walk.
+		unblockedRoundChecked: e.unblockedRoundChecked,
 		// exertAskState (combat.go, task exert1): the exert election's offer
 		// list and cursor, the same plain-value class as blockerRound -- the
 		// offers slice is never mutated, so sharing the reference is safe.
@@ -117,6 +120,10 @@ func (e *Engine) Clone() *Engine {
 		// re-enables it, in both engines alike). It is a plain map of object
 		// ids, so it must be re-allocated, not shared.
 		suppressedCast: cloneSuppressed(e.suppressedCast),
+		// The inert backstop's held-out priority options
+		// (rules/priority_guard.go): the suppressedCast class and lifetime,
+		// so a clone offers exactly the window the original would.
+		inertHeldOut: cloneInertHeldOut(e.inertHeldOut),
 		// F05-2 per-card no-progress count (engine.go), carried alongside the
 		// held-out set for the same reason: a clone taken at an intent
 		// boundary must count a card's no-progress aborts exactly as the
@@ -820,6 +827,18 @@ func cloneCounts(m map[triggerKey]int32) map[triggerKey]int32 {
 		return nil
 	}
 	out := make(map[triggerKey]int32, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
+}
+
+// cloneInertHeldOut copies the inert backstop's held-out set, preserving nil.
+func cloneInertHeldOut(m map[inertKey]bool) map[inertKey]bool {
+	if m == nil {
+		return nil
+	}
+	out := make(map[inertKey]bool, len(m))
 	for k, v := range m {
 		out[k] = v
 	}

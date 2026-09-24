@@ -163,10 +163,17 @@ type cov struct {
 	// (abilityInventory keys) was used. Absent from state files written
 	// before it existed; those load with it empty.
 	Used map[string]map[string]int64 `json:"used,omitempty"`
+	// Offered counts, per card, the games in which the engine offered each
+	// of its own activated abilities (inventory keys) to its controller as a
+	// priority action (useProbe.observe). With Used it splits a never-used
+	// activated ability into "offered, never chosen" (a seat-policy gap) and
+	// "never offered" (an engine offer gap, or a board never reached). Absent
+	// from older state files; those load with it empty.
+	Offered map[string]map[string]int64 `json:"offered,omitempty"`
 }
 
 func loadCov(path string) (*cov, error) {
-	c := &cov{Included: map[string]int64{}, Cast: map[string]int64{}, Ability: map[string]int64{}, Fails: map[string]int64{}, Used: map[string]map[string]int64{}}
+	c := &cov{Included: map[string]int64{}, Cast: map[string]int64{}, Ability: map[string]int64{}, Fails: map[string]int64{}, Used: map[string]map[string]int64{}, Offered: map[string]map[string]int64{}}
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return c, nil
@@ -184,6 +191,9 @@ func loadCov(path string) (*cov, error) {
 	}
 	if c.Used == nil {
 		c.Used = map[string]map[string]int64{}
+	}
+	if c.Offered == nil {
+		c.Offered = map[string]map[string]int64{}
 	}
 	return c, nil
 }
@@ -299,13 +309,16 @@ func resolveDeck(reg *cards.Registry, d genDeck) ([]*cards.Card, error) {
 
 // failure is one JSONL record.
 type failure struct {
-	Kind    string    `json:"kind"`
-	Seed    uint64    `json:"seed"`
-	Decks   []genDeck `json:"decks"`
-	Turns   int32     `json:"turns"`
-	Intents int       `json:"intents"`
-	Diag    string    `json:"diag"`
-	Sig     string    `json:"sig"`
+	Kind  string    `json:"kind"`
+	Seed  uint64    `json:"seed"`
+	Decks []genDeck `json:"decks"`
+	// Explore records that seat exploreSeat(Seed) played the exploration
+	// policy, so -repro rebuilds the same seats.
+	Explore bool   `json:"explore,omitempty"`
+	Turns   int32  `json:"turns"`
+	Intents int    `json:"intents"`
+	Diag    string `json:"diag"`
+	Sig     string `json:"sig"`
 }
 
 // signature reduces a diagnostic to a dedupe key: for a panic, the panic
@@ -370,13 +383,19 @@ type gameResult struct {
 }
 
 // gameCov is one game's coverage: cards cast/played, cards with any ability
-// pushed, and per card the inventory keys used (abilitiesUsed).
+// pushed, and per card the inventory keys used (abilitiesUsed) and offered
+// (abilitiesOffered).
 type gameCov struct {
 	cast, ability map[string]bool
-	used          map[string]map[string]bool
+	used, offered map[string]map[string]bool
 }
 
-func botSeat(seed uint64) seat.Seat {
+// botSeat is the production hosted bot, or with explore the opt-in
+// coverage-exploration policy (seat.NewExploreBot, botpolicy.ExploreDecide).
+func botSeat(seed uint64, explore bool) seat.Seat {
+	if explore {
+		return seat.NewExploreBot(seed)
+	}
 	s, err := host.NewBotPolicySeat(host.BotPolicy, seed)
 	if err != nil {
 		panic(err)
@@ -386,11 +405,12 @@ func botSeat(seed uint64) seat.Seat {
 
 // played walks the finished game for which deck cards were cast/land-played,
 // which had an ability put on the stack, and which of their own abilities
-// were used (abilitiesUsed).
-func played(e *rules.Engine, decks [][]*cards.Card) *gameCov {
+// were used (abilitiesUsed) and offered (abilitiesOffered).
+func played(e *rules.Engine, decks [][]*cards.Card, probe *useProbe) *gameCov {
 	gc := &gameCov{cast: map[string]bool{}, ability: map[string]bool{}}
 	name := func(id state.ObjID) string { return realCardName(e, id) }
-	for _, ev := range e.L.Events {
+	evs := e.L.Events
+	for i, ev := range evs {
 		switch ev.Kind {
 		case events.PutOnStack:
 			if ev.To == state.ZStack {
@@ -399,7 +419,7 @@ func played(e *rules.Engine, decks [][]*cards.Card) *gameCov {
 				}
 			}
 		case events.LandPlayed:
-			if n := name(ev.Obj); n != "" {
+			if n := name(playedLand(evs, i)); n != "" {
 				gc.cast[n] = true
 			}
 		case events.AbilityPush, events.TriggerPush:
@@ -408,13 +428,39 @@ func played(e *rules.Engine, decks [][]*cards.Card) *gameCov {
 			}
 		}
 	}
-	gc.used = abilitiesUsed(e, decks)
+	gc.used = abilitiesUsed(e, decks, probe)
+	gc.offered = abilitiesOffered(e, decks, probe)
 	return gc
 }
 
-func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify bool) (fail *failure, gc *gameCov) {
+// playedLand is the object a LandPlayed event (at index i) played. The event
+// carries only the player (rules/cast.go's settleLandPlay: it closes the
+// land-play accounting AFTER the land's entry boundary), so the land is the
+// latest MoveZone before it in the same action -- the scan stops at the
+// Priority event the play_land answer emits before moving the card. The land's
+// own move is normally hand->battlefield; a replacement that fully replaces
+// the entry (CR 305.1: the land was still played) moves it elsewhere, and
+// that move is still the played card's. Returns 0 when none is found.
+func playedLand(evs []events.Event, i int) state.ObjID {
+	for j := i - 1; j >= 0; j-- {
+		switch evs[j].Kind {
+		case events.MoveZone:
+			return evs[j].Obj
+		case events.Priority:
+			return 0
+		}
+	}
+	return 0
+}
+
+// exploreSeat is the seat index that plays the exploration policy in an
+// -explore game: the seed's low bit, so across games every generated deck
+// is piloted by each policy about half the time.
+func exploreSeat(seed uint64) int { return int(seed & 1) }
+
+func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify, explore bool) (fail *failure, gc *gameCov) {
 	mk := func(kind, diag string, o gbench.Outcome) *failure {
-		return &failure{Kind: kind, Seed: seed, Decks: decks, Turns: o.Turns, Intents: o.Intents, Diag: diag, Sig: signature(kind, diag)}
+		return &failure{Kind: kind, Seed: seed, Decks: decks, Explore: explore, Turns: o.Turns, Intents: o.Intents, Diag: diag, Sig: signature(kind, diag)}
 	}
 	var dk [][]*cards.Card
 	for _, d := range decks {
@@ -428,24 +474,34 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 	seats := make([]seat.Seat, len(decks))
 	for i := range decks {
 		names[i] = fmt.Sprintf("%s-%d", decks[i].Colour, i)
-		seats[i] = botSeat(seed ^ (0x9e3779b97f4a7c15 * uint64(i+1)))
+		seats[i] = botSeat(seed^(0x9e3779b97f4a7c15*uint64(i+1)), explore && i == exploreSeat(seed))
 	}
 	cfg := rules.Config{Names: names, Decks: dk, Tokens: reg.Tokens, Seed: seed, NameUniverse: reg.Cards}
 	var o gbench.Outcome
 	var e *rules.Engine
 	var err error
+	probe := &useProbe{}
+	offerSeen := map[probeRef]bool{}
+	board := boardGuard(maxObjects)
+	guard := func(e *rules.Engine) (string, string) {
+		probe.observe(e, offerSeen)
+		if board == nil {
+			return "", ""
+		}
+		return board(e)
+	}
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
 				err = fmt.Errorf("panic outside drive loop: %v", r)
 			}
 		}()
-		o, e, err = gbench.PlayGame(cfg, seats, maxTurns, maxIntents, gbench.Hooks{Guard: boardGuard(maxObjects)})
+		o, e, err = gbench.PlayGame(cfg, seats, maxTurns, maxIntents, gbench.Hooks{Guard: guard, Setup: probe.install})
 	}()
 	if err != nil {
 		return mk("error", err.Error(), o), nil
 	}
-	gc = played(e, dk)
+	gc = played(e, dk, probe)
 	withCtx := func(kind, diag string) *failure {
 		ctx, involved := tailContext(e, 24)
 		f := mk(kind, diag+"\n-- last events --\n"+ctx, o)
@@ -465,6 +521,14 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 		// signature names the card with the most battlefield copies (the
 		// usual token engine) rather than the log tail.
 		return mk("bigboard", o.Livelock, o), gc
+	}
+	// The inert backstop (rules/priority_guard.go) keeps a game from spinning
+	// on a priority option whose handler changed nothing, but the option was
+	// still an offer/handler disagreement: report the game.
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, rules.InertPriorityNotePrefix) {
+			return mk("inert", fmt.Sprintf("%s (player %d, event %d)", ev.Text, ev.Player, i), o), gc
+		}
 	}
 	if verify {
 		var rerr error
@@ -593,7 +657,7 @@ var hang *time.Duration
 // The budget is harness-only (the engine never sees the clock): a game that
 // overruns is recorded as a "hang" carrying its goroutine's stack, and the
 // goroutine is abandoned since Go cannot kill it.
-func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify bool, budget time.Duration) (*failure, *gameCov, bool) {
+func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify, explore bool, budget time.Duration) (*failure, *gameCov, bool) {
 	type res struct {
 		f  *failure
 		gc *gameCov
@@ -609,7 +673,7 @@ func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, ma
 		} else {
 			gid <- ""
 		}
-		f, gc := playOne(reg, decks, seed, maxTurns, maxIntents, maxObjects, verify)
+		f, gc := playOne(reg, decks, seed, maxTurns, maxIntents, maxObjects, verify, explore)
 		done <- res{f, gc}
 	}()
 	id := <-gid
@@ -640,7 +704,7 @@ func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, ma
 			break
 		}
 	}
-	return &failure{Kind: "hang", Seed: seed, Decks: decks, Diag: fmt.Sprintf("game exceeded %s wall clock\n%s", budget, stack), Sig: sig}, nil, true
+	return &failure{Kind: "hang", Seed: seed, Decks: decks, Explore: explore, Diag: fmt.Sprintf("game exceeded %s wall clock\n%s", budget, stack), Sig: sig}, nil, true
 }
 
 func main() {
@@ -655,6 +719,7 @@ func main() {
 	maxIntents := flag.Int("max-intents", 20000, "intent cap (recorded as an 'intents' failure)")
 	maxObjects := flag.Int("max-objects", 20000, "live object cap (recorded as a 'bigboard' failure; 0 disables)")
 	verify := flag.Bool("verify", true, "replay every finished game and compare")
+	explore := flag.Bool("explore", true, "one seat per game (by seed parity) plays the coverage-exploration policy (seat.NewExploreBot) instead of the production bot")
 	repro := flag.String("repro", "", "replay a failure record from this JSONL file (with -line)")
 	line := flag.Int("line", 1, "1-based line of -repro to replay")
 	report := flag.Bool("report", false, "print coverage summary from -state and exit")
@@ -748,7 +813,7 @@ func main() {
 						results[j.idx] = gameResult{idx: -1}
 						continue
 					}
-					f, gc, hung := playWatched(reg, j.decks, j.seed, *maxTurns, *maxIntents, *maxObjects, *verify, *hang)
+					f, gc, hung := playWatched(reg, j.decks, j.seed, *maxTurns, *maxIntents, *maxObjects, *verify, *explore, *hang)
 					if hung {
 						if hangs.Add(1) > int64(*maxHangs) {
 							fmt.Fprintln(os.Stderr, "cardfuzz: too many leaked hung games; stopping")
@@ -788,16 +853,8 @@ func main() {
 				for nme := range gr.gc.ability {
 					c.Ability[nme]++
 				}
-				for nme, keys := range gr.gc.used {
-					u := c.Used[nme]
-					if u == nil {
-						u = map[string]int64{}
-						c.Used[nme] = u
-					}
-					for k := range keys {
-						u[k]++
-					}
-				}
+				addKeys(c.Used, gr.gc.used)
+				addKeys(c.Offered, gr.gc.offered)
 			}
 			if gr.fail != nil {
 				runFails[gr.fail.Sig]++
@@ -832,6 +889,20 @@ func main() {
 	})
 	for _, k := range keys {
 		fmt.Printf("%6d  %s\n", runFails[k], k)
+	}
+}
+
+// addKeys adds one game's per-card key set into a persistent count table.
+func addKeys(dst map[string]map[string]int64, game map[string]map[string]bool) {
+	for nme, keys := range game {
+		u := dst[nme]
+		if u == nil {
+			u = map[string]int64{}
+			dst[nme] = u
+		}
+		for k := range keys {
+			u[k]++
+		}
 	}
 }
 
@@ -881,7 +952,9 @@ func printReport(p *pool, c *cov, detail bool) {
 
 // printMissing lists every pool card cast/played at least once but with some
 // ability in its inventory never used: "<times cast>\t<name>\t<key(desc)> ...".
-// Mana abilities are detected by proxy (see abilitiesUsed).
+// A key the engine offered as a priority action in some game but the seats
+// never chose is marked "<key(desc)>offered:<games>" -- a seat-policy gap,
+// not an engine one (see cov.Offered).
 func printMissing(p *pool, c *cov) {
 	var lines []string
 	for n := range p.all {
@@ -897,6 +970,9 @@ func printMissing(p *pool, c *cov) {
 		parts := make([]string, len(miss))
 		for i, k := range miss {
 			parts[i] = k + "(" + desc[k] + ")"
+			if g := c.Offered[n][k]; g > 0 {
+				parts[i] += fmt.Sprintf("offered:%d", g)
+			}
 		}
 		lines = append(lines, fmt.Sprintf("%d\t%s\t%s", c.Cast[n], n, strings.Join(parts, " ")))
 	}
@@ -942,7 +1018,7 @@ func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents, maxO
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
-		fl, _ := playOne(reg, rec.Decks, rec.Seed, maxTurns, maxIntents, maxObjects, true)
+		fl, _ := playOne(reg, rec.Decks, rec.Seed, maxTurns, maxIntents, maxObjects, true, rec.Explore)
 		if fl == nil {
 			fmt.Println("REPRO: game completed cleanly (not reproduced)")
 			return 0

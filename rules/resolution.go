@@ -106,6 +106,10 @@ type resumePoint struct {
 	// captured with replaced so a body that suspends before its move still
 	// labels that move a sacrifice or discard on the resume.
 	action string
+	// redirect is Engine.replRedirect at ask time: a destination-changing
+	// replacement body that suspends (Mox Diamond's optional discard) still
+	// gives its later redirect move its CR 616.1f replacement pass.
+	redirect *replRedirect
 	// timeTravelObjects is the stable object snapshot for a TimeTravel pass,
 	// and timeTravelRound the count of repetitions it has already completed
 	// (Amount$ 3). The round is its own field, never packed into target: on
@@ -588,6 +592,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 	}
 	return &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
+		redirect:          e.replRedirect,
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: replacementSource,
 		replacementAmount: replacementAmount,
@@ -2372,12 +2377,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// target 1 forever — the answer was always consumed at target 0's
 			// cursor (0), whose hand never held target 1's chosen cards.
 			ctx.DiscardTarget = rp.target
-		case "discard_hand":
+		case "discard_hand", "discard_may":
 			// A "Mode$ Hand | Optional$ True" may-discard election (the
-			// whole-hand wheel's "each player may discard their hand") was
-			// answered: option 0 is yes, anything else — option 1, an empty or
-			// malformed answer — is a decline, the conservative read of an
-			// ambiguous one. The re-entered effDiscard applies the answer to
+			// whole-hand wheel's "each player may discard their hand"), or a
+			// TgtChoose Optional$ True one ("you may discard a land card",
+			// Mox Diamond; "discard up to two cards"), was answered: option 0
+			// is yes, anything else — option 1, an empty or malformed answer
+			// — is a decline, the conservative read of an ambiguous one. The re-entered effDiscard applies the answer to
 			// exactly the acting player this ask was posed for (the cursor)
 			// and poses a fresh election for every later player; a declined
 			// election discards nothing.
@@ -3561,6 +3567,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		savedReplacement := e.applyingReplacement
 		e.applyingReplacement = rp.replacement
 		e.replReplaced, e.replAction, e.replReplacedPlayer = rp.replaced, rp.action, rp.replacedPlayer
+		savedRedirect := e.replRedirect
+		e.replRedirect = rp.redirect
 		// The body's own re-entry (Host.SuspendUnless): the gate of THIS SA
 		// had already resolved when the body posed the pending ask, so the
 		// recorded marker re-enters it as an already-resolved answer — the
@@ -3650,6 +3658,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		effects.Resolve(e, ctx, rp.sa)
 		e.contChainOwners--
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
+		e.replRedirect = savedRedirect
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
 		if rp.sa.API == "MoveCounter" && e.resume == nil {
@@ -3845,6 +3854,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
 			replaced: e.replReplaced, action: e.replAction, replacedPlayer: e.replReplacedPlayer,
+			redirect:  e.replRedirect,
 			before:    e.triggerBefore,
 			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject,
 			voteCounts: cloneVoteCounts(cf.voteCounts),

@@ -190,6 +190,11 @@ func CheckSVarHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 		return val <= threshold, true
 	case "LT":
 		return val < threshold, true
+	case "NE":
+		// Forge's CompareOperator NE. Four corpus carriers (Spark Fiend's
+		// upkeep roll gate `CheckSVar$ Safe | SVarCompare$ NE0`); unread, the
+		// compare failed closed and the trigger never fired.
+		return val != threshold, true
 	}
 	return false, false
 }

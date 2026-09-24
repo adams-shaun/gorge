@@ -137,6 +137,17 @@ func (e *Engine) scanActionStatics() actionStaticViews {
 				if o == nil || o.Face() == nil || offBattlefieldStaticsInert(z, o) {
 					continue
 				}
+				// CR 708.8: a face-down permanent's printed statics do not
+				// exist while it is face down -- the same gate
+				// scanActiveStatics runs. Without it a legal-actions pass
+				// saw a manifested Citanul Hierophants still granting
+				// "{T}: Add {G}" (the offer's cached snapshot) while the
+				// activation's fresh activeStatics walk did not, so the
+				// offered "Activate ... for mana" was a silent no-op
+				// re-offered forever (cardfuzz batch9 line 1).
+				if e.faceDownPrintedHides(o) {
+					continue
+				}
 				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
 					pst, ok := o.PileStaticAt(si)
 					if !ok {
@@ -707,7 +718,7 @@ func (e *Engine) presentGate(sv staticView, spec string) bool {
 	if cmp == "" {
 		cmp = "GE1"
 	}
-	return comparePresent(n, cmp)
+	return comparePresent(n, e.presentCompareFor(cmp, sv.Source, sv.Controller))
 }
 
 // staticTimingGate evaluates the static conditions that can decide whether a
@@ -911,7 +922,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 			continue
 		}
 		sv := staticView{Source: ce.Source, Controller: ce.Controller,
-			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber}
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true}
 		// ValidCard$ is presence-gated here exactly as costStaticApplies gates
 		// it: an absent spec restricts nothing (the printed face-static walk
 		// below never consults one at all -- Marshland's AlternativeCost body
@@ -1734,6 +1745,11 @@ func (e *Engine) scanCostStatics() costStaticViews {
 		if f == nil {
 			return
 		}
+		// CR 708.8: a face-down permanent has no printed cost statics
+		// (scanActionStatics' and scanActiveStatics' gate).
+		if e.faceDownPrintedHides(o) {
+			return
+		}
 		for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
 			pst, ok := o.PileStaticAt(si)
 			if !ok {
@@ -1820,7 +1836,7 @@ func (e *Engine) appendEffectCostStatics(out *costStaticViews) {
 			continue
 		}
 		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
-			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber})
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true})
 	}
 }
 
@@ -1860,8 +1876,11 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	if svars == nil {
 		svars = o.Face().SVars
 	}
+	// An Effect-delivered cost static carries its SetChosenNumber$ binding
+	// (chosenNumberBound): the Count$ChosenNumber head reads it rather than
+	// the source object's own logged choice.
 	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x,
-		ChosenNumber: sv.ChosenNumber}
+		ChosenNumber: sv.ChosenNumber, ChosenNumberBound: sv.chosenNumberBound}
 	// An SVar NAME resolves through its body on the source's face; anything
 	// else is an inline Count$-class expression evaluated as written.
 	if body, ok := svars[raw]; ok {
