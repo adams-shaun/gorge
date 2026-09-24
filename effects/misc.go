@@ -4904,6 +4904,31 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// (EachColorAmong_ExiledWith, EnchantedManaCost, DoubleManaInPool,
 	// EachColoredManaSymbol_Milled) still falls through to the rune gate's
 	// loud Note below.
+	// Special DoubleManaInPool (Doubling Cube: "Double the amount of each
+	// type of unspent mana you have"): the activator's pool AFTER the cost
+	// was paid (a mana ability resolves right after its payment), rendered
+	// as one symbol per unit in fixed WUBRGC order, so the per-rune tail
+	// adds exactly one more of each unit. An empty pool is a deterministic
+	// no-op. The doubled units are ordinary mana: a spend restriction,
+	// snow/typed producer provenance or persistence on the original units is
+	// a property of how THOSE units were produced, not of their type.
+	if strings.EqualFold(produced, "Special DoubleManaInPool") {
+		g := h.Game()
+		if int(c.Controller) >= len(g.Players) {
+			return
+		}
+		pool := g.Players[c.Controller].Pool
+		var b strings.Builder
+		for i := 0; i < len(ManaSymbols); i++ {
+			for n := pool[state.ManaIndex(ManaSymbols[i])]; n > 0; n-- {
+				b.WriteByte(ManaSymbols[i])
+			}
+		}
+		if b.Len() == 0 {
+			return
+		}
+		produced = b.String()
+	}
 	if sel, ok := strings.CutPrefix(produced, "Special EachColorAmong_Valid "); ok {
 		syms := eachColorAmongValid(h, c, strings.TrimSpace(sel))
 		if syms == "" {

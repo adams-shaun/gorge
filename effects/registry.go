@@ -442,6 +442,21 @@ type Host interface {
 	// turn" read: Bloodsoaked Champion's CheckSVar$ activation gate and ten
 	// ConditionCheckSVar$ bodies).
 	AttackersThisTurn() int
+	// AttackersDeclaredThisTurn lists the objects declared as attackers THIS
+	// turn, each once, in declaration order -- the same DeclareAttackers log
+	// fold AttackersThisTurn counts (Count$CreaturesAttackedThisTurn).
+	AttackersDeclaredThisTurn() []state.ObjID
+	// LifeLostLastTurn reports the total life player p lost during the
+	// PREVIOUS turn: the negative LifeChanges between the last two
+	// TurnChange events of the log (PlayerCount*$LifeLostLastTurn). Zero on
+	// the first turn.
+	LifeLostLastTurn(p state.PlayerID) int32
+	// AttackedDuringLastTurn reports whether player q declared an attack on
+	// player defender during q's most recent COMPLETED turn (a
+	// DeclareAttackers naming defender inside that turn's TurnChange window
+	// of the log) -- Forge's attackedYouTheirLastTurn player property
+	// (Avenge's "if a player attacked you during their last turn").
+	AttackedDuringLastTurn(q, defender state.PlayerID) bool
 	// CommanderIdentityColourCount reports how many colours seat p's
 	// commander colour identity names (the WUBRG-ordered union of every
 	// commander's Card.ColourIdentity, read off state.Player.Commanders —

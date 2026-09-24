@@ -143,8 +143,12 @@ replaying byte-identically (20/20 `replay OK`).
 
 Measured at the corpus pin `master @
 95f04e8a04c8925fa97cb226fc3341cabcc90a53` (`FORGE_REF` in the Makefile):
-`make report` prints `cards: 33667  playable: 24727 (73.4%)` with `tokens:
-839` (re-measured 2026-09-17; the jump from the 2026-09-14 figure of
+`make report` prints `cards: 33667  playable: 29820 (88.6%)` with `tokens:
+839` (re-measured 2026-09-24 at fuzz-cov3, which made the gate count the
+`count:<head>` value heads a card's referenced SVars read -- 30050 before it;
+`effects.modelledValueHeads` lists the modelled heads and rules'
+`TestValueHeadRegistryMatchesEvaluator` holds that list to the evaluator. The
+2026-09-17 figure was 24727/73.4%; the jump from the 2026-09-14 figure of
 21108/62.7% is the parameter-read registrations merged since -- the
 param-census task wave -- and the pw1 figure 20635/61.3% predated api:Untap,
 api:ManaReflected, stat:ManaConvert, stat:UntapOtherPlayer and
