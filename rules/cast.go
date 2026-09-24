@@ -4233,6 +4233,19 @@ func (e *Engine) xAsk() bool {
 			vals = append(vals, x)
 		}
 	}
+	if len(vals) == 0 {
+		// A LOWER-BOUNDED announcement (Cost.XMin, from an XMin<N> leading
+		// token or an X1+/... counter-removal argument) whose every cap sits
+		// below the floor: the old offer is empty too (maxOld < min), and the
+		// old min==0 paths always kept X=0, so only this new shape can arrive
+		// here. No legal announcement exists (CR 601.2b's announcement must
+		// be one the payment can settle), and posing a decision with no
+		// options would wedge the seat -- so the cast aborts here, the CR
+		// 733.2 fail-closed direction, the same site the other
+		// no-longer-payable announcements use.
+		e.abortCast(pc, "announced X has no payable value; cast aborted", true)
+		return true
+	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a value for X", Source: pc.card}
 	for _, x := range vals {
