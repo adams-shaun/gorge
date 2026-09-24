@@ -1400,7 +1400,9 @@ var apiSpecificRulesSA = map[string][]string{
 	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
 	// all run on mana abilities (api:Mana) only.
 	"Engine.manaAbilityPayablePool": {"Mana"},
-	"manaAbilityLabel":              {"Mana"},
+	"manaProducedLabel":             {"Mana"},
+	"manaAmountPips":                {"Mana"},
+	"manaAbilityCostPrefix":         {"Mana"},
 	// The intrinsic-append dedup read (rules/mana_activation.go): the CR 305.6
 	// all-land-types walk reads a mana ability's Produced$ ONLY, so left in
 	// the generic union it would mask every other API's unread Produced$
