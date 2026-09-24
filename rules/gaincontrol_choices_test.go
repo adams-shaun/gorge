@@ -98,6 +98,10 @@ func TestMidnightCrusaderShuttleVillainousChoiceGainControl(t *testing.T) {
 	if len(e.G.Stack) != 0 || !modeSeen || !pickSeen {
 		t.Fatalf("chain incomplete: stack=%v modes=%v pick=%v", e.G.Stack, modeSeen, pickSeen)
 	}
+	chosen := e.G.Obj(src).Chosen
+	if len(chosen) != 1 || chosen[0].IsPlayer || chosen[0].Obj != second {
+		t.Fatalf("source chosen-card binding = %+v, want answered creature %d", chosen, second)
+	}
 	if o := e.G.Obj(second); o.Controller != 0 || !o.Tapped || !o.IsAttacking || o.Attacking != 1 {
 		t.Fatalf("answered victim = controller %d tapped %v attacking %v defender %d, want 0 true true 1", o.Controller, o.Tapped, o.IsAttacking, o.Attacking)
 	}

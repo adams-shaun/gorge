@@ -1045,6 +1045,7 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 	if strings.TrimSpace(sa.Params["Choices"]) != "" {
 		if c.ChoiceDone {
 			ts = append([]state.Target(nil), c.Choice...)
+			choiceRecord(h, c, sa, ts, false)
 			c.ChoiceDone, c.Choice = false, nil
 		} else {
 			chooser := changeTargetChooser(h, c, sa)
