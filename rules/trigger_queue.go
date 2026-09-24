@@ -441,6 +441,24 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A layer-6 Melee instance has no printed trigger index. Its captured
+	// attacked-opponent player refs are logged in IDs, so replay and stack
+	// copies read the same Count$RememberedNumber as a printed instance.
+	if pt.Melee {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+			}
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwMeleeGranted", IDs: ids, Text: "melee ability"})
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// A granted afflict (CR 702.130 via a layer-6 AddKeyword$ Afflict:<N> --
 	// Lost Monarch of Ifnir's "Other Zombies you control have afflict 3"):
 	// the Ward shape exactly. The trigger is mandatory; its Counter payload

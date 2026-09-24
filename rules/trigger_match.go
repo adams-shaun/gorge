@@ -123,6 +123,8 @@ type pendingTrigger struct {
 	// KeywordTriggerPush whose __kwWard: payload events.Apply rebuilds the
 	// same DB$ Ward ability from. Idx and SA are unset for it.
 	Ward string
+	// Melee marks a layer-6 granted instance without a printed trigger index.
+	Melee bool
 	// Afflict is a GRANTED afflict keyword (a layer-6 AddKeyword$
 	// Afflict:<N>, e.g. Lost Monarch of Ifnir's "Other Zombies you control
 	// have afflict 3"): the same shape as Ward -- the queue carries the life
@@ -1077,6 +1079,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedMeleeTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedMentorTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
@@ -1541,6 +1544,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		e.checkGrantedMeleeTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Mentor must fire even when the object's own printed
 		// triggers are live for this event -- the same both-paths rule
 		// Afflict, Conspire, Exploit, Offspring and Training follow.
@@ -1919,6 +1923,9 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // shapes. Every other mode, and every per-defender attack trigger, is
 // unchanged.
 func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source state.ObjID) []state.Target {
+	if ev.Kind == events.DeclareAttackers && t.Params["Keyword"] == "Melee" {
+		return e.meleeRemembered(ev)
+	}
 	if ev.Kind == events.DeclareAttackers && attackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
 		out := make([]state.Target, 0, len(e.declaredAttackers)+1)
 		for _, id := range e.declaredAttackers {
@@ -2182,6 +2189,9 @@ func init() {
 		// attacksMatches (the Dethrone precedent), with a granted-keyword
 		// synthesis (checkGrantedTrainingTriggers) for the layer-6 grant.
 		"kw:Training",
+		// CR 702.121 Melee: snapshot distinct attacked opponents at declaration
+		// for each printed or granted Attacks trigger instance.
+		"kw:Melee",
 		// CR 702.134 Mentor: an Attacks trigger (cards/kw_mentor.go) whose
 		// targeted PutCounter body carries the Mentor$ marker, enforced by
 		// mentorAdmits at both the target offer and the recheck, with a

@@ -2073,7 +2073,15 @@ func Apply(g *state.Game, e Event) {
 		conspire := false
 		demonstrate := false
 		flanking := false
+		melee := e.Counter == "__kwMeleeGranted"
 		if sa == nil {
+			// A granted Melee instance has no printed SVar. Rebuild its
+			// pump from the logged marker; IDs holds one player ref per
+			// opponent attacked in the triggering declaration.
+			if e.Counter == "__kwMeleeGranted" {
+				sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
+					"Defined": "Self", "NumAtt": "Count$RememberedNumber", "NumDef": "Count$RememberedNumber"}}
+			}
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
 			// payload -- the same DB$ Ward | UnlessCost$ <cost> a printed
@@ -2233,7 +2241,7 @@ func Apply(g *state.Game, e Event) {
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire || demonstrate || flanking {
+		if conspire || demonstrate || flanking || melee {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
