@@ -4,13 +4,15 @@
       "name": "Alice",
       "deck": "a",
       "colour": "#e5484d",
-      "human": true
+      "human": true,
+      "deck_id": "a"
     },
     {
       "name": "Bob",
       "deck": "a",
       "colour": "#3b82f6",
-      "human": true
+      "human": true,
+      "deck_id": "a"
     }
   ],
   "first_ask": {
