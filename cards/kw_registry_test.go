@@ -21,6 +21,8 @@ var expandedHeads = []string{
 	"Annihilator", "Ward", "Storm", "Gravestorm", "Replicate", "Conspire",
 	"Living Weapon", "For Mirrodin", "Cumulative upkeep", "Echo",
 	"Equip", "Transmute", "Cycling", "TypeCycling", "Level up", "Affinity",
+	// Undaunted (CR 702.105) was added after the split; the pre-split switch never expanded it.
+	"Undaunted",
 	"Enchant", "Mobilize", "Afterlife", "Encore", "Embalm", "Eternalize",
 	// Squad (CR 702.66) was added after the split: the corpus carries only
 	// the K:Squad:<cost> line, so the expansion supplies the ETB trigger
@@ -97,6 +99,13 @@ var expandedHeads = []string{
 	// creature, charge otherwise). Added after the split; the pre-split
 	// switch never expanded it (cards/kw_sunburst.go).
 	"Sunburst",
+	// Ninjutsu (CR 702.49, task kw-ninjutsu): the printed K:Ninjutsu:<cost>
+	// line expanded into a hand-zone activated ability whose Cost$ carries
+	// the printed mana cost plus Return<1/Creature.YouCtrl+attacking+unblocked>
+	// and whose body puts the card onto the battlefield tapped and attacking
+	// (cards/kw_ninjutsu.go). Added after the split; the pre-split switch
+	// never had it.
+	"Ninjutsu",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

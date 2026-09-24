@@ -658,6 +658,24 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			break
 		}
 		switch d.Options[0].Kind {
+		case "gift_decline", "gift_promise":
+			// CR 702.168: the Gift election. The deterministic bot declines
+			// (the plain-cast direction, exactly the R-9 no-ask stand-in's
+			// behaviour), selected by KIND rather than index so a reordered
+			// option list that put a promise first still takes the decline.
+			// The option Kind is the one shared identifier the engine's
+			// castAnswer arm dispatches on too, so the bot can never submit an
+			// answer the flow routes differently. Min 1 / Max 1 is the whole
+			// legal-answer rule, and any offered option satisfies it -- the
+			// botpolicy gift test runs this answer back through
+			// Decision.Validate.
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Kind == "gift_decline" {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
 		case "protector":
 			// CR 310.10 protector. The protector is the opponent the battle
 			// will be attacked by/for, so prefer the opponent closest to

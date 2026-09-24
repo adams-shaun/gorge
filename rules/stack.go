@@ -1766,7 +1766,7 @@ zoneLoop:
 				// or ability, its controller's included.
 				// All function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
-				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) {
+				if o != nil && o.Face() != nil && !o.PhasedOut && (excludeSelf == 0 || oid != excludeSelf) {
 					// The cast-provenance split at the non-battlefield target
 					// zones too (wascastfrom): the token evaluates against the
 					// candidate's cast log before the ordinary filter.
@@ -3011,7 +3011,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				if pc.stackObj != 0 {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
 					e.cast = pc
-					e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
+					e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
 					e.cast = nil
 				}
 			}
@@ -3687,6 +3687,24 @@ func (e *Engine) resolveTop() {
 			// alltargeted1: the cast flow's pre-asked SubAbility$ target
 			// answers, consumed line by line by chosenTargetsFor.
 			SubPreAsk: e.castSubTargets[id]}
+		// CR 702.49b: a K:Ninjutsu permanent enters attacking the same player
+		// (planeswalker or battle) the returned creature was attacking. The
+		// activator captured that defender when the Return cost was paid
+		// (rules/cast.go's returncost arm) and it rides the AbilityPush event's
+		// IDs, which events.Apply folded into o.Remembered as a player target.
+		// Re-bind it here so effects/zone.go's Attacking$ True rider (which
+		// reads Ctx.DefendingPlayer) places the permanent against the right
+		// defender. Only a ninjutsu activation carries the tag, so no other
+		// resolution's Remembered player is reinterpreted as a defending
+		// player.
+		if ab := o.Ability; ab != nil && saHasKeyword(ab, "Ninjutsu") {
+			for _, rem := range o.Remembered {
+				if rem.IsPlayer {
+					ctx.DefendingPlayer = rem
+					break
+				}
+			}
+		}
 		// The SA whose targeting the placement ask actually offered, not
 		// blindly the resolving SA: for a non-modal ability that is the outer
 		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
@@ -3907,7 +3925,31 @@ func (e *Engine) resolveTop() {
 	// before condition checks"; rules/ascend.go). Permanent faces are
 	// excluded -- their grant is the emit-side continuous scan.
 	e.grantSpellBlessing(o, f)
-	if sa != nil {
+	// CR 702.168b: a promised gift resolves BEFORE the spell's other effects
+	// (the gift's own "before its other effects"). The body is the face's
+	// GiftAbility SVar; it is spliced as the HEAD of the spell's own chain so
+	// the ordinary suspension/continuation machinery handles a mid-gift ask
+	// and then runs the rest of the spell, and it shares the spell's Ctx so
+	// Defined$ Promised / TokenOwner$ Promised read the promise. The
+	// events.GiveGift marker is emitted just before the gift body runs, so
+	// "whenever you give a gift" (Jolly Gerbils) queues and resolves after
+	// the whole spell, exactly as a gift given during resolution should. The
+	// splice is a SHALLOW COPY of the resolved gift SA, never a mutation of
+	// the card's parsed table.
+	resolveSA := sa
+	if o.CastFlags&state.FlagPromisedGift != 0 {
+		if gift := cards.ResolveSVar(f.SVars, "GiftAbility"); gift != nil {
+			e.emit(events.Event{Kind: events.GiveGift, Player: o.Controller, Obj: id})
+			head := *gift
+			tail := &head
+			for tail.Sub != nil {
+				tail = tail.Sub
+			}
+			tail.Sub = sa
+			resolveSA = &head
+		}
+	}
+	if resolveSA != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
 			ModeTargets: charmModeTargets, ResolvingObj: id,
@@ -3942,7 +3984,7 @@ func (e *Engine) resolveTop() {
 		e.contChain = e.contChain[:0]
 		e.repeatReported = nil
 		e.contChainOwners++
-		effects.Resolve(e, ctx, sa)
+		effects.Resolve(e, ctx, resolveSA)
 		e.contChainOwners--
 		e.damaging = 0
 		if e.resume != nil {
@@ -4275,6 +4317,24 @@ func (e *Engine) EmitTokenCreate(ev events.Event) []state.ObjID {
 	e.tokenMintSink = &ids
 	e.emit(ev)
 	e.tokenMintSink = saved
+	return ids
+}
+
+// EmitStackCopy emits a StackCopy event and returns the object it actually
+// minted. The copy object is created inside events.Apply's StackCopy fold, so
+// effects/copy.go's RememberCopies$ rider (Forge's card.addRemembered) cannot
+// see its id from Emit; this method's sink records the pre-fold NextID the
+// fold's AddObject assigns. The empty return is the fold's early breaks (no
+// source, source already left the stack) -- a proposed copy that minted
+// nothing, which must not be remembered. Same stack discipline as
+// EmitTokenCreate, so a nested stack copy cannot leak its mint to the outer
+// caller.
+func (e *Engine) EmitStackCopy(ev events.Event) []state.ObjID {
+	var ids []state.ObjID
+	saved := e.stackCopyMintSink
+	e.stackCopyMintSink = &ids
+	e.emit(ev)
+	e.stackCopyMintSink = saved
 	return ids
 }
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }

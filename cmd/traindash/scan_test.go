@@ -49,12 +49,15 @@ func TestDiscovery(t *testing.T) {
 			ids = append(ids, r.ID)
 		}
 	}
-	want := []string{"expa/runs/arm1", "expa/runs/arm2", "expb/cmp/run3"}
+	// expa/fit (report.md) and pnx/smoke (report.md + records.jsonl) are
+	// adhoc dirs; pnx/full is an adhoc stdout/stderr pair. The arm1/arm2
+	// sibling logs belong to their exitloop dirs and are not pairs.
+	want := []string{"expa/fit", "expa/runs/arm1", "expa/runs/arm2", "expb/cmp/run3", "pnx/full", "pnx/smoke"}
 	sort.Strings(ids)
 	if strings.Join(ids, ",") != strings.Join(want, ",") {
 		t.Fatalf("runs = %v, want %v (gotmp/ and scratch/ must be skipped)", ids, want)
 	}
-	if strings.Join(exps, ",") != "expa,expb" {
+	if strings.Join(exps, ",") != "expa,expb,pnx" {
 		t.Fatalf("experiments = %v", exps)
 	}
 	r := findRun(t, snap, "expa/runs/arm1")
@@ -65,7 +68,7 @@ func TestDiscovery(t *testing.T) {
 	for _, a := range snap.Artifacts {
 		arts = append(arts, a.ID)
 	}
-	if strings.Join(arts, ",") != "expa/fit/report.md,expa/runs/summary.md" {
+	if strings.Join(arts, ",") != "expa/fit/report.md,expa/runs/summary.md,pnx/smoke/report.md" {
 		t.Fatalf("artifacts = %v", arts)
 	}
 }
@@ -187,6 +190,77 @@ func TestAlertRuleEdges(t *testing.T) {
 	}
 }
 
+// TestAdhocRuns: pn20-shaped ad-hoc runs are discovered as kind adhoc, never
+// as exitloop runs, carry their jsonl size/record count and report tail, use
+// the stderr liveness heuristic, and never alert.
+func TestAdhocRuns(t *testing.T) {
+	smokeErr, err := os.Stat(filepath.Join(fixtureRoot, "pnx/smoke/stderr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := NewScanner([]string{fixtureRoot})
+	s.Now = func() time.Time { return smokeErr.ModTime().Add(time.Minute) }
+	snap := s.Scan()
+	for _, e := range snap.Experiments {
+		for _, r := range e.Runs {
+			want := KindExitloop
+			if r.ID == "expa/fit" || strings.HasPrefix(r.ID, "pnx/") {
+				want = KindAdhoc
+			}
+			if r.Kind != want {
+				t.Fatalf("%s kind = %q, want %q", r.ID, r.Kind, want)
+			}
+		}
+	}
+	smoke := findRun(t, snap, "pnx/smoke")
+	if smoke.Experiment != "pnx" || smoke.Group != "pnx" || smoke.Name != "smoke" {
+		t.Fatalf("smoke grouping = %q %q %q", smoke.Experiment, smoke.Group, smoke.Name)
+	}
+	if len(smoke.JSONL) != 1 || smoke.JSONL[0].Name != "records.jsonl" || smoke.JSONL[0].Records == nil ||
+		*smoke.JSONL[0].Records != 3 || smoke.JSONL[0].Bytes != 24 {
+		t.Fatalf("smoke jsonl = %+v", smoke.JSONL)
+	}
+	if len(smoke.ReportTail) == 0 || smoke.ReportTail[0] != "# smoke" {
+		t.Fatalf("smoke report tail = %q", smoke.ReportTail)
+	}
+	if smoke.Status != "running" || len(smoke.StderrTail) != 2 {
+		t.Fatalf("smoke status %q tail %q", smoke.Status, smoke.StderrTail)
+	}
+	if smoke.CurrentRound != nil || smoke.Control != nil || len(smoke.Rounds) != 0 || smoke.Timing != nil {
+		t.Fatalf("adhoc run carries exitloop fields: %+v", smoke)
+	}
+	full := findRun(t, snap, "pnx/full")
+	if full.Name != "full" || len(full.JSONL) != 0 || full.Report != "" || len(full.StderrTail) != 2 {
+		t.Fatalf("full pair = %+v", full)
+	}
+	// Liveness: an old stderr ending in "..." is stale, one that finished is done.
+	fullErr, err := os.Stat(filepath.Join(fixtureRoot, "pnx/full.stderr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Now = func() time.Time { return fullErr.ModTime().Add(time.Hour) }
+	if r := findRun(t, s.Scan(), "pnx/full"); r.Status != "stale" {
+		t.Fatalf("pair status %q, want stale", r.Status)
+	}
+	s.Now = func() time.Time { return smokeErr.ModTime().Add(time.Hour) }
+	later := s.Scan()
+	if r := findRun(t, later, "pnx/smoke"); r.Status != "done" {
+		t.Fatalf("smoke status %q, want done", r.Status)
+	}
+	for _, a := range later.Alerts {
+		if strings.HasPrefix(a.Run, "pnx/") || a.Run == "expa/fit" {
+			t.Fatalf("adhoc run alerted: %+v", a)
+		}
+	}
+	// Even a (hand-built) adhoc run with rounds that would fire never alerts.
+	f := func(v float64) *float64 { return &v }
+	r := &Run{ID: "x", Kind: KindAdhoc, Control: &EvalResult{WinRate: f(0.9)},
+		Rounds: []Round{{N: 0, Eval: &EvalResult{WinRate: f(0.1)}}}}
+	if as := RunAlerts(r); len(as) != 0 {
+		t.Fatalf("adhoc alerts = %+v", as)
+	}
+}
+
 func TestHTTP(t *testing.T) {
 	s := NewScanner([]string{fixtureRoot})
 	srv := httptest.NewServer(newMux(s))
@@ -201,7 +275,7 @@ func TestHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	res.Body.Close()
-	if len(snap.Experiments) != 2 || len(snap.Alerts) != 3 {
+	if len(snap.Experiments) != 3 || len(snap.Alerts) != 3 {
 		t.Fatalf("api snapshot: %d experiments, %d alerts", len(snap.Experiments), len(snap.Alerts))
 	}
 	for path, want := range map[string]int{

@@ -15,6 +15,7 @@ func init() {
 	Register("DamageAll", effDamageAll)
 	Register("EachDamage", effEachDamage)
 	Register("Fight", effFight)
+	Register("DamageResolve", effDamageResolve)
 }
 
 // roundRobinSplit is DealDamage's R-9 no-host (and AskEmpty) stand-in for a
@@ -229,6 +230,35 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 		}
+	}
+	// DamageMap$ True (Forge's AbilityFactoryDealDamage "addDamage" into the
+	// resolution's damage map, flushed later by DB$ DamageResolve) MARKS this
+	// call's damage instead of dealing it. The marks ride Ctx.PendingDamage --
+	// the resolution-scratch class of Remembered/SVars, never event-encoded:
+	// a replay re-derives them by re-running the same resolution -- and the
+	// DamageResolve primitive flushes them as ONE damage batch (an unresolved
+	// mark deals nothing, Forge's own semantics for a script that marks
+	// without resolving). Per-CALL marking is the reading this build adopts:
+	// Forge shares one map on the root ability's resolution, but which root SA
+	// a given script's marks share is not verifiable from the scripts here,
+	// and per-call marking reproduces every observable the corpus needs (the
+	// flush is one batch; a bare flush is silent). A call this shape cannot
+	// mark faithfully -- a DividedAsYouChoose distribution or a multi-source
+	// DamageSource$ arm, neither of which any DamageMap line in the corpus
+	// carries -- falls through to the immediate-deal path unchanged.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["DamageMap"]), "True") && !divided && len(multiSources) < 2 {
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
+					target: state.Target{Player: t.Player, IsPlayer: true}})
+				continue
+			}
+			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+				c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
+					target: state.Target{Obj: t.Obj}})
+			}
+		}
+		return
 	}
 	// One DealDamage call is ONE damage batch (Forge dealDamage): the events
 	// this loop emits latch the DamageDealtOnce/DamageDoneOnce triggers
@@ -1425,4 +1455,78 @@ func eachDamagerTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 	}
 	return nil, false
+}
+
+// PendingDamage is one damage a DealDamage with DamageMap$ True MARKED for the
+// resolving chain's later DB$ DamageResolve flush, instead of dealing it. The
+// rider carries the dealing source, controller, amount and keyword provenance
+// computed at mark time (so the flush pays the lifelink rider exactly once,
+// from the same facts the immediate path would); the target is the recipient
+// recorded at mark time. It is resolution-scratch like Ctx.Remembered -- never
+// event-encoded, re-derived by a replay re-running the same resolution -- and
+// is carried across a mid-chain ask (rules stamps it on the pending frame).
+// The fields are unexported so the rules package can hold the marks opaquely
+// (it only ever clones them) without reading a rider.
+type PendingDamage struct {
+	rider  damageRider
+	target state.Target
+}
+
+// ClonePendingDamage returns a copy of a chain's pending-damage marks, the
+// same defensive-copy shape the other cross-suspension riders use. A nil or
+// empty input yields nil, so a chain with no marks is indistinguishable from
+// one that never marked.
+func ClonePendingDamage(m []PendingDamage) []PendingDamage {
+	if len(m) == 0 {
+		return nil
+	}
+	return append([]PendingDamage(nil), m...)
+}
+
+// effDamageResolve implements "DB$ DamageResolve" (Forge's
+// AbilityFactoryDamageResolve): it flushes the marks a DamageMap$ True
+// DealDamage left in the resolving chain as ONE simultaneous damage batch --
+// the observable that motivates the primitive, so a DamageDealtOnce
+// ("deals damage one or more times") trigger latches once with the batch
+// total instead of once per marked call, and CR 616 replacement effects see
+// one damage event per recipient, not one per marking call. The marks are
+// flushed in recorded order (a slice, never a map, so the order is
+// deterministic). A flush with nothing marked is a SILENT no-op: no Note, no
+// batch, exactly the shape a bare DamageResolve tail leaves when the script's
+// marking half dealt nothing. It runs the DamageResolve SA's own
+// RememberDamaged$ True / ReplaceDyingDefined$ riders over the objects the
+// flush actually damaged, the same way a real DealDamage would (the one
+// corpus carrier, Serpentine Spike, puts both on the DamageResolve line).
+func effDamageResolve(h Host, c *Ctx, sa *cards.SA) {
+	marks := c.PendingDamage
+	if len(marks) == 0 {
+		return
+	}
+	// Consume the marks before emitting: a Damage event's own replacement or
+	// trigger machinery must not see them as still pending, and a re-entry
+	// must never re-flush a batch already dealt.
+	c.PendingDamage = nil
+	h.BeginDamageBatch()
+	var damaged []state.Target
+	for _, m := range marks {
+		prev := h.SetDamageSource(m.rider.source)
+		if m.target.IsPlayer {
+			emitPlayerDamage(m.rider, m.target.Player)
+		} else if o := h.Game().Obj(m.target.Obj); o != nil && o.Zone == state.ZBattlefield {
+			emitObjectDamage(m.rider, m.target.Obj)
+			damaged = append(damaged, state.Target{Obj: m.target.Obj})
+		}
+		h.SetDamageSource(prev)
+	}
+	h.EndDamageBatch()
+	if len(damaged) == 0 {
+		return
+	}
+	if strings.TrimSpace(sa.Params["RememberDamaged"]) != "" {
+		for _, t := range damaged {
+			c.Remembered = append(c.Remembered, t)
+			eventRemember(h, c, t.Obj)
+		}
+	}
+	registerReplaceDying(h, c, sa, damaged)
 }

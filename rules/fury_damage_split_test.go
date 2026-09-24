@@ -15,10 +15,10 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// optionForObj returns the offered option index naming obj, failing if the
+// furyOptionForObj returns the offered option index naming obj, failing if the
 // recipient was not offered. Used for both the target ask and the allocation
 // ask, whose options both carry the target in Obj.
-func optionForObj(t *testing.T, d *decision.Decision, obj state.ObjID) int {
+func furyOptionForObj(t *testing.T, d *decision.Decision, obj state.ObjID) int {
 	t.Helper()
 	for _, o := range d.Options {
 		if o.Obj == obj {
@@ -70,7 +70,7 @@ func furySetup(t *testing.T) (*Engine, Config, *decision.Decision, state.ObjID, 
 		t.Fatalf("division target bounds = [%d,%d], want [0,4]", d.Min, d.Max)
 	}
 	for _, b := range []state.ObjID{bear1, bear2} {
-		optionForObj(t, d, b) // both bears must be legal targets
+		furyOptionForObj(t, d, b) // both bears must be legal targets
 	}
 	return e, cfg, d, bear1, bear2
 }
@@ -79,7 +79,7 @@ func furySetup(t *testing.T) (*Engine, Config, *decision.Decision, state.ObjID, 
 // distinct allocation decision it suspends on.
 func furyAllocationAsk(t *testing.T, e *Engine, td *decision.Decision, bear1, bear2 state.ObjID) *decision.Decision {
 	t.Helper()
-	submitChoices(t, e, optionForObj(t, td, bear1), optionForObj(t, td, bear2))
+	submitChoices(t, e, furyOptionForObj(t, td, bear1), furyOptionForObj(t, td, bear2))
 	ad := drainUntilAsk(t, e, 30)
 	if ad == nil || ad.Kind != decision.KChoose || ad.ResumeKind != "damage_split" {
 		t.Fatalf("allocation ask missing after target selection: %+v", ad)
@@ -103,8 +103,8 @@ func TestFuryDividesDamageAmongTargets(t *testing.T) {
 	// The decision's own wire rules constrain the answer: a total other than
 	// the scripted 4, and a recipient not on the chosen list, are both
 	// rejected. These prove the ask is a real constraint, not a label.
-	o1 := optionForObj(t, ad, bear1)
-	o2 := optionForObj(t, ad, bear2)
+	o1 := furyOptionForObj(t, ad, bear1)
+	o2 := furyOptionForObj(t, ad, bear2)
 	if err := ad.Validate(decision.Intent{Seq: ad.Seq, Player: ad.Player, Choices: []int{o1, o2, o1}}); err == nil {
 		t.Fatalf("a 3-damage total was accepted; the exact-total rule must reject it")
 	}
@@ -142,8 +142,8 @@ func TestFuryDividesDamageAmongTargets(t *testing.T) {
 func TestFuryDamageSplitAllowsZeroShare(t *testing.T) {
 	e, _, td, bear1, bear2 := furySetup(t)
 	ad := furyAllocationAsk(t, e, td, bear1, bear2)
-	o1 := optionForObj(t, ad, bear1)
-	o2 := optionForObj(t, ad, bear2)
+	o1 := furyOptionForObj(t, ad, bear1)
+	o2 := furyOptionForObj(t, ad, bear2)
 	if o1 == o2 {
 		t.Fatalf("precondition: the two shares must be distinguishable options, got %d and %d", o1, o2)
 	}
@@ -233,7 +233,7 @@ func TestFuryDamageSplitSingleTargetFillsWholeTotal(t *testing.T) {
 	// Precondition: the sole CHOSEN target is the bear, so the division has a
 	// single recipient (the gate this test exists for); the bear must be
 	// offered and distinguishable from Fury's own option.
-	bearOpt := optionForObj(t, td, bear)
+	bearOpt := furyOptionForObj(t, td, bear)
 	if len(td.Options) < 2 {
 		t.Fatalf("precondition: want the bear plus at least Fury offered, got %+v", td.Options)
 	}

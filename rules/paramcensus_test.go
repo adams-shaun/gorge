@@ -72,7 +72,6 @@ package rules
 import (
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -981,15 +980,18 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		if pkg == "effects" && fname == "saMentionsGoaded" {
 			return
 		}
-		// emitFromEachSource copies the rider parameters while deliberately
-		// omitting DamageSource, which is resolved once by its caller. This
-		// filtered copy is not a parameter consumer.
-		if pkg == "effects" && fname == "emitFromEachSource" && damageSourceRiderCopy(rs, keyIdent.Name) {
-			return
-		}
 		// A copy loop (`for k, v := range src.Params { dst.Params[k] = v }`)
 		// is not a read: every use of the key sits in a write-position index.
 		if rangeKeyIsWriteOnly(rs, keyIdent.Name, writes) {
+			return
+		}
+		// A FILTERED copy (`for k, v := range src.Params { if k != "X" { dst.Params[k] = v } }`)
+		// is likewise not a read: it deliberately omits one already-resolved
+		// key (DamageSource, resolved once by the caller) and copies every
+		// other key into a new SA. Matched by shape, not by function name, so
+		// extracting or renaming the helper cannot silently turn the copy into
+		// an unclassified read.
+		if filteredParamsCopy(rs, keyIdent.Name, writes) {
 			return
 		}
 		s.failf(t, fset.Position(rs.X.Pos()),
@@ -1001,24 +1003,91 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 	}
 }
 
-// damageSourceRiderCopy accepts only emitFromEachSource's filtered rider
-// copy: it omits the already-resolved DamageSource key and writes every
-// other key/value into saRider.Params.
-func damageSourceRiderCopy(rs *ast.RangeStmt, key string) bool {
-	if len(rs.Body.List) != 2 {
-		return false
-	}
+// filteredParamsCopy accepts a Params copy loop that deliberately omits one
+// or more already-resolved keys and copies every other key/value into a new
+// SA map. Two body shapes are accepted (the code has carried both across
+// refactors):
+//
+//	for k, v := range src.Params { if k != "X" { dst.Params[k] = v } }
+//	for k, v := range src.Params { if k == "X" { continue }; dst.Params[k] = v }
+//
+// Recognition is by SHAPE, not by function name: the key must appear only in
+// (a) comparison guards against a constant string, and (b) write-position
+// index expressions `dst.Params[k]` that are assignments. Every such
+// assignment must copy the range value straight through. The copy consumes no
+// parameter, so it contributes no read; any other use of the key falls through
+// to the rot guard.
+func filteredParamsCopy(rs *ast.RangeStmt, key string, writes map[ast.Node]bool) bool {
 	if key != "k" {
 		return false
 	}
-	// Keep this classification tied to the intentional exclusion and copy
-	// destination; changes to the loop must be reviewed as parameter reads.
-	var body strings.Builder
+	wrote := false
 	for _, stmt := range rs.Body.List {
-		_ = format.Node(&body, token.NewFileSet(), stmt)
+		switch v := stmt.(type) {
+		case *ast.IfStmt:
+			// A guard that compares the key against a constant string and
+			// either copies inside or `continue`s. Anything else rejects.
+			if v.Else != nil || !keyConstCompare(v.Cond, key) {
+				return false
+			}
+			if len(v.Body.List) != 1 {
+				return false
+			}
+			if br, ok := v.Body.List[0].(*ast.BranchStmt); ok {
+				if br.Tok != token.CONTINUE {
+					return false
+				}
+				continue // `if k == "X" { continue }` filter
+			}
+			if !keyCopyAssign(v.Body.List[0], key, writes) {
+				return false
+			}
+			wrote = true
+		case *ast.AssignStmt:
+			if !keyCopyAssign(v, key, writes) {
+				return false
+			}
+			wrote = true
+		default:
+			return false
+		}
 	}
-	return strings.Contains(body.String(), `if k == "DamageSource"`) &&
-		strings.Contains(body.String(), "saRider.Params[k] = v")
+	return wrote
+}
+
+// keyCopyAssign reports whether stmt is `dst.Params[k] = v` (the key in
+// write-position index, the range value copied straight through).
+func keyCopyAssign(stmt ast.Stmt, key string, writes map[ast.Node]bool) bool {
+	as, ok := stmt.(*ast.AssignStmt)
+	if !ok || as.Tok != token.ASSIGN || len(as.Lhs) != 1 || len(as.Rhs) != 1 {
+		return false
+	}
+	ix, ok := as.Lhs[0].(*ast.IndexExpr)
+	if !ok || !writes[ix] {
+		return false
+	}
+	id, ok := ix.Index.(*ast.Ident)
+	if !ok || id.Name != key {
+		return false
+	}
+	val, ok := as.Rhs[0].(*ast.Ident)
+	return ok && val.Name == "v"
+}
+
+// keyConstCompare reports whether cond is a `key == "X"` / `key != "X"`
+// comparison of the range key against a constant string, with no other use of
+// the key.
+func keyConstCompare(cond ast.Expr, key string) bool {
+	be, ok := cond.(*ast.BinaryExpr)
+	if !ok || (be.Op != token.EQL && be.Op != token.NEQ) {
+		return false
+	}
+	id, ok := be.X.(*ast.Ident)
+	if !ok || id.Name != key {
+		return false
+	}
+	lit, ok := be.Y.(*ast.BasicLit)
+	return ok && lit.Kind == token.STRING
 }
 
 // rangeKeyIsWriteOnly reports whether the range body is a pure Params copy

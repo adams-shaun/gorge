@@ -812,6 +812,13 @@ type Engine struct {
 	// sink, so the outer effect's rider loop sees only its own mints. Nil on
 	// every ordinary Emit, so no other emit pays for the collection.
 	tokenMintSink *[]state.ObjID
+	// stackCopyMintSink, when non-nil, collects the object the StackCopy
+	// event currently being emitted actually minted (EmitStackCopy). Same
+	// stack discipline as tokenMintSink: a nested stack copy saves and
+	// restores the outer sink. A StackCopy never spawns more than one object
+	// (this engine has no CopySpell replacement), so the slice holds at most
+	// one id. Nil on every ordinary Emit, so no other emit pays for it.
+	stackCopyMintSink *[]state.ObjID
 	// replReplaced is the ev.Obj of the replacement applyReplacements is
 	// currently resolving — the object the replaced event was about. It is
 	// seeded by applyReplacements (Ctx.Replaced = ev.Obj) and read by Ask to
@@ -939,6 +946,49 @@ type Engine struct {
 	millBatchDepth int
 	millBatchIdx   map[triggerKey]int
 	millBatchLog   []millBatchEntry
+	// discardBatch (effects' api:Discard): one api:Discard resolution is ONE
+	// discard action, so the Mode$ DiscardedAll "whenever you discard one or
+	// more cards" trigger fires once for the whole resolution, not once per
+	// discarded card. The millBatch's shape exactly: keyed by trigger LINE
+	// alone (the "one or more" reading), the first matching discarded card
+	// queues the single instance and every later matching card accumulates
+	// into the entry's COUNT -- the number of cards discarded this way, which
+	// the bodies read through TriggerCount$Amount (Magmakin Artillerist's X)
+	// -- plus the deduplicated discarded-card set closeDiscardBatch patches
+	// into Remembered/Captured. Only cards matching THIS line's ValidCard$
+	// count. Unlike the mill bracket, api:Discard can SUSPEND mid-resolution
+	// for a player's choice, so the bracket is opened on the first pass and
+	// closed only on the pass that completes without suspending (effects/
+	// cardflow.go's effDiscard) -- a suspension must not split one discard
+	// action into two batches. Never opened across a drain: pendingTriggers
+	// is append-only while the batch is open, so the recorded index stays
+	// valid.
+	discardBatchOpen  bool
+	discardBatchDepth int
+	discardBatchIdx   map[triggerKey]int
+	discardBatchLog   []discardBatchEntry
+	// discardAllTurn is the Mode$ DiscardedAll FirstTime$ latch: one trigger
+	// LINE's most recent batch turn, so "for the first time each turn" admits
+	// only the first qualifying discard batch per turn. Recorded at queue
+	// time (when the batch's single instance is created) and cleared by the
+	// turn boundary, the triggerTurnFires shape. Per trigger line is exact
+	// for every corpus carrier, whose ValidPlayer$ is the source's own
+	// controller ("You"); a line naming another player's discard would need a
+	// per-player key, which no current carrier has.
+	discardAllTurn map[triggerKey]int32
+	// discardAllFirstTime is the Mode$ DiscardedAll FirstTime$ param scoped to
+	// the matcher: discardedAllMatches (rules/trigmatch_cards.go), the ONLY
+	// reader of the DiscardedAll line's FirstTime$, records the parsed clause
+	// here as its receiver's transient scratch, and checkFaceTriggers captures
+	// it immediately after the match call (before secondaryYields, which also
+	// drives this same observer). It is scratch, not bookkeeping: it starts
+	// false and is only meaningful for the instant between that matcher call
+	// and the capture, so it is neither cloned nor replayed. Keeping the
+	// `t.Params["FirstTime"]` literal inside the DiscardedAll-registered
+	// matcher is what scopes the param-census read (rules/
+	// paramcensus_test.go) to mode DiscardedAll instead of attributing it to
+	// every trigger mode through the shared dispatcher.
+	discardAllFirstTime bool
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
@@ -2465,6 +2515,10 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.TokenCreate && e.tokenMintSink != nil {
 		tokenMintWant = e.G.NextID
 	}
+	var stackCopyMintWant state.ObjID
+	if ev.Kind == events.StackCopy && e.stackCopyMintSink != nil {
+		stackCopyMintWant = e.G.NextID
+	}
 	wasTapped := false
 	if ev.Kind == events.Untap {
 		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
@@ -2485,6 +2539,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if tokenMintWant != 0 && e.G.Obj(tokenMintWant) != nil {
 		*e.tokenMintSink = append(*e.tokenMintSink, tokenMintWant)
+	}
+	if stackCopyMintWant != 0 && e.G.Obj(stackCopyMintWant) != nil {
+		*e.stackCopyMintSink = append(*e.stackCopyMintSink, stackCopyMintWant)
 	}
 	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
 		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a

@@ -1605,6 +1605,42 @@ func Apply(g *state.Game, e Event) {
 			o.FaceDownHasPT = false
 		}
 
+	case PhaseOut:
+		// CR 702.25's phased-out status (api:Phases): Amount 1 phases the
+		// permanent OUT, -1 phases it IN. Gated on the battlefield, the same
+		// way TurnFaceUp's face-down clear is -- a marker stranded on a card
+		// that left the battlefield is not a phase. The Move fold clears
+		// PhasedOut on every real battlefield departure, so a later entry
+		// (CR 400.7) starts phased in.
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
+			o.PhasedOut = e.Amount >= 1
+			// CR 702.25c: "A permanent that phases out is removed from
+			// combat." Phasing is deliberately NOT a zone change, so no Move
+			// fold runs to clear the combat members the way a departure does;
+			// clear them here with the exact EndCombatReset{Obj} shape, so a
+			// phased-out ATTACKER stops assigning and receiving combat damage
+			// and a phased-out BLOCKER stops absorbing it. A zero tombstone is
+			// left in each attacking creature's BlockedBy (CR 509.1h: the
+			// attacker stays blocked even though its blocker is gone), which
+			// is exactly what liveBlockers and damageStep already read.
+			if o.PhasedOut {
+				for i := range g.Objs {
+					other := &g.Objs[i]
+					if other.ID == e.Obj {
+						other.IsAttacking = false
+						other.AttackingBattle = 0
+						other.BlockedBy = nil
+						continue
+					}
+					for j, id := range other.BlockedBy {
+						if id == e.Obj {
+							other.BlockedBy[j] = 0
+						}
+					}
+				}
+			}
+		}
+
 	case ClockTick:
 		g.Clock++
 
@@ -1799,6 +1835,29 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			o.X = e.Amount
 		}
+
+	case GiftPromise:
+		// CR 702.168: the cast-time gift election. Obj is the spell on the
+		// stack, Player the promised opponent (valid only when Amount != 0),
+		// Amount 1 for a promise and 0 for a decline. Folded onto the object
+		// so the PromisedGift predicate, the Count$PromisedGift head and
+		// Defined$ Promised read one home, and preserved across the
+		// stack->battlefield move by events.Move (the X/CastFlags window).
+		if o := g.Obj(e.Obj); o != nil {
+			o.CastFlags &^= state.FlagPromisedGift
+			o.GiftPromisedTo = 0
+			if e.Amount != 0 {
+				o.CastFlags |= state.FlagPromisedGift
+				o.GiftPromisedTo = e.Player
+			}
+		}
+
+	case GiveGift:
+		// A completed gift action (CR 702.168b), matched by trig:GiveGift.
+		// Like Investigate it is a pure Apply no-op marker: the gift's own
+		// state change is its own preceding event, and the record exists only
+		// so "whenever you give a gift" fires on a promise actually kept
+		// rather than on any draw or token creation.
 
 	case NoteNumber:
 		// A trigger's Execute$ body noted a number onto the CARD (DB$ Pump
@@ -2163,6 +2222,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
+		casualty := false
 		demonstrate := false
 		flanking := false
 		melee := e.Counter == "__kwMeleeGranted"
@@ -2208,6 +2268,11 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
 						"MayChooseTarget": "True"}}
 				conspire = ok
+			}
+			if e.Counter == "__kwCasualty:" {
+				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
+					Params: map[string]string{"Defined": "TriggeredSpellAbility", "MayChooseTarget": "True"}}
+				casualty = true
 			}
 			// A granted Demonstrate (rules.pushTrigger's __kwDemonstrate:
 			// payload) has no SVar either: rebuilt structurally into the same
@@ -2333,7 +2398,7 @@ func Apply(g *state.Game, e Event) {
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire || demonstrate || flanking || melee {
+		if conspire || casualty || demonstrate || flanking || melee {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
@@ -3208,8 +3273,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// its next zone, so control-changing effects do not follow it. Reset
 	// before choosing the destination's zone owner: a later graveyard/hand
 	// re-entry must be placed under its owner, not its former controller.
+	// CR 702.25e: a phased-out permanent that leaves the battlefield phases
+	// in as it does so -- the phased-out status is a property of that
+	// battlefield object, and a later entry is a fresh, phased-in permanent.
 	if wasBattlefield && to != state.ZBattlefield {
 		o.Controller = o.Owner
+		o.PhasedOut = false
 	}
 	// CR 113.7a: an ability on the stack is not a card, and once it leaves
 	// the stack it ceases to exist. The resolved/countered ability's move is
@@ -3455,6 +3524,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// new object's -- a blunk/reanimated StoreSVar carrier starts with
 			// no stored value (the printed default stands).
 			o.RuntimeSVars = nil
+			// CR 702.168: the gift promise's receiver is cast-time
+			// provenance, not a battlefield characteristic -- a re-entering
+			// permanent carries no promise from its old cast. The
+			// FlagPromisedGift bit is cleared with CastFlags just above.
+			o.GiftPromisedTo = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			o.Protector, o.ProtectorValid = 0, false
@@ -3502,6 +3576,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
+			// CR 702.168: a spell leaving the stack for a non-battlefield zone
+			// (a resolving instant/sorcery, a countered spell) names no gift
+			// receiver further. The FlagPromisedGift bit is cleared with
+			// CastFlags just above.
+			o.GiftPromisedTo = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).

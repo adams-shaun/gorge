@@ -853,6 +853,14 @@ func cardViews(g *state.Game, ch Chars, ids []state.ObjID, includeAbilityCosts b
 		if o == nil || o.Face() == nil || o.Ephemeral() {
 			continue
 		}
+		if o.PhasedOut {
+			// CR 702.25b: a phased-out permanent is treated as though it does
+			// not exist, so it is absent from every projection of its zone.
+			// PhasedOut is only ever set on a battlefield permanent (the
+			// PhaseOut fold gates on it and the Move fold clears it), so this
+			// cannot hide a card in a hidden zone.
+			continue
+		}
 		cv := cardView(g, ch, id)
 		// A face-down exiled card is public as a distinct object but its face is
 		// visible only to its controller (or an omniscient projection). Keep
