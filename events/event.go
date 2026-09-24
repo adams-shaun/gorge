@@ -836,9 +836,8 @@ const (
 	// StoreSVar of the same name on the same object overwrites (Forge's
 	// setSVar is last-write-wins). The value must be event-backed so a replay
 	// derives the identical board, and the fold is a keyed map write, so no
-	// map range ever reaches an event. Appended after TurnFaceUp, following
-	// every prior Kind's own append-only precedent, so no earlier ordinal,
-	// hash chain or golden replay is affected. Appended after Scry.
+	// map range ever reaches an event. Appended after Scry to preserve every
+	// earlier Kind ordinal, hash chain and golden replay.
 	StoreSVar
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It

@@ -957,7 +957,6 @@ $ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go   # no output
 
 ---
 
-<<<<<<< HEAD
 - Branch `wt/agent-20260918T230554Z-a96f94d7` rebased onto main (`7a6a77b7`),
   tree clean.
 - `main..HEAD`: `d8ab4365` (fix, content-identical to `9de2af45`) and
@@ -972,7 +971,9 @@ $ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go   # no output
   than the rebase route. I re-ran the rebase it had originally attempted; the
   resulting branch is linear onto main, which is what its rebase log shows it
   wanted first.
-=======
+
+---
+
 # Merge-conflict resolution report — cli-20260922T225142Z-226d3d19
 
 ## State on entry
@@ -1110,7 +1111,6 @@ nothing to commit, working tree clean
 - No other file required manual editing; nothing else was touched.
 - `.cards` was present in the worktree (existing), so the `rules` ratchet run
   exercised real corpus tests (0 skips, verbose log confirms).
->>>>>>> b8a5afa2 (docs(mrg1): record the merge-conflict resolution for cli-20260922T225142Z-226d3d19)
 
 ## Issues
 
@@ -1370,7 +1370,6 @@ so the botbench 20-game split did not move.
 
 ## Issues
 
-<<<<<<< HEAD
 None found. The conflict was confined to tracked, git-excluded report
 accumulators; no engine or test behavior was ambiguous. Pre-existing issues
 the branch's own report already records (`PlayerCountRemembered$LifeTotal`
@@ -4045,7 +4044,9 @@ content but costs a round each time.
 STATUS=DONE
 COMMITS=686c292b
 TESTS=go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' → ok 0.793s; go test -run 'TestEmerge' ./rules/ → ok 0.603s; go test ./internal/archtest/ → ok 3.209s; go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ → ok 1.812s
-=======
+
+---
+
 None found in this round. The only defect encountered was the stale ratchet
 constant on each side, resolved by measuring the merged table (32) rather than
 adopting either side's comment. No new approximation, no golden edit, no engine
@@ -4057,4 +4058,3 @@ behaviour change.
 
 None found. This was a pure integration merge; no defect was observed and no
 scope was modified beyond the conflicted constant.
->>>>>>> b8a5afa2 (docs(mrg1): record the merge-conflict resolution for cli-20260922T225142Z-226d3d19)
