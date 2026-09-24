@@ -153,18 +153,22 @@
     </p>
   {/if}
 
+  <!-- The last resolved object's artwork (fb-20260916T225456Z; lifetime
+       narrowed by fb-20260917T231516Z; placement fb-20260923T015554Z): a
+       card popping OFF this stack shows in its own rail band, BEFORE the
+       Stack heading — recent history the player asked to read separately,
+       not a current stack member (under the heading it read as one). It
+       clears on the next resolve, the next turn/step boundary, or the
+       event window bound, and renders nothing while nothing is showing.
+       The component's two divs land directly in the rail column; the CSS
+       below turns off the internal divider its in-section home needed. -->
+  <ResolvedCard {view} {events} {seats} />
+
   <!-- The pending tray sits directly above the transcript and directly below
        the stack, because it is literally what is about to become stack
        (design system, "Layout"); the transcript is the band under this rail. -->
   <section class="stack">
     <h3>Stack{#if topFirst.length > 0} <span class="count">{topFirst.length}</span>{/if}</h3>
-    <!-- The last resolved object's artwork (fb-20260916T225456Z; lifetime
-         narrowed by fb-20260917T231516Z): a card popping OFF this stack
-         shows at its top, labelled, where it reads as the stack's own
-         history — the old RecentStrip board overlay is gone. It clears on
-         the next resolve, the next turn/step boundary, or the event window
-         bound, and renders nothing while nothing is showing. -->
-    <ResolvedCard {view} {events} {seats} />
     {#each topFirst as s, i (s.id)}
       <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} {yields} {onYield} {viewerSeat} />
     {/each}
@@ -288,6 +292,23 @@
     flex: 1 1 8rem;
     min-height: 6rem;
     overflow-y: auto;
+  }
+  /* The resolved row's own band (fb-20260923T015554Z): ResolvedCard moved
+     OUT of the stack section and renders its two divs directly into the
+     rail column, ahead of the Stack heading. The rail-child rule above
+     supplies the band's padding and closing hairline; the component's
+     INTERNAL divider (the separator it carried while it lived inside the
+     section, between history and live frame) is the section boundary's
+     job now, so it is switched off at this embedding — ResolvedCard's own
+     SSR tests still prove it renders on its own. The row keeps its raised
+     ground and seat-coloured border from the component, so the band reads
+     as a distinct recent-history item, and the stack count/tiles under the
+     heading stay the live frame. */
+  .rail-inner > :global(div.resolved) {
+    margin-bottom: 0;
+  }
+  .rail-inner > :global(div.resolved__divider) {
+    display: none;
   }
   section.pending {
     flex: 0 1 auto;

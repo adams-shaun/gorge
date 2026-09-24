@@ -105,23 +105,45 @@ describe('Rail — the stack (Task 1/2)', () => {
   });
 });
 
-describe('Rail — the resolved card lives in the stack section (fb-20260916T225456Z)', () => {
-  it('a resolve in the events renders the labelled resolved card INSIDE the stack section, above the tiles still on it', () => {
+describe('Rail — the resolved card is its own band BEFORE the Stack heading (fb-20260923T015554Z)', () => {
+  it('a resolve renders the labelled resolved card OUTSIDE the stack section, before the Stack heading; the real stack stays under it', () => {
     const v = baseView({
       players: [spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 42, name: 'Resolved Thing' })] }), spectatorPlayer(1, 'Bo')],
       stack: [{ id: 100, kind: 'spell', name: 'Still Here', text: '', controller: 0, targets: [], card: card({ id: 100, name: 'Still Here' }), optional: false }],
     });
     const events = [{ event: { seq: 9, kind: 'stack_resolve', player: 0, obj: 42 } }];
     const { html } = render(Rail, { props: { view: v, seats, decision: null, events } });
+    // Preconditions: the resolve's object really moved somewhere the row can
+    // find it (the graveyard named above), and the stack really has an
+    // entry of its own for the section to carry.
+    expect(html).toContain('Resolved Thing');
+    expect(html).toContain('Still Here');
     const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
-    expect(stackSection).toContain('data-resolved="42"');
-    expect(stackSection).toContain('just resolved');
-    expect(stackSection).toContain('Still Here'); // the tiles still on the stack render too
-    expect(stackSection.indexOf('data-resolved="42"')).toBeLessThan(stackSection.indexOf('Still Here')); // resolved at the TOP
+    expect(stackSection).toContain('Still Here'); // the tiles still on the stack render under the heading
+    // The resolved row is NOT stack content: outside the section entirely...
+    expect(stackSection).not.toContain('data-resolved="42"');
+    // ...and BEFORE the Stack heading in document order (the player's sketch).
+    expect(html.indexOf('data-resolved="42"')).toBeLessThan(html.indexOf('class="stack'));
+    expect(html.indexOf('data-resolved="42"')).toBeLessThan(html.indexOf('>Stack'));
+    expect(html).toContain('just resolved'); // still labelled as history, not a live entry
   });
 
-  it('with no resolve in the events, the stack section carries no resolved row', () => {
+  it('a resolve with an EMPTY stack still puts the row before the heading, and the heading carries no count badge', () => {
+    const v = baseView({
+      players: [spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 42, name: 'Resolved Thing' })] }), spectatorPlayer(1, 'Bo')],
+    });
+    const events = [{ event: { seq: 9, kind: 'stack_resolve', player: 0, obj: 42 } }];
+    const { html } = render(Rail, { props: { view: v, seats, decision: null, events } });
+    expect(html).toContain('data-resolved="42"'); // precondition: the row is showing at all
+    expect(html.indexOf('data-resolved="42"')).toBeLessThan(html.indexOf('class="stack'));
+    const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
+    expect(stackSection).not.toContain('class="count'); // no badge over an empty stack
+  });
+
+  it('with no resolve in the events, no resolved row renders anywhere and the stack section is clean', () => {
     const { html } = render(Rail, { props: { view: baseView(), seats, decision: null } });
+    expect(html).not.toContain('data-resolved');
+    expect(html).not.toContain('just resolved');
     const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
     expect(stackSection).not.toContain('data-resolved');
   });
