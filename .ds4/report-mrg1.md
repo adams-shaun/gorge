@@ -1,3 +1,158 @@
+# Merge-conflict resolution — task agent-20260923T065617Z-9b7a6efa
+
+Ticket: `agent-20260923T065617Z-9b7a6efa` (CR 704.5k world-rule SBA)
+Branch: `wt/agent-20260923T065617Z-9b7a6efa`
+Merge commit: `1ec547623` (Merge branch 'main' into wt/agent-20260923T065617Z-9b7a6efa)
+Pre-merge branch tip: `1c2409916`
+Merged main tip: `747871c7a`
+Merge base: `374a568b1`
+
+## What was in flight
+
+`git status` on entry was **clean**, on branch `wt/agent-20260923T065617Z-9b7a6efa`,
+with **no in-flight rebase or merge** — the daemon's earlier integration attempt
+had failed without leaving a partial state. I re-ran `git merge main` from the
+clean tree.
+
+## Conflicts
+
+`git merge main` auto-merged every code path and produced exactly two conflicts,
+both on tracked `.ds4/` shared report files (no source, test or spec file
+conflicted):
+
+### 1. `.ds4/report-t1.md` — CONFLICT (content)
+
+- **Branch side (HEAD):** prepends this ticket's round-1 world-rule report
+  (257 lines) above the accumulated shared history. Established by the branch's
+  own `41c1348fe` ("restore shared report-t1 history") after a reviewer MAJOR
+  found an earlier round had replaced the shared file wholesale.
+- **Main side:** prepends the `agent-20260923T114033Z-a57ee463` damage-by-source
+  provenance report (`# Report — game-long damage-by-source provenance …`) above
+  the same shared history.
+- Both sides converge byte-exactly at the `---` + `# Reports appended below …`
+  separator (HEAD line 258 ≡ main line 544). Verified:
+  `cmp` of the two shared-history tails → identical.
+
+**Resolution:** union of both additions — HEAD's world-rule report, then main's
+damage-provenance report, then the byte-exact shared history once. No lines from
+either side were dropped.
+
+### 2. `.ds4/report-t3.md` — CONFLICT (add/add)
+
+- The file does not exist at the merge base; both sides created it independently.
+- **Branch side:** this ticket's round-3 fix-round report (159 lines).
+- **Main side:** the damage-provenance ticket's round-3 report (113 lines).
+- Neither side carries a real shared-history body (the one `# Reports appended
+  below` line on main is inside a fenced code block, a quoted example, not a
+  separator).
+
+**Resolution:** union — branch's t3 report, a `---` separator, then main's t3
+report.
+
+## Additive-only verification
+
+Both resolved files are insertions-only against **both** parents, satisfying the
+review convention (no shared history deleted):
+
+```
+$ git diff --numstat main -- .ds4/report-t1.md .ds4/report-t3.md
+257	0	.ds4/report-t1.md
+162	0	.ds4/report-t3.md
+
+$ git diff --numstat HEAD^1 -- .ds4/report-t1.md .ds4/report-t3.md
+543	0	.ds4/report-t1.md
+116	0	.ds4/report-t3.md
+```
+
+(`HEAD^1` = branch tip `1c2409916`; the second column is deletions, always `0`.)
+
+## Commands run
+
+```
+$ git status
+On branch wt/agent-20260923T065617Z-9b7a6efa
+nothing to commit, working tree clean
+
+$ git merge main
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Auto-merging .ds4/report-t2.md
+Auto-merging .ds4/report-t3.md
+CONFLICT (add/add): Merge conflict in .ds4/report-t3.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git add .ds4/report-t1.md .ds4/report-t3.md
+$ git commit --no-edit
+[wt/agent-20260923T065617Z-9b7a6efa 1ec547623] Merge branch 'main' into wt/agent-20260923T065617Z-9b7a6efa
+
+$ git status
+On branch wt/agent-20260923T065617Z-9b7a6efa
+nothing to commit, working tree clean
+
+$ git rev-list --parents -1 HEAD
+1ec547623f110281adfde0380231b99780ce8d15 \
+  1c240991639a0f9683ebd5d690b46390839969f7 \
+  747871c7ab648fe2b3d028686fab22df9251d5f5
+```
+
+## Post-merge gates
+
+The branch's fix (the global "newest-wins" CR 704.5k world-rule SBA, reworked in
+`26f2e09d0`/`b902ed0d`/`482486c80`/`1c2409916`) is intact in the merged tree
+(`rules/sba.go` `worldRule`/`worldPermanents`/`worldUnderLayers`, `cards/face.go`
+`IsWorld`) alongside main's new files (`rules/morph_turnup.go`, `cmd/exitloop/…`).
+`go build ./rules/ ./cards/ ./effects/` and `go vet ./rules/ ./cards/` are clean.
+
+Conflicted packages (targeted):
+
+```
+$ go test -v -run 'TestWorldRule|TestLegend' ./rules/
+=== RUN   TestLegendRuleAsksControllerWhichDuplicateToKeep
+...
+=== RUN   TestWorldRuleTieSendsAllUsesPreDepartureBoard
+=== RUN   TestWorldRuleNewestSurvives
+=== RUN   TestWorldRuleGlobalAcrossControllers
+=== RUN   TestWorldRuleTieSendsAll
+=== RUN   TestWorldRuleSinglePermanentIsUntouched
+=== RUN   TestWorldRuleReadsDerivedSupertype
+ok  	github.com/adams-shaun/gorge/rules	0.857s
+```
+
+16 tests ran, 0 failures, 0 skips (`.cards` symlink present).
+
+Post-merge ratchets (main carries tests a branch cut before them has not met):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.796s
+```
+
+5 tests ran, 0 skips:
+`TestEveryRepoDeckIsFullySupported`, `TestEveryRepoDeckCountHeadResolves`,
+`TestEveryRepoDeckParamsAreRead`, `TestEveryDispatchedTriggerModeHasAMatcher`,
+`TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched`. No ratchet table
+edit was needed — this ticket registers no new `Mode$` matcher and closes no
+`knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads` entry
+(it adds a new primitive, the world-rule SBA, not a matcher).
+
+Behaviour goldens:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	8.135s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.269s
+```
+
+`TestHeads`/`rules/heads_test.go` were NOT edited by this resolution; no repo
+deck carries a World card, so no chain head moved.
+
+## Open concerns
+
+None. Both conflicts were documentation-file unions with byte-exact shared
+history preserved; no source behaviour was changed by the resolution, and every
+targeted check passed on the merged tree.
 # Merge-conflict resolution (round 2) — task agent-20260923T114033Z-a57ee463
 
 Ticket: `agent-20260923T114033Z-a57ee463`
