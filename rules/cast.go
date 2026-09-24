@@ -546,6 +546,20 @@ type pendingCast struct {
 	reveals, beholds, taps, blights             []state.ObjID
 	revealPart, beholdPart, tapPart, blightPart int
 	forageDone                                  bool
+
+	// ninjutsuDefender is the defender (CR 702.49b: the player, planeswalker
+	// or battle the returned creature was attacking) captured when a
+	// K:Ninjutsu activation paid its Return cost. ninjutsuHasDefender
+	// discriminates the capture: seat 0 is a legal defending player, so
+	// ninjutsuDefender == 0 on its own cannot mean "not captured" (the same
+	// hazard documented at combat.go's mustAttackRequired). It rides the
+	// AbilityPush event's IDs, which events.Apply folds into the minted
+	// ability's Remembered, and rules/stack.go re-binds it to the resolving
+	// Ctx's DefendingPlayer so effects/zone.go's Attacking$ True rider places
+	// the permanent tapped and attacking that same defender. Plain data, so a
+	// Clone copies it.
+	ninjutsuDefender    state.PlayerID
+	ninjutsuHasDefender bool
 }
 
 // subCounterPay is one counter removed to pay a SubCounter cost part: the
@@ -6918,6 +6932,18 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		pc.blightPart++
 	case "returncost":
 		for _, o := range chosen {
+			// K:Ninjutsu (CR 702.49b): the permanent the activated ability puts
+			// onto the battlefield attacks the SAME defender the returned
+			// creature was attacking. Capture that defender here, while the
+			// chosen attacker is still a battlefield object (payCast moves it to
+			// hand at settlement, which clears its Attacking field), and carry it
+			// on the AbilityPush event so resolution can bind it.
+			if e.activationIsNinjutsu(pc) {
+				if o := e.G.Obj(o.Obj); o != nil {
+					pc.ninjutsuDefender = o.Attacking
+					pc.ninjutsuHasDefender = true
+				}
+			}
 			pc.returns = append(pc.returns, o.Obj)
 		}
 		pc.returnPart++
@@ -7882,13 +7908,60 @@ func (e *Engine) graveyardManaValue(p state.PlayerID, ids []state.ObjID) int32 {
 // activationPushEvent names the replayable activation boundary for both
 // printed and keyword-granted abilities. Use it for spend riders too: a
 // synthetic AbilityPush with ability=-1 cannot describe a granted body.
-func (pc *pendingCast) activationPushEvent() events.Event {
+//
+// A K:Ninjutsu activation's captured defender (pc.ninjutsuDefender) rides the
+// event's IDs: events.Apply's AbilityPush arm decodes a PlayerRef sentinel
+// into the ability object's Remembered, and rules/stack.go re-binds it to the
+// resolving Ctx's DefendingPlayer so the ChangeZone body's Attacking$ True
+// rider places the permanent attacking the returned creature's defender.
+func (pc *pendingCast) activationPushEvent(e *Engine) events.Event {
 	if pc.grantKeyword != "" {
 		return events.Event{Kind: events.KeywordAbilityPush, Player: pc.player,
 			Obj: pc.card, Counter: pc.grantKeyword}
 	}
-	return events.Event{Kind: events.AbilityPush, Obj: pc.card,
+	ev := events.Event{Kind: events.AbilityPush, Obj: pc.card,
 		Player: pc.player, Amount: int32(pc.ability)}
+	if e.activationIsNinjutsu(pc) && pc.ninjutsuHasDefender {
+		ev.IDs = []state.ObjID{state.PlayerRef(pc.ninjutsuDefender)}
+	}
+	return ev
+}
+
+// activationIsNinjutsu reports whether pc is a K:Ninjutsu activation: the
+// activated ability's expansion (cards/kw_ninjutsu.go) stamps Keyword$
+// Ninjutsu, the same tag rules/statics.go's abilityConstraintMatches reads.
+// Only a printed face-ability activation carries the tag, so pc.ability alone
+// resolves the SA; a stale index or a granted body is not ninjutsu.
+func (e *Engine) activationIsNinjutsu(pc *pendingCast) bool {
+	if pc == nil || pc.ability < 0 || pc.grantKeyword != "" || pc.gainedFrom != 0 {
+		return false
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(pc.ability)
+	if !ok || pa.SA == nil {
+		return false
+	}
+	return saHasKeyword(pa.SA, "Ninjutsu")
+}
+
+// saHasKeyword reports whether ab's Keyword$ tag (a comma list set by a
+// keyword expansion, cards/keywords.go) contains want. It is the same tag read
+// rules/statics.go's abilityConstraintMatches uses to recognise an
+// Equip/Ninjutsu/Cycling ability, factored out so the offer and resolution
+// halves cannot disagree about which keyword an ability belongs to.
+func saHasKeyword(ab *cards.SA, want string) bool {
+	if ab == nil {
+		return false
+	}
+	for kw := range strings.SplitSeq(ab.Params["Keyword"], ",") {
+		if strings.EqualFold(strings.TrimSpace(kw), want) {
+			return true
+		}
+	}
+	return false
 }
 
 // finishTargetedCast is the completion tail every cast-flow target answer
@@ -7910,7 +7983,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	// dispatch off a suspended payment.
 	if pc.isAbility() && pc.stackObj != 0 {
 		e.cast = pc
-		e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
+		e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
 		e.cast = nil
 	}
 	if e.drainAwaitsTarget {
@@ -8612,7 +8685,7 @@ func (e *Engine) payCast() {
 					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
 			}
 		} else {
-			e.emit(pc.activationPushEvent())
+			e.emit(pc.activationPushEvent(e))
 		}
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
@@ -8672,7 +8745,7 @@ func (e *Engine) payCast() {
 		if pc.rootOpts == nil {
 			// No target-recording continuation: dispatch at the completed
 			// AbilityPush boundary while the spent-source capture is still live.
-			e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
+			e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
 		}
 		e.cast, e.choosing = nil, chooseNone
 		return
@@ -9470,6 +9543,16 @@ func init() {
 		// and TestTypeCyclingBasicLandSearchesAnyBasic in
 		// rules/alternative_costs_test.go.
 		"kw:TypeCycling",
+		// kw:Ninjutsu: CR 702.49, expanded by cards/kw_ninjutsu.go into an
+		// ordinary hand-zone activated ability whose Cost$ carries the printed
+		// ninjutsu mana cost plus Return<1/Creature.YouCtrl+attacking+unblocked>
+		// (the CR 702.49a unblocked-attacker half, via the effects filter's
+		// "unblocked" predicate) and whose body puts the card onto the
+		// battlefield tapped and attacking via ChangeZone's Attacking$ True
+		// rider, bound to the defender captured when the Return cost was paid
+		// (pendingCast.ninjutsuDefender -> AbilityPush IDs -> Ctx.DefendingPlayer,
+		// CR 702.49b). Proof: rules/ninjutsu_test.go.
+		"kw:Ninjutsu",
 		// kw:Level up: CR 702.87, expanded by cards/keywords.go into an
 		// ordinary sorcery-speed PutCounter activation (CounterType$ LEVEL);
 		// the level-band statics read the counter through the existing

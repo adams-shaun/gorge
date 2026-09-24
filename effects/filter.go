@@ -82,6 +82,16 @@ var predicates = map[string]predFn{
 	"tapped":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
 	"untapped":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
 	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
+	// unblocked is the CR 509.1h "attacking creature ... with no creatures
+	// blocking it" predicate: the object is attacking and no blocker is
+	// recorded on it. It is the filter half of ninjutsu's activated cost
+	// (K:Ninjutsu's Return<1/Creature.YouCtrl+attacking+unblocked>, the one
+	// corpus consumer), and it fails closed for anything not attacking -- a
+	// non-attacker is never unblocked, so a blocked or non-attacking
+	// creature can neither pay the cost nor match the spec.
+	"unblocked": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsAttacking && len(o.BlockedBy) == 0
+	},
 	// attackingYou is the source-relative attacker predicate (Watchdog's and
 	// Boarded Window's continuous `Affected$ Creature.attackingYou`, Ice
 	// Floe's/Hunting Kavu's/Snow Fortress's `Creature.attackingYou` target
