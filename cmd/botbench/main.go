@@ -192,7 +192,7 @@ var policies = map[string]func(seed uint64) seat.Seat{
 		if policynetModel == nil {
 			panic("botbench: policy policynet needs -checkpoint <path>")
 		}
-		return seat.NewPolicyNetBot(seed, policynet.NewScorer(policynetModel))
+		return seat.NewPolicyNetBotKinds(seed, policynet.NewScorer(policynetModel), policynetKinds)
 	},
 	// search is the PIMC search teacher as a playable seat
 	// (searchseat.SearchBot): the default bot wrapped with the teacher
@@ -236,6 +236,17 @@ var castProfileOverride *botpolicy.CastWeights
 // policies map's policynet entry reads it, and the Model itself is treated
 // as immutable by every seat built over it.
 var policynetModel *policynet.Model
+
+// policynetKindsArg / policynetKindsGiven are the raw -policynet-kinds value
+// and whether the flag was given at all (main sets both after flag.Parse);
+// mainExit validates them into policynetKinds before any game starts. The
+// default is attackers only -- seat.NewPolicyNetBot's own selection, so a
+// run that never names the flag benches exactly the default seat.
+var (
+	policynetKindsArg   = "attackers"
+	policynetKindsGiven bool
+	policynetKinds      = []decision.Kind{decision.KAttackers}
+)
 
 // castProfileWeightsForRun resolves the run's cast-profile weights: the
 // -profile file when one was given, else the embedded default profile.
@@ -2017,6 +2028,7 @@ func main() {
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
 	profile := flag.String("profile", "", "path to a cast-profile weights JSON (schema {\"version\":1,\"cast\":{...}}) applied to any side named cast-profile; empty = the embedded default profile")
 	checkpoint := flag.String("checkpoint", "", "path to a trained policynet checkpoint (L9c binary format), required by any side named policynet; no embedded checkpoint exists")
+	flag.StringVar(&policynetKindsArg, "policynet-kinds", "attackers", "comma list of the decision kinds the policynet seat scores (attackers, priority); every other kind delegates to the default bot. Refused unless a side is policynet. priority is scored only on a ResidualW > 0 checkpoint and only in the trained distribution (seat.PolicyNetBot)")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
 	decisionTrace := flag.String("decision-trace", "", "write an opt-in atomic JSONL decision trace to a new file (matrix mode only; parent must exist and destination must not)")
@@ -2038,6 +2050,11 @@ func main() {
 	cpuprofile := flag.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
 	memprofile := flag.String("memprofile", "", "write a heap profile to this pprof file after the last game finishes (pprof reads both alloc_space and inuse_space from it; empty = off)")
 	flag.Parse()
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "policynet-kinds" {
+			policynetKindsGiven = true
+		}
+	})
 	decisionStatsEnabled = *decisionStats
 	actionCoverageEnabled = *actionCoverage
 	searchKnobs = searchseat.Options{
@@ -2111,6 +2128,17 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 	if !policynetSide && checkpoint != "" {
 		return fail(fmt.Errorf("-checkpoint was given but neither side is policynet"))
 	}
+	// -policynet-kinds is policynet's flag too: validated against the seat's
+	// scored-kind vocabulary before any game starts, refused for a run that
+	// names no policynet side.
+	if policynetKindsGiven && !policynetSide {
+		return fail(fmt.Errorf("-policynet-kinds was given but neither side is policynet"))
+	}
+	kinds, err := seat.ParsePolicyNetKinds(policynetKindsArg)
+	if err != nil {
+		return fail(fmt.Errorf("-policynet-kinds: %w", err))
+	}
+	policynetKinds = kinds
 
 	// The search seat's timing and diagnostic hooks are installed once, here,
 	// before any game starts -- the clock is this command's (internal/
