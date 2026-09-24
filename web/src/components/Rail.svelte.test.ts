@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { type Browser } from 'playwright';
+import { browserURL, sharedBrowser } from '../test/browser';
 import { render } from 'svelte/server';
 import type { CardView, PlayerView, SeatInfo, StackView, View } from '../protocol';
 import Rail from './Rail.svelte';
@@ -146,6 +148,46 @@ describe('Rail — the resolved card is its own band BEFORE the Stack heading (f
     expect(html).not.toContain('just resolved');
     const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
     expect(stackSection).not.toContain('data-resolved');
+  });
+});
+
+describe('Rail — resolved history at short viewport heights (fb-20260923T015554Z)', () => {
+  let browser: Browser;
+  beforeAll(async () => { browser = await sharedBrowser(); });
+
+  it('keeps Pending visible at full height while history and live stack share the scroll budget', async () => {
+    const page = await browser.newPage({ viewport: { width: 1000, height: 500 } });
+    try {
+      await page.goto(`${browserURL}src/components/SeatTable.geometry.html?resolved=1`);
+      await page.waitForSelector('#rail [data-resolved="42"]');
+      const m = await page.evaluate(() => {
+        const rail = document.querySelector<HTMLElement>('#rail .rail-inner')!;
+        const history = document.querySelector<HTMLElement>('#rail [data-resolved="42"]')!;
+        const frame = document.querySelector<HTMLElement>('#rail .history-frame');
+        const stack = document.querySelector<HTMLElement>('#rail section.stack')!;
+        const pending = document.querySelector<HTMLElement>('#rail section.pending')!;
+        return {
+          historyName: history.textContent, stackText: stack.textContent,
+          pendingText: pending.textContent, historyBeforeStack: history.getBoundingClientRect().top < stack.getBoundingClientRect().top,
+          railScroll: rail.scrollHeight, railHeight: rail.clientHeight,
+          frameScroll: frame?.scrollHeight ?? 0, frameHeight: frame?.clientHeight ?? 0,
+          pendingHeight: pending.getBoundingClientRect().height,
+          pendingBottom: pending.getBoundingClientRect().bottom, railBottom: rail.getBoundingClientRect().bottom,
+        };
+      });
+      // Preconditions: the fixture presents both a resolved card AND a real
+      // stack member/pending trigger, at a height where they compete for space.
+      expect(m.historyName).toContain('Resolved Thing');
+      expect(m.stackText).toContain('Slow but Absolutely Inevitable');
+      expect(m.pendingText).toContain('Longwinded Ambush');
+      expect(m.historyBeforeStack).toBe(true);
+      expect(m.railScroll).toBeLessThanOrEqual(m.railHeight + 1);
+      expect(m.pendingHeight).toBeGreaterThanOrEqual(79);
+      expect(m.pendingBottom).toBeLessThanOrEqual(m.railBottom + 1);
+      expect(m.frameScroll).toBeGreaterThan(m.frameHeight);
+    } finally {
+      await page.close();
+    }
   });
 });
 
