@@ -829,10 +829,29 @@ func Apply(g *state.Game, e Event) {
 				o.FaceDownHasPT = fdHasPT
 			}
 		}
+		var sacrificer state.PlayerID
+		sacrificed := IsSacrifice(e)
+		if sacrificed {
+			if o := g.Obj(e.Obj); o != nil {
+				sacrificer = o.Controller
+			}
+		}
 		if e.Kind == MoveZone && countersRemain {
 			MoveCountersRemain(g, e.Obj, e.From, e.To)
 		} else {
 			Move(g, e.Obj, e.From, e.To)
+		}
+		if sacrificed {
+			// Stamp the sacrifice onto this move's own zone entry (the
+			// latest one naming the object: a mutated pile's under-cards
+			// append after it). The controller was read BEFORE Move reset
+			// it to the owner (CR 400.7).
+			for i := len(g.Entered) - 1; i >= 0; i-- {
+				if g.Entered[i].Obj == e.Obj {
+					g.Entered[i].Sacrificed, g.Entered[i].Sacrificer = true, sacrificer
+					break
+				}
+			}
 		}
 		if o := g.Obj(e.Obj); o != nil {
 			if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {

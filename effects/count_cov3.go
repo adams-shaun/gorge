@@ -1,0 +1,404 @@
+package effects
+
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/state"
+)
+
+// The count heads the cardfuzz coverage audit (fuzz-cov3) found unmodelled
+// while their cards sat in the "supported" pool -- every one a replay-safe
+// read of the event-derived state (zone lists, g.Entered, the player
+// records) or a Host log fold, never the wall clock or ambient randomness.
+// evalCov3Head is consulted by evalCountBody's switch fallthrough; ok=false
+// means "not one of these heads", so the rest of the dispatch keeps its
+// verdict.
+
+// basicLandTypes is CR 305.6's five basic land types in WUBRG order (the
+// order is only a fixed walk; the count reads it as a set).
+var basicLandTypes = [...]string{"Plains", "Island", "Swamp", "Mountain", "Forest"}
+
+// domainCount is the "domain" ability word's count: the number of basic land types among the
+// lands player p controls -- counted through the same Count$Valid machinery
+// (a `<Type>.YouCtrl` spec from p's perspective) that every other
+// battlefield census reads, so a layer-granted land type counts exactly as a
+// printed one does.
+func domainCount(h Host, c *Ctx, p state.PlayerID, depth int) int32 {
+	if p < 0 {
+		return 0
+	}
+	sub := *c
+	sub.Controller = p
+	var n int32
+	for _, t := range basicLandTypes {
+		if v, ok := evalCountBody(h, &sub, "Valid "+t+".YouCtrl", depth+1); ok && v > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// evalCov3Head answers the fuzz-cov3 heads. head/arg are evalCountBody's
+// head/argument split.
+func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
+	g := h.Game()
+	switch head {
+	case "Domain":
+		// "for each basic land type among lands you control" (62 corpus
+		// carriers: Tribal Flames, Draco's cost reduction, Allied Strategies).
+		return domainCount(h, c, c.Controller, depth), true
+	case "DomainActivePlayer":
+		// The same census for the ACTIVE player (Collapsing Borders' upkeep
+		// life gain, Mask of Intolerance).
+		return domainCount(h, c, g.Active, depth), true
+	case "CardsInYourHand":
+		// The resolving controller's hand size (Gerrard's Wisdom, Inner Fire,
+		// Dread Slag's -4/-4 per card).
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0, true
+		}
+		return int32(len(g.Zone(state.ZHand, c.Controller))), true
+	case "TopOfLibraryCMC":
+		// The mana value of the top card of the controller's library
+		// (Counterbalance, Riddle of Lightning); an empty library reads 0.
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0, true
+		}
+		lib := g.Zone(state.ZLibrary, c.Controller)
+		if len(lib) == 0 {
+			return 0, true
+		}
+		if o := g.Obj(lib[0]); o != nil {
+			return objectProperty(g, o.ID, "CardManaCost"), true
+		}
+		return 0, true
+	case "TotalOppPoisonCounters":
+		// The poison counters summed over the controller's living opponents
+		// (Phyrexian Swarmlord, Vishgraz).
+		var n int32
+		for _, p := range opponentGroup(g, c) {
+			n += g.Players[p].Counter("POISON")
+		}
+		return n, true
+	case "TotalTurns":
+		// The number of turns this game has had (Necropotence Avatar):
+		// every player's taken-turn count summed, the same log fold
+		// TurnsTaken reads per player.
+		var n int32
+		for i := range g.Players {
+			n += h.TurnsTaken(state.PlayerID(i))
+		}
+		return n, true
+	case "LeftGraveyardThisTurn", "LeftBattlefieldThisTurn":
+		// The cards that left a graveyard (Bonecache Overseer's "three or
+		// more cards left your graveyard this turn", Syrix, Living History)
+		// or the battlefield (Kutzil's Flanker, Tale of Momo) THIS TURN,
+		// folded off the per-turn zone-entry list g.Entered: every entry
+		// whose origin is the named zone, counted once per object and
+		// matched against the spec in the zone it moved to -- the same
+		// destination-zone read Count$ThisTurnEntered_<zone>_from_<zone>
+		// takes, since the record is the same.
+		from := state.ZGraveyard
+		if head == "LeftBattlefieldThisTurn" {
+			from = state.ZBattlefield
+		}
+		spec := strings.TrimSpace(arg)
+		if spec == "" {
+			spec = "Card"
+		}
+		seen := map[state.ObjID]bool{}
+		var n int32
+		for _, en := range g.Entered {
+			if en.From != from || seen[en.Obj] {
+				continue
+			}
+			if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(c.Controller), en.To) {
+				seen[en.Obj] = true
+				n++
+			}
+		}
+		return n, true
+	case "MaxOppDamageThisTurn":
+		// The most damage any one opponent was dealt this turn (Spinerock
+		// Knoll's "if an opponent was dealt 7 or more damage this turn",
+		// Lightning Phoenix): the Host's per-player log fold
+		// DamageTakenThisTurn, maximised over the living opponents.
+		var best int32
+		for _, p := range opponentGroup(g, c) {
+			if v := h.DamageTakenThisTurn(p); v > best {
+				best = v
+			}
+		}
+		return best, true
+	case "CardManaCost":
+		// The source's own mana value (Opalescence's and March of the
+		// Machines' "P/T equal to its mana value" CDA grants, Kami of
+		// Mourning).
+		if o := g.Obj(c.Source); o != nil {
+			return objectProperty(g, o.ID, "CardManaCost"), true
+		}
+		return 0, true
+	case "CreaturesAttackedThisTurn":
+		// The creatures matching the spec that were declared as attackers
+		// this turn (Neyali's "for each creature that attacked this turn",
+		// Robber of the Rich's Rogue gate), each counted once, read off the
+		// Host's log fold of this turn's DeclareAttackers events and matched
+		// against the live object.
+		spec := strings.TrimSpace(arg)
+		if spec == "" {
+			spec = "Creature"
+		}
+		var n int32
+		for _, id := range h.AttackersDeclaredThisTurn() {
+			if o := g.Obj(id); o != nil && matchesZoneSpecCtx(g, spec, id, c.SpecContext(c.Controller), o.Zone) {
+				n++
+			}
+		}
+		return n, true
+	}
+	return 0, false
+}
+
+// cov3BranchHolds answers the fuzz-cov3 yes/no branch predicates of the
+// Count$<Predicate>.<yes>.<no> family: ok=false for a predicate this table
+// does not know.
+func cov3BranchHolds(h Host, c *Ctx, pred string, depth int) (holds, ok bool) {
+	g := h.Game()
+	you := c.Controller
+	valid := you >= 0 && int(you) < len(g.Players)
+	switch pred {
+	case "Delirium":
+		// CR 207.2c ability word: four or more card types among cards in
+		// your graveyard -- the Host census the Delirium cost prompts share.
+		return valid && h.DeliriumHolds(you), true
+	case "Metalcraft":
+		// Three or more artifacts you control.
+		n, _ := evalCountBody(h, c, "Valid Artifact.YouCtrl", depth+1)
+		return valid && n >= 3, true
+	case "Hellbent":
+		// No cards in your hand.
+		return valid && len(g.Zone(state.ZHand, you)) == 0, true
+	case "FatefulHour":
+		// Five or less life.
+		return valid && g.Players[you].Life <= 5, true
+	case "Landfall":
+		// A land entered the battlefield under your control this turn
+		// (Groundswell, Tomb Hex): a battlefield entry of a land whose
+		// controller is you, off the per-turn g.Entered record.
+		if !valid {
+			return false, true
+		}
+		for _, en := range g.Entered {
+			if en.To != state.ZBattlefield {
+				continue
+			}
+			if o := g.Obj(en.Obj); o != nil && o.Zone == state.ZBattlefield && o.Controller == you && hasType(o, "Land") {
+				return true, true
+			}
+		}
+		return false, true
+	case "Void":
+		// Edge of Eternities' Void: a nonland permanent left the battlefield
+		// this turn, or a spell was warped this turn (any player's, both
+		// halves) -- a battlefield departure of a nonland object off
+		// g.Entered, and the Host's cast-provenance fold of this turn's
+		// warp casts.
+		for _, en := range g.Entered {
+			if en.From != state.ZBattlefield {
+				continue
+			}
+			if o := g.Obj(en.Obj); o != nil && !hasType(o, "Land") {
+				return true, true
+			}
+		}
+		return h.SpellsCastThisTurnMatching(you, "Card.CastSa Spell.Warp") > 0, true
+	}
+	return false, false
+}
+
+// playerScalarProperty is one player's own numeric property for the
+// PlayerCount<group>$Highest<Prop>/Lowest<Prop> extremes whose property is a
+// zone size or a per-turn tally (Highest/LowestCardsInHand,
+// HighestCardsInGraveyard, HighestCardsDrawn): ok=false for any other name.
+func playerScalarProperty(h Host, g *state.Game, p state.PlayerID, prop string) (int32, bool) {
+	if p < 0 || int(p) >= len(g.Players) {
+		return 0, false
+	}
+	switch prop {
+	case "CardsInHand":
+		return int32(len(g.Zone(state.ZHand, p))), true
+	case "CardsInGraveyard":
+		return int32(len(g.Zone(state.ZGraveyard, p))), true
+	case "CardsInLibrary":
+		return int32(len(g.Zone(state.ZLibrary, p))), true
+	case "CardsDrawn":
+		return h.CardsDrawnThisTurn(p), true
+	case "LifeTotal":
+		return g.Players[p].Life, true
+	}
+	return 0, false
+}
+
+// sacrificedThisTurn counts this turn's sacrifices (the g.Entered entries
+// events.Apply stamped Sacrificed) whose sacrificer is in players and whose
+// object matches spec in the zone it went to. The PlayerCount<group>$
+// SacrificedThisTurn <spec> head (Mayhem Devil-adjacent gates: Feast on the
+// Fallen, Paladin of Atonement, The Balrog; 17 corpus carriers).
+func sacrificedThisTurn(g *state.Game, c *Ctx, players []state.PlayerID, spec string) int32 {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		spec = "Card"
+	}
+	var n int32
+	for _, en := range g.Entered {
+		if !en.Sacrificed {
+			continue
+		}
+		member := false
+		for _, p := range players {
+			if p == en.Sacrificer {
+				member = true
+				break
+			}
+		}
+		if !member {
+			continue
+		}
+		if matchesZoneSpecCtx(g, spec, en.Obj, c.SpecContext(en.Sacrificer), en.To) {
+			n++
+		}
+	}
+	return n
+}
+
+// evalCov3PlayerHead answers the PlayerCount<group>$<Property> heads the
+// fuzz-cov3 audit added, for the three groups that name a fixed player set:
+// PlayerCountPropertyYou$ (the resolving controller), PlayerCount$ and
+// PlayerCountPlayers$ (every living player) and PlayerCountOpponents$.
+// ok=false for anything else.
+func evalCov3PlayerHead(h Host, c *Ctx, head, arg string) (int32, bool) {
+	g := h.Game()
+	group, prop, found := strings.Cut(head, "$")
+	if !found {
+		return 0, false
+	}
+	var players []state.PlayerID
+	switch group {
+	case "PlayerCountPropertyYou":
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0, false
+		}
+		players = []state.PlayerID{c.Controller}
+	case "PlayerCount", "PlayerCountPlayers":
+		players = g.AliveFrom(0)
+	case "PlayerCountOpponents":
+		players = opponentGroup(g, c)
+	case "PlayerCountRemembered":
+		// The players the resolving ability remembered (Ctx.Remembered's
+		// player entries, the resolution's own set the Remembered$ head
+		// reads): Mindblaze-adjacent "that player's life total / hand size"
+		// reads (Sorin's Thirst-family PlayerCountRemembered$LifeTotal,
+		// 13 corpus carriers). Summed over the members, Forge's reading.
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				players = append(players, t.Player)
+			}
+		}
+		switch prop {
+		case "Amount":
+			return int32(len(players)), true
+		case "LifeLostThisTurn":
+			var n int32
+			for _, p := range players {
+				n += h.LifeLostThisTurn(p)
+			}
+			return n, true
+		}
+		if _, known := playerScalarProperty(h, g, 0, prop); !known {
+			return 0, false
+		}
+		var n int32
+		for _, p := range players {
+			v, _ := playerScalarProperty(h, g, p, prop)
+			n += v
+		}
+		return n, true
+	default:
+		return 0, false
+	}
+	switch prop {
+	case "SacrificedThisTurn":
+		return sacrificedThisTurn(g, c, players, arg), true
+	case "LifeLostLastTurn":
+		// The life each counted player lost during the PREVIOUS turn (the
+		// Host's log fold between the last two TurnChange events), summed
+		// (Brutal Deceiver-adjacent Wicked Visitor family: First Response's
+		// "if you lost life last turn").
+		var n int32
+		for _, p := range players {
+			n += h.LifeLostLastTurn(p)
+		}
+		return n, true
+	case "AttackersDeclared":
+		// Charging Cinderhorn's "if no creatures attacked this turn": the
+		// attackers declared this turn. Only the every-player group sums to
+		// the whole-turn fold the Host keeps.
+		if group != "PlayerCountPlayers" && group != "PlayerCount" {
+			return 0, false
+		}
+		return int32(h.AttackersThisTurn()), true
+	case "HasPropertyBeenAttackedThisCombat":
+		// "only if you've been attacked this step" (Eightfold Maze,
+		// Kongming's Contraptions, Warrior's Stand; 15 corpus carriers): 1
+		// when a creature is attacking the resolving controller (or a
+		// permanent they control -- Object.Attacking names the defending
+		// seat either way), from the live combat state.
+		if group != "PlayerCountPropertyYou" {
+			return 0, false
+		}
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.Zone == state.ZBattlefield && o.IsAttacking && o.Attacking == c.Controller && o.Controller != c.Controller {
+				return 1, true
+			}
+		}
+		return 0, true
+	case "OpponentsAttackedThisCombat":
+		// The number of distinct opponents the resolving controller's
+		// creatures are attacking this combat (the Myriad-adjacent "for each
+		// opponent you attacked" family), from the live combat state.
+		if group != "PlayerCountPropertyYou" {
+			return 0, false
+		}
+		var seen [256]bool
+		var n int32
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.Zone != state.ZBattlefield || !o.IsAttacking || o.Controller != c.Controller || o.Attacking == c.Controller {
+				continue
+			}
+			if !seen[o.Attacking] {
+				seen[o.Attacking] = true
+				n++
+			}
+		}
+		return n, true
+	case "HasPropertyattackedYouTheirLastTurn":
+		// The counted players who attacked the resolving controller during
+		// their last turn (Avenge's cost reduction gate), the Host's log
+		// walk over each member's most recent completed turn.
+		var n int32
+		for _, p := range players {
+			if p != c.Controller && h.AttackedDuringLastTurn(p, c.Controller) {
+				n++
+			}
+		}
+		return n, true
+	case "DomainPlayer":
+		if group != "PlayerCountPropertyYou" {
+			return 0, false
+		}
+		return domainCount(h, c, c.Controller, 0), true
+	}
+	return 0, false
+}

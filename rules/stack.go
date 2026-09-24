@@ -4840,6 +4840,96 @@ func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
 // like CastThisTurn, so a replay that rebuilds the game arrives at the same
 // number. A DeclareAttackers event carries its declared attackers in IDs (one
 // event per defender); an event with no IDs contributes nothing.
+// AttackersDeclaredThisTurn satisfies effects.Host's method of the same
+// name: this turn's DeclareAttackers attacker ids, de-duplicated, oldest
+// first. Derived from the event log like AttackersThisTurn.
+func (e *Engine) AttackersDeclaredThisTurn() []state.ObjID {
+	start := len(e.L.Events)
+	for start > 0 && e.L.Events[start-1].Kind != events.TurnChange {
+		start--
+	}
+	var out []state.ObjID
+	seen := map[state.ObjID]bool{}
+	for _, ev := range e.L.Events[start:] {
+		if ev.Kind != events.DeclareAttackers {
+			continue
+		}
+		for _, id := range ev.IDs {
+			if !seen[id] {
+				seen[id] = true
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// LifeLostLastTurn satisfies effects.Host's LifeLostLastTurn: the negative
+// LifeChanges naming p between the second-to-last and the last TurnChange
+// of the log -- the previous turn's window, the LifeLostThisTurn fold one
+// turn back.
+func (e *Engine) LifeLostLastTurn(p state.PlayerID) int32 {
+	var n int32
+	boundaries := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			boundaries++
+			if boundaries == 2 {
+				break
+			}
+			continue
+		}
+		if boundaries == 1 && ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
+			n += -ev.Amount
+		}
+	}
+	if boundaries < 2 {
+		// The window before the first TurnChange is the pregame, not a turn.
+		return 0
+	}
+	return n
+}
+
+// AttackedDuringLastTurn satisfies effects.Host's method of the same name.
+// The walk runs backwards over the log: the window after the LAST
+// TurnChange is the turn in progress and is skipped; the first earlier
+// TurnChange naming q opens q's most recent completed turn, whose events
+// run up to the next TurnChange. A DeclareAttackers inside it whose
+// Player (the defending seat) is defender and whose attacker list is
+// non-empty answers true.
+func (e *Engine) AttackedDuringLastTurn(q, defender state.PlayerID) bool {
+	ev := e.L.Events
+	end := len(ev)
+	// Skip the turn in progress.
+	for end > 0 && ev[end-1].Kind != events.TurnChange {
+		end--
+	}
+	if end == 0 {
+		return false
+	}
+	end-- // the current turn's TurnChange itself
+	for end > 0 {
+		start := end
+		for start > 0 && ev[start-1].Kind != events.TurnChange {
+			start--
+		}
+		if start == 0 {
+			return false // the pregame window, before any turn
+		}
+		if ev[start-1].Player == q {
+			for _, x := range ev[start:end] {
+				if x.Kind == events.DeclareAttackers && x.Player == defender && len(x.IDs) > 0 {
+					return true
+				}
+			}
+			return false
+		}
+		end = start - 1
+	}
+	return false
+}
+
 func (e *Engine) AttackersThisTurn() int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
