@@ -2,6 +2,7 @@ package host
 
 import (
 	"os"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -28,11 +29,11 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// matchSlots bounds how many registries — i.e. matches, each ~1GB peak and
-// one core — exist at once across the parallel tests. testOptions takes a
-// slot for the test's lifetime. 8 keeps a 32-core box busy without paging;
-// the un-gated version (33 matches at once) was slower than sequential.
-var matchSlots = make(chan struct{}, matchSlotCount())
+// matchSlots bounds how many tests -- i.e. matches, each ~1GB peak and one
+// core -- run at once across the parallel tests. testOptions takes a slot
+// for the test's lifetime. 8 keeps a 32-core box busy without paging; the
+// un-gated version (33 matches at once) was slower than sequential.
+var matchSlots = newMatchLimiter(matchSlotCount())
 
 // matchSlotCount is 8, or 4 under -race (raceEnabled, fixture_race_test.go):
 // the race detector multiplies each match's memory several times over, and
@@ -45,10 +46,70 @@ func matchSlotCount() int {
 	return 8
 }
 
+// matchLimiter is a counting semaphore whose unit is a TOP-LEVEL TEST, not a
+// registry. A test (with all of its subtests) holds at most one slot no
+// matter how many times it calls testOptions: the first call takes the
+// slot, later calls from the same test tree only add a reference, and the
+// slot is returned when the last reference's test finishes.
+//
+// It used to be a bare channel send per testOptions call. A test that
+// builds two registries (TestUndoRefusedOnTwoHumanTables: a two-human
+// table parked on a human decision, then a second registry) then held one
+// slot while waiting for another -- hold-and-wait -- and once the other
+// parallel tests held the rest, each parked on a human decision of its own
+// and waiting for nothing, the package hung until the 10-minute test
+// timeout. TestHostedPoliciesReplayDeterministically (eight sequential
+// testOptions calls on the parent t) could not even run alone under -race,
+// where there are only four slots. Charging per test removes the second
+// acquire, so no test ever waits for a slot while holding one.
+type matchLimiter struct {
+	slots chan struct{}
+	mu    sync.Mutex
+	holds map[string]*slotHold
+}
+
+type slotHold struct {
+	mu sync.Mutex // serialises one test tree's acquire/release
+	n  int        // live references; the slot is held while n > 0
+}
+
+func newMatchLimiter(n int) *matchLimiter {
+	return &matchLimiter{slots: make(chan struct{}, n), holds: map[string]*slotHold{}}
+}
+
+// take charges t's top-level test one slot (blocking only if that test
+// holds none yet) and releases the reference when t finishes.
+func (l *matchLimiter) take(t *testing.T) {
+	t.Helper()
+	root, _, _ := strings.Cut(t.Name(), "/")
+	l.mu.Lock()
+	h := l.holds[root]
+	if h == nil {
+		h = &slotHold{}
+		l.holds[root] = h
+	}
+	l.mu.Unlock()
+	// Blocking under h.mu only ever blocks this test's own tree, which by
+	// construction holds no slot yet (n == 0).
+	h.mu.Lock()
+	if h.n == 0 {
+		l.slots <- struct{}{}
+	}
+	h.n++
+	h.mu.Unlock()
+	t.Cleanup(func() {
+		h.mu.Lock()
+		h.n--
+		if h.n == 0 {
+			<-l.slots
+		}
+		h.mu.Unlock()
+	})
+}
+
 func takeMatchSlot(t *testing.T) {
 	t.Helper()
-	matchSlots <- struct{}{}
-	t.Cleanup(func() { <-matchSlots })
+	matchSlots.take(t)
 }
 
 var sharedFixture struct {
