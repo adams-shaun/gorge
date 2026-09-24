@@ -3671,14 +3671,16 @@ func counterKindMatches(restriction, kind string) bool {
 // attackDutyDischargeable gate (CR 508.1d's "if able").
 //
 // A face static's conditional parameter family is read here (task
-// combatres-cantattack): continuousGateHolds evaluates CheckSVar$/
-// SVarCompare$/Condition$ and UnlessDefenderHolds evaluates UnlessDefender$
-// against the defender (the creature may attack exactly when the defended
-// player satisfies the predicate), so a line carrying them is ENFORCED, not
-// skipped. A static carrying any OTHER parameter still fails
-// CantAttackParamsReadableForRules and is skipped whole -- the deliberate
-// permissive direction, so a gate this build cannot evaluate never becomes
-// an unconditional restriction.
+// combatres-cantattack, extended by combatres-cantattack-present):
+// continuousGateHolds evaluates ClassBand$, the IsPresent$/IsPresent2$ +
+// PresentCompare$ count family (PresentZone$ Battlefield/Graveyard/Exile/Hand/
+// Stack; see countStaticPresent), CheckSVar$/SVarCompare$/Condition$, and
+// UnlessDefenderHolds evaluates UnlessDefender$ against the defender (the
+// creature may attack exactly when the defended player satisfies the
+// predicate), so a line carrying them is ENFORCED, not skipped. A static
+// carrying any OTHER parameter still fails CantAttackParamsReadableForRules and
+// is skipped whole -- the deliberate permissive direction, so a gate this
+// build cannot evaluate never becomes an unconditional restriction.
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {
