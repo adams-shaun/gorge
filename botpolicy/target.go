@@ -160,13 +160,15 @@ func (b Board) mayKillMe(me state.PlayerID, c Creature) bool {
 // ANY single available pool unit or source still leaves enough mana to pay
 // each cheapest instant-speed spell. A total-mana surplus alone cannot
 // protect a coloured instant (one Island and one Forest cannot guarantee
-// that a one-mana removal leaves the Island untouched). Only untapped,
-// non-summoning-sick basic lands with one fixed, literal production colour
-// are counted: a basic land's only mana ability is a tap ability, and CR
-// 302.6 forbids activating it the turn the land entered, so a sick source is
-// no more dependable than a tapped one. The Board's production summary cannot
-// promise that a nonbasic/ability's activation conditions or its alternative
-// colours will be available at this window.
+// that a one-mana removal leaves the Island untouched). Only untapped basic
+// lands with one fixed, literal production colour are counted: the Board's
+// production summary cannot promise that a nonbasic/ability's activation
+// conditions or its alternative colours will be available at this window.
+// A just-played basic land still counts: summoning sickness (CR 302.6)
+// forbids only a CREATURE's tap ability -- rules/legal.go refuses the tap
+// cost on SummonSick only when the derived types contain Creature and no
+// Haste -- and no basic land is a creature, so its {T}: add ability is live
+// the moment it enters.
 func (b Board) hasSpareMana() bool { return b.hasSpareManaAfter("") }
 
 // hasSpareManaAfter is hasSpareMana generalized to a KNOWN pending payment:
@@ -196,7 +198,7 @@ func (b Board) hasSpareManaAfter(pendingCost string) bool {
 	available := b.Pool
 	var sources []state.Mana
 	for _, c := range b.Cards {
-		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Sick || c.Produces.Any || c.Produces.Indeterminate {
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Produces.Any || c.Produces.Indeterminate {
 			continue
 		}
 		var source state.Mana

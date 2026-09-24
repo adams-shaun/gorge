@@ -148,16 +148,6 @@ type Card struct {
 	// facts -- and stays false for every card off the battlefield, which is
 	// inert wherever the feature is not consulted.
 	Tapped bool
-	// Sick reports whether this battlefield permanent is summoning-sick
-	// (state.Object.SummonSick via the projected CardView.SummonSick on the
-	// view half, both json-carrying facts the adapters already read). A basic
-	// land's only mana ability is a tap ability, and CR 302.6 forbids
-	// activating a creature's (or a land creature's) tap ability the turn it
-	// came under its controller's control, so a sick basic source is no more
-	// dependable than a tapped one: the mana reserve (hasSpareMana) skips it
-	// exactly as it skips a tapped source. Like every Card field it is filled
-	// identically on both adapter halves, so the parity tests judge it.
-	Sick bool
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the

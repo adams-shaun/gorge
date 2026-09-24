@@ -55,7 +55,7 @@ func pendingKillBoard(t *testing.T, pendingCost string, forests int) Board {
 	// here, not pass silently downstream.
 	for i := 1; i <= forests; i++ {
 		c := b.Cards[state.ObjID(i)]
-		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Sick || c.Produces.Colour[state.MG] != 1 {
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Produces.Colour[state.MG] != 1 {
 			t.Fatalf("source %d is not a live untapped basic Forest: %+v", i, c)
 		}
 	}
@@ -153,38 +153,52 @@ func TestTargetSpareManaUnpayablePipsFailClosed(t *testing.T) {
 	}
 }
 
-// TestTargetSpareManaSkipsSummoningSickSource is claim B: a basic land played
-// this turn cannot tap for mana (CR 302.6), so a summoning-sick Forest is no
-// more dependable than a tapped one and must not count toward the reserve. A
-// {G}{G} reserve against two healthy Forests and one summoning-sick Forest is
-// NOT spare (the healthy pair alone cannot survive the existing single-unit
-// probe either); the same board with the third Forest healthy is. The sick
-// source is exactly what flips the answer.
-func TestTargetSpareManaSkipsSummoningSickSource(t *testing.T) {
+// TestTargetSpareManaCountsJustPlayedBasicLand is the CR 302.6 regression:
+// summoning sickness only forbids a CREATURE's tap ability (rules/legal.go
+// refuses the tap cost on SummonSick only when the derived types contain
+// Creature and no Haste), and no basic land is a creature, so a Forest played
+// this turn is fully tappable for mana and MUST count toward the reserve.
+//
+// The Board carries no sickness fact at all: a basic source is disqualified
+// only by being tapped, off the battlefield, or lacking a single fixed
+// production colour. This test fails if a skip is ever re-added that treats a
+// fresh basic land as dead mana -- the over-conservative mistake a prior
+// revision of the pending-payment fix made. The source that flips the answer
+// here is Tapped, so the comparison is non-vacuous.
+func TestTargetSpareManaCountsJustPlayedBasicLand(t *testing.T) {
 	green := pendingGreen()
+	// A land that entered this turn carries no botpolicy-visible mark: the
+	// adapters fill no sickness fact, so this Board is exactly what the bot
+	// sees for a Forest played this turn.
 	b := Board{Cards: map[state.ObjID]Card{
 		1: {OnBattlefield: true, Basic: true, Produces: green},
 		2: {OnBattlefield: true, Basic: true, Produces: green},
-		3: {OnBattlefield: true, Basic: true, Produces: green, Sick: true},
+		3: {OnBattlefield: true, Basic: true, Produces: green},
 		9: {Castable: true, InstantSpeed: true, ManaCost: "G G", CMC: CmcOf("G G")},
 	}}
-	if c := b.Cards[3]; !c.OnBattlefield || !c.Basic || c.Tapped || !c.Sick || c.Produces.Colour[state.MG] != 1 {
-		t.Fatalf("the sick source is not a live-looking basic Forest with Sick set: %+v", c)
-	}
 	if r := b.Cards[9]; !r.Castable || !r.InstantSpeed || colourPips(r.ManaCost)[state.MG] != 2 {
 		t.Fatalf("reserve 9 is not a {G}{G} instant: %+v", r)
 	}
-	if b.hasSpareMana() {
-		t.Fatal("two healthy plus one summoning-sick Forest cannot guarantee the {G}{G} reserve")
+	// Precondition: all three sources are live untapped basics, so a fresh
+	// land is represented exactly as any other land.
+	for i := 1; i <= 3; i++ {
+		c := b.Cards[state.ObjID(i)]
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Produces.Colour[state.MG] != 1 {
+			t.Fatalf("source %d is not a live untapped basic Forest: %+v", i, c)
+		}
+	}
+	if !b.hasSpareMana() {
+		t.Fatal("three live basic Forests must preserve the {G}{G} reserve; a just-played land is tappable, unlike a sick creature")
 	}
 
-	// The same board with all three Forests live is spare: the only difference
-	// is the sickness fact, so the gate is what flips the answer.
-	healthy := b.Cards[3]
-	healthy.Sick = false
-	b.Cards[3] = healthy
-	if !b.hasSpareMana() {
-		t.Fatal("three healthy Forests should preserve the {G}{G} reserve")
+	// The one fact that DOES disqualify a basic source is being tapped: tap
+	// one and the same board is no longer spare, so the answer above is not
+	// vacuous.
+	tapped := b.Cards[3]
+	tapped.Tapped = true
+	b.Cards[3] = tapped
+	if b.hasSpareMana() {
+		t.Fatal("two live plus one tapped Forest must not read spare for a {G}{G} reserve")
 	}
 }
 
