@@ -1,3 +1,181 @@
+# Verification report — `trig:AttackerUnblockedOnce` (Coveted Jewel)
+
+Task: agent-20260919T183145Z-8fdccedf. **Verification only. No production
+change, no test change, no allowlist/golden edit.** The reported defect is
+already fixed on current main by commit `30fa06c6` (`feat(rules): register
+Mode$ AttackerUnblockedOnce (Coveted Jewel)`), which is an ancestor of this
+worktree's HEAD. All Done-means gates pass; the fix and its regression
+evidence are intact.
+
+**Round t2 note:** t1 reported DONE but committed nothing. t2 re-verified the
+same claims against the current HEAD with **fresh, uncached** runs
+(`-count=1`; the first t2 attempt returned `(cached)`, and a cached package
+tells you nothing about the tree in front of you). The t2 re-run reproduced
+every t1 result: all 9 focused tests executed and passed, `internal/archtest`
+passed in 1.918s, and botbench's byte-identical split passed in 1.272s. t2
+made no production, test, allowlist or golden change and committed this
+report.
+
+## What changed and why
+
+**Nothing.** The brief is verification-only and every gate passed, so no file
+was created or modified. Working tree is clean (`git status --short` empty).
+The two files temporarily touched to prove the "fails without the fix"
+section (`rules/turn.go`, `rules/trigger_match.go`) were restored
+byte-identically and `cmp`-verified against their scratch copies.
+
+## Workspace facts — spot-checked (brief said "trust, spot-check")
+
+The brief's map held in substance; line anchors had drifted a little, all
+symbols present:
+
+- `rules/trigmatch_combat.go`: `checkAttackerUnblockedOnceTriggers` at line
+  **844** (brief said ~768; `checkAttackerUnblockedTriggers` immediately
+  precedes it — confirmed).
+- `rules/turn.go`: `StepDeclareBlockers` completion branch at line **576**
+  calls `e.checkAttackerUnblockedOnceTriggers()` after
+  `checkAttackerUnblockedTriggers()` (brief said 566–577 — confirmed).
+- `rules/trigger_eligibility.go`: `"AttackerUnblockedOnce"` in the
+  `AttackerBlocked`/`Blocks` group at line **205** (brief said ~185 —
+  confirmed, in the `DeclareBlockers` mask).
+- `rules/trigger_match.go`: `"trig:AttackerUnblockedOnce"` in the
+  `effects.RegisterNonAPI` list at line **2162** (brief said ~1826 — present).
+- `rules/coveted_jewel_trigger_test.go`: all six named tests present.
+- `.cards` symlink present (`→ /home/sadams/projects/gorge/.cards`), so the
+  corpus-backed run is a real run, not a skip.
+
+## Gates — real command output
+
+### 1. Focused command (brief's exact text)
+
+```
+$ go test -run 'TestCovetedJewel(UnblockedAttackHandsItOver|BlockedAttackDoesNothing|OneTriggerPerCombatNotPerAttacker|OncePerCombatNotAgainThisCombat|ValidDefendersGate|ValidAttackingPlayerGate)$|TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched$|TestEveryDispatchedTriggerModeHasAMatcher$|TestCompiledTriggerInterestParity$' ./rules/ 2>&1 | tail -30
+ok  	github.com/adams-shaun/gorge/rules	0.077s
+```
+
+The first run returned so fast that I re-ran it with `-v` and captured it to
+`.ds4/scratch/focused.log` to prove the pattern matched real tests rather than
+nothing. All **9** ran and passed:
+
+```
+--- PASS: TestCovetedJewelUnblockedAttackHandsItOver (0.00s)
+--- PASS: TestCovetedJewelBlockedAttackDoesNothing (0.00s)
+--- PASS: TestCovetedJewelOneTriggerPerCombatNotPerAttacker (0.00s)
+--- PASS: TestCovetedJewelOncePerCombatNotAgainThisCombat (0.00s)
+--- PASS: TestCovetedJewelValidDefendersGate (0.00s)
+--- PASS: TestCovetedJewelValidAttackingPlayerGate (0.00s)
+--- PASS: TestCompiledTriggerInterestParity (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.094s
+```
+
+### 2. `internal/archtest` (no allowlist edits)
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.783s
+```
+
+### 3. botbench byte-identical split
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.664s
+```
+
+No re-pin needed; no attribution required.
+
+## Existing real-corpus test proves the symptom, non-vacuously
+
+`TestCovetedJewelUnblockedAttackHandsItOver` loads the real corpus card via
+`mshCorpusCardPath(t, "Coveted Jewel", "c/coveted_jewel.txt")`, which
+`t.Fatalf`s if the file is missing or fails to parse/link — so the pass cannot
+be a skip. It asserts, in order:
+
+- the Jewel **starts tapped** before the trigger resolves (explicit
+  non-vacuity guard: `"Coveted Jewel was already untapped before the trigger
+  resolved"`);
+- `stack depth == 1` after the declare-blockers round (the trigger queued);
+- **exactly 3** cards drawn by the attacking player;
+- `Controller == 0` (control handed to the attacker);
+- the Jewel is **untapped** afterward (the `Untap$ True` did observable work).
+
+`TestCovetedJewelBlockedAttackDoesNothing` asserts the mirror: a declared
+blocker leaves `len(Stack) == 0` and `Controller == 1` (no transfer). The
+remaining four tests pin one-trigger-per-combat, the same-combat latch + new
+combat re-arm, the `ValidDefenders$ You` gate, and the
+`ValidAttackingPlayer$ Player.Opponent` gate.
+
+## Fails without the fix
+
+I copied `rules/turn.go` and `rules/trigger_match.go` to `.ds4/scratch/`,
+removed the single fix-specific invocation
+`e.checkAttackerUnblockedOnceTriggers()` from the `StepDeclareBlockers`
+completion branch in `turn.go`, ran the six Jewel tests, then restored both
+files and `cmp`-verified them byte-identical.
+
+```
+$ cp rules/turn.go .ds4/scratch/turn.go.bak
+$ cp rules/trigger_match.go .ds4/scratch/trigger_match.go.bak
+$ # edit rules/turn.go: delete "e.checkAttackerUnblockedOnceTriggers()"
+$ go test -run 'TestCovetedJewel(UnblockedAttackHandsItOver|BlockedAttackDoesNothing|OneTriggerPerCombatNotPerAttacker|OncePerCombatNotAgainThisCombat|ValidDefendersGate|ValidAttackingPlayerGate)$' ./rules/
+exit=1
+--- FAIL: TestCovetedJewelUnblockedAttackHandsItOver (0.00s)
+    coveted_jewel_trigger_test.go:64: stack depth after the declare-blockers round = 0, want 1 (the trigger)
+--- FAIL: TestCovetedJewelOneTriggerPerCombatNotPerAttacker (0.00s)
+    coveted_jewel_trigger_test.go:143: two unblocked attackers queued 0 stack entries, want 1 trigger
+--- FAIL: TestCovetedJewelOncePerCombatNotAgainThisCombat (0.00s)
+FAIL	github.com/adams-shaun/gorge/rules	0.009s
+FAIL
+```
+
+Note the blocked-attack test *still passes* without the fix (it asserts no
+trigger), and the two gate tests call the hook directly so they still pass —
+which is exactly the expected shape: the fix-specific behavior is what fails.
+Restore:
+
+```
+$ cp .ds4/scratch/turn.go.bak rules/turn.go && cmp rules/turn.go .ds4/scratch/turn.go.bak
+turn.go restored byte-identically
+$ cp .ds4/scratch/trigger_match.go.bak rules/trigger_match.go && cmp rules/trigger_match.go .ds4/scratch/trigger_match.go.bak
+trigger_match.go restored byte-identically
+$ git status --short
+(empty)
+```
+
+## Known-approximations row
+
+No row in AGENTS.md mentions `AttackerUnblockedOnce` or `Coveted`
+(`grep -iE 'AttackerUnblocked|Coveted' AGENTS.md` → no match), and Coveted
+Jewel is not in `rules/acceptance_test.go`'s `knownUnsupported` table. So this
+task closes **no** Known-approximations row; `knownApproximationRows` stays at
+its current value (9) and was not edited.
+
+## Brief premises checked
+
+- Brief premise "the fix is already on main; verification only" — **true**:
+  `30fa06c6` is an ancestor of HEAD and all named tests exist and pass.
+- Brief premise "the original report's `triggerMatches` switch-case premise is
+  not the implementation shape" — **true**: the implementation is the
+  dedicated `checkAttackerUnblockedOnceTriggers` hook called at round
+  completion, with `trigger_eligibility.go` masking the mode and
+  `trigger_match.go` registering it via `RegisterNonAPI`. There is no
+  `case "AttackerUnblockedOnce"` in `triggerMatches`, by design.
+- Line anchors in "Workspace facts" were approximate (drifted by up to ~330
+  lines) but every named symbol was present; no functional discrepancy.
+
+## Issues
+
+None. No defect was found outside the brief's scope. The implementation and
+its regression suite match the reported symptom and its boundaries. No CR-lane
+test is needed for a new defect (there is none). No new tickets filed.
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Report — agent-20260919T181318Z-86535368
 
 ## Summary: the brief's premise is FALSE — the ticket is already implemented on current main

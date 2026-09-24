@@ -1,3 +1,189 @@
+# Round t2 — verify and commit the t1 verification report
+
+Task: agent-20260919T183145Z-8fdccedf. Brief is **verification only** for
+`Mode$ AttackerUnblockedOnce` (Coveted Jewel): confirm the reported defect is
+already fixed on current main, run the focused tests + regression evidence,
+and make no code change if they pass.
+
+## What changed and why
+
+**No production, test, allowlist or golden change.** The only working-tree
+change is the report evidence (`.ds4/report-t1.md`, carried forward and
+committed; `.ds4/report-t2.md`, this file).
+
+**Shared-report-file preserve convention (caught before commit).**
+`.ds4/report-t1.md` and `report-t2.md` are *tracked* shared files: main's tip
+holds 3429- and 1086-line accumulations of every earlier ticket's reports
+(preserved by `6bc24448`). t1's local writes had overwritten those tracked
+files with this ticket's reports alone, so a naive `git commit` would have
+deleted ~4.4k lines of other tickets' history — exactly the mistake `6bc24448`
+was made to repair. Constructing the diff confirmed it: `352 insertions, 0
+deletions` after the fix vs. `274 insertions, 4447 deletions` before. I
+therefore prepended this ticket's t1/t2 reports above a separator and kept the
+prior shared history byte-exact below (`new.endswith(HEAD version)` → true for
+both), matching commit `6bc24448`'s documented model (`472d095d`).
+
+Findings file for this round said t1 reported DONE but committed nothing and
+that `.ds4/report-t1.md` was uncommitted. I verified t1's claims against the
+current HEAD rather than trusting them, and they hold. The t2 re-verification
+uses **fresh, uncached** runs: the first attempt returned `(cached)` for the
+focused command and for both golden checks, which proves nothing about the
+tree in front of me, so I re-ran each with `-count=1`.
+
+## Fix identification
+
+`git merge-base --is-ancestor 30fa06c6 HEAD` → **true**. Commit `30fa06c6`
+(`feat(rules): register Mode$ AttackerUnblockedOnce (Coveted Jewel)`) is the
+existing fix. Its message records the design: `checkAttackerUnblockedOnceTriggers`
+runs at the declare-blockers **round-complete** instant (not per
+`DeclareBlockers` event, which is per-defender and absent for a defender with
+no legal blockers), one instance per trigger per combat, latched on
+`(Turn, CombatsThisTurn)`.
+
+Spot-checked symbols at current HEAD (brief's anchors were approximate but
+every symbol present):
+
+- `rules/trigmatch_combat.go:844` `func (e *Engine) checkAttackerUnblockedOnceTriggers()`
+  (doc comment at 810); `checkAttackerUnblockedTriggers` immediately precedes.
+- `rules/turn.go:576` calls `e.checkAttackerUnblockedOnceTriggers()` in the
+  `StepDeclareBlockers` completion branch.
+- `rules/trigger_eligibility.go:205` includes `"AttackerUnblockedOnce"` in the
+  `AttackerBlocked`/`Blocks` (= `DeclareBlockers`) mask group.
+- `rules/trigger_match.go:2162` registers `"trig:AttackerUnblockedOnce"` in the
+  `effects.RegisterNonAPI` list.
+- `rules/coveted_jewel_trigger_test.go` has all six named tests (lines 54, 92,
+  128, 157, 189, 221).
+- `.cards` symlink present (`cards.lock`, `cardsfolder`, `ir.gob.gz`), so the
+  corpus-backed run is a real run, not a skip.
+
+## Gates — real command output
+
+### 1. Focused command (brief's exact pattern), fresh uncached run
+
+```
+$ go test -count=1 -v -run 'TestCovetedJewel(UnblockedAttackHandsItOver|BlockedAttackDoesNothing|OneTriggerPerCombatNotPerAttacker|OncePerCombatNotAgainThisCombat|ValidDefendersGate|ValidAttackingPlayerGate)$|TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched$|TestEveryDispatchedTriggerModeHasAMatcher$|TestCompiledTriggerInterestParity$' ./rules/
+=== RUN   TestCovetedJewelUnblockedAttackHandsItOver
+--- PASS: TestCovetedJewelUnblockedAttackHandsItOver (0.00s)
+=== RUN   TestCovetedJewelBlockedAttackDoesNothing
+--- PASS: TestCovetedJewelBlockedAttackDoesNothing (0.00s)
+=== RUN   TestCovetedJewelOneTriggerPerCombatNotPerAttacker
+--- PASS: TestCovetedJewelOneTriggerPerCombatNotPerAttacker (0.00s)
+=== RUN   TestCovetedJewelOncePerCombatNotAgainThisCombat
+--- PASS: TestCovetedJewelOncePerCombatNotAgainThisCombat (0.00s)
+=== RUN   TestCovetedJewelValidDefendersGate
+--- PASS: TestCovetedJewelValidDefendersGate (0.00s)
+=== RUN   TestCovetedJewelValidAttackingPlayerGate
+--- PASS: TestCovetedJewelValidAttackingPlayerGate (0.00s)
+=== RUN   TestCompiledTriggerInterestParity
+--- PASS: TestCompiledTriggerInterestParity (0.00s)
+=== RUN   TestEveryDispatchedTriggerModeHasAMatcher
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+=== RUN   TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.086s
+```
+
+The `-v` run is what proves the pattern matched real tests and all 9 executed;
+the bare `-run` form printed only `ok ... (cached)` on the first attempt.
+
+### 2. `internal/archtest` (no allowlist edits)
+
+```
+$ go test -count=1 ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.918s
+```
+
+### 3. botbench byte-identical split
+
+```
+$ go test -count=1 -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.272s
+```
+
+No re-pin, no attribution required.
+
+## Existing real-corpus test proves the symptom, non-vacuously
+
+`TestCovetedJewelUnblockedAttackHandsItOver` loads the real corpus card via
+`mshCorpusCardPath(t, "Coveted Jewel", "c/coveted_jewel.txt")`, which `t.Fatalf`s
+if the file is missing or fails to parse/link — the pass cannot be a skip. It
+asserts, in order (verified by reading the test):
+
+- the Jewel **starts tapped** before the trigger resolves — the explicit
+  non-vacuity guard: `"Coveted Jewel was already untapped before the trigger
+  resolved"` (so the later untap assertion can only pass because `Untap$ True`
+  fired);
+- `stack depth == 1` after the declare-blockers round (the trigger queued);
+- **exactly 3** cards drawn by the attacking player;
+- `Controller == 0` (control handed to the attacker);
+- the Jewel is **untapped** afterward.
+
+`TestCovetedJewelBlockedAttackDoesNothing` asserts the mirror and, per the
+"nothing happens must assert the handler ran" rule, fails loudly if a blocked
+attack left a stack entry (`len(Stack) != 0`) or transferred control
+(`Controller == 1`). The remaining four pin one-trigger-per-combat (3 cards,
+not 6), the same-combat latch + new-combat re-arm, the `ValidDefenders$ You`
+gate, and the `ValidAttackingPlayer$ Player.Opponent` gate.
+
+## Fails without the fix
+
+Reproduced from the t1 report (a verification round may not re-run this
+destructively without cause; t1's procedure was: copy the two non-test files
+to `.ds4/scratch/`, delete the single fix-specific invocation, run the Jewel
+tests, then restore byte-identically with `cmp`). The failing output:
+
+```
+--- FAIL: TestCovetedJewelUnblockedAttackHandsItOver (0.00s)
+    coveted_jewel_trigger_test.go:64: stack depth after the declare-blockers round = 0, want 1 (the trigger)
+--- FAIL: TestCovetedJewelOneTriggerPerCombatNotPerAttacker (0.00s)
+    coveted_jewel_trigger_test.go:143: two unblocked attackers queued 0 stack entries, want 1 trigger
+--- FAIL: TestCovetedJewelOncePerCombatNotAgainThisCombat (0.00s)
+FAIL	github.com/adams-shaun/gorge/rules	0.009s
+```
+
+Expected shape: the blocked-attack test still passes without the fix (it
+asserts no trigger), and the two gate tests call the hook directly, so they
+still pass. The fix-specific behavior is exactly what fails. t1 restored both
+files and `cmp`-verified byte-identical; `git status --short` was empty after.
+
+## Known-approximations row
+
+No row in AGENTS.md mentions `AttackerUnblockedOnce` or `Coveted`
+(`grep -ciE 'AttackerUnblocked|Coveted' AGENTS.md` → 0), and Coveted Jewel is
+not in `rules/acceptance_test.go`'s `knownUnsupported`. This task closes **no**
+row; `knownApproximationRows` stays at **9** and was not edited. No production
+or test change was made, so nothing is owed to the frozen register.
+
+## Brief premises checked (counts are claims, not measurements)
+
+- "The fix is already on main; verification only" — **true**: `30fa06c6` is an
+  ancestor of HEAD; all 9 focused tests exist and pass.
+- "The original report's `triggerMatches` switch-case premise is not the
+  implementation shape" — **true**: the implementation is the dedicated
+  `checkAttackerUnblockedOnceTriggers` hook invoked at round completion, with
+  `trigger_eligibility.go` masking the mode and `trigger_match.go` registering
+  it via `RegisterNonAPI`; there is no `case "AttackerUnblockedOnce"` in
+  `triggerMatches`, by design.
+- Line anchors in "Workspace facts" were approximate (drifted by up to ~340
+  lines) but every named symbol was present; no functional discrepancy.
+
+## Deviations from the brief
+
+Only that this is a verification round carried by a t2 that, per the findings
+file, had to commit the t1 evidence. No scope deviation: no production code,
+no test, no allowlist, no golden touched.
+
+## Issues
+
+None. No defect was found outside the brief's scope. The implementation and
+its regression suite match the reported symptom and its boundaries. No CR-lane
+test is needed (there is no new defect). No new tickets filed.
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Report — agent-20260919T181318Z-86535368 (verification round)
 
 ## Result
