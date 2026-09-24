@@ -16,11 +16,20 @@ type MissingPrimitive struct {
 	Cards int
 }
 
-// Unsupported lists the primitives a card needs that the engine lacks. An
-// empty result means the card is playable.
+// Unsupported lists the primitives a card needs that the engine lacks --
+// its Primitives plus its ValueHeads (the "count:" heads its referenced
+// value SVars read). An empty result means the card is playable.
 func (r *Registry) Unsupported(c *Card, supported map[string]bool) []string {
 	var out []string
 	for _, p := range c.Primitives() {
+		if !supported[p] {
+			out = append(out, p)
+		}
+	}
+	// The count-expression heads the card's referenced value SVars read
+	// (ValueHeads): a gate or amount over a head the evaluator does not
+	// model can never be read, so the card is not fully playable either.
+	for _, p := range c.ValueHeads() {
 		if !supported[p] {
 			out = append(out, p)
 		}

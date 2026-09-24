@@ -718,7 +718,7 @@ func (e *Engine) presentGate(sv staticView, spec string) bool {
 	if cmp == "" {
 		cmp = "GE1"
 	}
-	return comparePresent(n, cmp)
+	return comparePresent(n, e.presentCompareFor(cmp, sv.Source, sv.Controller))
 }
 
 // staticTimingGate evaluates the static conditions that can decide whether a
@@ -933,7 +933,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 			continue
 		}
 		sv := staticView{Source: ce.Source, Controller: ce.Controller,
-			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber}
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true}
 		// ValidCard$ is presence-gated here exactly as costStaticApplies gates
 		// it: an absent spec restricts nothing (the printed face-static walk
 		// below never consults one at all -- Marshland's AlternativeCost body
@@ -1847,7 +1847,7 @@ func (e *Engine) appendEffectCostStatics(out *costStaticViews) {
 			continue
 		}
 		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
-			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber})
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true})
 	}
 }
 
@@ -1887,8 +1887,11 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	if svars == nil {
 		svars = o.Face().SVars
 	}
+	// An Effect-delivered cost static carries its SetChosenNumber$ binding
+	// (chosenNumberBound): the Count$ChosenNumber head reads it rather than
+	// the source object's own logged choice.
 	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x,
-		ChosenNumber: sv.ChosenNumber}
+		ChosenNumber: sv.ChosenNumber, ChosenNumberBound: sv.chosenNumberBound}
 	// An SVar NAME resolves through its body on the source's face; anything
 	// else is an inline Count$-class expression evaluated as written.
 	if body, ok := svars[raw]; ok {

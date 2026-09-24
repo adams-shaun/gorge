@@ -854,7 +854,14 @@ var acceptanceHeads = map[int]string{
 	// CR 103.1 (cli-20260922T225141Z-e771720d): the hosted toss winner
 	// answers starting_player before mulligans. DecisionAsk/DecisionMade enter
 	// the chain; without that ask this head returns to a867ac1768ab4993.
-	2: "a613e26b20d46eea",
+	// bot-x1 (botpolicy/ability.go equipNoOp): A1's attachment no-op rule
+	// is scoped to attach abilities (decision.Option.Attach), promoted from
+	// the explore policy's X1, so an attached Aura's/Equipment's own
+	// abilities and a creatureless seat's non-attach abilities are no longer
+	// declined. Measured: the base commit's heads were green and this change
+	// alone moves 2 seats a613e26b20d46eea -> 3ddcc4e3ba5bb799 and 8 seats
+	// af5b2fc1561b5f56 -> beac5729b0e63dcc; 4 and 6 seats are unchanged.
+	2: "3ddcc4e3ba5bb799",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1363,7 +1370,8 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	8: "af5b2fc1561b5f56",
+	// bot-x1: 8 seats moves to beac5729b0e63dcc (see the 2-seat note).
+	8: "beac5729b0e63dcc",
 }
 
 func TestHeads(t *testing.T) {

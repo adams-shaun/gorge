@@ -322,8 +322,8 @@ type Option struct {
 	// the engine's own derived-keyword facts and the stack -- a human
 	// client never sees it, so it is never on the wire.
 	Grant *Grant `json:"-"`
-	// Attach is server-side only (json:"-"), set on a printed "ability"
-	// option whose ability is an AB$ Attach -- K:Equip, Reconfigure and
+	// Attach is server-side only (json:"-"), set on a printed, gained or
+	// granted "ability" option whose ability is an AB$ Attach -- K:Equip, Reconfigure and
 	// Fortify expand to one (cards/keywords.go). It is what scopes the bot
 	// policy's attachment no-op rule (A1, botpolicy.equipNoOp: an attached
 	// source's re-attach, or an attach with no creature to land on) to the

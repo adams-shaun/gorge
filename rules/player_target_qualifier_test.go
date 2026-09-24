@@ -284,12 +284,18 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// offers seats through its bare Player alternative (the unhandled
 	// NotDefinedParentTarget clause contributes nothing), so it is classified
 	// by behaviour, not by its first alternative.
+	// Player.!EnchantedBy offers seats since fuzz-cov3's after-the-dot
+	// negation (effects' matchesPlayerSingleSpec): no seat is enchanted
+	// here, so every seat qualifies. Player.!CardOwner stays fail-closed in
+	// this census only because it binds no source object (the source-anchored
+	// negation fails closed unbound); Crown of Doom's real offer binds one
+	// (TestCrownOfDoomTargetsANonOwner).
 	wantOffered := []string{"Any", "Any.NotDefinedParentTarget,Player", "Opponent", "Player",
-		"Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent", "Player.Other", "You"}
+		"Player.!EnchantedBy", "Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent", "Player.Other", "You"}
 	wantFailClosed := []string{
 		"Any.!Dinosaur", "Any.!Dragon", "Any.!IsCommander",
 		"Opponent.wasDealtDamageThisGameBy Self",
-		"Player.!CardOwner", "Player.!EnchantedBy", "Player.LostLifeThisTurn",
+		"Player.!CardOwner", "Player.LostLifeThisTurn",
 		"Player.Opponent+Active",
 		"Player.OpponentToActive+hasFewerCreaturesInYardThanActive",
 		"Player.OpponentToActive+hasMoreCardsInHandThanActive",

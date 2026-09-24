@@ -297,7 +297,10 @@ func (h *fakeHost) CommanderCastsFromCommandZone(p state.PlayerID) int32 {
 // LifeLostThisTurn reports the h.lifeLost entry the effects-level
 // PlayerCountDefinedRegistered tests configure; a nil map reports zero (the
 // pre-existing conservative no-op, so every other test is unchanged).
-func (h *fakeHost) LifeLostThisTurn(p state.PlayerID) int32 { return h.lifeLost[p] }
+func (h *fakeHost) LifeLostThisTurn(p state.PlayerID) int32         { return h.lifeLost[p] }
+func (h *fakeHost) LifeLostLastTurn(p state.PlayerID) int32         { return 0 }
+func (h *fakeHost) AttackedDuringLastTurn(q, d state.PlayerID) bool { return false }
+func (h *fakeHost) AttackersDeclaredThisTurn() []state.ObjID        { return nil }
 
 func (h *fakeHost) DamageTakenThisTurn(p state.PlayerID) int32 { return h.dmgTaken[p] }
 

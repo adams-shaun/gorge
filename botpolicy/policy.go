@@ -361,9 +361,9 @@ func BlocksDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 // production Decide's answers, and every golden chain head, are unchanged by
 // it. The differences (explore.go) are:
 //
-//   - X1: A1's attachment no-op rule applies to attach abilities only
-//     (decision.Option.Attach), so an Aura's or attached Equipment's own
-//     abilities and a creatureless seat's non-attach abilities are live.
+//   - X1 was promoted into the production policy: A1's attachment no-op
+//     rule applies to attach abilities only for every policy (ability.go,
+//     equipNoOp), so it is no longer an explore difference.
 //   - X2: among the worth-taking abilities the pick is uniform over the
 //     seat's rng instead of A2's cheapest-label ranking, so every loyalty
 //     ability and every sibling ability of one source is reached (A2 reads the
