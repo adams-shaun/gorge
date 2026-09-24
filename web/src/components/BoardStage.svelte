@@ -23,6 +23,7 @@
     onToggle = null,
     mulligan = false,
     controls = null,
+    controlsLive = false,
   }: {
     view: View;
     seats: SeatInfo[];
@@ -31,6 +32,7 @@
     stops?: Stops | null;
     onToggle?: ((step: string, side: TurnSide) => void) | null;
     mulligan?: boolean;
+    controlsLive?: boolean;
     /** A live seated route supplies the one seat state every tab delegates to.
      *  showLog/onToggleLog (fb-20260917T231628Z) forward the log preference and
      *  its write path into the OPTIONS drop's switch. */
@@ -45,13 +47,13 @@
   } = $props();
 </script>
 
-<div class="board-stage" class:has-controls={controls !== null && !mulligan} data-board-stage>
+<div class="board-stage" class:has-controls={controlsLive} data-board-stage>
   <Board {view} {seats} {options} reserveCentre={!mulligan} />
   <div class="phase-shard" class:mulligan data-phase-lane>
     <div class="phase-instrument" data-centre-instrument>
       <PhaseTrack {view} {seats} {seat} {stops} {onToggle} />
-      {#if controls !== null && !mulligan}
-        <HotButtonStrip {view} {seats} state={controls.state} ctx={controls.ctx} table={controls.table} match={controls.match} showLog={controls.showLog} onToggleLog={controls.onToggleLog} />
+      {#if controlsLive}
+        <HotButtonStrip {view} {seats} state={controls!.state} ctx={controls!.ctx} table={controls!.table} match={controls!.match} showLog={controls!.showLog} onToggleLog={controls!.onToggleLog} />
       {/if}
     </div>
   </div>
