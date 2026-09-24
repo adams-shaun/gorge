@@ -41,18 +41,20 @@ func corpusStaffRoomBody(t *testing.T, svar string) string {
 
 // presentDefinedCtx builds a two-seat host with one object on seat 0's
 // battlefield and a Ctx whose TriggerSource names it, the group
-// PresentDefined$ TriggeredSourceLKICopy enumerates. It returns the host,
-// the id and the Ctx.
-func presentDefinedCtx(t *testing.T, types string) (*fakeHost, state.ObjID, *Ctx) {
+// PresentDefined$ TriggeredSourceLKICopy enumerates. faceDown puts the
+// object face down (a manifested/cloaked permanent) so the turn-face-up
+// filter can match. It returns the host, the object and the Ctx.
+func presentDefinedCtx(t *testing.T, types string, faceDown bool) (*fakeHost, *state.Object, *Ctx) {
 	t.Helper()
 	h := newHost(t, 2)
 	card := mkCard(t, "Name:PresentHit\nTypes:"+types+"\nPT:2/2\nOracle:x\n")
 	o := h.g.AddObject(card, 0)
 	o.Zone = state.ZBattlefield
+	o.FaceDown = faceDown
 	if o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: trigger source is not on the battlefield")
 	}
-	return h, o.ID, &Ctx{Controller: 0, Source: o.ID, TriggerContext: TriggerContext{TriggerSource: o.ID}}
+	return h, o, &Ctx{Controller: 0, Source: o.ID, TriggerContext: TriggerContext{TriggerSource: o.ID}}
 }
 
 // TestPresentDefinedGateDeniesWithZeroMatchingReferents pins the brief's
@@ -63,9 +65,9 @@ func presentDefinedCtx(t *testing.T, types string) (*fakeHost, state.ObjID, *Ctx
 // the battlefield, and the filter really excludes it), so a setup that
 // accidentally made the land a creature would fail loudly.
 func TestPresentDefinedGateDeniesWithZeroMatchingReferents(t *testing.T) {
-	h, src, ctx := presentDefinedCtx(t, "Land")
-	if o := h.g.Obj(src); o == nil || o.EffectiveIsCreature() {
-		t.Fatalf("precondition: filter fixture must be a non-creature on the battlefield")
+	h, o, ctx := presentDefinedCtx(t, "Land", false)
+	if o.EffectiveIsCreature() {
+		t.Fatal("precondition: filter fixture must be a non-creature")
 	}
 	gate := sa(t, "DB$ PutCounter | Defined$ TriggeredSourceLKICopy | CounterType$ P1P1 | PresentDefined$ TriggeredSourceLKICopy | IsPresent$ Creature")
 	if met, resolved := conditionMet(h, ctx, gate); met || !resolved {
@@ -77,9 +79,9 @@ func TestPresentDefinedGateDeniesWithZeroMatchingReferents(t *testing.T) {
 // twin: the source IS a creature, so IsPresent$ Creature counts 1 and the
 // gate resolves to met -- the body runs.
 func TestPresentDefinedGateRunsWithOneMatchingReferent(t *testing.T) {
-	h, src, ctx := presentDefinedCtx(t, "Creature")
-	if o := h.g.Obj(src); o == nil || !o.EffectiveIsCreature() {
-		t.Fatalf("precondition: filter fixture must be a creature on the battlefield")
+	h, o, ctx := presentDefinedCtx(t, "Creature", false)
+	if !o.EffectiveIsCreature() {
+		t.Fatal("precondition: filter fixture must be a creature")
 	}
 	gate := sa(t, "DB$ PutCounter | Defined$ TriggeredSourceLKICopy | CounterType$ P1P1 | PresentDefined$ TriggeredSourceLKICopy | IsPresent$ Creature")
 	if met, resolved := conditionMet(h, ctx, gate); !met || !resolved {
@@ -88,11 +90,9 @@ func TestPresentDefinedGateRunsWithOneMatchingReferent(t *testing.T) {
 }
 
 // TestPresentDefinedGateReadsPresentCompare pins the PresentCompare$ half:
-// over the same one-referent creature group, EQ0 denies and EQ1 runs. The
-// two compare values differ by construction, so the assertion is
-// discriminative.
+// over the same one-referent creature group, EQ0 denies and EQ1 runs.
 func TestPresentDefinedGateReadsPresentCompare(t *testing.T) {
-	h, _, ctx := presentDefinedCtx(t, "Creature")
+	h, _, ctx := presentDefinedCtx(t, "Creature", false)
 	eq0 := sa(t, "DB$ SetState | Defined$ TriggeredSourceLKICopy | Mode$ TurnFaceUp | PresentDefined$ TriggeredSourceLKICopy | IsPresent$ Creature | PresentCompare$ EQ0")
 	if met, resolved := conditionMet(h, ctx, eq0); met || !resolved {
 		t.Fatalf("EQ0 over one referent: met=%v resolved=%v, want false true", met, resolved)
@@ -107,64 +107,70 @@ func TestPresentDefinedGateReadsPresentCompare(t *testing.T) {
 // the phantom `Present$` key (zero corpus occurrences) with the corpus's
 // real DB-body spelling `IsPresent$`. A gate carrying ONLY `Present$ Land`
 // over the creature source must RUN (the phantom key is not a filter);
-// before the fix it was read as one and the gate denied. This test FAILS
-// against the pre-fix code, which is what makes it discriminative.
+// before the fix it was read as one and the gate denied.
 func TestPresentDefinedGateIgnoresThePhantomPresentKey(t *testing.T) {
-	h, _, ctx := presentDefinedCtx(t, "Creature")
+	h, _, ctx := presentDefinedCtx(t, "Creature", false)
 	gate := sa(t, "DB$ PutCounter | Defined$ TriggeredSourceLKICopy | CounterType$ P1P1 | PresentDefined$ TriggeredSourceLKICopy | Present$ Land | PresentCompare$ EQ1")
 	if met, resolved := conditionMet(h, ctx, gate); !met || !resolved {
 		t.Fatalf("phantom Present$ Land over a creature: met=%v resolved=%v, want true true (the phantom key is not read)", met, resolved)
 	}
 }
 
-// TestPresentDefinedGateOverTheRealCorpusBodies pins the real carrier
-// (Experimental Lab // Staff Room's DBPutCounter and DBTurnFaceUp, the
-// corpus's only two `DB$ ... PresentDefined$` lines). It asserts:
+// TestPresentDefinedGateOverTheRealCorpusBodies drives the gate over the
+// REAL SVar bodies of Experimental Lab // Staff Room's DBPutCounter and
+// DBTurnFaceUp (the corpus's only two `DB$ ... PresentDefined$` lines),
+// with their OWN filter specs:
 //
-//   - the real body carries the group PresentDefined$ TriggeredSourceLKICopy
-//     and the real filter key IsPresent$ (the corpus spelling, NOT Present$);
-//   - with the body's OWN filter spec (Card.canReceiveCounters P1P1 /
-//     Card.canBeTurnedFaceUp+faceDown) the gate is UNRESOLVED, because those
-//     two card properties are not modelled by this filter tier -- the
-//     documented fail-open convention, so the body still runs exactly as
-//     before (see the report's Issues section: implementing those predicates
-//     is a separate filter-grammar task);
-//   - substituting a readable filter over the SAME real body+group makes the
-//     gate discriminative (Land denies, Creature runs), which is the
-//     behaviour the fix provides for every future IsPresent$ carrier whose
-//     spec this tier does model.
+//   - DBPutCounter: `IsPresent$ Card.canReceiveCounters P1P1` over the
+//     TriggeredSourceLKICopy group -- a creature source counts 1 (run), a
+//     land source counts 0 (deny).
+//   - DBTurnFaceUp: `IsPresent$ Card.canBeTurnedFaceUp+faceDown` -- a
+//     face-down source counts 1 (run), a face-up source counts 0 (deny).
+//
+// Each assertion asserts its precondition (the source's creature-ness /
+// face-down state really differs between the two cases).
 func TestPresentDefinedGateOverTheRealCorpusBodies(t *testing.T) {
-	h, _, ctx := presentDefinedCtx(t, "Creature")
-	for _, svar := range []string{"DBPutCounter", "DBTurnFaceUp"} {
-		body := corpusStaffRoomBody(t, svar)
-		base := sa(t, body)
-		if strings.TrimSpace(base.Params["PresentDefined"]) != "TriggeredSourceLKICopy" {
-			t.Fatalf("%s: PresentDefined = %q, want TriggeredSourceLKICopy", svar, base.Params["PresentDefined"])
-		}
-		if strings.TrimSpace(base.Params["IsPresent"]) == "" {
-			t.Fatalf("%s: real body carries no IsPresent$ filter", svar)
-		}
+	for _, tc := range []struct {
+		svar     string
+		runTypes string
+		runDown  bool
+		noTypes  string
+		noDown   bool
+	}{
+		{"DBPutCounter", "Creature", false, "Land", false},
+		{"DBTurnFaceUp", "Creature", true, "Creature", false},
+	} {
+		t.Run(tc.svar, func(t *testing.T) {
+			body := corpusStaffRoomBody(t, tc.svar)
+			gate := sa(t, body)
+			if strings.TrimSpace(gate.Params["PresentDefined"]) != "TriggeredSourceLKICopy" {
+				t.Fatalf("PresentDefined = %q, want TriggeredSourceLKICopy", gate.Params["PresentDefined"])
+			}
+			if strings.TrimSpace(gate.Params["IsPresent"]) == "" {
+				t.Fatal("real body carries no IsPresent$ filter")
+			}
 
-		// The real spec's card property is unmodelled -> unresolved, the
-		// documented fail-open, unchanged from the pre-fix path.
-		real := *base
-		if met, resolved := conditionMet(h, ctx, &real); resolved {
-			t.Fatalf("%s: unmodelled real filter resolved (met=%v) -- either the predicate landed, or the gate is misreading the spec", svar, met)
-		}
+			// Run case: the real filter matches the real group member.
+			h, o, ctx := presentDefinedCtx(t, tc.runTypes, tc.runDown)
+			if got := o.EffectiveIsCreature(); got != strings.Contains(tc.runTypes, "Creature") {
+				t.Fatalf("precondition: run fixture creature-ness = %v", got)
+			}
+			if got := o.FaceDown && o.Zone == state.ZBattlefield; got != tc.runDown {
+				t.Fatalf("precondition: run fixture face-down = %v, want %v", got, tc.runDown)
+			}
+			if met, resolved := conditionMet(h, ctx, gate); !met || !resolved {
+				t.Fatalf("real filter over a matching source: met=%v resolved=%v, want true true (run)", met, resolved)
+			}
 
-		// Same real body and group, readable filter: deny vs run.
-		skip := *base
-		skip.Params = cloneParams(base.Params)
-		skip.Params["IsPresent"] = "Land"
-		if met, resolved := conditionMet(h, ctx, &skip); met || !resolved {
-			t.Fatalf("%s: Land filter over a creature: met=%v resolved=%v, want false true (deny)", svar, met, resolved)
-		}
-		run := *base
-		run.Params = cloneParams(base.Params)
-		run.Params["IsPresent"] = "Creature"
-		if met, resolved := conditionMet(h, ctx, &run); !met || !resolved {
-			t.Fatalf("%s: Creature filter over a creature: met=%v resolved=%v, want true true (run)", svar, met, resolved)
-		}
+			// Deny case: the same real filter, a source it excludes.
+			h2, o2, ctx2 := presentDefinedCtx(t, tc.noTypes, tc.noDown)
+			if got := o2.FaceDown && o2.Zone == state.ZBattlefield; got != tc.noDown {
+				t.Fatalf("precondition: deny fixture face-down = %v, want %v", got, tc.noDown)
+			}
+			if met, resolved := conditionMet(h2, ctx2, gate); met || !resolved {
+				t.Fatalf("real filter over an excluded source: met=%v resolved=%v, want false true (deny)", met, resolved)
+			}
+		})
 	}
 }
 
@@ -173,20 +179,10 @@ func TestPresentDefinedGateOverTheRealCorpusBodies(t *testing.T) {
 // gate is unresolved and the body runs unconditionally -- the convention
 // every unenumerable defined group in conditionMet follows.
 func TestPresentDefinedGateWithoutTriggerSourceIsUnresolved(t *testing.T) {
-	h, src, _ := presentDefinedCtx(t, "Creature")
+	h, o, _ := presentDefinedCtx(t, "Creature", false)
 	gate := sa(t, "DB$ PutCounter | Defined$ TriggeredSourceLKICopy | CounterType$ P1P1 | PresentDefined$ TriggeredSourceLKICopy | IsPresent$ Creature")
-	ctx := &Ctx{Controller: 0, Source: src} // no TriggerContext.TriggerSource
+	ctx := &Ctx{Controller: 0, Source: o.ID} // no TriggerContext.TriggerSource
 	if _, resolved := conditionMet(h, ctx, gate); resolved {
 		t.Fatal("gate resolved with no TriggerSource binding -- would count a phantom zero")
 	}
-}
-
-// cloneParams returns a fresh copy of an SA's parameter map so a test can
-// vary one key without touching the shared map.
-func cloneParams(in map[string]string) map[string]string {
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
-	return out
 }
