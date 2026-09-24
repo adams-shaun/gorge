@@ -3072,6 +3072,11 @@ func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) 
 	if check == "" {
 		return true, true // no gate; the loop's own run count governs
 	}
+	if _, ok := sourceRuntimeSVar(h.Game(), c, check); ok {
+		// A StoreSVar write shadows the printed body, so the printed
+		// body's predicates are irrelevant (CheckSVarHolds reads the store).
+		return CheckSVarHolds(h, c, check, cmp)
+	}
 	body := check
 	if c.SVars != nil {
 		if b, ok := c.SVars[check]; ok {
