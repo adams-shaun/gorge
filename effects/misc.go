@@ -1753,8 +1753,11 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // A line carrying PresentCompare$ WITHOUT IsPresent$/IsPresent2$ is rejected:
 // presentGate is the only reader of PresentCompare and it runs only when a
 // present spec is present, so an orphan compare would fall through the gate
-// unread and restrict blanket, over-restricting. Measured 0 corpus rows; the
-// guard keeps it that way.
+// unread and restrict blanket, over-restricting. A present KEY whose spec is
+// empty or whitespace-only is rejected the same way (and even with no compare):
+// countPresent("") matches nothing, so the "gate" reads count 0 forever and an
+// EQ0 compare would hold unconditionally. Measured 0 corpus rows for both
+// shapes; the guards keep it that way.
 //
 // A present spec carrying a predicate this build's matcher does not recognise
 // is rejected too: countPresent counts through the matcher, so an unparseable
@@ -1796,18 +1799,30 @@ func CantAttackParamsReadableForRules(params map[string]string) bool {
 			return false
 		}
 	}
-	// presentGate reads PresentCompare only when a present spec is set; an
-	// orphan compare would never be evaluated, so admit the line only when the
-	// spec it compares against is really there.
-	if hasCmp && !has1 && !has2 {
+	// presentGate is dispatched on the KEY being present, not on the value:
+	// an empty/whitespace `IsPresent$` still calls countPresent(""), which
+	// matches nothing (count 0). So a blank present spec is not "no gate" --
+	// it is a gate that can never see its object, and `PresentCompare$ EQ0`
+	// would hold unconditionally and restrict blanket. Reject a present key
+	// whose spec is blank, whichever key carries the compare (and whether or
+	// not one does).
+	spec1 := strings.TrimSpace(present1)
+	spec2 := strings.TrimSpace(present2)
+	if (has1 && spec1 == "") || (has2 && spec2 == "") {
+		return false
+	}
+	// An orphan compare (PresentCompare$ with no present spec at all) would
+	// never be evaluated: presentGate is its only reader and it runs only when
+	// a present key is set. Admit the line only when a NON-BLANK spec is there.
+	if hasCmp && spec1 == "" && spec2 == "" {
 		return false
 	}
 	// An unread present spec would match nothing, so an EQ0 compare would hold
 	// unconditionally and over-restrict; keep such a line skipped whole.
-	if spec := strings.TrimSpace(present1); spec != "" && len(UnknownPredicates(spec)) != 0 {
+	if spec1 != "" && len(UnknownPredicates(spec1)) != 0 {
 		return false
 	}
-	if spec := strings.TrimSpace(present2); spec != "" && len(UnknownPredicates(spec)) != 0 {
+	if spec2 != "" && len(UnknownPredicates(spec2)) != 0 {
 		return false
 	}
 	return true
