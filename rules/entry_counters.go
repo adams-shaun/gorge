@@ -177,12 +177,12 @@ func entryBodyAbsorbable(sa *cards.SA) bool {
 	if _, ok := sa.Params["CounterNum"]; !ok {
 		return false
 	}
-	for _, p := range [...]string{"Optional", "Choices", "Divided", "DividedAsYouChoose", "RandomType",
-		"Bolster", "Support", "Adapt", "Monstrosity", "CounterNumPerDefined", "CounterTypePerDefined",
-		"EachFromSource", "PerDefined"} {
-		if _, present := sa.Params[p]; present {
-			return false
-		}
+	if saHasParam(sa, "Optional") || saHasParam(sa, "Choices") || saHasParam(sa, "Divided") ||
+		saHasParam(sa, "DividedAsYouChoose") || saHasParam(sa, "RandomType") || saHasParam(sa, "Bolster") ||
+		saHasParam(sa, "Support") || saHasParam(sa, "Adapt") || saHasParam(sa, "Monstrosity") ||
+		saHasParam(sa, "CounterNumPerDefined") || saHasParam(sa, "CounterTypePerDefined") ||
+		saHasParam(sa, "EachFromSource") || saHasParam(sa, "PerDefined") {
+		return false
 	}
 	kind := strings.TrimSpace(sa.Params["CounterType"])
 	if kind == "" {
@@ -192,6 +192,17 @@ func entryBodyAbsorbable(sa *cards.SA) bool {
 		return false
 	}
 	return true
+}
+
+// saHasParam reports whether the named key is present on the SA's parameter
+// map. The key is this helper's own string parameter and every call site
+// passes a string literal, so the paramcensus attributes each read (its
+// dynamic-key rule: a key reached through a parameter is resolved at the
+// call sites). Presence alone is the test -- an absent key and an
+// empty-valued key are equally "not carried" for the entry fold.
+func saHasParam(sa *cards.SA, key string) bool {
+	_, present := sa.Params[key]
+	return present
 }
 
 // entryBodyCounterGrants returns the body-defined entry-counter grants an
