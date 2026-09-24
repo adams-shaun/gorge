@@ -29,7 +29,11 @@ type Alert struct {
 
 // RunAlerts evaluates every alert rule over every round of r. r.ID and
 // r.Status must already be set.
+// An adhoc run has no win rate or KL target to alert on and never alerts.
 func RunAlerts(r *Run) []Alert {
+	if r.Kind == KindAdhoc {
+		return nil
+	}
 	var out []Alert
 	latest := -1
 	for _, rd := range r.Rounds {
