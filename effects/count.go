@@ -86,6 +86,25 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	if v, ok := runtimePublished(c, raw); ok {
 		return sign * v, true
 	}
+	// A bare SVar name with an arithmetic suffix (Expression$ Aid/Plus.1)
+	// uses the same runtime -> printed -> publication precedence as the
+	// explicit SVar$ spelling below. Keep this at the parameter boundary so
+	// evalCountBody's bare-head semantics remain unchanged.
+	if name, op, hasOp := strings.Cut(raw, "/"); hasOp && modelledCountOp(c, op) {
+		name = strings.TrimSpace(name)
+		if v, ok := runtimeSVar(c, name); ok {
+			return sign * applyCountOpOperand(h, c, v, op, 0), true
+		}
+		if body, ok := c.SVars[name]; ok {
+			v, evaluated := evalCountExprOK(h, c, body, 1)
+			if evaluated {
+				return sign * applyCountOpOperand(h, c, v, op, 0), true
+			}
+		}
+		if v, ok := runtimePublished(c, name); ok {
+			return sign * applyCountOpOperand(h, c, v, op, 0), true
+		}
+	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
 	// Minus1, Task 17) is a body in its own right, not an SVar name -- a
 	// param value of "Count$..." evaluates directly rather than being
