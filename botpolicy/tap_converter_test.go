@@ -110,3 +110,39 @@ func TestConverterGateTerminates(t *testing.T) {
 		}
 	}
 }
+
+// T4, the payment-window converter gate (cardfuzz batch3 lines 9/11): inside
+// a KChoose payment window (cast payment, UnlessCost$/Ward, cumulative
+// upkeep) a non-tapping converter is never taken -- the first tap source is,
+// and once only converters remain the window is closed with Done. The window
+// carries no fact naming its charge, so a conversion's progress cannot be
+// priced; failing closed toward Done bounds every window by its untapped
+// sources.
+func TestPaymentWindowNeverTakesAConverter(t *testing.T) {
+	for _, resume := range []string{"", "unless_mana", "ward_mana"} {
+		w := decision.Decision{Seq: 1, Player: 0, Kind: decision.KChoose, Min: 1, Max: 1, ResumeKind: resume,
+			Prompt: "Activate mana abilities to pay",
+			Options: []decision.Option{
+				{Index: 0, Kind: "activate", Label: "Tap Farrelite Priest for mana", Obj: 7, Cost: "1"},
+				{Index: 1, Kind: "activate", Label: "Tap Plains for mana", Obj: 8},
+				{Index: 2, Kind: "done", Label: "Done"},
+			}}
+		b := Board{Pool: state.Mana{1, 0, 0, 0, 0, 0}, Cards: map[state.ObjID]Card{}}
+		if in := Decide(b, &w, rng(1)); len(in.Choices) != 1 || in.Choices[0] != 1 {
+			t.Fatalf("%q window with a converter first = %+v, want the Plains (option 1)", resume, in)
+		}
+		// A mana-costed source that TAPS is bounded by the tap: taken.
+		w.Options[1].Cost = "2 T"
+		if in := Decide(b, &w, rng(1)); len(in.Choices) != 1 || in.Choices[0] != 1 {
+			t.Fatalf("%q window with a tapping filter source = %+v, want it (option 1)", resume, in)
+		}
+		only := decision.Decision{Seq: 2, Player: 0, Kind: decision.KChoose, Min: 1, Max: 1, ResumeKind: resume,
+			Options: []decision.Option{
+				{Index: 0, Kind: "activate", Label: "Tap Farrelite Priest for mana", Obj: 7, Cost: "1"},
+				{Index: 1, Kind: "done", Label: "Done"},
+			}}
+		if in := Decide(b, &only, rng(1)); len(in.Choices) != 1 || only.Options[in.Choices[0]].Kind != "done" {
+			t.Fatalf("%q window with only a converter = %+v, want Done", resume, in)
+		}
+	}
+}

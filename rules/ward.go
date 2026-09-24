@@ -394,10 +394,28 @@ func (e *Engine) askWardMana(rp *resumePoint, wm *wardManaPayment) {
 	e.wardMana = wm
 	d := &decision.Decision{Player: wm.payer, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: wm.prompt, ResumeKind: wm.resumeKind, ResumeSA: rp.sa, ResumeTarget: wm.target}
-	for _, id := range e.G.Zone(state.ZBattlefield, wm.payer) {
-		if e.untappedManaSource(wm.payer, id) {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: id,
-				Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"})
+	// Sources are offered only while the pool cannot yet pay the charge --
+	// the same predicate that opened the window (unlessManaWindowNeeded) and
+	// the one the cast and cumulative windows close on. Once the pool covers
+	// it only Done remains: tapping further can add nothing to this payment,
+	// and a window that kept offering its sources let an answerer that taps
+	// "while a source is offered" tap every land and then activate a
+	// non-tapping pool converter (Farrelite Priest's "{1}: Add {W}") forever
+	// (cardfuzz batch3 lines 9/11, Peacekeeper's upkeep unless-cost).
+	payable := wm.cost.Priceable() && e.costPayableClass(wm.payer,
+		paymentDescriptor{id: rp.obj, class: paymentOther, cost: &wm.cost}, pipRider{}, wm.cost)
+	if !payable {
+		for _, id := range e.G.Zone(state.ZBattlefield, wm.payer) {
+			if e.untappedManaSource(wm.payer, id) {
+				opt := decision.Option{Index: len(d.Options), Kind: "activate", Obj: id,
+					Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"}
+				// The beyond-tap cost marker every other "activate" offer
+				// carries (legal.go's priority window, cast.go's payment
+				// window), so an answerer can tell a non-tapping pool
+				// converter from a tap source here too.
+				opt.Cost = manaActivationCostMarker(e.availableManaAbilities(wm.payer, id))
+				d.Options = append(d.Options, opt)
+			}
 		}
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})

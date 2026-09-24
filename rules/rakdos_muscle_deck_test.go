@@ -250,7 +250,7 @@ func TestCharmingScoundrelWickedRoleAttaches(t *testing.T) {
 }
 
 // TestNameStickerGoblinExcludedOrigins pins trig:ChangesZone.ExcludedOrigins$
-// (and the IsPresent2$ union): the die roll fires on a battlefield entry
+// (and the IsPresent$ AND IsPresent2$ clause pair): the die roll fires on a battlefield entry
 // from hand, never on one from the graveyard or exile.
 func TestNameStickerGoblinExcludedOrigins(t *testing.T) {
 	// The die roll fires only for the hand entry, once the trigger resolves:
