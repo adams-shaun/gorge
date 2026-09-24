@@ -108,7 +108,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	fs.SetOutput(progress)
 	games := fs.Int("games", 10, "games per approved pair")
 	seed := fs.Uint64("seed", 30_000_000, "base development seed (the held-out range [1000000,2000000) is refused)")
-	kinds := fs.String("kinds", "attackers", "comma list of decision kinds the teacher answers: attackers, cast")
+	kinds := fs.String("kinds", "attackers", "comma list of decision kinds the teacher answers: attackers, blockers, cast")
 	worlds := fs.Int("worlds", 8, "K sampled worlds per decision")
 	attempts := fs.Int("attempts", 64, "sampler proposal attempts per decision")
 	minESS := fs.Float64("min-ess", 0, "ESS gate for resampling K worlds (0 = K, the calibration contract)")
@@ -153,7 +153,7 @@ func run(args []string, stdout, progress io.Writer) error {
 		horizon: int32(*horizon), maxSubmits: *maxSubmits, sampleSeed: *sampleSeed, maxTurn: int32(*maxTurn), oracle: *oracle, audit: *audit, labelsPath: *labelsPath, decisionWorkers: *decisionWorkers, noLandExclusion: *noLandExclusion, comparePotential: *comparePotential}
 	for _, k := range strings.Split(*kinds, ",") {
 		k = strings.TrimSpace(k)
-		if k != "attackers" && k != "cast" && k != "" {
+		if k != "attackers" && k != "blockers" && k != "cast" && k != "" {
 			return fmt.Errorf("unknown kind %q", k)
 		}
 		if k != "" {
@@ -496,6 +496,7 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 	var sampleMS, searchMS, coveredSampleMS, coveredSearchMS []float64
 	fallbacks := map[string]int{}
 	turnBuckets := map[string][2]int{}
+	perKind := map[string]*kindStats{}
 	for _, r := range all {
 		if r.Error != "" {
 			errs++
@@ -519,6 +520,20 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 		byPair[r.Pair] = pp
 		for _, d := range r.Decisions {
 			nd++
+			ks := perKind[d.Kind]
+			if ks == nil {
+				ks = &kindStats{fallbacks: map[string]int{}}
+				perKind[d.Kind] = ks
+			}
+			ks.asked++
+			if d.Covered {
+				ks.covered++
+				if d.ChosenDiffersFromBot {
+					ks.overrides++
+				}
+			} else {
+				ks.fallbacks[d.Fallback]++
+			}
 			accepted += d.Accepted
 			attemptsN += d.Attempts
 			compExclusions += d.CompetitionExclusions
@@ -594,6 +609,31 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 		p := byPair[k]
 		fmt.Fprintf(w, "  %-40s n=%3.0f search %5.1f%%  twin %5.1f%%\n", k, p[0], 100*p[1]/p[0], 100*p[2]/p[0])
 	}
+	// Per-kind split, appended after every pre-existing line so an old log
+	// still compares line for line up to here.
+	var kk []string
+	for k := range perKind {
+		kk = append(kk, k)
+	}
+	sort.Strings(kk)
+	for _, k := range kk {
+		ks := perKind[k]
+		fmt.Fprintf(w, "kind %s: asked %d, covered %d (%.1f%%), overrides %d (%.1f%% of covered)\n", k, ks.asked, ks.covered, pct(ks.covered, ks.asked), ks.overrides, pct(ks.overrides, ks.covered))
+		var fb []string
+		for f := range ks.fallbacks {
+			fb = append(fb, f)
+		}
+		sort.Strings(fb)
+		for _, f := range fb {
+			fmt.Fprintf(w, "  kind %s fallback %q: %d\n", k, f, ks.fallbacks[f])
+		}
+	}
+}
+
+// kindStats is summarize's per-decision-kind census.
+type kindStats struct {
+	asked, covered, overrides int
+	fallbacks                 map[string]int
 }
 
 func pct(a, b int) float64 {

@@ -8,6 +8,7 @@
 package rules
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -248,5 +249,154 @@ func TestGrantedCyclingAbilityShapes(t *testing.T) {
 	}
 	if cards.GrantedCyclingAbility("Flying") != nil {
 		t.Fatal("a non-cycling keyword line must synthesize nothing (fail closed)")
+	}
+}
+
+// TestGrantedCyclingTectonicReformationLandGrant is the LAND-card half of the
+// layer-6 cycling grant: Tectonic Reformation's
+// `Affected$ Land.YouOwn | AffectedZone$ Hand | AddKeyword$ Cycling:R` (no
+// EffectZone$, so the source-zone default applies) gives a land card in its
+// controller's hand cycling {R} -- a different Affected$ filter and a
+// different card type than the creature-grant pin -- and activating it
+// discards with the cycling provenance and draws.
+func TestGrantedCyclingTectonicReformationLandGrant(t *testing.T) {
+	reformation := mshCorpusCard(t, "Tectonic Reformation")
+	const land = "Name:Vanilla Land\nTypes:Land\nOracle:x\n"
+	e := handEngine(t, card(t, land))
+	reformationID := onBoardCard(t, e, 0, reformation)
+
+	landID := e.G.Zone(state.ZHand, 0)[0]
+	// Preconditions, each its own failure:
+	//  - the hand card is a LAND where the grant (Affected$ Land) and the
+	//    cycling activation (ActivationZone$ Hand) read it;
+	//  - it prints no Cycling, so the offered ability can only be the
+	//    granted one;
+	//  - the granter is on the battlefield, where the source-zone default
+	//    (no EffectZone$) makes the static live.
+	if o := e.G.Obj(landID); o == nil || o.Zone != state.ZHand || !slices.Contains(o.Face().Types, "Land") {
+		t.Fatalf("precondition: hand card = %+v, want a land in hand", o)
+	}
+	if o := e.G.Obj(landID); o != nil && o.Face().HasKeyword("Cycling") {
+		t.Fatal("precondition: the land must print no Cycling, else the offered ability is not the granted one")
+	}
+	if o := e.G.Obj(reformationID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: reformation = %+v, want on the battlefield (the grant's source-zone default)", o)
+	}
+	if param, ok := e.derivedKeywordParam(landID, "Cycling"); !ok || param != "R" {
+		t.Fatalf("precondition: derived cycling grant = (%q, %v), want (\"R\", true)", param, ok)
+	}
+
+	addMana(t, e, 0, "CR")
+	opt, ok := grantedCyclingOption(e, 0, landID)
+	if !ok {
+		t.Fatal("the granted land cycling activation was never offered: the Land Affected$ filter or the source-zone default did not reach the hand card")
+	}
+	if opt.Keyword != "Cycling:R" {
+		t.Fatalf("granted option keyword = %q, want \"Cycling:R\"", opt.Keyword)
+	}
+
+	e.beginActivation(0, opt)
+	submitChoices(t, e, 0) // the cost's Discard<1/CARDNAME>: the land itself
+	if got := e.G.Obj(landID).Zone; got != state.ZGraveyard {
+		t.Fatalf("the granted land cycle's discard left the land in %s, want graveyard", got)
+	}
+	tagged := 0
+	for _, ev := range e.L.Events {
+		if ev.Obj != landID || !events.IsDiscardCost(ev) {
+			continue
+		}
+		kw, ok := events.IsCyclingDiscard(ev)
+		if !ok || kw != "Cycling" {
+			t.Fatalf("the granted land activation's cost discard was not tagged as a cycling cost (kw=%q ok=%v)", kw, ok)
+		}
+		tagged++
+	}
+	if tagged != 1 {
+		t.Fatalf("tagged cycling cost discards = %d, want 1", tagged)
+	}
+	if n := countKind(e.L.Events, events.KeywordAbilityPush, landID); n != 1 {
+		t.Fatalf("KeywordAbilityPush count = %d, want 1", n)
+	}
+	libTop := e.G.Zone(state.ZLibrary, 0)[0]
+	e.resolveTop() // the granted cycling ability's draw
+	if e.G.Obj(libTop).Zone != state.ZHand {
+		t.Fatal("the granted land cycle did not draw")
+	}
+}
+
+// TestGrantedCyclingJoGrantHistoricGrant is the HISTORIC-card half of the
+// layer-6 cycling grant: Jo Grant's
+// `Affected$ Card.Historic+YouOwn | EffectZone$ Battlefield | AffectedZone$
+// Hand | AddKeyword$ Cycling:2 W` gives a historic card (artifact, legendary
+// or Saga -- CR 700.6 / the Historic reminder) in its controller's hand
+// cycling {2}{W}, and Jo Grant's own `Mode$ Cycled` trigger puts a +1/+1
+// counter on it when the cycle resolves.
+func TestGrantedCyclingJoGrantHistoricGrant(t *testing.T) {
+	jo := mshCorpusCard(t, "Jo Grant")
+	// A legendary artifact is historic on BOTH the artifact and legendary
+	// limbs of the filter.
+	const relic = "Name:Vanilla Relic\nManaCost:1\nTypes:Legendary Artifact\nOracle:x\n"
+	e := handEngine(t, card(t, relic))
+	joID := onBoardCard(t, e, 0, jo)
+
+	relicID := e.G.Zone(state.ZHand, 0)[0]
+	// Preconditions: a historic hand card that prints no Cycling, and the
+	// granter on the battlefield (EffectZone$ Battlefield).
+	if o := e.G.Obj(relicID); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("precondition: relic = %+v, want a hand card", o)
+	}
+	if o := e.G.Obj(relicID); o != nil && !slices.Contains(o.Face().Types, "Artifact") {
+		t.Fatal("precondition: the fixture must be historic (an artifact), else the grant cannot reach it")
+	}
+	if o := e.G.Obj(relicID); o != nil && o.Face().HasKeyword("Cycling") {
+		t.Fatal("precondition: the relic must print no Cycling, else the offered ability is not the granted one")
+	}
+	if o := e.G.Obj(joID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: jo = %+v, want on the battlefield (EffectZone$)", o)
+	}
+	if param, ok := e.derivedKeywordParam(relicID, "Cycling"); !ok || param != "2 W" {
+		t.Fatalf("precondition: derived cycling grant = (%q, %v), want (\"2 W\", true)", param, ok)
+	}
+
+	addMana(t, e, 0, "CCCW")
+	opt, ok := grantedCyclingOption(e, 0, relicID)
+	if !ok {
+		t.Fatal("the granted historic cycling activation was never offered: the Card.Historic+YouOwn Affected$ filter did not reach the hand card")
+	}
+	if opt.Keyword != "Cycling:2 W" {
+		t.Fatalf("granted option keyword = %q, want \"Cycling:2 W\"", opt.Keyword)
+	}
+
+	e.beginActivation(0, opt)
+	submitChoices(t, e, 0) // the cost's Discard<1/CARDNAME>: the relic itself
+	if got := e.G.Obj(relicID).Zone; got != state.ZGraveyard {
+		t.Fatalf("the granted historic cycle's discard left the relic in %s, want graveyard", got)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Obj != relicID || !events.IsDiscardCost(ev) {
+			continue
+		}
+		kw, ok := events.IsCyclingDiscard(ev)
+		if !ok || kw != "Cycling" {
+			t.Fatalf("the granted historic activation's cost discard was not tagged as a cycling cost (kw=%q ok=%v)", kw, ok)
+		}
+	}
+	if n := countKind(e.L.Events, events.KeywordAbilityPush, relicID); n != 1 {
+		t.Fatalf("KeywordAbilityPush count = %d, want 1", n)
+	}
+	// Jo Grant's own Cycled trigger ("Whenever you cycle a card, put a
+	// +1/+1 counter on Jo Grant") fires on the granted cycle and resolves
+	// above the cycling ability (CR 117.5).
+	if len(e.G.Stack) != 2 {
+		t.Fatalf("stack depth after the granted historic cycle = %d, want 2 (ability + Jo Grant's Cycled trigger)", len(e.G.Stack))
+	}
+	libTop := e.G.Zone(state.ZLibrary, 0)[0]
+	e.resolveTop() // Jo Grant's Cycled trigger
+	e.resolveTop() // the granted cycling ability's draw
+	if e.G.Obj(libTop).Zone != state.ZHand {
+		t.Fatal("the granted historic cycle did not draw")
+	}
+	if c := e.G.Obj(joID).Counter("P1P1"); c != 1 {
+		t.Fatalf("Jo Grant's Cycled trigger put %d +1/+1 counters, want 1", c)
 	}
 }
