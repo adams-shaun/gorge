@@ -1299,6 +1299,23 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 				ts = append(ts, t)
 			}
 		}
+	case "TriggeredCapturedPlayers":
+		// The firing trigger's fire-time PLAYER capture (Ctx.Captured) read
+		// on purpose. The plain Remembered heads (Remembered$Amount,
+		// Count$RememberedNumber) exclude that capture -- Forge's host
+		// remembered list never holds the event referent -- so a body whose
+		// count IS the referent set must name it through this Triggered*-
+		// family ref instead. Its one user is the synthesized Melee pump
+		// (cards.MeleePumpCount): rules captures one player ref per distinct
+		// opponent attacked in the declaration (rules/melee.go
+		// meleeRemembered) and the stack wrapper's logged Remembered comes
+		// back as Captured at resolution, so replay and stack copies read the
+		// same count. Amount is the only property.
+		for _, t := range c.Captured {
+			if t.IsPlayer {
+				ts = append(ts, t)
+			}
+		}
 	case "TriggeredPlayersTargets":
 		// The batch's matching TARGET PLAYERS (trig:DamageAll): Malcolm
 		// Keen-Eyed Navigator's and Hordewing Skaab's SVar:X reads the count
@@ -1325,7 +1342,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
 		return 0, false
 	}
-	if ref == "TriggeredPlayersTargets" && prop != "Amount" {
+	if (ref == "TriggeredPlayersTargets" || ref == "TriggeredCapturedPlayers") && prop != "Amount" {
 		return 0, false
 	}
 	g := h.Game()
@@ -1366,7 +1383,8 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n++
 				}
 			}
-		case prop == "Amount" && (ref == "TriggeredPlayersOpponentVotedDiff" || ref == "TriggeredPlayersTargets"):
+		case prop == "Amount" && (ref == "TriggeredPlayersOpponentVotedDiff" || ref == "TriggeredPlayersTargets" ||
+			ref == "TriggeredCapturedPlayers"):
 			n++
 		default:
 			// The Valid head and its countZone family: "Valid <spec>",
