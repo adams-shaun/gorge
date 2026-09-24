@@ -122,6 +122,18 @@ type pendingCast struct {
 	// card registers no cleanup sacrifice. Plain data, so Clone carries it.
 	offSorcery bool
 
+	// giftDone / giftPromise / giftTo are the CR 702.168 Gift election
+	// (Bloomburrow): the caster's optional promise of a gift to an opponent,
+	// announced as a free cast-time choice (giftAsk) and folded onto the
+	// stack object as an events.GiftPromise by pushCast so the target ask and
+	// resolution read one event-backed home. giftDone marks the one ask
+	// already posed (the forageDone/replicateDone shape), giftPromise is the
+	// answer (false = declined, the plain-cast direction) and giftTo names
+	// the promised opponent. Plain data, so Clone carries them.
+	giftDone    bool
+	giftPromise bool
+	giftTo      state.PlayerID
+
 	cost Cost
 
 	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
@@ -245,6 +257,12 @@ type pendingCast struct {
 	conspireSet  bool
 	conspireDone bool
 	conspirePaid bool
+
+	// Casualty's optional additional cost is a single power-qualified sacrifice.
+	// The chosen object is settled with the other sacrifice costs at payment.
+	casualtyN    int32
+	casualtyDone bool
+	casualtyPaid bool
 
 	// converge (task converge1) is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
@@ -930,6 +948,35 @@ func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.Ob
 				out = append(out, cid)
 				break
 			}
+		}
+	}
+	return out
+}
+
+// casualtyValue reads both printed and layer-6 granted keywords against the
+// proposed stack zone. A grant scoped to AffectedZone$ Stack therefore works
+// before pushCast, including CheckSVar-gated first-spell grants.
+func (e *Engine) casualtyValue(id state.ObjID) int32 {
+	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), "Casualty") {
+			var n int32
+			_, param, found := strings.Cut(k, ":")
+			if found {
+				_, err := fmt.Sscanf(strings.TrimSpace(param), "%d", &n)
+				if err == nil && n >= 0 {
+					return n
+				}
+			}
+		}
+	}
+	return -1
+}
+
+func (e *Engine) casualtyCandidates(p state.PlayerID, spell state.ObjID, n int32) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		if e.matchesSpecFrom("Creature.YouCtrl", id, p, spell) && e.Power(id) >= n {
+			out = append(out, id)
 		}
 	}
 	return out
@@ -2351,7 +2398,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		optionalCost = parts[opt.AltCostIndex-1]
 	}
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "casualty" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -2490,6 +2537,9 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// settle through pc.taps exactly like every other tap cost.
 	if opt.Mode == "conspired" {
 		e.cast.conspireSet = true
+	}
+	if opt.Mode == "casualty" {
+		e.cast.casualtyN = e.casualtyValue(id)
 	}
 	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
 	// were mana of any color to cast it". Recorded from the grant the offer
@@ -2698,6 +2748,13 @@ func (e *Engine) continueCast() {
 	if e.altAddAsk() {
 		return
 	}
+	// CR 702.168: the Gift promise is announced as a free cast-time choice.
+	// It must settle before CR 601.2c's target ask, because a TargetMin$/Max$
+	// X bound of Count$PromisedGift.2.1 resolves when that ask is built -- a
+	// promise settled after targeting would be invisible to it.
+	if e.giftAsk() {
+		return
+	}
 	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
 		return
 	}
@@ -2724,7 +2781,7 @@ func (e *Engine) continueCast() {
 	// CR 702.78a: the Conspire tap election (two untapped creatures that
 	// share a colour with the spell) is posed before Convoke/X so an elected
 	// creature cannot also be announced as a payment source. See conspireAsk.
-	if e.conspireAsk() {
+	if e.conspireAsk() || e.casualtyAsk() {
 		return
 	}
 	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
@@ -2898,6 +2955,47 @@ func (e *Engine) altAddAsk() bool {
 	for _, i := range order {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "altaddcost",
 			Label: capitaliseFirst(costPhrase(ParseCost(pc.altAddParts[i]))), Amount: i})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// giftAsk poses the CR 702.168 Gift election: "You may promise an opponent a
+// gift as you cast this spell." The election is FREE -- no mana, no card --
+// and is a single KChoose offering a decline plus one option per legal
+// opponent (CR 702.168a: the caster chooses WHICH opponent), so a two-seat
+// game offers exactly one opponent plus the decline. The answer goes nowhere
+// here: it rides pc and pushCast folds it onto the stack object as an
+// events.GiftPromise, the replay-derived home the target bound and the
+// resolution read. Only a face printing K:Gift with a GiftAbility SVar poses
+// the ask, so no unrelated cast gains a decision. The one-home answer rule
+// is the generic KChoose contract (Min 1 / Max 1 over the offered options),
+// which already drives Decision.Validate; the bot's own answer is proven
+// against it in botpolicy's gift test, so no parallel rule can drift.
+func (e *Engine) giftAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.giftDone || pc.isAbility() {
+		return false
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil || !o.Face().HasKeyword("Gift") {
+		return false
+	}
+	if _, ok := o.Face().SVars["GiftAbility"]; !ok {
+		return false
+	}
+	pc.giftDone = true
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Promise a gift?", Source: pc.card}
+	d.Options = append(d.Options, decision.Option{Index: 0, Kind: "gift_decline",
+		Label: "Don't promise a gift"})
+	for _, p := range e.G.AliveFrom(pc.player) {
+		if p == pc.player {
+			continue
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "gift_promise",
+			Player: p, Label: "Promise " + tossName(e.G, p) + " a gift"})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
@@ -3191,13 +3289,20 @@ func (e *Engine) exAsk() bool {
 			}
 		}
 		n := int(part.N)
-		if n <= 0 || n > len(candidates) {
+		if part.Announced {
+			n = int(pc.x)
+		}
+		if n < 0 || n > len(candidates) || (!part.Announced && n == 0) {
 			e.abortCast(pc, "exile cost no longer payable; cast/activation aborted", true)
 			return true
 		}
+		if n == 0 {
+			pc.exilePart++
+			continue
+		}
 		// A singleton self-reference (encore's ExileFromGrave<1/CARDNAME>, the
 		// sole candidate being the resolving card itself) has no player choice.
-		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
+		if !part.Announced && part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
 			strings.EqualFold(part.Spec, "CARDNAME") {
 			pc.exiles = append(pc.exiles, pc.card)
 			pc.exilePart++
@@ -3796,6 +3901,29 @@ func (e *Engine) conspireAsk() bool {
 	return true
 }
 
+// casualtyAsk announces the optional sacrifice before payment. The chosen
+// creature remains on the battlefield until payCast, after target selection.
+func (e *Engine) casualtyAsk() bool {
+	pc := e.cast
+	if pc.mode != "casualty" || pc.casualtyDone {
+		return false
+	}
+	pc.casualtyDone = true
+	candidates := e.casualtyCandidates(pc.player, pc.card, pc.casualtyN)
+	if pc.casualtyN < 0 || len(candidates) == 0 {
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card, Text: "casualty no longer payable; casting without casualty"})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose a creature to sacrifice for casualty", Source: pc.card}
+	for _, id := range candidates {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "casualty", Obj: id, Label: e.targetName(id)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
 // max is the largest value the mana pool (crediting the best possible
 // Delve) can still pay. Runs at most once (xDone).
@@ -3834,9 +3962,8 @@ func (e *Engine) xAsk() bool {
 	// A PayEnergy<X> part announces the same X the cast pays with (CR
 	// 107.3i's ability X), so its presence triggers this ask exactly like a
 	// printed {X} mana symbol does. A Sac<X/Spec> part announces the count of
-	// permanents to sacrifice the same way; the announced PayLife<X> and
-	// SubCounter<X/Kind> parts announce the same X too (the life and the
-	// counter removal settle at exactly that value).
+	// permanents to sacrifice the same way; announced ExileFromGrave<X/Spec>,
+	// PayLife<X> and SubCounter<X/Kind> parts also announce this shared X.
 	energyX := false
 	for _, part := range pc.cost.Energy {
 		if part.Spec == "X" {
@@ -3849,6 +3976,12 @@ func (e *Engine) xAsk() bool {
 			sacX = true
 		}
 	}
+	exileX := false
+	for _, part := range pc.cost.Exile {
+		if part.Announced {
+			exileX = true
+		}
+	}
 	subCounterX := false
 	for _, part := range pc.cost.SubCounter {
 		if part.Announced {
@@ -3856,7 +3989,7 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	lifeXCount := len(pc.cost.LifeX)
-	if pc.cost.X <= 0 && !energyX && !sacX && !subCounterX && lifeXCount == 0 {
+	if pc.cost.X <= 0 && !energyX && !sacX && !exileX && !subCounterX && lifeXCount == 0 {
 		return false
 	}
 	min := int32(0)
@@ -3902,6 +4035,18 @@ func (e *Engine) xAsk() bool {
 			}
 		}
 	}
+	// Without a printed mana X or energy X, the mana-pool ceiling is not
+	// relevant. The first announced-count part supplies the ceiling; every
+	// subsequent part (including tapXType) min-clamps that same X.
+	announcedOnly := pc.cost.X <= 0 && !energyX
+	boundSet := false
+	applyCap := func(cap int32) {
+		if announcedOnly && !boundSet {
+			bound, boundSet = cap, true
+		} else if cap < bound {
+			bound = cap
+		}
+	}
 	// A Sac<X/Spec> part's bound is the number of matching permanents the
 	// payer could sacrifice -- announcing a count beyond it could never be
 	// settled (CR 601.2b's announcement must be one the payment can settle).
@@ -3910,11 +4055,7 @@ func (e *Engine) xAsk() bool {
 	for _, part := range pc.cost.Sac {
 		if part.Announced {
 			avail := int32(len(e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility())))
-			if pc.cost.X == 0 && !energyX && bound > avail {
-				bound = avail
-			} else if avail < bound {
-				bound = avail
-			}
+			applyCap(avail)
 		}
 	}
 	// An X-form tapXType part settles exactly the announced X the same way a
@@ -3937,11 +4078,7 @@ func (e *Engine) xAsk() bool {
 			}
 			avail++
 		}
-		if pc.cost.X == 0 && !energyX && bound > avail {
-			bound = avail
-		} else if avail < bound {
-			bound = avail
-		}
+		applyCap(avail)
 	}
 	// An announced SubCounter<X/Kind> part's bound is the number of counters
 	// of that kind the SOURCE actually has (Chandra, Awakened Inferno's
@@ -3957,14 +4094,14 @@ func (e *Engine) xAsk() bool {
 	// mana X -- and when another announced X also exists each cap min-clamps
 	// the shared X (CR 601.2b's announcement must be one the payment can
 	// settle).
-	announcedOnly := pc.cost.X <= 0 && !energyX && !sacX
-	boundSet := false
-	applyCap := func(cap int32) {
-		if announcedOnly && !boundSet {
-			bound, boundSet = cap, true
-		} else if cap < bound {
-			bound = cap
+	for _, part := range pc.cost.Exile {
+		if !part.Announced {
+			continue
 		}
+		// Use the same source exclusion and zone-order filter as exAsk: a
+		// spell cast from this graveyard cannot exile itself as its cost.
+		candidates := e.costCandidates(pc.player, pc.card, state.ZGraveyard, part.Spec, !pc.isAbility(), false)
+		applyCap(int32(len(candidates)))
 	}
 	for _, part := range pc.cost.SubCounter {
 		if !part.Announced {
@@ -5596,8 +5733,9 @@ func costAnnouncesSacX(c Cost) bool {
 // costAnnouncesPaidX reports whether the cost carries ANY announced-count
 // part whose count the cast announces as X: the Sac<X/Spec> shape
 // (costAnnouncesSacX), the announced SubCounter<X/Kind> removal and the
-// announced PayLife<X> payment. The offer-time costModifiers snapshot was
-// bound to X=0, so a static reading the paid X must be re-priced once the
+// announced PayLife<X> or ExileFromGrave<X/Spec> payment. The offer-time
+// costModifiers snapshot was bound to X=0, so a static reading the paid X
+// must be re-priced once the
 // announcement is known -- the same reason Dargo's Sac<X> needed it.
 func costAnnouncesPaidX(c Cost) bool {
 	if costAnnouncesSacX(c) {
@@ -5607,6 +5745,11 @@ func costAnnouncesPaidX(c Cost) bool {
 		return true
 	}
 	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.Exile {
 		if part.Announced {
 			return true
 		}
@@ -6665,6 +6808,27 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		if len(chosen) > 0 {
 			pc.mutateTop = chosen[0].Amount == 1
 		}
+	case "casualty":
+		if len(chosen) == 1 {
+			pc.sacs = append(pc.sacs, chosen[0].Obj)
+			pc.casualtyPaid = true
+		}
+	case "gift_decline":
+		// CR 702.168: a declined gift is the plain cast -- no promise, and
+		// pushCast emits only the Amount-0 record. The byte-identical shape
+		// for every non-Gift carrier, which never reaches this ask at all.
+		pc.giftPromise = false
+	case "gift_promise":
+		// The promised opponent rides Option.Player, the field the
+		// protector/player elections share. An answer naming no live seat
+		// (only reachable from a hand-built decision) degrades to a decline
+		// rather than silently promising seat 0.
+		pc.giftPromise = false
+		if len(chosen) > 0 && chosen[0].Player != pc.player &&
+			int(chosen[0].Player) < len(e.G.Players) && !e.G.Players[chosen[0].Player].Lost {
+			pc.giftPromise = true
+			pc.giftTo = chosen[0].Player
+		}
 	case "conspire":
 		// CR 702.78a: the two chosen creatures are the tap the conspired cast
 		// pays. They settle through pc.taps (payCast taps them) and
@@ -6984,7 +7148,7 @@ func modeFlags(mode string) string {
 	// DECLINED/plain cast must stay byte-identical -- no flag and no event,
 	// exactly the "replicated" contract above. When the tap WAS paid,
 	// payCast ORs FlagConspired onto a trailing CastInfo.
-	case "conspired":
+	case "conspired", "casualty":
 		return ""
 	// The morph family's face-down cast (CR 702.37a/702.168a/702.169a): the
 	// flag is the provenance that names the keyword family the {3} cast
@@ -7903,6 +8067,19 @@ func (e *Engine) pushCast() bool {
 	}
 	pc.stackObj = pc.card
 	pc.pushed = true
+	// CR 702.168: the Gift election was announced before CR 601.2a, so fold
+	// it onto the now-existing stack object here -- the target ask that
+	// follows reads Count$PromisedGift off it, and events.Move carries the
+	// promise across the stack->battlefield move for a permanent's ETB. Only
+	// a cast that actually reached the Gift ask emits (Amount 1 for a
+	// promise, 0 for a decline); every unrelated cast stays byte-identical.
+	if pc.giftDone {
+		amt := int32(0)
+		if pc.giftPromise {
+			amt = 1
+		}
+		e.emit(events.Event{Kind: events.GiftPromise, Obj: pc.card, Player: pc.giftTo, Amount: amt})
+	}
 	// CR 903.8: the cast counter increments the INSTANT the spell is put on
 	// the stack, never when it resolves -- so a commander spell that is later
 	// countered still raises the next cast's tax. Only a cast FROM the
@@ -8757,6 +8934,14 @@ func (e *Engine) payCast() {
 	// reads the mode (e.g. "cast a kicked spell") sees it, because the flag
 	// is applied before the trigger fires next.
 	flags := modeFlags(pc.mode)
+	// CR 702.168: the Gift promise rides the pay-time CastInfo too -- the
+	// CastFlags word is assigned wholesale here, so the bit events.GiftPromise
+	// folded at pushCast (which the CR 601.2c target ask read) must be
+	// re-stated or this later event would clear it. A declined promise emits
+	// no flag.
+	if pc.giftPromise {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagPromisedGift)
+	}
 	if pc.mode == "mutated" && pc.mutateTop {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMutatedTop)
 	}
@@ -9000,6 +9185,16 @@ func (e *Engine) payCast() {
 		castLKI = e.deferredPushLKI
 	}
 	e.fireDeferredCastTrigger()
+	// Casualty is a cast trigger only when its additional sacrifice was paid.
+	// Queue a respondable ability, rather than copying at payment; the event
+	// payload rebuilds its body during replay (including permanent copies).
+	if pc.casualtyPaid && castEv.Kind == events.PutOnStack {
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source: pc.card, Controller: pc.player, Casualty: true,
+			Ctx: effects.Ctx{Source: pc.card, Controller: pc.player,
+				Remembered: []state.Target{{Obj: pc.card}}},
+		})
+	}
 	if castEv.Kind == events.PutOnStack {
 		e.fireManaSpentTriggers(castEv, castLKI)
 	}

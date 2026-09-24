@@ -320,6 +320,24 @@ describe('SeatPanel — the prompt surface (fb prompts: never passed over, never
   });
 });
 
+describe('SeatPanel — name-a-card picker', () => {
+  const names: Decision = { seq: 30, player: 1, kind: 'choose', prompt: 'Name a nonland card', min: 1, max: 1, options: Array.from({ length: 205 }, (_, i) => ({ index: i, kind: 'name', label: `Card ${String(i).padStart(3, '0')}`, player: 1 })) };
+  it('filters and caps rendered name rows while preserving wire indexes', () => {
+    const st = new SeatPanelState('t1', 1, ctx, null, null); st.adoptView(names); st.searchFilter = 'card 20';
+    const html = render(SeatPanel, { props: { ...props(view(names)), state: st } }).html;
+    expect(html).toContain('data-name-filter'); expect(html).toContain('data-name-count');
+    expect([...html.matchAll(/data-option="(\d+)"/g)].map((m) => Number(m[1]))).toEqual([200, 201, 202, 203, 204]);
+    expect(html).toContain('Showing first 5 of 5 matches');
+  });
+  it('caps the unfiltered list at 200 and leaves modes on the generic list', () => {
+    const html = render(SeatPanel, { props: props(view(names)) }).html;
+    expect([...html.matchAll(/data-option="(\d+)"/g)]).toHaveLength(200);
+    expect(html).toContain('205 cards — type to filter');
+    const modes = render(SeatPanel, { props: props(view({ ...names, kind: 'modes', options: [opt(0, 'mode', 'Mode A')] })) }).html;
+    expect(modes).not.toContain('data-name-filter'); expect(modes).toContain('Mode A');
+  });
+});
+
 describe('SeatPanel — the mulligan prompt names the starting player (rv2a)', () => {
   // The fixture is the ENGINE'S OWN wire bytes, not a hand-written prompt:
   // host's TestTheMulliganStarterFixtureIsTheEngineSOwnWireBytes drives a real
@@ -397,6 +415,31 @@ describe('SeatPanel — the library-search picker (fb-20260916T181754Z)', () => 
 
   const optionOrder = (html: string): number[] =>
     [...html.matchAll(/data-option="(\d+)"/g)].map((m) => Number(m[1]));
+
+  it('name asks filter, sort, cap rendered rows, and keep modes in the generic branch', () => {
+    const nameAsk: Decision = { seq: 31, player: 1, kind: 'choose', prompt: 'Name a card', min: 1, max: 1, options: [
+      { index: 0, kind: 'name', label: 'Zulu', player: 1 },
+      { index: 1, kind: 'name', label: 'Alpha', player: 1 },
+      { index: 2, kind: 'name', label: 'Beta', player: 1 },
+    ] };
+    let html = render(SeatPanel, { props: props(view(nameAsk)) }).html;
+    expect(html).toContain('data-name-filter');
+    expect(html).toContain('3 cards — type to filter');
+    expect(optionOrder(html)).toEqual([1, 2, 0]);
+    const st = new SeatPanelState('t1', 1, ctx, null, null);
+    st.adoptView(nameAsk);
+    st.searchFilter = 'et';
+    html = render(SeatPanel, { props: { ...props(view(nameAsk)), state: st } }).html;
+    expect(optionOrder(html)).toEqual([2]);
+    expect(html).toContain('Showing first 1 of 1 matches');
+    const many = { ...nameAsk, seq: 32, options: Array.from({ length: 205 }, (_, index) => ({ index, kind: 'name', label: `Card ${index}`, player: 1 })) } as Decision;
+    html = render(SeatPanel, { props: props(view(many)) }).html;
+    expect(optionOrder(html)).toHaveLength(200);
+    expect(html).toContain('205 cards — type to filter');
+    const { html: generic } = render(SeatPanel, { props: props(view(modesAsk)) });
+    expect(generic).not.toContain('data-name-filter');
+    expect(generic).toContain('data-options');
+  });
 
   it('a search ask renders the filter input and its faces in ALPHABETICAL display order, with the wire indexes intact', () => {
     const { html } = render(SeatPanel, { props: props(view(searchAsk)) });

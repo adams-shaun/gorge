@@ -790,6 +790,25 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return out, true
 		}
 		return nil, true
+	case "Promised":
+		// CR 702.168: the opponent the resolving source's cast promised a
+		// gift (Wear Down's `DB$ Draw | Defined$ Promised`, Valley Rally's
+		// `TokenOwner$ Promised`, Perch Protection's `DB$ AddTurn | Defined$
+		// Promised`). The read is Object.GiftPromisedTo, the event-backed
+		// promise the cast-flow GiftPromise election folded -- the SAME one
+		// home the PromisedGift predicate and the Count$PromisedGift head
+		// read. No promise (a declined election, a card never cast) or a
+		// source without one resolves to NOBODY with ok=true, the
+		// FlippedHeads/fail-closed convention: a reader acts on nobody rather
+		// than guessing at a fallback target. The promised player still being
+		// alive is not required -- `they draw a card` on a departed opponent
+		// is the spell's own resolution, not a targeting requirement.
+		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagPromisedGift != 0 {
+			if int(o.GiftPromisedTo) < len(g.Players) {
+				return []state.Target{{Player: o.GiftPromisedTo, IsPlayer: true}}, true
+			}
+		}
+		return nil, true
 	case "ReplacedCard":
 		// The card a zone-change replacement is acting on. Outside such a
 		// replacement (or after the object ceased to exist), resolve nothing.

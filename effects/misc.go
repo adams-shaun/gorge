@@ -2720,10 +2720,54 @@ func hasChosenPlayers(ts []state.Target) bool {
 // `AB$ SetState | Mode$ TurnFaceUp` lines carry (Woolly Loxodon and its 22
 // siblings); a non-face-down permanent is left alone, matching the marker's
 // own battlefield gate.
+//
+// Optional$ True is a real may election (Dowsing Dagger's "you may transform
+// this Equipment", High Marshal Arguel's "you may transform it"): the ask is
+// posed before the change -- but only when at least one Defined$ object would
+// actually change, so a no-op shape asks nothing (the Attach/PutCounter
+// len(legal) == 0 gate). Option 0 is "yes" and option 1 "no", so the
+// deterministic bot clamp answers "yes" and bot games stay byte-identical to
+// the pre-ask always-change. The answer rides Ctx.SetStateOpt (fx42 scoping:
+// consumed and cleared at the top); a decline changes nothing and the chained
+// SubAbility$ still runs (the chain is owned by Resolve, never by a decline).
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
+	// fx42 scoping: consume and clear the answered Optional$ election at the
+	// top, so a nested SetState in the same chain poses its own ask.
+	optAns := c.SetStateOpt
+	c.SetStateOpt = ""
 	mode := sa.Params["Mode"]
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
 	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
+	if optional && optAns == "" {
+		// Unanswered: pose the yes/no election -- but only when the change
+		// would actually do something; with nothing to change, decline and
+		// accept are the same, so no ask (the Attach precedent's
+		// len(legal) == 0 gate). AskAsked suspends; the answer re-enters
+		// with Ctx.SetStateOpt set. AskNoHost is the deterministic decline
+		// stand-in (R-9): the clamp-answered bot path answers option 0 =
+		// "yes", so a bot game stays byte-identical to the pre-ask
+		// always-change.
+		if setStateWouldChange(h, c, sa, turnUp, turnDown) {
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source: c.Source, ResumeKind: "setstate_optional", ResumeSA: sa,
+				ResumeRemembered: copyTargets(c.Remembered),
+				Prompt:           "Change this permanent's face?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}}
+			_ = Ask(h, d)
+			return
+		}
+	}
+	if optional && optAns != "" && optAns != "yes" {
+		// Answered "no" (or any non-affirmative marker): the decline. No
+		// face change and no Note is emitted; the chained SubAbility$ STILL
+		// RUNS -- the chain is owned by Resolve, not by this body (the
+		// PutCounter/Attach.Optional precedent).
+		return
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -2752,6 +2796,39 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
 		h.Emit(events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: int32(next)})
 	}
+}
+
+// setStateWouldChange reports whether the SetState resolution would change at
+// least one of its Defined$ objects' faces -- the gate that keeps an Optional$
+// ask from being posed when decline and accept are the same outcome. It is the
+// exact per-object predicate the emitting loop below applies, so the gate can
+// never disagree with what the loop would do.
+func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown bool) bool {
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		if turnUp {
+			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
+				return true
+			}
+			continue
+		}
+		if turnDown {
+			if o.Zone == state.ZBattlefield && !o.FaceDown {
+				return true
+			}
+			continue
+		}
+		if o.Card != nil && len(o.Card.Faces) >= 2 {
+			return true
+		}
+	}
+	return false
 }
 
 // effCounter removes the targeted spell from the stack to its owner's

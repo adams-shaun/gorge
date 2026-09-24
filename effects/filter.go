@@ -108,6 +108,23 @@ var predicates = map[string]predFn{
 		s := g.Obj(src)
 		return s != nil && o.Attacking == s.Controller
 	},
+	// Mangara/Tomik count attackers at you or your planeswalkers. Attacking
+	// and AttackingBattle (state/object.go) distinguish a battle protector
+	// from a planeswalker defender; battles must not be counted.
+	"attackingYouOrYourPWLKI": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
+		if !o.IsAttacking || o.Attacking != you {
+			return false
+		}
+		if o.AttackingBattle == 0 {
+			return true
+		}
+		b := g.Obj(o.AttackingBattle)
+		if b == nil || b.Controller != you || b.Face() == nil {
+			return false
+		}
+		f := b.Face()
+		return f.IsPlaneswalker() && !f.IsCreature()
+	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
@@ -166,6 +183,18 @@ var predicates = map[string]predFn{
 	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
+	},
+	// PromisedGift is Forge's Card.PromisedGift (CR 702.168): the object is a
+	// spell or permanent whose cast opted into the Gift keyword's promise.
+	// The bit is folded by events.GiftPromise from the cast-flow election and
+	// preserved across the stack->battlefield move, so it reads on the spell
+	// during resolution (Perch Protection's ConditionPresent$
+	// Card.Self+PromisedGift) and on the permanent at its ETB (Kitnap's
+	// ConditionPresent$ Card.PromisedGift). Absent a promise it fails closed
+	// to false -- a card that never carried the keyword, or a copy (never
+	// cast), matches neither the bare nor the '!' form's positive half.
+	"PromisedGift": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagPromisedGift != 0
 	},
 	"surged": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagSurged != 0

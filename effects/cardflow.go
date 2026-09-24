@@ -161,7 +161,23 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	// what moved). Unread before this — the whole sub-chain saw nothing. A
 	// draw that parked on a dredge ask has not happened yet, so the record
 	// waits until the draw is real (the suspend check below).
-	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDrawn"]), "True")
+	// The corpus uses both True and AllReplaced; both record cards this
+	// ability's draws actually moved into a hand (replaced draws are not here).
+	remember := strings.TrimSpace(sa.Params["RememberDrawn"]) != ""
+	if remember {
+		// A triggered ability's resolution starts with its fire-time event
+		// capture already in Ctx.Remembered (rules/resolution.go seeds both
+		// Remembered and Captured from the ability object's own Remembered).
+		// That object -- for Communal Brewing's self-ETB trigger, the
+		// entering Brewing itself -- is not a card drawn this way, so it must
+		// not inflate Remembered$Amount ("one ingredient counter ... for each
+		// card drawn this way") nor defeat the did-I-draw-anything gate
+		// (Mr. Foxglove's `ConditionDefined$ Remembered | ConditionCompare$
+		// EQ0`). Drop it before recording what the draws actually moved; the
+		// helper is the same capture-exclusion every TriggerRemembered$Amount
+		// read uses, and it is a no-op for an activated ability (no capture).
+		c.Remembered = rememberedExcludingCapture(h, c)
+	}
 	targets := actingPlayers(h, c, sa)
 	total := int32(len(targets)) * n
 	// OptionalDecider$ (Mystic Remora, Rhystic Study — Forge's DrawEffect
@@ -1245,6 +1261,8 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	}
 	dest := ParseZone(destName)
 	optional := sa.Params["Optional"] == "True"
+	promptToSkipOptional := strings.EqualFold(strings.TrimSpace(sa.Params["PromptToSkipOptionalAbility"]), "True") ||
+		strings.TrimSpace(sa.Params["OptionalAbilityPrompt"]) != ""
 	// The variant params (see the comment block above the function for what
 	// each means and which corpus card carries it).
 	revealWin := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") &&
@@ -1313,6 +1331,12 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		top := append([]state.ObjID(nil), lib[:n]...)
 		if fromBottom {
 			top = append([]state.ObjID(nil), lib[int32(len(lib))-n:]...)
+		}
+		// An empty answer to the optional-ability election declines the entire
+		// Dig ability: leave the looked-at window in place and do not process
+		// its remainder, reveal, or destination side effects.
+		if digDone && targetIndex == digTarget && promptToSkipOptional && len(digAns) == 0 {
+			continue
 		}
 		// primaryMoved is the temporary library pile for a primary
 		// DestinationZone$ Library move. It is placed after the remainder has
@@ -1533,7 +1557,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// an EARLIER target's take answer resumed the walk (targetIndex >
 		// digTarget), while an arrange re-entry keeps main's deliberate
 		// deterministic processing for every target past arrangeThrough.
-		optionalChoice := optional && len(budgetEligible) > 0 && changeNum > 0
+		optionalChoice := (optional || promptToSkipOptional) && len(budgetEligible) > 0 && changeNum > 0
 		takeChoice := int32(len(budgetEligible)) > changeNum || anyNum && len(budgetEligible) > 0
 		chooser := p
 		if rawChooser := strings.TrimSpace(sa.Params["Choser"]); rawChooser != "" {
@@ -1552,7 +1576,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
 			}
 			minv := int32(0)
-			if !optional && !anyNum {
+			if !optional && !promptToSkipOptional && !anyNum {
 				minv = changeNum
 			}
 			// A mandatory budget dig whose changeNum exceeds what the budget
@@ -1567,7 +1591,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				maxv = len(budgetEligible)
 			}
 			verb := "you may put up to "
-			if !optional && !anyNum {
+			if !optional && !promptToSkipOptional && !anyNum {
 				verb = "put "
 			}
 			prompt := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)

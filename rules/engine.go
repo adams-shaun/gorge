@@ -812,6 +812,13 @@ type Engine struct {
 	// sink, so the outer effect's rider loop sees only its own mints. Nil on
 	// every ordinary Emit, so no other emit pays for the collection.
 	tokenMintSink *[]state.ObjID
+	// stackCopyMintSink, when non-nil, collects the object the StackCopy
+	// event currently being emitted actually minted (EmitStackCopy). Same
+	// stack discipline as tokenMintSink: a nested stack copy saves and
+	// restores the outer sink. A StackCopy never spawns more than one object
+	// (this engine has no CopySpell replacement), so the slice holds at most
+	// one id. Nil on every ordinary Emit, so no other emit pays for it.
+	stackCopyMintSink *[]state.ObjID
 	// replReplaced is the ev.Obj of the replacement applyReplacements is
 	// currently resolving — the object the replaced event was about. It is
 	// seeded by applyReplacements (Ctx.Replaced = ev.Obj) and read by Ask to
@@ -2508,6 +2515,10 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.TokenCreate && e.tokenMintSink != nil {
 		tokenMintWant = e.G.NextID
 	}
+	var stackCopyMintWant state.ObjID
+	if ev.Kind == events.StackCopy && e.stackCopyMintSink != nil {
+		stackCopyMintWant = e.G.NextID
+	}
 	wasTapped := false
 	if ev.Kind == events.Untap {
 		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
@@ -2528,6 +2539,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if tokenMintWant != 0 && e.G.Obj(tokenMintWant) != nil {
 		*e.tokenMintSink = append(*e.tokenMintSink, tokenMintWant)
+	}
+	if stackCopyMintWant != 0 && e.G.Obj(stackCopyMintWant) != nil {
+		*e.stackCopyMintSink = append(*e.stackCopyMintSink, stackCopyMintWant)
 	}
 	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
 		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
