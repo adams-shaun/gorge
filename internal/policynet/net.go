@@ -108,6 +108,12 @@ type Model struct {
 	// a feature-family experiment sets it through NewModelExtra. Not part of
 	// EncoderHash and not checkpointable.
 	ExtraW int
+	// Features is the feature set (features.go) the model encodes under.
+	// FeaturesV1, the zero value, is the pinned encoder every existing
+	// checkpoint was trained on. It changes no geometry: the other sets only
+	// add hashed rows to the same table. The checkpoint carries it through
+	// its encoder hash (EncoderHashFor).
+	Features FeatureSet
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
 	StateW []float32 // DenseWidth*H, row-major: StateW[d*H+j]
@@ -138,6 +144,16 @@ type Model struct {
 	VHidB       []float32 // ValueHidden
 	VOutW       []float32 // ValueHidden
 	VOutB       float32
+
+	// The ENTITY encoder (ticket pn14, entity.go; FeaturesEntity only):
+	// EntK 0 means none, and then the three blocks are empty and InW is the
+	// pinned geometry. With EntK > 0 the hidden input grows by 2·EntK (the
+	// option's two referenced cards' encodings) and the state trunk gains the
+	// pooled projection.
+	EntK int
+	EntW []float32 // EntK*(EntityRawWidth+H), row-major: EntW[q*entInW+i]
+	EntB []float32 // EntK
+	EntP []float32 // (EntityGroups*2*EntK)*H, row-major: EntP[p*H+j]
 }
 
 // HasValue reports whether the model carries a value head.
@@ -402,6 +418,14 @@ func fillUniform(w []float32, lim float32, rng *rand.Rand) {
 // sparse hashed rows plus the dense projection. Zero-valued dense inputs are
 // skipped (exact: adding w·0 is a no-op for finite weights).
 func (m *Model) StateTrunk(st State) []float32 {
+	s, _ := m.stateTrunkEnt(st)
+	return s
+}
+
+// stateTrunkEnt is StateTrunk plus the entity forward it pooled (nil for a
+// model without an entity encoder, whose trunk is then exactly the pinned
+// sum-pool + dense projection).
+func (m *Model) stateTrunkEnt(st State) ([]float32, *entCache) {
 	s := make([]float32, m.H)
 	copy(s, m.StateB)
 	for _, f := range st.Sparse {
@@ -422,13 +446,15 @@ func (m *Model) StateTrunk(st State) []float32 {
 			s[j] += m.StateW[base+j] * v
 		}
 	}
-	return s
+	c := m.entForward(st)
+	m.entAddTrunk(s, c)
+	return s, c
 }
 
 // inputVector builds one option's hidden-layer input x = [s ‖ hashed-embed ‖
 // slots ‖ dense]. Slots whose Row falls outside OptionSlotWidth are dropped
 // (the encoder never emits one).
-func (m *Model) inputVector(s []float32, o Option) []float32 {
+func (m *Model) inputVector(s []float32, o Option, c *entCache) []float32 {
 	x := make([]float32, m.InW)
 	copy(x, s)
 	off := m.H
@@ -451,6 +477,7 @@ func (m *Model) inputVector(s []float32, o Option) []float32 {
 	for i := 0; i < m.ExtraW && i < len(o.Extra); i++ {
 		x[off+i] = o.Extra[i]
 	}
+	m.entFillInput(x, o, c)
 	return x
 }
 
@@ -493,10 +520,10 @@ func (m *Model) residual(o Option) float32 {
 // the state trunk is computed once, then each option gets its own head
 // forward. The returned slice parallels opts.
 func (m *Model) Score(st State, opts []Option) []float32 {
-	s := m.StateTrunk(st)
+	s, c := m.stateTrunkEnt(st)
 	out := make([]float32, len(opts))
 	for i := range opts {
-		x := m.inputVector(s, opts[i])
+		x := m.inputVector(s, opts[i], c)
 		y, _ := m.forwardHead(x)
 		out[i] = y + m.residual(opts[i])
 	}
@@ -521,6 +548,10 @@ type Grads struct {
 	VHidB []float32
 	VOutW []float32
 	VOutB float32
+	// The entity encoder's blocks (empty when the model has none).
+	EntW []float32
+	EntB []float32
+	EntP []float32
 
 	noted   []byte    // Rows: 1 when the row is in touched
 	touched []int32   // table rows written since the last Reset
@@ -544,6 +575,9 @@ func (m *Model) NewGrads() *Grads {
 		VHidW:  make([]float32, len(m.VHidW)),
 		VHidB:  make([]float32, len(m.VHidB)),
 		VOutW:  make([]float32, len(m.VOutW)),
+		EntW:   make([]float32, len(m.EntW)),
+		EntB:   make([]float32, len(m.EntB)),
+		EntP:   make([]float32, len(m.EntP)),
 		noted:  make([]byte, m.Rows),
 		dx:     make([]float32, m.InW),
 		da:     make([]float32, m.Hidden),
@@ -593,6 +627,9 @@ func (g *Grads) zeroValue() {
 	zero(g.VHidB)
 	zero(g.VOutW)
 	g.VOutB = 0
+	zero(g.EntW)
+	zero(g.EntB)
+	zero(g.EntP)
 }
 
 // ApplyGrads descends one step: every parameter p ← p − scale·∇p. scale is
@@ -632,6 +669,11 @@ func (m *Model) ApplyGrads(g *Grads, scale float32) {
 		}
 		m.VOutB -= scale * g.VOutB
 	}
+	for _, blk := range [][2][]float32{{m.EntW, g.EntW}, {m.EntB, g.EntB}, {m.EntP, g.EntP}} {
+		for i := range blk[0] {
+			blk[0][i] -= scale * blk[1][i]
+		}
+	}
 }
 
 // Norm returns the gradient's global L2 norm over every parameter block.
@@ -663,6 +705,13 @@ func (g *Grads) Norm() float64 {
 	}
 	x = float64(g.VOutB)
 	sum += x * x
+	// The entity blocks last, by the same rule: empty for every other model.
+	for _, blk := range [][]float32{g.EntW, g.EntB, g.EntP} {
+		for _, v := range blk {
+			x := float64(v)
+			sum += x * x
+		}
+	}
 	return math.Sqrt(sum)
 }
 
@@ -713,7 +762,7 @@ func (g *Grads) Clip(maxNorm float64) {
 			g.Table[base+j] *= scale
 		}
 	}
-	for _, blk := range [][]float32{g.StateW, g.StateB, g.HidW, g.HidB, g.OutW, g.VHidW, g.VHidB, g.VOutW} {
+	for _, blk := range [][]float32{g.StateW, g.StateB, g.HidW, g.HidB, g.OutW, g.VHidW, g.VHidB, g.VOutW, g.EntW, g.EntB, g.EntP} {
 		for i := range blk {
 			blk[i] *= scale
 		}
@@ -743,19 +792,26 @@ func (g *Grads) addTable(r int, vec []float32, scale float32) {
 // forwardExample computes the state trunk and every labelled option's input
 // vector, hidden activations and score. The returned indices parallel ys/xs/as.
 func (m *Model) forwardExample(ex Example) (labelled []int, trunk []float32, xs, as [][]float32, ys []float64) {
-	s := m.StateTrunk(ex.State)
+	labelled, trunk, xs, as, ys, _ = m.forwardExampleEnt(ex)
+	return
+}
+
+// forwardExampleEnt is forwardExample plus the entity forward (nil without
+// an entity encoder).
+func (m *Model) forwardExampleEnt(ex Example) (labelled []int, trunk []float32, xs, as [][]float32, ys []float64, c *entCache) {
+	s, c := m.stateTrunkEnt(ex.State)
 	for i := range ex.Options {
 		if !ex.Options[i].Target.Labelled {
 			continue
 		}
-		x := m.inputVector(s, ex.Options[i])
+		x := m.inputVector(s, ex.Options[i], c)
 		y, a := m.forwardHead(x)
 		labelled = append(labelled, i)
 		xs = append(xs, x)
 		as = append(as, a)
 		ys = append(ys, float64(y)+float64(m.residual(ex.Options[i])))
 	}
-	return labelled, s, xs, as, ys
+	return labelled, s, xs, as, ys, c
 }
 
 // lossFromScores computes the combined loss and the per-labelled-option
@@ -1070,7 +1126,7 @@ func (m *Model) ValueLogLoss(st State, t float64) float64 {
 // LossGrad evaluates the example's loss AND accumulates its parameter
 // gradients into g (g is NOT reset first — the trainer accumulates batches).
 func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
-	labelled, trunk, xs, as, ys := m.forwardExample(ex)
+	labelled, trunk, xs, as, ys, ec := m.forwardExampleEnt(ex)
 	if len(labelled) == 0 {
 		return StepStat{}
 	}
@@ -1090,6 +1146,7 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 	for j := range g.ds {
 		g.ds[j] = 0
 	}
+	var dh [][]float32 // per-card entity gradient (entity models only)
 	for k, i := range labelled {
 		dy := float32(dys[k])
 		if dy == 0 {
@@ -1105,6 +1162,26 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 		for _, f := range ex.Options[i].Hashed {
 			g.addTable(int(f.Row), g.dx[m.H:m.H+m.H], f.Value)
 		}
+		if ec != nil {
+			// The option's entity inputs route their gradient to the
+			// referenced cards' encodings.
+			if dh == nil {
+				dh = make([][]float32, len(ex.State.Cards))
+			}
+			off := m.entOffset()
+			for slot, ref := range [2]int32{ex.Options[i].EntA, ex.Options[i].EntB} {
+				if ref <= 0 || int(ref) > len(dh) {
+					continue
+				}
+				ci := int(ref - 1)
+				if dh[ci] == nil {
+					dh[ci] = make([]float32, m.EntK)
+				}
+				for q := 0; q < m.EntK; q++ {
+					dh[ci][q] += g.dx[off+slot*m.EntK+q]
+				}
+			}
+		}
 	}
 	// Value head: forward on the shared trunk, BCE on the logit, backward
 	// into the value blocks and (through ds) into the trunk.
@@ -1116,6 +1193,9 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 		st.Loss, st.Parts = parts.Total, parts
 		m.backValue(float32(dz64), trunk, g)
 	}
+	// Entity backward (pool, projection, per-card encoder) off the final
+	// trunk gradient, before the trunk's own blocks read it.
+	m.entBackward(ec, ex.State, g.ds, dh, g)
 	// State trunk backward: dense projection + sparse table rows.
 	for j := 0; j < m.H; j++ {
 		g.StateB[j] += g.ds[j]

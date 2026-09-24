@@ -115,10 +115,10 @@ func applyPrior(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 //
 // choices[i] is candidate i's option indices in d (choices[0] the bot's).
 func priorOrder(m *policynet.Model, v view.View, d *decision.Decision, bot decision.Intent, kind string, choices [][]int, topK int) (keep []int, changed bool) {
-	st := policynet.EncodeState(v, d.Player)
+	st := policynet.EncodeStateWith(m.Features, v, d.Player, nil)
 	enc := make([]policynet.Option, len(d.Options))
 	for i := range d.Options {
-		enc[i] = policynet.EncodeOption(v, d.Player, d.Kind, d.Options[i], i, len(d.Options))
+		enc[i] = policynet.EncodeOptionWith(m.Features, v, d.Player, d.Kind, d.Options[i], i, len(d.Options))
 	}
 	seat.MarkBotPicks(d, enc, bot)
 	scores := m.Score(st, enc)

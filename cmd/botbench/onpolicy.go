@@ -54,7 +54,13 @@ type onpolicyGame struct {
 // is played on one goroutine, so the per-game buffer needs no lock.
 func (c *onpolicyCollector) attach(pos, gameIndex int, pair string, seed uint64, decks [2]string, seats []seat.Seat) *onpolicyGame {
 	g := &onpolicyGame{pos: pos, gameIndex: gameIndex, pair: pair, seed: seed, decks: decks}
-	hash := fmt.Sprintf("%016x", policynet.EncoderHash())
+	// The recording checkpoint's feature set's hash (v1: EncoderHash()
+	// unchanged), so an mz or entity corpus is labelled as what it is.
+	fs := policynet.FeaturesV1
+	if policynetModel != nil {
+		fs = policynetModel.Features
+	}
+	hash := fmt.Sprintf("%016x", policynet.EncoderHashFor(fs))
 	for si, s := range seats {
 		pb, ok := s.(*seat.PolicyNetBot)
 		if !ok {
@@ -69,6 +75,10 @@ func (c *onpolicyCollector) attach(pos, gameIndex int, pair string, seed uint64,
 				Subset: d.Subset, State: policynet.EncodeOnPolicyState(d.State),
 				Scores: d.Scores, Chosen: d.Chosen, BotChosen: d.BotChosen,
 				ValueOld: d.Value, HasValueOld: d.HasValue, Admission: d.Admission,
+			}
+			if d.Sampled {
+				lp := d.LogPBehaviour
+				rec.Temperature, rec.LogPBehaviour = d.Temperature, &lp
 			}
 			rec.Options = make([]policynet.OnPolicyOption, len(d.Options))
 			chosen := make([]bool, len(d.Options))

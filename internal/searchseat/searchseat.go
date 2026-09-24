@@ -328,7 +328,7 @@ func valueLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
 		return nil
 	}
 	return func(v view.View, actor state.PlayerID) float64 {
-		return float64(m.Value(policynet.EncodeState(v, actor)))
+		return float64(m.Value(policynet.EncodeStateWith(m.Features, v, actor, nil)))
 	}
 }
 

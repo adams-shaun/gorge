@@ -35,6 +35,12 @@ type Option struct {
 	// has no field for the width) and must not be: it is a measurement
 	// vehicle, not a deployable scorer.
 	Extra []float32
+	// EntA and EntB are the option's ENTITY references (FeaturesEntity only,
+	// ticket pn14): 1 + the index into State.Cards of the option's own card
+	// (Obj: the attacker, the blocker, the spell cast, the target) and of its
+	// related card (the blocked attacker, the attacked planeswalker or
+	// battle); 0 = none. The zero value keeps every non-entity option inert.
+	EntA, EntB int32
 	// Target is the per-option label target: the candidate value when the
 	// teacher evaluated an answer containing this option, the
 	// teacher-preferred mask, and the unlabelled flag. Zero value =
