@@ -34,9 +34,19 @@ type TriggerContext struct {
 	// capture a printed trigger of that mode makes -- so the two referents
 	// cannot share one slot.
 	DelayedRemembered []state.Target
-	AttackingPlayer   state.Target
-	AttackedTarget    state.Target
-	TriggerActivator  state.Target
+	// OptionalSpec is the OptionalDecider$ spec an api:Effect Triggers$
+	// body registered its delayed trigger with (state.DelayedTrigger.
+	// OptionalSpec). The registration carries it because a Mode$ Phase
+	// body is never re-parsed at fire time; it rides this context to the
+	// minted stack object so resolveTop's CR 603.5 optional gate can pose
+	// the election the trigger line names, which findTriggerForAbility
+	// cannot recover for a delayed Effect body (its Ability is an
+	// Execute$ SVar sub-ability, not a face Triggers entry). Empty for
+	// every printed trigger and every registration with no election.
+	OptionalSpec     string
+	AttackingPlayer  state.Target
+	AttackedTarget   state.Target
+	TriggerActivator state.Target
 	// TriggerCardController is the controller the triggering card had as it
 	// LEFT the battlefield (CR 603.10a), recorded when the trigger fires and
 	// carried with the ability onto the stack. It is absent for every other

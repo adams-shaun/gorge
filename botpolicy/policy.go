@@ -264,9 +264,9 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     supply.
 //   - KTriggerOrder: a permutation of the offered indices drawn from the
 //     bot's own rng, so ordering paths get fuzz coverage too.
-//   - KTriggerOptional: a coin from the bot's own rng between the two
-//     offered options ("yes" first, "no" second, per askTriggerOptional),
-//     so both branches get coverage.
+//   - KTriggerOptional: accept printed optional triggers and Miracle, but
+//     decline only api:Effect OptionalDecider$ elections (EffectOptional).
+//     Both choices are deterministic and consume no rng.
 //   - KChoose: every option in one decision shares a Kind (Option.Kind, not
 //     d.Kind) that says what is being chosen. "x" takes the highest option
 //     (the most an {X} cost can pay for -- options ascend); "exile"/
@@ -449,13 +449,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 
 	case decision.KTriggerOptional:
-		// dp1: no more coin flip. An optional trigger is a controller
-		// benefit the policy cannot read, so it accepts it (see the rule
-		// stated in trigger.go) rather than gambling -- deterministic, so the same
-		// game state always answers the same way and the coin's variance is
-		// gone. The "yes" option is index 0 (askTriggerOptional builds
-		// yes-first, per the kind's contract).
-		if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
+		// Only the api:Effect delayed body's no-host election defaults to
+		// decline. Printed triggers and Miracle retain dp1's accept policy.
+		if d.EffectOptional {
+			in.Choices = declineOptional(d)
+		} else if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
 			in.Choices = []int{d.Options[0].Index}
 		}
 		return Clamp(d, in)

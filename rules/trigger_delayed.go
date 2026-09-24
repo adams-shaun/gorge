@@ -184,6 +184,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				// is both Remembered and the DelayTriggerRemembered referent.
 				TriggerContext: effects.TriggerContext{
 					DelayedRemembered: append([]state.Target(nil), dt.Remembered...),
+					OptionalSpec:      dt.OptionalSpec,
 				},
 			},
 		})
@@ -397,6 +398,12 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			remembered = append([]state.Target(nil), dt.Remembered...)
 		}
 		refs.DelayedRemembered = append([]state.Target(nil), dt.Remembered...)
+		// The registration's OptionalDecider$ election rides the referent
+		// context to the minted stack object, where resolveTop's CR 603.5
+		// gate poses it. It cannot be recovered from the trigger body for a
+		// Mode$ Phase registration (never re-parsed), so it is carried from
+		// state rather than read from t.Params here.
+		refs.OptionalSpec = dt.OptionalSpec
 		fires = append(fires, delayedSpellCastFire{
 			dt:         *dt,
 			sa:         sa,
@@ -436,6 +443,24 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// inline; an ask the body poses parks through the ordinary direct
 		// resume machinery.
 		if f.static {
+			// Fail-closed guard (cli-20260923T060218Z round 2): a static
+			// delayed registration carrying an OptionalDecider$ spec has no
+			// election channel on this path -- the body resolves inline,
+			// never minting a stack object, so resolveTop's CR 603.5 gate
+			// cannot pose the yes/no -- and running it would execute the
+			// "you may" mandatorily. effEffect withholds that shape at
+			// registration; this guard keeps any future "|OD=" minter from
+			// misexecuting here. Loud Note, registration consumed without
+			// execution (the same one-shot spend a declined placement is).
+			if dt.OptionalSpec != "" {
+				e.emit(events.Event{Kind: events.Note, Obj: dt.Source,
+					Player: dt.Controller,
+					Text:   "optional static delayed trigger has no election channel (not executed)"})
+				e.emit(events.Event{Kind: events.DelayedPush, Obj: dt.Source,
+					Player: dt.Controller, Amount: int32(dt.ID), Counter: dt.Execute,
+					Text: "static"})
+				continue
+			}
 			e.emit(events.Event{Kind: events.DelayedPush, Obj: dt.Source,
 				Player: dt.Controller, Amount: int32(dt.ID), Counter: dt.Execute,
 				Text: "static"})

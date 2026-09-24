@@ -474,6 +474,11 @@ type Decision struct {
 	// specific object (priority, mulligan, trigger order) carry no field and
 	// today's payloads are unchanged for them.
 	Source state.ObjID `json:"source,omitempty"`
+	// EffectOptional marks only a resolving api:Effect Triggers$ body's
+	// OptionalDecider$ election. Unattended bots decline this shape; printed
+	// optional triggers and Miracle retain their existing policy. This is
+	// runtime-only policy context, not a new legal-answer or wire rule.
+	EffectOptional bool `json:"-"`
 	// TargetsWithSameController marks a target decision whose selected options
 	// must all have one Controller. It is server-side metadata, so the wire
 	// payload remains unchanged while Validate and bot repair share the rule.

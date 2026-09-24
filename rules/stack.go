@@ -3226,19 +3226,37 @@ func (e *Engine) resolveTop() {
 		// false for the former, or an OptionalDecider-less trigger for the
 		// latter) fall straight through to their effect below.
 		rt, triggered := e.findTriggerForAbility(o.Source, o.Ability)
+		// resSpec is the OptionalDecider$ spec this ability must ask about.
+		// A printed trigger's comes off its face T: line (findTriggerForAbility
+		// recovered it). An Effect-created delayed trigger has no face T: line:
+		// its Ability is an Execute$ SVar sub-ability, so findTriggerForAbility
+		// reports false and the spec rides effects.TriggerContext.OptionalSpec
+		// from the registration instead (effects/misc.go effEffect ->
+		// state.DelayedTrigger.OptionalSpec -> checkDelayedTriggers /
+		// checkEventDelayedTriggers -> this map). Without the fallback an Effect
+		// trigger with OptionalDecider$ (Beck's "you may draw a card") would
+		// resolve mandatorily, the opposite of the card text.
+		resSpec := ""
 		if triggered {
-			if spec := rt.Params["OptionalDecider"]; spec != "" {
-				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
-				if !askable {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
-					e.ensureLeftTheStack(id, state.ZExile, "the optional decider of this ability left the game, so the "+
-						"ability ceased to exist (CR 800.4a) and was parked in exile")
-					return
-				}
-				e.askOptionalAtResolution(who, o, o.Ability, e.abilityLabel(o, rt))
+			resSpec = rt.Params["OptionalDecider"]
+		} else {
+			resSpec = e.triggerContexts[id].OptionalSpec
+		}
+		if resSpec != "" {
+			who, askable := e.deciderFromSpec(resSpec, o.Controller, o.Remembered, e.triggerContexts[id])
+			if !askable {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
+				e.ensureLeftTheStack(id, state.ZExile, "the optional decider of this ability left the game, so the "+
+					"ability ceased to exist (CR 800.4a) and was parked in exile")
 				return
 			}
+			label := e.abilityLabel(o, cards.Trigger{})
+			if triggered {
+				label = e.abilityLabel(o, rt)
+			}
+			e.askOptionalAtResolution(who, o, o.Ability, label, !triggered && e.triggerContexts[id].OptionalSpec != "")
+			return
 		}
 		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY
 		// trigger that reaches this point is one whose effect is about to run

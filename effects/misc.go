@@ -340,9 +340,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     carriers) is owned by agent-20260922T193437Z-a964eea4, which adds
 	//     the generic effect-created trigger registration; it is named in the
 	//     Note here, not silently dropped.
-	//   - OptionalDecider$ (Beck's "you may draw a card") needs a "you may"
-	//     ask the delayed push path never poses; registering it would fire the
-	//     effect MANDATORILY, the opposite of the card text, so it notes.
+	//   - an OptionalDecider$ body (Beck's "you may draw a card") IS
+	//     registered: registering it without the election would fire the
+	//     effect MANDATORILY, the opposite of the card text, so the spec
+	//     rides the registration ("|OD=<spec>") and rules' resolveTop poses
+	//     the yes/no to the named decider when the minted ability resolves.
 	//   - a body with no Execute$ has nothing to resolve.
 	for name := range strings.FieldsSeq(sa.Params["Triggers"]) {
 		raw := ""
@@ -379,6 +381,37 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// An Effect trigger body's OptionalDecider$ is the card's own "you
+		// may" election (Beck's "whenever a creature enters this turn, you
+		// may draw a card"). The trigger is registered like any other
+		// Effect trigger and the election is posed when the minted ability
+		// resolves (rules' resolveTop, the CR 603.5 optional gate), never
+		// withheld: withholding it would fire the body mandatorily, the
+		// opposite of the card text. The spec rides the registration Text
+		// as "|OD=<spec>" so a Mode$ Phase registration, whose body is not
+		// re-parsed at fire time, still names its decider (events.Apply's
+		// DelayedRegister decode -> state.DelayedTrigger.OptionalSpec ->
+		// checkDelayedTriggers/checkEventDelayedTriggers ->
+		// effects.TriggerContext.OptionalSpec).
+		optionalSpec := strings.TrimSpace(tr.Params["OptionalDecider"])
+		odSuffix := ""
+		if optionalSpec != "" {
+			// A Static$ True body cannot carry the election: rules'
+			// checkEventDelayedTriggers resolves a static-marked delayed
+			// registration INLINE at fire time -- never minting a stack
+			// object -- so there is no resolution gate to pose the CR 603.5
+			// yes/no at, and registering it would execute the "you may"
+			// mandatorily. Withheld loudly (cli-20260923T060218Z round 2);
+			// the static firing arm carries a matching fail-closed guard so
+			// no future "|OD=" minter can misexecute there either.
+			if strings.TrimSpace(tr.Params["Static"]) != "" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unmodelled Effect trigger Static$ with OptionalDecider$ " + optionalSpec + " (not registered)"})
+				registered = true
+				continue
+			}
+			odSuffix = "|OD=" + optionalSpec
+		}
 		if tr.Mode == "BecomeMonarch" {
 			// Palace Jailer's one-shot command-zone promise. It is CONSUMED
 			// by its own firing, not retired by a turn ceiling, and its
@@ -387,7 +420,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// lifetime guard below does not apply to it.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
+				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix})
 			registered = true
 			continue
 		}
@@ -397,12 +430,6 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
-			registered = true
-			continue
-		}
-		if v := strings.TrimSpace(tr.Params["OptionalDecider"]); v != "" {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unmodelled Effect trigger OptionalDecider$ " + v})
 			registered = true
 			continue
 		}
@@ -425,7 +452,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// the registration and the |TT= turn bound retires it.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
 			registered = true
 		case "Phase":
 			// A phase promise fires at the FIRST listed step still ahead
@@ -446,7 +473,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				continue
 			}
-			text := tr.Params["Phase"] + expiry
+			text := tr.Params["Phase"] + expiry + odSuffix
 			if vp := strings.TrimSpace(tr.Params["ValidPlayer"]); vp != "" {
 				text += "|VP=" + vp
 			}
@@ -466,7 +493,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// DelayedTrigger and makes its mode self-describing for replay.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
 			registered = true
 		}
 	}

@@ -1384,11 +1384,15 @@ func (e *Engine) StackOptional(id state.ObjID) (optional bool, decider state.Pla
 	if o == nil || o.Ability == nil {
 		return false, 0
 	}
-	t, ok := e.findTriggerForAbility(o.Source, o.Ability)
-	if !ok {
-		return false, 0
+	spec := ""
+	if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+		spec = t.Params["OptionalDecider"]
+	} else {
+		// An Effect-created delayed trigger: no face T: line, so its
+		// OptionalDecider$ spec rides the registration's referent context
+		// (the same fallback resolveTop's optional gate uses).
+		spec = e.triggerContexts[id].OptionalSpec
 	}
-	spec := t.Params["OptionalDecider"]
 	if spec == "" {
 		return false, 0
 	}
@@ -1700,9 +1704,9 @@ func (e *Engine) askTriggerOptional(who state.PlayerID, pt pendingTrigger) {
 // nothing (finishResumption). The decider is derived from the stack object's
 // own controller + Remembered (deciderFromSpec), not from a pendingTrigger,
 // because the queued trigger has already been consumed by the drain.
-func (e *Engine) askOptionalAtResolution(who state.PlayerID, o *state.Object, sa *cards.SA, label string) {
+func (e *Engine) askOptionalAtResolution(who state.PlayerID, o *state.Object, sa *cards.SA, label string, effectOptional bool) {
 	d := &decision.Decision{Player: who, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
-		ResumeKind: "optional", ResumeSA: sa, Source: o.Source,
+		ResumeKind: "optional", ResumeSA: sa, Source: o.Source, EffectOptional: effectOptional,
 		Prompt: "Apply this triggered ability's effect? — " + label,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Label: "Yes — " + label, Obj: o.Source, Player: o.Controller},

@@ -429,6 +429,18 @@ type DelayedTrigger struct {
 	// registering event's Text ("|TT=<turn>") because the event gains no
 	// field (Ruling T20-a's field-reuse precedent).
 	MaxTurn int32
+	// OptionalSpec is an api:Effect Triggers$ body's OptionalDecider$ spec
+	// (Beck's "whenever a creature enters this turn, you may draw a card").
+	// An Effect trigger whose body is optional must be REGISTERED like any
+	// other Effect trigger and ask its yes/no when the minted ability
+	// resolves; withholding it fires the body mandatorily, the opposite of
+	// the card text. The spec has to be captured at registration time rather
+	// than re-read from the trigger body at fire time because a Mode$ Phase
+	// registration's body is never re-parsed (checkDelayedTriggers fires it
+	// on the step alone), so it rides the DelayedRegister event's Text
+	// ("|OD=<spec>") the same way ValidPlayer$ and MaxTurn do. Empty for
+	// every registration with no election.
+	OptionalSpec string
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:
