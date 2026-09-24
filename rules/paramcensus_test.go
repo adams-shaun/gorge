@@ -1552,6 +1552,18 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.counterReplaceOp":  {"ReplaceCounter"},
 	"tokenReplacementsCommute": {"ReplaceToken"},
 	"tokenReplApplies":         {"ReplaceToken"},
+	// The body-defined entry-counter fold (rules/entry_counters.go): these
+	// read the ReplaceWith$ body of an R:Event$ Moved replacement line ONLY,
+	// and only when its DB$ body is a PutCounter|ETB$ True ability (every
+	// reader short-circuits on `r.With.API == "PutCounter"` first), so the
+	// ETB$/Defined$/CounterNum$/CounterType$ reads plus entryBodyAbsorbable's
+	// withheld-modifier keys belong to api:PutCounter alone -- left in the
+	// generic union they would mark CounterType$/Optional$/ETB$ read for
+	// every other API (measured: api:Mill's World Shaper Optional$ gap).
+	"Engine.entryBodyCandidates":    {"PutCounter"},
+	"Engine.entryBodyCounterGrants": {"PutCounter"},
+	"entryBodyKindEncodable":        {"PutCounter"},
+	"entryBodyAbsorbable":           {"PutCounter"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
