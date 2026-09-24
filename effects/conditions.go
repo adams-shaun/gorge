@@ -223,6 +223,19 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	present := strings.TrimSpace(sa.Params["ConditionPresent"])
 	notPresent := strings.TrimSpace(sa.Params["ConditionNotPresent"])
 	compare := strings.TrimSpace(sa.Params["ConditionCompare"])
+	// PresentDefined/PresentCompare are the DB-body spellings of the same
+	// defined-group presence gate. Normalize here so every effect body uses
+	// the same evaluator and selector support as ConditionDefined.
+	presentDefined := strings.TrimSpace(sa.Params["PresentDefined"])
+	presentCompare := strings.TrimSpace(sa.Params["PresentCompare"])
+	if presentDefined != "" {
+		if defined != "" || present != "" || compare != "" {
+			return false, false
+		}
+		defined = presentDefined
+		present = strings.TrimSpace(sa.Params["Present"])
+		compare = presentCompare
+	}
 	check := strings.TrimSpace(sa.Params["ConditionCheckSVar"])
 	svarCmp := strings.TrimSpace(sa.Params["ConditionSVarCompare"])
 	bare := strings.TrimSpace(sa.Params["Condition"])
@@ -458,7 +471,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
 		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" &&
-		defined != "Returned" {
+		defined != "Returned" && defined != "TriggeredSourceLKICopy" {
 		// Only the Remembered, Self, TriggeredCard, Imprinted, Targeted,
 		// Discarded and Returned families are in scope among DEFINED groups:
 		// the objects a walk
@@ -552,6 +565,12 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 				group = append(group, state.Target{Obj: id})
 			}
 		}
+	}
+	if defined == "TriggeredSourceLKICopy" {
+		if c.TriggerSource == 0 || g.Obj(c.TriggerSource) == nil {
+			return false, false
+		}
+		group = []state.Target{{Obj: c.TriggerSource}}
 	}
 	if defined == "TriggeredCard" {
 		// The card the triggering event moved — the TriggerContext.TriggerCard
