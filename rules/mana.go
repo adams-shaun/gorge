@@ -1661,18 +1661,27 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
 			continue
 		}
-		cost := e.parseCost(ab.Params["Cost"])
-		// The ability's own ReduceCost$ (Otawara's Channel): the same
-		// composition the offer gate and beginActivation's charge apply, so
-		// the decision's displayed cost is the cost the payment will charge.
-		if n := e.ownReduceCost(p, id, ab, nil, nil, 0); n > 0 && cost.Generic >= n {
-			cost.Generic -= n
-		} else if n > 0 {
-			cost.Generic = 0
-		}
-		out = append(out, formatCost(e.offerCostFor(p, id, cost, abilityScope(ab))))
+		out = append(out, e.abilityOfferCost(p, id, ab))
 	}
 	return out
+}
+
+// abilityOfferCost is one activated ability's offer-time cost in Forge
+// notation: the printed Cost$ with its own ReduceCost$ and the applicable
+// RaiseCost/ReduceCost statics composed. AbilityCosts projects it onto the
+// card, and legalActionsPriced stamps it on the ability's "ability" option,
+// so the two can never disagree about what an activation will charge.
+func (e *Engine) abilityOfferCost(p state.PlayerID, id state.ObjID, ab *cards.SA) string {
+	cost := e.parseCost(ab.Params["Cost"])
+	// The ability's own ReduceCost$ (Otawara's Channel): the same
+	// composition the offer gate and beginActivation's charge apply, so
+	// the decision's displayed cost is the cost the payment will charge.
+	if n := e.ownReduceCost(p, id, ab, nil, nil, 0); n > 0 && cost.Generic >= n {
+		cost.Generic -= n
+	} else if n > 0 {
+		cost.Generic = 0
+	}
+	return formatCost(e.offerCostFor(p, id, cost, abilityScope(ab)))
 }
 
 // formatCost writes the parsed cost back in the whitespace-delimited Forge
