@@ -100,7 +100,7 @@ func (e *Engine) attackedSpecHolds(spec string, defender, you state.PlayerID, re
 	if spec == "" {
 		return true
 	}
-	for _, part := range strings.Split(spec, ",") {
+	for part := range strings.SplitSeq(spec, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue

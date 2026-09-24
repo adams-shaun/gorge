@@ -1,3 +1,490 @@
+# Report — r2 (agent-20260919T055500Z-a4cd7643) — kw:Sunburst
+
+Ticket: `kw:Sunburst` — a permanent with Sunburst enters with one counter per
+colour of mana spent to cast it (+1/+1 for a creature, charge otherwise; the
+`DB$ Animate | Keywords$ Sunburst` grant shape on Solar Array / Lux
+Artillery). Round 1 implemented the semantics rules-side and is at
+`.ds4/report-t1.md` (line ~2505, commit list updated to the post-rebase shas).
+This round: the controller-ordered `git rebase main` (one append-append
+conflict in the shared `.ds4/report-t1.md`, resolved by keeping BOTH blocks —
+main's new damage-replacement report and this ticket's, insertions only), and
+the resolution of the single r2 finding.
+
+## Resolution of the r2 findings, each one
+
+### [MAJOR] "the diff only adds a rules-side RegisterNonAPI('kw:Sunburst')
+marker and never changes the keyword expander/registry" — FIXED
+
+The finding was right about the brief's letter: Done means names
+"the keyword registered in `cards/keywords.go`", and r1 shipped only the
+rules-side synthetic (`rules/replacement.go`'s `sunburstEntryMatch`) plus the
+`RegisterNonAPI` marker. Fixed in `26590394`:
+
+1. **`cards/kw_sunburst.go` (new)** — registers the `Sunburst` head in the
+   `kwExpanders` table (`registerKeyword(kwSunburst, "Sunburst")` in
+   `init()`, the standard per-keyword file the split created). The expander
+   turns the bare printed `K:Sunburst` line (15 corpus files, no parameter)
+   into the entry Repl on the face itself: `Event$ Moved |
+   Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$
+   Updated`, body `DB$ PutCounter | Defined$ Self | CounterType$ <kind> |
+   CounterNum$ Count$Converge | ETB$ True`, the kind decided on the printed
+   face's types (P1P1 for a creature, CHARGE otherwise — the same decision
+   Forge's CardFactoryUtil makes). The body is byte-for-byte the shape the
+   r1 synthetic built, so the converge plumbing (pay-time FlagConverged
+   CastInfo) is unchanged.
+2. **`cards/kw_registry_test.go`** — `"Sunburst"` joined `expandedHeads`
+   with a comment naming the ticket, so both registry ratchets
+   (`TestEveryExpandedKeywordHasAnExpander` and
+   `TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded`) pin it.
+3. **`rules/replacement.go`** — `sunburstEntryMatch` is now the GRANT shape
+   only: it keeps the derived-keyword read but returns nil when the
+   entering object's PRINTED face carries the `Sunburst` keyword line, because
+   the printed face now carries the cards-side expansion and the face-Repl
+   scan already collects it — a synthetic on top would put the entry counters
+   twice. The grant shape (Solar Array / Lux Artillery deliver the keyword to
+   the DERIVED list only; no printed-face expansion can see it) routes through
+   the synthetic unchanged. Doc comments on the expander, the synthetic and
+   the dispatch site each state the split and the double-count guard.
+4. **`rules/sunburst_test.go`** — header comment updated to the two-sided
+   architecture; the tests themselves are unchanged (they were already
+   exact-count).
+
+The r1 architecture rationale (why the GRANT half must stay rules-side) is
+recorded in the expander's and the synthetic's doc comments, and in the
+commit message: a printed-face K: expansion can never see a keyword a
+resolving Animate grants to the derived list.
+
+### Why not register without expanding (rejected alternative)
+
+`kwExpanders` entries without an expander function are impossible by
+construction (`registerKeyword` takes a func), and a no-op expander would be
+a dishonest registration — the printed face would carry a live `K:Sunburst`
+line that expands to nothing. The implemented split gives the printed route
+a real cards-side expansion (the brief's contract) and keeps the grant route
+rules-side (the only place it can live).
+
+## Gates run (real output, on the rebased tree, `.cards` present as a symlink)
+
+```
+$ go build ./...            (no output, exit 0)
+$ go vet ./cards/ ./rules/  (no output, exit 0)
+$ gofmt -l cards/kw_sunburst.go cards/kw_registry_test.go rules/replacement.go rules/sunburst_test.go
+                            (no output)
+$ go run ./cmd/gentypes -check
+                            (no output, exit 0)
+$ go test -run 'TestSunburst|TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded' ./rules/ ./cards/
+ok  	github.com/adams-shaun/gorge/rules	0.467s
+ok  	github.com/adams-shaun/gorge/cards	0.002s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.659s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.723s
+```
+
+The botbench 20-game split did not move (byte-identical, no re-pin): no
+repo-deck game behaviour changed — the printed route delivers the identical
+counters the synthetic delivered in r1, and no repo deck carries a Sunburst
+card (r1 measurement, unchanged).
+
+## Fails without the fix (both halves proven against the exact-count tests)
+
+**Break 1 — registration reverted** (`cards/kw_sunburst.go` removed, restored
+byte-identically after, `cmp` clean): the printed carriers lose their entry
+counters entirely (the synthetic's printed-gate now correctly skips them),
+which is the exact defect the brief described:
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.44s)
+    --- FAIL: .../two_colours_of_mana
+        sunburst_test.go:77: precondition: Oracle zone=graveyard, want battlefield
+    --- FAIL: .../one_colour_of_mana
+        sunburst_test.go:97: precondition: Oracle zone=graveyard, want battlefield
+--- FAIL: TestSunburstPentadPrismEntersWithChargePerColour (0.00s)
+    sunburst_test.go:142: Prism CHARGE=0, want 2 (two colours spent)
+FAIL	github.com/adams-shaun/gorge/rules	0.461s
+```
+
+(The Oracles died to the 0-toughness SBA — a silent zero entering, the
+r1 defect class, now caught loudly.)
+
+**Break 2 — the printed-gate in `rules/replacement.go` removed** (restored
+byte-identically after, `cmp` clean): printed carriers double-count, proving
+the gate is load-bearing and the two halves are complementary, not redundant:
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.41s)
+    --- FAIL: .../two_colours_of_mana
+        sunburst_test.go:80: Oracle P1P1=4, want 2 (two colours spent)
+    --- FAIL: .../one_colour_of_mana
+        sunburst_test.go:100: Oracle P1P1=2, want 1 (one colour spent)
+FAIL	github.com/adams-shaun/gorge/rules	0.419s
+```
+
+## Ratchets / head movement
+
+- `knownUnsupported`: unchanged — no Sunburst card is in any repo deck, so no
+  row exists to drop (the brief marks the ratchet row conditional on a deck
+  import that has not happened).
+- No new trigger mode, count head or param registration. Chain heads not run
+  (daemon gate). Botbench byte-identical shows no repo-deck movement.
+- `knownApproximationRows` unchanged; no AGENTS.md row added or grown. The
+  `kw:Sunburst` mention in `faceWantsConverge`'s r1 comment (which said a
+  cards-side expansion was "the planned second consumer of this seam") is now
+  realised, not approximated.
+
+## Deviations from the brief
+
+None beyond r1's recorded ones (converge-head reuse; the counter kind decided
+on the printed face). The brief's registration contract is now met as
+written; the semantic home of the GRANT half in `rules/` is a structural
+necessity (the derived-keyword list is not a face), stated in the commit
+message and both doc comments.
+
+## Issues
+
+- None new. The 19-file `Sunburst` corpus prevalence breaks down as 15
+  `K:Sunburst` carriers (all covered by the cards-side expansion), the 2
+  `Animate | ... Sunburst` grant riders (covered by the synthetic), and 2
+  mentions-only files — no remaining unimplemented shape was found in the
+  family this round.
+
+---
+
+# Report — r2 (agent-20260919T192133Z-f7463cbe) — rebase resolution
+
+Ticket: `K:Retrace — the cast-from-graveyard keyword is unimplemented (17 files)`.
+**The implementation was already on main when this round started** (commit
+`133495da feat(rules): implement kw:Retrace graveyard cast with land discard`,
+merged by `fbbe4cb4`), and round t1 in this worktree added the deck-card
+regression test (now `7de1a857 test(rules): cover Formless Genesis retrace`,
+was `07232a2c` before the rebase). The full t1 report is preserved at
+`.ds4/report-t1-retrace.md` (committed this round; previously left uncommitted
+at the shared path, which is what blocked the rebase). The prior content of
+`.ds4/report-r2.md` (the TriggerRemembered r2 report) is preserved at
+`.ds4/report-r2-triggerremembered.md`.
+
+## What this round did
+
+`findings-r2.md` reported that the rebase onto main failed:
+
+```
+error: cannot rebase: You have unstaged changes.
+--- merge fallback ---
+error: Your local changes to the following files would be overwritten by merge:
+	.ds4/report-t1.md
+```
+
+Root cause: round t1 wrote its report at the SHARED path `.ds4/report-t1.md`
+and left it uncommitted; main tracks that path with a different ticket's
+report. Same resolution as commits `5558278d` / `83d640d5`:
+
+1. Moved this ticket's t1 report to the unique path
+   `.ds4/report-t1-retrace.md` and restored `.ds4/report-t1.md` to its
+   tracked content (`git restore <path>` — no branch switch, no shared state
+   change).
+2. Committed the moved report (`9785e5ba docs(retrace): record the retrace
+   t1 report at a unique path`).
+3. `git rebase main` — **clean, no conflicts**. The branch is now main
+   (`e54228a0`) + exactly two commits:
+   - `7de1a857 test(rules): cover Formless Genesis retrace`
+     (rules/retrace_formless_test.go +54)
+   - `9785e5ba docs(retrace): record the retrace t1 report at a unique path`
+4. Re-verified everything after the rebase (output below).
+
+## Brief coverage (all "Done means" items hold)
+
+- **Formless Genesis graveyard cast with land discard** — covered by
+  `rules/retrace_formless_test.go` (rebased content unchanged, re-verified):
+  asserts the card is in the graveyard and still has Retrace (precondition),
+  a land in hand, a `cast`/`retrace` option offered, the `KChoose` discard ask
+  offers exactly the hand land, the discard sends it to the graveyard, and the
+  spell reaches the stack.
+- **Implementation** — rule-side (`rules/legal.go`/`rules/cast.go` per the t1
+  report; commit `133495da` on main), not a `cards/keywords.go` expansion:
+  Retrace is a casting option, the same family the keywords.go doc assigns to
+  the rules side. The fixed additional discard cost has no card-authored
+  parameter for the paramcensus to measure. The keyword registers in the
+  coverage ratchet.
+- **Measured corpus prevalence**: 17 `K:Retrace` files at the pin — matches
+  the brief's claim.
+
+## Gate commands and real output (all post-rebase)
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards` —
+this was a real (not skipped) corpus run.
+
+```
+$ go build ./... && go test -run 'Retrace' ./rules/ > .ds4/scratch/retrace.log 2>&1; tail -5 .ds4/scratch/retrace.log
+ok  	github.com/adams-shaun/gorge/rules	0.644s
+```
+
+Behaviour goldens:
+
+```
+$ go test ./internal/archtest/ 2>&1 | tail -2
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.330s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -2
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.299s
+```
+
+Format / generated types:
+
+```
+$ gofmt -l rules/retrace_formless_test.go
+[no output]
+
+$ go run ./cmd/gentypes -check
+[exit 0]
+```
+
+## Fails without the fix
+
+Recorded in the preserved t1 report (`.ds4/report-t1-retrace.md`): with the
+Retrace graveyard-offer loop temporarily removed from `rules/legal.go`, the
+test fails with `Formless Genesis Retrace cast not offered` (full decision
+list pasted there); the source was restored byte-identically (`cmp` exit 0).
+
+## Issues
+
+None found and left unfixed. No chain-head or acceptance-ratchet movement is
+expected or observed (no engine behaviour change in this branch; the test only
+covers the already-landed primitive).
+
+
+---
+
+# Report — r2 (agent-20260918T233200Z-e0817443) — dynamic `TargetMin$`/`TargetMax$` bounds
+
+**Round 2 = the controller-ordered rebase round.** The substantive work was
+completed, committed and verified in round t1 (commit `033acdd5`, reported in
+`.ds4/report-t1.md`). Round r2's findings (`findings-r2.md`) named exactly two
+mechanical blockers, both now resolved:
+
+1. *"cannot rebase: You have unstaged changes"* — the uncommitted
+   `.ds4/report-t1.md` held this ticket's round-t1 report. Committed as
+   `8b7844f9`, resolved so that **nothing from any other ticket is destroyed**:
+   this ticket's report is prepended and main's accumulated report file
+   (2,162 lines of other tickets' reports) is preserved verbatim below it.
+2. *"Your local changes to .ds4/report-t1.md would be overwritten by merge"* —
+   the same file, the same cause. Resolved inside the rebase.
+
+## Rebase
+
+```
+$ git add -f .ds4/report-t1.md && git commit -m "docs: report dynamic TargetMin/TargetMax round-t1 and preserve accumulated reports"
+[wt/agent-20260918T233200Z-e0817443 8b7844f9]
+$ git rebase main
+Rebasing (1/2) … Rebasing (2/2)
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+```
+
+Resolution: the file was rebuilt as the union — my t1 report (221 lines) +
+separator + `git show main:.ds4/report-t1.md` (2,162 lines) — `git add`,
+`git rebase --continue`. Result:
+
+```
+$ git log --oneline -4
+3a3d4f24 docs: report dynamic TargetMin/TargetMax round-t1 and preserve accumulated reports
+e1ec6436 fix(rules): honour a resolved-zero dynamic TargetMin$/TargetMax$ pair
+f8e330c3 merge(agent-20260919T062939Z-4b5f8950): RepeatOptional$ … (main tip)
+```
+
+The branch is now linear on main tip `f8e330c3`; the old merge commit
+`c6c3b2fa` was dropped by the rebase (its only purpose — carrying main — is
+satisfied by the rebase itself). The replayed code commit is `e1ec6436`,
+byte-identical in content to `033acdd5`. The branch's tracked diff vs main is
+the code fix + its new test file + the two report insertions (227 + 0 deletions
+to any other ticket's text — `git diff --stat main...HEAD`:
+`.ds4/report-t1.md | 227 +++`, plus the five code/test files, all
+insertions-only except the two lines `modeIsKicked` refactoring touched in
+`rules/statics.go`).
+
+## Post-rebase verification (fresh, at main tip `f8e330c3` base)
+
+All commands run once each, in this worktree, `.cards` present (symlink to the
+shared corpus — confirmed `lrwxrwxrwx .cards -> /home/sadams/projects/gorge/.cards`).
+
+```
+$ go build ./...
+(clean)
+
+$ go test -run 'TargetMax|TargetMin|TearAsunder|PestInfestation|ResolvedTargetBounds|TriggerPlacementAsk' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.044s
+
+$ go test -v -run 'TestResolvedTargetBoundsResolvedZeroIsHonoured|TestTearAsunderKickedTakesOnlyTheSubTarget|TestTearAsunderUnkickedStillTargetsArtifact|TestPestInfestationZeroXAsksNothing|TestTriggerPlacementAskResolvedZeroPosesNothing|TestAnnouncementAskBareXReadsThePaidX' ./rules/
+--- PASS: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+--- PASS: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+--- PASS: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+--- PASS: TestTearAsunderUnkickedStillTargetsArtifact (0.00s)
+--- PASS: TestPestInfestationZeroXAsksNothing (0.00s)
+--- PASS: TestAnnouncementAskBareXReadsThePaidX (0.00s)
+ok  	github.com/adams-shaun/gorge/rules	0.071s
+
+$ go test -run 'Kicked|Count' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	2.567s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.321s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.230s
+
+$ gofmt -l <changed files>          (no output)
+$ go run ./cmd/gentypes -check      (no output)
+```
+
+`TestConstructedDefaultIsByteIdentical` is **unmoved** — no repo deck
+exercises the resolved-zero shape. `internal/archtest` green. No forbidden
+trailers in `e1ec6436` (`grep -i 'ref:\|co-authored'` on its message → no
+match).
+
+The per-part failure proofs ("Fails without the fix") were executed in round
+t1 with the revert-restore-`cmp` protocol and are pasted in
+`.ds4/report-t1.md`; the code is byte-identical since, so they stand.
+
+## Substantive summary (unchanged from t1 — details in `.ds4/report-t1.md`)
+
+- The brief's headline premise is stale at main: the X/Y resolver already
+  landed as `b3786f11` (merged), including the Pest Infestation `X=3 → Max 3`
+  test.
+- What this ticket adds (`e1ec6436`): `resolvedTargetBounds` honours a
+  **resolved-zero** bound as written (Tear Asunder's kicked `TargetMin$ X |
+  TargetMax$ X` over `Count$Kicked.0.1`), keeps the 1-clamp only for an
+  unresolved token, seeds `Ctx.PendingKicked` from the pending cast's chosen
+  mode at the announcement ask, and makes the three target-ask sites
+  (`targetAsk`, `subTargetAsk`, `askTarget`) decline to pose a Min 0/Max 0 ask
+  (a hard engine panic shape). 5 new tests in `rules/targetmax_resolved_zero_test.go`.
+- Deviations from the brief's letter (all measured, stated in the t1 report):
+  no deck-side ratchet row exists for either carrier (neither card is in
+  `internal/testutil/decks/`); the World Shaper precon census deck is not
+  committed to the repo.
+
+## Issues
+
+- **Coverage gap (not fixed):** `subTargetAsk`'s resolved-zero arm is covered
+  only by the shared resolver unit test and the identical `targetAsk`/`askTarget`
+  panic proofs — no in-budget fixture reaches `castCostReadsAllTargeted` with a
+  sub whose dynamic pair resolves to 0 (corpus carriers: Wayta, Urgent
+  Necropsy). Would deserve a targeted test if a carrier lands in a repo deck.
+- **No CR-lane test** for the resolved-zero pose/clamp shape: it is a
+  decision-pose/clamp defect, not a CR rule the conformance lane cites. A lane
+  test citing CR 601.2c/608.2b target-count feasibility (I-2 territory) would
+  make the shape visible to the ledger.
+- Adjacent, untouched: `modeFlags` still spells the five kicked modes in its
+  own switch (it must — they map to different flag bits); `modeIsKicked` is now
+  the `Kicked`-predicate home and both must be updated together if a new
+  kicked-cast mode lands.
+
+## Commits
+
+- `e1ec6436` fix(rules): honour a resolved-zero dynamic TargetMin$/TargetMax$ pair
+- `3a3d4f24` docs: report dynamic TargetMin/TargetMax round-t1 and preserve accumulated reports
+
+# Report — r2 (agent-20260918T195920Z-2fd3b568) — Loamcrafter Faun `TriggerRemembered$Amount`
+
+**Historical reconciliation round (before the sol1 review).** The ticket's
+code work and tests were committed along with the t1 report, preserved at
+`.ds4/report-t1-2fd3b568.md`; the shared `.ds4/report-t1.md` was restored
+to main's content. The branch was rebased onto main. This report was the only
+*new change in that reconciliation round*, NOT the only change in the branch
+relative to main. The branch also carries `effects/count.go`,
+`effects/immediate.go`, `effects/count_triggerremembered_test.go`,
+`rules/loamcrafter_faun_test.go`, and the t1 report. The ChosenCardStrict r2
+report below is preserved. The prior claim that `main...HEAD` contained
+only this report was wrong; the sol1 report documents the full branch diff.
+
+## What changed and why (per file)
+
+- `.ds4/report-t1-2fd3b568.md` (new, commit `4a786d45`): this ticket's t1
+  report, preserved at a unique path (same resolution as `83d640d5` and
+  `b82aef05`) instead of clobbering the shared `report-t1.md` main tracks.
+  Full content: the capture-excluded `TriggerRemembered` mapping, the
+  Loamcrafter Faun end-to-end pin, the fails-without-the-fix proof, and the
+  merged-sibling mapping verdict (plain landed; corrected here).
+- `.ds4/report-t1.md`: restored to the committed (main) version — the
+  DestroyAll.Zone report is preserved, this ticket's content no longer
+  clobbers it.
+- Code (rebased onto main, no conflicts): `448e89ab` =
+  `effects/count.go` (TriggerRemembered → `rememberedExcludingCapture`, the
+  one shared helper also used by `effImmediateTrigger`; Spawner>
+  re-anchoring nils the consumed capture), `effects/immediate.go` (parent
+  computation routed through the helper), `effects/count_triggerremembered_test.go`
+  (real chain-ctx fixture: Captured = ETB'd source, Remembered = source +
+  chain objects), `rules/loamcrafter_faun_test.go` (end-to-end: discard N
+  lands → one return ask Max exactly N → named permanents to hand;
+  empty discard = silent no-op with the chain registered). `41b7e422` pins
+  the exotic verdicts: `CastTotalManaSpent` and `CardManaCostLKI` modelled,
+  `GreatestCardManaCost` and `CardTypes` fail-closed.
+
+## Rebase outcome (the round's blocking finding)
+
+At the time of this report, `git rebase main` was clean, replaying three
+commits (the Convoked / Imprint regions of `effects/count.go` were disjoint).
+The then-current SHAs were `448e89ab` (fix), `41b7e422` (tests),
+`4a786d45` (docs), rebased from `32ae38bc`/`bcf02231`/`f3ba0672`.
+A subsequent controller-ordered rebase for sol1 replayed four commits;
+current SHAs and base are recorded in `.ds4/report-sol1.md`.
+
+## Gate commands and their real output (historical, on the r2 base)
+
+Environment: `.cards` symlink present at the worktree root
+(`.cards -> /home/sadams/projects/gorge/.cards`); `go test ./rules` at 36.2s
+confirmed a real corpus run, not a skipped one. At that time the branch was
+`main` + 3 commits (`git log --oneline -4`: 4a786d45, 41b7e422,
+448e89ab, 0f94cca6=then-main). Current-base gates are in the sol1 report.
+
+Done means #3 (targeted pins):
+```
+$ go test -run 'TestLoamcrafterFaun|TestTriggerRemembered|TestRefProperty|TestImmediateTrigger|TestForumFilibuster|TestSpeedYoungAvenger' ./effects ./rules
+ok  	github.com/adams-shaun/gorge/effects	0.727s
+ok  	github.com/adams-shaun/gorge/rules	0.645s
+```
+
+Done means #4 (affected packages, once):
+```
+$ go test ./effects ./rules
+ok  	github.com/adams-shaun/gorge/effects	2.579s
+ok  	github.com/adams-shaun/gorge/rules	36.184s
+```
+
+Done means #5 (format/vet):
+```
+$ gofmt -l effects/count.go effects/immediate.go effects/count_triggerremembered_test.go rules/loamcrafter_faun_test.go
+(no output)
+$ go vet ./effects ./rules
+(no output)
+```
+
+Behaviour goldens outside `rules/` (run once, before DONE):
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.243s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.249s
+```
+The botbench win split did not move; no golden re-pin needed. `go build ./...`
+clean (exit 0).
+
+## Deviations from the brief
+
+None beyond those already recorded in the t1 report (brief's 4-exotic list
+was really 2; the end-to-end pin cannot discriminate the mapping — the unit
+test is the arbiter). The t1 round's deviation "did not rebase" is now
+closed: the rebase was completed this round, cleanly.
+
+## Issues (defects found, not fixed)
+
+Unchanged from the t1 report (re-listed for the ledger):
+- `IsTriggerRemembered` filter predicate unimplemented (61 corpus files);
+  delayed triggers registered with it never match (Blessed Defiance).
+- `TriggerRemembered$GreatestCardManaCost` and `TriggerRemembered$CardTypes`
+  stay fail-closed (2 carriers); `CardTypes` would be a shared
+  `evalRefProperty` addition; `GreatestCardManaCost` rides ticket `e27469dd`.
+
+
+---
+
 # Report — r2 (agent-20260918T233200Z-f7c5b4f1) — pred:hasABasicLandType
 
 Ticket: `pred:hasABasicLandType` — the "land card with a basic land type"

@@ -205,24 +205,28 @@ func TestLightningBoltKillsAThreeLoyaltyJace(t *testing.T) {
 	if o := e.G.Obj(jace); o.Damage != 0 {
 		t.Fatalf("pure walker marked %d damage; spell damage must remove loyalty (CR 306.8/120.3c)", o.Damage)
 	}
-	// The exchange is visible in the log: one Damage event against the walker
-	// object (so protection, prevention and DamageDone triggers see it), the
-	// CR 306.8 loyalty conversion folded into events.Apply (no separate
-	// CounterChange), and the zero-loyalty SBA move.
-	sawLoyalty, sawSBA, sawDamage := false, false, false
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
-			sawLoyalty = true
+	// Entry loyalty is a real CounterChange; the damage-to-loyalty
+	// conversion is folded into Damage (no CounterChange AFTER the hit).
+	entryIndex, damageIndex := -1, -1
+	sawSBA := false
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" && ev.Amount == 3 {
+			entryIndex = i
 		}
 		if ev.Kind == events.MoveZone && ev.Obj == jace && ev.To == state.ZGraveyard && ev.Text == "zero loyalty" {
 			sawSBA = true
 		}
 		if ev.Kind == events.Damage && ev.Obj == jace {
-			sawDamage = true
+			damageIndex = i
 		}
 	}
-	if sawLoyalty || !sawSBA || !sawDamage {
-		t.Fatalf("log exchange wrong: folded loyalty conversion (CounterChange event must NOT appear) %v, zero-loyalty SBA %v, Damage event %v", sawLoyalty, sawSBA, sawDamage)
+	if entryIndex < 0 || damageIndex <= entryIndex || !sawSBA {
+		t.Fatalf("log exchange missing entry, Damage or zero-loyalty SBA: entry %d damage %d SBA %v", entryIndex, damageIndex, sawSBA)
+	}
+	for _, ev := range e.L.Events[damageIndex+1:] {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
+			t.Fatalf("damage-to-loyalty conversion emitted CounterChange: %+v", ev)
+		}
 	}
 	replayCheck(t, e, cfg)
 }
@@ -620,17 +624,22 @@ func TestBrotherhoodsEndDamageAllRemovesWalkerLoyalty(t *testing.T) {
 	if z := e.G.Obj(bearID).Zone; z != state.ZGraveyard {
 		t.Fatalf("bear survived in %s", z)
 	}
-	sawWalkerLoyalty, sawWalkerDamage := false, false
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
-			sawWalkerLoyalty = true
+	entryIndex, damageIndex := -1, -1
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" && ev.Amount == 3 {
+			entryIndex = i
 		}
 		if ev.Kind == events.Damage && ev.Obj == jace {
-			sawWalkerDamage = true
+			damageIndex = i
 		}
 	}
-	if sawWalkerLoyalty || !sawWalkerDamage {
-		t.Fatalf("sweep exchange wrong: folded loyalty conversion (CounterChange event must NOT appear) %v, Damage event %v", sawWalkerLoyalty, sawWalkerDamage)
+	if entryIndex < 0 || damageIndex <= entryIndex {
+		t.Fatalf("sweep exchange missing entry loyalty or Damage: entry %d damage %d", entryIndex, damageIndex)
+	}
+	for _, ev := range e.L.Events[damageIndex+1:] {
+		if ev.Kind == events.CounterChange && ev.Obj == jace && ev.Counter == "LOYALTY" {
+			t.Fatalf("sweep damage-to-loyalty conversion emitted CounterChange: %+v", ev)
+		}
 	}
 	replayCheck(t, e, cfg)
 }
@@ -655,8 +664,14 @@ func TestParseCostLoyaltyTokens(t *testing.T) {
 	if len(minus.SubCounter) != 1 || minus.SubCounter[0].N != 1 || minus.SubCounter[0].Spec != "LOYALTY" {
 		t.Fatalf("SubCounter<1/LOYALTY> = %+v", minus)
 	}
-	other := ParseCost("AddCounter<1/M1M1>")
+	// A source-anchored non-loyalty AddCounter is a real free part (Wall of
+	// Roots, Devoted Druid); a chooser-anchored one keeps the fallback.
+	self := ParseCost("AddCounter<1/M1M1>")
+	if len(self.AddCounter) != 1 || self.AddCounter[0].Spec != "M1M1" || self.Generic != 0 {
+		t.Fatalf("AddCounter<1/M1M1> must be a source counter part, got %+v", self)
+	}
+	other := ParseCost("AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>")
 	if len(other.AddCounter) != 0 || other.Generic != 1 {
-		t.Fatalf("non-loyalty AddCounter must keep the fallback, got %+v", other)
+		t.Fatalf("chooser-anchored AddCounter must keep the fallback, got %+v", other)
 	}
 }

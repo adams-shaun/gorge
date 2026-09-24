@@ -14,7 +14,7 @@ import (
 // non-empty entries — the shared shape of KWChoice$'s candidate list.
 func splitTrimList(s string) []string {
 	var out []string
-	for _, part := range strings.Split(s, ",") {
+	for part := range strings.SplitSeq(s, ",") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}
@@ -760,7 +760,7 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// also what the object's own text obeys); any other Duration -- the
 	// corpus's animate-a-land-for-a-turn lines -- keeps the ordinary
 	// until-end-of-turn lifetime.
-	for _, nm := range strings.Split(sa.Params["Abilities"], ",") {
+	for nm := range strings.SplitSeq(sa.Params["Abilities"], ",") {
 		if nm = strings.TrimSpace(nm); nm != "" {
 			ag.abilities = append(ag.abilities, nm)
 		}
@@ -778,7 +778,7 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// or carries no Mode$ fails closed under one loud note per name
 	// (triggersUnread), never a silently inert half.
 	ag.triggerGrantor = c.Source
-	for _, nm := range strings.Split(sa.Params["Triggers"], ",") {
+	for nm := range strings.SplitSeq(sa.Params["Triggers"], ",") {
 		if nm = strings.TrimSpace(nm); nm == "" {
 			continue
 		}
@@ -791,7 +791,7 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	}
 	ag.permanent = strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
 	ag.leaveExile = strings.TrimSpace(sa.Params["LeaveBattlefield"])
-	for _, nm := range strings.Split(sa.Params["sVars"], ",") {
+	for nm := range strings.SplitSeq(sa.Params["sVars"], ",") {
 		if nm = strings.TrimSpace(nm); nm != "" {
 			ag.svars = append(ag.svars, nm)
 		}

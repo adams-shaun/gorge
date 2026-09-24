@@ -198,6 +198,8 @@ func boardFromView(v view.View) botpolicy.Board {
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
 		if p.ID == v.Viewer {
+			b.LibrarySize = int32(p.LibrarySize)
+			b.HandSize = int32(p.HandSize)
 			// The tap gate's pool (tap.go): the projecting viewer's own mana
 			// pool, the same numbers poolView lifted off the engine state
 			// that BoardFromGameInto reads directly, so the two halves agree
@@ -356,7 +358,7 @@ func hasFlashbackView(cv view.CardView) bool {
 // carries only the same type words joined into one string, so this mirrors
 // exactly that check on the joined list.
 func isCreatureView(cv view.CardView) bool {
-	for _, t := range strings.Fields(cv.Types) {
+	for t := range strings.FieldsSeq(cv.Types) {
 		if strings.EqualFold(t, "Creature") {
 			return true
 		}
@@ -370,7 +372,7 @@ func isCreatureView(cv view.CardView) bool {
 // joined into one string, so this mirrors exactly that check on the
 // joined list.
 func hasBasicView(cv view.CardView) bool {
-	for _, t := range strings.Fields(cv.Types) {
+	for t := range strings.FieldsSeq(cv.Types) {
 		if strings.EqualFold(t, "Basic") {
 			return true
 		}
@@ -384,7 +386,7 @@ func hasBasicView(cv view.CardView) bool {
 // the face's own type list and the engine's derived keyword list, which the
 // View carries as cv.Types and cv.Keywords, so the two halves agree.
 func instantSpeedView(cv view.CardView) bool {
-	for _, t := range strings.Fields(cv.Types) {
+	for t := range strings.FieldsSeq(cv.Types) {
 		if strings.EqualFold(t, "Instant") {
 			return true
 		}

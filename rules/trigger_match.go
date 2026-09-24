@@ -92,6 +92,19 @@ type pendingTrigger struct {
 	Granted bool
 	Grantor state.ObjID
 	Execute string
+	// Trigger is the granted/delayed trigger LINE this pending trigger came
+	// from (its OptionalDecider$, Cost$, Condition$ and ResolvedLimit$ live
+	// here, not on the Execute$ body). It is zero for every printed trigger,
+	// whose line is recovered from Face.Triggers by pointer, and is carried
+	// through pushTrigger into Engine.triggerLines keyed by the minted stack
+	// object -- see that field. The Gained arm sets it from the foreign face's
+	// compiled Trigger, the Granted arm from the AddTrigger$ static and the
+	// Delayed arm from the registration's re-parsed body.
+	Trigger cards.Trigger
+	// TriggerSVars is the owning face's immutable script table captured with
+	// the granted/delayed line. Source may be a different card, and the grant
+	// can end before this ability resolves.
+	TriggerSVars map[string]string
 	// Gained marks a has-all-abilities-of trigger (Forge's
 	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
 	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's
@@ -110,6 +123,8 @@ type pendingTrigger struct {
 	// KeywordTriggerPush whose __kwWard: payload events.Apply rebuilds the
 	// same DB$ Ward ability from. Idx and SA are unset for it.
 	Ward string
+	// Melee marks a layer-6 granted instance without a printed trigger index.
+	Melee bool
 	// Afflict is a GRANTED afflict keyword (a layer-6 AddKeyword$
 	// Afflict:<N>, e.g. Lost Monarch of Ifnir's "Other Zombies you control
 	// have afflict 3"): the same shape as Ward -- the queue carries the life
@@ -789,10 +804,11 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.hasEffectRepeatDelayed() {
 		e.checkEventDelayedTriggers(ev, lki)
 	}
-	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
-	// two events that place lore counters -- the battlefield-entry Move
-	// (whose own grant is already folded into the live counter the check
-	// reads) and a LORE CounterChange (the draw-step half).
+	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one
+	// event that places a lore counter -- the LORE CounterChange (the entry
+	// grant rules' foldEntryMove places and the draw-step half alike; task
+	// addcounter1/2 moved the entry grant onto a real CounterChange, so the
+	// old MoveZone arm double-queued the entry chapter).
 	e.checkChapterTriggers(ev)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
@@ -997,9 +1013,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 	// Granted triggers inspect the same active-static list for every object
 	// this event visits. Matching cannot emit or mutate continuous effects;
 	// phase diagnostics emit only after the walk, so this snapshot is stable
-	// for its full deterministic traversal.
-	grantedStatics := observer.active()
-	observer.forEachObject(func(id state.ObjID) {
+	// for its full deterministic traversal. It is narrowed ONCE here to the
+	// grants whose trigger Mode$ can observe this event kind (exact: see
+	// checkGrantedStaticTriggersUsing), so the per-object walk never runs an
+	// Affected$ spec match for a grant that cannot fire on this event.
+	var grantedBuf [8]*ContinuousEffect
+	grantedStatics := grantedTriggerStaticsFor(observer.active(), ev.Kind, grantedBuf[:0])
+	// The event's compiled-interest test, hoisted out of the per-object walk:
+	// compiledTriggerInterestAllows(interests, ev.Kind) is exactly
+	// evAll || interests&evMask != 0 (see objectFaceMayTriggerHoisted).
+	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
+	visit := func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
 			return
@@ -1048,7 +1072,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
+		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTriggerHoisted(id, o.FaceIdx, f, ev.Kind, evAll, evMask) {
 			if grantedKeywordTriggerEvent(ev.Kind) {
 				switch ev.Kind {
 				case events.TargetsChosen:
@@ -1056,6 +1080,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedMeleeTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedMentorTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
@@ -1069,7 +1094,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+			if len(grantedStatics) > 0 {
+				e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+			}
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -1487,7 +1514,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+		if len(grantedStatics) > 0 {
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+		}
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
@@ -1516,6 +1545,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		e.checkGrantedMeleeTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Mentor must fire even when the object's own printed
 		// triggers are live for this event -- the same both-paths rule
 		// Afflict, Conspire, Exploit, Offspring and Training follow.
@@ -1525,7 +1555,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// live for this step change -- the same both-paths rule Afflict,
 		// Conspire, Exploit, Offspring and Training follow.
 		e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
-	})
+	}
+	// The live walk skips a hidden zone none of whose objects can act on
+	// any event (rules/trigger_zoneskip.go); the look-back observer and any
+	// event a static-granted trigger observes walk everything.
+	skip := observer == e && len(grantedStatics) == 0
+	var verify func(state.ObjID)
+	if skip && trigZoneSkipVerify {
+		verify = e.trigSkipVerifier(ev, visit, func() int { return len(phaseNotes) })
+	}
+	observer.forEachTriggerObject(ev, skip, visit, verify)
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
 			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
@@ -1885,6 +1924,9 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // shapes. Every other mode, and every per-defender attack trigger, is
 // unchanged.
 func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source state.ObjID) []state.Target {
+	if ev.Kind == events.DeclareAttackers && t.Params["Keyword"] == "Melee" {
+		return e.meleeRemembered(ev)
+	}
 	if ev.Kind == events.DeclareAttackers && attackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
 		out := make([]state.Target, 0, len(e.declaredAttackers)+1)
 		for _, id := range e.declaredAttackers {
@@ -2148,6 +2190,9 @@ func init() {
 		// attacksMatches (the Dethrone precedent), with a granted-keyword
 		// synthesis (checkGrantedTrainingTriggers) for the layer-6 grant.
 		"kw:Training",
+		// CR 702.121 Melee: snapshot distinct attacked opponents at declaration
+		// for each printed or granted Attacks trigger instance.
+		"kw:Melee",
 		// CR 702.134 Mentor: an Attacks trigger (cards/kw_mentor.go) whose
 		// targeted PutCounter body carries the Mentor$ marker, enforced by
 		// mentorAdmits at both the target offer and the recheck, with a
@@ -2218,5 +2263,10 @@ func init() {
 		// seating exists (the deck.IsPartnerPair extension is a separate
 		// ticket; the Partner precedent above is the same class).
 		"kw:Doctor's companion",
+		// kw:Companion is the deck-construction keyword (CR 702.139), in the
+		// same registration class as Partner above. This asserts the corpus
+		// shape is understood; the chosen-companion pregame pick and the
+		// outside-the-game activation are separate play-side work.
+		"kw:Companion",
 	)
 }

@@ -36,10 +36,16 @@ func TestHumanCaretakerUsesConfiguredPolicy(t *testing.T) {
 		tab := r.tables["t1"]
 		r.mu.RUnlock()
 		tab.mu.RLock()
-		if tab.cur != nil && len(tab.cur.slots) > 0 {
-			hs, _ = tab.cur.slots[0].(*HumanSeat)
-		}
+		cur := tab.cur
 		tab.mu.RUnlock()
+		if cur != nil {
+			// play() installs slots under the match's own lock, not the table's.
+			cur.mu.RLock()
+			if len(cur.slots) > 0 {
+				hs, _ = cur.slots[0].(*HumanSeat)
+			}
+			cur.mu.RUnlock()
+		}
 		if hs == nil {
 			time.Sleep(time.Millisecond)
 		}

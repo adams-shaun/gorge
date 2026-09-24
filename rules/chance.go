@@ -57,7 +57,7 @@ func NewHypotheticalPlanned(cfg Config, prefix []ChanceDraw, planner ShufflePlan
 	defer recoverChance(&err)
 	r := newRNG(cfg.Seed)
 	r.chance = &chanceState{prefix: append([]ChanceDraw(nil), prefix...), planner: planner, shuffleOrdinals: make(map[state.PlayerID]int)}
-	e = newWithRNG(cfg, r)
+	e = newWithRNG(cfg, r, false)
 	return e, nil
 }
 

@@ -66,6 +66,15 @@ export interface TableInfo {
    * omitting would make ambiguous.
    */
   seat_names?: string[];
+  /**
+   * Mulligans is the table's London mulligan allowance (TableConfig.Mulligans):
+   * each player may take up to this many pre-game mulligans. Always emitted,
+   * like Format: the zero value is 0, a real value that disables the pre-game
+   * round, so an omitted field would be indistinguishable from it. It is
+   * public table configuration, never private game state — a restart control
+   * reads it to recreate the same game.
+   */
+  mulligans: number;
 }
 
   /**
@@ -109,6 +118,16 @@ export interface SeatInfo {
   deck: string;
   colour: string;
   human?: boolean;
+  /**
+   * DeckID is the exact deck id this seat plays — the TableConfig.Decks
+   * entry the match loaded (host/match.go's deckNames), NOT the deck's
+   * display Name. The two can differ: cmd/gorged's catalogue falls back to
+   * the file stem only when a deck file has no Name. A client that restarts
+   * the game must post this id back as human_deck/bot_deck; posting the
+   * display name would 400 "unknown deck". omitempty matches Human's
+   * additive shape.
+   */
+  deck_id?: string;
 }
 
   /**

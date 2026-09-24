@@ -139,9 +139,21 @@ func CheckSVarHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 			}
 		}
 	}
-	val, ok := EvalCountOK(h, c, body)
-	if !ok {
-		return false, false
+	var val int32
+	if v, ok := sourceRuntimeSVar(g, c, check); ok {
+		// A runtime write (api:StoreSVar) shadows the printed body of the
+		// same name, exactly as NumResolved and the SVar$ head read it.
+		// Without this a repeat-while gate over a StoreSVar flag (Sword of
+		// Dungeons & Dragons: RepeatCheck starts at Number$ 1 and the d20
+		// body stores 0 on a miss) read the printed 1 forever and looped
+		// to the 1000-iteration cap.
+		val = v
+	} else {
+		v, ok := EvalCountOK(h, c, body)
+		if !ok {
+			return false, false
+		}
+		val = v
 	}
 	cmp = strings.TrimSpace(cmp)
 	if cmp == "" {
@@ -212,9 +224,27 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	playerTurn := strings.TrimSpace(sa.Params["ConditionPlayerTurn"])
 	phases := strings.TrimSpace(sa.Params["ConditionPhases"])
 	firstCombat := strings.TrimSpace(sa.Params["ConditionFirstCombat"])
+	activationLimit := strings.TrimSpace(sa.Params["ConditionActivationLimit"])
 	if defined == "" && present == "" && notPresent == "" && compare == "" && check == "" && bare == "" &&
-		playerTurn == "" && phases == "" && firstCombat == "" {
+		playerTurn == "" && phases == "" && firstCombat == "" && activationLimit == "" {
 		return true, false // not gated (a lone ConditionSVarCompare$ compares nothing)
+	}
+	// ConditionActivationLimit$ <op><n> (4 corpus lines: Farrelite Priest,
+	// Initiates of the Ebon Hand, Dragon Whelp, Nalathni Dragon -- "if this
+	// ability has been activated four or more times this turn"): compares
+	// the resolving activated ability's activation count this turn,
+	// including the current activation, which rules binds as
+	// Ctx.ActivationsThisTurn. An unbound count (0: no activated ability is
+	// resolving, or a synthetic Ctx) or an unreadable compare stays
+	// unresolved -- the fail-open run-anyway this file's convention. It is
+	// only a corpus shape alone, so any other Condition key beside it is
+	// unsupported too.
+	if activationLimit != "" {
+		if defined != "" || present != "" || notPresent != "" || compare != "" || check != "" || bare != "" ||
+			playerTurn != "" || phases != "" || firstCombat != "" || c.ActivationsThisTurn <= 0 {
+			return false, false
+		}
+		return activationCountHolds(c.ActivationsThisTurn, activationLimit)
 	}
 	// Any other Condition* key (Zone, ManaSpent, ...) beside the supported
 	// nine makes the shape unsupported. ConditionDescription$ is
@@ -230,7 +260,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		switch k {
 		case "ConditionDefined", "ConditionPresent", "ConditionNotPresent", "ConditionCompare",
 			"ConditionCheckSVar", "ConditionSVarCompare", "Condition",
-			"ConditionPlayerTurn", "ConditionPhases", "ConditionFirstCombat":
+			"ConditionPlayerTurn", "ConditionPhases", "ConditionFirstCombat", "ConditionActivationLimit":
 		default:
 			return false, false
 		}
@@ -422,9 +452,11 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
-		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" {
-		// Only the Remembered, Self, TriggeredCard, Imprinted and Targeted
-		// families are in scope among DEFINED groups: the objects a walk
+		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" &&
+		defined != "Returned" {
+		// Only the Remembered, Self, TriggeredCard, Imprinted, Targeted,
+		// Discarded and Returned families are in scope among DEFINED groups:
+		// the objects a walk
 		// carries in Ctx.Remembered, the resolving source object alone (the
 		// Addendum shape: ConditionDefined$ Self | ConditionPresent$
 		// Card.wasCast holds only when the sub is reached through a cast of
@@ -481,6 +513,19 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		if !grpOK {
 			return false, false
 		}
+	}
+	if defined == "Returned" {
+		// ConditionDefined$ Returned (Wonderscape Sage's `ConditionDefined$
+		// Returned | ConditionPresent$ Land.hasANonBasicLandType |
+		// ConditionCompare$ EQ0`, the corpus's one carrier): Forge's group is
+		// the permanents THIS activation's own Return<N/Spec> cost returned
+		// to their owner's hand. It is enumerated off the event log through
+		// the same activation window DiscardedInWindow scans (effects.Host's
+		// ReturnedInWindow), so the cost payment and the gate cannot disagree.
+		// An empty window is a resolved zero -- the ability really returned
+		// nothing -- never the fail-open a missing channel gets elsewhere, so
+		// the EQ0 comparison binds against a definite count.
+		group = returnedGroup(h, c)
 	}
 	if defined == "Self" {
 		// Self is the source object ALONE — not rememberedWithSource's
@@ -603,6 +648,21 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 	}
 	return combine(evalConditionCount(count, compare))
+}
+
+// returnedGroup enumerates the ConditionDefined$ Returned group: the
+// permanents the resolving object's OWN activation returned to their owner's
+// hand as a Return<N/Spec> cost, over the activation window
+// (effects.Host.ReturnedInWindow) the Discarded group's cost channel uses.
+// An empty window is a resolved empty list, not an unresolved gate: an
+// activation that returned nothing genuinely has no returned permanents, so
+// a count comparison over it is definite.
+func returnedGroup(h Host, c *Ctx) []state.Target {
+	var out []state.Target
+	for _, id := range h.ReturnedInWindow(c.ResolvingObj) {
+		out = append(out, state.Target{Obj: id})
+	}
+	return out
 }
 
 // discardedGroup enumerates the ConditionDefined$ Discarded group: the
@@ -978,4 +1038,38 @@ func stripWasCastFromHandToken(spec string) string {
 		first = false
 	}
 	return b.String()
+}
+
+// activationCountHolds evaluates a literal "<op><n>" compare (GE4, EQ0, ...)
+// against n through the shared compareCount. It reports (holds, evaluated);
+// a compare it cannot read is unevaluated.
+func activationCountHolds(n int32, cmp string) (bool, bool) {
+	cmp = strings.TrimSpace(cmp)
+	if len(cmp) < 3 {
+		return false, false
+	}
+	t, err := strconv.Atoi(strings.TrimSpace(cmp[2:]))
+	if err != nil {
+		return false, false
+	}
+	switch op := strings.ToUpper(cmp[:2]); op {
+	case "EQ", "NE", "LT", "LE", "GT", "GE":
+		return compareCount(op, int(n), t), true
+	}
+	return false, false
+}
+
+// sourceRuntimeSVar is runtimeSVar keyed off an explicit game rather than
+// c.Host, for the gate evaluators that are handed the host directly: the
+// resolving source object's api:StoreSVar store entry under name.
+func sourceRuntimeSVar(g *state.Game, c *Ctx, name string) (int32, bool) {
+	if c == nil || c.Source == 0 || g == nil {
+		return 0, false
+	}
+	o := g.Obj(c.Source)
+	if o == nil {
+		return 0, false
+	}
+	v, ok := o.RuntimeSVars[name]
+	return v, ok
 }

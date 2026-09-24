@@ -135,7 +135,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		}
 		var zones []state.Zone
 		if z := strings.TrimSpace(sa.Params["ValidZone"]); z != "" {
-			for _, part := range strings.Split(z, ",") {
+			for part := range strings.SplitSeq(z, ",") {
 				if zn, ok := ZoneFromString(strings.TrimSpace(part)); ok {
 					zones = append(zones, zn)
 				}
@@ -375,12 +375,12 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 // and YouOwn (provenance and ownership are already enforced by the
 // population path). Any other segment fails its part closed.
 func validSAOK(f *cards.Face, spec string, resolve func(string) (int32, bool)) bool {
-	for _, tok := range strings.Split(spec, ",") {
+	for tok := range strings.SplitSeq(spec, ",") {
 		all := true
 		sawPart := false
-		for _, part := range strings.Split(tok, "+") {
+		for part := range strings.SplitSeq(tok, "+") {
 			partOK := true
-			for _, seg := range strings.Split(part, ".") {
+			for seg := range strings.SplitSeq(part, ".") {
 				seg = strings.TrimSpace(seg)
 				switch {
 				case seg == "":

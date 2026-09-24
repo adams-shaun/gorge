@@ -499,7 +499,7 @@ func discardBounds(h Host, c *Ctx, sa *cards.SA, eligible int) (int, int) {
 func unlessTypeEligible(g *state.Game, c *Ctx, hand []state.ObjID, unless string) []state.ObjID {
 	var out []state.ObjID
 	for _, id := range hand {
-		for _, spec := range strings.Split(unless, ",") {
+		for spec := range strings.SplitSeq(unless, ",") {
 			spec = strings.TrimSpace(spec)
 			if spec != "" && MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				out = append(out, id)
@@ -1844,6 +1844,11 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// rather than against either of the two destinations the walk picks
 	// between.
 	rider := classifyAttackingEntry(c, sa, state.ZBattlefield)
+	// RememberFound$ replaces the resolution's Remembered set with found
+	// cards, or with all revealed cards when RememberRevealed$ is also set.
+	// Trigger referents remain in Ctx.Captured. Accumulate across the
+	// player walk so a later player's reveal does not erase earlier ones.
+	var digRemembered []state.Target
 	for _, p := range playerIDsFromTargets(h, c, sa.Params["Defined"], targets) {
 		lib := zoneOf(g, state.ZLibrary, p)
 		if len(lib) == 0 {
@@ -1885,14 +1890,19 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		}
 		switch {
 		case rememberRevealed:
-			// The revealed set already carries every found card (it is a
-			// prefix scan), so RememberFound$ adds nothing new.
+			// The revealed set already includes every found card. Alone,
+			// RememberRevealed$ retains its append semantics; paired with
+			// RememberFound$ it replaces the trigger capture at the end.
 			for _, id := range revealed {
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				if rememberFound {
+					digRemembered = append(digRemembered, state.Target{Obj: id})
+				} else {
+					c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				}
 			}
 		case rememberFound:
 			for _, id := range found {
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				digRemembered = append(digRemembered, state.Target{Obj: id})
 			}
 		}
 		foundJoinedRevealed := false
@@ -2013,6 +2023,9 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			ev.Player, ev.Secret = p, true
 			h.Emit(ev)
 		}
+	}
+	if rememberFound {
+		c.Remembered = digRemembered
 	}
 }
 
@@ -2846,7 +2859,7 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	// on the same statics that were offered.
 	accepted := map[int]bool{}
 	if ans != "" && ans != "no" {
-		for _, tok := range strings.Split(ans, ",") {
+		for tok := range strings.SplitSeq(ans, ",") {
 			if i, err := strconv.Atoi(strings.TrimSpace(tok)); err == nil && i >= 0 {
 				accepted[i] = true
 			}
@@ -3129,6 +3142,13 @@ func containsObj(ids []state.ObjID, want state.ObjID) bool {
 // kept byte-identical to the behaviour an older binary logged so a persisted
 // match replays (host/persist.go sidecar.NameUniverse).
 func legacyName(g *state.Game, p state.PlayerID) string {
+	return LegacyNameFallback(g, p)
+}
+
+// LegacyNameFallback is legacyName exported for rules' as-enters NameCard ask
+// (entryETBChoice), so the entry-boundary and mid-resolution NameCard paths
+// fall back to the SAME stand-in name when their filtered name list is empty.
+func LegacyNameFallback(g *state.Game, p state.PlayerID) string {
 	if g == nil {
 		return "a card"
 	}
@@ -3166,9 +3186,7 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		}
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "name", ResumeSA: sa, Prompt: "Choose a card name"}
-		for i, name := range names {
-			d.Options = append(d.Options, decision.Option{Index: i, Kind: "name", Label: name, Player: c.Controller})
-		}
+		d.Options = NameOptions(names, c.Controller)
 		if Ask(h, d) == AskAsked {
 			return
 		}

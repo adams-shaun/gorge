@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
@@ -848,10 +848,16 @@ func (e *Engine) resumeTriggerDrain() {
 func (e *Engine) askPriority(p state.PlayerID) {
 	d := &decision.Decision{
 		Player: p, Kind: decision.KPriority, Min: 1, Max: 1,
-		Prompt: fmt.Sprintf("turn %d, %s — %s has priority",
-			e.G.Turn, e.G.Step, seatFacingName(e.G, p)),
+		// Byte-identical to fmt.Sprintf("turn %d, %s — %s has priority",
+		// ...) without fmt's boxing: every priority walk builds it.
+		Prompt: "turn " + strconv.Itoa(int(e.G.Turn)) + ", " + e.G.Step.String() + " — " +
+			seatFacingName(e.G, p) + " has priority",
 		Options: e.legalActions(p),
 	}
+	// The offer walk's memo stays servable to the seat's board build while
+	// this very decision is pending and nothing but its DecisionAsk marker
+	// has been logged (rules/derivedmemo.go, BeginDerivedReads).
+	e.recordDerivedMemoTail(d)
 	e.ask(d)
 }
 
@@ -1097,6 +1103,11 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// (RearrangeTopOfLibrary, Ponder) -- the KArrange sibling of the
 		// KModes case above, only ever asked mid-resolution.
 		e.handleArrange(d, in)
+	case decision.KStartingPlayer:
+		// CR 103.1's second half: the toss winner's choice of the first-turn
+		// seat (rules/starting_player_choice.go). It is asked at genesis,
+		// after the opening deal, and its answer opens the pregame rounds.
+		e.handleStartingPlayer(d, in)
 	}
 }
 

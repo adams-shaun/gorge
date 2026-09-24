@@ -1,3 +1,120 @@
+# Dynamic TargetMin$/TargetMax$ — sol1 gate repair (agent-20260918T233200Z-e0817443)
+
+## Finding resolved
+
+The module gate in `.ds4/findings-sol1.md` failed `TestMarshalsAnthemPlainCastETBAsksForNothing`: the older test expected a Min 0 / Max 1 placement ask for zero kicks. The dynamic-bound fix correctly resolves `TargetMin$ 0 | TargetMax$ X` to (0,0) when `Count$TimesKicked` is zero and does not pose a target ask. `rules/multikicker_test.go` now drains the stack without accepting an unexpected target ask in both plain and declined-multikick branches; it asserts a real `TriggerPush` for the Anthem so the absence is not vacuous, and retains the graveyard/flags assertions. Its kicked-count-positive test still expects Max 2 and passes. This only changes the stale test, not engine behavior.
+
+Earlier commits on this branch implement and exercise X/Y bound resolution and the kicked Tear Asunder zero main / one sub target (`ddb4c661`, prior report in `.ds4/report-t1.md` and `.ds4/report-r2.md`). `.cards` was present (shared corpus symlink); no golden, deck ratchet, Known-approximations row, or state mutation was changed this round. No new test was added; this corrects an existing test whose old expectation contradicted the fix. The controller-ordered `git rebase main` returned `Current branch ... is up to date` before edits; the worktree was clean.
+
+## Fails without the fix
+
+Copied `rules/stack.go` to `.ds4/scratch/dynamic-sol1-stack.orig`, temporarily restored the old `max >= 1` clamp (removed the resolvedMax binding), ran the existing corrected test, then restored the file byte-identically (`cmp` passed). The output was:
+
+```
+$ go test -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$' ./rules/
+--- FAIL: TestMarshalsAnthemPlainCastETBAsksForNothing (0.55s)
+    multikicker_test.go:179: non-priority decision &{Seq:68 Player:0 Kind:target Prompt:Choose a target for Marshal's Anthem Min:0 Max:1 Options:[...]} while draining the stack
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.565s
+FAIL
+exit=1
+restored-byte-identical
+```
+
+The full failure line is in `.ds4/scratch/dynamic-sol1-revert-real.log`. An initial revert attempt left an unused `resolvedMax` local and failed at compilation, so the proof above used a compiling revert instead.
+
+## Gates (real output)
+
+```
+$ go test -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestTriggerPlacementAsk' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.638s
+$ go test -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestTriggerPlacementAsk' ./rules/ # after restoring the source
+ok   github.com/adams-shaun/gorge/rules (cached)
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 1.224s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.259s
+$ gofmt -l rules/multikicker_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+$ git diff --check
+(no output)
+```
+
+The full module run is the controller's gate; this round used only the focused test plus the two mandatory goldens. Botbench split unchanged by the test correction. `git status` after restoration showed only `rules/multikicker_test.go` modified, which is committed as `6ab25d60`.
+
+## Issues
+
+- No new defect. Prior round's unresolved `subTargetAsk` zero-path coverage and no CR-lane case remain documented in `.ds4/report-r2.md`; no new ticket needed for this gate repair.
+
+# count:CardManaCostLKI — round 3 (review fixes)
+
+STATUS: DONE. Rebasing this clean worktree onto `main` succeeded before editing. `.cards` is present (symlink to shared corpus). Commits: `7454592e` (trigger SVar resolver), `57707664` (round-2 report), `10ec74fc` (restore placement-time announced X precedence); report restoration is committed separately.
+
+## Findings addressed
+
+- **CRITICAL** (`rules/trigger_referents.go`): before constructing the host-bound count context, give the in-flight cast/activation's announced X precedence over the stack/trigger X. This preserves both `SVar:X:Count$xPaid` and absent-SVar activation target asks, while retaining evaluation of authored non-`xPaid` SVar bodies from the source face for triggered abilities. The committed Chthonian Nightmare test now sees its cmcEQX target again. Existing numeric RHS callers share `targetSpecContext`, so this covers sibling activated abilities with the same shape rather than special-casing a card. This is the one code change after the review.
+- **MAJOR**: restored all 477 lines of `main`'s `.ds4/report-t2.md` (four unrelated reports) and prepended this report and the prior 183-line ticket report; no prior history was deleted. Also prepended this round's report to the accumulated `.ds4/report-sol1.md`.
+- **MINOR**: the previously filed ticket's actual path is `.ds4/new-tickets/spelltargeted-cardmanacostlki-ref.md.filed` (not an unfiled `.md`). Ran the brief's `make sim` gate: 20 replay OK.
+
+Root cause A (`effects/count.go` `CardManaCostLKI`) was already on `main` when this ticket began; `effects/ref_property_lki_test.go` pins its LKI-vs-live behavior. The Hammerhead real-corpus test exercises two causing spell mana values and cmc-5 exclusion. Corpus census rechecked: 58 `CardManaCostLKI` lines / 56 files and 138 nonliteral `ValidTgts$` RHS lines. `TestHeads` stayed green; neither heads nor ratchets were edited. The playable figure is 29777 on the rebased main (prior round's older-main figure was 29775), not attributed to this fix.
+
+## Fails without the fix
+
+Copied `rules/trigger_referents.go` to `.ds4/scratch/trigger_referents-fixed-sol1.go`, restored the pre-round-3 version from `HEAD`, ran the committed Chthonian test, then restored the saved version (`cmp` returned 0). Output (long priority decision abbreviated here; full output in `.ds4/scratch/chthonian-without-fix-sol1.log`):
+
+```text
+$ go test -run 'TestChthonianNightmarePaysEnergySacsAndReturns' ./rules/
+--- FAIL: TestChthonianNightmarePaysEnergySacsAndReturns (0.58s)
+    rakdos_params_energycost_test.go:90: target ask missing: &{Seq:47 Player:0 Kind:priority Prompt:turn 1, main1 — a has priority ...}
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.601s
+baseline_exit=1
+restored_cmp=0
+```
+
+The previous round independently reverted the trigger SVar resolver to main and observed that both new rules tests fail; its verbatim output is preserved below in the appended round-2 report.
+
+## Gates (real output)
+
+```text
+$ go build ./...
+build=0 (no output)
+$ go test -run 'TestChthonianNightmarePaysEnergySacsAndReturns|TestHammerheadTyrant|TestVialSmasherChosenPlayerTakesDamage|TestSpellCastActivatorThisTurnCastGatesTheTrigger|TestNightmareUnmaking|TestWhirOfInvention|TestTriggerTargetSpecContextResolvesSourceXShapes|TestHeads' ./rules/
+rules=0
+ok   github.com/adams-shaun/gorge/rules 1.900s
+$ go test -run 'TestCtxSpecContextResolvesXAndSVarNumericRHS|TestNumericRHS|TestCardManaCostLKIReadsRememberedSnapshot' ./effects/
+effects=0
+ok   github.com/adams-shaun/gorge/effects 0.009s
+$ gofmt -l .
+gofmt=0 (no output)
+$ go vet ./...
+vet=0 (no output)
+$ go run ./cmd/gentypes -check
+gentypes=0 (no output)
+$ make sim 2>&1 | grep -c 'replay OK'   # output captured to .ds4/scratch/sim-sol1.log; equivalent count
+sim=0
+20
+$ make report 2>&1 | grep '^cards:'   # captured to .ds4/scratch/report-cards-sol1.log
+report=0
+cards: 33667  playable: 29777 (88.4%)
+$ go test ./internal/archtest/
+archtest=0
+ok   github.com/adams-shaun/gorge/internal/archtest 3.777s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+botbench=0
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.261s
+```
+
+## Issues
+
+- `SpellTargeted$<Property>` still lacks a ref in `effects/count.go` (`refTargets`): four `SpellTargeted$CardManaCostLKI` corpus files fail closed. A separate ticket has already been filed as `.ds4/new-tickets/spelltargeted-cardmanacostlki-ref.md.filed`. A corpus-pinned test would expose it; CR 608.2c is relevant.
+- `TriggerRemembered$<Property>`: the original brief lists one corpus carrier and ticket `agent-20260918T233200Z-4a2fcd44`; main now has `effects/count_triggerremembered_test.go` and the matching implementation, so this is no longer an open issue on this base.
+- Trigger stack objects do not carry their source face's authored `SVar:X` as their own X; other placement-time consumers reading `o.X` directly can still see zero. `rules/trigger_queue.go` (`pushTrigger`), `rules/stack.go` (`resolveTop`) need a separate structural ticket if such a consumer is found; this ticket's filter resolver now handles its documented scope. No Known-approximations row was added or grown.
+
+---
+
 # Convoked$Amount — fix-round report
 
 STATUS: DONE. Commit `88d159e4` (following initial implementation `9e650da1`). `.cards` was present as a symlink to the shared corpus; `/usr/bin/grep -rlE 'Convoked\$Amount' .cards/cardsfolder | wc -l` returned **2**.
@@ -680,6 +797,95 @@ No outstanding defect identified in this ticket; no new ticket or Known-approxim
 
 ---
 
+# Loamcrafter Faun — sol1 report/diff reconciliation (agent-20260918T195920Z-2fd3b568)
+
+## Finding and branch provenance
+
+The review's MAJOR was correct: `.ds4/report-r2.md` falsely called its own
+insertion the *only tracked diff*, even though implementation and tests from
+prior rounds were still on this branch. Corrected the intro and historical
+base/SHAs there, preserving the unrelated ChosenCardStrict and
+TriggerRemembered reports below. The phrase now explicitly means only the
+new change in that **r2 round**, not the full `main...HEAD` diff.
+
+Controller-directed `git rebase main` ran first with a clean worktree: four
+commits replayed, no conflicts. Base `c4560130`; rebased commits:
+`dd58b67f` (implementation), `8da12fb5` (exotic verdict tests),
+`0638597c` (unique-path t1 report), `7c054313` (r2 report). The branch's
+**actual `main...HEAD` diff** at the start of sol1 contains SIX paths:
+
+```
+M .ds4/report-r2.md                       (r2 report, 103 insertions)
+A .ds4/report-t1-2fd3b568.md              (unique-path t1 report, 230 insertions)
+M effects/count.go                        (54 insertions, 10 deletions)
+M effects/count_triggerremembered_test.go (86 insertions, 30 deletions)
+M effects/immediate.go                    (4 insertions, 11 deletions)
+A rules/loamcrafter_faun_test.go          (276 insertions)
+```
+
+This round additionally corrects `.ds4/report-r2.md` and appends this sol1
+report without changing production code or tests. The code is **in scope**:
+`effects/count.go` binds `TriggerRemembered` to the capture-excluded set,
+`effects/immediate.go` uses the same helper, and the two test files assert
+both the mapping and the real Loamcrafter return/empty-discard paths. The
+sibling merged a **plain** `Ctx.Remembered` mapping; this branch corrects it.
+The full per-file implementation details and the observed fail-without-fix
+proof remain in `.ds4/report-t1-2fd3b568.md`. No report-only branch claim
+remains. `.cards` is present as a symlink to the real corpus, not a skipped
+corpus run. No head, ratchet or botbench split was re-pinned.
+
+## Fails without the fix
+
+No new tests or production hunks in sol1. The initial implementation round
+copied and reverted `effects/count.go`, confirmed `TestTriggerRememberedRefProperty`
+failed on the sibling's plain mapping (`Amount = 3, want 2`), and confirmed
+`TestLoamcrafterFaunWhenYouDoReturnsThatMany` failed with the head absent
+(no return ask); then restored byte-identically with `cmp`. Exact excerpts:
+
+```
+--- FAIL: TestTriggerRememberedRefProperty (0.00s)
+    count_triggerremembered_test.go:63: precondition: TriggerRemembered$Amount = 3, want 2 (capture not excluded)
+--- FAIL: TestLoamcrafterFaunWhenYouDoReturnsThatMany (0.58s)
+    loamcrafter_faun_test.go:202: return ask Max = 1, want 2 (the discarded lands, capture excluded): &{Seq:195 Player:1 Kind:choose Prompt:turn 2 — discard 1 card(s) down to the hand-size limit Min:1 Max:1 ...}
+```
+
+## Gates after the sol1 rebase (exact commands and output)
+
+```
+$ go test -run 'TestLoamcrafterFaun|TestTriggerRemembered|TestRefProperty|TestImmediateTrigger|TestForumFilibuster|TestSpeedYoungAvenger' ./effects ./rules
+ok   github.com/adams-shaun/gorge/effects 0.627s
+ok   github.com/adams-shaun/gorge/rules 0.691s
+focused_exit=0
+$ go test ./effects ./rules
+ok   github.com/adams-shaun/gorge/effects 2.623s
+ok   github.com/adams-shaun/gorge/rules 33.450s
+affected_exit=0
+$ gofmt -l .
+(no output; exit 0)
+$ go vet ./effects ./rules
+(no output; exit 0)
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 4.436s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.298s
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+## Issues
+
+- `IsTriggerRemembered` filter predicate remains unimplemented (61 corpus
+  files); delayed triggers with this predicate never match (Blessed Defiance).
+- `TriggerRemembered$GreatestCardManaCost` and `$CardTypes` remain fail-closed
+  in `effects/count.go:evalRefProperty` (two carriers). The other two exotics
+  named in the brief, `CastTotalManaSpent` and `CardManaCostLKI`, are already
+  implemented and pinned; the brief's four-unsupported claim did not hold.
+  No other defect identified in the sol1 report correction.
+
+---
+
 # Mill-trigger replacement redirection — agent-20260919T183731Z-085022e9
 
 ## Finding resolved
@@ -748,3 +954,165 @@ $ git diff --check
 ## Issues
 
 No additional defect found in this fix round. Rest in Peace currently emits an unmarked exile move; a replacement preserving `Text: "milled"` is exercised explicitly by the test's second action, so the next such replacement is covered by the same predicate. No CR-lane test requested; this is a card-trigger regression, not a new untracked CR shape.
+
+---
+
+# replcensus1 — ReplaceDamage census-token fix round (agent-20260919T055356Z-504b1359)
+
+STATUS: DONE. Rebased this worktree onto `main` before continuing; the working tree was clean, so no preliminary commit was needed. `.cards` was already present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Changes and finding resolution
+
+- `rules/replacement.go` (existing implementation commit `6fcf1fcd`): registers only the `api:ReplaceDamage` census token in `RegisterNonAPI`, with a comment pointing to `applyReplaceDamageBody`, which already handles the replacement inline. No prevention behavior changed and no dead effects handler was added.
+- `rules/replacedamage_registration_test.go` (same commit): pins `effects.Supported()` and a real Heart-Shaped Herb corpus carrier's primitive and Unsupported result. These assertions fail without the registration, not merely when the corpus card is absent.
+- `.ds4/report-t1.md` (this fix round): **MAJOR finding fixed**. The prior report commit inadvertently deleted 1,941 lines of other tickets' report history. Restored the entire 2,162-line `main` version byte-for-byte and appended this ticket's 172-line round-1 report. `git diff main -- .ds4/report-t1.md` now shows insertions only, after the old final line. No unrelated historical record was removed. `.ds4/report-t2.md` remains an append-only 207-line change; `.ds4/report-sol1.md` is append-only too.
+
+No heads/ratchet movement is expected from this registration; `rules/heads_test.go` and `rules/acceptance_test.go` were not edited. Neither was run here (daemon gates). The botbench byte-identity gate passed. Deviation from the original brief: tests live in a new file rather than `rules/coverage_test.go`, per dispatch's later explicit new-test-file rule. `make report` was not run, as directed.
+
+## Gates (actual output on rebased tree)
+
+`go test -v -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ > .ds4/scratch/sol1-rules.log 2>&1` (exit 0; output excerpt):
+
+```text
+=== RUN   TestReplaceDamagePrimitiveIsRegistered
+--- PASS: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+=== RUN   TestReplaceDamageCarrierHasNoGap
+--- PASS: TestReplaceDamageCarrierHasNoGap (0.61s)
+--- PASS: TestBattletideAlchemistAsksItsControllerAndPreventsClerics (0.00s)
+--- PASS: TestThunderstaffPreventsExactlyItsAmount (0.00s)
+--- PASS: TestSpiderPunkStopsReplaceDamagePreventionBodies (0.00s)
+--- PASS: TestDamageReplacementSupportedBodyFamilies (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.654s
+```
+
+`go test ./internal/archtest/ > .ds4/scratch/sol1-arch.log 2>&1` (exit 0):
+
+```text
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.487s
+```
+
+`go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-botbench.log 2>&1` (exit 0):
+
+```text
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.514s
+```
+
+`gofmt -l rules/replacement.go rules/replacedamage_registration_test.go` and `git diff --check`: no output.
+
+## Fails without the fix
+
+Copied `rules/replacement.go` to `.ds4/scratch/sol1-replacement.go.saved`, removed **only** its registration/comment, ran `go test -run 'TestReplaceDamage' ./rules/ > .ds4/scratch/sol1-without-fix.log 2>&1` (exit 1), restored the original file and verified with `cmp` (`RESTORED BYTE-IDENTICAL`):
+
+```text
+--- FAIL: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+    replacedamage_registration_test.go:21: effects.Supported() is missing "api:ReplaceDamage"
+--- FAIL: TestReplaceDamageCarrierHasNoGap (0.68s)
+    replacedamage_registration_test.go:38: Heart-Shaped Herb still reports api:ReplaceDamage unsupported: [api:ReplaceDamage]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.693s
+FAIL
+```
+
+## Issues
+
+No new defects found. The five carriers with additional real gaps (`api:StoreSVar`, `api:Abandon`, `api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) remain outside this census-only ticket; no new CR-lane issue identified.
+
+---
+
+# Emerge integration — agent-20260918T225913Z-5db23024 (sol1)
+
+## Finding resolved
+
+The daemon's rebase/merge fallback failed because `.ds4/report-r2.md` and `.ds4/report-t1.md` contained **unstaged Emerge reports replacing other tickets' tracked reports**. I saved both Emerge reports at unique paths (`.ds4/report-r2-emerge.md`, `.ds4/report-t1-emerge.md`), restored the two shared report paths byte-for-byte from this branch's HEAD, and committed the unique files in `efa7264b`. The working tree was then clean. `git merge main` completed without conflict at `cf798080`; `main` (`c4560130` at merge time) is an ancestor of HEAD. Main's shared report files were retained, not overwritten. No new Go changes in this round; the reviewed implementation is in `6221af8c` and the generic-only reduction fix is in `e295ef8b`. The branch still registers `kw:Emerge`, prices the sacrifice/reduced generic mana cost, and tests the real Elder Deep-Fiend. `.cards` was already symlinked to the corpus; these are not vacuous tests. There is no repo-deck Elder Deep-Fiend carrier or acceptance-table change, Known-approximations row change, or chain-head golden edit.
+
+## Fails without the fix
+
+No new test was added in this integration round. The previously committed test was proved to fail on the reverted reduction hunk and the source restored byte-identically (recorded in `.ds4/report-r2-emerge.md`):
+
+```
+--- FAIL: TestEmergeCastReductionExceedsGenericKeepsColored (0.00s)
+    emerge_test.go:182: emerge offer cost {Colored:[0 0 0 0 0 0] Generic:0 ... Sac:[{N:1 Spec:Creature ...}]}
+        (ok=true), want {U}{U} with the generic floored to 0
+FAIL    github.com/adams-shaun/gorge/rules      0.616s
+```
+
+The real-card cast test also fails without Emerge offer registration, as recorded in `.ds4/report-t1-emerge.md`. Both tests assert the object zones and a nonzero mana-value difference before testing payment.
+
+## Gates after merging main
+
+```
+$ go test -run 'TestEmergeCast|TestEveryRepoDeckIsFullySupported|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeckParams|CountHead' ./rules/ > .ds4/scratch/emerge-merge-rules.log 2>&1; rc=$?; tail -30 .ds4/scratch/emerge-merge-rules.log; echo rules_exit=$rc
+ok   github.com/adams-shaun/gorge/rules 1.345s
+rules_exit=0
+$ go test ./internal/archtest/ > .ds4/scratch/emerge-merge-arch.log 2>&1; rc=$?; tail -15 .ds4/scratch/emerge-merge-arch.log; echo arch_exit=$rc
+ok   github.com/adams-shaun/gorge/internal/archtest 3.921s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/emerge-merge-bot.log 2>&1; rc=$?; tail -5 .ds4/scratch/emerge-merge-bot.log; echo bot_exit=$rc
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.258s
+bot_exit=0
+$ gofmt -l rules/emerge.go rules/emerge_test.go rules/legal.go rules/cast.go
+(no output)
+$ go run ./cmd/gentypes -check; echo gentypes_exit=$?
+gentypes_exit=0
+```
+
+The exact brief's narrower test command, the test-revert proof, and the original uncached archtest/botbench/gofmt/gentypes output are preserved verbatim in `.ds4/report-r2-emerge.md`. The botbench golden and deck support ratchet did not move. Full game heads and sim belong to the daemon gate.
+
+## Issues
+
+No new unresolved Emerge defect observed. Other cost grammar remains intentionally outside this brief; unsupported Emerge cost shapes are withheld rather than mispriced. No new Known-approximations row or CR-lane test was added.
+
+---
+
+# DigUntil RememberFound/RememberRevealed — sol1 review response
+
+## Finding resolved / changes
+
+The MAJOR in `.ds4/findings-sol1.md` was that the first fix cleared `Remembered` on scripts with BOTH `RememberFound$ True` and `RememberRevealed$ True`: the revealed arm appended to `c.Remembered` while the final assignment replaced it with the untouched empty accumulator. `effects/cardflow.go` now accumulates the revealed prefix into the replacement set when both flags are set, preserving the deterministic scan order and leaving `Captured` untouched; revealed-only retains its existing append semantics. `effects/diguntil_rememberrevealed_test.go` (new file, per dispatch's new-test rule) checks both combinations against a distinct battlefield trigger, with a nonmatching first library card and matching second card; both are exiled and the exact Remembered/Captured contents and fixture preconditions are asserted. The original found-only regression remains in `effects/diguntil_rememberfound_test.go`. No event, parameter registration, PutCounter implementation, Known-approximations row, or heads golden was changed. `.cards` was present as a symlink to the corpus; three distinct corpus files have `DB$ DigUntil` with both flags on one line (`/usr/bin/grep -rlE 'DB\\$ DigUntil.*RememberFound\\$ True.*RememberRevealed\\$ True|DB\\$ DigUntil.*RememberRevealed\\$ True.*RememberFound\\$ True' .cards/cardsfolder | wc -l` -> `3`); Chaos Wand uses `AB$` instead.
+
+## Fails without the fix
+
+Saved `effects/cardflow.go` to `.ds4/scratch/cardflow-sol1-fixed.go`; temporarily restored just the production file from `HEAD` (the first fix), kept the new test, ran `go test -run '^TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix$' ./effects/`, and restored the file with `cp` and `cmp` (exit 0). First attempt revealed a bad test precondition: `SetZone` only populates the zone slice, so the fixture's Bear's `Object.Zone` remained its AddObject default; corrected the precondition to test membership in the battlefield zone and reran the revert proof. The *valid* failing output (exit 1) was:
+
+```
+--- FAIL: TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix (0.00s)
+    --- FAIL: TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix/both (0.00s)
+        diguntil_rememberrevealed_test.go:41: Remembered = [], want ids [2 3]
+FAIL
+FAIL github.com/adams-shaun/gorge/effects 0.002s
+FAIL
+reverted_test_exit=1
+restore_cmp=0
+```
+
+The original found-only regression's production-revert failure is documented in `.ds4/report-t2.md` (Doctor plus found card instead of just found). No fresh rerun was needed for that existing test.
+
+## Gates (exact commands and output)
+
+```
+$ go test -run 'TestDigUntilRememberFoundAndRevealedPreserveRevealedPrefix|TestDigUntilRememberFoundDoesNotRetainTriggerCapture|TestDigUntilKetriaRememberFoundFeedsTheChainedMove|TestEveryRepoDeckParamsAreRead' ./effects/ ./rules/
+ok   github.com/adams-shaun/gorge/effects 1.211s
+ok   github.com/adams-shaun/gorge/rules 0.863s
+focused_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.226s
+bot_exit=0
+$ gofmt -l effects/cardflow.go effects/diguntil_rememberfound_test.go effects/diguntil_rememberrevealed_test.go effects/diguntil_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+gentypes_exit=0
+$ git diff --check
+diff_check_exit=0
+```
+
+Botbench golden did not move; no split re-pin. No head/ratchet movement measured (full gates reserved for controller). The earlier round's exact brief targeted command passed as documented in `.ds4/report-t2.md`; this round's targeted command additionally includes the paired-flags regression.
+
+## Issues
+
+- The separate `PutCounter` non-battlefield defect is tracked as `agent-20260922T183530Z-cbf0a7d3`; not changed here.
+- The earlier report also notes `effects/zone.go:effSeek` appends `RememberFound$` to trigger Remembered; this distinct primitive is out of scope. `/usr/bin/grep -rlE '(DB\\$|AB\\$|SP\\$) Seek.*RememberFound\\$ True' .cards/cardsfolder | wc -l` measured 36 same-line carrier files (not necessarily triggered). Filed `.ds4/new-tickets/seek-rememberfound-trigger-capture.md` for separate investigation.
+- `.ds4/report-t2.md` has unrelated uncommitted modifications in this worktree, not written by this round; it was not staged or overwritten. It may block controller integration until its owner resolves it. No CR-lane test is warranted for this Forge-local remembered-set discipline.

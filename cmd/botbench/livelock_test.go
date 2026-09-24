@@ -174,3 +174,74 @@ func TestGrindContinuesAfterLivelockAndFails(t *testing.T) {
 		t.Errorf("error = %v, want the livelock summary", werr)
 	}
 }
+
+// panicSeat panics with an ordinary value on its first decision -- the shape
+// of any engine panic raised inside the drive loop other than the livelock
+// watcher's. The harness records it as a "panic" abort carrying the value,
+// seed and stack, exactly as it records a livelock: one bad game must not
+// kill a multi-thousand-game sweep, and the run still fails at the end.
+type panicSeat struct{}
+
+func (panicSeat) Decide(context.Context, view.View, decision.Decision) (decision.Intent, error) {
+	panic("rules: synthetic engine bug")
+}
+
+func TestPlayMatchRecoversEnginePanicAsAbortedOutcome(t *testing.T) {
+	cfg := livelockCfg(t)
+	seats := []seat.Seat{panicSeat{}, panicSeat{}}
+	o, e, err := playMatchOnce(cfg, []string{"bot", "bot"}, seats, 0, 0, nil, nil)
+	if err != nil {
+		t.Fatalf("playMatchOnce: %v", err)
+	}
+	if !o.isStalled() || o.stallOn != "panic" {
+		t.Fatalf("outcome = stallOn %q, want \"panic\" (stalled)", o.stallOn)
+	}
+	for _, want := range []string{"engine panic (seed 0, intent 0)", "rules: synthetic engine bug", "goroutine"} {
+		if !strings.Contains(o.livelock, want) {
+			t.Errorf("diagnostic missing %q:\n%s", want, o.livelock)
+		}
+	}
+	if winnerLabel(o) != "PANIC" {
+		t.Errorf("winnerLabel = %q, want PANIC", winnerLabel(o))
+	}
+	if e == nil {
+		t.Fatal("playMatchOnce returned no engine for the aborted game")
+	}
+	play := func(seed uint64, pols []string) (gameOutcome, error) {
+		if seed == 1 {
+			return o, nil
+		}
+		return gameOutcome{winner: pols[0], winnerSeat: 0, starter: 0, starterSet: true}, nil
+	}
+	var buf bytes.Buffer
+	if err := bench(0, 3, 2, "bot", "bot", play, &buf); err == nil || !strings.Contains(err.Error(), "1 of 3 game(s) aborted") {
+		t.Fatalf("bench must fail the run naming the aborted game, got %v", err)
+	}
+}
+
+// TestBenchLivelockLeavesTheWinRateDenominator pins the single-pair fold's
+// denominator: a livelocked (or panicked) game credits no seat, so it must
+// leave the win-rate denominator exactly like a -max-turns/-max-intents
+// stall. Before the fix the multi-seat summary said "over 4 non-stalled
+// game(s)" with one of four games aborted, and the A win rate divided by 4.
+func TestBenchLivelockLeavesTheWinRateDenominator(t *testing.T) {
+	play := func(seed uint64, pols []string) (gameOutcome, error) {
+		if seed == 1 {
+			return gameOutcome{stallOn: "livelock", livelock: "livelock detected (repeating cycle): object 7"}, nil
+		}
+		return gameOutcome{winner: pols[0], winnerSeat: 0, starter: 0, starterSet: true}, nil
+	}
+	var buf bytes.Buffer
+	if err := bench(0, 4, 4, "bot", "bot", play, &buf); err == nil {
+		t.Fatal("bench must fail the run when a game livelocked")
+	}
+	out := buf.String()
+	if !strings.Contains(out, "win rates are over 3 non-stalled game(s)") {
+		t.Errorf("stall notice must exclude the livelocked game from the denominator:\n%s", out)
+	}
+	// Every non-aborted game is won by seat 0; A holds seat 0 in games 0 and
+	// 2 (aPlaysSeat), so A won 2 of the 3 counted games.
+	if !strings.Contains(out, "A win rate: 66.7%") {
+		t.Errorf("A win rate must be over the 3 non-aborted games:\n%s", out)
+	}
+}

@@ -140,7 +140,14 @@ type Cost struct {
 	Behold       []CostPart
 	TapPermanent []CostPart
 	Blight       []CostPart
-	Forage       bool
+	// Exert carries Exert<1/CARDNAME> parts (CR 701.39: the source will not
+	// untap during its controller's next untap step). Paid by one
+	// events.Exert on the source -- the same event the declare-attackers
+	// exert election emits, so "whenever you exert" triggers and the untap
+	// skip read one fold. Only the source-anchored form is modelled; any
+	// other spelling keeps the reported one-generic fallback.
+	Exert  []CostPart
+	Forage bool
 	// Draw carries Draw<N/Spec> components: paying one draws N cards for the
 	// player(s) the spec names (default the payer). payMana never charges it;
 	// the mid-resolution unless-pay path pays it (payUnlessCost), and the
@@ -294,6 +301,21 @@ var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([
 // counter semantics (M1M1/M0M1 kinds, mid-resolution UnlessCost payers) are
 // their own work.
 var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/([^>]*))?>$`)
+
+// addSelfCounterCost matches the SOURCE-ANCHORED non-loyalty AddCounter
+// token -- AddCounter<N/KIND> with no third field (Wall of Roots' M0M1 mana
+// ability, Devoted Druid's M1M1 untap, Mazemind Tome's PAGE). The payment
+// puts N counters of KIND on the source itself, exactly the CounterChange the
+// activation settle (rules/cast.go) and the mana path emit for the loyalty
+// form. A third field (a chooser filter such as Creature.YouCtrl, or an
+// UnlessCost$ payer anchor) is a different payment and keeps the reported
+// one-generic fallback.
+var addSelfCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/([A-Za-z0-9_]+)>$`)
+
+// exertCost matches the source-anchored exert cost Exert<1/CARDNAME>
+// (Oasis Ritualist, Arena of Glory, Pride Sovereign). NICKNAME is Forge's
+// legendary short-name spelling of the same self-reference.
+var exertCost = regexp.MustCompile(`^Exert<1/(?:CARDNAME|NICKNAME)(?:/([^>]*))?>$`)
 
 // lifeCost matches Forge's fixed life-payment token. Dynamic values such as
 // PayLife<X> retain the ordinary malformed-token fallback below: this engine
@@ -778,6 +800,20 @@ func ParseCost(s string) Cost {
 				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: spec, Desc: m[3]})
 				continue
 			}
+			if m := addSelfCounterCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: m[2]})
+				continue
+			}
+			if m := exertCost.FindStringSubmatch(sym); m != nil {
+				c.Exert = append(c.Exert, CostPart{N: 1, Spec: "CARDNAME", Desc: m[1]})
+				continue
+			}
 			if m := sacXCost.FindStringSubmatch(sym); m != nil {
 				spec := strings.ReplaceAll(m[1], ";", ",")
 				c.Sac = append(c.Sac, CostPart{Spec: spec, Announced: true, Desc: m[2]})
@@ -1181,6 +1217,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Blight) > 0 {
 		c.Blight = append(append([]CostPart(nil), c.Blight...), d.Blight...)
 	}
+	if len(d.Exert) > 0 {
+		c.Exert = append(append([]CostPart(nil), c.Exert...), d.Exert...)
+	}
 	if len(d.Energy) > 0 {
 		c.Energy = append(append([]CostPart(nil), c.Energy...), d.Energy...)
 	}
@@ -1480,8 +1519,18 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 		// exactly those potential reductions; target-dependent raises/floors
 		// remain absent until the actual target is known (see the helper's
 		// contract).
-		potential := e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
-		if e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
+		//
+		// The two passes differ ONLY through ValidTarget$: it is the one
+		// place costStaticApplies reads the targets, and the potential pass
+		// skips just the ValidTarget$ raises/floors. With no cost static
+		// carrying the key, both passes compose the same modifier set, so the
+		// retry would re-ask the exact question that just failed: the target
+		// census (a pure read) is skipped, not changed.
+		var potential costMods
+		if statics.validTarget {
+			potential = e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
+		}
+		if statics.validTarget && e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
 			mods = potential
 		} else if accepted, ok := e.offerSacXMods(p, id, ability, base, statics, scope, tax, delve, hyp); ok {
 			// The cost announces a Sac<X/Spec> count whose resulting X-dependent
@@ -1725,6 +1774,9 @@ func formatCost(c Cost) string {
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
 	}
 	appendCostParts("Return", c.Return)
+	for range c.Exert {
+		parts = append(parts, "Exert<1/CARDNAME>")
+	}
 	if c.Forage {
 		parts = append(parts, "Forage")
 	}
@@ -1802,7 +1854,14 @@ func costPhrase(c Cost) string {
 		clauses = append(clauses, clause)
 	}
 	for _, part := range c.AddCounter {
-		clauses = append(clauses, "add "+countPhrase(part.N)+" loyalty counter"+pluralSuffix(part.N))
+		kind := "loyalty"
+		if !strings.EqualFold(part.Spec, "LOYALTY") {
+			kind = strings.ToUpper(part.Spec)
+		}
+		clauses = append(clauses, "add "+countPhrase(part.N)+" "+kind+" counter"+pluralSuffix(part.N))
+	}
+	if len(c.Exert) > 0 {
+		clauses = append(clauses, "exert it")
 	}
 	for _, part := range c.Exile {
 		clauses = append(clauses, "exile "+objectPhrase(part, "card"))
@@ -2121,7 +2180,7 @@ func costAnnouncesCastX(c Cost) bool {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0 || len(c.Mill) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0 || len(c.Mill) > 0 || len(c.Exert) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -2243,14 +2302,38 @@ type pipRider struct {
 // of any type can be spent to cast those spells") is the wider reading: under
 // it EVERY pip — coloured and {C} alike — accepts all six mana types
 // (anyTypeAlts), since "any type" is every mana type, colourless included.
+// hasPips reports whether costPips would return any pip. Every pip source
+// costPips reads is listed here; a cost without one resolves against only
+// its life and generic totals (resolveManaWith), whatever the rider, the
+// B-life grant and the conversion set are.
+func (c Cost) hasPips() bool {
+	return c.Colored != (state.Mana{}) || len(c.Hybrid) > 0 || len(c.Twobrid) > 0 || len(c.Phyrexian) > 0 ||
+		len(c.HybridPhyrexian) > 0 || c.Snow > 0
+}
+
 func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
-	var out []pip
+	// Size the list once: every pip source below contributes exactly one
+	// pip per unit counted here.
+	n := len(c.Hybrid) + len(c.Twobrid) + len(c.Phyrexian) + len(c.HybridPhyrexian)
+	if c.Snow > 0 {
+		n += int(c.Snow)
+	}
+	for _, letter := range pipLetters {
+		if k := c.Colored[state.ManaIndex(letter)]; k > 0 {
+			n += int(k)
+		}
+	}
+	out := make([]pip, 0, n)
 	// The coloured slots including the colourless one: a plain {C} pip is a
 	// strict colourless requirement generic must not satisfy by stealing the
 	// pool's only colourless, so it is reserved like any coloured pip.
-	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
+	for _, letter := range pipLetters {
 		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
-			alts := []pipAlt{{color: letter}}
+			// The strict one-colour alternative list is shared read-only
+			// (every pip consumer only ranges alts); it is capped at its
+			// length, so the K'rrik append below copies rather than
+			// writing into the shared array.
+			alts := strictColourAlts[state.ManaIndex(letter)][:1:1]
 			if rider.anyType {
 				alts = anyTypeAlts()
 			} else if rider.anyColor && letter != 'C' {
@@ -2310,6 +2393,18 @@ func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
 	return out
 }
 
+// pipLetters is costPips' fixed exact-colour order (colourless last).
+var pipLetters = [...]byte{'W', 'U', 'B', 'R', 'G', 'C'}
+
+// strictColourAlts holds, per mana index, the one-element strict colour
+// alternative list costPips hands every plain coloured pip (read-only).
+var strictColourAlts = func() (t [len(pipLetters)][1]pipAlt) {
+	for _, letter := range pipLetters {
+		t[state.ManaIndex(letter)][0] = pipAlt{color: letter}
+	}
+	return t
+}()
+
 // anyColorAlts is the colour alternatives a coloured pip accepts under the
 // may-play ignore-colour rider (MayPlayIgnoreColor$ True, CR 401.5): any of
 // the five colours, tried in fixed WUBRG order. A {C} pip never reaches this
@@ -2336,7 +2431,7 @@ func anyTypeAlts() []pipAlt {
 type manaPayment struct {
 	pool      state.Mana
 	snow      state.Mana
-	typed     [3]state.Mana
+	typed     [7]state.Mana
 	lifeSpent int32
 }
 
@@ -2347,7 +2442,7 @@ type manaPayment struct {
 // they go before snow but after plain); the backtracking search undoes the
 // choice if the rest of the cost cannot be paid that way. plain is the
 // slot's untagged remainder; each tally is <= the pool by construction.
-func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
+func takeUnit(rem, sn *state.Mana, typed *[7]state.Mana, i int) {
 	plain := (*rem)[i] - (*sn)[i]
 	for t := range *typed {
 		plain -= (*typed)[t][i]
@@ -2385,7 +2480,7 @@ func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
 // only as though it were colorless"). A nil conv is the plain exact-colour
 // match every pre-existing caller keeps, so games with no ManaConvert static
 // on the battlefield resolve byte-identically.
-func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveMana(pool, snow state.Mana, typed [7]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
 	return c.resolveManaWith(pool, snow, typed, life, false, pipRider{}, conv)
 }
 
@@ -2400,7 +2495,7 @@ func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32
 // never includes colourless. Both grants keep main search's deterministic
 // first-alternative preference; the expanded alternatives are tried in fixed
 // WUBRG order (see anyColorAlts).
-func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveManaWith(pool, snow state.Mana, typed [7]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
 		return manaPayment{}, false
 	}
@@ -2566,7 +2661,7 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life i
 // "is there ANY way this cost can be paid right now" -- the same resolveMana
 // the payment stage uses, so an offered cost and the cost it charges can
 // never disagree.
-func (c Cost) payable(pool, snow state.Mana, typed [3]state.Mana, life int32) bool {
+func (c Cost) payable(pool, snow state.Mana, typed [7]state.Mana, life int32) bool {
 	_, ok := c.resolveMana(pool, snow, typed, life, nil)
 	return ok
 }
@@ -2578,7 +2673,7 @@ func (c Cost) CanPay(p state.Mana) bool {
 	// here) and a {S} pip is unpayable. This is the pure pricing question the
 	// corpus invariants ask, and it never treats a hybrid as generic nor lets
 	// colourless `pay` it.
-	_, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
+	_, ok := c.resolveMana(p, state.Mana{}, [7]state.Mana{}, 0, nil)
 	return ok
 }
 
@@ -2595,7 +2690,7 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// a fully resolved cost here). resolveMana already reserves the coloured
 	// pips and deducts generic, so the returned pool is fully spent. A failed
 	// search returns the input pool untouched.
-	pay, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
+	pay, ok := c.resolveMana(p, state.Mana{}, [7]state.Mana{}, 0, nil)
 	if !ok {
 		return p, false
 	}

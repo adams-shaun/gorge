@@ -57,10 +57,7 @@ type staticWant struct {
 // different boards. With no GainControl static anywhere the derivation is
 // the memo epoch guard plus one slice walk -- the common game's cost.
 func (e *Engine) staticControlWants() []staticWant {
-	if e.staticEpoch != len(e.L.Events) {
-		e.staticEpoch = len(e.L.Events)
-		e.staticContinuous = e.staticEffects(e.staticContinuous)
-	}
+	e.refreshStaticContinuous()
 	var w []staticWant
 	for _, ce := range e.staticContinuous {
 		if ce.GainControl == "" {

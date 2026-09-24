@@ -95,6 +95,150 @@ type manaColorActivation struct {
 	gained     gainedManaRef
 	sacs       []state.ObjID
 	allocation bool
+	// nested is set when the colour choice was posed by effects.Ask from a
+	// SubAbility$ Mana effect inside an off-stack mana resolution (Gemstone
+	// Caverns' luck-counter DB$ Mana | Produced$ Any): Engine.Ask routed it
+	// here (offStackMana) instead of parking a stack resume point, and the
+	// answer re-enters effects.Resolve at nested with the chosen colour, then
+	// runs the same continuation (triggered mana batch, payment window) the
+	// unsuspended resolution would have run.
+	nested *cards.SA
+}
+
+// offStackManaFrame is the transient (never stored across a Submit, so never
+// cloned) record of one off-stack mana resolution in progress: a mana
+// ability's effect chain, or a CR 605.3b triggered mana ability, resolving
+// synchronously without a stack object. Two things read it:
+//
+//   - Engine.Ask routes a mana_color ask posed inside it into the rules-owned
+//     chooseManaColor flow (act is the continuation template), because a
+//     stack-oriented resume point would re-enter whatever object happens to
+//     be on top of the stack (the resolving cumulative-upkeep trigger, or an
+//     unrelated spell) and orphan the mana activation's own continuation --
+//     the payment window then re-asked over it (the ask-overwrote panic).
+//   - Engine.Suspended answers relative to the state the frame began in: a
+//     payment window (cumulative, echo/triggered cost, unless payment) or a
+//     suspended resolution that was ALREADY open when the mana ability was
+//     activated inside it is not this chain's suspension, so its
+//     SubAbility$ walk must continue (a mana ability's rider was silently
+//     dropped inside every such window).
+type offStackManaFrame struct {
+	act             manaColorActivation
+	asked           bool
+	baseResume      *resumePoint
+	baseUnless      bool
+	baseCumulative  bool
+	baseTriggerCost bool
+}
+
+// withOffStackMana runs one synchronous off-stack mana resolution under an
+// offStackManaFrame and reports whether a routed colour ask suspended it.
+func (e *Engine) withOffStackMana(act manaColorActivation, run func()) bool {
+	saved := e.offStackMana
+	f := &offStackManaFrame{act: act, baseResume: e.resume, baseUnless: e.unlessPayment != nil,
+		baseCumulative: e.cumulative != nil, baseTriggerCost: e.triggerCost != nil}
+	e.offStackMana = f
+	// A mana ability's own chain is not a contChain-draining pass: an ask it
+	// posts must never be deferred onto the enclosing resolution's chain.
+	savedOwners := e.contChainOwners
+	e.contChainOwners = 0
+	run()
+	e.contChainOwners = savedOwners
+	e.offStackMana = saved
+	return f.asked
+}
+
+// askOffStackManaColor is Engine.Ask's route for a mana_color ask posed from
+// inside an off-stack mana resolution. It reports whether it took the ask.
+func (e *Engine) askOffStackManaColor(d *decision.Decision) bool {
+	f := e.offStackMana
+	if f == nil || d.ResumeKind != "mana_color" || d.ResumeSA == nil {
+		return false
+	}
+	act := f.act
+	act.nested = d.ResumeSA
+	act.allocation = d.Max > 1
+	act.triggers = append([]pendingTrigger(nil), f.act.triggers...)
+	e.manaColorActivation = &act
+	f.asked = true
+	e.choosing = chooseManaColor
+	e.ask(d)
+	return true
+}
+
+// offStackSuspended is Suspended() inside an offStackManaFrame.
+func (f *offStackManaFrame) suspended(e *Engine) bool {
+	return f.asked || (e.resume != nil && e.resume != f.baseResume) ||
+		(e.unlessPayment != nil && !f.baseUnless) ||
+		(e.cumulative != nil && !f.baseCumulative) ||
+		(e.triggerCost != nil && !f.baseTriggerCost)
+}
+
+// continueManaPaymentWindow re-opens a resolution-time payment window after a
+// mana activation made from it has fully resolved. Nothing may be pending: a
+// nested decision (a colour choice, a CR 616.1 replacement order) owns the
+// continuation until it is answered.
+func (e *Engine) continueManaPaymentWindow(cumulative bool) {
+	if cumulative && e.choosing == chooseNone && e.pending == nil {
+		e.paymentWindowAsk()
+	}
+}
+
+// finishManaEffect resolves a paid mana ability's effect with produced as its
+// Produced$, then its CR 605.3b triggered mana batch, then the payment
+// window it was activated from -- unless the effect chain suspended on a
+// routed colour ask, whose answer runs that same continuation.
+func (e *Engine) finishManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string,
+	gained gainedManaRef, sacs []state.ObjID, cast, cumulative bool, triggers []pendingTrigger) {
+	act := manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative,
+		triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...)}
+	if e.withOffStackMana(act, func() { e.resolveManaEffectColor(p, source, ma, produced, gained, sacs) }) {
+		return
+	}
+	e.resolveTriggeredManaAbilities(triggers, cast, cumulative)
+	e.continueManaPaymentWindow(cumulative)
+}
+
+// answerNestedManaColor completes a routed SubAbility$ colour ask: the chain
+// re-enters at the asking Mana effect with the answer, then continues exactly
+// as finishManaEffect / resolveTriggeredManaAbilities would have.
+func (e *Engine) answerNestedManaColor(ma *manaColorActivation, chosen []decision.Option) {
+	var ctx effects.Ctx
+	if ma.trigger != nil {
+		ctx = ma.trigger.Ctx
+	} else {
+		ctx = effects.Ctx{Source: ma.source, Controller: ma.player}
+		ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(ma.source, ma.ability)
+		ctx.ActivationsThisTurn = e.activationsThisTurnFor(ma.source, ma.ability)
+		if o := e.G.Obj(ma.source); o != nil && o.Face() != nil {
+			effects.SetSVars(&ctx, ma.gained.svars(o.Face().SVars))
+		}
+	}
+	for _, option := range chosen {
+		colour := strings.TrimSpace(strings.TrimPrefix(option.Label, "Add "))
+		if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
+			continue
+		}
+		if len(chosen) == 1 {
+			ctx.ManaChoice = colour
+		} else {
+			ctx.ManaChoices = append(ctx.ManaChoices, colour)
+		}
+	}
+	savedTap, savedProducer := e.manaFromTap, e.manaProducer
+	if ma.trigger == nil && ma.ability != nil {
+		e.manaFromTap = e.parseCost(ma.ability.Params["Cost"]).Tap
+		e.manaProducer = ma.source
+	}
+	template := *ma
+	template.nested = nil
+	asked := e.withOffStackMana(template, func() { effects.Resolve(e, &ctx, ma.nested) })
+	e.manaFromTap, e.manaProducer = savedTap, savedProducer
+	if asked {
+		return
+	}
+	e.resolveTriggeredManaAbilities(ma.triggers, ma.cast, ma.cumulative)
+	e.continueManaPaymentWindow(ma.cumulative)
 }
 
 // manaDiscardActivation holds a synchronous mana ability while its discard
@@ -186,9 +330,17 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 // The ordinary wrapper deliberately supplies nil so payment windows and
 // activation rechecks discover fresh static membership.
 func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
+	return e.appendAvailableManaAbilities(nil, statics, p, id)
+}
+
+// appendAvailableManaAbilities is availableManaAbilitiesUsing appending into
+// out (which must not alias anything the walk reads), so a caller that only
+// inspects the list can reuse one buffer across objects. With out nil it
+// returns exactly what availableManaAbilitiesUsing always returned.
+func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
-		return nil
+		return out
 	}
 	f := o.Face()
 	// CR 708.8: a face-down permanent's printed mana abilities do not exist
@@ -245,14 +397,22 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			}
 		}
 	}
-	recipientCtx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
+	// recipientCtx is minted on first use (a granted ManaReflected ability),
+	// so an ordinary object's pass allocates nothing for it; both uses share
+	// the one instance, exactly as before.
+	var recipientCtx *effects.Ctx
+	recipient := func() *effects.Ctx {
+		if recipientCtx == nil {
+			recipientCtx = &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
+		}
+		return recipientCtx
+	}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
 			return e.abilityRestricted(p, id, ma)
 		}
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
-	var out []*cards.SA
 	for _, ma := range manaAbilities {
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
@@ -263,14 +423,16 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		// [0] once per intent, +3 colourless per activation, forever. The
 		// ability offer (rules/legal.go) owns these abilities with the full
 		// CR 606.3 gates (sorcery timing, once per permanent per turn).
-		if e.isLoyaltyAbility(ma) {
+		// (The zone gate runs first: it is the cheapest of these pure reads
+		// and the one a hand/graveyard card's printed ability fails.)
+		if !abilityZoneOK(ma, o.Zone) || e.isLoyaltyAbility(ma) {
 			continue
 		}
 		// Activation$ (Mox Opal's "Activate only if you control three or more
 		// artifacts"): the same keyword-condition gate the printed-ability
 		// offer loop in rules/legal.go applies, so the priority action, the
 		// payment window and the chosen activation share one member set.
-		if abilityZoneOK(ma, o.Zone) && e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
+		if e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
 			!abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
 			// ActivationLimit$ / GameActivationLimit$ (Vivi Ornitier's "only once
 			// each turn", Stalking Leonin's "Activate only once"): the non-mana
@@ -303,13 +465,14 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// closure must agree, or a reflected land in hand/graveyard is offered
 	// (and activatable) wherever an opponent's land exists -- Exotic Orchard
 	// reporting an "Activate ... for mana" action for the card IN HAND.
-	considerReflected := func(ma *cards.SA, ctx *effects.Ctx) {
+	// considerReflected reports whether a ManaReflected ability is live; the
+	// caller appends it (a closure appending to out itself would move out's
+	// header to the heap on every call).
+	considerReflected := func(ma *cards.SA, ctx *effects.Ctx) bool {
 		if ma.Kind != "AB" || ma.API != "ManaReflected" || !abilityZoneOK(ma, o.Zone) || abilityRestricted(ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
-			return
+			return false
 		}
-		if len(effects.ManaReflectedCandidates(e, ctx, ma)) > 0 {
-			out = append(out, ma)
-		}
+		return len(effects.ManaReflectedCandidates(e, ctx, ma)) > 0
 	}
 	// A ManaReflected ability may sit on the top face or any under-card; each
 	// resolves its own face's table.
@@ -329,7 +492,9 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			if faceCtx == nil {
 				faceCtx = &effects.Ctx{Source: id, Controller: p, SVars: pf.Face.SVars}
 			}
-			considerReflected(ma, faceCtx)
+			if considerReflected(ma, faceCtx) {
+				out = append(out, ma)
+			}
 		}
 	}
 	// A Continuous static may grant an activated ability through AddAbility$.
@@ -350,7 +515,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	} else {
 		continuous = statics.get().continuous
 	}
-	printed := make(map[string]bool)
+	var printed map[string]bool // allocated on the first printed grant
 	for _, sv := range continuous {
 		name := strings.TrimSpace(sv.Params["AddAbility"])
 		if name == "" || !e.matchesSpec(sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
@@ -364,9 +529,14 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if ma == nil || ma.Kind != "AB" {
 			continue
 		}
+		if printed == nil {
+			printed = make(map[string]bool)
+		}
 		printed[ma.Line] = true
 		if ma.API == "ManaReflected" {
-			considerReflected(ma, recipientCtx)
+			if considerReflected(ma, recipient()) {
+				out = append(out, ma)
+			}
 			continue
 		}
 		if ma.API == "Mana" && !e.isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
@@ -388,7 +558,9 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			continue
 		}
 		if ga.sa.API == "ManaReflected" {
-			considerReflected(ga.sa, recipientCtx)
+			if considerReflected(ga.sa, recipient()) {
+				out = append(out, ga.sa)
+			}
 			continue
 		}
 		if ga.sa.API != "Mana" || e.isLoyaltyAbility(ga.sa) {
@@ -504,9 +676,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	}
 	if len(abilities) == 1 {
 		e.resolveManaAbilityInteractive(p, source, abilities[0], cast, cumulative)
-		if cumulative && e.choosing == chooseNone {
-			e.paymentWindowAsk()
-		}
+		e.continueManaPaymentWindow(cumulative)
 		return
 	}
 	o := e.G.Obj(source)
@@ -643,7 +813,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		// A hypothetical bound is a pure mana bound that may include
 		// restricted units, so its typed partition is the raw tally (the
 		// typed counts never affect payability anyway).
-		typed = e.G.Players[p].TypedMana
+		typed = e.G.Players[p].ManaUnits()
 	}
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.RevealChosen) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
 		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool, typed) {
@@ -655,11 +825,44 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if len(cost.LifeX) > 0 {
 		return false
 	}
+	if !manaCostPartsSettleable(cost) {
+		return false
+	}
 	for _, part := range cost.SubCounter {
 		if part.Announced {
 			return false
 		}
 		if o.Counter(part.Spec) < part.N {
+			return false
+		}
+	}
+	// PayEnergy<N> (Aether Hub, Servant of the Conduit): the payer's energy
+	// total must cover every fixed part (CR 107.14); the settle spends it
+	// through chargeEnergyCost, the cast path's one energy-charging site.
+	energy := int32(0)
+	for _, part := range cost.Energy {
+		energy += part.N
+	}
+	if energy > e.G.Players[p].Counter("ENERGY") {
+		return false
+	}
+	// AddCounter<N/KIND> and Exert<1/CARDNAME> are source-anchored: the
+	// source must still be the permanent that receives the counter or the
+	// exert (a mana ability is activated from the battlefield).
+	if (len(cost.AddCounter) > 0 || len(cost.Exert) > 0) && o.Zone != state.ZBattlefield {
+		return false
+	}
+	// Return<N/Spec> parts: the mana path pays only the self-return
+	// (Spec CARDNAME, Forge's payCostFromSource -- Grinning Ignus's
+	// "{R}, Return this creature to its owner's hand"), which needs no
+	// choice. Any other Return spec, or a Return beside a part the
+	// discard/sacrifice continuation owns, is refused rather than activated
+	// with the return silently unpaid.
+	if !manaReturnCostSupported(cost) {
+		return false
+	}
+	for range cost.Return {
+		if o.Zone != state.ZBattlefield {
 			return false
 		}
 	}
@@ -889,6 +1092,8 @@ func (e *Engine) commitManaDiscard() {
 		e.choosing = chooseNone
 		return
 	}
+	// Only a decision posed BY this payment defers the mana effect below.
+	posedBefore := e.pending != nil
 	for _, id := range md.discards {
 		e.emit(events.DiscardCost(id))
 	}
@@ -903,17 +1108,66 @@ func (e *Engine) commitManaDiscard() {
 	if md.cost.Tap {
 		manaTriggers = e.emitManaTap(md.player, md.source, md.ability)
 	}
-	for _, part := range md.cost.SubCounter {
-		e.emit(events.Event{Kind: events.CounterChange, Obj: md.source, Counter: part.Spec, Amount: -part.N})
-	}
+	e.payManaSourceParts(md.player, md.source, md.cost)
 	for _, id := range md.sacs {
 		e.emit(events.Sacrifice(id))
 	}
 	e.manaDiscardActivation = nil
 	e.choosing = chooseNone
+	if !posedBefore && e.pending != nil {
+		// Paying the cost posed a decision: a sacrificed (or discarded,
+		// or exiled) commander's CR 903.9 move is parked and its owner is
+		// being asked. Resolving the mana effect now would pose its colour
+		// choice ON TOP of that ask -- overwriting it, so the parked move
+		// is never emitted, the commander stays on the battlefield and the
+		// same cost can be "paid" again for free forever (the botbench
+		// Phyrexian Altar + Rakdos, the Muscle livelock). The effect waits
+		// for the answer instead; Submit resumes it (resumeManaAfterCost).
+		e.manaAfterCost = &manaAfterCost{player: md.player, source: md.source, ability: md.ability,
+			cast: md.cast, cumulative: md.cumulative, triggers: manaTriggers,
+			sacs: append([]state.ObjID(nil), md.sacs...), gained: md.gained}
+		return
+	}
 	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative, manaTriggers, md.sacs, md.gained)
-	if md.cumulative && e.choosing == chooseNone {
+	e.continueManaPaymentWindow(md.cumulative)
+}
+
+// manaAfterCost parks a paid mana ability's effect while a decision its cost
+// payment posed is outstanding (see Engine.manaAfterCost).
+type manaAfterCost struct {
+	player     state.PlayerID
+	source     state.ObjID
+	ability    *cards.SA
+	cast       bool
+	cumulative bool
+	triggers   []pendingTrigger
+	sacs       []state.ObjID
+	gained     gainedManaRef
+}
+
+// resumeManaAfterCost resolves the parked mana effect once the decision its
+// cost payment posed has been answered, then continues whatever flow the
+// activation belonged to -- the same tail the mana-cost choose arms run
+// (handleChoose's chooseManaSacrifice case): Ward's payment window, an
+// unless-cost payment, or the cast being paid for. A priority-window
+// activation has no tail; Advance grants priority as usual.
+func (e *Engine) resumeManaAfterCost() {
+	r := e.manaAfterCost
+	e.manaAfterCost = nil
+	e.resolveManaEffect(r.player, r.source, r.ability, r.cast, r.cumulative, r.triggers, r.sacs, r.gained)
+	if r.cumulative && e.choosing == chooseNone {
 		e.paymentWindowAsk()
+	}
+	if e.pending != nil || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard ||
+		e.choosing == chooseManaExile || e.choosing == chooseManaSacrifice {
+		return
+	}
+	if e.wardMana != nil {
+		e.continueWardMana()
+	} else if e.unlessPayment != nil {
+		e.advanceUnlessPayment()
+	} else if r.cast {
+		e.continueCast()
 	}
 }
 
@@ -1029,7 +1283,7 @@ func (e *Engine) isTriggeredManaAbility(pt pendingTrigger) bool {
 // path's askManaColor asks. The answer resolves that ability with the chosen
 // colour and continues the batch (answerManaColor). cast is the payment
 // window flag the parked activation carries back to the caller.
-func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast bool) {
+func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast, cumulative bool) {
 	for i := range triggers {
 		pt := triggers[i]
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
@@ -1056,11 +1310,23 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast b
 			}
 		}
 		pt = e.rewriteChosenMana(pt)
-		if e.askTriggeredManaColor(pt, triggers[i+1:], cast) {
+		if e.askTriggeredManaColor(pt, triggers[i+1:], cast, cumulative) {
 			return
 		}
-		effects.Resolve(e, &pt.Ctx, pt.SA)
+		if e.resolveTriggeredManaOffStack(pt, triggers[i+1:], cast, cumulative) {
+			return
+		}
 	}
+}
+
+// resolveTriggeredManaOffStack resolves one triggered mana ability's chain
+// under an offStackManaFrame and reports whether a routed colour ask
+// suspended it (the rest of the batch is then carried by that ask).
+func (e *Engine) resolveTriggeredManaOffStack(pt pendingTrigger, rest []pendingTrigger, cast, cumulative bool) bool {
+	parked := clonePendingTriggers([]pendingTrigger{pt})[0]
+	act := manaColorActivation{player: pt.Controller, source: pt.Source, cast: cast, cumulative: cumulative,
+		triggers: rest, trigger: &parked}
+	return e.withOffStackMana(act, func() { effects.Resolve(e, &pt.Ctx, pt.SA) })
 }
 
 // rewriteChosenMana resolves a triggered Mana sub-ability's Produced$ Chosen
@@ -1101,7 +1367,7 @@ func (e *Engine) rewriteChosenMana(pt pendingTrigger) pendingTrigger {
 // reports whether it asked. The chooser is the first player the Mana
 // sub-ability adds mana for (effects.ManaRecipients, which reads Defined$):
 // Fertile Ground on an opponent's land asks that land's controller.
-func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger, cast bool) bool {
+func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger, cast, cumulative bool) bool {
 	mana, colours := triggeredManaColourChoice(pt.SA)
 	if mana == nil {
 		return false
@@ -1125,7 +1391,7 @@ func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger,
 	}
 	parked := pt
 	e.manaColorActivation = &manaColorActivation{player: chooser, source: pt.Source, ability: mana,
-		cast: cast, triggers: rest, trigger: &parked, allocation: allocation}
+		cast: cast, cumulative: cumulative, triggers: rest, trigger: &parked, allocation: allocation}
 	e.choosing = chooseManaColor
 	e.ask(d)
 	return true
@@ -1312,7 +1578,8 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	// attribution, so an ability that carries EITHER limit records its
 	// activation here (events.ManaActivate's own comment). Emitted only for a
 	// limit-bearing ability so no existing game's log shape changes.
-	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" {
+	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" ||
+		chainGatesOnActivationCount(original) {
 		// The flat pile index (top face first, then under-cards) is the SAME
 		// identity availableManaAbilitiesUsing's limit gate checks, so an
 		// under-card mana ability's census cannot be counted against a
@@ -1349,13 +1616,36 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	if cost.Tap {
 		manaTriggers = e.emitManaTap(p, source, ma)
 	}
-	for _, part := range cost.SubCounter {
-		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})
-	}
+	e.payManaSourceParts(p, source, cost)
 	for _, id := range sacs {
 		e.emit(events.Sacrifice(id))
 	}
+	// Return<1/CARDNAME>: the source goes to its OWNER's hand as part of the
+	// payment (the cast path's Return settle, rules/cast.go), after the {T}
+	// tap so a tap-and-return cost never taps a hand card.
+	// manaAbilityPayablePool admitted only the self-return shape.
+	for range cost.Return {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+		}
+	}
 	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers, sacs, gained)
+}
+
+// manaReturnCostSupported reports whether a mana ability's Return<N/Spec>
+// parts are the shape the off-stack mana path pays: none at all, or exactly
+// the self-return Return<1/CARDNAME> with no sacrifice/discard/exile part
+// beside it (those route through the manaDiscardActivation continuation,
+// which does not settle a return).
+func manaReturnCostSupported(cost Cost) bool {
+	if len(cost.Return) == 0 {
+		return true
+	}
+	if len(cost.Return) != 1 || len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Exile) > 0 {
+		return false
+	}
+	part := cost.Return[0]
+	return part.N == 1 && strings.EqualFold(sacrificeMatchSpec(part.Spec), "CARDNAME")
 }
 
 // resolveManaEffect resolves the mana a paid ability produces. sacs carries
@@ -1406,11 +1696,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		case 0:
 			e.emit(events.Event{Kind: events.Note, Obj: source, Text: "ManaReflected found no mana to reflect"})
 		case 1:
-			e.resolveManaEffectColor(p, source, ma, cols[0], gained, sacs)
-			e.resolveTriggeredManaAbilities(triggers, cast)
-			if cumulative && e.choosing == chooseNone {
-				e.paymentWindowAsk()
-			}
+			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, cast, cumulative, triggers)
 		default:
 			e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained, 1, sacs)
 		}
@@ -1437,11 +1723,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// one-option stage-2 ask.
 	if colours, ok := effects.ComboColours(produced); ok {
 		if len(colours) == 1 {
-			e.resolveManaEffectColor(p, source, ma, colours[0], gained, sacs)
-			e.resolveTriggeredManaAbilities(triggers, cast)
-			if cumulative && e.choosing == chooseNone {
-				e.paymentWindowAsk()
-			}
+			e.finishManaEffect(p, source, ma, colours[0], gained, sacs, cast, cumulative, triggers)
 			return
 		}
 		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours, gained,
@@ -1463,11 +1745,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		cols := e.commanderIdentityColours(p)
 		switch len(cols) {
 		case 1:
-			e.resolveManaEffectColor(p, source, ma, cols[0], gained, sacs)
-			e.resolveTriggeredManaAbilities(triggers, cast)
-			if cumulative && e.choosing == chooseNone {
-				e.paymentWindowAsk()
-			}
+			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, cast, cumulative, triggers)
 			return
 		default:
 			if len(cols) > 1 {
@@ -1478,11 +1756,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 			// 0 colours: fall through to the fail-closed resolve below.
 		}
 	}
-	e.resolveManaEffectColor(p, source, ma, produced, gained, sacs)
-	e.resolveTriggeredManaAbilities(triggers, cast)
-	if cumulative && e.choosing == chooseNone {
-		e.paymentWindowAsk()
-	}
+	e.finishManaEffect(p, source, ma, produced, gained, sacs, cast, cumulative, triggers)
 }
 
 // askManaUnless handles the one off-stack instance of the shared UnlessCost$
@@ -1578,7 +1852,8 @@ func (e *Engine) finishManaUnlessPayment(paid bool) {
 			delete(cp.Params, "UnlessSwitched")
 			e.resolveManaEffect(m.player, m.source, &cp, m.cast, m.cumulative, m.triggers, m.sacs, m.gained)
 		} else {
-			e.resolveTriggeredManaAbilities(m.triggers, m.cast)
+			e.resolveTriggeredManaAbilities(m.triggers, m.cast, m.cumulative)
+			e.continueManaPaymentWindow(m.cumulative)
 		}
 		return
 	}
@@ -1719,6 +1994,10 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 		symbols.WriteString(color)
 	}
 	produced := symbols.String()
+	if ma.nested != nil {
+		e.answerNestedManaColor(ma, chosen)
+		return ma.cast
+	}
 	if ma.trigger != nil {
 		pt := *ma.trigger
 		if ma.allocation {
@@ -1728,22 +2007,21 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 		}
 		// A later colour-choice Mana sub-ability in the same chain asks in
 		// turn; otherwise the ability resolves and the batch continues.
-		if e.askTriggeredManaColor(pt, ma.triggers, ma.cast) {
+		if e.askTriggeredManaColor(pt, ma.triggers, ma.cast, ma.cumulative) {
 			return ma.cast
 		}
-		effects.Resolve(e, &pt.Ctx, pt.SA)
-		e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
+		if e.resolveTriggeredManaOffStack(pt, ma.triggers, ma.cast, ma.cumulative) {
+			return ma.cast
+		}
+		e.resolveTriggeredManaAbilities(ma.triggers, ma.cast, ma.cumulative)
+		e.continueManaPaymentWindow(ma.cumulative)
 		return ma.cast
 	}
 	ability := ma.ability
 	if ma.allocation {
 		ability = withManaAllocation(ma.ability, ma.ability, produced)
 	}
-	e.resolveManaEffectColor(ma.player, ma.source, ability, produced, ma.gained, ma.sacs)
-	e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
-	if ma.cumulative && e.choosing == chooseNone {
-		e.paymentWindowAsk()
-	}
+	e.finishManaEffect(ma.player, ma.source, ability, produced, ma.gained, ma.sacs, ma.cast, ma.cumulative, ma.triggers)
 	return ma.cast
 }
 
@@ -1855,4 +2133,76 @@ func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
 // Config order, so a replay derives the identical count.
 func (e *Engine) CommanderIdentityColourCount(p state.PlayerID) int {
 	return len(e.commanderIdentityColours(p))
+}
+
+// chainGatesOnActivationCount reports whether sa's SubAbility$ chain carries
+// a ConditionActivationLimit$ gate ("if this ability has been activated four
+// or more times this turn" -- Farrelite Priest, Initiates of the Ebon Hand).
+// A mana ability has no AbilityPush, so such a chain needs the ManaActivate
+// census marker for Ctx.ActivationsThisTurn to count it; the marker is
+// emitted only for these carriers so no other game's log changes.
+func chainGatesOnActivationCount(sa *cards.SA) bool {
+	for sub, n := sa, 0; sub != nil && n < 32; sub, n = sub.Sub, n+1 {
+		if strings.TrimSpace(sub.Params["ConditionActivationLimit"]) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// manaCostPartsSettleable is the mana path's fail-closed whitelist: a mana
+// ability is activated off the stack by resolveManaAbilityRefOriginal and
+// the manaDiscardActivation continuation, which settle exactly mana/life
+// (payManaConvFor), {T}, Mill, SubCounter on the source, PayEnergy<N>,
+// AddCounter on the source, Exert<1/CARDNAME>, Sac, Discard, Exile and the
+// self-Return. Every other part -- an unmodelled token (Cost.Unknown: Pili-Pala's
+// {Q}, Benthic Explorers' untapYType, both of which used to be priced as one
+// phantom generic), CollectEvidence (Cryptex), a Draw/DamageYou/PutToLib/
+// MoveToGrave/RollDice part, a dynamic PayEnergy<X> or a SubCounter
+// anchored to another permanent (Jetfire's RemoveAnyCounter) -- has no
+// settle here, so the ability is refused rather than activated with that
+// part silently free. The remaining refusals (X, Reveal, Behold, tapXType,
+// Blight, Forage, LifeX, an unsupported Return) live beside the call site.
+func manaCostPartsSettleable(cost Cost) bool {
+	if len(cost.Unknown) > 0 || len(cost.Evidence) > 0 || len(cost.Draw) > 0 ||
+		len(cost.DamageYou) > 0 || len(cost.PutToLib) > 0 || len(cost.MoveToGrave) > 0 ||
+		len(cost.RollDice) > 0 || cost.LifeHalfUp {
+		return false
+	}
+	for _, part := range cost.Energy {
+		if part.Spec == "X" {
+			return false
+		}
+	}
+	for _, part := range cost.SubCounter {
+		if !subCounterTargetsSource(part.Target) {
+			return false
+		}
+	}
+	return true
+}
+
+// payManaSourceParts settles a mana ability's source-anchored non-mana cost
+// parts, after the {T} tap and before any sacrifice (so a counter or exert
+// lands on the still-present source): SubCounter removals, the PayEnergy<N>
+// spend (chargeEnergyCost, the cast path's one energy-charging site), the
+// AddCounter<N/KIND> placement (Wall of Roots' -0/-1 counter; the same
+// CounterChange the activation settle emits) and the Exert<1/CARDNAME>
+// exert (Oasis Ritualist; the same events.Exert the attack election emits).
+// manaAbilityPayablePool gated each one, so every part here is payable.
+func (e *Engine) payManaSourceParts(p state.PlayerID, source state.ObjID, cost Cost) {
+	for _, part := range cost.SubCounter {
+		e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: -part.N})
+	}
+	e.chargeEnergyCost(p, cost, 0)
+	for _, part := range cost.AddCounter {
+		if part.N != 0 {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: part.Spec, Amount: part.N})
+		}
+	}
+	for range cost.Exert {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+			e.emit(events.Event{Kind: events.Exert, Obj: source, Player: p})
+		}
+	}
 }

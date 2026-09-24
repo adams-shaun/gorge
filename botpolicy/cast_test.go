@@ -327,3 +327,46 @@ func TestCmcOf(t *testing.T) {
 		}
 	}
 }
+
+// TestCmcOfPlainMatchesSlow pins CmcOf's allocation-free path to the
+// general one on every string it accepts: a fixed table of real and odd
+// Forge spellings plus every 1-3 symbol combination over a symbol alphabet
+// covering each per-symbol branch.
+func TestCmcOfPlainMatchesSlow(t *testing.T) {
+	syms := []string{"X", "W", "U", "B", "R", "G", "C", "S", "0", "1", "12", "+3", "-1", "2W", "2/W", "W/U",
+		"BP", "UP", "WU", "x", "no", "cost", "1a", "99999999999", ""}
+	seps := []string{" ", "  ", "\t", " \n"}
+	var inputs []string
+	for _, a := range syms {
+		inputs = append(inputs, a)
+		for _, b := range syms {
+			for _, s := range seps {
+				inputs = append(inputs, a+s+b, s+a+s+b+s)
+				for _, c := range syms[:8] {
+					inputs = append(inputs, a+s+b+" "+c)
+				}
+			}
+		}
+	}
+	inputs = append(inputs, "no cost", "No Cost", " no cost ", "no  cost", "1 BP BP", "X X R", "2 U U")
+	for _, mc := range inputs {
+		got, ok := cmcOfPlain(mc)
+		if !ok {
+			t.Fatalf("cmcOfPlain rejected plain ASCII %q", mc)
+		}
+		if want := cmcOfSlow(mc); got != want {
+			t.Errorf("cmcOfPlain(%q) = %d, slow path = %d", mc, got, want)
+		}
+	}
+	for _, mc := range []string{"{2}{U}", "{X}", "U U", "{2/W}"} {
+		if _, ok := cmcOfPlain(mc); ok {
+			t.Errorf("cmcOfPlain accepted %q, which must take the slow path", mc)
+		}
+		if CmcOf(mc) != cmcOfSlow(mc) {
+			t.Errorf("CmcOf(%q) differs from the slow path", mc)
+		}
+	}
+	if n := testing.AllocsPerRun(100, func() { _ = CmcOf("2 W/U BP X") }); n != 0 {
+		t.Errorf("CmcOf plain path allocates %.1f times", n)
+	}
+}
