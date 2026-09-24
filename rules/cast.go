@@ -9473,10 +9473,6 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUnit) []windowManaUnit {
 	p := pc.player
 	pl := e.G.Players[p]
-	poolTotal := pl.Pool.Total()
-	// Pool.Total omits spend restrictions. Generic activation costs are only
-	// certified when every floating unit is unrestricted; otherwise the pool
-	// may be numerically sufficient but unable to pay this activation.
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Tapped || o.Face() == nil {
@@ -9501,7 +9497,7 @@ func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUn
 				if pl.Life <= lifeCost {
 					continue
 				}
-			case len(pl.RestrictedMana) == 0 && castWindowGenericCost(cost, poolTotal):
+			case castWindowGenericCost(cost, pl.Pool.Total()):
 				netCost = cost.Generic
 			case e.castWindowSelfSacCost(p, id, cost):
 			default:
@@ -9590,6 +9586,15 @@ func castWindowPayLifeCost(c Cost) bool {
 // cost this probe can price: exactly one literal generic mana and nothing
 // else (bar the tap), with the floating pool already covering N (poolTotal).
 // A coloured pip, an {X} component or any other part is refused.
+//
+// poolTotal is the RAW Pool.Total: the source's own activation payability is
+// already certified by availableManaAbilitiesForWindow's manaAbilityPayable
+// gate, which prices this exact cost against manaAvailableFor's
+// restriction-adjusted pool (mana_activation.go's manaAbilityPayablePool). A
+// RestrictValid$ batch that cannot pay an ability activation therefore never
+// reaches this switch at all, so no separate restriction guard is needed here
+// -- adding one was measured unreachable (the ability is dropped before the
+// walk) and only withheld sources the unrestricted share can pay.
 func castWindowGenericCost(c Cost, poolTotal int32) bool {
 	return c.Generic > 0 && c.Generic <= poolTotal && c.Colored == (state.Mana{}) &&
 		len(c.Sac) == 0 && castWindowOtherPartsAbsent(c)
