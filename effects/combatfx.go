@@ -640,6 +640,7 @@ type animateGrant struct {
 	hasPower, hasTough  bool
 	types               []string
 	removeCreatureTypes bool
+	removeTypes         bool
 	allCreatureTypes    bool
 	removeCardTypes     bool
 	colorsRaw           string
@@ -746,6 +747,8 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// rules' typeCharacteristics appends the CreatureTypeWords vocabulary
 	// for affected objects (see state.ContinuousEffect.AddAllCreatureTypes).
 	ag.allCreatureTypes = strings.EqualFold(strings.TrimSpace(sa.Params["AddAllCreatureTypes"]), "True")
+	// RemoveTypes$ True strips every subtype before this animation's Types$ apply.
+	ag.removeTypes = strings.EqualFold(strings.TrimSpace(sa.Params["RemoveTypes"]), "True")
 	// RemoveCardTypes$ True (state.ContinuousEffect.RemoveCardTypes, the
 	// Darksteel Mutation strip) keeps only the object's supertypes in the
 	// layer-4 walk -- one line on the shared path, so both primitives read it.
@@ -889,11 +892,11 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
-	if len(ag.types) > 0 || ag.removeCreatureTypes || ag.allCreatureTypes || ag.removeCardTypes {
+	if len(ag.types) > 0 || ag.removeCreatureTypes || ag.removeTypes || ag.allCreatureTypes || ag.removeCardTypes {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LType, AddTypes: ag.types,
-			RemoveCreatureTypes: ag.removeCreatureTypes,
+			RemoveCreatureTypes: ag.removeCreatureTypes, RemoveSubTypes: ag.removeTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
