@@ -934,13 +934,13 @@ func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *
 	}
 	ctx.X = x
 	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
-		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMin", 1); resolved {
+		if n, resolved := effects.NumResolvedStrict(e, ctx, sa, "TargetMin", 1); resolved {
 			min = int(n)
 		}
 	}
 	resolvedMax := false
 	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
-		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMax", 1); resolved {
+		if n, resolved := effects.NumResolvedStrict(e, ctx, sa, "TargetMax", 1); resolved {
 			max = int(n)
 			resolvedMax = true
 		}
@@ -2529,6 +2529,19 @@ func (e *Engine) AskCopyTargets() bool {
 	}
 	if max < min {
 		max = min
+	}
+	// A declaration whose resolved bound admits NO target (Min 0 Max 0 -- a
+	// dynamic TargetMax$ that evaluated to zero) leaves nothing to choose:
+	// the only legal answer is the empty one, which Engine.ask refuses to
+	// post. Resolve it silently -- the copy keeps its inherited (empty)
+	// set for this declaration -- and move on to the next declaration, if
+	// any, exactly as an answered ask would.
+	if max == 0 {
+		if e.copyTargetStage == nil {
+			e.copyTargetStage = make(map[state.ObjID]int)
+		}
+		e.copyTargetStage[o.ID] = stage + 1
+		return e.AskCopyTargets()
 	}
 	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a new target for the copy", Source: o.ID,
