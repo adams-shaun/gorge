@@ -1181,6 +1181,14 @@ type Engine struct {
 	// aborts rather than reading it from the log.
 	castAborts map[state.ObjID]int32
 
+	// inertHeldOut holds the priority options the inert backstop
+	// (rules/priority_guard.go) caught changing nothing: each is left out of
+	// the re-offer until the next state-changing event, exactly the
+	// suppressedCast lifetime (cleared beside it in emit). Transient window
+	// bookkeeping like suppressedCast: a replay re-derives it by re-running
+	// the same inert answer, whose Note is in the log.
+	inertHeldOut map[inertKey]bool
+
 	// drainAwaitsTarget is true while a decision asked from inside the trigger
 	// drain is pending, so its answer resumes the drain rather than granting
 	// priority. Task 7 sets it for a TargetMin/TargetMax-bearing triggered
@@ -2715,6 +2723,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind != events.DecisionMade && ev.Kind != events.Note {
 		e.suppressedCast = nil
 		e.castAborts = nil
+		e.inertHeldOut = nil
 		// CR 611.2b: a "for as long as" control effect ends the moment its
 		// condition stops holding, not at the next state-based check.
 		e.expireControl(controlOnEvent)
@@ -3133,6 +3142,14 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// survives for a legal (or smaller) answer. Single-card answers are
 		// trivially legal.
 		if err := e.validateSearch(d, in); err != nil {
+			return err
+		}
+	}
+	if d.Kind == decision.KPriority {
+		// A priority answer whose handler would no-op at its first guard is
+		// rejected before it is recorded (rules/priority_guard.go), so a
+		// stale or mis-offered option errors instead of spinning.
+		if err := e.validatePriorityChoice(d, in); err != nil {
 			return err
 		}
 	}

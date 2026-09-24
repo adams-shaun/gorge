@@ -466,6 +466,14 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 		// usual token engine) rather than the log tail.
 		return mk("bigboard", o.Livelock, o), gc
 	}
+	// The inert backstop (rules/priority_guard.go) keeps a game from spinning
+	// on a priority option whose handler changed nothing, but the option was
+	// still an offer/handler disagreement: report the game.
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, rules.InertPriorityNotePrefix) {
+			return mk("inert", fmt.Sprintf("%s (player %d, event %d)", ev.Text, ev.Player, i), o), gc
+		}
+	}
 	if verify {
 		var rerr error
 		func() {
