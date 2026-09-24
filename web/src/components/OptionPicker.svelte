@@ -49,8 +49,12 @@
   // example Underground Sea's source-level activation followed by Add U / Add
   // B). The first picker is destroyed while that intent is in flight, so the
   // parent marks the one immediate continuation that should arrive open.
+  // The optional chain is load-bearing: when a decision swap takes a tile's
+  // options away, this effect can run once with tileOptions null before the
+  // parent's {#if} unmounts the picker, and a throw here aborts the whole
+  // Svelte flush -- the board stops re-rendering (the 2026-09-24 g2 freeze).
   $effect(() => {
-    if (!tileOptions.autoOpen) return;
+    if (!tileOptions?.autoOpen) return;
     open = true;
     captureAnchor();
   });
