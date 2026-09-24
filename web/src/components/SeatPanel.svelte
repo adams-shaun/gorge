@@ -7,6 +7,7 @@
   import { arrangeCard } from '../lib/arrange';
   import { discardCard, isDiscardPick } from '../lib/discard';
   import { isSearchPick, searchCard, searchOptions } from '../lib/search';
+  import { isNamePick, nameOptions, NAME_PICK_RENDER_LIMIT } from '../lib/name-pick';
   import { modalPickerOpen } from '../lib/modals';
   import ArrangeModal from './ArrangeModal.svelte';
   import DiscardModal from './DiscardModal.svelte';
@@ -286,6 +287,8 @@
   // required-prompt pointer above, exactly as every other blocked decision
   // already does.
   const search = $derived(isSearchPick(decision) ? decision : null);
+  const namePick = $derived(isNamePick(decision) ? decision : null);
+  const nameOpts = $derived(namePick !== null ? nameOptions(namePick, logic.searchFilter) : []);
 
   // The search grid's hover inspector: the same CardHover mechanism the
   // arrange strip and the discard row use. The three branches are disjoint
@@ -665,6 +668,17 @@
             </div>
           {/if}
           {#if searchHover.hover.show && searchHover.card && searchHover.anchor}<CardDetail card={searchHover.card} anchor={searchHover.anchor} />{/if}
+        </div>
+      {:else if namePick !== null}
+        <div class="name-pick" data-name-pick>
+          <input class="search-filter" type="search" data-name-filter placeholder="Filter names…" aria-label="Filter card names" autocomplete="off" spellcheck="false" bind:value={logic.searchFilter} disabled={logic.busy} onkeydown={(e) => { if (e.key !== 'Escape') return; e.preventDefault(); logic.searchFilter = ''; }} />
+          <p data-name-count>{logic.searchFilter.trim() === '' ? `${nameOpts.length.toLocaleString()} cards — type to filter` : `Showing first ${Math.min(nameOpts.length, NAME_PICK_RENDER_LIMIT)} of ${nameOpts.length.toLocaleString()} matches`}</p>
+          <div class="list" data-name-list data-options>
+            {#each nameOpts.slice(0, NAME_PICK_RENDER_LIMIT) as opt (opt.index)}
+              <button class="option" type="button" data-option={opt.index} onclick={(e) => logic.click(opt.index, { holdPriority: e.ctrlKey })} disabled={logic.busy}><span class="label">{opt.label}</span></button>
+            {/each}
+            {#if nameOpts.length === 0}<p class="search-empty">No card matches “{logic.searchFilter}”.</p>{/if}
+          </div>
         </div>
       {:else}
         <div class="options" data-options>
