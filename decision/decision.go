@@ -322,8 +322,8 @@ type Option struct {
 	// the engine's own derived-keyword facts and the stack -- a human
 	// client never sees it, so it is never on the wire.
 	Grant *Grant `json:"-"`
-	// Attach is server-side only (json:"-"), set on a printed "ability"
-	// option whose ability is an AB$ Attach -- K:Equip, Reconfigure and
+	// Attach is server-side only (json:"-"), set on a printed, gained or
+	// granted "ability" option whose ability is an AB$ Attach -- K:Equip, Reconfigure and
 	// Fortify expand to one (cards/keywords.go). It is what scopes the bot
 	// policy's attachment no-op rule (A1, botpolicy.equipNoOp: an attached
 	// source's re-attach, or an attach with no creature to land on) to the
@@ -557,6 +557,14 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeSearchKnown carries the effects.Ctx.SearchKnown set of an earlier
+	// ask in the same search chain (effects/zone.go effSearchLibrary): the
+	// library cards the chooser has already legitimately seen. A planted
+	// placement leg poses a second ask after the first leg's own suspension
+	// rebuilt a fresh Ctx, and without the ride the second leg would go blind
+	// again. Server-side runtime continuation state, never client input --
+	// the same class as ResumeRemembered.
+	ResumeSearchKnown []state.Target `json:"-"`
 	// ResumeDigUntilMove carries an earlier OptionalFoundMove$ answer through
 	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
 	ResumeDigUntilMove     string `json:"-"`

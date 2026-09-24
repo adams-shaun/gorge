@@ -2100,6 +2100,9 @@ func positiveRecognised(p string) bool {
 	if p == "TriggeredNewCard" || p == "TriggeredCard" {
 		return true
 	}
+	if hasAbilityToken(p) {
+		return true
+	}
 	if positiveRecognisedWord(p) {
 		return true
 	}
@@ -2595,6 +2598,9 @@ func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if hasAbilityToken(p) {
+		return objectHasAbility(o, strings.TrimPrefix(p, "hasAbility ")), true
+	}
 	if p == "token$DifferentCardNames" {
 		// Forge's token$DifferentCardNames set-level qualifier (Sandsteppe
 		// War Riders, Gimbal Gremlin Prodigy, Audience with Trostani, Neriv
@@ -3723,6 +3729,17 @@ type ObjectName struct {
 	Name string
 }
 
+// ResolutionStateBound reports whether this context is bound to resolution
+// state, so a filter verdict over it cannot be reproduced from a printed face
+// alone and must not be shared with another resolution. (*Ctx).SpecContext
+// installs the numeric-RHS Resolve closure for a paid X, an SVar table or a
+// published roll; Resolving marks the rest (Remembered, ResolutionTargets,
+// Chosen, the layer tables). A context that reports false answers exactly
+// what the resolver-free walk would, so a memo may serve it.
+func (sc *SpecContext) ResolutionStateBound() bool {
+	return sc != nil && (sc.Resolve != nil || sc.Resolving)
+}
+
 // ObjectTypes binds one object to its layer-4 derived type list (CR
 // 613.1d/613.1c). The list is the SAME shape rules' layer walk builds and
 // Derived carries -- printed types (or the CR 708.5 face-down set) plus every
@@ -4206,6 +4223,37 @@ func isBarePlayerProperty(clause string) bool {
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	for alt := range strings.SplitSeq(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+		if inner, negated := strings.CutPrefix(qualifier, "!"); qualified && negated {
+			// A negated qualifier after the dot (Crown of Doom's
+			// `Player.!CardOwner`, `Player.!IsRemembered`,
+			// `Player.!EnchantedBy`): the base must match and the positive
+			// qualifier must NOT. Only qualifiers this evaluator reads are
+			// negated -- an unread one would otherwise invert its fail-closed
+			// false into admitting every seat -- and a source-anchored one
+			// fails closed with no source bound.
+			switch inner {
+			case "CardOwner", "IsRemembered", "EnchantedBy":
+			default:
+				continue
+			}
+			if inner != "EnchantedBy" && g.Obj(pc.Source) == nil {
+				continue
+			}
+			if matchesPlayerSingleSpec(g, base, p, you, pc) && !matchesPlayerSingleSpec(g, base+"."+inner, p, you, pc) {
+				return true
+			}
+			continue
+		}
+		if (base == "Player" || base == "Any") && qualified && qualifier == "CardOwner" {
+			// Player.CardOwner (Forge PlayerProperty): the OWNER of the
+			// filter's source object (Crown of Doom's "target player other
+			// than CARDNAME's owner" negates it). No source bound fails
+			// closed.
+			if o := g.Obj(pc.Source); o != nil && o.Owner == p {
+				return true
+			}
+			continue
+		}
 		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
 			o := g.Obj(pc.Source)
 			if o == nil {
@@ -4860,4 +4908,48 @@ func KnownPredicates() []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// hasAbilityToken recognises Forge's `hasAbility <SA spec>` card property in
+// the forms this build reads: `hasAbility Activated` (the object has an
+// activated ability), `hasAbility Activated.hasTapCost` (one whose cost
+// includes {T} -- Magewright's Stone's target) and `hasAbility
+// Activated.Exhaust` (an exhaust ability). The matcher and the
+// UnknownPredicates census share it, so an unread sub-spec
+// (Activated.otherAbility) stays unknown to both and fails closed.
+func hasAbilityToken(p string) bool {
+	switch strings.TrimPrefix(p, "hasAbility ") {
+	case "Activated", "Activated.hasTapCost", "Activated.Exhaust":
+		return strings.HasPrefix(p, "hasAbility ")
+	}
+	return false
+}
+
+// objectHasAbility answers a recognised hasAbility sub-spec over the
+// object's printed face's activated (AB) abilities.
+func objectHasAbility(o *state.Object, sub string) bool {
+	f := o.Face()
+	if f == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+		return false
+	}
+	for _, a := range f.Abilities {
+		if a == nil || a.Kind != "AB" {
+			continue
+		}
+		switch sub {
+		case "Activated":
+			return true
+		case "Activated.hasTapCost":
+			for _, tok := range strings.Fields(a.Params["Cost"]) {
+				if tok == "T" {
+					return true
+				}
+			}
+		case "Activated.Exhaust":
+			if strings.EqualFold(strings.TrimSpace(a.Params["Exhaust"]), "True") {
+				return true
+			}
+		}
+	}
+	return false
 }
