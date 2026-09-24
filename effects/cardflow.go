@@ -3281,7 +3281,12 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	chooseFromList := sa.Params["ChooseFromList"]
 	universeBacked := len(h.Game().NameUniverse) > 0
 	random := strings.EqualFold(sa.Params["AtRandom"], "True")
-	names := NameChoicesFromList(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, random)
+	// The resolving context's numeric-RHS resolver (paid X, a published
+	// StoreSVar) is threaded into the eligible-name filter so a dynamic
+	// ValidCards$ such as `Creature.cmcEQX` restricts against the resolution
+	// value instead of failing every universe card closed.
+	sc := c.SpecContext(c.Controller)
+	names := NameChoicesFromListCtx(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, &sc, random)
 	if len(names) == 0 && (!universeBacked || chooseFromList == "") {
 		// R-9: a host without a supplied corpus still completes
 		// deterministically, and reproduces the exact pre-feature NameCard

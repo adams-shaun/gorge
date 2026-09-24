@@ -3729,6 +3729,17 @@ type ObjectName struct {
 	Name string
 }
 
+// ResolutionStateBound reports whether this context is bound to resolution
+// state, so a filter verdict over it cannot be reproduced from a printed face
+// alone and must not be shared with another resolution. (*Ctx).SpecContext
+// installs the numeric-RHS Resolve closure for a paid X, an SVar table or a
+// published roll; Resolving marks the rest (Remembered, ResolutionTargets,
+// Chosen, the layer tables). A context that reports false answers exactly
+// what the resolver-free walk would, so a memo may serve it.
+func (sc *SpecContext) ResolutionStateBound() bool {
+	return sc != nil && (sc.Resolve != nil || sc.Resolving)
+}
+
 // ObjectTypes binds one object to its layer-4 derived type list (CR
 // 613.1d/613.1c). The list is the SAME shape rules' layer walk builds and
 // Derived carries -- printed types (or the CR 708.5 face-down set) plus every
