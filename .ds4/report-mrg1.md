@@ -1,3 +1,58 @@
+# Merge-conflict resolution — agent-20260919T192133Z-f7463cbe (mrg1), round 7 (2026-09-23)
+
+## Entry state
+
+`git status` clean on `wt/agent-20260919T192133Z-f7463cbe`, HEAD `d417cecd`
+(the round-6 resolution); no rebase or merge in flight — the reflog shows the
+daemon's three rebase attempts onto main @ `57a1351d` all
+`rebase (abort)`-ed (conflict applying `7cbf188d`, the retrace r2 report).
+`git merge-base --is-ancestor main HEAD` was FALSE (main had advanced past the
+round-6 merge base `dbc5683d` with the Companion feature and integration
+reports). `.cards` present as a symlink to the shared corpus — the runs below
+are real, not vacuous.
+
+## Operation
+
+`git merge main` (rebase is forbidden to this seat). One conflicted file:
+`.ds4/report-mrg1.md`. `rules/trigger_match.go`, the new
+`rules/companion_702139_registration_test.go` and `.ds4/report-t1.md`
+auto-merged; no code conflict.
+
+## Resolution
+
+`.ds4/report-mrg1.md` is a shared report accumulator on base `dbc5683d`.
+Measured against the base: the branch side is a PURE PREPEND of 666 lines
+(this branch's round-6 report); main's side prepends its own 48-line round-6
+report AND inserts 97 lines (the Companion merge reports) at base line 3964.
+Union construction: branch prepend, then main's full file verbatim
+(`resolved == head[:666] + main`, programmatic check). Losslessness verified:
+base/branch/main side each contribute 0 missing non-blank lines. Zero real
+conflict markers remain (`grep -nE '^(<<<<<<< |=======$|>>>>>>> )'` → none).
+`git diff --cached --check` clean.
+
+## Verification
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.645s   (0 SKIP lines in log)
+$ git status
+nothing to commit, working tree clean
+```
+
+Ratchet notes: this branch's own work is retrace reports plus the Formless
+Genesis retrace test (docs + a test commit, no new `Mode$` matcher, no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry closed), so no ratchet table adjustment was indicated. Main's Companion
+work already carries its registration.
+
+## Issues
+
+None new. Standing observation (documented by prior rounds): the shared
+`.ds4/report-*.md` accumulators conflict on nearly every integration; the
+union convention preserves everything but costs a round each time.
+
+---
+
 # Merge-conflict resolution — agent-20260919T192133Z-f7463cbe (round 6, mrg1)
 
 ## State found
