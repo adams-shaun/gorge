@@ -99,6 +99,58 @@ func worldChooseMarkers(e *Engine, obj state.ObjID) []string {
 	return out
 }
 
+// TestWorldRuleGroupsByNameFree is the regression for CR 704.5k's missing
+// same-name clause: the world rule groups every World permanent a player
+// controls into ONE set, so two DIFFERENTLY named World enchantments under
+// one controller are still a duplicate set. It fails with the fix reverted:
+// the scan keys groups on the printed name, each single-member name-keyed
+// group drops below the two-member threshold, and nothing is asked or binned.
+func TestWorldRuleGroupsByNameFree(t *testing.T) {
+	a := worldEnchantment("Nether Void")
+	b := worldEnchantment("Gravity Sphere")
+	e, _, _ := newFixtureDeck(t, 98, a, b)
+	id1 := moveSeeded(t, e, 0, a, state.ZBattlefield)
+	id2 := moveSeeded(t, e, 0, b, state.ZBattlefield)
+	// Precondition: both are battlefield World permanents with DIFFERENT
+	// names under the same controller -- otherwise the name-free assertion is
+	// vacuous (the same-name path would pass regardless).
+	o1, o2 := e.G.Obj(id1), e.G.Obj(id2)
+	for _, o := range []*state.Object{o1, o2} {
+		if o == nil || o.Zone != state.ZBattlefield || !o.Face().IsWorld() {
+			t.Fatalf("fixture: permanent %v not a battlefield World permanent", o)
+		}
+	}
+	if o1.Face().Name == o2.Face().Name {
+		t.Fatalf("fixture: both permanents are named %q; the name-free grouping is not exercised", o1.Face().Name)
+	}
+	if o1.Controller != o2.Controller {
+		t.Fatalf("fixture: the two permanents have different controllers %d/%d", o1.Controller, o2.Controller)
+	}
+	e.checkStateBased()
+	d := worldPending(t, e, 0, id1, id2)
+	// Each option is labelled with its own permanent's name (a world set is
+	// not one name).
+	if d.Options[0].Label != "Nether Void" || d.Options[1].Label != "Gravity Sphere" {
+		t.Fatalf("world option labels = [%q %q], want the two distinct names", d.Options[0].Label, d.Options[1].Label)
+	}
+	if e.legendBatch == nil || e.legendBatch.rule != sbaWorld {
+		t.Fatalf("the parked batch is not the world batch")
+	}
+	submitKeep(t, e, d, 0)
+	if o := e.G.Obj(id1); o.Zone != state.ZBattlefield {
+		t.Fatalf("kept world permanent in %v, want battlefield", o.Zone)
+	}
+	if o := e.G.Obj(id2); o.Zone != state.ZGraveyard {
+		t.Fatalf("the differently named world permanent stayed in %v; CR 704.5k is name-free", o.Zone)
+	}
+	if got := legendDepartureText(t, e, id2); got != "world rule" {
+		t.Fatalf("binned permanent departed with Text %q, want \"world rule\"", got)
+	}
+	if markers := worldChooseMarkers(e, id1); len(markers) != 1 || markers[0] != "world_keep" {
+		t.Fatalf("Choose markers for kept permanent %d = %v, want [\"world_keep\"]", id1, markers)
+	}
+}
+
 // TestWorldRuleAsksControllerWhichDuplicateToKeep is the headline: two
 // same-named World permanents under one controller pose a choice, and keeping
 // the SECOND leaves it on the battlefield while the FIRST departs as a
@@ -255,7 +307,7 @@ func TestWorldRuleSinglePermanentPosesNothing(t *testing.T) {
 // lists ARE, so a scan that read the printed face alone cannot pass. It fails
 // with the fix reverted: nothing is asked.
 func TestWorldRuleReadsDerivedSupertype(t *testing.T) {
-	const grant = "Name:Worldmaker\nManaCost:2 U\nTypes:Enchantment\n" +
+	const grant = "Name:Worldmaker\nManaCost:2 U\nTypes:Artifact\n" +
 		"S:Mode$ Continuous | Affected$ Enchantment.YouCtrl | AddTypes$ World | Description$ x\nOracle:x\n"
 	plain := "Name:Gravity Sphere\nManaCost:2 R\nTypes:Enchantment\nOracle:x\n"
 	e, _, _ := newFixtureDeck(t, 95, grant, plain, plain)

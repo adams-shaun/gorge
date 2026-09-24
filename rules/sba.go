@@ -364,9 +364,12 @@ func (r sbaRule) departureText() string {
 }
 
 // sbaGroup is one duplicate set for either rule: two or more permanents
-// carrying the rule's supertype with the same name under ONE controller, in
-// battlefield scan order. The controller of the set chooses which member
-// survives; the rest go to their owners' graveyards.
+// carrying the rule's supertype under ONE controller, in battlefield scan
+// order. The controller of the set chooses which member survives; the rest go
+// to their owners' graveyards. name is the shared, name-keyed identity of a
+// LEGEND set (CR 704.5j groups by name); a WORLD set (CR 704.5k) groups every
+// World permanent its controller has, whatever their names, so its name is
+// empty and the ask is worded generically.
 type sbaGroup struct {
 	player state.PlayerID
 	name   string
@@ -407,37 +410,42 @@ type legendBatch struct {
 // run to run; membership maps are never iterated.
 func (e *Engine) legendGroups() []sbaGroup { return e.duplicateGroups(sbaLegend) }
 
-// worldGroups is legendGroups for CR 704.5k: two or more permanents carrying
-// the World supertype with the same name under one controller. It shares the
-// ONE duplicate-group scan (duplicateGroups), so the layer-derived supertype
-// read, battlefield scan order and two-member threshold cannot drift from the
-// legend half. There is no world-rule exemption static in the corpus (no
-// IgnoreWorldRule carrier), so unlike the legend half it collects none.
+// worldGroups collects CR 704.5k's duplicate set: two or more permanents
+// carrying the World supertype under one controller, in battlefield scan
+// order. Unlike the legend half it has NO same-name clause -- the rule groups
+// every World permanent a player controls into one set, whatever their names
+// (worldGroupsByNameFree). It shares the layer-derived supertype read, the
+// battlefield scan order and the two-member threshold with the legend half
+// (duplicateGroups dispatches to it), so those cannot drift. There is no
+// world-rule exemption static in the corpus (no IgnoreWorldRule carrier), so
+// unlike the legend half it collects none.
 func (e *Engine) worldGroups() []sbaGroup { return e.duplicateGroups(sbaWorld) }
 
 // duplicateGroups is the ONE duplicate-set scan both the legend rule
 // (CR 704.5j) and the world rule (CR 704.5k) use: per controller, permanents
 // whose DERIVED type list still carries the rule's supertype (layer 4 can
-// strip it), grouped by printed name, keeping only sets of two or more, in
-// battlefield scan order. The legend half keeps its cheap printed-legendary
-// pre-filter ahead of the derived read (a layer-4 effect that ADDS the
-// Legendary supertype is not a corpus shape for the legend rule). The world
-// half reads the DERIVED list alone: layer 4 (CR 613.1c) can both add and
-// remove a supertype, and the world scan must see either, so no printed
-// pre-filter is applied there. The legend half additionally honors the
-// IgnoreLegendRule exemption statics; the world half has no exemption static
-// to read (no corpus carrier), so it collects none.
+// strip it), keeping only sets of two or more, in battlefield scan order.
+//
+// The two rules group DIFFERENTLY and that difference is the rules text, not
+// an implementation detail: CR 704.5j "if two or more legendary permanents
+// with the SAME NAME are controlled by the same player" -- so the legend scan
+// keys its per-controller groups on the printed name; CR 704.5k "if two or
+// more permanents carrying the WORLD supertype are controlled by the same
+// player" -- no name clause at all, so the world scan makes ONE set per
+// controller holding every World permanent that player controls, whatever
+// their names. The legend half keeps its cheap printed-legendary pre-filter
+// ahead of the derived read (a layer-4 effect that ADDS the Legendary
+// supertype is not a corpus shape for the legend rule). The world half reads
+// the DERIVED list alone: layer 4 (CR 613.1c) can both add and remove a
+// supertype, and the world scan must see either, so no printed pre-filter is
+// applied there. The legend half additionally honors the IgnoreLegendRule
+// exemption statics; the world half has no exemption static to read (no
+// corpus carrier), so it collects none.
 func (e *Engine) duplicateGroups(rule sbaRule) []sbaGroup {
-	var exempt []staticView
-	if rule == sbaLegend {
-		exempt = e.activeStatics("IgnoreLegendRule")
+	if rule == sbaWorld {
+		return e.worldGroupsByNameFree()
 	}
-	// With no layer-4 type effect active anywhere the derived list IS the
-	// printed list (typeCharacteristics' own fast path), so a printed-World
-	// pre-filter is exact. Only when a layer-4 effect is live can the derived
-	// list differ, and then every permanent is read derived-side so an ADDED
-	// World supertype is seen too.
-	derivedMayDiffer := rule == sbaWorld && e.anyLayer4TypeEffect()
+	var exempt = e.activeStatics("IgnoreLegendRule")
 	var all []sbaGroup
 	for _, p := range e.G.AliveFrom(0) {
 		seen := make(map[string]int)
@@ -446,20 +454,11 @@ func (e *Engine) duplicateGroups(rule sbaRule) []sbaGroup {
 			if o == nil || o.Face() == nil {
 				continue
 			}
-			if rule == sbaLegend {
-				if !o.Face().IsLegendary() || !legendaryUnderLayers(e, id) {
-					continue
-				}
-				if e.legendRuleExempt(exempt, id) {
-					continue
-				}
-			} else {
-				if !derivedMayDiffer && !o.Face().IsWorld() {
-					continue
-				}
-				if !worldUnderLayers(e, id) {
-					continue
-				}
+			if !o.Face().IsLegendary() || !legendaryUnderLayers(e, id) {
+				continue
+			}
+			if e.legendRuleExempt(exempt, id) {
+				continue
 			}
 			name := o.Face().Name
 			if gi, ok := seen[name]; ok {
@@ -472,6 +471,44 @@ func (e *Engine) duplicateGroups(rule sbaRule) []sbaGroup {
 	}
 	var groups []sbaGroup
 	for _, g := range all {
+		if len(g.ids) >= 2 {
+			groups = append(groups, g)
+		}
+	}
+	return groups
+}
+
+// worldGroupsByNameFree gathers CR 704.5k's set: ONE group per controller
+// holding every permanent that player controls whose DERIVED type list still
+// carries the World supertype, in battlefield scan order. Unlike the legend
+// half there is NO name key -- CR 704.5k has no same-name clause, so two
+// differently named World permanents under one controller are one duplicate
+// set -- and no exemption static (no corpus carrier). It is the world-only
+// half, deliberately not the name-keyed general scan, so a future reader
+// cannot re-introduce the name key by reusing the legend shape.
+func (e *Engine) worldGroupsByNameFree() []sbaGroup {
+	// With no layer-4 type effect active anywhere the derived list IS the
+	// printed list (typeCharacteristics' own fast path), so a printed-World
+	// pre-filter is exact. Only when a layer-4 effect is live can the derived
+	// list differ, and then every permanent is read derived-side so an ADDED
+	// World supertype is seen too.
+	derivedMayDiffer := e.anyLayer4TypeEffect()
+	var groups []sbaGroup
+	for _, p := range e.G.AliveFrom(0) {
+		g := sbaGroup{player: p}
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			if !derivedMayDiffer && !o.Face().IsWorld() {
+				continue
+			}
+			if !worldUnderLayers(e, id) {
+				continue
+			}
+			g.ids = append(g.ids, id)
+		}
 		if len(g.ids) >= 2 {
 			groups = append(groups, g)
 		}
@@ -563,10 +600,23 @@ func (e *Engine) askSBAChoice() {
 	}
 	opts := make([]decision.Option, len(g.ids))
 	for i, id := range g.ids {
-		opts[i] = decision.Option{Index: i, Kind: "keep", Label: g.name, Obj: id, Player: g.player}
+		// A legend set is one name, so its label is that name; a world set can
+		// hold differently named permanents, so each option is labelled with
+		// its OWN permanent's name (what the seat is choosing between).
+		label := g.name
+		if label == "" {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil {
+				label = o.Face().Name
+			}
+		}
+		opts[i] = decision.Option{Index: i, Kind: "keep", Label: label, Obj: id, Player: g.player}
+	}
+	prompt := "Choose which " + g.name + " to keep; the rest are put into their owners' graveyards"
+	if g.name == "" {
+		prompt = "Choose which World permanent to keep; the rest are put into their owners' graveyards"
 	}
 	d := &decision.Decision{Player: g.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt:  "Choose which " + g.name + " to keep; the rest are put into their owners' graveyards",
+		Prompt:  prompt,
 		Options: opts}
 	e.choosing = chooseLegend
 	e.ask(d)
