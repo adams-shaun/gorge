@@ -13,6 +13,10 @@
 // value log loss, per-pair win rates, timing, stderr tail), an alerts banner
 // (eval below control-0.05, a drop over 0.08 round-on-round, a kind's
 // final_kl over 3x the target) and the markdown reports found under the root.
+// It also surfaces ad-hoc runs (kind "adhoc"): a directory below an experiment
+// holding report.md and/or *.jsonl, or a <name>.stdout/.stderr pair with no
+// <name> directory -- listed with status, jsonl size and record count and the
+// report.md tail, never alerted on.
 // Every API call rescans (parsed files are cached by mtime and size); it never
 // writes under a root.
 package main

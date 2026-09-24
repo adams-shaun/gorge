@@ -53,6 +53,7 @@ a { color: var(--accent); }
 .alert-run { font-weight: 600; }
 .tag { font-size: 11px; padding: 0 5px; border-radius: 3px; background: var(--bad); color: #fff; margin-right: 4px; }
 .tag.kl { background: var(--warn); color: #000; }
+.tag.adhoc { background: var(--muted); color: var(--bg); }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; }
 svg.chart { width: 100%; height: auto; display: block; }
@@ -232,6 +233,12 @@ function renderOverview() {
     let group = null;
     for (const r of e.runs) {
       if (r.group !== group) { group = r.group; h += `<tr><td colspan="8" class="muted" style="font-size:12px">${esc(group)}/</td></tr>`; }
+      if (r.kind === "adhoc") {
+        h += `<tr><td><a href="#run?id=${encodeURIComponent(r.id)}">${esc(r.name)}</a></td>
+        <td><span class="pill s-${r.status}">${r.status}</span></td>
+        <td colspan="6"><span class="tag adhoc">adhoc</span>${esc(jsonlSummary(r))}${r.report ? ' <span class="muted">· report.md</span>' : ""} <span class="muted">· ${r.last_modified && +new Date(r.last_modified) > 0 ? ago(r.last_modified) : "–"}</span></td></tr>`;
+        continue;
+      }
       const le = latestEval(r), c = ctl(r), wr = le ? le.eval.win_rate : null, d = wr != null && c != null ? wr - c : null;
       const cur = r.current_round != null ? `r${r.current_round}${r.planned_rounds != null ? "/" + r.planned_rounds : ""}` : "";
       const stage = r.stage ? r.stage.replace(/^\[(round|gen) \d+\]\s*/, "") : "";
@@ -249,6 +256,8 @@ function renderOverview() {
   }
   return h + "</div>";
 }
+const fmtBytes = n => n >= 1 << 30 ? (n / (1 << 30)).toFixed(1) + "G" : n >= 1 << 20 ? (n / (1 << 20)).toFixed(1) + "M" : (n / 1024).toFixed(1) + "K";
+const jsonlSummary = r => (r.jsonl || []).map(j => `${j.name} ${j.records != null ? j.records + " records, " : ""}${fmtBytes(j.bytes)}`).join("; ") || "no jsonl";
 const maxMod = e => Math.max(0, ...e.runs.map(r => +new Date(r.last_modified)));
 
 function renderCompare() {
@@ -296,6 +305,16 @@ function renderRun() {
   if (!r) { r = runs.slice().sort((a, b) => +new Date(b.last_modified) - +new Date(a.last_modified))[0]; runSel = r.id; }
   let h = `<section class="panel"><select id="runPick">` + snap.experiments.map(e => `<optgroup label="${esc(e.name)}">` +
     e.runs.map(x => `<option value="${esc(x.id)}" ${x.id === r.id ? "selected" : ""}>${esc(x.id)} (${x.status})</option>`).join("") + "</optgroup>").join("") + "</select>";
+  if (r.kind === "adhoc") {
+    h += `<div class="kv" style="margin-top:8px"><span><span class="pill s-${r.status}">${r.status}</span></span>
+      <span><span class="tag adhoc">adhoc</span></span>
+      <span><b>jsonl</b> ${esc(jsonlSummary(r))}</span>
+      <span><b>updated</b> ${r.last_modified && +new Date(r.last_modified) > 0 ? ago(r.last_modified) : "–"}</span></div>
+      <div class="muted" style="font-size:12px">${esc(r.path)}</div></section>`;
+    if (r.report_tail && r.report_tail.length) h += `<section class="panel"><h2>report.md <span class="muted">(tail)</span></h2><pre>${esc(r.report_tail.join("\n"))}</pre></section>`;
+    if (r.stderr_tail && r.stderr_tail.length) h += `<section class="panel"><h2>stderr tail</h2><pre>${esc(r.stderr_tail.join("\n"))}</pre></section>`;
+    return h;
+  }
   const le = latestEval(r), c = ctl(r);
   h += `<div class="kv" style="margin-top:8px"><span><span class="pill s-${r.status}">${r.status}</span></span>
     <span><b>stage</b> ${esc(r.stage || "–")}</span>

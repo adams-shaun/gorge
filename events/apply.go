@@ -1605,6 +1605,42 @@ func Apply(g *state.Game, e Event) {
 			o.FaceDownHasPT = false
 		}
 
+	case PhaseOut:
+		// CR 702.25's phased-out status (api:Phases): Amount 1 phases the
+		// permanent OUT, -1 phases it IN. Gated on the battlefield, the same
+		// way TurnFaceUp's face-down clear is -- a marker stranded on a card
+		// that left the battlefield is not a phase. The Move fold clears
+		// PhasedOut on every real battlefield departure, so a later entry
+		// (CR 400.7) starts phased in.
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
+			o.PhasedOut = e.Amount >= 1
+			// CR 702.25c: "A permanent that phases out is removed from
+			// combat." Phasing is deliberately NOT a zone change, so no Move
+			// fold runs to clear the combat members the way a departure does;
+			// clear them here with the exact EndCombatReset{Obj} shape, so a
+			// phased-out ATTACKER stops assigning and receiving combat damage
+			// and a phased-out BLOCKER stops absorbing it. A zero tombstone is
+			// left in each attacking creature's BlockedBy (CR 509.1h: the
+			// attacker stays blocked even though its blocker is gone), which
+			// is exactly what liveBlockers and damageStep already read.
+			if o.PhasedOut {
+				for i := range g.Objs {
+					other := &g.Objs[i]
+					if other.ID == e.Obj {
+						other.IsAttacking = false
+						other.AttackingBattle = 0
+						other.BlockedBy = nil
+						continue
+					}
+					for j, id := range other.BlockedBy {
+						if id == e.Obj {
+							other.BlockedBy[j] = 0
+						}
+					}
+				}
+			}
+		}
+
 	case ClockTick:
 		g.Clock++
 
@@ -3208,8 +3244,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// its next zone, so control-changing effects do not follow it. Reset
 	// before choosing the destination's zone owner: a later graveyard/hand
 	// re-entry must be placed under its owner, not its former controller.
+	// CR 702.25e: a phased-out permanent that leaves the battlefield phases
+	// in as it does so -- the phased-out status is a property of that
+	// battlefield object, and a later entry is a fresh, phased-in permanent.
 	if wasBattlefield && to != state.ZBattlefield {
 		o.Controller = o.Owner
+		o.PhasedOut = false
 	}
 	// CR 113.7a: an ability on the stack is not a card, and once it leaves
 	// the stack it ceases to exist. The resolved/countered ability's move is

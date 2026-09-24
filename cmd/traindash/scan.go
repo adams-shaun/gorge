@@ -47,9 +47,18 @@ type Experiment struct {
 	Runs []*Run `json:"runs"`
 }
 
-// Run is one exitloop run directory.
+// Run kinds.
+const (
+	KindExitloop = "exitloop"
+	KindAdhoc    = "adhoc"
+)
+
+// Run is one exitloop run directory, or (Kind adhoc) an ad-hoc run: a
+// directory holding report.md and/or *.jsonl, or a <name>.stdout/.stderr
+// pair with no <name> directory beside it.
 type Run struct {
 	ID            string      `json:"id"`
+	Kind          string      `json:"kind"` // exitloop, adhoc
 	Experiment    string      `json:"experiment"`
 	Group         string      `json:"group"`
 	Name          string      `json:"name"`
@@ -66,6 +75,19 @@ type Run struct {
 	LastModified  time.Time   `json:"last_modified"`
 	Warnings      []string    `json:"warnings,omitempty"`
 	Alerts        []Alert     `json:"alerts,omitempty"`
+
+	// Adhoc-only fields.
+	JSONL      []JSONLFile `json:"jsonl,omitempty"`
+	Report     string      `json:"report,omitempty"` // report.md path, if present
+	ReportTail []string    `json:"report_tail,omitempty"`
+}
+
+// JSONLFile is one *.jsonl file of an adhoc run. Records is the line count,
+// omitted when the file is too large to count cheaply.
+type JSONLFile struct {
+	Name    string `json:"name"`
+	Bytes   int64  `json:"bytes"`
+	Records *int   `json:"records,omitempty"`
 }
 
 // Round is one roundN (or genN) directory's parsed outputs.
@@ -217,9 +239,10 @@ func (s *Scanner) Scan() *Snapshot {
 	var order []string
 	multi := len(s.Roots) > 1
 	for _, root := range s.Roots {
-		var dirs []string
-		findRuns(root, 0, &dirs)
-		for _, dir := range dirs {
+		var found []foundRun
+		findRuns(root, 0, &found)
+		for _, fr := range found {
+			dir := fr.path
 			rel, err := filepath.Rel(root, dir)
 			if err != nil {
 				continue
@@ -234,7 +257,12 @@ func (s *Scanner) Scan() *Snapshot {
 			if multi {
 				expName = filepath.Base(root) + "/" + parts[0]
 			}
-			r := s.parseRun(dir, now)
+			var r *Run
+			if fr.kind == KindAdhoc {
+				r = s.parseAdhoc(dir, fr.pair, now)
+			} else {
+				r = s.parseRun(dir, now)
+			}
 			r.ID = id
 			r.Experiment = expName
 			r.Name = parts[len(parts)-1]
@@ -286,14 +314,68 @@ func isRunDir(entries []os.DirEntry) bool {
 	return false
 }
 
-func findRuns(dir string, depth int, out *[]string) {
+// isAdhocDir reports whether a (non-exitloop) directory's entries mark it as
+// an ad-hoc run: a report.md or any *.jsonl file.
+func isAdhocDir(entries []os.DirEntry) bool {
+	for _, e := range entries {
+		n := e.Name()
+		if !e.IsDir() && (n == "report.md" || strings.HasSuffix(n, ".jsonl")) {
+			return true
+		}
+	}
+	return false
+}
+
+// adhocPairs returns the <base> names of every <base>.stdout/<base>.stderr
+// pair among entries that has no <base> directory beside it (an exitloop or
+// adhoc run dir owns its own sibling logs).
+func adhocPairs(entries []os.DirEntry) []string {
+	files, dirs := map[string]bool{}, map[string]bool{}
+	for _, e := range entries {
+		if e.IsDir() {
+			dirs[e.Name()] = true
+		} else {
+			files[e.Name()] = true
+		}
+	}
+	var out []string
+	for _, e := range entries {
+		base, ok := strings.CutSuffix(e.Name(), ".stdout")
+		if e.IsDir() || !ok || base == "" || dirs[base] || !files[base+".stderr"] {
+			continue
+		}
+		out = append(out, base)
+	}
+	return out
+}
+
+// foundRun is one discovered run: an exitloop or adhoc directory, or an
+// adhoc stdout/stderr pair (path is then <dir>/<base>, not a directory).
+type foundRun struct {
+	path string
+	kind string
+	pair bool
+}
+
+func findRuns(dir string, depth int, out *[]foundRun) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return
 	}
 	if depth > 0 && isRunDir(entries) {
-		*out = append(*out, dir)
+		*out = append(*out, foundRun{path: dir, kind: KindExitloop})
 		return
+	}
+	// Ad-hoc runs sit at the same depth as an exitloop run dir: below an
+	// experiment-level directory. Discovery still descends past them so an
+	// exitloop run nested below is never hidden.
+	if depth > 1 && isAdhocDir(entries) {
+		*out = append(*out, foundRun{path: dir, kind: KindAdhoc})
+	}
+	if depth > 0 {
+		for _, base := range adhocPairs(entries) {
+			*out = append(*out, foundRun{path: filepath.Join(dir, base), kind: KindAdhoc, pair: true})
+		}
 	}
 	if depth >= maxDepth {
 		return
@@ -313,7 +395,7 @@ var (
 )
 
 func (s *Scanner) parseRun(dir string, now time.Time) *Run {
-	r := &Run{Path: dir, Rounds: []Round{}}
+	r := &Run{Path: dir, Kind: KindExitloop, Rounds: []Round{}}
 	latest := time.Time{}
 	touch := func(p string) {
 		if fi, err := os.Stat(p); err == nil && fi.ModTime().After(latest) {
@@ -414,23 +496,92 @@ func (s *Scanner) parseRun(dir string, now time.Time) *Run {
 	}
 	r.LastModified = latest
 
+	r.Status = runStatus(haveStderr, stderrMod, r.StderrTail, latest, now)
+	return r
+}
+
+// runStatus is the liveness heuristic shared by every run kind: a stderr
+// written within liveWindow is running; an older one whose last line ends in
+// "..." (a stage that never finished) is stale; otherwise done. With no
+// stderr, the newest file's mtime stands in for it.
+func runStatus(haveStderr bool, stderrMod time.Time, tail []string, latest, now time.Time) string {
 	last := ""
-	if n := len(r.StderrTail); n > 0 {
-		last = strings.TrimSpace(r.StderrTail[n-1])
+	if n := len(tail); n > 0 {
+		last = strings.TrimSpace(tail[n-1])
 	}
-	unfinished := strings.HasSuffix(last, "...")
 	fresh := haveStderr && now.Sub(stderrMod) < liveWindow
 	if !haveStderr {
 		fresh = !latest.IsZero() && now.Sub(latest) < liveWindow
 	}
 	switch {
 	case fresh:
-		r.Status = "running"
-	case unfinished:
-		r.Status = "stale"
+		return "running"
+	case strings.HasSuffix(last, "..."):
+		return "stale"
 	default:
-		r.Status = "done"
+		return "done"
 	}
+}
+
+// maxCountBytes bounds the jsonl files whose records are counted; a larger
+// file reports only its byte size.
+const maxCountBytes = 64 << 20
+
+// parseAdhoc reads an adhoc run: path is its directory, or for a pair the
+// <dir>/<base> prefix of its .stdout/.stderr files.
+func (s *Scanner) parseAdhoc(path string, pair bool, now time.Time) *Run {
+	r := &Run{Path: path, Kind: KindAdhoc, Rounds: []Round{}}
+	latest := time.Time{}
+	var stderrPath string
+	var stderrMod time.Time
+	consider := func(p string, fi os.FileInfo) {
+		if fi.ModTime().After(latest) {
+			latest = fi.ModTime()
+		}
+		if strings.HasSuffix(p, ".stderr") || filepath.Base(p) == "stderr" {
+			if stderrPath == "" || fi.ModTime().After(stderrMod) {
+				stderrPath, stderrMod = p, fi.ModTime()
+			}
+		}
+	}
+	for _, sib := range []string{path + ".stderr", path + ".stdout"} {
+		if fi, err := os.Stat(sib); err == nil && !fi.IsDir() {
+			consider(sib, fi)
+		}
+	}
+	if !pair {
+		entries, _ := os.ReadDir(path)
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			p := filepath.Join(path, e.Name())
+			fi, err := e.Info()
+			if err != nil {
+				continue
+			}
+			consider(p, fi)
+			switch {
+			case strings.HasSuffix(e.Name(), ".jsonl"):
+				jf := JSONLFile{Name: e.Name(), Bytes: fi.Size()}
+				if fi.Size() <= maxCountBytes {
+					if v, ok := s.cached(p, func(b []byte) any { return bytes.Count(b, []byte{'\n'}) }); ok {
+						n := v.(int)
+						jf.Records = &n
+					}
+				}
+				r.JSONL = append(r.JSONL, jf)
+			case e.Name() == "report.md":
+				r.Report = p
+				r.ReportTail = tailLines(p, 40)
+			}
+		}
+	}
+	if stderrPath != "" {
+		r.StderrTail = tailLines(stderrPath, 20)
+	}
+	r.LastModified = latest
+	r.Status = runStatus(stderrPath != "", stderrMod, r.StderrTail, latest, now)
 	return r
 }
 

@@ -379,6 +379,15 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	addKeywords := cards.SplitKeywordList(sa.Params["AddKeywords"])
+	// PumpKeywords$ is the Clone sibling of CopyPermanent's temporary-keyword
+	// rider: the copy gains the named keywords for the PumpDuration$ window,
+	// independent of Clone's own Duration$ (the copy's lifetime). Absent
+	// PumpDuration$ means "for as long as the copy exists", so the grant rides
+	// the copy unit's own lifetime; a present PumpDuration$ gets its own unit
+	// key so an EOT grant can expire while a permanent copy survives (The
+	// Fourteenth Doctor).
+	pumpKeywords := cards.SplitKeywordList(sa.Params["PumpKeywords"])
+	pumpDuration := strings.TrimSpace(sa.Params["PumpDuration"])
 	newName := strings.TrimSpace(sa.Params["NewName"])
 	gainThisAbility := strings.EqualFold(strings.TrimSpace(sa.Params["GainThisAbility"]), "True")
 	removeCardTypes := strings.EqualFold(strings.TrimSpace(sa.Params["RemoveCardTypes"]), "True")
@@ -466,6 +475,24 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	// itself is not carried onto the effects -- the no-duration case is simply
 	// a unit with no expiry field, kept until the become object leaves.
 	_, untilEOT, untilTurn, untilUnattached, durNote := cloneDuration(dur)
+	// PumpKeywords$' own lifetime: an explicit PumpDuration$ wins, an absent
+	// one rides the copy unit (dur/untilEOT/untilTurn). EOT maps to UntilEOT;
+	// a next-turn spelling leaves UntilTurn zero for AddContinuous to derive
+	// from Duration; an unresolvable spelling is one loud Note plus the
+	// copy's own lifetime (never a silent over-extension past the copy).
+	pumpDur, pumpEOT, pumpTurn := dur, untilEOT, untilTurn
+	if len(pumpKeywords) > 0 && pumpDuration != "" {
+		switch {
+		case IsNextTurnDuration(pumpDuration):
+			pumpDur, pumpEOT, pumpTurn = pumpDuration, false, 0
+		case strings.EqualFold(pumpDuration, "EOT") || strings.EqualFold(pumpDuration, "EndOfTurn") ||
+			strings.EqualFold(pumpDuration, "UntilEndOfTurn"):
+			pumpDur, pumpEOT, pumpTurn = "", true, 0
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone PumpDuration$ " + pumpDuration + " is not implemented; the keyword lasts as long as the copy"})
+		}
+	}
 	// Same shape as the unread-modifier Note above: reachable only on the
 	// answered-yes re-entry (real host) or the no-host pass, never
 	// duplicated.
@@ -555,19 +582,22 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// unit on the source-leaves check and effectMoveSweep removes it from
 		// e.continuous when the become object leaves (the CR 611.2a
 		// "Permanent" flag would keep it applying to a re-entered object).
-		reg := func(ce state.ContinuousEffect) {
+		regDur := func(ce state.ContinuousEffect, d string, eot bool, turn int32) {
 			ce.Source = b.Obj
 			ce.Affects = "Card.Self"
 			ce.Controller = c.Controller
-			ce.Duration = dur
+			ce.Duration = d
 			ce.Permanent = false
-			ce.UntilEOT = untilEOT
-			ce.UntilTurn = untilTurn
+			ce.UntilEOT = eot
+			ce.UntilTurn = turn
 			ce.CloneTarget = b.Obj
-			if strings.EqualFold(dur, "UntilTargetedUntaps") {
+			if strings.EqualFold(d, "UntilTargetedUntaps") {
 				ce.CloneDurationTarget = t.Obj
 			}
 			h.AddContinuous(ce)
+		}
+		reg := func(ce state.ContinuousEffect) {
+			regDur(ce, dur, untilEOT, untilTurn)
 		}
 		if len(addTypes) > 0 || removeCardTypes || removeCreatureTypes || nonLegendary || removeSubTypes || len(setCreatureTypes) > 0 {
 			reg(state.ContinuousEffect{Layer: state.LType, AddTypes: addTypes,
@@ -595,6 +625,9 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if len(addKeywords) > 0 {
 			reg(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: addKeywords})
+		}
+		if len(pumpKeywords) > 0 {
+			regDur(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: pumpKeywords}, pumpDur, pumpEOT, pumpTurn)
 		}
 		if setPowerPresent || setToughPresent {
 			reg(state.ContinuousEffect{Layer: state.LPT, Sub: state.SubSet, HasSet: true,

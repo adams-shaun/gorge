@@ -1719,21 +1719,58 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // CantAttack static: the shared CantRestrictionParamsReadable core EXTENDED by
 // exactly the conditional parameter family rules' attackBlocked reads --
 // UnlessDefender$ (through effects.UnlessDefenderHolds) and the shared
-// rules-side continuous gate (rules/layers.go continuousGateHolds), which
+// rules-side continuous gate rules/layers.go continuousGateHolds, which
 // evaluates CheckSVar$ / SVarCompare$ / Condition$ / ClassBand$ and the
-// IsPresent$ / IsPresent2$ / PresentCompare$ / PresentZone$ count family. It
-// lives here, beside CantRestrictionParamsReadable and mirrors
-// MustAttackParamsReadableForRules below, so the face whitelist and the gate
-// evaluators cannot drift apart unseen. Measured over the corpus: of the 24
-// real `Mode$ CantAttack` files carrying this family, 20 spell the battlefield
-// IsPresent$/PresentCompare$ count shape (Desperate Castaways, Gadrak the
-// Crown-Scourge, War Falcon, ...), one a bare IsPresent$ "if" shape (Wirecat,
-// Shauku Endbringer with PresentCompare$ GT1), one PresentZone$ Hand (Kefnet
-// the Mindful) and one PresentZone$ Exile (Ketramose, the New Dawn);
-// IsPresent2$/ClassBand$ have zero CantAttack carriers but are whitelisted
-// anyway because continuousGateHolds evaluates them, the same fail-closed
-// principle MinMaxBlocker's whitelist states. The Effect-delivered
-// registration gate (effEffect, which keeps the narrower
+// IsPresent$ / IsPresent2$ / PresentCompare$ / PresentZone$ count family
+// (PresentZone$ Battlefield/Graveyard/Exile/Hand/Stack; see
+// countStaticPresent). It lives here, beside CantRestrictionParamsReadable and
+// mirrors MustAttackParamsReadableForRules below, so the face whitelist and the
+// gate evaluators cannot drift apart unseen.
+//
+// The present family joined this list with compound-statics1. The earlier
+// measurement (271 `Mode$ CantAttack` files, 63 raw lines carrying the gate
+// family, NONE pairing it with IsPresent$/PresentCompare$) predated commit
+// f81f996e ("split compound S:Mode$ comma lists into one static per mode"):
+// the split makes a compound line's CantAttack half inherit the SHARED Params
+// map, so an `S:Mode$ CantAttack,CantBlock | ... | IsPresent$ Creature.YouCtrl
+// | PresentCompare$ LE2` line (Bast, Panther Goddess) now reaches
+// attackBlocked as a CantAttack static carrying IsPresent. The gate machinery
+// already evaluates it, so excluding the keys only skipped the attack half
+// whole while the block half (blockRestricted's CantBlock loop, which runs
+// continuousGateHolds with no whitelist) bound at runtime -- the asymmetry
+// this ticket fixes.
+//
+// Measured over the corpus: of the 24 real `Mode$ CantAttack` files carrying
+// this family, 20 spell the battlefield IsPresent$/PresentCompare$ count shape
+// (Desperate Castaways, Gadrak the Crown-Scourge, War Falcon, ...), one a bare
+// IsPresent$ "if" shape (Wirecat, Shauku Endbringer with PresentCompare$ GT1),
+// one PresentZone$ Hand (Kefnet the Mindful) and one PresentZone$ Exile
+// (Ketramose, the New Dawn); IsPresent2$/ClassBand$ have zero CantAttack
+// carriers but are whitelisted anyway because continuousGateHolds evaluates
+// them, the same fail-closed principle MinMaxBlocker's whitelist states. None
+// is a repo-deck card.
+//
+// A line carrying PresentCompare$ WITHOUT IsPresent$/IsPresent2$ is rejected:
+// presentGate is the only reader of PresentCompare and it runs only when a
+// present spec is present, so an orphan compare would fall through the gate
+// unread and restrict blanket, over-restricting. A present KEY whose spec is
+// empty or whitespace-only is rejected the same way (and even with no compare):
+// countPresent("") matches nothing, so the "gate" reads count 0 forever and an
+// EQ0 compare would hold unconditionally. Measured 0 corpus rows for both
+// shapes; the guards keep it that way.
+//
+// A present spec carrying a predicate this build's matcher does not recognise
+// is rejected too: countPresent counts through the matcher, so an unparseable
+// spec matches nothing and an EQ0 compare ("restrict unless X is ABSENT")
+// would read count 0 unconditionally and blanket-restrict. The one corpus row
+// (Flowering Lumberknot, `IsPresent$ Creature.PairedWith+withSoulbond |
+// PresentCompare$ EQ0`) names the unimplemented `withSoulbond` predicate, so
+// it stays skipped -- the permissive direction -- rather than over-restricting.
+// UnknownPredicates (this package) is the same census the matcher's
+// recognisedPredicate classifier drives, so the check cannot drift from what
+// countPresent really resolves.
+//
+// The Effect-delivered registration gate (effEffect, which keeps the narrower
 // CantRestrictionParamsReadable for BOTH modes) cannot share this list: its
 // continuous path reads neither evaluator, so a gate-bearing body must not
 // register blanket -- a gated "can't attack" would become unconditional,
@@ -1743,7 +1780,17 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // permissive direction. Iterating the params map only yields a boolean, so map
 // order never reaches an event/option/view -- determinism is preserved.
 func CantAttackParamsReadableForRules(params map[string]string) bool {
-	for k := range params {
+	var present1, present2 string
+	hasCmp, has1, has2 := false, false, false
+	for k, v := range params {
+		switch k {
+		case "PresentCompare":
+			hasCmp = true
+		case "IsPresent":
+			present1, has1 = v, true
+		case "IsPresent2":
+			present2, has2 = v, true
+		}
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary",
 			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender",
@@ -1751,6 +1798,32 @@ func CantAttackParamsReadableForRules(params map[string]string) bool {
 		default:
 			return false
 		}
+	}
+	// presentGate is dispatched on the KEY being present, not on the value:
+	// an empty/whitespace `IsPresent$` still calls countPresent(""), which
+	// matches nothing (count 0). So a blank present spec is not "no gate" --
+	// it is a gate that can never see its object, and `PresentCompare$ EQ0`
+	// would hold unconditionally and restrict blanket. Reject a present key
+	// whose spec is blank, whichever key carries the compare (and whether or
+	// not one does).
+	spec1 := strings.TrimSpace(present1)
+	spec2 := strings.TrimSpace(present2)
+	if (has1 && spec1 == "") || (has2 && spec2 == "") {
+		return false
+	}
+	// An orphan compare (PresentCompare$ with no present spec at all) would
+	// never be evaluated: presentGate is its only reader and it runs only when
+	// a present key is set. Admit the line only when a NON-BLANK spec is there.
+	if hasCmp && spec1 == "" && spec2 == "" {
+		return false
+	}
+	// An unread present spec would match nothing, so an EQ0 compare would hold
+	// unconditionally and over-restrict; keep such a line skipped whole.
+	if spec1 != "" && len(UnknownPredicates(spec1)) != 0 {
+		return false
+	}
+	if spec2 != "" && len(UnknownPredicates(spec2)) != 0 {
+		return false
 	}
 	return true
 }
