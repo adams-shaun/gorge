@@ -1,3 +1,78 @@
+# Merge-conflict resolution — agent-20260919T181318Z-4dd3e7f5 (mrg1), round 2 (2026-09-24)
+
+## Entry state
+
+`git status` was CLEAN on `wt/agent-20260919T181318Z-4dd3e7f5`, HEAD `8250f0cb`
+(the round-1 resolution, merge `aa8edabe`); no rebase or merge in flight — the
+daemon's fresh rebase attempt (conflict at `96eb1d9b` on `.ds4/report-r2.md`)
+and its merge fallback (conflict in `.ds4/report-mrg1.md`) had both been reset
+before this seat started. Since the round-1 merge, main advanced 4 commits to
+`16de81eb` (the pred:hasANonBasicLandType merge `007e7e83`, its mrg1 docs
+`f1fc0aab`, and a tracking merge); merge-base with main is `f7ebf382`.
+`.cards` present as the symlink → `/home/sadams/projects/gorge/.cards` — all
+runs below are real, none vacuous.
+
+## Operation
+
+`git merge main` (rebase is forbidden to this seat). Every code file
+(`effects/filter.go`, `effects/conditions.go`, `events/actions.go`,
+`rules/stack.go`, `rules/cast.go`, … — main's land-type predicate work)
+AUTO-MERGED; the sole content conflict was `.ds4/report-mrg1.md`, the shared
+append-only report accumulator. `.ds4/report-r2.md` auto-merged cleanly this
+time (main's side is a pure removal of its own superseded round-1 top block;
+the branch made no further edit since `aa8edabe`).
+
+## Resolution
+
+Both sides PREPENDED a report to the accumulator and share the rest:
+
+- Ours: the round-1 mrg1 report for this branch (92 lines, `8250f0cb`).
+- Main: the round-9 and round-8 reports of agent-20260923T160306Z-167d672f,
+  ending with main's own `---` separator, on the base both sides carry.
+
+Union, newest-first (the file's established convention): ours' report, a
+blank-`---`-blank separator, then main's full accumulated file byte-verbatim.
+Verified mechanically — `git diff HEAD` and `git diff main` on the resolved
+file are both insertions-only (the only `-` line in either diff is the
+diff's own `--- a/...` header). The lone remaining `>>>>>>>` text hit at
+line 4009 is pre-existing quoted shell output inside a report body, not a
+marker. No prose from either side dropped; no code file hand-edited.
+
+Merge-committed as `2058199d` with the default merge message; tree clean.
+
+## Commands run and output
+
+    $ git status                                  # clean, nothing in flight
+    $ git merge main
+      -> CONFLICT (content) only in .ds4/report-mrg1.md
+    $ git add -f .ds4/report-mrg1.md && git commit --no-edit
+      -> 2058199d Merge branch 'main' into wt/agent-20260919T181318Z-4dd3e7f5
+    $ git status --short                          # (empty)
+
+    $ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+      -> ok  github.com/adams-shaun/gorge/rules  0.636s   (exit 0)
+
+    $ go test -run 'TestChangeZoneOriginAlternative|HasNonBasicLandType' ./rules/ ./effects/
+      -> ok  github.com/adams-shaun/gorge/rules   0.477s
+      -> ok  github.com/adams-shaun/gorge/effects 0.007s [no tests to run]
+
+The ratchet run's 0.636s matches the established 0.62-0.64s baseline from
+rounds 8/9/round-1 (the five tests classify/compile; full-deck play tests,
+`TestHeads` and `make sim` are the daemon's post-DONE gates).
+
+## Ratchet verdicts after the merge
+
+- No new `Mode$` matcher registered by either side; no
+  `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+  entry closed by this merge — no ratchet-table edit required.
+- No golden touched; the merge introduced no code change of its own.
+
+## Issues
+
+None found during this resolution. Process note (recurring): this is the
+third mrg1 in a row whose only conflict is the shared `.ds4/report-mrg1.md`
+accumulator prepend — the new-ticket-at-a-unique-path convention the reports
+keep requesting would remove the conflict class entirely.
 # Merge-conflict resolution — agent-20260919T181318Z-4dd3e7f5 (mrg1)
 
 ## Entry state
