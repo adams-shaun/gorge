@@ -1,3 +1,54 @@
+# Report — Clone PumpKeywords$/PumpDuration$ riders (t2)
+
+## What changed and why
+
+The implementation was already committed at `b266861e4` (`feat(effects): read Clone's PumpKeywords$/PumpDuration$ riders`) when this round began. It updates `effects/clone.go` to parse the keyword list, treat PumpDuration independently from the copy's Duration, and register a distinct continuous keyword effect; an absent PumpDuration follows the copy lifetime and EOT is independently honored. `rules/clone_pump_test.go` adds two activation-level regressions: an EOT copy with an implicit rider lifetime, and a permanent copy whose explicit EOT keyword grant expires at cleanup. Both assert Haste is absent before cloning and that the fixture's copied face does not itself provide Haste; both also check for unimplemented/unread notes.
+
+`.cards` was present. The brief's two real carriers are documented in the test comments; the regression uses inline fixtures in their shapes, not the named real cards end-to-end.
+
+## Gates run (actual output)
+
+```text
+$ go test -run 'TestClonePumpKeywordsRideTheCopyLifetime|TestClonePumpDurationEOtExpiresWhileThePermanentCopySurvives' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.031s
+
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+
+$ gofmt -l effects/clone.go rules/clone_pump_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+```
+
+## Fails without the fix
+
+Backed up `effects/clone.go`, changed only the `regDur` registration to retain duration arguments but omit `AddKeywords: pumpKeywords`, ran the targeted tests, then restored and byte-compared the file (`cmp` succeeded):
+
+```text
+$ go test -run 'TestClonePumpKeywordsRideTheCopyLifetime|TestClonePumpDurationEOtExpiresWhileThePermanentCopySurvives' ./rules/
+--- FAIL: TestClonePumpKeywordsRideTheCopyLifetime (0.00s)
+    clone_pump_test.go:74: copy keywords [], want the PumpKeywords$ Haste
+--- FAIL: TestClonePumpDurationEOtExpiresWhileThePermanentCopySurvives (0.00s)
+    clone_pump_test.go:123: copy keywords [], want the PumpKeywords$ Haste
+FAIL
+e​​xit=1
+RESTORED_BYTE_IDENTICAL
+```
+
+## Issues
+
+No additional defects found. Neither carrier is currently in a repo deck, so no repo-deck ratchet/head movement was expected or measured. No Known Approximations row applies. No CR-lane test is warranted for this focused card-script rider.
+
+Implementation commit: `b266861e4`.
+
+---
+
+Historical report preserved below.
+
 # Report — agent-20260919T181318Z-86535368 (verification round)
 
 ## Result
