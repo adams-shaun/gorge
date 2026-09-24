@@ -1,3 +1,71 @@
+# Merge-conflict resolution — agent-20260923T160306Z-167d672f (mrg1), round 9 (2026-09-24)
+
+## Entry state
+
+`git status` clean on `wt/agent-20260923T160306Z-167d672f`, HEAD `c0684661`
+(the round-8 resolution, merge `dde918c3`); no rebase or merge in flight —
+the daemon's fresh rebase attempt had been reset before this seat started.
+Since round 8, main advanced 10 commits (the kw:Sunburst merge
+`f7ebf382` among them); the branch was 0 ahead-3 behind... measured: 5
+branch-only commits, 10 main-only, merge-base `8664c796`. `.cards` present
+as a symlink to the shared corpus — all runs below are real, none vacuous.
+
+## Operation
+
+`git merge main` (rebase is forbidden to this seat). `rules/cast.go` and
+everything else AUTO-MERGED; the sole content conflict was
+`.ds4/report-mrg1.md`, the shared append-only report accumulator.
+
+## Resolution
+
+Both sides PREPENDED a report to the accumulator and share the rest:
+
+- Ours (`:2:`): the round-8 report (agent-20260923T160306Z-167d672f, 86 lines).
+- Main (`:3:`): the kw:Sunburst mrg1 resolution report
+  (agent-20260919T055500Z-a4cd7643, 109 lines), followed by the same
+  round-7-and-earlier base (`:1:`) both sides already carried.
+
+Union, newest-first (the file's established convention): ours' round-8
+report, a blank-`---`-blank separator, then main's full accumulated file
+byte-verbatim. Verified mechanically:
+
+    { git show :2:.ds4/report-mrg1.md | head -86; echo; echo ---; echo; git show :3:.ds4/report-mrg1.md; } > /tmp/expected.md
+    cmp /tmp/expected.md .ds4/report-mrg1.md   -> UNION-EXACT-OK (byte-identical)
+
+No prose from either side dropped; no code file hand-edited.
+
+## Commands run and output
+
+    $ git status                      # clean, nothing in flight
+    $ git merge main                  # CONFLICT only in .ds4/report-mrg1.md
+    $ git add -f .ds4/report-mrg1.md && git commit --no-edit
+      -> 692bc445 Merge branch 'main' into wt/agent-20260923T160306Z-167d672f
+    $ git status --short              # (empty)
+    $ git rev-list --count HEAD..main -> 0
+
+    $ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+      -> ok github.com/adams-shaun/gorge/rules  0.634s   (exit 0)
+
+    $ go test ./rules -run 'TestSunburst|HasNonBasicLandType|HasBasicLandType' -v
+      -> 6 RUN / 6 PASS / 0 SKIP / 0 FAIL; ok ... rules 0.464s
+      (both main's Sunburst tests and this branch's land-type predicate tests
+       pass together on the merged tree)
+
+## Ratchet verdicts after the merge
+
+- No new `Mode$` matcher registered by either side's contribution;
+  `TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched` passes without
+  touching `addedAfterTheSplit`.
+- No `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+  entry closed by this merge, so no ratchet-table edit was required.
+
+## Issues
+
+None found during this resolution. The only conflict was the accumulator;
+the code auto-merge is a clean union of both sides' intents.
+
+---
+
 # Merge-conflict resolution — agent-20260923T160306Z-167d672f (mrg1), round 8 (2026-09-23)
 
 ## Entry state
