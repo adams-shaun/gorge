@@ -898,7 +898,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock", "NumLoyaltyAct":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantExile", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock", "NumLoyaltyAct":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -914,6 +914,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// blanket — it is reported unimplemented instead, so the two
 			// registration paths cannot disagree about what is readable.
 			if (mode == "CantAttack" || mode == "CantSacrifice") && !CantRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantExile" && !CantRestrictionParamsReadable(params) {
+				// Mirror CantAttack/CantSacrifice above: the Effect-delivered
+				// continuous path cannot evaluate a cause, so a body carrying
+				// ValidCause$/ForCost$ (or any other unread scoping term) must not
+				// register blanket -- a `ForCost$ False | ValidCause$ Triggered`
+				// body registered here would over-restrict every exile, not just a
+				// triggered one. The wide cause-aware whitelist is reserved for the
+				// rules-side face-static walk (rules/layers.go exileBlocked), exactly
+				// as CantSacrificeRestrictionParamsReadable is for CantSacrifice.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -2137,6 +2151,45 @@ func CantSacrificeRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary", "ValidCause", "ForCost":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantExileRestrictionParamsReadable is the parameter whitelist a face
+// CantExile static must pass before rules' ExileBlocked enforces it -- the
+// CantSacrifice list above with the exile restriction's own object scope.
+// Readable: the mode, the object spec (ValidCard$, the corpus's dominant
+// `Creature.YouCtrl+token` shape; the ValidCards$ plural and the
+// ValidObject$ alias are the other spellings the shared spec reader resolves),
+// the player spec ValidTarget$ the CantAttack reader shares, the two
+// cause-scoping parameters exileBlocked itself evaluates -- ValidCause$
+// against actionCause() through the shared stack-kind classifier
+// (rules/layers.go causeSpecAdmits) and ForCost$ against the
+// cost-driven/effect-driven split of the ExileBlocked callers -- and display
+// text. The Master, Multiplied's `ValidCard$ Creature.YouCtrl+token |
+// ValidCause$ Triggered.YouCtrl | ForCost$ False` is the corpus's one
+// carrier.
+//
+// It is used by the rules-side face-static walk (rules/layers.go
+// exileBlocked) alone; effEffect's registration gate keeps the NARROWER
+// CantRestrictionParamsReadable for CantExile, the same asymmetry
+// CantSacrificeRestrictionParamsReadable documents -- the cause-scoped body is
+// read on the face route that evaluates ValidCause$/ForCost$, while an
+// Effect-delivered body carrying those keys stays an unimplemented Note
+// rather than registering a blanket prohibition the continuous path cannot
+// scope. A line carrying any other parameter names a condition or scoping
+// this build does not evaluate; enforcing it blanket would OVER-restrict --
+// the permissive direction for a restriction -- so the static is
+// skipped/reported instead. Secondary$ is allowed: it marks a Forge-side
+// duplicate for modifier composition, and a boolean restriction cannot be
+// applied twice.
+func CantExileRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidCards", "ValidObject", "ValidTarget", "Target", "Description", "Secondary", "ValidCause", "ForCost":
 		default:
 			return false
 		}
