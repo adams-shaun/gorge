@@ -22,9 +22,10 @@ import (
 const benchRootTurn = 5
 
 type benchFixture struct {
-	setup  PublicGame
-	h      History
-	engine *rules.Engine
+	setup     PublicGame
+	h         History
+	engine    *rules.Engine
+	collector *Collector
 }
 
 func benchRoot(tb testing.TB) benchFixture {
@@ -57,7 +58,7 @@ func benchRoot(tb testing.TB) benchFixture {
 			tb.Fatal("bench fixture game ended before its root")
 		}
 		if d.Player == 0 && d.Kind == decision.KPriority && e.G.Turn >= benchRootTurn && len(benchCandidates(frame.Decision)) >= 2 {
-			return benchFixture{setup: setup, h: h, engine: e}
+			return benchFixture{setup: setup, h: h, engine: e, collector: c}
 		}
 		in := botpolicy.Decide(botpolicy.BoardFromGameInto(e.G, e, d.Player, &board), d, rngs[d.Player])
 		if d.Player == 0 {

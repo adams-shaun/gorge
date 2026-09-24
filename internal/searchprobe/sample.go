@@ -59,6 +59,23 @@ type SampleOptions struct {
 	// (cmd/searchteacher -workers) leaves it at 1; a live seat answering one
 	// decision at a time is what it is for.
 	Parallelism int
+	// KnownCards turns on the known-card constraint (pn21): the History's
+	// known-card projection (ProjectKnownCards) is computed once, and a world
+	// whose replay does not place every known card in its known zone and
+	// library position is rejected (SampleResult.KnownCardViolations). A world
+	// that replays the whole observed history already honours every claim
+	// the projection makes, so on the rejection sampler the constraint is a
+	// soundness check that should never fire; it exists so a proposal that
+	// is NOT a full replay (a redeal) can be held to the same knowledge.
+	// Zero value off: the sampler and its output are byte-identical to
+	// before.
+	KnownCards bool
+	// Redeal, when non-nil, turns on the redeal fallback (pn21 stretch; see
+	// RedealBase): when the rejection sampler ends without Worlds worlds, the
+	// result's worlds are instead Worlds uniform redeals of Redeal.Engine's
+	// hidden cards the seat does not know, pinning every known card. Nil is
+	// off and changes nothing.
+	Redeal *RedealBase
 }
 type World struct {
 	Config   rules.Config
@@ -97,6 +114,16 @@ type SampleResult struct {
 	// non-zero count says the field decides acceptances and the skip would
 	// change which worlds are accepted.
 	BoardPotentialActionsOnly int `json:",omitempty"`
+	// KnownCardClaims is the number of placement claims in the History's
+	// known-card projection and KnownCardViolations the accepted replays that
+	// contradicted one, both only under SampleOptions.KnownCards.
+	KnownCardClaims     int `json:",omitempty"`
+	KnownCardViolations int `json:",omitempty"`
+	// Redealt is the number of worlds the redeal fallback supplied;
+	// RedealRefused names why a starved sample could not be redealt. Both
+	// only under SampleOptions.Redeal.
+	Redealt       int    `json:",omitempty"`
+	RedealRefused string `json:",omitempty"`
 }
 type RejectionBucket struct {
 	Frame            int
@@ -177,6 +204,30 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		}
 	}
 	stackConstraints := stackConstraintContexts(h, epochs)
+	var known KnownCards
+	if opts.KnownCards || opts.Redeal != nil {
+		if known, err = ProjectKnownCards(h); err != nil {
+			return result, err
+		}
+		result.KnownCardClaims = known.Count()
+	}
+	// starved ends a sample that could not supply Worlds worlds: empty, or
+	// redealt when the fallback is on.
+	starved := func() (SampleResult, error) {
+		if opts.Redeal == nil {
+			return result, nil
+		}
+		worlds, refused := redealWorlds(setup, h, known, opts.Redeal, opts.Worlds, func(i int) [2]uint64 {
+			return taggedSeed(opts.Seed, digest, i, seedRedeal)
+		})
+		if refused != "" {
+			result.RedealRefused = refused
+			return result, nil
+		}
+		result.Redealt = len(worlds)
+		result.Worlds = worlds
+		return result, nil
+	}
 	tape, tossWeight, err := publicToss(setup, h)
 	if err != nil {
 		return result, err
@@ -320,6 +371,16 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		if !accepted {
 			return World{}, 0, false, nil
 		}
+		if opts.KnownCards {
+			if err := known.holds(e, observer); err != nil {
+				res.KnownCardViolations++
+				addRejection(res, RejectionBucket{Frame: len(compare) - 1, Component: "known_cards", Shape: "violation"})
+				if res.FirstRejection == "" {
+					res.FirstRejection = fmt.Sprintf("frame %d known cards: %v", len(compare)-1, err)
+				}
+				return World{}, 0, false, nil
+			}
+		}
 		e.ClearHypotheticalPlanner()
 		return World{Config: cfg, Engine: e, Observer: observer}, proposal.logWeight, true, nil
 	}
@@ -453,10 +514,7 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 		}
 	}
 	if len(proposals) == 0 {
-		return result, nil
-	}
-	if len(proposals) == 0 {
-		return result, nil
+		return starved()
 	}
 	weights, ess, err := normalizeWeights(logs)
 	if err != nil {
@@ -468,10 +526,10 @@ func Sample(setup PublicGame, h History, opts SampleOptions) (out SampleResult, 
 	if opts.MinESS > 0 {
 		minESS = opts.MinESS
 	} else if len(proposals) < opts.Worlds {
-		return result, nil
+		return starved()
 	}
 	if ess+1e-10 < minESS {
-		return result, nil
+		return starved()
 	}
 	seed := taggedSeed(opts.Seed, digest, 0, seedResampling)
 	r := rand.New(rand.NewPCG(seed[0], seed[1]))
@@ -1009,4 +1067,5 @@ func (r *SampleResult) mergeAttempt(a SampleResult) {
 	r.LandResidual += a.LandResidual
 	r.LandUnguided += a.LandUnguided
 	r.BoardPotentialActionsOnly += a.BoardPotentialActionsOnly
+	r.KnownCardViolations += a.KnownCardViolations
 }

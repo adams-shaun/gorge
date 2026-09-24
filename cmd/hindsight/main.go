@@ -39,6 +39,7 @@ type config struct {
 	attempts, maxSubmits                 int
 	reliabilityGames, omniscientGames    int
 	seed, sampleSeed                     uint64
+	redeal                               bool
 	cardsDir, outPath, reportPath, pairs string
 }
 
@@ -126,6 +127,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	fs.IntVar(&cfg.omniscientGames, "omniscient-games", 20, "first selected games also measured with leaked hidden state")
 	fs.Uint64Var(&cfg.seed, "seed", 300_000_000, "first held-out game seed")
 	fs.Uint64Var(&cfg.sampleSeed, "sample-seed", 0x706e3230, "independent sampler seed")
+	fs.BoolVar(&cfg.redeal, "redeal", false, "when the sampler starves, redeal the seat's unknown hidden cards from the branch engine (pn21)")
 	fs.StringVar(&cfg.cardsDir, "cards", ".cards", "compiled card corpus")
 	fs.StringVar(&cfg.outPath, "out", "", "new deterministic-order JSONL output")
 	fs.StringVar(&cfg.reportPath, "report", "", "new Markdown report")
@@ -369,9 +371,13 @@ func processGame(g selectedGame, cfg config) ([]decisionRecord, error) {
 
 func evaluateSampled(g selectedGame, b *branch, cfg config, seed uint64) (hindsight.Evaluation, error) {
 	source := func(block, worlds int) ([]searchprobe.World, searchprobe.SampleResult, error) {
-		sr, err := searchprobe.Sample(g.setup.setup, b.history, searchprobe.SampleOptions{
+		opts := searchprobe.SampleOptions{
 			Seed: hindsight.Seed(seed, g.seed, uint64(b.index), uint64(block)), Attempts: cfg.attempts, Worlds: worlds, MaxSubmits: cfg.maxSubmits,
-		})
+		}
+		if cfg.redeal {
+			opts.Redeal = &searchprobe.RedealBase{Engine: b.engine, Observer: b.collector}
+		}
+		sr, err := searchprobe.Sample(g.setup.setup, b.history, opts)
 		return sr.Worlds, sr, err
 	}
 	return hindsight.Evaluate(b.candidates, source, seed, hindsight.EvalOptions{Block: cfg.block, MaxRollouts: cfg.maxRollouts, MaxSubmits: cfg.maxSubmits})
