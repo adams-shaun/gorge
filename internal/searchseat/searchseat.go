@@ -40,6 +40,7 @@ package searchseat
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
@@ -85,7 +86,28 @@ type Options struct {
 	// HorizonTurns > 0 or a MaxSubmits cap: a game-end rollout has no
 	// non-terminal leaf. The Model is shared read-only across rollout
 	// goroutines, which Model.Value allows.
+	//
+	// Value must read the redacted view: a model of a diagnostic (oracle)
+	// feature set here is a configuration error (Validate), because the
+	// redacted leaf has no opponent hand to give it.
 	Value *policynet.Model
+	// OracleValue (ticket pn17-a1), when non-nil, is an ORACLE value model: a
+	// FeaturesMZOppHand checkpoint (policynet.LoadOracleCheckpointFile) whose
+	// value head scores every non-terminal rollout leaf from the OMNISCIENT
+	// projection of that leaf (searchprobe.TeacherOptions.LeafOmniscient),
+	// the opponent's hand read off it as the Diag the model was trained with
+	// (policynet.SplitOmniscientView). This is legitimate at deploy time only
+	// because every leaf lives in a SAMPLED world: the hand it reads is the
+	// sampled one, never the real opponent's. Hence it refuses Clairvoyant,
+	// whose one world is a clone of the real engine.
+	//
+	// Validate refuses, besides Clairvoyant: a model without a value head, a
+	// non-diagnostic feature set (a redacted model has no use for the
+	// omniscient view and would silently ignore it), FeaturesMZOracle (its
+	// next-draw tokens are library ORDER, which no view carries, so every
+	// leaf would be off its training distribution), and Value set too. Nil
+	// is off, and today's search bit for bit.
+	OracleValue *policynet.Model
 	// SampleSeed is the fixed sampler seed base. The teacher's own seed is
 	// derived from it per decision exactly as cmd/searchteacher derives it, so
 	// a seat and the generator score a given decision identically.
@@ -267,6 +289,10 @@ func Choose(
 	if !ok || len(cands) < 2 {
 		return bot, false, tr
 	}
+	if err := opts.Validate(); err != nil {
+		tr.Fallback = "options: " + err.Error()
+		return bot, false, tr
+	}
 
 	worlds, sample, err := sampleWorlds(setup, h, collector, e, opts)
 	if opts.AfterSample != nil {
@@ -283,14 +309,19 @@ func Choose(
 	}
 	tr.Worlds = len(worlds)
 
+	leaf := valueLeaf(opts.Value)
+	if opts.OracleValue != nil {
+		leaf = oracleLeaf(opts.OracleValue)
+	}
 	res, err := searchprobe.TeacherChoice(worlds, cands, searchprobe.TeacherOptions{
-		Seed:         teacherSeed(opts.SampleSeed, e),
-		HorizonTurns: opts.HorizonTurns,
-		MaxSubmits:   opts.MaxSubmits,
-		Margin:       opts.Margin,
-		Clairvoyant:  opts.Clairvoyant,
-		Parallelism:  opts.Parallelism,
-		Leaf:         valueLeaf(opts.Value),
+		Seed:           teacherSeed(opts.SampleSeed, e),
+		HorizonTurns:   opts.HorizonTurns,
+		MaxSubmits:     opts.MaxSubmits,
+		Margin:         opts.Margin,
+		Clairvoyant:    opts.Clairvoyant,
+		Parallelism:    opts.Parallelism,
+		Leaf:           leaf,
+		LeafOmniscient: opts.OracleValue != nil,
 	})
 	if opts.AfterSearch != nil {
 		opts.AfterSearch()
@@ -330,6 +361,48 @@ func valueLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
 	return func(v view.View, actor state.PlayerID) float64 {
 		return float64(m.Value(policynet.EncodeStateWith(m.Features, v, actor, nil)))
 	}
+}
+
+// oracleLeaf is the leaf evaluator for an oracle value model. Its view is the
+// OMNISCIENT projection of the leaf (TeacherOptions.LeafOmniscient), which it
+// splits back into a training record's shape -- the actor's view plus the
+// opponents' hands as the Diag -- before encoding, so the model sees exactly
+// the features it was trained on. Nil for no model or no value head.
+func oracleLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
+	if m == nil || !m.HasValue() {
+		return nil
+	}
+	return func(v view.View, actor state.PlayerID) float64 {
+		own, diag := policynet.SplitOmniscientView(v, actor)
+		return float64(m.Value(policynet.EncodeStateWith(m.Features, own, actor, diag)))
+	}
+}
+
+// Validate reports a leaf configuration Choose must not search with; every
+// Choose call checks it and delegates to the bot on an error, and a caller
+// that builds Options from flags should call it up front. The zero Options
+// are valid.
+func (o Options) Validate() error {
+	if o.Value != nil && o.Value.Features.Diagnostic() {
+		return fmt.Errorf("value model of feature set %s reads hidden information: it is an oracle model, usable only as OracleValue (an omniscient leaf)", o.Value.Features)
+	}
+	m := o.OracleValue
+	if m == nil {
+		return nil
+	}
+	switch {
+	case o.Value != nil:
+		return errors.New("Value and OracleValue are exclusive: one leaf evaluator per search")
+	case o.Clairvoyant:
+		return errors.New("OracleValue cannot be combined with Clairvoyant: the ceiling's one world is a clone of the REAL engine, so an omniscient leaf there would read the real opponent's hand")
+	case !m.HasValue():
+		return errors.New("OracleValue model has no value head")
+	case m.Features == policynet.FeaturesMZOracle:
+		return fmt.Errorf("OracleValue feature set %s reads library order, which no view carries; only %s is supported", m.Features, policynet.FeaturesMZOppHand)
+	case !m.Features.Diagnostic():
+		return fmt.Errorf("OracleValue model of feature set %s reads no hidden information: it cannot use the omniscient leaf (use Value)", m.Features)
+	}
+	return nil
 }
 
 // teacherSeed derives the per-decision teacher seed. It is deliberately the
