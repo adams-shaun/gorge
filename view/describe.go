@@ -319,6 +319,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " scries"
 		}
 		return player(g, ev.Player) + " discovers"
+	case events.StoreSVar:
+		// An api:StoreSVar write (Minion of the Wastes' LifePaidOnETB): Obj
+		// the object whose runtime SVar table was written, Text the SVar
+		// name, Amount the stored value.
+		return obj(g, ev.Obj) + " records " + ev.Text + " = " + itoa(int64(ev.Amount))
 	case events.Connive:
 		// The connive record (task connive1): the draws and discards are
 		// already their own lines (Draw/Discard events), so this line names

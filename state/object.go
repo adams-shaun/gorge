@@ -704,6 +704,21 @@ type Object struct {
 	// fresh exile re-notes it.
 	NotedNumber int32
 
+	// RuntimeSVars is the per-object runtime SVar store (Forge's
+	// sa.setSVar / Card.setSVar): the named numeric values an
+	// api:StoreSVar body writes during resolution and later reads -- a
+	// characteristic-defining ability (Minion of the Wastes' SetPower$
+	// LifePaidOnETB), a token's TokenPower$ (Phyrexian Processor), or a
+	// Count$ name -- resolve against. It OVERLAYS the printed face SVar
+	// table: a runtime entry of a name wins over the card's printed body
+	// because the printed body is the default the write replaces. Written
+	// only through events.StoreSVar (so a replay derives the identical
+	// value), keyed by name and read by exact lookup, so map order can
+	// never reach an event, an option list or a view. Cleared together
+	// with the cast-time window when the permanent leaves the battlefield
+	// (CR 400.7: an object that leaves and returns is a new object).
+	RuntimeSVars map[string]int32
+
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number, a colour (the
 	// K:ETBReplacement ChooseColor family -- Utopia Sprawl, Caged Sun,
@@ -1248,7 +1263,23 @@ func (o *Object) CloneDeep() Object {
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)
+	c.RuntimeSVars = cloneRuntimeSVars(o.RuntimeSVars)
 	return c
+}
+
+// cloneRuntimeSVars deep-copies a runtime SVar table so a cloned game never
+// aliases the original's map (a mutation of one would silently move the
+// other's store, the same aliasing hazard CloneDeep's slice copies guard
+// against). nil in, nil out.
+func cloneRuntimeSVars(m map[string]int32) map[string]int32 {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]int32, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
 }
 
 // SacrificedInfoOf captures the last-known-information snapshot of the object

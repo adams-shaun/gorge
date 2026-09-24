@@ -1430,6 +1430,25 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) {
 			ids = []state.ObjID{opt.Obj}
 		}
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "clone", IDs: ids})
+	case "paylife":
+		// The announced life payment of an "as CARDNAME enters, pay any amount
+		// of life" replacement (Minion of the Wastes / Phyrexian Processor /
+		// Nameless Race). The announced X is recorded as a Choose "number"
+		// entry (the same fold a ChooseNumber uses), bound onto the object as
+		// its paid X (events.XChange, so replCtx's `X: o.X` hands it to the
+		// replacement body's Count$xPaid), and paid as one LifeChange before
+		// the move is re-emitted -- the body then stores the paid amount
+		// through events.StoreSVar. CR 118.3 (paying life), CR 601.2b
+		// (announcing X).
+		x := int32(opt.Amount)
+		if x < 0 {
+			x = 0
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: x})
+		e.emit(events.Event{Kind: events.XChange, Obj: move.Obj, Amount: x})
+		if x > 0 {
+			e.emit(events.Event{Kind: events.LifeChange, Player: opt.Player, Amount: -x})
+		}
 	}
 	e.choosing = chooseNone
 	e.emit(move)

@@ -883,6 +883,15 @@ func (e *Engine) cdaValue(ctx *effects.Ctx, raw string) (int32, bool) {
 	if n, err := strconv.Atoi(raw); err == nil {
 		return int32(n), true
 	}
+	// A runtime SVar write (api:StoreSVar) shadows the printed body of the
+	// same name: Minion of the Wastes / Nameless Race store the life paid as
+	// they entered under LifePaidOnETB, whose printed default is Number$0, so
+	// the stored value must be checked BEFORE the face table is consulted.
+	if o := e.G.Obj(ctx.Source); o != nil {
+		if v, ok := o.RuntimeSVars[raw]; ok {
+			return v, true
+		}
+	}
 	if strings.HasPrefix(raw, "Count$") {
 		return effects.EvalCountOK(e, ctx, raw)
 	}

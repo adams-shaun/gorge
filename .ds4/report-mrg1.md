@@ -955,7 +955,7 @@ $ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go   # no output
 `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`
 (found, not created), so corpus-backed tests did not skip.
 
-## Result
+---
 
 - Branch `wt/agent-20260918T230554Z-a96f94d7` rebased onto main (`7a6a77b7`),
   tree clean.
@@ -971,6 +971,146 @@ $ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go   # no output
   than the rebase route. I re-ran the rebase it had originally attempted; the
   resulting branch is linear onto main, which is what its rebase log shows it
   wanted first.
+
+---
+
+# Merge-conflict resolution report — cli-20260922T225142Z-226d3d19
+
+## State on entry
+
+`git status` was **clean**, on branch `wt/cli-20260922T225142Z-226d3d19`, 1
+ahead / 28 behind `main`. No merge/rebase was in flight (the daemon's attempt
+left no partial tree). I therefore started the merge myself:
+
+```
+git merge main
+```
+
+Merge base: `0fbc2d1044f980f88840a399f88280391cef6120`.
+
+## Conflicted files
+
+Exactly one file conflicted: **`internal/testutil/agentsdoc_test.go`**.
+
+All other `main`-side and branch-side changes auto-merged cleanly
+(`AGENTS.md`, `effects/*`, `rules/*`, `state/object.go`, plus the added tests).
+
+### `internal/testutil/agentsdoc_test.go` — `knownApproximationRows`
+
+Both sides changed the single `knownApproximationRows` constant and each wrote
+a comment describing only its own view of the table:
+
+- **HEAD (branch):** `knownApproximationRows = 39`, comment claiming "the
+  rebased table measures 39 rows … plus this branch's paylife-row deletion."
+- **main:** `knownApproximationRows = 36`, comment claiming a 38-row merge base
+  with one row deleted on each side (bestow1 and attackprop1).
+
+**Both comments are wrong**, because each measured against only its own side's
+table and never against the auto-merged one. I measured the truth:
+
+| revision | data rows |
+|---|---|
+| merge base (`0fbc2d10`) | **40** |
+| HEAD (branch tip before merge) | **39** |
+| `main` | **36** |
+| auto-merged `AGENTS.md` | **35** |
+
+The deletions are **disjoint** and the auto-merge keeps both sets:
+
+- Branch (`4b30a694`, "pay Cost$ Mandatory PayLife<X> ETB replacement bodies
+  for real") deleted the `` `Cost$ Mandatory PayLife<X>` replacement bodies run
+  for free and never pay `` row.
+- `main` deleted four rows: `(cascade1)` (`e46f051d`), `(attackprop1)`
+  (`89c77778`), `(bestow1)` (`0b9ae217`), `(maxpower1)` (`8d83f028`).
+
+40 − 1 − 4 = **35**, matching the measured auto-merged table exactly (verified
+with the same row-selection awk the test's `approximationRows` uses: only lines
+starting `| `, minus the header; the `|---|` separator never matches).
+
+**Resolution:** kept the union of both sides' table deletions (auto-merged
+`AGENTS.md` is untouched) and set the constant to the measured **35**, replacing
+the two conflicted comments with one accurate comment naming the base count, the
+five deleted rows and their commits. This is integration of both sides' intent,
+not a re-design: both sides wanted their row deleted and the constant lowered;
+the only correct value for the merged table is 35, which neither side could see.
+
+## Commands run (with output)
+
+```
+$ git merge main
+Auto-merging AGENTS.md
+Auto-merging effects/count.go
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+... Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Row-count measurements against each revision (awk over the `## Known
+approximations` section, `/^\| /` lines minus header):
+
+```
+base 40 · HEAD 39 · main 36 · auto-merged 35
+```
+
+Targeted checks after resolving:
+
+```
+$ go test ./internal/testutil/ -run 'TestKnownApproximation'
+ok  github.com/adams-shaun/gorge/internal/testutil  0.002s
+```
+
+Ratchets required by the merge brief:
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.794s   (exit 0)
+```
+
+Verbose to prove they executed (not skipped — `.cards` is present in this
+worktree):
+
+```
+--- PASS: TestEveryRepoDeckIsFullySupported (0.63s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.13s)
+0 SKIPs
+```
+
+Behaviour goldens (system doc mandate):
+
+```
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  4.934s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.347s
+```
+
+Merge completed:
+
+```
+$ git commit --no-edit
+[wt/cli-20260922T225142Z-226d3d19 e46225bd] Merge branch 'main' into wt/cli-20260922T225142Z-226d3d19
+
+$ git status
+On branch wt/cli-20260922T225142Z-226d3d19
+nothing to commit, working tree clean
+```
+
+## Things I was unsure about / notes
+
+- The constant had **three** candidate values (HEAD 39, main 36, measured 35).
+  I trusted the measurement, not either comment, per the brief's "counts in a
+  brief are claims" rule and the general rule that a golden/ratchet must be
+  measured. Had I taken main's 36, `TestKnownApproximationsOnlyShrinks` would
+  merely log a mis-count (it tolerates shrinkage) — but the value would be
+  wrong and the next ticket inheriting it would be off by one. The measured 35
+  is correct now.
+- No other file required manual editing; nothing else was touched.
+- `.cards` was present in the worktree (existing), so the `rules` ratchet run
+  exercised real corpus tests (0 skips, verbose log confirms).
 
 ## Issues
 
@@ -3904,3 +4044,17 @@ content but costs a round each time.
 STATUS=DONE
 COMMITS=686c292b
 TESTS=go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' → ok 0.793s; go test -run 'TestEmerge' ./rules/ → ok 0.603s; go test ./internal/archtest/ → ok 3.209s; go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ → ok 1.812s
+
+---
+
+None found in this round. The only defect encountered was the stale ratchet
+constant on each side, resolved by measuring the merged table (32) rather than
+adopting either side's comment. No new approximation, no golden edit, no engine
+behaviour change.
+
+---
+
+## Branch-side issues (prior integration)
+
+None found. This was a pure integration merge; no defect was observed and no
+scope was modified beyond the conflicted constant.

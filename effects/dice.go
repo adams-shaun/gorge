@@ -615,6 +615,27 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// runtimeSVar reports the value an api:StoreSVar write stored under name on
+// the context's source object (Forge's Card.getSVar/sa.getSVar read of a
+// runtime write). It is the HIGHEST-precedence SVar read: a runtime write
+// replaces the printed face default of the same name, so a caller checks this
+// BEFORE the printed c.SVars table (a caller that merely falls through to
+// runtimePublished after c.SVars would never see a stored value whose name
+// also has a printed body -- exactly LifePaidOnETB:Number$0). c.Host is bound
+// by effects.Resolve for the whole walk; a test double with no Host, or a
+// zero Source, reads nothing (fail closed, the same-as-before verdict).
+func runtimeSVar(c *Ctx, name string) (int32, bool) {
+	if c == nil || c.Host == nil || c.Source == 0 {
+		return 0, false
+	}
+	o := c.Host.Game().Obj(c.Source)
+	if o == nil {
+		return 0, false
+	}
+	v, ok := o.RuntimeSVars[name]
+	return v, ok
+}
+
 // runtimePublished reports the value a runtime SVar publication of this
 // resolution made under name. Two producers publish here, both through the
 // same three readers (Num's bare-name fallback, evalCountExpr's SVar$ head
@@ -632,6 +653,9 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 func runtimePublished(c *Ctx, name string) (int32, bool) {
 	if c == nil {
 		return 0, false
+	}
+	if v, ok := runtimeSVar(c, name); ok {
+		return v, true
 	}
 	if c.VotePublishedSet && name == "Votes" {
 		return c.VotePublished, true

@@ -41,7 +41,9 @@ const (
 	// NonCombatDamageThisTurn, ChosenNumber) remain tracked bidirectionally by
 	// rules/count_head_ratchet_test.go's knownUnmodelledCountHeads and are
 	// recorded in that ticket's commit message and report, not a new row.
-	knownApproximationRows = 16
+	// The PayLife<X> replacement closure (cli-20260922T225142Z-226d3d19)
+	// deletes one further row (main measured 15 against a stale constant of 16).
+	knownApproximationRows = 14
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
