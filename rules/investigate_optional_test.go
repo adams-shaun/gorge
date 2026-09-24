@@ -130,6 +130,14 @@ func TestNickValentineOptionalInvestigateCanDecline(t *testing.T) {
 			if got := countTokensNamedOnSeat(t, e, 0, "Clue Token"); got != want {
 				t.Errorf("decline=%v: seat 0 Clue tokens = %d, want %d", !tc.accept, got, want)
 			}
+			// The optional election emits the ordinary investigate marker only
+			// on acceptance: a decline performs no investigate, so a trigger
+			// reading trig:Investigated must not fire for it.
+			if got := countEvents(e, func(ev events.Event) bool {
+				return ev.Kind == events.Investigate && ev.Player == 0
+			}); got != want {
+				t.Errorf("decline=%v: seat 0 events.Investigate markers = %d, want %d", !tc.accept, got, want)
+			}
 			replayCheck(t, e, cfg)
 		})
 	}
@@ -181,6 +189,18 @@ func TestWillTheWiseOptionalInvestigateRemembersOnlyAcceptors(t *testing.T) {
 	}
 	if got := countTokensNamedOnSeat(t, e, 0, "Clue Token"); got != 2 {
 		t.Errorf("controller's Clue tokens = %d, want 2 (one plus the 1 acceptor)", got)
+	}
+	// The investigate marker follows each accepted election: exactly one for
+	// the accepting opponent (seat 1), none for the decliner (seat 2).
+	if got := countEvents(e, func(ev events.Event) bool {
+		return ev.Kind == events.Investigate && ev.Player == 1
+	}); got != 1 {
+		t.Errorf("accepting opponent's events.Investigate markers = %d, want 1", got)
+	}
+	if got := countEvents(e, func(ev events.Event) bool {
+		return ev.Kind == events.Investigate && ev.Player == 2
+	}); got != 0 {
+		t.Errorf("declining opponent's events.Investigate markers = %d, want 0", got)
 	}
 	life1, life2 := e.G.Players[1].Life, e.G.Players[2].Life
 	if life1 != pre1 || life2 != pre2-1 {

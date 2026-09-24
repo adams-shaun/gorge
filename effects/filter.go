@@ -4399,6 +4399,25 @@ func isBarePlayerProperty(clause string) bool {
 	return false
 }
 
+// playerBaseMatches reports whether a bare player-spec base matches seat p
+// relative to the perspective seat you. It is the shared base predicate the
+// ordinary qualifier switch below already spells inline (Player/Any always,
+// You is the perspective seat, Opponent/Other is anyone else) and that the
+// source-anchored Chosen/IsRemembered membership read now consults first, so
+// a membership read can never widen past its base. An unknown base fails
+// closed, exactly as the inline switch does.
+func playerBaseMatches(base string, p, you state.PlayerID) bool {
+	switch base {
+	case "Player", "Any":
+		return true
+	case "You":
+		return p == you
+	case "Opponent", "Other":
+		return p != you
+	}
+	return false
+}
+
 // matchesPlayerSingleSpec is the original single-alternative player-spec
 // evaluator: one clause, no `,` or `+` (the callers above split those).
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
@@ -4442,9 +4461,15 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			// `Defined$ Opponent.!IsRemembered` "each opponent who doesn't"
 			// is the corpus carrier). Reading it only on Player/Any left the
 			// Opponent-base qualifier permanently false, which the `!`
-			// spelling inverted into admitting EVERY opponent. The set is
-			// still the source object's own event-backed list, so every base
-			// reads one home.
+			// spelling inverted into admitting EVERY opponent. The base is
+			// checked FIRST, so a membership read cannot admit the source's
+			// own controller under an `Opponent` base (or an opponent under a
+			// `You` base); only the set membership is base-independent. The
+			// set is still the source object's own event-backed list, so every
+			// base reads one home.
+			if !playerBaseMatches(base, p, you) {
+				continue
+			}
 			o := g.Obj(pc.Source)
 			if o == nil {
 				continue
