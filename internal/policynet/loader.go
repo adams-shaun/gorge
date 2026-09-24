@@ -103,8 +103,14 @@ type Example struct {
 	// schema 1 record and for a game that stalled or errored.
 	Outcome    float64
 	HasOutcome bool
-	State      State
-	Options    []Option
+	// TeacherValue is the teacher-chosen candidate's rollout mean
+	// (candidates[TeacherChoice].Value), the value head's second, lower-
+	// variance target; HasTeacherValue is false when TeacherChoice is out of
+	// the candidate range.
+	TeacherValue    float64
+	HasTeacherValue bool
+	State           State
+	Options         []Option
 }
 
 // Stats counts what Load saw.
@@ -193,6 +199,9 @@ func Load(path string) ([]Example, Stats, error) {
 		if rec.SchemaVersion >= 2 && rec.OutcomeKnown {
 			ex.Outcome, ex.HasOutcome = rec.Outcome, true
 			stats.WithOutcome++
+		}
+		if rec.TeacherChoice >= 0 && rec.TeacherChoice < len(rec.Candidates) {
+			ex.TeacherValue, ex.HasTeacherValue = rec.Candidates[rec.TeacherChoice].Value, true
 		}
 		for i := range rec.Options {
 			ex.Options[i] = EncodeOption(v, rec.Seat, rec.Kind, rec.Options[i], i, len(rec.Options))

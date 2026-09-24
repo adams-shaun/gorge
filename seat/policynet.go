@@ -276,6 +276,22 @@ func priorityScorable(d *decision.Decision, botIn decision.Intent, residualW flo
 	return false
 }
 
+// PriorityInDistribution is priorityScorable exported: the priority
+// distribution gate, for a caller outside this package that scores priority
+// options with a policynet head (searchseat's candidate prior, pn10) and must
+// score only the shape the head was trained on, exactly as this seat does.
+func PriorityInDistribution(d *decision.Decision, botIn decision.Intent, residualW float32) bool {
+	return priorityScorable(d, botIn, residualW)
+}
+
+// MarkBotPicks is markBotPicks exported: the inference half of the residual
+// prior's BotPick contract, for a caller outside this package that scores a
+// decision's options with a residual checkpoint (searchseat's candidate
+// prior). opts must parallel d.Options.
+func MarkBotPicks(d *decision.Decision, opts []policynet.Option, in decision.Intent) {
+	markBotPicks(d, opts, in)
+}
+
 // encode runs the fixed encoder over the seat's view and the offered
 // options. ok is false when the scored surface is empty — no scorer, or a
 // decision with no options at all — which is the documented fall-back-to-
