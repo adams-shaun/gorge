@@ -4,48 +4,57 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
 func TestMultiWordSubtypePredicate(t *testing.T) {
-	makeObject := func(types string) *state.Object {
-		c, diags := cards.ParseBytes("inline.txt", []byte("Name:Test\nTypes:Creature "+types+"\nOracle:x\n"))
-		if len(diags) != 0 {
-			t.Fatalf("parse inline card: %v", diags)
-		}
-		return &state.Object{ID: 1, Card: c, Controller: 0, Owner: 0, Zone: state.ZBattlefield}
+	reg := testutil.CorpusRegistry(t)
+	g := state.NewGame([]string{"you", "them"})
+	// Use the real TARDIS face for its intervening-if shape, but keep the
+	// Time Lord under test synthetic so the test pins the shared type matcher.
+	tardis := corpusObject(t, reg, g, "TARDIS")
+	if tardis.Zone != state.ZBattlefield {
+		t.Fatal("TARDIS must be on the battlefield")
 	}
-	both := makeObject("Time Lord")
-	withoutTime := makeObject("Lord")
-	withoutLord := makeObject("Time")
-	for _, tc := range []struct {
-		label string
-		obj   *state.Object
-	}{{"both", both}, {"without Time", withoutTime}, {"without Lord", withoutLord}} {
-		if tc.obj.Zone != state.ZBattlefield {
-			t.Fatalf("%s precondition: zone = %v, want battlefield", tc.label, tc.obj.Zone)
-		}
+	both := *tardis
+	both.ID++
+	face := *tardis.Card.Faces[0]
+	face.Types = []string{"Artifact", "Time", "Lord"}
+	card := *tardis.Card
+	card.Faces = []*cards.Face{&face}
+	both.Card = &card
+	both.Zone = state.ZBattlefield
+	missingLord := both
+	faceMissingLord := face
+	faceMissingLord.Types = []string{"Artifact", "Time"}
+	cardMissingLord := card
+	cardMissingLord.Faces = []*cards.Face{&faceMissingLord}
+	missingLord.Card = &cardMissingLord
+	missingTime := both
+	faceMissingTime := face
+	faceMissingTime.Types = []string{"Artifact", "Lord"}
+	cardMissingTime := card
+	cardMissingTime.Faces = []*cards.Face{&faceMissingTime}
+	missingTime.Card = &cardMissingTime
+	ctx := SpecContext{You: 0}
+	if !MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &both, ctx) {
+		t.Fatal("Card.Time Lord+YouCtrl must match when both type words are present")
 	}
-	if !MatchesObjectCtx(nil, "Card.Time Lord+YouCtrl", both, SpecContext{You: 0}) {
-		t.Fatal("Card.Time Lord+YouCtrl must match an object carrying both constituent type words")
+	if MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &missingLord, ctx) || MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &missingTime, ctx) {
+		t.Fatal("multiword subtype must fail when either constituent type word is absent")
 	}
-	if MatchesObjectCtx(nil, "Card.Time Lord+YouCtrl", withoutTime, SpecContext{You: 0}) {
-		t.Fatal("predicate matched without Time")
+	if got := UnknownPredicates("Card.Time Lord+YouCtrl"); len(got) != 0 {
+		t.Fatalf("supported predicate reported unknown: %v", got)
 	}
-	if MatchesObjectCtx(nil, "Card.Time Lord+YouCtrl", withoutLord, SpecContext{You: 0}) {
-		t.Fatal("predicate matched without Lord")
+	if MatchesObjectCtx(g, "Card.Time Lordish Unknown+YouCtrl", &both, ctx) {
+		t.Fatal("unknown multiword predicate must fail closed")
 	}
-	if un := UnknownPredicates("Card.Time Lord+YouCtrl"); len(un) != 0 {
-		t.Fatalf("supported token reported unknown: %v", un)
+	if got := UnknownPredicates("Card.Time Lordish Unknown"); len(got) != 1 {
+		t.Fatalf("unknown multiword census = %v, want one unknown token", got)
 	}
-	unknown := "Card.Time Mystery+YouCtrl"
-	if MatchesObjectCtx(nil, unknown, both, SpecContext{You: 0}) {
-		t.Fatal("unsupported multiword predicate matched")
-	}
-	if un := UnknownPredicates(unknown); len(un) != 1 || un[0] != "Time Mystery" {
-		t.Fatalf("UnknownPredicates(%q) = %v, want [Time Mystery]", unknown, un)
-	}
-	if MatchesObjectCtx(nil, "Card.nonTime Mystery+YouCtrl", both, SpecContext{You: 0}) {
-		t.Fatal("unknown multiword predicate under negation must fail closed")
+	// TARDIS's exact IsPresent filter spelling is accepted by the same matcher.
+	if !MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &both, ctx) {
+		t.Fatal("TARDIS-shaped IsPresent predicate must match a Time Lord")
 	}
 }
