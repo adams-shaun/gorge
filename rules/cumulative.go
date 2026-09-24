@@ -478,8 +478,12 @@ func (e *Engine) paymentManaAskClass(player state.PlayerID, source state.ObjID, 
 	}
 	d := &decision.Decision{Player: player, Kind: decision.KChoose, Min: 1, Max: 1, Prompt: prompt, Source: source}
 	for _, id := range sources {
+		// The beyond-tap cost marker every "activate" offer carries
+		// (legal.go, cast.go, ward.go), so an answerer can tell a
+		// non-tapping pool converter from a tap source.
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: id,
-			Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"})
+			Label: "Tap " + e.G.Obj(id).Face().Name + " for mana",
+			Cost:  manaActivationCostMarker(e.availableManaAbilities(player, id))})
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
 	e.choosing = flow

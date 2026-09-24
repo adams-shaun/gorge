@@ -512,25 +512,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		return Clamp(d, in)
 
 	case decision.KChoose:
-		// An UnlessCost$ mana window (ResumeKind "unless_mana") is a payment
-		// continuation, not a generic choose: activate one source at a time
-		// while one is offered, and submit Done once the engine has closed the
-		// source list (its pool covers the charge). The explicit arm keeps the
-		// answer legal as sources disappear after each activation, where the
-		// generic first-option pick would re-submit a tapped source.
-		if d.ResumeKind == "unless_mana" {
-			for _, o := range d.Options {
-				if o.Kind == "activate" {
-					in.Choices = []int{o.Index}
-					return Clamp(d, in)
-				}
-			}
-			for _, o := range d.Options {
-				if o.Kind == "done" {
-					in.Choices = []int{o.Index}
-					return Clamp(d, in)
-				}
-			}
+		// A mana-payment window (any choose offering "activate" sources:
+		// the cast payment window, the UnlessCost$/Ward windows, cumulative
+		// upkeep) is a payment continuation, not a generic choose: activate
+		// one source at a time while one is offered, and submit Done once
+		// the engine has closed the source list (its pool covers the
+		// charge). A non-tapping pool converter is never taken here -- see
+		// chooseManaWindow (T4).
+		if pick, ok := chooseManaWindow(d); ok {
+			in.Choices = []int{pick}
+			return Clamp(d, in)
 		}
 		if len(d.Options) == 0 {
 			break

@@ -7,11 +7,12 @@
 // Why a dedicated parameter rather than IsPresent$: the band is a SELF-check
 // of the source permanent (it counts the source object, not the battlefield),
 // while a body that carries its own IsPresent$ counts an unrelated set. The
-// trigger gate reads IsPresent$+IsPresent2$ as a UNION (the "Name Sticker"
-// Goblin two-set clause), so folding the band into IsPresent2$ ORed it with the
-// body's own condition -- Hunter's Talent's level-3 end-step draw fired at
-// level 1 with a power-4 creature out -- and replacementConditionHolds reads no
-// IsPresent2$ at all, so the band vanished there. ClassBand$ has no other
+// trigger gate once read IsPresent$+IsPresent2$ as a UNION, so folding the
+// band into IsPresent2$ ORed it with the body's own condition -- Hunter's
+// Talent's level-3 end-step draw fired at level 1 with a power-4 creature out
+// -- and replacementConditionHolds reads no IsPresent2$ at all, so the band
+// vanished there. (The trigger gate now ANDs the two clauses, but a body may
+// carry its own IsPresent2$, so the band still needs its own parameter.) ClassBand$ has no other
 // meaning, so every family can AND it in without colliding with a body clause.
 
 package rules

@@ -107,8 +107,7 @@ func (e *Engine) triggerConditionHoldsCtx(t cards.Trigger, source state.ObjID, y
 // fire time the printed-face walk remains unchanged.
 func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
 	// A kw:Class level band is an independent AND gate beside every clause
-	// below (and beside the body's own IsPresent$, which the trigger gate
-	// otherwise reads as a union with IsPresent2$).
+	// below (and beside the body's own IsPresent$/IsPresent2$ clauses).
 	if !e.classBandGateHolds(t.Params, source) {
 		return false
 	}
@@ -120,56 +119,25 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			return false
 		}
 	}
-	if spec, ok := t.Params["IsPresent"]; ok {
-		cmp, hasCmp := t.Params["PresentCompare"]
-		// PresentDefined$ names the base set the IsPresent$ spec is counted
-		// over (Mana Vault's "if this artifact is tapped": PresentDefined$
-		// Self narrows the scan to the source itself, where the old whole-
-		// battlefield walk counted every tapped permanent). An absent
-		// PresentDefined keeps the historic whole-battlefield scan. A value
-		// that is not the source fails closed with the rest of the clause.
-		if pd := strings.TrimSpace(t.Params["PresentDefined"]); pd != "" && pd != "Self" {
-			return false
-		}
-		if !hasCmp {
-			// Forge's own reading of an IsPresent$ clause with no
-			// PresentCompare$ is "at least one match" (Mana Vault's draw-step
-			// damage): a present-condition with no comparison never meant
-			// "vacuously true", which is what the old hard return made it.
-			spec2 := strings.TrimSpace(t.Params["IsPresent2"])
-			// PresentZone$ scopes the count to one named zone (Jocasta's
-			// "if this card is in your graveyard"); the no-compare branch
-			// honours it exactly like the compared branch below. A zone word
-			// this build does not know, or a combination with the IsPresent2$
-			// union whose zone each member would scan, fails closed.
-			if pz := strings.TrimSpace(t.Params["PresentZone"]); pz != "" {
-				if spec2 != "" {
-					return false
-				}
-				return e.countPresentZone(t, spec, source, you)
-			}
-			if spec2 != "" {
-				return e.presentUnionCount(spec, spec2, source, you) > 0
-			}
-			return e.countPresent(spec, source, you) > 0
-		}
-		if !e.presentConditionHoldsAs(t, source, you, spec, cmp) {
-			return false
-		}
-		// IsPresent2$ names a SECOND present set whose objects count alongside
-		// IsPresent$'s, as one union ("Name Sticker" Goblin counts creatures
-		// named Name Sticker Goblin plus the entering one; the source itself
-		// sits in both sets, so a plain sum would count it twice and break the
-		// boundary the comparison guards). Deduplicating by object identity is
-		// the only reading that reproduces the card's "9 or fewer creatures
-		// named ..." at every count.
-		if spec2 := strings.TrimSpace(t.Params["IsPresent2"]); spec2 != "" {
-			op, n, ok := splitCompare(strings.TrimSpace(cmp))
-			if !ok {
-				return false
-			}
-			return applyCompare(e.presentUnionCount(spec, spec2, source, you), op, n)
-		}
+	// IsPresent$ and IsPresent2$ are two INDEPENDENT present clauses that
+	// must BOTH hold (Forge's meetsCommonRequirements reads each with its own
+	// PresentCompare/PresentZone/PresentDefined suffix set): Hidden
+	// Predators' "an opponent controls a creature with power 4 or greater,
+	// if CARDNAME is an enchantment", the meld pairs' "you control X and a
+	// creature named Y", "Name Sticker" Goblin's "if it's on the battlefield
+	// and you control 9 or fewer ...". The earlier UNION reading made Hidden
+	// Predators' Mode$ Always trigger fire while it was merely an
+	// enchantment and, once animated, re-fire forever on the opponent's
+	// creature alone, stacking one Permanent Animate effect per resolution
+	// (cardfuzz batch3 lines 4/21: 500+ continuous effects, every Derived
+	// walking all of them -- the "hang").
+	if _, ok := t.Params["IsPresent"]; ok &&
+		!e.presentClauseHolds(t, source, you, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone") {
+		return false
+	}
+	if _, ok := t.Params["IsPresent2"]; ok &&
+		!e.presentClauseHolds(t, source, you, "IsPresent2", "PresentCompare2", "PresentDefined2", "PresentZone2") {
+		return false
 	}
 	if v, ok := t.Params["Metalcraft"]; ok {
 		// The trigger-side named condition (task trig-attacks-metalcraft):
@@ -346,53 +314,51 @@ func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amoun
 	return compareLife(e.G.Players[who].Life, amount)
 }
 
-// presentConditionHoldsAs evaluates the IsPresent$/PresentCompare$
-// intervening-if by counting the objects on the battlefield that match the
-// spec (relative to the trigger's source and the caller's chosen "you") and
-// comparing that count.
-func (e *Engine) presentConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID, spec, cmp string) bool {
-	// PresentDefined$ (Mana Vault's draw-step self-check): the IsPresent$
-	// spec is evaluated over the DEFINED set rather than the whole
-	// battlefield. "Self" -- the corpus's dominant value -- counts the
-	// source object alone when it matches; any other selector falls back to
-	// the battlefield-wide count, so an unreadable defined set degrades to
-	// the pre-PresentDefined behaviour instead of fail-closing a trigger
-	// whose spec the count would otherwise answer.
-	if pd := strings.TrimSpace(t.Params["PresentDefined"]); pd != "" {
-		if strings.EqualFold(pd, "Self") {
-			if o := e.G.Obj(source); o == nil || o.Zone != state.ZBattlefield ||
-				!e.matchesSpec(spec, source, e.specCtx(source, you)) {
-				return comparePresent(0, cmp)
-			}
-			return comparePresent(1, cmp)
-		}
+// presentClauseHolds evaluates one present clause -- IsPresent$ or
+// IsPresent2$, each with its own suffixed parameter set named by the key
+// arguments: the compare (absent = "at least one match", Forge's reading of a
+// bare present clause -- Mana Vault's draw-step damage), the defined set and
+// the zone. Counts are taken relative to the trigger's source and the
+// caller's chosen "you".
+//
+//   - PresentDefined$ Self (Mana Vault's "if this artifact is tapped")
+//     counts the source object alone, and only while it is on the
+//     battlefield; any other defined set fails closed.
+//   - PresentZone$ (Jocasta, Automaton Avenger's "if this card is in your
+//     graveyard") counts the named zone in every living seat's copy of it,
+//     in deterministic seat/zone order; an unknown zone word fails closed.
+//   - otherwise the battlefield is counted.
+//
+// A comparison this build cannot fold (PresentCompare$ EQX) fails closed.
+func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you state.PlayerID, isKey, cmpKey, definedKey, zoneKey string) bool {
+	spec := strings.TrimSpace(t.Params[isKey])
+	cmp, hasCmp := t.Params[cmpKey]
+	if !hasCmp {
+		cmp = "GE1"
 	}
-	// PresentZone$ (Jocasta, Automaton Avenger's "if this card is in your
-	// graveyard"): the IsPresent$ spec is counted over the named zone in
-	// every living seat's copy of it, in deterministic seat/zone order, the
-	// same walk countPresent makes over the battlefield. An unknown zone
-	// word fails closed -- a clause this build cannot read must never read
-	// as vacuously satisfied.
-	if pz := strings.TrimSpace(t.Params["PresentZone"]); pz != "" {
-		n, known := e.presentZoneCount(t, spec, source, you)
+	if pd := strings.TrimSpace(t.Params[definedKey]); pd != "" {
+		if pd != "Self" {
+			return false
+		}
+		if o := e.G.Obj(source); o == nil || o.Zone != state.ZBattlefield ||
+			!e.matchesSpec(spec, source, e.specCtx(source, you)) {
+			return comparePresent(0, cmp)
+		}
+		return comparePresent(1, cmp)
+	}
+	if pz := strings.TrimSpace(t.Params[zoneKey]); pz != "" {
+		zone, known := effects.ParseZoneWord(pz)
 		if !known {
 			return false
 		}
-		return comparePresent(n, cmp)
+		return comparePresent(e.presentZoneCount(zone, spec, source, you), cmp)
 	}
-	n := e.countPresent(spec, source, you)
-	return comparePresent(n, cmp)
+	return comparePresent(e.countPresent(spec, source, you), cmp)
 }
 
-// presentZoneCount counts spec matches over one zone (PresentZone$'s value)
-// across every living seat, the deterministic walk countPresent makes over
-// the battlefield. known is false for a zone word this build does not know,
-// which every caller fails closed on.
-func (e *Engine) presentZoneCount(t cards.Trigger, spec string, source state.ObjID, you state.PlayerID) (int, bool) {
-	zone, known := effects.ParseZoneWord(strings.TrimSpace(t.Params["PresentZone"]))
-	if !known {
-		return 0, false
-	}
+// presentZoneCount counts spec matches over one zone across every living
+// seat, the deterministic walk countPresent makes over the battlefield.
+func (e *Engine) presentZoneCount(zone state.Zone, spec string, source state.ObjID, you state.PlayerID) int {
 	n := 0
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(zone, p) {
@@ -401,14 +367,7 @@ func (e *Engine) presentZoneCount(t cards.Trigger, spec string, source state.Obj
 			}
 		}
 	}
-	return n, true
-}
-
-// countPresentZone is the no-compare IsPresent$ branch's PresentZone$ count:
-// an unknown zone word fails closed to "never holds".
-func (e *Engine) countPresentZone(t cards.Trigger, spec string, source state.ObjID, you state.PlayerID) bool {
-	n, known := e.presentZoneCount(t, spec, source, you)
-	return known && n > 0
+	return n
 }
 
 // countPresent walks every object on the battlefield once and counts those
@@ -422,28 +381,6 @@ func (e *Engine) countPresent(spec string, source state.ObjID, you state.PlayerI
 			return
 		}
 		if e.matchesSpec(spec, id, e.specCtx(source, you)) {
-			n++
-		}
-	})
-	return n
-}
-
-// presentUnionCount counts the DISTINCT battlefield objects matching either
-// spec — the IsPresent$+IsPresent2$ union a two-set present clause compares.
-func (e *Engine) presentUnionCount(spec, spec2 string, source state.ObjID, you state.PlayerID) int {
-	seen := map[state.ObjID]bool{}
-	n := 0
-	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o == nil || o.Zone != state.ZBattlefield {
-			return
-		}
-		if seen[id] {
-			return
-		}
-		sc := e.specCtx(source, you)
-		if e.matchesSpec(spec, id, sc) || e.matchesSpec(spec2, id, sc) {
-			seen[id] = true
 			n++
 		}
 	})
