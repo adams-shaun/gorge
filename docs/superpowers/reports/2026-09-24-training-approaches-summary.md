@@ -21,7 +21,7 @@ seats traded).
 | 6 | Oracle (clairvoyant) teacher → distil loop | Oracle seat +11–19pp; distilled net flat (14.1–14.6% vs 14.3%) | Ceiling only; the student absorbs nothing |
 | 7 | Value head, value leaf, policy prior (pn08–pn10) | Value head predicts outcomes (log loss 0.24 vs 0.46 base rate); no win-rate gain | Merged; inert on its own |
 | 8 | Priority-context encoder v2 (pn03) | Top-1 = bot; 0/52 overrides right | Branch, not merged |
-| 9 | Expert iteration loop (pn11) | *running* | In progress |
+| 9 | Expert iteration loop (pn11, `cmd/exitloop`) | 3 gens: eval 45.7 / 44.9 / 45.4% vs 48.7% control | Merged; does not compound |
 | — | MageZero reference run (2 vCPU) | Gen 0: 44% vs minimax pool (baseline 34.5%) | Throughput reference |
 
 **The one durable finding:** the search teacher beats the bot. Every attempt
@@ -198,12 +198,44 @@ decisions are overrides of the bot.
   - A plain 3-candidate cap is as good and as cheap (+15.2pp, 68 ms).
   - The prior only helps once the net knows something the bot doesn't.
 
-## 8. Expert iteration (pn11, in progress)
+## 8. Expert iteration (pn11, `cmd/exitloop`)
 
-`cmd/exitloop` runs three generations on uw-tempo. Generation k's teacher
-uses checkpoint k-1 as its candidate prior and leaf value, and every
-checkpoint is evaluated on one fixed seed block. The measurement is required;
-a gain is not. Results will be appended when it lands.
+- **What:** `cmd/exitloop` runs searchteacher, then policytrain, then
+  botbench per generation.
+  - Gen 0's teacher is the unguided oracle, playing out to game end.
+  - Gen k's teacher uses checkpoint k-1 twice: as the candidate prior
+    (top-5 of 16) and as the value head scoring leaves at horizon 2.
+  - The training corpus is cumulative.
+  - Every checkpoint is evaluated against `bot` on one fixed 1,000-game seed
+    block.
+- **Run:** 3 generations × 500 teacher seeds on uw-tempo vs the five mono
+  decks. It took 5m46s on 22 workers.
+
+| Gen | Teacher overrides | Paired Δ | Net vs `bot` (control 48.7% [45.6, 51.8]) | Value log loss (base rate) |
+|---|---|---|---|---|
+| 0 | 1.4% | +14.8pp ± 3.1 | 45.7% [42.6, 48.8] | 0.248 (0.467) |
+| 1 | 35.4% | +9.2pp ± 3.5 | 44.9% [41.8, 48.0] | 0.379 (0.540) |
+| 2 | 29.9% | +10.0pp ± 3.4 | 45.4% [42.3, 48.5] | 0.455 (0.619) |
+
+- **Reading:**
+  - Eval is flat, and below the control, in every generation.
+  - Priority scoring never changes a pick (0% right on overrides; the bot's
+    answer 100% of the time), so the attackers+priority arm is byte-identical
+    to attackers-only.
+  - The guided teacher's labels get **noisier, not sharper**: 20× the
+    overrides for less paired gain.
+  - This is confounded. Gens 1+ switch from game-end rollouts to a horizon-2
+    value leaf, which pn09 measured at about 2pp weaker with 28–33% overrides
+    on its own.
+  - A clean rerun would keep game-end rollouts and use the prior only.
+- **Throughput:**
+  - 22 workers, per stage: teacher 69k seeds/h (gen 0), 200–240k seeds/h
+    (guided); eval about 1M games/h.
+  - Training is single-threaded and grows with the corpus: 47 → 92 → 140 s.
+    It is the bottleneck.
+  - At 2 vCPU (`taskset -c 12,28`, 2 workers): teacher + train for a 100-seed
+    generation takes 52 s (gen 0; about 16.5k teacher games/h counting the bot
+    twin) or 29 s (guided; about 65k games/h).
 
 ## 9. MageZero reference (external, for throughput and curve shape)
 
@@ -239,5 +271,6 @@ a gain is not. Results will be appended when it lands.
    - The literature agrees: LOCM's search beat its own distilled net by
      +24.6pp.
 4. **Open:**
-   - Whether ExIt (pn11) with the teacher in the loop compounds at all.
+   - Whether ExIt compounds with game-end rollouts (pn11's run changed the
+     leaf and the prior at once, and was flat).
    - Why the attackers net overrides 34% in play against about 1% on holdout.
