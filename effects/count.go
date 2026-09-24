@@ -1524,6 +1524,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return n, true
 	}
 
+	// The fuzz-cov3 heads (effects/count_cov3.go): heads that previously
+	// matched nothing below, so consulting them first changes no verdict
+	// another arm gave.
+	if n, ok := evalCov3Head(h, c, head, arg, depth); ok {
+		return n, true
+	}
+	if n, ok := evalCov3PlayerHead(h, c, head, arg); ok {
+		return n, true
+	}
+
 	switch head {
 	case "Compare":
 		return evalCompare(h, c, arg, depth), true
@@ -1747,7 +1757,21 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// (void's cmcEQX through resolveNumericRHS) never matches -- instead
 		// of enforcing a meaningless zero. A bound zero is a real binding and
 		// evaluates (torgal with no Dogs/Wolves on the board).
-		return c.ChosenNumber, c.ChosenNumberBound
+		if c.ChosenNumberBound {
+			return c.ChosenNumber, true
+		}
+		// The Choose-event population (effects/choose.go's ChooseNumber,
+		// the as-enters number choice): the answer lives on the SOURCE
+		// object's ChosenNumber, folded from the logged choice. Aether
+		// Spike's "counter unless its controller pays X, where X is the
+		// chosen number", Galvanic Discharge, Die Young -- 52 supported
+		// carriers whose amount read an unresolved zero (fuzz-cov3). A
+		// source that never chose reads the field's zero, which is also
+		// Forge's reading of an unset chosen number.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ChosenNumber, true
+		}
+		return 0, false
 	case "ChosenSize":
 		// Forge's Count$ChosenSize (CardUtil.getChosenCards().size()): the
 		// number of CARDS the current resolution's ChooseCard chain has
@@ -1876,6 +1900,28 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			}
 		}
 		return n, true
+	case "LifeYouLostThisTurn":
+		// The total life the controller LOST this turn -- Luminarch
+		// Ascension's and Boarded Window's end-step CheckSVar$ gate ("if you
+		// didn't lose life this turn"). The same log-derived Host fold
+		// LifeOppsLostThisTurn sums over the opponents, read for the
+		// controller alone, so a replay derives the same count. Unmodelled,
+		// the gate failed closed and Luminarch Ascension never once gained a
+		// quest counter (cardfuzz coverage audit).
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return h.LifeLostThisTurn(c.Controller), true
+	case "Party":
+		// CR 700.8: the controller's party -- one each of Cleric, Rogue,
+		// Warrior and Wizard among the creatures they control, a creature
+		// filling at most one role (partySize). 39 raw corpus carriers
+		// (Archpriest of Iona, Squad Commander, Nimble Trapfinder's gates and
+		// every "for each creature in your party" amount).
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return partySize(g, c), true
 	case "LifeYouGainedThisTurn":
 		// The total life the controller GAINED this turn — the CheckSVar$ gate
 		// behind the "At the beginning of each end step, if you gained 4 or
@@ -2354,6 +2400,13 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// Monarch is the resolving controller's current designation (the same
 	// state g.IsMonarch answers for a CheckDefinedPlayer$ .isMonarch spec).
 	if dot := strings.IndexByte(head, '.'); dot > 0 {
+		if holds, known := cov3BranchHolds(h, c, head[:dot], depth); known {
+			// The fuzz-cov3 branch predicates (Delirium, Metalcraft,
+			// Hellbent, FatefulHour, Landfall, Void): branch tokens through
+			// countBranchOperand, the Threshold sibling's read.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			return countBranchOperand(h, c, holds, yesTok, noTok, depth), true
+		}
 		switch head[:dot] {
 		case "wasCastFromGraveyard":
 			// The resolving source was CAST FROM A GRAVEYARD (CR 601.2b's
@@ -2673,7 +2726,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// suffix (Colors one, CreatureType two) is honoured at
 	// evalCountExprOK's generic /Op site (countDistinctLimitMax).
 	isAll := head == "ValidAll"
-	if zone, ok := countZone(head); ok || isAll {
+	multi := multiCountZones(head)
+	if zone, ok := countZone(head); ok || isAll || multi != nil {
 		spec, prop, hasProp := strings.Cut(arg, "$")
 		if !hasProp {
 			spec, prop = arg, ""
@@ -2787,7 +2841,26 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				f.seenDiffValues = make(map[int32]bool)
 			}
 		}
-		if isAll {
+		if multi != nil {
+			// A comma-joined zone list (Count$ValidGraveyard,Exile,
+			// ValidBattlefield,Graveyard, ValidBattlefield,Command --
+			// fuzz-cov3): the single-zone scan over each named zone in turn,
+			// the shared stack once. Each candidate is matched against its
+			// own zone, the ValidAll convention.
+			for _, z := range multi {
+				if z == state.ZStack {
+					for _, id := range g.Stack {
+						f.visit(id, z, specCtx)
+					}
+					continue
+				}
+				for _, p := range g.AliveFrom(0) {
+					for _, id := range g.Zone(z, p) {
+						f.visit(id, z, specCtx)
+					}
+				}
+			}
+		} else if isAll {
 			for _, p := range g.AliveFrom(0) {
 				for _, z := range countAllZones {
 					for _, id := range g.Zone(z, p) {
@@ -3608,6 +3681,24 @@ func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID,
 		}
 		return best, true
 	}
+	if _, ok := playerScalarProperty(h, g, 0, prop); ok && strings.TrimSpace(spec) == "" {
+		// A per-player zone size or tally (Highest/LowestCardsInHand,
+		// HighestCardsInGraveyard, HighestCardsDrawn -- fuzz-cov3).
+		best, seen := int32(0), false
+		for _, p := range players {
+			v, ok := playerScalarProperty(h, g, p, prop)
+			if !ok {
+				continue
+			}
+			if !seen || (highest && v > best) || (!highest && v < best) {
+				best, seen = v, true
+			}
+		}
+		if !seen {
+			return 0, true
+		}
+		return best, true
+	}
 	if prop == "LifeLostThisTurn" {
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, false
@@ -3844,6 +3935,31 @@ func manaCostColourSymbols(cost string, col byte) int32 {
 // here: it scopes over every zone at once (countAllZones plus one stack
 // pass, handled directly in the zone-count branch), and a single-zone
 // mapping cannot express that.
+// multiCountZones parses a multi-zone count head, Valid<Zone>,<Zone>[,...]
+// (Count$ValidGraveyard,Battlefield Cave.YouCtrl), into its zones: nil for a
+// single-zone head (countZone's) or any list naming an unknown or repeated
+// zone word.
+func multiCountZones(head string) []state.Zone {
+	rest, ok := strings.CutPrefix(head, "Valid")
+	if !ok || !strings.Contains(rest, ",") {
+		return nil
+	}
+	var out []state.Zone
+	for _, w := range strings.Split(rest, ",") {
+		z, known := zoneWords[w]
+		if !known {
+			return nil
+		}
+		for _, have := range out {
+			if have == z {
+				return nil
+			}
+		}
+		out = append(out, z)
+	}
+	return out
+}
+
 func countZone(head string) (state.Zone, bool) {
 	switch head {
 	case "Valid":
@@ -3858,6 +3974,8 @@ func countZone(head string) (state.Zone, bool) {
 		return state.ZExile, true
 	case "ValidStack":
 		return state.ZStack, true
+	case "ValidCommand":
+		return state.ZCommand, true
 	}
 	return 0, false
 }
@@ -4473,4 +4591,54 @@ func sumCounters(cs []state.Counter) int32 {
 		}
 	}
 	return n
+}
+
+// partyRoles are CR 700.8's four party roles.
+var partyRoles = [4]string{"Cleric", "Rogue", "Warrior", "Wizard"}
+
+// partySize is CR 700.8's party size for c's controller: the largest number
+// of distinct roles among Cleric, Rogue, Warrior and Wizard that can be
+// filled by DIFFERENT creatures they control (a Changeling or a multi-role
+// creature fills only one). Each creature's role set is read through the
+// ordinary spec matcher (derived types, Changeling), then a 16-state subset
+// walk finds the best assignment -- deterministic, no map ranged.
+func partySize(g *state.Game, c *Ctx) int32 {
+	sc := c.SpecContext(c.Controller)
+	var reach [16]bool
+	reach[0] = true
+	for _, id := range g.Zone(state.ZBattlefield, c.Controller) {
+		if !MatchesSpecCtx(g, "Creature", id, sc) {
+			continue
+		}
+		var roles uint8
+		for i, r := range partyRoles {
+			if MatchesSpecCtx(g, "Creature."+r, id, sc) {
+				roles |= 1 << i
+			}
+		}
+		if roles == 0 {
+			continue
+		}
+		next := reach
+		for set := 0; set < 16; set++ {
+			if !reach[set] {
+				continue
+			}
+			for i := 0; i < 4; i++ {
+				if roles&(1<<i) != 0 && set&(1<<i) == 0 {
+					next[set|1<<i] = true
+				}
+			}
+		}
+		reach = next
+	}
+	best := 0
+	for set := 0; set < 16; set++ {
+		if reach[set] {
+			if n := bits.OnesCount8(uint8(set)); n > best {
+				best = n
+			}
+		}
+	}
+	return int32(best)
 }

@@ -370,7 +370,11 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 //     hand. A hand with fewer eligible cards than NumCards$ discards what it
 //     owns and asks nothing (there is no choice to be made), and a hand
 //     whose eligible count is at or below NumCards$ likewise resolves
-//     deterministically with no question.
+//     deterministically with no question. Optional$ True (Mox Diamond's
+//     "you may discard a land card", "discard up to two cards") first poses
+//     a yes/no may-discard election (ResumeKind "discard_may", answered into
+//     Ctx.DiscardVote): "no" discards nothing, "yes" poses the pick with
+//     Min 1.
 //   - Mode$ RevealDiscardAll (Cabal Therapy): a FILTER, not a choice. Every
 //     card in the target's hand matching DiscardValid$ is discarded, no ask.
 //   - Mode$ Hand (Reforge the Soul, Windfall, Magus of the Wheel, Dark
@@ -510,6 +514,26 @@ func unlessTypeEligible(g *state.Game, c *Ctx, hand []state.ObjID, unless string
 	return out
 }
 
+// discardMayPrompt is the may-discard election's question: the card text's
+// own DiscardValidDesc$ noun when the script names one ("a land card"),
+// otherwise a plain count.
+func discardMayPrompt(sa *cards.SA, max int) string {
+	noun := "card"
+	if desc := strings.TrimSpace(sa.Params["DiscardValidDesc"]); desc != "" {
+		noun = desc
+	} else if v := strings.TrimSpace(sa.Params["DiscardValid"]); v != "" && !strings.ContainsAny(v, ".,+") && v != "Card" {
+		noun = strings.ToLower(v) + " card"
+	}
+	if max <= 1 {
+		article := "a "
+		if strings.ContainsRune("aeiouAEIOU", rune(noun[0])) {
+			article = "an "
+		}
+		return "Discard " + article + noun + "?"
+	}
+	return "Discard up to " + strconv.Itoa(max) + " " + noun + "(s)?"
+}
+
 func discardEligible(g *state.Game, c *Ctx, hand []state.ObjID, valid string) []state.ObjID {
 	out := make([]state.ObjID, 0, len(hand))
 	for _, id := range hand {
@@ -647,6 +671,17 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				}
 				continue
 			}
+			// The may-discard election (below) answered for this target:
+			// earlier targets were fully processed before it was posed, a
+			// "no" discards nothing for this target, and a "yes" proceeds to
+			// the card pick with the zero-card answer removed.
+			if voted && targetIndex < answerTarget {
+				continue
+			}
+			mayElected := voted && targetIndex == answerTarget
+			if mayElected && vote != "yes" {
+				continue
+			}
 			// First pass: narrow the target's hand to the cards DiscardValid$
 			// allows. This is the discarding player's own hand, so the choice
 			// is presented to p.
@@ -731,6 +766,35 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			askMin, askMax := discardBounds(h, c, sa, len(eligible))
+			// Optional$ True ("you MAY discard a land card", Mox Diamond's
+			// replacement; "discard up to two cards"): the zero-card answer
+			// is a real choice, and a bare Min 0 card pick expressed it only
+			// as an empty submission -- no option said "don't discard", so a
+			// player shown nothing but land faces had no visible way to
+			// decline. The decline is posed the way every other may-election
+			// here is (the Mode$ Hand Optional$ variant, the UnlessType$
+			// election): a yes/no first, whose "no" discards nothing and whose
+			// "yes" poses the pick with Min 1, so "up to N" stays 1..N.
+			// AnyNumber$ is not an election -- zero is one count among many
+			// in its own pick. A host that cannot ask keeps the prior R-9
+			// stand-in unchanged: straight on to the front-of-eligible
+			// discard below, with no extra event.
+			if askMin == 0 && !strings.EqualFold(sa.Params["AnyNumber"], "True") {
+				if !mayElected {
+					d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+						Source: c.Source, ResumeKind: "discard_may", ResumeSA: sa, ResumeTarget: targetIndex,
+						Prompt: discardMayPrompt(sa, askMax),
+						Options: []decision.Option{
+							{Index: 0, Kind: "yes", Label: "Yes — discard", Player: p},
+							{Index: 1, Kind: "no", Label: "No — don't discard", Player: p},
+						}}
+					if Ask(h, d) == AskAsked {
+						return // resolution suspended; the answer re-enters with Ctx.DiscardVote set.
+					}
+				} else {
+					askMin = 1
+				}
+			}
 			if strings.EqualFold(sa.Params["AnyNumber"], "True") {
 				// "discard any number of cards": any eligible count from zero
 				// up is a real choice the moment one eligible card exists, so

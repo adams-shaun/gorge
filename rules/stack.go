@@ -168,39 +168,47 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 		// one before snow wherever a choice existed, so the split here is
 		// exactly what the payment search did. The emission order (plain,
 		// Treasure, Cave, Desert, snow) is fixed and deterministic.
+		//
+		// Every form is attributed ordinary-first against ONE running fresh
+		// share for the slot (the exception mana is spent last): the part of
+		// an emission past what is left of perFresh is the persistent
+		// remainder and rides a MARKED event, so the fold moves the tally
+		// with the units that were actually consumed. The carve above already
+		// charged its own consumption against perVis/perFresh by the consumed
+		// batch's flag. A TYPED or SNOW unit can be persistent too -- Tanuki
+		// Transplanter is an artifact, so its PersistentMana$ G arrives as
+		// "ArtifactG" -- and an unmarked typed spend of it left
+		// PersistentMana above the emptied pool, which the next payment read
+		// as a negative fresh share and over-charged into a negative pool
+		// (cardfuzz fuzz-b13).
+		fresh := perFresh[i]
+		if fresh < 0 {
+			fresh = 0
+		}
+		emitSpend := func(counter string, n int32) {
+			if n <= 0 {
+				return
+			}
+			ord := min(n, fresh)
+			fresh -= ord
+			if ord > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: counter, Amount: -ord})
+			}
+			if per := n - ord; per > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: counter,
+					Amount: -per, Text: events.ManaPersistentText("")})
+			}
+		}
 		snowSpent := emitSnow[i]
 		typedSpent := int32(0)
 		for t := range emitTyped {
 			typedSpent += emitTyped[t][i]
 		}
-		if plain := spent[i] - snowSpent - typedSpent; plain > 0 {
-			// The slot's ordinary units are attributed first (the exception
-			// mana is spent last); the plain share past perFresh is the
-			// persistent remainder and rides a MARKED event so the fold moves
-			// the tally with the units that were actually consumed. The carve
-			// above already charged its own consumption against perVis/perFresh
-			// by the consumed batch's flag, so the marked remainder can never
-			// exceed the visible persistent share.
-			ord := plain
-			if perFresh[i] < ord {
-				ord = perFresh[i]
-			}
-			if ord > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -ord})
-			}
-			if per := plain - ord; per > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter,
-					Amount: -per, Text: events.ManaPersistentText("")})
-			}
-		}
+		emitSpend(letter, spent[i]-snowSpent-typedSpent)
 		for t, tag := range state.ManaUnitTags {
-			if emitTyped[t][i] > 0 {
-				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -emitTyped[t][i]})
-			}
+			emitSpend(tag+letter, emitTyped[t][i])
 		}
-		if snowSpent > 0 {
-			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: "S" + letter, Amount: -snowSpent})
-		}
+		emitSpend("S"+letter, snowSpent)
 	}
 	// Fixed life costs and any Phyrexian pips paid with life are deducted
 	// through the ordinary LifeChange event so a replay learns them.
@@ -1669,18 +1677,22 @@ func (e *Engine) candidatesForLimit(p state.PlayerID, source, excludeSelf state.
 	// alternatives whose base is not a player base, so a mixed
 	// `Creature,Opponent` spec keeps the object half and matches only the
 	// player half's seats.
-	// CR 702.18 (player shroud) and CR 702.11 (player hexproof): a seat a
-	// live `Affected$ You | AddKeyword$` static grants those keywords is
-	// withheld here exactly as a permanent carrying them is withheld in the
-	// object arm below -- the grant is read off the same layer walk, through
-	// playerKeywords (rules/playerkeywords.go). Only the targeting arm
-	// consults them; the affected census (targeting=false) does not, the
-	// same split the permanent shroud gate applies.
+	// CR 702.18 (player shroud), CR 702.11 (player hexproof) and CR 702.16c
+	// (player protection): a seat a live `Affected$ You | AddKeyword$`
+	// static grants those keywords is withheld here exactly as a permanent
+	// carrying them is withheld in the object arm below -- the grant is read
+	// off the same layer walk, through playerKeywords (rules/playerkeywords.go).
+	// Protection is judged against the same census-wide protSrc the object
+	// arm's protectedFrom uses, so the two arms resolve "the source"
+	// identically (CR 702.16c). Only the targeting arm consults them; the
+	// affected census (targeting=false) does not, the same split the
+	// permanent shroud gate applies.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
 			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) &&
 				(!targeting || !e.playerShroudBlocksTarget(q)) &&
-				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) {
+				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) &&
+				(!targeting || !e.playerProtectedFrom(q, protSrc)) {
 				out = append(out, targetCandidate{kind: "player", player: q})
 			}
 		}
@@ -3655,7 +3667,7 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, ModeTargets: charmModeTargets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
+			Targets: targets, ModeTargets: charmModeTargets, Remembered: e.resolvingRemembered(o), Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
 			// Forge's Count$ResolvedThisTurn reads the per-ability tally the
 			// Resolve event's Apply folded: the count INCLUDES this resolution,
 			// because the Resolve event is emitted above before this Ctx is
@@ -4105,9 +4117,9 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
-			// CR 702.18 / CR 702.11 for players: a target that GAINED player
-			// shroud or (opponent-only) hexproof between placement and
-			// resolution is dropped here, exactly as the object arm below
+			// CR 702.18 / CR 702.11 / CR 702.16c for players: a target that
+			// GAINED player shroud, hexproof or protection between placement
+			// and resolution is dropped here, exactly as the object arm below
 			// drops a permanent that gained them -- the same judge the offer
 			// (candidatesFor's player loop) applies, so offer and recheck
 			// cannot disagree (the one-definition rule). Players have no zone:
@@ -4115,7 +4127,8 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
 				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) &&
 				!e.playerShroudBlocksTarget(t.Player) &&
-				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) {
+				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) &&
+				!e.playerProtectedFrom(t.Player, e.protectionSource(source)) {
 				legal = append(legal, t)
 			}
 			continue
@@ -5019,6 +5032,96 @@ func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
 // like CastThisTurn, so a replay that rebuilds the game arrives at the same
 // number. A DeclareAttackers event carries its declared attackers in IDs (one
 // event per defender); an event with no IDs contributes nothing.
+// AttackersDeclaredThisTurn satisfies effects.Host's method of the same
+// name: this turn's DeclareAttackers attacker ids, de-duplicated, oldest
+// first. Derived from the event log like AttackersThisTurn.
+func (e *Engine) AttackersDeclaredThisTurn() []state.ObjID {
+	start := len(e.L.Events)
+	for start > 0 && e.L.Events[start-1].Kind != events.TurnChange {
+		start--
+	}
+	var out []state.ObjID
+	seen := map[state.ObjID]bool{}
+	for _, ev := range e.L.Events[start:] {
+		if ev.Kind != events.DeclareAttackers {
+			continue
+		}
+		for _, id := range ev.IDs {
+			if !seen[id] {
+				seen[id] = true
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// LifeLostLastTurn satisfies effects.Host's LifeLostLastTurn: the negative
+// LifeChanges naming p between the second-to-last and the last TurnChange
+// of the log -- the previous turn's window, the LifeLostThisTurn fold one
+// turn back.
+func (e *Engine) LifeLostLastTurn(p state.PlayerID) int32 {
+	var n int32
+	boundaries := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			boundaries++
+			if boundaries == 2 {
+				break
+			}
+			continue
+		}
+		if boundaries == 1 && ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
+			n += -ev.Amount
+		}
+	}
+	if boundaries < 2 {
+		// The window before the first TurnChange is the pregame, not a turn.
+		return 0
+	}
+	return n
+}
+
+// AttackedDuringLastTurn satisfies effects.Host's method of the same name.
+// The walk runs backwards over the log: the window after the LAST
+// TurnChange is the turn in progress and is skipped; the first earlier
+// TurnChange naming q opens q's most recent completed turn, whose events
+// run up to the next TurnChange. A DeclareAttackers inside it whose
+// Player (the defending seat) is defender and whose attacker list is
+// non-empty answers true.
+func (e *Engine) AttackedDuringLastTurn(q, defender state.PlayerID) bool {
+	ev := e.L.Events
+	end := len(ev)
+	// Skip the turn in progress.
+	for end > 0 && ev[end-1].Kind != events.TurnChange {
+		end--
+	}
+	if end == 0 {
+		return false
+	}
+	end-- // the current turn's TurnChange itself
+	for end > 0 {
+		start := end
+		for start > 0 && ev[start-1].Kind != events.TurnChange {
+			start--
+		}
+		if start == 0 {
+			return false // the pregame window, before any turn
+		}
+		if ev[start-1].Player == q {
+			for _, x := range ev[start:end] {
+				if x.Kind == events.DeclareAttackers && x.Player == defender && len(x.IDs) > 0 {
+					return true
+				}
+			}
+			return false
+		}
+		end = start - 1
+	}
+	return false
+}
+
 func (e *Engine) AttackersThisTurn() int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {

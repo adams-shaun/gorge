@@ -171,6 +171,10 @@ type Board struct {
 	// view half.
 	LibrarySize int32
 	HandSize    int32
+
+	// explore is set only by ExploreDecide (the value copy it receives), so
+	// no adapter fills it and every production policy reads false.
+	explore bool
 }
 
 // Commander is the Board's per-commander commander-format bookkeeping,
@@ -349,10 +353,53 @@ func BlocksDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	return decide(b, d, r, true, false, true)
 }
 
+// ExploreDecide is the opt-in coverage-exploration policy cmd/cardfuzz
+// seats play: Decide (lethal pressure included) with the activated-ability
+// choices widened so a random-deck fuzzer reaches the abilities the
+// production ranking never picks. It is NEVER wired into the hosted or
+// production bot and is absent from host.NormalizeBotPolicy's vocabulary; the
+// production Decide's answers, and every golden chain head, are unchanged by
+// it. The differences (explore.go) are:
+//
+//   - X1 was promoted into the production policy: A1's attachment no-op
+//     rule applies to attach abilities only for every policy (ability.go,
+//     equipNoOp), so it is no longer an explore difference.
+//   - X2: among the worth-taking abilities the pick is uniform over the
+//     seat's rng instead of A2's cheapest-label ranking, so every loyalty
+//     ability and every sibling ability of one source is reached (A2 reads the
+//     first number in the DESCRIPTION, which is not the cost: Brightling's
+//     "+1/-1" mode outranked its three {W} abilities forever).
+//   - X3: in a main phase, with probability 1/3, an ability is activated
+//     before the land drop and the cast (cycling, channel and other hand
+//     abilities of a card the cast would otherwise always consume).
+//   - X4: outside a main phase, with probability 1/4, an ability is
+//     activated at an ordinary priority window (combat-only targets, upkeep
+//     windows, a response to a spell on the stack).
+//   - X5: a mana-ability / mana-colour pick is uniform instead of the first
+//     offer (exploreManaPick).
+//   - X6: mana is floated speculatively (exploreFloat), because the engine
+//     offers an ability only once the floating pool pays it and the
+//     production tap gate floats only toward a castable card.
+//
+// A5's per-source per-turn budget still bounds every repeat, so X3/X4
+// cannot loop a turn, and X6 taps only plain {T} sources, so it ends when
+// they are all tapped.
+func ExploreDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
+	b.explore = true
+	return decide(b, d, r, true, false, false)
+}
+
 func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combinedLethal, blocksAssignment bool) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
 	case decision.KPriority:
+		if b.explore {
+			// X3/X4 (ExploreDecide): the early activation.
+			if pick := b.exploreEarlyAbility(d, r); pick >= 0 {
+				in.Choices = []int{pick}
+				return Clamp(d, in)
+			}
+		}
 		if b.IsMain {
 			// T1 (tap.go): the need-aware tap gate. The block this replaced
 			// tapped the first "activate" option in every main phase until
@@ -396,7 +443,13 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// non-mana activated abilities as legal sorcery-speed actions here,
 		// so no extra isMain gate is needed beyond this block's own check.
 		if b.IsMain {
-			if pick := b.chooseAbility(d); pick >= 0 {
+			pick := -1
+			if b.explore {
+				pick = b.exploreAbility(d, r) // X2
+			} else {
+				pick = b.chooseAbility(d)
+			}
+			if pick >= 0 {
 				in.Choices = []int{pick}
 				return Clamp(d, in)
 			}
@@ -419,6 +472,13 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// option list, so this explicit scan is also what keeps the bot from
 		// ever conceding -- it returns pass before clamp, or any
 		// position-based fallback, can reach the new final option.
+		if b.explore {
+			// X6 (ExploreDecide): float mana toward abilities.
+			if pick := b.exploreFloat(d, r); pick >= 0 {
+				in.Choices = []int{pick}
+				return Clamp(d, in)
+			}
+		}
 		for _, o := range d.Options {
 			if o.Kind == "pass" {
 				in.Choices = []int{o.Index}
@@ -537,6 +597,18 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 		if len(d.Options) == 0 {
 			break
+		}
+		if b.explore {
+			// X5 (ExploreDecide): a mana-ability or mana-colour pick (every
+			// option a "mana" option: the stage-1 "choose a mana ability of
+			// <source>" wheel, or the stage-2 colour ask) is uniform over the
+			// seat's rng instead of the first offer, so a dual land's second
+			// colour, a filter's or storage land's costed ability and a
+			// sacrifice-for-mana ability are reached.
+			if pick, ok := exploreManaPick(d, r); ok {
+				in.Choices = []int{pick}
+				return Clamp(d, in)
+			}
 		}
 		if d.ResumeKind == "copy_optional" && d.CopyOfCopy {
 			// CH1 (chain copies): decline a may-copy election whose spell is

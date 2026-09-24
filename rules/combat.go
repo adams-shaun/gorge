@@ -985,9 +985,10 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		}
 		// Belt against a future membership gap: the serialized offer list
 		// already bounds every subset's total, so this can only fire if the
-		// two walks ever diverge.
+		// two walks ever diverge. A free pair adds nothing and can never be
+		// what overruns the budget, so only a priced pair is checked.
 		total += price
-		if total > budget {
+		if price > 0 && total > budget {
 			return fmt.Errorf("declaration's attack cost {%d} exceeds the affordable {%d}", total, budget)
 		}
 		seen[o.Obj] = true
