@@ -108,11 +108,14 @@ var zoneTagList = []string{
 
 // WriteCheckpoint serialises m to w.
 func WriteCheckpoint(m *Model, w io.Writer) error {
+	if m.Features.Diagnostic() {
+		return fmt.Errorf("checkpoint: feature set %s reads hidden information and is diagnostic only; it is never checkpointed", m.Features)
+	}
 	bw := bufio.NewWriter(w)
 	var hdr [24]byte
 	copy(hdr[0:4], CheckpointMagic)
 	binary.LittleEndian.PutUint32(hdr[4:8], CheckpointVersion)
-	binary.LittleEndian.PutUint64(hdr[8:16], EncoderHash())
+	binary.LittleEndian.PutUint64(hdr[8:16], EncoderHashFor(m.Features))
 	binary.LittleEndian.PutUint32(hdr[16:20], uint32(m.Rows))
 	binary.LittleEndian.PutUint32(hdr[20:24], uint32(m.H))
 	if _, err := bw.Write(hdr[:]); err != nil {
@@ -171,7 +174,9 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 	if v := binary.LittleEndian.Uint32(hdr[4:8]); v != CheckpointVersion {
 		return nil, fmt.Errorf("checkpoint: unsupported schema version %d, want %d", v, CheckpointVersion)
 	}
-	if h := binary.LittleEndian.Uint64(hdr[8:16]); h != EncoderHash() {
+	h := binary.LittleEndian.Uint64(hdr[8:16])
+	features, ok := FeaturesForHash(h)
+	if !ok {
 		return nil, fmt.Errorf("checkpoint: encoder hash %#x does not match this build's encoder %#x — the encoder drifted since this checkpoint was trained", h, EncoderHash())
 	}
 	rows := int(binary.LittleEndian.Uint32(hdr[16:20]))
@@ -230,6 +235,7 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 		InW:    2*hh + slotW + optDenseW,
 
 		ValueHidden: valueHidden,
+		Features:    features,
 	}
 	blocks := []struct {
 		name string

@@ -1,13 +1,17 @@
 package main
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/traceboard"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
@@ -89,6 +93,9 @@ type LabelRecord struct {
 	// finished (schema 2).
 	Outcome      float64 `json:"outcome"`
 	OutcomeKnown bool    `json:"outcome_known"`
+	// Extras is the pn12 extension (schema 3, -label-extras only); nil and
+	// omitted otherwise, so a schema 2 corpus is byte-identical to before.
+	Extras *policynet.LabelExtras `json:"extras,omitempty"`
 }
 
 // LabelCandidate is one evaluated candidate answer: its option set (the
@@ -196,10 +203,22 @@ func writeLabels(path string, records []LabelRecord) (err error) {
 			_ = os.Remove(tmpName)
 		}
 	}()
-	enc := json.NewEncoder(tmp)
+	var sink io.Writer = tmp
+	var gz *gzip.Writer
+	if strings.HasSuffix(path, ".gz") {
+		// Deterministic: a zero Header (no name, zero ModTime) and a fixed
+		// level, so the same records compress to the same bytes.
+		gz, _ = gzip.NewWriterLevel(tmp, gzip.BestSpeed)
+		sink = gz
+	}
+	enc := json.NewEncoder(sink)
 	for i := range records {
 		r := records[i]
-		if r.RecordType != "label-v1" || r.SchemaVersion != labelSchemaVersion {
+		wantSchema := labelSchemaVersion
+		if r.Extras != nil {
+			wantSchema = labelSchemaExtras
+		}
+		if r.RecordType != "label-v1" || r.SchemaVersion != wantSchema {
 			return fmt.Errorf("invalid label record type %q / schema %d", r.RecordType, r.SchemaVersion)
 		}
 		if r.Board.SchemaVersion != traceboard.SchemaVersion {
@@ -207,6 +226,11 @@ func writeLabels(path string, records []LabelRecord) (err error) {
 		}
 		if err := enc.Encode(r); err != nil {
 			return fmt.Errorf("writing label corpus: %w", err)
+		}
+	}
+	if gz != nil {
+		if err = gz.Close(); err != nil {
+			return fmt.Errorf("compressing label corpus: %w", err)
 		}
 	}
 	if err = tmp.Sync(); err != nil {

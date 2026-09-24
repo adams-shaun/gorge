@@ -108,6 +108,12 @@ type Model struct {
 	// a feature-family experiment sets it through NewModelExtra. Not part of
 	// EncoderHash and not checkpointable.
 	ExtraW int
+	// Features is the feature set (features.go) the model encodes under.
+	// FeaturesV1, the zero value, is the pinned encoder every existing
+	// checkpoint was trained on. It changes no geometry: the other sets only
+	// add hashed rows to the same table. The checkpoint carries it through
+	// its encoder hash (EncoderHashFor).
+	Features FeatureSet
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
 	StateW []float32 // DenseWidth*H, row-major: StateW[d*H+j]

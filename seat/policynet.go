@@ -389,10 +389,13 @@ func (b *PolicyNetBot) encode(v view.View, d *decision.Decision) (policynet.Stat
 	if b.scorer == nil || len(d.Options) == 0 {
 		return policynet.State{}, nil, false
 	}
-	st := policynet.EncodeState(v, d.Player)
+	// The checkpoint's feature set (pn12): FeaturesV1 is the pinned encoder
+	// byte for byte; a non-v1 checkpoint is scored under the set it trained on.
+	fs := b.scorer.Features()
+	st := policynet.EncodeStateWith(fs, v, d.Player, nil)
 	opts := make([]policynet.Option, len(d.Options))
 	for i := range d.Options {
-		opts[i] = policynet.EncodeOption(v, d.Player, d.Kind, d.Options[i], i, len(d.Options))
+		opts[i] = policynet.EncodeOptionWith(fs, v, d.Player, d.Kind, d.Options[i], i, len(d.Options))
 	}
 	return st, opts, true
 }

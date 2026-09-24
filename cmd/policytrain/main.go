@@ -61,7 +61,19 @@ func run(args []string, stdout, stderr io.Writer) int {
 		statsOut       = fs.String("stats-out", "", "PPO mode: write the round's machine-readable readout (JSON) to this path")
 		kindLoss       = fs.String("kind-loss", "attackers=bce", "per-kind loss overrides as kind=mode,... (e.g. attackers=bce); kinds not listed keep -loss. The attackers default is bce: a per-option binary logistic loss trains the score LEVEL the seat's per-option admission rule reads, which argmax CE (shift-invariant) cannot")
 	)
+	var grid gridFlags
+	fs.StringVar(&grid.features, "features", "", "pn12: encoder feature set: v1 (default, the pinned encoder), mz (MageZero-style per-card properties; checkpointable), or the DIAGNOSTIC mz-opphand / mz-oracle (read hidden information from a -label-extras corpus; never checkpointed)")
+	fs.StringVar(&grid.actions, "actions", "", "pn12: action encoding: split (default) or joint (each targeted cast option expanded into one (card, target) option per legal target; needs a -label-extras corpus)")
+	fs.IntVar(&grid.maxGameIndex, "max-game-index", 0, "pn12: train only on games whose per-pair game index is below this (nested subsets for the data axis; 0 = every game)")
+	fs.StringVar(&grid.evalCorpus, "eval-corpus", "", "pn12: comma-separated held-out label corpora (a disjoint seed block) to score the trained model on, with the override-only readout")
+	fs.StringVar(&grid.evalJSON, "eval-json", "", "pn12: write the -eval-corpus readout as JSON to this path")
+	fs.StringVar(&grid.arm, "arm", "", "pn12: arm name recorded in the -eval-json report")
 	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	lo, gridLoad, err := grid.loadOptions()
+	if err != nil {
+		fmt.Fprintf(stderr, "policytrain: %v\n", err)
 		return 2
 	}
 	if *ppoCorpora != "" {
@@ -88,7 +100,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if path == "" {
 			continue
 		}
-		exs, stats, err := policynet.Load(path)
+		exs, stats, err := loadCorpus(path, lo, gridLoad)
 		if err != nil {
 			fmt.Fprintf(stderr, "policytrain: %v\n", err)
 			return 1
@@ -133,6 +145,39 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	final := res.Epochs[len(res.Epochs)-1]
+	res.Model.Features = lo.Features
+	if grid.evalCorpus != "" {
+		evalLo := lo
+		evalLo.Keep = nil // the held-out block is scored whole
+		var held []policynet.Example
+		for _, path := range strings.Split(grid.evalCorpus, ",") {
+			if path = strings.TrimSpace(path); path == "" {
+				continue
+			}
+			exs, _, err := loadCorpus(path, evalLo, true)
+			if err != nil {
+				fmt.Fprintf(stderr, "policytrain: eval corpus: %v\n", err)
+				return 1
+			}
+			held = append(held, exs...)
+		}
+		games, ovr := countGames(examples)
+		rep := GridReport{Arm: grid.arm, Features: lo.Features.String(), Actions: grid.actions, MaxGameIndex: grid.maxGameIndex,
+			TrainExamples: len(examples), TrainGames: games, TrainOverride: ovr, ResidualInit: *residualInit, Epochs: *epochs,
+			EvalExamples: len(held), Kinds: evalGrid(res.Model, held), TrainKinds: evalGrid(res.Model, examples)}
+		if err := writeGridReport(stdout, grid.evalJSON, rep); err != nil {
+			fmt.Fprintf(stderr, "policytrain: %v\n", err)
+			return 1
+		}
+	}
+	if lo.Features.Diagnostic() || lo.Joint {
+		// A diagnostic feature set reads hidden information, and a joint
+		// (card, target) model needs the follow-up target list no seat has at
+		// a priority decision: either model is a measurement, never a
+		// checkpoint.
+		fmt.Fprintf(stdout, "feature set %s / actions %s is a measurement only: no checkpoint written\n", lo.Features, grid.actions)
+		return 0
+	}
 	if err := res.Model.SaveCheckpoint(*out); err != nil {
 		fmt.Fprintf(stderr, "policytrain: %v\n", err)
 		return 1
@@ -143,7 +188,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		size = info.Size()
 	}
 	fmt.Fprintf(stdout, "checkpoint %s: rows=%d h=%d hidden=%d value-hidden=%d (%d bytes), encoder hash %#016x\n",
-		*out, res.Model.Rows, res.Model.H, res.Model.Hidden, res.Model.ValueHidden, size, policynet.EncoderHash())
+		*out, res.Model.Rows, res.Model.H, res.Model.Hidden, res.Model.ValueHidden, size, policynet.EncoderHashFor(res.Model.Features))
 	fmt.Fprintf(stdout, "holdout per-kind top-1 among labelled options (blended below is just that, blended; loss mode %s):\n", mode)
 	fmt.Fprintf(stdout, "  (split by %s; m-ovr/m-keep are model top-1 on the teacher-override/kept subsets, ovr-n the override count, m-bot the fraction of model picks that are a bot pick)\n", holdoutUnit(*holdoutBy))
 	fmt.Fprintf(stdout, "  %-10s %8s %8s %8s %8s %8s %8s %8s %8s %8s\n", "kind", "model", "bot", "first", "random", "n", "ovr-n", "m-ovr", "m-keep", "m-bot")
