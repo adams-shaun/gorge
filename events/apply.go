@@ -3086,7 +3086,17 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	if wasBattlefield && to != state.ZBattlefield {
 		o.Controller = o.Owner
 	}
-	if to != state.ZCeased {
+	// CR 113.7a: an ability on the stack is not a card, and once it leaves
+	// the stack it ceases to exist. The resolved/countered ability's move is
+	// logged as stack->exile and o.Zone says exile (a historical shape every
+	// golden replay and many pins carry: "the CR 608.2m exile parking"), but
+	// the Face-less object never joins a zone's MEMBERSHIP list: an exile
+	// walk (Oracle of Dust's "put a card an opponent owns from exile into
+	// that player's graveyard" cost) moved such an object into a graveyard,
+	// where Delve and an ExileFromGrave cost offered it as a card and
+	// dereferenced its nil Face.
+	ceasedAbility := to != state.ZStack && o.Card == nil && o.Ability != nil
+	if to != state.ZCeased && !ceasedAbility {
 		dst := zoneOwner(o, to)
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
 	}
@@ -3165,8 +3175,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// (Hand_from_Stack does, and the double entry it sees is the honest
 	// record of the two moves).
 	permanentCard := !o.IsToken && !o.IsCopy && o.Card != nil && o.Face() != nil && o.Face().IsPermanent()
-	g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
-		Owner: o.Owner, PermanentCard: permanentCard})
+	if !ceasedAbility {
+		// A ceased ability is no zone entry: a Count$ThisTurnEntered_Exile
+		// head counts cards put into exile, never retired abilities.
+		g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
+			Owner: o.Owner, PermanentCard: permanentCard})
+	}
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true
