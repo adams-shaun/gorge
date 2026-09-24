@@ -49,7 +49,8 @@ const (
 	// The abcopy closure (cli-20260922T225141Z-4f6f20cb) deletes one more.
 	// cli-20260922T225142Z-2f0df8e8 deletes one more row.
 	// mayplay-mfa deletes the ValidLKI may-play provenance row.
-	knownApproximationRows = 10
+	// cli-20260922T225140Z-c010b497 deletes the addcounter1/2 row.
+	knownApproximationRows = 9
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

@@ -804,10 +804,11 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.hasEffectRepeatDelayed() {
 		e.checkEventDelayedTriggers(ev, lki)
 	}
-	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
-	// two events that place lore counters -- the battlefield-entry Move
-	// (whose own grant is already folded into the live counter the check
-	// reads) and a LORE CounterChange (the draw-step half).
+	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one
+	// event that places a lore counter -- the LORE CounterChange (the entry
+	// grant rules' foldEntryMove places and the draw-step half alike; task
+	// addcounter1/2 moved the entry grant onto a real CounterChange, so the
+	// old MoveZone arm double-queued the entry chapter).
 	e.checkChapterTriggers(ev)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)

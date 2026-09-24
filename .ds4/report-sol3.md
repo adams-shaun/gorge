@@ -1,3 +1,67 @@
+# AddCounter entry-atomicity remediation (hn1, 2026-09-24)
+
+Status: DONE_WITH_CONCERNS. Rebasing onto moving `main` succeeded twice; the latest diff against `main` deletes **only** the addcounter1/2 row and lowers `knownApproximationRows` 12→11. `.cards` is the populated shared-corpus symlink. Commits after rebase: `27cba5a0` (original entry-counter work), `03a1db2e` was rewritten by rebase (see `git log`), and `bd30764d` (atomic intrinsic grants); branch HEAD is authoritative.
+
+## Changes
+
+- `rules/entry_counters.go`: preview the entry on a **cloned** game, match the prospective intrinsic counters against Solemnity and the AddCounter replacement path while the permanent is on the would-enter battlefield, then encode the resulting grants in the single real MoveZone. Preview log/choice queue are private. For noncommuting replacements requiring a decision, keep the existing real CR 616.1 decision path (remaining atomicity gap below).
+- `events/entry_counters.go`, `events/apply.go`: encode intrinsic entry counters in the existing MoveZone Pairs payload (high-bit tagged, avoiding ordinary object-reference walkers); fold them inside `events.Apply` during the move. A subsequent marked CounterChange is a notification, not another fold, so the Saga chapter queue and CounterAdded trigger machinery see the resulting amount once. No new Kind and no Event fields.
+- `rules/entry_counter_atomic_test.go`: new corpus tests for Hardened Scales/Rakdos Cackler, Solemnity/Rakdos Cackler, Vorinclex/Urza's Saga, Solemnity/Urza's Saga, and redirected entry under Containment Priest. Each asserts source/recipient zone and grant preconditions, chapter counts, and replay equivalence. `rules/entry_counters_test.go` already covers starting loyalty and replacement-body placements.
+- `AGENTS.md`, `internal/testutil/agentsdoc_test.go`: prior ticket commits deleted the exact row and lowered the count; second rebase retained main's two additional row deletions rather than resurrecting them.
+
+## Fails without the fix
+
+Copied `rules/entry_counters.go` to `.ds4/scratch/entry_counters.fixed-final.go`, temporarily replaced it with `HEAD:rules/entry_counters.go` before the atomicity commit, ran the new tests, restored from the copy and verified `cmp` succeeds. Actual output:
+
+```
+--- FAIL: TestEntryUnleashCountersAreAtomicUnderScalesAndSolemnity (0.46s)
+    --- FAIL: TestEntryUnleashCountersAreAtomicUnderScalesAndSolemnity/Hardened_Scales (0.46s)
+        entry_counter_atomic_test.go:58: entry not atomic: move={Seq:46 Kind:move_zone Player:0 Obj:2 From:library To:battlefield Amount:0 Step:untap Counter: Text: IDs:[] Pairs:[] Secret:false}
+--- FAIL: TestRedirectedEntryLeavesNoEntryCounters (0.00s)
+    entry_counter_atomic_test.go:84: unredirected entry lacked its atomic loyalty grant
+--- FAIL: TestSagaEntryLoreReplacementChaptersExactlyOnce (0.00s)
+    --- FAIL: TestSagaEntryLoreReplacementChaptersExactlyOnce/Vorinclex,_Monstrous_Raider (0.00s)
+        entry_counter_atomic_test.go:154: entry lore not folded into MoveZone
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.514s
+FAIL
+without_fix_exit=1
+restored_cmp=0
+```
+
+## Gates (post-rebase; actual outputs)
+
+```
+$ go test -run 'TestEntryUnleashCountersAreAtomic|TestSagaEntryLoreReplacementChaptersExactlyOnce|TestRedirectedEntryLeavesNoEntryCounters|TestEntryCounter|TestReplacementBodyCounter|TestUrzasSaga|TestUnleashChoice|TestReplacementBodyCounterReceivesAddCounterReplacement|TestTriggerEventInterestMapping' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.541s
+$ go test -run 'TestEntryCounterGrantsBattleDefense|TestEntryCounterGrantsFaceDownGrantsNothing' ./events/
+ok   github.com/adams-shaun/gorge/events 0.002s
+$ go test -run TestKnownApproximationsOnlyShrinks -v ./internal/testutil/
+=== RUN   TestKnownApproximationsOnlyShrinks
+--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+PASS
+ok   github.com/adams-shaun/gorge/internal/testutil 0.001s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.513s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 0.585s
+$ gofmt -l events/apply.go events/entry_counters.go rules/entry_counters.go rules/entry_counter_atomic_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(exit 0; no output)
+$ git diff --check
+(no output)
+```
+
+No botbench split movement measured. TestHeads and repo-deck goldens deliberately left to the merge gate; hash heads can move because MoveZone now carries the intrinsic grant.
+
+## Issues
+
+- `rules/replacement.go:applyReplacement`/`composeUpdatedReplacements` still runs Updated Moved replacement `DB$ PutCounter | ETB$ True` bodies after MoveZone folds, leaving ETB observers able to see a transient counterless object. 475 corpus scripts carry `K:etbCounter:`. Filed `.ds4/new-tickets/atomic-updated-entry-counters.md` (CR 614.12); this is an explicit **unclosed remainder** of the ticket's full atomic-entry goal.
+- `rules/entry_counters.go:foldEntryMove` falls back to post-move placement when the prospective AddCounter replacements need a noncommuting CR 616.1 order choice. The counters and choice remain correct, but the entry is not atomic; filed `.ds4/new-tickets/atomic-entry-counter-order-choice.md` (CR 614.12/616.1). This also needs a dedicated CR-lane test. Neither remainder is inserted into the frozen approximation table.
+
+---
+
 # Restart (new seed) — hn1 Svelte gate remediation
 
 The feature remains in `ba447b82`, `9201452b`, `b5a9a58a`, and `41884f16`: additive protocol/host fields and goldens, generated TS, rematch POST preserving deck roles and exact IDs, and the rail control with eligibility, arm/confirm, route/component/helper tests and wire fixture. This round merged current `main` (merge commit `710e243e`; no conflicts) and committed `721bb8dd`: `web/src/lib/tables.svelte.test.ts` now supplies `mulligans: 6` in its shared `TableInfo` fixture. `protocol/protocol.go` emits `mulligans` unconditionally (`json:"mulligans"`); the generated type correctly requires it, including when zero. Did not weaken the wire type. No engine or test-golden/ratchet behavior was changed. `.cards` and `web/node_modules` were present. Rebase was forbidden by the task workspace rules, so a merge brought in main instead. Prior restart implementation tests and fail-without-fix evidence are in the ticket's earlier reports; the latest verdict-sol3 was APPROVE with only a MINOR request to retain that evidence.
