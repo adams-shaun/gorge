@@ -1184,10 +1184,11 @@ type Ctx struct {
 	// discards, consumed and cleared with Discard at the top of effDiscard's
 	// walk (fx42 scoping).
 	DiscardTarget int
-	// DiscardVote is the answered "Mode$ Hand | Optional$ True" may-discard
-	// election (a whole-hand wheel's "each player may discard their hand"):
-	// "yes" discards that player's whole hand, "no" (or an empty answer)
-	// declines. It is separate from Discard because the election answers a
+	// DiscardVote is the answered Optional$ True may-discard election: for
+	// "Mode$ Hand" (a whole-hand wheel's "each player may discard their
+	// hand") "yes" discards that player's whole hand; for TgtChoose (Mox
+	// Diamond's "you may discard a land card") "yes" poses the card pick
+	// with Min 1. "no" (or an empty answer) declines. It is separate from Discard because the election answers a
 	// yes/no, not an object list; the per-target cursor is DiscardTarget.
 	DiscardVote string
 	// Choice is the selected card(s) or player(s) from ChooseCard,
