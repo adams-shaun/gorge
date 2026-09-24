@@ -171,7 +171,7 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// or predicate rather than acting on the whole set).
 	if filterSpec, ok := strings.CutPrefix(spec, "Remembered."); ok {
 		var out []state.Target
-		for _, t := range c.Remembered {
+		for _, t := range resolvedRemembered(h, c) {
 			if !t.IsPlayer {
 				if o := g.Obj(t.Obj); o != nil && MatchesObjectCtx(g, "Card."+filterSpec, o, c.SpecContext(c.Controller)) {
 					out = append(out, t)
@@ -412,7 +412,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	case "Remembered":
-		return copyTargets(c.Remembered), true
+		return resolvedRemembered(h, c), true
 	case "ImprintedLKI":
 		// Forge's LKI spelling of the imprint pile, distinct from the bare
 		// "Imprinted" case below: the SOURCE's persistent imprint association,
@@ -1507,6 +1507,52 @@ func resolutionChosenCards(g *state.Game, c *Ctx) []state.Target {
 
 func copyTargets(s []state.Target) []state.Target {
 	return append([]state.Target(nil), s...)
+}
+
+// resolvedRemembered removes trigger-captured referents that Forge's source
+// card remembered list does not contain. Chain writes remain: they update both
+// the resolution and the persistent list. With an untouched captured context,
+// the persistent list is the complete Forge Remembered population.
+func resolvedRemembered(h Host, c *Ctx) []state.Target {
+	if len(c.Captured) == 0 {
+		return copyTargets(c.Remembered)
+	}
+	var persistent []state.Target
+	if src := h.Game().Obj(c.Source); src != nil {
+		persistent = src.Remembered
+	}
+	if sameTargets(c.Remembered, c.Captured) && len(persistent) > 0 {
+		return copyTargets(persistent)
+	}
+	out := make([]state.Target, 0, len(c.Remembered))
+	for _, t := range c.Remembered {
+		if containsTarget(c.Captured, t) && !containsTarget(persistent, t) {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+func sameTargets(a, b []state.Target) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func containsTarget(ts []state.Target, want state.Target) bool {
+	for _, t := range ts {
+		if t == want {
+			return true
+		}
+	}
+	return false
 }
 
 // moveZoneEvent preserves an exile's source provenance in MoveZone's existing
