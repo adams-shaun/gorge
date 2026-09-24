@@ -414,7 +414,7 @@ func TestRearrangeTopOfLibraryKeepsExistingOrder(t *testing.T) {
 func TestChangeZoneMovesTheTarget(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}, TargetsOffered: true},
 		sa(t, "SP$ ChangeZone | ValidTgts$ Permanent | Destination$ Hand"))
 	if g.Obj(ids["myBear"]).Zone != state.ZHand {
 		t.Fatalf("zone = %v, want Hand", g.Obj(ids["myBear"]).Zone)
@@ -424,12 +424,15 @@ func TestChangeZoneMovesTheTarget(t *testing.T) {
 // TestChangeZoneSkipsObjectNoLongerAtOrigin is a CR 608.2b-flavoured guard:
 // Origin$ is a precondition, so a target that already left where the effect
 // expected it (destroyed in response, say) is skipped rather than moved from
-// the wrong place.
+// the wrong place. The ctx carries the TargetsOffered marker (task spcz1:
+// changeZoneChosenTargets inherits pre-chosen targets only when the marker
+// says they are this SA's own -- a live placement ask always sets it), so the
+// chosen target is read instead of an ask being posed.
 func TestChangeZoneSkipsObjectNoLongerAtOrigin(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	moveTo(g, ids["myBear"], state.ZGraveyard)
-	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}},
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Obj: ids["myBear"]}}, TargetsOffered: true},
 		sa(t, "SP$ ChangeZone | ValidTgts$ Permanent | Origin$ Battlefield | Destination$ Exile"))
 	if g.Obj(ids["myBear"]).Zone != state.ZGraveyard {
 		t.Fatalf("zone = %v, want unchanged Graveyard", g.Obj(ids["myBear"]).Zone)

@@ -3814,8 +3814,9 @@ func objectPathShuffleOwed(sa *cards.SA) bool {
 // ShuffleNonMandatory$ it poses Forge's may-shuffle confirm first. Today's
 // flag-bearing corpus lines target their controller's own graveyard, so the
 // controller is the owner; this is not a per-owner election for future
-// multi-owner movers. Three SP-parented DB carriers cannot reach this tail
-// until their own targeting is offered (see changeZoneChosenTargets).
+// multi-owner movers. SP-parented DB carriers reach this tail since task
+// spcz1: their own targeting is offered by changeZoneChosenTargets's ask
+// (rules/ pins the live path on Put Away and Cathartic Parting).
 // Returns true when the confirm
 // suspended the resolution; the answer re-enters effChangeZone, whose
 // SearchShuffle early-return calls this again with moved == nil. A host that
@@ -4926,15 +4927,18 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 		return ans, true
 	}
 	if len(c.Targets) > 0 {
-		// The placement ask already offered THIS SA's targeting (its OfferedSA
-		// marker matches) or the targets are this same SA's; Defined's own
-		// fallthrough reads them. A DIFFERENT SA carrying TargetUnique$ True
-		// must not silently inherit them (a root target followed by a
-		// `DB$ ChangeZone | TargetUnique$ True` sub reusing the parent target
-		// with no filter and no ask): fall through to the shared ask, whose
-		// filter excludes the inherited parent target via
-		// TargetsAlreadyChosen.
-		if !TargetUniqueRequested(sa) || (c.OfferedSA != nil && sa.Line == c.OfferedSA.Line) {
+		// Inherit ONLY when the targets genuinely belong to THIS SA -- the
+		// OfferedSA marker names exactly the SA the placement/announcement ask
+		// covered (task spcz1; previously every sub that did not declare
+		// TargetUnique$ True inherited, so a targeted root's SubAbility$
+		// ChangeZone read the PARENT's targets through Defined's ValidTgts$
+		// fallthrough and its own Origin$ filter rejected them into a silent
+		// no-op: Cathartic Parting's and Put Away's graveyard "may shuffle"
+		// clause never asked). A sub that DOES mean to reuse the parent's
+		// target says so with TargetUnique$ True (Withdraw): the shared ask's
+		// filter excludes the inherited parent target via TargetsAlreadyChosen,
+		// so it asks for ANOTHER target instead of inheriting blindly.
+		if c.OfferedSA != nil && sa.Line == c.OfferedSA.Line {
 			return nil, false
 		}
 	}

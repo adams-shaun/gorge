@@ -16,8 +16,10 @@ import (
 //   (b) an object-target ChangeZone that moves cards into a library and states
 //       Shuffle$ True now shuffles -- Turn the Earth is the silent
 //       (mandatory) carrier. The flag-bearing tail is covered by a direct
-//       effects test; SP-parented DB carriers still inherit the SP target
-//       and do not reach that tail in live play.
+//       effects test; SP-parented DB carriers ask their own graveyard
+//       targeting at resolution since task spcz1 and reach that tail in
+//       live play (rules/ pins the live path on Put Away and Cathartic
+//       Parting).
 //
 // The corpus scripts are loaded through the gitignored registry; no Forge
 // script text is committed.
