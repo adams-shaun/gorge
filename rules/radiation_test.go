@@ -27,8 +27,22 @@ func TestRadiationDrainIsSourceLessTriggeredAbility(t *testing.T) {
 	if o == nil || o.StackKind != state.StackKindTriggered || o.Source != 0 || o.Controller != 0 {
 		t.Fatalf("inherent drain stack object=%+v, want triggered, source-less, controller 0", o)
 	}
-	// The object is pending on the stack (not an inline turn-state mutation).
 	if got := e.G.Players[0].Counter("RAD"); got != 2 {
 		t.Fatalf("RAD changed before response window: %d, want 2", got)
+	}
+}
+
+func TestRadiationDrainNotQueuedWithoutCounters(t *testing.T) {
+	e := newSeats(t, 2)
+	if got := e.G.Players[0].Counter("RAD"); got != 0 {
+		t.Fatalf("precondition: RAD=%d, want 0", got)
+	}
+	e.G.Step = state.StepMain1
+	e.finishEnteredStep()
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("zero-RAD player queued a drain: %+v", e.pendingTriggers)
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("zero-RAD player has stack object(s): %v", e.G.Stack)
 	}
 }
