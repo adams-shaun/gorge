@@ -457,7 +457,11 @@ func copyDecision(d *decision.Decision) *decision.Decision {
 }
 
 // project is Project's body, shared by every Visibility in ProjectFor.
-func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decision) View {
+// revealFaceDown is the omniscient projection's face-down reveal flag: it
+// is the same flag cardViews' FaceDown redaction takes, so the two views
+// (a battlefield card and a face-down spell on the stack) cannot disagree
+// about who may look at a face-down card's printed face.
+func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decision, revealFaceDown bool) View {
 	v := View{Viewer: viewer}
 	if g == nil {
 		return v
@@ -495,7 +499,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		w := g.Winner
 		v.Winner = &w
 	}
-	v.Stack = stackViews(g, ch, g.Stack)
+	v.Stack = stackViews(g, ch, g.Stack, viewer, revealFaceDown)
 	// Default to the non-nil empty shape (Ruling T23-u) whether or not ch
 	// is nil; a real Chars overwrites it below.
 	v.Pending = pendingViews(nil)
@@ -928,7 +932,16 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 
 // stackViews maps the stack's own object ids to StackViews, bottom to top.
 // Always non-nil (Ruling T23-u).
-func stackViews(g *state.Game, ch Chars, ids []state.ObjID) []StackView {
+//
+// viewer and revealFaceDown redact a face-down SPELL (CR 708.4: a
+// face-down cast's spell has no name, no types and no abilities while it
+// sits on the stack): every viewer but the caster sees a blank spell band
+// -- no name, no text, no printed card -- exactly the redaction the
+// battlefield's cardViews applies to a face-down permanent. The FaceDown
+// state bit rides the PutOnStack's entry marker (rules/cast.go pushCast);
+// no ordinary spell ever carries it, so every unrelated stack band is
+// byte-identical.
+func stackViews(g *state.Game, ch Chars, ids []state.ObjID, viewer state.PlayerID, revealFaceDown bool) []StackView {
 	out := make([]StackView, 0, len(ids))
 	for _, id := range ids {
 		o := g.Obj(id)
@@ -980,6 +993,13 @@ func stackViews(g *state.Game, ch Chars, ids []state.ObjID) []StackView {
 		}
 		sv := StackView{ID: id, Kind: "spell", Controller: o.Controller, Targets: targetViews(o.Targets, targetLabel(o))}
 		if f := o.Face(); f != nil {
+			if o.FaceDown && !revealFaceDown && viewer != o.Controller {
+				// CR 708.4: the face-down spell's printed identity is hidden
+				// from everyone but its controller. The controller's own view
+				// falls through to the printed band below.
+				out = append(out, sv)
+				continue
+			}
 			sv.Name = f.Name
 			sv.Text = spellText(f)
 			cv := cardView(g, ch, id)

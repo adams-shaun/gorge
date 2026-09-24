@@ -1971,6 +1971,19 @@ func registerTrigMatcher(fn trigMatcher, modes ...string) {
 // Undying's counters_EQ0_P1P1 -- can see the object as it was before Move
 // reset it, not the live object already in the destination zone.
 func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	return e.triggerMatchesWithSVars(t, source, ev, lki, nil)
+}
+
+// triggerMatchesWithSVars is triggerMatches with the trigger LINE's owning SVar
+// table supplied explicitly. It exists for the granted-trigger paths, whose
+// trigger line (and every SVar its CheckSVar$/SVarCompare$ condition names)
+// belongs to the GRANTOR, not to the affected recipient that source names: a
+// cross-object AddTrigger$ (level_up's Aura granting its enchanted creature an
+// attacking trigger carrying "CheckSVar$ X") must evaluate that condition
+// against the grantor's table, the same table events.Apply resolves the body
+// from. A nil ownedSVars is every printed-trigger call and keeps the
+// printed-face walk byte-for-byte (see triggerConditionHoldsWithSVars).
+func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object, ownedSVars map[string]string) bool {
 	// The scanner has already run its diagnostic/batch gates. Reject an
 	// impossible event before consulting dynamic zone and phase predicates.
 	if !triggerModeEvents(t.Mode).allows(ev.Kind) {
@@ -2041,7 +2054,7 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	// applied uniformly to every mode so the same T: line grammar (a
 	// LifeAmount$ or IsPresent$+PresentCompare$ clause on the trigger) is
 	// honoured wherever it appears.
-	if !e.triggerConditionHolds(t, source) {
+	if !e.triggerConditionHoldsWithSVars(t, source, e.controllerOf(source), nil, ownedSVars) {
 		return false
 	}
 	return true

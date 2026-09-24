@@ -1322,6 +1322,14 @@ var flagNames = [...]struct {
 	// Quicksand's "if this spell's mayhem cost was paid" split). Appended
 	// at the end per the table's own ordering rule.
 	{"mayhem", state.FlagMayhem},
+	// The morph family's face-down cast (CR 702.37a/702.168a/702.169a): the
+	// flag names the keyword family the {3} face-down cast rode, what the
+	// resolution reader dispatches on (no printed spell abilities, no
+	// targets) and what a later turn-face-up action prices from. Appended
+	// at the end per the table's own ordering rule.
+	{"morphed", state.FlagMorphed},
+	{"megamorphed", state.FlagMegamorphed},
+	{"disguised", state.FlagDisguised},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

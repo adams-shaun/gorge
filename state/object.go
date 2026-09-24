@@ -317,6 +317,22 @@ const (
 	// Quicksand's "if this spell's mayhem cost was paid" split). Appended
 	// per the enum's own append-only precedent.
 	FlagMayhem
+	// FlagMorphed / FlagMegamorphed / FlagDisguised mark a face-down cast
+	// paid for with the {3} morph-family alternative cost (CR 702.37a
+	// Morph, 702.168a Megamorph, 702.169a Disguise). The flag names the
+	// KEYWORD FAMILY the cast rode: the resolution reader
+	// (rules/stack.go resolveTop) dispatches on the set to resolve the
+	// spell with no printed spell abilities and no targets (CR 708.4),
+	// rules/resolution.go's moveResolvedOffStack re-carries the face-down
+	// entry marker so the permanent enters face down (CR 708.5), and a
+	// later turn-face-up action reads the family to price its cost (the
+	// printed keyword parameter, unchanged on the face). They shape the
+	// resolution like FlagBestowed/FlagFused do, so they are deliberately
+	// NOT in CastProvenanceFlags. Appended per the enum's own append-only
+	// precedent.
+	FlagMorphed
+	FlagMegamorphed
+	FlagDisguised
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
