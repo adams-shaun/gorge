@@ -1,0 +1,24 @@
+[gen -1] control: /B/botbench -a bot -b bot -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 200 -seed 90000000 -out json -workers 16 -dir .cards > /O/control.json
+[gen 0] teacher: /B/searchteacher -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 100 -seed 70000000 -kinds attackers,cast -oracle=true -horizon 0 -workers 16 -cards .cards -out /O/gen0/games.jsonl -labels /O/gen0/labels.jsonl > /O/gen0/teacher.txt
+[gen 0] train: /B/policytrain -corpus /O/gen0/labels.jsonl -out /O/gen0/ckpt.gpol -residual-init 2 -holdout-by game -value-weight 1 > /O/gen0/train.txt
+  needs /O/gen0/labels.jsonl
+[gen 0] eval-attackers: /B/botbench -a policynet -b bot -checkpoint /O/gen0/ckpt.gpol -policynet-kinds attackers -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 200 -seed 90000000 -out json -workers 16 -dir .cards > /O/gen0/eval-attackers.json
+  needs /O/gen0/ckpt.gpol
+[gen 0] eval-attackers+priority: /B/botbench -a policynet -b bot -checkpoint /O/gen0/ckpt.gpol -policynet-kinds attackers,priority -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 200 -seed 90000000 -out json -workers 16 -dir .cards > /O/gen0/eval-attackers+priority.json
+  needs /O/gen0/ckpt.gpol
+[gen 1] teacher: /B/searchteacher -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 100 -seed 71000000 -kinds attackers,cast -oracle=true -horizon 2 -workers 16 -cards .cards -out /O/gen1/games.jsonl -labels /O/gen1/labels.jsonl -prior-checkpoint /O/gen0/ckpt.gpol -prior-topk 5 -value-checkpoint /O/gen0/ckpt.gpol > /O/gen1/teacher.txt
+  needs /O/gen0/ckpt.gpol
+[gen 1] train: /B/policytrain -corpus /O/gen0/labels.jsonl,/O/gen1/labels.jsonl -out /O/gen1/ckpt.gpol -residual-init 2 -holdout-by game -value-weight 1 > /O/gen1/train.txt
+  needs /O/gen0/labels.jsonl /O/gen1/labels.jsonl
+[gen 1] eval-attackers: /B/botbench -a policynet -b bot -checkpoint /O/gen1/ckpt.gpol -policynet-kinds attackers -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 200 -seed 90000000 -out json -workers 16 -dir .cards > /O/gen1/eval-attackers.json
+  needs /O/gen1/ckpt.gpol
+[gen 1] eval-attackers+priority: /B/botbench -a policynet -b bot -checkpoint /O/gen1/ckpt.gpol -policynet-kinds attackers,priority -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 200 -seed 90000000 -out json -workers 16 -dir .cards > /O/gen1/eval-attackers+priority.json
+  needs /O/gen1/ckpt.gpol
+[gen 2] teacher: /B/searchteacher -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 100 -seed 72000000 -kinds attackers,cast -oracle=true -horizon 2 -workers 16 -cards .cards -out /O/gen2/games.jsonl -labels /O/gen2/labels.jsonl -prior-checkpoint /O/gen1/ckpt.gpol -prior-topk 5 -value-checkpoint /O/gen1/ckpt.gpol > /O/gen2/teacher.txt
+  needs /O/gen1/ckpt.gpol
+[gen 2] train: /B/policytrain -corpus /O/gen0/labels.jsonl,/O/gen1/labels.jsonl,/O/gen2/labels.jsonl -out /O/gen2/ckpt.gpol -residual-init 2 -holdout-by game -value-weight 1 > /O/gen2/train.txt
+  needs /O/gen0/labels.jsonl /O/gen1/labels.jsonl /O/gen2/labels.jsonl
+[gen 2] eval-attackers: /B/botbench -a policynet -b bot -checkpoint /O/gen2/ckpt.gpol -policynet-kinds attackers -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 200 -seed 90000000 -out json -workers 16 -dir .cards > /O/gen2/eval-attackers.json
+  needs /O/gen2/ckpt.gpol
+[gen 2] eval-attackers+priority: /B/botbench -a policynet -b bot -checkpoint /O/gen2/ckpt.gpol -policynet-kinds attackers,priority -pairs uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy -games 200 -seed 90000000 -out json -workers 16 -dir .cards > /O/gen2/eval-attackers+priority.json
+  needs /O/gen2/ckpt.gpol
