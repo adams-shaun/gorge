@@ -365,7 +365,10 @@ func (b Board) pendingSpendWorstCase(available state.Mana, pendingCost string, r
 			if rem[i] == 0 {
 				continue
 			}
-			if pick < 0 || need[i] > need[pick] {
+			// Drain the colour with the least remaining slack above its
+			// reserve demand. Equal slack is resolved by mana-slot order.
+			slack := rem[i] - need[i]
+			if pick < 0 || slack < rem[pick]-need[pick] {
 				pick = i
 			}
 		}
