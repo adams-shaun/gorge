@@ -61,6 +61,8 @@ package rules
 
 import (
 	"strings"
+	"sync/atomic"
+	"unsafe"
 
 	"github.com/adams-shaun/gorge/events"
 
@@ -285,6 +287,13 @@ func (e *Engine) castProvenanceAdmits(spec string, objID state.ObjID, you state.
 // them log-only — its own pre-push shape is castOriginAdmitsAtZone, taken
 // by castProvenanceAdmitsPending. The chain order is unchanged: ByYou before bare.
 func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
+	gate := specProvenanceGate(spec)
+	if !gate.may {
+		if provenanceGateVerify {
+			verifyProvenanceGate(spec)
+		}
+		return spec, true
+	}
 	s, ok := e.castFromHandAdmitsWindow(spec, objID, you, pendingCast)
 	if !ok {
 		return "", false
@@ -301,9 +310,13 @@ func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you 
 	if !ok {
 		return "", false
 	}
-	s, ok = e.castOriginAdmits(s, objID, you)
-	if !ok {
-		return "", false
+	if gate.origin {
+		s, ok = e.castOriginAdmits(s, objID, you)
+		if !ok {
+			return "", false
+		}
+	} else if provenanceGateVerify && specCarriesCastOrigin(s) {
+		panic("rules: provenance gate skipped an origin-zone token: " + spec)
 	}
 	return e.castSaAdmits(s, objID)
 }
@@ -640,4 +653,72 @@ func (e *Engine) castProvenanceAdmitsPending(spec string, objID state.ObjID, you
 		return "", false
 	}
 	return e.castProvenanceAdmits(spec, objID, you)
+}
+
+// specProvenanceGate is the chain's one-probe early-out. Every token any
+// stage of castProvenanceAdmitsWindow strips carries the substring "Cast":
+// the hand/any-origin/bare/origin-zone families are all "wasCast..." (the
+// bare stage's specHasBareWasCast itself starts with an Index of "wasCast"),
+// and the CastSa family's stage is gated on Contains "CastSa". A spec without
+// "Cast" therefore passes every stage unchanged with ok true, so returning it
+// directly is the chain's exact answer. Measured before this gate: ~95% of
+// the chain's calls came from the layer walk's Affected$ match
+// (matchesWithChars), almost none carrying a token, each paying ~10
+// Contains/Index probes (the six stages' guards). The gate is a pure
+// function of the spec, cached per spec string in a direct-mapped front keyed
+// by the string's data pointer and length (effects' specFront pattern: spec
+// text comes from the immutable card IR, so a hit is one atomic load and a
+// pointer-equal string compare instead of a scan of the spec). Entries are
+// immutable and published atomically, so concurrent engines only race to
+// replace a slot; the entry holds the string, so the compare is exact.
+// provenanceGateVerify (the rules test binary) re-runs every stage's own
+// guard on a gated spec and panics if one would have fired.
+//
+// origin additionally records whether the spec carries an origin-zone token
+// (specCarriesCastOrigin, four probes): the earlier stages only strip whole
+// '+'-separated tokens, so a spec without one never gains one on the way
+// down the chain, and castOriginAdmits is skipped for it.
+func specProvenanceGate(spec string) provGate {
+	slot := &provGateFront[provGateSlot(spec)]
+	if ent := slot.Load(); ent != nil && ent.spec == spec {
+		return ent.provGate
+	}
+	g := provGate{may: strings.Contains(spec, "Cast")}
+	g.origin = g.may && specCarriesCastOrigin(spec)
+	slot.Store(&provGateEntry{spec: spec, provGate: g})
+	return g
+}
+
+type provGate struct {
+	may    bool
+	origin bool
+}
+
+type provGateEntry struct {
+	spec string
+	provGate
+}
+
+const provGateBits = 12
+
+var provGateFront [1 << provGateBits]atomic.Pointer[provGateEntry]
+
+func provGateSlot(spec string) uint {
+	p := uintptr(unsafe.Pointer(unsafe.StringData(spec)))
+	h := uint64(p>>3) ^ uint64(len(spec))*0x9e3779b97f4a7c15
+	h ^= h >> 29
+	h *= 0xbf58476d1ce4e5b9
+	h ^= h >> 32
+	return uint(h) & (1<<provGateBits - 1)
+}
+
+// provenanceGateVerify: see derivedMemoVerify. Set by the rules test binary.
+var provenanceGateVerify = derivedMemoVerifyFlag != ""
+
+func verifyProvenanceGate(spec string) {
+	if strings.Contains(spec, "wasCastFromYourHandByYou") || strings.Contains(spec, "wasCastByYou") ||
+		specHasBareWasCast(spec) || strings.Contains(spec, "wasCastFromYourHand") ||
+		specCarriesCastOrigin(spec) || strings.Contains(spec, "CastSa") {
+		panic("rules: provenance gate skipped a spec carrying a provenance token: " + spec)
+	}
 }

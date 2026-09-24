@@ -180,6 +180,11 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 					}
 				}
 			}
+			if busy && !tried.sagas[id] {
+				// Deferred on e.pendingTriggers, a runtime input the SBA
+				// quiet key (rules/sbaquiet.go) does not cover.
+				e.sbaUnquiet = true
+			}
 			if busy || tried.sagas[id] {
 				continue
 			}
