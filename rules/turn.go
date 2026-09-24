@@ -96,6 +96,11 @@ func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
 		return
 	}
+	// CR 728.1: the rad-counter drain is an inherent triggered ability.
+	if e.G.Step == state.StepMain1 && int(e.G.Active) < len(e.G.Players) &&
+		!e.G.Players[e.G.Active].Lost && e.G.Players[e.G.Active].Counter("RAD") > 0 {
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Controller: e.G.Active, RadiationDrain: true})
+	}
 	// CR 724.2a: the monarch's draw is a triggered ability at the beginning
 	// of the end step, not an immediate turn-based action. Queue it here; the
 	// ordinary trigger drain places it on the stack before priority, preserving

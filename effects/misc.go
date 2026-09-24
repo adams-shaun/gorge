@@ -299,6 +299,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	// Capture the effect's own subjects before discarding older source memory.
+	forgetOtherRemembered(h, c, sa)
 	if imprintOnHost && len(remembered) > 0 {
 		// ImprintOnHost$ retains the objects captured by this Effect on its
 		// host card. Keep the association event-backed so replay and later
@@ -3844,18 +3846,9 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 				c.VillainousVictims = append(c.VillainousVictims, target)
 			}
 		}
-		// Nested asks (for example DBSac's permanent picker) carry the
-		// Remembered victim but not this primitive's private cursor. Recover
-		// the cursor from that stable victim so the body is not re-asked and
-		// the following victims are still processed.
-		if c.Modes == nil && len(c.Remembered) > 0 {
-			for i, target := range c.VillainousVictims {
-				if target == c.Remembered[len(c.Remembered)-1] {
-					c.VillainousIndex = i + 1
-					break
-				}
-			}
-		}
+		// The trigger's original Remembered can already end in its victim
+		// (Attacks supplies the defender). That is not proof of a resumed
+		// body: the explicit VillainousRest cursor handles nested asks.
 	}
 	for c.VillainousIndex < len(c.VillainousVictims) {
 		victim := c.VillainousVictims[c.VillainousIndex]

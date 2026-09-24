@@ -2167,6 +2167,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// bound the TargetsForEachPlayer$ shape needs (Havoc Eater's
 	// TargetMax$ X with SVar:X:PlayerCountOpponents$Amount).
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
+		if strings.HasPrefix(rest, "Counters.") {
+			kind := strings.TrimPrefix(rest, "Counters.")
+			var total int32
+			for _, p := range g.AliveFrom(0) {
+				if kind == "ALL" {
+					for _, counter := range g.Players[p].Counters {
+						total += counter.N
+					}
+				} else {
+					total += g.Players[p].Counter(strings.ToUpper(kind))
+				}
+			}
+			return total, true
+		}
 		if n, ok2 := playerGroupCount(g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}

@@ -1254,6 +1254,7 @@ const (
 	// .Protector, recorded through the Choose "protector" event).
 	wordOppProtect
 	wordHistoric
+	wordAdventureCard
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
@@ -1569,6 +1570,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordOppProtect, ""
 	case "Historic":
 		return wordHistoric, ""
+	case "AdventureCard":
+		return wordAdventureCard, ""
 	case "IsCommander":
 		return wordIsCommander, ""
 	case "blockingSource":
@@ -1863,6 +1866,20 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).
 		return hasTypeCtx(o, "Artifact", sc) || hasTypeCtx(o, "Legendary", sc) || hasTypeCtx(o, "Saga", sc)
+	case wordAdventureCard:
+		if o == nil || o.Card == nil || o.Card.AlternateMode != "Adventure" || len(o.Card.Faces) != 2 {
+			return false
+		}
+		face := o.Card.Faces[1]
+		if face == nil || (!face.IsInstant() && !face.IsSorcery()) {
+			return false
+		}
+		for _, typ := range face.Types {
+			if typ == "Adventure" {
+				return true
+			}
+		}
+		return false
 	case wordIsCommander:
 		// Forge's IsCommander: the object is one of a seat's commanders.
 		// The commander list lives on the Players at genesis.

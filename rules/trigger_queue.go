@@ -383,6 +383,13 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
+	if pt.RadiationDrain {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__radiation_drain"})
+		return
+	}
 	if pt.MonarchDraw {
 		// Use DelayedPush's event-sourced stack-object creation. Apply has a
 		// dedicated synthetic body for this engine-owned trigger, so no card

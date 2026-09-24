@@ -578,6 +578,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherTargets"]), "True") {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
+	} else {
+		forgetOtherRemembered(h, c, sa)
 	}
 	// Imprint effects such as Chrome Mox select eligible cards from their
 	// controller's hand. Keep them out of the generic hand mover so their
@@ -1586,6 +1588,8 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// sub-specs are a property of the SA, not of the hand owner.
 	eachSubs, isEach := eachAlternatives(spec)
 	g := h.Game()
+	selection := *c // selectors must see the pre-clear remembered set
+	forgetOtherRemembered(h, c, sa)
 	// fx42 scoping: capture and clear the answered pick (and the cursor that
 	// binds it to the owner that asked) BEFORE anything else, so a nested
 	// hand-move ask below cannot inherit them.
@@ -1615,7 +1619,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		hand := zoneOf(g, state.ZHand, owner)
 		eligible := make([]state.ObjID, 0, len(hand))
 		for _, id := range hand {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 				eligible = append(eligible, id)
 			}
 		}
@@ -1639,7 +1643,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				if o == nil || o.Zone != state.ZHand {
 					continue
 				}
-				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				if !MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 					continue
 				}
 				settleHandMove(id, owner)
@@ -1711,7 +1715,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		var ceiling int
 		if structured {
 			eachPerType = n
-			eachGroups = EachTypeGroups(g, eachSubs, eligible, c.SpecContext(c.Controller))
+			eachGroups = EachTypeGroups(g, eachSubs, eligible, selection.SpecContext(selection.Controller))
 			for _, ids := range eachGroups {
 				k := int32(len(ids))
 				if k > eachPerType {
