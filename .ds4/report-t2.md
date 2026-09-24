@@ -9,6 +9,71 @@ loud Note per parameter, and run only the core reveal-until move. All riders in
 the brief except `DigZone$ PlanarDeck` are now implemented; the withhold list
 and Note emission shrank accordingly.
 
+## Round 2 (this fix round) — the one finding in `findings-t2.md`
+
+`findings-t2.md` carried exactly one MAJOR and no re-verification list:
+
+- **[MAJOR] `.ds4/report-t1.md` replaced the shared report archive (3,587 lines
+  removed) with only this ticket's report.** Confirmed: commit `01c37234`
+  rewrote `.ds4/report-t1.md` from 3,429 lines to 248, dropping 3,384 lines of
+  other tickets' accumulated report history. Every other checked item in that
+  findings file was a break attempt that HELD, and its regression/gate checks
+  passed.
+
+**Fixed** in `b92d89f8`. The shared-report-file preserve convention
+(`6bc24448`, model `472d095d`) is: restore the prior file byte-exact and prepend
+the current ticket's report above a separator. `.ds4/report-t1.md` is now the
+DigUntil report followed by a separator and the prior archive restored
+byte-exact (`tail -n +255` of the new file `cmp`s clean against
+`01c37234^:.ds4/report-t1.md`). Because the dispatch names `.ds4/report-t2.md`
+as the report path, the same DigUntil report is written there with its own
+prior contents preserved byte-exact below a separator. No other file changed
+this round; no code, test or census change.
+
+Gates re-run this round (no source changed, so several report `(cached)`; the
+`-count=1` DigUntil run proves the tests actually execute):
+
+```text
+$ go build ./...
+(clean)
+
+$ go test -count=1 -run 'TestDigUntil' -v ./effects/
+--- PASS: TestDigUntilAmountSVarCountsMatchesToTheTally (0.48s)
+--- PASS: TestDigUntilAmountSVarZeroRevealsNothing (0.00s)
+--- PASS: TestDigUntilAmountSVarUnresolvableStillWithholds (0.00s)
+--- PASS: TestDigUntilShuffleShufflesTheDugLibrary (0.00s)
+--- PASS: TestDigUntilShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan (0.00s)
+--- PASS: TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary (0.00s)
+--- PASS: TestDigUntilFoundLibraryPositionPlacesOrKeepsTheFoundCard (0.00s)
+--- PASS: TestDigUntilImprintFoundFeedsTheExileReader (0.00s)
+--- PASS: TestDigUntilImprintRevealedRecordsEveryRevealedCard (0.00s)
+--- PASS: TestDigUntilNoneFoundBranchSwapsTheRevealedDestination (0.00s)
+--- PASS: TestDigUntilRidersEmitOnceAcrossTheOptionalAsk (0.00s)
+--- PASS: TestDigUntilKindredSummonsAmountSVarCountsChosenTypeCreatures (0.00s)
+--- PASS: TestDigUntilEmptyTheLaboratoryAmountSVarCountsRemembered (0.00s)
+--- PASS: TestDigUntilTunnelVisionNoneFoundShufflesAndKeepsLibrary (0.00s)
+(plus the 5 pre-existing DigUntil tests)
+PASS
+ok  github.com/adams-shaun/gorge/effects  0.497s
+
+$ go test -run 'TestParamCensusScanIsComplete|TestEveryRepoDeckParamsAreRead' ./rules/
+ok  github.com/adams-shaun/gorge/rules  (cached)
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  (cached)
+
+$ gofmt -l effects/cardflow.go effects/diguntil_riders_test.go effects/diguntil_aura_test.go rules/paramcensus_test.go
+(empty)
+$ go run ./cmd/gentypes -check
+(empty)
+```
+
+`.cards` is a symlink to the shared corpus (present), so corpus-backed tests ran
+rather than skipped.
+
 NOTE ON ROUND HISTORY: an earlier t1 run was lost mid-task (per
 `.ds4/findings-t1.md`). It had already implemented the riders and committed them
 as `c749b700` (`feat(effects): implement DigUntil withheld rider semantics`).
