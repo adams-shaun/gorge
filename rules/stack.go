@@ -4301,6 +4301,24 @@ func (e *Engine) EmitTokenCreate(ev events.Event) []state.ObjID {
 	e.tokenMintSink = saved
 	return ids
 }
+
+// EmitStackCopy emits a StackCopy event and returns the object it actually
+// minted. The copy object is created inside events.Apply's StackCopy fold, so
+// effects/copy.go's RememberCopies$ rider (Forge's card.addRemembered) cannot
+// see its id from Emit; this method's sink records the pre-fold NextID the
+// fold's AddObject assigns. The empty return is the fold's early breaks (no
+// source, source already left the stack) -- a proposed copy that minted
+// nothing, which must not be remembered. Same stack discipline as
+// EmitTokenCreate, so a nested stack copy cannot leak its mint to the outer
+// caller.
+func (e *Engine) EmitStackCopy(ev events.Event) []state.ObjID {
+	var ids []state.ObjID
+	saved := e.stackCopyMintSink
+	e.stackCopyMintSink = &ids
+	e.emit(ev)
+	e.stackCopyMintSink = saved
+	return ids
+}
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
 
 // EmitLifeChange reports whether the exact proposed life change was applied.

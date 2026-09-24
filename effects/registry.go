@@ -54,6 +54,15 @@ type Host interface {
 	// unreplaced event returns the single token it minted (empty when nothing
 	// was created).
 	EmitTokenCreate(events.Event) []state.ObjID
+	// EmitStackCopy emits a StackCopy event and returns the object it actually
+	// minted, if any. The copy object is created inside events.Apply's
+	// StackCopy fold (AddObject assigns it the pre-emit NextID), so an effect
+	// cannot read the minted id off its own event; effects/copy.go's
+	// RememberCopies$ rider (Forge's card.addRemembered(copies)) calls this
+	// instead of Emit to append the copy to the remembered set. The empty
+	// return covers the fold's early breaks (no source, source already left
+	// the stack) -- a proposed copy that minted nothing.
+	EmitStackCopy(events.Event) []state.ObjID
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
 	// result; an amount-changing replacement returns Damage with the applied
