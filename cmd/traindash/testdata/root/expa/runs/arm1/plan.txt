@@ -1,0 +1,4 @@
+[gen -1] control: bin/botbench -a bot -b bot
+[gen 1] train: bin/policytrain -ppo-kl 0.1 -ppo-shape 0.5
+[gen 2] train: bin/policytrain -ppo-kl 0.1 -ppo-shape 0.5
+[gen 3] eval: bin/botbench

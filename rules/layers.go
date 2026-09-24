@@ -1050,7 +1050,7 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 //     Ascend latch, state.Player.Blessing -- granted by rules/ascend.go's
 //     emit-side scan and spell-resolution grant).
 //
-// Every other value -- EnduringStory, FatefulHour, Monarch, MaxSpeed
+// Every other value -- FatefulHour, Monarch, MaxSpeed
 // and anything new -- FAILS CLOSED (the gate never holds), matching every
 // sibling gate's documented deny direction. MaxSpeed is safe to deny here:
 // its statics carry only AddAbility$/AddStaticAbility$/AddTrigger$/
@@ -1078,13 +1078,16 @@ func (e *Engine) continuousConditionHolds(sv staticView) bool {
 	case "Hellbent":
 		return len(e.G.Zone(state.ZHand, sv.Controller)) == 0
 	case "Blessing":
-		// CR 702.131: the city's blessing (Ascend). The latch is one-way
-		// and only ever written by events.Apply's BlessingChange fold, so
-		// the read is a plain state read.
+		// CR 702.131: the city's blessing is a one-way event-folded latch.
 		if int(sv.Controller) >= len(e.G.Players) {
 			return false
 		}
 		return e.G.Players[sv.Controller].Blessing
+	case "EnduringStory":
+		if int(sv.Controller) >= len(e.G.Players) {
+			return false
+		}
+		return e.G.Players[sv.Controller].EnduringStory
 	}
 	return false
 }
