@@ -47,11 +47,13 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * post's `holdPriority` (prio3) threads the Ctrl modifier from the tile
  * click into SeatPanelState.click's `{ holdPriority }`: Ctrl held while
  * submitting a cast/ability must not arm pass-after-acting for that one
- * action. post's `expectFollowUp` arms the card-follow-up expectation
- * (fb-e079def5) -- every card-anchored post arms it, because a card action
- * can hand the server a follow-up decision for the same object (a
+ * action. post's `expectFollowUp` declares that a card-anchored post may
+ * hand back a follow-up decision for the same object (fb-e079def5: a
  * multi-ability mana source's stage-1 ability pick, answered through the
- * wheel, must re-open the wheel for its stage-2 colour ask). The route's own
+ * wheel, must re-open the wheel for its stage-2 colour ask). The ARM itself
+ * is SeatPanelState's (fb-20260923T050205Z): panel.click arms it for an
+ * `activate` or `mana` answer only (seatpanel.svelte.ts followUpArm), so the
+ * tile and the panel's own buttons behave identically. The route's own
  * boardOptions.post is what finally reaches panel.click, so this signature
  * is the contract every tile affordance (direct icon, radial wheel, long
  * list menu -- CardTile, CommanderTile, IdentityBar, HandFan) speaks.
@@ -303,7 +305,8 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
 
 /** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
  *
- * Every picker post ARMS the card-follow-up expectation (task fb-e079def5):
+ * Every picker post declares a possible card follow-up (task fb-e079def5;
+ * the arm is SeatPanelState.followUpArm's, `activate`/`mana` answers only):
  * every option a picker posts is card-anchored (it comes from optionsByObj /
  * optionsByPlayer, so its `obj` names the card the choice was made on), and a
  * card-anchored choice can hand the server a follow-up decision for the SAME

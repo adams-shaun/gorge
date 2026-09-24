@@ -2170,7 +2170,7 @@ func Apply(g *state.Game, e Event) {
 			// opponent attacked in the triggering declaration.
 			if e.Counter == "__kwMeleeGranted" {
 				sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
-					"Defined": "Self", "NumAtt": "Count$RememberedNumber", "NumDef": "Count$RememberedNumber"}}
+					"Defined": "Self", "NumAtt": cards.MeleePumpCount, "NumDef": cards.MeleePumpCount}}
 			}
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
