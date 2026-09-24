@@ -1,3 +1,554 @@
+# Report — agent-20260922T193437Z-a964eea4
+
+**Ticket:** finish the `EffectOwner$` identity half of the generic `Effect`
+`Triggers$` registration, add `OneOff$` one-shot semantics, and pin the landed
+generic registration.
+
+**Status:** DONE. Commit `648ed4eb`.
+
+## What changed and why (per file)
+
+### `effects/context.go`
+- New exported `EffectOwnerPlayers(h Host, c *Ctx, raw string) ([]state.PlayerID, bool)`
+  — the ONE home for the `EffectOwner$` selector grammar used by both the
+  generic `effEffect` path and the pregame path. `""`/`You` → the resolving
+  controller; `Opponent`/`Other` → every other surviving seat; every other
+  spelling is resolved through the shared `Defined$` referent grammar
+  (`knownDefinedTargets` → `definedSpec`) and mapped to seats under Forge's
+  `getDefinedPlayers` rule (so `TriggeredTarget`, `TriggeredDefendingPlayer`,
+  `Targeted`, `Player.IsRemembered` work). `TargetedOwner` — which the brief
+  believed `definedSpec` already implemented, but which it does **not** (see
+  "Brief premises that did not hold") — is handled here from `ownersOf(g, c.Targets)`
+  rather than by widening `definedSpec`, so unrelated cards that carry
+  `Defined$ TargetedOwner` (Chaos Warp, Lodestone Bauble) are untouched.
+  The bool distinguishes "unmodelled spelling" from "named nobody"; the caller
+  fails closed on both.
+
+### `effects/misc.go` (`effEffect`, the `Triggers$` loop)
+- The owner is resolved **lazily** (`resolveOwners` closure) on the first arm
+  that needs it. An `EffectOwner$` that cannot resolve emits a loud
+  `"unresolvable EffectOwner$ <sel> (Triggers$ not registered)"` Note and
+  registers nothing — it never silently defaults to the source controller.
+- The three generic arms (`SpellCast`/`ChangesZone`, `Phase`, `default`)
+  now emit one `DelayedRegister` **per owner** instead of one with
+  `Player: c.Controller`. The firing-time matcher already prefers
+  `dt.Controller` (`rules/trigger_delayed.go:297`), so matching follows for
+  free.
+- `OneOff$ True` bodies on the two event modes the delayed machinery can
+  consume without minting a stack object (`SpellCast`, `ChangesZone`) drop the
+  `|EF` marker (`efMarker`), so the registration is one-shot: `DelayedPush`
+  removes a non-`EffectRepeat` registration on its first firing. Other modes
+  keep the recurring form (their non-repeat dispatch is not wired; forcing
+  one-shot would make them inert, not one-shot).
+- The `BecomeMonarch` arm is **deliberately left with `Player: c.Controller`**
+  (deviation from the brief — see below).
+
+### `rules/opening_hand.go`
+- `openingEffectOwners` now delegates to `effects.EffectOwnerPlayers`, so the
+  pregame and generic paths cannot disagree about the owner set.
+- New `openingEffectAlreadyRegistered(card, owner, mode, exec)` and a check
+  before each pregame `DelayedRegister`: the pregame pass skips a body the
+  generic path already minted for the same source/owner/Execute. This is the
+  **OneOff home I chose**: make the pregame path not double-register. When the
+  generic path withheld the body (e.g. the lifetime guard blocked a
+  longer-lived Effect — Chancellor of the Annex's `Duration$ Permanent`), the
+  check returns false and the pregame pass registers it, so the opening-hand
+  case keeps working.
+
+### `rules/effect_trigger_owner_test.go` (existing test adapted)
+`TestEffectTriggerMatchesRegistrationOwner` pre-resolved `EffectOwner$ Opponent`
+and passed `ctx.Controller = owner`; now that `effEffect` resolves the selector
+itself, that double-applied it. The setup now enters resolution as the source's
+controller (the behavior moved from the caller into `effEffect`); assertions are
+unchanged and still prove the false/true firing halves.
+
+### `rules/effect_trigger_owner_generic_test.go` (new — all new tests live here)
+- `TestEffectTriggerOwnerTriggeredTarget` — Valiant Batrider's shape
+  (`EffectOwner$ TriggeredTarget`, `TriggerContext.TriggerTarget` = seat 1):
+  registration owned by seat 1, seat 0's damage does not fire, seat 1's does.
+- `TestEffectTriggerOwnerTargetedOwner` — an object whose **owner differs from
+  its controller** (owner 1, controller 0) resolves to seat 1.
+- `TestEffectTriggerOwnerTargetedPlayer` — `EffectOwner$ Targeted` on a player.
+- `TestEffectTriggerOwnerUnresolvableFailsClosed` — an unmodelled selector
+  registers nothing AND the loud Note is present.
+- `TestEffectOneOffDoesNotDoubleFireFromOpening` — an opening-hand `OneOff$ True`
+  SpellCast Effect registers exactly ONCE, one-shot; the first cast fires it
+  once and consumes it; a second cast does not re-fire.
+- `TestEffectGenericRegistrationHoldsOnCorpus` — real corpus: Bonus Round's
+  `A:SP$ Effect | Triggers$ TrigSpellCast` arms a recurring `SpellCast`
+  registration.
+
+## Deviation from the brief (with reasons)
+
+**1. The `BecomeMonarch` arm is NOT owned by `EffectOwner$`.**
+
+The brief says "in every registering arm". That is wrong for this arm. Its
+registration `Player` is the **monarch relation's anchor**: `rules/trigger_delayed.go`
+reads `ValidPlayer$ Player.OpponentOf Remembered` against `dt.Controller`. For
+Palace Jailer the oracle is "until an opponent **of the Jailer's controller**
+becomes the monarch", and the engine deliberately (and reviewed-ly) anchors on
+the source's controller. Palace Jailer carries `EffectOwner$ TargetedOwner`,
+but resolving it here would move the anchor to the exiled creature's owner and
+return the creature when the Jailer's **own** controller takes the crown — the
+opposite of the card text. Three existing tests pin this:
+`TestPalaceJailerReturnsToThirdSeatOpponentMonarch`,
+`TestPalaceJailerStaysExiledWhenJailerControllerTakesCrown` (the negative
+control) and `TestPalaceJailerComeBackRegistersAndFiresOnOpponentMonarch`. My
+first attempt did fan the arm out and those three tests failed; I reverted that
+arm. `TargetedOwner` is still a supported selector for the generic event/phase
+arms (proved by `TestEffectTriggerOwnerTargetedOwner`). The reason is recorded
+in a code comment at the arm.
+
+**2. `TargetedOwner` is handled inside `EffectOwnerPlayers`, not in `definedSpec`.**
+
+The brief asserted `definedSpec` already implements `TargetedOwner`. It does
+not. Adding it there would change 18 unrelated `Defined$ TargetedOwner` corpus
+lines, including two repo-deck cards (Chaos Warp, Lodestone Bauble) — an
+off-brief behavior change. Since the brief only asks for `EffectOwner$` support,
+I mapped the one owner-suffix spelling inside the EffectOwner helper and left
+`definedSpec` alone. (The general `Defined$ TargetedOwner` gap is filed under
+`## Issues`.)
+
+## Brief premises that did not hold (measured)
+
+1. **`TargetedOwner` was not implemented.** `grep -n 'case "TargetedOwner"'
+   effects/context.go` returned nothing before this change; the only readers of
+   `EffectOwner$` were `rules/opening_hand.go`. The brief's "`TargetedOwner`
+   family already implements" is false.
+2. **The carrier ↔ deck intersection is NOT empty.** The brief said it was
+   empty ("`TestConstructedDefaultIsByteIdentical` should NOT move"). Measured:
+   5 carrier cards are in the deck universe —
+   `Alchemist's Gambit`, `Hunter's Insight`, `Love on the Battlefield`,
+   **`Palace Jailer`**, `Ugin, the Ineffable`. Palace Jailer is in
+   `death-n-taxes`, which is the **first Legacy deck** the chain heads seat
+   (`internal/testutil/decks.go` `legacyDeckNames`). This is exactly why I kept
+   the `BecomeMonarch` arm byte-identical: changing it would have moved the
+   chain heads through a deck card the brief believed was absent.
+   (The other four are in non-Legacy decks and are unaffected anyway: the two
+   `DB$ Effect` carriers without `EffectOwner$` keep `c.Controller`; `Love on
+   the Battlefield` (`UntilEndOfCombat`) and `Ugin` (`ForgetOnMoved$`) are
+   blocked by the guard the sibling ticket owns.)
+3. **Deck-name count is 1022, not 1042** (measured
+   `grep -hoE '"name": *"[^"]+"' internal/testutil/decks/*.json | sort -u`).
+4. **"All six EffectOwner$ carriers are blocked by the lifetime guard"**
+   glosses over Palace Jailer: its `BecomeMonarch` body is **exempt** from the
+   guard, so it registers today. The six-selector census (6 lines) otherwise
+   held.
+
+## Head / ratchet / botbench movement
+
+None observed, and none expected:
+- `TestConstructedDefaultIsByteIdentical` — **PASS** (unchanged).
+- No Legacy-deck card's registration changed: the only Legacy carrier is
+  Palace Jailer, whose arm is unchanged; the remaining four are in non-Legacy
+  decks and unchanged as argued above. No Legacy `OneOff$ True`
+  SpellCast/ChangesZone carrier exists (measured).
+- The `knownUnsupported` / `knownUnsupportedParams` ratchets cannot move: no
+  new primitive/param is registered, only runtime owner/one-shot behavior.
+
+`TestHeads` is a daemon gate (not named by the brief) and was not run; the
+analysis above is why no seat-count golden should move.
+
+## Known-approximations row
+
+The `Effect` row at `AGENTS.md:217` is compound (it also covers
+`StaticAbilities$` modes, the exotic `Duration$` grammar, and the other
+Effect-delivered grant keywords). **This ticket does not close it; the row is
+left as-is and `knownApproximationRows` is unchanged (9).** The `EffectOwner$`
+selectors supported vs. still-failing-closed and the one-shot semantics are
+reported here, not written into the table.
+
+## Gates (real output)
+
+All run from the worktree root with `.cards` present as a symlink to the real
+corpus (verified: `.cards -> /home/sadams/projects/gorge/.cards`).
+
+```
+$ go build ./...
+BUILD_OK
+
+$ go test -run 'TestEffectTriggerMatchesRegistrationOwner|TestEffectTriggerOwner|TestEffectTriggerExpires|TestEffectEventModes|TestEffectTriggerBodySelfExile' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.050s
+
+$ go test -run 'TestEffectTriggerMatchesRegistrationOwner|TestEffectTriggerOwner|TestEffectTriggerExpires|TestEffectEventModes|TestEffectTriggerBodySelfExile|TestEffectTriggerExpiryAndUnsupportedLifetime|TestChancellor|TestOpeningEffect|TestPalaceJailer|TestEffectOneOff' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.607s
+
+$ go test -run 'TestEffectTriggerOwner|TestEffectOneOff|TestEffectGenericRegistration|TestPalaceJailer|TestKnightsOfTheBlackRose|TestCustodiLich|Monarch|TestEffectTriggerMatchesRegistrationOwner|TestEffectTriggerExpires|TestEffectEventModes|TestEffectTriggerBodySelfExile|TestEffectTriggerExpiryAndUnsupportedLifetime|TestChancellor|TestOpeningEffect' ./rules/ > .ds4/scratch/all3.log 2>&1; tail
+ok  	github.com/adams-shaun/gorge/rules	0.531s
+
+$ go test ./effects/
+ok  	github.com/adams-shaun/gorge/effects	16.783s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.451s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.878s
+
+$ gofmt -l effects/misc.go effects/context.go rules/opening_hand.go rules/effect_trigger_owner_generic_test.go rules/effect_trigger_owner_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+```
+
+## Fails without the fix
+
+I copied the three changed non-test files to `.ds4/scratch/`, reverted the four
+behavioral hunks (owner selection → source controller; `TargetedOwner`
+resolution removed; `|EF` always; pregame dedupe always false), ran the new
+tests, then restored the files byte-identically (`cmp` clean on all three).
+
+```
+$ go test -run 'TestEffectTriggerOwner|TestEffectOneOffDoesNotDoubleFireFromOpening|TestEffectGenericRegistrationHoldsOnCorpus' ./rules/
+--- FAIL: TestEffectTriggerOwnerTriggeredTarget (0.00s)
+    effect_trigger_owner_generic_test.go:45: precondition: expected a recurring Effect registration owned by seat 1: [{ID:0 Phase:main1 Source:81 Controller:0 Execute:Pain ... EventMode:DamageDone Trigger:Hook EffectRepeat:true ...}]
+--- FAIL: TestEffectTriggerOwnerTargetedOwner (0.00s)
+    effect_trigger_owner_generic_test.go:79: precondition: TargetedOwner must resolve to seat 1: [] (ok=false)
+--- FAIL: TestEffectTriggerOwnerTargetedPlayer (0.00s)
+    effect_trigger_owner_generic_test.go:103: EffectOwner$ Targeted (player) registration = [{... Controller:0 ...}], want controller 1
+--- FAIL: TestEffectTriggerOwnerUnresolvableFailsClosed (0.00s)
+    effect_trigger_owner_generic_test.go:121: unresolvable EffectOwner$ must register nothing, got [{... Controller:0 ...}]
+--- FAIL: TestEffectOneOffDoesNotDoubleFireFromOpening (0.00s)
+    effect_trigger_owner_generic_test.go:145: opening OneOff$ effect registered 2 delayed triggers, want exactly 1: [{... EffectRepeat:true ...} {... EffectRepeat:false ...}]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.438s
+```
+
+Restore verified:
+
+```
+$ cmp effects/misc.go .ds4/scratch/misc.go.fixed2 && echo misc OK
+misc OK
+$ cmp effects/context.go .ds4/scratch/context.go.fixed2 && echo context OK
+context OK
+$ cmp rules/opening_hand.go .ds4/scratch/opening_hand.go.fixed2 && echo opening OK
+opening OK
+```
+
+## Landed generic registration — already pinned (cited)
+
+The landed generic registration for matcher-backed modes is pinned by
+`rules/effect_event_modes_test.go` (`TestEffectDamageDoneTriggerRepeatsWithinTurn`,
+`TestEffectSpellCastTriggerRepeatsWithinTurn`,
+`TestEffectChangesZoneTriggerRepeatsWithinTurn` — registration with
+`EffectRepeat` plus repeat-within-turn firing) and by
+`rules/effect_frame_trigger_test.go` (the one-shot self-exile frame). I did not
+duplicate them; instead I added `TestEffectGenericRegistrationHoldsOnCorpus`,
+which pins the **real corpus** carrier the report named (Bonus Round:
+`A:SP$ Effect | Triggers$ TrigSpellCast`, `Mode$ SpellCast`, no `Duration`)
+registering a recurring `SpellCast` Effect trigger.
+
+## `EffectOwner$` selectors: supported vs failing closed
+
+- **Supported (generic event/phase arms):** `""`/`You`, `Opponent`/`Other`,
+  `TriggeredTarget`, `TriggeredDefendingPlayer`, `Targeted`,
+  `Player.IsRemembered`, `TargetedOwner`.
+- **Also resolve through the shared grammar** (not the six named, but no longer
+  rejected): `TriggeredPlayer`, `TriggeredActivator`,
+  `TriggeredSourceController`, `Remembered`, `RememberedController`,
+  `RememberedOwner`, `CardOwner`, `ImprintedOwner`, … — whatever
+  `knownDefinedTargets` recognises.
+- **Fail closed loudly (register nothing + Note):** `Player.Opponent`,
+  `RememberedOwner.Opponent` and any other spelling
+  `knownDefinedTargets` does not recognise.
+- The `BecomeMonarch` arm intentionally does not use the owner at all.
+
+## Issues (found, not fixed)
+
+1. **`Defined$ TargetedOwner` is not implemented in `definedSpec`** (18 raw
+   corpus lines, e.g. `vanish_from_sight`, `oblation`, `blink`, and the
+   `AlternativeDecider$ TargetedOwner` family). Today those fall through
+   `Defined`'s source/chosen-target fallback to the wrong referent (the source).
+   Reproduce: `/usr/bin/grep -rlE 'TargetedOwner' .cards/cardsfolder | wc -l`
+   → 58 files. Two repo-deck cards carry it (`Chaos Warp`,
+   `Lodestone Bauble`). This is a separate, real bug and should be its own
+   ticket (add a `definedSpec` case returning `ownersOf(g, c.Targets)` and pin
+   each consumer). It deserves a CR-lane test citing CR 108.3 (owner) and
+   CR 701.x/61.x as applicable; I did not write it because it is outside this
+   brief.
+2. **`OneOff$ True` Effect trigger bodies on modes other than
+   `SpellCast`/`ChangesZone` still register recurring** (`|EF`): `AbilityCast`,
+   `LandPlayed`, `SpellAbilityCast`, `Untaps` (measured `Mode$` census over the
+   48 `OneOff$ True` lines). Their non-repeat dispatch is not wired in
+   `rules/trigger_delayed.go`, so forcing one-shot would make them inert.
+   A follow-up should wire the non-repeat path for those modes and make every
+   `OneOff$ True` body one-shot.
+3. **Effect trigger modes with no registered matcher remain a printed-trigger
+   gap** (the brief's own list: `PlaneswalkedTo`, `Blocks`,
+   `AttackerBlockedByCreature`, `AttackerBlocked`, `Abandoned`,
+   `ChangesController`, `VisitAttraction`, `LosesGame`, `TurnBegin`,
+   `PlaneswalkedFrom`, `Shuffled`, `DiscardedAll`, `SacrificedOnce`). Each new
+   matcher must join `rules/trigmatch_registry_test.go`'s `addedAfterTheSplit`.
+   Not touched here.
+
+## Commit
+
+```
+648ed4eb feat(effects): resolve EffectOwner$ and OneOff$ for the generic Effect Triggers$ path
+```
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — agent-20260923T065617Z-9b7a6efa: CR 704.5k world-rule SBA
+
+## Outcome
+
+`STATUS=DONE`. The world rule (CR 704.5k) is implemented, sharing the legend
+rule's (CR 704.5j) one parked-batch controller-choice channel. Six new tests
+in `rules/world_rule_test.go` cover it; every one fails with the non-test fix
+reverted. All brief gates pass.
+
+Commit: `26f2e09d0fdc25ba9a5fe368364dc2be20bf7d56` on branch
+`wt/agent-20260923T065617Z-9b7a6efa` (base `374a568b`).
+
+Workspace facts: `.cards` symlink was ALREADY present in this worktree
+(`ls -la .cards` → `… -> /home/sadams/projects/gorge/.cards`), so the
+corpus-backed tests ran rather than skipped. `.ds4/` contents were present.
+
+## What changed and why (per file)
+
+- **`cards/face.go`** — added `func (f *Face) IsWorld() bool { return
+  f.hasType("World") }` beside `IsLegendary()`. `TypeWorld` and
+  `typeMaskFor("World")` already existed; only the accessor was missing.
+
+- **`rules/sba.go`** — the bulk.
+  - Renamed `legendGroup` → `sbaGroup` (it now describes a set for either
+    rule) and gave `legendBatch` a `rule sbaRule` field (`sbaLegend` /
+    `sbaWorld`). The rule derives the replay-visible strings: `keepCounter()`
+    (`"legend_keep"` / `"world_keep"`) and `departureText()` (`"legend rule"` /
+    `"world rule"`).
+  - `parkLegendChoice` → `parkSBAChoice(rule, group, dead)`,
+    `askLegendChoice` → `askSBAChoice`, `legendAnswer` → `sbaAnswer`,
+    `applyLegendBatch` → `applySBABatch`. ONE park/ask/CR 800.4a-decline/
+    settle path for both rules; the batch carries which rule parked it. The
+    ask prompt is intentionally rule-neutral (it names the duplicate's own
+    name, which is what the seat chooses between), so legend asks are
+    byte-identical to before.
+  - `legendGroups()` / `worldGroups()` are thin wrappers over the new
+    `duplicateGroups(rule)` — the ONE duplicate-set scan (per controller,
+    same printed name, ≥2 members, battlefield scan order, deterministic;
+    membership maps never iterated).
+    - The legend half keeps its printed-`IsLegendary()` pre-filter and its
+      `IgnoreLegendRule` exemption, unchanged.
+    - The world half reads the DERIVED type list alone. There is no
+      `IgnoreWorldRule` static in the corpus (measured:
+      `/usr/bin/grep -rn IgnoreWorldRule .cards/cardsfolder` → nothing), so
+      none is collected.
+  - `sbaSupertypeUnderLayers(e, id, rule)` is the shared derived-type read;
+    `legendaryUnderLayers` / `worldUnderLayers` are pinned-rule wrappers.
+  - `destroyLethalDamage`: after the legend park, the world set is parked on
+    the same atomic channel (`parkSBAChoice(sbaWorld, groups[0], dead)`);
+    when a decision is outstanding it defers (`e.sbaUnquiet = true`) rather
+    than applying under the ask, exactly as the legend half does. A pass that
+    gathers both parks the legend set first; the legend answer's Submit tail
+    re-scans and parks the world set.
+
+- **`rules/layers.go`** — extracted `anyLayer4TypeEffect()` out of
+  `typeCharacteristics`' existing fast-path scan (behaviour identical) so the
+  duplicate scan can tell when the derived list may differ from the printed
+  one. With no layer-4 type effect active, `typeCharacteristics` returns the
+  printed list, so a printed-World pre-filter is exact; only when a layer-4
+  effect is live does the world scan read every permanent derived-side.
+
+- **`rules/turn.go`, `rules/engine.go`, `rules/clone.go`,
+  `rules/sbaquiet.go`** — generalized the flow-marker dispatch
+  (`e.sbaAnswer`), the `Engine.legendBatch` comment, the Clone deep-copy
+  comment and the quiet-skip comments to say "duplicate-permanent" rather
+  than "legend". `legendBatch`'s field name is kept (brief: one home; clone
+  and sbaquiet already key on it).
+
+- **`rules/legend_sba_combat_test.go`** — one-line rename
+  `e.askLegendChoice()` → `e.askSBAChoice()` (the departed-controller test
+  calls the ask directly). No assertion changed.
+
+- **`rules/world_rule_test.go`** (new) — the six tests.
+
+## Deviations from the brief (with reasons)
+
+1. **The brief's layer-strip test premise is false.** The brief says a World
+   supertype can be "STRIPPED by a layer-4 static (the `RemoveCardTypes$` /
+   `AddTypes$` shape `fortifySBALandStripper` uses)". It cannot:
+   `RemoveCardTypes$` keeps supertypes (`rules/layers.go` around the
+   `ce.RemoveCardTypes` block: it keeps `isSupertype(t)`), and `World` is in
+   `supertypeWords` (`rules/layers.go`). The only supertype-specific stripper
+   is `NonLegendary$`/`RemoveLegendary`, which drops Legendary only. So no
+   grammar in this build removes World.
+   I re-measured this rather than assuming: `supertypeWords =
+   {"Basic","Legendary","Ongoing","Snow","World"}`, `RemoveCardTypes` keeps
+   exactly those, and `RemoveLegendary` drops only `"Legendary"`.
+   Consequence: the layer test is written in the ADD direction instead —
+   two same-named non-World enchantments made World by `AddTypes$ World`. The
+   test asserts the printed faces are NOT World while the derived lists ARE,
+   so a printed-face-only scan cannot pass. **To keep both directions
+   correct** (and because the brief's core demand is "read the derived list,
+   not the printed face"), the world scan is derived-authoritative: with a
+   layer-4 effect live it never trusts the printed word, so a future
+   World-stripper would work too. The legend scan is untouched.
+
+2. **The brief suggested a pass-loop `worldRuleStep` in `checkStateBased`.**
+   I instead put the world park inside `destroyLethalDamage`, immediately
+   after the legend park. This is the cleaner integration: it shares the
+   same-pass `dead` slice and the same atomic park/ask, which is exactly what
+   the brief said to carry ("carrying the same-pass lethal `dead` the same
+   way"). A pass that gathers both rules parks the legend set first and the
+   world set on the next scan, which the orthogonality test pins.
+
+Nothing else deviates. No `events.Kind`/`events.Event` change; `"world_keep"`
+and `"world rule"` are additive string values on existing kinds. No
+`IgnoreWorldRule` static. No `web/` change. No AGENTS.md "Known
+approximations" edit (there was no row for the world rule; nothing to
+delete). No row added or grown.
+
+## Gates — exact commands and real output
+
+Targeted tests (brief's Done-means pattern, widened to cover the new tests),
+with the corpus present:
+
+```
+$ go test -run 'TestWorldRule|TestWorldAndLegend|TestLegend' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.467s
+```
+
+`internal/archtest` (no allowlist edits):
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	2.678s
+```
+
+Byte-identical botbench split (passes unchanged, as expected — no repo deck
+carries a World card):
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.635s
+```
+
+Format + generated types:
+
+```
+$ gofmt -l cards/face.go rules/sba.go rules/layers.go rules/turn.go rules/engine.go rules/clone.go rules/sbaquiet.go rules/world_rule_test.go rules/legend_sba_combat_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+```
+
+Also ran (targeted, per budget): `go test -run
+'TestWorldRule|TestWorldAndLegend|TestLegend|TestIgnoreLegendRule|TestSBA|TestFortification'
+./rules/` → `ok … 0.491s`. Daemon gates (TestHeads, `make sim`, acceptance
+ratchet, `go vet ./...`, `make report`, CR conformance) deliberately not run
+in the seat.
+
+## Fails without the fix
+
+Reverted the non-test change (disabled the world block in
+`destroyLethalDamage`: `if groups := e.worldGroups(); false && len(groups) > 0`),
+ran the new tests, restored `rules/sba.go` byte-identically (`cmp` clean):
+
+```
+$ go test -run 'TestWorldRule|TestWorldAndLegend' ./rules/
+--- FAIL: TestWorldRuleAsksControllerWhichDuplicateToKeep (0.00s)
+    world_rule_test.go:110: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleBotAnswerKeepsBattlefieldOrderFirst (0.00s)
+    world_rule_test.go:144: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleIsPerController (0.00s)
+    world_rule_test.go:199: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleSinglePermanentPosesNothing (0.01s)
+    world_rule_test.go:247: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleReadsDerivedSupertype (0.00s)
+    world_rule_test.go:284: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldAndLegendRulesAreOrthogonal (0.00s)
+    world_rule_test.go:326: pending decision priority Min 1 Max 1, want a KChoose Min 1 Max 1
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.026s
+FAIL
+```
+
+All six fail. The two "nothing happens" tests (`…IsPerController`,
+`…SinglePermanentPosesNothing`) carry positive controls inside the same test
+(seat 0 IS asked when it controls a duplicate; a second copy makes the lone
+permanent's ask arrive), so they fail too — they cannot pass with the whole
+rule unregistered. Restored file verified with `cmp rules/sba.go
+.ds4/scratch/sba.go.bak` → identical, and every other changed file `cmp`-clean
+against its backup.
+
+Each test additionally asserts its own precondition: objects on
+`ZBattlefield`, `IsWorld()` on the printed face, names equal, controllers
+distinct where scoping is claimed, and (layer test) printed faces NOT World
+while derived lists ARE World.
+
+## Test list (new tests added)
+
+`rules/world_rule_test.go`:
+1. `TestWorldRuleAsksControllerWhichDuplicateToKeep`
+2. `TestWorldRuleBotAnswerKeepsBattlefieldOrderFirst`
+3. `TestWorldRuleIsPerController`
+4. `TestWorldRuleSinglePermanentPosesNothing`
+5. `TestWorldRuleReadsDerivedSupertype`
+6. `TestWorldAndLegendRulesAreOrthogonal`
+
+## Head / ratchet movement
+
+None expected and none observed through the gates I ran. No repo deck carries
+a World card (`/usr/bin/grep -rlE "Types:.*World" .cards/cardsfolder | wc -l`
+measured **26**, and no hit across `internal/testutil/decks/*.json`), so
+chain heads and the acceptance/param ratchets should not move; the daemon
+runs TestHeads at the merge gate. `cmd/botbench`'s pinned split is unchanged.
+If TestHeads moves, it is not attributable to this change and should be
+bisected (none of the 26 World cards is in a repo deck, measured now).
+
+## Issues (found, not fixed)
+
+1. **No layer-4 grammar can remove the World supertype.** The brief assumed
+   `RemoveCardTypes$` strips it; it keeps all supertypes, and there is no
+   `RemoveWorld`-style parameter. Impact: a hypothetical layer-4 "your World
+   permanents aren't world permanents" effect would be read by
+   `typeCharacteristics` (it would drop World from the derived list) and the
+   world scan would then correctly not group them — so the engine is correct;
+   the gap is purely that the test cannot exercise the strip direction with
+   current card text. No corpus carrier exists. If a future Forge/gorge
+   grammar adds supertype removal, `TestWorldRuleReadsDerivedSupertype` can
+   add a strip-direction case with no engine change. Not ledgible to AGENTS.md
+   (frozen, and it is not debt).
+
+2. **`Face.IsWorld()` has no non-test caller in the shipped implementation.**
+   `worldPermanents` (rules/sba.go) calls only `worldUnderLayers`, which
+   compares the derived-type string `"World"`; it must NOT pre-filter on the
+   printed face, because a printed non-World enchantment a layer-4
+   `AddTypes$ World` grants the supertype to is a World permanent for
+   CR 704.5k (`TestWorldRuleReadsDerivedSupertype`). `/usr/bin/grep -rn IsWorld
+   --include=*.go` therefore finds the definition and the test precondition in
+   `world_rule_test.go`, and nothing else. The accessor is harmless and the
+   brief asked for it, but there is no non-test caller. Not a defect; noted
+   for clarity.
+
+3. **`Config.Commanders` de-duplicates same-named commanders.** While
+   building the per-controller test I found that
+   `commanderGame(t, seed, FormatConstructed, 40, [][]string{{src, src}, …})`
+   leaves only ONE entry in seat 0's command zone for two identical card
+   sources (`index out of range [1] with length 1`). Not part of this ticket
+   and not a rules bug (a Commander deck cannot legally run two same-named
+   commanders), but it is a fixture trap: a future test that fields two
+   same-named permanents through `commanderGame` will hit it. I worked around
+   it with `newFixtureDeckWithOpponentCard`. Worth a note in the helper's
+   doc if anyone else trips on it; not filed as a separate ticket because it
+   is a test-helper ergonomics issue, not an engine behaviour, and the workaround
+   is one line.
+
+No CR-lane test is warranted by this ticket (it implements, and closes, the
+CR 704.5k gap).
+
+## Open concerns
+
+None blocking. The one thing a reviewer should sanity-check is the deliberate
+derived-authoritative world scan (deviation 1): it is strictly more correct
+than the legend half's printed pre-filter, and it does not touch the legend
+path.
+
 # Report — game-long damage-by-source provenance (The Fallen, Diseased Vermin)
 
 Ticket: `agent-20260923T114033Z-a57ee463`
@@ -3974,3 +4525,197 @@ Rebased onto `main` after the controller directive (second rebase at the r2
 directive, one `.ds4/report-t1.md` append-append conflict resolved by keeping
 both blocks); all gates above were re-run on the rebased tree and are the
 pasted output.
+
+
+---
+
+# Task 2835347f — `AddTrigger$ A & B` registers no grant (Mirror Shield family)
+
+## Summary
+
+An Equipment/Aura whose printed static grants several triggered abilities via
+Forge's ` & `-joined `AddTrigger$` value granted **nothing**: `rules/layers.go`
+`staticEffects` read the whole value as one SVar name, looked up a nil body and
+silently emitted zero grants. Split the value through the **one exported**
+`cards` grant-name splitter, emitting one grant per successfully parsed name,
+and routed the existing `cards/kw_class.go` call sites through the same
+exported name.
+
+Commit: `3c015837d06b4e7f1c35de2b7b6f259ab9dc34e2`
+
+## Per-file changes
+
+- **`cards/kw_class.go`** — renamed unexported `splitGrantNames` to
+  `SplitGrantNames` (exported) and updated the three call sites
+  (`AddStaticAbility`, `AddTrigger`, `AddReplacementEffect`). ONE home for the
+  ` & ` grammar; no second copy exists in `rules/`.
+- **`rules/layers.go`** — the `AddTrigger$` branch of `staticEffects` now
+  iterates `cards.SplitGrantNames(raw)` and emits ONE `gt` grant per name whose
+  SVar body parses. Order is `SplitGrantNames`' left-to-right value order (a Go
+  slice, not a map), so replay is deterministic. Each name still **fails closed
+  on its own** — a missing/unparseable body grants nothing and no longer
+  suppresses a valid sibling (kept deliberately).
+- **`cards/splitgrantnames_test.go`** (new) — direct unit test of the exported
+  splitter: `"A & B"` → `["A","B"]`, whitespace trimmed, empty members dropped,
+  single name unchanged, empty/`" & "` → nil.
+- **`rules/addtrigger_multiname_test.go`** (new) — three corpus-backed tests
+  (registration, AttackerBlockedByCreature firing, mode-agnostic Attacks firing).
+- **`rules/paramcensus_test.go`** — comment-only drift fix on the
+  `checkGrantedStaticTriggers` read root (see Deviations); no read-root list
+  changed.
+
+## Why this structural shape
+
+The grammar already had a working implementation inside `cards/` (`kw_class.go`),
+used by the `K:Class:` level-grant path. Rather than re-implement the split in
+`rules/`, the splitter is now exported and both callers share it — the repo's
+ONE-home rule. A future `Add*$` reader that uses `cards.SplitGrantNames` cannot
+miss the grammar; the next sibling is covered by construction, not by a list.
+
+## Gates (real output)
+
+Focused tests + splitter:
+
+```
+$ go test -run 'TestMirrorShieldMultiNameAddTriggerRegisters|TestMirrorShieldGrantDestroysDeathtouchBlocker|TestVeteransArmamentsMultiNameAddTriggerFires|TestSplitGrantNames' ./rules/ ./cards/
+ok  	github.com/adams-shaun/gorge/rules	0.042s
+ok  	github.com/adams-shaun/gorge/cards	0.003s
+```
+
+Structural golden:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.004s
+```
+
+Botbench golden (unchanged — none of the five cards is in a repo deck):
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.694s
+```
+
+Class-path regression check (I edited `cards/kw_class.go`):
+
+```
+$ go test -run 'TestClass' ./cards/
+ok  	github.com/adams-shaun/gorge/cards	0.001s
+```
+
+Format / types:
+
+```
+$ gofmt -l rules/layers.go rules/addtrigger_multiname_test.go rules/paramcensus_test.go cards/kw_class.go cards/splitgrantnames_test.go
+(empty — clean)
+$ go run ./cmd/gentypes -check
+(no output — clean)
+```
+
+Verbose confirmation that the tests actually RAN (corpus present; no skip):
+
+```
+=== RUN   TestMirrorShieldMultiNameAddTriggerRegisters
+--- PASS: TestMirrorShieldMultiNameAddTriggerRegisters (0.00s)
+=== RUN   TestMirrorShieldGrantDestroysDeathtouchBlocker
+--- PASS: TestMirrorShieldGrantDestroysDeathtouchBlocker (0.00s)
+=== RUN   TestVeteransArmamentsMultiNameAddTriggerFires
+--- PASS: TestVeteransArmamentsMultiNameAddTriggerFires (0.00s)
+ok  	github.com/adams-shaun/gorge/rules	0.065s
+```
+
+Worktree state: `.cards` was PRESENT (pre-existing symlink) — the corpus tests
+ran, not skipped.
+
+## Fails without the fix
+
+`rules/layers.go` was reverted in place to the old whole-value read, the one
+test command run, then the file restored byte-identically (`cmp` clean against
+`.ds4/scratch/layers.go.fixed`):
+
+```
+--- FAIL: TestMirrorShieldMultiNameAddTriggerRegisters (0.00s)
+    addtrigger_multiname_test.go:67: Mirror Shield live AddTrigger grants = 0, want 2 (TrigBlocks + the Secondary$ TrigBecomeBlocked); a one-name fix registers 1
+--- FAIL: TestMirrorShieldGrantDestroysDeathtouchBlocker (0.00s)
+    addtrigger_multiname_test.go:121: Mirror Shield granted AttackerBlockedByCreature GrantTriggerPush events = 0, want 1
+--- FAIL: TestVeteransArmamentsMultiNameAddTriggerFires (0.00s)
+    addtrigger_multiname_test.go:160: Veteran's Armaments live AddTrigger grants = 0, want 2 (HeroAttack + HeroBlock)
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.038s
+```
+
+After restoring: `cmp rules/layers.go .ds4/scratch/layers.go.fixed` →
+IDENTICAL; test green again.
+
+## Test precondition coverage (each test can fail)
+
+- `TestMirrorShieldMultiNameAddTriggerRegisters`: asserts the shield is on the
+  battlefield, that its `AddTrigger$` value is the ` & `-joined string under
+  test, that the equip actually happened, and that BOTH grants registered with
+  one `Secondary$` — a one-name fix fails on the count.
+- `TestMirrorShieldGrantDestroysDeathtouchBlocker`: asserts the equipped bear
+  prints no become-blocked trigger (so the destroy is the grant), and the
+  blocker is a live battlefield deathtouch creature (so the destroy is not
+  vacuous). Reverting the fix yields 0 `GrantTriggerPush` events.
+- `TestVeteransArmamentsMultiNameAddTriggerFires`: asserts the real card's
+  ` & `-joined value, the equip, that the bearer prints no Attacks/Blocks
+  trigger, 2 registered grants, and 2/2 → 3/3 P/T movement (different values).
+
+## Head / ratchet / botbench movement
+
+- **Chain heads:** not run (daemon gate). None of the five carriers is in any
+  repo deck, so no golden replay involves them.
+- **Ratchet:** unchanged; no `knownUnsupported`/`knownUnsupportedParams` entry
+  names these cards or the primitive.
+- **Botbench:** `TestConstructedDefaultIsByteIdentical` passes unchanged, as
+  expected. Confirmed none of the five cards is in a repo deck:
+  `Mirror Shield 0 / Veteran's Armaments 0 / Astrologian's Planisphere 0 /
+  Candlekeep Sage 0 / Noble Heritage 0` (`grep -rl` over
+  `internal/testutil/decks/`).
+
+## Brief premise re-measurement (all held)
+
+```
+$ /usr/bin/grep -rlE 'AddTrigger\$[^|]*&' .cards/cardsfolder | wc -l
+5
+$ /usr/bin/grep -rlE 'AddSVar\$[^|]*&' .cards/cardsfolder | wc -l
+23
+$ /usr/bin/grep -rlE 'AddStaticAbility\$[^|]*&' .cards/cardsfolder | wc -l
+3
+$ /usr/bin/grep -rlE 'AddReplacementEffect\$[^|]*&' .cards/cardsfolder | wc -l
+2
+```
+
+Every count in the brief held.
+
+## Deviations from the brief
+
+- The brief suggested the splitter unit test could live in `rules/`; it lives in
+  `cards/` (`cards/splitgrantnames_test.go`) because that is the package that
+  owns the exported function — the brief's `-run` pattern covers both packages.
+- The optional adjacent comment-drift fix in `rules/paramcensus_test.go` was
+  taken (comment-only; the declared read-root string list is unchanged).
+
+## Issues (found, NOT fixed — for the operator)
+
+1. **Sibling `Add*$` parameters with the same unsplit grammar**, in the same
+   `staticEffects` loop in `rules/layers.go`:
+   - `AddSVar$` (`rules/layers.go`, whole-value `fc.SVars[raw]` lookup): a value
+     like `HeroPump & ArmamentsX` (Veteran's Armaments) resolves a nil body and
+     grants nothing. **23 corpus files** carry `AddSVar$ … &`.
+     Note the value is an SVar NAME list whose bodies are
+     `SVar:<Name>:<Value>`; split on the NAMES.
+   - `AddStaticAbility$` (`rules/layers.go`, whole-value `fc.SVars[name]`): e.g.
+     `t/tsagan_raider_warlord.txt` `AddStaticAbility$ SelfDT & WideFS`.
+     **3 corpus files**.
+   These are the identical grammar and the identical silent-zero-grant failure;
+   this ticket deliberately did not widen its diff to fix them.
+2. **`AddReplacementEffect$` is registered nowhere.** `grep -rn
+   'AddReplacementEffect' rules/*.go` shows only a comment; the only code
+   mention is the "unread" list in `effects/staticeffect.go`. **2 corpus files**
+   carry the ` & ` form; a full census of all carriers is worth taking when the
+   param is implemented. Separate ticket.
+3. **CR-lane test worth adding** so this class stops being invisible to
+   `.ds4/ledger.json`: CR 611.3 (continuous effects from a static ability) +
+   CR 603.2 (a triggered ability granted by a static). Named only, not written
+   (the brief did not ask for a CR-lane test).

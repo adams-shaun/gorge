@@ -854,18 +854,19 @@ var acceptanceHeads = map[int]string{
 	// CR 103.1 (cli-20260922T225141Z-e771720d): the hosted toss winner
 	// answers starting_player before mulligans. DecisionAsk/DecisionMade enter
 	// the chain; without that ask this head returns to a867ac1768ab4993.
-	// 2 seats moved to 9b4759db7fe10fdd (merge of game-long damage-by-source
-	// provenance, task agent-20260923T114033Z-a57ee463, with main's bot-x1).
-	// Two independent head-moving changes are both present in this tree. The
-	// provenance change (every landed Damage event emits a DamageProvenance
-	// fact through Engine.emit's one post-fold tail, so the acceptance streams
-	// carry one extra event per point of damage) alone gives f107be40dc2792c6;
-	// main's bot-x1 (botpolicy/ability.go equipNoOp scoped to attach abilities)
-	// alone gives 3ddcc4e3ba5bb799. Measured attribution: disabling ONLY the
-	// provenance emission block in rules/engine.go in this merged tree restores
-	// 3ddcc4e3ba5bb799 exactly, so the merged head is the superposition of the
-	// two -- no third behaviour moved (TestConstructedDefaultIsByteIdentical
-	// stayed green).
+	// bot-x1 (botpolicy/ability.go equipNoOp): A1's attachment no-op rule
+	// is scoped to attach abilities (decision.Option.Attach), promoted from
+	// the explore policy's X1, so an attached Aura's/Equipment's own
+	// abilities and a creatureless seat's non-attach abilities are no longer
+	// declined. Measured: the base commit's heads were green and this change
+	// alone moves 2 seats a613e26b20d46eea -> 3ddcc4e3ba5bb799 and 8 seats
+	// af5b2fc1561b5f56 -> beac5729b0e63dcc; 4 and 6 seats are unchanged.
+	// agent-20260923T114033Z-a57ee463 (game-long damage-by-source provenance)
+	// merged into this ticket's branch: it separately moves 2 seats
+	// 3ddcc4e3ba5bb799 -> 9b4759db7fe10fdd (see the 8-seat note). The
+	// cli-20260924T034908Z-be6139b0 entry-counter fold leaves the 2-seat game
+	// at 9b4759db7fe10fdd -- measured on the merged tip with the entry-body
+	// absorption disabled, which reproduces 9b4759db7fe10fdd exactly.
 	2: "9b4759db7fe10fdd",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
@@ -1042,13 +1043,34 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	// 4 seats moved to 9b3aab4e0336ba8c (game-long damage-by-source
-	// provenance, task agent-20260923T114033Z-a57ee463): the merged tree's
-	// 4-seat head equals the provenance-only value, because main's bot-x1
-	// does not move the 4-seat stream. Measured attribution: disabling only
-	// the provenance emission block in this merged tree restores
-	// b3bf75f0c56512ae (main's value) exactly.
-	4: "9b3aab4e0336ba8c",
+	// cli-20260924T034908Z-be6139b0 (CR 614.12 entry-counter fold):
+	// eldrazi-stompy's K:etbCounter cards now fold their entry counters into
+	// the entry MoveZone. Measured over the acceptance games: Endless One
+	// (K:etbCounter:P1P1:X, X:Count$xPaid) enters at seq 472 (4 seats), 182
+	// (6 seats) and 795 (8 seats) with the move carrying Pairs = one P1P1
+	// grant, and its body's CounterChange is now the notification-only
+	// EntryCounterNotice instead of a real placement. Round 2 widened
+	// absorption to EVERY counter kind (the payload now carries the kind as a
+	// UTF-8 tail, events.EntryCounterPairs), so Chalice of the Void's
+	// K:etbCounter:CHARGE:X body is absorbed too. Measured per seat, the ONLY
+	// further difference between main and this build is one removed event per
+	// affected game: Chalice enters from the library (X=0) and its zero-amount
+	// CHARGE CounterChange (obj 170, seq 2360/5040/9081 at 4/6/8 seats) is no
+	// longer emitted -- its placement is nothing, exactly as the absorbed
+	// P1P1 zero case already behaved. The 2-seat game is unchanged because
+	// neither death-n-taxes (index 0) nor dimir-tempo (index 1) carries a
+	// K:etbCounter card; eldrazi-stompy (index 2) first joins the deck
+	// rotation at 4 seats. MERGED-TREE ATTRIBUTION (this ticket merged main's
+	// game-long damage-by-source provenance, task agent-20260923T114033Z-
+	// a57ee463): the merged 4/6/8-seat heads are the superposition of the two
+	// changes. Measured on the merged tip, disabling ONLY the entry-body
+	// absorption (entryBodyCounterGrants returns nil) restores main's three
+	// goldens exactly -- 4 9b3aab4e0336ba8c, 6 c4ce39421c473963,
+	// 8 d2ebb7cbf40ccd12 -- so provenance alone gives main's values and the
+	// entry-fold is the only further cause. Provenance alone leaves the 2-seat
+	// head at 9b4759db7fe10fdd, unchanged by the entry-fold (the merged tip
+	// reads exactly that), matching main.
+	4: "3d6d44e9d27bb44a",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1191,13 +1213,11 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	// 6 seats moved to c4ce39421c473963 (game-long damage-by-source
-	// provenance, task agent-20260923T114033Z-a57ee463): the merged tree's
-	// 6-seat head equals the provenance-only value, because main's bot-x1
-	// does not move the 6-seat stream. Measured attribution: disabling only
-	// the provenance emission block in this merged tree restores
-	// a93593d452866261 (main's value) exactly.
-	6: "c4ce39421c473963",
+	// cli-20260924T034908Z-be6139b0 (CR 614.12 entry-counter fold): see the
+	// 4-seat note. eldrazi-stompy is in this game too, so Endless One's entry
+	// counters fold into the MoveZone and Chalice of the Void's zero-amount
+	// CHARGE placement is absorbed (obj 170, seq 5040, one removed event).
+	6: "61cd3bbfc8190773",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1387,13 +1407,12 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	// 8 seats moved to d2ebb7cbf40ccd12 (merge of game-long damage-by-source
-	// provenance, task agent-20260923T114033Z-a57ee463, with main's bot-x1):
-	// same two-change superposition and same measured attribution as the 2-seat
-	// move above. Provenance alone gives 3d1974a1859d9676, main's bot-x1 alone
-	// gives beac5729b0e63dcc, and disabling only the provenance emission block
-	// in this merged tree restores beac5729b0e63dcc exactly.
-	8: "d2ebb7cbf40ccd12",
+	// bot-x1: 8 seats moves to beac5729b0e63dcc (see the 2-seat note).
+	// cli-20260924T034908Z-be6139b0 (CR 614.12 entry-counter fold): see the
+	// 4-seat note; eldrazi-stompy is in this game, so Endless One's entry
+	// counters fold into the MoveZone and Chalice of the Void's zero-amount
+	// CHARGE placement is absorbed (obj 170, seq 9081, one removed event).
+	8: "956e4f040144faab",
 }
 
 func TestHeads(t *testing.T) {
