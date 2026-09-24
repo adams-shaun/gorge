@@ -3027,3 +3027,240 @@ STATUS=DONE
 COMMITS=b5c35e4d
 TESTS=go test -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ → ok 0.66s (6 tests, incl. corpus carrier); new tests fail with the registration reverted; archtest + botbench byte-identical ok
 ```
+---
+
+# Report — task agent-20260919T055500Z-a4cd7643 (kw:Sunburst)
+
+# kw:Sunburst — report (task agent-20260919T055500Z-a4cd7643)
+
+## What changed and why
+
+Sunburst (CR 702.47) had zero engine support: a `K:Sunburst` permanent entered
+with no counters, and the `DB$ Animate | Keywords$ Sunburst` riders (Solar
+Array, Lux Artillery) were silent no-ops. The mechanic is "enters with a +1/+1
+counter for each colour of mana spent to cast it; that many charge counters if
+it is not a creature". The colour count already existed as the CR 107.4f
+`Count$Converge` head (converge1/tconverge1); the missing pieces were the
+entry-time counter put and arming the pay-time colour capture for Sunburst
+faces.
+
+### `rules/replacement.go`
+
+- **`sunburstEntryMatch`** (new, immediately after `bloodthirstEntryMatch`):
+  builds the synthetic `Moved → Battlefield` `ReplacementResult$ Updated`
+  replacement a sunburst permanent enters by. The keyword is read from the
+  entering object's **DERIVED** keyword list (`derivedKeywordParam(ev.Obj,
+  "Sunburst")`), the `bloodthirstEntryMatch` pattern. Body:
+  `DB$ PutCounter | Defined$ Self | ETB$ True | CounterType$ <kind> |
+  CounterNum$ Count$Converge`. The counter KIND follows Forge's own expansion
+  verbatim (`CardFactoryUtil`: `host.isCreature() ? P1P1 : CHARGE`), decided
+  from the **printed** face's `IsCreature()` — CR 702.47a's "if it isn't a
+  creature" ignoring type-changing effects.
+- **dispatch**: the synthetic match is appended in
+  `applyReplacementsDispatch` beside `bloodthirstEntryMatch`, under
+  `ev.Kind == events.MoveZone && ev.To == state.ZBattlefield`, after the
+  face-Repl scan (same deterministic composition reason).
+- **registration**: `kw:Sunburst` joined the `effects.RegisterNonAPI(...)`
+  list (the coverage marker).
+
+### `rules/cast.go`
+
+- **`faceWantsConverge`**: gained a `f.HasKeyword("Sunburst")` arm, so a
+  printed Sunburst face is armed for the pay-time `FlagConverged` CastInfo
+  (Sunburst's count is exactly the converge count). This is the same
+  heads-safety gate: no repo-deck card carries `Count$Converge` or `Sunburst`,
+  so no game without one changes an event.
+- **`sunburstGrantOut`** (new): the capture gate's third arm, the
+  `triggeredConvergeReaderOut` shape — a pure read over the deterministic
+  alive-seat × battlefield walk for a permanent whose face body
+  `Mentions("Sunburst")`. The Animate grant lands on the spell AFTER payment
+  (a `SpellCast` trigger resolving while the spell is on the stack), so the
+  printed-keyword arm cannot see it at pay time; this arm stamps the capture
+  so the entering permanent reads its colours.
+- **gate call**: `payCast`'s converge arm is now
+  `faceWantsConverge(f) || e.triggeredConvergeReaderOut() || e.sunburstGrantOut()`.
+
+### `rules/sunburst_test.go` (new)
+
+Real corpus carriers only, loaded through `testutil.CorpusRegistry` (scripts
+are GPL, never committed), padded with Mountains:
+
+- `TestSunburstEtchedOracleEntersWithP1P1PerColour` — real Etched Oracle
+  (Artifact Creature, `{4}`): `RRGG` → exactly 2 `P1P1`, `RRRR` → exactly 1,
+  `CC` on real Pentad Prism → 0 `CHARGE` (colourless is not a colour). Asserts
+  the creature/printed-keyword precondition before the counter assertion.
+- `TestSunburstPentadPrismEntersWithChargePerColour` — real Pentad Prism
+  (noncreature): `RG` → exactly 2 `CHARGE` and 0 `P1P1`, proving the counter
+  KIND branch.
+- `TestSunburstAnimateGrantOnSolarArray` — real Solar Array + real Ornithopter
+  of Paradise (`{2}`, 0/2 artifact creature with **no printed Sunburst**, so
+  the grant is the only keyword source). Solar Array's `{T}` ability sets up
+  the one-shot "next artifact spell gains sunburst"; the thopter is cast with
+  two colours (one G from Solar Array + one R) and enters with exactly 2
+  `P1P1` and `ConvergeColours == 2`.
+
+Each test asserts a non-zero positive result (there is no "nothing happens"
+test), and each proves a distinct load-bearing part (see below).
+
+## Deviation from the brief (called out deliberately)
+
+The brief suggested "the keyword registered in `cards/keywords.go`" as an
+`etbCounter`-shaped expansion. I did **not** add a cards-side K: expansion.
+Reason: a cards-side expansion is a printed-face transformation, and the brief
+ALSO requires the `DB$ Animate | Keywords$ Sunburst` grant shape to work. A
+layer-6 grant delivers the keyword to a spell/object that has no printed
+K:Sunburst line, so a printed-face expansion can never see it — the exact gap
+the existing `bloodthirstEntryMatch` doc records ("the grant path is the shape
+a cards-side expansion could never see"). Implementing rules-side (derived
+keyword read) covers BOTH shapes with one code path, is the established
+precedent for a keyword whose whole meaning is an entry-time counter put, and
+is the structural fix that covers the next grant spelling rather than only the
+two carriers.
+
+## Gates run (real output pasted)
+
+Targeted test (fresh, non-cached):
+
+```
+$ go test -count=1 -run 'TestSunburst' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	1.007s
+```
+
+Behaviour goldens outside `rules/`:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.175s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.210s
+```
+
+Formatting / codegen / vet (the Go half of `make lint`):
+
+```
+$ gofmt -l rules/cast.go rules/replacement.go rules/sunburst_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output)
+
+$ go vet ./rules/
+(no output)
+```
+
+Ratchet sanity (registration + frozen-table constant, both untouched by scope):
+
+```
+$ go test -run 'TestNonAPIPrimitivesAreRegistered|TestTokenReplacementPrimitivesAreRegistered' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.018s
+
+$ go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.002s
+```
+
+The botbench split is **byte-identical** (green, no re-pin needed): no repo
+deck carries a Sunburst or converge card, and the added gate arm is a pure
+read that emits no event.
+
+## Fails without the fix
+
+Three independent reverts of the non-test code, each restored byte-identically
+(`cmp` against a scratch copy) afterwards. Each proof run is
+`go test -count=1 -run 'TestSunburst' ./rules/`.
+
+### 1. Remove the `sunburstEntryMatch` dispatch (`rules/replacement.go`)
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.61s)
+--- FAIL: TestSunburstPentadPrismEntersWithChargePerColour (0.00s)
+    sunburst_test.go:140: Prism CHARGE=0, want 2 (two colours spent)
+--- FAIL: TestSunburstAnimateGrantOnSolarArray (0.00s)
+    sunburst_test.go:189: Ornithopter P1P1=0, want 2 (sunburst granted by Solar Array, two colours spent)
+FAIL
+```
+
+All three tests depend on the entry-time counter put.
+
+### 2. Remove only `|| e.sunburstGrantOut()` from the gate call (`rules/cast.go`)
+
+```
+--- FAIL: TestSunburstAnimateGrantOnSolarArray (0.00s)
+    sunburst_test.go:189: Ornithopter P1P1=0, want 2 (sunburst granted by Solar Array, two colours spent)
+FAIL
+```
+
+The printed-carrier tests still pass, proving `sunburstGrantOut` is
+specifically load-bearing for the grant-delivered shape (and that the Animate
+test is not vacuous — Ornithopter has no printed Sunburst, so without this arm
+nothing captures the colours).
+
+### 3. Remove only the `f.HasKeyword("Sunburst")` arm (`rules/cast.go`)
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.76s)
+--- FAIL: TestSunburstPentadPrismEntersWithChargePerColour (0.00s)
+    sunburst_test.go:140: Prism CHARGE=0, want 2 (two colours spent)
+FAIL
+```
+
+Proving the printed-keyword capture arm is load-bearing for the printed
+carriers.
+
+## Brief-premise re-measurement
+
+The brief's corpus counts held exactly:
+
+```
+/usr/bin/grep -rlE 'K:Sunburst' .cards/cardsfolder | wc -l                    → 15
+/usr/bin/grep -rlE 'Sunburst' .cards/cardsfolder | wc -l                      → 19
+/usr/bin/grep -rlE 'Animate \| .*Sunburst' .cards/cardsfolder | wc -l         → 2
+```
+
+No repo deck (`internal/testutil/decks/*.json`) carries any Sunburst carrier,
+so `knownUnsupported`, `knownUnsupportedParams`, `TestHeads` and the botbench
+split are all unaffected. No AGENTS.md "Known approximations" row exists for
+Sunburst and none was added (the table is frozen delete-only); the
+implementation is complete with no remainder to defer.
+
+## Issues (found, not fixed)
+
+1. **Sunburst counter kind uses the printed type, not the entry-time derived
+   type.** `sunburstEntryMatch` (rules/replacement.go) calls
+   `o.Face().IsCreature()`, mirroring Forge's `CardFactoryUtil` parse-time
+   `host.isCreature()`. A permanent that enters as a creature only via a
+   type-changing continuous effect (an animated Vehicle/artifact, a
+   `Card.IsCreature` grant) therefore gets charge counters rather than +1/+1.
+   Forge has the same behaviour, so this matches the reference implementation;
+   if a corpus carrier needs the entry-time read, `e.Derived(ev.Obj).Types`
+   would be the change. Untested because no corpus carrier and no repo deck
+   exercises it. No CR-lane test proposed (it would cite CR 702.47a).
+2. **`sunburstGrantOut` scans the battlefield only.** A Sunburst grant from a
+   non-battlefield source (an emblem or a command-zone Effect object with no
+   battlefield permanent carrying the grant spelling) would not arm the
+   capture. Solar Array's one-shot Effect lives in the command zone but Solar
+   Array itself stays on the battlefield and carries the
+   `SVar:DBAnimate | ... | Keywords$ Sunburst` spelling, so both corpus
+   granters are covered (measured: 2 raw `Animate | .*Sunburst` carriers). The
+   `triggeredConvergeReaderOut` precedent has the same battlefield-only scope.
+3. **Lux Artillery is untested.** Its grant spelling
+   (`SVar:TrigAnimate:DB$ Animate | Keywords$ Sunburst`, `ValidCard$
+   Artifact.Creature`) is identical to Solar Array's and is covered by the same
+   `Mentions("Sunburst")` scan, but only Solar Array has an end-to-end test.
+   Not worth a separate task; noted for the reviewer.
+4. **Converge and Sunburst now share one capture gate.** A future change to
+   `faceWantsConverge`/`sunburstGrantOut` must keep both consumers in mind.
+   Documented in the gate's doc comment, not a defect.
+
+## Commits (post-rebase onto `main`, 2026-09-23 r2)
+
+- `067b2477` feat(rules): implement kw:Sunburst as an entry-time converge counter put
+- `26c2dd7d` test(rules): load real corpus carriers for the sunburst coverage tests
+- `7bfe93da` docs(agent): append kw:Sunburst round-1 report
+- `080ed1be` docs(agent): record rebased commit shas for kw:Sunburst report
+- `26590394` feat(cards): expand printed K:Sunburst and gate the sunburst synthetic to the grant shape (r2 fix — see report-r2.md)
+
+Rebased onto `main` after the controller directive (second rebase at the r2
+directive, one `.ds4/report-t1.md` append-append conflict resolved by keeping
+both blocks); all gates above were re-run on the rebased tree and are the
+pasted output.
