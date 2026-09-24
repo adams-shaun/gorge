@@ -1696,3 +1696,117 @@ No chain-head or ratchet movement was measured in this run. The behaviour golden
 ## Commit
 
 `1952fa4c` — implementation and tests (already present in branch HEAD).
+
+---
+
+# Report — agent-20260923T065617Z-9b7a6efa (fix round t2): CR 704.5k world rule
+
+## Outcome
+
+`STATUS=DONE`. The review's single MAJOR is fixed: the world rule no longer
+keys its duplicate sets on the printed name. CR 704.5k has no same-name
+clause — "if two or more permanents carrying the World supertype are
+controlled by the same player" — so two differently named World enchantments
+under one controller are ONE set and are now asked over and binned. The
+legend half (CR 704.5j, which DOES say "with the same name") is untouched and
+still name-keyed.
+
+The review's MINOR (report history deleted) is addressed by APPENDING this
+report to the shared `.ds4/report-t2.md` rather than replacing it; the 1086
+accumulated lines of `.ds4/report-t2.md` are preserved verbatim above this
+entry. (Round t1 had replaced the shared `.ds4/report-t1.md`; round t3
+restored it — see `.ds4/report-t3.md`.)
+
+Commit: `b902ed0d` on `wt/agent-20260923T065617Z-9b7a6efa`.
+
+## Finding dispositions
+
+- **[MAJOR] `duplicateGroups` grouped World permanents by printed name** —
+  FIXED. `duplicateGroups` now dispatches the world half to the new
+  `worldGroupsByNameFree`, which makes ONE group per controller over every
+  permanent whose DERIVED type list carries World, whatever its name, in
+  battlefield scan order. The legend half keeps its `seen[name]` grouping and
+  its `IgnoreLegendRule` exemption. `sbaGroup.name` is empty for a world set;
+  the ask prompt is worded generically ("Choose which World permanent…") and
+  each option is labelled with its own permanent's name (what the seat is
+  choosing between). Regression: `TestWorldRuleGroupsByNameFree`.
+- **[MINOR] report file replaced** — ADDRESSED as above (append, not replace).
+
+## What changed and why (per file)
+
+- **`rules/sba.go`**
+  - `duplicateGroups`: world dispatches to `worldGroupsByNameFree`; the
+    legend-only body (name keys, `IgnoreLegendRule`) remains.
+  - New `worldGroupsByNameFree()`: per-controller, name-free, derived-World
+    scan; drops groups of fewer than two. Reads the layer-4-derived type list
+    (never a printed pre-filter when a layer-4 type effect is live) so an
+    ADDED or STRIPPED World supertype is seen.
+  - `askSBAChoice`: prompt and option labels derive from the group, with a
+    generic prompt and per-permanent labels when `g.name` is empty (a world
+    set). Legend path unchanged (name is non-empty there).
+  - `sbaGroup` / `legendGroups` / `worldGroups` docs corrected: only the
+    legend rule groups by name.
+- **`rules/world_rule_test.go`**
+  - New `TestWorldRuleGroupsByNameFree` (distinct names, one controller).
+  - `TestWorldRuleReadsDerivedSupertype`: the layer-4 grant source is now an
+    Artifact instead of an Enchantment. As an Enchantment it was itself
+    affected by its own `Affected$ Enchantment.YouCtrl` grant, so under
+    name-free grouping it became a third World permanent in the set. Making
+    it an artifact keeps the test focused on the derived-supertype read.
+
+## Commands run (real output)
+
+```
+$ go build ./...
+(clean)
+
+$ go test -run 'TestWorldRule|TestLegend' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.948s
+
+$ gofmt -l rules/sba.go rules/world_rule_test.go
+(empty)
+
+$ go run ./cmd/gentypes -check
+(empty)
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	8.911s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.216s
+```
+
+`.cards` symlink was present (`… -> /home/sadams/projects/gorge/.cards`), so
+the corpus-backed tests ran rather than skipped (rules run ≈1s at 447 tests;
+not the sub-5s vacuous shape). No chain-head, ratchet or botbench movement:
+no repo deck carries a World card (measured in round 1), and the botbench
+golden passed unchanged.
+
+## Fails without the fix
+
+Reverted the `duplicateGroups` world dispatch (restoring the name-keyed scan)
+in a copy of `rules/sba.go`, ran the new test, then restored the file
+byte-identically (`cmp` against `.ds4/scratch/sba.go.fixed` → identical):
+
+```
+$ go test -run 'TestWorldRuleGroupsByNameFree' ./rules/
+--- FAIL: TestWorldRuleGroupsByNameFree (0.00s)
+    world_rule_test.go:130: no decision pending: the world rule did not ask its controller
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.007s
+FAIL
+```
+
+The precondition asserts both permanents are battlefield World permanents
+with DIFFERENT names under the SAME controller, so the failure is the real
+name-keyed miss, not a vacuous setup.
+
+## Issues
+
+- No new defects found. The world rule has no `IgnoreWorldRule` exemption
+  static in the corpus (measured round 1: `/usr/bin/grep -rn IgnoreWorldRule
+  .cards/cardsfolder` → nothing), so none was built.
+- Corpus-wide note (already recorded round 1, restated for the ledger): the
+  world rule only ever matters for the 26 old World enchantments
+  (`/usr/bin/grep -rlE 'Types:.*World' .cards/cardsfolder | wc -l` → 26);
+  none is in a repo deck, so no golden moves.
