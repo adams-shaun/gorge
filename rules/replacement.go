@@ -143,6 +143,63 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 	return &replMatch{id: ev.Obj, repl: r}
 }
 
+// sunburstEntryMatch builds the synthetic Moved replacement a permanent with
+// sunburst enters by (CR 702.47: "This object enters with a +1/+1 counter on
+// it for each color of mana spent to cast it. If it isn't a creature, it
+// instead enters with that many charge counters on it.").
+//
+// The keyword is read from the entering object's DERIVED keyword list
+// (derivedKeywordParam), but this synthetic covers the layer-6
+// `DB$ Animate | Keywords$ Sunburst` GRANT shape only (Solar Array, Lux
+// Artillery): a PRINTED K:Sunburst line is expanded cards-side
+// (cards/kw_sunburst.go) onto the face's own Repls, which the face-Repl scan
+// above already collects, so the printed-face check below skips it -- a
+// synthetic on top of the expansion would put the entry counters twice. The
+// counter KIND follows Forge's own Sunburst expansion
+// (CardFactoryUtil: `host.isCreature() ? P1P1 : CHARGE`), decided from the
+// entering object's PRINTED face (CR 702.47a's "if it isn't a creature" is
+// evaluated on the card's own types, ignoring type-changing effects), so a
+// creature gets +1/+1 counters and an artifact gets charge counters.
+//
+// The count is the existing CR 107.4f converge head: the number of DISTINCT
+// colours spent to cast the spell, carried on the object as ConvergeColours
+// by the pay-time FlagConverged CastInfo (rules/cast.go's faceWantsConverge
+// gate, widened to cover sunburst's cast faces). An inline Count body keeps
+// this a one-line body with no SVar minted on the face.
+func (e *Engine) sunburstEntryMatch(ev events.Event) *replMatch {
+	if _, ok := e.derivedKeywordParam(ev.Obj, "Sunburst"); !ok {
+		return nil
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	if o.Face().HasKeyword("Sunburst") {
+		// Printed K:Sunburst: already expanded cards-side (cards/kw_sunburst.go);
+		// the face-Repl scan collected it. The grant shape's printed face never
+		// carries the line, so this gate admits only the granted case.
+		return nil
+	}
+	kind := "CHARGE"
+	if o.Face().IsCreature() {
+		kind = "P1P1"
+	}
+	body := &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"Defined":     "Self",
+		"CounterType": kind,
+		"CounterNum":  "Count$Converge",
+		"ETB":         "True",
+	}}
+	r := &cards.Repl{Event: "Moved", Params: map[string]string{
+		"Destination":       "Battlefield",
+		"ValidCard":         "Card.Self",
+		"ReplacementResult": "Updated",
+		"Keyword":           "Sunburst",
+		"KeywordLine":       "Sunburst",
+	}, With: body}
+	return &replMatch{id: ev.Obj, repl: r}
+}
+
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
 	if ev.Kind == events.Attach && e.attachedApplying {
 		return ev, false
@@ -160,29 +217,10 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if !ok {
 		return ev, false
 	}
-	// A CantPutCounter restriction swallows a counter placement outright
-	// (task cantputcounter1): the placement never happens, so neither the
-	// event nor any AddCounter replacement of it may run. This gate sits
-	// BEFORE the match collection (not at the CounterChange dispatch case)
-	// so a prohibition with no accompanying R:Event$ AddCounter line is
-	// still enforced -- Melira's second poison source, where the only match
-	// on the board is Melira's own R: line but the lock must stop the event
-	// even after that line's rider has replaced the first source. handled
-	// true returns the empty event, so emit's ordinary Apply path is bypassed
-	// and nothing is logged: the event is prevented, never folded.
-	//
-	// Only a POSITIVE placement of a real counter is subject to the
-	// restriction: a removal (Amount <= 0) is not a placement at all, and the
-	// engine's own status markers (regeneration's Shield, the Deathtouched
-	// mark) are not counters -- the same state.InternalCounterMarker exclusion the
-	// AddCounter matcher keeps, so a "counters can't be put on it" static
-	// cannot stop a regeneration shield or a removal.
-	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
-		ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
-		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
-			return events.Event{}, true
-		}
-	}
+	// The CantPutCounter prohibition that used to sit here is now enforced in
+	// Engine.emit, BEFORE this replacement dispatch, so it applies even while
+	// a replacement body is in flight (task addcounter1/2). Keeping it here
+	// would skip it under applyingReplacement, the hole this task closes.
 	// FINALITY (CR 122.1) is a replacement at the common move boundary:
 	// a creature with a finality counter that would go from the battlefield to
 	// a graveyard is exiled instead. This covers destruction, toughness-based
@@ -312,6 +350,15 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// result; it only fixes the scan order.
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		if m := e.bloodthirstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
+			matches = append(matches, *m)
+		}
+		// kw:Sunburst (CR 702.47): the layer-6 `Keywords$ Sunburst` GRANT shape
+		// (Solar Array, Lux Artillery) is one more Updated entry replacement,
+		// collected after the face-Repl scan for the same deterministic
+		// composition reason bloodthirst's is; a printed K:Sunburst face carries
+		// the cards-side expansion (cards/kw_sunburst.go) instead, which this
+		// scan already collected, and the synthetic skips it.
+		if m := e.sunburstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
 			matches = append(matches, *m)
 		}
 	}
@@ -1441,6 +1488,7 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	savedRepl, savedEvent, savedSource, savedAction, savedPlayer :=
 		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer
+	savedApplying := e.applyingReplacement
 	e.applyingReplacement = true
 	action := ""
 	if ev != nil {
@@ -1448,10 +1496,60 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		replaced, ev, ctx.Source, action, ctx.ReplacedPlayer
-	e.resolveReplacementWith(ctx, with)
+	e.resolveReplacementBody(ctx, with)
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		savedRepl, savedEvent, savedSource, savedAction, savedPlayer
-	e.applyingReplacement = false
+	e.applyingReplacement = savedApplying
+}
+
+// resolveReplacementBody resolves a ReplaceWith$ body. Inside a resolution
+// pass (contChainOwners > 0) the pass already owns the continuation chain and
+// this is resolveReplacementWith. OUTSIDE one -- an event emitted by turn
+// structure, above all combat damage, where runCombatAssignments emits one
+// Damage event per assignment -- two things differ:
+//
+//   - A body reached while an earlier body's ask is still unanswered (two
+//     attackers hitting a Nefarious Lich / Immortal Coil controller: one
+//     hidden graveyard pick per Damage event) must not run now. Its ask would
+//     overwrite the pending decision (Engine.ask's guard panics), and even
+//     deferred it would offer the cards the first pick is about to take. The
+//     WHOLE body is queued instead, as a continuation frame at the tail of the
+//     pending chain, so it runs -- and asks, against the then-current state --
+//     once everything before it has been answered: event order, one decision
+//     at a time. A ReplaceEffect body rewrites the held event synchronously
+//     and never asks, so it always runs in place.
+//   - A body that posts the first ask becomes its own continuation-chain
+//     owner, so the rest of its SubAbility$ chain (the Lich's lose-the-game
+//     check and cleanup) is linked after the ask instead of reported into a
+//     contChain no pass drains.
+func (e *Engine) resolveReplacementBody(ctx *effects.Ctx, with *cards.SA) {
+	if e.contChainOwners > 0 || with.API == "ReplaceEffect" {
+		e.resolveReplacementWith(ctx, with)
+		return
+	}
+	if e.resume != nil && e.pending != nil {
+		// buildContinuationChain resumes each frame at sa.Sub, so a parent
+		// whose Sub is the body makes the frame run the body from its start.
+		// Its replacement context (replaced object, damage target and amount,
+		// damage source) is read from the live replacement state here.
+		frame := e.buildContinuationChain([]contFrame{{sa: &cards.SA{Sub: with}}}, ctx.Source, nil)
+		tail := e.resume
+		for tail.outer != nil {
+			tail = tail.outer
+		}
+		tail.outer = frame
+		return
+	}
+	savedChain, savedReported := e.contChain, e.repeatReported
+	e.contChain, e.repeatReported = nil, nil
+	prior := e.resume
+	e.contChainOwners++
+	e.resolveReplacementWith(ctx, with)
+	e.contChainOwners--
+	if e.resume != nil && e.resume != prior && len(e.contChain) > 0 {
+		e.resume.outer = e.buildContinuationChain(e.contChain, ctx.Source, e.resume.outer)
+	}
+	e.contChain, e.repeatReported = savedChain, savedReported
 }
 
 // applyReplacement applies the ONE chosen replacement to a MoveZone event,
@@ -1477,7 +1575,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// so a Tap lands on an object already in its new zone (an object
 		// still on the stack is a no-op to effTap).
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
-		stored := events.Emit(e.G, e.L, ev)
+		stored := e.foldEntryMove(ev)
 		e.loop.observe(stored)
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
@@ -1536,7 +1634,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 			Text: "entry awaiting replacement-order choice"}, true
 	}
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
-	stored := events.Emit(e.G, e.L, ev)
+	stored := e.foldEntryMove(ev)
 	e.loop.observe(stored)
 	// The move-driven Effect lifetimes, replayed inline exactly as the
 	// single-match Updated branch does (the raw events.Emit above bypasses
@@ -2432,10 +2530,10 @@ func (e *Engine) continueAddCounterReplacements(rc replChoice) {
 // starting a new replacement pass: every candidate has had its one
 // opportunity (the emitLifeReplacement convention).
 func (e *Engine) emitAddCounterReplacement(ev events.Event) {
-	saved := e.applyingReplacement
-	e.applyingReplacement = true
+	saved, folded := e.applyingReplacement, e.counterReplacementFold
+	e.applyingReplacement, e.counterReplacementFold = true, true
 	e.emit(ev)
-	e.applyingReplacement = saved
+	e.applyingReplacement, e.counterReplacementFold = saved, folded
 }
 
 // replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count
@@ -2938,7 +3036,7 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint 
 // stem. An empty result leaves the caller's plan untouched.
 func (e *Engine) knownTokenScripts(source state.ObjID, csv string) []string {
 	var out []string
-	for _, s := range strings.Split(csv, ",") {
+	for s := range strings.SplitSeq(csv, ",") {
 		s = strings.TrimSpace(s)
 		if s == "" {
 			continue
@@ -3314,7 +3412,7 @@ func attachedChoiceZones(raw string) map[state.Zone]bool {
 		return nil
 	}
 	out := map[state.Zone]bool{}
-	for _, z := range strings.Split(raw, ",") {
+	for z := range strings.SplitSeq(raw, ",") {
 		switch strings.TrimSpace(z) {
 		case "Battlefield":
 			out[state.ZBattlefield] = true
@@ -4869,7 +4967,7 @@ func (e *Engine) counterValidSA(target *state.Object, spec string, you state.Pla
 	if spec == "" {
 		return true
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		isKind := (kind == "Spell" && target.Ability == nil) ||
 			(kind == "SpellAbility") ||
@@ -4908,7 +5006,7 @@ func (e *Engine) counterValidSA(target *state.Object, spec string, you state.Pla
 
 func (e *Engine) counterSpellQualifiers(target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
 	var ordinary []string
-	for _, q := range strings.Split(quals, "+") {
+	for q := range strings.SplitSeq(quals, "+") {
 		switch q {
 		case "hasKeywordFlash":
 			if target.Face() == nil || !target.Face().HasKeyword("Flash") {
@@ -5412,6 +5510,19 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	rc := e.replChoices[0]
 	e.replChoices = e.replChoices[1:]
 	rp := e.resume
+	if rp == nil && rc.inResolution && rc.resumeAtPose != nil {
+		// The competition was posed while a stack resolution was suspended,
+		// but the suspension's frame is no longer on e.resume: an earlier
+		// answer in the same queue ran a replacement body that ASKED (a shock
+		// land's UnlessCost PayLife under a mass return), the nested
+		// Engine.Ask replaced e.resume with its own frame, and that nested
+		// answer has since completed. The earlier answer handed the
+		// suspended frame to this queued competition (settleReplacementQueue);
+		// reinstate it so this answer's tail resumes the resolution exactly
+		// once, when the queue drains.
+		rp = rc.resumeAtPose
+		e.resume = rp
+	}
 	chosen := d.Chosen(in)
 	damageKind := rc.kind == replChoiceDamage || rc.kind == replChoiceCounter
 	if len(chosen) == 0 || (damageKind && (chosen[0].Index < 0 || chosen[0].Index > len(rc.cands) ||
@@ -5574,18 +5685,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.lifeExchange = priorExchange
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 		e.triggerBefore = before
-		if e.pending == nil && len(e.replChoices) == 0 {
-			if rc.inResolution {
-				if e.resume == rp {
-					e.resume = nil
-					e.resumeResolution(rp, nil)
-				} else if e.resume != nil && e.resume.outer == nil {
-					e.resume.outer = rp
-				}
-			} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose {
-				e.resume = nil
-			}
-		}
+		e.settleReplacementQueue(rc, rp)
 		e.askNextReplacementChoice()
 		return
 	}
@@ -5729,41 +5829,94 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	if manaDecision && e.pending == nil && len(e.replChoices) == 0 && e.cast != nil {
 		e.continueCast()
 	}
-	// A competition posed while a stack resolution was in flight parked that
-	// resolution: the pose's Engine.Ask recorded the interrupted resolution
-	// on e.resume and the interrupted object stayed on the stack. Once the
-	// whole queue is answered and nothing is pending, the resolution must
-	// resume through its recorded chain -- the discipline the damage branch
-	// above applies -- or resolveTop re-resolves the interrupted object from
-	// the top on the next priority pass, unbounded (observed: a resolving
-	// AB$ PutCounter under two non-commuting count replacements re-emitted
-	// its counter event on every pass). A queue re-pose keeps e.resume == rp,
-	// so the resume fires on the last answer round; the pose record of a
-	// competition answered while nothing was resolving (turn structure, a
-	// cast window) is the flow's own bookkeeping and is consumed by its own
-	// handler, never here. A nested ask the chosen replacement's own body
-	// posed has already replaced e.resume: chain rp behind it as its outer so
-	// it still runs once that inner question settles (fx34's discipline).
-	if rc.inResolution && e.pending == nil && len(e.replChoices) == 0 {
-		if e.resume == rp {
+	e.settleReplacementQueue(rc, rp)
+	e.askNextReplacementChoice()
+}
+
+// settleReplacementQueue is the shared tail of an answered replacement-order
+// competition (every kind but the damage/counter and scry branches, which own
+// their own resume discipline).
+//
+// A competition posed while a stack resolution was in flight parked that
+// resolution: the pose's Engine.Ask recorded the interrupted resolution on
+// e.resume (rp here) and the interrupted object stayed on the stack. Once the
+// whole queue is answered and nothing is pending, the resolution must resume
+// through its recorded chain, or resolveTop re-resolves the interrupted
+// object from the top on the next priority pass, unbounded (observed: a
+// resolving AB$ PutCounter under two non-commuting count replacements
+// re-emitted its counter event on every pass).
+//
+// The chosen body can itself ASK (a shock land's "pay 2 life or it enters
+// tapped" UnlessCost): the nested Engine.Ask then replaces e.resume with its
+// own frame, so rp survives only here. Two shapes follow:
+//
+//   - the queue is drained: chain rp behind the nested frame (fx34's
+//     discipline), so the resolution resumes once that inner question
+//     settles;
+//   - more competitions are queued: the resolution must NOT resume until the
+//     last of them is answered, so rp cannot ride the nested frame (which
+//     completes first). It is handed to every queued in-resolution
+//     competition instead (resumeAtPose), and handleReplacement reinstates it
+//     when the next answer finds e.resume empty. Without the hand-off the
+//     frame was lost and the next answer resumed a nil frame (the botbench
+//     panic: Lumra, Bellow of the Woods returning Overgrown Tomb and other
+//     lands under Horizon Explorer).
+//
+// The pose record of a competition answered while nothing was resolving
+// (turn structure, a cast window) is the flow's own bookkeeping: once the
+// composition completed synchronously the stale frame is dropped --
+// resolveTop reads e.resume to decide whether its resolution suspended, and a
+// stale frame makes it abandon a resolution that actually finished,
+// re-resolving it on every pass (observed: a land entry's order pose left the
+// frame and a later resolving ability re-resolved unbounded).
+func (e *Engine) settleReplacementQueue(rc replChoice, rp *resumePoint) {
+	if !rc.inResolution {
+		if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
+			e.pending == nil && len(e.replChoices) == 0 {
+			e.resume = nil
+		}
+		return
+	}
+	if rp == nil {
+		// Nothing suspended to resume: a competition posed under an
+		// already-owned resume point whose owner consumed it. Resuming a nil
+		// frame is the panic this tail exists to avoid.
+		return
+	}
+	if len(e.replChoices) > 0 {
+		if e.resume != rp {
+			for i := range e.replChoices {
+				if e.replChoices[i].inResolution && e.replChoices[i].resumeAtPose == nil {
+					e.replChoices[i].resumeAtPose = rp
+				}
+			}
+		}
+		return
+	}
+	if e.resume == rp {
+		if e.pending == nil {
 			e.resume = nil
 			e.resumeResolution(rp, nil)
-		} else if e.resume != nil && e.resume.outer == nil {
-			e.resume.outer = rp
 		}
-	} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
-		e.pending == nil && len(e.replChoices) == 0 {
-		// The pose's own Engine.Ask record, from a cast window or turn
-		// structure where nothing was suspended: the composition completed
-		// synchronously in this answer, so the stale frame is dropped --
-		// resolveTop reads e.resume to decide whether its resolution
-		// suspended, and a stale frame makes it abandon a resolution that
-		// actually finished, re-resolving it on every pass (observed: a land
-		// entry's order pose left the frame and a later resolving ability
-		// re-resolved unbounded).
-		e.resume = nil
+		return
 	}
-	e.askNextReplacementChoice()
+	if e.resume == nil {
+		// The body's own flow consumed the frame; it owns the continuation.
+		return
+	}
+	// A nested ask the chosen body posed owns e.resume: run rp after its
+	// whole continuation chain, unless it is already on that chain.
+	tail := e.resume
+	for {
+		if tail == rp {
+			return
+		}
+		if tail.outer == nil {
+			break
+		}
+		tail = tail.outer
+	}
+	tail.outer = rp
 }
 
 // askNextReplacementChoice hands over to either an ordinary replacement
@@ -6453,11 +6606,16 @@ func init() {
 	// expansion exists: bloodthirst is a static ability whose whole meaning
 	// is an entry-time conditional counter put, which is exactly what the
 	// synthetic Repl below expresses.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst", "kw:Sunburst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
-		"repl:AddCounter", "api:ReplaceCounter")
+		"repl:AddCounter", "api:ReplaceCounter",
+		// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+		// file) via the ReplaceDamage intercept in applyReplacements, never
+		// through effects.Resolve/runReplaceWith -- this registration is the
+		// census token only; a stub effects.Register handler would be dead code.
+		"api:ReplaceDamage")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

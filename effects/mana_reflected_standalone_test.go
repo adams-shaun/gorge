@@ -55,10 +55,10 @@ func TestManaReflectedStandaloneAsksForTheColour(t *testing.T) {
 	c.ManaReflectedColor = "Add U"
 	effManaReflected(ah, c, s)
 
-	if got := poolCount(ah.log, "U"); got != 1 {
+	if got := poolCount(t, ah.log, "U"); got != 1 {
 		t.Fatalf("resumed ManaAdd U count = %d, want 1", got)
 	}
-	if got := poolCount(ah.log, "W"); got != 0 {
+	if got := poolCount(t, ah.log, "W"); got != 0 {
 		t.Fatalf("resumed ManaAdd W count = %d, want 0 (the answer must pick)", got)
 	}
 }
@@ -73,10 +73,10 @@ func TestManaReflectedStandaloneFallsBackWhenHostCannotAsk(t *testing.T) {
 
 	effManaReflected(plain, c, s)
 
-	if got := poolCount(plain.log, "W"); got != 1 {
+	if got := poolCount(t, plain.log, "W"); got != 1 {
 		t.Fatalf("no-ask host added W %d times, want 1 (the deterministic first candidate)", got)
 	}
-	if got := poolCount(plain.log, "U"); got != 0 {
+	if got := poolCount(t, plain.log, "U"); got != 0 {
 		t.Fatalf("no-ask host added U %d times, want 0", got)
 	}
 	found := false
@@ -91,10 +91,19 @@ func TestManaReflectedStandaloneFallsBackWhenHostCannotAsk(t *testing.T) {
 }
 
 // poolCount counts the ManaAdd events for one colour in a captured log.
-func poolCount(log []events.Event, colour string) int {
+func poolCount(t *testing.T, log []events.Event, colour string) int {
+	t.Helper()
 	n := 0
 	for _, ev := range log {
-		if ev.Kind == events.ManaAdd && ev.Counter == colour {
+		if ev.Kind != events.ManaAdd {
+			continue
+		}
+		// Reflector is an Artifact: keep asserting its mana carries the
+		// producer tag as well as the chosen colour.
+		if tag, _, ok := state.TypedManaCounter(ev.Counter); !ok || tag != state.TypedArtifact {
+			t.Fatalf("Reflector emitted untagged mana: %q", ev.Counter)
+		}
+		if state.ManaSlot(ev.Counter) == state.ManaSlot(colour) {
 			n++
 		}
 	}

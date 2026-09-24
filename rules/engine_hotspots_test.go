@@ -33,13 +33,15 @@ func BenchmarkNewEngineObjectArena(b *testing.B) {
 	}
 }
 
-func TestNewEngineSizesInitialObjectArenaExactly(t *testing.T) {
+func TestNewEngineSizesInitialObjectArenaWithHeadroom(t *testing.T) {
 	e := New(objectArenaConfig(t))
 	if got := len(e.G.Objs); got != 240 {
 		t.Fatalf("objects = %d, want 240", got)
 	}
-	if got := cap(e.G.Objs); got != 240 {
-		t.Fatalf("object capacity = %d, want exact initial card count 240", got)
+	// The dealt cards plus objectHeadroom for the objects a game mints, so a
+	// game's first token does not regrow the whole arena.
+	if got, want := cap(e.G.Objs), 240+objectHeadroom; got != want {
+		t.Fatalf("object capacity = %d, want initial card count 240 + headroom %d = %d", got, objectHeadroom, want)
 	}
 	for i, o := range e.G.Objs {
 		if o.ID != state.ObjID(i+1) {

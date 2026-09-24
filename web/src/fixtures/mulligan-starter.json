@@ -4,13 +4,15 @@
       "name": "Alice",
       "deck": "a",
       "colour": "#e5484d",
-      "human": true
+      "human": true,
+      "deck_id": "a"
     },
     {
       "name": "Bob",
       "deck": "a",
       "colour": "#3b82f6",
-      "human": true
+      "human": true,
+      "deck_id": "a"
     }
   ],
   "first_ask": {
@@ -205,7 +207,7 @@
     "stack": [],
     "pending": [],
     "decision": {
-      "seq": 18,
+      "seq": 20,
       "player": 1,
       "kind": "mulligan",
       "prompt": "Bob plays first. Keep your hand (put 0 cards on the bottom of your library) or take a mulligan?",
@@ -427,7 +429,7 @@
     "stack": [],
     "pending": [],
     "decision": {
-      "seq": 37,
+      "seq": 39,
       "player": 1,
       "kind": "mulligan",
       "prompt": "Bob plays first. Keep your hand (put 1 card on the bottom of your library)",

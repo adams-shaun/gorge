@@ -65,6 +65,12 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 		}
 		raw = raw[1:]
 	}
+	if v, ok := runtimeSVar(c, raw); ok {
+		// A runtime write (api:StoreSVar) shadows the printed body of the same
+		// name -- checked BEFORE the table, or LifePaidOnETB:Number$0 would
+		// win over the stored value.
+		return sign * v, true
+	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[raw]; ok {
 			return sign * EvalCount(h, c, body), true
@@ -134,6 +140,33 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 		return sign * n, true
 	}
 	return 0, false
+}
+
+// NumResolvedStrict is NumResolved with the SVar-body verdict honoured: where
+// NumResolved reports a named SVar as resolved whatever its body evaluates to
+// (an effect amount's degrade-to-zero contract), this reports it resolved
+// only when EvalCountOK understood the body. A caller whose unresolved
+// default differs from zero -- a target BOUND, where a silent zero forbids
+// targeting altogether -- reads this form so an unmodelled body falls back
+// to its default instead of a fake 0.
+func NumResolvedStrict(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bool) {
+	n, ok := NumResolved(h, c, sa, key, def)
+	if !ok || c == nil || c.SVars == nil {
+		return n, ok
+	}
+	raw := strings.TrimSpace(sa.Params[key])
+	if len(raw) > 1 && (raw[0] == '+' || raw[0] == '-') {
+		raw = raw[1:]
+	}
+	if _, runtime := runtimeSVar(c, raw); runtime {
+		return n, ok
+	}
+	if body, named := c.SVars[raw]; named {
+		if _, evaluated := EvalCountOK(h, c, body); !evaluated {
+			return def, false
+		}
+	}
+	return n, ok
 }
 
 // EvalCount evaluates a "Count$..." expression. The grammar in the corpus is a
@@ -303,7 +336,11 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	if rest, ok := strings.CutPrefix(expr, "SVar$"); ok {
 		name, op, hasOp := strings.Cut(rest, "/")
 		n, ok3 := int32(0), false
-		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
+		if v, ok2 := runtimeSVar(c, strings.TrimSpace(name)); ok2 {
+			// A runtime write (api:StoreSVar) shadows the printed body of the
+			// same name -- checked first, or LifePaidOnETB:Number$0 would win.
+			n, ok3 = v, true
+		} else if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
 			n, ok3 = evalCountExprOK(h, c, body, depth+1)
 		} else if v, ok2 := runtimePublished(c, strings.TrimSpace(name)); ok2 {
 			n, ok3 = v, true
@@ -376,6 +413,22 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// through, not evaluated.
 		if n, ok2 := evalCountBody(h, c, strings.TrimSpace(expr), depth); ok2 {
 			return n, true
+		}
+		// The same bare body with the shared /Op suffix (Avacyn's Judgment's
+		// SVar:MaxTgts:PlayerCountPlayers$Amount/Plus.MaxPermanents): the
+		// Count$ branch below cuts the suffix before the head dispatch, and
+		// a prefix-less body must too, or the whole bound reads as an
+		// unmodelled zero -- a TargetMax$ that silently forbids targeting.
+		// Tried only after the whole body missed, so a head whose argument
+		// legitimately carries a slash keeps its reading, and only for an
+		// operator this evaluator models (a literal arithmetic op, or a
+		// Plus/Minus/Times operand naming one of this face's SVars) -- an
+		// unmodelled operator stays unresolved rather than silently
+		// returning the bare head's value.
+		if head, op, hasOp := strings.Cut(strings.TrimSpace(expr), "/"); hasOp && modelledCountOp(c, op) {
+			if n, ok2 := evalCountBody(h, c, strings.TrimSpace(head), depth); ok2 {
+				return applyCountOpOperand(h, c, n, op, depth), true
+			}
 		}
 		// A bare SVar-name body (Spark Fiend's StoreSVar Expression$ Result)
 		// resolves a DB$ RollDice publication of this same resolution -- the
@@ -872,7 +925,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 // forms can never disagree about what one argument selects.
 type castManaSpentTotals struct {
 	total, snow int32
-	typed       [3]int32
+	typed       [4]int32
 }
 
 // manaSpentTotalsOf reads a cast object's recorded spend breakdown. The typed
@@ -2209,8 +2262,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return 0, true
 	}
 	// Kicked.<yes>.<no> is <yes> when the source was kicked, else <no>.
+	// A pending cast's announcement ask reads it BEFORE payment stamps the
+	// stack object, so Ctx.PendingKicked (rules' targetBoundCtx binding) is
+	// ORed with the object's FlagKicked; at resolution no pending cast exists
+	// and the object read is authoritative.
 	if rest, ok := strings.CutPrefix(head, "Kicked."); ok {
 		yes, no := splitDot(rest)
+		if c.PendingKicked {
+			return yes, true
+		}
 		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagKicked != 0 {
 			return yes, true
 		}
@@ -3774,7 +3834,7 @@ func manaCostColourSymbols(cost string, col byte) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(cost) {
+	for sym := range strings.FieldsSeq(cost) {
 		n += int32(strings.Count(sym, string(col)))
 	}
 	return n
@@ -4128,6 +4188,24 @@ func hasSubtype(o *state.Object, sub string) bool {
 // unimplemented operator as a successful read of the base amount. Other
 // heads retain their existing operator fallback; the two corpus carriers
 // need only the bare value and /Twice.
+// modelledCountOp reports whether op is an arithmetic suffix the Count$
+// evaluator actually applies: a literal op validConvokedCountOp accepts, or a
+// Plus./Minus./Times. operand naming one of c's SVars (applyCountOpOperandOK's
+// SVar-operand arm, Avacyn's Judgment's /Plus.MaxPermanents).
+func modelledCountOp(c *Ctx, op string) bool {
+	op = strings.TrimSpace(op)
+	if validConvokedCountOp(op) {
+		return true
+	}
+	for _, prefix := range []string{"Plus.", "Minus.", "Times."} {
+		if operand, ok := strings.CutPrefix(op, prefix); ok && c != nil && c.SVars != nil {
+			_, named := c.SVars[strings.TrimSpace(operand)]
+			return named
+		}
+	}
+	return false
+}
+
 func validConvokedCountOp(op string) bool {
 	switch op {
 	case "Twice", "Thrice", "HalfDown", "HalfUp", "Negative":

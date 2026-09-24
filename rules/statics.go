@@ -58,12 +58,18 @@ type costStaticViews struct {
 	reduce   []staticView
 	set      []staticView
 	optional []staticView
+	// validTarget: some raise/reduce/set member carries ValidTarget$, the
+	// one parameter through which a composition reads the chosen targets
+	// (see offerCastableUsing's potential-target retry).
+	validTarget bool
 }
 
 // costStaticSource lazily owns one call-scoped membership snapshot. It is
 // deliberately not stored on Engine: a legal-actions pass may reuse it, but
 // a later pass or payment-side recomputation must observe the current board,
-// including test fixtures that mutate setup without emitting events.
+// including test fixtures that mutate setup without emitting events. (Inside
+// a legal-actions walk the collection itself is served from the walk-scoped
+// fused scan, rules/walkcache.go, which a later pass never reads.)
 type costStaticSource struct {
 	e     *Engine
 	views costStaticViews
@@ -106,6 +112,13 @@ func (s *actionStaticSource) get() actionStaticViews {
 // expansion or collectCostStatics' other zones. Each mode keeps its original
 // seat, zone and parsed-static order while sharing a single membership walk.
 func (e *Engine) collectActionStatics() actionStaticViews {
+	if v, ok := e.boardStaticsWalk(); ok {
+		return v.action
+	}
+	return e.scanActionStatics()
+}
+
+func (e *Engine) scanActionStatics() actionStaticViews {
 	var out actionStaticViews
 	for pi, p := range e.G.AliveFrom(0) {
 		// Continuous statics are zone-scoped by their EffectZone$, so the
@@ -121,7 +134,7 @@ func (e *Engine) collectActionStatics() actionStaticViews {
 			}
 			for _, id := range e.G.Zone(z, p) {
 				o := e.G.Obj(id)
-				if o == nil || o.Face() == nil {
+				if o == nil || o.Face() == nil || offBattlefieldStaticsInert(z, o) {
 					continue
 				}
 				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
@@ -171,7 +184,12 @@ func (e *Engine) collectActionStatics() actionStaticViews {
 // and the resulting option list are stable run to run, which is what
 // TestActiveStaticsIsDeterministicallyOrdered checks for.
 func (e *Engine) activeStatics(mode string) []staticView {
-	var out []staticView
+	// Board-only, so a legal-actions walk serves it from the walk cache
+	// (rules/walkcache.go); outside a walk it is scanned every call.
+	return e.activeStaticsCached(mode)
+}
+
+func (e *Engine) scanActiveStatics(mode string, out []staticView) []staticView {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
@@ -571,7 +589,7 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 	if v == "" {
 		return true // no ValidSA$: applies to every activated ability
 	}
-	for _, alt := range strings.Split(v, ",") {
+	for alt := range strings.SplitSeq(v, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -802,7 +820,7 @@ func spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID
 	if strings.TrimSpace(raw) == "" {
 		return true
 	}
-	for _, alt := range strings.Split(raw, ",") {
+	for alt := range strings.SplitSeq(raw, ",") {
 		kind, constraint, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		switch kind {
 		case "Spell":
@@ -1038,7 +1056,7 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 	}
 	if vs := strings.TrimSpace(params["ValidSA"]); vs != "" {
 		ok := false
-		for _, alt := range strings.Split(vs, ",") {
+		for alt := range strings.SplitSeq(vs, ",") {
 			alt = strings.TrimSpace(alt)
 			kind, constraint := alt, ""
 			if i := strings.IndexByte(alt, '.'); i >= 0 {
@@ -1531,7 +1549,7 @@ func (m costMods) hasFloor() bool {
 // resolves one pip per level in announcePip order and stops at the first
 // payable assignment, so a payable cost is found without visiting the whole
 // tree.
-func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, typed [3]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
+func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
 	composed := func(c Cost) bool {
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
@@ -1621,7 +1639,7 @@ func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability boo
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the offer the walk mirrors can never
 // disagree about what the pool may satisfy.
-func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana, typed [3]state.Mana) bool {
+func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, pool state.Mana, typed [7]state.Mana) bool {
 	pl := e.G.Players[p]
 	return mods.feasibleAny(c, pool, pl.Snow, typed, pl.Life, taxGeneric, delve,
 		e.payerGrantsPayLifeInsteadOfB(p),
@@ -1639,7 +1657,7 @@ func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bo
 		pool = *hyp
 		// A hypothetical bound is a pure mana bound (see costPayablePool),
 		// so its typed partition is the raw tally.
-		typed = e.G.Players[p].TypedMana
+		typed = e.G.Players[p].ManaUnits()
 	}
 	return e.manaFeasiblePool(p, id, ability, c, mods, taxGeneric, delve, pool, typed)
 }
@@ -1656,7 +1674,7 @@ func effectZoneOK(v string, z state.Zone) bool {
 	if v == "" {
 		return z == state.ZBattlefield
 	}
-	for _, name := range strings.Split(v, ",") {
+	for name := range strings.SplitSeq(v, ",") {
 		switch strings.TrimSpace(name) {
 		case "All":
 			return true
@@ -1703,6 +1721,13 @@ func effectZoneOK(v string, z state.Zone) bool {
 // deterministic: AliveFrom(0) seats, a fixed zone order, slice order inside
 // each zone, and each face's own Statics order.
 func (e *Engine) collectCostStatics() costStaticViews {
+	if v, ok := e.boardStaticsWalk(); ok {
+		return v.cost
+	}
+	return e.scanCostStatics()
+}
+
+func (e *Engine) scanCostStatics() costStaticViews {
 	var out costStaticViews
 	add := func(o *state.Object, id state.ObjID) {
 		f := o.Face()
@@ -1747,7 +1772,7 @@ func (e *Engine) collectCostStatics() costStaticViews {
 				continue
 			}
 			for _, id := range e.G.Zone(z, p) {
-				if o := e.G.Obj(id); o != nil {
+				if o := e.G.Obj(id); o != nil && (o.Face() == nil || !offBattlefieldStaticsInert(z, o)) {
 					add(o, id)
 				}
 			}
@@ -1762,6 +1787,26 @@ func (e *Engine) collectCostStatics() costStaticViews {
 	// non-permanent entries end with the source -- and the printed walk
 	// above never sees these (they are not face statics). The printed walk's
 	// own PileStaticCount discipline stays untouched.
+	e.appendEffectCostStatics(&out)
+	markCostValidTarget(&out)
+	return out
+}
+
+// markCostValidTarget sets out.validTarget from the collected members.
+func markCostValidTarget(out *costStaticViews) {
+	for _, views := range [...][]staticView{out.raise, out.reduce, out.set} {
+		for _, sv := range views {
+			if _, ok := sv.Params["ValidTarget"]; ok {
+				out.validTarget = true
+				return
+			}
+		}
+	}
+}
+
+// appendEffectCostStatics appends the Effect-delivered cost-modifier statics
+// (see scanCostStatics) after the printed ones.
+func (e *Engine) appendEffectCostStatics(out *costStaticViews) {
 	for _, ce := range e.active() {
 		var dst *[]staticView
 		switch ce.CostStaticMode {
@@ -1777,7 +1822,6 @@ func (e *Engine) collectCostStatics() costStaticViews {
 		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
 			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber})
 	}
-	return out
 }
 
 // modAmount evaluates one cost-modifier static's Amount$: a plain literal
@@ -1988,7 +2032,7 @@ func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state
 				// `Color$ 2 U | Amount$ X` means 2*X generic plus X blue.
 				red.hasColor = true
 				amount := e.modAmountX(sv, x)
-				for _, tok := range strings.Fields(col) {
+				for tok := range strings.FieldsSeq(col) {
 					if isDigitRun(tok) {
 						n, err := strconv.ParseInt(tok, 10, 64)
 						if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -2089,7 +2133,7 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 				// `Color$ 2 U | Amount$ X` means 2*X generic plus X blue.
 				red.hasColor = true
 				amount := e.modAmount(sv)
-				for _, tok := range strings.Fields(col) {
+				for tok := range strings.FieldsSeq(col) {
 					if isDigitRun(tok) {
 						n, err := strconv.ParseInt(tok, 10, 64)
 						if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -2390,7 +2434,7 @@ func affectedZoneOK(v string, z state.Zone) bool {
 	if v == "" {
 		return true
 	}
-	for _, name := range strings.Split(v, ",") {
+	for name := range strings.SplitSeq(v, ",") {
 		switch strings.TrimSpace(name) {
 		case "All":
 			return true
@@ -2443,7 +2487,7 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 	if spec == "" {
 		return true
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -2493,10 +2537,10 @@ func (e *Engine) spellConstraintMatches(scope costScope, id state.ObjID, constra
 		// two-part Kicker's per-part modes (kicked1/kicked2/kickedboth) are
 		// kicked casts too -- a cost static gated on "was this kicked" must
 		// not depend on WHICH part was paid. A multikicked cast (CR 702.43's
-		// kicker variant) is a kicked cast the same way.
-		return scope.mode == "kicked" || scope.mode == "kicked1" ||
-			scope.mode == "kicked2" || scope.mode == "kickedboth" ||
-			scope.mode == "multikicked"
+		// kicker variant) is a kicked cast the same way. Shared with
+		// targetBoundCtx's pre-payment Count$Kicked binding via modeIsKicked
+		// so the two spellings cannot drift.
+		return modeIsKicked(scope.mode)
 	case "Surged":
 		return scope.mode == "surged"
 	case "Miracle":
@@ -2541,7 +2585,7 @@ func (e *Engine) abilityConstraintMatches(scope costScope, p state.PlayerID, id 
 		return o != nil && o.Controller != p
 	}
 	// Keyword-derived: the expansion's Keyword$ tag (comma list).
-	for _, kw := range strings.Split(ab.Params["Keyword"], ",") {
+	for kw := range strings.SplitSeq(ab.Params["Keyword"], ",") {
 		if strings.EqualFold(strings.TrimSpace(kw), constraint) {
 			return true
 		}
@@ -2877,7 +2921,7 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 	for _, sv := range e.activeStatics("Panharmonicon") {
 		if vm := sv.Params["ValidMode"]; vm != "" {
 			ok := false
-			for _, want := range strings.Split(vm, ",") {
+			for want := range strings.SplitSeq(vm, ",") {
 				want = strings.TrimSpace(want)
 				for _, have := range modes {
 					if want == have {

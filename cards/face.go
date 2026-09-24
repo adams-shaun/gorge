@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -61,7 +62,7 @@ func KeywordHead(k string) string {
 // different Forge grammar.
 func SplitKeywordList(list string) []string {
 	var out []string
-	for _, part := range strings.Split(list, "&") {
+	for part := range strings.SplitSeq(list, "&") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}
@@ -128,6 +129,15 @@ func (f *Face) ManaAbilities() []*SA {
 		if end <= uint64(len(f.compiledCatalog.ManaAbilityIDs)) {
 			if span.Count == 0 {
 				return nil
+			}
+			// The precomputed pointer span, when every entry resolved, is
+			// returned clipped (an append by the caller reallocates, never
+			// writing the shared catalog slice).
+			if ptrs := f.compiledCatalog.manaAbilityPointers; end <= uint64(len(ptrs)) {
+				sp := ptrs[span.Start:uint32(end):uint32(end)]
+				if !slices.Contains(sp, nil) {
+					return sp
+				}
 			}
 			out := make([]*SA, 0, span.Count)
 			for _, id := range f.compiledCatalog.ManaAbilityIDs[span.Start:uint32(end)] {
@@ -260,6 +270,7 @@ func (f *Face) derive() {
 		f.manaProduction.addReflected(a)
 	}
 	f.colourIdentity = f.deriveColourIdentity()
+	f.deriveTypeStatics()
 }
 
 // deriveColourIdentity computes the face's colour identity the way CR 903.4
@@ -433,7 +444,7 @@ func oracleColours(oracle string) uint8 {
 // ignored.
 func colourIndicator(s string) uint8 {
 	var m uint8
-	for _, part := range strings.Split(s, ",") {
+	for part := range strings.SplitSeq(s, ",") {
 		switch strings.ToLower(strings.TrimSpace(part)) {
 		case "white":
 			m |= ColourWhite
@@ -560,7 +571,7 @@ func cmcFromManaCost(mc string) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(mc) {
+	for sym := range strings.FieldsSeq(mc) {
 		if sym == "X" { // {X} is 0 off the stack
 			continue
 		}

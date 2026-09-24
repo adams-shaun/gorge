@@ -263,6 +263,18 @@ func (e *Engine) checkStateBased() {
 	// (e.g. a legend rule binning the Aura) can end or newly want a static
 	// grant without Engine.emit's tail having run the reconcile.
 	e.reconcileControlStatics()
+	// The quiet skip (rules/sbaquiet.go): the pass loop last ran to a fixed
+	// point without emitting anything, and nothing an SBA reads has moved
+	// since, so running it again would apply nothing.
+	ep0 := len(e.L.Events)
+	quiet := e.sbaQuietNow()
+	if quiet && !sbaQuietVerify {
+		e.checkGameOver()
+		e.releasePendingDecisionOfDepartedPlayer()
+		return
+	}
+	e.sbaQuiet = sbaQuietKey{}
+	e.sbaUnquiet = false
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		changed := e.checkLoseConditions(tried)
 		if e.annihilateOppositeCounters() {
@@ -277,6 +289,9 @@ func (e *Engine) checkStateBased() {
 			// parked batch's board stays the board the controller chooses
 			// against (CR 704.3) and nothing applies under the outstanding
 			// ask. The answer's own Submit tail re-runs every remaining SBA.
+			if quiet {
+				e.verifySBAQuiet(ep0)
+			}
 			return
 		}
 		if e.planeswalkerZeroLoyalty(tried) {
@@ -299,9 +314,14 @@ func (e *Engine) checkStateBased() {
 			break
 		}
 	}
+	if quiet {
+		e.verifySBAQuiet(ep0)
+	}
 	if !stable {
 		e.emit(events.Event{Kind: events.Note,
 			Text: "state-based actions did not reach a fixed point within the pass budget"})
+	} else {
+		e.sbaRecordQuiet(ep0)
 	}
 	e.checkGameOver()
 	e.releasePendingDecisionOfDepartedPlayer()
@@ -698,8 +718,18 @@ func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 			continue
 		}
 		tried.players[p.ID] = true
+		// A sweep that emitted no event at all (every departed object already
+		// ceased -- the steady state of every call after the first once a
+		// seat has left) changed nothing, so it is not "new work" for the
+		// fixed-point test: the extra pass it used to force re-ran every other
+		// SBA over an unchanged board and found nothing. Any emission at all
+		// -- including a blocking replacement's own substitute effect, the
+		// T22-n case -- still reports changed.
+		n0 := len(e.L.Events)
 		e.ceaseDepartedObjects(p.ID)
-		changed = true
+		if len(e.L.Events) != n0 {
+			changed = true
+		}
 	}
 	return changed
 }
@@ -869,6 +899,9 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 			e.parkLegendChoice(groups[0], dead)
 			return true
 		}
+		// Deferred on a runtime input (an outstanding decision): the pass
+		// loop's no-op here is not a function of the board alone.
+		e.sbaUnquiet = true
 		return false
 	}
 	if len(dead) == 0 {

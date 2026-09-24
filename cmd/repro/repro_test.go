@@ -323,11 +323,18 @@ func TestReproOnFreshSnapshot(t *testing.T) {
 	// default procs here; both replays verified every time — only this
 	// fixed-count assertion could tell). advance now waits for seat 0's
 	// NEXT decision to reach the gate — the match parked inside Decide with
-	// every earlier event emitted — and the count is stably 25 (150 events,
-	// head 775a4dcd17aaf606; 200/200 at GOMAXPROCS=2). The committed
-	// fixture stays at its own recorded 24; regenerate it and its
-	// assertions together if it is ever re-recorded (REPRO_REGEN_FIXTURE).
-	if !strings.Contains(out.String(), "replayed 25 of 25 recorded intents") {
+	// every earlier event emitted — and the count was stably 25 (150 events,
+	// head 775a4dcd17aaf606; 200/200 at GOMAXPROCS=2).
+	//
+	// 25 -> 26 (2026-09-23, wt/cli-20260922T225141Z-e771720d): the CR 103.1
+	// toss-winner ask (rules.NewStartingPlayerChoice + AskStartingPlayer)
+	// adds one recorded intent at genesis on every hosted match — the
+	// DecisionAsk + DecisionMade pair before the pregame rounds open — so
+	// the same advance(12) gate count now captures 26 (152 events). The
+	// committed fixture stays at its own recorded 24 (its log predates the
+	// ask, so it still reconstructs through plain New); regenerate it and
+	// its assertions together if it is ever re-recorded (REPRO_REGEN_FIXTURE).
+	if !strings.Contains(out.String(), "replayed 26 of 26 recorded intents") {
 		t.Errorf("fresh snapshot summary unexpected:\n%s", out.String())
 	}
 	out.Reset()
@@ -389,51 +396,83 @@ func TestReproEmitTestSkeletonCompilesAndFailsOnTODO(t *testing.T) {
 	}
 }
 
-// TestReproEmitTestIntoRulesCompilesAndFailsOnTODO is the probe the scratch
-// package cannot be: the NATURAL target for a repro test is an engine
-// package (the reported behaviour lives in rules/), and an internal-package
-// skeleton emitted there forms rules -> feedback -> rules — an import cycle
-// the go toolchain refuses at setup. The skeleton is the external test
-// package, so emitting into the real rules package must compile and fail
-// only on the TODO. The file (and its copied snapshot) is removed on
-// cleanup; the run compiles the rules test binary from the build cache
-// because nothing in rules changed.
+// TestReproEmitTestIntoRulesCompilesAndFailsOnTODO probes the NATURAL
+// emit-test target: an ENGINE package (the reported behaviour lives in
+// rules/), where an internal-package skeleton would form
+// rules -> feedback -> rules — an import cycle the go toolchain refuses at
+// setup. The skeleton is the external test package, so emitting into a
+// rules-shaped engine target must compile and fail only on the TODO.
+//
+// The target is a runtime CLONE of the rules package (its non-test sources
+// copied verbatim into zzrepro-emitrules at the repo root, so the package
+// is still named rules and every import stays inside the module), not the
+// real rules/ directory. Writing the skeleton into the real rules dir made
+// this probe a hazard to every other build of ./rules: a gate process
+// killed between emit and cleanup left the skeleton (and its snapshot)
+// behind, and the next module gate's probe then refused to emit ("already
+// exists; not overwriting" -> exit 2 with a discarded stderr) while its
+// cleanup deleted that stale file out from under a concurrently loading
+// rules build ("open rules/repro_feedback_..._test.go: no such file or
+// directory") — both seen in one gate run. A root-level scratch directory
+// is never in `go test ./...`'s package list (enumerated before the tests
+// run) and nobody else builds it, so nothing can race it or inherit
+// residue. The cycle premise is asserted statically instead of by mutating
+// the real tree.
 func TestReproEmitTestIntoRulesCompilesAndFailsOnTODO(t *testing.T) {
 	requireCorpus(t)
 	root, err := feedback.Root()
 	if err != nil {
 		t.Skipf("no repo root: %v", err)
 	}
-	san := sanitize(fixtureID)
-	testPath := filepath.Join(root, "rules", "repro_feedback_"+san+"_test.go")
-	dataDir := filepath.Join(root, "rules", "testdata", "feedback", fixtureID)
-	// Only remove what this test created: rules/testdata is not ours if it
-	// already carried content before the emit.
-	testdataPreExisting := false
-	if ents, err := os.ReadDir(filepath.Join(root, "rules", "testdata")); err == nil && len(ents) > 0 {
-		testdataPreExisting = true
-	}
-	t.Cleanup(func() {
-		os.Remove(testPath)
-		os.RemoveAll(dataDir)
-		if !testdataPreExisting {
-			os.Remove(filepath.Join(root, "rules", "testdata", "feedback"))
-			os.Remove(filepath.Join(root, "rules", "testdata"))
-		}
-	})
 
+	// Premise: feedback (which every skeleton imports) really does import
+	// the engine tier's rules package — that import is the cycle an
+	// internal-package skeleton would form, and the reason the emitted
+	// declaration must carry the _test suffix.
+	depsOut, err := exec.Command("go", "list", "-f", "{{join .Imports \"\\n\"}}",
+		"github.com/adams-shaun/gorge/internal/testutil/feedback").CombinedOutput()
+	if err != nil {
+		t.Fatalf("go list feedback imports: %v\n%s", err, depsOut)
+	}
+	if !strings.Contains(string(depsOut), "github.com/adams-shaun/gorge/rules") {
+		t.Fatalf("premise lost: internal/testutil/feedback no longer imports the rules package:\n%s", depsOut)
+	}
+
+	target := filepath.Join(root, "zzrepro-emitrules")
+	t.Cleanup(func() { os.RemoveAll(target) })
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ents, err := os.ReadDir(filepath.Join(root, "rules"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range ents {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") || strings.HasSuffix(e.Name(), "_test.go") {
+			continue
+		}
+		src, err := os.ReadFile(filepath.Join(root, "rules", e.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(target, e.Name()), src, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	san := sanitize(fixtureID)
 	var out bytes.Buffer
-	if code := run([]string{"-emit-test", "rules", fixtureRel}, &out, io.Discard); code != 0 {
+	if code := run([]string{"-emit-test", "zzrepro-emitrules", fixtureRel}, &out, io.Discard); code != 0 {
 		t.Fatalf("emit exit %d, output:\n%s", code, out.String())
 	}
-	raw, err := os.ReadFile(testPath)
+	raw, err := os.ReadFile(filepath.Join(target, "repro_feedback_"+san+"_test.go"))
 	if err != nil {
-		t.Fatalf("skeleton not written into rules/: %v", err)
+		t.Fatalf("skeleton not written into the rules clone: %v", err)
 	}
 	if !strings.Contains(string(raw), "package rules_test") {
-		t.Fatalf("skeleton emitted into rules/ is not the external test package:\n%s", raw)
+		t.Fatalf("skeleton emitted into the rules clone is not the external test package:\n%s", raw)
 	}
-	cmd := exec.Command("go", "test", "./rules", "-run", "^TestFeedbackRepro20260914T120000Z_fb01$")
+	cmd := exec.Command("go", "test", "./zzrepro-emitrules", "-run", "^TestFeedbackRepro20260914T120000Z_fb01$")
 	cmd.Dir = root
 	res, err := cmd.CombinedOutput()
 	if err == nil {

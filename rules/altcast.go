@@ -118,7 +118,7 @@ func (e *Engine) escapeCost(id state.ObjID) (Cost, bool) {
 		return Cost{}, false
 	}
 	var toks []string
-	for _, tok := range strings.Fields(raw) {
+	for tok := range strings.FieldsSeq(raw) {
 		if strings.EqualFold(tok, "CardManaCost") {
 			toks = append(toks, strings.Fields(o.Face().ManaCost)...)
 			continue
@@ -417,7 +417,7 @@ func (e *Engine) mayhemCastCost(id state.ObjID) (Cost, bool) {
 	// Forge placeholder before parsing, exactly as escapeCost does for
 	// Underworld Breach's granted Escape cost.
 	var toks []string
-	for _, tok := range strings.Fields(raw) {
+	for tok := range strings.FieldsSeq(raw) {
 		if strings.EqualFold(tok, "CardManaCost") {
 			toks = append(toks, strings.Fields(o.Face().ManaCost)...)
 			continue

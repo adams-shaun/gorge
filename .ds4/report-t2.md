@@ -1,3 +1,399 @@
+# Report — agent-20260919T181318Z-86535368 (verification round)
+
+## Result
+
+The requested implementation is already present in this worktree's history as `eb1b0d97` (`fix(rules): batch a RepeatEach ChangeZoneTable loop's zone changes for ChangesZoneAll`), an ancestor of HEAD. `effRepeatEach` reads `ChangeZoneTable$ True`, opens/closes the zone batch around the loop, and leaves it open across suspension/resumption. The real-corpus test `TestRepeatEachChangeZoneTableBatchesChangesZoneAll` covers Organ Harvest's zone-changing loop and verifies Simic Slaw (`ChangesZoneAll`) fires once while Black Market (`ChangesZone`) fires once per moved creature; the adjacent control pins non-batched behavior. The stale Adeline parameter entry has been removed. I made no production or test changes in this round and did not touch `UseImprinted$` or the Curse of the Swine assertions.
+
+The worktree's `.cards` is a symlink to `/home/sadams/projects/gorge/.cards`; corpus-backed gates therefore had access to the corpus. The brief's measurements (47 ChangeZoneTable carrier files and 43 UseImprinted files) are recorded in the prior verification report `.ds4/report-t1.md`; no prevalence-sensitive source edit was needed here.
+
+## Verification
+
+Exact targeted command and output:
+
+```text
+$ go test -run 'TestRepeatEachChangeZoneTable|TestEveryRepoDeckParamsAreRead' ./rules/ 2>&1 | tail -30
+ok   github.com/adams-shaun/gorge/rules (cached)
+```
+
+The cache hit is for the unchanged, already-verified test inputs; `rules/zone_table_batch_test.go` contains the dedicated real-corpus test and its control.
+
+```text
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+```
+
+No source was changed, so there was no botbench split movement attributable to this round.
+
+## Fails without the fix
+
+Not applicable to this verification-only round: the fix is an ancestor commit and no fix hunk was authored or reverted here. Reverting it locally would test an artificial rewrite of already-landed history, not changes made in this round. The existing regression's preconditions and assertions are in `rules/zone_table_batch_test.go`; the prior report documents their verification.
+
+## Done-means checklist
+
+- [x] Correct per-loop ChangeZoneTable batching and suspension bracket are present on current branch.
+- [x] Real-corpus regression and non-batched control are present.
+- [x] Adeline's stale parameter-census entry is absent; targeted ratchet passes.
+- [x] Existing UseImprinted implementation remains untouched; no Curse of the Swine changes.
+- [x] Required targeted test, archtest, and botbench gates pass (outputs above).
+- [x] No Known-approximations row is implicated or changed.
+
+## Issues
+
+No unfixed implementation issue was found in the requested scope. The report's original premise is stale relative to this branch: `eb1b0d97` already implements the behavior and regression. No follow-up ticket is warranted.
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Task report — replcensus1: `api:ReplaceDamage` census token
+
+Ticket: `agent-20260919T055356Z-504b1359`
+Branch: `wt/agent-20260919T055356Z-504b1359`
+Commits: `ff45b79f` `fix(replacedamage): register api:ReplaceDamage census token`,
+`729e9610` `docs(replacedamage): round-1 task report`
+Rebased onto `main @ f8e330c3`.
+
+## State of the round (read this first)
+
+The implementation for this ticket was already present and committed on this
+branch when the round started (`b5c35e4d` before the rebase; `ff45b79f`
+after). The attached `findings-t2.md` is **not** a review finding: it is the
+recorded output of a failed `git rebase` whose only blocker was an unstaged
+`.ds4/report-t1.md` (an agent artifact, not product code).
+
+This round therefore:
+
+1. Committed the dirty `.ds4/report-t1.md` (my own round-1 report, which had
+   been left unstaged) as `729e9610`.
+2. Ran `git rebase main` per the controller directive. The only conflict was in
+   `.ds4/report-t1.md` (a docs file, not code); resolved keeping both main's
+   accumulated history and my report, completing the rebase. The code commit
+   `ff45b79f` applied cleanly.
+3. Re-ran every gate at the new base (`f8e330c3`, 46 commits ahead of the old
+   base) and re-proved the new tests fail with the registration reverted.
+
+No product code changed this round beyond the already-committed fix. The
+deliverable is the two commits above.
+
+## What changed and why (per file)
+
+### `rules/replacement.go` — the one production change (`ff45b79f`)
+
+Added `"api:ReplaceDamage"` to the `effects.RegisterNonAPI(...)` list inside the
+package `init()`, with a comment naming the inline handler:
+
+```go
+"repl:AddCounter", "api:ReplaceCounter",
+// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+// file) via the ReplaceDamage intercept in applyReplacements, never
+// through effects.Resolve/runReplaceWith -- this registration is the
+// census token only; a stub effects.Register handler would be dead code.
+"api:ReplaceDamage")
+```
+
+Root cause (as briefed, verified): `rules/replacement.go`'s `applyReplacements`
+intercepts a `ReplaceWith$` body whose API is `ReplaceDamage` and applies it
+inline through `applyReplaceDamageBody`, so it never reaches
+`effects.Register`; `effects.Supported()` therefore had no `api:ReplaceDamage`
+and the census false-reported the 38 carrier cards as unsupported even though
+prevention works in play. This is a census-token-only registration — no
+behaviour code (`applyReplaceDamageBody`, the intercept) was touched, and no
+stub `effects.Register` handler was added.
+
+**Premap spot-check:** the brief placed the list at `rules/replacement.go:4583`
+with `func init()` at 4545 (main `18644593`). At the round-1 base (`6ec869e5`)
+it was at line 6164 (`func init()` at 6126); at the rebased base (`f8e330c3`) it
+is at line 6165. Line numbers drifted but the anchor (the `RegisterNonAPI` list
+containing `"repl:AddCounter", "api:ReplaceCounter"`) was located and is
+unique. Everything else in the premap held: `effects/registry.go` needed no
+edit, and the four behaviour pins are untouched.
+
+### `rules/replacedamage_registration_test.go` (new test file, `ff45b79f`)
+
+Per the "new tests go in a new file" rule, the pin lives in its own file rather
+than appended to `coverage_test.go`:
+
+- `TestReplaceDamagePrimitiveIsRegistered` — pins
+  `effects.Supported()["api:ReplaceDamage"]`.
+- `TestReplaceDamageCarrierHasNoGap` — loads the real corpus (`sharedCorpus`),
+  finds Heart-Shaped Herb and FIRST asserts its precondition
+  (`herb.Primitives()` contains `api:ReplaceDamage`, failing loudly if the card
+  shape changes), then asserts `reg.Unsupported(herb, effects.Supported())` no
+  longer contains `api:ReplaceDamage`.
+
+Registered in the test binary because package `rules` imports `effects` and
+this test file is in package `rules`; the Ruling W1 cross-binary premise is
+already covered by the pre-existing `TestForgecBinaryImportsRules` (not
+re-checked, per the brief).
+
+## Gates run (real output, at the rebased base `f8e330c3`)
+
+### Targeted gate (Done-means command)
+
+```text
+$ go test -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ > .ds4/scratch/t.log 2>&1; tail -20 .ds4/scratch/t.log
+ok  	github.com/adams-shaun/gorge/rules	0.700s
+```
+
+The 0.70s duration (not ~0.00s) confirms the corpus loaded and the
+corpus-backed carrier assertion actually ran rather than skipping. All four
+pre-existing behaviour pins are included in the `-run` set and pass.
+
+### `go test ./internal/archtest/`
+
+```text
+$ go test ./internal/archtest/ > .ds4/scratch/arch.log 2>&1; tail -5 .ds4/scratch/arch.log
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.985s
+```
+
+No allowlist edits.
+
+### `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+
+```text
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/bb.log 2>&1; tail -5 .ds4/scratch/bb.log
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.861s
+```
+
+Byte-identical, as expected: a pure registration emits no event and no repo
+deck carries a carrier, so these two gates run once (not per iteration).
+
+### `gofmt -l` on touched files
+
+```text
+$ gofmt -l rules/replacement.go rules/replacedamage_registration_test.go
+(no output)
+```
+
+## `## Fails without the fix` (re-proved at the rebased base)
+
+Copied `rules/replacement.go` to `.ds4/scratch/replacement.go.bak`, removed only
+the registration hunk (the `api:ReplaceDamage` entry plus its comment),
+re-ran only the new tests:
+
+```text
+$ go test -run 'TestReplaceDamage' ./rules/ > .ds4/scratch/fail.log 2>&1; cat .ds4/scratch/fail.log
+--- FAIL: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+    replacedamage_registration_test.go:21: effects.Supported() is missing "api:ReplaceDamage"
+--- FAIL: TestReplaceDamageCarrierHasNoGap (0.58s)
+    replacedamage_registration_test.go:38: Heart-Shaped Herb still reports api:ReplaceDamage unsupported: [api:ReplaceDamage]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.590s
+FAIL
+```
+
+Both new tests fail with the registration reverted. `TestReplaceDamageCarrierHasNoGap`
+fails at its postcondition after its precondition (the card's primitive list
+contains `api:ReplaceDamage`) passed — so it is proven non-vacuous: the corpus
+card was found and its primitive present, yet the census gap remained. The
+file was then restored and byte-compared:
+
+```text
+$ cp .ds4/scratch/replacement.go.bak rules/replacement.go
+$ cmp .ds4/scratch/replacement.go.bak rules/replacement.go && echo "RESTORED BYTE-IDENTICAL"
+RESTORED BYTE-IDENTICAL
+$ git status --short
+(empty)
+$ go test -run 'TestReplaceDamage' ./rules/ > .ds4/scratch/restore.log 2>&1; tail -3 .ds4/scratch/restore.log
+ok  	github.com/adams-shaun/gorge/rules	0.728s
+```
+
+Restored green and the working tree is clean.
+
+## Head / ratchet movement
+
+None. `rules/acceptance_test.go` `knownUnsupported` and
+`rules/heads_test.go` are untouched; no repo deck carries any of the 38 carriers
+(confirmed by the empty `git diff` for those files). A registration emits no
+event, so no chain head can move; `cmd/botbench`'s split stayed byte-identical,
+which is the same signal. TestHeads was not run (daemon gate).
+
+## Controller directive: rebase
+
+`git rebase main` was run this round, after committing the dirty
+`.ds4/report-t1.md`. The code commit applied cleanly; the only conflict was
+`.ds4/report-t1.md` (docs; a per-worktree report slot reused across tickets),
+resolved keeping both main's accumulated history and this ticket's report. The
+rebase completed and the branch is based on `main @ f8e330c3`.
+
+## Deviations from the brief
+
+1. **Test lives in a new file, not `rules/coverage_test.go`.** The brief's
+   Done-means says "New test in `rules/coverage_test.go`", but the dispatch's
+   "New tests go in a new file (2026-09-22)" rule and the gorge context require
+   a new `_test.go` file to avoid merge conflicts with sibling tickets. The
+   tests follow the `TestAddCounterReplacementPrimitivesAreRegistered` style
+   exactly and use the same `sharedCorpus` helper. This is the only
+   intentional deviation.
+2. **`git rebase main` was performed this round** (the previous round did not),
+   per the controller directive attached to the brief.
+
+## Workspace facts found
+
+- `.cards` was **present** (symlink to `/home/sadams/projects/gorge/.cards`) at
+  task start and after rebase — the corpus-backed test durations (0.58–0.73s)
+  prove the corpus loaded rather than skipped.
+- The brief's PREMAP line numbers had drifted (4583/4545 → 6165/6126); located
+  by anchor, unique.
+- Branch was clean except the unstaged `.ds4/report-t1.md` the findings named.
+
+## Issues
+
+No new defects found. The five carriers with other real gaps (Divine
+Deflection, Errant Minion, Power Leak — `api:StoreSVar`; Nothing Can Stop Me
+Now — `api:Abandon`; Urza Academy Headmaster —
+`api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) were scoped out per the
+brief and left untouched. The `api:StoreSVar`/`api:Abandon` gaps are the known
+body-family remainders already tracked by other work, not new findings. The
+`api:ReplaceDamage` registration is a census token; the underlying inline
+handler had no defect.
+
+---
+
+---
+
+# count:CardManaCostLKI — round 3 (review fixes)
+
+STATUS: DONE. Rebasing this clean worktree onto `main` succeeded before editing. `.cards` is present (symlink to shared corpus). Commits: `7454592e` (trigger SVar resolver), `57707664` (round-2 report), `10ec74fc` (restore placement-time announced X precedence); report restoration is committed separately.
+
+## Findings addressed
+
+- **CRITICAL** (`rules/trigger_referents.go`): before constructing the host-bound count context, give the in-flight cast/activation's announced X precedence over the stack/trigger X. This preserves both `SVar:X:Count$xPaid` and absent-SVar activation target asks, while retaining evaluation of authored non-`xPaid` SVar bodies from the source face for triggered abilities. The committed Chthonian Nightmare test now sees its cmcEQX target again. Existing numeric RHS callers share `targetSpecContext`, so this covers sibling activated abilities with the same shape rather than special-casing a card. This is the one code change after the review.
+- **MAJOR**: restored all 477 lines of `main`'s `.ds4/report-t2.md` (four unrelated reports) and prepended this report and the prior 183-line ticket report; no prior history was deleted. Also prepended this round's report to the accumulated `.ds4/report-sol1.md`.
+- **MINOR**: the previously filed ticket's actual path is `.ds4/new-tickets/spelltargeted-cardmanacostlki-ref.md.filed` (not an unfiled `.md`). Ran the brief's `make sim` gate: 20 replay OK.
+
+Root cause A (`effects/count.go` `CardManaCostLKI`) was already on `main` when this ticket began; `effects/ref_property_lki_test.go` pins its LKI-vs-live behavior. The Hammerhead real-corpus test exercises two causing spell mana values and cmc-5 exclusion. Corpus census rechecked: 58 `CardManaCostLKI` lines / 56 files and 138 nonliteral `ValidTgts$` RHS lines. `TestHeads` stayed green; neither heads nor ratchets were edited. The playable figure is 29777 on the rebased main (prior round's older-main figure was 29775), not attributed to this fix.
+
+## Fails without the fix
+
+Copied `rules/trigger_referents.go` to `.ds4/scratch/trigger_referents-fixed-sol1.go`, restored the pre-round-3 version from `HEAD`, ran the committed Chthonian test, then restored the saved version (`cmp` returned 0). Output (long priority decision abbreviated here; full output in `.ds4/scratch/chthonian-without-fix-sol1.log`):
+
+```text
+$ go test -run 'TestChthonianNightmarePaysEnergySacsAndReturns' ./rules/
+--- FAIL: TestChthonianNightmarePaysEnergySacsAndReturns (0.58s)
+    rakdos_params_energycost_test.go:90: target ask missing: &{Seq:47 Player:0 Kind:priority Prompt:turn 1, main1 — a has priority ...}
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.601s
+baseline_exit=1
+restored_cmp=0
+```
+
+The previous round independently reverted the trigger SVar resolver to main and observed that both new rules tests fail; its verbatim output is preserved below in the appended round-2 report.
+
+## Gates (real output)
+
+```text
+$ go build ./...
+build=0 (no output)
+$ go test -run 'TestChthonianNightmarePaysEnergySacsAndReturns|TestHammerheadTyrant|TestVialSmasherChosenPlayerTakesDamage|TestSpellCastActivatorThisTurnCastGatesTheTrigger|TestNightmareUnmaking|TestWhirOfInvention|TestTriggerTargetSpecContextResolvesSourceXShapes|TestHeads' ./rules/
+rules=0
+ok   github.com/adams-shaun/gorge/rules 1.900s
+$ go test -run 'TestCtxSpecContextResolvesXAndSVarNumericRHS|TestNumericRHS|TestCardManaCostLKIReadsRememberedSnapshot' ./effects/
+effects=0
+ok   github.com/adams-shaun/gorge/effects 0.009s
+$ gofmt -l .
+gofmt=0 (no output)
+$ go vet ./...
+vet=0 (no output)
+$ go run ./cmd/gentypes -check
+gentypes=0 (no output)
+$ make sim 2>&1 | grep -c 'replay OK'   # output captured to .ds4/scratch/sim-sol1.log; equivalent count
+sim=0
+20
+$ make report 2>&1 | grep '^cards:'   # captured to .ds4/scratch/report-cards-sol1.log
+report=0
+cards: 33667  playable: 29777 (88.4%)
+$ go test ./internal/archtest/
+archtest=0
+ok   github.com/adams-shaun/gorge/internal/archtest 3.777s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+botbench=0
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.261s
+```
+
+## Issues
+
+- `SpellTargeted$<Property>` still lacks a ref in `effects/count.go` (`refTargets`): four `SpellTargeted$CardManaCostLKI` corpus files fail closed. A separate ticket has already been filed as `.ds4/new-tickets/spelltargeted-cardmanacostlki-ref.md.filed`. A corpus-pinned test would expose it; CR 608.2c is relevant.
+- `TriggerRemembered$<Property>`: the original brief lists one corpus carrier and ticket `agent-20260918T233200Z-4a2fcd44`; main now has `effects/count_triggerremembered_test.go` and the matching implementation, so this is no longer an open issue on this base.
+- Trigger stack objects do not carry their source face's authored `SVar:X` as their own X; other placement-time consumers reading `o.X` directly can still see zero. `rules/trigger_queue.go` (`pushTrigger`), `rules/stack.go` (`resolveTop`) need a separate structural ticket if such a consumer is found; this ticket's filter resolver now handles its documented scope. No Known-approximations row was added or grown.
+
+---
+
+# count:CardManaCostLKI — implementation report (round 2: rebase + re-verification)
+
+Ticket `agent-20260919T203859Z-cf55fee2` in worktree
+`agent-20260919T203859Z-cf55fee2`, branch `wt/agent-20260919T203859Z-cf55fee2`.
+
+## Round-2 context
+
+The round-1 finding was only a rebase blocker: the controller's `git rebase
+main` failed because `.ds4/report-t1.md` was unstaged. This round: preserved
+the round-1 report artifact by committing it, rebuilt the branch on current
+`main` (`f8e330c3`), resolved the one conflict (the shared `.ds4/report-t1.md`
+file — main's accumulated multi-ticket report wins; the conflicting content was
+this ticket's round-1 report and is superseded by this file), and re-ran every
+gate from the rebased tree. The code commit (Root cause B) applied cleanly on
+the new base — no code conflict.
+
+## What changed and why (per file)
+
+- **`rules/trigger_referents.go`** — `targetSpecContext` (the resolver behind a
+  trigger's target ask) now builds an effects `Ctx` carrying the trigger stack
+  object's captured `TriggerContext`, `Remembered`, fire-time `LKI`
+  (+ power/toughness/`ptValid`) and the paid X, with `ctx.Host = e` and the
+  source face's `SVars` table. Its `Resolve` closure:
+  - `X` follows the same **two-shape contract** as the already-merged
+    resolution-time `(*Ctx).resolveNumericRHS` / `specCtx` (`rules/mana.go`
+    `fixLifeXCost` shape): a `Count$xPaid` body is the announced/captured X,
+    any other authored body is evaluated with `effects.EvalCountOK` against the
+    host-bound Ctx, and no authored `SVar:X` falls back to the in-flight cast X
+    then the stack object's paid X.
+  - any other name resolves through the source face's SVar table with the same
+    host-bound Ctx; a missing or unresolvable body fails closed `(0, false)`.
+  This structurally covers **every** trigger-target filter whose numeric RHS is
+  an SVar-backed value, not only Hammerhead Tyrant (the brief's measured class
+  is 138 `ValidTgts$` lines with a non-literal numeric RHS).
+- **`rules/card_mana_cost_lki_test.go`** (new): the direct resolver contract
+  test `TestTriggerTargetSpecContextResolvesSourceXShapes` (Count$xPaid →
+  `(3,true)`, plain body `"4"` → `(4,true)`, unresolvable body → fail closed),
+  plus the end-to-end `TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue`
+  on the **real corpus** Hammerhead Tyrant with two mana values (4 and 2) and
+  a cmc-5 exclusion.
+- **`effects/ref_property_lki_test.go`** (new): `TestCardManaCostLKIReadsRememberedSnapshot`
+  — proves the `CardManaCostLKI` property reads the **LKI snapshot**'s mana
+  value, with a live object whose current mana value is non-zero and **differs**
+  from the snapshot (the non-coincidence control).
+
+### Root cause A status
+
+The brief's Root cause A (`evalRefProperty` lacks a `CardManaCostLKI` case) was
+already fixed on `main` before this branch: commit `d1da297d`
+(`feat(effects): admit TriggerRemembered$<Property> count ref`) added
+`CardManaCostLKI` beside `CardManaCost` (`effects/count.go`, now ~:945; the
+brief's line anchors :559/:606/:644 were stale — `evalRefProperty` is at :884
+on this base). It was **not** changed by this branch; the effects regression
+test pins it. Root cause B is the only code change here and is required in
+addition to A (verified: without B the trigger's ask still offers nothing —
+see "Fails without the fix").
+
+## Workspace
+
+`.cards` **present** (symlink to `/home/sadams/projects/gorge/.cards`), so the
+corpus run is real. Confirmed: `TestHammerheadTyrant...` takes 1.09 s with NO
+`SKIP` and the real card loads via `choiceCorpusCard`.
+
+Corpus prevalence re-measured at this worktree's base with GNU grep — every
+brief claim held:
+
+```text
+CardManaCostLKI lines: 58
+CardManaCostLKI files: 56
+SpellTargeted$CardManaCostLKI files: 4
+nonliteral RHS ValidTgts lines: 138
+LKI property forms: 58 $CardManaCostLKI   (nothing else)
 # Report — task agent-20260922T201246Z-000e743d (fix round t2)
 
 ## Review finding disposition
@@ -31,6 +427,113 @@ ok   github.com/adams-shaun/gorge/cmd/botbench  (cached)
 
 ## Fails without the fix
 
+Copied the fixed `rules/trigger_referents.go` to `.ds4/scratch/`, replaced it
+with the pre-change version (`HEAD~1:rules/trigger_referents.go`, main's base),
+ran the two new tests, confirmed FAIL, then restored the fixed file
+byte-identically (`cmp` exit 0).
+
+```text
+$ go test -run 'TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue' ./rules/
+--- FAIL: TestTriggerTargetSpecContextResolvesSourceXShapes (0.00s)
+    card_mana_cost_lki_test.go:26: fixed SVar:X = (3, true), want (4, true)
+--- FAIL: TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue (0.65s)
+    --- FAIL: .../Four_Mana_Test_Spell (0.65s)
+        card_mana_cost_lki_test.go:84: Hammerhead trigger target ask = ... Kind:priority ...
+        ...; trigger must offer targets
+    --- FAIL: .../Two_Mana_Test_Spell (0.00s)
+        card_mana_cost_lki_test.go:84: ... trigger must offer targets
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.682s
+baseline_exit=1   restored_cmp=0
+```
+
+The effects property test is **not** claimed to fail against this branch's base
+(Root cause A already landed on main); it confirms and pins that pre-existing
+implementation with a distinct live-value control.
+
+## Every new test can fail (precondition assertions)
+
+- `TestHammerheadTyrant...` asserts the trigger source is on the battlefield,
+  every opponent permanent is on the battlefield, the target ask exists and is
+  `decision.KTarget`, each option is a live-face `permanent`, and the offered
+  set has exactly the expected cardinality (a vacuous/no-ask setup fails at the
+  `d == nil || d.Kind != KTarget` guard). Both subtests fail without the fix.
+- `TestTriggerTargetSpecContextResolvesSourceXShapes` asserts both the positive
+  values and the fail-closed shape; fails without the fix (shown above).
+- `TestCardManaCostLKIReadsRememberedSnapshot` asserts the live mana value is
+  non-zero and **differs** from the snapshot value before comparing, so a
+  coincidence cannot pass.
+
+## Gates run (all from the rebased tree; exact output pasted)
+
+```text
+$ go build ./...
+(no output; exit 0)
+
+$ go test -run 'TestHammerheadTyrant|TestVialSmasherChosenPlayerTakesDamage|TestSpellCastActivatorThisTurnCastGatesTheTrigger|TestNightmareUnmaking|TestWhirOfInvention|TestTriggerTargetSpecContextResolvesSourceXShapes' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.677s
+
+$ go test -run 'TestCtxSpecContextResolvesXAndSVarNumericRHS|TestNumericRHS|TestCardManaCostLKIReadsRememberedSnapshot' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.049s
+
+$ gofmt -l effects/count.go effects/ref_property_lki_test.go rules/trigger_referents.go rules/card_mana_cost_lki_test.go
+(no output)
+
+$ go vet ./effects/ ./rules/
+(no output; exit 0)
+
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.688s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	2.169s
+```
+
+Not run (daemon-only gates the brief excludes): `TestHeads` / whole-`rules`
+acceptance, `make sim`, `make report`, CR conformance. The round-1 report
+recorded `make report` at **33667 / 29775 (88.4%)** unchanged by this change;
+`Hammerhead Tyrant` is in no repo deck, so no head movement is expected and
+none of the goldens above moved.
+
+## Issues
+
+Defects found and **not** fixed by this round (all already named in the brief;
+recorded here for the ledger):
+
+1. **`SpellTargeted$<Property>` ref is unmodelled** — 4 corpus files
+   (`reject_imperfection`, `press_the_enemy`, `gales_redirection`,
+   `sound_the_trumpets`) carry `SpellTargeted$CardManaCostLKI`; the ref half
+   fails closed in `effects/count.go`'s ref resolver, so they read 0 even with
+   the property landed. **Filed this round** to
+   `.ds4/new-tickets/spelltargeted-cardmanacostlki-ref.md.filed`. A corpus-pinned
+   engine test is the right vehicle; CR 608.2c is the rule it would cite.
+2. **`TriggerRemembered$<Property>` ref is unmodelled** — already open as
+   `agent-20260918T233200Z-4a2fcd44`; the 1
+   `TriggerRemembered$CardManaCostLKI` carrier needs both tickets.
+3. **A trigger's `SVar:X` is not bound onto its ability stack object** — this
+   round's fix recomputes it on demand in `targetSpecContext` (source-face SVar
+   table + `triggerPaidX`). Placement-time consumers other than the target ask
+   that read `o.X` directly still see 0, and `resolveTop`'s
+   `ctx.X = o.X; if 0 { triggerPaidX }` still does not read an authored
+   `SVar:X`. This ticket's scope (numeric filter RHS) is fully served by the
+   on-demand resolver and the resolution path goes through `SpecContext`
+   (`resolveNumericRHS`, already SVar-aware since `7c8e775e`), so no visible
+   behaviour gap remains for this card. The clean structural fix — evaluate and
+   store the trigger's SVar X once at `pushTrigger` — is deliberately left for
+   a follow-up; it would touch `events`/`state` binding and is outside this
+   brief. No new ticket filed (the brief already tracks it as its Issues item
+   4); escalate if a further consumer surfaces.
+4. **Root cause B's general class** (no trigger target ask could resolve any
+   non-literal numeric RHS — 138 `ValidTgts$` lines) is **fixed** by this
+   round's structural resolver, closing the brief's Issues item 3.
+
+No AGENTS.md "Known approximations" row was present for this shape, so none was
+deleted and `knownApproximationRows` is unchanged.
+
+Commit: `a2789eee fix(rules): resolve trigger target X from source SVar`
 Not applicable in this round: no test or production hunk was added or changed.
 The existing tests' failing-without-fix evidence is preserved in the t1 report
 below in `.ds4/report-t2.md`.
@@ -519,3 +1022,65 @@ Not applicable: no test was added. The already-existing regression test is part 
 ## Issues
 
 This defect is already fixed by `4fe4eadc`. No other defect was investigated or fixed. The reported prevalence of 27 corpus files describes the mechanic, not a remaining defect; no acceptance census or approximation entry requires a change.
+# Report — `pred:hasANonBasicLandType`
+
+## What changed
+
+The implementation is already committed at `1952fa4c` (`pred(hasanonbasiclandtype): read Forge's Card.hasANonBasicLandType filter predicate`). In `effects/filter.go`, `wordPredicate` recognizes `hasANonBasicLandType`, keeping matching and `UnknownPredicates` on the same classifier. The matcher requires Land and checks the vocabulary shared through `chooseNonbasicLandTypes`. The test in `effects/hasanonbasiclandtype_test.go` covers Desert/Gate positives, basic lands, Wasteland, nonlands, and census agreement; `rules/hasanonbasiclandtype_test.go` exercises the Wonderscape Sage carrier.
+
+The committed implementation also adds `ConditionDefined$ Returned` support needed to make the brief's requested Wonderscape Sage end-to-end behavior work. The brief's claim that an unknown predicate makes the rider never fire was not borne out: without the Returned group the condition was unresolved and the rider ran unconditionally. This is a scope deviation, documented in the committed code/report; it reuses the existing cost-provenance window pattern.
+
+Structural choice: reuse `chooseNonbasicLandTypes` and the shared predicate classifier, rather than maintaining a second list/recognizer, so future land types and census behavior remain aligned.
+
+## Verification (this run)
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+```
+$ go test -run 'TestHasANonBasicLandTypePredicate|TestWonderscapeSageNonbasicLandTypeSuppressesDiscard|TestWonderscapeSageBasicLandTypeKeepsDiscard' ./effects ./rules
+ok   github.com/adams-shaun/gorge/effects 0.639s
+ok   github.com/adams-shaun/gorge/rules 0.652s
+
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+
+$ gofmt -l effects/filter.go effects/hasanonbasiclandtype_test.go rules/hasanonbasiclandtype_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+## Fails without the fix
+
+Saved `effects/filter.go`, temporarily removed the `wordPredicate` classification case, ran the effects regression, then restored the source and verified it byte-identically (`RESTORE_CMP=0`).
+
+```
+$ go test -run '^TestHasANonBasicLandTypePredicate$' ./effects/
+--- FAIL: TestHasANonBasicLandTypePredicate (0.78s)
+    hasanonbasiclandtype_test.go:49: Land.hasANonBasicLandType must match Desert (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Land.hasANonBasicLandType must match Boros Guildgate (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Card.hasANonBasicLandType must match Desert (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Card.hasANonBasicLandType must match Boros Guildgate (a nonbasic land type)
+    hasanonbasiclandtype_test.go:87: UnknownPredicates(Land.hasANonBasicLandType) = [hasANonBasicLandType], want empty
+    hasanonbasiclandtype_test.go:93: UnknownPredicates of a mixed spec = [hasANonBasicLandType totallyNotAPredicate], want exactly the unknown token
+FAIL
+effects: exit 1
+RESTORE_CMP=0
+```
+
+## Findings / issues
+
+The attached merge finding was an unstaged overwrite of `.ds4/report-t1.md` (the file contained an unrelated long merged-report history). I preserved the task report here and restored that tracked file to its committed version, clearing the unintended working-tree change; no rebase or merge was attempted.
+
+`ConditionDefined$` families other than the supported set, including `ChosenCard`, `RememberedLKI`, `ParentTarget`, and `Sacrificed`, remain unsupported and may fail open in `effects/conditions.go:conditionMet`; outside this ticket. The prior task report records measured prevalence and a proposed follow-up. The `ReturnedInWindow` path is scoped to the resolving ability's activation-cost window; no corpus carrier for broader use was identified.
+
+No chain-head or ratchet movement was measured in this run. The behaviour goldens passed as shown; no additional gates were run.
+
+## Commit
+
+`1952fa4c` — implementation and tests (already present in branch HEAD).

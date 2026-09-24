@@ -132,7 +132,7 @@ func ParsePhases(spec string) (StepSet, []string) {
 	}
 	var set StepSet
 	var unknown []string
-	for _, el := range strings.Split(spec, ",") {
+	for el := range strings.SplitSeq(spec, ",") {
 		el = strings.TrimSpace(el)
 		if el == "" {
 			// Forge: smartValueOf("") throws. Report the empty element

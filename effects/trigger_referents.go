@@ -34,9 +34,19 @@ type TriggerContext struct {
 	// capture a printed trigger of that mode makes -- so the two referents
 	// cannot share one slot.
 	DelayedRemembered []state.Target
-	AttackingPlayer   state.Target
-	AttackedTarget    state.Target
-	TriggerActivator  state.Target
+	// OptionalSpec is the OptionalDecider$ spec an api:Effect Triggers$
+	// body registered its delayed trigger with (state.DelayedTrigger.
+	// OptionalSpec). The registration carries it because a Mode$ Phase
+	// body is never re-parsed at fire time; it rides this context to the
+	// minted stack object so resolveTop's CR 603.5 optional gate can pose
+	// the election the trigger line names, which findTriggerForAbility
+	// cannot recover for a delayed Effect body (its Ability is an
+	// Execute$ SVar sub-ability, not a face Triggers entry). Empty for
+	// every printed trigger and every registration with no election.
+	OptionalSpec     string
+	AttackingPlayer  state.Target
+	AttackedTarget   state.Target
+	TriggerActivator state.Target
 	// TriggerCardController is the controller the triggering card had as it
 	// LEFT the battlefield (CR 603.10a), recorded when the trigger fires and
 	// carried with the ability onto the stack. It is absent for every other
@@ -131,7 +141,7 @@ type TriggerContext struct {
 	// spend and the value for a triggering card whose cast carried none.
 	TriggerManaSpent     int32
 	TriggerManaSnowSpent int32
-	TriggerManaTyped     [3]int32
+	TriggerManaTyped     [4]int32
 	// TriggerBlocker is the BLOCKING creature of the DeclareBlockers pair a
 	// Mode$ Blocks trigger fired for (rules/trigger_match.go's
 	// checkBlocksTriggers). A Blocks trigger's Remembered carries the pair's
@@ -246,7 +256,10 @@ func controlReferent(p string) (op, ref string, ok bool) {
 		// bare "Remembered" referent above stays players-only. Resolution-only,
 		// like the bare case: the tail maps each remembered target by op
 		// (ControlledBy -> Controller, OwnedBy -> Owner).",
-		"RememberedController", "RememberedOwner":
+		"RememberedController", "RememberedOwner",
+		// Barroom Brawl's "target creature the opponent to your left
+		// controls": the next living seat after You (not resolution-only).
+		"NextOpponentToYourLeft", "NextPlayerToYourLeft":
 		return op, ref, true
 	}
 	return "", "", false
@@ -328,6 +341,16 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			return nil, false
 		}
 		targets = sc.Remembered
+	case "NextOpponentToYourLeft", "NextPlayerToYourLeft":
+		// Barroom Brawl's "target creature the opponent to your left
+		// controls": the next living seat after You in turn order (Forge's
+		// getNextPlayerAfter; this build has no teams, so the next seat is
+		// also the next opponent). Unbound with no other living seat.
+		alive := g.AliveFrom(sc.You)
+		if len(alive) < 2 {
+			return nil, false
+		}
+		targets = []state.Target{{Player: alive[1], IsPlayer: true}}
 	case "ChosenPlayer", "Player.Chosen":
 		// vow1: the resolution's own ChoosePlayer answer (Gluntch's
 		// "ControlledBy ChosenPlayer"), the same current-resolution set the

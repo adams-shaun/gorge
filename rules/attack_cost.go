@@ -235,7 +235,7 @@ func (e *Engine) blockUnlessCharge(sv staticView) (blockCharge, bool) {
 		len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.Blight) > 0 ||
 		len(c.Draw) > 0 || len(c.Energy) > 0 || len(c.LifeX) > 0 ||
 		len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.DamageYou) > 0 ||
-		len(c.MoveToGrave) > 0 || len(c.Mill) > 0 {
+		len(c.MoveToGrave) > 0 || len(c.Mill) > 0 || len(c.Exert) > 0 {
 		return blockCharge{}, false
 	}
 	var ch blockCharge
@@ -722,7 +722,7 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 // producedNeedsChosen reports whether a Produced$ grammar token needs the
 // source's recorded as-enters colour before it can be priced.
 func producedNeedsChosen(produced string) bool {
-	for _, tok := range strings.Fields(produced) {
+	for tok := range strings.FieldsSeq(produced) {
 		switch strings.Trim(tok, "{}") {
 		case "Chosen", "ChosenColor", "ComboChosen":
 			return true

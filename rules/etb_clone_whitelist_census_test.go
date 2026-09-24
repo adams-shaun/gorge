@@ -24,8 +24,8 @@ var etbCloneCleanNames = []string{
 	"Dack's Duplicate", "Deceptive Frostkite", "Glasspool Mimic",
 	"Jwari Shapeshifter", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image",
 	"Mirrormade", "Mocking Doppelganger", "Naga Fleshcrafter", "Omni-Changeling",
-	"Phyrexian Metamorph", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
-	"Stunt Double", "Synth Infiltrator", "Visage Bandit", "Waxen Shapethief",
+	"Phyrexian Metamorph", "Sakashima of a Thousand Faces", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
+	"Stunt Double", "Synth Infiltrator", "Vesuva", "Visage Bandit", "Waxen Shapethief",
 }
 
 // TestETBCloneWhitelistCensus walks every ETBReplacement:Copy Repl in the
@@ -92,7 +92,7 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		// end). A carrier whose AddStaticAbilities$ member is NOT a readable
 		// Goad line stays withheld, the whitelist's own value gate.
 		{"Mocking Doppelganger", true},
-		{"Vesuva", false},               // IntoPlayTapped$ True
+		{"Vesuva", true},                // IntoPlayTapped$ True now taps the entering copy
 		{"Cursed Mirror", false},        // Duration$ UntilEndOfTurn
 		{"Mirrorhall Mimic", false},     // ChoiceTitle$
 		{"Vizier of Many Faces", false}, // SetColor$/AddTypes$ + Embalm$ provenance

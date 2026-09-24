@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/adams-shaun/gorge/effects"
@@ -41,8 +43,10 @@ import (
 // TestLegalActionsReusesActionStaticMembership). The refresh itself is gated on
 // layer4InPool so a match whose cards carry no type-changing script -- most
 // matches -- pays one predictable branch per event and nothing else, and it
-// short-circuits on anyLayer4Active so a carrier still in hand costs only the
-// active() scan.
+// short-circuits on anyLayer4Active, whose precheck answers from a per-face
+// derived probe and the registered-effect list without rebuilding active()
+// at all, so a carrier still in a library costs one object walk. A run of
+// priority bookkeeping events reuses the table outright (layercache.go).
 //
 // The entries are only the objects whose DERIVED list differs from the printed
 // face (a handful at most, nil on the overwhelmingly common board), so the
@@ -93,11 +97,24 @@ func (e *Engine) refreshDerivedTypes() {
 	if e.typesEpoch == len(e.L.Events) && e.typesVersion == e.continuousVersion && e.typesObjs == len(e.G.Objs) {
 		return
 	}
-	e.typesEpoch, e.typesVersion, e.typesObjs = len(e.L.Events), e.continuousVersion, len(e.G.Objs)
-	buf := e.layer4Types[:0]
-	if !e.anyLayer4Active() {
-		e.layer4Types = buf[:0]
+	// Layer-inert reuse (layercache.go): only priority bookkeeping moved the
+	// log since the table was built, so the table is still exact.
+	if e.typesVersion == e.continuousVersion && e.typesObjs == len(e.G.Objs) && e.layerInertSince(e.typesEpoch) {
+		e.typesEpoch = len(e.L.Events)
+		if layerInertVerify {
+			e.verifyInertDerivedTypes()
+		}
 		return
+	}
+	e.typesEpoch, e.typesVersion, e.typesObjs = len(e.L.Events), e.continuousVersion, len(e.G.Objs)
+	e.layer4Types = e.buildDerivedTypes(e.layer4Types[:0])
+}
+
+// buildDerivedTypes builds the derived-type table for the current board into
+// buf (truncated) and returns it.
+func (e *Engine) buildDerivedTypes(buf []effects.ObjectTypes) []effects.ObjectTypes {
+	if !e.anyLayer4Active() {
+		return buf[:0]
 	}
 	e.typesBuilding = true
 	defer func() { e.typesBuilding = false }()
@@ -116,13 +133,30 @@ func (e *Engine) refreshDerivedTypes() {
 		// it into the table (only for the few changed objects).
 		buf = append(buf, effects.ObjectTypes{ID: o.ID, Types: append([]string(nil), ty...)})
 	}
-	e.layer4Types = buf
+	return buf
 }
 
 // anyLayer4Active reports whether any active continuous effect changes a type.
 // Without this gate every refresh would pay for a full battlefield type walk on
 // a board whose type-changing carrier is still in a library.
 func (e *Engine) anyLayer4Active() bool {
+	// A live registered layer-4 effect is in active() by construction (the
+	// same continuousLive filter admits it there), so the answer is yes
+	// without rebuilding the list.
+	for i := range e.continuous {
+		if e.continuous[i].Layer == LType && e.continuousLive(&e.continuous[i]) {
+			if layer4PrecheckVerify {
+				e.verifyLayer4Active(true)
+			}
+			return true
+		}
+	}
+	if !e.staticsMayChangeTypes() {
+		if layer4PrecheckVerify {
+			e.verifyLayer4Active(false)
+		}
+		return false
+	}
 	for _, ce := range e.active() {
 		if ce.Layer == LType {
 			return true
@@ -165,4 +199,89 @@ func sameTypeWordSet(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+// layer4PrecheckVerify (set by the rules test binary, or at link time through
+// layer4PrecheckVerifyFlag for a botbench run) re-derives active() whenever
+// the fast path answers "no" and panics if it holds a layer-4 effect, so the
+// whole rules suite checks the precheck's conservativeness empirically.
+// go build -ldflags "-X github.com/adams-shaun/gorge/rules.layer4PrecheckVerifyFlag=1".
+var layer4PrecheckVerifyFlag string
+
+var layer4PrecheckVerify = layer4PrecheckVerifyFlag != ""
+
+// staticsMayChangeTypes is anyLayer4Active's conservative precheck over the
+// static half of active(): it returns false only when staticEffects' scan
+// provably emits no LType effect, WITHOUT running that scan (which after
+// every event re-walks every object's statics -- the single largest cost on
+// the emit path when, as almost always, the answer is "no").
+//
+// staticEffects' ONLY LType emission is the AddType$/AddTypes$/
+// AddAllCreatureTypes$ branch, reached from a face's own statics or from an
+// AddStaticAbility$ grant on one, and only for a static whose zone gate
+// admits the source's zone. The faces that scan walks are o.Face() for an
+// object in a static-source zone of an alive seat, plus, on the battlefield,
+// an unlocked Room's other face and a mutated pile's merged faces. This walk
+// covers every object in e.G.Objs (a superset of every zone list: Game.Obj
+// resolves ids into that slice), checks o.Face() under its zone class, and on
+// the battlefield checks both faces of any unlocked two-faced card (a
+// superset of the Room condition) and every merged face. It ignores
+// face-down hiding and every IsPresent$/CheckSVar$ gate, each of which only
+// removes emissions. o.Face() already routes a layer-1 copy (CopyFace), so a
+// clone of a type-changer is seen. cards.Face.StaticsMayChangeTypes is itself
+// conservative (a face whose probe is not bound to its current Statics
+// answers true).
+func (e *Engine) staticsMayChangeTypes() bool {
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Zone == state.ZCeased {
+			// Never walked: Game.Zone(ZCeased) lists nothing, and the zone is
+			// not a static-source zone. Late in a game most of e.G.Objs is
+			// resolved ability objects and ceased copies parked here.
+			continue
+		}
+		onBF := o.Zone == state.ZBattlefield
+		if o.Face().StaticsMayChangeTypes(onBF) {
+			return true
+		}
+		if !onBF {
+			continue
+		}
+		if o.Unlocked && o.Card != nil && len(o.Card.Faces) == 2 {
+			if o.Card.Faces[0].StaticsMayChangeTypes(true) || o.Card.Faces[1].StaticsMayChangeTypes(true) {
+				return true
+			}
+		}
+		for j := range o.MergedCards {
+			if o.MergedFaceAt(j).StaticsMayChangeTypes(true) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// verifyLayer4Active is the verify-mode check behind layer4PrecheckVerify:
+// it rebuilds active() and panics unless it agrees with the fast answer.
+func (e *Engine) verifyLayer4Active(want bool) {
+	got := false
+	for _, ce := range e.active() {
+		if ce.Layer == LType {
+			got = true
+			break
+		}
+	}
+	if got != want {
+		panic(fmt.Sprintf("rules: anyLayer4Active fast path answered %v but active() says %v", want, got))
+	}
+}
+
+// verifyInertDerivedTypes is refreshDerivedTypes' layer-inert reuse check: it
+// rebuilds the table into fresh storage and compares.
+func (e *Engine) verifyInertDerivedTypes() {
+	cached := e.layer4Types
+	fresh := e.buildDerivedTypes(nil)
+	if len(cached) != len(fresh) || (len(cached) > 0 && !reflect.DeepEqual(cached, fresh)) {
+		panic(fmt.Sprintf("rules: layer-inert derived-type table reuse at log %d disagrees with a rebuild (%d vs %d entries)", len(e.L.Events), len(cached), len(fresh)))
+	}
 }

@@ -1,3 +1,463 @@
+# Report — agent-20260919T181318Z-86535368
+
+## Summary: the brief's premise is FALSE — the ticket is already implemented on current main
+
+The brief asks me to *implement* `RepeatEach.ChangeZoneTable$`, asserting it is
+unread (`effects/choose_control.go:1325` `effRepeatEach` "has no read of
+`ChangeZoneTable`"). That is no longer true. The work landed on `main` as
+commit **`eb1b0d97`** ("fix(rules): batch a RepeatEach ChangeZoneTable loop's
+zone changes for ChangesZoneAll"), which is an ancestor of this worktree's
+branch HEAD (`git merge-base --is-ancestor eb1b0d97 HEAD` → true). The
+`UseImprinted$` half landed earlier as `b45fb707`, exactly as the brief's own
+"current-main check" already conceded.
+
+The brief's workspace-facts map was produced at a base *before* `eb1b0d97`.
+Every code anchor it names is stale:
+
+| Brief claim | Measured on this tree |
+|---|---|
+| `effRepeatEach` has no `ChangeZoneTable` read | `effects/choose_control.go:1467`: `zoneTable := strings.EqualFold(strings.TrimSpace(sa.Params["ChangeZoneTable"]), "True")` |
+| no per-loop zone table exists | `openZoneBatch`/`closeZoneBatch` (rules/engine.go:781-), the zone twin of the damage batch, bracketed around the loop in `effRepeatEach` (BeginZoneBatch at :1539, EndZoneBatch at :1660) |
+| ratchet entry still present at `paramcensus_test.go:2707` | the entry was **deleted** in `eb1b0d97`; only an explanatory comment remains, and `TestEveryRepoDeckParamsAreRead` passes |
+| add a test named `TestRepeatEachChangeZoneTable` | `rules/zone_table_batch_test.go` exists with `TestRepeatEachChangeZoneTableBatchesChangesZoneAll` + control `TestRepeatEachWithoutChangeZoneTableKeepsPerMoveChangesZoneAll` |
+
+The brief itself instructs: "Counts quoted in a brief are claims, not
+measurements … Reporting a brief's premise as false is a valued outcome."
+I therefore made **no production change** — reimplementing would be redundant
+and would risk regressing a merged, gated fix.
+
+## Semantics check (I did verify the merged fix matches the real Forge contract)
+
+The brief phrases the symptom as "a repeated `ChangeZone` body cannot consume
+the per-iteration result." That phrasing is the original filer's imprecise
+reading of Forge's `RepeatEachEffect`. Forge's `ChangeZoneTable$ True` builds a
+`CardZoneTable` from the loop's moves and calls `triggerChangesZoneAll` **once**
+after the loop; `Mode$ ChangesZone` always fires **per move**. The merged
+implementation matches that exactly:
+
+- `effRepeatEach` opens the zone batch on the first pass and closes it when the
+  loop completes (a mid-loop suspension leaves the engine's bracket open across
+  the resume; the re-entry pass closes it — balanced however many resumes
+  interleave).
+- `openZoneBatch`/`closeZoneBatch` latch each `ChangesZoneAll` line once per
+  batch and patch the queued trigger's `Remembered`/`Captured` to the batch's
+  deduplicated moved set, so a plural "for each of them" body resolves.
+- `Mode$ ChangesZone` is never batch-scoped — it keeps firing per move.
+
+This is the actual contract; the merged test asserts both halves on real corpus
+cards (Organ Harvest's loop sacrificing three bears: **Simic Slaw**
+`ChangesZoneAll` fires once → 1 charge counter; **Black Market** `ChangesZone`
+fires three times → 3 charge counters). The brief's suggested carrier (Curse of
+the Swine, a token-creating body) is the weaker choice; the merged test uses a
+body that genuinely performs zone changes.
+
+## Commands run (real output)
+
+Brief target command:
+
+```
+$ go test -run 'TestRepeatEachChangeZoneTable|TestEveryRepoDeckParamsAreRead' ./rules/ 2>&1 | tail -30
+ok  	github.com/adams-shaun/gorge/rules	0.821s
+```
+
+Proof the named test actually ran (not skipped/vacuous):
+
+```
+$ go test -v -run 'TestRepeatEachChangeZoneTable' ./rules/ 2>&1 | tail -20
+=== RUN   TestRepeatEachChangeZoneTableBatchesChangesZoneAll
+--- PASS: TestRepeatEachChangeZoneTableBatchesChangesZoneAll (0.84s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.853s
+```
+
+`UseImprinted$` regression intact:
+
+```
+$ go test -run 'TestCurseOfTheSwineBoarsFollowTheExiledCreaturesController' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.610s
+```
+
+Mandatory goldens:
+
+```
+$ go test ./internal/archtest/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.173s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.607s
+```
+
+Corpus prevalence (re-measured; the brief's 47/47 and 43/43 held):
+
+```
+$ /usr/bin/grep -rlE 'ChangeZoneTable\$' .cards/cardsfolder | wc -l
+47
+$ /usr/bin/grep -rlE 'UseImprinted\$' .cards/cardsfolder | wc -l
+43
+```
+
+Worktree state:
+
+```
+$ git status --short
+(nothing to commit, working tree clean)
+$ git merge-base --is-ancestor eb1b0d97 HEAD && echo ancestor
+ancestor
+```
+
+## Fails without the fix
+
+Not applicable — I made no fix in this round because none was needed. The
+existing regression `TestRepeatEachChangeZoneTableBatchesChangesZoneAll` was
+already shown to fail pre-fix by `eb1b0d97`'s own author; its control
+(`delete(sa.Params, "ChangeZoneTable")`) is the in-tree proof that the batch
+reading depends on the read. Since the fix is already merged, reverting it in
+this worktree would mean rewriting `main`'s history, which the worktree rules
+forbid.
+
+## Done-means checklist
+
+- [x] `ChangeZoneTable$ True` read in `effRepeatEach` and pinned on a real
+      corpus card with a zone-change body — already present (`eb1b0d97`,
+      `rules/zone_table_batch_test.go`).
+- [x] Ratchet entry deleted — already present; `TestEveryRepoDeckParamsAreRead`
+      passes.
+- [x] `TestCurseOfTheSwineBoarsFollowTheExiledCreaturesController` intact —
+      verified passing.
+- [x] Target command run and output pasted above.
+- [~] "each new test asserts precondition, shown to FAIL with fix reverted" —
+      N/A: no new test authored this round; the merged test already
+      precondition-asserts both observer trigger lines and their counts.
+- [x] `go test ./internal/archtest/` passes.
+- [x] `TestConstructedDefaultIsByteIdentical` passes (no split movement —
+      the change is already on main).
+- [x] No Known-approximations row touched; the change closed no row (the
+      RepeatEach zone table was never an AGENTS.md approximation row — it was a
+      paramcensus entry).
+
+## Issues
+
+- **Finding (why this round had zero work): the brief is stale.** The ticket
+  `agent-20260919T181318Z-86535368` was implemented on `main` by
+  `eb1b0d97` before this worktree's branch was cut. The controller should
+  detect this at dispatch (e.g. check whether the brief's named anchors still
+  exist at HEAD) and either skip the seat or re-brief against current main.
+  This cost a full round. No new ticket is needed; the fix already exists.
+- Nothing else found requiring a ticket. No `Known approximations` row was
+  added or touched.
+
+## Deviations from the brief
+
+- I did **not** implement anything, add a test, or delete a ratchet entry —
+  all three are already done on the branch. Doing them again would duplicate a
+  merged, gated change and risk regression. This is the correct response to a
+  false premise per the dispatch's own instruction.
+
+STATUS=DONE_WITH_CONCERNS
+COMMITS=(none — no changes made; branch already contains the fix in eb1b0d97)
+TESTS=go test -run 'TestRepeatEachChangeZoneTable|TestEveryRepoDeckParamsAreRead' ./rules/ → ok 0.821s; archtest ok; botbench ok; Curse of the Swine ok
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Task agent-20260918T233200Z-e0817443 — dynamic `TargetMin$`/`TargetMax$` bounds
+
+## Summary
+
+The brief's headline premise is **stale at current main**: the X/Y resolver it
+asks for already landed in commit `b3786f11` ("fix(rules): resolve TargetMax$ X
+/ TargetMin$ X dynamic target bounds at both target asks"), which is an
+ancestor of this branch's base (`git merge-base --is-ancestor b3786f11 HEAD` →
+true). That commit already routes a non-literal bound through
+`effects.NumResolved`, binds the cast's announced X, keeps the unresolvable
+1-clamp, and ships `rules/targetmax_x_test.go` pinning exactly the brief's Pest
+Infestation `X=3 → Max 3` case (`TestAnnouncementAskBareXReadsThePaidX`) and the
+unresolvable-to-1 case (`TestUnresolvableTargetMaxXKeepsTheDefault`).
+
+What genuinely remained, and what this round lands, is the **resolved-zero
+half** of the same class: the post-resolution clamp still forced `max >= 1` for
+a bound the grammar had *successfully resolved to 0*. That is Tear Asunder's
+"instead" idiom, the brief's second deck carrier.
+
+## What changed and why (per file)
+
+**`rules/stack.go` — `resolvedTargetBounds`** (the core fix). Track whether the
+`TargetMax$` token actually resolved (`resolvedMax`). Honour a resolved `0` as
+written; keep the documented `max >= 1` clamp only for an **unresolved** token
+(the `b3786f11` contract) or a literal (already clamped by `targetBounds`). The
+existing `max < min` clamp still lifts a resolved `0` when a genuine minimum is
+present, so a bare `TargetMax$ X` announced 0 with the default Min 1 still
+becomes Max 1 — pinned by `stack_test.go`'s "bare X zero clamps back to one".
+
+**`rules/stack.go` — `targetBoundCtx`.** At the CR 601.2c announcement ask the
+stack object has not yet been stamped with its cast flags, so a
+`Count$Kicked` bound reads `0` off it regardless of the chosen mode. Seed
+`ctx.PendingKicked` from the pending cast's chosen mode — the same pre-payment
+gap the existing `ctx.TimesKicked` seeding closes.
+
+**`rules/stack.go` — `askTarget`** (the trigger placement ask): decline to pose
+when the resolved max is 0, the same class as the cast ask and matching the
+landed effects-side `effects/targets_ask.go` `max <= 0` arm.
+
+**`rules/cast.go` — `targetAsk` and `subTargetAsk`**: decline to pose a
+resolved-zero ask (skip to payment / record an answered-empty stage). Both
+mirror existing N2 arms directly above them and are required: a Min 0 / Max 0
+target decision is a **hard engine panic** (see "Fails without the fix").
+
+**`rules/cast.go` — `modeIsKicked`** (new): the one home of the kicked-mode set
+(`kicked`, `kicked1`, `kicked2`, `kickedboth`, `multikicked`).
+
+**`rules/statics.go` — `spellConstraintMatches`**: the `CastStatic$ Kicked`
+match now calls `modeIsKicked` instead of re-spelling the five modes, so the
+constraint and the new `PendingKicked` binding cannot drift.
+
+**`effects/registry.go` — `Ctx`**: add `PendingKicked bool` (derived data,
+never event-encoded; zero everywhere except the cast's own announcement ask).
+
+**`effects/count.go` — `evalCountBody`**: the `Kicked.<yes>.<no>` head ORs
+`Ctx.PendingKicked` with the object's `FlagKicked`. At resolution no pending
+cast exists, so the object read remains authoritative.
+
+**`rules/targetmax_resolved_zero_test.go`** (new file): 5 tests (see gates).
+
+## Head / ratchet movement
+
+- `TestHeads` was **not** run (daemon gate). No `events.Kind` or replay shape
+  changed; the change is a decision-pose + arithmetic clamp.
+- `cmd/botbench` `TestConstructedDefaultIsByteIdentical` — **unmoved** (ran it,
+  see gates). No repo deck exercises the resolved-zero shape.
+- `internal/archtest` — green.
+- No `acceptance_test.go` / `paramcensus_test.go` / `count_head_ratchet_test.go`
+  rows moved: neither Pest Infestation nor Tear Asunder appears in any repo deck
+  (`grep -rl 'Pest Infestation\|Tear Asunder' internal/testutil/decks/` → none),
+  so the brief's "DECK-side ratchet then admits both cards" has no row to
+  shrink in this tree. See Deviations.
+- No AGENTS.md "Known approximations" row names this shape, so nothing was
+  deleted and `knownApproximationRows` is unchanged.
+
+## Gate commands and real output
+
+All targeted, run once each, logs under `.ds4/scratch/`.
+
+Green set (after the merge with main):
+
+```
+$ go build ./...
+(clean)
+
+$ go test -run 'TargetMax|TargetMin|TearAsunder|TriggerPlacementAsk|ResolvedTargetBounds|PestInfestation|Wayta|UrgentNecropsy' ./rules/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/rules	0.061s
+
+$ go test -run 'Kicked|Count' ./effects/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/effects	2.530s
+
+$ go test ./internal/archtest/ 2>&1 | tail -2
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.888s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.897s
+
+$ gofmt -l effects/count.go effects/registry.go rules/cast.go rules/stack.go rules/statics.go rules/targetmax_resolved_zero_test.go
+(empty)
+$ go run ./cmd/gentypes -check
+(empty)
+```
+
+`.cards` was **present** in this worktree (symlink to the shared corpus), so
+corpus-backed tests ran, not skipped.
+
+The 5 added tests, individually:
+
+```
+--- PASS: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+--- PASS: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+--- PASS: TestTearAsunderUnkickedStillTargetsArtifact (0.00s)
+--- PASS: TestPestInfestationZeroXAsksNothing (0.00s)
+--- PASS: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+```
+
+(`go test -run 'TargetMax|...'` also re-ran the landed `b3786f11` tests
+`TestAnnouncementAskResolvesTargetMaxX`,
+`TestAnnouncementAskBareXReadsThePaidX`, `TestUnresolvableTargetMaxXKeepsTheDefault`,
+`TestResolvedTargetBoundsDynamic`, `TestMantleOfTheAncientsEtbAttaches` — all
+still pass.)
+
+## Fails without the fix
+
+The fix has three independent load-bearing parts. Each was proved by copying the
+file to `.ds4/scratch/<f>.fixed`, reverting the hunk in the real file, running
+the one test, then restoring and `cmp`-ing byte-identically against the scratch
+copy.
+
+**(1) The clamp change alone reverted** (`resolvedMax` removed, `max < 1`
+restored), keeping `PendingKicked` and the ask guards:
+
+```
+$ go test -v -run 'TestResolvedTargetBoundsResolvedZeroIsHonoured|TestTearAsunderKickedTakesOnlyTheSubTarget|TestPestInfestationZeroXAsksNothing' ./rules/
+    targetmax_resolved_zero_test.go:58: resolvedTargetBounds = (0, 1), want (0, 0) for a resolved-zero dynamic pair
+--- FAIL: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+    targetmax_resolved_zero_test.go:91: kicked main SA asked for 0 target(s) (max=1); want none
+--- FAIL: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+    targetmax_resolved_zero_test.go:212: Pest Infestation with X=0 asked for 0 target(s) (max=1); want none
+--- FAIL: TestPestInfestationZeroXAsksNothing (0.00s)
+FAIL
+```
+
+**(2) `PendingKicked` binding (and ask guards) removed:**
+
+```
+$ go test -v -run 'TestTearAsunderKickedTakesOnlyTheSubTarget|TestPestInfestationZeroXAsksNothing' ./rules/
+    targetmax_resolved_zero_test.go:91: kicked main SA asked for 1 target(s) (max=1); want none
+--- FAIL: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+panic: rules: decision target for seat 0 posed with only the empty answer legal (Min 0 Max 0, 1 options) -- asking primitives must resolve this shape silently (effects.Ask), never post it [recovered, repanicked]
+    .../rules/cast.go  targetAsk ...
+--- FAIL: TestPestInfestationZeroXAsksNothing (0.00s)
+```
+
+The panic is the engine's own invariant: a Min 0 / Max 0 target decision must
+never be posted. That is why the `targetAsk`/`subTargetAsk`/`askTarget` guards
+are required, not cosmetic.
+
+**(3) The `askTarget` guard disabled** (all else intact):
+
+```
+$ go test -v -run 'TestTriggerPlacementAskResolvedZeroPosesNothing' ./rules/
+--- FAIL: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+panic: rules: decision target for seat 0 posed with only the empty answer legal (Min 0 Max 0, 1 options) -- asking primitives must resolve this shape silently (effects.Ask), never post it [recovered, repanicked]
+```
+
+The control test (`TestTearAsunderUnkickedStillTargetsArtifact`) passes in every
+revert configuration, as it must: the resolved-zero path did not widen into the
+ordinary case.
+
+## Deviations from the brief
+
+1. **The brief's premise is stale.** The X/Y resolver and the Pest Infestation
+   `X=3` behaviour already exist on main (`b3786f11`). The brief's claim
+   "there is no SVar-resolving or Count$-evaluating fallback anywhere" is false
+   at this tree. I did not re-implement the resolver; I fixed the part that was
+   still wrong (resolved-zero).
+2. **The Pest `X=3` regression test the brief asks for already exists** as
+   `rules/targetmax_x_test.go`'s `TestAnnouncementAskBareXReadsThePaidX`, so I
+   did not duplicate it. I added a Pest test for the shape my change actually
+   affects (`X=0` → no ask), which fails without the fix.
+3. **The deck-side ratchet has no row to shrink**: neither carrier is in
+   `internal/testutil/decks/`. The originating World Shaper precon census deck
+   is not committed to this repo, so "the DECK-side ratchet then admits both
+   cards" was not actionable in-tree.
+
+## Structural approach (fix the class, not the instance)
+
+The panic invariant ("a Min 0 / Max 0 target decision must never be posted")
+applies at **every** site that poses a target ask. I found all of them
+(`grep -rn 'resolvedTargetBounds\|resolvedTargetMin' rules/`):
+`targetAsk`, `subTargetAsk`, `askTarget`, plus the resolver's consumers. The fix
+is anchored in the shared resolver (one source of truth for the bound) and every
+pose site declines on `max == 0`, matching the already-landed effects-side
+`effects/targets_ask.go` `max <= 0` convention. The kicked-mode set likewise
+gets one home (`modeIsKicked`), so the next sibling (a new kicked-cast mode)
+cannot drift.
+
+## Issues
+
+- **`subTargetAsk`'s resolved-zero arm is covered only by the shared resolver
+  unit test and the identical `targetAsk`/`askTarget` panic proofs; no in-budget
+  fixture reached the `castCostReadsAllTargeted` pre-ask gate with a sub whose
+  dynamic pair resolves to 0.** The arm is correct (it mirrors the N2 arm
+  directly above it) and cheap, but a dedicated alltargeted-plus-resolved-zero
+  card would pin it directly. Corpus prevalence of the exact shape
+  (`Count$AllTargeted`) is tiny (Wayta / Urgent Necropsy are the named
+  carriers). Not a defect — a coverage gap.
+- **No CR-lane test.** This is a decision-pose/clamp defect, not a CR rule the
+  conformance lane currently cites; I did not add one.
+- Adjacent, NOT touched: `modeFlags` still spells the kicked modes in its own
+  switch (it must, because `kicked1`/`kicked2`/`kickedboth` map to different
+  flag bits). If a future mode is added, `modeFlags` and `modeIsKicked` must
+  both be updated; `modeIsKicked` is now the `Kicked`-predicate home.
+
+## Commits
+
+- `033acdd5` fix(rules): honour a resolved-zero dynamic TargetMin$/TargetMax$ pair
+- `c6c3b2fa` Merge branch 'main' into wt/agent-20260918T233200Z-e0817443
+
+`.cards` present (symlink); working tree clean.
+
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — kw:Melee (hn1, agent-20260918T231813Z-9bab5889)
+
+## Changes
+
+- `cards/kw_melee.go`, `cards/kw_registry_test.go`: register Melee as a printed Attacks trigger with a self-pump sized by the captured opponent count; pin the new expander in the registry. `rules/trigger_match.go` and `rules/keyword_registration_test.go` register `kw:Melee` and its proof.
+- `rules/combat.go`, `rules/engine.go`, `rules/melee.go`: capture the *whole* declaration's distinct defending seats (player, planeswalker or battle's protector), preserve them as logged player references on each printed or granted instance's trigger. Count derived instances minus printed triggers so multiple grants fire separately without double-counting printed instances. No mutation outside `events.Apply`.
+- `rules/trigger_queue.go`, `events/apply.go`: mint a granted Melee trigger through `KeywordTriggerPush` with logged player refs, reconstruct its pump and Remembered on replay. No event kind or field changes.
+- `rules/melee_test.go`: freshly parses the real Titania script (not a pre-expanded IR cache), asserts a printed trigger exists, and drives actual 3+-seat attacker decisions: one vs two opponents, Titania's grant, two independent grants (Titania + Adriana), and an attacked battle counting as its protector rather than another opponent. Preconditions assert battlefield placement, base P/T, keyword grants/instance count and offered defender options.
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`. Measured `/usr/bin/grep -rlE '^K:Melee' .cards/cardsfolder | wc -l` → `12`, matching the brief. The brief's Titania ratchet and AGENTS.md approximation row do NOT exist on main (controller confirmed stale premise); neither file was edited. Coverage rise was not measured: `make report` is a daemon gate, not a seat gate. No chain head or ratchet was re-pinned; botbench's pinned behavior passed unchanged.
+
+## Gates run (real output)
+
+```text
+$ go test -run 'TestTitaniaMelee|TestTitaniaAndAdrianaGrantTwoMelee|TestRegisteredKeywordsAreHonoured' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.524s
+$ go test -run 'TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded' ./cards/
+ok   github.com/adams-shaun/gorge/cards  0.012s
+$ go test ./events/
+ok   github.com/adams-shaun/gorge/events  8.232s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  3.630s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  0.590s
+$ gofmt -l cards/kw_melee.go cards/kw_registry_test.go events/apply.go rules/combat.go rules/engine.go rules/keyword_registration_test.go rules/melee.go rules/melee_test.go rules/trigger_match.go rules/trigger_queue.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+$ git diff --check
+(no output)
+```
+
+## Fails without the fix
+
+Copies of changed production files were stored in `.ds4/scratch/`; each temporary revert was restored byte-identically (`cmp` passed). Removing the `cards/kw_melee.go` registration on the freshly parsed corpus card failed:
+
+```text
+--- FAIL: TestTitaniaMeleeCountsDistinctAttackedOpponents (0.00s)
+    melee_test.go:69: freshly linked real Titania has no Melee attack trigger
+FAIL github.com/adams-shaun/gorge/rules 0.017s
+```
+
+Disabling the grant synthesis in `rules/melee.go` failed the granted and multiple-instance assertions:
+
+```text
+--- FAIL: TestTitaniaMeleeCountsDistinctAttackedOpponents (0.39s)
+    melee_test.go:80: granted Melee after attack: 2/2, want 3/3
+--- FAIL: TestTitaniaAndAdrianaGrantTwoMeleeInstances (0.00s)
+    melee_test.go:171: two Melee instances: Bear is 2/2, want 6/6
+FAIL github.com/adams-shaun/gorge/rules 0.420s
+```
+
+Replacing the declaration-wide snapshot with only the triggering event's defender failed *both* two-opponent paths, including the battle, and the plural grant:
+
+```text
+--- FAIL: TestTitaniaMeleeCountsDistinctAttackedOpponents/two_attacked_opponents (0.00s)
+    melee_test.go:97: Titania after attack: 4/4, want 5/5
+--- FAIL: TestTitaniaMeleeBattleCountsProtectorOnce/second_opponent (0.00s)
+    melee_test.go:157: battle protector Melee: 4/4, want 5/5
+--- FAIL: TestTitaniaAndAdrianaGrantTwoMeleeInstances (0.00s)
+    melee_test.go:191: two Melee instances: Bear is 4/4, want 6/6
+FAIL github.com/adams-shaun/gorge/rules 0.486s
+```
+
+## Issues
+
+None discovered outside this brief. There was no existing Melee ledger entry in the AGENTS.md closing register to retire; the controller explicitly instructed no ratchet or AGENTS.md change. No remainder identified.
+
+---
+
 # Report — task agent-20260922T201246Z-000e743d (fix round t2)
 
 ## Review finding disposition
@@ -2205,6 +2665,66 @@ None. The suspending-body regression was added because the continuation
 transport DID change (a new resume kind consuming the parked loop frame), as
 the brief conditions it.
 
+
+---
+
+# Report — `K:Companion` registration
+
+## Changes
+
+- `rules/trigger_match.go`: registered `kw:Companion` in `effects.RegisterNonAPI`, documenting the Partner deck-construction precedent and CR 702.139. The comment explicitly scopes out the pregame pick and activation.
+- `rules/companion_702139_registration_test.go`: added corpus-wide registration/census coverage and an exact parsed Jegantha keyword pin. The first test verifies registration, finds carriers by keyword head, pins the population to 8–12, confirms none still report `kw:Companion` unsupported, and requires at least one fully-supported carrier (logging other gaps). The second asserts Jegantha and the exact keyword are present before checking `Primitives()` and unsupported status.
+
+Corpus measurement: `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`. `grep -rl '^K:Companion' .cards/cardsfolder --include='*.txt' | wc -l` returned `10`; counting matching lines returned `10` as well.
+
+## Fails without the fix
+
+Saved the modified registration file, removed only its `kw:Companion` entry, ran the targeted tests, and restored the file byte-identically (`cmp` succeeded). Real output:
+
+```text
+without-fix exit=1 restore-identical=0
+--- FAIL: TestCompanionPrimitiveIsRegistered (0.00s)
+    companion_702139_registration_test.go:17: effects.Supported() is missing "kw:Companion"
+--- FAIL: TestCompanionCarrierIsUnderstood (0.59s)
+    companion_702139_registration_test.go:68: Jegantha still names kw:Companion as unsupported: [kw:Companion]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.619s
+FAIL
+```
+
+## Gates
+
+- `go test -run 'TestCompanionPrimitiveIsRegistered|TestCompanionCarrierIsUnderstood' ./rules/`
+  ```text
+  exit=0
+  ok   github.com/adams-shaun/gorge/rules  0.677s
+  ```
+- `go test ./internal/archtest/`
+  ```text
+  archtest exit=0
+  ok   github.com/adams-shaun/gorge/internal/archtest  3.884s
+  ```
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+  ```text
+  botbench exit=0
+  ok   github.com/adams-shaun/gorge/cmd/botbench  1.263s
+  ```
+- `gofmt -l rules/trigger_match.go rules/companion_702139_registration_test.go`: no output.
+- `go run ./cmd/gentypes -check`
+  ```text
+  gentypes exit=0
+  ```
+- `git diff --check`: no output.
+
+No deck acceptance, head, or botbench pin was changed; the byte-identical botbench golden passed.
+
+## Issues
+
+Issue `agent-20260918T234402Z-c77011ce` is closed for keyword registration. The companion mechanic remains unimplemented: there is no pregame chosen-companion selection or `{3}` activation to put the card into its owner's hand from outside the game. Follow-up work should implement deck validation for the ten restriction forms observed in the corpus (`Card.cmcGE3,Land`; `Card.cmcM20`; `Card.cmcM21,Land`; `Creature.Cat,Creature.Elemental,Creature.Nightmare,Creature.Dinosaur,Creature.Beast,Card.nonCreature`; `Permanent.cmcLE2,Instant,Sorcery`; `Permanent.hasAbility Activated,Instant,Sorcery`; `Special:DeckSizePlus20`; `Special:SharesCardType`; `Special:UniqueManaSymbols`; `Special:UniqueNames`) and separately address play-side selection/activation. The corpus has 10 files with `K:Companion` lines. No other defects were found in scope.
+
+## Commit
+
+`f7e41c45 feat(rules): register Companion keyword`
 ---
 
 # GenericChoice per-Defined$-player chooser — report
@@ -2498,3 +3018,412 @@ proposed: this is a param-specific trigger-resolution behavior test, not a new
 CR conformance finding.
 
 Commit: `30f3fc7a test(rules): cover Sentinel Sarah Lyons battalion trigger`
+
+
+# Task replcensus1 — api:ReplaceDamage census token
+
+Ticket: `agent-20260919T055356Z-504b1359`
+Branch: `wt/agent-20260919T055356Z-504b1359`
+Commit: `b5c35e4d`
+
+## What changed and why
+
+### `rules/replacement.go` (the one production change)
+
+Added `"api:ReplaceDamage"` to the `effects.RegisterNonAPI(...)` list inside
+the package `init()`, with a comment naming the inline handler:
+
+```go
+"repl:AddCounter", "api:ReplaceCounter",
+// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+// file) via the ReplaceDamage intercept in applyReplacements, never
+// through effects.Resolve/runReplaceWith -- this registration is the
+// census token only; a stub effects.Register handler would be dead code.
+"api:ReplaceDamage")
+```
+
+Root cause as briefed: `rules/replacement.go`'s `applyReplacements`
+intercepts a `ReplaceWith$` body whose API is `ReplaceDamage` and applies it
+inline through `applyReplaceDamageBody`, so it never reaches
+`effects.Register`; `effects.Supported()` therefore had no
+`api:ReplaceDamage` and the census false-reported the 38 carrier cards as
+unsupported. This is a census-token-only registration — no behaviour code
+(`applyReplaceDamageBody`, the intercept) was touched, and no stub
+`effects.Register` handler was added.
+
+**Premap spot-check:** the brief's `Workspace facts` put the list at
+`rules/replacement.go:4583` with `func init()` at 4545. At this base (main
+`6ec869e5`) the list is actually at **line 6164** (`func init()` at 6126) —
+the line numbers had drifted but the anchor (the `RegisterNonAPI` list
+containing `"repl:AddCounter", "api:ReplaceCounter"`) was found and is
+unique. Everything else in the premap held: `effects/registry.go` needed no
+edit, and the four behaviour pins are untouched.
+
+### `rules/replacedamage_registration_test.go` (new test file)
+
+Per the "new tests go in a new file" rule, the pin lives in its own file
+rather than appended to `coverage_test.go`:
+
+- `TestReplaceDamagePrimitiveIsRegistered` — pins
+  `effects.Supported()["api:ReplaceDamage"]`.
+- `TestReplaceDamageCarrierHasNoGap` — loads the real corpus
+  (`sharedCorpus`), finds Heart-Shaped Herb with the precondition
+  `herb.Primitives()` contains `api:ReplaceDamage` (fails loudly if the card
+  shape changes), then asserts `reg.Unsupported(herb, effects.Supported())`
+  no longer contains `api:ReplaceDamage`.
+
+## Gates run (real output)
+
+### Targeted gate (Done-means command)
+
+```
+$ go test -v -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/
+=== RUN   TestReplaceDamagePrimitiveIsRegistered
+--- PASS: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+=== RUN   TestReplaceDamageCarrierHasNoGap
+--- PASS: TestReplaceDamageCarrierHasNoGap (0.61s)
+=== RUN   TestBattletideAlchemistAsksItsControllerAndPreventsClerics
+--- PASS: TestBattletideAlchemistAsksItsControllerAndPreventsClerics (0.00s)
+=== RUN   TestThunderstaffPreventsExactlyItsAmount
+--- PASS: TestThunderstaffPreventsExactlyItsAmount (0.00s)
+=== RUN   TestSpiderPunkStopsProtectionPrevention
+=== RUN   TestSpiderPunkStopsReplaceDamagePreventionBodies
+--- PASS: TestSpiderPunkStopsReplaceDamagePreventionBodies (0.00s)
+=== RUN   TestDamageReplacementSupportedBodyFamilies
+--- PASS: TestDamageReplacementSupportedBodyFamilies (0.00s)
+ok  	github.com/adams-shaun/gorge/rules	0.661s
+```
+
+The corpus test took 0.61s and ran — not skipped (`.cards` was present as a
+symlink; see "Workspace facts found"). All four pre-existing behaviour pins
+pass.
+
+### `## Fails without the fix`
+
+Copied `rules/replacement.go` to `.ds4/scratch/replacement.go.bak`, removed
+the registration line, ran only the new tests:
+
+```
+$ go test -run 'TestReplaceDamage' ./rules/
+--- FAIL: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+    replacedamage_registration_test.go:21: effects.Supported() is missing "api:ReplaceDamage"
+--- FAIL: TestReplaceDamageCarrierHasNoGap (0.65s)
+    replacedamage_registration_test.go:38: Heart-Shaped Herb still reports api:ReplaceDamage unsupported: [api:ReplaceDamage]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.668s
+FAIL
+```
+
+Both new tests fail with the registration reverted. The file was restored and
+verified byte-identical:
+
+```
+$ cmp .ds4/scratch/replacement.go.bak rules/replacement.go && echo "RESTORED BYTE-IDENTICAL"
+RESTORED BYTE-IDENTICAL
+```
+
+### `go test ./internal/archtest/`
+
+```
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.935s
+```
+
+No allowlist edits.
+
+### `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+
+```
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.305s
+```
+
+Byte-identical, as expected: a pure registration emits no event and no repo
+deck carries a carrier.
+
+### `gofmt -l` on touched files
+
+```
+$ gofmt -l rules/replacement.go rules/replacedamage_registration_test.go
+(no output)
+```
+
+## Head / ratchet movement
+
+None. `rules/acceptance_test.go` `knownUnsupported` and `rules/heads_test.go`
+are untouched; no repo deck carries any of the 38 carriers (the corpus
+probe and the empty `git diff` for those files confirm it). TestHeads was not
+run (daemon gate), but a registration emits no event so no chain head can
+move; `cmd/botbench`'s split stayed byte-identical, which is the same signal.
+
+## Workspace facts found
+
+- `.cards` was **present** (symlink resolved) at task start — the
+  `TestReplaceDamageCarrierHasNoGap` run took 0.61s, proving the corpus
+  loaded rather than skipped.
+- The brief's PREMAP line numbers for `rules/replacement.go` had drifted from
+  4583/4545 (main `18644593`) to 6164/6126 (base `6ec869e5`); the list was
+  located by anchor and is the only such list in the file.
+- Pre-existing worktree: `pwd` is the assigned worktree; `git status` was
+  clean at start; no rebase was needed (branch was already at `6ec869e5`).
+
+## Deviations from the brief
+
+1. **Test lives in a new file, not `rules/coverage_test.go`.** The brief's
+   Done-means says "New test in `rules/coverage_test.go`", but the dispatch's
+   "New tests go in a new file (2026-09-22)" rule and the gorge context both
+   require a new `_test.go` file to avoid merge conflicts with sibling
+   tickets. The tests follow the `TestAddCounterReplacementPrimitivesAreRegistered`
+   style exactly and use the same `sharedCorpus` helper. This is the only
+   intentional deviation.
+
+## Issues
+
+No new defects found. The five carriers with other real gaps (Divine
+Deflection, Errant Minion, Power Leak — `api:StoreSVar`; Nothing Can Stop Me
+Now — `api:Abandon`; Urza Academy Headmaster —
+`api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) were scoped out
+per the brief and left untouched; the `api:StoreSVar` and `api:Abandon` gaps
+are the known body-family remainders already tracked by other work, not new
+findings.
+
+```
+STATUS=DONE
+COMMITS=b5c35e4d
+TESTS=go test -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ → ok 0.66s (6 tests, incl. corpus carrier); new tests fail with the registration reverted; archtest + botbench byte-identical ok
+```
+---
+
+# Report — task agent-20260919T055500Z-a4cd7643 (kw:Sunburst)
+
+# kw:Sunburst — report (task agent-20260919T055500Z-a4cd7643)
+
+## What changed and why
+
+Sunburst (CR 702.47) had zero engine support: a `K:Sunburst` permanent entered
+with no counters, and the `DB$ Animate | Keywords$ Sunburst` riders (Solar
+Array, Lux Artillery) were silent no-ops. The mechanic is "enters with a +1/+1
+counter for each colour of mana spent to cast it; that many charge counters if
+it is not a creature". The colour count already existed as the CR 107.4f
+`Count$Converge` head (converge1/tconverge1); the missing pieces were the
+entry-time counter put and arming the pay-time colour capture for Sunburst
+faces.
+
+### `rules/replacement.go`
+
+- **`sunburstEntryMatch`** (new, immediately after `bloodthirstEntryMatch`):
+  builds the synthetic `Moved → Battlefield` `ReplacementResult$ Updated`
+  replacement a sunburst permanent enters by. The keyword is read from the
+  entering object's **DERIVED** keyword list (`derivedKeywordParam(ev.Obj,
+  "Sunburst")`), the `bloodthirstEntryMatch` pattern. Body:
+  `DB$ PutCounter | Defined$ Self | ETB$ True | CounterType$ <kind> |
+  CounterNum$ Count$Converge`. The counter KIND follows Forge's own expansion
+  verbatim (`CardFactoryUtil`: `host.isCreature() ? P1P1 : CHARGE`), decided
+  from the **printed** face's `IsCreature()` — CR 702.47a's "if it isn't a
+  creature" ignoring type-changing effects.
+- **dispatch**: the synthetic match is appended in
+  `applyReplacementsDispatch` beside `bloodthirstEntryMatch`, under
+  `ev.Kind == events.MoveZone && ev.To == state.ZBattlefield`, after the
+  face-Repl scan (same deterministic composition reason).
+- **registration**: `kw:Sunburst` joined the `effects.RegisterNonAPI(...)`
+  list (the coverage marker).
+
+### `rules/cast.go`
+
+- **`faceWantsConverge`**: gained a `f.HasKeyword("Sunburst")` arm, so a
+  printed Sunburst face is armed for the pay-time `FlagConverged` CastInfo
+  (Sunburst's count is exactly the converge count). This is the same
+  heads-safety gate: no repo-deck card carries `Count$Converge` or `Sunburst`,
+  so no game without one changes an event.
+- **`sunburstGrantOut`** (new): the capture gate's third arm, the
+  `triggeredConvergeReaderOut` shape — a pure read over the deterministic
+  alive-seat × battlefield walk for a permanent whose face body
+  `Mentions("Sunburst")`. The Animate grant lands on the spell AFTER payment
+  (a `SpellCast` trigger resolving while the spell is on the stack), so the
+  printed-keyword arm cannot see it at pay time; this arm stamps the capture
+  so the entering permanent reads its colours.
+- **gate call**: `payCast`'s converge arm is now
+  `faceWantsConverge(f) || e.triggeredConvergeReaderOut() || e.sunburstGrantOut()`.
+
+### `rules/sunburst_test.go` (new)
+
+Real corpus carriers only, loaded through `testutil.CorpusRegistry` (scripts
+are GPL, never committed), padded with Mountains:
+
+- `TestSunburstEtchedOracleEntersWithP1P1PerColour` — real Etched Oracle
+  (Artifact Creature, `{4}`): `RRGG` → exactly 2 `P1P1`, `RRRR` → exactly 1,
+  `CC` on real Pentad Prism → 0 `CHARGE` (colourless is not a colour). Asserts
+  the creature/printed-keyword precondition before the counter assertion.
+- `TestSunburstPentadPrismEntersWithChargePerColour` — real Pentad Prism
+  (noncreature): `RG` → exactly 2 `CHARGE` and 0 `P1P1`, proving the counter
+  KIND branch.
+- `TestSunburstAnimateGrantOnSolarArray` — real Solar Array + real Ornithopter
+  of Paradise (`{2}`, 0/2 artifact creature with **no printed Sunburst**, so
+  the grant is the only keyword source). Solar Array's `{T}` ability sets up
+  the one-shot "next artifact spell gains sunburst"; the thopter is cast with
+  two colours (one G from Solar Array + one R) and enters with exactly 2
+  `P1P1` and `ConvergeColours == 2`.
+
+Each test asserts a non-zero positive result (there is no "nothing happens"
+test), and each proves a distinct load-bearing part (see below).
+
+## Deviation from the brief (called out deliberately)
+
+The brief suggested "the keyword registered in `cards/keywords.go`" as an
+`etbCounter`-shaped expansion. I did **not** add a cards-side K: expansion.
+Reason: a cards-side expansion is a printed-face transformation, and the brief
+ALSO requires the `DB$ Animate | Keywords$ Sunburst` grant shape to work. A
+layer-6 grant delivers the keyword to a spell/object that has no printed
+K:Sunburst line, so a printed-face expansion can never see it — the exact gap
+the existing `bloodthirstEntryMatch` doc records ("the grant path is the shape
+a cards-side expansion could never see"). Implementing rules-side (derived
+keyword read) covers BOTH shapes with one code path, is the established
+precedent for a keyword whose whole meaning is an entry-time counter put, and
+is the structural fix that covers the next grant spelling rather than only the
+two carriers.
+
+## Gates run (real output pasted)
+
+Targeted test (fresh, non-cached):
+
+```
+$ go test -count=1 -run 'TestSunburst' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	1.007s
+```
+
+Behaviour goldens outside `rules/`:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.175s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.210s
+```
+
+Formatting / codegen / vet (the Go half of `make lint`):
+
+```
+$ gofmt -l rules/cast.go rules/replacement.go rules/sunburst_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output)
+
+$ go vet ./rules/
+(no output)
+```
+
+Ratchet sanity (registration + frozen-table constant, both untouched by scope):
+
+```
+$ go test -run 'TestNonAPIPrimitivesAreRegistered|TestTokenReplacementPrimitivesAreRegistered' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.018s
+
+$ go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.002s
+```
+
+The botbench split is **byte-identical** (green, no re-pin needed): no repo
+deck carries a Sunburst or converge card, and the added gate arm is a pure
+read that emits no event.
+
+## Fails without the fix
+
+Three independent reverts of the non-test code, each restored byte-identically
+(`cmp` against a scratch copy) afterwards. Each proof run is
+`go test -count=1 -run 'TestSunburst' ./rules/`.
+
+### 1. Remove the `sunburstEntryMatch` dispatch (`rules/replacement.go`)
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.61s)
+--- FAIL: TestSunburstPentadPrismEntersWithChargePerColour (0.00s)
+    sunburst_test.go:140: Prism CHARGE=0, want 2 (two colours spent)
+--- FAIL: TestSunburstAnimateGrantOnSolarArray (0.00s)
+    sunburst_test.go:189: Ornithopter P1P1=0, want 2 (sunburst granted by Solar Array, two colours spent)
+FAIL
+```
+
+All three tests depend on the entry-time counter put.
+
+### 2. Remove only `|| e.sunburstGrantOut()` from the gate call (`rules/cast.go`)
+
+```
+--- FAIL: TestSunburstAnimateGrantOnSolarArray (0.00s)
+    sunburst_test.go:189: Ornithopter P1P1=0, want 2 (sunburst granted by Solar Array, two colours spent)
+FAIL
+```
+
+The printed-carrier tests still pass, proving `sunburstGrantOut` is
+specifically load-bearing for the grant-delivered shape (and that the Animate
+test is not vacuous — Ornithopter has no printed Sunburst, so without this arm
+nothing captures the colours).
+
+### 3. Remove only the `f.HasKeyword("Sunburst")` arm (`rules/cast.go`)
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.76s)
+--- FAIL: TestSunburstPentadPrismEntersWithChargePerColour (0.00s)
+    sunburst_test.go:140: Prism CHARGE=0, want 2 (two colours spent)
+FAIL
+```
+
+Proving the printed-keyword capture arm is load-bearing for the printed
+carriers.
+
+## Brief-premise re-measurement
+
+The brief's corpus counts held exactly:
+
+```
+/usr/bin/grep -rlE 'K:Sunburst' .cards/cardsfolder | wc -l                    → 15
+/usr/bin/grep -rlE 'Sunburst' .cards/cardsfolder | wc -l                      → 19
+/usr/bin/grep -rlE 'Animate \| .*Sunburst' .cards/cardsfolder | wc -l         → 2
+```
+
+No repo deck (`internal/testutil/decks/*.json`) carries any Sunburst carrier,
+so `knownUnsupported`, `knownUnsupportedParams`, `TestHeads` and the botbench
+split are all unaffected. No AGENTS.md "Known approximations" row exists for
+Sunburst and none was added (the table is frozen delete-only); the
+implementation is complete with no remainder to defer.
+
+## Issues (found, not fixed)
+
+1. **Sunburst counter kind uses the printed type, not the entry-time derived
+   type.** `sunburstEntryMatch` (rules/replacement.go) calls
+   `o.Face().IsCreature()`, mirroring Forge's `CardFactoryUtil` parse-time
+   `host.isCreature()`. A permanent that enters as a creature only via a
+   type-changing continuous effect (an animated Vehicle/artifact, a
+   `Card.IsCreature` grant) therefore gets charge counters rather than +1/+1.
+   Forge has the same behaviour, so this matches the reference implementation;
+   if a corpus carrier needs the entry-time read, `e.Derived(ev.Obj).Types`
+   would be the change. Untested because no corpus carrier and no repo deck
+   exercises it. No CR-lane test proposed (it would cite CR 702.47a).
+2. **`sunburstGrantOut` scans the battlefield only.** A Sunburst grant from a
+   non-battlefield source (an emblem or a command-zone Effect object with no
+   battlefield permanent carrying the grant spelling) would not arm the
+   capture. Solar Array's one-shot Effect lives in the command zone but Solar
+   Array itself stays on the battlefield and carries the
+   `SVar:DBAnimate | ... | Keywords$ Sunburst` spelling, so both corpus
+   granters are covered (measured: 2 raw `Animate | .*Sunburst` carriers). The
+   `triggeredConvergeReaderOut` precedent has the same battlefield-only scope.
+3. **Lux Artillery is untested.** Its grant spelling
+   (`SVar:TrigAnimate:DB$ Animate | Keywords$ Sunburst`, `ValidCard$
+   Artifact.Creature`) is identical to Solar Array's and is covered by the same
+   `Mentions("Sunburst")` scan, but only Solar Array has an end-to-end test.
+   Not worth a separate task; noted for the reviewer.
+4. **Converge and Sunburst now share one capture gate.** A future change to
+   `faceWantsConverge`/`sunburstGrantOut` must keep both consumers in mind.
+   Documented in the gate's doc comment, not a defect.
+
+## Commits (post-rebase onto `main`, 2026-09-23 r2)
+
+- `067b2477` feat(rules): implement kw:Sunburst as an entry-time converge counter put
+- `26c2dd7d` test(rules): load real corpus carriers for the sunburst coverage tests
+- `7bfe93da` docs(agent): append kw:Sunburst round-1 report
+- `080ed1be` docs(agent): record rebased commit shas for kw:Sunburst report
+- `26590394` feat(cards): expand printed K:Sunburst and gate the sunburst synthetic to the grant shape (r2 fix — see report-r2.md)
+
+Rebased onto `main` after the controller directive (second rebase at the r2
+directive, one `.ds4/report-t1.md` append-append conflict resolved by keeping
+both blocks); all gates above were re-run on the rebased tree and are the
+pasted output.

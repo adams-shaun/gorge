@@ -91,7 +91,7 @@ func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost
 // (Jeweled Amulet) keeps its existing split-based note; every other caller
 // keeps the bool-only payManaFor wrapper, so no other payment site changes
 // shape.
-func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [7]state.Mana) {
 	class := paymentSpell
 	if ability {
 		class = paymentActivated
@@ -99,7 +99,7 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	return e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: class, cost: &cost}, cost, conv, rider)
 }
 
-func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
+func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [7]state.Mana) {
 	av := e.manaAvailableFor(p, d)
 	// The payment's persistence attribution: the visible pool's persistent
 	// share (perVis) and its ordinary complement (perFresh). resolveMana is
@@ -124,12 +124,12 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 	pay, ok := cost.resolveManaWith(before, beforeSnow, beforeTyped, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false, state.Mana{}, state.Mana{}, state.Mana{}, [3]state.Mana{}
+		return false, state.Mana{}, state.Mana{}, state.Mana{}, [7]state.Mana{}
 	}
 	after, afterSnow, afterTyped, lifeSpent := pay.pool, pay.snow, pay.typed, pay.lifeSpent
 	spent := state.Mana{}
 	spentSnow := state.Mana{}
-	spentTyped := [3]state.Mana{}
+	spentTyped := [7]state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
 		// The parallel tallies' own deltas: how many of the units that left
@@ -193,7 +193,7 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 					Amount: -per, Text: events.ManaPersistentText("")})
 			}
 		}
-		for t, tag := range state.TypedManaTags {
+		for t, tag := range state.ManaUnitTags {
 			if emitTyped[t][i] > 0 {
 				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -emitTyped[t][i]})
 			}
@@ -223,7 +223,7 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 // offer gate while the card still sat in the granted zone; the payment
 // keeps it via pc.mayPlayIgnore because after the push (CR 601.2a) the card
 // is on the stack and a zone re-derivation would wrongly drop the grant.
-func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [3]state.Mana) {
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [7]state.Mana) {
 	ok, spentAll, _, spentSnow, spentTyped := e.payManaDescriptorForSpent(pc.player, paymentForCast(pc, cost), cost,
 		e.paymentConv(pc.player, pc.card, false),
 		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
@@ -276,7 +276,7 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 // filter already hid it from the pool.
 type availableMana struct {
 	pool  state.Mana
-	typed [3]state.Mana
+	typed [7]state.Mana
 }
 
 type paymentClass uint8
@@ -336,7 +336,7 @@ func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
 // real cost must say so with Cost{} and stay on the class-only terms.
 func (e *Engine) manaAvailableFor(p state.PlayerID, d paymentDescriptor) availableMana {
 	pl := e.G.Players[p]
-	available := availableMana{pool: pl.Pool, typed: pl.TypedMana}
+	available := availableMana{pool: pl.Pool, typed: pl.ManaUnits()}
 	for _, r := range pl.RestrictedMana {
 		idx := state.ManaSlot(r.Color)
 		available.pool[idx] -= r.Amount
@@ -402,7 +402,7 @@ func (e *Engine) visiblePersistentMana(p state.PlayerID, d paymentDescriptor) st
 // Capping at the tag's (or snow tally's, or the slot's remaining plain units')
 // actual spend reconciles the carve's restricted-first attribution with the
 // search's plain-first consumption and keeps every emission tally >= 0.
-func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[7]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
 	e.noCounterSpend = 0
 	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
@@ -527,7 +527,7 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // predicates (Cavern of Souls' ChosenType) resolve against the mana source;
 // source-less batches keep the historical paid-card reading.
 func (e *Engine) restrictValidMatches(p state.PlayerID, d paymentDescriptor, valid string, src state.ObjID) bool {
-	for _, term := range strings.Split(strings.TrimSpace(valid), ",") {
+	for term := range strings.SplitSeq(strings.TrimSpace(valid), ",") {
 		if e.restrictValidTermMatches(p, d, strings.TrimSpace(term), src) {
 			return true
 		}
@@ -649,7 +649,10 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 	if conv.empty() {
 		return nil
 	}
-	return &conv
+	// Copy out only the non-empty conversion: returning &conv directly moved
+	// conv to the heap on EVERY call, including the common nil return.
+	out := conv
+	return &out
 }
 
 // costPayableGrant is costPayable with the may-play ignore-colour rider
@@ -732,7 +735,26 @@ func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cos
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
-func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [3]state.Mana) bool {
+
+func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [7]state.Mana) bool {
+	if !cost.hasPips() {
+		// The B-life grant, the may-play riders and the ManaConvert set only
+		// ever widen or narrow a PIP's alternatives (costPips, pipAccepts);
+		// a pip-free cost -- the bare {T} of nearly every mana ability --
+		// resolves to exactly the life and generic totals whatever they
+		// are, so the three whole-board reads are skipped, not changed.
+		_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life, false, pipRider{}, nil)
+		if walkCacheVerify {
+			_, slow := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life,
+				e.payerGrantsPayLifeInsteadOfB(p),
+				pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
+				e.paymentConv(p, id, ability))
+			if slow != ok {
+				panic("rules: pip-free costPayablePool fast path disagrees with the full resolve")
+			}
+		}
+		return ok
+	}
 	_, ok := cost.resolveManaWith(pool, e.G.Players[p].Snow, typed, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p),
 		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)},
@@ -834,8 +856,15 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// would read 0 off the stack object. When the asking source IS the card
 	// the pending cast is casting, seed the count the ask just settled --
 	// exactly the `x` resolvedTargetBounds threads for a Count$xPaid bound.
-	if pc := e.cast; pc != nil && pc.card == source && pc.multikickSet {
-		ctx.TimesKicked = pc.multikickTimes
+	if pc := e.cast; pc != nil && pc.card == source {
+		if pc.multikickSet {
+			ctx.TimesKicked = pc.multikickTimes
+		}
+		// The CHOSEN cast mode's kicked bit (Tear Asunder's kicked main SA is
+		// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1): the same
+		// pre-payment gap TimesKicked closes, for the FlagKicked half. The
+		// mode was settled when the cast OPTION was picked, before this ask.
+		ctx.PendingKicked = modeIsKicked(pc.mode)
 	}
 	if f := o.Face(); f != nil {
 		ctx.Source = source
@@ -858,7 +887,9 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// trigger's owning face is the top face, so nothing else moves. A
 	// HAS-ALL-ABILITIES-OF wrapper (r3) is covered inside the recovery
 	// functions themselves, so every caller shares the one read.
-	if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
+	if owned, ok := e.triggerLineSVars[source]; ok {
+		effects.SetSVars(ctx, owned)
+	} else if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
 		effects.SetSVars(ctx, mf.SVars)
 	} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {
 		// An activated ability of a MUTATED pile (CR 702.140d): the ask's SVar
@@ -903,19 +934,34 @@ func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *
 	}
 	ctx.X = x
 	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
-		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMin", 1); resolved {
+		if n, resolved := effects.NumResolvedStrict(e, ctx, sa, "TargetMin", 1); resolved {
 			min = int(n)
 		}
 	}
+	resolvedMax := false
 	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
-		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMax", 1); resolved {
+		if n, resolved := effects.NumResolvedStrict(e, ctx, sa, "TargetMax", 1); resolved {
 			max = int(n)
+			resolvedMax = true
 		}
 	}
 	if min < 0 {
 		min = 1
 	}
-	if max < 1 {
+	if max < 0 {
+		max = 0
+	}
+	// A dynamic bound the grammar RESOLVED is honoured as written, zero
+	// included. The "instead" idiom writes exactly that: Tear Asunder's
+	// kicked main SA is TargetMin$ X | TargetMax$ X over
+	// SVar:X:Count$Kicked.0.1, meaning "target nothing here, the chained sub
+	// (Condition$ Kicked, SVar:Y:Count$Kicked.1.0) does the work". Clamping
+	// that resolved 0 up to 1 asks for an artifact/enchantment the kicked
+	// spell must not exile. Only an UNRESOLVED token -- and a literal, already
+	// clamped by targetBounds -- keep the documented max >= 1 clamp; the
+	// max < min clamp below still lifts a resolved 0 when a genuine minimum
+	// is present (a bare TargetMax$ X announced 0, min defaulting to 1).
+	if !resolvedMax && max < 1 {
 		max = 1
 	}
 	if max < min {
@@ -960,7 +1006,7 @@ func (e *Engine) resolvedTargetMin(p state.PlayerID, source state.ObjID, sa *car
 // originImpliedTargetZone for the four gates that admit it.
 func targetZones(sa *cards.SA) []state.Zone {
 	var zones []state.Zone
-	for _, z := range strings.Split(sa.Params["TgtZone"], ",") {
+	for z := range strings.SplitSeq(sa.Params["TgtZone"], ",") {
 		switch strings.TrimSpace(z) {
 		case "Battlefield":
 			zones = appendUniqueZone(zones, state.ZBattlefield)
@@ -1022,8 +1068,8 @@ func targetZones(sa *cards.SA) []state.Zone {
 // (stack kinds, then the battlefield default) in charge.
 func attachValidTgtsZones(spec string) ([]state.Zone, bool) {
 	var zones []state.Zone
-	for _, alt := range strings.Split(spec, ",") {
-		for _, word := range strings.Split(alt, ".") {
+	for alt := range strings.SplitSeq(spec, ",") {
+		for word := range strings.SplitSeq(alt, ".") {
 			z, has := strings.CutPrefix(strings.TrimSpace(word), "inZone")
 			if !has {
 				continue
@@ -1102,7 +1148,7 @@ func appendUniqueZone(zones []state.Zone, z state.Zone) []state.Zone {
 // parser keeps this census aligned with stack target-kind legality, including
 // Forge's Ability alias.
 func targetsStackObjects(spec string) bool {
-	for _, token := range strings.Split(spec, ",") {
+	for token := range strings.SplitSeq(spec, ",") {
 		if _, ok := state.StackKindTokenOf(strings.TrimSpace(token)); ok {
 			return true
 		}
@@ -1482,7 +1528,7 @@ type targetCandidate struct {
 // and a silent fizzle. Forge's comma is OR: the spec matches when any one
 // alternative matches.
 func (e *Engine) playerTargetSpecMatches(sc effects.SpecContext, spec string, q, you state.PlayerID, source state.ObjID) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		if matched, known := e.triggerRolePlayerAlt(sc, alt, q, you); known {
 			if matched {
 				return true
@@ -1566,6 +1612,20 @@ func (e *Engine) affectedCandidates(p state.PlayerID, source, excludeSelf state.
 }
 
 func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool) []targetCandidate {
+	return e.candidatesForLimit(p, source, excludeSelf, sa, targeting, 0)
+}
+
+// candidatesForLimit is candidatesFor that may stop enumerating once limit
+// (> 0) candidates are collected. The early stop is taken only when neither
+// post-filter (TargetsWithDefinedController$, TargetValidTargeting$) is
+// present -- both can only DROP candidates, so without them the census is
+// append-only and its first limit entries are exactly the full list's. The
+// feasibility gate (targetSAAvailable) needs a count, never the list.
+func (e *Engine) candidatesForLimit(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA, targeting bool, limit int) []targetCandidate {
+	if limit > 0 && (strings.TrimSpace(sa.Params["TargetsWithDefinedController"]) != "" ||
+		strings.TrimSpace(sa.Params["TargetValidTargeting"]) != "") {
+		limit = 0
+	}
 	spec := sa.Params["ValidTgts"]
 	// The spec-relative source (Self/Other/CARDNAME/sameName predicates read
 	// it) is the SOURCE PERMANENT when the ask belongs to a minted ability
@@ -1625,6 +1685,10 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 			}
 		}
 	}
+	if limit > 0 && len(out) >= limit {
+		return out
+	}
+zoneLoop:
 	for _, z := range zones {
 		if z == state.ZStack {
 			// The stack is a single, shared sequence, not a per-seat zone, so
@@ -1667,6 +1731,9 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				}
 				if e.matchesSpec(tspec, oid, sc) {
 					out = append(out, targetCandidate{kind: stackTargetOptionKind(e.stackObjKind(o)), obj: oid, player: o.Controller})
+					if limit > 0 && len(out) >= limit {
+						break zoneLoop
+					}
 				}
 			}
 			continue
@@ -1702,6 +1769,9 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
 						out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
+						if limit > 0 && len(out) >= limit {
+							break zoneLoop
+						}
 					}
 				}
 			}
@@ -2460,6 +2530,19 @@ func (e *Engine) AskCopyTargets() bool {
 	if max < min {
 		max = min
 	}
+	// A declaration whose resolved bound admits NO target (Min 0 Max 0 -- a
+	// dynamic TargetMax$ that evaluated to zero) leaves nothing to choose:
+	// the only legal answer is the empty one, which Engine.ask refuses to
+	// post. Resolve it silently -- the copy keeps its inherited (empty)
+	// set for this declaration -- and move on to the next declaration, if
+	// any, exactly as an answered ask would.
+	if max == 0 {
+		if e.copyTargetStage == nil {
+			e.copyTargetStage = make(map[state.ObjID]int)
+		}
+		e.copyTargetStage[o.ID] = stage + 1
+		return e.AskCopyTargets()
+	}
 	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a new target for the copy", Source: o.ID,
 		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: e.describeTargetEffect(controller, o.ID, sa, o.X)}
@@ -2615,6 +2698,11 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
+	if max == 0 {
+		// A dynamic bound RESOLVED to zero: this stage takes no targets, so
+		// pose no ask (the effects-side askTargets has the same max <= 0 arm).
+		return
+	}
 	candidates := e.legalTargetCandidates(p, source, source, sa)
 	// MaxTotalTargetPower$ (Reunion of the House): prune the candidates that
 	// can provably join no legal selection (individually over the cap unless
@@ -3033,6 +3121,39 @@ func (e *Engine) resolvedAbilityTallyFor(source state.ObjID, sa *cards.SA) int32
 	return e.G.ResolvedThisTurn[events.ResolvedAbilityKey(source, sa)]
 }
 
+// activationsThisTurnFor is the ConditionActivationLimit$ read
+// (Ctx.ActivationsThisTurn): how many times the activated ability sa on
+// source has been activated this turn, INCLUDING the resolving one -- its
+// AbilityPush (a stack ability) or ManaActivate marker (a mana ability,
+// emitted for a chain carrying the gate) is already in the log. sa is located
+// in the source's pile by identity, else by its script line (a mana
+// ability's colour-pinned or Produced$-rewritten copy keeps Line). Zero --
+// the unbound value the effects gate fails open on -- for a nil SA, a
+// source that has left, or an SA that is not one of the source's own
+// activated abilities (a trigger, a spell, a granted body).
+func (e *Engine) activationsThisTurnFor(source state.ObjID, sa *cards.SA) int32 {
+	if sa == nil {
+		return 0
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return 0
+	}
+	idx, _, found := pileAbilityRefOf(o, sa)
+	if !found && sa.Line != "" {
+		for i, n := 0, o.PileAbilityCount(); i < n; i++ {
+			if pa, ok := o.PileAbilityAt(i); ok && pa.SA != nil && pa.SA.Line == sa.Line {
+				idx, found = i, true
+				break
+			}
+		}
+	}
+	if !found {
+		return 0
+	}
+	return int32(e.activationUsedCount(source, idx, "", true))
+}
+
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
@@ -3080,7 +3201,7 @@ func (e *Engine) resolveTop() {
 		// (608.2m) rather than moving to a card zone, and this build parks
 		// such objects in exile. Ordered first because it decides whether
 		// the ability does anything at all.
-		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+		if t, ok := e.triggerForAbilityObject(id, o); ok {
 			// NoResolvingCheck$ True (Ugin's Mastery, Werewolf Pack Leader,
 			// Love on the Battlefield, ...): the condition was checked only
 			// when the trigger fired, and the transient state it counted (a
@@ -3091,7 +3212,7 @@ func (e *Engine) resolveTop() {
 			// AttackedPlayerWithMostLife) be re-checked with the defender the
 			// trigger queued against, which no current state can re-derive.
 			tc := e.triggerContexts[id]
-			if !e.triggerResolvingCheckHolds(t, o.Source, &tc) {
+			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc, e.triggerLineSVars[id]) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
@@ -3180,20 +3301,40 @@ func (e *Engine) resolveTop() {
 		// abilities and mandatory triggers (findTriggerForAbility returns
 		// false for the former, or an OptionalDecider-less trigger for the
 		// latter) fall straight through to their effect below.
-		rt, triggered := e.findTriggerForAbility(o.Source, o.Ability)
-		if triggered {
-			if spec := rt.Params["OptionalDecider"]; spec != "" {
-				who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
-				if !askable {
-					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
-					e.ensureLeftTheStack(id, state.ZExile, "the optional decider of this ability left the game, so the "+
-						"ability ceased to exist (CR 800.4a) and was parked in exile")
-					return
-				}
-				e.askOptionalAtResolution(who, o, o.Ability, e.abilityLabel(o, rt))
+		rt, triggered := e.triggerForAbilityObject(id, o)
+		// resSpec is the OptionalDecider$ spec this ability must ask about.
+		// A printed trigger's comes off its face T: line (findTriggerForAbility
+		// recovered it). An Effect-created delayed trigger has no face T: line:
+		// its Ability is an Execute$ SVar sub-ability, so findTriggerForAbility
+		// reports false and the spec rides effects.TriggerContext.OptionalSpec
+		// from the registration instead (effects/misc.go effEffect ->
+		// state.DelayedTrigger.OptionalSpec -> checkDelayedTriggers /
+		// checkEventDelayedTriggers -> this map). Without the fallback an Effect
+		// trigger with OptionalDecider$ (Beck's "you may draw a card") would
+		// resolve mandatorily, the opposite of the card text.
+		resSpec := ""
+		// An Effect registration's spec wins even when the trigger-line
+		// provenance (abcopy) now recognizes the delayed body as triggered.
+		if spec := e.triggerContexts[id].OptionalSpec; spec != "" {
+			resSpec = spec
+		} else if triggered {
+			resSpec = rt.Params["OptionalDecider"]
+		}
+		if resSpec != "" {
+			who, askable := e.deciderFromSpec(resSpec, o.Controller, o.Remembered, e.triggerContexts[id])
+			if !askable {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+					From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
+				e.ensureLeftTheStack(id, state.ZExile, "the optional decider of this ability left the game, so the "+
+					"ability ceased to exist (CR 800.4a) and was parked in exile")
 				return
 			}
+			label := e.abilityLabel(o, cards.Trigger{})
+			if triggered {
+				label = e.abilityLabel(o, rt)
+			}
+			e.askOptionalAtResolution(who, o, o.Ability, label, e.triggerContexts[id].OptionalSpec != "")
+			return
 		}
 		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY
 		// trigger that reaches this point is one whose effect is about to run
@@ -3252,7 +3393,7 @@ func (e *Engine) resolveTop() {
 			e.startEcho(id, o.Source, o.Ability)
 			return
 		}
-		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+		if _, triggered := e.triggerForAbilityObject(id, o); triggered &&
 			e.triggerBodyNeedsCostWindow(o.Ability) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
@@ -3271,7 +3412,7 @@ func (e *Engine) resolveTop() {
 		// hard-decline convention. A context-less synthetic push (no role)
 		// keeps the free-executor semantics.
 		tc := e.triggerContexts[id]
-		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+		if _, triggered := e.triggerForAbilityObject(id, o); triggered &&
 			o.Ability.API == "CopySpellAbility" &&
 			o.Ability.Params["Cost"] != "" &&
 			(tc.TriggerAbility != 0 || tc.TriggerCard != 0) {
@@ -3281,11 +3422,10 @@ func (e *Engine) resolveTop() {
 		// The ability object itself has no Face, so its SVar table (needed
 		// for Num's SVar indirection, e.g. Goblin Piledriver's "NumAtt$ +X")
 		// comes from the permanent that granted it (o.Source) instead.
-		// SVars are static card-script text that never changes after
-		// parsing, so reading them live from the source's current Face at
-		// resolution time is equivalent to a snapshot taken when the
-		// trigger was queued, with no need for a new field to carry one
-		// through the stack. A source that has since left the battlefield
+		// Printed face SVars are static card-script text, but a granted
+		// trigger's owner may be a different card (or its grant may have ended).
+		// For those wrappers the recorded line carries its owning SVar table.
+		// A source that has since left the battlefield
 		// (or ceased to exist) has nothing to read here and degrades to a
 		// nil SVar table, same as before this ability object existed at
 		// all, rather than panicking.
@@ -3316,6 +3456,9 @@ func (e *Engine) resolveTop() {
 				svars = sf.SVars
 			}
 		}
+		if owned, ok := e.triggerLineSVars[id]; ok {
+			svars = owned
+		}
 		// Ruling T20-b: Source must be o.Source (the permanent that has this
 		// ability), not id (the transient stack-object wrapper) -- Defined$
 		// Self, the most common Defined$ value in real trigger scripts,
@@ -3330,7 +3473,8 @@ func (e *Engine) resolveTop() {
 			// Resolve event's Apply folded: the count INCLUDES this resolution,
 			// because the Resolve event is emitted above before this Ctx is
 			// built (the Sephiroth "if this is the fourth time" gate).
-			ResolvedThisTurn: e.resolvedAbilityTally(o),
+			ResolvedThisTurn:    e.resolvedAbilityTally(o),
+			ActivationsThisTurn: e.activationsThisTurnFor(o.Source, o.Ability),
 			// An Effect-created delayed trigger body resolves under the Effect's
 			// source-scoped frame (queued by rules' delayed-trigger fire), so the
 			// one-shot self-exile idiom it may run ends the Effect. Zero for every
@@ -3404,7 +3548,9 @@ func (e *Engine) resolveTop() {
 		e.damaging = o.Source
 		e.contChain = e.contChain[:0]
 		e.repeatReported = nil
+		e.contChainOwners++
 		effects.Resolve(e, ctx, o.Ability)
+		e.contChainOwners--
 		e.damaging = 0
 		if e.resume != nil {
 			// A placement-announced modal ability can reach a nested ask during
@@ -3584,7 +3730,9 @@ func (e *Engine) resolveTop() {
 		ctx.Modes = o.ChosenModes
 		e.contChain = e.contChain[:0]
 		e.repeatReported = nil
+		e.contChainOwners++
 		effects.Resolve(e, ctx, sa)
+		e.contChainOwners--
 		e.damaging = 0
 		if e.resume != nil {
 			// The cast-announced outer mode may itself contain an asking effect.
@@ -3874,6 +4022,7 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	// direct resolution that never went through the stack (the map carries no
 	// entry for it), the modelled-head zero the effects case gives.
 	ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(source, sa)
+	ctx.ActivationsThisTurn = e.activationsThisTurnFor(source, sa)
 	// The caller supplies the chosen targets -- the announcement or placement
 	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
 	// for an SA that declares targets (task mvts1).
@@ -4128,7 +4277,11 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 			if useAcc && ev.Amount < 0 && int(ev.Player) < len(buckets) {
 				buckets[ev.Player].spent += -ev.Amount
 				if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
-					buckets[ev.Player].tagged[tag] += -ev.Amount
+					base, artifact := state.ManaUnitTypes(tag)
+					buckets[ev.Player].tagged[base] += -ev.Amount
+					if artifact && base != state.TypedArtifact {
+						buckets[ev.Player].tagged[state.TypedArtifact] += -ev.Amount
+					}
 				}
 			}
 			continue
@@ -4248,21 +4401,37 @@ func (e *Engine) WasCastFromExile(obj state.ObjID) bool {
 // DiscardedInWindow satisfies effects.Host's DiscardedInWindow for the
 // ConditionDefined$ Discarded group's cost-discard channel (task
 // mordorparams1, Moria Scavenger's "If the discarded card was a creature
-// card"): the events.DiscardCost records of obj's own activation, read off
-// the log. The window walks BACKWARD from the log end and stops at the
-// first event that proves a different resolution boundary — another
-// wrapper's push (a different activation's AbilityPush/PutOnStack/trigger
-// push), a step or turn change, a pool clear or a player loss — while
-// crossing obj's OWN push events, because the two cost orderings share the
-// one rule: an ability's cost parts are paid BEFORE its AbilityPush mints
-// the wrapper (rules/cast.go's activation branch), a spell's AFTER its
-// PutOnStack (the spell branch), and no other wrapper's push can sit
-// between a cost discard and the resolution that follows it. Priority
-// passes are deliberately NOT a boundary: an activated ability can sit on
-// the stack across any number of passes before it resolves, and the
-// discard it paid belongs to exactly that resolution. Derived from the log
-// the way WasCastFromHandByYou is, so a replay derives the same answer.
+// card"): the events.DiscardCost records of obj's own activation. The walk
+// itself (and the activation-window boundary rule) is costMovesInWindow's.
 func (e *Engine) DiscardedInWindow(obj state.ObjID) []state.ObjID {
+	return e.costMovesInWindow(obj, events.IsDiscardCost)
+}
+
+// ReturnedInWindow satisfies effects.Host's ReturnedInWindow: the
+// Return<N/Spec> cost parts obj's own activation paid (events.IsReturnCost),
+// enumerated over the same activation window DiscardedInWindow scans. It is
+// the ONE other user of costMovesInWindow, so a third cost-provenance window
+// (a new cost action marker) reuses the walk rather than copying it.
+func (e *Engine) ReturnedInWindow(obj state.ObjID) []state.ObjID {
+	return e.costMovesInWindow(obj, events.IsReturnCost)
+}
+
+// costMovesInWindow walks obj's activation window backward over the event log
+// and returns (in log order) every MoveZone event match admits — the cost
+// acts obj's OWN activation paid, which is what the ConditionDefined$
+// Discarded/Returned groups enumerate. The scan starts at obj's resolving
+// wrapper and stops at the first unrelated stack push, step/turn change, pool
+// clear or player loss — while crossing obj's OWN push events, because the
+// two cost orderings share the one rule: an ability's cost parts are paid
+// BEFORE its AbilityPush mints the wrapper (rules/cast.go's activation
+// branch), a spell's AFTER its PutOnStack (the spell branch), and no other
+// wrapper's push can sit between a cost payment and the resolution that
+// follows it. Priority passes are deliberately NOT a boundary: an activated
+// ability can sit on the stack across any number of passes before it
+// resolves, and the cost it paid belongs to exactly that resolution. Derived
+// from the log the way WasCastFromHandByYou is, so a replay derives the same
+// answer.
+func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) bool) []state.ObjID {
 	if obj == 0 {
 		return nil
 	}
@@ -4278,13 +4447,13 @@ func (e *Engine) DiscardedInWindow(obj state.ObjID) []state.ObjID {
 		ev := e.L.Events[i]
 		switch ev.Kind {
 		case events.MoveZone:
-			if events.IsDiscardCost(ev) {
+			if match(ev) {
 				out = append(out, ev.Obj)
 				continue
 			}
 			// An ordinary move inside the window is not a boundary — an
 			// ability's payment can move several cards (exile parts, tapped
-			// entries) between its discard and its push.
+			// entries) between its cost payment and its push.
 			continue
 		case events.PutOnStack, events.AbilityPush, events.TriggerPush,
 			events.DelayedPush, events.GrantTriggerPush:
@@ -4670,7 +4839,7 @@ func (e *Engine) AttackersThisTurn() int {
 // found it: an Equip onto Creature.YouCtrl offered both players as options,
 // which effAttach then had to refuse).
 func targetsPlayers(spec string) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		switch base, _, _ := strings.Cut(strings.TrimSpace(alt), "."); base {
 		case "Player", "Any", "Opponent", "You":
 			return true

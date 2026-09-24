@@ -120,6 +120,13 @@ type TableInfo struct {
 	// list mean the same thing (no match yet), so there is no value that
 	// omitting would make ambiguous.
 	SeatNames []string `json:"seat_names,omitempty"`
+	// Mulligans is the table's London mulligan allowance (TableConfig.Mulligans):
+	// each player may take up to this many pre-game mulligans. Always emitted,
+	// like Format: the zero value is 0, a real value that disables the pre-game
+	// round, so an omitted field would be indistinguishable from it. It is
+	// public table configuration, never private game state — a restart control
+	// reads it to recreate the same game.
+	Mulligans int `json:"mulligans"`
 }
 
 // Widget is the overview cell: enough to draw a 2x2 life grid, a turn
@@ -150,6 +157,14 @@ type SeatInfo struct {
 	Deck   string `json:"deck"`
 	Colour string `json:"colour"`
 	Human  bool   `json:"human,omitempty"`
+	// DeckID is the exact deck id this seat plays — the TableConfig.Decks
+	// entry the match loaded (host/match.go's deckNames), NOT the deck's
+	// display Name. The two can differ: cmd/gorged's catalogue falls back to
+	// the file stem only when a deck file has no Name. A client that restarts
+	// the game must post this id back as human_deck/bot_deck; posting the
+	// display name would 400 "unknown deck". omitempty matches Human's
+	// additive shape.
+	DeckID string `json:"deck_id,omitempty"`
 }
 
 // MatchStart announces match k on a subscribed table.

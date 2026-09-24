@@ -40,7 +40,7 @@ func TestTriggeredCardCastTotalManaSpentReadsTheSnapshot(t *testing.T) {
 	// modelled producer tag from the typed array (state.TypedManaTags order:
 	// Treasure, Cave, Desert).
 	c.TriggerManaSnowSpent = 2
-	c.TriggerManaTyped = [3]int32{3, 0, 1}
+	c.TriggerManaTyped = [4]int32{3, 0, 1}
 	if got := EvalCount(h, c, "TriggeredCard$CastTotalManaSpent Snow"); got != 2 {
 		t.Errorf("TriggeredCard$CastTotalManaSpent Snow = %d, want 2", got)
 	}

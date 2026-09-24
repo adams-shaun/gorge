@@ -31,6 +31,7 @@ package rules
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 
@@ -679,10 +680,19 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 // DeclareAttackers emit can never read a stale declaration.
 func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID) {
 	e.declaredAttackers = e.declaredAttackers[:0]
+	e.declaredDefenders = e.declaredDefenders[:0]
 	for _, opt := range chosen {
 		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
+		// Opt.Player is the defending seat for player, planeswalker and
+		// battle attacks alike (CR 702.121b); duplicates attack one opponent.
+		if opt.Player != player && !slices.Contains(e.declaredDefenders, opt.Player) {
+			e.declaredDefenders = append(e.declaredDefenders, opt.Player)
+		}
 	}
-	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
+	defer func() {
+		e.declaredAttackers = e.declaredAttackers[:0]
+		e.declaredDefenders = e.declaredDefenders[:0]
+	}()
 	type defKey struct {
 		player state.PlayerID
 		battle state.ObjID

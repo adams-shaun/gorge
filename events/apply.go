@@ -835,6 +835,9 @@ func Apply(g *state.Game, e Event) {
 			Move(g, e.Obj, e.From, e.To)
 		}
 		if o := g.Obj(e.Obj); o != nil {
+			if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
+				applyEntryCounterPairs(o, e.Pairs)
+			}
 			if e.To == state.ZStack && o.Face() != nil {
 				o.StackKind, o.StackKindKnown = state.StackKindSpell, true
 			}
@@ -1254,7 +1257,11 @@ func Apply(g *state.Game, e Event) {
 			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
 				player.Snow[idx] += e.Amount
 			} else if tag, slot, ok := state.TypedManaCounter(e.Counter); ok {
-				player.TypedMana[tag][slot] += e.Amount
+				base, artifact := state.ManaUnitTypes(tag)
+				player.TypedMana[base][slot] += e.Amount
+				if artifact && base != state.TypedArtifact {
+					player.ArtifactTyped[base][slot] += e.Amount
+				}
 			}
 			// The RestrictValid$/AddsNoCounter$ provenance is registered for
 			// EVERY counter form, never only a plain one: a tagged restricted
@@ -1378,8 +1385,10 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case CounterChange:
-		if o := g.Obj(e.Obj); o != nil {
-			o.AddCounter(e.Counter, e.Amount)
+		if e.Text != EntryCounterNotice {
+			if o := g.Obj(e.Obj); o != nil {
+				o.AddCounter(e.Counter, e.Amount)
+			}
 		}
 
 	case DeclareAttackers:
@@ -1533,6 +1542,14 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil && o.Card != nil &&
 			e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
 			o.FaceIdx = uint8(e.Amount)
+		}
+
+	case TurnFaceDown:
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && !o.FaceDown {
+			o.FaceDown = true
+			o.FaceDownSetType = ""
+			o.FaceDownPower, o.FaceDownToughness = 0, 0
+			o.FaceDownHasPT = false
 		}
 
 	case TurnFaceUp:
@@ -1715,7 +1732,10 @@ func Apply(g *state.Game, e Event) {
 			// earlier flags (payCast's flags |= accumulation), so this switch
 			// checks the NEWEST flag first -- the reverse of the emission
 			// order -- or every later event would route into the first tag's
-			// field: Desert, Cave, Treasure, then Snow, then the total.
+			// field: Artifact, Desert, Cave, Treasure, then Snow, then the
+			// total.
+			case FlagsFrom(e.Counter)&state.FlagManaArtifactSpent != 0:
+				o.ManaArtifactSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaDesertSpent != 0:
 				o.ManaDesertSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaCaveSpent != 0:
@@ -1750,6 +1770,24 @@ func Apply(g *state.Game, e Event) {
 		// leave-the-battlefield reset clears it with the X/CastFlags window.
 		if o := g.Obj(e.Obj); o != nil {
 			o.NotedNumber = e.Amount
+		}
+
+	case StoreSVar:
+		// api:StoreSVar wrote one named runtime SVar onto its source (Forge's
+		// sa.setSVar: Minion of the Wastes / Phyrexian Processor's
+		// `Cost$ Mandatory PayLife<X>` body storing the paid life under
+		// LifePaidOnETB). Obj is the object, Text the SVar name and Amount
+		// the resolved value; Object.RuntimeSVars overlays the printed face
+		// table for the CDA and token reads that consume it. An empty name
+		// writes nothing rather than a ghost entry, and events.Move's
+		// leave-the-battlefield reset clears the table with the cast-time
+		// window. The write is a keyed map insert, so map order never
+		// reaches an event.
+		if o := g.Obj(e.Obj); o != nil && e.Text != "" {
+			if o.RuntimeSVars == nil {
+				o.RuntimeSVars = make(map[string]int32)
+			}
+			o.RuntimeSVars[e.Text] = e.Amount
 		}
 
 	case PlayerNoted:
@@ -1894,6 +1932,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(def, e.Player)
 		o.IsToken = true
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+		applyEntryCounterPairs(o, e.Pairs)
 
 	case CardToken:
 		// A battlefield token that is a copy of the CARD object Obj names
@@ -1915,6 +1954,7 @@ func Apply(g *state.Game, e Event) {
 		o.IsToken = true
 		o.FaceIdx = faceIdx
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+		applyEntryCounterPairs(o, e.Pairs)
 		// Encore encodes its required defender as seat+1; zero remains the
 		// ordinary CardToken shape. The current turn is folded here so replay
 		// reconstructs the same one-turn attack requirement.
@@ -1966,6 +2006,15 @@ func Apply(g *state.Game, e Event) {
 			o.IsMyriad = true
 		}
 
+	case CloneStatic:
+		if o := g.Obj(e.Obj); o != nil && o.CopyFace != nil {
+			if statics, ok := cards.ParseStaticLines(e.Text); ok {
+				face := *o.CopyFace
+				face.Statics = append(append([]cards.Static(nil), face.Statics...), statics...)
+				o.CopyFace = &face
+			}
+		}
+
 	case ClonePermanent:
 		// CR 613.1a's layer-1 copy basis (DB$ Clone, api:Clone). Obj is the
 		// object that becomes the copy and IDs[0] the object copied from; an
@@ -1982,29 +2031,42 @@ func Apply(g *state.Game, e Event) {
 		if o == nil {
 			break
 		}
-		if len(e.IDs) == 0 || e.IDs[0] == 0 {
+		if e.Counter != "chosen-name" && (len(e.IDs) == 0 || e.IDs[0] == 0) {
 			o.CopyFace = nil
 			o.CopyGainThisAbility = false
 			break
 		}
-		src := g.Obj(e.IDs[0])
-		if src == nil || src.Face() == nil {
+		var face *cards.Face
+		if e.Counter == "chosen-name" {
+			for _, card := range g.NameUniverse {
+				if len(card.Faces) > 0 && card.Faces[0].Name == e.Text {
+					face = card.Faces[0]
+					break
+				}
+			}
+		} else if src := g.Obj(e.IDs[0]); src != nil {
+			face = src.Face()
+		}
+		if face == nil {
 			break
 		}
-		sf := *src.Face()
-		if e.Text != "" {
+		sf := *face
+		if e.Counter != "chosen-name" && e.Text != "" {
 			sf.Name = e.Text
 		}
-		// GainThisAbility$ True: "...except it has this ability" (Lazav,
-		// Vesuvan Doppelganger). The original object's own abilities and SVar
-		// table are appended/merged onto the copied face so the ability that
-		// produced the copy survives it. Appending the original face's whole
-		// ability list is the structural approximation recorded in AGENTS.md:
-		// for the corpus's clone carriers the clone ability IS the card's only
-		// other ability, so this is exact for them.
+		// GainThisAbility$ True: "...except it has this ability". New
+		// events carry a one-based index of the resolving ability; old events
+		// without one retain their original whole-list replay semantics. The
+		// original face's SVar table is still merged to retain references used
+		// by the granted ability.
 		if e.Counter == "gain-this-ability" {
 			if of := o.Face(); of != nil {
-				if len(of.Abilities) > 0 {
+				// Amount is a one-based index into the become object's face
+				// abilities. Zero retains the legacy whole-list form for old
+				// logs; new Clone effects identify the resolving ability.
+				if e.Amount > 0 && int(e.Amount) <= len(of.Abilities) {
+					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities[e.Amount-1])
+				} else if e.Amount == 0 && len(of.Abilities) > 0 {
 					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)
 				}
 				if len(of.SVars) > 0 {
@@ -2055,7 +2117,15 @@ func Apply(g *state.Game, e Event) {
 		conspire := false
 		demonstrate := false
 		flanking := false
+		melee := e.Counter == "__kwMeleeGranted"
 		if sa == nil {
+			// A granted Melee instance has no printed SVar. Rebuild its
+			// pump from the logged marker; IDs holds one player ref per
+			// opponent attacked in the triggering declaration.
+			if e.Counter == "__kwMeleeGranted" {
+				sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
+					"Defined": "Self", "NumAtt": "Count$RememberedNumber", "NumDef": "Count$RememberedNumber"}}
+			}
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
 			// payload -- the same DB$ Ward | UnlessCost$ <cost> a printed
@@ -2215,7 +2285,7 @@ func Apply(g *state.Game, e Event) {
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire || demonstrate || flanking {
+		if conspire || demonstrate || flanking || melee {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
@@ -2258,7 +2328,7 @@ func Apply(g *state.Game, e Event) {
 		remembered := append([]state.Target(nil), src.Remembered...)
 		// Mode announcements are copiable characteristics (CR 707.10): a
 		// modal copy must resolve the same chosen modes, not ask for new ones.
-		chosenModes := append([]string(nil), src.ChosenModes...)
+		chosenModes := state.CloneChosenModes(src.ChosenModes)
 		// A DefinedTarget$ copy names its own targets (the StackCopy doc): the
 		// event's IDs replace the inherited list with object targets. The
 		// ids are not re-validated here beyond existence -- the copy's own CR
@@ -2417,6 +2487,16 @@ func Apply(g *state.Game, e Event) {
 		if effectRepeat {
 			text = strings.TrimSuffix(text, "|EF")
 		}
+		// OptionalDecider$ (an api:Effect Triggers$ body's "you may"
+		// election) rides "|OD=<spec>" the same way ValidPlayer$ and MaxTurn
+		// do. It is stripped before the mode/Trigger split below so the
+		// suffix cannot reach the stored body name; the value never contains
+		// "|", so a single LastIndex is exact.
+		optionalSpec := ""
+		if i := strings.LastIndex(text, "|OD="); i >= 0 {
+			optionalSpec = text[i+4:]
+			text = text[:i]
+		}
 		vp := ""
 		if i := strings.LastIndex(text, "|VP="); i >= 0 {
 			vp = text[i+4:]
@@ -2451,6 +2531,7 @@ func Apply(g *state.Game, e Event) {
 			Trigger:           trigger,
 			EffectRepeat:      effectRepeat,
 			ValidPlayer:       vp,
+			OptionalSpec:      optionalSpec,
 		})
 		g.DelayedNext++
 
@@ -2528,6 +2609,13 @@ func Apply(g *state.Game, e Event) {
 			// ability object is minted. Every earlier DelayedPush carries no
 			// Text, so already-logged firings mint exactly as before.
 			break
+		}
+		if e.Text == "granted ability" {
+			// A SELF-granted activation (rules' shared activation flow mints
+			// it through this delayed shape): count it on the per-source
+			// activation census exactly as GrantAbilityPush counts a
+			// cross-object grant.
+			countActivation(g, e.Obj)
 		}
 		// StackCopy's discipline: snapshot every src field the post-mint
 		// code reads (Incarnation here) before AddObject may reallocate
@@ -2670,6 +2758,12 @@ func Apply(g *state.Game, e Event) {
 		if sa == nil {
 			break
 		}
+		// AbilityPush's per-source activation census (ActivatedThisTurn),
+		// same battlefield condition and the same before-AddObject
+		// discipline: a GRANTED activation is an activation of the
+		// recipient, and leaving it uncounted let a free granted ability
+		// escape the bot's repeatability budget forever.
+		countActivation(g, e.Obj)
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
@@ -2710,6 +2804,11 @@ func Apply(g *state.Game, e Event) {
 		if sa == nil {
 			break
 		}
+		// The per-source activation census, as AbilityPush and
+		// GrantAbilityPush count it: Myr Welder activating an imprinted
+		// Knowledge Vault's "{0}: Sacrifice" was never counted, so the bot's
+		// repeatability budget never closed and it re-activated forever.
+		countActivation(g, e.Obj)
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
@@ -3005,7 +3104,17 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	if wasBattlefield && to != state.ZBattlefield {
 		o.Controller = o.Owner
 	}
-	if to != state.ZCeased {
+	// CR 113.7a: an ability on the stack is not a card, and once it leaves
+	// the stack it ceases to exist. The resolved/countered ability's move is
+	// logged as stack->exile and o.Zone says exile (a historical shape every
+	// golden replay and many pins carry: "the CR 608.2m exile parking"), but
+	// the Face-less object never joins a zone's MEMBERSHIP list: an exile
+	// walk (Oracle of Dust's "put a card an opponent owns from exile into
+	// that player's graveyard" cost) moved such an object into a graveyard,
+	// where Delve and an ExileFromGrave cost offered it as a card and
+	// dereferenced its nil Face.
+	ceasedAbility := to != state.ZStack && o.Card == nil && o.Ability != nil
+	if to != state.ZCeased && !ceasedAbility {
 		dst := zoneOwner(o, to)
 		g.SetZone(to, dst, append(g.Zone(to, dst), id))
 	}
@@ -3084,8 +3193,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// (Hand_from_Stack does, and the double entry it sees is the honest
 	// record of the two moves).
 	permanentCard := !o.IsToken && !o.IsCopy && o.Card != nil && o.Face() != nil && o.Face().IsPermanent()
-	g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
-		Owner: o.Owner, PermanentCard: permanentCard})
+	if !ceasedAbility {
+		// A ceased ability is no zone entry: a Count$ThisTurnEntered_Exile
+		// head counts cards put into exile, never retired abilities.
+		g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
+			Owner: o.Owner, PermanentCard: permanentCard})
+	}
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true
@@ -3111,89 +3224,45 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.IsToken = true
 			o.IsCopy = false
 		}
-		// CR 306.5b: a planeswalker enters the battlefield with loyalty
-		// counters equal to its starting loyalty, however it entered (a
-		// resolving spell, a blink or re-entry, a search put it directly onto
-		// the battlefield). Implementing the grant here, inside Move itself,
-		// is what makes every battlefield-entry site covered by construction:
-		// no rules/ or effects/ caller can mint an entry that skips it, and
-		// replay (which re-runs Apply) derives the identical counters. Two
-		// boundaries keep the grant exact:
-		//
-		//   - A battlefield->battlefield move (counters are NOT reset on a
-		//     stay on the battlefield) must not re-stack loyalty, so the grant
-		//     is skipped when the object was already on the battlefield.
-		//   - A face whose starting loyalty this engine cannot read (absent,
-		//     or Loyalty:X -- Nissa, Steward of Elements) grants nothing.
-		//
-		// TokenCreate routes the minted object through Move below, so this
-		// same entry grant gives planeswalker tokens their starting loyalty.
+
 		// CR 400.7: a battlefield entry from another zone is a new object and
 		// a new control acquisition — kw:Echo's gate stamp (the entry already
 		// carries the entering controller). A battlefield→battlefield stay is
-		// not a new acquisition and must not re-stamp, so the tuple lives in
-		// the !wasBattlefield arm beside the loyalty grant it mirrors.
+		// not a new acquisition and must not re-stamp.
+		//
+		// The entry-characteristic COUNTERS (CR 306.5b starting loyalty, Riot's
+		// and Unleash's +1/+1 election, a Saga's lore counter, a Battle's
+		// defense counters) are deliberately NOT folded here. events.Move is a
+		// pure state fold with no way to emit, so a counter folded here is
+		// invisible to the CR 614 replacement pipeline and to the CantPutCounter
+		// prohibition. rules snapshots events.EntryCounterGrants just before
+		// this move folds and places each grant through a real CounterChange
+		// event, so replacements and prohibitions see an entry counter exactly
+		// like any other placement and a log-only replay re-derives it from
+		// those logged events (task addcounter1/2). What stays here is only the
+		// Riot "haste" election (a keyword grant, not a counter) and the
+		// one-shot consumption of both elections.
 		if !wasBattlefield {
 			o.AcqTurn = g.Turn
 			o.AcqStep = g.Step
-			// FaceDown is folded before the move (see Apply's MoveZone case),
-			// so a face-down entry (a manifest) reads here: while face down the
-			// card is a 2/2 creature with no abilities (CR 708.5) -- a manifested
-			// planeswalker gains no loyalty counters, a manifested Saga no lore
-			// counter.
-			if f := o.Face(); f != nil && f.IsPlaneswalker() && !o.FaceDown {
-				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
-					loyalty := int32(n) - o.CompleatedLifePaid
-					if loyalty < 0 {
-						loyalty = 0
-					}
-					o.AddCounter("LOYALTY", loyalty)
-				}
-			}
-			// Riot's choice is made before this entry. Applying it in Move
-			// makes all entry paths obey the same logged choice.
+			// Riot's choice is made before this entry. The "haste" half grants
+			// a keyword (the "counter" half is placed by the engine's
+			// EntryCounterGrants path); consuming the election here makes every
+			// entry path obey the same logged choice.
 			switch o.RiotChoice {
-			case "counter":
-				o.AddCounter("P1P1", 1)
 			case "haste":
 				o.IntrinsicKeywords = append(o.IntrinsicKeywords, "Haste")
 			}
 			o.RiotChoice = ""
-			// kw:Unleash's choice rides the same logged-then-consumed shape:
-			// "counter" enters with a +1/+1 counter (CR 702.86), "plain"
-			// enters without. Cleared either way, exactly like RiotChoice.
-			if o.UnleashChoice == "counter" {
-				o.AddCounter("P1P1", 1)
-			}
+			// kw:Unleash's choice rides the same logged-then-consumed shape;
+			// the "counter" half is placed through the engine's CounterChange
+			// path, so only the consumption is left here.
 			o.UnleashChoice = ""
-			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
-			// lore counter" -- the same every-entry-site grant the loyalty
-			// half above is. The chapter-I trigger queues rules-side off this
-			// Move event (rules' chapter check reads the live counter, which
-			// by then includes this grant). A face-down entry (a manifest) is
-			// not a Saga while face down and gains none.
-			if !o.FaceDown {
-				if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
-					o.AddCounter("LORE", 1)
-				}
-			}
-			// CR 310.6/310.8: a Battle enters with defense counters equal to
-			// its printed Defense. Like the loyalty half above this is granted
-			// inside Move so EVERY entry path (cast, blink, search, reanimate,
-			// token) is covered by construction and a log-only replay
-			// re-derives it. Defense is a string in the IR: a positive integer
-			// grants, an absent/X/non-numeric value fails closed (the same
-			// totality stance the loyalty grant takes for a walker whose
-			// starting loyalty is unreadable). A face-down entry (a manifest)
-			// is a 2/2 creature, not a Battle (CR 708.5), and gains none.
-			if !o.FaceDown {
-				if f := o.Face(); f != nil && f.IsBattle() {
-					if n, err := strconv.Atoi(strings.TrimSpace(f.Defense)); err == nil && n > 0 {
-						o.AddCounter("DEFENSE", int32(n))
-					}
-				}
-			}
 		}
+		// A face-down entry (a manifest) is a 2/2 creature with no abilities
+		// (CR 708.5), so it grants none of the entry counters above; the
+		// engine's EntryCounterGrants gate reads the same MoveZone face-down
+		// marker this fold applies.
 	default:
 		// CR 702.103: a Soulbond pair ends when either member leaves the
 		// battlefield. Move itself is the complete logged state transition, so
@@ -3272,8 +3341,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
+			// CR 400.7: the runtime SVar store is the old permanent's, not the
+			// new object's -- a blunk/reanimated StoreSVar carrier starts with
+			// no stored value (the printed default stands).
+			o.RuntimeSVars = nil
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			o.Protector, o.ProtectorValid = 0, false
@@ -3318,6 +3392,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 		}
@@ -3472,6 +3547,10 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		}
 		d := min(n, p.TypedMana[t][i])
 		p.TypedMana[t][i] -= d
+		if t < 3 {
+			// Drain the artifact subset with its parent type tally.
+			p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
+		}
 		n -= d
 	}
 	if n > 0 {
@@ -3491,6 +3570,9 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		if p.TypedMana[t][i] > p.Pool[i] {
 			p.TypedMana[t][i] = p.Pool[i]
 		}
+		if t < 3 && p.ArtifactTyped[t][i] > p.TypedMana[t][i] {
+			p.ArtifactTyped[t][i] = p.TypedMana[t][i]
+		}
 		total += p.TypedMana[t][i]
 	}
 	if over := total - p.Pool[i]; over > 0 {
@@ -3504,6 +3586,9 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 			}
 			d := min(over, p.TypedMana[t][i])
 			p.TypedMana[t][i] -= d
+			if t < 3 {
+				p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
+			}
 			over -= d
 		}
 	}
@@ -3625,4 +3710,14 @@ func matchExtraPhase(g *state.Game, e Event, consumed bool) (int, bool) {
 		return i, true
 	}
 	return 0, false
+}
+
+// countActivation folds one non-mana activation onto its source's
+// per-turn census (state.Object.ActivatedThisTurn), under AbilityPush's
+// condition: only a battlefield source counts. It must run BEFORE the
+// caller's AddObject, which may reallocate g.Objs under the src pointer.
+func countActivation(g *state.Game, id state.ObjID) {
+	if src := g.Obj(id); src != nil && src.Zone == state.ZBattlefield {
+		src.ActivatedThisTurn++
+	}
 }

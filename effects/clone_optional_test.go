@@ -5,6 +5,7 @@ package effects
 // and the Ctx answer-field contract the rules-side resume arm depends on.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/events"
@@ -99,12 +100,10 @@ func TestCloneOptionalAcceptedAnswerEmitsTheUnreadRiderNote(t *testing.T) {
 	}
 }
 
-// TestCloneOptionalAcceptedAnswerEmitsTheDurationNote pins the same shape
-// for the unplaceable-duration Note (UntilFacedown is approximated as
-// until-the-object-leaves): the accepted re-entry must carry it.
-func TestCloneOptionalAcceptedAnswerEmitsTheDurationNote(t *testing.T) {
+// TestCloneOptionalAcceptedAnswerRegistersDuration verifies an answered
+// election keeps the event-driven UntilFacedown lifetime without warning.
+func TestCloneOptionalAcceptedAnswerRegistersDuration(t *testing.T) {
 	const facedownSA = "DB$ Clone | Defined$ TriggeredCardLKICopy | Optional$ True | Duration$ UntilFacedown"
-	want := "Clone Duration$ UntilFacedown is approximated as until the copy leaves the battlefield (no turn-face-down expiry)"
 	h, sark, dragon := cloneOptionalFixture(t)
 	ctx := &Ctx{Controller: 0, Source: sark, Remembered: []state.Target{{Obj: dragon}},
 		Clone: "yes", CloneDone: true}
@@ -112,8 +111,10 @@ func TestCloneOptionalAcceptedAnswerEmitsTheDurationNote(t *testing.T) {
 	if h.g.Obj(sark).CopyFace == nil {
 		t.Fatal("accepted copy precondition failed: no copy basis")
 	}
-	if !hasNote(h, want) {
-		t.Fatalf("accepted-answer clone dropped the duration diagnostic; notes seen: %v", cloneNoteTexts(h))
+	for _, note := range cloneNoteTexts(h) {
+		if strings.Contains(note, "UntilFacedown") {
+			t.Fatalf("supported duration emitted a warning: %s", note)
+		}
 	}
 }
 

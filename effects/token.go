@@ -469,7 +469,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 
-	for _, key := range strings.Split(sa.Params["TokenScript"], ",") {
+	for key := range strings.SplitSeq(sa.Params["TokenScript"], ",") {
 		key = strings.TrimSpace(key)
 		if key == "" {
 			continue

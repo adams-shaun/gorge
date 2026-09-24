@@ -189,7 +189,7 @@ func parseZone(s string) (state.Zone, bool) {
 // graveyard origin.
 func ParseZones(s string) (zones []state.Zone, all, ok bool) {
 	ok = true
-	for _, part := range strings.Split(s, ",") {
+	for part := range strings.SplitSeq(s, ",") {
 		part = strings.TrimSpace(part)
 		if part == "Any" || part == "All" {
 			all = true

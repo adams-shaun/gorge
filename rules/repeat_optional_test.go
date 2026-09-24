@@ -304,3 +304,68 @@ func TestForbiddenRitualBodyAskResumesToRepeatElection(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestForbiddenRitualNoProgressIterationEndsTheLoop pins the cardfuzz
+// livelock (decision_made "choose:[0]" -> Note "clears remembered" ->
+// decision_ask "choose", forever): once the caster has no nontoken permanent
+// left, an iteration sacrifices nothing, its GenericChoice is gated off and
+// its Cleanup only Notes -- the body posed no decision and changed nothing,
+// so every further "repeat" is the identical no-op. The engine must end the
+// do/while there instead of re-offering the election. It walks the real
+// shape: one iteration that DOES sacrifice (so the election is offered and
+// answered yes), then the no-op iteration, after which no election follows.
+func TestForbiddenRitualNoProgressIterationEndsTheLoop(t *testing.T) {
+	e, cfg, id := forbiddenRitualFixture(t, 6203)
+	// Leave exactly one nontoken permanent on seat 0's battlefield.
+	bf := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, 0)...)
+	for _, oid := range bf[1:] {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: oid, From: state.ZBattlefield, To: state.ZGraveyard})
+	}
+	if got := len(e.G.Zone(state.ZBattlefield, 0)); got != 1 {
+		t.Fatalf("precondition failed: seat 0 controls %d permanents, want 1", got)
+	}
+	e.pending = nil
+	e.priorityRound()
+	addMana(t, e, 0, "BBCC")
+
+	d := castFixture(t, e, id, 1)
+	for i := 0; d != nil && d.ResumeKind != "repeat_optional"; i++ {
+		if i > 8 {
+			t.Fatalf("no repeat election after %d body answers; last %+v", i, d)
+		}
+		pick := 0
+		for _, o := range d.Options {
+			if o.Label == "Don't pay" {
+				pick = o.Index
+			}
+		}
+		submitChoices(t, e, pick)
+		d = e.Pending()
+	}
+	if d == nil {
+		t.Fatal("the first iteration ended without offering the repeat election")
+	}
+	if got := countSacrifices(e); got != 1 {
+		t.Fatalf("precondition failed: first iteration sacrificed %d permanents, want 1", got)
+	}
+	yes := -1
+	for _, o := range d.Options {
+		if o.Kind == "yes" {
+			yes = o.Index
+		}
+	}
+	submitChoices(t, e, yes)
+
+	// The second iteration had nothing to sacrifice: no further election.
+	if d := e.Pending(); d != nil && d.ResumeKind == "repeat_optional" {
+		t.Fatalf("a no-progress iteration re-offered the repeat election: %+v", d)
+	}
+	if got := countSacrifices(e); got != 1 {
+		t.Fatalf("%d permanents sacrificed, want 1", got)
+	}
+	passUntilStackEmpty(t, e, 30)
+	if o := e.G.Obj(id); o != nil && o.Zone == state.ZStack {
+		t.Fatal("Forbidden Ritual is still on the stack")
+	}
+	replayCheck(t, e, cfg)
+}
