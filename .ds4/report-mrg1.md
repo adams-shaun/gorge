@@ -1,3 +1,51 @@
+# Merge-conflict resolution — wt/agent-20260918T234402Z-c77011ce (mrg1), round 6 (2026-09-23 22:30)
+
+## Entry state
+
+`git status` clean, no rebase or merge in flight. HEAD was `824fbbd3` ("Merge
+branch 'main' into wt/agent-20260918T234402Z-c77011ce", 10:50 today) — the
+previous resolver's merge had already completed and committed, but `main` had
+since advanced by 156 commits (tip `dbc5683d`, the fuzz-panics merge at
+22:27). `.cards` was present (real corpus, so no vacuous skips).
+
+## Operation
+
+```text
+$ git merge main
+Auto-merging (many files: rules/, host/, web/, docs …)
+Merge made by the 'ort' strategy.
+```
+
+**No conflict arose this round.** The merge auto-committed as `c0791f1e`
+("Merge branch 'main' into wt/agent-20260918T234402Z-c77011ce", default
+message). After it, `git log HEAD..main` is empty (main fully integrated) and
+the tree is clean. The `.ds4/report-*` accumulation files, which conflicted
+in earlier rounds, auto-merged cleanly this time. I edited no source file —
+there was nothing to hand-resolve.
+
+## Verification
+
+```text
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules   0.627s
+$ go test ./rules -run 'Companion'          # branch's own fix (kw:Companion registration)
+ok   github.com/adams-shaun/gorge/rules   0.441s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest   3.834s
+```
+
+The post-merge ratchets pass: this branch registers `kw:Companion` (a
+deck-construction keyword, not a `Mode$` matcher) and closes no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry, so no ratchet table adjustment was indicated. Merge brought main's
+start-of-game choice, trigger-zoneskip, TargetMin/Max and fuzz-panics work;
+the Companion tests still pass on top of it.
+
+## Issues
+
+None new. Integration only; no source conflict, no golden moved.
+
+---
 # Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 5 (2026-09-23)
 
 ## Entry state
