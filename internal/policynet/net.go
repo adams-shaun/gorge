@@ -257,6 +257,14 @@ type LossConfig struct {
 	// Mode. Lookups are map reads only — no iteration, so no order reaches a
 	// gradient.
 	KindModes map[decision.Kind]LossMode
+	// PPOClip is the PPO surrogate's clip ε and PPOKL the KL anchor's weight
+	// β (ppo.go). Read only by an example carrying a PPO target
+	// (Example.PPO); a supervised example ignores both.
+	PPOClip float64
+	PPOKL   float64
+	// VDWMMargin is the VDWM hinge margin m (vdwm.go), read only by a PPO
+	// example with PPOTarget.VDWM set.
+	VDWMMargin float64
 }
 
 // modeFor resolves the loss mode for one example: the per-kind override when
@@ -346,6 +354,8 @@ type StepStat struct {
 	Parts    LossParts
 	Agree    bool
 	Eligible bool
+	// PPO is the PPO readout of a PPO example (zero otherwise).
+	PPO PPOStep
 }
 
 // NewModel builds a model with the given geometry, initialised from a
@@ -1015,14 +1025,20 @@ func (m *Model) Loss(ex Example, lc LossConfig) StepStat {
 	if len(labelled) == 0 {
 		return StepStat{}
 	}
-	parts, _ := lossFromScores(lc, ex, labelled, ys)
+	var parts LossParts
+	var ps PPOStep
+	if ex.PPO != nil {
+		parts, _, ps = lossPPO(lc, ex, labelled, ys)
+	} else {
+		parts, _ = lossFromScores(lc, ex, labelled, ys)
+	}
 	if t, on := m.valueTermOn(lc, ex); on {
 		s := m.StateTrunk(ex.State)
 		z := m.valueForward(s, make([]float32, m.ValueHidden))
 		parts.ValueHead, _ = valueBCE(lc.ValueWeight, z, t)
 		parts.Total += parts.ValueHead
 	}
-	st := StepStat{Loss: parts.Total, Parts: parts}
+	st := StepStat{Loss: parts.Total, Parts: parts, PPO: ps}
 	st.Eligible, st.Agree = agreement(ex, labelled, ys)
 	return st
 }
@@ -1064,8 +1080,15 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 	if len(labelled) == 0 {
 		return StepStat{}
 	}
-	parts, dys := lossFromScores(lc, ex, labelled, ys)
-	st := StepStat{Loss: parts.Total, Parts: parts}
+	var parts LossParts
+	var dys []float64
+	var ps PPOStep
+	if ex.PPO != nil {
+		parts, dys, ps = lossPPO(lc, ex, labelled, ys)
+	} else {
+		parts, dys = lossFromScores(lc, ex, labelled, ys)
+	}
+	st := StepStat{Loss: parts.Total, Parts: parts, PPO: ps}
 	st.Eligible, st.Agree = agreement(ex, labelled, ys)
 
 	// Backward through the head, option by option; the state-trunk gradient

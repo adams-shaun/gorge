@@ -1,3 +1,475 @@
+# Merge-conflict resolution (round 2) — task agent-20260923T114033Z-a57ee463
+
+Ticket: `agent-20260923T114033Z-a57ee463`
+Branch: `wt/agent-20260923T114033Z-a57ee463`
+Merge commit: `ab4ecf06e` (Merge branch 'main' into wt/agent-20260923T114033Z-a57ee463)
+Pre-merge branch tip: `e60f9037e`
+Merged main tip: `bb92e11d5`
+Merge base: `0e7a6c220`
+
+## What was in flight
+
+`git status` at entry showed a **clean** tree on the branch tip: no
+`MERGE_HEAD`, no rebase directory. The daemon's reflog shows it attempted
+`git rebase main` twice and **aborted both** cleanly (a rebase replays the
+branch's own merge commits and re-hits the conflict). So no operation was in
+flight and I started the integration fresh with `git merge main`, which is the
+integration shape this branch already uses (its history has two prior merge
+commits from main).
+
+## Conflicted files
+
+Exactly three files conflicted, and all three are tracked `.ds4` report files
+(`.ds4/` is gitignored, but these paths were force-added historically and so
+are tracked):
+
+- `.ds4/report-mrg1.md`
+- `.ds4/report-t1.md`
+- `.ds4/report-t2.md`
+
+No Go source file conflicted. The daemon's rebase had named
+`rules/player_target_qualifier_test.go` as the conflict; that does **not**
+reproduce under a merge, because this branch already merged main once
+(`0d9ee9802`) and therefore already carries the resolution of that file (both
+the branch's bound source `src` and main's after-the-dot negation). The daemon's
+rebase conflict is a rebase artifact, not a real merge conflict.
+
+## What each side wanted, and how I resolved it
+
+All three files are the shared append-only report history. Both sides had
+rewritten their head of the file:
+
+- **HEAD (branch)** carries this ticket's reports and, below them, main's
+  reports appended verbatim under the header
+  `# Reports appended below are from other tickets on the shared report file
+  (preserved verbatim from main):`.
+- **main** carries only main's most recent report for the file.
+
+I verified mechanically that **main's entire content is an exact contiguous
+suffix of HEAD's** for every one of the three files:
+
+```
+report-mrg1.md : main lines=138   ours-tail(suffix) md5 == main md5  -> EXACT SUFFIX
+report-t1.md   : main lines=3750  ours-tail(suffix) md5 == main md5  -> EXACT SUFFIX
+report-t2.md   : main lines=1405  ours-tail(suffix) md5 == main md5  -> EXACT SUFFIX
+```
+
+A unified diff of ours vs theirs printed only `<` (ours-only) lines and no `>`
+(theirs-only) lines, confirming main adds nothing HEAD lacks. So the resolution
+is **take HEAD's version** for all three: it preserves the branch's reports AND
+main's (which HEAD already contains verbatim). I used
+`git checkout --ours -- <file>` then `git add`. No content was hand-authored or
+lost; no marker remains.
+
+This is the same "union by taking the side that contains the other" resolution
+the previous round used for reader-facing report files.
+
+## Auto-merged source (checked, no conflict)
+
+The merge auto-merged 39 source files carrying main's 50 newer commits (the
+policynet pn06–pn11 series, the DigUntil withheld-rider change, searchteacher/
+policytrain/exitloop, botbench) alongside the branch's provenance fix. I did not
+hand-edit any of them. I confirmed the branch's fix survived intact in the
+merged tree:
+
+```
+events/event.go:862   DamageProvenance (appended above NumKinds)
+events/event.go:870   NumKinds = int(DamageProvenance) + 1
+rules/engine.go:2548  e.emit(events.Event{Kind: events.DamageProvenance, Obj: src, ...})
+rules/trigger_eligibility.go:87  events.DamageProvenance (zero-interest arm)
+view/describe.go:175  case events.DamageProvenance
+```
+
+`git diff --stat HEAD^2 HEAD` shows exactly the branch's fix files added on top
+of main (`effects/damage.go`, `effects/filter.go`, `events/*`, `rules/engine.go`,
+`rules/heads_test.go`, `state/game.go`, `state/object.go`, `view/describe.go`,
+plus the branch's tests), and `git diff --stat HEAD^1 HEAD` shows only main's
+newer work coming in. No conflict marker exists anywhere in the tree
+(`grep -rln '^<<<<<<< ' --include='*.go' .` -> none).
+
+## Commands run and real output
+
+Merge:
+
+```
+$ git merge main --no-edit
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Only three `UU` paths; no source conflict:
+
+```
+$ git status --short | grep -E '^(UU|AA|DU|UD|AU|UA|DD)'
+UU .ds4/report-mrg1.md
+UU .ds4/report-t1.md
+UU .ds4/report-t2.md
+```
+
+Suffix proof (main is an exact suffix of HEAD for each):
+
+```
+$ for f in .ds4/report-mrg1.md .ds4/report-t1.md .ds4/report-t2.md; do
+    n=$(git show :3:$f | wc -l)
+    test "$(git show :2:$f | tail -n "$n" | md5sum)" = "$(git show :3:$f | md5sum)" \
+      && echo "$f EXACT SUFFIX"; done
+.ds4/report-mrg1.md EXACT SUFFIX
+.ds4/report-t1.md EXACT SUFFIX
+.ds4/report-t2.md EXACT SUFFIX
+```
+
+Resolution + commit:
+
+```
+$ git checkout --ours -- .ds4/report-mrg1.md .ds4/report-t1.md .ds4/report-t2.md
+$ git add .ds4/report-mrg1.md .ds4/report-t1.md .ds4/report-t2.md
+$ git commit --no-edit
+[wt/agent-20260923T114033Z-a57ee463 ab4ecf06e] Merge branch 'main' into wt/agent-20260923T114033Z-a57ee463
+$ git status
+On branch wt/agent-20260923T114033Z-a57ee463
+nothing to commit, working tree clean
+```
+
+Post-merge state:
+
+```
+$ git rev-list --left-right --count main...HEAD
+0       8
+$ git log -1 --format='%H %s' HEAD
+ab4ecf06ef284be5e66c5d00451283c0d43fd6cf Merge branch 'main' into wt/agent-20260923T114033Z-a57ee463
+```
+
+Build + sanity checks (`.cards` present as a symlink to the shared corpus, so
+the corpus-backed tests actually ran; the `rules` runs came back in the
+0.6–1.6 s range, not a sub-5 s skip):
+
+```
+$ go build ./...
+(no output)
+
+$ go test ./rules/ -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.609s
+
+$ go test ./rules/ -run 'TestHeads$'
+ok  	github.com/adams-shaun/gorge/rules	1.625s
+
+$ go test ./rules/ -run 'TestEmitRecordsGameLongDamageProvenance|TestEmitRecordsObjectDamageProvenance|TestDiseasedVerminAskOffersOnlyPreviouslyDamagedOpponents|TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets|TestTriggerEventInterestMapping|TestDepartedChooserResumptionEventStreamIsDeterministic|TestLifelinkAbilityDamageToCreatureGainsLife|TestLegalTargetsRecheck|TestPlayerTarget|TestSleeperAgent'
+ok  	github.com/adams-shaun/gorge/rules	0.748s
+```
+
+`TestHeads` passing on the merged tree confirms main's 50 newer commits did not
+move the acceptance stream (the branch's measured head values from the previous
+round still hold), so no golden was edited or re-pinned by this resolution.
+
+## Ratchets
+
+The brief-mandated post-merge ratchet run passes without any table edit: no new
+`Mode$` matcher and no `knownUnsupported` / `knownUnsupportedParams` /
+`knownUnmodelledCountHeads` entry was left behind by the merge (green above).
+
+## Deviations / uncertainties
+
+- No deviations from the conflict scope: I touched only the three conflicted
+  `.ds4` files and made no behavioural change.
+- The one judgement call is the report-file resolution, resolved by theorem
+  (main is an exact suffix of HEAD) rather than by hand-merging prose. If the
+  daemon instead wants the branch report to *precede* main's appended reports,
+  the current file already satisfies that order.
+- I did not run the full daemon gate suite (whole-module, CR conformance,
+  `make sim`, `go vet ./...`) — those are the daemon's to run after DONE.
+
+## Issues
+
+- None from this resolution. The only non-conflict observation is that `.ds4/`
+  report files are tracked while the rest of `.ds4/` is gitignored, which makes
+  every round of this shared, ever-growing report history conflict on merge.
+  That is a repo-process wart, not an engine defect; no CR rule applies.
+
+---
+
+# Merge-conflict resolution — task agent-20260923T114033Z-a57ee463
+
+Ticket: `agent-20260923T114033Z-a57ee463`
+Branch: `wt/agent-20260923T114033Z-a57ee463`
+Merge commit: `ea4b5b32` (Merge branch 'main' into wt/agent-20260923T114033Z-a57ee463)
+Pre-merge branch tip: `102a9345`
+Merged main tip: `e46b273d`
+Merge base: `87901df9`
+
+## What was in flight
+
+`git status` at entry showed a **clean** tree except for an unrelated
+working-tree edit to `.ds4/report-t1.md`; no `MERGE_HEAD`, no rebase dirs. The
+previous resolver run had not started the merge. So I ran `git merge main`
+myself. Two files conflicted:
+
+- `rules/heads_test.go` (2 hunks)
+- `rules/player_target_qualifier_test.go` (1 hunk)
+
+Everything else auto-merged cleanly, including the other eight files both sides
+had touched.
+
+## The branch's fix
+
+Game-long damage-by-source provenance (The Fallen, Diseased Vermin) — commits
+`c2f63152` (implementation) and `102a9345` (review-gate head re-pin). Every
+landed `Damage` event now emits a `DamageProvenance` fact through
+`Engine.emit`'s one post-fold tail, backing the
+`wasDealtDamageThisGameBy <ref>` player qualifier and the
+`wasDealtDamageByThisGame` object predicate.
+
+## Main's competing change
+
+`6ef0129a` ("feat(botpolicy): promote explore X1 — A1's attach no-op applies to
+attach abilities only", the "bot-x1" change) is on main but not on the branch.
+It is a **bot-policy** change: it changes the deterministic bot's legal-answer
+choices, so it moves chain heads for the same seats the provenance change does.
+
+## Conflict 1 — `rules/heads_test.go`
+
+### What each side wanted
+
+Both sides appended to the `acceptanceHeads` map, and the goldens contradict
+because both changes move the acceptance stream.
+
+- **HEAD (branch)** wanted, from its provenance change:
+  - `2: f107be40dc2792c6`
+  - `4: 9b3aab4e0336ba8c`
+  - `6: c4ce39421c473963`
+  - `8: 3d1974a1859d9676`
+- **main** wanted, from bot-x1:
+  - `2: 3ddcc4e3ba5bb799`
+  - `4: b3bf75f0c56512ae` (unchanged by bot-x1)
+  - `6: a93593d452866261` (unchanged by bot-x1)
+  - `8: beac5729b0e63dcc`
+
+### How I resolved it
+
+Neither side's numbers are correct for the merged tree: **both** changes are now
+present, so the correct goldens are a fourth set that neither side carries. I
+measured them rather than picking a side.
+
+First resolution (branch values as a compiling placeholder), then
+`go test -run 'TestHeads$' -v ./rules/` reported:
+
+```
+2 seats: chain head 9b4759db7fe10fdd, golden f107be40dc2792c6
+8 seats: chain head d2ebb7cbf40ccd12, golden 3d1974a1859d9676
+```
+
+4 and 6 seats passed at the branch's values (`9b3aab4e0336ba8c` /
+`c4ce39421c473963`).
+
+To **attribute** the move (not guess it), I ran a contained probe: I backed up
+`rules/engine.go`, disabled only the provenance emission guard
+(`if stored.Kind == events.Damage && stored.Amount > 0` →
+`if false && …`), re-ran `TestHeads`, and restored `engine.go` byte-identically
+(`git diff --stat rules/engine.go` printed nothing afterwards). The probe
+produced:
+
+```
+2 seats: chain head 3ddcc4e3ba5bb799   (main's bot-x1 value)
+4 seats: chain head b3bf75f0c56512ae   (main's value)
+6 seats: chain head a93593d452866261   (main's value)
+8 seats: chain head beac5729b0e63dcc   (main's bot-x1 value)
+```
+
+This proves the composition precisely:
+
+| seats | main bot-x1 alone | provenance alone | merged (both) |
+|---|---|---|---|
+| 2 | `3ddcc4e3ba5bb799` | `f107be40dc2792c6` | `9b4759db7fe10fdd` |
+| 4 | `b3bf75f0c56512ae` | `9b3aab4e0336ba8c` | `9b3aab4e0336ba8c` |
+| 6 | `a93593d452866261` | `c4ce39421c473963` | `c4ce39421c473963` |
+| 8 | `beac5729b0e63dcc` | `3d1974a1859d9676` | `d2ebb7cbf40ccd12` |
+
+At 4 and 6 seats bot-x1 does not move the stream, so the merged head equals the
+provenance-only value (and that is why those two entries, auto-merged to the
+branch's values, were already correct). At 2 and 8 seats both changes move the
+stream, so the merged head is a new value. I updated the 2- and 8-seat entries
+and rewrote their attribution comments (and tightened the 4- and 6-seat comments
+to say the merged value equals the provenance-only value because bot-x1 is
+head-neutral for those streams). `TestHeads` now passes.
+
+## Conflict 2 — `rules/player_target_qualifier_test.go`
+
+The census `TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets` pins which
+pure-player `ValidTgts` values offer seats, over a `SpecContext` with role
+bindings. The branch had added a bound damage **source** (`src`) and a landed
+hit in seat 1's record so `Opponent.wasDealtDamageThisGameBy Self` is judged
+with a real binding. Main had added fuzz-cov3's after-the-dot negation handling.
+
+- **HEAD (branch)** put `Opponent.wasDealtDamageThisGameBy Self` in
+  `wantOffered`; listed `Player.!CardOwner` and `Player.!EnchantedBy` in
+  `wantFailClosed`.
+- **main** put `Player.!EnchantedBy` in `wantOffered` and
+  `Opponent.wasDealtDamageThisGameBy Self` in `wantFailClosed` (on main there
+  was no bound source, so the game-long qualifier failed closed).
+
+### How I resolved it
+
+The two changes are additive but interact: main's after-the-dot negation makes
+`Player.!EnchantedBy` offer, and — in the branch's census, which **does** bind a
+source — main's negation makes `Player.!CardOwner` offer too (main's own comment
+already said "Crown of Doom's real offer binds one", i.e. it offers when a
+source is bound).
+
+My first resolution took the union of both sides' `wantOffered`, which the test
+then failed against:
+
+```
+got  [... Opponent.wasDealtDamageThisGameBy Self Player Player.!CardOwner Player.!EnchantedBy ...]
+want [... Opponent.wasDealtDamageThisGameBy Self Player Player.!EnchantedBy ...]
+```
+
+So I moved `Player.!CardOwner` to `wantOffered` as well and rewrote the comment
+to explain that it offers here because this census binds a source (unbound it
+fails closed). Final lists:
+
+- `wantOffered`: `Any`, `Any.NotDefinedParentTarget,Player`, `Opponent`,
+  `Opponent.wasDealtDamageThisGameBy Self`, `Player`, `Player.!CardOwner`,
+  `Player.!EnchantedBy`, `Player.!TriggeredActivator`,
+  `Player.!TriggeredCardController`, `Player.Opponent`, `Player.Other`, `You`
+- `wantFailClosed`: the `Any.!*` trio plus `Player.LostLifeThisTurn` and the
+  rest of the unreached qualifier family.
+
+The test now passes.
+
+## Auto-merged overlap files (no conflict, checked)
+
+Both sides touched eight files; six had no conflict and auto-merged. I checked
+the highest-risk one by hand, `events/event.go`: main appended `TurnFaceDown`
+and `CloneStatic` above the old `NumKinds`, and the branch appended
+`DamageProvenance` after `CloneStatic`, with `NumKinds = int(DamageProvenance) +
+1`. The merged enum orders both sides' kinds and keeps the hash chain intact
+(append-only invariant held). `kindNames` is sized `NumKinds` and the build
+confirms the length matches. The other five (`effects/filter.go`,
+`events/apply.go`, `rules/engine.go`, `state/game.go`, `state/object.go`)
+contain both sides' additions; I ran tests that exercise each side's new
+behaviour (see below) and they pass.
+
+## Commands run and real output
+
+Merge:
+
+```
+$ git merge main --no-edit
+Auto-merging effects/filter.go
+Auto-merging events/apply.go
+Auto-merging events/event.go
+Auto-merging rules/engine.go
+Auto-merging rules/heads_test.go
+CONFLICT (content): Merge conflict in rules/heads_test.go
+Auto-merging rules/player_target_qualifier_test.go
+CONFLICT (content): Merge conflict in rules/player_target_qualifier_test.go
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Compile check after resolving (before commit):
+
+```
+$ go build ./...
+(no output)
+```
+
+Heads probe (provenance emission off) — attribution evidence:
+
+```
+2 seats: chain head 3ddcc4e3ba5bb799
+4 seats: chain head b3bf75f0c56512ae
+6 seats: chain head a93593d452866261
+8 seats: chain head beac5729b0e63dcc
+```
+
+Final heads (provenance on, merged tree):
+
+```
+$ go test -run 'TestHeads$' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	2.182s
+```
+
+Conflicted-file focused tests:
+
+```
+$ go test -run 'TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets$' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.582s
+
+$ go test -run 'TestEmitRecordsGameLongDamageProvenance|TestEmitRecordsObjectDamageProvenance|TestDiseasedVerminAskOffersOnlyPreviouslyDamagedOpponents|TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets|TestPlayerTarget|TestSleeperAgent|TestLegalTargetsRecheck' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.605s
+
+$ go test -run 'TestDamageAllValidPlayersTheFallenResolves|TestPlayerDamageByRefThisGameFailsClosedOnUnboundRef|TestDamageProvenanceWordsAreClassified' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.579s
+```
+
+Post-merge ratchets (brief-mandated):
+
+```
+$ go test -count=1 -v ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryRepoDeckIsFullySupported (0.63s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.25s)
+ok  	github.com/adams-shaun/gorge/rules	0.952s
+```
+
+No test skipped (`.cards` present as a symlink to the shared corpus; the 0.63 s
+`TestEveryRepoDeckIsFullySupported` is the tell that the corpus was read, not
+skipped).
+
+Main's auto-merged additions still hold:
+
+```
+$ go test -run 'TestAshNodsAltar|TestSacrificed|TestFirstTurnControlled|TestCopyWasCastFromGraveyard|TestWasCastFromGraveyard|TestCloneTrigger|TestPlayerCount' ./rules/ ./events/ ./effects/
+ok  	github.com/adams-shaun/gorge/rules	1.024s
+ok  	github.com/adams-shaun/gorge/events	0.009s [no tests to run]
+ok  	github.com/adams-shaun/gorge/effects	0.059s
+```
+
+Format:
+
+```
+$ gofmt -l rules/heads_test.go rules/player_target_qualifier_test.go
+(no output)
+```
+
+## The in-flight operation
+
+`git merge --no-edit` completed as `ea4b5b32`
+("Merge branch 'main' into wt/agent-20260923T114033Z-a57ee463") with git's
+default merge message. `MERGE_HEAD` is gone. After the merge the only remaining
+working-tree change was the pre-existing `.ds4/report-t1.md` edit; I committed
+that together with this report in the follow-up `docs(mrg1):` commit to leave
+the tree clean (matching the repo's established merge-report convention).
+
+## Deviations / uncertainties
+
+- I included the pre-existing `.ds4/report-t1.md` working-tree edit in the
+  follow-up docs commit rather than discarding it, so the tree is clean. It is
+  the t1 seat's own report for this ticket and is unrelated to the conflict;
+  discarding it would have destroyed that round's report, and the repo history
+  already commits `.ds4` merge reports.
+- The 2/8-seat merged head values are measured, not derivable from either side
+  alone; the probe above is the evidence. If the daemon's heads gate disagrees,
+  the probe can be re-run with the exact steps above.
+
+## Issues
+
+- None found beyond the conflict itself. The merge resolution did not surface a
+  new engine defect. The two conflicted tests were both goldens that every
+  head-moving change must update; no code defect was hidden by resolving them
+  (the attribution probe shows the merged heads are exactly the superposition
+  of the two documented changes, with no third behaviour moving).
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Merge-conflict resolution report — agent-20260923T042552Z-0936e140
 
 ## What was in flight

@@ -911,11 +911,14 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 // Player.Opponent, Opponent, You). The dotted `.IsRemembered` spelling
 // (Snort) narrows the two-tier remember set to its base constraint, and the
 // OppNonTriggeredTarget singleton (Kediss, Parapet Thrasher) resolves
-// through its trigger binding. A spec the grammar still does not model
-// (The Fallen's wasDealtDamageThisGameBy compound, whose game-long
-// damage-by-source history no event carries) fails closed AND loud: it
-// damages no player and emits a Note naming the selector, never a silent
-// no-op and never a guess about who takes the sweep.
+// through its trigger binding. The Fallen's game-long compound
+// (Player.Opponent+wasDealtDamageThisGameBy Self) resolves through the
+// shared player filter now that events.Apply folds a game-long (recipient,
+// source) damage record (state.Player.DamageTakenByGame); the sweep binds
+// c.Source so the qualifier's Self referent resolves. A spec the grammar
+// still does not model fails closed AND loud: it damages no player and
+// emits a Note naming the selector, never a silent no-op and never a guess
+// about who takes the sweep.
 func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
@@ -968,12 +971,14 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 	// evaluates it inside the shared filter, whose unknown clauses match
 	// nobody SILENTLY (its own fail-closed direction). The sweep wants an
 	// unmodelled clause loud instead, so a claim-bound spec with a clause
-	// whose base the player grammar does not name (The Fallen's
-	// "Player.Opponent+wasDealtDamageThisGameBy Self" -- a game-long
-	// damage-by-source history the Damage event carries no source for) is
-	// rejected here with a Note naming the selector. Known-base unknown-
-	// QUALIFIER spellings stay on definedSpec's silent empty-set path: the
-	// qualifier vocabulary is the shared filter's to own, and a parallel
+	// whose base the player grammar does not name is rejected here with a
+	// Note naming the selector. The clause vocabulary consulted is the
+	// shared filter's own bare-clause list (isBarePlayerProperty), now
+	// including the game-long wasDealtDamageThisGameBy <ref> clause The
+	// Fallen's compound carries, so the two cannot drift. Known-base
+	// unknown-QUALIFIER spellings stay on definedSpec's silent empty-set
+	// path: the qualifier vocabulary is the shared filter's to own, and a
+	// parallel
 	// census of it here could only drift from the matcher it mirrors.
 	if base, _, ok := strings.Cut(spec, "."); ok &&
 		(base == "Player" || base == "Any" || base == "Opponent" || base == "Other" || base == "You") {
@@ -1019,7 +1024,13 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 	}
 	var out []state.PlayerID
 	for _, p := range g.AliveFrom(0) {
-		if MatchesPlayerSpec(g, spec, p, c.Controller) {
+		// MatchesPlayerSpecFrom (not MatchesPlayerSpec) so the source-bound
+		// clauses this sweep now owns -- the bare/qualified
+		// wasDealtDamageThisGameBy <ref> player qualifier The Fallen's
+		// compound carries -- read c.Source. A source-less spec (Player,
+		// Player.Opponent, ...) is unaffected: the extra binding is only
+		// consulted by a clause that names <ref>.
+		if MatchesPlayerSpecFrom(g, spec, p, c.Controller, c.Source) {
 			out = append(out, p)
 		}
 	}
