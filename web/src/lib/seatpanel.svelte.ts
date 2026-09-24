@@ -1965,7 +1965,15 @@ export class SeatPanelState {
       seen.add(i);
     }
     this.handAnswer();
-    void this.post([...keep], false, [...rest]);
+    // `hand=true` because this IS a hand post: the popup's final keep order
+    // is the player's own answer, and its options (the library cards the
+    // arrange walker offers) carry objs, so it follows the one arming rule
+    // exactly as click() and submit() do — a hand post whose answered
+    // options carry an `obj` arms. An arrange follow-up is not the mana
+    // wheel, so cardoptions.resolveCardFollowUp's kind gate keeps it off;
+    // routing it here keeps the rule consistent rather than carving an
+    // exception the next hand-post path would have to rediscover.
+    void this.post([...keep], false, [...rest], true);
   }
 
   /** passClick posts only the pass-by-kind option, using its own wire index. */

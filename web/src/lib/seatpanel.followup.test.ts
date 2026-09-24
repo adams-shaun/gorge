@@ -54,6 +54,20 @@ const multi = (seq: number): Decision => ({
   ],
 });
 
+/**
+ * arrange is a restable arrange ask (Scry/Surveil/Rearrange): its keep
+ * options are the library cards the walker offered, each with an `obj`, and a
+ * non-empty `rest` list. Answered by submitArrange().
+ */
+const arrange = (seq: number): Decision => ({
+  seq, player: 0, kind: 'arrange', prompt: 'Arrange the top cards.', min: 0, max: 2, restable: true,
+  options: [
+    { index: 0, kind: 'card', label: 'Card A', obj: 401, player: 0 },
+    { index: 1, kind: 'card', label: 'Card B', obj: 402, player: 0 },
+    { index: 2, kind: 'card', label: 'Card C', obj: 403, player: 0 },
+  ],
+});
+
 async function settle(predicate: () => boolean, maxTicks = 200): Promise<void> {
   for (let i = 0; i < maxTicks; i++) {
     if (predicate()) return;
@@ -104,6 +118,26 @@ describe('the hand post arms the card-follow-up expectation', () => {
     await settle(() => p.postedSeq === 710);
     expect(postIntentMock).toHaveBeenCalledTimes(1);
     expect(p.followUpExpected).toEqual({ seq: 710, obj: 301 });
+  });
+
+  it('a restable arrange hand submit (submitArrange) also arms with its first kept option obj', async () => {
+    // submitArrange is a hand post too (it runs handAnswer() before posting),
+    // and its keep options are the library cards the arrange walker offered —
+    // each carries an obj. It must follow the ONE rule rather than carve an
+    // exception the next hand-post path would have to rediscover.
+    const p = new SeatPanelState('t1', 1, ctx);
+    p.adoptView(arrange(720));
+    // PRECONDITION: the two keep options carry DIFFERENT objs, so a rule that
+    // rebuilt the obj from the decision source or a list position could not
+    // produce 401 here.
+    const d = arrange(720);
+    expect(d.options[0].obj).not.toBe(d.options[1].obj);
+    p.submitArrange([0, 1], [2]);
+    await settle(() => p.postedSeq === 720);
+    // PRECONDITION: the arrange DID post — an early-return would make the
+    // assert below vacuous.
+    expect(postIntentMock).toHaveBeenCalledTimes(1);
+    expect(p.followUpExpected).toEqual({ seq: 720, obj: 401 });
   });
 
   it('a machine passClick arms nothing', async () => {
