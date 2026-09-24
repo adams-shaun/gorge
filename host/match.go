@@ -183,7 +183,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		}
 	default: // FormatConstructed: the zero rules.Config, every field stays unset.
 	}
-	e := rules.New(cfg)
+	e := rules.NewStartingPlayerChoice(cfg)
 	// Events growEvents was the top allocator in ./host (2.87 GB of the test
 	// binary's profile: every live match log reallocated ~2x its final length
 	// on the way up). Preallocating the live log to just above a real match's
@@ -195,6 +195,11 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	// pure capacity hint on the live log and cannot leak spare capacity to a
 	// clone (Clone truncates to len), so the clone-sharing invariant is intact.
 	e.L.Reserve(defaultExpectedEvents)
+	// CR 103.1's second half: the toss winner chooses who takes the first
+	// turn. Pose that choice BEFORE advancing so the play loop's parking
+	// conveys it to the winner's seat; a caller with no decision channel
+	// gets the deterministic fallback from Advance instead.
+	e.AskStartingPlayer()
 	e.Advance()
 	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive,
 		undo: newUndoQueue()}

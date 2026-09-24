@@ -129,7 +129,7 @@ goldens in `rules/heads_test.go`:
 
 | seats | 2 | 4 | 6 | 8 |
 |---|---|---|---|---|
-| chain head | `bc7420d9e4c7d3d2` | `e7cffb892a152493` | `76f187361778b000` | `7c9dbf608ada58b3` |
+| chain head | `a613e26b20d46eea` | `1fb9d6682652d3ee` | `5f6b6745a8736596` | `380fae895d0906a3` |
 
 `TestEveryRepoDeckParamsAreRead` (`rules/paramcensus_test.go`) is the
 companion ratchet over the same decks' parameters: measured at the same
@@ -164,7 +164,11 @@ and bottoming round `Config.Mulligans` runs between the deal and turn 1, and
 kinds the later card work added: `commander_zone` (a commander's OWNER's
 CR 903.9 command-zone replacement choice), `replacement` (the CR 616.1
 order choice over competing replacement effects) and `arrange` (the ordered
-subset ask `Scry`/`Surveil`/`RearrangeTopOfLibrary` share, Ruling J0).
+subset ask `Scry`/`Surveil`/`RearrangeTopOfLibrary` share, Ruling J0), and
+`starting_player` (CR 103.1's second half: the toss winner's choice of who
+takes the first turn, posed by `NewStartingPlayerChoice`/`AskStartingPlayer`
+with the pregame rounds deferred until it resolves -- plain `New` is the
+deterministic R-9 no-host fallback and never offers it).
 Concede (M2d-3) is not a kind: it is a `concede` option on every priority
 decision that emits the existing `PlayerLost` with Text "conceded". The
 engine-side defaults that still stand in for a choice the engine cannot yet
@@ -214,7 +218,6 @@ not here.
 | The three planechase verbs are registered no-ops with a Note: `api:Planeswalk` and `api:ChaosEnsues` record "no planar deck" because this build has no planar deck or planar zone (`Valid$ Plane` scans nothing). `Planeswalk`'s `Optional$ True` election is real -- a yes/no ask, the deterministic decline on a no-host (R-9), and the `SubAbility$` chain completes either way, with only a `yes` recording the no-op Note. `DontPlaneswalkAway$`, `ChaosEnsues$`'s `Defined$`/`Remembered$` riders and `T:Mode$ ChaosEnsues` stay unread or unregistered and silently inert. | `effects/planechase.go` (`effBlankLine`, `effPlaneswalk`, `effChaosEnsues`) | M4 (a planar-deck tier) |
 | An explicit multi-zone `ChangeZone Origin$` including `Hand` has no origin-aware chooser: the exact-hand and exact-library walkers cannot build one private option list across hand, graveyard, library and battlefield, so a source-default picker emits one replay-visible Note and moves nothing loudly. | `effects/zone.go` (`mixedOriginIncludesHand`, `effChangeZone`) | M4 (origin-aware mixed hidden-zone chooser) |
 | `ValidLKI$` on a replacement fails closed for the may-play provenance it gates: `Spell.MayPlaySource`, `Warp`, `Mayhem` and `ManaFromArtifact` have no per-cast provenance, so a conditional graveyard-cast replacement (Glimpse the Cosmos) is never admitted -- conservative, but the positive route is unproven. Same predicates fail closed at the layer `Affected$` match and `Count$ThisTurnCast_`. | `rules/replacement.go` (`replacementMatches`), `rules/layers.go` (`matchesWithTypes`, `Affected$` statics), `rules/stack.go` (`spellsCastThisTurnMatching`, `Count$ThisTurnCast_`), `rules/cast_provenance.go` (`castSaAdmits`) | the may-play cast-provenance predicates (MayPlaySource/Warp/Mayhem/ManaFromArtifact) |
-| The starting player is uniformly random but the toss winner never CHOOSES (CR 103.1's second half): the build gives them no decision, so every playable game silently hands the toss winner the first turn. A start-of-game choice decision (new `decision.Kind`, a bot-policy arm, a host conveyance) is deliberately out of scope. | `rules/engine.go` (`New`) | M4-or-later (a start-of-game choice decision: toss-winner-chooses) |
 | (cloak1) Turn-face-up (CR 708.6) is not implemented: a manifested or cloaked card stays face down forever. Loud-unimplemented: `ManifestDread` (a different API), `RememberManifested$`, `Defined$`-object manifests, the `Choices$` asking forms; for Cloak, the from-hand chooser and `Defined$ ValidLibrary`. Ordinary filters read the printed face, missing a manifested Elf. | `effects/zone.go` (`effManifest`, `effCloak`), `rules/layers.go` (`typeCharacteristics`, `faceDownPrintedHides`), `effects/filter.go` (`faceDown`) | M4 (turn-face-up CR 708.6 for both -- the Morph/Megamorph/Disguise ticket owns the shared path; ManifestDread; RememberManifested$) |
 | (copyperm-grants) `api:CopyPermanent` now grants named `AddTriggers$`/`AddSVars$`/`AddAbilities$` from the resolving source table, supports a named `AttachedTo$` destination and the exact Zndrsplt `Choices$`/`Chooser$` shape. `WithDifferentNames$` remains loud-unimplemented, while `ImprintTokens$ True` still records no copies for delayed exile/sacrifice (Kharasha Foothills, Shredder, Shadow Master); `TokenRemembered$` is real. | `effects/copypermanent.go` (`effCopyPermanent`, unread-parameter Note block) | M4 (`WithDifferentNames$`, `ImprintTokens$`) |
 | (abcopy) Effect-GRANTED spell-cast copy triggers are invisible (the printed-face scan). The ValidStack exclusion anchors on the wrapper's whole printed-ability family, not its id — an id-only exclusion livelocks — so a second instance or copy is never offered and its controller never declines. The ValidStack copy arm is SINGLE-TARGET: only the first match in stack-arena order. | `effects/copy.go`, `effects/context.go` (`validStackTokens`), `rules/stack.go`, `rules/resolution.go` | none on the role path; M4 for the Effect-granted and plural-copy halves |

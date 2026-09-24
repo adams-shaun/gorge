@@ -493,6 +493,24 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 		return Clamp(d, in)
 
+	case decision.KStartingPlayer:
+		// CR 103.1's second half: the winner of the toss chooses who takes the
+		// first turn. The bot names itself -- the deterministic default, the
+		// pre-choice seat, consuming no rng. The kind's contract is that the
+		// self-choice is the option whose Player equals the asking seat; if it
+		// is somehow absent, option 0 (the first offered seat in turn order)
+		// is the clamp-legal fallback, the same R-9 shape every kind shares.
+		if len(d.Options) > 0 {
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Player == d.Player {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
+		}
+		return Clamp(d, in)
+
 	case decision.KChoose:
 		// An UnlessCost$ mana window (ResumeKind "unless_mana") is a payment
 		// continuation, not a generic choose: activate one source at a time

@@ -323,11 +323,18 @@ func TestReproOnFreshSnapshot(t *testing.T) {
 	// default procs here; both replays verified every time — only this
 	// fixed-count assertion could tell). advance now waits for seat 0's
 	// NEXT decision to reach the gate — the match parked inside Decide with
-	// every earlier event emitted — and the count is stably 25 (150 events,
-	// head 775a4dcd17aaf606; 200/200 at GOMAXPROCS=2). The committed
-	// fixture stays at its own recorded 24; regenerate it and its
-	// assertions together if it is ever re-recorded (REPRO_REGEN_FIXTURE).
-	if !strings.Contains(out.String(), "replayed 25 of 25 recorded intents") {
+	// every earlier event emitted — and the count was stably 25 (150 events,
+	// head 775a4dcd17aaf606; 200/200 at GOMAXPROCS=2).
+	//
+	// 25 -> 26 (2026-09-23, wt/cli-20260922T225141Z-e771720d): the CR 103.1
+	// toss-winner ask (rules.NewStartingPlayerChoice + AskStartingPlayer)
+	// adds one recorded intent at genesis on every hosted match — the
+	// DecisionAsk + DecisionMade pair before the pregame rounds open — so
+	// the same advance(12) gate count now captures 26 (152 events). The
+	// committed fixture stays at its own recorded 24 (its log predates the
+	// ask, so it still reconstructs through plain New); regenerate it and
+	// its assertions together if it is ever re-recorded (REPRO_REGEN_FIXTURE).
+	if !strings.Contains(out.String(), "replayed 26 of 26 recorded intents") {
 		t.Errorf("fresh snapshot summary unexpected:\n%s", out.String())
 	}
 	out.Reset()
