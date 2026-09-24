@@ -3579,6 +3579,90 @@ func (e *Engine) sacrificeBlocked(id state.ObjID, forCost bool, cause costCause)
 	return false
 }
 
+// ExileBlocked implements effects.Host for the CantExile restriction: reports
+// whether id is forbidden from being exiled by the cause currently in flight
+// — an Effect-registered CantExile restriction or a face CantExile static
+// (The Master, Multiplied: "Triggered abilities you control can't cause you
+// to ... exile creature tokens you control"). Consulted at every
+// effect-driven exile candidate choke point in effects/zone.go
+// (effChangeZone's object path, effChangeZoneAll's sweep and the shared
+// ChangeZone settle), so a blocked permanent is never exiled.
+//
+// forCost names the call site's provenance exactly as SacrificeBlocked's does:
+// the effect-driven callers (this package's own effects.Host consumers) pass
+// false, so a ForCost$ False line restricts them and a ForCost$ True line does
+// not. The rules-side COST walks call exileBlockedForCost, which carries the
+// pending cast/activation so a cost-path ValidCause$ can be evaluated.
+func (e *Engine) ExileBlocked(id state.ObjID, forCost bool) bool {
+	return e.exileBlocked(id, forCost, costCauseNone)
+}
+
+// exileBlockedForCost is the cost path's entry point, the CantExile sibling of
+// sacrificeBlockedForCost: the rules-side battlefield-Exile cost walk knows
+// what the exile is paying for, so it passes the cost's own cause instead of
+// the effects.Host method. causeCostAdmits reads it, so a `ForCost$ True |
+// ValidCause$ ...` CantExile static would block a matching cost exile while
+// leaving an effect's exile alone. The Master's own line is ForCost$ False, so
+// it never restricts a cost path (the permissive direction for a cost
+// payment, and the only corpus CantExile carrier).
+func (e *Engine) exileBlockedForCost(id state.ObjID, cause costCause) bool {
+	return e.exileBlocked(id, true, cause)
+}
+
+// exileBlocked is the shared CantExile reader. The continuous branch is
+// deliberately unconditional: effEffect's registration gate
+// (effects.CantRestrictionParamsReadable) refuses to register any
+// cause-scoped CantExile body, so a continuous CantExile reaching this walk
+// carries only ValidCard$ and the blanket reading is exact. The face-static
+// branch evaluates the full body: ForCost$ against the caller's provenance and
+// ValidCause$ against the in-flight cause — actionCause() on the effect path
+// (the resolving wrapper at the top of the stack), the pending
+// cast/activation identity on the cost path (causeCostAdmits), the same
+// classifier discipline sacrificeBlocked keeps.
+func (e *Engine) exileBlocked(id state.ObjID, forCost bool, cause costCause) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantExile" {
+			continue
+		}
+		if e.restrictionApplies(ce, id) {
+			return true
+		}
+	}
+	for _, sv := range e.activeStatics("CantExile") {
+		if !effects.CantExileRestrictionParamsReadable(sv.Params) {
+			continue
+		}
+		// The cause-scoping parameters, evaluated before the ValidCard match
+		// so an unevaluable shape stays skipped (the permissive direction)
+		// instead of blanket-blocking. ForCost$ True restricts only COST
+		// exiles; ForCost$ False never restricts one.
+		switch sv.Params["ForCost"] {
+		case "True":
+			if !forCost {
+				continue
+			}
+		case "False":
+			if forCost {
+				continue
+			}
+		}
+		if spec := sv.Params["ValidCause"]; spec != "" {
+			if forCost {
+				if !causeCostAdmits(spec, cause) {
+					continue
+				}
+			} else if !e.causeSpecAdmits(spec, sv.Source) {
+				continue
+			}
+		}
+		if spec := sv.Params["ValidCard"]; spec != "" &&
+			e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
 // PutCounterBlocked reports whether a counter of kind would be placed on obj
 // (object form) or player (player form) is forbidden -- a real CantPutCounter
 // restriction static (task cantputcounter1): an Effect-registered one (Melira,

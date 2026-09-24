@@ -1296,6 +1296,16 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || (selfInZone && oid == id) {
 				continue
 			}
+			// A battlefield Exile cost part (Exile<N/Spec>, Karn's Sylex,
+			// Mechtitan Core) is a COST exile: a CantExile static whose
+			// ForCost$ True restricts cost payments withholds the candidate
+			// here, while a ForCost$ False line (The Master, Multiplied)
+			// leaves it offered. exileBlockedForCost carries the pending
+			// cast/activation identity so a cost-path ValidCause$ can be
+			// evaluated, the same plumbing sacrificeCostCandidates uses.
+			if zone == state.ZBattlefield && e.exileBlockedForCost(oid, costCauseForAbility(ability)) {
+				continue
+			}
 			if e.matchesSpecFrom(part.Spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
@@ -3282,6 +3292,15 @@ func (e *Engine) exAsk() bool {
 			// 0) is untouched: encore's Cost$ ExileFromGrave<1/CARDNAME>
 			// really does exile its own source.
 			if !pc.isAbility() && oid == pc.card {
+				continue
+			}
+			// A battlefield Exile cost candidate is withheld by a CantExile
+			// static whose ForCost$ True restricts cost payments -- the
+			// exAsk half of the same guard nonManaCastable's offer walk
+			// applies, keeping the ask from offering an unpayable permanent
+			// (which would abort the cast). ForCost$ False (The Master)
+			// leaves the candidate offered.
+			if zone == state.ZBattlefield && e.exileBlockedForCost(oid, costCauseForAbility(pc.isAbility())) {
 				continue
 			}
 			match := e.matchesSpecFrom(part.Spec, oid, pc.player, pc.card)

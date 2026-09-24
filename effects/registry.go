@@ -160,6 +160,20 @@ type Host interface {
 	// Implemented by rules.Engine (rules/layers.go); the
 	// effects test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID, forCost bool) bool
+	// ExileBlocked reports whether id is forbidden from being exiled by the
+	// given cause -- an Effect-registered CantExile restriction or a face
+	// CantExile static (The Master, Multiplied: "Triggered abilities you
+	// control can't cause you to ... exile creature tokens you control").
+	// Consulted at every effect-driven exile candidate choke point
+	// (effChangeZone's object path, effChangeZoneAll's sweep and the shared
+	// ChangeZone settle) so a blocked permanent is never exiled. forCost is
+	// the call site's provenance exactly as on SacrificeBlocked: the
+	// effect-driven paths (this package's callers) pass false, so a static's
+	// ForCost$ False scoping reads the split -- a cost-driven battlefield
+	// exile calls the engine's cause-aware exileBlockedForCost instead.
+	// Implemented by rules.Engine (rules/layers.go); the effects test double
+	// reports false (no engine to consult).
+	ExileBlocked(id state.ObjID, forCost bool) bool
 	// SurveilLookExtra reports the additional cards a surveil performed by
 	// player p looks at, from the battlefield statics with Mode$ SurveilNum
 	// whose ValidPlayer$ admits p ("You may look at an additional two cards

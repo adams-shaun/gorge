@@ -691,6 +691,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
+		// A CantExile restriction (The Master, Multiplied: "Triggered abilities
+		// you control can't cause you to ... exile creature tokens you
+		// control") withholds the object from this exile entirely: it never
+		// leaves the battlefield, no MoveZone is emitted and none of the
+		// inlined riders (exiled-with, RememberChanged, exile-return) run. The
+		// shared settle path (settleChangeZoneMoveAs) carries the same guard
+		// for every other ChangeZone mover.
+		if to == state.ZExile && h.ExileBlocked(o.ID, false) {
+			continue
+		}
 		// Inlined rather than routed through settleChangeZoneMove: this loop
 		// carries the exiled-with association and the RememberChanged$
 		// event-backed rider (eventRemember) in a specific order (MoveZone,
@@ -1156,6 +1166,16 @@ func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.Play
 }
 
 func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool, rider *attackingEntry) {
+	// A CantExile restriction (The Master, Multiplied) swallows the exile
+	// before it happens: the object stays where it is, no MoveZone event is
+	// emitted and none of this settle path's riders (exiled-with, exile-return,
+	// imprint) run. This is the shared ChangeZone settle every mover below the
+	// two inlined paths (effChangeZone's object loop and applyLibrarySearch's
+	// library-origin move) funnels through, so a battlefield token can never be
+	// taken by an exile that reached here instead.
+	if to == state.ZExile && h.ExileBlocked(id, false) {
+		return
+	}
 	ev := moveZoneEvent(c, id, from, to)
 	if strings.EqualFold(sa.Params["RememberLKI"], "True") {
 		if o := h.Game().Obj(id); o != nil {
@@ -4298,6 +4318,13 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
 	rider := classifyAttackingEntry(c, sa, to)
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
+		// A CantExile restriction withholds the object from a battlefield exile
+		// before the MoveZone (and the moved bookkeeping) is produced -- the
+		// ChangeZoneAll half of the same guard effChangeZone's object loop and
+		// settleChangeZoneMoveAs carry.
+		if to == state.ZExile && h.ExileBlocked(id, false) {
+			return
+		}
 		h.Emit(moveZoneEvent(c, id, z, to))
 		moved = append(moved, id)
 		// Tapped$ True (Splendid Reclamation's "Return all land cards
