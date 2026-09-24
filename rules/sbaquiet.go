@@ -24,9 +24,8 @@ import "fmt"
 //
 // The runtime fields the loop reads are excluded rather than keyed:
 //
-//   - e.pending / e.choosing / e.legendBatch decide only whether a found
-//     duplicate-permanent set (CR 704.5j legend / CR 704.5k world) is parked
-//     (an emitting ask) or deferred (no emit).
+//   - e.pending / e.choosing / e.legendBatch decide only whether a found CR
+//     704.5j duplicate set is parked (an emitting ask) or deferred (no emit).
 //     A deferral sets sbaUnquiet, so a run that deferred never records.
 //   - e.pendingTriggers decides whether a concluded Saga is "busy" (its
 //     chapter ability still pending). A busy-deferred Saga sets sbaUnquiet.
@@ -99,6 +98,6 @@ func (e *Engine) verifySBAQuiet(ep0 int) {
 			ep0, n-ep0, e.L.Events[ep0].Kind))
 	}
 	if e.legendBatch != nil {
-		panic(fmt.Sprintf("rules: SBA quiet skip at log %d disagrees with a full pass (duplicate-permanent batch parked)", ep0))
+		panic(fmt.Sprintf("rules: SBA quiet skip at log %d disagrees with a full pass (legend batch parked)", ep0))
 	}
 }

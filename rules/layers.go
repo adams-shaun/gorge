@@ -2193,20 +2193,6 @@ func (e *Engine) faceDownPrintedHides(o *state.Object) bool {
 	return o != nil && o.FaceDown && o.Zone == state.ZBattlefield
 }
 
-// anyLayer4TypeEffect reports whether any active continuous effect is a
-// layer-4 type effect (CR 613.1c). typeCharacteristics' fast path and the
-// duplicate-supertype scan (rules/sba.go duplicateGroups) both read it: with
-// no layer-4 effect live, a permanent's derived type list is exactly its
-// printed list, so a printed-supertype pre-filter is exact.
-func (e *Engine) anyLayer4TypeEffect() bool {
-	for _, ce := range e.active() {
-		if ce.Layer == LType {
-			return true
-		}
-	}
-	return false
-}
-
 // typeCharacteristics applies layer 4 before anything that tests a type. The
 // accumulated types-so-far list passed into the shared effects filter is what
 // lets a later effect select a creature made a Goblin by an earlier layer-4
@@ -2240,7 +2226,13 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	// play -- allocation-free; the legal-actions pass reaches here through
 	// HasKeyword's Derived read, and the cost/action-statics hotspot pins
 	// measure that pass.
-	anyLType := e.anyLayer4TypeEffect()
+	anyLType := false
+	for _, ce := range e.active() {
+		if ce.Layer == LType {
+			anyLType = true
+			break
+		}
+	}
 	if !anyLType {
 		return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))
 	}

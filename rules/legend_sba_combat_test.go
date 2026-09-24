@@ -158,7 +158,7 @@ func TestLegendRuleReposesDisplacedAsk(t *testing.T) {
 // battlefield-order first member kept, the rest binned) instead of posing a
 // choice a departed seat can no longer make -- and instead of parking forever
 // on the re-pose. A PlayerLost event is the real way to mark the seat; the
-// direct askSBAChoice call keeps the scenario to the arm under test (the
+// direct askLegendChoice call keeps the scenario to the arm under test (the
 // ordinary SBA sweep would already have removed a departed seat's board).
 func TestLegendRuleDepartedControllerDeclines(t *testing.T) {
 	e, id1, id2 := combatLegendBoard(t)
@@ -172,7 +172,7 @@ func TestLegendRuleDepartedControllerDeclines(t *testing.T) {
 		t.Fatalf("fixture: PlayerLost did not mark seat 0 lost")
 	}
 	e.pending = nil // what releasePendingDecisionOfDepartedPlayer would clear
-	e.askSBAChoice()
+	e.askLegendChoice()
 	if e.Pending() != nil {
 		t.Fatalf("a departed controller was still asked: pending %+v", e.Pending())
 	}
