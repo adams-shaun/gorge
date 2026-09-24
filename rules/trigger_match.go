@@ -1913,6 +1913,34 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	return []state.Target{{Obj: source}}
 }
 
+// resolvingRemembered is the Remembered set a resolving ability object's
+// effect chain starts from: the object's own (the trigger capture, a
+// copied/pushed list), except for a printed Mode$ Phase trigger. A step
+// change carries no object, so triggerRemembered's last fallback captured
+// the trigger's SOURCE as its "remembered" card -- and Forge's Remembered in
+// a phase trigger is the host card's own remembered list, never the host.
+// Read literally, every phase trigger whose body names Remembered acted on
+// its own source: Tombstone Stairwell's "at the beginning of each end step,
+// destroy all tokens created with it" (DestroyAll Card.IsRemembered)
+// destroyed the Stairwell itself every end step (cardfuzz coverage audit:
+// its upkeep token trigger had never once resolved in ~200 casts). The
+// capture itself -- the logged TriggerPush IDs -- is unchanged, so no event
+// moves; only the resolution reads the source's durable Remembered instead.
+func (e *Engine) resolvingRemembered(o *state.Object) []state.Target {
+	if o.Card != nil || o.Ability == nil || len(o.Remembered) != 1 || o.Remembered[0].IsPlayer || o.Remembered[0].Obj != o.Source {
+		return o.Remembered
+	}
+	t, _, ok := e.findTriggerForAbilityFace(o.Source, o.Ability)
+	if !ok || t.Mode != "Phase" {
+		return o.Remembered
+	}
+	src := e.G.Obj(o.Source)
+	if src == nil {
+		return nil
+	}
+	return append([]state.Target(nil), src.Remembered...)
+}
+
 // triggerRememberedFor is triggerRemembered with the one mode-aware override a
 // BATCH trig:AttackersDeclared line needs: because the declaration is one
 // turn-based action (CR 508.1) whose events are grouped per defender, a batch

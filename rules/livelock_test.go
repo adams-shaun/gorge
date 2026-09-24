@@ -256,3 +256,35 @@ func TestLivelockWatcherShortWindowDoesNotReadBeforeTheWindow(t *testing.T) {
 		t.Fatalf("runPeriod = %d after A,B,A,B, want 2", w.runPeriod)
 	}
 }
+
+// TestLivelockWatcherCombatDamageFromManySourcesIsNotACycle pins cardfuzz
+// batch8 lines 2-3: the combat damage step of a board of ~1800 Goblin
+// tokens logs one Damage event per attacker, each to the same player and
+// byte-identical in payload (a player hit names no object). Folding the
+// engine's damage source into the signature keeps 500 different creatures'
+// hits from reading as a period-1 cycle, while one source damaging the same
+// player over and over is still caught.
+func TestLivelockWatcherCombatDamageFromManySourcesIsNotACycle(t *testing.T) {
+	w := newLivelockWatcher(nil)
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatalf("500 hits from 500 distinct sources tripped the watcher: %v", r)
+			}
+		}()
+		for i := 0; i < 500; i++ {
+			w.observeFrom(events.Event{Seq: uint64(i + 1), Kind: events.Damage, Player: 1, Amount: 1},
+				state.ObjID(1000+i))
+		}
+	}()
+	w = newLivelockWatcher(nil)
+	defer func() {
+		r := recover()
+		if _, ok := r.(*LivelockError); !ok {
+			t.Fatalf("500 hits from ONE source did not trip the watcher (recovered %v)", r)
+		}
+	}()
+	for i := 0; i < 500; i++ {
+		w.observeFrom(events.Event{Seq: uint64(i + 1), Kind: events.Damage, Player: 1, Amount: 1}, 77)
+	}
+}

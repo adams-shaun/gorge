@@ -1635,30 +1635,36 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // CantAttackParamsReadableForRules is the FACE S:-line whitelist for a
 // CantAttack static: the shared CantRestrictionParamsReadable core EXTENDED by
 // exactly the conditional parameter family rules' attackBlocked reads --
-// UnlessDefender$ (through effects.UnlessDefenderHolds) and CheckSVar$ /
-// SVarCompare$ / Condition$ (through the shared rules-side gate evaluator,
-// rules/layers.go continuousGateHolds). It lives here, beside
-// CantRestrictionParamsReadable and mirrors MustAttackParamsReadableForRules
-// below, so the face whitelist and the gate evaluators cannot drift apart
-// unseen. Measured over the corpus's 271 `Mode$ CantAttack` files: 63 raw
-// lines carry this family, and NONE of them pairs it with the other
-// continuous-gate keys (IsPresent$/PresentCompare$/PresentZone$/ClassBand$),
-// so those keys stay off this list -- a line carrying only them is still
-// skipped whole, unchanged. The Effect-delivered registration gate (effEffect,
-// which keeps the narrower CantRestrictionParamsReadable for BOTH modes)
-// cannot share this list: its continuous path reads neither evaluator, so a
-// gate-bearing body must not register blanket -- a gated "can't attack" would
-// become unconditional, over-restricting, and could leave a MustAttack
-// creature with no legal pair. A static carrying any OTHER parameter
-// (ValidCause$, ForCost$, ValidSA$, Cost$, ...) still fails the whitelist and
-// is skipped whole, the deliberate permissive direction. Iterating the params
-// map only yields a boolean, so map order never reaches an
-// event/option/view -- determinism is preserved.
+// UnlessDefender$ (through effects.UnlessDefenderHolds) and the shared
+// rules-side continuous gate (rules/layers.go continuousGateHolds), which
+// evaluates CheckSVar$ / SVarCompare$ / Condition$ / ClassBand$ and the
+// IsPresent$ / IsPresent2$ / PresentCompare$ / PresentZone$ count family. It
+// lives here, beside CantRestrictionParamsReadable and mirrors
+// MustAttackParamsReadableForRules below, so the face whitelist and the gate
+// evaluators cannot drift apart unseen. Measured over the corpus: of the 24
+// real `Mode$ CantAttack` files carrying this family, 20 spell the battlefield
+// IsPresent$/PresentCompare$ count shape (Desperate Castaways, Gadrak the
+// Crown-Scourge, War Falcon, ...), one a bare IsPresent$ "if" shape (Wirecat,
+// Shauku Endbringer with PresentCompare$ GT1), one PresentZone$ Hand (Kefnet
+// the Mindful) and one PresentZone$ Exile (Ketramose, the New Dawn);
+// IsPresent2$/ClassBand$ have zero CantAttack carriers but are whitelisted
+// anyway because continuousGateHolds evaluates them, the same fail-closed
+// principle MinMaxBlocker's whitelist states. The Effect-delivered
+// registration gate (effEffect, which keeps the narrower
+// CantRestrictionParamsReadable for BOTH modes) cannot share this list: its
+// continuous path reads neither evaluator, so a gate-bearing body must not
+// register blanket -- a gated "can't attack" would become unconditional,
+// over-restricting, and could leave a MustAttack creature with no legal pair.
+// A static carrying any OTHER parameter (ValidCause$, ForCost$, ValidSA$,
+// Cost$, ...) still fails the whitelist and is skipped whole, the deliberate
+// permissive direction. Iterating the params map only yields a boolean, so map
+// order never reaches an event/option/view -- determinism is preserved.
 func CantAttackParamsReadableForRules(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary",
-			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender":
+			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender",
+			"IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "ClassBand":
 		default:
 			return false
 		}
@@ -3081,6 +3087,19 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		if gated {
 			holds, evaluated := repeatGateEvaluates(h, c, sa, check, cmp, defined, present)
 			if !evaluated || !holds {
+				break
+			}
+			if !optional && marked && askCount(h) == asksBefore && !stateChangedSince(h, mark) {
+				// A gate-governed repeat whose iteration posed no decision and
+				// changed nothing re-runs the identical body from the identical
+				// state: the gate holds identically forever, so every further
+				// iteration up to the cap is the same no-op (Rally the Horde
+				// over an empty library: nothing is exiled, "the last card
+				// exiled isn't a land" keeps holding -- 1000 empty passes, a
+				// livelock to the watcher; cardfuzz batch8 line 4). End the
+				// loop here, the optional arm's CR 732.2a shortcut below.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "the repeated process changed nothing; it is not repeated again"})
 				break
 			}
 		}
@@ -4891,6 +4910,31 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// (EachColorAmong_ExiledWith, EnchantedManaCost, DoubleManaInPool,
 	// EachColoredManaSymbol_Milled) still falls through to the rune gate's
 	// loud Note below.
+	// Special DoubleManaInPool (Doubling Cube: "Double the amount of each
+	// type of unspent mana you have"): the activator's pool AFTER the cost
+	// was paid (a mana ability resolves right after its payment), rendered
+	// as one symbol per unit in fixed WUBRGC order, so the per-rune tail
+	// adds exactly one more of each unit. An empty pool is a deterministic
+	// no-op. The doubled units are ordinary mana: a spend restriction,
+	// snow/typed producer provenance or persistence on the original units is
+	// a property of how THOSE units were produced, not of their type.
+	if strings.EqualFold(produced, "Special DoubleManaInPool") {
+		g := h.Game()
+		if int(c.Controller) >= len(g.Players) {
+			return
+		}
+		pool := g.Players[c.Controller].Pool
+		var b strings.Builder
+		for i := 0; i < len(ManaSymbols); i++ {
+			for n := pool[state.ManaIndex(ManaSymbols[i])]; n > 0; n-- {
+				b.WriteByte(ManaSymbols[i])
+			}
+		}
+		if b.Len() == 0 {
+			return
+		}
+		produced = b.String()
+	}
 	if sel, ok := strings.CutPrefix(produced, "Special EachColorAmong_Valid "); ok {
 		syms := eachColorAmongValid(h, c, strings.TrimSpace(sel))
 		if syms == "" {

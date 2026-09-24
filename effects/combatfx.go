@@ -777,7 +777,7 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// replayed one mint the same stack object). A name whose body is missing
 	// or carries no Mode$ fails closed under one loud note per name
 	// (triggersUnread), never a silently inert half.
-	ag.triggerGrantor = c.Source
+	ag.triggerGrantor = svarTableOwner(h, c)
 	for nm := range strings.SplitSeq(sa.Params["Triggers"], ",") {
 		if nm = strings.TrimSpace(nm); nm == "" {
 			continue
@@ -922,7 +922,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
-			SVars: c.SVars, AbilityGrantor: c.Source,
+			SVars: c.SVars, AbilityGrantor: svarTableOwner(h, c),
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
@@ -1106,4 +1106,25 @@ func resolveGains(gains, choices string, source *state.Object) string {
 		return "white"
 	}
 	return strings.TrimSpace(strings.SplitN(choices, ",", 2)[0])
+}
+
+// svarTableOwner names the object whose face carries c.SVars -- the table a
+// by-name grant (Animate's Abilities$/Triggers$) resolves its bodies from,
+// and so the grantor GrantAbilityPush/GrantTriggerPush must re-resolve them
+// against. For an ordinary resolution that is the source. For a
+// HAS-ALL-ABILITIES-OF wrapper (Manascape Refractor activating Spawning
+// Pool's Animate) the body and its SVar table belong to the FOREIGN card the
+// wrapper was minted from (state.Object.GainedFrom), not the recipient that
+// is c.Source: naming the recipient registered a grant the offer loop could
+// read (it reads ce.SVars) but the activation could never resolve, so the
+// offered ability silently did nothing and a bot re-chose it forever.
+func svarTableOwner(h Host, c *Ctx) state.ObjID {
+	if c.ResolvingObj != 0 {
+		if w := h.Game().Obj(c.ResolvingObj); w != nil && w.GainedFrom != 0 && w.GainedFace != nil {
+			if f := h.Game().Obj(w.GainedFrom); f != nil && f.Face() != nil {
+				return w.GainedFrom
+			}
+		}
+	}
+	return c.Source
 }

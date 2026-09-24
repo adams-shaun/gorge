@@ -1007,6 +1007,14 @@ type Object struct {
 	// the log-only state reconstruction, derive it identically. nil on every
 	// wrapper that is not a gained mint (and on every permanent).
 	GainedFace *cards.Face
+	// GainedFrom is the foreign OBJECT GainedFace was taken from (the
+	// GainedAbilityPush/GainedTriggerPush IDs[0]), set beside GainedFace and
+	// under the same Apply-only discipline. It is what lets a gained body that
+	// itself GRANTS by name (a gained Animate's Abilities$/Triggers$, Manascape
+	// Refractor animating through Spawning Pool's ability) name an object
+	// whose face actually carries the SVar table, since the recipient's own
+	// face does not. 0 on every object that is not a gained mint.
+	GainedFrom ObjID
 
 	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
 	// room was CAST as is unlocked from entry; DoorUnlock (the unlock

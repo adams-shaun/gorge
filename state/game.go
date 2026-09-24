@@ -390,6 +390,14 @@ type ZoneEntry struct {
 	// player's graveyard received a permanent card this turn (CR 700.11).
 	Owner         PlayerID
 	PermanentCard bool
+	// Sacrificed marks a battlefield departure made under the sacrifice
+	// action marker (events.IsSacrifice, CR 701.21a), and Sacrificer is the
+	// permanent's controller at that instant -- the player who sacrificed
+	// it (a stolen permanent its taker sacrifices is the taker's). Both are
+	// folded by events.Apply's MoveZone case, so the
+	// PlayerCount*$SacrificedThisTurn heads read a replay-derived record.
+	Sacrificed bool
+	Sacrificer PlayerID
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its

@@ -829,10 +829,29 @@ func Apply(g *state.Game, e Event) {
 				o.FaceDownHasPT = fdHasPT
 			}
 		}
+		var sacrificer state.PlayerID
+		sacrificed := IsSacrifice(e)
+		if sacrificed {
+			if o := g.Obj(e.Obj); o != nil {
+				sacrificer = o.Controller
+			}
+		}
 		if e.Kind == MoveZone && countersRemain {
 			MoveCountersRemain(g, e.Obj, e.From, e.To)
 		} else {
 			Move(g, e.Obj, e.From, e.To)
+		}
+		if sacrificed {
+			// Stamp the sacrifice onto this move's own zone entry (the
+			// latest one naming the object: a mutated pile's under-cards
+			// append after it). The controller was read BEFORE Move reset
+			// it to the owner (CR 400.7).
+			for i := len(g.Entered) - 1; i >= 0; i-- {
+				if g.Entered[i].Obj == e.Obj {
+					g.Entered[i].Sacrificed, g.Entered[i].Sacrificer = true, sacrificer
+					break
+				}
+			}
 		}
 		if o := g.Obj(e.Obj); o != nil {
 			if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
@@ -2072,16 +2091,26 @@ func Apply(g *state.Game, e Event) {
 			sf.Name = e.Text
 		}
 		// GainThisAbility$ True: "...except it has this ability". New
-		// events carry a one-based index of the resolving ability; old events
-		// without one retain their original whole-list replay semantics. The
+		// events carry a one-based index of the resolving ability, or -- for
+		// a DB$/SVar-under-trigger body whose root is a TRIGGER -- of the
+		// resolving trigger (Counter "gain-this-trigger"); old events without
+		// one retain their original whole-list replay semantics. The
 		// original face's SVar table is still merged to retain references used
 		// by the granted ability.
-		if e.Counter == "gain-this-ability" {
+		if e.Counter == "gain-this-ability" || e.Counter == "gain-this-trigger" {
 			if of := o.Face(); of != nil {
-				// Amount is a one-based index into the become object's face
-				// abilities. Zero retains the legacy whole-list form for old
-				// logs; new Clone effects identify the resolving ability.
-				if e.Amount > 0 && int(e.Amount) <= len(of.Abilities) {
+				if e.Counter == "gain-this-trigger" {
+					// Amount is a one-based index into the become object's face
+					// TRIGGERS: Forge appends exactly root.getTrigger().copy(...),
+					// so the copy keeps the recurring trigger that makes a
+					// recurring Copy carrier recur.
+					if e.Amount > 0 && int(e.Amount) <= len(of.Triggers) {
+						sf.Triggers = append(append([]cards.Trigger(nil), sf.Triggers...), of.Triggers[e.Amount-1])
+					}
+				} else if e.Amount > 0 && int(e.Amount) <= len(of.Abilities) {
+					// Amount is a one-based index into the become object's face
+					// abilities. Zero retains the legacy whole-list form for old
+					// logs; new Clone effects identify the resolving ability.
 					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities[e.Amount-1])
 				} else if e.Amount == 0 && len(of.Abilities) > 0 {
 					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)
@@ -2328,7 +2357,7 @@ func Apply(g *state.Game, e Event) {
 		// A copy of a HAS-ALL-ABILITIES-OF wrapper keeps the minted foreign-face
 		// provenance (r3): the copy resolves the same compiled SA, so it reads
 		// the same owning face.
-		gainedFace := src.GainedFace
+		gainedFace, gainedFrom := src.GainedFace, src.GainedFrom
 		// The copy inherits the original's CastFlags -- a copy of a fused,
 		// bestowed or kicked spell resolves as one -- EXCEPT the cast
 		// provenance a later reader turns into an "if you cast it"
@@ -2364,7 +2393,7 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.FaceIdx, o.Ability, o.Source = faceIdx, ability, source
 		o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
-		o.GainedFace = gainedFace
+		o.GainedFace, o.GainedFrom = gainedFace, gainedFrom
 		o.Targets = targets
 		o.Remembered = remembered
 		o.ChosenModes = chosenModes
@@ -2838,6 +2867,7 @@ func Apply(g *state.Game, e Event) {
 		// Setting it here (never in rules/) is what makes a log-only replay
 		// reproduce the exact face the live mint resolved.
 		o.GainedFace = foreign.Face()
+		o.GainedFrom = foreign.ID
 
 	case GainedTriggerPush:
 		// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$,
@@ -2888,6 +2918,7 @@ func Apply(g *state.Game, e Event) {
 		// (r3): the foreign face's own SVar table, OptionalDecider$ gate,
 		// intervening-if and label all stay resolvable after the grant ends.
 		o.GainedFace = foreign.Face()
+		o.GainedFrom = foreign.ID
 		// pushTrigger serializes the queue-time ctx Remembered AFTER the
 		// provenance slot (IDs[0] is the foreign card): the same decode
 		// TriggerPush/AbilityPush run through rememberedFrom, so a gained

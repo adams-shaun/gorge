@@ -15,13 +15,12 @@ import (
 // trigger's CR 603.5 resolution-time ask is answered "yes" → the DB$ DigUntil
 // scan (Valid$ Creature.sharesCreatureTypeWith TriggeredCardLKICopy) reveals
 // the library's top until a creature sharing a type with the DEAD card, puts
-// it in hand, and returns the revealed rest to the bottom in the stand-in's
-// deterministic existing order (RevealRandomOrder$ True is a recorded
-// diguntil1 stand-in). The no-match library case reveals everything and
-// bottoms it — the CORRECT reading of "reveal ... until you reveal" over a
-// library that never satisfies the stop condition, asserted as such. Heirloom
-// Blade is in NO repo deck and NO legacy golden deck, so no chain head
-// depends on this card.
+// it in hand, and returns the revealed rest to the bottom in a seeded-random
+// order (RevealRandomOrder$ True). The no-match library case reveals
+// everything and bottoms it in a fresh random order — the CORRECT reading of
+// "reveal ... until you reveal" over a library that never satisfies the stop
+// condition, asserted as such. Heirloom Blade is in NO repo deck and NO
+// legacy golden deck, so no chain head depends on this card.
 //
 // The helpers come from search_library_test.go (same package); the deck is
 // built from compiled corpus cards only, so no Forge script text is
@@ -209,8 +208,7 @@ func countPublicRevealNote(e *Engine, ids []state.ObjID) int {
 // TestHeirloomBladeDigUntilSharesCreatureTypeWithTheDeadBearer is the
 // match branch: the dead Bears' Bear type matches Bear Cub — but NOT before
 // the Hill Giant is turned over first. The Cub reaches hand; the revealed
-// Giant returns to the bottom in its existing order; the unseen tail keeps
-// its order on top.
+// Giant returns to the bottom (a one-card pile has no order to shuffle).
 func TestHeirloomBladeDigUntilSharesCreatureTypeWithTheDeadBearer(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg, _, _, cubID, giantID := heirloomTestEngine(t, reg, true)
@@ -247,9 +245,10 @@ func TestHeirloomBladeDigUntilSharesCreatureTypeWithTheDeadBearer(t *testing.T) 
 
 // TestHeirloomBladeDigUntilNoMatchRevealsAndBottomsTheWholeLibrary is the
 // no-match branch: with no Bear in the library the reveal-until runs to the
-// END of the library, every card is publicly revealed, and the whole library
-// returns to the bottom in its existing order (the RevealRandomOrder$
-// stand-in) — the CORRECT CR reading, asserted as such, no special case.
+// END of the library, every card is publicly revealed IN SCAN ORDER, and the
+// whole library returns to the bottom in a fresh seeded-random order
+// (RevealRandomOrder$ True) — the CORRECT CR reading, asserted as such, no
+// special case.
 func TestHeirloomBladeDigUntilNoMatchRevealsAndBottomsTheWholeLibrary(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg, _, _, _, giantID := heirloomTestEngine(t, reg, false)
@@ -261,13 +260,11 @@ func TestHeirloomBladeDigUntilNoMatchRevealsAndBottomsTheWholeLibrary(t *testing
 	handBefore := len(e.G.Zone(state.ZHand, 0))
 	submitChoices(t, e, d.Options[0].Index) // "yes"
 	passUntilStackEmpty(t, e, 20)
-	// One public reveal Note naming EVERY library card in revealed order.
+	// One public reveal Note naming EVERY library card in revealed (scan) order.
 	if n := countPublicRevealNote(e, before); n != 1 {
 		t.Fatalf("public reveal Notes naming the whole library = %d, want 1", n)
 	}
-	// Nothing was found, so the hand did not grow; the library order is
-	// unchanged (revealed in order, returned to the bottom in the same
-	// order).
+	// Nothing was found, so the hand did not grow.
 	if handAfter := len(e.G.Zone(state.ZHand, 0)); handAfter != handBefore {
 		t.Fatalf("hand size %d -> %d, want unchanged (nothing found)", handBefore, handAfter)
 	}
@@ -275,9 +272,42 @@ func TestHeirloomBladeDigUntilNoMatchRevealsAndBottomsTheWholeLibrary(t *testing
 	if len(after) != len(before) {
 		t.Fatalf("library length %d -> %d, want unchanged", len(before), len(after))
 	}
+	// The returned pile is exactly a permutation of the pre-resolution
+	// library, it occupies the whole (bottom) segment, and the random return
+	// differs from the pre-resolution order (the mutation-failing assertion:
+	// the old existing-order stand-in reproduced `before` exactly).
+	seen := map[state.ObjID]bool{}
+	for _, id := range before {
+		seen[id] = true
+	}
+	same := true
 	for i := range before {
+		if !seen[after[i]] {
+			t.Fatalf("library[%d] = %d is not a permutation of the pre-resolution library %v", i, after[i], before)
+		}
 		if after[i] != before[i] {
-			t.Fatalf("library[%d] = %d, want %d (full after: %v, want %v)", i, after[i], before[i], after, before)
+			same = false
+		}
+	}
+	if same {
+		t.Fatalf("library returned in its existing order %v; RevealRandomOrder$ must shuffle the bottom return", after)
+	}
+	// Deterministic: the same fixture and seed produce the same order. Build
+	// it a second time from the same Config and compare order-for-order.
+	e2, cfg2, _, _, _, _ := heirloomTestEngine(t, reg, false)
+	if cfg2.Seed != cfg.Seed {
+		t.Fatalf("second fixture seed = %d, want %d", cfg2.Seed, cfg.Seed)
+	}
+	d2 := heirloomMurderBearer(t, e2, findHandCard(t, e2, "Murder"), mustBearer(t, e2))
+	submitChoices(t, e2, d2.Options[0].Index) // "yes"
+	passUntilStackEmpty(t, e2, 20)
+	after2 := e2.G.Zone(state.ZLibrary, 0)
+	if len(after2) != len(after) {
+		t.Fatalf("second run library length = %d, want %d", len(after2), len(after))
+	}
+	for i := range after {
+		if after2[i] != after[i] {
+			t.Fatalf("second run library[%d] = %d, want %d (seeded RNG must replay)", i, after2[i], after[i])
 		}
 	}
 	replayCheck(t, e, cfg)

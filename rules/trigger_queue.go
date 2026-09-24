@@ -1622,6 +1622,23 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	if sa.API == "VillainousChoice" {
 		return false
 	}
+	// GenericChoice with a Defined$ other than the trigger controller is the
+	// same non-modal shape: its chooser is chosen at RESOLUTION
+	// (charmGenericPlayers asks each named player in turn and binds it as
+	// Ctx.Remembered), so a CR 603.3c placement ask would pose the mode to
+	// the wrong player and then run one body unbound before the per-chooser
+	// asks. `Defined$ You` and an ABSENT Defined$ still resolve to the
+	// controller alone, and charmGenericPlayers declines both -- the
+	// placement ask must be retained for those. Returning false is this
+	// function's "not modal: the primitive asks at resolution" verdict; the
+	// drain falls through to the target ask exactly as it does for
+	// VillainousChoice.
+	if sa.API == "GenericChoice" {
+		defined := strings.TrimSpace(sa.Params["Defined"])
+		if defined != "" && defined != "You" {
+			return false
+		}
+	}
 	var source state.ObjID
 	var svars map[string]string
 	wr := e.G.Obj(obj)

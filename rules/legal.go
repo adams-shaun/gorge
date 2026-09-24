@@ -438,9 +438,10 @@ func activationGameTypesOK(f Format, raw string) bool {
 
 // abilityZoneOK reports whether ability ab may be activated while the
 // source cardinal is in zone z (CR 602.1b): the printed ActivationZone$
-// when present, the battlefield by default. Battlefield, Hand and Graveyard
-// are enumerated by the legal-action walks; other values (Command, Exile,
-// Stack) are not and therefore never offer an option.
+// when present, the battlefield by default. Battlefield, Hand, Graveyard and
+// Exile are enumerated by the legal-action walks (Exile since fuzz-cov3:
+// Greater Gargadon's suspended sacrifice outlet); Command and Stack are not
+// and therefore never offer an option.
 func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 	az, ok := ab.Params["ActivationZone"]
 	if !ok {
@@ -453,6 +454,8 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 		return z == state.ZGraveyard
 	case "Hand":
 		return z == state.ZHand
+	case "Exile":
+		return z == state.ZExile
 	}
 	return false
 }
@@ -482,9 +485,22 @@ func (e *Engine) abilityPresentHolds(p state.PlayerID, id state.ObjID, ab *cards
 	if spec == "" {
 		return true
 	}
-	n := e.countPresent(spec, id, p)
+	n := 0
+	if pz := strings.TrimSpace(ab.Params["PresentZone"]); pz != "" {
+		// PresentZone$ (Greater Gargadon's "Activate only if this is
+		// suspended": IsPresent$ Card.Self+suspended | PresentZone$ Exile)
+		// counts the named zone in every living seat, the trigger clause's
+		// presentZoneCount; an unknown zone word fails closed.
+		zone, known := effects.ParseZoneWord(pz)
+		if !known {
+			return false
+		}
+		n = e.presentZoneCount(zone, spec, id, p)
+	} else {
+		n = e.countPresent(spec, id, p)
+	}
 	if cmp := strings.TrimSpace(ab.Params["PresentCompare"]); cmp != "" {
-		return comparePresent(n, cmp)
+		return comparePresent(n, e.presentCompareFor(cmp, id, p))
 	}
 	return n > 0
 }
@@ -2647,11 +2663,17 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// not always true: Task 14 round 1 shipped a second, Equip-only loop and
 	// deleted it again on the main merge (one offer path, one activation
 	// path), so do not resurrect one.
-	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZHand} {
+	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZHand, state.ZExile} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
 			f := o.Face()
 			if f == nil {
+				continue
+			}
+			if z == state.ZExile && (o.FaceDown || !faceHasActivationZone(f, "Exile")) {
+				// The exile walk exists only for an ability whose
+				// ActivationZone$ names exile; skip every other exiled card
+				// before the per-ability gates (the zone can be large).
 				continue
 			}
 			if e.faceDownPrintedHides(o) {
@@ -2861,12 +2883,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if printedOK {
 					out = append(out, decision.Option{Index: len(out), Kind: "ability",
 						Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
-						Grant: e.abilityGrant(id, ab)})
+						Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach"})
 				}
 				if altOK {
 					out = append(out, decision.Option{Index: len(out), Kind: "ability",
 						Label: abFace.Name + ": " + ab.Params["SpellDescription"] + " (alternate cost)",
-						Obj:   id, Ability: i, AltCostIndex: 1, Grant: e.abilityGrant(id, ab)})
+						Obj:   id, Ability: i, AltCostIndex: 1, Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach"})
 				}
 			}
 			// Keyword-granted cycling (CR 613.1f): a layer-6 AddKeyword$
@@ -3019,7 +3041,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
 					Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id,
-					GainedSource: ga.gainedFrom, GainedIdx: ga.gainedIdx})
+					GainedSource: ga.gainedFrom, GainedIdx: ga.gainedIdx, Attach: ab.API == "Attach"})
 				continue
 			}
 			// kw:Boast (CR 702.142): the granted twin of the printed loop's
@@ -3044,9 +3066,22 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if e.activationLimitBlocked(p, id, ab, -1, ga.svar, 0) {
 				continue
 			}
+			// Offer only what the activation can resolve. The collector
+			// above reads the body off the emitting effect's captured SVar
+			// table (ce.SVars), while beginGrantedActivation -- and the
+			// GrantAbilityPush/DelayedPush mint a replay re-runs -- resolve
+			// the NAME against the grantor object's faces. When the two
+			// disagree (the grantor's face does not carry the table the
+			// effect captured) the option was a silent no-op: chosen, it
+			// emitted nothing and the identical board re-offered it forever
+			// (cardfuzz batch7 line 2: a gained-Animate grant on Manascape
+			// Refractor, 100x "Regenerate CARDNAME" in one main phase).
+			if e.grantedSAFrom(ga.source, id, ga.svar) == nil {
+				continue
+			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
 				Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id, SVar: ga.svar,
-				GrantSource: ga.source})
+				GrantSource: ga.source, Attach: ab.API == "Attach"})
 		}
 	}
 
@@ -3153,6 +3188,9 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// CR 118.6: a no-mana-cost card is never cast by paying its mana cost
 	// (rules/nomanacost.go).
 	out = e.filterNoManaCostCasts(p, out)
+	// Options the inert backstop caught changing nothing this window
+	// (rules/priority_guard.go) stay out until the game changes state.
+	out = e.filterInertHeldOut(out)
 	if e.splitSecondHolds() {
 		out = e.filterSplitSecondActions(out)
 	}
@@ -3196,6 +3234,13 @@ func firstChosen(d *decision.Decision, in decision.Intent) decision.Option {
 
 func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 	opt := firstChosen(d, in)
+	if opt.Kind != "pass" && opt.Kind != "concede" {
+		// The inert backstop (rules/priority_guard.go): an action whose
+		// handler emits nothing past the priority reset is recorded and
+		// held out instead of being re-offered forever.
+		mark := len(e.L.Events)
+		defer e.inertPriorityBackstop(in.Player, opt, mark)
+	}
 	switch opt.Kind {
 	case "pass":
 		passes := e.G.Passes + 1
@@ -3474,4 +3519,15 @@ func grantSetsEqual(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+// faceHasActivationZone reports whether any activated ability printed on f
+// names zone in its ActivationZone$.
+func faceHasActivationZone(f *cards.Face, zone string) bool {
+	for _, ab := range f.Abilities {
+		if ab != nil && ab.Kind == "AB" && strings.TrimSpace(ab.Params["ActivationZone"]) == zone {
+			return true
+		}
+	}
+	return false
 }

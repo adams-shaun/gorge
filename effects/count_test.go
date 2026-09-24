@@ -491,9 +491,11 @@ var _ = cards.Card{}
 // fail-direction fix on the PlayerCount wrapper: the two life extremes
 // (LowestLifeTotal/HighestLifeTotal) and the count/counted-quantity extremes
 // (HighestValid/LowestValid over any Count$ zone, plus the
-// HighestLifeLostThisTurn pair) are evaluated; ANY other property — e.g.
-// HighestCardsInHand — reports (0, false), so a gate over one fails per its
-// caller's documented direction instead of silently enforcing a fake zero.
+// HighestLifeLostThisTurn pair, and since fuzz-cov3 the per-player zone
+// sizes/tallies HighestCardsInHand et al.) are evaluated; ANY other property
+// -- e.g. HighestSpeed -- reports (0, false), so a gate over one fails per
+// its caller's documented direction instead of silently enforcing a fake
+// zero.
 func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
@@ -506,9 +508,12 @@ func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 	if got, ok := EvalCountOK(h, c, "Count$PlayerCountPlayers$HighestLifeTotal"); !ok || got != 13 {
 		t.Fatalf("HighestLifeTotal = (%d, %v), want (13, true)", got, ok)
 	}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountPlayers$LowestCardsInHand"); !ok || got != int32(min(len(g.Zone(state.ZHand, 0)), len(g.Zone(state.ZHand, 1)))) {
+		t.Fatalf("LowestCardsInHand = (%d, %v), want the smaller hand", got, ok)
+	}
 	for _, body := range []string{
-		"Count$PlayerCountOpponents$HighestCardsInHand",
-		"Count$PlayerCountPlayers$LowestCardsInHand",
+		"Count$PlayerCountOpponents$HighestSpeed",
+		"Count$PlayerCountPlayers$LowestCardsExiledThisTurn",
 	} {
 		if got, ok := EvalCountOK(h, c, body); ok {
 			t.Fatalf("%s reported EVALUATED as %d -- an unmodelled property must fail unresolvable, not enforce a fake zero", body, got)

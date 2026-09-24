@@ -106,6 +106,10 @@ type resumePoint struct {
 	// captured with replaced so a body that suspends before its move still
 	// labels that move a sacrifice or discard on the resume.
 	action string
+	// redirect is Engine.replRedirect at ask time: a destination-changing
+	// replacement body that suspends (Mox Diamond's optional discard) still
+	// gives its later redirect move its CR 616.1f replacement pass.
+	redirect *replRedirect
 	// timeTravelObjects is the stable object snapshot for a TimeTravel pass,
 	// and timeTravelRound the count of repetitions it has already completed
 	// (Amount$ 3). The round is its own field, never packed into target: on
@@ -134,10 +138,15 @@ type resumePoint struct {
 	// moved before its may-shuffle confirm suspended, ridden on the ask via
 	// Decision.ResumeMoved: the re-entry's LibraryPosition$ placement needs
 	// the list the suspension lost. Nil for every other ask.
-	moved            []state.ObjID
-	choices          []state.Target
-	chosenValid      bool
-	remembered       []state.Target
+	moved       []state.ObjID
+	choices     []state.Target
+	chosenValid bool
+	remembered  []state.Target
+	// searchKnown rides the effects.Ctx.SearchKnown set of a search chain
+	// across a planted placement leg's own suspension (Decision
+	// .ResumeSearchKnown): the leg's answer rebuilds a fresh Ctx, and the next
+	// leg must still see which library cards the chooser already knew.
+	searchKnown      []state.Target
 	digUntilMove     string
 	digUntilMoveDone bool
 	// clonePick/clonePickDone ride a DB$ Clone's answered Choices$ pick across
@@ -498,15 +507,22 @@ func (e *Engine) EventMark() int { return len(e.L.Events) }
 // StateChangedSince implements effects' optional eventMarker seam: whether
 // any event other than a Note was logged after mark. A Note is the log's
 // commentary and folds into no game state (events.Apply), so a span holding
-// only Notes left the game exactly as it found it.
+// only Notes left the game exactly as it found it. A ZERO-amount Damage
+// event is the same kind of no-op: CR 120.8 says 0 damage is never dealt,
+// and the fold marks nothing for it (a DamageAll whose NumDmg$ counts an
+// empty Remembered set -- Kindle the Carnage repeated over an empty hand
+// logs one per creature per pass, and counting it as progress let a bot's
+// "Repeat" answer loop forever, cardfuzz batch8 line 1).
 func (e *Engine) StateChangedSince(mark int) bool {
 	if mark < 0 {
 		mark = 0
 	}
 	for i := mark; i < len(e.L.Events); i++ {
-		if e.L.Events[i].Kind != events.Note {
-			return true
+		ev := e.L.Events[i]
+		if ev.Kind == events.Note || (ev.Kind == events.Damage && ev.Amount == 0) {
+			continue
 		}
+		return true
 	}
 	return false
 }
@@ -581,6 +597,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 	}
 	return &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
+		redirect:          e.replRedirect,
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: replacementSource,
 		replacementAmount: replacementAmount,
@@ -589,6 +606,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
+		searchKnown:  append([]state.Target(nil), d.ResumeSearchKnown...),
 		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
@@ -1949,6 +1967,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 	}
+	// The search chain's known-card set (Decision.ResumeSearchKnown): a
+	// planted placement leg's answer rebuilds a fresh Ctx, and the NEXT leg of
+	// the same chain must still label its options with the names the chooser
+	// already learned. Runtime continuation state of the search walk, the same
+	// class as rp.remembered above.
+	if rp.searchKnown != nil {
+		ctx.SearchKnown = append([]state.Target(nil), rp.searchKnown...)
+	}
 	// The TargetUnique$ accumulator, captured at ask time: the resumed Ctx
 	// re-binds it so a LATER TargetUnique$ rider in the same chain still
 	// excludes the targets earlier riders chose (a fresh Ctx would otherwise
@@ -2365,12 +2391,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// target 1 forever — the answer was always consumed at target 0's
 			// cursor (0), whose hand never held target 1's chosen cards.
 			ctx.DiscardTarget = rp.target
-		case "discard_hand":
+		case "discard_hand", "discard_may":
 			// A "Mode$ Hand | Optional$ True" may-discard election (the
-			// whole-hand wheel's "each player may discard their hand") was
-			// answered: option 0 is yes, anything else — option 1, an empty or
-			// malformed answer — is a decline, the conservative read of an
-			// ambiguous one. The re-entered effDiscard applies the answer to
+			// whole-hand wheel's "each player may discard their hand"), or a
+			// TgtChoose Optional$ True one ("you may discard a land card",
+			// Mox Diamond; "discard up to two cards"), was answered: option 0
+			// is yes, anything else — option 1, an empty or malformed answer
+			// — is a decline, the conservative read of an ambiguous one. The re-entered effDiscard applies the answer to
 			// exactly the acting player this ask was posed for (the cursor)
 			// and poses a fresh election for every later player; a declined
 			// election discards nothing.
@@ -3554,6 +3581,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		savedReplacement := e.applyingReplacement
 		e.applyingReplacement = rp.replacement
 		e.replReplaced, e.replAction, e.replReplacedPlayer = rp.replaced, rp.action, rp.replacedPlayer
+		savedRedirect := e.replRedirect
+		e.replRedirect = rp.redirect
 		// The body's own re-entry (Host.SuspendUnless): the gate of THIS SA
 		// had already resolved when the body posed the pending ask, so the
 		// recorded marker re-enters it as an already-resolved answer — the
@@ -3643,6 +3672,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		effects.Resolve(e, ctx, rp.sa)
 		e.contChainOwners--
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
+		e.replRedirect = savedRedirect
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
 		if rp.sa.API == "MoveCounter" && e.resume == nil {
@@ -3838,6 +3868,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		// replacement context).
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
 			replaced: e.replReplaced, action: e.replAction, replacedPlayer: e.replReplacedPlayer,
+			redirect:  e.replRedirect,
 			before:    e.triggerBefore,
 			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject,
 			voteCounts: cloneVoteCounts(cf.voteCounts),
