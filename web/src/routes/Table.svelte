@@ -168,18 +168,20 @@
   }
   // fb-20260917T231628Z: the log show/hide control moved into the OPTIONS drop
   // (PlaySettingsPanel's Layout section) for ordinary seated play. The drop is
-  // mounted only when BoardStage's `controls` object is non-null, so the rail's
+  // mounted only while BoardStage's controls are live, so the rail's
   // LOGS toggle must survive in exactly the states where the drop does not exist
   // (spectator, mulligan round, game over, the finished /m/:match replay) — a
   // spectator whose saved preference is "hidden" could otherwise never get the
-  // log back. The reachability flag is DEFINED AS `controls !== null`, so the
-  // rail's toggle and the drop's switch can never both be absent.
+  // log back. Reachability is DEFINED AS `controlsLive`, so the rail's
+  // toggle and the drop's switch can never both be absent. Keep the controls
+  // object stable during teardown: child prop getters may re-read it mid-flush.
   const controls = $derived(
-    panel && seatCtx && m.match !== null && m.view !== null && !finished && mulligan === null && !m.view.over
+    panel && seatCtx && m.match !== null && m.view !== null
       ? { state: panel, ctx: seatCtx, table, match: m.match, showLog, onToggleLog: toggleLog }
       : null,
   );
-  const optionsReachable = $derived(controls !== null);
+  const controlsLive = $derived(controls !== null && !finished && mulligan === null && !m.view?.over);
+  const optionsReachable = $derived(controlsLive);
   // The empty-answer safety net (the Squadron Hawk fail-to-find soft-lock):
   // a decision for THIS seat that carries no options is one no picker can
   // render, so the Pending tray names it — and, when the empty answer is
@@ -344,6 +346,7 @@
           onToggle={panel ? (step, side) => panel.toggleStop(step, side) : null}
           mulligan={mulligan !== null}
           {controls}
+          {controlsLive}
         />
         {#each m.view.players as p (p.seat)}
           <IdentityBar
