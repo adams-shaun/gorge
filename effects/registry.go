@@ -814,6 +814,14 @@ type Ctx struct {
 	// spell, on a synthetic push, and in any test Ctx that never binds it --
 	// a modelled head reading a legitimate zero.
 	ResolvedThisTurn int32
+	// ActivationsThisTurn is how many times the resolving ACTIVATED ability
+	// has been activated this turn, INCLUDING the current activation (its own
+	// AbilityPush / ManaActivate marker is already in the log). rules binds
+	// it wherever it binds ResolvedThisTurn; zero means unbound (a spell, a
+	// trigger, a synthetic Ctx). It backs ConditionActivationLimit$
+	// (Farrelite Priest's "if this ability has been activated four or more
+	// times this turn").
+	ActivationsThisTurn int32
 	// EffectiveNames is the layer-3 rename table (SetName$, CR 613.1d) in force
 	// on the battlefield, published by the resolving Host at the top of every
 	// effects.Resolve walk and bound onto every SpecContext (*Ctx).SpecContext
