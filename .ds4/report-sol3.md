@@ -1,3 +1,57 @@
+# PayLife<X> ETB replacement — hn1 merge resolution
+
+Rebased clean worktree onto main (`0c3b199d`), resolved AGENTS.md by deleting only this ticket's row, appended `events.StoreSVar` after main's `Scry` to preserve ordinals, and measured the merged table rather than trusting either stale count: main has 18 rows despite constant 16; with this deletion it has 17. Corrected `internal/testutil/agentsdoc_test.go` to 17. Preserved both versions of the accumulated `.ds4/report-mrg1.md` and removed conflict markers in a follow-up commit. Approved implementation (`5f5a63eb`) otherwise unchanged. `.cards` was present as a symlink to the corpus. No measured golden or deck-ratchet movement; botbench stays green.
+
+## Fails without the fix
+
+Copied rebased `rules/cast.go` to `.ds4/scratch/paylife-cast-rebased.go`, replaced it temporarily with `main:rules/cast.go`, ran the three new tests, then restored and `cmp` confirmed identical bytes (exit 0). Actual output:
+
+```
+--- FAIL: TestMinionOfTheWastesEntersWithPaidLifePT (0.39s)
+    etb_paylife_test.go:89: entry ask = <nil>, want a paylife ETB choice
+--- FAIL: TestPhyrexianProcessorTokenUsesPaidLife (0.00s)
+    etb_paylife_test.go:127: entry ask = <nil>, want a paylife ETB choice
+--- FAIL: TestNamelessRacePayLifeIsCappedByXMax (0.00s)
+    etb_paylife_test.go:181: precondition: options = <nil>, want exactly 0..2 (XMax = 1 permanent + 1 card)
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.433s
+FAIL
+no_fix_exit=1
+restored_cmp=0
+```
+
+## Gates (exact commands and outputs)
+
+```
+$ go test -run 'TestMinionOfTheWastesEntersWithPaidLifePT|TestPhyrexianProcessorTokenUsesPaidLife|TestNamelessRacePayLifeIsCappedByXMax' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.421s
+target_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.518s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 0.662s
+bot_exit=0
+$ go test -run 'TestKnownApproximationRowsAreShort|TestKnownApproximationsOnlyShrinks' ./internal/testutil/
+ok   github.com/adams-shaun/gorge/internal/testutil 0.001s
+rows_exit=0
+$ gofmt -l events/event.go internal/testutil/agentsdoc_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+$ git diff --check
+(no output)
+```
+
+Initial row gate with the incorrectly rebased 15 failed with `AGENTS.md's Known approximations table has 17 rows, above the frozen count of 15`; corrected to the measured 17 and reran successfully. No runtime behaviour was changed for this correction.
+
+## Issues
+
+- `effects/storesvar.go` (`effStoreSVar`) explicitly does not model `Type$ Triggered`/`Targeted` or other unrecognised types: it emits a Note and stores nothing. Of 65 corpus StoreSVar files, 3 have a same-line `Type$ Triggered`/`Targeted` shape (grep of `.cards/cardsfolder`); modelling these needs property-ref resolution and separate tests. This does not affect the three pay-life replacement cards; no new approximation row added.
+- `rules/cast.go` (`etbPayLifeBound`) covers only the exact ETB `Count$xPaid` life-cost family; any other replacement life cost still needs an announcement/payment channel. Corpus prevalence not measured for that broader grammar.
+
+---
+
 # Animate Dead / api:Animate.RemoveKeywords — sol3
 
 Rebased cleanly onto `main` (`b3523eab`) per controller directive before edits. `.cards` was present (real corpus symlink). The sole new MAJOR in `findings-sol3.md` was a report-path collision: `.ds4/report-sol2.md` belonged to the Attached-predicates task. Restored that file **byte-for-byte** from `main`; deleted the redundant `.ds4/report-sol2-attached.md` copy rather than relocating the sibling report. `git diff --quiet main -- .ds4/report-sol2.md` returned 0; `git diff --name-status main HEAD -- .ds4/` contains only this ticket's `.ds4/report-r2-animate-dead.md`. This report uses the unused ticket-unique `.ds4/report-sol3.md` path. No Go code or tests changed this round.
