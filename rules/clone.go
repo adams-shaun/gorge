@@ -281,15 +281,15 @@ func (e *Engine) Clone() *Engine {
 	}
 	if e.triggerLines != nil {
 		c.triggerLines = make(map[state.ObjID]cards.Trigger, len(e.triggerLines))
-		for id, line := range e.triggerLines {
-			if line.Params != nil {
-				params := make(map[string]string, len(line.Params))
-				for key, value := range line.Params {
+		for id, t := range e.triggerLines {
+			if t.Params != nil {
+				params := make(map[string]string, len(t.Params))
+				for key, value := range t.Params {
 					params[key] = value
 				}
-				line.Params = params
+				t.Params = params
 			}
-			c.triggerLines[id] = line
+			c.triggerLines[id] = t
 		}
 	}
 	if e.triggerLineSVars != nil {
