@@ -1228,6 +1228,17 @@ type Ctx struct {
 	// the same SA can never steal it.
 	TargetsPick     []state.Target
 	TargetsPickDone bool
+	// DamageSplit is the answered allocation of a DealDamage
+	// DividedAsYouChoose$ total: DamageSplit[i] is the damage assigned to
+	// the i-th target of the resolution's Defined$ list, in that order (the
+	// order the ask's one-option-per-target list uses). DamageSplitDone
+	// marks the answer present -- an answered allocation, or the silent
+	// no-ask path when there was nothing to divide -- so the primitive
+	// never re-poses the ask on a later round. rules' "damage_split" resume
+	// arm fills it from the answered multiset; a target the answer never
+	// picked is absent (zero damage).
+	DamageSplit     []int32
+	DamageSplitDone bool
 	// OfferedSA is the SA whose ValidTgts$ targeting the placement or
 	// announcement ask actually covered (rules' resolveTop and
 	// resumeResolution both set it; chosenTargetsFor skips exactly that SA,
