@@ -1997,6 +1997,18 @@ type Ctx struct {
 	DrawUptoIdx      int32
 	DrawUptoCount    int32
 	DrawUptoAnswered bool
+	// InvestigateOptIdx/InvestigateOpt carry an Optional$ True Investigate's
+	// per-player continuation (Will the Wise's "each opponent may
+	// investigate", Nick Valentine, Private Eye's "you may investigate"):
+	// Idx is the actingPlayers index whose may-investigate ask or answered
+	// election is in flight, Opt the answered election ("yes" or "no") for
+	// that player. rules' "investigate_optional" resume arm sets both from
+	// the recorded answer (Idx = the ask's ResumeTarget cursor). effInvestigate
+	// consumes the marker as it completes each player, so the next player
+	// poses its own ask (fx42 scoping), and resets Idx when the walk finishes
+	// so a chained optional Investigate poses its own elections.
+	InvestigateOptIdx int32
+	InvestigateOpt    string
 	// TapOrUntap is the answered mid-resolution TapOrUntap election
 	// (api:TapOrUntap): the kind of the chosen option, "tap" or "untap". ""
 	// on the first pass, where effTapOrUntap poses the ask (or, when the host

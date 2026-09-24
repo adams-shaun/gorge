@@ -4435,7 +4435,16 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			}
 			continue
 		}
-		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+		if qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+			// The source-anchored chosen/remembered membership read, on EVERY
+			// base the grammar evaluates (Player/Any as always, plus the
+			// qualified You/Opponent/Other spellings -- Will the Wise's
+			// `Defined$ Opponent.!IsRemembered` "each opponent who doesn't"
+			// is the corpus carrier). Reading it only on Player/Any left the
+			// Opponent-base qualifier permanently false, which the `!`
+			// spelling inverted into admitting EVERY opponent. The set is
+			// still the source object's own event-backed list, so every base
+			// reads one home.
 			o := g.Obj(pc.Source)
 			if o == nil {
 				continue

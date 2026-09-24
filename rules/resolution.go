@@ -2732,6 +2732,27 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
 			}
+		case "investigate_optional":
+			// An Optional$ True Investigate's per-player may-investigate
+			// election (Will the Wise's "each opponent may investigate",
+			// Nick Valentine's "you may investigate") was answered for the
+			// player the ask named: Decision.ResumeTarget is the cursor index
+			// into the actingPlayers walk the re-entered effInvestigate
+			// re-derives (the same-Remembered ride keeps a Remembered-valued
+			// Defined$ deriving the SAME list the cursor indexes). The answer
+			// is a bare yes/no, recorded here as the marker the re-entered
+			// effect consumes and clears at the point of application (fx42
+			// scoping): "yes" mints the Num$ Clues and, with
+			// RememberInvestigatingPlayers$ True, remembers the acceptor;
+			// "no" — the decline — does neither, and the chained SubAbility$
+			// still runs either way. A malformed or empty answer keeps the
+			// decline, the conservative read draw_optional and attach_optional
+			// take.
+			ctx.InvestigateOptIdx = int32(rp.target)
+			ctx.InvestigateOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.InvestigateOpt = "yes"
+			}
 		case "copy_optional":
 			// An Optional$ True CopySpellAbility's may-copy election
 			// (Sevinne's Reclamation's "you may copy this spell", and the
