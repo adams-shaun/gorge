@@ -203,3 +203,21 @@ func TestEligibleHonoursTheKindsGate(t *testing.T) {
 		t.Error("a nil Kinds map must delegate everything rather than defaulting to on")
 	}
 }
+
+// "blockers" is opt-in: Defaults leaves it off (so the measured seat is
+// unchanged), and turning it on admits every KBlockers decision -- the
+// candidate builder, not Eligible, decides whether it has two to compare.
+func TestEligibleBlockersIsOptIn(t *testing.T) {
+	blockers := &decision.Decision{Kind: decision.KBlockers}
+	if Eligible(blockers, Defaults()) {
+		t.Error("Defaults must keep blockers off")
+	}
+	on := Defaults()
+	on.Kinds = map[string]bool{"blockers": true}
+	if !Eligible(blockers, on) {
+		t.Error("blockers is on, so a KBlockers decision must be eligible")
+	}
+	if Eligible(&decision.Decision{Kind: decision.KAttackers}, on) {
+		t.Error("attackers is off, so an attackers decision must delegate")
+	}
+}

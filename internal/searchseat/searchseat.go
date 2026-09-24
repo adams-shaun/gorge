@@ -52,8 +52,9 @@ import (
 // caller deliberately differs.
 type Options struct {
 	// Kinds gates which decision kinds the teacher answers. The implemented
-	// set is "attackers" and "cast" (a KPriority decision offering two or more
-	// distinct castable objects); every other decision delegates.
+	// set is "attackers", "blockers" and "cast" (a KPriority decision
+	// offering two or more distinct castable objects); every other decision
+	// delegates. Defaults leaves "blockers" off.
 	Kinds map[string]bool
 	// Worlds is K, the sampled worlds per decision; Attempts the sampler's
 	// proposal attempts; MinESS the effective-sample-size gate (0 keeps the
@@ -174,6 +175,8 @@ func Eligible(d *decision.Decision, opts Options) bool {
 	switch {
 	case d.Kind == decision.KAttackers && opts.Kinds["attackers"]:
 		return true
+	case d.Kind == decision.KBlockers && opts.Kinds["blockers"]:
+		return true
 	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
 		return true
 	}
@@ -215,7 +218,7 @@ func Choose(
 ) (decision.Intent, bool, Trace) {
 	var tr Trace
 
-	cands, kind, ok := candidates(collector, d, bot, f, opts)
+	cands, kind, ok := candidates(collector, e, d, bot, f, opts)
 	tr.Kind, tr.Candidates = kind, cands
 	if !ok || len(cands) < 2 {
 		return bot, false, tr
@@ -279,11 +282,14 @@ func teacherSeed(base uint64, e *rules.Engine) uint64 {
 }
 
 // candidates builds the candidate list, the bot's own answer first. The
-// attackers arm enumerates attack subsets; the cast arm asks searchprobe for
+// attackers arm enumerates attack subsets; the blockers arm enumerates
+// single-pair edits of the bot's declaration, kept only when the bot's own
+// block guard (read off the deciding seat's board, exactly what the bot
+// reads) accepts them unchanged; the cast arm asks searchprobe for
 // alternatives to the bot's single chosen action. A collector that cannot
 // translate the bot's own intent into actions is a hard stop: without the
 // baseline at index 0 the teacher has nothing to beat.
-func candidates(collector *searchprobe.Collector, d *decision.Decision, bot decision.Intent, f searchprobe.Frame, opts Options) ([][]searchprobe.Action, string, bool) {
+func candidates(collector *searchprobe.Collector, e *rules.Engine, d *decision.Decision, bot decision.Intent, f searchprobe.Frame, opts Options) ([][]searchprobe.Action, string, bool) {
 	switch {
 	case d.Kind == decision.KAttackers && opts.Kinds["attackers"]:
 		var out [][]searchprobe.Action
@@ -295,6 +301,18 @@ func candidates(collector *searchprobe.Collector, d *decision.Decision, bot deci
 			out = append(out, a)
 		}
 		return out, "attackers", true
+	case d.Kind == decision.KBlockers && opts.Kinds["blockers"]:
+		b := botpolicy.BoardFromGame(e.G, e, d.Player)
+		legal := func(choices []int) []int { return botpolicy.LegalBlockChoices(b, d, choices) }
+		var out [][]searchprobe.Action
+		for _, in := range searchprobe.BlockCandidates(d, bot, opts.Limit, legal) {
+			a, err := collector.Actions(d, in)
+			if err != nil {
+				return nil, "blockers", false
+			}
+			out = append(out, a)
+		}
+		return out, "blockers", true
 	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
 		a, err := collector.Actions(d, bot)
 		if err != nil || len(a) != 1 {

@@ -955,6 +955,26 @@ func (m *Model) backHead(dy float32, x, a []float32, g *Grads, dx []float32) {
 	}
 }
 
+// Argmax returns the index (into ex.Options) of the highest-scoring
+// LABELLED option, ties to the first, computed exactly as Loss's top-1
+// agreement reads it (the same float64 score sum, the same tie rule). ok is
+// false when the example has no labelled option. Read-only: a readout for
+// the trainer's per-kind holdout table (which option the model would pick,
+// so a caller can ask whether it is a bot pick or an override).
+func (m *Model) Argmax(ex Example) (idx int, ok bool) {
+	labelled, _, _, _, ys := m.forwardExample(ex)
+	if len(labelled) == 0 {
+		return 0, false
+	}
+	best := 0
+	for k := 1; k < len(ys); k++ {
+		if ys[k] > ys[best] {
+			best = k
+		}
+	}
+	return labelled[best], true
+}
+
 // agreement reports whether the argmax over the labelled options lands in
 // the teacher-preferred set. Ties go to the FIRST argmax (the lowest option
 // index in the record's order), matching the engine's tie rule.
