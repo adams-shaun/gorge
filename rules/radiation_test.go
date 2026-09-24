@@ -27,4 +27,8 @@ func TestRadiationDrainIsSourceLessTriggeredAbility(t *testing.T) {
 	if o == nil || o.StackKind != state.StackKindTriggered || o.Source != 0 || o.Controller != 0 {
 		t.Fatalf("inherent drain stack object=%+v, want triggered, source-less, controller 0", o)
 	}
+	// The object is pending on the stack (not an inline turn-state mutation).
+	if got := e.G.Players[0].Counter("RAD"); got != 2 {
+		t.Fatalf("RAD changed before response window: %d, want 2", got)
+	}
 }
