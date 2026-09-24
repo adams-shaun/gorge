@@ -29,35 +29,38 @@ func pendingTargetDecision(b Board, src state.ObjID, dmg int, options []tgt) ([]
 	return Decide(b, d, rng(1)).Choices, d
 }
 
-// pendingKillBoard is the claim-A shape: three untapped Forests, a {G}{G}
-// instant reserve the seat wants to keep, and a 3-damage burn pending on the
-// stack whose cost the caller supplies. The opponent has a killable 2/2 (the
-// tier-3 value kill) and an unkillable 5/5 (the board-first fallback the
-// policy picks when tierValue does NOT fire).
-func pendingKillBoard(t *testing.T, pendingCost string) Board {
+// pendingKillBoard is the claim-A shape: `forests` untapped Forests, a
+// {G}{G} instant reserve the seat wants to keep, and a 3-damage burn pending
+// on the stack whose cost the caller supplies. The opponent has a killable
+// 2/2 (the tier-3 value kill) and an unkillable 5/5 (the board-first
+// fallback the policy picks when tierValue does NOT fire).
+func pendingKillBoard(t *testing.T, pendingCost string, forests int) Board {
 	t.Helper()
 	green := pendingGreen()
 	b := boardOf(def(1, 2, 2), def(2, 5, 5))
 	b.Life[0] = 20
 	b.Life[1] = 20 // neither lethal nor a threat: only tiers 1/2 are excluded by design
 	b.Cards = map[state.ObjID]Card{
-		1: {OnBattlefield: true, Basic: true, Produces: green},
-		2: {OnBattlefield: true, Basic: true, Produces: green},
-		3: {OnBattlefield: true, Basic: true, Produces: green},
 		// The instant-speed reserve: cost {G}{G} (Giant Growth's sibling shape;
 		// the printed Giant Growth itself is {G}, see the report).
 		9: {Castable: true, InstantSpeed: true, ManaCost: "G G", CMC: CmcOf("G G")},
 	}
+	for i := 1; i <= forests; i++ {
+		b.Cards[state.ObjID(i)] = Card{OnBattlefield: true, Basic: true, Produces: green}
+	}
 	b.Stack = []StackEntry{{ID: 50, Controller: 0, IsSpell: true, CMC: CmcOf(pendingCost), ManaCost: pendingCost}}
-	// Preconditions the ranking depends on: three live untapped basic green
-	// sources, a real coloured reserve, and a pending spell with the exact
-	// printed cost under test. A vacuous board must fail here, not pass
-	// silently downstream.
-	for _, id := range []state.ObjID{1, 2, 3} {
-		c := b.Cards[id]
+	// Preconditions the ranking depends on: the requested number of live
+	// untapped basic green sources, a real coloured reserve, and a pending
+	// spell with the exact printed cost under test. A vacuous board must fail
+	// here, not pass silently downstream.
+	for i := 1; i <= forests; i++ {
+		c := b.Cards[state.ObjID(i)]
 		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Sick || c.Produces.Colour[state.MG] != 1 {
-			t.Fatalf("source %d is not a live untapped basic Forest: %+v", id, c)
+			t.Fatalf("source %d is not a live untapped basic Forest: %+v", i, c)
 		}
+	}
+	if forests < 1 {
+		t.Fatal("two creature values under comparison need at least one source")
 	}
 	if r := b.Cards[9]; !r.Castable || !r.InstantSpeed || colourPips(r.ManaCost)[state.MG] != 2 {
 		t.Fatalf("reserve 9 is not a {G}{G} instant: %+v", r)
@@ -73,13 +76,19 @@ func pendingKillBoard(t *testing.T, pendingCost string) Board {
 
 // TestTargetSpareManaDeductsPendingPayment is claim A: the spare-mana claim
 // is made at target-choice time, BEFORE the spell's own mana is paid (CR
-// 601.2b/c), so a multi-mana removal can destroy the reserve the answer just
-// leaned on. Three Forests and a {G}{G} reserve: a {1}{G} pending removal eats
-// two of them and the reserve is dead, so tierValue must NOT fire; a one-mana
-// {G} pending removal still leaves the reserve payable, so tierValue fires.
+// 601.2b/c), so the pending payment can destroy the reserve the answer just
+// leaned on -- and, because the pending payment is a real future spend, the
+// ordinary single-unit/source probe must still apply to what is left over.
+//
+// Three Forests and a {G}{G} reserve: a {1}{G} pending removal eats two of
+// them and the reserve is dead, so tierValue must NOT fire. A one-mana {G}
+// pending removal on the same three Forests ALSO eats one and then the probe
+// eats another, so it too must not fire (the composed model). One more
+// Forest -- four -- keeps the one-mana case spare and tier 3 fires, so the
+// promotion path stays demonstrably live.
 func TestTargetSpareManaDeductsPendingPayment(t *testing.T) {
 	// {1}{G}: two units, worst-cased onto the reserve's colour.
-	b := pendingKillBoard(t, "1 G")
+	b := pendingKillBoard(t, "1 G", 3)
 	if b.hasSpareManaAfter("1 G") {
 		t.Fatal("{1}{G} pending payment must not read spare against a {G}{G} reserve it can eat two units of")
 	}
@@ -88,14 +97,59 @@ func TestTargetSpareManaDeductsPendingPayment(t *testing.T) {
 		t.Fatalf("pending {1}{G} target = obj %d (options %v), want the board-first 5/5 (obj 202): tier 3 must not fire when the pending payment breaks the reserve", objAt(d, got[0]), choicesObj(got, d))
 	}
 
-	// {G}: one unit, the reserve survives.
-	b = pendingKillBoard(t, "G")
+	// {G} on three Forests: the payment eats one unit and the probe eats a
+	// second, so the {G}{G} reserve is not actually protected.
+	b = pendingKillBoard(t, "G", 3)
+	if b.hasSpareManaAfter("G") {
+		t.Fatal("a {G} pending payment plus one further unit spend must not read spare against a {G}{G} reserve on three Forests")
+	}
+	got, d = pendingTargetDecision(b, 50, 3, []tgt{face(), opp(201), opp(202)})
+	if len(got) != 1 || objAt(d, got[0]) != 202 {
+		t.Fatalf("pending {G} on three Forests target = obj %d (options %v), want the board-first 5/5 (obj 202): the composed spend breaks the reserve", objAt(d, got[0]), choicesObj(got, d))
+	}
+
+	// {G} on four Forests: after the payment and one further spend two Forests
+	// remain, which still pay the {G}{G} reserve, so tier 3 fires.
+	b = pendingKillBoard(t, "G", 4)
 	if !b.hasSpareManaAfter("G") {
-		t.Fatal("a one-mana {G} pending payment must leave the {G}{G} reserve payable from three Forests")
+		t.Fatal("a one-mana {G} pending payment must leave the {G}{G} reserve payable from four Forests")
 	}
 	got, d = pendingTargetDecision(b, 50, 3, []tgt{face(), opp(201), opp(202)})
 	if len(got) != 1 || objAt(d, got[0]) != 201 {
-		t.Fatalf("pending {G} target = obj %d (options %v), want the value kill 2/2 (obj 201): tier 3 fires when the reserve survives the pending payment", objAt(d, got[0]), choicesObj(got, d))
+		t.Fatalf("pending {G} on four Forests target = obj %d (options %v), want the value kill 2/2 (obj 201): tier 3 fires when the reserve survives the pending payment and a further spend", objAt(d, got[0]), choicesObj(got, d))
+	}
+}
+
+// TestTargetSpareManaUnpayablePipsFailClosed pins the coloured-pip corner of
+// the worst-case deduction: a pending {G}{G} cannot be paid from one Forest
+// plus two Islands, so the second green pip is unpayable from modelled
+// sources. Capping the pip deduction at availability and pricing the rest as
+// generic would spend an Island for that green pip and invent a legal
+// payment; the correct answer is to fail closed (the units covering the gap
+// are invisible, so no remainder can be proven).
+func TestTargetSpareManaUnpayablePipsFailClosed(t *testing.T) {
+	green := pendingGreen()
+	blue := cards.ManaProduction{}
+	blue.Colour[state.MU] = 1
+	// Reserve {U}: minCost 1, so a deduction that wrongly spends both Islands
+	// for the {G}{G} cost would still leave nothing to pay it with.
+	b := Board{Cards: map[state.ObjID]Card{
+		1: {OnBattlefield: true, Basic: true, Produces: green},
+		2: {OnBattlefield: true, Basic: true, Produces: blue},
+		3: {OnBattlefield: true, Basic: true, Produces: blue},
+		9: {Castable: true, InstantSpeed: true, ManaCost: "U", CMC: CmcOf("U")},
+	}}
+	b.Stack = []StackEntry{{ID: 50, Controller: 0, IsSpell: true, CMC: CmcOf("G G"), ManaCost: "G G"}}
+	// Preconditions: the pool can cover the reserve, but only ONE green pip of
+	// the pending {G}{G}; the two facts under test must actually differ.
+	if got := colourPips("G G")[state.MG]; got != 2 {
+		t.Fatalf("pending cost green pips = %d, want 2", got)
+	}
+	if !b.hasSpareMana() {
+		t.Fatal("precondition: the {U} reserve is payable and survives a probe before any pending cost")
+	}
+	if b.hasSpareManaAfter("G G") {
+		t.Fatal("an unpayable {G}{G} pip requirement must fail closed, not spend a different colour for the unmet pip")
 	}
 }
 
@@ -139,7 +193,7 @@ func TestTargetSpareManaSkipsSummoningSickSource(t *testing.T) {
 // cost cannot be proven to leave the reserve. It fails closed rather than
 // reading the X as free.
 func TestTargetSpareManaXPaymentFailsClosed(t *testing.T) {
-	b := pendingKillBoard(t, "X G")
+	b := pendingKillBoard(t, "X G", 3)
 	if !costHasX("X G") {
 		t.Fatal("costHasX must see the X in a printed {X}{G}")
 	}

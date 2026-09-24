@@ -178,16 +178,20 @@ func (b Board) hasSpareMana() bool { return b.hasSpareManaAfter("") }
 // checked. A multi-mana removal spends as many units as its cost, but
 // hasSpareMana only tested spending any ONE unit, so a {1}{G} removal read
 // as spare against a {G}{G} reserve it then ate. This deducts the pending
-// cost's WORST-CASE consumption from the available pool before the reserve
-// test, so a spend that would break the reserve never promotes tierValue.
+// cost's WORST-CASE consumption from the pool, then runs hasSpareMana's
+// per-unit/per-source probes on the REMAINDER -- so the claim is "the
+// reserve survives BOTH the spell's own payment AND one further unit or
+// source", which is the invariant the policy means. If the modelled pool
+// cannot legally pay the pending spell at all, the call fails closed: the
+// units covering the gap are invisible, so no remainder can be proven.
 //
 // The deduction is deliberately conservative (an under-promotion is fine, a
-// broken reserve is not): coloured pips are taken first, capped by what is
-// available, then the generic units from the colours the reserve's own pips
-// need most (ascending slot index on a tie), the allocation that hurts the
-// reserve most. An empty pendingCost reproduces hasSpareMana exactly,
-// per-unit/per-source probes included; a genuinely free cost ("0", no pips)
-// deducts nothing and so takes the same probe path.
+// broken reserve is not): coloured pips are taken first and must be payable,
+// then the generic units from the colours the reserve's own pips need most
+// (ascending slot index on a tie), the allocation that hurts the reserve
+// most. An empty pendingCost reproduces hasSpareMana exactly, per-unit and
+// per-source probes included; a genuinely free cost ("0", no pips) deducts
+// nothing and so takes the same probe path.
 func (b Board) hasSpareManaAfter(pendingCost string) bool {
 	available := b.Pool
 	var sources []state.Mana
@@ -246,23 +250,34 @@ func (b Board) hasSpareManaAfter(pendingCost string) bool {
 		return true
 	}
 	if pendingCost != "" {
-		// The known pending payment subsumes the single-unit probe below: it
-		// spends as many units as its cost, worst-case for the reserve. A
-		// genuinely free cost spends nothing (rem == available), so it falls
-		// through to the probe exactly as hasSpareMana does rather than
-		// weakening the check.
-		rem := b.pendingSpendWorstCase(available, pendingCost, reserves)
-		if rem != available {
-			return pays(rem)
+		// The known pending payment is a REAL future spend, not a replacement
+		// for the single-unit probe below: after the spell is paid, a further
+		// unit or source may still be consumed by something else (the very
+		// compose a {G} pending payment produces -- it eats one Forest, then a
+		// later instant eats another). So deduct the worst-case payment from
+		// the pool FIRST, then run the unchanged per-unit/per-source probes
+		// against the remainder. A genuinely free cost deducts nothing and the
+		// probes run exactly as hasSpareMana's do.
+		rem, ok := b.pendingSpendWorstCase(available, pendingCost, reserves)
+		if !ok {
+			// The pool cannot pay the pending spell's coloured pips (or its
+			// whole cost) from modeled sources. The units that would cover the
+			// gap are invisible here, so nothing can be proven about the
+			// remainder: fail closed rather than under-count the spend.
+			return false
 		}
+		available = rem
 	}
 	if !pays(available) {
 		return false
 	}
 	// Spending from a pool slot or tapping one source may consume the
 	// reserve's only matching colour (or the whole multi-mana activation).
+	// After a pending deduction a slot or source may already be gone; a probe
+	// that cannot cover the spend has nothing left to take and is skipped,
+	// which is exactly "that unit is no longer available".
 	for i, n := range b.Pool {
-		if n > 0 {
+		if n > 0 && available[i] > 0 {
 			left := available
 			left[i]--
 			if !pays(left) {
@@ -272,8 +287,16 @@ func (b Board) hasSpareManaAfter(pendingCost string) bool {
 	}
 	for _, source := range sources {
 		left := available
+		cover := true
 		for i, n := range source {
+			if available[i] < n {
+				cover = false
+				break
+			}
 			left[i] -= n
+		}
+		if !cover {
+			continue
 		}
 		if !pays(left) {
 			return false
@@ -283,27 +306,33 @@ func (b Board) hasSpareManaAfter(pendingCost string) bool {
 }
 
 // pendingSpendWorstCase returns available minus a payment of pendingCost's
-// units, allocated the way that hurts the reserves most. It is the
-// conservative direction by construction: coloured pips are unavoidable and
-// taken first (capped by availability, since a pip a colour cannot pay is
-// not a spend this pool makes), then the generic remainder is drawn from the
-// colours the reserves need most, ascending slot index on a tie -- so the
-// units the reserve can least spare go first. A printed {X} is an unbounded
-// spend on the stack (CmcOf counts it as 0) and no value is readable here,
-// so it empties the pool and fails the reserve test: the fail-closed
-// direction. The caller has already established that a reserve exists.
-func (b Board) pendingSpendWorstCase(available state.Mana, pendingCost string, reserves []Card) state.Mana {
+// units, allocated the way that hurts the reserves most, and whether that
+// payment is one this pool can legally make at all. It is the conservative
+// direction by construction: coloured pips are unavoidable and taken first --
+// every pip a colour CANNOT cover fails the whole call, because the units
+// that would cover it are invisible here and treating them as generic would
+// invent a payment (a {G}{G} cost against one Forest and one Island does not
+// become payable by spending the Island), then the generic remainder is
+// drawn from the colours the reserves need most, ascending slot index on a
+// tie -- so the units the reserve can least spare go first. A printed {X} is
+// an unbounded spend on the stack (CmcOf counts it as 0) and no value is
+// readable here, so it fails closed. The caller has already established that
+// a reserve exists; ok is false for every case the remainder cannot be
+// proven against.
+func (b Board) pendingSpendWorstCase(available state.Mana, pendingCost string, reserves []Card) (state.Mana, bool) {
 	if costHasX(pendingCost) {
-		return state.Mana{}
+		return state.Mana{}, false
 	}
 	rem := available
 	pips := colourPips(pendingCost)
 	for i := 0; i < 5; i++ {
-		take := pips[i]
-		if take > rem[i] {
-			take = rem[i]
+		if rem[i] < pips[i] {
+			// The coloured requirement is not payable from modeled sources.
+			// Deducting it "up to availability" and pricing the rest as
+			// generic would spend a different colour for an unpayable pip.
+			return state.Mana{}, false
 		}
-		rem[i] -= take
+		rem[i] -= pips[i]
 	}
 	generic := CmcOf(pendingCost)
 	for i := 0; i < 5; i++ {
@@ -311,6 +340,12 @@ func (b Board) pendingSpendWorstCase(available state.Mana, pendingCost string, r
 	}
 	if generic < 0 {
 		generic = 0
+	}
+	if rem.Total() < generic {
+		// Even after the pips, the pool cannot cover the generic remainder:
+		// the spell is paid from units this Board cannot see, so no remainder
+		// can be proven.
+		return state.Mana{}, false
 	}
 	// need[i] is the reserve's binding demand in colour i: the max over every
 	// reserve at the cheapest cost, exactly what pays requires of the pool.
@@ -333,11 +368,11 @@ func (b Board) pendingSpendWorstCase(available state.Mana, pendingCost string, r
 			}
 		}
 		if pick < 0 {
-			break // available cannot pay the cost; nothing left to take
+			return state.Mana{}, false // unreachable given the Total check above
 		}
 		rem[pick]--
 	}
-	return rem
+	return rem, true
 }
 
 // costHasX reports whether a printed Forge cost carries an {X} symbol. CmcOf
