@@ -140,6 +140,12 @@ type Options struct {
 	// replay's potential-action walk and counts the rejections it alone
 	// decides (Trace.BoardPotentialActionsOnly). A playing seat leaves it false.
 	ComparePotentialActions bool
+	// Redeal turns on searchprobe's redeal fallback (pn21): when the sampler
+	// starves, the seat's unknown hidden cards are redealt from clones of the
+	// engine it is deciding in, pinning every card its observation history
+	// knows (searchprobe.RedealBase documents what is and is not read). Off
+	// by default; off changes nothing.
+	Redeal bool
 	// Clairvoyant searches one clone of the ACTUAL engine instead of sampled
 	// worlds. It cheats by construction and exists only as a measurement
 	// ceiling (cmd/searchteacher's -oracle); a playing seat must leave it
@@ -486,11 +492,19 @@ func sampleWorlds(setup searchprobe.PublicGame, h searchprobe.History, collector
 
 		NoLandExclusion:         opts.NoLandExclusion,
 		ComparePotentialActions: opts.ComparePotentialActions,
+		Redeal:                  redealBase(e, collector, opts),
 	})
 	// The result is returned even on error: its rejection buckets are the
 	// diagnostics that explain the failure, and dropping them would make a
 	// sampler fallback unexplainable.
 	return sr.Worlds, sr, err
+}
+
+func redealBase(e *rules.Engine, collector *searchprobe.Collector, opts Options) *searchprobe.RedealBase {
+	if !opts.Redeal {
+		return nil
+	}
+	return &searchprobe.RedealBase{Engine: e, Observer: collector}
 }
 
 // sampleFallback classifies a sampler error into the fallback string. A

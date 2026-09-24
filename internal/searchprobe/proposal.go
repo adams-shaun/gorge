@@ -18,6 +18,7 @@ const (
 	seedProposal
 	seedOpponent
 	seedResampling
+	seedRedeal
 )
 
 // Each role owns a stream; neither call order nor worker allocation enters it.
