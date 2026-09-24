@@ -557,6 +557,14 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeSearchKnown carries the effects.Ctx.SearchKnown set of an earlier
+	// ask in the same search chain (effects/zone.go effSearchLibrary): the
+	// library cards the chooser has already legitimately seen. A planted
+	// placement leg poses a second ask after the first leg's own suspension
+	// rebuilt a fresh Ctx, and without the ride the second leg would go blind
+	// again. Server-side runtime continuation state, never client input --
+	// the same class as ResumeRemembered.
+	ResumeSearchKnown []state.Target `json:"-"`
 	// ResumeDigUntilMove carries an earlier OptionalFoundMove$ answer through
 	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
 	ResumeDigUntilMove     string `json:"-"`
