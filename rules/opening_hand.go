@@ -25,6 +25,20 @@ type openingRound struct {
 	effects   []openingEffect
 	index     int
 	exile     state.ObjID
+	// awaiting marks a round whose current effect's own work posed a
+	// decision of its own -- the card entering the battlefield from the
+	// opening hand asked an "as this enters" choice (Leyline of
+	// Transformation's creature type) through Engine.Ask, or an ordinary
+	// effect-registry opening action asked mid-resolution. The round must not
+	// pose the next "begin the game with" ask on top of it (ask's overwrite
+	// guard: the pending answer would be orphaned); Submit's tail steps the
+	// round on (resumeOpening) once that decision and everything it handed
+	// on to has been answered.
+	awaiting bool
+	// exileAsk is the Gemstone-shape mandatory hand-exile ask held back
+	// because the entry that precedes it posed a decision first; resumeOpening
+	// poses it once that decision is answered.
+	exileAsk *decision.Decision
 }
 
 type openingEffect struct {
@@ -176,6 +190,10 @@ func (e *Engine) applyOpeningEffect(ef openingEffect) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "opening_exile", Obj: id, Label: e.G.Obj(id).Face().Name})
 		}
 		if len(d.Options) > 0 {
+			if e.pending != nil || e.Suspended() {
+				e.opening.exileAsk = d
+				return
+			}
 			e.choosing = chooseOpening
 			e.ask(d)
 		}
@@ -207,7 +225,29 @@ func (e *Engine) handleOpening(d *decision.Decision, in decision.Intent) {
 		if e.opening.exile != 0 {
 			return
 		}
+		if e.pending != nil || e.Suspended() {
+			e.opening.awaiting = true
+			return
+		}
 	}
+	e.opening.index++
+	e.stepOpening()
+}
+
+// resumeOpening steps an opening round that parked behind a decision its
+// current effect posed (openingRound.awaiting) once the engine is idle
+// again: nothing pending and no suspended resolution left to finish.
+func (e *Engine) resumeOpening() {
+	if (!e.opening.awaiting && e.opening.exileAsk == nil) || e.pending != nil || e.Suspended() {
+		return
+	}
+	if d := e.opening.exileAsk; d != nil {
+		e.opening.exileAsk = nil
+		e.choosing = chooseOpening
+		e.ask(d)
+		return
+	}
+	e.opening.awaiting = false
 	e.opening.index++
 	e.stepOpening()
 }

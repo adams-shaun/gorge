@@ -2150,7 +2150,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// composition (legal.go's graveyard walk) and proved a land payable;
 		// a stale option whose keyword is gone folds nothing, degrading to a
 		// plain cast rather than charging a discard that was never offered.
-		if f.HasKeyword("Retrace") {
+		// The derived keyword (e.HasKeyword), exactly what the offer gate
+		// reads: a continuous grant (Six's "nonland permanent cards in your
+		// graveyard have retrace") is not on the printed face, and reading
+		// f here offered the grant's cast but charged no discard -- a free
+		// graveyard recast loop (fuzz batch6 line 1, Jeweled Lotus).
+		if e.HasKeyword(id, "Retrace") {
 			cost = cost.Plus(retraceExtra())
 		}
 	case "jumpstart":
@@ -2160,7 +2165,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// composition and proved a card payable; the same stale-option
 		// degradation applies (a jumpstart mode whose keyword is gone folds
 		// nothing rather than charging an unoffered discard).
-		if f.HasKeyword("Jump-start") {
+		if e.HasKeyword(id, "Jump-start") {
 			cost = cost.Plus(jumpstartExtra())
 		}
 	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":

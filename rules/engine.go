@@ -3161,6 +3161,10 @@ func (e *Engine) Submit(in decision.Intent) error {
 	if e.pending == nil && !e.Suspended() {
 		e.askNextReplacementChoice()
 	}
+	// An opening-hand round parked behind a decision its own effect posed
+	// (an "as this enters" choice of a card beginning the game on the
+	// battlefield) steps on now that the engine is idle again.
+	e.resumeOpening()
 	// CR 704.4: nobody receives priority in the middle of a resolution. A
 	// handler may have resumed an effect only far enough to pose another
 	// mid-resolution decision; in that case state-based actions wait until

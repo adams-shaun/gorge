@@ -2078,6 +2078,7 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 	if e.resume != nil {
 		parkedResume = e.resume
 	}
+	asker := e.tokenElectionAsk
 	opts := make([]decision.Option, 0, len(cands)+1)
 	declineIdx := -1
 	if optional {
@@ -2092,8 +2093,9 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 		}
 		opts = append(opts, decision.Option{Index: declineIdx + 1 + i, Kind: "creature", Label: label, Obj: id})
 	}
-	e.tokenChoice = &tokenChoiceState{ev: ev, matches: matches, plan: plan,
+	st := &tokenChoiceState{ev: ev, matches: matches, plan: plan,
 		next: idx + 1, match: m, declineIdx: declineIdx, parkedResume: parkedResume}
+	e.tokenChoice = st
 	prompt := "Choose a creature to copy"
 	if optional {
 		prompt = "You may instead create tokens that are copies of a creature: choose one, or decline"
@@ -2101,8 +2103,72 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 	d := &decision.Decision{Player: you, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: m.id, Prompt: prompt, Options: opts}
 	e.choosing = chooseTokenReplace
-	e.ask(d)
+	asker(d, st)
 	return plan, true
+}
+
+// tokenElectionAsk poses a CreateToken replacement election (the chosen-copy
+// and the plain Optional$ shapes) and, when the token event interrupted a
+// stack resolution, SUSPENDS that resolution on it -- the same discipline
+// askReplacementChoice applies to the CR 616.1 order competition. A bare
+// e.ask here left the interrupted effect chain running past the park: the
+// resolving ability's next sub-ability asked its own question through
+// Engine.Ask, overwriting the election, the election's flow then consumed
+// that answer, and the resolving object stayed on the stack with nothing to
+// finish it, so resolveTop re-resolved it from the top on every priority
+// pass (fuzz batch6 line 4: Vivien, Monsters' Advocate's +1 minting a Beast
+// per pass under an equipped Mirrormind Crown). Through Engine.Ask the
+// effects.Resolve loops see Suspended and record their continuation, and the
+// record is remembered as the election's parkedResume so the answer tail
+// (settleTokenElection) resumes the resolution once the plan has settled.
+// A pose that already runs under a resume record (the order competition's
+// answer window), or with nothing resolving, keeps the plain ask: there is
+// nothing further to suspend, and a stale record would make resolveTop
+// abandon a resolution that actually finished.
+func (e *Engine) tokenElectionAsk(d *decision.Decision, st *tokenChoiceState) {
+	if e.resume == nil && e.pending == nil && (e.resolvingObj != 0 || e.applyingReplacement) {
+		d.ResumeKind = "replacement"
+		e.Ask(d)
+		st.parkedResume = e.resume
+		return
+	}
+	e.ask(d)
+}
+
+// settleTokenElection is the answer tail of a CreateToken replacement
+// election: rp is the suspension record the election's state carried
+// (tokenReplAnswer's return). With nothing further outstanding the
+// suspended resolution resumes now. When settling the plan posed a nested
+// ask of its own (a minted copy's as-enters choice through Engine.Ask), that
+// ask owns e.resume: rp runs after its whole continuation chain, the
+// settleReplacementQueue discipline -- dropping it would leave the
+// interrupted object on the stack for resolveTop to re-resolve unbounded.
+// A queued order competition keeps rp on e.resume for its own answer tail.
+func (e *Engine) settleTokenElection(rp *resumePoint) {
+	if rp == nil {
+		return
+	}
+	if e.resume == rp {
+		if e.pending == nil && len(e.replChoices) == 0 {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
+		return
+	}
+	if e.resume == nil {
+		return
+	}
+	tail := e.resume
+	for {
+		if tail == rp {
+			return
+		}
+		if tail.outer == nil {
+			break
+		}
+		tail = tail.outer
+	}
+	tail.outer = rp
 }
 
 // posePlainOptionalTokenReplacement handles ONE Optional$ True
@@ -2125,12 +2191,13 @@ func (e *Engine) posePlainOptionalTokenReplacement(ev events.Event, matches []re
 		{Index: 0, Kind: "decline", Label: "create the tokens as they would have been"},
 		{Index: 1, Kind: "apply", Label: "apply this replacement"},
 	}
-	e.tokenChoice = &tokenChoiceState{ev: ev, matches: matches, plan: plan,
+	st := &tokenChoiceState{ev: ev, matches: matches, plan: plan,
 		next: idx + 1, match: m, declineIdx: 0, plainOptional: true}
+	e.tokenChoice = st
 	d := &decision.Decision{Player: you, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: m.id, Prompt: "You may apply this token replacement effect: apply it?", Options: opts}
 	e.choosing = chooseTokenReplace
-	e.ask(d)
+	e.tokenElectionAsk(d, st)
 	return plan, true
 }
 
@@ -3977,7 +4044,15 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "DamageDone":
-		if ev.Kind != events.Damage || !e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers) {
+		// A Damage event with a non-positive Amount is not damage being
+		// dealt: it is the cleanup step's CR 514.2 removal of marked damage
+		// (cleanupBody's negative Damage) or a hit already reduced to zero
+		// (CR 120.8: 0 damage is never dealt). No DamageDone replacement
+		// applies to it -- matching it posed CR 616.1 order asks at every
+		// cleanup under two Ghosts of the Innocent, and each answer's
+		// halving re-emitted the removal, forever (fuzz batch6 line 9).
+		if ev.Kind != events.Damage || ev.Amount <= 0 ||
+			!e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers) {
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
