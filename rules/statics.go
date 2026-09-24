@@ -797,6 +797,17 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 	switch zone {
 	case "Graveyard":
 		want = state.ZGraveyard
+	case "Exile":
+		// IsPresent$ over exile (Ketramose, the New Dawn's
+		// `IsPresent$ Card | PresentZone$ Exile | PresentCompare$ LT7`
+		// CantAttack,CantBlock static). forEachObject walks every zone of
+		// every seat, exile included, so the same scan covers it.
+		want = state.ZExile
+	case "Hand":
+		// IsPresent$ over a hand (Kefnet the Mindful's
+		// `IsPresent$ Card.YouOwn | PresentZone$ Hand | PresentCompare$ LE6`
+		// CantAttack,CantBlock static). forEachObject walks hands too.
+		want = state.ZHand
 	case "Stack":
 		// IsPresent$ over the stack (Molten Disaster's kicked-gated AddKeyword$
 		// Split second static: IsPresent$ Card.Self+kicked | PresentZone$ Stack
