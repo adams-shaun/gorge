@@ -31,8 +31,8 @@ type TeacherOptions struct {
 	// rollout to game end.
 	HorizonTurns int32
 	// Leaf scores a NON-TERMINAL leaf -- a rollout stopped by HorizonTurns or
-	// MaxSubmits -- from the deciding seat's redacted projection of it, as a
-	// win probability for actor. Nil means LeafValue (the frozen material
+	// MaxSubmits -- from the deciding seat's projection of it (redacted, or
+	// omniscient under LeafOmniscient), as a win probability for actor. Nil means LeafValue (the frozen material
 	// heuristic), and a nil Leaf reproduces the pre-Leaf results bit for bit.
 	// A terminal leaf never reaches it: game over stays 1 / 0 / 0.5.
 	//
@@ -42,6 +42,16 @@ type TeacherOptions struct {
 	// must be a pure function of its arguments or the result stops being
 	// independent of Parallelism.
 	Leaf func(v view.View, actor state.PlayerID) float64
+	// LeafOmniscient (ticket pn17-a1) hands Leaf the OMNISCIENT projection of
+	// a non-terminal leaf (view.ProjectFor with view.Omniscient, viewer =
+	// actor: every seat's hand, never library order) instead of the actor's
+	// redacted one, so a full-information value model can score it. That is
+	// sound only because each world is SAMPLED: the opponent hand the leaf
+	// reads is the sampler's, never the real one. It is therefore refused
+	// together with Clairvoyant, whose worlds are clones of the real engine.
+	// False (the zero value) is the redacted leaf, bit for bit. A nil Leaf
+	// ignores it (LeafValue reads only public material either way).
+	LeafOmniscient bool
 	// MaxSubmits caps each rollout; a capped rollout is scored as a leaf.
 	MaxSubmits int
 	// Margin is how much a candidate's mean value must exceed candidate 0's
@@ -143,6 +153,9 @@ func TeacherIntentChoice(worlds []World, candidates []SemanticIntent, opts Teach
 		WinsByCandidate: make([]int, len(candidates)), TerminalByCandidate: make([]int, len(candidates)),
 		WinsOverBaseline: make([]int, len(candidates)), LossesToBaseline: make([]int, len(candidates)),
 	}
+	if opts.Clairvoyant && opts.LeafOmniscient {
+		return res, fmt.Errorf("teacher: an omniscient leaf cannot be combined with the clairvoyant ceiling (its world is the real engine, so the leaf would read the real opponent's hand)")
+	}
 	if len(candidates) < 2 || len(worlds) == 0 || opts.MaxSubmits < 1 {
 		return res, fmt.Errorf("teacher needs >=2 candidates, >=1 world and a submit budget")
 	}
@@ -208,7 +221,11 @@ func TeacherIntentChoice(worlds []World, candidates []SemanticIntent, opts Teach
 		o.over = e.G.Over
 		o.won = e.G.Over && !e.G.Draw && e.G.Winner == actor
 		o.capped = !e.G.Over && o.submits >= opts.MaxSubmits
-		o.value = leafValue(opts.Leaf, view.Project(e.G, e, actor, e.Pending()), actor)
+		vis := view.Seat
+		if opts.LeafOmniscient {
+			vis = view.Omniscient
+		}
+		o.value = leafValue(opts.Leaf, view.ProjectFor(e.G, e, actor, vis, e.Pending()), actor)
 	}
 	if workers := min(opts.Parallelism, len(outs)); workers > 1 {
 		engines := make([]*rules.Engine, len(outs))

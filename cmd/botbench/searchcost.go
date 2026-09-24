@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/searchseat"
 )
 
@@ -28,6 +29,41 @@ import (
 // -search-* flags. Write-once before any game starts, read-only afterwards --
 // the same pattern as castProfileOverride and policynetModel.
 var searchKnobs = searchseat.Defaults()
+
+// searchOracleCheckpoint is the -search-oracle-checkpoint path (ticket
+// pn17-a1); empty is off and leaves searchKnobs, and so the bench output,
+// untouched.
+var searchOracleCheckpoint string
+
+// withSearchOracle is -search-oracle-checkpoint's front door, run by mainExit
+// before any game starts: it loads the oracle value checkpoint
+// (policynet.LoadOracleCheckpointFile: a FeaturesMZOppHand model with a
+// value head) into knobs.OracleValue, so the search seat scores its
+// non-terminal rollout leaves from the omniscient projection of each SAMPLED
+// world. Mirrors cmd/searchteacher's -value-checkpoint gate: refused unless a
+// side is search, and refused with -search-horizon 0 (a game-end rollout never
+// stops at a non-terminal leaf, so the model would never be read). Every
+// other misconfiguration is searchseat.Options.Validate's.
+func withSearchOracle(path, aName, bName string, knobs searchseat.Options) (searchseat.Options, error) {
+	if path == "" {
+		return knobs, nil
+	}
+	if aName != "search" && bName != "search" {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint was given but neither side is search")
+	}
+	if knobs.HorizonTurns <= 0 {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint needs -search-horizon > 0: a game-end rollout never stops at a non-terminal leaf, so the oracle value head would never be read")
+	}
+	m, err := policynet.LoadOracleCheckpointFile(path)
+	if err != nil {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint %s: %w", path, err)
+	}
+	knobs.OracleValue = m
+	if err := knobs.Validate(); err != nil {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint %s: %w", path, err)
+	}
+	return knobs, nil
+}
 
 // searchStats collects the Watch diags; guarded, because the pool plays
 // several games at once.
