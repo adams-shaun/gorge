@@ -91,7 +91,7 @@ func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost
 // (Jeweled Amulet) keeps its existing split-based note; every other caller
 // keeps the bool-only payManaFor wrapper, so no other payment site changes
 // shape.
-func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
+func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [7]state.Mana) {
 	class := paymentSpell
 	if ability {
 		class = paymentActivated
@@ -99,7 +99,7 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	return e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: class, cost: &cost}, cost, conv, rider)
 }
 
-func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
+func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [7]state.Mana) {
 	av := e.manaAvailableFor(p, d)
 	// The payment's persistence attribution: the visible pool's persistent
 	// share (perVis) and its ordinary complement (perFresh). resolveMana is
@@ -124,12 +124,12 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 	pay, ok := cost.resolveManaWith(before, beforeSnow, beforeTyped, e.G.Players[p].Life,
 		e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 	if !ok {
-		return false, state.Mana{}, state.Mana{}, state.Mana{}, [3]state.Mana{}
+		return false, state.Mana{}, state.Mana{}, state.Mana{}, [7]state.Mana{}
 	}
 	after, afterSnow, afterTyped, lifeSpent := pay.pool, pay.snow, pay.typed, pay.lifeSpent
 	spent := state.Mana{}
 	spentSnow := state.Mana{}
-	spentTyped := [3]state.Mana{}
+	spentTyped := [7]state.Mana{}
 	for i := range before {
 		spent[i] = before[i] - after[i]
 		// The parallel tallies' own deltas: how many of the units that left
@@ -193,7 +193,7 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 					Amount: -per, Text: events.ManaPersistentText("")})
 			}
 		}
-		for t, tag := range state.TypedManaTags {
+		for t, tag := range state.ManaUnitTags {
 			if emitTyped[t][i] > 0 {
 				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: tag + letter, Amount: -emitTyped[t][i]})
 			}
@@ -223,7 +223,7 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 // offer gate while the card still sat in the granted zone; the payment
 // keeps it via pc.mayPlayIgnore because after the push (CR 601.2a) the card
 // is on the stack and a zone re-derivation would wrongly drop the grant.
-func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [3]state.Mana) {
+func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [7]state.Mana) {
 	ok, spentAll, _, spentSnow, spentTyped := e.payManaDescriptorForSpent(pc.player, paymentForCast(pc, cost), cost,
 		e.paymentConv(pc.player, pc.card, false),
 		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
@@ -276,7 +276,7 @@ func (e *Engine) payExtortPip(p state.PlayerID) bool {
 // filter already hid it from the pool.
 type availableMana struct {
 	pool  state.Mana
-	typed [3]state.Mana
+	typed [7]state.Mana
 }
 
 type paymentClass uint8
@@ -336,7 +336,7 @@ func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
 // real cost must say so with Cost{} and stay on the class-only terms.
 func (e *Engine) manaAvailableFor(p state.PlayerID, d paymentDescriptor) availableMana {
 	pl := e.G.Players[p]
-	available := availableMana{pool: pl.Pool, typed: pl.TypedMana}
+	available := availableMana{pool: pl.Pool, typed: pl.ManaUnits()}
 	for _, r := range pl.RestrictedMana {
 		idx := state.ManaSlot(r.Color)
 		available.pool[idx] -= r.Amount
@@ -402,7 +402,7 @@ func (e *Engine) visiblePersistentMana(p state.PlayerID, d paymentDescriptor) st
 // Capping at the tag's (or snow tally's, or the slot's remaining plain units')
 // actual spend reconciles the carve's restricted-first attribution with the
 // search's plain-first consumption and keeps every emission tally >= 0.
-func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[7]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
 	e.noCounterSpend = 0
 	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
@@ -735,7 +735,8 @@ func (e *Engine) costPayable(p state.PlayerID, id state.ObjID, ability bool, cos
 // source. The payer grants and conversion shaping are the same reads in both
 // modes, so a potential action and the payment it promises can never disagree
 // about what the pool may satisfy.
-func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [3]state.Mana) bool {
+
+func (e *Engine) costPayablePool(p state.PlayerID, id state.ObjID, ability bool, cost Cost, pool state.Mana, typed [7]state.Mana) bool {
 	if !cost.hasPips() {
 		// The B-life grant, the may-play riders and the ManaConvert set only
 		// ever widen or narrow a PIP's alternatives (costPips, pipAccepts);
@@ -4201,7 +4202,11 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 			if useAcc && ev.Amount < 0 && int(ev.Player) < len(buckets) {
 				buckets[ev.Player].spent += -ev.Amount
 				if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
-					buckets[ev.Player].tagged[tag] += -ev.Amount
+					base, artifact := state.ManaUnitTypes(tag)
+					buckets[ev.Player].tagged[base] += -ev.Amount
+					if artifact && base != state.TypedArtifact {
+						buckets[ev.Player].tagged[state.TypedArtifact] += -ev.Amount
+					}
 				}
 			}
 			continue

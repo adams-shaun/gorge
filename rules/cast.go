@@ -269,6 +269,7 @@ type pendingCast struct {
 	manaSpentTreasure int32
 	manaSpentCave     int32
 	manaSpentDesert   int32
+	manaSpentArtifact int32
 
 	sacs    []state.ObjID
 	sacPart int
@@ -1113,7 +1114,7 @@ func (e *Engine) countComposedCost(pc *pendingCast, cand Cost) Cost {
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].TypedMana) {
+	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].ManaUnits()) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
@@ -8331,9 +8332,10 @@ func (e *Engine) payCast() {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
 		pc.manaSpentSnow = manaSpentTotal(spentSnow)
-		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure])
-		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave])
-		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert])
+		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure])
+		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave]) + manaSpentTotal(spentTyped[state.TypedArtifactCave])
+		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
+		pc.manaSpentArtifact = manaSpentTotal(spentTyped[state.TypedArtifact]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactCave]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -8661,13 +8663,14 @@ func (e *Engine) payCast() {
 		// a tag is a real zero, not an absent one -- so the filtered
 		// Count$CastTotalManaSpent Treasure/Cave/Desert read is exact for
 		// their carriers without a second gate. The emission order is total,
-		// then Snow, then Treasure, then Cave, then Desert; since every later
-		// event carries all earlier flags, events.Apply's CastInfo switch
-		// checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then
-		// the total) or every later event would route into the first tag's
-		// field.
-		typedAmounts := [3]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert}
-		typedFlags := [3]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
+		// then Snow, then Treasure, then Cave, then Desert, then Artifact;
+		// since every later event carries all earlier flags,
+		// events.Apply's CastInfo switch
+		// checks the NEWEST flag first (Artifact, Desert, Cave, Treasure,
+		// Snow, then the total) or every later event would route into the
+		// first tag's field.
+		typedAmounts := [4]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert, pc.manaSpentArtifact}
+		typedFlags := [4]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent, state.FlagManaArtifactSpent}
 		acc := events.FlagsFrom(flags)
 		for t := range typedFlags {
 			acc |= typedFlags[t]

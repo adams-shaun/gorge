@@ -1254,7 +1254,11 @@ func Apply(g *state.Game, e Event) {
 			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
 				player.Snow[idx] += e.Amount
 			} else if tag, slot, ok := state.TypedManaCounter(e.Counter); ok {
-				player.TypedMana[tag][slot] += e.Amount
+				base, artifact := state.ManaUnitTypes(tag)
+				player.TypedMana[base][slot] += e.Amount
+				if artifact && base != state.TypedArtifact {
+					player.ArtifactTyped[base][slot] += e.Amount
+				}
 			}
 			// The RestrictValid$/AddsNoCounter$ provenance is registered for
 			// EVERY counter form, never only a plain one: a tagged restricted
@@ -1723,7 +1727,10 @@ func Apply(g *state.Game, e Event) {
 			// earlier flags (payCast's flags |= accumulation), so this switch
 			// checks the NEWEST flag first -- the reverse of the emission
 			// order -- or every later event would route into the first tag's
-			// field: Desert, Cave, Treasure, then Snow, then the total.
+			// field: Artifact, Desert, Cave, Treasure, then Snow, then the
+			// total.
+			case FlagsFrom(e.Counter)&state.FlagManaArtifactSpent != 0:
+				o.ManaArtifactSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaDesertSpent != 0:
 				o.ManaDesertSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaCaveSpent != 0:
@@ -3339,6 +3346,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 			// CR 400.7: the runtime SVar store is the old permanent's, not the
@@ -3389,6 +3397,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 		}
@@ -3543,6 +3552,10 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		}
 		d := min(n, p.TypedMana[t][i])
 		p.TypedMana[t][i] -= d
+		if t < 3 {
+			// Drain the artifact subset with its parent type tally.
+			p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
+		}
 		n -= d
 	}
 	if n > 0 {
@@ -3562,6 +3575,9 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		if p.TypedMana[t][i] > p.Pool[i] {
 			p.TypedMana[t][i] = p.Pool[i]
 		}
+		if t < 3 && p.ArtifactTyped[t][i] > p.TypedMana[t][i] {
+			p.ArtifactTyped[t][i] = p.TypedMana[t][i]
+		}
 		total += p.TypedMana[t][i]
 	}
 	if over := total - p.Pool[i]; over > 0 {
@@ -3575,6 +3591,9 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 			}
 			d := min(over, p.TypedMana[t][i])
 			p.TypedMana[t][i] -= d
+			if t < 3 {
+				p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
+			}
 			over -= d
 		}
 	}

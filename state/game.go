@@ -38,22 +38,16 @@ type Player struct {
 	// and a replay derives both identically.
 	Snow Mana
 
-	// TypedMana partitions the floating pool by the PRODUCER's type (task
-	// castfilter2): TypedMana[k][i] counts how many of the Pool[i] mana
-	// units were produced by a permanent of the k-th tagged producer type
-	// (0 Treasure, 1 Cave, 2 Desert — the TypedTreasure/TypedCave/
-	// TypedDesert constants, in TypedManaTags order).
-	// It is the per-unit producer provenance the filtered
-	// Count$CastTotalManaSpent Treasure/Cave/Desert heads read (Marut, Bat
-	// Colony, Cataclysmic Prospecting): the payment consumes a plain unit
-	// before a typed one and a typed one before snow, so the spent typed
-	// delta is exactly what the search did. Written only by the ManaAdd
-	// event's "<Tag><colour>" Counter form and cleared with the pool by
-	// ManaClear, so TypedMana[k][i] <= Pool[i] always holds and a replay
-	// derives both identically. Snow does NOT live here: it keeps its
-	// historical field and machinery untouched. A [3]Mana array is plain
-	// value data, so Clone's struct copy carries it for free.
-	TypedMana [3]Mana
+	// TypedMana retains the four historical public producer tallies: Treasure,
+	// Cave, Desert and Artifact-only. Its first three tallies include mana
+	// produced by artifacts of the same type; ArtifactTyped marks that subset.
+	// Each unit is counted only once in the pool. ManaUnits derives the
+	// exclusive payment partition; no rules-side state mutation is needed.
+	TypedMana [4]Mana
+	// ArtifactTyped is the Artifact subset of each Treasure/Cave/Desert
+	// tally. Each unit appears once in TypedMana and, when produced by an
+	// Artifact, also here. Both are folded only by events.Apply.
+	ArtifactTyped [3]Mana
 
 	// PersistentMana parallels Pool slot for slot: PersistentMana[i] counts
 	// how many of the Pool[i] mana units carry PersistentMana$ True — mana
@@ -213,6 +207,22 @@ func (p *Player) AddCounter(kind string, n int32) {
 	if n > 0 {
 		p.Counters = append(p.Counters, Counter{Kind: kind, N: n})
 	}
+}
+
+// ManaUnits derives the exclusive payment partition from overlapping type
+// and Artifact-bit tallies without mutating state.
+func (p Player) ManaUnits() [7]Mana {
+	var units [7]Mana
+	for t := range p.TypedMana {
+		units[t] = p.TypedMana[t]
+	}
+	for t := 0; t < 3; t++ {
+		units[t+TypedArtifactTreasure] = p.ArtifactTyped[t]
+		for i := range units[t] {
+			units[t][i] -= p.ArtifactTyped[t][i]
+		}
+	}
+	return units
 }
 
 // Game is the complete authoritative state. Everything a client sees is a
