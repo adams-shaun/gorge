@@ -38,11 +38,22 @@ import "strings"
 //
 // A line with no cost (a malformed K:Ninjutsu:) is not expanded: the ability
 // would be unpayable, and rules reads nothing off a bare head either.
+//
+// The colon parameter may carry a trailing rider field: Yuriko, the Tiger's
+// Shadow prints `K:Ninjutsu:U B:Commander` (CR 903.8's commander ninjutsu,
+// which may also be activated from the command zone). Only the FIRST colon
+// field is the cost -- the same split the Equip/Fortify expansion takes
+// (cards/kw_equip.go) -- so the rider can never leak into the mana cost. The
+// command-zone half is not offered: rules/legal.go's offer walk enumerates
+// only battlefield, graveyard and hand, so `ActivationZone$ Command` would
+// withhold the whole ability rather than widen it. Yuriko's hand activation
+// works; the command-zone activation is recorded in the ticket report.
 func kwNinjutsu(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	if has("A", k) {
 		return
 	}
-	cost := strings.TrimSpace(param)
+	cost, _, _ := strings.Cut(strings.TrimSpace(param), ":")
+	cost = strings.TrimSpace(cost)
 	if cost == "" {
 		return
 	}

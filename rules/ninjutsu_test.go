@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -126,6 +127,40 @@ func TestNinjutsuRealCardEntersTappedAndAttacking(t *testing.T) {
 		t.Errorf("Walker of Secret Ways attacking=%v defender=%d, want attacking seat 1", o.IsAttacking, o.Attacking)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestNinjutsuCommanderVariantSplitsTheRiderField pins the one corpus line
+// that carries a colon rider: Yuriko, the Tiger's Shadow prints
+// `K:Ninjutsu:U B:Commander` (commander ninjutsu). Only the first colon
+// field is the cost, so the rider must not leak into the mana cost string --
+// otherwise ParseCost reports an unknown token and the whole ability is
+// unpayable and silently withheld.
+func TestNinjutsuCommanderVariantSplitsTheRiderField(t *testing.T) {
+	reg := searchTestRegistry(t)
+	yuriko := searchCorpusCard(t, reg, "Yuriko, the Tiger's Shadow")
+	if d := yuriko.Link(); len(d) != 0 {
+		t.Fatalf("link Yuriko, the Tiger's Shadow: %v", d)
+	}
+	if !yuriko.Faces[0].HasKeyword("Ninjutsu") {
+		t.Fatal("precondition: Yuriko does not print Ninjutsu in the corpus")
+	}
+	var sa *cards.SA
+	for _, ab := range yuriko.Faces[0].Abilities {
+		if ab.Params["Keyword"] == "Ninjutsu" {
+			sa = ab
+			break
+		}
+	}
+	if sa == nil {
+		t.Fatal("Yuriko's K:Ninjutsu did not expand to an activated ability")
+	}
+	raw := sa.Params["Cost"]
+	if strings.Contains(raw, ":Commander") {
+		t.Fatalf("the commander rider leaked into the ninjutsu cost: %q", raw)
+	}
+	if c := ParseCost(raw); len(c.Unknown) != 0 {
+		t.Fatalf("Yuriko's ninjutsu cost %q parsed with unknowns %v", raw, c.Unknown)
+	}
 }
 
 // TestNinjutsuNotOfferedBeforeDeclareBlockers pins the CR 702.49a window: at
