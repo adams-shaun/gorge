@@ -3,6 +3,7 @@ package searchprobe
 import (
 	"fmt"
 	"math"
+	"sort"
 	"sync"
 	"sync/atomic"
 
@@ -298,4 +299,106 @@ func AttackCandidates(d *decision.Decision, bot decision.Intent, limit int) []de
 		return nil
 	}
 	return out
+}
+
+// BlockCandidates enumerates declarations to compare at a KBlockers root: the
+// bot's answer first (index 0, the label contract), then "no blocks" (the
+// least declaration the requirement allows, decision.FitRequired over an
+// empty preference), then for every option the bot did not choose, the bot's
+// answer with that (blocker, attacker) pair added and any other pair of the
+// same blocker (same option Group -- one attacker per blocker) removed, then
+// the bot's answer minus each of its own pairs. Capped at limit.
+//
+// Decision.Validate does not see the whole-declaration rules the engine
+// enforces (CR 509.1a MinMaxBlocker bounds, CR 509.1b block charges), and one
+// candidate the engine rejects makes TeacherChoice fail the WHOLE decision,
+// so a candidate is kept only when Validate passes, the Required quota is
+// met, decision.FitRequired would leave it unchanged (the repair the bot's
+// own Clamp applies), and legal -- the bot's block guard,
+// botpolicy.LegalBlockChoices, bound to the deciding seat's board -- returns
+// it unchanged. A nil legal skips only that last check.
+//
+// Candidates keep the bot's declaration order (the engine reads it for
+// CR 510.1c damage assignment); an added pair goes last. Duplicates are
+// detected on the sorted choice list. Options are visited in index order
+// only, so the output is deterministic. It returns nil unless at least two
+// candidates survive.
+func BlockCandidates(d *decision.Decision, bot decision.Intent, limit int, legal func([]int) []int) []decision.Intent {
+	if d == nil || d.Kind != decision.KBlockers || limit < 2 {
+		return nil
+	}
+	var out []decision.Intent
+	seen := make(map[string]bool)
+	add := func(choices []int) bool {
+		if len(out) >= limit {
+			return false
+		}
+		sorted := append([]int(nil), choices...)
+		sort.Ints(sorted)
+		key := fmt.Sprint(sorted)
+		if seen[key] {
+			return false
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}
+		if d.Validate(in) != nil {
+			return false
+		}
+		if d.RequiredChosen(choices) < d.RequiredQuota() {
+			return false
+		}
+		if !sameChoices(d.FitRequired(choices), choices) {
+			return false
+		}
+		if legal != nil && !sameChoices(legal(append([]int(nil), choices...)), choices) {
+			return false
+		}
+		seen[key] = true
+		out = append(out, in)
+		return true
+	}
+	base := append([]int(nil), bot.Choices...)
+	if !add(base) {
+		return nil
+	}
+	chosen := make(map[int]bool, len(base)) // membership only -- never ranged.
+	for _, c := range base {
+		chosen[c] = true
+	}
+	add(append([]int(nil), d.FitRequired(nil)...))
+	for _, o := range d.Options {
+		if chosen[o.Index] {
+			continue
+		}
+		next := make([]int, 0, len(base)+1)
+		for _, c := range base {
+			if o.Group != "" && c >= 0 && c < len(d.Options) && d.Options[c].Group == o.Group {
+				continue
+			}
+			next = append(next, c)
+		}
+		add(append(next, o.Index))
+	}
+	for i := range base {
+		next := make([]int, 0, len(base)-1)
+		next = append(next, base[:i]...)
+		next = append(next, base[i+1:]...)
+		add(next)
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	return out
+}
+
+// sameChoices reports whether two choice lists are identical, order included.
+func sameChoices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

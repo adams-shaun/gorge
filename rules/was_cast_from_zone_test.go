@@ -105,16 +105,19 @@ func TestSevinneReclamationFlashbackCastCopies(t *testing.T) {
 	}
 	submitChoices(t, e, d.Options[0].Index)
 	// The Optional$ True copy clause now poses the may-copy election before the
-	// copy is made (task api-copyspellability-optional). Accept it, then drain;
-	// driveSevinneResolutionToEnd declines the copy's own nested copy election
-	// (a stack copy inherits the cast's provenance flags), leaving exactly one
-	// copy.
+	// copy is made (task api-copyspellability-optional). Accept it, then drain.
+	// A stack copy was never cast (CR 707.10), so the copy's own clause must
+	// NOT fire: driveSevinneResolutionToEnd declines any nested copy_optional
+	// and returns how many it saw, which must be zero.
 	nd := passUntilNonPriority(t, e, 30)
 	if nd == nil || nd.Kind != decision.KChoose || nd.ResumeKind != "copy_optional" {
 		t.Fatalf("expected Sevinne's Optional$ may-copy election, got %+v", nd)
 	}
 	submitChoices(t, e, nd.Options[0].Index)
-	driveSevinneResolutionToEnd(t, e, 40)
+	nestedDeclines := driveSevinneResolutionToEnd(t, e, 40)
+	if nestedDeclines != 0 {
+		t.Fatalf("the copy posed its own copy clause %d time(s): Card.wasCastFromGraveyard must be false on a copy", nestedDeclines)
+	}
 	// The spell rest in exile (flashback, CR 702.33b) and the Bears came
 	// back to the battlefield.
 	if o := e.G.Obj(sev); o.Zone != state.ZExile {

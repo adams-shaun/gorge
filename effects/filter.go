@@ -220,16 +220,19 @@ var predicates = map[string]predFn{
 	},
 	// wasCastFromGraveyard is the CastFlags provenance of a GRAVEYARD-ORIGIN
 	// cast (CR 601.2b): any of FlagFlashback, FlagHarmonize or FlagEscaped.
-	// The same bit test the Count$wasCastFromGraveyard branch head shares
-	// (effects/count.go) and its compiled twin mirrors
-	// (effects/compiled_predicate.go's predicateTermWasCastFromGraveyard).
-	// Ash Zealot's "whenever a player casts a spell from a graveyard"
-	// ValidCard$ reads it at spellCastMatches time — the deferred cast
-	// trigger fires after payCast's CastInfo, so the bit is already stamped
-	// — as do River Kelpie's draws and Laquatus's Disdain's counter. A card
-	// never so cast never matches.
+	// The same object-aware read the Count$wasCastFromGraveyard branch head
+	// shares (effects/count.go) and its compiled twin mirrors
+	// (effects/compiled_predicate.go's predicateTermWasCastFromGraveyard);
+	// state.ObjectWasCastFromGraveyard is the one home, so the three cannot
+	// disagree. Ash Zealot's "whenever a player casts a spell from a
+	// graveyard" ValidCard$ reads it at spellCastMatches time — the deferred
+	// cast trigger fires after payCast's CastInfo, so the bit is already
+	// stamped — as do River Kelpie's draws and Laquatus's Disdain's counter.
+	// A card never so cast never matches, and neither does a stack copy: a
+	// copy was put on the stack, never cast (CR 707.10), even though
+	// StackCopy leaves the graveyard-origin bits inherited.
 	"wasCastFromGraveyard": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return state.WasCastFromGraveyard(o.CastFlags)
+		return state.ObjectWasCastFromGraveyard(o)
 	},
 	// notExertedThisTurn is CR 702.100a's offer gate (task exert1): the
 	// object has NOT been exerted this turn. The event-backed read is
