@@ -134,7 +134,8 @@ func specialPositiveToken(p string) bool {
 		"IsRemembered":
 		return true
 	}
-	return strings.HasPrefix(p, "greatestPower") ||
+	return strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") ||
+		strings.HasPrefix(p, "greatestPower") ||
 		strings.HasPrefix(p, "greatestCMC_") ||
 		strings.HasPrefix(p, "lowestCMC") ||
 		hasAbilityToken(p)

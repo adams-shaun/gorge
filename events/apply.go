@@ -1935,6 +1935,10 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenType = e.Text
 			case "color":
 				o.ChosenColor = e.Text
+			case "mode":
+				// SetChosenMode$ on an as-enters GenericChoice: the mode
+				// persists on the permanent, unlike a stack-only modal answer.
+				o.ChosenModes = []string{e.Text}
 			case "number":
 				o.ChosenNumber = e.Amount
 			case "riot":
@@ -3582,12 +3586,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// CastFlags just above.
 			o.GiftPromisedTo = 0
 		}
-		// ChosenModes is needed only while a modal spell/ability resolves (or
-		// when a permanent spell carries its announcement onto the battlefield).
-		// Clearing it as an object leaves the stack keeps this derived cache out
-		// of graveyards/exile; an aborted cast restores its captured prior value
-		// after the reverse stack move.
-		if wasStack {
+		// ChosenModes is needed while a modal spell/ability resolves or for
+		// the lifetime of a mode-chosen permanent (SetChosenMode$). A fresh
+		// battlefield stint must choose again. An aborted cast restores its
+		// captured prior value after the reverse stack move.
+		if wasStack || wasBattlefield {
 			o.ChosenModes = nil
 		}
 		// AttachedTo has no legal life off the battlefield at all (an Aura/

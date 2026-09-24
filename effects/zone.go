@@ -3188,6 +3188,9 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		max = 0
 	}
 	mandatory := strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True")
+	// ChoiceOptional$ True explicitly names the Min-0 may-pick default here;
+	// it does not override Mandatory$ True. False/unset leave the default unchanged.
+	mayPick := strings.EqualFold(strings.TrimSpace(sa.Params["ChoiceOptional"]), "True")
 	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
@@ -3405,6 +3408,9 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			Prompt:           prompt}
 		if mandatory {
 			d.Min = int(m)
+		} else if mayPick {
+			// Explicit may-pick: preserve the same Min-0 default as an absent key.
+			d.Min = 0
 		}
 		// A mandatory budget pick whose m exceeds what the budget affords must
 		// not demand more picks than it can pay for: lower the Min to the

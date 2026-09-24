@@ -2,6 +2,7 @@ package effects
 
 import (
 	"iter"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -2238,7 +2239,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if hasAbilityToken(p) {
@@ -2753,6 +2754,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// agree the qualifier is known and a non-count read of it admits
 		// every matching token without the distinctness narrowing.
 		return o.IsToken, true
+	}
+	if mode, has := strings.CutPrefix(p, "ChosenMode"); has && mode != "" {
+		// ChosenMode<X> reads the candidate object's event-backed modal
+		// announcement. An unresolved choice has no recorded mode and fails
+		// closed; the ordinary ! wrapper would invert that result for a negated
+		// predicate (no corpus carrier uses !ChosenMode).
+		return slices.Contains(o.ChosenModes, mode), true
 	}
 	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" {
 		// Forge's ChosenCard and ChosenCardStrict are one predicate for this
