@@ -486,6 +486,12 @@ func init() {
 		s := g.Obj(src)
 		return s != nil && s.Paired == o.ID && o.Zone == state.ZBattlefield
 	}
+	// withSoulbond composes with PairedWith: inspect the selected candidate's
+	// keyword, not the source permanent's keyword.
+	predicates["withSoulbond"] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return objectHasKeyword(o, "Soulbond")
+	}
+	keywordPredicates["withSoulbond"] = keywordPredicate{keyword: "Soulbond"}
 }
 
 // attachedBy reports whether o is the permanent src is currently attached
