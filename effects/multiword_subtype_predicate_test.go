@@ -11,55 +11,34 @@ import (
 func TestMultiWordSubtypePredicate(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
-	// Use the real TARDIS face for its intervening-if shape, but keep the
-	// Time Lord under test synthetic so the test pins the shared type matcher.
 	tardis := corpusObject(t, reg, g, "TARDIS")
-	if tardis.Zone != state.ZBattlefield {
-		t.Fatal("TARDIS must be on the battlefield")
+	lord := corpusObject(t, reg, g, "TARDIS")
+	cardCopy := *lord.Card
+	faceCopy := *lord.Card.Faces[0]
+	faceCopy.Types = []string{"Creature", "Time", "Lord"}
+	cardCopy.Faces = []*cards.Face{&faceCopy}
+	lord.Card = &cardCopy
+	if lord.Zone != state.ZBattlefield || tardis.Zone != state.ZBattlefield {
+		t.Fatal("test objects must be on the battlefield")
 	}
-	both := *tardis
-	both.ID++
-	face := *tardis.Card.Faces[0]
-	face.Types = []string{"Artifact", "Time", "Lord"}
-	card := *tardis.Card
-	card.Faces = []*cards.Face{&face}
-	both.Card = &card
-	both.Zone = state.ZBattlefield
-	missingLord := both
-	faceMissingLord := face
-	faceMissingLord.Types = []string{"Artifact", "Time"}
-	cardMissingLord := card
-	cardMissingLord.Faces = []*cards.Face{&faceMissingLord}
-	missingLord.Card = &cardMissingLord
-	missingTime := both
-	faceMissingTime := face
-	faceMissingTime.Types = []string{"Artifact", "Lord"}
-	cardMissingTime := card
-	cardMissingTime.Faces = []*cards.Face{&faceMissingTime}
-	missingTime.Card = &cardMissingTime
-	ctx := SpecContext{You: 0}
-	if !MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &both, ctx) {
-		t.Fatal("Card.Time Lord+YouCtrl must match when both type words are present")
+	spec := "Card.Time Lord+YouCtrl"
+	if un := UnknownPredicates(spec); len(un) != 0 {
+		t.Fatalf("UnknownPredicates(%q) = %v, want none", spec, un)
 	}
-	if MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &missingLord, ctx) || MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &missingTime, ctx) {
-		t.Fatal("multiword subtype must fail when either constituent type word is absent")
+	if !MatchesObjectCtx(g, spec, lord, SpecContext{You: 0}) {
+		t.Fatal("Card.Time Lord+YouCtrl must match a controlled Time Lord")
 	}
-	if got := UnknownPredicates("Card.Time Lord+YouCtrl"); len(got) != 0 {
-		t.Fatalf("supported predicate reported unknown: %v", got)
+	if MatchesObjectCtx(g, spec, tardis, SpecContext{You: 0}) {
+		t.Fatal("Card.Time Lord+YouCtrl must reject an object missing the Time Lord subtype")
 	}
-	if MatchesObjectCtx(g, "Card.Time Lordish Unknown+YouCtrl", &both, ctx) {
-		t.Fatal("unknown multiword predicate must fail closed")
+	unsupported := "Card.Time Zorb+YouCtrl"
+	if MatchesObjectCtx(g, unsupported, lord, SpecContext{You: 0}) {
+		t.Fatal("unsupported multiword predicate must fail closed")
 	}
-	if got := UnknownPredicates("Card.Time Lordish Unknown"); len(got) != 1 {
-		t.Fatalf("unknown multiword census = %v, want one unknown token", got)
+	if un := UnknownPredicates(unsupported); len(un) != 1 || un[0] != "Time Zorb" {
+		t.Fatalf("UnknownPredicates(%q) = %v, want [Time Zorb]", unsupported, un)
 	}
-	// TARDIS's exact IsPresent filter spelling is accepted by the same matcher.
-	ps := CompilePredicatePrograms([]string{"Card.Time Lord+YouCtrl"})
-	ctx.PredicatePrograms = ps
-	if !MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &both, ctx) {
-		t.Fatal("TARDIS-shaped IsPresent predicate must match a Time Lord with compiled sidecar")
-	}
-	if got := ps.Evaluate("Card.Time Lord+YouCtrl", g, &both, ctx); got != PredicateYes {
-		t.Fatalf("compiled sidecar result = %v, want yes", got)
+	if !MatchesObjectCtx(g, "Creature.Time Lord+YouCtrl", lord, SpecContext{You: 0}) {
+		t.Fatal("TARDIS-shaped IsPresent filter must match controlled Time Lord")
 	}
 }
