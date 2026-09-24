@@ -939,6 +939,36 @@ type Engine struct {
 	millBatchDepth int
 	millBatchIdx   map[triggerKey]int
 	millBatchLog   []millBatchEntry
+	// discardBatch (effects' api:Discard): one api:Discard resolution is ONE
+	// discard action, so the Mode$ DiscardedAll "whenever you discard one or
+	// more cards" trigger fires once for the whole resolution, not once per
+	// discarded card. The millBatch's shape exactly: keyed by trigger LINE
+	// alone (the "one or more" reading), the first matching discarded card
+	// queues the single instance and every later matching card accumulates
+	// into the entry's COUNT -- the number of cards discarded this way, which
+	// the bodies read through TriggerCount$Amount (Magmakin Artillerist's X)
+	// -- plus the deduplicated discarded-card set closeDiscardBatch patches
+	// into Remembered/Captured. Only cards matching THIS line's ValidCard$
+	// count. Unlike the mill bracket, api:Discard can SUSPEND mid-resolution
+	// for a player's choice, so the bracket is opened on the first pass and
+	// closed only on the pass that completes without suspending (effects/
+	// cardflow.go's effDiscard) -- a suspension must not split one discard
+	// action into two batches. Never opened across a drain: pendingTriggers
+	// is append-only while the batch is open, so the recorded index stays
+	// valid.
+	discardBatchOpen  bool
+	discardBatchDepth int
+	discardBatchIdx   map[triggerKey]int
+	discardBatchLog   []discardBatchEntry
+	// discardAllTurn is the Mode$ DiscardedAll FirstTime$ latch: one trigger
+	// LINE's most recent batch turn, so "for the first time each turn" admits
+	// only the first qualifying discard batch per turn. Recorded at queue
+	// time (when the batch's single instance is created) and cleared by the
+	// turn boundary, the triggerTurnFires shape. Per trigger line is exact
+	// for every corpus carrier, whose ValidPlayer$ is the source's own
+	// controller ("You"); a line naming another player's discard would need a
+	// per-player key, which no current carrier has.
+	discardAllTurn map[triggerKey]int32
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how

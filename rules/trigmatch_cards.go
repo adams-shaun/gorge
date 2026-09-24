@@ -320,6 +320,63 @@ func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events
 	return true
 }
 
+// discardedAllMatches implements Mode$ DiscardedAll, the BATCH "whenever you
+// discard one or more [filtered] cards" trigger family (CR 701.8; 21 corpus
+// T: lines over 21 files plus Pure Intentions' one SVar-carried body at the
+// pin). It fires on the discard MoveZone event events.Discard emits -- the
+// same action marker IsDiscard/IsSacrifice/IsMill use -- so the discard
+// (effects' api:Discard, effDiscard) and the payoff agree on what a discard
+// is.
+//
+// The cadence -- once for the WHOLE discard action, not once per card -- is
+// the dispatcher's job, not this matcher's: a latch in checkFaceTriggers
+// (rules/trigger_match.go) keys on the trigger line inside effDiscard's open
+// discard batch, and closeDiscardBatch patches the matched-card COUNT into
+// the queued trigger's TriggerAmount and their set into its Remembered/
+// Captured. This matcher therefore still returns true for EVERY matching
+// discarded card, because the latch accumulates its count from each accepted
+// event. Outside a batch (a cost discard, a cleanup discard) the mode
+// fires per event with the referent below already carrying count 1.
+//
+// Parameters matched here, in the corpus's own spelling:
+//
+//   - ValidPlayer$ names whose discard counts. ev.Player is the discarding
+//     player, and "you" is the trigger source's controller, so the corpus's
+//     `ValidPlayer$ You` admits only the controller's own discard while
+//     `ValidPlayer$ Player` (Hostile Investigator, Tinybones) admits any
+//     player's. An absent clause matches any player.
+//   - ValidCard$ is the discarded card's filter (Card.nonLand on Veronica
+//     and Conspiracy Theorist, Card.Artifact on Mishra/Urza and the two
+//     Arena rebalances, Land on Doctor Doom, the plain Card on Inti and
+//     Diviner). It is matched against ev.Obj, the discarded card, with the
+//     trigger source's controller as the filter perspective.
+//   - ValidCause$ (Pure Intentions' one SVar body, the only carrier) is read
+//     through the shared discardCauseAdmits, exactly as the per-card
+//     Discarded matcher reads it.
+//
+// FirstTime$ True (Veronica, Rielle) is deliberately NOT read here:
+// firstMarkerThisTurn's per-EVENT log scan cannot tell one discard BATCH
+// from the next, and "for the first time each turn" is a batch-level fact.
+// The latch in checkFaceTriggers enforces it instead, at the one point that
+// knows batch identity (the Engine.discardAllTurn stamp). ActivationLimit$
+// is likewise enforced at queue time through actionTriggerModes membership.
+func (e *Engine) discardedAllMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if !events.IsDiscard(ev) {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidCard"]; v != "" && !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if spec := t.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
+		return false
+	}
+	return true
+}
+
 // discardCauseAdmits evaluates a ValidCause$ stack spec against the spell or
 // ability that caused discard ev, from source's controller's perspective. It
 // serves both the Discarded trigger and a Discard$ True replacement.
@@ -789,6 +846,10 @@ func init() {
 		return e.discardedMatches(t, source, ev)
 	}, "Discarded")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.discardedAllMatches(t, source, ev)
+	}, "DiscardedAll")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.drawnMatches(t, source, ev)
 	}, "Drawn")
+	effects.RegisterNonAPI("trig:DiscardedAll")
 }

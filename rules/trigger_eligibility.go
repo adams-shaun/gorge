@@ -227,7 +227,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareBlockers
 	case "Untaps":
 		return 1 << events.Untap
-	case "Sacrificed", "Discarded", "LandPlayed", "Milled", "MilledAll":
+	case "Sacrificed", "Discarded", "DiscardedAll", "LandPlayed", "Milled", "MilledAll":
 		return 1 << events.MoveZone
 	case "Cycled":
 		return 1 << events.MoveZone

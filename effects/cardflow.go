@@ -589,6 +589,40 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	c.Discard = nil
 	c.DiscardTarget = 0
 	c.DiscardVote = ""
+	// Discard-batch bracket (Mode$ DiscardedAll): one api:Discard resolution
+	// is ONE discard action, so the batch trigger fires once for the whole
+	// resolution rather than once per discarded card. The open must span a
+	// mid-resolution suspension (an answered election re-enters this same
+	// call with the answer, so the resumed pass is the SAME action), and it
+	// must close exactly once, on the pass that completes without asking.
+	// firstPass is the resumed-pass test the answered/voted/UnlessElected
+	// locals already express: only a first pass has none of them set. The
+	// deferred close is skipped while suspended, so the bracket stays open
+	// across the resume and the completing pass closes it. A host double
+	// without the bracket interface simply fires DiscardedAll per card
+	// rather than failing to compile (the mill bracket's shape), and a
+	// non-api:Discard producer (a cost or cleanup discard) never opens the
+	// bracket, so each is its own batch-of-one exactly as before this gate.
+	firstPass := !answered && !voted && c.UnlessElected == ""
+	suspended := false
+	if b, ok := h.(interface {
+		BeginDiscardBatch()
+		EndDiscardBatch()
+	}); ok {
+		// Open only on the FIRST pass (the resumed pass is the same action);
+		// the close-defer is registered on EVERY pass, because the pass that
+		// completes the action may be a resumed one. Closing a batch that was
+		// already closed (a stray non-first entry with no open bracket) is a
+		// no-op in closeDiscardBatch's depth guard.
+		if firstPass {
+			b.BeginDiscardBatch()
+		}
+		defer func() {
+			if !suspended {
+				b.EndDiscardBatch()
+			}
+		}()
+	}
 	mode := sa.Params["Mode"]
 	valid := sa.Params["DiscardValid"]
 	if valid == "" {
@@ -631,6 +665,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			askMin, askMax := discardBounds(h, c, sa, len(eligible))
 			d := discardAsk(g, c, sa, eligible, chooser, askMin, askMax, targetIndex)
 			if Ask(h, d) == AskAsked {
+				suspended = true
 				return // resolution suspended; the answer re-enters with Ctx.Discard set.
 			}
 			// Fuzz/no-engine host: the deterministic front-of-ELIGIBLE-hand
@@ -732,6 +767,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 						Prompt:  "Discard one " + unlessSpec + " card instead",
 						Options: opts}
 					if Ask(h, d) == AskAsked {
+						suspended = true
 						return // resolution suspended; the answer re-enters with Ctx.Discard set.
 					}
 					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -751,6 +787,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 						{Index: 1, Kind: "ordinary", Label: "No — discard normally", Player: p},
 					}}
 				if Ask(h, d) == AskAsked {
+					suspended = true
 					return // resolution suspended; the answer re-enters with Ctx.UnlessElected set.
 				}
 				// Fuzz/no-engine host: the deterministic stand-in takes the
@@ -788,6 +825,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 							{Index: 1, Kind: "no", Label: "No — don't discard", Player: p},
 						}}
 					if Ask(h, d) == AskAsked {
+						suspended = true
 						return // resolution suspended; the answer re-enters with Ctx.DiscardVote set.
 					}
 				} else {
@@ -826,6 +864,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				Prompt:  "Choose " + strconv.Itoa(askMin) + ".." + strconv.Itoa(askMax) + " card(s) to discard",
 				Options: opts}
 			if Ask(h, d) == AskAsked {
+				suspended = true
 				return // resolution suspended; the answer re-enters with Ctx.Discard set.
 			}
 			// Fuzz/no-engine host: the deterministic front-of-ELIGIBLE-hand
@@ -887,6 +926,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 						{Index: 1, Kind: "no", Label: "No — keep it", Player: p},
 					}}
 				if Ask(h, d) == AskAsked {
+					suspended = true
 					return // resolution suspended; the answer re-enters with Ctx.DiscardVote set.
 				}
 				// Fuzz/no-engine host: the deterministic stand-in takes the
