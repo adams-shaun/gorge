@@ -413,9 +413,28 @@ func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 // cold, so it is kept here rather than in the engine packages' own suites.
 // GOARCH=386 is the narrowest target the toolchain always ships; CGO is off
 // because nothing in the module uses it and a 386 C toolchain is not assumed.
+//
+// The package list is enumerated first and cmd/repro's transient scratch
+// packages (zzrepro-*, created and deleted at the repo root by its emit-test
+// probes, which run concurrently under `go test ./...`) are dropped: building
+// `./...` directly raced them, failing with "cannot find package" or a
+// vanished source file whenever a probe cleaned up mid-build.
 func TestEngineCompilesFor32Bit(t *testing.T) {
-	cmd := exec.Command("go", "build", module+"/...")
-	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=386", "CGO_ENABLED=0")
+	env := append(os.Environ(), "GOOS=linux", "GOARCH=386", "CGO_ENABLED=0")
+	list := exec.Command("go", "list", "-e", module+"/...")
+	list.Env = env
+	raw, err := list.Output()
+	if err != nil {
+		t.Fatalf("go list %s/...: %v", module, err)
+	}
+	args := []string{"build"}
+	for _, p := range strings.Fields(string(raw)) {
+		if !strings.Contains(p, "/zzrepro-") {
+			args = append(args, p)
+		}
+	}
+	cmd := exec.Command("go", args...)
+	cmd.Env = env
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Errorf("the module does not build for a 32-bit word (GOARCH=386): %v\n%s\n"+

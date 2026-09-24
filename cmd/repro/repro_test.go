@@ -415,8 +415,8 @@ func TestReproEmitTestSkeletonCompilesAndFailsOnTODO(t *testing.T) {
 // rules build ("open rules/repro_feedback_..._test.go: no such file or
 // directory") — both seen in one gate run. A root-level scratch directory
 // is never in `go test ./...`'s package list (enumerated before the tests
-// run) and nobody else builds it, so nothing can race it or inherit
-// residue. The cycle premise is asserted statically instead of by mutating
+// run), and archtest's 32-bit build filters zzrepro-* out of its list, so
+// nothing can race it or inherit residue. The cycle premise is asserted statically instead of by mutating
 // the real tree.
 func TestReproEmitTestIntoRulesCompilesAndFailsOnTODO(t *testing.T) {
 	requireCorpus(t)
