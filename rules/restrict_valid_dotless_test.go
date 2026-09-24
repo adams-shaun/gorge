@@ -650,8 +650,8 @@ func TestRestrictValidDotlessPaymentTerms(t *testing.T) {
 
 		tapForRestrictedBatch(t, e, src, "CantCastNonArtifactSpells")
 		batches := restrictedBatchesOf(e, 0, "CantCastNonArtifactSpells")
-		if len(batches) != 1 || batches[0].Color != "U" || batches[0].Amount != 1 {
-			t.Fatalf("test precondition: Hydraulic Helper's batch = %+v, want one 1×{U} batch", batches)
+		if len(batches) != 1 || batches[0].Color != "ArtifactU" || batches[0].Amount != 1 {
+			t.Fatalf("test precondition: Hydraulic Helper's batch = %+v, want one 1×{U} Artifact batch", batches)
 		}
 
 		// Rejection: the nonartifact {U} creature's cast is hidden and
