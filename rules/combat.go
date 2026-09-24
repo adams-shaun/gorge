@@ -657,8 +657,9 @@ func (e *Engine) askAttackers() {
 		if of.price > 0 {
 			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
+		group := e.attackRestrictGroup(of.def)
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-			Label: label, Obj: of.id, Player: of.def, Battle: of.battle, Required: mustAtt[of.id],
+			Label: label, Obj: of.id, Player: of.def, Battle: of.battle, Required: mustAtt[of.id], Group: group,
 			// Value is the pair's mana price: the cumulative-budget contract
 			// MaxSum names. omitempty keeps a prop-free list byte-identical
 			// (price 0 omits), so the option enumeration order and the wire
@@ -1386,6 +1387,22 @@ func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Int
 
 func (e *Engine) attackRestrictStatics() []staticView {
 	return e.activeStatics("AttackRestrict")
+}
+
+// attackRestrictGroup marks options at a defender constrained by an active
+// AttackRestrict static. Decision.Validate and botpolicy.Clamp share the
+// per-Group cap rule, so the bot cannot offer an answer the engine rejects.
+func (e *Engine) attackRestrictGroup(defender state.PlayerID) string {
+	for _, sv := range e.attackRestrictStatics() {
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
+		spec := strings.TrimSpace(sv.Params["ValidDefender"])
+		if spec != "" && effects.MatchesPlayerSpecCtx(e.G, spec, defender, sv.Controller, effects.PlayerSpecCtx{Source: sv.Source}) {
+			return fmt.Sprintf("attack-restrict:%d", defender)
+		}
+	}
+	return ""
 }
 
 // validateBlockers is the KBlockers whole-declaration legality guard. The

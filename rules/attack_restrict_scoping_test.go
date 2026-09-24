@@ -25,12 +25,18 @@ func TestAttackRestrictValidDefenderIsScoped(t *testing.T) {
 	if e.maxAttackers() < 2 {
 		t.Fatal("ValidDefender restriction incorrectly became a global ceiling")
 	}
-	d := &decision.Decision{Options: []decision.Option{
+	d := &decision.Decision{Max: 4, Options: []decision.Option{
 		{Index: 0, Kind: "attacker", Obj: one, Player: 1},
 		{Index: 1, Kind: "attacker", Obj: two, Player: 1},
-		{Index: 2, Kind: "attacker", Obj: one, Player: 0},
-		{Index: 3, Kind: "attacker", Obj: two, Player: 0},
+		{Index: 2, Kind: "attacker", Obj: one, Player: 0, Group: "attack-restrict:0"},
+		{Index: 3, Kind: "attacker", Obj: two, Player: 0, Group: "attack-restrict:0"},
 	}}
+	if err := d.Validate(decision.Intent{Choices: []int{0, 1}}); err != nil {
+		t.Fatalf("shared decision rule rejected attacks at other defender: %v", err)
+	}
+	if err := d.Validate(decision.Intent{Choices: []int{2, 3}}); err == nil {
+		t.Fatal("decision accepted two attacks at restricted defender")
+	}
 	if err := e.validateAttackDeclaration(d, decision.Intent{Choices: []int{0, 1}}); err != nil {
 		t.Fatalf("attacks at other defender were rejected: %v", err)
 	}
