@@ -111,6 +111,10 @@ type Example struct {
 	HasTeacherValue bool
 	State           State
 	Options         []Option
+	// PPO is the on-policy PPO target (ticket pn13, LoadOnPolicy): non-nil
+	// makes the example train the PPO objective instead of the supervised
+	// loss. nil for every label-corpus example.
+	PPO *PPOTarget
 }
 
 // Stats counts what Load saw.
