@@ -377,3 +377,89 @@ func TestAUCKnownAnswer(t *testing.T) {
 		t.Fatalf("one-class auc %g", a)
 	}
 }
+
+// TestPPOSampledBehaviourCorpus (ticket pn14): a corpus whose answers were
+// SAMPLED carries the behaviour log-probability; the round trains through the
+// π_new/π_b ratio, still learns the bandit, and the readout counts the
+// sampled and off-greedy decisions.
+func TestPPOSampledBehaviourCorpus(t *testing.T) {
+	raw := banditInit(t, true)
+	init := loadInit(t, raw)
+	corpus := banditCorpus(t, init, 600)
+	for i := range corpus {
+		p := corpus[i].PPO
+		in := make([]bool, len(p.Chosen))
+		for k := range in {
+			in[k] = true
+		}
+		lp, ok := policynet.TemperedLogProb(p.OldScores, in, p.Chosen, p.Subset, 2)
+		if !ok {
+			t.Fatal("behaviour log-prob undefined")
+		}
+		p.BehaviourLogP, p.HasBehaviour = lp, true
+	}
+	before := goodProb(init, corpus)
+	res, err := TrainPPO(corpus, init, banditPPOConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after := goodProb(res.Model, corpus); after < before+0.03 {
+		t.Fatalf("good-option probability %.3f -> %.3f", before, after)
+	}
+	for _, k := range res.ByKind {
+		if k.Sampled != k.N || k.OffGreedy == 0 || k.MeanPBeh <= 0 || k.MeanPBeh > 1 {
+			t.Fatalf("kind readout %+v", k)
+		}
+	}
+}
+
+// TestUpgradeEntityCLI: -upgrade-entity turns an mz checkpoint into an
+// entity one that scores identically, refuses a non-mz init, and the PPO
+// mode refuses a corpus whose feature set is not the init's.
+func TestUpgradeEntityCLI(t *testing.T) {
+	dir := t.TempDir()
+	m := policynet.NewModel(policynet.TableRows, 8, 16, rand.New(rand.NewPCG(3, 4)))
+	v1 := filepath.Join(dir, "v1.gpol")
+	if err := m.SaveCheckpoint(v1); err != nil {
+		t.Fatal(err)
+	}
+	m.Features = policynet.FeaturesMZ
+	mz := filepath.Join(dir, "mz.gpol")
+	if err := m.SaveCheckpoint(mz); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr strings.Builder
+	ent := filepath.Join(dir, "ent.gpol")
+	if code := run([]string{"-upgrade-entity", "6", "-init", mz, "-out", ent}, &stdout, &stderr); code != 0 {
+		t.Fatalf("exit %d: %s", code, stderr.String())
+	}
+	e, err := policynet.LoadCheckpointFile(ent)
+	if err != nil || e.Features != policynet.FeaturesEntity || e.EntK != 6 {
+		t.Fatalf("upgraded checkpoint: %v %+v", err, e)
+	}
+	if code := run([]string{"-upgrade-entity", "6", "-init", v1, "-out", filepath.Join(dir, "x.gpol")}, &stdout, &stderr); code == 0 {
+		t.Fatal("upgrading a v1 checkpoint must be refused")
+	}
+	// A v1 corpus (the bandit's) against the entity init.
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	for _, ex := range banditCorpus(t, m, 8) {
+		rec := policynet.OnPolicyRecord{RecordType: policynet.OnPolicyRecordType, SchemaVersion: policynet.OnPolicySchemaVersion,
+			EncoderHash: fmt.Sprintf("%016x", policynet.EncoderHash()), Kind: ex.Kind, Subset: ex.PPO.Subset,
+			State: policynet.EncodeOnPolicyState(ex.State), Scores: ex.PPO.OldScores, Chosen: []int{0}, OutcomeKnown: true}
+		for _, o := range ex.Options {
+			rec.Options = append(rec.Options, policynet.EncodeOnPolicyOption(o, true))
+		}
+		if err := enc.Encode(&rec); err != nil {
+			t.Fatal(err)
+		}
+	}
+	corpus := filepath.Join(dir, "c.jsonl")
+	if err := os.WriteFile(corpus, buf.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	stderr.Reset()
+	if code := run([]string{"-ppo-corpus", corpus, "-init", ent, "-out", filepath.Join(dir, "y.gpol")}, &stdout, &stderr); code == 0 || !strings.Contains(stderr.String(), "feature set") {
+		t.Fatalf("a v1 corpus against an entity init must be refused: %d %s", code, stderr.String())
+	}
+}

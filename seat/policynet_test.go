@@ -1117,3 +1117,108 @@ func TestPolicyNetSignAdmissionReproducesTheBotWithAZeroHead(t *testing.T) {
 		}
 	}
 }
+
+// entityCheckpoint is withResidual's model upgraded to the entity feature
+// set (ticket pn14) with a non-zero pooled projection, round-tripped through
+// the schema-4 checkpoint.
+func entityCheckpoint(t *testing.T, seed uint64, w float32) *policynet.Scorer {
+	t.Helper()
+	m := policynet.NewModel(policynet.TableRows, 16, 8, rand.New(rand.NewPCG(seed, seed^0x5eed)))
+	m.ResidualW = w
+	m.Features = policynet.FeaturesMZ
+	if err := policynet.UpgradeEntity(m, 4, rand.New(rand.NewPCG(seed, 3))); err != nil {
+		t.Fatal(err)
+	}
+	for i := range m.EntP {
+		m.EntP[i] = float32(i%11-5) * 0.02
+	}
+	for i := range m.HidW {
+		if m.HidW[i] == 0 {
+			m.HidW[i] = float32(i%5-2) * 0.05
+		}
+	}
+	var buf bytes.Buffer
+	if err := policynet.WriteCheckpoint(m, &buf); err != nil {
+		t.Fatalf("WriteCheckpoint: %v", err)
+	}
+	sc, err := policynet.LoadScorer(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("LoadScorer: %v", err)
+	}
+	return sc
+}
+
+// TestPolicyNetSamplingIsSeededLegalAndRecorded pins ticket pn14's
+// collection mode over whole games: SetSampling(0) is the default seat
+// byte for byte; a sampling seat plays only legal intents (the engine is the
+// validator), replays identically from the same seed, differs from the
+// greedy seat, and records every scored decision with its temperature and a
+// behaviour log-probability that re-derives from the recorded scores. An
+// entity-feature checkpoint drives the same path (its recorded scores
+// re-score bit for bit).
+func TestPolicyNetSamplingIsSeededLegalAndRecorded(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	kinds := []decision.Kind{decision.KAttackers, decision.KPriority, decision.KBlockers, decision.KTarget}
+	for _, arm := range []string{"mz-free", "entity"} {
+		deviated, scored := 0, 0
+		for _, seed := range []uint64{310, 311} {
+			sc := withResidual(t, seed, 0.5)
+			if arm == "entity" {
+				sc = entityCheckpoint(t, seed, 0.5)
+			}
+			greedy := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+				return NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+			})
+			off := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+				b := NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+				b.SetSampling(0, seed)
+				return b
+			})
+			if !slices.EqualFunc(greedy, off, sameIntent) {
+				t.Fatalf("%s seed %d: SetSampling(0) changed play", arm, seed)
+			}
+			play := func() ([]decision.Intent, []PolicyNetDecision) {
+				var recs []PolicyNetDecision
+				ins := driveBotGame(t, seed, names, decks, func(p state.PlayerID) answerer {
+					b := NewPolicyNetBotKinds(seed^uint64(p+1), sc, kinds)
+					b.SetSampling(1.25, seed^uint64(p+1))
+					b.SetRecorder(func(d PolicyNetDecision) { recs = append(recs, d) })
+					return b
+				})
+				return ins, recs
+			}
+			a, recs := play()
+			b, _ := play()
+			if !slices.EqualFunc(a, b, sameIntent) {
+				t.Fatalf("%s seed %d: sampling is not a pure function of the seed", arm, seed)
+			}
+			if slices.EqualFunc(a, greedy, sameIntent) {
+				t.Fatalf("%s seed %d: the sampling seat played exactly the greedy game", arm, seed)
+			}
+			for _, r := range recs {
+				scored++
+				if !r.Sampled || r.Temperature != 1.25 {
+					t.Fatalf("%s seed %d seq %d: not marked sampled at T 1.25", arm, seed, r.Seq)
+				}
+				chosen := make([]bool, len(r.Options))
+				for _, c := range r.Chosen {
+					chosen[c] = true
+				}
+				lp, ok := policynet.TemperedLogProb(r.Scores, r.InSpace, chosen, r.Subset, 1.25)
+				if !ok || lp != r.LogPBehaviour || lp > 0 {
+					t.Fatalf("%s seed %d seq %d: behaviour log-prob %v (re-derived %v ok %v)", arm, seed, r.Seq, r.LogPBehaviour, lp, ok)
+				}
+				if got := sc.Score(r.State, r.Options); !slices.Equal(got, r.Scores) {
+					t.Fatalf("%s seed %d seq %d: recorded scores differ from a re-score", arm, seed, r.Seq)
+				}
+				if !slices.Equal(r.Chosen, r.BotChosen) {
+					deviated++
+				}
+			}
+		}
+		if scored == 0 || deviated == 0 {
+			t.Fatalf("%s: %d scored, %d deviating from the bot: sampling never explored", arm, scored, deviated)
+		}
+		t.Logf("%s: %d sampled decisions, %d off the bot's pick", arm, scored, deviated)
+	}
+}

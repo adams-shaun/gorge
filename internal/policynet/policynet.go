@@ -69,6 +69,10 @@ type Feature struct {
 type State struct {
 	Dense  []float32
 	Sparse []Feature
+	// Cards is the entity list (FeaturesEntity only, ticket pn14; entity.go):
+	// one EntityCard per visible card, in a fixed zone order. nil for every
+	// other feature set, which therefore encodes exactly as before.
+	Cards []EntityCard
 }
 
 // Dense section offsets. The layout is a pinned contract (golden test).

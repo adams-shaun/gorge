@@ -76,6 +76,14 @@ type PPOTarget struct {
 	// normalisation.
 	VDWM   bool
 	Weight float64
+	// BehaviourLogP is log π_b(C|s) of the policy that actually SAMPLED the
+	// recorded answer (ticket pn14's stochastic collection: softmax(z/T), or
+	// the per-option Bernoulli of σ(z/T)), when HasBehaviour. The surrogate's
+	// importance ratio is then π_new/π_b instead of π_new/π_old — the
+	// behaviour policy is not the greedy π_old the KL anchor reads. A greedy
+	// corpus carries none and trains exactly as before.
+	BehaviourLogP float64
+	HasBehaviour  bool
 }
 
 // PPOStep is one PPO example's readout (zero for a supervised example).
@@ -195,6 +203,9 @@ func lossPPO(lc LossConfig, ex Example, labelled []int, ys []float64) (parts Los
 	st.On = true
 	st.LogPOld = lpOld
 	st.LogRatio = lpNew - lpOld
+	if p.HasBehaviour {
+		st.LogRatio = lpNew - p.BehaviourLogP
+	}
 	st.KL = kl
 
 	rho := st.LogRatio
@@ -225,4 +236,81 @@ func lossPPO(lc LossConfig, ex Example, labelled []int, ys []float64) (parts Los
 	parts.Rank = pg + lc.PPOKL*kl
 	parts.Total = parts.Rank
 	return parts, dys, st
+}
+
+// TemperedLogProb is log π_T(C|s) for scores parallel to the options, over
+// the options inSpace marks: the softmax of z/T at the one chosen option, or
+// the summed per-option Bernoulli log-likelihood of σ(z/T) (subset). It is
+// the behaviour log-probability a sampling seat records (seat.PolicyNetBot's
+// stochastic collection, ticket pn14); T = 1 is PPOLogProb exactly. ok is
+// false for a softmax decision without exactly one chosen in-space option,
+// or T <= 0.
+func TemperedLogProb(scores []float32, inSpace, chosen []bool, subset bool, temp float64) (float64, bool) {
+	if temp <= 0 {
+		return 0, false
+	}
+	var z []float64
+	a, n := -1, 0
+	var c []bool
+	for i := range scores {
+		if !inSpace[i] {
+			continue
+		}
+		if chosen[i] {
+			a = len(z)
+			n++
+		}
+		z = append(z, clampScore(float64(scores[i]))/temp)
+		c = append(c, chosen[i])
+	}
+	if len(z) == 0 {
+		return 0, false
+	}
+	if subset {
+		lp := 0.0
+		for k := range z {
+			if c[k] {
+				lp += logSigmoid(z[k])
+			} else {
+				lp += logSigmoid(-z[k])
+			}
+		}
+		return lp, true
+	}
+	if n != 1 {
+		return 0, false
+	}
+	return z[a] - logSumExp(z), true
+}
+
+// SampleSoftmax draws one position from softmax(z/T) over the in-space
+// options with the uniform draw u ∈ [0,1) (inverse CDF in option order, so
+// the pick is a pure function of the scores and u). -1 when nothing is in
+// space.
+func SampleSoftmax(scores []float32, inSpace []bool, temp, u float64) int {
+	var z []float64
+	var pos []int
+	for i := range scores {
+		if inSpace[i] {
+			z = append(z, clampScore(float64(scores[i]))/temp)
+			pos = append(pos, i)
+		}
+	}
+	if len(z) == 0 {
+		return -1
+	}
+	lse := logSumExp(z)
+	acc := 0.0
+	for k := range z {
+		acc += math.Exp(z[k] - lse)
+		if u < acc {
+			return pos[k]
+		}
+	}
+	return pos[len(pos)-1]
+}
+
+// SampleInclusion reports the per-option Bernoulli draw σ(z/T) > u.
+func SampleInclusion(score float32, temp, u float64) bool {
+	return u < sigmoidFloat(clampScore(float64(score))/temp)
 }

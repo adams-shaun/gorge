@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -166,5 +167,49 @@ func TestPPOGateChainsThroughTheIncumbent(t *testing.T) {
 		if err != nil || string(got) != want {
 			t.Fatalf("round %d next.gpol = %q (%v), want %q", r, got, err, want)
 		}
+	}
+}
+
+// TestPPOCollectTemperatureSchedule pins ticket pn14's collection knobs:
+// greedy by default (no temperature flag, the pn13 plan), a constant
+// -collect-temp, a linear anneal to -collect-temp-final over the rounds, the
+// -opp-mix pass-through, and eval stages that never sample.
+func TestPPOCollectTemperatureSchedule(t *testing.T) {
+	base := []string{"-mode", "ppo", "-bin", "/B", "-out", "/O", "-seed-checkpoint", "/S", "-rounds", "3"}
+	temps := func(extra ...string) []string {
+		cfg := mustConfig(t, append(append([]string{}, base...), extra...)...)
+		var out []string
+		for _, s := range planPPO(cfg) {
+			args := strings.Join(s.Args, " ")
+			if s.Name == "eval" && strings.Contains(args, "-policynet-temperature") {
+				t.Fatalf("eval stage samples: %s", args)
+			}
+			if s.Name != "collect" {
+				continue
+			}
+			tv := "-"
+			for i, a := range s.Args {
+				if a == "-policynet-temperature" {
+					tv = s.Args[i+1]
+				}
+			}
+			if slices.Contains(extra, "-opp-mix") != strings.Contains(args, "-opp-mix explore:0.25") {
+				t.Fatalf("opp-mix pass-through wrong: %s", args)
+			}
+			out = append(out, tv)
+		}
+		return out
+	}
+	if got := temps(); !slices.Equal(got, []string{"-", "-", "-"}) {
+		t.Fatalf("default collection samples: %v", got)
+	}
+	if got := temps("-collect-temp", "1"); !slices.Equal(got, []string{"1", "1", "1"}) {
+		t.Fatalf("constant: %v", got)
+	}
+	if got := temps("-collect-temp", "2", "-collect-temp-final", "0.5", "-opp-mix", "explore:0.25"); !slices.Equal(got, []string{"2", "1.25", "0.5"}) {
+		t.Fatalf("anneal: %v", got)
+	}
+	if _, _, err := parseConfig(append(append([]string{}, base...), "-collect-temp", "-1"), io.Discard); err == nil {
+		t.Fatal("negative temperature accepted")
 	}
 }

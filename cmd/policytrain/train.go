@@ -443,6 +443,9 @@ func firstNonFiniteParameter(m *policynet.Model) (block string, index int, value
 		{"VHidW", m.VHidW},
 		{"VHidB", m.VHidB},
 		{"VOutW", m.VOutW},
+		{"EntW", m.EntW},
+		{"EntB", m.EntB},
+		{"EntP", m.EntP},
 	}
 	for _, b := range blocks {
 		for i, v := range b.data {
