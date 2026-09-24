@@ -162,12 +162,10 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 		// BestowedAttached gate still answers below).
 		sc := e.specCtx(source, ctrl)
 		sc.ExtraTypes = e.Derived(id).Types
-		// ExtraTypes is answered by the textual oracle, never by the compiled
-		// sidecar (matchesWithTypes' established discipline: the compiled
-		// program is the printed-face read and would answer No definitively,
-		// bypassing ExtraTypes) -- so clear it for this match, exactly as
-		// layers.go's matchesWithTypes does.
-		sc.PredicatePrograms = nil
+		// The compiled sidecar is ExtraTypes-aware (its type predicates route
+		// through hasTypeCtx, effects/compiled_predicate.go), so it stays
+		// installed here and answers the same derived types the textual oracle
+		// does -- the fast path is restored rather than discarded.
 		if e.matchesSpec(spec, id, sc) && e.firstAttackOK(t, id) {
 			return true
 		}
