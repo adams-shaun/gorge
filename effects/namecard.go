@@ -58,6 +58,18 @@ func NameChoices(g *state.Game, spec, description string) []string {
 // The returned list may be SHARED across games (namecard_cache.go): callers
 // must treat it as read-only.
 func NameChoicesFromList(g *state.Game, spec, description, chooseFromList string, strictFilter ...bool) []string {
+	return NameChoicesFromListCtx(g, spec, description, chooseFromList, nil, strictFilter...)
+}
+
+// NameChoicesFromListCtx is NameChoicesFromList with the resolving context a
+// mid-resolution NameCard ask owns, so a ValidCards$ whose numeric right-hand
+// side is a resolution value (`Creature.cmcEQX` paid-X, `Creature.cmcEQM`
+// published by a StoreSVar chain) evaluates with the SAME resolver the rest of
+// the engine's resolving filters use. sc nil keeps the printed-face-only walk
+// the cast-time ask has always had. Build it with (*Ctx).SpecContext, never a
+// hand-rolled resolver: that keeps the numeric-RHS grammar's ONE legal-value
+// home in effects/filter.go.
+func NameChoicesFromListCtx(g *state.Game, spec, description, chooseFromList string, sc *SpecContext, strictFilter ...bool) []string {
 	if g == nil {
 		return nil
 	}
@@ -65,8 +77,15 @@ func NameChoicesFromList(g *state.Game, spec, description, chooseFromList string
 		spec = descriptionSpec(description)
 	}
 	strict := len(strictFilter) > 0 && strictFilter[0]
+	// A resolution-state-bound filter's eligible set is a function of that
+	// state, which the filter memo's key (a spec STRING) does not capture, so
+	// compute directly. A context with no resolution state answers exactly
+	// what the resolver-free walk would and may be memoised.
+	if sc.ResolutionStateBound() {
+		return nameChoicesFiltered(g, spec, chooseFromList, strict, sc)
+	}
 	if !pureNameSpec(spec) {
-		return nameChoicesFiltered(g, spec, chooseFromList, strict)
+		return nameChoicesFiltered(g, spec, chooseFromList, strict, sc)
 	}
 	key := nameFilterKey{
 		universe:       cardsKey(g.NameUniverse),
@@ -86,12 +105,14 @@ func NameChoicesFromList(g *state.Game, spec, description, chooseFromList string
 		})
 	}
 	return cachedNameChoices(key, func() []string {
-		return nameChoicesFiltered(g, spec, chooseFromList, strict)
+		return nameChoicesFiltered(g, spec, chooseFromList, strict, sc)
 	})
 }
 
-// nameChoicesFiltered is the uncached ValidCards$ filter walk.
-func nameChoicesFiltered(g *state.Game, spec, chooseFromList string, strict bool) []string {
+// nameChoicesFiltered is the uncached ValidCards$ filter walk. sc carries the
+// resolving context's numeric-RHS resolver (nil = printed face only; see
+// NameChoicesFromListCtx).
+func nameChoicesFiltered(g *state.Game, spec, chooseFromList string, strict bool, sc *SpecContext) []string {
 	if spec == "" {
 		return filterNameList(nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames), chooseFromList)
 	}
@@ -107,7 +128,7 @@ func nameChoicesFiltered(g *state.Game, spec, chooseFromList string, strict bool
 			continue
 		}
 		*o = state.Object{Card: c}
-		if !MatchesObjectCtx(g, spec, o, SpecContext{}) {
+		if !MatchesObjectCtx(g, spec, o, specCtx(sc)) {
 			continue
 		}
 		name := c.Faces[0].Name
@@ -208,6 +229,15 @@ func nameUniverseSnapshot(universe []*cards.Card, snapshot []string) []string {
 		return snapshot[:len(snapshot):len(snapshot)]
 	}
 	return NameUniverseNames(universe)
+}
+
+// specCtx dereferences a caller's optional SpecContext, yielding the layout
+// (and zero resolver) the printed-face-only walk has always built.
+func specCtx(sc *SpecContext) SpecContext {
+	if sc == nil {
+		return SpecContext{}
+	}
+	return *sc
 }
 
 func nameSet(names []string) map[string]bool {

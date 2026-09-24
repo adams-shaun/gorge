@@ -52,10 +52,10 @@ func NewScorer(m *Model) *Scorer {
 // (Model.ResidualW, the train Config.ResidualInit the model was trained
 // with). The seat-side bot reads it to decide whether the residual prior is
 // ACTIVE at inference: positive means the wrapped default bot's own answer
-// is marked (Option.BotPick) and admitted into the priority argmax, so the
-// scorer scores under the contract it trained under; zero — the weight a
-// pre-baseline checkpoint loads — makes the mark a no-op and the scored
-// answers byte-identical to the pre-wiring build.
+// is marked (Option.BotPick) so the scorer scores under the contract it
+// trained under, and is a precondition for the seat scoring KPriority at
+// all; zero — the weight a checkpoint trained without -residual-init loads —
+// makes the mark a no-op and keeps priority delegated to the default bot.
 func (sc *Scorer) ResidualWeight() float32 {
 	return sc.m.ResidualW
 }
