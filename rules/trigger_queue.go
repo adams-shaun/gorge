@@ -213,7 +213,7 @@ func triggerOrdersDuplicates(t cards.Trigger) bool {
 // different line entirely.
 func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
-		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Cascade &&
+		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0
 }
 
@@ -510,6 +510,23 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
 			Obj: pt.Source, Counter: "__kwConspire:", IDs: ids, Text: "conspire ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	if pt.Casualty {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwCasualty:", IDs: []state.ObjID{pt.Source}, Text: "casualty ability"})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
@@ -1500,6 +1517,9 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 		return name + ": cascade"
 	}
+	if pt.Casualty {
+		return "casualty copy trigger"
+	}
 	if pt.Conspire {
 		name := "a spell"
 		if o := e.G.Obj(pt.Source); o != nil {
@@ -1719,6 +1739,14 @@ func (e *Engine) askTriggerOrder(p state.PlayerID, n int) {
 		pt := e.pendingTriggers[i]
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "trigger",
 			Label: e.triggerLabel(pt), Obj: pt.Source, Player: pt.Controller})
+	}
+	for i := 0; i < n; i++ {
+		if e.pendingTriggers[i].Casualty {
+			// Ashad's EQ0 stack grant has expired on this cast. Invalidate
+			// the pre-payment layer snapshot before the ordering decision.
+			e.activeEpoch, e.staticEpoch = -1, -1
+			break
+		}
 	}
 	e.ask(d)
 }

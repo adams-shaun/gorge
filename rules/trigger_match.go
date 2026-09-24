@@ -142,6 +142,9 @@ type pendingTrigger struct {
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
 	Conspire bool
+	// Casualty is queued only for a paid sacrifice at the completed cast
+	// boundary. The keyword trigger body is rebuilt from its logged push.
+	Casualty bool
 	// Demonstrate is a GRANTED demonstrate keyword (a layer-6 AddKeyword$
 	// Demonstrate -- Silverquill Lecturer's "Creature spells you cast have
 	// demonstrate", The Twelfth Doctor's non-hand grant, Try-My-Deck
