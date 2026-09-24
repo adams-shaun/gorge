@@ -190,6 +190,15 @@ var addedAfterTheSplit = []string{
 	// FullyUnlock that lives on an unrelated battlefield permanent, so no
 	// pre-split switch arm could have dispatched it.
 	"FullyUnlock",
+	// trig-proliferate: "Whenever you proliferate ..." (CR 701.27; the 6
+	// corpus carrier files at the pin -- Voidwing Hybrid, Ezuri Stalker of
+	// Spheres, Scheming Aspirant, Venser Corpse Puppet, Ichor Aberration,
+	// Contagion Dispenser). It matches the events.Proliferate marker Kind,
+	// which was appended for it because a CounterChange cannot be the signal
+	// (a proliferate with no eligible recipient still happened, while an
+	// ordinary counter addition is not a proliferate action), so it could not
+	// have been in the pre-split switch.
+	"Proliferate",
 }
 
 func allRegisteredModeNames() []string {

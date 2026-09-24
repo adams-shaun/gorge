@@ -2423,6 +2423,12 @@ func init() {
 		"trig:Discover", "trig:SeekAll",
 		"trig:Surveil", "trig:Scry",
 		"trig:PhaseOutAll",
+		// trig-proliferate: "Whenever you proliferate ..." (CR 701.27; the 6
+		// corpus carriers at the pin, Voidwing Hybrid and Ezuri Stalker of
+		// Spheres among them). Matched by proliferateMatches on the
+		// events.Proliferate marker effProliferate emits once per completed
+		// action.
+		"trig:Proliferate",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched

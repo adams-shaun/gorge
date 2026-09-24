@@ -343,7 +343,7 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " " + obj(g, ev.IDs[0])
 		}
 		return s
-	case events.Discover, events.Seek, events.Surveil, events.Scry:
+	case events.Discover, events.Seek, events.Surveil, events.Scry, events.Proliferate:
 		// The discover (CR 701.57), seek (task trigdisc1), surveil
 		// (CR 701.42) and scry (CR 701.18, task scrybottom) records are pure
 		// markers: the action's own state changes (the exiles/reveals and the
@@ -358,6 +358,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		}
 		if ev.Kind == events.Scry {
 			return player(g, ev.Player) + " scries"
+		}
+		if ev.Kind == events.Proliferate {
+			// The completed proliferate marker (CR 701.27, task
+			// trig-proliferate) follows the counter batch's own lines and
+			// names only the proliferating seat; Obj is the source permanent.
+			return player(g, ev.Player) + " proliferates"
 		}
 		return player(g, ev.Player) + " discovers"
 	case events.StoreSVar:
