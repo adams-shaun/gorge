@@ -4,15 +4,17 @@ package rules
 // enters with a +1/+1 counter on it for each color of mana spent to cast it.
 // If it isn't a creature, it enters with that many charge counters instead."
 //
-// The keyword is implemented rules-side by sunburstEntryMatch, the
-// bloodthirstEntryMatch pattern: the entering permanent's DERIVED keyword list
-// is read at MoveZone->Battlefield collection time, so a printed K:Sunburst
-// and a layer-6 `DB$ Animate | Keywords$ Sunburst` grant (Solar Array, Lux
-// Artillery) are ONE shape. The count is the existing CR 107.4f converge head
-// fed by the pay-time FlagConverged CastInfo (rules/cast.go's faceWantsConverge
-// gate, widened to cover sunburst faces; sunburstGrantOut is the additional arm
-// for the grant-delivered case). Every corpus carrier here is loaded from the
-// REAL registry -- the scripts are GPL and never committed.
+// A PRINTED K:Sunburst line is expanded cards-side (cards/kw_sunburst.go)
+// into the entry Repl whose body puts Count$Converge counters with the kind
+// decided on the printed face's types; the layer-6 `DB$ Animate | Keywords$
+// Sunburst` grant shape (Solar Array, Lux Artillery), whose printed face
+// never carries the line, is covered rules-side by sunburstEntryMatch, which
+// skips printed carriers so one entry counts once either way. The count is
+// the existing CR 107.4f converge head fed by the pay-time FlagConverged
+// CastInfo (rules/cast.go's faceWantsConverge gate, widened to cover sunburst
+// faces; sunburstGrantOut is the additional arm for the grant-delivered
+// case). Every corpus carrier here is loaded from the REAL registry -- the
+// scripts are GPL and never committed.
 
 import (
 	"testing"

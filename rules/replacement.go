@@ -149,11 +149,13 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 // instead enters with that many charge counters on it.").
 //
 // The keyword is read from the entering object's DERIVED keyword list
-// (derivedKeywordParam), exactly as bloodthirstEntryMatch reads its own: a
-// printed `K:Sunburst` and a layer-6 `DB$ Animate | Keywords$ Sunburst` grant
-// (Solar Array, Lux Artillery) are ONE identical shape, so the grant path --
-// which a cards-side K: expansion could never see -- is covered by the same
-// read. The counter KIND follows Forge's own Sunburst expansion
+// (derivedKeywordParam), but this synthetic covers the layer-6
+// `DB$ Animate | Keywords$ Sunburst` GRANT shape only (Solar Array, Lux
+// Artillery): a PRINTED K:Sunburst line is expanded cards-side
+// (cards/kw_sunburst.go) onto the face's own Repls, which the face-Repl scan
+// above already collects, so the printed-face check below skips it -- a
+// synthetic on top of the expansion would put the entry counters twice. The
+// counter KIND follows Forge's own Sunburst expansion
 // (CardFactoryUtil: `host.isCreature() ? P1P1 : CHARGE`), decided from the
 // entering object's PRINTED face (CR 702.47a's "if it isn't a creature" is
 // evaluated on the card's own types, ignoring type-changing effects), so a
@@ -170,6 +172,12 @@ func (e *Engine) sunburstEntryMatch(ev events.Event) *replMatch {
 	}
 	o := e.G.Obj(ev.Obj)
 	if o == nil || o.Face() == nil {
+		return nil
+	}
+	if o.Face().HasKeyword("Sunburst") {
+		// Printed K:Sunburst: already expanded cards-side (cards/kw_sunburst.go);
+		// the face-Repl scan collected it. The grant shape's printed face never
+		// carries the line, so this gate admits only the granted case.
 		return nil
 	}
 	kind := "CHARGE"
@@ -344,10 +352,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		if m := e.bloodthirstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
 			matches = append(matches, *m)
 		}
-		// kw:Sunburst (CR 702.47): the entering permanent's own sunburst --
-		// printed or layer-6 granted -- is another Updated entry replacement,
+		// kw:Sunburst (CR 702.47): the layer-6 `Keywords$ Sunburst` GRANT shape
+		// (Solar Array, Lux Artillery) is one more Updated entry replacement,
 		// collected after the face-Repl scan for the same deterministic
-		// composition reason bloodthirst's is.
+		// composition reason bloodthirst's is; a printed K:Sunburst face carries
+		// the cards-side expansion (cards/kw_sunburst.go) instead, which this
+		// scan already collected, and the synthetic skips it.
 		if m := e.sunburstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
 			matches = append(matches, *m)
 		}
