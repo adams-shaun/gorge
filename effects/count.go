@@ -2423,10 +2423,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// Creature.YouCtrl), the Compare head's evalCountOperand recursion
 			// precedent; an unresolvable token degrades to 0, never wedges.
 			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
-			holds := false
-			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
-				holds = state.WasCastFromGraveyard(o.CastFlags)
-			}
+			holds := state.ObjectWasCastFromGraveyard(g.Obj(c.Source))
 			if holds {
 				y, ok := resolveCountOperand(h, c, yesTok, depth)
 				if !ok {
