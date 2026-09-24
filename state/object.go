@@ -382,12 +382,21 @@ func ExilesLeavingStack(flags uint64) bool {
 // WasCastFromGraveyard reports whether a cast carrying these flags was made
 // from a graveyard by a keyword that grants such a cast: flashback
 // (CR 702.32a), jump-start (CR 702.84a), harmonize and escape (CR 702.42a).
-// It is the effects-side body of the Card.wasCastFromGraveyard predicate
-// (effects/filter.go), shared by the three effects call sites so the
-// definition cannot drift between the filter, the compiled predicate and the
-// Count$wasCastFromGraveyard reader.
+// It is the flags-only body of the Card.wasCastFromGraveyard predicate
+// (effects/filter.go); object-aware readers must call
+// ObjectWasCastFromGraveyard instead, which adds the never-cast guard.
 func WasCastFromGraveyard(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
+}
+
+// ObjectWasCastFromGraveyard is the ONE home for the object-aware read of
+// the graveyard-origin cast provenance: the flags test PLUS the never-cast
+// guard. A stack copy is PUT on the stack, never cast (CR 707.10/706.10),
+// so IsCopy reads false even though events.Apply's StackCopy case leaves the
+// graveyard-origin bits inherited (state.CastProvenanceFlags does not strip
+// them). Every reader must call this, never the flags test directly.
+func ObjectWasCastFromGraveyard(o *Object) bool {
+	return o != nil && !o.IsCopy && WasCastFromGraveyard(o.CastFlags)
 }
 
 // ModeChoice is one ChoiceRestriction$ pick recorded on an object: the

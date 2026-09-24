@@ -6,9 +6,10 @@ package seat
 // internal/archtest), so the encoder — which reads a projected view.View —
 // is reached from here, where the view is already in hand.
 //
-// What the policy answers itself is ONLY the KAttackers subset. KPriority is
-// trained and fully wired, but DELEGATED — see the KPriority note below for
-// the measurement that forces it.
+// Which kinds the policy answers itself is a per-seat selection
+// (NewPolicyNetBotKinds; botbench -policynet-kinds). The DEFAULT is the
+// KAttackers subset only; KPriority is opt-in and gated to the distribution
+// the head was trained on.
 //
 //   - KAttackers: one scored subset. The per-option inclusion vote compares
 //     each score against admissionThreshold's per-decision reference: the
@@ -27,34 +28,35 @@ package seat
 //     is then repaired the way chooseAttackersMode repairs it: one option per
 //     attacker (CR 506.2), every required attacker declared (CR 508.1d) and
 //     the Max ceiling applied required-first (CR 508.1j).
-//   - KPriority: DELEGATED, and delegation is load-bearing, not a tidy-up.
-//     Measured on the merged tree (this file, with the residual prior's
-//     inference half below present and the attackers fix in place): with
-//     priority SCORED the seat wins 0/1000 against the default bot at mean
-//     13.4 turns; with priority DELEGATED and nothing else changed it wins
-//     474/1000 (47.4% [44.3%, 50.5%]) against the bot self-control's 51.5%
-//     [48.4%, 54.6%]. (Ten approved mono pairs, 100 games/pair, seed
-//     10000000, checkpoint bce-big.gpol.) Two reasons the scored path loses:
-//     its surface omits the tap ("activate") and play_land options the
-//     teacher never labelled, so the argmax cannot answer the whole decision;
-//     and the head is worse than the bot even at the cast/ability/pass
-//     ternary it does cover (0.355-0.371 top-1 vs a 0.678 bot baseline). In
-//     play it vetoes the bot's own casts and starves its development.
+//   - KPriority (opt-in): scored ONLY when priorityScorable holds — the
+//     checkpoint's ResidualW > 0, the decision offers >= 2 distinct castable
+//     objects (botpolicy.CastableObjects, the count searchseat.Eligible gates
+//     the teacher's labels on) and the default bot's own answer is one
+//     cast/ability/pass option (the only bot answers the teacher labels).
+//     Every other priority decision returns the bot's answer unscored.
 //
-//     The residual prior (below) is the intended fix for exactly this, and
-//     priorityFromScores implements its admission rule — but it can only help
-//     a model with a POSITIVE ResidualW, and that weight only exists in a
-//     schema-v2 checkpoint. Every checkpoint available to this branch is v1
-//     and loads ResidualW == 0 (measured), so the prior is inactive, the
-//     BotPick mark is a documented no-op, and priorityFromScores reduces
-//     exactly to the pre-existing argmax the 0/1000 above measures. The
-//     delegation therefore CANNOT be cleared on any checkpoint that exists
-//     today; re-scoring priority needs a ResidualW > 0 checkpoint and a bench
-//     that beats the bar above, not just the wiring. scoredKind is the single
-//     switch, and TestPolicyNetDelegatesPriority pins it. The head's
-//     learnability is owned by agent-20260921T012459Z-cb7a7077; see
-//     docs/superpowers/plans/2026-09-19-learned-cast-profile.md.
+//     Why the gate, measured (pn01; ten approved mono pairs, 100 games/pair,
+//     seed 10000000, 1000 games per arm; control bot-vs-bot 50.1%
+//     [47.0%, 53.2%], 15.4 turns): priority scored UNGATED on a ResidualW 0
+//     checkpoint wins 0/1000 at 13.3 turns, reproducing the historical
+//     0/1000 (bce-big.gpol, merge e9945e79). Every one of its ~13
+//     disagreements per game with the bot was OUT of distribution — a
+//     one-castable-object window or a play_land answer — where the scored
+//     argmax (which cannot pick the untrained tap/land surface) passed
+//     instead of casting or playing the land; the head never even reached an
+//     in-distribution decision, because it starved its own development. With
+//     the gate, the ResidualW 0 configuration is unreachable and the
+//     out-of-distribution windows (~190 of every ~195 priority decisions per
+//     game) belong to the bot.
 //
+//     What the gated path does NOT yet do is beat the bot: on the three
+//     trained checkpoints measured (dev corpus ResidualInit 2 and 8, oracle
+//     corpus ResidualInit 2) the head overrode the bot's answer at ZERO of
+//     ~5,150 scored in-distribution priority decisions, so every
+//     priority-scored arm played byte-identically to the same checkpoint's
+//     attackers-only arm (dev r2 46.3% [43.2%, 49.4%]; dev r8 40.5%; oracle
+//     r2 47.1%). The prior is inert-safe, not a source of edge; any gap to
+//     the control is the attackers path's.
 // Every other decision kind delegates to the current default bot (NewBot,
 // same seed derivation) UNCHANGED — so the policy consumes no rng of its
 // own, and a decision whose scored surface encodes to nothing (no options,
@@ -67,19 +69,19 @@ package seat
 // wrapped default bot the same question and marks its answer's options
 // (Option.BotPick) before scoring, so a model trained with a positive
 // ResidualInit scores the same contract it trained under and reproduces the
-// bot baseline unless the learned head overrides. The default bot's answer
-// is also the fallback whenever the scored surface declines to answer. No
-// scored kind consumes the default bot's rng (both answers are pure
-// functions of the offered options and the board facts), so the marking
-// changes no rng stream. With the prior inactive (ResidualWeight 0 — every
-// v1-schema checkpoint, which today is all of them) the mark is a no-op:
-// scores and answers are exactly the pre-wiring ones, and the residual is
-// then honestly a train/eval-only device with the delegation path as the
-// deployed fallback. Since KPriority now delegates, the mark reaches only
-// KAttackers in this build.
+// bot baseline unless the learned head overrides. Checkpoints are schema v2
+// and carry ResidualW (policytrain -residual-init); a checkpoint trained
+// without it loads ResidualW == 0, the mark is then a no-op for attackers and
+// KPriority is never scored. The default bot's answer is also the fallback
+// whenever the scored surface declines to answer. No scored kind consumes
+// the default bot's rng (both answers are pure functions of the offered
+// options and the board facts), so the marking changes no rng stream.
 
 import (
 	"context"
+	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
@@ -96,6 +98,11 @@ import (
 type PolicyNetBot struct {
 	def    *Bot
 	scorer *policynet.Scorer
+	// attackers / priority are the scored-kind selection
+	// (NewPolicyNetBotKinds). Two named switches rather than a set so the
+	// dispatch never ranges a map.
+	attackers bool
+	priority  bool
 }
 
 // compile-time assertions: PolicyNetBot is a Seat and deliberately NOT a
@@ -104,18 +111,117 @@ var (
 	_ Seat = (*PolicyNetBot)(nil)
 )
 
-// NewPolicyNetBot wraps the default bot (same PCG seed derivation as
-// NewBot, so the delegation path consumes exactly the rng the default bot
-// would) with the given scorer. The scorer is owned by the caller; a Scorer
-// is single-threaded, so a bench worker builds one per seat per game over a
-// shared read-only Model.
-func NewPolicyNetBot(seed uint64, sc *policynet.Scorer) *PolicyNetBot {
-	return &PolicyNetBot{def: NewBot(seed), scorer: sc}
+// PolicyNetKindNames is the scored-kind vocabulary, in the order a caller
+// lists it: the decision kinds NewPolicyNetBotKinds accepts, by the names
+// botbench's -policynet-kinds flag spells them. KAttackers is the default;
+// KPriority is opt-in (see the package comment for its gate).
+var PolicyNetKindNames = []string{"attackers", "priority"}
+
+// policyNetKind maps a vocabulary name to its decision kind.
+func policyNetKind(name string) (decision.Kind, bool) {
+	switch name {
+	case "attackers":
+		return decision.KAttackers, true
+	case "priority":
+		return decision.KPriority, true
+	}
+	return "", false
 }
 
-// scoredKinds reports whether the scorer answers this decision kind.
-func scoredKind(d *decision.Decision) bool {
-	return d.Kind == decision.KAttackers
+// ParsePolicyNetKinds parses a comma list of scored-kind names
+// (PolicyNetKindNames) into decision kinds. Empty entries are an error, as
+// are unknown or repeated names and an empty list: the flag's value is a
+// deliberate selection, and a typo must not silently fall back to a default.
+func ParsePolicyNetKinds(list string) ([]decision.Kind, error) {
+	var out []decision.Kind
+	for _, name := range strings.Split(list, ",") {
+		name = strings.TrimSpace(name)
+		k, ok := policyNetKind(name)
+		if !ok {
+			return nil, fmt.Errorf("unknown policynet kind %q (want a comma list of %s)", name, strings.Join(PolicyNetKindNames, ","))
+		}
+		if slices.Contains(out, k) {
+			return nil, fmt.Errorf("policynet kind %q listed twice", name)
+		}
+		out = append(out, k)
+	}
+	return out, nil
+}
+
+// NewPolicyNetBot wraps the default bot (same PCG seed derivation as
+// NewBot, so the delegation path consumes exactly the rng the default bot
+// would) with the given scorer, scoring the DEFAULT kind set: KAttackers
+// only. The scorer is owned by the caller; a Scorer is single-threaded, so a
+// bench worker builds one per seat per game over a shared read-only Model.
+func NewPolicyNetBot(seed uint64, sc *policynet.Scorer) *PolicyNetBot {
+	return NewPolicyNetBotKinds(seed, sc, []decision.Kind{decision.KAttackers})
+}
+
+// NewPolicyNetBotKinds is NewPolicyNetBot with an explicit scored-kind
+// selection: kinds may name KAttackers and KPriority (any other kind panics —
+// a programming error; ParsePolicyNetKinds is the validated front door). A
+// kind left out delegates to the default bot exactly as every unscored kind
+// does. KPriority in the set is necessary but not sufficient for a priority
+// decision to be scored: priorityScorable's distribution gate must also
+// hold.
+func NewPolicyNetBotKinds(seed uint64, sc *policynet.Scorer, kinds []decision.Kind) *PolicyNetBot {
+	b := &PolicyNetBot{def: NewBot(seed), scorer: sc}
+	for _, k := range kinds {
+		switch k {
+		case decision.KAttackers:
+			b.attackers = true
+		case decision.KPriority:
+			b.priority = true
+		default:
+			panic(fmt.Sprintf("seat: NewPolicyNetBotKinds: kind %q is not a scored policynet kind", k))
+		}
+	}
+	return b
+}
+
+// scoresKind reports whether this seat's scored-kind selection covers d's
+// kind. For KPriority the per-decision gate (priorityScorable) still
+// applies.
+func (b *PolicyNetBot) scoresKind(d *decision.Decision) bool {
+	switch d.Kind {
+	case decision.KAttackers:
+		return b.attackers
+	case decision.KPriority:
+		return b.priority
+	}
+	return false
+}
+
+// priorityScorable is the priority distribution gate: a priority decision
+// is scored only when it has the shape the head was TRAINED on, and
+// otherwise the default bot's answer stands. All of:
+//
+//   - the residual prior is active (residualW > 0). With ResidualW 0 the
+//     scored path is the plain argmax that measured 0/1000 in play, so that
+//     configuration is unreachable;
+//   - the decision offers >= 2 distinct castable objects
+//     (botpolicy.CastableObjects — the same count searchseat.Eligible gates
+//     the teacher's priority labels on);
+//   - the bot's own answer is exactly one option of kind cast, ability or
+//     pass — the teacher labels a priority decision only when the bot's
+//     answer is a single candidate-kind action (searchseat's candidates arm,
+//     searchprobe.Candidates), so a play_land or tap ("activate") answer, or
+//     a multi-choice one, is a decision the head never saw.
+func priorityScorable(d *decision.Decision, botIn decision.Intent, residualW float32) bool {
+	if residualW <= 0 || botpolicy.CastableObjects(d) < 2 || len(botIn.Choices) != 1 {
+		return false
+	}
+	for i := range d.Options {
+		if d.Options[i].Index != botIn.Choices[0] {
+			continue
+		}
+		switch d.Options[i].Kind {
+		case "cast", "ability", "pass":
+			return true
+		}
+		return false
+	}
+	return false
 }
 
 // encode runs the fixed encoder over the seat's view and the offered
@@ -134,36 +240,40 @@ func (b *PolicyNetBot) encode(v view.View, d *decision.Decision) (policynet.Stat
 	return st, opts, true
 }
 
-// Decide answers d: the two scored kinds above, the default bot for
+// Decide answers d: the selected scored kinds above, the default bot for
 // everything else. For a scored kind the wrapped default bot is asked FIRST
-// (its answer marks the residual prior's BotPick and is the fallback when
-// the scored surface cannot answer) — see the residual-prior paragraph
-// above for the determinism and no-op-when-inactive contract.
+// (its answer marks the residual prior's BotPick, gates a priority decision
+// and is the fallback when the scored surface cannot answer) — see the
+// residual-prior paragraph above for the determinism contract.
 func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	if scoredKind(&d) {
-		botIn, err := b.def.Decide(ctx, v, d)
-		if err != nil {
-			return decision.Intent{}, err
-		}
-		st, opts, ok := b.encode(v, &d)
-		if ok {
-			markBotPicks(&d, opts, botIn)
-			scores := b.scorer.Score(st, opts)
-			var in decision.Intent
-			var scored bool
-			switch d.Kind {
-			case decision.KAttackers:
-				in, scored = attackersFromScores(&d, scores)
-			case decision.KPriority:
-				in, scored = priorityFromScores(&d, opts, scores, b.scorer.ResidualWeight() > 0)
-			}
-			if scored {
-				return in, nil
-			}
-		}
+	if !b.scoresKind(&d) {
+		return b.def.Decide(ctx, v, d)
+	}
+	botIn, err := b.def.Decide(ctx, v, d)
+	if err != nil {
+		return decision.Intent{}, err
+	}
+	if d.Kind == decision.KPriority && (b.scorer == nil || !priorityScorable(&d, botIn, b.scorer.ResidualWeight())) {
 		return botIn, nil
 	}
-	return b.def.Decide(ctx, v, d)
+	st, opts, ok := b.encode(v, &d)
+	if !ok {
+		return botIn, nil
+	}
+	markBotPicks(&d, opts, botIn)
+	scores := b.scorer.Score(st, opts)
+	var in decision.Intent
+	var scored bool
+	switch d.Kind {
+	case decision.KAttackers:
+		in, scored = attackersFromScores(&d, scores)
+	case decision.KPriority:
+		in, scored = priorityFromScores(&d, scores)
+	}
+	if scored {
+		return in, nil
+	}
+	return botIn, nil
 }
 
 // markBotPicks sets Option.BotPick on every option whose Index the given
@@ -313,27 +423,14 @@ func attackersFromScores(d *decision.Decision, scores []float32) (decision.Inten
 	return botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player, Choices: chosen}), true
 }
 
-// priorityFromScores is RETAINED BUT CURRENTLY UNREACHABLE: scoredKind no
-// longer admits KPriority (the scored path measures 0/1000 in play — see the
-// package comment), so nothing calls this today. It is kept, not deleted,
-// because it implements the residual prior's priority admission rule and is
-// the exact code a ResidualW > 0 checkpoint needs; deleting it would make
-// re-enabling the kind a rewrite rather than a one-line scoredKind change.
-// Its behaviour is pinned by TestPolicyNetResidualReproducesTheBotInPlay
-// only for the arms that reach it.
-//
-// It turns the per-option scores into the scored cast choice: argmax over the options the teacher's candidate space covered
-// (cast / ability / pass — searchprobe.Candidates' pool), ties on the
-// lowest option index. When admitBotPicks is set (the residual prior is
-// active), an option marked BotPick — the wrapped default bot's own answer,
-// marked by markBotPicks — is admissible in the argmax EVEN when its Kind is
-// the untrained tap/land surface: with the prior on, the bot's own action
-// carries the prior and wins unless the head overrides it; without the
-// prior, the untrained surface stays excluded exactly as before. ok is
-// false when the decision offers none of those — the untrained-surface
-// shape that falls back to the already-computed default-bot answer (whose
-// tap gate and land drop answer, as they do for every delegated kind).
-func priorityFromScores(d *decision.Decision, opts []policynet.Option, scores []float32, admitBotPicks bool) (decision.Intent, bool) {
+// priorityFromScores turns the per-option scores into the scored cast
+// choice: argmax over the options the teacher's candidate space covers
+// (cast / ability / pass — searchprobe.Candidates' pool), ties on the lowest
+// option index. It is reached only through priorityScorable, so the bot's
+// own answer is always one of those options and carries the residual
+// prior's BotPick bonus: it wins unless the learned head overrides it. ok is
+// false when the decision offers none of those options.
+func priorityFromScores(d *decision.Decision, scores []float32) (decision.Intent, bool) {
 	if len(d.Options) == 0 || len(scores) != len(d.Options) {
 		return decision.Intent{}, false
 	}
@@ -343,9 +440,7 @@ func priorityFromScores(d *decision.Decision, opts []policynet.Option, scores []
 		switch d.Options[i].Kind {
 		case "cast", "ability", "pass":
 		default:
-			if !(admitBotPicks && opts[i].BotPick) {
-				continue
-			}
+			continue
 		}
 		if best == -1 || scores[i] > bestScore {
 			best, bestScore = i, scores[i]
