@@ -214,6 +214,39 @@ func (w *livelockWatcher) observe(ev events.Event) {
 	if w.guard.Disabled {
 		return
 	}
+	// Runaway backstop: count the events since the last progress event.
+	if progressKinds[ev.Kind] {
+		w.quiet = 0
+	} else {
+		if w.quiet == 0 {
+			w.quietSince = ev.Seq
+		}
+		w.quiet++
+	}
+	if w.quiet > w.guard.RunawayEvents {
+		panic(&LivelockError{
+			Reason:      "runaway resolution",
+			Kind:        ev.Kind,
+			Object:      ev.Obj,
+			FirstSeq:    w.quietSince,
+			LastSeq:     ev.Seq,
+			QuietEvents: w.quiet,
+		})
+	}
+
+	// A ClockTick is pure bookkeeping -- AddContinuous stamps one per
+	// registered effect (Ruling T19-a) -- and carries no object, so a single
+	// resolution that legitimately registers one effect per affected
+	// permanent (a PumpAll over a 400-creature board: Moogles' Valor at the
+	// end of a token-doubling game, cardfuzz batch5 line 4) is a run of
+	// identical signatures that is not a loop. It is invisible to the
+	// exact-period detector (a real loop that also ticks the clock still
+	// repeats its other events, which the detector sees with the ticks
+	// elided), and it still counts toward the runaway backstop above, so a
+	// loop that does nothing BUT register effects is still caught.
+	if ev.Kind == events.ClockTick {
+		return
+	}
 	sig := eventSignature(ev)
 	if mintingKinds[ev.Kind] {
 		w.mints++
@@ -233,26 +266,6 @@ func (w *livelockWatcher) observe(ev events.Event) {
 	} else {
 		w.recent[w.recentHead] = ev
 		w.recentHead = (w.recentHead + 1) % w.guard.MaxPeriod
-	}
-
-	// Runaway backstop: count the events since the last progress event.
-	if progressKinds[ev.Kind] {
-		w.quiet = 0
-	} else {
-		if w.quiet == 0 {
-			w.quietSince = ev.Seq
-		}
-		w.quiet++
-	}
-	if w.quiet > w.guard.RunawayEvents {
-		panic(&LivelockError{
-			Reason:      "runaway resolution",
-			Kind:        ev.Kind,
-			Object:      ev.Obj,
-			FirstSeq:    w.quietSince,
-			LastSeq:     ev.Seq,
-			QuietEvents: w.quiet,
-		})
 	}
 
 	// Exact-period detector. While a run is active, each event that

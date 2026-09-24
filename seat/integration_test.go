@@ -206,6 +206,9 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 		if boardView.Pool != boardGame.Pool {
 			t.Fatalf("intent %d: pool diverged: view %v vs game %v (step %s)", n, boardView.Pool, boardGame.Pool, eGame.G.Step)
 		}
+		if boardView.PoolRestricted != boardGame.PoolRestricted {
+			t.Fatalf("intent %d: restricted pool diverged: view %v vs game %v (step %s)", n, boardView.PoolRestricted, boardGame.PoolRestricted, eGame.G.Step)
+		}
 		if boardView.Pool.Total() > 0 {
 			poolN++
 		}
@@ -447,6 +450,9 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		// real pool and the agreement is not vacuous.
 		if boardView.Pool != boardGame.Pool {
 			t.Fatalf("intent %d: pool diverged: view %v vs game %v (step %s)", n, boardView.Pool, boardGame.Pool, eGame.G.Step)
+		}
+		if boardView.PoolRestricted != boardGame.PoolRestricted {
+			t.Fatalf("intent %d: restricted pool diverged: view %v vs game %v (step %s)", n, boardView.PoolRestricted, boardGame.PoolRestricted, eGame.G.Step)
 		}
 		if boardView.Pool.Total() > 0 {
 			poolN++

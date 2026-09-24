@@ -1762,6 +1762,18 @@ type combatRound struct {
 	// cannot run (nor can its SBA/regular pass) until that event settles.
 	assignments []assignment
 	damageNext  int
+	// dealing marks a pass whose damage has started being dealt (damageStep's
+	// fresh path stored its assignments) and whose completeCombatPass tail
+	// has not run yet. A decision that is NOT a replacement-order ask can be
+	// posed mid-pass -- a DamageDone replacement body's own ask (Phyrexian
+	// Vindicator's "deals that much damage to any other target" target
+	// choice) -- and runCombatAssignments deals the remaining assignments
+	// under it, but completeCombatPass must wait for the answer. When the
+	// Advance loop re-enters combatStep after that answer, dealing routes it
+	// to the pass's completion instead of beginning the SAME pass again,
+	// which re-dealt the already-dealt combat damage forever (cardfuzz batch5
+	// line 10: choose -> damage -> replacement ask -> ... repeated).
+	dealing bool
 }
 
 // divChoice records one answered damage division: which attacker divided its
@@ -1778,6 +1790,20 @@ type divChoice struct {
 // pass, and through advanceStep after the between-passes priority round
 // completes the first-strike pass and the regular pass must run.
 func (e *Engine) combatStep() {
+	if e.combatRound.dealing {
+		// A pass already dealt (some or all of) its damage and was suspended
+		// by a decision posed mid-pass (see combatRound.dealing): resume the
+		// parked remainder, then run the pass's completion exactly once.
+		pass := e.combatRound.pass
+		if e.combatRound.assignments != nil {
+			e.damageStep(pass)
+		}
+		if e.combatRound.assignments != nil || e.pending != nil {
+			return
+		}
+		e.completeCombatPass(pass)
+		return
+	}
 	if !e.combatRound.firstDone {
 		e.combatRound.hasFirst = e.anyFirstStrike()
 		if e.combatRound.hasFirst {
@@ -2087,6 +2113,7 @@ func (e *Engine) finishCombatPass() {
 // after every assignment in the pass has landed. It is also called by the
 // replacement-order resumption path.
 func (e *Engine) completeCombatPass(pass bool) {
+	e.combatRound.dealing = false
 	e.combatRound.queue = nil
 	e.combatRound.done = nil
 	e.combatRound.askAttacker = 0
@@ -2498,6 +2525,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 	e.BeginLifeLossBatch()
 	e.combatRound.assignments = as
 	e.combatRound.damageNext = 0
+	e.combatRound.dealing = true
 	e.runCombatAssignments()
 }
 

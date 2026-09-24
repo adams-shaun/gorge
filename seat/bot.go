@@ -207,6 +207,14 @@ func boardFromView(v view.View) botpolicy.Board {
 			for sym, n := range p.Pool {
 				b.Pool[state.ManaIndex(sym[0])] = n
 			}
+			// The restricted share of that pool (Board.PoolRestricted): the
+			// View names exactly the batches with a spend limit, carrying the
+			// producing counter verbatim, the game half's source too.
+			for _, r := range p.PoolRestrictions {
+				if r.Amount > 0 {
+					b.PoolRestricted[state.ManaSlot(r.Color)] += r.Amount
+				}
+			}
 		}
 		for _, cv := range p.Battlefield {
 			if !isCreatureView(cv) {

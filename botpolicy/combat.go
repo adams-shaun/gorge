@@ -183,6 +183,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	b.FirstMain = g.Step == state.StepMain1
 	b.MyTurn = g.Active == me
 	b.Pool = g.Players[me].Pool
+	b.PoolRestricted = RestrictedPool(g.Players[me].RestrictedMana)
 	b.LibrarySize = int32(len(g.Zone(state.ZLibrary, me)))
 	b.HandSize = int32(len(g.Zone(state.ZHand, me)))
 	for i := range g.Players {

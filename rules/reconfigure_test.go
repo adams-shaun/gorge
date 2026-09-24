@@ -291,24 +291,25 @@ func TestReconfigureUnattachedSelfNeverInItsOwnTargetPool(t *testing.T) {
 	}
 
 	// The lone-creature board (the review's worst case): with the source
-	// excluded from its own pool the attach half has no legal target at all,
-	// so the activation aborts before payment (CR 733.1) -- the {2} stays in
-	// the pool and nothing attaches. Before the fix the self option filled
-	// the pool, the {2} was paid and the attach was refused.
+	// excluded from its own pool the attach half has no legal target at all.
+	// The offer gate excludes the source exactly as the ask does
+	// (abilityTargetsAvailable's attach self-exclusion, cardfuzz batch5
+	// line 1), so the activation is never offered -- CR 602.2b: an ability
+	// with no legal target cannot be activated -- the {2} stays in the pool
+	// and nothing attaches. (Before the offer-gate fix it was offered and
+	// then aborted before payment, CR 733.1; before the ask fix the self
+	// option filled the pool, the {2} was paid and the attach was refused.)
 	e2, _ := linkBoard(t, reg, []string{"Razorfield Ripper"}, nil)
 	ripper2 := findOnBoard(t, e2, 0, "Razorfield Ripper")
 	addMana(t, e2, 0, "CC")
-	opt2, ok := findAbilityOption(e2, ripper2, 0)
-	if !ok {
-		t.Fatal("lone board: the {2} attach not offered")
+	if _, ok := findAbilityOption(e2, ripper2, 0); ok {
+		t.Fatal("lone board: the {2} attach offered with no legal target")
 	}
-	submitChoices(t, e2, opt2.Index)
-	passUntilStackEmpty(t, e2, 20)
 	if got := e2.G.Obj(ripper2).AttachedTo; got != 0 {
 		t.Fatalf("lone board: ripper attached to %d with no legal target, want unattached", got)
 	}
 	if got := e2.G.Players[0].Pool.Total(); got != 2 {
-		t.Fatalf("lone board: pool %d after the aborted attach, want the unspent {2}", got)
+		t.Fatalf("lone board: pool %d, want the unspent {2}", got)
 	}
 }
 

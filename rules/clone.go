@@ -174,6 +174,10 @@ func (e *Engine) Clone() *Engine {
 		ev := *e.siegeMove
 		c.siegeMove = &ev
 	}
+	if e.entryStageDone != nil {
+		st := *e.entryStageDone
+		c.entryStageDone = &st
+	}
 	if e.untapResume != nil {
 		r := *e.untapResume
 		c.untapResume = &r

@@ -537,6 +537,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// turn), and the frozen SetChosenNumber$ binding.
 		if body != "" && (event == "DamageDone" ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
+			(event == "Moved" && replacementRedirectsToExile(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken")) {
 			effectContinuous(h, state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
@@ -2213,6 +2214,89 @@ func IsUntilYourNextTurn(dur string) bool {
 // an unclassified local.
 func replacementLineWith(params map[string]string) string {
 	return params["ReplaceWith"]
+}
+
+// replacementRedirectsToExile reports whether an Effect-delivered Event$
+// Moved replacement is the plain "exile it instead" redirect: a
+// ReplaceWith$ body `DB$ ChangeZone | Defined$ ReplacedCard | Destination$
+// Exile` (Origin$/Hidden$ riders only), optionally chaining the one-shot
+// self-exile idiom `DB$ ChangeZone | Defined$ Self | Origin$ Command |
+// Destination$ Exile` (effects/zone.go ends the registration on it). That is
+// exactly the body shape a PRINTED R: line resolves through the same
+// replacement dispatcher (Rest in Peace, Leyline of the Void), so the
+// Effect-created registration cannot lose the moved object: the replaced
+// move is discarded and the body moves the same card to exile.
+//
+// The line's own parameters must be ones the Moved matcher reads (the
+// Fizzle$/Optional$/Layer$ riders and any other stay on the loud Note path),
+// and every other body shape -- a library/battlefield destination, counters,
+// a RememberChanged$/plot/delayed-trigger chain -- keeps its loud Note.
+//
+// Before this, Mavinda, Students' Advocate's "if that spell would be put into
+// your graveyard, exile it instead" was a Note: the recast card went back to
+// the graveyard while the MayPlay grant still named it, so a {0} sorcery
+// (Indicate) was recast forever inside one turn (cardfuzz batch5 line 7).
+// The same promise is the whole point of Jace, Vryn's Prodigy, Dire Fleet
+// Daredevil, Gaea's Will and the other ~20 carriers of this shape.
+func replacementRedirectsToExile(params map[string]string, body string, svars map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Event", "ValidCard", "ValidLKI", "Origin", "Destination", "ActiveZones",
+			"EffectZone", "ReplaceWith", "Description":
+		default:
+			return false
+		}
+	}
+	if replacementBodyAPI(body) != "ChangeZone" {
+		return false
+	}
+	return redirectExileBody(replacementBodyParams(body), svars)
+}
+
+// redirectExileBody is replacementRedirectsToExile's body gate: body is the
+// Key$ Value map of the ReplaceWith$ SVar body (a parsed SVar line, not a
+// card Params map) and svars the face's SVar table its SubAbility$ names.
+func redirectExileBody(body map[string]string, svars map[string]string) bool {
+	if body["Defined"] != "ReplacedCard" || body["Destination"] != "Exile" {
+		return false
+	}
+	for k, v := range body {
+		switch k {
+		case "DB", "Defined", "Destination", "Origin", "StackDescription":
+		case "Hidden":
+			if !strings.EqualFold(v, "True") {
+				return false
+			}
+		case "SubAbility":
+			line := svars[v]
+			if replacementBodyAPI(line) != "ChangeZone" || !selfExileIdiom(replacementBodyParams(line)) {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// selfExileIdiom reports whether sub (a parsed SVar body) is exactly the
+// one-shot `DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$
+// Exile` idiom that ends the Effect's registration (effects/zone.go).
+func selfExileIdiom(sub map[string]string) bool {
+	return len(sub) == 4 && sub["Defined"] == "Self" && sub["Origin"] == "Command" && sub["Destination"] == "Exile"
+}
+
+// replacementBodyParams splits one SVar body line into its Key$ Value map.
+func replacementBodyParams(body string) map[string]string {
+	params := make(map[string]string)
+	for seg := range strings.SplitSeq(body, "|") {
+		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
+		if !ok {
+			continue
+		}
+		params[strings.TrimSpace(key)] = strings.TrimSpace(val)
+	}
+	return params
 }
 
 // replacementLineCantHappen reports whether a parseReplacementLine-built

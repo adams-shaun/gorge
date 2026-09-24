@@ -1249,7 +1249,15 @@ var stringMapParams = map[string]string{
 	// bodyless Prevent$ True DamageDone recognition (Selfless Squire's
 	// RPrevent, task dponce1) reads the same SVar body shape, not a card
 	// Params map.
-	"effects:replacementLinePrevents:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map"}
+	"effects:replacementLinePrevents:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map",
+	// effects/misc.go redirectExileBody / selfExileIdiom (cardfuzz batch5
+	// line 7): body and sub are replacementBodyParams-built maps of an
+	// Effect's ReplaceWith$ SVar body and its SubAbility$ line, svars the
+	// face's SVar table the SubAbility$ name is looked up in -- recognitions
+	// of the Effect-created "exile it instead" redirect, not card Params maps.
+	"effects:redirectExileBody:body":  "keys of a replacementBodyParams-built ReplaceWith$ SVar body, not a card Params map",
+	"effects:redirectExileBody:svars": "SVars table lookup by SubAbility$ name, not a card Params map",
+	"effects:selfExileIdiom:sub":      "keys of a replacementBodyParams-built SubAbility$ SVar body, not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //
