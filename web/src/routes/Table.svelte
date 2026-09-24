@@ -194,21 +194,25 @@
   // A direct card action can hand the server a first-stage choice and receive
   // a second decision for the same object (Underground Sea's activate -> Add
   // U / Add B flow; a multi-ability mana source's stage-1 ability pick -> its
-  // stage-2 colour wheel, fb-e079def5). Remember only that one network
-  // continuation: the picker itself is unmounted while the posted decision is
-  // hidden, so it cannot carry open state across the round trip. The effect
-  // is the one decoder of the expectation -- resolveCardFollowUp opens the
-  // picker only when the next decision really carries 2-6 options on the
-  // expected object, and disarms otherwise.
-  let expectedCardFollowUp = $state<{ seq: number; obj: number } | null>(null);
+  // stage-2 colour wheel, fb-e079def5; a Treasure's activate -> its colour
+  // ask, fb-20260923T050205Z). The expectation is ARMED by SeatPanelState
+  // itself, on the accepted hand post -- this route no longer owns that
+  // write, because the tile path (boardOptions.post) and the seat panel's own
+  // option buttons (SeatPanel.svelte's onclick -> panel.click) both post
+  // through panel.click, and only one of them used to arm. Remember only that
+  // one network continuation: the picker itself is unmounted while the posted
+  // decision is hidden, so it cannot carry open state across the round trip.
+  // The effect is the one decoder of the expectation -- resolveCardFollowUp
+  // opens the picker only when the next decision really carries 2-6 options
+  // on the expected object, and disarms otherwise.
   let autoOpenCardDecision = $state<{ seq: number; obj: number } | null>(null);
   //
   $effect(() => {
     const d = m.view?.decision ?? null;
-    const expected = expectedCardFollowUp;
-    if (d === null || expected === null || d.seq === expected.seq) return;
+    const expected = panel?.followUpExpected ?? null;
+    if (d === null || panel === null || expected === null || d.seq === expected.seq) return;
     autoOpenCardDecision = resolveCardFollowUp(expected, d);
-    expectedCardFollowUp = null;
+    panel.followUpExpected = null;
   });
 
   // The board's card-options index (ui21): the pending decision grouped by
@@ -233,9 +237,13 @@
       picked: [...panel.picked],
       tone: toneOf(d),
       autoOpenObj: autoOpenCardDecision?.seq === d.seq ? autoOpenCardDecision.obj : undefined,
-      post: (index: number, expectFollowUp = false, holdPriority = false) => {
-        const obj = d.options.find((option) => option.index === index)?.obj;
-        expectedCardFollowUp = expectFollowUp && obj !== undefined ? { seq: d.seq, obj } : null;
+      post: (index: number, _expectFollowUp = false, holdPriority = false) => {
+        // The tile path shares the arm site with the panel: panel.click arms
+        // the card-follow-up expectation itself, so this route no longer
+        // writes it. The expectFollowUp flag stays on the signature because
+        // every tile affordance speaks it (cardoptions.CardOptions.post) --
+        // the CONTRACT that a card-anchored post may hand back a follow-up --
+        // even though the arm now rides the click, not the flag.
         autoOpenCardDecision = null;
         panel.click(index, { holdPriority });
       },

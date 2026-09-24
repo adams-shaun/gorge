@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /><title>Seat panel follow-up fixture</title></head>
+  <body>
+    <!-- The seat panel's plain option buttons (the surface the treasure
+         report used). Clicking one posts through the REAL
+         SeatPanelState.click, exactly as SeatPanel.svelte's
+         onclick={() => logic.click(opt.index)} does. -->
+    <div id="panel"></div>
+    <!-- Where the stage-2 colour wheel must appear once the armed
+         expectation decodes. -->
+    <div id="followup" style="width: 220px; height: 320px; margin: 260px"></div>
+    <script type="module" src="/src/components/SeatPanelFollowUp.fixture.ts"></script>
+  </body>
+</html>

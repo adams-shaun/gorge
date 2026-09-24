@@ -156,6 +156,24 @@ function optionAt(d: Decision, index: number): Option | undefined {
 }
 
 /**
+ * followUpArm is the pure arming rule for the card-follow-up expectation: a
+ * hand post whose answered options carry an `obj` arms with the FIRST such
+ * option's own obj; a post answered only by obj-less options disarms (null).
+ * The obj is read off the answered option itself (R-E4-1), never rebuilt
+ * from the decision's source or a list position. Exported so the rule can be
+ * tested directly, and so SeatPanelState.post is its only caller. The SEQ is
+ * deliberately not part of the input: the caller arms against the decision it
+ * just posted, so it binds d.seq itself.
+ */
+export function followUpArm(d: Decision, choices: number[]): { seq: number; obj: number } | null {
+  for (const index of choices) {
+    const obj = optionAt(d, index)?.obj;
+    if (obj !== undefined) return { seq: d.seq, obj };
+  }
+  return null;
+}
+
+/**
  * Tone is how loudly the panel presents its state, and it is resolved from
  * option KINDS alone — never a label, never a position (R-E4-1).
  *
@@ -460,6 +478,30 @@ export class SeatPanelState {
   picked = $state<number[]>([]);
   /** postedSeq is the seq of the last intent the server accepted; while the pending decision has this seq the answer is in and the options stay hidden. */
   postedSeq = $state<number | null>(null);
+  /**
+   * followUpExpected is the ONE armed card-follow-up expectation, and this
+   * state is its one home because it is the one place BOTH posting surfaces
+   * meet: a hand click on a card's tile posts through click() exactly as a
+   * click on the panel's own option button does, so arming here makes the
+   * tile and the panel behave identically (fb-20260923T050205Z: a treasure
+   * activated from the seat panel never armed it, so the colour ask fell
+   * back to the panel's plain button list instead of raising the radial mana
+   * wheel).
+   *
+   * The one rule: a HAND post whose answered options carry an `obj` arms the
+   * expectation with that option's own obj (R-E4-1 — never a rebuilt
+   * position). Machine posts (auto, the one-shot runs, the empty-window
+   * floor, passClick/primaryClick, the auto-order and remembered-trigger
+   * submits) arm nothing: they post pass/resolve answers, whose options carry
+   * no obj, and they never reach a hand post's arming branch regardless.
+   *
+   * The decoder is not here — Table.svelte's $effect reads this and hands it
+   * to cardoptions.resolveCardFollowUp, whose kind gate (2-6 all-'mana'
+   * options on the expected obj) is what keeps every other follow-up off the
+   * wheel. The effect clears this field after decoding, whether or not the
+   * decode opened a picker.
+   */
+  followUpExpected = $state<{ seq: number; obj: number } | null>(null);
   /** confirming arms the concede option's required second confirmation (R-E4-1). */
   confirming = $state(false);
   /** error surfaces a rejected intent — never swallowed (a stale seq must be seen and recovered from, not silently dropped). */
@@ -1847,7 +1889,7 @@ export class SeatPanelState {
       // player's answer to this prompt, and the next identical ask offers the
       // checkbox again to overwrite it.
       if (d.kind === 'trigger_optional' && this.rememberChoice) this.rememberAnswer(d, index);
-      void this.post([index], opts?.holdPriority ?? false);
+      void this.post([index], opts?.holdPriority ?? false, undefined, true);
       return;
     }
     this.picked = pickOption(d, index, this.picked);
@@ -1962,7 +2004,7 @@ export class SeatPanelState {
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (this.picked.length < d.min || this.picked.length > d.max) return;
     this.handAnswer();
-    void this.post([...this.picked], holdPriority);
+    void this.post([...this.picked], holdPriority, undefined, true);
   }
 
   /**
@@ -1981,7 +2023,7 @@ export class SeatPanelState {
     this.submit();
   }
 
-  private async post(choices: number[], holdPriority = false, rest?: number[]) {
+  private async post(choices: number[], holdPriority = false, rest?: number[], hand = false) {
     const d = this.pending;
     if (d === null || this.busy) return;
     this.busy = true;
@@ -1999,6 +2041,19 @@ export class SeatPanelState {
       // panel (pending was cleared, the restored decision re-adopted).
       if (epoch !== this.seqEpoch) return;
       this.postedSeq = d.seq;
+      // The armed card-follow-up expectation (fb-20260923T050205Z) lives on
+      // the ACCEPTED hand post: a card action can hand the server a follow-up
+      // decision for the same object (a treasure's activate -> its colour
+      // ask; a multi-ability mana source's stage-1 pick -> its stage-2
+      // wheel), and the seat panel's own option buttons post through exactly
+      // this path, so arming here covers the panel exactly as the tile path
+      // used to. The obj is the answered option's OWN wire obj (R-E4-1,
+      // never a rebuilt position); a post answered only by obj-less options
+      // (pass, concede, a mode with no source) disarms instead, so a stale
+      // expectation can never survive into an unrelated window. Only a hand
+      // post arms: the machine paths post a pass/resolve index and their
+      // options carry no obj regardless.
+      if (hand) this.followUpExpected = followUpArm(d, choices);
       // The hand answers that can carry a real action are click()'s post-on-click
       // (min == max == 1) and submit()'s multi-pick commit; both funnel through
       // here, so the pass-after-arming test lives on the ACCEPTED post — a
