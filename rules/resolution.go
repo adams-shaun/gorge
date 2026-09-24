@@ -148,7 +148,12 @@ type resumePoint struct {
 	// before a mid-chain ask (a DamageResolve-defeating suspension) would be
 	// lost and the later flush would deal nothing. Runtime continuation
 	// state, never client input, the same class as remembered.
-	pendingDamage    []effects.PendingDamage
+	pendingDamage []effects.PendingDamage
+	// searchKnown rides the effects.Ctx.SearchKnown set of a search chain
+	// across a planted placement leg's own suspension (Decision
+	// .ResumeSearchKnown): the leg's answer rebuilds a fresh Ctx, and the next
+	// leg must still see which library cards the chooser already knew.
+	searchKnown      []state.Target
 	digUntilMove     string
 	digUntilMoveDone bool
 	// clonePick/clonePickDone ride a DB$ Clone's answered Choices$ pick across
@@ -609,6 +614,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		pendingDamage: effects.ClonePendingDamage(e.resolutionPendingDamage()),
+		searchKnown:   append([]state.Target(nil), d.ResumeSearchKnown...),
 		digUntilMove:  d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
@@ -1981,6 +1987,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 	}
+	// The search chain's known-card set (Decision.ResumeSearchKnown): a
+	// planted placement leg's answer rebuilds a fresh Ctx, and the NEXT leg of
+	// the same chain must still label its options with the names the chooser
+	// already learned. Runtime continuation state of the search walk, the same
+	// class as rp.remembered above.
+	if rp.searchKnown != nil {
+		ctx.SearchKnown = append([]state.Target(nil), rp.searchKnown...)
+	}
 	// The TargetUnique$ accumulator, captured at ask time: the resumed Ctx
 	// re-binds it so a LATER TargetUnique$ rider in the same chain still
 	// excludes the targets earlier riders chose (a fresh Ctx would otherwise
@@ -2644,6 +2658,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// rebuilds the Ctx from scratch. Without the record the pre-ask
 			// fires again and the two asks alternate forever.
 			e.recordTargetsPick(rp.obj, rp.sa, ctx.TargetsPick)
+		case "damage_split":
+			// DealDamage's DividedAsYouChoose$ allocation answer: the KChoose
+			// offered one option per chosen target (Min == Max == the named
+			// total, Repeatable), so the answer is a multiset whose per-option
+			// multiplicity is the damage that option's target receives. Every
+			// option index is the target's position in the resolution's
+			// Defined$ order, so the re-entered effDealDamage reads the shares
+			// positionally. A target the answer never picked is simply absent
+			// (zero damage), which the primitive's positional read treats as
+			// nothing.
+			n := 0
+			for _, o := range chosen {
+				if o.Index+1 > n {
+					n = o.Index + 1
+				}
+			}
+			ctx.DamageSplit = make([]int32, n)
+			for _, o := range chosen {
+				if o.Index >= 0 && o.Index < len(ctx.DamageSplit) {
+					ctx.DamageSplit[o.Index]++
+				}
+			}
+			ctx.DamageSplitDone = true
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate

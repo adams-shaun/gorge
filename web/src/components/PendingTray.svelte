@@ -21,7 +21,7 @@
   <p class="empty">Nothing waiting</p>
 {:else}
   <ul class="pending">
-    {#each pending as p (p.source)}
+    {#each pending as p, i (`${p.source}:${i}`)}
       <li data-obj={p.source} class:optional={p.optional}>
         <span class="label">{p.label}</span>
         {#if p.optional}

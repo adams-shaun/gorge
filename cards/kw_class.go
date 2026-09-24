@@ -104,7 +104,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 		}
 		switch key {
 		case "AddStaticAbility":
-			for _, name := range splitGrantNames(val) {
+			for _, name := range SplitGrantNames(val) {
 				inners, ok := ParseStaticLines(f.SVars[name])
 				if !ok {
 					continue
@@ -124,7 +124,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 				}
 			}
 		case "AddTrigger":
-			for _, name := range splitGrantNames(val) {
+			for _, name := range SplitGrantNames(val) {
 				tr, ok := ParseTriggerLine(f.SVars[name])
 				if !ok {
 					continue
@@ -139,7 +139,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 				f.Triggers = append(f.Triggers, tr)
 			}
 		case "AddReplacementEffect":
-			for _, name := range splitGrantNames(val) {
+			for _, name := range SplitGrantNames(val) {
 				rp := parseParams(f.SVars[name])
 				if ev := strings.TrimSpace(rp["Event"]); ev == "" {
 					continue
@@ -157,11 +157,13 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 	}
 }
 
-// splitGrantNames splits an Add*$ value into the one or more SVar names it
+// SplitGrantNames splits an Add*$ value into the one or more SVar names it
 // names, joined by Forge's " & " list separator (SMayLook & SMayPlay, and the
 // multi-part AddStaticAbility$ ProdigysWill line's single name). Empty members
-// are dropped.
-func splitGrantNames(v string) []string {
+// are dropped. Exported so rules' printed-static scanner (staticEffects) reads
+// an "A & B" AddTrigger$ value with the same grammar this file's K:Class:
+// grant path uses -- ONE home for the split.
+func SplitGrantNames(v string) []string {
 	var out []string
 	for part := range strings.SplitSeq(v, "&") {
 		if part = strings.TrimSpace(part); part != "" {

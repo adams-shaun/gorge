@@ -310,6 +310,14 @@ type Option struct {
 	// of the game. A bare tap (every plain land) omits the field, so every
 	// existing option list and every plain-land window serialises
 	// byte-identically. omitempty: only a beyond-tap activation carries it.
+	//
+	// An "ability" option (a printed non-mana activated ability) carries its
+	// offer-time cost here too, the same string the card's AbilityCosts
+	// projects: its label is "<card name>: <description>" for every ability
+	// of the card, and a planeswalker's description omits the loyalty cost,
+	// so the cost is what lets the client's radial tell them apart. Every
+	// Cost reader that means the mana-activation marker filters on
+	// Kind == "activate".
 	Cost string `json:"cost,omitempty"`
 	// Grant is server-side only (json:"-") and present only on an "ability"
 	// option whose whole activation is a PURE, IDEMPOTENT keyword grant (the
@@ -557,6 +565,14 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeSearchKnown carries the effects.Ctx.SearchKnown set of an earlier
+	// ask in the same search chain (effects/zone.go effSearchLibrary): the
+	// library cards the chooser has already legitimately seen. A planted
+	// placement leg poses a second ask after the first leg's own suspension
+	// rebuilt a fresh Ctx, and without the ride the second leg would go blind
+	// again. Server-side runtime continuation state, never client input --
+	// the same class as ResumeRemembered.
+	ResumeSearchKnown []state.Target `json:"-"`
 	// ResumeDigUntilMove carries an earlier OptionalFoundMove$ answer through
 	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
 	ResumeDigUntilMove     string `json:"-"`

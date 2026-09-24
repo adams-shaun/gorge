@@ -324,6 +324,38 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		chosenNumber = n
 	}
 	registered := false
+	// The effect's OWNER (CR 611.2 / CR 903.9): EffectOwner$ names the seat(s)
+	// the created effect's event/phase triggers belong to, which need not be
+	// the creating card's controller -- Valiant Batrider's "that player gets
+	// a one-time boon" is EffectOwner$ TriggeredTarget, an opening-hand
+	// Chancellor's is Opponent. Resolved LAZILY on the first arm that needs
+	// it, so an EffectOwner$ this build cannot resolve fails CLOSED (nothing
+	// registered) with a loud Note rather than silently defaulting to the
+	// source controller. The BecomeMonarch arm below deliberately does NOT
+	// call this: its registration controller is the monarch relation's
+	// anchor, which stays the source's controller (see its comment).
+	ownerSel := strings.TrimSpace(sa.Params["EffectOwner"])
+	owners := []state.PlayerID(nil)
+	ownersResolved := false
+	resolveOwners := func() bool {
+		if ownersResolved {
+			return len(owners) > 0
+		}
+		ownersResolved = true
+		if ownerSel == "" {
+			owners = []state.PlayerID{c.Controller}
+			return true
+		}
+		ps, ok := EffectOwnerPlayers(h, c, ownerSel)
+		if !ok || len(ps) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unresolvable EffectOwner$ " + ownerSel + " (Triggers$ not registered)"})
+			registered = true
+			return false
+		}
+		owners = ps
+		return true
+	}
 	// An Effect's Triggers$ list names SVar trigger bodies the Effect arms as
 	// one-shot delayed promises (CR 603.7) -- "until end of turn, whenever a
 	// creature enters, draw a card" (Beck), "whenever a player casts an
@@ -335,11 +367,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//
 	// A body the machinery cannot carry fails LOUDLY rather than registering
 	// something that behaves differently from the card text:
-	//   - a mode with no delayed-event matcher (DamageDone, Attacks,
-	//     TapsForMana, LifeGained, ... -- the bulk of the 31 Effect Triggers$
-	//     carriers) is owned by agent-20260922T193437Z-a964eea4, which adds
-	//     the generic effect-created trigger registration; it is named in the
-	//     Note here, not silently dropped.
+	//   - a mode with no registered matcher (Attacks, TapsForMana, LifeGained,
+	//     Blocks, PlaneswalkedTo, ... -- the broader printed-trigger gap) is
+	//     named in the Note here, not silently dropped. Every matcher-backed
+	//     mode (DamageDone included) registers through the generic matcher arm
+	//     below (landed under cli-20260922T225138Z-504a0e97).
 	//   - an OptionalDecider$ body (Beck's "you may draw a card") IS
 	//     registered: registering it without the election would fire the
 	//     effect MANDATORILY, the opposite of the card text, so the spec
@@ -381,6 +413,25 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// OneOff$ True (CR 603.7's "when you next ..." promise): the body is
+		// CONSUMED by its firing, not a recurring trigger for the Effect's
+		// lifetime. Register it one-shot exactly for the modes the delayed
+		// machinery has a non-repeat dispatch for (effectOneShotDelayedMode,
+		// the same set effDelayedTrigger admits): dropping the |EF marker is
+		// what makes the registration state.DelayedTrigger.EffectRepeat
+		// false, so its first firing ends it. Any other mode keeps the
+		// recurring form -- events.Apply cannot decode a non-|EF registration
+		// for it and rules.checkEventDelayedTriggers has no non-repeat arm, so
+		// forcing one-shot there would make the body inert rather than
+		// one-shot. (Mode$ Phase is inherently one-shot: its registration
+		// carries no |EF and its Phase arm emits none, so the DelayedPush that
+		// fires it consumes it whether or not the body says OneOff$.)
+		oneOff := strings.EqualFold(strings.TrimSpace(tr.Params["OneOff"]), "True") &&
+			effectOneShotDelayedMode(tr.Mode)
+		efMarker := "|EF"
+		if oneOff {
+			efMarker = ""
+		}
 		// An Effect trigger body's OptionalDecider$ is the card's own "you
 		// may" election (Beck's "whenever a creature enters this turn, you
 		// may draw a card"). The trigger is registered like any other
@@ -418,6 +469,21 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// `Duration$ Permanent | ForgetOnMoved$ Exile` lifetime is
 			// exactly what the promise already means, so the turn-bound
 			// lifetime guard below does not apply to it.
+			//
+			// This arm is deliberately NOT owned by EffectOwner$. Its
+			// registration controller is the monarch relation's ANCHOR
+			// (rules.checkEventDelayedTriggers reads `Player.OpponentOf
+			// Remembered` against dt.Controller), and that anchor is the
+			// SOURCE's controller -- the Jailer's player, whose opponent
+			// the oracle's "until an opponent becomes the monarch" names.
+			// Palace Jailer carries `EffectOwner$ TargetedOwner`, but
+			// resolving it here would move the anchor to the exiled
+			// creature's owner and return the creature when the Jailer's
+			// OWN controller takes the crown -- the opposite of the card
+			// text. rules/monarch_jailer_multiseat_test.go pins both
+			// halves of that relation. (EffectOwner$ still applies to
+			// every other arm; TargetedOwner itself is a supported
+			// Defined$ selector.)
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
 				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix})
@@ -449,16 +515,26 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// enters" is an ordinary REPEATABLE trigger for the Effect's
 			// lifetime, not a one-shot DelayedTrigger promise, so it carries
 			// |EF like every other Effect-delivered mode: DelayedPush keeps
-			// the registration and the |TT= turn bound retires it.
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
+			// the registration and the |TT= turn bound retires it. A
+			// OneOff$ True body is the exception (efMarker is empty): its
+			// first firing consumes it.
+			if !resolveOwners() {
+				continue
+			}
+			for _, owner := range owners {
+				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+					Player: owner, Step: h.Game().Step, Counter: exec,
+					IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+			}
 			registered = true
 		case "Phase":
 			// A phase promise fires at the FIRST listed step still ahead
 			// (state.EarliestAfter), exactly like the DelayedTrigger SA's
 			// multi-step Phase$ reading; ValidPlayer$ rides |VP= so the
 			// phase scan gates on it (Necropotence's "YOUR next end step").
+			if !resolveOwners() {
+				continue
+			}
 			set, unknown := state.ParsePhases(tr.Params["Phase"])
 			if len(unknown) > 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -477,9 +553,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if vp := strings.TrimSpace(tr.Params["ValidPlayer"]); vp != "" {
 				text += "|VP=" + vp
 			}
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: text})
+			for _, owner := range owners {
+				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+					Player: owner, Step: step, Counter: exec,
+					IDs: encodeRemembered(c.Remembered), Text: text})
+			}
 			registered = true
 		default:
 			if !h.TriggerModeSupported(tr.Mode) {
@@ -491,9 +569,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// All event modes share the trigger registry's matcher. The |EF
 			// marker distinguishes this recurring Effect grant from a one-shot
 			// DelayedTrigger and makes its mode self-describing for replay.
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
+			if !resolveOwners() {
+				continue
+			}
+			for _, owner := range owners {
+				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+					Player: owner, Step: h.Game().Step, Counter: exec,
+					IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+			}
 			registered = true
 		}
 	}
@@ -1635,33 +1718,112 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // CantAttackParamsReadableForRules is the FACE S:-line whitelist for a
 // CantAttack static: the shared CantRestrictionParamsReadable core EXTENDED by
 // exactly the conditional parameter family rules' attackBlocked reads --
-// UnlessDefender$ (through effects.UnlessDefenderHolds) and CheckSVar$ /
-// SVarCompare$ / Condition$ (through the shared rules-side gate evaluator,
-// rules/layers.go continuousGateHolds). It lives here, beside
-// CantRestrictionParamsReadable and mirrors MustAttackParamsReadableForRules
-// below, so the face whitelist and the gate evaluators cannot drift apart
-// unseen. Measured over the corpus's 271 `Mode$ CantAttack` files: 63 raw
-// lines carry this family, and NONE of them pairs it with the other
-// continuous-gate keys (IsPresent$/PresentCompare$/PresentZone$/ClassBand$),
-// so those keys stay off this list -- a line carrying only them is still
-// skipped whole, unchanged. The Effect-delivered registration gate (effEffect,
-// which keeps the narrower CantRestrictionParamsReadable for BOTH modes)
-// cannot share this list: its continuous path reads neither evaluator, so a
-// gate-bearing body must not register blanket -- a gated "can't attack" would
-// become unconditional, over-restricting, and could leave a MustAttack
-// creature with no legal pair. A static carrying any OTHER parameter
-// (ValidCause$, ForCost$, ValidSA$, Cost$, ...) still fails the whitelist and
-// is skipped whole, the deliberate permissive direction. Iterating the params
-// map only yields a boolean, so map order never reaches an
-// event/option/view -- determinism is preserved.
+// UnlessDefender$ (through effects.UnlessDefenderHolds) and the shared
+// rules-side continuous gate rules/layers.go continuousGateHolds, which
+// evaluates CheckSVar$ / SVarCompare$ / Condition$ / ClassBand$ and the
+// IsPresent$ / IsPresent2$ / PresentCompare$ / PresentZone$ count family
+// (PresentZone$ Battlefield/Graveyard/Exile/Hand/Stack; see
+// countStaticPresent). It lives here, beside CantRestrictionParamsReadable and
+// mirrors MustAttackParamsReadableForRules below, so the face whitelist and the
+// gate evaluators cannot drift apart unseen.
+//
+// The present family joined this list with compound-statics1. The earlier
+// measurement (271 `Mode$ CantAttack` files, 63 raw lines carrying the gate
+// family, NONE pairing it with IsPresent$/PresentCompare$) predated commit
+// f81f996e ("split compound S:Mode$ comma lists into one static per mode"):
+// the split makes a compound line's CantAttack half inherit the SHARED Params
+// map, so an `S:Mode$ CantAttack,CantBlock | ... | IsPresent$ Creature.YouCtrl
+// | PresentCompare$ LE2` line (Bast, Panther Goddess) now reaches
+// attackBlocked as a CantAttack static carrying IsPresent. The gate machinery
+// already evaluates it, so excluding the keys only skipped the attack half
+// whole while the block half (blockRestricted's CantBlock loop, which runs
+// continuousGateHolds with no whitelist) bound at runtime -- the asymmetry
+// this ticket fixes.
+//
+// Measured over the corpus: of the 24 real `Mode$ CantAttack` files carrying
+// this family, 20 spell the battlefield IsPresent$/PresentCompare$ count shape
+// (Desperate Castaways, Gadrak the Crown-Scourge, War Falcon, ...), one a bare
+// IsPresent$ "if" shape (Wirecat, Shauku Endbringer with PresentCompare$ GT1),
+// one PresentZone$ Hand (Kefnet the Mindful) and one PresentZone$ Exile
+// (Ketramose, the New Dawn); IsPresent2$/ClassBand$ have zero CantAttack
+// carriers but are whitelisted anyway because continuousGateHolds evaluates
+// them, the same fail-closed principle MinMaxBlocker's whitelist states. None
+// is a repo-deck card.
+//
+// A line carrying PresentCompare$ WITHOUT IsPresent$/IsPresent2$ is rejected:
+// presentGate is the only reader of PresentCompare and it runs only when a
+// present spec is present, so an orphan compare would fall through the gate
+// unread and restrict blanket, over-restricting. A present KEY whose spec is
+// empty or whitespace-only is rejected the same way (and even with no compare):
+// countPresent("") matches nothing, so the "gate" reads count 0 forever and an
+// EQ0 compare would hold unconditionally. Measured 0 corpus rows for both
+// shapes; the guards keep it that way.
+//
+// A present spec carrying a predicate this build's matcher does not recognise
+// is rejected too: countPresent counts through the matcher, so an unparseable
+// spec matches nothing and an EQ0 compare ("restrict unless X is ABSENT")
+// would read count 0 unconditionally and blanket-restrict. The one corpus row
+// (Flowering Lumberknot, `IsPresent$ Creature.PairedWith+withSoulbond |
+// PresentCompare$ EQ0`) names the unimplemented `withSoulbond` predicate, so
+// it stays skipped -- the permissive direction -- rather than over-restricting.
+// UnknownPredicates (this package) is the same census the matcher's
+// recognisedPredicate classifier drives, so the check cannot drift from what
+// countPresent really resolves.
+//
+// The Effect-delivered registration gate (effEffect, which keeps the narrower
+// CantRestrictionParamsReadable for BOTH modes) cannot share this list: its
+// continuous path reads neither evaluator, so a gate-bearing body must not
+// register blanket -- a gated "can't attack" would become unconditional,
+// over-restricting, and could leave a MustAttack creature with no legal pair.
+// A static carrying any OTHER parameter (ValidCause$, ForCost$, ValidSA$,
+// Cost$, ...) still fails the whitelist and is skipped whole, the deliberate
+// permissive direction. Iterating the params map only yields a boolean, so map
+// order never reaches an event/option/view -- determinism is preserved.
 func CantAttackParamsReadableForRules(params map[string]string) bool {
-	for k := range params {
+	var present1, present2 string
+	hasCmp, has1, has2 := false, false, false
+	for k, v := range params {
+		switch k {
+		case "PresentCompare":
+			hasCmp = true
+		case "IsPresent":
+			present1, has1 = v, true
+		case "IsPresent2":
+			present2, has2 = v, true
+		}
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary",
-			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender":
+			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender",
+			"IsPresent", "IsPresent2", "PresentCompare", "PresentZone", "ClassBand":
 		default:
 			return false
 		}
+	}
+	// presentGate is dispatched on the KEY being present, not on the value:
+	// an empty/whitespace `IsPresent$` still calls countPresent(""), which
+	// matches nothing (count 0). So a blank present spec is not "no gate" --
+	// it is a gate that can never see its object, and `PresentCompare$ EQ0`
+	// would hold unconditionally and restrict blanket. Reject a present key
+	// whose spec is blank, whichever key carries the compare (and whether or
+	// not one does).
+	spec1 := strings.TrimSpace(present1)
+	spec2 := strings.TrimSpace(present2)
+	if (has1 && spec1 == "") || (has2 && spec2 == "") {
+		return false
+	}
+	// An orphan compare (PresentCompare$ with no present spec at all) would
+	// never be evaluated: presentGate is its only reader and it runs only when
+	// a present key is set. Admit the line only when a NON-BLANK spec is there.
+	if hasCmp && spec1 == "" && spec2 == "" {
+		return false
+	}
+	// An unread present spec would match nothing, so an EQ0 compare would hold
+	// unconditionally and over-restrict; keep such a line skipped whole.
+	if spec1 != "" && len(UnknownPredicates(spec1)) != 0 {
+		return false
+	}
+	if spec2 != "" && len(UnknownPredicates(spec2)) != 0 {
+		return false
 	}
 	return true
 }
@@ -2334,6 +2496,23 @@ func replacementBodyAPI(body string) string {
 	return strings.TrimSpace(api)
 }
 
+// effectOneShotDelayedMode names the event modes with a non-repeat delayed
+// dispatch end to end: events.Apply's DelayedRegister decode recognizes the
+// mode prefix without the |EF marker, and rules.checkEventDelayedTriggers has
+// a non-EffectRepeat arm that fires it and removes it (one-shot). It is ONE
+// home shared by effEffect's OneOff$ True decision and effDelayedTrigger's
+// mode admission, so a mode can never be one-shot on one path and inert on
+// the other. Mode$ Phase is deliberately absent: a phase registration is
+// inherently one-shot (no |EF, consumed by its DelayedPush) and takes the
+// Phase arm, not this event-mode one.
+func effectOneShotDelayedMode(mode string) bool {
+	switch mode {
+	case "SpellCast", "ChangesZone", "ChangesController", "DamageDone", "AttackersDeclared":
+		return true
+	}
+	return false
+}
+
 // Delayed registrations can express a turn ceiling, but not a continuous
 // Effect's source-relative or next-turn lifetime. Reject those forms rather
 // than register a promise that can fire after the Effect expires.
@@ -2729,8 +2908,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		effDelayedTriggerSpellCast(h, c, sa)
 		return
 	}
-	if mode != "Phase" && mode != "ChangesZone" && mode != "ChangesController" &&
-		mode != "DamageDone" && mode != "AttackersDeclared" {
+	if mode != "Phase" && !effectOneShotDelayedMode(mode) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
 		return

@@ -292,6 +292,9 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 					default:
 						continue
 					}
+					if e.openingEffectAlreadyRegistered(ef.card, ef.player, t.Mode, exec) {
+						continue
+					}
 					e.emit(events.Event{Kind: events.DelayedRegister, Obj: ef.card, Player: ef.player,
 						Step: step, Counter: exec, Text: t.Params["Phase"]})
 				case "SpellCast":
@@ -300,6 +303,9 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 					// registration never fires on a step --
 					// checkDelayedTriggers skips it.
 					for _, p := range e.openingEffectOwners(sa, ef.player) {
+						if e.openingEffectAlreadyRegistered(ef.card, p, t.Mode, exec) {
+							continue
+						}
 						e.emit(events.Event{Kind: events.DelayedRegister, Obj: ef.card, Player: p,
 							Step: e.G.Step, Counter: exec, Text: "SpellCast:" + name})
 					}
@@ -321,23 +327,45 @@ func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA
 // empty/You selector keeps the revealer; Opponent/Other fans out to every
 // other surviving seat, which is what makes Chancellor of the Annex tax EACH
 // opponent's first spell while the trigger body's own "You" resolves, per
-// registration, to that opponent. Unrecognized selectors fail closed (an
-// empty list registers nothing) rather than guessing a player set.
+// registration, to that opponent. The selector grammar has exactly one home
+// (effects.EffectOwnerPlayers, the same resolver the generic effEffect path
+// uses), so the pregame and generic registrations agree on the owner set and
+// an opening body is never owned by two different seats. Unrecognized
+// selectors fail closed (an empty list registers nothing) rather than
+// guessing a player set.
 func (e *Engine) openingEffectOwners(sa *cards.SA, you state.PlayerID) []state.PlayerID {
-	switch strings.TrimSpace(sa.Params["EffectOwner"]) {
-	case "", "You":
-		return []state.PlayerID{you}
-	case "Opponent", "Other":
-		out := []state.PlayerID{}
-		for _, p := range e.G.AliveFrom(0) {
-			if p != you {
-				out = append(out, p)
-			}
+	ps, _ := effects.EffectOwnerPlayers(e, &effects.Ctx{Controller: you}, sa.Params["EffectOwner"])
+	return ps
+}
+
+// openingEffectAlreadyRegistered reports whether the generic effEffect path --
+// which runs before this pregame pass, inside applyOpeningEffect's
+// effects.Resolve -- already minted the equivalent registration for an
+// opening Effect's trigger body. The generic path now resolves EffectOwner$
+// itself, so without this check the two paths would register the same body
+// twice for the same owner and fire it twice. Matching on source, owner and
+// Execute names the SAME promise: an event-matched registration stores its
+// mode in EventMode, a Mode$ Phase one carries none. When the generic path
+// did not register the body (e.g. the lifetime guard withheld a longer-lived
+// Effect), this returns false and the pregame pass registers it, so the
+// opening-hand case keeps working.
+func (e *Engine) openingEffectAlreadyRegistered(card state.ObjID, owner state.PlayerID, mode, exec string) bool {
+	for i := range e.G.Delayed {
+		dt := &e.G.Delayed[i]
+		if dt.Source != card || dt.Controller != owner || dt.Execute != exec {
+			continue
 		}
-		return out
-	default:
-		return nil
+		if mode == "Phase" {
+			if dt.EventMode == "" {
+				return true
+			}
+			continue
+		}
+		if dt.EventMode == mode {
+			return true
+		}
 	}
+	return false
 }
 
 func (e *Engine) finishOpening() {

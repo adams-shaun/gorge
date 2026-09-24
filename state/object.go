@@ -382,12 +382,21 @@ func ExilesLeavingStack(flags uint64) bool {
 // WasCastFromGraveyard reports whether a cast carrying these flags was made
 // from a graveyard by a keyword that grants such a cast: flashback
 // (CR 702.32a), jump-start (CR 702.84a), harmonize and escape (CR 702.42a).
-// It is the effects-side body of the Card.wasCastFromGraveyard predicate
-// (effects/filter.go), shared by the three effects call sites so the
-// definition cannot drift between the filter, the compiled predicate and the
-// Count$wasCastFromGraveyard reader.
+// It is the flags-only body of the Card.wasCastFromGraveyard predicate
+// (effects/filter.go); object-aware readers must call
+// ObjectWasCastFromGraveyard instead, which adds the never-cast guard.
 func WasCastFromGraveyard(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
+}
+
+// ObjectWasCastFromGraveyard is the ONE home for the object-aware read of
+// the graveyard-origin cast provenance: the flags test PLUS the never-cast
+// guard. A stack copy is PUT on the stack, never cast (CR 707.10/706.10),
+// so IsCopy reads false even though events.Apply's StackCopy case leaves the
+// graveyard-origin bits inherited (state.CastProvenanceFlags does not strip
+// them). Every reader must call this, never the flags test directly.
+func ObjectWasCastFromGraveyard(o *Object) bool {
+	return o != nil && !o.IsCopy && WasCastFromGraveyard(o.CastFlags)
 }
 
 // ModeChoice is one ChoiceRestriction$ pick recorded on an object: the
@@ -440,6 +449,14 @@ type Object struct {
 	EnteredThisTurn        bool
 	EnteredFrom            Zone
 	WasDealtDamageThisTurn bool
+	// DamageTakenByGame lists, in append order, every damage SOURCE that has
+	// dealt this object damage this game (game-long; never cleared at
+	// TurnChange). Appended by events.Apply's DamageProvenance case with a
+	// dedup, the object-side twin of Player.DamageTakenByGame, so the
+	// wasDealtDamageByThisGame / wasDealtDamageThisGameBy object predicates
+	// read it as a membership test. CloneDeep deep-copies it so a snapshot
+	// never aliases the live object's backing array.
+	DamageTakenByGame []ObjID
 	// The control-acquisition tuple (AcqTurn, AcqStep) records WHEN this
 	// object last came under its current controller's control on the
 	// battlefield: stamped by events.Apply on every battlefield ENTRY (Move,
@@ -589,6 +606,22 @@ type Object struct {
 	// CloneDeep carries it, and only events.AlterAttribute (the mark
 	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
 	Monstrous bool
+
+	// PhasedOut is CR 702.25's phased-out status (api:Phases): the
+	// permanent is on the battlefield but is treated as though it does not
+	// exist. It is NOT a zone change -- the object keeps its Zone and its
+	// Zone() membership -- so no Move fires and no leaves/enters trigger
+	// sees it; the status is folded by events.PhaseOut and cleared by
+	// events.Apply's Move when the permanent actually leaves the
+	// battlefield (CR 400.7: a later entry is a new object, CR 702.25e).
+	// Phase-in happens at its controller's untap step (CR 702.25d, rules
+	// finishUntapStep). Every reader that treats a permanent as existing
+	// gates on it: targeting (rules/stack.go candidatesFor), the layer
+	// static/level walk (rules/layers.go staticEffects/activeStatics),
+	// combat (rules/combat.go canAttack), the SBA sweep (rules/sba.go)
+	// and the view projection (view). A plain value copy in CloneDeep
+	// carries it.
+	PhasedOut bool
 
 	// SuspendGranted is the replayed characteristic grant made by a
 	// Pump/PumpAll KW$ Suspend effect. It is separate from CastFlags.FlagSuspend:
@@ -907,6 +940,19 @@ type Object struct {
 	// writes the link; a permanent and a player are mutually exclusive.
 	AttachedPlayer    PlayerID
 	HasAttachedPlayer bool
+
+	// LastBearer is the permanent this object was MOST RECENTLY attached to
+	// before it became unattached, 0 if it never was. It answers the corpus's
+	// "objects that WERE attached to it" reads (Cass, Hand of Vengeance;
+	// Rhuk, Hexgold Nabber; Fumble; Murderous Spoils), which a trigger
+	// resolves only AFTER the attachment sweep has cleared AttachedTo. Like
+	// LastNotedMana this field is written ONLY inside events.Apply: set by
+	// the Unattached fold from that event's former-bearer carrier, set by
+	// the Move-leaves-battlefield fold from the pre-clear AttachedTo, and
+	// cleared by an Attach fold that re-attaches. It is a pure fold of
+	// already-recorded event bytes, so replay rebuilds it identically and no
+	// event encoding or chain head changes.
+	LastBearer ObjID
 
 	// ExiledWith is the object whose effect most recently put this card into
 	// exile. events.Apply derives it from a MoveZone event's existing IDs
@@ -1311,6 +1357,7 @@ func (o *Object) CloneDeep() Object {
 	c.ChosenModes = CloneChosenModes(o.ChosenModes)
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
+	c.DamageTakenByGame = append([]ObjID(nil), o.DamageTakenByGame...)
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
 	c.SeekFound = append([]ObjID(nil), o.SeekFound...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)

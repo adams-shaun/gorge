@@ -843,23 +843,38 @@ const (
 	// map range ever reaches an event. Appended after Scry to preserve every
 	// earlier Kind ordinal, hash chain and golden replay.
 	StoreSVar
-	// NumKinds is the number of defined Kind constants, one past the last
-	// (state.Zone's numZones, next package over, is the same shape). It
-	// exists for the scans that must visit every kind: view's
-	// Describe-coverage test used to bound its loop with a kind NAME
-	// (EndCombatReset) that silently stopped being the last Kind, so eight
-	// kinds landed past the loop and were never described; bounding by
-	// NumKinds instead means a Kind appended here is covered by
-	// construction, with no edit to the scan. It must stay AFTER the last
-	// Kind: appending a Kind below it would renumber every later ordinal
-	// and corrupt the hash chain, so new kinds always go above it.
 	// TurnFaceDown records a battlefield permanent being turned face down by
 	// SetState. Appended after StoreSVar to preserve prior event ordinals.
 	TurnFaceDown
 	// CloneStatic appends one named SVar static to a copy's layer-1 face.
 	// Text is the original SVar body; appended to preserve existing ordinals.
 	CloneStatic
-	NumKinds = int(CloneStatic) + 1
+	// DamageProvenance records one game-long (recipient, source) damage fact:
+	// Obj is the damage SOURCE, IDs[0] is the recipient (a plain ObjID for an
+	// object, a state.PlayerRef-encoded PlayerID for a seat -- the TriggerPush
+	// encoding, so PlayerID 0 stays distinguishable from "no recipient"), and
+	// Amount is the damage that actually landed post-replacement/post-
+	// protection. Appended after CloneStatic to preserve prior event ordinals
+	// and the hash chain.
+	DamageProvenance
+	// EnduringStoryChange records a seat gaining the CR 702.175 designation.
+	EnduringStoryChange
+	// PhaseOut records CR 702.25's phased-out/phase-in status on a
+	// battlefield permanent (api:Phases). Obj is the permanent and Amount 1
+	// phases it OUT, -1 phases it IN. It is deliberately NOT a MoveZone:
+	// phasing is not a zone change (the permanent stays on the battlefield
+	// and no leaves/enters event fires), it only makes the permanent
+	// invisible to everything that treats a permanent as existing, and it
+	// phases in at its controller's next untap step. Apply folds it into
+	// Object.PhasedOut, which the Move fold clears when the permanent
+	// actually leaves the battlefield. Appended after CloneStatic, the last
+	// pre-existing Kind, so no earlier ordinal, hash chain or golden replay
+	// is affected.
+	PhaseOut
+	// NumKinds is the explicit upper bound for the append-only event kind
+	// registry below. New kinds must be appended above this line: inserting or
+	// reordering a kind renumbers the hash-chained event stream and breaks replay.
+	NumKinds = int(PhaseOut) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -993,7 +1008,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
-	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static"}
+	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
+	"damage_provenance", "enduring_story_change", "phase_out"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

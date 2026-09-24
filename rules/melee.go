@@ -10,7 +10,7 @@ import (
 )
 
 // meleeRemembered captures one player reference per distinct opponent attacked
-// in the WHOLE declaration. Count$RememberedNumber in the Pump body reads this
+// in the WHOLE declaration. The Pump body reads this capture (cards.MeleePumpCount)
 // snapshot after the ability is pushed and later resolves, even if an attacker
 // or defender leaves combat in the meantime. A synthetic single-defender event
 // has no declaration scratch and captures just that event's defending seat.
