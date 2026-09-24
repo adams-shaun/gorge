@@ -3091,6 +3091,9 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// land, mana abilities, Station and Room unlock stay legal; the Suspend
 	// and Foretell offers ride the "cast" Kind but are special actions, not
 	// spell casts, so they stay too.
+	// CR 118.6: a no-mana-cost card is never cast by paying its mana cost
+	// (rules/nomanacost.go).
+	out = e.filterNoManaCostCasts(p, out)
 	if e.splitSecondHolds() {
 		out = e.filterSplitSecondActions(out)
 	}
