@@ -1337,6 +1337,10 @@ type Engine struct {
 	// damaging/combatDamaging above: it is always set-and-consumed inside one
 	// intent's driven flow, so it is stale-or-empty at a clone boundary.
 	declaredAttackers []state.ObjID
+	// Distinct opponents chosen in this declaration, ordered by first attack.
+	// Like declaredAttackers this exists only during finishAttackers' emits;
+	// the Melee trigger captures player refs into its logged stack object.
+	declaredDefenders []state.PlayerID
 
 	// manaFromTap and manaProducer identify the mana ability currently
 	// resolving. They are synchronous context rather than ManaAdd fields.

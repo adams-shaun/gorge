@@ -30,6 +30,9 @@ var expandedHeads = []string{
 	// (not a head the old switch covered), so it is listed here to keep the
 	// table equal to the registered set.
 	"Training",
+	// Melee (CR 702.121): an Attacks trigger pumped by the distinct
+	// opponents captured from the whole declare-attackers batch.
+	"Melee",
 	// Mentor (CR 702.134): an Attacks self-trigger whose body is a targeted
 	// PutCounter on another attacking creature with lesser power, added after
 	// the split (cards/kw_mentor.go). The strict power restriction rides the
