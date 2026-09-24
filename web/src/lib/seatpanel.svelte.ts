@@ -156,19 +156,19 @@ function optionAt(d: Decision, index: number): Option | undefined {
 }
 
 /**
- * followUpArm is the pure arming rule for the card-follow-up expectation: a
- * hand post whose answered options carry an `obj` arms with the FIRST such
- * option's own obj; a post answered only by obj-less options disarms (null).
- * The obj is read off the answered option itself (R-E4-1), never rebuilt
- * from the decision's source or a list position. Exported so the rule can be
- * tested directly, and so SeatPanelState.post is its only caller. The SEQ is
- * deliberately not part of the input: the caller arms against the decision it
- * just posted, so it binds d.seq itself.
+ * Only priority-window card actions that can begin an activation chain arm a
+ * mana-wheel follow-up: activate (including Treasure) or ability (the
+ * multi-ability mana-source stage-one choice). Target/card answers, arrange
+ * picks, and other object-bearing choices are not action starters. The obj is
+ * read from the answered option itself (R-E4-1), never rebuilt from position.
  */
 export function followUpArm(d: Decision, choices: number[]): { seq: number; obj: number } | null {
+  if (d.kind !== 'priority') return null;
   for (const index of choices) {
-    const obj = optionAt(d, index)?.obj;
-    if (obj !== undefined) return { seq: d.seq, obj };
+    const option = optionAt(d, index);
+    if ((option?.kind === 'activate' || option?.kind === 'ability') && option.obj !== undefined) {
+      return { seq: d.seq, obj: option.obj };
+    }
   }
   return null;
 }

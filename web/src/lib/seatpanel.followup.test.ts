@@ -120,16 +120,23 @@ describe('the hand post arms the card-follow-up expectation', () => {
     expect(p.followUpExpected).toEqual({ seq: 710, obj: 301 });
   });
 
-  it('a restable arrange hand submit (submitArrange) also arms with its first kept option obj', async () => {
-    // submitArrange is a hand post too (it runs handAnswer() before posting),
-    // and its keep options are the library cards the arrange walker offered —
-    // each carries an obj. It must follow the ONE rule rather than carve an
-    // exception the next hand-post path would have to rediscover.
+  it('object-bearing target and arrange answers do not arm a mana follow-up', () => {
+    const target: Decision = {
+      seq: 719, player: 0, kind: 'target', prompt: 'Choose a target.', min: 1, max: 1,
+      options: [{ index: 0, kind: 'target', label: 'Target', obj: 401, player: 0 }],
+    };
+    const arranged = arrange(720);
+    expect(target.options[0].obj).toBe(401);
+    expect(arranged.options[0].obj).not.toBe(arranged.options[1].obj);
+    expect(followUpArm(target, [0])).toBeNull();
+    expect(followUpArm(arranged, [0])).toBeNull();
+  });
+
+  it('a restable arrange hand submit posts but does not arm a mana follow-up', async () => {
+    // submitArrange is a hand post, and its keep options carry objs; its
+    // decision kind is not an activation chain starter, so it must not arm.
     const p = new SeatPanelState('t1', 1, ctx);
     p.adoptView(arrange(720));
-    // PRECONDITION: the two keep options carry DIFFERENT objs, so a rule that
-    // rebuilt the obj from the decision source or a list position could not
-    // produce 401 here.
     const d = arrange(720);
     expect(d.options[0].obj).not.toBe(d.options[1].obj);
     p.submitArrange([0, 1], [2]);
@@ -137,7 +144,7 @@ describe('the hand post arms the card-follow-up expectation', () => {
     // PRECONDITION: the arrange DID post — an early-return would make the
     // assert below vacuous.
     expect(postIntentMock).toHaveBeenCalledTimes(1);
-    expect(p.followUpExpected).toEqual({ seq: 720, obj: 401 });
+    expect(p.followUpExpected).toBeNull();
   });
 
   it('a machine passClick arms nothing', async () => {
