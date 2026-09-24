@@ -4266,7 +4266,19 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// (a cumulative-upkeep age counter, rules/cumulative.go) IS an effect
 		// (CR 609.1), so it still qualifies.
 		if r.Params["EffectOnly"] == "True" && e.actionCause() == 0 {
-			return false
+			// A replacement BODY's counter placement (the K:etbCounter entry
+			// body's DB$ PutCounter) also has no stack cause by the time it
+			// emits -- the entry move has already applied and the wrapper is
+			// off the stack -- but it IS the action of a replacement effect
+			// (CR 614.1c), and this wording reaches it: CR 614.5, the
+			// replacement's instruction is a new event the AddCounter class
+			// modifies (Doubling Season doubles a planeswalker's starting
+			// loyalty, the class's own precedent). A cost or turn-based
+			// placement is never made from inside a replacement body, so the
+			// exclusion keeps its teeth there.
+			if _, isBody := e.replacementBodyCounterAdder(); !isBody {
+				return false
+			}
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "RollPlanarDice":
