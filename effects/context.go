@@ -219,6 +219,99 @@ func ChosenTargetsFrom(g *state.Game, source state.ObjID) []state.Target {
 	return nil
 }
 
+// attachedToDefinedSelector resolves the DOTTED `AttachedTo <referent>`
+// selector in a Defined$/Object$/ChooseFromDefined$ position -- "the objects
+// attached to whatever <referent> names" (Murderous Spoils' `Defined$
+// AttachedTo Targeted.Equipment`, Fumble's `Defined$ AttachedTo
+// Targeted.Aura,Equipment`, Rhuk, Hexgold Nabber's `Object$ AttachedTo
+// TriggeredAttackerLKICopy.Equipment`, Cass, Hand of Vengeance's `Object$
+// AttachedTo TriggeredCardLKICopy.Equipment`).
+//
+// The referent is the same canonical set the filter predicate
+// (attachedToReferent) accepts, and its BINDING is resolved by the same
+// function the predicate uses (attachedToReferentObjects) so the selector and
+// the predicate cannot drift: an absent binding, a stale object id or a PLURAL
+// binder is unbound and the whole selector is unknown (ok=false) -- never an
+// any-of guess.
+//
+// The attachments are read from the LIVE `AttachedTo == bearer` link plus the
+// were-attached fallback `AttachedTo == 0 && LastBearer == bearer` (the field
+// events.Apply folds from the Unattached and Move-leaves-battlefield events).
+// Both reads are needed because the corpus resolves this selector at two
+// different times relative to the CR 704.5 sweep: a mid-chain sub-ability
+// (Murderous Spoils' Destroy -> StealEquip, Fumble's ChangeZone -> GainControl)
+// runs before any SBA checkpoint, so the live link still names the departed
+// bearer, while a queued trigger (Cass, Rhuk's death half) resolves after the
+// sweep, when the live link has been cleared. The read is deliberately NOT
+// zone-restricted: Cass's swept Auras are graveyard cards by the time its death
+// trigger resolves, and the live-link half only ever matches a battlefield
+// permanent anyway. The qualifier list after the referent (`Aura,Equipment`) is
+// comma-OR over the attachment's own type/class words, the reading the corpus
+// spells (each qualifier is an object class or type word).
+func attachedToDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	arg, ok := strings.CutPrefix(spec, "AttachedTo ")
+	if !ok {
+		return nil, false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" {
+		return nil, false
+	}
+	ref, quals, hasQuals := strings.Cut(arg, ".")
+	if _, known := attachedToReferent(ref); !known {
+		return nil, false
+	}
+	g := h.Game()
+	bearers, bound := attachedToReferentObjects(g, c.SpecContext(c.Controller), ref)
+	if !bound || len(bearers) != 1 || bearers[0] == 0 {
+		return nil, false
+	}
+	bearer := bearers[0]
+	// The qualifier list is comma-OR; trim each word and keep the whole
+	// selector unknown when a word is empty (a malformed "Aura,").
+	var words []string
+	if hasQuals {
+		for w := range strings.SplitSeq(quals, ",") {
+			w = strings.TrimSpace(w)
+			if w == "" {
+				return nil, false
+			}
+			words = append(words, w)
+		}
+	}
+	var out []state.Target
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		attached := o.AttachedTo == bearer
+		var wasAttached bool
+		if !attached {
+			// A detached object whose last bearer is the referent: the
+			// were-attached half. Only when it is not presently attached
+			// to anything (attached handles the live half) so a
+			// re-attached object, whose LastBearer the Attach fold cleared,
+			// cannot double-count.
+			wasAttached = o.AttachedTo == 0 && o.LastBearer == bearer
+		}
+		if !attached && !wasAttached {
+			continue
+		}
+		if len(words) > 0 {
+			matched := false
+			for _, w := range words {
+				if MatchesObjectCtx(g, w, o, c.SpecContext(c.Controller)) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+		out = append(out, state.Target{Obj: o.ID})
+	}
+	return out, true
+}
+
 // definedSpec resolves one RECOGNISED Defined$ value. The bool distinguishes
 // "this spec names an object reference this build models" from "unknown
 // spec": Defined's public contract keeps the chosen-targets fallback for
@@ -228,6 +321,14 @@ func ChosenTargetsFrom(g *state.Game, source state.ObjID) []state.Target {
 // redirecting at the chosen targets.
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
+	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
+	// Object-/ChooseFromDefined-position read of "the objects attached to
+	// whatever <referent> names"). It is a prefix, not a whole-value case:
+	// the referent and its qualifier list ride after one space. The BARE
+	// `AttachedTo` case below stays the resolving source's own bearer.
+	if ts, ok := attachedToDefinedSelector(h, c, spec); ok {
+		return ts, true
+	}
 	switch spec {
 	case "":
 		return nil, false

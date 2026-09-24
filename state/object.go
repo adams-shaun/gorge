@@ -908,6 +908,19 @@ type Object struct {
 	AttachedPlayer    PlayerID
 	HasAttachedPlayer bool
 
+	// LastBearer is the permanent this object was MOST RECENTLY attached to
+	// before it became unattached, 0 if it never was. It answers the corpus's
+	// "objects that WERE attached to it" reads (Cass, Hand of Vengeance;
+	// Rhuk, Hexgold Nabber; Fumble; Murderous Spoils), which a trigger
+	// resolves only AFTER the attachment sweep has cleared AttachedTo. Like
+	// LastNotedMana this field is written ONLY inside events.Apply: set by
+	// the Unattached fold from that event's former-bearer carrier, set by
+	// the Move-leaves-battlefield fold from the pre-clear AttachedTo, and
+	// cleared by an Attach fold that re-attaches. It is a pure fold of
+	// already-recorded event bytes, so replay rebuilds it identically and no
+	// event encoding or chain head changes.
+	LastBearer ObjID
+
 	// ExiledWith is the object whose effect most recently put this card into
 	// exile. events.Apply derives it from a MoveZone event's existing IDs
 	// carrier (or, for Hideaway's face-down exile, the Counter/Amount

@@ -173,6 +173,15 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	c.AttachChoice, c.AttachChoiceDone, c.AttachDests = nil, false, nil
 
 	obj := c.Source
+	// objs is the resolved Object$ list. It names one object for every
+	// single-object carrier (Equip/Enchant/Living Weapon, Memory's Journey,
+	// Ajani's Chosen) and EVERY object the resolved selector admits for the
+	// plural carriers (Fumble's `Object$ AttachedTo Targeted.Aura,Equipment`,
+	// Rhuk's and Cass's `Object$ AttachedTo ...Equipment`), whose card text
+	// attaches THEM ALL. obj stays the first entry for the branches that name
+	// a single object (the Enchant:Player destination, the Choices$ pool's
+	// object-side pick); the destination walks below loop over objs.
+	objs := []state.ObjID{c.Source}
 	switch sa.Params["Object"] {
 	case "", "Self":
 		// Equip's kw:Equip expansion, Enchant's kw:Enchant and Living
@@ -181,15 +190,22 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	case "Remembered":
 		if ts := objectsOf(c.Remembered); len(ts) > 0 {
 			obj = ts[0].Obj
+			objs = []state.ObjID{obj}
 		}
 	default:
 		// TriggeredCardLKICopy (Ajani's Chosen -- the ENTERING Aura, not the
 		// source), Targeted and every other object spec the shared resolver
 		// definedSpec already supports. A spec it cannot resolve keeps the
-		// today default (obj = c.Source).
+		// today default (obj = c.Source). A resolved list of several objects
+		// (Fumble's and Rhuk's AttachedTo plural selectors) is kept WHOLE:
+		// the card attaches every one of them.
 		if ts, ok := definedSpec(h, c, sa.Params["Object"]); ok {
 			if os := objectsOf(ts); len(os) > 0 {
-				obj = os[0].Obj
+				objs = objs[:0]
+				for _, t := range os {
+					objs = append(objs, t.Obj)
+				}
+				obj = objs[0]
 			}
 		}
 	}
@@ -245,15 +261,47 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		}
 		return out
 	}
-	// attachTo emits the Attach event and, when RememberAttached$ True, the
-	// two-half remember (see the function comment).
+	// attachTo emits the Attach event for one object and, when
+	// RememberAttached$ True, the two-half remember (see the function comment).
 	rememberAttached := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAttached"]), "True")
-	attachTo := func(target state.ObjID) {
-		emitAttach(h, obj, target)
+	attachTo := func(attachObj, target state.ObjID) {
+		emitAttach(h, attachObj, target)
 		if rememberAttached {
-			c.Remembered = append(c.Remembered, state.Target{Obj: obj})
-			eventRemember(h, c, obj)
+			c.Remembered = append(c.Remembered, state.Target{Obj: attachObj})
+			eventRemember(h, c, attachObj)
 		}
+	}
+	// The plural-object walk (Fumble's `Object$ AttachedTo Targeted.Aura,
+	// Equipment`, Rhuk's and Cass's `Object$ AttachedTo ...Equipment`):
+	// attachableBy reports whether a destination is legal for AT LEAST one
+	// resolved object (the offer rule), and attachAll attaches every object
+	// whose OWN legality admits it, returning the count. With a single
+	// resolved object both reduce exactly to the old single-object reads, so
+	// every single-object carrier stays byte-identical.
+	attachAll := func(target state.ObjID) int {
+		n := 0
+		for _, o := range objs {
+			if o == target {
+				continue
+			}
+			if !Attachable(h.Game(), o, target) {
+				continue
+			}
+			attachTo(o, target)
+			n++
+		}
+		return n
+	}
+	attachableBy := func(target state.ObjID) bool {
+		for _, o := range objs {
+			if o == target {
+				continue
+			}
+			if Attachable(h.Game(), o, target) {
+				return true
+			}
+		}
+		return false
 	}
 	// A Choices$ pool the controller picks from: the battlefield sweep the
 	// filter admits, evaluated with the resolving controller as You. With
@@ -289,22 +337,11 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 				// itself, which a raw battlefield sweep CAN admit -- is
 				// refused with no Attach (the malformed-answer conservative
 				// read) and the chain continues via Resolve.
-				legal := false
-				for _, t := range pool {
-					if t.Obj == obj {
-						continue
-					}
-					if !Attachable(h.Game(), obj, t.Obj) {
-						continue
-					}
-					if t.Obj == answered[0] {
-						legal = true
-					}
-				}
+				legal := attachableBy(answered[0])
 				if !legal {
 					return
 				}
-				attachTo(answered[0])
+				attachAll(answered[0])
 				return
 			}
 			// No Object$: the answer names the OBJECT to attach, and the
@@ -316,16 +353,14 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 				return
 			}
 			obj = answered[0]
-			attachTo(answerDests[0])
+			objs = []state.ObjID{obj}
+			attachTo(obj, answerDests[0])
 			return
 		}
 		if _, hasObject := sa.Params["Object"]; hasObject {
 			var dest []state.ObjID
 			for _, t := range pool {
-				if t.Obj == obj {
-					continue
-				}
-				if !Attachable(h.Game(), obj, t.Obj) {
+				if !attachableBy(t.Obj) {
 					continue
 				}
 				dest = append(dest, t.Obj)
@@ -339,7 +374,7 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 				max = 0
 			}
 			if max == 1 && len(dest) == 1 {
-				attachTo(dest[0])
+				attachAll(dest[0])
 				return
 			}
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: max, Max: 1,
@@ -414,7 +449,8 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if min == 1 && len(pool) == 1 {
 			obj = pool[0].Obj
-			attachTo(legal[0])
+			objs = []state.ObjID{obj}
+			attachTo(obj, legal[0])
 			return
 		}
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: min, Max: 1,
@@ -431,8 +467,23 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		_ = Ask(h, d)
 		return
 	}
-	// No Choices$: the destination is the first legal Defined$ target.
-	legalT = destCandidatesFor(obj)
+	// No Choices$: the destination is the first legal Defined$ target. A
+	// plural Object$ list (Rhuk's and Cass's AttachedTo Equipment selectors)
+	// gets each object its OWN first legal destination -- the card attaches
+	// every one of them. With a single resolved object the union below is
+	// exactly the old destCandidatesFor(obj) list, so the single-object
+	// carriers take the same first legal target byte-identically.
+	legalT = legalT[:0]
+	seenDest := make(map[state.ObjID]bool)
+	for _, o := range objs {
+		for _, t := range destCandidatesFor(o) {
+			if seenDest[t.Obj] {
+				continue
+			}
+			seenDest[t.Obj] = true
+			legalT = append(legalT, t)
+		}
+	}
 	var legal []state.ObjID
 	for _, t := range legalT {
 		legal = append(legal, t.Obj)
@@ -469,11 +520,17 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	for _, target := range legal {
-		attachTo(target)
-		return
+	attached := 0
+	for _, o := range objs {
+		for _, t := range destCandidatesFor(o) {
+			attachTo(o, t.Obj)
+			attached++
+			break
+		}
 	}
-	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal target"})
+	if attached == 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal target"})
+	}
 }
 
 // choicePrompt is a Choices$ Attach's ask prompt: the script's ChoiceTitle$

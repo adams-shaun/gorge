@@ -2416,6 +2416,11 @@ func Apply(g *state.Game, e Event) {
 				o.AttachedTo, o.HasAttachedPlayer = 0, false
 			case g.Obj(e.IDs[0]) != nil:
 				o.AttachedTo, o.HasAttachedPlayer = e.IDs[0], false
+				// A re-attach supersedes any earlier bearer: the object is
+				// now "attached to" the new one, so a later "was attached
+				// to X" read must not still name the old X (state.Object.
+				// LastBearer's contract).
+				o.LastBearer = 0
 			}
 		}
 
@@ -2429,6 +2434,15 @@ func Apply(g *state.Game, e Event) {
 		// state fold depends on it.
 		if o := g.Obj(e.Obj); o != nil {
 			o.AttachedTo, o.HasAttachedPlayer = 0, false
+			// IDs[0] is the former bearer: the attachmentSBAs detach arms
+			// carry it so a later trigger can still resolve "attached to
+			// that creature" after the sweep cleared AttachedTo
+			// (state.Object.LastBearer's contract). A zero carrier leaves
+			// any earlier LastBearer standing -- the object was not
+			// attached to a named permanent.
+			if len(e.IDs) > 0 && e.IDs[0] != 0 {
+				o.LastBearer = e.IDs[0]
+			}
 		}
 
 	case AbilityPush:
@@ -3451,6 +3465,16 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// after the reverse stack move.
 		if wasStack {
 			o.ChosenModes = nil
+		}
+		// AttachedTo has no legal life off the battlefield at all (an Aura/
+		// Equipment that isn't a permanent cannot be "attached"), so it always
+		// resets here. The pre-clear bearer is preserved as LastBearer so a
+		// trigger that resolves after the sweep can still resolve "objects
+		// that were attached to it" (state.Object.LastBearer's contract).
+		// When AttachedTo is already 0 (an earlier Unattached set it) the
+		// existing LastBearer stands.
+		if o.AttachedTo != 0 {
+			o.LastBearer = o.AttachedTo
 		}
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
 	}
