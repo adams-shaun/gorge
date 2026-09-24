@@ -271,7 +271,9 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     d.Kind) that says what is being chosen. "x" takes the highest option
 //     (the most an {X} cost can pay for -- options ascend); "exile"/
 //     "sacrifice" take the first Max options; "yes"/"no" always answers yes
-//     (Kind "yes" is first, per how askers build the two-option list);
+//     (Kind "yes" is first, per how askers build the two-option list),
+//     except a copy_optional election on a copy of a copy (CH1: a may-copy
+//     chain ends after one hand-over) and the repeat_optional stop rules;
 //     "name"/"type"/"number" take the first offer. No rng is consumed,
 //     unlike KBlockers/KTriggerOrder/KTriggerOptional above.
 //   - KMulligan: the London round (Config.Mulligans > 0) offers two shapes on
@@ -532,6 +534,25 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 		if len(d.Options) == 0 {
 			break
+		}
+		if d.ResumeKind == "copy_optional" && d.CopyOfCopy {
+			// CH1 (chain copies): decline a may-copy election whose spell is
+			// itself a copy. The chain family ("that player may copy this
+			// spell": Chain of Smog, Barroom Brawl) hands the copy to another
+			// seat, whose copy offers the copy back, and two bots that always
+			// accept extend it forever -- a legal loop no state change ever
+			// ends (cardfuzz batch1: Chain of Smog on empty hands, 20000
+			// intents in one main phase). Accepting the FIRST link (the
+			// original spell) keeps the card's real value; declining every
+			// copy-of-a-copy bounds each chain at one hand-over. The fact is
+			// engine-filled (decision.Decision.CopyOfCopy), so both adapter
+			// halves see it identically, and no rng is consumed.
+			for _, o := range d.Options {
+				if o.Kind == "no" {
+					in.Choices = []int{o.Index}
+					return Clamp(d, in)
+				}
+			}
 		}
 		if d.ResumeKind == "repeat_optional" {
 			// Repeat while life remains above the deterministic safety margin;

@@ -209,6 +209,7 @@ func (e *Engine) answerNestedManaColor(ma *manaColorActivation, chosen []decisio
 	} else {
 		ctx = effects.Ctx{Source: ma.source, Controller: ma.player}
 		ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(ma.source, ma.ability)
+		ctx.ActivationsThisTurn = e.activationsThisTurnFor(ma.source, ma.ability)
 		if o := e.G.Obj(ma.source); o != nil && o.Face() != nil {
 			effects.SetSVars(&ctx, ma.gained.svars(o.Face().SVars))
 		}
@@ -829,6 +830,20 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 			return false
 		}
 		if o.Counter(part.Spec) < part.N {
+			return false
+		}
+	}
+	// Return<N/Spec> parts: the mana path pays only the self-return
+	// (Spec CARDNAME, Forge's payCostFromSource -- Grinning Ignus's
+	// "{R}, Return this creature to its owner's hand"), which needs no
+	// choice. Any other Return spec, or a Return beside a part the
+	// discard/sacrifice continuation owns, is refused rather than activated
+	// with the return silently unpaid.
+	if !manaReturnCostSupported(cost) {
+		return false
+	}
+	for range cost.Return {
+		if o.Zone != state.ZBattlefield {
 			return false
 		}
 	}
@@ -1546,7 +1561,8 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	// attribution, so an ability that carries EITHER limit records its
 	// activation here (events.ManaActivate's own comment). Emitted only for a
 	// limit-bearing ability so no existing game's log shape changes.
-	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" {
+	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" ||
+		chainGatesOnActivationCount(original) {
 		// The flat pile index (top face first, then under-cards) is the SAME
 		// identity availableManaAbilitiesUsing's limit gate checks, so an
 		// under-card mana ability's census cannot be counted against a
@@ -1589,7 +1605,32 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	for _, id := range sacs {
 		e.emit(events.Sacrifice(id))
 	}
+	// Return<1/CARDNAME>: the source goes to its OWNER's hand as part of the
+	// payment (the cast path's Return settle, rules/cast.go), after the {T}
+	// tap so a tap-and-return cost never taps a hand card.
+	// manaAbilityPayablePool admitted only the self-return shape.
+	for range cost.Return {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+		}
+	}
 	e.resolveManaEffect(p, source, ma, cast, payment, manaTriggers, sacs, gained)
+}
+
+// manaReturnCostSupported reports whether a mana ability's Return<N/Spec>
+// parts are the shape the off-stack mana path pays: none at all, or exactly
+// the self-return Return<1/CARDNAME> with no sacrifice/discard/exile part
+// beside it (those route through the manaDiscardActivation continuation,
+// which does not settle a return).
+func manaReturnCostSupported(cost Cost) bool {
+	if len(cost.Return) == 0 {
+		return true
+	}
+	if len(cost.Return) != 1 || len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Exile) > 0 {
+		return false
+	}
+	part := cost.Return[0]
+	return part.N == 1 && strings.EqualFold(sacrificeMatchSpec(part.Spec), "CARDNAME")
 }
 
 // resolveManaEffect resolves the mana a paid ability produces. sacs carries
@@ -2077,4 +2118,19 @@ func (e *Engine) commanderIdentityColours(p state.PlayerID) []string {
 // Config order, so a replay derives the identical count.
 func (e *Engine) CommanderIdentityColourCount(p state.PlayerID) int {
 	return len(e.commanderIdentityColours(p))
+}
+
+// chainGatesOnActivationCount reports whether sa's SubAbility$ chain carries
+// a ConditionActivationLimit$ gate ("if this ability has been activated four
+// or more times this turn" -- Farrelite Priest, Initiates of the Ebon Hand).
+// A mana ability has no AbilityPush, so such a chain needs the ManaActivate
+// census marker for Ctx.ActivationsThisTurn to count it; the marker is
+// emitted only for these carriers so no other game's log changes.
+func chainGatesOnActivationCount(sa *cards.SA) bool {
+	for sub, n := sa, 0; sub != nil && n < 32; sub, n = sub.Sub, n+1 {
+		if strings.TrimSpace(sub.Params["ConditionActivationLimit"]) != "" {
+			return true
+		}
+	}
+	return false
 }
