@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -26,15 +26,16 @@ import (
 //   - statics (Face.Statics), replacement effects (Face.Repls) and keywords
 //     rules reads directly without expanding (Flying, Flash, Kicker,
 //     Flashback, Protection, Evoke ...): nothing is "used" in the log;
+//   - a Static$ True bookkeeping trigger with no description
+//     (bookkeepingTrigger);
 //   - abilities granted by another card or gained from one (GrantTriggerPush,
 //     GainedAbilityPush, KeywordAbilityPush, a Clone's copied abilities):
 //     they are not the card's own, so they credit nothing.
 type abilitySlot struct {
-	key      string // stable id: "f<face>/a<index>" or "f<face>/t<index>"
-	desc     string // human label for the report: API or trigger mode
-	sa       *cards.SA
-	mana     bool
-	produced string // Produced$ of a mana ability
+	key  string // stable id: "f<face>/a<index>" or "f<face>/t<index>"
+	desc string // human label for the report: API or trigger mode
+	sa   *cards.SA
+	mana bool
 }
 
 func isManaAPI(api string) bool { return api == "Mana" || api == "ManaReflected" }
@@ -56,13 +57,10 @@ func abilityInventory(c *cards.Card) []abilitySlot {
 			if kw := a.Params["Keyword"]; kw != "" {
 				s.desc += "/" + kw
 			}
-			if s.mana {
-				s.produced = a.Params["Produced"]
-			}
 			out = append(out, s)
 		}
 		for i, t := range f.Triggers {
-			if t.Effect == nil {
+			if t.Effect == nil || bookkeepingTrigger(t) {
 				continue
 			}
 			d := t.Mode
@@ -73,6 +71,20 @@ func abilityInventory(c *cards.Card) []abilitySlot {
 		}
 	}
 	return out
+}
+
+// bookkeepingTrigger reports a Forge script's internal state-tracking
+// trigger: a Static$ True line with no TriggerDescription$ (the DBForget /
+// DBCleanup riders that clear a Remembered/Imprinted card when it leaves
+// exile or its source leaves play -- Chrome Mox, Myr Welder, Isochron
+// Scepter ...). It is no printed ability of the card, and it fires only on
+// the incidental zone change it tidies up after, so counting it would hold
+// the card below "full" for no ability a player could ever use. A Static$
+// True TapsForMana trigger is a real triggered mana ability (CR 605.1b) and
+// always has a description, so it stays.
+func bookkeepingTrigger(t cards.Trigger) bool {
+	return strings.EqualFold(strings.TrimSpace(t.Params["Static"]), "True") &&
+		strings.TrimSpace(t.Params["TriggerDescription"]) == "" && t.Mode != "TapsForMana"
 }
 
 // abilityKeys is abilityInventory's keys (already in a stable order).
@@ -102,25 +114,120 @@ type slotRef struct {
 	slot abilitySlot
 }
 
-// producesColour reports how a mana ability's Produced$ relates to one added
-// mana letter: exact (the letter is one of its tokens), wild (it names a
-// choice -- Any, Chosen, Combo Any, ManaReflected's empty -- that can make any
-// colour) or neither.
-func producesColour(produced string, colour byte) (exact, wild bool) {
-	toks := strings.Fields(produced)
-	if len(toks) == 0 {
-		return false, true
+// useProbe is one game's engine-side observations the log cannot give back:
+// every mana ability the engine resolved (rules.Engine.ManaAbilityHook) and
+// every printed activated ability it offered a seat as a priority "ability"
+// option. It is filled while the game plays (install, observe) and read by
+// abilitiesUsed / abilitiesOffered afterwards.
+type useProbe struct {
+	mana    []probeRef
+	offered []probeRef
+}
+
+// probeRef names an ability by its compiled pointer and the object it was
+// activated from / offered on.
+type probeRef struct {
+	src state.ObjID
+	sa  *cards.SA
+}
+
+// install arms the probe on a fresh engine (gbench.Hooks.Setup).
+func (u *useProbe) install(e *rules.Engine) {
+	e.ManaAbilityHook = func(_ state.PlayerID, source state.ObjID, sa *cards.SA) {
+		u.mana = append(u.mana, probeRef{src: source, sa: sa})
 	}
-	for _, t := range toks {
-		switch {
-		case len(t) == 1 && t[0] == colour:
-			exact = true
-		case t == "Combo" || (len(t) == 1 && strings.ContainsRune("WUBRGC", rune(t[0]))):
-		default:
-			wild = true
+}
+
+// observe records the pending priority decision's printed-ability offers. It
+// runs from the drive loop's per-decision Guard, so it sees every decision
+// before it is answered. Granted, keyword-granted and gained options (SVar,
+// Keyword, GainedSource anchors) are not the source card's own abilities
+// and record nothing. Offers repeat every priority window, so a ref already
+// recorded this game is not appended again.
+func (u *useProbe) observe(e *rules.Engine, seen map[probeRef]bool) {
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		return
+	}
+	for _, o := range d.Options {
+		if o.Kind != "ability" || o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.Ability < 0 {
+			continue
+		}
+		obj := e.G.Obj(o.Obj)
+		if obj == nil {
+			continue
+		}
+		pa, ok := obj.PileAbilityAt(o.Ability)
+		if !ok || pa.SA == nil {
+			continue
+		}
+		r := probeRef{src: o.Obj, sa: pa.SA}
+		if seen[r] {
+			continue
+		}
+		seen[r] = true
+		u.offered = append(u.offered, r)
+	}
+}
+
+// inventoryIndex maps every deck card's compiled ability pointers to the
+// inventory slots they are.
+func inventoryIndex(decks [][]*cards.Card) map[*cards.SA][]slotRef {
+	bySA := map[*cards.SA][]slotRef{}
+	seenCard := map[string]bool{}
+	for _, d := range decks {
+		for _, c := range d {
+			n := cardName(c)
+			if seenCard[n] {
+				continue
+			}
+			seenCard[n] = true
+			for _, s := range abilityInventory(c) {
+				bySA[s.sa] = append(bySA[s.sa], slotRef{card: n, slot: s})
+			}
 		}
 	}
-	return exact, wild
+	return bySA
+}
+
+// ownCardName is the object's own card name when it is a real card that is
+// not a token, copy or copy-effect permanent (whose abilities are someone
+// else's), else "".
+func ownCardName(e *rules.Engine, id state.ObjID) string {
+	o := e.G.Obj(id)
+	if o == nil || o.Card == nil || o.IsToken || o.IsCopy || o.CopyFace != nil {
+		return ""
+	}
+	return cardName(o.Card)
+}
+
+func creditKey(out map[string]map[string]bool, card, key string) {
+	m := out[card]
+	if m == nil {
+		m = map[string]bool{}
+		out[card] = m
+	}
+	m[key] = true
+}
+
+// creditRefs credits, for each probe ref whose source object is the card
+// owning the referenced slot, that slot's key.
+func creditRefs(e *rules.Engine, bySA map[*cards.SA][]slotRef, refs []probeRef, out map[string]map[string]bool) {
+	for _, r := range refs {
+		slots := bySA[r.sa]
+		if len(slots) == 0 {
+			continue
+		}
+		n := ownCardName(e, r.src)
+		if n == "" {
+			continue
+		}
+		for _, sr := range slots {
+			if sr.card == n {
+				creditKey(out, n, sr.slot.key)
+			}
+		}
+	}
 }
 
 // abilitiesUsed walks a finished game for which of its deck cards' own
@@ -137,43 +244,18 @@ func producesColour(produced string, colour byte) (exact, wild bool) {
 // body (a fresh ResolveSVar SA) credit nothing.
 //
 // Mana abilities never use the stack and ManaAdd carries no source, so they
-// are detected by proxy: a Tap of the source followed (before the next Tap,
-// priority, decision or stack push) by a positive ManaAdd credits the
-// source card's mana abilities whose Produced$ names that colour (else those
-// with a wildcard Produced$, else all of them). An ability carrying an
-// activation limit also logs an exact ManaActivate marker (flat pile index),
-// which credits that slot directly. A mana ability with no tap cost and no
-// limit (a sacrifice outlet like Ashnod's Altar) is therefore never seen.
-func abilitiesUsed(e *rules.Engine, decks [][]*cards.Card) map[string]map[string]bool {
-	bySA := map[*cards.SA][]slotRef{}
-	mana := map[string][]abilitySlot{}
-	seenCard := map[string]bool{}
-	for _, d := range decks {
-		for _, c := range d {
-			n := cardName(c)
-			if seenCard[n] {
-				continue
-			}
-			seenCard[n] = true
-			for _, s := range abilityInventory(c) {
-				bySA[s.sa] = append(bySA[s.sa], slotRef{card: n, slot: s})
-				if s.mana {
-					mana[n] = append(mana[n], s)
-				}
-			}
-		}
-	}
+// are credited EXACTLY from the probe's engine hook (rules.Engine.
+// ManaAbilityHook): the resolved ability's compiled pointer and its source
+// object, whatever its cost (tap, sacrifice, life, none) and whatever colour
+// choice it asked. The hook is harness-only and emits nothing, so the log
+// and every chain head are unchanged. It replaced a Tap-then-ManaAdd log
+// proxy that stopped scanning at the first decision, so it missed every
+// ability that asks its colour between the Tap and the ManaAdd (every "one
+// mana of any colour" source: Manalith, Darksteel Ingot, Mox Opal ...) and
+// every mana ability without a {T} cost.
+func abilitiesUsed(e *rules.Engine, decks [][]*cards.Card, probe *useProbe) map[string]map[string]bool {
+	bySA := inventoryIndex(decks)
 	used := map[string]map[string]bool{}
-	credit := func(card, key string) {
-		m := used[card]
-		if m == nil {
-			m = map[string]bool{}
-			used[card] = m
-		}
-		m[key] = true
-	}
-	name := func(id state.ObjID) string { return realCardName(e, id) }
-
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
 		if o.Ability == nil || o.Card != nil || o.IsCopy || o.Source == 0 {
@@ -183,92 +265,30 @@ func abilitiesUsed(e *rules.Engine, decks [][]*cards.Card) map[string]map[string
 		if len(refs) == 0 {
 			continue
 		}
-		owner := name(o.Source)
+		owner := realCardName(e, o.Source)
 		for _, r := range refs {
 			if r.card == owner {
-				credit(r.card, r.slot.key)
+				creditKey(used, r.card, r.slot.key)
 			}
 		}
 	}
-
-	// ownCard is the source's own card name when the object is a real card
-	// that is not a token, copy or copy-effect permanent (whose abilities are
-	// someone else's).
-	ownCard := func(id state.ObjID) string {
-		o := e.G.Obj(id)
-		if o == nil || o.Card == nil || o.IsToken || o.IsCopy || o.CopyFace != nil {
-			return ""
-		}
-		return cardName(o.Card)
-	}
-	evs := e.L.Events
-	for i, ev := range evs {
-		switch ev.Kind {
-		case events.ManaActivate:
-			if len(ev.IDs) > 0 {
-				continue // a gained (foreign) mana ability
-			}
-			n := ownCard(ev.Obj)
-			if n == "" {
-				continue
-			}
-			if pa, ok := e.G.Obj(ev.Obj).PileAbilityAt(int(ev.Amount)); ok {
-				for _, r := range bySA[pa.SA] {
-					if r.card == n {
-						credit(n, r.slot.key)
-					}
-				}
-			}
-		case events.Tap:
-			n := ownCard(ev.Obj)
-			slots := mana[n]
-			if len(slots) == 0 {
-				continue
-			}
-			colour := byte(0)
-		scan:
-			for j := i + 1; j < len(evs) && j <= i+8; j++ {
-				switch evs[j].Kind {
-				case events.ManaAdd:
-					if evs[j].Amount > 0 {
-						colour = 'C'
-						if ctr := evs[j].Counter; ctr != "" {
-							colour = ctr[len(ctr)-1]
-						}
-						break scan
-					}
-				case events.Tap, events.Priority, events.DecisionAsk, events.DecisionMade,
-					events.PutOnStack, events.AbilityPush, events.TriggerPush, events.StepChange:
-					break scan
-				}
-			}
-			if colour == 0 {
-				continue
-			}
-			var exact, wild []string
-			for _, s := range slots {
-				ex, wd := producesColour(s.produced, colour)
-				if ex {
-					exact = append(exact, s.key)
-				} else if wd {
-					wild = append(wild, s.key)
-				}
-			}
-			keys := exact
-			if len(keys) == 0 {
-				keys = wild
-			}
-			if len(keys) == 0 {
-				for _, s := range slots {
-					keys = append(keys, s.key)
-				}
-			}
-			for _, k := range keys {
-				credit(n, k)
-			}
-		}
+	if probe != nil {
+		creditRefs(e, bySA, probe.mana, used)
 	}
 	return used
+}
+
+// abilitiesOffered is the probe's offer record in abilitiesUsed's shape:
+// which of each deck card's own activated abilities the engine offered its
+// controller as a priority action at least once. A never-used key that was
+// offered is a seat-policy gap (it was legal and never chosen); one never
+// offered is an engine offer gap or a board the games never reached.
+func abilitiesOffered(e *rules.Engine, decks [][]*cards.Card, probe *useProbe) map[string]map[string]bool {
+	out := map[string]map[string]bool{}
+	if probe != nil {
+		creditRefs(e, inventoryIndex(decks), probe.offered, out)
+	}
+	return out
 }
 
 // realCardName walks an object's Source chain (tokens, copies, ability

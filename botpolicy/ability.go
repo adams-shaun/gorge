@@ -130,6 +130,18 @@ func (b Board) abilityScore(o decision.Option, me state.PlayerID) (score int32, 
 // err toward not churning" boundary, documented so the regression stays
 // explicit rather than a guessed behaviour.
 func (b Board) equipNoOp(o decision.Option, me state.PlayerID) bool {
+	if b.explore && !o.Attach {
+		// X1 (ExploreDecide only): both halves are facts about an ATTACH.
+		// Read on any other ability they decline every activated ability of
+		// every Aura and attached Equipment (Holy Armor's pump, Flickerform's
+		// flicker: AttachedTo != 0) and every non-attach ability while the
+		// seat has no creature (Tower of Eons, Well of Knowledge), none of
+		// which is a re-site. The production policy keeps the broad reading
+		// (the Broadness note above): scoping it there moves the 2- and
+		// 8-seat golden chain heads (rules/heads_test.go), so that promotion
+		// is a separate, deliberate change.
+		return false
+	}
 	if !b.hasOwnCreature(me) {
 		// No battlefield creature to attach to: an equip has no legal target
 		// and fizzles unchanged.

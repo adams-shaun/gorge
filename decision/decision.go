@@ -322,6 +322,17 @@ type Option struct {
 	// the engine's own derived-keyword facts and the stack -- a human
 	// client never sees it, so it is never on the wire.
 	Grant *Grant `json:"-"`
+	// Attach is server-side only (json:"-"), set on a printed "ability"
+	// option whose ability is an AB$ Attach -- K:Equip, Reconfigure and
+	// Fortify expand to one (cards/keywords.go). It is what scopes the bot
+	// policy's attachment no-op rule (A1, botpolicy.equipNoOp: an attached
+	// source's re-attach, or an attach with no creature to land on) to the
+	// abilities that rule is about: an Aura's or an equipment's OTHER
+	// activated abilities (Holy Armor's pump, Flickerform's flicker) are not
+	// re-attaches, and before this fact existed every one of them read as a
+	// no-op and was never activated. Filled by rules/legal.go from the
+	// compiled ability, never on the wire.
+	Attach bool `json:"-"`
 	// GrantSource is server-side only (json:"-") and names the object that
 	// GRANTS an "ability" option's SVar body when that grantor differs from
 	// the option's Obj (the ability's own source/recipient). It is set by

@@ -62,6 +62,20 @@ var predicates = map[string]predFn{
 	"tokenCreated": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.IsToken
 	},
+	// firstTurnControlled is Forge's Card.isFirstTurnControlled: the
+	// permanent came under its controller's control since that player's most
+	// recent turn began. That is exactly the object's summoning-sickness
+	// flag, which events.Apply raises for EVERY permanent (not only
+	// creatures) on a battlefield entry and on a control change and clears
+	// at its controller's TurnChange. Rocket Launcher's `IsPresent$
+	// Card.Self+!firstTurnControlled` ("activate only if you've controlled it
+	// continuously since the beginning of your most recent turn") and the
+	// Master of Arms / Norritt / Seasinger families read it; before it was
+	// recognised the spec failed closed and Rocket Launcher's only ability
+	// was never offered (cardfuzz coverage audit).
+	"firstTurnControlled": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Zone == state.ZBattlefield && o.SummonSick
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
