@@ -1261,7 +1261,8 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	}
 	dest := ParseZone(destName)
 	optional := sa.Params["Optional"] == "True"
-	promptToSkipOptional := strings.EqualFold(strings.TrimSpace(sa.Params["PromptToSkipOptionalAbility"]), "True")
+	promptToSkipOptional := strings.EqualFold(strings.TrimSpace(sa.Params["PromptToSkipOptionalAbility"]), "True") ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["OptionalAbilityPrompt"]), "True")
 	// The variant params (see the comment block above the function for what
 	// each means and which corpus card carries it).
 	revealWin := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") &&
