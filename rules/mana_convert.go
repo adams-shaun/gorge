@@ -179,7 +179,7 @@ func staticSAKindMatches(validSA string, ability bool) bool {
 	if v == "" {
 		return true
 	}
-	for _, alt := range strings.Split(v, ",") {
+	for alt := range strings.SplitSeq(v, ",") {
 		kind := strings.TrimSpace(alt)
 		if i := strings.IndexByte(kind, '.'); i >= 0 {
 			kind = kind[:i]
@@ -211,6 +211,9 @@ func (e *Engine) manaConversion(p state.PlayerID, id state.ObjID, ability bool) 
 
 func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability bool) (manaConv, manaConv) {
 	var mandatory, optional manaConv
+	// The printed sources are a board-only list, cached for a legal-actions
+	// walk (rules/walkcache.go); the per-payment filter below still runs.
+	srcs := e.manaConvPrintedSources()
 	// remembered is the Effect-delivered static's own Remembered set (nil for
 	// a printed static). It is threaded into the ValidCard$ SpecContext so a
 	// `ValidCard$ Card.IsRemembered` conversion (Abstruse Appropriation's
@@ -234,7 +237,7 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 		if strings.EqualFold(strings.TrimSpace(sv.Params["Optional"]), "True") {
 			dst = &optional
 		}
-		for _, tok := range strings.Fields(sv.Params["ManaConversion"]) {
+		for tok := range strings.FieldsSeq(sv.Params["ManaConversion"]) {
 			if from, to, ok := strings.Cut(tok, "->"); ok {
 				if froms := manaColourFrom(from); froms != nil {
 					applyManaConversionTo(dst, froms, to)
@@ -250,25 +253,8 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 			}
 		}
 	}
-	for pi, p := range e.G.AliveFrom(0) {
-		for _, z := range staticSourceZones {
-			if z == state.ZStack && pi > 0 {
-				continue
-			}
-			for _, oid := range e.G.Zone(z, p) {
-				o := e.G.Obj(oid)
-				if o == nil || o.Face() == nil || (z == state.ZBattlefield && e.faceDownPrintedHides(o)) {
-					continue
-				}
-				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
-					pst, ok := o.PileStaticAt(si)
-					if !ok || pst.Static.Mode != "ManaConvert" || !effectZoneOK(pst.Static.Params["EffectZone"], o.Zone) {
-						continue
-					}
-					apply(staticView{Source: oid, Controller: o.Controller, Params: pst.Static.Params, SVars: pst.Face.SVars}, nil)
-				}
-			}
-		}
+	for i := range srcs {
+		apply(srcs[i].sv, nil)
 	}
 	for _, ce := range e.active() {
 		if ce.CostStaticMode == "ManaConvert" {

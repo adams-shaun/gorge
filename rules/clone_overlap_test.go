@@ -63,9 +63,13 @@ func activateCloneAbilityIdx(t *testing.T, e *Engine, mimic, target state.ObjID,
 // ClonePermanent{Obj: id} with no IDs (an unconditional CopyFace clear) and
 // dropped every effect whose CloneTarget was the object, modifiers included.
 func TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy(t *testing.T) {
-	e, cfg, id := newFixtureDeck(t, 141, twoCloneAbilities, cloneOxSrc, cloneBruiserSrc)
+	// The first copy keeps only its resolving ability, not Twinmimic's
+	// second ability. The copied Ox supplies the temporary Clone instead.
+	const oxWithClone = "Name:Fixture Ox\nManaCost:2 G\nTypes:Creature Ox\nPT:2/3\n" +
+		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilEndOfTurn | SpellDescription$ becomes a copy until end of turn.\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 141, twoCloneAbilities, oxWithClone, cloneBruiserSrc)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
-	ox := moveSeeded(t, e, 0, cloneOxSrc, state.ZBattlefield)
+	ox := moveSeeded(t, e, 0, oxWithClone, state.ZBattlefield)
 	bruiser := moveSeeded(t, e, 0, cloneBruiserSrc, state.ZBattlefield)
 
 	addMana(t, e, 0, "C")
@@ -74,7 +78,7 @@ func TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy(t *testing.T) {
 		t.Fatalf("permanent copy name %v, want Fixture Ox", o.Face())
 	}
 	addMana(t, e, 0, "C")
-	activateCloneAbilityIdx(t, e, id, bruiser, 1) // temporary copy of the Bruiser
+	activateCloneAbilityIdx(t, e, id, bruiser, 0) // copied Ox's temporary Clone
 	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Bruiser" {
 		t.Fatalf("temporary copy name %v, want Fixture Bruiser", o.Face())
 	}
@@ -122,15 +126,17 @@ func TestOverlappingClonesShortExpiryKeepsTheLongerCopy(t *testing.T) {
 		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilEndOfTurn | GainThisAbility$ True | SpellDescription$ becomes a copy until end of turn.\n" +
 		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilYourNextTurn | SpellDescription$ becomes a copy until your next turn.\n" +
 		"Oracle:x\n"
-	e, cfg, id := newFixtureDeck(t, 142, src, cloneOxSrc, cloneBruiserSrc)
+	const oxWithClone = "Name:Fixture Ox\nManaCost:2 G\nTypes:Creature Ox\nPT:2/3\n" +
+		"A:AB$ Clone | Cost$ 1 | ValidTgts$ Creature | Duration$ UntilYourNextTurn | SpellDescription$ becomes a copy until your next turn.\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 142, src, oxWithClone, cloneBruiserSrc)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
-	ox := moveSeeded(t, e, 0, cloneOxSrc, state.ZBattlefield)
+	ox := moveSeeded(t, e, 0, oxWithClone, state.ZBattlefield)
 	bruiser := moveSeeded(t, e, 0, cloneBruiserSrc, state.ZBattlefield)
 
 	addMana(t, e, 0, "C")
 	activateCloneAbilityIdx(t, e, id, ox, 0) // until end of turn
 	addMana(t, e, 0, "C")
-	activateCloneAbilityIdx(t, e, id, bruiser, 1) // until your next turn
+	activateCloneAbilityIdx(t, e, id, bruiser, 0) // copied Ox's next-turn Clone
 	if o := e.G.Obj(id); o.Face() == nil || o.Face().Name != "Fixture Bruiser" {
 		t.Fatalf("second copy name %v, want Fixture Bruiser", o.Face())
 	}

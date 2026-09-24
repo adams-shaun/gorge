@@ -1,0 +1,95 @@
+import { describe, expect, it, vi } from 'vitest';
+import { rematchDecks, startRematch } from './playvsbot';
+import { setBasePathForTests, withBase } from './basepath';
+
+const fetchMock = vi.fn();
+vi.stubGlobal('fetch', fetchMock);
+
+describe('startRematch (fb-20260922T202722Z)', () => {
+  it('POSTs the whole matchup — format, both exact deck ids, bot_policy and mulligans — and returns the base-relative join path', async () => {
+    setBasePathForTests('/x');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ table: 'g2', match: 1, seed: 99, seat: 0, token: 'tok2', join: '/t/g2?seat=0&token=tok2' }),
+    });
+    await expect(startRematch('constructed', 'a', 'b', 'bot', 3)).resolves.toBe(withBase('/t/g2?seat=0&token=tok2'));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      format: 'constructed',
+      human_deck: 'a',
+      bot_deck: 'b',
+      bot_policy: 'bot',
+      mulligans: 3,
+    });
+  });
+
+  it('keeps human/bot deck roles when the human occupies seat 1', async () => {
+    const seats = [
+      { name: 'Bot', deck: 'Display bot', colour: '#000', deck_id: 'bot-id' },
+      { name: 'You', deck: 'Display human', colour: '#fff', human: true, deck_id: 'human-id' },
+    ];
+    // Preconditions: inverted two-seat assignment, with distinct exact ids.
+    expect(seats).toHaveLength(2);
+    expect(seats[0].deck_id).not.toBe(seats[1].deck_id);
+    expect(seats[1].human).toBe(true);
+
+    const { humanDeck, botDeck } = rematchDecks(seats, 1);
+    expect({ humanDeck, botDeck }).toEqual({ humanDeck: 'human-id', botDeck: 'bot-id' });
+
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ table: 'g2', match: 1, seed: 99, seat: 0, token: 'tok2', join: '/t/g2' }),
+    });
+    await startRematch('constructed', humanDeck, botDeck, 'bot', 4);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      format: 'constructed',
+      human_deck: 'human-id',
+      bot_deck: 'bot-id',
+      bot_policy: 'bot',
+      mulligans: 4,
+    });
+  });
+
+  it('refuses a rematch with either exact deck id missing, before any create request', async () => {
+    const fullSeats = [
+      { name: 'You', deck: 'Human display', colour: '#fff', human: true, deck_id: 'human-id' },
+      { name: 'Bot', deck: 'Bot display', colour: '#000', deck_id: 'bot-id' },
+    ];
+    expect(fullSeats).toHaveLength(2);
+    expect(fullSeats[0].deck_id).not.toBe(fullSeats[1].deck_id);
+    fetchMock.mockReset();
+    for (const missing of [0, 1]) {
+      const seats = fullSeats.map((seat, i) => i === missing ? { ...seat, deck_id: undefined } : seat);
+      expect(seats[missing].deck_id).toBeUndefined();
+      expect(seats[1 - missing].deck_id).toBeTruthy();
+      expect(() => rematchDecks(seats, 0)).toThrow('exact deck IDs are unavailable');
+      await expect(startRematch('constructed', seats[0].deck_id ?? '', seats[1].deck_id ?? '', 'bot', 2))
+        .rejects.toThrow('exact deck IDs are unavailable');
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('sends mulligans 0 (a real value, the pre-game round disabled) rather than omitting it', async () => {
+    setBasePathForTests('');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ table: 'g2', match: 1, seed: 1, seat: 0, token: 't', join: '/t/g2' }),
+    });
+    await startRematch('commander', 'h', 'b', '', 0);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      format: 'commander',
+      human_deck: 'h',
+      bot_deck: 'b',
+      mulligans: 0,
+    });
+  });
+
+  it('propagates a server rejection (a 404 when CreateGame is not armed) so the control can render it', async () => {
+    setBasePathForTests('');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ code: 'not_found', message: 'disabled' }) });
+    await expect(startRematch('constructed', 'a', 'b', 'bot', 6)).rejects.toMatchObject({ status: 404 });
+  });
+});

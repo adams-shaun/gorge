@@ -106,7 +106,7 @@
         </div>
 
         <span data-stat="life" aria-label={`Life: ${r.life}`}>
-          <span class="stat life">
+          <span class="stat life pill">
             <svg data-icon="heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14S2 10.2 2 5.6C2 2.4 6 1.4 8 4c2-2.6 6-1.6 6 1.6C14 10.2 8 14 8 14Z"/></svg>
             <span>{r.life}</span>
           </span>
@@ -118,35 +118,35 @@
         <div class="zone-line">
           <span data-stat="hand" data-hand-hidden={r.handVisible ? undefined : ''} aria-label={`Hand: ${r.hand}`}>
             {#if r.hand > 0 && handCards.length > 0}
-              <button type="button" class="pile" data-pile="hand" data-tone={player ? pileToneOf(player, 'hand') : undefined} aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
+              <button type="button" class="pile pill" data-pile="hand" data-tone={player ? pileToneOf(player, 'hand') : undefined} aria-label={pileLabel(r.name, 'hand', r.hand)} onclick={(e) => showPile(r.seat, 'hand', e)}>
                 <svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg>
                 <span>{r.hand}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
               </button>
             {:else}
-              <span class="count"><svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg><span>{r.hand}</span></span>
+              <span class="count pill"><svg data-icon="hand" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8V4.5a1 1 0 0 1 2 0V7 3.5a1 1 0 0 1 2 0V7 3a1 1 0 0 1 2 0v4-3a1 1 0 0 1 2 0v4.2l.7-.7a1.2 1.2 0 0 1 1.7 1.7L11 12.6A4 4 0 0 1 8 14H7a4 4 0 0 1-4-4V8Z"/></svg><span>{r.hand}</span></span>
             {/if}
           </span>
           <span data-stat="library" aria-label={`Library: ${r.library}`}>
-            <span class="count"><svg data-icon="book" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.2C4 2.6 6 3 8 4v9c-2-1-4-1.4-6-.8v-9Zm12 0c-2-.6-4-.2-6 .8v9c2-1 4-1.4 6-.8v-9Z"/></svg><span>{r.library}</span></span>
+            <span class="count pill"><svg data-icon="book" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.2C4 2.6 6 3 8 4v9c-2-1-4-1.4-6-.8v-9Zm12 0c-2-.6-4-.2-6 .8v9c2-1 4-1.4 6-.8v-9Z"/></svg><span>{r.library}</span></span>
           </span>
           <span data-stat="graveyard" aria-label={`Graveyard: ${r.graveyard}`}>
             {#if r.graveyard > 0 && graveyardCards.length > 0}
-              <button type="button" class="pile" data-pile="graveyard" data-tone={player ? pileToneOf(player, 'graveyard') : undefined} aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
+              <button type="button" class="pile pill" data-pile="graveyard" data-tone={player ? pileToneOf(player, 'graveyard') : undefined} aria-label={pileLabel(r.name, 'graveyard', r.graveyard)} onclick={(e) => showPile(r.seat, 'graveyard', e)}>
                 <svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg>
                 <span>{r.graveyard}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
               </button>
             {:else}
-              <span class="count"><svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg><span>{r.graveyard}</span></span>
+              <span class="count pill"><svg data-icon="skull" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7a5 5 0 1 1 10 0c0 2-1 3-2 3.8V14H5v-3.2C4 10 3 9 3 7Zm3-1.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM7 9l1-1 1 1-1 1-1-1Z"/></svg><span>{r.graveyard}</span></span>
             {/if}
           </span>
           <span data-stat="exile" aria-label={`Exile: ${r.exile}`}>
             {#if r.exile > 0 && exileCards.length > 0}
-              <button type="button" class="pile" data-pile="exile" data-tone={player ? pileToneOf(player, 'exile') : undefined} aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
+              <button type="button" class="pile pill" data-pile="exile" data-tone={player ? pileToneOf(player, 'exile') : undefined} aria-label={pileLabel(r.name, 'exile', r.exile)} onclick={(e) => showPile(r.seat, 'exile', e)}>
                 <svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg>
                 <span>{r.exile}</span><svg class="caret" viewBox="0 0 8 12" aria-hidden="true"><path d="m2 2 4 4-4 4"/></svg>
               </button>
             {:else}
-              <span class="count"><svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg><span>{r.exile}</span></span>
+              <span class="count pill"><svg data-icon="exile" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg><span>{r.exile}</span></span>
             {/if}
           </span>
         </div>
@@ -175,21 +175,21 @@
   [data-stat='life'] { flex: none; }
   .zone-line { display: flex; justify-content: flex-end; gap: 0.18rem; flex: none; }
   .stat, .count, .pile { display: flex; align-items: center; justify-content: flex-end; gap: 0.12rem; font-family: var(--font-data); font-size: var(--t-10); font-variant-numeric: tabular-nums; color: var(--ink-dim); }
-  .life { padding-right: var(--sp-1); font-size: var(--t-14); font-weight: 600; color: var(--ink-inst); }
+  .life { font-weight: 600; color: var(--ink-inst); }
   .stat svg, .count svg, .pile svg { width: 0.58rem; height: 0.58rem; flex: none; fill: currentColor; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-  .life svg { width: 0.72rem; height: 0.72rem; }
   .caret { width: 0.36rem; fill: none; }
-  .pile { width: 100%; border: 0; padding: 0; background: none; cursor: pointer; }
+  .pile { width: 100%; background: none; cursor: pointer; }
+  /* The count itself is the pill in both the button and non-button paths;
+     its icon and number stay together, without changing pile actionability. */
+  .pill { box-sizing: border-box; min-width: 12px; height: 12px; padding: 0 2px; border: 1px solid var(--ink-dim); border-radius: 999px; line-height: 1; }
   .pile:hover { color: var(--ink-inst); }
   /* The perimeter tone ring (fb-20260916T225802Z), the card-tile register:
      a pending decision offering something to a card in this pile. */
   .pile[data-tone='initiative'] {
     box-shadow: 0 0 0 2px var(--initiative);
-    border-radius: 2px;
   }
   .pile[data-tone='offered'] {
     box-shadow: 0 0 0 2px var(--offered);
-    border-radius: 2px;
   }
   [data-hand-hidden] { color: var(--ink-faint); }
   li.lost .name, li.lost .life { text-decoration: line-through; color: var(--ink-faint); }

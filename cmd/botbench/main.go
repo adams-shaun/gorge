@@ -500,6 +500,11 @@ func playMatchTraced(cfg rules.Config, pols []string, seats []seat.Seat, maxTurn
 	if cov != nil {
 		cov.game()
 	}
+	spare, _ := sparePool.Get().(*rules.Spare)
+	if spare == nil {
+		spare = new(rules.Spare)
+	}
+	cfg.Spare = spare
 	o, e, err := playMatchOnceTraced(cfg, pols, seats, maxTurns, maxIntents, collect, cov, trace, meta)
 	if err == nil && cov != nil {
 		// A finished game (win, draw OR stall) attributes its runtime
@@ -510,8 +515,21 @@ func playMatchTraced(cfg rules.Config, pols []string, seats []seat.Seat, maxTurn
 	if err == nil && trace != nil {
 		trace.finish(o, meta)
 	}
+	if err == nil && e != nil {
+		// This is the finished engine's last use: its seats, trace and
+		// coverage walk are done with it, so its log and object arrays go
+		// back for the next game (rules.Spare -- reuse never changes a game).
+		*spare = e.Release()
+		sparePool.Put(spare)
+	}
 	return o, err
 }
+
+// sparePool recycles finished games' log and object arrays (rules.Spare)
+// between the games a worker plays back to back. Which spare a game draws
+// is scheduling-dependent, but invisible (rules.Spare's contract), so the
+// run's output is byte-identical with or without it.
+var sparePool sync.Pool
 
 // playMatchOnce is playMatch's game loop; it returns the engine so the
 // action-coverage walk can read the finished log and state.
@@ -595,7 +613,7 @@ func stallNotice(turnStalls, intentStalls, livelocks, eff int) string {
 	}
 	s := fmt.Sprintf("\n@@ STALLED: %d game(s) hit the -max-turns cap, %d hit the -max-intents cap", turnStalls, intentStalls)
 	if livelocks > 0 {
-		s += fmt.Sprintf(", %d aborted with a LIVELOCK (engine bug; the diagnostic names the repeating event shape)", livelocks)
+		s += fmt.Sprintf(", %d aborted with a LIVELOCK or engine PANIC (engine bug; the diagnostic names the repeating event shape or the panic and its stack)", livelocks)
 	}
 	return s + fmt.Sprintf("; win rates are over %d non-stalled game(s) @@\n", eff)
 }
@@ -648,6 +666,9 @@ func winnerLabel(o gameOutcome) string {
 	if o.isStalled() {
 		if o.stallOn == "livelock" {
 			return "LIVELOCK"
+		}
+		if o.stallOn == "panic" {
+			return "PANIC"
 		}
 		return "stalled"
 	}
@@ -825,7 +846,7 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 			// at the end, because it is an engine bug, not a slow game.
 			if kind.stallOn == "intents" {
 				stallIntents++
-			} else if kind.stallOn == "livelock" {
+			} else if gbench.IsAbort(kind.stallOn) {
 				livelocks++
 			} else {
 				stallTurns++
@@ -862,7 +883,9 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 	// happened to terminate" is a biased sample, which is the exact defect
 	// the turn watchdog exists to expose. With no stalls this is `games`, so
 	// the constructed default report stays byte-identical to today.
-	eff := games - (stallTurns + stallIntents)
+	// A livelock/panic abort is a stall too (classifyOutcome credits it to no
+	// seat), so it leaves the denominator exactly like the two watchdog caps.
+	eff := games - (stallTurns + stallIntents + livelocks)
 	lo, hi := ci95(aWins, eff)
 	fmt.Fprintf(out, "\ngames played: %d\n", games)
 	ab := fmt.Sprintf("A wins: %d  B wins: %d  draws: %d", aWins, bWins, draws)
@@ -921,7 +944,7 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		// real and must reach the reader -- and then the run fails: a
 		// livelocked game is an engine bug, and a zero exit would read as a
 		// clean pass to whatever automated caller ran the bench.
-		return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", livelocks, games)
+		return fmt.Errorf("%d of %d game(s) aborted with a livelock or engine panic (see the LIVELOCK diagnostics above)", livelocks, games)
 	}
 	return nil
 }
@@ -1436,7 +1459,7 @@ func writeMatrixText(out io.Writer, aName, bName string, baseSeed uint64, games 
 	if m.livelocks > 0 {
 		// After the full report: a livelocked game is an engine bug, and a
 		// zero exit would read as a clean pass to the automated caller.
-		return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", m.livelocks, m.games)
+		return fmt.Errorf("%d of %d game(s) aborted with a livelock or engine panic (see the LIVELOCK diagnostics above)", m.livelocks, m.games)
 	}
 	return nil
 }
@@ -1754,7 +1777,7 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 		if m.livelocks > 0 {
 			// Same contract as the text report: the JSON document is complete
 			// (the per-pair livelocks counts are in it), then the run fails.
-			return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the JSON livelocks fields)", m.livelocks, m.games)
+			return fmt.Errorf("%d of %d game(s) aborted with a livelock or engine panic (see the JSON livelocks fields)", m.livelocks, m.games)
 		}
 		if tracePath != "" {
 			return writeDecisionTrace(tracePath, newTraceRunV1(baseSeed, games, aName, bName, pairs, maxTurns, maxIntents, commander), traces)

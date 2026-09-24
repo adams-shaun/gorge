@@ -107,7 +107,7 @@ func tapsForManaProduced(want, produced string) bool {
 	if len(want) != 1 || !strings.Contains(effects.ManaSymbols, want) {
 		return false
 	}
-	for _, field := range strings.Fields(strings.NewReplacer("{", " ", "}", " ").Replace(produced)) {
+	for field := range strings.FieldsSeq(strings.NewReplacer("{", " ", "}", " ").Replace(produced)) {
 		for _, r := range field {
 			if !strings.ContainsRune(effects.ManaSymbols, r) {
 				return false // a choice word: Any, Combo, Chosen, ...

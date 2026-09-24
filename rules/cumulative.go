@@ -874,7 +874,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	var opts []decision.Option
 	for x := int32(0); x <= bound; x++ {
 		v := foldCostX(tc.amount, x)
-		if !e.energyPayable(tc.player, v) || !e.costPayablePool(tc.player, tc.source, false, v, pot, e.G.Players[tc.player].TypedMana) {
+		if !e.energyPayable(tc.player, v) || !e.costPayablePool(tc.player, tc.source, false, v, pot, e.G.Players[tc.player].ManaUnits()) {
 			continue
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
@@ -1114,7 +1114,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.RevealChosen) > 0 || len(amt.Behold) > 0 ||
 		len(amt.TapPermanent) > 0 || len(amt.Blight) > 0 ||
 		len(amt.AddCounter) > 0 || len(amt.Return) > 0 || len(amt.PutToLib) > 0 ||
-		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || amt.Forage {
+		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || len(amt.Exert) > 0 || amt.Forage {
 		return false
 	}
 	if _, ok := e.triggeredCostDrawCounts(tc); !ok {

@@ -336,7 +336,7 @@ func (e *Engine) phaseGate(t cards.Trigger) bool {
 	// first-strike damage step. Until the turn walk has that separate step,
 	// only let this mapping match when a first/double striker is actually in
 	// combat; otherwise the named phase does not occur at all.
-	for _, phase := range strings.Split(spec, ",") {
+	for phase := range strings.SplitSeq(spec, ",") {
 		phase = strings.TrimSpace(phase)
 		if strings.EqualFold(phase, "First Strike Damage") ||
 			strings.EqualFold(phase, "COMBAT_FIRST_STRIKE_DAMAGE") {
@@ -480,7 +480,7 @@ func dieResultMatches(spec string, matched, natural, sides int32) bool {
 	if strings.EqualFold(spec, "Highest") {
 		return sides > 0 && natural == sides
 	}
-	for _, part := range strings.Split(spec, ",") {
+	for part := range strings.SplitSeq(spec, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue

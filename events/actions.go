@@ -116,6 +116,29 @@ func IsReturnCost(ev Event) bool {
 	return ev.Kind == MoveZone && ev.To == state.ZHand && ev.Text == ReturnCostText
 }
 
+// milledText is the action marker a mill's zone change carries. Like the
+// discard/sacrifice markers it is carried on MoveZone's Text field, which is
+// otherwise unused for a library->graveyard move. A mill is a library->
+// graveyard move with this marker, so the Mode$ Milled / Mode$ MilledAll
+// triggers can tell a mill apart from an ordinary move (CR 701.17a).
+const milledText = "milled"
+
+// Mill returns the canonical zone-change event for milling a card (CR
+// 701.17a): the top card of player's library put into their graveyard. Every
+// mill producer uses it so the Milled/MilledAll triggers and the mill itself
+// agree on the marker.
+func Mill(obj state.ObjID, player state.PlayerID) Event {
+	return Event{Kind: MoveZone, Obj: obj, From: state.ZLibrary, To: state.ZGraveyard,
+		Player: player, Text: milledText}
+}
+
+// IsMill reports a completed mill (CR 701.17a): a marked card move from
+// library into graveyard. A replacement redirecting or preventing that move
+// means the card was never milled, even if action provenance is retained.
+func IsMill(ev Event) bool {
+	return ev.Kind == MoveZone && ev.From == state.ZLibrary && ev.To == state.ZGraveyard && ev.Text == milledText
+}
+
 const sacrificeText = "sacrificed"
 
 // Sacrifice returns the canonical zone-change event for sacrificing a

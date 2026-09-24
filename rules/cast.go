@@ -269,9 +269,20 @@ type pendingCast struct {
 	manaSpentTreasure int32
 	manaSpentCave     int32
 	manaSpentDesert   int32
+	manaSpentArtifact int32
 
 	sacs    []state.ObjID
 	sacPart int
+
+	// emerge / emergeDone mark an Emerge cast (CR 702.118a): beginCast's
+	// "emerged" arm sets emerge and composes the printed K:Emerge cost with
+	// the mandatory Sac<1/Creature> part; sacAsk then folds the chosen
+	// creature's mana value out of pc.cost exactly once, guarded by
+	// emergeDone so a resumed mana window cannot subtract twice. Plain data,
+	// so Clone carries them like sacs/sacPart.
+	emerge     bool
+	emergeDone bool
+	emergeSac  state.ObjID
 
 	discards    []state.ObjID
 	discardPart int
@@ -447,6 +458,19 @@ type pendingCast struct {
 	// progress, so the count must come back across the push (F05-2). Nil when
 	// no cast push is in flight.
 	preAborts map[state.ObjID]int32
+
+	// proposalTriggers are the [start, end) pendingTriggers index ranges a
+	// pushed SPELL proposal's own TargetsChosen events queued (Ward, "becomes
+	// the target" and every other matcher of a CR 601.2c target choice). They
+	// are recorded by emit and removed by abortCast: CR 733.1 "no abilities
+	// trigger ... as a result of an undone action", so a reversed cast must
+	// leave nothing on the queue. Without it a bot re-attempting the same
+	// unpayable Strive cast queued a fresh Ward/Silverfur Partisan trigger per
+	// attempt, and that trigger's push was the state change that cleared the
+	// F05-2 no-progress suppression -- an endless cast/reverse cycle.
+	// Engine-side scratch rebuilt by replay (the same intents reach the same
+	// emits); nil outside a spell proposal with targets.
+	proposalTriggers [][2]int
 
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
@@ -1103,7 +1127,7 @@ func (e *Engine) countComposedCost(pc *pendingCast, cand Cost) Cost {
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
-	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].TypedMana) {
+	if !e.costPayablePool(p, id, ability, mana, pool, e.G.Players[p].ManaUnits()) {
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
@@ -1862,6 +1886,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	from := o.Zone
+	// The no-progress suppression state as it stood before this proposal.
+	// The alternate-face routes below flip the card (a FlipFace is a
+	// state-changing event to emit's suppression-clearing rule), but that
+	// flip is part of the provisional proposal: an aborted cast flips it
+	// back (CR 733.1). See emitProposalFlip.
+	preSuppress, preAborts := e.suppressedCast, e.castAborts
 	var faceBefore *uint8
 	if opt.Mode == "room_alt" {
 		if roomAlternateCastFace(o) == nil {
@@ -1869,7 +1899,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 714: the same flip mechanism serves the Adventure faces. From the
 	// hand the cast flips to the Adventure spell face (adventure_alt); from
@@ -1884,7 +1914,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	if opt.Mode == "adventure_recast" {
 		if o.Zone != state.ZExile || adventureSpellFace(o) == nil || o.Face() != o.Card.Faces[1] {
@@ -1892,7 +1922,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 702.85a: the Aftermath half -- the alternate face of a Split card --
 	// is cast only from its owner's graveyard. From the graveyard the cast
@@ -1908,7 +1938,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 709.4: the alternate half of a non-Room split card (mode split_alt)
 	// is cast from hand exactly like a Room door or an Adventure spell face:
@@ -1921,7 +1951,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 310.11: the defeated battle's owner casts it TRANSFORMED (mode
 	// defeat_cast). The exiled battle is its front face; one FlipFace to the
@@ -1939,7 +1969,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	f := o.Face()
 	if f == nil {
@@ -2207,6 +2237,22 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if mc, ok := mayflashExtraCost(f); ok {
 			cost = cost.Plus(mc)
 		}
+	case "emerged":
+		// Emerge (CR 702.118a): the emerge cast pays the printed K:Emerge cost
+		// in place of the mana cost AND sacrifices a creature, whose mana
+		// value reduces the cost. The reduction is NOT applied here -- the
+		// creature is not chosen until sacAsk settles the Sac part -- so this
+		// arm composes the emerge cost with the mandatory sacrifice and marks
+		// the cast; applyEmergeReduction folds the chosen creature's mana value
+		// out of pc.cost once the choice is in. A stale option whose keyword is
+		// gone falls back to the empty cost like the keyword family above, and
+		// without the Sac part the cast is an ordinary (over-charged) emerge;
+		// the offer gate only ever routes here with the keyword present.
+		if ec, ok := emergeBase(f); ok {
+			cost = ec
+		} else {
+			cost = Cost{}
+		}
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
@@ -2283,6 +2329,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
 			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, optionalCost: optionalCost}
+	}
+	// Emerge (CR 702.118a): sacAsk folds the chosen sacrifice's mana value out
+	// of pc.cost once the mandatory creature sacrifice is settled. The mark is
+	// set here, beside the cost the switch composed, so the charge and the
+	// reduction can never disagree about what cast they belong to.
+	if opt.Mode == "emerged" {
+		e.cast.emerge = true
 	}
 	// Escalate (the modal additional cost "pay this for each mode chosen
 	// beyond the first"): the cost is carried as its raw keyword parameter
@@ -3435,6 +3488,16 @@ func (e *Engine) castModeAsk() bool {
 	}
 	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
 	d.ResumeKind = "cast_modes"
+	if effects.OnlyEmptyAnswer(d) {
+		// "Choose up to N" (MinCharmNum$ 0) with no mode that has a legal
+		// target or an affordable cost: the only legal announcement is zero
+		// modes (Call Damage Control with an empty graveyard). Nobody could
+		// answer differently, so record it without posting the decision --
+		// the same silent resolution effects.Ask gives this shape, and what
+		// Engine.ask requires of every asking site.
+		e.applyCastModes(d, pc.player, nil)
+		return true
+	}
 	e.ask(d)
 	return true
 }
@@ -4333,7 +4396,7 @@ func (e *Engine) sacAsk() bool {
 					break
 				}
 			}
-			if !already {
+			if !already && (!pc.emerge || pc.sacPart != 0 || e.emergeSacPayable(pc, oid)) {
 				candidates = append(candidates, oid)
 			}
 		}
@@ -4396,6 +4459,11 @@ func (e *Engine) sacAsk() bool {
 		e.ask(d)
 		return true
 	}
+	// Every Sac part is settled: an Emerge cast (CR 702.118a) now folds the
+	// chosen sacrifice's mana value out of pc.cost, before the mana window and
+	// payment read it. Idempotent through pc.emergeDone, so the re-entries a
+	// suspended mana window makes cannot subtract twice.
+	e.applyEmergeReduction(pc)
 	return false
 }
 
@@ -4464,6 +4532,63 @@ func etbChoiceKind(api string) string {
 	return ""
 }
 
+// etbPayLifeBound reports whether r's ReplaceWith$ body is the exact
+// "as CARDNAME enters, pay any amount of life" shape -- a `Cost$
+// Mandatory PayLife<X>` body whose face SVar:X is Count$xPaid (the announced
+// value the body stores) -- and, if so, the largest X the payer may announce:
+// the payer's life total, further capped by the body's `XMax$ <SVar>` when it
+// names one that resolves (Nameless Race's Limit: the white permanents plus
+// white cards in opponents' graveyards). A body that is not the exact shape
+// (a fixed PayLife cost, another API, a missing Count$xPaid binding) returns
+// false and keeps the ordinary replacement path.
+func (e *Engine) etbPayLifeBound(o *state.Object, with *cards.SA) (int, bool) {
+	if with == nil || o.Face() == nil {
+		return 0, false
+	}
+	body, present := o.Face().SVars["X"]
+	if !present || !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+		return 0, false
+	}
+	c := ParseCost(with.Params["Cost"])
+	if len(c.LifeX) == 0 {
+		return 0, false
+	}
+	bound := int(e.G.Players[o.Controller].Life)
+	if bound < 0 {
+		bound = 0
+	}
+	if raw := strings.TrimSpace(with.Params["XMax"]); raw != "" {
+		ctx := &effects.Ctx{Source: o.ID, Controller: o.Controller, SVars: o.Face().SVars}
+		if cap, ok := effects.NumResolved(e, ctx, with, "XMax", 0); ok {
+			if cap < 0 {
+				cap = 0
+			}
+			if int(cap) < bound {
+				bound = int(cap)
+			}
+		}
+	}
+	return bound, true
+}
+
+// etbPayLifeOptions builds the ascending 0..bound option list a
+// "pay any amount of life" entry offers; option 0 is the legal pay-nothing
+// announcement (Oracle: "pay any amount" includes zero). The Kind is the
+// shared "number" kind so the answer records through the same
+// events.Choose fold a ChooseNumber uses, and resumeETBEntry reads the
+// announced X off the option's Amount.
+func etbPayLifeOptions(you state.PlayerID, card state.ObjID, bound int) []decision.Option {
+	out := make([]decision.Option, 0, bound+1)
+	for i := 0; i <= bound; i++ {
+		label := strconv.Itoa(i) + " life"
+		if i == 1 {
+			label = "1 life"
+		}
+		out = append(out, decision.Option{Index: len(out), Kind: "paylife", Label: label, Amount: i, Obj: card, Player: you})
+	}
+	return out
+}
+
 // entryETBChoice returns the ordinal-th choice that must be made for ev's
 // battlefield entry. It is deliberately derived from the same prospective
 // MoveZone event the replacement matcher will later consume: an ActiveZones or
@@ -4494,8 +4619,27 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 	}
 	for i := range o.Face().Repls {
 		r := &o.Face().Repls[i]
-		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil ||
-			!e.replacementMatches(*r, o.ID, ev) {
+		if r.With == nil || !e.replacementMatches(*r, o.ID, ev) {
+			continue
+		}
+		if r.Params["Keyword"] != "ETBReplacement" {
+			// A non-keyword R:Event$ Moved replacement whose ReplaceWith$ body
+			// carries `Cost$ Mandatory PayLife<X>` (Minion of the Wastes,
+			// Phyrexian Processor, Nameless Race: "as CARDNAME enters, pay any
+			// amount of life"). The payer announces X here, at the entry
+			// boundary, where a suspend-and-resume is possible -- the
+			// replacement body itself runs off the Move fold with no ask
+			// channel (the approximation this closes). Only the exact
+			// Count$xPaid life-announcement shape is offered; anything else
+			// falls through to the ordinary replacement path unchanged.
+			bound, ok := e.etbPayLifeBound(o, r.With)
+			if !ok {
+				continue
+			}
+			if seen == ordinal {
+				return etbChoice{kind: "paylife", options: etbPayLifeOptions(you, o.ID, bound)}, true
+			}
+			seen++
 			continue
 		}
 		kind := etbChoiceKind(r.With.API)
@@ -4530,6 +4674,24 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 				opts = e.etbOptions(you, o.ID, kind,
 					r.With.Params["ValidCards"], selector,
 					r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
+			}
+			if kind == "name" && len(opts) == 0 {
+				// No name passes the filter: the legacy (no-universe) builder
+				// only sees public objects, so "choose a nonbasic land card
+				// name" with none in view (Alpine Moon, cardfuzz batch1 line
+				// 14) built a Min 1 ask with zero options that no answer
+				// could satisfy. Mirror effNameCard's own empty-list rule so
+				// the two NameCard paths agree: without a corpus universe (or
+				// with no ChooseFromList$) it names the deterministic legacy
+				// stand-in; a universe-backed ChooseFromList$ with nothing
+				// eligible names nothing, so there is no choice to pose and
+				// the entry proceeds (the body's effNameCard then returns
+				// without naming, as it does mid-resolution).
+				if len(e.G.NameUniverse) > 0 && strings.TrimSpace(r.With.Params["ChooseFromList"]) != "" {
+					continue
+				}
+				opts = []decision.Option{{Index: 0, Kind: "name",
+					Label: effects.LegacyNameFallback(e.G, you)}}
 			}
 			if kind == "copy" {
 				// ":Optional" on the keyword line is the "you MAY have it
@@ -4590,7 +4752,7 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// etbColourLetter cannot resolve is ignored, never emptied into an
 		// ask with zero options (the totality rule in this doc comment).
 		excluded := map[string]bool{}
-		for _, tok := range strings.Split(exclude, ",") {
+		for tok := range strings.SplitSeq(exclude, ",") {
 			if letter := etbColourLetter(strings.TrimSpace(tok)); letter != "" {
 				excluded[letter] = true
 			}
@@ -4654,9 +4816,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 			list = chooseFromList[0]
 		}
 		names := effects.NameChoicesFromList(e.G, validCards, choices, list)
-		out := make([]decision.Option, 0, len(names))
-		for _, n := range names {
-			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
+		out := effects.NameOptions(names, you)
+		if out == nil {
+			out = []decision.Option{}
 		}
 		return out
 	case "type":
@@ -4827,6 +4989,8 @@ func etbChoicePrompt(kind string) string {
 		return " how this creature enters (with a +1/+1 counter or without)"
 	case "copy":
 		return " a creature to copy"
+	case "paylife":
+		return " how much life to pay"
 	}
 	return " a number"
 }
@@ -4847,7 +5011,7 @@ func etbChoicePrompt(kind string) string {
 func etbCloneWhitelist(sa *cards.SA, svars map[string]string) bool {
 	for k := range sa.Params {
 		switch k {
-		case "Choices", "AddKeywords", "AddTypes", "SpellDescription", "AddStaticAbilities":
+		case "Choices", "AddKeywords", "AddTypes", "SpellDescription", "AddStaticAbilities", "IntoPlayTapped":
 			// supported: the copy-template selector, the CR 707.9e
 			// copy modifiers, and (staticgoad1) the granted Goad$ static
 			// effClone registers -- value-checked below.
@@ -4885,19 +5049,18 @@ func etbCloneWhitelist(sa *cards.SA, svars map[string]string) bool {
 			return false
 		}
 	}
-	// AddStaticAbilities$ (staticgoad1, Mocking Doppelganger's FamilyTease):
-	// every named member must resolve to an entirely readable Goad$ True
-	// static — the same gate effClone's registration and effEffect's
-	// StaticAbilities$ arm call — or the copy election would silently drop
-	// the exception, the exact failure this whitelist exists to prevent. An
-	// unresolvable member name fails closed the same way.
+	// A named static is installed on the cloned face by CloneStatic, so
+	// every static reader sees it through its normal printed-S: path. An
+	// unresolvable member still fails closed before posing the ETB election.
 	for _, name := range strings.FieldsFunc(sa.Params["AddStaticAbilities"], func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
-		mode, params := effects.ParseStaticLine(svars, name)
-		if mode != "Continuous" || !effects.GoadStaticGrantReadable(params) {
+		if !effects.CloneStaticGrantReadable(svars, name) {
 			return false
 		}
+	}
+	if raw, ok := sa.Params["IntoPlayTapped"]; ok && !strings.EqualFold(raw, "True") {
+		return false
 	}
 	return true
 }
@@ -5207,35 +5370,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 	targetDiscount := pc.isAbility() && pc.ownReduce > e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), nil, nil, pc.abilityMerged)
 	var windowUnits []windowManaUnit
 	if targetDiscount {
-		windowUnits = e.windowManaUnits(pc.player)
-		// The payment window can also tap a choice-shaped source (Any,
-		// Combo, Chosen). The shared fixed-production census omits these
-		// because an unless-pay window cannot pose their colour sub-ask;
-		// cast payment can. Add each possible single-colour production as
-		// an alternative of the SAME permanent, never as another tap.
-		for _, source := range e.attackChoiceManaSources(pc.player) {
-			produced := substituteChosenProduced(source.original.Params["Produced"], e.chosenProducedColour(source.id))
-			counts, _ := cards.ProducedCounts(produced)
-			idx := -1
-			for i := range windowUnits {
-				if windowUnits[i].id == source.id {
-					idx = i
-					break
-				}
-			}
-			if idx == -1 {
-				windowUnits = append(windowUnits, windowManaUnit{id: source.id})
-				idx = len(windowUnits) - 1
-			}
-			for colour, n := range counts {
-				if n == 0 {
-					continue
-				}
-				var single [6]int32
-				single[colour] = 1
-				windowUnits[idx].alts = append(windowUnits[idx].alts, windowManaAlt{counts: single, amt: source.units})
-			}
-		}
+		windowUnits = e.castWindowUnits(pc.player)
 	}
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -6439,6 +6574,9 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.delve = append(pc.delve, o.Obj)
 		}
 	case "sacrifice":
+		if pc.emerge && pc.sacPart == 0 && len(chosen) == 1 {
+			pc.emergeSac = chosen[0].Obj
+		}
 		for _, o := range chosen {
 			pc.sacs = append(pc.sacs, o.Obj)
 		}
@@ -6580,6 +6718,20 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		// CR 601.2g: the player declines further mana abilities; pay the cost.
 		pc.windowDone = true
 	}
+}
+
+// modeIsKicked reports whether a pendingCast.mode names a kicked cast: the
+// single-cost Kicker's "kicked", the and/or Kicker's per-part "kicked1"/
+// "kicked2"/"kickedboth", or a multikicked cast. It is the ONE home of that
+// set, shared by modeFlags (the pay-time flag stamp), spellConstraintMatches'
+// CastStatic match and targetBoundCtx's pre-payment Count$Kicked binding, so
+// the three spellings cannot drift.
+func modeIsKicked(mode string) bool {
+	switch mode {
+	case "kicked", "kicked1", "kicked2", "kickedboth", "multikicked":
+		return true
+	}
+	return false
 }
 
 // modeFlags maps a pendingCast.mode to the CastInfo Counter string
@@ -6919,6 +7071,14 @@ func (e *Engine) targetAsk() bool {
 		// with no target decision.
 		return false
 	}
+	if max == 0 {
+		// A dynamic bound RESOLVED to zero (Tear Asunder's kicked main SA:
+		// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1) declares
+		// that this stage takes no targets -- the chained sub does the
+		// work. A Min 0 / Max 0 ask would offer nothing selectable; skip
+		// straight to payCast exactly as the N2 arm above does.
+		return false
+	}
 	// The decision's Source is the object that must not be offered as its own
 	// target (CR 115.5). For a spell that is the card (excluded via
 	// excludeSelf). For an activated ability the object that may not target
@@ -6935,6 +7095,13 @@ func (e *Engine) targetAsk() bool {
 		Prompt: "Choose a target for " + e.targetName(pc.card),
 		Source: src, TargetEffect: e.describeTargetEffect(pc.player, pc.card, sa, pc.x),
 		TargetsWithSameController: sameController}
+	if !pc.isAbility() && pc.stackObj == pc.card {
+		lim := max
+		if lim < 0 || lim > len(candidates) {
+			lim = len(candidates)
+		}
+		d.AffordableTargets = e.striveAffordableTargets(pc, lim)
+	}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
@@ -7222,6 +7389,13 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 			return true
 		}
 		if min == 0 && len(candidates) == 0 {
+			pc.subAns[pc.subStage] = []state.Target{}
+			pc.subStage++
+			continue
+		}
+		if max == 0 {
+			// A dynamic bound RESOLVED to zero: this stage takes no targets,
+			// recorded as an ANSWERED EMPTY set exactly as the N2 arm above.
 			pc.subAns[pc.subStage] = []state.Target{}
 			pc.subStage++
 			continue
@@ -8055,6 +8229,14 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: part.N})
 			}
 		}
+		// Exert<1/CARDNAME> (CR 701.39a): one Exert event on the source, the
+		// same fold the declare-attackers election emits, so the untap skip
+		// and "whenever you exert" triggers read one path.
+		for range pc.cost.Exert {
+			if o := e.G.Obj(pc.card); o != nil && o.Zone == state.ZBattlefield {
+				e.emit(events.Event{Kind: events.Exert, Obj: pc.card, Player: pc.player})
+			}
+		}
 		// Capture the sacrifice LKI (Task sac1) BEFORE the MoveZone events
 		// drain the permanents: each chosen object is still on the battlefield
 		// here, so SacrificedInfoOf reads its live face and +1/+1 counters (the
@@ -8207,9 +8389,10 @@ func (e *Engine) payCast() {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
 		pc.manaSpentSnow = manaSpentTotal(spentSnow)
-		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure])
-		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave])
-		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert])
+		pc.manaSpentTreasure = manaSpentTotal(spentTyped[state.TypedTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure])
+		pc.manaSpentCave = manaSpentTotal(spentTyped[state.TypedCave]) + manaSpentTotal(spentTyped[state.TypedArtifactCave])
+		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
+		pc.manaSpentArtifact = manaSpentTotal(spentTyped[state.TypedArtifact]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactCave]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
 	}
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
@@ -8537,13 +8720,14 @@ func (e *Engine) payCast() {
 		// a tag is a real zero, not an absent one -- so the filtered
 		// Count$CastTotalManaSpent Treasure/Cave/Desert read is exact for
 		// their carriers without a second gate. The emission order is total,
-		// then Snow, then Treasure, then Cave, then Desert; since every later
-		// event carries all earlier flags, events.Apply's CastInfo switch
-		// checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then
-		// the total) or every later event would route into the first tag's
-		// field.
-		typedAmounts := [3]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert}
-		typedFlags := [3]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
+		// then Snow, then Treasure, then Cave, then Desert, then Artifact;
+		// since every later event carries all earlier flags,
+		// events.Apply's CastInfo switch
+		// checks the NEWEST flag first (Artifact, Desert, Cave, Treasure,
+		// Snow, then the total) or every later event would route into the
+		// first tag's field.
+		typedAmounts := [4]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert, pc.manaSpentArtifact}
+		typedFlags := [4]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent, state.FlagManaArtifactSpent}
 		acc := events.FlagsFrom(flags)
 		for t := range typedFlags {
 			acc |= typedFlags[t]
@@ -8700,9 +8884,10 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player,
 					Text: strings.Join(modeLabels(sa, o.Face().SVars, pc.preModes), ",")})
 			}
-			o.ChosenModes = append([]string(nil), pc.preModes...)
+			o.ChosenModes = state.CloneChosenModes(pc.preModes)
 		}
 	}
+	e.dropProposalTriggers(pc)
 	e.deferredPush = nil
 	e.deferredPushLKI = nil
 	e.cast, e.choosing = nil, chooseNone
@@ -9022,4 +9207,145 @@ func init() {
 		// keyword expansion: the K:Plot line is read directly. Proof:
 		// rules/plot_test.go.
 		"kw:Plot")
+}
+
+// emitProposalFlip records the FlipFace an alternate-face cast proposal
+// (room_alt, adventure_alt, adventure_recast, aftermath, split_alt,
+// defeat_cast) makes before its ordinary cast transaction, WITHOUT letting
+// that flip count as game progress. emit clears the held-out no-progress
+// state (suppressedCast/castAborts) on every state-changing event; the flip
+// is one, but it is net no progress when the proposal is then reversed
+// (abortCast flips the card back). Left cleared, pushCast captured the
+// already-emptied maps as the proposal's pre-push state, so abortCast's
+// F05-2 count restarted at zero on every attempt and the SECOND identical
+// no-progress abort never held the option out: an Adventure cast the offer
+// priced as payable but the flipped face could not pay was reversed and
+// re-offered forever (the botbench flip_face livelock). Restoring the maps
+// the proposal began with keeps the count across attempts; a cast that goes
+// on to reach the stack clears them at its PutOnStack as before.
+func (e *Engine) emitProposalFlip(id state.ObjID, before uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32) {
+	e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	e.suppressedCast, e.castAborts = preSuppress, preAborts
+}
+
+// dropProposalTriggers removes the pending triggers a reversed spell
+// proposal's own CR 601.2c target choice queued (pc.proposalTriggers). CR
+// 733.1: "No abilities trigger and no effects apply as a result of an undone
+// action." Only the recorded ranges go -- a trigger an unreversed mana
+// ability produced during the payment window (Manabarbs) stays queued, since
+// the engine never reverses those activations. Ranges are removed back to
+// front so an earlier range's indices are unaffected; a range the queue no
+// longer covers (it was drained, which a live proposal never does) is skipped
+// rather than trusted, and an ordered prefix is never touched.
+func (e *Engine) dropProposalTriggers(pc *pendingCast) {
+	ranges := pc.proposalTriggers
+	pc.proposalTriggers = nil
+	for i := len(ranges) - 1; i >= 0; i-- {
+		start, end := ranges[i][0], ranges[i][1]
+		if start < e.orderedTriggers || start >= end || end > len(e.pendingTriggers) {
+			continue
+		}
+		e.pendingTriggers = append(e.pendingTriggers[:start], e.pendingTriggers[end:]...)
+	}
+}
+
+// castWindowUnits is the CR 601.2g cast-payment window's provable mana reach:
+// the shared fixed-production census (windowManaUnits) plus each
+// choice-shaped source (Any, Combo, Chosen) as single-colour alternatives of
+// the SAME permanent, never as another tap. The shared census omits those
+// because an unless-pay window cannot pose their colour sub-ask; cast
+// payment can.
+func (e *Engine) castWindowUnits(p state.PlayerID) []windowManaUnit {
+	windowUnits := e.windowManaUnits(p)
+	for _, source := range e.attackChoiceManaSources(p) {
+		produced := substituteChosenProduced(source.original.Params["Produced"], e.chosenProducedColour(source.id))
+		counts, _ := cards.ProducedCounts(produced)
+		idx := -1
+		for i := range windowUnits {
+			if windowUnits[i].id == source.id {
+				idx = i
+				break
+			}
+		}
+		if idx == -1 {
+			windowUnits = append(windowUnits, windowManaUnit{id: source.id})
+			idx = len(windowUnits) - 1
+		}
+		for colour, n := range counts {
+			if n == 0 {
+				continue
+			}
+			var single [6]int32
+			single[colour] = 1
+			windowUnits[idx].alts = append(windowUnits[idx].alts, windowManaAlt{counts: single, amt: source.units})
+		}
+	}
+	return windowUnits
+}
+
+// striveAffordableTargets is the Decision.AffordableTargets hint for a Strive
+// spell's target ask: the largest n in [1, max] whose total cost -- the
+// resolved cost, n-1 Strive payments (CR 702.52a), the proposal's modifier
+// snapshot, commander tax, Delve credit and announced Convoke -- the caster
+// can provably pay from the pool plus the window's fixed productions
+// (castWindowUnits, the same probe the target-discount gate trusts). It
+// returns 0 (no hint) when the proposal carries no priceable Strive or max is
+// at most one; it returns at least 1 otherwise, since one target adds no
+// Strive charge and the ask's own gate already admitted the base cost. A pure
+// read: nothing is emitted.
+func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
+	if pc.isAbility() || !pc.striveSet || max <= 1 {
+		return 0
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	if _, ok := o.Face().KeywordParam("Strive"); !ok {
+		return 0
+	}
+	sc := ParseCost(pc.striveParam)
+	if len(sc.Unknown) > 0 {
+		return 0
+	}
+	pl := e.G.Players[pc.player]
+	var units []windowManaUnit
+	unitsBuilt := false
+	affordable := func(n int) bool {
+		cost := pc.resolvedMana()
+		for i := int(pc.striveUnits); i < n-1; i++ {
+			cost = cost.Plus(sc)
+		}
+		cost = pc.mods.apply(cost)
+		cost.Generic = addClampedGeneric(cost.Generic, int64(pc.taxGeneric))
+		cost.Generic -= int32(len(pc.delve))
+		if cost.Generic < 0 {
+			cost.Generic = 0
+		}
+		convoked := e.applyConvoke(pc, cost)
+		pay := paymentForCast(pc, convoked)
+		rider := pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}
+		if e.manaFeasibleDescriptor(pc.player, pay, convoked, costMods{}, 0, 0, rider) {
+			return true
+		}
+		if !convoked.hasManaPayment() {
+			return false
+		}
+		if !unitsBuilt {
+			units, unitsBuilt = e.castWindowUnits(pc.player), true
+		}
+		av := e.manaAvailableFor(pc.player, pay)
+		return e.unlessManaReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
+			e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), units)
+	}
+	// Ascending: the price is monotone in n, so the first unaffordable count
+	// ends the walk and at most one exhaustive (failing) window search runs.
+	best := 1
+	for n := 2; n <= max; n++ {
+		if !affordable(n) {
+			break
+		}
+		best = n
+	}
+	return best
 }

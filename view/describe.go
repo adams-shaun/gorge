@@ -83,6 +83,8 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.BlessingChange:
 		// CR 702.131: the one-way latch -- folded state always shows it set.
 		return player(g, ev.Player) + " gets the city's blessing"
+	case events.TurnFaceDown:
+		return obj(g, ev.Obj) + " is turned face down"
 	case events.TurnFaceUp:
 		// CR 708.6: Obj is the permanent that revealed its printed face.
 		return obj(g, ev.Obj) + " is turned face up"
@@ -168,6 +170,8 @@ func Describe(g *state.Game, ev events.Event) string {
 			text += " (exiled at end of combat)"
 		}
 		return text
+	case events.CloneStatic:
+		return obj(g, ev.Obj) + " gains a copy static ability"
 	case events.ClonePermanent:
 		// CR 613.1a's layer-1 copy basis (api:Clone, task api-clone): Obj is
 		// the object that becomes the copy and IDs[0] the object copied from;
@@ -319,6 +323,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " scries"
 		}
 		return player(g, ev.Player) + " discovers"
+	case events.StoreSVar:
+		// An api:StoreSVar write (Minion of the Wastes' LifePaidOnETB): Obj
+		// the object whose runtime SVar table was written, Text the SVar
+		// name, Amount the stored value.
+		return obj(g, ev.Obj) + " records " + ev.Text + " = " + itoa(int64(ev.Amount))
 	case events.Connive:
 		// The connive record (task connive1): the draws and discards are
 		// already their own lines (Draw/Discard events), so this line names
@@ -825,6 +834,11 @@ func lookClause(g *state.Game, ev events.Event) string {
 func mana(sym string, n int32) string {
 	if sym == "" {
 		sym = "C"
+	}
+	// A typed unit ("TreasureC", "ArtifactW") is provenance bookkeeping, not
+	// a symbol: the transcript names only its colour.
+	if _, slot, ok := state.TypedManaCounter(sym); ok {
+		sym = string("WUBRGC"[slot])
 	}
 	if n <= 0 {
 		return ""

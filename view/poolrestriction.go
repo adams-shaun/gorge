@@ -104,7 +104,7 @@ func humanizeSpec(g *state.Game, source state.ObjID, spec, noun string) (string,
 	}
 	var types []string
 	hasChosen := false
-	for _, q := range strings.Split(spec, "+") {
+	for q := range strings.SplitSeq(spec, "+") {
 		q = strings.TrimSpace(q)
 		switch {
 		case q == "" || q == "inZoneBattlefield":

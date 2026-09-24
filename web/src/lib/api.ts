@@ -131,6 +131,8 @@ export interface CreateGameRequest {
   format: 'constructed' | 'commander';
   human_deck?: string;
   bot_deck?: string;
+  /** Bot policy for every non-human seat; omitted keeps the server default. The restart control sends the table's own policy so a rematch keeps the same bot. */
+  bot_policy?: string;
   /** London mulligan allowance for the created game; omitted keeps the server default (0 is a legal value, disabling the pre-game round). */
   mulligans?: number;
 }

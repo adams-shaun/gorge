@@ -206,19 +206,28 @@ func TestBrionStoutarmThrowAtPlaneswalkerGainsLife(t *testing.T) {
 	if got := e.G.Obj(walker).Counter("LOYALTY"); got != 1 {
 		t.Fatalf("walker loyalty = %d, want 1 (4 - 3)", got)
 	}
-	for _, ev := range e.L.Events {
+	// Entry loyalty now has its own CounterChange (CR 614). Only the
+	// damage-to-loyalty conversion must fold into Damage without a second
+	// CounterChange; scope the check to events after that hit.
+	damageIndex, entryIndex := -1, -1
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == walker && ev.Counter == "LOYALTY" && ev.Amount == 4 {
+			entryIndex = i
+		}
+		if ev.Kind == events.Damage && ev.Obj == walker && ev.Amount == 3 {
+			damageIndex = i
+		}
+	}
+	if damageIndex < 0 {
+		t.Fatal("no Damage event against the walker; protection, prevention and DamageDone triggers cannot see walker damage")
+	}
+	if entryIndex < 0 || entryIndex >= damageIndex {
+		t.Fatalf("entry loyalty must precede damage: entry %d damage %d", entryIndex, damageIndex)
+	}
+	for _, ev := range e.L.Events[damageIndex+1:] {
 		if ev.Kind == events.CounterChange && ev.Obj == walker && ev.Counter == "LOYALTY" {
 			t.Fatalf("walker loyalty conversion emitted a CounterChange; it must fold into the Damage event (events.Apply): %+v", ev)
 		}
-	}
-	sawDamage := false
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Damage && ev.Obj == walker && ev.Amount == 3 {
-			sawDamage = true
-		}
-	}
-	if !sawDamage {
-		t.Fatalf("no Damage event against the walker; protection, prevention and DamageDone triggers cannot see walker damage")
 	}
 	if got := e.G.Players[0].Life; got != 23 {
 		t.Fatalf("Brion's controller life = %d, want 23 (20 + 3 lifelink off the walker hit)", got)

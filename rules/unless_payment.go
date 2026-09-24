@@ -75,7 +75,7 @@ func (c Cost) manaPipCount() int {
 // manaPipCount (a minimal cover never needs more sources than the mana it
 // supplies) and by a hard node budget; beyond that it fails closed, which is
 // the conservative direction (never offer a Pay the window cannot complete).
-func (e *Engine) unlessManaReachable(p state.PlayerID, cost Cost, pool, snow state.Mana, typed [3]state.Mana, life int32, conv *manaConv, units []windowManaUnit) bool {
+func (e *Engine) unlessManaReachable(p state.PlayerID, cost Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, conv *manaConv, units []windowManaUnit) bool {
 	payable := func(pool state.Mana) bool {
 		_, ok := cost.resolveManaWith(pool, snow, typed, life,
 			e.payerGrantsPayLifeInsteadOfB(p), pipRider{}, conv)
@@ -181,7 +181,7 @@ func (e *Engine) unlessCostPayable(p state.PlayerID, raw string, ctx *effects.Ct
 		}
 		return true
 	}
-	return e.unlessManaReachable(p, cost, player.Pool, player.Snow, player.TypedMana, player.Life,
+	return e.unlessManaReachable(p, cost, player.Pool, player.Snow, player.ManaUnits(), player.Life,
 		e.paymentConv(p, stackObj, false), e.windowManaUnits(p))
 }
 
@@ -525,7 +525,7 @@ func (e *Engine) askUnlessMana() {
 	units := e.windowManaUnits(u.payer)
 	pool := e.G.Players[u.payer].Pool
 	snow := e.G.Players[u.payer].Snow
-	typed := e.G.Players[u.payer].TypedMana
+	typed := e.G.Players[u.payer].ManaUnits()
 	life := e.G.Players[u.payer].Life
 	d := &decision.Decision{Player: u.payer, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Activate mana abilities to pay the unless cost", ResumeKind: "unless_mana"}

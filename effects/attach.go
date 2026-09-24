@@ -84,7 +84,7 @@ func attachSpecAdmitsOffBattlefield(g *state.Game, attachObj state.ObjID, tg *st
 		return false
 	}
 	zoneNamed := false
-	for _, word := range strings.Split(spec, ".") {
+	for word := range strings.SplitSeq(spec, ".") {
 		z, has := strings.CutPrefix(word, "inZone")
 		if !has {
 			continue

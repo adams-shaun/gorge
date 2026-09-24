@@ -832,12 +832,12 @@ func faceIsTheChosenType(r *state.Object) bool {
 		if st.Mode != "Continuous" || !strings.Contains(st.Params["Affected"], "Self") {
 			continue
 		}
-		for _, v := range strings.Split(st.Params["AddType"], ",") {
+		for v := range strings.SplitSeq(st.Params["AddType"], ",") {
 			if strings.TrimSpace(v) == "ChosenType" {
 				return true
 			}
 		}
-		for _, v := range strings.Split(st.Params["AddTypes"], ",") {
+		for v := range strings.SplitSeq(st.Params["AddTypes"], ",") {
 			if strings.TrimSpace(v) == "ChosenType" {
 				return true
 			}
@@ -1311,6 +1311,15 @@ const (
 	// chooseNonbasicLandTypes so this predicate and the Nonbasic Land choose
 	// cannot drift (the structural sharing the basic-land sibling used).
 	wordHasNonBasicLandType
+	// wordHasBasicLandType is Forge's Card.hasABasicLandType: the object is a
+	// LAND that has at least one of CR 205.3i's five basic land types
+	// (Plains, Island, Swamp, Mountain, Forest). It is NOT "has the Basic
+	// supertype": a Wastes is a basic land with no basic land type and must
+	// NOT match (CR 205.3i is explicit, and every corpus carrier's reminder
+	// text says "a land card with a basic land type"). The five words come
+	// from chooseBasicLandTypes so this predicate and the Basic Land choose
+	// cannot drift.
+	wordHasBasicLandType
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1407,19 +1416,21 @@ func wordPredicate(p string) (wordKind, string) {
 		"wasCastFromYourGraveyardByYou", "wasCastFromTheirHand":
 		return wordCastProvenance, p
 	// The card-level CastSa property tokens (task castsa-provenance): the
-	// four mana-spend spellings the payment path's tagged ManaAdd encoding
-	// answers, plus the cast-flag spellings Spell.Mayhem (state.FlagMayhem,
-	// stamped by modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped,
-	// modeFlags' "warped" case) — recognized here (the census no longer
-	// reports them unknown) but evaluated by the provenance strips (rules'
-	// castSaAdmits and the per-event walk in spellsCastThisTurnMatching;
+	// five mana-spend spellings the payment path's tagged ManaAdd encoding
+	// answers (task mayplay-mfa added CastSa Spell.ManaFromArtifact), plus
+	// the cast-flag spellings Spell.Mayhem (state.FlagMayhem, stamped by
+	// modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped, modeFlags'
+	// "warped" case) — recognized here (the census no longer reports them
+	// unknown) but evaluated by the provenance strips (rules' castSaAdmits
+	// and the per-event walk in spellsCastThisTurnMatching;
 	// effects/conditions.go's castSaAdmitsFilter for the ConditionPresent
 	// gates), which remove the token before the filter runs; wordMatches'
-	// body fails closed. The still-unmodelled spellings (CastSa
-	// Spell.MayPlaySource and CastSa Spell.ManaFromArtifact) stay unknown
-	// and fail closed everywhere.
+	// body fails closed. The still-unmodelled spelling (CastSa
+	// Spell.MayPlaySource -- the sibling ticket's scope) stays unknown and
+	// fails closed everywhere.
 	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
-		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0",
+		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaFromArtifact",
+		"CastSa Spell.ManaSpent EQ0",
 		"CastSa Spell.Mayhem", "CastSa Spell.Warp":
 		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
@@ -1466,6 +1477,13 @@ func wordPredicate(p string) (wordKind, string) {
 	// Land anyway, so a bare `Card.hasANonBasicLandType` stays correct too).
 	case "hasANonBasicLandType":
 		return wordHasNonBasicLandType, ""
+	// Forge's Card.hasABasicLandType (the corpus's `Land.hasABasicLandType`
+	// qualifier). The bare word is classified here so the matcher and the
+	// UnknownPredicates census share one recogniser; the `Land.` base the
+	// corpus spells it under is the union spelling (the body re-checks Land
+	// anyway, so a bare `Card.hasABasicLandType` stays correct too).
+	case "hasABasicLandType":
+		return wordHasBasicLandType, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -1870,6 +1888,22 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return false
 		}
 		for _, t := range chooseNonbasicLandTypes {
+			if hasTypeCtx(o, t, sc) {
+				return true
+			}
+		}
+		return false
+	case wordHasBasicLandType:
+		// Forge's hasABasicLandType: a land with one of the five basic land
+		// types (CR 205.3i), read through hasTypeCtx so the layer-derived type
+		// list and Changeling agree with every other type read. A Wastes is a
+		// basic land with NO basic land type and does not match; a non-land
+		// with a granted land type is excluded by the Land test, exactly as
+		// Forge's Card.hasABasicLandType requires the Land card type.
+		if !hasTypeCtx(o, "Land", sc) {
+			return false
+		}
+		for _, t := range chooseBasicLandTypes {
 			if hasTypeCtx(o, t, sc) {
 				return true
 			}
@@ -2985,9 +3019,46 @@ func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (r
 // available; this fallback remains deliberately useful to effects, which sits
 // below rules and cannot import the layer engine.
 func hasType(o *state.Object, t string) bool {
+	d, f := hasTypePrinted(o, t)
+	if d != typeUndecided {
+		return d == typeYes
+	}
+	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
+	// Changeling's keyword and the characteristic-defining
+	// AddAllCreatureTypes$ True static (Mistform Ultimus). Both go through
+	// the positive subtype vocabulary, so a non-creature word (Arcane,
+	// Alara, Ajani) can never leak, and neither materialises subtypes into
+	// the derived type list.
+	return (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA()) && changelingType(t)
+}
+
+// hasTypeSub is hasType with changelingType(t) supplied precomputed as sub
+// (the compiled filter form classifies its type words once). Every function
+// involved is pure, so reading sub first only skips the keyword probe for a
+// word no Changeling can grant.
+func hasTypeSub(o *state.Object, t string, sub bool) bool {
+	d, f := hasTypePrinted(o, t)
+	if d != typeUndecided {
+		return d == typeYes
+	}
+	return sub && (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA())
+}
+
+type typeDecision uint8
+
+const (
+	typeUndecided typeDecision = iota
+	typeYes
+	typeNo
+)
+
+// hasTypePrinted is hasType up to (not including) its intrinsic-CDA tail:
+// the bestow/reconfigure switches and the printed type line. Undecided means
+// the answer is the CDA tail's, read off the returned face.
+func hasTypePrinted(o *state.Object, t string) (typeDecision, *cards.Face) {
 	f := o.Face()
 	if f == nil {
-		return false
+		return typeNo, nil
 	}
 	// CR 702.114e: a bestowed card attached to a creature is an Aura, not a
 	// creature, in every filter read (Count$Valid, target offer, cost
@@ -3003,10 +3074,10 @@ func hasType(o *state.Object, t string) bool {
 	// from firing "whenever you cast a creature spell" triggers.
 	if o.BestowedAttached() || o.BestowedAuraSpell() {
 		if strings.EqualFold(t, "Aura") {
-			return true
+			return typeYes, f
 		}
 		if strings.EqualFold(t, "Creature") {
-			return false
+			return typeNo, f
 		}
 	}
 	// CR 702.150c: a Reconfigure card attached to a creature is not a
@@ -3016,21 +3087,15 @@ func hasType(o *state.Object, t string) bool {
 	// printed face's own types and the attached form keeps them.
 	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
 		if strings.EqualFold(t, "Creature") {
-			return false
+			return typeNo, f
 		}
 	}
 	for _, x := range f.Types {
 		if strings.EqualFold(x, t) {
-			return true
+			return typeYes, f
 		}
 	}
-	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
-	// Changeling's keyword and the characteristic-defining
-	// AddAllCreatureTypes$ True static (Mistform Ultimus). Both go through
-	// the positive subtype vocabulary, so a non-creature word (Arcane,
-	// Alara, Ajani) can never leak, and neither materialises subtypes into
-	// the derived type list.
-	return (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA()) && changelingType(t)
+	return typeUndecided, f
 }
 
 // typePredicate handles the legacy predicate-map entries whose meaning is a
@@ -3117,6 +3182,36 @@ func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
 	}
 	// No derived entry: the printed face plus intrinsic CDAs, as before.
 	return hasType(o, t)
+}
+
+// hasTypeCtxSub is hasTypeCtx with changelingType(t) precomputed as sub: the
+// same reads in the same order, the intrinsic-CDA tails taking sub.
+func hasTypeCtxSub(o *state.Object, t string, sub bool, sc *SpecContext) bool {
+	for _, x := range sc.ExtraTypes {
+		if strings.EqualFold(x, t) {
+			return true
+		}
+	}
+	if sc.ExtraTypes != nil {
+		return hasTypeSub(o, t, sub)
+	}
+	for _, d := range sc.DerivedTypes {
+		if d.ID != o.ID {
+			continue
+		}
+		// derivedTypesFor's first entry for o is authoritative.
+		for _, x := range d.Types {
+			if strings.EqualFold(x, t) {
+				return true
+			}
+		}
+		if !sub {
+			return false
+		}
+		f := o.Face()
+		return f != nil && (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA())
+	}
+	return hasTypeSub(o, t, sub)
 }
 
 // changelingType reports whether t is an actual creature subtype. This uses
@@ -3363,7 +3458,7 @@ func parseCMC(cost string) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(cost) {
+	for sym := range strings.FieldsSeq(cost) {
 		if v, err := strconv.Atoi(sym); err == nil {
 			n += int32(v)
 			continue
@@ -3732,6 +3827,13 @@ func triggeredSpellTargetSA(spell *state.Object) *cards.SA {
 // that has left the stack (CR 707.10h: a copy that changes zones ceases to
 // exist) never matches anything regardless of spec.
 func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	return matchesObjectPtr(g, spec, o, &sc)
+}
+
+// matchesObjectPtr is MatchesObjectCtx with the context passed by pointer:
+// SpecContext is large, and the per-object hot path must not copy it at
+// every call level.
+func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecContext) bool {
 	if o == nil {
 		return false
 	}
@@ -3741,15 +3843,15 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	// Goblin type test would silently miss the derived characteristic. The same
 	// discipline the layer walk keeps for ExtraTypes (rules/layers.go), scoped
 	// here to the one object that actually carries a change.
-	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, sc) && !hasDerivedTypeEntry(o, sc) {
-		switch ps.Evaluate(spec, g, o, sc) {
+	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, *sc) && !hasDerivedTypeEntry(o, *sc) {
+		switch ps.evaluate(spec, g, o, sc) {
 		case PredicateYes:
 			return true
 		case PredicateNo:
 			return false
 		}
 	}
-	return matchesObjectText(g, spec, o, sc)
+	return compiledMatch(compiledSpecFor(spec), g, o, sc)
 }
 
 // matchesObjectText is the original textual filter evaluator. It remains the
@@ -3861,7 +3963,7 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 	if o == nil {
 		return false
 	}
-	return MatchesObjectCtx(g, spec, o, sc)
+	return matchesObjectPtr(g, spec, o, &sc)
 }
 
 // matchesZoneSpecCtx matches a filter over a known zone. Forge's Permanent
@@ -3888,8 +3990,15 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 		return false
 	}
 	if zone == state.ZBattlefield {
-		return MatchesObjectCtx(g, spec, o, sc)
+		return matchesObjectPtr(g, spec, o, &sc)
 	}
+	return compiledMatchZone(compiledSpecFor(spec), g, o, &sc, zone)
+}
+
+// matchesZoneSpecText is matchesZoneSpecCtx's textual oracle for a
+// non-battlefield zone (the IsCopy rejection already applied): the reference
+// the compiled matchZone is held equal to.
+func matchesZoneSpecText(g *state.Game, spec string, o *state.Object, sc SpecContext, zone state.Zone) bool {
 	// filterAlternatives, not a raw comma split: a Count$Valid<Zone>
 	// Card.named<Name> argument may carry its printed comma.
 	for alt := range filterAlternatives(spec) {
@@ -3981,7 +4090,7 @@ type PlayerSpecCtx struct {
 // Every rule resolves here, so a trigger match, a static actor match and a
 // layer restriction agree by construction rather than by parallel copies.
 func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -4006,7 +4115,7 @@ func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc 
 // that admits no target. A clause with no `+` is a one-clause conjunction and
 // behaves exactly as before, so the single-qualifier grammar is unchanged.
 func matchesPlayerCompoundCtx(g *state.Game, alt string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
-	for _, clause := range strings.Split(alt, "+") {
+	for clause := range strings.SplitSeq(alt, "+") {
 		clause = strings.TrimSpace(clause)
 		if clause == "" {
 			return false
@@ -4079,7 +4188,7 @@ func isBarePlayerProperty(clause string) bool {
 // matchesPlayerSingleSpec is the original single-alternative player-spec
 // evaluator: one clause, no `,` or `+` (the callers above split those).
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
 		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
 			o := g.Obj(pc.Source)
@@ -4445,7 +4554,7 @@ func MatchesPlayerSpecWithSVars(h Host, c *Ctx, spec string, p, you state.Player
 	if h == nil || c == nil {
 		return false
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		clauses := strings.Split(strings.TrimSpace(alt), "+")
 		resolved := true
 		for i, clause := range clauses {

@@ -34,7 +34,7 @@ func SagaChapters(f *Face) (int, []string) {
 	}
 	var names []string
 	if strings.TrimSpace(list) != "" {
-		for _, nm := range strings.Split(list, ",") {
+		for nm := range strings.SplitSeq(list, ",") {
 			if nm = strings.TrimSpace(nm); nm != "" {
 				names = append(names, nm)
 			}

@@ -12,6 +12,12 @@ import (
 // returns a plain error, never a panic, when neither cache nor corpus is
 // present, so a clean checkout with nothing fetched is the caller's
 // decision (tests Skip; a server refuses to start).
+//
+// A recompile writes the fresh cache back (best effort): without it a
+// cache left behind by an older cacheVersion is decoded, rejected and the
+// whole corpus recompiled on EVERY process start -- measured at ~0.6 s CPU
+// and ~740 MB allocated per botbench/test process. A write failure (a
+// read-only corpus) is ignored; the compiled registry is still returned.
 func OpenCorpus(dir string) (*Registry, error) {
 	cache := filepath.Join(dir, "ir.gob.gz")
 	cacheInfo, cacheErr := os.Stat(cache)
@@ -26,5 +32,6 @@ func OpenCorpus(dir string) (*Registry, error) {
 	if err != nil {
 		return nil, err
 	}
+	_ = r.Save(cache)
 	return r, nil
 }

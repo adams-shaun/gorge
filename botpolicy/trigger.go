@@ -97,23 +97,19 @@ func (b Board) chooseLowest(d *decision.Decision, worth func(state.ObjID) int32)
 	return worst
 }
 
-// The KTriggerOptional rule is a deterministic accept, replacing the coin
-// flip: an optional trigger is a "you may" the controller declines only when
-// the effect is a net loss, and botpolicy cannot read the effect — it sees
-// only the source's board facts and the card's own words in the label,
-// neither of which says whether the trigger pays. The dominant class of
-// optional trigger is a controller benefit (draw a card, put a counter,
-// gain life, deal damage), and the engine separately handles the cases where
-// the choice is really a cost to weigh ("unless you pay {N}" asks a KModes
-// decision, M2d-2), so accepting every optional trigger is the positive
-// play. Crucially it is deterministic: it removes the coin-flip variance
-// that widened the confidence intervals this task is about, and it makes
-// the same game state always take the same trigger. A perfect effect-aware
-// ranking is out of reach without reading the effect; the alternative was
-// leaving a coin in place, which the task excludes. Accepted optional
-// triggers whose source is no longer worth anything are still accepted,
-// because the decision is about whether the trigger's own effect is worth
-// taking, not whether the source is castable.
+// declineOptional handles only a resolving api:Effect OptionalDecider$
+// election, marked by the engine on its decision. Printed optional triggers
+// and Miracle keep their previous production and legacy policies. The
+// option's index, not its position, is the answer that Decision.Validate reads.
+// If no decline is offered, Clamp handles the fallback as for any other ask.
+func declineOptional(d *decision.Decision) []int {
+	for _, o := range d.Options {
+		if o.Kind == "no" {
+			return []int{o.Index}
+		}
+	}
+	return nil
+}
 
 // chooseDiscard keeps cheap plays over expensive ones, without the cast rule's
 // blanket creature premium. Basic positively identifies basic lands; zero-CMC

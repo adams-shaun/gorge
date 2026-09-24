@@ -1,3 +1,192 @@
+# Dynamic TargetMin$/TargetMax$ — sol2 (agent-20260918T233200Z-e0817443)
+
+## Findings resolved / correction to earlier reports
+
+- MAJOR (`rules/multikicker_test.go`): the zero-kick Marshal's Anthem test now crosses the spell resolution/trigger placement boundary explicitly. `awaitAnthemETBStack` requires Anthem to be a spell on stack, passes priority to the trigger, then verifies the *top stack object is an ability sourced from Anthem* and a `TriggerPush` was emitted. Only then does `passUntilStackEmpty` drain; both plain and declined multikick cases use this guard. The positive 2-kick target ask remains unchanged. No production code changed in sol2.
+- MINOR (older `.ds4/report-t1.md` gate status): that round's statement that module verification was deferred is historical, **not the final status**. The controller reported `the choice ask never arrived` after sol1; after the ordered rebase, my uncached focused check and full module check both passed *before* this edit, so that earlier failure was not independently reproducible on this base. The edit removes the empty-drain false positive regardless of ordering. The fresh post-edit full module gate below is green; do not read the old deferred claim as current verification.
+- First rebase hit a **docs-only** conflict in `.ds4/report-r2.md`, resolved by prepending this ticket's r2 report while keeping all of main's other tickets' reports verbatim. No code conflict.
+- `.cards` was present as a symlink to the shared corpus throughout; these were real corpus runs, not skips.
+
+## Gates (real output)
+
+```text
+$ go test -count=1 -v -run 'TestMarshalsAnthemPlainCastETBAsksForNothing|TestMarshalsAnthemMultikickedETBReturnsKickedCount' ./rules/  [pre-edit, after rebase]
+=== RUN   TestMarshalsAnthemMultikickedETBReturnsKickedCount
+--- PASS: TestMarshalsAnthemMultikickedETBReturnsKickedCount (0.81s)
+=== RUN   TestMarshalsAnthemPlainCastETBAsksForNothing
+--- PASS: TestMarshalsAnthemPlainCastETBAsksForNothing (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.877s
+
+$ go test -count=1 -v -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$' ./rules/  [post-edit, uncached]
+=== RUN   TestMarshalsAnthemPlainCastETBAsksForNothing
+--- PASS: TestMarshalsAnthemPlainCastETBAsksForNothing (0.59s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.603s
+
+$ go build ./...
+(no output, exit 0)
+$ go test -v -run 'TestResolvedTargetBoundsResolvedZeroIsHonoured|TestTearAsunderKickedTakesOnlyTheSubTarget|TestTearAsunderUnkickedStillTargetsArtifact|TestPestInfestationZeroXAsksNothing|TestTriggerPlacementAskResolvedZeroPosesNothing|TestAnnouncementAskBareXReadsThePaidX|TestMarshalsAnthemMultikickedETBReturnsKickedCount|TestMarshalsAnthemPlainCastETBAsksForNothing' ./rules/
+=== RUN   TestMarshalsAnthemMultikickedETBReturnsKickedCount
+--- PASS: TestMarshalsAnthemMultikickedETBReturnsKickedCount (0.57s)
+=== RUN   TestMarshalsAnthemPlainCastETBAsksForNothing
+--- PASS: TestMarshalsAnthemPlainCastETBAsksForNothing (0.00s)
+=== RUN   TestTriggerPlacementAskResolvedZeroPosesNothing
+--- PASS: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+=== RUN   TestResolvedTargetBoundsResolvedZeroIsHonoured
+--- PASS: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+=== RUN   TestTearAsunderKickedTakesOnlyTheSubTarget
+--- PASS: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+=== RUN   TestTearAsunderUnkickedStillTargetsArtifact
+--- PASS: TestTearAsunderUnkickedStillTargetsArtifact (0.00s)
+=== RUN   TestPestInfestationZeroXAsksNothing
+--- PASS: TestPestInfestationZeroXAsksNothing (0.00s)
+=== RUN   TestAnnouncementAskBareXReadsThePaidX
+--- PASS: TestAnnouncementAskBareXReadsThePaidX (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.670s
+
+$ go test ./...  [module gate, post-edit; tail of log]
+ok  	github.com/adams-shaun/gorge/cmd/searchteacher	(cached)
+ok  	github.com/adams-shaun/gorge/cmd/testtime	(cached)
+ok  	github.com/adams-shaun/gorge/decision	(cached)
+ok  	github.com/adams-shaun/gorge/deck	(cached)
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+ok  	github.com/adams-shaun/gorge/events	(cached)
+ok  	github.com/adams-shaun/gorge/host	(cached)
+ok  	github.com/adams-shaun/gorge/host/httpapi	(cached)
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.500s
+?   	github.com/adams-shaun/gorge/internal/bench	[no test files]
+ok  	github.com/adams-shaun/gorge/internal/policynet	(cached)
+ok  	github.com/adams-shaun/gorge/internal/searchprobe	(cached)
+ok  	github.com/adams-shaun/gorge/internal/searchseat	(cached)
+ok  	github.com/adams-shaun/gorge/internal/testutil	(cached)
+ok  	github.com/adams-shaun/gorge/internal/testutil/feedback	(cached)
+?   	github.com/adams-shaun/gorge/internal/traceboard	[no test files]
+ok  	github.com/adams-shaun/gorge/internal/tsgen	(cached)
+ok  	github.com/adams-shaun/gorge/protocol	(cached)
+ok  	github.com/adams-shaun/gorge/replay	(cached)
+ok  	github.com/adams-shaun/gorge/rules	32.332s
+ok  	github.com/adams-shaun/gorge/seat	(cached)
+ok  	github.com/adams-shaun/gorge/state	(cached)
+ok  	github.com/adams-shaun/gorge/view	(cached)
+exit 0
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.530s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.217s
+$ gofmt -l rules/multikicker_test.go rules/stack.go effects/count.go effects/registry.go rules/cast.go rules/statics.go rules/targetmax_resolved_zero_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+```
+
+## Fails without the fix
+
+Saved `rules/stack.go` to `.ds4/scratch/sol2-stack.go`, changed its dynamic bound back to the compiling pre-fix `max >= 1` clamp, ran the corrected zero-kick test uncached, restored production code byte-identically (`cmp` passed). Real output (abbreviating the option struct fields):
+
+```text
+$ go test -count=1 -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$' ./rules/
+--- FAIL: TestMarshalsAnthemPlainCastETBAsksForNothing (0.56s)
+    multikicker_test.go:201: non-priority decision &{Seq:68 Player:0 Kind:target Prompt:Choose a target for Marshal's Anthem Min:0 Max:1 Options:[Raider (a), Raider (a)] ...} while draining the stack
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.579s
+REVERT_TEST_EXIT=1 RESTORED=byte-identical
+```
+
+The reversion also proves the negative/no-ask test executes the actual ETB handler; without the bound fix it cannot silently pass by ending the stack drain early.
+
+## Ratchets / deviations
+
+No new tests in sol2 (the one existing test was corrected), no engine change, no head or bot split movement; no ratchet row moved. The brief's X/Y resolver + Pest X=3 already lived on main; this branch's production fix handles the remaining resolved-zero case. Neither deck carrier belongs to the committed deck JSON set, so there is no deck-side table entry to remove. No Known-approximations row grew. New sol2 commit: `93614099`.
+
+## Issues
+
+- `subTargetAsk`'s resolved-zero arm has no end-to-end carrier fixture; unit resolver and sibling ask-site tests cover it. Existing reported coverage gap (Wayta / Urgent Necropsy), not fixed in sol2.
+- No CR-lane regression for the resolved-zero target-choice shape (candidate CR 601.2c/608.2b); existing reported gap, not fixed here.
+
+---
+
+Current ticket (Emerge) report; unrelated prior reports are preserved below.
+
+# Emerge alternative cast — sol2
+
+Commit: `746c4129` (`fix(rules): price emerge by chosen sacrifice and isolate its reduction`). `.cards` was present as a symlink to the actual corpus, so the corpus tests did not skip. Re-measured 15 `K:Emerge` corpus files and 0 repo-deck files naming Elder Deep-Fiend.
+
+## Findings resolved
+
+- **Unsupported cost components:** `rules/emerge.go` now admits only whitespace-delimited generic and WUBRGC printed Emerge tokens, rejects every other parsed `Cost` field and `Unknown`. `TestEmergeWithholdsUnsupportedCostShapes` exercises hybrid, Phyrexian, twobrid, snow, PayLife, Sac, Draw, X, malformed braces, a skipped marker and an unknown token, and accepts the real colon-suffixed corpus shape. No unrelated cost grammar is registered.
+- **Best-case offer vs actual sacrifice:** `rules/emerge.go`, `rules/legal.go`, `rules/cast.go` price each eligible sacrifice against the offer's real or hypothetical mana pool; at the sacrifice ask, feasibility is checked against the pending cast's captured modifiers and live pool. `TestEmergeSacrificeAskPricesEachCreature` proves the smaller sacrifice is NOT offered with only enough mana for the large one, then casts and verifies zones, mana and replay. All answers at that ask use the same candidate predicate, so this covers every sibling candidate rather than checking one named creature.
+- **Extra sacrifices contributing to reduction:** `pendingCast.emergeSac` records only the mandatory Emerge part's chosen object. `emergeBase` includes printed SpellAbility non-mana extras in both offer and charge. `TestEmergeAdditionalSacDoesNotIncreaseReduction` chooses mana-value-1 Emerge fuel and sacrifices mana-value-10 fuel for the additional cost: the charge is {2}{U}, leaving one colorless mana; both sacrifices go to the graveyard and replay agrees. The printed mana part of the SpellAbility is not duplicated.
+- `rules/emerge_test.go` adjusts the existing floor-price assertion to supply an unconditional pricing callback; its separate actual-pool offer test remains unchanged. The real Elder Deep-Fiend payment/replay test and floor test pass. No AGENTS.md row closed or grown, no acceptance table or golden altered. The `kw:Emerge` registration remains in `rules/emerge.go` from the original implementation.
+
+## Fails without the fix
+
+Copied each changed production file to `.ds4/scratch`, reverted the specific hunk in the real file, ran the test, restored with `cp` and verified `cmp` (`restored-byte-identical` each time). Actual failure output:
+
+```
+$ go test -run '^TestEmergeSacrificeAskPricesEachCreature$' ./rules/
+--- FAIL: TestEmergeSacrificeAskPricesEachCreature (0.62s)
+    emerge_pricing_test.go:42: sacrifice choices: large=true small=true; want true false
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.627s
+exit=1
+restored-byte-identical
+
+$ go test -run '^TestEmergeAdditionalSacDoesNotIncreaseReduction$' ./rules/
+--- FAIL: TestEmergeAdditionalSacDoesNotIncreaseReduction (0.61s)
+    emerge_pricing_test.go:150: additional sacrifice charged wrong reduction: spell=battlefield small=graveyard big=graveyard pool=[0 0 0 0 0 3]
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.619s
+exit=1
+restored-byte-identical
+
+$ go test -run '^TestEmergeWithholdsUnsupportedCostShapes$' ./rules/
+--- FAIL: TestEmergeWithholdsUnsupportedCostShapes (0.00s)
+    --- FAIL: TestEmergeWithholdsUnsupportedCostShapes/5_Mandatory (0.00s)
+        emerge_pricing_test.go:162: unsupported emerge cost "5 Mandatory" accepted as {Colored:[0 0 0 0 0 0] Generic:5 Life:0 X:0 Hybrid:[] Phyrexian:[] Twobrid:[] HybridPhyrexian:[] Snow:0 Tap:false Sac:[] Discard:[] SubCounter:[] AddCounter:[] Exile:[] Reveal:[] RevealChosen:[] Behold:[] TapPermanent:[] Blight:[] Forage:false Draw:[] Energy:[] LifeX:[] LifeHalfUp:false DamageYou:[] Return:[] PutToLib:[] MoveToGrave:[] Mill:[] Evidence:[] RollDice:[] Unknown:[]}
+    --- FAIL: TestEmergeWithholdsUnsupportedCostShapes/5_{U (0.00s)
+        emerge_pricing_test.go:162: unsupported emerge cost "5 {U" accepted as {Colored:[0 1 0 0 0 0] Generic:5 Life:0 X:0 Hybrid:[] Phyrexian:[] Twobrid:[] HybridPhyrexian:[] Snow:0 Tap:false Sac:[] Discard:[] SubCounter:[] AddCounter:[] Exile:[] Reveal:[] RevealChosen:[] Behold:[] TapPermanent:[] Blight:[] Forage:false Draw:[] Energy:[] LifeX:[] LifeHalfUp:false DamageYou:[] Return:[] PutToLib:[] MoveToGrave:[] Mill:[] Evidence:[] RollDice:[] Unknown:[]}
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.003s
+exit=1
+restored-byte-identical
+```
+
+## Gates (exact commands and outputs)
+
+```
+$ go test -run 'TestEmergeCastPaysReducedCost|TestEveryRepoDeckIsFullySupported' ./rules/
+ok  github.com/adams-shaun/gorge/rules 0.734s
+exit=0
+$ go test -run 'TestEmergeCastPaysReducedCost|TestEmergeSacrificeAskPricesEachCreature|TestEmergeAdditionalSacDoesNotIncreaseReduction|TestEmergeWithholdsUnsupportedCostShapes|TestEmergeCastReductionExceedsGenericKeepsColored|TestEveryRepoDeckIsFullySupported' ./rules/
+ok  github.com/adams-shaun/gorge/rules 0.761s
+target_exit=0
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest 2.603s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench 1.304s
+bot_exit=0
+$ gofmt -l rules/emerge.go rules/cast.go rules/legal.go rules/emerge_test.go rules/emerge_pricing_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; gentypes_exit=0)
+$ git diff --check
+(no output)
+```
+
+No golden movement in the named botbench check; the acceptance ratchet passed with no table edit. `TestHeads`/the full module are daemon gates, not run in the implementer seat.
+
+## Issues
+
+No additional defects found beyond the three reviewed findings. Printed Emerge costs outside generic + coloured are intentionally withheld; 15 of 15 measured corpus Emerge cards use the admitted plain shape. No Known-approximations row added.
+
+---
+
+## Preserved prior workstream reports (unrelated)
+
 # Dismantle target-counter LKI — sol2 report
 
 ## Findings resolved

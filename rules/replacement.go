@@ -160,29 +160,10 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if !ok {
 		return ev, false
 	}
-	// A CantPutCounter restriction swallows a counter placement outright
-	// (task cantputcounter1): the placement never happens, so neither the
-	// event nor any AddCounter replacement of it may run. This gate sits
-	// BEFORE the match collection (not at the CounterChange dispatch case)
-	// so a prohibition with no accompanying R:Event$ AddCounter line is
-	// still enforced -- Melira's second poison source, where the only match
-	// on the board is Melira's own R: line but the lock must stop the event
-	// even after that line's rider has replaced the first source. handled
-	// true returns the empty event, so emit's ordinary Apply path is bypassed
-	// and nothing is logged: the event is prevented, never folded.
-	//
-	// Only a POSITIVE placement of a real counter is subject to the
-	// restriction: a removal (Amount <= 0) is not a placement at all, and the
-	// engine's own status markers (regeneration's Shield, the Deathtouched
-	// mark) are not counters -- the same state.InternalCounterMarker exclusion the
-	// AddCounter matcher keeps, so a "counters can't be put on it" static
-	// cannot stop a regeneration shield or a removal.
-	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
-		ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
-		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
-			return events.Event{}, true
-		}
-	}
+	// The CantPutCounter prohibition that used to sit here is now enforced in
+	// Engine.emit, BEFORE this replacement dispatch, so it applies even while
+	// a replacement body is in flight (task addcounter1/2). Keeping it here
+	// would skip it under applyingReplacement, the hole this task closes.
 	// FINALITY (CR 122.1) is a replacement at the common move boundary:
 	// a creature with a finality counter that would go from the battlefield to
 	// a graveyard is exiled instead. This covers destruction, toughness-based
@@ -317,6 +298,14 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	}
 	if ev.Kind == events.ManaAdd {
 		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap, e.manaProducer)
+	}
+	if ev.Kind == events.Scry {
+		// The scry instruction boundary (CR 614.4): the proposal is held, not
+		// logged, so continueScryReplacements owns the whole return -- it
+		// rewrites the held instruction's count in place (handled=true, event
+		// still a Scry) or replaces it whole (handled=true, zero event), so
+		// the generic single-match/CR-616.1 path below must never see it.
+		return e.continueScryReplacements(ev, matches, nil, nil, 0)
 	}
 	if ev.Kind == events.PlanarRoll {
 		// The planar-dice class (Ichor Elixir) and the bare roll BOTH run
@@ -930,6 +919,11 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "CreateToken", true
 	case events.Explore:
 		return "Explore", true
+	case events.Scry:
+		// The scry instruction boundary. Only the synthetic PROPOSAL
+		// (Engine.Scry) reaches the collection; the completed record is
+		// emitted through emitScryRecord, outside the replacement pass.
+		return "Scry", true
 	case events.PlanarRoll:
 		return "RollPlanarDice", true
 	case events.CounterChange, events.PlayerCounterChange:
@@ -1428,6 +1422,7 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	savedRepl, savedEvent, savedSource, savedAction, savedPlayer :=
 		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer
+	savedApplying := e.applyingReplacement
 	e.applyingReplacement = true
 	action := ""
 	if ev != nil {
@@ -1435,10 +1430,60 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		replaced, ev, ctx.Source, action, ctx.ReplacedPlayer
-	e.resolveReplacementWith(ctx, with)
+	e.resolveReplacementBody(ctx, with)
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		savedRepl, savedEvent, savedSource, savedAction, savedPlayer
-	e.applyingReplacement = false
+	e.applyingReplacement = savedApplying
+}
+
+// resolveReplacementBody resolves a ReplaceWith$ body. Inside a resolution
+// pass (contChainOwners > 0) the pass already owns the continuation chain and
+// this is resolveReplacementWith. OUTSIDE one -- an event emitted by turn
+// structure, above all combat damage, where runCombatAssignments emits one
+// Damage event per assignment -- two things differ:
+//
+//   - A body reached while an earlier body's ask is still unanswered (two
+//     attackers hitting a Nefarious Lich / Immortal Coil controller: one
+//     hidden graveyard pick per Damage event) must not run now. Its ask would
+//     overwrite the pending decision (Engine.ask's guard panics), and even
+//     deferred it would offer the cards the first pick is about to take. The
+//     WHOLE body is queued instead, as a continuation frame at the tail of the
+//     pending chain, so it runs -- and asks, against the then-current state --
+//     once everything before it has been answered: event order, one decision
+//     at a time. A ReplaceEffect body rewrites the held event synchronously
+//     and never asks, so it always runs in place.
+//   - A body that posts the first ask becomes its own continuation-chain
+//     owner, so the rest of its SubAbility$ chain (the Lich's lose-the-game
+//     check and cleanup) is linked after the ask instead of reported into a
+//     contChain no pass drains.
+func (e *Engine) resolveReplacementBody(ctx *effects.Ctx, with *cards.SA) {
+	if e.contChainOwners > 0 || with.API == "ReplaceEffect" {
+		e.resolveReplacementWith(ctx, with)
+		return
+	}
+	if e.resume != nil && e.pending != nil {
+		// buildContinuationChain resumes each frame at sa.Sub, so a parent
+		// whose Sub is the body makes the frame run the body from its start.
+		// Its replacement context (replaced object, damage target and amount,
+		// damage source) is read from the live replacement state here.
+		frame := e.buildContinuationChain([]contFrame{{sa: &cards.SA{Sub: with}}}, ctx.Source, nil)
+		tail := e.resume
+		for tail.outer != nil {
+			tail = tail.outer
+		}
+		tail.outer = frame
+		return
+	}
+	savedChain, savedReported := e.contChain, e.repeatReported
+	e.contChain, e.repeatReported = nil, nil
+	prior := e.resume
+	e.contChainOwners++
+	e.resolveReplacementWith(ctx, with)
+	e.contChainOwners--
+	if e.resume != nil && e.resume != prior && len(e.contChain) > 0 {
+		e.resume.outer = e.buildContinuationChain(e.contChain, ctx.Source, e.resume.outer)
+	}
+	e.contChain, e.repeatReported = savedChain, savedReported
 }
 
 // applyReplacement applies the ONE chosen replacement to a MoveZone event,
@@ -1464,7 +1509,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// so a Tap lands on an object already in its new zone (an object
 		// still on the stack is a no-op to effTap).
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
-		stored := events.Emit(e.G, e.L, ev)
+		stored := e.foldEntryMove(ev)
 		e.loop.observe(stored)
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
@@ -1523,7 +1568,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 			Text: "entry awaiting replacement-order choice"}, true
 	}
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
-	stored := events.Emit(e.G, e.L, ev)
+	stored := e.foldEntryMove(ev)
 	e.loop.observe(stored)
 	// The move-driven Effect lifetimes, replayed inline exactly as the
 	// single-match Updated branch does (the raw events.Emit above bypasses
@@ -2419,10 +2464,10 @@ func (e *Engine) continueAddCounterReplacements(rc replChoice) {
 // starting a new replacement pass: every candidate has had its one
 // opportunity (the emitLifeReplacement convention).
 func (e *Engine) emitAddCounterReplacement(ev events.Event) {
-	saved := e.applyingReplacement
-	e.applyingReplacement = true
+	saved, folded := e.applyingReplacement, e.counterReplacementFold
+	e.applyingReplacement, e.counterReplacementFold = true, true
 	e.emit(ev)
-	e.applyingReplacement = saved
+	e.applyingReplacement, e.counterReplacementFold = saved, folded
 }
 
 // replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count
@@ -2532,6 +2577,187 @@ func (e *Engine) ExploreReplaced(explorer state.ObjID) bool {
 	_, handled := e.applyReplacements(events.Event{Kind: events.Explore, Obj: explorer, Player: o.Controller})
 	return handled
 }
+
+// Scry is the effects.Host hook effects/cardflow.go's effLookAndArrange
+// consults at the scry instruction boundary, BEFORE any card of the player's
+// library is looked at (CR 614.4: an R:Event$ Scry replacement applies to the
+// scry action itself). It builds the synthetic instruction PROPOSAL, applies
+// every matching R:Event$ Scry replacement to it, and returns the surviving
+// instruction's count. proceed is false when a replacement replaced the scry
+// whole (Eligeth, Crossroads Augur: "draw that many cards instead") -- the
+// caller must then look at and arrange nothing.
+//
+// The proposal is NEVER logged; it exists only to give the replacement
+// matcher a held event. The completed scry's own events.Scry record is
+// emitted later, by handleArrange, carrying the number of cards actually put
+// on the bottom (the count trig:Scry's ToBottom$ gate reads) and outside the
+// replacement pass, because a finished action is nothing left to replace.
+// That split is why the same events.Scry kind serves two roles: a proposal is
+// never emitted, a record is never matched (emitScryRecord).
+func (e *Engine) Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (int32, bool, bool) {
+	if count < 0 {
+		count = 0
+	}
+	if e.applyingReplacement {
+		// Inside another replacement's own resolution no further replacement
+		// applies (the emit guard's rule); the instruction stands.
+		return count, true, false
+	}
+	// The proposal carries its SA/target only through this synchronous call;
+	// the parked choice owns plain value data for the later continuation.
+	oldSA, oldTarget := e.scrySA, e.scryTarget
+	e.scrySA, e.scryTarget = sa, target
+	defer func() { e.scrySA, e.scryTarget = oldSA, oldTarget }()
+	ev, handled := e.applyReplacements(events.Event{Kind: events.Scry, Player: p, Obj: source, Amount: count})
+	if !handled {
+		return count, true, false // no replacement matched
+	}
+	if e.pending != nil && len(e.replChoices) > 0 && e.replChoices[0].kind == replChoiceScry {
+		return 0, false, true // proposal parked; do not inspect the library
+	}
+	if ev.Kind != events.Scry {
+		return 0, false, false // replaced whole: nothing is looked at
+	}
+	return ev.Amount, true, false
+}
+
+// continueScryReplacements applies the collected R:Event$ Scry matches to the
+// held instruction proposal. Two corpus shapes:
+//
+//   - DB$ ReplaceEffect | VarName$ Num (Kenessos, Priest of Thassa): the
+//     proposed count is rewritten in place ("scry that many cards plus
+//     one"), the instruction survives and the caller arranges the new count;
+//   - DB$ Draw | Defined$ You | NumCards$ <that many> (Eligeth, Crossroads
+//     Augur): the whole scry is replaced by a draw and the instruction is
+//     consumed -- returned as a zero event so the caller (Scry, above) sees
+//     proceed=false and never looks at a library.
+//
+// Every count expression is evaluated against the HELD instruction's own
+// count through the ReplaceCount$Num grammar only the replacement context has
+// (scryReplacementCount), never a global Count read. An unmodelled body emits
+// the loud unimplemented Note and leaves the instruction intact -- the
+// conservative direction, never a silent whole-scry drop.
+//
+// Each applicable effect can apply once. A competition parks the proposal
+// for the affected scrying player's order choice, even if the sources have
+// different controllers. Recheck candidates after each count rewrite.
+func (e *Engine) continueScryReplacements(ev events.Event, matches []replMatch, used []bool, sa *cards.SA, target int) (events.Event, bool) {
+	if used == nil {
+		used = make([]bool, len(matches))
+	}
+	for {
+		var applicable []int
+		for i, m := range matches {
+			if !used[i] && e.scryReplacementMatches(m, ev) {
+				applicable = append(applicable, i)
+			}
+		}
+		if len(applicable) == 0 {
+			return ev, true
+		}
+		if len(applicable) > 1 && int(ev.Player) < len(e.G.Players) && !e.G.Players[ev.Player].Lost {
+			if sa == nil {
+				sa, target = e.scrySA, e.scryTarget
+			}
+			e.replChoices = append([]replChoice{{kind: replChoiceScry, ev: ev, cands: matches,
+				applied: used, applicable: applicable, before: e.triggerBefore, player: ev.Player}}, e.replChoices...)
+			if e.pending == nil {
+				d := e.scryReplacementDecision(e.replChoices[0], sa, target)
+				if e.resume == nil {
+					e.Ask(d)
+				} else {
+					e.ask(d)
+				}
+			}
+			return ev, true
+		}
+		i := applicable[0]
+		used[i] = true
+		m := matches[i]
+		// CR 616.1e: the recheck uses the same matcher class the collection
+		// used -- an Effect-created match is never re-gated on ActiveZones$.
+		if m.repl.With == nil {
+			continue
+		}
+		with := m.repl.With
+		ctx := e.replCtx(m, ev)
+		switch with.API {
+		case "ReplaceEffect":
+			if with.Params["VarName"] != "Num" {
+				break
+			}
+			if n, ok := e.scryReplacementCount(ctx, with.Params["VarValue"], ev.Amount); ok {
+				ev.Amount = n
+				continue
+			}
+		case "Draw":
+			// "Instead": the draw must be the scrying player's own
+			// (Defined$ You, or absent = the controller). Any other Defined$
+			// is unmodelled and fails loud below rather than drawing for the
+			// wrong seat.
+			if d := strings.TrimSpace(with.Params["Defined"]); d != "" && !strings.EqualFold(d, "You") {
+				break
+			}
+			if n, ok := e.scryReplacementCount(ctx, with.Params["NumCards"], ev.Amount); ok {
+				e.lifeReplacementDraw(ev.Player, n)
+				return events.Event{}, true
+			}
+		}
+		e.emit(events.Event{Kind: events.Note, Obj: m.id,
+			Text: "unimplemented Scry replacement"})
+	}
+}
+
+func (e *Engine) scryReplacementMatches(m replMatch, ev events.Event) bool {
+	if m.key != "" {
+		return e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
+	}
+	return e.replacementMatches(*m.repl, m.id, ev)
+}
+
+// scryReplacementCount resolves a Scry replacement body's count expression
+// against the held instruction's own count. Forge writes "that many" in terms
+// of the held event as ReplaceCount$Num (Kenessos' SVar X ->
+// ReplaceCount$Num/Plus.1; Eligeth's NumCards$ X -> ReplaceCount$Num), a
+// grammar only the replacement context carries -- the ordinary Count$
+// evaluator does not know it. A plain literal or Count$ body falls through to
+// the shared evaluator, so a future `NumCards$ 2` shape works unchanged.
+func (e *Engine) scryReplacementCount(ctx *effects.Ctx, raw string, base int32) (int32, bool) {
+	expr := strings.TrimSpace(raw)
+	if ctx.SVars != nil {
+		if body, ok := ctx.SVars[expr]; ok {
+			expr = strings.TrimSpace(body)
+		}
+	}
+	if expr == "ReplaceCount$Num" {
+		return base, true
+	}
+	if op, ok := strings.CutPrefix(expr, "ReplaceCount$Num/"); ok {
+		return replCountOp(base, op), true
+	}
+	if strings.HasPrefix(expr, "ReplaceCount$") {
+		// A held-event field other than the instruction's own count is not
+		// bindable here; fail closed rather than guess.
+		return 0, false
+	}
+	return effects.EvalCountOK(e, ctx, expr)
+}
+
+// emitScryRecord logs a completed scry instruction's events.Scry record
+// OUTSIDE the replacement pass: the record is a finished action's marker, so
+// no R:Event$ Scry replacement can apply to it (CR 614.4's window is before
+// the action). It still folds and queues triggers normally, so a Mode$ Scry
+// trigger fires from exactly this record. Called from handleArrange for the
+// Scry verb only (a plain RearrangeTopOfLibrary shares the Option.Kind but
+// must record nothing), carrying the number of cards actually put on the
+// bottom -- the count trig:Scry's ToBottom$ gate reads.
+func (e *Engine) emitScryRecord(ev events.Event) {
+	saved := e.applyingReplacement
+	e.applyingReplacement = true
+	e.emit(ev)
+	e.applyingReplacement = saved
+}
+
 func (e *Engine) continuePlanarRollReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		// CR 616.1e: the recheck uses the same matcher class the collection
@@ -2744,7 +2970,7 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint 
 // stem. An empty result leaves the caller's plan untouched.
 func (e *Engine) knownTokenScripts(source state.ObjID, csv string) []string {
 	var out []string
-	for _, s := range strings.Split(csv, ",") {
+	for s := range strings.SplitSeq(csv, ",") {
 		s = strings.TrimSpace(s)
 		if s == "" {
 			continue
@@ -3120,7 +3346,7 @@ func attachedChoiceZones(raw string) map[state.Zone]bool {
 		return nil
 	}
 	out := map[state.Zone]bool{}
-	for _, z := range strings.Split(raw, ",") {
+	for z := range strings.SplitSeq(raw, ",") {
 		switch strings.TrimSpace(z) {
 		case "Battlefield":
 			out[state.ZBattlefield] = true
@@ -3712,6 +3938,24 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		}
 		if v, ok := r.Params["ValidExplorer"]; ok &&
 			!e.matchesSpecFrom(v, ev.Obj, you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "Scry":
+		// The scry replacement (R:Event$ Scry, task scryrepl — Kenessos,
+		// Priest of Thassa; Eligeth, Crossroads Augur). The event is the
+		// synthetic instruction PROPOSAL effects' effLookAndArrange builds
+		// before looking (there is no printed-forge "Scry" event); ValidPlayer$
+		// names the scrying seat, matched with the replacement source's
+		// controller as You exactly like every other player-spec gate here.
+		// The completed events.Scry record (the bottom-card marker trig:Scry
+		// matches) is emitted OUTSIDE the replacement pass, so it can never
+		// reach this case.
+		if ev.Kind != events.Scry {
+			return false
+		}
+		if v, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -4657,7 +4901,7 @@ func (e *Engine) counterValidSA(target *state.Object, spec string, you state.Pla
 	if spec == "" {
 		return true
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		isKind := (kind == "Spell" && target.Ability == nil) ||
 			(kind == "SpellAbility") ||
@@ -4696,7 +4940,7 @@ func (e *Engine) counterValidSA(target *state.Object, spec string, you state.Pla
 
 func (e *Engine) counterSpellQualifiers(target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
 	var ordinary []string
-	for _, q := range strings.Split(quals, "+") {
+	for q := range strings.SplitSeq(quals, "+") {
 		switch q {
 		case "hasKeywordFlash":
 			if target.Face() == nil || !target.Face().HasKeyword("Flash") {
@@ -4768,6 +5012,7 @@ const (
 	// MoveZone composition whose bodies do not commute (a tap and an untap
 	// fighting over the same tapped bit; the last body applied wins).
 	replChoiceUpdated
+	replChoiceScry
 )
 
 type lifeExchangeTransaction struct {
@@ -4875,7 +5120,7 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 		return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
 	}
 	switch rc.kind {
-	case replChoiceMana, replChoiceManaColor:
+	case replChoiceMana, replChoiceManaColor, replChoiceScry:
 		return rc.ev.Player, int(rc.ev.Player) < len(e.G.Players)
 	case replChoicePhaseOrder, replChoicePhaseOptional:
 		return e.G.Active, int(e.G.Active) < len(e.G.Players)
@@ -5037,8 +5282,29 @@ func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatc
 	}
 }
 
+func (e *Engine) scryReplacementDecision(rc replChoice, sa *cards.SA, target int) *decision.Decision {
+	d := &decision.Decision{Player: rc.ev.Player, Kind: decision.KReplacement, Min: 1, Max: 1,
+		Source: rc.ev.Obj, ResumeKind: "scry_replacement", ResumeSA: sa, ResumeTarget: target,
+		Prompt: "Several replacement effects would modify this scry: choose which applies next."}
+	for _, i := range rc.applicable {
+		m := rc.cands[i]
+		label := "Apply a replacement"
+		if o := e.G.Obj(m.id); o != nil && o.Face() != nil {
+			label = "Apply " + o.Face().Name + "'s replacement"
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "replacement", Obj: m.id, Label: label})
+	}
+	return d
+}
+
 func (e *Engine) askReplacementChoice(p state.PlayerID) {
 	rc := e.replChoices[0]
+	if rc.kind == replChoiceScry {
+		// The first pose's resume point retains the SA and target. Subsequent
+		// choices keep that frame parked and need no new suspension record.
+		e.ask(e.scryReplacementDecision(rc, e.resume.sa, e.resume.target))
+		return
+	}
 	d := &decision.Decision{Player: p, Kind: decision.KReplacement, Min: 1, Max: 1,
 		Source: rc.ev.Obj, ResumeKind: "replacement"}
 	indices := make([]int, len(rc.cands))
@@ -5054,6 +5320,9 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		d.Prompt = "Several replacement effects would modify how many counters are put: choose which applies first."
 	case replChoiceToken:
 		d.Prompt = "Several replacement effects would modify this token creation: choose which applies first."
+	case replChoiceScry:
+		d.Prompt = "Several replacement effects would modify this scry: choose which applies next."
+		indices = rc.applicable
 		indices = rc.applicable
 	case replChoiceMana:
 		d.Prompt = "Several replacement effects would change mana production: choose which applies next."
@@ -5175,6 +5444,19 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	rc := e.replChoices[0]
 	e.replChoices = e.replChoices[1:]
 	rp := e.resume
+	if rp == nil && rc.inResolution && rc.resumeAtPose != nil {
+		// The competition was posed while a stack resolution was suspended,
+		// but the suspension's frame is no longer on e.resume: an earlier
+		// answer in the same queue ran a replacement body that ASKED (a shock
+		// land's UnlessCost PayLife under a mass return), the nested
+		// Engine.Ask replaced e.resume with its own frame, and that nested
+		// answer has since completed. The earlier answer handed the
+		// suspended frame to this queued competition (settleReplacementQueue);
+		// reinstate it so this answer's tail resumes the resolution exactly
+		// once, when the queue drains.
+		rp = rc.resumeAtPose
+		e.resume = rp
+	}
 	chosen := d.Chosen(in)
 	damageKind := rc.kind == replChoiceDamage || rc.kind == replChoiceCounter
 	if len(chosen) == 0 || (damageKind && (chosen[0].Index < 0 || chosen[0].Index > len(rc.cands) ||
@@ -5257,6 +5539,61 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		}
 		return
 	}
+	if rc.kind == replChoiceScry {
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "scry replacement answer out of range"})
+			return
+		}
+		i := rc.applicable[chosen[0].Index]
+		// Drive the selected candidate alone first, then recompute the
+		// remaining matches against the rewritten instruction. The selected
+		// effect is marked used before the recheck (CR 614.5).
+		selected := rc.cands[i]
+		rc.applied[i] = true
+		// The parked Scry frame is not itself an outstanding draw ask. Clear
+		// it while a Draw-instead body runs so DrawFor can draw every card (or
+		// pose its own Dredge ask), then restore/chain it afterwards.
+		e.resume = nil
+		next, _ := e.continueScryReplacements(rc.ev, []replMatch{selected}, []bool{false}, nil, 0)
+		if e.resume != nil {
+			if rp != nil {
+				rp.scryProceed = false
+				e.resume.outer = rp
+			}
+			e.triggerBefore = before
+			return
+		}
+		if next.Kind == events.Scry {
+			next, _ = e.continueScryReplacements(next, rc.cands, rc.applied, d.ResumeSA, d.ResumeTarget)
+		}
+		// A remaining Draw-instead body may suspend on Dredge too (e.g.
+		// Kenessos selected first, then Eligeth). Keep that draw's fresh
+		// resume point and chain the original Scry continuation AFTER it;
+		// overwriting it with rp would answer Dredge as a Scry order choice.
+		// A re-posed Scry order ask instead uses the original frame below.
+		if e.resume != nil && (len(e.replChoices) == 0 || e.replChoices[0].kind != replChoiceScry) {
+			if rp != nil {
+				rp.scryProceed = false
+				e.resume.outer = rp
+			}
+			e.triggerBefore = before
+			return
+		}
+		// A re-pose used the same SA/target; retain the ORIGINAL frame rather
+		// than the bookkeeping frame Ask may have created for its next ask.
+		e.resume = rp
+		e.triggerBefore = before
+		if e.pending == nil && (len(e.replChoices) == 0 || e.replChoices[0].kind != replChoiceScry) {
+			if rp != nil {
+				rp.scryCount, rp.scryProceed = next.Amount, next.Kind == events.Scry
+				e.resume = nil
+				e.resumeResolution(rp, nil)
+			}
+		}
+		e.askNextReplacementChoice()
+		return
+	}
 	if rc.life {
 		// Apply the chosen replacement, then re-evaluate what still applies
 		// to the modified event (CR 616.1e); a further non-commuting
@@ -5282,18 +5619,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.lifeExchange = priorExchange
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 		e.triggerBefore = before
-		if e.pending == nil && len(e.replChoices) == 0 {
-			if rc.inResolution {
-				if e.resume == rp {
-					e.resume = nil
-					e.resumeResolution(rp, nil)
-				} else if e.resume != nil && e.resume.outer == nil {
-					e.resume.outer = rp
-				}
-			} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose {
-				e.resume = nil
-			}
-		}
+		e.settleReplacementQueue(rc, rp)
 		e.askNextReplacementChoice()
 		return
 	}
@@ -5437,41 +5763,94 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	if manaDecision && e.pending == nil && len(e.replChoices) == 0 && e.cast != nil {
 		e.continueCast()
 	}
-	// A competition posed while a stack resolution was in flight parked that
-	// resolution: the pose's Engine.Ask recorded the interrupted resolution
-	// on e.resume and the interrupted object stayed on the stack. Once the
-	// whole queue is answered and nothing is pending, the resolution must
-	// resume through its recorded chain -- the discipline the damage branch
-	// above applies -- or resolveTop re-resolves the interrupted object from
-	// the top on the next priority pass, unbounded (observed: a resolving
-	// AB$ PutCounter under two non-commuting count replacements re-emitted
-	// its counter event on every pass). A queue re-pose keeps e.resume == rp,
-	// so the resume fires on the last answer round; the pose record of a
-	// competition answered while nothing was resolving (turn structure, a
-	// cast window) is the flow's own bookkeeping and is consumed by its own
-	// handler, never here. A nested ask the chosen replacement's own body
-	// posed has already replaced e.resume: chain rp behind it as its outer so
-	// it still runs once that inner question settles (fx34's discipline).
-	if rc.inResolution && e.pending == nil && len(e.replChoices) == 0 {
-		if e.resume == rp {
+	e.settleReplacementQueue(rc, rp)
+	e.askNextReplacementChoice()
+}
+
+// settleReplacementQueue is the shared tail of an answered replacement-order
+// competition (every kind but the damage/counter and scry branches, which own
+// their own resume discipline).
+//
+// A competition posed while a stack resolution was in flight parked that
+// resolution: the pose's Engine.Ask recorded the interrupted resolution on
+// e.resume (rp here) and the interrupted object stayed on the stack. Once the
+// whole queue is answered and nothing is pending, the resolution must resume
+// through its recorded chain, or resolveTop re-resolves the interrupted
+// object from the top on the next priority pass, unbounded (observed: a
+// resolving AB$ PutCounter under two non-commuting count replacements
+// re-emitted its counter event on every pass).
+//
+// The chosen body can itself ASK (a shock land's "pay 2 life or it enters
+// tapped" UnlessCost): the nested Engine.Ask then replaces e.resume with its
+// own frame, so rp survives only here. Two shapes follow:
+//
+//   - the queue is drained: chain rp behind the nested frame (fx34's
+//     discipline), so the resolution resumes once that inner question
+//     settles;
+//   - more competitions are queued: the resolution must NOT resume until the
+//     last of them is answered, so rp cannot ride the nested frame (which
+//     completes first). It is handed to every queued in-resolution
+//     competition instead (resumeAtPose), and handleReplacement reinstates it
+//     when the next answer finds e.resume empty. Without the hand-off the
+//     frame was lost and the next answer resumed a nil frame (the botbench
+//     panic: Lumra, Bellow of the Woods returning Overgrown Tomb and other
+//     lands under Horizon Explorer).
+//
+// The pose record of a competition answered while nothing was resolving
+// (turn structure, a cast window) is the flow's own bookkeeping: once the
+// composition completed synchronously the stale frame is dropped --
+// resolveTop reads e.resume to decide whether its resolution suspended, and a
+// stale frame makes it abandon a resolution that actually finished,
+// re-resolving it on every pass (observed: a land entry's order pose left the
+// frame and a later resolving ability re-resolved unbounded).
+func (e *Engine) settleReplacementQueue(rc replChoice, rp *resumePoint) {
+	if !rc.inResolution {
+		if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
+			e.pending == nil && len(e.replChoices) == 0 {
+			e.resume = nil
+		}
+		return
+	}
+	if rp == nil {
+		// Nothing suspended to resume: a competition posed under an
+		// already-owned resume point whose owner consumed it. Resuming a nil
+		// frame is the panic this tail exists to avoid.
+		return
+	}
+	if len(e.replChoices) > 0 {
+		if e.resume != rp {
+			for i := range e.replChoices {
+				if e.replChoices[i].inResolution && e.replChoices[i].resumeAtPose == nil {
+					e.replChoices[i].resumeAtPose = rp
+				}
+			}
+		}
+		return
+	}
+	if e.resume == rp {
+		if e.pending == nil {
 			e.resume = nil
 			e.resumeResolution(rp, nil)
-		} else if e.resume != nil && e.resume.outer == nil {
-			e.resume.outer = rp
 		}
-	} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
-		e.pending == nil && len(e.replChoices) == 0 {
-		// The pose's own Engine.Ask record, from a cast window or turn
-		// structure where nothing was suspended: the composition completed
-		// synchronously in this answer, so the stale frame is dropped --
-		// resolveTop reads e.resume to decide whether its resolution
-		// suspended, and a stale frame makes it abandon a resolution that
-		// actually finished, re-resolving it on every pass (observed: a land
-		// entry's order pose left the frame and a later resolving ability
-		// re-resolved unbounded).
-		e.resume = nil
+		return
 	}
-	e.askNextReplacementChoice()
+	if e.resume == nil {
+		// The body's own flow consumed the frame; it owns the continuation.
+		return
+	}
+	// A nested ask the chosen body posed owns e.resume: run rp after its
+	// whole continuation chain, unless it is already on that chain.
+	tail := e.resume
+	for {
+		if tail == rp {
+			return
+		}
+		if tail.outer == nil {
+			break
+		}
+		tail = tail.outer
+	}
+	tail.outer = rp
 }
 
 // askNextReplacementChoice hands over to either an ordinary replacement
@@ -6164,8 +6543,13 @@ func init() {
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
-		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "api:ReplaceToken",
-		"repl:AddCounter", "api:ReplaceCounter")
+		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
+		"repl:AddCounter", "api:ReplaceCounter",
+		// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+		// file) via the ReplaceDamage intercept in applyReplacements, never
+		// through effects.Resolve/runReplaceWith -- this registration is the
+		// census token only; a stub effects.Register handler would be dead code.
+		"api:ReplaceDamage")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the

@@ -65,10 +65,10 @@ func TestLegalActionsReusesActionStaticMembership(t *testing.T) {
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("inert static changed ordered options:\ngot  %+v\nwant %+v", got, want)
 			}
-			controlAllocs := testing.AllocsPerRun(100, func() {
+			controlAllocs := allocsWithoutWalkCacheVerify(100, func() {
 				costStaticOptionsSink = control.legalActions(0)
 			})
-			probeAllocs := testing.AllocsPerRun(100, func() {
+			probeAllocs := allocsWithoutWalkCacheVerify(100, func() {
 				costStaticOptionsSink = probe.legalActions(0)
 			})
 			extra := probeAllocs - controlAllocs
