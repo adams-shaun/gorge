@@ -161,6 +161,15 @@ var addedAfterTheSplit = []string{
 	// KArrange answer is known (the count actually put on the bottom), so
 	// no pre-split switch arm could have dispatched it.
 	"Scry",
+	// trig:FullyUnlock (task agent-20260919T191104Z-95f1e316): CR 309.5's
+	// "Eerie -- whenever ... you fully unlock a Room" (17 corpus carriers,
+	// the Eerie enchantments e.g. Fear of Sleep Paralysis). It matches the
+	// pre-existing events.DoorUnlock transition, but the MODE did not exist:
+	// the pre-split switch dispatched the unlock door's own Mode$ UnlockDoor
+	// through a dedicated face scan (rules/rooms.go), never a Mode$
+	// FullyUnlock that lives on an unrelated battlefield permanent, so no
+	// pre-split switch arm could have dispatched it.
+	"FullyUnlock",
 }
 
 func allRegisteredModeNames() []string {
