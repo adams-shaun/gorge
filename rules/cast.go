@@ -3846,7 +3846,13 @@ func (e *Engine) xAsk() bool {
 		return false
 	}
 	min := int32(0)
-	if pc.suspendTimeX {
+	// The cost's own announced-X lower bound (XMin<N>, "X can't be 0"):
+	// Thieving Skydiver's kicked {X} must be at least 1. Suspend keeps its
+	// separate time-X bound; a cost carrying both takes the higher floor.
+	if pc.cost.XMin > min {
+		min = pc.cost.XMin
+	}
+	if pc.suspendTimeX && pc.suspendMinX > min {
 		min = pc.suspendMinX
 	}
 	pool := e.G.Players[pc.player].Pool
