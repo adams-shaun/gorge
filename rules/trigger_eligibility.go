@@ -290,6 +290,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "FullyUnlock":
+		// CR 709.5's "whenever you fully unlock a Room" (task
+		// agent-20260919T191104Z-95f1e316): the Eerie enchantments' other-
+		// permanent half, matched by fullyUnlockMatches (rules/
+		// trigmatch_room.go). It fires on the single DoorUnlock transition
+		// event the unlock activation emits, whose ordinal (41) is inside the
+		// 64-bit mask's reach, so an exact bit is encodable -- naming the mode
+		// rather than letting it fall to the allTriggerEvents default keeps a
+		// FullyUnlock-only face's mask narrow for every other kind.
+		return 1 << events.DoorUnlock
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past

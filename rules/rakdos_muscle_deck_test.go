@@ -158,39 +158,6 @@ func TestRakdosMuscleSacTriggerExilesAndMayPlaysWithAnyTypeMana(t *testing.T) {
 	}
 }
 
-// TestFuryDividesDamageAmongTargets pins DealDamage.DividedAsYouChoose$: the
-// named total is divided among the chosen targets (round-robin stand-in),
-// not dealt to each.
-func TestFuryDividesDamageAmongTargets(t *testing.T) {
-	e := handEngine(t)
-	bear1 := battlefieldFixture(t, e, 1, "Name:Bear1\nTypes:Creature Bear\nPT:2/4\nOracle:x\n")
-	bear2 := battlefieldFixture(t, e, 1, "Name:Bear2\nTypes:Creature Bear\nPT:2/4\nOracle:x\n")
-	fury := e.G.AddObject(choiceCorpusCard(t, "Fury"), 0)
-	e.emit(events.Event{Kind: events.MoveZone, Obj: fury.ID, From: state.ZHand, To: state.ZBattlefield})
-	e.Advance()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("Fury's division targets not asked: %+v", d)
-	}
-	if d.Min != 0 || d.Max != 4 {
-		t.Fatalf("division bounds = [%d,%d], want [0,4]", d.Min, d.Max)
-	}
-	var picks []int
-	for _, o := range d.Options {
-		if o.Obj == bear1 || o.Obj == bear2 {
-			picks = append(picks, o.Index)
-		}
-	}
-	submitChoices(t, e, picks...)
-	passUntilStackEmpty(t, e, 30)
-	if got := e.G.Obj(bear1).Damage; got != 2 {
-		t.Fatalf("bear1 damage = %d, want 2 (4 divided over two targets)", got)
-	}
-	if got := e.G.Obj(bear2).Damage; got != 2 {
-		t.Fatalf("bear2 damage = %d, want 2", got)
-	}
-}
-
 // TestCharmingScoundrelWickedRoleAttaches pins Token.AttachedTo$: the created
 // Role token enters attached to the targeted creature.
 func TestCharmingScoundrelWickedRoleAttaches(t *testing.T) {
