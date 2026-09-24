@@ -1357,14 +1357,16 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.choosing = chooseNone
 		e.emit(move)
 	case chooseLegend:
-		// The CR 704.5j legend-rule choice (rules/sba.go) was answered.
-		// legendAnswer records the kept permanent and applies the parked batch
-		// -- the pre-batch look-back board it parked, the same single-batch
-		// discipline the ordinary sweep uses. The remaining SBAs, and any
-		// further duplicate set, are the Submit tail's next checkStateBased
-		// pass; there is no drain to resume: the ask comes from the SBA pass,
-		// never from inside a resolution, so e.resume is necessarily nil here.
-		e.legendAnswer(d, in)
+		// The duplicate-permanent choice (rules/sba.go) was answered -- the
+		// CR 704.5j legend rule or the CR 704.5k world rule, the parked batch
+		// carrying which. sbaAnswer records the kept permanent and applies the
+		// parked batch -- the pre-batch look-back board it parked, the same
+		// single-batch discipline the ordinary sweep uses. The remaining SBAs,
+		// and any further duplicate set, are the Submit tail's next
+		// checkStateBased pass; there is no drain to resume: the ask comes from
+		// the SBA pass, never from inside a resolution, so e.resume is
+		// necessarily nil here.
+		e.sbaAnswer(d, in)
 	case chooseTokenReplace:
 		// The chosen-copy CreateToken replacement's election (rules/
 		// replacement.go's poseChosenTokenReplacement park) was answered: the

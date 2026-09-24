@@ -784,12 +784,12 @@ func (e *Engine) Clone() *Engine {
 		c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
 	}
 	if e.legendBatch != nil {
-		// The parked CR 704.5j legend-rule application (rules/sba.go): a clone
-		// taken while the duplicate set's controller is choosing must carry
-		// the same batch, or answering the copied decision would find nothing
-		// parked and the kept permanent would be recorded against an empty
-		// flow. Plain value data plus one shared immutable snapshot, so the
-		// slices are re-allocated and `before` is shared like cmdZoneMove's.
+		// The parked duplicate-permanent SBA application (rules/sba.go): a
+		// clone taken while the duplicate set's controller is choosing must
+		// carry the same batch, or answering the copied decision would find
+		// nothing parked and the kept permanent would be recorded against an
+		// empty flow. Plain value data plus one shared immutable snapshot, so
+		// the slices are re-allocated and `before` is shared like cmdZoneMove's.
 		lb := *e.legendBatch
 		lb.group.ids = append([]state.ObjID(nil), e.legendBatch.group.ids...)
 		lb.dead = append([]casualty(nil), e.legendBatch.dead...)

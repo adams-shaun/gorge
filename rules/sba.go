@@ -243,9 +243,9 @@ func (e *Engine) checkStateBased() {
 	// parked implies asked. It does not fire while another decision is
 	// outstanding (nothing is re-asked under one); a stale flow marker in
 	// e.choosing is deliberately NOT consulted, because the displaced ask left
-	// e.choosing == chooseLegend behind and askLegendChoice re-sets it anyway.
+	// e.choosing == chooseLegend behind and askSBAChoice re-sets it anyway.
 	if e.legendBatch != nil && e.pending == nil {
-		e.askLegendChoice()
+		e.askSBAChoice()
 		return
 	}
 	stable := false
@@ -327,26 +327,64 @@ func (e *Engine) checkStateBased() {
 	e.releasePendingDecisionOfDepartedPlayer()
 }
 
-// legendGroup is one CR 704.5j duplicate set: two or more legendary permanents
-// with the same name under ONE controller, in battlefield scan order. The
-// controller of the set chooses which member survives; the rest go to their
-// owners' graveyards.
-type legendGroup struct {
+// sbaRule names which duplicate-permanent rule a parked SBA batch belongs
+// to. Both rules are the same shape -- a per-controller set of same-named
+// permanents with a characteristic the layers can change, one member kept by
+// the set's controller, the rest put into their owners' graveyards -- and
+// share ONE parked-batch channel (legendBatch), so the rule travels with the
+// batch and every replay-visible string is derived from it rather than from
+// a parallel implementation. The legend rule (CR 704.5j) reads the Legendary
+// supertype and carries an IgnoreLegendRule exemption; the world rule
+// (CR 704.5k) reads the World supertype and has no such static in the
+// corpus. The counter and departure-text values are additive string values
+// on existing event kinds, so a legend batch emits byte-identical events to
+// the pre-generalization build.
+type sbaRule uint8
+
+const (
+	sbaLegend sbaRule = iota
+	sbaWorld
+)
+
+// keepCounter is the Choose-event Counter marker recording the kept member.
+func (r sbaRule) keepCounter() string {
+	if r == sbaWorld {
+		return "world_keep"
+	}
+	return "legend_keep"
+}
+
+// departureText is the MoveZone Text every non-kept member departs with
+// (placement, not destruction).
+func (r sbaRule) departureText() string {
+	if r == sbaWorld {
+		return "world rule"
+	}
+	return "legend rule"
+}
+
+// sbaGroup is one duplicate set for either rule: two or more permanents
+// carrying the rule's supertype with the same name under ONE controller, in
+// battlefield scan order. The controller of the set chooses which member
+// survives; the rest go to their owners' graveyards.
+type sbaGroup struct {
 	player state.PlayerID
 	name   string
 	ids    []state.ObjID
 }
 
-// legendBatch is one parked CR 704.5j application: the duplicate set whose
-// controller is choosing which member to keep, the lethal-damage/toughness
-// casualties destroyLethalDamage found in the same SBA pass (they are applied
-// only when the answer lands, so the WHOLE batch observes one pre-batch board,
-// CR 704.3), and that board -- the same immutable trigger look-back snapshot
-// cmdZoneMove.before shares. Plain value data (casualty values, object-id
-// slices, the shared immutable snapshot), so Clone deep-copies the slices
-// (clone.go) the way it deep-copies cmdZone.
+// legendBatch is one parked duplicate-permanent SBA application: the
+// duplicate set whose controller is choosing which member to keep, the rule
+// that gathered the set (legend CR 704.5j or world CR 704.5k), the lethal-
+// damage/toughness casualties destroyLethalDamage found in the same SBA pass
+// (they are applied only when the answer lands, so the WHOLE batch observes
+// one pre-batch board, CR 704.3), and that board -- the same immutable
+// trigger look-back snapshot cmdZoneMove.before shares. Plain value data
+// (casualty values, object-id slices, the shared immutable snapshot), so
+// Clone deep-copies the slices (clone.go) the way it deep-copies cmdZone.
 type legendBatch struct {
-	group  legendGroup
+	rule   sbaRule
+	group  sbaGroup
 	dead   []casualty
 	before *triggerSnapshot
 }
@@ -367,26 +405,61 @@ type legendBatch struct {
 // The scan is deterministic (AliveFrom(0) seat order, each battlefield zone a
 // slice, seen keyed on the printed name), so the event stream is reproducible
 // run to run; membership maps are never iterated.
-func (e *Engine) legendGroups() []legendGroup {
-	// The exemption statics are collected once, in activeStatics' canonical
-	// deterministic order, and reused for every candidate; each candidate is
-	// matched with the static's own source/controller context so
-	// `Creature.YouCtrl` is scoped to the static's controller, not the
-	// duplicate set's.
-	exempt := e.activeStatics("IgnoreLegendRule")
-	var all []legendGroup
+func (e *Engine) legendGroups() []sbaGroup { return e.duplicateGroups(sbaLegend) }
+
+// worldGroups is legendGroups for CR 704.5k: two or more permanents carrying
+// the World supertype with the same name under one controller. It shares the
+// ONE duplicate-group scan (duplicateGroups), so the layer-derived supertype
+// read, battlefield scan order and two-member threshold cannot drift from the
+// legend half. There is no world-rule exemption static in the corpus (no
+// IgnoreWorldRule carrier), so unlike the legend half it collects none.
+func (e *Engine) worldGroups() []sbaGroup { return e.duplicateGroups(sbaWorld) }
+
+// duplicateGroups is the ONE duplicate-set scan both the legend rule
+// (CR 704.5j) and the world rule (CR 704.5k) use: per controller, permanents
+// whose DERIVED type list still carries the rule's supertype (layer 4 can
+// strip it), grouped by printed name, keeping only sets of two or more, in
+// battlefield scan order. The legend half keeps its cheap printed-legendary
+// pre-filter ahead of the derived read (a layer-4 effect that ADDS the
+// Legendary supertype is not a corpus shape for the legend rule). The world
+// half reads the DERIVED list alone: layer 4 (CR 613.1c) can both add and
+// remove a supertype, and the world scan must see either, so no printed
+// pre-filter is applied there. The legend half additionally honors the
+// IgnoreLegendRule exemption statics; the world half has no exemption static
+// to read (no corpus carrier), so it collects none.
+func (e *Engine) duplicateGroups(rule sbaRule) []sbaGroup {
+	var exempt []staticView
+	if rule == sbaLegend {
+		exempt = e.activeStatics("IgnoreLegendRule")
+	}
+	// With no layer-4 type effect active anywhere the derived list IS the
+	// printed list (typeCharacteristics' own fast path), so a printed-World
+	// pre-filter is exact. Only when a layer-4 effect is live can the derived
+	// list differ, and then every permanent is read derived-side so an ADDED
+	// World supertype is seen too.
+	derivedMayDiffer := rule == sbaWorld && e.anyLayer4TypeEffect()
+	var all []sbaGroup
 	for _, p := range e.G.AliveFrom(0) {
 		seen := make(map[string]int)
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil || !o.Face().IsLegendary() {
+			if o == nil || o.Face() == nil {
 				continue
 			}
-			if !legendaryUnderLayers(e, id) {
-				continue
-			}
-			if e.legendRuleExempt(exempt, id) {
-				continue
+			if rule == sbaLegend {
+				if !o.Face().IsLegendary() || !legendaryUnderLayers(e, id) {
+					continue
+				}
+				if e.legendRuleExempt(exempt, id) {
+					continue
+				}
+			} else {
+				if !derivedMayDiffer && !o.Face().IsWorld() {
+					continue
+				}
+				if !worldUnderLayers(e, id) {
+					continue
+				}
 			}
 			name := o.Face().Name
 			if gi, ok := seen[name]; ok {
@@ -394,10 +467,10 @@ func (e *Engine) legendGroups() []legendGroup {
 				continue
 			}
 			seen[name] = len(all)
-			all = append(all, legendGroup{player: p, name: name, ids: []state.ObjID{id}})
+			all = append(all, sbaGroup{player: p, name: name, ids: []state.ObjID{id}})
 		}
 	}
-	var groups []legendGroup
+	var groups []sbaGroup
 	for _, g := range all {
 		if len(g.ids) >= 2 {
 			groups = append(groups, g)
@@ -440,44 +513,52 @@ func (e *Engine) legendRuleExempt(statics []staticView, id state.ObjID) bool {
 	return false
 }
 
-// parkLegendChoice parks the whole SBA batch -- the duplicate set, the lethal
-// casualties found in the same pass, and the pre-batch look-back board -- and
-// asks the set's controller which member to keep, in ONE step. The atomicity
-// is the point: nothing is applied under an outstanding ask, so the board the
-// controller chooses against is exactly the pre-batch board the casualties
-// were scanned against (CR 704.3), and the parked state is always exactly
-// "batch found, choice pending". The options are offered in battlefield scan
-// order, so the deterministic bot's clamp fallback (option 0) keeps the
-// battlefield-order first -- the survivor the pre-decision-channel build
-// always picked. Only called when e.pending is nil and no flow owns e.choosing
-// (destroyLethalDamage guards this); a pose is never stranded without its ask.
-func (e *Engine) parkLegendChoice(g legendGroup, dead []casualty) {
+// parkSBAChoice parks the whole SBA batch -- the duplicate set for the given
+// rule, the lethal casualties found in the same pass, and the pre-batch
+// look-back board -- and asks the set's controller which member to keep, in
+// ONE step. The atomicity is the point: nothing is applied under an
+// outstanding ask, so the board the controller chooses against is exactly the
+// pre-batch board the casualties were scanned against (CR 704.3), and the
+// parked state is always exactly "batch found, choice pending". The options
+// are offered in battlefield scan order, so the deterministic bot's clamp
+// fallback (option 0) keeps the battlefield-order first -- the survivor the
+// pre-decision-channel build always picked. Only called when e.pending is nil
+// and no flow owns e.choosing (destroyLethalDamage guards this); a pose is
+// never stranded without its ask. The rule travels with the batch, so the
+// Choose counter and the departure Text derive from it rather than from a
+// second, parallel park path (the prompt names the duplicate's own name,
+// which is what the seat chooses between, so it is rule-neutral).
+func (e *Engine) parkSBAChoice(rule sbaRule, g sbaGroup, dead []casualty) {
 	e.legendBatch = &legendBatch{
+		rule:   rule,
 		group:  g,
 		dead:   append([]casualty(nil), dead...),
 		before: e.snapshotTriggerBoard(),
 	}
-	e.askLegendChoice()
+	e.askSBAChoice()
 }
 
-// askLegendChoice poses the CR 704.5j choice for the parked batch's duplicate
-// set to its controller, in battlefield scan order (so the deterministic bot's
-// clamp fallback keeps the battlefield-order first -- the survivor the
-// pre-decision build always picked). It is the ONE construction site for the
-// ask, shared by parkLegendChoice (the fresh pose) and checkStateBased's
-// recovery re-pose (a parked batch whose decision was displaced): the two
-// must offer an identical decision, or a recovered ask would accept an answer
-// the original never offered.
-func (e *Engine) askLegendChoice() {
-	g := e.legendBatch.group
+// askSBAChoice poses the parked batch's duplicate choice to its controller,
+// in battlefield scan order (so the deterministic bot's clamp fallback keeps
+// the battlefield-order first -- the survivor the pre-decision build always
+// picked). It is the ONE construction site for the ask, shared by
+// parkSBAChoice (the fresh pose) and checkStateBased's recovery re-pose (a
+// parked batch whose decision was displaced): the two must offer an identical
+// decision, or a recovered ask would accept an answer the original never
+// offered. The counter derives from the batch's rule, so a world batch and a
+// legend batch are settled by the same code.
+func (e *Engine) askSBAChoice() {
+	b := e.legendBatch
+	g := b.group
 	if int(g.player) < len(e.G.Players) && e.G.Players[g.player].Lost {
 		// CR 800.4a: a player who has left the game makes no choices. The
-		// departed controller's CR 704.5j choice is therefore unexercised and
-		// declines deterministically to the battlefield-order first member --
-		// the same outcome parkCommanderZoneMove gives a departed commander
-		// owner. Applying rather than asking also means a parked batch can
-		// never re-pose to a seat that can no longer answer it.
-		e.applyLegendBatch(g.ids[0])
+		// departed controller's duplicate-permanent choice is therefore
+		// unexercised and declines deterministically to the battlefield-order
+		// first member -- the same outcome parkCommanderZoneMove gives a
+		// departed commander owner. Applying rather than asking also means a
+		// parked batch can never re-pose to a seat that can no longer answer
+		// it.
+		e.applySBABatch(g.ids[0])
 		return
 	}
 	opts := make([]decision.Option, len(g.ids))
@@ -491,59 +572,64 @@ func (e *Engine) askLegendChoice() {
 	e.ask(d)
 }
 
-// legendAnswer applies an answered CR 704.5j choice: the kept member is
-// recorded through a Choose "legend_keep" event (a log marker, like riot's --
-// the outcome itself is the MoveZone events below, so a log-only replay
-// reproduces both branches), the parked lethal casualties are applied first
-// with the parked pre-batch board (a KEPT member keeps its lethal-damage
-// destruction path, so a regeneration shield can still save it -- exactly the
-// treatment the pre-decision build gave its scan-order survivor), and the
-// non-kept members go to their owners' graveyards as legend-rule departures
-// (placement, not destruction -- no regeneration, no destruction replacement).
-// The Submit tail's next checkStateBased pass re-runs every SBA on the settled
-// board, so a further duplicate set is parked and asked there and any SBA the
-// moves themselves caused is picked up. An answer with no batch parked (only
-// reachable from a hand-built decision -- every real ask parks one) degrades
-// to a Note, the same totality stance as handleCmdZone.
-func (e *Engine) legendAnswer(d *decision.Decision, in decision.Intent) {
+// sbaAnswer applies an answered duplicate-permanent choice for the parked
+// batch's rule: the kept member is recorded through a Choose marker event (a
+// log marker, like riot's -- the outcome itself is the MoveZone events below,
+// so a log-only replay reproduces both branches), the parked lethal
+// casualties are applied first with the parked pre-batch board (a KEPT member
+// keeps its lethal-damage destruction path, so a regeneration shield can
+// still save it -- exactly the treatment the pre-decision build gave its
+// scan-order survivor), and the non-kept members go to their owners'
+// graveyards as rule departures (placement, not destruction -- no
+// regeneration, no destruction replacement). The Submit tail's next
+// checkStateBased pass re-runs every SBA on the settled board, so a further
+// duplicate set is parked and asked there and any SBA the moves themselves
+// caused is picked up. An answer with no batch parked (only reachable from a
+// hand-built decision -- every real ask parks one) degrades to a Note, the
+// same totality stance as handleCmdZone.
+func (e *Engine) sbaAnswer(d *decision.Decision, in decision.Intent) {
 	b := e.legendBatch
 	if b == nil {
 		e.legendBatch = nil
 		e.choosing = chooseNone
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
-			Text: "legend-rule decision answered with no batch parked"})
+			Text: "duplicate-permanent decision answered with no batch parked"})
 		return
 	}
 	kept := b.group.ids[0]
 	if chosen := d.Chosen(in); len(chosen) == 1 {
 		kept = chosen[0].Obj
 	}
-	e.applyLegendBatch(kept)
+	e.applySBABatch(kept)
 }
 
-// applyLegendBatch settles the parked CR 704.5j batch with the given member
-// kept: the kept member is recorded through a Choose "legend_keep" event (a
-// log marker, like riot's -- the outcome itself is the MoveZone events below,
-// so a log-only replay reproduces both branches), the parked lethal casualties
-// are applied first with the parked pre-batch board (a KEPT member keeps its
-// lethal-damage destruction path, so a regeneration shield can still save it),
-// and the non-kept members go to their owners' graveyards as legend-rule
-// departures (placement, not destruction -- no regeneration, no destruction
-// replacement). It is the ONE application site, shared by legendAnswer (an
-// answered choice) and askLegendChoice's departed-controller decline (CR
-// 800.4a), so the two paths can never settle a batch differently. The Submit
-// tail's next checkStateBased pass re-runs every SBA on the settled board, so
-// a further duplicate set is parked and asked there and any SBA the moves
-// themselves caused is picked up.
-func (e *Engine) applyLegendBatch(kept state.ObjID) {
+// applySBABatch settles the parked duplicate-permanent batch with the given
+// member kept: the kept member is recorded through a Choose marker event
+// whose counter derives from the batch's rule ("legend_keep" / "world_keep",
+// a log marker, like riot's -- the outcome itself is the MoveZone events
+// below, so a log-only replay reproduces both branches), the parked lethal
+// casualties are applied first with the parked pre-batch board (a KEPT member
+// keeps its lethal-damage destruction path, so a regeneration shield can
+// still save it), and the non-kept members go to their owners' graveyards as
+// rule departures (placement, not destruction -- no regeneration, no
+// destruction replacement). It is the ONE application site, shared by
+// sbaAnswer (an answered choice) and askSBAChoice's departed-controller
+// decline (CR 800.4a), so the two paths can never settle a batch differently,
+// and shared by both rules, so a world batch and a legend batch settle by the
+// same code. The Submit tail's next checkStateBased pass re-runs every SBA on
+// the settled board, so a further duplicate set is parked and asked there and
+// any SBA the moves themselves caused is picked up.
+func (e *Engine) applySBABatch(kept state.ObjID) {
 	b := e.legendBatch
 	e.legendBatch = nil
 	e.choosing = chooseNone
 	if b == nil {
 		return
 	}
+	counter := b.rule.keepCounter()
+	text := b.rule.departureText()
 	e.emit(events.Event{Kind: events.Choose, Obj: kept,
-		Counter: "legend_keep", Player: b.group.player})
+		Counter: counter, Player: b.group.player})
 	nonKept := make(map[state.ObjID]bool, len(b.group.ids))
 	for _, id := range b.group.ids {
 		if id != kept {
@@ -553,9 +639,9 @@ func (e *Engine) applyLegendBatch(kept state.ObjID) {
 	before := e.triggerBefore
 	e.triggerBefore = b.before
 	for _, c := range b.dead {
-		// A non-kept duplicate's departure is serialized by the legend rule,
-		// not by its own lethal damage -- the same single-serialization
-		// discipline the pre-decision batch used for a member that was both.
+		// A non-kept duplicate's departure is serialized by the rule, not by
+		// its own lethal damage -- the same single-serialization discipline
+		// the pre-decision batch used for a member that was both.
 		if nonKept[c.id] {
 			continue
 		}
@@ -575,29 +661,48 @@ func (e *Engine) applyLegendBatch(kept state.ObjID) {
 	for _, id := range b.group.ids {
 		if nonKept[id] {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZBattlefield, To: state.ZGraveyard, Text: "legend rule"})
+				From: state.ZBattlefield, To: state.ZGraveyard, Text: text})
 		}
 	}
 	e.triggerBefore = before
 }
 
-// legendaryUnderLayers reports whether the object's DERIVED type list still
-// carries the Legendary supertype. A printed legend whose layer-4 effects
-// strip it (CopyPermanent's NonLegendary$) is not legendary for CR 704.5j.
-func legendaryUnderLayers(e *Engine, id state.ObjID) bool {
+// sbaSupertypeUnderLayers reports whether the object's DERIVED type list
+// still carries the rule's supertype. A printed legend whose layer-4 effects
+// strip it (CopyPermanent's NonLegendary$) is not legendary for CR 704.5j,
+// and a printed World permanent whose layer-4 effects strip the World
+// supertype is not a World permanent for CR 704.5k.
+func sbaSupertypeUnderLayers(e *Engine, id state.ObjID, rule sbaRule) bool {
+	want := "Legendary"
+	if rule == sbaWorld {
+		want = "World"
+	}
 	for _, t := range e.typeCharacteristics(id, 0) {
-		if strings.EqualFold(t, "Legendary") {
+		if strings.EqualFold(t, want) {
 			return true
 		}
 	}
 	return false
 }
 
-// chooseLegend is the CR 704.5j legend-rule controller choice (rules/sba.go),
-// the one decision an SBA poses outside a resolution -- the commander-zone
-// and Siege asks share the property through their replacement parks. 44 is
-// the next free value after chooseTokenReplace (43); the numbers matter only
-// inside the package's switch tables.
+// legendaryUnderLayers is sbaSupertypeUnderLayers with the legend rule
+// pinned, kept as the named predicate the legend half reads.
+func legendaryUnderLayers(e *Engine, id state.ObjID) bool {
+	return sbaSupertypeUnderLayers(e, id, sbaLegend)
+}
+
+// worldUnderLayers is sbaSupertypeUnderLayers with the world rule pinned.
+func worldUnderLayers(e *Engine, id state.ObjID) bool {
+	return sbaSupertypeUnderLayers(e, id, sbaWorld)
+}
+
+// chooseLegend is the duplicate-permanent controller choice (rules/sba.go):
+// the CR 704.5j legend rule and the CR 704.5k world rule share it, the batch
+// carrying which rule parked it. It is the one decision an SBA poses outside
+// a resolution -- the commander-zone and Siege asks share the property
+// through their replacement parks. 44 is the next free value after
+// chooseTokenReplace (43); the numbers matter only inside the package's
+// switch tables.
 const chooseLegend chooseFor = 44
 
 // annihilateOppositeCounters applies CR 704.5q to permanents in fixed seat
@@ -888,19 +993,37 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 	}
 	// CR 704.5j: a duplicate legendary set asks its controller which member
 	// to keep. The ask is parked ATOMICALLY with the whole batch (see
-	// parkLegendChoice): nothing below applies while the choice is pending,
+	// parkSBAChoice): nothing below applies while the choice is pending,
 	// and checkStateBased returns as soon as the park exists. If a pose is
 	// impossible (a decision is already outstanding -- a re-entrant pass
 	// after another SBA parked its own ask), the legends are left un-binned
 	// AND the lethal batch is left unapplied: no board change happens under
 	// an outstanding ask, and the pass after the answer re-scans everything.
+	// The world rule (CR 704.5k) is the same shape on the same channel and
+	// sits immediately after, so a pass that gathers both parks the legend
+	// set first and asks the world set on the next pass (the answer's Submit
+	// tail re-runs this scan).
 	if groups := e.legendGroups(); len(groups) > 0 {
 		if e.pending == nil && e.choosing == chooseNone && e.legendBatch == nil {
-			e.parkLegendChoice(groups[0], dead)
+			e.parkSBAChoice(sbaLegend, groups[0], dead)
 			return true
 		}
 		// Deferred on a runtime input (an outstanding decision): the pass
 		// loop's no-op here is not a function of the board alone.
+		e.sbaUnquiet = true
+		return false
+	}
+	// CR 704.5k: if two or more permanents carrying the World supertype are
+	// controlled by one player, that player chooses one and the rest go to
+	// their owners' graveyards. It is the legend rule's twin and shares the
+	// same parked-batch channel (parkSBAChoice with sbaWorld), so the atomic
+	// park/ask/settle discipline, the CR 704.3 pre-batch board and the
+	// deterministic decline are all the same code.
+	if groups := e.worldGroups(); len(groups) > 0 {
+		if e.pending == nil && e.choosing == chooseNone && e.legendBatch == nil {
+			e.parkSBAChoice(sbaWorld, groups[0], dead)
+			return true
+		}
 		e.sbaUnquiet = true
 		return false
 	}
