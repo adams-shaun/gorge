@@ -1,3 +1,115 @@
+# Merge-conflict resolution — agent-20260919T055500Z-a4cd7643 (mrg1)
+
+## Entry state
+
+`git status` was CLEAN on `wt/agent-20260919T055500Z-a4cd7643` — no rebase or
+merge was in flight. The daemon's reported rebase attempt had been aborted
+before I started (the branch tip was still the pre-rebase `b391b315`, on the
+pre-rebase base `dbc5683d`). Per the ground rules ("never run `git rebase`") I
+completed the integration as a MERGE of `main` into the branch, which is
+exactly the daemon's own merge-fallback shape.
+
+## What main carried vs the branch
+
+- Branch: 7 commits — the kw:Sunburst implementation (`067b2477` rules-side,
+  `26c2dd7d` corpus-carrier tests, `26590394` cards-side `K:Sunburst`
+  expansion) plus its report commits (`7bfe93da`…`b391b315`).
+- Main since merge-base `dbc5683d`: the K:Retrace ticket's merge
+  (`8664c796`), the fuzz-strive merge (`4bf433f7` — strive target-affordable
+  bot policy, proposal-trigger reversal, mana-cost modelling), and assorted
+  docs merges.
+
+## Conflicted files and resolution
+
+### `.ds4/report-r2.md` — CONFLICT (content), the only conflict
+
+Both sides appended at the TOP of the shared accumulate report file:
+HEAD (this branch) prepended the **kw:Sunburst r2 report**
+(`agent-20260919T055500Z-a4cd7643`); main prepended the **K:Retrace r2 report**
+(`agent-20260919T192133Z-f7463cbe`, merged at main tip `8664c796`). Both are
+pure insertions; nothing below the conflict block was touched by either side.
+
+Resolution: kept BOTH, in newest-first order per the file's own convention —
+this branch's Sunburst report at the top, a `---` separator, then main's
+Retrace report verbatim, then the previously accumulated reports untouched
+(`git diff` of the resolved file vs each side is insertions-only).
+Merge-committed as `635a8b1f` with the default merge message
+(`Merge branch 'main' into wt/agent-20260919T055500Z-a4cd7643`).
+
+### `.ds4/report-t1.md` — auto-merged (both sides appended; no manual edit)
+### `.ds4/report-mrg1.md` — auto-merged (this report prepended above the
+prior resolver's round-7 text, preserving it)
+
+### `rules/cast.go` — auto-merged; verified a clean union of both intents
+
+Diff vs the pre-merge branch tip shows main's additions landed (the
+`proposalTriggers` [start,end) scratch field with the CR 733.1 comment, the
+strive/`windowManaUnits` payment-window work); diff vs main shows the branch's
+additions landed (`faceWantsConverge` accepting the printed `Sunburst`
+keyword, with its comment rewritten to "Sunburst is the second consumer of
+this seam"). No hand edit was needed; the two sides touched disjoint hunks.
+
+No other file conflicted; every other file in the merge is a straight
+take-main / take-branch change, untouched by me.
+
+## Post-merge verification (real output)
+
+`.cards` is PRESENT as a symlink to `/home/sadams/projects/gorge/.cards`
+(`lrwxrwxrwx .cards -> /home/sadams/projects/gorge/.cards`) — these are real
+corpus runs, not skipped ones.
+
+```
+$ go test -run 'TestSunburst|TestRetrace' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.459s
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.647s
+
+$ go test ./rules -v -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck$|TestEveryRepoDeckParamsAreRead|TestEveryRepoDeckIsFullySupported'
+4 --- PASS lines, no --- SKIP   (second -v run confirms TestEveryRepoDeckIsFullySupported and
+                                 TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched PASS, 0.63s/0.00s)
+
+$ go build ./...
+(clean, exit 0)
+
+$ gofmt -l rules/cast.go rules/clone.go rules/engine.go rules/trigger_match.go \
+        rules/cumulative.go botpolicy/target.go decision/decision.go effects/cardflow.go
+(no output)
+```
+
+The 0.647s ratchet figure was cross-checked with a verbose re-run precisely
+because it looked vacuously fast: the tests genuinely PASS (the
+first `-run` invocation was uncached — different pattern from the targeted
+Sunburst/Retrace run before it), and no SKIP lines appear, so the corpus was
+loaded.
+
+## Ratchet verdicts after the merge
+
+- No new `Mode$` trigger registration on the branch, so
+  `TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched` passes without
+  touching `addedAfterTheSplit`.
+- No `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+  movement: the branch adds no new primitive beyond kw:Sunburst, which is not
+  in any repo deck (r1/r2 measurement, unchanged by this merge).
+- No golden or heads test was edited.
+
+## Unsure about / notes
+
+- The rebase-vs-merge choice: the daemon log shows it tried rebase first and
+  fell back to merge on conflict; the branch history is already full of merge
+  commits from prior rounds, so a merge commit is consistent with both the
+  ground rules and the branch's own style.
+- The branch's Sunburst r2 report cites post-rebase commit SHAs
+  (`26590394` etc.); because I merged instead of rebasing, those SHAs are
+  unchanged and remain accurate — no SHA refresh was needed.
+
+## Issues
+
+None found during this resolution. The only defects in scope were the
+mechanical conflicts above; both are resolved.
+
+---
+
 # Merge-conflict resolution — agent-20260919T192133Z-f7463cbe (mrg1), round 7 (2026-09-23)
 
 ## Entry state

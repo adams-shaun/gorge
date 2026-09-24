@@ -1,3 +1,155 @@
+# Report — r2 (agent-20260919T055500Z-a4cd7643) — kw:Sunburst
+
+Ticket: `kw:Sunburst` — a permanent with Sunburst enters with one counter per
+colour of mana spent to cast it (+1/+1 for a creature, charge otherwise; the
+`DB$ Animate | Keywords$ Sunburst` grant shape on Solar Array / Lux
+Artillery). Round 1 implemented the semantics rules-side and is at
+`.ds4/report-t1.md` (line ~2505, commit list updated to the post-rebase shas).
+This round: the controller-ordered `git rebase main` (one append-append
+conflict in the shared `.ds4/report-t1.md`, resolved by keeping BOTH blocks —
+main's new damage-replacement report and this ticket's, insertions only), and
+the resolution of the single r2 finding.
+
+## Resolution of the r2 findings, each one
+
+### [MAJOR] "the diff only adds a rules-side RegisterNonAPI('kw:Sunburst')
+marker and never changes the keyword expander/registry" — FIXED
+
+The finding was right about the brief's letter: Done means names
+"the keyword registered in `cards/keywords.go`", and r1 shipped only the
+rules-side synthetic (`rules/replacement.go`'s `sunburstEntryMatch`) plus the
+`RegisterNonAPI` marker. Fixed in `26590394`:
+
+1. **`cards/kw_sunburst.go` (new)** — registers the `Sunburst` head in the
+   `kwExpanders` table (`registerKeyword(kwSunburst, "Sunburst")` in
+   `init()`, the standard per-keyword file the split created). The expander
+   turns the bare printed `K:Sunburst` line (15 corpus files, no parameter)
+   into the entry Repl on the face itself: `Event$ Moved |
+   Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$
+   Updated`, body `DB$ PutCounter | Defined$ Self | CounterType$ <kind> |
+   CounterNum$ Count$Converge | ETB$ True`, the kind decided on the printed
+   face's types (P1P1 for a creature, CHARGE otherwise — the same decision
+   Forge's CardFactoryUtil makes). The body is byte-for-byte the shape the
+   r1 synthetic built, so the converge plumbing (pay-time FlagConverged
+   CastInfo) is unchanged.
+2. **`cards/kw_registry_test.go`** — `"Sunburst"` joined `expandedHeads`
+   with a comment naming the ticket, so both registry ratchets
+   (`TestEveryExpandedKeywordHasAnExpander` and
+   `TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded`) pin it.
+3. **`rules/replacement.go`** — `sunburstEntryMatch` is now the GRANT shape
+   only: it keeps the derived-keyword read but returns nil when the
+   entering object's PRINTED face carries the `Sunburst` keyword line, because
+   the printed face now carries the cards-side expansion and the face-Repl
+   scan already collects it — a synthetic on top would put the entry counters
+   twice. The grant shape (Solar Array / Lux Artillery deliver the keyword to
+   the DERIVED list only; no printed-face expansion can see it) routes through
+   the synthetic unchanged. Doc comments on the expander, the synthetic and
+   the dispatch site each state the split and the double-count guard.
+4. **`rules/sunburst_test.go`** — header comment updated to the two-sided
+   architecture; the tests themselves are unchanged (they were already
+   exact-count).
+
+The r1 architecture rationale (why the GRANT half must stay rules-side) is
+recorded in the expander's and the synthetic's doc comments, and in the
+commit message: a printed-face K: expansion can never see a keyword a
+resolving Animate grants to the derived list.
+
+### Why not register without expanding (rejected alternative)
+
+`kwExpanders` entries without an expander function are impossible by
+construction (`registerKeyword` takes a func), and a no-op expander would be
+a dishonest registration — the printed face would carry a live `K:Sunburst`
+line that expands to nothing. The implemented split gives the printed route
+a real cards-side expansion (the brief's contract) and keeps the grant route
+rules-side (the only place it can live).
+
+## Gates run (real output, on the rebased tree, `.cards` present as a symlink)
+
+```
+$ go build ./...            (no output, exit 0)
+$ go vet ./cards/ ./rules/  (no output, exit 0)
+$ gofmt -l cards/kw_sunburst.go cards/kw_registry_test.go rules/replacement.go rules/sunburst_test.go
+                            (no output)
+$ go run ./cmd/gentypes -check
+                            (no output, exit 0)
+$ go test -run 'TestSunburst|TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded' ./rules/ ./cards/
+ok  	github.com/adams-shaun/gorge/rules	0.467s
+ok  	github.com/adams-shaun/gorge/cards	0.002s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.659s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.723s
+```
+
+The botbench 20-game split did not move (byte-identical, no re-pin): no
+repo-deck game behaviour changed — the printed route delivers the identical
+counters the synthetic delivered in r1, and no repo deck carries a Sunburst
+card (r1 measurement, unchanged).
+
+## Fails without the fix (both halves proven against the exact-count tests)
+
+**Break 1 — registration reverted** (`cards/kw_sunburst.go` removed, restored
+byte-identically after, `cmp` clean): the printed carriers lose their entry
+counters entirely (the synthetic's printed-gate now correctly skips them),
+which is the exact defect the brief described:
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.44s)
+    --- FAIL: .../two_colours_of_mana
+        sunburst_test.go:77: precondition: Oracle zone=graveyard, want battlefield
+    --- FAIL: .../one_colour_of_mana
+        sunburst_test.go:97: precondition: Oracle zone=graveyard, want battlefield
+--- FAIL: TestSunburstPentadPrismEntersWithChargePerColour (0.00s)
+    sunburst_test.go:142: Prism CHARGE=0, want 2 (two colours spent)
+FAIL	github.com/adams-shaun/gorge/rules	0.461s
+```
+
+(The Oracles died to the 0-toughness SBA — a silent zero entering, the
+r1 defect class, now caught loudly.)
+
+**Break 2 — the printed-gate in `rules/replacement.go` removed** (restored
+byte-identically after, `cmp` clean): printed carriers double-count, proving
+the gate is load-bearing and the two halves are complementary, not redundant:
+
+```
+--- FAIL: TestSunburstEtchedOracleEntersWithP1P1PerColour (0.41s)
+    --- FAIL: .../two_colours_of_mana
+        sunburst_test.go:80: Oracle P1P1=4, want 2 (two colours spent)
+    --- FAIL: .../one_colour_of_mana
+        sunburst_test.go:100: Oracle P1P1=2, want 1 (one colour spent)
+FAIL	github.com/adams-shaun/gorge/rules	0.419s
+```
+
+## Ratchets / head movement
+
+- `knownUnsupported`: unchanged — no Sunburst card is in any repo deck, so no
+  row exists to drop (the brief marks the ratchet row conditional on a deck
+  import that has not happened).
+- No new trigger mode, count head or param registration. Chain heads not run
+  (daemon gate). Botbench byte-identical shows no repo-deck movement.
+- `knownApproximationRows` unchanged; no AGENTS.md row added or grown. The
+  `kw:Sunburst` mention in `faceWantsConverge`'s r1 comment (which said a
+  cards-side expansion was "the planned second consumer of this seam") is now
+  realised, not approximated.
+
+## Deviations from the brief
+
+None beyond r1's recorded ones (converge-head reuse; the counter kind decided
+on the printed face). The brief's registration contract is now met as
+written; the semantic home of the GRANT half in `rules/` is a structural
+necessity (the derived-keyword list is not a face), stated in the commit
+message and both doc comments.
+
+## Issues
+
+- None new. The 19-file `Sunburst` corpus prevalence breaks down as 15
+  `K:Sunburst` carriers (all covered by the cards-side expansion), the 2
+  `Animate | ... Sunburst` grant riders (covered by the synthetic), and 2
+  mentions-only files — no remaining unimplemented shape was found in the
+  family this round.
+
+---
+
 # Report — r2 (agent-20260919T192133Z-f7463cbe) — rebase resolution
 
 Ticket: `K:Retrace — the cast-from-graveyard keyword is unimplemented (17 files)`.
