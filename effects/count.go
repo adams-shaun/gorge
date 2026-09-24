@@ -727,8 +727,9 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 // it, so its exclusion and the TriggerRemembered count head's cannot drift),
 // refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
 // TriggerRemembered$Amount), evalRememberedOK's Amount head,
-// rememberedWithSource (the plain Remembered$ group every Valid/condition
-// reader resolves through) and evalRefProperty's Remembered$<Property> heads.
+// evalCountExprOK's RememberedNumber head, rememberedWithSource (the plain
+// Remembered$ group every Valid/condition reader resolves through) and
+// evalRefProperty's Remembered$<Property> heads.
 // A no-capture ctx (captured empty) returns the list unchanged; the helper
 // is idempotent -- the instance ctx effImmediateTrigger builds has Captured
 // and Remembered disjoint, so applying it a second time there answers the
@@ -1832,11 +1833,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return h.CommanderCastsFromCommandZone(c.Controller), true
 	case "RememberedNumber":
 		// Forge's Count$RememberedNumber is the executing ability's remembered
-		// count -- the same list evalRememberedOK's Amount head reads. In this
-		// build that is Ctx.Remembered; a caller that needs the list WITHOUT a
-		// trigger's event capture (effImmediateTrigger's TriggerAmount$ read)
-		// passes a ctx whose Remembered is already the capture-excluded set, so
-		// this head needs no special case of its own. Five corpus
+		// count -- the same list evalRememberedOK's Amount head reads, so it
+		// applies the same capture exclusion: Forge's host remembered list is
+		// never seeded with the event object the trigger fired on (a body reads
+		// that through the separate Triggered* family). Use the one-home helper
+		// rememberedExcludingCapture, exactly as the Amount head does, so a
+		// firing trigger's ctx -- seeded Remembered == Captured == its event
+		// capture -- does not overcount by that capture. A caller that already
+		// passed a capture-excluded ctx (effImmediateTrigger's TriggerAmount$
+		// read) is unchanged: the helper is idempotent there (its instance
+		// capture is disjoint from its remembered set). Five corpus
 		// ImmediateTrigger lines and 38 files elsewhere carry it.
 		//
 		// A DB$ FlipCoin RememberNumber$ publication takes precedence: Forge's
@@ -1853,7 +1859,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if c.RememberedCMCBound {
 			return c.RememberedCMC, true
 		}
-		return int32(len(c.Remembered)), true
+		return int32(len(rememberedExcludingCapture(h, c))), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the
 		// persistent list riders (RememberDiscarded$/RememberCountered$/
