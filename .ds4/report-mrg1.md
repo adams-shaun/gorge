@@ -5065,3 +5065,74 @@ ok   github.com/adams-shaun/gorge/internal/testutil  0.007s
 ```
 
 No unresolved conflict markers remained. The tree was clean after the merge commit and before writing this report. No behavior conflict remained uncertain.
+
+---
+
+# Merge-conflict resolution — mrg1 (agent-20260918T233200Z-e0817443), 2026-09-23 (integration of main c6b5d869 → 3c1bc265)
+
+## State found
+
+The dispatch described a failed rebase onto main plus a failed merge fallback
+(conflicts in `report-t1.md`, then `report-mrg1.md`/`report-sol1.md`/`report-t1.md`).
+`git status` at dispatch time was CLEAN — no rebase or merge in flight. The branch
+already carried `fb9006bb` (the prior round's merge of main `6a83fb34`, resolved by
+the earlier mrg1 seat). A read-only `git merge-tree --write-tree HEAD main`
+simulation reproduced the dispatch's merge-fallback output EXACTLY (conflicts in
+`.ds4/report-mrg1.md`, `.ds4/report-sol1.md`, `.ds4/report-t1.md`; `effects/count.go`,
+`effects/registry.go`, `rules/cast.go`, `rules/stack.go`, `rules/statics.go`
+auto-merging), confirming the dispatched conflict was the integration of the NEWER
+main `c6b5d869` (133 commits: the fuzz-botloops / fuzz-loops / fuzz-modes work).
+
+## Round 1 — merge main `c6b5d869` (commit `ecf0be89`)
+
+`git merge main` conflicted in exactly the three accumulator report files; every
+code/test path auto-merged. Each conflict was one region, each side an unrelated
+report section appended to the shared accumulator. Union resolution (script in the
+transcript): both sides kept verbatim, ours first then main's, marker lines stripped,
+one blank line inserted at a seam only when neither side provided separation.
+
+- `.ds4/report-mrg1.md`: ours = the e0817443 mrg1 report; theirs = main's accumulated
+  mrg1 content (680 lines, other tickets). 4839 lines result.
+- `.ds4/report-sol1.md`: ours = the sol1 Anthem gate-repair report; theirs = main's
+  `count:CardManaCostLKI` round-3 report. 1001 lines.
+- `.ds4/report-t1.md`: ours = this ticket's t1 report ending in the
+  "Reports appended below …" pointer header; theirs = main's kw:Melee (hn1) report,
+  which correctly lands below that header. 2797 lines.
+
+`git add -f` the three, `git commit --no-edit` → `ecf0be89`.
+
+## Round 2 — main advanced mid-resolution (commit `174c1b0a`)
+
+While resolving, main moved to `3c1bc265` (14 commits: the replacedamage census token
+plus its own mrg1 rounds). `git merge main` again; only `.ds4/report-mrg1.md`
+conflicted (one region: our e0817443 report vs main's 504b1359 mrg1 round-4 report);
+same union resolution. `174c1b0a`. After it: `git merge-base --is-ancestor main HEAD`
+→ true; `git rev-list --count HEAD..main` → 0; tree clean. main has NOT advanced
+further as of 22:21 MDT.
+
+## Gates (real output)
+
+```text
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.636s
+$ go test ./effects/
+ok  github.com/adams-shaun/gorge/effects  16.620s
+$ go test ./rules -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestEmerge|TestLoamcrafter'
+ok  github.com/adams-shaun/gorge/rules  0.491s
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  4.158s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  0.679s   (split did NOT move)
+```
+
+`.cards` present as a symlink to the shared corpus — corpus-backed ratchets ran for
+real. No head or ratchet movement: no new `Mode$` matcher, no `knownUnsupported` /
+`knownUnsupportedParams` / `knownUnmodelledCountHeads` entry closed, so no ratchet
+table needed editing. main's own fuzz-botloops fixes arrived intact and the botbench
+golden still passes on the merged tree.
+
+## Issues
+
+None new. Standing observation (documented by prior rounds, not re-filed): the shared
+`.ds4/report-*.md` accumulators conflict on nearly every integration; the union
+convention preserves all content but costs a round each time.
