@@ -367,11 +367,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//
 	// A body the machinery cannot carry fails LOUDLY rather than registering
 	// something that behaves differently from the card text:
-	//   - a mode with no delayed-event matcher (DamageDone, Attacks,
-	//     TapsForMana, LifeGained, ... -- the bulk of the 31 Effect Triggers$
-	//     carriers) is owned by agent-20260922T193437Z-a964eea4, which adds
-	//     the generic effect-created trigger registration; it is named in the
-	//     Note here, not silently dropped.
+	//   - a mode with no registered matcher (Attacks, TapsForMana, LifeGained,
+	//     Blocks, PlaneswalkedTo, ... -- the broader printed-trigger gap) is
+	//     named in the Note here, not silently dropped. Every matcher-backed
+	//     mode (DamageDone included) registers through the generic matcher arm
+	//     below (landed under cli-20260922T225138Z-504a0e97).
 	//   - an OptionalDecider$ body (Beck's "you may draw a card") IS
 	//     registered: registering it without the election would fire the
 	//     effect MANDATORILY, the opposite of the card text, so the spec
@@ -415,16 +415,19 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// OneOff$ True (CR 603.7's "when you next ..." promise): the body is
 		// CONSUMED by its firing, not a recurring trigger for the Effect's
-		// lifetime. For the event modes the delayed machinery can consume
-		// without minting a stack object (SpellCast, ChangesZone --
-		// DelayedPush removes a non-|EF registration), register it one-shot:
-		// dropping the |EF marker is what makes the registration
-		// state.DelayedTrigger.EffectRepeat false, so its first firing ends
-		// it. Any other mode keeps the recurring form -- its non-repeat
-		// dispatch is not wired, and forcing one-shot there would make the
-		// body inert rather than one-shot.
+		// lifetime. Register it one-shot exactly for the modes the delayed
+		// machinery has a non-repeat dispatch for (effectOneShotDelayedMode,
+		// the same set effDelayedTrigger admits): dropping the |EF marker is
+		// what makes the registration state.DelayedTrigger.EffectRepeat
+		// false, so its first firing ends it. Any other mode keeps the
+		// recurring form -- events.Apply cannot decode a non-|EF registration
+		// for it and rules.checkEventDelayedTriggers has no non-repeat arm, so
+		// forcing one-shot there would make the body inert rather than
+		// one-shot. (Mode$ Phase is inherently one-shot: its registration
+		// carries no |EF and its Phase arm emits none, so the DelayedPush that
+		// fires it consumes it whether or not the body says OneOff$.)
 		oneOff := strings.EqualFold(strings.TrimSpace(tr.Params["OneOff"]), "True") &&
-			(tr.Mode == "SpellCast" || tr.Mode == "ChangesZone")
+			effectOneShotDelayedMode(tr.Mode)
 		efMarker := "|EF"
 		if oneOff {
 			efMarker = ""
@@ -2414,6 +2417,23 @@ func replacementBodyAPI(body string) string {
 	return strings.TrimSpace(api)
 }
 
+// effectOneShotDelayedMode names the event modes with a non-repeat delayed
+// dispatch end to end: events.Apply's DelayedRegister decode recognizes the
+// mode prefix without the |EF marker, and rules.checkEventDelayedTriggers has
+// a non-EffectRepeat arm that fires it and removes it (one-shot). It is ONE
+// home shared by effEffect's OneOff$ True decision and effDelayedTrigger's
+// mode admission, so a mode can never be one-shot on one path and inert on
+// the other. Mode$ Phase is deliberately absent: a phase registration is
+// inherently one-shot (no |EF, consumed by its DelayedPush) and takes the
+// Phase arm, not this event-mode one.
+func effectOneShotDelayedMode(mode string) bool {
+	switch mode {
+	case "SpellCast", "ChangesZone", "ChangesController", "DamageDone", "AttackersDeclared":
+		return true
+	}
+	return false
+}
+
 // Delayed registrations can express a turn ceiling, but not a continuous
 // Effect's source-relative or next-turn lifetime. Reject those forms rather
 // than register a promise that can fire after the Effect expires.
@@ -2809,8 +2829,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		effDelayedTriggerSpellCast(h, c, sa)
 		return
 	}
-	if mode != "Phase" && mode != "ChangesZone" && mode != "ChangesController" &&
-		mode != "DamageDone" && mode != "AttackersDeclared" {
+	if mode != "Phase" && !effectOneShotDelayedMode(mode) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
 		return
