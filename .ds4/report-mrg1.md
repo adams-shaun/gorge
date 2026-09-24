@@ -4003,3 +4003,50 @@ commit: `ca08e16a`.
 ## Issues
 
 None new.
+
+---
+
+# Merge-conflict resolution — mrg1 (agent-20260919T203859Z-cf55fee2)
+
+## Entry state and operation
+
+`git status` was clean on `wt/agent-20260919T203859Z-cf55fee2`; no rebase or merge was in flight. The supplied daemon transcript described a failed rebase and merge fallback, but that operation had left no active state. HEAD was `a8240913`; `main` was `b493bc15`, with merge-base `2424c005`. Per the working method, I started a merge of current `main`. `.cards` was present.
+
+```text
+$ git status --short --branch; git status
+## wt/agent-20260919T203859Z-cf55fee2
+On branch wt/agent-20260919T203859Z-cf55fee2
+nothing to commit, working tree clean
+$ git merge main
+Auto-merging .ds4/report-sol1.md
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+## Conflicted file and resolution
+
+Only `.ds4/report-t2.md` conflicted. HEAD's side held this branch's CardManaCostLKI round-3 implementation report and the previous round's report. Main's side held the independent `agent-20260922T201246Z-000e743d` report and continuation. These are independent report histories, not contradictory product changes. I removed only Git's conflict-marker/separator lines and retained all prose from both sides, including each side's `Fails without the fix` / `Issues` material. The remainder of the accumulated history below the conflict was preserved. No source or test file conflicted.
+
+`.ds4/report-sol1.md` auto-merged. The other staged changes are main's auto-merged changes; I did not manually edit them. `.ds4/report-mrg1.md` retains its prior accumulated history with this report prepended.
+
+## Commands and results
+
+```text
+$ git add -f .ds4/report-t2.md
+$ git diff --name-only --diff-filter=U
+(no output; no unresolved paths)
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.930s
+$ go test -run 'TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue|TestChthonianNightmarePaysEnergySacsAndReturns|TestCardManaCostLKIReadsRememberedSnapshot' ./rules/ ./effects/
+ok   github.com/adams-shaun/gorge/rules  0.678s
+ok   github.com/adams-shaun/gorge/effects  0.013s
+```
+
+The focused branch regressions and required post-merge ratchets passed. No ratchet table adjustment was indicated: this branch registers no trigger mode or closes a count-head/deck parameter entry. No engine behavior conflict required a judgement call.
+
+## Issues
+
+No new defect found during integration. The branch's report continues to record its out-of-scope `SpellTargeted$CardManaCostLKI` ref gap and trigger-stack authored-X issue; integration did not alter either.
+
+---
