@@ -108,7 +108,7 @@ func TestPolicyNetDelegatesNonScoredKinds(t *testing.T) {
 		if err != nil {
 			t.Fatalf("intent %d: policynet bot: %v", n, err)
 		}
-		if !scoredKind(d) {
+		if !pns[d.Player].scoresKind(d) {
 			compared++
 			byKind[d.Kind]++
 			if defIn.Seq != pnIn.Seq || defIn.Player != pnIn.Player || !slices.Equal(defIn.Choices, pnIn.Choices) {
@@ -439,78 +439,193 @@ func asLivelock(err error, target **rules.LivelockError) bool {
 	return ok
 }
 
-// TestPolicyNetDelegatesPriority pins the L9d bench result as a behaviour:
-// KPriority must reach the DEFAULT bot, not the scorer's argmax. This is not
-// tidy-up — it is the difference between winning 0/1000 and 474/1000 against
-// the default bot on the ten approved mono pairs (checkpoint bce-big.gpol,
-// 100 games/pair, seed 10000000; the 2x2 isolating it from the attackers
-// admission rule is in the L9d report). The priority head is trained (argmax
-// CE) and the scored path is a few lines away, so without a pin it is an easy
-// thing to switch back on by accident; re-enable it only behind a bench that
-// clears that bar.
-//
-// The checkpoint is a RANDOM one, not the zero model: its per-option scores
-// genuinely differ, so a scored priority path would argmax to some particular
-// cast/ability/pass option and this equality would break (verified: with
-// KPriority restored to scoredKind, this test fails).
-func TestPolicyNetDelegatesPriority(t *testing.T) {
-	if scoredKind(&decision.Decision{Kind: decision.KPriority}) {
-		t.Fatal("scoredKind admits KPriority: the scored priority path measures 0/1000 in play")
-	}
-	b := NewPolicyNetBot(3, randomCheckpoint(t, 4))
-	def := NewBot(3)
-	v := view.View{Viewer: 0, Active: 0, Phase: "main1"}
-	d := decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1, Seq: 9, Player: 0,
+// priorityDecision is a crafted in-distribution priority decision: two
+// distinct castable objects, an ability and a pass.
+func priorityDecision() decision.Decision {
+	return decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1, Seq: 9, Player: 0,
 		Options: []decision.Option{
 			{Index: 0, Kind: "cast", Obj: 1},
 			{Index: 1, Kind: "cast", Obj: 2},
 			{Index: 2, Kind: "ability", Obj: 3},
 			{Index: 3, Kind: "pass"},
 		}}
-	got, err := b.Decide(context.Background(), v, d)
-	if err != nil {
-		t.Fatalf("policynet: %v", err)
+}
+
+// withResidual rebuilds a random checkpoint's model with the given
+// bot-prior residual weight, so the non-zero head AND an active prior are
+// both present.
+func withResidual(t *testing.T, seed uint64, w float32) *policynet.Scorer {
+	t.Helper()
+	m := policynet.NewModel(policynet.TableRows, 16, 8, rand.New(rand.NewPCG(seed, seed^0x5eed)))
+	m.ResidualW = w
+	var buf bytes.Buffer
+	if err := policynet.WriteCheckpoint(m, &buf); err != nil {
+		t.Fatalf("WriteCheckpoint: %v", err)
 	}
-	want, err := def.Decide(context.Background(), v, d)
+	sc, err := policynet.LoadScorer(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		t.Fatalf("LoadScorer: %v", err)
+	}
+	if sc.ResidualWeight() != w {
+		t.Fatalf("ResidualW round-trip: got %v, want %v", sc.ResidualWeight(), w)
+	}
+	return sc
+}
+
+// sameIntent reports exact intent equality (Seq, Player, Choices in order).
+func sameIntent(a, b decision.Intent) bool {
+	return a.Seq == b.Seq && a.Player == b.Player && slices.Equal(a.Choices, b.Choices)
+}
+
+// TestPolicyNetDelegatesPriority pins the two configurations under which
+// KPriority must reach the DEFAULT bot, never the scorer's argmax:
+//
+//	(a) the DEFAULT kind selection (NewPolicyNetBot) never scores priority,
+//	    whatever the checkpoint — the scored path is opt-in;
+//	(b) priority selected but the checkpoint's ResidualW == 0 delegates: the
+//	    residual-free scored path is the plain argmax that measured 0/1000
+//	    against the default bot (checkpoint bce-big.gpol, ten approved mono
+//	    pairs, 100 games/pair, seed 10000000), so that configuration must be
+//	    unreachable.
+//
+// The checkpoint is a RANDOM one, not the zero model: its per-option scores
+// genuinely differ, so a scored priority path would argmax to some
+// particular cast/ability/pass option and the equality would break.
+func TestPolicyNetDelegatesPriority(t *testing.T) {
+	v := view.View{Viewer: 0, Active: 0, Phase: "main1"}
+	d := priorityDecision()
+	want, err := NewBot(3).Decide(context.Background(), v, d)
 	if err != nil {
 		t.Fatalf("default bot: %v", err)
 	}
-	if got.Seq != want.Seq || got.Player != want.Player || !slices.Equal(got.Choices, want.Choices) {
-		t.Fatalf("priority: policynet %+v, default %+v — the scored path answered", got, want)
+
+	// (a) default kinds: attackers only, even with an active prior.
+	def := NewPolicyNetBot(3, withResidual(t, 4, 3))
+	if def.scoresKind(&d) {
+		t.Fatal("the default kind selection scores KPriority; it must be opt-in")
+	}
+	got, err := def.Decide(context.Background(), v, d)
+	if err != nil {
+		t.Fatalf("policynet: %v", err)
+	}
+	if !sameIntent(got, want) {
+		t.Fatalf("default kinds: policynet %+v, default %+v — the scored path answered", got, want)
+	}
+
+	// (b) priority selected, ResidualW == 0.
+	sc := randomCheckpoint(t, 4)
+	if sc.ResidualWeight() != 0 {
+		t.Fatalf("randomCheckpoint ResidualW = %v, want 0", sc.ResidualWeight())
+	}
+	opt := NewPolicyNetBotKinds(3, sc, []decision.Kind{decision.KAttackers, decision.KPriority})
+	got, err = opt.Decide(context.Background(), v, d)
+	if err != nil {
+		t.Fatalf("policynet: %v", err)
+	}
+	if !sameIntent(got, want) {
+		t.Fatalf("ResidualW 0: policynet %+v, default %+v — the 0/1000 configuration was reachable", got, want)
+	}
+
+	// Non-vacuity: the SAME decision with the prior active is scored, and the
+	// random head is not the bot's answer on every seed — otherwise neither
+	// arm above would prove anything.
+	differs := false
+	for seed := uint64(1); seed <= 32 && !differs; seed++ {
+		sb := NewPolicyNetBotKinds(3, withResidual(t, seed, 0.001), []decision.Kind{decision.KPriority})
+		got, err := sb.Decide(context.Background(), v, d)
+		if err != nil {
+			t.Fatalf("policynet: %v", err)
+		}
+		differs = !sameIntent(got, want)
+	}
+	if !differs {
+		t.Fatal("no random head with an active prior ever overrode the bot on the in-distribution decision — the delegation arms are vacuous")
+	}
+}
+
+// TestPolicyNetPriorityOutOfDistributionDelegates pins the priority
+// distribution gate with a NON-zero head and an active prior: a priority
+// decision the head was never trained on returns exactly the bot's intent.
+// Two shapes: one castable object (searchseat.Eligible refuses it, so the
+// teacher never labels it), and a bot answer of play_land (the teacher's
+// candidates arm labels only a cast/ability/pass bot answer).
+func TestPolicyNetPriorityOutOfDistributionDelegates(t *testing.T) {
+	v := view.View{Viewer: 0, Active: 0, Phase: "main1"}
+	cases := []struct {
+		name string
+		d    decision.Decision
+	}{
+		{"one castable object", decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1, Seq: 4, Player: 0,
+			Options: []decision.Option{
+				{Index: 0, Kind: "cast", Obj: 1},
+				{Index: 1, Kind: "cast", Obj: 1}, // same card, another cost
+				{Index: 2, Kind: "ability", Obj: 3},
+				{Index: 3, Kind: "pass"},
+			}}},
+		{"bot plays a land", decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1, Seq: 5, Player: 0,
+			Options: []decision.Option{
+				{Index: 0, Kind: "play_land", Obj: 7},
+				{Index: 1, Kind: "cast", Obj: 1},
+				{Index: 2, Kind: "cast", Obj: 2},
+				{Index: 3, Kind: "ability", Obj: 3},
+				{Index: 4, Kind: "pass"},
+			}}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			want, err := NewBot(3).Decide(context.Background(), v, tc.d)
+			if err != nil {
+				t.Fatalf("default bot: %v", err)
+			}
+			if tc.name == "bot plays a land" {
+				if len(want.Choices) != 1 || tc.d.Options[want.Choices[0]].Kind != "play_land" {
+					t.Fatalf("premise: the default bot answered %+v, want the play_land option", want)
+				}
+			}
+			for seed := uint64(1); seed <= 16; seed++ {
+				sc := withResidual(t, seed, 0.001)
+				b := NewPolicyNetBotKinds(3, sc, []decision.Kind{decision.KAttackers, decision.KPriority})
+				if priorityScorable(&tc.d, want, sc.ResidualWeight()) {
+					t.Fatalf("priorityScorable admitted an out-of-distribution decision")
+				}
+				got, err := b.Decide(context.Background(), v, tc.d)
+				if err != nil {
+					t.Fatalf("policynet: %v", err)
+				}
+				if !sameIntent(got, want) {
+					t.Fatalf("seed %d: policynet %+v, default %+v — an out-of-distribution priority decision was scored", seed, got, want)
+				}
+			}
+		})
 	}
 }
 
 // TestPolicyNetResidualReproducesTheBotInPlay pins the residual prior's
-// INFERENCE half end to end — the review finding the loader-only BotPick
-// made the prior a permanent no-op in play. A zero-head model carrying ONLY
-// the bot-prior residual weight (the deployment shape of
-// train.Config.ResidualInit under a schema that does not checkpoint the
-// weight) must answer every SCORED decision with exactly the wrapped
-// default bot's intent.
+// INFERENCE half end to end. A zero-head model carrying ONLY the bot-prior
+// residual weight, built with BOTH kinds scored, must answer every scored
+// decision with exactly the wrapped default bot's intent over one whole
+// game.
 //
-// L9d NOTE: this test was written when KPriority was a scored kind, and its
-// sharp half was priority — the bot's answer there is often a tap/land option
-// the scored argmax space excludes, so without priorityFromScores'
-// admitBotPicks admission the head's untrained noise would outvote the bot's
-// own action. KPriority now DELEGATES (it measures 0/1000 in play), so
-// priority reproduces the bot trivially and this pin now bites at ATTACKERS
-// instead: a zero-head model whose bot declared NO attacker marks no option
-// and ties every score, and attackersFromScores must refuse that tie rather
-// than declare the mean-inclusive subset (which on a tie is every option).
-// That is a real assertion — it failed before the tie arm was added. The
-// priority half returns the moment a ResidualW > 0 checkpoint re-enables the
-// scored kind in scoredKind.
+// Priority: every scored priority decision is in the trained distribution
+// (priorityScorable), the bot's own cast/ability/pass answer carries the
+// prior's +ResidualW, every other option scores the zero head's 0, so the
+// argmax is the bot's answer. The premise guard requires at least one such
+// in-distribution decision to have been compared, and no scored priority
+// answer may be a tap/land option (those decisions are out of distribution
+// and must delegate before scoring).
+//
+// Attackers: a zero-head model whose bot declared NO attacker marks no
+// option and ties every score, and attackersFromScores must refuse that tie
+// rather than declare the mean-inclusive subset (which on a tie is every
+// option).
 func TestPolicyNetResidualReproducesTheBotInPlay(t *testing.T) {
 	names, decks := testutil.SampleDecks(t, 2)
 	const seed = 9
 	e := rules.New(rules.Config{Seed: seed, Names: names, Decks: decks})
 	e.Advance()
 
-	// The zero model the delegation test uses, plus the prior. Built
-	// in-process (NewScorer over the live Model): the v1 checkpoint body
-	// carries no residual weight, so this is exactly the channel an
-	// operator (or the v2-schema checkpoint, when the L9b-fix2 baseline
-	// branch lands it) would use.
+	// The zero model the delegation test uses, plus the prior, built
+	// in-process (NewScorer over the live Model).
 	newResidualBot := func(s uint64) *PolicyNetBot {
 		m := policynet.NewModel(policynet.TableRows, 8, 4, rand.New(rand.NewPCG(1, 1)))
 		for _, blk := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW} {
@@ -520,7 +635,7 @@ func TestPolicyNetResidualReproducesTheBotInPlay(t *testing.T) {
 		}
 		m.OutB = 0
 		m.ResidualW = 3
-		return NewPolicyNetBot(s, policynet.NewScorer(m))
+		return NewPolicyNetBotKinds(s, policynet.NewScorer(m), []decision.Kind{decision.KAttackers, decision.KPriority})
 	}
 	pns := map[state.PlayerID]*PolicyNetBot{}
 	for k := range decks {
@@ -528,20 +643,22 @@ func TestPolicyNetResidualReproducesTheBotInPlay(t *testing.T) {
 	}
 
 	compared := map[decision.Kind]int{}
-	priorityAdmissions := 0 // scored priority answers OUTSIDE cast/ability/pass
+	priorityInDist := 0  // scored (in-distribution) priority decisions compared
+	priorityTapLand := 0 // scored priority answers OUTSIDE cast/ability/pass
 	n := 0
 	for !e.G.Over && e.Pending() != nil && n < 20000 {
 		d := e.Pending()
 		v := view.Project(e.G, e, d.Player, d)
-		pnIn, err := pns[d.Player].Decide(context.Background(), v, *d)
+		pn := pns[d.Player]
+		pnIn, err := pn.Decide(context.Background(), v, *d)
 		if err != nil {
 			t.Fatalf("intent %d: policynet bot: %v", n, err)
 		}
-		def, err := pns[d.Player].def.Decide(context.Background(), v, *d)
+		def, err := pn.def.Decide(context.Background(), v, *d)
 		if err != nil {
 			t.Fatalf("intent %d: default bot: %v", n, err)
 		}
-		if scoredKind(d) {
+		if pn.scoresKind(d) {
 			compared[d.Kind]++
 			// Attackers: the declaration is a set of (attacker, defender)
 			// options — compare the multiset, not the submission order.
@@ -553,13 +670,14 @@ func TestPolicyNetResidualReproducesTheBotInPlay(t *testing.T) {
 				t.Fatalf("intent %d (kind %q): residual policynet answered %+v, the bot-prior contract wants the default bot's %+v — the prior did not reproduce the bot",
 					n, d.Kind, pnIn, def)
 			}
-			if d.Kind == decision.KPriority {
+			if d.Kind == decision.KPriority && priorityScorable(d, def, pn.scorer.ResidualWeight()) {
+				priorityInDist++
 				for _, c := range pnIn.Choices {
 					if c >= 0 && c < len(d.Options) {
 						switch d.Options[c].Kind {
 						case "cast", "ability", "pass":
 						default:
-							priorityAdmissions++ // a tap/land answer the admission let through
+							priorityTapLand++
 						}
 					}
 				}
@@ -573,21 +691,14 @@ func TestPolicyNetResidualReproducesTheBotInPlay(t *testing.T) {
 	if !e.G.Over {
 		t.Fatalf("game did not terminate after %d intents (turn %d)", n, e.G.Turn)
 	}
-	// The premise guards are scoped to the kinds scoredKind actually admits.
-	// KPriority is DELEGATED on this branch (it measures 0/1000 in play), so
-	// the priority arm of this pin is dormant, not deleted: restoring
-	// KPriority to scoredKind re-arms both guards unchanged.
 	if compared[decision.KAttackers] == 0 {
 		t.Fatalf("the game asked no scored attackers decision, so the prior is unpinned (%v)", compared)
 	}
-	if scoredKind(&decision.Decision{Kind: decision.KPriority}) {
-		if compared[decision.KPriority] == 0 {
-			t.Fatalf("KPriority is scored but the game asked none (%v)", compared)
-		}
-		if priorityAdmissions == 0 {
-			t.Fatal("every scored priority answer stayed inside the trained cast/ability/pass surface — the tap/land admission path never fired, so the pin does not cover the shape the review named")
-		}
-	} else if priorityAdmissions != 0 {
-		t.Fatalf("KPriority is delegated yet %d scored priority admissions were counted", priorityAdmissions)
+	if priorityInDist == 0 {
+		t.Fatalf("the game asked no in-distribution priority decision, so the priority prior is unpinned (%v)", compared)
 	}
+	if priorityTapLand != 0 {
+		t.Fatalf("%d scored priority answers were tap/land options — the distribution gate let the untrained surface through", priorityTapLand)
+	}
+	t.Logf("compared %v; %d in-distribution priority decisions scored", compared, priorityInDist)
 }
