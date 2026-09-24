@@ -3255,7 +3255,7 @@ func (e *Engine) resolveTop() {
 			if triggered {
 				label = e.abilityLabel(o, rt)
 			}
-			e.askOptionalAtResolution(who, o, o.Ability, label)
+			e.askOptionalAtResolution(who, o, o.Ability, label, !triggered && e.triggerContexts[id].OptionalSpec != "")
 			return
 		}
 		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY

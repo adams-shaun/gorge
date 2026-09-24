@@ -851,14 +851,7 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	// 2 seats moved to 06ea5fdb8035c5b9 (cli-20260923T060218Z-a7ac5f46): the bot policy's
-	// optional-trigger arm flips from the dp1 deterministic ACCEPT to the R-9
-	// deterministic DECLINE, so the acceptance bot now declines every optional
-	// election the repo decks offer (measured cause: seat 0's Aether Vial and
-	// Stoneforge Mystic elections -- see .ds4/report-r2.md); 6 seats UNMOVED.
-	// Revert-verified: restoring the old accept reproduces the previous golden
-	// byte-for-byte, so the bot flip is the sole cause.
-	2: "06ea5fdb8035c5b9",
+	2: "a867ac1768ab4993",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1025,14 +1018,7 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	// 4 seats moved to 8836eb07e3a1e711 (cli-20260923T060218Z-a7ac5f46): the bot policy's
-	// optional-trigger arm flips from the dp1 deterministic ACCEPT to the R-9
-	// deterministic DECLINE, so the acceptance bot now declines every optional
-	// election the repo decks offer (measured cause: seat 0's Aether Vial and
-	// Stoneforge Mystic elections -- see .ds4/report-r2.md); 6 seats UNMOVED.
-	// Revert-verified: restoring the old accept reproduces the previous golden
-	// byte-for-byte, so the bot flip is the sole cause.
-	4: "8836eb07e3a1e711",
+	4: "2114abdd282628ca",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1342,14 +1328,7 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	// 8 seats moved to 5017eeee51c07597 (cli-20260923T060218Z-a7ac5f46): the bot policy's
-	// optional-trigger arm flips from the dp1 deterministic ACCEPT to the R-9
-	// deterministic DECLINE, so the acceptance bot now declines every optional
-	// election the repo decks offer (measured cause: seat 0's Aether Vial and
-	// Stoneforge Mystic elections -- see .ds4/report-r2.md); 6 seats UNMOVED.
-	// Revert-verified: restoring the old accept reproduces the previous golden
-	// byte-for-byte, so the bot flip is the sole cause.
-	8: "5017eeee51c07597",
+	8: "5c90b1b3a0b38f25",
 }
 
 func TestHeads(t *testing.T) {

@@ -358,11 +358,8 @@ func TestEveryKind(t *testing.T) {
 		}
 	}
 
-	// Trigger optional: the deterministic decline (cli-20260923T060218Z
-	// round 2). An optional trigger is a "you may" election an unattended
-	// host must not take on the player's behalf (the shared R-9 no-host
-	// decline), so every seed answers the "no" option, deterministic rather
-	// than a coin.
+	// Printed optional triggers and Miracle retain the deterministic accept;
+	// only marked api:Effect OptionalDecider$ elections decline.
 	opt := decision.Decision{Seq: 10, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Obj: 50},
@@ -370,8 +367,8 @@ func TestEveryKind(t *testing.T) {
 		}}
 	for seed := uint64(0); seed < 40; seed++ {
 		in := Decide(Board{}, &opt, rng(seed))
-		if len(in.Choices) != 1 || in.Choices[0] != 1 {
-			t.Fatalf("seed %d: trigger optional = %+v, want the deterministic decline (the no option)", seed, in)
+		if len(in.Choices) != 1 || in.Choices[0] != 0 {
+			t.Fatalf("seed %d: trigger optional = %+v, want deterministic accept", seed, in)
 		}
 	}
 }

@@ -64,8 +64,8 @@ func TestEffectOptionalDeciderElectionIsPosedAtResolution(t *testing.T) {
 	e.askPriority(0)
 	castFirst(t, e, "cast")
 	ask := passPriorityUntil(t, e, decision.KTriggerOptional)
-	if ask.Player != 0 {
-		t.Fatalf("optional ask posed to seat %d, want the card's named decider (seat 0)", ask.Player)
+	if ask.Player != 0 || !ask.EffectOptional {
+		t.Fatalf("optional ask = %+v, want the card's named decider (seat 0) and Effect marker", ask)
 	}
 	if idx := optionIndexOfKind(t, ask, "yes"); idx < 0 {
 		t.Fatalf("optional ask offers no yes: %+v", ask.Options)
@@ -87,8 +87,8 @@ func TestEffectOptionalDeciderElectionIsPosedAtResolution(t *testing.T) {
 	e.askPriority(0)
 	castFirst(t, e, "cast")
 	ask = passPriorityUntil(t, e, decision.KTriggerOptional)
-	if ask.Player != 0 {
-		t.Fatalf("second optional ask posed to seat %d, want seat 0", ask.Player)
+	if ask.Player != 0 || !ask.EffectOptional {
+		t.Fatalf("second optional ask = %+v, want seat 0 and Effect marker", ask)
 	}
 	submitChoices(t, e, optionIndexOfKind(t, ask, "no"))
 	passUntilStackEmpty(t, e, 12)

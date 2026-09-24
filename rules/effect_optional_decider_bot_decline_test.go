@@ -7,15 +7,9 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Round 2 of cli-20260923T060218Z: the no-host decline. An unattended match
-// has no decision channel of its own -- its posted decisions are answered by
-// botpolicy.Decide (rules' testBot drives exactly that policy, seat.Bot the
-// same one). Round 1's election rode that channel and botpolicy's
-// KTriggerOptional arm answered "yes", so an unattended match RAN the
-// optional body -- the opposite of the card's "you may". The decline is the
-// shared R-9 no-host contract, implemented in the shared arm, so a bot-driven
-// match declines the Beck election exactly as it now declines every other
-// optional trigger.
+// Only the marked Effect OptionalDecider$ election defaults to decline on
+// the unattended bot path. Printed triggers and Miracle retain their former
+// accept policy.
 //
 // The carrier is the same corpus card Beck // Call round 1's test drives, but
 // the election here is answered by the BOT's own answer path, never an
@@ -41,8 +35,8 @@ func TestEffectOptionalDeciderBotDeclines(t *testing.T) {
 	e.askPriority(0)
 	castFirst(t, e, "cast")
 	ask := passPriorityUntil(t, e, decision.KTriggerOptional)
-	if ask == nil || ask.Player != 0 {
-		t.Fatalf("precondition: optional ask not posed to seat 0: %+v", ask)
+	if ask == nil || ask.Player != 0 || !ask.EffectOptional {
+		t.Fatalf("precondition: Effect optional ask not posed to seat 0: %+v", ask)
 	}
 	if optionIndexOfKind(t, ask, "no") < 0 {
 		t.Fatalf("precondition: optional ask offers no \"no\": %+v", ask.Options)

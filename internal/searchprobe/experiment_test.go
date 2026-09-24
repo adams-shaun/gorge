@@ -107,11 +107,11 @@ func TestExperimentReportsNoEligibleRoot(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// A low-life game finishes before turn five, the earliest eligible root.
-	// Unlike a normal-life seed that happens not to offer a root, this setup
-	// does not depend on the bots' optional-trigger or cast decisions staying
-	// unchanged as the engine gains card support.
-	setup := PublicGame{Names: names, Decks: decks, Tokens: reg.Tokens, StartingLife: 1}
+	setup := PublicGame{Names: names, Decks: decks, Tokens: reg.Tokens}
+	// The seed only has to name a game with no eligible root; which seeds do
+	// is a property of how the bots play, so it is re-pinned whenever engine
+	// behaviour moves a decision (here: as-enters choices are now asked at the
+	// entry boundary, which gives seed 10307 an eligible cast root at 309).
 	got := RunExperiment(setup, ExperimentOptions{Seed: 10141, SampleSeed: 54321, Attempts: 4, Worlds: 4, MaxSubmits: 5000})
 	if got.Error != "" || !got.BaselineReplay || got.RootAt != -1 {
 		t.Fatalf("no-root experiment: error=%q replay=%v root=%d", got.Error, got.BaselineReplay, got.RootAt)

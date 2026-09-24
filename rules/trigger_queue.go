@@ -1704,9 +1704,9 @@ func (e *Engine) askTriggerOptional(who state.PlayerID, pt pendingTrigger) {
 // nothing (finishResumption). The decider is derived from the stack object's
 // own controller + Remembered (deciderFromSpec), not from a pendingTrigger,
 // because the queued trigger has already been consumed by the drain.
-func (e *Engine) askOptionalAtResolution(who state.PlayerID, o *state.Object, sa *cards.SA, label string) {
+func (e *Engine) askOptionalAtResolution(who state.PlayerID, o *state.Object, sa *cards.SA, label string, effectOptional bool) {
 	d := &decision.Decision{Player: who, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
-		ResumeKind: "optional", ResumeSA: sa, Source: o.Source,
+		ResumeKind: "optional", ResumeSA: sa, Source: o.Source, EffectOptional: effectOptional,
 		Prompt: "Apply this triggered ability's effect? — " + label,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Label: "Yes — " + label, Obj: o.Source, Player: o.Controller},
