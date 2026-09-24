@@ -1207,6 +1207,15 @@ func costAnnouncesX(c Cost) bool {
 			return true
 		}
 	}
+	// An announced Blight<X> part binds the cast's X exactly like Sac<X/Spec>
+	// (Blighted Nightmare's `Blight<X> Return<1/CARDNAME>` ability): the
+	// payment settles the announced count, so the X was announced even when
+	// its value is 0.
+	for _, part := range c.Blight {
+		if part.Announced {
+			return true
+		}
+	}
 	return false
 }
 

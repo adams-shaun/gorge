@@ -362,7 +362,7 @@ var revealChosenCost = regexp.MustCompile(`^RevealChosen<(Player|Type)(?:/([^>]*
 // The trailing "/description" is captured into CostPart.Desc and ";" alternations
 // fold to "," like every other non-mana head.
 var dynTapCost = regexp.MustCompile(`^tapXType<(X|Any)/([^/>]+)(?:/([^>]*))?>$`)
-var blightCost = regexp.MustCompile(`^Blight<(\d+)>$`)
+var blightCost = regexp.MustCompile(`^Blight<(\d+|X)>$`)
 
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
 // removing N energy counters from the payer (CR 118.2d; Forge
@@ -604,6 +604,16 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			if m := blightCost.FindStringSubmatch(sym); m != nil {
+				// Blight<X> (Blighted Nightmare, Soul Immolation): the announced
+				// form of the Blight cost. X is announced (CR 601.2b) exactly the
+				// way Sac<X/Spec> announces its count -- the count is settled by
+				// the X ask and the payment reads the announced value -- so it
+				// carries an Announced part and NO {X} mana symbol: the cost is
+				// paid in -1/-1 counters, not generic mana.
+				if m[1] == "X" {
+					c.Blight = append(c.Blight, CostPart{Spec: "Creature.YouCtrl", Announced: true})
+					continue
+				}
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
 					// Same safe fallback as every other malformed cost token --
@@ -1837,6 +1847,10 @@ func formatCost(c Cost) string {
 	}
 	appendCostParts("tapXType", c.TapPermanent)
 	for _, part := range c.Blight {
+		if part.Announced {
+			parts = append(parts, "Blight<X>")
+			continue
+		}
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
 	}
 	appendCostParts("Return", c.Return)
@@ -1962,6 +1976,10 @@ func costPhrase(c Cost) string {
 		clauses = append(clauses, "tap "+objectPhrase(part, "permanent"))
 	}
 	for _, part := range c.Blight {
+		if part.Announced {
+			clauses = append(clauses, "blight X")
+			continue
+		}
 		clauses = append(clauses, "blight "+countPhrase(part.N))
 	}
 	for _, part := range c.Return {
@@ -2234,6 +2252,11 @@ func costAnnouncesCastX(c Cost) bool {
 		}
 	}
 	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.Blight {
 		if part.Announced {
 			return true
 		}

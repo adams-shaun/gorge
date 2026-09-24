@@ -2793,6 +2793,12 @@ func (e *Engine) continueCast() {
 	if e.xAsk() {
 		return
 	}
+	// An announced Blight<X> part's count is the announced X, so its pick is
+	// deferred past xAsk (the Sac<X/Spec> / SubCounter<X/Kind> shape) -- the
+	// pre-xAsk blightCostAsk above skips it while !pc.xDone.
+	if e.blightCostAsk() {
+		return
+	}
 	if e.delveAsk() {
 		return
 	}
@@ -3202,6 +3208,13 @@ func (e *Engine) tapPermanentCostAsk() bool {
 func (e *Engine) blightCostAsk() bool {
 	pc := e.cast
 	for pc.blightPart < len(pc.cost.Blight) {
+		// An announced Blight<X> part's count is the announced X, which does
+		// not exist until xAsk has run; skip it here (returning false so the
+		// later stages run) and let the post-xAsk call in continueCast settle
+		// it. Fixed Blight<N> parts are unaffected.
+		if pc.cost.Blight[pc.blightPart].Announced && !pc.xDone {
+			return false
+		}
 		candidates := e.costCandidates(pc.player, pc.card, state.ZBattlefield, "Creature.YouCtrl", false, false)
 		if len(candidates) == 0 {
 			e.abortCast(pc, "blight cost no longer payable; cast aborted", true)
@@ -3988,8 +4001,18 @@ func (e *Engine) xAsk() bool {
 			subCounterX = true
 		}
 	}
+	// A Blight<X> part announces its count as the cast's X exactly the way a
+	// Sac<X/Spec> part does (CR 701.60: "blight X" is X -1/-1 counters on a
+	// chosen creature, and both corpus carriers spell the announcement
+	// `Announce$ X | XMax$ GrTo`). It carries no {X} mana symbol.
+	blightX := false
+	for _, part := range pc.cost.Blight {
+		if part.Announced {
+			blightX = true
+		}
+	}
 	lifeXCount := len(pc.cost.LifeX)
-	if pc.cost.X <= 0 && !energyX && !sacX && !exileX && !subCounterX && lifeXCount == 0 {
+	if pc.cost.X <= 0 && !energyX && !sacX && !exileX && !subCounterX && !blightX && lifeXCount == 0 {
 		return false
 	}
 	min := int32(0)
@@ -4132,6 +4155,24 @@ func (e *Engine) xAsk() bool {
 			life = 0
 		}
 		applyCap(life / int32(lifeXCount))
+	}
+	if blightX {
+		// Blight<X> alone must use the toughness cap as its bound, not the
+		// pool/graveyard mana ceiling: blighting does not spend mana.
+		// Blight<X>'s own cap: both carriers spell it `XMax$ GrTo` -- "X
+		// can't be greater than the greatest toughness among creatures you
+		// control" -- so bound the announcement by the greatest toughness
+		// among exactly the candidates the payment will choose from. With no
+		// matching creature the cap is 0 (the offer gate withholds the cast
+		// anyway), and the announcement can never exceed what the blight pick
+		// can settle (CR 601.2b).
+		cap := int32(0)
+		for _, oid := range e.costCandidates(pc.player, pc.card, state.ZBattlefield, "Creature.YouCtrl", false, false) {
+			if t := e.Toughness(oid); t > cap {
+				cap = t
+			}
+		}
+		applyCap(cap)
 	}
 	var legal []int32
 	maxOld := int32(0)
@@ -8295,8 +8336,14 @@ func (e *Engine) emitChoiceCosts(pc *pendingCast) {
 	}
 	for i, id := range pc.blights {
 		if i < len(pc.cost.Blight) {
+			n := pc.cost.Blight[i].N
+			// An announced Blight<X> part's count is the announced X, not the
+			// (unused) part.N.
+			if pc.cost.Blight[i].Announced {
+				n = pc.x
+			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "M1M1",
-				Amount: pc.cost.Blight[i].N})
+				Amount: n})
 		}
 	}
 }
