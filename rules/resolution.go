@@ -138,10 +138,15 @@ type resumePoint struct {
 	// moved before its may-shuffle confirm suspended, ridden on the ask via
 	// Decision.ResumeMoved: the re-entry's LibraryPosition$ placement needs
 	// the list the suspension lost. Nil for every other ask.
-	moved            []state.ObjID
-	choices          []state.Target
-	chosenValid      bool
-	remembered       []state.Target
+	moved       []state.ObjID
+	choices     []state.Target
+	chosenValid bool
+	remembered  []state.Target
+	// searchKnown rides the effects.Ctx.SearchKnown set of a search chain
+	// across a planted placement leg's own suspension (Decision
+	// .ResumeSearchKnown): the leg's answer rebuilds a fresh Ctx, and the next
+	// leg must still see which library cards the chooser already knew.
+	searchKnown      []state.Target
 	digUntilMove     string
 	digUntilMoveDone bool
 	// clonePick/clonePickDone ride a DB$ Clone's answered Choices$ pick across
@@ -601,6 +606,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
+		searchKnown:  append([]state.Target(nil), d.ResumeSearchKnown...),
 		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
@@ -1961,6 +1967,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
 	}
+	// The search chain's known-card set (Decision.ResumeSearchKnown): a
+	// planted placement leg's answer rebuilds a fresh Ctx, and the NEXT leg of
+	// the same chain must still label its options with the names the chooser
+	// already learned. Runtime continuation state of the search walk, the same
+	// class as rp.remembered above.
+	if rp.searchKnown != nil {
+		ctx.SearchKnown = append([]state.Target(nil), rp.searchKnown...)
+	}
 	// The TargetUnique$ accumulator, captured at ask time: the resumed Ctx
 	// re-binds it so a LATER TargetUnique$ rider in the same chain still
 	// excludes the targets earlier riders chose (a fresh Ctx would otherwise
@@ -2377,12 +2391,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// target 1 forever — the answer was always consumed at target 0's
 			// cursor (0), whose hand never held target 1's chosen cards.
 			ctx.DiscardTarget = rp.target
-		case "discard_hand":
+		case "discard_hand", "discard_may":
 			// A "Mode$ Hand | Optional$ True" may-discard election (the
-			// whole-hand wheel's "each player may discard their hand") was
-			// answered: option 0 is yes, anything else — option 1, an empty or
-			// malformed answer — is a decline, the conservative read of an
-			// ambiguous one. The re-entered effDiscard applies the answer to
+			// whole-hand wheel's "each player may discard their hand"), or a
+			// TgtChoose Optional$ True one ("you may discard a land card",
+			// Mox Diamond; "discard up to two cards"), was answered: option 0
+			// is yes, anything else — option 1, an empty or malformed answer
+			// — is a decline, the conservative read of an ambiguous one. The re-entered effDiscard applies the answer to
 			// exactly the acting player this ask was posed for (the cursor)
 			// and poses a fresh election for every later player; a declined
 			// election discards nothing.

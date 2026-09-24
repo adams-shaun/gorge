@@ -45,10 +45,24 @@ func TestPlayerCountPropertyYouPerTurnLedgerCounts(t *testing.T) {
 		}
 	}
 
-	// The sacrifice event stream has no actor provenance. Do not resolve this
-	// count from the permanent's owner or controller; either can differ from
-	// the player who performed the sacrifice.
-	if got, ok := EvalCountOK(h, c, "PlayerCountPropertyYou$SacrificedThisTurn"); ok || got != 0 {
-		t.Errorf("SacrificedThisTurn = (%d, %v), want unresolved (0, false) without actor provenance", got, ok)
+	// SacrificedThisTurn reads the per-turn zone-entry record's sacrifice
+	// stamp (events.Apply's MoveZone fold records the SACRIFICER -- the
+	// permanent's controller at the move, CR 701.21a -- not its owner), so
+	// the count is the resolving controller's own sacrifices only.
+	var sacked state.ObjID
+	for i := range h.g.Objs {
+		if h.g.Objs[i].Face() != nil {
+			sacked = h.g.Objs[i].ID
+			break
+		}
+	}
+	h.g.Entered = append(h.g.Entered, state.ZoneEntry{Obj: sacked, From: state.ZBattlefield,
+		To: state.ZGraveyard, Sacrificed: true, Sacrificer: 1})
+	if got, ok := EvalCountOK(h, c, "PlayerCountPropertyYou$SacrificedThisTurn"); !ok || got != 1 {
+		t.Errorf("controller 1 SacrificedThisTurn = (%d, %v), want (1, true)", got, ok)
+	}
+	c.Controller = 0
+	if got, ok := EvalCountOK(h, c, "PlayerCountPropertyYou$SacrificedThisTurn"); !ok || got != 0 {
+		t.Errorf("controller 0 SacrificedThisTurn = (%d, %v), want (0, true): seat 1 sacrificed it", got, ok)
 	}
 }

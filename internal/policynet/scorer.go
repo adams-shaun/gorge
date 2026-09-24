@@ -32,6 +32,9 @@ type Scorer struct {
 	s []float32
 	x []float32
 	a []float32
+	// va is the value head's hidden activations (ValueHidden; empty when the
+	// model has no value head).
+	va []float32
 }
 
 // NewScorer wraps a trained (or zero) Model for inference. The Model is
@@ -41,21 +44,38 @@ func NewScorer(m *Model) *Scorer {
 		panic("policynet: NewScorer on a nil or degenerate model")
 	}
 	return &Scorer{
-		m: m,
-		s: make([]float32, m.H),
-		x: make([]float32, m.InW),
-		a: make([]float32, m.Hidden),
+		m:  m,
+		s:  make([]float32, m.H),
+		x:  make([]float32, m.InW),
+		a:  make([]float32, m.Hidden),
+		va: make([]float32, m.ValueHidden),
 	}
+}
+
+// HasValue reports whether the wrapped model carries a value head.
+func (sc *Scorer) HasValue() bool { return sc.m.HasValue() }
+
+// Value is the scratch variant of Model.Value for single-threaded callers:
+// it loads st as the scorer's state (exactly SetState, so a following
+// ScoreOption scores against it) and returns V(s) ∈ (0,1), bit-identical to
+// Model.Value (TestScorerValueMatchesModelValue). 0.5 on a model without a
+// value head.
+func (sc *Scorer) Value(st State) float32 {
+	sc.SetState(st)
+	if !sc.m.HasValue() {
+		return 0.5
+	}
+	return float32(sigmoidFloat(float64(sc.m.valueForward(sc.s, sc.va))))
 }
 
 // ResidualWeight reports the model's fixed bot-prior residual weight
 // (Model.ResidualW, the train Config.ResidualInit the model was trained
 // with). The seat-side bot reads it to decide whether the residual prior is
 // ACTIVE at inference: positive means the wrapped default bot's own answer
-// is marked (Option.BotPick) and admitted into the priority argmax, so the
-// scorer scores under the contract it trained under; zero — the weight a
-// pre-baseline checkpoint loads — makes the mark a no-op and the scored
-// answers byte-identical to the pre-wiring build.
+// is marked (Option.BotPick) so the scorer scores under the contract it
+// trained under, and is a precondition for the seat scoring KPriority at
+// all; zero — the weight a checkpoint trained without -residual-init loads —
+// makes the mark a no-op and keeps priority delegated to the default bot.
 func (sc *Scorer) ResidualWeight() float32 {
 	return sc.m.ResidualW
 }

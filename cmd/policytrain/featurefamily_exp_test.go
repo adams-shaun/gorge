@@ -158,8 +158,7 @@ func TestFeatureFamilyExperiment(t *testing.T) {
 				// Reproduce Train's split to read the model per-kind on BOTH sides:
 				// the point is whether the model can fit the teacher on TRAIN.
 				usable, sp := expSplit(aug, seed)
-				lc := policynet.LossConfig{Mode: policynet.LossCE, HuberDelta: policynet.DefaultHuberDelta, RankWeight: policynet.DefaultRankWeight, OverrideWeight: 1}
-				for _, k := range evaluateByKind(res.Model, usable, sp.train, lc) {
+				for _, k := range evaluateByKind(res.Model, usable, sp.train) {
 					if k.Kind == decision.KPriority {
 						t.Logf("  %-13s residual=%-4g TRAIN-fit kind=priority model=%.3f bot=%.3f n=%d", fam, residual, k.ModelTop1, k.BotTop1, k.Eligible)
 					}
@@ -590,7 +589,7 @@ func decodeExpRecords(path string) ([]expRecord, error) {
 		if err := json.Unmarshal(line, &r); err != nil {
 			return nil, fmt.Errorf("record %d: %w", seen, err)
 		}
-		if r.RecordType != policynet.LabelRecordType || r.SchemaVersion != policynet.LabelSchemaVersion {
+		if r.RecordType != policynet.LabelRecordType || !policynet.LabelSchemaAccepted(r.SchemaVersion) {
 			continue
 		}
 		if len(r.Candidates) == 0 {

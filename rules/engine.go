@@ -125,6 +125,25 @@ type Engine struct {
 	compiledText  *compiledText
 	landTypeWords []string
 
+	// ManaAbilityHook, when non-nil, is called once per mana ability
+	// activation the engine resolves (resolveManaAbilityRefOriginal, the one
+	// choke point every activation path -- the priority "activate" option,
+	// the cast payment window, the unless-cost and attack/block-cost windows
+	// -- funnels through), after the activation is judged payable and before
+	// its cost and effect are applied, and once per triggered mana ability
+	// (CR 605.1b, a Static$ True TapsForMana trigger) the batch after it
+	// resolves off the stack (resolveTriggeredManaAbilities). sa is the
+	// ability's compiled identity: the printed Face().Abilities pointer
+	// (never the colour-pinned copy a Combo pick resolves through), the
+	// foreign card's pointer for a gained ability, or the printed
+	// Trigger.Effect body for a triggered one. It is a harness-only
+	// OBSERVER (cmd/cardfuzz credits mana-ability use with it, because a
+	// mana ability never uses the stack and ManaAdd carries no source): it
+	// emits nothing, mutates nothing, is
+	// not copied by Clone, and a nil hook -- every host, replay and test --
+	// leaves the event stream and every chain head byte-identical.
+	ManaAbilityHook func(p state.PlayerID, source state.ObjID, sa *cards.SA)
+
 	// ascend is checkBlessingGrants' incremental "could anything carry
 	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
 	ascend ascendScan
@@ -2499,6 +2518,36 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if stored.Kind == events.Damage && stored.Amount > 0 && stored.Counter == "wither+creature" {
 		e.convertWitherDamage(stored)
+	}
+	// Game-long damage-by-source provenance (the_fallen, diseased_vermin):
+	// every landed Damage event appends a DamageProvenance fact so the
+	// wasDealtDamageThisGameBy player qualifier and the
+	// wasDealtDamageByThisGame object predicate can answer Forge's game-long
+	// record. This lives HERE, on the one post-fold tail, because every
+	// emitter (effects/damage.go's riders, rules/combat.go's combat batch,
+	// rules/cast.go, rules/resolution.go and the cleanup negatives) funnels
+	// through emit -- no emitter file has to change. It reads `stored`, the
+	// APPLIED event, so post-protection/post-replacement/post-redirect it
+	// names the real recipient and the amount that actually landed; a
+	// prevented hit is a Note and never reaches here, and a cleanup negative
+	// is excluded by the Amount > 0 gate (exactly like the infect/wither
+	// conversions above). The source is the same published override / e.damaging
+	// reader emit's own protection guard uses; a zero source (no recorded
+	// provenance) emits nothing rather than minting a false (0, recipient)
+	// fact. The recipient is stored.Obj when nonzero (an object) else
+	// stored.Player (a seat), encoded PlayerRef-style so seat 0 is
+	// distinguishable from "no recipient".
+	if stored.Kind == events.Damage && stored.Amount > 0 {
+		if src := e.inFlightDamageSource(); src != 0 {
+			var recipient state.ObjID
+			if stored.Obj != 0 {
+				recipient = stored.Obj
+			} else {
+				recipient = state.PlayerRef(stored.Player)
+			}
+			e.emit(events.Event{Kind: events.DamageProvenance, Obj: src,
+				IDs: []state.ObjID{recipient}, Amount: stored.Amount})
+		}
 	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {

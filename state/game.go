@@ -79,6 +79,15 @@ type Player struct {
 	CmdCasts   []int32
 	CmdDamage  []int32
 
+	// DamageTakenByGame lists, in append order, every damage SOURCE that has
+	// dealt this seat damage this game (never cleared -- it is game-long, not
+	// the per-turn window). Appended by events.Apply's DamageProvenance case
+	// with a dedup so the fold is idempotent and the slice stays small; the
+	// wasDealtDamageThisGameBy player/object predicates read it as a
+	// membership test. Clone deep-copies it so a cloned game's record never
+	// aliases the live one's.
+	DamageTakenByGame []ObjID
+
 	// Speed is this seat's speed (CR 702.163, "Start your engines!"): it
 	// starts at 0 (or 1 the first time an engine grants speed), rises by one
 	// once on each of this seat's own turns when an opponent loses life,
@@ -381,6 +390,14 @@ type ZoneEntry struct {
 	// player's graveyard received a permanent card this turn (CR 700.11).
 	Owner         PlayerID
 	PermanentCard bool
+	// Sacrificed marks a battlefield departure made under the sacrifice
+	// action marker (events.IsSacrifice, CR 701.21a), and Sacrificer is the
+	// permanent's controller at that instant -- the player who sacrificed
+	// it (a stolen permanent its taker sacrifices is the taker's). Both are
+	// folded by events.Apply's MoveZone case, so the
+	// PlayerCount*$SacrificedThisTurn heads read a replay-derived record.
+	Sacrificed bool
+	Sacrificer PlayerID
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its
@@ -557,6 +574,7 @@ func (g *Game) Clone() *Game {
 		c.Players[i].Commanders = append([]ObjID(nil), g.Players[i].Commanders...)
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
+		c.Players[i].DamageTakenByGame = append([]ObjID(nil), g.Players[i].DamageTakenByGame...)
 		c.Players[i].RestrictedMana = append([]ManaRestriction(nil), g.Players[i].RestrictedMana...)
 		c.Players[i].Notes = append([]string(nil), g.Players[i].Notes...)
 	}

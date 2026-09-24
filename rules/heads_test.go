@@ -854,7 +854,19 @@ var acceptanceHeads = map[int]string{
 	// CR 103.1 (cli-20260922T225141Z-e771720d): the hosted toss winner
 	// answers starting_player before mulligans. DecisionAsk/DecisionMade enter
 	// the chain; without that ask this head returns to a867ac1768ab4993.
-	2: "a613e26b20d46eea",
+	// 2 seats moved to 9b4759db7fe10fdd (merge of game-long damage-by-source
+	// provenance, task agent-20260923T114033Z-a57ee463, with main's bot-x1).
+	// Two independent head-moving changes are both present in this tree. The
+	// provenance change (every landed Damage event emits a DamageProvenance
+	// fact through Engine.emit's one post-fold tail, so the acceptance streams
+	// carry one extra event per point of damage) alone gives f107be40dc2792c6;
+	// main's bot-x1 (botpolicy/ability.go equipNoOp scoped to attach abilities)
+	// alone gives 3ddcc4e3ba5bb799. Measured attribution: disabling ONLY the
+	// provenance emission block in rules/engine.go in this merged tree restores
+	// 3ddcc4e3ba5bb799 exactly, so the merged head is the superposition of the
+	// two -- no third behaviour moved (TestConstructedDefaultIsByteIdentical
+	// stayed green).
+	2: "9b4759db7fe10fdd",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1030,7 +1042,13 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	4: "b3bf75f0c56512ae",
+	// 4 seats moved to 9b3aab4e0336ba8c (game-long damage-by-source
+	// provenance, task agent-20260923T114033Z-a57ee463): the merged tree's
+	// 4-seat head equals the provenance-only value, because main's bot-x1
+	// does not move the 4-seat stream. Measured attribution: disabling only
+	// the provenance emission block in this merged tree restores
+	// b3bf75f0c56512ae (main's value) exactly.
+	4: "9b3aab4e0336ba8c",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1173,7 +1191,13 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	6: "a93593d452866261",
+	// 6 seats moved to c4ce39421c473963 (game-long damage-by-source
+	// provenance, task agent-20260923T114033Z-a57ee463): the merged tree's
+	// 6-seat head equals the provenance-only value, because main's bot-x1
+	// does not move the 6-seat stream. Measured attribution: disabling only
+	// the provenance emission block in this merged tree restores
+	// a93593d452866261 (main's value) exactly.
+	6: "c4ce39421c473963",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1363,7 +1387,13 @@ var acceptanceHeads = map[int]string{
 	// swarmLethalSubset (return nil) restores the previous golden; the
 	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
 	// pre-filter in the same change are head-neutral.
-	8: "af5b2fc1561b5f56",
+	// 8 seats moved to d2ebb7cbf40ccd12 (merge of game-long damage-by-source
+	// provenance, task agent-20260923T114033Z-a57ee463, with main's bot-x1):
+	// same two-change superposition and same measured attribution as the 2-seat
+	// move above. Provenance alone gives 3d1974a1859d9676, main's bot-x1 alone
+	// gives beac5729b0e63dcc, and disabling only the provenance emission block
+	// in this merged tree restores beac5729b0e63dcc exactly.
+	8: "d2ebb7cbf40ccd12",
 }
 
 func TestHeads(t *testing.T) {
