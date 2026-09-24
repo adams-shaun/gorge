@@ -4661,6 +4661,24 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 					r.With.Params["ValidCards"], selector,
 					r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
 			}
+			if kind == "name" && len(opts) == 0 {
+				// No name passes the filter: the legacy (no-universe) builder
+				// only sees public objects, so "choose a nonbasic land card
+				// name" with none in view (Alpine Moon, cardfuzz batch1 line
+				// 14) built a Min 1 ask with zero options that no answer
+				// could satisfy. Mirror effNameCard's own empty-list rule so
+				// the two NameCard paths agree: without a corpus universe (or
+				// with no ChooseFromList$) it names the deterministic legacy
+				// stand-in; a universe-backed ChooseFromList$ with nothing
+				// eligible names nothing, so there is no choice to pose and
+				// the entry proceeds (the body's effNameCard then returns
+				// without naming, as it does mid-resolution).
+				if len(e.G.NameUniverse) > 0 && strings.TrimSpace(r.With.Params["ChooseFromList"]) != "" {
+					continue
+				}
+				opts = []decision.Option{{Index: 0, Kind: "name",
+					Label: effects.LegacyNameFallback(e.G, you)}}
+			}
 			if kind == "copy" {
 				// ":Optional" on the keyword line is the "you MAY have it
 				// enter as a copy" half; an empty template list also needs
