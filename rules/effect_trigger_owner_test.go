@@ -24,11 +24,15 @@ func TestEffectTriggerMatchesRegistrationOwner(t *testing.T) {
 		t.Fatalf("precondition: source must be seat 0's hand card: %+v", src)
 	}
 	sa := cards.ResolveSVar(src.Face().SVars, "Grant")
-	owners := e.openingEffectOwners(sa, src.Controller)
-	if len(owners) != 1 || owners[0] != 1 || owners[0] == src.Controller {
+	owners, ok := effects.EffectOwnerPlayers(e, &effects.Ctx{Controller: src.Controller}, sa.Params["EffectOwner"])
+	if !ok || len(owners) != 1 || owners[0] != 1 || owners[0] == src.Controller {
 		t.Fatalf("precondition: EffectOwner$ Opponent must differ from source controller: %v", owners)
 	}
-	ctx := &effects.Ctx{Source: id, Controller: owners[0]}
+	// effEffect resolves EffectOwner$ from the resolving Ctx's controller
+	// itself (the one home), so the resolution is entered as the creating
+	// card's controller -- not as the already-resolved owner -- and the
+	// registration lands on the opponent.
+	ctx := &effects.Ctx{Source: id, Controller: src.Controller}
 	effects.SetSVars(ctx, src.Face().SVars)
 	effects.Resolve(e, ctx, sa)
 	if len(e.G.Delayed) != 1 || !e.G.Delayed[0].EffectRepeat || e.G.Delayed[0].Controller != 1 || e.G.Delayed[0].Source != id {

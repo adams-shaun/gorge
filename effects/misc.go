@@ -324,6 +324,38 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		chosenNumber = n
 	}
 	registered := false
+	// The effect's OWNER (CR 611.2 / CR 903.9): EffectOwner$ names the seat(s)
+	// the created effect's event/phase triggers belong to, which need not be
+	// the creating card's controller -- Valiant Batrider's "that player gets
+	// a one-time boon" is EffectOwner$ TriggeredTarget, an opening-hand
+	// Chancellor's is Opponent. Resolved LAZILY on the first arm that needs
+	// it, so an EffectOwner$ this build cannot resolve fails CLOSED (nothing
+	// registered) with a loud Note rather than silently defaulting to the
+	// source controller. The BecomeMonarch arm below deliberately does NOT
+	// call this: its registration controller is the monarch relation's
+	// anchor, which stays the source's controller (see its comment).
+	ownerSel := strings.TrimSpace(sa.Params["EffectOwner"])
+	owners := []state.PlayerID(nil)
+	ownersResolved := false
+	resolveOwners := func() bool {
+		if ownersResolved {
+			return len(owners) > 0
+		}
+		ownersResolved = true
+		if ownerSel == "" {
+			owners = []state.PlayerID{c.Controller}
+			return true
+		}
+		ps, ok := EffectOwnerPlayers(h, c, ownerSel)
+		if !ok || len(ps) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unresolvable EffectOwner$ " + ownerSel + " (Triggers$ not registered)"})
+			registered = true
+			return false
+		}
+		owners = ps
+		return true
+	}
 	// An Effect's Triggers$ list names SVar trigger bodies the Effect arms as
 	// one-shot delayed promises (CR 603.7) -- "until end of turn, whenever a
 	// creature enters, draw a card" (Beck), "whenever a player casts an
@@ -335,11 +367,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//
 	// A body the machinery cannot carry fails LOUDLY rather than registering
 	// something that behaves differently from the card text:
-	//   - a mode with no delayed-event matcher (DamageDone, Attacks,
-	//     TapsForMana, LifeGained, ... -- the bulk of the 31 Effect Triggers$
-	//     carriers) is owned by agent-20260922T193437Z-a964eea4, which adds
-	//     the generic effect-created trigger registration; it is named in the
-	//     Note here, not silently dropped.
+	//   - a mode with no registered matcher (Attacks, TapsForMana, LifeGained,
+	//     Blocks, PlaneswalkedTo, ... -- the broader printed-trigger gap) is
+	//     named in the Note here, not silently dropped. Every matcher-backed
+	//     mode (DamageDone included) registers through the generic matcher arm
+	//     below (landed under cli-20260922T225138Z-504a0e97).
 	//   - an OptionalDecider$ body (Beck's "you may draw a card") IS
 	//     registered: registering it without the election would fire the
 	//     effect MANDATORILY, the opposite of the card text, so the spec
@@ -381,6 +413,25 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// OneOff$ True (CR 603.7's "when you next ..." promise): the body is
+		// CONSUMED by its firing, not a recurring trigger for the Effect's
+		// lifetime. Register it one-shot exactly for the modes the delayed
+		// machinery has a non-repeat dispatch for (effectOneShotDelayedMode,
+		// the same set effDelayedTrigger admits): dropping the |EF marker is
+		// what makes the registration state.DelayedTrigger.EffectRepeat
+		// false, so its first firing ends it. Any other mode keeps the
+		// recurring form -- events.Apply cannot decode a non-|EF registration
+		// for it and rules.checkEventDelayedTriggers has no non-repeat arm, so
+		// forcing one-shot there would make the body inert rather than
+		// one-shot. (Mode$ Phase is inherently one-shot: its registration
+		// carries no |EF and its Phase arm emits none, so the DelayedPush that
+		// fires it consumes it whether or not the body says OneOff$.)
+		oneOff := strings.EqualFold(strings.TrimSpace(tr.Params["OneOff"]), "True") &&
+			effectOneShotDelayedMode(tr.Mode)
+		efMarker := "|EF"
+		if oneOff {
+			efMarker = ""
+		}
 		// An Effect trigger body's OptionalDecider$ is the card's own "you
 		// may" election (Beck's "whenever a creature enters this turn, you
 		// may draw a card"). The trigger is registered like any other
@@ -418,6 +469,21 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// `Duration$ Permanent | ForgetOnMoved$ Exile` lifetime is
 			// exactly what the promise already means, so the turn-bound
 			// lifetime guard below does not apply to it.
+			//
+			// This arm is deliberately NOT owned by EffectOwner$. Its
+			// registration controller is the monarch relation's ANCHOR
+			// (rules.checkEventDelayedTriggers reads `Player.OpponentOf
+			// Remembered` against dt.Controller), and that anchor is the
+			// SOURCE's controller -- the Jailer's player, whose opponent
+			// the oracle's "until an opponent becomes the monarch" names.
+			// Palace Jailer carries `EffectOwner$ TargetedOwner`, but
+			// resolving it here would move the anchor to the exiled
+			// creature's owner and return the creature when the Jailer's
+			// OWN controller takes the crown -- the opposite of the card
+			// text. rules/monarch_jailer_multiseat_test.go pins both
+			// halves of that relation. (EffectOwner$ still applies to
+			// every other arm; TargetedOwner itself is a supported
+			// Defined$ selector.)
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
 				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix})
@@ -449,16 +515,26 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// enters" is an ordinary REPEATABLE trigger for the Effect's
 			// lifetime, not a one-shot DelayedTrigger promise, so it carries
 			// |EF like every other Effect-delivered mode: DelayedPush keeps
-			// the registration and the |TT= turn bound retires it.
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
+			// the registration and the |TT= turn bound retires it. A
+			// OneOff$ True body is the exception (efMarker is empty): its
+			// first firing consumes it.
+			if !resolveOwners() {
+				continue
+			}
+			for _, owner := range owners {
+				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+					Player: owner, Step: h.Game().Step, Counter: exec,
+					IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+			}
 			registered = true
 		case "Phase":
 			// A phase promise fires at the FIRST listed step still ahead
 			// (state.EarliestAfter), exactly like the DelayedTrigger SA's
 			// multi-step Phase$ reading; ValidPlayer$ rides |VP= so the
 			// phase scan gates on it (Necropotence's "YOUR next end step").
+			if !resolveOwners() {
+				continue
+			}
 			set, unknown := state.ParsePhases(tr.Params["Phase"])
 			if len(unknown) > 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -477,9 +553,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if vp := strings.TrimSpace(tr.Params["ValidPlayer"]); vp != "" {
 				text += "|VP=" + vp
 			}
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: text})
+			for _, owner := range owners {
+				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+					Player: owner, Step: step, Counter: exec,
+					IDs: encodeRemembered(c.Remembered), Text: text})
+			}
 			registered = true
 		default:
 			if !h.TriggerModeSupported(tr.Mode) {
@@ -491,9 +569,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// All event modes share the trigger registry's matcher. The |EF
 			// marker distinguishes this recurring Effect grant from a one-shot
 			// DelayedTrigger and makes its mode self-describing for replay.
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
+			if !resolveOwners() {
+				continue
+			}
+			for _, owner := range owners {
+				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+					Player: owner, Step: h.Game().Step, Counter: exec,
+					IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+			}
 			registered = true
 		}
 	}
@@ -2340,6 +2423,23 @@ func replacementBodyAPI(body string) string {
 	return strings.TrimSpace(api)
 }
 
+// effectOneShotDelayedMode names the event modes with a non-repeat delayed
+// dispatch end to end: events.Apply's DelayedRegister decode recognizes the
+// mode prefix without the |EF marker, and rules.checkEventDelayedTriggers has
+// a non-EffectRepeat arm that fires it and removes it (one-shot). It is ONE
+// home shared by effEffect's OneOff$ True decision and effDelayedTrigger's
+// mode admission, so a mode can never be one-shot on one path and inert on
+// the other. Mode$ Phase is deliberately absent: a phase registration is
+// inherently one-shot (no |EF, consumed by its DelayedPush) and takes the
+// Phase arm, not this event-mode one.
+func effectOneShotDelayedMode(mode string) bool {
+	switch mode {
+	case "SpellCast", "ChangesZone", "ChangesController", "DamageDone", "AttackersDeclared":
+		return true
+	}
+	return false
+}
+
 // Delayed registrations can express a turn ceiling, but not a continuous
 // Effect's source-relative or next-turn lifetime. Reject those forms rather
 // than register a promise that can fire after the Effect expires.
@@ -2735,8 +2835,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		effDelayedTriggerSpellCast(h, c, sa)
 		return
 	}
-	if mode != "Phase" && mode != "ChangesZone" && mode != "ChangesController" &&
-		mode != "DamageDone" && mode != "AttackersDeclared" {
+	if mode != "Phase" && !effectOneShotDelayedMode(mode) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
 		return
