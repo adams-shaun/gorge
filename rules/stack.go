@@ -3239,10 +3239,12 @@ func (e *Engine) resolveTop() {
 		// trigger with OptionalDecider$ (Beck's "you may draw a card") would
 		// resolve mandatorily, the opposite of the card text.
 		resSpec := ""
-		if triggered {
+		// An Effect registration's spec wins even when the trigger-line
+		// provenance (abcopy) now recognizes the delayed body as triggered.
+		if spec := e.triggerContexts[id].OptionalSpec; spec != "" {
+			resSpec = spec
+		} else if triggered {
 			resSpec = rt.Params["OptionalDecider"]
-		} else {
-			resSpec = e.triggerContexts[id].OptionalSpec
 		}
 		if resSpec != "" {
 			who, askable := e.deciderFromSpec(resSpec, o.Controller, o.Remembered, e.triggerContexts[id])
@@ -3257,7 +3259,7 @@ func (e *Engine) resolveTop() {
 			if triggered {
 				label = e.abilityLabel(o, rt)
 			}
-			e.askOptionalAtResolution(who, o, o.Ability, label, !triggered && e.triggerContexts[id].OptionalSpec != "")
+			e.askOptionalAtResolution(who, o, o.Ability, label, e.triggerContexts[id].OptionalSpec != "")
 			return
 		}
 		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY
