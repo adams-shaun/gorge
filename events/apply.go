@@ -2328,7 +2328,7 @@ func Apply(g *state.Game, e Event) {
 		remembered := append([]state.Target(nil), src.Remembered...)
 		// Mode announcements are copiable characteristics (CR 707.10): a
 		// modal copy must resolve the same chosen modes, not ask for new ones.
-		chosenModes := append([]string(nil), src.ChosenModes...)
+		chosenModes := state.CloneChosenModes(src.ChosenModes)
 		// A DefinedTarget$ copy names its own targets (the StackCopy doc): the
 		// event's IDs replace the inherited list with object targets. The
 		// ids are not re-validated here beyond existence -- the copy's own CR
