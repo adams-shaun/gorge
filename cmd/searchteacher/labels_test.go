@@ -83,7 +83,8 @@ func TestLabelsCorpus(t *testing.T) {
 	reg := testutil.CorpusRegistry(t) // skips on a clean clone with no .cards/
 	dir := t.TempDir()
 	pathW1 := filepath.Join(dir, "labels-w1.jsonl")
-	if err := run(labelTestArgs(t, pathW1, 1), io.Discard, io.Discard); err != nil {
+	gamesW1 := filepath.Join(dir, "games-w1.jsonl")
+	if err := run(append(labelTestArgs(t, pathW1, 1), "-out", gamesW1), io.Discard, io.Discard); err != nil {
 		t.Fatalf("workers 1 run: %v", err)
 	}
 	records := readLabelRecords(t, pathW1)
@@ -125,6 +126,49 @@ func TestLabelsCorpus(t *testing.T) {
 				t.Fatalf("record %d: teacher chose candidate %d (value %g) but the best mean is %g",
 					i, r.TeacherChoice, r.Candidates[r.TeacherChoice].Value, best)
 			}
+		}
+	})
+
+	t.Run("outcome matches its game", func(t *testing.T) {
+		// Join every label on (pair, seed) to the -out GameRecord of the game
+		// it was taken in: outcome_known/outcome must be that game's search
+		// result, the search seat's own.
+		data, err := os.ReadFile(gamesW1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		type key struct {
+			pair string
+			seed uint64
+		}
+		games := map[key]GameRecord{}
+		for i, line := range bytes.Split(bytes.TrimRight(data, "\n"), []byte("\n")) {
+			var g GameRecord
+			if err := json.Unmarshal(line, &g); err != nil {
+				t.Fatalf("game record %d: %v", i, err)
+			}
+			games[key{g.Pair, g.Seed}] = g
+		}
+		known := 0
+		for i, r := range records {
+			g, ok := games[key{r.Pair, r.Seed}]
+			if !ok {
+				t.Fatalf("record %d: no game record for pair %q seed %d", i, r.Pair, r.Seed)
+			}
+			if int(r.Seat) != g.SearchSeat {
+				t.Fatalf("record %d: seat %d is not the game's search seat %d", i, r.Seat, g.SearchSeat)
+			}
+			wantOutcome, wantKnown := searchOutcome(g)
+			if r.OutcomeKnown != wantKnown || r.Outcome != wantOutcome {
+				t.Fatalf("record %d: outcome %g known %v, want %g %v (game over %v draw %v won %v error %q)",
+					i, r.Outcome, r.OutcomeKnown, wantOutcome, wantKnown, g.SearchOver, g.SearchDraw, g.SearchWon, g.Error)
+			}
+			if r.OutcomeKnown {
+				known++
+			}
+		}
+		if known == 0 {
+			t.Fatalf("no record carries a known outcome; the join would pass vacuously")
 		}
 	})
 
@@ -286,6 +330,34 @@ func mustMarshal(t *testing.T, v any) []byte {
 		t.Fatalf("marshal %T: %v", v, err)
 	}
 	return b
+}
+
+// TestSearchOutcome pins the outcome mapping every label is stamped with:
+// the search seat's result, and unknown for a stalled or errored game.
+func TestSearchOutcome(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		rec   GameRecord
+		want  float64
+		known bool
+	}{
+		{"win", GameRecord{SearchOver: true, SearchWon: true}, 1, true},
+		{"draw", GameRecord{SearchOver: true, SearchDraw: true}, 0.5, true},
+		{"loss", GameRecord{SearchOver: true}, 0, true},
+		{"stall", GameRecord{SearchWon: true}, 0, false},
+		{"error", GameRecord{SearchOver: true, SearchWon: true, Error: "search: boom"}, 0, false},
+	} {
+		if got, known := searchOutcome(c.rec); got != c.want || known != c.known {
+			t.Errorf("%s: got %g %v, want %g %v", c.name, got, known, c.want, c.known)
+		}
+	}
+	labels := collectLabels([]GameRecord{
+		{Pair: "p", GameIndex: 1, SearchOver: true, SearchWon: true, Labels: []LabelRecord{{Pair: "p", GameIndex: 1, Sequence: 1}}},
+		{Pair: "p", GameIndex: 0, Labels: []LabelRecord{{Pair: "p", GameIndex: 0, Sequence: 4}}},
+	})
+	if len(labels) != 2 || labels[0].OutcomeKnown || !labels[1].OutcomeKnown || labels[1].Outcome != 1 {
+		t.Fatalf("collectLabels outcomes: %+v", labels)
+	}
 }
 
 func TestLabelsRefusesExistingDestination(t *testing.T) {

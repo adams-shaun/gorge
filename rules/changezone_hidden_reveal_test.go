@@ -14,8 +14,13 @@ package rules
 //     (Origin$ Sideboard) all use this path.
 //   - Reveal$ True (and the quality-search default) publicly reveal the found
 //     cards: one Note carrying the moved ids, the Reveal primitive's payload.
-//   - NoLooking$ True makes the search's options blind ("a card") -- the
-//     searching player never looks at the library.
+//   - NoLooking$ True means the search's options carry no card names ("a
+//     card") UNLESS the choosing player already legitimately learned the
+//     card's identity in this chain -- a public reveal published it, or an
+//     earlier named ask this player answered offered it. Forge's NoLooking$
+//     protects a player who never looked, not one who already saw the cards
+//     (task fb-20260922T235033Z). The placement legs of the Cultivate family
+//     are the named case; a genuinely unseen card stays blind.
 //   - ForgetChanged$ True drops each moved card from the remembered state
 //     (ctx and the source's event-backed list, Choose "forget-remembered").
 //   - DifferentNames$ True restricts the pick to one card per name: one
@@ -335,11 +340,15 @@ func TestChangeZoneWishFindsSideboard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestChangeZoneNoLookingOptionsAreBlind is the NoLooking$ concern: the
-// searching head may look (named options), but the NoLooking$ legs of the
-// same resolution offer card backs -- every label is the engine's blind
-// placeholder.
-func TestChangeZoneNoLookingOptionsAreBlind(t *testing.T) {
+// TestChangeZoneNoLookingLegsSeeRevealedCards is the NoLooking$ concern
+// refined (task fb-20260922T235033Z): NoLooking$ is Forge's "do not look
+// again", not a command to erase what the chooser already saw. Cultivate's
+// head publicly reveals its finds and offers them by name, so the same
+// resolution's NoLooking$ placement legs MUST carry the real basic-land
+// names -- the old blanket "a card" placeholder hid information the chooser
+// already held. A genuinely unseen card still stays blind
+// (TestSearchLegStaysBlindWhenUnknown).
+func TestChangeZoneNoLookingLegsSeeRevealedCards(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := searchEngine(t, reg, "Cultivate")
 	_, d := castSearchSpell(t, e, "Cultivate")
@@ -354,8 +363,17 @@ func TestChangeZoneNoLookingOptionsAreBlind(t *testing.T) {
 			t.Fatalf("%s leg offered nothing", leg)
 		}
 		for _, o := range d.Options {
-			if o.Label != "a card" {
-				t.Fatalf("%s leg option leaked a name (%q): %+v", leg, o.Label, o)
+			if o.Label == "a card" {
+				t.Fatalf("%s leg option is the blind placeholder: %+v", leg, o)
+			}
+			// Precondition: each option really is a named corpus card, so a
+			// vacuous setup fails loudly rather than passing on a blank face.
+			obj := e.G.Obj(o.Obj)
+			if obj == nil || obj.Face() == nil || obj.Face().Name == "" {
+				t.Fatalf("%s leg option %d object %d has no named printed face", leg, o.Index, o.Obj)
+			}
+			if o.Label != obj.Face().Name {
+				t.Fatalf("%s leg option label %q != printed name %q", leg, o.Label, obj.Face().Name)
 			}
 		}
 		submitChoices(t, e, d.Options[0].Index)
@@ -390,15 +408,23 @@ func TestChangeZoneForgetChangedDropsTheMovedCard(t *testing.T) {
 		t.Fatalf("head search pending = %+v, want a search KChoose", d)
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
-	// Leg 1 (battlefield, NoLooking$ + ForgetChanged$): blind pick, then the
-	// moved basic is forgotten.
+	// Leg 1 (battlefield, NoLooking$ + ForgetChanged$): the head Reveal$ed
+	// these finds, so the leg is named (task fb-20260922T235033Z); picking one
+	// then forgets it.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
 		t.Fatalf("leg1 pending = %+v, want a search KChoose", d)
 	}
 	for _, o := range d.Options {
-		if o.Label != "a card" {
-			t.Fatalf("NoLooking$ leg leaked a name (%q)", o.Label)
+		if o.Label == "a card" {
+			t.Fatalf("NoLooking$ leg is blind though the head revealed: %+v", o)
+		}
+		obj := e.G.Obj(o.Obj)
+		if obj == nil || obj.Face() == nil || obj.Face().Name == "" {
+			t.Fatalf("NoLooking$ leg option %d object %d has no named printed face", o.Index, o.Obj)
+		}
+		if o.Label != obj.Face().Name {
+			t.Fatalf("NoLooking$ leg label %q != printed name %q", o.Label, obj.Face().Name)
 		}
 	}
 	submitChoices(t, e, d.Options[0].Index)
@@ -499,8 +525,9 @@ func TestChangeZoneDifferentNamesRestrictsToOnePerName(t *testing.T) {
 		t.Fatalf("distinct-name answer rejected: %v", err)
 	}
 	submitChoices(t, e, forest.Index, mountain.Index)
-	// Leg 1: the OPPONENT chooses which two go to the graveyard (blind
-	// options, the NoLooking$ legs).
+	// Leg 1: the OPPONENT chooses which two go to the graveyard. The head
+	// Reveal$ed the finds, so the opponent's NoLooking$ leg is named too
+	// (task fb-20260922T235033Z).
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Player != 1 {
 		t.Fatalf("leg1 pending = %+v, want the opponent's search ask", d)
