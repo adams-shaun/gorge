@@ -358,6 +358,7 @@ func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 		"(*Engine).settleReplacementQueue":                 "handleReplacement's queue tail, factored out: hands the parked resolution frame to queued in-resolution competitions or chains it behind a nested ask's frame, and resumes it once the queue drains (rules/replacement.go)",
 		"(*Engine).resolveReplacementBody":                 "a ReplaceWith$ body resolved outside any resolution pass (combat damage): links the body's reported continuations after the ask it posed, or queues the whole body at the tail of an already-pending chain instead of overwriting that ask (rules/replacement.go)",
 		"(*Engine).lifeReplacementDraw":                    "the GainLife→Draw replacement's suspension-aware draw loop: parks the remaining card count on the Ask-installed Dredge resume point so the answered dredge re-drives the rest instead of posing a second ask over the outstanding one (rules/replacement.go)",
+		"(*Engine).settleTokenElection":                    "the CreateToken replacement election's answer tail: resumes the resolution the election suspended once the plan settles, or chains it behind a nested ask the settle posed (rules/replacement.go)",
 	}
 	writers := resumeFieldWriters(t)
 
