@@ -491,6 +491,7 @@ func init() {
 	predicates["withSoulbond"] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return objectHasKeyword(o, "Soulbond")
 	}
+	keywordPredicates["withSoulbond"] = keywordPredicate{keyword: "Soulbond"}
 }
 
 // attachedBy reports whether o is the permanent src is currently attached

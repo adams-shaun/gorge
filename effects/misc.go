@@ -1764,8 +1764,8 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 // spec matches nothing and an EQ0 compare ("restrict unless X is ABSENT")
 // would read count 0 unconditionally and blanket-restrict. The one corpus row
 // (Flowering Lumberknot, `IsPresent$ Creature.PairedWith+withSoulbond |
-// PresentCompare$ EQ0`) names the unimplemented `withSoulbond` predicate, so
-// it stays skipped -- the permissive direction -- rather than over-restricting.
+// PresentCompare$ EQ0`) now resolves through the paired creature's Soulbond
+// keyword, rather than treating the predicate as unread.
 // UnknownPredicates (this package) is the same census the matcher's
 // recognisedPredicate classifier drives, so the check cannot drift from what
 // countPresent really resolves.
