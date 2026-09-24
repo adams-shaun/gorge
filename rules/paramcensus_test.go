@@ -2798,12 +2798,14 @@ var knownUnsupportedParams = map[string][]string{
 	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
 	"Conjurer's Mantle":            {"param:api:Dig.RestRandomOrder"},
 	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
-	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted
-	// when the ChangeZone AttachedTo$ read landed (effects/zone.go
-	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
-	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
-	// unread.
-	"Gift of Immortality":       {"param:api:ChangeZone.ForgetOtherRemembered"},
+	// Gift of Immortality's param:api:ChangeZone.ForgetOtherRemembered label
+	// (and the whole entry) was deleted when the ForgetOtherRemembered read
+	// landed (ticket agent-20260919T181318Z-316d7b2a): effChangeZone and
+	// effChangeZoneAll clear the prior remembered set before re-remembering
+	// (RememberChanged$), pinned end to end on the real corpus carrier The
+	// Mimeoplasm in rules/mimeoplasm_forget_test.go (its MimeoExile /
+	// MimeoChooseCopy chain) and at the bookkeeping choke points in
+	// effects/forget_remembered_test.go.
 	"Hercules, Olympian Hero":   {"param:trig:DamageDoneOnce.FirstTime"},
 	"Haakon, Stromgald Scourge": {"param:stat:Continuous.MayPlay.ValidAfterStack"},
 	"Heroic Return":             {"param:api:ChangeZone.ValidTgtsDesc"},

@@ -463,6 +463,13 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	if c.ChoiceDone {
 		answered := c.Choice
 		choiceRecord(h, c, sa, c.Choice, false)
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChosen"]), "True") {
+			for _, picked := range c.Choice {
+				if !picked.IsPlayer {
+					forgetRememberedOne(h, c, picked.Obj)
+				}
+			}
+		}
 		c.ChoiceDone, c.Choice = false, nil
 		// c.ChoiceTarget is the asking pair's flat index, so choosers[i/groups]
 		// is who answered this.

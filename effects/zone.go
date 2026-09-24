@@ -568,6 +568,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
 	// ForgetOtherTargets$ True (Journey to Nowhere, Leonin Relic-Warder):
 	// Forge's ChangeZoneEffect.forgetOtherTargets -- forget every previously
 	// remembered object before this effect resolves, so a source that
@@ -4281,6 +4285,30 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		return &placements[len(placements)-1]
 	}
 	players := changeZoneAllPlayers(h, c, sa)
+	// ForgetOtherRemembered$ True (The Mimeoplasm's MimeoExile, 11 corpus
+	// ChangeZoneAll carriers): Forge forgets every previously remembered
+	// object before this effect resolves, so a setup that remembered its own
+	// candidates (the ChooseCard's RememberChosen$) plus stale memory from an
+	// earlier resolution leaves exactly the moved set behind (RememberChanged$
+	// re-remembers it). The ChangeType$ Card.IsRemembered selector reads the
+	// very memory the clear drops, so the matched set is snapshotted BEFORE
+	// the clear and the sweep below matches against the snapshot -- matching
+	// after the clear would sweep nothing.
+	var preMatched map[state.ObjID]bool
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
+		preMatched = make(map[state.ObjID]bool)
+		for _, z := range from {
+			for _, p := range players {
+				for _, id := range g.Zone(z, p) {
+					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+						preMatched[id] = true
+					}
+				}
+			}
+		}
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
 	// RandomOrder$ True (task mordorparams1, Gríma, Saruman's Footman's
 	// "Then that player puts the exiled cards that weren't cast this way on
 	// the bottom of their library in a random order"): the destination
@@ -4332,13 +4360,17 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 			findOwnerMoved(owner).ids = append(findOwnerMoved(owner).ids, id)
 		}
-		// ChangeZoneAll's remembered movement is needed for the
-		// exiled-with-this-source cleanup/tally shape (Valakut
-		// Exploration). Other ChangeZoneAll RememberChanged forms
-		// remain outside this narrow provenance feature.
-		if strings.EqualFold(sa.Params["RememberChanged"], "True") &&
-			strings.Contains(sa.Params["ChangeType"], "ExiledWithSource") {
+		// RememberChanged$ True re-remembers the moved cards in both halves
+		// (the ctx list the chain's later sub-abilities read and the source's
+		// event-backed persistent list a later resolution's IsRemembered /
+		// Remembered$ head reads -- The Mimeoplasm's MimeoChooseCopy, Gift of
+		// Immortality's return trigger). Previously this recorded the ctx
+		// entries alone and only for the ExiledWithSource provenance shape
+		// (Valakut Exploration); the persistent half is what the Mimeoplasm
+		// chain's IsRemembered/Remembered$CardPower reads need.
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 	}
 	if randomOrder {
@@ -4361,7 +4393,11 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				// Snapshot the zone exactly like the emit loop does.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
-					if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					if preMatched != nil {
+						if !preMatched[id] {
+							continue
+						}
+					} else if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						continue
 					}
 					owner := p
@@ -4407,7 +4443,13 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 					if changeCap >= 0 && int32(len(moved)) >= changeCap {
 						break sweep
 					}
-					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					matched := false
+					if preMatched != nil {
+						matched = preMatched[id]
+					} else {
+						matched = MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller))
+					}
+					if matched {
 						emitMove(id, z, p)
 					}
 				}
