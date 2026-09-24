@@ -2649,7 +2649,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		}
 		imprint(h, c, sa)
 		if strings.EqualFold(sa.Params["ClearImprinted"], "True") && c.Source != 0 {
-			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+			// Only a real clear is an event (the ClearRemembered$
+			// discipline effCleanup documents): clearing lists that are
+			// already empty is a no-op, and logging it as a state change hid
+			// a no-progress Repeat from effRepeat's guard (Rally the Horde
+			// over an empty library, cardfuzz batch8 line 4).
+			if o := h.Game().Obj(c.Source); o != nil &&
+				(len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
+				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+			}
 		}
 		if h.Suspended() {
 			// A sub-ability in this chain posed a mid-resolution ask and

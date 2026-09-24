@@ -1141,6 +1141,12 @@ type Engine struct {
 	// madnessChoices parks discard moves while the card's owner decides whether
 	// to apply Madness's optional hand-to-exile replacement.
 	madnessChoices []events.Event
+	// madnessSuspended marks that the FRONT madness ask was posed through
+	// Engine.Ask and so suspended the stack resolution whose discard it
+	// interrupted (e.resume is that suspension's frame). The last answer of
+	// the queue resumes it. A bool rather than the frame pointer so a clone,
+	// whose resume chain is deep-copied, still resumes its own frame.
+	madnessSuspended bool
 	// applyingMadnessChoice suppresses only the Madness interposition while an
 	// answered choice emits its selected destination.
 	applyingMadnessChoice bool
@@ -2471,7 +2477,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.combatHitsThisTurn = nil
 		e.counterAddsThisTurn = nil
 	}
-	e.loop.observe(stored)
+	e.loop.observeFrom(stored, e.damaging)
 	// setname.go: keep the layer-3 rename table the filter tier reads in step
 	// with the board. Gated so a match with no SetName$ carrier pays one
 	// branch.

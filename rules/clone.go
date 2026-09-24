@@ -809,6 +809,7 @@ func (e *Engine) Clone() *Engine {
 		}
 	}
 	c.madnessChoices = append([]events.Event(nil), e.madnessChoices...)
+	c.madnessSuspended = e.madnessSuspended
 	return c
 }
 

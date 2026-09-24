@@ -3083,6 +3083,19 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 			if !evaluated || !holds {
 				break
 			}
+			if !optional && marked && askCount(h) == asksBefore && !stateChangedSince(h, mark) {
+				// A gate-governed repeat whose iteration posed no decision and
+				// changed nothing re-runs the identical body from the identical
+				// state: the gate holds identically forever, so every further
+				// iteration up to the cap is the same no-op (Rally the Horde
+				// over an empty library: nothing is exiled, "the last card
+				// exiled isn't a land" keeps holding -- 1000 empty passes, a
+				// livelock to the watcher; cardfuzz batch8 line 4). End the
+				// loop here, the optional arm's CR 732.2a shortcut below.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "the repeated process changed nothing; it is not repeated again"})
+				break
+			}
 		}
 		if optional {
 			if i+1 >= n {

@@ -168,13 +168,32 @@ func (e *Engine) askMadnessReplacement(owner state.PlayerID) {
 	if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil {
 		name = o.Face().Name
 	}
-	e.ask(&decision.Decision{Player: owner, Kind: decision.KReplacement,
+	d := &decision.Decision{Player: owner, Kind: decision.KReplacement,
 		Min: 1, Max: 1, Source: ev.Obj,
 		Prompt: "Exile " + name + " instead of discarding it to use madness?",
 		Options: []decision.Option{
 			{Index: 0, Kind: "madness_exile", Label: "Exile it (madness)", Obj: ev.Obj},
 			{Index: 1, Kind: "madness_graveyard", Label: "Discard it normally", Obj: ev.Obj},
-		}})
+		}}
+	// A discard made by a RESOLVING spell or ability (Kindle the Carnage's
+	// random discard, a Repeat body) must suspend that resolution on the
+	// madness ask, exactly as askReplacementChoice and tokenElectionAsk do.
+	// A bare e.ask left the effect chain running past the park: the next
+	// sub-ability's own question (Kindle's "Repeat this process?") went
+	// through Engine.Ask and displaced the madness ask, whose answer was
+	// then never taken -- the parked discard never moved, the card stayed
+	// in hand and was "discarded" again on every repeat, and the bot
+	// repeated forever (cardfuzz batch8 line 1). Through Engine.Ask the
+	// effects.Resolve loops record their continuation, and the last madness
+	// answer resumes it (handleMadnessReplacement). A pose already under a
+	// resume record, or with nothing resolving, keeps the plain ask.
+	if e.resume == nil && e.pending == nil && (e.resolvingObj != 0 || e.applyingReplacement) {
+		d.ResumeKind = "replacement"
+		e.Ask(d)
+		e.madnessSuspended = e.resume != nil
+		return
+	}
+	e.ask(d)
 }
 
 func (e *Engine) handleMadnessReplacement(d *decision.Decision, in decision.Intent) {
@@ -192,6 +211,15 @@ func (e *Engine) handleMadnessReplacement(d *decision.Decision, in decision.Inte
 	e.emit(ev)
 	e.applyingMadnessChoice = false
 	e.askNextReplacementChoice()
+	// The last madness answer of a queue whose first ask suspended a
+	// resolution resumes it (askMadnessReplacement). While more choices are
+	// outstanding the frame stays parked on e.resume.
+	if e.madnessSuspended && e.pending == nil && len(e.madnessChoices) == 0 && len(e.replChoices) == 0 {
+		e.madnessSuspended = false
+		// The token election's answer tail is the same settle: resume the
+		// frame still parked on e.resume once nothing else is outstanding.
+		e.settleTokenElection(e.resume)
+	}
 }
 
 // offerMadness queues the triggered ability created by accepting madness's
