@@ -2861,12 +2861,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if printedOK {
 					out = append(out, decision.Option{Index: len(out), Kind: "ability",
 						Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
-						Grant: e.abilityGrant(id, ab)})
+						Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach"})
 				}
 				if altOK {
 					out = append(out, decision.Option{Index: len(out), Kind: "ability",
 						Label: abFace.Name + ": " + ab.Params["SpellDescription"] + " (alternate cost)",
-						Obj:   id, Ability: i, AltCostIndex: 1, Grant: e.abilityGrant(id, ab)})
+						Obj:   id, Ability: i, AltCostIndex: 1, Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach"})
 				}
 			}
 			// Keyword-granted cycling (CR 613.1f): a layer-6 AddKeyword$

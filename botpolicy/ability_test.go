@@ -18,7 +18,7 @@ import (
 func abilityPriority(src state.ObjID, lab string) *decision.Decision {
 	return &decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
-			{Index: 0, Kind: "ability", Obj: src, Label: lab},
+			{Index: 0, Kind: "ability", Obj: src, Label: lab, Attach: true},
 			{Index: 1, Kind: "pass"},
 		}}
 }

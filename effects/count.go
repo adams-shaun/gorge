@@ -1876,6 +1876,28 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			}
 		}
 		return n, true
+	case "LifeYouLostThisTurn":
+		// The total life the controller LOST this turn -- Luminarch
+		// Ascension's and Boarded Window's end-step CheckSVar$ gate ("if you
+		// didn't lose life this turn"). The same log-derived Host fold
+		// LifeOppsLostThisTurn sums over the opponents, read for the
+		// controller alone, so a replay derives the same count. Unmodelled,
+		// the gate failed closed and Luminarch Ascension never once gained a
+		// quest counter (cardfuzz coverage audit).
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return h.LifeLostThisTurn(c.Controller), true
+	case "Party":
+		// CR 700.8: the controller's party -- one each of Cleric, Rogue,
+		// Warrior and Wizard among the creatures they control, a creature
+		// filling at most one role (partySize). 39 raw corpus carriers
+		// (Archpriest of Iona, Squad Commander, Nimble Trapfinder's gates and
+		// every "for each creature in your party" amount).
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return partySize(g, c), true
 	case "LifeYouGainedThisTurn":
 		// The total life the controller GAINED this turn — the CheckSVar$ gate
 		// behind the "At the beginning of each end step, if you gained 4 or
@@ -4473,4 +4495,54 @@ func sumCounters(cs []state.Counter) int32 {
 		}
 	}
 	return n
+}
+
+// partyRoles are CR 700.8's four party roles.
+var partyRoles = [4]string{"Cleric", "Rogue", "Warrior", "Wizard"}
+
+// partySize is CR 700.8's party size for c's controller: the largest number
+// of distinct roles among Cleric, Rogue, Warrior and Wizard that can be
+// filled by DIFFERENT creatures they control (a Changeling or a multi-role
+// creature fills only one). Each creature's role set is read through the
+// ordinary spec matcher (derived types, Changeling), then a 16-state subset
+// walk finds the best assignment -- deterministic, no map ranged.
+func partySize(g *state.Game, c *Ctx) int32 {
+	sc := c.SpecContext(c.Controller)
+	var reach [16]bool
+	reach[0] = true
+	for _, id := range g.Zone(state.ZBattlefield, c.Controller) {
+		if !MatchesSpecCtx(g, "Creature", id, sc) {
+			continue
+		}
+		var roles uint8
+		for i, r := range partyRoles {
+			if MatchesSpecCtx(g, "Creature."+r, id, sc) {
+				roles |= 1 << i
+			}
+		}
+		if roles == 0 {
+			continue
+		}
+		next := reach
+		for set := 0; set < 16; set++ {
+			if !reach[set] {
+				continue
+			}
+			for i := 0; i < 4; i++ {
+				if roles&(1<<i) != 0 && set&(1<<i) == 0 {
+					next[set|1<<i] = true
+				}
+			}
+		}
+		reach = next
+	}
+	best := 0
+	for set := 0; set < 16; set++ {
+		if reach[set] {
+			if n := bits.OnesCount8(uint8(set)); n > best {
+				best = n
+			}
+		}
+	}
+	return int32(best)
 }

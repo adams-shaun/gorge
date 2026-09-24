@@ -1309,6 +1309,9 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast, 
 				effects.SetSVars(&pt.Ctx, src.Face().SVars)
 			}
 		}
+		if e.ManaAbilityHook != nil {
+			e.ManaAbilityHook(pt.Controller, pt.Source, pt.SA)
+		}
 		pt = e.rewriteChosenMana(pt)
 		if e.askTriggeredManaColor(pt, triggers[i+1:], cast, cumulative) {
 			return
@@ -1562,6 +1565,9 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.ObjID, ma, original *cards.SA, gained gainedManaRef, cast, payment, interactive bool) {
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
+	}
+	if e.ManaAbilityHook != nil {
+		e.ManaAbilityHook(p, source, original)
 	}
 	// A GAINED mana ability records its activation identity: the same
 	// ManaActivate marker, with IDs[0] naming the foreign card and Amount
