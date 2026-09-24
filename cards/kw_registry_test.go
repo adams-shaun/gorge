@@ -99,6 +99,13 @@ var expandedHeads = []string{
 	// creature, charge otherwise). Added after the split; the pre-split
 	// switch never expanded it (cards/kw_sunburst.go).
 	"Sunburst",
+	// Ninjutsu (CR 702.49, task kw-ninjutsu): the printed K:Ninjutsu:<cost>
+	// line expanded into a hand-zone activated ability whose Cost$ carries
+	// the printed mana cost plus Return<1/Creature.YouCtrl+attacking+unblocked>
+	// and whose body puts the card onto the battlefield tapped and attacking
+	// (cards/kw_ninjutsu.go). Added after the split; the pre-split switch
+	// never had it.
+	"Ninjutsu",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

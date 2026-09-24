@@ -3011,7 +3011,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				if pc.stackObj != 0 {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
 					e.cast = pc
-					e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
+					e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
 					e.cast = nil
 				}
 			}
@@ -3687,6 +3687,24 @@ func (e *Engine) resolveTop() {
 			// alltargeted1: the cast flow's pre-asked SubAbility$ target
 			// answers, consumed line by line by chosenTargetsFor.
 			SubPreAsk: e.castSubTargets[id]}
+		// CR 702.49b: a K:Ninjutsu permanent enters attacking the same player
+		// (planeswalker or battle) the returned creature was attacking. The
+		// activator captured that defender when the Return cost was paid
+		// (rules/cast.go's returncost arm) and it rides the AbilityPush event's
+		// IDs, which events.Apply folded into o.Remembered as a player target.
+		// Re-bind it here so effects/zone.go's Attacking$ True rider (which
+		// reads Ctx.DefendingPlayer) places the permanent against the right
+		// defender. Only a ninjutsu activation carries the tag, so no other
+		// resolution's Remembered player is reinterpreted as a defending
+		// player.
+		if ab := o.Ability; ab != nil && saHasKeyword(ab, "Ninjutsu") {
+			for _, rem := range o.Remembered {
+				if rem.IsPlayer {
+					ctx.DefendingPlayer = rem
+					break
+				}
+			}
+		}
 		// The SA whose targeting the placement ask actually offered, not
 		// blindly the resolving SA: for a non-modal ability that is the outer
 		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
