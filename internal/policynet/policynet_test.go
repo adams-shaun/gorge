@@ -555,6 +555,21 @@ func TestLoaderPrefersTheTeachersCandidateValue(t *testing.T) {
 	if !got.Labelled || !got.Preferred || got.Value != -0.1 {
 		t.Fatalf("teacher-preferred option target = %+v, want {Labelled:true Preferred:true Value:-0.1}", got)
 	}
+	// The value head's teacher target is the same chosen candidate's mean.
+	if ex := examples[0]; !ex.HasTeacherValue || ex.TeacherValue != -0.1 {
+		t.Fatalf("TeacherValue %g (has %v), want -0.1 (true)", ex.TeacherValue, ex.HasTeacherValue)
+	}
+
+	// An out-of-range teacher choice has no teacher value.
+	rec.TeacherChoice = 5
+	path = writeCorpus(t, []labelRecord{rec}, false)
+	examples, _, err = Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ex := examples[0]; ex.HasTeacherValue || ex.TeacherValue != 0 {
+		t.Fatalf("out-of-range teacher choice: TeacherValue %g (has %v), want 0 (false)", ex.TeacherValue, ex.HasTeacherValue)
+	}
 }
 
 func TestLoaderRejectsWrongSchema(t *testing.T) {
