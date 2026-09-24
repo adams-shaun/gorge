@@ -135,8 +135,11 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 // failure: non-termination, a replay error or a chain divergence.
 func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, tokens map[string]*cards.Card, nameUniverse []*cards.Card, verify bool) bool {
 	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: tokens, NameUniverse: nameUniverse}
-	e := rules.New(cfg)
+	e := rules.NewStartingPlayerChoice(cfg)
 	b := seat.NewBot(seed)
+	// CR 103.1's winner-chooses ask: pose it so the bot answers it (the
+	// recorded Intent replays through the log's DecisionAsk).
+	e.AskStartingPlayer()
 	e.Advance()
 
 	n, err := driveGame(e, b)

@@ -358,9 +358,8 @@ func TestEveryKind(t *testing.T) {
 		}
 	}
 
-	// Trigger optional: no more coin. The policy accepts an optional trigger
-	// (a controller benefit it cannot read), so every seed answers "yes"
-	// (index 0), deterministic rather than a coin.
+	// Printed optional triggers and Miracle retain the deterministic accept;
+	// only marked api:Effect OptionalDecider$ elections decline.
 	opt := decision.Decision{Seq: 10, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Obj: 50},
@@ -369,7 +368,7 @@ func TestEveryKind(t *testing.T) {
 	for seed := uint64(0); seed < 40; seed++ {
 		in := Decide(Board{}, &opt, rng(seed))
 		if len(in.Choices) != 1 || in.Choices[0] != 0 {
-			t.Fatalf("seed %d: trigger optional = %+v, want the deterministic accept (option 0, yes)", seed, in)
+			t.Fatalf("seed %d: trigger optional = %+v, want deterministic accept", seed, in)
 		}
 	}
 }

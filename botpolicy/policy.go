@@ -147,6 +147,18 @@ type Board struct {
 	// the view half and g.Active on the game half, the same field both
 	// halves already agree is public.
 	MyTurn bool
+	// LibrarySize and HandSize are the deciding seat's own library and hand
+	// card counts -- public counts (view.PlayerView's library_size and
+	// hand_size), so carrying them is no information leak (Ruling C0). The
+	// RepeatOptional$ election arm reads them: every corpus carrier whose
+	// do/while body consumes a zone (Ad Nauseam and Dance with Calamity dig
+	// the library, Kindle the Carnage discards from hand) makes no progress
+	// once that zone is empty, and repeating it then is a legal but endless
+	// loop (the the-epic-storm botbench livelock). Filled from
+	// len(g.Zone(...)) on the game half and the projected PlayerView on the
+	// view half.
+	LibrarySize int32
+	HandSize    int32
 }
 
 // Commander is the Board's per-commander commander-format bookkeeping,
@@ -252,9 +264,9 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     supply.
 //   - KTriggerOrder: a permutation of the offered indices drawn from the
 //     bot's own rng, so ordering paths get fuzz coverage too.
-//   - KTriggerOptional: a coin from the bot's own rng between the two
-//     offered options ("yes" first, "no" second, per askTriggerOptional),
-//     so both branches get coverage.
+//   - KTriggerOptional: accept printed optional triggers and Miracle, but
+//     decline only api:Effect OptionalDecider$ elections (EffectOptional).
+//     Both choices are deterministic and consume no rng.
 //   - KChoose: every option in one decision shares a Kind (Option.Kind, not
 //     d.Kind) that says what is being chosen. "x" takes the highest option
 //     (the most an {X} cost can pay for -- options ascend); "exile"/
@@ -437,13 +449,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 
 	case decision.KTriggerOptional:
-		// dp1: no more coin flip. An optional trigger is a controller
-		// benefit the policy cannot read, so it accepts it (see the rule
-		// stated in trigger.go) rather than gambling -- deterministic, so the same
-		// game state always answers the same way and the coin's variance is
-		// gone. The "yes" option is index 0 (askTriggerOptional builds
-		// yes-first, per the kind's contract).
-		if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
+		// Only the api:Effect delayed body's no-host election defaults to
+		// decline. Printed triggers and Miracle retain dp1's accept policy.
+		if d.EffectOptional {
+			in.Choices = declineOptional(d)
+		} else if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
 			in.Choices = []int{d.Options[0].Index}
 		}
 		return Clamp(d, in)
@@ -481,6 +491,24 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 		return Clamp(d, in)
 
+	case decision.KStartingPlayer:
+		// CR 103.1's second half: the winner of the toss chooses who takes the
+		// first turn. The bot names itself -- the deterministic default, the
+		// pre-choice seat, consuming no rng. The kind's contract is that the
+		// self-choice is the option whose Player equals the asking seat; if it
+		// is somehow absent, option 0 (the first offered seat in turn order)
+		// is the clamp-legal fallback, the same R-9 shape every kind shares.
+		if len(d.Options) > 0 {
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Player == d.Player {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
+		}
+		return Clamp(d, in)
+
 	case decision.KChoose:
 		// An UnlessCost$ mana window (ResumeKind "unless_mana") is a payment
 		// continuation, not a generic choose: activate one source at a time
@@ -508,8 +536,14 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if d.ResumeKind == "repeat_optional" {
 			// Repeat while life remains above the deterministic safety margin;
 			// this is deliberately conservative for Ad Nauseam and legal for
-			// every yes/no RepeatOptional$ election.
-			if b.Life[d.Player] > 5 {
+			// every yes/no RepeatOptional$ election. Stop, too, once the
+			// deciding seat's library or hand is empty: the carriers' bodies
+			// dig the library or discard from hand, so a further iteration
+			// reveals/discards nothing and repeating it forever is a no-
+			// progress loop (a 0-mana-value library drains Ad Nauseam without
+			// any life loss, so the life gate alone never fires). For the
+			// carriers that consume neither zone this only stops early.
+			if b.Life[d.Player] > 5 && b.LibrarySize > 0 && b.HandSize > 0 {
 				in.Choices = []int{d.Options[0].Index}
 			} else if len(d.Options) > 1 {
 				in.Choices = []int{d.Options[1].Index}

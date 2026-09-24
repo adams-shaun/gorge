@@ -12,6 +12,7 @@
   import DvrBar from '../components/DvrBar.svelte';
   import MatchList from '../components/MatchList.svelte';
   import ConcedeControl from '../components/ConcedeControl.svelte';
+  import RestartControl from '../components/RestartControl.svelte';
   import SeatPanel from '../components/SeatPanel.svelte';
   import HandFan from '../components/HandFan.svelte';
   import {
@@ -20,6 +21,7 @@
     toneOf,
   } from '../lib/seatpanel.svelte';
   import { optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
+  import { rematchDecks, startRematch } from '../lib/playvsbot';
   import { stuckDecision } from '../lib/prompt';
   import { loadLogShown, saveLogShown, type LogScope } from '../lib/logshown';
   import { safeStorage } from '../lib/storage';
@@ -112,6 +114,55 @@
   );
   const mulligan = $derived(panel ? mulliganPhase(panel.active) : null);
   const concede = $derived(panel?.concedeOption ?? null);
+
+  // The table's own public config (format, bot_policy, mulligans), for the
+  // restart control's POST. TableInfo always carries all three.
+  const tableInfo = $derived(tables.list.find((t) => t.info.id === table)?.info ?? null);
+
+  // Restart is offered only on the play-vs-bot shape createGame builds:
+  // a live seated 2-seat table, exactly one of those seats a real person,
+  // and that person is the viewer. A spectator, a finished /m/:match
+  // replay, a two-human table and the pre-game mulligan round get none
+  // (the mulligan round is not yet a game to restart). Offering it does
+  // NOT depend on a concede being pending — the useful moment is any time
+  // mid-game. The seat that is the human is seat 0 in createGame's
+  // rotation, but the predicate reads the wire flags, not a hard-coded
+  // index, so an inverted assignment still finds it.
+  const restartable = $derived.by(() => {
+    if (!liveSeated || seatCtx === null || m.match === null || mulligan !== null) return false;
+    if (m.seats.length !== 2) return false;
+    // Exactly ONE human seat, and it is the viewer (a two-human table and a
+    // viewer sitting in the bot seat both fail here).
+    if (m.seats.filter((s) => s.human).length !== 1) return false;
+    return m.seats.findIndex((s) => s.human) === seatCtx.seat;
+  });
+
+  let restartConfirming = $state(false);
+  let restartBusy = $state(false);
+  let restartError = $state<string | null>(null);
+
+  async function restart() {
+    if (tableInfo === null) return;
+    restartBusy = true;
+    restartError = null;
+    try {
+      // The human may occupy either seat on a hosted table; preserve deck
+      // roles rather than assuming createGame's usual seat-0 assignment.
+      const { humanDeck, botDeck } = rematchDecks(m.seats, seatCtx!.seat);
+      const join = await startRematch(
+        tableInfo.format as 'constructed' | 'commander',
+        humanDeck,
+        botDeck,
+        tableInfo.bot_policy,
+        tableInfo.mulligans,
+      );
+      window.location.href = join;
+    } catch (e) {
+      restartError = e instanceof Error ? e.message : String(e);
+      restartConfirming = false;
+      restartBusy = false;
+    }
+  }
   // fb-20260917T231628Z: the log show/hide control moved into the OPTIONS drop
   // (PlaySettingsPanel's Layout section) for ordinary seated play. The drop is
   // mounted only when BoardStage's `controls` object is non-null, so the rail's
@@ -350,6 +401,17 @@
           options={boardOptions}
         >
           {#snippet logbar()}
+            {#if restartable}
+              <RestartControl
+                confirming={restartConfirming}
+                busy={restartBusy}
+                onArm={() => { restartConfirming = true; restartError = null; }}
+                onConfirm={() => void restart()}
+              />
+              {#if restartError}
+                <span class="restart-error" role="alert">{restartError}</span>
+              {/if}
+            {/if}
             {#if panel && concede}
               <ConcedeControl
                 confirming={panel.confirming}
@@ -520,5 +582,12 @@
   }
   .load-error a {
     color: var(--mana-u);
+  }
+  /* The restart POST's error, shown inline in the rail's logbar row beside
+     the control that raised it (a 404 when CreateGame is not armed). */
+  .restart-error {
+    margin-left: var(--sp-2);
+    color: var(--danger);
+    font-size: var(--t-12);
   }
 </style>

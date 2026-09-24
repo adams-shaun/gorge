@@ -38,22 +38,16 @@ type Player struct {
 	// and a replay derives both identically.
 	Snow Mana
 
-	// TypedMana partitions the floating pool by the PRODUCER's type (task
-	// castfilter2): TypedMana[k][i] counts how many of the Pool[i] mana
-	// units were produced by a permanent of the k-th tagged producer type
-	// (0 Treasure, 1 Cave, 2 Desert — the TypedTreasure/TypedCave/
-	// TypedDesert constants, in TypedManaTags order).
-	// It is the per-unit producer provenance the filtered
-	// Count$CastTotalManaSpent Treasure/Cave/Desert heads read (Marut, Bat
-	// Colony, Cataclysmic Prospecting): the payment consumes a plain unit
-	// before a typed one and a typed one before snow, so the spent typed
-	// delta is exactly what the search did. Written only by the ManaAdd
-	// event's "<Tag><colour>" Counter form and cleared with the pool by
-	// ManaClear, so TypedMana[k][i] <= Pool[i] always holds and a replay
-	// derives both identically. Snow does NOT live here: it keeps its
-	// historical field and machinery untouched. A [3]Mana array is plain
-	// value data, so Clone's struct copy carries it for free.
-	TypedMana [3]Mana
+	// TypedMana retains the four historical public producer tallies: Treasure,
+	// Cave, Desert and Artifact-only. Its first three tallies include mana
+	// produced by artifacts of the same type; ArtifactTyped marks that subset.
+	// Each unit is counted only once in the pool. ManaUnits derives the
+	// exclusive payment partition; no rules-side state mutation is needed.
+	TypedMana [4]Mana
+	// ArtifactTyped is the Artifact subset of each Treasure/Cave/Desert
+	// tally. Each unit appears once in TypedMana and, when produced by an
+	// Artifact, also here. Both are folded only by events.Apply.
+	ArtifactTyped [3]Mana
 
 	// PersistentMana parallels Pool slot for slot: PersistentMana[i] counts
 	// how many of the Pool[i] mana units carry PersistentMana$ True — mana
@@ -213,6 +207,22 @@ func (p *Player) AddCounter(kind string, n int32) {
 	if n > 0 {
 		p.Counters = append(p.Counters, Counter{Kind: kind, N: n})
 	}
+}
+
+// ManaUnits derives the exclusive payment partition from overlapping type
+// and Artifact-bit tallies without mutating state.
+func (p Player) ManaUnits() [7]Mana {
+	var units [7]Mana
+	for t := range p.TypedMana {
+		units[t] = p.TypedMana[t]
+	}
+	for t := 0; t < 3; t++ {
+		units[t+TypedArtifactTreasure] = p.ArtifactTyped[t]
+		for i := range units[t] {
+			units[t][i] -= p.ArtifactTyped[t][i]
+		}
+	}
+	return units
 }
 
 // Game is the complete authoritative state. Everything a client sees is a
@@ -429,6 +439,18 @@ type DelayedTrigger struct {
 	// registering event's Text ("|TT=<turn>") because the event gains no
 	// field (Ruling T20-a's field-reuse precedent).
 	MaxTurn int32
+	// OptionalSpec is an api:Effect Triggers$ body's OptionalDecider$ spec
+	// (Beck's "whenever a creature enters this turn, you may draw a card").
+	// An Effect trigger whose body is optional must be REGISTERED like any
+	// other Effect trigger and ask its yes/no when the minted ability
+	// resolves; withholding it fires the body mandatorily, the opposite of
+	// the card text. The spec has to be captured at registration time rather
+	// than re-read from the trigger body at fire time because a Mode$ Phase
+	// registration's body is never re-parsed (checkDelayedTriggers fires it
+	// on the step alone), so it rides the DelayedRegister event's Text
+	// ("|OD=<spec>") the same way ValidPlayer$ and MaxTurn do. Empty for
+	// every registration with no election.
+	OptionalSpec string
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:
@@ -452,7 +474,24 @@ func NewGameLife(names []string, life int32, objectCapacity ...int) *Game {
 	if len(objectCapacity) > 0 && objectCapacity[0] > 0 {
 		capacity = objectCapacity[0]
 	}
-	g := &Game{NextID: 1, Objs: make([]Object, 0, capacity), zones: make([][]ObjID, numZones*len(names))}
+	return NewGameInto(names, life, capacity, nil)
+}
+
+// NewGameInto is NewGameLife with an explicit object capacity, backed by a
+// spent object arena a batch runner recycled from a finished game
+// (rules.Engine.Release). The arena is reused only when it can hold capacity
+// objects, and it is re-capped to exactly capacity, so Objs grows at the same
+// points a fresh arena would. AddObject overwrites every slot it claims with
+// a fresh Object, so spare's contents are never read; its caller must hold no
+// other reference into it.
+func NewGameInto(names []string, life int32, capacity int, spare []Object) *Game {
+	objs := spare[:0]
+	if capacity > 0 && cap(objs) >= capacity {
+		objs = objs[:0:capacity]
+	} else {
+		objs = make([]Object, 0, capacity)
+	}
+	g := &Game{NextID: 1, Objs: objs, zones: make([][]ObjID, numZones*len(names))}
 	for i, n := range names {
 		g.Players = append(g.Players, Player{ID: PlayerID(i), Name: n, Life: life})
 	}

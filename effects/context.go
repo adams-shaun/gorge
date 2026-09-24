@@ -90,7 +90,7 @@ func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	}
 	if strings.Contains(sa.Params["Defined"], " & ") {
 		var out []state.Target
-		for _, part := range strings.Split(sa.Params["Defined"], " & ") {
+		for part := range strings.SplitSeq(sa.Params["Defined"], " & ") {
 			copy := *sa
 			copy.Params = make(map[string]string, len(sa.Params))
 			for k, v := range sa.Params {
@@ -187,7 +187,7 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return nil, false
 	}
 	var out []state.Target
-	for _, part := range strings.Split(spec, " & ") {
+	for part := range strings.SplitSeq(spec, " & ") {
 		ts, ok := knownDefinedTargets(h, c, strings.TrimSpace(part))
 		if !ok {
 			return nil, false
@@ -1436,14 +1436,14 @@ type validStackToken struct {
 func validStackTokens(spec string) []validStackToken {
 	spellOnly := validStackToken{kt: state.StackKindToken{Kinds: [3]bool{state.StackKindSpell: true}}}
 	var toks []validStackToken
-	for _, t := range strings.Split(spec, ",") {
+	for t := range strings.SplitSeq(spec, ",") {
 		kt, ok := state.StackKindTokenOf(t)
 		if !ok {
 			continue
 		}
 		tok := validStackToken{kt: kt}
 		_, rest, _ := strings.Cut(strings.TrimSpace(t), ".")
-		for _, q := range strings.Split(rest, ".") {
+		for q := range strings.SplitSeq(rest, ".") {
 			q = strings.TrimSpace(q)
 			if inner, is := strings.CutPrefix(q, "sharesNameWith"); is {
 				tok.sharesNameWith = strings.TrimSpace(inner)
@@ -1455,7 +1455,7 @@ func validStackTokens(spec string) []validStackToken {
 			// controller half is recovered here onto tok.kt -- the token
 			// validStackAdmits re-reads through state.StackKindAdmits. The
 			// plain forms keep their exact state-side reading either way.
-			for _, sub := range strings.Split(q, "+") {
+			for sub := range strings.SplitSeq(q, "+") {
 				switch strings.TrimSpace(sub) {
 				case "YouCtrl":
 					tok.kt.YouCtrl = true

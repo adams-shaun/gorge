@@ -228,7 +228,7 @@ func (e *Engine) handleOpening(d *decision.Decision, in decision.Intent) {
 func (e *Engine) registerOpeningEffectTriggers(ef openingEffect, first *cards.SA) {
 	for sa := first; sa != nil; {
 		if sa.API == "Effect" {
-			for _, name := range strings.Fields(sa.Params["Triggers"]) {
+			for name := range strings.FieldsSeq(sa.Params["Triggers"]) {
 				o := e.G.Obj(ef.card)
 				if o == nil || o.Face() == nil {
 					return

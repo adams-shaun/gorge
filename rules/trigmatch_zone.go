@@ -36,7 +36,7 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 	// than a graveyard or exile"): a comma-separated list of zones the move
 	// must NOT originate in. Absent means unrestricted, exactly as before.
 	if excl, ok := t.Params["ExcludedOrigins"]; ok {
-		for _, z := range strings.Split(excl, ",") {
+		for z := range strings.SplitSeq(excl, ",") {
 			if zz := strings.TrimSpace(z); zz != "" && effects.ParseZone(zz) == ev.From {
 				return false
 			}
@@ -260,7 +260,7 @@ func zoneSpecContains(spec string, want state.Zone) bool {
 // existing single-word reading unchanged (the engine-wide comma-Destination$
 // defect is ledgered separately and is not fixed here).
 func zoneDelayedDestinationAdmits(spec string, to state.Zone) bool {
-	for _, part := range strings.Split(spec, ",") {
+	for part := range strings.SplitSeq(spec, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" || part == "Any" {
 			continue

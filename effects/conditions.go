@@ -139,9 +139,21 @@ func CheckSVarHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 			}
 		}
 	}
-	val, ok := EvalCountOK(h, c, body)
-	if !ok {
-		return false, false
+	var val int32
+	if v, ok := sourceRuntimeSVar(g, c, check); ok {
+		// A runtime write (api:StoreSVar) shadows the printed body of the
+		// same name, exactly as NumResolved and the SVar$ head read it.
+		// Without this a repeat-while gate over a StoreSVar flag (Sword of
+		// Dungeons & Dragons: RepeatCheck starts at Number$ 1 and the d20
+		// body stores 0 on a miss) read the printed 1 forever and looped
+		// to the 1000-iteration cap.
+		val = v
+	} else {
+		v, ok := EvalCountOK(h, c, body)
+		if !ok {
+			return false, false
+		}
+		val = v
 	}
 	cmp = strings.TrimSpace(cmp)
 	if cmp == "" {
@@ -978,4 +990,19 @@ func stripWasCastFromHandToken(spec string) string {
 		first = false
 	}
 	return b.String()
+}
+
+// sourceRuntimeSVar is runtimeSVar keyed off an explicit game rather than
+// c.Host, for the gate evaluators that are handed the host directly: the
+// resolving source object's api:StoreSVar store entry under name.
+func sourceRuntimeSVar(g *state.Game, c *Ctx, name string) (int32, bool) {
+	if c == nil || c.Source == 0 || g == nil {
+		return 0, false
+	}
+	o := g.Obj(c.Source)
+	if o == nil {
+		return 0, false
+	}
+	v, ok := o.RuntimeSVars[name]
+	return v, ok
 }

@@ -1424,6 +1424,17 @@ type Ctx struct {
 	CloneChoiceValid bool
 	CloneBecome      state.ObjID
 	CloneBecomeValid bool
+	// ClonePick is the answered DB$ Clone Choices$ <filter> copy-source pick
+	// (the standalone "becomes a copy of any creature" family). rules'
+	// resumeResolution sets it from the recorded answer before re-running the
+	// suspended ability, and ClonePickDone distinguishes "answered" from the
+	// first pass. The asking effect consumes and clears both at the top of its
+	// own walk (the fx42 scoping discipline), so a nested Clone cannot inherit
+	// the outer answer. A no-host run (AskNoHost) keeps the deterministic
+	// first-eligible stand-in without setting either field, so a fuzz run is
+	// byte-identical to the pre-ask build.
+	ClonePick     state.ObjID
+	ClonePickDone bool
 	// TwoPiles is the answered Fact or Fiction pile-split pick (task
 	// twopiles1): the cards the Separator$ player picked into pile A, in the
 	// separator's answer order — the rest of the card set, in the order it
@@ -2533,10 +2544,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// the ask poseUnlessAsk posed — stops the loop here. Compare against
 		// the pre-gate state instead of the raw predicate.
 		wasSuspended := h.Suspended()
+		asksBefore := askCount(h)
 		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
 			runBody, paid = unlessProceed(h, c, sa)
 		}
-		if !wasSuspended && h.Suspended() {
+		// askCount catches the gate ask the host DEFERRED behind an
+		// already-suspended resolution (rules' Engine.Ask: a second shock
+		// land's pay-2-life ask while the first one's is still pending),
+		// which leaves Suspended() unchanged.
+		if (!wasSuspended && h.Suspended()) || askCount(h) != asksBefore {
 			// The gate posed the unless-pay ask and suspended the
 			// resolution: stop here exactly as an asking effect body
 			// would. The resume re-enters THIS SA (the ask's ResumeSA),

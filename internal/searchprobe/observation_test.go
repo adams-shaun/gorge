@@ -83,9 +83,11 @@ func TestCollectorCaptureReusesRedactionStorageWithoutAliasingFrames(t *testing.
 	// 43 was measured at 230574a2; 45f9ac47 then made view.Project run the
 	// viewer's potential-action offer walk (9 allocations inside Project, not
 	// in the Collector's own redaction scratch this test guards). 52 is the
-	// measured post-walk cost with scratch reuse intact.
-	if allocs > 52 {
-		t.Fatalf("Capture allocations = %.0f, want <= 52 after scratch reuse", allocs)
+	// measured post-walk cost with scratch reuse intact. 50 after the offer
+	// walk moved its option list and mana-ability lists onto Engine scratch
+	// (perf-allocs).
+	if allocs > 50 {
+		t.Fatalf("Capture allocations = %.0f, want <= 50 after scratch reuse", allocs)
 	}
 
 	if _, err := c.Capture(e, []events.Event{{Kind: events.Note, Player: 0, Text: "later capture"}}); err != nil {

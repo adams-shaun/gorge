@@ -190,6 +190,12 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 // MoveZone came from a granted (never hand) zone. Only a MayPlayLimit$ cap
 // consults it; an unlimited grant ignores the count.
 func (e *Engine) mayPlaysThisTurn(p state.PlayerID) int {
+	// A log scan back to the turn's start, asked per candidate card: served
+	// from the walk cache inside a legal-actions walk (rules/walkcache.go).
+	return e.mayPlaysThisTurnCached(p)
+}
+
+func (e *Engine) scanMayPlaysThisTurn(p state.PlayerID) int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
@@ -419,7 +425,7 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 // before it could ever be announced (CR 602.1/601.2c: an illegal activation
 // is not offered). Deterministic pure read -- no map range, tokens trimmed.
 func activationGameTypesOK(f Format, raw string) bool {
-	for _, tok := range strings.Split(raw, ",") {
+	for tok := range strings.SplitSeq(raw, ",") {
 		switch strings.TrimSpace(tok) {
 		case "Commander":
 			if f == FormatCommander {
@@ -1060,14 +1066,19 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 		return true
 	}
 	min, _ := e.resolvedTargetBounds(p, id, sa, x)
-	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
-	if min == 0 {
+	// The census is a pure read, so the two answers that never look at it
+	// return before it runs, and the count stops at min (candidatesForLimit).
+	if min <= 0 {
 		return true
 	}
 	if xPending && specNamesXBound(sa.Params["ValidTgts"]) {
 		return true
 	}
-	return len(candidates) >= min
+	ok := len(e.candidatesForLimit(p, id, excludeSelf, sa, true, min)) >= min
+	if walkCacheVerify && ok != (len(e.legalTargetCandidates(p, id, excludeSelf, sa)) >= min) {
+		panic("rules: limited target census disagrees with the full census")
+	}
+	return ok
 }
 
 // charmTargetsAvailable evaluates the possible CR 601.2b mode announcement
@@ -1401,7 +1412,7 @@ func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
 	if spec == "" {
 		return true
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -1418,7 +1429,7 @@ func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
 			continue
 		}
 		ok := true
-		for _, q := range strings.Split(tail, ".") {
+		for q := range strings.SplitSeq(tail, ".") {
 			switch strings.TrimSpace(q) {
 			case "":
 				// A trailing dot ("Activated."): no qualifier, vacuous.
@@ -1499,6 +1510,22 @@ func (e *Engine) adjustLandPlays(p state.PlayerID) int {
 	return total
 }
 
+// manaActivateLabel is the "Activate <name> for mana" option label, built
+// once per card name per Engine: the offer walk mints it for every untapped
+// mana source on every priority walk, and the string is immutable, so each
+// walk's options can share it.
+func (e *Engine) manaActivateLabel(name string) string {
+	if l, ok := e.manaLabels[name]; ok {
+		return l
+	}
+	l := "Activate " + name + " for mana"
+	if e.manaLabels == nil {
+		e.manaLabels = make(map[string]string)
+	}
+	e.manaLabels[name] = l
+	return l
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -1539,7 +1566,15 @@ func aftermathAlternateFace(o *state.Object) *cards.Face {
 // It is a pure read: no event is emitted, no state field is written, and the
 // hypothetical pool lives only in local copies, so replay is untouched.
 func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decision.Option {
-	var out []decision.Option
+	// The walk is a pure read, so every Derived it makes is memoized for the
+	// walk's duration (rules/derivedmemo.go).
+	e.beginDerivedMemo()
+	defer e.endDerivedMemo()
+	// Build into the engine's scratch list (legalOptBuf) and hand the caller
+	// an exactly-sized copy at the end: the growth reallocations stay on the
+	// reusable buffer, never on the returned, retained Options.
+	out := e.legalOptBuf[:0]
+	e.legalOptBuf = nil
 	add := func(kind, label string, obj state.ObjID) {
 		out = append(out, decision.Option{Index: len(out), Kind: kind, Label: label, Obj: obj})
 	}
@@ -1561,6 +1596,29 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	}
 	offerCastable := func(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
 		return e.offerCastableUsing(costStatics.get(), p, id, base, scope, ability, hyp)
+	}
+	// offerCastableAsFace is offerCastable for an alternate-face cast route
+	// (adventure_alt, adventure_recast, room_alt, split_alt, aftermath):
+	// beginCast flips the object to `face` before pricing, so the gate prices
+	// with the object showing that face too (faceprobe.go) -- otherwise a
+	// modifier reading the card's characteristics (Thalia's
+	// Card.nonCreature) matches the wrong face and an unpayable cast is
+	// offered, reversed and re-offered forever. The walk's cached statics are
+	// fetched BEFORE the probe (a lazy first collection inside it would cache
+	// the probed face for the rest of the walk) and re-collected inside it
+	// only when either face carries a cost-modifier static of its own.
+	offerCastableAsFace := func(p state.PlayerID, id state.ObjID, face *cards.Face, base Cost, scope costScope) bool {
+		statics := costStatics.get()
+		var cur *cards.Face
+		if o := e.G.Obj(id); o != nil {
+			cur = o.Face()
+		}
+		return e.offerAsFace(id, face, func() bool {
+			if faceHasCostStatics(cur) || faceHasCostStatics(face) {
+				statics = e.collectCostStatics()
+			}
+			return e.offerCastableUsing(statics, p, id, base, scope, false, hyp)
+		})
 	}
 	// affordable is the composed-cost gate the two direct e.castable sites of
 	// the walk use (the may-play and escape walks price an already-composed
@@ -1629,7 +1687,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if sf := splitAlternateCastFace(o); sf != nil {
 			instant := sf.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)
 			if (instant || sorcery) && e.splitCastTargetsAvailable(p, id, sf) {
-				if offerCastable(p, id, withSpellAbilityExtras(sf, e.parseCost(sf.ManaCost)), spellScope(""), false) {
+				if offerCastableAsFace(p, id, sf, withSpellAbilityExtras(sf, e.parseCost(sf.ManaCost)), spellScope("")) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + sf.Name, Obj: id, Mode: "split_alt"})
 				}
@@ -1651,7 +1709,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if int(o.FaceIdx) == 0 {
 			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
 				e.castTargetsAvailable(p, id, af.SpellAbility()) {
-				if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+				if offerCastableAsFace(p, id, af, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
 				}
@@ -1760,7 +1818,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if rf := roomAlternateCastFace(o); rf != nil {
 			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
 			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
-				if offerCastable(p, id, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope(""), false) {
+				if offerCastableAsFace(p, id, rf, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope("")) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
 				}
@@ -2170,14 +2228,20 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// transaction, then spellRestZone exiles it after resolution.
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+		if o == nil || o.Face() == nil {
 			continue
 		}
 		f := o.Face()
+		// The printed-keyword read is the cheap gate, so it runs first: every
+		// gate here is a pure read, so the order changes no answer.
+		hc, ok := harmonizeCost(f)
+		if !ok || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
-		if hc, ok := harmonizeCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
+		if e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			hc, _ = e.harmonizePayment(p, id, hc)
 			if offerCastable(p, id, hc, spellScope("harmonize"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (harmonize)", Obj: id, Mode: "harmonize"})
@@ -2235,7 +2299,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if !e.castTargetsAvailable(p, id, af.SpellAbility()) {
 			continue
 		}
-		if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+		if offerCastableAsFace(p, id, af, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + af.Name + " (aftermath)", Obj: id, Mode: "aftermath"})
 		}
@@ -2284,10 +2348,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
-			continue
-		}
-		if !e.HasKeyword(id, "Escape") {
+		if f == nil || !e.HasKeyword(id, "Escape") || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		ec, ok := e.escapeCost(id)
@@ -2313,10 +2374,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
-			continue
-		}
-		if !e.HasKeyword(id, "Retrace") {
+		if f == nil || !e.HasKeyword(id, "Retrace") || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) ||
@@ -2346,10 +2404,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
-			continue
-		}
-		if !e.HasKeyword(id, "Jump-start") {
+		if f == nil || !e.HasKeyword(id, "Jump-start") || castRestricted(p, id) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) ||
@@ -2382,11 +2437,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil {
 			continue
 		}
 		mc, ok := e.mayhemCastCost(id)
-		if !ok || !e.mayhemDiscardedThisTurn(p, id) {
+		if !ok || castRestricted(p, id) || e.castSuppressed(p, id) || !e.mayhemDiscardedThisTurn(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) ||
@@ -2428,7 +2483,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			!castRestricted(p, id) && !e.castSuppressed(p, id) {
 			front := o.Card.Faces[0]
 			if e.spellTimingOK(p, id, front, sorcery) && e.castTargetsAvailable(p, id, front.SpellAbility()) &&
-				offerCastable(p, id, ParseCost(front.ManaCost), spellScope(""), false) {
+				offerCastableAsFace(p, id, front, ParseCost(front.ManaCost), spellScope("")) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: "Cast " + front.Name + " (from adventure zone)", Obj: id, Mode: "adventure_recast"})
 			}
@@ -2501,6 +2556,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// Mana abilities may explicitly function from the battlefield, hand or
 	// graveyard (Spirit Guides and Jack-o'-Lantern). availableManaAbilities
 	// applies each ability's ActivationZone and full cost gate.
+	// The walk only inspects each object's mana-ability list, so one scratch
+	// buffer serves every object (taken from the Engine for the loop, so a
+	// re-entrant walk allocates its own).
+	masBuf := e.manaAbBuf
+	e.manaAbBuf = nil
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
@@ -2508,11 +2568,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if f == nil {
 				continue
 			}
-			mas := e.availableManaAbilitiesUsing(&actionStatics, p, id)
+			mas := e.appendAvailableManaAbilities(masBuf[:0], &actionStatics, p, id)
+			masBuf = mas
 			if len(mas) == 0 {
 				continue
 			}
-			opt := decision.Option{Index: len(out), Kind: "activate", Label: "Activate " + f.Name + " for mana", Obj: id}
+			opt := decision.Option{Index: len(out), Kind: "activate", Label: e.manaActivateLabel(f.Name), Obj: id}
 			// fb-led1: a mana ability that costs more than a bare tap is the
 			// play the window exists for — carry its cost so the client's
 			// empty-priority-window floor stops instead of passing it away.
@@ -2522,6 +2583,8 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, opt)
 		}
 	}
+	clear(masBuf)
+	e.manaAbBuf = masBuf[:0]
 
 	// Activated abilities (Task 10): every non-mana AB$ ability on a
 	// permanent p controls, and every one on a card in p's graveyard whose
@@ -3028,6 +3091,9 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// land, mana abilities, Station and Room unlock stay legal; the Suspend
 	// and Foretell offers ride the "cast" Kind but are special actions, not
 	// spell casts, so they stay too.
+	// CR 118.6: a no-mana-cost card is never cast by paying its mana cost
+	// (rules/nomanacost.go).
+	out = e.filterNoManaCostCasts(p, out)
 	if e.splitSecondHolds() {
 		out = e.filterSplitSecondActions(out)
 	}
@@ -3043,11 +3109,34 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// living seat: grantPriority never hands a Lost seat priority, so no
 	// extra guard is needed here.
 	add("concede", "Concede", 0)
-	return out
+	res := make([]decision.Option, len(out))
+	copy(res, out)
+	// Drop the scratch's string/Grant references so a retained buffer does
+	// not pin the last walk's labels, then keep the grown array.
+	clear(out)
+	e.legalOptBuf = out[:0]
+	return res
+}
+
+// firstChosen is d.Chosen(in)[0] without materialising the chosen list (a
+// heap copy of every chosen Option on every priority answer). It keeps
+// Chosen's all-or-nothing contract: any out-of-range index, or no choice at
+// all, is the same index-out-of-range panic the [0] of a nil list raised.
+func firstChosen(d *decision.Decision, in decision.Intent) decision.Option {
+	var none []decision.Option
+	for _, c := range in.Choices {
+		if c < 0 || c >= len(d.Options) {
+			return none[0]
+		}
+	}
+	if len(in.Choices) == 0 {
+		return none[0]
+	}
+	return d.Options[in.Choices[0]]
 }
 
 func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
-	opt := d.Chosen(in)[0]
+	opt := firstChosen(d, in)
 	switch opt.Kind {
 	case "pass":
 		passes := e.G.Passes + 1

@@ -72,10 +72,9 @@ func TestTriggerOrderTiesBreakOnIndex(t *testing.T) {
 	}
 }
 
-// TestTriggerOptionalAlwaysAccepts is the trigger_optional rule: no more
-// coin flip. An optional trigger is a controller benefit the policy cannot
-// read, so it accepts -- every seed answers "yes" (index 0).
-func TestTriggerOptionalAlwaysAccepts(t *testing.T) {
+// Only an api:Effect OptionalDecider$ election defaults to decline;
+// unmarked printed triggers and Miracle keep dp1's deterministic accept.
+func TestTriggerOptionalEffectDeclineOnly(t *testing.T) {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Obj: 50},
@@ -84,8 +83,14 @@ func TestTriggerOptionalAlwaysAccepts(t *testing.T) {
 	for seed := uint64(0); seed < 25; seed++ {
 		in := Decide(Board{}, &d, rng(seed))
 		if len(in.Choices) != 1 || in.Choices[0] != 0 {
-			t.Fatalf("seed %d: trigger optional = %v, want the deterministic accept (option 0)", seed, in.Choices)
+			t.Fatalf("seed %d: printed/Miracle optional = %v, want accept", seed, in.Choices)
 		}
+		d.EffectOptional = true
+		in = Decide(Board{}, &d, rng(seed))
+		if len(in.Choices) != 1 || in.Choices[0] != 1 {
+			t.Fatalf("seed %d: Effect optional = %v, want decline", seed, in.Choices)
+		}
+		d.EffectOptional = false
 	}
 }
 

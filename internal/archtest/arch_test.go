@@ -76,6 +76,8 @@ func set(s string) map[string]bool {
 // cmd/searchteacher (the 2026-09-19 search-teacher spike) is exempt on the
 // same terms: it reads the clock only to report per-decision sampling and
 // search milliseconds; no proposal, rollout, label or game reads it.
+// cmd/cardfuzz reads it only for its per-game hang watchdog and its
+// games/s progress line; every deck and game is a pure function of its seed.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
 		module + "/host":              true,
@@ -86,6 +88,7 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 		module + "/cmd/ledger":        true,
 		module + "/cmd/searchprobe":   true,
 		module + "/cmd/searchteacher": true,
+		module + "/cmd/cardfuzz":      true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {
@@ -348,11 +351,11 @@ func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 		"(*Engine).askWardMana":                            "the Ward mana payment window: carries the prior Ward frame's continuation and replacement snapshot onto the fresh resume point so the window survives nested mana asks (rules/ward.go)",
 		"(*Engine).resolveTop":                             "resolution's first pass: when effects.Resolve suspends on a nested mid-resolution ask, preserves the enclosing SubAbility continuation chain on the fresh resume point (rules/stack.go)",
 		"(*Engine).SuspendRepeat":                          "the RepeatEach suspension hook (effects.Host): binds the pending ask and continuation frames to the iteration's Remembered and appends the loop's own cursor frame (rules/resolution.go)",
-		"(*Engine).SuspendUnless":                          "the unless-cost suspension hook (effects.Host): records the resolved pay/decline marker on the Ask-installed resume point that re-enters the gated SA, so the resume pass does not re-pose the unless ask (rules/resolution.go)",
 		"(*Engine).bindLoopFrames":                         "binds the pending ask and every unbound continuation frame this pass to the loop's Remembered (rules/resolution.go)",
 		"(*Engine).Clone":                                  "a snapshot clone copies the resume point onto the freshly-cloned engine, not the live one (rules/clone.go)",
 		"(*Engine).resumeResolution":                       "the re-entry point: links the new pending point's outer continuation up to the frame it is re-entering (rules/resolution.go)",
 		"(*Engine).releasePendingDecisionOfDepartedPlayer": "CR 800.4f: a departed player's outstanding ask is released with an empty answer (rules/sba.go)",
+		"(*Engine).settleReplacementQueue":                 "handleReplacement's queue tail, factored out: hands the parked resolution frame to queued in-resolution competitions or chains it behind a nested ask's frame, and resumes it once the queue drains (rules/replacement.go)",
 		"(*Engine).lifeReplacementDraw":                    "the GainLife→Draw replacement's suspension-aware draw loop: parks the remaining card count on the Ask-installed Dredge resume point so the answered dredge re-drives the rest instead of posing a second ask over the outstanding one (rules/replacement.go)",
 	}
 	writers := resumeFieldWriters(t)

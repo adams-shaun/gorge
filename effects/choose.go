@@ -201,7 +201,7 @@ func chooseColorOptions(sa *cards.SA) (opts []decision.Option, askable bool, exo
 // the colourLetter vocabulary); a token naming no colour is dropped.
 func chooseColourTokens(s string) []byte {
 	var out []byte
-	for _, tok := range strings.Split(s, ",") {
+	for tok := range strings.SplitSeq(s, ",") {
 		if l := colourLetter(tok); l != 0 {
 			out = append(out, l)
 		}
