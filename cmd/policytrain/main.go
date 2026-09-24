@@ -164,7 +164,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		games, ovr := countGames(examples)
 		rep := GridReport{Arm: grid.arm, Features: lo.Features.String(), Actions: grid.actions, MaxGameIndex: grid.maxGameIndex,
 			TrainExamples: len(examples), TrainGames: games, TrainOverride: ovr, ResidualInit: *residualInit, Epochs: *epochs,
-			EvalExamples: len(held), Kinds: evalGrid(res.Model, held)}
+			EvalExamples: len(held), Kinds: evalGrid(res.Model, held), TrainKinds: evalGrid(res.Model, examples)}
 		if err := writeGridReport(stdout, grid.evalJSON, rep); err != nil {
 			fmt.Fprintf(stderr, "policytrain: %v\n", err)
 			return 1

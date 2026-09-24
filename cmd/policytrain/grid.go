@@ -100,6 +100,10 @@ type GridReport struct {
 	Epochs        int        `json:"epochs"`
 	EvalExamples  int        `json:"eval_examples"`
 	Kinds         []GridKind `json:"kinds"`
+	// TrainKinds is the same readout on the TRAINING examples: whether the
+	// model fits the overrides it was shown at all (memorisation) separates
+	// "cannot fit" from "fits but does not generalise".
+	TrainKinds []GridKind `json:"train_kinds"`
 }
 
 // countGames counts distinct (pair, seed, game index) games and override
@@ -290,6 +294,11 @@ func writeGridReport(w io.Writer, path string, rep GridReport) error {
 	fmt.Fprintf(w, "  %-10s %7s %7s %7s %6s %7s %7s %7s | %6s %6s %7s %7s %7s %7s\n", "kind", "n", "bot", "model", "ovr-n", "ovr-t1", "keep-t1", "m-bot",
 		"set-n", "ovr-n", "sgn", "sgn-ovr", "auto", "aut-ovr")
 	for _, k := range rep.Kinds {
+		fmt.Fprintf(w, "  %-10s %7d %7.3f %7.3f %6d %7.3f %7.3f %7.3f | %6d %6d %7.3f %7.3f %7.3f %7.3f\n", k.Kind, k.N, k.BotTop1, k.ModelTop1,
+			k.OverrideN, k.OverrideTop1, k.KeepTop1, k.ModelPicksBot, k.SetN, k.SetOverrideN, k.SetSign, k.SetSignOverride, k.SetAuto, k.SetAutoOverride)
+	}
+	fmt.Fprintf(w, "pn12 train-fit (%s): %d training examples\n", rep.Arm, rep.TrainExamples)
+	for _, k := range rep.TrainKinds {
 		fmt.Fprintf(w, "  %-10s %7d %7.3f %7.3f %6d %7.3f %7.3f %7.3f | %6d %6d %7.3f %7.3f %7.3f %7.3f\n", k.Kind, k.N, k.BotTop1, k.ModelTop1,
 			k.OverrideN, k.OverrideTop1, k.KeepTop1, k.ModelPicksBot, k.SetN, k.SetOverrideN, k.SetSign, k.SetSignOverride, k.SetAuto, k.SetAutoOverride)
 	}
