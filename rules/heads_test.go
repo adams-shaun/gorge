@@ -1023,7 +1023,14 @@ var acceptanceHeads = map[int]string{
 	// check is sensitive to bot-choice quality, only engine correctness.
 	// CR 103.1: the same toss-choice ask/answer moves the 4-seat chain;
 	// disabling only the ask restores 2114abdd282628ca.
-	4: "1fb9d6682652d3ee",
+	// AR9 swarm lethal (botpolicy/combat.go swarmLethalSubset, cardfuzz
+	// bigboard work): 4 seats moves to b3bf75f0c56512ae. The bot now forces the smallest
+	// attacking set that is lethal even if the defender blocks its biggest
+	// attackers with every untapped creature. Measured cause: disabling only
+	// swarmLethalSubset (return nil) restores the previous golden; the
+	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
+	// pre-filter in the same change are head-neutral.
+	4: "b3bf75f0c56512ae",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1159,7 +1166,14 @@ var acceptanceHeads = map[int]string{
 	// check is sensitive to bot-choice quality, only engine correctness.
 	// CR 103.1: the same toss-choice ask/answer moves the 6-seat chain;
 	// disabling only the ask restores 3bd695df72d9d4c9.
-	6: "5f6b6745a8736596",
+	// AR9 swarm lethal (botpolicy/combat.go swarmLethalSubset, cardfuzz
+	// bigboard work): 6 seats moves to a93593d452866261. The bot now forces the smallest
+	// attacking set that is lethal even if the defender blocks its biggest
+	// attackers with every untapped creature. Measured cause: disabling only
+	// swarmLethalSubset (return nil) restores the previous golden; the
+	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
+	// pre-filter in the same change are head-neutral.
+	6: "a93593d452866261",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1342,7 +1356,14 @@ var acceptanceHeads = map[int]string{
 	// golden; all 14,889 events have identical ordering and actions, with
 	// exactly two changed payloads: events 2441 (W -> ArtifactW, 1 unit)
 	// and 2492 (W -> ArtifactW, 3 units from Lion's Eye Diamond).
-	8: "2e4538482acfcde8",
+	// AR9 swarm lethal (botpolicy/combat.go swarmLethalSubset, cardfuzz
+	// bigboard work): 8 seats moves to af5b2fc1561b5f56. The bot now forces the smallest
+	// attacking set that is lethal even if the defender blocks its biggest
+	// attackers with every untapped creature. Measured cause: disabling only
+	// swarmLethalSubset (return nil) restores the previous golden; the
+	// block-risk memo, killBlockCost's linear prefix scan and the Ascend
+	// pre-filter in the same change are head-neutral.
+	8: "af5b2fc1561b5f56",
 }
 
 func TestHeads(t *testing.T) {
