@@ -223,9 +223,15 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	present := strings.TrimSpace(sa.Params["ConditionPresent"])
 	notPresent := strings.TrimSpace(sa.Params["ConditionNotPresent"])
 	compare := strings.TrimSpace(sa.Params["ConditionCompare"])
-	// PresentDefined/PresentCompare are the DB-body spellings of the same
-	// defined-group presence gate. Normalize here so every effect body uses
-	// the same evaluator and selector support as ConditionDefined.
+	// PresentDefined$/IsPresent$/PresentCompare$ are the DB-body spellings of
+	// the same defined-group presence gate ConditionDefined$/
+	// ConditionPresent$/ConditionCompare$ express. Normalize here so every
+	// effect body uses the same evaluator and group support as
+	// ConditionDefined. The filter key is spelled IsPresent$ (the corpus's
+	// DB-body spelling: Experimental Lab // Staff Room's DBPutCounter and
+	// DBTurnFaceUp are the only two `DB$ ... PresentDefined$` lines in the
+	// corpus, and both carry IsPresent$); a bare Present$ key does not exist
+	// in the corpus, so it is deliberately NOT read here.
 	presentDefined := strings.TrimSpace(sa.Params["PresentDefined"])
 	presentCompare := strings.TrimSpace(sa.Params["PresentCompare"])
 	if presentDefined != "" {
@@ -233,7 +239,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			return false, false
 		}
 		defined = presentDefined
-		present = strings.TrimSpace(sa.Params["Present"])
+		present = strings.TrimSpace(sa.Params["IsPresent"])
 		compare = presentCompare
 	}
 	check := strings.TrimSpace(sa.Params["ConditionCheckSVar"])
