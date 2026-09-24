@@ -8,8 +8,9 @@ package seat
 //
 // Which kinds the policy answers itself is a per-seat selection
 // (NewPolicyNetBotKinds; botbench -policynet-kinds). The DEFAULT is the
-// KAttackers subset only; KPriority is opt-in and gated to the distribution
-// the head was trained on.
+// KAttackers subset only; KPriority, KBlockers and KTarget are opt-in, and
+// the single-choice kinds are gated to the distribution the head was trained
+// on.
 //
 //   - KAttackers: one scored subset. The per-option inclusion vote compares
 //     each score against admissionThreshold's per-decision reference: the
@@ -57,6 +58,23 @@ package seat
 //     attackers-only arm (dev r2 46.3% [43.2%, 49.4%]; dev r8 40.5%; oracle
 //     r2 47.1%). The prior is inert-safe, not a source of edge; any gap to
 //     the control is the attackers path's.
+//   - KBlockers (opt-in): a subset kind trained with the per-option BCE loss
+//     (-kind-loss blockers=bce), so it follows the attackers contract, not
+//     the priority gate: no ResidualW requirement, the same
+//     admissionThreshold vote and the same exact-tie refusal. The admitted
+//     set keeps one (blocker, attacker) pair per blocker (the option Group,
+//     CR 509.1a), is ordered bot-picked pairs first in the bot's own
+//     declaration order (the engine reads that order for CR 510.1c), then
+//     repaired by decision.FitRequired, the bot's block guard
+//     (botpolicy.LegalBlockChoices: CR 509.1a MinMaxBlocker bounds and
+//     CR 509.1b charges, over boardFromView) and Clamp. An answer that still
+//     fails Validate or misses the Required quota is refused, and the bot's
+//     declaration stands.
+//   - KTarget (opt-in): a single-choice CE kind, so the priority rule
+//     applies: scored only in the shape the teacher labels (singleTarget:
+//     Min == Max == 1, no budget, >= 2 options, searchprobe.SingleTarget's
+//     test; the bot answered one choice) and only when ResidualW > 0. The
+//     answer is the argmax, ties on the lowest option index.
 // Every other decision kind delegates to the current default bot (NewBot,
 // same seed derivation) UNCHANGED — so the policy consumes no rng of its
 // own, and a decision whose scored surface encodes to nothing (no options,
@@ -98,11 +116,13 @@ import (
 type PolicyNetBot struct {
 	def    *Bot
 	scorer *policynet.Scorer
-	// attackers / priority are the scored-kind selection
-	// (NewPolicyNetBotKinds). Two named switches rather than a set so the
-	// dispatch never ranges a map.
+	// attackers / priority / blockers / target are the scored-kind
+	// selection (NewPolicyNetBotKinds). Named switches rather than a set so
+	// the dispatch never ranges a map.
 	attackers bool
 	priority  bool
+	blockers  bool
+	target    bool
 }
 
 // compile-time assertions: PolicyNetBot is a Seat and deliberately NOT a
@@ -114,8 +134,9 @@ var (
 // PolicyNetKindNames is the scored-kind vocabulary, in the order a caller
 // lists it: the decision kinds NewPolicyNetBotKinds accepts, by the names
 // botbench's -policynet-kinds flag spells them. KAttackers is the default;
-// KPriority is opt-in (see the package comment for its gate).
-var PolicyNetKindNames = []string{"attackers", "priority"}
+// KPriority, KBlockers and KTarget are opt-in (see the package comment for
+// their gates).
+var PolicyNetKindNames = []string{"attackers", "priority", "blockers", "target"}
 
 // policyNetKind maps a vocabulary name to its decision kind.
 func policyNetKind(name string) (decision.Kind, bool) {
@@ -124,6 +145,10 @@ func policyNetKind(name string) (decision.Kind, bool) {
 		return decision.KAttackers, true
 	case "priority":
 		return decision.KPriority, true
+	case "blockers":
+		return decision.KBlockers, true
+	case "target":
+		return decision.KTarget, true
 	}
 	return "", false
 }
@@ -158,12 +183,12 @@ func NewPolicyNetBot(seed uint64, sc *policynet.Scorer) *PolicyNetBot {
 }
 
 // NewPolicyNetBotKinds is NewPolicyNetBot with an explicit scored-kind
-// selection: kinds may name KAttackers and KPriority (any other kind panics —
-// a programming error; ParsePolicyNetKinds is the validated front door). A
-// kind left out delegates to the default bot exactly as every unscored kind
-// does. KPriority in the set is necessary but not sufficient for a priority
-// decision to be scored: priorityScorable's distribution gate must also
-// hold.
+// selection: kinds may name KAttackers, KPriority, KBlockers and KTarget
+// (any other kind panics — a programming error; ParsePolicyNetKinds is the
+// validated front door). A kind left out delegates to the default bot
+// exactly as every unscored kind does. KPriority or KTarget in the set is
+// necessary but not sufficient for such a decision to be scored: its
+// distribution gate (priorityScorable, targetScorable) must also hold.
 func NewPolicyNetBotKinds(seed uint64, sc *policynet.Scorer, kinds []decision.Kind) *PolicyNetBot {
 	b := &PolicyNetBot{def: NewBot(seed), scorer: sc}
 	for _, k := range kinds {
@@ -172,6 +197,10 @@ func NewPolicyNetBotKinds(seed uint64, sc *policynet.Scorer, kinds []decision.Ki
 			b.attackers = true
 		case decision.KPriority:
 			b.priority = true
+		case decision.KBlockers:
+			b.blockers = true
+		case decision.KTarget:
+			b.target = true
 		default:
 			panic(fmt.Sprintf("seat: NewPolicyNetBotKinds: kind %q is not a scored policynet kind", k))
 		}
@@ -180,16 +209,39 @@ func NewPolicyNetBotKinds(seed uint64, sc *policynet.Scorer, kinds []decision.Ki
 }
 
 // scoresKind reports whether this seat's scored-kind selection covers d's
-// kind. For KPriority the per-decision gate (priorityScorable) still
-// applies.
+// kind. For KPriority and KTarget the per-decision gates (priorityScorable,
+// targetScorable) still apply.
 func (b *PolicyNetBot) scoresKind(d *decision.Decision) bool {
 	switch d.Kind {
 	case decision.KAttackers:
 		return b.attackers
 	case decision.KPriority:
 		return b.priority
+	case decision.KBlockers:
+		return b.blockers
+	case decision.KTarget:
+		return b.target
 	}
 	return false
+}
+
+// singleTarget is the one KTarget shape the target teacher labels: exactly
+// one pick (Min == Max == 1), no MaxSum budget and at least two options. It
+// is searchprobe.SingleTarget's test, restated here because searchprobe
+// imports rules and the seat must not (seat/policynet_test.go pins the two
+// equal over crafted shapes).
+func singleTarget(d *decision.Decision) bool {
+	return d != nil && d.Kind == decision.KTarget && d.Min == 1 && d.Max == 1 &&
+		!d.HasBudget() && len(d.Options) >= 2
+}
+
+// targetScorable is the target distribution gate, ticket 01's single-choice
+// CE rule: the residual prior is active (ResidualW > 0, so the zero-residual
+// plain argmax is unreachable), the decision has the teacher's singleTarget
+// shape, and the bot answered with exactly one choice (the teacher labels
+// only such a decision: searchprobe.TargetCandidates).
+func targetScorable(d *decision.Decision, botIn decision.Intent, residualW float32) bool {
+	return residualW > 0 && singleTarget(d) && len(botIn.Choices) == 1
 }
 
 // priorityScorable is the priority distribution gate: a priority decision
@@ -272,6 +324,9 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 	if d.Kind == decision.KPriority && (b.scorer == nil || !priorityScorable(&d, botIn, b.scorer.ResidualWeight())) {
 		return botIn, nil
 	}
+	if d.Kind == decision.KTarget && (b.scorer == nil || !targetScorable(&d, botIn, b.scorer.ResidualWeight())) {
+		return botIn, nil
+	}
 	st, opts, ok := b.encode(v, &d)
 	if !ok {
 		return botIn, nil
@@ -285,6 +340,10 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 		in, scored = attackersFromScores(&d, scores)
 	case decision.KPriority:
 		in, scored = priorityFromScores(&d, scores)
+	case decision.KBlockers:
+		in, scored = blockersFromScores(&d, scores, boardFromView(v), botIn)
+	case decision.KTarget:
+		in, scored = targetFromScores(&d, scores)
 	}
 	if scored {
 		return in, nil
@@ -467,6 +526,116 @@ func priorityFromScores(d *decision.Decision, scores []float32) (decision.Intent
 	}
 	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[best].Index}}
 	return botpolicy.Clamp(d, in), true
+}
+
+// blockersFromScores turns the per-option scores into a legal block
+// declaration: the attackers contract applied to KBlockers (the kind is
+// trained with the per-option BCE loss).
+//
+//   - The per-option vote against admissionThreshold, refusing an exactly
+//     tied multi-option decision (no sign, no ranking: the zero-head model
+//     whose bot declared no block ties every score there and must reproduce
+//     the bot).
+//   - One pair per blocker (the option Group the engine publishes per
+//     blocker, CR 509.1a): the blocker's best admitted option, ties on the
+//     lowest index.
+//   - Ordered: the pairs the bot's own declaration (botIn) contains first,
+//     in the bot's order, then the rest in offer order. The engine reads the
+//     declaration order for CR 510.1c damage assignment and the bot's order
+//     is its damage-order heuristic, so a head that agrees with the bot
+//     reproduces the bot's intent byte for byte.
+//   - Repaired by decision.FitRequired (the KBlockers-aware requirement
+//     solver), then botpolicy.LegalBlockChoices over the seat's board
+//     (CR 509.1a MinMaxBlocker bounds, CR 509.1b charges) and Clamp.
+//
+// ok is false when the decision is empty or tied, or when the repaired
+// answer still fails Validate or the Required quota (the guard can drop a
+// required pair); the caller then uses the bot's declaration.
+func blockersFromScores(d *decision.Decision, scores []float32, board botpolicy.Board, botIn decision.Intent) (decision.Intent, bool) {
+	if len(d.Options) == 0 || len(scores) != len(d.Options) {
+		return decision.Intent{}, false
+	}
+	threshold, inclusive := admissionThreshold(scores)
+	if len(scores) > 1 && inclusive && allEqual(scores) {
+		return decision.Intent{}, false
+	}
+	admitted := func(s float32) bool {
+		if inclusive {
+			return s >= threshold
+		}
+		return s > threshold
+	}
+	// Each blocker's best admitted option, keyed by Group (an option with no
+	// Group is its own group). The map is only probed, never ranged; groups
+	// are visited in first-seen offer order.
+	best := make(map[string]int, len(d.Options))
+	var order []string
+	for i := range d.Options {
+		if !admitted(scores[i]) {
+			continue
+		}
+		g := d.Options[i].Group
+		if g == "" {
+			g = fmt.Sprintf("#%d", i)
+		}
+		cur, ok := best[g]
+		if !ok {
+			order = append(order, g)
+			best[g] = i
+			continue
+		}
+		if scores[i] > scores[cur] {
+			best[g] = i
+		}
+	}
+	// Choices carry option Index values (rules builds Index == position, but
+	// the answer is spelt in Index terms like every other arm's).
+	pending := make(map[int]bool, len(order)) // Index membership only
+	for _, g := range order {
+		pending[d.Options[best[g]].Index] = true
+	}
+	chosen := make([]int, 0, len(order))
+	for _, c := range botIn.Choices {
+		if pending[c] {
+			chosen = append(chosen, c)
+			pending[c] = false
+		}
+	}
+	for _, g := range order {
+		if idx := d.Options[best[g]].Index; pending[idx] {
+			chosen = append(chosen, idx)
+			pending[idx] = false
+		}
+	}
+	chosen = d.FitRequired(chosen)
+	chosen = botpolicy.LegalBlockChoices(board, d, chosen)
+	in := botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player, Choices: chosen})
+	if d.Validate(in) != nil || d.RequiredChosen(in.Choices) < d.RequiredQuota() {
+		return decision.Intent{}, false
+	}
+	return in, true
+}
+
+// targetFromScores is the scored single-target pick: argmax over the
+// options, ties on the lowest option index, Clamped. It answers only the
+// singleTarget shape (Decide's targetScorable gate is the front door; the
+// shape test is repeated so a direct caller cannot score an
+// out-of-distribution decision) and refuses an answer Validate rejects.
+func targetFromScores(d *decision.Decision, scores []float32) (decision.Intent, bool) {
+	if !singleTarget(d) || len(scores) != len(d.Options) {
+		return decision.Intent{}, false
+	}
+	best := 0
+	for i := 1; i < len(scores); i++ {
+		if scores[i] > scores[best] {
+			best = i
+		}
+	}
+	in := botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[best].Index}})
+	if d.Validate(in) != nil {
+		return decision.Intent{}, false
+	}
+	return in, true
 }
 
 // admissionThreshold returns the reference score for the per-option admission
