@@ -44,19 +44,27 @@ describe('HandFan inspector across live hand replacement', () => {
 
   it('closes when the described card is removed from the hand', async () => {
     const page = await browser.newPage();
-    await open(page, true);
+    const panel = await open(page);
+    const original = await page.locator(detail(page, 7)).innerText();
+    await call(page, '__refreshHand');
+    expect(await connected(page, panel)).toBe(true);
+    await expect.poll(() => page.locator(detail(page, 7)).innerText()).not.toBe(original);
     await call(page, '__removeCard');
     await page.waitForSelector(detail(page, 7), { state: 'detached' });
-    expect(await page.locator('body > .card-detail').count()).toBe(0);
+    expect(await page.locator(detail(page, 12)).count()).toBe(0);
     await page.close();
   });
 
   it('closes rather than retargeting when the hand card id changes', async () => {
     const page = await browser.newPage();
-    await open(page, true);
+    const panel = await open(page);
+    const original = await page.locator(detail(page, 7)).innerText();
+    await call(page, '__refreshHand');
+    expect(await connected(page, panel)).toBe(true);
+    await expect.poll(() => page.locator(detail(page, 7)).innerText()).not.toBe(original);
     await call(page, '__replaceId', 12);
     await page.waitForSelector(detail(page, 7), { state: 'detached' });
-    expect(await page.locator('body > .card-detail').count()).toBe(0);
+    expect(await connected(page, panel)).toBe(false);
     await page.close();
   });
 });
