@@ -2072,16 +2072,26 @@ func Apply(g *state.Game, e Event) {
 			sf.Name = e.Text
 		}
 		// GainThisAbility$ True: "...except it has this ability". New
-		// events carry a one-based index of the resolving ability; old events
-		// without one retain their original whole-list replay semantics. The
+		// events carry a one-based index of the resolving ability, or -- for
+		// a DB$/SVar-under-trigger body whose root is a TRIGGER -- of the
+		// resolving trigger (Counter "gain-this-trigger"); old events without
+		// one retain their original whole-list replay semantics. The
 		// original face's SVar table is still merged to retain references used
 		// by the granted ability.
-		if e.Counter == "gain-this-ability" {
+		if e.Counter == "gain-this-ability" || e.Counter == "gain-this-trigger" {
 			if of := o.Face(); of != nil {
-				// Amount is a one-based index into the become object's face
-				// abilities. Zero retains the legacy whole-list form for old
-				// logs; new Clone effects identify the resolving ability.
-				if e.Amount > 0 && int(e.Amount) <= len(of.Abilities) {
+				if e.Counter == "gain-this-trigger" {
+					// Amount is a one-based index into the become object's face
+					// TRIGGERS: Forge appends exactly root.getTrigger().copy(...),
+					// so the copy keeps the recurring trigger that makes a
+					// recurring Copy carrier recur.
+					if e.Amount > 0 && int(e.Amount) <= len(of.Triggers) {
+						sf.Triggers = append(append([]cards.Trigger(nil), sf.Triggers...), of.Triggers[e.Amount-1])
+					}
+				} else if e.Amount > 0 && int(e.Amount) <= len(of.Abilities) {
+					// Amount is a one-based index into the become object's face
+					// abilities. Zero retains the legacy whole-list form for old
+					// logs; new Clone effects identify the resolving ability.
 					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities[e.Amount-1])
 				} else if e.Amount == 0 && len(of.Abilities) > 0 {
 					sf.Abilities = append(append([]*cards.SA(nil), sf.Abilities...), of.Abilities...)

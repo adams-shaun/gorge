@@ -412,12 +412,39 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	cloneAbilityIndex := int32(-1)
+	cloneTriggerIndex := int32(-1)
 	if gainThisAbility {
 		if original := g.Obj(c.Source); original != nil && original.Face() != nil {
-			for i, ability := range original.Face().Abilities {
-				if ability == sa {
-					cloneAbilityIndex = int32(i + 1)
+			// Forge's CloneEffect resolves GainThisAbility$ on
+			// sa.getRootAbility(): the ROOT of the resolving chain, not the
+			// innermost Clone body. A body reached through SubAbility$
+			// (Kimahri's RonsoCounter -> RonsoTap -> RonsoClone, Volatile
+			// Chimera's activated ChooseCard -> DBClone) is a chain;
+			// identifying only the innermost sa with a printed ability or a
+			// trigger's Effect misses it. Recover the root by walking each
+			// printed trigger's and ability's own Sub chain -- the same
+			// pointer-identity contract rules.findTriggerForAbilityFace
+			// uses -- and index THAT root. When the root is a trigger Forge
+			// appends root.getTrigger().copy(...); when it is an
+			// activated/spell ability, root.copy(...). The fold indexes the
+			// become object's top-face Triggers/Abilities, the same face
+			// scanned here, so emitter and fold agree by construction.
+			// Merged/mutated pile under-card triggers and
+			// has-all-abilities-of granted wrappers are not reached (see the
+			// commit message); they stay on the old AppendNothing path.
+			f := original.Face()
+			for i := range f.Triggers {
+				if t := f.Triggers[i].Effect; t != nil && cloneChainContains(t, sa) {
+					cloneTriggerIndex = int32(i + 1)
 					break
+				}
+			}
+			if cloneTriggerIndex < 0 {
+				for i, ability := range f.Abilities {
+					if cloneChainContains(ability, sa) {
+						cloneAbilityIndex = int32(i + 1)
+						break
+					}
 				}
 			}
 		}
@@ -445,8 +472,13 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			ev.Counter = "chosen-name"
 			ev.Text = chosenName
 		} else if gainThisAbility {
-			ev.Counter = "gain-this-ability"
-			ev.Amount = cloneAbilityIndex
+			if cloneTriggerIndex > 0 {
+				ev.Counter = "gain-this-trigger"
+				ev.Amount = cloneTriggerIndex
+			} else {
+				ev.Counter = "gain-this-ability"
+				ev.Amount = cloneAbilityIndex
+			}
 		}
 		h.Emit(ev)
 		for _, raw := range staticBodies {
@@ -552,8 +584,21 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		reg(state.ContinuousEffect{Layer: state.LCopy, CloneSource: t.Obj,
 			CloneName: newName, CloneChosenName: chosenName,
 			CloneStaticBodies: staticBodies, CloneGainThisAbility: gainThisAbility,
-			CloneAbilityIndex: cloneAbilityIndex})
+			CloneAbilityIndex: cloneAbilityIndex, CloneTriggerIndex: cloneTriggerIndex})
 	}
+}
+
+// cloneChainContains reports whether sa is the root ability or any SubAbility
+// beneath it. It is the pointer-identity walk that recovers Forge's
+// sa.getRootAbility(): cards.SA links SubAbility$ downward only, so the root
+// is found by walking each printed candidate's own chain.
+func cloneChainContains(root, sa *cards.SA) bool {
+	for cur := root; cur != nil; cur = cur.Sub {
+		if cur == sa {
+			return true
+		}
+	}
+	return false
 }
 
 // No Clone modifiers remain unread; unknown parameter values fail closed

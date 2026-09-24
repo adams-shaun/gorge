@@ -11,7 +11,11 @@
 //
 // Runs go in batches: every deck of a batch is generated sequentially from
 // (-seed, game index) and the coverage snapshot taken at the batch's start,
-// then the batch plays on -workers goroutines. Every failure is appended to
+// then the batch plays on -workers goroutines.
+//
+// A game whose live object count passes -max-objects (a runaway token
+// engine) is ended by the harness and recorded as kind "bigboard", distinct
+// from an engine "hang" or "livelock". Every failure is appended to
 // -failures as one JSON line carrying both full deck lists, the game seed
 // and the diagnostic, and `cardfuzz -repro <file> -line N` replays it.
 package main
@@ -56,6 +60,9 @@ type poolCard struct {
 	card *cards.Card
 	name string
 	land bool
+	// keys is the card's usable-ability inventory (abilityInventory), so the
+	// sampling weight can ask whether every one has been used.
+	keys []string
 }
 
 // pool holds, per colour index 0..4, the eligible non-land and land cards
@@ -64,6 +71,8 @@ type pool struct {
 	spells [5][]poolCard
 	lands  [5][]poolCard
 	all    map[string]bool
+	cards  map[string]*cards.Card
+	keys   map[string][]string // name -> abilityKeys, computed once
 	basics [5]*cards.Card
 }
 
@@ -103,14 +112,14 @@ func identity(c *cards.Card) uint8 {
 }
 
 func buildPool(reg *cards.Registry) (*pool, error) {
-	p := &pool{all: map[string]bool{}}
+	p := &pool{all: map[string]bool{}, cards: map[string]*cards.Card{}, keys: map[string][]string{}}
 	sup := effects.Supported()
 	for _, c := range reg.Cards {
 		if !eligible(c) || len(reg.Unsupported(c, sup)) > 0 {
 			continue
 		}
 		id := identity(c)
-		pc := poolCard{card: c, name: cardName(c), land: c.Faces[0].IsLand()}
+		pc := poolCard{card: c, name: cardName(c), land: c.Faces[0].IsLand(), keys: abilityKeys(c)}
 		added := false
 		for i := 0; i < 5; i++ {
 			if id != 0 && id != 1<<i {
@@ -125,6 +134,8 @@ func buildPool(reg *cards.Registry) (*pool, error) {
 		}
 		if added {
 			p.all[pc.name] = true
+			p.cards[pc.name] = c
+			p.keys[pc.name] = pc.keys
 		}
 	}
 	for i, b := range basicFor {
@@ -148,10 +159,14 @@ type cov struct {
 	Cast     map[string]int64 `json:"cast"`
 	Ability  map[string]int64 `json:"ability"`
 	Fails    map[string]int64 `json:"fails"`
+	// Used counts, per card, the games in which each of its own abilities
+	// (abilityInventory keys) was used. Absent from state files written
+	// before it existed; those load with it empty.
+	Used map[string]map[string]int64 `json:"used,omitempty"`
 }
 
 func loadCov(path string) (*cov, error) {
-	c := &cov{Included: map[string]int64{}, Cast: map[string]int64{}, Ability: map[string]int64{}, Fails: map[string]int64{}}
+	c := &cov{Included: map[string]int64{}, Cast: map[string]int64{}, Ability: map[string]int64{}, Fails: map[string]int64{}, Used: map[string]map[string]int64{}}
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return c, nil
@@ -166,6 +181,9 @@ func loadCov(path string) (*cov, error) {
 		if *m == nil {
 			*m = map[string]int64{}
 		}
+	}
+	if c.Used == nil {
+		c.Used = map[string]map[string]int64{}
 	}
 	return c, nil
 }
@@ -182,11 +200,34 @@ func (c *cov) save(path string) error {
 	return os.Rename(tmp, path)
 }
 
-// weight favours cards never cast and seldom included.
-func (c *cov) weight(name string) float64 {
-	w := 1.0 / float64(1+c.Included[name])
-	if c.Cast[name] == 0 {
+// missing returns the keys of name's inventory never used yet, in keys'
+// (sorted) order.
+func (c *cov) missing(name string, keys []string) []string {
+	var out []string
+	u := c.Used[name]
+	for _, k := range keys {
+		if u[k] == 0 {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// full reports whether name was cast/played and every ability in keys used.
+func (c *cov) full(name string, keys []string) bool {
+	return c.Cast[name] > 0 && len(c.missing(name, keys)) == 0
+}
+
+// weight favours cards never cast (x8), cards cast but with some ability
+// never used (x4), and seldom-included cards. It reads only the coverage
+// snapshot, so it is deterministic for a given state.
+func (c *cov) weight(pc poolCard) float64 {
+	w := 1.0 / float64(1+c.Included[pc.name])
+	switch {
+	case c.Cast[pc.name] == 0:
 		w *= 8
+	case len(c.missing(pc.name, pc.keys)) > 0:
+		w *= 4
 	}
 	return w
 }
@@ -207,7 +248,7 @@ func sampleDistinct(r *rand.Rand, cands []poolCard, k int, c *cov) []poolCard {
 			u = 1e-12
 		}
 		// key = u^(1/w); compare in log space.
-		keys[i] = kv{key: math.Log(u) / c.weight(pc.name), i: i}
+		keys[i] = kv{key: math.Log(u) / c.weight(pc), i: i}
 	}
 	sort.Slice(keys, func(a, b int) bool {
 		if keys[a].key != keys[b].key {
@@ -325,8 +366,14 @@ type gameResult struct {
 	idx      int
 	fail     *failure
 	included []string
-	cast     []string
-	ability  []string
+	gc       *gameCov
+}
+
+// gameCov is one game's coverage: cards cast/played, cards with any ability
+// pushed, and per card the inventory keys used (abilitiesUsed).
+type gameCov struct {
+	cast, ability map[string]bool
+	used          map[string]map[string]bool
 }
 
 func botSeat(seed uint64) seat.Seat {
@@ -337,48 +384,35 @@ func botSeat(seed uint64) seat.Seat {
 	return s
 }
 
-// played walks the finished log for which deck cards were cast/land-played
-// and which had an ability put on the stack.
-func played(e *rules.Engine) (cast, ability map[string]bool) {
-	cast, ability = map[string]bool{}, map[string]bool{}
-	name := func(id state.ObjID) string {
-		for hops := 0; hops < 3; hops++ {
-			o := e.G.Obj(id)
-			if o == nil {
-				return ""
-			}
-			if o.Card != nil && !o.IsToken && !o.IsCopy {
-				return cardName(o.Card)
-			}
-			if o.Source == 0 || o.Source == id {
-				return ""
-			}
-			id = o.Source
-		}
-		return ""
-	}
+// played walks the finished game for which deck cards were cast/land-played,
+// which had an ability put on the stack, and which of their own abilities
+// were used (abilitiesUsed).
+func played(e *rules.Engine, decks [][]*cards.Card) *gameCov {
+	gc := &gameCov{cast: map[string]bool{}, ability: map[string]bool{}}
+	name := func(id state.ObjID) string { return realCardName(e, id) }
 	for _, ev := range e.L.Events {
 		switch ev.Kind {
 		case events.PutOnStack:
 			if ev.To == state.ZStack {
 				if n := name(ev.Obj); n != "" {
-					cast[n] = true
+					gc.cast[n] = true
 				}
 			}
 		case events.LandPlayed:
 			if n := name(ev.Obj); n != "" {
-				cast[n] = true
+				gc.cast[n] = true
 			}
 		case events.AbilityPush, events.TriggerPush:
 			if n := name(ev.Obj); n != "" {
-				ability[n] = true
+				gc.ability[n] = true
 			}
 		}
 	}
-	return cast, ability
+	gc.used = abilitiesUsed(e, decks)
+	return gc
 }
 
-func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents int, verify bool) (fail *failure, cast, ability map[string]bool) {
+func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify bool) (fail *failure, gc *gameCov) {
 	mk := func(kind, diag string, o gbench.Outcome) *failure {
 		return &failure{Kind: kind, Seed: seed, Decks: decks, Turns: o.Turns, Intents: o.Intents, Diag: diag, Sig: signature(kind, diag)}
 	}
@@ -386,7 +420,7 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 	for _, d := range decks {
 		cs, err := resolveDeck(reg, d)
 		if err != nil {
-			return mk("setup", err.Error(), gbench.Outcome{}), nil, nil
+			return mk("setup", err.Error(), gbench.Outcome{}), nil
 		}
 		dk = append(dk, cs)
 	}
@@ -406,12 +440,12 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 				err = fmt.Errorf("panic outside drive loop: %v", r)
 			}
 		}()
-		o, e, err = gbench.PlayGame(cfg, seats, maxTurns, maxIntents, gbench.Hooks{})
+		o, e, err = gbench.PlayGame(cfg, seats, maxTurns, maxIntents, gbench.Hooks{Guard: boardGuard(maxObjects)})
 	}()
 	if err != nil {
-		return mk("error", err.Error(), o), nil, nil
+		return mk("error", err.Error(), o), nil
 	}
-	cast, ability = played(e)
+	gc = played(e, dk)
 	withCtx := func(kind, diag string) *failure {
 		ctx, involved := tailContext(e, 24)
 		f := mk(kind, diag+"\n-- last events --\n"+ctx, o)
@@ -422,9 +456,15 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 	}
 	switch {
 	case gbench.IsAbort(o.StallOn):
-		return withCtx(o.StallOn, o.Livelock), cast, ability
+		return withCtx(o.StallOn, o.Livelock), gc
 	case o.StallOn == "intents":
-		return withCtx("intents", fmt.Sprintf("intent cap %d hit at turn %d", maxIntents, o.Turns)), cast, ability
+		return withCtx("intents", fmt.Sprintf("intent cap %d hit at turn %d", maxIntents, o.Turns)), gc
+	case o.StallOn == "bigboard":
+		// Not an engine bug: the game grew a board past the harness's
+		// budget. Its own kind lets triage separate it from hangs, and the
+		// signature names the card with the most battlefield copies (the
+		// usual token engine) rather than the log tail.
+		return mk("bigboard", o.Livelock, o), gc
 	}
 	if verify {
 		var rerr error
@@ -437,10 +477,62 @@ func playOne(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxInt
 			_, rerr = replay.Replay(e.L, cfg)
 		}()
 		if rerr != nil {
-			return mk("replay", rerr.Error(), o), cast, ability
+			return mk("replay", rerr.Error(), o), gc
 		}
 	}
-	return nil, cast, ability
+	return nil, gc
+}
+
+// boardGuard is the harness-side board-size watchdog: once the live
+// (non-ceased) object count exceeds max, the game ends as a "bigboard"
+// stall. The arena length bounds the live count from above, so a game that
+// never grows past max never pays the scan. max <= 0 disables it.
+func boardGuard(max int) func(*rules.Engine) (string, string) {
+	if max <= 0 {
+		return nil
+	}
+	return func(e *rules.Engine) (string, string) {
+		if len(e.G.Objs) <= max {
+			return "", ""
+		}
+		live := 0
+		counts := map[string]int{}
+		for i := range e.G.Objs {
+			o := &e.G.Objs[i]
+			if o.Zone == state.ZCeased {
+				continue
+			}
+			live++
+			if o.Zone == state.ZBattlefield && o.Card != nil {
+				counts[cardName(o.Card)]++
+			}
+		}
+		if live <= max {
+			return "", ""
+		}
+		type nc struct {
+			n string
+			c int
+		}
+		var top []nc
+		for n, c := range counts {
+			top = append(top, nc{n, c})
+		}
+		sort.Slice(top, func(a, b int) bool { return top[a].c > top[b].c || (top[a].c == top[b].c && top[a].n < top[b].n) })
+		var b strings.Builder
+		fmt.Fprintf(&b, "live object count %d exceeds -max-objects %d at turn %d", live, max, e.G.Turn)
+		if len(top) > 0 {
+			fmt.Fprintf(&b, " (most on battlefield: %s)", top[0].n)
+		}
+		b.WriteString("\n-- battlefield --\n")
+		for i, t := range top {
+			if i == 10 {
+				break
+			}
+			fmt.Fprintf(&b, "%6d %s\n", t.c, t.n)
+		}
+		return "bigboard", b.String()
+	}
 }
 
 // tailContext renders the last n log events with object names, and returns
@@ -501,10 +593,10 @@ var hang *time.Duration
 // The budget is harness-only (the engine never sees the clock): a game that
 // overruns is recorded as a "hang" carrying its goroutine's stack, and the
 // goroutine is abandoned since Go cannot kill it.
-func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents int, verify bool, budget time.Duration) (*failure, map[string]bool, map[string]bool, bool) {
+func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, maxIntents, maxObjects int, verify bool, budget time.Duration) (*failure, *gameCov, bool) {
 	type res struct {
-		f      *failure
-		cs, ab map[string]bool
+		f  *failure
+		gc *gameCov
 	}
 	done := make(chan res, 1)
 	gid := make(chan string, 1)
@@ -517,15 +609,15 @@ func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, ma
 		} else {
 			gid <- ""
 		}
-		f, cs, ab := playOne(reg, decks, seed, maxTurns, maxIntents, verify)
-		done <- res{f, cs, ab}
+		f, gc := playOne(reg, decks, seed, maxTurns, maxIntents, maxObjects, verify)
+		done <- res{f, gc}
 	}()
 	id := <-gid
 	t := time.NewTimer(budget)
 	defer t.Stop()
 	select {
 	case r := <-done:
-		return r.f, r.cs, r.ab, false
+		return r.f, r.gc, false
 	case <-t.C:
 	}
 	buf := make([]byte, 64<<20)
@@ -548,7 +640,7 @@ func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, ma
 			break
 		}
 	}
-	return &failure{Kind: "hang", Seed: seed, Decks: decks, Diag: fmt.Sprintf("game exceeded %s wall clock\n%s", budget, stack), Sig: sig}, nil, nil, true
+	return &failure{Kind: "hang", Seed: seed, Decks: decks, Diag: fmt.Sprintf("game exceeded %s wall clock\n%s", budget, stack), Sig: sig}, nil, true
 }
 
 func main() {
@@ -561,10 +653,12 @@ func main() {
 	failPath := flag.String("failures", "cardfuzz-failures.jsonl", "append failure records here")
 	maxTurns := flag.Int("max-turns", 100, "turn cap (a stall, not a failure)")
 	maxIntents := flag.Int("max-intents", 20000, "intent cap (recorded as an 'intents' failure)")
+	maxObjects := flag.Int("max-objects", 20000, "live object cap (recorded as a 'bigboard' failure; 0 disables)")
 	verify := flag.Bool("verify", true, "replay every finished game and compare")
 	repro := flag.String("repro", "", "replay a failure record from this JSONL file (with -line)")
 	line := flag.Int("line", 1, "1-based line of -repro to replay")
 	report := flag.Bool("report", false, "print coverage summary from -state and exit")
+	missing := flag.Bool("missing", false, "with -report: also list cards cast/played but with abilities never used, and which")
 	hang = flag.Duration("hang", 90*time.Second, "wall-clock budget per game before it is recorded as a 'hang' (its goroutine is abandoned)")
 	maxHangs := flag.Int("max-hangs", 6, "stop the run once this many hung games are leaked (each burns a core)")
 	cpuProfile := flag.String("cpuprofile", "", "with -repro: write a CPU profile of the replay here")
@@ -591,12 +685,12 @@ func main() {
 				fmt.Fprintln(os.Stderr, "cardfuzz:", err)
 				os.Exit(1)
 			}
-			code := runRepro(reg, *repro, *line, *maxTurns, *maxIntents)
+			code := runRepro(reg, *repro, *line, *maxTurns, *maxIntents, *maxObjects)
 			pprof.StopCPUProfile()
 			pf.Close()
 			os.Exit(code)
 		}
-		os.Exit(runRepro(reg, *repro, *line, *maxTurns, *maxIntents))
+		os.Exit(runRepro(reg, *repro, *line, *maxTurns, *maxIntents, *maxObjects))
 	}
 	c, err := loadCov(*statePath)
 	if err != nil {
@@ -605,6 +699,9 @@ func main() {
 	}
 	if *report {
 		printReport(p, c, true)
+		if *missing {
+			printMissing(p, c)
+		}
 		return
 	}
 	ff, err := os.OpenFile(*failPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
@@ -651,22 +748,16 @@ func main() {
 						results[j.idx] = gameResult{idx: -1}
 						continue
 					}
-					f, cs, ab, hung := playWatched(reg, j.decks, j.seed, *maxTurns, *maxIntents, *verify, *hang)
+					f, gc, hung := playWatched(reg, j.decks, j.seed, *maxTurns, *maxIntents, *maxObjects, *verify, *hang)
 					if hung {
 						if hangs.Add(1) > int64(*maxHangs) {
 							fmt.Fprintln(os.Stderr, "cardfuzz: too many leaked hung games; stopping")
 							stop.Store(true)
 						}
 					}
-					gr := gameResult{idx: j.idx, fail: f}
+					gr := gameResult{idx: j.idx, fail: f, gc: gc}
 					for _, d := range j.decks {
 						gr.included = append(gr.included, d.Cards...)
-					}
-					for k := range cs {
-						gr.cast = append(gr.cast, k)
-					}
-					for k := range ab {
-						gr.ability = append(gr.ability, k)
 					}
 					results[j.idx] = gr
 				}
@@ -690,11 +781,23 @@ func main() {
 					c.Included[nme]++
 				}
 			}
-			for _, nme := range gr.cast {
-				c.Cast[nme]++
-			}
-			for _, nme := range gr.ability {
-				c.Ability[nme]++
+			if gr.gc != nil {
+				for nme := range gr.gc.cast {
+					c.Cast[nme]++
+				}
+				for nme := range gr.gc.ability {
+					c.Ability[nme]++
+				}
+				for nme, keys := range gr.gc.used {
+					u := c.Used[nme]
+					if u == nil {
+						u = map[string]int64{}
+						c.Used[nme] = u
+					}
+					for k := range keys {
+						u[k]++
+					}
+				}
 			}
 			if gr.fail != nil {
 				runFails[gr.fail.Sig]++
@@ -742,9 +845,12 @@ func (p *pool) isBasic(n string) bool {
 }
 
 func printReport(p *pool, c *cov, detail bool) {
-	total, inc, cast, abil := 0, 0, 0, 0
+	total, inc, cast, abil, full := 0, 0, 0, 0, 0
 	for n := range p.all {
 		total++
+		if c.full(n, p.keys[n]) {
+			full++
+		}
 		if c.Included[n] > 0 {
 			inc++
 		}
@@ -755,8 +861,8 @@ func printReport(p *pool, c *cov, detail bool) {
 			abil++
 		}
 	}
-	fmt.Fprintf(os.Stderr, "cardfuzz: pool %d cards | included %d (%.1f%%) | cast/played %d (%.1f%%) | cast-or-ability %d (%.1f%%) | games %d\n",
-		total, inc, pct(inc, total), cast, pct(cast, total), abil, pct(abil, total), c.Games)
+	fmt.Fprintf(os.Stderr, "cardfuzz: pool %d cards | included %d (%.1f%%) | cast/played %d (%.1f%%) | cast-or-ability %d (%.1f%%) | full %d (%.1f%%) | games %d\n",
+		total, inc, pct(inc, total), cast, pct(cast, total), abil, pct(abil, total), full, pct(full, total), c.Games)
 	if !detail {
 		return
 	}
@@ -769,6 +875,34 @@ func printReport(p *pool, c *cov, detail bool) {
 	sort.Strings(never)
 	fmt.Printf("# included but never cast/activated: %d\n", len(never))
 	for _, l := range never {
+		fmt.Println(l)
+	}
+}
+
+// printMissing lists every pool card cast/played at least once but with some
+// ability in its inventory never used: "<times cast>\t<name>\t<key(desc)> ...".
+// Mana abilities are detected by proxy (see abilitiesUsed).
+func printMissing(p *pool, c *cov) {
+	var lines []string
+	for n := range p.all {
+		if c.Cast[n] == 0 {
+			continue
+		}
+		cd := p.cards[n]
+		miss := c.missing(n, p.keys[n])
+		if len(miss) == 0 {
+			continue
+		}
+		desc := abilityDescs(cd)
+		parts := make([]string, len(miss))
+		for i, k := range miss {
+			parts[i] = k + "(" + desc[k] + ")"
+		}
+		lines = append(lines, fmt.Sprintf("%d\t%s\t%s", c.Cast[n], n, strings.Join(parts, " ")))
+	}
+	sort.Strings(lines)
+	fmt.Printf("# cast/played but with abilities never used: %d\n", len(lines))
+	for _, l := range lines {
 		fmt.Println(l)
 	}
 }
@@ -790,7 +924,7 @@ func mix(a, b uint64) uint64 {
 	return x
 }
 
-func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents int) int {
+func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents, maxObjects int) int {
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -808,7 +942,7 @@ func runRepro(reg *cards.Registry, path string, line, maxTurns, maxIntents int) 
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
-		fl, _, _ := playOne(reg, rec.Decks, rec.Seed, maxTurns, maxIntents, true)
+		fl, _ := playOne(reg, rec.Decks, rec.Seed, maxTurns, maxIntents, maxObjects, true)
 		if fl == nil {
 			fmt.Println("REPRO: game completed cleanly (not reproduced)")
 			return 0

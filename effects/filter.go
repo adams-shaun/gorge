@@ -3750,12 +3750,14 @@ func matchesEffectiveName(o *state.Object, name string, sc SpecContext) bool {
 }
 
 // hasDerivedTypeEntry reports whether sc binds a layer-4 derived type list for
-// o. The compiled predicate sidecar reads the printed face (matchesCompiledBase
-// and matchesCompiledTerm call hasType directly), so a spec that names a
-// granted type must be answered by the textual oracle instead -- the same
-// discipline the layer walk and hasEffectiveName keep. It answers a BOOLEAN
-// and never returns the list, so escape analysis does not summarise the whole
-// context as leaking (the EffectiveNames contract above).
+// o. A spec that names a granted type is answered by the textual oracle, the
+// same discipline the layer walk and hasEffectiveName keep. The compiled
+// sidecar's type paths are now ExtraTypes/DerivedTypes-aware too (they route
+// through hasTypeCtx), so both oracles agree; this gate keeps the textual
+// oracle authoritative for a published derived list, where its ordering rules
+// (layer4types.go) are explicit. It answers a BOOLEAN and never returns the
+// list, so escape analysis does not summarise the whole context as leaking
+// (the EffectiveNames contract above).
 func hasDerivedTypeEntry(o *state.Object, sc SpecContext) bool {
 	_, ok := derivedTypesFor(o, sc)
 	return ok
