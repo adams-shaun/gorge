@@ -1,186 +1,393 @@
-# Merge-conflict resolution — task agent-20260919T181318Z-3aa8759e
+# Merge report — agent-20260923T144746Z-b284de7f (mrg1, round 2)
 
-Ticket: `agent-20260919T181318Z-3aa8759e` (`cost:XMin1` unparseable — Thieving Skydiver's X kicker)
-Branch: `wt/agent-20260919T181318Z-3aa8759e`
-Merge commit: `c0c8f8f16` (Merge branch 'main' into wt/agent-20260919T181318Z-3aa8759e)
-Base at resolution: `aaafc5298` (main), branch tip before merge `bb33c202f`
-Corpus: `.cards` present as a symlink to `/home/sadams/projects/gorge/.cards`
-(so corpus-backed tests ran; they did not skip).
+Branch: `wt/agent-20260923T144746Z-b284de7f`
+This round's merge commit: `7e6cb5d6e` ("Merge branch 'main' into
+wt/agent-20260923T144746Z-b284de7f"), parents `2c67ebe7d` (branch tip) +
+`46d762d59` (main tip at merge time). A second, conflict-free merge
+`4bee38977` then folded in the 14 commits main gained while this round ran.
 
-## Operation found
+## Starting state
 
-`git status` reported a clean tree on branch `wt/agent-20260919T181318Z-3aa8759e`
-with no merge/rebase in flight (`.git` is a worktree gitdir pointer; no
-`MERGE_HEAD`). The branch was 241 commits behind `main` (merge-base
-`6c14e326e`, the fuzz-cov3 merge). Per the brief, I started the integration:
-`git merge main --no-edit`.
+`git status` on entry: `On branch wt/agent-20260923T144746Z-b284de7f`,
+`nothing to commit, working tree clean`. No in-flight rebase or merge: no
+`MERGE_HEAD`, no `rebase-merge`/`rebase-apply` directory. The daemon's rebase
+attempt had aborted cleanly. A prior resolver round already produced
+`a3999ba35` (merge of main `d4ecb8011`); main has since advanced well past it,
+so this seat re-ran the integration against the then-current tip.
+
+`.cards` was present as the symlink
+`/home/sadams/projects/gorge/.cards` (`ls -la .cards` -> `... -> /home/...`),
+so the corpus-backed tests below ran rather than skipped.
 
 ## Conflicted files
 
-Exactly ONE path conflicted:
-
-- `.ds4/report-t1.md` — both modified (content conflict).
-
-Every other path auto-merged, including all Go source. The three files this
-ticket actually changed (`rules/mana.go`, `rules/cast.go`, `rules/statics.go`)
-plus `rules/paramcensus_test.go` were all reported `Auto-merging` with no
-conflict; I verified the fix survived verbatim (see below).
-
-## What each side wanted, and how it was resolved
-
-`.ds4/report-t1.md` is a SHARED report file: unrelated tickets on different
-branches all write their report to that generic path. Both sides of this merge
-had replaced it with a different ticket's report:
-
-- **HEAD (this branch)** — the cost-xmin1 round report (217 lines), written by
-  commit `bb33c202f`.
-- **main** — a Fury `DividedAsYouChoose$` damage-split report from
-  `fb-20260923T050453Z-49840c2d` (194 lines).
-- **merge-base (`6c14e326e`)** — the accumulated shared archive (3429 lines):
-  every earlier ticket's report, appended over time below the standard
-  `# Reports appended below are from other tickets on the shared report file
-  (preserved verbatim from main):` separator.
-
-Neither side carried the archive; each had dropped ~3380 lines of other
-tickets' history. The repo's established preserve convention (commits
-`e60f9037e`, `6bc24448`, `472d095d`, `b92d89f8`; commit `e60f9037e` is the
-explicit model: "restore each file's main content byte-exact below the standard
-separator and keep this ticket's reports above it") is that the shared file
-must never shrink — new reports are PREPENDED above the separator and the prior
-content is restored byte-exact below it.
-
-So I built the union, top to bottom:
-
-1. This branch's cost-xmin1 report, lines 1–217 — sha256
-   `e4f9953b…` matches `HEAD:.ds4/report-t1.md` byte-exact.
-2. A separator, then main's Fury report under a heading naming it as from main,
-   lines 223–416 — sha256 `44c48c39…` matches `main:.ds4/report-t1.md`
-   byte-exact.
-3. The standard separator, then the merge-base archive restored byte-exact,
-   final 3429 lines — sha256 `c2e4f27a…` matches `6c14e326e:.ds4/report-t1.md`
-   byte-exact.
-
-Result: 3850 lines, and `git diff --numstat main -- .ds4/report-t1.md` is
-`3656 0` — **additions-only against main**, i.e. main's report and the whole
-archive are preserved and nothing is deleted. This is the same
-additions-only shape the model commit verified.
-
-No other file was touched by the resolution. No code, test or census edit was
-made to resolve the conflict.
-
-## The branch's fix survived the auto-merge
-
-Verified in the merged tree, not assumed:
-
-- `rules/mana.go`: `XMin int32` on `Cost` (line 125), `var xMinCost =
-  regexp.MustCompile(\`^XMin(\d+)$\`)` (line 500), the parse arm at line 909,
-  `WithX` clearing `XMin` (1191), `Plus` taking the max (1208).
-- `rules/cast.go`: `xAsk`'s floor `if pc.cost.XMin > min { min = pc.cost.XMin }`
-  (lines 3852–3853), suspend special case (`suspendMinX`) intact (1004).
-- `rules/statics.go`: `feasibleAny`'s `composed` leaf prices `if c.XMin > 0 {
-  c = c.WithX(c.XMin) }` (lines 1583–1584).
-- `rules/xmin_cost_test.go` present.
-
-No conflict markers remain anywhere:
-`git grep -n -E '^(<<<<<<<|=======|>>>>>>>)'` → no output.
-`go build ./...` → clean.
-
-## Commands run and real output
+`git merge main --no-edit` produced exactly two conflicts, both tracked
+`.ds4/` shared report files; no source, test or spec file conflicted:
 
 ```
-$ git merge main --no-edit
 Auto-merging .ds4/report-t1.md
 CONFLICT (content): Merge conflict in .ds4/report-t1.md
-Auto-merging rules/cast.go
-Auto-merging rules/mana.go
-Auto-merging rules/paramcensus_test.go
-Auto-merging rules/statics.go
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Auto-merging effects/context.go
+Auto-merging events/apply.go
 Automatic merge failed; fix conflicts and then commit the result.
 ```
 
-Preservation verification (byte-exactness of all three restored sections):
+No Go file carried a conflict marker (`git grep -nE
+'^(<<<<<<<|=======|>>>>>>>)' -- '*.go'` -> none).
+
+## What each side wanted
+
+The two `report-*.md` files are the shared, prepend-only report log.
+
+- **Ours (branch, `2c67ebe7d`)**: preserved the accumulated history. Both files
+  are strictly "base + a prepend": `report-t1.md` 4920 lines with the 4721-line
+  merge-base archive as an exact suffix; `report-t2.md` 2257 lines with the
+  2100-line base as an exact suffix (verified with `diff`). Our report sits on
+  top under the standard `---` / "# Reports appended below ..." separator.
+- **Theirs (main, `46d762d59`)**: main's commit `ee4149d03` ("docs(ds4):
+  preserve seat reports before merge") had **clobbered** both files down to
+  only that seat's own report — `report-t1.md` 194 lines (the Fury
+  divided-damage report) and `report-t2.md` 129 lines (the Fury fix-round
+  report). Main's file is not base + prepend; it is a replacement that deleted
+  6221 lines of shared history.
+
+The Fury report was present in neither ours nor the merge base, so it is
+genuinely new content from main that must be preserved.
+
+## Resolution
+
+Union that keeps our ticket's report on top, inserts main's new Fury report
+directly under the preserved-history header, and keeps the accumulated archive
+byte-exact below:
 
 ```
-$ head -n 217 .ds4/report-t1.md | sha256sum           # e4f9953bc76d32d5…  == HEAD
-$ awk 'NR>=223&&NR<=416' .ds4/report-t1.md | sha256sum # 44c48c3982944bed…  == main
-$ tail -n 3429 .ds4/report-t1.md | sha256sum           # c2e4f27ae578dcd0…  == merge-base
-$ git diff --numstat main -- .ds4/report-t1.md         # 3656  0  (additions-only)
+resolved = ours[1..prepend] + "\n" + theirs_full + "\n" + ours[prepend+1..end]
 ```
 
-Merge completed:
+- `report-t1.md`: `ours[1..199]` (our report + separator + header + blank) +
+  the 194-line Fury report + blank + `ours[200..]` (the 4721-line archive).
+  Result 5115 lines.
+- `report-t2.md`: `ours[1..157]` (our round-2 report + separator + header +
+  blank) + the 129-line Fury fix-round report + blank + `ours[158..]` (the
+  2100-line archive). Result 2387 lines.
+
+Verified mechanically:
 
 ```
-$ git commit --no-edit
-[wt/agent-20260919T181318Z-3aa8759e c0c8f8f16] Merge branch 'main' into wt/agent-20260919T181318Z-3aa8759e
-$ git status
-On branch wt/agent-20260919T181318Z-3aa8759e
-nothing to commit, working tree clean
+$ sed -n '200,393p' /tmp/res_t1.md | diff - /tmp/theirs_t1.md   # EXACT MATCH
+$ sed -n '158,286p' /tmp/res_t2.md | diff - /tmp/theirs_t2.md   # EXACT MATCH
+$ tail -n 4721 /tmp/res_t1.md | diff - /tmp/base_t1.md          # base suffix OK
+$ tail -n 2100 /tmp/res_t2.md | diff - /tmp/base_t2.md          # base suffix OK
+$ grep -cE '^(<<<<<<<|=======|>>>>>>>)' /tmp/res_t1.md /tmp/res_t2.md  # 0 / 0
 ```
 
-Post-merge ratchets the brief mandates (this branch was cut before main's
-ratchet tests):
+Additions-only against **both** parents (no shared history deleted):
 
 ```
-$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-ok  	github.com/adams-shaun/gorge/rules	0.862s
+$ git diff --numstat 7e6cb5d6e^1 7e6cb5d6e -- .ds4/report-t1.md .ds4/report-t2.md
+195     0       .ds4/report-t1.md
+130     0       .ds4/report-t2.md
+$ git diff --numstat 7e6cb5d6e^2 7e6cb5d6e -- .ds4/report-t1.md .ds4/report-t2.md
+4921    0       .ds4/report-t1.md
+2258    0       .ds4/report-t2.md
 ```
 
-Targeted pass over the conflicted packages, covering both the branch's fix
-tests and main's new behaviour tests:
+(second column is deletions, always `0`.)
+
+Files were staged with `git add -f` (`.ds4/` is in `.git/info/exclude` but
+these paths are tracked).
+
+## Auto-merged Go files (checked, not edited)
+
+`effects/context.go` and `events/apply.go` auto-merged; both sides' intent
+survives:
+
+- `effects/context.go` keeps the branch's `attachedToDefinedSelector` (the
+  dotted `AttachedTo <referent>` Defined selector, dispatched as a prefix at
+  the top of `definedSpec`, reusing `attachedToReferentObjects`) alongside
+  main's additions.
+- `events/apply.go` / `state/object.go` keep the `LastBearer` fold writes
+  (detach -> `e.IDs[0]`, re-attach -> clear, move-leaves-battlefield ->
+  pre-clear) alongside main's newer event work. No `events.Event` field
+  changed.
+- `effects/attach.go` keeps commit `8594991d7`'s behaviour: the dotted
+  `AttachedTo ` prefix keeps the whole resolved list; every other selector
+  keeps the historical first-take (`os[0]`); an unbound dotted selector fails
+  closed to no objects.
+
+`go build ./...` is clean on the merged tree.
+
+## Commands run and real output
+
+Merge (conflicts shown above), then `GIT_EDITOR=true git merge --continue`:
 
 ```
-$ go test -run 'TestParseCostModelsXMinLowerBound|TestThievingSkydiver|TestXMin|TestParseCostReportsUnmodelledCostTokens|TestSuspendX|TestKicker|TestFury|TestEveryRepoDeck|TestHeads' ./rules/
-ok  	github.com/adams-shaun/gorge/rules	1.987s
+[wt/agent-20260923T144746Z-b284de7f 7e6cb5d6e] Merge branch 'main' into wt/agent-20260923T144746Z-b284de7f
 ```
 
-Behaviour goldens outside `rules/` (gorge-context mandate):
+Second merge (main advanced 14 commits during the round, conflict-free):
+
+```
+$ git merge main --no-edit
+Merge made by the 'ort' strategy.
+[wt/agent-20260923T144746Z-b284de7f 4bee38977] Merge branch 'main' into wt/agent-20260923T144746Z-b284de7f
+```
+
+Ratchet panel the brief mandates, corpus present (5 RUN, 0 SKIP):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v
+--- PASS: TestEveryRepoDeckIsFullySupported (0.60s)
+    acceptance_test.go:195: ratchet: 5 of 979 distinct cards across the repo decks are not fully supported
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.25s)
+    paramcensus_test.go:2810: param census: 30 of 979 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 25 distinct param labels, 0 distinct cost labels
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+ok  	github.com/adams-shaun/gorge/rules	0.921s
+```
+
+No ratchet table edit was needed: the merge registers no new `Mode$` matcher and
+closes no `knownUnsupported` / `knownUnsupportedParams` /
+`knownUnmodelledCountHeads` entry. The 5/979 and 30/979 counts are main's own
+post-merge tables, untouched by this branch.
+
+Targeted pass over the conflicted files' packages plus the branch's fix tests:
+
+```
+$ go test -run 'TestAttachedToDefined|TestAttachedToSelector|TestRhuk|TestCassHand|TestFumble|TestMurderousSpoils|TestAjanisChosenMayAttachAskPosesAndYesAttachesTheAura' ./effects/ ./rules/
+ok  	github.com/adams-shaun/gorge/effects	0.016s
+ok  	github.com/adams-shaun/gorge/rules	0.526s
+```
+
+Behaviour goldens:
 
 ```
 $ go test ./internal/archtest/
-ok  	github.com/adams-shaun/gorge/internal/archtest	4.104s
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.842s
 
 $ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
-ok  	github.com/adams-shaun/gorge/cmd/botbench	0.666s
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.663s
 ```
 
-`go build ./...`: clean (no output).
+Format:
 
-## Ratchet tables after the merge
+```
+$ gofmt -l effects/context.go effects/attach.go events/apply.go state/object.go
+(empty)
+```
 
-No table needed an edit:
+Final state:
 
-- `trigmatch_registry_test.go` `addedAfterTheSplit` — this ticket registers no
-  new `Mode$` matcher, so nothing to add. `TestNoTriggerModeIsRegistered…`
-  passed.
-- `knownUnsupported` / `knownUnsupportedParams` /
-  `knownUnmodelledCountHeads` — the XMin fix closes no entry (no repo deck
-  carries an XMin carrier) and main's merge moves none; all pass. No table
-  entry was added, removed or edited by this resolution.
+```
+$ git merge-base --is-ancestor main HEAD && echo "main IS ancestor"
+main IS ancestor
+$ git status
+On branch wt/agent-20260923T144746Z-b284de7f
+nothing to commit, working tree clean
+```
 
-## Uncertainties / deviations
+No head moved: neither the branch's dotted-`AttachedTo` fix nor main's delta
+changes engine behaviour any repo deck exercises (no repo deck carries
+Cass/Rhuk/Fumble/Murderous Spoils), and the `LastBearer` fold adds no event
+bytes; `TestConstructedDefaultIsByteIdentical` is unchanged. `TestHeads` was
+not edited.
 
-- The brief says "if a previous resolver run left partial work, continue from
-  the current tree state." None was found — the tree was clean and no
-  merge/rebase was in flight — so I started the merge fresh.
-- The brief's `.ds4/merge-conflict-mrg1.md` named only the generic integration
-  error; the conflict itself was a shared-report-file collision, not a code
-  conflict. I resolved it by the repo's documented preserve convention
-  (additions-only vs main) rather than picking one side, because choosing
-  either side would silently delete another ticket's report history — the exact
-  defect commit `e60f9037e` was raised to fix.
+## Deviations / uncertainties
+
+- No in-flight git operation existed on entry, so this seat re-ran the
+  integration the daemon's fallback had attempted, as a **merge** (the branch
+  already carries merge commits and is not a linear patch series).
+- Main advanced twice during the round; after the first merge it gained 14
+  further commits, which I folded in with a second conflict-free merge so main
+  is an ancestor. The daemon's own post-DONE integration handles any later
+  movement.
+- The only judgement call is the report-file resolution, done by theorem
+  (union with base as an exact suffix) rather than by hand-editing prose.
 
 ## Issues
 
-No new defects found. This ticket was integration-only; the only conflict was
-the shared `.ds4/report-t1.md` archive, resolved by preservation. The cost-xmin1
-ticket's own open issues (direct-proposal empty X option list,
-`RemoveAnyCounter<X1+/…>`, `K:Craft` carriers, census labelling, Grand Larceny
-not imported, `XMin<N>` with no `{X}` symbol) remain recorded in that report
-and were not re-opened or modified here.
+- No new engine defect found by this merge. The recurring, non-engine issue is
+  that the tracked `.ds4/report-*.md` shared logs clobber each other: main's own
+  `ee4149d03` deleted 6221 lines of shared history, and every merge of an agent
+  branch with main therefore conflicts. A durable fix would make the archive
+  git-excluded or split it per ticket. Named for the operator; no CR rule
+  applies.
 
 STATUS=DONE
-COMMITS=c0c8f8f16
-TESTS=go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' → ok 0.862s; targeted rules run (XMin + Fury + Heads) → ok 1.987s; archtest → ok 4.104s; botbench byte-identical → ok 0.666s; go build ./... clean
+COMMITS=7e6cb5d6e 4bee38977 19972cbb2
+TESTS=merge clean; targeted AttachedTo+Ajani ./effects/ ./rules/ ok; main ratchets 5 RUN 0 SKIP ok; archtest ok; botbench pin ok; gofmt clean
+
+---
+
+# Merge report — agent-20260923T144746Z-b284de7f (mrg1)
+
+Merged `main` (`d4ecb8011`) into `wt/agent-20260923T144746Z-b284de7f`.
+Merge commit `a3999ba35`; parents `8594991d7` (branch tip) + `d4ecb8011` (main tip).
+
+## Initial state
+
+`git status` at start: `On branch wt/agent-20260923T144746Z-b284de7f`,
+`nothing to commit, working tree clean` — no in-flight rebase/merge. The daemon
+reported a *failed* integration; there was no partial resolution to continue,
+so I started and completed the merge fresh.
+
+`.cards` was present as the symlink
+`/home/sadams/projects/gorge/.cards` (not missing), so every corpus-backed
+test below ran rather than skipped.
+
+## Conflicted files
+
+`git merge main` produced exactly two textual conflicts, both documents with
+no code:
+
+- `.ds4/report-t1.md`
+- `.ds4/report-t2.md`
+
+Everything else auto-merged, including the four Go files both sides touched
+(`effects/context.go`, `effects/attach.go`, `events/apply.go`,
+`state/object.go`). No Go file carried a conflict marker
+(`grep -rl '^<<<<<<<\|^>>>>>>>' --include='*.go'` → none).
+
+### What each side wanted
+
+The two `.ds4/report-*.md` files are a **shared report file** convention: each
+ticket prepends its own report above a separator and preserves the history of
+every other ticket verbatim below.
+
+- **Branch side** (`HEAD`): this ticket's own report — `report-t1.md` was the
+  194-line `# Report — agent-20260923T144746Z-b284de7f` alone;
+  `report-t2.md` was the fix-round-2 report (lines 1–152) followed by a
+  stale subset of history.
+- **Main side**: the accumulated history (4721 lines / 25 reports in
+  `report-t1.md`, 2100 lines in `report-t2.md`), itself nested in the same
+  preserve convention (main's top report, separator, then older reports).
+
+### Resolution
+
+Prepended this ticket's report above the canonical separator and preserved
+main's entire file verbatim below it, per the convention the repo already
+documents in commit `6bc24448e` ("prepended this ticket's round reports above
+a separator, per the shared-report-file preserve convention"):
+
+```
+<this ticket's report>
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+<main's report-t1.md / report-t2.md, byte-exact>
+```
+
+- `report-t1.md` resolved = HEAD's 194-line report + separator + main's file.
+- `report-t2.md` resolved = HEAD's report body (lines 1–152) + separator +
+  main's file. Main's history is a strict superset of the stale history HEAD
+  carried below its own report (verified header-by-header: every HEAD
+  history header also appears in main), so nothing unique was dropped.
+
+Result: `report-t1.md` 4920 lines, `report-t2.md` 2257 lines, zero conflict
+markers in either.
+
+No other file was edited by the resolver. The Go merge is entirely git's
+auto-merge of both sides' intent; I verified the two load-bearing regions by
+reading them:
+
+- `effects/attach.go` `effAttach` `Object$` dispatch keeps commit `8594991d7`'s
+  behaviour: the dotted `AttachedTo ` prefix keeps the WHOLE resolved list
+  (`objs`), every other selector keeps the historical first-take (`os[0]`),
+  and an unbound dotted selector fails closed to no objects rather than the
+  source.
+- `effects/context.go` dispatches `attachedToDefinedSelector` as a prefix at
+  the top of `definedSpec`, reusing `attachedToReferentObjects` (the filter's
+  one cardinality rule). Main's `EffectOwner$`/`OneOff$` case is a separate
+  region and survives alongside it.
+- `events/apply.go` / `state/object.go` keep the `LastBearer` fold writes
+  (`Unattached` → `e.IDs[0]`, re-`Attach` → clear, Move-leaves-battlefield →
+  pre-clear `AttachedTo`) alongside main's damage-by-source provenance field.
+  No `events.Event` field changed.
+
+## Commands run and real output
+
+Targeted test pass over the conflicted files' packages (brief's pattern, plus
+the regression test the prior gate round failed on):
+
+```
+$ go test -run 'TestAttachedToDefined|TestAttachedToSelector|TestRhuk|TestCassHand|TestFumble|TestMurderousSpoils|TestAjanisChosenMayAttachAskPosesAndYesAttachesTheAura' ./effects/ ./rules/
+ok  	github.com/adams-shaun/gorge/effects	0.015s
+ok  	github.com/adams-shaun/gorge/rules	0.561s
+```
+
+Ratchets the merge brief mandates after merging main:
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestEveryRepoDeckIsFullySupported (0.42s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.16s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.634s
+```
+
+5 tests RUN, 0 SKIP — the 0.42s/0.16s corpus reads confirm `.cards` was
+present, not a vacuous green.
+
+Other gates:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	5.186s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.135s
+
+$ go test ./events/
+ok  	github.com/adams-shaun/gorge/events	5.827s
+
+$ go test ./state/
+ok  	github.com/adams-shaun/gorge/state	0.025s
+
+$ go test ./rules -run 'TestHeads$'
+ok  	github.com/adams-shaun/gorge/rules	2.217s
+
+$ gofmt -l effects/context.go effects/attach.go events/apply.go state/object.go
+(empty)
+
+$ go run ./cmd/gentypes -check
+(exit 0)
+```
+
+No head moved and the botbench pin is unchanged — expected: neither the
+branch's fix nor main's delta changes engine behaviour that any repo deck
+exercises (no repo deck carries Cass/Rhuk/Fumble/Murderous Spoils), and the
+`LastBearer` fold adds no event bytes.
+
+## Points of uncertainty / notes
+
+- **Main advanced concurrently.** `d4ecb8011` was main's tip when the merge
+  started; by the time it finished, main had gained 7 further botpolicy
+  commits (`75e2d4082..90d39d036`). The merge integrated the tip the daemon
+  named. I did not chase the newer tip: it is unrelated (botpolicy reserve
+  spend) and outside the recorded operation; the daemon's own post-DONE
+  integration handles any later round.
+- The two `.ds4/report-*.md` conflicts are document-only. Resolving them by
+  the documented prepend-and-preserve convention is the whole judgement call
+  in this merge; no code semantics were chosen by hand.
+
+## Issues
+
+No new defect was found by this merge. The branch's own report already lists
+its non-fixed deviations (the remaining `ChooseFromDefined$` value spellings,
+`effAttach`'s pre-existing `Choices$`/`ChoiceZone$` limitation) and they are
+unchanged by the merge.
+
+STATUS=DONE
+COMMITS=a3999ba35
+TESTS=merge clean; targeted AttachedTo+Ajani ./effects/ ./rules/ ok; main ratchets 5 RUN 0 SKIP ok; archtest ok; botbench pin ok; events/state ok; TestHeads ok; gofmt/gentypes clean
 
 ---
 
