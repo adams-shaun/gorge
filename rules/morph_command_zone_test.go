@@ -99,20 +99,30 @@ func TestMorphFaceDownCastOfferedFromTheCommandZone(t *testing.T) {
 	assertFaceDownCommandCast(t, e, id, "Akroma, Angel of Fury", state.FlagMorphed, 8)
 
 	// Return the commander to the command zone through the real accounting
-	// event path, then prove the second face-down cast owes {3}+{2}: fund
-	// exactly CCCCC and assert the pool drops by exactly 5.
+	// event path. Empty the unused mana from the first cast via a logged
+	// ManaClear so the second offer can be tested at exactly {3} and {5}.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZCommand})
-	e.pending = nil
-	e.priorityRound()
+	e.emit(events.Event{Kind: events.ManaClear, Player: 0})
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool after clearing the first cast's remainder = %d, want 0", got)
+	}
+	if o := e.G.Obj(id); o.Zone != state.ZCommand {
+		t.Fatalf("Akroma after return is in %s, want command zone", o.Zone)
+	}
 	if got := e.commanderTaxAmount(0, id); got != 2 {
 		t.Fatalf("commander tax after one cast = %d, want 2", got)
 	}
-	addMana(t, e, 0, "CCCCC")
-	before := e.G.Players[0].Pool.Total()
+	addMana(t, e, 0, "CCC")
+	for _, opt := range e.Pending().Options {
+		if opt.Kind == "cast" && opt.Obj == id && opt.Mode == "morphed" {
+			t.Fatal("taxed face-down offer present with only {3} in the pool")
+		}
+	}
+	addMana(t, e, 0, "CC")
 	submitChoices(t, e, castModeOption(t, e, id, "morphed"))
 	passUntilStackEmpty(t, e, 40)
-	if after := e.G.Players[0].Pool.Total(); after != before-5 {
-		t.Fatalf("second face-down command-zone cast spent %d mana, want 5 ({3} + {2} tax)", before-after)
+	if after := e.G.Players[0].Pool.Total(); after != 0 {
+		t.Fatalf("second face-down command-zone cast left %d mana, want 0 ({3} + {2} tax)", after)
 	}
 	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || !o.FaceDown {
 		t.Fatalf("second cast: zone=%s faceDown=%v, want battlefield face down", o.Zone, o.FaceDown)
