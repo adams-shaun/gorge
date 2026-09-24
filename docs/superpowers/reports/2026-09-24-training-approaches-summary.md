@@ -22,6 +22,7 @@ seats traded).
 | 7 | Value head, value leaf, policy prior (pn08–pn10) | Value head predicts outcomes (log loss 0.24 vs 0.46 base rate); no win-rate gain | Merged; inert on its own |
 | 8 | Priority-context encoder v2 (pn03) | Top-1 = bot; 0/52 overrides right | Branch, not merged |
 | 9 | Expert iteration loop (pn11, `cmd/exitloop`) | 3 gens: eval 45.7 / 44.9 / 45.4% vs 48.7% control | Merged; does not compound |
+| 10 | Prior art: mtgbld self-distillation PPO (XMage) | 44.7% → 54.5% vs CP7 over 6 gated rounds | The one recipe that compounded; not yet ported |
 | — | MageZero reference run (2 vCPU) | Gen 0: 44% vs minimax pool (baseline 34.5%) | Throughput reference |
 
 **The one durable finding:** the search teacher beats the bot. Every attempt
@@ -252,6 +253,57 @@ decisions are overrides of the bot.
 - **Comparison:** gorge's simulator is about 1,000× faster per game, but none
   of gorge's learned policies has yet shown a rising curve. MageZero's does,
   though it trains with `see_opponent_hand: true` (clairvoyant).
+
+## 10. Prior art: the mtgbld/XMage policy work (May–June 2026)
+
+Before gorge, the same programme ran on XMage in mtgbld, against XMage's
+built-in minimax AI (CP7). Those numbers do not transfer: different engine,
+bot and decks. The lessons do. Sources are the mtgbld project memories
+(`project_ai_bc_ceiling`, `project_self_distillation_iteration`,
+`project_ppo_v2_iteration_attempts`, `project_ppo_stabilization_2026-06-02`,
+`project_mcts_rollout_inference_no_help`, `project_universal_archetype_policy`,
+`project_legacy_perdeck_bc_underperforms`) and the handoff,
+`.superpowers/ds4/RESUME-distillation.md`.
+
+**What failed there, the same way it fails here:**
+
+| Attempt | Result |
+|---|---|
+| Behaviour cloning of the bot | In control of decisions, the cloned policy was about 15pp worse than CP7 (55% → 40%). It learns CP7's average behaviour and loses the per-state context CP7's own search sees. |
+| REINFORCE on the corpus | Nothing to learn from: CP7 plays the same way whether it wins or loses, so outcomes don't separate good moves from bad. |
+| Decision-time MCTS rollouts over a weak prior | 30–50× slower and worse (22% vs 37.5%). A weak prior makes search repeat the prior's mistakes. Revisit only once the policy alone beats the baseline. |
+| Naive multi-round PPO | Every variant fell (42.5–49.6% vs 51.8%). The training games came from a sampled policy much weaker than the deployed argmax one: an off-policy corpus. |
+| Small per-deck corpora (600 games) | Below CP7 on every Legacy deck. Even a gated loop gained only about +2pp and stayed about 9pp under. |
+
+**What worked:**
+
+| Change | Result |
+|---|---|
+| Richer action outputs (joint card+target "slots") | +5.9pp. The "BC ceiling" was partly output coarseness. |
+| Single-pass PPO (clip + KL anchor) from the BC policy | +1.2pp mirror, +2.8pp cross-deck. Stable where REINFORCE collapsed. |
+| **Self-distillation PPO** | 6 gated rounds took mirror 44.7% → 54.5% and cross-deck 34.6% → 40.4%. It was the first run to beat CP7, and the only multi-round recipe that compounded. About 10 min per round. |
+| Matchup conditioning (archetype and matchup tokens) | Mono-green +27pp (24.3% → 50.5%); tempo/control +2 to +9pp; aggro −4 to −5pp. |
+
+**How self-distillation PPO worked.** The corpus is the *deployed*
+argmax policy's own games against the fixed opponent, not sampled play and
+not a teacher's. Each row records π_old = the probability the policy gave
+the action it took. The update is PPO clip + KL anchor with a per-state
+value baseline and normalised advantage. It used a small learning rate and
+gated each round.
+
+**What that means for gorge:**
+
+1. **pn11 is the off-policy pattern that failed there.** It trains the net
+   on the teacher's labels and never on its own play. The loop that
+   compounded was on-policy: the net plays the bot, outcomes weight its own
+   choices, and updates stay small and gated.
+2. **Their order was policy first, search second.** pn10's inert prior
+   matches their MCTS finding: search amplifies a prior only once the prior
+   is better than the bot.
+3. **Matchup conditioning was their biggest single lever**, and gorge's
+   encoder has no deck or matchup signal. Deployable only if inferred from
+   public information (cards seen so far), not the opponent's decklist.
+4. **n ≥ 500 per arm or it is noise.** It still holds.
 
 ## What we know now
 
