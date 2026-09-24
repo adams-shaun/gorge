@@ -384,10 +384,10 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
 	if pt.RadiationDrain {
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost || pt.Source == 0 || e.G.Obj(pt.Source) == nil || e.G.Obj(pt.Source).Face() == nil {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
-		e.emit(events.Event{Kind: events.DelayedPush, Obj: pt.Source, Player: pt.Controller, Counter: "__radiation_drain"})
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__radiation_drain"})
 		return
 	}
 	if pt.MonarchDraw {

@@ -2713,15 +2713,17 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 		src := g.Obj(e.Obj)
-		if src == nil {
-			break
-		}
-		if registration != nil && registration.TrackSource &&
-			src.Incarnation != registration.SourceIncarnation {
-			break
-		}
-		if src.Face() == nil {
-			break
+		if !radiationDrain {
+			if src == nil {
+				break
+			}
+			if registration != nil && registration.TrackSource &&
+				src.Incarnation != registration.SourceIncarnation {
+				break
+			}
+			if src.Face() == nil {
+				break
+			}
 		}
 		var sa *cards.SA
 		if monarchDraw {
@@ -2752,12 +2754,17 @@ func Apply(g *state.Game, e Event) {
 		// StackCopy's discipline: snapshot every src field the post-mint
 		// code reads (Incarnation here) before AddObject may reallocate
 		// g.Objs and orphan the src pointer.
-		incarnation := src.Incarnation
+		var incarnation uint32
+		if src != nil {
+			incarnation = src.Incarnation
+		}
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
-		o.Source = e.Obj
+		if !radiationDrain {
+			o.Source = e.Obj
+		}
 		if registration != nil && registration.TrackSource {
 			o.SourceIncarnation = incarnation
 		}
