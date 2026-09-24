@@ -1261,6 +1261,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	}
 	dest := ParseZone(destName)
 	optional := sa.Params["Optional"] == "True"
+	promptToSkipOptional := strings.EqualFold(strings.TrimSpace(sa.Params["PromptToSkipOptionalAbility"]), "True")
 	// The variant params (see the comment block above the function for what
 	// each means and which corpus card carries it).
 	revealWin := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") &&
@@ -1549,7 +1550,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// an EARLIER target's take answer resumed the walk (targetIndex >
 		// digTarget), while an arrange re-entry keeps main's deliberate
 		// deterministic processing for every target past arrangeThrough.
-		optionalChoice := optional && len(budgetEligible) > 0 && changeNum > 0
+		optionalChoice := (optional || promptToSkipOptional) && len(budgetEligible) > 0 && changeNum > 0
 		takeChoice := int32(len(budgetEligible)) > changeNum || anyNum && len(budgetEligible) > 0
 		chooser := p
 		if rawChooser := strings.TrimSpace(sa.Params["Choser"]); rawChooser != "" {
@@ -1568,7 +1569,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
 			}
 			minv := int32(0)
-			if !optional && !anyNum {
+			if !optional && !promptToSkipOptional && !anyNum {
 				minv = changeNum
 			}
 			// A mandatory budget dig whose changeNum exceeds what the budget
@@ -1583,7 +1584,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				maxv = len(budgetEligible)
 			}
 			verb := "you may put up to "
-			if !optional && !anyNum {
+			if !optional && !promptToSkipOptional && !anyNum {
 				verb = "put "
 			}
 			prompt := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
