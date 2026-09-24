@@ -217,7 +217,7 @@ not edited.
   applies.
 
 STATUS=DONE
-COMMITS=7e6cb5d6e 4bee38977
+COMMITS=7e6cb5d6e 4bee38977 19972cbb2
 TESTS=merge clean; targeted AttachedTo+Ajani ./effects/ ./rules/ ok; main ratchets 5 RUN 0 SKIP ok; archtest ok; botbench pin ok; gofmt clean
 
 ---
