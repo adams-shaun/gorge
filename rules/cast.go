@@ -3966,7 +3966,9 @@ func (e *Engine) xAsk() bool {
 	// mana X -- and when another announced X also exists each cap min-clamps
 	// the shared X (CR 601.2b's announcement must be one the payment can
 	// settle).
-	announcedOnly := pc.cost.X <= 0 && !energyX && !sacX && !blightX
+	// Blight<X> alone must use the toughness cap as its bound, not the
+	// pool/graveyard mana ceiling: blighting does not spend mana.
+	announcedOnly := pc.cost.X <= 0 && !energyX && !sacX
 	boundSet := false
 	applyCap := func(cap int32) {
 		if announcedOnly && !boundSet {
