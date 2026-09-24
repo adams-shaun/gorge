@@ -2,6 +2,7 @@ package botpolicy
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -548,6 +549,19 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 		}
 		return def[can[i]].id < def[can[j]].id
 	})
+	// Without First Strike anywhere in the fight, growing the prefix by one
+	// blocker leaves every earlier blocker's damage (and so its death)
+	// unchanged -- the attacker's assignment to the first k is identical,
+	// the (k+1)-th only takes what the k-th used to absorb -- so a longer
+	// killing prefix never loses fewer creatures, and the first killing
+	// prefix is the cheapest. Stopping there keeps the scan linear instead
+	// of quadratic in the defender's board. First Strike can end the fight
+	// early (a larger team kills the attacker before it deals damage), so
+	// that case keeps the full scan.
+	firstStrike := a.hasKeyword("First Strike")
+	for _, i := range can {
+		firstStrike = firstStrike || def[i].c.hasKeyword("First Strike")
+	}
 	var power int32
 	for k := 1; k <= len(can); k++ {
 		power += def[can[k-1]].c.Power
@@ -572,6 +586,9 @@ func killBlockCost(def []blocker, a Creature) (int32, bool) {
 			}
 		}
 		consider(cost)
+		if !firstStrike {
+			break
+		}
 	}
 	return best, best != -1
 }
@@ -803,6 +820,73 @@ func (b Board) ar8LethalSubset(defender state.PlayerID, atks []ar8Attacker, bloc
 	return nil, false
 }
 
+// swarmLethalSubset is AR9: the smallest attacking set against defender
+// whose damage reaches the defender's known life under the defender's BEST
+// possible blocking response. The response is modelled pessimistically for
+// the attacker: every untapped defender creature blocks (ignoring Flying,
+// Menace, protection and every other restriction that could only let more
+// through) and each block stops its attacker's damage entirely (no
+// trample), so the defender stops at most its k untapped creatures' worth of
+// attackers -- and it stops the k biggest. With atks sorted by power desc
+// (the caller sorts), the damage that gets through a prefix of m attackers
+// is therefore the sum of powers k..m-1, and the smallest lethal prefix is
+// the first whose tail sum reaches life. Attackers already committed
+// elsewhere (taken) and powerless ones are skipped. A defender with no known
+// life never yields a set (the missing fact is unknown, never zero). The
+// result is a pure function of the sorted list and the board: no map order
+// reaches it.
+func (b Board) swarmLethalSubset(defender state.PlayerID, atks []ar8Attacker, blockers []blocker, taken map[state.ObjID]int) []ar8Attacker {
+	life, ok := b.Life[defender]
+	if !ok || life <= 0 {
+		return nil
+	}
+	k := 0
+	for _, bl := range blockers {
+		if !bl.c.Tapped {
+			k++
+		}
+	}
+	var out []ar8Attacker
+	var through int64
+	for _, at := range atks {
+		if at.a.Power <= 0 {
+			break // sorted by power desc: nothing after this deals damage
+		}
+		if _, done := taken[at.id]; done {
+			continue
+		}
+		out = append(out, at)
+		if len(out) > k {
+			through += int64(at.a.Power)
+			if through >= int64(life) {
+				return out
+			}
+		}
+	}
+	return nil
+}
+
+// profileKey is the memo key for a creature's combat facts: two creatures
+// with the same key are indistinguishable to every block-risk read
+// (canBlockLike, blockCombat, killBlockCost).
+func (c Creature) profileKey() string {
+	var sb strings.Builder
+	sb.Grow(32)
+	sb.WriteString(strconv.Itoa(int(c.Power)))
+	sb.WriteByte('/')
+	sb.WriteString(strconv.Itoa(int(c.Toughness)))
+	sb.WriteByte('/')
+	sb.WriteString(strconv.Itoa(int(c.Damage)))
+	if c.Tapped {
+		sb.WriteString("/T")
+	}
+	for _, k := range c.Keywords {
+		sb.WriteByte('|')
+		sb.WriteString(k)
+	}
+	return sb.String()
+}
+
 func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combinedLethal bool) []int {
 	if len(d.Options) == 0 {
 		return nil
@@ -871,16 +955,23 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// tier is a better swing, ok == false vetoes that defender outright
 	// (AR3). An option naming a creature with no facts reads as a 0/0 and
 	// never reaches score (AR1 above).
-	score := func(at *atk, oi int) (int, bool) {
-		o := &d.Options[oi]
-		a := at.a
-		defender := o.Player
-		if b.closesClock(defender, at.id, a) {
-			return 4, true // AR5: the swing closes THIS defender's clock
+	//
+	// The block-risk half (AR2/AR3) reads only the attacker's combat facts
+	// and the defender's creatures, so it is memoised per (defender,
+	// profile): a token army of identical creatures pays the block
+	// simulation once, not once per token -- the per-attacker scan over
+	// every defender creature made a thousands-strong board quadratic.
+	type riskKey struct {
+		def state.PlayerID
+		pk  string
+	}
+	risk := make(map[riskKey]int)
+	blockRisk := func(defender state.PlayerID, a Creature) int {
+		k := riskKey{defender, a.profileKey()}
+		if t, ok := risk[k]; ok {
+			return t
 		}
-		if lethalPressure && lethalToLife(defender, a.Power) {
-			return 3, true // experimental: win unblocked or force a blocker
-		}
+		t := 1 // blockable, but every block trades even-or-worse for them
 		blockers := 0
 		for _, db := range defBlockers[defender] {
 			if canBlockLike(a, db.c) {
@@ -892,12 +983,27 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 			blockable = blockers >= 2
 		}
 		if !blockable {
-			return 2, true // AR2: nothing of theirs can block it
+			t = 2 // AR2: nothing of theirs can block it
+		} else if cost, ok := killBlockCost(defBlockers[defender], a); ok && cost < a.pt() {
+			t = 0 // AR3: it dies for less than it is worth
 		}
-		if cost, ok := killBlockCost(defBlockers[defender], a); ok && cost < a.pt() {
-			return 0, false // AR3: it dies for less than it is worth
+		risk[k] = t
+		return t
+	}
+	score := func(at *atk, oi int) (int, bool) {
+		o := &d.Options[oi]
+		a := at.a
+		defender := o.Player
+		if b.closesClock(defender, at.id, a) {
+			return 4, true // AR5: the swing closes THIS defender's clock
 		}
-		return 1, true // blockable, but every block trades even-or-worse for them
+		if lethalPressure && lethalToLife(defender, a.Power) {
+			return 3, true // experimental: win unblocked or force a blocker
+		}
+		if t := blockRisk(defender, a); t > 0 {
+			return t, true
+		}
+		return 0, false // AR3 veto
 	}
 
 	// AR8 (opt-in combined-attacker lethal pressure): no single attacker may
@@ -911,34 +1017,37 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// (below) still stands unchanged.
 	ar8OptionFor := make(map[state.ObjID]int)
 	ar8Forced := make(map[int]bool)
-	if combinedLethal {
-		// One offered pair set per defender, in a DETERMINISTIC defender order:
-		// first-seen option order (never map order), so which defender wins an
-		// attacker offered against several is a function of the offer list
-		// alone. Attackers are sorted by power desc then ObjID asc (the
-		// brief's order); options keep offered order for the ObjID tiebreak.
-		defAtks := make(map[state.PlayerID][]ar8Attacker, len(d.Options))
-		var defOrder []state.PlayerID
-		seenDef := make(map[state.PlayerID]bool, len(d.Options))
-		for _, at := range attackers {
-			for _, oi := range at.opts {
-				def := d.Options[oi].Player
-				if !seenDef[def] {
-					seenDef[def] = true
-					defOrder = append(defOrder, def)
-				}
-				defAtks[def] = append(defAtks[def], ar8Attacker{id: at.id, a: at.a, oi: oi})
+	// One offered pair set per defender, in a DETERMINISTIC defender order:
+	// first-seen option order (never map order), so which defender wins an
+	// attacker offered against several is a function of the offer list
+	// alone. Attackers are sorted by power desc then ObjID asc (the brief's
+	// order); options keep offered order for the ObjID tiebreak. Shared by
+	// AR8 (opt-in) and AR9 (always on).
+	defAtks := make(map[state.PlayerID][]ar8Attacker, len(d.Options))
+	var defOrder []state.PlayerID
+	seenDef := make(map[state.PlayerID]bool, len(d.Options))
+	for _, at := range attackers {
+		for _, oi := range at.opts {
+			def := d.Options[oi].Player
+			if !seenDef[def] {
+				seenDef[def] = true
+				defOrder = append(defOrder, def)
 			}
+			defAtks[def] = append(defAtks[def], ar8Attacker{id: at.id, a: at.a, oi: oi})
 		}
+	}
+	for _, defender := range defOrder {
+		atks := defAtks[defender]
+		sort.SliceStable(atks, func(i, j int) bool {
+			if atks[i].a.Power != atks[j].a.Power {
+				return atks[i].a.Power > atks[j].a.Power
+			}
+			return atks[i].id < atks[j].id
+		})
+	}
+	if combinedLethal {
 		for _, defender := range defOrder {
-			atks := defAtks[defender]
-			sort.SliceStable(atks, func(i, j int) bool {
-				if atks[i].a.Power != atks[j].a.Power {
-					return atks[i].a.Power > atks[j].a.Power
-				}
-				return atks[i].id < atks[j].id
-			})
-			subset, ok := b.ar8LethalSubset(defender, atks, defBlockers[defender])
+			subset, ok := b.ar8LethalSubset(defender, defAtks[defender], defBlockers[defender])
 			if !ok {
 				continue
 			}
@@ -951,6 +1060,35 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 				ar8OptionFor[at.id] = at.oi
 				ar8Forced[at.oi] = true
 			}
+		}
+	}
+	// AR9 (swarm lethal, always on): force the smallest attacking set whose
+	// damage reaches a defender's known life even when that defender blocks
+	// as well as it possibly can (swarmLethalSubset). It is the case AR3's
+	// per-attacker veto can never see -- a thousand 1/1 tokens facing three
+	// 2/2s, each token individually "dies for free", and the bot stayed home
+	// for dozens of turns while the board doubled every turn.
+	//
+	// A commander whose swing closes some defender's clock (AR5) keeps its
+	// tier-4 choice and is left out of the swarm, so the swarm never
+	// redirects the clock's game-ending swing.
+	swarmSkip := make(map[state.ObjID]int, len(ar8OptionFor))
+	for id, oi := range ar8OptionFor {
+		swarmSkip[id] = oi
+	}
+	for _, at := range attackers {
+		for _, oi := range at.opts {
+			if b.closesClock(d.Options[oi].Player, at.id, at.a) {
+				swarmSkip[at.id] = oi
+				break
+			}
+		}
+	}
+	for _, defender := range defOrder {
+		for _, at := range b.swarmLethalSubset(defender, defAtks[defender], defBlockers[defender], swarmSkip) {
+			swarmSkip[at.id] = at.oi
+			ar8OptionFor[at.id] = at.oi
+			ar8Forced[at.oi] = true
 		}
 	}
 
@@ -1011,18 +1149,15 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// undefended" is a fact about the whole table, and any opponent with a
 	// threat creature can punish it.
 	canStillBlock := 0
+	attackingSet := make(map[state.ObjID]bool, len(chosen))
+	for _, oi := range chosen {
+		attackingSet[d.Options[oi].Obj] = true
+	}
 	for id, c := range b.Creatures {
 		if c.Controller != me || c.Tapped {
 			continue
 		}
-		attacking := false
-		for _, oi := range chosen {
-			if d.Options[oi].Obj == id {
-				attacking = true
-				break
-			}
-		}
-		if !attacking || c.hasKeyword("Vigilance") {
+		if !attackingSet[id] || c.hasKeyword("Vigilance") {
 			canStillBlock++
 		}
 	}
@@ -1041,23 +1176,30 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 		// cross-product option list made the mismatch reachable).
 		var holdScore int32 = -1
 		var holdID state.ObjID
+		// Memoised per attacker profile: the any-defender blockability scan
+		// reads only the attacker's facts (an order-independent any-match).
+		anyBlockable := make(map[string]bool)
 		for j, oi := range chosen {
 			a := b.Creatures[d.Options[oi].Obj]
 			// Blockable by any opponent's creature: the held-back creature
 			// defends the board against every future attacker (an
 			// order-independent any-match over the defenders).
-			blockable := false
-			for _, dbs := range defBlockers {
-				blockers := 0
-				for _, db := range dbs {
-					if canBlockLike(a, db.c) {
-						blockers++
+			pk := a.profileKey()
+			blockable, seen := anyBlockable[pk]
+			if !seen {
+				for _, dbs := range defBlockers {
+					blockers := 0
+					for _, db := range dbs {
+						if canBlockLike(a, db.c) {
+							blockers++
+						}
+					}
+					if blockers > 0 && (!a.hasKeyword("Menace") || blockers >= 2) {
+						blockable = true
+						break
 					}
 				}
-				if blockers > 0 && (!a.hasKeyword("Menace") || blockers >= 2) {
-					blockable = true
-					break
-				}
+				anyBlockable[pk] = blockable
 			}
 			if !blockable {
 				continue

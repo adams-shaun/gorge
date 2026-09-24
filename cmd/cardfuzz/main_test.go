@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand/v2"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -53,5 +54,39 @@ func TestGenerateIsDeterministicMonoColourSixty(t *testing.T) {
 	}
 	if lands < 20 {
 		t.Fatalf("deck has %d lands, want at least 20", lands)
+	}
+}
+
+// TestBoardGuardRecordsBigboard pins the harness-side board-size watchdog:
+// a game whose live object count exceeds -max-objects ends as its own
+// "bigboard" kind (never "hang" or "livelock", so triage can tell a runaway
+// token engine from an engine bug), and the cap is inert below the limit
+// and when disabled. Two 60-card decks put 120 live objects in the arena at
+// genesis, so a cap of 100 fires at the first decision and one of 100000
+// never does.
+func TestBoardGuardRecordsBigboard(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	p, err := buildPool(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, _ := loadCov(t.TempDir() + "/none.json")
+	r := rand.New(rand.NewPCG(3, 5))
+	decks := []genDeck{generate(r, p, c), generate(r, p, c)}
+
+	f, _, _ := playOne(reg, decks, 11, 3, 20000, 100, false)
+	if f == nil || f.Kind != "bigboard" {
+		t.Fatalf("failure = %+v, want kind bigboard", f)
+	}
+	if !strings.Contains(f.Diag, "exceeds -max-objects 100") || !strings.HasPrefix(f.Sig, "bigboard: ") {
+		t.Fatalf("bigboard record lacks its diagnostic: sig %q diag %q", f.Sig, f.Diag)
+	}
+	if boardGuard(0) != nil {
+		t.Fatalf("-max-objects 0 must disable the guard")
+	}
+	// Under the cap the guard is inert: the 3-turn cap ends the game as a
+	// plain stall (not a failure record).
+	if f, _, _ := playOne(reg, decks, 11, 3, 20000, 100000, false); f != nil {
+		t.Fatalf("game under the object cap recorded %+v", f)
 	}
 }

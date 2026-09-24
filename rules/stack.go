@@ -3584,6 +3584,18 @@ func (e *Engine) resolveTop() {
 	if o.CastFlags&state.FlagBestowed != 0 {
 		sa = bestowedAttachSA()
 	}
+	// Morph / Megamorph / Disguise (CR 702.37a/702.168a/702.169a via
+	// CR 708.4): a face-down cast resolves as a vanilla creature spell --
+	// the face-down spell has no printed spell abilities and no targets.
+	// The provenance flag is the pay-time CastInfo's modeFlags(fam) family
+	// bit; moveResolvedOffStack re-carries the face-down entry marker so
+	// the permanent enters face down (CR 708.5's 2/2 creature, the cloak
+	// marker's ward {2} for Disguise). A stack copy inherits the flag (the
+	// FlagFused way -- not a CastProvenanceFlags bit) and resolves the
+	// same vanilla way.
+	if o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed|state.FlagDisguised) != 0 {
+		sa = nil
+	}
 	// Mutate (CR 702.140d): a spell cast for its mutate cost does not become
 	// an independent permanent. It merges into its target, so resolution is
 	// diverted BEFORE the ordinary spell-block tail (which would move it to

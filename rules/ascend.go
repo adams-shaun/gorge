@@ -39,6 +39,9 @@ func (e *Engine) checkBlessingGrants() {
 	if !e.ascendPossible() {
 		return
 	}
+	// granted memoizes activeGrantsKeyword across the seats of this one
+	// scan: 0 = not yet read, 1 = no active grant, 2 = some effect grants it.
+	granted := 0
 	for _, p := range e.G.AliveFrom(0) {
 		if int(p) >= len(e.G.Players) || e.G.Players[p].Lost || e.G.Players[p].Blessing {
 			continue
@@ -47,8 +50,22 @@ func (e *Engine) checkBlessingGrants() {
 		if len(board) < 10 {
 			continue
 		}
+		if granted == 0 {
+			granted = 1
+			if e.activeGrantsKeyword("Ascend") {
+				granted = 2
+			}
+		}
 		ascend := false
 		for _, id := range board {
+			// The full derived walk is the expensive half (every mint stales
+			// it), so an object that can provably not carry Ascend is
+			// skipped: with no active layer-6 grant of it, the derived list
+			// is the base list minus removals, so an object whose base list
+			// lacks it never has it. Exact, not a heuristic.
+			if granted == 1 && !baseMayHaveKeyword(e.G.Obj(id), "Ascend") {
+				continue
+			}
 			if e.HasKeyword(id, "Ascend") {
 				ascend = true
 				break
@@ -155,6 +172,58 @@ func cardMentionsAscend(c *cards.Card) bool {
 			if params(tr.Params) || (tr.Effect != nil && params(tr.Effect.Params)) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// activeGrantsKeyword reports whether any active continuous effect's layer-6
+// AddKeywords names kw (by keyword head) -- the only way derivedCompute adds
+// a keyword to an object beyond its base list (baseMayHaveKeyword).
+func (e *Engine) activeGrantsKeyword(kw string) bool {
+	for _, ce := range e.active() {
+		for _, k := range ce.AddKeywords {
+			if strings.EqualFold(cardsKeywordHead(k), kw) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// baseMayHaveKeyword reports whether kw is in the keyword list
+// derivedCompute starts from before its layer walk: the (copy-aware) face's
+// printed keywords, the object's intrinsic keywords, marker-counter grants,
+// and the status keywords (cloak's ward, suspect's menace, a suspend grant).
+// It over-approximates (a face-down object's printed face is hidden), so a
+// false answer, together with no active grant of kw, means the derived list
+// cannot contain kw.
+func baseMayHaveKeyword(o *state.Object, kw string) bool {
+	if o == nil {
+		return false
+	}
+	has := func(list []string) bool {
+		for _, k := range list {
+			if strings.EqualFold(cardsKeywordHead(k), kw) {
+				return true
+			}
+		}
+		return false
+	}
+	if f := o.Face(); f != nil && has(f.Keywords) {
+		return true
+	}
+	if has(o.IntrinsicKeywords) {
+		return true
+	}
+	for _, c := range o.Counters {
+		if name, ok := cards.CounterKeyword(c.Kind); ok && c.N > 0 && strings.EqualFold(cardsKeywordHead(name), kw) {
+			return true
+		}
+	}
+	for _, st := range []string{"Ward", "Menace", "Suspend"} {
+		if strings.EqualFold(st, kw) {
+			return true // a status keyword (cloak/suspect/suspend): stay exact by never skipping
 		}
 	}
 	return false

@@ -1990,6 +1990,24 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
+		// Morph / Megamorph / Disguise (CR 702.37a/702.168a/702.169a), from
+		// the hand: each family becomes its own "cast" mode option paying
+		// the fixed {3} face-down cost in place of the mana cost. The
+		// face-down spell has no targets and no printed spell abilities
+		// (CR 708.4), so the offer deliberately does NOT gate on
+		// targetsAvailable, unlike the keyword family above -- beginCast's
+		// target stage (pc.faceDown) and the resolution reader's printed
+		// abilities are skipped the same way. The printed keyword parameter
+		// (the turn-face-up cost) is NOT paid now; the pay-time CastInfo's
+		// mode flag records which family rode so a later turn-face-up action
+		// can validate and pay against it. The timing gate is the ordinary
+		// spellTimingOK the walk already ran above (CR 702.37a's "any time
+		// you could cast a sorcery" -- morph prints only on creature faces).
+		if fam := morphDownFamily(f); fam != "" &&
+			offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
+		}
 		// Emerge (CR 702.118a): "cast this spell by sacrificing a creature and
 		// paying the emerge cost reduced by that creature's mana value". It is
 		// a casting option, but NOT a plain substitution -- the cast sacrifices

@@ -65,7 +65,8 @@ type Outcome struct {
 	// StallOn names the watchdog that ended the game before it finished:
 	// "" for a completed game, "turns" (the -max-turns cap), "intents" (the
 	// -max-intents cap), "livelock" (the engine's watcher) or "panic" (the
-	// engine panicked mid-game; IsAbort covers both engine-bug kinds). A stalled game
+	// engine panicked mid-game; IsAbort covers both engine-bug kinds), or
+	// whatever kind a caller's Hooks.Guard returned. A stalled game
 	// is neither a win nor a draw and is excluded from every rate
 	// denominator the caller computes.
 	StallOn string
@@ -104,9 +105,16 @@ func IsAbort(stallOn string) bool { return stallOn == "livelock" || stallOn == "
 // seat that is not a seat.BoardSeat) even when the decision came from the
 // projected View -- the trace wants the board facts regardless. A BoardSeat
 // always receives a board and never needs this.
+//
+// Guard, when set, runs with the live engine before every decision is
+// answered. A non-empty stallOn ends the game there as a stalled Outcome
+// with that StallOn kind and diag in Livelock -- a harness-side watchdog
+// (cmd/cardfuzz's board-size cap) that needs the engine rather than the
+// seat's board. It must only read the engine. Nil costs nothing.
 type Hooks struct {
 	Decision  func(seatIdx int, d *decision.Decision, in decision.Intent, board *botpolicy.Board) error
 	Finish    func(o Outcome)
+	Guard     func(e *rules.Engine) (stallOn, diag string)
 	NeedBoard bool
 }
 
@@ -176,6 +184,11 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 			// win-rate denominator) -- and maxTurns==0 means no cap.
 			if maxTurns > 0 && e.G.Turn >= int32(maxTurns) {
 				return nil, &Outcome{StallOn: "turns", Turns: e.G.Turn, Intents: n}, nil
+			}
+			if hooks.Guard != nil {
+				if kind, diag := hooks.Guard(e); kind != "" {
+					return nil, &Outcome{StallOn: kind, Turns: e.G.Turn, Intents: n, Livelock: diag}, nil
+				}
 			}
 			d := e.Pending()
 			var in decision.Intent
