@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -99,6 +100,18 @@ func gateRound(cfg config, r int) error {
 	return os.WriteFile(playCkpt(cfg, r), ck, 0o644)
 }
 
+// collectTemp is round r's collection temperature (pn14): -collect-temp,
+// annealed linearly to -collect-temp-final over rounds 1..rounds when that is
+// set. 0 is greedy collection.
+func collectTemp(cfg config, r int) float64 {
+	t0, t1 := cfg.collectTemp, cfg.collectTempFinal
+	if t0 <= 0 || t1 <= 0 || cfg.rounds <= 1 {
+		return t0
+	}
+	f := float64(r-1) / float64(cfg.rounds-1)
+	return math.Round((t0+(t1-t0)*f)*1e6) / 1e6
+}
+
 // planPPO returns every stage of a -mode ppo run in execution order.
 func planPPO(cfg config) []stage {
 	bin := func(n string) string { return filepath.Join(cfg.bin, n) }
@@ -132,6 +145,12 @@ func planPPO(cfg config) []stage {
 		ckpt := roundCkpt(cfg, r)
 		cargs := append(policy(prev), bench(collectSeed(cfg, r), cfg.collectGames)...)
 		cargs = append(cargs, "-onpolicy-corpus", corpus)
+		if t := collectTemp(cfg, r); t > 0 {
+			cargs = append(cargs, "-policynet-temperature", strconv.FormatFloat(t, 'g', -1, 64))
+		}
+		if cfg.oppMix != "" {
+			cargs = append(cargs, "-opp-mix", cfg.oppMix)
+		}
 		st = append(st, stage{Name: "collect", Gen: r, Binary: bin("botbench"), Args: cargs,
 			Stdout: filepath.Join(dir, "collect.json"), Needs: []string{prev}})
 		targs := []string{"-ppo-corpus", corpus, "-init", prev, "-out", ckpt, "-stats-out", filepath.Join(dir, "stats.json")}
@@ -162,6 +181,8 @@ func validatePPO(cfg config) error {
 		return errors.New("-rounds, -collect-games, -eval-games and -workers must be >= 1")
 	case cfg.pnKinds == "":
 		return errors.New("-policynet-kinds names no kind")
+	case cfg.collectTemp < 0 || cfg.collectTempFinal < 0:
+		return errors.New("-collect-temp and -collect-temp-final must be >= 0")
 	case cfg.rounds > 1 && collectBlock > cfg.seedStride:
 		return errors.New("-seed-stride is smaller than one round's collection block (collect-games x pairs): rounds would share seeds")
 	}

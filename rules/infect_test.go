@@ -569,3 +569,77 @@ func TestSacrificedGrantedDeathtouchSourceUsesLKI(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestInfectEffectDamageToCreatureIsMinusOneCountersNotMarkedDamage pins the
+// effect-path (non-combat) creature half of CR 702.90b, the one branch of the
+// emitter the combat tests never reach: effects/damage.go's emitObjectDamage
+// tags a DealDamage-style hit "infect+creature" when the
+// recipient reads as a creature and the source reads infect, and
+// Engine.convertInfectDamage then places -1/-1 counters while the fold marks
+// nothing. Every existing creature-half test drives combat; if the emitter's
+// effect-path tag regressed, a pinger-style infect hit would mark ordinary
+// damage and place no counters with every combat test still green.
+func TestInfectEffectDamageToCreatureIsMinusOneCountersNotMarkedDamage(t *testing.T) {
+	e := combatEngine(t)
+	// Blight Mamba is the corpus infect source (1/1, so one point of damage
+	// converts to exactly one -1/-1 counter), driven here through the effect
+	// path rather than combat.
+	mamba := onBoardCard(t, e, 0, corpusInfectCard(t, "Blight Mamba"))
+	// A 2/2 recipient: one -1/-1 counter leaves it alive at toughness 1, so
+	// the assertions below read a live battlefield object and the counter
+	// count cannot be explained by a lethal cleanup.
+	victim := onBoard(t, e, 1, "Name:Ox\nManaCost:3 G\nTypes:Creature Ox\nPT:2/2\nOracle:x\n")
+
+	// Preconditions the assertions below depend on: the source reads infect
+	// via the derived keyword list, the victim is a live battlefield
+	// creature that arrives undamaged and uncountered, and its toughness is
+	// high enough that ONE counter does not kill it -- so the two counts
+	// below read this one hit's form, not a leftover or a death cleanup.
+	if !e.HasKeyword(mamba, "Infect") {
+		t.Fatal("precondition: Blight Mamba does not read infect")
+	}
+	if o := e.G.Obj(victim); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatal("precondition: the victim is not on the battlefield")
+	}
+	if !e.IsCreature(victim) {
+		t.Fatal("precondition: the victim does not read as a creature")
+	}
+	if got := e.G.Obj(victim).Damage; got != 0 {
+		t.Fatalf("precondition: the victim already carries %d marked damage", got)
+	}
+	if got := e.G.Obj(victim).Counter("M1M1"); got != 0 {
+		t.Fatalf("precondition: the victim already carries %d -1/-1 counters", got)
+	}
+	if got := e.Toughness(victim); got != 2 {
+		t.Fatalf("precondition: victim toughness = %d, want 2 (an undamaged 2/2)", got)
+	}
+
+	effects.Resolve(e, &effects.Ctx{Source: mamba, Controller: 0,
+		Targets: []state.Target{{Obj: victim}}}, &cards.SA{Kind: "DB", API: "DealDamage",
+		Params: map[string]string{"Defined": "Targeted", "NumDmg": "1"}})
+
+	if got := e.G.Obj(victim).Counter("M1M1"); got != 1 {
+		t.Fatalf("victim -1/-1 counters = %d, want 1 (the mamba's power, dealt in counter form on the effect path)", got)
+	}
+	if got := e.G.Obj(victim).Damage; got != 0 {
+		t.Fatalf("victim marked damage = %d, want 0 (infect damage is never marked)", got)
+	}
+	if o := e.G.Obj(victim); o.Zone != state.ZBattlefield {
+		t.Fatalf("2/2 victim with one -1/-1 counter is in %v, want battlefield (toughness 1 survives)", o.Zone)
+	}
+	// Exactly one -1/-1 placement rides the real counter event, and no
+	// non-convertible leftover: the same shape the artifact test asserts in
+	// the negative.
+	counters := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == victim && ev.Counter == "M1M1" {
+			if ev.Amount != 1 {
+				t.Fatalf("the victim's -1/-1 placement = %+v, want exactly 1", ev)
+			}
+			counters++
+		}
+	}
+	if counters != 1 {
+		t.Fatalf("the log carries %d -1/-1 placements for the victim, want 1 (the effect-path infect form)", counters)
+	}
+}

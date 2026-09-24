@@ -83,6 +83,13 @@ type config struct {
 	pnKinds      string
 	admission    string
 	gate         bool
+	// ticket pn14: stochastic collection (botbench -policynet-temperature)
+	// on a linear schedule from collectTemp (round 1) to collectTempFinal
+	// (the last round; <= 0 keeps collectTemp throughout), and the collection
+	// opponent mix (botbench -opp-mix). Eval is always greedy against -b bot.
+	collectTemp      float64
+	collectTempFinal float64
+	oppMix           string
 }
 
 // stage is one command the loop runs: the binary, its argv, the file its
@@ -197,6 +204,9 @@ func parseConfig(args []string, stderr io.Writer) (config, bool, error) {
 	fs.BoolVar(&cfg.gate, "gate", false, "ppo mode: gate every round (mtgbld's never-regress rule): round r+1 collects from and trains from checkpoint r only when its eval is >= the incumbent's, else from the incumbent; every checkpoint is still evaluated")
 	fs.StringVar(&cfg.admission, "policynet-admission", "auto", "ppo mode: the deployed seat's subset admission vote (botbench -policynet-admission: auto or sign), for collection and eval alike")
 	fs.StringVar(&cfg.pnKinds, "policynet-kinds", "attackers,priority", "ppo mode: the deployed seat's scored kinds, for collection and eval alike")
+	fs.Float64Var(&cfg.collectTemp, "collect-temp", 0, "ppo mode (pn14): sample the collection seat at this temperature (botbench -policynet-temperature); 0 = greedy collection (pn13)")
+	fs.Float64Var(&cfg.collectTempFinal, "collect-temp-final", 0, "ppo mode (pn14): anneal the collection temperature linearly from -collect-temp (round 1) to this value (the last round); 0 = constant")
+	fs.StringVar(&cfg.oppMix, "opp-mix", "", "ppo mode (pn14): collection-only opponent mix, botbench -opp-mix (e.g. explore:0.3)")
 	ppoTrain := fs.String("ppo-train-args", "-epochs 4 -lr 0.05 -batch 64 -value-weight 0.5 -ppo-clip 0.2 -ppo-kl 0.1", "ppo mode: extra policytrain arguments (whitespace separated)")
 	if err := fs.Parse(args); err != nil {
 		return cfg, false, err

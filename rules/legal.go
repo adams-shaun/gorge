@@ -2883,6 +2883,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if printedOK {
 					out = append(out, decision.Option{Index: len(out), Kind: "ability",
 						Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
+						Cost:  e.abilityOfferCost(p, id, ab),
 						Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach"})
 				}
 				if altOK {

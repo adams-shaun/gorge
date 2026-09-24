@@ -45,6 +45,22 @@ import (
 //	                             answered with: "auto" or "sign"
 //	                             (seat.SetAdmission)
 //
+// Optional fields (ticket pn14; omitted when unset, so a greedy v1/mz corpus
+// is byte-identical to what the pn13 writer produced):
+//
+//	temperature                  the sampling temperature T of a stochastic
+//	                             collection seat (seat.SetSampling)
+//	logp_behaviour               log π_b(chosen): the probability the SAMPLING
+//	                             policy gave the recorded answer (TemperedLogProb);
+//	                             PPO's ratio reads it instead of logp_old
+//	state.cards                  the entity list (FeaturesEntity):
+//	                             {"g":group,"raw":[68 floats],"r":[rows],"v":[vals]}
+//	options[].ent_a / ent_b      the option's entity references (1 + card index)
+//
+// The encoder hash is EncoderHashFor(the recording checkpoint's feature set):
+// v1 (EncoderHash), mz or entity; LoadOnPolicy accepts any checkpointable set
+// and reports which (OnPolicyStats.Features).
+//
 // Record order is (pair_index, game_index, decision order): deterministic for
 // a fixed bench, independent of the worker count.
 const (
@@ -79,13 +95,24 @@ type OnPolicyRecord struct {
 	Outcome       float64          `json:"outcome"`
 	OutcomeKnown  bool             `json:"outcome_known"`
 	Admission     string           `json:"admission"`
+	Temperature   float64          `json:"temperature,omitempty"`
+	LogPBehaviour *float64         `json:"logp_behaviour,omitempty"`
 }
 
 // OnPolicyState is an encoded State in the corpus's compact form.
 type OnPolicyState struct {
-	Dense []float32 `json:"dense"`
-	Rows  []uint16  `json:"rows"`
-	Vals  []float32 `json:"vals"`
+	Dense []float32      `json:"dense"`
+	Rows  []uint16       `json:"rows"`
+	Vals  []float32      `json:"vals"`
+	Cards []OnPolicyCard `json:"cards,omitempty"`
+}
+
+// OnPolicyCard is an EntityCard in the corpus's compact form.
+type OnPolicyCard struct {
+	Group uint8     `json:"g"`
+	Raw   []float32 `json:"raw"`
+	Rows  []uint16  `json:"r,omitempty"`
+	Vals  []float32 `json:"v,omitempty"`
 }
 
 // OnPolicyOption is an encoded Option in the corpus's compact form, plus the
@@ -98,6 +125,8 @@ type OnPolicyOption struct {
 	Dense   []float32 `json:"dense"`
 	BotPick bool      `json:"bot_pick"`
 	InSpace bool      `json:"in_space"`
+	EntA    int32     `json:"ent_a,omitempty"`
+	EntB    int32     `json:"ent_b,omitempty"`
 }
 
 func splitFeatures(fs []Feature) ([]uint16, []float32) {
@@ -123,7 +152,12 @@ func joinFeatures(r []uint16, v []float32) ([]Feature, error) {
 // EncodeOnPolicyState converts a State to the corpus form.
 func EncodeOnPolicyState(st State) OnPolicyState {
 	r, v := splitFeatures(st.Sparse)
-	return OnPolicyState{Dense: append([]float32(nil), st.Dense...), Rows: r, Vals: v}
+	out := OnPolicyState{Dense: append([]float32(nil), st.Dense...), Rows: r, Vals: v}
+	for _, c := range st.Cards {
+		cr, cv := splitFeatures(c.Rows)
+		out.Cards = append(out.Cards, OnPolicyCard{Group: c.Group, Raw: append([]float32(nil), c.Raw...), Rows: cr, Vals: cv})
+	}
+	return out
 }
 
 // EncodeOnPolicyOption converts an Option (with its BotPick mark) to the
@@ -132,7 +166,7 @@ func EncodeOnPolicyOption(o Option, inSpace bool) OnPolicyOption {
 	sr, sv := splitFeatures(o.Slots)
 	hr, hv := splitFeatures(o.Hashed)
 	return OnPolicyOption{SlotsR: sr, SlotsV: sv, HashedR: hr, HashedV: hv,
-		Dense: append([]float32(nil), o.Dense...), BotPick: o.BotPick, InSpace: inSpace}
+		Dense: append([]float32(nil), o.Dense...), BotPick: o.BotPick, InSpace: inSpace, EntA: o.EntA, EntB: o.EntB}
 }
 
 // Example decodes the record into a PPO training example: the encoded state
@@ -153,11 +187,24 @@ func (rec *OnPolicyRecord) Example() (Example, error) {
 		return ex, fmt.Errorf("state: %w", err)
 	}
 	ex.State = State{Dense: append([]float32(nil), rec.State.Dense...), Sparse: sp}
+	for i, c := range rec.State.Cards {
+		rows, err := joinFeatures(c.Rows, c.Vals)
+		if err != nil {
+			return ex, fmt.Errorf("state card %d: %w", i, err)
+		}
+		if len(c.Raw) != EntityRawWidth {
+			return ex, fmt.Errorf("state card %d: %d raw floats, want %d", i, len(c.Raw), EntityRawWidth)
+		}
+		ex.State.Cards = append(ex.State.Cards, EntityCard{Group: c.Group, Raw: append([]float32(nil), c.Raw...), Rows: rows})
+	}
 	if len(rec.Scores) != len(rec.Options) {
 		return ex, fmt.Errorf("%d scores for %d options", len(rec.Scores), len(rec.Options))
 	}
 	p := &PPOTarget{Subset: rec.Subset, OldScores: append([]float32(nil), rec.Scores...), Chosen: make([]bool, len(rec.Options)),
 		SignVote: rec.Admission == "sign"}
+	if rec.LogPBehaviour != nil {
+		p.BehaviourLogP, p.HasBehaviour = *rec.LogPBehaviour, true
+	}
 	for _, c := range rec.Chosen {
 		if c < 0 || c >= len(rec.Options) {
 			return ex, fmt.Errorf("chosen position %d outside %d options", c, len(rec.Options))
@@ -175,7 +222,7 @@ func (rec *OnPolicyRecord) Example() (Example, error) {
 			return ex, fmt.Errorf("option %d hashed: %w", i, err)
 		}
 		ex.Options[i] = Option{Slots: slots, Hashed: hashed, Dense: append([]float32(nil), o.Dense...), BotPick: o.BotPick,
-			Target: OptionTarget{Labelled: o.InSpace, Preferred: false}}
+			EntA: o.EntA, EntB: o.EntB, Target: OptionTarget{Labelled: o.InSpace, Preferred: false}}
 	}
 	ex.PPO = p
 	return ex, nil
@@ -186,12 +233,20 @@ type OnPolicyStats struct {
 	Records     int
 	WithOutcome int
 	Deviated    int
+	// Sampled counts records carrying a behaviour log-probability (a
+	// stochastic collection seat's decisions).
+	Sampled int
+	// Features is the feature set the corpus was encoded under (every record
+	// must agree).
+	Features FeatureSet
 }
 
 // LoadOnPolicy reads an on-policy corpus (plain or gzip JSONL) into PPO
-// examples, in file order. A wrong record type or schema version, or an
-// encoder hash other than this build's, is a hard error: the stored floats
-// are only meaningful under the encoder that produced them.
+// examples, in file order. A wrong record type or schema version, an encoder
+// hash no checkpointable feature set of this build produces, or two records
+// under different sets, is a hard error: the stored floats are only
+// meaningful under the encoder that produced them. The caller checks
+// OnPolicyStats.Features against the model it trains.
 func LoadOnPolicy(path string) ([]Example, []OnPolicyRecord, OnPolicyStats, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -208,7 +263,7 @@ func LoadOnPolicy(path string) ([]Example, []OnPolicyRecord, OnPolicyStats, erro
 		defer zr.Close()
 		stream = zr
 	}
-	want := fmt.Sprintf("%016x", EncoderHash())
+	want := ""
 	dec := json.NewDecoder(stream)
 	var out []Example
 	var recs []OnPolicyRecord
@@ -227,8 +282,15 @@ func LoadOnPolicy(path string) ([]Example, []OnPolicyRecord, OnPolicyStats, erro
 			return nil, nil, stats, fmt.Errorf("on-policy record %d: record_type %q, want %q", stats.Records, rec.RecordType, OnPolicyRecordType)
 		case rec.SchemaVersion != OnPolicySchemaVersion:
 			return nil, nil, stats, fmt.Errorf("on-policy record %d: schema_version %d, want %d", stats.Records, rec.SchemaVersion, OnPolicySchemaVersion)
-		case rec.EncoderHash != want:
-			return nil, nil, stats, fmt.Errorf("on-policy record %d: encoder hash %s, this build's is %s", stats.Records, rec.EncoderHash, want)
+		case want != "" && rec.EncoderHash != want:
+			return nil, nil, stats, fmt.Errorf("on-policy record %d: encoder hash %s, earlier records' is %s", stats.Records, rec.EncoderHash, want)
+		}
+		if want == "" {
+			fs, ok := onPolicyFeatures(rec.EncoderHash)
+			if !ok {
+				return nil, nil, stats, fmt.Errorf("on-policy record %d: encoder hash %s is not this build's (v1 %016x)", stats.Records, rec.EncoderHash, EncoderHash())
+			}
+			want, stats.Features = rec.EncoderHash, fs
 		}
 		ex, err := rec.Example()
 		if err != nil {
@@ -240,6 +302,9 @@ func LoadOnPolicy(path string) ([]Example, []OnPolicyRecord, OnPolicyStats, erro
 		if rec.Deviated {
 			stats.Deviated++
 		}
+		if rec.LogPBehaviour != nil {
+			stats.Sampled++
+		}
 		out = append(out, ex)
 		// The record's bulky encoded payload is already in ex; keep only the
 		// metadata the trainer's readouts group by.
@@ -247,4 +312,15 @@ func LoadOnPolicy(path string) ([]Example, []OnPolicyRecord, OnPolicyStats, erro
 		recs = append(recs, rec)
 	}
 	return out, recs, stats, nil
+}
+
+// onPolicyFeatures maps a corpus record's %016x encoder hash onto its
+// checkpointable feature set.
+func onPolicyFeatures(h string) (FeatureSet, bool) {
+	for _, fs := range []FeatureSet{FeaturesV1, FeaturesMZ, FeaturesEntity} {
+		if fmt.Sprintf("%016x", EncoderHashFor(fs)) == h {
+			return fs, true
+		}
+	}
+	return 0, false
 }

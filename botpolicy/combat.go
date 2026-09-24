@@ -167,10 +167,18 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			continue
 		}
 		var cmc int32
+		var manaCost string
 		if f := o.Face(); f != nil {
 			cmc = CmcOf(f.ManaCost)
+			// Only a spell carries a printed payment; an ability object is
+			// Face-less anyway, and the view half's StackView.Card is nil for
+			// a "trigger"/"ability", so guarding on IsSpell keeps the halves
+			// in step even if a face ever rides an ability stack object.
+			if o.Ability == nil {
+				manaCost = f.ManaCost
+			}
 		}
-		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc})
+		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc, ManaCost: manaCost})
 	}
 	b.IsMain = g.Step.IsMain()
 	// The cast scorer's two board-half features (cast.go): FirstMain is the
@@ -306,6 +314,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				Castable:      castable,
 				OnBattlefield: z == state.ZBattlefield,
 				Tapped:        o.Tapped,
+				Sick:          o.SummonSick,
 				Produces:      f.ManaProduction(),
 				InstantSpeed:  instantSpeed,
 				Counter:       f.SpellAbility() != nil && f.SpellAbility().API == "Counter",

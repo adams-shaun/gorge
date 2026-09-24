@@ -751,6 +751,17 @@ export class SeatPanelState {
    */
   private seqEpoch = 0;
 
+  /**
+   * seqHigh is the highest decision seq this seat has adopted or posted in
+   * the current seq space. adopt() refuses anything older: within one space
+   * seqs only grow, so an older decision is a stale view re-offering an ask
+   * already answered (the 2026-09-24 g2 freeze: the board SeatPanel's mount
+   * re-adopted the auto-ordered trigger_order over the target ask the poll
+   * had just delivered). begin() resets it, because a rewind or a match
+   * boundary opens a new space where a lower seq is legitimate again.
+   */
+  private seqHigh = -1;
+
   /** auto is settings.autoPass: the persisted preference, ON by default (casual). Reading it is a read of settings. */
   get auto(): boolean {
     return this.settings.autoPass;
@@ -1594,6 +1605,7 @@ export class SeatPanelState {
     // be delayed forever: the restored window belongs to the new epoch and
     // must be answerable immediately.
     this.seqEpoch += 1;
+    this.seqHigh = -1;
     this.busy = false;
     this.cancelPassWait();
     this.pending = null;
@@ -1707,6 +1719,8 @@ export class SeatPanelState {
     }
     if (this.postedSeq !== null && d.seq === this.postedSeq) return;
     if (this.pending?.seq === d.seq) return;
+    if (d.seq < this.seqHigh) return;
+    this.seqHigh = d.seq;
     this.cancelPassWait();
     this.pending = d;
     this.postedSeq = null;
