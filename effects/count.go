@@ -2380,6 +2380,30 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 		return no, true
 	}
+	// PromisedGift.<yes>.<no> is <yes> when the source's cast promised an
+	// opponent a gift (CR 702.168), else <no> -- Forge's
+	// Count$PromisedGift.2.1 family (Wear Down's destroy-two, Long River's
+	// Pull's X/Y, Valley Rally's first strike). The read is Object.PromisedGift,
+	// the SAME one home the PromisedGift filter predicate reads (folded by
+	// events.GiftPromise), so the matcher and the count can never disagree. A
+	// missing source, a card never cast, and a stack copy (whose fresh object
+	// carries no promise) all read the <no> branch, the modelled-head
+	// convention. A malformed body with a missing branch fails closed.
+	if rest, ok := strings.CutPrefix(head, "PromisedGift."); ok {
+		yes, no, found := strings.Cut(rest, ".")
+		if !found || strings.TrimSpace(yes) == "" || strings.TrimSpace(no) == "" {
+			return 0, false
+		}
+		promised := false
+		if o := g.Obj(c.Source); o != nil {
+			promised = o.CastFlags&state.FlagPromisedGift != 0
+		}
+		tok := no
+		if promised {
+			tok = yes
+		}
+		return evalCountOperand(h, c, tok, depth), true
+	}
 	// Foretold.<ifTrue>.<ifFalse> is <ifTrue> when the resolving source was
 	// cast foretold (CR 702.126a -- the pay-time FlagForetold provenance,
 	// the same read Kicked makes), else <ifFalse>. The operands resolve

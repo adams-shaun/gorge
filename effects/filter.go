@@ -174,6 +174,18 @@ var predicates = map[string]predFn{
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
+	// PromisedGift is Forge's Card.PromisedGift (CR 702.168): the object is a
+	// spell or permanent whose cast opted into the Gift keyword's promise.
+	// The bit is folded by events.GiftPromise from the cast-flow election and
+	// preserved across the stack->battlefield move, so it reads on the spell
+	// during resolution (Perch Protection's ConditionPresent$
+	// Card.Self+PromisedGift) and on the permanent at its ETB (Kitnap's
+	// ConditionPresent$ Card.PromisedGift). Absent a promise it fails closed
+	// to false -- a card that never carried the keyword, or a copy (never
+	// cast), matches neither the bare nor the '!' form's positive half.
+	"PromisedGift": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagPromisedGift != 0
+	},
 	"surged": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagSurged != 0
 	},

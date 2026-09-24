@@ -125,6 +125,7 @@ var modelledValueHeads = []string{
 	"PlayerCountRemembered$CardsInLibrary",
 	"PlayerCountRemembered$LifeLostThisTurn",
 	"PlayerCountRemembered$LifeTotal",
+	"PromisedGift",
 	"RememberedNumber",
 	"RememberedSize",
 	"ResolvedThisTurn",
