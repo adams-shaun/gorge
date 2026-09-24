@@ -1000,12 +1000,19 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
-	ts, ok := refTargets(h, c, ref)
-	if !ok {
-		return 0, false
+	var ts []state.Target
+	if ref == "TriggerObjectsCards" {
+		ts = c.Captured
+	} else {
+		var ok bool
+		ts, ok = refTargets(h, c, ref)
+		if !ok {
+			return 0, false
+		}
 	}
 	g := h.Game()
 	var n int32
+	triggerObjectTypes := map[string]bool{}
 	// The Different* distinct-set property family over a reference's objects
 	// (task diffcount1): `Remembered$DifferentCardManaCost` (Azor's Gateway,
 	// Sanctum of the Sun settling X, Atemsis All-Seeing). The set is read
@@ -1038,6 +1045,16 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		}
 		f := o.Face()
 		switch {
+		case ref == "TriggerObjectsCards" && prop == "CardTypes":
+			if f != nil {
+				for _, typ := range f.Types {
+					triggerObjectTypes[typ] = true
+				}
+			}
+		case ref == "TriggerObjectsCards" && prop == "GreatestCardManaCost":
+			if f != nil && f.Cmc() > n {
+				n = f.Cmc()
+			}
 		case prop == "CardPower":
 			if f != nil {
 				if lki && c.LKIPTValid {
@@ -1188,6 +1205,9 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			}
 			return 0, false
 		}
+	}
+	if ref == "TriggerObjectsCards" && prop == "CardTypes" {
+		n = int32(len(triggerObjectTypes))
 	}
 	if diffKind != diffNone {
 		if seenDiffNames != nil {
