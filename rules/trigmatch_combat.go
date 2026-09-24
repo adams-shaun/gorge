@@ -693,7 +693,7 @@ func (e *Engine) checkAttackerUnblockedTriggers() {
 			return
 		}
 		for ti, t := range f.Triggers {
-			e.queueAttackerUnblockedTrigger(t, id, o.Controller, ti, false, 0, ev)
+			e.queueAttackerUnblockedTrigger(t, id, o.Controller, ti, false, 0, nil, ev)
 		}
 	})
 	e.checkGrantedAttackerUnblockedTriggers(ev)
@@ -719,7 +719,11 @@ func (e *Engine) checkGrantedAttackerUnblockedTriggers(ev events.Event) {
 			continue
 		}
 		t := *ce.AddTrigger
-		t.Effect = grantedTriggerExecute(grantor, t.Params["Execute"])
+		grantFace := grantedTriggerFace(grantor, t.Params["Execute"])
+		if grantFace == nil {
+			continue
+		}
+		t.Effect = cards.ResolveSVar(grantFace.SVars, t.Params["Execute"])
 		if t.Effect == nil {
 			continue
 		}
@@ -728,7 +732,7 @@ func (e *Engine) checkGrantedAttackerUnblockedTriggers(ev events.Event) {
 			if o == nil || !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 				return
 			}
-			e.queueAttackerUnblockedTrigger(t, id, o.Controller, -1, true, grantorID, ev)
+			e.queueAttackerUnblockedTrigger(t, id, o.Controller, -1, true, grantorID, grantFace.SVars, ev)
 		})
 	}
 }
@@ -736,10 +740,14 @@ func (e *Engine) checkGrantedAttackerUnblockedTriggers(ev events.Event) {
 // queueAttackerUnblockedTrigger queues one instance for every matching
 // unblocked attacker. Printed and AddTrigger$-granted instances share this
 // path so their ValidCard$/ValidDefender$ gates, captured attacker roles and
-// action-trigger limits cannot drift apart.
-func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, granted bool, grantor state.ObjID, ev events.Event) {
+// action-trigger limits cannot drift apart. ownedSVars is the trigger LINE's
+// owning SVar table, supplied for a granted instance (the GRANTOR's table) and
+// nil for a printed one; it is what a CheckSVar$/SVarCompare$ clause on the
+// line is evaluated against at fire time.
+func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, granted bool, grantor state.ObjID, ownedSVars map[string]string, ev events.Event) {
 	if t.Mode != "AttackerUnblocked" || t.Effect == nil ||
-		!e.zoneGate(t, source, ev) || !e.phaseGate(t) || !e.triggerConditionHolds(t, source) {
+		!e.zoneGate(t, source, ev) || !e.phaseGate(t) ||
+		!e.triggerConditionHoldsWithSVars(t, source, controller, nil, ownedSVars) {
 		return
 	}
 	key := triggerKey{Source: source, Idx: idx}

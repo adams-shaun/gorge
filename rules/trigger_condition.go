@@ -104,7 +104,10 @@ func (e *Engine) triggerConditionHoldsCtx(t cards.Trigger, source state.ObjID, y
 }
 
 // The resolution-time caller passes the recorded line owner's table; at
-// fire time the printed-face walk remains unchanged.
+// fire time a printed trigger's own face is the owner so ownedSVars stays nil,
+// while the granted-trigger paths pass the GRANTOR's table through
+// triggerMatchesWithSVars (source is the affected recipient, whose same-named
+// SVar must not answer the condition).
 func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
 	// A kw:Class level band is an independent AND gate beside every clause
 	// below (and beside the body's own IsPresent$/IsPresent2$ clauses).
