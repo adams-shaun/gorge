@@ -3177,13 +3177,20 @@ func (e *Engine) exAsk() bool {
 			}
 		}
 		n := int(part.N)
-		if n <= 0 || n > len(candidates) {
+		if part.Announced {
+			n = int(pc.x)
+		}
+		if n < 0 || n > len(candidates) || (!part.Announced && n == 0) {
 			e.abortCast(pc, "exile cost no longer payable; cast/activation aborted", true)
 			return true
 		}
+		if n == 0 {
+			pc.exilePart++
+			continue
+		}
 		// A singleton self-reference (encore's ExileFromGrave<1/CARDNAME>, the
 		// sole candidate being the resolving card itself) has no player choice.
-		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
+		if !part.Announced && part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
 			strings.EqualFold(part.Spec, "CARDNAME") {
 			pc.exiles = append(pc.exiles, pc.card)
 			pc.exilePart++
@@ -3835,6 +3842,12 @@ func (e *Engine) xAsk() bool {
 			sacX = true
 		}
 	}
+	exileX := false
+	for _, part := range pc.cost.Exile {
+		if part.Announced {
+			exileX = true
+		}
+	}
 	subCounterX := false
 	for _, part := range pc.cost.SubCounter {
 		if part.Announced {
@@ -3842,7 +3855,7 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	lifeXCount := len(pc.cost.LifeX)
-	if pc.cost.X <= 0 && !energyX && !sacX && !subCounterX && lifeXCount == 0 {
+	if pc.cost.X <= 0 && !energyX && !sacX && !exileX && !subCounterX && lifeXCount == 0 {
 		return false
 	}
 	min := int32(0)
@@ -3951,6 +3964,18 @@ func (e *Engine) xAsk() bool {
 		} else if cap < bound {
 			bound = cap
 		}
+	}
+	for _, part := range pc.cost.Exile {
+		if !part.Announced {
+			continue
+		}
+		have := int32(0)
+		for _, oid := range e.G.Zone(state.ZGraveyard, pc.player) {
+			if e.matchesSpecFrom(part.Spec, oid, pc.player, pc.card) {
+				have++
+			}
+		}
+		applyCap(have)
 	}
 	for _, part := range pc.cost.SubCounter {
 		if !part.Announced {
@@ -5593,6 +5618,11 @@ func costAnnouncesPaidX(c Cost) bool {
 		return true
 	}
 	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.Exile {
 		if part.Announced {
 			return true
 		}

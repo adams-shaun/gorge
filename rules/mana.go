@@ -16,7 +16,7 @@ import (
 
 // CostPart is one non-mana cost component: Sac<N/Spec> (sacrifice N
 // permanents matching Spec), Discard<N/Spec> (discard N matching cards), or
-// SubCounter<N/Kind> (remove N counters of Kind from the source).
+// SubCounter<N/Kind> (remove N counters of Kind from the source), and announced-count ExileFromGrave<X/Spec>.
 type CostPart struct {
 	N    int32
 	Spec string
@@ -25,11 +25,9 @@ type CostPart struct {
 	// ExileFromGrave or ExileAnyGrave token. Sac/Discard/SubCounter parts
 	// never read it.
 	Zone state.Zone
-	// Announced marks the variable-count form of a Sac part (Sac<X/Spec> --
-	// Dargo's "sacrifice any number"): the player announces the count as the
-	// cast's X (CR 601.2b) and exactly that many permanents matching Spec are
-	// sacrificed; a ReduceCost static reading the paid X composes with it.
-	// N is unused for an Announced part.
+	// Announced marks a variable-count Sac<X/Spec> or ExileFromGrave<X/Spec>
+	// part: the player announces the count as the cast's X (CR 601.2b) and exactly
+	// that many matching objects are paid. N is unused for an Announced part.
 	Announced bool
 	// Dyn is the non-literal amount token of a Draw part (Forge's
 	// Draw<X/Spec>): N is unused and the count is resolved at payment from
@@ -294,7 +292,7 @@ var sacXCost = regexp.MustCompile(`^Sac<X/([^/>]+)(?:/([^>]*))?>$`)
 // ExileFromHand evoke costs (the MH3 evoke family: Fury, Grief, ...), the
 // AlternateAdditionalCost ExileFromGrave line and the ExileAnyGrave
 // trigger-cost family are the corpus users.
-var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
+var exileCost = regexp.MustCompile(`^Exile(FromHand|FromGrave|AnyGrave)<(X|\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // addCounterCost matches Forge's AddCounter<N/LOYALTY> token -- the
 // planeswalker loyalty cost, and deliberately ONLY it (CR 107.4: the [+N]
@@ -788,6 +786,16 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			if m := exileCost.FindStringSubmatch(sym); m != nil {
+				if m[2] == "X" {
+					if m[1] != "FromGrave" {
+						c.Generic = addClampedGeneric(c.Generic, 1)
+						c.reportUnknown(sym)
+						continue
+					}
+					spec := strings.ReplaceAll(m[3], ";", ",")
+					c.Exile = append(c.Exile, CostPart{Spec: spec, Zone: state.ZGraveyard, Announced: true, Desc: m[4]})
+					continue
+				}
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
 					// Same safe fallback as every other malformed cost token --
@@ -1805,7 +1813,11 @@ func formatCost(c Cost) string {
 		default:
 			head = "ExileFromHand"
 		}
-		parts = append(parts, head+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
+		n := strconv.FormatInt(int64(part.N), 10)
+		if part.Announced {
+			n = "X"
+		}
+		parts = append(parts, head+"<"+n+"/"+part.Spec+">")
 	}
 	appendCostParts("Reveal", c.Reveal)
 	for _, part := range c.RevealChosen {
@@ -2221,6 +2233,11 @@ func costAnnouncesCastX(c Cost) bool {
 		}
 	}
 	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.Exile {
 		if part.Announced {
 			return true
 		}
