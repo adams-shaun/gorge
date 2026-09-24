@@ -242,3 +242,39 @@ func containsPrim(prims []string, prim string) bool {
 	}
 	return false
 }
+
+// TestExchangeTextBoxSwapsTwoObjectsText pins api:ExchangeTextBox: after it
+// resolves over two objects, each renders the OTHER's printed text. The used
+// path is effects.Resolve with both targets already named (the Defined$
+// ParentTarget shape the corpus uses), so it isolates the layer-3 TextSet
+// registration from the ask machinery.
+func TestExchangeTextBoxSwapsTwoObjectsText(t *testing.T) {
+	t.Parallel()
+	a := card(t, "Name:Alpha\nManaCost:B\nTypes:Creature Human\nPT:1/1\nOracle:Flying.\n")
+	b := card(t, "Name:Beta\nManaCost:B\nTypes:Creature Beast\nPT:2/2\nOracle:Trample.\n")
+	e, _, _ := corpusDeckEngine(t, nil, []*cards.Card{a, b})
+	var aID, bID state.ObjID
+	for i := range e.G.Objs {
+		switch e.G.Objs[i].Card {
+		case a:
+			aID = e.G.Objs[i].ID
+		case b:
+			bID = e.G.Objs[i].ID
+		}
+	}
+	if aID == 0 || bID == 0 || aID == bID {
+		t.Fatalf("setup: a=%d b=%d", aID, bID)
+	}
+	if e.Text(aID) != "Flying." || e.Text(bID) != "Trample." {
+		t.Fatalf("precondition: texts = %q / %q", e.Text(aID), e.Text(bID))
+	}
+	sa := &cards.SA{API: "ExchangeTextBox", Params: map[string]string{"Duration": "AsLongAsInPlay", "Defined": "Targeted"}}
+	ctx := &effects.Ctx{Source: aID, Controller: 0, Targets: []state.Target{{Obj: aID}, {Obj: bID}}}
+	effects.Resolve(e, ctx, sa)
+	if got := e.Text(aID); got != "Trample." {
+		t.Fatalf("Alpha text = %q, want Beta's printed text", got)
+	}
+	if got := e.Text(bID); got != "Flying." {
+		t.Fatalf("Beta text = %q, want Alpha's printed text", got)
+	}
+}
