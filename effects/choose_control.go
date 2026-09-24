@@ -1047,7 +1047,7 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 			ts = append([]state.Target(nil), c.Choice...)
 			c.ChoiceDone, c.Choice = false, nil
 		} else {
-			chooser := c.Controller
+			chooser := changeTargetChooser(h, c, sa)
 			choices := cardChoices(h, c, sa, chooser)
 			if len(choices) == 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControl Choices$ has no eligible cards"})
@@ -1061,10 +1061,11 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 				if d.Prompt == "" {
 					d.Prompt = "Choose card"
 				}
-				if Ask(h, d) == AskAsked {
+				if Ask(h, d) != AskAsked {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControl Choices$ requires a player choice"})
 					return
 				}
-				ts = choices[:1]
+				return
 			} else {
 				ts = choices
 			}
