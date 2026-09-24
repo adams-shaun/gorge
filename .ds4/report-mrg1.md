@@ -6002,3 +6002,41 @@ golden still passes on the merged tree.
 None new. Standing observation (documented by prior rounds, not re-filed): the shared
 `.ds4/report-*.md` accumulators conflict on nearly every integration; the union
 convention preserves all content but costs a round each time.
+
+---
+
+# Merge-conflict resolution report — mrg1 (agent-20260922T183530Z-6d8a54c7), this round
+
+## Entry and operation
+
+Worktree clean at `cfbdfb8a` (branch tip; 3 commits ahead of merge base `f8e330c3`, 248 behind main's tip `57a1351d`). No merge or rebase in flight — the failure transcript described the daemon's integration attempt, but no partial resolver work remained. Ran `git merge main`; one content conflict, in `.ds4/report-sol1.md`. Everything else (including `effects/cardflow.go`, where this branch's DigUntil fix lives) auto-merged. `.cards` was absent (fresh worktree) — re-symlinked to `/home/sadams/projects/gorge/.cards` before any test run, so no run was vacuous.
+
+## Conflict and resolution
+
+The file is the accumulated append-only sol1 report history. Compared against the merge base (`:1:`, 679 lines ending at the IgnoreLegendRule report): the branch appended exactly ONE report (`# DigUntil RememberFound/RememberRevealed — sol1 review response`, 51 lines); main appended FOUR (`# Loamcrafter Faun … 2fd3b568`, `# Mill-trigger replacement redirection … 085022e9`, `# replcensus1 … 504b1359`, `# Emerge integration … 5db23024` — 385 lines) and was otherwise a superset of the base. Git aligned the two appends into two conflict blocks over coincidentally shared `## Gates` headings.
+
+Resolution: main's full content byte-for-byte as the prefix, then the branch's appended DigUntil report at the end — verified mechanically (`diff` of the main version against the merged prefix → identical; zero conflict markers; 1118 lines = main's 1064 + the branch's 54 appended lines). No prose from either side dropped; no code judgement calls.
+
+## Commands and output
+
+```text
+$ git status            # clean at cfbdfb8a, no operation in flight
+$ git merge main        # CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+$ git add -f .ds4/report-sol1.md; git commit --no-edit
+[wt/agent-20260922T183530Z-6d8a54c7 ce1fa33d] Merge branch 'main' into wt/agent-20260922T183530Z-6d8a54c7
+$ git status            # nothing to commit, working tree clean
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules 0.668s   (exit 0)
+
+$ go test -run 'TestDigUntil' ./effects/    # branch's own fix, auto-merged alongside main's cardflow changes
+ok  github.com/adams-shaun/gorge/effects 0.608s   (exit 0)
+```
+
+## Post-merge ratchets
+
+The required ratchet command passed (above). The branch registers no new `Mode$` matcher and closes no `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads` entry, so no ratchet-table edit was needed. Chain-head goldens and the botbench split were not run (daemon gate).
+
+## Issues
+
+None introduced by integration; the sole conflict was in an accumulated report file. Note for the controller: the resolved file's tail (the branch-side DigUntil report) retains its original `## Issues` observations (effSeek trigger capture, tracked as `agent-20260922T183530Z-cbf0a7d3`).
