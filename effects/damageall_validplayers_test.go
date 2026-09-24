@@ -125,29 +125,23 @@ func TestDamageAllValidPlayersRememberedPersistentTierWins(t *testing.T) {
 	}
 }
 
-// TestDamageAllValidPlayersUnmodelledIsFailClosedAndLoud pins The Fallen's
-// exotic compound: `Player.Opponent+wasDealtDamageThisGameBy Self` needs a
-// game-long damage-by-source history the Damage event does not carry (no
-// source field on the event, no game-long record in state), so the selector
-// is genuinely unmodelled. The contract: damage NOBODY (fail closed) and emit
-// a Note naming the selector (loud) -- before the fix the compound matched
-// nobody SILENTLY, which is the silent no-op this ticket closes.
+// TestDamageAllValidPlayersUnmodelledIsFailClosedAndLoud pins the LOUD
+// fail-closed contract for a ValidPlayers$ spec whose CLAUSE BASE the shared
+// player grammar does not know: the sweep damages nobody and emits a Note
+// naming the selector. The Fallen's compound (the historical carrier, now
+// resolved by the game-long damage-by-source record) is pinned by
+// TestDamageAllValidPlayersTheFallenResolves below; this test keeps the
+// loud-path coverage on a synthetic unknown base so deleting The Fallen's
+// old fail-closed assertion does not thin the census contract. A spec whose
+// base IS known (Player.LostLifeThisTurn, say) keeps the silent empty-set
+// path and is deliberately NOT this test's subject.
 func TestDamageAllValidPlayersUnmodelledIsFailClosedAndLoud(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	fallen, ok := reg.Lookup("The Fallen")
-	if !ok {
-		t.Fatal("corpus has no The Fallen")
-	}
-	face := fallen.Faces[0]
-	if line := face.SVars["TrigDamage"]; !strings.Contains(line, "Player.Opponent+wasDealtDamageThisGameBy Self") {
-		t.Fatalf("corpus moved: The Fallen's TrigDamage no longer carries the exotic compound: %q", line)
-	}
-	trig := svarSA(t, face, "TrigDamage")
-
 	h := newHost(t, 3)
-	src := putOnBattlefield(t, h.g, reg, "The Fallen", 0)
-	c := &Ctx{Source: src.ID, Controller: 0, SVars: face.SVars}
-	Resolve(h, c, trig)
+	src := h.g.AddObject(mkCard(t, "Name:F\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	c := &Ctx{Source: src.ID, Controller: 0}
+	// "Planeswalker" is not a player clause base, so the census gate fires.
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "DamageAll", Params: map[string]string{
+		"ValidPlayers": "Planeswalker", "NumDmg": "1"}})
 
 	// Fail closed: no player lost a point of life.
 	for i, p := range h.g.Players {
@@ -167,7 +161,7 @@ func TestDamageAllValidPlayersUnmodelledIsFailClosedAndLoud(t *testing.T) {
 	if len(notes) != 1 {
 		t.Fatalf("want exactly one Note naming the unresolved selector, got %d notes (%v)", len(notes), notes)
 	}
-	if !strings.Contains(notes[0].Text, "wasDealtDamageThisGameBy Self") {
+	if !strings.Contains(notes[0].Text, "Planeswalker") {
 		t.Fatalf("the Note must name the unresolved selector, got %q", notes[0].Text)
 	}
 	if strings.Contains(notes[0].Text, "unimplemented API") {

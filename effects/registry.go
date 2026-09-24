@@ -1228,6 +1228,17 @@ type Ctx struct {
 	// the same SA can never steal it.
 	TargetsPick     []state.Target
 	TargetsPickDone bool
+	// DamageSplit is the answered allocation of a DealDamage
+	// DividedAsYouChoose$ total: DamageSplit[i] is the damage assigned to
+	// the i-th target of the resolution's Defined$ list, in that order (the
+	// order the ask's one-option-per-target list uses). DamageSplitDone
+	// marks the answer present -- an answered allocation, or the silent
+	// no-ask path when there was nothing to divide -- so the primitive
+	// never re-poses the ask on a later round. rules' "damage_split" resume
+	// arm fills it from the answered multiset; a target the answer never
+	// picked is absent (zero damage).
+	DamageSplit     []int32
+	DamageSplitDone bool
 	// OfferedSA is the SA whose ValidTgts$ targeting the placement or
 	// announcement ask actually covered (rules' resolveTop and
 	// resumeResolution both set it; chosenTargetsFor skips exactly that SA,
@@ -1333,6 +1344,20 @@ type Ctx struct {
 	// its own confirm.
 	SearchShuffle      string
 	SearchShuffleMoved []state.ObjID
+	// SearchKnown names, per choosing player, the library cards whose identity
+	// that player has legitimately learned during this resolution's search
+	// chain (effects/zone.go applyLibrarySearch): a card the head ask publicly
+	// revealed is known to every seat, and a card the head ask offered BY NAME
+	// is known to the player who picked it. A Cultivate-family placement leg
+	// (NoLooking$ True, ChangeType$ ...IsRemembered) must label its options
+	// with those real names -- the blind "a card" label would hide information
+	// the chooser already holds -- while an option the chooser genuinely never
+	// saw stays fail-closed blind. It rides the ask via Decision
+	// .ResumeSearchKnown, because the first leg's own suspension rebuilds a
+	// fresh Ctx and a plain field would be lost before the second leg asks.
+	// Resolution-scratch like Remembered -- never event-encoded; a replay
+	// re-derives the same set by replaying the same resolution.
+	SearchKnown []state.Target
 	// AttachOpt is the answered Optional$ True attach election ("yes"/"no")
 	// on a re-entered Attach resolution (Ajani's Chosen's "you may attach it
 	// to the token", Cori-Steel Cutter's "you may attach this Equipment to

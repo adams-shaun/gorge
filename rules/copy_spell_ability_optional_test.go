@@ -132,12 +132,13 @@ func sevinneCopyElectionSetup(t *testing.T, seed uint64) (*Engine, Config, state
 
 // driveSevinneResolutionToEnd drains a Sevinne's Reclamation resolution in
 // flight to completion, handling the mid-resolution decisions its copy clause
-// can pose: a nested copy_optional may-copy election (declined, so at most one
-// copy is made) and a copy_targets target election (keep-current). It returns
-// the number of nested copy elections it declined. Any other decision is a
-// failure. The nested election is reached because a stack copy inherits the
-// cast's CastFlags, so the copy's own copy clause is not gated off -- a
-// cast-provenance gap outside this task (see the report's Issues).
+// can pose: a copy_targets target election (keep-current). It returns the
+// number of nested copy_optional may-copy elections it declined, which MUST be
+// zero: a stack copy is PUT on the stack, never cast (CR 707.10), so the
+// copy's own "if this spell was cast from a graveyard" clause is false and
+// the copy never poses its own election. The counter is kept so each caller
+// asserts that closure explicitly (state.ObjectWasCastFromGraveyard is the
+// never-cast guard that makes it hold). Any other decision is a failure.
 func driveSevinneResolutionToEnd(t *testing.T, e *Engine, limit int) int {
 	t.Helper()
 	nestedDeclines := 0
@@ -239,7 +240,9 @@ func TestSevinnesReclamationMayCopyElectionAcceptMakesCopy(t *testing.T) {
 
 	// Drain the copy to resolution: it returns the second Bear. The copy is
 	// itself a copy of Sevinne's Reclamation, so it too carries the copy
-	// clause; decline the nested may-copy election so exactly one copy is made.
+	// clause, but a copy was never cast (CR 707.10): the clause's
+	// Card.wasCastFromGraveyard gate reads FALSE on the copy, so exactly the
+	// first election fires and the returned nested-decline count must be zero.
 	nestedDeclines := driveSevinneResolutionToEnd(t, eng, 40)
 
 	if z := eng.G.Obj(bear1).Zone; z != state.ZBattlefield {
@@ -248,8 +251,8 @@ func TestSevinnesReclamationMayCopyElectionAcceptMakesCopy(t *testing.T) {
 	if copy := copyOnStack(eng); copy != 0 {
 		t.Fatalf("the copy %d did not leave the stack", copy)
 	}
-	if nestedDeclines == 0 {
-		t.Fatal("the copy never posed its own copy clause (the accept arm proves only the first election)")
+	if nestedDeclines != 0 {
+		t.Fatalf("the copy posed its own copy clause %d time(s): a copy was never cast, so Card.wasCastFromGraveyard must be false on it", nestedDeclines)
 	}
 	replayCheck(t, eng, cfg)
 }

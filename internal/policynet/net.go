@@ -108,6 +108,12 @@ type Model struct {
 	// a feature-family experiment sets it through NewModelExtra. Not part of
 	// EncoderHash and not checkpointable.
 	ExtraW int
+	// Features is the feature set (features.go) the model encodes under.
+	// FeaturesV1, the zero value, is the pinned encoder every existing
+	// checkpoint was trained on. It changes no geometry: the other sets only
+	// add hashed rows to the same table. The checkpoint carries it through
+	// its encoder hash (EncoderHashFor).
+	Features FeatureSet
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
 	StateW []float32 // DenseWidth*H, row-major: StateW[d*H+j]
@@ -126,6 +132,90 @@ type Model struct {
 	// no-op and reproduces pure CE byte for byte. Not covered by EncoderHash
 	// (BotPick is not an encoded feature); the checkpoint carries it.
 	ResidualW float32
+
+	// The VALUE head (ticket pn08): V(s) = sigmoid(VOutW·relu(VHidW·s + VHidB)
+	// + VOutB), the deciding seat's win probability read off the SAME state
+	// trunk s the policy head reads. ValueHidden 0 means the model has no
+	// value head (HasValue false; the three slices are empty and VOutB 0) —
+	// the geometry of every model built by NewModel/NewModelExtra until
+	// InitValue adds one.
+	ValueHidden int
+	VHidW       []float32 // ValueHidden*H, row-major: VHidW[k*H+j]
+	VHidB       []float32 // ValueHidden
+	VOutW       []float32 // ValueHidden
+	VOutB       float32
+
+	// The ENTITY encoder (ticket pn14, entity.go; FeaturesEntity only):
+	// EntK 0 means none, and then the three blocks are empty and InW is the
+	// pinned geometry. With EntK > 0 the hidden input grows by 2·EntK (the
+	// option's two referenced cards' encodings) and the state trunk gains the
+	// pooled projection.
+	EntK int
+	EntW []float32 // EntK*(EntityRawWidth+H), row-major: EntW[q*entInW+i]
+	EntB []float32 // EntK
+	EntP []float32 // (EntityGroups*2*EntK)*H, row-major: EntP[p*H+j]
+}
+
+// HasValue reports whether the model carries a value head.
+func (m *Model) HasValue() bool { return m.ValueHidden > 0 }
+
+// InitValue adds a value head of width valueHidden to m, drawn from rng. The
+// trainer passes a rng SEPARATE from the policy's (seeded from the run seed),
+// so adding the head moves no policy init draw and no shuffle. valueHidden
+// <= 0 removes the head.
+func (m *Model) InitValue(valueHidden int, rng *rand.Rand) {
+	if valueHidden <= 0 {
+		m.ValueHidden, m.VHidW, m.VHidB, m.VOutW, m.VOutB = 0, nil, nil, nil, 0
+		return
+	}
+	m.ValueHidden = valueHidden
+	m.VHidW = make([]float32, valueHidden*m.H)
+	m.VHidB = make([]float32, valueHidden)
+	m.VOutW = make([]float32, valueHidden)
+	m.VOutB = 0
+	fillUniform(m.VHidW, glorot(m.H, valueHidden), rng)
+	fillUniform(m.VOutW, glorot(valueHidden, 1), rng)
+}
+
+// valueForward runs the value head on a state trunk s, writing the hidden
+// activations into a (len ValueHidden) and returning the pre-sigmoid logit.
+// The summation order is fixed (VHidB first, then j ascending; VOutB first,
+// then k ascending) and shared by Model.Value, the loss and Scorer.Value, so
+// all three read bit-identical logits.
+func (m *Model) valueForward(s, a []float32) float32 {
+	for k := 0; k < m.ValueHidden; k++ {
+		sum := m.VHidB[k]
+		row := m.VHidW[k*m.H : (k+1)*m.H]
+		for j, sj := range s {
+			sum += row[j] * sj
+		}
+		if sum > 0 {
+			a[k] = sum
+		} else {
+			a[k] = 0
+		}
+	}
+	z := m.VOutB
+	for k, ak := range a {
+		if ak != 0 {
+			z += m.VOutW[k] * ak
+		}
+	}
+	return z
+}
+
+// Value is the value head's output V(s) ∈ (0,1): the deciding seat's win
+// probability from its own encoded (redacted) view. It allocates its own
+// scratch, so it is safe to call concurrently on a shared read-only Model. A
+// model without a value head (HasValue false) returns 0.5, the no-information
+// answer.
+func (m *Model) Value(st State) float32 {
+	if !m.HasValue() {
+		return 0.5
+	}
+	s := m.StateTrunk(st)
+	a := make([]float32, m.ValueHidden)
+	return float32(sigmoidFloat(float64(m.valueForward(s, a))))
 }
 
 // LossConfig carries the loss weights and the mode. HuberDelta is the Huber
@@ -157,6 +247,17 @@ type LossConfig struct {
 	HuberDelta     float64
 	RankWeight     float64
 	OverrideWeight float64
+	// ValueWeight scales the value-head term, ValueWeight · BCE(V(s), target):
+	// 0 (the zero value) switches it off and the loss is exactly the policy
+	// loss. It needs a model with a value head (HasValue); on one without,
+	// the term is skipped. ValueBlend b ∈ [0,1] mixes the target:
+	// (1-b)·Example.Outcome + b·Example.TeacherValue. An example lacking a
+	// piece of the target the blend needs (HasOutcome when b < 1,
+	// HasTeacherValue when b > 0) contributes no value term. The term is NOT
+	// scaled by OverrideWeight: whether the teacher overrode the bot says
+	// nothing about who won.
+	ValueWeight float64
+	ValueBlend  float64
 	// KindModes overrides Mode for specific decision kinds: the two scored
 	// kinds take different inference paths (attackers admits options with an
 	// absolute per-option vote; priority argmaxes a shift-invariant softmax),
@@ -166,6 +267,14 @@ type LossConfig struct {
 	// Mode. Lookups are map reads only — no iteration, so no order reaches a
 	// gradient.
 	KindModes map[decision.Kind]LossMode
+	// PPOClip is the PPO surrogate's clip ε and PPOKL the KL anchor's weight
+	// β (ppo.go). Read only by an example carrying a PPO target
+	// (Example.PPO); a supervised example ignores both.
+	PPOClip float64
+	PPOKL   float64
+	// VDWMMargin is the VDWM hinge margin m (vdwm.go), read only by a PPO
+	// example with PPOTarget.VDWM set.
+	VDWMMargin float64
 }
 
 // modeFor resolves the loss mode for one example: the per-kind override when
@@ -219,7 +328,31 @@ func DefaultLossConfig() LossConfig {
 type LossParts struct {
 	Value float64 // mean Huber over the labelled options
 	Rank  float64 // RankWeight·margin·(LSE over labelled − LSE over preferred)
-	Total float64
+	// ValueHead is ValueWeight·BCE(V(s), target) — the value head's term, 0
+	// when it is off or the example has no target (see LossConfig.ValueWeight).
+	ValueHead float64
+	Total     float64
+}
+
+// ValueTarget returns the value head's training target for ex under the
+// blend b = ValueBlend: (1-b)·Outcome + b·TeacherValue. ok is false when the
+// example lacks a part the blend needs (an outcome for b < 1, a teacher
+// value for b > 0), in which case the example trains no value term.
+func (lc LossConfig) ValueTarget(ex Example) (t float64, ok bool) {
+	b := lc.ValueBlend
+	if b < 1 && !ex.HasOutcome {
+		return 0, false
+	}
+	if b > 0 && !ex.HasTeacherValue {
+		return 0, false
+	}
+	switch {
+	case b <= 0:
+		return ex.Outcome, true
+	case b >= 1:
+		return ex.TeacherValue, true
+	}
+	return (1-b)*ex.Outcome + b*ex.TeacherValue, true
 }
 
 // StepStat is one example's training-relevant readout: the loss and whether
@@ -231,6 +364,8 @@ type StepStat struct {
 	Parts    LossParts
 	Agree    bool
 	Eligible bool
+	// PPO is the PPO readout of a PPO example (zero otherwise).
+	PPO PPOStep
 }
 
 // NewModel builds a model with the given geometry, initialised from a
@@ -283,6 +418,14 @@ func fillUniform(w []float32, lim float32, rng *rand.Rand) {
 // sparse hashed rows plus the dense projection. Zero-valued dense inputs are
 // skipped (exact: adding w·0 is a no-op for finite weights).
 func (m *Model) StateTrunk(st State) []float32 {
+	s, _ := m.stateTrunkEnt(st)
+	return s
+}
+
+// stateTrunkEnt is StateTrunk plus the entity forward it pooled (nil for a
+// model without an entity encoder, whose trunk is then exactly the pinned
+// sum-pool + dense projection).
+func (m *Model) stateTrunkEnt(st State) ([]float32, *entCache) {
 	s := make([]float32, m.H)
 	copy(s, m.StateB)
 	for _, f := range st.Sparse {
@@ -303,13 +446,15 @@ func (m *Model) StateTrunk(st State) []float32 {
 			s[j] += m.StateW[base+j] * v
 		}
 	}
-	return s
+	c := m.entForward(st)
+	m.entAddTrunk(s, c)
+	return s, c
 }
 
 // inputVector builds one option's hidden-layer input x = [s ‖ hashed-embed ‖
 // slots ‖ dense]. Slots whose Row falls outside OptionSlotWidth are dropped
 // (the encoder never emits one).
-func (m *Model) inputVector(s []float32, o Option) []float32 {
+func (m *Model) inputVector(s []float32, o Option, c *entCache) []float32 {
 	x := make([]float32, m.InW)
 	copy(x, s)
 	off := m.H
@@ -332,6 +477,7 @@ func (m *Model) inputVector(s []float32, o Option) []float32 {
 	for i := 0; i < m.ExtraW && i < len(o.Extra); i++ {
 		x[off+i] = o.Extra[i]
 	}
+	m.entFillInput(x, o, c)
 	return x
 }
 
@@ -374,10 +520,10 @@ func (m *Model) residual(o Option) float32 {
 // the state trunk is computed once, then each option gets its own head
 // forward. The returned slice parallels opts.
 func (m *Model) Score(st State, opts []Option) []float32 {
-	s := m.StateTrunk(st)
+	s, c := m.stateTrunkEnt(st)
 	out := make([]float32, len(opts))
 	for i := range opts {
-		x := m.inputVector(s, opts[i])
+		x := m.inputVector(s, opts[i], c)
 		y, _ := m.forwardHead(x)
 		out[i] = y + m.residual(opts[i])
 	}
@@ -397,6 +543,15 @@ type Grads struct {
 	HidB   []float32
 	OutW   []float32
 	OutB   float32
+	// The value head's blocks (empty when the model has none).
+	VHidW []float32
+	VHidB []float32
+	VOutW []float32
+	VOutB float32
+	// The entity encoder's blocks (empty when the model has none).
+	EntW []float32
+	EntB []float32
+	EntP []float32
 
 	noted   []byte    // Rows: 1 when the row is in touched
 	touched []int32   // table rows written since the last Reset
@@ -404,6 +559,7 @@ type Grads struct {
 	da      []float32 // scratch: hidden activation gradient
 	dz      []float32 // scratch: hidden pre-activation gradient
 	ds      []float32 // scratch: accumulated state-trunk gradient
+	va      []float32 // scratch: value-head hidden activations
 }
 
 // NewGrads allocates a zeroed gradient buffer for m.
@@ -416,11 +572,18 @@ func (m *Model) NewGrads() *Grads {
 		HidW:   make([]float32, len(m.HidW)),
 		HidB:   make([]float32, len(m.HidB)),
 		OutW:   make([]float32, len(m.OutW)),
+		VHidW:  make([]float32, len(m.VHidW)),
+		VHidB:  make([]float32, len(m.VHidB)),
+		VOutW:  make([]float32, len(m.VOutW)),
+		EntW:   make([]float32, len(m.EntW)),
+		EntB:   make([]float32, len(m.EntB)),
+		EntP:   make([]float32, len(m.EntP)),
 		noted:  make([]byte, m.Rows),
 		dx:     make([]float32, m.InW),
 		da:     make([]float32, m.Hidden),
 		dz:     make([]float32, m.Hidden),
 		ds:     make([]float32, m.H),
+		va:     make([]float32, m.ValueHidden),
 	}
 	return g
 }
@@ -434,6 +597,7 @@ func (g *Grads) Zero() {
 	zero(g.HidB)
 	zero(g.OutW)
 	g.OutB = 0
+	g.zeroValue()
 	g.touched = g.touched[:0]
 	for i := range g.noted {
 		g.noted[i] = 0
@@ -455,6 +619,17 @@ func (g *Grads) Reset() {
 	zero(g.HidB)
 	zero(g.OutW)
 	g.OutB = 0
+	g.zeroValue()
+}
+
+func (g *Grads) zeroValue() {
+	zero(g.VHidW)
+	zero(g.VHidB)
+	zero(g.VOutW)
+	g.VOutB = 0
+	zero(g.EntW)
+	zero(g.EntB)
+	zero(g.EntP)
 }
 
 // ApplyGrads descends one step: every parameter p ← p − scale·∇p. scale is
@@ -482,6 +657,23 @@ func (m *Model) ApplyGrads(g *Grads, scale float32) {
 		m.OutW[i] -= scale * g.OutW[i]
 	}
 	m.OutB -= scale * g.OutB
+	if m.HasValue() {
+		for i := range m.VHidW {
+			m.VHidW[i] -= scale * g.VHidW[i]
+		}
+		for i := range m.VHidB {
+			m.VHidB[i] -= scale * g.VHidB[i]
+		}
+		for i := range m.VOutW {
+			m.VOutW[i] -= scale * g.VOutW[i]
+		}
+		m.VOutB -= scale * g.VOutB
+	}
+	for _, blk := range [][2][]float32{{m.EntW, g.EntW}, {m.EntB, g.EntB}, {m.EntP, g.EntP}} {
+		for i := range blk[0] {
+			blk[0][i] -= scale * blk[1][i]
+		}
+	}
 }
 
 // Norm returns the gradient's global L2 norm over every parameter block.
@@ -502,6 +694,24 @@ func (g *Grads) Norm() float64 {
 	}
 	x := float64(g.OutB)
 	sum += x * x
+	// The value blocks come last so a model without a value head (every
+	// block empty, VOutB 0) sums exactly what it summed before the head
+	// existed: adding +0 to a float64 sum is exact.
+	for _, blk := range [][]float32{g.VHidW, g.VHidB, g.VOutW} {
+		for _, v := range blk {
+			x := float64(v)
+			sum += x * x
+		}
+	}
+	x = float64(g.VOutB)
+	sum += x * x
+	// The entity blocks last, by the same rule: empty for every other model.
+	for _, blk := range [][]float32{g.EntW, g.EntB, g.EntP} {
+		for _, v := range blk {
+			x := float64(v)
+			sum += x * x
+		}
+	}
 	return math.Sqrt(sum)
 }
 
@@ -552,12 +762,13 @@ func (g *Grads) Clip(maxNorm float64) {
 			g.Table[base+j] *= scale
 		}
 	}
-	for _, blk := range [][]float32{g.StateW, g.StateB, g.HidW, g.HidB, g.OutW} {
+	for _, blk := range [][]float32{g.StateW, g.StateB, g.HidW, g.HidB, g.OutW, g.VHidW, g.VHidB, g.VOutW, g.EntW, g.EntB, g.EntP} {
 		for i := range blk {
 			blk[i] *= scale
 		}
 	}
 	g.OutB *= scale
+	g.VOutB *= scale
 }
 
 func zero(w []float32) {
@@ -581,19 +792,26 @@ func (g *Grads) addTable(r int, vec []float32, scale float32) {
 // forwardExample computes the state trunk and every labelled option's input
 // vector, hidden activations and score. The returned indices parallel ys/xs/as.
 func (m *Model) forwardExample(ex Example) (labelled []int, trunk []float32, xs, as [][]float32, ys []float64) {
-	s := m.StateTrunk(ex.State)
+	labelled, trunk, xs, as, ys, _ = m.forwardExampleEnt(ex)
+	return
+}
+
+// forwardExampleEnt is forwardExample plus the entity forward (nil without
+// an entity encoder).
+func (m *Model) forwardExampleEnt(ex Example) (labelled []int, trunk []float32, xs, as [][]float32, ys []float64, c *entCache) {
+	s, c := m.stateTrunkEnt(ex.State)
 	for i := range ex.Options {
 		if !ex.Options[i].Target.Labelled {
 			continue
 		}
-		x := m.inputVector(s, ex.Options[i])
+		x := m.inputVector(s, ex.Options[i], c)
 		y, a := m.forwardHead(x)
 		labelled = append(labelled, i)
 		xs = append(xs, x)
 		as = append(as, a)
 		ys = append(ys, float64(y)+float64(m.residual(ex.Options[i])))
 	}
-	return labelled, s, xs, as, ys
+	return labelled, s, xs, as, ys, c
 }
 
 // lossFromScores computes the combined loss and the per-labelled-option
@@ -857,21 +1075,70 @@ func (m *Model) Loss(ex Example, lc LossConfig) StepStat {
 	if len(labelled) == 0 {
 		return StepStat{}
 	}
-	parts, _ := lossFromScores(lc, ex, labelled, ys)
-	st := StepStat{Loss: parts.Total, Parts: parts}
+	var parts LossParts
+	var ps PPOStep
+	if ex.PPO != nil {
+		parts, _, ps = lossPPO(lc, ex, labelled, ys)
+	} else {
+		parts, _ = lossFromScores(lc, ex, labelled, ys)
+	}
+	if t, on := m.valueTermOn(lc, ex); on {
+		s := m.StateTrunk(ex.State)
+		z := m.valueForward(s, make([]float32, m.ValueHidden))
+		parts.ValueHead, _ = valueBCE(lc.ValueWeight, z, t)
+		parts.Total += parts.ValueHead
+	}
+	st := StepStat{Loss: parts.Total, Parts: parts, PPO: ps}
 	st.Eligible, st.Agree = agreement(ex, labelled, ys)
 	return st
+}
+
+// valueTermOn reports whether ex trains the value head under lc, and its
+// target.
+func (m *Model) valueTermOn(lc LossConfig, ex Example) (float64, bool) {
+	if lc.ValueWeight == 0 || !m.HasValue() {
+		return 0, false
+	}
+	return lc.ValueTarget(ex)
+}
+
+// valueBCE is the value term w·BCE(sigmoid(z), t) written in logit form,
+// w·(softplus(z) − t·z) (equal to −w·[t·log V + (1−t)·log(1−V)] for any soft
+// t ∈ [0,1]), and its logit gradient w·(sigmoid(z) − t). The logit is
+// clamped like the policy scores so a diverged forward pass stays finite.
+func valueBCE(w float64, z32 float32, t float64) (loss, dz float64) {
+	z := clampScore(float64(z32))
+	return w * (softplus(z) - t*z), w * (sigmoidFloat(z) - t)
+}
+
+// ValueLogLoss is the unweighted BCE of the model's value on ex against t
+// (the holdout readout's log loss), computed as valueBCE does. 0 on a model
+// without a value head.
+func (m *Model) ValueLogLoss(st State, t float64) float64 {
+	if !m.HasValue() {
+		return 0
+	}
+	z := m.valueForward(m.StateTrunk(st), make([]float32, m.ValueHidden))
+	l, _ := valueBCE(1, z, t)
+	return l
 }
 
 // LossGrad evaluates the example's loss AND accumulates its parameter
 // gradients into g (g is NOT reset first — the trainer accumulates batches).
 func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
-	labelled, _, xs, as, ys := m.forwardExample(ex)
+	labelled, trunk, xs, as, ys, ec := m.forwardExampleEnt(ex)
 	if len(labelled) == 0 {
 		return StepStat{}
 	}
-	parts, dys := lossFromScores(lc, ex, labelled, ys)
-	st := StepStat{Loss: parts.Total, Parts: parts}
+	var parts LossParts
+	var dys []float64
+	var ps PPOStep
+	if ex.PPO != nil {
+		parts, dys, ps = lossPPO(lc, ex, labelled, ys)
+	} else {
+		parts, dys = lossFromScores(lc, ex, labelled, ys)
+	}
+	st := StepStat{Loss: parts.Total, Parts: parts, PPO: ps}
 	st.Eligible, st.Agree = agreement(ex, labelled, ys)
 
 	// Backward through the head, option by option; the state-trunk gradient
@@ -879,6 +1146,7 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 	for j := range g.ds {
 		g.ds[j] = 0
 	}
+	var dh [][]float32 // per-card entity gradient (entity models only)
 	for k, i := range labelled {
 		dy := float32(dys[k])
 		if dy == 0 {
@@ -894,7 +1162,40 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 		for _, f := range ex.Options[i].Hashed {
 			g.addTable(int(f.Row), g.dx[m.H:m.H+m.H], f.Value)
 		}
+		if ec != nil {
+			// The option's entity inputs route their gradient to the
+			// referenced cards' encodings.
+			if dh == nil {
+				dh = make([][]float32, len(ex.State.Cards))
+			}
+			off := m.entOffset()
+			for slot, ref := range [2]int32{ex.Options[i].EntA, ex.Options[i].EntB} {
+				if ref <= 0 || int(ref) > len(dh) {
+					continue
+				}
+				ci := int(ref - 1)
+				if dh[ci] == nil {
+					dh[ci] = make([]float32, m.EntK)
+				}
+				for q := 0; q < m.EntK; q++ {
+					dh[ci][q] += g.dx[off+slot*m.EntK+q]
+				}
+			}
+		}
 	}
+	// Value head: forward on the shared trunk, BCE on the logit, backward
+	// into the value blocks and (through ds) into the trunk.
+	if t, on := m.valueTermOn(lc, ex); on {
+		z := m.valueForward(trunk, g.va)
+		var dz64 float64
+		parts.ValueHead, dz64 = valueBCE(lc.ValueWeight, z, t)
+		parts.Total += parts.ValueHead
+		st.Loss, st.Parts = parts.Total, parts
+		m.backValue(float32(dz64), trunk, g)
+	}
+	// Entity backward (pool, projection, per-card encoder) off the final
+	// trunk gradient, before the trunk's own blocks read it.
+	m.entBackward(ec, ex.State, g.ds, dh, g)
 	// State trunk backward: dense projection + sparse table rows.
 	for j := 0; j < m.H; j++ {
 		g.StateB[j] += g.ds[j]
@@ -913,6 +1214,31 @@ func (m *Model) LossGrad(ex Example, lc LossConfig, g *Grads) StepStat {
 		g.addTable(int(f.Row), g.ds, f.Value)
 	}
 	return st
+}
+
+// backValue propagates the value logit's gradient dz through the value head
+// into g's value blocks, and adds the trunk gradient into g.ds (the caller
+// applies ds to the trunk blocks once). g.va holds the forward's hidden
+// activations.
+func (m *Model) backValue(dz float32, s []float32, g *Grads) {
+	if dz == 0 {
+		return
+	}
+	g.VOutB += dz
+	for k := 0; k < m.ValueHidden; k++ {
+		ak := g.va[k]
+		if ak <= 0 {
+			continue
+		}
+		g.VOutW[k] += dz * ak
+		du := dz * m.VOutW[k]
+		g.VHidB[k] += du
+		base := k * m.H
+		for j, sj := range s {
+			g.VHidW[base+j] += du * sj
+			g.ds[j] += du * m.VHidW[base+j]
+		}
+	}
 }
 
 // backHead propagates one option's score gradient through the output layer
@@ -953,6 +1279,26 @@ func (m *Model) backHead(dy float32, x, a []float32, g *Grads, dx []float32) {
 			}
 		}
 	}
+}
+
+// Argmax returns the index (into ex.Options) of the highest-scoring
+// LABELLED option, ties to the first, computed exactly as Loss's top-1
+// agreement reads it (the same float64 score sum, the same tie rule). ok is
+// false when the example has no labelled option. Read-only: a readout for
+// the trainer's per-kind holdout table (which option the model would pick,
+// so a caller can ask whether it is a bot pick or an override).
+func (m *Model) Argmax(ex Example) (idx int, ok bool) {
+	labelled, _, _, _, ys := m.forwardExample(ex)
+	if len(labelled) == 0 {
+		return 0, false
+	}
+	best := 0
+	for k := 1; k < len(ys); k++ {
+		if ys[k] > ys[best] {
+			best = k
+		}
+	}
+	return labelled[best], true
 }
 
 // agreement reports whether the argmax over the labelled options lands in

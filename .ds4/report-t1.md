@@ -178,6 +178,1498 @@ No row edit: this closes no Known-approximations row, and the
 
 # Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
 
+# Report — agent-20260923T144746Z-b284de7f
+
+Dotted `AttachedTo <spec>` Defined-selector — Cass, Rhuk, Fumble, Murderous
+Spoils.
+
+Status: DONE. Commit `397ba4d6`.
+
+## What changed and why (per file)
+
+- **`state/object.go`** — new `Object.LastBearer ObjID` next to `AttachedTo`,
+  documented as written ONLY inside `events.Apply` (the `LastNotedMana`
+  contract). It backs the "objects that WERE attached to it" reads the
+  trigger carriers resolve after the CR 704.5 sweep has cleared `AttachedTo`.
+- **`events/apply.go`** — the three fold writes: `Unattached` sets
+  `LastBearer = e.IDs[0]` (the former bearer, already carried on the event);
+  `Attach` with `len(e.IDs) > 0` clears it on a re-attach; the
+  Move-leaves-battlefield fold copies the pre-clear `AttachedTo` into
+  `LastBearer` when it is non-zero. No `events.Event` field changed; the fold
+  is a pure read of existing event bytes, so replay rebuilds it identically.
+- **`effects/context.go`** — `attachedToDefinedSelector`, dispatched as a
+  prefix at the top of `definedSpec` (so `knownDefinedTargets` and `Defined`
+  reach it automatically). It reuses the predicate's canonical referent set
+  and cardinality rule by calling the SAME function the predicate uses
+  (`attachedToReferentObjects` on a `SpecContext` built from the `*Ctx`):
+  absent binding, stale id, or a PLURAL bearer binding → unknown, fail closed.
+  The attachment read is live `AttachedTo == bearer` PLUS the
+  `AttachedTo == 0 && LastBearer == bearer` were-attached fallback, not
+  zone-restricted (Cass's swept Auras are graveyard cards). The qualifier list
+  is comma-OR over each attachment's own type/class words via
+  `MatchesObjectCtx`.
+- **`effects/attach.go`** — `Object$` now keeps the WHOLE resolved list
+  (`objs`); `attachTo` takes the object as an argument; `attachAll` /
+  `attachableBy` attach every resolved object a destination legally admits.
+  Single-object carriers reduce to the exact previous reads (verified by the
+  diff: `objs == []{obj}` on every single-object path).
+- **`effects/zone.go`** — `effHiddenPick` consumes `ChooseFromDefined$`:
+  intersect the origin-zone sweep with `knownDefinedTargets(value)`, fail
+  closed with one Note on an unresolvable value, `OptionalPrompt$` becomes the
+  prompt and an absent `ChangeNum$` with the param present means "any number"
+  (pool-bounded). It also now applies `changeZoneAttachedTo` on a battlefield
+  destination — the rider every other mover already applies, which the
+  hidden-pick mover was missing. Required for Cass's returned
+  `AttachedTo$ Targeted` Aura to sit on the target instead of being swept.
+
+Which rule I reused for the referent: `attachedToReferentObjects`
+(`effects/filter.go`) directly, not a re-implementation. It is the one home of
+the 82db540a cardinality rule (exactly one bearer; empty Targeted stays bound;
+plural fails closed) and of the referent→object reads, so the selector and the
+filter predicate cannot drift. The function reads a `SpecContext`; `definedSpec`
+has a `*Ctx`, so it builds one with `c.SpecContext(c.Controller)` — the same
+conversion every other resolution-time filter read makes.
+
+## Gates (exact commands, real output)
+
+Targeted test run (brief's pattern):
+```
+$ go test -run 'TestAttachedToDefined|TestAttachedToSelector|TestRhuk|TestCassHand|TestFumble|TestMurderousSpoils' ./effects/ ./rules/
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+ok  	github.com/adams-shaun/gorge/rules	0.439s
+```
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.342s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+
+$ gofmt -l state/object.go events/apply.go effects/context.go effects/attach.go effects/zone.go effects/attachedto_defined_selector_test.go rules/attachedto_defined_card_test.go
+(empty)
+
+$ go run ./cmd/gentypes -check
+gentypes OK
+
+$ go test -run TestHeads ./rules/
+ok  	github.com/adams-shaun/gorge/rules	1.578s
+```
+
+TestHeads did NOT move (no seat count, no behaviour) — expected, since no
+event bytes changed.
+
+`.cards` was present as a symlink at `.cards -> /home/sadams/projects/gorge/.cards`
+before the first run; the corpus-backed tests ran (rules package ~0.44 s with
+the corpus, not the ~2 ms vacuous skip).
+
+No `events.Event` field changed. No TEST_HISTORY budget change was needed (the
+commit hook did not flag either package).
+
+## Fails without the fix
+
+Each reversion was made in the real non-test file, the test run, then the file
+restored and `cmp`'d byte-identically against a `.ds4/scratch/fixcopy` copy
+(all five non-test files reported `match`).
+
+**1. Selector dispatch reverted** (`effects/context.go`, the
+`attachedToDefinedSelector` call removed; `LastBearer` left in so the tests
+compile):
+```
+--- FAIL: TestAttachedToDefinedSelectorTargetedLiveAndWereAttached
+    AttachedTo Targeted classified unknown
+--- FAIL: TestAttachedToDefinedSelectorQualifierList
+    AttachedTo Targeted.Aura,Equipment classified unknown
+--- FAIL: TestAttachedToDefinedSelectorTriggerReferents
+    AttachedTo TriggeredCardLKICopy.Equipment classified unknown
+--- FAIL: TestAttachedToDefinedSelectorBareFormUnchanged
+    dotted AttachedTo Targeted.Equipment = [], false; want the Equipment
+--- FAIL: TestMurderousSpoilsStealsEquipmentAttachedToDestroyedCreature
+    Equipment controller = 1, want 0 (control gained)
+--- FAIL: TestFumbleGainsBothAndAttachesThemToAnotherCreature
+    GainControl left aura=1 equip=1, want both controlled by 0
+--- FAIL: TestRhukAttachesWereAttachedEquipment
+    Attacks half: Equipment AttachedTo = 2, want Rhuk 1
+--- FAIL: TestCassHandOfVengeanceReturnsOnlyTheWereAttachedAuras
+    the were-attached Aura 43 was never offered by the hidden pick
+FAIL
+```
+
+**2. effAttach plural reverted to first-take** (`objs = append(objs, os[0].Obj)`):
+```
+--- FAIL: TestRhukAttachesWereAttachedEquipment
+    death half: first Equipment AttachedTo = 0, want Rhuk 1
+FAIL
+```
+
+**3. `changeZoneAttachedTo` rider removed from the hidden-pick mover**:
+```
+--- FAIL: TestCassHandOfVengeanceReturnsOnlyTheWereAttachedAuras
+    returned Aura AttachedTo = 0, want the target 2
+FAIL
+```
+
+**4. ChooseFromDefined fail-closed Note removed**:
+```
+--- FAIL: TestAttachedToSelectorChooseFromDefinedFailsClosed
+    no ChooseFromDefined$ fail-closed Note was emitted
+FAIL
+```
+(With the Note suppressed the decoy-Aura assertion still held, so the Note is
+its own observable half of the fail-closed contract.)
+
+Every test asserts its own precondition: the object is on the battlefield /
+in the zone the rule reads, the compared values differ, the referent really is
+bound, the Equipment really is attached before the read, and the decoy really
+has `LastBearer == 0`.
+
+## Deviations from the brief
+
+- **`effHiddenPick` now applies `changeZoneAttachedTo`** (4 lines + comment).
+  The brief said `changeZoneAttachedTo` "already works; do not touch it" — the
+  function is fine, but the hidden-pick mover never CALLED it, so Cass's
+  returned Aura entered unattached and the CR 704.5m SBA would sweep it. This
+  is the one gap the Cass carrier needs closed; the change is the same rider
+  at the same point as every other mover (zone.go:3709, 3765). Measured blast
+  radius: 8 corpus files carry `Hidden$ True` + `AttachedTo$` on one line and
+  were silently entering unattached — a fix, not a regression.
+- **`ChooseFromDefined` now fails closed for the values with no resolver.**
+  Before the ticket the param was read NOWHERE, so all 17 carriers offered the
+  whole origin zone; now the resolvable ones (`AttachedTo …`, and the
+  `Remembered`/`Remembered.<qual>` family, which `knownDefinedTargets` already
+  recognises) are intersected and the rest offer nothing with the Note the
+  brief prescribes. 15 occurrences / 12 files are now loud-unimplemented
+  rather than quietly-wrong; filed as a follow-up ticket (see Issues).
+- **The brief's Cass test expected the destination ask to be driven by the
+  engine's suspension.** A direct `effects.Resolve` outside a stack frame does
+  not resume a `hidden_pick` ask in this test harness, so the Cass test drives
+  the answered re-entry directly (`Ctx.HiddenPick`/`HiddenPickDone`) — the same
+  "effects.Resolve with the binding" shape the Arna source-filter test uses.
+  Both the pool (asking pass) and the move (answered pass) are real; the
+  engine's own suspension/resume is covered by
+  `rules/changezone_hidden_reveal_test.go`.
+
+## Issues
+
+- **The other `ChooseFromDefined$` value spellings have no consumer.**
+  `TriggeredCards` (3), `TriggeredSources` (1), `TopThirdOfLibrary` (1),
+  `Targeted.cmcLE4` (1), `ReplacedCards.Land` (1), `ExiledWith.Creature` (1) —
+  15 occurrences / 12 files besides Cass's implemented `AttachedTo`. They are
+  loud-unimplemented (empty offer + Note) rather than quietly-wrong. Filed as
+  `.ds4/new-tickets/choosefromdefined-remaining-values.md`.
+- **The `ChooseFromDefined$ Remembered`/`Remembered.<qual>` family now
+  resolves** via `knownDefinedTargets` (6 occurrences) because the resolver is
+  shared — correct per the fail-closed direction, but unpinned by a real-card
+  test. Covered by the same follow-up ticket.
+- **`effAttach`'s `Choices$`/`ChoiceZone$` known limitation is unchanged**
+  (pre-existing, documented in `effects/attach.go`): a `ChoiceZone$`/`Chooser$`
+  attach takes the wrong pool and refuses. Not this ticket.
+- No ledger entry id was closed by this ticket (the work was invisible to the
+  CR lane — it is a `Defined$` resolution gap, not a CR-rule audit item). A
+  forward CR-lane test would cite CR 608.2 (resolution-time referent binding);
+  I did not write one, per the brief.
+
+STATUS=DONE
+COMMITS=397ba4d6
+TESTS=go test -run 'TestAttachedToDefined|TestAttachedToSelector|TestRhuk|TestCassHand|TestFumble|TestMurderousSpoils' ./effects/ ./rules/ → ok (both packages); archtest, botbench pin, gofmt, gentypes -check, TestHeads all pass
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — Fury damage distribution: player-chosen shares (fb-20260923T050453Z-49840c2d)
+
+## What changed and why
+
+`DealDamage` carrying `DividedAsYouChoose$ N` silently round-robined the named
+total. The player now answers a real mid-resolution allocation decision.
+
+- **`effects/damage.go`** — `effDealDamage`'s `divided` branch now builds the
+  chosen-target list (`divTargets`, in `Defined$` order) ONCE, BEFORE opening the
+  damage batch. If the split has not been answered yet (`!c.DamageSplitDone`) and
+  there is something to divide (`len(divTargets) > 0 && total > 0`) it poses a
+  `KChoose` ask: one option per chosen target (`Kind` "card"/"player", carrying
+  `Obj`/`Player`), `Min == Max == total`, `Repeatable: true`,
+  `ResumeKind: "damage_split"`, `ResumeSA: sa`. A winner is a multiset of option
+  indices whose per-target multiplicities are the shares, so a zero share is a
+  target the answer never picks. `AskAsked` suspends before the batch opens
+  (nothing half-emitted); the R-9 no-host / `AskEmpty` path computes the old
+  round-robin split via the new `roundRobinSplit` helper and marks
+  `DamageSplitDone`. Emission reads `c.DamageSplit[i]` positionally (missing
+  trailing entries read as zero). The batch/`emitFromEachSource` path is
+  untouched.
+- **`effects/registry.go`** — two `Ctx` transport fields, `DamageSplit []int32`
+  and `DamageSplitDone bool` (own transport, like `TargetsPick`, so another
+  KChoose primitive under the same SA cannot steal the answer). fx42-style
+  consume-and-done: the fresh resume `Ctx` is thrown away when the resolution
+  ends.
+- **`rules/resolution.go`** — a new `"damage_split"` resume arm in
+  `resumeResolution`'s `switch rp.kind`: it turns the answered option multiset
+  into `ctx.DamageSplit` (one slot per option index, `Index` == the target's
+  `Defined$` position) and sets `DamageSplitDone`, then the ordinary re-entry
+  calls `effDealDamage` with the player's shares.
+- **`rules/rakdos_muscle_deck_test.go`** — the old round-robin
+  `TestFuryDividesDamageAmongTargets` was removed (replaced, per the brief's
+  "replace/update its oracle").
+- **`rules/fury_damage_split_test.go`** (new) — the replacement integration
+  tests (see below).
+- **`rules/replacement_updated_test.go`** — `passUntilStackEmpty` (the shared
+  drain helper) gains a `damage_split` arm alongside its existing dig/vote/
+  copy-target arms. It answers the ask with the round-robin multiset, so tests
+  written around the pre-ask engine keep the exact board their assertions were
+  written against.
+
+No new `Decision.Validate` rule was added: `Min == Max == total` already
+enforces "exactly the named total" and the option list already is "exactly the
+chosen target list", while `Repeatable` already permits the multiset. One home,
+reused.
+
+### Tests added (`rules/fury_damage_split_test.go`)
+
+- `TestFuryDividesDamageAmongTargets` — target ask offers `[0,4]`; both bears
+  chosen; a DISTINCT `KChoose` (`ResumeKind "damage_split"`, `Min=Max=4`,
+  `Repeatable`) appears; `Validate` rejects a 3-damage total and an out-of-range
+  recipient; a `3/1` answer (not the round-robin `2/2`) is honoured and the total
+  is 4; `replayCheck` proves the resolution replays from the log alone.
+- `TestFuryDamageSplitAllowsZeroShare` — all 4 on one chosen target, the other
+  chosen target takes 0.
+- `TestFuryDamageSplitSkipsAskWithNoTargets` — zero-target election poses no
+  allocation decision, deals nothing, and the trigger still resolves (no
+  `unimplemented API` Note).
+
+Each asserts its own preconditions: both bears are on the battlefield with
+toughness > 4 (so a full share is not lethal — a 2/4 dies at 4/0 and its
+`Damage` resets on the way to the graveyard, which is exactly the vacuity trap),
+Fury is on the battlefield, and the target bounds are `[0,4]`.
+
+## Gate commands and real output
+
+Focused gate named by the brief:
+
+```
+$ go test -run 'TestFuryDividesDamageAmongTargets' ./rules/ 2>&1 | tail -30
+ok  	github.com/adams-shaun/gorge/rules	0.462s
+```
+
+All three new tests plus every pre-existing test that resolves a
+`DealDamage.DividedAsYouChoose$` carrier referenced in the suite:
+
+```
+$ go test -run 'TestFuryDividesDamageAmongTargets|TestFuryDamageSplit|TestEvokeCastPaysTheEvokeCostAndSacrifices|TestEvokeExileCostExilesTheChosenCard|TestMadnessExileByNonDiscardDoesNotOfferTheCast|TestPolukranosMonstrosityTriggerReadsX|TestKuldothaFlamefiendOptionalSacCostPays|TestKuldothaFlamefiendOptionalSacCostDeclineChangesNothing|TestAvacynsJudgmentTargetBoundCountsPlayersAndPermanents|TestMadnessDiscardSuspendsTheResolvingRepeat' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.868s
+```
+
+Goldens (gorge-context "Behaviour goldens outside `rules/`"):
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.884s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+```
+
+Chain-head golden — measured, UNMOVED (no re-pin, no attribution needed):
+
+```
+$ go test -run TestHeads ./rules/
+ok  	github.com/adams-shaun/gorge/rules	(cached)
+```
+
+Lint (Go half of `make lint`, plus the type generator):
+
+```
+$ gofmt -l <changed files>          # no output
+$ go vet ./effects/ ./rules/        # no output
+$ go run ./cmd/gentypes -check      # no output
+```
+
+Corpus presence: `.cards` exists in this worktree as a symlink to the shared
+corpus (verified at session start), so the corpus-backed tests ran rather than
+skipped.
+
+## Fails without the fix
+
+Proof method: `cp effects/damage.go .ds4/scratch/damage.go.fixed`, then in the
+real file gate the ask behind `if false && Ask(h, d) == AskAsked {` (so the
+round-robin stand-in always runs and no allocation decision is ever posed), run
+the new tests, confirm FAIL, then restore with `cp` and `cmp`:
+
+```
+$ cmp effects/damage.go .ds4/scratch/damage.go.fixed
+damage.go restored byte-identical
+```
+
+Failing output with the fix reverted:
+
+```
+--- FAIL: TestFuryDividesDamageAmongTargets (0.45s)
+    fury_damage_split_test.go:101: allocation ask missing after target selection:
+--- FAIL: TestFuryDamageSplitAllowsZeroShare (0.00s)
+    fury_damage_split_test.go:144: allocation ask missing after target selection:
+```
+
+(`TestFuryDamageSplitSkipsAskWithNoTargets` still passes with the revert — it
+asserts the zero-target no-ask path, which the revert does not remove.)
+
+## Head / ratchet movement
+
+- **`TestHeads`: UNMOVED** at 2/4/6/8. The acceptance goldens seat from the
+  closed 12-deck `LegacyDeckNames()` list (`internal/testutil/decks.go`), and
+  the three repo decks that carry a `DealDamage.DividedAsYouChoose$` card
+  (Forked Bolt in foundations-reign-of-dragons, Fury in
+  rakdos-muscle-scam-exe, Pyrokinesis in vivi-ornitier-cedh) are not among
+  those 12, so no pinned head can see the extra decision events. Measured
+  directly, not assumed.
+- **`TestConstructedDefaultIsByteIdentical`: UNMOVED** (the default pair
+  avengers-assemble:death-n-taxes has no carrier).
+- **Ratchet (`knownUnsupported` / `knownUnsupportedParams`): untouched.** No
+  table entry is implicated; the corpus measurement in the brief (16 DB-form
+  files) held. No Known-approximations row names `DividedAsYouChoose` for
+  `DealDamage` (grepped `AGENTS.md` and `internal/testutil/agentsdoc_test.go`),
+  so there was nothing to delete and `knownApproximationRows` is unchanged.
+
+## Deviations from the brief
+
+- The brief said to extend/update the existing Fury test. Because a shared file
+  append is a merge-conflict magnet (dispatch: "New tests go in a new file"), the
+  old `TestFuryDividesDamageAmongTargets` was DELETED from
+  `rules/rakdos_muscle_deck_test.go` and a same-named replacement (plus two
+  siblings) lives in the new `rules/fury_damage_split_test.go`. The focused gate
+  command is unchanged.
+- `rules/replacement_updated_test.go` (a test helper only) was changed. This is
+  required to keep pre-existing tests green: the new ask is an event the old
+  drains did not know. The arm reproduces the old round-robin board exactly, so
+  no existing assertion changed meaning.
+
+## Open concerns
+
+- **Bot answer equivalence.** For a `Min == Max == total`, `Repeatable` ask,
+  `botpolicy`'s existing repair fills by cycling the ungrouped options in order,
+  i.e. exactly the old round-robin split. So bot games' damage outcomes are
+  unchanged; bot-driven games do gain the extra decision/`DecisionMade` events,
+  which is why `TestHeads` was measured rather than assumed. No live gate moved.
+- **Large totals.** A card whose total is large (e.g. `Comet Storm` X=10) now
+  asks for 10 picks rather than one allocation widget. Functional and
+  deterministic, but the wire shape is a multiset of per-unit picks. A richer
+  per-target-amount transport would need a new `Intent` field; that was out of
+  scope and is not required for correctness.
+
+## Issues
+
+- **PutCounter / PreventDamage `DividedAsYouChoose$` allocation is untouched**
+  (explicitly out of scope per the brief). `effects/counters.go` has the
+  `Choices$`-based distribute shape (`putCounterPickDistribute`, `vow1`) and
+  `effects/prevent_damage.go:146` still documents a round-robin stand-in over
+  the named total. These are separate primitives and separate tickets.
+  Corpus prevalence of the broad `DealDamage.*DividedAsYouChoose$` pattern is 73
+  carrier files (`/usr/bin/grep -rlE 'DealDamage.*DividedAsYouChoose\$'
+  .cards/cardsfolder | wc -l` → 73); the PutCounter/PreventDamage families are a
+  comparable further set.
+- No CR-lane test is added here. The existing conformance lane does not cover
+  divided-damage allocation; CR 601.2d / CR 608.2b ("division is announced as
+  part of casting and each target receives at least 1 if the total allows") would
+  be the natural citation for a future lane test, but the brief did not ask for
+  it.
+
+# Report — agent-20260922T193437Z-a964eea4
+
+**Ticket:** finish the `EffectOwner$` identity half of the generic `Effect`
+`Triggers$` registration, add `OneOff$` one-shot semantics, and pin the landed
+generic registration.
+
+**Status:** DONE. Commit `648ed4eb`.
+
+## What changed and why (per file)
+
+### `effects/context.go`
+- New exported `EffectOwnerPlayers(h Host, c *Ctx, raw string) ([]state.PlayerID, bool)`
+  — the ONE home for the `EffectOwner$` selector grammar used by both the
+  generic `effEffect` path and the pregame path. `""`/`You` → the resolving
+  controller; `Opponent`/`Other` → every other surviving seat; every other
+  spelling is resolved through the shared `Defined$` referent grammar
+  (`knownDefinedTargets` → `definedSpec`) and mapped to seats under Forge's
+  `getDefinedPlayers` rule (so `TriggeredTarget`, `TriggeredDefendingPlayer`,
+  `Targeted`, `Player.IsRemembered` work). `TargetedOwner` — which the brief
+  believed `definedSpec` already implemented, but which it does **not** (see
+  "Brief premises that did not hold") — is handled here from `ownersOf(g, c.Targets)`
+  rather than by widening `definedSpec`, so unrelated cards that carry
+  `Defined$ TargetedOwner` (Chaos Warp, Lodestone Bauble) are untouched.
+  The bool distinguishes "unmodelled spelling" from "named nobody"; the caller
+  fails closed on both.
+
+### `effects/misc.go` (`effEffect`, the `Triggers$` loop)
+- The owner is resolved **lazily** (`resolveOwners` closure) on the first arm
+  that needs it. An `EffectOwner$` that cannot resolve emits a loud
+  `"unresolvable EffectOwner$ <sel> (Triggers$ not registered)"` Note and
+  registers nothing — it never silently defaults to the source controller.
+- The three generic arms (`SpellCast`/`ChangesZone`, `Phase`, `default`)
+  now emit one `DelayedRegister` **per owner** instead of one with
+  `Player: c.Controller`. The firing-time matcher already prefers
+  `dt.Controller` (`rules/trigger_delayed.go:297`), so matching follows for
+  free.
+- `OneOff$ True` bodies on the two event modes the delayed machinery can
+  consume without minting a stack object (`SpellCast`, `ChangesZone`) drop the
+  `|EF` marker (`efMarker`), so the registration is one-shot: `DelayedPush`
+  removes a non-`EffectRepeat` registration on its first firing. Other modes
+  keep the recurring form (their non-repeat dispatch is not wired; forcing
+  one-shot would make them inert, not one-shot).
+- The `BecomeMonarch` arm is **deliberately left with `Player: c.Controller`**
+  (deviation from the brief — see below).
+
+### `rules/opening_hand.go`
+- `openingEffectOwners` now delegates to `effects.EffectOwnerPlayers`, so the
+  pregame and generic paths cannot disagree about the owner set.
+- New `openingEffectAlreadyRegistered(card, owner, mode, exec)` and a check
+  before each pregame `DelayedRegister`: the pregame pass skips a body the
+  generic path already minted for the same source/owner/Execute. This is the
+  **OneOff home I chose**: make the pregame path not double-register. When the
+  generic path withheld the body (e.g. the lifetime guard blocked a
+  longer-lived Effect — Chancellor of the Annex's `Duration$ Permanent`), the
+  check returns false and the pregame pass registers it, so the opening-hand
+  case keeps working.
+
+### `rules/effect_trigger_owner_test.go` (existing test adapted)
+`TestEffectTriggerMatchesRegistrationOwner` pre-resolved `EffectOwner$ Opponent`
+and passed `ctx.Controller = owner`; now that `effEffect` resolves the selector
+itself, that double-applied it. The setup now enters resolution as the source's
+controller (the behavior moved from the caller into `effEffect`); assertions are
+unchanged and still prove the false/true firing halves.
+
+### `rules/effect_trigger_owner_generic_test.go` (new — all new tests live here)
+- `TestEffectTriggerOwnerTriggeredTarget` — Valiant Batrider's shape
+  (`EffectOwner$ TriggeredTarget`, `TriggerContext.TriggerTarget` = seat 1):
+  registration owned by seat 1, seat 0's damage does not fire, seat 1's does.
+- `TestEffectTriggerOwnerTargetedOwner` — an object whose **owner differs from
+  its controller** (owner 1, controller 0) resolves to seat 1.
+- `TestEffectTriggerOwnerTargetedPlayer` — `EffectOwner$ Targeted` on a player.
+- `TestEffectTriggerOwnerUnresolvableFailsClosed` — an unmodelled selector
+  registers nothing AND the loud Note is present.
+- `TestEffectOneOffDoesNotDoubleFireFromOpening` — an opening-hand `OneOff$ True`
+  SpellCast Effect registers exactly ONCE, one-shot; the first cast fires it
+  once and consumes it; a second cast does not re-fire.
+- `TestEffectGenericRegistrationHoldsOnCorpus` — real corpus: Bonus Round's
+  `A:SP$ Effect | Triggers$ TrigSpellCast` arms a recurring `SpellCast`
+  registration.
+
+## Deviation from the brief (with reasons)
+
+**1. The `BecomeMonarch` arm is NOT owned by `EffectOwner$`.**
+
+The brief says "in every registering arm". That is wrong for this arm. Its
+registration `Player` is the **monarch relation's anchor**: `rules/trigger_delayed.go`
+reads `ValidPlayer$ Player.OpponentOf Remembered` against `dt.Controller`. For
+Palace Jailer the oracle is "until an opponent **of the Jailer's controller**
+becomes the monarch", and the engine deliberately (and reviewed-ly) anchors on
+the source's controller. Palace Jailer carries `EffectOwner$ TargetedOwner`,
+but resolving it here would move the anchor to the exiled creature's owner and
+return the creature when the Jailer's **own** controller takes the crown — the
+opposite of the card text. Three existing tests pin this:
+`TestPalaceJailerReturnsToThirdSeatOpponentMonarch`,
+`TestPalaceJailerStaysExiledWhenJailerControllerTakesCrown` (the negative
+control) and `TestPalaceJailerComeBackRegistersAndFiresOnOpponentMonarch`. My
+first attempt did fan the arm out and those three tests failed; I reverted that
+arm. `TargetedOwner` is still a supported selector for the generic event/phase
+arms (proved by `TestEffectTriggerOwnerTargetedOwner`). The reason is recorded
+in a code comment at the arm.
+
+**2. `TargetedOwner` is handled inside `EffectOwnerPlayers`, not in `definedSpec`.**
+
+The brief asserted `definedSpec` already implements `TargetedOwner`. It does
+not. Adding it there would change 18 unrelated `Defined$ TargetedOwner` corpus
+lines, including two repo-deck cards (Chaos Warp, Lodestone Bauble) — an
+off-brief behavior change. Since the brief only asks for `EffectOwner$` support,
+I mapped the one owner-suffix spelling inside the EffectOwner helper and left
+`definedSpec` alone. (The general `Defined$ TargetedOwner` gap is filed under
+`## Issues`.)
+
+## Brief premises that did not hold (measured)
+
+1. **`TargetedOwner` was not implemented.** `grep -n 'case "TargetedOwner"'
+   effects/context.go` returned nothing before this change; the only readers of
+   `EffectOwner$` were `rules/opening_hand.go`. The brief's "`TargetedOwner`
+   family already implements" is false.
+2. **The carrier ↔ deck intersection is NOT empty.** The brief said it was
+   empty ("`TestConstructedDefaultIsByteIdentical` should NOT move"). Measured:
+   5 carrier cards are in the deck universe —
+   `Alchemist's Gambit`, `Hunter's Insight`, `Love on the Battlefield`,
+   **`Palace Jailer`**, `Ugin, the Ineffable`. Palace Jailer is in
+   `death-n-taxes`, which is the **first Legacy deck** the chain heads seat
+   (`internal/testutil/decks.go` `legacyDeckNames`). This is exactly why I kept
+   the `BecomeMonarch` arm byte-identical: changing it would have moved the
+   chain heads through a deck card the brief believed was absent.
+   (The other four are in non-Legacy decks and are unaffected anyway: the two
+   `DB$ Effect` carriers without `EffectOwner$` keep `c.Controller`; `Love on
+   the Battlefield` (`UntilEndOfCombat`) and `Ugin` (`ForgetOnMoved$`) are
+   blocked by the guard the sibling ticket owns.)
+3. **Deck-name count is 1022, not 1042** (measured
+   `grep -hoE '"name": *"[^"]+"' internal/testutil/decks/*.json | sort -u`).
+4. **"All six EffectOwner$ carriers are blocked by the lifetime guard"**
+   glosses over Palace Jailer: its `BecomeMonarch` body is **exempt** from the
+   guard, so it registers today. The six-selector census (6 lines) otherwise
+   held.
+
+## Head / ratchet / botbench movement
+
+None observed, and none expected:
+- `TestConstructedDefaultIsByteIdentical` — **PASS** (unchanged).
+- No Legacy-deck card's registration changed: the only Legacy carrier is
+  Palace Jailer, whose arm is unchanged; the remaining four are in non-Legacy
+  decks and unchanged as argued above. No Legacy `OneOff$ True`
+  SpellCast/ChangesZone carrier exists (measured).
+- The `knownUnsupported` / `knownUnsupportedParams` ratchets cannot move: no
+  new primitive/param is registered, only runtime owner/one-shot behavior.
+
+`TestHeads` is a daemon gate (not named by the brief) and was not run; the
+analysis above is why no seat-count golden should move.
+
+## Known-approximations row
+
+The `Effect` row at `AGENTS.md:217` is compound (it also covers
+`StaticAbilities$` modes, the exotic `Duration$` grammar, and the other
+Effect-delivered grant keywords). **This ticket does not close it; the row is
+left as-is and `knownApproximationRows` is unchanged (9).** The `EffectOwner$`
+selectors supported vs. still-failing-closed and the one-shot semantics are
+reported here, not written into the table.
+
+## Gates (real output)
+
+All run from the worktree root with `.cards` present as a symlink to the real
+corpus (verified: `.cards -> /home/sadams/projects/gorge/.cards`).
+
+```
+$ go build ./...
+BUILD_OK
+
+$ go test -run 'TestEffectTriggerMatchesRegistrationOwner|TestEffectTriggerOwner|TestEffectTriggerExpires|TestEffectEventModes|TestEffectTriggerBodySelfExile' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.050s
+
+$ go test -run 'TestEffectTriggerMatchesRegistrationOwner|TestEffectTriggerOwner|TestEffectTriggerExpires|TestEffectEventModes|TestEffectTriggerBodySelfExile|TestEffectTriggerExpiryAndUnsupportedLifetime|TestChancellor|TestOpeningEffect|TestPalaceJailer|TestEffectOneOff' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.607s
+
+$ go test -run 'TestEffectTriggerOwner|TestEffectOneOff|TestEffectGenericRegistration|TestPalaceJailer|TestKnightsOfTheBlackRose|TestCustodiLich|Monarch|TestEffectTriggerMatchesRegistrationOwner|TestEffectTriggerExpires|TestEffectEventModes|TestEffectTriggerBodySelfExile|TestEffectTriggerExpiryAndUnsupportedLifetime|TestChancellor|TestOpeningEffect' ./rules/ > .ds4/scratch/all3.log 2>&1; tail
+ok  	github.com/adams-shaun/gorge/rules	0.531s
+
+$ go test ./effects/
+ok  	github.com/adams-shaun/gorge/effects	16.783s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.451s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.878s
+
+$ gofmt -l effects/misc.go effects/context.go rules/opening_hand.go rules/effect_trigger_owner_generic_test.go rules/effect_trigger_owner_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+```
+
+## Fails without the fix
+
+I copied the three changed non-test files to `.ds4/scratch/`, reverted the four
+behavioral hunks (owner selection → source controller; `TargetedOwner`
+resolution removed; `|EF` always; pregame dedupe always false), ran the new
+tests, then restored the files byte-identically (`cmp` clean on all three).
+
+```
+$ go test -run 'TestEffectTriggerOwner|TestEffectOneOffDoesNotDoubleFireFromOpening|TestEffectGenericRegistrationHoldsOnCorpus' ./rules/
+--- FAIL: TestEffectTriggerOwnerTriggeredTarget (0.00s)
+    effect_trigger_owner_generic_test.go:45: precondition: expected a recurring Effect registration owned by seat 1: [{ID:0 Phase:main1 Source:81 Controller:0 Execute:Pain ... EventMode:DamageDone Trigger:Hook EffectRepeat:true ...}]
+--- FAIL: TestEffectTriggerOwnerTargetedOwner (0.00s)
+    effect_trigger_owner_generic_test.go:79: precondition: TargetedOwner must resolve to seat 1: [] (ok=false)
+--- FAIL: TestEffectTriggerOwnerTargetedPlayer (0.00s)
+    effect_trigger_owner_generic_test.go:103: EffectOwner$ Targeted (player) registration = [{... Controller:0 ...}], want controller 1
+--- FAIL: TestEffectTriggerOwnerUnresolvableFailsClosed (0.00s)
+    effect_trigger_owner_generic_test.go:121: unresolvable EffectOwner$ must register nothing, got [{... Controller:0 ...}]
+--- FAIL: TestEffectOneOffDoesNotDoubleFireFromOpening (0.00s)
+    effect_trigger_owner_generic_test.go:145: opening OneOff$ effect registered 2 delayed triggers, want exactly 1: [{... EffectRepeat:true ...} {... EffectRepeat:false ...}]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.438s
+```
+
+Restore verified:
+
+```
+$ cmp effects/misc.go .ds4/scratch/misc.go.fixed2 && echo misc OK
+misc OK
+$ cmp effects/context.go .ds4/scratch/context.go.fixed2 && echo context OK
+context OK
+$ cmp rules/opening_hand.go .ds4/scratch/opening_hand.go.fixed2 && echo opening OK
+opening OK
+```
+
+## Landed generic registration — already pinned (cited)
+
+The landed generic registration for matcher-backed modes is pinned by
+`rules/effect_event_modes_test.go` (`TestEffectDamageDoneTriggerRepeatsWithinTurn`,
+`TestEffectSpellCastTriggerRepeatsWithinTurn`,
+`TestEffectChangesZoneTriggerRepeatsWithinTurn` — registration with
+`EffectRepeat` plus repeat-within-turn firing) and by
+`rules/effect_frame_trigger_test.go` (the one-shot self-exile frame). I did not
+duplicate them; instead I added `TestEffectGenericRegistrationHoldsOnCorpus`,
+which pins the **real corpus** carrier the report named (Bonus Round:
+`A:SP$ Effect | Triggers$ TrigSpellCast`, `Mode$ SpellCast`, no `Duration`)
+registering a recurring `SpellCast` Effect trigger.
+
+## `EffectOwner$` selectors: supported vs failing closed
+
+- **Supported (generic event/phase arms):** `""`/`You`, `Opponent`/`Other`,
+  `TriggeredTarget`, `TriggeredDefendingPlayer`, `Targeted`,
+  `Player.IsRemembered`, `TargetedOwner`.
+- **Also resolve through the shared grammar** (not the six named, but no longer
+  rejected): `TriggeredPlayer`, `TriggeredActivator`,
+  `TriggeredSourceController`, `Remembered`, `RememberedController`,
+  `RememberedOwner`, `CardOwner`, `ImprintedOwner`, … — whatever
+  `knownDefinedTargets` recognises.
+- **Fail closed loudly (register nothing + Note):** `Player.Opponent`,
+  `RememberedOwner.Opponent` and any other spelling
+  `knownDefinedTargets` does not recognise.
+- The `BecomeMonarch` arm intentionally does not use the owner at all.
+
+## Issues (found, not fixed)
+
+1. **`Defined$ TargetedOwner` is not implemented in `definedSpec`** (18 raw
+   corpus lines, e.g. `vanish_from_sight`, `oblation`, `blink`, and the
+   `AlternativeDecider$ TargetedOwner` family). Today those fall through
+   `Defined`'s source/chosen-target fallback to the wrong referent (the source).
+   Reproduce: `/usr/bin/grep -rlE 'TargetedOwner' .cards/cardsfolder | wc -l`
+   → 58 files. Two repo-deck cards carry it (`Chaos Warp`,
+   `Lodestone Bauble`). This is a separate, real bug and should be its own
+   ticket (add a `definedSpec` case returning `ownersOf(g, c.Targets)` and pin
+   each consumer). It deserves a CR-lane test citing CR 108.3 (owner) and
+   CR 701.x/61.x as applicable; I did not write it because it is outside this
+   brief.
+2. **`OneOff$ True` Effect trigger bodies on modes other than
+   `SpellCast`/`ChangesZone` still register recurring** (`|EF`): `AbilityCast`,
+   `LandPlayed`, `SpellAbilityCast`, `Untaps` (measured `Mode$` census over the
+   48 `OneOff$ True` lines). Their non-repeat dispatch is not wired in
+   `rules/trigger_delayed.go`, so forcing one-shot would make them inert.
+   A follow-up should wire the non-repeat path for those modes and make every
+   `OneOff$ True` body one-shot.
+3. **Effect trigger modes with no registered matcher remain a printed-trigger
+   gap** (the brief's own list: `PlaneswalkedTo`, `Blocks`,
+   `AttackerBlockedByCreature`, `AttackerBlocked`, `Abandoned`,
+   `ChangesController`, `VisitAttraction`, `LosesGame`, `TurnBegin`,
+   `PlaneswalkedFrom`, `Shuffled`, `DiscardedAll`, `SacrificedOnce`). Each new
+   matcher must join `rules/trigmatch_registry_test.go`'s `addedAfterTheSplit`.
+   Not touched here.
+
+## Commit
+
+```
+648ed4eb feat(effects): resolve EffectOwner$ and OneOff$ for the generic Effect Triggers$ path
+```
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — agent-20260923T065617Z-9b7a6efa: CR 704.5k world-rule SBA
+
+## Outcome
+
+`STATUS=DONE`. The world rule (CR 704.5k) is implemented, sharing the legend
+rule's (CR 704.5j) one parked-batch controller-choice channel. Six new tests
+in `rules/world_rule_test.go` cover it; every one fails with the non-test fix
+reverted. All brief gates pass.
+
+Commit: `26f2e09d0fdc25ba9a5fe368364dc2be20bf7d56` on branch
+`wt/agent-20260923T065617Z-9b7a6efa` (base `374a568b`).
+
+Workspace facts: `.cards` symlink was ALREADY present in this worktree
+(`ls -la .cards` → `… -> /home/sadams/projects/gorge/.cards`), so the
+corpus-backed tests ran rather than skipped. `.ds4/` contents were present.
+
+## What changed and why (per file)
+
+- **`cards/face.go`** — added `func (f *Face) IsWorld() bool { return
+  f.hasType("World") }` beside `IsLegendary()`. `TypeWorld` and
+  `typeMaskFor("World")` already existed; only the accessor was missing.
+
+- **`rules/sba.go`** — the bulk.
+  - Renamed `legendGroup` → `sbaGroup` (it now describes a set for either
+    rule) and gave `legendBatch` a `rule sbaRule` field (`sbaLegend` /
+    `sbaWorld`). The rule derives the replay-visible strings: `keepCounter()`
+    (`"legend_keep"` / `"world_keep"`) and `departureText()` (`"legend rule"` /
+    `"world rule"`).
+  - `parkLegendChoice` → `parkSBAChoice(rule, group, dead)`,
+    `askLegendChoice` → `askSBAChoice`, `legendAnswer` → `sbaAnswer`,
+    `applyLegendBatch` → `applySBABatch`. ONE park/ask/CR 800.4a-decline/
+    settle path for both rules; the batch carries which rule parked it. The
+    ask prompt is intentionally rule-neutral (it names the duplicate's own
+    name, which is what the seat chooses between), so legend asks are
+    byte-identical to before.
+  - `legendGroups()` / `worldGroups()` are thin wrappers over the new
+    `duplicateGroups(rule)` — the ONE duplicate-set scan (per controller,
+    same printed name, ≥2 members, battlefield scan order, deterministic;
+    membership maps never iterated).
+    - The legend half keeps its printed-`IsLegendary()` pre-filter and its
+      `IgnoreLegendRule` exemption, unchanged.
+    - The world half reads the DERIVED type list alone. There is no
+      `IgnoreWorldRule` static in the corpus (measured:
+      `/usr/bin/grep -rn IgnoreWorldRule .cards/cardsfolder` → nothing), so
+      none is collected.
+  - `sbaSupertypeUnderLayers(e, id, rule)` is the shared derived-type read;
+    `legendaryUnderLayers` / `worldUnderLayers` are pinned-rule wrappers.
+  - `destroyLethalDamage`: after the legend park, the world set is parked on
+    the same atomic channel (`parkSBAChoice(sbaWorld, groups[0], dead)`);
+    when a decision is outstanding it defers (`e.sbaUnquiet = true`) rather
+    than applying under the ask, exactly as the legend half does. A pass that
+    gathers both parks the legend set first; the legend answer's Submit tail
+    re-scans and parks the world set.
+
+- **`rules/layers.go`** — extracted `anyLayer4TypeEffect()` out of
+  `typeCharacteristics`' existing fast-path scan (behaviour identical) so the
+  duplicate scan can tell when the derived list may differ from the printed
+  one. With no layer-4 type effect active, `typeCharacteristics` returns the
+  printed list, so a printed-World pre-filter is exact; only when a layer-4
+  effect is live does the world scan read every permanent derived-side.
+
+- **`rules/turn.go`, `rules/engine.go`, `rules/clone.go`,
+  `rules/sbaquiet.go`** — generalized the flow-marker dispatch
+  (`e.sbaAnswer`), the `Engine.legendBatch` comment, the Clone deep-copy
+  comment and the quiet-skip comments to say "duplicate-permanent" rather
+  than "legend". `legendBatch`'s field name is kept (brief: one home; clone
+  and sbaquiet already key on it).
+
+- **`rules/legend_sba_combat_test.go`** — one-line rename
+  `e.askLegendChoice()` → `e.askSBAChoice()` (the departed-controller test
+  calls the ask directly). No assertion changed.
+
+- **`rules/world_rule_test.go`** (new) — the six tests.
+
+## Deviations from the brief (with reasons)
+
+1. **The brief's layer-strip test premise is false.** The brief says a World
+   supertype can be "STRIPPED by a layer-4 static (the `RemoveCardTypes$` /
+   `AddTypes$` shape `fortifySBALandStripper` uses)". It cannot:
+   `RemoveCardTypes$` keeps supertypes (`rules/layers.go` around the
+   `ce.RemoveCardTypes` block: it keeps `isSupertype(t)`), and `World` is in
+   `supertypeWords` (`rules/layers.go`). The only supertype-specific stripper
+   is `NonLegendary$`/`RemoveLegendary`, which drops Legendary only. So no
+   grammar in this build removes World.
+   I re-measured this rather than assuming: `supertypeWords =
+   {"Basic","Legendary","Ongoing","Snow","World"}`, `RemoveCardTypes` keeps
+   exactly those, and `RemoveLegendary` drops only `"Legendary"`.
+   Consequence: the layer test is written in the ADD direction instead —
+   two same-named non-World enchantments made World by `AddTypes$ World`. The
+   test asserts the printed faces are NOT World while the derived lists ARE,
+   so a printed-face-only scan cannot pass. **To keep both directions
+   correct** (and because the brief's core demand is "read the derived list,
+   not the printed face"), the world scan is derived-authoritative: with a
+   layer-4 effect live it never trusts the printed word, so a future
+   World-stripper would work too. The legend scan is untouched.
+
+2. **The brief suggested a pass-loop `worldRuleStep` in `checkStateBased`.**
+   I instead put the world park inside `destroyLethalDamage`, immediately
+   after the legend park. This is the cleaner integration: it shares the
+   same-pass `dead` slice and the same atomic park/ask, which is exactly what
+   the brief said to carry ("carrying the same-pass lethal `dead` the same
+   way"). A pass that gathers both rules parks the legend set first and the
+   world set on the next scan, which the orthogonality test pins.
+
+Nothing else deviates. No `events.Kind`/`events.Event` change; `"world_keep"`
+and `"world rule"` are additive string values on existing kinds. No
+`IgnoreWorldRule` static. No `web/` change. No AGENTS.md "Known
+approximations" edit (there was no row for the world rule; nothing to
+delete). No row added or grown.
+
+## Gates — exact commands and real output
+
+Targeted tests (brief's Done-means pattern, widened to cover the new tests),
+with the corpus present:
+
+```
+$ go test -run 'TestWorldRule|TestWorldAndLegend|TestLegend' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.467s
+```
+
+`internal/archtest` (no allowlist edits):
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	2.678s
+```
+
+Byte-identical botbench split (passes unchanged, as expected — no repo deck
+carries a World card):
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.635s
+```
+
+Format + generated types:
+
+```
+$ gofmt -l cards/face.go rules/sba.go rules/layers.go rules/turn.go rules/engine.go rules/clone.go rules/sbaquiet.go rules/world_rule_test.go rules/legend_sba_combat_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+```
+
+Also ran (targeted, per budget): `go test -run
+'TestWorldRule|TestWorldAndLegend|TestLegend|TestIgnoreLegendRule|TestSBA|TestFortification'
+./rules/` → `ok … 0.491s`. Daemon gates (TestHeads, `make sim`, acceptance
+ratchet, `go vet ./...`, `make report`, CR conformance) deliberately not run
+in the seat.
+
+## Fails without the fix
+
+Reverted the non-test change (disabled the world block in
+`destroyLethalDamage`: `if groups := e.worldGroups(); false && len(groups) > 0`),
+ran the new tests, restored `rules/sba.go` byte-identically (`cmp` clean):
+
+```
+$ go test -run 'TestWorldRule|TestWorldAndLegend' ./rules/
+--- FAIL: TestWorldRuleAsksControllerWhichDuplicateToKeep (0.00s)
+    world_rule_test.go:110: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleBotAnswerKeepsBattlefieldOrderFirst (0.00s)
+    world_rule_test.go:144: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleIsPerController (0.00s)
+    world_rule_test.go:199: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleSinglePermanentPosesNothing (0.01s)
+    world_rule_test.go:247: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldRuleReadsDerivedSupertype (0.00s)
+    world_rule_test.go:284: no decision pending: the world rule did not ask its controller
+--- FAIL: TestWorldAndLegendRulesAreOrthogonal (0.00s)
+    world_rule_test.go:326: pending decision priority Min 1 Max 1, want a KChoose Min 1 Max 1
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.026s
+FAIL
+```
+
+All six fail. The two "nothing happens" tests (`…IsPerController`,
+`…SinglePermanentPosesNothing`) carry positive controls inside the same test
+(seat 0 IS asked when it controls a duplicate; a second copy makes the lone
+permanent's ask arrive), so they fail too — they cannot pass with the whole
+rule unregistered. Restored file verified with `cmp rules/sba.go
+.ds4/scratch/sba.go.bak` → identical, and every other changed file `cmp`-clean
+against its backup.
+
+Each test additionally asserts its own precondition: objects on
+`ZBattlefield`, `IsWorld()` on the printed face, names equal, controllers
+distinct where scoping is claimed, and (layer test) printed faces NOT World
+while derived lists ARE World.
+
+## Test list (new tests added)
+
+`rules/world_rule_test.go`:
+1. `TestWorldRuleAsksControllerWhichDuplicateToKeep`
+2. `TestWorldRuleBotAnswerKeepsBattlefieldOrderFirst`
+3. `TestWorldRuleIsPerController`
+4. `TestWorldRuleSinglePermanentPosesNothing`
+5. `TestWorldRuleReadsDerivedSupertype`
+6. `TestWorldAndLegendRulesAreOrthogonal`
+
+## Head / ratchet movement
+
+None expected and none observed through the gates I ran. No repo deck carries
+a World card (`/usr/bin/grep -rlE "Types:.*World" .cards/cardsfolder | wc -l`
+measured **26**, and no hit across `internal/testutil/decks/*.json`), so
+chain heads and the acceptance/param ratchets should not move; the daemon
+runs TestHeads at the merge gate. `cmd/botbench`'s pinned split is unchanged.
+If TestHeads moves, it is not attributable to this change and should be
+bisected (none of the 26 World cards is in a repo deck, measured now).
+
+## Issues (found, not fixed)
+
+1. **No layer-4 grammar can remove the World supertype.** The brief assumed
+   `RemoveCardTypes$` strips it; it keeps all supertypes, and there is no
+   `RemoveWorld`-style parameter. Impact: a hypothetical layer-4 "your World
+   permanents aren't world permanents" effect would be read by
+   `typeCharacteristics` (it would drop World from the derived list) and the
+   world scan would then correctly not group them — so the engine is correct;
+   the gap is purely that the test cannot exercise the strip direction with
+   current card text. No corpus carrier exists. If a future Forge/gorge
+   grammar adds supertype removal, `TestWorldRuleReadsDerivedSupertype` can
+   add a strip-direction case with no engine change. Not ledgible to AGENTS.md
+   (frozen, and it is not debt).
+
+2. **`Face.IsWorld()` has no non-test caller in the shipped implementation.**
+   `worldPermanents` (rules/sba.go) calls only `worldUnderLayers`, which
+   compares the derived-type string `"World"`; it must NOT pre-filter on the
+   printed face, because a printed non-World enchantment a layer-4
+   `AddTypes$ World` grants the supertype to is a World permanent for
+   CR 704.5k (`TestWorldRuleReadsDerivedSupertype`). `/usr/bin/grep -rn IsWorld
+   --include=*.go` therefore finds the definition and the test precondition in
+   `world_rule_test.go`, and nothing else. The accessor is harmless and the
+   brief asked for it, but there is no non-test caller. Not a defect; noted
+   for clarity.
+
+3. **`Config.Commanders` de-duplicates same-named commanders.** While
+   building the per-controller test I found that
+   `commanderGame(t, seed, FormatConstructed, 40, [][]string{{src, src}, …})`
+   leaves only ONE entry in seat 0's command zone for two identical card
+   sources (`index out of range [1] with length 1`). Not part of this ticket
+   and not a rules bug (a Commander deck cannot legally run two same-named
+   commanders), but it is a fixture trap: a future test that fields two
+   same-named permanents through `commanderGame` will hit it. I worked around
+   it with `newFixtureDeckWithOpponentCard`. Worth a note in the helper's
+   doc if anyone else trips on it; not filed as a separate ticket because it
+   is a test-helper ergonomics issue, not an engine behaviour, and the workaround
+   is one line.
+
+No CR-lane test is warranted by this ticket (it implements, and closes, the
+CR 704.5k gap).
+
+## Open concerns
+
+None blocking. The one thing a reviewer should sanity-check is the deliberate
+derived-authoritative world scan (deviation 1): it is strictly more correct
+than the legend half's printed pre-filter, and it does not touch the legend
+path.
+
+# Report — game-long damage-by-source provenance (The Fallen, Diseased Vermin)
+
+Ticket: `agent-20260923T114033Z-a57ee463`
+Branch: `wt/agent-20260923T114033Z-a57ee463`
+HEAD: `102a93451588e3b38c228864349ceb304e32aaad`
+Base: `29ca6faa` (main at dispatch) — ancestry `87901df9` (merge base), then
+  `c2f63152` (implementation) and `102a9345` (review-gate head re-pin).
+
+## Round status
+
+**The `findings-t1.md` note said round t1 was lost before it reported.** I
+checked the worktree: `git status` was already **clean**, no uncommitted work
+from the lost seat existed, and the implementation was already complete and
+committed as `c2f63152`. Review round r1 then ran and returned **VERDICT:
+APPROVE** (`.ds4/verdict-r1.md`), committing the head re-pin `102a9345`.
+
+So my round did what the findings note asked: kept what is sound (everything —
+it was committed) and verified/finished the brief. I re-ran every gate the
+brief names and independently re-proved the bite of the new tests with targeted
+revert probes (below). No code changes were needed; the tree at `102a9345` is
+the finished brief.
+
+## What the implementation is (per file, as committed in `c2f63152`)
+
+- **`events/event.go`** — appended `DamageProvenance` after `CloneStatic`;
+  `NumKinds = int(DamageProvenance) + 1`; `"damage_provenance"` added to
+  `kindNames` (array length is `NumKinds`, so it is covered by construction).
+- **`events/apply.go`** — new `case DamageProvenance`: appends the source to
+  the recipient's game-long record (dedup, never cleared). `Obj` = damage
+  source, `IDs[0]` = recipient. Encoding: a plain `ObjID` for an object
+  recipient, `state.PlayerRef`-encoded for a seat (keeps seat 0 distinct from
+  "no recipient"; `PlayerRef` bit-31 encoding cannot collide with a real object
+  id). Chosen over a `Counter` discriminator because `PlayerRef` is the
+  established `[]ObjID` player-reference precedent (TriggerPush).
+- **`state/game.go` / `state/object.go`** — `Player.DamageTakenByGame []ObjID`
+  and `Object.DamageTakenByGame []ObjID`; deep-copied in `Game.Clone` /
+  `Object.CloneDeep`.
+- **`rules/engine.go`** — one emission choke point in `emit`'s post-fold tail
+  beside the infect/wither conversions: `stored.Kind == Damage && stored.Amount
+  > 0`, source from `e.inFlightDamageSource()`, recipient from the APPLIED
+  `stored` event. `Amount > 0` excludes cleanup negatives; a zero source emits
+  nothing (no false `(0, recipient)` fact). **No emitter file changed.**
+- **`effects/filter.go`** — both object spellings classified
+  (`wasDealtDamageByThisGame`, argument-taking `wasDealtDamageThisGameBy <ref>`)
+  and matched; the player base-qualifier `wasDealtDamageThisGameBy <ref>` and
+  the bare compound clause both read the record through the single shared
+  helper `playerDamageByRefThisGame` -> `damageGameRecordHas`;
+  `contextPredicateBound` refuses the unbound source positively and under `!`.
+- **`effects/damage.go`** — the ValidPlayers fall-through walk binds the sweep's
+  source (`MatchesPlayerSpecFrom(..., c.Source)`); `validPlayersSelectorUnknown`
+  consults the shared bare-clause list, so the census gate and the matcher agree
+  with no parallel vocabulary.
+
+## Gates — real output (this round)
+
+```
+=== effects gate ===
+go test -run 'TestDamageAllValidPlayers|TestContextWordPredicates|TestUnimplementedPredicateFailsClosed' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+
+=== rules census ===
+go test -run 'TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	(cached)
+
+=== rules provenance ===
+go test -run 'TestEmitRecordsGameLongDamageProvenance|TestEmitRecordsObjectDamageProvenance|TestDiseasedVerminAskOffersOnlyPreviouslyDamagedOpponents' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.452s
+
+=== effects provenance ===
+go test -run 'TestDamageAllValidPlayersTheFallenResolves|TestPlayerDamageByRefThisGameFailsClosedOnUnboundRef|TestDamageProvenanceWordsAreClassified' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.422s
+
+=== repro fixture gate ===
+go test -run TestGenerateCommittedFixture ./cmd/repro/
+ok  	github.com/adams-shaun/gorge/cmd/repro	(cached)
+# non-regen gate: SKIP (no REPRO_REGEN_FIXTURE)
+
+=== archtest ===
+go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.287s
+
+=== botbench ===
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+
+=== fixture replay (full package, once) ===
+go test ./cmd/repro/
+ok  	github.com/adams-shaun/gorge/cmd/repro	14.490s
+```
+
+Formatting / types (the Go half of `make lint`):
+
+```
+gofmt -l <changed .go files>   -> (no output)
+go run ./cmd/gentypes -check    -> (no output)
+```
+
+`git status --short` at HEAD -> (empty; tree clean).
+
+## Fails without the fix (independent revert probes this round)
+
+Method: copy the target file to `.ds4/scratch/<name>.orig`, revert ONLY the
+relevant hunk with a Python string replace in the real file, `go build ./...`,
+run the one test, then restore with `cp` and `cmp` against the scratch copy
+(never `git stash` / `git checkout <path>`). Every restore passed `cmp` and
+left `git status` clean.
+
+### Probe 1 — remove the `rules/engine.go` emission block
+
+```
+--- FAIL: TestEmitRecordsGameLongDamageProvenance (0.00s)
+    damage_provenance_test.go:42: want exactly one DamageProvenance event for one landed hit, got 0 ([])
+FAIL	github.com/adams-shaun/gorge/rules	0.003s
+```
+Restored: `cmp rules/engine.go .ds4/scratch/engine.go.orig` OK.
+
+### Probe 2 — disable the bare-word classification in `effects/filter.go`
+
+```
+--- FAIL: TestDamageProvenanceWordsAreClassified (0.00s)
+    damage_provenance_test.go:129: spec "Creature.wasDealtDamageByThisGame" reports unknown predicates [wasDealtDamageByThisGame], want none
+FAIL	github.com/adams-shaun/gorge/effects	0.002s
+```
+Restored: `cmp effects/filter.go .ds4/scratch/filter.go.orig` OK.
+
+### Probe 3 — make the shared player body `playerDamageByRefThisGame` return false
+
+```
+--- FAIL: TestDamageAllValidPlayersTheFallenResolves (0.43s)
+    damage_provenance_test.go:71: the damaged opponent must take The Fallen's 1 damage, life 20 want 19
+--- FAIL: TestPlayerDamageByRefThisGameFailsClosedOnUnboundRef (0.00s)
+    damage_provenance_test.go:103: with the source bound, the damaged opponent must qualify
+FAIL	github.com/adams-shaun/gorge/effects	0.449s
+```
+Restored: `cmp effects/filter.go .ds4/scratch/filter.go.orig` OK.
+
+Each new test asserts its own precondition (The Fallen's script still carries
+the compound; the walker is a planeswalker with loyalty > 0; seat 1's record is
+non-empty after seeding; the compared life values differ), so a vacuous setup
+fails loudly rather than passing silently.
+
+## Goldens / heads (the brief's expected movement)
+
+- **`TestHeads` — all four moved, measured, and now green** after the re-pin
+  the review gate committed in `102a9345`:
+  `2 f107be40dc2792c6`, `4 9b3aab4e0336ba8c`, `6 c4ce39421c473963`,
+  `8 3d1974a1859d9676`. Cause is mechanical: every repo-deck game now carries
+  one extra `DamageProvenance` event per landed point of damage. Attribution
+  proven by reverting only the emission block (restores all four old golden
+  heads exactly) and corroborated by `TestConstructedDefaultIsByteIdentical`
+  staying green (no decision moved). The brief said not to edit
+  `heads_test.go`; the review gate made the bookkeeping re-pin under its
+  2026-09-23 ruling. `go test -run 'TestHeads$' ./rules/` -> ok (1.658s).
+- **Committed feedback fixture `20260915T094418Z-e484f1db` — regenerated**
+  (sanctioned). Verified this round: its `log.json` carries exactly **23**
+  `kind: 93` events = `DamageProvenance` (the log serializes kind as an
+  ordinal, not a name). `go test ./cmd/repro/` -> ok (14.490s, byte-identical
+  replay).
+- **Committed feedback fixture `20260914T120000Z-fb01` — NOT regenerated.**
+  The brief's premise that both would DIVERGE is false: that fixture's captured
+  window deals no damage (0 provenance events needed) and it replays
+  byte-identically. Regenerating it would instead pick up unrelated generator
+  drift (`bot_policy: "bot"`, 24 -> 26 intents); the review gate independently
+  reproduced this. Correct call: kept the committed original.
+- **`TestConstructedDefaultIsByteIdentical` (cmd/botbench) — GREEN**, no re-pin
+  needed: the repo decks carry neither card and provenance emission changes no
+  decision.
+
+## Brief premises checked (counts are claims)
+
+- Corpus prevalence: 2 game-long spellings, 2 cards
+  (`diseased_vermin`, `the_fallen`), both arguments literally `Self` — **held**.
+- The brief's "FALSE premise" correction (Diseased Vermin carries only the
+  ThisGame line, not the ThisTurn sibling) — **held**.
+- "Both committed fixtures will DIVERGE and need regeneration" — **FALSE for
+  fb01**; only e484f1db needed it. Reported, not silently followed.
+- "Expect NO Known-approximations row edit" — **held**; no row added, grown or
+  deleted, `knownApproximationRows` untouched (still 9 at this commit).
+
+## Issues (found, not fixed)
+
+1. **Per-turn by-source siblings remain unknown-word fail-closed** —
+   `wasDealtDamageThisTurnBySource` and `wasDealtCombatDamageThisTurnBySource`.
+   Out of scope per the brief (only the two ThisGame spellings). They need the
+   per-turn twin (cleared at TurnChange) plus LKI, not the game-long record.
+   Measured carriers (4 files): `hidetsugu_consumes_all_vessel_of_the_all_consuming`,
+   `hope_of_ghirapur`, `raphael_tag_team_tough`, `wicked_akuba`. CR 120.3.
+   Natural follow-up ticket.
+
+2. **`cmd/repro/testdata/feedback/20260914T120000Z-fb01` is stale relative to
+   its generator.** `REPRO_REGEN_FIXTURE=1 go test ./cmd/repro -run
+   TestGenerateCommittedFixture` no longer reproduces it (`bot_policy: "bot"`,
+   26 intents vs the committed 24, new head, view churn) — independent of this
+   ticket (the review gate reproduced it with the feature reverted). Invisible
+   today because the non-regen gate SKIPs and the committed fixture still
+   replays. A future legitimate corpus-pin regen will churn the hard-coded
+   expectations in `cmd/repro/repro_test.go` (24 intents, head `6fd99d48...`).
+
+3. **`DamageTakenByGame` is unbounded in a long game** — one `ObjID` per
+   distinct source per recipient, never cleared (game-long by design). Bounded
+   by distinct damage sources in a match; a future snapshot/compact path should
+   be aware.
+
+4. **`host/session_test.go` ring headroom** — the test's channel capacity was
+   raised 64 -> 256 to absorb the denser frame stream (extra provenance events);
+   the review gate verified the production default is already 256 and every
+   assertion is unchanged. If a real damage-heavy deployment is tight, that is
+   a capacity-tuning question outside this ticket.
+
+## Deviations from the brief
+
+- **No regeneration of fb01** (brief premise false; see above) — inherited from
+  `c2f63152`, re-verified this round.
+- **`rules/heads_test.go` was edited (re-pinned)** by the review gate in
+  `102a9345`, not by the implementer; the brief said not to, but the movement
+  was expected and the re-pin carries measured attribution.
+- **`host/session_test.go` and `host/overshoot_tail_test.go`** were touched
+  (un-named by the brief) because the always-emit design the brief mandated
+  moved them; both attributed.
+
+No Known-approximations row added or grown.
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — agent-20260923T042552Z-0936e140
+
+Implement DigUntil withheld rider semantics.
+
+## Summary
+
+`effects/cardflow.go` `effDigUntil` used to parse a withhold list, emit one
+loud Note per parameter, and run only the core reveal-until move. All riders in
+the brief except `DigZone$ PlanarDeck` are now implemented; the withhold list
+and Note emission shrank accordingly.
+
+## Round 2 (this fix round) — the one finding in `findings-t2.md`
+
+`findings-t2.md` carried exactly one MAJOR and no re-verification list:
+
+- **[MAJOR] `.ds4/report-t1.md` replaced the shared report archive (3,587 lines
+  removed) with only this ticket's report.** Confirmed: commit `01c37234`
+  rewrote `.ds4/report-t1.md` from 3,429 lines to 248, dropping 3,384 lines of
+  other tickets' accumulated report history. Every other checked item in that
+  findings file was a break attempt that HELD, and its regression/gate checks
+  passed.
+
+**Fixed** in `b92d89f8`. The shared-report-file preserve convention
+(`6bc24448`, model `472d095d`) is: restore the prior file byte-exact and prepend
+the current ticket's report above a separator. `.ds4/report-t1.md` is now the
+DigUntil report followed by a separator and the prior archive restored
+byte-exact (`tail -n +255` of the new file `cmp`s clean against
+`01c37234^:.ds4/report-t1.md`). Because the dispatch names `.ds4/report-t2.md`
+as the report path, the same DigUntil report is written there with its own
+prior contents preserved byte-exact below a separator. No other file changed
+this round; no code, test or census change.
+
+Gates re-run this round (no source changed, so several report `(cached)`; the
+`-count=1` DigUntil run proves the tests actually execute):
+
+```text
+$ go build ./...
+(clean)
+
+$ go test -count=1 -run 'TestDigUntil' -v ./effects/
+--- PASS: TestDigUntilAmountSVarCountsMatchesToTheTally (0.48s)
+--- PASS: TestDigUntilAmountSVarZeroRevealsNothing (0.00s)
+--- PASS: TestDigUntilAmountSVarUnresolvableStillWithholds (0.00s)
+--- PASS: TestDigUntilShuffleShufflesTheDugLibrary (0.00s)
+--- PASS: TestDigUntilShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan (0.00s)
+--- PASS: TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary (0.00s)
+--- PASS: TestDigUntilFoundLibraryPositionPlacesOrKeepsTheFoundCard (0.00s)
+--- PASS: TestDigUntilImprintFoundFeedsTheExileReader (0.00s)
+--- PASS: TestDigUntilImprintRevealedRecordsEveryRevealedCard (0.00s)
+--- PASS: TestDigUntilNoneFoundBranchSwapsTheRevealedDestination (0.00s)
+--- PASS: TestDigUntilRidersEmitOnceAcrossTheOptionalAsk (0.00s)
+--- PASS: TestDigUntilKindredSummonsAmountSVarCountsChosenTypeCreatures (0.00s)
+--- PASS: TestDigUntilEmptyTheLaboratoryAmountSVarCountsRemembered (0.00s)
+--- PASS: TestDigUntilTunnelVisionNoneFoundShufflesAndKeepsLibrary (0.00s)
+(plus the 5 pre-existing DigUntil tests)
+PASS
+ok  github.com/adams-shaun/gorge/effects  0.497s
+
+$ go test -run 'TestParamCensusScanIsComplete|TestEveryRepoDeckParamsAreRead' ./rules/
+ok  github.com/adams-shaun/gorge/rules  (cached)
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  (cached)
+
+$ gofmt -l effects/cardflow.go effects/diguntil_riders_test.go effects/diguntil_aura_test.go rules/paramcensus_test.go
+(empty)
+$ go run ./cmd/gentypes -check
+(empty)
+```
+
+`.cards` is a symlink to the shared corpus (present), so corpus-backed tests ran
+rather than skipped.
+
+NOTE ON ROUND HISTORY: an earlier t1 run was lost mid-task (per
+`.ds4/findings-t1.md`). It had already implemented the riders and committed them
+as `c749b700` (`feat(effects): implement DigUntil withheld rider semantics`).
+I audited that work, found and fixed one real defect in its tests (below), added
+the three real-carrier tests the brief names but the earlier run omitted, and
+re-ran every gate myself. The report below covers the whole deliverable, not
+just my delta.
+
+## What changed, per file
+
+### `effects/cardflow.go` (committed in `c749b700`, part of this ticket)
+`effDigUntil` (~line 1744 onward):
+
+- **`Amount$ <token>` non-literal** — resolves the token as an SVar name via
+  the new `digUntilAmountSVar` (reads `Ctx.SVars[token]` and runs
+  `EvalCountOK`), the same read `effDig`'s `DigNum$ X` arm uses. `X`, `MassX`,
+  `Y`, `VoteNum` bodies (`Count$xPaid`, `Count$Valid …`, `Remembered$Amount`,
+  `Number$<n>`) all resolve. An absent/unresolvable SVar keeps its loud Note
+  and amount 1 (fail-safe).
+- **`Shuffle$ True`** — after the found move and revealed-rest moves, shuffles
+  the dug player's library (`h.ShuffleLibrary(p, …)` + one Secret
+  `events.Shuffle`), the exact `effShuffle` contract.
+- **`ShuffleCondition$ NoneFound`** — restricts that shuffle to a scan that
+  found nothing; any other value is withheld loudly.
+- **`NoMoveFound$ True`** — skips the found-card move; the card stays in the
+  library (and a `FoundLibraryPosition$ -1` still bottoms it).
+- **`FoundLibraryPosition$`** — `-1` = one library-to-library `MoveZone`
+  (bottom); `0`/absent = top = the card never left, no event. Any other value
+  is withheld loudly.
+- **`ImprintFound$` / `ImprintRevealed$`** — accumulate the found / all-revealed
+  cards across the player walk and emit one `events.Imprint` on the resolving
+  source after the walk, on the Seek `<Text:"seek-found">` list rather than the
+  ordinary `Imprinted` list. This is the brief's sanctioned fallback: the
+  ordinary list's CR 607.2a exile-only reader (`effects/context.go`
+  `imprintPileTargets`) would hide a card in Exile-from-library / on the
+  battlefield, which is exactly what Venture Forth's `Defined$ Imprinted |
+  Origin$ Exile` continuation needs. Both real carriers (Venture Forth, Part in
+  Friendship) verify against the association.
+- **`NoneFoundDestination$` / `NoneFoundLibraryPosition$`** — when the scan
+  found nothing, the revealed pile takes these instead of
+  `RevealedDestination$`/`RevealedLibraryPosition$`.
+- **Still withheld (fail-safe + loud Note):** `DigZone$` (every corpus value is
+  `PlanarDeck`; no planar tier), an unresolvable `Amount$`, and any unmodelled
+  value for a modelled key (`ShuffleCondition$` other than `NoneFound`,
+  `Imprint*` other than `True`, non-`0`/`-1` positions).
+- Helpers added: `digUntilAmountSVar`, `digUntilTrueFlag`.
+
+### `effects/diguntil_aura_test.go` (committed in `c749b700`)
+`TestDigUntilWithholdsUnsupportedParamsAndStillMoves` shrank its want list to
+`{"Amount$ X", "DigZone$ PlanarDeck"}` (the SA carries no `SVar:X`, so
+`Amount$ X` stays withheld; `DigZone$ PlanarDeck` stays withheld), keeping the
+"core move still runs" assertion.
+
+### `rules/paramcensus_test.go` (committed in `c749b700`)
+Dropped the `digUntilWithheldRange` key-gathering-loop exemption and the
+`scanRangeWhitelist` call site. The loops are gone: `ImprintFound`,
+`ImprintRevealed`, `NoneFoundDestination`, `NoneFoundLibraryPosition` are now
+read through `digUntilParamValue`/`digUntilTrueFlag` call sites and attributed
+by the ordinary dynamic-key rule. This is the reclassification the brief asks
+for — no other census edit. `grep -rn digUntilWithheldRange` returns nothing.
+
+### `effects/diguntil_riders_test.go` (new file; `c749b700` + `85810ba1` + `ed321875`)
+14 `TestDigUntil*` tests in the ticket's own file (a new file, per the
+"new tests go in a new file" rule):
+
+| rider | test |
+|---|---|
+| `Amount$` SVar | `…AmountSVarCountsMatchesToTheTally` (real Mass Polymorph), `…AmountSVarZeroRevealsNothing` (real Selvala's Stampede), `…AmountSVarUnresolvableStillWithholds` |
+| `Shuffle$` / `ShuffleCondition$` | `…ShuffleShufflesTheDugLibrary`, `…ShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan` |
+| `NoMoveFound$` / `FoundLibraryPosition$` | `…NoMoveFoundKeepsTheFoundCardInTheLibrary`, `…FoundLibraryPositionPlacesOrKeepsTheFoundCard` |
+| `ImprintFound$` / `ImprintRevealed$` | `…ImprintFoundFeedsTheExileReader` (real Venture Forth), `…ImprintRevealedRecordsEveryRevealedCard` (real Part in Friendship) |
+| `NoneFound*$` | `…NoneFoundBranchSwapsTheRevealedDestination` |
+| re-entry | `…RidersEmitOnceAcrossTheOptionalAsk` |
+| real carriers (added this round) | `…KindredSummonsAmountSVarCountsChosenTypeCreatures`, `…EmptyTheLaboratoryAmountSVarCountsRemembered`, `…TunnelVisionNoneFoundShufflesAndKeepsLibrary` |
+
+**Defect found in the earlier run and fixed (`85810ba1`):** the earlier
+`TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary` used
+`FoundDestination$ Library`, so the found card stayed in the library whether or
+not the rider ran — the test could not fail. Proven: with the rider reverted,
+the original test still passed. Rewritten to `FoundDestination$ Hand` so the
+rider is observable; with the rider reverted it now fails (evidence below).
+`ed321875` removed one redundant post-`t.Fatalf` assertion in the same test.
+
+Brief claim checked: the brief says empty_the_laboratory carries
+`SVar:X:Count$xPaid`. Measured at the pin, `Empty the Laboratory`'s DigUntil
+reads `Amount$ Y` with `SVar:Y:Remembered$Amount` — the `X:Count$xPaid` SVar
+belongs to its Sacrifice sub. I tested the actual carrier (`Y:Remembered$Amount`).
+
+## Fails without the fix
+
+Every new/changed test is proven to fail with its rider reverted. Method:
+copy `effects/cardflow.go` to `.ds4/scratch/`, neuter one rider, run, restore
+with `cp` and verify with `cmp` (never `git checkout`/`stash`).
+
+Batch 1 — `Shuffle$` + `Imprint*$` neutered
+(`go test -count=1 -run 'TestDigUntilShuffle|TestDigUntilImprint|TestDigUntilAmountSVar' ./effects/`, exit 1):
+
+```
+--- FAIL: TestDigUntilAmountSVarZeroRevealsNothing (0.00s)
+    diguntil_riders_test.go:169: Shuffle events = 0, want 1 (the DigUntil ran; Amount$ 0 only empties the scan)
+--- FAIL: TestDigUntilShuffleShufflesTheDugLibrary (0.00s)
+    diguntil_riders_test.go:208: Shuffle events = [], want exactly one Secret Shuffle
+--- FAIL: TestDigUntilShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan (0.00s)
+    diguntil_riders_test.go:238: Shuffle events = 0, want 1 when the scan found nothing (ShuffleCondition$ NoneFound)
+--- FAIL: TestDigUntilImprintFoundFeedsTheExileReader (0.00s)
+    diguntil_riders_test.go:322: found land zone = library, want battlefield via DBToPlay's Defined$ Imprinted reader
+--- FAIL: TestDigUntilImprintRevealedRecordsEveryRevealedCard (0.00s)
+    diguntil_riders_test.go:360: seek-found Imprint events = [], want one association of the revealed [3 4]
+FAIL
+```
+
+Batch 2 — `Amount$` SVar, `NoMoveFound$`, `FoundLibraryPosition$`, `NoneFound*$`
+neutered (exit 1):
+
+```
+--- FAIL: TestDigUntilAmountSVarCountsMatchesToTheTally (0.44s)
+    diguntil_riders_test.go:133: found creature 6 zone = library, want battlefield (Amount$ MassX = 2, not 1)
+--- FAIL: TestDigUntilFoundLibraryPositionPlacesOrKeepsTheFoundCard (0.00s)
+    diguntil_riders_test.go:277: library = [3 4 5 6], want the found Aura 4 at the bottom (FoundLibraryPosition$ -1)
+--- FAIL: TestDigUntilNoneFoundBranchSwapsTheRevealedDestination (0.00s)
+    diguntil_riders_test.go:399: revealed card 3 zone = graveyard, want library (NoneFoundDestination$ Library)
+FAIL
+```
+
+Batch 3 — the three carrier tests added this round, with `Amount$` SVar,
+`Shuffle$` and `NoneFound*$` neutered (exit 1):
+
+```
+--- FAIL: TestDigUntilKindredSummonsAmountSVarCountsChosenTypeCreatures (0.40s)
+    diguntil_riders_test.go:480: found Bear 4 zone = library, want battlefield (Amount$ X = 2, not 1)
+--- FAIL: TestDigUntilEmptyTheLaboratoryAmountSVarCountsRemembered (0.00s)
+    diguntil_riders_test.go:509: found Zombie 4 zone = library, want battlefield (Amount$ Y = 2, not 1)
+--- FAIL: TestDigUntilTunnelVisionNoneFoundShufflesAndKeepsLibrary (0.00s)
+    diguntil_riders_test.go:540: Shuffle events = 0, want 1 (ShuffleCondition$ NoneFound with nothing found)
+FAIL
+```
+
+NoMoveFound fix proof, rider reverted (exit 1):
+
+```
+--- FAIL: TestDigUntilNoMoveFoundKeepsTheFoundCardInTheLibrary (0.00s)
+    diguntil_riders_test.go:257: found Aura zone = hand, want library (NoMoveFound$ True)
+FAIL
+```
+
+`cmp effects/cardflow.go .ds4/scratch/cardflow.go.fixed` printed
+"restored byte-identically" after each revert.
+
+## Gates (exact commands + real output)
+
+Worktree fixture check: `.cards` was already present as a symlink to
+`/home/sadams/projects/gorge/.cards` (found, not created), so the corpus tests
+really ran (the `effects` run took ~0.4 s with corpus lookups, not a skip).
+
+```
+$ go build ./...
+build ok
+
+$ go test -count=1 -run 'TestDigUntil' ./effects/
+ok  github.com/adams-shaun/gorge/effects  0.414s
+# 24 --- PASS TestDigUntil* (verbose list below, abridged):
+#   WithholdsUnsupportedParams, AuraEntryAsksForBearer, AuraCanEnchantOpponentsCreature,
+#   RememberFoundDoesNotRetainTriggerCapture, RememberFoundAndRevealedPreserveRevealedPrefix,
+#   AmountSVarCountsMatchesToTheTally, AmountSVarZeroRevealsNothing,
+#   AmountSVarUnresolvableStillWithholds, ShuffleShufflesTheDugLibrary,
+#   ShuffleConditionNoneFoundOnlyShufflesOnAnEmptyScan, NoMoveFoundKeepsTheFoundCardInTheLibrary,
+#   FoundLibraryPositionPlacesOrKeepsTheFoundCard, ImprintFoundFeedsTheExileReader,
+#   ImprintRevealedRecordsEveryRevealedCard, NoneFoundBranchSwapsTheRevealedDestination,
+#   RidersEmitOnceAcrossTheOptionalAsk, KindredSummons…, EmptyTheLaboratory…, TunnelVision…,
+#   RevealsUntilTheMatchMovesFoundAndRest, DefaultDestinationsAreHandAndStayInPlace,
+#   OptionalFoundMoveAsksAndHonoursBothBranches, NoHostDeclinesToTheRevealedPile,
+#   KetriaRememberFoundFeedsTheChainedMove
+
+$ go test -count=1 -run 'TestParamCensusScanIsComplete|TestEveryRepoDeckParamsAreRead' ./rules/
+ok  github.com/adams-shaun/gorge/rules  0.745s
+
+$ gofmt -l effects/cardflow.go effects/diguntil_riders_test.go effects/diguntil_aura_test.go rules/paramcensus_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(exit 0, no output)
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  1.388s
+
+$ go test -count=1 -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  0.684s
+```
+
+botbench did not move (as the brief predicted: no repo-deck card carries
+DigUntil). No re-pin, no attribution needed. No Known-approximations row to
+delete — the diguntil1 row was already gone and `DigZone$`'s remainder is
+covered by the placeholder planechase row, which this ticket does not touch.
+`go test -race` was not run (not required; daemon gate).
+
+## Issues
+
+- **Imprint riders use the Seek `seek-found` list, not the plain `Imprinted`
+  list.** Sanctioned by the brief ("if a measured corpus reader fails because
+  of the CR 607.2a exile-only filter … mirror the Seek-found pattern and name
+  the deviation in the commit message"). Named in `c749b700`'s message. A
+  generic (non-Seek) `Defined$ Imprinted` reader that wants a DigUntil-imprinted
+  association where the card sits outside exile reads it correctly because
+  `imprintPileTargets` merges `SeekFound`; readers that inspect
+  `state.Object.Imprinted` directly would not. No measured corpus reader of the
+  latter kind was found.
+- **`DigZone$ PlanarDeck` stays withheld** (4 corpus carriers, all the
+  planechase dig bodies) — gorge has no planar tier. Additionally, those
+  carriers' `FoundDestination$ PlanarDeck` still falls through `ParseZone` to
+  the graveyard; that pre-existing fallback is not this ticket's problem and
+  was deliberately left unchanged (the brief says so).
+- **Unresolvable `Amount$` stays withheld with amount 1** (fail-safe). If a
+  corpus carrier's SVar body uses a count head the evaluator does not model, it
+  silently digs 1 instead of the intended N. Measured: 12 non-literal `Amount$`
+  DigUntil lines; the four carrier families named in the brief all resolve.
+- **`RevealRandomOrder$`** remains the pre-existing deterministic existing-order
+  stand-in (the brief explicitly scopes it out; ambient randomness is forbidden).
+- **Testing note (not a defect):** a DigUntil SA with `ValidTgts$` (Tunnel
+  Vision's `FindThePrecious`) cannot be driven through `effects.Resolve` in a
+  unit test without also setting `Ctx.TargetsOffered` (or `Ctx.OfferedSA`),
+  because the generic ValidTgts pre-ask (`effects/targets_ask.go`
+  `chosenTargetsFor`) otherwise poses a target ask and suspends the walk before
+  the body runs. The carrier test documents this. Anyone adding a real-carrier
+  DigUntil test for a `ValidTgts$` body should set it.
+- **No new CR-lane test proposed:** the riders are engine-internal placement
+  semantics, not a CR rule with an obvious conformance citation.
+
+STATUS handoff is in the final message.
+
+## Deviations from the brief
+
+- The brief listed empty_the_laboratory as the `SVar:X:Count$xPaid` carrier; the
+  real DigUntil SVar at the pin is `SVar:Y:Remembered$Amount` (`X:Count$xPaid`
+  is the Sacrifice sub's). Tested the real body. See the claim-check above.
+- The brief's rider list included `one Shuffle$ carrier` as a real-carrier test;
+  `Shuffle$ True` is exercised on real carriers inside
+  `…KindredSummons…` and `…TunnelVision…` in addition to the inline tests.
+
+
+
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Report — agent-20260919T181318Z-86535368
 
 ## Summary: the brief's premise is FALSE — the ticket is already implemented on current main
@@ -3607,3 +5099,197 @@ Rebased onto `main` after the controller directive (second rebase at the r2
 directive, one `.ds4/report-t1.md` append-append conflict resolved by keeping
 both blocks); all gates above were re-run on the rebased tree and are the
 pasted output.
+
+
+---
+
+# Task 2835347f — `AddTrigger$ A & B` registers no grant (Mirror Shield family)
+
+## Summary
+
+An Equipment/Aura whose printed static grants several triggered abilities via
+Forge's ` & `-joined `AddTrigger$` value granted **nothing**: `rules/layers.go`
+`staticEffects` read the whole value as one SVar name, looked up a nil body and
+silently emitted zero grants. Split the value through the **one exported**
+`cards` grant-name splitter, emitting one grant per successfully parsed name,
+and routed the existing `cards/kw_class.go` call sites through the same
+exported name.
+
+Commit: `3c015837d06b4e7f1c35de2b7b6f259ab9dc34e2`
+
+## Per-file changes
+
+- **`cards/kw_class.go`** — renamed unexported `splitGrantNames` to
+  `SplitGrantNames` (exported) and updated the three call sites
+  (`AddStaticAbility`, `AddTrigger`, `AddReplacementEffect`). ONE home for the
+  ` & ` grammar; no second copy exists in `rules/`.
+- **`rules/layers.go`** — the `AddTrigger$` branch of `staticEffects` now
+  iterates `cards.SplitGrantNames(raw)` and emits ONE `gt` grant per name whose
+  SVar body parses. Order is `SplitGrantNames`' left-to-right value order (a Go
+  slice, not a map), so replay is deterministic. Each name still **fails closed
+  on its own** — a missing/unparseable body grants nothing and no longer
+  suppresses a valid sibling (kept deliberately).
+- **`cards/splitgrantnames_test.go`** (new) — direct unit test of the exported
+  splitter: `"A & B"` → `["A","B"]`, whitespace trimmed, empty members dropped,
+  single name unchanged, empty/`" & "` → nil.
+- **`rules/addtrigger_multiname_test.go`** (new) — three corpus-backed tests
+  (registration, AttackerBlockedByCreature firing, mode-agnostic Attacks firing).
+- **`rules/paramcensus_test.go`** — comment-only drift fix on the
+  `checkGrantedStaticTriggers` read root (see Deviations); no read-root list
+  changed.
+
+## Why this structural shape
+
+The grammar already had a working implementation inside `cards/` (`kw_class.go`),
+used by the `K:Class:` level-grant path. Rather than re-implement the split in
+`rules/`, the splitter is now exported and both callers share it — the repo's
+ONE-home rule. A future `Add*$` reader that uses `cards.SplitGrantNames` cannot
+miss the grammar; the next sibling is covered by construction, not by a list.
+
+## Gates (real output)
+
+Focused tests + splitter:
+
+```
+$ go test -run 'TestMirrorShieldMultiNameAddTriggerRegisters|TestMirrorShieldGrantDestroysDeathtouchBlocker|TestVeteransArmamentsMultiNameAddTriggerFires|TestSplitGrantNames' ./rules/ ./cards/
+ok  	github.com/adams-shaun/gorge/rules	0.042s
+ok  	github.com/adams-shaun/gorge/cards	0.003s
+```
+
+Structural golden:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.004s
+```
+
+Botbench golden (unchanged — none of the five cards is in a repo deck):
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.694s
+```
+
+Class-path regression check (I edited `cards/kw_class.go`):
+
+```
+$ go test -run 'TestClass' ./cards/
+ok  	github.com/adams-shaun/gorge/cards	0.001s
+```
+
+Format / types:
+
+```
+$ gofmt -l rules/layers.go rules/addtrigger_multiname_test.go rules/paramcensus_test.go cards/kw_class.go cards/splitgrantnames_test.go
+(empty — clean)
+$ go run ./cmd/gentypes -check
+(no output — clean)
+```
+
+Verbose confirmation that the tests actually RAN (corpus present; no skip):
+
+```
+=== RUN   TestMirrorShieldMultiNameAddTriggerRegisters
+--- PASS: TestMirrorShieldMultiNameAddTriggerRegisters (0.00s)
+=== RUN   TestMirrorShieldGrantDestroysDeathtouchBlocker
+--- PASS: TestMirrorShieldGrantDestroysDeathtouchBlocker (0.00s)
+=== RUN   TestVeteransArmamentsMultiNameAddTriggerFires
+--- PASS: TestVeteransArmamentsMultiNameAddTriggerFires (0.00s)
+ok  	github.com/adams-shaun/gorge/rules	0.065s
+```
+
+Worktree state: `.cards` was PRESENT (pre-existing symlink) — the corpus tests
+ran, not skipped.
+
+## Fails without the fix
+
+`rules/layers.go` was reverted in place to the old whole-value read, the one
+test command run, then the file restored byte-identically (`cmp` clean against
+`.ds4/scratch/layers.go.fixed`):
+
+```
+--- FAIL: TestMirrorShieldMultiNameAddTriggerRegisters (0.00s)
+    addtrigger_multiname_test.go:67: Mirror Shield live AddTrigger grants = 0, want 2 (TrigBlocks + the Secondary$ TrigBecomeBlocked); a one-name fix registers 1
+--- FAIL: TestMirrorShieldGrantDestroysDeathtouchBlocker (0.00s)
+    addtrigger_multiname_test.go:121: Mirror Shield granted AttackerBlockedByCreature GrantTriggerPush events = 0, want 1
+--- FAIL: TestVeteransArmamentsMultiNameAddTriggerFires (0.00s)
+    addtrigger_multiname_test.go:160: Veteran's Armaments live AddTrigger grants = 0, want 2 (HeroAttack + HeroBlock)
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.038s
+```
+
+After restoring: `cmp rules/layers.go .ds4/scratch/layers.go.fixed` →
+IDENTICAL; test green again.
+
+## Test precondition coverage (each test can fail)
+
+- `TestMirrorShieldMultiNameAddTriggerRegisters`: asserts the shield is on the
+  battlefield, that its `AddTrigger$` value is the ` & `-joined string under
+  test, that the equip actually happened, and that BOTH grants registered with
+  one `Secondary$` — a one-name fix fails on the count.
+- `TestMirrorShieldGrantDestroysDeathtouchBlocker`: asserts the equipped bear
+  prints no become-blocked trigger (so the destroy is the grant), and the
+  blocker is a live battlefield deathtouch creature (so the destroy is not
+  vacuous). Reverting the fix yields 0 `GrantTriggerPush` events.
+- `TestVeteransArmamentsMultiNameAddTriggerFires`: asserts the real card's
+  ` & `-joined value, the equip, that the bearer prints no Attacks/Blocks
+  trigger, 2 registered grants, and 2/2 → 3/3 P/T movement (different values).
+
+## Head / ratchet / botbench movement
+
+- **Chain heads:** not run (daemon gate). None of the five carriers is in any
+  repo deck, so no golden replay involves them.
+- **Ratchet:** unchanged; no `knownUnsupported`/`knownUnsupportedParams` entry
+  names these cards or the primitive.
+- **Botbench:** `TestConstructedDefaultIsByteIdentical` passes unchanged, as
+  expected. Confirmed none of the five cards is in a repo deck:
+  `Mirror Shield 0 / Veteran's Armaments 0 / Astrologian's Planisphere 0 /
+  Candlekeep Sage 0 / Noble Heritage 0` (`grep -rl` over
+  `internal/testutil/decks/`).
+
+## Brief premise re-measurement (all held)
+
+```
+$ /usr/bin/grep -rlE 'AddTrigger\$[^|]*&' .cards/cardsfolder | wc -l
+5
+$ /usr/bin/grep -rlE 'AddSVar\$[^|]*&' .cards/cardsfolder | wc -l
+23
+$ /usr/bin/grep -rlE 'AddStaticAbility\$[^|]*&' .cards/cardsfolder | wc -l
+3
+$ /usr/bin/grep -rlE 'AddReplacementEffect\$[^|]*&' .cards/cardsfolder | wc -l
+2
+```
+
+Every count in the brief held.
+
+## Deviations from the brief
+
+- The brief suggested the splitter unit test could live in `rules/`; it lives in
+  `cards/` (`cards/splitgrantnames_test.go`) because that is the package that
+  owns the exported function — the brief's `-run` pattern covers both packages.
+- The optional adjacent comment-drift fix in `rules/paramcensus_test.go` was
+  taken (comment-only; the declared read-root string list is unchanged).
+
+## Issues (found, NOT fixed — for the operator)
+
+1. **Sibling `Add*$` parameters with the same unsplit grammar**, in the same
+   `staticEffects` loop in `rules/layers.go`:
+   - `AddSVar$` (`rules/layers.go`, whole-value `fc.SVars[raw]` lookup): a value
+     like `HeroPump & ArmamentsX` (Veteran's Armaments) resolves a nil body and
+     grants nothing. **23 corpus files** carry `AddSVar$ … &`.
+     Note the value is an SVar NAME list whose bodies are
+     `SVar:<Name>:<Value>`; split on the NAMES.
+   - `AddStaticAbility$` (`rules/layers.go`, whole-value `fc.SVars[name]`): e.g.
+     `t/tsagan_raider_warlord.txt` `AddStaticAbility$ SelfDT & WideFS`.
+     **3 corpus files**.
+   These are the identical grammar and the identical silent-zero-grant failure;
+   this ticket deliberately did not widen its diff to fix them.
+2. **`AddReplacementEffect$` is registered nowhere.** `grep -rn
+   'AddReplacementEffect' rules/*.go` shows only a comment; the only code
+   mention is the "unread" list in `effects/staticeffect.go`. **2 corpus files**
+   carry the ` & ` form; a full census of all carriers is worth taking when the
+   param is implemented. Separate ticket.
+3. **CR-lane test worth adding** so this class stops being invisible to
+   `.ds4/ledger.json`: CR 611.3 (continuous effects from a static ability) +
+   CR 603.2 (a triggered ability granted by a static). Named only, not written
+   (the brief did not ask for a CR-lane test).

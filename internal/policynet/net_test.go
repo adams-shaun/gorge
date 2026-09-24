@@ -110,7 +110,8 @@ func hiddenZs(m *Model, ex Example, h int) []float64 {
 		if !ex.Options[i].Target.Labelled {
 			continue
 		}
-		x := m.inputVector(m.StateTrunk(ex.State), ex.Options[i])
+		s, c := m.stateTrunkEnt(ex.State)
+		x := m.inputVector(s, ex.Options[i], c)
 		z := m.HidB[h]
 		for ii, xi := range x {
 			if xi != 0 {

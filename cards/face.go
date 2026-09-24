@@ -26,6 +26,7 @@ func (f *Face) hasType(t string) bool {
 func (f *Face) IsLand() bool         { return f.hasType("Land") }
 func (f *Face) IsBasic() bool        { return f.hasType("Basic") }
 func (f *Face) IsLegendary() bool    { return f.hasType("Legendary") }
+func (f *Face) IsWorld() bool        { return f.hasType("World") }
 func (f *Face) IsCreature() bool     { return f.hasType("Creature") }
 func (f *Face) IsInstant() bool      { return f.hasType("Instant") }
 func (f *Face) IsSorcery() bool      { return f.hasType("Sorcery") }
