@@ -1112,12 +1112,9 @@ func (e *Engine) attackDutyDischargeable(id state.ObjID, s attackRequirementSet)
 	return anyPair && s.broad
 }
 
-// maxAttackers reports the tightest total-attacker ceiling in force from
-// every applicable AttackRestrict static, or a very large number when none
-// applies. Only the MaxAttackers$ parameter is read (Silent Arbiter's shape);
-// a per-defender ValidDefender$ scoping is treated as global for the sake of
-// this bounded solver, which is only ever consulted when a MustAttack
-// requirement or an AttackRestrict static is actually present.
+// maxAttackers reports the global attacker ceiling. Defender-scoped ceilings
+// are enforced per defender by validateAttackDeclaration; they cannot be
+// represented by the KAttackers decision's single Max value.
 // goadMayAttack implements the defender half of CR 701.38b. Every goad is
 // a separate requirement: a goaded creature attacks a player other than EACH
 // player who goaded it if one is available. If all possible defenders are
@@ -1320,7 +1317,10 @@ func (e *Engine) activeGoad(o *state.Object, ge state.GoadEffect) bool {
 func (e *Engine) maxAttackers() int {
 	const huge = int(^uint(0) >> 1)
 	maxAllowed := huge
-	for _, sv := range e.activeStatics("AttackRestrict") {
+	for _, sv := range e.attackRestrictStatics() {
+		if strings.TrimSpace(sv.Params["ValidDefender"]) != "" || !e.continuousGateHolds(sv) {
+			continue
+		}
 		// parseAmount defaults an absent/invalid MaxAttackers$ to the maximum
 		// int32, so an unparseable restriction contributes no ceiling.
 		n := parseAmount(sv.Params["MaxAttackers"], math.MaxInt32)
@@ -1360,7 +1360,32 @@ func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Int
 	if len(chosen) > maxAllowed {
 		return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
 	}
+	counts := make(map[state.PlayerID]int)
+	for _, index := range in.Choices {
+		if index >= 0 && index < len(d.Options) {
+			counts[d.Options[index].Player]++
+		}
+	}
+	for defender, count := range counts {
+		for _, sv := range e.attackRestrictStatics() {
+			if !e.continuousGateHolds(sv) {
+				continue
+			}
+			spec := strings.TrimSpace(sv.Params["ValidDefender"])
+			if spec == "" || !effects.MatchesPlayerSpecCtx(e.G, spec, defender, sv.Controller, effects.PlayerSpecCtx{Source: sv.Source}) {
+				continue
+			}
+			limit := int(parseAmount(sv.Params["MaxAttackers"], math.MaxInt32))
+			if count > limit {
+				return fmt.Errorf("declared %d attackers at defender %d, more than the allowed %d", count, defender, limit)
+			}
+		}
+	}
 	return nil
+}
+
+func (e *Engine) attackRestrictStatics() []staticView {
+	return e.activeStatics("AttackRestrict")
 }
 
 // validateBlockers is the KBlockers whole-declaration legality guard. The
@@ -3101,5 +3126,5 @@ func init() {
 		// itself, so Face.Primitives never surfaces it and this explicit
 		// registration is what puts it on the coverage report. The gate
 		// itself is the offer-time read in rules/legal.go's ability loop.
-		"kw:Boast")
+		"kw:Boast", "stat:AttackRestrict")
 }
