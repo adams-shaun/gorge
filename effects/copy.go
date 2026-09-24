@@ -60,6 +60,11 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// cast spell (the first object entry); for a direct Parent copy it is the
 	// currently resolving spell itself.
 	var spell state.ObjID
+	// validStackSpells is the PLURAL result of a Defined$ ValidStack copy arm
+	// (CR 707.10a, "copy each"): every stack object the spec admits, in
+	// stack-arena order, each copied Amount$ times. It is nil for every other
+	// Defined form, whose established single-spell shape is unchanged.
+	var validStackSpells []state.ObjID
 	switch strings.TrimSpace(sa.Params["Defined"]) {
 	case "TriggeredSpellAbility":
 		// The activation arm (abcopy1): the trigger context's TriggerAbility
@@ -111,19 +116,27 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			// `Ability` base IS a stack kind now (task abcopy3: Activated+
 			// Triggered, never Spell), and its `otherAbility` qualifier
 			// excludes the resolving wrapper via Ctx.ResolvingObj, so the
-			// sub-copy cannot copy itself; the arm stays SINGLE-TARGET --
-			// with several matches it copies only the first (stack-arena
-			// order), the recorded plural-copy stand-in.
+			// sub-copy cannot copy itself; the arm is PLURAL -- every admitted
+			// object is copied, so Ulalek's "copy all spells you control" and
+			// "copy all other activated and triggered abilities" place one copy
+			// per match instead of only the first. The family exclusion is
+			// untouched by this: validStackAdmits still drops the resolving
+			// wrapper AND every instance or copy sharing (Source, Ability), the
+			// recorded livelock guard -- an id-only exclusion would let a copy
+			// of the wrapper be copied again and ask its pay question forever.
 			spec := strings.TrimSpace(sa.Params["Defined"])
 			if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
 				for tok := range strings.SplitSeq(strings.TrimSpace(stackSpec), ",") {
 					if _, known := state.StackKindTokenOf(strings.TrimSpace(tok)); known {
 						if ts, knownAll := knownDefinedTargets(h, c, spec); knownAll {
 							for _, t := range ts {
-								if !t.IsPlayer && t.Obj != 0 {
-									spell = t.Obj
-									break
+								if t.IsPlayer || t.Obj == 0 {
+									continue
 								}
+								if o := g.Obj(t.Obj); o == nil || o.Zone != state.ZStack {
+									continue
+								}
+								validStackSpells = append(validStackSpells, t.Obj)
 							}
 						}
 						break
@@ -131,18 +144,18 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 		}
-		if spell == 0 {
+		if spell == 0 && len(validStackSpells) == 0 {
 			return
 		}
 	}
-	if spell == 0 {
-		return
-	}
-	// The source spell must actually be on the stack; a copy of something
-	// that already left it is a no-op, the same totality stance as every
-	// other effect primitive.
-	if o := g.Obj(spell); o == nil || o.Zone != state.ZStack {
-		return
+	if spell != 0 {
+		// The source spell must actually be on the stack; a copy of something
+		// that already left it is a no-op, the same totality stance as every
+		// other effect primitive. The plural ValidStack arm above already
+		// applied this filter per match.
+		if o := g.Obj(spell); o == nil || o.Zone != state.ZStack {
+			return
+		}
 	}
 
 	// Controller$ (Chain Lightning's "If the player does, they may copy this
@@ -254,18 +267,24 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 				Text: "copy: DefinedTarget$ " + spec + " not resolved; copy keeps its targets"})
 		}
 		n := int(Num(h, c, sa, "Amount", 1))
-		for i := 0; i < n; i++ {
-			ev := events.Event{Kind: events.StackCopy, Obj: spell, Player: controller}
-			if mayChoose {
-				// CR 707.10c: the copy's controller may choose new targets. The
-				// permission rides the StackCopy event (Amount 1), so it is
-				// recorded per copy instance and replayed; rules/stack.go's
-				// resolveTop poses the election and the TargetsChosen fold
-				// consumes it. No Note: the election is now real, not a
-				// stand-in.
-				ev.Amount = 1
+		copies := validStackSpells
+		if len(copies) == 0 {
+			copies = []state.ObjID{spell}
+		}
+		for _, sp := range copies {
+			for i := 0; i < n; i++ {
+				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller}
+				if mayChoose {
+					// CR 707.10c: the copy's controller may choose new targets. The
+					// permission rides the StackCopy event (Amount 1), so it is
+					// recorded per copy instance and replayed; rules/stack.go's
+					// resolveTop poses the election and the TargetsChosen fold
+					// consumes it. No Note: the election is now real, not a
+					// stand-in.
+					ev.Amount = 1
+				}
+				h.Emit(ev)
 			}
-			h.Emit(ev)
 		}
 	}
 }

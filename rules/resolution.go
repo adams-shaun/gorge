@@ -3497,7 +3497,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// (Tidus, Yuna's Guardian's non-RL BeginCombat line) must not spend
 			// the ResolvedLimit$ line's count.
 			if o != nil {
-				if t, ok := e.findTriggerForAbility(o.Source, rp.sa); ok {
+				if t, ok := e.triggerForAbilityObject(rp.obj, o); ok {
 					if _, limited := resolvedLimitValue(t); limited {
 						e.noteTriggerResolved(o.Source)
 					}

@@ -498,6 +498,22 @@ type Engine struct {
 	// like triggerContexts: never event-encoded, cloned at intent boundaries
 	// and removed when the stack object leaves.
 	triggerEffectFrames map[state.ObjID]effects.EffectFrame
+	// triggerLines maps a stack object id to the granted/delayed trigger line
+	// whose Execute$ body it resolves to. A granted (AddTrigger$) or delayed
+	// (Effect Triggers$) body is an SVar-named *cards.SA, and cards.ResolveSVar
+	// parses a FRESH pointer on every call -- so the pointer identity
+	// findTriggerForAbilityFace uses for compiled Face.Triggers bodies can never
+	// match one. This map carries the line from the push (which already records
+	// triggerContexts) to resolution, so OptionalDecider$, the Cost$ window,
+	// ResolvedLimit$, the intervening-if recheck and the label all see it.
+	// Replay-derived exactly like triggerContexts: pushTrigger folds the same
+	// lines in the same order. Appended to (not a redefinition of) the existing
+	// map fields so a zero Engine stays valid.
+	triggerLines map[state.ObjID]cards.Trigger
+	// triggerLineSVars snapshots the owning script table of each recorded line.
+	// The recipient's face is not necessarily the grantor's, and a grant can
+	// disappear before the stack object resolves.
+	triggerLineSVars map[state.ObjID]map[string]string
 	// currentEffectFrame is the Effect-created continuous-effect registration
 	// the effects.Resolve walk currently running belongs to. effects.Resolve
 	// publishes it (through the optional effectFrameHost interface) for the
@@ -2383,6 +2399,18 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if ef, ok := e.triggerEffectFrames[ev.Obj]; ok {
 			e.triggerEffectFrames[copyID] = ef
 		}
+		if line, ok := e.triggerLines[ev.Obj]; ok {
+			if e.triggerLines == nil {
+				e.triggerLines = make(map[state.ObjID]cards.Trigger)
+			}
+			e.triggerLines[copyID] = line
+			if svars, ok := e.triggerLineSVars[ev.Obj]; ok {
+				if e.triggerLineSVars == nil {
+					e.triggerLineSVars = make(map[state.ObjID]map[string]string)
+				}
+				e.triggerLineSVars[copyID] = svars
+			}
+		}
 		if lki, ok := e.triggerLKI[ev.Obj]; ok {
 			if e.triggerLKI == nil {
 				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
@@ -2425,6 +2453,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.triggerEffectFrames, ev.Obj)
+		delete(e.triggerLines, ev.Obj)
+		delete(e.triggerLineSVars, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)

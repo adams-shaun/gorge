@@ -767,6 +767,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.recordTriggerLine(id, pt)
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
@@ -803,6 +804,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.recordTriggerLine(id, pt)
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
@@ -887,6 +889,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				}
 				e.triggerEffectFrames[id] = pt.Ctx.EffectFrame
 			}
+			e.recordTriggerLine(id, pt)
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
@@ -1095,7 +1098,7 @@ func (e *Engine) triggerPaidX(stack state.ObjID, o *state.Object) int32 {
 	if o == nil || o.Ability == nil {
 		return 0
 	}
-	if _, ok := e.findTriggerForAbility(o.Source, o.Ability); !ok {
+	if _, ok := e.triggerForAbilityObject(stack, o); !ok {
 		return 0
 	}
 	tc, ok := e.triggerContexts[stack]
@@ -1184,6 +1187,49 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 		}
 	}
 	return cards.Trigger{}, nil, false
+}
+
+// recordTriggerLine stores the granted/delayed trigger line for a freshly
+// minted triggered-ability stack object (see Engine.triggerLines). It is a
+// no-op for a printed trigger, whose line the pointer scan already recovers,
+// so every existing push is unchanged. pushTrigger calls it from the Gained,
+// Granted and Delayed arms -- the three that mint a body events.Apply resolves
+// from an SVar name rather than a compiled Face.Triggers entry.
+func (e *Engine) recordTriggerLine(id state.ObjID, pt pendingTrigger) {
+	if pt.Trigger.Mode == "" {
+		return
+	}
+	if e.triggerLines == nil {
+		e.triggerLines = make(map[state.ObjID]cards.Trigger)
+	}
+	e.triggerLines[id] = pt.Trigger
+	if pt.TriggerSVars != nil {
+		if e.triggerLineSVars == nil {
+			e.triggerLineSVars = make(map[state.ObjID]map[string]string)
+		}
+		e.triggerLineSVars[id] = pt.TriggerSVars
+	}
+}
+
+// triggerForAbilityObject resolves the trigger line for an ability stack
+// object. A granted (AddTrigger$) or delayed (Effect Triggers$) body is an
+// SVar-named *cards.SA and cards.ResolveSVar parses a FRESH pointer on every
+// call, so pointer identity against Face.Triggers can never match one; the
+// line pushTrigger recorded on Engine.triggerLines is the exact identity.
+// Everything else -- a printed, merged or has-all-abilities-of trigger --
+// falls through to the pointer scan, exactly as before.
+//
+// Every caller that then reads a trigger-only clause (OptionalDecider$,
+// Cost$, ResolvedLimit$, Condition$, TriggerPaidX) must go through this so a
+// granted trigger is not treated as a non-trigger and skipped.
+func (e *Engine) triggerForAbilityObject(id state.ObjID, o *state.Object) (cards.Trigger, bool) {
+	if o == nil || o.Ability == nil {
+		return cards.Trigger{}, false
+	}
+	if t, ok := e.triggerLines[id]; ok {
+		return t, true
+	}
+	return e.findTriggerForAbility(o.Source, o.Ability)
 }
 
 // faceOwningTrigger returns the face of source that carries t: its top face
@@ -1577,6 +1623,9 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		} else if sf := so.Face(); sf != nil {
 			svars = sf.SVars
 		}
+	}
+	if owned, ok := e.triggerLineSVars[obj]; ok {
+		svars = owned
 	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {

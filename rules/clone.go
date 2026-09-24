@@ -279,6 +279,27 @@ func (e *Engine) Clone() *Engine {
 			c.triggerEffectFrames[id] = ef
 		}
 	}
+	if e.triggerLines != nil {
+		c.triggerLines = make(map[state.ObjID]cards.Trigger, len(e.triggerLines))
+		for id, t := range e.triggerLines {
+			if t.Params != nil {
+				params := make(map[string]string, len(t.Params))
+				for key, value := range t.Params {
+					params[key] = value
+				}
+				t.Params = params
+			}
+			c.triggerLines[id] = t
+		}
+	}
+	if e.triggerLineSVars != nil {
+		c.triggerLineSVars = make(map[state.ObjID]map[string]string, len(e.triggerLineSVars))
+		for id, svars := range e.triggerLineSVars {
+			// Card script tables are immutable after parsing; only the lookup
+			// index is engine-owned. An undo clone retains the same owning face.
+			c.triggerLineSVars[id] = svars
+		}
+	}
 	if e.triggerLKI != nil {
 		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
 		for id, lki := range e.triggerLKI {

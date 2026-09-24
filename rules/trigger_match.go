@@ -92,6 +92,19 @@ type pendingTrigger struct {
 	Granted bool
 	Grantor state.ObjID
 	Execute string
+	// Trigger is the granted/delayed trigger LINE this pending trigger came
+	// from (its OptionalDecider$, Cost$, Condition$ and ResolvedLimit$ live
+	// here, not on the Execute$ body). It is zero for every printed trigger,
+	// whose line is recovered from Face.Triggers by pointer, and is carried
+	// through pushTrigger into Engine.triggerLines keyed by the minted stack
+	// object -- see that field. The Gained arm sets it from the foreign face's
+	// compiled Trigger, the Granted arm from the AddTrigger$ static and the
+	// Delayed arm from the registration's re-parsed body.
+	Trigger cards.Trigger
+	// TriggerSVars is the owning face's immutable script table captured with
+	// the granted/delayed line. Source may be a different card, and the grant
+	// can end before this ability resolves.
+	TriggerSVars map[string]string
 	// Gained marks a has-all-abilities-of trigger (Forge's
 	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
 	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's
