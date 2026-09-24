@@ -270,3 +270,22 @@ func TestKrenkoBatchIsNotALivelock(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestMenaceAgainstOneLegalBlockerPosesNoPair: a Menace attacker facing a
+// defender with a single creature that can block has no legal blocking
+// declaration but the empty one (CR 702.111b), so no pair is offered -- the
+// shape that removed a forced-empty blockers ask from host's committed
+// overshoot capture (Undead Augur with Lord of the Accursed's menace vs a
+// lone untapped Lathliss).
+func TestMenaceAgainstOneLegalBlockerPosesNoPair(t *testing.T) {
+	e, brute := menaceBlockEngine(t)
+	onBoardCard(t, e, 0, corpusCard(t, "Grizzly Bears"))
+	d := declareAndAskBlockers(e, brute)
+	if d != nil && d.Kind == decision.KBlockers {
+		for _, o := range d.Options {
+			if o.Attacker == brute {
+				t.Fatalf("a lone blocker was offered against a Menace attacker: %+v", d.Options)
+			}
+		}
+	}
+}
