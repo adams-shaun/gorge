@@ -531,13 +531,17 @@ type pendingCast struct {
 
 	// ninjutsuDefender is the defender (CR 702.49b: the player, planeswalker
 	// or battle the returned creature was attacking) captured when a
-	// K:Ninjutsu activation paid its Return cost, 0 when this proposal is not
-	// a ninjutsu activation. It rides the AbilityPush event's IDs, which
-	// events.Apply folds into the minted ability's Remembered, and
-	// rules/stack.go re-binds it to the resolving Ctx's DefendingPlayer so
-	// effects/zone.go's Attacking$ True rider places the permanent tapped and
-	// attacking that same defender. Plain data, so a Clone copies it.
-	ninjutsuDefender state.PlayerID
+	// K:Ninjutsu activation paid its Return cost. ninjutsuHasDefender
+	// discriminates the capture: seat 0 is a legal defending player, so
+	// ninjutsuDefender == 0 on its own cannot mean "not captured" (the same
+	// hazard documented at combat.go's mustAttackRequired). It rides the
+	// AbilityPush event's IDs, which events.Apply folds into the minted
+	// ability's Remembered, and rules/stack.go re-binds it to the resolving
+	// Ctx's DefendingPlayer so effects/zone.go's Attacking$ True rider places
+	// the permanent tapped and attacking that same defender. Plain data, so a
+	// Clone copies it.
+	ninjutsuDefender    state.PlayerID
+	ninjutsuHasDefender bool
 }
 
 // subCounterPay is one counter removed to pay a SubCounter cost part: the
@@ -6773,6 +6777,7 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			if e.activationIsNinjutsu(pc) {
 				if o := e.G.Obj(o.Obj); o != nil {
 					pc.ninjutsuDefender = o.Attacking
+					pc.ninjutsuHasDefender = true
 				}
 			}
 			pc.returns = append(pc.returns, o.Obj)
@@ -7752,7 +7757,7 @@ func (pc *pendingCast) activationPushEvent(e *Engine) events.Event {
 	}
 	ev := events.Event{Kind: events.AbilityPush, Obj: pc.card,
 		Player: pc.player, Amount: int32(pc.ability)}
-	if e.activationIsNinjutsu(pc) && pc.ninjutsuDefender != 0 {
+	if e.activationIsNinjutsu(pc) && pc.ninjutsuHasDefender {
 		ev.IDs = []state.ObjID{state.PlayerRef(pc.ninjutsuDefender)}
 	}
 	return ev
