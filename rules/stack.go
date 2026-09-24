@@ -4388,21 +4388,37 @@ func (e *Engine) WasCastFromExile(obj state.ObjID) bool {
 // DiscardedInWindow satisfies effects.Host's DiscardedInWindow for the
 // ConditionDefined$ Discarded group's cost-discard channel (task
 // mordorparams1, Moria Scavenger's "If the discarded card was a creature
-// card"): the events.DiscardCost records of obj's own activation, read off
-// the log. The window walks BACKWARD from the log end and stops at the
-// first event that proves a different resolution boundary — another
-// wrapper's push (a different activation's AbilityPush/PutOnStack/trigger
-// push), a step or turn change, a pool clear or a player loss — while
-// crossing obj's OWN push events, because the two cost orderings share the
-// one rule: an ability's cost parts are paid BEFORE its AbilityPush mints
-// the wrapper (rules/cast.go's activation branch), a spell's AFTER its
-// PutOnStack (the spell branch), and no other wrapper's push can sit
-// between a cost discard and the resolution that follows it. Priority
-// passes are deliberately NOT a boundary: an activated ability can sit on
-// the stack across any number of passes before it resolves, and the
-// discard it paid belongs to exactly that resolution. Derived from the log
-// the way WasCastFromHandByYou is, so a replay derives the same answer.
+// card"): the events.DiscardCost records of obj's own activation. The walk
+// itself (and the activation-window boundary rule) is costMovesInWindow's.
 func (e *Engine) DiscardedInWindow(obj state.ObjID) []state.ObjID {
+	return e.costMovesInWindow(obj, events.IsDiscardCost)
+}
+
+// ReturnedInWindow satisfies effects.Host's ReturnedInWindow: the
+// Return<N/Spec> cost parts obj's own activation paid (events.IsReturnCost),
+// enumerated over the same activation window DiscardedInWindow scans. It is
+// the ONE other user of costMovesInWindow, so a third cost-provenance window
+// (a new cost action marker) reuses the walk rather than copying it.
+func (e *Engine) ReturnedInWindow(obj state.ObjID) []state.ObjID {
+	return e.costMovesInWindow(obj, events.IsReturnCost)
+}
+
+// costMovesInWindow walks obj's activation window backward over the event log
+// and returns (in log order) every MoveZone event match admits — the cost
+// acts obj's OWN activation paid, which is what the ConditionDefined$
+// Discarded/Returned groups enumerate. The scan starts at obj's resolving
+// wrapper and stops at the first unrelated stack push, step/turn change, pool
+// clear or player loss — while crossing obj's OWN push events, because the
+// two cost orderings share the one rule: an ability's cost parts are paid
+// BEFORE its AbilityPush mints the wrapper (rules/cast.go's activation
+// branch), a spell's AFTER its PutOnStack (the spell branch), and no other
+// wrapper's push can sit between a cost payment and the resolution that
+// follows it. Priority passes are deliberately NOT a boundary: an activated
+// ability can sit on the stack across any number of passes before it
+// resolves, and the cost it paid belongs to exactly that resolution. Derived
+// from the log the way WasCastFromHandByYou is, so a replay derives the same
+// answer.
+func (e *Engine) costMovesInWindow(obj state.ObjID, match func(events.Event) bool) []state.ObjID {
 	if obj == 0 {
 		return nil
 	}
@@ -4418,13 +4434,13 @@ func (e *Engine) DiscardedInWindow(obj state.ObjID) []state.ObjID {
 		ev := e.L.Events[i]
 		switch ev.Kind {
 		case events.MoveZone:
-			if events.IsDiscardCost(ev) {
+			if match(ev) {
 				out = append(out, ev.Obj)
 				continue
 			}
 			// An ordinary move inside the window is not a boundary — an
 			// ability's payment can move several cards (exile parts, tapped
-			// entries) between its discard and its push.
+			// entries) between its cost payment and its push.
 			continue
 		case events.PutOnStack, events.AbilityPush, events.TriggerPush,
 			events.DelayedPush, events.GrantTriggerPush:

@@ -452,9 +452,11 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
-		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" {
-		// Only the Remembered, Self, TriggeredCard, Imprinted and Targeted
-		// families are in scope among DEFINED groups: the objects a walk
+		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" &&
+		defined != "Returned" {
+		// Only the Remembered, Self, TriggeredCard, Imprinted, Targeted,
+		// Discarded and Returned families are in scope among DEFINED groups:
+		// the objects a walk
 		// carries in Ctx.Remembered, the resolving source object alone (the
 		// Addendum shape: ConditionDefined$ Self | ConditionPresent$
 		// Card.wasCast holds only when the sub is reached through a cast of
@@ -511,6 +513,19 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		if !grpOK {
 			return false, false
 		}
+	}
+	if defined == "Returned" {
+		// ConditionDefined$ Returned (Wonderscape Sage's `ConditionDefined$
+		// Returned | ConditionPresent$ Land.hasANonBasicLandType |
+		// ConditionCompare$ EQ0`, the corpus's one carrier): Forge's group is
+		// the permanents THIS activation's own Return<N/Spec> cost returned
+		// to their owner's hand. It is enumerated off the event log through
+		// the same activation window DiscardedInWindow scans (effects.Host's
+		// ReturnedInWindow), so the cost payment and the gate cannot disagree.
+		// An empty window is a resolved zero -- the ability really returned
+		// nothing -- never the fail-open a missing channel gets elsewhere, so
+		// the EQ0 comparison binds against a definite count.
+		group = returnedGroup(h, c)
 	}
 	if defined == "Self" {
 		// Self is the source object ALONE — not rememberedWithSource's
@@ -633,6 +648,21 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 	}
 	return combine(evalConditionCount(count, compare))
+}
+
+// returnedGroup enumerates the ConditionDefined$ Returned group: the
+// permanents the resolving object's OWN activation returned to their owner's
+// hand as a Return<N/Spec> cost, over the activation window
+// (effects.Host.ReturnedInWindow) the Discarded group's cost channel uses.
+// An empty window is a resolved empty list, not an unresolved gate: an
+// activation that returned nothing genuinely has no returned permanents, so
+// a count comparison over it is definite.
+func returnedGroup(h Host, c *Ctx) []state.Target {
+	var out []state.Target
+	for _, id := range h.ReturnedInWindow(c.ResolvingObj) {
+		out = append(out, state.Target{Obj: id})
+	}
+	return out
 }
 
 // discardedGroup enumerates the ConditionDefined$ Discarded group: the

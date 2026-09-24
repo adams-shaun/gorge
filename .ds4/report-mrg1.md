@@ -90,6 +90,166 @@ ok  	github.com/adams-shaun/gorge/cmd/repro	16.395s
   new-ticket-at-a-unique-path convention the reports keep requesting would
   remove the conflict class entirely.
 
+
+---
+
+# Merge-conflict resolution — agent-20260923T160306Z-167d672f (mrg1), round 9 (2026-09-24)
+
+## Entry state
+
+`git status` clean on `wt/agent-20260923T160306Z-167d672f`, HEAD `c0684661`
+(the round-8 resolution, merge `dde918c3`); no rebase or merge in flight —
+the daemon's fresh rebase attempt had been reset before this seat started.
+Since round 8, main advanced 10 commits (the kw:Sunburst merge
+`f7ebf382` among them); the branch was 0 ahead-3 behind... measured: 5
+branch-only commits, 10 main-only, merge-base `8664c796`. `.cards` present
+as a symlink to the shared corpus — all runs below are real, none vacuous.
+
+## Operation
+
+`git merge main` (rebase is forbidden to this seat). `rules/cast.go` and
+everything else AUTO-MERGED; the sole content conflict was
+`.ds4/report-mrg1.md`, the shared append-only report accumulator.
+
+## Resolution
+
+Both sides PREPENDED a report to the accumulator and share the rest:
+
+- Ours (`:2:`): the round-8 report (agent-20260923T160306Z-167d672f, 86 lines).
+- Main (`:3:`): the kw:Sunburst mrg1 resolution report
+  (agent-20260919T055500Z-a4cd7643, 109 lines), followed by the same
+  round-7-and-earlier base (`:1:`) both sides already carried.
+
+Union, newest-first (the file's established convention): ours' round-8
+report, a blank-`---`-blank separator, then main's full accumulated file
+byte-verbatim. Verified mechanically:
+
+    { git show :2:.ds4/report-mrg1.md | head -86; echo; echo ---; echo; git show :3:.ds4/report-mrg1.md; } > /tmp/expected.md
+    cmp /tmp/expected.md .ds4/report-mrg1.md   -> UNION-EXACT-OK (byte-identical)
+
+No prose from either side dropped; no code file hand-edited.
+
+## Commands run and output
+
+    $ git status                      # clean, nothing in flight
+    $ git merge main                  # CONFLICT only in .ds4/report-mrg1.md
+    $ git add -f .ds4/report-mrg1.md && git commit --no-edit
+      -> 692bc445 Merge branch 'main' into wt/agent-20260923T160306Z-167d672f
+    $ git status --short              # (empty)
+    $ git rev-list --count HEAD..main -> 0
+
+    $ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+      -> ok github.com/adams-shaun/gorge/rules  0.634s   (exit 0)
+
+    $ go test ./rules -run 'TestSunburst|HasNonBasicLandType|HasBasicLandType' -v
+      -> 6 RUN / 6 PASS / 0 SKIP / 0 FAIL; ok ... rules 0.464s
+      (both main's Sunburst tests and this branch's land-type predicate tests
+       pass together on the merged tree)
+
+## Ratchet verdicts after the merge
+
+- No new `Mode$` matcher registered by either side's contribution;
+  `TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched` passes without
+  touching `addedAfterTheSplit`.
+- No `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+  entry closed by this merge, so no ratchet-table edit was required.
+
+## Issues
+
+None found during this resolution. The only conflict was the accumulator;
+the code auto-merge is a clean union of both sides' intents.
+
+---
+
+# Merge-conflict resolution — agent-20260923T160306Z-167d672f (mrg1), round 8 (2026-09-23)
+
+## Entry state
+
+`git status` clean on `wt/agent-20260923T160306Z-167d672f`, HEAD `18a455b7`
+(the branch's third commit, `pred(hasanonbasiclandtype)` series); no rebase or
+merge in flight — the daemon's failed rebase had been aborted/reset before
+this seat started. Merge-base with main was `c4560130`; main had advanced
+(K:Retrace follow-through, the strive/reverse-cast fix, the hasABasicLandType
+predicate 41239aa1, the perf work). `.cards` present as a symlink to the
+shared corpus — the runs below are real, not vacuous.
+
+## Operation
+
+`git merge main` (rebase is forbidden to this seat). Two conflicted code
+files, both purely additive; `.ds4/report-mrg1.md` auto-merged as usual.
+
+## Resolution
+
+### effects/filter.go (3 hunks)
+
+Branch and main each landed a sibling land-type word predicate through the
+same machinery; every hunk was additive (no overlapping logic):
+
+- Branch: `wordHasNonBasicLandType` (Forge `Card.hasANonBasicLandType`,
+  commits 1952fa4c/18a455b7) — a land with at least one land type OUTSIDE
+  CR 205.3i's five basics; vocabulary `chooseNonbasicLandTypes`.
+- Main: `wordHasBasicLandType` (Forge `Card.hasABasicLandType`, 41239aa1) —
+  a land with one of the five basic land types; vocabulary
+  `chooseBasicLandTypes`.
+
+Kept BOTH in all three hunks: the `wordKind` const block, the
+`wordPredicate` classifier switch (`case "hasANonBasicLandType"` and
+`case "hasABasicLandType"`), and the evaluation switch (both cases iterating
+their own type list through the shared `hasTypeCtx(o, "Land", sc)` guard).
+Both vocabularies exist in the auto-merged `effects/type_choices.go`. The
+two predicates are deliberately independent — NOT negations: a Wastes
+matches neither; a Desert matches only the nonbasic one. Both sides' test
+files run green together.
+
+### events/actions.go (1 hunk)
+
+- Branch: `ReturnCost`/`IsReturnCost` + `ReturnCostText` const (return-to-
+  hand-as-cost provenance marker; the const block above the hunk auto-merged,
+  main had no copy).
+- Main: `milledText` const + `Mill`/`IsMill` (the mill marker the
+  Milled/MilledAll triggers read).
+
+Kept both blocks in sequence.
+
+### .ds4/report-mrg1.md
+
+This accumulator: this round's report is PREPENDED, main's accumulated file
+kept verbatim below (same lossless construction the round-7 seat used).
+
+## Commands run and output
+
+    $ git merge main            # 2 content conflicts, as above
+    $ git add effects/filter.go events/actions.go && git commit --no-edit
+      -> dde918c3 Merge branch 'main' into wt/agent-20260923T160306Z-167d672f
+    $ git status --short        # clean (report handled separately)
+    $ go build ./effects/ ./events/ ./rules/                       -> exit 0
+    $ go test -run 'HasBasicLandType|HasNonBasicLandType|NonBasicLand' ./effects/ ./rules/
+      -> ok github.com/adams-shaun/gorge/effects   0.448s
+      -> ok github.com/adams-shaun/gorge/rules     0.018s [no tests to run]
+    $ go test ./events/         -> ok github.com/adams-shaun/gorge/events  4.495s
+    $ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+      -> ok github.com/adams-shaun/gorge/rules  0.627s
+      (-v confirms all five PASS, none SKIP: TestNoTriggerModeIsRegistered…,
+       TestEveryDispatchedTriggerModeHasAMatcher, TestEveryRepoDeckIsFullySupported,
+       TestEveryRepoDeckParamsAreRead, TestEveryRepoDeckCountHeadResolves)
+    $ go test ./effects/        -> ok github.com/adams-shaun/gorge/effects  16.482s
+
+## Notes
+
+- The ratchet run's 0.627s is fast but `-v` shows the five named tests RAN
+  and PASSED (they classify/compile; the full-deck play tests, `TestHeads`
+  and `make sim` are the daemon's post-DONE gates).
+- No golden touched; the merge added no new `Mode$` matcher and moved no
+  `knownUnsupported`/param/count-head entry.
+- No `Ref:` or attribution trailers (gorge rule).
+
+## Issues
+
+None beyond the conflicts themselves: the merged build is clean and the two
+predicate families coexist without overlap. Nothing to fold into the ledger.
+
+---
+
 # Merge-conflict resolution — agent-20260919T055500Z-a4cd7643 (mrg1)
 
 ## Entry state

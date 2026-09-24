@@ -972,3 +972,65 @@ Not applicable: no test was added. The already-existing regression test is part 
 ## Issues
 
 This defect is already fixed by `4fe4eadc`. No other defect was investigated or fixed. The reported prevalence of 27 corpus files describes the mechanic, not a remaining defect; no acceptance census or approximation entry requires a change.
+# Report — `pred:hasANonBasicLandType`
+
+## What changed
+
+The implementation is already committed at `1952fa4c` (`pred(hasanonbasiclandtype): read Forge's Card.hasANonBasicLandType filter predicate`). In `effects/filter.go`, `wordPredicate` recognizes `hasANonBasicLandType`, keeping matching and `UnknownPredicates` on the same classifier. The matcher requires Land and checks the vocabulary shared through `chooseNonbasicLandTypes`. The test in `effects/hasanonbasiclandtype_test.go` covers Desert/Gate positives, basic lands, Wasteland, nonlands, and census agreement; `rules/hasanonbasiclandtype_test.go` exercises the Wonderscape Sage carrier.
+
+The committed implementation also adds `ConditionDefined$ Returned` support needed to make the brief's requested Wonderscape Sage end-to-end behavior work. The brief's claim that an unknown predicate makes the rider never fire was not borne out: without the Returned group the condition was unresolved and the rider ran unconditionally. This is a scope deviation, documented in the committed code/report; it reuses the existing cost-provenance window pattern.
+
+Structural choice: reuse `chooseNonbasicLandTypes` and the shared predicate classifier, rather than maintaining a second list/recognizer, so future land types and census behavior remain aligned.
+
+## Verification (this run)
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+```
+$ go test -run 'TestHasANonBasicLandTypePredicate|TestWonderscapeSageNonbasicLandTypeSuppressesDiscard|TestWonderscapeSageBasicLandTypeKeepsDiscard' ./effects ./rules
+ok   github.com/adams-shaun/gorge/effects 0.639s
+ok   github.com/adams-shaun/gorge/rules 0.652s
+
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+
+$ gofmt -l effects/filter.go effects/hasanonbasiclandtype_test.go rules/hasanonbasiclandtype_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+## Fails without the fix
+
+Saved `effects/filter.go`, temporarily removed the `wordPredicate` classification case, ran the effects regression, then restored the source and verified it byte-identically (`RESTORE_CMP=0`).
+
+```
+$ go test -run '^TestHasANonBasicLandTypePredicate$' ./effects/
+--- FAIL: TestHasANonBasicLandTypePredicate (0.78s)
+    hasanonbasiclandtype_test.go:49: Land.hasANonBasicLandType must match Desert (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Land.hasANonBasicLandType must match Boros Guildgate (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Card.hasANonBasicLandType must match Desert (a nonbasic land type)
+    hasanonbasiclandtype_test.go:49: Card.hasANonBasicLandType must match Boros Guildgate (a nonbasic land type)
+    hasanonbasiclandtype_test.go:87: UnknownPredicates(Land.hasANonBasicLandType) = [hasANonBasicLandType], want empty
+    hasanonbasiclandtype_test.go:93: UnknownPredicates of a mixed spec = [hasANonBasicLandType totallyNotAPredicate], want exactly the unknown token
+FAIL
+effects: exit 1
+RESTORE_CMP=0
+```
+
+## Findings / issues
+
+The attached merge finding was an unstaged overwrite of `.ds4/report-t1.md` (the file contained an unrelated long merged-report history). I preserved the task report here and restored that tracked file to its committed version, clearing the unintended working-tree change; no rebase or merge was attempted.
+
+`ConditionDefined$` families other than the supported set, including `ChosenCard`, `RememberedLKI`, `ParentTarget`, and `Sacrificed`, remain unsupported and may fail open in `effects/conditions.go:conditionMet`; outside this ticket. The prior task report records measured prevalence and a proposed follow-up. The `ReturnedInWindow` path is scoped to the resolving ability's activation-cost window; no corpus carrier for broader use was identified.
+
+No chain-head or ratchet movement was measured in this run. The behaviour goldens passed as shown; no additional gates were run.
+
+## Commit
+
+`1952fa4c` — implementation and tests (already present in branch HEAD).
