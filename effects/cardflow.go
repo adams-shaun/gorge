@@ -161,7 +161,9 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	// what moved). Unread before this — the whole sub-chain saw nothing. A
 	// draw that parked on a dredge ask has not happened yet, so the record
 	// waits until the draw is real (the suspend check below).
-	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDrawn"]), "True")
+	// The corpus uses both True and AllReplaced; both record cards this
+	// ability's draws actually moved into a hand (replaced draws are not here).
+	remember := strings.TrimSpace(sa.Params["RememberDrawn"]) != ""
 	targets := actingPlayers(h, c, sa)
 	total := int32(len(targets)) * n
 	// OptionalDecider$ (Mystic Remora, Rhystic Study — Forge's DrawEffect
