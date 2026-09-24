@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -14,6 +15,23 @@ func init() {
 	Register("DamageAll", effDamageAll)
 	Register("EachDamage", effEachDamage)
 	Register("Fight", effFight)
+}
+
+// roundRobinSplit is DealDamage's R-9 no-host (and AskEmpty) stand-in for a
+// DividedAsYouChoose$ allocation: distribute one damage at a time over the
+// chosen-target list in order, exactly the deterministic split this build
+// shipped before the ask existed. The returned slice is indexed by target
+// position (the same order the ask's options use), so the caller reads it
+// positionally whatever path filled it.
+func roundRobinSplit(n int, total int32) []int32 {
+	split := make([]int32, n)
+	if n <= 0 {
+		return split
+	}
+	for i := int32(0); i < total; i++ {
+		split[i%int32(n)]++
+	}
+	return split
 }
 
 // effDealDamage implements "SP$/AB$/DB$ DealDamage" against players and
@@ -78,11 +96,16 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// DividedAsYouChoose$ N (Fury's "deals 4 damage divided as you choose
 	// among any number of target creatures and/or planeswalkers", Forked
 	// Bolt): the NAMED TOTAL is divided among the chosen targets, not dealt
-	// to each. The player's own division choice is an outcome-modelling ask
-	// this build does not pose; the deterministic stand-in distributes one
-	// damage at a time, round-robin in the chosen-target order, so the last
-	// targets of an over-chosen list take nothing and the batch total is
-	// exactly N. Targets beyond N take nothing, as an unchosen target would.
+	// to each. The player's own division is a real mid-resolution ask: one
+	// KChoose option per chosen target, Min == Max == the named total and
+	// Repeatable, so the answer is a multiset whose per-target multiplicities
+	// are the shares (a target that receives nothing is simply never picked).
+	// The decision's own Min/Max/Repeatable wire rules already constrain the
+	// answer to exactly the named total over exactly the chosen target list,
+	// so no new Validate rule is needed. The deterministic R-9 no-host
+	// stand-in (and the AskEmpty arm) distributes one damage at a time,
+	// round-robin in the chosen-target order, so the batch total is exactly
+	// N. Targets beyond N take nothing, as an unchosen target would.
 	divided := false
 	var total int32
 	if raw, ok := sa.Params["DividedAsYouChoose"]; ok && strings.TrimSpace(raw) != "" {
@@ -90,6 +113,65 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		total = Num(h, c, sa, "DividedAsYouChoose", 0)
 		if total < 0 {
 			total = 0
+		}
+	}
+	// The chosen-target list both the division ask and the emission walk
+	// read, in Defined$ order; the option index of a target is exactly its
+	// position here, so the answer's multiplicities land on the right
+	// recipient.
+	type divTarget struct {
+		obj    state.ObjID
+		player state.PlayerID
+	}
+	var divTargets []divTarget
+	if divided {
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				divTargets = append(divTargets, divTarget{player: t.Player})
+				continue
+			}
+			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+				divTargets = append(divTargets, divTarget{obj: t.Obj})
+			}
+		}
+		if !c.DamageSplitDone {
+			// Only a division with something to divide is asked; an empty
+			// target list or a total of 0 is the silent no-op it has always
+			// been (never a decision nobody could answer differently).
+			if len(divTargets) > 0 && total > 0 {
+				opts := make([]decision.Option, 0, len(divTargets))
+				for i, t := range divTargets {
+					o := decision.Option{Index: i, Player: c.Controller}
+					if t.obj != 0 {
+						o.Kind, o.Obj = "card", t.obj
+						if gobj := h.Game().Obj(t.obj); gobj != nil && gobj.Face() != nil {
+							o.Label = gobj.Face().Name
+						}
+					} else {
+						o.Kind = "player"
+						o.Player = t.player
+						if g := h.Game(); int(t.player) < len(g.Players) {
+							o.Label = g.Players[t.player].Name
+						}
+					}
+					opts = append(opts, o)
+				}
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+					Min: int(total), Max: int(total), Options: opts, Repeatable: true,
+					ResumeKind: "damage_split", ResumeSA: sa, Source: c.Source,
+					Prompt: "Assign " + strconv.Itoa(int(total)) + " damage"}
+				if Ask(h, d) == AskAsked {
+					// Suspended: rules' "damage_split" resume arm fills
+					// Ctx.DamageSplit from the answered multiset and re-enters
+					// this SA, which then emits with the player's shares. The
+					// damage batch is not open yet, so the suspension leaves
+					// nothing half-emitted.
+					return
+				}
+				// No host (R-9): the deterministic round-robin stand-in.
+				c.DamageSplit = roundRobinSplit(len(divTargets), total)
+			}
+			c.DamageSplitDone = true
 		}
 	}
 	// ExcessSVar$ <name> (CR 120.10): the damage this call deals BEYOND what
@@ -153,27 +235,11 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	if divided {
-		type divTarget struct {
-			obj    state.ObjID
-			player state.PlayerID
-		}
-		var ts []divTarget
-		for _, t := range Defined(h, c, sa) {
-			if t.IsPlayer {
-				ts = append(ts, divTarget{player: t.Player})
-				continue
+		for i, t := range divTargets {
+			amt := int32(0)
+			if i < len(c.DamageSplit) {
+				amt = c.DamageSplit[i]
 			}
-			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
-				ts = append(ts, divTarget{obj: t.Obj})
-			}
-		}
-		dealt := make(map[divTarget]int32, len(ts))
-		for i := int32(0); i < total && len(ts) > 0; i++ {
-			t := ts[i%int32(len(ts))]
-			dealt[t]++
-		}
-		for _, t := range ts {
-			amt := dealt[t]
 			if amt <= 0 {
 				continue
 			}

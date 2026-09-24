@@ -2630,6 +2630,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// rebuilds the Ctx from scratch. Without the record the pre-ask
 			// fires again and the two asks alternate forever.
 			e.recordTargetsPick(rp.obj, rp.sa, ctx.TargetsPick)
+		case "damage_split":
+			// DealDamage's DividedAsYouChoose$ allocation answer: the KChoose
+			// offered one option per chosen target (Min == Max == the named
+			// total, Repeatable), so the answer is a multiset whose per-option
+			// multiplicity is the damage that option's target receives. Every
+			// option index is the target's position in the resolution's
+			// Defined$ order, so the re-entered effDealDamage reads the shares
+			// positionally. A target the answer never picked is simply absent
+			// (zero damage), which the primitive's positional read treats as
+			// nothing.
+			n := 0
+			for _, o := range chosen {
+				if o.Index+1 > n {
+					n = o.Index + 1
+				}
+			}
+			ctx.DamageSplit = make([]int32, n)
+			for _, o := range chosen {
+				if o.Index >= 0 && o.Index < len(ctx.DamageSplit) {
+					ctx.DamageSplit[o.Index]++
+				}
+			}
+			ctx.DamageSplitDone = true
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
