@@ -385,6 +385,12 @@ func (h *fakeHost) WasCastFromHandByYou(_ state.ObjID, _ state.PlayerID) bool { 
 // engine in rules (Moria Scavenger's corpus test).
 func (h *fakeHost) DiscardedInWindow(_ state.ObjID) []state.ObjID { return nil }
 
+// ReturnedInWindow: the fake has no event log either, so the
+// ConditionDefined$ Returned group resolves to an empty list (a definite
+// zero); the channel is pinned end to end on the real engine in rules
+// (Wonderscape Sage's corpus test).
+func (h *fakeHost) ReturnedInWindow(_ state.ObjID) []state.ObjID { return nil }
+
 // The bare wasCastFromYourHand family's read (castprov3): the fake has no
 // cast log either, so it reports the same single flag the ByYou double reads
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose

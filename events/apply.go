@@ -2610,6 +2610,13 @@ func Apply(g *state.Game, e Event) {
 			// Text, so already-logged firings mint exactly as before.
 			break
 		}
+		if e.Text == "granted ability" {
+			// A SELF-granted activation (rules' shared activation flow mints
+			// it through this delayed shape): count it on the per-source
+			// activation census exactly as GrantAbilityPush counts a
+			// cross-object grant.
+			countActivation(g, e.Obj)
+		}
 		// StackCopy's discipline: snapshot every src field the post-mint
 		// code reads (Incarnation here) before AddObject may reallocate
 		// g.Objs and orphan the src pointer.
@@ -2751,6 +2758,12 @@ func Apply(g *state.Game, e Event) {
 		if sa == nil {
 			break
 		}
+		// AbilityPush's per-source activation census (ActivatedThisTurn),
+		// same battlefield condition and the same before-AddObject
+		// discipline: a GRANTED activation is an activation of the
+		// recipient, and leaving it uncounted let a free granted ability
+		// escape the bot's repeatability budget forever.
+		countActivation(g, e.Obj)
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
@@ -2791,6 +2804,11 @@ func Apply(g *state.Game, e Event) {
 		if sa == nil {
 			break
 		}
+		// The per-source activation census, as AbilityPush and
+		// GrantAbilityPush count it: Myr Welder activating an imprinted
+		// Knowledge Vault's "{0}: Sacrifice" was never counted, so the bot's
+		// repeatability budget never closed and it re-activated forever.
+		countActivation(g, e.Obj)
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
@@ -3692,4 +3710,14 @@ func matchExtraPhase(g *state.Game, e Event, consumed bool) (int, bool) {
 		return i, true
 	}
 	return 0, false
+}
+
+// countActivation folds one non-mana activation onto its source's
+// per-turn census (state.Object.ActivatedThisTurn), under AbilityPush's
+// condition: only a battlefield source counts. It must run BEFORE the
+// caller's AddObject, which may reallocate g.Objs under the src pointer.
+func countActivation(g *state.Game, id state.ObjID) {
+	if src := g.Obj(id); src != nil && src.Zone == state.ZBattlefield {
+		src.ActivatedThisTurn++
+	}
 }
