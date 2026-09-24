@@ -154,6 +154,17 @@ func TestRadiationPlacementVault12ChapterI(t *testing.T) {
 			t.Fatalf("player %d RAD=%d, want 3", p, got)
 		}
 	}
+
+	// The Saga's own SVar:X reads the group sum, so it must now resolve over
+	// the three counters just placed (3 players x 3 rad counters = 9).
+	body := svarBodyOf(t, e.G.Obj(saga).Face(), "X")
+	if body != "PlayerCountPlayers$Counters.RAD" {
+		t.Fatalf("test precondition: Vault 12 SVar:X = %q", body)
+	}
+	if got, ok := effects.EvalCountOK(e, &effects.Ctx{Source: saga, Controller: 0,
+		SVars: e.G.Obj(saga).Face().SVars}, body); !ok || got != 9 {
+		t.Fatalf("Vault 12 SVar:X = (%d,%v), want (9,true)", got, ok)
+	}
 }
 
 // TestRadiationDrainMillsAndDrains drives the CR 728.1 inherent trigger end to
