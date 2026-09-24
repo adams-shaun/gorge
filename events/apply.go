@@ -64,7 +64,10 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
-	case GameStart, DecisionAsk, DecisionMade, Note, ModeChosen, ManaActivate:
+	// RollDice is the proposal-only roll-action Kind (task rolldice-repl): it
+	// is held out to replacement matching, never emitted, so it folds nothing
+	// -- the marker shape PlanarRoll keeps.
+	case GameStart, DecisionAsk, DecisionMade, Note, ModeChosen, ManaActivate, RollDice:
 		// Markers. ModeChosen is a marker too: rules carries
 		// its answer in a cast/trigger cache or suspended-resolution context, so
 		// Apply writes nothing; the log lets replay re-derive the same branch.

@@ -374,6 +374,13 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		// the generic single-match/CR-616.1 path below must never see it.
 		return e.continueScryReplacements(ev, matches, nil, nil, 0)
 	}
+	if ev.Kind == events.RollDice {
+		// The roll-action boundary (CR 614.4, task rolldice-repl): the
+		// proposal is held, not logged, so continueRollDiceReplacements owns
+		// the whole return -- it rewrites the held proposal's dice count and
+		// ignored-low count in place and the caller rolls the rewritten roll.
+		return e.continueRollDiceReplacements(ev, matches)
+	}
 	if ev.Kind == events.PlanarRoll {
 		// The planar-dice class (Ichor Elixir) and the bare roll BOTH run
 		// here: even with no replacement matching, the roll itself is the
@@ -991,6 +998,11 @@ func replacementEvent(ev events.Event) (string, bool) {
 		// (Engine.Scry) reaches the collection; the completed record is
 		// emitted through emitScryRecord, outside the replacement pass.
 		return "Scry", true
+	case events.RollDice:
+		// The roll-action boundary (task rolldice-repl). Only the synthetic
+		// PROPOSAL (Engine.RollDiceProposed) reaches the collection: the Kind
+		// is never emitted, so no logged event can ever map here.
+		return "RollDice", true
 	case events.PlanarRoll:
 		return "RollPlanarDice", true
 	case events.CounterChange, events.PlayerCounterChange:
@@ -3001,6 +3013,96 @@ func (e *Engine) scryReplacementCount(ctx *effects.Ctx, raw string, base int32) 
 	return effects.EvalCountOK(e, ctx, expr)
 }
 
+// continueRollDiceReplacements applies the collected R:Event$ RollDice
+// matches to the held roll proposal (CR 616.1e: each applicable effect
+// applies once, in deterministic scan order, with a fresh recheck against
+// the rewritten proposal after every application -- the discipline the
+// planar-dice class keeps). The corpus's supported shape is the
+// DB$ ReplaceEffect body whose chain rewrites the held proposal's Number
+// (the dice count) and Ignore (the ignored-low count) in place --
+// ReplaceCount$Number/Plus.1 / ReplaceCount$Ignore/Plus.1 (Wyll, Blade of
+// Frontiers; Barbarian Class; Pixie Guide); the rewrite goes through the
+// same ReplaceEvent seam the planar arm uses, so the two roll classes
+// cannot drift. A match whose body chain steps off ReplaceEffect, or whose
+// ReplaceEffect rewrite touches no modelled field (SwapRoll's
+// DicePTExchanges), cannot be modelled: the match is skipped LOUDLY (the
+// roll proceeds unmodified, the conservative direction) and the shape is
+// named here for the next ticket, never silently widened.
+func (e *Engine) continueRollDiceReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		// CR 616.1e: the recheck uses the same matcher class the collection
+		// used -- an Effect-created match is never re-gated on ActiveZones$.
+		matched := false
+		if m.key != "" {
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, ev)
+		}
+		if !matched {
+			continue
+		}
+		if m.repl.With == nil || !rollDiceBodyChainSupported(m.repl.With) {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id,
+				Text: "unimplemented RollDice replacement"})
+			continue
+		}
+		before := ev
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, &ev)
+		if ev.Amount == before.Amount && ev.Counter == before.Counter {
+			// The body resolved but rewrote nothing this build models (the
+			// SwapRoll exchange): loud inertness, the roll proceeds
+			// unmodified.
+			e.emit(events.Event{Kind: events.Note, Obj: m.id,
+				Text: "unimplemented RollDice replacement"})
+		}
+	}
+	return ev, true
+}
+
+// rollDiceBodyChainSupported reports whether a replacement body's whole
+// SubAbility$ chain is ReplaceEffect rewrites -- the only shape that both
+// never asks (so the pre-roll hook can never suspend the roll it belongs to)
+// and only ever rewrites the modelled proposal fields. A chain that steps
+// off ReplaceEffect fails closed.
+func rollDiceBodyChainSupported(with *cards.SA) bool {
+	for s := with; s != nil; s = s.Sub {
+		if s.API != "ReplaceEffect" {
+			return false
+		}
+	}
+	return true
+}
+
+// RollDiceProposed is the effects.Host hook effRollDice consults before any
+// die of one roll action is rolled (CR 614.4). It builds the synthetic
+// events.RollDice PROPOSAL -- Player the roller, Obj the rolling source,
+// Amount the proposed dice count, Counter the proposed ignored-low count --
+// and runs it through the ordinary replacement collection and dispatch (the
+// Scry proposal's discipline): a matching R:Event$ RollDice replacement's
+// body rewrites the proposal synchronously inside this call and the
+// rewritten Amount/Counter come back to the caller. The proposal is NEVER
+// logged. Mirrors emit's own guard: while a replacement body is already
+// resolving (applyingReplacement), no replacement applies -- a body's own
+// rolls are fresh, un-replaced events.
+func (e *Engine) RollDiceProposed(p state.PlayerID, source state.ObjID, amount, ignore int32) (int32, int32) {
+	if e.applyingReplacement {
+		return amount, ignore
+	}
+	if ignore < 0 {
+		ignore = 0
+	}
+	ev, _ := e.applyReplacements(events.Event{Kind: events.RollDice, Player: p, Obj: source,
+		Amount: amount, Counter: strconv.FormatInt(int64(ignore), 10)})
+	n, err := strconv.Atoi(ev.Counter)
+	if err != nil || n < 0 {
+		n = 0
+	}
+	if ev.Amount < 1 {
+		ev.Amount = 1
+	}
+	return ev.Amount, int32(n)
+}
+
 // emitScryRecord logs a completed scry instruction's events.Scry record
 // OUTSIDE the replacement pass: the record is a finished action's marker, so
 // no R:Event$ Scry replacement can apply to it (CR 614.4's window is before
@@ -4225,6 +4327,28 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
+	case "RollDice":
+		// The roll-action replacement (R:Event$ RollDice, task rolldice-repl
+		// -- Wyll, Blade of Frontiers; Barbarian Class; Pixie Guide; the
+		// SwapRoll carrier Vedalken Squirrel-Whacker). The event is the
+		// synthetic roll PROPOSAL effects' effRollDice builds before any die
+		// is rolled (CR 614.4's before-the-action window); the per-die and
+		// batch Notes are the roll's only log witnesses and are emitted after
+		// this window, so a proposal can never collide with a logged event.
+		// ValidPlayer$ names the roller, matched with the replacement source's
+		// controller as You exactly like every other player-spec gate here.
+		if ev.Kind != events.RollDice {
+			return false
+		}
+		if v, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
+			return false
+		}
+		// ValidSides$ (the Whacker's six-sided gate) is unread: the proposal
+		// carries no die-size field to gate on, and its one corpus carrier is
+		// the unmodelled SwapRoll body the dispatch skips loudly -- a sides
+		// gate is never silently widened onto a die of another size.
+		return e.replacementConditionHolds(r, source, you)
 	case "Draw", "DrawCards":
 		if ev.Kind != events.Draw {
 			return false
@@ -4744,7 +4868,16 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 	if ev == nil {
 		return
 	}
-	if ev.Kind == events.PlanarRoll {
+	if ev.Kind == events.PlanarRoll || ev.Kind == events.RollDice {
+		// The roll rewrite (task rollplanar1's Ichor Elixir pair, extended to
+		// the regular-dice proposal in rolldice-repl -- Wyll, Blade of
+		// Frontiers; Barbarian Class; Pixie Guide): Number is the dice count
+		// (the held event's Amount), Ignore the ignored-result count (the held
+		// event's Counter, decimal; "" reads 0). A resolved literal value
+		// applies as-is; an unresolvable ReplaceCount body leaves the field
+		// alone, the same fail-closed direction the Damage arm keeps. Any
+		// other VarName (SwapRoll's DicePTExchanges) is unmodelled and leaves
+		// the proposal untouched; the dispatch reports that inertness loudly.
 		// The planar-dice rewrite (Ichor Elixir's ReplaceEffect pair): Number
 		// is the dice count (the held event's Amount), Ignore the ignored-
 		// result count (the held event's Counter, decimal; "" reads 0). A

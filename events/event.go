@@ -867,7 +867,20 @@ const (
 	// protection. Appended after CloneStatic to preserve prior event ordinals
 	// and the hash chain.
 	DamageProvenance
-	NumKinds = int(DamageProvenance) + 1
+	// RollDice is the SYNTHETIC roll-action PROPOSAL rules' RollDiceProposed
+	// hook holds out to R:Event$ RollDice replacement matching before any die
+	// of one roll action is rolled (CR 614.4's before-the-action window, task
+	// rolldice-repl; the Scry proposal's discipline). Player is the roller,
+	// Obj the rolling source, Amount the proposed dice count and Counter the
+	// proposed ignored-low count (decimal, "" = none). It is NEVER emitted --
+	// the roll's log witnesses are the per-die and batch Notes the ordinary
+	// effRollDice path emits -- so no log event ever carries this Kind and
+	// every earlier ordinal, the hash chain and the golden replays are
+	// untouched. Appended after DamageProvenance, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain or
+	// golden replay is affected.
+	RollDice
+	NumKinds = int(RollDice) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1002,7 +1015,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
-	"damage_provenance"}
+	"damage_provenance", "roll_dice"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

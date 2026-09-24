@@ -267,6 +267,12 @@ func (h *fakeHost) Scry(p state.PlayerID, source state.ObjID, count int32, sa *c
 // replacement pipeline to bypass, the same discipline as its Scry above.
 func (h *fakeHost) EmitScryRecord(e events.Event) { h.Emit(e) }
 
+// RollDiceProposed has no replacement registry to consult here, the same
+// discipline as the double's Scry above: the proposal returns unchanged.
+func (h *fakeHost) RollDiceProposed(_ state.PlayerID, _ state.ObjID, amount, ignore int32) (int32, int32) {
+	return amount, ignore
+}
+
 // RememberExploitedLKI records the snapshot so an effects-level test can see
 // what effExploit published (the real engine attaches it to the trig:Exploited
 // pending trigger's LKI; that half is pinned in rules).
