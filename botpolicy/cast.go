@@ -148,6 +148,9 @@ type Card struct {
 	// facts -- and stays false for every card off the battlefield, which is
 	// inert wherever the feature is not consulted.
 	Tapped bool
+	// Sick mirrors SummonSick from the public object/view. The target reserve
+	// deliberately excludes sources whose activation legality cannot be proven.
+	Sick bool
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the

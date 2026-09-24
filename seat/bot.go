@@ -329,6 +329,7 @@ func boardFromView(v view.View) botpolicy.Board {
 				Castable:      castable(cv),
 				OnBattlefield: battlefield,
 				Tapped:        cv.Tapped,
+				Sick:          cv.SummonSick,
 				Produces:      produces,
 				InstantSpeed:  instantSpeedView(cv),
 				Counter:       cv.SpellAPI == "Counter",

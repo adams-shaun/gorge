@@ -314,6 +314,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				Castable:      castable,
 				OnBattlefield: z == state.ZBattlefield,
 				Tapped:        o.Tapped,
+				Sick:          o.SummonSick,
 				Produces:      f.ManaProduction(),
 				InstantSpeed:  instantSpeed,
 				Counter:       f.SpellAbility() != nil && f.SpellAbility().API == "Counter",
