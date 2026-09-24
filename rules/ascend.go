@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
@@ -32,6 +34,9 @@ func init() {
 // scan makes sees a now-blessed seat, so the scan terminates.
 func (e *Engine) checkBlessingGrants() {
 	if e.G.Over {
+		return
+	}
+	if !e.ascendPossible() {
 		return
 	}
 	for _, p := range e.G.AliveFrom(0) {
@@ -78,4 +83,79 @@ func (e *Engine) grantSpellBlessing(o *state.Object, f *cards.Face) {
 	}
 	e.emit(events.Event{Kind: events.BlessingChange, Player: p,
 		Text: "city's blessing"})
+}
+
+// ascendScan is checkBlessingGrants' amortised pre-filter. The scan below
+// reads every permanent's DERIVED keywords, and the post-fold hook runs it on
+// every token mint: a Krenko, Mob Boss / Horn of Gondor batch of N tokens
+// over a board of N permanents was N^2 derived recomputes (each mint stales
+// the derived cache), which turned a long cardfuzz game into a multi-minute
+// hang. No object can carry Ascend unless some card in the game's object
+// arena mentions it -- printed K:Ascend, or an AddKeyword$/KW$ grant or any
+// other parameter naming it -- so the arena is scanned once, incrementally
+// (objects are only ever appended), and the per-seat walk runs only once
+// such a card exists. It is a pure cache over state and emits nothing.
+type ascendScan struct {
+	game    *state.Game
+	scanned int
+	seen    bool
+}
+
+func (e *Engine) ascendPossible() bool {
+	s := &e.ascend
+	if s.game != e.G || s.scanned > len(e.G.Objs) {
+		*s = ascendScan{game: e.G}
+	}
+	for ; !s.seen && s.scanned < len(e.G.Objs); s.scanned++ {
+		if cardMentionsAscend(e.G.Objs[s.scanned].Card) {
+			s.seen = true
+		}
+	}
+	return s.seen
+}
+
+// cardMentionsAscend reports whether any face of c prints Ascend or names it
+// in any parameter or SVar (a grant). Deliberately over-inclusive: a false
+// positive only costs the full scan.
+func cardMentionsAscend(c *cards.Card) bool {
+	if c == nil {
+		return false
+	}
+	params := func(m map[string]string) bool {
+		for _, v := range m { // membership test only; order cannot matter.
+			if strings.Contains(v, "Ascend") {
+				return true
+			}
+		}
+		return false
+	}
+	for _, f := range c.Faces {
+		if f == nil {
+			continue
+		}
+		for _, k := range f.Keywords {
+			if strings.Contains(k, "Ascend") {
+				return true
+			}
+		}
+		if params(f.SVars) {
+			return true
+		}
+		for _, st := range f.Statics {
+			if params(st.Params) {
+				return true
+			}
+		}
+		for _, a := range f.Abilities {
+			if a != nil && params(a.Params) {
+				return true
+			}
+		}
+		for _, tr := range f.Triggers {
+			if params(tr.Params) || (tr.Effect != nil && params(tr.Effect.Params)) {
+				return true
+			}
+		}
+	}
+	return false
 }

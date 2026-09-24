@@ -125,6 +125,10 @@ type Engine struct {
 	compiledText  *compiledText
 	landTypeWords []string
 
+	// ascend is checkBlessingGrants' incremental "could anything carry
+	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
+	ascend ascendScan
+
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
 	// both together, while an Engine assembled around an existing log lazily
