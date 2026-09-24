@@ -62,6 +62,20 @@ func corpusSetStateSA(t *testing.T, name string) (*cards.SA, map[string]string) 
 		for _, r := range f.Repls {
 			walk(r.With)
 		}
+		// A named SVar can be reached through a Branch/MakeCard rider
+		// rather than a linked Sub chain (High Marshal Arguel). Resolve the
+		// real corpus SVar instead of synthesising a replacement script.
+		if found == nil {
+			for _, name := range []string{"DBTransform"} {
+				if f.SVars[name] == "" {
+					continue
+				}
+				candidate := cards.ResolveSVar(f.SVars, name)
+				if candidate != nil && candidate.API == "SetState" && strings.EqualFold(candidate.Params["Optional"], "True") {
+					found = candidate
+				}
+			}
+		}
 		if found != nil {
 			svars = f.SVars
 			break
@@ -110,10 +124,13 @@ func TestSetStateOptionalAskShapeAndAnsweredReEntries(t *testing.T) {
 	if !strings.EqualFold(strings.TrimSpace(sa.Params["Mode"]), "Transform") {
 		t.Fatalf("SA is not Mode$ Transform: %+v", sa.Params)
 	}
-	if !strings.EqualFold(strings.TrimSpace(sa.Params["Defined"]), "Self") {
-		t.Fatalf("SA Defined = %q, want Self", sa.Params["Defined"])
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["Defined"]), "Self") || sa.Params["Choices"] != "" {
+		t.Fatalf("SA Defined = %q / Choices = %q, want Self without Choices", sa.Params["Defined"], sa.Params["Choices"])
 	}
 
+	if o := h.g.Obj(src); o.Zone != state.ZBattlefield || o.FaceIdx != 0 || len(o.Card.Faces) != 2 {
+		t.Fatalf("precondition: want front face of a two-faced battlefield permanent, got %+v", o)
+	}
 	Resolve(h, &Ctx{Source: src, Controller: 0, SVars: sv}, sa)
 	if h.asked == nil {
 		t.Fatal("no election posed for an Optional$ True SetState")
@@ -163,13 +180,27 @@ func TestSetStateOptionalNothingToChangeNeverAsks(t *testing.T) {
 	o := h.g.AddObject(card, 0)
 	o.Zone = state.ZBattlefield
 	sa, _ := corpusSetStateSA(t, "Dowsing Dagger")
+	if len(o.Card.Faces) != 1 || sa.Params["Defined"] != "Self" {
+		t.Fatalf("precondition: want single-faced Self recipient, got %d faces / %q", len(o.Card.Faces), sa.Params["Defined"])
+	}
 
 	Resolve(h, &Ctx{Source: o.ID, Controller: 0}, sa)
 	if h.asked != nil {
 		t.Fatalf("election posed with nothing to change: %+v", h.asked)
 	}
-	if len(h.log) != 0 {
-		t.Fatalf("log = %+v, want no events for a single-face optional SetState", h.log)
+	if h.askCount != 0 || len(h.log) != 0 {
+		t.Fatalf("no-op asked %d time(s), log = %+v", h.askCount, h.log)
+	}
+	// A single-face no-op must not pass just because SetState was unregistered.
+	if registry.load().byName["SetState"] == nil {
+		t.Fatal("SetState handler not registered")
+	}
+	// Positive control: this same real SA must ask when given a two-face
+	// battlefield recipient; the no-op-only assertion would pass unfixed.
+	live := setStateObject(t, &h.fakeHost, 0)
+	Resolve(h, &Ctx{Source: live, Controller: 0}, sa)
+	if h.asked == nil {
+		t.Fatal("positive control: Optional$ SetState did not ask for live recipient")
 	}
 }
 
@@ -191,13 +222,22 @@ func TestSetStateOptionalNoAskHostDeclinesAndRunsTheChain(t *testing.T) {
 		t.Fatalf("High Marshal Arguel SA has no SubAbility chain: %+v", sa.Params)
 	}
 
+	if o := h.g.Obj(rem); o.Zone != state.ZBattlefield || len(o.Card.Faces) != 2 || o.FaceIdx != 0 {
+		t.Fatalf("precondition: want front face of a two-faced battlefield permanent, got %+v", o)
+	}
 	Resolve(h, &Ctx{Source: rem, Controller: 0, SVars: sv,
 		Remembered: []state.Target{{Obj: rem}}}, sa)
+	if h.askCount != 1 {
+		t.Fatalf("no-host path asked %d times, want one attempted election", h.askCount)
+	}
 	if got := flipFaceCount(h); got != 0 {
 		t.Fatalf("no-ask host flipped %d time(s), want the deterministic decline (0)", got)
 	}
 	if o := h.g.Obj(rem); o.FaceIdx != 0 {
 		t.Fatalf("no-ask host left FaceIdx at %d, want 0", o.FaceIdx)
+	}
+	if !setStateCleanupRan(h) {
+		t.Fatal("no-host decline skipped High Marshal Arguel's DBCleanup")
 	}
 }
 
@@ -208,41 +248,35 @@ func TestSetStateOptionalNoAskHostDeclinesAndRunsTheChain(t *testing.T) {
 // real DBCleanup; the observable that the chain ran is that Resolve completed
 // each pass without stalling and produced exactly the face change the answer
 // asked for.
-func TestSetStateOptionalChainedSubAbilityRunsOnBothAnswers(t *testing.T) {
-	h := newHost(t, 2)
-	rem := setStateObject(t, h, 0)
-	sa, sv := corpusSetStateSA(t, "High Marshal Arguel")
-
-	Resolve(h, &Ctx{Source: rem, Controller: 0, SVars: sv,
-		Remembered: []state.Target{{Obj: rem}}, SetStateOpt: "no"}, sa)
-	if got := flipFaceCount(h); got != 0 {
-		t.Fatalf("decline flipped %d time(s), want none", got)
+func setStateCleanupRan(h *fakeHost) bool {
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && ev.Text == "clears remembered/imprinted objects" {
+			return true
+		}
 	}
-	Resolve(h, &Ctx{Source: rem, Controller: 0, SVars: sv,
-		Remembered: []state.Target{{Obj: rem}}, SetStateOpt: "yes"}, sa)
-	if got := flipFaceCount(h); got != 1 {
-		t.Fatalf("accept flipped %d time(s), want exactly 1", got)
-	}
+	return false
 }
 
-// TestSetStateOptionalRealCorpusSAWithoutChoices covers the brief's clause (d)
-// with the real in-scope carriers: each carries Defined$ and no Choices$, so
-// this ticket's Defined$-only read fully serves them.
-func TestSetStateOptionalRealCorpusSAWithoutChoices(t *testing.T) {
-	for _, name := range []string{
-		"Dowsing Dagger",
-		"High Marshal Arguel",
-		"Nick Fury, Agent of S.H.I.E.L.D.",
-		"Search for Azcanta",
-	} {
-		t.Run(name, func(t *testing.T) {
-			sa, _ := corpusSetStateSA(t, name)
-			if strings.TrimSpace(sa.Params["Choices"]) != "" {
-				t.Fatalf("%s unexpectedly carries Choices$ %q (this ticket does not read it)",
-					name, sa.Params["Choices"])
+func TestSetStateOptionalChainedSubAbilityRunsOnBothAnswers(t *testing.T) {
+	sa, sv := corpusSetStateSA(t, "High Marshal Arguel")
+	for _, answer := range []string{"no", "yes"} {
+		t.Run(answer, func(t *testing.T) {
+			h := newHost(t, 2)
+			rem := setStateObject(t, h, 0)
+			if o := h.g.Obj(rem); o.Zone != state.ZBattlefield || len(o.Card.Faces) != 2 || o.FaceIdx != 0 {
+				t.Fatalf("precondition: want front face of a two-faced battlefield permanent, got %+v", o)
 			}
-			if strings.TrimSpace(sa.Params["Defined"]) == "" {
-				t.Fatalf("%s Optional$ SetState has no Defined$", name)
+			Resolve(h, &Ctx{Source: rem, Controller: 0, SVars: sv,
+				Remembered: []state.Target{{Obj: rem}}, SetStateOpt: answer}, sa)
+			if !setStateCleanupRan(h) {
+				t.Fatalf("%s skipped High Marshal Arguel's DBCleanup: %+v", answer, h.log)
+			}
+			want := 0
+			if answer == "yes" {
+				want = 1
+			}
+			if got := flipFaceCount(h); got != want {
+				t.Fatalf("%s flipped %d time(s), want %d", answer, got, want)
 			}
 		})
 	}
