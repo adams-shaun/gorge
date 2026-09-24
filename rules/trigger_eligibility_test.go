@@ -30,6 +30,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"Blocks", []events.Kind{events.DeclareBlockers}},
 		{"Sacrificed", []events.Kind{events.MoveZone}},
 		{"Discarded", []events.Kind{events.MoveZone}},
+		{"DiscardedAll", []events.Kind{events.MoveZone}},
 		{"CommitCrime", []events.Kind{events.TargetsChosen}},
 		{"Taps", []events.Kind{events.Tap}},
 		{"TapsForMana", []events.Kind{events.Tap}},
@@ -161,7 +162,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 	modes := []string{
 		"ChangesZone", "SpellCast", "AbilityCast", "SpellAbilityCast", "Attacks",
 		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblocked", "AttackerUnblockedOnce", "Blocks", "Sacrificed",
-		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
+		"Discarded", "DiscardedAll", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
 		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
