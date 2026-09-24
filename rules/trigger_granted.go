@@ -709,7 +709,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
 					continue
 				}
-				if !observer.triggerMatches(t, id, ev, objLKI) {
+				if !observer.triggerMatchesWithSVars(t, id, ev, objLKI, gf.Face.SVars) {
 					continue
 				}
 				key := triggerKey{Source: id, Idx: -1}
@@ -792,7 +792,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 		if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
 			continue
 		}
-		if !observer.triggerMatches(t, id, ev, objLKI) {
+		if !observer.triggerMatchesWithSVars(t, id, ev, objLKI, grantFace.SVars) {
 			continue
 		}
 		key := triggerKey{Source: id, Idx: -1}
