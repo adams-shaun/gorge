@@ -284,6 +284,14 @@ type Engine struct {
 	staticVersion int
 	staticObjs    int
 
+	// sbaQuiet is the state-based-action quiet key (rules/sbaquiet.go): the
+	// board at which the last checkStateBased pass loop applied nothing.
+	// sbaUnquiet is that loop's scratch flag for a no-op that depended on a
+	// non-event input. Clone() leaves both zero, so a clone never skips its
+	// first pass loop.
+	sbaQuiet   sbaQuietKey
+	sbaUnquiet bool
+
 	// staticQueueBuf is staticEffects' AddStaticAbility$ work queue's reused
 	// backing array: truncated to zero at every scan, grown only when a
 	// static-grant fires (the warm-rescan allocation budget,

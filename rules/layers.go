@@ -2437,9 +2437,9 @@ func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, ke
 	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
 	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
-	// filter match, through the combined entry point; its Contains guard is
-	// the early-out, so every Affected$ spec without the tokens costs three
-	// Contains calls on this shared hot path.
+	// filter match, through the combined entry point; its one-probe
+	// specProvenanceGate is the early-out, so every Affected$ spec
+	// without the tokens costs one cached lookup on this shared hot path.
 	affects, ok := e.castProvenanceAdmitsWindow(ce.Affects, id, ce.Controller, atStack != 0)
 	if !ok {
 		return false
