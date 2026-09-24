@@ -199,19 +199,17 @@ func TestNinjutsuWithholdsWhenTheOnlyAttackerIsBlocked(t *testing.T) {
 	if d := ninja.Link(); len(d) != 0 {
 		t.Fatalf("link Walker of Secret Ways: %v", d)
 	}
-	e, _ := ninjutsuDeck(t, 9403, ninja)
+	e, cfg := ninjutsuDeckWithBlocker(t, 9403, ninja)
 	ninjaID := searchMoveByName(t, e, "Walker of Secret Ways", state.ZHand)
-	bear := attackWithBear(t, e)
-	// Precondition: unblocked -> offered.
-	fundPool(t, e, "CU")
-	if abilityFor(t, e, 0, ninjaID) == nil {
-		t.Fatal("precondition: ninjutsu should be offered while the Bear is unblocked")
+	bear, wall := attackWithBearBlockedBySeatOne(t, e)
+	// Precondition: the real KBlockers answer actually blocked the Bear with
+	// the Wall Bear (a synthetic BlockedBy write cannot satisfy this).
+	if o := e.G.Obj(bear); o == nil || len(o.BlockedBy) == 0 || o.BlockedBy[0] != wall {
+		t.Fatalf("precondition: Bear should be blocked by the Wall Bear, got %+v", o)
 	}
-	// Now record a blocker on the Bear and re-ask priority.
-	e.G.Obj(bear).BlockedBy = []state.ObjID{bear}
-	e.pending = nil
-	e.priorityRound()
+	fundPool(t, e, "CU")
 	if abilityFor(t, e, 0, ninjaID) != nil {
 		t.Fatal("ninjutsu was offered with a BLOCKED attacker; the unblocked cost gate did not bind")
 	}
+	replayCheck(t, e, cfg)
 }

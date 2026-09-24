@@ -146,3 +146,64 @@ func searchMoveByNameSeat(t *testing.T, e *Engine, p state.PlayerID, name string
 	t.Fatalf("corpus fixture %q absent from seat %d's hand/library", name, p)
 	return 0
 }
+
+// ninjutsuBlockerSrc is the inline 0/4 blocker the real-block withholding
+// test seeds into seat 1's deck. It needs no Haste: it blocks on the turn
+// seat 0 attacks, and this is seat 1's own turn-order-agnostic defence.
+const ninjutsuBlockerSrc = "Name:Wall Bear\nManaCost:G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n"
+
+// ninjutsuDeckWithBlocker is ninjutsuDeck with one blocker in seat 1's deck,
+// so the attacker can be blocked through a real CR 509.1 KBlockers answer
+// instead of a synthetic state.Object.BlockedBy write. The blocker is a
+// card of seat 1's own deck (putCreature's moveSeeded path), so the game
+// replays from the log.
+func ninjutsuDeckWithBlocker(t *testing.T, seed uint64, ninja *cards.Card) (*Engine, Config) {
+	t.Helper()
+	s0 := []*cards.Card{ninja, card(t, ninjutsuBearSrc)}
+	for len(s0) < 40 {
+		s0 = append(s0, mountainDeck(t, 1)...)
+	}
+	s1 := []*cards.Card{card(t, ninjutsuBlockerSrc)}
+	for len(s1) < 40 {
+		s1 = append(s1, mountainDeck(t, 1)...)
+	}
+	cfg := seatZeroStart(Config{Seed: seed, Names: []string{"ninja", "defender"},
+		Decks: [][]*cards.Card{s0, s1}, Tokens: map[string]*cards.Card{}})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	return e, cfg
+}
+
+// attackWithBearBlockedBySeatOne drives seat 0's Bear declared attacking
+// seat 1 and has seat 1 block it with the inline Wall Bear -- a real KBlockers
+// answer, not a direct BlockedBy write -- then crosses the combat priority
+// window to seat 0's declare-blockers priority. It returns the attacker and
+// blocker ids.
+func attackWithBearBlockedBySeatOne(t *testing.T, e *Engine) (attacker, blocker state.ObjID) {
+	t.Helper()
+	bear := putCreature(t, e, 0, ninjutsuBearSrc)
+	wall := putCreature(t, e, 1, ninjutsuBlockerSrc)
+	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Bear not on the battlefield: %+v", o)
+	}
+	if o := e.G.Obj(wall); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Wall Bear not on the battlefield: %+v", o)
+	}
+	e.priorityRound() // moveSeeded clears the pending ask; re-pose priority
+	driveToStep(t, e, e.G.Turn, 0, state.StepDeclareAttackers)
+	passToKind(t, e, decision.KAttackers)
+	submitAttackersOnly(t, e, bear)
+	// Cross seat 0's declare-attackers priority window, then answer the real
+	// CR 509.1 blockers ask with the Wall Bear.
+	passToKind(t, e, decision.KBlockers)
+	submitBlockersOnly(t, e, wall)
+	driveToBlockersPriority(t, e, 0)
+	if e.G.Step != state.StepDeclareBlockers || e.G.Active != 0 {
+		t.Fatalf("expected seat 0's declare-blockers step, got step %s active %d", e.G.Step, e.G.Active)
+	}
+	if o := e.G.Obj(bear); o == nil || !o.IsAttacking || o.Attacking != 1 || len(o.BlockedBy) == 0 {
+		t.Fatalf("precondition: Bear should be a BLOCKED attacker of seat 1, got %+v", o)
+	}
+	return bear, wall
+}
