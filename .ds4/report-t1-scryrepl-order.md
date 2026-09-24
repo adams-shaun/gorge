@@ -147,11 +147,17 @@ No non-test file modified.
 
 ## Rules / commits
 
-`.ds4/` is gitignored, so the reviewer handoff is at `.ds4/report-t1.md` (as the
-dispatch requires) and a task-unique durable copy is committed as
-`.ds4/report-t1-scryrepl-order.md`, following the `report-sol1-scry-repl.md`
-precedent. No production or test file changed on this branch; the branch tip
-equals `main` plus that report.
+`.ds4/` is gitignored. The dispatch-mandated reviewer handoff is
+`.ds4/report-t1.md` (working copy only — that path is a *tracked* report for an
+older ticket, `agent-20260919T181318Z-86535368`; its historical HEAD content is
+left unmodified and is not part of this branch's commit). The durable,
+task-unique committed copy is `.ds4/report-t1-scryrepl-order.md`, following the
+`report-sol1-scry-repl.md` precedent.
+
+No production or test file changed on this branch; the only committed file is
+the durable report, so the branch tip equals `main` plus that report. Fix commit
+`8d1151fb` is an ancestor of `main` and of this branch; nothing here re-applies
+it.
 
 ## Issues
 
