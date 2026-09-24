@@ -181,8 +181,8 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 
 // mayPlayUnreadGates are the gating parameters a MayPlay$ static can carry
 // that this build neither implements nor can safely ignore. Each one either
-// further conditions the permission (ValidAfterStack$, the residual SVar
-// condition family CheckSecondSVar$/CheckThirdSVar$/PresentCompare$, ValidSA$,
+// further conditions the permission (the residual SVar condition family
+// CheckSecondSVar$/CheckThirdSVar$/PresentCompare$, ValidSA$,
 // ActivationZone$) -- and an unconditional gate is the widening this file
 // refuses: an offer the engine cannot evaluate must not exist at all. Any of
 // these present fails the static closed, so the card is simply not offered.
@@ -201,7 +201,7 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 // Only a raise ParseCost cannot price still fails the static closed (the
 // priceability check in mayPlayStatic), never an uncharged surcharge.
 var mayPlayUnreadGates = [...]string{
-	"ValidAfterStack", "CheckSecondSVar", "CheckThirdSVar",
+	"CheckSecondSVar", "CheckThirdSVar",
 	"PresentCompare", "ValidSA", "ActivationZone", "CharacteristicDefining",
 }
 
@@ -252,8 +252,7 @@ func mayPlayGateRejected(params map[string]string) bool {
 // family, with ValidSA$ handled by the caller (the mutate-cast token is the
 // one shape the may-play walk classifies; see mayPlayKinds).
 func mayPlayGateRejectedOther(params map[string]string) bool {
-	if strings.TrimSpace(params["ValidAfterStack"]) != "" ||
-		strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
+	if strings.TrimSpace(params["CheckSecondSVar"]) != "" ||
 		strings.TrimSpace(params["CheckThirdSVar"]) != "" ||
 		strings.TrimSpace(params["PresentCompare"]) != "" ||
 		strings.TrimSpace(params["ActivationZone"]) != "" ||
@@ -331,6 +330,16 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// body). This is the may-play path's counterpart to continuousGateHolds.
 	if !e.mayPlayConditionGateHolds(params, source, you) {
 		return false, false, false, Cost{}, false, false
+	}
+	// ValidAfterStack describes the spell's characteristics at announcement.
+	// The card is still in its origin zone while the permission is offered,
+	// so evaluate it under the derived stack view without moving the object.
+	if spec := strings.TrimSpace(params["ValidAfterStack"]); spec != "" {
+		sc := e.specCtx(source, you)
+		sc.AsStack = true
+		if !e.matchesSpec(spec, id, sc) {
+			return false, false, false, Cost{}, false, false
+		}
 	}
 	// RaiseCost$ is a genuine consumption now (see mayPlayRaiseCost): parse
 	// it here so an unpriceable raise fails the static closed at the ONE
@@ -411,7 +420,10 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 			return false, false, false, Cost{}, hasRaise, priced
 		}
 	}
-	if !e.matchesSpecFrom(spec, id, you, source) {
+	// Affected$ describes a card in AffectedZone$, not necessarily a
+	// battlefield permanent. Forge uses Permanent for permanent cards in
+	// graveyards (Serra Paragon); keep the battlefield meaning elsewhere.
+	if !e.matchesSpecFrom(targetSpecForZone(spec, o.Zone), id, you, source) {
 		return false, false, false, Cost{}, hasRaise, priced
 	}
 	// MayPlayLimit$ (always the literal 1 in the corpus, 45 S: lines): the
