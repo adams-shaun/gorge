@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -28,8 +29,13 @@ func manaOption(t *testing.T, d *decision.Decision, produced string) int {
 		t.Fatalf("mana choice = %+v, want KChoose", d)
 	}
 	for _, o := range d.Options {
-		if o.Kind == "mana" && o.Label == "Add "+produced {
-			return o.Index
+		// Match on the option's PRODUCTION, not the whole label: a paid
+		// activation prefixes the cost ("Pay 1 life: Add B"), which the
+		// old exact "Add B" match could not see (fb-bbe4fd8f).
+		if o.Kind == "mana" {
+			if colour, ok := manaLabelColour(o.Label); ok && colour == produced {
+				return o.Index
+			}
 		}
 	}
 	t.Fatalf("no Add %s choice: %+v", produced, d.Options)
@@ -397,8 +403,14 @@ func TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor(t *testing.T) {
 		t.Fatalf("LED prompt = %q", d.Prompt)
 	}
 	for i, opt := range d.Options {
-		if opt.Obj != id || opt.Label != "Add "+"WUBRG"[i:i+1] {
+		colour, ok := manaLabelColour(opt.Label)
+		if opt.Obj != id || !ok || colour != "WUBRG"[i:i+1] {
 			t.Fatalf("colour option %d = %+v, want Add %c on source", i, opt, "WUBRG"[i])
+		}
+		// The life/card cost the ability charges must be on the colour
+		// option: a bare "Add W" hid the discard and sacrifice (fb-bbe4fd8f).
+		if !strings.Contains(opt.Label, "discard your hand") {
+			t.Fatalf("colour option %d omits the discard cost: %q", i, opt.Label)
 		}
 	}
 	submitChoices(t, e, manaOption(t, d, "B"))

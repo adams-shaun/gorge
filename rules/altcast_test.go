@@ -921,7 +921,7 @@ func TestManaAbilityExileCostIsPaid(t *testing.T) {
 	d = e.Pending()
 	black := -1
 	for _, opt := range d.Options {
-		if opt.Label == "Exile 1 card: Add BB" {
+		if opt.Label == "Exile a card from your hand: Add BB" {
 			black = opt.Index
 		}
 	}
