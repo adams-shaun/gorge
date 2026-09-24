@@ -1,3 +1,85 @@
+# Merge-conflict resolution — agent-20260919T181318Z-86535368 (mrg1), round 11 (2026-09-24)
+
+## Entry state
+
+`git status` clean on `wt/agent-20260919T181318Z-86535368`, HEAD `93a75693`
+(the round-10 resolution record); no rebase or merge in flight — the daemon's
+integration attempt (rebase conflicted at `28b1d86c` on `.ds4/report-t1.md` /
+`.ds4/report-t2.md`; merge fallback conflicted in `.ds4/report-mrg1.md`) had
+been reset before this seat started, and the merge the round-10 report below
+describes was therefore never landed. `.cards` present as the symlink →
+`/home/sadams/projects/gorge/.cards` — all runs below are real, none vacuous.
+
+## Operation
+
+`git merge main` (rebase is forbidden to this seat). merge-base `16de81eb`;
+main's new commits are the Tower Winder OriginAlternative pins (`7100eff6`,
+`6d56a42f`) plus their merges/docs. The four non-report paths auto-merged:
+`A .ds4/report-r2-2fd3b568.md`, `M .ds4/report-r2.md`,
+`M cmd/repro/repro_test.go`, `M rules/changezone_origin_alternative_test.go`.
+`.ds4/report-t1.md` / `.ds4/report-t2.md` did NOT conflict — the branch's
+`6bc24448` had restored both byte-exact from main, so both sides agree. The
+sole content conflict was `.ds4/report-mrg1.md`, the shared append-only
+report accumulator.
+
+## Resolution
+
+Both sides PREPENDED a report to the accumulator over the common base and
+share the rest (verified mechanically against stage `:1:` — each side's tail
+is byte-identical to the base file):
+
+- Ours (`:2:`, lines 1-74): this branch's round-10 mrg1 report, ending in its
+  blank-`---`-blank separator.
+- Main (`:3:`, lines 1-170): the round-2 mrg1 report of
+  agent-20260919T181318Z-4dd3e7f5, ending in its own `---` separator.
+
+Union, newest-first (the file's established convention): ours' prepend
+verbatim, then main's full accumulated file byte-verbatim. Verified:
+`diff <(tail -n +75 resolved) <(git show :3:)` clean, `diff <(head -74
+resolved) <(head -74 :2:)` clean, and `git diff main` / `git diff HEAD~1` on
+the resolved file are both insertions-only (0 deletion lines each). The lone
+`>>>>>>>`-shaped hit (line 4158: ``>>>>>>>'` → 0.``) is pre-existing quoted
+shell output inside a report body — present in the base file at its line
+3914 — not a conflict marker. No prose from either side dropped; no code file
+hand-edited. Merge-committed as `27b5b9ba` with the default merge message;
+tree clean.
+
+Note on the record below: the round-10 report describes this same merge with
+a commit hash and "tree clean after" that never landed (the daemon reset the
+attempt). It is preserved verbatim per the accumulate convention; this
+report supersedes its operation record.
+
+## Post-merge ratchets (the 2026-09-22 main-carried gates, run once)
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.657s
+```
+
+Targeted sanity pass over the auto-merged code (main's new Tower Winder
+tests, one run):
+
+```
+$ go test -run 'TestChangeZoneOriginAlternative' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.475s
+```
+
+## Ratchet verdicts after the merge
+
+- No `Mode$` matcher registered by either side of this merge; no
+  `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+  entry closed — no ratchet-table edit required.
+
+## Issues
+
+None found. The merge introduces no code change of its own (the resolved file
+is a .ds4 report; the code files are main's already-gated test additions).
+Process note, recurring: every recent mrg1's only conflict is this shared
+accumulator prepend — a new-ticket-at-a-unique-path convention would remove
+the conflict class entirely.
+
+---
+
 # Merge-conflict resolution — agent-20260919T181318Z-86535368 (mrg1), round 10 (2026-09-24)
 
 ## Entry state
