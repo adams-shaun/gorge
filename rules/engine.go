@@ -831,6 +831,19 @@ type Engine struct {
 	// again. The stamp is (Turn, CombatsThisTurn), the event-folded per-turn
 	// combat count, so it uniquely names a combat and needs no reset hook.
 	unblockedOnceFired map[triggerKey]combatFires
+	// unblockedRoundChecked stamps the (Turn, CombatsThisTurn) combat whose
+	// declare-blockers round-complete trigger walk (checkAttackerUnblocked-
+	// Triggers / checkAttackerUnblockedOnceTriggers, rules/turn.go step) has
+	// already run. step() re-enters the StepDeclareBlockers arm every time
+	// nothing is pending -- after an aborted cast (CR 733.1 reversal) no
+	// handler re-grants priority, so the Advance loop calls step() again --
+	// and "attacks and isn't blocked" is ONE event per combat (CR 509.2): a
+	// second walk queued Senu, Keen-Eyed Protector's trigger again on every
+	// aborted cast attempt, and the TriggerPush it drained cleared the F05-2
+	// held-out cast suppression, so the no-progress abort re-offered forever
+	// (cardfuzz batch10). The zero value names no combat (CombatsThisTurn is
+	// at least 1 inside combat), so it needs no reset hook.
+	unblockedRoundChecked combatFires
 	// attackersDeclaredFired latches a BATCH trig:AttackersDeclared trigger
 	// (Mode$ AttackersDeclared with no per-defender AttackedTarget$) to ONE
 	// fire per declare step (rules.trigger_match.go's checkFaceTriggers;

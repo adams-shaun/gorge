@@ -61,6 +61,9 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// unblockedRoundChecked (engine.go): the plain-value per-combat latch
+		// of the declare-blockers round-complete trigger walk.
+		unblockedRoundChecked: e.unblockedRoundChecked,
 		// exertAskState (combat.go, task exert1): the exert election's offer
 		// list and cursor, the same plain-value class as blockerRound -- the
 		// offers slice is never mutated, so sharing the reference is safe.
