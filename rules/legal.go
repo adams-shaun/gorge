@@ -1576,10 +1576,9 @@ func (e *Engine) manaActivateLabel(name string) string {
 // combat (events.Apply's PhaseOut fold removes it, CR 702.25c). PhasedOut is
 // only ever true on a battlefield permanent (the PhaseOut fold is
 // battlefield-gated, the Move fold clears it), so gating a walk that already
-// restricts itself to the battlefield on it is exact. This is the one home
-// for that predicate: every reader that offers an action, enumerates a cost
-// candidate or matches a trigger gates on it, never on o.PhasedOut directly,
-// so a new reader cannot drift.
+// restricts itself to the battlefield on it is exact. Battlefield action
+// and cost walks use this helper; mana-ability discovery and trigger scanning
+// separately reject phased-out objects. Other readers must gate where relevant.
 func existsOnBattlefield(o *state.Object) bool {
 	return o != nil && o.Zone == state.ZBattlefield && !o.PhasedOut
 }

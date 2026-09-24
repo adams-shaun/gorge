@@ -339,7 +339,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 // returns exactly what availableManaAbilitiesUsing always returned.
 func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
+	if o == nil || !existsOnBattlefield(o) || o.Face() == nil {
 		return out
 	}
 	f := o.Face()

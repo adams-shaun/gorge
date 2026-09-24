@@ -871,6 +871,9 @@ const (
 	// pre-existing Kind, so no earlier ordinal, hash chain or golden replay
 	// is affected.
 	PhaseOut
+	// NumKinds is the explicit upper bound for the append-only event kind
+	// registry below. New kinds must be appended above this line: inserting or
+	// reordering a kind renumbers the hash-chained event stream and breaks replay.
 	NumKinds = int(PhaseOut) + 1
 )
 

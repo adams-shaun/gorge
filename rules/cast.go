@@ -1653,7 +1653,7 @@ func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, p) {
 		o := e.G.Obj(id)
-		if o == nil || (excludeSource && id == source) || (untapped && o.Tapped) {
+		if o == nil || (zone == state.ZBattlefield && !existsOnBattlefield(o)) || (excludeSource && id == source) || (untapped && o.Tapped) {
 			continue
 		}
 		if e.matchesSpecFrom(spec, id, p, source) {
@@ -1688,7 +1688,7 @@ func (e *Engine) sacrificeCostCandidates(p state.PlayerID, source state.ObjID, p
 	cause := costCauseForAbility(ability)
 	var out []state.ObjID
 	for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-		if e.sacrificeBlockedForCost(oid, cause) {
+		if !existsOnBattlefield(e.G.Obj(oid)) || e.sacrificeBlockedForCost(oid, cause) {
 			continue
 		}
 		if e.matchesSpecFrom(matchSpec, oid, p, source) {
