@@ -1,7 +1,6 @@
 package effects
 
 import (
-	"sort"
 	"strconv"
 	"strings"
 
@@ -1773,10 +1772,13 @@ func digDestPhrase(dest state.Zone) string {
 // revealed this way that weren't put onto the battlefield on the bottom":
 // Genesis Storm, Hei Bai, Aurora Awakener). A no-host (AskNoHost) declines
 // deterministically (R-9); botpolicy's clamp fallback answers option 0 =
-// "yes". RevealRandomOrder$ True (54 lines) means the revealed pile would
-// return "in a random order" — randomness is forbidden here, so the
-// deterministic stand-in returns them in their existing library order
-// (recorded in AGENTS.md's Known approximations).
+// "yes". RevealRandomOrder$ True (54 corpus lines) shuffles the pile's
+// RETURN order to the bottom of the library through the engine's seeded
+// generator (h.Rand), so it replays exactly; the public reveal Note and the
+// Remembered capture stay in scan order because reveal order is a reveal-time
+// fact. A stay-in-place placement (RevealedLibraryPosition$ "0"/absent, e.g.
+// Indomitable Creativity) cannot express a random order at all, so it keeps
+// the existing order behind one loud Note.
 //
 // Riders implemented: RememberFound$ / RememberRevealed$ (the ctx-level
 // Remembered discipline digRemember uses), Tapped$ (the MoveZone-then-Tap
@@ -1790,12 +1792,22 @@ func digDestPhrase(dest state.Zone) string {
 // sole candidate is taken without an answer. With NO eligible bearer the Aura
 // stays in the library (CR 303.4f's remain-in-current-zone) rather than
 // entering unattached and dying to the CR 704.5m SBA. Riders withheld with
-// one loud Note per parameter and the core move still running: Amount$
-// non-literal (X/MassX/VoteNum/Y — amount 1 then; literal 1..5 ARE honoured
-// as "keep revealing until N matches"), DigZone$, NoMoveFound$ /
-// FoundLibraryPosition$, Shuffle$ / ShuffleCondition$, Imprint*$ and
-// NoneFound*$. RevealRandomOrder$ remains a deterministic existing-order
-// stand-in because ambient randomness is forbidden.
+// one loud Note per parameter and the core move still running: a non-literal
+// Amount$ token is resolved as an SVar name through the count evaluator
+// (literals 1..5 ARE honoured as "keep revealing until N matches", literal 0
+// means the scan reveals nothing); Shuffle$ True shuffles the dug library
+// after the moves (ShuffleCondition$ NoneFound restricts it to a scan that
+// found nothing); NoMoveFound$ True leaves the found card in the library;
+// FoundLibraryPosition$ places a library-destination found card at the bottom
+// ("-1") or leaves it on top ("0"/absent, no event); ImprintFound$ /
+// ImprintRevealed$ record the found / all-revealed cards on the source's
+// imprint association (the Seek "seek-found" list); NoneFoundDestination$ /
+// NoneFoundLibraryPosition$ give the nothing-found branch its own
+// destination. What remains withheld: Amount$ whose SVar is absent or
+// unresolvable (amount 1 then) and DigZone$ (every corpus value is
+// PlanarDeck, and this build has no planar tier). RevealRandomOrder$ True is
+// implemented for the library-bottom return (h.Rand, seeded and replay-exact);
+// a stay-in-place placement keeps the existing order behind one loud Note.
 func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	spec := sa.Params["Valid"]
 	if spec == "" {
@@ -1814,6 +1826,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	revPos := strings.TrimSpace(sa.Params["RevealedLibraryPosition"])
 	optionalMove := strings.EqualFold(strings.TrimSpace(sa.Params["OptionalFoundMove"]), "True")
 	noMoveRevealed := strings.EqualFold(strings.TrimSpace(sa.Params["NoMoveRevealed"]), "True")
+	revealRandomOrder := strings.EqualFold(digUntilParamValue(sa, "RevealRandomOrder"), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
 	gainControl := strings.EqualFold(strings.TrimSpace(sa.Params["GainControl"]), "True")
 	rememberFound := strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True")
@@ -1823,43 +1836,64 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	if raw := strings.TrimSpace(sa.Params["Amount"]); raw != "" && raw != "1" {
 		if n, err := strconv.Atoi(raw); err == nil && n > 1 && n <= 5 {
 			amount = int32(n)
+		} else if n, resolved := digUntilAmountSVar(h, c, raw); resolved {
+			// A non-literal token names an SVar (X/MassX/Y/VoteNum); its body
+			// is read by the count evaluator, the same read effDig's DigNum$ X
+			// arm uses. A zero tally is legitimate (Selvala's Stampede with no
+			// wild vote reveals nothing).
+			amount = n
 		} else {
+			// Absent or unresolvable SVar: fail-safe to amount 1, and keep the
+			// loud-unimplemented Note contract.
 			withheld = append(withheld, "Amount$ "+raw)
 		}
 	}
-	// These parameters are deliberately not interpreted yet. In particular,
-	// NoMoveFound$ and FoundLibraryPosition$ must not suppress the ordinary
-	// found-card move merely because their full placement grammar is absent.
-	for _, key := range []string{"DigZone", "NoMoveFound", "FoundLibraryPosition", "Shuffle", "ShuffleCondition"} {
-		if v := digUntilParamValue(sa, key); v != "" {
-			withheld = append(withheld, key+"$ "+v)
+	// DigZone$ stays withheld: every corpus value is PlanarDeck, and this
+	// build has no planar deck or planar zone (the planechase approximation).
+	// The ordinary library scan remains the deterministic core move.
+	if v := digUntilParamValue(sa, "DigZone"); v != "" {
+		withheld = append(withheld, "DigZone$ "+v)
+	}
+	noMoveFound := digUntilTrueFlag(sa, "NoMoveFound", &withheld)
+	shuffle := digUntilTrueFlag(sa, "Shuffle", &withheld)
+	// ShuffleCondition$ models exactly NoneFound (Tunnel Vision's
+	// FindThePrecious: "otherwise, that player shuffles"); any other value is
+	// named loudly rather than guessed at.
+	shuffleNoneFound := false
+	if v := digUntilParamValue(sa, "ShuffleCondition"); v != "" {
+		if strings.EqualFold(v, "NoneFound") {
+			shuffleNoneFound = true
+		} else {
+			withheld = append(withheld, "ShuffleCondition$ "+v)
 		}
 	}
-	var imprintKeys []string
-	for key := range sa.Params {
-		if strings.HasPrefix(key, "Imprint") {
-			imprintKeys = append(imprintKeys, key)
-		}
+	imprintFound := digUntilTrueFlag(sa, "ImprintFound", &withheld)
+	imprintRevealed := digUntilTrueFlag(sa, "ImprintRevealed", &withheld)
+	// FoundLibraryPosition$ places a found card whose destination IS the
+	// library: "-1" the bottom, "0"/absent the stay-in-place top default. Any
+	// other value is named loudly and the card stays on top.
+	foundPos := strings.TrimSpace(sa.Params["FoundLibraryPosition"])
+	if foundPos != "" && foundPos != "0" && foundPos != "-1" {
+		withheld = append(withheld, "FoundLibraryPosition$ "+foundPos)
+		foundPos = ""
 	}
-	sort.Strings(imprintKeys)
-	for _, key := range imprintKeys {
-		if v := digUntilParamValue(sa, key); v != "" {
-			withheld = append(withheld, key+"$ "+v)
-		}
+	// NoneFound* is the nothing-found branch (Tunnel Vision carries both):
+	// when the scan finds nothing its revealed cards go to
+	// NoneFoundDestination$ at NoneFoundLibraryPosition$ instead of the
+	// RevealedDestination$/RevealedLibraryPosition$ pair. Absent keys leave the
+	// ordinary revealed destination in force.
+	noneFoundSet := strings.TrimSpace(sa.Params["NoneFoundDestination"]) != "" ||
+		strings.TrimSpace(sa.Params["NoneFoundLibraryPosition"]) != ""
+	noneFoundDest := state.ZLibrary
+	noneFoundPos := ""
+	if raw := strings.TrimSpace(sa.Params["NoneFoundDestination"]); raw != "" {
+		noneFoundDest = ParseZone(raw)
 	}
-	// NoneFound* is a family (Tunnel Vision carries Destination and
-	// LibraryPosition variants). Read its keys in sorted order so Note event
-	// order is deterministic even though SA.Params is a map.
-	var noneFoundKeys []string
-	for key := range sa.Params {
-		if strings.HasPrefix(key, "NoneFound") {
-			noneFoundKeys = append(noneFoundKeys, key)
-		}
-	}
-	sort.Strings(noneFoundKeys)
-	for _, key := range noneFoundKeys {
-		if v := digUntilParamValue(sa, key); v != "" {
-			withheld = append(withheld, key+"$ "+v)
+	if raw := strings.TrimSpace(sa.Params["NoneFoundLibraryPosition"]); raw != "" {
+		if raw != "0" && raw != "-1" {
+			withheld = append(withheld, "NoneFoundLibraryPosition$ "+raw)
+		} else {
+			noneFoundPos = raw
 		}
 	}
 	// fx42 scoping: capture and clear the answered found-move election BEFORE
@@ -1913,25 +1947,30 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// Trigger referents remain in Ctx.Captured. Accumulate across the
 	// player walk so a later player's reveal does not erase earlier ones.
 	var digRemembered []state.Target
+	var imprintObjs []state.ObjID
 	for _, p := range playerIDsFromTargets(h, c, sa.Params["Defined"], targets) {
 		lib := zoneOf(g, state.ZLibrary, p)
 		if len(lib) == 0 {
 			continue
 		}
 		var revealed, found []state.ObjID
-		for _, id := range lib {
-			revealed = append(revealed, id)
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				found = append(found, id)
-				if int32(len(found)) >= amount {
-					break
+		// A zero Amount$ (an SVar tally of 0) reveals nothing: the loop's own
+		// `len(found) >= amount` would otherwise stop on the first card.
+		if amount > 0 {
+			for _, id := range lib {
+				revealed = append(revealed, id)
+				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					found = append(found, id)
+					if int32(len(found)) >= amount {
+						break
+					}
 				}
 			}
 		}
 		// The reveal is PUBLIC (the same non-Secret ids-Note effDig's Reveal$
 		// arm emits), recorded before the ask, once per resolution -- a
 		// re-entry after the optional-move answer must not reveal again.
-		if !moveDone && !auraDone {
+		if !moveDone && !auraDone && len(revealed) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
 		}
 		if optionalMove && !moveDone {
@@ -1972,7 +2011,13 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		foundJoinedRevealed := false
 		if len(found) > 0 {
 			dest := foundDest
-			if optionalMove && moveAns != "yes" {
+			if noMoveFound {
+				// NoMoveFound$ True: the found card is not moved to its
+				// destination. Its effective destination is the library, so a
+				// FoundLibraryPosition$ still places it within the library.
+				dest = state.ZLibrary
+			}
+			if optionalMove && !noMoveFound && moveAns != "yes" {
 				dest = declineDest
 				foundJoinedRevealed = dest == revDest
 			}
@@ -2045,48 +2090,126 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
 					continue
 				}
+				if dest == state.ZLibrary {
+					// The found card's destination IS the library (an explicit
+					// FoundDestination$ Library, or NoMoveFound$ True).
+					// FoundLibraryPosition$ "-1" puts it on the bottom via a real
+					// library-to-library move (Move's zone append — the same
+					// contract the revealed-rest "-1" arm below uses); "0"/absent
+					// is the stay-in-place top default, so no event.
+					if foundPos == "-1" {
+						h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+							From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
+					}
+					continue
+				}
 				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 				ev.Player, ev.Secret = p, true
 				h.Emit(ev)
 			}
 		}
 		// The revealed rest (plus a found card whose decline joined the pile)
-		// move to RevealedDestination$; NoMoveRevealed$ True (8 corpus lines)
-		// leaves them where they are instead.
-		if noMoveRevealed {
-			continue
+		// move to RevealedDestination$; when the scan found NOTHING and the SA
+		// carries a NoneFound* key they move to NoneFoundDestination$ at
+		// NoneFoundLibraryPosition$ instead. NoMoveRevealed$ True (8 corpus
+		// lines) leaves them where they are.
+		restDest, restPos := revDest, revPos
+		if len(found) == 0 && noneFoundSet {
+			restDest, restPos = noneFoundDest, noneFoundPos
 		}
-		for _, id := range revealed {
-			isFound := false
-			for _, fid := range found {
-				if fid == id {
-					isFound = true
-					break
+		if !noMoveRevealed {
+			// The rest is the revealed pile minus any found card that really
+			// left the pile; a library-bottom random return shuffles exactly
+			// THIS list (the order the per-card Secret MoveZone events are
+			// emitted in IS the returned bottom order — zone append lands each
+			// card at the bottom in emit order). Reveal order is NOT shuffled:
+			// the public Note and the Remembered capture above stay in scan
+			// order.
+			toReturn := make([]state.ObjID, 0, len(revealed))
+			for _, id := range revealed {
+				isFound := false
+				for _, fid := range found {
+					if fid == id {
+						isFound = true
+						break
+					}
 				}
+				if isFound && !foundJoinedRevealed {
+					continue
+				}
+				toReturn = append(toReturn, id)
 			}
-			if isFound && !foundJoinedRevealed {
-				continue
-			}
-			if revDest == state.ZLibrary {
-				// Library placement: "-1" (bottom) is a real library-to-library
-				// move (Move's zone append lands it at the bottom — the exact
-				// contract effDig's LibraryPosition2$ "-1" arm documents);
-				// "0"/absent is the engine's stay-in-place default (the cards
-				// already sit on top in their existing relative order) so no
-				// event; anything else is named loudly and the card stays.
-				if revPos == "-1" {
-					h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-						From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
-				} else if revPos != "" && revPos != "0" {
+			if restDest == state.ZLibrary && revealRandomOrder {
+				switch {
+				case restPos == "-1":
+					// A full Fisher-Yates over the return list (the h.Rand idiom
+					// the random pick/discard arms use) draws once per position,
+					// so the seeded generator replays byte-identically. This is
+					// the engine's seeded randomness, not a library shuffle:
+					// T:Mode$ Shuffled triggers must not fire for a bottom return
+					// that merely happens to be random.
+					for i := 0; i < len(toReturn); i++ {
+						j := i + h.Rand(len(toReturn)-i)
+						toReturn[i], toReturn[j] = toReturn[j], toReturn[i]
+					}
+				case restPos == "" || restPos == "0":
+					// Stay-in-place placement keeps the existing order (no
+					// library randomisation is expressible there); name the
+					// limitation once.
 					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
-						Text: "RevealedLibraryPosition$ " + revPos + " is not implemented; the card stays on top"})
+						Text: "RevealRandomOrder$ with stay-in-place placement keeps existing order"})
 				}
-				continue
 			}
-			ev := moveZoneEvent(c, id, state.ZLibrary, revDest)
-			ev.Player, ev.Secret = p, true
-			h.Emit(ev)
+			for _, id := range toReturn {
+				if restDest == state.ZLibrary {
+					// Library placement: "-1" (bottom) is a real
+					// library-to-library move (Move's zone append lands it at the
+					// bottom — the exact contract effDig's LibraryPosition2$ "-1"
+					// arm documents); "0"/absent is the engine's stay-in-place
+					// default (the cards already sit on top in their existing
+					// relative order) so no event; anything else is named loudly
+					// and the card stays.
+					if restPos == "-1" {
+						h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+							From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
+					} else if restPos != "" && restPos != "0" {
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+							Text: "RevealedLibraryPosition$ " + restPos + " is not implemented; the card stays on top"})
+					}
+					continue
+				}
+				ev := moveZoneEvent(c, id, state.ZLibrary, restDest)
+				ev.Player, ev.Secret = p, true
+				h.Emit(ev)
+			}
 		}
+		// Shuffle$ True: after the found move and the revealed-rest moves,
+		// shuffle the dug player's library (the same Fisher-Yates +
+		// Secret events.Shuffle contract effShuffle emits). ShuffleCondition$
+		// NoneFound restricts it to a scan that found nothing.
+		if shuffle && (!shuffleNoneFound || len(found) == 0) {
+			order := h.ShuffleLibrary(p, g.Zone(state.ZLibrary, p))
+			h.Emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
+		}
+		// ImprintFound$/ImprintRevealed$ (Forge's addImprintedLists) are
+		// accumulated across the player walk and emitted once after it, so a
+		// suspension re-entry cannot double-record them.
+		if imprintFound && len(found) > 0 {
+			imprintObjs = append(imprintObjs, found...)
+		}
+		if imprintRevealed {
+			imprintObjs = append(imprintObjs, revealed...)
+		}
+	}
+	if len(imprintObjs) > 0 && c.Source != 0 {
+		// Forge's addImprintedLists links the found (or all revealed) cards to
+		// the resolving source. It rides the Seek "seek-found" list, not the
+		// ordinary Imprinted one: DigUntil's continuation readers (Defined$
+		// Imprinted, Card.IsImprinted) read the association wherever the card
+		// currently sits — library, battlefield — where the ordinary list's CR
+		// 607.2a exile-only filter would hide it.
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source,
+			IDs: append([]state.ObjID(nil), imprintObjs...), Text: "seek-found"})
 	}
 	if rememberFound {
 		c.Remembered = digRemembered
@@ -2102,6 +2225,39 @@ func digUntilParamValue(sa *cards.SA, key string) string {
 		return ""
 	}
 	return v
+}
+
+// digUntilAmountSVar resolves a non-literal Amount$ token as an SVar name
+// (empty_the_laboratory's Y, kindred_summons' X, mass_polymorph's MassX,
+// selvalas_stampede's runtime VoteNum). The body is evaluated with the count
+// evaluator -- the same read effDig's DigNum$ X arm uses; an absent SVar table
+// or name, or an unmodelled count head, reports not-resolved so the caller
+// keeps its fail-safe amount 1.
+func digUntilAmountSVar(h Host, c *Ctx, token string) (int32, bool) {
+	if c == nil || c.SVars == nil {
+		return 0, false
+	}
+	body, ok := c.SVars[token]
+	if !ok {
+		return 0, false
+	}
+	return EvalCountOK(h, c, body)
+}
+
+// digUntilTrueFlag reads a boolean DigUntil rider. Absent or False means the
+// rider is off. Any other value is not part of the modelled grammar: it is
+// named loudly (appended to withheld) and treated as off rather than guessed
+// at.
+func digUntilTrueFlag(sa *cards.SA, key string, withheld *[]string) bool {
+	v := digUntilParamValue(sa, key)
+	if v == "" {
+		return false
+	}
+	if strings.EqualFold(v, "True") {
+		return true
+	}
+	*withheld = append(*withheld, key+"$ "+v)
+	return false
 }
 
 // auraEntryBearer resolves a non-cast battlefield entry's Aura bearer: the
@@ -3246,7 +3402,12 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	chooseFromList := sa.Params["ChooseFromList"]
 	universeBacked := len(h.Game().NameUniverse) > 0
 	random := strings.EqualFold(sa.Params["AtRandom"], "True")
-	names := NameChoicesFromList(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, random)
+	// The resolving context's numeric-RHS resolver (paid X, a published
+	// StoreSVar) is threaded into the eligible-name filter so a dynamic
+	// ValidCards$ such as `Creature.cmcEQX` restricts against the resolution
+	// value instead of failing every universe card closed.
+	sc := c.SpecContext(c.Controller)
+	names := NameChoicesFromListCtx(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, &sc, random)
 	if len(names) == 0 && (!universeBacked || chooseFromList == "") {
 		// R-9: a host without a supplied corpus still completes
 		// deterministically, and reproduces the exact pre-feature NameCard

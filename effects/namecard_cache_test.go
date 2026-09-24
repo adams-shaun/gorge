@@ -34,7 +34,7 @@ func TestNameChoicesCacheMatchesUncachedOnCorpus(t *testing.T) {
 			t.Fatalf("pureNameSpec(%q) = false", spec)
 		}
 		for _, list := range []string{"", "Island,Forest,Black Lotus"} {
-			want := nameChoicesFiltered(g, spec, list, false)
+			want := nameChoicesFiltered(g, spec, list, false, nil)
 			got := NameChoicesFromList(g, spec, "", list)
 			if !slices.Equal(got, want) {
 				t.Fatalf("spec %q list %q: cached %d names, uncached %d", spec, list, len(got), len(want))

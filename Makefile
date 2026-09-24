@@ -62,6 +62,8 @@ help:
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
+	@echo "  make clean-seats    — delete finished pi-agent seat dirs (~/.cache/pi-agent); dry run unless APPLY=1"
+	@echo "  make clean-worktrees — remove merged, clean .worktrees/* and their branches; dry run unless APPLY=1"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
@@ -86,6 +88,14 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 # the server is spectator-only, exactly as before the feature existed.
 gorged: $(BIN_DIR)/gorged
 	$(BIN_DIR)/gorged -decks internal/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed -vsbot
+
+.PHONY: traindash
+# traindash serves the read-only live training dashboard over the policynet/PPO
+# runs under TRAIN_ROOT (cmd/traindash). Port range 8082-8089, never 8080/8081.
+TRAIN_ROOT ?= /mnt/sata/gorge-training
+TRAINDASH_ADDR ?= 127.0.0.1:8086
+traindash:
+	go run ./cmd/traindash -root $(TRAIN_ROOT) -addr $(TRAINDASH_ADDR)
 
 .PHONY: deploy-demo stop-demo
 # deploy-demo refreshes the local demo: two servers on 127.0.0.1, public
@@ -287,6 +297,15 @@ clean:
 .PHONY: clean-cards
 clean-cards:
 	rm -rf $(CARDS_DIR)
+
+# clean-seats / clean-worktrees reclaim disk from finished agent work. Both
+# are dry runs that only list what they would delete; pass APPLY=1 to delete.
+# See scripts/cleanup.sh for exactly what is kept.
+.PHONY: clean-seats clean-worktrees
+clean-seats:
+	@APPLY=$(APPLY) scripts/cleanup.sh seat-cache
+clean-worktrees:
+	@APPLY=$(APPLY) scripts/cleanup.sh worktrees
 
 .PHONY: ledger
 ## ledger: rebuild the judge-lane issue ledger the agent dashboard renders

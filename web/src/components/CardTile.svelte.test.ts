@@ -167,6 +167,19 @@ describe('CardTile options affordance (ui21)', () => {
     expect(html).toContain('wheel-slot');
   });
 
+  it("a planeswalker's wheel shows each ability's loyalty cost, and its bubble the whole untruncated text (2026-09-24 Jace report)", () => {
+    const text = "Look at the top card of target player's library. You may put that card on the bottom of that player's library.";
+    const list = [
+      { index: 3, kind: 'ability', label: `Jace, the Mind Sculptor: ${text}`, obj: 16, player: 0, cost: 'AddCounter<2/LOYALTY>' },
+      { index: 4, kind: 'ability', label: 'Jace, the Mind Sculptor: Draw three cards.', obj: 16, player: 0, ability: 1, cost: 'AddCounter<0/LOYALTY>' },
+      { index: 5, kind: 'ability', label: 'Jace, the Mind Sculptor: Return target creature.', obj: 16, player: 0, ability: 2, cost: 'SubCounter<1/LOYALTY>' },
+    ];
+    const { html } = render(CardTile, { props: { card: card(), tileOptions: opts({ list }), open0: true } });
+    const faces = [...html.matchAll(/<button[^>]*wheel-button[^>]*>(?:<!--[^>]*-->)?<span>([^<]*)<\/span>/g)].map((m) => m[1]);
+    expect(faces).toEqual(['+2', '0', '−1']);
+    expect(html).toContain(`>Jace, the Mind Sculptor: ${text}</span>`);
+  });
+
   it('the mana wheel help bubbles carry the same Add <C> labels the pips do', () => {
     const list = ['C', 'B', 'R'].map((symbol, i) => ({
       index: 41 + i * 2, kind: 'ability', label: `Add ${symbol}`, obj: 16, player: 0,

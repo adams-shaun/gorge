@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Option } from '../protocol';
   import type { TileOptions } from '../lib/cardoptions';
-  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, laterLabel, wheelFace, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
   import {
     placeMenu,
     placeRadial,
@@ -32,7 +32,15 @@
   let anchor = $state<MenuAnchor | null>(null);
   let badgeEl = $state<HTMLButtonElement | null>(null);
   const tapAction = $derived(collapseTapActions ? singleTapOptionOf(tileOptions) : null);
-  const radial = $derived(tileOptions.list.length <= 6);
+  // later: the card's abilities the engine would offer once mana floats
+  // (cardoptions.laterByObj, fb-20260923T033148Z). Shown as disabled rows
+  // after the live options; while any exist the card never acts directly, so
+  // Mount Doom's lone mana option cannot spend the {T} its damage ability
+  // needs on a click meant to find that ability.
+  const later = $derived(tileOptions.later ?? []);
+  const total = $derived(tileOptions.list.length + later.length);
+  const direct = $derived((tileOptions.list.length === 1 && later.length === 0) || tapAction !== null);
+  const radial = $derived(total <= 6);
 
   function captureAnchor(): void {
     if (!badgeEl) return;
@@ -49,8 +57,12 @@
   // example Underground Sea's source-level activation followed by Add U / Add
   // B). The first picker is destroyed while that intent is in flight, so the
   // parent marks the one immediate continuation that should arrive open.
+  // The optional chain is load-bearing: when a decision swap takes a tile's
+  // options away, this effect can run once with tileOptions null before the
+  // parent's {#if} unmounts the picker, and a throw here aborts the whole
+  // Svelte flush -- the board stops re-rendering (the 2026-09-24 g2 freeze).
   $effect(() => {
-    if (!tileOptions.autoOpen) return;
+    if (!tileOptions?.autoOpen) return;
     open = true;
     captureAnchor();
   });
@@ -93,23 +105,18 @@
   );
   const radialPlacement = $derived(
     anchor
-      ? placeRadial(anchor, tileOptions.list.length, viewportWidth(), viewportHeight())
+      ? placeRadial(anchor, total, viewportWidth(), viewportHeight())
       : [],
   );
 
   // The count badge's scenario: the icon+noun every option in the list agrees
   // on, or null for a mixed list (the bare neutral count — the rule never
   // claims a scenario the list does not have).
-  const scenario = $derived(tileScenario(tileOptions));
+  const scenario = $derived(later.length > 0 ? null : tileScenario(tileOptions));
 
   const MANA_LABEL = /^Add ([WUBRGC])$/i;
   const manaSymbols = $derived(tileOptions.list.map((option) => option.label.match(MANA_LABEL)?.[1]?.toUpperCase() ?? null));
-  const isManaChoice = $derived(manaSymbols.length > 0 && manaSymbols.every((symbol) => symbol !== null));
-
-  function compactLabel(label: string): string {
-    const word = label.trim().split(/\s+/)[0] ?? label;
-    return word.length > 8 ? `${word.slice(0, 7)}…` : word;
-  }
+  const isManaChoice = $derived(later.length === 0 && manaSymbols.length > 0 && manaSymbols.every((symbol) => symbol !== null));
 
   /** Portal follows the existing list menu mechanism: fixed coordinates in
    * the viewport, outside every scroll container that could clip it. */
@@ -127,8 +134,8 @@
    * edge button never runs off screen (it may sit slightly off-centre then,
    * the cheap price of not measuring text). */
   const TIP_GAP = 8;
-  const TIP_ROOM = 40; // bubble line height + gap: point.y below this flips the bubble below the button
-  const TIP_HALF = 88; // half of the bubble's 176px max-width
+  const TIP_ROOM = 80; // room for a wrapped bubble (up to ~4 lines) + gap: point.y below this flips the bubble below the button
+  const TIP_HALF = 140; // half of the bubble's 280px max-width
   function tipAnchorX(x: number): number {
     return Math.max(TIP_HALF, Math.min(x + RADIAL_BUTTON / 2, viewportWidth() - TIP_HALF));
   }
@@ -137,7 +144,7 @@
 <svelte:window onkeydown={onWindowKeydown} onclick={onWindowClick} />
 
 <div class="tile-actions">
-  {#if tileOptions.list.length === 1 || tapAction !== null}
+  {#if direct}
     {@const action = tapAction ?? tileOptions.list[0]}
     {@const icon = singleActionIcon(action)}
     <button
@@ -163,8 +170,8 @@
       aria-haspopup="menu"
       aria-expanded={open}
       aria-label={scenario
-        ? `${tileOptions.list.length} ${scenario.noun} ${subject}`
-        : `${tileOptions.list.length} actions ${subject}`}
+        ? `${total} ${scenario.noun} ${subject}`
+        : `${total} actions ${subject}`}
       title="Options {subject}"
       data-action-icon={scenario?.icon}
       bind:this={badgeEl}
@@ -176,7 +183,7 @@
       {#if scenario}
         <span class="badge__icon" aria-hidden="true">{ACTION_GLYPHS[scenario.icon]}</span>
       {/if}
-      <span class="badge__n data">{tileOptions.list.length}</span>
+      <span class="badge__n data">{total}</span>
     </button>
   {/if}
 
@@ -184,7 +191,7 @@
     <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
   {/if}
 
-  {#if open && tileOptions.list.length > 1 && tapAction === null}
+  {#if open && !direct}
     {#if radial}
       <div class="radial-pop" data-option-picker data-radial-picker role="menu" tabindex="-1" aria-label="Options {subject}" use:portal>
         {#each tileOptions.list as opt, i (opt.index)}
@@ -205,7 +212,7 @@
               style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
               onclick={(event) => choose(opt, event.ctrlKey)}
             >
-              {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{compactLabel(opt.label)}</span>{/if}
+              {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{wheelFace(opt)}</span>{/if}
             </button>
             <!-- Immediate help bubble (fb-20260917T232800Z): the option's own
                  label, revealed the moment the pointer enters or the button
@@ -224,6 +231,33 @@
             >{opt.label}</span>
           </div>
         {/each}
+        {#each later as a, j (`later-${a.obj}-${a.ability}-${j}`)}
+          {@const point = radialPlacement[tileOptions.list.length + j] ?? { x: 8, y: 8 }}
+          {@const tipAbove = point.y >= TIP_ROOM}
+          <div class="wheel-slot">
+            <button
+              class="wheel-button wheel-button--later"
+              type="button"
+              role="menuitem"
+              aria-disabled="true"
+              data-later-ability={a.ability}
+              aria-label={laterLabel(a)}
+              style:left="{point.x}px"
+              style:top="{point.y}px"
+              onclick={(event) => event.stopPropagation()}
+            >
+              <span>{wheelFace({ kind: a.kind, label: a.label ?? '' })}</span>
+            </button>
+            <span
+              class="wheel-tip"
+              class:wheel-tip--below={!tipAbove}
+              role="tooltip"
+              style:left="{tipAnchorX(point.x)}px"
+              style:top="{tipAbove ? point.y : point.y + RADIAL_BUTTON + TIP_GAP}px"
+              style:transform={tipAbove ? 'translate(-50%, calc(-100% - 8px))' : 'translate(-50%, 0)'}
+            >{laterLabel(a)}</span>
+          </div>
+        {/each}
       </div>
     {:else}
       <!-- The list and wheel share data-option-picker: both are portaled,
@@ -235,6 +269,13 @@
             <li role="none">
               <button class="menu__item" type="button" role="menuitem" onclick={(event) => choose(opt, event.ctrlKey)}>
                 {opt.label}
+              </button>
+            </li>
+          {/each}
+          {#each later as a, j (`later-${a.obj}-${a.ability}-${j}`)}
+            <li role="none">
+              <button class="menu__item menu__item--later" type="button" role="menuitem" aria-disabled="true" data-later-ability={a.ability} onclick={(event) => event.stopPropagation()}>
+                {laterLabel(a)}
               </button>
             </li>
           {/each}
@@ -315,8 +356,9 @@
     position: fixed;
     z-index: 21;
     box-sizing: border-box;
-    max-width: 176px;
-    padding: 2px 6px;
+    width: max-content;
+    max-width: 280px;
+    padding: 4px 8px;
     border: var(--edge-w, 1px) solid var(--edge-inst);
     border-radius: 4px;
     background: var(--instrument);
@@ -326,10 +368,11 @@
     font-size: var(--t-10);
     font-weight: 600;
     line-height: 1.3;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: left;
+    /* The full ability text, wrapped: this bubble is the only place a
+       player reads what a wheel button does, so it is never cut. */
+    white-space: normal;
+    overflow-wrap: break-word;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -396,6 +439,17 @@
     box-shadow: var(--shadow-lift);
     padding: 2px;
   }
+  /* A later row (cardoptions.laterByObj): an ability the card has but the
+     window cannot pay yet. Dashed and dimmed, never clickable; its bubble
+     says to tap other mana first. */
+  .wheel-button.wheel-button--later {
+    border-style: dashed;
+    border-color: var(--ink-dim);
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .wheel-button.wheel-button--later:hover,
+  .wheel-button.wheel-button--later:focus-visible { transform: none; filter: none; }
   .menu { margin: 0; padding: 0; list-style: none; }
   .menu__item {
     display: block;
@@ -412,6 +466,7 @@
     padding: var(--sp-1) var(--sp-2);
     cursor: pointer;
   }
+  .menu__item--later { color: var(--ink-dim); cursor: not-allowed; font-style: italic; }
   .menu__item:hover,
   .menu__item:focus-visible {
     background: color-mix(in srgb, var(--ink) 7%, var(--instrument));

@@ -116,6 +116,11 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var source []state.Target
+	// chosenPick is the Choices$ pick's object id, recorded so ExcludeChosen$
+	// (Forge's "each OTHER creature you control becomes a copy") can drop it
+	// from the become pool. Zero on every other source route (there is no
+	// chosen object to exclude).
+	var chosenPick state.ObjID
 	spec := strings.TrimSpace(sa.Params["Defined"])
 	switch {
 	case chosenName != "":
@@ -143,33 +148,67 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		// a fuzz run) keeps the deterministic first-eligible stand-in under a
 		// Note (the R-9 no-ask contract).
 		spec := strings.TrimSpace(sa.Params["Choices"])
+		// ChoiceZone$ names the zone the Choices$ pick draws from. An absent
+		// value keeps the historical battlefield pool byte-for-byte; a value
+		// this build does not implement (or a filter head that cannot resolve
+		// over a plain card object) FAILS CLOSED: one loud Note and no copy,
+		// never a silent fall-through to a battlefield object (the CloneZone$
+		// convention -- a wrong copy is worse than none).
+		zone, zoneOK := cloneChoiceZone(strings.TrimSpace(sa.Params["ChoiceZone"]))
+		optional := strings.EqualFold(strings.TrimSpace(sa.Params["ChoiceOptional"]), "True")
 		if clonePickDone {
 			// The answered re-entry: the selected object travels through
-			// Ctx.ClonePick, which rules' resumeResolution filled. A zero id
-			// (a malformed or empty answer) is one loud Note and no copy, never
-			// a silent fall-through to an object the chooser did not name.
+			// Ctx.ClonePick, which rules' resumeResolution filled. A zero id is
+			// a real decline when the ask offered one (ChoiceOptional$ True),
+			// and otherwise a malformed or empty answer -- one loud Note and no
+			// copy, never a silent fall-through to an object the chooser did
+			// not name.
 			if clonePick == 0 {
+				if optional {
+					return // the answered decline: no copy; the decision_made event carries it.
+				}
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 					Text: "Clone Choices$ answer named no object; no copy"})
 				return
 			}
 			source = []state.Target{{Obj: clonePick}}
+			chosenPick = clonePick
+		} else if !zoneOK {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone ChoiceZone$ " + strings.TrimSpace(sa.Params["ChoiceZone"]) +
+					" is not a zone this build can choose from; no copy"})
+			return
 		} else {
-			cands := cloneChoiceCandidates(h, c, spec)
+			cands := cloneChoiceCandidates(h, c, spec, zone)
 			if len(cands) == 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 					Text: "Clone Choices$ " + spec + " has no eligible object; no copy"})
 				return
 			}
+			optionKind := "permanent"
+			if zone != state.ZBattlefield {
+				optionKind = "card"
+			}
 			prompt := "Choose an object to copy"
 			if title := strings.TrimSpace(sa.Params["ChoiceTitle"]); title != "" {
 				prompt = title
 			}
-			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			min := 1
+			if optional {
+				min = 0
+			}
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: min, Max: 1,
 				Source: c.Source, ResumeKind: "clone_choice", ResumeSA: sa, Prompt: prompt}
 			for i, t := range cands {
-				d.Options = append(d.Options, decision.Option{Index: i, Kind: "permanent",
+				d.Options = append(d.Options, decision.Option{Index: i, Kind: optionKind,
 					Label: objName(h.Game(), t.Obj), Obj: t.Obj, Player: c.Controller})
+			}
+			if optional {
+				// ChoiceOptional$ True: an explicit decline. Option indices stay
+				// the candidate indices, so the decline option rides LAST and an
+				// existing carrier's permanent option order is unchanged.
+				d.Options = append(d.Options, decision.Option{Index: len(cands), Kind: "decline",
+					Label: "No — do not copy", Player: c.Controller})
 			}
 			switch Ask(h, d) {
 			case AskAsked:
@@ -179,6 +218,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 					Text: "Clone Choices$ picks the first eligible object (no engine host to ask)"})
 			}
 			source = []state.Target{{Obj: cands[0].Obj}}
+			chosenPick = cands[0].Obj
 		}
 	default:
 		// No Defined$/Choices$: the SA's own chosen target is the object to
@@ -204,6 +244,28 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if len(become) == 0 {
 		return
+	}
+
+	// ExcludeChosen$ True drops the Choices$ pick from the become pool: Forge's
+	// "each OTHER creature you control becomes a copy of that creature"
+	// (Sakashima's Will, Brudiclad). Without it the chosen source is paired with
+	// itself and takes a replay-visible self-copy ClonePermanent plus copy
+	// marker -- a wrong copy, not a harmless one. An emptied pool is no copy,
+	// recorded loudly (never a silent no-op).
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ExcludeChosen"]), "True") && chosenPick != 0 {
+		kept := become[:0]
+		for _, b := range become {
+			if !b.IsPlayer && b.Obj == chosenPick {
+				continue
+			}
+			kept = append(kept, b)
+		}
+		become = kept
+		if len(become) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone ExcludeChosen$ left no become object; no copy"})
+			return
+		}
 	}
 
 	// Eligible (source, become) pairs, computed ONCE, before the Optional$
@@ -723,13 +785,40 @@ func cloneETBTemplateLegal(g *state.Game, c *Ctx, sa *cards.SA) bool {
 	return c.MatchSpec(g, spec, c.CloneChoice, c.Controller)
 }
 
+// cloneChoiceZone classifies ChoiceZone$, the zone a Choices$ pick draws its
+// pool from. An absent value (the historical body) and Battlefield both keep
+// the battlefield pool; Graveyard and Exile are the two off-battlefield zones
+// the standalone route supports. Any other value fails closed (ok == false),
+// so an unimplemented zone can never silently win a battlefield pool. The two
+// named zone spellings are matched case-insensitively, the same discipline
+// cloneDuration keeps for Duration$.
+func cloneChoiceZone(raw string) (state.Zone, bool) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "battlefield":
+		return state.ZBattlefield, true
+	case "graveyard":
+		return state.ZGraveyard, true
+	case "exile":
+		return state.ZExile, true
+	default:
+		return 0, false
+	}
+}
+
 // cloneChoiceCandidates resolves a Choices$ <filter> pick to every eligible
-// battlefield object in deterministic scan order (alive players in seat order,
-// each player's battlefield zone in insertion order). The first element is
+// object of the named zone in deterministic scan order (alive players in seat
+// order, each player's zone in insertion order). The first element is
 // exactly the object the pre-ask build's deterministic first-eligible pick
 // chose, so a no-host run keeps its byte-identical stand-in; a real host gets
 // the whole pool to pose as options. Nil means nothing matched.
-func cloneChoiceCandidates(h Host, c *Ctx, spec string) []state.Target {
+//
+// The battlefield sweep is byte-for-byte the historical one, so every
+// existing Battlefield carrier replays identically. An off-battlefield filter
+// whose head is not resolvable over a plain card object (Kaya Spirits'
+// `Card.TriggeredCards`, a trigger-Remembered referent this grammar cannot
+// bind) matches nothing here, which the caller records as one loud Note and
+// no copy -- the fail-closed landing, never a battlefield fall-through.
+func cloneChoiceCandidates(h Host, c *Ctx, spec string, zone state.Zone) []state.Target {
 	g := h.Game()
 	filter := spec
 	if !strings.Contains(filter, ".") && !strings.HasPrefix(filter, "Card") {
@@ -740,7 +829,7 @@ func cloneChoiceCandidates(h Host, c *Ctx, spec string) []state.Target {
 	sc := c.SpecContext(c.Controller)
 	var out []state.Target
 	for _, p := range g.AliveFrom(0) {
-		for _, id := range g.Zone(state.ZBattlefield, p) {
+		for _, id := range g.Zone(zone, p) {
 			o := g.Obj(id)
 			if o == nil {
 				continue

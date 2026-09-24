@@ -219,6 +219,106 @@ func ChosenTargetsFrom(g *state.Game, source state.ObjID) []state.Target {
 	return nil
 }
 
+// attachedToDefinedSelector resolves the DOTTED `AttachedTo <referent>`
+// selector in a Defined$/Object$/ChooseFromDefined$ position -- "the objects
+// attached to whatever <referent> names" (Murderous Spoils' `Defined$
+// AttachedTo Targeted.Equipment`, Fumble's `Defined$ AttachedTo
+// Targeted.Aura,Equipment`, Rhuk, Hexgold Nabber's `Object$ AttachedTo
+// TriggeredAttackerLKICopy.Equipment`, Cass, Hand of Vengeance's `Object$
+// AttachedTo TriggeredCardLKICopy.Equipment`).
+//
+// The referent is the same canonical set the filter predicate
+// (attachedToReferent) accepts, and its BINDING is resolved by the same
+// function the predicate uses (attachedToReferentObjects) so the selector and
+// the predicate cannot drift: an absent binding, a stale object id or a PLURAL
+// binder is unbound and the whole selector is unknown (ok=false) -- never an
+// any-of guess.
+//
+// The attachments are read from the LIVE `AttachedTo == bearer` link plus the
+// were-attached fallback `AttachedTo == 0 && LastBearer == bearer` (the field
+// events.Apply folds from the Unattached and Move-leaves-battlefield events).
+// Both reads are needed because the corpus resolves this selector at two
+// different times relative to the CR 704.5 sweep: a mid-chain sub-ability
+// (Murderous Spoils' Destroy -> StealEquip, Fumble's ChangeZone -> GainControl)
+// runs before any SBA checkpoint, so the live link still names the departed
+// bearer, while a queued trigger (Cass, Rhuk's death half) resolves after the
+// sweep, when the live link has been cleared. The read is deliberately NOT
+// zone-restricted: Cass's swept Auras are graveyard cards by the time its death
+// trigger resolves, and the live-link half only ever matches a battlefield
+// permanent anyway. The qualifier list after the referent (`Aura,Equipment`) is
+// comma-OR over the attachment's own type/class words, the reading the corpus
+// spells (each qualifier is an object class or type word).
+func attachedToDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	arg, ok := strings.CutPrefix(spec, "AttachedTo ")
+	if !ok {
+		return nil, false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" {
+		return nil, false
+	}
+	// A compound ` & ` spelling is a knownDefinedTargets conjunction, not a
+	// single referent: refuse it here so the conjunction splitter (which
+	// calls back into this resolver per part) owns it. Consuming it whole
+	// would silently resolve the malformed qualifier to an empty set.
+	if strings.Contains(arg, " & ") {
+		return nil, false
+	}
+	ref, quals, hasQuals := strings.Cut(arg, ".")
+	if _, known := attachedToReferent(ref); !known {
+		return nil, false
+	}
+	g := h.Game()
+	bearers, bound := attachedToReferentObjects(g, c.SpecContext(c.Controller), ref)
+	if !bound || len(bearers) != 1 || bearers[0] == 0 {
+		return nil, false
+	}
+	bearer := bearers[0]
+	// The qualifier list is comma-OR; trim each word and keep the whole
+	// selector unknown when a word is empty (a malformed "Aura,").
+	var words []string
+	if hasQuals {
+		for w := range strings.SplitSeq(quals, ",") {
+			w = strings.TrimSpace(w)
+			if w == "" {
+				return nil, false
+			}
+			words = append(words, w)
+		}
+	}
+	var out []state.Target
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		attached := o.AttachedTo == bearer
+		var wasAttached bool
+		if !attached {
+			// A detached object whose last bearer is the referent: the
+			// were-attached half. Only when it is not presently attached
+			// to anything (attached handles the live half) so a
+			// re-attached object, whose LastBearer the Attach fold cleared,
+			// cannot double-count.
+			wasAttached = o.AttachedTo == 0 && o.LastBearer == bearer
+		}
+		if !attached && !wasAttached {
+			continue
+		}
+		if len(words) > 0 {
+			matched := false
+			for _, w := range words {
+				if MatchesObjectCtx(g, w, o, c.SpecContext(c.Controller)) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+		out = append(out, state.Target{Obj: o.ID})
+	}
+	return out, true
+}
+
 // definedSpec resolves one RECOGNISED Defined$ value. The bool distinguishes
 // "this spec names an object reference this build models" from "unknown
 // spec": Defined's public contract keeps the chosen-targets fallback for
@@ -228,6 +328,14 @@ func ChosenTargetsFrom(g *state.Game, source state.ObjID) []state.Target {
 // redirecting at the chosen targets.
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
+	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
+	// Object-/ChooseFromDefined-position read of "the objects attached to
+	// whatever <referent> names"). It is a prefix, not a whole-value case:
+	// the referent and its qualifier list ride after one space. The BARE
+	// `AttachedTo` case below stays the resolving source's own bearer.
+	if ts, ok := attachedToDefinedSelector(h, c, spec); ok {
+		return ts, true
+	}
 	switch spec {
 	case "":
 		return nil, false
@@ -949,16 +1057,20 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 // Apparition's leave trigger, whose X is the card the earlier ETB trigger
 // remembered -- reads what an earlier resolution of the same source
 // recorded), then every ctx entry that is neither already present nor the
-// source itself, deduplicated by object id. The ctx-except-self rule keeps
+// source itself, deduplicated by object id. The ctx walk's list is the
+// CAPTURE-EXCLUDED remembered set (rememberedExcludingCapture, the one-home
+// helper): Forge's host remembered list never contains the event object the
+// trigger fired on, and rules seeds a firing trigger's ctx with Remembered ==
+// Captured == that event capture, so a raw ctx read would count the referent
+// as card-level remembered and inflate every plain-Remembered group and
+// count (the event-object case the source-skip below does NOT mask: a
+// Damage/ChangesZone trigger's capture is ev.Obj, not the source). The
+// ctx-except-self rule keeps
 // the walk's own remembers (some legs record only at ctx level) while
-// leaving out the trigger REFERENT capture: a trigger that fires on its own
-// source's movement carries that source in ctx.Remembered, Forge keeps the
-// referent in the separate Triggered* property family, and counting it as
-// card-level remembered would inflate every count (X would read the leaving
-// Skyclave's mana value next to the exiled bear's). Players in ctx pass
-// through after the objects. Deterministic (slices in order, no map range
-// reaches a caller's output) and allocation-only: it writes no state and
-// emits no event.
+// leaving out the trigger REFERENT capture when it happens to BE the source.
+// Players in ctx pass through after the objects. Deterministic (slices in
+// order, no map range reaches a caller's output) and allocation-only: it
+// writes no state and emits no event.
 //
 // imprintPileTargets resolves the SOURCE's persistent imprint association
 // (state.Object.Imprinted + ImprintTokens): the exiled cards -- Imprint links
@@ -1038,7 +1150,7 @@ func rememberedWithSource(h Host, c *Ctx) []state.Target {
 			}
 		}
 	}
-	for _, t := range c.Remembered {
+	for _, t := range rememberedExcludingCapture(h, c) {
 		if t.IsPlayer {
 			out = append(out, t)
 			continue
@@ -1164,6 +1276,55 @@ func definedPlayerIDs(h Host, c *Ctx, selector string) []state.PlayerID {
 // still applies) with the same plain-Remembered rule.
 func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return playerIDsFromTargets(h, c, sa.Params["Defined"], Defined(h, c, sa))
+}
+
+// EffectOwnerPlayers resolves an Effect's EffectOwner$ selector to the seats
+// the created effect belongs to (CR 611.2): `""`/`You` is the resolving
+// controller, `Opponent`/`Other` every other surviving seat, and every other
+// spelling is a Defined$ referent resolved through the SHARED referent
+// grammar and then mapped to seats under Forge's getDefinedPlayers rule --
+// TriggeredTarget (the player the triggering event hit, Valiant Batrider),
+// TriggeredDefendingPlayer (Nuka-Nuke Launcher), TargetedOwner (Palace
+// Jailer), Targeted (Loch Larent), Player.IsRemembered (Chandra, Fire of
+// Kaladesh). Every spelling but the owner-suffix one is resolved through the
+// SHARED referent grammar (definedSpec/knownDefinedTargets), so the
+// effect-owner read and every other Defined$ consumer cannot drift apart;
+// TargetedOwner is the one owner-suffix spelling that grammar does not model,
+// so it is mapped here from the same resolved target set.
+//
+// The second result is false when the spelling is one this build does not
+// model; a true result with NO players means the selector named nobody. The
+// caller fails closed on either -- it registers nothing rather than guessing
+// the source controller as the owner.
+func EffectOwnerPlayers(h Host, c *Ctx, raw string) ([]state.PlayerID, bool) {
+	sel := strings.TrimSpace(raw)
+	switch sel {
+	case "", "You":
+		return []state.PlayerID{c.Controller}, true
+	case "Opponent", "Other":
+		out := make([]state.PlayerID, 0, len(h.Game().Players))
+		for _, p := range h.Game().AliveFrom(0) {
+			if p != c.Controller {
+				out = append(out, p)
+			}
+		}
+		return out, true
+	case "TargetedOwner":
+		// The OWNER (CR 108.3) of the resolving ability's targets, not
+		// their controller: Palace Jailer's exiled creature's owner. This
+		// spelling is not a general Defined$ referent (the 18 corpus
+		// `Defined$ TargetedOwner` lines are a separate, unmodelled
+		// shape), so it lives HERE rather than widening definedSpec and
+		// silently changing unrelated cards. A player target maps to
+		// itself, an object to its owner; no targets yields nobody -- the
+		// fail-closed direction, never the source controller.
+		return playerIDsFromTargets(h, c, sel, ownersOf(h.Game(), c.Targets)), true
+	}
+	ts, ok := knownDefinedTargets(h, c, sel)
+	if !ok {
+		return nil, false
+	}
+	return playerIDsFromTargets(h, c, sel, ts), true
 }
 
 func playersOf(ts []state.Target) []state.Target {

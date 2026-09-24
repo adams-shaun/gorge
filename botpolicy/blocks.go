@@ -392,6 +392,15 @@ func blockSaved(a Creature, picks []int, d *decision.Decision, b Board) int32 {
 	return absorbed
 }
 
+// LegalBlockChoices is legalBlockChoices exported for callers outside the
+// bot that build their own KBlockers answers (the search teacher's candidate
+// builder) and must submit only what the engine accepts. It is a thin
+// wrapper: the unexported guard stays the implementation, so the bot's own
+// behaviour is unchanged.
+func LegalBlockChoices(b Board, d *decision.Decision, choices []int) []int {
+	return legalBlockChoices(b, d, choices)
+}
+
 // legalBlockChoices drops any chosen (blocker, attacker) pair that would
 // leave its attacker's block count outside the CR 509.1a MinMaxBlocker
 // bounds the engine published on the offered options

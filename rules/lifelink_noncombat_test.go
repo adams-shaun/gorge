@@ -271,7 +271,11 @@ func TestLifelinkAbilityDamageToCreatureGainsLife(t *testing.T) {
 		t.Fatalf("logged %d lifelink LifeChange(0, +2) events, want 1", n)
 	}
 	// The rider is not a trigger: the LifeChange is logged immediately after
-	// the Damage it rides, in the same resolution.
+	// the Damage it rides, in the same resolution. Since the game-long
+	// damage-provenance record (the_fallen, diseased_vermin,
+	// task agent-20260923T114033Z-a57ee463) every landed Damage through
+	// Engine.emit also emits one DamageProvenance bookkeeping event between
+	// the Damage and the rider, so "immediately after" skips those.
 	lastDamage, lastLife := -1, -1
 	for i, ev := range e.L.Events {
 		if ev.Kind == events.Damage && ev.Obj == ox {
@@ -281,8 +285,15 @@ func TestLifelinkAbilityDamageToCreatureGainsLife(t *testing.T) {
 			lastLife = i
 		}
 	}
-	if lastDamage < 0 || lastLife < 0 || lastLife != lastDamage+1 {
-		t.Fatalf("LifeChange at %d is not immediately after the Damage at %d", lastLife, lastDamage)
+	if lastDamage < 0 || lastLife < 0 || lastLife <= lastDamage {
+		t.Fatalf("LifeChange at %d does not ride the Damage at %d in the same resolution", lastLife, lastDamage)
+	}
+	// Only the provenance bookkeeping may sit between them.
+	for i := lastDamage + 1; i < lastLife; i++ {
+		if e.L.Events[i].Kind != events.DamageProvenance {
+			t.Fatalf("LifeChange at %d does not immediately follow the Damage at %d: %s event between",
+				lastLife, lastDamage, e.L.Events[i].Kind)
+		}
 	}
 	replayCheck(t, e, cfg)
 }

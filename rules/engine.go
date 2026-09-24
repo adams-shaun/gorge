@@ -148,6 +148,10 @@ type Engine struct {
 	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
 	ascend ascendScan
 
+	// storied is checkEnduringStoryGrants' incremental "could anything carry
+	// Storied" arena scan (rules/storied.go); a pure cache, zero = rescan.
+	storied storiedScan
+
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
 	// both together, while an Engine assembled around an existing log lazily
@@ -2392,6 +2396,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				lkiPTValid = true
 			}
 		}
+	case events.DoorUnlock:
+		// CR 709.5: Mode$ FullyUnlock (rules/trigmatch_room.go) must tell a
+		// real locked->unlocked transition from a repeated DoorUnlock on an
+		// already-unlocked room (the latter no game action produces, but a
+		// direct emit can). Apply flips Unlocked before this event's triggers
+		// are matched, so the pre-fold flag has to ride the LKI snapshot.
+		if o := e.G.Obj(ev.Obj); o != nil {
+			cp := o.CloneDeep()
+			lki = &cp
+		}
 	case events.CounterChange:
 		// Vanishing's last-counter trigger must distinguish a real removal
 		// from a redundant decrement at zero. Keep the pre-fold TIME count
@@ -2457,7 +2471,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			wasTapped = o.Tapped
 		}
 	}
-	stored := e.foldEntryMove(ev)
+	stored, _ := e.foldEntryMove(ev)
 	e.expireClonesOnEvent(stored, wasTapped)
 	// CR 310.10: every Battle whose recorded protector has just left the game
 	// gets a fresh living opponent as its protector. PlayerLost is the one
@@ -2518,6 +2532,36 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if stored.Kind == events.Damage && stored.Amount > 0 && stored.Counter == "wither+creature" {
 		e.convertWitherDamage(stored)
+	}
+	// Game-long damage-by-source provenance (the_fallen, diseased_vermin):
+	// every landed Damage event appends a DamageProvenance fact so the
+	// wasDealtDamageThisGameBy player qualifier and the
+	// wasDealtDamageByThisGame object predicate can answer Forge's game-long
+	// record. This lives HERE, on the one post-fold tail, because every
+	// emitter (effects/damage.go's riders, rules/combat.go's combat batch,
+	// rules/cast.go, rules/resolution.go and the cleanup negatives) funnels
+	// through emit -- no emitter file has to change. It reads `stored`, the
+	// APPLIED event, so post-protection/post-replacement/post-redirect it
+	// names the real recipient and the amount that actually landed; a
+	// prevented hit is a Note and never reaches here, and a cleanup negative
+	// is excluded by the Amount > 0 gate (exactly like the infect/wither
+	// conversions above). The source is the same published override / e.damaging
+	// reader emit's own protection guard uses; a zero source (no recorded
+	// provenance) emits nothing rather than minting a false (0, recipient)
+	// fact. The recipient is stored.Obj when nonzero (an object) else
+	// stored.Player (a seat), encoded PlayerRef-style so seat 0 is
+	// distinguishable from "no recipient".
+	if stored.Kind == events.Damage && stored.Amount > 0 {
+		if src := e.inFlightDamageSource(); src != 0 {
+			var recipient state.ObjID
+			if stored.Obj != 0 {
+				recipient = stored.Obj
+			} else {
+				recipient = state.PlayerRef(stored.Player)
+			}
+			e.emit(events.Event{Kind: events.DamageProvenance, Obj: src,
+				IDs: []state.ObjID{recipient}, Amount: stored.Amount})
+		}
 	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
@@ -2758,6 +2802,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
 		ev.Kind == events.ControlChange {
 		e.checkBlessingGrants()
+		e.checkEnduringStoryGrants()
 	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,

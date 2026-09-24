@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -171,5 +172,37 @@ func TestStackViewAbilityCardNilWhenSourceAbsent(t *testing.T) {
 	}
 	if v.Stack[0].Card != nil {
 		t.Fatalf("Card = %+v, want nil for an unresolvable source", v.Stack[0].Card)
+	}
+}
+
+// TestDecisionOptionLabelSubstitutesCardName pins fb-20260923T033148Z's
+// label half: the engine builds an activated ability's offer label as
+// "<face name>: <SpellDescription$>" with the raw description, so Mount
+// Doom's damage ability reached the seat as "Mount Doom: CARDNAME deals 1
+// damage to each opponent." The projected decision substitutes the
+// placeholder with the label's own name prefix; a label without a
+// placeholder or without the prefix is unchanged, and the engine's own
+// pending decision is not written.
+func TestDecisionOptionLabelSubstitutesCardName(t *testing.T) {
+	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Options: []decision.Option{
+		{Index: 0, Kind: "ability", Obj: 7, Label: "Mount Doom: CARDNAME deals 1 damage to each opponent."},
+		{Index: 1, Kind: "ability", Obj: 8, Label: "Ambergris, Agent of Destruction: NICKNAME fights."},
+		{Index: 2, Kind: "activate", Obj: 7, Label: "Activate Mount Doom for mana"},
+		{Index: 3, Kind: "pass", Label: "CARDNAME without a prefix"},
+	}}
+	cp := copyDecision(d)
+	want := []string{
+		"Mount Doom: Mount Doom deals 1 damage to each opponent.",
+		"Ambergris, Agent of Destruction: Ambergris fights.",
+		"Activate Mount Doom for mana",
+		"CARDNAME without a prefix",
+	}
+	for i, w := range want {
+		if cp.Options[i].Label != w {
+			t.Errorf("projected option %d label = %q, want %q", i, cp.Options[i].Label, w)
+		}
+	}
+	if !strings.Contains(d.Options[0].Label, "CARDNAME") {
+		t.Fatalf("copyDecision wrote the engine's own option: %q", d.Options[0].Label)
 	}
 }
