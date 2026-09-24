@@ -830,6 +830,20 @@ func manaAmountPips(ma *cards.SA, pip string) string {
 // renderer (the unless prompts, turn-face-up, ward), with the tap clause
 // cleared: every option on the wheel is tapping this source, so the tap is
 // not what the player is choosing between.
+func manaAbilityCostPhrase(c Cost) string {
+	phrase := costPhrase(c)
+	phrase = strings.ReplaceAll(phrase, "1 creature", "a creature")
+	phrase = strings.ReplaceAll(phrase, "1 card", "a card")
+	if len(c.Exile) > 0 {
+		for _, part := range c.Exile {
+			if part.Zone == 0 || part.Zone == state.ZHand {
+				phrase = strings.Replace(phrase, "exile a card", "exile a card from your hand", 1)
+			}
+		}
+	}
+	return phrase
+}
+
 func manaAbilityCostPrefix(ma *cards.SA) string {
 	raw := strings.TrimSpace(ma.Params["Cost"])
 	if raw == "" {
@@ -837,7 +851,7 @@ func manaAbilityCostPrefix(ma *cards.SA) string {
 	}
 	c := ParseCost(raw)
 	c.Tap = false
-	phrase := costPhrase(c)
+	phrase := manaAbilityCostPhrase(c)
 	if phrase == "" {
 		return ""
 	}
