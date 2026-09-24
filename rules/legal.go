@@ -2316,6 +2316,18 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 					Label: "Cast " + f.Name + " (offspring)", Obj: id, Mode: "offspring"})
 			}
 		}
+		// Morph / Megamorph / Disguise (CR 702.37a/702.168a/702.169a), the
+		// command-zone half: the same fixed-{3} face-down offer the hand walk
+		// makes, on the same terms -- it deliberately does NOT gate on
+		// targetsAvailable (CR 708.4: a face-down spell has no targets), and
+		// the printed keyword parameter (the turn-face-up cost) is not paid
+		// now. offerCastable composes the CR 903.8 commander tax on top of
+		// the {3}, exactly what beginCast charges for this mode.
+		if fam := morphDownFamily(f); fam != "" &&
+			offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
+		}
 	}
 
 	// Harmonize is a graveyard alternative. It is offered as its own cast
