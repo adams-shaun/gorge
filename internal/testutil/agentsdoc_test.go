@@ -47,6 +47,7 @@ const (
 	// The CR 103.1 toss-choice closure (cli-20260922T225141Z-e771720d)
 	// deletes one more (toss-choice row).
 	// The abcopy closure (cli-20260922T225141Z-4f6f20cb) deletes one more.
+	// cli-20260922T225142Z-2f0df8e8 deletes one more row.
 	knownApproximationRows = 11
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
