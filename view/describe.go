@@ -81,8 +81,9 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
 	case events.BlessingChange:
-		// CR 702.131: the one-way latch -- folded state always shows it set.
 		return player(g, ev.Player) + " gets the city's blessing"
+	case events.EnduringStoryChange:
+		return player(g, ev.Player) + " has an enduring story"
 	case events.TurnFaceDown:
 		return obj(g, ev.Obj) + " is turned face down"
 	case events.TurnFaceUp:

@@ -123,6 +123,9 @@ type Player struct {
 	// per-player struct copy.
 	Blessing bool
 
+	// EnduringStory is the one-way CR 702.175 designation latch.
+	EnduringStory bool
+
 	// Notes is the set of player-notation labels this seat has noted, in the
 	// order they were noted (Forge's `NoteCards$ ... | NoteCardsFor$ <label>`
 	// on a DB$ Pump body appends <label> here; `Player.NotedFor<label>` reads
