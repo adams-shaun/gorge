@@ -1743,8 +1743,13 @@ var handRoots = struct {
 		// ValidDefender$ against the attacker and its actual defender.
 		"Engine.checkAttackerUnblockedTriggers",
 		// The static-grant's trigger walk (AddTrigger$): mode-SHARED machinery
-		// like the drain above -- a granted trigger of ANY mode matches through
-		// triggerMatches' own dispatch.
+		// like the drain above -- a granted trigger whose mode has a
+		// trigMatchers entry matches through triggerMatches' own dispatch. The
+		// dedicated-hook modes (AttackerBlocked/AttackerBlockedByCreature,
+		// AttackerUnblocked/AttackerUnblockedOnce, Blocks, Chapter, Attached,
+		// …) have no trigMatchers entry and are dispatched by their own
+		// granted walks instead, so a granted instance of one of those matches
+		// elsewhere -- not here.
 		"Engine.checkGrantedStaticTriggers",
 		// The live trigger walk's zone-skip classifier (trigger_zoneskip.go)
 		// re-reads zoneGate's TriggerZones$/ActiveZones$ and the Phase$
