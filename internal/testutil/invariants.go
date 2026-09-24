@@ -140,6 +140,12 @@ func checkZones(t testing.TB, g *state.Game, where string) {
 		if g.Objs[i].Zone == state.ZCeased {
 			want = 0
 		}
+		// An ability object that left the stack ceased to exist (CR 113.7a):
+		// its Zone keeps the logged exile parking, but it belongs to no
+		// zone's membership list (events.move).
+		if o := &g.Objs[i]; o.Card == nil && o.Ability != nil && o.Zone != state.ZStack {
+			want = 0
+		}
 		if n := seen[id]; n != want {
 			t.Fatalf("invariants (%s): object %d appears in %d zone lists, want %d", where, id, n, want)
 			return

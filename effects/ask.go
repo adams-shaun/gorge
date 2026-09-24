@@ -89,3 +89,30 @@ func askCount(h Host) uint64 {
 	}
 	return 0
 }
+
+// eventMarker is the optional host seam exposing the event log's length and
+// whether any state-changing event (anything but a Note) was logged after a
+// mark. effRepeat's RepeatOptional$ loop reads it to recognise an iteration
+// that changed nothing, whose repeat can only reproduce the same no-op.
+type eventMarker interface {
+	EventMark() int
+	StateChangedSince(mark int) bool
+}
+
+// eventMark is h's current event-log mark; ok is false for a host without
+// the seam (the test doubles), which keeps every caller's old behaviour.
+func eventMark(h Host) (mark int, ok bool) {
+	if m, is := h.(eventMarker); is {
+		return m.EventMark(), true
+	}
+	return 0, false
+}
+
+// stateChangedSince reports whether h logged a state-changing event after
+// mark. A host without the seam reports true (assume progress).
+func stateChangedSince(h Host, mark int) bool {
+	if m, is := h.(eventMarker); is {
+		return m.StateChangedSince(mark)
+	}
+	return true
+}

@@ -2980,6 +2980,8 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 			}
 			return
 		}
+		mark, marked := eventMark(h)
+		asksBefore := askCount(h)
 		Resolve(h, c, sub)
 		if h.Suspended() {
 			// A RepeatOptional body can itself ask (Forbidden Ritual's
@@ -3000,6 +3002,19 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if optional {
 			if i+1 >= n {
+				return
+			}
+			if marked && askCount(h) == asksBefore && !stateChangedSince(h, mark) {
+				// The iteration posed no decision and changed nothing (only
+				// Notes: Forbidden Ritual's "sacrifice a nontoken permanent"
+				// once none is left, its GenericChoice gated off, its Cleanup
+				// clearing an empty Remembered). A body with no decision run
+				// from an unchanged state is the same no-op every time, so
+				// every number of further repeats yields this same state (CR
+				// 732.2a's shortcut): end the do/while instead of offering an
+				// election whose "repeat" answer can only loop forever.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "the repeated process changed nothing; it is not offered again"})
 				return
 			}
 			if !poseRepeatOptionalElection(h, c, sa, i+1) {

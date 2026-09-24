@@ -1,47 +1,214 @@
-# Merge-conflict resolution — mrg1 (agent-20260919T203859Z-cf55fee2)
+# Merge-conflict resolution — wt/agent-20260918T234402Z-c77011ce (mrg1), round 6 (2026-09-23 22:30)
 
-## Entry state and operation
+## Entry state
 
-`git status` was clean on `wt/agent-20260919T203859Z-cf55fee2`; no rebase or merge was in flight. The supplied daemon transcript described a failed rebase and merge fallback, but that operation had left no active state. HEAD was `a8240913`; `main` was `b493bc15`, with merge-base `2424c005`. Per the working method, I started a merge of current `main`. `.cards` was present.
+`git status` clean, no rebase or merge in flight. HEAD was `824fbbd3` ("Merge
+branch 'main' into wt/agent-20260918T234402Z-c77011ce", 10:50 today) — the
+previous resolver's merge had already completed and committed, but `main` had
+since advanced by 156 commits (tip `dbc5683d`, the fuzz-panics merge at
+22:27). `.cards` was present (real corpus, so no vacuous skips).
+
+## Operation
 
 ```text
-$ git status --short --branch; git status
-## wt/agent-20260919T203859Z-cf55fee2
-On branch wt/agent-20260919T203859Z-cf55fee2
-nothing to commit, working tree clean
 $ git merge main
-Auto-merging .ds4/report-sol1.md
-Auto-merging .ds4/report-t2.md
-CONFLICT (content): Merge conflict in .ds4/report-t2.md
-Automatic merge failed; fix conflicts and then commit the result.
+Auto-merging (many files: rules/, host/, web/, docs …)
+Merge made by the 'ort' strategy.
 ```
 
-## Conflicted file and resolution
+**No conflict arose this round.** The merge auto-committed as `c0791f1e`
+("Merge branch 'main' into wt/agent-20260918T234402Z-c77011ce", default
+message). After it, `git log HEAD..main` is empty (main fully integrated) and
+the tree is clean. The `.ds4/report-*` accumulation files, which conflicted
+in earlier rounds, auto-merged cleanly this time. I edited no source file —
+there was nothing to hand-resolve.
 
-Only `.ds4/report-t2.md` conflicted. HEAD's side held this branch's CardManaCostLKI round-3 implementation report and the previous round's report. Main's side held the independent `agent-20260922T201246Z-000e743d` report and continuation. These are independent report histories, not contradictory product changes. I removed only Git's conflict-marker/separator lines and retained all prose from both sides, including each side's `Fails without the fix` / `Issues` material. The remainder of the accumulated history below the conflict was preserved. No source or test file conflicted.
-
-`.ds4/report-sol1.md` auto-merged. The other staged changes are main's auto-merged changes; I did not manually edit them. `.ds4/report-mrg1.md` retains its prior accumulated history with this report prepended.
-
-## Commands and results
+## Verification
 
 ```text
-$ git add -f .ds4/report-t2.md
-$ git diff --name-only --diff-filter=U
-(no output; no unresolved paths)
 $ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-ok   github.com/adams-shaun/gorge/rules  0.930s
-$ go test -run 'TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue|TestChthonianNightmarePaysEnergySacsAndReturns|TestCardManaCostLKIReadsRememberedSnapshot' ./rules/ ./effects/
-ok   github.com/adams-shaun/gorge/rules  0.678s
-ok   github.com/adams-shaun/gorge/effects  0.013s
+ok   github.com/adams-shaun/gorge/rules   0.627s
+$ go test ./rules -run 'Companion'          # branch's own fix (kw:Companion registration)
+ok   github.com/adams-shaun/gorge/rules   0.441s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest   3.834s
 ```
 
-The focused branch regressions and required post-merge ratchets passed. No ratchet table adjustment was indicated: this branch registers no trigger mode or closes a count-head/deck parameter entry. No engine behavior conflict required a judgement call.
+The post-merge ratchets pass: this branch registers `kw:Companion` (a
+deck-construction keyword, not a `Mode$` matcher) and closes no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry, so no ratchet table adjustment was indicated. Merge brought main's
+start-of-game choice, trigger-zoneskip, TargetMin/Max and fuzz-panics work;
+the Companion tests still pass on top of it.
 
 ## Issues
 
-No new defect found during integration. The branch's report continues to record its out-of-scope `SpellTargeted$CardManaCostLKI` ref gap and trigger-stack authored-X issue; integration did not alter either.
+None new. Integration only; no source conflict, no golden moved.
 
 ---
+# Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 5 (2026-09-23)
+
+## Entry state
+
+Dispatched mid-merge: a merge of main @ `3eadee08` into this branch had been
+started (MERGE_HEAD present) with two unmerged paths — `.ds4/report-mrg1.md` and
+`.ds4/report-t2.md`, both docs accumulators. The worktree files for both were
+ALREADY resolved by a prior partial resolver run (both sides' content present in
+order, zero real conflict markers at line starts — all `<<<<<<<`-shaped grep hits
+were in-prose quotations), but never staged. `rules/replacement.go` and every
+other path had auto-merged. `.cards` present (symlink to
+`/home/sadams/projects/gorge/.cards`).
+
+## Operations (two merges)
+
+1. **Completed the in-flight merge** (main @ `3eadee08`): staged the two
+   already-resolved report files (`git add` — content verified both-sides-
+   preserving before staging), committed with the default message → `f20d5d27`.
+   This merge's only judgement call: none — both sides were accumulated
+   multi-ticket report histories; union, no contradiction, no code conflict.
+2. **Merged current main** (`562e324d`): main had advanced 11 commits past
+   `3eadee08` in the 12 hours the merge sat unresolved (fuzz-loops fixes,
+   entry-counter/replacement checks, scry, CR 103.1 toss choice, perf work —
+   259 files). `git merge main` conflicted on ONE file only:
+   `.ds4/report-mrg1.md` (the accumulator tail — our branch's round-4 +
+   cf55fee2 resolution reports vs main's 683 lines of other resolvers'
+   accumulated reports). `rules/replacement.go` auto-merged cleanly (both
+   census tokens coexist). Resolved by union: kept HEAD's block verbatim, then
+   main's block verbatim, deleting only the three marker lines. Verified
+   programmatically that every substantive (non-blank) line of both sides'
+   unique added blocks appears in the resolved file in order → commit
+   `486b32a9` with the default message.
+
+No engine, test, table, golden or ratchet file was touched. No `Ref:` trailers
+(gorge rule). The round-4 report and cf55fee2 report below are retained.
+
+## Commands and output
+
+```text
+$ git status            # mid-merge, UU .ds4/report-mrg1.md + .ds4/report-t2.md
+$ git add .ds4/report-mrg1.md .ds4/report-t2.md && git commit --no-edit
+[wt/agent-20260919T055356Z-504b1359 f20d5d27] Merge branch 'main' into wt/agent-20260919T055356Z-504b1359
+$ git merge main        # main @ 562e324d
+Auto-merging .ds4/report-mrg1.md
+Auto-merging rules/replacement.go
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+$ sed -i '4875d;4194d;4087d' .ds4/report-mrg1.md   # the three marker lines only
+$ python3 union-check   # all sides' added blocks present in order → True/True/True
+$ git add -f .ds4/report-mrg1.md && git commit --no-edit
+[wt/agent-20260919T055356Z-504b1359 486b32a9] Merge branch 'main' into wt/agent-20260919T055356Z-504b1359
+$ git status --short --branch
+## wt/agent-20260919T055356Z-504b1359   (clean)
+```
+
+Post-merge gates (real output):
+
+```text
+$ go build ./...                                     → exit 0
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.655s
+$ go test -run 'TestReplaceDamage|TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrant|TestChthonianNightmarePaysEnergySacsAndReturns|TestCardManaCostLKIReadsRememberedSnapshot' ./rules/ ./effects/
+ok  github.com/adams-shaun/gorge/rules   0.516s
+ok  github.com/adams-shaun/gorge/effects 0.016s
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  4.024s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  0.626s
+```
+
+No head/ratchet movement and no `addedAfterTheSplit`/`knownUnsupported`/
+`knownUnmodelledCountHeads` edit needed: this branch registers no trigger mode
+and its only product change (the `api:ReplaceDamage` census token) closes no
+ratchet row; main's own commits carry their ratchet updates.
+
+## Issues
+
+None new. The out-of-scope `SpellTargeted$CardManaCostLKI` ref gap and
+trigger-stack authored-X issue remain recorded in the branch's reports below.
+
+STATUS=DONE
+COMMITS=f20d5d27 486b32a9
+TESTS=ratchets ok 0.655s; focused rules+effects ok; archtest ok; botbench byte-identical ok
+
+---
+
+# Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 3 (2026-09-23)
+
+## State found
+
+The daemon's rebase onto main had conflicted (`rules/replacement.go`, applying
+`6fcf1fcd`) and its merge fallback had also conflicted and been aborted:
+`git status` was **clean** on `wt/agent-20260919T055356Z-504b1359` at `79ed2a60`,
+no rebase/merge in flight. main had advanced to `b493bc15`; merge-base
+`767f3dd4`. `.cards` present (symlink to `/home/sadams/projects/gorge/.cards`).
+
+Key observation: `git log 767f3dd4..main -- rules/replacement.go` is EMPTY —
+main has not touched `rules/replacement.go` since the branch's previous merge
+(`79ed2a60`), so the rebase conflict was an artifact of replaying `6fcf1fcd`
+against the branch's ORIGINAL fork point (the same collision the previous merge
+already resolved). I completed the daemon's merge fallback (`git merge main`),
+which conflicted only in the two accumulated `.ds4/` report files.
+
+## Conflicted files and resolution
+
+### `rules/replacement.go` — auto-merged, verified
+
+Both tokens present in the merged `init()`: `"repl:Scry"` (main, line 6459) and
+`"api:ReplaceDamage"` + comment (branch fix `6fcf1fcd`, line 6465).
+`git diff main --stat -- rules/ effects/` = exactly the branch's 7-line fix
+(+ `replacedamage_registration_test.go`); nothing else diverges.
+
+### `.ds4/report-mrg1.md` — union
+
+HEAD side: the branch's round-1 title line + a 3-line "Issues" paragraph.
+main side: 3375 lines of accumulated mrg1 report history + a rewritten Issues
+paragraph + an appended `agent-20260918T195920Z-2fd3b568` re-run report. The
+109-line middle (the round-1 report body incl. `bfa400d8` merge record) is
+COMMON to both sides. Resolution: HEAD's title preserved at top with a lineage
+note, main's history verbatim, common middle verbatim, then BOTH Issues
+paragraphs (branch's first, main's after), main's appended report verbatim.
+
+### `.ds4/report-t2.md` — union
+
+HEAD side (207 lines): the branch's `replcensus1`/`api:ReplaceDamage` round-t2
+report ending with the "Prior report content preserved verbatim below" lineage
+heading. main side (44 lines): the `agent-20260922T201246Z-000e743d` fix-round
+report. The 477-line tail (the `4b5f8950` round-t2 report and older history) is
+COMMON. Resolution: branch report, `---`, main report, `---`, lineage heading,
+common tail verbatim. No report content dropped on either side.
+
+## Gates run (real output)
+
+```text
+$ go build ./rules/ ./effects/            # clean, no output
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.755s          (exit 0; -v re-read: 10 RUN, 0 SKIP, 0 FAIL)
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.251s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.193s
+```
+
+No head/ratchet golden moved; `rules/heads_test.go` and the
+`knownUnsupported`/`knownUnsupportedParams` tables untouched — the branch's
+`api:ReplaceDamage` registration only REMOVES a census gap, and the ratchet
+suite passes at main's current tables.
+
+## Issues
+
+None new from the integration. Standing observation (also noted by earlier
+rounds): per-branch prepends to the shared `.ds4/report-*.md` accumulators
+conflict on every integration; the union convention keeps everything but costs
+a round each time. Also: `.ds4` is in `.gitignore` yet these report files are
+tracked, so plain `git add` refuses them (`-f` on the exact paths was needed) —
+a controller-side note could save the next seat a failed `git add`.
+
+---
+
+# Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1)
+
+(main-side accumulated mrg1 report history follows verbatim; this branch's
+own round-1 report body is the shared middle section below — its title is
+preserved here at the top of the union.)
 
 # Merge-conflict resolution — agent-20260918T195920Z-2fd3b568 (mrg1)
 
@@ -3439,6 +3606,60 @@ None new. The recurring friction is unchanged: per-branch tail appends to the
 shared `report-mrg1.md` / `report-sol1.md` accumulators conflict on every
 integration, and the union convention keeps everything.
 
+# Merge-conflict resolution — mrg1
+
+## Initial state and operation status
+
+At entry, `git status --short --branch` showed only
+`## wt/agent-20260918T233200Z-e0817443`; `git status` said the tree was clean.
+There was no `REBASE_HEAD`, `MERGE_HEAD`, unmerged index, or in-flight
+operation to continue. The failed daemon attempt described in the dispatch had
+already been resolved and committed in this worktree. The history includes
+`30a271af Merge remote-tracking branch 'origin/main'` and the subsequent
+report/fix commits, ending at `f20210f6` before this report. I did not start a
+second merge or rebase.
+
+The conflict state that was resolved, as recorded in the dispatch and the
+committed reports, was:
+
+- `.ds4/report-t1.md`: conflict applying `39e7d1b7`; resolved by preserving
+  the task's report insertion and the accumulated reports from main.
+- `.ds4/report-r2.md`: docs-only conflict during fallback integration;
+  resolved by retaining the accumulated main reports and adding this task's
+  report. The report also records `.ds4/report-sol1.md` auto-merging, not
+  conflicting.
+- `effects/count.go` and `effects/registry.go`: auto-merged in fallback, not
+  listed as conflicts. The branch's changes are present.
+
+Both sides' intent was retained: the dynamic-zero TargetMin/TargetMax fix and
+its tests remain in `rules/stack.go`, `rules/cast.go`, `rules/statics.go`,
+`effects/count.go`, `effects/registry.go`, and `rules/targetmax_resolved_zero_test.go`;
+main's accumulated reports were preserved. The subsequent Anthem test changes
+and correction reports also remain in history. No conflict markers are present.
+
+## Verification
+
+`.cards` exists as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+Commands run for this resolution:
+
+```text
+$ git status --short --branch
+## wt/agent-20260918T233200Z-e0817443
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.779s
+
+$ go test -run 'Kicked|Count' ./effects/
+ok   github.com/adams-shaun/gorge/effects  2.468s
+
+$ go test -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$|^TestMarshalsAnthemMultikickedETBReturnsKickedCount$' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.628s
+```
+
+The ratchets and focused conflict-related package tests passed. No unresolved
+conflicts or uncertainties remain. No code change was needed for integration;
+this report records the already-completed resolution and the fresh checks.
 ---
 
 # Merge-conflict resolution — mrg1 (agent-20260918T195920Z-2fd3b568), re-run 2026-09-23
@@ -3559,114 +3780,117 @@ accumulator conflict on every integration; the deterministic
 
 # Merge-conflict resolution report — mrg1 (agent-20260922T234314Z-bbfff2fb)
 
-## Entry state and operation
+STATUS: DONE.
 
-`git status` showed a **clean** worktree on
-`wt/agent-20260922T234314Z-bbfff2fb` at `df3f94cf`, with **no merge or rebase in
-flight** — the daemon's conflicting rebase had been aborted/left clean. But
-`df3f94cf` was a merge of an *older* main (`c4560130`), and main had since
-advanced to `30a271af` (`git merge-base --is-ancestor main HEAD` was false; 28
-commits in `HEAD..main`).
+The daemon's rebase onto `main` conflicted and its merge fallback also
+conflicted. I found the tree clean (rebase already aborted — reflog
+`HEAD@{1}: rebase (abort)`), so I re-ran the merge fallback (`git merge main`),
+resolved the three conflicted files, and concluded the merge with the default
+merge message.
 
-The branch's fix is `c0a04453 feat(effects): ask each Defined$ player for
-GenericChoice` plus its report commit `13395d74`. Both were already in HEAD
-(`git merge-base --is-ancestor c0a04453 HEAD` → true).
+- Merge commit: `bfa400d8` (`Merge branch 'main' into wt/agent-20260919T055356Z-504b1359`),
+  parents `ae1dc08c` (branch tip) + `767f3dd4` (main).
+- Working tree clean; no unmerged paths; no conflict markers remain.
 
-The `.ds4/merge-conflict-mrg1.md` transcript described a rebase of `13395d74`
-onto main conflicting on `.ds4/report-t1.md`, with a merge fallback conflicting
-on the same file plus `effects/context_test.go`, `effects/registry.go`,
-`rules/resolution.go`. Main's changes since the old merge base touch exactly
-those files. So the operation that actually remained was a fresh
-**`git merge main`** — not the aborted rebase. I ran `git merge main`.
+## Conflicted files and resolution
 
-`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`, so
-the corpus-backed tests ran for real (the `rules` targeted run did not skip).
+### `rules/replacement.go`
 
-## Conflicted file and resolution
+Two sides touch the same `effects.RegisterNonAPI(...)` call in `init()`:
 
-One content conflict, in `.ds4/report-t1.md` (a tracked accumulated report
-file).
+- **HEAD (branch fix `6fcf1fcd`)** removed the closing paren and appended the
+  `api:ReplaceDamage` census token plus a comment explaining it is handled
+  inline by `applyReplaceDamageBody` (never through `effects.Resolve`).
+- **main** added the new token `"repl:Scry"` to the earlier `"repl:Attached"`
+  line (from the scry-replacement work: `ae4fed1e`/`8d1151fb`/`1dab341a`).
 
-- **HEAD (branch) side** wanted: this ticket's `GenericChoice
-  per-Defined$-player chooser` report (Ticket `agent-20260922T234314Z-bbfff2fb`,
-  Commit `c0a04453`).
-- **main side** wanted: the independent `trig:Attacks.NoResolvingCheck on
-  Sentinel Sarah Lyons` report (Commit `30f3fc7a`) — main's later work.
-- Both sides shared the same preceding report history, unchanged.
+These are independent additions, not a contradiction. Resolution keeps BOTH:
+main's `"repl:Scry",` on the `"repl:Attached"` line, and the branch's
+`api:ReplaceDamage` + comment block after `"api:ReplaceCounter"`. Verified:
+`grep -c '"repl:Scry"' rules/replacement.go` = 1, and the full
+`api:ReplaceDamage` comment/registration is present.
 
-**Resolution: kept BOTH reports.** The conflict region was the file's tail
-(lines 2164–2457): shared prose ended at the "…as the brief conditions it."
-paragraph, then the two unique reports diverged to EOF. I removed only the three
-conflict-marker lines, kept the branch's GenericChoice report, added a `---`
-separator, then main's Sentinel Sarah Lyons report exactly as written. No prose
-was dropped from either unique side; no conflict markers remain. This is the
-same keep-both pattern the prior mrg1 rounds documented.
+Diff of `rules/replacement.go` vs main is exactly the branch's 7-line
+addition (+6/-1), i.e. main's `repl:Scry` survives unchanged.
 
-The other conflicted-by-name files **auto-merged cleanly** and were not manually
-edited:
+### `.ds4/report-sol1.md`
 
-- `effects/registry.go` — carries both the branch's `SuspendGenericChoiceRest` /
-  `GenericChoiceRest` / `Ctx.GenericChoosers` symbols and main's newer changes.
-- `rules/resolution.go` — carries the branch's `genericChoosers` /
-  `genericChooserIndex` / `"generic_players"` arm / `SuspendGenericChoiceRest`
-  impl and main's scry-replacement work.
-- `effects/context_test.go` — the fake host's `SuspendGenericChoiceRest` plus
-  main's changes.
+Both sides independently replaced the tail of this accumulated report file:
 
-No code conflict required a judgement call. Main did **not** touch the branch's
-core fix files (`effects/misc.go`, `decision/decision.go`,
-`rules/generic_choice_players_test.go`, `rules/clone.go`), so the reviewed fix's
-behaviour is intact.
+- base (`c4560130`) = 679 lines; main appended 71 lines (the Mill-trigger
+  ticket's `# Mill-trigger replacement redirection — agent-20260919T183731Z-085022e9`
+  report); HEAD appended 63 lines (the `# replcensus1 — ReplaceDamage
+  census-token fix round` report).
 
-## Commands run (real output)
+Both are pure additions after the identical shared history and both are
+legitimate historical record (the file is a shared accumulation across
+tickets). Resolution is the UNION: base history + main's appended block +
+HEAD's appended block. Both blocks verified fully present; base preserved
+exactly once; no content from either side dropped.
+
+### `.ds4/report-t1.md`
+
+Same shape: base = 2162 lines; main appended 294 lines; HEAD appended 172
+lines (the branch's report explicitly restored main's 2162-line history and
+appended its own round-1 report). Union resolution: base + main's block +
+HEAD's block. Both additions verified present, base preserved exactly once.
+
+Note: `.ds4` is in `.gitignore` but these specific report files are tracked
+(they were force-added historically), so I used `git add -f` to stage the two
+resolved report files, consistent with their tracked status.
+
+## Sanity checks (commands and real output)
+
+`.cards` present as a symlink to `/home/sadams/projects/gorge/.cards`, so the
+corpus tests exercised the corpus rather than skipping.
 
 ```text
-$ git status
-On branch wt/agent-20260922T234314Z-bbfff2fb
-nothing to commit, working tree clean
-
-$ git merge-base --is-ancestor main HEAD && echo YES || echo NO
-NO
-
-$ git merge main
-Auto-merging .ds4/report-t1.md
-CONFLICT (content): Merge conflict in .ds4/report-t1.md
-Auto-merging effects/context_test.go
-Auto-merging effects/registry.go
-Auto-merging rules/resolution.go
-Automatic merge failed; fix conflicts and then commit the result.
-
-# (resolved .ds4/report-t1.md: kept both reports, markers removed)
-
-$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-ok  	github.com/adams-shaun/gorge/rules	0.777s
-
-$ go test -run 'TestGenericChoice|TestSeizeTheSpotlight|TestSentinelSarahLyonsBattalionSurvivesAttackerLeaving|TestScryReplacement|TestMill' ./rules/
-ok  	github.com/adams-shaun/gorge/rules	0.665s
-
-$ go test ./effects/
-ok  	github.com/adams-shaun/gorge/effects	2.612s
-
-$ go test ./decision/
-ok  	github.com/adams-shaun/gorge/decision	0.009s
-
-$ git commit --no-edit
-[wt/agent-20260922T234314Z-bbfff2fb 15b64ff2] Merge branch 'main' into wt/agent-20260922T234314Z-bbfff2fb
-
-$ git status
-On branch wt/agent-20260922T234314Z-bbfff2fb
-nothing to commit, working tree clean
-
-$ git merge-base --is-ancestor main HEAD && echo YES || echo NO
-YES
+$ gofmt -l rules/replacement.go
+(no output)
+$ go build ./rules/
+build-exit=0
 ```
 
-The required post-merge ratchets passed. The branch adds no new trigger
-matcher, closes no `knownUnsupported` / `knownUnsupportedParams` /
-`knownUnmodelledCountHeads` entry, and needs no `addedAfterTheSplit` change, so
-the ratchet tables are untouched.
+Branch ticket's focused tests plus the merged scry-replacement tests:
+
+```text
+$ go test -run 'TestReplaceDamage|TestScryReplacement' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.947s
+exit=0
+```
+
+Ratchets main newly carries (merge instruction):
+
+```text
+$ go test -v ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+--- PASS: TestEveryRepoDeckIsFullySupported (0.70s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.23s)
+ok  	github.com/adams-shaun/gorge/rules	0.992s
+exit=0
+```
+
+Behaviour goldens outside `rules/`:
+
+```text
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.123s
+arch-exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.571s
+bot-exit=0
+```
+
+No head/ratchet golden moved. `rules/heads_test.go` and
+`rules/acceptance_test.go` were not edited.
 
 ## Issues
+
+No new defect surfaced by the conflict resolution; the conflicts were pure
+integration collisions (one shared `init()` registration list and two shared
+accumulated report files). No CR-lane test requested.
 
 None introduced or discovered by integration. The conflict was limited to an
 accumulated report file; main's engine/test changes auto-merged and the focused
@@ -3783,6 +4007,103 @@ unioning it — a controller-side note to those seats would stop the churn;
 (2) the per-branch prepend/append to `.ds4/report-*.md` accumulators conflicts
 on every integration; the union convention keeps everything but costs a round
 each time. The branch closes no Known-approximations row.
+
+---
+
+---
+
+# Merge-conflict resolution report — Companion (mrg1)
+
+## Entry state and operation
+
+The worktree was clean on `wt/agent-20260918T234402Z-c77011ce` at
+`9497e794`, with no merge or rebase in flight. The reviewed Companion commits
+were already present (`f7e41c45`, `1bb5e863`, `9497e794`); `main` was at
+`767f3dd4`. The supplied daemon transcript named `.ds4/report-t1.md` as the
+conflict. I ran `git merge main`; it reproduced that conflict and reported
+`rules/trigger_match.go` as an automatic merge.
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Conflicted file and resolution
+
+`.ds4/report-t1.md` is an accumulated report file. The branch side adds the
+Companion registration report; main adds the independent GenericChoice and
+Sentinel Sarah Lyons reports. I kept both sides, removing only the three merge
+marker lines. The Companion text remains intact, followed by main's reports.
+No engine-code conflict required manual resolution: `rules/trigger_match.go`
+auto-merged and retains the Companion registration alongside main's changes.
+All other changed files in the merge were automatic main integration, not
+conflicts, and were left as merged.
+
+## Commands and output
+
+```text
+$ git status --short --branch
+## wt/agent-20260918T234402Z-c77011ce
+
+$ git merge main
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Auto-merging rules/trigger_match.go
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git diff --check
+(no output; exit 0)
+
+$ go test -run 'TestCompanionPrimitiveIsRegistered|TestCompanionCarrierIsUnderstood|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.801s
+
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  4.113s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.584s
+```
+
+The combined rules run includes the Companion regression and the required
+post-merge trigger-mode, deck, parameter, and count-head ratchets. No new
+trigger matcher or ratchet entry was introduced/closed by this change. Both
+behavior goldens passed; no pin change was needed.
+
+---
+
+# Merge-conflict resolution — Companion (current integration)
+
+The worktree was clean before integrating the current `main`; the earlier
+merge commit `a5312bff` integrated the then-current `main` (`767f3dd4`), while
+`main` has since advanced to `b493bc15`. `git merge main` produced one conflict,
+`.ds4/report-mrg1.md`. The branch side contained the Companion report appended
+to the shared 114-line base; main carried the accumulated report history plus
+its own new report material. I preserved main's full accumulated content and
+appended the branch's unique Companion report, retaining both intents.
+`.ds4/report-t1.md` auto-merged; its Companion report and main's newer sections
+are both present. No production source needed manual conflict resolution.
+
+Verification (the corpus symlink was present at `.cards`):
+
+```text
+$ go test ./rules -run 'TestCompanionPrimitiveIsRegistered|TestCompanionCarrierIsUnderstood|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.916s
+
+$ go test -run 'TestTriggerRemembered|TestLoamcrafterFaun|TestRefProperty' ./effects/ ./rules/
+ok   github.com/adams-shaun/gorge/effects  0.658s
+ok   github.com/adams-shaun/gorge/rules  0.735s
+
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  4.101s
+
+$ git diff --cached --check
+(no output; exit 0)
+```
+
+The post-merge trigger/deck/parameter/count-head ratchets and Companion tests
+passed. No ratchet table or botbench pin changes were needed. The merge is
+completed with the default merge message.
+
+## Issues
+
+No additional issue was found in the report-only conflict resolution.
 
 ---
 
@@ -4047,6 +4368,168 @@ TESTS=go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTri
 
 ---
 
+# Merge-conflict resolution — mrg1 (agent-20260918T233200Z-e0817443), 2026-09-23
+
+## State found
+
+`git status` showed a merge of `main` into `wt/agent-20260918T233200Z-e0817443`
+in flight with four unmerged paths, all docs-only accumulator report files:
+
+- `.ds4/report-mrg1.md` (one conflict region, lines 3257–3918)
+- `.ds4/report-r2.md` (whole-head conflict, lines 1–229)
+- `.ds4/report-sol2.md` (whole-head conflict, lines 1–192)
+- `.ds4/report-t1.md` (whole-head conflict, lines 1–274)
+
+All staged code/test changes (`rules/emerge.go`, `rules/emerge_test.go`,
+`rules/loamcrafter_faun_test.go`, `effects/count.go`, `effects/immediate.go`,
+`effects/registry.go`, `rules/cast.go`, `rules/resolution.go`, etc.) had
+auto-merged cleanly. No source file conflicted.
+
+## Resolution
+
+Anchored scan (`grep -nE '^(<<<<<<< |=======$|>>>>>>> )'`) confirmed exactly
+one conflict region per file and no prose-embedded marker lines that start a
+line exactly. In every region, HEAD's side is this branch's ticket report and
+main's side is a sibling ticket's report accumulated on main (r2: the
+Loamcrafter Faun `TriggerRemembered$Amount` r2 report; sol2: the Emerge sol2
+report; t1: the 000e743d fix-round-t2 report repair; mrg1: the 2fd3b568 mrg1
+re-run report). Per the accumulator's union convention, both sides were kept
+verbatim — HEAD's content first, then main's — by stripping only the three
+marker lines. Two seams got a blank line for heading separation
+(`report-r2.md` only; `report-t1.md` already had one). No report text was
+edited beyond marker removal. No code, test, table, or golden file touched.
+
+## Commands and output
+
+```text
+$ python3 union-resolve over the four files
+.ds4/report-mrg1.md -> 3915 lines
+.ds4/report-r2.md   ->  697 lines
+.ds4/report-sol2.md ->  343 lines
+.ds4/report-t1.md   -> 2727 lines
+$ grep -nE '^(<<<<<<< |=======$|>>>>>>> )' <the four files>   → no output
+$ git add -f .ds4/report-mrg1.md .ds4/report-r2.md .ds4/report-sol2.md .ds4/report-t1.md
+  (plain `git add` was refused with the ignored-path hint despite the files
+   being tracked — `.gitignore:25:.ds4/`; `git check-ignore -v` on the file
+   itself exits 1 = not ignored, so `-f` is a no-op force on tracked paths)
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  1.122s
+```
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`, so
+the corpus-backed ratchets ran for real (1.1 s, not a vacuous skip).
+
+## Issues
+
+None new. The ratchet tests passed unmodified — no `addedAfterTheSplit` or
+ratchet-table reconciliation was needed by this merge.
+
+# Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 4 (2026-09-23)
+
+## State found
+
+`git status` was **clean**, no rebase/merge in flight — the daemon had aborted its
+merge fallback again. This is round 4: the branch already merged main in round 3
+(`55e3788d`), and main has since advanced by 11 commits (the Emerge work:
+`29de0b65`…`6a83fb34`, incl. its own mrg1 merge `686c292b`). `git merge main` was
+performed directly; `rules/replacement.go` auto-merged cleanly this round (both
+census tokens verified present: `"repl:Scry"` main, `"api:ReplaceDamage"` branch,
+lines 6459/6465). `.cards` present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Conflicted files
+
+One file only: `.ds4/report-sol1.md` (hunk at lines 843–947). Both sides appended a
+report at the shared tail: HEAD carried the branch's `replcensus1` ReplaceDamage
+census-token fix report; main carried the `agent-20260918T225913Z-5db23024` Emerge
+integration report. Genuine union, no contradiction — both preserved verbatim, HEAD's
+first, `---` separator, then main's, matching the round-3 union precedent. No other
+file conflicted and no non-conflicted file was touched.
+
+## Commands and output
+
+```
+$ git merge main
+Auto-merging .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+$ git add -f .ds4/report-sol1.md && git commit --no-edit
+[wt/agent-20260919T055356Z-504b1359 ca08e16a] Merge branch 'main' into wt/agent-20260919T055356Z-504b1359
+$ git status
+nothing to commit, working tree clean
+$ git rev-list --count HEAD..main
+0
+```
+
+Post-merge ratchets (per the 2026-09-22 standing instruction):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.808s
+$ go test -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.621s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	2.475s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.234s
+$ go build ./rules/ ./effects/          # clean
+```
+
+No head/ratchet/golden moved; no `addedAfterTheSplit` or `knownUnsupported` table
+edit needed — the Emerge commits on main already carry their own ratchet entries and
+the branch's `api:ReplaceDamage` registration only closes a census gap. Branch merge
+commit: `ca08e16a`.
+
+## Issues
+
+None new.
+
+---
+
+# Merge-conflict resolution — mrg1 (agent-20260919T203859Z-cf55fee2)
+
+## Entry state and operation
+
+`git status` was clean on `wt/agent-20260919T203859Z-cf55fee2`; no rebase or merge was in flight. The supplied daemon transcript described a failed rebase and merge fallback, but that operation had left no active state. HEAD was `a8240913`; `main` was `b493bc15`, with merge-base `2424c005`. Per the working method, I started a merge of current `main`. `.cards` was present.
+
+```text
+$ git status --short --branch; git status
+## wt/agent-20260919T203859Z-cf55fee2
+On branch wt/agent-20260919T203859Z-cf55fee2
+nothing to commit, working tree clean
+$ git merge main
+Auto-merging .ds4/report-sol1.md
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+## Conflicted file and resolution
+
+Only `.ds4/report-t2.md` conflicted. HEAD's side held this branch's CardManaCostLKI round-3 implementation report and the previous round's report. Main's side held the independent `agent-20260922T201246Z-000e743d` report and continuation. These are independent report histories, not contradictory product changes. I removed only Git's conflict-marker/separator lines and retained all prose from both sides, including each side's `Fails without the fix` / `Issues` material. The remainder of the accumulated history below the conflict was preserved. No source or test file conflicted.
+
+`.ds4/report-sol1.md` auto-merged. The other staged changes are main's auto-merged changes; I did not manually edit them. `.ds4/report-mrg1.md` retains its prior accumulated history with this report prepended.
+
+## Commands and results
+
+```text
+$ git add -f .ds4/report-t2.md
+$ git diff --name-only --diff-filter=U
+(no output; no unresolved paths)
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.930s
+$ go test -run 'TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrantTargetsAtMostTheCausingSpellManaValue|TestChthonianNightmarePaysEnergySacsAndReturns|TestCardManaCostLKIReadsRememberedSnapshot' ./rules/ ./effects/
+ok   github.com/adams-shaun/gorge/rules  0.678s
+ok   github.com/adams-shaun/gorge/effects  0.013s
+```
+
+The focused branch regressions and required post-merge ratchets passed. No ratchet table adjustment was indicated: this branch registers no trigger mode or closes a count-head/deck parameter entry. No engine behavior conflict required a judgement call.
+
+## Issues
+
+No new defect found during integration. The branch's report continues to record its out-of-scope `SpellTargeted$CardManaCostLKI` ref gap and trigger-stack authored-X issue; integration did not alter either.
+
+---
 None found in this round. The only defect encountered was the stale ratchet
 constant on each side, resolved by measuring the merged table (32) rather than
 adopting either side's comment. No new approximation, no golden edit, no engine
@@ -4727,3 +5210,74 @@ ok   github.com/adams-shaun/gorge/internal/testutil  0.007s
 ```
 
 No unresolved conflict markers remained. The tree was clean after the merge commit and before writing this report. No behavior conflict remained uncertain.
+
+---
+
+# Merge-conflict resolution — mrg1 (agent-20260918T233200Z-e0817443), 2026-09-23 (integration of main c6b5d869 → 3c1bc265)
+
+## State found
+
+The dispatch described a failed rebase onto main plus a failed merge fallback
+(conflicts in `report-t1.md`, then `report-mrg1.md`/`report-sol1.md`/`report-t1.md`).
+`git status` at dispatch time was CLEAN — no rebase or merge in flight. The branch
+already carried `fb9006bb` (the prior round's merge of main `6a83fb34`, resolved by
+the earlier mrg1 seat). A read-only `git merge-tree --write-tree HEAD main`
+simulation reproduced the dispatch's merge-fallback output EXACTLY (conflicts in
+`.ds4/report-mrg1.md`, `.ds4/report-sol1.md`, `.ds4/report-t1.md`; `effects/count.go`,
+`effects/registry.go`, `rules/cast.go`, `rules/stack.go`, `rules/statics.go`
+auto-merging), confirming the dispatched conflict was the integration of the NEWER
+main `c6b5d869` (133 commits: the fuzz-botloops / fuzz-loops / fuzz-modes work).
+
+## Round 1 — merge main `c6b5d869` (commit `ecf0be89`)
+
+`git merge main` conflicted in exactly the three accumulator report files; every
+code/test path auto-merged. Each conflict was one region, each side an unrelated
+report section appended to the shared accumulator. Union resolution (script in the
+transcript): both sides kept verbatim, ours first then main's, marker lines stripped,
+one blank line inserted at a seam only when neither side provided separation.
+
+- `.ds4/report-mrg1.md`: ours = the e0817443 mrg1 report; theirs = main's accumulated
+  mrg1 content (680 lines, other tickets). 4839 lines result.
+- `.ds4/report-sol1.md`: ours = the sol1 Anthem gate-repair report; theirs = main's
+  `count:CardManaCostLKI` round-3 report. 1001 lines.
+- `.ds4/report-t1.md`: ours = this ticket's t1 report ending in the
+  "Reports appended below …" pointer header; theirs = main's kw:Melee (hn1) report,
+  which correctly lands below that header. 2797 lines.
+
+`git add -f` the three, `git commit --no-edit` → `ecf0be89`.
+
+## Round 2 — main advanced mid-resolution (commit `174c1b0a`)
+
+While resolving, main moved to `3c1bc265` (14 commits: the replacedamage census token
+plus its own mrg1 rounds). `git merge main` again; only `.ds4/report-mrg1.md`
+conflicted (one region: our e0817443 report vs main's 504b1359 mrg1 round-4 report);
+same union resolution. `174c1b0a`. After it: `git merge-base --is-ancestor main HEAD`
+→ true; `git rev-list --count HEAD..main` → 0; tree clean. main has NOT advanced
+further as of 22:21 MDT.
+
+## Gates (real output)
+
+```text
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.636s
+$ go test ./effects/
+ok  github.com/adams-shaun/gorge/effects  16.620s
+$ go test ./rules -run 'TestMarshalsAnthem|TestTearAsunder|TestPestInfestation|TestResolvedTargetBounds|TestEmerge|TestLoamcrafter'
+ok  github.com/adams-shaun/gorge/rules  0.491s
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  4.158s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  0.679s   (split did NOT move)
+```
+
+`.cards` present as a symlink to the shared corpus — corpus-backed ratchets ran for
+real. No head or ratchet movement: no new `Mode$` matcher, no `knownUnsupported` /
+`knownUnsupportedParams` / `knownUnmodelledCountHeads` entry closed, so no ratchet
+table needed editing. main's own fuzz-botloops fixes arrived intact and the botbench
+golden still passes on the merged tree.
+
+## Issues
+
+None new. Standing observation (documented by prior rounds, not re-filed): the shared
+`.ds4/report-*.md` accumulators conflict on nearly every integration; the union
+convention preserves all content but costs a round each time.

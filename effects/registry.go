@@ -1007,6 +1007,17 @@ type Ctx struct {
 	// the source object's stamped field -- the same priority the xPaid head
 	// gives ctx.X over the object read.
 	TimesKicked int32
+	// PendingKicked is the pending cast's CHOSEN kicked mode (CR 702.4/702.33),
+	// seeded by rules' targetBoundCtx when the spell's OWN announcement ask
+	// resolves a Count$Kicked body BEFORE payment has stamped the stack
+	// object's CastFlags. Tear Asunder's kicked main SA is
+	// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1, so pre-payment
+	// the object reads Kicked false and X stays 1 -- the ask then demands an
+	// artifact/enchantment the kicked spell must not take. The Kicked count
+	// head ORs this bit with the object's FlagKicked, so a mid-resolution read
+	// (no pending cast, the flag actually stamped) is unaffected. Zero (false)
+	// everywhere else; it is derived data, never event-encoded.
+	PendingKicked bool
 	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
 	// wildgrowth1): the number the Effect resolved at creation, threaded into
 	// a registered replacement's body Ctx by rules' replCtx so the body's
