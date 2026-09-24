@@ -3175,6 +3175,25 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				Obj:   id, SVar: sv})
 		}
 	}
+	// Morph-family turn face up (CR 708.6 / CR 116.2b, rules/morph_turnup.go):
+	// a face-down permanent its controller cast with Morph, Megamorph or
+	// Disguise may be turned face up as a SPECIAL ACTION any time they have
+	// priority -- it is not sorcery-gated, does not use the stack, and its
+	// only cost is the keyword's own printed parameter. The offer is gated on
+	// the same floating pool the action pays, so the charge cannot disagree
+	// with what was offered; a manifest or cloak carrier (no family flag) is
+	// never offered here -- its turn-up is a separate subsystem.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		mf, ok := morphFaceUpCost(e.G.Obj(id))
+		if !ok {
+			continue
+		}
+		if !e.costPayable(p, id, false, mf.cost) {
+			continue
+		}
+		add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
+	}
+
 	// K:Split second (CR 702.62, rules/split_second.go): while a split-second
 	// spell is on the stack, players can't cast spells or activate abilities
 	// that aren't mana abilities. The filter runs here -- at the ONE choke
@@ -3378,6 +3397,12 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// payment and the delayed-shape ability mint.
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		e.beginGrantedActivation(in.Player, opt)
+
+	case "turn_face_up":
+		// Morph-family turn face up (CR 708.6 / CR 116.2b): a special action
+		// -- no stack, no target, no response window. rules/morph_turnup.go
+		// owns the payment and the TurnFaceUp/megamorph-counter events.
+		e.turnFaceUp(in.Player, opt)
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})

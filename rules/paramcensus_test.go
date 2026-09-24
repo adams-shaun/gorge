@@ -2816,12 +2816,11 @@ var knownUnsupportedParams = map[string][]string{
 	// Each label is the unimplemented parameter on a fully-registered
 	// primitive (the primitive ratchet above separately carries the four
 	// unregistered APIs/keywords the deck needs).
-	"Chord of Calling":         {"param:api:ChangeZone.AIXMax"},
-	"Earthbender Ascension":    {"param:api:PutCounter.RememberAmount"},
-	"Glacial Chasm":            {"param:api:Sacrifice.ChangeNum"},
-	"Green Sun's Zenith":       {"param:api:ChangeZone.AIXMax"},
-	"Natural Order":            {"param:api:ChangeZone.AISearchGoal"},
-	"Nissa, Resurgent Animist": {"param:api:DigUntil.RevealRandomOrder"},
+	"Chord of Calling":      {"param:api:ChangeZone.AIXMax"},
+	"Earthbender Ascension": {"param:api:PutCounter.RememberAmount"},
+	"Glacial Chasm":         {"param:api:Sacrifice.ChangeNum"},
+	"Green Sun's Zenith":    {"param:api:ChangeZone.AIXMax"},
+	"Natural Order":         {"param:api:ChangeZone.AISearchGoal"},
 }
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
