@@ -22,6 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/searchprobe"
 	"github.com/adams-shaun/gorge/internal/searchseat"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -52,6 +53,9 @@ type config struct {
 	noLandExclusion          bool
 	comparePotential         bool
 	labelsPath               string
+	// value is the -value-checkpoint model (nil: the heuristic leaf). It is
+	// loaded once before any game and shared read-only by every worker.
+	value *policynet.Model
 }
 
 // DecisionRecord is one search-seat decision the teacher was asked about.
@@ -126,6 +130,7 @@ func run(args []string, stdout, progress io.Writer) error {
 	noLandExclusion := fs.Bool("no-land-exclusion", false, "measurement only: sample without the declined-land-drop exclusion (the pre-2026-09-21 proposal; reproduces that sampler's label corpus byte for byte)")
 	pairsFlag := fs.String("pairs", "", "restrict to comma list of a:b pairs (default: the ten approved pairs)")
 	outPath := fs.String("out", "", "JSONL of GameRecords (new file)")
+	valueCheckpoint := fs.String("value-checkpoint", "", "score non-terminal rollout leaves with this policynet checkpoint's value head instead of the material heuristic (needs -horizon > 0 and a checkpoint trained with -value-weight > 0)")
 	labelsPath := fs.String("labels", "", "JSONL label corpus of covered decisions (new file only, atomic publish)")
 	corpus := fs.String("cards", ".cards", "compiled corpus directory")
 	cpuprofile := fs.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
@@ -159,6 +164,23 @@ func run(args []string, stdout, progress io.Writer) error {
 		if k != "" {
 			cfg.kinds[k] = true
 		}
+	}
+	if *valueCheckpoint != "" {
+		// A game-end rollout (-horizon 0) ends at game over, which is scored
+		// 1 / 0 / 0.5 and never reaches the leaf evaluator; only a MaxSubmits
+		// cap would, so a value checkpoint there would silently do (almost)
+		// nothing.
+		if cfg.horizon <= 0 {
+			return fmt.Errorf("-value-checkpoint needs -horizon > 0: a game-end rollout (-horizon 0) never stops at a non-terminal leaf, so the value head would never be read")
+		}
+		m, err := policynet.LoadCheckpointFile(*valueCheckpoint)
+		if err != nil {
+			return fmt.Errorf("-value-checkpoint: %w", err)
+		}
+		if !m.HasValue() {
+			return fmt.Errorf("-value-checkpoint %s has no value head (train it with policytrain -value-weight > 0)", *valueCheckpoint)
+		}
+		cfg.value = m
 	}
 	if cfg.labelsPath != "" {
 		if err := checkLabelsDestination(cfg.labelsPath); err != nil {
@@ -357,6 +379,7 @@ func teach(setup searchprobe.PublicGame, h *searchprobe.History, collector *sear
 		SampleSeed:   cfg.sampleSeed,
 		Clairvoyant:  cfg.oracle,
 		Parallelism:  cfg.decisionWorkers,
+		Value:        cfg.value,
 
 		NoLandExclusion:         cfg.noLandExclusion,
 		ComparePotentialActions: cfg.comparePotential,
@@ -485,8 +508,12 @@ func summarize(w io.Writer, all []GameRecord, cfg config, seed uint64, games int
 		kinds = append(kinds, k)
 	}
 	sort.Strings(kinds)
-	fmt.Fprintf(w, "search-teacher spike: oracle=%v kinds=%s K=%d attempts=%d minESS=%g horizon=%d margin=%g candidates<=%d seed=%d games/pair=%d wall=%.0fs\n",
-		cfg.oracle, strings.Join(kinds, ","), cfg.worlds, cfg.attempts, cfg.minESS, cfg.horizon, cfg.margin, cfg.limit, seed, games, wall.Seconds())
+	leaf := "heuristic"
+	if cfg.value != nil {
+		leaf = "value"
+	}
+	fmt.Fprintf(w, "search-teacher spike: oracle=%v kinds=%s K=%d attempts=%d minESS=%g horizon=%d leaf=%s margin=%g candidates<=%d seed=%d games/pair=%d wall=%.0fs\n",
+		cfg.oracle, strings.Join(kinds, ","), cfg.worlds, cfg.attempts, cfg.minESS, cfg.horizon, leaf, cfg.margin, cfg.limit, seed, games, wall.Seconds())
 	var n, errs, stalls, unsupported int
 	var sWins, bWins float64
 	var diffs []float64
