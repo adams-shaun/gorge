@@ -437,6 +437,13 @@ func TestUpgradeEntityCLI(t *testing.T) {
 	if err != nil || e.Features != policynet.FeaturesEntity || e.EntK != 6 {
 		t.Fatalf("upgraded checkpoint: %v %+v", err, e)
 	}
+	r05 := filepath.Join(dir, "r05.gpol")
+	if code := run([]string{"-set-residual", "0.5", "-init", ent, "-out", r05}, &stdout, &stderr); code != 0 {
+		t.Fatalf("-set-residual exit %d: %s", code, stderr.String())
+	}
+	if r, err := policynet.LoadCheckpointFile(r05); err != nil || r.ResidualW != 0.5 || r.EntK != 6 {
+		t.Fatalf("-set-residual: %v %+v", err, r)
+	}
 	if code := run([]string{"-upgrade-entity", "6", "-init", v1, "-out", filepath.Join(dir, "x.gpol")}, &stdout, &stderr); code == 0 {
 		t.Fatal("upgrading a v1 checkpoint must be refused")
 	}
