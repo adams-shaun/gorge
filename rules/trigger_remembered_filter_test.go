@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -52,6 +53,24 @@ func TestTriggerRememberedFilterReachability(t *testing.T) {
 // Inline delayed dies promise: the captured creature's death alone executes
 // the body. The life delta is the observable stand-in for a token-creating
 // Blessed Defiance body, without importing Forge's GPL script or token corpus.
+func TestTriggerRememberedFilterDelayedAttackers(t *testing.T) {
+	e := layerEngine(t)
+	source := onBoard(t, e, 0, "Name:Watcher\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	captured := onBoard(t, e, 1, "Name:Captured\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	other := onBoard(t, e, 1, "Name:Other\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	if captured == other || e.G.Obj(captured).Zone != state.ZBattlefield || e.G.Obj(other).Zone != state.ZBattlefield {
+		t.Fatal("precondition: distinct battlefield attackers required")
+	}
+	trig := cards.Trigger{Mode: "AttackersDeclared", Params: map[string]string{"ValidAttackers": "Card.IsTriggerRemembered"}}
+	dt := &state.DelayedTrigger{Source: source, Remembered: []state.Target{{Obj: captured}}}
+	if !e.delayedEventMatches(trig, dt, events.Event{Kind: events.DeclareAttackers, IDs: []state.ObjID{captured}}, nil) {
+		t.Fatal("captured attacker did not match")
+	}
+	if e.delayedEventMatches(trig, dt, events.Event{Kind: events.DeclareAttackers, IDs: []state.ObjID{other}}, nil) {
+		t.Fatal("unrelated attacker matched")
+	}
+}
+
 func TestTriggerRememberedFilterDelayedDies(t *testing.T) {
 	e := layerEngine(t)
 	src := onBoard(t, e, 0, "Name:Defiance promise\nTypes:Creature Wizard\nPT:2/2\nSVar:Trig:DB$ GainLife | Defined$ You | LifeAmount$ 3\nOracle:x\n")

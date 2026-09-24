@@ -550,7 +550,7 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 	case "DamageDone":
 		return e.damageMatchesWithCapture(t, dt.Source, ev, dt.Remembered)
 	case "AttackersDeclared":
-		return e.attackersDeclaredOneTargetMatches(t, dt.Source, ev)
+		return e.attackersDeclaredOneTargetMatches(t, dt.Source, ev, dt.Remembered)
 	default:
 		return false
 	}

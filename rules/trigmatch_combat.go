@@ -231,7 +231,7 @@ func attackersDeclaredBatch(t cards.Trigger) bool {
 // checkFaceTriggers (Engine.attackersDeclaredFired). A direct synthetic emit
 // with no declaration scratch falls back to ev.IDs, which is the declaration
 // itself in every single-defender case.
-func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event, remembered ...[]state.Target) bool {
 	if ev.Kind != events.DeclareAttackers || len(ev.IDs) == 0 {
 		return false
 	}
@@ -252,8 +252,13 @@ func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state
 		return false
 	}
 	matches := 0
+	var capture []state.Target
+	if len(remembered) != 0 {
+		capture = remembered[0]
+	}
 	for _, id := range ids {
-		if v := t.Params["ValidAttackers"]; v == "" || e.matchesSpec(v, id, e.specCtx(source, ctrl)) {
+		sc := delayedSpecCtx(e.specCtx(source, ctrl), capture)
+		if v := t.Params["ValidAttackers"]; v == "" || e.matchesSpec(v, id, sc) {
 			matches++
 		}
 	}
