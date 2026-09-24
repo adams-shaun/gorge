@@ -1200,6 +1200,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				if !observer.triggerMatches(t, id, ev, objLKI) {
 					continue
 				}
+				// Capture the DiscardedAll FirstTime$ clause the matcher just parsed
+				// (discardedAllMatches records it on its own receiver) BEFORE
+				// secondaryYields below -- which also drives this observer -- can
+				// overwrite the scratch value.
+				discardedAllFirstTime := t.Mode == "DiscardedAll" && observer.discardAllFirstTime
 				// Forge's Secondary$ True: a marked secondary is the second
 				// half of one card text, and it does not fire when the same
 				// event already fired its card's paired primary (the
@@ -1458,17 +1463,18 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// count 1.
 				if t.Mode == "DiscardedAll" {
 					// FirstTime$ True (Veronica, Rielle: "for the first time each
-					// turn") is the batch-level once-per-turn gate. It is decided
-					// when a NEW batch entry is created and recorded then, so a
-					// later batch this turn queues nothing while the SAME batch's
-					// further matching cards still accumulate into the count
-					// (Rielle's "draw that many" needs a multi-card first batch's
-					// full size). It is read here, not in the matcher, because batch
-					// identity lives in the latch; firstMarkerThisTurn's per-EVENT
-					// scan cannot tell one discard batch from the next. The stamp
-					// is the trigger line's turn only, exact for every corpus
-					// carrier (their ValidPlayer$ is the source's own controller).
-					firstTime := strings.EqualFold(t.Params["FirstTime"], "True")
+					// turn") is the batch-level once-per-turn gate. It was read by
+					// discardedAllMatches and captured above as
+					// discardedAllFirstTime; it is decided when a NEW batch entry is
+					// created and recorded then, so a later batch this turn queues
+					// nothing while the SAME batch's further matching cards still
+					// accumulate into the count (Rielle's "draw that many" needs a
+					// multi-card first batch's full size). Batch identity lives in
+					// the latch; firstMarkerThisTurn's per-EVENT scan cannot tell one
+					// discard batch from the next. The stamp is the trigger line's
+					// turn only, exact for every corpus carrier (their ValidPlayer$
+					// is the source's own controller).
+					firstTime := discardedAllFirstTime
 					if e.discardBatchOpen {
 						if entIdx, ok := e.discardBatchIdx[key]; ok {
 							ent := &e.discardBatchLog[entIdx]

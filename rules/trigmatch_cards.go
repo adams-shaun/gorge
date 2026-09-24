@@ -374,6 +374,15 @@ func (e *Engine) discardedAllMatches(t cards.Trigger, source state.ObjID, ev eve
 	if spec := t.Params["ValidCause"]; spec != "" && !e.discardCauseAdmits(spec, source, ev) {
 		return false
 	}
+	// FirstTime$ True (Veronica, Rielle: "for the first time each turn") is a
+	// BATCH-level fact the dispatcher's latch enforces, because batch identity
+	// lives in the latch and firstMarkerThisTurn's per-EVENT log scan cannot
+	// tell one discard batch from the next. The param is read HERE, in the
+	// matcher REGISTERED for DiscardedAll, rather than in the shared
+	// checkFaceTriggers dispatcher, so the parameter census attributes the read
+	// to mode DiscardedAll alone; the dispatcher captures this scratch value
+	// immediately after the match call and applies it at the queue point.
+	e.discardAllFirstTime = strings.EqualFold(t.Params["FirstTime"], "True")
 	return true
 }
 

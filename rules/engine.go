@@ -969,6 +969,19 @@ type Engine struct {
 	// controller ("You"); a line naming another player's discard would need a
 	// per-player key, which no current carrier has.
 	discardAllTurn map[triggerKey]int32
+	// discardAllFirstTime is the Mode$ DiscardedAll FirstTime$ param scoped to
+	// the matcher: discardedAllMatches (rules/trigmatch_cards.go), the ONLY
+	// reader of the DiscardedAll line's FirstTime$, records the parsed clause
+	// here as its receiver's transient scratch, and checkFaceTriggers captures
+	// it immediately after the match call (before secondaryYields, which also
+	// drives this same observer). It is scratch, not bookkeeping: it starts
+	// false and is only meaningful for the instant between that matcher call
+	// and the capture, so it is neither cloned nor replayed. Keeping the
+	// `t.Params["FirstTime"]` literal inside the DiscardedAll-registered
+	// matcher is what scopes the param-census read (rules/
+	// paramcensus_test.go) to mode DiscardedAll instead of attributing it to
+	// every trigger mode through the shared dispatcher.
+	discardAllFirstTime bool
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
