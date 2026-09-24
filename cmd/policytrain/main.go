@@ -33,6 +33,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		batch          = fs.Int("batch", 64, "batch size")
 		seed           = fs.Int64("seed", 1, "run seed: split, shuffles and initialisation")
 		holdout        = fs.Float64("holdout", 0.1, "holdout fraction (never updated on)")
+		holdoutBy      = fs.String("holdout-by", HoldoutByExample, "holdout split unit: example (shuffle decisions; one game's decisions can land on both sides) or game (hold out whole games by pair/seed/game index, so no held-out board state is trained on)")
 		embed          = fs.Int("embed", 128, "H, the shared embedding width")
 		hidden         = fs.Int("hidden", 128, "hidden layer width")
 		rankWeight     = fs.Float64("rank-weight", policynet.DefaultRankWeight, "weight of the ranking term against the value term (in CE mode the plain CE weight; in hybrid mode scaled by the per-example margin). INERT in pure CE mode: the per-batch gradient clip normalises any uniform loss scale away — tune -lr and -clip instead")
@@ -84,7 +85,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	cfg := Config{
-		Epochs: *epochs, Batch: *batch, LR: *lr, Seed: *seed, Holdout: *holdout,
+		Epochs: *epochs, Batch: *batch, LR: *lr, Seed: *seed, Holdout: *holdout, HoldoutBy: *holdoutBy,
 		Embed: *embed, Hidden: *hidden,
 		Mode:       mode,
 		RankWeight: *rankWeight, HuberDelta: *huberDelta,
@@ -112,14 +113,24 @@ func run(args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintf(stdout, "checkpoint %s: rows=%d h=%d hidden=%d (%d bytes), encoder hash %#016x\n",
 		*out, res.Model.Rows, res.Model.H, res.Model.Hidden, size, policynet.EncoderHash())
 	fmt.Fprintf(stdout, "holdout per-kind top-1 among labelled options (blended below is just that, blended; loss mode %s):\n", mode)
-	fmt.Fprintf(stdout, "  %-10s %8s %8s %8s %8s %8s\n", "kind", "model", "bot", "first", "random", "n")
+	fmt.Fprintf(stdout, "  (split by %s; m-ovr/m-keep are model top-1 on the teacher-override/kept subsets, ovr-n the override count, m-bot the fraction of model picks that are a bot pick)\n", holdoutUnit(*holdoutBy))
+	fmt.Fprintf(stdout, "  %-10s %8s %8s %8s %8s %8s %8s %8s %8s %8s\n", "kind", "model", "bot", "first", "random", "n", "ovr-n", "m-ovr", "m-keep", "m-bot")
 	for _, k := range res.ByKind {
-		fmt.Fprintf(stdout, "  %-10s %8.3f %8.3f %8.3f %8.3f %8d\n",
-			k.Kind, k.ModelTop1, k.BotTop1, k.FirstTop1, k.RandomTop1, k.Eligible)
+		fmt.Fprintf(stdout, "  %-10s %8.3f %8.3f %8.3f %8.3f %8d %8d %8.3f %8.3f %8.3f\n",
+			k.Kind, k.ModelTop1, k.BotTop1, k.FirstTop1, k.RandomTop1, k.Eligible,
+			k.OverrideN, k.ModelOverrideTop1, k.ModelKeepTop1, k.ModelPicksBot)
 	}
 	fmt.Fprintf(stdout, "train %d examples, holdout %d, skipped %d; final train loss %.6f top1 %.3f (blended), holdout loss %.6f top1 %.3f (blended)\n",
 		res.TrainN, res.HoldoutN, res.Skipped, final.TrainLoss, final.TrainTop1, final.HoldoutLoss, final.HoldoutTop1)
 	return 0
+}
+
+// holdoutUnit names the split unit for the table header ("" is example).
+func holdoutUnit(by string) string {
+	if by == "" {
+		return HoldoutByExample
+	}
+	return by
 }
 
 // parseKindModes parses a "kind=mode,kind=mode" list into the per-kind loss
