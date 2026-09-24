@@ -593,6 +593,14 @@ func (e *Engine) extraDrawsThisTurn(p state.PlayerID) int {
 // replay-safe: action triggers are checked synchronously inside emit, while
 // the resolving object is still at the top of the replayed stack.
 func (e *Engine) actionCause() state.ObjID {
+	// causePin is an entry-settle preview's stand-in for the live action
+	// cause (rules/entry_counters.go): the preview's Apply folds the entry
+	// move, which takes the entrant off the cloned stack, so the bare read
+	// would report no cause for a cast spell's own entry. Only a preview
+	// engine ever carries one; live engines read the stack.
+	if e.causePin != 0 {
+		return e.causePin
+	}
 	if len(e.G.Stack) == 0 {
 		return 0
 	}
