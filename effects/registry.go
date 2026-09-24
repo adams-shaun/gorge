@@ -1975,6 +1975,8 @@ type Ctx struct {
 	// Consumed and cleared before the draw loop, so a nested optional draw
 	// in the same walk poses its own ask (fx42 scoping).
 	DrawOpt string
+	DigOptional string
+	DigOptionalTarget int
 	// DrawUptoIdx/DrawUptoCount/DrawUptoAnswered carry an Upto$ Draw's
 	// per-target continuation (Arcane Denial, Truce): Idx is the Defined$
 	// target index whose "draw up to N" ask or answered batch is in flight,
