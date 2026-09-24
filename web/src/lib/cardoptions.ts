@@ -475,3 +475,28 @@ export function playerOptions(bundle: CardOptions, seat: number): TileOptions | 
   if (set === null) return null;
   return { list: set.list, pickedOrder: set.pickedOrder, tone: bundle.tone, autoOpen: false, post: bundle.post };
 }
+
+const LOYALTY_COST = /\b(Add|Sub)Counter<(\d+)\/LOYALTY>/;
+
+/**
+ * wheelFace is the short text on one radial-wheel button. It must tell a
+ * card's options apart at 30px: every "ability" option's label is
+ * "<card name>: <description>", so a first-word face read the card name on
+ * every button (Jace, the Mind Sculptor's four abilities all showed "Jace,").
+ * A planeswalker ability shows its signed loyalty cost, read from the
+ * option's Forge-notation cost (+2, 0, −1, −12). Anything else shows the
+ * first word of its text with the card-name prefix dropped, cut to fit. The
+ * full label stays in the button's help bubble and aria-label.
+ */
+export function wheelFace(option: Pick<Option, 'kind' | 'label'> & { cost?: string }): string {
+  const loyalty = option.cost?.match(LOYALTY_COST);
+  if (loyalty) {
+    const n = Number(loyalty[2]);
+    if (n === 0) return '0';
+    return `${loyalty[1] === 'Add' ? '+' : '−'}${n}`;
+  }
+  const colon = option.label.indexOf(': ');
+  const text = colon >= 0 ? option.label.slice(colon + 2) : option.label;
+  const word = (text.trim().split(/\s+/)[0] ?? text).replace(/[.,;:]+$/, '');
+  return word.length > 6 ? `${word.slice(0, 5)}…` : word;
+}

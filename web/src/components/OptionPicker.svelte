@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Option } from '../protocol';
   import type { TileOptions } from '../lib/cardoptions';
-  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, wheelFace, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
   import {
     placeMenu,
     placeRadial,
@@ -110,11 +110,6 @@
   const manaSymbols = $derived(tileOptions.list.map((option) => option.label.match(MANA_LABEL)?.[1]?.toUpperCase() ?? null));
   const isManaChoice = $derived(manaSymbols.length > 0 && manaSymbols.every((symbol) => symbol !== null));
 
-  function compactLabel(label: string): string {
-    const word = label.trim().split(/\s+/)[0] ?? label;
-    return word.length > 8 ? `${word.slice(0, 7)}…` : word;
-  }
-
   /** Portal follows the existing list menu mechanism: fixed coordinates in
    * the viewport, outside every scroll container that could clip it. */
   function portal(node: HTMLElement) {
@@ -131,8 +126,8 @@
    * edge button never runs off screen (it may sit slightly off-centre then,
    * the cheap price of not measuring text). */
   const TIP_GAP = 8;
-  const TIP_ROOM = 40; // bubble line height + gap: point.y below this flips the bubble below the button
-  const TIP_HALF = 88; // half of the bubble's 176px max-width
+  const TIP_ROOM = 80; // room for a wrapped bubble (up to ~4 lines) + gap: point.y below this flips the bubble below the button
+  const TIP_HALF = 140; // half of the bubble's 280px max-width
   function tipAnchorX(x: number): number {
     return Math.max(TIP_HALF, Math.min(x + RADIAL_BUTTON / 2, viewportWidth() - TIP_HALF));
   }
@@ -209,7 +204,7 @@
               style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
               onclick={(event) => choose(opt, event.ctrlKey)}
             >
-              {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{compactLabel(opt.label)}</span>{/if}
+              {#if isManaChoice}<span aria-hidden="true">{mana}</span>{:else}<span>{wheelFace(opt)}</span>{/if}
             </button>
             <!-- Immediate help bubble (fb-20260917T232800Z): the option's own
                  label, revealed the moment the pointer enters or the button
@@ -319,8 +314,9 @@
     position: fixed;
     z-index: 21;
     box-sizing: border-box;
-    max-width: 176px;
-    padding: 2px 6px;
+    width: max-content;
+    max-width: 280px;
+    padding: 4px 8px;
     border: var(--edge-w, 1px) solid var(--edge-inst);
     border-radius: 4px;
     background: var(--instrument);
@@ -330,10 +326,11 @@
     font-size: var(--t-10);
     font-weight: 600;
     line-height: 1.3;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: left;
+    /* The full ability text, wrapped: this bubble is the only place a
+       player reads what a wheel button does, so it is never cut. */
+    white-space: normal;
+    overflow-wrap: break-word;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
