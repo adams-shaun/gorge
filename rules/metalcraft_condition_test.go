@@ -111,12 +111,17 @@ func TestConcussiveBoltBareMetalcraft(t *testing.T) {
 			if z := e.G.Obj(victim).Zone; z != state.ZBattlefield {
 				t.Fatalf("victim zone = %s", z)
 			}
-			// The rider must reach the derived creature as a PumpAll grant.
+			// The rider must reach the derived creature as a PumpAll grant,
+			// then prohibit a real block through the shared combat oracle.
 			if got := e.HasKeyword(victim, "HIDDEN CARDNAME can't block."); got != tc.blocked {
 				t.Fatalf("can't-block grant = %v, want %v", got, tc.blocked)
 			}
-			// The KW grant is the PumpAll output. The existing blockRestricted
-			// walker does not yet enforce this textual HIDDEN keyword (see report).
+			if got := e.blockRestricted(victim, attacker); got != tc.blocked {
+				t.Fatalf("block restriction = %v, want %v", got, tc.blocked)
+			}
+			if got := e.canBlock(victim, attacker); got == tc.blocked {
+				t.Fatalf("canBlock = %v, want %v", got, !tc.blocked)
+			}
 			if z := e.G.Obj(spell).Zone; z != state.ZGraveyard {
 				t.Fatalf("Bolt zone = %s, want graveyard", z)
 			}
