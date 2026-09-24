@@ -1196,14 +1196,20 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		// this ask. Repeating a grouped option is never attempted: a repeatable
 		// modal ask carries no Groups, and a group's exclusivity outranks the
 		// arity nudge.
+		//
+		// The fill cycles the ungrouped options until Min is met: a single
+		// pass tops up by at most len(Options), which leaves CharmNum$ 3
+		// over ONE legal mode (every other mode's target gone) one pick
+		// short -- an intent Validate rejects and the bot re-derives forever.
 		if d.Repeatable {
+			var ungrouped []int
 			for _, o := range d.Options {
-				if len(in.Choices) >= min {
-					break
-				}
 				if o.Group == "" {
-					in.Choices = append(in.Choices, o.Index)
+					ungrouped = append(ungrouped, o.Index)
 				}
+			}
+			for i := 0; len(ungrouped) > 0 && len(in.Choices) < min && len(in.Choices) < max; i++ {
+				in.Choices = append(in.Choices, ungrouped[i%len(ungrouped)])
 			}
 		}
 	}

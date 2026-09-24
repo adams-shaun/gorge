@@ -56,7 +56,8 @@ const (
 	// 103.1 winner-chooses ask, whose answer is the toss winner naming
 	// itself -- one recorded intent at genesis -- so every later intent
 	// (including the overshoot burst's own) sits one later in the count.
-	overshootIntents = 379 // intents recorded when parked on the overshoot burst's pending ask
+	// The Menace floor removed one forced-empty blockers ask at intent 194.
+	overshootIntents = 378 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the
@@ -597,6 +598,16 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // the old event 265. Re-recorded through TestGenerateOvershootCapture;
 // the parked commander-zone ask and lethal-damage tail are unchanged.
 // 2117 events, 379 intents, head 9f32a260ba20e345.
+//
+// Menace block-count floor (2026-09-23): at turn 8 Undead Augur attacks
+// with Lord of the Accursed's menace grant while seat 0 has one untapped
+// creature (Lathliss), so no legal blocking declaration exists and the
+// engine no longer poses the empty blockers ask (CR 509.1a/702.111b; the
+// Menace floor is now part of blockPairScopeFor's impossible-bound check).
+// The recorded stream loses exactly that ask/answer pair (events 1052-1053)
+// and intent 194; every other event and intent is identical. Re-recorded via
+// TestGenerateOvershootCapture: 2115 events, 378 intents, head
+// dbba928d76d290b2; overshootIntents 379 -> 378.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -628,8 +639,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 2117 {
-		t.Fatalf("capture carries %d events, want the full 2117-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 2115 {
+		t.Fatalf("capture carries %d events, want the full 2115-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {

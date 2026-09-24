@@ -1318,6 +1318,17 @@ func (e *Engine) blockPairScopeFor(defender state.PlayerID) blockPairScope {
 	}
 	for _, aid := range scope.attackers {
 		min, max, minOK, maxOK, all := e.minMaxBlockerBounds(aid)
+		// CR 702.111b: Menace is the same whole-declaration floor as a
+		// MinMaxBlocker Min$ 2 ("can't be blocked except by two or more
+		// creatures"), so it is folded into the published bound. A client
+		// that drops or cannot field the second blocker (a tap-costed or
+		// unaffordable pair, a Max$ trim) then sees the floor on the option
+		// itself instead of having to re-derive the keyword, and a Menace
+		// attacker that also carries a Max$ below two (or faces fewer than
+		// two legal blockers) is never offered at all.
+		if !all && e.HasKeyword(aid, "Menace") && (!minOK || min < 2) {
+			min, minOK = 2, true
+		}
 		var b [2]int
 		if minOK {
 			b[0] = min
@@ -1333,12 +1344,13 @@ func (e *Engine) blockPairScopeFor(defender state.PlayerID) blockPairScope {
 			// the bounds publish the required all-team and a client unable
 			// to field it drops the block.
 			required := e.defenderCreatureCount(defender)
-			if e.legalBlockerCount(aid, defender) < required {
+			if e.legalBlockerCount(aid, defender) < required ||
+				(required < 2 && e.HasKeyword(aid, "Menace")) {
 				scope.minImpossible[aid] = true
 			} else {
 				b = [2]int{required, required}
 			}
-		} else if minOK && e.legalBlockerCount(aid, defender) < min {
+		} else if minOK && (e.legalBlockerCount(aid, defender) < min || (maxOK && max < min)) {
 			scope.minImpossible[aid] = true
 		}
 		if b[0] != 0 || b[1] != 0 {
