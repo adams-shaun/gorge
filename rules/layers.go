@@ -1845,8 +1845,13 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 			ev.Counter = "chosen-name"
 			ev.Text = survivor.CloneChosenName
 		} else if survivor.CloneGainThisAbility {
-			ev.Counter = "gain-this-ability"
-			ev.Amount = survivor.CloneAbilityIndex
+			if survivor.CloneTriggerIndex > 0 {
+				ev.Counter = "gain-this-trigger"
+				ev.Amount = survivor.CloneTriggerIndex
+			} else {
+				ev.Counter = "gain-this-ability"
+				ev.Amount = survivor.CloneAbilityIndex
+			}
 		}
 		e.emit(ev)
 		for _, raw := range survivor.CloneStaticBodies {

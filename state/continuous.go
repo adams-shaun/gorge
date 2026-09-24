@@ -611,6 +611,15 @@ type ContinuousEffect struct {
 	CloneStaticBodies    []string
 	CloneGainThisAbility bool
 	CloneAbilityIndex    int32
+	// CloneTriggerIndex is the gain-this-trigger counterpart of
+	// CloneAbilityIndex: a one-based index into the become object's
+	// top-face TRIGGERS, for a GainThisAbility$ True DB$/SVar body whose
+	// root is a TRIGGER (Cryptoplasm, Lazav, ...). Zero when the resolving
+	// root is an activated/spell ability (CloneAbilityIndex then carries
+	// it) or when no root was recovered. Carried by the same layer-1 LCopy
+	// marker so a unit's expiry can re-base the become object onto a
+	// surviving clone unit and re-emit exactly the trigger it owns.
+	CloneTriggerIndex int32
 
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn

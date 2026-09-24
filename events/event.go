@@ -555,8 +555,12 @@ const (
 	// ClonePermanent folds a DB$ Clone copy basis onto an existing permanent
 	// (CR 613.1a's layer-1 copy): Obj is the object that BECOMES the copy,
 	// IDs[0] is the object copied FROM, Text is the copy's NewName$ (empty
-	// keeps the copied face's name), and Counter is "gain-this-ability" when
-	// the GainThisAbility$ True rider applies. An event with no IDs (or a
+	// keeps the copied face's name), and Counter is "gain-this-ability"
+	// when the GainThisAbility$ True rider applies to an activated/spell
+	// root (Amount is a one-based index into the become face's Abilities,
+	// or 0 for legacy whole-list logs) or "gain-this-trigger" when the
+	// resolving root is a TRIGGER (Amount is a one-based index into the
+	// become face's Triggers). An event with no IDs (or a
 	// zero id) CLEARS the copy -- the expiry and leave-the-battlefield path.
 	// Appended after BlessingChange, still above NumKinds, so no earlier ordinal, hash
 	// chain or golden replay is affected.
