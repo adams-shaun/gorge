@@ -388,7 +388,16 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			}
 		}
 	}
-	recipientCtx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
+	// recipientCtx is minted on first use (a granted ManaReflected ability),
+	// so an ordinary object's pass allocates nothing for it; both uses share
+	// the one instance, exactly as before.
+	var recipientCtx *effects.Ctx
+	recipient := func() *effects.Ctx {
+		if recipientCtx == nil {
+			recipientCtx = &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
+		}
+		return recipientCtx
+	}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
 			return e.abilityRestricted(p, id, ma)
@@ -406,14 +415,16 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		// [0] once per intent, +3 colourless per activation, forever. The
 		// ability offer (rules/legal.go) owns these abilities with the full
 		// CR 606.3 gates (sorcery timing, once per permanent per turn).
-		if e.isLoyaltyAbility(ma) {
+		// (The zone gate runs first: it is the cheapest of these pure reads
+		// and the one a hand/graveyard card's printed ability fails.)
+		if !abilityZoneOK(ma, o.Zone) || e.isLoyaltyAbility(ma) {
 			continue
 		}
 		// Activation$ (Mox Opal's "Activate only if you control three or more
 		// artifacts"): the same keyword-condition gate the printed-ability
 		// offer loop in rules/legal.go applies, so the priority action, the
 		// payment window and the chosen activation share one member set.
-		if abilityZoneOK(ma, o.Zone) && e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
+		if e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
 			!abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
 			// ActivationLimit$ / GameActivationLimit$ (Vivi Ornitier's "only once
 			// each turn", Stalking Leonin's "Activate only once"): the non-mana
@@ -493,7 +504,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	} else {
 		continuous = statics.get().continuous
 	}
-	printed := make(map[string]bool)
+	var printed map[string]bool // allocated on the first printed grant
 	for _, sv := range continuous {
 		name := strings.TrimSpace(sv.Params["AddAbility"])
 		if name == "" || !e.matchesSpec(sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
@@ -507,9 +518,12 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		if ma == nil || ma.Kind != "AB" {
 			continue
 		}
+		if printed == nil {
+			printed = make(map[string]bool)
+		}
 		printed[ma.Line] = true
 		if ma.API == "ManaReflected" {
-			considerReflected(ma, recipientCtx)
+			considerReflected(ma, recipient())
 			continue
 		}
 		if ma.API == "Mana" && !e.isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
@@ -531,7 +545,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			continue
 		}
 		if ga.sa.API == "ManaReflected" {
-			considerReflected(ga.sa, recipientCtx)
+			considerReflected(ga.sa, recipient())
 			continue
 		}
 		if ga.sa.API != "Mana" || e.isLoyaltyAbility(ga.sa) {

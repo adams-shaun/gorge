@@ -410,6 +410,7 @@ type Engine struct {
 	// Pure per-walk scratch: Clone copies none of it (a clone starts with an
 	// empty memo and generation 0, which no entry ever matches).
 	derivedMemo      []derivedMemoEntry
+	derivedMemoStack []derivedMemoEntry
 	derivedMemoDepth int
 	derivedMemoGen   uint64
 	// derivedMemoTail / derivedMemoAlias* carry the priority walk's memo
@@ -418,6 +419,11 @@ type Engine struct {
 	derivedMemoTail      derivedMemoTail
 	derivedMemoAliasFrom int
 	derivedMemoAliasTo   int
+	// manaConvCache is a walk-scoped cache keyed like the Derived memo
+	// (rules/walkcache.go). Pure per-walk scratch: Clone copies none of it.
+	boardStaticsCache  boardStaticsCache
+	activeStaticsCache []activeStaticsEntry
+	mayPlaysCache      []mayPlaysEntry
 
 	// derivingColorsSet/ID/Colors: the finished layer-5 colour answer for the
 	// object whose Derived is mid-build (set by derivedWith before its layer-7

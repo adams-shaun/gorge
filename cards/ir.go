@@ -99,6 +99,9 @@ type Face struct {
 	// contStaticsOffBF: some Continuous static could pass rules' source-zone
 	// gate off the battlefield (see ContinuousStaticsMayFunctionOffBattlefield).
 	contStaticsOffBF bool
+	// anyStaticEZ: some static (any Mode$) carries an EffectZone$ key (see
+	// StaticsMayNameEffectZone).
+	anyStaticEZ bool
 }
 
 // typeStaticParams are the static parameter keys whose presence can make
@@ -149,6 +152,7 @@ func staticMayFunctionOffBattlefield(st *Static) bool {
 func (f *Face) deriveTypeStatics() {
 	f.typeStaticsFirst, f.typeStaticsLen = nil, 0
 	f.typeStaticsBound, f.typeStaticsBF, f.typeStaticsOffBF, f.contStaticsOffBF = false, false, false, false
+	f.anyStaticEZ = false
 	if len(f.Statics) == 0 {
 		return
 	}
@@ -159,6 +163,9 @@ func (f *Face) deriveTypeStatics() {
 		f.typeStaticsOffBF = f.typeStaticsOffBF || off
 		if st.Mode == "Continuous" && staticMayFunctionOffBattlefield(st) {
 			f.contStaticsOffBF = true
+		}
+		if _, ok := st.Params["EffectZone"]; ok {
+			f.anyStaticEZ = true
 		}
 	}
 	f.typeStaticsFirst, f.typeStaticsLen, f.typeStaticsBound = &f.Statics[0], len(f.Statics), true
@@ -210,6 +217,22 @@ func (f *Face) ContinuousStaticsMayFunctionOffBattlefield() bool {
 		return true
 	}
 	return f.contStaticsOffBF
+}
+
+// StaticsMayNameEffectZone reports whether any of the face's statics, of
+// any Mode$, carries an EffectZone$ key. rules' effectZoneOK admits a static
+// whose source is off the battlefield only through a non-empty EffectZone$,
+// so the whole-board static collectors skip an off-battlefield face that
+// answers false. CONSERVATIVE like StaticsMayChangeTypes -- an unbound or
+// stale probe answers true.
+func (f *Face) StaticsMayNameEffectZone() bool {
+	if f == nil || len(f.Statics) == 0 {
+		return false
+	}
+	if !f.typeStaticsCurrent() {
+		return true
+	}
+	return f.anyStaticEZ
 }
 
 func (f *Face) CompiledID() FaceID {

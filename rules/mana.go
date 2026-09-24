@@ -1480,8 +1480,18 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 		// exactly those potential reductions; target-dependent raises/floors
 		// remain absent until the actual target is known (see the helper's
 		// contract).
-		potential := e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
-		if e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
+		//
+		// The two passes differ ONLY through ValidTarget$: it is the one
+		// place costStaticApplies reads the targets, and the potential pass
+		// skips just the ValidTarget$ raises/floors. With no cost static
+		// carrying the key, both passes compose the same modifier set, so the
+		// retry would re-ask the exact question that just failed: the target
+		// census (a pure read) is skipped, not changed.
+		var potential costMods
+		if statics.validTarget {
+			potential = e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
+		}
+		if statics.validTarget && e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
 			mods = potential
 		} else if accepted, ok := e.offerSacXMods(p, id, ability, base, statics, scope, tax, delve, hyp); ok {
 			// The cost announces a Sac<X/Spec> count whose resulting X-dependent
@@ -2243,6 +2253,15 @@ type pipRider struct {
 // of any type can be spent to cast those spells") is the wider reading: under
 // it EVERY pip — coloured and {C} alike — accepts all six mana types
 // (anyTypeAlts), since "any type" is every mana type, colourless included.
+// hasPips reports whether costPips would return any pip. Every pip source
+// costPips reads is listed here; a cost without one resolves against only
+// its life and generic totals (resolveManaWith), whatever the rider, the
+// B-life grant and the conversion set are.
+func (c Cost) hasPips() bool {
+	return c.Colored != (state.Mana{}) || len(c.Hybrid) > 0 || len(c.Twobrid) > 0 || len(c.Phyrexian) > 0 ||
+		len(c.HybridPhyrexian) > 0 || c.Snow > 0
+}
+
 func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
 	var out []pip
 	// The coloured slots including the colourless one: a plain {C} pip is a

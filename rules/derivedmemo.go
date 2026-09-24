@@ -47,8 +47,8 @@ import (
 //     one of the runtime guards above is live, i.e. for any Derived that is
 //     nested inside another derivation, an active() build, a rename/type
 //     table build, a goad probe or an Effect observer match. The atStack
-//     zone-override path (convoke's AffectedZone$ Stack read) is never
-//     memoized either: derivedWith only consults the memo for atStack == 0.
+//     zone-override path (convoke's AffectedZone$ Stack read) is memoized
+//     in its own table (derivedMemoStack), keyed and guarded identically.
 //
 // Ownership: a cached result's Keywords/Types are copied out of the shared
 // derivedKW/derivedTypes scratch into the entry's own backing arrays, so a
@@ -187,18 +187,31 @@ func (e *Engine) derivedMemoUsable() bool {
 }
 
 func (e *Engine) derivedMemoized(id state.ObjID) Derived {
+	return e.derivedMemoizedAt(id, 0)
+}
+
+// derivedMemoizedAt serves both the live-zone derivation (atStack 0) and the
+// stack zone override (atStack ZStack, the convoke/improvise/conspire/
+// offspring cast-keyword reads, which the offer walk makes for every hand
+// card). Each has its own table: the override is a different question about
+// the same object, with the same walk-fixed inputs.
+func (e *Engine) derivedMemoizedAt(id state.ObjID, atStack state.Zone) Derived {
 	if id == 0 || int(id) > len(e.G.Objs) {
-		return e.derivedCompute(id, 0)
+		return e.derivedCompute(id, atStack)
 	}
-	if n := len(e.G.Objs) + 1; len(e.derivedMemo) < n {
-		e.derivedMemo = append(e.derivedMemo, make([]derivedMemoEntry, n-len(e.derivedMemo))...)
+	table := &e.derivedMemo
+	if atStack != 0 {
+		table = &e.derivedMemoStack
 	}
-	m := &e.derivedMemo[id]
+	if n := len(e.G.Objs) + 1; len(*table) < n {
+		*table = append(*table, make([]derivedMemoEntry, n-len(*table))...)
+	}
+	m := &(*table)[id]
 	ep, ver, objs := len(e.L.Events), e.continuousVersion, len(e.G.Objs)
 	epOK := m.ep == ep || (m.ep == e.derivedMemoAliasFrom && ep == e.derivedMemoAliasTo)
 	if m.gen == e.derivedMemoGen && epOK && m.ver == ver && m.objs == objs {
 		if derivedMemoVerify {
-			e.verifyDerivedMemo(id, m.d)
+			e.verifyDerivedMemo(id, atStack, m.d)
 		}
 		return m.d
 	}
@@ -208,7 +221,7 @@ func (e *Engine) derivedMemoized(id state.ObjID) Derived {
 		// the rebuild gets fresh ones instead of rewriting them in place.
 		m.kw, m.ty = nil, nil
 	}
-	d := e.derivedCompute(id, 0)
+	d := e.derivedCompute(id, atStack)
 	m.kw = append(m.kw[:0], d.Keywords...)
 	m.ty = append(m.ty[:0], d.Types...)
 	d.Keywords, d.Types = m.kw, m.ty
@@ -217,8 +230,8 @@ func (e *Engine) derivedMemoized(id state.ObjID) Derived {
 	return d
 }
 
-func (e *Engine) verifyDerivedMemo(id state.ObjID, got Derived) {
-	want := e.derivedCompute(id, 0)
+func (e *Engine) verifyDerivedMemo(id state.ObjID, atStack state.Zone, got Derived) {
+	want := e.derivedCompute(id, atStack)
 	if got.Power != want.Power || got.Toughness != want.Toughness || got.Name != want.Name ||
 		got.Colors != want.Colors || !slices.Equal(got.Keywords, want.Keywords) || !slices.Equal(got.Types, want.Types) {
 		panic(fmt.Sprintf("rules: derived memo stale for obj %d: cached %+v, fresh %+v", id, got, want))

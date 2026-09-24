@@ -2682,8 +2682,8 @@ func (e *Engine) Characteristics(id state.ObjID) (power, toughness int32, keywor
 // AffectedZone$ Stack grant against ZStack via this override; everything
 // else reads the live zone.
 func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
-	if atStack == 0 && e.derivedMemoDepth > 0 && e.derivedMemoUsable() {
-		return e.derivedMemoized(id)
+	if (atStack == 0 || atStack == state.ZStack) && e.derivedMemoDepth > 0 && e.derivedMemoUsable() {
+		return e.derivedMemoizedAt(id, atStack)
 	}
 	return e.derivedCompute(id, atStack)
 }

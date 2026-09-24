@@ -58,12 +58,18 @@ type costStaticViews struct {
 	reduce   []staticView
 	set      []staticView
 	optional []staticView
+	// validTarget: some raise/reduce/set member carries ValidTarget$, the
+	// one parameter through which a composition reads the chosen targets
+	// (see offerCastableUsing's potential-target retry).
+	validTarget bool
 }
 
 // costStaticSource lazily owns one call-scoped membership snapshot. It is
 // deliberately not stored on Engine: a legal-actions pass may reuse it, but
 // a later pass or payment-side recomputation must observe the current board,
-// including test fixtures that mutate setup without emitting events.
+// including test fixtures that mutate setup without emitting events. (Inside
+// a legal-actions walk the collection itself is served from the walk-scoped
+// fused scan, rules/walkcache.go, which a later pass never reads.)
 type costStaticSource struct {
 	e     *Engine
 	views costStaticViews
@@ -106,6 +112,13 @@ func (s *actionStaticSource) get() actionStaticViews {
 // expansion or collectCostStatics' other zones. Each mode keeps its original
 // seat, zone and parsed-static order while sharing a single membership walk.
 func (e *Engine) collectActionStatics() actionStaticViews {
+	if v, ok := e.boardStaticsWalk(); ok {
+		return v.action
+	}
+	return e.scanActionStatics()
+}
+
+func (e *Engine) scanActionStatics() actionStaticViews {
 	var out actionStaticViews
 	for pi, p := range e.G.AliveFrom(0) {
 		// Continuous statics are zone-scoped by their EffectZone$, so the
@@ -121,7 +134,7 @@ func (e *Engine) collectActionStatics() actionStaticViews {
 			}
 			for _, id := range e.G.Zone(z, p) {
 				o := e.G.Obj(id)
-				if o == nil || o.Face() == nil {
+				if o == nil || o.Face() == nil || offBattlefieldStaticsInert(z, o) {
 					continue
 				}
 				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
@@ -171,7 +184,12 @@ func (e *Engine) collectActionStatics() actionStaticViews {
 // and the resulting option list are stable run to run, which is what
 // TestActiveStaticsIsDeterministicallyOrdered checks for.
 func (e *Engine) activeStatics(mode string) []staticView {
-	var out []staticView
+	// Board-only, so a legal-actions walk serves it from the walk cache
+	// (rules/walkcache.go); outside a walk it is scanned every call.
+	return e.activeStaticsCached(mode)
+}
+
+func (e *Engine) scanActiveStatics(mode string, out []staticView) []staticView {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
@@ -1703,6 +1721,13 @@ func effectZoneOK(v string, z state.Zone) bool {
 // deterministic: AliveFrom(0) seats, a fixed zone order, slice order inside
 // each zone, and each face's own Statics order.
 func (e *Engine) collectCostStatics() costStaticViews {
+	if v, ok := e.boardStaticsWalk(); ok {
+		return v.cost
+	}
+	return e.scanCostStatics()
+}
+
+func (e *Engine) scanCostStatics() costStaticViews {
 	var out costStaticViews
 	add := func(o *state.Object, id state.ObjID) {
 		f := o.Face()
@@ -1747,7 +1772,7 @@ func (e *Engine) collectCostStatics() costStaticViews {
 				continue
 			}
 			for _, id := range e.G.Zone(z, p) {
-				if o := e.G.Obj(id); o != nil {
+				if o := e.G.Obj(id); o != nil && (o.Face() == nil || !offBattlefieldStaticsInert(z, o)) {
 					add(o, id)
 				}
 			}
@@ -1762,6 +1787,26 @@ func (e *Engine) collectCostStatics() costStaticViews {
 	// non-permanent entries end with the source -- and the printed walk
 	// above never sees these (they are not face statics). The printed walk's
 	// own PileStaticCount discipline stays untouched.
+	e.appendEffectCostStatics(&out)
+	markCostValidTarget(&out)
+	return out
+}
+
+// markCostValidTarget sets out.validTarget from the collected members.
+func markCostValidTarget(out *costStaticViews) {
+	for _, views := range [...][]staticView{out.raise, out.reduce, out.set} {
+		for _, sv := range views {
+			if _, ok := sv.Params["ValidTarget"]; ok {
+				out.validTarget = true
+				return
+			}
+		}
+	}
+}
+
+// appendEffectCostStatics appends the Effect-delivered cost-modifier statics
+// (see scanCostStatics) after the printed ones.
+func (e *Engine) appendEffectCostStatics(out *costStaticViews) {
 	for _, ce := range e.active() {
 		var dst *[]staticView
 		switch ce.CostStaticMode {
@@ -1777,7 +1822,6 @@ func (e *Engine) collectCostStatics() costStaticViews {
 		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
 			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber})
 	}
-	return out
 }
 
 // modAmount evaluates one cost-modifier static's Amount$: a plain literal
