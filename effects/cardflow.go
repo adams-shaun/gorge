@@ -1773,10 +1773,13 @@ func digDestPhrase(dest state.Zone) string {
 // revealed this way that weren't put onto the battlefield on the bottom":
 // Genesis Storm, Hei Bai, Aurora Awakener). A no-host (AskNoHost) declines
 // deterministically (R-9); botpolicy's clamp fallback answers option 0 =
-// "yes". RevealRandomOrder$ True (54 lines) means the revealed pile would
-// return "in a random order" — randomness is forbidden here, so the
-// deterministic stand-in returns them in their existing library order
-// (recorded in AGENTS.md's Known approximations).
+// "yes". RevealRandomOrder$ True (54 corpus lines) shuffles the pile's
+// RETURN order to the bottom of the library through the engine's seeded
+// generator (h.Rand), so it replays exactly; the public reveal Note and the
+// Remembered capture stay in scan order because reveal order is a reveal-time
+// fact. A stay-in-place placement (RevealedLibraryPosition$ "0"/absent, e.g.
+// Indomitable Creativity) cannot express a random order at all, so it keeps
+// the existing order behind one loud Note.
 //
 // Riders implemented: RememberFound$ / RememberRevealed$ (the ctx-level
 // Remembered discipline digRemember uses), Tapped$ (the MoveZone-then-Tap
@@ -1794,8 +1797,9 @@ func digDestPhrase(dest state.Zone) string {
 // non-literal (X/MassX/VoteNum/Y — amount 1 then; literal 1..5 ARE honoured
 // as "keep revealing until N matches"), DigZone$, NoMoveFound$ /
 // FoundLibraryPosition$, Shuffle$ / ShuffleCondition$, Imprint*$ and
-// NoneFound*$. RevealRandomOrder$ remains a deterministic existing-order
-// stand-in because ambient randomness is forbidden.
+// NoneFound*$. RevealRandomOrder$ True is implemented for the library-bottom
+// return (h.Rand, seeded and replay-exact); a stay-in-place placement keeps
+// the existing order behind one loud Note.
 func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	spec := sa.Params["Valid"]
 	if spec == "" {
@@ -1814,6 +1818,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	revPos := strings.TrimSpace(sa.Params["RevealedLibraryPosition"])
 	optionalMove := strings.EqualFold(strings.TrimSpace(sa.Params["OptionalFoundMove"]), "True")
 	noMoveRevealed := strings.EqualFold(strings.TrimSpace(sa.Params["NoMoveRevealed"]), "True")
+	revealRandomOrder := strings.EqualFold(digUntilParamValue(sa, "RevealRandomOrder"), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
 	gainControl := strings.EqualFold(strings.TrimSpace(sa.Params["GainControl"]), "True")
 	rememberFound := strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True")
@@ -2056,6 +2061,13 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		if noMoveRevealed {
 			continue
 		}
+		// The rest is the revealed pile minus any found card that really left
+		// the pile; a library-bottom random return shuffles exactly THIS list
+		// (the order the per-card Secret MoveZone events are emitted in IS the
+		// returned bottom order — zone append lands each card at the bottom in
+		// emit order). Reveal order is NOT shuffled: the public Note and the
+		// Remembered capture above stay in scan order.
+		toReturn := make([]state.ObjID, 0, len(revealed))
 		for _, id := range revealed {
 			isFound := false
 			for _, fid := range found {
@@ -2067,6 +2079,29 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			if isFound && !foundJoinedRevealed {
 				continue
 			}
+			toReturn = append(toReturn, id)
+		}
+		if revDest == state.ZLibrary && revealRandomOrder {
+			switch {
+			case revPos == "-1":
+				// A full Fisher-Yates over the return list (the h.Rand idiom the
+				// random pick/discard arms use) draws once per position, so the
+				// seeded generator replays byte-identically. This is the engine's
+				// seeded randomness, not a library shuffle: T:Mode$ Shuffled
+				// triggers must not fire for a bottom return that merely happens
+				// to be random.
+				for i := 0; i < len(toReturn); i++ {
+					j := i + h.Rand(len(toReturn)-i)
+					toReturn[i], toReturn[j] = toReturn[j], toReturn[i]
+				}
+			case revPos == "" || revPos == "0":
+				// Stay-in-place placement keeps the existing order (no library
+				// randomisation is expressible there); name the limitation once.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+					Text: "RevealRandomOrder$ with stay-in-place placement keeps existing order"})
+			}
+		}
+		for _, id := range toReturn {
 			if revDest == state.ZLibrary {
 				// Library placement: "-1" (bottom) is a real library-to-library
 				// move (Move's zone append lands it at the bottom — the exact
