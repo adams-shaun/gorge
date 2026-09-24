@@ -2398,8 +2398,13 @@ func init() {
 	// PhaseOutAll (CR 702.25, phaseoutall1): the batch-level "whenever one or
 	// more other permanents phase out" trigger (The War Doctor). It matches
 	// the events.PhaseOut marker the api:Phases primitive emits, which existed
-	// before the mode did; the mode itself is new to the table.
-	registerTrigMatcher(phaseOutAllMatches, "PhaseOutAll")
+	// before the mode did; the mode itself is new to the table. Registered
+	// through a func literal calling the pack-level matcher so the census can
+	// read the callee (registerTrigMatcher takes a method expression or a
+	// literal whose first call names the matcher).
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+		return phaseOutAllMatches(e, t, source, ev, lki)
+	}, "PhaseOutAll")
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
