@@ -52,9 +52,10 @@ import (
 // caller deliberately differs.
 type Options struct {
 	// Kinds gates which decision kinds the teacher answers. The implemented
-	// set is "attackers", "blockers" and "cast" (a KPriority decision
-	// offering two or more distinct castable objects); every other decision
-	// delegates. Defaults leaves "blockers" off.
+	// set is "attackers", "blockers", "cast" (a KPriority decision
+	// offering two or more distinct castable objects) and "target" (a
+	// single-choice, unbudgeted KTarget, searchprobe.SingleTarget); every
+	// other decision delegates. Defaults leaves "blockers" and "target" off.
 	Kinds map[string]bool
 	// Worlds is K, the sampled worlds per decision; Attempts the sampler's
 	// proposal attempts; MinESS the effective-sample-size gate (0 keeps the
@@ -177,6 +178,8 @@ func Eligible(d *decision.Decision, opts Options) bool {
 		return true
 	case d.Kind == decision.KBlockers && opts.Kinds["blockers"]:
 		return true
+	case opts.Kinds["target"] && searchprobe.SingleTarget(d):
+		return true
 	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
 		return true
 	}
@@ -285,7 +288,8 @@ func teacherSeed(base uint64, e *rules.Engine) uint64 {
 // attackers arm enumerates attack subsets; the blockers arm enumerates
 // single-pair edits of the bot's declaration, kept only when the bot's own
 // block guard (read off the deciding seat's board, exactly what the bot
-// reads) accepts them unchanged; the cast arm asks searchprobe for
+// reads) accepts them unchanged; the target arm compares the bot's single
+// pick against every other option (searchprobe.TargetCandidates); the cast arm asks searchprobe for
 // alternatives to the bot's single chosen action. A collector that cannot
 // translate the bot's own intent into actions is a hard stop: without the
 // baseline at index 0 the teacher has nothing to beat.
@@ -313,6 +317,16 @@ func candidates(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 			out = append(out, a)
 		}
 		return out, "blockers", true
+	case opts.Kinds["target"] && searchprobe.SingleTarget(d):
+		var out [][]searchprobe.Action
+		for _, in := range searchprobe.TargetCandidates(d, bot, opts.Limit) {
+			a, err := collector.Actions(d, in)
+			if err != nil {
+				return nil, "target", false
+			}
+			out = append(out, a)
+		}
+		return out, "target", true
 	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
 		a, err := collector.Actions(d, bot)
 		if err != nil || len(a) != 1 {
