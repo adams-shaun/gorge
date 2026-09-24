@@ -414,10 +414,14 @@ func TestGiftKitnapDeclinedPutsThreeStunCounters(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// stunCountersOn is the named-counter read the stun assertions use.
+// stunCountersOn is the named-counter read the stun assertions use. The
+// kind is "STUN" (the canonical spelling): main's counter-kind fold
+// (961484894, trig:FullyUnlock task) resolves Forge's case-insensitive
+// `CounterType$ Stun` onto STUN, which the untap replacement and
+// ValidCounterType$ STUN read.
 func stunCountersOn(e *Engine, id state.ObjID) int32 {
 	if o := e.G.Obj(id); o != nil {
-		return o.Counter("Stun")
+		return o.Counter("STUN")
 	}
 	return 0
 }
@@ -425,8 +429,9 @@ func stunCountersOn(e *Engine, id state.ObjID) int32 {
 // TestGiftPrimitivesRegistered pins that kw:Gift and trig:GiveGift are
 // registered with real behaviour, so the coverage census (make report) counts
 // every carrier as playable. Perch Protection is the one carrier whose main
-// effect still needs api:Phases (out of this ticket's scope); its gift half
-// works.
+// effect still needs stat:CantChangeLife (its phase-out rider's api:Phases
+// was registered by main's agent-20260919T181525Z-3cba0676 merge, b81d636ef,
+// after this branch cut); its gift half works.
 func TestGiftPrimitivesRegistered(t *testing.T) {
 	supported := effects.Supported()
 	for _, p := range []string{"kw:Gift", "trig:GiveGift"} {
@@ -444,14 +449,13 @@ func TestGiftPrimitivesRegistered(t *testing.T) {
 	}
 	pp := mustCorpusCard(t, reg, "Perch Protection")
 	missing := reg.Unsupported(pp, supported)
-	// The brief expected exactly api:Phases; the measured set is api:Phases
-	// (its phase-out rider, out of this ticket's scope) PLUS
-	// stat:CantChangeLife -- Perch Protection's chained `DB$ Effect |
-	// StaticAbilities$ STCantChange` life-total static, the pre-existing
-	// Effect-static gap (AGENTS.md's "Effect registers real continuous
-	// effects only for ..." row), not a Gift gap. Assert the measured set
-	// exactly so a future registration or regression is named.
-	want := []string{"api:Phases", "stat:CantChangeLife"}
+	// Perch Protection's chained `DB$ Effect | StaticAbilities$ STCantChange`
+	// life-total static is the pre-existing Effect-static gap (AGENTS.md's
+	// "Effect registers real continuous effects only for ..." row), not a
+	// Gift gap; the api:Phases half of the original measurement closed when
+	// main registered it. Assert the measured set exactly so a future
+	// registration or regression is named.
+	want := []string{"stat:CantChangeLife"}
 	if len(missing) != len(want) {
 		t.Fatalf("Perch Protection unsupported = %v, want %v", missing, want)
 	}
