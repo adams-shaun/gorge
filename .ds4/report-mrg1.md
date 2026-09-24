@@ -1,3 +1,163 @@
+# Merge-conflict resolution — agent-20260919T000105Z-4e09dd7c (mrg1, round 1)
+
+Branch: `wt/agent-20260919T000105Z-4e09dd7c`
+This round's merge commit: `ff5f81ec0` ("Merge branch 'main' into
+wt/agent-20260919T000105Z-4e09dd7c"), parents `b4347bdc3` (branch tip) +
+`b6bb4b783` (main tip at merge time).
+
+## Starting state
+
+`git status` on entry: `On branch wt/agent-20260919T000105Z-4e09dd7c`,
+`nothing to commit, working tree clean`. No in-flight rebase or merge (no
+`MERGE_HEAD`, no `.git/worktrees/<id>/rebase-merge` / `rebase-apply`). The
+daemon's integration attempt had been reset before this seat started.
+
+`.cards` was present as the symlink `/home/sadams/projects/gorge/.cards`
+(`ls -la .cards` -> `... -> /home/sadams/projects/gorge/.cards`), so every
+run below is a real corpus run, not a vacuous one.
+
+`main` had **moved while this seat worked**: the daemon's recorded attempt was
+against `aaafc5298`, but by the time the merge started `main` was
+`b6bb4b783` (a strict descendant of `aaafc5298`; `git merge-base --is-ancestor
+aaafc5298 b6bb4b783` -> true). Resolving against the stale `aaafc5298` would
+have re-conflicted on the code main gained in between, so the stale merge was
+aborted (`git merge --abort`) and the integration re-run against current
+`main` `b6bb4b783`. `main` advanced again after the merge commit (`main` is
+now `4b7a8ead6`); that later movement is the daemon's to re-integrate.
+
+## Conflicted files and resolution
+
+`git merge main --no-edit` conflicted in exactly three tracked paths; every
+other path auto-merged.
+
+### 1. `effects/misc.go` — `CantAttackParamsReadableForRules` (real code)
+
+Both sides independently fixed the SAME bug (a compound
+`S:Mode$ CantAttack,CantBlock` line's CantAttack half inherits the shared
+Params map, so its `IsPresent$`/`PresentCompare$` gate reached `attackBlocked`
+but the whitelist rejected the keys and skipped the attack half whole):
+
+- **HEAD (branch, `f336c9c82`)** added `IsPresent`/`IsPresent2`/
+  `PresentCompare` to the whitelist plus two fail-closed guards: an orphan
+  `PresentCompare$` (never read by `presentGate`, so a blanket restriction) and
+  a present spec whose predicate the matcher does not recognise (count 0 would
+  make an `EQ0` compare hold unconditionally).
+- **main (`7edf81845`, `feat(rules): read CantAttack's IsPresent$/PresentZone$
+  count family on the attack half`)** is the same logical fix but broader: it
+  also admits `PresentZone$` and `ClassBand$` (and updated
+  `countStaticPresent` for the Exile/Hand zones, Ketramose the New Dawn and
+  Kefnet the Mindful). It has NO guards.
+
+Resolution = **union of both intents**:
+- whitelist case list = main's broader set
+  (`IsPresent`, `IsPresent2`, `PresentCompare`, `PresentZone`, `ClassBand`);
+- the branch's two fail-closed guards are retained;
+- the doc comment merges the branch's compound-statics1 rationale with main's
+  PresentZone$/ClassBand$ corpus measurements.
+
+### 2. `rules/layers.go` — `attackBlocked` doc comment only
+
+The code below the conflict auto-merged identically; only the explanatory
+comment conflicted. HEAD described the present family's compound-statics1
+reachability; main described `ClassBand$` + `PresentZone$`. Resolution keeps
+both narratives in one coherent comment (`A face static's conditional
+parameter family is read here (task combatres-cantattack, extended by
+combatres-cantattack-present; the present family became reachable on this path
+with compound-statics1) ...`).
+
+### 3. `.ds4/report-t1.md` — shared report accumulator
+
+`HEAD` prepended this ticket's compound-statics1 report (plus the restored
+shared history) over the common base; `main` prepended the newer
+`agent-20260923T144746Z-b284de7f` report. Following the established
+preserve convention (the mechanically-verified shape used by `e60f9037e`,
+`6bc24448e`, `b4347bdc3` and the round-11 mrg1 resolution), the resolution is
+the union: **the branch's prepend verbatim, then main's full accumulated file
+byte-verbatim** (`sed -n '1,180p' ours` + `theirs`). Verified no conflict
+markers, all three report titles present exactly once, and ours' full base
+history region is a contiguous substring of main's file.
+
+## Post-merge ratchet fix (main-carried gate the branch predates)
+
+`main` carries the param-census rot guard (`TestEveryRepoDeckParamsAreRead`),
+which the branch (cut before it) had never met. It failed on the branch's
+guard code:
+
+```
+--- FAIL: TestEveryRepoDeckParamsAreRead (0.21s)
+    paramcensus_test.go:2811: paramcensus rot guard: 2 findings:
+        paramcensus: 1 unclassified Params reads (the census cannot rot):
+        ../effects/misc.go:1802:32: CantAttackParamsReadableForRules: dynamic key "key" on map[string]string parameter "params" is not a function parameter -- classify it
+        paramcensus: CantAttackParamsReadableForRules indexes map[string]string parameter "params" but no call site passes a Params map -- the helper is unreachable or mis-fed
+```
+
+The census treats a helper that indexes a `map[string]string` parameter as a
+"passed Params map" and rejects (a) a dynamic key and (b) a helper whose call
+sites do not pass `.Params`. The branch's guard indexed `params[...]`; the
+rules-side wrapper (`rules/combat.go`) forwards its own `params` rather than a
+`.Params` selector, so the cross-package attribution never lands.
+
+Fix (behaviour-preserving, in the merge's scope per the merge brief's ratchet
+note): the guard now derives the present-spec values from the existing
+`for k := range params` whitelist loop (`for k, v := range params` with the
+`IsPresent`/`IsPresent2`/`PresentCompare` cases capturing `v`), so the
+function performs **no map indexing at all**. Same semantics: orphan compare
+rejected, unread present spec rejected. The census ignores a range over a
+plain (non-selector/alias) parameter, so the helper is no longer a
+map-indexing helper and the rot guard no longer applies.
+
+## Commands run (real output)
+
+```
+$ go test -run 'TestCantAttackParamsReadablePresentGate' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.003s
+
+$ go test -run 'TestCantAttackPresent|TestCantAttackBarePresent|TestBastCompoundModeStaticGates|TestCantAttackCheckSVarGate|TestCantAttackConditionGate|TestCantAttackUnlessDefender' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.974s
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.817s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	5.607s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.914s
+
+$ go test ./effects/
+ok  	github.com/adams-shaun/gorge/effects	33.409s
+
+$ gofmt -l effects/misc.go rules/layers.go      # no output (clean)
+$ go run ./cmd/gentypes -check                  # exit 0
+$ go vet ./effects/ ./rules/                    # exit 0
+```
+
+Heads / ratchets: no movement. `TestEveryRepoDeckParamsAreRead` passes with
+its `knownUnsupportedParams` table unchanged; no `addedAfterTheSplit` /
+`knownUnsupported` / `knownUnmodelledCountHeads` entry needed touching (the
+compound split and the whitelist fix change no dispatch).
+
+## Operation completion
+
+Merge committed as `ff5f81ec0` with the default merge message; tree clean;
+`git status` empty; no `MERGE_HEAD` remains.
+
+## Issues
+
+- **`PresentZone$` with an unrecognised zone on a face CantAttack line can
+  over-restrict.** `rules/statics.go` `countStaticPresent`'s `default` arm
+  returns 0 for an unknown zone; with `PresentCompare$ EQ0` that makes the
+  gate hold unconditionally and blanket-restrict. main admitted `PresentZone$`
+  to the whitelist without a guard. Measured corpus prevalence of a
+  `CantAttack` line carrying `PresentZone$` with a value outside
+  Battlefield/Graveyard/Exile/Hand/Stack: 0 rows. `effects/misc.go`
+  `CantAttackParamsReadableForRules`. A future CR-lane test could cite
+  CR 611.3 (a static ability's continuous effect only applies while its
+  condition is true) — the same shape the existing branch guard covers for an
+  unread `IsPresent$` spec.
+- No ledger entry was closed; no `knownUnsupported` /
+  `knownUnsupportedParams` / `knownUnmodelledCountHeads` entry moved.
+
 # Merge report — agent-20260923T144746Z-b284de7f (mrg1, round 2)
 
 Branch: `wt/agent-20260923T144746Z-b284de7f`
