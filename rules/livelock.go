@@ -172,6 +172,27 @@ type livelockWatcher struct {
 	// quiet/quietSince track the no-progress run for the runaway backstop.
 	quiet      int
 	quietSince uint64
+	// mints counts the object-minting events observed (mintingKinds). Each
+	// one's signature folds in its ordinal, so a batch of identical mints is
+	// never read as a stuck period (see mintingKinds).
+	mints uint64
+}
+
+// mintingKinds are the events that create a NEW object whose id their own
+// payload does not name (TokenCreate carries only the script name, and
+// CardToken/StackCopy name the SOURCE being copied). Two such events with
+// equal payloads are still different game transitions -- each adds a
+// fresh object -- so the exact-period detector must never match them
+// against each other: Krenko, Mob Boss's doubling activation legitimately
+// logs X identical TokenCreate events in a row, and at X >= CycleEvents
+// (495 Goblins by a long game's turn 28) that single resolution read as a
+// period-1 "cycle". A genuinely unbounded minting loop still grows the
+// object arena every iteration, which is exactly the loop shape the
+// runaway backstop exists for, so nothing escapes the watcher.
+var mintingKinds = map[events.Kind]bool{
+	events.TokenCreate: true,
+	events.CardToken:   true,
+	events.StackCopy:   true,
 }
 
 func newLivelockWatcher(g *LoopGuard) livelockWatcher {
@@ -194,6 +215,12 @@ func (w *livelockWatcher) observe(ev events.Event) {
 		return
 	}
 	sig := eventSignature(ev)
+	if mintingKinds[ev.Kind] {
+		w.mints++
+		var u8 [8]byte
+		binary.LittleEndian.PutUint64(u8[:], w.mints)
+		sigBytes(&sig, u8[:])
+	}
 	sigCap := 2 * w.guard.MaxPeriod
 	if len(w.sigs) < sigCap {
 		w.sigs = append(w.sigs, sig)
