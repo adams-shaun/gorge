@@ -192,7 +192,11 @@ var policies = map[string]func(seed uint64) seat.Seat{
 		if policynetModel == nil {
 			panic("botbench: policy policynet needs -checkpoint <path>")
 		}
-		return seat.NewPolicyNetBotKinds(seed, policynet.NewScorer(policynetModel), policynetKinds)
+		b := seat.NewPolicyNetBotKinds(seed, policynet.NewScorer(policynetModel), policynetKinds)
+		if err := b.SetAdmission(policynetAdmission); err != nil {
+			panic("botbench: " + err.Error()) // validated by mainExit before any game
+		}
+		return b
 	},
 	// search is the PIMC search teacher as a playable seat
 	// (searchseat.SearchBot): the default bot wrapped with the teacher
@@ -236,6 +240,10 @@ var castProfileOverride *botpolicy.CastWeights
 // policies map's policynet entry reads it, and the Model itself is treated
 // as immutable by every seat built over it.
 var policynetModel *policynet.Model
+
+// policynetAdmission is the -policynet-admission value (seat.AdmissionAuto by
+// default), validated by mainExit and applied to every policynet seat.
+var policynetAdmission = seat.AdmissionAuto
 
 // policynetKindsArg / policynetKindsGiven are the raw -policynet-kinds value
 // and whether the flag was given at all (main sets both after flag.Parse);
@@ -1717,6 +1725,10 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 	if tracePath != "" {
 		traces = make([]*gameTrace, len(pairs)*games)
 	}
+	var onpol *onpolicyCollector
+	if onpolicyCorpusPath != "" {
+		onpol = newOnPolicyCollector(len(pairs), games)
+	}
 
 	// Resolve every (policy name, seated deck) pair ONCE, before any game
 	// starts, so a name no deck declares fails the run immediately instead of
@@ -1764,6 +1776,17 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
 		cfg.Tokens = reg.Tokens
 		cfg.NameUniverse = reg.Cards
+		if onpol != nil {
+			// The on-policy recorder only observes the policynet seats'
+			// scored decisions; the game itself is the plain playMatch.
+			gameIndex := int(seed - gameSeedPair(baseSeed, pos, games, 0))
+			g := onpol.attach(pos, gameIndex, pd.String(), seed, deckNames, botSeats)
+			o, err := playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
+			if err == nil {
+				onpol.finish(g, o)
+			}
+			return o, err
+		}
 		if traces == nil {
 			return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 		}
@@ -1777,6 +1800,11 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 	results, err := runPairs(baseSeed, games, aName, bName, pairs, play, workers, &progressWriter{w: prog})
 	if err != nil {
 		return err
+	}
+	if onpol != nil {
+		if err := onpol.write(onpolicyCorpusPath); err != nil {
+			return err
+		}
 	}
 	if format == "json" {
 		if err := writeMatrixJSON(out, aName, bName, baseSeed, games, results, commander); err != nil {
@@ -2029,6 +2057,8 @@ func main() {
 	profile := flag.String("profile", "", "path to a cast-profile weights JSON (schema {\"version\":1,\"cast\":{...}}) applied to any side named cast-profile; empty = the embedded default profile")
 	checkpoint := flag.String("checkpoint", "", "path to a trained policynet checkpoint (L9c binary format), required by any side named policynet; no embedded checkpoint exists")
 	flag.StringVar(&policynetKindsArg, "policynet-kinds", "attackers", "comma list of the decision kinds the policynet seat scores (attackers, priority, blockers, target); every other kind delegates to the default bot. Refused unless a side is policynet. priority and target are scored only on a ResidualW > 0 checkpoint and only in the trained distribution; blockers follows the attackers contract (seat.PolicyNetBot)")
+	flag.StringVar(&policynetAdmission, "policynet-admission", seat.AdmissionAuto, "the policynet seat's subset (attackers, blockers) admission vote: auto (the default: the calibrated sign when a decision's scores straddle 0, else the decision's mean, refusing an exact tie) or sign (score > 0 alone, the BCE head's calibrated vote; ticket pn13)")
+	flag.StringVar(&onpolicyCorpusPath, "onpolicy-corpus", "", "write every decision a policynet seat SCORED (encoded state and options, the scores, its answer and the bot's, the game outcome for that seat) as the on-policy PPO corpus JSONL to this new file (matrix mode only; parent must exist, destination must not). Observational: the bench result is unchanged")
 	decisionStats := flag.Bool("decision-stats", false, "append a per-decision-kind histogram (count, mean per game, mean option count, singleton share, first-option share) at the end of a run; default off so the normal report is unchanged")
 	actionCoverage := flag.Bool("action-coverage", false, "append the action-coverage completeness report (decision kinds / option rows never asked, offered-but-never-chosen shapes, cast shapes, cards and ability slots never fired, primitives never exercised) at the end of a run; default off so the normal report is unchanged")
 	decisionTrace := flag.String("decision-trace", "", "write an opt-in atomic JSONL decision trace to a new file (matrix mode only; parent must exist and destination must not)")
@@ -2139,6 +2169,28 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 		return fail(fmt.Errorf("-policynet-kinds: %w", err))
 	}
 	policynetKinds = kinds
+	if policynetAdmission != seat.AdmissionAuto && !policynetSide {
+		return fail(fmt.Errorf("-policynet-admission was given but neither side is policynet"))
+	}
+	if err := (&seat.PolicyNetBot{}).SetAdmission(policynetAdmission); err != nil {
+		return fail(fmt.Errorf("-policynet-admission: %w", err))
+	}
+	// -onpolicy-corpus records the policynet seats' scored decisions: it
+	// needs a policynet side, the -pairs matrix and no decision trace (one
+	// observer per run), and a fresh destination, checked before any game.
+	if onpolicyCorpusPath != "" {
+		switch {
+		case !policynetSide:
+			return fail(fmt.Errorf("-onpolicy-corpus was given but neither side is policynet"))
+		case pairs == "" || grind != "":
+			return fail(fmt.Errorf("-onpolicy-corpus requires -pairs"))
+		case decisionTrace != "":
+			return fail(fmt.Errorf("-onpolicy-corpus cannot be combined with -decision-trace"))
+		}
+		if err := checkOnPolicyDestination(onpolicyCorpusPath); err != nil {
+			return fail(err)
+		}
+	}
 
 	// The search seat's timing and diagnostic hooks are installed once, here,
 	// before any game starts -- the clock is this command's (internal/
