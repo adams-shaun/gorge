@@ -573,6 +573,12 @@ type Decision struct {
 	// victim cursor for a multi-player VillainousChoice resolution.
 	ResumeVillainousVictims []state.Target `json:"-"`
 	ResumeVillainousIndex   int            `json:"-"`
+	// ResumeGenericChoosers and ResumeGenericChooserIndex carry the ordered
+	// Defined$ player cursor for a multi-player api:GenericChoice resolution:
+	// each chooser answers the same Choices$ list in turn, with that chooser
+	// bound as Ctx.Remembered.
+	ResumeGenericChoosers     []state.Target `json:"-"`
+	ResumeGenericChooserIndex int            `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

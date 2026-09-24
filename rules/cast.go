@@ -273,6 +273,16 @@ type pendingCast struct {
 	sacs    []state.ObjID
 	sacPart int
 
+	// emerge / emergeDone mark an Emerge cast (CR 702.118a): beginCast's
+	// "emerged" arm sets emerge and composes the printed K:Emerge cost with
+	// the mandatory Sac<1/Creature> part; sacAsk then folds the chosen
+	// creature's mana value out of pc.cost exactly once, guarded by
+	// emergeDone so a resumed mana window cannot subtract twice. Plain data,
+	// so Clone carries them like sacs/sacPart.
+	emerge     bool
+	emergeDone bool
+	emergeSac  state.ObjID
+
 	discards    []state.ObjID
 	discardPart int
 
@@ -2207,6 +2217,22 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if mc, ok := mayflashExtraCost(f); ok {
 			cost = cost.Plus(mc)
 		}
+	case "emerged":
+		// Emerge (CR 702.118a): the emerge cast pays the printed K:Emerge cost
+		// in place of the mana cost AND sacrifices a creature, whose mana
+		// value reduces the cost. The reduction is NOT applied here -- the
+		// creature is not chosen until sacAsk settles the Sac part -- so this
+		// arm composes the emerge cost with the mandatory sacrifice and marks
+		// the cast; applyEmergeReduction folds the chosen creature's mana value
+		// out of pc.cost once the choice is in. A stale option whose keyword is
+		// gone falls back to the empty cost like the keyword family above, and
+		// without the Sac part the cast is an ordinary (over-charged) emerge;
+		// the offer gate only ever routes here with the keyword present.
+		if ec, ok := emergeBase(f); ok {
+			cost = ec
+		} else {
+			cost = Cost{}
+		}
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
@@ -2283,6 +2309,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
 			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, optionalCost: optionalCost}
+	}
+	// Emerge (CR 702.118a): sacAsk folds the chosen sacrifice's mana value out
+	// of pc.cost once the mandatory creature sacrifice is settled. The mark is
+	// set here, beside the cost the switch composed, so the charge and the
+	// reduction can never disagree about what cast they belong to.
+	if opt.Mode == "emerged" {
+		e.cast.emerge = true
 	}
 	// Escalate (the modal additional cost "pay this for each mode chosen
 	// beyond the first"): the cost is carried as its raw keyword parameter
@@ -4333,7 +4366,7 @@ func (e *Engine) sacAsk() bool {
 					break
 				}
 			}
-			if !already {
+			if !already && (!pc.emerge || pc.sacPart != 0 || e.emergeSacPayable(pc, oid)) {
 				candidates = append(candidates, oid)
 			}
 		}
@@ -4396,6 +4429,11 @@ func (e *Engine) sacAsk() bool {
 		e.ask(d)
 		return true
 	}
+	// Every Sac part is settled: an Emerge cast (CR 702.118a) now folds the
+	// chosen sacrifice's mana value out of pc.cost, before the mana window and
+	// payment read it. Idempotent through pc.emergeDone, so the re-entries a
+	// suspended mana window makes cannot subtract twice.
+	e.applyEmergeReduction(pc)
 	return false
 }
 
@@ -6439,6 +6477,9 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.delve = append(pc.delve, o.Obj)
 		}
 	case "sacrifice":
+		if pc.emerge && pc.sacPart == 0 && len(chosen) == 1 {
+			pc.emergeSac = chosen[0].Obj
+		}
 		for _, o := range chosen {
 			pc.sacs = append(pc.sacs, o.Obj)
 		}

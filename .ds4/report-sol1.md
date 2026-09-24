@@ -732,6 +732,95 @@ No outstanding defect identified in this ticket; no new ticket or Known-approxim
 
 ---
 
+# Loamcrafter Faun — sol1 report/diff reconciliation (agent-20260918T195920Z-2fd3b568)
+
+## Finding and branch provenance
+
+The review's MAJOR was correct: `.ds4/report-r2.md` falsely called its own
+insertion the *only tracked diff*, even though implementation and tests from
+prior rounds were still on this branch. Corrected the intro and historical
+base/SHAs there, preserving the unrelated ChosenCardStrict and
+TriggerRemembered reports below. The phrase now explicitly means only the
+new change in that **r2 round**, not the full `main...HEAD` diff.
+
+Controller-directed `git rebase main` ran first with a clean worktree: four
+commits replayed, no conflicts. Base `c4560130`; rebased commits:
+`dd58b67f` (implementation), `8da12fb5` (exotic verdict tests),
+`0638597c` (unique-path t1 report), `7c054313` (r2 report). The branch's
+**actual `main...HEAD` diff** at the start of sol1 contains SIX paths:
+
+```
+M .ds4/report-r2.md                       (r2 report, 103 insertions)
+A .ds4/report-t1-2fd3b568.md              (unique-path t1 report, 230 insertions)
+M effects/count.go                        (54 insertions, 10 deletions)
+M effects/count_triggerremembered_test.go (86 insertions, 30 deletions)
+M effects/immediate.go                    (4 insertions, 11 deletions)
+A rules/loamcrafter_faun_test.go          (276 insertions)
+```
+
+This round additionally corrects `.ds4/report-r2.md` and appends this sol1
+report without changing production code or tests. The code is **in scope**:
+`effects/count.go` binds `TriggerRemembered` to the capture-excluded set,
+`effects/immediate.go` uses the same helper, and the two test files assert
+both the mapping and the real Loamcrafter return/empty-discard paths. The
+sibling merged a **plain** `Ctx.Remembered` mapping; this branch corrects it.
+The full per-file implementation details and the observed fail-without-fix
+proof remain in `.ds4/report-t1-2fd3b568.md`. No report-only branch claim
+remains. `.cards` is present as a symlink to the real corpus, not a skipped
+corpus run. No head, ratchet or botbench split was re-pinned.
+
+## Fails without the fix
+
+No new tests or production hunks in sol1. The initial implementation round
+copied and reverted `effects/count.go`, confirmed `TestTriggerRememberedRefProperty`
+failed on the sibling's plain mapping (`Amount = 3, want 2`), and confirmed
+`TestLoamcrafterFaunWhenYouDoReturnsThatMany` failed with the head absent
+(no return ask); then restored byte-identically with `cmp`. Exact excerpts:
+
+```
+--- FAIL: TestTriggerRememberedRefProperty (0.00s)
+    count_triggerremembered_test.go:63: precondition: TriggerRemembered$Amount = 3, want 2 (capture not excluded)
+--- FAIL: TestLoamcrafterFaunWhenYouDoReturnsThatMany (0.58s)
+    loamcrafter_faun_test.go:202: return ask Max = 1, want 2 (the discarded lands, capture excluded): &{Seq:195 Player:1 Kind:choose Prompt:turn 2 — discard 1 card(s) down to the hand-size limit Min:1 Max:1 ...}
+```
+
+## Gates after the sol1 rebase (exact commands and output)
+
+```
+$ go test -run 'TestLoamcrafterFaun|TestTriggerRemembered|TestRefProperty|TestImmediateTrigger|TestForumFilibuster|TestSpeedYoungAvenger' ./effects ./rules
+ok   github.com/adams-shaun/gorge/effects 0.627s
+ok   github.com/adams-shaun/gorge/rules 0.691s
+focused_exit=0
+$ go test ./effects ./rules
+ok   github.com/adams-shaun/gorge/effects 2.623s
+ok   github.com/adams-shaun/gorge/rules 33.450s
+affected_exit=0
+$ gofmt -l .
+(no output; exit 0)
+$ go vet ./effects ./rules
+(no output; exit 0)
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 4.436s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.298s
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+## Issues
+
+- `IsTriggerRemembered` filter predicate remains unimplemented (61 corpus
+  files); delayed triggers with this predicate never match (Blessed Defiance).
+- `TriggerRemembered$GreatestCardManaCost` and `$CardTypes` remain fail-closed
+  in `effects/count.go:evalRefProperty` (two carriers). The other two exotics
+  named in the brief, `CastTotalManaSpent` and `CardManaCostLKI`, are already
+  implemented and pinned; the brief's four-unsupported claim did not hold.
+  No other defect identified in the sol1 report correction.
+
+---
+
 # Mill-trigger replacement redirection — agent-20260919T183731Z-085022e9
 
 ## Finding resolved
@@ -800,3 +889,48 @@ $ git diff --check
 ## Issues
 
 No additional defect found in this fix round. Rest in Peace currently emits an unmarked exile move; a replacement preserving `Text: "milled"` is exercised explicitly by the test's second action, so the next such replacement is covered by the same predicate. No CR-lane test requested; this is a card-trigger regression, not a new untracked CR shape.
+
+---
+
+# Emerge integration — agent-20260918T225913Z-5db23024 (sol1)
+
+## Finding resolved
+
+The daemon's rebase/merge fallback failed because `.ds4/report-r2.md` and `.ds4/report-t1.md` contained **unstaged Emerge reports replacing other tickets' tracked reports**. I saved both Emerge reports at unique paths (`.ds4/report-r2-emerge.md`, `.ds4/report-t1-emerge.md`), restored the two shared report paths byte-for-byte from this branch's HEAD, and committed the unique files in `efa7264b`. The working tree was then clean. `git merge main` completed without conflict at `cf798080`; `main` (`c4560130` at merge time) is an ancestor of HEAD. Main's shared report files were retained, not overwritten. No new Go changes in this round; the reviewed implementation is in `6221af8c` and the generic-only reduction fix is in `e295ef8b`. The branch still registers `kw:Emerge`, prices the sacrifice/reduced generic mana cost, and tests the real Elder Deep-Fiend. `.cards` was already symlinked to the corpus; these are not vacuous tests. There is no repo-deck Elder Deep-Fiend carrier or acceptance-table change, Known-approximations row change, or chain-head golden edit.
+
+## Fails without the fix
+
+No new test was added in this integration round. The previously committed test was proved to fail on the reverted reduction hunk and the source restored byte-identically (recorded in `.ds4/report-r2-emerge.md`):
+
+```
+--- FAIL: TestEmergeCastReductionExceedsGenericKeepsColored (0.00s)
+    emerge_test.go:182: emerge offer cost {Colored:[0 0 0 0 0 0] Generic:0 ... Sac:[{N:1 Spec:Creature ...}]}
+        (ok=true), want {U}{U} with the generic floored to 0
+FAIL    github.com/adams-shaun/gorge/rules      0.616s
+```
+
+The real-card cast test also fails without Emerge offer registration, as recorded in `.ds4/report-t1-emerge.md`. Both tests assert the object zones and a nonzero mana-value difference before testing payment.
+
+## Gates after merging main
+
+```
+$ go test -run 'TestEmergeCast|TestEveryRepoDeckIsFullySupported|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeckParams|CountHead' ./rules/ > .ds4/scratch/emerge-merge-rules.log 2>&1; rc=$?; tail -30 .ds4/scratch/emerge-merge-rules.log; echo rules_exit=$rc
+ok   github.com/adams-shaun/gorge/rules 1.345s
+rules_exit=0
+$ go test ./internal/archtest/ > .ds4/scratch/emerge-merge-arch.log 2>&1; rc=$?; tail -15 .ds4/scratch/emerge-merge-arch.log; echo arch_exit=$rc
+ok   github.com/adams-shaun/gorge/internal/archtest 3.921s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/emerge-merge-bot.log 2>&1; rc=$?; tail -5 .ds4/scratch/emerge-merge-bot.log; echo bot_exit=$rc
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.258s
+bot_exit=0
+$ gofmt -l rules/emerge.go rules/emerge_test.go rules/legal.go rules/cast.go
+(no output)
+$ go run ./cmd/gentypes -check; echo gentypes_exit=$?
+gentypes_exit=0
+```
+
+The exact brief's narrower test command, the test-revert proof, and the original uncached archtest/botbench/gofmt/gentypes output are preserved verbatim in `.ds4/report-r2-emerge.md`. The botbench golden and deck support ratchet did not move. Full game heads and sim belong to the daemon gate.
+
+## Issues
+
+No new unresolved Emerge defect observed. Other cost grammar remains intentionally outside this brief; unsupported Emerge cost shapes are withheld rather than mispriced. No new Known-approximations row or CR-lane test was added.

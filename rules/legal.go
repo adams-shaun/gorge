@@ -1906,6 +1906,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
+		// Emerge (CR 702.118a): "cast this spell by sacrificing a creature and
+		// paying the emerge cost reduced by that creature's mana value". It is
+		// a casting option, but NOT a plain substitution -- the cast sacrifices
+		// a creature AND the cost is reduced by its mana value -- so it does
+		// not ride the keyword family above. emergeOfferCost composes the
+		// printed K:Emerge cost with the mandatory Sac<1/Creature> part,
+		// priced separately for each sacrifice candidate. sacAsk permits only
+		// candidates whose own reduced cost remains payable. Unsupported printed
+		// cost shapes are withheld; the plain cast remains unaffected.
+		if _, ok := e.emergeOfferCost(p, id, f, func(c Cost) bool {
+			return offerCastable(p, id, c, spellScope("emerged"), false)
+		}); ok && targetsAvailable {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (emerged)", Obj: id, Mode: "emerged"})
+		}
 		// Bestow (CR 702.114a): the bestowed cast is its own "cast" option
 		// paying the bestow cost in place of the mana cost, and the spell is
 		// an Aura with enchant creature, so the offer gates on the targets of
