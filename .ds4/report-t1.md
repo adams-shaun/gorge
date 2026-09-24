@@ -3194,11 +3194,11 @@ implementation is complete with no remainder to defer.
 
 ## Commits (post-rebase onto `main`, 2026-09-23 r2)
 
-- `f236d0af` feat(rules): implement kw:Sunburst as an entry-time converge counter put
-- `0548a011` test(rules): load real corpus carriers for the sunburst coverage tests
-- `43cdcbed` docs(agent): append kw:Sunburst round-1 report
-- `430eac01` docs(agent): record rebased commit shas for kw:Sunburst report
-- `743ddf26` feat(cards): expand printed K:Sunburst and gate the sunburst synthetic to the grant shape (r2 fix — see report-r2.md)
+- `067b2477` feat(rules): implement kw:Sunburst as an entry-time converge counter put
+- `26c2dd7d` test(rules): load real corpus carriers for the sunburst coverage tests
+- `7bfe93da` docs(agent): append kw:Sunburst round-1 report
+- `080ed1be` docs(agent): record rebased commit shas for kw:Sunburst report
+- `26590394` feat(cards): expand printed K:Sunburst and gate the sunburst synthetic to the grant shape (r2 fix — see report-r2.md)
 
 Rebased onto `main` after the controller directive (second rebase at the r2
 directive, one `.ds4/report-t1.md` append-append conflict resolved by keeping

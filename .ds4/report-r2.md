@@ -18,7 +18,7 @@ marker and never changes the keyword expander/registry" — FIXED
 The finding was right about the brief's letter: Done means names
 "the keyword registered in `cards/keywords.go`", and r1 shipped only the
 rules-side synthetic (`rules/replacement.go`'s `sunburstEntryMatch`) plus the
-`RegisterNonAPI` marker. Fixed in `743ddf26`:
+`RegisterNonAPI` marker. Fixed in `26590394`:
 
 1. **`cards/kw_sunburst.go` (new)** — registers the `Sunburst` head in the
    `kwExpanders` table (`registerKeyword(kwSunburst, "Sunburst")` in
