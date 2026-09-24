@@ -306,6 +306,13 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	if !ok {
 		return -1
 	}
+	castOffered := false
+	for _, o := range d.Options {
+		if o.Kind == "cast" {
+			castOffered = true
+			break
+		}
+	}
 	need := b.neededColours(c)
 	best := -1
 	bestTier := 3
@@ -313,6 +320,13 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	for _, o := range d.Options {
 		if o.Kind != "activate" {
 			continue
+		}
+		if conv, spend := converterCost(o.Cost); conv {
+			// T3: a converter (see converterCost) is taken only when it
+			// provably moves the intended card closer to castable.
+			if castOffered || !b.conversionProgresses(c, spend, b.Cards[o.Obj].Produces) {
+				continue
+			}
 		}
 		prod := b.Cards[o.Obj].Produces
 		matches := false
@@ -341,4 +355,160 @@ func (b Board) chooseTap(d *decision.Decision) int {
 		}
 	}
 	return best
+}
+
+// T3 -- the converter gate (cardfuzz batch1 lines 3/5/6/10/16/17). A mana
+// ability whose cost spends POOL mana and does not tap its source (Farrelite
+// Priest's and Bog Initiate's "{1}: Add {W}/{B}", Initiates of the Ebon
+// Hand) is a converter: it can be activated any number of times, and each
+// activation takes mana out of the very pool the tap gate is trying to fill.
+// The T1/T2 gate prices a source only by what it PRODUCES, so a converter
+// that produces a needed colour ranked tier 0 and was re-activated forever:
+// the engine pays its generic {1} out of the pool in fixed C,W,U,B,R,G order
+// (rules/mana.go resolveManaWith), which for a white card against a
+// white-only pool spends the {W} it then adds back -- a net-zero cycle, one
+// decision per loop, until the engine's livelock watcher fires.
+//
+// The gate is a class rule over the offered cost, not a card list:
+//
+//   - a converter is never activated while a "cast" option is offered: the
+//     pool already pays something, and spending it on a conversion toward a
+//     different card can only undo that (Bog Initiate converted the four {B}
+//     that were paying for Frogmite);
+//   - otherwise it is activated only when the hypothetical pool after paying
+//     its mana cost and adding its production has a strictly smaller
+//     payment deficit for the intended card (conversionDeficit) than the
+//     current pool. The deficit is a non-negative integer that no tap and no
+//     taken conversion ever raises for that card, so the conversions the
+//     policy takes toward one intended card are finite, and every turn ends;
+//   - a production the policy cannot price (an indeterminate amount) or a
+//     cost it cannot read ({X}) is never activated -- fail closed toward the
+//     pass, the gate's standing direction.
+//
+// A mana-costed ability that also TAPS its source (Celestial Prism's
+// "{2}, {T}", a filter land) is bounded by the tap and is not a converter;
+// it keeps the T2 ordering unchanged.
+
+// converterCost parses an "activate" option's engine-supplied cost marker
+// (decision.Option.Cost, rules/legal.go: Forge notation, empty for a bare
+// {T}). It reports whether the cost spends pool mana WITHOUT tapping the
+// source, and the mana it spends. Non-mana parts (Sac<...>, PayLife<...>,
+// Return<...>) are ignored; an {X} marks the spend unknown, which
+// conversionProgresses refuses.
+func converterCost(cost string) (bool, manaSpend) {
+	var sp manaSpend
+	if strings.TrimSpace(cost) == "" {
+		return false, sp
+	}
+	tapped, spends := false, false
+	for _, tok := range strings.Fields(cost) {
+		switch {
+		case tok == "T":
+			tapped = true
+		case isDigits(tok):
+			n := int32(0)
+			for i := 0; i < len(tok); i++ {
+				n = n*10 + int32(tok[i]-'0')
+			}
+			if n > 0 {
+				sp.generic += n
+				spends = true
+			}
+		case tok == "X":
+			sp.unknown, spends = true, true
+		case len(tok) == 1 && strings.ContainsRune("WUBRGC", rune(tok[0])):
+			sp.pips[state.ManaIndex(tok[0])]++
+			spends = true
+		case strings.Contains(tok, "/") && !strings.Contains(tok, "<"):
+			// A hybrid or Phyrexian pip (W/U, 2/W, G/P): priced as one
+			// generic unit -- the policy cannot read which half the payer
+			// uses, and a generic unit is the cheapest reading.
+			sp.generic++
+			spends = true
+		}
+	}
+	return spends && !tapped, sp
+}
+
+// manaSpend is a converter's mana cost: generic units, per-slot coloured
+// (and {C}) pips, and whether some part could not be priced.
+type manaSpend struct {
+	generic int32
+	pips    state.Mana
+	unknown bool
+}
+
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// conversionProgresses is T3's progress test: would paying spend out of the
+// current pool and adding the source's production leave the intended card c
+// with a strictly smaller conversionDeficit? The payment is simulated the
+// way the engine pays it (coloured pips from their slot, generic from C then
+// W, U, B, R, G); a pool that cannot pay is no progress. A plain production
+// adds exactly its Colour vector; a choice production (Any, Reflected) is
+// priced as ONE unit of the card's most-needed colour (its guaranteed lower
+// bound); an indeterminate amount cannot be priced and is no progress.
+func (b Board) conversionProgresses(c Card, spend manaSpend, prod cards.ManaProduction) bool {
+	if spend.unknown || prod.Indeterminate {
+		return false
+	}
+	pool := b.Pool
+	for i := range pool {
+		if pool[i] < spend.pips[i] {
+			return false
+		}
+		pool[i] -= spend.pips[i]
+	}
+	g := spend.generic
+	for _, i := range [...]int{state.MC, state.MW, state.MU, state.MB, state.MR, state.MG} {
+		for g > 0 && pool[i] > 0 {
+			pool[i]--
+			g--
+		}
+	}
+	if g > 0 {
+		return false
+	}
+	pips := colourPips(c.ManaCost)
+	if prod.Any || prod.Reflected {
+		bestI, bestGap := int(state.MC), int32(0)
+		for i := 0; i < 5; i++ {
+			if gap := pips[i] - pool[i]; gap > bestGap {
+				bestI, bestGap = i, gap
+			}
+		}
+		pool[bestI]++
+	} else {
+		for i := range pool {
+			pool[i] += prod.Colour[i]
+		}
+	}
+	return conversionDeficit(c, pips, pool) < conversionDeficit(c, pips, b.Pool)
+}
+
+// conversionDeficit is how far pool is from paying card c: the coloured pips
+// it cannot cover plus the total mana it is short. Zero exactly when
+// poolPays would accept (ignoring the command-zone tax, which only raises
+// both sides equally). Adding mana never raises it.
+func conversionDeficit(c Card, pips [5]int32, pool state.Mana) int32 {
+	var d int32
+	for i := 0; i < 5; i++ {
+		if pips[i] > pool[i] {
+			d += pips[i] - pool[i]
+		}
+	}
+	if short := c.CMC - pool.Total(); short > 0 {
+		d += short
+	}
+	return d
 }

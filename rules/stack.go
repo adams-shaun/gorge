@@ -3081,6 +3081,39 @@ func (e *Engine) resolvedAbilityTallyFor(source state.ObjID, sa *cards.SA) int32
 	return e.G.ResolvedThisTurn[events.ResolvedAbilityKey(source, sa)]
 }
 
+// activationsThisTurnFor is the ConditionActivationLimit$ read
+// (Ctx.ActivationsThisTurn): how many times the activated ability sa on
+// source has been activated this turn, INCLUDING the resolving one -- its
+// AbilityPush (a stack ability) or ManaActivate marker (a mana ability,
+// emitted for a chain carrying the gate) is already in the log. sa is located
+// in the source's pile by identity, else by its script line (a mana
+// ability's colour-pinned or Produced$-rewritten copy keeps Line). Zero --
+// the unbound value the effects gate fails open on -- for a nil SA, a
+// source that has left, or an SA that is not one of the source's own
+// activated abilities (a trigger, a spell, a granted body).
+func (e *Engine) activationsThisTurnFor(source state.ObjID, sa *cards.SA) int32 {
+	if sa == nil {
+		return 0
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return 0
+	}
+	idx, _, found := pileAbilityRefOf(o, sa)
+	if !found && sa.Line != "" {
+		for i, n := 0, o.PileAbilityCount(); i < n; i++ {
+			if pa, ok := o.PileAbilityAt(i); ok && pa.SA != nil && pa.SA.Line == sa.Line {
+				idx, found = i, true
+				break
+			}
+		}
+	}
+	if !found {
+		return 0
+	}
+	return int32(e.activationUsedCount(source, idx, "", true))
+}
+
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
@@ -3400,7 +3433,8 @@ func (e *Engine) resolveTop() {
 			// Resolve event's Apply folded: the count INCLUDES this resolution,
 			// because the Resolve event is emitted above before this Ctx is
 			// built (the Sephiroth "if this is the fourth time" gate).
-			ResolvedThisTurn: e.resolvedAbilityTally(o),
+			ResolvedThisTurn:    e.resolvedAbilityTally(o),
+			ActivationsThisTurn: e.activationsThisTurnFor(o.Source, o.Ability),
 			// An Effect-created delayed trigger body resolves under the Effect's
 			// source-scoped frame (queued by rules' delayed-trigger fire), so the
 			// one-shot self-exile idiom it may run ends the Effect. Zero for every
@@ -3948,6 +3982,7 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	// direct resolution that never went through the stack (the map carries no
 	// entry for it), the modelled-head zero the effects case gives.
 	ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(source, sa)
+	ctx.ActivationsThisTurn = e.activationsThisTurnFor(source, sa)
 	// The caller supplies the chosen targets -- the announcement or placement
 	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
 	// for an SA that declares targets (task mvts1).

@@ -783,6 +783,21 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 				used++
 			}
 
+		case events.GrantAbilityPush:
+			// An SVar-anchored GRANTED loyalty ability (an AddAbility$ static
+			// whose body carries Planeswalker$ True -- Rowan's Talent's
+			// "Enchanted planeswalker has [+1]: ...") is a loyalty ability of
+			// THIS permanent (the recipient) and shares its CR 606.3 tally.
+			// Counter names the body on the grantor (IDs[0]); a grantor that
+			// has since left resolves through grantedSAFrom's recipient
+			// fallback or not at all, and an unresolvable body is not counted.
+			if ev.Obj != id || !onBattlefield || len(ev.IDs) == 0 || ev.Counter == "" {
+				continue
+			}
+			if body := e.grantedSAFrom(ev.IDs[0], id, ev.Counter); body != nil && e.isLoyaltyAbility(body) {
+				used++
+			}
+
 		case events.FlipFace:
 			if ev.Obj == id && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
 				faceIdx = int(ev.Amount)
@@ -2878,11 +2893,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// beginActivation resolves (the same anchor the max-speed "granted"
 	// option carries); mana ones flow through availableManaAbilities below so
 	// the "Tap for mana" priority action and the payment window share one
-	// member set. Gates mirror the printed loop above minus the loyalty gate
-	// FOR THE SVAR-ANCHORED GRANTS (an AddAbility$ body is never a loyalty
-	// ability); a GAINED ability (GainsAbilitiesOf$) CAN be one -- Nicol
-	// Bolas Dragon-God's `GainsValidAbilities$ Activated.Loyalty` -- so the
-	// CR 606.3 gates below apply to it exactly as to a printed one. The two
+	// member set. Gates mirror the printed loop above, loyalty gate included:
+	// a GAINED ability (GainsAbilitiesOf$, Nicol Bolas Dragon-God's
+	// `GainsValidAbilities$ Activated.Loyalty`) and an SVar-anchored GRANT
+	// (Rowan's Talent's AddAbility$ [+1]) can each be a loyalty ability, so
+	// the CR 606.3 gates below apply to them exactly as to a printed one. The two
 	// activation limits are checked here too, with the SVar-name identity
 	// (see the gate's own comment below): Touch of Vitae carries
 	// GameActivationLimit$ 1 on an Animate-delivered AddAbility$ body.
@@ -2906,14 +2921,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
 				continue
 			}
-			// CR 606.3 for a GAINED loyalty ability (GainsAbilitiesOf$): the
-			// same sorcery-timing and once-per-permanent gates the printed loop
-			// applies -- a gained [+1] is a loyalty ability of THIS permanent
-			// (the recipient), and loyaltyActivationsThisTurn counts its
-			// GainedAbilityPush activations beside the printed AbilityPush ones.
-			// The SVar-anchored AddAbilities grants above are never loyalty
-			// abilities, so gating on ga.gained keeps them untouched.
-			if ga.gained && e.isLoyaltyAbility(ab) {
+			// CR 606.3 for a GAINED or GRANTED loyalty ability: the same
+			// sorcery-timing and once-per-permanent gates the printed loop
+			// applies -- a gained (GainsAbilitiesOf$) or SVar-granted
+			// (AddAbility$: Rowan's Talent's "[+1]: Up to one target creature
+			// gets +2/+0 ...") loyalty ability is a loyalty ability of THIS
+			// permanent (the recipient), and loyaltyActivationsThisTurn counts
+			// its GainedAbilityPush / GrantAbilityPush activations beside the
+			// printed AbilityPush ones. The granted half was once exempt on the
+			// premise that an AddAbility$ body is never a loyalty ability;
+			// Rowan's Talent's body is one, and the exemption let a bot
+			// activate it without bound (cardfuzz batch1 line 18: 20000
+			// intents of "+1" on one Jaya Ballard in one main phase).
+			if e.isLoyaltyAbility(ab) {
 				if !sorcery {
 					continue
 				}
