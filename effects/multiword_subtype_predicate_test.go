@@ -54,7 +54,12 @@ func TestMultiWordSubtypePredicate(t *testing.T) {
 		t.Fatalf("unknown multiword census = %v, want one unknown token", got)
 	}
 	// TARDIS's exact IsPresent filter spelling is accepted by the same matcher.
+	ps := CompilePredicatePrograms([]string{"Card.Time Lord+YouCtrl"})
+	ctx.PredicatePrograms = ps
 	if !MatchesObjectCtx(g, "Card.Time Lord+YouCtrl", &both, ctx) {
-		t.Fatal("TARDIS-shaped IsPresent predicate must match a Time Lord")
+		t.Fatal("TARDIS-shaped IsPresent predicate must match a Time Lord with compiled sidecar")
+	}
+	if got := ps.Evaluate("Card.Time Lord+YouCtrl", g, &both, ctx); got != PredicateYes {
+		t.Fatalf("compiled sidecar result = %v, want yes", got)
 	}
 }

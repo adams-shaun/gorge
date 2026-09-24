@@ -1744,7 +1744,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return chosen != 0 && strings.Contains(ColorsOf(o), string(chosen))
 	case wordType:
 		for _, typeWord := range strings.Fields(key) {
-			if !hasTypeCtx(o, typeWord, sc) {
+			if !hasTypePredicateCtx(o, typeWord, sc) {
 				return false
 			}
 		}
@@ -3388,6 +3388,15 @@ func chosenCtrlMatches(g *state.Game, o *state.Object, src state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+func hasTypePredicateCtx(o *state.Object, t string, sc SpecContext) bool {
+	for _, word := range strings.Fields(t) {
+		if !hasTypeCtx(o, word, sc) {
+			return false
+		}
+	}
+	return t != ""
 }
 
 func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
