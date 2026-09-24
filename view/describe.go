@@ -835,6 +835,11 @@ func mana(sym string, n int32) string {
 	if sym == "" {
 		sym = "C"
 	}
+	// A typed unit ("TreasureC", "ArtifactW") is provenance bookkeeping, not
+	// a symbol: the transcript names only its colour.
+	if _, slot, ok := state.TypedManaCounter(sym); ok {
+		sym = string("WUBRGC"[slot])
+	}
 	if n <= 0 {
 		return ""
 	}
