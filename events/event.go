@@ -867,7 +867,9 @@ const (
 	// protection. Appended after CloneStatic to preserve prior event ordinals
 	// and the hash chain.
 	DamageProvenance
-	NumKinds = int(DamageProvenance) + 1
+	// EnduringStoryChange records a seat gaining the CR 702.175 designation.
+	EnduringStoryChange
+	NumKinds = int(EnduringStoryChange) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1002,7 +1004,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
-	"damage_provenance"}
+	"damage_provenance", "enduring_story_change"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

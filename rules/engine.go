@@ -2798,6 +2798,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
 		ev.Kind == events.ControlChange {
 		e.checkBlessingGrants()
+		e.checkEnduringStoryGrants()
 	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,
