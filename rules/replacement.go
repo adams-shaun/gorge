@@ -2722,10 +2722,20 @@ func (e *Engine) driveAddCounterCompetition(rc replChoice,
 // starting a new replacement pass: every candidate has had its one
 // opportunity (the emitLifeReplacement convention).
 func (e *Engine) emitAddCounterReplacement(ev events.Event) {
+	// Capture provenance before counterReplacementFold deliberately disables
+	// replacement-body inference for this settled final emit.
+	adder, hasAdder := e.inFlightCounterAdder()
+	savedAdder := state.PlayerID(0)
+	if hasAdder {
+		savedAdder = e.SetCounterAdder(adder)
+	}
 	saved, folded := e.applyingReplacement, e.counterReplacementFold
 	e.applyingReplacement, e.counterReplacementFold = true, true
 	e.emit(ev)
 	e.applyingReplacement, e.counterReplacementFold = saved, folded
+	if hasAdder {
+		e.SetCounterAdder(savedAdder)
+	}
 }
 
 // replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count
