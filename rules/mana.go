@@ -16,7 +16,8 @@ import (
 
 // CostPart is one non-mana cost component: Sac<N/Spec> (sacrifice N
 // permanents matching Spec), Discard<N/Spec> (discard N matching cards), or
-// SubCounter<N/Kind> (remove N counters of Kind from the source), and announced-count ExileFromGrave<X/Spec>.
+// SubCounter<N/Kind> (remove N counters of Kind from the source), or
+// announced-count ExileFromGrave<X/Spec>.
 type CostPart struct {
 	N    int32
 	Spec string
@@ -26,8 +27,8 @@ type CostPart struct {
 	// never read it.
 	Zone state.Zone
 	// Announced marks a variable-count Sac<X/Spec> or ExileFromGrave<X/Spec>
-	// part: the player announces the count as the cast's X (CR 601.2b) and exactly
-	// that many matching objects are paid. N is unused for an Announced part.
+	// part: the player announces the count as the cast's X (CR 601.2b)
+	// and exactly that many matching objects are paid. N is unused for an Announced part.
 	Announced bool
 	// Dyn is the non-literal amount token of a Draw part (Forge's
 	// Draw<X/Spec>): N is unused and the count is resolved at payment from

@@ -19,4 +19,23 @@ func TestParseCostExileFromGraveX(t *testing.T) {
 	if len(fixed.Exile) != 1 || fixed.Exile[0].N != 1 || fixed.Exile[0].Announced || fixed.Exile[0].Zone != state.ZGraveyard {
 		t.Fatalf("fixed cost changed: %+v", fixed)
 	}
+	folded := ParseCost("ExileFromGrave<X/Creature;Artifact>")
+	if len(folded.Unknown) != 0 || len(folded.Exile) != 1 || folded.Exile[0].Spec != "Creature,Artifact" || !folded.Exile[0].Announced {
+		t.Fatalf("comma-folded exile cost = %+v", folded)
+	}
+	combined := ParseCost("T").Plus(folded)
+	if !combined.Tap || len(combined.Exile) != 1 || !combined.Exile[0].Announced {
+		t.Fatalf("Plus lost the announced cost: %+v", combined)
+	}
+	if got := formatCost(got); got != "X T ExileFromGrave<X/Card>" {
+		t.Fatalf("X exile cost renders %q", got)
+	}
+	// The alternate-cost boundary remains explicit: only the ordinary
+	// FromGrave X token is parsed. Other X exile zones need their own payer.
+	for _, s := range []string{"ExileFromHand<X/Card>", "ExileAnyGrave<X/Card>"} {
+		c := ParseCost(s)
+		if len(c.Exile) != 0 || len(c.Unknown) == 0 {
+			t.Fatalf("unsupported X exile token %s = %+v", s, c)
+		}
+	}
 }
