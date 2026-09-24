@@ -2373,6 +2373,15 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			}
 			ty = kept
 		}
+		if len(ce.RemoveTypes) > 0 {
+			kept := ty[:0]
+			for _, t := range ty {
+				if !slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
+		}
 		if ce.RemoveLegendary {
 			// NonLegendary$ True (CR 205.4's supertype): drop only the
 			// Legendary word, leaving every other supertype (Basic, Snow,
