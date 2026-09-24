@@ -97,6 +97,12 @@ func (e *Engine) attackableCreature(id state.ObjID) (*state.Object, bool) {
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
 		return nil, false
 	}
+	if o.PhasedOut {
+		// CR 702.25b/d: a phased-out permanent is treated as though it does
+		// not exist, so it cannot attack. The one gate both canAttack and
+		// canAttackPair share.
+		return nil, false
+	}
 	f := o.Face()
 	if f == nil || !e.IsCreature(id) || o.BestowedAttached() {
 		return nil, false
@@ -349,6 +355,11 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 		return false
 	}
 	if b.Zone != state.ZBattlefield || a.Zone != state.ZBattlefield {
+		return false
+	}
+	if b.PhasedOut || a.PhasedOut {
+		// CR 702.25b/d: a phased-out permanent is treated as though it does
+		// not exist, so it can neither block nor be blocked.
 		return false
 	}
 	bf := b.Face()

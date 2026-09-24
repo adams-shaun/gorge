@@ -1050,7 +1050,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
 	visit := func(id state.ObjID) {
 		o := observer.G.Obj(id)
-		if o == nil {
+		if o == nil || o.PhasedOut {
 			return
 		}
 		f := o.Face()

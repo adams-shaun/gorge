@@ -89,6 +89,12 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.TurnFaceUp:
 		// CR 708.6: Obj is the permanent that revealed its printed face.
 		return obj(g, ev.Obj) + " is turned face up"
+	case events.PhaseOut:
+		// CR 702.25: Amount 1 is a permanent phasing out, -1 phasing in.
+		if ev.Amount >= 1 {
+			return obj(g, ev.Obj) + " phases out"
+		}
+		return obj(g, ev.Obj) + " phases in"
 	case events.SearchedLibrary:
 		// CR 701.23: the completed-search marker (trig:SearchedLibrary).
 		// Player is the seat whose library was searched; the resolving source
