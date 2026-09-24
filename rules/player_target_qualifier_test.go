@@ -260,14 +260,23 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// TriggeredActivator, Player.!TriggeredCardController) are judged with
 	// their binding present (seat 1's) instead of absent -- an absent binding
 	// fails closed by the pg2 contract and would classify them wrongly.
-	sc := effects.SpecContext{You: 0}
+	//
+	// The game-long damage-by-source qualifier
+	// (Opponent.wasDealtDamageThisGameBy Self, task game-long damage
+	// provenance) needs a bound SOURCE and a landed hit in the recipient's
+	// record; without both it fails closed like any other unbound qualifier.
+	// src is that source, and seat 1's record names it, so the qualifier is
+	// judged with a real binding -- the shape an Actual ask resolves.
+	src := e.G.AddObject(e.G.Obj(e.G.Zone(state.ZLibrary, 0)[0]).Card, 0)
+	e.G.Players[1].DamageTakenByGame = append(e.G.Players[1].DamageTakenByGame, src.ID)
+	sc := effects.SpecContext{You: 0, Source: src.ID}
 	sc.TriggerContext.TriggerActivator = state.Target{Player: 1, IsPlayer: true}
 	sc.TriggerContext.TriggerCardController = state.Target{Player: 1, IsPlayer: true}
 	var offered, failClosed []string
 	for spec := range seen {
 		matched := false
 		for p := state.PlayerID(0); int(p) < len(e.G.Players); p++ {
-			if e.playerTargetSpecMatches(sc, spec, p, 0, 0) {
+			if e.playerTargetSpecMatches(sc, spec, p, 0, src.ID) {
 				matched = true
 			}
 		}
@@ -284,11 +293,10 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// offers seats through its bare Player alternative (the unhandled
 	// NotDefinedParentTarget clause contributes nothing), so it is classified
 	// by behaviour, not by its first alternative.
-	wantOffered := []string{"Any", "Any.NotDefinedParentTarget,Player", "Opponent", "Player",
+	wantOffered := []string{"Any", "Any.NotDefinedParentTarget,Player", "Opponent", "Opponent.wasDealtDamageThisGameBy Self", "Player",
 		"Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent", "Player.Other", "You"}
 	wantFailClosed := []string{
 		"Any.!Dinosaur", "Any.!Dragon", "Any.!IsCommander",
-		"Opponent.wasDealtDamageThisGameBy Self",
 		"Player.!CardOwner", "Player.!EnchantedBy", "Player.LostLifeThisTurn",
 		"Player.Opponent+Active",
 		"Player.OpponentToActive+hasFewerCreaturesInYardThanActive",

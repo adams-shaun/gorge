@@ -2917,7 +2917,50 @@ func Apply(g *state.Game, e Event) {
 				}
 			}
 		}
+
+	case DamageProvenance:
+		// Game-long damage-by-source provenance (the_fallen, diseased_vermin):
+		// append the SOURCE to the recipient's record so the
+		// wasDealtDamageThisGameBy / wasDealtDamageByThisGame filters can ask
+		// "has this source dealt me damage this game". Obj is the source,
+		// IDs[0] is the recipient (PlayerRef-encoded for a seat, a plain
+		// ObjID for an object) -- the TriggerPush encoding, decoded with the
+		// shared ObjID.PlayerRef helper. The record is NEVER cleared (it is
+		// game-long) and the append DEDUPS, so the fold is idempotent and a
+		// repeated source keeps one entry. Guarded to totality like every
+		// case here: a missing source or recipient, or an out-of-range seat,
+		// is a no-op rather than a panic.
+		if e.Obj == 0 || len(e.IDs) == 0 {
+			break
+		}
+		src := e.Obj
+		if p, isPlayer := e.IDs[0].PlayerRef(); isPlayer {
+			if !validPlayer(g, p) {
+				break
+			}
+			rec := g.Players[p].DamageTakenByGame
+			if !containsObjID(rec, src) {
+				g.Players[p].DamageTakenByGame = append(rec, src)
+			}
+			break
+		}
+		if o := g.Obj(e.IDs[0]); o != nil {
+			if !containsObjID(o.DamageTakenByGame, src) {
+				o.DamageTakenByGame = append(o.DamageTakenByGame, src)
+			}
+		}
 	}
+}
+
+// containsObjID reports whether ids already holds want. Walked by index so
+// the result never depends on map iteration order.
+func containsObjID(ids []state.ObjID, want state.ObjID) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
 }
 
 // commanderDenseIndex returns id's match-wide dense commander index - (valid

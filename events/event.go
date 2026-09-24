@@ -855,7 +855,15 @@ const (
 	// CloneStatic appends one named SVar static to a copy's layer-1 face.
 	// Text is the original SVar body; appended to preserve existing ordinals.
 	CloneStatic
-	NumKinds = int(CloneStatic) + 1
+	// DamageProvenance records one game-long (recipient, source) damage fact:
+	// Obj is the damage SOURCE, IDs[0] is the recipient (a plain ObjID for an
+	// object, a state.PlayerRef-encoded PlayerID for a seat -- the TriggerPush
+	// encoding, so PlayerID 0 stays distinguishable from "no recipient"), and
+	// Amount is the damage that actually landed post-replacement/post-
+	// protection. Appended after CloneStatic to preserve prior event ordinals
+	// and the hash chain.
+	DamageProvenance
+	NumKinds = int(DamageProvenance) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -989,7 +997,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
-	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static"}
+	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
+	"damage_provenance"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
