@@ -223,9 +223,22 @@ func TestAttachedToDefinedSelectorPluralBearerFailsClosed(t *testing.T) {
 	}
 }
 
-// TestAttachedToDefinedSelectorBareFormUnchanged pins that the DOTTED selector
-// did not disturb the BARE `AttachedTo` case (the resolving source's own
-// bearer).
+// TestAttachedToDefinedSelectorCompoundSpellingFailsClosed pins that a
+// ` & ` conjunction spelling is owned by knownDefinedTargets' splitter, not
+// consumed whole by the dotted selector (which would silently resolve the
+// malformed qualifier to an empty set).
+func TestAttachedToDefinedSelectorCompoundSpellingFailsClosed(t *testing.T) {
+	h, c, _ := attachedSelectorBoard(t)
+	// The selector itself refuses the compound value...
+	if ts, ok := definedSpec(h, c, "AttachedTo Targeted.Equipment & NotAThing"); ok {
+		t.Fatalf("a compound ` & ` spelling must not be consumed by the selector, got %+v", ts)
+	}
+	// ...and knownDefinedTargets' conjunction splitter fails closed on it: the
+	// second part (NotAThing) is an unknown defined target.
+	if _, ok := knownDefinedTargets(h, c, "AttachedTo Targeted.Equipment & NotAThing"); ok {
+		t.Fatalf("knownDefinedTargets must fail closed on a partly-unknown conjunction")
+	}
+}
 func TestAttachedToDefinedSelectorBareFormUnchanged(t *testing.T) {
 	h, c, ids := attachedSelectorBoard(t)
 	// Source is the Aura; its own bearer is the bear.

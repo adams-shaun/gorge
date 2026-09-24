@@ -257,6 +257,13 @@ func attachedToDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, boo
 	if arg == "" {
 		return nil, false
 	}
+	// A compound ` & ` spelling is a knownDefinedTargets conjunction, not a
+	// single referent: refuse it here so the conjunction splitter (which
+	// calls back into this resolver per part) owns it. Consuming it whole
+	// would silently resolve the malformed qualifier to an empty set.
+	if strings.Contains(arg, " & ") {
+		return nil, false
+	}
 	ref, quals, hasQuals := strings.Cut(arg, ".")
 	if _, known := attachedToReferent(ref); !known {
 		return nil, false

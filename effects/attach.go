@@ -196,17 +196,27 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		// TriggeredCardLKICopy (Ajani's Chosen -- the ENTERING Aura, not the
 		// source), Targeted and every other object spec the shared resolver
 		// definedSpec already supports. A spec it cannot resolve keeps the
-		// today default (obj = c.Source). A resolved list of several objects
-		// (Fumble's and Rhuk's AttachedTo plural selectors) is kept WHOLE:
-		// the card attaches every one of them.
-		if ts, ok := definedSpec(h, c, sa.Params["Object"]); ok {
-			if os := objectsOf(ts); len(os) > 0 {
-				objs = objs[:0]
-				for _, t := range os {
-					objs = append(objs, t.Obj)
-				}
+		// today default (obj = c.Source) -- EXCEPT the dotted `AttachedTo
+		// <referent>` family below, whose whole meaning is "the attachments":
+		// a bound-but-empty resolution (no object is attached to the referent)
+		// keeps NO source fallback, and an unbound one (absent or plural
+		// bearer) fails closed the same way, so the card can never attach
+		// itself in place of the attachments (Fumble on a bare creature).
+		// A resolved list of several objects (Fumble's and Rhuk's AttachedTo
+		// plural selectors) is kept WHOLE: the card attaches every one.
+		spec := sa.Params["Object"]
+		if ts, ok := definedSpec(h, c, spec); ok {
+			objs = objs[:0]
+			for _, t := range objectsOf(ts) {
+				objs = append(objs, t.Obj)
+			}
+			if len(objs) > 0 {
 				obj = objs[0]
 			}
+		} else if strings.HasPrefix(spec, "AttachedTo ") {
+			// The dotted selector resolved unknown (an absent or plural
+			// referent binding): fail closed to no objects, never the source.
+			objs = objs[:0]
 		}
 	}
 	// An Aura with Enchant:Player attaches to a seat, not a permanent.

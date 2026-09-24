@@ -135,14 +135,21 @@ func TestFumbleGainsBothAndAttachesThemToAnotherCreature(t *testing.T) {
 	}
 
 	// The attach-back leg: `Object$ AttachedTo Targeted.Aura,Equipment |
-	// Choices$ Creature` asks for ONE destination and must attach BOTH
-	// resolved objects to it.
+	// Choices$ Creature` must attach BOTH resolved objects to the destination.
+	// The engine already CHAINS GainControl -> DBAttach (Fumble's
+	// `SubAbility$ DBAttach`), so resolving GainControl above has already run
+	// the attach-back leg: there is exactly ONE legal destination creature, so
+	// the `Choices$` pool auto-takes it and `attachAll` runs inline with no
+	// ask. Do NOT re-resolve DBAttach here: a second pass would re-resolve the
+	// selector, find only the still-attached object, and attach it -- masking
+	// a first-object-only bug. The both-attached assertion below is the pin.
 	dba := resolveSourceFaceSA(t, e, fumble, "DBAttach")
-	ctx2 := &effects.Ctx{Source: fumble, Controller: 0, Targets: []state.Target{{Obj: ids["bear"]}}}
-	effects.Resolve(e, ctx2, dba)
 	if dba.Params["Object"] != "AttachedTo Targeted.Aura,Equipment" {
 		t.Fatalf("precondition failed: DBAttach Object = %q, want the real plural selector", dba.Params["Object"])
 	}
+	// Answer any chained ask (on this single-destination board there should be
+	// none -- the pool auto-takes -- but keep the drain so a future board that
+	// poses one still drives it).
 	for i := 0; i < 8; i++ {
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KChoose {
@@ -171,6 +178,61 @@ func TestFumbleGainsBothAndAttachesThemToAnotherCreature(t *testing.T) {
 	// And not on the Fumble card itself (the old source fallback).
 	if e.G.Obj(ids["aura"]).AttachedTo == fumble || e.G.Obj(ids["equip"]).AttachedTo == fumble {
 		t.Fatalf("an attachment self-attached to the Fumble source %d", fumble)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestFumbleWithNoAttachmentsDoesNotAttachItself pins the bound-but-empty
+// direction: when the referent creature bears NO Aura or Equipment, the
+// `Object$ AttachedTo Targeted.Aura,Equipment` selector resolves to ZERO
+// objects. The source fallback must NOT fire -- the Fumble instant must not
+// attach itself to the destination, and the attach-back leg must do nothing.
+func TestFumbleWithNoAttachmentsDoesNotAttachItself(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := corpusEngineCfg(t, reg,
+		[]*cards.Card{lookup(t, reg, "Fumble"), lookup(t, reg, "Grizzly Bears")},
+		[]*cards.Card{lookup(t, reg, "Grizzly Bears")})
+	fumble := moveByName(t, e, 0, "Fumble", state.ZGraveyard)
+	bear := moveByName(t, e, 1, "Grizzly Bears", state.ZBattlefield)
+	dest := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+
+	// Precondition: the bear really bears nothing.
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.AttachedTo == bear {
+			t.Fatalf("precondition failed: object %d is attached to the bear", o.ID)
+		}
+	}
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZHand})
+	gain := resolveSourceFaceSA(t, e, fumble, "GainControl")
+	ctx := &effects.Ctx{Source: fumble, Controller: 0, Targets: []state.Target{{Obj: bear}}}
+	effects.Resolve(e, ctx, gain)
+	// Answer any chained ask (there should be none: no attachments to attach).
+	for i := 0; i < 8; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose {
+			break
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+			t.Fatalf("submit: %v", err)
+		}
+	}
+
+	// The Fumble card is where it belongs (graveyard, its source) and is NOT
+	// attached to the destination or the bear.
+	if got := e.G.Obj(fumble).AttachedTo; got != 0 {
+		t.Fatalf("the Fumble source self-attached: AttachedTo = %d, want 0", got)
+	}
+	if e.G.Obj(fumble).Zone == state.ZBattlefield {
+		t.Fatalf("the Fumble source moved to the battlefield")
+	}
+	// The destination got nothing attached to it.
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.AttachedTo == dest {
+			t.Fatalf("object %d was attached to the destination %d with zero resolved attachments", o.ID, dest)
+		}
 	}
 	replayCheck(t, e, cfg)
 }
