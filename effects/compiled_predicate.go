@@ -223,6 +223,12 @@ func predicateTermFromWord(kind wordKind) (predicateTermKind, bool) {
 // Evaluate returns Maybe when spec was not compiled or when an alternative
 // that is not already false contains unsupported grammar.
 func (ps *PredicatePrograms) Evaluate(spec string, g *state.Game, o *state.Object, sc SpecContext) PredicateResult {
+	return ps.evaluate(spec, g, o, &sc)
+}
+
+// evaluate is Evaluate with the (large) context passed by pointer, for the
+// hot matcher path.
+func (ps *PredicatePrograms) evaluate(spec string, g *state.Game, o *state.Object, sc *SpecContext) PredicateResult {
 	if ps == nil || o == nil {
 		return PredicateMaybe
 	}
@@ -293,7 +299,7 @@ func matchesCompiledBase(base predicateBase, o *state.Object) bool {
 	return matched
 }
 
-func matchesCompiledTerm(term predicateTerm, g *state.Game, o *state.Object, sc SpecContext) bool {
+func matchesCompiledTerm(term predicateTerm, g *state.Game, o *state.Object, sc *SpecContext) bool {
 	var matched bool
 	switch term.kind {
 	case predicateTermYouCtrl:

@@ -509,3 +509,61 @@ func TestTriggerEventMaskAndPrefilterAgreePastTheMaskWidth(t *testing.T) {
 		}
 	}
 }
+
+// The hoisted per-event half checkFaceTriggers uses must agree with
+// compiledTriggerInterestAllows for every interest value and every kind,
+// including the fail-open kinds past the mask's reach.
+func TestCompiledTriggerInterestEventHoistParity(t *testing.T) {
+	for kind := events.Kind(0); int(kind) <= events.NumKinds+1; kind++ {
+		all, mask := compiledTriggerInterestEvent(kind)
+		for i := 0; i <= 0xffff; i++ {
+			in := cards.TriggerInterest(i)
+			if got, want := all || in&mask != 0, compiledTriggerInterestAllows(in, kind); got != want {
+				t.Fatalf("kind %d interests %#x: hoisted=%v, compiledTriggerInterestAllows=%v", kind, i, got, want)
+			}
+		}
+	}
+}
+
+// grantedTriggerStaticsFor keeps exactly the statics with a granted trigger
+// whose Mode$ passes triggerMatches' leading kind gate, in active() order;
+// a gained face's trigger with no linked Effect never counts (the walk skips
+// it before matching).
+func TestGrantedTriggerStaticsForKeepsObservingGrantsInOrder(t *testing.T) {
+	gained := &cards.Face{Name: "Gained", Triggers: []cards.Trigger{
+		{Mode: "Attacks", Effect: &cards.SA{}},
+		{Mode: "SpellCast"}, // unlinked: ignored
+	}}
+	statics := []ContinuousEffect{
+		{Timestamp: 1, AddTrigger: &cards.Trigger{Mode: "ChangesZone"}},
+		{Timestamp: 2},
+		{Timestamp: 3, GainedTriggerFaces: []state.GainedFace{{Face: gained}}},
+		{Timestamp: 4, AddTrigger: &cards.Trigger{Mode: "Always"}},
+		{Timestamp: 5, AddTrigger: &cards.Trigger{Mode: "Phase"}},
+	}
+	stamps := func(kind events.Kind) []int64 {
+		var out []int64
+		for _, ce := range grantedTriggerStaticsFor(statics, kind, nil) {
+			out = append(out, int64(ce.Timestamp))
+		}
+		return out
+	}
+	for _, tc := range []struct {
+		kind events.Kind
+		want []int64
+	}{
+		{events.MoveZone, []int64{1, 4}},
+		{events.DeclareAttackers, []int64{3, 4}},
+		{events.PutOnStack, []int64{1, 4}},
+		{events.StepChange, []int64{4, 5}},
+		{events.Note, []int64{4}},
+	} {
+		if got := stamps(tc.kind); !slices.Equal(got, tc.want) {
+			t.Errorf("kind %d: kept timestamps %v, want %v", tc.kind, got, tc.want)
+		}
+	}
+	// The kept entries alias the input slice (no copies).
+	if got := grantedTriggerStaticsFor(statics, events.MoveZone, nil); got[0] != &statics[0] {
+		t.Fatalf("kept entry does not alias the active() slice")
+	}
+}

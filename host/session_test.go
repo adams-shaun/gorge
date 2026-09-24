@@ -104,7 +104,12 @@ func TestFocusSubscriptionStreamsSnapshotThenEventsInChainOrder(t *testing.T) {
 		t.Fatalf("shape: first %s, second %s, last %s", frames[0].T, frames[1].T, frames[len(frames)-1].T)
 	}
 	snap := decode[protocol.Snapshot](t, frames[1])
-	if snap.View.Visibility != "omniscient" || len(snap.TurnStarts) < 1 || snap.View.Players[0].Hand == nil {
+	// cli-20260922T225141Z-e771720d: the hosted game parks on the CR 103.1
+	// toss-choice ask BEFORE turn 1 (the winner's answer begins it), so the
+	// initial snapshot legitimately carries no TurnChange yet — TurnStarts is
+	// empty here and fills as the match runs. The board itself (hands dealt,
+	// omniscient) is still asserted.
+	if snap.View.Visibility != "omniscient" || snap.View.Players[0].Hand == nil {
 		t.Fatalf("snapshot %+v", snap.View)
 	}
 	var lastSeq uint64

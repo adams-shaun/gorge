@@ -225,6 +225,76 @@ cannot drift.
 
 # Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
 
+# Report — kw:Melee (hn1, agent-20260918T231813Z-9bab5889)
+
+## Changes
+
+- `cards/kw_melee.go`, `cards/kw_registry_test.go`: register Melee as a printed Attacks trigger with a self-pump sized by the captured opponent count; pin the new expander in the registry. `rules/trigger_match.go` and `rules/keyword_registration_test.go` register `kw:Melee` and its proof.
+- `rules/combat.go`, `rules/engine.go`, `rules/melee.go`: capture the *whole* declaration's distinct defending seats (player, planeswalker or battle's protector), preserve them as logged player references on each printed or granted instance's trigger. Count derived instances minus printed triggers so multiple grants fire separately without double-counting printed instances. No mutation outside `events.Apply`.
+- `rules/trigger_queue.go`, `events/apply.go`: mint a granted Melee trigger through `KeywordTriggerPush` with logged player refs, reconstruct its pump and Remembered on replay. No event kind or field changes.
+- `rules/melee_test.go`: freshly parses the real Titania script (not a pre-expanded IR cache), asserts a printed trigger exists, and drives actual 3+-seat attacker decisions: one vs two opponents, Titania's grant, two independent grants (Titania + Adriana), and an attacked battle counting as its protector rather than another opponent. Preconditions assert battlefield placement, base P/T, keyword grants/instance count and offered defender options.
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`. Measured `/usr/bin/grep -rlE '^K:Melee' .cards/cardsfolder | wc -l` → `12`, matching the brief. The brief's Titania ratchet and AGENTS.md approximation row do NOT exist on main (controller confirmed stale premise); neither file was edited. Coverage rise was not measured: `make report` is a daemon gate, not a seat gate. No chain head or ratchet was re-pinned; botbench's pinned behavior passed unchanged.
+
+## Gates run (real output)
+
+```text
+$ go test -run 'TestTitaniaMelee|TestTitaniaAndAdrianaGrantTwoMelee|TestRegisteredKeywordsAreHonoured' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.524s
+$ go test -run 'TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded' ./cards/
+ok   github.com/adams-shaun/gorge/cards  0.012s
+$ go test ./events/
+ok   github.com/adams-shaun/gorge/events  8.232s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  3.630s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  0.590s
+$ gofmt -l cards/kw_melee.go cards/kw_registry_test.go events/apply.go rules/combat.go rules/engine.go rules/keyword_registration_test.go rules/melee.go rules/melee_test.go rules/trigger_match.go rules/trigger_queue.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+$ git diff --check
+(no output)
+```
+
+## Fails without the fix
+
+Copies of changed production files were stored in `.ds4/scratch/`; each temporary revert was restored byte-identically (`cmp` passed). Removing the `cards/kw_melee.go` registration on the freshly parsed corpus card failed:
+
+```text
+--- FAIL: TestTitaniaMeleeCountsDistinctAttackedOpponents (0.00s)
+    melee_test.go:69: freshly linked real Titania has no Melee attack trigger
+FAIL github.com/adams-shaun/gorge/rules 0.017s
+```
+
+Disabling the grant synthesis in `rules/melee.go` failed the granted and multiple-instance assertions:
+
+```text
+--- FAIL: TestTitaniaMeleeCountsDistinctAttackedOpponents (0.39s)
+    melee_test.go:80: granted Melee after attack: 2/2, want 3/3
+--- FAIL: TestTitaniaAndAdrianaGrantTwoMeleeInstances (0.00s)
+    melee_test.go:171: two Melee instances: Bear is 2/2, want 6/6
+FAIL github.com/adams-shaun/gorge/rules 0.420s
+```
+
+Replacing the declaration-wide snapshot with only the triggering event's defender failed *both* two-opponent paths, including the battle, and the plural grant:
+
+```text
+--- FAIL: TestTitaniaMeleeCountsDistinctAttackedOpponents/two_attacked_opponents (0.00s)
+    melee_test.go:97: Titania after attack: 4/4, want 5/5
+--- FAIL: TestTitaniaMeleeBattleCountsProtectorOnce/second_opponent (0.00s)
+    melee_test.go:157: battle protector Melee: 4/4, want 5/5
+--- FAIL: TestTitaniaAndAdrianaGrantTwoMeleeInstances (0.00s)
+    melee_test.go:191: two Melee instances: Bear is 4/4, want 6/6
+FAIL github.com/adams-shaun/gorge/rules 0.486s
+```
+
+## Issues
+
+None discovered outside this brief. There was no existing Melee ledger entry in the AGENTS.md closing register to retire; the controller explicitly instructed no ratchet or AGENTS.md change. No remainder identified.
+
+---
+
 # Report — task agent-20260922T201246Z-000e743d (fix round t2)
 
 ## Review finding disposition

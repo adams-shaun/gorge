@@ -10,7 +10,9 @@
       {
         "name": "mono-red-goblins",
         "deck": "mono-red-goblins",
-        "colour": "#e5484d"
+        "colour": "#e5484d",
+        "human": true,
+        "deck_id": "mono-red-goblins"
       }
     ],
     "seed": 12345,

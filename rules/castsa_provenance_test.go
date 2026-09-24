@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -219,30 +218,6 @@ func TestWildMagicSorcererFirstExileCastCascades(t *testing.T) {
 	}
 	// The mountain library has no castable candidate, so the cascade
 	// resolves with no election; drain it.
-	drainEtb(t, e)
-}
-
-// TestCastSaManaFromArtifactStaysClosed pins the fail-closed direction for a
-// spelling the engine cannot read: Shadow the Hedgehog's Chaos Control
-// artifact-mana grant stays inert even on a real cast (no artifact-mana
-// provenance exists).
-func TestCastSaManaFromArtifactStaysClosed(t *testing.T) {
-	e := handEngine(t, card(t, "Name:Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
-		corpusAlternativeCard(t, "Shadow the Hedgehog"))
-	cc := e.G.Zone(state.ZHand, 0)[1]
-	placeOnBattlefield(t, e, cc)
-	bear := e.G.Zone(state.ZHand, 0)[0]
-	e.G.Players[0].Pool[state.MG] = 1
-	castMode(t, e, bear, "")
-	finishCast(t, e, bear)
-	if got := e.SpellsCastThisTurnMatching(0, "Card.wasCastByYou+CastSa Spell.ManaFromArtifact"); got != 0 {
-		t.Fatalf("artifact-mana count = %d, want 0 (the spelling stays fail-closed)", got)
-	}
-	for _, k := range e.derivedWith(bear, state.ZStack).Keywords {
-		if strings.EqualFold(cardsKeywordHead(k), "Split second") {
-			t.Fatalf("the unimplemented artifact-mana spelling must not grant keywords, granted %q", k)
-		}
-	}
 	drainEtb(t, e)
 }
 

@@ -12,15 +12,18 @@ import (
 // better than the fuzz driver it replaced. It is the old Decide body
 // verbatim — KAttackers attacks with every legal attacker, KBlockers takes
 // roughly half the legal pairs on a per-option coin with one blocker per
-// attacker, everything else unchanged — and it deliberately has no Board
+// attacker, everything else unchanged except the Effect-specific no-host
+// decline — and it deliberately has no Board
 // facts to read, matching what the policy was before B2.
 //
 // Ruling F7's one-copy rule governs the production policy (Decide), whose
 // two adapter halves must answer the same; this is not a second production
 // policy but the historical snapshot the benchmark compares against, so it
 // carries no adapters of its own — the bench's legacy seat feeds it the
-// plain IsMain board the old policy knew and nothing else. Anything that
-// ships in the game (seats, acceptance, fuzz) calls Decide, never this.
+// plain IsMain board the old policy knew and nothing else. The Effect-specific
+// election is the sole exception to the frozen snapshot: like the production
+// bot, this unattended driver must decline that no-host election (R-9).
+// Anything that ships in the game (seats, acceptance, fuzz) calls Decide.
 func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
@@ -115,6 +118,10 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 
 	case decision.KTriggerOptional:
+		if d.EffectOptional {
+			in.Choices = declineOptional(d)
+			return Clamp(d, in)
+		}
 		if idx := r.IntN(2); idx < len(d.Options) {
 			in.Choices = []int{d.Options[idx].Index}
 			return Clamp(d, in)

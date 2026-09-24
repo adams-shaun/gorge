@@ -26,10 +26,13 @@ func TestComboAnyResolutionAllocationConsumesOneAmountPerSelection(t *testing.T)
 		if event.Kind != events.ManaAdd {
 			continue
 		}
-		switch event.Counter {
-		case "U":
+		if tag, _, ok := state.TypedManaCounter(event.Counter); !ok || tag != state.TypedArtifact {
+			t.Fatalf("artifact source emitted untagged mana: %q", event.Counter)
+		}
+		switch state.ManaSlot(event.Counter) {
+		case state.MU:
 			blue += event.Amount
-		case "R":
+		case state.MR:
 			red += event.Amount
 		}
 	}

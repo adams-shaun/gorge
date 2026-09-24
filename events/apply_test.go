@@ -1427,7 +1427,7 @@ func TestTypedManaTallyMovesWithThePool(t *testing.T) {
 		t.Fatalf("snow form: snow=%v typed=%v", g.Players[0].Snow, g.Players[0].TypedMana)
 	}
 	Emit(g, l, Event{Kind: ManaClear, Player: 0})
-	if g.Players[0].TypedMana != [3]state.Mana{} {
+	if g.Players[0].TypedMana != [4]state.Mana{} {
 		t.Fatalf("mana clear did not empty the typed tally: %v", g.Players[0].TypedMana)
 	}
 }

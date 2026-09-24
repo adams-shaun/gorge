@@ -199,7 +199,7 @@ func (e *Engine) counterPlayerAddedAllMatches(t cards.Trigger, source state.ObjI
 	you := e.controllerOf(source)
 	if spec := strings.TrimSpace(t.Params["ValidObject"]); spec != "" {
 		matched := false
-		for _, alt := range strings.Split(spec, ",") {
+		for alt := range strings.SplitSeq(spec, ",") {
 			alt = strings.TrimSpace(alt)
 			if alt == "" {
 				continue

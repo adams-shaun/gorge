@@ -39,8 +39,12 @@ func TestBoundsOfMatchesTheLoopsOwnBookkeeping(t *testing.T) {
 	}
 	// One snapshot at genesis plus one per burst that began a turn; a burst
 	// can contain two turn changes only in degenerate games, so at most one
-	// snapshot per turn start.
-	if len(m.snaps) < 3 || len(m.snaps) > len(m.turnStarts) {
+	// snapshot per turn start. cli-20260922T225141Z-e771720d: turn 1 now
+	// begins inside the CR 103.1 toss-choice answer's burst (not at genesis,
+	// which the genesis snapshot already covers), so one turn-start burst can
+	// be counted twice — once by the genesis snapshot and once by its own
+	// afterBurst snapshot — and the ceiling is turn starts + 1.
+	if len(m.snaps) < 3 || len(m.snaps) > len(m.turnStarts)+1 {
 		t.Fatalf("%d snapshots for %d turn starts", len(m.snaps), len(m.turnStarts))
 	}
 

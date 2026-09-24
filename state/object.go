@@ -201,6 +201,16 @@ const (
 	FlagManaTreasureSpent
 	FlagManaCaveSpent
 	FlagManaDesertSpent
+	// FlagManaArtifactSpent marks a cast whose pay-time CastInfo carries the
+	// ARTIFACT-sourced part of the total mana spent to cast it (task
+	// mayplay-mfa: the filtered Count$CastTotalManaSpent Artifact capture and
+	// the CastSa Spell.ManaFromArtifact predicate, the FlagManaDesertSpent
+	// pattern). It rides its OWN trailing pay-time CastInfo immediately after
+	// Desert's -- the fifth and newest tag -- so the five totals never share
+	// an event, and events.Apply's CastInfo switch checks the NEWEST flag
+	// first (Artifact, Desert, Cave, Treasure, then Snow, then the total).
+	// Appended per the enum's own append-only precedent.
+	FlagManaArtifactSpent
 	// FlagReplaceGraveyard marks a cast begun by a DB$ Play SA whose
 	// ReplaceGraveyard$ Exile rider says the played spell must not rest in
 	// the graveyard: "If that spell would be put into your graveyard this
@@ -690,6 +700,18 @@ type Object struct {
 	ManaTreasureSpent int32
 	ManaCaveSpent     int32
 	ManaDesertSpent   int32
+	// ManaArtifactSpent is the ARTIFACT-sourced part of ManaSpent (task
+	// mayplay-mfa): how many of the mana units the cast's payment spent were
+	// produced by an Artifact permanent -- Sol Ring, Arcane Signet, the whole
+	// mana-rock family. It is carried by the pay-time CastInfo's
+	// FlagManaArtifactSpent Amount (the X-overwrite guard, the same pattern
+	// the Treasure/Cave/Desert parts take). Artifact units are consumed in
+	// the same typed slot partition (resolveManaWith's takeUnit), so this
+	// never exceeds ManaSpent for the same slot; a cast that spent no
+	// artifact mana is a real 0. It rides the same provenance window as
+	// ManaSpent and resets alongside it in events.Move; a copy of the spell
+	// was never cast and a cheated-in permanent reads 0.
+	ManaArtifactSpent int32
 	// CompleatedLifePaid is the amount of life paid for Phyrexian symbols on
 	// a printed K:Compleated cast. It follows the cast provenance window and
 	// is consumed by events.Move when the spell enters as a planeswalker.
@@ -703,6 +725,21 @@ type Object struct {
 	// and consumed by the ETB machinery of the cast it later becomes, and a
 	// fresh exile re-notes it.
 	NotedNumber int32
+
+	// RuntimeSVars is the per-object runtime SVar store (Forge's
+	// sa.setSVar / Card.setSVar): the named numeric values an
+	// api:StoreSVar body writes during resolution and later reads -- a
+	// characteristic-defining ability (Minion of the Wastes' SetPower$
+	// LifePaidOnETB), a token's TokenPower$ (Phyrexian Processor), or a
+	// Count$ name -- resolve against. It OVERLAYS the printed face SVar
+	// table: a runtime entry of a name wins over the card's printed body
+	// because the printed body is the default the write replaces. Written
+	// only through events.StoreSVar (so a replay derives the identical
+	// value), keyed by name and read by exact lookup, so map order can
+	// never reach an event, an option list or a view. Cleared together
+	// with the cast-time window when the permanent leaves the battlefield
+	// (CR 400.7: an object that leaves and returns is a new object).
+	RuntimeSVars map[string]int32
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number, a colour (the
@@ -762,7 +799,11 @@ type Object struct {
 	// chosen modes instead of asking again. It is a cache maintained beside
 	// the already-logged ModeChosen marker; replay re-poses and re-answers the
 	// same decision through the identical code path, so it is not a second
-	// source of truth. Nil when no modal announcement has been made.
+	// source of truth. Nil when no modal announcement has been made; a
+	// NON-nil empty slice is an announcement of zero modes ("choose up to
+	// N" answered with none), which must resolve as nothing rather than
+	// re-asking -- copy it with CloneChosenModes, which keeps that
+	// distinction.
 	ChosenModes []string
 
 	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$
@@ -1240,7 +1281,7 @@ func (o *Object) CloneDeep() Object {
 	c.BlockedBy = append([]ObjID(nil), o.BlockedBy...)
 	c.Chosen = append([]Target(nil), o.Chosen...)
 	c.Goads = append([]GoadEffect(nil), o.Goads...)
-	c.ChosenModes = append([]string(nil), o.ChosenModes...)
+	c.ChosenModes = CloneChosenModes(o.ChosenModes)
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
@@ -1248,7 +1289,23 @@ func (o *Object) CloneDeep() Object {
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)
+	c.RuntimeSVars = cloneRuntimeSVars(o.RuntimeSVars)
 	return c
+}
+
+// cloneRuntimeSVars deep-copies a runtime SVar table so a cloned game never
+// aliases the original's map (a mutation of one would silently move the
+// other's store, the same aliasing hazard CloneDeep's slice copies guard
+// against). nil in, nil out.
+func cloneRuntimeSVars(m map[string]int32) map[string]int32 {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]int32, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
 }
 
 // SacrificedInfoOf captures the last-known-information snapshot of the object
@@ -1279,4 +1336,14 @@ func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
 		}
 	}
 	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc(), Counters: counters}
+}
+
+// CloneChosenModes copies a ChosenModes announcement, preserving the
+// nil (no announcement) versus non-nil empty (zero modes announced)
+// distinction resolution relies on.
+func CloneChosenModes(m []string) []string {
+	if m == nil {
+		return nil
+	}
+	return append(make([]string, 0, len(m)), m...)
 }

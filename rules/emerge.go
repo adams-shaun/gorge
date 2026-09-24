@@ -61,7 +61,7 @@ func emergeCost(f *cards.Face) (Cost, bool) {
 	}
 	// Validate the input grammar, not just Unknown: ParseCost understands
 	// many real cost parts that Emerge's generic-only reduction does not.
-	for _, token := range strings.Fields(s) {
+	for token := range strings.FieldsSeq(s) {
 		if len(token) == 1 && strings.ContainsAny(token, "WUBRGC") {
 			continue
 		}

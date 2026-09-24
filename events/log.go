@@ -34,8 +34,23 @@ type Log struct {
 
 const expectedEventsPerGame = 4096
 
-func NewLog(seed uint64) *Log {
-	l := &Log{Seed: seed, Events: make([]Event, 0, expectedEventsPerGame), buf: make([]byte, 0, 128), headHash: sha256.New()}
+func NewLog(seed uint64) *Log { return NewLogInto(seed, nil) }
+
+// NewLogInto is NewLog backed by a spent event array a batch runner recycled
+// from a finished game (rules.Engine.Release). The array is reused only when
+// it can hold the ordinary preallocation, and it is re-capped to exactly that
+// preallocation, so the log's growth points -- and so every capacity-visible
+// behaviour -- are identical to a fresh NewLog's; only the allocation is
+// saved. spare's contents are ignored (each slot is overwritten on Append)
+// and its caller must hold no other reference into it.
+func NewLogInto(seed uint64, spare []Event) *Log {
+	events := spare[:0]
+	if cap(events) >= expectedEventsPerGame {
+		events = events[:0:expectedEventsPerGame]
+	} else {
+		events = make([]Event, 0, expectedEventsPerGame)
+	}
+	l := &Log{Seed: seed, Events: events, buf: make([]byte, 0, 128), headHash: sha256.New()}
 	// Seed the chain with the seed value
 	var b [8]byte
 	binary.LittleEndian.PutUint64(b[:], seed)

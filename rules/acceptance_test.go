@@ -266,8 +266,12 @@ func playAcceptance(t *testing.T, reg *cards.Registry, seats int, step func(e *E
 		// in rules/heads_test.go move; standalone fixture Configs never set it,
 		// so the zero value leaves them byte-identical to before (R-8.4).
 		Mulligans: 1}
-	e := New(cfg)
+	// CR 103.1's winner-chooses ask: the choice constructor defers the
+	// pregame rounds, and the pose lets the bot answer it, the same decision
+	// a real table conveys to the toss winner.
+	e := NewStartingPlayerChoice(cfg)
 	b := newTestBot(7)
+	e.AskStartingPlayer()
 	e.Advance()
 	if step != nil {
 		step(e, 0)
@@ -401,7 +405,25 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 // tests are what every other caller uses.
 func replayFor(cfg Config, l *events.Log) (*Engine, error) {
 	cfg.Seed = l.Seed
-	e := New(cfg)
+	// CR 103.1's winner-chooses ask is conditional: a log that recorded it
+	// carries a DecisionAsk for the kind, so mirror replay.Replay's own
+	// conditional constructor here (this is the package-local mirror, per
+	// the doc above).
+	var e *Engine
+	asked := startingPlayerAsked(l)
+	if asked {
+		e = NewStartingPlayerChoice(cfg)
+	} else {
+		e = New(cfg)
+	}
+	if asked {
+		// Re-pose the recorded ask, before Advance's R-9 fallback would
+		// default it, so the recorded choice Intent lands on the decision it
+		// answered.
+		if e.AskStartingPlayer() == nil {
+			return e, fmt.Errorf("replayFor: log recorded a starting_player ask but none is available")
+		}
+	}
 	e.Advance()
 	for i := 0; i < len(l.Intents); i++ {
 		if e.G.Over {

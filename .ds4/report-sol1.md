@@ -48,6 +48,71 @@ The full module run is the controller's gate; this round used only the focused t
 
 - No new defect. Prior round's unresolved `subTargetAsk` zero-path coverage and no CR-lane case remain documented in `.ds4/report-r2.md`; no new ticket needed for this gate repair.
 
+# count:CardManaCostLKI — round 3 (review fixes)
+
+STATUS: DONE. Rebasing this clean worktree onto `main` succeeded before editing. `.cards` is present (symlink to shared corpus). Commits: `7454592e` (trigger SVar resolver), `57707664` (round-2 report), `10ec74fc` (restore placement-time announced X precedence); report restoration is committed separately.
+
+## Findings addressed
+
+- **CRITICAL** (`rules/trigger_referents.go`): before constructing the host-bound count context, give the in-flight cast/activation's announced X precedence over the stack/trigger X. This preserves both `SVar:X:Count$xPaid` and absent-SVar activation target asks, while retaining evaluation of authored non-`xPaid` SVar bodies from the source face for triggered abilities. The committed Chthonian Nightmare test now sees its cmcEQX target again. Existing numeric RHS callers share `targetSpecContext`, so this covers sibling activated abilities with the same shape rather than special-casing a card. This is the one code change after the review.
+- **MAJOR**: restored all 477 lines of `main`'s `.ds4/report-t2.md` (four unrelated reports) and prepended this report and the prior 183-line ticket report; no prior history was deleted. Also prepended this round's report to the accumulated `.ds4/report-sol1.md`.
+- **MINOR**: the previously filed ticket's actual path is `.ds4/new-tickets/spelltargeted-cardmanacostlki-ref.md.filed` (not an unfiled `.md`). Ran the brief's `make sim` gate: 20 replay OK.
+
+Root cause A (`effects/count.go` `CardManaCostLKI`) was already on `main` when this ticket began; `effects/ref_property_lki_test.go` pins its LKI-vs-live behavior. The Hammerhead real-corpus test exercises two causing spell mana values and cmc-5 exclusion. Corpus census rechecked: 58 `CardManaCostLKI` lines / 56 files and 138 nonliteral `ValidTgts$` RHS lines. `TestHeads` stayed green; neither heads nor ratchets were edited. The playable figure is 29777 on the rebased main (prior round's older-main figure was 29775), not attributed to this fix.
+
+## Fails without the fix
+
+Copied `rules/trigger_referents.go` to `.ds4/scratch/trigger_referents-fixed-sol1.go`, restored the pre-round-3 version from `HEAD`, ran the committed Chthonian test, then restored the saved version (`cmp` returned 0). Output (long priority decision abbreviated here; full output in `.ds4/scratch/chthonian-without-fix-sol1.log`):
+
+```text
+$ go test -run 'TestChthonianNightmarePaysEnergySacsAndReturns' ./rules/
+--- FAIL: TestChthonianNightmarePaysEnergySacsAndReturns (0.58s)
+    rakdos_params_energycost_test.go:90: target ask missing: &{Seq:47 Player:0 Kind:priority Prompt:turn 1, main1 — a has priority ...}
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.601s
+baseline_exit=1
+restored_cmp=0
+```
+
+The previous round independently reverted the trigger SVar resolver to main and observed that both new rules tests fail; its verbatim output is preserved below in the appended round-2 report.
+
+## Gates (real output)
+
+```text
+$ go build ./...
+build=0 (no output)
+$ go test -run 'TestChthonianNightmarePaysEnergySacsAndReturns|TestHammerheadTyrant|TestVialSmasherChosenPlayerTakesDamage|TestSpellCastActivatorThisTurnCastGatesTheTrigger|TestNightmareUnmaking|TestWhirOfInvention|TestTriggerTargetSpecContextResolvesSourceXShapes|TestHeads' ./rules/
+rules=0
+ok   github.com/adams-shaun/gorge/rules 1.900s
+$ go test -run 'TestCtxSpecContextResolvesXAndSVarNumericRHS|TestNumericRHS|TestCardManaCostLKIReadsRememberedSnapshot' ./effects/
+effects=0
+ok   github.com/adams-shaun/gorge/effects 0.009s
+$ gofmt -l .
+gofmt=0 (no output)
+$ go vet ./...
+vet=0 (no output)
+$ go run ./cmd/gentypes -check
+gentypes=0 (no output)
+$ make sim 2>&1 | grep -c 'replay OK'   # output captured to .ds4/scratch/sim-sol1.log; equivalent count
+sim=0
+20
+$ make report 2>&1 | grep '^cards:'   # captured to .ds4/scratch/report-cards-sol1.log
+report=0
+cards: 33667  playable: 29777 (88.4%)
+$ go test ./internal/archtest/
+archtest=0
+ok   github.com/adams-shaun/gorge/internal/archtest 3.777s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+botbench=0
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.261s
+```
+
+## Issues
+
+- `SpellTargeted$<Property>` still lacks a ref in `effects/count.go` (`refTargets`): four `SpellTargeted$CardManaCostLKI` corpus files fail closed. A separate ticket has already been filed as `.ds4/new-tickets/spelltargeted-cardmanacostlki-ref.md.filed`. A corpus-pinned test would expose it; CR 608.2c is relevant.
+- `TriggerRemembered$<Property>`: the original brief lists one corpus carrier and ticket `agent-20260918T233200Z-4a2fcd44`; main now has `effects/count_triggerremembered_test.go` and the matching implementation, so this is no longer an open issue on this base.
+- Trigger stack objects do not carry their source face's authored `SVar:X` as their own X; other placement-time consumers reading `o.X` directly can still see zero. `rules/trigger_queue.go` (`pushTrigger`), `rules/stack.go` (`resolveTop`) need a separate structural ticket if such a consumer is found; this ticket's filter resolver now handles its documented scope. No Known-approximations row was added or grown.
+
 ---
 
 # Convoked$Amount — fix-round report

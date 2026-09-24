@@ -297,3 +297,12 @@ func TestDescribeNeverPanics(t *testing.T) {
 		}
 	}
 }
+
+func TestDescribeManaAddNamesTypedUnitsByColour(t *testing.T) {
+	for counter, want := range map[string]string{"ArtifactC": "{C}{C}", "TreasureW": "{W}{W}", "G": "{G}{G}"} {
+		got := Describe(nil, events.Event{Kind: events.ManaAdd, Counter: counter, Amount: 2})
+		if !strings.HasSuffix(got, " adds "+want) {
+			t.Fatalf("ManaAdd %s describes as %q, want suffix %q", counter, got, want)
+		}
+	}
+}

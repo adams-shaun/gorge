@@ -44,8 +44,13 @@ import (
 // so "changed" keeps the loop going until the board is stable).
 func (e *Engine) attachmentSBAs() bool {
 	changed := false
+	// The battlefield snapshot the walk ranges (emit moves objects out
+	// of the live zone) lives in the Engine's SBA scratch, taken for the
+	// walk so a re-entrant pass allocates its own (sbaIDBuf).
+	ids := e.sbaIDBuf
+	e.sbaIDBuf = nil
 	for _, p := range e.G.AliveFrom(0) {
-		ids := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
+		ids = append(ids[:0], e.G.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
 			o := e.G.Obj(id)
 			if o == nil {
@@ -156,6 +161,7 @@ func (e *Engine) attachmentSBAs() bool {
 			}
 		}
 	}
+	e.sbaIDBuf = ids[:0]
 	return changed
 }
 
@@ -202,7 +208,7 @@ func (e *Engine) auraEnchantZoneAdmits(o, bearer *state.Object) bool {
 		return false
 	}
 	zoneNamed := false
-	for _, word := range strings.Split(spec, ".") {
+	for word := range strings.SplitSeq(spec, ".") {
 		z, has := strings.CutPrefix(word, "inZone")
 		if !has {
 			continue
