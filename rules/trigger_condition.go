@@ -200,6 +200,26 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			return false
 		}
 	}
+	if v, ok := t.Params["Delirium"]; ok {
+		// Delirium$ True (the CR 207.2c ability word, "four or more card
+		// types among cards in your graveyard"): the trigger-side gate,
+		// read through the SAME graveyardCardTypeCount census the
+		// replacement path's Delirium$ clause (rules/replacement.go), the
+		// Continuous static gate (rules/layers.go), the ability-offer gate
+		// (rules/legal.go's activationConditionOK) and the effects bare
+		// Condition$ Delirium gate (Host.DeliriumHolds) read, so every
+		// spelling answers identically and the two directions cannot
+		// disagree. Measured over the corpus at this pin: 22 raw T: lines
+		// across 21 files (Winter, Cynical Opportunist; Ishkanah,
+		// Grafwidow; Demolisher Spawn; Wickerfolk Thresher and the rest of
+		// the Death Toll family) -- before this clause the trigger fired
+		// UNCONDITIONALLY, the over-fire direction. A value this build
+		// cannot read as True is an unreadable clause shape and fails
+		// closed like the Metalcraft$ and Revolt$ clauses above.
+		if !strings.EqualFold(strings.TrimSpace(v), "True") || e.graveyardCardTypeCount(you) < 4 {
+			return false
+		}
+	}
 	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "AttackedPlayerWithMostLife") {
 		// Scourge of the Throne's intervening-if ("if it's attacking the
 		// player with the most life or tied for most life"): an
