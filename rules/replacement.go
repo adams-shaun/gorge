@@ -160,29 +160,10 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if !ok {
 		return ev, false
 	}
-	// A CantPutCounter restriction swallows a counter placement outright
-	// (task cantputcounter1): the placement never happens, so neither the
-	// event nor any AddCounter replacement of it may run. This gate sits
-	// BEFORE the match collection (not at the CounterChange dispatch case)
-	// so a prohibition with no accompanying R:Event$ AddCounter line is
-	// still enforced -- Melira's second poison source, where the only match
-	// on the board is Melira's own R: line but the lock must stop the event
-	// even after that line's rider has replaced the first source. handled
-	// true returns the empty event, so emit's ordinary Apply path is bypassed
-	// and nothing is logged: the event is prevented, never folded.
-	//
-	// Only a POSITIVE placement of a real counter is subject to the
-	// restriction: a removal (Amount <= 0) is not a placement at all, and the
-	// engine's own status markers (regeneration's Shield, the Deathtouched
-	// mark) are not counters -- the same state.InternalCounterMarker exclusion the
-	// AddCounter matcher keeps, so a "counters can't be put on it" static
-	// cannot stop a regeneration shield or a removal.
-	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
-		ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
-		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
-			return events.Event{}, true
-		}
-	}
+	// The CantPutCounter prohibition that used to sit here is now enforced in
+	// Engine.emit, BEFORE this replacement dispatch, so it applies even while
+	// a replacement body is in flight (task addcounter1/2). Keeping it here
+	// would skip it under applyingReplacement, the hole this task closes.
 	// FINALITY (CR 122.1) is a replacement at the common move boundary:
 	// a creature with a finality counter that would go from the battlefield to
 	// a graveyard is exiled instead. This covers destruction, toughness-based
@@ -1441,6 +1422,7 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	savedRepl, savedEvent, savedSource, savedAction, savedPlayer :=
 		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer
+	savedApplying := e.applyingReplacement
 	e.applyingReplacement = true
 	action := ""
 	if ev != nil {
@@ -1451,7 +1433,7 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	e.resolveReplacementWith(ctx, with)
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		savedRepl, savedEvent, savedSource, savedAction, savedPlayer
-	e.applyingReplacement = false
+	e.applyingReplacement = savedApplying
 }
 
 // applyReplacement applies the ONE chosen replacement to a MoveZone event,
@@ -1477,7 +1459,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		// so a Tap lands on an object already in its new zone (an object
 		// still on the stack is a no-op to effTap).
 		departing, link, controller := e.captureSourceLifelinkLKI(ev)
-		stored := events.Emit(e.G, e.L, ev)
+		stored := e.foldEntryMove(ev)
 		e.loop.observe(stored)
 		// The move-driven Effect lifetimes (the ExileOnMoved$/ForgetOnMoved$
 		// sweep) run on Engine.emit's own MoveZone path right here in the
@@ -1536,7 +1518,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 			Text: "entry awaiting replacement-order choice"}, true
 	}
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
-	stored := events.Emit(e.G, e.L, ev)
+	stored := e.foldEntryMove(ev)
 	e.loop.observe(stored)
 	// The move-driven Effect lifetimes, replayed inline exactly as the
 	// single-match Updated branch does (the raw events.Emit above bypasses
@@ -2432,10 +2414,10 @@ func (e *Engine) continueAddCounterReplacements(rc replChoice) {
 // starting a new replacement pass: every candidate has had its one
 // opportunity (the emitLifeReplacement convention).
 func (e *Engine) emitAddCounterReplacement(ev events.Event) {
-	saved := e.applyingReplacement
-	e.applyingReplacement = true
+	saved, folded := e.applyingReplacement, e.counterReplacementFold
+	e.applyingReplacement, e.counterReplacementFold = true, true
 	e.emit(ev)
-	e.applyingReplacement = saved
+	e.applyingReplacement, e.counterReplacementFold = saved, folded
 }
 
 // replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count

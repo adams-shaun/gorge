@@ -11,9 +11,11 @@ import (
 // corpus files carry the keyword). A Saga is an enchantment whose chapter
 // list (K:Chapter:<N>:<svar1>,...,...) names one sub-ability per chapter:
 //
-//   - It enters with ONE lore counter (granted inside events.Move, the same
-//     every-entry-site convention the planeswalker starting loyalty uses, so
-//     a search putting a Saga onto the battlefield is covered too).
+//   - It enters with ONE lore counter (granted by rules' EntryCounterGrants
+//     path -- the same every-entry-site convention the planeswalker starting
+//     loyalty uses -- placed through a real CounterChange event, so a search
+//     putting a Saga onto the battlefield is covered too and the CR 614
+//     replacement class sees the placement; task addcounter1/2).
 //   - After its controller's draw step (rules/turn.go's draw-step entry) it
 //     adds another.
 //   - Each lore counter triggers the chapter ability of that number: the
@@ -62,10 +64,15 @@ func (e *Engine) advanceSagas(p state.PlayerID) {
 }
 
 // checkChapterTriggers queues one chapter trigger per lore counter the event
-// just placed. Called for exactly two events: a MoveZone onto the battlefield
-// (the ETB lore counter events.Move grants -- the live counter read below
-// already includes it) and a CounterChange on the LORE counter kind (the
-// draw-step counter). A CounterChange carrying MORE than one counter (a
+// just placed. Every lore-counter placement is a real CounterChange on the
+// LORE kind -- the entry grant (rules' foldEntryMove, task addcounter1/2) and
+// the draw-step counter (advanceSagas) alike -- so this is called for exactly
+// that one event kind. The MoveZone branch this replaced queued the SAME
+// chapter I twice on an entry (the CounterChange the engine now emits queued
+// it, and then the MoveZone's own tail check queued it again off the live
+// counter the placement had already applied -- which made putTriggersOnStack
+// pose a spurious trigger-order ask and left resolveTop an empty stack). A
+// CounterChange carrying MORE than one counter (a
 // Storyweave-style CounterNum$ 2 or Terra's CounterNum$ 3) crosses several
 // chapter thresholds at once, so EVERY newly crossed chapter is queued, in
 // ascending order -- CR 702.151b's "each chapter ability triggers when its
@@ -73,7 +80,7 @@ func (e *Engine) advanceSagas(p state.PlayerID) {
 // final count's chapter would silently skip the crossed ones. The first
 // chapter crossed is the count the object had BEFORE the event: the folded
 // count minus the event's own Amount (the live counter read below already
-// includes it), floored at 1 -- a MoveZone's entry grant starts from chapter
+// includes it), floored at 1 -- an entry grant starts from chapter
 // 1 by construction. A count beyond the final chapter queues nothing past the
 // last chapter (the overflow is the SBA's business, not a chapter ability's).
 // The queue entry is the delayed-shape pendingTrigger: DelayedID -1 encodes
@@ -83,14 +90,7 @@ func (e *Engine) advanceSagas(p state.PlayerID) {
 // ability resolves out of the source face's SVar table at push time
 // (events.Apply's DelayedPush case).
 func (e *Engine) checkChapterTriggers(ev events.Event) {
-	if ev.Kind != events.MoveZone && ev.Kind != events.CounterChange {
-		return
-	}
-	if ev.Kind == events.MoveZone {
-		if ev.To != state.ZBattlefield {
-			return
-		}
-	} else if ev.Counter != "LORE" || ev.Amount <= 0 {
+	if ev.Kind != events.CounterChange || ev.Counter != "LORE" || ev.Amount <= 0 {
 		return
 	}
 	o := e.G.Obj(ev.Obj)
