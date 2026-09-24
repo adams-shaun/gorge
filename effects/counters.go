@@ -1547,7 +1547,12 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 				Text: fmt.Sprintf("RemoveCounter target %d no longer exists; skipped", t.Obj)})
 			continue
 		}
-		if o.Zone != state.ZBattlefield {
+		// An exiled card keeps its counters (CR 122.2 -- a suspended card's
+		// time counters, CR 702.62a), so removing one from it is real:
+		// Greater Gargadon's own ActivationZone$ Exile ability, Jhoira's
+		// Timebug-style "suspended card you own". Every other off-battlefield
+		// zone holds no counters worth removing and stays a loud skip.
+		if o.Zone != state.ZBattlefield && o.Zone != state.ZExile {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: fmt.Sprintf("RemoveCounter target %d is not on the battlefield (zone %s); skipped", o.ID, o.Zone)})
 			continue

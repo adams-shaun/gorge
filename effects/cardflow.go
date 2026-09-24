@@ -370,7 +370,11 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 //     hand. A hand with fewer eligible cards than NumCards$ discards what it
 //     owns and asks nothing (there is no choice to be made), and a hand
 //     whose eligible count is at or below NumCards$ likewise resolves
-//     deterministically with no question.
+//     deterministically with no question. Optional$ True (Mox Diamond's
+//     "you may discard a land card", "discard up to two cards") first poses
+//     a yes/no may-discard election (ResumeKind "discard_may", answered into
+//     Ctx.DiscardVote): "no" discards nothing, "yes" poses the pick with
+//     Min 1.
 //   - Mode$ RevealDiscardAll (Cabal Therapy): a FILTER, not a choice. Every
 //     card in the target's hand matching DiscardValid$ is discarded, no ask.
 //   - Mode$ Hand (Reforge the Soul, Windfall, Magus of the Wheel, Dark
@@ -510,6 +514,26 @@ func unlessTypeEligible(g *state.Game, c *Ctx, hand []state.ObjID, unless string
 	return out
 }
 
+// discardMayPrompt is the may-discard election's question: the card text's
+// own DiscardValidDesc$ noun when the script names one ("a land card"),
+// otherwise a plain count.
+func discardMayPrompt(sa *cards.SA, max int) string {
+	noun := "card"
+	if desc := strings.TrimSpace(sa.Params["DiscardValidDesc"]); desc != "" {
+		noun = desc
+	} else if v := strings.TrimSpace(sa.Params["DiscardValid"]); v != "" && !strings.ContainsAny(v, ".,+") && v != "Card" {
+		noun = strings.ToLower(v) + " card"
+	}
+	if max <= 1 {
+		article := "a "
+		if strings.ContainsRune("aeiouAEIOU", rune(noun[0])) {
+			article = "an "
+		}
+		return "Discard " + article + noun + "?"
+	}
+	return "Discard up to " + strconv.Itoa(max) + " " + noun + "(s)?"
+}
+
 func discardEligible(g *state.Game, c *Ctx, hand []state.ObjID, valid string) []state.ObjID {
 	out := make([]state.ObjID, 0, len(hand))
 	for _, id := range hand {
@@ -647,6 +671,17 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				}
 				continue
 			}
+			// The may-discard election (below) answered for this target:
+			// earlier targets were fully processed before it was posed, a
+			// "no" discards nothing for this target, and a "yes" proceeds to
+			// the card pick with the zero-card answer removed.
+			if voted && targetIndex < answerTarget {
+				continue
+			}
+			mayElected := voted && targetIndex == answerTarget
+			if mayElected && vote != "yes" {
+				continue
+			}
 			// First pass: narrow the target's hand to the cards DiscardValid$
 			// allows. This is the discarding player's own hand, so the choice
 			// is presented to p.
@@ -731,6 +766,35 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			askMin, askMax := discardBounds(h, c, sa, len(eligible))
+			// Optional$ True ("you MAY discard a land card", Mox Diamond's
+			// replacement; "discard up to two cards"): the zero-card answer
+			// is a real choice, and a bare Min 0 card pick expressed it only
+			// as an empty submission -- no option said "don't discard", so a
+			// player shown nothing but land faces had no visible way to
+			// decline. The decline is posed the way every other may-election
+			// here is (the Mode$ Hand Optional$ variant, the UnlessType$
+			// election): a yes/no first, whose "no" discards nothing and whose
+			// "yes" poses the pick with Min 1, so "up to N" stays 1..N.
+			// AnyNumber$ is not an election -- zero is one count among many
+			// in its own pick. A host that cannot ask keeps the prior R-9
+			// stand-in unchanged: straight on to the front-of-eligible
+			// discard below, with no extra event.
+			if askMin == 0 && !strings.EqualFold(sa.Params["AnyNumber"], "True") {
+				if !mayElected {
+					d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+						Source: c.Source, ResumeKind: "discard_may", ResumeSA: sa, ResumeTarget: targetIndex,
+						Prompt: discardMayPrompt(sa, askMax),
+						Options: []decision.Option{
+							{Index: 0, Kind: "yes", Label: "Yes — discard", Player: p},
+							{Index: 1, Kind: "no", Label: "No — don't discard", Player: p},
+						}}
+					if Ask(h, d) == AskAsked {
+						return // resolution suspended; the answer re-enters with Ctx.DiscardVote set.
+					}
+				} else {
+					askMin = 1
+				}
+			}
 			if strings.EqualFold(sa.Params["AnyNumber"], "True") {
 				// "discard any number of cards": any eligible count from zero
 				// up is a real choice the moment one eligible card exists, so
@@ -1709,10 +1773,13 @@ func digDestPhrase(dest state.Zone) string {
 // revealed this way that weren't put onto the battlefield on the bottom":
 // Genesis Storm, Hei Bai, Aurora Awakener). A no-host (AskNoHost) declines
 // deterministically (R-9); botpolicy's clamp fallback answers option 0 =
-// "yes". RevealRandomOrder$ True (54 lines) means the revealed pile would
-// return "in a random order" — randomness is forbidden here, so the
-// deterministic stand-in returns them in their existing library order
-// (recorded in AGENTS.md's Known approximations).
+// "yes". RevealRandomOrder$ True (54 corpus lines) shuffles the pile's
+// RETURN order to the bottom of the library through the engine's seeded
+// generator (h.Rand), so it replays exactly; the public reveal Note and the
+// Remembered capture stay in scan order because reveal order is a reveal-time
+// fact. A stay-in-place placement (RevealedLibraryPosition$ "0"/absent, e.g.
+// Indomitable Creativity) cannot express a random order at all, so it keeps
+// the existing order behind one loud Note.
 //
 // Riders implemented: RememberFound$ / RememberRevealed$ (the ctx-level
 // Remembered discipline digRemember uses), Tapped$ (the MoveZone-then-Tap
@@ -1730,8 +1797,9 @@ func digDestPhrase(dest state.Zone) string {
 // non-literal (X/MassX/VoteNum/Y — amount 1 then; literal 1..5 ARE honoured
 // as "keep revealing until N matches"), DigZone$, NoMoveFound$ /
 // FoundLibraryPosition$, Shuffle$ / ShuffleCondition$, Imprint*$ and
-// NoneFound*$. RevealRandomOrder$ remains a deterministic existing-order
-// stand-in because ambient randomness is forbidden.
+// NoneFound*$. RevealRandomOrder$ True is implemented for the library-bottom
+// return (h.Rand, seeded and replay-exact); a stay-in-place placement keeps
+// the existing order behind one loud Note.
 func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	spec := sa.Params["Valid"]
 	if spec == "" {
@@ -1750,6 +1818,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	revPos := strings.TrimSpace(sa.Params["RevealedLibraryPosition"])
 	optionalMove := strings.EqualFold(strings.TrimSpace(sa.Params["OptionalFoundMove"]), "True")
 	noMoveRevealed := strings.EqualFold(strings.TrimSpace(sa.Params["NoMoveRevealed"]), "True")
+	revealRandomOrder := strings.EqualFold(digUntilParamValue(sa, "RevealRandomOrder"), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
 	gainControl := strings.EqualFold(strings.TrimSpace(sa.Params["GainControl"]), "True")
 	rememberFound := strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True")
@@ -1992,6 +2061,13 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		if noMoveRevealed {
 			continue
 		}
+		// The rest is the revealed pile minus any found card that really left
+		// the pile; a library-bottom random return shuffles exactly THIS list
+		// (the order the per-card Secret MoveZone events are emitted in IS the
+		// returned bottom order — zone append lands each card at the bottom in
+		// emit order). Reveal order is NOT shuffled: the public Note and the
+		// Remembered capture above stay in scan order.
+		toReturn := make([]state.ObjID, 0, len(revealed))
 		for _, id := range revealed {
 			isFound := false
 			for _, fid := range found {
@@ -2003,6 +2079,29 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			if isFound && !foundJoinedRevealed {
 				continue
 			}
+			toReturn = append(toReturn, id)
+		}
+		if revDest == state.ZLibrary && revealRandomOrder {
+			switch {
+			case revPos == "-1":
+				// A full Fisher-Yates over the return list (the h.Rand idiom the
+				// random pick/discard arms use) draws once per position, so the
+				// seeded generator replays byte-identically. This is the engine's
+				// seeded randomness, not a library shuffle: T:Mode$ Shuffled
+				// triggers must not fire for a bottom return that merely happens
+				// to be random.
+				for i := 0; i < len(toReturn); i++ {
+					j := i + h.Rand(len(toReturn)-i)
+					toReturn[i], toReturn[j] = toReturn[j], toReturn[i]
+				}
+			case revPos == "" || revPos == "0":
+				// Stay-in-place placement keeps the existing order (no library
+				// randomisation is expressible there); name the limitation once.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+					Text: "RevealRandomOrder$ with stay-in-place placement keeps existing order"})
+			}
+		}
+		for _, id := range toReturn {
 			if revDest == state.ZLibrary {
 				// Library placement: "-1" (bottom) is a real library-to-library
 				// move (Move's zone append lands it at the bottom — the exact

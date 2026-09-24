@@ -125,6 +125,25 @@ type Engine struct {
 	compiledText  *compiledText
 	landTypeWords []string
 
+	// ManaAbilityHook, when non-nil, is called once per mana ability
+	// activation the engine resolves (resolveManaAbilityRefOriginal, the one
+	// choke point every activation path -- the priority "activate" option,
+	// the cast payment window, the unless-cost and attack/block-cost windows
+	// -- funnels through), after the activation is judged payable and before
+	// its cost and effect are applied, and once per triggered mana ability
+	// (CR 605.1b, a Static$ True TapsForMana trigger) the batch after it
+	// resolves off the stack (resolveTriggeredManaAbilities). sa is the
+	// ability's compiled identity: the printed Face().Abilities pointer
+	// (never the colour-pinned copy a Combo pick resolves through), the
+	// foreign card's pointer for a gained ability, or the printed
+	// Trigger.Effect body for a triggered one. It is a harness-only
+	// OBSERVER (cmd/cardfuzz credits mana-ability use with it, because a
+	// mana ability never uses the stack and ManaAdd carries no source): it
+	// emits nothing, mutates nothing, is
+	// not copied by Clone, and a nil hook -- every host, replay and test --
+	// leaves the event stream and every chain head byte-identical.
+	ManaAbilityHook func(p state.PlayerID, source state.ObjID, sa *cards.SA)
+
 	// ascend is checkBlessingGrants' incremental "could anything carry
 	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
 	ascend ascendScan
