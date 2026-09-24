@@ -3177,13 +3177,20 @@ func (e *Engine) exAsk() bool {
 			}
 		}
 		n := int(part.N)
-		if n <= 0 || n > len(candidates) {
+		if part.Announced {
+			n = int(pc.x)
+		}
+		if n < 0 || n > len(candidates) || (!part.Announced && n == 0) {
 			e.abortCast(pc, "exile cost no longer payable; cast/activation aborted", true)
 			return true
 		}
+		if n == 0 {
+			pc.exilePart++
+			continue
+		}
 		// A singleton self-reference (encore's ExileFromGrave<1/CARDNAME>, the
 		// sole candidate being the resolving card itself) has no player choice.
-		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
+		if !part.Announced && part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card &&
 			strings.EqualFold(part.Spec, "CARDNAME") {
 			pc.exiles = append(pc.exiles, pc.card)
 			pc.exilePart++
@@ -3820,9 +3827,8 @@ func (e *Engine) xAsk() bool {
 	// A PayEnergy<X> part announces the same X the cast pays with (CR
 	// 107.3i's ability X), so its presence triggers this ask exactly like a
 	// printed {X} mana symbol does. A Sac<X/Spec> part announces the count of
-	// permanents to sacrifice the same way; the announced PayLife<X> and
-	// SubCounter<X/Kind> parts announce the same X too (the life and the
-	// counter removal settle at exactly that value).
+	// permanents to sacrifice the same way; announced ExileFromGrave<X/Spec>,
+	// PayLife<X> and SubCounter<X/Kind> parts also announce this shared X.
 	energyX := false
 	for _, part := range pc.cost.Energy {
 		if part.Spec == "X" {
@@ -3835,6 +3841,12 @@ func (e *Engine) xAsk() bool {
 			sacX = true
 		}
 	}
+	exileX := false
+	for _, part := range pc.cost.Exile {
+		if part.Announced {
+			exileX = true
+		}
+	}
 	subCounterX := false
 	for _, part := range pc.cost.SubCounter {
 		if part.Announced {
@@ -3842,7 +3854,7 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	lifeXCount := len(pc.cost.LifeX)
-	if pc.cost.X <= 0 && !energyX && !sacX && !subCounterX && lifeXCount == 0 {
+	if pc.cost.X <= 0 && !energyX && !sacX && !exileX && !subCounterX && lifeXCount == 0 {
 		return false
 	}
 	min := int32(0)
@@ -3888,6 +3900,18 @@ func (e *Engine) xAsk() bool {
 			}
 		}
 	}
+	// Without a printed mana X or energy X, the mana-pool ceiling is not
+	// relevant. The first announced-count part supplies the ceiling; every
+	// subsequent part (including tapXType) min-clamps that same X.
+	announcedOnly := pc.cost.X <= 0 && !energyX
+	boundSet := false
+	applyCap := func(cap int32) {
+		if announcedOnly && !boundSet {
+			bound, boundSet = cap, true
+		} else if cap < bound {
+			bound = cap
+		}
+	}
 	// A Sac<X/Spec> part's bound is the number of matching permanents the
 	// payer could sacrifice -- announcing a count beyond it could never be
 	// settled (CR 601.2b's announcement must be one the payment can settle).
@@ -3896,11 +3920,7 @@ func (e *Engine) xAsk() bool {
 	for _, part := range pc.cost.Sac {
 		if part.Announced {
 			avail := int32(len(e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility())))
-			if pc.cost.X == 0 && !energyX && bound > avail {
-				bound = avail
-			} else if avail < bound {
-				bound = avail
-			}
+			applyCap(avail)
 		}
 	}
 	// An X-form tapXType part settles exactly the announced X the same way a
@@ -3923,11 +3943,7 @@ func (e *Engine) xAsk() bool {
 			}
 			avail++
 		}
-		if pc.cost.X == 0 && !energyX && bound > avail {
-			bound = avail
-		} else if avail < bound {
-			bound = avail
-		}
+		applyCap(avail)
 	}
 	// An announced SubCounter<X/Kind> part's bound is the number of counters
 	// of that kind the SOURCE actually has (Chandra, Awakened Inferno's
@@ -3943,14 +3959,14 @@ func (e *Engine) xAsk() bool {
 	// mana X -- and when another announced X also exists each cap min-clamps
 	// the shared X (CR 601.2b's announcement must be one the payment can
 	// settle).
-	announcedOnly := pc.cost.X <= 0 && !energyX && !sacX
-	boundSet := false
-	applyCap := func(cap int32) {
-		if announcedOnly && !boundSet {
-			bound, boundSet = cap, true
-		} else if cap < bound {
-			bound = cap
+	for _, part := range pc.cost.Exile {
+		if !part.Announced {
+			continue
 		}
+		// Use the same source exclusion and zone-order filter as exAsk: a
+		// spell cast from this graveyard cannot exile itself as its cost.
+		candidates := e.costCandidates(pc.player, pc.card, state.ZGraveyard, part.Spec, !pc.isAbility(), false)
+		applyCap(int32(len(candidates)))
 	}
 	for _, part := range pc.cost.SubCounter {
 		if !part.Announced {
@@ -5582,8 +5598,9 @@ func costAnnouncesSacX(c Cost) bool {
 // costAnnouncesPaidX reports whether the cost carries ANY announced-count
 // part whose count the cast announces as X: the Sac<X/Spec> shape
 // (costAnnouncesSacX), the announced SubCounter<X/Kind> removal and the
-// announced PayLife<X> payment. The offer-time costModifiers snapshot was
-// bound to X=0, so a static reading the paid X must be re-priced once the
+// announced PayLife<X> or ExileFromGrave<X/Spec> payment. The offer-time
+// costModifiers snapshot was bound to X=0, so a static reading the paid X
+// must be re-priced once the
 // announcement is known -- the same reason Dargo's Sac<X> needed it.
 func costAnnouncesPaidX(c Cost) bool {
 	if costAnnouncesSacX(c) {
@@ -5593,6 +5610,11 @@ func costAnnouncesPaidX(c Cost) bool {
 		return true
 	}
 	for _, part := range c.SubCounter {
+		if part.Announced {
+			return true
+		}
+	}
+	for _, part := range c.Exile {
 		if part.Announced {
 			return true
 		}
