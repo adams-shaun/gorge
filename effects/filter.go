@@ -62,6 +62,20 @@ var predicates = map[string]predFn{
 	"tokenCreated": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.IsToken
 	},
+	// firstTurnControlled is Forge's Card.isFirstTurnControlled: the
+	// permanent came under its controller's control since that player's most
+	// recent turn began. That is exactly the object's summoning-sickness
+	// flag, which events.Apply raises for EVERY permanent (not only
+	// creatures) on a battlefield entry and on a control change and clears
+	// at its controller's TurnChange. Rocket Launcher's `IsPresent$
+	// Card.Self+!firstTurnControlled` ("activate only if you've controlled it
+	// continuously since the beginning of your most recent turn") and the
+	// Master of Arms / Norritt / Seasinger families read it; before it was
+	// recognised the spec failed closed and Rocket Launcher's only ability
+	// was never offered (cardfuzz coverage audit).
+	"firstTurnControlled": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Zone == state.ZBattlefield && o.SummonSick
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
@@ -206,16 +220,19 @@ var predicates = map[string]predFn{
 	},
 	// wasCastFromGraveyard is the CastFlags provenance of a GRAVEYARD-ORIGIN
 	// cast (CR 601.2b): any of FlagFlashback, FlagHarmonize or FlagEscaped.
-	// The same bit test the Count$wasCastFromGraveyard branch head shares
-	// (effects/count.go) and its compiled twin mirrors
-	// (effects/compiled_predicate.go's predicateTermWasCastFromGraveyard).
-	// Ash Zealot's "whenever a player casts a spell from a graveyard"
-	// ValidCard$ reads it at spellCastMatches time — the deferred cast
-	// trigger fires after payCast's CastInfo, so the bit is already stamped
-	// — as do River Kelpie's draws and Laquatus's Disdain's counter. A card
-	// never so cast never matches.
+	// The same object-aware read the Count$wasCastFromGraveyard branch head
+	// shares (effects/count.go) and its compiled twin mirrors
+	// (effects/compiled_predicate.go's predicateTermWasCastFromGraveyard);
+	// state.ObjectWasCastFromGraveyard is the one home, so the three cannot
+	// disagree. Ash Zealot's "whenever a player casts a spell from a
+	// graveyard" ValidCard$ reads it at spellCastMatches time — the deferred
+	// cast trigger fires after payCast's CastInfo, so the bit is already
+	// stamped — as do River Kelpie's draws and Laquatus's Disdain's counter.
+	// A card never so cast never matches, and neither does a stack copy: a
+	// copy was put on the stack, never cast (CR 707.10), even though
+	// StackCopy leaves the graveyard-origin bits inherited.
 	"wasCastFromGraveyard": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return state.WasCastFromGraveyard(o.CastFlags)
+		return state.ObjectWasCastFromGraveyard(o)
 	},
 	// notExertedThisTurn is CR 702.100a's offer gate (task exert1): the
 	// object has NOT been exerted this turn. The event-backed read is
@@ -1320,6 +1337,17 @@ const (
 	// from chooseBasicLandTypes so this predicate and the Basic Land choose
 	// cannot drift.
 	wordHasBasicLandType
+	// wordDealtDamageByThisGame is Forge's wasDealtDamageByThisGame: the
+	// candidate object was dealt damage this game by the SOURCE bound in
+	// SpecContext (the bare, source-anchored spelling).
+	// wordDealtDamageThisGameBy is the argument-taking sibling
+	// wasDealtDamageThisGameBy <ref>: the candidate was dealt damage this
+	// game by the objects <ref> resolves to (the corpus only ever says
+	// Self). Both read state.Object.DamageTakenByGame, the game-long record
+	// events.Apply's DamageProvenance case appends (the object-side twin of
+	// Player.DamageTakenByGame the player qualifier reads).
+	wordDealtDamageByThisGame
+	wordDealtDamageThisGameBy
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1390,6 +1418,13 @@ func wordPredicate(p string) (wordKind, string) {
 			return wordKickedIndex, strings.TrimSpace(rest)
 		}
 	}
+	// Forge's argument-taking wasDealtDamageThisGameBy <ref> (the_fallen's
+	// ValidCards$ Planeswalker.wasDealtDamageByThisGame is the bare sibling
+	// registered in the switch below). The trimmed argument is the key, the
+	// same shape the `kicked <n>` index form above uses.
+	if rest, ok := strings.CutPrefix(p, "wasDealtDamageThisGameBy "); ok {
+		return wordDealtDamageThisGameBy, strings.TrimSpace(rest)
+	}
 	switch p {
 	case "Colorless":
 		return wordColorless, ""
@@ -1451,6 +1486,8 @@ func wordPredicate(p string) (wordKind, string) {
 	// matcher and UnknownPredicates agree that the word is implemented.
 	case "wasDealtDamageThisTurn":
 		return wordDealtDamageThisTurn, ""
+	case "wasDealtDamageByThisGame":
+		return wordDealtDamageByThisGame, ""
 	case "IsImprinted":
 		return wordImprinted, ""
 	case "DefenderCtrl":
@@ -1825,6 +1862,28 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// false. The by-source refinement (wasDealtDamageThisTurnBySource)
 		// is a separate token and stays unknown.
 		return o.WasDealtDamageThisTurn
+	case wordDealtDamageByThisGame:
+		// Forge's wasDealtDamageByThisGame (bare, source-anchored): the
+		// candidate object's game-long damage record names the bound
+		// source. Source==0 is the unbound case and fails closed
+		// (contextPredicateBound refuses to invert it beneath '!').
+		return damageGameRecordHas(o.DamageTakenByGame, source)
+	case wordDealtDamageThisGameBy:
+		// Forge's wasDealtDamageThisGameBy <ref> (the_fallen's walker half
+		// Planeswalker.wasDealtDamageByThisGame-by-Self is the bare sibling
+		// above): the candidate was dealt damage this game by any object
+		// <ref> resolves to. The ref resolves through the SAME shared
+		// referent switch the sharesTypeWith family uses; an unresolvable
+		// ref yields no referent and fails closed, never widened.
+		for _, t := range sharesTypeReferents(g, sc, key) {
+			if t.IsPlayer {
+				continue
+			}
+			if damageGameRecordHas(o.DamageTakenByGame, t.Obj) {
+				return true
+			}
+		}
+		return false
 	case wordImprinted:
 		// Forge's IsImprinted: the candidate is in the SOURCE object's
 		// persistent imprint association -- state.Object.Imprinted (the
@@ -2014,6 +2073,17 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 		return sc.DefendingPlayer.IsPlayer
 	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
+	case wordDealtDamageByThisGame:
+		// The bare word names the bound source; with no source (a direct
+		// MatchesPlayerSpec/MatchesSpecCtx caller) the body would test the
+		// record against 0 and, beneath '!', invert that absence into a
+		// match. Refuse it.
+		return sc.Source != 0
+	case wordDealtDamageThisGameBy:
+		// The argument form binds through <ref>; an unresolvable ref names no
+		// source at all, so both the positive and the '!'-negated spelling
+		// must fail closed rather than invert an empty referent.
+		return len(sharesTypeReferents(g, sc, key)) > 0
 	case wordAttachedTo:
 		if ref, ok := attachedToReferent(key); ok {
 			_, bound := attachedToReferentObjects(g, sc, ref)
@@ -2084,6 +2154,9 @@ func positiveRecognised(p string) bool {
 		return true
 	}
 	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+		return true
+	}
+	if hasAbilityToken(p) {
 		return true
 	}
 	if positiveRecognisedWord(p) {
@@ -2581,6 +2654,9 @@ func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if hasAbilityToken(p) {
+		return objectHasAbility(o, strings.TrimPrefix(p, "hasAbility ")), true
+	}
 	if p == "token$DifferentCardNames" {
 		// Forge's token$DifferentCardNames set-level qualifier (Sandsteppe
 		// War Riders, Gimbal Gremlin Prodigy, Audience with Trostani, Neriv
@@ -3709,6 +3785,17 @@ type ObjectName struct {
 	Name string
 }
 
+// ResolutionStateBound reports whether this context is bound to resolution
+// state, so a filter verdict over it cannot be reproduced from a printed face
+// alone and must not be shared with another resolution. (*Ctx).SpecContext
+// installs the numeric-RHS Resolve closure for a paid X, an SVar table or a
+// published roll; Resolving marks the rest (Remembered, ResolutionTargets,
+// Chosen, the layer tables). A context that reports false answers exactly
+// what the resolver-free walk would, so a memo may serve it.
+func (sc *SpecContext) ResolutionStateBound() bool {
+	return sc != nil && (sc.Resolve != nil || sc.Resolving)
+}
+
 // ObjectTypes binds one object to its layer-4 derived type list (CR
 // 613.1d/613.1c). The list is the SAME shape rules' layer walk builds and
 // Derived carries -- printed types (or the CR 708.5 face-down set) plus every
@@ -4151,6 +4238,14 @@ func matchesPlayerCompoundCtx(g *state.Game, alt string, p, you state.PlayerID, 
 // source fails the bare property clauses closed, exactly as the qualified
 // `Player.IsRemembered` spelling already does.
 func matchesPlayerClauseCtx(g *state.Game, clause string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
+	if ref, is := strings.CutPrefix(clause, "wasDealtDamageThisGameBy "); is {
+		// Forge's bare game-long damage-by-source clause (The Fallen's
+		// `Player.Opponent+wasDealtDamageThisGameBy Self`): the same
+		// reading as the base.qualifier form above, reached through the
+		// compound grammar. Both spellings funnel into this one body via
+		// the shared damageGameRecordHas reader.
+		return playerDamageByRefThisGame(g, p, you, pc, ref)
+	}
 	if !isBarePlayerProperty(clause) {
 		return matchesPlayerSingleSpec(g, clause, p, you, pc)
 	}
@@ -4180,6 +4275,13 @@ func matchesPlayerClauseCtx(g *state.Game, clause string, p, you state.PlayerID,
 // property spellings a compound uses (`IsRemembered`, `Chosen`,
 // `ChosenPlayer`), as opposed to a base.qualifier form.
 func isBarePlayerProperty(clause string) bool {
+	if _, is := strings.CutPrefix(clause, "wasDealtDamageThisGameBy "); is {
+		// Forge's bare wasDealtDamageThisGameBy <ref>: a compound clause with
+		// no base of its own (The Fallen). Its base-position companion form
+		// is handled by matchesPlayerSingleSpec; both are the shared player
+		// grammar, so the census gate's knownBase consults this same list.
+		return true
+	}
 	switch clause {
 	case "IsRemembered", "Chosen", "ChosenPlayer", "IsCorrupted":
 		return true
@@ -4192,6 +4294,37 @@ func isBarePlayerProperty(clause string) bool {
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	for alt := range strings.SplitSeq(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
+		if inner, negated := strings.CutPrefix(qualifier, "!"); qualified && negated {
+			// A negated qualifier after the dot (Crown of Doom's
+			// `Player.!CardOwner`, `Player.!IsRemembered`,
+			// `Player.!EnchantedBy`): the base must match and the positive
+			// qualifier must NOT. Only qualifiers this evaluator reads are
+			// negated -- an unread one would otherwise invert its fail-closed
+			// false into admitting every seat -- and a source-anchored one
+			// fails closed with no source bound.
+			switch inner {
+			case "CardOwner", "IsRemembered", "EnchantedBy":
+			default:
+				continue
+			}
+			if inner != "EnchantedBy" && g.Obj(pc.Source) == nil {
+				continue
+			}
+			if matchesPlayerSingleSpec(g, base, p, you, pc) && !matchesPlayerSingleSpec(g, base+"."+inner, p, you, pc) {
+				return true
+			}
+			continue
+		}
+		if (base == "Player" || base == "Any") && qualified && qualifier == "CardOwner" {
+			// Player.CardOwner (Forge PlayerProperty): the OWNER of the
+			// filter's source object (Crown of Doom's "target player other
+			// than CARDNAME's owner" negates it). No source bound fails
+			// closed.
+			if o := g.Obj(pc.Source); o != nil && o.Owner == p {
+				return true
+			}
+			continue
+		}
 		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
 			o := g.Obj(pc.Source)
 			if o == nil {
@@ -4250,6 +4383,19 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 		}
 		if !qualified {
 			return true
+		}
+		if ref, is := strings.CutPrefix(qualifier, "wasDealtDamageThisGameBy "); is {
+			// Forge's Player.wasDealtDamageThisGameBy <ref> qualifier
+			// (diseased_vermin's ValidTgts$ Opponent.wasDealtDamageThisGameBy
+			// Self): the seat qualifies when <ref>'s objects have dealt it
+			// damage this game. This reads the SAME
+			// state.Player.DamageTakenByGame record, through the SAME shared
+			// damageGameRecordHas helper, as the object-side word -- never a
+			// parallel re-implementation.
+			if playerDamageByRefThisGame(g, p, you, pc, ref) {
+				return true
+			}
+			continue
 		}
 		switch qualifier {
 		case "IsCorrupted":
@@ -4362,6 +4508,55 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+// damageGameRecordHas reports whether a game-long damage-by-source record
+// (state.Object.DamageTakenByGame or state.Player.DamageTakenByGame) names
+// src as a source that has dealt this recipient damage this game. It is the
+// ONE shared reader behind both spellings: the object filter's
+// wasDealtDamageThisGameBy/wasDealtDamageByThisGame words and the player
+// filter's wasDealtDamageThisGameBy qualifier, so the object and player
+// readings of Forge's game-long record can never drift. src==0 never matches
+// (no source was bound; callers also refuse the unbound case through
+// contextPredicateBound). Walked by index, never a map range.
+func damageGameRecordHas(ids []state.ObjID, src state.ObjID) bool {
+	if src == 0 {
+		return false
+	}
+	for _, id := range ids {
+		if id == src {
+			return true
+		}
+	}
+	return false
+}
+
+// playerDamageByRefThisGame is the shared body behind BOTH player spellings
+// of Forge's game-long damage-by-source qualifier -- the base.qualifier form
+// (diseased_vermin's Opponent.wasDealtDamageThisGameBy Self, reached through
+// matchesPlayerSingleSpec) and the bare compound clause (The Fallen's
+// Player.Opponent+wasDealtDamageThisGameBy Self, reached through
+// matchesPlayerClauseCtx). It resolves <ref> through the same shared
+// referent switch the object word uses and tests the seat's
+// state.Player.DamageTakenByGame record with the shared
+// damageGameRecordHas reader, so the object and player readings of one
+// state record cannot drift. An out-of-range seat or an unresolvable ref
+// matches nobody (fail closed).
+func playerDamageByRefThisGame(g *state.Game, p, you state.PlayerID, pc PlayerSpecCtx, ref string) bool {
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	sc := SpecContext{You: you, Source: pc.Source,
+		TriggerContext: TriggerContext{DefendingPlayer: pc.DefendingPlayer}}
+	for _, t := range sharesTypeReferents(g, sc, strings.TrimSpace(ref)) {
+		if t.IsPlayer {
+			continue
+		}
+		if damageGameRecordHas(g.Players[p].DamageTakenByGame, t.Obj) {
+			return true
 		}
 	}
 	return false
@@ -4846,4 +5041,48 @@ func KnownPredicates() []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// hasAbilityToken recognises Forge's `hasAbility <SA spec>` card property in
+// the forms this build reads: `hasAbility Activated` (the object has an
+// activated ability), `hasAbility Activated.hasTapCost` (one whose cost
+// includes {T} -- Magewright's Stone's target) and `hasAbility
+// Activated.Exhaust` (an exhaust ability). The matcher and the
+// UnknownPredicates census share it, so an unread sub-spec
+// (Activated.otherAbility) stays unknown to both and fails closed.
+func hasAbilityToken(p string) bool {
+	switch strings.TrimPrefix(p, "hasAbility ") {
+	case "Activated", "Activated.hasTapCost", "Activated.Exhaust":
+		return strings.HasPrefix(p, "hasAbility ")
+	}
+	return false
+}
+
+// objectHasAbility answers a recognised hasAbility sub-spec over the
+// object's printed face's activated (AB) abilities.
+func objectHasAbility(o *state.Object, sub string) bool {
+	f := o.Face()
+	if f == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+		return false
+	}
+	for _, a := range f.Abilities {
+		if a == nil || a.Kind != "AB" {
+			continue
+		}
+		switch sub {
+		case "Activated":
+			return true
+		case "Activated.hasTapCost":
+			for _, tok := range strings.Fields(a.Params["Cost"]) {
+				if tok == "T" {
+					return true
+				}
+			}
+		case "Activated.Exhaust":
+			if strings.EqualFold(strings.TrimSpace(a.Params["Exhaust"]), "True") {
+				return true
+			}
+		}
+	}
+	return false
 }

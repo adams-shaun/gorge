@@ -786,8 +786,13 @@ func TestMoxDiamondReanimatedFinishesTheReanimatingSpell(t *testing.T) {
 	life := e.G.Players[0].Life
 	e.resolveTop()
 	d := e.Pending()
+	if d == nil || d.ResumeKind != "discard_may" {
+		t.Fatalf("Mox Diamond's replacement did not pose the may-discard election: %+v", d)
+	}
+	submitChoices(t, e, 0) // yes
+	d = e.Pending()
 	if d == nil || d.ResumeKind != "discard" {
-		t.Fatalf("Mox Diamond's replacement did not ask: %+v", d)
+		t.Fatalf("Mox Diamond's replacement did not ask for the land: %+v", d)
 	}
 	land := -1
 	for _, o := range d.Options {

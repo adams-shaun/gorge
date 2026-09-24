@@ -94,8 +94,17 @@ func TestReplacementMidResolutionAskResumes(t *testing.T) {
 		t.Fatalf("Mox Diamond's ETB replacement never posed its discard ask " +
 			"(no suspended-resolution KModes decision reached)")
 	}
-	if d.ResumeKind != "discard" {
-		t.Fatalf("suspended ask ResumeKind = %q, want \"discard\"", d.ResumeKind)
+	// Optional$ True: the may-discard election comes first; answer yes and
+	// the land pick is the next suspended ask.
+	if d.ResumeKind != "discard_may" {
+		t.Fatalf("suspended ask ResumeKind = %q, want \"discard_may\"", d.ResumeKind)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatalf("answer the may-discard election: %v", err)
+	}
+	d = e.Pending()
+	if d == nil || d.ResumeKind != "discard" {
+		t.Fatalf("after electing to discard got %+v, want the land pick", d)
 	}
 	if !e.Suspended() {
 		t.Fatalf("replacement posed an ask but e.Suspended() is false -- the resume " +

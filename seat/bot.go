@@ -32,6 +32,7 @@ type Bot struct {
 	lethalPressure bool
 	combinedLethal bool
 	blocksAssign   bool
+	explore        bool
 	// cast/castSet are the cast-profile policy's weights: when castSet is
 	// true every decision's Board gets brd.Cast = cast before the policy
 	// runs, so the cast scorer (cardWorth/castScore/chooseCast) dots its
@@ -87,6 +88,14 @@ func NewBlocksBot(seed uint64) *Bot {
 	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true, blocksAssign: true}
 }
 
+// NewExploreBot returns the opt-in coverage-exploration policy
+// (botpolicy.ExploreDecide). It is constructed only by cmd/cardfuzz -- it is
+// deliberately absent from the hosted policy vocabulary
+// (host.NormalizeBotPolicy), so it can never reach a live table.
+func NewExploreBot(seed uint64) *Bot {
+	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true, explore: true}
+}
+
 // NewCastProfileBot returns the cast-profile policy playing the named
 // embedded profile (today: the default one). The only error is an embedded
 // profile that fails its own strict loader -- never reachable for a valid
@@ -113,6 +122,9 @@ func NewCastProfileBotWithWeights(seed uint64, w botpolicy.CastWeights) *Bot {
 func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent {
 	if b.castSet {
 		brd.Cast = b.cast
+	}
+	if b.explore {
+		return botpolicy.ExploreDecide(brd, d, b.r)
 	}
 	if b.combinedLethal {
 		return botpolicy.CombinedLethalDecide(brd, d, b.r)
@@ -187,13 +199,15 @@ func boardFromView(v view.View) botpolicy.Board {
 	b.Stack = make([]botpolicy.StackEntry, 0, len(v.Stack))
 	for _, sv := range v.Stack {
 		var cmc int32
+		var manaCost string
 		// A trigger can include its source card for display, but the stack
 		// ability itself has no face or mana cost. Only spells have a CMC
 		// in the game-shaped adapter (BoardFromGameInto).
 		if sv.Kind == "spell" && sv.Card != nil {
 			cmc = botpolicy.CmcOf(sv.Card.ManaCost)
+			manaCost = sv.Card.ManaCost
 		}
-		b.Stack = append(b.Stack, botpolicy.StackEntry{ID: sv.ID, Controller: sv.Controller, IsSpell: sv.Kind == "spell", CMC: cmc})
+		b.Stack = append(b.Stack, botpolicy.StackEntry{ID: sv.ID, Controller: sv.Controller, IsSpell: sv.Kind == "spell", CMC: cmc, ManaCost: manaCost})
 	}
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
@@ -315,6 +329,7 @@ func boardFromView(v view.View) botpolicy.Board {
 				Castable:      castable(cv),
 				OnBattlefield: battlefield,
 				Tapped:        cv.Tapped,
+				Sick:          cv.SummonSick,
 				Produces:      produces,
 				InstantSpeed:  instantSpeedView(cv),
 				Counter:       cv.SpellAPI == "Counter",

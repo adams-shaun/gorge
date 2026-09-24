@@ -135,6 +135,14 @@ func (e *Engine) priorityOptionStale(p state.PlayerID, opt decision.Option) stri
 		if o == nil {
 			return "the card no longer exists"
 		}
+	case "turn_face_up":
+		// rules/morph_turnup.go's morphFaceUpCost, the same predicate the
+		// offer and the handler run: the permanent must still be a face-down
+		// battlefield permanent the morph family put down (the family flag),
+		// with a printed keyword parameter to price the action.
+		if _, ok := morphFaceUpCost(o); !ok {
+			return "the permanent is no longer a face-down morph-family permanent"
+		}
 	}
 	return ""
 }

@@ -125,9 +125,32 @@ type Engine struct {
 	compiledText  *compiledText
 	landTypeWords []string
 
+	// ManaAbilityHook, when non-nil, is called once per mana ability
+	// activation the engine resolves (resolveManaAbilityRefOriginal, the one
+	// choke point every activation path -- the priority "activate" option,
+	// the cast payment window, the unless-cost and attack/block-cost windows
+	// -- funnels through), after the activation is judged payable and before
+	// its cost and effect are applied, and once per triggered mana ability
+	// (CR 605.1b, a Static$ True TapsForMana trigger) the batch after it
+	// resolves off the stack (resolveTriggeredManaAbilities). sa is the
+	// ability's compiled identity: the printed Face().Abilities pointer
+	// (never the colour-pinned copy a Combo pick resolves through), the
+	// foreign card's pointer for a gained ability, or the printed
+	// Trigger.Effect body for a triggered one. It is a harness-only
+	// OBSERVER (cmd/cardfuzz credits mana-ability use with it, because a
+	// mana ability never uses the stack and ManaAdd carries no source): it
+	// emits nothing, mutates nothing, is
+	// not copied by Clone, and a nil hook -- every host, replay and test --
+	// leaves the event stream and every chain head byte-identical.
+	ManaAbilityHook func(p state.PlayerID, source state.ObjID, sa *cards.SA)
+
 	// ascend is checkBlessingGrants' incremental "could anything carry
 	// Ascend" arena scan (rules/ascend.go); a pure cache, zero = rescan.
 	ascend ascendScan
+
+	// storied is checkEnduringStoryGrants' incremental "could anything carry
+	// Storied" arena scan (rules/storied.go); a pure cache, zero = rescan.
+	storied storiedScan
 
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
@@ -819,6 +842,18 @@ type Engine struct {
 	// asks (Breathstealer's Crypt's unless-pay discard) and the resume must
 	// restore Ctx.ReplacedPlayer. Only a Draw replacement sets it.
 	replReplacedPlayer state.Target
+	// replRedirect is the destination-changing ("Replaced") move replacement
+	// whose ReplaceWith$ body is resolving, with every replacement already
+	// applied to that event (CR 614.5). A body move of the same object to a
+	// DIFFERENT zone is the modified event of CR 616.1f and gets one more
+	// replacement pass that skips those (Engine.emit). Immutable once set;
+	// threaded across a suspension by resumePoint.redirect; nil at every
+	// intent boundary outside a suspended body.
+	replRedirect *replRedirect
+	// replExclude is the applied set replRedirect carried into that one
+	// recheck pass: applyReplacementsDispatch drops those matches and
+	// applyReplacement extends it for a nested redirect. Nil otherwise.
+	replExclude []string
 	// triggerFireCount and the damage-batch fields below are trigger_match.go's
 	// own bookkeeping (the cascade bound and the DamageDealtOnce/DamageDoneOnce
 	// once-per-damage-batch gate); see there.
@@ -831,6 +866,19 @@ type Engine struct {
 	// again. The stamp is (Turn, CombatsThisTurn), the event-folded per-turn
 	// combat count, so it uniquely names a combat and needs no reset hook.
 	unblockedOnceFired map[triggerKey]combatFires
+	// unblockedRoundChecked stamps the (Turn, CombatsThisTurn) combat whose
+	// declare-blockers round-complete trigger walk (checkAttackerUnblocked-
+	// Triggers / checkAttackerUnblockedOnceTriggers, rules/turn.go step) has
+	// already run. step() re-enters the StepDeclareBlockers arm every time
+	// nothing is pending -- after an aborted cast (CR 733.1 reversal) no
+	// handler re-grants priority, so the Advance loop calls step() again --
+	// and "attacks and isn't blocked" is ONE event per combat (CR 509.2): a
+	// second walk queued Senu, Keen-Eyed Protector's trigger again on every
+	// aborted cast attempt, and the TriggerPush it drained cleared the F05-2
+	// held-out cast suppression, so the no-progress abort re-offered forever
+	// (cardfuzz batch10). The zero value names no combat (CombatsThisTurn is
+	// at least 1 inside combat), so it needs no reset hook.
+	unblockedRoundChecked combatFires
 	// attackersDeclaredFired latches a BATCH trig:AttackersDeclared trigger
 	// (Mode$ AttackersDeclared with no per-defender AttackedTarget$) to ONE
 	// fire per declare step (rules.trigger_match.go's checkFaceTriggers;
@@ -2301,6 +2349,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// ReplaceEffect body changed the amount): the returned event is what
 		// gets logged, not the emit caller's copy.
 		ev = replaced
+	} else if e.redirectRecheck(ev) {
+		replaced, handled := e.applyRedirectReplacements(ev)
+		if handled {
+			return replaced
+		}
+		ev = replaced
 	}
 	// CountersRemain is a departure property of the battlefield object. Tag the
 	// final, replacement-adjusted MoveZone so events.Apply and replay preserve
@@ -2341,6 +2395,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				lkiPower, lkiToughness = e.Power(o.ID), e.Toughness(o.ID)
 				lkiPTValid = true
 			}
+		}
+	case events.DoorUnlock:
+		// CR 709.5: Mode$ FullyUnlock (rules/trigmatch_room.go) must tell a
+		// real locked->unlocked transition from a repeated DoorUnlock on an
+		// already-unlocked room (the latter no game action produces, but a
+		// direct emit can). Apply flips Unlocked before this event's triggers
+		// are matched, so the pre-fold flag has to ride the LKI snapshot.
+		if o := e.G.Obj(ev.Obj); o != nil {
+			cp := o.CloneDeep()
+			lki = &cp
 		}
 	case events.CounterChange:
 		// Vanishing's last-counter trigger must distinguish a real removal
@@ -2407,7 +2471,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			wasTapped = o.Tapped
 		}
 	}
-	stored := e.foldEntryMove(ev)
+	stored, _ := e.foldEntryMove(ev)
 	e.expireClonesOnEvent(stored, wasTapped)
 	// CR 310.10: every Battle whose recorded protector has just left the game
 	// gets a fresh living opponent as its protector. PlayerLost is the one
@@ -2468,6 +2532,36 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if stored.Kind == events.Damage && stored.Amount > 0 && stored.Counter == "wither+creature" {
 		e.convertWitherDamage(stored)
+	}
+	// Game-long damage-by-source provenance (the_fallen, diseased_vermin):
+	// every landed Damage event appends a DamageProvenance fact so the
+	// wasDealtDamageThisGameBy player qualifier and the
+	// wasDealtDamageByThisGame object predicate can answer Forge's game-long
+	// record. This lives HERE, on the one post-fold tail, because every
+	// emitter (effects/damage.go's riders, rules/combat.go's combat batch,
+	// rules/cast.go, rules/resolution.go and the cleanup negatives) funnels
+	// through emit -- no emitter file has to change. It reads `stored`, the
+	// APPLIED event, so post-protection/post-replacement/post-redirect it
+	// names the real recipient and the amount that actually landed; a
+	// prevented hit is a Note and never reaches here, and a cleanup negative
+	// is excluded by the Amount > 0 gate (exactly like the infect/wither
+	// conversions above). The source is the same published override / e.damaging
+	// reader emit's own protection guard uses; a zero source (no recorded
+	// provenance) emits nothing rather than minting a false (0, recipient)
+	// fact. The recipient is stored.Obj when nonzero (an object) else
+	// stored.Player (a seat), encoded PlayerRef-style so seat 0 is
+	// distinguishable from "no recipient".
+	if stored.Kind == events.Damage && stored.Amount > 0 {
+		if src := e.inFlightDamageSource(); src != 0 {
+			var recipient state.ObjID
+			if stored.Obj != 0 {
+				recipient = stored.Obj
+			} else {
+				recipient = state.PlayerRef(stored.Player)
+			}
+			e.emit(events.Event{Kind: events.DamageProvenance, Obj: src,
+				IDs: []state.ObjID{recipient}, Amount: stored.Amount})
+		}
 	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
@@ -2708,6 +2802,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
 		ev.Kind == events.ControlChange {
 		e.checkBlessingGrants()
+		e.checkEnduringStoryGrants()
 	}
 	// E2: any genuinely state-changing event proves the game is making
 	// progress, so it clears the held-out cast suppression (suppressedCast,

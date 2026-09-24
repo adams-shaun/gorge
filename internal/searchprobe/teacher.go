@@ -3,6 +3,7 @@ package searchprobe
 import (
 	"fmt"
 	"math"
+	"sort"
 	"sync"
 	"sync/atomic"
 
@@ -26,8 +27,21 @@ type TeacherOptions struct {
 	// candidate (common random numbers across candidates).
 	Seed uint64
 	// HorizonTurns stops a rollout this many engine turns after the root and
-	// scores the leaf with LeafValue. Zero rolls every rollout to game end.
+	// scores the leaf with Leaf (LeafValue when Leaf is nil). Zero rolls every
+	// rollout to game end.
 	HorizonTurns int32
+	// Leaf scores a NON-TERMINAL leaf -- a rollout stopped by HorizonTurns or
+	// MaxSubmits -- from the deciding seat's redacted projection of it, as a
+	// win probability for actor. Nil means LeafValue (the frozen material
+	// heuristic), and a nil Leaf reproduces the pre-Leaf results bit for bit.
+	// A terminal leaf never reaches it: game over stays 1 / 0 / 0.5.
+	//
+	// Its result is clamped into [0,1]; NaN reads as 0.5, the no-information
+	// value. With Parallelism > 1 it is called from several goroutines at once,
+	// so it must be safe for concurrent use (policynet.Model.Value is), and it
+	// must be a pure function of its arguments or the result stops being
+	// independent of Parallelism.
+	Leaf func(v view.View, actor state.PlayerID) float64
 	// MaxSubmits caps each rollout; a capped rollout is scored as a leaf.
 	MaxSubmits int
 	// Margin is how much a candidate's mean value must exceed candidate 0's
@@ -68,6 +82,24 @@ func LeafValue(v view.View, actor state.PlayerID) float64 {
 		}
 	}
 	return 1 / (1 + math.Exp(-LeafScore(v, actor)/20))
+}
+
+// leafValue scores a rollout's final view: terminal states and a nil leaf go
+// to LeafValue, anything else to leaf, clamped into [0,1] (NaN -> 0.5).
+func leafValue(leaf func(view.View, state.PlayerID) float64, v view.View, actor state.PlayerID) float64 {
+	if leaf == nil || v.Over {
+		return LeafValue(v, actor)
+	}
+	x := leaf(v, actor)
+	switch {
+	case math.IsNaN(x):
+		return 0.5
+	case x < 0:
+		return 0
+	case x > 1:
+		return 1
+	}
+	return x
 }
 
 // TeacherChoice rolls every candidate on every world. candidates[0] must be
@@ -150,7 +182,7 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 		o.over = e.G.Over
 		o.won = e.G.Over && !e.G.Draw && e.G.Winner == actor
 		o.capped = !e.G.Over && o.submits >= opts.MaxSubmits
-		o.value = LeafValue(view.Project(e.G, e, actor, e.Pending()), actor)
+		o.value = leafValue(opts.Leaf, view.Project(e.G, e, actor, e.Pending()), actor)
 	}
 	if workers := min(opts.Parallelism, len(outs)); workers > 1 {
 		engines := make([]*rules.Engine, len(outs))
@@ -293,6 +325,154 @@ func AttackCandidates(d *decision.Decision, bot decision.Intent, limit int) []de
 			t[o.Index] = true
 		}
 		add(t)
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	return out
+}
+
+// BlockCandidates enumerates declarations to compare at a KBlockers root: the
+// bot's answer first (index 0, the label contract), then "no blocks" (the
+// least declaration the requirement allows, decision.FitRequired over an
+// empty preference), then for every option the bot did not choose, the bot's
+// answer with that (blocker, attacker) pair added and any other pair of the
+// same blocker (same option Group -- one attacker per blocker) removed, then
+// the bot's answer minus each of its own pairs. Capped at limit.
+//
+// Decision.Validate does not see the whole-declaration rules the engine
+// enforces (CR 509.1a MinMaxBlocker bounds, CR 509.1b block charges), and one
+// candidate the engine rejects makes TeacherChoice fail the WHOLE decision,
+// so a candidate is kept only when Validate passes, the Required quota is
+// met, decision.FitRequired would leave it unchanged (the repair the bot's
+// own Clamp applies), and legal -- the bot's block guard,
+// botpolicy.LegalBlockChoices, bound to the deciding seat's board -- returns
+// it unchanged. A nil legal skips only that last check.
+//
+// Candidates keep the bot's declaration order (the engine reads it for
+// CR 510.1c damage assignment); an added pair goes last. Duplicates are
+// detected on the sorted choice list. Options are visited in index order
+// only, so the output is deterministic. It returns nil unless at least two
+// candidates survive.
+func BlockCandidates(d *decision.Decision, bot decision.Intent, limit int, legal func([]int) []int) []decision.Intent {
+	if d == nil || d.Kind != decision.KBlockers || limit < 2 {
+		return nil
+	}
+	var out []decision.Intent
+	seen := make(map[string]bool)
+	add := func(choices []int) bool {
+		if len(out) >= limit {
+			return false
+		}
+		sorted := append([]int(nil), choices...)
+		sort.Ints(sorted)
+		key := fmt.Sprint(sorted)
+		if seen[key] {
+			return false
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}
+		if d.Validate(in) != nil {
+			return false
+		}
+		if d.RequiredChosen(choices) < d.RequiredQuota() {
+			return false
+		}
+		if !sameChoices(d.FitRequired(choices), choices) {
+			return false
+		}
+		if legal != nil && !sameChoices(legal(append([]int(nil), choices...)), choices) {
+			return false
+		}
+		seen[key] = true
+		out = append(out, in)
+		return true
+	}
+	base := append([]int(nil), bot.Choices...)
+	if !add(base) {
+		return nil
+	}
+	chosen := make(map[int]bool, len(base)) // membership only -- never ranged.
+	for _, c := range base {
+		chosen[c] = true
+	}
+	add(append([]int(nil), d.FitRequired(nil)...))
+	for _, o := range d.Options {
+		if chosen[o.Index] {
+			continue
+		}
+		next := make([]int, 0, len(base)+1)
+		for _, c := range base {
+			if o.Group != "" && c >= 0 && c < len(d.Options) && d.Options[c].Group == o.Group {
+				continue
+			}
+			next = append(next, c)
+		}
+		add(append(next, o.Index))
+	}
+	for i := range base {
+		next := make([]int, 0, len(base)-1)
+		next = append(next, base[:i]...)
+		next = append(next, base[i+1:]...)
+		add(next)
+	}
+	if len(out) < 2 {
+		return nil
+	}
+	return out
+}
+
+// sameChoices reports whether two choice lists are identical, order included.
+func sameChoices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// SingleTarget reports whether d is the one KTarget shape the teacher
+// answers: exactly one object or player to pick (Min == Max == 1), no
+// MaxSum/Budgeted budget, and at least two options to choose between. Every
+// other KTarget -- multi-choice, budgeted, optional (Min 0) -- is left to the
+// bot, whose Clamp repairs shapes a single-option swap cannot keep legal.
+// searchseat.Eligible and TargetCandidates share this test so the cheap
+// pre-check and the candidate builder cannot disagree.
+func SingleTarget(d *decision.Decision) bool {
+	return d != nil && d.Kind == decision.KTarget && d.Min == 1 && d.Max == 1 &&
+		!d.HasBudget() && len(d.Options) >= 2
+}
+
+// TargetCandidates enumerates the answers to compare at a single-choice
+// KTarget root (SingleTarget): the bot's own pick first (index 0, the label
+// contract), then every other option in index order, each as a one-choice
+// intent that d.Validate accepts. Capped at limit; nil unless the decision
+// has the single-target shape, the bot answered with exactly one valid
+// choice, and at least two candidates survive.
+func TargetCandidates(d *decision.Decision, bot decision.Intent, limit int) []decision.Intent {
+	if !SingleTarget(d) || limit < 2 || len(bot.Choices) != 1 {
+		return nil
+	}
+	first := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{bot.Choices[0]}}
+	if d.Validate(first) != nil {
+		return nil
+	}
+	out := []decision.Intent{first}
+	for _, o := range d.Options {
+		if len(out) >= limit {
+			break
+		}
+		if o.Index == bot.Choices[0] {
+			continue
+		}
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}
+		if d.Validate(in) != nil {
+			continue
+		}
+		out = append(out, in)
 	}
 	if len(out) < 2 {
 		return nil

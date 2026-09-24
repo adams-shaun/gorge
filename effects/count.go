@@ -217,11 +217,16 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	}
 	expr = strings.TrimSpace(expr)
 	// A Remembered$... expression answers a question about the objects this
-	// resolving spell/ability has remembered so far (Ctx.Remembered). It is
-	// cut BEFORE evalRefProperty so its "Amount" head keeps answering
-	// len(Ctx.Remembered) -- the resolution's own remembered set -- rather
-	// than refTargets' Remembered read (rememberedWithSource), which unions
-	// the source's persistent list and drops the ctx's own-source entry.
+	// resolving spell/ability has remembered so far -- Forge's host remembered
+	// list, which never contains the event object the trigger fired on. It is
+	// cut BEFORE evalRefProperty so its "Amount" head answers the
+	// CAPTURE-EXCLUDED remembered set (Ctx.Remembered minus Ctx.Captured, via
+	// the one-home helper rememberedExcludingCapture) rather than refTargets'
+	// Remembered read (rememberedWithSource, which unions the source's
+	// persistent list). A firing trigger's ctx is seeded with Remembered ==
+	// Captured == its event capture, so a raw len(Ctx.Remembered) would count
+	// the capture as something the resolution itself remembered -- a phase
+	// trigger body with an empty remembered set would read 1.
 	// The one head this build models directly is Amount -- the number of
 	// remembered objects, which is Swift Silence's "Draw a card for each
 	// spell countered this way" (SVar:X:Remembered$Amount after effCounter's
@@ -693,7 +698,7 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	switch strings.TrimSpace(body) {
 	case "Amount":
-		n := int32(len(c.Remembered))
+		n := int32(len(rememberedExcludingCapture(h, c)))
 		if hasOp {
 			n = applyCountOp(n, op)
 		}
@@ -717,27 +722,37 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 // rememberedExcludingCapture is the ctx's Remembered list minus its
 // fire-time event capture (Ctx.Captured) -- Forge's host remembered list,
 // which never contains the event object the trigger fired on. The exclusion
-// lives in ONE helper because two callers must agree byte for byte:
+// lives in ONE helper every plain-Remembered reader goes through:
 // effImmediateTrigger (which builds each "when you do" instance's ctx from
-// it, so its exclusion and the TriggerRemembered count head's cannot drift)
-// and refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
-// TriggerRemembered$Amount). A no-capture ctx (captured empty) returns the
-// list unchanged; the helper is idempotent -- the instance ctx
-// effImmediateTrigger builds has Captured and Remembered disjoint, so
-// applying it a second time there answers the same set.
+// it, so its exclusion and the TriggerRemembered count head's cannot drift),
+// refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
+// TriggerRemembered$Amount), evalRememberedOK's Amount head,
+// evalCountExprOK's RememberedNumber head, rememberedWithSource (the plain
+// Remembered$ group every Valid/condition reader resolves through) and
+// evalRefProperty's Remembered$<Property> heads.
+// A no-capture ctx (captured empty) returns the list unchanged; the helper
+// is idempotent -- the instance ctx effImmediateTrigger builds has Captured
+// and Remembered disjoint, so applying it a second time there answers the
+// same set.
 func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
 	if len(c.Captured) == 0 {
 		return c.Remembered
 	}
-	captured := make(map[state.Target]bool, len(c.Captured))
+	// Remove only the seeded occurrence(s), not every equal target. A body
+	// can explicitly remember the captured object again (e.g. RememberSacrificed
+	// on a death trigger); that later occurrence is real memory even though its
+	// identity equals the capture.
+	remaining := make(map[state.Target]int, len(c.Captured))
 	for _, t := range c.Captured {
-		captured[t] = true
+		remaining[t]++
 	}
 	var out []state.Target
 	for _, t := range c.Remembered {
-		if !captured[t] {
-			out = append(out, t)
+		if remaining[t] > 0 {
+			remaining[t]--
+			continue
 		}
+		out = append(out, t)
 	}
 	return out
 }
@@ -1284,6 +1299,23 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 				ts = append(ts, t)
 			}
 		}
+	case "TriggeredCapturedPlayers":
+		// The firing trigger's fire-time PLAYER capture (Ctx.Captured) read
+		// on purpose. The plain Remembered heads (Remembered$Amount,
+		// Count$RememberedNumber) exclude that capture -- Forge's host
+		// remembered list never holds the event referent -- so a body whose
+		// count IS the referent set must name it through this Triggered*-
+		// family ref instead. Its one user is the synthesized Melee pump
+		// (cards.MeleePumpCount): rules captures one player ref per distinct
+		// opponent attacked in the declaration (rules/melee.go
+		// meleeRemembered) and the stack wrapper's logged Remembered comes
+		// back as Captured at resolution, so replay and stack copies read the
+		// same count. Amount is the only property.
+		for _, t := range c.Captured {
+			if t.IsPlayer {
+				ts = append(ts, t)
+			}
+		}
 	case "TriggeredPlayersTargets":
 		// The batch's matching TARGET PLAYERS (trig:DamageAll): Malcolm
 		// Keen-Eyed Navigator's and Hordewing Skaab's SVar:X reads the count
@@ -1310,7 +1342,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
 		return 0, false
 	}
-	if ref == "TriggeredPlayersTargets" && prop != "Amount" {
+	if (ref == "TriggeredPlayersTargets" || ref == "TriggeredCapturedPlayers") && prop != "Amount" {
 		return 0, false
 	}
 	g := h.Game()
@@ -1351,7 +1383,8 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n++
 				}
 			}
-		case prop == "Amount" && (ref == "TriggeredPlayersOpponentVotedDiff" || ref == "TriggeredPlayersTargets"):
+		case prop == "Amount" && (ref == "TriggeredPlayersOpponentVotedDiff" || ref == "TriggeredPlayersTargets" ||
+			ref == "TriggeredCapturedPlayers"):
 			n++
 		default:
 			// The Valid head and its countZone family: "Valid <spec>",
@@ -1521,6 +1554,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if hasOp {
 			n = applyCountOp(n, op)
 		}
+		return n, true
+	}
+
+	// The fuzz-cov3 heads (effects/count_cov3.go): heads that previously
+	// matched nothing below, so consulting them first changes no verdict
+	// another arm gave.
+	if n, ok := evalCov3Head(h, c, head, arg, depth); ok {
+		return n, true
+	}
+	if n, ok := evalCov3PlayerHead(h, c, head, arg); ok {
 		return n, true
 	}
 
@@ -1747,7 +1790,21 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// (void's cmcEQX through resolveNumericRHS) never matches -- instead
 		// of enforcing a meaningless zero. A bound zero is a real binding and
 		// evaluates (torgal with no Dogs/Wolves on the board).
-		return c.ChosenNumber, c.ChosenNumberBound
+		if c.ChosenNumberBound {
+			return c.ChosenNumber, true
+		}
+		// The Choose-event population (effects/choose.go's ChooseNumber,
+		// the as-enters number choice): the answer lives on the SOURCE
+		// object's ChosenNumber, folded from the logged choice. Aether
+		// Spike's "counter unless its controller pays X, where X is the
+		// chosen number", Galvanic Discharge, Die Young -- 52 supported
+		// carriers whose amount read an unresolved zero (fuzz-cov3). A
+		// source that never chose reads the field's zero, which is also
+		// Forge's reading of an unset chosen number.
+		if o := g.Obj(c.Source); o != nil {
+			return o.ChosenNumber, true
+		}
+		return 0, false
 	case "ChosenSize":
 		// Forge's Count$ChosenSize (CardUtil.getChosenCards().size()): the
 		// number of CARDS the current resolution's ChooseCard chain has
@@ -1800,11 +1857,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return h.CommanderCastsFromCommandZone(c.Controller), true
 	case "RememberedNumber":
 		// Forge's Count$RememberedNumber is the executing ability's remembered
-		// count -- the same list evalRememberedOK's Amount head reads. In this
-		// build that is Ctx.Remembered; a caller that needs the list WITHOUT a
-		// trigger's event capture (effImmediateTrigger's TriggerAmount$ read)
-		// passes a ctx whose Remembered is already the capture-excluded set, so
-		// this head needs no special case of its own. Five corpus
+		// count -- the same list evalRememberedOK's Amount head reads, so it
+		// applies the same capture exclusion: Forge's host remembered list is
+		// never seeded with the event object the trigger fired on (a body reads
+		// that through the separate Triggered* family). Use the one-home helper
+		// rememberedExcludingCapture, exactly as the Amount head does, so a
+		// firing trigger's ctx -- seeded Remembered == Captured == its event
+		// capture -- does not overcount by that capture. A caller that already
+		// passed a capture-excluded ctx (effImmediateTrigger's TriggerAmount$
+		// read) is unchanged: the helper is idempotent there (its instance
+		// capture is disjoint from its remembered set). Five corpus
 		// ImmediateTrigger lines and 38 files elsewhere carry it.
 		//
 		// A DB$ FlipCoin RememberNumber$ publication takes precedence: Forge's
@@ -1821,7 +1883,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if c.RememberedCMCBound {
 			return c.RememberedCMC, true
 		}
-		return int32(len(c.Remembered)), true
+		return int32(len(rememberedExcludingCapture(h, c))), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the
 		// persistent list riders (RememberDiscarded$/RememberCountered$/
@@ -1876,6 +1938,28 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			}
 		}
 		return n, true
+	case "LifeYouLostThisTurn":
+		// The total life the controller LOST this turn -- Luminarch
+		// Ascension's and Boarded Window's end-step CheckSVar$ gate ("if you
+		// didn't lose life this turn"). The same log-derived Host fold
+		// LifeOppsLostThisTurn sums over the opponents, read for the
+		// controller alone, so a replay derives the same count. Unmodelled,
+		// the gate failed closed and Luminarch Ascension never once gained a
+		// quest counter (cardfuzz coverage audit).
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return h.LifeLostThisTurn(c.Controller), true
+	case "Party":
+		// CR 700.8: the controller's party -- one each of Cleric, Rogue,
+		// Warrior and Wizard among the creatures they control, a creature
+		// filling at most one role (partySize). 39 raw corpus carriers
+		// (Archpriest of Iona, Squad Commander, Nimble Trapfinder's gates and
+		// every "for each creature in your party" amount).
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return partySize(g, c), true
 	case "LifeYouGainedThisTurn":
 		// The total life the controller GAINED this turn — the CheckSVar$ gate
 		// behind the "At the beginning of each end step, if you gained 4 or
@@ -2354,6 +2438,13 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// Monarch is the resolving controller's current designation (the same
 	// state g.IsMonarch answers for a CheckDefinedPlayer$ .isMonarch spec).
 	if dot := strings.IndexByte(head, '.'); dot > 0 {
+		if holds, known := cov3BranchHolds(h, c, head[:dot], depth); known {
+			// The fuzz-cov3 branch predicates (Delirium, Metalcraft,
+			// Hellbent, FatefulHour, Landfall, Void): branch tokens through
+			// countBranchOperand, the Threshold sibling's read.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			return countBranchOperand(h, c, holds, yesTok, noTok, depth), true
+		}
 		switch head[:dot] {
 		case "wasCastFromGraveyard":
 			// The resolving source was CAST FROM A GRAVEYARD (CR 601.2b's
@@ -2370,10 +2461,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// Creature.YouCtrl), the Compare head's evalCountOperand recursion
 			// precedent; an unresolvable token degrades to 0, never wedges.
 			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
-			holds := false
-			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
-				holds = state.WasCastFromGraveyard(o.CastFlags)
-			}
+			holds := state.ObjectWasCastFromGraveyard(g.Obj(c.Source))
 			if holds {
 				y, ok := resolveCountOperand(h, c, yesTok, depth)
 				if !ok {
@@ -2673,7 +2761,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// suffix (Colors one, CreatureType two) is honoured at
 	// evalCountExprOK's generic /Op site (countDistinctLimitMax).
 	isAll := head == "ValidAll"
-	if zone, ok := countZone(head); ok || isAll {
+	multi := multiCountZones(head)
+	if zone, ok := countZone(head); ok || isAll || multi != nil {
 		spec, prop, hasProp := strings.Cut(arg, "$")
 		if !hasProp {
 			spec, prop = arg, ""
@@ -2787,7 +2876,26 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				f.seenDiffValues = make(map[int32]bool)
 			}
 		}
-		if isAll {
+		if multi != nil {
+			// A comma-joined zone list (Count$ValidGraveyard,Exile,
+			// ValidBattlefield,Graveyard, ValidBattlefield,Command --
+			// fuzz-cov3): the single-zone scan over each named zone in turn,
+			// the shared stack once. Each candidate is matched against its
+			// own zone, the ValidAll convention.
+			for _, z := range multi {
+				if z == state.ZStack {
+					for _, id := range g.Stack {
+						f.visit(id, z, specCtx)
+					}
+					continue
+				}
+				for _, p := range g.AliveFrom(0) {
+					for _, id := range g.Zone(z, p) {
+						f.visit(id, z, specCtx)
+					}
+				}
+			}
+		} else if isAll {
 			for _, p := range g.AliveFrom(0) {
 				for _, z := range countAllZones {
 					for _, id := range g.Zone(z, p) {
@@ -3608,6 +3716,24 @@ func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID,
 		}
 		return best, true
 	}
+	if _, ok := playerScalarProperty(h, g, 0, prop); ok && strings.TrimSpace(spec) == "" {
+		// A per-player zone size or tally (Highest/LowestCardsInHand,
+		// HighestCardsInGraveyard, HighestCardsDrawn -- fuzz-cov3).
+		best, seen := int32(0), false
+		for _, p := range players {
+			v, ok := playerScalarProperty(h, g, p, prop)
+			if !ok {
+				continue
+			}
+			if !seen || (highest && v > best) || (!highest && v < best) {
+				best, seen = v, true
+			}
+		}
+		if !seen {
+			return 0, true
+		}
+		return best, true
+	}
 	if prop == "LifeLostThisTurn" {
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, false
@@ -3844,6 +3970,31 @@ func manaCostColourSymbols(cost string, col byte) int32 {
 // here: it scopes over every zone at once (countAllZones plus one stack
 // pass, handled directly in the zone-count branch), and a single-zone
 // mapping cannot express that.
+// multiCountZones parses a multi-zone count head, Valid<Zone>,<Zone>[,...]
+// (Count$ValidGraveyard,Battlefield Cave.YouCtrl), into its zones: nil for a
+// single-zone head (countZone's) or any list naming an unknown or repeated
+// zone word.
+func multiCountZones(head string) []state.Zone {
+	rest, ok := strings.CutPrefix(head, "Valid")
+	if !ok || !strings.Contains(rest, ",") {
+		return nil
+	}
+	var out []state.Zone
+	for _, w := range strings.Split(rest, ",") {
+		z, known := zoneWords[w]
+		if !known {
+			return nil
+		}
+		for _, have := range out {
+			if have == z {
+				return nil
+			}
+		}
+		out = append(out, z)
+	}
+	return out
+}
+
 func countZone(head string) (state.Zone, bool) {
 	switch head {
 	case "Valid":
@@ -3858,6 +4009,8 @@ func countZone(head string) (state.Zone, bool) {
 		return state.ZExile, true
 	case "ValidStack":
 		return state.ZStack, true
+	case "ValidCommand":
+		return state.ZCommand, true
 	}
 	return 0, false
 }
@@ -4473,4 +4626,54 @@ func sumCounters(cs []state.Counter) int32 {
 		}
 	}
 	return n
+}
+
+// partyRoles are CR 700.8's four party roles.
+var partyRoles = [4]string{"Cleric", "Rogue", "Warrior", "Wizard"}
+
+// partySize is CR 700.8's party size for c's controller: the largest number
+// of distinct roles among Cleric, Rogue, Warrior and Wizard that can be
+// filled by DIFFERENT creatures they control (a Changeling or a multi-role
+// creature fills only one). Each creature's role set is read through the
+// ordinary spec matcher (derived types, Changeling), then a 16-state subset
+// walk finds the best assignment -- deterministic, no map ranged.
+func partySize(g *state.Game, c *Ctx) int32 {
+	sc := c.SpecContext(c.Controller)
+	var reach [16]bool
+	reach[0] = true
+	for _, id := range g.Zone(state.ZBattlefield, c.Controller) {
+		if !MatchesSpecCtx(g, "Creature", id, sc) {
+			continue
+		}
+		var roles uint8
+		for i, r := range partyRoles {
+			if MatchesSpecCtx(g, "Creature."+r, id, sc) {
+				roles |= 1 << i
+			}
+		}
+		if roles == 0 {
+			continue
+		}
+		next := reach
+		for set := 0; set < 16; set++ {
+			if !reach[set] {
+				continue
+			}
+			for i := 0; i < 4; i++ {
+				if roles&(1<<i) != 0 && set&(1<<i) == 0 {
+					next[set|1<<i] = true
+				}
+			}
+		}
+		reach = next
+	}
+	best := 0
+	for set := 0; set < 16; set++ {
+		if reach[set] {
+			if n := bits.OnesCount8(uint8(set)); n > best {
+				best = n
+			}
+		}
+	}
+	return int32(best)
 }

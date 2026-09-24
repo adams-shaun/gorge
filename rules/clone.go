@@ -61,6 +61,9 @@ func (e *Engine) Clone() *Engine {
 		// the same reference-sharing Clone already practises for
 		// orderedTriggers.
 		blockerRound: e.blockerRound,
+		// unblockedRoundChecked (engine.go): the plain-value per-combat latch
+		// of the declare-blockers round-complete trigger walk.
+		unblockedRoundChecked: e.unblockedRoundChecked,
 		// exertAskState (combat.go, task exert1): the exert election's offer
 		// list and cursor, the same plain-value class as blockerRound -- the
 		// offers slice is never mutated, so sharing the reference is safe.
@@ -1009,6 +1012,7 @@ func cloneDecision(p *decision.Decision) *decision.Decision {
 	d.ResumeChoices = append([]state.Target(nil), p.ResumeChoices...)
 	d.ResumeChosenValid = p.ResumeChosenValid
 	d.ResumeRemembered = append([]state.Target(nil), p.ResumeRemembered...)
+	d.ResumeSearchKnown = append([]state.Target(nil), p.ResumeSearchKnown...)
 	d.ResumeVillainousVictims = append([]state.Target(nil), p.ResumeVillainousVictims...)
 	d.ResumeVillainousIndex = p.ResumeVillainousIndex
 	d.ResumeGenericChoosers = append([]state.Target(nil), p.ResumeGenericChoosers...)

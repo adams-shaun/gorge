@@ -7,13 +7,17 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// This file pins the three real arms the approx ticket added to Decide for
+// This file pins the real arms the approx tickets added to Decide for
 // decisions that previously fell through to Clamp's option-0 fallback: the
 // CR 616.1 KReplacement order choice, the CR 702.43 multikicker count ask and
 // the CR 702.140b mutate over/under placement ask. Each test asserts its own
 // precondition (the metric the arm ranks on actually differs, and every
 // option the arm must choose between is present) so a vacuous setup fails
 // loudly instead of passing silently.
+//
+// The later replicate/squad widening of the same count case is pinned by
+// approx_count_arms_test.go (CR 702.55a and CR 702.66), kept in its own file
+// under the 2026-09-22 "new tests go in a new file" rule.
 
 // TestBotReplacementOrderRanksBySourceWorth is (a): the order arm picks the
 // replacement whose source permanent has the higher cardWorth, not the option

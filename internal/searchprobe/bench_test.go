@@ -135,12 +135,21 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// consult and resumeResolution's guard plus window arm) reproduces
 		// dfe3967e... and bfa2b184... byte-for-byte, so it is the sole mover
 		// of both sampler digests and of the teacher digest below.
-		{"pre-optimisation sampler", true, "8575898916864bcfad21e3105a057d9adf31d21c8d4e40033b7d7a72f782d5bd"},
+		// Re-measured for game-long damage-by-source provenance
+		// (agent-20260923T114033Z-a57ee463): every landed Damage event now
+		// emits a DamageProvenance fact, so the fixture game's captured frames
+		// carry extra events and the sampled worlds' chain heads and event
+		// counts move. Measured attribution: disabling ONLY the provenance
+		// emission block in rules/engine.go restores 857589... and 1dab03...
+		// byte-for-byte, so it is the sole mover; frames/attempts/accepted/
+		// worlds/ESS are unchanged.
+		{"pre-optimisation sampler", true, "cb006cbec90cdce865845e020c3b3732c9bdc0f76fc7d6480577497b5f508b30"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
-		// Mausoleum Wanderer unless-cost ask label (see the test comment).
-		{"land exclusion", false, "1dab0393f3ff32803bff6400ee9bcfdd38cae078362d91883e419fb4fa0f37f1"},
+		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
+		// again for the damage-provenance fact (see above).
+		{"land exclusion", false, "bc3e3c4a6653ed98c0327442b2f1f517882a1b7deb820e10b624c531042394f6"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -284,7 +293,14 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// than null, changing the sampled worlds and only Submits, 4054 -> 4000.
 	// Index, Values, Rollouts, Terminal, Capped and the 8/8/8/8 wins split are
 	// unchanged; this is not a rollout-side behavior change.
-	const want = "20e9fd4dbecee72b18633c97e41fb4c44d262084b182d58ca5c42d22035e261d"
+	// Re-measured for game-long damage-by-source provenance
+	// (agent-20260923T114033Z-a57ee463): the sampler's worlds moved (above),
+	// so the rollouts run on different games and only Submits moves,
+	// 4000 -> 3396. Index, Values (all 1), Rollouts 32, Terminal 32,
+	// Capped 0 and the 8/8/8/8 wins split are all unchanged. Measured
+	// attribution: disabling ONLY the provenance emission block in
+	// rules/engine.go restores 20e9fd... byte-for-byte.
+	const want = "fa6bb92b47f723e3b45916141c245fbce602f3350337cdaba9f3b6a032b90fb7"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

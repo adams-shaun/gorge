@@ -310,6 +310,14 @@ type Option struct {
 	// of the game. A bare tap (every plain land) omits the field, so every
 	// existing option list and every plain-land window serialises
 	// byte-identically. omitempty: only a beyond-tap activation carries it.
+	//
+	// An "ability" option (a printed non-mana activated ability) carries its
+	// offer-time cost here too, the same string the card's AbilityCosts
+	// projects: its label is "<card name>: <description>" for every ability
+	// of the card, and a planeswalker's description omits the loyalty cost,
+	// so the cost is what lets the client's radial tell them apart. Every
+	// Cost reader that means the mana-activation marker filters on
+	// Kind == "activate".
 	Cost string `json:"cost,omitempty"`
 	// Grant is server-side only (json:"-") and present only on an "ability"
 	// option whose whole activation is a PURE, IDEMPOTENT keyword grant (the
@@ -322,6 +330,17 @@ type Option struct {
 	// the engine's own derived-keyword facts and the stack -- a human
 	// client never sees it, so it is never on the wire.
 	Grant *Grant `json:"-"`
+	// Attach is server-side only (json:"-"), set on a printed, gained or
+	// granted "ability" option whose ability is an AB$ Attach -- K:Equip, Reconfigure and
+	// Fortify expand to one (cards/keywords.go). It is what scopes the bot
+	// policy's attachment no-op rule (A1, botpolicy.equipNoOp: an attached
+	// source's re-attach, or an attach with no creature to land on) to the
+	// abilities that rule is about: an Aura's or an equipment's OTHER
+	// activated abilities (Holy Armor's pump, Flickerform's flicker) are not
+	// re-attaches, and before this fact existed every one of them read as a
+	// no-op and was never activated. Filled by rules/legal.go from the
+	// compiled ability, never on the wire.
+	Attach bool `json:"-"`
 	// GrantSource is server-side only (json:"-") and names the object that
 	// GRANTS an "ability" option's SVar body when that grantor differs from
 	// the option's Obj (the ability's own source/recipient). It is set by
@@ -546,6 +565,14 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeSearchKnown carries the effects.Ctx.SearchKnown set of an earlier
+	// ask in the same search chain (effects/zone.go effSearchLibrary): the
+	// library cards the chooser has already legitimately seen. A planted
+	// placement leg poses a second ask after the first leg's own suspension
+	// rebuilt a fresh Ctx, and without the ride the second leg would go blind
+	// again. Server-side runtime continuation state, never client input --
+	// the same class as ResumeRemembered.
+	ResumeSearchKnown []state.Target `json:"-"`
 	// ResumeDigUntilMove carries an earlier OptionalFoundMove$ answer through
 	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
 	ResumeDigUntilMove     string `json:"-"`

@@ -608,6 +608,13 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // and intent 194; every other event and intent is identical. Re-recorded via
 // TestGenerateOvershootCapture: 2115 events, 378 intents, head
 // dbba928d76d290b2; overshootIntents 379 -> 378.
+//
+// Game-long damage provenance (2026-09-23): every landed Damage event now
+// emits a DamageProvenance fact through Engine.emit, so the re-recorded
+// stream carries 23 more events (one per point of damage the match dealt)
+// and a new head; no intent moved (provenance changes no decision).
+// Re-recorded via TestGenerateOvershootCapture: 2138 events, 378 intents,
+// head 55f5cbb8b801acb7.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -639,8 +646,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 2115 {
-		t.Fatalf("capture carries %d events, want the full 2115-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 2138 {
+		t.Fatalf("capture carries %d events, want the full 2138-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {

@@ -718,7 +718,7 @@ func (e *Engine) presentGate(sv staticView, spec string) bool {
 	if cmp == "" {
 		cmp = "GE1"
 	}
-	return comparePresent(n, cmp)
+	return comparePresent(n, e.presentCompareFor(cmp, sv.Source, sv.Controller))
 }
 
 // staticTimingGate evaluates the static conditions that can decide whether a
@@ -797,6 +797,17 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 	switch zone {
 	case "Graveyard":
 		want = state.ZGraveyard
+	case "Exile":
+		// IsPresent$ over exile (Ketramose, the New Dawn's
+		// `IsPresent$ Card | PresentZone$ Exile | PresentCompare$ LT7`
+		// CantAttack,CantBlock static). forEachObject walks every zone of
+		// every seat, exile included, so the same scan covers it.
+		want = state.ZExile
+	case "Hand":
+		// IsPresent$ over a hand (Kefnet the Mindful's
+		// `IsPresent$ Card.YouOwn | PresentZone$ Hand | PresentCompare$ LE6`
+		// CantAttack,CantBlock static). forEachObject walks hands too.
+		want = state.ZHand
 	case "Stack":
 		// IsPresent$ over the stack (Molten Disaster's kicked-gated AddKeyword$
 		// Split second static: IsPresent$ Card.Self+kicked | PresentZone$ Stack
@@ -922,7 +933,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 			continue
 		}
 		sv := staticView{Source: ce.Source, Controller: ce.Controller,
-			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber}
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true}
 		// ValidCard$ is presence-gated here exactly as costStaticApplies gates
 		// it: an absent spec restricts nothing (the printed face-static walk
 		// below never consults one at all -- Marshland's AlternativeCost body
@@ -1562,6 +1573,16 @@ func (m costMods) hasFloor() bool {
 // tree.
 func (m costMods) feasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana, life, taxGeneric, delve int32, bLifeOK bool, rider pipRider, conv *manaConv) bool {
 	composed := func(c Cost) bool {
+		// A cost carrying an XMin<N> lower bound is priced at its smallest
+		// LEGAL announcement: "X can't be 0" means the offer must be able
+		// to pay {X}=XMin, never {X}=0 (Thieving Skydiver's kicked Kicker).
+		// The fold is on a LOCAL copy, so the payment descriptor's
+		// announced-X marker (set from the raw cost's own Cost.X by
+		// paymentFor) still reports CostContainsX. WithX clears XMin, so
+		// an already-announced cost (XMin==0) is untouched here.
+		if c.XMin > 0 {
+			c = c.WithX(c.XMin)
+		}
 		cc := m.apply(c)
 		cc.Generic = addClampedGeneric(cc.Generic, int64(taxGeneric))
 		if cc.Generic > delve {
@@ -1836,7 +1857,7 @@ func (e *Engine) appendEffectCostStatics(out *costStaticViews) {
 			continue
 		}
 		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
-			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber})
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true})
 	}
 }
 
@@ -1876,8 +1897,11 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	if svars == nil {
 		svars = o.Face().SVars
 	}
+	// An Effect-delivered cost static carries its SetChosenNumber$ binding
+	// (chosenNumberBound): the Count$ChosenNumber head reads it rather than
+	// the source object's own logged choice.
 	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x,
-		ChosenNumber: sv.ChosenNumber}
+		ChosenNumber: sv.ChosenNumber, ChosenNumberBound: sv.chosenNumberBound}
 	// An SVar NAME resolves through its body on the source's face; anything
 	// else is an inline Count$-class expression evaluated as written.
 	if body, ok := svars[raw]; ok {
