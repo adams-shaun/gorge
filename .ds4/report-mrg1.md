@@ -1,3 +1,88 @@
+# Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 5 (2026-09-23)
+
+## Entry state
+
+Dispatched mid-merge: a merge of main @ `3eadee08` into this branch had been
+started (MERGE_HEAD present) with two unmerged paths — `.ds4/report-mrg1.md` and
+`.ds4/report-t2.md`, both docs accumulators. The worktree files for both were
+ALREADY resolved by a prior partial resolver run (both sides' content present in
+order, zero real conflict markers at line starts — all `<<<<<<<`-shaped grep hits
+were in-prose quotations), but never staged. `rules/replacement.go` and every
+other path had auto-merged. `.cards` present (symlink to
+`/home/sadams/projects/gorge/.cards`).
+
+## Operations (two merges)
+
+1. **Completed the in-flight merge** (main @ `3eadee08`): staged the two
+   already-resolved report files (`git add` — content verified both-sides-
+   preserving before staging), committed with the default message → `f20d5d27`.
+   This merge's only judgement call: none — both sides were accumulated
+   multi-ticket report histories; union, no contradiction, no code conflict.
+2. **Merged current main** (`562e324d`): main had advanced 11 commits past
+   `3eadee08` in the 12 hours the merge sat unresolved (fuzz-loops fixes,
+   entry-counter/replacement checks, scry, CR 103.1 toss choice, perf work —
+   259 files). `git merge main` conflicted on ONE file only:
+   `.ds4/report-mrg1.md` (the accumulator tail — our branch's round-4 +
+   cf55fee2 resolution reports vs main's 683 lines of other resolvers'
+   accumulated reports). `rules/replacement.go` auto-merged cleanly (both
+   census tokens coexist). Resolved by union: kept HEAD's block verbatim, then
+   main's block verbatim, deleting only the three marker lines. Verified
+   programmatically that every substantive (non-blank) line of both sides'
+   unique added blocks appears in the resolved file in order → commit
+   `486b32a9` with the default message.
+
+No engine, test, table, golden or ratchet file was touched. No `Ref:` trailers
+(gorge rule). The round-4 report and cf55fee2 report below are retained.
+
+## Commands and output
+
+```text
+$ git status            # mid-merge, UU .ds4/report-mrg1.md + .ds4/report-t2.md
+$ git add .ds4/report-mrg1.md .ds4/report-t2.md && git commit --no-edit
+[wt/agent-20260919T055356Z-504b1359 f20d5d27] Merge branch 'main' into wt/agent-20260919T055356Z-504b1359
+$ git merge main        # main @ 562e324d
+Auto-merging .ds4/report-mrg1.md
+Auto-merging rules/replacement.go
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+$ sed -i '4875d;4194d;4087d' .ds4/report-mrg1.md   # the three marker lines only
+$ python3 union-check   # all sides' added blocks present in order → True/True/True
+$ git add -f .ds4/report-mrg1.md && git commit --no-edit
+[wt/agent-20260919T055356Z-504b1359 486b32a9] Merge branch 'main' into wt/agent-20260919T055356Z-504b1359
+$ git status --short --branch
+## wt/agent-20260919T055356Z-504b1359   (clean)
+```
+
+Post-merge gates (real output):
+
+```text
+$ go build ./...                                     → exit 0
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.655s
+$ go test -run 'TestReplaceDamage|TestTriggerTargetSpecContextResolvesSourceXShapes|TestHammerheadTyrant|TestChthonianNightmarePaysEnergySacsAndReturns|TestCardManaCostLKIReadsRememberedSnapshot' ./rules/ ./effects/
+ok  github.com/adams-shaun/gorge/rules   0.516s
+ok  github.com/adams-shaun/gorge/effects 0.016s
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  4.024s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  0.626s
+```
+
+No head/ratchet movement and no `addedAfterTheSplit`/`knownUnsupported`/
+`knownUnmodelledCountHeads` edit needed: this branch registers no trigger mode
+and its only product change (the `api:ReplaceDamage` census token) closes no
+ratchet row; main's own commits carry their ratchet updates.
+
+## Issues
+
+None new. The out-of-scope `SpellTargeted$CardManaCostLKI` ref gap and
+trigger-stack authored-X issue remain recorded in the branch's reports below.
+
+STATUS=DONE
+COMMITS=f20d5d27 486b32a9
+TESTS=ratchets ok 0.655s; focused rules+effects ok; archtest ok; botbench byte-identical ok
+
+---
+
 # Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 3 (2026-09-23)
 
 ## State found
