@@ -151,6 +151,16 @@ type pendingCast struct {
 	// rides pendingCast rather than the shared "play" mode.
 	replaceGraveyard bool
 
+	// faceDown marks the morph family's face-down cast (CR 702.37a
+	// Morph, 702.168a Megamorph, 702.169a Disguise): the {3} cast puts a
+	// face-down spell on the stack. It gates the cast-flow stages the
+	// face-down spell must skip (CR 708.4: no targets, no printed spell
+	// abilities), carries the PutOnStack's face-down entry marker
+	// (pushCast), and the pay-time CastInfo stamps the family flag
+	// (modeFlags) the resolution reader and a later turn-face-up action
+	// read. Plain data, so Clone carries it.
+	faceDown bool
+
 	x     int32
 	xDone bool
 	// announceX is the alternative cost's Announce$ variable (the Shoal
@@ -660,6 +670,26 @@ func keywordAltCost(f *cards.Face, head string) (Cost, bool) {
 		return Cost{}, false
 	}
 	return ParseCost(s), true
+}
+
+// morphDownFamily reports the face-down cast mode a printed face offers:
+// "morphed" for K:Morph, "megamorphed" for K:Megamorph and "disguised" for
+// K:Disguise (CR 702.37a/702.168a/702.169a), "" when the face carries none
+// of the family. KeywordParam is the one derived read (a layer-6
+// AddKeyword$ grant would surface through it too); the {3} face-down cost
+// itself is family-independent, so the offer and the charge price it
+// directly, without a parameter.
+func morphDownFamily(f *cards.Face) string {
+	if _, ok := f.KeywordParam("Morph"); ok {
+		return "morphed"
+	}
+	if _, ok := f.KeywordParam("Megamorph"); ok {
+		return "megamorphed"
+	}
+	if _, ok := f.KeywordParam("Disguise"); ok {
+		return "disguised"
+	}
+	return ""
 }
 
 func buybackCost(f *cards.Face) (Cost, bool) {
@@ -2150,7 +2180,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// composition (legal.go's graveyard walk) and proved a land payable;
 		// a stale option whose keyword is gone folds nothing, degrading to a
 		// plain cast rather than charging a discard that was never offered.
-		if f.HasKeyword("Retrace") {
+		// The derived keyword (e.HasKeyword), exactly what the offer gate
+		// reads: a continuous grant (Six's "nonland permanent cards in your
+		// graveyard have retrace") is not on the printed face, and reading
+		// f here offered the grant's cast but charged no discard -- a free
+		// graveyard recast loop (fuzz batch6 line 1, Jeweled Lotus).
+		if e.HasKeyword(id, "Retrace") {
 			cost = cost.Plus(retraceExtra())
 		}
 	case "jumpstart":
@@ -2160,7 +2195,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// composition and proved a card payable; the same stale-option
 		// degradation applies (a jumpstart mode whose keyword is gone folds
 		// nothing rather than charging an unoffered discard).
-		if f.HasKeyword("Jump-start") {
+		if e.HasKeyword(id, "Jump-start") {
 			cost = cost.Plus(jumpstartExtra())
 		}
 	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
@@ -2224,6 +2259,20 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "morphed", "megamorphed", "disguised":
+		// Morph / Megamorph / Disguise (CR 702.37a/702.168a/702.169a): the
+		// face-down cast pays {3} in place of the mana cost -- the same
+		// substitution shape the alternative-cost family below charges
+		// (miracle and friends). The keyword's own colon parameter is the
+		// LATER turn-face-up cost, never paid now; it stays printed on the
+		// face, and the pay-time CastInfo's mode flag (modeFlags) records
+		// which family rode so the later turn-face-up action can validate
+		// and pay against it. The offer gate (rules/legal.go's hand walk)
+		// priced this same {3} through spellScope(fam)'s modifiers, so the
+		// charge and the offer cannot disagree, and the fixed {3} has no
+		// keyword parameter to fall back on (a stale option degrades to a
+		// still-legal {3} cast rather than a free one).
+		cost = Cost{Generic: 3}
 	case "mayflash":
 		// MayFlashCost (CR 702.8, the "as though it had flash" alternate
 		// cast): the printed mana cost is paid PLUS the keyword's colon
@@ -2336,6 +2385,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// reduction can never disagree about what cast they belong to.
 	if opt.Mode == "emerged" {
 		e.cast.emerge = true
+	}
+	// Morph family (CR 702.37a/702.168a/702.169a): the mark is set beside
+	// the cost the switch composed, so the {3} charge and the face-down
+	// entry marker can never disagree about which cast they belong to.
+	if opt.Mode == "morphed" || opt.Mode == "megamorphed" || opt.Mode == "disguised" {
+		e.cast.faceDown = true
 	}
 	// Escalate (the modal additional cost "pay this for each mode chosen
 	// beyond the first"): the cost is carried as its raw keyword parameter
@@ -6899,6 +6954,21 @@ func modeFlags(mode string) string {
 	// payCast ORs FlagConspired onto a trailing CastInfo.
 	case "conspired":
 		return ""
+	// The morph family's face-down cast (CR 702.37a/702.168a/702.169a): the
+	// flag is the provenance that names the keyword family the {3} cast
+	// rode, what the resolution reader (rules/stack.go resolveTop) dispatches
+	// on to resolve the spell with no printed spell abilities and no
+	// targets, what rules/resolution.go's moveResolvedOffStack re-carries
+	// the face-down entry marker for, and what a later turn-face-up action
+	// prices its cost from. The three sibling bits shape the resolution the
+	// FlagFused/FlagBestowed way, so they are deliberately NOT in
+	// CastProvenanceFlags.
+	case "morphed":
+		return events.FlagsString(state.FlagMorphed)
+	case "megamorphed":
+		return events.FlagsString(state.FlagMegamorphed)
+	case "disguised":
+		return events.FlagsString(state.FlagDisguised)
 	}
 	return ""
 }
@@ -6928,6 +6998,14 @@ func (e *Engine) targetAsk() bool {
 		// choice into payCast (a spell or ability whose target was chosen, or
 		// one with no target); a mana-window resume re-enters continueCast and
 		// must not re-ask for a target already settled.
+		return false
+	}
+	if pc.faceDown {
+		// Morph family (CR 708.4): a face-down spell has no targets to
+		// announce -- the printed targets do not exist while the spell is
+		// face down. The flow proceeds to payCast; the resolution reader
+		// (resolveTop's morph dispatch) skips the printed spell abilities the
+		// same way.
 		return false
 	}
 	o := e.G.Obj(pc.card)
@@ -7347,6 +7425,11 @@ func (e *Engine) postTargetAsks(pc *pendingCast) bool {
 	// answer's own -- does not re-pose the root ask (targetAsk's
 	// passedTarget guard). payCast sets the same flag again; idempotent.
 	pc.passedTarget = true
+	if pc.faceDown {
+		// Morph family (CR 708.4): a face-down spell announces no sub targets
+		// either -- its printed chain does not exist while face down.
+		return false
+	}
 	if e.subTargetAsk(pc) {
 		return true
 	}
@@ -7709,7 +7792,26 @@ func (e *Engine) pushCast() bool {
 	// CR 601.2a: the spell reaches the stack. The cast trigger is held back
 	// (deferCastTrigger) so it cannot fire before the spell is paid for.
 	e.deferCastTrigger = true
-	e.emit(events.Event{Kind: events.PutOnStack, Obj: pc.card, Player: pc.player, From: pc.from, To: state.ZStack, Text: o.Face().Name})
+	ev := events.Event{Kind: events.PutOnStack, Obj: pc.card, Player: pc.player, From: pc.from, To: state.ZStack, Text: o.Face().Name}
+	if pc.faceDown {
+		// Morph family (CR 708.4): the face-down spell's identity is hidden
+		// while it sits on the stack. The face-down entry marker rides the
+		// Counter so events.Apply folds Object.FaceDown onto the stack
+		// object (the view then redacts the card for everyone but the
+		// caster, and moveResolvedOffStack re-carries the marker onto the
+		// battlefield entry), and Secret keeps the printed name out of the
+		// other seats' event projections -- a non-Secret PutOnStack would
+		// name the card in Text to every viewer. The cloak marker is the
+		// Disguise entry's carrier (its face-down ward {2} rides the same
+		// state bit the Cloak machinery reads). No ordinary cast carries a
+		// Counter here, so unrelated casts are byte-identical.
+		ev.Counter = events.FaceDownEntryCounter
+		if pc.mode == "disguised" {
+			ev.Counter = events.CloakEntryCounter
+		}
+		ev.Secret = true
+	}
+	e.emit(ev)
 	e.deferCastTrigger = false
 	// CR 601.2a: the player who cast the spell is its controller. A card
 	// another seat controlled (Rashmi and Ragavan's exiled OPPONENT card,

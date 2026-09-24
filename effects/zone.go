@@ -26,6 +26,17 @@ func init() {
 // pool without replacement using the host's seeded RNG.
 func effSeek(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
+	// RememberFound$ makes the found card(s) the resolution's Remembered set
+	// (Forge's SeekEffect rememberFound), REPLACING whatever the resolution
+	// started with -- the same rule the DigUntil fix (c1d996d4) landed for
+	// DB$ DigUntil. A triggered resolution's ctx Remembered already carries
+	// the trigger's captured referent (Goblin Trapfinder's own dying card),
+	// so appending would make a chained Defined$ Remembered act on it too.
+	// The trigger referents survive in Ctx.Captured, the separate channel.
+	// Accumulate across the multi-player walk and assign once, so a second
+	// player's found cards do not clobber the first's.
+	rememberFound := strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True")
+	var seekRemembered []state.Target
 	players := Defined(h, c, sa)
 	if sa.Params["Defined"] == "" {
 		players = []state.Target{{Player: c.Controller, IsPlayer: true}}
@@ -89,8 +100,8 @@ func effSeek(h Host, c *Ctx, sa *cards.SA) {
 		}
 		for _, id := range selected {
 			h.Emit(moveZoneEvent(c, id, state.ZLibrary, state.ZHand))
-			if strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True") {
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			if rememberFound {
+				seekRemembered = append(seekRemembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}
 		}
@@ -104,6 +115,9 @@ func effSeek(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), selected...), Text: "seek-found"})
 		}
 		h.Emit(events.Event{Kind: events.Seek, Player: owner, Obj: c.Source})
+	}
+	if rememberFound {
+		c.Remembered = seekRemembered
 	}
 }
 

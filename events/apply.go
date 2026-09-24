@@ -842,7 +842,24 @@ func Apply(g *state.Game, e Event) {
 				o.StackKind, o.StackKindKnown = state.StackKindSpell, true
 			}
 
-			if e.To == state.ZExile {
+			if e.To == state.ZStack && IsFaceDownEntry(moveCounter) {
+				// CR 708.4: a face-down CAST's spell sits on the stack with no
+				// name, no types and no abilities. The face-down entry marker
+				// rides the PutOnStack (rules/cast.go's pushCast), and this fold
+				// keeps Object.FaceDown on the stack object so the view redacts
+				// its printed identity from everyone but its controller, and so
+				// the resolution entry (moveResolvedOffStack's re-carried marker)
+				// can tell a face-down spell from an ordinary one. The cloak
+				// marker is the Disguise entry's carrier (the ward {2} a
+				// disguised creature has while face down rides the same state
+				// bit the Cloak machinery reads). No ordinary PutOnStack or
+				// stack-bound MoveZone carries an entry marker today, so every
+				// unrelated cast folds exactly as before.
+				o.ExiledWith = 0
+				o.FaceDown = true
+				o.Cloaked = moveCounter == CloakEntryCounter
+				o.FaceDownSetType, o.FaceDownPower, o.FaceDownToughness, o.FaceDownHasPT = "", 0, 0, false
+			} else if e.To == state.ZExile {
 				switch moveCounter {
 				case "exiled_with_face_down", "exiled_with_face_down_foretold":
 					// Hideaway's face-down exile (CR 702.75): the exiling source

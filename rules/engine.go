@@ -1477,9 +1477,13 @@ func (e *Engine) SetDamageSource(id state.ObjID) state.ObjID {
 // the top of the stack -- is the adder: a resolving spell, activated ability
 // or triggered-ability instruction IS the cause, and the counters it puts are
 // put by that ability's controller (Vorinclex's "If YOU would put", Halving
-// Season's "If an OPPONENT would put"). Zero with ok=false when neither is
-// available (an SBA or other bare placement): the AddCounter matcher then
-// fails a ValidSource$ line closed rather than guessing an adder.
+// Season's "If an OPPONENT would put"). Third, a placement a replacement BODY
+// makes (replacementBodyCounterAdder below) names the body source's
+// controller: by the time the body's nested CounterChange emits, the entry
+// move has already applied and the wrapper is off the stack, so the
+// actionCause fallback cannot see it. Zero with ok=false when none of the
+// three is available (an SBA or other bare placement): the AddCounter matcher
+// then fails a ValidSource$ line closed rather than guessing an adder.
 func (e *Engine) inFlightCounterAdder() (state.PlayerID, bool) {
 	if e.counterAdder != 0 {
 		return e.counterAdder - 1, true
@@ -1487,7 +1491,38 @@ func (e *Engine) inFlightCounterAdder() (state.PlayerID, bool) {
 	if c := e.actionCause(); c != 0 {
 		return e.controllerOf(c), true
 	}
+	if adder, ok := e.replacementBodyCounterAdder(); ok {
+		return adder, true
+	}
 	return 0, false
+}
+
+// replacementBodyCounterAdder is the counter-adder provenance of a placement
+// a replacement BODY makes. While a ReplaceWith$ body is resolving
+// (applyingReplacement set, the final emit not yet folded), a
+// CounterChange/PlayerCounterChange it emits is the body's own instruction:
+// CR 614.5 -- the replacement does not use up its event, and the counter its
+// instruction places is a NEW event whose cause is that replacement effect.
+// The "who is putting these counters" role (ValidSource$) and the "an effect
+// would put" wording (EffectOnly$) therefore read the body source's
+// controller: for a K:etbCounter entry the source is the entering permanent,
+// so its controller is the adder (Doubling Season doubles the entry counters;
+// an opponent's Vorinclex halves them). The counterReplacementFold exclusion
+// keeps the distinction that matters: the notification-only CounterChange
+// records (foldEntryMove's EntryCounterNotice tail, and the AddCounter class's
+// own fully-rewritten final emit) are already-settled echoes of a placement
+// whose replacement pass has run, not body instructions, and inside them the
+// source slot may name an unrelated outer replacement -- attributing the echo
+// to it would double-count. Zero with ok=false outside a body or when the
+// source has left the game.
+func (e *Engine) replacementBodyCounterAdder() (state.PlayerID, bool) {
+	if !e.applyingReplacement || e.counterReplacementFold || e.replacingSource == 0 {
+		return 0, false
+	}
+	if e.G.Obj(e.replacingSource) == nil {
+		return 0, false
+	}
+	return e.controllerOf(e.replacingSource), true
 }
 
 // counterAdderUnset is SetCounterAdder's opaque "no publication" token. It
@@ -3126,6 +3161,10 @@ func (e *Engine) Submit(in decision.Intent) error {
 	if e.pending == nil && !e.Suspended() {
 		e.askNextReplacementChoice()
 	}
+	// An opening-hand round parked behind a decision its own effect posed
+	// (an "as this enters" choice of a card beginning the game on the
+	// battlefield) steps on now that the engine is idle again.
+	e.resumeOpening()
 	// CR 704.4: nobody receives priority in the middle of a resolution. A
 	// handler may have resumed an effect only far enough to pose another
 	// mid-resolution decision; in that case state-based actions wait until
