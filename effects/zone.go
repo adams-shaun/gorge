@@ -2323,14 +2323,12 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		if hasBudget && min > int32(len(greedy)) {
 			min = int32(len(greedy))
 		}
-		// The prompt must not offer a choice the decision will refuse. A
-		// quantity-only search has Min == Max, so "up to" would be a lie the
-		// player only discovers when their answer is rejected.
-		count := strconv.Itoa(int(max))
-		prompt := "Search a library: choose up to " + count + " card(s)"
-		if min == max {
-			prompt = "Search a library: choose " + count + " card(s)"
-		}
+		// The prompt is built AFTER the Mandatory$ clamp below (and after the
+		// EACH branch's own bounds), so the count it states can never disagree
+		// with the decision's final Min/Max, and SelectPrompt$ replaces the
+		// generic text exactly as effHiddenPick already does. Building it here
+		// -- before the clamp -- is what made a mandatory leg advertise "up to
+		// 1 card(s)" over a Min == Max == 1 decision.
 		chooser := searchChooser(h, c, sa)
 		// NoLooking$ True (Forge's line-1020 gate: with NoLooking the searching
 		// player never LOOKS at the library -- no delayedReveal -- so the choose
@@ -2386,7 +2384,10 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			// by a preceding search stays available to Card.IsRemembered and
 			// Defined$ Remembered in the rest of this chain.
 			ResumeRemembered: copyTargets(c.Remembered),
-			Prompt:           prompt}
+			// The known-card set rides the ask too: this leg's answer rebuilds a
+			// fresh Ctx, and the NEXT leg (or a chained sub that asks again) must
+			// still label its options with the names the chooser already learned.
+			ResumeSearchKnown: copyTargets(c.SearchKnown)}
 		if eachStructured {
 			eachPerType = max
 			if eachPerType > 1 {
@@ -2398,6 +2399,8 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			if !SearchStatesQuality(rawSpec) {
 				d.Min = d.Max
 			}
+			// The structured prompt is a fallback; SelectPrompt$ below overrides
+			// it uniformly for both shapes.
 			d.Prompt = "Search a library: choose one card of each listed type"
 			// The budget is NOT enforced on the structured branch: its options
 			// carry no Value, so a MaxSum the wire advertises would be a cap
@@ -2411,7 +2414,13 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 				var cardName string
 				if o := g.Obj(id); o != nil && o.Face() != nil {
 					cardName = o.Face().Name
-					if !noLooking {
+					// NoLooking$ True means the chooser never looked at THIS search
+					// window, so an option is blind unless the chain already taught
+					// this chooser the card's identity (a public reveal, or an
+					// earlier named ask this player answered). The Cultivate-family
+					// placement legs are exactly that case: their head named or
+					// revealed the cards, so the leg must not hide them again.
+					if !noLooking || searchKnownTo(c, chooser, id) {
 						name = cardName
 					}
 				}
@@ -2440,6 +2449,25 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			}
 		}
 		d.Min = int(min)
+		// The prompt is built here, AFTER the Mandatory$ clamp and the EACH
+		// branch's own bounds, so its stated count always matches the decision's
+		// final Min/Max -- a mandatory leg with Min == Max == 1 must not advertise
+		// "up to 1 card(s)". SelectPrompt$ (Forge's ChangeZoneEffect prompt,
+		// already read on the sibling hidden-pick path in effHiddenPick) replaces
+		// the generic text when the SA carries it: Cultivate's legs name their own
+		// "Select a card to put onto the battlefield".
+		if sp := strings.TrimSpace(sa.Params["SelectPrompt"]); sp != "" {
+			d.Prompt = sp
+		} else if d.Min == d.Max {
+			d.Prompt = "Search a library: choose " + strconv.Itoa(d.Max) + " card(s)"
+		} else {
+			d.Prompt = "Search a library: choose up to " + strconv.Itoa(d.Max) + " card(s)"
+		}
+		// EACH's own prompt was only a placeholder for the counted forms; the
+		// override above already replaced it when SelectPrompt$ is absent.
+		if eachStructured && strings.TrimSpace(sa.Params["SelectPrompt"]) == "" {
+			d.Prompt = "Search a library: choose one card of each listed type"
+		}
 		// The shared ask boundary (effects.Ask) refuses to post a decision whose
 		// only legal answer is the empty one -- with zero eligible cards max
 		// clamps to 0 and a stated-quality search's Min is already 0, so that is
@@ -3029,6 +3057,27 @@ func searchChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 	return c.Controller
 }
 
+// searchKnownTo reports whether player p has already legitimately learned the
+// identity of library card id during this resolution's search chain. It reads
+// the Ctx.SearchKnown set that applyLibrarySearch populates: a publicly
+// revealed card names every seat, a card an earlier ask offered BY NAME names
+// the player who picked it. A card absent from the set is genuinely unknown to
+// p and stays fail-closed -- the blind "a card" label -- so a search that
+// never revealed and never named those cards cannot leak their library order.
+// The list rides the ask (Decision.ResumeSearchKnown), so a planted placement
+// leg still sees it after a previous leg's suspension rebuilt the Ctx.
+func searchKnownTo(c *Ctx, p state.PlayerID, id state.ObjID) bool {
+	if c == nil {
+		return false
+	}
+	for _, t := range c.SearchKnown {
+		if t.Obj == id && t.Player == p && !t.IsPlayer {
+			return true
+		}
+	}
+	return false
+}
+
 // searchLibraryWindow applies Forge's limited-look bound to a library search.
 // MaxRevealed$ is the number of cards the search may inspect from the top of
 // the library; public-origin alternatives remain outside this window. Keeping
@@ -3174,6 +3223,16 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 				continue
 			}
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true, &rider)
+			// AttachedTo$ on a hidden public-origin pick (Cass, Hand of
+			// Vengeance's returned `AttachedTo$ Targeted` Aura; Bruna,
+			// Stormkeld Curator, Sovereigns of Lost Alara): the same rider every
+			// other mover applies. Without it a returned Aura enters unattached
+			// and the CR 704.5m SBA sweeps it before the chained SubAbility
+			// runs -- silent for all 8 corpus Hidden$+AttachedTo$ lines, and
+			// the reason Cass's returned Auras would not sit on the target.
+			if to == state.ZBattlefield {
+				changeZoneAttachedTo(h, c, sa, id)
+			}
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 				// Keep the resolution-local set with the event-backed source
@@ -3201,10 +3260,45 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		scheduleAtEOT(h, c, sa, moved)
 		return moved
 	}
+	// ChooseFromDefined$ narrows the offered pool to the objects a defined
+	// selector names -- Cass, Hand of Vengeance's `ChooseFromDefined$ AttachedTo
+	// TriggeredCardLKICopy.Aura` offers only the Aura cards that WERE attached
+	// to the creature that died, not every Aura in the origin zone. The value
+	// is a full Defined selector resolved through knownDefinedTargets, so an
+	// unknown or unresolvable value fails CLOSED (an empty pool, plus one
+	// Note) rather than silently offering the whole zone. Only the
+	// AttachedTo <referent> spelling is a modelled value here; the other
+	// ChooseFromDefined spellings are out of this ticket's scope (see the
+	// report's Issues) and reach the same fail-closed Note.
+	chooseFromDefined := make(map[state.ObjID]bool)
+	hasChooseFromDefined := false
+	chooseFromDefinedResolved := false
+	if raw := strings.TrimSpace(sa.Params["ChooseFromDefined"]); raw != "" {
+		hasChooseFromDefined = true
+		if ts, ok := knownDefinedTargets(h, c, raw); ok {
+			chooseFromDefinedResolved = true
+			for _, t := range ts {
+				if !t.IsPlayer && t.Obj != 0 {
+					chooseFromDefined[t.Obj] = true
+				}
+			}
+		}
+	}
+	if hasChooseFromDefined && !chooseFromDefinedResolved {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "ChangeZone ChooseFromDefined$ " + strings.TrimSpace(sa.Params["ChooseFromDefined"]) + " is not resolvable; nothing is offered"})
+	}
+	// "Any number" (Cass's OptionalPrompt$ text) is the absent-ChangeNum$
+	// reading when ChooseFromDefined$ is present: the pool itself bounds the
+	// pick. A caller that names ChangeNum$ keeps it.
+	chooseFromAll := hasChooseFromDefined && strings.TrimSpace(sa.Params["ChangeNum"]) == ""
 	for i, owner := range players {
 		var eligible []state.ObjID
 		addPool := func(ids []state.ObjID) {
 			for _, id := range ids {
+				if hasChooseFromDefined && !chooseFromDefined[id] {
+					continue
+				}
 				o := h.Game().Obj(id)
 				if o == nil || !MatchesSpecCtx(h.Game(), spec, id, c.SpecContext(c.Controller)) {
 					continue
@@ -3239,6 +3333,11 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			}
 		}
 		m := max
+		if chooseFromAll {
+			// "Any number" from the ChooseFromDefined$ pool: every eligible
+			// card may be taken (Min stays 0 unless Mandatory$).
+			m = int32(len(budgetEligible))
+		}
 		if m > int32(len(budgetEligible)) {
 			m = int32(len(budgetEligible))
 		}
@@ -3286,6 +3385,13 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		}
 		chooser := hiddenPickChooser(h, c, sa, owner)
 		prompt := strings.TrimSpace(sa.Params["SelectPrompt"])
+		// OptionalPrompt$ is the script's own wording for the optional pick
+		// (Cass's "Select any number of Aura cards that were attached to
+		// it"); it wins the default text, the same precedence the
+		// library-search path gives it.
+		if op := strings.TrimSpace(sa.Params["OptionalPrompt"]); op != "" {
+			prompt = op
+		}
 		if prompt == "" {
 			prompt = "Choose up to " + strconv.Itoa(int(m)) + " card(s)"
 		}
@@ -3780,6 +3886,36 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	}
 	if reveal && len(moved) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Player: owner, IDs: moved})
+	}
+	// Record which of the moved cards the choosing players have legitimately
+	// learned, so a planted placement leg (NoLooking$ True, ChangeType$
+	// ...IsRemembered) can label its options with real names instead of the
+	// blind "a card" (effects/zone.go effSearchLibrary's ask builder; the
+	// Ctx.SearchKnown field documents the criterion). Two sufficient
+	// channels, both scoped to a card that ACTUALLY moved:
+	//   (a) a public reveal published the card's identity to every seat
+	//       (Cultivate, Kodama's Reach, Intuition, Gifts Ungiven);
+	//   (b) this ask offered the card BY NAME (no NoLooking$ on this SA) and
+	//       the chooser picked it, so that chooser knows it even when nothing
+	//       was revealed (Final Parting, Nissa's Pilgrimage, whose heads carry
+	//       no Reveal$).
+	// A leg carries NoLooking$ True and so contributes no (b) entries, and a
+	// card the chooser genuinely never saw stays absent from the set -- the
+	// fail-closed branch that keeps a blind search from leaking library order.
+	if len(moved) > 0 {
+		if reveal {
+			for _, id := range moved {
+				for p := range g.Players {
+					c.SearchKnown = append(c.SearchKnown, state.Target{Obj: id, Player: state.PlayerID(p)})
+				}
+			}
+		}
+		if !strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True") {
+			chooser := searchChooser(h, c, sa)
+			for _, id := range moved {
+				c.SearchKnown = append(c.SearchKnown, state.Target{Obj: id, Player: chooser})
+			}
+		}
 	}
 
 	// AtEOT$ rides the search's moved set too. Scheduled BEFORE the

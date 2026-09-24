@@ -112,10 +112,17 @@ type HybridPhyrexian struct{ A, B byte }
 // it; rule/cast.go's payment stage resolves the announced choice and spends
 // against both the pool and the payer's life (see Cost.payable).
 type Cost struct {
-	Colored         state.Mana
-	Generic         int32
-	Life            int32
-	X               int
+	Colored state.Mana
+	Generic int32
+	Life    int32
+	X       int
+	// XMin is the LOWER BOUND an XMin<N> cost token places on the announced
+	// X ("X can't be 0"): XMin1 means the cost's {X} must be at least 1.
+	// It is not a payment -- it adds no generic mana and reports no Unknown
+	// -- only a floor for xAsk's option list and the offer gate's minimum-X
+	// price. XMin is a property of the shared announced X, so Plus takes the
+	// max of the two bounds and WithX (the announcement) clears it.
+	XMin            int32
 	Hybrid          []ManaPair
 	Phyrexian       []byte
 	Twobrid         []Twobrid
@@ -480,6 +487,17 @@ var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X|\d+)/([^/>]+
 // of Cost.Unknown.
 var damageYouCost = regexp.MustCompile(`^DamageYou<(\d+)(?:/([^>]*))?>$`)
 var rollDiceCost = regexp.MustCompile(`^RollDice<([^>]*)>$`)
+
+// xMinCost matches Forge's XMin<N> cost token -- the announced-X LOWER
+// BOUND, "X can't be 0" (XMin1) or "X can't be less than 4" (XMin4). It is
+// not a payment at all: it costs no mana and announces no X of its own, it
+// only constrains the value the cost's {X} may take. The Suspend-only
+// suspendCost special case was the sole reader until this head; every other
+// carrier (Kicker's Thieving Skydiver, Flashback's Light Up the Night, a
+// plain Cost$) fell through to the unrecognised-symbol fallback and charged
+// one phantom generic pip. 29 corpus files carry the token at the pin (27
+// XMin1, 2 XMin4).
+var xMinCost = regexp.MustCompile(`^XMin(\d+)$`)
 
 var costBraces = strings.NewReplacer("{", " ", "}", " ")
 
@@ -884,6 +902,22 @@ func ParseCost(s string) Cost {
 				c.PutToLib = append(c.PutToLib, part)
 				continue
 			}
+			// XMin<N> is the announced-X lower bound, NOT a payment: it adds
+			// no generic mana and reports no Unknown. A malformed or
+			// out-of-range instance keeps the ordinary one-generic fallback
+			// and reports the recognised head, the PayLife<N> shape.
+			if m := xMinCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				if int32(n) > c.XMin {
+					c.XMin = int32(n)
+				}
+				continue
+			}
 			// Try to parse as a numeric token. Negative and out-of-range values
 			// fall through to the +1 generic fallback.
 			if n, err := strconv.ParseInt(sym, 10, 64); err == nil && n >= 0 && n <= int64(math.MaxInt32) {
@@ -1151,6 +1185,10 @@ func (c Cost) CMC() int32 {
 func (c Cost) WithX(x int32) Cost {
 	c.Generic = addClampedGeneric(c.Generic, int64(c.X)*int64(x))
 	c.X = 0
+	// The lower bound is consumed by the announcement: once an X is chosen
+	// the bound has served its purpose, and clearing it keeps a later
+	// WithX from double-charging the floor as if it were generic mana.
+	c.XMin = 0
 	return c
 }
 
@@ -1164,6 +1202,12 @@ func (c Cost) Plus(d Cost) Cost {
 	c.Generic += d.Generic
 	c.Life = addClampedGeneric(c.Life, int64(d.Life))
 	c.X += d.X
+	// The shared announced X takes the higher of the two lower bounds
+	// (Thieving Skydiver: the printed cost carries none, the kicked Kicker
+	// part carries XMin1, so the composed cast's X must be at least 1).
+	if d.XMin > c.XMin {
+		c.XMin = d.XMin
+	}
 	c.Tap = c.Tap || d.Tap
 	if len(d.Hybrid) > 0 {
 		c.Hybrid = append(append([]ManaPair(nil), c.Hybrid...), d.Hybrid...)
@@ -1661,18 +1705,27 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		if ab.Kind != "AB" || isManaAbilityAPI(ab.API) {
 			continue
 		}
-		cost := e.parseCost(ab.Params["Cost"])
-		// The ability's own ReduceCost$ (Otawara's Channel): the same
-		// composition the offer gate and beginActivation's charge apply, so
-		// the decision's displayed cost is the cost the payment will charge.
-		if n := e.ownReduceCost(p, id, ab, nil, nil, 0); n > 0 && cost.Generic >= n {
-			cost.Generic -= n
-		} else if n > 0 {
-			cost.Generic = 0
-		}
-		out = append(out, formatCost(e.offerCostFor(p, id, cost, abilityScope(ab))))
+		out = append(out, e.abilityOfferCost(p, id, ab))
 	}
 	return out
+}
+
+// abilityOfferCost is one activated ability's offer-time cost in Forge
+// notation: the printed Cost$ with its own ReduceCost$ and the applicable
+// RaiseCost/ReduceCost statics composed. AbilityCosts projects it onto the
+// card, and legalActionsPriced stamps it on the ability's "ability" option,
+// so the two can never disagree about what an activation will charge.
+func (e *Engine) abilityOfferCost(p state.PlayerID, id state.ObjID, ab *cards.SA) string {
+	cost := e.parseCost(ab.Params["Cost"])
+	// The ability's own ReduceCost$ (Otawara's Channel): the same
+	// composition the offer gate and beginActivation's charge apply, so
+	// the decision's displayed cost is the cost the payment will charge.
+	if n := e.ownReduceCost(p, id, ab, nil, nil, 0); n > 0 && cost.Generic >= n {
+		cost.Generic -= n
+	} else if n > 0 {
+		cost.Generic = 0
+	}
+	return formatCost(e.offerCostFor(p, id, cost, abilityScope(ab)))
 }
 
 // formatCost writes the parsed cost back in the whitespace-delimited Forge

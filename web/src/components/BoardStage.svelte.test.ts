@@ -94,7 +94,14 @@ describe('BoardStage — the phase band is a reserved lane', () => {
   // the bar must never overlap a card or its clickable area.
   const HALF_GAP_MAX = 21.5;
 
-  it('keeps the named clearance from command-card rows in two- and four-seat layouts at every acceptance viewport', async () => {
+  // This one measures four (viewport, seat count) pairs, each a fresh page
+  // navigation through the shared browser and Vite's transform; under full
+  // suite load that is far past the 5000ms default `it` budget the test
+  // silently inherited (measured: transform alone 140s+ across 100 files, and
+  // geometry.js waits up to 60s per selector for the fixture to mount). The
+  // explicit budget matches the `waitForSelector` timeout below, as the
+  // sibling geometry tests do (HandFan 20s, PromptSurface 30s, Arrows 120s).
+  it('keeps the named clearance from command-card rows in two- and four-seat layouts at every acceptance viewport', { timeout: 60_000 }, async () => {
     const results: Geometry[] = [];
     for (const [width, height] of [[1440, 900], [1000, 900], [650, 700]]) {
       for (const seats of [2, 4]) results.push(await geometry(width, height, seats));

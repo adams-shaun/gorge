@@ -159,6 +159,15 @@ var addedAfterTheSplit = []string{
 	// switch arm existed for either name and no library->graveyard move
 	// could be told from a mill without the marker.
 	"Milled", "MilledAll",
+	// DiscardedAll (agent-20260919T183145Z-c6610d46): "Whenever you discard
+	// one or more [filtered] cards" (CR 701.8; 21 corpus T: lines plus Pure
+	// Intentions' SVar body at the pin -- Veronica Dissident Scribe, Magmakin
+	// Artillerist, Marauding Mako, Rielle the Everwise and the rest). It
+	// matches the ordinary discard MoveZone event the pre-split switch already
+	// carried for Discarded -- the response is one batch-level instance per
+	// discard action (rules/trigger_match.go's discard latch) -- but the MODE
+	// name is new, so no pre-split switch arm could have dispatched it.
+	"DiscardedAll",
 	// task scrybottom: "Whenever you choose to put one or more cards on the
 	// bottom of your library while scrying, ..." (CR 701.18; The Temporal
 	// Anchor, the corpus's one `ToBottom$ True` carrier at the pin -- 20
@@ -167,6 +176,15 @@ var addedAfterTheSplit = []string{
 	// KArrange answer is known (the count actually put on the bottom), so
 	// no pre-split switch arm could have dispatched it.
 	"Scry",
+	// trig:FullyUnlock (task agent-20260919T191104Z-95f1e316): CR 709.5's
+	// "Eerie -- whenever ... you fully unlock a Room" (17 corpus carriers,
+	// the Eerie enchantments e.g. Fear of Sleep Paralysis). It matches the
+	// pre-existing events.DoorUnlock transition, but the MODE did not exist:
+	// the pre-split switch dispatched the unlock door's own Mode$ UnlockDoor
+	// through a dedicated face scan (rules/rooms.go), never a Mode$
+	// FullyUnlock that lives on an unrelated battlefield permanent, so no
+	// pre-split switch arm could have dispatched it.
+	"FullyUnlock",
 }
 
 func allRegisteredModeNames() []string {

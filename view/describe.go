@@ -81,13 +81,20 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
 	case events.BlessingChange:
-		// CR 702.131: the one-way latch -- folded state always shows it set.
 		return player(g, ev.Player) + " gets the city's blessing"
+	case events.EnduringStoryChange:
+		return player(g, ev.Player) + " has an enduring story"
 	case events.TurnFaceDown:
 		return obj(g, ev.Obj) + " is turned face down"
 	case events.TurnFaceUp:
 		// CR 708.6: Obj is the permanent that revealed its printed face.
 		return obj(g, ev.Obj) + " is turned face up"
+	case events.PhaseOut:
+		// CR 702.25: Amount 1 is a permanent phasing out, -1 phasing in.
+		if ev.Amount >= 1 {
+			return obj(g, ev.Obj) + " phases out"
+		}
+		return obj(g, ev.Obj) + " phases in"
 	case events.SearchedLibrary:
 		// CR 701.23: the completed-search marker (trig:SearchedLibrary).
 		// Player is the seat whose library was searched; the resolving source
@@ -172,6 +179,21 @@ func Describe(g *state.Game, ev events.Event) string {
 		return text
 	case events.CloneStatic:
 		return obj(g, ev.Obj) + " gains a copy static ability"
+	case events.DamageProvenance:
+		// Game-long damage-by-source provenance (the_fallen, diseased_vermin):
+		// Obj is the damage SOURCE and IDs[0] the recipient -- PlayerRef-
+		// encoded for a seat, a plain ObjID for an object. This is the record
+		// fact the damage predicates read, not a second damage announcement
+		// (the Damage event already says "Bob takes N damage"), so the line
+		// names the pair and the amount that landed. A hostile/fuzz event
+		// with no recipient (or a stale id) degrades rather than panics.
+		if len(ev.IDs) == 0 {
+			return obj(g, ev.Obj) + " damaged something"
+		}
+		if p, isPlayer := ev.IDs[0].PlayerRef(); isPlayer {
+			return obj(g, ev.Obj) + " damaged " + player(g, p) + " this game"
+		}
+		return obj(g, ev.Obj) + " damaged " + obj(g, ev.IDs[0]) + " this game"
 	case events.ClonePermanent:
 		// CR 613.1a's layer-1 copy basis (api:Clone, task api-clone): Obj is
 		// the object that becomes the copy and IDs[0] the object copied from;

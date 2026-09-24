@@ -150,6 +150,7 @@ func TestCompiledTriggerInterests(t *testing.T) {
 		{"Blocks", TriggerInterestAttackDeclaration},
 		{"Sacrificed", TriggerInterestZoneChange},
 		{"Discarded", TriggerInterestZoneChange},
+		{"DiscardedAll", TriggerInterestZoneChange},
 		{"LandPlayed", TriggerInterestZoneChange},
 		{"Cycled", TriggerInterestZoneChange},
 		{"CommitCrime", TriggerInterestTargetsChosen},

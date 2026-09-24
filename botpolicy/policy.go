@@ -212,6 +212,17 @@ type StackEntry struct {
 	Controller state.PlayerID
 	IsSpell    bool
 	CMC        int32
+	// ManaCost is the spell's printed cost in Forge notation, empty for an
+	// ability object (which is Face-less -- the view half's sv.Card is nil
+	// for a "trigger"/"ability"). It carries the coloured pips CMC cannot:
+	// the target policy reads it to price the PENDING payment a cast-target
+	// ask precedes (CR 601.2b/c -- the spell is on the stack but unpaid), so
+	// effectRanker's spare-mana reserve test deducts what the payment will
+	// actually consume instead of assuming at most one unit. Both adapter
+	// halves fill it the same way from the same printed face (the game half's
+	// o.Face().ManaCost for a spell, the view half's StackView.Card.ManaCost),
+	// so C8's stack census stays equal whichever host asked.
+	ManaCost string
 }
 
 // closesClock reports whether an unblocked swing from the creature id —
@@ -821,14 +832,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					in.Choices = append(in.Choices, o.Index)
 				}
 			}
-		case "multikick":
-			// CR 702.43: the multikicker count ask. Option 0 is "No multikick"
-			// (Amount 0) and the options ascend to the largest count the board
-			// can still pay, so taking the highest Amount is the same "most it
-			// can pay for" rule the "x" arm reads. Paying a kick is the
-			// positive play -- the multikicked cast mode was chosen for the
-			// kicker's effect -- and the count is bounded by affordability, so
-			// the maximum is deterministic and legal.
+		case "multikick", "replicate", "squad":
+			// CR 702.43 (multikicker), CR 702.55a (replicate) and CR 702.66
+			// (squad) pose the same optional-count ask: option 0 is the
+			// decline ("No multikick"/"No replicate"/"No squad", Amount 0)
+			// and the options ascend to the largest count the board can still
+			// pay, so taking the highest Amount is the same "most it can pay
+			// for" rule the "x" arm reads. Paying the count is the positive
+			// play -- the kicked/replicated/squadded cast mode was chosen for
+			// the cost's effect -- and the count is bounded by affordability,
+			// so the maximum is deterministic and legal.
 			in.Choices = []int{d.Options[0].Index}
 			best := d.Options[0].Amount
 			for _, o := range d.Options {

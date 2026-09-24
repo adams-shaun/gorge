@@ -339,7 +339,15 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 // returns exactly what availableManaAbilitiesUsing always returned.
 func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
+	// CR 702.25b: a phased-out permanent is treated as though it does not
+	// exist, so its mana abilities do not exist. PhasedOut is only ever set on
+	// a battlefield permanent (events.Apply's PhaseOut fold is
+	// battlefield-gated, the Move fold clears it), so testing the flag directly
+	// avoids existsOnBattlefield's Zone == ZBattlefield requirement -- this
+	// walk is shared by the battlefield, hand and graveyard offers, and a mana
+	// ability may explicitly function from hand or graveyard (CR 605.2a,
+	// Spirit Guides and Jack-o'-Lantern).
+	if o == nil || o.PhasedOut || o.Face() == nil {
 		return out
 	}
 	f := o.Face()
@@ -700,7 +708,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		if cols, ok := manaAbilityComboColours(ma, chosen); ok {
 			for _, col := range cols {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
-					Ability: i, Label: "Add " + col})
+					Ability: i, Label: manaAbilityCostPrefix(ma) + "Add " + manaAmountPips(ma, col)})
 			}
 			continue
 		}
@@ -764,7 +772,18 @@ func manaAbilityProduced(ma *cards.SA) string {
 	return ma.Params["Produced"]
 }
 
+// Two riders make a paid ability recognisable on the wheel (fb-877b8f8f,
+// fb-bbe4fd8f: Phyrexian Tower's "{T}, Sacrifice a creature: Add {B}{B}"
+// read "Add B", so the player saw no way to sacrifice): a cost beyond the
+// shared {T} is named in front of the production (manaAbilityCostPrefix,
+// "Sacrifice 1 creature: Add BB"), and a literal Amount$ repeats a single
+// pip (manaAmountPips, "Add BB"). An ability with neither keeps the bare
+// shape byte-for-byte.
 func manaAbilityLabel(ma *cards.SA, chosen string) string {
+	return manaAbilityCostPrefix(ma) + manaProducedLabel(ma, chosen)
+}
+
+func manaProducedLabel(ma *cards.SA, chosen string) string {
 	produced := substituteChosenProduced(strings.TrimSpace(ma.Params["Produced"]), chosen)
 	switch produced {
 	case "Any", "Combo Any":
@@ -774,12 +793,55 @@ func manaAbilityLabel(ma *cards.SA, chosen string) string {
 	}
 	if cols, ok := effects.ComboColours(produced); ok {
 		if len(cols) == 1 {
-			return "Add " + cols[0]
+			return "Add " + manaAmountPips(ma, cols[0])
 		}
 		last := len(cols) - 1
 		return "Add " + strings.Join(cols[:last], ", ") + " or " + cols[last]
 	}
-	return "Add " + produced
+	return "Add " + manaAmountPips(ma, produced)
+}
+
+// manaAmountPips repeats a single-pip production by the ability's literal
+// Amount$ ("B" with Amount$ 2 is "BB"). Only a strconv-literal positive
+// amount counts -- the manaColourPrompt rule: an absent, non-literal (X, an
+// SVar, Count$) or non-positive Amount$ keeps the single pip, because a
+// wrong number on the wheel is worse than none -- and only a one-letter
+// WUBRGC pip is repeated, so a "RR" token or a Special expression is left as
+// written.
+func manaAmountPips(ma *cards.SA, pip string) string {
+	if len(pip) != 1 || !strings.Contains("WUBRGC", pip) {
+		return pip
+	}
+	raw, ok := ma.Params["Amount"]
+	if !ok {
+		return pip
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 1 || n > 20 {
+		return pip
+	}
+	return strings.Repeat(pip, n)
+}
+
+// manaAbilityCostPrefix names a mana ability's activation cost BEYOND the
+// {T} every wheel option shares, as "<Cost phrase>: " -- empty when the cost
+// is the bare tap (or blank), so the common "Add C" label is unchanged. It
+// phrases the parsed cost with costPhrase, the engine's one human cost
+// renderer (the unless prompts, turn-face-up, ward), with the tap clause
+// cleared: every option on the wheel is tapping this source, so the tap is
+// not what the player is choosing between.
+func manaAbilityCostPrefix(ma *cards.SA) string {
+	raw := strings.TrimSpace(ma.Params["Cost"])
+	if raw == "" {
+		return ""
+	}
+	c := ParseCost(raw)
+	c.Tap = false
+	phrase := costPhrase(c)
+	if phrase == "" {
+		return ""
+	}
+	return strings.ToUpper(phrase[:1]) + phrase[1:] + ": "
 }
 
 // manaAbilityPayable is the mana-ability equivalent of the cast cost gate.

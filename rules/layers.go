@@ -100,6 +100,12 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					// activeStatics, the trigger scan and the offer loops).
 					continue
 				}
+				if onBattlefield && o.PhasedOut {
+					// CR 702.25b/d: a phased-out permanent is treated as though it
+					// does not exist, so its own statics do not function (the same
+					// one gate shared with activeStatics).
+					continue
+				}
 				// Enchantment Rooms (rules/rooms.go): once the room's second door
 				// is unlocked, the ALTERNATE face's statics are live too -- a room
 				// permanent's rules text is both halves' combined after the
@@ -551,11 +557,22 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// queue and a replayed one mint the same stack object. A
 						// self-grant degenerates to the affected object; a body that
 						// fails to parse grants nothing.
-						if name := strings.TrimSpace(st.Params["AddTrigger"]); name != "" {
-							if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
-								gt := base
-								gt.AddTrigger = &t
-								out = append(out, gt)
+						if raw := strings.TrimSpace(st.Params["AddTrigger"]); raw != "" {
+							// The value may name SEVERAL SVar triggers joined by Forge's
+							// " & " separator (Mirror Shield's TrigBlocks &
+							// TrigBecomeBlocked). Split through the ONE exported grammar
+							// helper the K:Class: grant path also uses -- reading the
+							// whole value as one name would look up a nil SVar and
+							// silently grant nothing. Order is the value's left-to-right
+							// order, so replay is deterministic; each name still fails
+							// closed on its own (a missing or unparseable body grants
+							// nothing, and no longer suppresses its valid sibling).
+							for _, name := range cards.SplitGrantNames(raw) {
+								if t, ok := cards.ParseTriggerLine(fc.SVars[name]); ok {
+									gt := base
+									gt.AddTrigger = &t
+									out = append(out, gt)
+								}
 							}
 						}
 						// A named-variable grant (Sword of Fire and Ice): AddSVar$ names an SVar
@@ -1039,7 +1056,7 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 //     Ascend latch, state.Player.Blessing -- granted by rules/ascend.go's
 //     emit-side scan and spell-resolution grant).
 //
-// Every other value -- EnduringStory, FatefulHour, Monarch, MaxSpeed
+// Every other value -- FatefulHour, Monarch, MaxSpeed
 // and anything new -- FAILS CLOSED (the gate never holds), matching every
 // sibling gate's documented deny direction. MaxSpeed is safe to deny here:
 // its statics carry only AddAbility$/AddStaticAbility$/AddTrigger$/
@@ -1067,13 +1084,16 @@ func (e *Engine) continuousConditionHolds(sv staticView) bool {
 	case "Hellbent":
 		return len(e.G.Zone(state.ZHand, sv.Controller)) == 0
 	case "Blessing":
-		// CR 702.131: the city's blessing (Ascend). The latch is one-way
-		// and only ever written by events.Apply's BlessingChange fold, so
-		// the read is a plain state read.
+		// CR 702.131: the city's blessing is a one-way event-folded latch.
 		if int(sv.Controller) >= len(e.G.Players) {
 			return false
 		}
 		return e.G.Players[sv.Controller].Blessing
+	case "EnduringStory":
+		if int(sv.Controller) >= len(e.G.Players) {
+			return false
+		}
+		return e.G.Players[sv.Controller].EnduringStory
 	}
 	return false
 }
@@ -2541,6 +2561,15 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 // `Creature.withFlying+Other+YouCtrl` +1/+0 over a creature an earlier
 // layer-6 effect granted flying is the measured case.
 func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone) bool {
+	// CR 702.25b: a phased-out permanent is treated as though it does not
+	// exist, so NO continuous effect applies to it -- a lord's pump, a
+	// keyword grant, a type change. This is the one applicability gate every
+	// layer walk goes through, so the exclusion cannot be missed by a layer
+	// the way a per-layer check could. PhasedOut is only ever true on a
+	// battlefield permanent.
+	if o := e.G.Obj(id); o != nil && o.PhasedOut {
+		return false
+	}
 	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
 	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
@@ -3660,14 +3689,21 @@ func counterKindMatches(restriction, kind string) bool {
 // attackDutyDischargeable gate (CR 508.1d's "if able").
 //
 // A face static's conditional parameter family is read here (task
-// combatres-cantattack): continuousGateHolds evaluates CheckSVar$/
-// SVarCompare$/Condition$ and UnlessDefenderHolds evaluates UnlessDefender$
-// against the defender (the creature may attack exactly when the defended
-// player satisfies the predicate), so a line carrying them is ENFORCED, not
-// skipped. A static carrying any OTHER parameter still fails
+// combatres-cantattack, extended by combatres-cantattack-present; the present
+// family became reachable on this path with compound-statics1):
+// continuousGateHolds evaluates ClassBand$, the IsPresent$/IsPresent2$ +
+// PresentCompare$ count family (PresentZone$ Battlefield/Graveyard/Exile/Hand/
+// Stack; see countStaticPresent), and CheckSVar$/SVarCompare$/Condition$,
+// and UnlessDefenderHolds evaluates UnlessDefender$ against the defender (the
+// creature may attack exactly when the defended player satisfies the
+// predicate), so a line carrying them is ENFORCED, not skipped. Commit
+// f81f996e split a compound `S:Mode$ CantAttack,CantBlock` line into one
+// static per mode sharing one Params map, so Bast, Panther Goddess's CantAttack
+// half now carries the shared IsPresent$ Creature.YouCtrl | PresentCompare$
+// LE2 gate. A static carrying any OTHER parameter still fails
 // CantAttackParamsReadableForRules and is skipped whole -- the deliberate
-// permissive direction, so a gate this build cannot evaluate never becomes
-// an unconditional restriction.
+// permissive direction, so a gate this build cannot evaluate never becomes an
+// unconditional restriction.
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {

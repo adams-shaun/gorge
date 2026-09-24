@@ -517,6 +517,12 @@ func (e *Engine) Clone() *Engine {
 			c.tappedTurn[id] = turn
 		}
 	}
+	if e.discardAllTurn != nil {
+		c.discardAllTurn = make(map[triggerKey]int32, len(e.discardAllTurn))
+		for k, turn := range e.discardAllTurn {
+			c.discardAllTurn[k] = turn
+		}
+	}
 	// tapObj/tapPlayer/tapEntering and tappingForMana/tappingManaProduced are
 	// emitTap's synchronous context, zero at every intent boundary.
 	// triggerBefore is scoped to a batch emission/resumption, so it is nil
@@ -1012,6 +1018,7 @@ func cloneDecision(p *decision.Decision) *decision.Decision {
 	d.ResumeChoices = append([]state.Target(nil), p.ResumeChoices...)
 	d.ResumeChosenValid = p.ResumeChosenValid
 	d.ResumeRemembered = append([]state.Target(nil), p.ResumeRemembered...)
+	d.ResumeSearchKnown = append([]state.Target(nil), p.ResumeSearchKnown...)
 	d.ResumeVillainousVictims = append([]state.Target(nil), p.ResumeVillainousVictims...)
 	d.ResumeVillainousIndex = p.ResumeVillainousIndex
 	d.ResumeGenericChoosers = append([]state.Target(nil), p.ResumeGenericChoosers...)

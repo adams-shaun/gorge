@@ -1568,6 +1568,21 @@ func (e *Engine) manaActivateLabel(name string) string {
 	return l
 }
 
+// existsOnBattlefield reports whether o is a permanent the engine treats as
+// existing (CR 702.25b): it is on the battlefield and not phased out. A
+// phased-out permanent is treated as though it does not exist -- it cannot be
+// targeted (rules/stack.go candidatesFor), activated, tapped or sacrificed as
+// a cost, its static and triggered abilities are off, and it does not stay in
+// combat (events.Apply's PhaseOut fold removes it, CR 702.25c). PhasedOut is
+// only ever true on a battlefield permanent (the PhaseOut fold is
+// battlefield-gated, the Move fold clears it), so gating a walk that already
+// restricts itself to the battlefield on it is exact. Battlefield action
+// and cost walks use this helper; mana-ability discovery and trigger scanning
+// separately reject phased-out objects. Other readers must gate where relevant.
+func existsOnBattlefield(o *state.Object) bool {
+	return o != nil && o.Zone == state.ZBattlefield && !o.PhasedOut
+}
+
 // legalActions enumerates everything p may legally do with priority. The
 // result is the complete rules surface a client ever sees.
 func (e *Engine) legalActions(p state.PlayerID) []decision.Option {
@@ -2624,6 +2639,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
+			if z == state.ZBattlefield && !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out permanent is treated as though it
+				// does not exist, so its mana abilities are not offered. The
+				// choke point appendAvailableManaAbilities is gated too, which
+				// covers the payment windows this offer walk does not reach.
+				continue
+			}
 			f := o.Face()
 			if f == nil {
 				continue
@@ -2666,6 +2688,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZHand, state.ZExile} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
+			if z == state.ZBattlefield && !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out permanent is treated as though it
+				// does not exist, so none of its printed activated abilities is
+				// offered or activatable.
+				continue
+			}
 			f := o.Face()
 			if f == nil {
 				continue
@@ -2883,6 +2911,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if printedOK {
 					out = append(out, decision.Option{Index: len(out), Kind: "ability",
 						Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
+						Cost:  e.abilityOfferCost(p, id, ab),
 						Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach"})
 				}
 				if altOK {
@@ -2958,6 +2987,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// A face-down permanent is not offered granted abilities: the
 			// offer label reads the printed face name, which CR 708.8 says
 			// does not exist while face down.
+			continue
+		}
+		if !existsOnBattlefield(o) {
+			// CR 702.25b: a phased-out permanent is treated as though it does
+			// not exist, so none of its granted or gained activated abilities
+			// is offered or activatable.
 			continue
 		}
 		for _, ga := range e.grantedAbilities(p, id) {
@@ -3097,6 +3132,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if o == nil || o.Face() == nil || !e.HasKeyword(id, "Station") {
 				continue
 			}
+			if !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out permanent is treated as though it
+				// does not exist, so it cannot be stationed.
+				continue
+			}
 			if len(e.stationCandidates(p, id)) == 0 {
 				continue
 			}
@@ -3110,6 +3150,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
 			if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
+				continue
+			}
+			if !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out room is treated as though it does
+				// not exist, so it cannot be unlocked.
 				continue
 			}
 			cost, ok := e.unlockRoomCost(o)
@@ -3133,6 +3178,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
+			continue
+		}
+		if !existsOnBattlefield(o) {
+			// CR 702.25b: a phased-out permanent is treated as though it
+			// does not exist, so its max-speed granted abilities are not
+			// offered.
 			continue
 		}
 		for _, ab := range e.maxSpeedAbilities(p, id) {
@@ -3175,6 +3226,25 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				Obj:   id, SVar: sv})
 		}
 	}
+	// Morph-family turn face up (CR 708.6 / CR 116.2b, rules/morph_turnup.go):
+	// a face-down permanent its controller cast with Morph, Megamorph or
+	// Disguise may be turned face up as a SPECIAL ACTION any time they have
+	// priority -- it is not sorcery-gated, does not use the stack, and its
+	// only cost is the keyword's own printed parameter. The offer is gated on
+	// the same floating pool the action pays, so the charge cannot disagree
+	// with what was offered; a manifest or cloak carrier (no family flag) is
+	// never offered here -- its turn-up is a separate subsystem.
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		mf, ok := morphFaceUpCost(e.G.Obj(id))
+		if !ok {
+			continue
+		}
+		if !e.costPayable(p, id, false, mf.cost) {
+			continue
+		}
+		add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
+	}
+
 	// K:Split second (CR 702.62, rules/split_second.go): while a split-second
 	// spell is on the stack, players can't cast spells or activate abilities
 	// that aren't mana abilities. The filter runs here -- at the ONE choke
@@ -3378,6 +3448,12 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// payment and the delayed-shape ability mint.
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		e.beginGrantedActivation(in.Player, opt)
+
+	case "turn_face_up":
+		// Morph-family turn face up (CR 708.6 / CR 116.2b): a special action
+		// -- no stack, no target, no response window. rules/morph_turnup.go
+		// owns the payment and the TurnFaceUp/megamorph-counter events.
+		e.turnFaceUp(in.Player, opt)
 
 	case "cast":
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})

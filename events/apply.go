@@ -378,12 +378,14 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case BlessingChange:
-		// CR 702.131: the city's blessing is a one-way latch ("for the rest
-		// of the game"); the grant's ten-permanents gate is the EMITTER's
-		// (rules/ascend.go), so Apply folds the bit plainly. Idempotent by
-		// construction -- the emitter only emits for an unblessed seat.
+		// CR 702.131: one-way designation latch.
 		if validPlayer(g, e.Player) {
 			g.Players[e.Player].Blessing = true
+		}
+
+	case EnduringStoryChange:
+		if validPlayer(g, e.Player) {
+			g.Players[e.Player].EnduringStory = true
 		}
 
 	case StartingPlayerChange:
@@ -1603,6 +1605,42 @@ func Apply(g *state.Game, e Event) {
 			o.FaceDownHasPT = false
 		}
 
+	case PhaseOut:
+		// CR 702.25's phased-out status (api:Phases): Amount 1 phases the
+		// permanent OUT, -1 phases it IN. Gated on the battlefield, the same
+		// way TurnFaceUp's face-down clear is -- a marker stranded on a card
+		// that left the battlefield is not a phase. The Move fold clears
+		// PhasedOut on every real battlefield departure, so a later entry
+		// (CR 400.7) starts phased in.
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
+			o.PhasedOut = e.Amount >= 1
+			// CR 702.25c: "A permanent that phases out is removed from
+			// combat." Phasing is deliberately NOT a zone change, so no Move
+			// fold runs to clear the combat members the way a departure does;
+			// clear them here with the exact EndCombatReset{Obj} shape, so a
+			// phased-out ATTACKER stops assigning and receiving combat damage
+			// and a phased-out BLOCKER stops absorbing it. A zero tombstone is
+			// left in each attacking creature's BlockedBy (CR 509.1h: the
+			// attacker stays blocked even though its blocker is gone), which
+			// is exactly what liveBlockers and damageStep already read.
+			if o.PhasedOut {
+				for i := range g.Objs {
+					other := &g.Objs[i]
+					if other.ID == e.Obj {
+						other.IsAttacking = false
+						other.AttackingBattle = 0
+						other.BlockedBy = nil
+						continue
+					}
+					for j, id := range other.BlockedBy {
+						if id == e.Obj {
+							other.BlockedBy[j] = 0
+						}
+					}
+				}
+			}
+		}
+
 	case ClockTick:
 		g.Clock++
 
@@ -2193,7 +2231,7 @@ func Apply(g *state.Game, e Event) {
 			// opponent attacked in the triggering declaration.
 			if e.Counter == "__kwMeleeGranted" {
 				sa = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
-					"Defined": "Self", "NumAtt": "Count$RememberedNumber", "NumDef": "Count$RememberedNumber"}}
+					"Defined": "Self", "NumAtt": cards.MeleePumpCount, "NumDef": cards.MeleePumpCount}}
 			}
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -2439,6 +2477,11 @@ func Apply(g *state.Game, e Event) {
 				o.AttachedTo, o.HasAttachedPlayer = 0, false
 			case g.Obj(e.IDs[0]) != nil:
 				o.AttachedTo, o.HasAttachedPlayer = e.IDs[0], false
+				// A re-attach supersedes any earlier bearer: the object is
+				// now "attached to" the new one, so a later "was attached
+				// to X" read must not still name the old X (state.Object.
+				// LastBearer's contract).
+				o.LastBearer = 0
 			}
 		}
 
@@ -2452,6 +2495,15 @@ func Apply(g *state.Game, e Event) {
 		// state fold depends on it.
 		if o := g.Obj(e.Obj); o != nil {
 			o.AttachedTo, o.HasAttachedPlayer = 0, false
+			// IDs[0] is the former bearer: the attachmentSBAs detach arms
+			// carry it so a later trigger can still resolve "attached to
+			// that creature" after the sweep cleared AttachedTo
+			// (state.Object.LastBearer's contract). A zero carrier leaves
+			// any earlier LastBearer standing -- the object was not
+			// attached to a named permanent.
+			if len(e.IDs) > 0 && e.IDs[0] != 0 {
+				o.LastBearer = e.IDs[0]
+			}
 		}
 
 	case AbilityPush:
@@ -2971,7 +3023,50 @@ func Apply(g *state.Game, e Event) {
 				}
 			}
 		}
+
+	case DamageProvenance:
+		// Game-long damage-by-source provenance (the_fallen, diseased_vermin):
+		// append the SOURCE to the recipient's record so the
+		// wasDealtDamageThisGameBy / wasDealtDamageByThisGame filters can ask
+		// "has this source dealt me damage this game". Obj is the source,
+		// IDs[0] is the recipient (PlayerRef-encoded for a seat, a plain
+		// ObjID for an object) -- the TriggerPush encoding, decoded with the
+		// shared ObjID.PlayerRef helper. The record is NEVER cleared (it is
+		// game-long) and the append DEDUPS, so the fold is idempotent and a
+		// repeated source keeps one entry. Guarded to totality like every
+		// case here: a missing source or recipient, or an out-of-range seat,
+		// is a no-op rather than a panic.
+		if e.Obj == 0 || len(e.IDs) == 0 {
+			break
+		}
+		src := e.Obj
+		if p, isPlayer := e.IDs[0].PlayerRef(); isPlayer {
+			if !validPlayer(g, p) {
+				break
+			}
+			rec := g.Players[p].DamageTakenByGame
+			if !containsObjID(rec, src) {
+				g.Players[p].DamageTakenByGame = append(rec, src)
+			}
+			break
+		}
+		if o := g.Obj(e.IDs[0]); o != nil {
+			if !containsObjID(o.DamageTakenByGame, src) {
+				o.DamageTakenByGame = append(o.DamageTakenByGame, src)
+			}
+		}
 	}
+}
+
+// containsObjID reports whether ids already holds want. Walked by index so
+// the result never depends on map iteration order.
+func containsObjID(ids []state.ObjID, want state.ObjID) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
 }
 
 // commanderDenseIndex returns id's match-wide dense commander index - (valid
@@ -3172,8 +3267,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// its next zone, so control-changing effects do not follow it. Reset
 	// before choosing the destination's zone owner: a later graveyard/hand
 	// re-entry must be placed under its owner, not its former controller.
+	// CR 702.25e: a phased-out permanent that leaves the battlefield phases
+	// in as it does so -- the phased-out status is a property of that
+	// battlefield object, and a later entry is a fresh, phased-in permanent.
 	if wasBattlefield && to != state.ZBattlefield {
 		o.Controller = o.Owner
+		o.PhasedOut = false
 	}
 	// CR 113.7a: an ability on the stack is not a card, and once it leaves
 	// the stack it ceases to exist. The resolved/countered ability's move is
@@ -3415,14 +3514,15 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
-			// CR 702.168: the gift promise's receiver is cast-time
-			// provenance, not a battlefield characteristic -- a re-entering
-			// permanent carries no promise from its old cast (CR 400.7). The
-			// FlagPromisedGift bit is cleared with CastFlags just above.
-			o.GiftPromisedTo = 0
+			// CR 400.7: the runtime SVar store is the old permanent's, not the
 			// new object's -- a blunk/reanimated StoreSVar carrier starts with
 			// no stored value (the printed default stands).
 			o.RuntimeSVars = nil
+			// CR 702.168: the gift promise's receiver is cast-time
+			// provenance, not a battlefield characteristic -- a re-entering
+			// permanent carries no promise from its old cast. The
+			// FlagPromisedGift bit is cleared with CastFlags just above.
+			o.GiftPromisedTo = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			o.Protector, o.ProtectorValid = 0, false
@@ -3483,6 +3583,16 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// after the reverse stack move.
 		if wasStack {
 			o.ChosenModes = nil
+		}
+		// AttachedTo has no legal life off the battlefield at all (an Aura/
+		// Equipment that isn't a permanent cannot be "attached"), so it always
+		// resets here. The pre-clear bearer is preserved as LastBearer so a
+		// trigger that resolves after the sweep can still resolve "objects
+		// that were attached to it" (state.Object.LastBearer's contract).
+		// When AttachedTo is already 0 (an earlier Unattached set it) the
+		// existing LastBearer stands.
+		if o.AttachedTo != 0 {
+			o.LastBearer = o.AttachedTo
 		}
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
 	}
