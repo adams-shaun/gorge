@@ -1,3 +1,296 @@
+# Report — game-long damage-by-source provenance (The Fallen, Diseased Vermin) — round t2
+
+Ticket: `agent-20260923T114033Z-a57ee463`
+Branch: `wt/agent-20260923T114033Z-a57ee463`
+Worktree: `/home/sadams/projects/gorge/.worktrees/agent-20260923T114033Z-a57ee463`
+HEAD before this round: `0d9ee980` (merge of `main` into the branch)
+New commit this round: `b025710d`
+`.cards` present: **yes**, as a real directory (not a symlink) — corpus-backed
+tests actually ran (rules results in the 0.5 s range against a warm cache;
+`view` 0.55 s, `internal/searchprobe` 1.5 s).
+
+## What this round was
+
+Round t1 was **lost before it reported** but its implementation was already
+committed (`c2f63152`) and review round r1 had returned **APPROVE**
+(`.ds4/verdict-r1.md`), committing the head re-pin `102a9345`. The t1 report
+(`.ds4/report-t1.md`) documents the feature thoroughly.
+
+`findings-t2.md` then showed that the **module gate** (which runs whole
+packages, unlike the seat's targeted `-run` gates) failed in four packages it
+never exercised with a targeted `-run`:
+
+```
+--- FAIL: TestDepartedChooserResumptionEventStreamIsDeterministic   (rules)
+--- FAIL: TestLifelinkAbilityDamageToCreatureGainsLife              (rules)
+--- FAIL: TestTriggerEventInterestMapping                            (rules)
+--- FAIL: TestSampleRealDeckGolden / TestTeacherChoiceRealDeckGolden (internal/searchprobe)
+--- FAIL: TestDescribeCoversEveryKind                               (view)
+```
+
+All five are the same root cause: the new `DamageProvenance` event kind landed
+without its **consumer registrations** (the trigger-interest map and the view
+renderer) and without re-pinning the **stream goldens** that necessarily carry
+one extra event per landed point of damage.
+
+This round makes no change to the feature design or the event/state shape — it
+adds the two missing consumers and re-pins the moved goldens with measured
+attribution.
+
+## Changes, per file
+
+- **`rules/trigger_eligibility.go`** — added `events.DamageProvenance` to the
+  zero-interest arm of `eventTriggerInterest`, beside the other bookkeeping
+  kinds (`CmdDamage`, `Imprint`, `Goad`, …), with a comment explaining it is a
+  record of what already happened, matched only by the damage predicates'
+  state read, never by a trigger mode. Without it the kind fell through to the
+  default `TriggerInterestAny`, so every point of damage ran a second full
+  trigger scan. This is a **structural fix of the class**: the map's
+  zero-interest list is the one place every non-trigger kind is named, and the
+  test `TestTriggerEventInterestMapping` walks every `Kind` in the enum, so the
+  next appended bookkeeping kind is caught by construction.
+
+- **`view/describe.go`** — added a `case events.DamageProvenance` that renders
+  the (source, recipient, amount) fact. `Obj` is the source; `IDs[0]` is the
+  recipient, `PlayerRef`-decoded for a seat and rendered as an object
+  otherwise, with a no-recipient degradation for hostile/fuzz events.
+  `TestDescribeCoversEveryKind` loops to `events.NumKinds`, so this was a hard
+  build failure until described.
+
+- **`rules/departed_chooser_test.go`** — re-pinned the whole-log chain head
+  `17b98ee3668c4c1b` -> `77b3b266283ab5a9` with a comment naming the ticket.
+  The resumption *tail* assertions are unchanged and still pass: the departure
+  sweep's 60 `MoveZone` events, the one completion move, the resumed preface
+  and `other == 0` all held, which is what says only the added record moved the
+  head.
+
+- **`rules/lifelink_noncombat_test.go`** — the rider assertion is still "the
+  `LifeChange` rides the `Damage` in the same resolution", but the provenance
+  event now sits between them, so the test asserts the `LifeChange` follows the
+  last matching `Damage` with only `DamageProvenance` events in between (any
+  other intervening kind still fails). The semantics (not a trigger, same
+  resolution) are unchanged.
+
+- **`internal/searchprobe/bench_test.go`** — re-pinned:
+  - `pre-optimisation sampler` -> `cb006cbec90cdce865845e020c3b3732c9bdc0f76fc7d6480577497b5f508b30`
+  - `land exclusion` -> `bc3e3c4a6653ed98c0327442b2f1f517882a1b7deb820e10b624c531042394f6`
+  - teacher -> `fa6bb92b47f723e3b45916141c245fbce602f3350337cdaba9f3b6a032b90fb7`
+
+  `worldsDigest` hashes each world's chain head + RNG position + event count, so
+  it *must* move when the fixture game's captured frames carry extra events.
+  Attribution is measured (below): disabling **only** the provenance emission
+  block in `rules/engine.go` restores all three pinned digests byte-for-byte.
+  The teacher result's `Submits` moves 4000 -> 3396 because the sampler's worlds
+  moved; `Index`, `Values` (all 1), `Rollouts` 32, `Terminal` 32, `Capped` 0 and
+  the 8/8/8/8 wins split are all unchanged, and `Parallelism 4` equals
+  sequential — no rollout-side behaviour change. This is exactly the
+  "re-measured for an engine behaviour change" precedent the test's own comment
+  documents.
+
+No change to `events.Event`, `events.Apply`, `state`, `rules/engine.go`,
+`effects/*` or any emitter. No new Known-approximations row; the table was not
+touched.
+
+## Gates — real output
+
+### Trigger interest (was failing)
+
+```
+$ go test -run 'TestTriggerEventInterestMapping|TestDescribeCoversEveryKind|TestLifelinkAbilityDamageToCreatureGainsLife' ./rules/ ./view/
+ok  	github.com/adams-shaun/gorge/rules	0.038s
+ok  	github.com/adams-shaun/gorge/view	0.004s
+```
+
+### Departed-chooser head (was failing)
+
+```
+$ go test -run 'TestTriggerEventInterestMapping|TestDescribeCoversEveryKind|TestLifelinkAbilityDamageToCreatureGainsLife|TestDepartedChooserResumptionEventStreamIsDeterministic' ./rules/ ./view/
+ok  	github.com/adams-shaun/gorge/rules	0.524s
+ok  	github.com/adams-shaun/gorge/view	0.004s
+```
+
+### searchprobe goldens (were failing)
+
+```
+$ go test -run 'TestSampleRealDeckGolden|TestTeacherChoiceRealDeckGolden' ./internal/searchprobe/
+ok  	github.com/adams-shaun/gorge/internal/searchprobe	1.489s
+```
+
+### Ticket's done-means gates
+
+```
+$ go test -run 'TestDamageAllValidPlayers|TestContextWordPredicates|TestUnimplementedPredicateFailsClosed' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.579s
+
+$ go test -run 'TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.521s
+
+$ go test -run TestGenerateCommittedFixture ./cmd/repro/
+ok  	github.com/adams-shaun/gorge/cmd/repro	0.008s
+
+$ go test -run 'TestEmitRecordsGameLongDamageProvenance|TestEmitRecordsObjectDamageProvenance|TestDiseasedVerminAskOffersOnlyPreviouslyDamagedOpponents' ./rules/ ./effects/
+ok  	github.com/adams-shaun/gorge/rules	0.483s
+ok  	github.com/adams-shaun/gorge/effects	0.467s
+```
+
+### Behaviour goldens outside `rules/` (the ~2 s pair)
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.076s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.652s
+```
+
+`cmd/botbench` stayed **green with no re-pin**: neither card ships in a repo
+deck and the provenance event changes no decision.
+
+### Whole `view` package (touched; no `-run` subset exists)
+
+```
+$ go test ./view/
+ok  	github.com/adams-shaun/gorge/view	0.550s
+```
+
+### Format / types (the Go half of `make lint`)
+
+```
+$ gofmt -l rules/trigger_eligibility.go rules/lifelink_noncombat_test.go rules/departed_chooser_test.go view/describe.go internal/searchprobe/bench_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+```
+
+`git status --short` after commit -> clean.
+
+## Fails without the fix (measured revert probes)
+
+Method: copy the target file to `.ds4/scratch/<name>.orig`, revert only the
+relevant hunk with a Python string replace in the real file, `go build ./...`,
+run the one test, then restore with `cp` and confirm with `cmp` (never
+`git stash` / `git checkout <path>`). Both restores passed `cmp` and left
+`git status` clean.
+
+### Probe A — remove `events.DamageProvenance` from the zero-interest arm
+
+```
+$ go test -run 'TestTriggerEventInterestMapping' ./rules/
+--- FAIL: TestTriggerEventInterestMapping (0.00s)
+    trigger_eligibility_test.go:152: kind damage_provenance interest = 1, want 0
+FAIL	github.com/adams-shaun/gorge/rules	0.003s
+```
+
+### Probe B — remove the `view/describe.go` case
+
+```
+$ go test -run 'TestDescribeCoversEveryKind' ./view/
+--- FAIL: TestDescribeCoversEveryKind (0.00s)
+    describe_test.go:278: kind damage_provenance (93) has no description
+FAIL	github.com/adams-shaun/gorge/view	0.002s
+```
+
+### Attribution probe for the searchprobe goldens (not a failure proof — a measurement)
+
+Disabling **only** the provenance emission block in `rules/engine.go` (no test
+file changed) made all three pinned digests match again:
+
+```
+$ go test -run 'TestSampleRealDeckGolden|TestTeacherChoiceRealDeckGolden' ./internal/searchprobe/
+ok  	github.com/adams-shaun/gorge/internal/searchprobe	1.453s
+```
+
+Restored: `cmp rules/engine.go .ds4/scratch/engine.go.bak` OK.
+
+The `rules/departed_chooser_test.go` head and the `lifelink` re-pin are stream
+goldens whose cause is the same single added event; the searchprobe
+attribution above (disabling only the emission block restores every affected
+digest/head) is the measured proof that no third behaviour moved.
+
+## Goldens / heads
+
+- **`TestHeads` all four moved and were re-pinned by review gate `102a9345`
+  (not this round)**: `2 f107be40dc2792c6`, `4 9b3aab4e0336ba8c`,
+  `6 c4ce39421c473963`, `8 3d1974a1859d9676`. Cause: one extra
+  `DamageProvenance` event per landed point of damage, attributed by reverting
+  only the emission block. `rules/heads_test.go`'s own comment block records
+  the attribution (measured: disabling only the emission restores the old head).
+- **Feedback fixture `20260915T094418Z-e484f1db`** was regenerated in t1
+  (23 `kind: 93` events = `DamageProvenance`). `TestGenerateCommittedFixture`
+  stays green this round.
+- **Feedback fixture `20260914T120000Z-fb01`** was correctly **not**
+  regenerated (t1 finding: that captured window deals no damage, so it needs no
+  provenance events, and its committed copy still replays byte-identically;
+  regenerating would pick up unrelated generator drift). The brief's premise
+  that both would DIVERGE is false — carried forward from the t1 report.
+- **`internal/searchprobe` digests** moved this round and are re-pinned with
+  measured attribution (above). This golden is not named in the brief's
+  "goldens that WILL move" list, but its own test comment explicitly sanctions
+  re-measurement for an engine behaviour change; the attribution is measured,
+  not assumed.
+- **`cmd/botbench` `TestConstructedDefaultIsByteIdentical`** stayed green, no
+  re-pin.
+
+## Deviations from the brief
+
+- **`internal/searchprobe/bench_test.go` re-pinned.** The brief did not name
+  this golden as an expected mover, but the module gate proved it moved, the
+  cause is the same mechanical added event, and attribution was measured. Not
+  re-pinning it would leave the module red.
+- **`rules/lifelink_noncombat_test.go` edited.** The brief did not name it; it
+  is a stream-order golden that the added event necessarily interleaves. The
+  assertion's semantics were preserved (only provenance is allowed in between).
+- **`rules/heads_test.go` was re-pinned in an earlier commit (`102a9345`) by
+  the review gate**, not by this round; the brief said not to edit it, but the
+  movement was expected and the re-pin carries measured attribution.
+- **No Known-approximations row was added, grown or deleted**;
+  `knownApproximationRows` is untouched.
+- **`view/describe.go` and `rules/trigger_eligibility.go` were not named in
+  the brief.** They are the two missing consumers of the new kind — without
+  them the module does not build/test. Each is a single registration in an
+  existing exhaustive switch, not a new primitive or widened condition.
+
+## Issues (found, not fixed)
+
+Carried forward from the t1 report, still open:
+
+1. **Per-turn by-source siblings remain unknown-word fail-closed** —
+   `wasDealtDamageThisTurnBySource` and `wasDealtCombatDamageThisTurnBySource`.
+   Out of scope per the brief (only the two ThisGame spellings). They need a
+   per-turn twin (cleared at `TurnChange`) plus LKI, not the game-long record.
+   Measured carriers (4 files): `hidetsugu_consumes_all_vessel_of_the_all_consuming`,
+   `hope_of_ghirapur`, `raphael_tag_team_tough`, `wicked_akuba`. CR 120.3.
+   Natural follow-up ticket.
+
+2. **`cmd/repro/testdata/feedback/20260914T120000Z-fb01` is stale relative to
+   its generator.** `REPRO_REGEN_FIXTURE=1 go test ./cmd/repro -run
+   TestGenerateCommittedFixture` no longer reproduces it (independent of this
+   ticket; the review gate reproduced it with the feature reverted). Invisible
+   today because the non-regen gate SKIPs and the committed fixture still
+   replays.
+
+3. **`DamageTakenByGame` is unbounded in a long game** — one `ObjID` per
+   distinct source per recipient, never cleared (game-long by design).
+
+4. **`host/session_test.go` ring headroom** — raised 64 -> 256 in t1 to absorb
+   the denser frame stream; no production concern.
+
+## Consumption / review-notes for the reviewer
+
+- The feature design and all event/state/filter code are unchanged from
+  `c2f63152`; review that commit plus `.ds4/report-t1.md` for the design
+  rationale and the t1 revert probes.
+- This round is exactly five files, all consumer-registration or golden
+  re-pin, plus the re-pin comments naming this ticket.
+
+STATUS=DONE
+COMMITS=b025710d
+TESTS=go test (targeted) ./rules ./view ./effects ./internal/searchprobe ./cmd/repro ./internal/archtest ./cmd/botbench — all ok; revert probes A/B fail as expected
+
+---
+
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
 # Report — agent-20260923T042552Z-0936e140
 
 Implement DigUntil withheld rider semantics.
