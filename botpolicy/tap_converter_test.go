@@ -146,3 +146,41 @@ func TestPaymentWindowNeverTakesAConverter(t *testing.T) {
 		}
 	}
 }
+
+// TestConverterGateIgnoresRestrictedPoolMana (cardfuzz batch5 line 9): Myr
+// Reservoir's floating {C}{C} may only be spent on Myr, so the engine pays
+// Initiates of the Ebon Hand's "{1}: Add {B}" with the pool's {B} and adds
+// it straight back. The gate simulated the generic {1} out of the {C} and
+// saw the {B} it added close a pip -- progress that never happens -- and
+// re-activated the converter until the livelock watcher fired. Priced over
+// the unrestricted pool only, the conversion is net-zero: the pass.
+func TestConverterGateIgnoresRestrictedPoolMana(t *testing.T) {
+	priority := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "activate", Label: "Activate Initiates of the Ebon Hand for mana", Obj: 7, Cost: "1"},
+			{Index: 1, Kind: "pass", Label: "Pass priority"},
+		}}
+	b := Board{IsMain: true,
+		Cards: map[state.ObjID]Card{
+			3: {CMC: 3, ManaCost: "1 B B", Castable: true},
+			7: {Produces: cards.ManaProduction{Colour: [6]int32{0, 0, 1, 0, 0, 0}}},
+		},
+		Pool: state.Mana{0, 0, 1, 0, 0, 2}}
+	// Control: the same {C}{C} UNRESTRICTED really does fix the colour.
+	if in := Decide(b, &priority, rng(1)); priority.Options[in.Choices[0]].Kind != "activate" {
+		t.Fatalf("unrestricted colour-fixing conversion = %+v, want the activation", in)
+	}
+	b.PoolRestricted = RestrictedPool([]state.ManaRestriction{
+		{Color: "C", Amount: 2, Valid: "Spell.Myr,Activated.Myr+inZoneBattlefield"}})
+	if b.PoolRestricted != (state.Mana{0, 0, 0, 0, 0, 2}) {
+		t.Fatalf("RestrictedPool = %v, want the two {C} in the C slot", b.PoolRestricted)
+	}
+	if in := Decide(b, &priority, rng(1)); priority.Options[in.Choices[0]].Kind != "pass" {
+		t.Fatalf("conversion priced over restricted mana = %+v, want the pass", in)
+	}
+	// An AddsNoCounter$-only provenance batch (empty Valid) is spendable
+	// anywhere and is not restricted.
+	if got := RestrictedPool([]state.ManaRestriction{{Color: "G", Amount: 1, NoCounter: "True"}}); got != (state.Mana{}) {
+		t.Fatalf("RestrictedPool of an unrestricted provenance batch = %v, want empty", got)
+	}
+}

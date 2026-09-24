@@ -79,6 +79,18 @@ type Board struct {
 	// deciding seat's own private state, like its hand, so carrying it in
 	// the Board is no information leak (Ruling C0).
 	Pool state.Mana
+	// PoolRestricted is the part of Pool, slot for slot, that carries a
+	// RestrictValid$ spend limit (Myr Reservoir's "spend this mana only to
+	// cast Myr spells": state.Player.RestrictedMana batches with a non-empty
+	// Valid, the same batches the projected View names in PoolRestrictions).
+	// PoolRestricted[i] <= Pool[i]. The T3 converter gate (tap.go) prices a
+	// conversion over the UNRESTRICTED pool only: the engine will not spend a
+	// restricted unit on an ability its restriction does not admit, so a
+	// simulation that paid a converter's {1} out of restricted {C} saw
+	// progress where the engine paid the {B} it then added back, forever
+	// (cardfuzz batch5 line 9: Initiates of the Ebon Hand beside Myr
+	// Reservoir's floating {C}{C}).
+	PoolRestricted state.Mana
 	// Commanders is the CR 903.6/903.10 commander bookkeeping, keyed by
 	// object id: every commander object in the match (each player's
 	// Commanders list, in Config order), with the CR 903.8 tax base

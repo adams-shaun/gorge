@@ -384,3 +384,25 @@ func TestBlocksBotTakesLethalChumps(t *testing.T) {
 		t.Errorf("blocks lethal choices = %v, want both chumps", in.Choices)
 	}
 }
+
+// TestBoardFromViewCarriesRestrictedPool pins the view half of
+// Board.PoolRestricted (the T3 converter gate's restricted share of the
+// pool, cardfuzz batch5 line 9): the viewer's own PoolRestrictions land in
+// the slot their producing counter names, the same fold the game half's
+// botpolicy.RestrictedPool makes from state.Player.RestrictedMana.
+func TestBoardFromViewCarriesRestrictedPool(t *testing.T) {
+	v := view.View{Viewer: 0, Players: []view.PlayerView{
+		{ID: 0, Life: 20, Pool: map[string]int32{"B": 1, "C": 2},
+			PoolRestrictions: []view.PoolRestrictionView{{Color: "C", Amount: 2, Text: "Myr only"}}},
+		{ID: 1, Life: 20, Pool: map[string]int32{"R": 3},
+			PoolRestrictions: []view.PoolRestrictionView{{Color: "R", Amount: 3, Text: "not ours"}}},
+	}}
+	b := boardFromView(v)
+	if b.PoolRestricted != (state.Mana{0, 0, 0, 0, 0, 2}) {
+		t.Fatalf("PoolRestricted = %v, want the viewer's two {C}", b.PoolRestricted)
+	}
+	want := botpolicy.RestrictedPool([]state.ManaRestriction{{Color: "C", Amount: 2, Valid: "Spell.Myr"}})
+	if b.PoolRestricted != want {
+		t.Fatalf("view half %v disagrees with the game half %v", b.PoolRestricted, want)
+	}
+}
