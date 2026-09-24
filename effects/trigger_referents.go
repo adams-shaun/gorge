@@ -427,17 +427,24 @@ func matchControlReferent(g *state.Game, o *state.Object, sc SpecContext, op, re
 	return false, true
 }
 
-// matchTargetedPlayerCtrl is TargetedPlayerCtrl's resolution-only one-token
-// form: the candidate is controlled by one of this resolution's PLAYER
-// targets. It deliberately does not treat an object target's controller as a
-// player target; TargetedOrController is the Forge spelling for that union.
+// matchTargetedPlayerCtrl and matchTargetedPlayerOwn are resolution-only
+// one-token forms. They bind only direct PLAYER targets (not object
+// controllers) and compare the corresponding candidate field.
 func matchTargetedPlayerCtrl(g *state.Game, o *state.Object, sc SpecContext) (bool, bool) {
-	players, ok := controlReferentPlayers(g, sc, "ControlledBy", "TargetedPlayer")
+	return matchTargetedPlayerField(g, o, sc, "ControlledBy", func(o *state.Object) state.PlayerID { return o.Controller })
+}
+
+func matchTargetedPlayerOwn(g *state.Game, o *state.Object, sc SpecContext) (bool, bool) {
+	return matchTargetedPlayerField(g, o, sc, "OwnedBy", func(o *state.Object) state.PlayerID { return o.Owner })
+}
+
+func matchTargetedPlayerField(g *state.Game, o *state.Object, sc SpecContext, op string, field func(*state.Object) state.PlayerID) (bool, bool) {
+	players, ok := controlReferentPlayers(g, sc, op, "TargetedPlayer")
 	if !ok {
 		return false, false
 	}
 	for _, p := range players {
-		if o.Controller == p {
+		if field(o) == p {
 			return true, true
 		}
 	}
