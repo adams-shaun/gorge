@@ -141,7 +141,7 @@ type TriggerContext struct {
 	// spend and the value for a triggering card whose cast carried none.
 	TriggerManaSpent     int32
 	TriggerManaSnowSpent int32
-	TriggerManaTyped     [3]int32
+	TriggerManaTyped     [4]int32
 	// TriggerBlocker is the BLOCKING creature of the DeclareBlockers pair a
 	// Mode$ Blocks trigger fired for (rules/trigger_match.go's
 	// checkBlocksTriggers). A Blocks trigger's Remembered carries the pair's

@@ -327,11 +327,16 @@ func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you 
 // answer:
 //
 //   - the mana-spend properties the payment path already encodes: a
-//     Treasure/Cave/Desert unit's spend is a tagged ManaAdd event
+//     Treasure/Cave/Desert/Artifact unit's spend is a tagged ManaAdd event
 //     (state.TypedManaCounter, the castfilter2 encoding — no new event
-//     needed), and the cast's total spend is the plain negative ManaAdd
-//     delta (manaSpentForCast's read, Roiling Vortex's convention). These
-//     four spellings are implemented here.
+//     needed; task mayplay-mfa added Artifact), and the cast's total spend
+//     is the plain negative ManaAdd delta (manaSpentForCast's read, Roiling
+//     Vortex's convention). These five spellings are implemented here.
+//     Spell.ManaFromArtifact (Shadow the Hedgehog's Chaos Control -- "mana
+//     from an artifact was spent to cast it") is the artifact tag: a
+//     producer that prints none of Treasure/Cave/Desert tags Artifact, so
+//     the spend window's tagged ledger answers it exactly like its
+//     siblings.
 //
 //   - the cast-mode/permission flags the pay-time CastInfo carries:
 //     Spell.Mayhem (state.FlagMayhem), Spell.MayPlaySource
@@ -363,6 +368,7 @@ var castSaTokens = []castSaToken{
 	{token: "CastSa Spell.ManaFromTreasure", tag: state.TypedTreasure},
 	{token: "CastSa Spell.ManaFromCave", tag: state.TypedCave},
 	{token: "CastSa Spell.ManaFromDesert", tag: state.TypedDesert},
+	{token: "CastSa Spell.ManaFromArtifact", tag: state.TypedArtifact},
 	{token: "CastSa Spell.ManaSpent EQ0", tag: -1},
 	{token: "CastSa Spell.Mayhem", tag: -1, flag: state.FlagMayhem},
 	{token: "CastSa Spell.MayPlaySource", tag: -1, flag: state.FlagMayPlay},
@@ -376,7 +382,7 @@ var castSaTokens = []castSaToken{
 // this turn's provenance question.
 type castSpendFacts struct {
 	spent  int32
-	tagged [3]int32
+	tagged [4]int32
 	ok     bool
 }
 
@@ -438,7 +444,11 @@ func (e *Engine) castSpendWindow(obj state.ObjID) castSpendFacts {
 			if ev.Amount < 0 && int(ev.Player) < len(acc) {
 				acc[ev.Player].spent += -ev.Amount
 				if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
-					acc[ev.Player].tagged[tag] += -ev.Amount
+					base, artifact := state.ManaUnitTypes(tag)
+					acc[ev.Player].tagged[base] += -ev.Amount
+					if artifact && base != state.TypedArtifact {
+						acc[ev.Player].tagged[state.TypedArtifact] += -ev.Amount
+					}
 				}
 			}
 		}

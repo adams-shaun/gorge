@@ -125,20 +125,36 @@ const (
 
 type Mana [numMana]int32
 
-// The tagged producer types Player.TypedMana indexes (task castfilter2):
-// the fixed precedence order a face carrying several tagged types resolves
-// in (measured at the corpus pin: no producer carries two).
+// The first four typed pool slots retain their historical indices. Slots 4-6
+// encode the orthogonal Artifact bit on a Treasure/Cave/Desert mana unit;
+// these are exclusive per-unit slots, never additional pool units.
 const (
 	TypedTreasure = 0
 	TypedCave     = 1
 	TypedDesert   = 2
+	TypedArtifact = 3
+	// The high bit of a producer tag is orthogonal Artifact provenance.
+	TypedArtifactTreasure = 4
+	TypedArtifactCave     = 5
+	TypedArtifactDesert   = 6
 )
 
-// TypedManaTags is the tag word per TypedMana index, in the fixed
-// Treasure > Cave > Desert precedence; the ManaAdd event's
-// "<Tag><colour>" Counter form parses through it (a fixed slice, never a
-// map, so the parse order is deterministic).
-var TypedManaTags = [3]string{"Treasure", "Cave", "Desert"}
+// TypedManaTags names the four public producer-type predicates, in stable
+// order. ManaUnitTags below is the exclusive pool/event encoding.
+var TypedManaTags = [4]string{"Treasure", "Cave", "Desert", "Artifact"}
+
+// ManaUnitTags partitions the pool into exclusive units. The final three
+// encode an Artifact bit alongside the original Treasure/Cave/Desert type.
+// TypedManaTags remains the four public type names, not these wire spellings.
+var ManaUnitTags = [7]string{"Treasure", "Cave", "Desert", "Artifact", "ArtifactTreasure", "ArtifactCave", "ArtifactDesert"}
+
+// ManaUnitTypes maps an exclusive unit to every type it represents.
+func ManaUnitTypes(unit int) (base int, artifact bool) {
+	if unit >= TypedArtifactTreasure && unit <= TypedArtifactDesert {
+		return unit - TypedArtifactTreasure, true
+	}
+	return unit, unit == TypedArtifact
+}
 
 // TypedManaSpentByTag maps a TypedManaTags index to the carried spent count
 // on an object. It is the ONE mapping the filtered Count$CastTotalManaSpent
@@ -153,6 +169,8 @@ func (o *Object) TypedManaSpentByTag(tag int) int32 {
 		return o.ManaCaveSpent
 	case TypedDesert:
 		return o.ManaDesertSpent
+	case TypedArtifact:
+		return o.ManaArtifactSpent
 	}
 	return 0
 }
@@ -162,7 +180,7 @@ func (o *Object) TypedManaSpentByTag(tag int) int32 {
 // "CaveW", "DesertR"). ok is false for every other counter shape -- a bare
 // WUBRGC letter, the empty default, or the "S<colour>" snow form.
 func TypedManaCounter(counter string) (tag int, slot int, ok bool) {
-	for ti, t := range TypedManaTags {
+	for ti, t := range ManaUnitTags {
 		if len(counter) == len(t)+1 && counter[:len(t)] == t {
 			return ti, ManaIndex(counter[len(t)]), true
 		}

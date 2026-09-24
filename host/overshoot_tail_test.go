@@ -591,6 +591,12 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // replayed the new marker). Re-recorded via TestGenerateOvershootCapture
 // (REPRO_REGEN_FIXTURE=1): 2113 events (2112 + the one marker), 378 intents
 // (the overshootIntents shape unchanged), head 3a31833838e13145.
+// Starting-player election and Artifact mana provenance (2026-09-23):
+// the current live fixture records the starting_player ask at event 20
+// (previously no ask), and the first artifact-produced mana is tagged at
+// the old event 265. Re-recorded through TestGenerateOvershootCapture;
+// the parked commander-zone ask and lethal-damage tail are unchanged.
+// 2117 events, 379 intents, head 9f32a260ba20e345.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -622,8 +628,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 2113 {
-		t.Fatalf("capture carries %d events, want the full 2113-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 2117 {
+		t.Fatalf("capture carries %d events, want the full 2117-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {

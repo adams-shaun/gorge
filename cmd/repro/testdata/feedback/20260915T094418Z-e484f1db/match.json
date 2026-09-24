@@ -218,7 +218,7 @@
     "foundations-reign-of-dragons",
     "foundations-wretched-ranks"
   ],
-  "events": 2113,
+  "events": 2117,
   "format": "commander",
   "match": 1,
   "name_universe": true,
@@ -234,12 +234,14 @@
     {
       "name": "Player 1",
       "deck": "foundations-reign-of-dragons",
-      "colour": "#e5484d"
+      "colour": "#e5484d",
+      "deck_id": "foundations-reign-of-dragons"
     },
     {
       "name": "Player 2",
       "deck": "foundations-wretched-ranks",
-      "colour": "#3b82f6"
+      "colour": "#3b82f6",
+      "deck_id": "foundations-wretched-ranks"
     }
   ],
   "seed": 11409396526365357622,

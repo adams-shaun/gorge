@@ -1407,19 +1407,21 @@ func wordPredicate(p string) (wordKind, string) {
 		"wasCastFromYourGraveyardByYou", "wasCastFromTheirHand":
 		return wordCastProvenance, p
 	// The card-level CastSa property tokens (task castsa-provenance): the
-	// four mana-spend spellings the payment path's tagged ManaAdd encoding
-	// answers, plus the cast-flag spellings Spell.Mayhem (state.FlagMayhem,
-	// stamped by modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped,
-	// modeFlags' "warped" case) — recognized here (the census no longer
-	// reports them unknown) but evaluated by the provenance strips (rules'
-	// castSaAdmits and the per-event walk in spellsCastThisTurnMatching;
+	// five mana-spend spellings the payment path's tagged ManaAdd encoding
+	// answers (task mayplay-mfa added CastSa Spell.ManaFromArtifact), plus
+	// the cast-flag spellings Spell.Mayhem (state.FlagMayhem, stamped by
+	// modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped, modeFlags'
+	// "warped" case) — recognized here (the census no longer reports them
+	// unknown) but evaluated by the provenance strips (rules' castSaAdmits
+	// and the per-event walk in spellsCastThisTurnMatching;
 	// effects/conditions.go's castSaAdmitsFilter for the ConditionPresent
 	// gates), which remove the token before the filter runs; wordMatches'
-	// body fails closed. The still-unmodelled spellings (CastSa
-	// Spell.MayPlaySource and CastSa Spell.ManaFromArtifact) stay unknown
-	// and fail closed everywhere.
+	// body fails closed. The still-unmodelled spelling (CastSa
+	// Spell.MayPlaySource -- the sibling ticket's scope) stays unknown and
+	// fails closed everywhere.
 	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
-		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0",
+		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaFromArtifact",
+		"CastSa Spell.ManaSpent EQ0",
 		"CastSa Spell.Mayhem", "CastSa Spell.Warp":
 		return wordCastProvenance, p
 	case "ActivePlayerCtrl":

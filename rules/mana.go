@@ -2382,7 +2382,7 @@ func anyTypeAlts() []pipAlt {
 type manaPayment struct {
 	pool      state.Mana
 	snow      state.Mana
-	typed     [3]state.Mana
+	typed     [7]state.Mana
 	lifeSpent int32
 }
 
@@ -2393,7 +2393,7 @@ type manaPayment struct {
 // they go before snow but after plain); the backtracking search undoes the
 // choice if the rest of the cost cannot be paid that way. plain is the
 // slot's untagged remainder; each tally is <= the pool by construction.
-func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
+func takeUnit(rem, sn *state.Mana, typed *[7]state.Mana, i int) {
 	plain := (*rem)[i] - (*sn)[i]
 	for t := range *typed {
 		plain -= (*typed)[t][i]
@@ -2431,7 +2431,7 @@ func takeUnit(rem, sn *state.Mana, typed *[3]state.Mana, i int) {
 // only as though it were colorless"). A nil conv is the plain exact-colour
 // match every pre-existing caller keeps, so games with no ManaConvert static
 // on the battlefield resolve byte-identically.
-func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveMana(pool, snow state.Mana, typed [7]state.Mana, life int32, conv *manaConv) (manaPayment, bool) {
 	return c.resolveManaWith(pool, snow, typed, life, false, pipRider{}, conv)
 }
 
@@ -2446,7 +2446,7 @@ func (c Cost) resolveMana(pool, snow state.Mana, typed [3]state.Mana, life int32
 // never includes colourless. Both grants keep main search's deterministic
 // first-alternative preference; the expanded alternatives are tried in fixed
 // WUBRG order (see anyColorAlts).
-func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
+func (c Cost) resolveManaWith(pool, snow state.Mana, typed [7]state.Mana, life int32, bLifeOK bool, rider pipRider, conv *manaConv) (manaPayment, bool) {
 	if life < c.Life {
 		return manaPayment{}, false
 	}
@@ -2612,7 +2612,7 @@ func (c Cost) resolveManaWith(pool, snow state.Mana, typed [3]state.Mana, life i
 // "is there ANY way this cost can be paid right now" -- the same resolveMana
 // the payment stage uses, so an offered cost and the cost it charges can
 // never disagree.
-func (c Cost) payable(pool, snow state.Mana, typed [3]state.Mana, life int32) bool {
+func (c Cost) payable(pool, snow state.Mana, typed [7]state.Mana, life int32) bool {
 	_, ok := c.resolveMana(pool, snow, typed, life, nil)
 	return ok
 }
@@ -2624,7 +2624,7 @@ func (c Cost) CanPay(p state.Mana) bool {
 	// here) and a {S} pip is unpayable. This is the pure pricing question the
 	// corpus invariants ask, and it never treats a hybrid as generic nor lets
 	// colourless `pay` it.
-	_, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
+	_, ok := c.resolveMana(p, state.Mana{}, [7]state.Mana{}, 0, nil)
 	return ok
 }
 
@@ -2641,7 +2641,7 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 	// a fully resolved cost here). resolveMana already reserves the coloured
 	// pips and deducts generic, so the returned pool is fully spent. A failed
 	// search returns the input pool untouched.
-	pay, ok := c.resolveMana(p, state.Mana{}, [3]state.Mana{}, 0, nil)
+	pay, ok := c.resolveMana(p, state.Mana{}, [7]state.Mana{}, 0, nil)
 	if !ok {
 		return p, false
 	}
