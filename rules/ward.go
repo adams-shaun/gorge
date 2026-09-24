@@ -43,7 +43,7 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 				Label: "Discard " + e.G.Obj(id).Face().Name})
 		}
 		mana := e.parseCost(manaRaw)
-		if mana.payable(e.G.Players[payer].Pool, e.G.Players[payer].Snow, e.G.Players[payer].TypedMana, e.G.Players[payer].Life) ||
+		if mana.payable(e.G.Players[payer].Pool, e.G.Players[payer].Snow, e.G.Players[payer].ManaUnits(), e.G.Players[payer].Life) ||
 			(mana.hasManaPayment() && e.hasUntappedManaSource(payer)) {
 			label := capitaliseFirst(costPhrase(mana))
 			if label == "" {

@@ -1259,6 +1259,14 @@ var flagNames = [...]struct {
 	{"manatreasurespent", state.FlagManaTreasureSpent},
 	{"manacavespent", state.FlagManaCaveSpent},
 	{"manadesertspent", state.FlagManaDesertSpent},
+	// The ARTIFACT-sourced part of the total-mana-spent capture (task
+	// mayplay-mfa): a face whose SVar table reads the filtered
+	// Count$CastTotalManaSpent Artifact head, or whose static reads the
+	// CastSa Spell.ManaFromArtifact predicate, stamps its pay-time CastInfo
+	// with this flag too, so the Amount folds into Object.ManaArtifactSpent
+	// instead of overwriting X or an earlier tag. Appended at the end per
+	// the table's own ordering rule.
+	{"manaartifactspent", state.FlagManaArtifactSpent},
 	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
 	// SA's own provenance stamps its pay-time CastInfo with this flag, so
 	// spellRestZone/spellFizzleZone send the played card to exile instead

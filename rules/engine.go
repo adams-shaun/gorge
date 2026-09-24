@@ -772,11 +772,13 @@ type Engine struct {
 	// group the player has already ordered nor make them order the same
 	// triggers twice. Zero whenever pendingTriggers is empty.
 	orderedTriggers int
-	// applyingReplacement guards re-entrancy: while a replacement effect's
-	// own resolution is running, nested emits skip the replacement check
-	// entirely, so a replacement that re-emits a matching event cannot
-	// replace itself again. Task 20.
+	// applyingReplacement guards re-entrancy for the replaced event. Fresh
+	// counter placements emitted by its body still receive their own
+	// AddCounter replacement pass (unless already folded below).
 	applyingReplacement bool
+	// counterReplacementFold marks the already-rewritten event's final emit;
+	// new counter events from a replacement body still take their own pass.
+	counterReplacementFold bool
 	// tokenMintSink, when non-nil, collects every object the TokenCreate event
 	// currently being emitted actually created (EmitTokenCreate). It is a
 	// stack discipline: a nested token creation saves and restores the outer
@@ -2181,9 +2183,37 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 		}
 	}
+	// A CantPutCounter restriction swallows a counter placement outright
+	// (task cantputcounter1): the placement never happens, so neither the
+	// event nor any AddCounter replacement of it may run. This gate was
+	// hoisted here, out of applyReplacementsDispatch, so it runs EVEN while a
+	// replacement effect's own ReplaceWith$ body is resolving
+	// (applyingReplacement): the guard that stops a replacement from
+	// re-matching its own event must not also swallow the prohibition, or a
+	// counter an "enters with N counters" body places slips past Solemnity
+	// and friends (task addcounter1/2). Looking at it before the replacement
+	// pass is harmless: applyReplacementsDispatch used to run it at its own
+	// top, before any match was collected.
+	//
+	// Only a POSITIVE placement of a real counter is subject to the
+	// restriction: a removal (Amount <= 0) is not a placement at all, and the
+	// engine's own status markers (regeneration's Shield, the Deathtouched
+	// mark) are not counters -- the same state.InternalCounterMarker exclusion the
+	// AddCounter matcher keeps, so a "counters can't be put on it" static
+	// cannot stop a regeneration shield or a removal.
+	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
+		ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
+		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
+			return events.Event{}
+		}
+	}
 	if e.applyingReplacement {
 		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
-	} else {
+	}
+	// A replacement body's counter placement is a NEW event, not the event
+	// whose replacement body is resolving. Give it its own AddCounter pass;
+	// the rewritten event itself is folded below without another pass.
+	if !e.applyingReplacement || ((ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) && !e.counterReplacementFold) {
 		replaced, handled := e.applyReplacements(ev)
 		if handled {
 			return replaced
@@ -2298,7 +2328,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			wasTapped = o.Tapped
 		}
 	}
-	stored := events.Emit(e.G, e.L, ev)
+	stored := e.foldEntryMove(ev)
 	e.expireClonesOnEvent(stored, wasTapped)
 	// CR 310.10: every Battle whose recorded protector has just left the game
 	// gets a fresh living opponent as its protector. PlayerLost is the one

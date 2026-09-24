@@ -94,10 +94,10 @@ func TestCMCCountsColoredAndGeneric(t *testing.T) {
 
 func TestLifeCostPayability(t *testing.T) {
 	c := ParseCost("PayLife<1>")
-	if !c.payable(state.Mana{}, state.Mana{}, [3]state.Mana{}, 1) {
+	if !c.payable(state.Mana{}, state.Mana{}, [7]state.Mana{}, 1) {
 		t.Fatal("one life should pay PayLife<1> without mana")
 	}
-	if c.payable(state.Mana{}, state.Mana{}, [3]state.Mana{}, 0) {
+	if c.payable(state.Mana{}, state.Mana{}, [7]state.Mana{}, 0) {
 		t.Fatal("zero life must not pay PayLife<1>")
 	}
 	if c.CanPay(state.Mana{}) {
@@ -192,7 +192,7 @@ func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
 	if !monoCost.CanPay(pool(0, 0, 2, 0, 0, 0)) {
 		t.Error("2B should be payable by BB")
 	}
-	if !monoCost.payable(pool(0, 0, 0, 0, 0, 2), state.Mana{}, [3]state.Mana{}, 0) {
+	if !monoCost.payable(pool(0, 0, 0, 0, 0, 2), state.Mana{}, [7]state.Mana{}, 0) {
 		t.Error("2B should be payable by two generic mana")
 	}
 
@@ -218,7 +218,7 @@ func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
 		t.Error("Dismember must not be pool-payable by RRR without life")
 	}
 	// With life offered, RRR plus four life pays Dismember (CR 107.4f).
-	if !dismemberCost.payable(pool(0, 0, 0, 3, 0, 0), state.Mana{}, [3]state.Mana{}, 20) {
+	if !dismemberCost.payable(pool(0, 0, 0, 3, 0, 0), state.Mana{}, [7]state.Mana{}, 20) {
 		t.Error("Dismember should be payable by RRR with life")
 	}
 
@@ -230,7 +230,7 @@ func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
 	if probeCost.CanPay(pool(0, 0, 0, 0, 1, 0)) {
 		t.Error("Gitaxian Probe must not be pool-payable by G alone without life")
 	}
-	if !probeCost.payable(pool(0, 0, 0, 0, 1, 0), state.Mana{}, [3]state.Mana{}, 20) {
+	if !probeCost.payable(pool(0, 0, 0, 0, 1, 0), state.Mana{}, [7]state.Mana{}, 20) {
 		t.Error("Gitaxian Probe should be payable by G with life")
 	}
 }

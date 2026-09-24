@@ -835,6 +835,9 @@ func Apply(g *state.Game, e Event) {
 			Move(g, e.Obj, e.From, e.To)
 		}
 		if o := g.Obj(e.Obj); o != nil {
+			if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
+				applyEntryCounterPairs(o, e.Pairs)
+			}
 			if e.To == state.ZStack && o.Face() != nil {
 				o.StackKind, o.StackKindKnown = state.StackKindSpell, true
 			}
@@ -1254,7 +1257,11 @@ func Apply(g *state.Game, e Event) {
 			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
 				player.Snow[idx] += e.Amount
 			} else if tag, slot, ok := state.TypedManaCounter(e.Counter); ok {
-				player.TypedMana[tag][slot] += e.Amount
+				base, artifact := state.ManaUnitTypes(tag)
+				player.TypedMana[base][slot] += e.Amount
+				if artifact && base != state.TypedArtifact {
+					player.ArtifactTyped[base][slot] += e.Amount
+				}
 			}
 			// The RestrictValid$/AddsNoCounter$ provenance is registered for
 			// EVERY counter form, never only a plain one: a tagged restricted
@@ -1378,8 +1385,10 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case CounterChange:
-		if o := g.Obj(e.Obj); o != nil {
-			o.AddCounter(e.Counter, e.Amount)
+		if e.Text != EntryCounterNotice {
+			if o := g.Obj(e.Obj); o != nil {
+				o.AddCounter(e.Counter, e.Amount)
+			}
 		}
 
 	case DeclareAttackers:
@@ -1723,7 +1732,10 @@ func Apply(g *state.Game, e Event) {
 			// earlier flags (payCast's flags |= accumulation), so this switch
 			// checks the NEWEST flag first -- the reverse of the emission
 			// order -- or every later event would route into the first tag's
-			// field: Desert, Cave, Treasure, then Snow, then the total.
+			// field: Artifact, Desert, Cave, Treasure, then Snow, then the
+			// total.
+			case FlagsFrom(e.Counter)&state.FlagManaArtifactSpent != 0:
+				o.ManaArtifactSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaDesertSpent != 0:
 				o.ManaDesertSpent = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagManaCaveSpent != 0:
@@ -1920,6 +1932,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(def, e.Player)
 		o.IsToken = true
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+		applyEntryCounterPairs(o, e.Pairs)
 
 	case CardToken:
 		// A battlefield token that is a copy of the CARD object Obj names
@@ -1941,6 +1954,7 @@ func Apply(g *state.Game, e Event) {
 		o.IsToken = true
 		o.FaceIdx = faceIdx
 		Move(g, o.ID, state.ZLibrary, state.ZBattlefield)
+		applyEntryCounterPairs(o, e.Pairs)
 		// Encore encodes its required defender as seat+1; zero remains the
 		// ordinary CardToken shape. The current turn is folded here so replay
 		// reconstructs the same one-turn attack requirement.
@@ -3178,89 +3192,45 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.IsToken = true
 			o.IsCopy = false
 		}
-		// CR 306.5b: a planeswalker enters the battlefield with loyalty
-		// counters equal to its starting loyalty, however it entered (a
-		// resolving spell, a blink or re-entry, a search put it directly onto
-		// the battlefield). Implementing the grant here, inside Move itself,
-		// is what makes every battlefield-entry site covered by construction:
-		// no rules/ or effects/ caller can mint an entry that skips it, and
-		// replay (which re-runs Apply) derives the identical counters. Two
-		// boundaries keep the grant exact:
-		//
-		//   - A battlefield->battlefield move (counters are NOT reset on a
-		//     stay on the battlefield) must not re-stack loyalty, so the grant
-		//     is skipped when the object was already on the battlefield.
-		//   - A face whose starting loyalty this engine cannot read (absent,
-		//     or Loyalty:X -- Nissa, Steward of Elements) grants nothing.
-		//
-		// TokenCreate routes the minted object through Move below, so this
-		// same entry grant gives planeswalker tokens their starting loyalty.
+
 		// CR 400.7: a battlefield entry from another zone is a new object and
 		// a new control acquisition — kw:Echo's gate stamp (the entry already
 		// carries the entering controller). A battlefield→battlefield stay is
-		// not a new acquisition and must not re-stamp, so the tuple lives in
-		// the !wasBattlefield arm beside the loyalty grant it mirrors.
+		// not a new acquisition and must not re-stamp.
+		//
+		// The entry-characteristic COUNTERS (CR 306.5b starting loyalty, Riot's
+		// and Unleash's +1/+1 election, a Saga's lore counter, a Battle's
+		// defense counters) are deliberately NOT folded here. events.Move is a
+		// pure state fold with no way to emit, so a counter folded here is
+		// invisible to the CR 614 replacement pipeline and to the CantPutCounter
+		// prohibition. rules snapshots events.EntryCounterGrants just before
+		// this move folds and places each grant through a real CounterChange
+		// event, so replacements and prohibitions see an entry counter exactly
+		// like any other placement and a log-only replay re-derives it from
+		// those logged events (task addcounter1/2). What stays here is only the
+		// Riot "haste" election (a keyword grant, not a counter) and the
+		// one-shot consumption of both elections.
 		if !wasBattlefield {
 			o.AcqTurn = g.Turn
 			o.AcqStep = g.Step
-			// FaceDown is folded before the move (see Apply's MoveZone case),
-			// so a face-down entry (a manifest) reads here: while face down the
-			// card is a 2/2 creature with no abilities (CR 708.5) -- a manifested
-			// planeswalker gains no loyalty counters, a manifested Saga no lore
-			// counter.
-			if f := o.Face(); f != nil && f.IsPlaneswalker() && !o.FaceDown {
-				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
-					loyalty := int32(n) - o.CompleatedLifePaid
-					if loyalty < 0 {
-						loyalty = 0
-					}
-					o.AddCounter("LOYALTY", loyalty)
-				}
-			}
-			// Riot's choice is made before this entry. Applying it in Move
-			// makes all entry paths obey the same logged choice.
+			// Riot's choice is made before this entry. The "haste" half grants
+			// a keyword (the "counter" half is placed by the engine's
+			// EntryCounterGrants path); consuming the election here makes every
+			// entry path obey the same logged choice.
 			switch o.RiotChoice {
-			case "counter":
-				o.AddCounter("P1P1", 1)
 			case "haste":
 				o.IntrinsicKeywords = append(o.IntrinsicKeywords, "Haste")
 			}
 			o.RiotChoice = ""
-			// kw:Unleash's choice rides the same logged-then-consumed shape:
-			// "counter" enters with a +1/+1 counter (CR 702.86), "plain"
-			// enters without. Cleared either way, exactly like RiotChoice.
-			if o.UnleashChoice == "counter" {
-				o.AddCounter("P1P1", 1)
-			}
+			// kw:Unleash's choice rides the same logged-then-consumed shape;
+			// the "counter" half is placed through the engine's CounterChange
+			// path, so only the consumption is left here.
 			o.UnleashChoice = ""
-			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
-			// lore counter" -- the same every-entry-site grant the loyalty
-			// half above is. The chapter-I trigger queues rules-side off this
-			// Move event (rules' chapter check reads the live counter, which
-			// by then includes this grant). A face-down entry (a manifest) is
-			// not a Saga while face down and gains none.
-			if !o.FaceDown {
-				if _, names := cards.SagaChapters(o.Face()); len(names) > 0 {
-					o.AddCounter("LORE", 1)
-				}
-			}
-			// CR 310.6/310.8: a Battle enters with defense counters equal to
-			// its printed Defense. Like the loyalty half above this is granted
-			// inside Move so EVERY entry path (cast, blink, search, reanimate,
-			// token) is covered by construction and a log-only replay
-			// re-derives it. Defense is a string in the IR: a positive integer
-			// grants, an absent/X/non-numeric value fails closed (the same
-			// totality stance the loyalty grant takes for a walker whose
-			// starting loyalty is unreadable). A face-down entry (a manifest)
-			// is a 2/2 creature, not a Battle (CR 708.5), and gains none.
-			if !o.FaceDown {
-				if f := o.Face(); f != nil && f.IsBattle() {
-					if n, err := strconv.Atoi(strings.TrimSpace(f.Defense)); err == nil && n > 0 {
-						o.AddCounter("DEFENSE", int32(n))
-					}
-				}
-			}
 		}
+		// A face-down entry (a manifest) is a 2/2 creature with no abilities
+		// (CR 708.5), so it grants none of the entry counters above; the
+		// engine's EntryCounterGrants gate reads the same MoveZone face-down
+		// marker this fold applies.
 	default:
 		// CR 702.103: a Soulbond pair ends when either member leaves the
 		// battlefield. Move itself is the complete logged state transition, so
@@ -3339,6 +3309,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 			// CR 400.7: the runtime SVar store is the old permanent's, not the
@@ -3389,6 +3360,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 		}
@@ -3543,6 +3515,10 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		}
 		d := min(n, p.TypedMana[t][i])
 		p.TypedMana[t][i] -= d
+		if t < 3 {
+			// Drain the artifact subset with its parent type tally.
+			p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
+		}
 		n -= d
 	}
 	if n > 0 {
@@ -3562,6 +3538,9 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 		if p.TypedMana[t][i] > p.Pool[i] {
 			p.TypedMana[t][i] = p.Pool[i]
 		}
+		if t < 3 && p.ArtifactTyped[t][i] > p.TypedMana[t][i] {
+			p.ArtifactTyped[t][i] = p.TypedMana[t][i]
+		}
 		total += p.TypedMana[t][i]
 	}
 	if over := total - p.Pool[i]; over > 0 {
@@ -3575,6 +3554,9 @@ func clearNonPersistent(p *state.Player, i int, n int32) {
 			}
 			d := min(over, p.TypedMana[t][i])
 			p.TypedMana[t][i] -= d
+			if t < 3 {
+				p.ArtifactTyped[t][i] -= min(d, p.ArtifactTyped[t][i])
+			}
 			over -= d
 		}
 	}
