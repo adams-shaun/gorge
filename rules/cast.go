@@ -8229,7 +8229,7 @@ func (e *Engine) payCast() {
 		// (Forge CostReturn.doPayment's moveToHand) beside the other payments.
 		for _, id := range pc.returns {
 			if o := e.G.Obj(id); o != nil {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+				e.emit(events.ReturnCost(id, o.Zone))
 			}
 		}
 		e.emitChoiceCosts(pc)
@@ -8474,7 +8474,7 @@ func (e *Engine) payCast() {
 	// Return cost parts (see the ability branch above for the why).
 	for _, id := range pc.returns {
 		if o := e.G.Obj(id); o != nil {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+			e.emit(events.ReturnCost(id, o.Zone))
 		}
 	}
 	e.settlePutToLibCost(pc)
