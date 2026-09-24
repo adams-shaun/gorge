@@ -130,6 +130,76 @@ func TestMorphTurnFaceUpIsASpecialActionPaysItsKeywordCost(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestMorphTurnFaceUpIsOfferedWithASpellOnTheStack proves the action is not
+// sorcery-gated (CR 708.6: turn it face up "any time you have priority"):
+// while seat 1's bolt sits unresolved on the stack and seat 0 holds the
+// response priority, the face-down permanent's turn_face_up option is still
+// offered. This is the "regardless of timing" half of the contract.
+func TestMorphTurnFaceUpIsOfferedWithASpellOnTheStack(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := manifestEngine(t, reg, "Kin-Tree Warden")
+	id := morphDownCast(t, e, "Kin-Tree Warden", "morphed", "CCCG", 1)
+	if o := e.G.Obj(id); !o.FaceDown {
+		t.Fatalf("precondition: Kin-Tree Warden is not face down")
+	}
+	// Seat 1 casts a bolt at seat 0 (the passPriorityTimes inside seatBolt
+	// hands seat 1 priority).
+	bolt := seatBolt(t, e)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority || d.Player != 1 {
+		t.Fatalf("expected seat 1 priority, got %+v", d)
+	}
+	opt := -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == bolt {
+			opt = o.Index
+		}
+	}
+	if opt < 0 {
+		t.Fatalf("bolt not offered to seat 1: %+v", d.Options)
+	}
+	submitChoices(t, e, opt)
+	dt := e.Pending()
+	if dt == nil || dt.Kind != decision.KTarget {
+		t.Fatalf("bolt target ask: %+v", dt)
+	}
+	idx := -1
+	for _, o := range dt.Options {
+		if o.Kind == "player" && o.Player == 0 {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no seat-0 player target option: %+v", dt.Options)
+	}
+	submitChoices(t, e, idx)
+	// Pass back to seat 0 so it holds the response priority. The bolt must
+	// still be on the stack (a non-empty stack is the non-sorcery window).
+	for i := 0; i < 3; i++ {
+		r := e.Pending()
+		if r == nil || r.Kind != decision.KPriority || r.Player == 0 {
+			break
+		}
+		passPriorityTimes(t, e, 1)
+	}
+	if len(e.G.Stack) == 0 {
+		t.Fatalf("precondition: the bolt is not on the stack")
+	}
+	resp := e.Pending()
+	if resp == nil || resp.Kind != decision.KPriority || resp.Player != 0 {
+		t.Fatalf("expected seat 0's response priority, got %+v", resp)
+	}
+	found := false
+	for _, o := range resp.Options {
+		if o.Kind == "turn_face_up" && o.Obj == id {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("turn_face_up not offered with a spell on the stack: %+v", resp.Options)
+	}
+}
+
 func TestMegamorphTurnFaceUpAddsAPlusOnePlusOneCounter(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := manifestEngine(t, reg, "Kolaghan Stormsinger")
