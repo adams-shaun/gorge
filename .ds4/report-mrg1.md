@@ -1,3 +1,92 @@
+# Merge-conflict resolution — agent-20260923T160306Z-167d672f (mrg1), round 8 (2026-09-23)
+
+## Entry state
+
+`git status` clean on `wt/agent-20260923T160306Z-167d672f`, HEAD `18a455b7`
+(the branch's third commit, `pred(hasanonbasiclandtype)` series); no rebase or
+merge in flight — the daemon's failed rebase had been aborted/reset before
+this seat started. Merge-base with main was `c4560130`; main had advanced
+(K:Retrace follow-through, the strive/reverse-cast fix, the hasABasicLandType
+predicate 41239aa1, the perf work). `.cards` present as a symlink to the
+shared corpus — the runs below are real, not vacuous.
+
+## Operation
+
+`git merge main` (rebase is forbidden to this seat). Two conflicted code
+files, both purely additive; `.ds4/report-mrg1.md` auto-merged as usual.
+
+## Resolution
+
+### effects/filter.go (3 hunks)
+
+Branch and main each landed a sibling land-type word predicate through the
+same machinery; every hunk was additive (no overlapping logic):
+
+- Branch: `wordHasNonBasicLandType` (Forge `Card.hasANonBasicLandType`,
+  commits 1952fa4c/18a455b7) — a land with at least one land type OUTSIDE
+  CR 205.3i's five basics; vocabulary `chooseNonbasicLandTypes`.
+- Main: `wordHasBasicLandType` (Forge `Card.hasABasicLandType`, 41239aa1) —
+  a land with one of the five basic land types; vocabulary
+  `chooseBasicLandTypes`.
+
+Kept BOTH in all three hunks: the `wordKind` const block, the
+`wordPredicate` classifier switch (`case "hasANonBasicLandType"` and
+`case "hasABasicLandType"`), and the evaluation switch (both cases iterating
+their own type list through the shared `hasTypeCtx(o, "Land", sc)` guard).
+Both vocabularies exist in the auto-merged `effects/type_choices.go`. The
+two predicates are deliberately independent — NOT negations: a Wastes
+matches neither; a Desert matches only the nonbasic one. Both sides' test
+files run green together.
+
+### events/actions.go (1 hunk)
+
+- Branch: `ReturnCost`/`IsReturnCost` + `ReturnCostText` const (return-to-
+  hand-as-cost provenance marker; the const block above the hunk auto-merged,
+  main had no copy).
+- Main: `milledText` const + `Mill`/`IsMill` (the mill marker the
+  Milled/MilledAll triggers read).
+
+Kept both blocks in sequence.
+
+### .ds4/report-mrg1.md
+
+This accumulator: this round's report is PREPENDED, main's accumulated file
+kept verbatim below (same lossless construction the round-7 seat used).
+
+## Commands run and output
+
+    $ git merge main            # 2 content conflicts, as above
+    $ git add effects/filter.go events/actions.go && git commit --no-edit
+      -> dde918c3 Merge branch 'main' into wt/agent-20260923T160306Z-167d672f
+    $ git status --short        # clean (report handled separately)
+    $ go build ./effects/ ./events/ ./rules/                       -> exit 0
+    $ go test -run 'HasBasicLandType|HasNonBasicLandType|NonBasicLand' ./effects/ ./rules/
+      -> ok github.com/adams-shaun/gorge/effects   0.448s
+      -> ok github.com/adams-shaun/gorge/rules     0.018s [no tests to run]
+    $ go test ./events/         -> ok github.com/adams-shaun/gorge/events  4.495s
+    $ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+      -> ok github.com/adams-shaun/gorge/rules  0.627s
+      (-v confirms all five PASS, none SKIP: TestNoTriggerModeIsRegistered…,
+       TestEveryDispatchedTriggerModeHasAMatcher, TestEveryRepoDeckIsFullySupported,
+       TestEveryRepoDeckParamsAreRead, TestEveryRepoDeckCountHeadResolves)
+    $ go test ./effects/        -> ok github.com/adams-shaun/gorge/effects  16.482s
+
+## Notes
+
+- The ratchet run's 0.627s is fast but `-v` shows the five named tests RAN
+  and PASSED (they classify/compile; the full-deck play tests, `TestHeads`
+  and `make sim` are the daemon's post-DONE gates).
+- No golden touched; the merge added no new `Mode$` matcher and moved no
+  `knownUnsupported`/param/count-head entry.
+- No `Ref:` or attribution trailers (gorge rule).
+
+## Issues
+
+None beyond the conflicts themselves: the merged build is clean and the two
+predicate families coexist without overlap. Nothing to fold into the ledger.
+
+---
+
 # Merge-conflict resolution — agent-20260919T192133Z-f7463cbe (mrg1), round 7 (2026-09-23)
 
 ## Entry state
