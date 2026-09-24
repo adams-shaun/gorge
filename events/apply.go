@@ -2222,6 +2222,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
+		casualty := false
 		demonstrate := false
 		flanking := false
 		melee := e.Counter == "__kwMeleeGranted"
@@ -2267,6 +2268,11 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
 						"MayChooseTarget": "True"}}
 				conspire = ok
+			}
+			if e.Counter == "__kwCasualty:" {
+				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
+					Params: map[string]string{"Defined": "TriggeredSpellAbility", "MayChooseTarget": "True"}}
+				casualty = true
 			}
 			// A granted Demonstrate (rules.pushTrigger's __kwDemonstrate:
 			// payload) has no SVar either: rebuilt structurally into the same
@@ -2392,7 +2398,7 @@ func Apply(g *state.Game, e Event) {
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire || demonstrate || flanking || melee {
+		if conspire || casualty || demonstrate || flanking || melee {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 

@@ -258,6 +258,12 @@ type pendingCast struct {
 	conspireDone bool
 	conspirePaid bool
 
+	// Casualty's optional additional cost is a single power-qualified sacrifice.
+	// The chosen object is settled with the other sacrifice costs at payment.
+	casualtyN    int32
+	casualtyDone bool
+	casualtyPaid bool
+
 	// converge (task converge1) is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
 	// payment from the full spent delta payManaCastSpent returns. convergeOn
@@ -928,6 +934,35 @@ func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.Ob
 				out = append(out, cid)
 				break
 			}
+		}
+	}
+	return out
+}
+
+// casualtyValue reads both printed and layer-6 granted keywords against the
+// proposed stack zone. A grant scoped to AffectedZone$ Stack therefore works
+// before pushCast, including CheckSVar-gated first-spell grants.
+func (e *Engine) casualtyValue(id state.ObjID) int32 {
+	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
+		if strings.EqualFold(cardsKeywordHead(k), "Casualty") {
+			var n int32
+			_, param, found := strings.Cut(k, ":")
+			if found {
+				_, err := fmt.Sscanf(strings.TrimSpace(param), "%d", &n)
+				if err == nil && n >= 0 {
+					return n
+				}
+			}
+		}
+	}
+	return -1
+}
+
+func (e *Engine) casualtyCandidates(p state.PlayerID, spell state.ObjID, n int32) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		if e.matchesSpecFrom("Creature.YouCtrl", id, p, spell) && e.Power(id) >= n {
+			out = append(out, id)
 		}
 	}
 	return out
@@ -2349,7 +2384,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		optionalCost = parts[opt.AltCostIndex-1]
 	}
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "casualty" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -2488,6 +2523,9 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// settle through pc.taps exactly like every other tap cost.
 	if opt.Mode == "conspired" {
 		e.cast.conspireSet = true
+	}
+	if opt.Mode == "casualty" {
+		e.cast.casualtyN = e.casualtyValue(id)
 	}
 	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
 	// were mana of any color to cast it". Recorded from the grant the offer
@@ -2729,7 +2767,7 @@ func (e *Engine) continueCast() {
 	// CR 702.78a: the Conspire tap election (two untapped creatures that
 	// share a colour with the spell) is posed before Convoke/X so an elected
 	// creature cannot also be announced as a payment source. See conspireAsk.
-	if e.conspireAsk() {
+	if e.conspireAsk() || e.casualtyAsk() {
 		return
 	}
 	// CR 601.2b announces Convoke/Harmonize before X: an announced creature
@@ -3843,6 +3881,29 @@ func (e *Engine) conspireAsk() bool {
 		Prompt: "Choose two creatures to tap for conspire", Source: pc.card}
 	for _, id := range candidates {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "conspire", Obj: id, Label: e.targetName(id)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// casualtyAsk announces the optional sacrifice before payment. The chosen
+// creature remains on the battlefield until payCast, after target selection.
+func (e *Engine) casualtyAsk() bool {
+	pc := e.cast
+	if pc.mode != "casualty" || pc.casualtyDone {
+		return false
+	}
+	pc.casualtyDone = true
+	candidates := e.casualtyCandidates(pc.player, pc.card, pc.casualtyN)
+	if pc.casualtyN < 0 || len(candidates) == 0 {
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card, Text: "casualty no longer payable; casting without casualty"})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose a creature to sacrifice for casualty", Source: pc.card}
+	for _, id := range candidates {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "casualty", Obj: id, Label: e.targetName(id)})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
@@ -6733,6 +6794,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		if len(chosen) > 0 {
 			pc.mutateTop = chosen[0].Amount == 1
 		}
+	case "casualty":
+		if len(chosen) == 1 {
+			pc.sacs = append(pc.sacs, chosen[0].Obj)
+			pc.casualtyPaid = true
+		}
 	case "gift_decline":
 		// CR 702.168: a declined gift is the plain cast -- no promise, and
 		// pushCast emits only the Amount-0 record. The byte-identical shape
@@ -7056,7 +7122,7 @@ func modeFlags(mode string) string {
 	// DECLINED/plain cast must stay byte-identical -- no flag and no event,
 	// exactly the "replicated" contract above. When the tap WAS paid,
 	// payCast ORs FlagConspired onto a trailing CastInfo.
-	case "conspired":
+	case "conspired", "casualty":
 		return ""
 	// The morph family's face-down cast (CR 702.37a/702.168a/702.169a): the
 	// flag is the provenance that names the keyword family the {3} cast
@@ -9046,6 +9112,16 @@ func (e *Engine) payCast() {
 		castLKI = e.deferredPushLKI
 	}
 	e.fireDeferredCastTrigger()
+	// Casualty is a cast trigger only when its additional sacrifice was paid.
+	// Queue a respondable ability, rather than copying at payment; the event
+	// payload rebuilds its body during replay (including permanent copies).
+	if pc.casualtyPaid && castEv.Kind == events.PutOnStack {
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source: pc.card, Controller: pc.player, Casualty: true,
+			Ctx: effects.Ctx{Source: pc.card, Controller: pc.player,
+				Remembered: []state.Target{{Obj: pc.card}}},
+		})
+	}
 	if castEv.Kind == events.PutOnStack {
 		e.fireManaSpentTriggers(castEv, castLKI)
 	}

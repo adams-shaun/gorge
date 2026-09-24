@@ -2002,6 +2002,16 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (conspired)", Obj: id, Mode: "conspired"})
 		}
+		// Casualty is an optional additional sacrifice, not a mana cost.
+		// Price the ordinary spell and require at least one creature whose
+		// derived power meets the printed or layer-granted threshold.
+		if targetsAvailable {
+			if n := e.casualtyValue(id); n >= 0 && len(e.casualtyCandidates(p, id, n)) > 0 &&
+				offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (casualty)", Obj: id, Mode: "casualty"})
+			}
+		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke
 		// (CR 702), dash, overload and warp each become their own "cast" mode
 		// option paying the printed keyword cost in place of the mana cost.
