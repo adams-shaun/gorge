@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func TestTargetSpareManaSkipsSickBasicSource(t *testing.T) {
+func TestTargetSpareManaCountsSickBasicSource(t *testing.T) {
 	green := pendingGreen()
 	b := Board{Cards: map[state.ObjID]Card{
 		1: {OnBattlefield: true, Basic: true, Produces: green},
@@ -23,7 +23,11 @@ func TestTargetSpareManaSkipsSickBasicSource(t *testing.T) {
 	if !sick.OnBattlefield || !sick.Basic || !sick.Sick || sick.Produces.Colour[state.MG] != 1 {
 		t.Fatalf("source 3 is not a sick basic Forest: %+v", sick)
 	}
+	if !b.hasSpareMana() {
+		t.Fatal("one healthy plus two sick/healthy Forests must preserve a {G}{G} reserve; sickness does not prohibit a basic land's {T} mana ability")
+	}
+	delete(b.Cards, 3)
 	if b.hasSpareMana() {
-		t.Fatal("one healthy plus one sick Forest must not preserve a {G}{G} reserve")
+		t.Fatal("precondition: without source 3, two Forests cannot survive the reserve probe")
 	}
 }

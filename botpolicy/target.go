@@ -198,7 +198,7 @@ func (b Board) hasSpareManaAfter(pendingCost string) bool {
 	available := b.Pool
 	var sources []state.Mana
 	for _, c := range b.Cards {
-		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Sick || c.Produces.Any || c.Produces.Indeterminate {
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Produces.Any || c.Produces.Indeterminate {
 			continue
 		}
 		var source state.Mana
