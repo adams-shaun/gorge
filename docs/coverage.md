@@ -9,7 +9,7 @@ one missing primitive makes the whole card unplayable, so this is a strict
 lower bound on what the engine can do.
 
 - Cards in the corpus: **33667**
-- Fully playable: **30039 (89.2%)**
+- Fully playable: **30060 (89.3%)**
 - Token scripts compiled: **839**
 - Corpus pin: `Card-Forge/forge@95f04e8a04c8925fa97cb226fc3341cabcc90a53`
 
@@ -26,7 +26,7 @@ engine subsystems are finished.
 
 | Card type | Cards | Playable | % |
 |---|---:|---:|---:|
-| Creature | 18544 | 16643 | 89.7% |
+| Creature | 18544 | 16664 | 89.9% |
 | Instant | 3774 | 3451 | 91.4% |
 | Sorcery | 3519 | 3164 | 89.9% |
 | Enchantment | 3445 | 3194 | 92.7% |
@@ -43,12 +43,12 @@ colour indicator — not its Commander colour identity.
 
 | Colour | Cards | Playable | % |
 |---|---:|---:|---:|
-| White | 4977 | 4435 | 89.1% |
-| Red | 4975 | 4483 | 90.1% |
-| Black | 4946 | 4482 | 90.6% |
-| Green | 4868 | 4391 | 90.2% |
+| White | 4977 | 4436 | 89.1% |
+| Red | 4975 | 4488 | 90.2% |
+| Black | 4946 | 4494 | 90.9% |
+| Green | 4868 | 4393 | 90.2% |
 | Blue | 4860 | 4344 | 89.4% |
-| Multicolour | 4704 | 4262 | 90.6% |
+| Multicolour | 4704 | 4263 | 90.6% |
 | Colorless | 4337 | 3642 | 84.0% |
 
 ## By mana value
@@ -57,12 +57,12 @@ colour indicator — not its Commander colour identity.
 |---|---:|---:|---:|
 | 0 | 1701 | 1313 | 77.2% |
 | 1 | 3250 | 3000 | 92.3% |
-| 2 | 7135 | 6514 | 91.3% |
-| 3 | 8037 | 7250 | 90.2% |
-| 4 | 6276 | 5574 | 88.8% |
-| 5 | 3927 | 3511 | 89.4% |
-| 6 | 2018 | 1749 | 86.7% |
-| 7+ | 1323 | 1128 | 85.3% |
+| 2 | 7135 | 6517 | 91.3% |
+| 3 | 8037 | 7255 | 90.3% |
+| 4 | 6276 | 5580 | 88.9% |
+| 5 | 3927 | 3513 | 89.5% |
+| 6 | 2018 | 1753 | 86.9% |
+| 7+ | 1323 | 1129 | 85.3% |
 
 ## What the gap is waiting on
 

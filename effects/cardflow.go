@@ -1318,11 +1318,14 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		c.ArrangeTarget = 0
 	}
 	g := h.Game()
+	players := definedPlayers(h, c, sa)
+	selection := *c // IsRemembered in ChangeValid reads the pre-clear set.
+	forgetOtherRemembered(h, c, sa)
 	// One classification for the whole Dig call, before the target walk: a
 	// degrading Attacking$ rider is one Note per dig, not one per taken card
 	// (nor one per Defined$ library).
 	rider := classifyAttackingEntry(c, sa, dest)
-	for targetIndex, p := range definedPlayers(h, c, sa) {
+	for targetIndex, p := range players {
 		lib := zoneOf(g, state.ZLibrary, p)
 		n := digNum
 		if int32(len(lib)) < n {
@@ -1369,6 +1372,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			ev.Player, ev.Secret = p, true
+			applyFaceDownMarker(h, sa, c, &ev, dest)
 			if dest == state.ZLibrary {
 				primaryMoved = append(primaryMoved, id)
 			}
@@ -1378,10 +1382,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// Hideaway's move uses -- the exiling source rides in Amount --
 			// so a replay derives FaceDown identically and a projection
 			// withholds the card.
-			if strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True") && dest == state.ZExile {
-				ev.Counter = "exiled_with_face_down"
-				ev.Amount = int32(c.Source)
-			}
+			// applyFaceDownMarker preserves ExileFaceDown$'s source-carrying
+			// payload (Counter, Amount and nil IDs), while also stamping
+			// battlefield FaceDown$ entries.
 			h.Emit(ev)
 			if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 				if moved := g.Obj(id); moved != nil && moved.Zone == dest && !moved.IsToken {
@@ -1393,6 +1396,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 			}
 			rider.apply(h, c, id, p, dest)
+			if dest == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["GainControl"]), "True") {
+				h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: c.Controller})
+			}
 			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's
 			// "put it onto the battlefield ... it's an enchantment"): the same
 			// rider registration every ChangeZone mover applies.
@@ -1512,7 +1518,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		eligible := make([]state.ObjID, 0, len(top))
 		for _, id := range top {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 				eligible = append(eligible, id)
 			}
 		}
@@ -2006,6 +2012,8 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// rather than against either of the two destinations the walk picks
 	// between.
 	rider := classifyAttackingEntry(c, sa, state.ZBattlefield)
+	selection := *c // Valid$ Card.IsRemembered uses the pre-clear set.
+	forgetOtherRemembered(h, c, sa)
 	// RememberFound$ replaces the resolution's Remembered set with found
 	// cards, or with all revealed cards when RememberRevealed$ is also set.
 	// Trigger referents remain in Ctx.Captured. Accumulate across the
@@ -2023,7 +2031,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		if amount > 0 {
 			for _, id := range lib {
 				revealed = append(revealed, id)
-				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				if MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 					found = append(found, id)
 					if int32(len(found)) >= amount {
 						break

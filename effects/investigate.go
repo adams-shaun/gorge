@@ -4,7 +4,9 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
 )
 
 func init() { Register("Investigate", effInvestigate) }
@@ -36,12 +38,26 @@ const clueTokenKey = "c_a_clue_draw"
 // (trig:Investigated matches it — Erdwal Illuminator; a plain Clue-token
 // creation never fires an investigate trigger). No direct state.Game writes.
 //
-// Optional$ True (2 files: will_the_wise, nick_valentine_private_eye) is
-// unread: a real mid-resolution yes/no ask needs a rules/resolution.go
-// resume arm (the draw_optional precedent), so this takes the documented
-// deterministic stand-in -- always investigate, plus ONE loud Note per
-// gated resolution naming the unread parameter. RememberInvestigatingPlayers$
-// (1 file, will_the_wise) is likewise unread and silently so.
+// Optional$ True (2 files: will_the_wise, nick_valentine_private_eye) is a
+// real per-player may-investigate election: every affected player is posed
+// their own KChoose yes/no (the draw_optional ask shape; the ask goes to the
+// AFFECTED seat, never the trigger controller), a yes performs the ordinary
+// Clue creation below and a no performs nothing. The answer rides rules'
+// "investigate_optional" resume arm into Ctx.InvestigateOpt/Idx, which this
+// body consumes and clears at the point of application (fx42 scoping) and
+// resets when the walk finishes, so a chained optional Investigate poses its
+// own elections. A host that cannot ask keeps the pre-ask mandatory
+// investigate (the R-9 degradation the effDraw optional arms take), one
+// loud Note per gated resolution.
+//
+// RememberInvestigatingPlayers$ (1 file, will_the_wise) remembers the
+// players who ACTUALLY investigated into the resolution's Remembered (the
+// Ctx.Remembered set PlayerCountRemembered$Amount and Defined$ Remembered
+// read) AND onto the source object's persistent player-remembered list (the
+// same event-backed write RememberChosen$ makes), which is what the
+// Opponent.!IsRemembered player filter clause reads -- Will the Wise's
+// DBLoseLife "each opponent who doesn't" chains on it. Decliners stay
+// unremembered. Absent, the primitive remembers nothing, exactly as before.
 func effInvestigate(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "Num", 1)
@@ -54,22 +70,93 @@ func effInvestigate(h Host, c *Ctx, sa *cards.SA) {
 			Text: "Investigate: unknown token script " + clueTokenKey})
 		return
 	}
-	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
-		// Deterministic stand-in: the may-investigate election is always
-		// "investigate". One Note per gated resolution, not per token.
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "Investigate: Optional$ True not asked; investigates (stand-in)"})
-	}
-	for _, t := range actingPlayers(h, c, sa) {
-		p := t
-		for i := int32(0); i < n; i++ {
-			h.Emit(events.Event{Kind: events.TokenCreate, Player: p, Text: clueTokenKey})
-			// One investigate record per created Clue (CR 701.36a: each
-			// investigate is one Clue token, so Num$ 2 is two investigates).
-			// The marker is what trig:Investigated matches; emitting it only
-			// here (not on a plain DB$ Token Clue mint) keeps "create a Clue
-			// token" from firing "whenever you investigate" triggers.
-			h.Emit(events.Event{Kind: events.Investigate, Obj: c.Source, Player: p})
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberInvestigatingPlayers"]), "True")
+	players := actingPlayers(h, c, sa)
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+		if remember {
+			rememberInvestigatingPlayers(h, c, players)
 		}
+		for _, p := range players {
+			investigateFor(h, c, p, n)
+		}
+		return
+	}
+	// The per-player election walk (the draw_upto cursor shape): each
+	// affected player poses their own ask, the answered election is consumed
+	// at the point of application, and the cursor advances to the next
+	// player. A no-host ask keeps the mandatory investigate (R-9), one Note
+	// per gated resolution.
+	noted := false
+	for idx := int(c.InvestigateOptIdx); idx < len(players); idx++ {
+		p := players[idx]
+		if c.InvestigateOpt == "" {
+			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+				ResumeKind: "investigate_optional", ResumeSA: sa, ResumeTarget: idx,
+				// The walk's Remembered rides the ask (the draw_upto
+				// precedent): the re-entered body re-derives the player list
+				// from Defined$, and a Remembered-valued selector must see
+				// the set the first pass read, or the cursor would index a
+				// DIFFERENT list than the one the election was posed for.
+				ResumeRemembered: append([]state.Target(nil), c.Remembered...),
+				Source:           c.Source,
+				Prompt:           "Investigate?"}
+			d.Options = []decision.Option{
+				{Index: 0, Kind: "yes", Label: "Yes — investigate", Player: p},
+				{Index: 1, Kind: "no", Label: "No", Player: p},
+			}
+			if Ask(h, d) == AskAsked {
+				return
+			}
+			c.InvestigateOpt = "yes"
+			if !noted {
+				noted = true
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "Investigate: no host to ask the election; investigates (R-9 stand-in)"})
+			}
+		}
+		accepted := c.InvestigateOpt == "yes"
+		c.InvestigateOpt = "" // fx42 scoping: consumed once; the next player poses its own ask
+		c.InvestigateOptIdx = int32(idx + 1)
+		if accepted {
+			if remember {
+				rememberInvestigatingPlayers(h, c, []state.PlayerID{p})
+			}
+			investigateFor(h, c, p, n)
+		}
+	}
+	// The walk finished every player: reset the cursor so a chained optional
+	// Investigate in the same resolution poses its own elections (fx42
+	// scoping). The marker is already cleared above.
+	c.InvestigateOptIdx = 0
+}
+
+// investigateFor is the one Clue-mint path: n real TokenCreate events plus
+// the matching events.Investigate markers for player p. The marker is what
+// trig:Investigated matches; emitting it only here (not on a plain DB$
+// Token Clue mint) keeps "create a Clue token" from firing "whenever you
+// investigate" triggers.
+func investigateFor(h Host, c *Ctx, p state.PlayerID, n int32) {
+	for i := int32(0); i < n; i++ {
+		h.Emit(events.Event{Kind: events.TokenCreate, Player: p, Text: clueTokenKey})
+		// One investigate record per created Clue (CR 701.36a: each
+		// investigate is one Clue token, so Num$ 2 is two investigates).
+		h.Emit(events.Event{Kind: events.Investigate, Obj: c.Source, Player: p})
+	}
+}
+
+// rememberInvestigatingPlayers records the players who actually
+// investigated: into the resolution's Remembered (the Ctx.Remembered set
+// PlayerCountRemembered$Amount and Defined$ Remembered read, deduped so a
+// repeated Investigate in one resolution cannot inflate the count) and, via
+// the event-backed persistent remember write, onto the source object's
+// player-remembered list -- the set the IsRemembered player-filter clause
+// (Will the Wise's Defined$ Opponent.!IsRemembered) reads.
+func rememberInvestigatingPlayers(h Host, c *Ctx, ps []state.PlayerID) {
+	for _, p := range ps {
+		if targetIn(c.Remembered, state.Target{Player: p, IsPlayer: true}) {
+			continue
+		}
+		c.Remembered = append(c.Remembered, state.Target{Player: p, IsPlayer: true})
+		eventRemember(h, c, state.PlayerRef(p))
 	}
 }

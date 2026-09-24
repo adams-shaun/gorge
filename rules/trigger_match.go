@@ -68,7 +68,8 @@ type pendingTrigger struct {
 	// MonarchDraw is the CR 724.2a beginning-of-end-step triggered draw.
 	// It is represented as a real stack ability through the existing delayed
 	// push event, rather than as an immediate turn action.
-	MonarchDraw bool
+	MonarchDraw    bool
+	RadiationDrain bool
 	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
 	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
 	// push must resolve that name against the UNDER-CARD's own face, never

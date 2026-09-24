@@ -1399,6 +1399,13 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	e.resume = nil
 	chosen := d.Chosen(in)
 	labels := chosenModeLabels(chosen)
+	if d.ResumeSA != nil && strings.EqualFold(d.ResumeSA.Params["SetChosenMode"], "True") && len(chosen) == 1 {
+		// An as-enters GenericChoice records its mode on the permanent via
+		// the event fold; the ModeChosen marker alone stores no object state.
+		if names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes); len(names) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: d.Source, Counter: "mode", Text: names[0]})
+		}
+	}
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
 		Text: strings.Join(labels, ",")})
 	// ChoiceRestriction$: a mid-resolution Charm's pick is recorded on its
@@ -2724,6 +2731,27 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.AttachOpt = "no"
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
+			}
+		case "investigate_optional":
+			// An Optional$ True Investigate's per-player may-investigate
+			// election (Will the Wise's "each opponent may investigate",
+			// Nick Valentine's "you may investigate") was answered for the
+			// player the ask named: Decision.ResumeTarget is the cursor index
+			// into the actingPlayers walk the re-entered effInvestigate
+			// re-derives (the same-Remembered ride keeps a Remembered-valued
+			// Defined$ deriving the SAME list the cursor indexes). The answer
+			// is a bare yes/no, recorded here as the marker the re-entered
+			// effect consumes and clears at the point of application (fx42
+			// scoping): "yes" mints the Num$ Clues and, with
+			// RememberInvestigatingPlayers$ True, remembers the acceptor;
+			// "no" — the decline — does neither, and the chained SubAbility$
+			// still runs either way. A malformed or empty answer keeps the
+			// decline, the conservative read draw_optional and attach_optional
+			// take.
+			ctx.InvestigateOptIdx = int32(rp.target)
+			ctx.InvestigateOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.InvestigateOpt = "yes"
 			}
 		case "copy_optional":
 			// An Optional$ True CopySpellAbility's may-copy election

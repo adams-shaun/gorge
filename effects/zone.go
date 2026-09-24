@@ -578,6 +578,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherTargets"]), "True") {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
+	} else {
+		forgetOtherRemembered(h, c, sa)
 	}
 	// Imprint effects such as Chrome Mox select eligible cards from their
 	// controller's hand. Keep them out of the generic hand mover so their
@@ -1606,6 +1608,8 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// sub-specs are a property of the SA, not of the hand owner.
 	eachSubs, isEach := eachAlternatives(spec)
 	g := h.Game()
+	selection := *c // selectors must see the pre-clear remembered set
+	forgetOtherRemembered(h, c, sa)
 	// fx42 scoping: capture and clear the answered pick (and the cursor that
 	// binds it to the owner that asked) BEFORE anything else, so a nested
 	// hand-move ask below cannot inherit them.
@@ -1635,7 +1639,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		hand := zoneOf(g, state.ZHand, owner)
 		eligible := make([]state.ObjID, 0, len(hand))
 		for _, id := range hand {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 				eligible = append(eligible, id)
 			}
 		}
@@ -1659,7 +1663,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				if o == nil || o.Zone != state.ZHand {
 					continue
 				}
-				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				if !MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 					continue
 				}
 				settleHandMove(id, owner)
@@ -1731,7 +1735,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		var ceiling int
 		if structured {
 			eachPerType = n
-			eachGroups = EachTypeGroups(g, eachSubs, eligible, c.SpecContext(c.Controller))
+			eachGroups = EachTypeGroups(g, eachSubs, eligible, selection.SpecContext(selection.Controller))
 			for _, ids := range eachGroups {
 				k := int32(len(ids))
 				if k > eachPerType {
@@ -3208,6 +3212,9 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		max = 0
 	}
 	mandatory := strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True")
+	// ChoiceOptional$ True explicitly names the Min-0 may-pick default here;
+	// it does not override Mandatory$ True. False/unset leave the default unchanged.
+	mayPick := strings.EqualFold(strings.TrimSpace(sa.Params["ChoiceOptional"]), "True")
 	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
@@ -3425,6 +3432,9 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			Prompt:           prompt}
 		if mandatory {
 			d.Min = int(m)
+		} else if mayPick {
+			// Explicit may-pick: preserve the same Min-0 default as an absent key.
+			d.Min = 0
 		}
 		// A mandatory budget pick whose m exceeds what the budget affords must
 		// not demand more picks than it can pay for: lower the Min to the
@@ -4325,7 +4335,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile && h.ExileBlocked(id, false) {
 			return
 		}
-		h.Emit(moveZoneEvent(c, id, z, to))
+		ev := moveZoneEvent(c, id, z, to)
+		applyFaceDownMarker(h, sa, c, &ev, to)
+		h.Emit(ev)
 		moved = append(moved, id)
 		// Tapped$ True (Splendid Reclamation's "Return all land cards
 		// ... tapped"): a battlefield entry is followed by the same

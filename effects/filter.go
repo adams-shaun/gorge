@@ -2,6 +2,7 @@ package effects
 
 import (
 	"iter"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1253,6 +1254,7 @@ const (
 	// .Protector, recorded through the Choose "protector" event).
 	wordOppProtect
 	wordHistoric
+	wordAdventureCard
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
@@ -1568,6 +1570,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordOppProtect, ""
 	case "Historic":
 		return wordHistoric, ""
+	case "AdventureCard":
+		return wordAdventureCard, ""
 	case "IsCommander":
 		return wordIsCommander, ""
 	case "blockingSource":
@@ -1862,6 +1866,20 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).
 		return hasTypeCtx(o, "Artifact", sc) || hasTypeCtx(o, "Legendary", sc) || hasTypeCtx(o, "Saga", sc)
+	case wordAdventureCard:
+		if o == nil || o.Card == nil || o.Card.AlternateMode != "Adventure" || len(o.Card.Faces) != 2 {
+			return false
+		}
+		face := o.Card.Faces[1]
+		if face == nil || (!face.IsInstant() && !face.IsSorcery()) {
+			return false
+		}
+		for _, typ := range face.Types {
+			if typ == "Adventure" {
+				return true
+			}
+		}
+		return false
 	case wordIsCommander:
 		// Forge's IsCommander: the object is one of a seat's commanders.
 		// The commander list lives on the Players at genesis.
@@ -2238,7 +2256,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if hasAbilityToken(p) {
@@ -2753,6 +2771,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// agree the qualifier is known and a non-count read of it admits
 		// every matching token without the distinctness narrowing.
 		return o.IsToken, true
+	}
+	if mode, has := strings.CutPrefix(p, "ChosenMode"); has && mode != "" {
+		// ChosenMode<X> reads the candidate object's event-backed modal
+		// announcement. An unresolved choice has no recorded mode and fails
+		// closed; the ordinary ! wrapper would invert that result for a negated
+		// predicate (no corpus carrier uses !ChosenMode).
+		return slices.Contains(o.ChosenModes, mode), true
 	}
 	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" {
 		// Forge's ChosenCard and ChosenCardStrict are one predicate for this
@@ -4391,6 +4416,25 @@ func isBarePlayerProperty(clause string) bool {
 	return false
 }
 
+// playerBaseMatches reports whether a bare player-spec base matches seat p
+// relative to the perspective seat you. It is the shared base predicate the
+// ordinary qualifier switch below already spells inline (Player/Any always,
+// You is the perspective seat, Opponent/Other is anyone else) and that the
+// source-anchored Chosen/IsRemembered membership read now consults first, so
+// a membership read can never widen past its base. An unknown base fails
+// closed, exactly as the inline switch does.
+func playerBaseMatches(base string, p, you state.PlayerID) bool {
+	switch base {
+	case "Player", "Any":
+		return true
+	case "You":
+		return p == you
+	case "Opponent", "Other":
+		return p != you
+	}
+	return false
+}
+
 // matchesPlayerSingleSpec is the original single-alternative player-spec
 // evaluator: one clause, no `,` or `+` (the callers above split those).
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
@@ -4427,7 +4471,22 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			}
 			continue
 		}
-		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+		if qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+			// The source-anchored chosen/remembered membership read, on EVERY
+			// base the grammar evaluates (Player/Any as always, plus the
+			// qualified You/Opponent/Other spellings -- Will the Wise's
+			// `Defined$ Opponent.!IsRemembered` "each opponent who doesn't"
+			// is the corpus carrier). Reading it only on Player/Any left the
+			// Opponent-base qualifier permanently false, which the `!`
+			// spelling inverted into admitting EVERY opponent. The base is
+			// checked FIRST, so a membership read cannot admit the source's
+			// own controller under an `Opponent` base (or an opponent under a
+			// `You` base); only the set membership is base-independent. The
+			// set is still the source object's own event-backed list, so every
+			// base reads one home.
+			if !playerBaseMatches(base, p, you) {
+				continue
+			}
 			o := g.Obj(pc.Source)
 			if o == nil {
 				continue

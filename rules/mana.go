@@ -471,12 +471,12 @@ var payLifeXCost = regexp.MustCompile(`^PayLife<X>$`)
 // the payer's battlefield like a Sac part's spec, and the optional fourth is
 // the display description. The old subCounterXCost head (X form only, target
 // dropped) is subsumed by this one.
-var subCounterCost = regexp.MustCompile(`^SubCounter<(X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
+var subCounterCost = regexp.MustCompile(`^SubCounter<(X\d+\+|X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
 
 // removeAnyCounterCost is Forge's named spelling for a counter-removal cost.
 // Despite the name, the second field is the counter kind (often Any), while
 // the third field restricts the permanent the counters come from.
-var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
+var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X\d+\+|X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
 
 // damageYouCost matches Forge's DamageYou<N> token -- the payer takes N
 // damage from the source as the payment (Forge CostDamage). The corpus's
@@ -649,7 +649,12 @@ func ParseCost(s string) Cost {
 					target, desc = t, m[4]
 				}
 				target = strings.ReplaceAll(target, ";", ",")
-				if m[1] == "X" {
+				if strings.HasPrefix(m[1], "X") {
+					if m[1] != "X" {
+						if n, err := strconv.ParseInt(m[1][1:len(m[1])-1], 10, 32); err == nil && int32(n) > c.XMin {
+							c.XMin = int32(n)
+						}
+					}
 					c.SubCounter = append(c.SubCounter, CostPart{Spec: kind, Target: target, Announced: true, Desc: desc})
 					continue
 				}
@@ -678,7 +683,12 @@ func ParseCost(s string) Cost {
 					target, desc = t, m[4]
 				}
 				target = strings.ReplaceAll(target, ";", ",")
-				if m[1] == "X" {
+				if strings.HasPrefix(m[1], "X") {
+					if m[1] != "X" {
+						if n, err := strconv.ParseInt(m[1][1:len(m[1])-1], 10, 32); err == nil && int32(n) > c.XMin {
+							c.XMin = int32(n)
+						}
+					}
 					// The announced form: the count is the cast's announced X
 					// (bounded at the X ask).
 					c.SubCounter = append(c.SubCounter, CostPart{Spec: kind, Target: target, Announced: true, Desc: desc})
