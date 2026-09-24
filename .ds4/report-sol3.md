@@ -1,3 +1,53 @@
+# Restart (new seed) — hn1 Svelte gate remediation
+
+The feature remains in `ba447b82`, `9201452b`, `b5a9a58a`, and `41884f16`: additive protocol/host fields and goldens, generated TS, rematch POST preserving deck roles and exact IDs, and the rail control with eligibility, arm/confirm, route/component/helper tests and wire fixture. This round merged current `main` (merge commit `710e243e`; no conflicts) and committed `721bb8dd`: `web/src/lib/tables.svelte.test.ts` now supplies `mulligans: 6` in its shared `TableInfo` fixture. `protocol/protocol.go` emits `mulligans` unconditionally (`json:"mulligans"`); the generated type correctly requires it, including when zero. Did not weaken the wire type. No engine or test-golden/ratchet behavior was changed. `.cards` and `web/node_modules` were present. Rebase was forbidden by the task workspace rules, so a merge brought in main instead. Prior restart implementation tests and fail-without-fix evidence are in the ticket's earlier reports; the latest verdict-sol3 was APPROVE with only a MINOR request to retain that evidence.
+
+## Fails without the fix
+
+Before editing the fixture, `cd web && npx svelte-check` failed (exit 1):
+
+```
+ERROR "src/lib/tables.svelte.test.ts" 19:4 "Type '{ id: string; name: string; seats: number; spectator: string; state: string; match: number; perpetual: boolean; format: string; bot_policy: string; seat_names?: string[] | undefined; mulligans?: number | undefined; }' is not assignable to type 'TableInfo'.\n  Types of property 'mulligans' are incompatible.\n    Type 'number | undefined' is not assignable to type 'number'.\n      Type 'undefined' is not assignable to type 'number'."
+COMPLETED 497 FILES 1 ERRORS 1 WARNINGS 2 FILES_WITH_PROBLEMS
+```
+
+The test fixture types its return value as `TableInfo`, so the compile gate directly covers the missing field. No new test was added this round; existing feature tests and their mutation proofs were recorded in previous rounds. The `tables` test still asserts its seat/match prerequisites, and the restart test preconditions and no-fix proofs remain in the prior restart reports.
+
+## Gates (commands and actual output)
+
+```
+$ cd web && npx svelte-check
+WARNING "src/components/ResolvedCard.svelte" 97:42 "This reference only captures the initial value of `anchorProp`. Did you mean to reference it inside a derived instead?"
+COMPLETED 497 FILES 0 ERRORS 1 WARNINGS 1 FILES_WITH_PROBLEMS
+exit=0
+$ cd web && npx vitest run src/lib/tables.svelte.test.ts src/lib/playvsbot.rematch.test.ts src/lib/playvsbot.test.ts src/components/RestartControl.svelte.test.ts src/routes/Table.restart.svelte.test.ts src/routes/Table.svelte.test.ts src/components/SeatPanel.svelte.test.ts
+Test Files  7 passed (7)
+     Tests  58 passed (58)
+exit=0
+$ go test -run 'TestGoldens|TestFramesRoundTrip' ./protocol/
+ok   github.com/adams-shaun/gorge/protocol 0.002s
+$ go test -run 'TestTableInfoCarriesRestartConfig|TestTheMulliganStarterFixtureIsTheEngineSOwnWireBytes' ./host/
+ok   github.com/adams-shaun/gorge/host 0.110s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.751s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 0.597s
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ gofmt -l protocol/protocol.go protocol/protocol_test.go host/table.go host/match.go host/restart_config_test.go
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+No head/ratchet movement measured (no engine changes); no new approximation row. The ResolvedCard warning predated this fix. No bundle rebuild, npm install, or npm ci was run.
+
+## Issues
+
+None found in scope. The existing Svelte `ResolvedCard.svelte:97` warning is unrelated to restart and remains open; it concerns the locally captured `anchorProp` value.
+
+---
+
 # PayLife<X> ETB replacement — hn1 merge resolution
 
 Rebased clean worktree onto main (`0c3b199d`), resolved AGENTS.md by deleting only this ticket's row, appended `events.StoreSVar` after main's `Scry` to preserve ordinals, and measured the merged table rather than trusting either stale count: main has 18 rows despite constant 16; with this deletion it has 17. Corrected `internal/testutil/agentsdoc_test.go` to 17. Preserved both versions of the accumulated `.ds4/report-mrg1.md` and removed conflict markers in a follow-up commit. Approved implementation (`5f5a63eb`) otherwise unchanged. `.cards` was present as a symlink to the corpus. No measured golden or deck-ratchet movement; botbench stays green.
