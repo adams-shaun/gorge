@@ -742,6 +742,7 @@ func (e *Engine) Clone() *Engine {
 		}
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
+		pc.proposalTriggers = append([][2]int(nil), e.cast.proposalTriggers...)
 		if e.cast.mayPlayRemembered != nil {
 			m := make(map[state.ObjID][]state.ObjID, len(e.cast.mayPlayRemembered))
 			for k, v := range e.cast.mayPlayRemembered {

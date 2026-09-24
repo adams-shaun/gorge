@@ -449,6 +449,14 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	if d.Max >= 0 && pick > d.Max {
 		pick = d.Max
 	}
+	// A per-target-priced spell (Strive, CR 702.52a) costs more for each
+	// target beyond the first. Firing the full width the caster cannot pay
+	// only reverses the cast (CR 733.1) -- and re-picking it re-proposes the
+	// same unpayable cast. Stay within the engine's affordable count, never
+	// below the decision's own Min.
+	if d.AffordableTargets > 0 && pick > d.AffordableTargets && d.AffordableTargets >= d.Min {
+		pick = d.AffordableTargets
+	}
 	if pick > n {
 		pick = n
 	}
