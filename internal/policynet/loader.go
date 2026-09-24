@@ -30,7 +30,12 @@ const (
 
 // AcceptedLabelSchemaVersions is the allow-list of label schema versions a
 // reader accepts, in ascending order. Callers must treat it as read-only.
-var AcceptedLabelSchemaVersions = []int{1, 2}
+//
+// Schema 3 (pn12) is schema 2 plus the optional "extras" object
+// (LabelExtras, written by cmd/searchteacher -label-extras): Load reads a
+// schema 3 record exactly as schema 2 and ignores the extras; LoadWith reads
+// them.
+var AcceptedLabelSchemaVersions = []int{1, 2, 3}
 
 // LabelSchemaAccepted reports whether v is in AcceptedLabelSchemaVersions.
 func LabelSchemaAccepted(v int) bool {
@@ -115,6 +120,11 @@ type Example struct {
 	// makes the example train the PPO objective instead of the supervised
 	// loss. nil for every label-corpus example.
 	PPO *PPOTarget
+	// JointCard is the joint (card, target) action encoding's option map
+	// (pn12, LoadWith with Joint): JointCard[k] is the index in the RECORD's
+	// option list of the card Options[k] casts. nil for the split encoding,
+	// where Options parallels the record's options one to one.
+	JointCard []int
 }
 
 // Stats counts what Load saw.

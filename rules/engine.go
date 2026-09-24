@@ -2467,7 +2467,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			wasTapped = o.Tapped
 		}
 	}
-	stored := e.foldEntryMove(ev)
+	stored, _ := e.foldEntryMove(ev)
 	e.expireClonesOnEvent(stored, wasTapped)
 	// CR 310.10: every Battle whose recorded protector has just left the game
 	// gets a fresh living opponent as its protector. PlayerLost is the one

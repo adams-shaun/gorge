@@ -1,3 +1,451 @@
+# Merge-conflict resolution — task agent-20260922T193437Z-a964eea4
+
+Ticket: `agent-20260922T193437Z-a964eea4` (generic `Effect` `Triggers$` registration / `EffectOwner$` / `OneOff$`)
+Branch: `wt/agent-20260922T193437Z-a964eea4`
+Merge commit: `f6df88ed2` (Merge branch 'main' into wt/agent-20260922T193437Z-a964eea4)
+`main` tip integrated: `69d64137c`
+Merge base: `f23fdd867`
+
+## Starting state
+
+The daemon's message said "if a previous resolver run left partial work, continue
+from the current tree state". There was **no in-flight operation** when this seat
+started: `git status` was clean on the branch, no `MERGE_HEAD` existed and no
+`rebase-merge`/`rebase-apply` directory was active. The reflog showed a previous,
+**aborted** rebase attempt:
+
+```
+dbce44a6c HEAD@{0}: reset: moving to HEAD
+dbce44a6c HEAD@{1}: rebase (abort): returning to refs/heads/wt/agent-20260922T193437Z-a964eea4
+0c80c7a44 HEAD@{2}: rebase (pick): feat(effects): resolve EffectOwner$ and OneOff$ for the generic Effect Triggers$ path
+69d64137c HEAD@{3}: rebase (start): checkout main
+dbce44a6c HEAD@{4}: commit: docs: restore shared report history clobbered by this ticket's report commits
+```
+
+So the daemon had attempted a **rebase** onto `main`, picked the ticket's fix as
+`0c80c7a44`, then aborted and reset. I performed the integration as a **merge**
+(`git merge main`), which is correct for this branch because it already carries
+merge commits (`e5721cc56` is not a linear patch) and matches the integration
+form the previous resolver report (task `f1e41416`) used.
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`
+(`ls -la .cards` → `… -> /home/sadams/projects/gorge/.cards`), so every
+corpus-backed run below exercised the corpus rather than skipping.
+
+## Conflicted files
+
+`git merge --no-edit main` reported:
+
+```
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Auto-merging effects/misc.go
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Exactly **two** paths conflicted, both shared, ever-growing report logs:
+`.ds4/report-t1.md` and `.ds4/report-t2.md`. `effects/misc.go` (the file that
+carries this branch's fix) auto-merged.
+
+### `.ds4/report-t1.md`
+
+Both sides are **pure prepends** to a common base — this is the shared
+report-file preserve convention (documented in `e60f9037e` and `dbce44a6c`):
+each ticket prepends its own report, a `---` separator and a
+"Reports appended below are from other tickets…" header above the archive.
+
+- Base (`f23fdd867`): 3429 lines, starting with the
+  `agent-20260919T181318Z-86535368` report.
+- `HEAD`: 3723 lines = base + **294 lines inserted at the top** (this ticket's
+  `EffectOwner$`/`OneOff$` report + separator + header). No deletions.
+- `main`: 4427 lines = base + **804 lines inserted at the top** (the
+  `agent-20260923T065617Z-9b7a6efa` CR 704.5k world-rule report and the
+  game-long damage-by-source provenance report + separator + header) **and
+  +194 lines appended at the very end** (the `AddTrigger$ A & B` Mirror
+  Shield-family task report). No deletions.
+
+The two sides' top insertions overlap at the same offset (both above the base's
+first line), which is why git saw a conflict rather than a clean
+non-overlapping add.
+
+Verified boundaries (`diff` clean, so the base is preserved byte-exact on both
+sides):
+
+```
+$ diff <(sed -n '295,$p'  head_t1) base_t1   # IDENTICAL
+$ diff <(sed -n '805,4233p' main_t1) base_t1 # IDENTICAL
+```
+
+**Resolution.** Concatenate both sides' insertions above the one copy of the
+base:
+
+```
+resolved_t1 = head_t1[1..294] + main_t1[1..804] + base_t1[1..3429] + main_t1[4234..4427]
+```
+
+Resulting file: 4721 lines, 0 conflict markers, and the diff against the
+branch's pre-merge file is **additions-only** (`+998`), i.e. nothing was
+deleted:
+
+```
+ .ds4/report-t1.md | 998 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 998 insertions(+)
+```
+
+(`998 = 804 + 194`, main's own insertions; the branch's 294-line report is
+already above them.)
+
+The seams read correctly: this ticket's report ends, then
+
+```
+---
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — agent-20260923T065617Z-9b7a6efa: CR 704.5k world-rule SBA
+```
+
+then the world/damage reports, then main's own separator/header, then the base
+report `agent-20260919T181318Z-86535368` and the rest of the archive.
+
+### `.ds4/report-t2.md`
+
+Same convention and same situation.
+
+- Base: 1086 lines.
+- `HEAD`: 1316 lines = base + **230 lines inserted at the top** (this ticket's
+  report + separator + header). No deletions.
+- `main`: 1870 lines = base + **670 lines inserted at the top** (the
+  target-specific Equip reduction window report and the DigUntil withheld-rider
+  report + separator) **and +114 lines appended at the end** (the CR 704.5k
+  round-t2 report). No deletions.
+
+Verified boundaries:
+
+```
+$ diff <(sed -n '231,$p'    head_t2) base_t2    # IDENTICAL
+$ diff <(sed -n '671,1756p' main_t2) base_t2    # IDENTICAL
+```
+
+**Resolution.** Same concatenation:
+
+```
+resolved_t2 = head_t2[1..230] + main_t2[1..670] + base_t2[1..1086] + main_t2[1757..1870]
+```
+
+Resulting file: 2100 lines, 0 conflict markers, additions-only against the
+branch's pre-merge file (`+784 = 670 + 114`).
+
+The second conflict hunk in `report-t2.md` had an empty `HEAD` side
+(git aligned the shared trailing separator so `main` appeared to add text where
+`HEAD` had none); the concatenation above handles it correctly without dropping
+anything.
+
+### `effects/misc.go` (auto-merged — checked, not edited)
+
+Although git reported no conflict here, I checked the merge because this is the
+file the branch's fix lives in and `main` also changed it. `git diff
+HEAD:effects/misc.go effects/misc.go` shows only `main`'s additions layered on
+top of the branch's version:
+
+- the widened `Mode$ CantAttack` static whitelist (`IsPresent`, `IsPresent2`,
+  `PresentCompare`, `PresentZone`, `ClassBand`) with main's new measured
+  comment, and
+- the `Special DoubleManaInPool` (`Doubling Cube`) `effMana` production arm.
+
+No branch hunk was lost or reverted, and no third behaviour was introduced.
+Left exactly as git resolved it.
+
+## Why this ordering / no behavioural choice was made
+
+No hunk's two sides genuinely contradict: every conflict was purely two tickets
+appending different report text to one shared log. There is no engine behaviour
+to prefer. The resolution keeps **both** sides' content and the one shared base,
+which is the only integration consistent with the append-only convention.
+
+## Commands run (real output)
+
+Merge (conflicts shown above):
+
+```
+$ git merge --no-edit main
+```
+
+Post-resolution ratchet run from `main` (`-v`, corpus present):
+
+```
+$ go test -v -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' ./rules/
+--- PASS: TestEveryRepoDeckIsFullySupported (0.47s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.17s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.693s
+```
+
+No `addedAfterTheSplit` entry was needed: this ticket registers no new `Mode$`
+matcher, and no `knownUnsupported` / `knownUnsupportedParams` /
+`knownUnmodelledCountHeads` entry was closed or added, so all three ratchets are
+untouched by this branch and pass against `main`'s tables.
+
+Full build:
+
+```
+$ go build ./...
+(exit 0, no output)
+```
+
+Behaviour goldens:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	6.225s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.865s
+```
+
+Targeted tests over the conflicted/merged packages:
+
+```
+$ go test -run 'TestEffectTriggerOwner|TestEffectOneOff|TestEffectGenericRegistration|TestPalaceJailer|TestKnightsOfTheBlackRose|TestCustodiLich|Monarch|TestEffectTriggerMatchesRegistrationOwner|TestEffectTriggerExpires|TestEffectEventModes|TestEffectTriggerBodySelfExile|TestEffectTriggerExpiryAndUnsupportedLifetime|TestChancellor|TestOpeningEffect|TestWorldRule' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.805s
+
+$ go test ./effects/
+ok  	github.com/adams-shaun/gorge/effects	22.941s
+```
+
+Merge completed and tree confirmed clean:
+
+```
+$ GIT_EDITOR=true git merge --continue
+[wt/agent-20260922T193437Z-a964eea4 f6df88ed2] Merge branch 'main' into wt/agent-20260922T193437Z-a964eea4
+
+$ git status
+On branch wt/agent-20260922T193437Z-a964eea4
+nothing to commit, working tree clean
+```
+
+`git log -1 --format='%P'` confirms the two-parent merge:
+`dbce44a6ca712ad14bad4be96b4776dd84bb2d11 69d64137cfcdc8ac9951e533a0ecf653b34fdcb0`.
+
+## Head / ratchet movement
+
+None. The merge's only content changes are report logs and `main`'s already-
+landed engine changes; this branch's fix is unchanged. The ratchet tables were
+not edited (correct: nothing was closed), `TestHeads` was not run in the seat
+(daemon gate), and `TestConstructedDefaultIsByteIdentical` passes unchanged.
+
+## Deviations from the brief
+
+- The brief said "finish the in-flight operation you find". There was **no**
+  in-flight operation (previous rebase aborted/reset), so I started the
+  integration the daemon's fallback had attempted. I used a **merge**, not a
+  rebase, because the branch is not a linear patch series and already carries
+  merge commits; this also matches the previous resolver report for `f1e41416`.
+- I ran one extra package (`./effects/`) beyond the single targeted pattern, as
+  the system notes require for a package other than `rules/` that the fix
+  touched; it is the branch's own `Effects` package.
+
+## Issues
+
+- **Process wart, not an engine defect:** `.ds4/report-t1.md`,
+  `.ds4/report-t2.md` and `.ds4/report-mrg1.md` are tracked while the rest of
+  `.ds4/` is gitignored, and every ticket that touches the shared log prepends
+  to it — so **every** merge of an agent branch with `main` produces a
+  content conflict in these files. Each resolution is mechanical (concatenate
+  both sides' prepends above the shared base), but it is a recurring, avoidable
+  cost in the unattended pipeline. A durable fix would be to make the report
+  log an append-only file that is *not* merged (e.g. keep the archive under a
+  git-excluded path and commit per-ticket reports separately, or split the log
+  one file per ticket). Named here for the operator; no CR rule applies.
+- No engine defect was found in, or hidden by, this merge. No row of AGENTS.md's
+  "Known approximations" table was added, grown, or deleted.
+
+---
+
+# Merge-conflict resolution — task agent-20260923T105645Z-f1e41416
+
+Ticket: `agent-20260923T105645Z-f1e41416` (target-specific Equip reduction cast-window funding)
+Branch: `wt/agent-20260923T105645Z-f1e41416`
+Merge commit: `98d4b78ab` (Merge branch 'main' into wt/agent-20260923T105645Z-f1e41416)
+`main` base integrated: `38932fdb7`
+
+## Starting state
+
+The daemon's rebase onto main had already been **aborted and reset** by the
+time this seat started: `git status` was clean, no `rebase-merge`/
+`rebase-apply` directory existed, no `MERGE_HEAD` existed. The reflog showed:
+
+```
+a191cee8b HEAD@{0}: reset: moving to HEAD
+a191cee8b HEAD@{1}: rebase (abort): returning to refs/heads/wt/agent-20260923T105645Z-f1e41416
+a5f0a50b3 HEAD@{2}: rebase (pick): fix(rules): price paid and dynamic mana in the CR 601.2g target window
+38932fdb7 HEAD@{3}: rebase (start): checkout main
+```
+
+So there was **no in-flight operation to finish**. I performed the integration
+the daemon's fallback had attempted: `git merge main`, which is also the
+correct form here because the branch already carried a merge commit
+(`3657b2e01 Merge branch 'main' …`) and is not a linear patch series.
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`, so
+every corpus-backed run below exercised the corpus (not a vacuous skip).
+
+## Conflicted files
+
+`git merge main --no-edit` produced exactly two touched conflict sites:
+
+```
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Auto-merging rules/paramcensus_test.go
+```
+
+- `.ds4/report-t2.md` — **UU, manually resolved**.
+- `rules/paramcensus_test.go` — auto-merged cleanly (no markers); verified below.
+
+`git show :1/:2/:3:.ds4/report-t2.md` gives the three stages:
+
+| stage | meaning | lines | first line |
+|---|---|---|---|
+| 1 | merge base | 1086 | `# Report — agent-20260919T181318Z-86535368 (verification round)` |
+| 2 | ours (branch) | 55 | `# Report — target-specific Equip reduction window` |
+| 3 | theirs (main) | 1812 | `# Report — game-long damage-by-source provenance (The Fallen, Diseased Vermin) — round t2` |
+
+### What each side wanted
+
+`.ds4/report-t2.md` is a shared, append-only report slot reused across
+tickets (git history shows many tickets writing it). Main's side had grown the
+file to 1812 lines (new damage-provenance report + the accumulated archive).
+The branch's side had **replaced** the whole file with this ticket's 55-line
+report, deleting the accumulated history.
+
+The repo's documented convention for exactly this conflict (commit
+`e60f9037e docs(ds4): restore shared report history for t1/t2/mrg1 (preserve
+convention)`) is: keep the current ticket's report above the standard
+separator, and restore main's content **byte-exact below it**.
+
+### Resolution
+
+`.ds4/report-t2.md` = (branch's 55-line report) + blank + the standard
+separator header + blank + (main's full 1812 lines, unchanged). 1870 lines
+total.
+
+```
+# Report — target-specific Equip reduction window
+…
+## Existing workspace changes
+…
+# Reports appended below are from other tickets on the shared report file (preserved verbatim from main):
+
+# Report — game-long damage-by-source provenance (The Fallen, Diseased Vermin) — round t2
+…
+```
+
+Lossless and verified: `tail -n +59 .ds4/report-t2.md | sha256sum` equals
+`git show :3:.ds4/report-t2.md | sha256sum`:
+`d6de7b409a9176a0aa05fb2cd00b653480ab670f7c33d1db8779716491a652ab`.
+
+No conflict markers remain (`grep -c '^<<<<<<<\|^=======\|^>>>>>>>'` = 0).
+The file is tracked but `.ds4/` is in `.git/info/exclude`, so the resolved
+blob was staged with `git add -f .ds4/report-t2.md` (the merge had already
+left it unmerged/needs-staging).
+
+### rules/paramcensus_test.go
+
+Auto-merged cleanly. The only difference from main is the branch's 10-line
+addition to the `apiSpecificRulesSA` table, scoping the new cast-window probe
+readers to `api:Mana`:
+
+```
++	"Engine.castWindowPaidUnits": {"Mana"},
++	"Engine.castWindowAmount":    {"Mana"},
+```
+
+Verified with `git diff main -- rules/paramcensus_test.go`: only that hunk,
+no other change, no markers.
+
+## Commands run and output
+
+```
+$ git merge main --no-edit
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Auto-merging rules/paramcensus_test.go
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git diff --name-only --diff-filter=U      # after staging report-t2
+(empty)
+
+$ git commit --no-edit
+[wt/agent-20260923T105645Z-f1e41416 98d4b78ab] Merge branch 'main' into wt/agent-20260923T105645Z-f1e41416
+
+$ git status --short
+(clean)
+```
+
+Post-merge ratchet run (the panel the brief names):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	1.229s
+```
+
+Targeted pass over the conflicted file's package (report-t2 is markdown;
+paramcensus_test.go is `rules`), including the branch's fix tests:
+
+```
+$ go test ./rules -run 'TestEveryRepoDeckParamsAreRead|TestParamCensus|TestEquipReduceWindow|TestCastWindowProvable|TestBeltOfGiantStrength'
+ok  	github.com/adams-shaun/gorge/rules	1.390s
+```
+
+Behaviour goldens (cheap sanity check that the merge did not move them):
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	8.046s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.046s
+```
+
+## Final diff vs main
+
+```
+$ git diff --stat main..HEAD
+ .ds4/report-t2.md                         |  58 +++++++
+ rules/cast.go                             | 268 +++++++++++++++++++++++++++++-
+ rules/equip_reduce_window_dynamic_test.go | 257 ++++++++++++++++++++++++++++
+ rules/mana_available.go                   |   7 +
+ rules/paramcensus_test.go                 |  10 ++
+ rules/unless_payment.go                   |  23 ++-
+```
+
+Only the branch's reviewed fix (5 code/test files) plus the report addition.
+Main's content is fully preserved.
+
+## Unsure / notes
+
+- The daemon left no in-flight git operation, so I created the integration
+  merge rather than continuing a rebase. The brief's "complete the git
+  operation" is satisfied by completing the merge the daemon's fallback
+  attempted. I did not rebase (forbidden for a seat, and the branch carries a
+  merge commit, so a merge is the right integration form).
+- `.ds4/report-t2.md` is a tracked file that is also `.git/info/exclude`d;
+  staging required `-f`. This is pre-existing, not introduced by me.
+- No ratchet table entry needed adding/removing: the ratchet suite is green
+  unchanged, and the branch registered no new `Mode$` matcher.
+
+## Issues
+
+- None newly found by this integration. The only defect the branch's report
+  records (and deliberately scopes out) is the remaining fail-closed cast-window
+  producer shapes, already filed as
+  `.ds4/new-tickets/castwindow-probe-remaining-shapes.md`.
+
 # Merge-conflict resolution — task agent-20260923T065617Z-9b7a6efa
 
 Ticket: `agent-20260923T065617Z-9b7a6efa` (CR 704.5k world-rule SBA)
