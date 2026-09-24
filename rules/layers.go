@@ -351,6 +351,27 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							} else {
 								ty.AddTypes = nil
 							}
+							// Duplicant's AddType$ ImprintedCreatureType reads the
+							// last still-exiled creature card, not a literal type word.
+							for i, word := range ty.AddTypes {
+								if word != "ImprintedCreatureType" {
+									continue
+								}
+								ty.AddTypes = append(ty.AddTypes[:i], ty.AddTypes[i+1:]...)
+								for j := len(o.Imprinted) - 1; j >= 0; j-- {
+									im := e.G.Obj(o.Imprinted[j])
+									if im == nil || im.Zone != state.ZExile || im.Face() == nil || !slices.Contains(im.Face().Types, "Creature") {
+										continue
+									}
+									for _, subtype := range im.Face().Types {
+										if effects.CreatureTypeWords(subtype) {
+											ty.AddTypes = append(ty.AddTypes, subtype)
+										}
+									}
+									break
+								}
+								break
+							}
 							// The strip flags ride the AddType emission (measured: every
 							// corpus S: line carrying RemoveCardTypes$/RemoveCreatureTypes$
 							// also carries AddType$): a strip-only static -- an AddType$
