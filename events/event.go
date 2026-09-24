@@ -863,7 +863,7 @@ const (
 	// caster promised an opponent a gift and which opponent. Obj is the
 	// spell on the stack (the object the promise attaches to), Player is the
 	// promised opponent when one was named, and Amount is 1 for a promise
-	// and 0 for a decline. Apply folds it onto Object.PromisedGift /
+	// and 0 for a decline. Apply folds it onto Object.CastFlags /
 	// GiftPromisedTo, which the PromisedGift filter predicate, the
 	// Count$PromisedGift head and Defined$ Promised all read. It is a real
 	// state-bearing event rather than a Choose marker because the promise
@@ -1359,6 +1359,11 @@ var flagNames = [...]struct {
 	{"morphed", state.FlagMorphed},
 	{"megamorphed", state.FlagMegamorphed},
 	{"disguised", state.FlagDisguised},
+	// The CR 702.168 Gift promise: the caster named an opponent as the
+	// gift's receiver as the spell was cast. Read by the PromisedGift
+	// predicate, the Count$PromisedGift head and Defined$ Promised. Appended
+	// at the end per the table's own ordering rule.
+	{"promisedgift", state.FlagPromisedGift},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

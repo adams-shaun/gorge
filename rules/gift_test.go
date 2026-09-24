@@ -255,7 +255,7 @@ func TestGiftOctomancerCreatesTokenForPromisedOpponent(t *testing.T) {
 	if z := e.G.Obj(octoID).Zone; z != state.ZBattlefield {
 		t.Fatalf("Octomancer zone = %v, want battlefield", z)
 	}
-	if !e.G.Obj(octoID).PromisedGift {
+	if e.G.Obj(octoID).CastFlags&state.FlagPromisedGift == 0 {
 		t.Fatalf("Octomancer did not retain its promise across the stack->battlefield move")
 	}
 	if n := countTokensNamedOnSeat(t, e, 1, "Octopus Token"); n != 1 {
@@ -339,6 +339,87 @@ func assertNoUnimplementedGiftNote(t *testing.T, e *Engine) {
 			t.Fatalf("gift degraded to a Note: %q", ev.Text)
 		}
 	}
+}
+
+// TestGiftKitnapPromisedDrawsAndSkipsStunCounters drives a PERMANENT Aura's
+// promise through its own ETB trigger: Kitnap's "if the gift wasn't promised,
+// put three stun counters on it" reads ConditionPresent$ Card.PromisedGift on
+// the entering permanent, so the promise must survive the stack->battlefield
+// move. Promised: the opponent draws and the enchanted creature is unstunned.
+func TestGiftKitnapPromisedDrawsAndSkipsStunCounters(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	kitnap := mustCorpusCard(t, reg, "Kitnap")
+	e, cfg := tokenReplGame(t, 31, kitnap)
+	bear := putToken(t, e, 0, giftBearSrc, state.ZBattlefield)
+	kitnapID := moveSeededCard(t, e, 0, kitnap, state.ZHand)
+	oppHand := len(e.G.Zone(state.ZHand, 1))
+	addMana(t, e, 0, "UUUU")
+	submitChoices(t, e, castCardOption(t, e, kitnapID).Index)
+	answerGift(t, e, true)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Kitnap aura target ask = %+v", d)
+	}
+	i := targetOptionIndex(d, bear)
+	if i < 0 {
+		t.Fatalf("Kitnap target ask does not offer the bear: %+v", d.Options)
+	}
+	submitChoices(t, e, i)
+	passUntilStackEmpty(t, e, 20)
+	// Precondition: Kitnap really entered attached to the bear.
+	if z := e.G.Obj(kitnapID).Zone; z != state.ZBattlefield {
+		t.Fatalf("Kitnap zone = %v, want battlefield", z)
+	}
+	if got := stunCountersOn(e, bear); got != 0 {
+		t.Fatalf("promised Kitnap put %d stun counters on the bear, want 0 (Card.PromisedGift read true)", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 1)); got != oppHand+1 {
+		t.Fatalf("promised opponent hand = %d, want %d (they draw the gift)", got, oppHand+1)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestGiftKitnapDeclinedPutsThreeStunCounters is the negative half: a declined
+// promise gives nothing and Kitnap's ETB gate "if the gift wasn't promised"
+// fires, stunning the enchanted creature.
+func TestGiftKitnapDeclinedPutsThreeStunCounters(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	kitnap := mustCorpusCard(t, reg, "Kitnap")
+	e, cfg := tokenReplGame(t, 32, kitnap)
+	bear := putToken(t, e, 0, giftBearSrc, state.ZBattlefield)
+	kitnapID := moveSeededCard(t, e, 0, kitnap, state.ZHand)
+	oppHand := len(e.G.Zone(state.ZHand, 1))
+	addMana(t, e, 0, "UUUU")
+	submitChoices(t, e, castCardOption(t, e, kitnapID).Index)
+	answerGift(t, e, false)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Kitnap aura target ask = %+v", d)
+	}
+	i := targetOptionIndex(d, bear)
+	if i < 0 {
+		t.Fatalf("Kitnap target ask does not offer the bear: %+v", d.Options)
+	}
+	submitChoices(t, e, i)
+	passUntilStackEmpty(t, e, 20)
+	if z := e.G.Obj(kitnapID).Zone; z != state.ZBattlefield {
+		t.Fatalf("Kitnap zone = %v, want battlefield", z)
+	}
+	if got := stunCountersOn(e, bear); got != 3 {
+		t.Fatalf("declined Kitnap put %d stun counters on the bear, want 3", got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 1)); got != oppHand {
+		t.Fatalf("declined opponent hand = %d, want %d (no gift, no draw)", got, oppHand)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// stunCountersOn is the named-counter read the stun assertions use.
+func stunCountersOn(e *Engine, id state.ObjID) int32 {
+	if o := e.G.Obj(id); o != nil {
+		return o.Counter("Stun")
+	}
+	return 0
 }
 
 // TestGiftPrimitivesRegistered pins that kw:Gift and trig:GiveGift are

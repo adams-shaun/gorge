@@ -2338,7 +2338,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 		promised := false
 		if o := g.Obj(c.Source); o != nil {
-			promised = o.PromisedGift
+			promised = o.CastFlags&state.FlagPromisedGift != 0
 		}
 		tok := no
 		if promised {

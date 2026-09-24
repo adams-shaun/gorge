@@ -8767,6 +8767,14 @@ func (e *Engine) payCast() {
 	// reads the mode (e.g. "cast a kicked spell") sees it, because the flag
 	// is applied before the trigger fires next.
 	flags := modeFlags(pc.mode)
+	// CR 702.168: the Gift promise rides the pay-time CastInfo too -- the
+	// CastFlags word is assigned wholesale here, so the bit events.GiftPromise
+	// folded at pushCast (which the CR 601.2c target ask read) must be
+	// re-stated or this later event would clear it. A declined promise emits
+	// no flag.
+	if pc.giftPromise {
+		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagPromisedGift)
+	}
 	if pc.mode == "mutated" && pc.mutateTop {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMutatedTop)
 	}

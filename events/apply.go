@@ -1806,9 +1806,10 @@ func Apply(g *state.Game, e Event) {
 		// Defined$ Promised read one home, and preserved across the
 		// stack->battlefield move by events.Move (the X/CastFlags window).
 		if o := g.Obj(e.Obj); o != nil {
-			o.PromisedGift = e.Amount != 0
+			o.CastFlags &^= state.FlagPromisedGift
 			o.GiftPromisedTo = 0
-			if o.PromisedGift {
+			if e.Amount != 0 {
+				o.CastFlags |= state.FlagPromisedGift
 				o.GiftPromisedTo = e.Player
 			}
 		}
@@ -3414,11 +3415,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaArtifactSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
-			// CR 702.168: the gift promise is cast-time provenance, not a
-			// battlefield characteristic -- a re-entering permanent carries no
-			// promise from its old cast (CR 400.7), the CastFlags window's own
-			// discipline.
-			o.PromisedGift, o.GiftPromisedTo = false, 0
+			// CR 702.168: the gift promise's receiver is cast-time
+			// provenance, not a battlefield characteristic -- a re-entering
+			// permanent carries no promise from its old cast (CR 400.7). The
+			// FlagPromisedGift bit is cleared with CastFlags just above.
+			o.GiftPromisedTo = 0
 			// new object's -- a blunk/reanimated StoreSVar carrier starts with
 			// no stored value (the printed default stands).
 			o.RuntimeSVars = nil
@@ -3470,9 +3471,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 			// CR 702.168: a spell leaving the stack for a non-battlefield zone
-			// (a resolving instant/sorcery, a countered spell) carries its gift
-			// promise no further -- the same X/CastFlags window reset.
-			o.PromisedGift, o.GiftPromisedTo = false, 0
+			// (a resolving instant/sorcery, a countered spell) names no gift
+			// receiver further. The FlagPromisedGift bit is cleared with
+			// CastFlags just above.
+			o.GiftPromisedTo = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
 		// when a permanent spell carries its announcement onto the battlefield).

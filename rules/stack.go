@@ -3728,7 +3728,7 @@ func (e *Engine) resolveTop() {
 	// splice is a SHALLOW COPY of the resolved gift SA, never a mutation of
 	// the card's parsed table.
 	resolveSA := sa
-	if o.PromisedGift {
+	if o.CastFlags&state.FlagPromisedGift != 0 {
 		if gift := cards.ResolveSVar(f.SVars, "GiftAbility"); gift != nil {
 			e.emit(events.Event{Kind: events.GiveGift, Player: o.Controller, Obj: id})
 			head := *gift

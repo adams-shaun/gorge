@@ -695,7 +695,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// than guessing at a fallback target. The promised player still being
 		// alive is not required -- `they draw a card` on a departed opponent
 		// is the spell's own resolution, not a targeting requirement.
-		if o := g.Obj(c.Source); o != nil && o.PromisedGift {
+		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagPromisedGift != 0 {
 			if int(o.GiftPromisedTo) < len(g.Players) {
 				return []state.Target{{Player: o.GiftPromisedTo, IsPlayer: true}}, true
 			}

@@ -333,6 +333,15 @@ const (
 	FlagMorphed
 	FlagMegamorphed
 	FlagDisguised
+	// FlagPromisedGift marks a spell cast with the CR 702.168 Gift promise:
+	// the caster named an opponent as the gift's receiver. It is folded by
+	// events.GiftPromise from the cast-flow election and read by the
+	// PromisedGift filter predicate, the Count$PromisedGift head and the
+	// Defined$ Promised / TokenOwner$ Promised referent. It is a
+	// CastProvenanceFlag because the promise is a statement about the CAST
+	// (a copy was never cast, so it must not inherit it -- CR 707.10).
+	// Appended per the enum's own append-only precedent.
+	FlagPromisedGift
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -358,7 +367,11 @@ const (
 // comparable cases (the copied-kicker precedent), so changing them is a
 // separate ruling with its own corpus measurement. Add a bit here only when
 // its reader's condition is the cast itself.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay
+// FlagPromisedGift joins the set: the promise is made as the spell is cast
+// (CR 702.168a), so a stack copy -- put on the stack, never cast -- cannot
+// inherit it and the copy's PromisedGift predicate and Count$PromisedGift
+// head read false.
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -782,18 +795,16 @@ type Object struct {
 	// survives the hand/stack path and Move consumes it on battlefield entry,
 	// exactly like RiotChoice.
 	UnleashChoice string
-	// PromisedGift / GiftPromisedTo are the CR 702.168 Gift promise: the
-	// caster's optional election to promise an opponent a gift as this spell
-	// is cast, and which opponent was promised. They are folded by
-	// events.GiftPromise, the replayable record of the cast-flow election,
-	// and survive the stack->battlefield move (Move deliberately does not
-	// reset them on entry, the X/CastFlags window) so a permanent's own ETB
-	// trigger can read Card.PromisedGift -- Kitnap's "if the gift wasn't
-	// promised, put three stun counters on it". They reset only when the
-	// object genuinely leaves the stack to a non-battlefield zone or leaves
-	// the battlefield, like CastFlags, and a stack COPY (never cast) carries
-	// neither.
-	PromisedGift   bool
+	// GiftPromisedTo is the CR 702.168 Gift promise's receiver: the opponent
+	// the cast's election named. The promise itself is the CastFlags bit
+	// state.FlagPromisedGift (folded by events.GiftPromise, preserved across
+	// the stack->battlefield move and stripped from a stack copy by
+	// CastProvenanceFlags), so the PromisedGift predicate, the
+	// Count$PromisedGift head and the Defined$ Promised referent share one
+	// home for the bit; this field carries only the receiver, read by
+	// Defined$ Promised / TokenOwner$ Promised. Zero when no promise was
+	// made, and reset with the CastFlags window when the object leaves the
+	// battlefield or the stack.
 	GiftPromisedTo PlayerID
 	// Protector is the CR 310.10 Siege protector: the opponent its
 	// controller chose to protect this Battle as it entered. It is a property

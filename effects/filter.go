@@ -167,7 +167,7 @@ var predicates = map[string]predFn{
 	// to false -- a card that never carried the keyword, or a copy (never
 	// cast), matches neither the bare nor the '!' form's positive half.
 	"PromisedGift": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return o.PromisedGift
+		return o.CastFlags&state.FlagPromisedGift != 0
 	},
 	"surged": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagSurged != 0

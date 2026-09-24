@@ -135,7 +135,7 @@ func TestGiftCopyCarriesNoPromise(t *testing.T) {
 	}
 	// The real election fold: promises seat 1 a gift.
 	e.emit(events.Event{Kind: events.GiftPromise, Obj: id, Player: 1, Amount: 1})
-	if !e.G.Obj(id).PromisedGift || e.G.Obj(id).GiftPromisedTo != 1 {
+	if e.G.Obj(id).CastFlags&state.FlagPromisedGift == 0 || e.G.Obj(id).GiftPromisedTo != 1 {
 		t.Fatalf("precondition: promise not folded onto the original: %+v", e.G.Obj(id))
 	}
 	before := len(e.G.Objs)
@@ -150,8 +150,8 @@ func TestGiftCopyCarriesNoPromise(t *testing.T) {
 		t.Fatal("precondition: no copy minted by StackCopy")
 	}
 	cp := e.G.Obj(copyID)
-	if cp.PromisedGift || cp.GiftPromisedTo != 0 {
-		t.Fatalf("stack copy inherited the gift promise: PromisedGift=%v GiftPromisedTo=%d, want false/0",
-			cp.PromisedGift, cp.GiftPromisedTo)
+	if cp.CastFlags&state.FlagPromisedGift != 0 || cp.GiftPromisedTo != 0 {
+		t.Fatalf("stack copy inherited the gift promise: flags=%s GiftPromisedTo=%d, want no promisedgift flag / 0",
+			events.FlagsString(cp.CastFlags), cp.GiftPromisedTo)
 	}
 }
