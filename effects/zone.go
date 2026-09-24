@@ -3188,6 +3188,9 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		max = 0
 	}
 	mandatory := strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True")
+	// ChoiceOptional$ True explicitly names the Min-0 may-pick default here;
+	// it does not override Mandatory$ True. False/unset leave the default unchanged.
+	mayPick := strings.EqualFold(strings.TrimSpace(sa.Params["ChoiceOptional"]), "True")
 	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
@@ -3405,6 +3408,9 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			Prompt:           prompt}
 		if mandatory {
 			d.Min = int(m)
+		} else if mayPick {
+			// Explicit may-pick: preserve the same Min-0 default as an absent key.
+			d.Min = 0
 		}
 		// A mandatory budget pick whose m exceeds what the budget affords must
 		// not demand more picks than it can pay for: lower the Min to the
@@ -4298,7 +4304,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
 	rider := classifyAttackingEntry(c, sa, to)
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
-		h.Emit(moveZoneEvent(c, id, z, to))
+		ev := moveZoneEvent(c, id, z, to)
+		applyFaceDownMarker(h, sa, c, &ev, to)
+		h.Emit(ev)
 		moved = append(moved, id)
 		// Tapped$ True (Splendid Reclamation's "Return all land cards
 		// ... tapped"): a battlefield entry is followed by the same

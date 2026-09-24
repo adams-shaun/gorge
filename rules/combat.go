@@ -97,6 +97,12 @@ func (e *Engine) attackableCreature(id state.ObjID) (*state.Object, bool) {
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
 		return nil, false
 	}
+	if o.PhasedOut {
+		// CR 702.25b/d: a phased-out permanent is treated as though it does
+		// not exist, so it cannot attack. The one gate both canAttack and
+		// canAttackPair share.
+		return nil, false
+	}
 	f := o.Face()
 	if f == nil || !e.IsCreature(id) || o.BestowedAttached() {
 		return nil, false
@@ -351,6 +357,11 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if b.Zone != state.ZBattlefield || a.Zone != state.ZBattlefield {
 		return false
 	}
+	if b.PhasedOut || a.PhasedOut {
+		// CR 702.25b/d: a phased-out permanent is treated as though it does
+		// not exist, so it can neither block nor be blocked.
+		return false
+	}
 	bf := b.Face()
 	// Derived, not printed -- see canAttack (an animated manland blocks).
 	if bf == nil || !e.IsCreature(blocker) || b.BestowedAttached() {
@@ -387,6 +398,26 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	}
 	if e.HasKeyword(attacker, "Fear") && !bf.IsArtifact() && !strings.ContainsRune(e.objColors(b), 'B') {
 		return false
+	}
+	// CR 702.13a: an Intimidate attacker can be blocked only by artifact
+	// creatures and/or creatures that share a colour with it -- the Fear
+	// predicate generalised from one fixed colour (black) to a colour
+	// INTERSECTION. Attacker-keyed and per-pair like Fear/Shadow/Skulk, with
+	// derived (layer-5) colours on both sides; a colourless Intimidate
+	// attacker has no colour to share, so only an artifact creature blocks
+	// it.
+	if e.HasKeyword(attacker, "Intimidate") {
+		attColors, blockColors := e.objColors(a), e.objColors(b)
+		shared := false
+		for i := 0; i < len(attColors); i++ {
+			if strings.ContainsRune(blockColors, rune(attColors[i])) {
+				shared = true
+				break
+			}
+		}
+		if !bf.IsArtifact() && !shared {
+			return false
+		}
 	}
 	// CR 702.31b: a creature with horsemanship can be blocked only by a
 	// creature with horsemanship. The rule is asymmetric and attacker-keyed
@@ -3048,6 +3079,11 @@ func init() {
 		"kw:Infect", "kw:Wither",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
 		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
+		// kw:Intimidate (CR 702.13a): an Intimidate attacker is blocked only
+		// by artifact creatures and/or creatures sharing a colour with it --
+		// read directly in canBlock as a colour-intersection generalisation
+		// of Fear. Proof test: TestIntimidateBlocksOnlyArtifactsAndSharedColors.
+		"kw:Intimidate",
 		// kw:Landwalk (CR 702.14): a walker can't be blocked while the
 		// defending player controls a land of the named type. The family is
 		// read directly in canBlock/landwalkEvades against the defender's

@@ -223,6 +223,25 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	present := strings.TrimSpace(sa.Params["ConditionPresent"])
 	notPresent := strings.TrimSpace(sa.Params["ConditionNotPresent"])
 	compare := strings.TrimSpace(sa.Params["ConditionCompare"])
+	// PresentDefined$/IsPresent$/PresentCompare$ are the DB-body spellings of
+	// the same defined-group presence gate ConditionDefined$/
+	// ConditionPresent$/ConditionCompare$ express. Normalize here so every
+	// effect body uses the same evaluator and group support as
+	// ConditionDefined. The filter key is spelled IsPresent$ (the corpus's
+	// DB-body spelling: Experimental Lab // Staff Room's DBPutCounter and
+	// DBTurnFaceUp are the only two `DB$ ... PresentDefined$` lines in the
+	// corpus, and both carry IsPresent$); a bare Present$ key does not exist
+	// in the corpus, so it is deliberately NOT read here.
+	presentDefined := strings.TrimSpace(sa.Params["PresentDefined"])
+	presentCompare := strings.TrimSpace(sa.Params["PresentCompare"])
+	if presentDefined != "" {
+		if defined != "" || present != "" || compare != "" {
+			return false, false
+		}
+		defined = presentDefined
+		present = strings.TrimSpace(sa.Params["IsPresent"])
+		compare = presentCompare
+	}
 	check := strings.TrimSpace(sa.Params["ConditionCheckSVar"])
 	svarCmp := strings.TrimSpace(sa.Params["ConditionSVarCompare"])
 	bare := strings.TrimSpace(sa.Params["Condition"])
@@ -458,7 +477,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
 		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" &&
-		defined != "Returned" {
+		defined != "Returned" && defined != "TriggeredSourceLKICopy" {
 		// Only the Remembered, Self, TriggeredCard, Imprinted, Targeted,
 		// Discarded and Returned families are in scope among DEFINED groups:
 		// the objects a walk
@@ -552,6 +571,12 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 				group = append(group, state.Target{Obj: id})
 			}
 		}
+	}
+	if defined == "TriggeredSourceLKICopy" {
+		if c.TriggerSource == 0 || g.Obj(c.TriggerSource) == nil {
+			return false, false
+		}
+		group = []state.Target{{Obj: c.TriggerSource}}
 	}
 	if defined == "TriggeredCard" {
 		// The card the triggering event moved — the TriggerContext.TriggerCard

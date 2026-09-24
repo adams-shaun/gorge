@@ -30,7 +30,7 @@ func TryUntap(h Host, id state.ObjID) {
 		return
 	}
 	if o.Counter("STUN") > 0 {
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "STUN", Amount: -1})
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "STUN", Amount: -1, Text: events.UntapReplacedByStunNotice})
 		return
 	}
 	h.Emit(events.Event{Kind: events.Untap, Obj: id})

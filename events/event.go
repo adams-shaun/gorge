@@ -11,6 +11,11 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// UntapReplacedByStunNotice marks CR 122.1d's CounterChange substitution.
+// Like EntryCounterNotice, it uses the existing Text field; Apply still places
+// the counter because only EntryCounterNotice suppresses placement.
+const UntapReplacedByStunNotice = "__untap_replaced_by_stun_notice"
+
 type Kind uint8
 
 const (
@@ -843,16 +848,6 @@ const (
 	// map range ever reaches an event. Appended after Scry to preserve every
 	// earlier Kind ordinal, hash chain and golden replay.
 	StoreSVar
-	// NumKinds is the number of defined Kind constants, one past the last
-	// (state.Zone's numZones, next package over, is the same shape). It
-	// exists for the scans that must visit every kind: view's
-	// Describe-coverage test used to bound its loop with a kind NAME
-	// (EndCombatReset) that silently stopped being the last Kind, so eight
-	// kinds landed past the loop and were never described; bounding by
-	// NumKinds instead means a Kind appended here is covered by
-	// construction, with no edit to the scan. It must stay AFTER the last
-	// Kind: appending a Kind below it would renumber every later ordinal
-	// and corrupt the hash chain, so new kinds always go above it.
 	// TurnFaceDown records a battlefield permanent being turned face down by
 	// SetState. Appended after StoreSVar to preserve prior event ordinals.
 	TurnFaceDown
@@ -869,7 +864,47 @@ const (
 	DamageProvenance
 	// EnduringStoryChange records a seat gaining the CR 702.175 designation.
 	EnduringStoryChange
-	NumKinds = int(EnduringStoryChange) + 1
+	// PhaseOut records CR 702.25's phased-out/phase-in status on a
+	// battlefield permanent (api:Phases). Obj is the permanent and Amount 1
+	// phases it OUT, -1 phases it IN. It is deliberately NOT a MoveZone:
+	// phasing is not a zone change (the permanent stays on the battlefield
+	// and no leaves/enters event fires), it only makes the permanent
+	// invisible to everything that treats a permanent as existing, and it
+	// phases in at its controller's next untap step. Apply folds it into
+	// Object.PhasedOut, which the Move fold clears when the permanent
+	// actually leaves the battlefield. Appended after CloneStatic, the last
+	// pre-existing Kind, so no earlier ordinal, hash chain or golden replay
+	// is affected.
+	PhaseOut
+	// GiftPromise records the cast-time CR 702.168 Gift election: whether the
+	// caster promised an opponent a gift and which opponent. Obj is the
+	// spell on the stack (the object the promise attaches to), Player is the
+	// promised opponent when one was named, and Amount is 1 for a promise
+	// and 0 for a decline. Apply folds it onto Object.CastFlags /
+	// GiftPromisedTo, which the PromisedGift filter predicate, the
+	// Count$PromisedGift head and Defined$ Promised all read. It is a real
+	// state-bearing event rather than a Choose marker because the promise
+	// SURVIVES the stack->battlefield move (a permanent's gift is given on
+	// entry) and must be replay-derived. Appended after
+	// PhaseOut, following every prior Kind's own append-only precedent, so no
+	// earlier ordinal, hash chain or golden replay is affected.
+	GiftPromise
+	// GiveGift records one completed gift action (CR 702.168b): Player is
+	// the giver (the cast spell's controller) and Obj the resolving source
+	// (the spell on the stack, or the permanent whose ETB gift resolved). It
+	// is an Apply no-op marker, exactly like Investigate: the gift's own
+	// state change (the drawn card, the created token) is its own event that
+	// precedes this one, and the record is what trig:GiveGift matches
+	// ("whenever you give a gift" -- Jolly Gerbils). The marker is separate
+	// from the gift's own effects so an unrelated draw or token creation
+	// never fires a gift trigger. Appended after GiftPromise, still after
+	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
+	// is affected.
+	GiveGift
+	// NumKinds is the explicit upper bound for the append-only event kind
+	// registry below. New kinds must be appended above this line: inserting or
+	// reordering a kind renumbers the hash-chained event stream and breaks replay.
+	NumKinds = int(GiveGift) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1004,7 +1039,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
-	"damage_provenance", "enduring_story_change"}
+	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -1345,6 +1380,11 @@ var flagNames = [...]struct {
 	{"morphed", state.FlagMorphed},
 	{"megamorphed", state.FlagMegamorphed},
 	{"disguised", state.FlagDisguised},
+	// The CR 702.168 Gift promise: the caster named an opponent as the
+	// gift's receiver as the spell was cast. Read by the PromisedGift
+	// predicate, the Count$PromisedGift head and Defined$ Promised. Appended
+	// at the end per the table's own ordering rule.
+	{"promisedgift", state.FlagPromisedGift},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

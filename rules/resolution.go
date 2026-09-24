@@ -142,6 +142,13 @@ type resumePoint struct {
 	choices     []state.Target
 	chosenValid bool
 	remembered  []state.Target
+	// pendingDamage is the DamageMap$ True mark set of the resolution that
+	// posed this ask (effects.Ctx.PendingDamage at suspension time): the
+	// resumed Ctx is rebuilt from scratch, so without this ride a mark left
+	// before a mid-chain ask (a DamageResolve-defeating suspension) would be
+	// lost and the later flush would deal nothing. Runtime continuation
+	// state, never client input, the same class as remembered.
+	pendingDamage []effects.PendingDamage
 	// searchKnown rides the effects.Ctx.SearchKnown set of a search chain
 	// across a planted placement leg's own suspension (Decision
 	// .ResumeSearchKnown): the leg's answer rebuilds a fresh Ctx, and the next
@@ -606,8 +613,9 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
-		searchKnown:  append([]state.Target(nil), d.ResumeSearchKnown...),
-		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
+		pendingDamage: effects.ClonePendingDamage(e.resolutionPendingDamage()),
+		searchKnown:   append([]state.Target(nil), d.ResumeSearchKnown...),
+		digUntilMove:  d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
@@ -693,6 +701,18 @@ func resolutionTargetCounters(c *effects.Ctx) map[state.ObjID][]state.Counter {
 		return nil
 	}
 	return effects.CloneTargetCountersLKI(c.TargetCountersLKI)
+}
+
+// resolutionPendingDamage is the DamageMap$ True mark set a pending ask
+// carries onto its resume point: the live Resolve chain's marks (published
+// through SetResolutionCtx), cloned so the frame owns its storage. Nil
+// outside a chain (a combat or mulligan ask) or when the chain has marked
+// nothing.
+func (e *Engine) resolutionPendingDamage() []effects.PendingDamage {
+	if e.resolutionCtx == nil {
+		return nil
+	}
+	return effects.ClonePendingDamage(e.resolutionCtx.PendingDamage)
 }
 
 // snapshotDepartingTargetCounters refreshes the resolving chain's target-
@@ -1379,6 +1399,13 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	e.resume = nil
 	chosen := d.Chosen(in)
 	labels := chosenModeLabels(chosen)
+	if d.ResumeSA != nil && strings.EqualFold(d.ResumeSA.Params["SetChosenMode"], "True") && len(chosen) == 1 {
+		// An as-enters GenericChoice records its mode on the permanent via
+		// the event fold; the ModeChosen marker alone stores no object state.
+		if names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes); len(names) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: d.Source, Counter: "mode", Text: names[0]})
+		}
+	}
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
 		Text: strings.Join(labels, ",")})
 	// ChoiceRestriction$: a mid-resolution Charm's pick is recorded on its
@@ -1983,6 +2010,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// exclusion set survives the suspension untouched.
 	if len(rp.targetsUnique) > 0 {
 		ctx.TargetsUnique = append(ctx.TargetsUnique, rp.targetsUnique...)
+	}
+	// The DamageMap$ True mark set, captured at ask time from the live
+	// resolution Ctx: a chain that marks damage and then suspends on a
+	// mid-resolution ask before its DB$ DamageResolve re-enters here, and the
+	// rebuilt Ctx must still carry the marks the flush is owed (a fresh Ctx
+	// would drop them and the flush would silently deal nothing).
+	if len(rp.pendingDamage) > 0 {
+		ctx.PendingDamage = effects.ClonePendingDamage(rp.pendingDamage)
 	}
 	// Task mvts1: carry the SA whose targeting the placement/announcement
 	// ask covered, exactly as resolveTop's first pass does. An optional
@@ -2697,6 +2732,27 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
 			}
+		case "investigate_optional":
+			// An Optional$ True Investigate's per-player may-investigate
+			// election (Will the Wise's "each opponent may investigate",
+			// Nick Valentine's "you may investigate") was answered for the
+			// player the ask named: Decision.ResumeTarget is the cursor index
+			// into the actingPlayers walk the re-entered effInvestigate
+			// re-derives (the same-Remembered ride keeps a Remembered-valued
+			// Defined$ deriving the SAME list the cursor indexes). The answer
+			// is a bare yes/no, recorded here as the marker the re-entered
+			// effect consumes and clears at the point of application (fx42
+			// scoping): "yes" mints the Num$ Clues and, with
+			// RememberInvestigatingPlayers$ True, remembers the acceptor;
+			// "no" — the decline — does neither, and the chained SubAbility$
+			// still runs either way. A malformed or empty answer keeps the
+			// decline, the conservative read draw_optional and attach_optional
+			// take.
+			ctx.InvestigateOptIdx = int32(rp.target)
+			ctx.InvestigateOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.InvestigateOpt = "yes"
+			}
 		case "copy_optional":
 			// An Optional$ True CopySpellAbility's may-copy election
 			// (Sevinne's Reclamation's "you may copy this spell", and the
@@ -2787,6 +2843,20 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.PutOpt = "no"
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.PutOpt = "yes"
+			}
+		case "setstate_optional":
+			// An Optional$ True SetState's yes/no election (Dowsing Dagger's
+			// "you may transform this Equipment", High Marshal Arguel's "you
+			// may transform it") was answered. The answer is a bare yes/no,
+			// recorded here as a marker the re-entered effect consumes and
+			// clears (fx42 scoping): "yes" runs the ordinary face change,
+			// "no" -- the decline -- changes nothing and the chained
+			// SubAbility$ still runs (the put_optional convention). A
+			// malformed or empty answer keeps the decline, the conservative
+			// read of an ambiguous one.
+			ctx.SetStateOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.SetStateOpt = "yes"
 			}
 		case "imprint":
 			// An Imprint$ True public-zone choice. The effect consumes this

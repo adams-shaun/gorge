@@ -1207,6 +1207,15 @@ func costAnnouncesX(c Cost) bool {
 			return true
 		}
 	}
+	// An announced Blight<X> part binds the cast's X exactly like Sac<X/Spec>
+	// (Blighted Nightmare's `Blight<X> Return<1/CARDNAME>` ability): the
+	// payment settles the announced count, so the X was announced even when
+	// its value is 0.
+	for _, part := range c.Blight {
+		if part.Announced {
+			return true
+		}
+	}
 	return false
 }
 
@@ -1566,6 +1575,21 @@ func (e *Engine) manaActivateLabel(name string) string {
 	}
 	e.manaLabels[name] = l
 	return l
+}
+
+// existsOnBattlefield reports whether o is a permanent the engine treats as
+// existing (CR 702.25b): it is on the battlefield and not phased out. A
+// phased-out permanent is treated as though it does not exist -- it cannot be
+// targeted (rules/stack.go candidatesFor), activated, tapped or sacrificed as
+// a cost, its static and triggered abilities are off, and it does not stay in
+// combat (events.Apply's PhaseOut fold removes it, CR 702.25c). PhasedOut is
+// only ever true on a battlefield permanent (the PhaseOut fold is
+// battlefield-gated, the Move fold clears it), so gating a walk that already
+// restricts itself to the battlefield on it is exact. Battlefield action
+// and cost walks use this helper; mana-ability discovery and trigger scanning
+// separately reject phased-out objects. Other readers must gate where relevant.
+func existsOnBattlefield(o *state.Object) bool {
+	return o != nil && o.Zone == state.ZBattlefield && !o.PhasedOut
 }
 
 // legalActions enumerates everything p may legally do with priority. The
@@ -1986,6 +2010,16 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (conspired)", Obj: id, Mode: "conspired"})
+		}
+		// Casualty is an optional additional sacrifice, not a mana cost.
+		// Price the ordinary spell and require at least one creature whose
+		// derived power meets the printed or layer-granted threshold.
+		if targetsAvailable {
+			if n := e.casualtyValue(id); n >= 0 && len(e.casualtyCandidates(p, id, n)) > 0 &&
+				offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (casualty)", Obj: id, Mode: "casualty"})
+			}
 		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke
 		// (CR 702), dash, overload and warp each become their own "cast" mode
@@ -2624,6 +2658,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
+			if z == state.ZBattlefield && !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out permanent is treated as though it
+				// does not exist, so its mana abilities are not offered. The
+				// choke point appendAvailableManaAbilities is gated too, which
+				// covers the payment windows this offer walk does not reach.
+				continue
+			}
 			f := o.Face()
 			if f == nil {
 				continue
@@ -2666,6 +2707,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZHand, state.ZExile} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
+			if z == state.ZBattlefield && !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out permanent is treated as though it
+				// does not exist, so none of its printed activated abilities is
+				// offered or activatable.
+				continue
+			}
 			f := o.Face()
 			if f == nil {
 				continue
@@ -2961,6 +3008,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// does not exist while face down.
 			continue
 		}
+		if !existsOnBattlefield(o) {
+			// CR 702.25b: a phased-out permanent is treated as though it does
+			// not exist, so none of its granted or gained activated abilities
+			// is offered or activatable.
+			continue
+		}
 		for _, ga := range e.grantedAbilities(p, id) {
 			ab := ga.sa
 			// isManaAbilityAPI, not a bare "Mana" check: a granted
@@ -3098,6 +3151,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if o == nil || o.Face() == nil || !e.HasKeyword(id, "Station") {
 				continue
 			}
+			if !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out permanent is treated as though it
+				// does not exist, so it cannot be stationed.
+				continue
+			}
 			if len(e.stationCandidates(p, id)) == 0 {
 				continue
 			}
@@ -3111,6 +3169,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
 			if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
+				continue
+			}
+			if !existsOnBattlefield(o) {
+				// CR 702.25b: a phased-out room is treated as though it does
+				// not exist, so it cannot be unlocked.
 				continue
 			}
 			cost, ok := e.unlockRoomCost(o)
@@ -3134,6 +3197,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
+			continue
+		}
+		if !existsOnBattlefield(o) {
+			// CR 702.25b: a phased-out permanent is treated as though it
+			// does not exist, so its max-speed granted abilities are not
+			// offered.
 			continue
 		}
 		for _, ab := range e.maxSpeedAbilities(p, id) {

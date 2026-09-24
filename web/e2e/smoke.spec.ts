@@ -767,14 +767,11 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
     });
 
     // ui21 — the log starts hidden for a SEATED player, with a toggle in the
-    // rail. This is the deterministic half of the task's measured-evidence
-    // requirement: it drives a REAL seated client and asserts the transcript
-    // is hidden by default and becomes visible when the rail switch is
-    // clicked, on measured DOM state (visibility), not a description. (The
-    // other half — the per-card options affordance — is exercised by the unit
-    // suite and built client below; it is not reliably reachable in a
-    // vs-bot game, whose early turns offer no battlefield permanent the seat
-    // may act on — see the ui21 report.)
+    // rail. The contracted rail-toggle window is specifically the mulligan
+    // round (fb-20260917T231628Z); fd4e6a0f0 settles the CR 103.1 toss before
+    // mounting so this test can assert that window rather than assume it.
+    // It drives a REAL seated client and measures the transcript visibility.
+    // The other half — the per-card options affordance — is exercised below.
     test('a seated player sees the log hidden by default and can toggle it in the rail', async ({ browser, request }) => {
       const b = base as string;
       const label = `[seated]`;
@@ -787,10 +784,18 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         // Watch the post-mount interactions (the toggle itself) so a console
         // error surfacing from flipping the log is caught here.
         const c = watch(page, b);
+        // The toss settle must leave the mounted seat in its mulligan round.
+        // Assert the actual keep option is mounted before relying on that state.
+        const keep = page.locator('.seat-panel button.keep[data-option]');
+        await keep.waitFor({ state: 'visible', timeout: WAIT_MS });
+
         // The rail carries the log switch, and the seated default is hidden.
         const toggle = page.locator('[data-log-toggle]');
         await toggle.waitFor({ state: 'visible', timeout: WAIT_MS });
         expect(await toggle.getAttribute('aria-checked')).toBe('false');
+        // The two controls are mutually exclusive. The reverse exclusion is
+        // Table.svelte's optionsReachable ? null : toggleLog at line 420.
+        expect(await page.locator('[data-toggle="show-game-log"]').count()).toBe(0);
         // The transcript footer is hidden (its grid row collapsed, so it has
         // no display box).
         await page.waitForFunction(() => {

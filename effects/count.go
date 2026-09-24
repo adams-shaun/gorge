@@ -86,6 +86,25 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	if v, ok := runtimePublished(c, raw); ok {
 		return sign * v, true
 	}
+	// A bare SVar name with an arithmetic suffix (Expression$ Aid/Plus.1)
+	// uses the same runtime -> printed -> publication precedence as the
+	// explicit SVar$ spelling below. Keep this at the parameter boundary so
+	// evalCountBody's bare-head semantics remain unchanged.
+	if name, op, hasOp := strings.Cut(raw, "/"); hasOp && modelledCountOp(c, op) {
+		name = strings.TrimSpace(name)
+		if v, ok := runtimeSVar(c, name); ok {
+			return sign * applyCountOpOperand(h, c, v, op, 0), true
+		}
+		if body, ok := c.SVars[name]; ok {
+			v, evaluated := evalCountExprOK(h, c, body, 1)
+			if evaluated {
+				return sign * applyCountOpOperand(h, c, v, op, 0), true
+			}
+		}
+		if v, ok := runtimePublished(c, name); ok {
+			return sign * applyCountOpOperand(h, c, v, op, 0), true
+		}
+	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
 	// Minus1, Task 17) is a body in its own right, not an SVar name -- a
 	// param value of "Count$..." evaluates directly rather than being
@@ -1000,12 +1019,19 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
-	ts, ok := refTargets(h, c, ref)
-	if !ok {
-		return 0, false
+	var ts []state.Target
+	if ref == "TriggerObjectsCards" {
+		ts = c.Captured
+	} else {
+		var ok bool
+		ts, ok = refTargets(h, c, ref)
+		if !ok {
+			return 0, false
+		}
 	}
 	g := h.Game()
 	var n int32
+	triggerObjectTypes := map[string]bool{}
 	// The Different* distinct-set property family over a reference's objects
 	// (task diffcount1): `Remembered$DifferentCardManaCost` (Azor's Gateway,
 	// Sanctum of the Sun settling X, Atemsis All-Seeing). The set is read
@@ -1038,6 +1064,16 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		}
 		f := o.Face()
 		switch {
+		case ref == "TriggerObjectsCards" && prop == "CardTypes":
+			if f != nil {
+				for _, typ := range f.Types {
+					triggerObjectTypes[typ] = true
+				}
+			}
+		case ref == "TriggerObjectsCards" && prop == "GreatestCardManaCost":
+			if f != nil && f.Cmc() > n {
+				n = f.Cmc()
+			}
 		case prop == "CardPower":
 			if f != nil {
 				if lki && c.LKIPTValid {
@@ -1188,6 +1224,9 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			}
 			return 0, false
 		}
+	}
+	if ref == "TriggerObjectsCards" && prop == "CardTypes" {
+		n = int32(len(triggerObjectTypes))
 	}
 	if diffKind != diffNone {
 		if seenDiffNames != nil {
@@ -2179,6 +2218,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
+		if rest == "HasPropertycontrolsCreature.powerGE4" && arg == "" {
+			// Yojimbo's chapter IV counts opponents, not creatures. Read the
+			// battlefield and derived power (including continuous effects).
+			seen := make(map[state.PlayerID]bool)
+			for i := range g.Objs {
+				o := &g.Objs[i]
+				if o.Zone == state.ZBattlefield && o.Controller != c.Controller &&
+					h.IsCreature(o.ID) && h.Power(o.ID) >= 4 {
+					seen[o.Controller] = true
+				}
+			}
+			var n int32
+			for _, p := range opponentGroup(g, c) {
+				if seen[p] {
+					n++
+				}
+			}
+			return n, true
+		}
 		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true
 		}
@@ -2331,6 +2389,28 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return no, true
 	}
 
+	// DifferentCounterKinds_<spec> counts distinct real counter kinds over
+	// matching battlefield objects. These are the three corpus selectors;
+	// other spellings are unreadable, not an evaluated zero.
+	if spec, ok := strings.CutPrefix(head, "DifferentCounterKinds_"); ok {
+		if arg != "" || (spec != "Card.Self" && spec != "Creature.YouCtrl" && spec != "Permanent.YouCtrl") {
+			return 0, false
+		}
+		kinds := make(map[string]bool)
+		for i := range g.Objs {
+			o := &g.Objs[i]
+			if o.Zone != state.ZBattlefield || !matchesZoneSpecCtx(g, spec, o.ID, c.SpecContext(c.Controller), state.ZBattlefield) {
+				continue
+			}
+			for _, counter := range o.Counters {
+				if counter.N > 0 && !state.InternalCounterMarker(counter.Kind) {
+					kinds[counter.Kind] = true
+				}
+			}
+		}
+		return int32(len(kinds)), true
+	}
+
 	// CardCounters.<KIND> counts a counter kind on the source; ALL is the
 	// sum over every kind (Forge's CardCounters.ALL wildcard -- Denry Klin's
 	// intervening-if gate, Kyler's and Warden of the Inner Sky's X), which a
@@ -2359,6 +2439,30 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return yes, true
 		}
 		return no, true
+	}
+	// PromisedGift.<yes>.<no> is <yes> when the source's cast promised an
+	// opponent a gift (CR 702.168), else <no> -- Forge's
+	// Count$PromisedGift.2.1 family (Wear Down's destroy-two, Long River's
+	// Pull's X/Y, Valley Rally's first strike). The read is Object.PromisedGift,
+	// the SAME one home the PromisedGift filter predicate reads (folded by
+	// events.GiftPromise), so the matcher and the count can never disagree. A
+	// missing source, a card never cast, and a stack copy (whose fresh object
+	// carries no promise) all read the <no> branch, the modelled-head
+	// convention. A malformed body with a missing branch fails closed.
+	if rest, ok := strings.CutPrefix(head, "PromisedGift."); ok {
+		yes, no, found := strings.Cut(rest, ".")
+		if !found || strings.TrimSpace(yes) == "" || strings.TrimSpace(no) == "" {
+			return 0, false
+		}
+		promised := false
+		if o := g.Obj(c.Source); o != nil {
+			promised = o.CastFlags&state.FlagPromisedGift != 0
+		}
+		tok := no
+		if promised {
+			tok = yes
+		}
+		return evalCountOperand(h, c, tok, depth), true
 	}
 	// Foretold.<ifTrue>.<ifFalse> is <ifTrue> when the resolving source was
 	// cast foretold (CR 702.126a -- the pay-time FlagForetold provenance,

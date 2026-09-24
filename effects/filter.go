@@ -2,6 +2,7 @@ package effects
 
 import (
 	"iter"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -82,6 +83,16 @@ var predicates = map[string]predFn{
 	"tapped":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
 	"untapped":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
 	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
+	// unblocked is the CR 509.1h "attacking creature ... with no creatures
+	// blocking it" predicate: the object is attacking and no blocker is
+	// recorded on it. It is the filter half of ninjutsu's activated cost
+	// (K:Ninjutsu's Return<1/Creature.YouCtrl+attacking+unblocked>, the one
+	// corpus consumer), and it fails closed for anything not attacking -- a
+	// non-attacker is never unblocked, so a blocked or non-attacking
+	// creature can neither pay the cost nor match the spec.
+	"unblocked": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsAttacking && len(o.BlockedBy) == 0
+	},
 	// attackingYou is the source-relative attacker predicate (Watchdog's and
 	// Boarded Window's continuous `Affected$ Creature.attackingYou`, Ice
 	// Floe's/Hunting Kavu's/Snow Fortress's `Creature.attackingYou` target
@@ -97,6 +108,23 @@ var predicates = map[string]predFn{
 		}
 		s := g.Obj(src)
 		return s != nil && o.Attacking == s.Controller
+	},
+	// Mangara/Tomik count attackers at you or your planeswalkers. Attacking
+	// and AttackingBattle (state/object.go) distinguish a battle protector
+	// from a planeswalker defender; battles must not be counted.
+	"attackingYouOrYourPWLKI": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
+		if !o.IsAttacking || o.Attacking != you {
+			return false
+		}
+		if o.AttackingBattle == 0 {
+			return true
+		}
+		b := g.Obj(o.AttackingBattle)
+		if b == nil || b.Controller != you || b.Face() == nil {
+			return false
+		}
+		f := b.Face()
+		return f.IsPlaneswalker() && !f.IsCreature()
 	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
@@ -156,6 +184,18 @@ var predicates = map[string]predFn{
 	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
+	},
+	// PromisedGift is Forge's Card.PromisedGift (CR 702.168): the object is a
+	// spell or permanent whose cast opted into the Gift keyword's promise.
+	// The bit is folded by events.GiftPromise from the cast-flow election and
+	// preserved across the stack->battlefield move, so it reads on the spell
+	// during resolution (Perch Protection's ConditionPresent$
+	// Card.Self+PromisedGift) and on the permanent at its ETB (Kitnap's
+	// ConditionPresent$ Card.PromisedGift). Absent a promise it fails closed
+	// to false -- a card that never carried the keyword, or a copy (never
+	// cast), matches neither the bare nor the '!' form's positive half.
+	"PromisedGift": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagPromisedGift != 0
 	},
 	"surged": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagSurged != 0
@@ -447,6 +487,12 @@ func init() {
 		s := g.Obj(src)
 		return s != nil && s.Paired == o.ID && o.Zone == state.ZBattlefield
 	}
+	// withSoulbond composes with PairedWith: inspect the selected candidate's
+	// keyword, not the source permanent's keyword.
+	predicates["withSoulbond"] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return objectHasKeyword(o, "Soulbond")
+	}
+	keywordPredicates["withSoulbond"] = keywordPredicate{keyword: "Soulbond"}
 }
 
 // attachedBy reports whether o is the permanent src is currently attached
@@ -1191,6 +1237,17 @@ const (
 	// (Clockspinning's and Jhoira's Timebug's TgtZone$ Exile targets, Amy
 	// Pond's Choices$ card election).
 	wordSuspended
+	// Forge's Card.canReceiveCounters <kind>: the object can have a counter of
+	// <kind> placed on it. key is the counter kind. The corpus's only use is
+	// the +1/+1 spelling on Experimental Lab // Staff Room's DBPutCounter
+	// presence gate; a +1/+1 counter is hostable by a creature
+	// (state.Object.EffectiveIsCreature, CR 708.5-aware), any other counter
+	// kind by any battlefield permanent.
+	wordCanReceiveCounters
+	// Forge's Card.canBeTurnedFaceUp: the face-down battlefield permanent
+	// has a real card face to reveal (CR 708.6). The corpus's only use is
+	// Experimental Lab // Staff Room's DBTurnFaceUp presence gate.
+	wordCanBeTurnedFaceUp
 	// Forge's OppProtect: the object is a battle whose CR 310.10 protector
 	// is an opponent of the evaluating controller (SpecContext's You). The
 	// protector state lives on the battle object itself (state.Object
@@ -1216,6 +1273,7 @@ const (
 	// The resolution-only one-token TargetedPlayerCtrl grammar. Its target
 	// binding comes from SpecContext rather than a new state tracker.
 	wordTargetedPlayerCtrl
+	wordTargetedPlayerOwn
 	// The two-token space form "AttachedTo <X>": <X> is a literal type or
 	// object class answerable from the object in hand (the base grammar).
 	wordAttachedTo
@@ -1425,6 +1483,15 @@ func wordPredicate(p string) (wordKind, string) {
 	if rest, ok := strings.CutPrefix(p, "wasDealtDamageThisGameBy "); ok {
 		return wordDealtDamageThisGameBy, strings.TrimSpace(rest)
 	}
+	// Forge's argument-taking canReceiveCounters <kind> (Experimental Lab //
+	// Staff Room's DBPutCounter presence gate is the corpus's only carrier):
+	// the trimmed counter kind is the key, the same shape the `kicked <n>`
+	// index form above uses. An empty argument stays wordUnknown.
+	if rest, ok := strings.CutPrefix(p, "canReceiveCounters "); ok {
+		if kind := strings.TrimSpace(rest); kind != "" {
+			return wordCanReceiveCounters, kind
+		}
+	}
 	switch p {
 	case "Colorless":
 		return wordColorless, ""
@@ -1474,6 +1541,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordTopLibrary, ""
 	case "faceDown":
 		return wordFaceDown, ""
+	case "canBeTurnedFaceUp":
+		return wordCanBeTurnedFaceUp, ""
 	case "IsRingbearer":
 		return wordRingBearer, ""
 	case "HasCounters":
@@ -1521,6 +1590,9 @@ func wordPredicate(p string) (wordKind, string) {
 	// anyway, so a bare `Card.hasABasicLandType` stays correct too).
 	case "hasABasicLandType":
 		return wordHasBasicLandType, ""
+	}
+	if p == "TargetedPlayerOwn" {
+		return wordTargetedPlayerOwn, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -1717,6 +1789,17 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ActivePlayerCtrl: the object is controlled by the active
 		// player -- the seat whose turn it is, g.Active.
 		return o.Controller == g.Active
+	case wordCanReceiveCounters:
+		return canReceiveCounter(key, o)
+	case wordCanBeTurnedFaceUp:
+		// Forge's Card.canBeTurnedFaceUp: a face-down battlefield permanent
+		// with a real card face to reveal (CR 708.6) -- morph/megamorph/
+		// disguise, manifest or cloak. gorge's turn-up path (effects'
+		// effSetState Mode$ TurnFaceUp) reveals any face-down battlefield
+		// permanent, so this live FaceDown read is the engine's own answer;
+		// the corpus's `+faceDown` qualifier beside it is redundant but
+		// harmless.
+		return o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil
 	case wordFaceDown:
 		// Forge's faceDown: the object is a face-down battlefield permanent
 		// (CR 708.5 -- a manifested or cloaked card). The same live state read
@@ -1834,6 +1917,9 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return count >= n
 	case wordTargetedPlayerCtrl:
 		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
+		return ok && matched
+	case wordTargetedPlayerOwn:
+		matched, ok := matchTargetedPlayerOwn(g, o, sc)
 		return ok && matched
 	case wordThisTurnEntered:
 		// Forge's ThisTurnEntered: the object entered a zone this turn (any
@@ -2153,7 +2239,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if hasAbilityToken(p) {
@@ -2669,6 +2755,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// every matching token without the distinctness narrowing.
 		return o.IsToken, true
 	}
+	if mode, has := strings.CutPrefix(p, "ChosenMode"); has && mode != "" {
+		// ChosenMode<X> reads the candidate object's event-backed modal
+		// announcement. An unresolved choice has no recorded mode and fails
+		// closed; the ordinary ! wrapper would invert that result for a negated
+		// predicate (no corpus carrier uses !ChosenMode).
+		return slices.Contains(o.ChosenModes, mode), true
+	}
 	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" {
 		// Forge's ChosenCard and ChosenCardStrict are one predicate for this
 		// build: the candidate is (or, under nonChosenCard, is not) one of the
@@ -3088,6 +3181,23 @@ func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (r
 		return !r, true
 	}
 	return matchPositive(g, p, o, sc)
+}
+
+// canReceiveCounter answers Forge's Card.canReceiveCounters <kind>: the object
+// can have a counter of kind placed on it. A +1/+1 (or -1/-1) counter is
+// hostable by a creature -- read through EffectiveIsCreature so a face-down
+// permanent's folded set type decides -- and any other counter kind by any
+// battlefield permanent with a face. Off the battlefield (or a face-less
+// object) never matches.
+func canReceiveCounter(kind string, o *state.Object) bool {
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	switch strings.ToUpper(kind) {
+	case "P1P1", "M1M1":
+		return o.EffectiveIsCreature()
+	}
+	return true
 }
 
 // hasType reads a printed type plus Changeling's type-defining ability. The
@@ -4289,6 +4399,25 @@ func isBarePlayerProperty(clause string) bool {
 	return false
 }
 
+// playerBaseMatches reports whether a bare player-spec base matches seat p
+// relative to the perspective seat you. It is the shared base predicate the
+// ordinary qualifier switch below already spells inline (Player/Any always,
+// You is the perspective seat, Opponent/Other is anyone else) and that the
+// source-anchored Chosen/IsRemembered membership read now consults first, so
+// a membership read can never widen past its base. An unknown base fails
+// closed, exactly as the inline switch does.
+func playerBaseMatches(base string, p, you state.PlayerID) bool {
+	switch base {
+	case "Player", "Any":
+		return true
+	case "You":
+		return p == you
+	case "Opponent", "Other":
+		return p != you
+	}
+	return false
+}
+
 // matchesPlayerSingleSpec is the original single-alternative player-spec
 // evaluator: one clause, no `,` or `+` (the callers above split those).
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
@@ -4325,7 +4454,22 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			}
 			continue
 		}
-		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+		if qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+			// The source-anchored chosen/remembered membership read, on EVERY
+			// base the grammar evaluates (Player/Any as always, plus the
+			// qualified You/Opponent/Other spellings -- Will the Wise's
+			// `Defined$ Opponent.!IsRemembered` "each opponent who doesn't"
+			// is the corpus carrier). Reading it only on Player/Any left the
+			// Opponent-base qualifier permanently false, which the `!`
+			// spelling inverted into admitting EVERY opponent. The base is
+			// checked FIRST, so a membership read cannot admit the source's
+			// own controller under an `Opponent` base (or an opponent under a
+			// `You` base); only the set membership is base-independent. The
+			// set is still the source object's own event-backed list, so every
+			// base reads one home.
+			if !playerBaseMatches(base, p, you) {
+				continue
+			}
 			o := g.Obj(pc.Source)
 			if o == nil {
 				continue

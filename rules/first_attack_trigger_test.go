@@ -120,8 +120,20 @@ func TestFirstAttackFiresOncePerTurnGodoAndScourge(t *testing.T) {
 	for _, c := range carriers {
 		t.Run(c.name, func(t *testing.T) {
 			card := mshCorpusCardPath(t, c.name, c.path)
-			e := combatEngine(t)
-			src := onBoardCard(t, e, 0, card)
+			var e *Engine
+			var src state.ObjID
+			if c.name == "Fear of Missing Out" {
+				// Supply the real intervening-if's four types so this test
+				// isolates the once-per-turn gate.
+				e, _, src = gateFixture(t, 964, c.name,
+					deliriumBearSrc, deliriumPlainsSrc, deliriumBoltSrc, deliriumOathSrc)
+				e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZHand, To: state.ZBattlefield})
+				millExtras(t, e, "Delirium Bear", "Delirium Plains", "Delirium Bolt", "Delirium Oath")
+				e.G.Step = state.StepDeclareAttackers
+			} else {
+				e = combatEngine(t)
+				src = onBoardCard(t, e, 0, card)
+			}
 			e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{src}})
 			if firstAttackPending(e) == 0 {
 				t.Fatalf("%s: first attack did not queue the FirstAttack trigger", c.name)
