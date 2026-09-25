@@ -19,6 +19,7 @@ import (
 // SetName or a colour change, never a mutation of shared card data.
 func init() {
 	Register("ChangeText", effChangeText)
+	Register("ExchangeTextBox", effExchangeTextBox)
 }
 
 // textChangeDuration resolves a ChangeText/ExchangeTextBox Duration$ into the
