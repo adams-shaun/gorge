@@ -67,4 +67,14 @@ func TestPlayCopyCardCastsCopyAndLeavesOriginalInExile(t *testing.T) {
 	if copyObj.ID == original || copyObj.Face().Name == "" {
 		t.Fatalf("copy identity/characteristics did not differ as expected: original=%d copy=%+v", original, copyObj)
 	}
+
+	// Resolve the copied spell too: resolving it must move only the copy to
+	// its resting zone, never consume the original exile card.
+	passUntilStackEmpty(t, e, 60)
+	if e.G.Obj(original).Zone != state.ZExile {
+		t.Fatalf("resolving copied spell moved original: %+v", e.G.Obj(original))
+	}
+	if got := e.G.Obj(copied); got == nil || got.Zone == state.ZStack {
+		t.Fatalf("resolved copy = %+v, want it to leave the stack", got)
+	}
 }
