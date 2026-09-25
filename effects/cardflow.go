@@ -1316,6 +1316,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// each means and which corpus card carries it).
 	revealWin := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") &&
 		!strings.EqualFold(strings.TrimSpace(sa.Params["NoReveal"]), "True")
+	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
 	forceReveal := strings.EqualFold(strings.TrimSpace(sa.Params["ForceRevealToController"]), "True")
 	skipReorder := strings.EqualFold(strings.TrimSpace(sa.Params["SkipReorder"]), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
@@ -1491,8 +1492,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					ResumeDigPrimary: append([]state.ObjID(nil), primaryMoved...)}
 				for i, id := range ids {
 					name := "a card"
-					if o := g.Obj(id); o != nil && o.Face() != nil {
-						name = o.Face().Name
+					if !noLooking || revealWin {
+						if o := g.Obj(id); o != nil && o.Face() != nil {
+							name = o.Face().Name
+						}
 					}
 					d.Options = append(d.Options, decision.Option{Index: i, Kind: "dig_bottom", Label: name, Obj: id, Player: p})
 				}
@@ -1627,7 +1630,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// otherwise the look stays private to the library's owner.
 			if revealWin {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
-			} else {
+			} else if !noLooking {
 				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
 			}
 			minv := int32(0)
@@ -1650,6 +1653,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				verb = "put "
 			}
 			prompt := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			if noLooking && !revealWin {
+				prompt = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			}
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
 			}
@@ -1664,8 +1670,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				Prompt:       prompt}
 			for _, id := range budgetEligible {
 				name := "a card"
-				if o := g.Obj(id); o != nil && o.Face() != nil {
-					name = o.Face().Name
+				if !noLooking || revealWin {
+					if o := g.Obj(id); o != nil && o.Face() != nil {
+						name = o.Face().Name
+					}
 				}
 				opt := decision.Option{Index: len(d.Options),
 					Kind: "dig", Label: name, Obj: id, Player: p}
@@ -1719,7 +1727,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		if revealWin && len(top) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 		}
-		if bottomRest && !revealWin && int32(len(top)-len(greedy)) >= 2 {
+		if bottomRest && !revealWin && !noLooking && int32(len(top)-len(greedy)) >= 2 {
 			// The ordered-bottom ask is coming: the look that authorises it is
 			// recorded here, the same Secret owner's Note the take-ask path
 			// emits before ITS ask (a Reveal$ window is already public).
