@@ -1164,7 +1164,15 @@ func (e *Engine) continueManaDiscard() {
 			}
 		}
 		n := int(part.N) - md.sacPaid
-		if n > 0 && (n > 1 || md.sacPart+1 < len(md.cost.Sac)) {
+		// The same split sacAsk makes: only a part with a LATER Sac part is
+		// paid one unit per decision under the feasibility filter (every
+		// offered option leaves a complete distinct assignment for the later
+		// parts, so Validate, Clamp and the bot cannot strand one). The LAST
+		// Sac part keeps the historical exact-N shape -- forced when exactly n
+		// candidates remain, else one Min == Max == n ask -- because nothing
+		// downstream can be stranded by its answer.
+		hasLaterSac := md.sacPart+1 < len(md.cost.Sac)
+		if hasLaterSac {
 			pools := make([][]state.ObjID, len(md.cost.Sac))
 			needs := make([]int, len(md.cost.Sac))
 			for i, futurePart := range md.cost.Sac {
@@ -1181,19 +1189,35 @@ func (e *Engine) continueManaDiscard() {
 			e.choosing = chooseNone
 			return
 		}
-		// A singleton candidate is forced. Record it and continue one unit at
-		// a time so each pick preserves a complete assignment for later parts.
-		if len(candidates) == 1 {
-			md.sacs = append(md.sacs, candidates[0])
-			md.sacPaid++
-			if md.sacPaid >= int(part.N) {
+		var d *decision.Decision
+		if hasLaterSac {
+			// A singleton candidate is forced. Record it and continue one unit
+			// at a time so each pick preserves a complete assignment for later
+			// parts.
+			if len(candidates) == 1 {
+				md.sacs = append(md.sacs, candidates[0])
+				md.sacPaid++
+				if md.sacPaid >= int(part.N) {
+					md.sacPart++
+					md.sacPaid = 0
+				}
+				continue
+			}
+			d = &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: 1, Max: 1,
+				Prompt: "Choose permanents to sacrifice for the mana ability", Source: md.source}
+		} else {
+			// Exactly N candidates makes the sacrifice forced. Record that
+			// deterministic battlefield-order set without a zero-information
+			// ask; only a wider candidate set gives the player a choice.
+			if len(candidates) == n {
+				md.sacs = append(md.sacs, candidates...)
 				md.sacPart++
 				md.sacPaid = 0
+				continue
 			}
-			continue
+			d = &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: n, Max: n,
+				Prompt: "Choose permanents to sacrifice for the mana ability", Source: md.source}
 		}
-		d := &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: 1, Max: 1,
-			Prompt: "Choose permanents to sacrifice for the mana ability", Source: md.source}
 		for _, id := range candidates {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "sacrifice", Obj: id, Label: e.G.Obj(id).Face().Name})
 		}

@@ -4,10 +4,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
 
+// TestDargoSacChoicePreservesLaterArtifactPart pins the cast-side half of the
+// sequential-sacrifice feasibility rule: a broad first Sac part followed by a
+// narrower second part must not offer the first part a candidate that strands
+// the second. With one artifact and one creature and X=1, Dargo's
+// Sac<X/Artifact.orCreature> must offer ONLY the creature; the artifact is
+// the sole candidate the Sac<1/Artifact> part can pay with.
 func TestDargoSacChoicePreservesLaterArtifactPart(t *testing.T) {
 	e, spell, ids := dargoEngine(t, []string{
 		"Name:Anvil\nTypes:Artifact\nOracle:x\n",
@@ -60,6 +67,126 @@ func TestDargoSacChoicePreservesLaterArtifactPart(t *testing.T) {
 	}
 }
 
+// TestDargoSacContinuationBotAnswerValidatesAndCompletes runs the
+// deterministic bot's own answer through the SAME binding board (the
+// attack_restrict_limit bot-repair pattern): at the filtered first ask the
+// bot's Decide answer and its Clamp repair both pass Decision.Validate, and
+// submitting the answer progresses the cast to the artifact ask instead of
+// re-posing the identical question (the livelock class the one-home rule
+// exists for). Two creatures give the first part a real choice; the artifact
+// is still excluded because it is the later part's only candidate.
+func TestDargoSacContinuationBotAnswerValidatesAndCompletes(t *testing.T) {
+	e, spell, ids := dargoEngine(t, []string{
+		"Name:Anvil\nTypes:Artifact\nOracle:x\n",
+		"Name:Crab\nTypes:Creature\nPT:1/1\nOracle:x\n",
+		"Name:Crab2\nTypes:Creature\nPT:1/1\nOracle:x\n",
+	}, "RRRRR")
+	var artifact state.ObjID
+	var creatures []state.ObjID
+	for _, id := range ids {
+		o := e.G.Obj(id)
+		if o.Zone != state.ZBattlefield {
+			t.Fatalf("precondition: candidate %d in %s, want battlefield", id, o.Zone)
+		}
+		types := strings.Join(o.Face().Types, " ")
+		switch {
+		case strings.Contains(types, "Artifact") && !strings.Contains(types, "Creature"):
+			artifact = id
+		case strings.Contains(types, "Creature"):
+			creatures = append(creatures, id)
+		}
+	}
+	if artifact == 0 || len(creatures) != 2 {
+		t.Fatalf("precondition: want one artifact and two creatures, got artifact=%d creatures=%v", artifact, creatures)
+	}
+	// The synthetic second part rides the Dargo base cost, as the offer-gate
+	// regressions build it; the pending cast is entered by hand (same shape
+	// as TestDargoSacChoicePreservesLaterArtifactPart) because the REAL cast
+	// carries only Dargo's own Sac part.
+	base := withSpellAbilityExtras(e.G.Obj(spell).Face(), e.castOfferBase(0, spell))
+	extra := ParseCost("Sac<X/Artifact>")
+	if len(base.Sac) != 1 || !base.Sac[0].Announced || len(extra.Sac) != 1 {
+		t.Fatalf("precondition: want Dargo's announced Sac part plus a synthetic Sac<X/Artifact>: base=%+v extra=%+v", base.Sac, extra.Sac)
+	}
+	pc := &pendingCast{player: 0, card: spell, from: state.ZHand, ability: -1, cost: base.Plus(extra), x: 1, xDone: true}
+	e.cast = pc
+	if !e.sacAsk() {
+		t.Fatal("sacrifice choice did not suspend")
+	}
+	ds := e.Pending()
+	if ds == nil || ds.Kind != decision.KChoose || ds.Min != 1 || ds.Max != 1 {
+		t.Fatalf("first sacrifice ask = %+v, want a one-of choice", ds)
+	}
+	if len(ds.Options) != 2 {
+		t.Fatalf("first sacrifice options = %+v, want exactly the two creatures", ds.Options)
+	}
+	for _, o := range ds.Options {
+		if o.Obj == artifact {
+			t.Fatalf("artifact %d offered at the first ask although the later Sac<1/Artifact> part needs it: %+v", artifact, ds.Options)
+		}
+	}
+	// The policy's own answer must clear Validate and Clamp on the real
+	// offered decision, and its pick must be one of the creatures.
+	in := newTestBot(1).answer(e, ds)
+	if err := ds.Validate(in); err != nil {
+		t.Fatalf("bot answer failed Decision.Validate: choices %v, err %v", in.Choices, err)
+	}
+	if clamped := botpolicy.Clamp(ds, in); ds.Validate(clamped) != nil {
+		t.Fatalf("Clamp left an answer Validate rejects: choices %v, err %v", clamped.Choices, ds.Validate(clamped))
+	}
+	if len(in.Choices) != 1 {
+		t.Fatalf("bot choices = %v, want exactly one sacrifice", in.Choices)
+	}
+	picked := ds.Options[in.Choices[0]].Obj
+	if picked != creatures[0] && picked != creatures[1] {
+		t.Fatalf("bot picked %d, want one of the creatures %v", picked, creatures)
+	}
+	submitChoices(t, e, in.Choices...)
+	// The cast progressed: the next ask is the reserved artifact, not a
+	// re-posed identical first ask.
+	next := e.Pending()
+	if next == nil || next.Kind != decision.KChoose || len(next.Options) != 1 || next.Options[0].Obj != artifact {
+		t.Fatalf("second sacrifice ask = %+v, want exactly the reserved artifact %d", next, artifact)
+	}
+	submitChoices(t, e, next.Options[0].Index)
+	other := creatures[0]
+	if picked == creatures[0] {
+		other = creatures[1]
+	}
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("spell zone = %s, want stack (cast completed after both feasible sacrifices)", e.G.Obj(spell).Zone)
+	}
+	if e.G.Obj(artifact).Zone != state.ZGraveyard || e.G.Obj(picked).Zone != state.ZGraveyard {
+		t.Fatalf("artifact=%s picked=%s, want both sacrificed", e.G.Obj(artifact).Zone, e.G.Obj(picked).Zone)
+	}
+	if e.G.Obj(other).Zone != state.ZBattlefield {
+		t.Fatalf("unpicked creature zone = %s, want battlefield (only one creature was paid)", e.G.Obj(other).Zone)
+	}
+}
+
+// manaActivateOption finds the offered mana-activation option for id in the
+// pending priority decision: a costed AB$ Mana ability is posed as an
+// "activate" option; the non-fatal form returns ok=false when absent.
+func manaActivateOption(e *Engine, id state.ObjID) (decision.Option, bool) {
+	d := e.Pending()
+	if d == nil {
+		return decision.Option{}, false
+	}
+	for _, o := range d.Options {
+		if (o.Kind == "activate" || o.Kind == "ability") && o.Obj == id {
+			return o, true
+		}
+	}
+	return decision.Option{}, false
+}
+
+// TestManaAbilitySacChoicePreservesLaterArtifactPart pins the mana-ability
+// half of the sequential-sacrifice feasibility rule THROUGH THE REAL
+// PRIORITY-WINDOW ACTIVATION: the overlapping-parts AB$ Mana ability is
+// offered exactly because a distinct assignment exists, its first sacrifice
+// ask excludes the object the later Sac<1/Artifact> part needs, the
+// deterministic bot's answer passes Decision.Validate and Clamp, and the
+// ability settles both parts and produces its mana.
 func TestManaAbilitySacChoicePreservesLaterArtifactPart(t *testing.T) {
 	outlet := "Name:Outlet\nTypes:Enchantment\n" +
 		"A:AB$ Mana | Cost$ Sac<1/Artifact;Creature/artifact or creature> Sac<1/Artifact> | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n"
@@ -70,6 +197,11 @@ func TestManaAbilitySacChoicePreservesLaterArtifactPart(t *testing.T) {
 	artifact := putCreature(t, e, 0, artifactCreature)
 	creatureA := putCreature(t, e, 0, creatureScript)
 	creatureB := putCreature(t, e, 0, creatureScript)
+	// Re-pose priority AFTER the moves: the original pending decision was
+	// posed before the outlet was on the battlefield, so its option list
+	// cannot carry the activation yet.
+	e.pending = nil
+	e.priorityRound()
 	for _, id := range []state.ObjID{source, artifact, creatureA, creatureB} {
 		if e.G.Obj(id).Zone != state.ZBattlefield {
 			t.Fatalf("precondition: object %d is in %s, want battlefield", id, e.G.Obj(id).Zone)
@@ -82,6 +214,9 @@ func TestManaAbilitySacChoicePreservesLaterArtifactPart(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(e.G.Obj(artifact).Face().Types, " "), "Artifact") || !strings.Contains(strings.Join(e.G.Obj(artifact).Face().Types, " "), "Creature") {
 		t.Fatalf("precondition: narrow-filter candidate %d must be an artifact creature", artifact)
+	}
+	if pool := e.G.Players[0].Pool; pool[state.MR] != 0 {
+		t.Fatalf("precondition: pool %+v already holds red, want an empty pool so the produced mana is attributable", pool)
 	}
 	face := e.G.Obj(source).Face()
 	if len(face.Abilities) == 0 {
@@ -98,11 +233,16 @@ func TestManaAbilitySacChoicePreservesLaterArtifactPart(t *testing.T) {
 	if _, ok := e.manaSacrifices(0, source, ParseCost("Sac<1/Artifact> Sac<1/Artifact>")); ok {
 		t.Fatal("mana cost with two artifact parts was payable using the sole artifact candidate")
 	}
-	e.manaDiscardActivation = &manaDiscardActivation{player: 0, source: source, ability: ma, cost: cost}
-	e.continueManaDiscard()
+	// The offer gate: a distinct assignment exists, so the activation is
+	// offered at priority.
+	opt, ok := manaActivateOption(e, source)
+	if !ok {
+		t.Fatalf("mana ability with a distinct assignment was withheld at priority: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
 	first := e.Pending()
-	if first == nil || first.Kind != decision.KChoose || len(first.Options) != 2 {
-		t.Fatalf("mana activation first choice = %+v, want a choice between the two ordinary creatures", first)
+	if first == nil || first.Kind != decision.KChoose || first.Min != 1 || first.Max != 1 || len(first.Options) != 2 {
+		t.Fatalf("mana activation first choice = %+v, want a one-of-two ask over the two ordinary creatures", first)
 	}
 	chosen := -1
 	for _, option := range first.Options {
@@ -116,12 +256,66 @@ func TestManaAbilitySacChoicePreservesLaterArtifactPart(t *testing.T) {
 	if chosen < 0 {
 		t.Fatalf("no ordinary creature offered: %+v", first.Options)
 	}
-	in := decision.Intent{Seq: first.Seq, Player: first.Player, Choices: []int{chosen}}
+	// The bot's own answer must agree with Validate and Clamp on the real
+	// offered ask, and must not name the reserved artifact.
+	in := newTestBot(1).answer(e, first)
 	if err := first.Validate(in); err != nil {
-		t.Fatalf("feasible mana-sacrifice answer rejected: %v", err)
+		t.Fatalf("bot answer failed Decision.Validate: choices %v, err %v", in.Choices, err)
 	}
-	submitChoices(t, e, chosen)
-	if e.G.Obj(artifact).Zone != state.ZGraveyard || (e.G.Obj(creatureA).Zone != state.ZGraveyard && e.G.Obj(creatureB).Zone != state.ZGraveyard) {
-		t.Fatalf("mana ability did not complete both distinct parts: artifact=%s creatureA=%s creatureB=%s", e.G.Obj(artifact).Zone, e.G.Obj(creatureA).Zone, e.G.Obj(creatureB).Zone)
+	if clamped := botpolicy.Clamp(first, in); first.Validate(clamped) != nil {
+		t.Fatalf("Clamp left an answer Validate rejects: choices %v, err %v", clamped.Choices, first.Validate(clamped))
+	}
+	for _, c := range in.Choices {
+		if first.Options[c].Obj == artifact {
+			t.Fatalf("bot answered the reserved artifact %d: choices %v", artifact, in.Choices)
+		}
+	}
+	submitChoices(t, e, in.Choices...)
+	// Both parts settled and the mana was produced; the unused creature and
+	// the outlet itself stay on the battlefield.
+	if pool := e.G.Players[0].Pool; pool[state.MR] != 1 {
+		t.Fatalf("pool after activation = %+v, want one red (Produced$ R resolved)", pool)
+	}
+	if e.G.Obj(artifact).Zone != state.ZGraveyard {
+		t.Fatalf("artifact zone = %s, want graveyard (paid by the later part)", e.G.Obj(artifact).Zone)
+	}
+	if e.G.Obj(creatureA).Zone != state.ZGraveyard && e.G.Obj(creatureB).Zone != state.ZGraveyard {
+		t.Fatalf("neither ordinary creature was sacrificed: creatureA=%s creatureB=%s", e.G.Obj(creatureA).Zone, e.G.Obj(creatureB).Zone)
+	}
+	if e.G.Obj(source).Zone != state.ZBattlefield {
+		t.Fatalf("outlet zone = %s, want battlefield (the ability resolved)", e.G.Obj(source).Zone)
+	}
+}
+
+// TestManaAbilityOverlappingSacPartsNotOfferedWithoutAssignment is the offer
+// gate's negative half: with ONLY the artifact creature on the battlefield,
+// both Sac parts can only be paid by the same object, so the activation must
+// not be offered at all.
+func TestManaAbilityOverlappingSacPartsNotOfferedWithoutAssignment(t *testing.T) {
+	outlet := "Name:Outlet\nTypes:Enchantment\n" +
+		"A:AB$ Mana | Cost$ Sac<1/Artifact;Creature/artifact or creature> Sac<1/Artifact> | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n"
+	artifactCreature := "Name:Artifact Crab\nTypes:Artifact Creature\nPT:1/1\nOracle:x\n"
+	e, _, _ := newFixtureDeck(t, 83, outlet, artifactCreature)
+	source := moveSeeded(t, e, 0, outlet, state.ZBattlefield)
+	artifact := putCreature(t, e, 0, artifactCreature)
+	e.pending = nil
+	e.priorityRound()
+	if e.G.Obj(source).Zone != state.ZBattlefield || e.G.Obj(artifact).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: outlet=%s candidate=%s, want both on the battlefield",
+			e.G.Obj(source).Zone, e.G.Obj(artifact).Zone)
+	}
+	if battlefield := e.G.Zone(state.ZBattlefield, 0); len(battlefield) != 2 {
+		t.Fatalf("precondition: %d permanents on the battlefield, want exactly the outlet and its candidate", len(battlefield))
+	}
+	ma := e.G.Obj(source).Face().Abilities[0]
+	cost := e.parseCost(ma.Params["Cost"])
+	if len(cost.Sac) != 2 {
+		t.Fatalf("precondition: mana ability must compile two Sac parts: %+v", cost.Sac)
+	}
+	if _, ok := e.manaSacrifices(0, source, cost); ok {
+		t.Fatal("precondition: a distinct assignment exists -- this board must force both parts onto the one artifact creature")
+	}
+	if _, ok := manaActivateOption(e, source); ok {
+		t.Fatalf("the overlapping-part mana ability was offered with no distinct assignment: %+v", e.Pending().Options)
 	}
 }
