@@ -847,6 +847,21 @@ export interface Decision {
    */
   budgeted?: boolean;
   /**
+   * MinSum is the mirror of MaxSum: a cumulative FLOOR over the chosen
+   * options' Value fields -- the sum must REACH it, not stay under it. The
+   * engine's first user is the tap-cost election of a withTotalPowerGE<N>
+   * group predicate (Crew's "tap any number of other untapped creatures
+   * you control with total power N or greater", Mossbridge Troll's):
+   * Option.Value carries the candidate's current power, and the floor is
+   * the whole "total power N or greater" clause. Validate enforces it as
+   * one more wire contract, so a rules-ignorant client can grey out an
+   * unaffordable pick without learning what power is; FitRequired's repair
+   * derives the same floor from this field, never a second copy. Every
+   * corpus floor is >= 1, so 0 unambiguously reads as "no floor" and omits
+   * the field, keeping every existing decision byte-identical.
+   */
+  minSum?: number;
+  /**
    * GroupLimit caps how many options ONE Group may contribute to an answer:
    * the sum of the picked options sharing a Group must not exceed it. It is
    * the per-type pick count of Forge's EACH multi-type search grammar
