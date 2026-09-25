@@ -641,6 +641,14 @@ func (e *Engine) askAttackers() {
 	offers := e.attackOffers()
 	budget := e.attackBudget(p)
 	var opts []decision.Option
+	// groupLimits carries a raised per-defender attacker cap to the wire
+	// (Decision.GroupLimits): a scoped AttackRestrict ceiling above one
+	// (Crawlspace's "no more than two creatures can attack you") cannot be
+	// expressed by the decision's single Max nor by the default
+	// at-most-one-per-Group rule, so each capped defender's Group names its
+	// own ceiling. Built from the same attackRestrictLimit read the engine's
+	// declaration check uses.
+	groupLimits := map[string]int{}
 	for _, of := range offers {
 		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
 		if of.battle != 0 {
@@ -657,8 +665,12 @@ func (e *Engine) askAttackers() {
 		if of.price > 0 {
 			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
+		group, cap := e.attackRestrictGroup(of.def)
+		if group != "" && cap > 1 {
+			groupLimits[group] = cap
+		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-			Label: label, Obj: of.id, Player: of.def, Battle: of.battle, Required: mustAtt[of.id],
+			Label: label, Obj: of.id, Player: of.def, Battle: of.battle, Required: mustAtt[of.id], Group: group,
 			// Value is the pair's mana price: the cumulative-budget contract
 			// MaxSum names. omitempty keeps a prop-free list byte-identical
 			// (price 0 omits), so the option enumeration order and the wire
@@ -702,7 +714,11 @@ func (e *Engine) askAttackers() {
 		// sum prices itself. Published only when some offered pair is priced:
 		// with every Value 0 the cap is vacuous, and leaving it 0 (omitted)
 		// keeps every prop-free declaration's wire payload byte-identical.
-		MaxSum: maxSum})
+		MaxSum: maxSum,
+		// A raised per-defender attacker cap (AttackRestrict scoped by
+		// ValidDefender$). Nil when no scoped ceiling exceeds one, so every
+		// ordinary declaration's wire payload is byte-identical.
+		GroupLimits: groupLimits})
 }
 
 // handleAttackers records the chosen attackers (CR 508.1c: this is what
@@ -1112,12 +1128,9 @@ func (e *Engine) attackDutyDischargeable(id state.ObjID, s attackRequirementSet)
 	return anyPair && s.broad
 }
 
-// maxAttackers reports the tightest total-attacker ceiling in force from
-// every applicable AttackRestrict static, or a very large number when none
-// applies. Only the MaxAttackers$ parameter is read (Silent Arbiter's shape);
-// a per-defender ValidDefender$ scoping is treated as global for the sake of
-// this bounded solver, which is only ever consulted when a MustAttack
-// requirement or an AttackRestrict static is actually present.
+// maxAttackers reports the global attacker ceiling. Defender-scoped ceilings
+// are enforced per defender by validateAttackDeclaration; they cannot be
+// represented by the KAttackers decision's single Max value.
 // goadMayAttack implements the defender half of CR 701.38b. Every goad is
 // a separate requirement: a goaded creature attacks a player other than EACH
 // player who goaded it if one is available. If all possible defenders are
@@ -1320,7 +1333,10 @@ func (e *Engine) activeGoad(o *state.Object, ge state.GoadEffect) bool {
 func (e *Engine) maxAttackers() int {
 	const huge = int(^uint(0) >> 1)
 	maxAllowed := huge
-	for _, sv := range e.activeStatics("AttackRestrict") {
+	for _, sv := range e.attackRestrictStatics() {
+		if strings.TrimSpace(sv.Params["ValidDefender"]) != "" || !e.continuousGateHolds(sv) {
+			continue
+		}
 		// parseAmount defaults an absent/invalid MaxAttackers$ to the maximum
 		// int32, so an unparseable restriction contributes no ceiling.
 		n := parseAmount(sv.Params["MaxAttackers"], math.MaxInt32)
@@ -1360,7 +1376,63 @@ func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Int
 	if len(chosen) > maxAllowed {
 		return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
 	}
+	counts := make(map[state.PlayerID]int)
+	for _, index := range in.Choices {
+		if index >= 0 && index < len(d.Options) {
+			counts[d.Options[index].Player]++
+		}
+	}
+	for defender, count := range counts {
+		limit, ok := e.attackRestrictLimit(defender)
+		if ok && count > limit {
+			return fmt.Errorf("declared %d attackers at defender %d, more than the allowed %d", count, defender, limit)
+		}
+	}
 	return nil
+}
+
+func (e *Engine) attackRestrictStatics() []staticView {
+	return e.activeStatics("AttackRestrict")
+}
+
+// attackRestrictLimit returns the tightest active, gated AttackRestrict
+// ceiling that applies to attacks at defender, and whether any applies.
+// Multiple restrictions can name one defender; the smallest ceiling binds
+// (CR 508.1c), and validateAttackDeclaration, the option Group cap and the
+// decision's per-Group limit all derive from this one read so the engine's
+// declaration check and the wire's repair rule cannot disagree.
+func (e *Engine) attackRestrictLimit(defender state.PlayerID) (int, bool) {
+	limit := 0
+	found := false
+	for _, sv := range e.attackRestrictStatics() {
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
+		spec := strings.TrimSpace(sv.Params["ValidDefender"])
+		if spec == "" || !effects.MatchesPlayerSpecCtx(e.G, spec, defender, sv.Controller, effects.PlayerSpecCtx{Source: sv.Source}) {
+			continue
+		}
+		n := int(parseAmount(sv.Params["MaxAttackers"], math.MaxInt32))
+		if !found || n < limit {
+			limit, found = n, true
+		}
+	}
+	return limit, found
+}
+
+// attackRestrictGroup marks options at a defender constrained by an active
+// AttackRestrict static, and reports that defender's ceiling. Decision.Validate
+// and botpolicy.Clamp share the per-Group cap rule through
+// Decision.GroupLimits, so the bot cannot offer an answer the engine rejects;
+// a ceiling above one (Crawlspace's "no more than two creatures can attack
+// you") rides GroupLimits while the ordinary at-most-one-per-Group rule covers
+// the limit-one shape byte-identically.
+func (e *Engine) attackRestrictGroup(defender state.PlayerID) (string, int) {
+	limit, ok := e.attackRestrictLimit(defender)
+	if !ok {
+		return "", 0
+	}
+	return fmt.Sprintf("attack-restrict:%d", defender), limit
 }
 
 // validateBlockers is the KBlockers whole-declaration legality guard. The
@@ -3101,5 +3173,5 @@ func init() {
 		// itself, so Face.Primitives never surfaces it and this explicit
 		// registration is what puts it on the coverage report. The gate
 		// itself is the offer-time read in rules/legal.go's ability loop.
-		"kw:Boast")
+		"kw:Boast", "stat:AttackRestrict")
 }

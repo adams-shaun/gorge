@@ -820,10 +820,9 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				// count map never fires and the fill is the historical first-Max
 				// take, byte-identical.
 				groups := make(map[string]int)
-				limit := d.GroupCap()
 				for j := 0; j < len(d.Options) && len(in.Choices) < d.Max; j++ {
 					o := d.Options[j]
-					if o.Group != "" && groups[o.Group] >= limit {
+					if o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group) {
 						continue
 					}
 					if o.Group != "" {
@@ -973,18 +972,17 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				in.Choices = []int{d.Options[0].Index}
 				break
 			}
-			// groups counts picks per Group against d.GroupCap() -- the same
+			// groups counts picks per Group against d.GroupCapFor -- the same
 			// cap Decision.Validate enforces -- so an EACH search's per-type
 			// ChangeNum (each type contributes up to that many) is filled per
 			// type, in option order, and the answer stays legal by construction.
 			// At the default cap of 1 this is the historical one-per-Group fill.
 			groups := make(map[string]int)
-			limit := d.GroupCap()
 			for _, o := range d.Options {
 				if len(in.Choices) >= d.Max {
 					break
 				}
-				if o.Group == "" || groups[o.Group] >= limit {
+				if o.Group == "" || groups[o.Group] >= d.GroupCapFor(o.Group) {
 					continue
 				}
 				groups[o.Group]++
@@ -1235,7 +1233,6 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		// byte-identical.
 		groups := make(map[string]int) // picked options per Group.
 		sum := 0                       // running MaxSum budget over the chosen set.
-		limit := d.GroupCap()
 		for _, c := range in.Choices {
 			have[c] = true
 			if c >= 0 && c < len(d.Options) {
@@ -1280,7 +1277,7 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			// past a Group's cap would hand back an intent Validate rejects --
 			// an answer the engine cannot accept and clamp cannot repair, so
 			// the capped Group is skipped the way a duplicate index is.
-			if o.Group != "" && groups[o.Group] >= limit {
+			if o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group) {
 				continue
 			}
 			if !fits(o) || (d.TargetsWithSameController && haveTargetController && o.Controller != targetController) {

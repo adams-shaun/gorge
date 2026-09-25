@@ -22,9 +22,10 @@ import (
 const benchRootTurn = 5
 
 type benchFixture struct {
-	setup  PublicGame
-	h      History
-	engine *rules.Engine
+	setup     PublicGame
+	h         History
+	engine    *rules.Engine
+	collector *Collector
 }
 
 func benchRoot(tb testing.TB) benchFixture {
@@ -57,7 +58,7 @@ func benchRoot(tb testing.TB) benchFixture {
 			tb.Fatal("bench fixture game ended before its root")
 		}
 		if d.Player == 0 && d.Kind == decision.KPriority && e.G.Turn >= benchRootTurn && len(benchCandidates(frame.Decision)) >= 2 {
-			return benchFixture{setup: setup, h: h, engine: e}
+			return benchFixture{setup: setup, h: h, engine: e, collector: c}
 		}
 		in := botpolicy.Decide(botpolicy.BoardFromGameInto(e.G, e, d.Player, &board), d, rngs[d.Player])
 		if d.Player == 0 {
@@ -300,7 +301,15 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Capped 0 and the 8/8/8/8 wins split are all unchanged. Measured
 	// attribution: disabling ONLY the provenance emission block in
 	// rules/engine.go restores 20e9fd... byte-for-byte.
-	const want = "fa6bb92b47f723e3b45916141c245fbce602f3350337cdaba9f3b6a032b90fb7"
+	// Re-measured for pn20 hindsight branch mining: TeacherResult grew
+	// WinsOverBaseline/LossesToBaseline (paired terminal outcomes vs
+	// candidate 0, needed for hindsight's confidence intervals), so the
+	// hashed JSON gained two zero-valued array fields and only the digest
+	// moves, fa6bb92b... -> d97fc053... Index, Values, Rollouts, Terminal,
+	// Capped and the 8/8/8/8 wins split are unchanged (both new fields are
+	// [0,0,0,0] on this fixture, since it has no repeated world/candidate-0
+	// split to pair).
+	const want = "d97fc053f43294ee66e5f2dae4ebcd27cfdd46f6c5149b52a3d2762b594b30c3"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

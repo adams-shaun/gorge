@@ -89,6 +89,19 @@ type ContinuousEffect struct {
 	// SetName is a layer-3 name overwrite (SetName$), resolved by rules' layer walk.
 	SetName string
 
+	// TextFrom/TextTo carry a layer-3 TEXT-substitution effect (CR 613.1d /
+	// CR 612, Forge's api:ChangeText): while the effect applies, every
+	// whole-word, case-insensitive instance of TextFrom in the affected
+	// object's printed Oracle text is replaced by TextTo, applied in
+	// timestamp order by rules' layer walk. An empty TextFrom substitutes
+	// nothing (a substitution whose source word is empty is never
+	// meaningful), so a zero value leaves the printed text untouched.
+	// TextSet, when non-empty, REPLACES the printed text outright (the
+	// sibling api:ExchangeTextBox swaps two objects' text boxes): the walk
+	// starts from TextSet and then applies any TextFrom/TextTo substitutions.
+	TextFrom, TextTo string
+	TextSet          string
+
 	// AddPowerExpr preserves a static P/T parameter that must be evaluated
 	// against its source each time characteristics are derived (for example
 	// +X or -X). An empty expression retains the already-resolved numeric
@@ -142,6 +155,10 @@ type ContinuousEffect struct {
 	// RemoveSubTypes strips every subtype (creature, land and other kinds)
 	// before this effect's AddTypes are applied.
 	RemoveSubTypes bool
+	// RemoveTypes names the exact type words removed by Animate's
+	// RemoveTypes$ at layer 4, before this effect's AddTypes. Unlike
+	// RemoveSubTypes, this can remove a card type or supertype too.
+	RemoveTypes []string
 	// SetCreatureTypes strips only creature subtypes, preserving land and
 	// other subtype words; its replacement types live in AddTypes.
 	SetCreatureTypes bool

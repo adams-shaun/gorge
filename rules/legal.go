@@ -955,14 +955,13 @@ func (e *Engine) activationLimitReachedAt(id state.ObjID, p state.PlayerID, abil
 }
 
 // activationLimitBlocked is the ONE gate every activation offer site calls
-// for the two sibling limits of a non-mana activated ability: ActivationLimit$
-// (this turn) and GameActivationLimit$ (the whole game). Both are read here so
-// a new offer site cannot honour one and miss the other -- the two loops in
-// this file (printed, granted) and the mana walk in mana_activation.go all
-// funnel through it. svar is the granted-ability identity ("" for a printed
-// ability); merged selects the face a computed limit resolves against. The
-// per-GAME count is scanned with the same identity shapes and no turn or
-// stint boundary (see activationUsedCount).
+// for ActivationLimit$ (this turn), GameActivationLimit$ (the whole game),
+// and Exhaust$ True (once per game). All three are read here so a new offer
+// site cannot miss one -- the printed and granted loops in this file and the
+// mana walk in mana_activation.go all funnel through it. svar is the
+// granted-ability identity ("" for a printed ability); merged selects the face
+// a computed limit resolves against. The per-GAME count is scanned with the
+// same identity shapes and no turn or stint boundary (see activationUsedCount).
 //
 // A limit that resolves to zero or to fewer activations than already used
 // withholds; an unresolvable expression stays unenforced, exactly as the
@@ -982,6 +981,12 @@ func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *ca
 			e.activationUsedCount(id, ability, svar, false) >= limit {
 			return true
 		}
+	}
+	// Exhaust$ True uses the same host-card, per-game counter as
+	// GameActivationLimit$: leaving and returning does not re-arm it.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Exhaust"]), "True") &&
+		e.activationUsedCount(id, ability, svar, false) >= 1 {
+		return true
 	}
 	return false
 }
@@ -2315,6 +2320,18 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: "Cast " + f.Name + " (offspring)", Obj: id, Mode: "offspring"})
 			}
+		}
+		// Morph / Megamorph / Disguise (CR 702.37a/702.168a/702.169a), the
+		// command-zone half: the same fixed-{3} face-down offer the hand walk
+		// makes, on the same terms -- it deliberately does NOT gate on
+		// targetsAvailable (CR 708.4: a face-down spell has no targets), and
+		// the printed keyword parameter (the turn-face-up cost) is not paid
+		// now. offerCastable composes the CR 903.8 commander tax on top of
+		// the {3}, exactly what beginCast charges for this mode.
+		if fam := morphDownFamily(f); fam != "" &&
+			offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
 		}
 	}
 

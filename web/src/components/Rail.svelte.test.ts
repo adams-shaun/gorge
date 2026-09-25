@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { type Browser } from 'playwright';
+import { browserURL, sharedBrowser } from '../test/browser';
 import { render } from 'svelte/server';
 import type { CardView, PlayerView, SeatInfo, StackView, View } from '../protocol';
 import Rail from './Rail.svelte';
@@ -105,25 +107,87 @@ describe('Rail — the stack (Task 1/2)', () => {
   });
 });
 
-describe('Rail — the resolved card lives in the stack section (fb-20260916T225456Z)', () => {
-  it('a resolve in the events renders the labelled resolved card INSIDE the stack section, above the tiles still on it', () => {
+describe('Rail — the resolved card is its own band BEFORE the Stack heading (fb-20260923T015554Z)', () => {
+  it('a resolve renders the labelled resolved card OUTSIDE the stack section, before the Stack heading; the real stack stays under it', () => {
     const v = baseView({
       players: [spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 42, name: 'Resolved Thing' })] }), spectatorPlayer(1, 'Bo')],
       stack: [{ id: 100, kind: 'spell', name: 'Still Here', text: '', controller: 0, targets: [], card: card({ id: 100, name: 'Still Here' }), optional: false }],
     });
     const events = [{ event: { seq: 9, kind: 'stack_resolve', player: 0, obj: 42 } }];
     const { html } = render(Rail, { props: { view: v, seats, decision: null, events } });
+    // Preconditions: the resolve's object really moved somewhere the row can
+    // find it (the graveyard named above), and the stack really has an
+    // entry of its own for the section to carry.
+    expect(html).toContain('Resolved Thing');
+    expect(html).toContain('Still Here');
     const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
-    expect(stackSection).toContain('data-resolved="42"');
-    expect(stackSection).toContain('just resolved');
-    expect(stackSection).toContain('Still Here'); // the tiles still on the stack render too
-    expect(stackSection.indexOf('data-resolved="42"')).toBeLessThan(stackSection.indexOf('Still Here')); // resolved at the TOP
+    expect(stackSection).toContain('Still Here'); // the tiles still on the stack render under the heading
+    // The resolved row is NOT stack content: outside the section entirely...
+    expect(stackSection).not.toContain('data-resolved="42"');
+    // ...and BEFORE the Stack heading in document order (the player's sketch).
+    expect(html.indexOf('data-resolved="42"')).toBeLessThan(html.indexOf('class="stack'));
+    expect(html.indexOf('data-resolved="42"')).toBeLessThan(html.indexOf('>Stack'));
+    expect(html).toContain('just resolved'); // still labelled as history, not a live entry
   });
 
-  it('with no resolve in the events, the stack section carries no resolved row', () => {
+  it('a resolve with an EMPTY stack still puts the row before the heading, and the heading carries no count badge', () => {
+    const v = baseView({
+      players: [spectatorPlayer(0, 'Ari', { graveyard: [card({ id: 42, name: 'Resolved Thing' })] }), spectatorPlayer(1, 'Bo')],
+    });
+    const events = [{ event: { seq: 9, kind: 'stack_resolve', player: 0, obj: 42 } }];
+    const { html } = render(Rail, { props: { view: v, seats, decision: null, events } });
+    expect(html).toContain('data-resolved="42"'); // precondition: the row is showing at all
+    expect(html.indexOf('data-resolved="42"')).toBeLessThan(html.indexOf('class="stack'));
+    const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
+    expect(stackSection).not.toContain('class="count'); // no badge over an empty stack
+  });
+
+  it('with no resolve in the events, no resolved row renders anywhere and the stack section is clean', () => {
     const { html } = render(Rail, { props: { view: baseView(), seats, decision: null } });
+    expect(html).not.toContain('data-resolved');
+    expect(html).not.toContain('just resolved');
     const stackSection = html.slice(html.indexOf('class="stack'), html.indexOf('class="pending'));
     expect(stackSection).not.toContain('data-resolved');
+  });
+});
+
+describe('Rail — resolved history at short viewport heights (fb-20260923T015554Z)', () => {
+  let browser: Browser;
+  beforeAll(async () => { browser = await sharedBrowser(); });
+
+  it('keeps Pending visible at full height while history and live stack share the scroll budget', async () => {
+    const page = await browser.newPage({ viewport: { width: 1000, height: 500 } });
+    try {
+      await page.goto(`${browserURL}src/components/SeatTable.geometry.html?resolved=1`);
+      await page.waitForSelector('#rail [data-resolved="42"]');
+      const m = await page.evaluate(() => {
+        const rail = document.querySelector<HTMLElement>('#rail .rail-inner')!;
+        const history = document.querySelector<HTMLElement>('#rail [data-resolved="42"]')!;
+        const frame = document.querySelector<HTMLElement>('#rail .history-frame');
+        const stack = document.querySelector<HTMLElement>('#rail section.stack')!;
+        const pending = document.querySelector<HTMLElement>('#rail section.pending')!;
+        return {
+          historyName: history.textContent, stackText: stack.textContent,
+          pendingText: pending.textContent, historyBeforeStack: history.getBoundingClientRect().top < stack.getBoundingClientRect().top,
+          railScroll: rail.scrollHeight, railHeight: rail.clientHeight,
+          frameScroll: frame?.scrollHeight ?? 0, frameHeight: frame?.clientHeight ?? 0,
+          pendingHeight: pending.getBoundingClientRect().height,
+          pendingBottom: pending.getBoundingClientRect().bottom, railBottom: rail.getBoundingClientRect().bottom,
+        };
+      });
+      // Preconditions: the fixture presents both a resolved card AND a real
+      // stack member/pending trigger, at a height where they compete for space.
+      expect(m.historyName).toContain('Resolved Thing');
+      expect(m.stackText).toContain('Slow but Absolutely Inevitable');
+      expect(m.pendingText).toContain('Longwinded Ambush');
+      expect(m.historyBeforeStack).toBe(true);
+      expect(m.railScroll).toBeLessThanOrEqual(m.railHeight + 1);
+      expect(m.pendingHeight).toBeGreaterThanOrEqual(79);
+      expect(m.pendingBottom).toBeLessThanOrEqual(m.railBottom + 1);
+      expect(m.frameScroll).toBeGreaterThan(m.frameHeight);
+    } finally {
+      await page.close();
+    }
   });
 });
 

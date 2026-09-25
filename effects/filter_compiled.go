@@ -131,7 +131,7 @@ func specialPositiveToken(p string) bool {
 		"blockingTriggeredAttacker",
 		"EffectSource",
 		"IsGoaded",
-		"IsRemembered":
+		"IsRemembered", "IsTriggerRemembered":
 		return true
 	}
 	return strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") ||

@@ -294,7 +294,24 @@ func changeZoneAltDestination(h Host, c *Ctx, sa *cards.SA, primary state.Zone) 
 	return alt
 }
 
+// clearChangeZoneImprint uses the same event as Cleanup's ClearImprinted rider.
+// In particular, ImprintLast replaces rather than appends on every mover.
+func clearChangeZoneImprint(h Host, c *Ctx) {
+	if c.Source == 0 {
+		return
+	}
+	if o := h.Game().Obj(c.Source); o != nil && (len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+	}
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
+	// Unimprint is a pre-move operation, even when no candidate is moved.
+	// Re-entering after a choice may clear an already empty list; the fold
+	// remains replayable and the later successful move supplies the new card.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Unimprint"]), "True") {
+		clearChangeZoneImprint(h, c)
+	}
 	to := changeZoneAltDestination(h, c, sa, ParseZone(sa.Params["Destination"]))
 	// Set only when an explicit multi-zone Origin$ including Hand falls
 	// through the dedicated walkers above to the object path; the diagnostic
@@ -578,6 +595,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherTargets"]), "True") {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
+	} else {
+		forgetOtherRemembered(h, c, sa)
 	}
 	// Imprint effects such as Chrome Mox select eligible cards from their
 	// controller's hand. Keep them out of the generic hand mover so their
@@ -691,6 +710,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
+		// A CantExile restriction (The Master, Multiplied: "Triggered abilities
+		// you control can't cause you to ... exile creature tokens you
+		// control") withholds the object from this exile entirely: it never
+		// leaves the battlefield, no MoveZone is emitted and none of the
+		// inlined riders (exiled-with, RememberChanged, exile-return) run. The
+		// shared settle path (settleChangeZoneMoveAs) carries the same guard
+		// for every other ChangeZone mover.
+		if to == state.ZExile && h.ExileBlocked(o.ID, false) {
+			continue
+		}
 		// Inlined rather than routed through settleChangeZoneMove: this loop
 		// carries the exiled-with association and the RememberChanged$
 		// event-backed rider (eventRemember) in a specific order (MoveZone,
@@ -792,13 +821,19 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			// entry riders are settled.
 			registerLeaveExile(h, c, o.ID, sa.Params["LeaveBattlefield"], "", true)
 		}
-		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
-			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
+		if strings.EqualFold(sa.Params["Imprint"], "True") &&
+			(to == state.ZExile || strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True")) {
+			if landed := h.Game().Obj(o.ID); landed != nil && landed.Zone == to &&
+				(to == state.ZExile || !landed.IsToken) {
 				imprinted = append(imprinted, o.ID)
 			}
 		}
 	}
 	if len(imprinted) > 0 {
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+			clearChangeZoneImprint(h, c)
+			imprinted = imprinted[len(imprinted)-1:]
+		}
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
 	// The mixed-Hand diagnostic, now that the pass's truth is known: every
@@ -1156,6 +1191,16 @@ func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.Play
 }
 
 func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool, rider *attackingEntry) {
+	// A CantExile restriction (The Master, Multiplied) swallows the exile
+	// before it happens: the object stays where it is, no MoveZone event is
+	// emitted and none of this settle path's riders (exiled-with, exile-return,
+	// imprint) run. This is the shared ChangeZone settle every mover below the
+	// two inlined paths (effChangeZone's object loop and applyLibrarySearch's
+	// library-origin move) funnels through, so a battlefield token can never be
+	// taken by an exile that reached here instead.
+	if to == state.ZExile && h.ExileBlocked(id, false) {
+		return
+	}
 	ev := moveZoneEvent(c, id, from, to)
 	if strings.EqualFold(sa.Params["RememberLKI"], "True") {
 		if o := h.Game().Obj(id); o != nil {
@@ -1201,6 +1246,9 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	// collection and do not call through here, so nothing is recorded twice.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 		if o := h.Game().Obj(id); o != nil && o.Zone == to && !o.IsToken {
+			if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+				clearChangeZoneImprint(h, c)
+			}
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
 		}
 	}
@@ -1586,6 +1634,8 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// sub-specs are a property of the SA, not of the hand owner.
 	eachSubs, isEach := eachAlternatives(spec)
 	g := h.Game()
+	selection := *c // selectors must see the pre-clear remembered set
+	forgetOtherRemembered(h, c, sa)
 	// fx42 scoping: capture and clear the answered pick (and the cursor that
 	// binds it to the owner that asked) BEFORE anything else, so a nested
 	// hand-move ask below cannot inherit them.
@@ -1615,7 +1665,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		hand := zoneOf(g, state.ZHand, owner)
 		eligible := make([]state.ObjID, 0, len(hand))
 		for _, id := range hand {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 				eligible = append(eligible, id)
 			}
 		}
@@ -1639,7 +1689,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				if o == nil || o.Zone != state.ZHand {
 					continue
 				}
-				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				if !MatchesSpecCtx(g, spec, id, selection.SpecContext(selection.Controller)) {
 					continue
 				}
 				settleHandMove(id, owner)
@@ -1711,7 +1761,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		var ceiling int
 		if structured {
 			eachPerType = n
-			eachGroups = EachTypeGroups(g, eachSubs, eligible, c.SpecContext(c.Controller))
+			eachGroups = EachTypeGroups(g, eachSubs, eligible, selection.SpecContext(selection.Controller))
 			for _, ids := range eachGroups {
 				k := int32(len(ids))
 				if k > eachPerType {
@@ -3812,7 +3862,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		// imprinted.
 		if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 			if o := g.Obj(id); o != nil && o.Zone == to && !o.IsToken {
-				imprinted = append(imprinted, id)
+				if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+					clearChangeZoneImprint(h, c)
+					h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
+				} else {
+					imprinted = append(imprinted, id)
+				}
 			}
 		}
 		moved = append(moved, id)
@@ -4304,6 +4359,13 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
 	rider := classifyAttackingEntry(c, sa, to)
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
+		// A CantExile restriction withholds the object from a battlefield exile
+		// before the MoveZone (and the moved bookkeeping) is produced -- the
+		// ChangeZoneAll half of the same guard effChangeZone's object loop and
+		// settleChangeZoneMoveAs carry.
+		if to == state.ZExile && h.ExileBlocked(id, false) {
+			return
+		}
 		ev := moveZoneEvent(c, id, z, to)
 		applyFaceDownMarker(h, sa, c, &ev, to)
 		h.Emit(ev)

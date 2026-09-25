@@ -248,6 +248,7 @@ func (e *Engine) Clone() *Engine {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
 			ce.RemoveKeywords = append([]string(nil), ce.RemoveKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
+			ce.RemoveTypes = append([]string(nil), ce.RemoveTypes...)
 			if ce.RestrictParams != nil {
 				m := make(map[string]string, len(ce.RestrictParams))
 				for k, v := range ce.RestrictParams {

@@ -68,7 +68,8 @@ type pendingTrigger struct {
 	// MonarchDraw is the CR 724.2a beginning-of-end-step triggered draw.
 	// It is represented as a real stack ability through the existing delayed
 	// push event, rather than as an immediate turn action.
-	MonarchDraw bool
+	MonarchDraw    bool
+	RadiationDrain bool
 	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
 	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
 	// push must resolve that name against the UNDER-CARD's own face, never
@@ -1368,17 +1369,19 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// reach the trigger ONCE (Forge RepeatEachEffect's CardZoneTable
 				// calling triggerChangesZoneAll after the loop), so it fires ONCE
 				// for the whole batch if at least one matching move happened,
-				// not once per move. The latch keys on the trigger line ALONE
-				// (DamageAll's shape): the first matching move queues the single
-				// instance and every later matching move in the batch accumulates
-				// its object into the entry's deduplicated moved set, which
-				// closeZoneBatch patches into the queued trigger's Remembered/
-				// Captured -- the plural capture the "for each of them" bodies
-				// resolve. No batch open (every ordinary context) means every
-				// zone change is its own batch-of-one: the mode queues per move
-				// exactly as before this gate existed, and Mode$ ChangesZone is
-				// never batch-scoped at all.
-				if t.Mode == "ChangesZoneAll" && e.zoneBatchOpen {
+				// not once per move. PhaseOutAll (The War Doctor's "whenever one
+				// or more other permanents phase out") shares the bracket: one
+				// api:Phases resolution that phases out N permanents opens one
+				// batch and the latency fires once. The latch keys on the trigger
+				// line ALONE (DamageAll's shape): the first matching phase-out
+				// queues the single instance and every later matching phase-out
+				// in the batch accumulates its object into the entry's
+				// deduplicated set, which closeZoneBatch patches into the queued
+				// trigger's Remembered/Captured. No batch open (every ordinary
+				// context) means every zone change is its own batch-of-one: the
+				// mode queues per move exactly as before this gate existed, and
+				// Mode$ ChangesZone is never batch-scoped at all.
+				if (t.Mode == "ChangesZoneAll" || t.Mode == "PhaseOutAll") && e.zoneBatchOpen {
 					if e.zoneBatchIdx == nil {
 						e.zoneBatchIdx = map[zoneBatchKey]int{}
 					}
@@ -2362,6 +2365,28 @@ func compareIntCount(n int32, expr string) bool {
 	return false
 }
 
+// phaseOutAllMatches matches a Mode$ PhaseOutAll trigger (The War Doctor's
+// "whenever one or more other permanents phase out") against one PhaseOut
+// event. Only a phase-OUT (Amount >= 1) counts; a phase-IN (Amount -1) is the
+// opposite event. The line's ValidCards$/ValidCard$ filter is evaluated
+// against the phasing permanent with the trigger's source bound the way every
+// object matcher binds it, so `Permanent.phasedOutOther` can exclude the
+// source itself. The once-per-batch cadence is the latch in triggerMatches,
+// not this matcher.
+func phaseOutAllMatches(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.PhaseOut || ev.Amount < 1 || ev.Obj == 0 {
+		return false
+	}
+	spec := strings.TrimSpace(t.Params["ValidCards"])
+	if spec == "" {
+		spec = strings.TrimSpace(t.Params["ValidCard"])
+	}
+	if spec == "" {
+		return true
+	}
+	return e.matchesSpec(spec, ev.Obj, e.specCtx(source, e.controllerOf(source)))
+}
+
 func init() {
 	// CR 603.8 state trigger: the event under test is irrelevant; the trigger
 	// fires when its condition holds (see triggerConditionHolds) and no
@@ -2369,6 +2394,17 @@ func init() {
 	registerTrigMatcher(func(*Engine, cards.Trigger, state.ObjID, events.Event, *state.Object) bool {
 		return true
 	}, "Always")
+
+	// PhaseOutAll (CR 702.25, phaseoutall1): the batch-level "whenever one or
+	// more other permanents phase out" trigger (The War Doctor). It matches
+	// the events.PhaseOut marker the api:Phases primitive emits, which existed
+	// before the mode did; the mode itself is new to the table. Registered
+	// through a func literal calling the pack-level matcher so the census can
+	// read the callee (registerTrigMatcher takes a method expression or a
+	// literal whose first call names the matcher).
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+		return phaseOutAllMatches(e, t, source, ev, lki)
+	}, "PhaseOutAll")
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
@@ -2386,6 +2422,7 @@ func init() {
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
 		"trig:Surveil", "trig:Scry",
+		"trig:PhaseOutAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched

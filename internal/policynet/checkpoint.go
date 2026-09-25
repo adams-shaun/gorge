@@ -120,11 +120,34 @@ var zoneTagList = []string{
 	zoneTagCommand, zoneTagCommanders,
 }
 
-// WriteCheckpoint serialises m to w.
+// WriteCheckpoint serialises m to w. A diagnostic (oracle) feature set is
+// refused: it reads hidden information, so no seat may load it through the
+// ordinary path. The one deliberate exception is WriteOracleCheckpoint.
 func WriteCheckpoint(m *Model, w io.Writer) error {
 	if m.Features.Diagnostic() {
 		return fmt.Errorf("checkpoint: feature set %s reads hidden information and is diagnostic only; it is never checkpointed", m.Features)
 	}
+	return writeCheckpoint(m, w)
+}
+
+// WriteOracleCheckpoint serialises an ORACLE value model (ticket pn17-a1): a
+// model of a diagnostic feature set, whose value head scores a complete
+// state. Its one legitimate consumer is a search leaf inside a SAMPLED world
+// (searchseat.Options.OracleValue), where the "hidden" information it reads
+// is the sampled world's, never the real opponent's. The layout is the
+// ordinary one; the encoder hash names the diagnostic set, so LoadCheckpoint
+// still refuses the file and only LoadOracleCheckpoint reads it.
+func WriteOracleCheckpoint(m *Model, w io.Writer) error {
+	if !m.Features.Diagnostic() {
+		return fmt.Errorf("oracle checkpoint: feature set %s is not an oracle (diagnostic) set; write it with WriteCheckpoint", m.Features)
+	}
+	if !m.HasValue() {
+		return fmt.Errorf("oracle checkpoint: the model has no value head; an oracle checkpoint is a value-leaf model only")
+	}
+	return writeCheckpoint(m, w)
+}
+
+func writeCheckpoint(m *Model, w io.Writer) error {
 	bw := bufio.NewWriter(w)
 	var hdr [24]byte
 	copy(hdr[0:4], CheckpointMagic)
@@ -185,8 +208,37 @@ func writeFloats(w io.Writer, fs []float32) error {
 }
 
 // LoadCheckpoint reads a checkpoint. Every mismatch is a hard error naming
-// what mismatched; a checkpoint that passes is a Model ready to Score.
-func LoadCheckpoint(r io.Reader) (*Model, error) {
+// what mismatched; a checkpoint that passes is a Model ready to Score. An
+// oracle (diagnostic feature set) checkpoint is refused: see
+// LoadOracleCheckpoint.
+func LoadCheckpoint(r io.Reader) (*Model, error) { return loadCheckpoint(r, false) }
+
+// LoadOracleCheckpoint reads a checkpoint written by WriteOracleCheckpoint
+// and refuses every other one: its model is a diagnostic feature set with a
+// value head, for a sampled-world search leaf only.
+func LoadOracleCheckpoint(r io.Reader) (*Model, error) { return loadCheckpoint(r, true) }
+
+// LoadOracleCheckpointFile is LoadOracleCheckpoint from a path.
+func LoadOracleCheckpointFile(path string) (*Model, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("opening checkpoint: %w", err)
+	}
+	defer f.Close()
+	return LoadOracleCheckpoint(f)
+}
+
+// oracleFeaturesForHash maps an encoder hash onto the diagnostic set it names.
+func oracleFeaturesForHash(h uint64) (FeatureSet, bool) {
+	for _, fs := range []FeatureSet{FeaturesMZOppHand, FeaturesMZOracle} {
+		if EncoderHashFor(fs) == h {
+			return fs, true
+		}
+	}
+	return 0, false
+}
+
+func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 	br := bufio.NewReader(r)
 	var hdr [24]byte
 	if _, err := io.ReadFull(br, hdr[:]); err != nil {
@@ -200,7 +252,18 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 		return nil, fmt.Errorf("checkpoint: unsupported schema version %d, want %d", version, CheckpointVersion)
 	}
 	h := binary.LittleEndian.Uint64(hdr[8:16])
+	if fs, isOracle := oracleFeaturesForHash(h); isOracle != oracle {
+		if isOracle {
+			return nil, fmt.Errorf("checkpoint: feature set %s reads hidden information; it is an oracle checkpoint, loadable only as a sampled-world search leaf (LoadOracleCheckpoint)", fs)
+		}
+		if _, known := FeaturesForHash(h); known {
+			return nil, fmt.Errorf("checkpoint: not an oracle checkpoint (its feature set reads no hidden information); load it with LoadCheckpoint")
+		}
+	}
 	features, ok := FeaturesForHash(h)
+	if oracle {
+		features, ok = oracleFeaturesForHash(h)
+	}
 	if !ok {
 		return nil, fmt.Errorf("checkpoint: encoder hash %#x does not match this build's encoder %#x — the encoder drifted since this checkpoint was trained", h, EncoderHash())
 	}
@@ -327,6 +390,9 @@ func LoadCheckpoint(r io.Reader) (*Model, error) {
 		}
 		return nil, fmt.Errorf("checkpoint: %d trailing byte(s) after the weights — layout mismatch", n+1)
 	}
+	if oracle && !m.HasValue() {
+		return nil, fmt.Errorf("oracle checkpoint: no value head")
+	}
 	return m, nil
 }
 
@@ -344,7 +410,12 @@ func readFloats(r io.Reader, n int) ([]float32, error) {
 
 // SaveCheckpoint writes m to path atomically: encode into a sibling
 // temporary file, sync, close, rename over the destination.
-func (m *Model) SaveCheckpoint(path string) (err error) {
+func (m *Model) SaveCheckpoint(path string) error { return m.save(path, WriteCheckpoint) }
+
+// SaveOracleCheckpoint is SaveCheckpoint through WriteOracleCheckpoint.
+func (m *Model) SaveOracleCheckpoint(path string) error { return m.save(path, WriteOracleCheckpoint) }
+
+func (m *Model) save(path string, write func(*Model, io.Writer) error) (err error) {
 	tmp, err := os.CreateTemp(dirOf(path), "."+baseOf(path)+"-*.tmp")
 	if err != nil {
 		return fmt.Errorf("creating checkpoint temporary file: %w", err)
@@ -355,7 +426,7 @@ func (m *Model) SaveCheckpoint(path string) (err error) {
 			_ = os.Remove(tmpName)
 		}
 	}()
-	if err = WriteCheckpoint(m, tmp); err != nil {
+	if err = write(m, tmp); err != nil {
 		return fmt.Errorf("writing checkpoint: %w", err)
 	}
 	if err = tmp.Sync(); err != nil {

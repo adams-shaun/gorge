@@ -84,6 +84,32 @@ type Diag struct {
 	OwnLibraryTop []string
 }
 
+// SplitOmniscientView turns an omniscient projection (view.ProjectFor with
+// view.Omniscient, viewer = seat) into what a diagnostic training record
+// holds: the seat's view with every OTHER seat's hand removed, plus a Diag
+// whose OppHand is those hands concatenated in player order -- the order
+// cmd/searchteacher's label extras record them in. The state encoders read
+// only the seat's own hand, so the removal changes no base feature; it keeps
+// the returned view's hands shaped like a Seat projection's. Library tops are
+// not in any view (an omniscient projection never shows library order), so
+// the Diag carries none: it is complete for FeaturesMZOppHand only.
+//
+// v is not modified: the Players slice is copied before a hand is cleared.
+func SplitOmniscientView(v view.View, seat state.PlayerID) (view.View, *Diag) {
+	diag := &Diag{OppHand: []view.CardView{}}
+	players := make([]view.PlayerView, len(v.Players))
+	copy(players, v.Players)
+	for i := range players {
+		if players[i].ID == seat {
+			continue
+		}
+		diag.OppHand = append(diag.OppHand, players[i].Hand...)
+		players[i].Hand = nil
+	}
+	v.Players = players
+	return v, diag
+}
+
 // EncoderHashFor is the encoder digest a checkpoint of feature set fs
 // carries. FeaturesV1 is EncoderHash() unchanged (every existing checkpoint
 // keeps loading); every other set digests the v1 hash plus its own

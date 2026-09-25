@@ -53,7 +53,12 @@ type ValueOnlyConfig struct {
 	Hidden      int
 	ValueHidden int
 	Clip        float64
-	Log         io.Writer
+	// OracleCheckpoint (-oracle-checkpoint, ticket pn17-a1) writes a
+	// FeaturesMZOppHand model as an oracle checkpoint for the search seat's
+	// omniscient leaf instead of the diagnostic run's no-checkpoint readout.
+	// It never touches training.
+	OracleCheckpoint bool
+	Log              io.Writer
 }
 
 // ValueOnlyEpochStat is one epoch's readout: the mean train BCE (log loss)
@@ -319,9 +324,10 @@ func valueOnlyByTurn(m *policynet.Model, recs []policynet.StateExample, sp split
 // with policynet.LoadCheckpointFile and reads Model.Value(state) exactly as
 // it reads every existing value-bearing checkpoint; the zeroed policy read
 // marks it as value-only in the file itself (every policy score is the same
-// constant, argmax degenerate) rather than in a side channel. Diagnostic
-// feature sets never reach this path: the CLI refuses them and
-// WriteCheckpoint's rejection stays byte for byte.
+// constant, argmax degenerate) rather than in a side channel. A diagnostic
+// feature set reaches this path only under -oracle-checkpoint, and is then
+// written through WriteOracleCheckpoint; WriteCheckpoint's rejection stays
+// byte for byte.
 func zeroPolicyHead(m *policynet.Model) {
 	for i := range m.HidW {
 		m.HidW[i] = 0
@@ -351,6 +357,10 @@ func runValueOnly(corpora, out string, lo policynet.LoadOptions, cfg ValueOnlyCo
 	}
 	if lo.Features == policynet.FeaturesEntity {
 		fmt.Fprintln(stderr, "policytrain: the entity feature set is not supported by the value-only trainer (a value-only model carries no entity encoder)")
+		return 2
+	}
+	if cfg.OracleCheckpoint && lo.Features != policynet.FeaturesMZOppHand {
+		fmt.Fprintf(stderr, "policytrain: -oracle-checkpoint needs -features %s (the search leaf reads the opponent hand off the omniscient view; %s is not that set)\n", policynet.FeaturesMZOppHand, lo.Features)
 		return 2
 	}
 	var recs []policynet.StateExample
@@ -389,6 +399,19 @@ func runValueOnly(corpora, out string, lo policynet.LoadOptions, cfg ValueOnlyCo
 	}
 	fmt.Fprintf(stdout, "train %d records, holdout %d; final train bce %.6f, holdout log loss %.6f\n",
 		res.TrainN, res.HoldoutN, final.TrainLogLoss, final.HoldoutLogLoss)
+	if cfg.OracleCheckpoint {
+		// The oracle checkpoint (pn17-a1): the diagnostic model, written
+		// through the oracle writer only, so the ordinary loader still refuses
+		// it and only a sampled-world search leaf can read it.
+		zeroPolicyHead(res.Model)
+		if err := res.Model.SaveOracleCheckpoint(out); err != nil {
+			fmt.Fprintf(stderr, "policytrain: %v\n", err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "oracle checkpoint %s: value-only, features %s (policynet.LoadOracleCheckpointFile; botbench -search-oracle-checkpoint), encoder hash %#016x\n",
+			out, lo.Features, policynet.EncoderHashFor(lo.Features))
+		return 0
+	}
 	if lo.Features.Diagnostic() {
 		// A diagnostic feature set reads hidden information: the run is a
 		// measurement, never a checkpoint — WriteCheckpoint's rejection is

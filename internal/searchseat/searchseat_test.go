@@ -118,6 +118,30 @@ func TestEligibleMatchesTheImplementedKinds(t *testing.T) {
 	}
 }
 
+func TestManaTapSearchIsOptInAndBareOnly(t *testing.T) {
+	d := &decision.Decision{Kind: decision.KPriority, Options: []decision.Option{
+		{Index: 0, Kind: "activate", Obj: 1},
+		{Index: 1, Kind: "activate", Obj: 2, Cost: "PayLife<2>"},
+		{Index: 2, Kind: "activate", Obj: 3},
+		{Index: 3, Kind: "pass"},
+	}}
+	opts := Defaults()
+	if Eligible(d, opts) {
+		t.Fatal("default search must not branch over mana taps")
+	}
+	opts.Kinds["mana"] = true
+	if !Eligible(d, opts) {
+		t.Fatal("two bare mana taps must be eligible when enabled")
+	}
+	if got := bareManaAlternatives(d, 0); len(got) != 1 || got[0] != 2 {
+		t.Fatalf("bare alternatives = %v, want [2]", got)
+	}
+	d.Options[2].Cost = "Sac<1/Creature>"
+	if Eligible(d, opts) {
+		t.Fatal("a costly second source must not open the bare-tap arm")
+	}
+}
+
 // recordSample is the ONLY transport between the sampler's SampleResult and
 // the cost report's per-bucket rejection census: botbench reads
 // Trace.Rejections, and nothing else copies SampleResult.Rejections into a

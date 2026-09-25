@@ -473,3 +473,38 @@ func TestPolicyCheckpointBytesUnchanged(t *testing.T) {
 	}
 	t.Logf("policy checkpoint: %d bytes, %d non-zero policy weights, value-hidden %d", len(a), nonZero, m.ValueHidden)
 }
+
+// TestValueOnlyOracleCheckpoint: -oracle-checkpoint on an mz-opphand run
+// writes an oracle checkpoint that only the oracle loader reads, and it is
+// refused for any other feature set and outside the value-only mode.
+func TestValueOnlyOracleCheckpoint(t *testing.T) {
+	path := writeStateDump(t, 6, 8, true)
+	base := []string{"-value-corpus", path, "-epochs", "3", "-embed", "8", "-hidden", "8",
+		"-batch", "16", "-lr", "0.5", "-value-hidden", "8", "-seed", "5", "-holdout", "0.25", "-oracle-checkpoint"}
+	out := filepath.Join(t.TempDir(), "oracle.bin")
+	var stdout, stderr bytes.Buffer
+	if code := run(append(append([]string{}, base...), "-out", out, "-features", "mz-opphand"), &stdout, &stderr); code != 0 {
+		t.Fatalf("mz-opphand -oracle-checkpoint run() = %d, stderr: %s", code, stderr.String())
+	}
+	if _, err := policynet.LoadCheckpointFile(out); err == nil {
+		t.Fatal("the ordinary loader accepted an oracle checkpoint")
+	}
+	m, err := policynet.LoadOracleCheckpointFile(out)
+	if err != nil || m.Features != policynet.FeaturesMZOppHand || !m.HasValue() {
+		t.Fatalf("oracle checkpoint: %v", err)
+	}
+	for _, fs := range []string{"mz", "mz-oracle"} {
+		stdout.Reset()
+		stderr.Reset()
+		o := filepath.Join(t.TempDir(), fs+".bin")
+		if code := run(append(append([]string{}, base...), "-out", o, "-features", fs), &stdout, &stderr); code == 0 {
+			t.Errorf("-oracle-checkpoint -features %s was accepted", fs)
+		}
+		if _, err := os.Stat(o); err == nil {
+			t.Errorf("-features %s wrote a checkpoint", fs)
+		}
+	}
+	if code := run([]string{"-corpus", "x.jsonl", "-out", filepath.Join(t.TempDir(), "p.bin"), "-oracle-checkpoint"}, &stdout, &stderr); code == 0 {
+		t.Error("-oracle-checkpoint outside the value-only mode was accepted")
+	}
+}
