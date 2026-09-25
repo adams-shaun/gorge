@@ -50,6 +50,10 @@ func TestPlanarDeckGenesisAndWalkReplay(t *testing.T) {
 			t.Fatalf("viewer %d learned private planar shuffle order: %+v", viewer, redacted)
 		}
 	}
+	omniscient := view.RedactEventFor(e.G, *shuffle, 0, view.Omniscient)
+	if len(omniscient.IDs) != 0 || omniscient.Obj != 0 || !omniscient.Secret || omniscient.Kind != events.PlanarDeckShuffle {
+		t.Fatalf("omniscient spectator learned private planar shuffle order: %+v", omniscient)
+	}
 	sameSeed := New(cfg).G.Zone(state.ZPlanarDeck, 0)
 	if len(sameSeed) != len(ids) || sameSeed[0] != ids[0] || sameSeed[1] != ids[1] {
 		t.Fatalf("same seed produced planar order %v, want %v", sameSeed, ids)
