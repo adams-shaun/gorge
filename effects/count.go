@@ -161,16 +161,16 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	return 0, false
 }
 
-// NumResolvedStrict is NumResolved with the SVar-body verdict honoured: where
-// NumResolved reports a named SVar as resolved whatever its body evaluates to
-// (an effect amount's degrade-to-zero contract), this reports it resolved
-// only when EvalCountOK understood the body. A caller whose unresolved
-// default differs from zero -- a target BOUND, where a silent zero forbids
-// targeting altogether -- reads this form so an unmodelled body falls back
-// to its default instead of a fake 0.
+// NumResolvedStrict is NumResolved with the expression verdict honoured:
+// where NumResolved reports a named SVar or inline Count$ expression as
+// resolved whatever its body evaluates to (an effect amount's
+// degrade-to-zero contract), this reports it resolved only when EvalCountOK
+// understood the expression. A caller whose unresolved default differs from
+// zero reads this form so an unmodelled body falls back to its default instead
+// of a fake 0.
 func NumResolvedStrict(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bool) {
 	n, ok := NumResolved(h, c, sa, key, def)
-	if !ok || c == nil || c.SVars == nil {
+	if !ok || c == nil {
 		return n, ok
 	}
 	raw := strings.TrimSpace(sa.Params[key])
@@ -180,8 +180,20 @@ func NumResolvedStrict(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int
 	if _, runtime := runtimeSVar(c, raw); runtime {
 		return n, ok
 	}
-	if body, named := c.SVars[raw]; named {
-		if _, evaluated := EvalCountOK(h, c, body); !evaluated {
+	if c.SVars != nil {
+		if body, named := c.SVars[raw]; named {
+			if _, evaluated := EvalCountOK(h, c, body); !evaluated {
+				return def, false
+			}
+			return n, ok
+		}
+	}
+	// NumResolved intentionally treats an inline Count$ body as resolved,
+	// even when EvalCount's unknown-head fallback produced zero. Strict
+	// callers (notably bounded number choices) must distinguish that fake
+	// zero from a modelled count that legitimately returned zero.
+	if strings.HasPrefix(raw, "Count$") {
+		if _, evaluated := EvalCountOK(h, c, raw); !evaluated {
 			return def, false
 		}
 	}

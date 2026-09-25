@@ -190,6 +190,55 @@ func TestChooseNumberMinFloor(t *testing.T) {
 	}
 }
 
+// TestChooseNumberMinOnlyFloorsTheDefaultRange pins a Min$ without Max$:
+// the default upper ceiling remains 12, but values below the card's floor are
+// not offered.
+func TestChooseNumberMinOnlyFloorsTheDefaultRange(t *testing.T) {
+	h := &chooseNumberHost{}
+	h.g = state.NewGame(names(2))
+	src := chooseNumberSrc(t, &h.fakeHost)
+	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "DB$ ChooseNumber | Min$ 2"))
+	if len(h.asks) != 1 {
+		t.Fatalf("Min$ 2 asked %d decisions, want one", len(h.asks))
+	}
+	opts := h.asks[0].Options
+	if len(opts) != chooseNumberMaxOffer-1 || opts[0].Amount != 2 || opts[len(opts)-1].Amount != chooseNumberMaxOffer {
+		t.Fatalf("Min$ 2 options = %+v, want exactly 2..%d", opts, chooseNumberMaxOffer)
+	}
+	for i, o := range opts {
+		if o.Amount != i+2 {
+			t.Fatalf("option %d = %+v, want amount %d", i, o, i+2)
+		}
+	}
+}
+
+// TestChooseNumberUnresolvableInlineCountBoundFailsClosed pins the strict
+// verdict for a direct Count$ expression: NumResolved's ordinary amount
+// fallback is zero, but a bound cannot silently treat an unknown head as a
+// genuine zero.
+func TestChooseNumberUnresolvableInlineCountBoundFailsClosed(t *testing.T) {
+	h := &chooseNumberHost{}
+	h.g = state.NewGame(names(2))
+	src := chooseNumberSrc(t, &h.fakeHost)
+	before := len(h.log)
+	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "DB$ ChooseNumber | Max$ Count$DefinitelyUnmodelledHead"))
+	if len(h.asks) != 0 {
+		t.Fatalf("unknown inline bound posed %d asks, want none", len(h.asks))
+	}
+	var noted, chose bool
+	for _, e := range h.log[before:] {
+		if e.Kind == events.Note && strings.Contains(e.Text, "Count$DefinitelyUnmodelledHead") {
+			noted = true
+		}
+		if e.Kind == events.Choose && e.Counter == "number" && e.Amount == 0 {
+			chose = true
+		}
+	}
+	if !noted || !chose {
+		t.Fatalf("unknown inline bound events = %+v, want loud Note and deterministic Choose 0", h.log[before:])
+	}
+}
+
 // TestChooseNumberUnresolvableBoundFailsClosed pins the fail-closed direction:
 // a bound this context cannot resolve (an SVar name with no table entry) emits
 // the loud Note naming the parameter, poses no ask, and records the

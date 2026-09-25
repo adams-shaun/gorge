@@ -68,8 +68,9 @@ const chooseNumberBoundedCeiling = 1000
 //     "Choose a number" stays the fallback when the card names none.
 //
 // Without a Max$ the list stays the historical fixed 0..chooseNumberMaxOffer,
-// which the as-enters ask (rules/cast.go etbOptions' number arm) still shares
-// unchanged through NumberChoices.
+// unless Min$ sets a floor (then the same default ceiling is retained). The
+// as-enters ask (rules/cast.go etbOptions' number arm) still shares its
+// unchanged no-argument NumberChoices list.
 //
 // ok=false reports a bound the card states but this context cannot honour: an
 // unresolvable Max$/Min$ expression, a lower bound above the upper one, a
@@ -84,8 +85,19 @@ func chooseNumberAsk(h Host, c *Ctx, sa *cards.SA) (opts []decision.Option, prom
 	if title := strings.TrimSpace(sa.Params["ListTitle"]); title != "" {
 		prompt = title
 	}
-	if raw, hasMax := sa.Params["Max"]; !hasMax || strings.TrimSpace(raw) == "" {
-		return NumberChoices(), prompt, true
+	_, hasMax := sa.Params["Max"]
+	if !hasMax || strings.TrimSpace(sa.Params["Max"]) == "" {
+		lo := int32(0)
+		if _, hasMin := sa.Params["Min"]; hasMin {
+			n, resolvable := NumResolvedStrict(h, c, sa, "Min", 0)
+			if !resolvable || n > chooseNumberMaxOffer {
+				return nil, prompt, false
+			}
+			if n > 0 {
+				lo = n
+			}
+		}
+		return boundedNumberChoices(lo, chooseNumberMaxOffer), prompt, true
 	}
 	lo := int32(0)
 	if _, hasMin := sa.Params["Min"]; hasMin {
