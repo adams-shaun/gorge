@@ -909,6 +909,9 @@ type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
 	Controller state.PlayerID
+	// PromisedGiftOverride is bound only by rules' pre-election target-feasibility
+	// census, which must consider either branch before the player elects Gift.
+	PromisedGiftOverride *bool
 	// NameChoice carries a mid-resolution NameCard answer across re-entry.
 	NameChoice string
 	// ResolvedThisTurn is how many times the resolving ability has resolved

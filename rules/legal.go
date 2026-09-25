@@ -1084,6 +1084,25 @@ func (e *Engine) resolveActivationLimitAt(id state.ObjID, p state.PlayerID, raw 
 	return 0, false
 }
 
+// targetBoundReadsPromisedGift limits the alternate-branch offer check to
+// target bounds whose SVar table can read Count$PromisedGift.
+func targetBoundReadsPromisedGift(o *state.Object, sa *cards.SA) bool {
+	if o == nil || o.Face() == nil || sa == nil {
+		return false
+	}
+	for _, key := range []string{"TargetMin", "TargetMax"} {
+		if strings.Contains(sa.Params[key], "Count$PromisedGift") {
+			return true
+		}
+	}
+	for _, body := range o.Face().SVars {
+		if strings.Contains(body, "Count$PromisedGift") {
+			return true
+		}
+	}
+	return false
+}
+
 // targetSAAvailable reports whether a target declaration has enough legal
 // candidates for its resolved mandatory minimum. It is intentionally a
 // feasibility census, not a full cast/payment check: target-dependent cost
