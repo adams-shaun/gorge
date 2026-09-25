@@ -2676,7 +2676,7 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	// The copy starts in the temporary library holding zone, which becomes
 	// the cast's From; CR 707.12 allows this copy of a card to be cast.
 	if copyCard {
-		copyID := state.ObjID(len(e.G.Objs) + 1)
+		copyID := e.G.NextID
 		e.emit(events.Event{Kind: events.StackCopy, Obj: id, Player: p,
 			Text: "copy card for play"})
 		o = e.G.Obj(copyID)

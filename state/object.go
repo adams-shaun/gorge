@@ -1388,7 +1388,8 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, Chosen, Goads, ChosenModes, SeekFound) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, Goads, ChosenModes, SeekFound, EncodedCards)
+// are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -1411,6 +1412,7 @@ func (o *Object) CloneDeep() Object {
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.DamageTakenByGame = append([]ObjID(nil), o.DamageTakenByGame...)
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
+	c.EncodedCards = append([]ObjID(nil), o.EncodedCards...)
 	c.SeekFound = append([]ObjID(nil), o.SeekFound...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)

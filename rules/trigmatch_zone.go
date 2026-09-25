@@ -38,6 +38,19 @@ func (e *Engine) zoneChangeMatchesWithCapture(t cards.Trigger, source state.ObjI
 	if ev.Kind != events.MoveZone && ev.Kind != events.Draw && ev.Kind != events.PutOnStack {
 		return false
 	}
+	// ResolvedOnly$ True (cards/kw_cipher.go's Cipher reflexive trigger): the
+	// trigger fires only on the spell's own RESOLUTION move off the stack, not
+	// on any other stack exit. CR 702.99c: a countered Cipher spell's encode
+	// never applies, and a fizzled one's does not either (the spell never
+	// resolved, CR 608.2b). The engine's resolution tail
+	// (resolution.moveResolvedOffStack) is the ONE empty-Text stack exit;
+	// every counter/fizzle/reversal path tags its move ("countered",
+	// "fizzled: ...", "reversed"), so the empty Text is the resolution. This
+	// keeps the gate out of the event shape itself -- no existing move changes
+	// its Text, so the hash chain is untouched.
+	if strings.EqualFold(strings.TrimSpace(t.Params["ResolvedOnly"]), "True") && ev.Text != "" {
+		return false
+	}
 	if o, ok := t.Params["Origin"]; ok && o != "Any" && effects.ParseZone(o) != ev.From {
 		return false
 	}

@@ -240,6 +240,20 @@ func countPutOnStackFor(e *Engine, base int, face string) int {
 	return n
 }
 
+// putOnStackObjFor returns the id of the first object put on the stack under
+// face after index base, or 0 if none -- the copy's own identity, so a test
+// can follow it off the stack and into its resolution instead of only counting
+// that something was cast.
+func putOnStackObjFor(e *Engine, base int, face string) state.ObjID {
+	for i := base; i < len(e.L.Events); i++ {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Text == face {
+			return ev.Obj
+		}
+	}
+	return 0
+}
+
 func cipherNote(e *Engine, id state.ObjID, text string) bool {
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && ev.Obj == id && ev.Text == text {
@@ -329,6 +343,31 @@ func TestCipherEncodedCombatDamageOffersCopyCast(t *testing.T) {
 
 	if n := countPutOnStackFor(e, base, "Paranoid Delusions"); n < 1 {
 		t.Fatalf("combat damage by the encoded creature put %d copies of the encoded card on the stack, want >= 1", n)
+	}
+	// The copy must actually RESOLVE and do its thing, not just reach the
+	// stack: Paranoid Delusions mills three, so the copy's cast must produce
+	// a copy object that leaves the stack (a copy ceases to exist into exile,
+	// CR 707.10) and mill exactly three of the target player's cards. Without
+	// these two assertions a copy that fizzles to no legal target would pass.
+	copyID := putOnStackObjFor(e, base, "Paranoid Delusions")
+	if copyID == 0 {
+		t.Fatalf("no copy of Paranoid Delusions reached the stack after the trigger")
+	}
+	copyObj := e.G.Obj(copyID)
+	if copyObj == nil || copyObj.Zone == state.ZStack {
+		t.Fatalf("precondition: the copy %d never left the stack (zone %v)", copyID, zoneOf(copyObj))
+	}
+	if !copyObj.IsCopy {
+		t.Fatalf("object %d put on the stack by the Cipher trigger is not a copy", copyID)
+	}
+	milled := 0
+	for i := base; i < len(e.L.Events); i++ {
+		if events.IsMill(e.L.Events[i]) {
+			milled++
+		}
+	}
+	if milled != 3 {
+		t.Fatalf("the resolved copy milled %d cards, want 3", milled)
 	}
 	if co := e.G.Obj(cipherID); co == nil || co.Zone != state.ZExile {
 		t.Fatalf("after the copy cast the original zone = %v, want exile", zoneOf(co))
