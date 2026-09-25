@@ -43,6 +43,14 @@ type Host interface {
 	// ObjectColors returns the object's live layer-5 colours when it is on the
 	// battlefield, and its face/CDA colours in other zones.
 	ObjectColors(*state.Object) string
+	// ObjectText returns the object's CURRENT derived rules text (CR 613.1d)
+	// -- printed Oracle after every layer-3 text effect already registered on
+	// it, in timestamp order. rules.Engine implements it through the same
+	// Derived.Text render the engine's own Text accessor uses; the effects
+	// test double returns the printed Oracle. api:ExchangeTextBox reads it to
+	// exchange the text boxes AS THEY EXIST at resolution, so a prior
+	// ChangeText substitution is carried across rather than discarded.
+	ObjectText(*state.Object) string
 	Emit(events.Event)
 	// EmitTokenCreate emits a token-creation event and returns every object
 	// it actually created, in mint order. A token-creation replacement may
@@ -1929,6 +1937,16 @@ type Ctx struct {
 	// top of its walk (the fx42 scoping discipline), so a nested
 	// ChooseColor cannot inherit the outer answer.
 	ChosenColor string
+	// ChangeTextFrom/ChangeTextTo are the answered mid-resolution api:ChangeText
+	// word asks: the pair of words the chooser picked for the substitution's
+	// "from" and "to" halves. rules' "changetext" resume arm sets whichever
+	// the answered option's Kind names before the suspended sub-ability is
+	// re-run; effChangeText's re-entry consumes and clears both once it has
+	// resolved the pair (the fx42 scoping discipline), so a nested ChangeText
+	// cannot inherit the outer answer. Non-empty IS the answered marker for
+	// each half independently (the option labels are never empty), because the
+	// two halves may be asked sequentially across re-entries.
+	ChangeTextFrom, ChangeTextTo string
 	// ETBColorRecorded marks the ONE ChooseColor invocation that must not
 	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
 	// ChooseColor). The entry machinery (rules' applyETBChoiceReplacement ->

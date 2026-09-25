@@ -1350,6 +1350,13 @@ type Derived struct {
 	Types            []string
 	// Name is the current layer-3 name. SetName$ overwrites the printed name.
 	Name string
+	// Text is the object's current CR 613.1d text: its printed Oracle text
+	// ("" while a battlefield object is face down, CR 708.5) after every
+	// applicable layer-3 effect in timestamp order -- a TextSet outright
+	// replacement (api:ExchangeTextBox) then each TextFrom/TextTo
+	// whole-word substitution (api:ChangeText). It is the one place the
+	// engine renders an object's changed rules text.
+	Text string
 	// Colors is the object's current colour set as WUBRG letters (CR 613.1e):
 	// its face's colours (effects.ColorsOf, which already applies Devoid)
 	// then every applicable layer-5 effect in timestamp order -- an
@@ -2957,6 +2964,12 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	// 837910f4's type-aware wrapper — a bare SpecContext carries no
 	// ExtraTypes, so MatchesSpecCtx here would regress to printed types only.
 	name := f.Name
+	text := f.Oracle
+	if faceDown {
+		// CR 708.5: a face-down permanent's printed rules text does not exist,
+		// the same way its printed types and colours do not.
+		text = ""
+	}
 	col := effects.ColorMaskOf(o)
 	if faceDown {
 		col = 0 // CR 708.5: a face-down permanent has no colours
@@ -2993,6 +3006,18 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 		case LText:
 			if ce.SetName != "" {
 				name = ce.SetName
+			}
+			// CR 613.1d / CR 612: a text-changing effect replaces the text.
+			// An outright TextSet (api:ExchangeTextBox's exchanged box, which
+			// already carries the other object's substituted text) replaces
+			// what the walk has so far; each TextFrom/TextTo then substitutes
+			// in timestamp order, so two chained ChangeText effects compose the
+			// way their timestamps order them.
+			if ce.TextSet != "" {
+				text = ce.TextSet
+			}
+			if ce.TextFrom != "" {
+				text = substituteTextWord(text, ce.TextFrom, ce.TextTo)
 			}
 		case LAbilities:
 			// CR 613.1f / 613.4b: an ability-removing effect (Humility)
@@ -3065,8 +3090,17 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	power, toughness := e.derivedScalarFrom(id, o, f, active, kw)
 	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = prevStashSet, prevStashID, prevStashColors
 	e.derivedDepth--
-	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Text: text, Colors: colors}
 }
+
+// substituteTextWord replaces every whole-word, case-insensitive instance of
+// from in text with to (CR 612's "replace all instances of one ... word"):
+// the match is bounded by non-letter characters on both sides, so substituting
+// "Wall" never rewrites "Wallop" and substituting "Elf" never rewrites
+// "Elves". The replacement is inserted verbatim (the corpus's replacement
+// words are printed forms like "Vampire", "blue", "Mountain"), so a
+// reproduced word keeps the card's own spelling. An empty from never matches;
+// an empty to deletes the matched word.
 
 // abilityKWAfter applies one layer-6 effect's keyword action to a COPY of
 // the walk's keyword list -- the same three steps the main walk's LAbilities
@@ -3214,6 +3248,74 @@ func (e *Engine) abilityDependencyOrder(active []ContinuousEffect, id state.ObjI
 // Name returns the current layer-3 name of an object. Callers that render or
 // compare characteristics must use this rather than the printed face name.
 func (e *Engine) Name(id state.ObjID) string { return e.Derived(id).Name }
+
+// Text returns the object's current layer-3 text (CR 613.1d / CR 612): its
+// printed Oracle text after every applicable text-changing effect. Callers
+// that render or compare an object's rules text must use this rather than
+// o.Face().Oracle.
+func (e *Engine) Text(id state.ObjID) string { return e.Derived(id).Text }
+
+// substituteTextWord replaces every whole-word, case-insensitive instance of
+// from in text with to (CR 612's "replace all instances of one ... word").
+// A match is a run equal to `from` under EqualFold bounded by non-letter
+// characters, so "Wall" never rewrites "Wallop" and "Elf" never rewrites
+// "Elves"; the replacement is inserted verbatim. Deterministic and
+// allocation-light: it walks the bytes once, appending into a builder only
+// when a match is found.
+func substituteTextWord(text, from, to string) string {
+	if from == "" {
+		return text
+	}
+	lowerText := strings.ToLower(text)
+	lowerFrom := strings.ToLower(from)
+	var b strings.Builder
+	changed := false
+	i := 0
+	for i < len(text) {
+		j := strings.Index(lowerText[i:], lowerFrom)
+		if j < 0 {
+			break
+		}
+		start := i + j
+		end := start + len(from)
+		// Whole-word boundaries: the character before start and after end (if
+		// any) must not be a letter. indexOf runs over bytes; the corpus's
+		// words are ASCII, and a non-ASCII byte is not a letter by isLetter's
+		// byte test, so a Unicode word boundary degrades conservatively (it
+		// never splits a multi-byte rune inside a match because from is only
+		// matched as a byte run and cannot start mid-rune when from is ASCII).
+		if (start == 0 || !isLetterByte(text[start-1])) && (end >= len(text) || !isLetterByte(text[end])) {
+			if !changed {
+				b.Grow(len(text))
+				changed = true
+			}
+			b.WriteString(text[i:start])
+			b.WriteString(to)
+			i = end
+			continue
+		}
+		// Not a whole word: keep searching from the character after this
+		// occurrence's start so an overlapping later match is still found.
+		if !changed {
+			b.Grow(len(text))
+			changed = true
+		}
+		b.WriteString(text[i : start+1])
+		i = start + 1
+	}
+	if !changed {
+		return text
+	}
+	b.WriteString(text[i:])
+	return b.String()
+}
+
+// isLetterByte reports whether c is an ASCII letter, the whole-word boundary
+// test substituteTextWord uses (a digit or underscore counts as a boundary,
+// matching CR 612's word sense closely enough for the corpus's words).
+func isLetterByte(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
 
 func (e *Engine) Power(id state.ObjID) int32 {
 	p, _ := e.derivedScalar(id)
