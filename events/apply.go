@@ -289,6 +289,10 @@ func Apply(g *state.Game, e Event) {
 				// the designation no controller-change end -- the only clear is
 				// the Move fold's leaving-battlefield block below.
 				o.Monstrous = e.Amount >= 1
+			case "Renowned":
+				// CR 702.112b: renowned persists only for this battlefield
+				// permanent; Amount carries the Renown count for listeners.
+				o.Renowned = e.Amount >= 1
 			case "Suspend":
 				o.SuspendGranted = e.Amount >= 1
 			case "Plotted":
@@ -1045,6 +1049,7 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(e.Obj); o != nil {
 				o.Suspected = false
 				o.Monstrous = false
+				o.Renowned = false
 				o.PlottedTurn = 0
 			}
 		}

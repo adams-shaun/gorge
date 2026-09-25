@@ -93,6 +93,9 @@ var expandedHeads = []string{
 	"Prevent all combat damage that would be dealt to CARDNAME.",
 	"Prevent all combat damage that would be dealt to and dealt by CARDNAME.",
 	"Prevent all damage that would be dealt to CARDNAME.",
+	// Renown (CR 702.112, task agent-20260920T061844Z-01de2bee): the
+	// combat-damage trigger places N +1/+1 counters and marks its source renowned.
+	"Renown",
 	// Sunburst (CR 702.47, task kw:Sunburst): a bare K:Sunburst line expanded
 	// into the Moved -> Battlefield Updated Repl that puts Count$Converge
 	// counters, kind decided on the printed face's types (+1/+1 for a
