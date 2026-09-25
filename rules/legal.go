@@ -1096,10 +1096,9 @@ func targetBoundReadsPromisedGift(o *state.Object, sa *cards.SA) bool {
 	if o == nil || o.Face() == nil || sa == nil {
 		return false
 	}
-	for _, key := range []string{"TargetMin", "TargetMax"} {
-		if strings.Contains(sa.Params[key], "Count$PromisedGift") {
-			return true
-		}
+	if strings.Contains(sa.Params["TargetMin"], "Count$PromisedGift") ||
+		strings.Contains(sa.Params["TargetMax"], "Count$PromisedGift") {
+		return true
 	}
 	for _, body := range o.Face().SVars {
 		if strings.Contains(body, "Count$PromisedGift") {
