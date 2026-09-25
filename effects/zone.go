@@ -1465,12 +1465,17 @@ func forgetOtherRemembered(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// A multi-owner walk must match every owner's candidates against the memory
-// from BEFORE the first move. The actual remembered list is still cleared at
-// the first move and rebuilt by events; this snapshot is only a filter input.
-// It rides the owner cursor across asks, including the answered owner's recheck.
-func initForgetOtherSnapshot(h Host, c *Ctx, sa *cards.SA, owners []state.PlayerID) {
-	if len(owners) < 2 || c.ForgetOtherReady || !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
+// A walk that re-runs its candidate filter across an ask must match every
+// owner's candidates against the memory from BEFORE the first move. The
+// actual remembered list is still cleared at the first move and rebuilt by
+// events; this snapshot is only a filter input. It rides the owner cursor
+// across asks, including the answered owner's recheck. minOwners is the
+// walk's own continuation shape: 2 for a walk whose filter is only read for
+// owners AFTER an answered ask, 1 for a walk whose answered owner's filter
+// re-runs on re-entry (effDigUntil's re-scan). A walk whose answered
+// revalidation instead reads the ask's ResumeRemembered ride never arms it.
+func initForgetOtherSnapshot(h Host, c *Ctx, sa *cards.SA, owners []state.PlayerID, minOwners int) {
+	if len(owners) < minOwners || c.ForgetOtherReady || !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
 		return
 	}
 	c.ForgetOtherReady = true
@@ -1493,6 +1498,21 @@ func forgetOtherSpecContext(c *Ctx) SpecContext {
 		sc.Remembered = append(append([]state.Target(nil), sc.Remembered...), c.ForgetOtherSnapshot...)
 	}
 	return sc
+}
+
+// forgetOtherPreClearContext is the ONE spec-context read every
+// ForgetOtherRemembered$ walk's candidate filter goes through: before the
+// snapshot exists the walk's own pre-clear shallow copy is authoritative
+// (the set the first pass matched its options under), and once
+// initForgetOtherSnapshot has armed the Ctx the snapshot is authoritative,
+// riding every ask so a resumed walk re-matches the pre-clear candidates
+// against memory the first move cleared. One read for every affected
+// primitive so the two carriers cannot drift.
+func forgetOtherPreClearContext(sel, c *Ctx) SpecContext {
+	if c.ForgetOtherReady {
+		return forgetOtherSpecContext(c)
+	}
+	return sel.SpecContext(sel.Controller)
 }
 
 func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
@@ -1573,6 +1593,13 @@ func effChangeZoneHandOwners(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "the hand owner selector names no player this engine can resolve; no hand card moves"})
 		return
+	}
+	if c.ForgetOtherReady {
+		// The answered continuation re-resolves its owner list against memory
+		// the first move cleared (a DefinedPlayer$ RememberedOwner walk);
+		// the walk's own captured set rides the ask -- the same read
+		// effSearchLibrary and effHiddenPick make for their walks.
+		owners = c.ForgetOtherOwners
 	}
 	count, ok := handMoveCountOf(h, c, sa)
 	if !ok {
@@ -1769,12 +1796,16 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// hand-origin mover, so concrete Defined$ objects and future hand-owner
 	// selectors cannot silently miss the tapped entry.
 	rider := classifyAttackingEntry(c, sa, to)
+	// The pre-clear remembered snapshot rides the walk's asks: owner B's
+	// candidates must still match the set the walk started with after
+	// owner A's settle cleared both halves of the remembered state.
+	initForgetOtherSnapshot(h, c, sa, owners, 2)
 	// Snapshot eligibility before forgetting: an IsRemembered filter must
 	// still admit an answered card after the old set has been cleared.
 	eligibleByOwner := make([][]state.ObjID, len(owners))
 	for i, owner := range owners {
 		for _, id := range zoneOf(g, state.ZHand, owner) {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 				eligibleByOwner[i] = append(eligibleByOwner[i], id)
 			}
 		}
@@ -1939,7 +1970,15 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			// counters.go, play.go): without it the rebuild loses the ctx-level
 			// Remembered and the revalidation re-eligible-matches nothing.
 			ResumeRemembered: copyTargets(c.Remembered),
-			Prompt:           handMovePromptFor(sa, to, int(n), chooser == owner)}
+			// The ForgetOtherRemembered$ pre-clear snapshot rides with it: a
+			// LATER owner's pool (and any answered revalidation after an
+			// earlier owner's settle cleared the live set) still reads the
+			// candidates the walk started with.
+			ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+			ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+			ResumeForgetOtherReady:    c.ForgetOtherReady,
+			ResumeForgetOtherCleared:  c.ForgetOtherCleared,
+			Prompt:                    handMovePromptFor(sa, to, int(n), chooser == owner)}
 		for _, id := range eligible {
 			name := "a card"
 			if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -2005,6 +2044,10 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		handLibraryTail(h, g, sa, c.Source, owner, moved, to)
 		scheduleAtEOT(h, c, sa, moved)
 	}
+	// The walk completed: release the ride. A later ability in the same
+	// chain must not inherit this walk's snapshot (the same boundary the
+	// search and hidden walks end at).
+	endForgetOtherSnapshot(c)
 }
 
 // handTakeOptional reads Forge's optional-vs-mandatory markers for a
@@ -2351,7 +2394,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	if len(players) == 0 {
 		return
 	}
-	initForgetOtherSnapshot(h, c, sa, players)
+	initForgetOtherSnapshot(h, c, sa, players, 2)
 	searchTarget := c.LibraryTarget
 	searchDone := c.SearchDone
 	chosen := append([]state.ObjID(nil), c.Search...)
@@ -3420,7 +3463,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if c.ForgetOtherReady {
 		players = c.ForgetOtherOwners
 	}
-	initForgetOtherSnapshot(h, c, sa, players)
+	initForgetOtherSnapshot(h, c, sa, players, 2)
 	// Forge branches on the origin zones, not on the fetch player: game-wide
 	// only when the origin holds no hidden-info zone and no fetch player was
 	// named (Kor Skyfisher's ChangeType$ filter does the scoping).

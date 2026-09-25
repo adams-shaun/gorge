@@ -486,7 +486,14 @@ func chooseEachPool(g *state.Game, c *Ctx, pool []state.Target, chooser state.Pl
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	choosers := chooseCardChoosers(h, c, sa)
 	selection := *c // candidate filters read the pre-clear remembered set
+	initForgetOtherSnapshot(h, c, sa, choosers, 2)
 	forgetOtherRemembered(h, c, sa)
+	if c.ForgetOtherReady {
+		// The snapshot is authoritative across the asks: a resumed chooser's
+		// pool must still match the pre-clear candidates (plus anything
+		// re-remembered since) after the first move cleared the live set.
+		selection.Remembered = append(append([]state.Target(nil), selection.Remembered...), c.ForgetOtherSnapshot...)
+	}
 	// Reveal$ True (Planetary Annihilation's "each player chooses six lands
 	// they keep" is public knowledge — CR 701.x's open choice): each chooser's
 	// ANSWERED choice is revealed to every seat with the same ids-Note
@@ -603,6 +610,12 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
+		// The ForgetOtherRemembered$ pre-clear snapshot rides the ask: a later
+		// chooser's pool (the cardChoices read above re-runs on every resumed
+		// pass) still matches the pre-clear candidates after the clear.
+		d.ResumeForgetOtherSnapshot = copyTargets(c.ForgetOtherSnapshot)
+		d.ResumeForgetOtherOwners = append([]state.PlayerID(nil), c.ForgetOtherOwners...)
+		d.ResumeForgetOtherReady, d.ResumeForgetOtherCleared = c.ForgetOtherReady, c.ForgetOtherCleared
 		if hasBudget {
 			d.MaxSum, d.Budgeted = int(budget), true
 		}
@@ -634,6 +647,9 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 			emitChosenReveal(h, chooser, recorded)
 		}
 	}
+	// The walk completed: release the ride (the same boundary the search and
+	// hidden walks end at), so a later ability in the chain cannot inherit it.
+	endForgetOtherSnapshot(c)
 }
 
 // chooseCardPower is the offered card's current power -- the WithTotalPower$
