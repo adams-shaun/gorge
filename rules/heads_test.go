@@ -1217,7 +1217,11 @@ var acceptanceHeads = map[int]string{
 	// 4-seat note. eldrazi-stompy is in this game too, so Endless One's entry
 	// counters fold into the MoveZone and Chalice of the Void's zero-amount
 	// CHARGE placement is absorbed (obj 170, seq 5040, one removed event).
-	6: "61cd3bbfc8190773",
+	// 6 seats moved to 3ea72bbb6e715b03 (autonomous orchestrator): resolving agent-20260919T183836Z-df01c8be (trig:Evolved — "whenever this creature evolves" does not fire)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "3ea72bbb6e715b03",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1412,7 +1416,11 @@ var acceptanceHeads = map[int]string{
 	// 4-seat note; eldrazi-stompy is in this game, so Endless One's entry
 	// counters fold into the MoveZone and Chalice of the Void's zero-amount
 	// CHARGE placement is absorbed (obj 170, seq 9081, one removed event).
-	8: "956e4f040144faab",
+	// 8 seats moved to 13ba766ebeeb29e7 (autonomous orchestrator): resolving agent-20260919T183836Z-df01c8be (trig:Evolved — "whenever this creature evolves" does not fire)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "13ba766ebeeb29e7",
 }
 
 func TestHeads(t *testing.T) {
