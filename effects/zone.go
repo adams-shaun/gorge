@@ -4651,6 +4651,16 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile && h.ExileBlocked(id, false) {
 			return
 		}
+		// Capture before MoveZone folds: battlefield departure resets control,
+		// clears counters and removes battlefield-derived characteristics.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") {
+			if o := g.Obj(id); o != nil {
+				snapshot := o.CloneDeep()
+				c.ChangeZoneLKI = append(c.ChangeZoneLKI, state.LKIObject{
+					Obj: id, Controller: o.Controller, Owner: o.Owner, Snapshot: snapshot,
+				})
+			}
+		}
 		ev := moveZoneEvent(c, id, z, to)
 		applyFaceDownMarker(h, sa, c, &ev, to)
 		h.Emit(ev)
@@ -4695,6 +4705,10 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		// entries alone and only for the ExiledWithSource provenance shape
 		// (Valakut Exploration); the persistent half is what the Mimeoplasm
 		// chain's IsRemembered/Remembered$CardPower reads need.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") &&
+			!strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 			eventRemember(h, c, id)
