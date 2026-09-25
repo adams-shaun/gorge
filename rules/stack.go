@@ -2908,7 +2908,15 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, p, source, sa, 0)
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
 	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
-	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
+	chooser := p
+	if spec := strings.TrimSpace(sa.Params["TargetingPlayer"]); spec != "" {
+		if tc, ok := e.triggerContexts[source]; ok {
+			if who, ok := e.targetChooserFromSpec(spec, p, nil, tc); ok {
+				chooser = who
+			}
+		}
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: e.describeTargetEffect(p, source, sa, 0),
 		TargetsWithSameController: sameController, ResumeSA: sa}
