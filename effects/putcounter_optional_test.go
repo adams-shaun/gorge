@@ -143,23 +143,33 @@ func TestPutCounterOptionalAskShapeAndAnsweredReEntries(t *testing.T) {
 	}
 }
 
-// TestPutCounterOptionalNothingToPlaceNeverAsks pins the no-ask gate: with
-// the recipient off the battlefield (nothing the put would place on),
+// TestPutCounterOptionalDeadRecipientNeverAsks pins the no-ask gate on a
+// recipient that is genuinely NOT a live object: Defined$ Self names an
+// unallocated id, so g.Obj returns nil and putCounterWouldPlace is false --
 // decline and accept are the same, so no decision is posed and the
-// resolution completes silently.
-func TestPutCounterOptionalNothingToPlaceNeverAsks(t *testing.T) {
+// resolution completes silently. (CR 122.1 task note: this premise used to
+// be merely "off the battlefield", which the same task made a real
+// recipient; a dead id is what "nothing to place on" now means.)
+func TestPutCounterOptionalDeadRecipientNeverAsks(t *testing.T) {
 	h := &askHost{}
 	h.g = state.NewGame(names(2))
-	card := mkCard(t, "Name:PutTee\nTypes:Creature\nPT:1/1\nOracle:x\n")
-	o := h.g.AddObject(card, 0) // deliberately NOT on the battlefield
+	dead := state.ObjID(999999) // never allocated in a fresh 2-seat game
+	if h.g.Obj(dead) != nil {
+		t.Fatalf("precondition: id %d is live, want an unallocated recipient", dead)
+	}
 	sa, _ := corpusPutCounterSA(t, "Talus Paladin")
 
-	Resolve(h, &Ctx{Source: o.ID, Controller: 0}, sa)
+	Resolve(h, &Ctx{Source: dead, Controller: 0}, sa)
 	if h.asked != nil {
 		t.Fatalf("election posed with no live recipient: %+v", h.asked)
 	}
-	if got := counterChangeCount(&h.fakeHost, o.ID); got != 0 {
-		t.Fatalf("placed %d counter(s) on a non-battlefield object", got)
+	if got := counterChangeCount(&h.fakeHost, dead); got != 0 {
+		t.Fatalf("placed %d counter(s) on an unallocated object", got)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API") {
+			t.Fatalf("PutCounter did not run (unregistered?): %q", ev.Text)
+		}
 	}
 }
 

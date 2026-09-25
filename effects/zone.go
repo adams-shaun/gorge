@@ -941,6 +941,7 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 //     records the exiling source as the ExiledWith association -- the same
 //     encoding Hideaway's face-down exile uses. The IDs provenance payload is
 //     cleared so the two carriers cannot disagree on one event.
+//
 //   - FaceDown$ True (Yedora, Grave Gardener; the manifest marker's own
 //     spelling) on a battlefield entry: the "entered_face_down" decode folds
 //     Object.FaceDown plus the optional FaceDownSetType$/FaceDownPower$/
@@ -949,20 +950,49 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 //     would otherwise leak through the transcript), matching the Manifest
 //     precedent; a graveyard-origin one stays public (CR 708.9 already
 //     revealed it on leaving the battlefield).
+//
 //   - FaceDown$ True on an exile destination (Tezzeret's Reckoning): the card
 //     is put into exile face down WITHOUT an ExiledWith association, so the
 //     bare spelling uses its own "face_down" marker rather than borrowing
 //     ExileFaceDown$'s source-carrying one.
 //
+//   - WithMayLook$ True with an exile face-down destination (Ixhel, Scion of
+//     Atraxa; Gonti; Thief of Sanity): the exiling effect's controller may
+//     look at the exiled card's face for as long as it remains exiled, even
+//     though the card's owner may NOT. It rides the same MoveZone as
+//     ExileFaceDown$, but with the looker in Amount and the exiling source in
+//     IDs (the marker's own layout, decoded under the
+//     "exiled_with_face_down_maylook" Counter value), so replay folds both
+//     the look permission and the ExiledWith provenance with no new event kind
+//     and no Event field change. The pair composes with Foretold$ (a distinct
+//     marker) because Forge keeps the two designations independent; measured
+//     at the current corpus pin no card carries both, but the decode keeps
+//     them separable rather than silently dropping one.
+//
 // It is called from every ChangeZone mover (the object path, the shared
 // settle helper the hand/library routes use, and applyLibrarySearch), so the
-// read composes with each without a second caller-side branch.
+// read composes with each without a second caller-side branch. The Dig
+// mover (effects/cardflow.go effDig) calls it too, so the same WithMayLook$
+// read serves both APIs from this one choke point.
 func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
 	faceDown := strings.EqualFold(strings.TrimSpace(sa.Params["FaceDown"]), "True")
 	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
+	withMayLook := strings.EqualFold(strings.TrimSpace(sa.Params["WithMayLook"]), "True")
+	foretold := strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True")
 	switch {
+	case to == state.ZExile && exileFaceDown && withMayLook:
+		// The may-look layout: Amount carries the looker (the exiling
+		// effect's controller), IDs carries the exiling source. The looker
+		// is authoritative, so the card's owner is NOT admitted by the
+		// view's default controller check.
+		ev.Counter = "exiled_with_face_down_maylook"
+		if foretold {
+			ev.Counter = "exiled_with_face_down_maylook_foretold"
+		}
+		ev.Amount = int32(c.Controller)
+		ev.IDs = []state.ObjID{c.Source}
 	case to == state.ZExile && exileFaceDown:
-		if strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True") {
+		if foretold {
 			ev.Counter = "exiled_with_face_down_foretold"
 		} else {
 			ev.Counter = "exiled_with_face_down"

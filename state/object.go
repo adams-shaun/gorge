@@ -1003,6 +1003,16 @@ type Object struct {
 	// rather than merely a Secret event flag, so later projections know not to
 	// reveal the card to another player.
 	FaceDown bool
+	// MayLookPlayer is the player a Dig's or ChangeZone's WithMayLook$ True
+	// authorises to look at this face-down exiled card (Forge's Card.mayLook),
+	// with HasMayLook distinguishing seat 0 from "nobody". It is state, not
+	// merely an event flag, because the permission lasts as long as the card
+	// remains exiled, so a projection long after the exiling event still knows
+	// who may see the face. events.Apply folds it from the existing MoveZone
+	// Counter/Amount/IDs carriers (the "exiled_with_face_down_maylook" marker),
+	// so replay rebuilds it with no new event kind and no Event field change.
+	MayLookPlayer PlayerID
+	HasMayLook    bool
 	// Cloaked records the cloak variant of the face-down battlefield entry
 	// (CR 708.5's cloak: a 2/2 creature with ward {2}, turn-face-up cost =
 	// the card's mana cost). It folds from the MoveZone Counter value

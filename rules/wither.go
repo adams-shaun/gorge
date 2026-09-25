@@ -14,9 +14,29 @@ import (
 // the recipient form after DamageDone replacement effects have run. Unlike
 // infect, Wither has no player form: a player hit remains ordinary damage,
 // while a redirected hit onto a battlefield creature becomes counters.
+// stat:WitherDamage (Everlasting Torment, CR 702.90c): while an active
+// battlefield static with Mode$ WitherDamage applies, every source deals its
+// damage as though it had Wither, so an otherwise ordinary hit on a creature
+// enters the same "wither+creature" marker here (a player, planeswalker or
+// battle hit stays ordinary, exactly like a keyword Wither source's).
 func (e *Engine) recomputeWitherMarker(ev *events.Event) {
-	if ev == nil || ev.Kind != events.Damage ||
-		(ev.Counter != "wither" && ev.Counter != "wither+creature") {
+	if ev == nil || ev.Kind != events.Damage {
+		return
+	}
+	if ev.Counter != "wither" && ev.Counter != "wither+creature" {
+		// Not a keyword-Wither emitter: only the global static can convert
+		// this hit. Only a creature recipient converts; only a positive
+		// amount (the cleanup and regeneration negatives that CLEAR marked
+		// damage must keep taking the ordinary fold branch that decrements
+		// it, and a prevented hit never reaches here as a Damage event).
+		if ev.Amount <= 0 || ev.Obj == 0 || !e.witherDamageStaticActive() {
+			return
+		}
+		o := e.G.Obj(ev.Obj)
+		if o == nil || o.Zone != state.ZBattlefield || !e.IsCreature(ev.Obj) {
+			return
+		}
+		ev.Counter = "wither+creature"
 		return
 	}
 	if ev.Obj != 0 {
@@ -51,4 +71,13 @@ func (e *Engine) convertWitherDamage(ev events.Event) {
 	if published {
 		e.SetCounterAdder(saved)
 	}
+}
+
+// witherDamageStaticActive reports whether any battlefield permanent carries
+// an active S:Mode$ WitherDamage static (Everlasting Torment). The static has
+// no Valid$ parameters in the corpus, so any live instance applies to all
+// damage; the canonical activeStatics walk keeps face-down, phased-out and
+// EffectZone$ exclusions consistent with every other static consumer.
+func (e *Engine) witherDamageStaticActive() bool {
+	return len(e.activeStatics("WitherDamage")) > 0
 }

@@ -4356,6 +4356,15 @@ func (e *Engine) ObjectText(o *state.Object) string {
 }
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 
+// CastProhibited is effects' optional castProhibitedHost read (task
+// play-prohibited-election): the same CantBeCast gate beginPlay enforces
+// (rules/statics.go castRestricted), exposed so effPlay's Play election never
+// OFFERS a cast that CR 601.3 would refuse. It is a pure read -- no event,
+// no state change -- and the beginPlay recheck stays the enforcement site.
+func (e *Engine) CastProhibited(p state.PlayerID, id state.ObjID) bool {
+	return e.castRestricted(p, id)
+}
+
 // EmitScryRecord is effects.Host's completed-scry-record emit (task
 // scrybottom): the stand-in completion in effects' effLookAndArrange goes
 // through emitScryRecord, the exact site handleArrange uses, so a scry that

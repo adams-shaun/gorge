@@ -866,9 +866,20 @@ func cardViews(g *state.Game, ch Chars, ids []state.ObjID, includeAbilityCosts b
 		// visible only to its controller (or an omniscient projection). Keep
 		// every printed field blank for other viewers; Secret on the original
 		// MoveZone was only event redaction and cannot carry this lasting fact.
+		//
+		// A WithMayLook$ True face-down exile (Ixhel, Scion of Atraxa) names the
+		// exiling effect's controller as the ONE player who may look, so it
+		// REPLACES the controller default: the card's owner may not read a face
+		// the owner was never granted, and the looker may. o.MayLookPlayer is
+		// the single read of that permission here, so this projection and any
+		// later one cannot disagree about it.
 		if o.FaceDown {
 			cv.FaceDown = true
-			if !revealFaceDown && viewer != o.Controller {
+			looker := o.Controller
+			if o.HasMayLook {
+				looker = o.MayLookPlayer
+			}
+			if !revealFaceDown && viewer != looker {
 				cv = CardView{ID: id, FaceDown: true, Token: "#" + strconv.FormatUint(uint64(id), 10),
 					Controller: o.Controller, Owner: o.Owner}
 			}

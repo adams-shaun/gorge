@@ -140,21 +140,63 @@ func TestTalusPaladinMayPutAcceptPlacesExactlyOneCounter(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestPutCounterOptionalNoLiveRecipientNeverAsks: with the recipient off the
-// battlefield (the trigger's source still in hand) there is nothing the put
-// would place on, decline and accept are the same, and no election is posed
-// (the Attach precedent's len(legal) == 0 gate).
-func TestPutCounterOptionalNoLiveRecipientNeverAsks(t *testing.T) {
+// TestPutCounterOptionalNonBattlefieldRecipientElection: with the recipient
+// off the battlefield (the trigger's source still in hand) the put WOULD
+// place something -- CR 122.1 lets counters live on an object in any zone,
+// so a hand card is a live recipient -- and the election is posed (the
+// round-1 CR 122.1 fix made putCounterWouldPlace match the placement; the
+// old pin here asserted the battlefield-only premise and the election was
+// "never posed", which is what made the module gate red in round 3). This
+// is the rules-side end-to-end twin of the effects-package pins: the
+// decline places nothing and the trigger completes; the accept places one
+// P1P1 counter on the hand object through the real trigger resolution path.
+func TestPutCounterOptionalNonBattlefieldRecipientElection(t *testing.T) {
+	// Decline: the election is posed with the recipient in hand; answering no
+	// places nothing and the resolution completes.
 	e, cfg, pal := gateFixture(t, 913, "Talus Paladin")
+	if o := e.G.Obj(pal); o == nil {
+		t.Fatalf("precondition: trigger source %d is not a live object", pal)
+	} else if o.Zone == state.ZBattlefield {
+		t.Fatalf("precondition: recipient is on the battlefield, want a non-battlefield zone (%v)", o.Zone)
+	}
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: pal, Player: 0, Amount: 0})
 	e.resolveTop()
+	if d := e.Pending(); d == nil || d.Kind != decision.KChoose || d.ResumeKind != "put_optional" {
+		t.Fatalf("pending = %+v, want the put_optional election (the hand recipient is a live CR 122.1 recipient)", d)
+	}
+	answerPutOptional(t, e, 1) // no
 	if d := e.Pending(); d != nil && d.Kind != decision.KPriority {
-		t.Fatalf("election posed with the recipient off the battlefield: %+v", d)
+		t.Fatalf("a non-priority decision is still pending after the decline: %+v", d)
 	}
 	if evs := counterChangeEventsFor(e, pal); len(evs) != 0 {
-		t.Fatalf("placed counters on a hand object: %+v", evs)
+		t.Fatalf("decline emitted %d CounterChange events: %+v", len(evs), evs)
+	}
+	if got := putCounterCountersOf(t, e, pal); got != 0 {
+		t.Fatalf("paladin P1P1 counters = %d, want 0 after the decline", got)
 	}
 	replayCheck(t, e, cfg)
+
+	// Accept: exactly one P1P1 counter is placed on the hand object (CR 122.1:
+	// counters live on objects in any zone, and events.Apply folds the
+	// CounterChange for any live object regardless of zone).
+	e2, cfg2, pal2 := gateFixture(t, 919, "Talus Paladin")
+	if o := e2.G.Obj(pal2); o == nil || o.Zone == state.ZBattlefield {
+		t.Fatalf("precondition: recipient %d must be a live non-battlefield object, got zone %v", pal2, o)
+	}
+	e2.emit(events.Event{Kind: events.TriggerPush, Obj: pal2, Player: 0, Amount: 0})
+	e2.resolveTop()
+	answerPutOptional(t, e2, 0) // yes
+	if d := e2.Pending(); d != nil && d.Kind != decision.KPriority {
+		t.Fatalf("a non-priority decision is still pending after the accept: %+v", d)
+	}
+	evs := counterChangeEventsFor(e2, pal2)
+	if len(evs) != 1 || evs[0].Counter != "P1P1" || evs[0].Amount != 1 {
+		t.Fatalf("accept emitted %+v, want exactly one P1P1 of amount 1 on the hand object", evs)
+	}
+	if got := putCounterCountersOf(t, e2, pal2); got != 1 {
+		t.Fatalf("paladin P1P1 counters = %d, want 1 after the accept", got)
+	}
+	replayCheck(t, e2, cfg2)
 }
 
 // TestBlackWidowMayPutDeclinePlacesNoCounterAndRunsTheChain: the "If you

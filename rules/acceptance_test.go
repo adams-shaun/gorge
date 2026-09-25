@@ -95,12 +95,17 @@ import (
 // landed here); the Vivi cEDH deck the task also named was never imported.
 var knownUnsupported = map[string][]string{
 	// The avengers-assemble Commander deck import (the Marvel Super Heroes
-	// Commander precon, measured 2026-09-17): the three primitives the deck
-	// needs that this build does not implement. Everything else the deck
-	// exposed (kw:Crew's siblings trig:AttackersDeclared, trig:Cycled,
+	// Commander precon, measured 2026-09-17) held "Avengers Quinjet":
+	// {"kw:Crew"}. The entry was deleted when kw:Crew registered
+	// (cards/kw_crew.go, effects/crew.go): the Vehicle crews through the
+	// tapXType<Any/Creature.Other+withTotalPowerGE<N>> cost the expansion
+	// mints, whose set-level power floor the tap-cost machinery enforces --
+	// the real card test rules/crew_test.go's
+	// TestCrewAvengersQuinjetAnimatesUntilEndOfTurn drives the activation
+	// end to end, which is what licensed the shrink. Everything else the
+	// deck exposed (kw:Crew's siblings trig:AttackersDeclared, trig:Cycled,
 	// trig:CounterAdded, trig:AttackerBlocked, the PresentZone$ clause) was
 	// implemented and is pinned in rules/msh_commander_trigger_test.go.
-	"Avengers Quinjet": {"kw:Crew"},
 	// Captain Marvel, Apex Avenger's trig:CounterPlayerAddedAll entry was
 	// deleted when the mode was registered (trigmatch_counters.go's
 	// counterPlayerAddedAllMatches) -- its own trigger's ValidObject$

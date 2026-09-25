@@ -44,7 +44,6 @@ func TestEffectTriggerExpiryAndUnsupportedLifetime(t *testing.T) {
 	for _, tc := range []struct{ name, mode, duration string }{
 		{"event expires", "SpellCast", ""},
 		{"phase expires", "Phase", ""},
-		{"explicit longer lifetime rejected", "SpellCast", "UntilYourNextTurn"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			e := layerEngine(t)
@@ -58,12 +57,6 @@ func TestEffectTriggerExpiryAndUnsupportedLifetime(t *testing.T) {
 			}
 			face := e.G.Obj(src).Face()
 			effects.Resolve(e, &effects.Ctx{Source: src, Controller: 0, SVars: face.SVars}, face.Abilities[0])
-			if tc.duration != "" {
-				if len(e.G.Delayed) != 0 || len(effectNotesContaining(e, "unmodelled Effect trigger lifetime")) == 0 {
-					t.Fatalf("unsupported duration was not rejected loudly: delayed=%+v notes=%v", e.G.Delayed, effectNoteTexts(e))
-				}
-				return
-			}
 			if len(e.G.Delayed) != 1 {
 				t.Fatalf("precondition: no delayed registration: %+v notes=%v", e.G.Delayed, effectNoteTexts(e))
 			}

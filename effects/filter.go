@@ -4731,10 +4731,8 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			// CR 700.11: a permanent CARD entered this player's graveyard
 			// this turn from any zone. ZoneEntry captures owner and card type at
 			// the move, and TurnChange clears the ledger on replay as in play.
-			for _, entry := range g.Entered {
-				if entry.To == state.ZGraveyard && entry.Owner == p && entry.PermanentCard {
-					return true
-				}
+			if descendedThisTurn(g, p) > 0 {
+				return true
 			}
 		case "TriggeredDefendingPlayer":
 			// Player.TriggeredDefendingPlayer (Forge PlayerProperty): the
@@ -4837,6 +4835,22 @@ func playerDamageByRefThisGame(g *state.Game, p, you state.PlayerID, pc PlayerSp
 		}
 	}
 	return false
+}
+
+// descendedThisTurn counts the permanent CARDS that entered player p's
+// graveyard this turn from any zone (CR 700.11). This is the single read of
+// the fx20 descend provenance: the Player.descended predicate and the
+// Count$YouDescendedThisTurn head both call it, so they cannot disagree.
+// A token or a nonpermanent card never counts ($PermanentCard is folded
+// from !IsToken/!IsCopy/IsPermanent at the move).
+func descendedThisTurn(g *state.Game, p state.PlayerID) int32 {
+	var n int32
+	for _, entry := range g.Entered {
+		if entry.To == state.ZGraveyard && entry.Owner == p && entry.PermanentCard {
+			n++
+		}
+	}
+	return n
 }
 
 // playerIsCorrupted applies the Corrupted threshold (three or more poison

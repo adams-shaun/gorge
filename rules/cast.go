@@ -1370,18 +1370,30 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			// payable with zero candidates (X = 0 is a legal announcement); an
 			// Any-form part must tap at least one matching permanent the earlier
 			// parts have not already claimed, so a spec no unreserved candidate
-			// satisfies (Mossbridge Troll's withTotalPowerGE10 group predicate
-			// fails closed) leaves the cost unpayable rather than offering a
+			// satisfies leaves the cost unpayable rather than offering a
 			// zero-tap payment of an effect that does not scale with the taps.
 			if part.Dyn == "Any" {
 				avail := 0
+				var floorSum int32
 				for _, oid := range e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, true) {
 					if reserved[oid] || (cost.Tap && oid == id) {
 						continue
 					}
 					avail++
+					floorSum += e.Power(oid)
 				}
 				if avail == 0 {
+					return false
+				}
+				// The withTotalPowerGE<N> group predicate (Crew's "total power N
+				// or greater", Mossbridge Troll's "total power 10 or greater"):
+				// the paid set's TOTAL power must reach the floor, and "any
+				// number" may tap every candidate, so the most the board can
+				// pay is the sum of all their powers. A shortfall leaves the
+				// cost unpayable rather than offering an election no legal
+				// answer satisfies (Decision.Validate would reject every
+				// answer and the game would wedge).
+				if part.MinPower > 0 && floorSum < part.MinPower {
 					return false
 				}
 			}
@@ -1395,6 +1407,13 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			avail = append(avail, oid)
 		}
 		if len(avail) < int(part.N) {
+			return false
+		}
+		// The literal form with a group predicate (none in the corpus today,
+		// modelled for symmetry with the Any form): exactly N are tapped, so
+		// the most power a legal answer can tap is the N largest candidates.
+		// A shortfall withholds the cost.
+		if part.MinPower > 0 && e.tapTopPowerSum(avail, int(part.N)) < part.MinPower {
 			return false
 		}
 		for i := 0; i < int(part.N); i++ {
@@ -3187,8 +3206,16 @@ func (e *Engine) tapPermanentCostAsk() bool {
 			}
 			// An Any-form part pays only by tapping at least one: no eligible
 			// permanent (the affordability gate agreed, so this is a board that
-			// changed under the offer) aborts the whole cast/activation.
+			// changed under the offer) aborts the whole cast/activation. The
+			// same holds when the survivors can no longer reach a
+			// withTotalPowerGE<N> group predicate's floor: posing an election
+			// whose every answer Decision.Validate rejects would wedge the
+			// game, so CR 733.1's clean reversal runs instead.
 			if part.Dyn == "Any" && len(candidates) == 0 {
+				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+				return true
+			}
+			if part.Dyn == "Any" && part.MinPower > 0 && e.tapPowerSum(candidates) < part.MinPower {
 				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 				return true
 			}
@@ -3228,14 +3255,23 @@ func (e *Engine) tapPermanentCostAsk() bool {
 			// a legal announcement) and Min 1 for Any (a cost is not paid by
 			// tapping nothing). The answer records the taps and, for the X form,
 			// binds the cast's X to the chosen count (the "tapcost" answer arm).
+			// A part carrying a withTotalPowerGE<N> group predicate publishes
+			// the floor as Decision.MinSum and each candidate's power as its
+			// Option.Value, so Validate -- the one legal-answer home a client
+			// and the bot repair both read -- enforces the total-power clause
+			// without learning what power is.
 			min := int32(1)
 			if part.Dyn == "X" {
 				min = 0
 			}
 			d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(min), Max: len(candidates),
-				Prompt: "Choose permanents to tap", Source: pc.card}
+				Prompt: "Choose permanents to tap", Source: pc.card, MinSum: int(part.MinPower)}
 			for _, id := range candidates {
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)})
+				opt := decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)}
+				if part.MinPower > 0 {
+					opt.Value = int(e.Power(id))
+				}
+				d.Options = append(d.Options, opt)
 			}
 			e.choosing = chooseCast
 			e.ask(d)
@@ -3245,21 +3281,68 @@ func (e *Engine) tapPermanentCostAsk() bool {
 			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 			return true
 		}
+		// A literal part with a group predicate that the shrinking board can
+		// no longer satisfy aborts like the Any form above -- an auto-tap of
+		// the only N candidates (next branch) or an election with no legal
+		// answer would pay a floor the state no longer reaches.
+		if part.MinPower > 0 && e.tapTopPowerSum(candidates, int(part.N)) < part.MinPower {
+			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+			return true
+		}
 		if len(candidates) == int(part.N) {
 			pc.taps = append(pc.taps, candidates...)
 			pc.tapPart++
 			continue
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
-			Prompt: "Choose permanents to tap", Source: pc.card}
+			Prompt: "Choose permanents to tap", Source: pc.card, MinSum: int(part.MinPower)}
 		for _, id := range candidates {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)})
+			opt := decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)}
+			if part.MinPower > 0 {
+				opt.Value = int(e.Power(id))
+			}
+			d.Options = append(d.Options, opt)
 		}
 		e.choosing = chooseCast
 		e.ask(d)
 		return true
 	}
 	return false
+}
+
+// tapPowerSum sums the current power of a tap-cost candidate list -- the
+// set-level read a withTotalPowerGE<N> group predicate (Crew, Mossbridge
+// Troll) constrains. "Any number" may tap the whole list, so the list's
+// total is the most power a payment can tap.
+func (e *Engine) tapPowerSum(ids []state.ObjID) int32 {
+	sum := int32(0)
+	for _, id := range ids {
+		sum += e.Power(id)
+	}
+	return sum
+}
+
+// tapTopPowerSum is tapPowerSum for a literal tapXType<N/...> part with a
+// group predicate: exactly N are tapped, so the most a payment can tap is
+// the power of the N largest candidates. A slice sort is fine here -- the
+// result is a sum, so the order equal powers sort in cannot reach an event.
+func (e *Engine) tapTopPowerSum(ids []state.ObjID, n int) int32 {
+	if n <= 0 {
+		return 0
+	}
+	if n >= len(ids) {
+		return e.tapPowerSum(ids)
+	}
+	pw := make([]int32, 0, len(ids))
+	for _, id := range ids {
+		pw = append(pw, e.Power(id))
+	}
+	sort.Slice(pw, func(a, b int) bool { return pw[a] > pw[b] })
+	sum := int32(0)
+	for _, v := range pw[:n] {
+		sum += v
+	}
+	return sum
 }
 
 func (e *Engine) blightCostAsk() bool {
@@ -9447,6 +9530,7 @@ func (e *Engine) fireDeferredCastTrigger() {
 	e.deferredPush = nil
 	lki := e.deferredPushLKI
 	e.deferredPushLKI = nil
+	e.sweepEffectDelayedCast(*ev)
 	e.checkTriggers(*ev, lki, 0, 0, false)
 }
 
