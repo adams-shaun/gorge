@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -111,11 +112,10 @@ func TestCardNotedFoldIsIdempotentOrderedAndReplayable(t *testing.T) {
 	}
 	noteEvents := 0
 	for _, e := range h.log {
-		if e.Kind != events.CardNoted {
-			continue
-		}
 		events.Apply(replayed, e)
-		noteEvents++
+		if e.Kind == events.CardNoted {
+			noteEvents++
+		}
 	}
 	if noteEvents != 5 {
 		t.Fatalf("log carried %d CardNoted events, want all 5 (including the two no-op writes)", noteEvents)
@@ -177,6 +177,72 @@ func TestCardNotationTriggeredSourceNotesTheTriggerCard(t *testing.T) {
 	}
 	if MatchesSpec(h.g, "Card.NotedForMaelstromArchangelAvatar", bystander, 0) {
 		t.Fatal("RepeatCards$ spec matched a creature the trigger did not name")
+	}
+}
+
+// TestCardNotationIsReadByCorpusChooseCardAndPlayConsumers drives the real
+// consumer handlers, not only MatchesSpec: Volatile Chimera's Choices$ pool
+// and Arcane Savant's Valid$ Play population must each admit the noted card
+// and reject the contrasting unnoted object.
+func TestCardNotationIsReadByCorpusChooseCardAndPlayConsumers(t *testing.T) {
+	chimera, pump := corpusSA(t, "Volatile Chimera", "DBPump")
+	var choose *cards.SA
+	for _, face := range chimera.Faces {
+		for _, ability := range face.Abilities {
+			if ability.API == "ChooseCard" {
+				choose = ability
+			}
+		}
+	}
+	if choose == nil {
+		t.Fatal("Volatile Chimera ChooseCard consumer not found")
+	}
+	h := newHost(t, 2)
+	h.askResult = true
+	src := noteCardAt(t, h, chimera)
+	noted := exileCardAt(t, h, mkCard(t, "Name:Exiled Ape\nTypes:Creature\nPT:2/2\nOracle:x\n"), 0)
+	other := exileCardAt(t, h, mkCard(t, "Name:Exiled Owl\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	if noted == other || h.g.Obj(noted).Zone != state.ZExile || h.g.Obj(other).Zone != state.ZExile {
+		t.Fatalf("ChooseCard fixture invalid: noted=%d other=%d zones=%v/%v", noted, other, h.g.Obj(noted).Zone, h.g.Obj(other).Zone)
+	}
+	effPump(h, &Ctx{Source: src, Controller: 0, SVars: h.g.Obj(src).Face().SVars, Remembered: []state.Target{{Obj: noted}}}, pump)
+	choiceCtx := &Ctx{Source: src, Controller: 0}
+	effChooseCard(h, choiceCtx, choose)
+	assertOptions := func(where string, options []decision.Option, want, reject state.ObjID) {
+		t.Helper()
+		seen := map[state.ObjID]bool{}
+		for _, option := range options {
+			seen[option.Obj] = true
+		}
+		if !seen[want] || seen[reject] {
+			t.Fatalf("%s options = %v, want noted %d and not unnoted %d", where, options, want, reject)
+		}
+	}
+	// AtRandom$ True is the corpus behavior: the handler samples its filtered
+	// candidate pool and records the selected target, without posing an ask.
+	if len(choiceCtx.Chosen) != 1 || choiceCtx.Chosen[0].Obj != noted {
+		t.Fatalf("Volatile Chimera ChooseCard selected %v, want only noted card %d (unnoted %d excluded)", choiceCtx.Chosen, noted, other)
+	}
+
+	// Arcane Savant's real DB$ Play Valid$ consumer requires playable spells;
+	// use distinct instant cards in the exact Exile zone it scans.
+	savant, play := corpusSA(t, "Arcane Savant", "TrigPlay")
+	playSource := noteCardAt(t, h, savant)
+	playNoted := exileCardAt(t, h, mkCard(t, "Name:Noted Instant\nTypes:Instant\nOracle:x\n"), 0)
+	playOther := exileCardAt(t, h, mkCard(t, "Name:Other Instant\nTypes:Instant\nOracle:x\n"), 0)
+	_, playPump := corpusSA(t, "Arcane Savant", "DBPump")
+	if playNoted == playOther || h.g.Obj(playNoted).Zone != state.ZExile || h.g.Obj(playOther).Zone != state.ZExile {
+		t.Fatalf("Play fixture invalid: noted=%d other=%d zones=%v/%v", playNoted, playOther, h.g.Obj(playNoted).Zone, h.g.Obj(playOther).Zone)
+	}
+	effPump(h, &Ctx{Source: playSource, Controller: 0, SVars: h.g.Obj(playSource).Face().SVars, Remembered: []state.Target{{Obj: playNoted}}}, playPump)
+	h.lastAsk = nil
+	effPlay(h, &Ctx{Source: playSource, Controller: 0}, play)
+	if h.lastAsk == nil {
+		t.Fatal("Arcane Savant Play did not ask")
+	}
+	assertOptions("Arcane Savant Play", h.lastAsk.Options, playNoted, playOther)
+	if playNoted == playOther || h.g.Obj(playNoted).Zone != state.ZExile || h.g.Obj(playOther).Zone != state.ZExile {
+		t.Fatalf("Play fixture invalid: noted=%d other=%d zones=%v/%v", playNoted, playOther, h.g.Obj(playNoted).Zone, h.g.Obj(playOther).Zone)
 	}
 }
 
