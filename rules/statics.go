@@ -456,7 +456,14 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 // its own SVar table when the view carries one (an under-card static), else the
 // source object's top face.
 func (e *Engine) staticSpecCtx(sv staticView) effects.SpecContext {
-	sc := e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+	return e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+}
+
+// assignmentStaticSpecCtx binds captured Effect memory only for the narrow
+// assignment-static path. Keeping staticSpecCtx's ordinary hot-path shape
+// preserves allocation-free matching for unrelated statics.
+func (e *Engine) assignmentStaticSpecCtx(sv staticView) effects.SpecContext {
+	sc := e.staticSpecCtx(sv)
 	for _, id := range sv.Remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
 	}
@@ -2973,7 +2980,7 @@ func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
 				continue
 			}
 		}
-		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.assignmentStaticSpecCtx(sv)) {
 			continue
 		}
 		return true
