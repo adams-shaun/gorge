@@ -1326,9 +1326,7 @@ func (e *Engine) commitManaDiscard() {
 	}
 	// Only a decision posed BY this payment defers the mana effect below.
 	posedBefore := e.pending != nil
-	for _, id := range md.discards {
-		e.emit(events.DiscardCost(id))
-	}
+	e.payDiscardCost(md.discards, "")
 	for _, id := range md.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone,

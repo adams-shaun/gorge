@@ -1666,6 +1666,39 @@ func (e *Engine) payMillCostParts(pc *pendingCast) {
 	e.payMillCost(pc.player, pc.cost.Mill)
 }
 
+// payDiscardCost settles every hand->graveyard discard component of a cost
+// payment as ONE discard action: the payer discards the settled cards
+// together, so Mode$ DiscardedAll fires once for the payment with its
+// TriggerCount$Amount (and Remembered/Captured set) equal to the number of
+// matching cards (CR 701.8), exactly as payMillCost batches a multi-card Mill
+// cost. Every cost discard goes through this helper -- a cast, an activated
+// ability, a mana-ability activation and a triggered mandatory cost all reach
+// it -- so the four sites cannot diverge and a new one cannot forget the
+// bracket. The bracket is opened and closed entirely inside this call and the
+// emission loop cannot suspend, so successive cost actions never coalesce and
+// an enclosing api:Discard batch (effects/cardflow.go's effDiscard) simply
+// nests by depth. cycling names the cycling ability when the discard is paid
+// for one (CR 702.29), tagging each card's event for Mode$ Cycled; an empty
+// keyword emits the plain cost form. An absent object is skipped, exactly as
+// the triggered-cost site's own guard did.
+func (e *Engine) payDiscardCost(ids []state.ObjID, cycling string) {
+	if len(ids) == 0 {
+		return
+	}
+	e.BeginDiscardBatch()
+	for _, id := range ids {
+		if e.G.Obj(id) == nil {
+			continue
+		}
+		if cycling != "" {
+			e.emit(events.DiscardCostCycling(id, cycling))
+		} else {
+			e.emit(events.DiscardCost(id))
+		}
+	}
+	e.EndDiscardBatch()
+}
+
 // payDrawCostParts settles every Draw cost component of a cast or activation
 // payment: one ordinary draw per card of the part's count, for the drawer the
 // part's spec names. The count is the literal N, or -- for the dynamic
@@ -8874,13 +8907,7 @@ func (e *Engine) payCast() {
 		for _, id := range pc.delve {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
-		for _, id := range pc.discards {
-			if kw := e.cyclingKeyword(pc); kw != "" {
-				e.emit(events.DiscardCostCycling(id, kw))
-			} else {
-				e.emit(events.DiscardCost(id))
-			}
-		}
+		e.payDiscardCost(pc.discards, e.cyclingKeyword(pc))
 		// Exile cost parts (ExileFromHand/ExileFromGrave): each chosen card
 		// leaves its zone (hand, or the graveyard for a self-reference) for
 		// exile. Read the zone live: the settled card is still where exAsk
@@ -9147,9 +9174,7 @@ func (e *Engine) payCast() {
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
-	for _, id := range pc.discards {
-		e.emit(events.DiscardCost(id))
-	}
+	e.payDiscardCost(pc.discards, "")
 	// Exile cost parts (see the ability branch above for the why).
 	for _, id := range pc.exiles {
 		if o := e.G.Obj(id); o != nil {
