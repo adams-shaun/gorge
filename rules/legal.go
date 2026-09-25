@@ -1701,6 +1701,29 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			return e.offerCastableUsing(statics, p, id, base, scope, false, hyp)
 		})
 	}
+	// castRestrictedAsFace is castRestricted for an alternate-face cast route
+	// (modal_spell): the CantBeCast prohibition must be evaluated against the
+	// face the cast flips to -- the same probe offerCastableAsFace prices
+	// under, and the same face recheckIllegal (CR 601.2e) re-checks against
+	// after beginCast's real FlipFace. CR 712.4d: while a Modal DFC's spell
+	// is on the stack its characteristics are the chosen face's, so a
+	// restriction that matches only one face decides only that face's offer
+	// (a Card.nonCreature lockout withholds the sorcery back face but must
+	// not touch the creature front, and ValidCard$ Creature the reverse).
+	// The walk's cached CantBeCast statics are fetched BEFORE the probe: a
+	// CantBeCast source is battlefield-only in collectActionStatics' walk and
+	// the probed card sits in hand, so the collection is face-independent,
+	// and a lazy first collection inside the probe would cache the probed
+	// face for the rest of the walk (faceprobe.go). castRestrictionSources
+	// re-reads the restricted card's OWN statics from o.Face() live, so a
+	// back-face self-restriction is seen under the probe exactly as
+	// recheckIllegal sees it after the real flip.
+	castRestrictedAsFace := func(p state.PlayerID, id state.ObjID, face *cards.Face) bool {
+		statics := actionStatics.get().cantCast
+		return e.offerAsFace(id, face, func() bool {
+			return e.castRestrictedUsing(statics, p, id)
+		})
+	}
 	// affordable is the composed-cost gate the two direct e.castable sites of
 	// the walk use (the may-play and escape walks price an already-composed
 	// cost, so they cannot re-run the modifier composition offerCastable
@@ -1743,21 +1766,28 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 					Label: "Play " + back.Name, Obj: id, Mode: "modal_land"})
 			}
 		}
-		if castRestricted(p, id) {
-			continue
-		}
 		if e.castSuppressed(p, id) {
 			continue
 		}
 		// CR 712.8: a Modal DFC's nonland back face can be cast from hand
 		// independently of its front face. The chosen face's timing, targets,
-		// and composed cost govern this offer; beginCast flips provisionally.
+		// restriction and composed cost govern this offer; beginCast flips
+		// provisionally. The prohibition gate is castRestrictedAsFace, not the
+		// card-level castRestricted continue below: a restriction that matches
+		// only the front face must not withhold the back-face offer, and one
+		// that matches only the back face must not be missed by probing only
+		// the front (both directions are regression-tested in
+		// rules/modal_spell_face_restriction_test.go).
 		if mf := modalSpellBack(o); mf != nil && e.spellTimingOK(p, id, mf, sorcery) &&
-			e.castTargetsAvailable(p, id, mf.SpellAbility()) {
+			e.castTargetsAvailable(p, id, mf.SpellAbility()) &&
+			!castRestrictedAsFace(p, id, mf) {
 			if offerCastableAsFace(p, id, mf, withSpellAbilityExtras(mf, e.parseCost(mf.ManaCost)), spellScope("")) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: "Cast " + mf.Name, Obj: id, Mode: "modal_spell"})
 			}
+		}
+		if castRestricted(p, id) {
+			continue
 		}
 		// CR 709.4/709.5: a non-Room split card's alternate half is castable
 		// on its own (mode split_alt, consumed by beginCast's FlipFace exactly
