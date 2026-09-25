@@ -346,3 +346,59 @@ func TestReboundCorpusCarrierExilesAndOffers(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestReboundCopiedSpellRegistersNothing is the cast-provenance leg (CR
+// 702.95a with CR 707.10): a copy of the hand-cast Rebound spell is PUT on
+// the stack, never cast, so the StackCopy mint must strip the provenance bit
+// -- and the resolving copy leaves no delayed promise of its own.
+func TestReboundCopiedSpellRegistersNothing(t *testing.T) {
+	e, cfg, id := reboundEngine(t, 75, reboundBoltSrc)
+	addMana(t, e, 0, "R")
+	submitChoices(t, e, castOptionFor(t, e, id).Index)
+
+	// Precondition: the spell sits on the stack already carrying the pay-time
+	// provenance, so the copy below really would inherit a set flag were the
+	// mint not stripping the cast-provenance bits.
+	if o := e.G.Obj(id); o.Zone != state.ZStack {
+		t.Fatalf("setup: cast spell zone %s, want stack", o.Zone)
+	}
+	if e.G.Obj(id).CastFlags&state.FlagRebound == 0 {
+		t.Fatal("setup: the hand cast stamped no FlagRebound on the stack object")
+	}
+
+	// Copy the spell on the stack (the effects/copy.go emission shape).
+	before := state.ObjID(len(e.G.Objs))
+	e.emit(events.Event{Kind: events.StackCopy, Obj: id, Player: 0})
+	copyID := state.ObjID(len(e.G.Objs))
+	if copyID != before+1 {
+		t.Fatalf("setup: StackCopy minted %d objects, want 1", copyID-before)
+	}
+	if o := e.G.Obj(copyID); o == nil || !o.IsCopy || o.Zone != state.ZStack {
+		t.Fatalf("setup: minted copy %+v, want a stack copy", o)
+	}
+	// The measured defect: the copy inherited the cast provenance, resolved
+	// into exile and minted a second upkeep promise nobody earned.
+	if e.G.Obj(copyID).CastFlags&state.FlagRebound != 0 {
+		t.Fatal("a stack copy inherited FlagRebound; a copy is put on the stack, never cast (CR 707.10)")
+	}
+
+	passUntilStackEmpty(t, e, 20)
+
+	// The copy really resolved (it gains the same 3 life) and the original was
+	// really cast from hand: exiled, with its one promise.
+	if e.G.Players[0].Life != 26 {
+		t.Fatalf("life = %d, want 26 (both the cast spell and its copy resolved)", e.G.Players[0].Life)
+	}
+	if got := e.G.Obj(id).Zone; got != state.ZExile {
+		t.Fatalf("resolved Rebound spell zone = %s, want exile", got)
+	}
+	if n := reboundRegistrations(e); n != 1 {
+		t.Fatalf("rebound registrations after resolution = %d, want 1 (the copy registers none)", n)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.DelayedRegister && ev.Obj == copyID {
+			t.Fatalf("a DelayedRegister names the never-cast copy %d: %+v", copyID, ev)
+		}
+	}
+	replayCheck(t, e, cfg)
+}

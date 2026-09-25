@@ -348,9 +348,11 @@ const (
 	// to exile on resolution (the fizzle reader deliberately does not: a
 	// countered rebound spell never resolves and stays in the graveyard), and
 	// rules/resolution.go's moveResolvedOffStack reads it to register the
-	// delayed upkeep recast. It is NOT a CastProvenanceFlag: its reader is a
-	// resolution destination, not an "if you cast it" obligation, the same
-	// category as FlagFlashback/FlagWarped.
+	// delayed upkeep recast. It IS a CastProvenanceFlag: CR 702.95a's
+	// exile-and-promise is conditioned on the spell having been CAST from its
+	// controller's hand, so a stack copy -- put on the stack, never cast
+	// (CR 707.10/706.10) -- must not inherit it; the resolution destination
+	// follows the flag, not the other way round.
 	// Appended per the enum's own append-only precedent.
 	FlagRebound
 )
@@ -382,7 +384,11 @@ const (
 // (CR 702.168a), so a stack copy -- put on the stack, never cast -- cannot
 // inherit it and the copy's PromisedGift predicate and Count$PromisedGift
 // head read false.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift
+// FlagRebound joins the set for the same reason: CR 702.95a's rider is
+// conditioned on the cast ("If you cast this spell from your hand, exile it
+// as it resolves"), so a stack copy -- never cast, its origin a stack mint
+// rather than a hand -- resolves without the exile-and-promise.
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it

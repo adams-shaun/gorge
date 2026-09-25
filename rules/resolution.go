@@ -4356,6 +4356,11 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	// below runs synchronously. The registration is created only when the
 	// card actually reached exile -- a replacement that redirected the move
 	// leaves the promise uncreated, so no stale permission can outlive it.
+	// FlagRebound is a cast-provenance bit, so a stack COPY -- put on the
+	// stack, never cast (CR 707.10) -- carries none at the mint and registers
+	// nothing. (No corpus card grants Rebound to a permanent, so the
+	// permanent branch above's lack of a registration site stays
+	// corpus-unreachable.)
 	rebound := o.CastFlags&state.FlagRebound != 0
 	controller := o.Controller
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest})

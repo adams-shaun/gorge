@@ -9324,9 +9324,10 @@ func (e *Engine) payCast() {
 	// face carries the keyword is exiled as it resolves and offers the free
 	// recast at the next upkeep. The flag is stamped only for a hand-origin
 	// cast, so the re-bound cast from exile (CR 702.95e: "doesn't rebound
-	// again") carries none and resolves ordinarily. A copy's origin is a
-	// holding zone, never the hand, so a copied rebound spell cannot inherit
-	// it either. The modeFlags switch has no case for this keyword because
+	// again") carries none and resolves ordinarily. The bit is a
+	// CastProvenanceFlag, so a stack copy -- put on the stack, never cast
+	// (CR 707.10) -- is stripped of it at the mint and resolves without the
+	// promise. The modeFlags switch has no case for this keyword because
 	// the cast is ORDINARY -- the keyword grants no alternative cost and no
 	// mode; only the origin zone sets the flag.
 	if !pc.isAbility() && pc.from == state.ZHand {
