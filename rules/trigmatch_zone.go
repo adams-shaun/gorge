@@ -117,7 +117,8 @@ func (e *Engine) zoneChangeMatchesWithCapture(t cards.Trigger, source state.ObjI
 		// log here, where the Engine is in scope; the remainder matches as
 		// before (task castprov1).
 		if ev.Obj != 0 && lki != nil &&
-			(source == ev.Obj || leftBattlefield(ev) || lki.Zone == state.ZExile) {
+			(source == ev.Obj || leftBattlefield(ev) ||
+				(ev.From == state.ZExile && ev.To != state.ZBattlefield)) {
 			spec, ok := e.castProvenanceAdmits(v, lki.ID, ctrl)
 			// The IsGoaded static route (staticgoad1), bound inline the same
 			// shape matchesSpec keeps (this LKI reader runs per zone-change
