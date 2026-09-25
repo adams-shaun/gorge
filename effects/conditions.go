@@ -480,7 +480,8 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
 		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" &&
-		defined != "Returned" && defined != "TriggeredSourceLKICopy" {
+		defined != "Returned" && defined != "TriggeredSourceLKICopy" &&
+		defined != "TriggeredSpellAbility" {
 		// Only the Remembered, Self, TriggeredCard, Imprinted, Targeted,
 		// Discarded and Returned families are in scope among DEFINED groups:
 		// the objects a walk
@@ -596,6 +597,32 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		}
 		group = []state.Target{{Obj: c.TriggerCard}}
 	}
+	if defined == "TriggeredSpellAbility" {
+		// The trigger's spell/ability referent (Shiko and Narset, Unified and
+		// Orvar, the All-Form; 2 corpus carriers) -- the SAME binding the
+		// Defined$ TriggeredSpellAbility resolver reads (effects/context.go):
+		// the fire-time TriggerAbility role for an AbilityCast trigger (an
+		// AbilityPush's Obj is the source permanent, so Remembered alone names
+		// a non-stack object), else the first object entry in Remembered (the
+		// SpellCast arm, where Remembered IS the cast spell). An ABSENT binding
+		// (a synthetic fixture, a hand-built context, a non-trigger context)
+		// leaves the gate UNSUPPORTED -- the sub runs unconditionally, this
+		// file's documented fail-open convention -- never a resolved false that
+		// would stop subs that ran before this group was enumerable.
+		ref := c.TriggerAbility
+		if ref == 0 {
+			for _, t := range c.Remembered {
+				if !t.IsPlayer && t.Obj != 0 {
+					ref = t.Obj
+					break
+				}
+			}
+		}
+		if ref == 0 {
+			return false, false
+		}
+		group = []state.Target{{Obj: ref}}
+	}
 	// The wasCastFromYourHandByYou / !wasCastFromYourHandByYou qualifier
 	// (task castprov2, Amped Raptor's gate) and its bare wasCastFromYourHand
 	// sibling (task castprov3, Otterball Antics' `Card.wasCast+!
@@ -618,12 +645,20 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// fail-closed here (no strip; wordMatches never matches them) — the
 	// documented convention above.
 	hasCastSaFlagTok := hasCastSaFlag(present)
+	// The `Spell.IsTargeting <target-spec>` present form (Shiko and Narset's
+	// and Orvar, the All-Form's `ConditionDefined$ TriggeredSpellAbility`
+	// guards) is a property of the triggering spell's own TARGET LIST, not of
+	// its printed face. The generic matcher has no IsTargeting predicate and
+	// would report the token unknown (fail-open); only this group's present
+	// spec is answered here, and only when the spec is exactly this shape, so
+	// every other group and shape keeps the ordinary matcher untouched.
+	spellTargeting := defined == "TriggeredSpellAbility" && isSpellTargetingPresent(present)
 	if present != "" {
 		check := present
 		if hasHandToken || hasBareHand {
 			check = stripWasCastFromHandToken(present)
 		}
-		if len(UnknownPredicates(check)) > 0 {
+		if !spellTargeting && len(UnknownPredicates(check)) > 0 {
 			return false, false
 		}
 	}
@@ -675,6 +710,14 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 				continue
 			}
 			memberSpec = s
+		}
+		if spellTargeting {
+			// The present spec is a target filter over the member spell's
+			// TARGETS, not a filter over the member object's own face.
+			if spellTargetingMatches(g, memberSpec, o, sc) {
+				count++
+			}
+			continue
 		}
 		if MatchesObjectCtx(g, memberSpec, o, sc) {
 			count++
@@ -774,6 +817,77 @@ func conditionMetBattlefield(h Host, c *Ctx, present, compare string) (met, reso
 		}
 	}
 	return evalConditionCount(count, compare)
+}
+
+// isSpellTargetingPresent reports whether spec is exactly Forge's
+// `Spell.IsTargeting <target-spec>` present filter (or the SpellAbility
+// spelling), possibly an OR list of those forms. It is deliberately strict:
+// a `+`-joined predicate, an unknown base or an empty argument leaves the
+// spec to the ordinary matcher and its UnknownPredicates fail-open, so this
+// local evaluator can never claim a shape it does not fully answer.
+func isSpellTargetingPresent(spec string) bool {
+	if spec == "" {
+		return false
+	}
+	for alt := range filterAlternatives(spec) {
+		base, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
+		if !ok || (base != "Spell" && base != "SpellAbility") {
+			return false
+		}
+		arg, ok := strings.CutPrefix(rest, "IsTargeting ")
+		if !ok || strings.TrimSpace(arg) == "" || strings.Contains(arg, "+") {
+			return false
+		}
+	}
+	return true
+}
+
+// spellTargetingMatches evaluates Forge's `Spell.IsTargeting <target-spec>`
+// against a member spell: it is met when ANY of the spell's recorded targets
+// matches the spec. `Valid <spec>` (Shiko, Orvar) narrows to targets matching
+// <spec>; a bare player spec (`Player`) admits any player target. The target
+// list is state.Object.Targets -- the same chosen-target provenance the
+// engine's target offers record -- so an untargeted spell (an empty list) is
+// a resolved non-match, never an unresolved gate. Forge's `~Other` suffix
+// (Orvar's `Permanent.YouCtrl~Other`, "other permanents you control") is
+// rewritten to the existing `+Other` predicate conjunction, so the source
+// exclusion is the matcher's own source-relative reading.
+func spellTargetingMatches(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	for alt := range filterAlternatives(spec) {
+		_, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
+		if !ok {
+			continue
+		}
+		arg, ok := strings.CutPrefix(rest, "IsTargeting ")
+		if !ok {
+			continue
+		}
+		arg = strings.TrimSpace(arg)
+		if inner, ok := strings.CutPrefix(arg, "Valid "); ok {
+			arg = strings.TrimSpace(inner)
+		} else if strings.HasPrefix(arg, "Valid") {
+			// A malformed `ValidX` is not a shape this evaluator reads.
+			continue
+		}
+		if inner, ok := strings.CutSuffix(arg, "~Other"); ok {
+			arg = strings.TrimSpace(inner) + "+Other"
+		}
+		for _, t := range o.Targets {
+			if t.IsPlayer {
+				if MatchesPlayerSpecCtx(g, arg, t.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
+					return true
+				}
+				continue
+			}
+			if t.Obj == 0 {
+				continue
+			}
+			if MatchesSpecCtx(g, arg, t.Obj, sc) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // conditionNotPresentMet is the ConditionNotPresent$ evaluator the two
