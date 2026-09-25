@@ -1547,7 +1547,7 @@ func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool
 				return false, false, 0, false, "", false
 			}
 		case "ValidAfterStack":
-			if !allowAfterStack {
+			if !allowAfterStack || strings.TrimSpace(params[key]) == "" {
 				return false, false, 0, false, "", false
 			}
 		default:
