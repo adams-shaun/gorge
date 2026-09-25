@@ -114,22 +114,27 @@ export function sourceCause(d: Decision, view: View): string | null {
   }
 }
 
-/** promptContext is the context line's facts: who the prompt is from, what kind of thing is asking (the cause, best-effort), and what shape the answer takes. Any may be null. */
+/** promptContext is the context line's facts: source, cause, answer shape, and whether this seat can decline the effect at resolution. Unknown facts are null. */
 export interface PromptContext {
   source: string | null;
   cause: string | null;
   shape: string | null;
+  declinable: string | null;
 }
 
 export function promptContext(d: Decision, view: View): PromptContext {
-  return { source: sourceNameOf(d, view), cause: sourceCause(d, view), shape: shapeOf(d) };
+  const stack = sourceStackOf(d, view);
+  const declinable = d.kind !== 'trigger_optional' && stack?.optional && stack.decider != null && stack.decider === view.viewer
+    ? 'you choose whether the effect happens when it resolves' : null;
+  return { source: sourceNameOf(d, view), cause: sourceCause(d, view), shape: shapeOf(d), declinable };
 }
 
-/** promptContextText renders the context as one line: "From <source> (a triggered ability) · <shape>", omitting whichever facts are unknown. Null when all are. */
+/** promptContextText renders the context as one line, omitting whichever facts are unknown. Null when all are. */
 export function promptContextText(ctx: PromptContext): string | null {
   const parts: string[] = [];
   if (ctx.source !== null) parts.push(ctx.cause !== null ? `From ${ctx.source} (${ctx.cause})` : `From ${ctx.source}`);
   if (ctx.shape !== null) parts.push(ctx.shape);
+  if (ctx.declinable !== null) parts.push(ctx.declinable);
   return parts.length === 0 ? null : parts.join(' · ');
 }
 
