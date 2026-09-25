@@ -4243,6 +4243,21 @@ func (e *Engine) xAsk() bool {
 	if pc.suspendTimeX && pc.suspendMinX > min {
 		min = pc.suspendMinX
 	}
+	// The active ability's own XMin$ parameter (task cost:xmin-param): an
+	// activated ability whose parameters announce a floor for the shared X
+	// (Jetfire, Rasputin, Radiant Lotus, Corpseweft all carry XMin$ 1 beside
+	// an announced X cost part). It folds by MAXIMUM with the cost-embedded
+	// XMin<N> token and the suspend bound above -- three independent carriers
+	// of the same CR 601.2b announcement floor -- and resolves through
+	// pcAbility, so a granted or has-all-abilities activation reads the
+	// ability actually being activated, not a face-wide parameter. A spell
+	// cast (pcAbility nil) reads nothing here; a malformed value binds
+	// nothing, exactly as the token fallback does not invent a floor.
+	if ab := e.pcAbility(pc); ab != nil {
+		if n, err := strconv.ParseInt(ab.Params["XMin"], 10, 32); err == nil && n > 0 && int32(n) > min {
+			min = int32(n)
+		}
+	}
 	pool := e.G.Players[pc.player].Pool
 	gy := int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
 	// Bound: past this many mana no further X is ever payable. In addition to
