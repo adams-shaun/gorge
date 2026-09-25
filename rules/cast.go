@@ -9049,6 +9049,7 @@ func (e *Engine) payCast() {
 		}
 	}
 	e.settlePutToLibCost(pc)
+	e.settleSubCounterParts(pc)
 	e.emitChoiceCosts(pc)
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.

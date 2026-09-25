@@ -344,12 +344,11 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// RaiseCost$ is a genuine consumption now (see mayPlayRaiseCost): parse
 	// it here so an unpriceable raise fails the static closed at the ONE
 	// place every caller's gate chain runs, never an uncharged surcharge.
-	// ParseCost prices every corpus raise except the variable forms -- a bare
-	// X (Risen Executioner), an announced part (PayLife<X>), or a token the
-	// parser does not know (RemoveAnyCounter<...>, which lands in
-	// Cost.Unknown via the malformed fallback). costAnnouncesCastX is the
-	// shared "carries any announced X part" test, so this cannot drift from
-	// the announcement machinery.
+	// ParseCost prices supported fixed costs, including RemoveAnyCounter as
+	// SubCounter. Variable forms -- a bare X (Risen Executioner) or an
+	// announced part (PayLife<X>) -- remain unpriceable here. costAnnouncesCastX
+	// is the shared "carries any announced X part" test, so this cannot drift
+	// from the announcement machinery.
 	if raw := strings.TrimSpace(params["RaiseCost"]); raw != "" {
 		hasRaise = true
 		raise = ParseCost(raw)
