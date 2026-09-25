@@ -1947,6 +1947,16 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagConvoked != 0 {
 				o.Convoked = append([]state.ObjID(nil), e.IDs...)
 			}
+			// AddsCounters$ (Opal Palace and siblings) is likewise an ID-LIST
+			// fold: the producing sources whose rider applied to this cast ride
+			// the event's IDs into Object.ManaAddsCounterSources, alongside the
+			// flag that records the spend. Folded OUTSIDE the exclusive switch
+			// below (the Convoked pattern) so the Amount stays for its own
+			// consume arm; the entry-counter plan re-reads each source's rider
+			// at the spell's battlefield entry.
+			if FlagsFrom(e.Counter)&state.FlagAddsCounters != 0 {
+				o.ManaAddsCounterSources = append([]state.ObjID(nil), e.IDs...)
+			}
 			switch {
 			// Conspire's Amount is a marker, never data: the bool was folded
 			// above, and the flag rides a LOCAL counter at the emission site
@@ -1964,6 +1974,9 @@ func Apply(g *state.Game, e Event) {
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
 				// the convoked id list was folded above; the Amount is
+				// deliberately unused (the Conspired arm's consume shape)
+			case FlagsFrom(e.Counter)&state.FlagAddsCounters != 0:
+				// the rider-source id list was folded above; the Amount is
 				// deliberately unused (the Conspired arm's consume shape)
 			case FlagsFrom(e.Counter)&state.FlagCompleated != 0:
 				o.CompleatedLifePaid = e.Amount
@@ -2805,6 +2818,11 @@ func Apply(g *state.Game, e Event) {
 		o.Remembered = remembered
 		o.ChosenModes = chosenModes
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+		// A copy was never cast (CR 707.10), so it carries no rider-source
+		// links: the Spell.MayPlaySource/AddsCounters provenance is a
+		// statement about the original's cast, and FlagAddsCounters is
+		// stripped from castFlags by CastProvenanceFlags above.
+		o.ManaAddsCounterSources = nil
 		if morphFlags != 0 {
 			o.FaceDown = true
 			o.Cloaked = morphFlags&state.FlagDisguised != 0
@@ -3978,6 +3996,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.TimesKicked = 0
 			o.Conspired = false
 			o.Convoked = nil
+			o.ManaAddsCounterSources = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
@@ -4035,6 +4054,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.TimesKicked = 0
 			o.Conspired = false
 			o.Convoked = nil
+			o.ManaAddsCounterSources = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0

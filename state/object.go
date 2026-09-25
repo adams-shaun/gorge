@@ -355,6 +355,19 @@ const (
 	// follows the flag, not the other way round.
 	// Appended per the enum's own append-only precedent.
 	FlagRebound
+	// FlagAddsCounters marks a cast whose payment consumed mana produced by
+	// an ability carrying an AddsCounters$ rider (Opal Palace, Biophagus,
+	// Animal Attendant, Guildmages' Forum): "if this mana is spent to cast
+	// [a matching spell], it enters with additional counters". The consuming
+	// sources ride the event's IDs into Object.ManaAddsCounterSources, and
+	// rules' entry-counter plan re-reads each source face's AddsCounters$
+	// rider at the spell's battlefield entry. It IS a CastProvenanceFlag: the
+	// rider is conditioned on the mana having been spent to CAST this spell,
+	// so a stack copy -- put on the stack, never cast (CR 707.10) -- must not
+	// inherit it. Emitted only when a consumed batch's producing source
+	// actually carries the rider, so every unrelated restricted-mana cast
+	// stays byte-identical. Appended per the enum's own append-only precedent.
+	FlagAddsCounters
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -388,7 +401,11 @@ const (
 // conditioned on the cast ("If you cast this spell from your hand, exile it
 // as it resolves"), so a stack copy -- never cast, its origin a stack mint
 // rather than a hand -- resolves without the exile-and-promise.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound
+// FlagAddsCounters joins the set: the mana-spend rider's grant is conditioned
+// on the mana having been spent to CAST this spell ("if you spend this mana to
+// cast your commander, it enters with ..."), so a copy -- put on the stack,
+// never cast -- must not inherit the rider-source links.
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound | FlagAddsCounters
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -791,6 +808,18 @@ type Object struct {
 	ManaTreasureSpent int32
 	ManaCaveSpent     int32
 	ManaDesertSpent   int32
+	// ManaAddsCounterSources are the ids of the permanents whose mana-ability
+	// AddsCounters$ rider applied to this cast (Opal Palace's "if you spend
+	// this mana to cast your commander, it enters with ... counters"): the
+	// consuming sources captured at payment and carried by the pay-time
+	// CastInfo's FlagAddsCounters IDs. The rider is re-read from each source
+	// face at the spell's battlefield entry (rules' entry-counter plan), so
+	// this field holds only the links, never the resolved count -- the count
+	// head is evaluated against the board at entry. It rides the same
+	// provenance window as X/CastFlags and resets alongside them in
+	// events.Move; a stack copy was never cast and reads empty (the flag is
+	// stripped by CastProvenanceFlags and the field is cleared at the mint).
+	ManaAddsCounterSources []ObjID
 	// ManaArtifactSpent is the ARTIFACT-sourced part of ManaSpent (task
 	// mayplay-mfa): how many of the mana units the cast's payment spent were
 	// produced by an Artifact permanent -- Sol Ring, Arcane Signet, the whole

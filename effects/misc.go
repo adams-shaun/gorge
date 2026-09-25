@@ -5599,7 +5599,18 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// provenance, so spendability and the later trigger attribution compose.
 	// The spend path dispatches the named rider after the payment completes.
 	triggersWhenSpent := strings.TrimSpace(sa.Params["TriggersWhenSpent"])
-	provenanceOnly := triggersWhenSpent != "" && restriction == "" && noCounter == ""
+	// AddsCounters$ (Opal Palace's "If you spend this mana to cast your
+	// commander, it enters with ... counters", Biophagus, Animal Attendant,
+	// Guildmages' Forum: 4 corpus files) is retained the same way: rules'
+	// entry-counter plan re-reads the rider from the producing source's face
+	// at the cast spell's battlefield entry, and the source rides the
+	// batch's provenance text -- so a rider with no RestrictValid$ still
+	// needs a source-bearing batch, which the provenanceOnly gate emits.
+	// The rider string itself is not decoded here (the plan owns the
+	// grammar); an absent or empty value is not a rider and produces ordinary
+	// mana, the fail-closed direction.
+	addsCounters := strings.TrimSpace(sa.Params["AddsCounters"])
+	provenanceOnly := (triggersWhenSpent != "" || addsCounters != "") && restriction == "" && noCounter == ""
 	for _, p := range ManaRecipients(h, c, sa) {
 		var emitted [256]bool
 		for _, r := range runes {

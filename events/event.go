@@ -1519,6 +1519,12 @@ var flagNames = [...]struct {
 	// moveResolvedOffStack. Appended at the end per the table's own ordering
 	// rule.
 	{"rebound", state.FlagRebound},
+	// The AddsCounters$ mana-spend rider (Opal Palace, Biophagus, Animal
+	// Attendant, Guildmages' Forum: 4 corpus files): a spell whose payment
+	// consumed a rider-bearing mana batch stamps this flag, and the consuming
+	// sources ride the same CastInfo's IDs into Object.ManaAddsCounterSources.
+	// Appended at the end per the table's own ordering rule.
+	{"addscounters", state.FlagAddsCounters},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

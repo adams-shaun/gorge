@@ -19,6 +19,7 @@ package rules
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -264,6 +265,112 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 	return grants, ids
 }
 
+// entryRiderCandidates reports whether an entry might carry an AddsCounters$
+// mana-spend rider grant: the entering object is a card moving onto the
+// battlefield (never a token mint, which was never cast) whose cast consumed
+// rider-bearing mana. It is the cheap gate the emit pre-pass and foldEntryMove
+// take BEFORE building the costly isolated preview, and it reads only the
+// persisted source-link list.
+func (e *Engine) entryRiderCandidates(ev events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || events.IsFaceDownEntry(ev.Counter) {
+		return false
+	}
+	o := e.G.Obj(ev.Obj)
+	return o != nil && o.Zone != state.ZBattlefield && len(o.ManaAddsCounterSources) > 0
+}
+
+// entryRiderGrants returns the AddsCounters$ mana-spend rider grants the
+// entering object's cast earned: for each producing source whose rider bore
+// the cast (Object.ManaAddsCounterSources), re-read the source face's rider at
+// entry, match its filter against the entering permanent, and evaluate its
+// count expression. At most one grant per distinct source, in the store's
+// payment-batch order, so two rider mana abilities on one source cannot double
+// the counters and a replay reproduces the same order. A source that left the
+// battlefield still resolves from its card face; a source with no face, an
+// unparsable rider, a filter miss or an unresolvable count fails closed (no
+// grant), never a guessed one.
+func (e *Engine) entryRiderGrants(entrant state.ObjID) []entryGrant {
+	o := e.G.Obj(entrant)
+	if o == nil || len(o.ManaAddsCounterSources) == 0 {
+		return nil
+	}
+	you := o.Controller
+	var grants []entryGrant
+	for _, src := range o.ManaAddsCounterSources {
+		srcObj := e.G.Obj(src)
+		if srcObj == nil || srcObj.Face() == nil {
+			continue
+		}
+		for _, ma := range srcObj.Face().ManaAbilities() {
+			raw := strings.TrimSpace(ma.Params["AddsCounters"])
+			if raw == "" {
+				continue
+			}
+			filter, kind, amount, ok := parseAddsCounters(raw)
+			if !ok || !effects.MatchesSpec(e.G, filter, entrant, you) {
+				continue
+			}
+			n, ok := e.riderCounterAmount(srcObj, amount, entrant, you)
+			if !ok || n <= 0 {
+				continue
+			}
+			grants = append(grants, entryGrant{kind: kind, amount: n})
+			// One grant per distinct source: the links are already deduped,
+			// and a source's second matching rider would double the count.
+			break
+		}
+	}
+	return grants
+}
+
+// parseAddsCounters splits a mana ability's AddsCounters$ value into its
+// filter, counter kind and count expression. Forge writes
+// "<filter>_<kind>_<amount>" -- Opal Palace's
+// "Card.YouOwn+IsCommander_P1P1_ManaAddsCounterNum", Biophagus's
+// "Card.Creature_P1P1_1", Animal Attendant's "Creature.nonHuman_P1P1_1" --
+// and the measured corpus carries exactly that three-part shape, so a value
+// with fewer than three parts fails closed rather than inventing a counter.
+// The split is from the RIGHT so a filter containing an underscore would still
+// parse; no measured carrier has one.
+func parseAddsCounters(v string) (filter, kind, amount string, ok bool) {
+	i := strings.LastIndexByte(v, '_')
+	if i < 0 {
+		return "", "", "", false
+	}
+	amount = strings.TrimSpace(v[i+1:])
+	rest := v[:i]
+	j := strings.LastIndexByte(rest, '_')
+	if j < 0 {
+		return "", "", "", false
+	}
+	kind = strings.TrimSpace(rest[j+1:])
+	filter = strings.TrimSpace(rest[:j])
+	if filter == "" || kind == "" || amount == "" {
+		return "", "", "", false
+	}
+	return filter, kind, amount, true
+}
+
+// riderCounterAmount resolves an AddsCounters$ amount against the producing
+// source's own tables: a signed integer literal is the count, and anything
+// else names an SVar on the source face whose body is evaluated at entry with
+// the entering permanent as the source and its controller as "you" (Opal
+// Palace's ManaAddsCounterNum -> Count$CommanderCastFromCommandZone, read off
+// the log for that player). The verdict is false only when an SVar name does
+// not resolve to a body or the body does not evaluate, so the caller can fail
+// closed rather than place a guessed zero.
+func (e *Engine) riderCounterAmount(srcObj *state.Object, amount string, entrant state.ObjID, you state.PlayerID) (int32, bool) {
+	if n, err := strconv.Atoi(amount); err == nil {
+		return int32(n), true
+	}
+	body := svarBodyForObject(srcObj, amount)
+	if body == "" {
+		return 0, false
+	}
+	ctx := &effects.Ctx{Source: entrant, Controller: you, SVars: srcObj.Face().SVars}
+	return effects.EvalCountOK(e, ctx, body)
+}
+
 // entryGrantPlan is the entry's whole counter plan: its intrinsic grants
 // (events.EntryCounterGrants, read on the ORIGIN board) plus the body-defined
 // grants its Updated PutCounter|ETB$ True bodies would place (read on the
@@ -275,6 +382,10 @@ func (e *Engine) entryGrantPlan(ev events.Event, preview *Engine, entrant state.
 	for _, g := range e.entryCounterGrants(ev) {
 		grants = append(grants, entryGrant{kind: g.Kind, amount: g.Amount})
 	}
+	// AddsCounters$ mana-spend rider (task opalp): the cast's consuming sources,
+	// re-read at entry. Read on e (the origin-zone object carries the links),
+	// before the body grants so the placement order is deterministic.
+	grants = append(grants, e.entryRiderGrants(entrant)...)
 	if preview == nil {
 		return grants, nil
 	}
@@ -438,7 +549,7 @@ func (e *Engine) entryCounterOrderParks(ev events.Event) bool {
 	if e.entryETBChoiceOutstanding(ev) {
 		return false
 	}
-	if len(e.entryCounterGrants(ev)) == 0 && !e.entryBodyCandidates(ev) {
+	if len(e.entryCounterGrants(ev)) == 0 && !e.entryBodyCandidates(ev) && !e.entryRiderCandidates(ev) {
 		return false
 	}
 	preview, entrant := e.entryPreview(ev)
@@ -545,7 +656,7 @@ func (e *Engine) foldEntryMove(ev events.Event) (events.Event, []string) {
 		return e.foldEntryWithPlaced(ev, st.placed), st.bodyIDs
 	}
 	intrinsic := e.entryCounterGrants(ev)
-	if len(intrinsic) == 0 && !e.entryBodyCandidates(ev) {
+	if len(intrinsic) == 0 && !e.entryBodyCandidates(ev) && !e.entryRiderCandidates(ev) {
 		return events.Emit(e.G, e.L, ev), nil
 	}
 	preview, entrant := e.entryPreview(ev)
