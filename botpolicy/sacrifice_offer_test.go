@@ -18,8 +18,8 @@ func devilOffer(n int, obj state.ObjID) decision.Decision {
 		ResumeKind: "unless_pay",
 		ResumeSA:   &cards.SA{API: "Sacrifice", Params: map[string]string{"UnlessCost": "DamageYou<" + strconv.Itoa(n) + ">"}},
 		Options: []decision.Option{
-			{Index: 0, Kind: "mode", Label: "Take " + strconv.Itoa(n) + " damage", Obj: obj, Player: 1},
-			{Index: 1, Kind: "mode", Label: "Refuse — it stays", Obj: obj, Player: 1},
+			{Index: 0, Kind: "mode", Label: "Take " + strconv.Itoa(n) + " damage", Obj: obj, Player: 1, Mode: decision.ModeUnlessPay},
+			{Index: 1, Kind: "mode", Label: "Refuse — it stays", Obj: obj, Player: 1, Mode: decision.ModeUnlessDecline},
 		},
 	}
 }
@@ -60,8 +60,8 @@ func TestBotAnswersVexingDevilDeliberately(t *testing.T) {
 		ResumeKind: "unless_pay",
 		ResumeSA:   &cards.SA{API: "Sacrifice", Params: map[string]string{"UnlessCost": "1"}},
 		Options: []decision.Option{
-			{Index: 0, Kind: "mode", Label: "Pay 1", Player: 0},
-			{Index: 1, Kind: "mode", Label: "Sacrifice it", Player: 0},
+			{Index: 0, Kind: "mode", Label: "Pay 1", Player: 0, Mode: decision.ModeUnlessPay},
+			{Index: 1, Kind: "mode", Label: "Sacrifice it", Player: 0, Mode: decision.ModeUnlessDecline},
 		},
 	}
 	if got := Decide(Board{}, &manaAsk, rng(1)).Choices; len(got) != 1 || got[0] != 0 {
@@ -73,8 +73,8 @@ func TestBotAnswersVexingDevilDeliberately(t *testing.T) {
 		ResumeKind: "unless_pay",
 		ResumeSA:   &cards.SA{API: "Counter", Params: map[string]string{"UnlessCost": "DamageYou<4>"}},
 		Options: []decision.Option{
-			{Index: 0, Kind: "mode", Label: "Pay", Player: 0},
-			{Index: 1, Kind: "mode", Label: "Decline", Player: 0},
+			{Index: 0, Kind: "mode", Label: "Pay", Player: 0, Mode: decision.ModeUnlessPay},
+			{Index: 1, Kind: "mode", Label: "Decline", Player: 0, Mode: decision.ModeUnlessDecline},
 		},
 	}
 	if got := Decide(Board{}, &counter, rng(1)).Choices; len(got) != 1 || got[0] != 0 {

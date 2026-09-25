@@ -1036,6 +1036,22 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			in.Choices = c
 			return Clamp(d, in)
 		}
+		if d.ResumeKind == "unless_pay" {
+			// The option marker, not its position, is the payment decision.
+			// A decline-only ask has no pay marker and therefore stays a decline.
+			for _, option := range d.Options {
+				if option.Mode == decision.ModeUnlessPay {
+					in.Choices = []int{option.Index}
+					return Clamp(d, in)
+				}
+			}
+			for _, option := range d.Options {
+				if option.Mode == decision.ModeUnlessDecline {
+					in.Choices = []int{option.Index}
+					return Clamp(d, in)
+				}
+			}
+		}
 		// A modal announcement or mid-resolution pick: choose the first Min options
 		// in order — the recorded mirror of the engine-side first-mode
 		// stand-in, so bot-vs-bot behaviour is largely unchanged, and the
@@ -1118,9 +1134,9 @@ func (b Board) unlessManaPayOffer(d *decision.Decision) []int {
 		return nil
 	}
 	if b.facingLethal(d.Player) {
-		for _, o := range d.Options {
-			if o.Index != d.Options[0].Index {
-				return []int{o.Index}
+		for _, option := range d.Options {
+			if option.Mode == decision.ModeUnlessDecline {
+				return []int{option.Index}
 			}
 		}
 	}
@@ -1153,15 +1169,23 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 	if !dmg || len(d.Options) == 0 {
 		return nil
 	}
-	if b.cardWorth(d.Options[0].Obj) >= int32(n) && b.Life[d.Player] > int32(n) {
-		return []int{d.Options[0].Index}
-	}
-	for _, o := range d.Options {
-		if o.Index != d.Options[0].Index {
-			return []int{o.Index}
+	var pay, decline *decision.Option
+	for i := range d.Options {
+		option := &d.Options[i]
+		switch option.Mode {
+		case decision.ModeUnlessPay:
+			pay = option
+		case decision.ModeUnlessDecline:
+			decline = option
 		}
 	}
-	return []int{d.Options[0].Index}
+	if pay == nil || decline == nil {
+		return nil
+	}
+	if b.cardWorth(pay.Obj) >= int32(n) && b.Life[d.Player] > int32(n) {
+		return []int{pay.Index}
+	}
+	return []int{decline.Index}
 }
 
 // Clamp enforces [Min, Max] on top of whatever a policy's switch (or its

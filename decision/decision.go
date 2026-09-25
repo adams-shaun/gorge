@@ -157,6 +157,13 @@ var Kinds = []Kind{
 	KArrange, KStartingPlayer,
 }
 
+// Unless-pay option meanings are carried in Option.Mode so payment semantics
+// do not depend on list position. They are used only on unless_pay decisions.
+const (
+	ModeUnlessPay     = "unless_pay"
+	ModeUnlessDecline = "unless_decline"
+)
+
 // Option is one legal choice. Obj and Player are echoed only so a client can
 // highlight the object; selection is by Index.
 type Option struct {

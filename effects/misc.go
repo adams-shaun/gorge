@@ -132,7 +132,7 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 		cost := sa.Params["UnlessCost"]
 		d := &decision.Decision{Player: o.Controller, Kind: decision.KModes, Min: 1, Max: 1,
 			Prompt: "Pay " + cost + " for ward?", ResumeKind: "unless_pay", ResumeSA: sa,
-			Options: []decision.Option{{Index: 0, Kind: "mode", Label: "Pay " + cost, Player: o.Controller}, {Index: 1, Kind: "mode", Label: "Don't pay", Player: o.Controller}}}
+			Options: []decision.Option{{Index: 0, Kind: "mode", Label: "Pay " + cost, Player: o.Controller, Mode: decision.ModeUnlessPay}, {Index: 1, Kind: "mode", Label: "Don't pay", Player: o.Controller, Mode: decision.ModeUnlessDecline}}}
 		h.Ask(d)
 		return
 	}

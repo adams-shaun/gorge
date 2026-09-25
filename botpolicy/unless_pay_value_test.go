@@ -16,8 +16,8 @@ func manaUnlessDecision(cost string) *decision.Decision {
 		ResumeKind: "unless_pay",
 		ResumeSA:   &cards.SA{Kind: "SP", API: "Counter", Params: map[string]string{"UnlessCost": cost}},
 		Options: []decision.Option{
-			{Index: 0, Kind: "mode", Label: "Pay 3 — don't counter"},
-			{Index: 1, Kind: "mode", Label: "Don't pay"},
+			{Index: 0, Kind: "mode", Label: "Pay 3 — don't counter", Mode: decision.ModeUnlessPay},
+			{Index: 1, Kind: "mode", Label: "Don't pay", Mode: decision.ModeUnlessDecline},
 		}}
 }
 
