@@ -90,12 +90,16 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.PlayerNoteCleared, events.CardNoted,
 		events.GainedAbilityPush, events.GainedTriggerPush,
 		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice,
-		events.DelayedForget, events.Cascade:
+		events.DelayedForget, events.Cascade, events.Clash:
 		// Cascade is a never-emitted PROPOSAL (the cascade instruction's
 		// replacement boundary, events.Cascade): it is held out to the
 		// replacement matcher and logged nowhere, so no trigger mode can ever
 		// observe it and it carries no interest bits -- the zero mapping every
 		// other bookkeeping kind in this list has.
+		// Clash is matched by trig:Clashed through the full matcher
+		// (clashMatches) via the fail-open path, exactly like GiveGift;
+		// its ordinal sits past triggerMaskKindBits. Naming it here keeps
+		// the audit complete and out of the catch-all default.
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -370,6 +374,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// the full matcher (exploitedMatches). Naming the mode here rather
 		// than letting it fall to the allTriggerEvents default keeps an
 		// Exploited-only face's mask narrow for every other kind.
+		return 0
+	case "Clashed":
+		// The Clash marker's ordinal is past the 64-bit mask's reach, the
+		// Exploited/GiveGift shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path and gated by the full
+		// matcher (clashMatches). Naming the mode here rather than letting it
+		// fall to the allTriggerEvents default keeps a Clashed-only face's
+		// mask narrow for every other kind.
 		return 0
 	case "BecomeMonstrous":
 		// The AlterAttribute carrier's ordinal is past the 64-bit mask's

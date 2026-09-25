@@ -1984,6 +1984,16 @@ func Apply(g *state.Game, e Event) {
 		// record exists only so "whenever this creature evolves" fires on the
 		// evolve action rather than on any unrelated counter.
 
+	case Clash:
+		// One clashing player's win/lose outcome from a completed CR 701.31
+		// clash action, matched by trig:Clashed. Like GiveGift it is a pure
+		// Apply no-op marker: the reveal Note and the top/bottom placements
+		// are their own preceding events, and this record exists only so
+		// "whenever you win/lose a clash" fires on a clash rather than on any
+		// reveal. Amount carries the Won$ orientation (1 = won, 0 = lost or
+		// tied), already read off the live event by clashMatches, so Apply
+		// stores nothing.
+
 	case NoteNumber:
 		// A trigger's Execute$ body noted a number onto the CARD (DB$ Pump
 		// NoteNumber$ <expr> -- Lupine Harbingers' exile trigger noting
