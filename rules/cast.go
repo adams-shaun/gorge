@@ -7778,7 +7778,17 @@ func (e *Engine) targetAsk() bool {
 	if !pc.isAbility() || sa.API == "Attach" {
 		src = pc.card
 	}
-	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
+	// CR 601.2c: TargetingPlayer$ names another player as the chooser for this
+	// target declaration. The cast/activation form (Player.Opponent) has no
+	// trigger context, so before this the ask silently stayed with the caster.
+	// targetAskChooser is the same home askTarget uses, so both the cast flow
+	// and the trigger/resolution flow route identically; target legality keeps
+	// pc.player as the controller reference below.
+	chooser := pc.player
+	if who, ok := e.targetAskChooser(pc.player, pc.card, sa); ok {
+		chooser = who
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(pc.card),
 		Source: src, TargetEffect: e.describeTargetEffect(pc.player, pc.card, sa, pc.x),
 		TargetsWithSameController: sameController}
@@ -8095,6 +8105,9 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 		d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
 			Prompt: "Choose a target for " + e.targetName(pc.card) + "'s chained ability",
 			Source: excludeSelf, ResumeKind: "cast_sub"}
+		if who, ok := e.targetAskChooser(pc.player, pc.card, sub); ok {
+			d.Player = who
+		}
 		for _, candidate := range candidates {
 			label := e.targetOptionLabel(candidate)
 			o := decision.Option{Index: len(d.Options), Kind: candidate.kind,

@@ -2896,6 +2896,42 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 	return c.kind != "player" && c.obj == t.Obj
 }
 
+// targetAskChooser resolves who answers a target ask declared by sa. Forge's
+// TargetingPlayer$ names another player as the chooser; the trigger-relative
+// grammar in targetChooserFromSpec resolves those referents from the stored
+// trigger context, while the non-triggered cast/activation form names an
+// opponent. It is the ONE home for the chooser redirect, called by both
+// askTarget (trigger placement and resolution sub-abilities, this file) and
+// targetAsk (CR 601.2c cast and activation targeting, rules/cast.go), so
+// every target ask -- not only the trigger-gated one -- consults it.
+//
+// The opponent form is deterministic when more than one opponent is alive:
+// the first living seat in AliveFrom(0) other than the controller answers.
+// Forge does not name which of several opponents chooses, so treating "an
+// opponent" as that one is an explicit engine contract, not a silent
+// default -- it keeps asks, option lists and replays stable, and it matches
+// the resolver's own trigger-time contract. Target LEGALITY is unaffected:
+// the caller keeps the ability controller as the reference for
+// legalTargetCandidates / targetSpecContext, and only the decision's Player
+// moves to the chooser.
+//
+// Returns (controller, false) when sa names no chooser, or the spec is
+// unknown, unbound or dead, so the ask stays with the controller.
+func (e *Engine) targetAskChooser(controller state.PlayerID, source state.ObjID, sa *cards.SA) (state.PlayerID, bool) {
+	if sa == nil {
+		return controller, false
+	}
+	spec := strings.TrimSpace(sa.Params["TargetingPlayer"])
+	if spec == "" {
+		return controller, false
+	}
+	tc := effects.TriggerContext{}
+	if triggerContext, ok := e.triggerContexts[source]; ok {
+		tc = triggerContext
+	}
+	return e.targetChooserFromSpec(spec, controller, nil, tc)
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
@@ -2917,19 +2953,8 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
 	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	chooser := p
-	if spec := strings.TrimSpace(sa.Params["TargetingPlayer"]); spec != "" {
-		// Opponent is intentionally deterministic when a game has multiple
-		// opponents: the first living seat in AliveFrom(0) answers. Forge's
-		// TargetingPlayer$ names who chooses the target, but does not specify
-		// who chooses among multiple opponents; this engine contract matches
-		// the existing trigger-time resolver and keeps asks/replays stable.
-		tc := effects.TriggerContext{}
-		if triggerContext, ok := e.triggerContexts[source]; ok {
-			tc = triggerContext
-		}
-		if who, ok := e.targetChooserFromSpec(spec, p, nil, tc); ok {
-			chooser = who
-		}
+	if who, ok := e.targetAskChooser(p, source, sa); ok {
+		chooser = who
 	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
@@ -3080,7 +3105,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			if e.postTargetAsks(pc) {
 				return
 			}
-			e.finishTargetedCast(pc, in.Player)
+			e.finishTargetedCast(pc, pc.player)
 			return
 		}
 		// A Fuse cast may ask targets twice (front, then alternate). Append
@@ -3128,7 +3153,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		if e.postTargetAsks(pc) {
 			return
 		}
-		e.finishTargetedCast(pc, in.Player)
+		e.finishTargetedCast(pc, pc.player)
 		return
 	}
 	e.recordChosenTargets(d.Source, chosen, false)

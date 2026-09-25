@@ -79,6 +79,19 @@ shield, clear damage, tap, remove from combat. Shields expire at cleanup.
 honoured. `effects/regeneration.go`, `effects/zone.go`, `rules/sba.go`,
 `rules/combat.go`.
 
+## TargetingPlayer$ Opponent in a multi-opponent game
+
+A cast/activation target ask whose `TargetingPlayer$` names `Opponent` (or
+`Player.Opponent`) is answered by the first living opponent in `AliveFrom(0)`
+turn order — the same deterministic rule the trigger-time resolver
+(`rules/trigger_queue.go`'s `targetChooserFromSpec`) has always used. Forge's
+parameter does not say which of several opponents picks, so the engine does
+not pose a chooser-selection decision; it names the first living opponent and
+fails over to the next when that seat has left the game. Target legality and
+the decision's `TargetEffect` stay relative to the ability's controller; only
+the answering seat moves. Trigger-relative `TargetingPlayer$` referents keep
+failing closed to the controller when their binding is absent.
+
 ## The board clock's round number is exact
 
 `view.RoundOf` folds the ordered event stream, anchored on the starting
