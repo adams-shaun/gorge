@@ -869,6 +869,31 @@ func (e *Engine) exploitedMatches(t cards.Trigger, source state.ObjID, ev events
 	return true
 }
 
+// evolvedMatches implements "whenever this creature evolves" (Forge Mode$
+// Evolved, CR 702.99b, task trig:Evolved; Watchful Radstag and Renegade Krasis
+// -- the 2 corpus carriers at the pin). The causing event is the completed
+// events.Evolved marker rules' resolveTop emits after the Evolve keyword
+// ability actually put its +1/+1 counter (a pure Apply no-op marker, the
+// GiveGift/Investigate shape -- a dedicated Kind, not a CounterChange rider,
+// so an unrelated +1/+1 counter never fires the mode). Obj is the evolving
+// permanent, which ValidCard$ Card.Self names; Player its controller, which
+// ValidPlayer$ would match. A marker naming no permanent never matches.
+func (e *Engine) evolvedMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.Evolved {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	return true
+}
+
 func init() {
 	registerTrigMatcher((*Engine).cycledMatches, "Cycled")
 	registerTrigMatcher((*Engine).exploitedMatches, "Exploited")
@@ -876,6 +901,7 @@ func init() {
 	registerTrigMatcher((*Engine).connivesMatches, "Connives")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
 	registerTrigMatcher((*Engine).giveGiftMatches, "GiveGift")
+	registerTrigMatcher((*Engine).evolvedMatches, "Evolved")
 	registerTrigMatcher((*Engine).searchedLibraryMatches, "SearchedLibrary")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")

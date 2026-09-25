@@ -12,12 +12,13 @@ package rules
 // remembered attacker the way a real Attacks trigger does, proving the real
 // source filter now selects the attached Equipment.
 //
-// The trigger that STARTS Arna in a real game is still unreachable for a
-// separate reason: `ValidCard$ Creature.modified+YouCtrl` needs the `modified`
-// CardProperty (CR 700.9), which this build does not implement, so the trigger
-// never fires. That gap is filed as an issue, not closed here; this test
-// reaches the rider through Arna's real Execute body, which is the part the
-// brief names.
+// The trigger that STARTS Arna in a real game
+// (`ValidCard$ Creature.modified+YouCtrl`) was previously unreachable for a
+// separate reason: the `modified` CardProperty (CR 700.9) was not implemented,
+// so the trigger never fired. That gap is now closed -- see
+// rules/arna_modified_trigger_test.go for the real DeclareAttackers path --
+// and this test keeps reaching the rider through Arna's real Execute body,
+// which is the part the filter brief names.
 
 import (
 	"testing"

@@ -263,7 +263,7 @@ func TestBoardFromViewCommanderClockFill(t *testing.T) {
 			CmdDamage: map[state.ObjID]int32{cmdA: 4},
 		},
 	}}
-	b := boardFromView(v)
+	b := BoardFromView(v)
 	a := b.Commanders[cmdA]
 	if !a.InCommandZone || a.Casts != 2 {
 		t.Errorf("seat 0's commander = %+v, want in the zone with 2 casts", a)
@@ -397,7 +397,7 @@ func TestBoardFromViewCarriesRestrictedPool(t *testing.T) {
 		{ID: 1, Life: 20, Pool: map[string]int32{"R": 3},
 			PoolRestrictions: []view.PoolRestrictionView{{Color: "R", Amount: 3, Text: "not ours"}}},
 	}}
-	b := boardFromView(v)
+	b := BoardFromView(v)
 	if b.PoolRestricted != (state.Mana{0, 0, 0, 0, 0, 2}) {
 		t.Fatalf("PoolRestricted = %v, want the viewer's two {C}", b.PoolRestricted)
 	}

@@ -2183,6 +2183,15 @@ type Ctx struct {
 	DemonstrateStage int
 	DemonstrateYes   bool
 	DemonstrateOpp   []state.Target
+	// Cipher carries the api:Cipher (CR 702.99a) encode ask's answer across a
+	// mid-resolution suspension. CipherDone marks the ask answered and
+	// CipherPick is the chosen creature (one object target; an empty slice is
+	// the decline). rules' "cipher" resume arm rebuilds both from the
+	// decision's answer, and effCipher consumes and clears both at the top of
+	// its walk (the fx42 scoping discipline), so a nested Cipher poses its own
+	// ask.
+	CipherDone bool
+	CipherPick []state.Target
 	// VoteCounts is the per-subject tally the most recent api:Vote left for
 	// this resolution's AmountFromVotes$ readers (effects/choose_control.go's
 	// effRepeatEach): one entry per ballot subject -- every player the
@@ -2526,6 +2535,18 @@ type nameTableHost interface {
 // derived types reads the printed face.
 type typeTableHost interface {
 	EffectiveTypes() []ObjectTypes
+}
+
+// castProhibitedHost is implemented by the rules engine to expose its
+// CantBeCast gate (rules/statics.go castRestricted, CR 601.3) as a read-only
+// query: effPlay's Play election filters its candidates against it, so a card
+// the eventual beginPlay would refuse is never OFFERED (a refusal there only
+// matters after the player has already picked it). Optional, like
+// effectFrameHost, so the effects test doubles stay small; without it effPlay
+// offers every surviving candidate exactly as before and the beginPlay
+// legality recheck remains the sole gate -- the pre-existing behaviour.
+type castProhibitedHost interface {
+	CastProhibited(p state.PlayerID, id state.ObjID) bool
 }
 
 // goadTableHost publishes rules' live static-goad table for resolving filters.

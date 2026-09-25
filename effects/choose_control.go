@@ -321,6 +321,21 @@ func choiceChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return out
 }
 
+// chooseCardChoosers applies ChooseCard's StartingWith$ modifier after the
+// shared chooser walk has filtered duplicates and players who left the game.
+// Other choice APIs retain their own unmodified Defined$ order.
+func chooseCardChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	out := choiceChoosers(h, c, sa)
+	if strings.EqualFold(strings.TrimSpace(sa.Params["StartingWith"]), "You") {
+		for i, p := range out {
+			if p == c.Controller {
+				return append(append([]state.PlayerID(nil), out[i:]...), out[:i]...)
+			}
+		}
+	}
+	return out
+}
+
 func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target, playerChoice bool) {
 	c.Choice = append([]state.Target(nil), picked...)
 	if playerChoice {
@@ -437,7 +452,7 @@ func chooseEachPool(g *state.Game, c *Ctx, pool []state.Target, chooser state.Pl
 }
 
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
-	choosers := choiceChoosers(h, c, sa)
+	choosers := chooseCardChoosers(h, c, sa)
 	selection := *c // candidate filters read the pre-clear remembered set
 	forgetOtherRemembered(h, c, sa)
 	// Reveal$ True (Planetary Annihilation's "each player chooses six lands

@@ -112,6 +112,8 @@ var expandedHeads = []string{
 	// Animate to artifact creature (cards/kw_crew.go). Added after the split;
 	// the pre-split switch never had it.
 	"Crew",
+	// Cipher: printed spell encode plus a runtime encoded-creature trigger.
+	"Cipher",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

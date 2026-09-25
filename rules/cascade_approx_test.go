@@ -124,9 +124,11 @@ func TestCascadeXSpellUsesAnnouncedManaValue(t *testing.T) {
 // TestCascadeFreeCastRespectsCantBeCast is CR 601.3's prohibition half on a
 // Play effect's cast. Maelstrom Colossus (mana value 8, one cascade) cascades
 // into Rakdos, Lord of Riots, whose own CantBeCast static forbids casting it
-// unless an opponent lost life this turn. With no life lost the free cast
-// must be refused; the card goes to the library bottom. After an opponent
-// loses life the same setup casts it.
+// unless an opponent lost life this turn. With no life lost the prohibited
+// card must never be OFFERED at the free-cast election (the election is
+// filtered, not merely refused after a pick); the cascade tail bottoms it.
+// After an opponent loses life the restriction lifts, the same card is
+// offered, and it casts.
 func TestCascadeFreeCastRespectsCantBeCast(t *testing.T) {
 	cascadeIntoRakdos := func(t *testing.T, seed uint64, opponentLosesLife bool) (*Engine, Config, state.ObjID) {
 		t.Helper()
@@ -163,14 +165,74 @@ func TestCascadeFreeCastRespectsCantBeCast(t *testing.T) {
 			t.Fatal("precondition: corpus Maelstrom Colossus face does not carry Cascade")
 		}
 		addMana(t, e, 0, "CCCCCCCC")
-		d := castFixture(t, e, colossusID, -1)
-		if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
-			t.Fatalf("want the cascade free-cast election, got %+v", d)
+		pd := e.Pending()
+		if pd == nil {
+			t.Fatal("no decision pending for the cast")
 		}
-		if len(d.Options) != 1 || d.Options[0].Obj != rakdosID {
-			t.Fatalf("precondition: election %+v does not offer Rakdos %d", d.Options, rakdosID)
+		cidx := -1
+		for _, o := range pd.Options {
+			if o.Kind == "cast" && o.Obj == colossusID {
+				cidx = o.Index
+			}
 		}
-		submitChoices(t, e, d.Options[0].Index)
+		if cidx < 0 {
+			t.Fatalf("no cast option for the Colossus: %+v", pd.Options)
+		}
+		submitChoices(t, e, cidx)
+		if opponentLosesLife {
+			// Permitted: the restriction lifted, so the election is still
+			// offered and it names Rakdos.
+			d := passUntilNonPriority(t, e, 20)
+			if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
+				t.Fatalf("want the cascade free-cast election, got %+v", d)
+			}
+			if len(d.Options) != 1 || d.Options[0].Obj != rakdosID {
+				t.Fatalf("the permitted election %+v does not offer Rakdos %d", d.Options, rakdosID)
+			}
+			// The zone the CantBeCast static is read against: cascade casts
+			// from EXILE, so that is where the self-restriction must be live
+			// (both for the effPlay filter and for beginPlay's recheck).
+			if got := e.G.Obj(rakdosID).Zone; got != state.ZExile {
+				t.Fatalf("precondition: Rakdos in %s at the election, want exile (the zone the restriction reads)", got)
+			}
+			submitChoices(t, e, d.Options[0].Index)
+		} else {
+			// Prohibited: the candidate must be absent from the election
+			// itself -- effPlay filters the CantBeCast statics out, so no play
+			// ask is ever posed and the resolution completes with the found
+			// card left for the cascade tail to bottom. Without the filter the
+			// election IS posed here, naming Rakdos. Drive the whole window
+			// (the trigger resolves while the Colossus itself is still on the
+			// stack) and fail on any play ask -- or any other unexpected ask.
+			sawElection := false
+			for i := 0; i < 40 && !e.G.Over && len(e.G.Stack) > 0; i++ {
+				d := e.Pending()
+				if d == nil {
+					break
+				}
+				if d.Kind == decision.KPriority {
+					pidx := -1
+					for _, o := range d.Options {
+						if o.Kind == "pass" {
+							pidx = o.Index
+						}
+					}
+					if pidx < 0 {
+						t.Fatalf("priority decision with no pass option: %+v", d)
+					}
+					submitChoices(t, e, pidx)
+					continue
+				}
+				if d.ResumeKind == "play" {
+					sawElection = true
+					break
+				}
+				t.Fatalf("unexpected decision during the prohibited resolution: kind %v resume %q options %+v", d.Kind, d.ResumeKind, d.Options)
+			}
+			if sawElection {
+				t.Fatal("the prohibited candidate was offered at the election")
+			}
+		}
 		passUntilStackEmpty(t, e, 60)
 		return e, cfg, rakdosID
 	}
@@ -189,8 +251,14 @@ func TestCascadeFreeCastRespectsCantBeCast(t *testing.T) {
 		if n := putOnStackCount(e, rakdosID); n != 0 {
 			t.Fatalf("the prohibited card was put on the stack %d time(s); CR 601.3 forbids beginning the cast", n)
 		}
-		if !hasNote(e, "cannot cast a restricted card") {
-			t.Fatal("no Note recorded the CR 601.3 refusal")
+		// The withholding happened at the ELECTION (effPlay filtered its
+		// candidates, found none, and said so); beginPlay's own refusal was
+		// never reached, so its Note must be absent.
+		if !hasNote(e, "Play found no card to play") {
+			t.Fatal("no Note recorded the filtered-empty election")
+		}
+		if hasNote(e, "cannot cast a restricted card") {
+			t.Fatal("the beginPlay refusal fired; the candidate should have been filtered before the election")
 		}
 		replayCheck(t, e, cfg)
 	})

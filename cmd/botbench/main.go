@@ -36,8 +36,9 @@
 // play/draw figure to read beside it is the starting-player split, not the
 // seat split. The head-to-head
 // that credits a policy: -a bot -b legacy, where legacy is the pre-B2
-// fuzz-driver combat frozen in botpolicy.LegacyDecide. Registering a
-// third policy is one entry in the policies map. Same names on both sides
+// fuzz-driver heuristic in botpolicy.LegacyDecide, with blocker legality
+// facts supplied to that arm. Registering a third policy is one entry in the
+// policies map. Same names on both sides
 // is a valid and expected run.
 //
 // -pairs switches the bench to a deck-pair matrix. The default run (no
@@ -127,7 +128,6 @@ import (
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
-	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -171,11 +171,9 @@ var policies = map[string]func(seed uint64) seat.Seat{
 		}
 		return seat.NewCastProfileBotWithWeights(seed, w)
 	},
-	// legacy is the pre-B2 policy, frozen in botpolicy.LegacyDecide: attack
-	// with everything that can, block half the legal pairs on a coin. It is
-	// not a production policy -- nothing but the bench drives it -- it is
-	// the head-to-head baseline that measures whether the heuristic bot is
-	// any better than the fuzz driver it replaced (-a bot -b legacy).
+	// legacy is the benchmark's historical heuristic, with blocker legality
+	// facts supplied by the shared view adapter. It is not a production
+	// policy -- nothing but the bench drives it.
 	"legacy": func(seed uint64) seat.Seat {
 		return &legacySeat{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 	},
@@ -349,69 +347,15 @@ func castProfileWeightsForRun() (botpolicy.CastWeights, error) {
 	return botpolicy.LoadCastProfile(botpolicy.DefaultCastProfileName)
 }
 
-// legacySeat is the bench seat for the old policy: it reads the same view
-// any seat receives but hands the board's IsMain fact only, which is all
-// the pre-B2 policy ever read (botpolicy.LegacyDecide), and it seeds its
-// rng exactly like seat.NewBot so the legacy policy's consumption is the
-// seed-deterministic one.
+// legacySeat runs the benchmark's historical heuristic with the shared
+// view-to-board adapter and a seed-deterministic RNG.
 type legacySeat struct {
 	r *rand.Rand
 }
 
 func (s *legacySeat) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	in := botpolicy.LegacyDecide(botpolicy.Board{IsMain: v.Phase == "main1" || v.Phase == "main2"}, &d, s.r)
-	in.Choices = legacyMenaceLegal(v, &d, in.Choices)
+	in := botpolicy.LegacyDecide(seat.BoardFromView(v), &d, s.r)
 	return in, nil
-}
-
-// legacyMenaceLegal drops any single-blocker declaration the frozen legacy
-// policy's per-option coin leaves on a Menace attacker. LegacyDecide is
-// deliberately fact-free (it reads only IsMain), so it cannot see that an
-// attacker has Menace and can coin exactly one blocker onto it -- an intent
-// the engine's validateBlockers REJECTS, aborting the whole bench. Measured
-// at HEAD with no other change: `botbench -a bot -b legacy` aborts at seed
-// 22, intent 216, "attacker 9 with menace must be blocked by at least two
-// creatures". The guard enforces exactly the one whole-declaration
-// constraint a fact-free policy cannot know, and it runs AFTER LegacyDecide
-// has consumed its rng exactly as before, so the frozen policy body and its
-// random stream are untouched -- only the single illegal declaration is
-// withheld (the attacker is left unblocked, which CR 509.1a always allows).
-// Menace facts come from the attacker's projected derived keywords, the same
-// list the production policy reads.
-func legacyMenaceLegal(v view.View, d *decision.Decision, choices []int) []int {
-	if d == nil || d.Kind != decision.KBlockers || len(choices) == 0 {
-		return choices
-	}
-	menace := make(map[state.ObjID]bool)
-	for _, p := range v.Players {
-		for _, cv := range p.Battlefield {
-			for _, k := range cv.Keywords {
-				if strings.EqualFold(cards.KeywordHead(k), "Menace") {
-					menace[cv.ID] = true
-				}
-			}
-		}
-	}
-	if len(menace) == 0 {
-		return choices
-	}
-	count := make(map[state.ObjID]int, len(choices))
-	for _, ci := range choices {
-		if ci >= 0 && ci < len(d.Options) {
-			count[d.Options[ci].Attacker]++
-		}
-	}
-	out := make([]int, 0, len(choices))
-	for _, ci := range choices {
-		if ci >= 0 && ci < len(d.Options) {
-			atk := d.Options[ci].Attacker
-			if menace[atk] && count[atk] == 1 {
-				continue // a lone block on a Menace attacker is an illegal declaration
-			}
-		}
-		out = append(out, ci)
-	}
-	return out
 }
 
 // gameSeed returns the seed game i of a run at base seed b plays. The

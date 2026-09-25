@@ -181,6 +181,14 @@ var addedAfterTheSplit = []string{
 	// KArrange answer is known (the count actually put on the bottom), so
 	// no pre-split switch arm could have dispatched it.
 	"Scry",
+	// agent-20260919T183836Z-df01c8be: "Whenever this creature evolves"
+	// (CR 702.99b; Watchful Radstag, Renegade Krasis -- the 2 corpus
+	// carriers). It matches the events.Evolved marker Kind, which was
+	// appended for it (resolveTop emits it once the Evolve keyword ability's
+	// counter actually lands), so no pre-split switch arm could have
+	// dispatched it -- evolve previously announced only its own counter
+	// trigger and no separate mode existed.
+	"Evolved",
 	// trig:FullyUnlock (task agent-20260919T191104Z-95f1e316): CR 709.5's
 	// "Eerie -- whenever ... you fully unlock a Room" (17 corpus carriers,
 	// the Eerie enchantments e.g. Fear of Sleep Paralysis). It matches the

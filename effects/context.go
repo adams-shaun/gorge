@@ -427,11 +427,11 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// Two populations share the spelling. Inside a RepeatEach iteration
 		// (this build's own binding) Forge's UseImprinted$ names the loop's
 		// CURRENT SUBJECT: Heroism pumps it, Stench of Evil deals its damage
-		// to its controller — and ImprintedController is only ever that
-		// iteration's subject's controller. Outside a loop iteration the
-		// spelling is the source's persistent imprint pile (Mirrorworks'
-		// exiled-with-imprint list, CR 607.2a links only while the card stays
-		// in exile); no corpus RepeatEach body resolves against a source that
+		// to its controller. Outside a loop iteration Imprinted names the
+		// source's exile-gated persistent pile (CR 607.2a), while
+		// ImprintedController reads the first live associated card's current
+		// controller (including battlefield imprints such as Enchanter's Bane).
+		// No corpus RepeatEach body resolves against a source that
 		// also carries a persistent imprint, so the two never collide.
 		if c.RepeatSubject.IsPlayer {
 			return []state.Target{{Player: c.RepeatSubject.Player, IsPlayer: true}}, true
@@ -452,9 +452,14 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.RepeatSubject.Obj}}, true
 		}
 		if spec == "ImprintedController" {
-			// Outside a repeat iteration Forge's ImprintedController has no
-			// object whose controller to take: the CR 607.2a pile is the OBJECT
-			// spelling's read (the tail of this case), not this one's.
+			// Forge takes the first live card in the source's persistent
+			// getImprintedCards list, without the object's CR 607.2a exile gate.
+			// Keep the repeat subject/LKI path above authoritative when bound.
+			for _, t := range rawImprintTargets(g, c) {
+				if o := g.Obj(t.Obj); o != nil {
+					return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+				}
+			}
 			return nil, true
 		}
 		// The CR 607.2a exile gate holds for EVERY ordinary Defined$ caller --

@@ -2663,6 +2663,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.DemonstrateOpp = append(ctx.DemonstrateOpp, state.Target{Player: o.Player, IsPlayer: true})
 				}
 			}
+		case "cipher":
+			// The api:Cipher encode ask (CR 702.99a) was answered: an empty
+			// answer declines, a picked creature is the encode host.
+			// effCipher consumes and clears both fields at the top of its walk
+			// (the fx42 scoping discipline), so a nested Cipher poses its own
+			// ask.
+			ctx.CipherDone = true
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.CipherPick = append(ctx.CipherPick, state.Target{Obj: o.Obj})
+				}
+			}
 		case "tgts":
 			// The generic ValidTgts$ pre-ask (task mvts1) posed inside
 			// effects.Resolve's dispatch loop. Same KChoose answer shape as
@@ -3459,6 +3471,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// graveyard resting place for those.
 			replaceGraveyard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["ReplaceGraveyard"]), "Exile") &&
 				strings.TrimSpace(rp.sa.Params["ReplaceGraveyardValid"]) == ""
+			// Cipher's CopyCard$ True + private CipherCopy marker: cast a
+			// copy, leaving the encoded card exiled. Other Play CopyCard$
+			// shapes need their own ticket and are unchanged by this one.
+			copyCard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["CopyCard"]), "True") &&
+				strings.EqualFold(strings.TrimSpace(rp.sa.Params["CipherCopy"]), "True")
 			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
 			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
 			// files): every card the Play actually BEGINS to play is recorded
@@ -3529,7 +3546,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o := e.G.Obj(id); o != nil {
 					from = o.Zone
 				}
-				e.beginPlay(player, id, free, playCost, replaceGraveyard)
+				e.beginPlay(player, id, free, playCost, replaceGraveyard, copyCard)
 				if imprintPlayed && from.Valid() {
 					if o := e.G.Obj(id); o != nil && o.Zone != from {
 						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,

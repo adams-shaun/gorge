@@ -2654,7 +2654,7 @@ func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
 // ReplaceGraveyard$ Exile rider (task replplay1): true stamps the played
 // spell's pay-time CastInfo with state.FlagReplaceGraveyard so the resolution
 // reader exiles it instead of the graveyard.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard bool) {
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard, copyCard bool) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
@@ -2687,6 +2687,22 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 		e.emit(events.Event{Kind: events.Note, Player: p, Obj: id,
 			Text: "the play cannot cast a restricted card"})
 		return
+	}
+	// Cipher's CopyCard$ True Play rider: the encoded card is NOT moved --
+	// a COPY of it is placed on the stack and cast, and the original stays in
+	// its zone. Mint through a logged event, never by mutating Game here:
+	// replay must derive the same object ID before the subsequent PutOnStack.
+	// The copy starts in the temporary library holding zone, which becomes
+	// the cast's From; CR 707.12 allows this copy of a card to be cast.
+	if copyCard {
+		copyID := e.G.NextID
+		e.emit(events.Event{Kind: events.StackCopy, Obj: id, Player: p,
+			Text: "copy card for play"})
+		o = e.G.Obj(copyID)
+		if o == nil || !o.IsCopy {
+			return
+		}
+		id = copyID
 	}
 	cost := e.rawBaseCost(p, id)
 	if withoutManaCost {

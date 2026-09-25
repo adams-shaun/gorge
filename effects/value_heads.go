@@ -165,6 +165,7 @@ var modelledValueHeads = []string{
 	"ValidLibrary",
 	"ValidStack",
 	"Void",
+	"YouDescendedThisTurn",
 	"YouDrewThisTurn",
 	"YourCountersEnergy",
 	"YourCountersExperience",

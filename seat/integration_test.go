@@ -87,7 +87,7 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 // TestBotAdaptersAgreePerStep pins Ruling F7's "keep the two in step" as a
 // measured property, per step: for every step the engine can be in, the two
 // adapter halves must build the same botpolicy.Board from the same facts --
-// the view-shaped half (boardFromView, fed the Phase string view.PhaseOf
+// the view-shaped half (BoardFromView, fed the Phase string view.PhaseOf
 // projects for that step, which is exactly what a real seat receives) and
 // the game-shaped half (the rules test host's g.Step.IsMain()). A bare
 // step has no game behind it, so the only fact either half can report is
@@ -96,7 +96,7 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 // priority decision where IsMain changes the choice (in a main phase the
 // policy taps mana, outside it the same options are passed on), with the
 // two sides' rngs seeded identically. This is the test that dies on
-// mutation M1: invert boardFromView's IsMain and the halves disagree
+// mutation M1: invert BoardFromView's IsMain and the halves disagree
 // precisely on StepMain1/StepMain2.
 func TestBotAdaptersAgreePerStep(t *testing.T) {
 	prio := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
@@ -113,7 +113,7 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, s := range allSteps {
-				boardView := boardFromView(view.View{Phase: view.PhaseOf(s)})
+				boardView := BoardFromView(view.View{Phase: view.PhaseOf(s)})
 				boardGame := botpolicy.Board{IsMain: s.IsMain()} // the rules host's expression
 				if boardView.IsMain != boardGame.IsMain {
 					t.Errorf("step %s: view-shaped IsMain %v, game-shaped IsMain %v", s, boardView.IsMain, boardGame.IsMain)
@@ -187,7 +187,7 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 			t.Fatalf("intent %d: view-shaped Decide: %v", n, err)
 		}
 		boardGame := botpolicy.BoardFromGame(eGame.G, eGame, d.Player)
-		boardView := boardFromView(v)
+		boardView := BoardFromView(v)
 		if !maps.Equal(boardView.Cards, boardGame.Cards) {
 			t.Fatalf("intent %d: casting Card census diverged (step %s)", n, eGame.G.Step)
 		}
@@ -426,10 +426,10 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		// actually flips a choice): a Cards map one half fills and the other
 		// leaves zero is a bot that casts differently depending on who asked.
 		// Since op3 the comparison also covers Card.AttachedTo (the A1
-		// attachment fact): boardFromView fills it off CardView.AttachedTo,
+		// attachment fact): BoardFromView fills it off CardView.AttachedTo,
 		// BoardFromGame off state.Object.AttachedTo, so a divergence here is
 		// the two adapters reading different attachment facts.
-		boardView := boardFromView(view.Project(eView.G, eView, d.Player, d))
+		boardView := BoardFromView(view.Project(eView.G, eView, d.Player, d))
 		// AR6 also reads defender life to break equal combat tiers. Compare
 		// the fact itself, not just choices that may never need a tiebreak.
 		if !maps.Equal(boardView.Life, boardGame.Life) {

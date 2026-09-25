@@ -21,7 +21,7 @@ func TestTargetStackValueIgnoresAbilitySourceCard(t *testing.T) {
 	if v.Stack[0].Card == nil || v.Stack[0].Kind != "trigger" || v.Stack[1].Kind != "spell" {
 		t.Fatal("fixture must offer a displayed source card on an ability and a spell")
 	}
-	got := boardFromView(v).Stack
+	got := BoardFromView(v).Stack
 	if len(got) != 2 || got[0].IsSpell || !got[1].IsSpell {
 		t.Fatalf("stack spell identities = %+v, want ability then spell", got)
 	}
