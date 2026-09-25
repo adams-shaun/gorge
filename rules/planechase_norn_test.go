@@ -93,8 +93,7 @@ func plainProbePlane(t *testing.T, name string) *cards.Card {
 	return c
 }
 
-// drawAfter returns whether seat p drew a card in the log slice, and whether
-// seat 0 emitted a PlanarWalk carrying the DontPlaneswalkAway flag.
+// drawsAfter returns how many cards seat p drew in the log slice.
 func drawsAfter(evs []events.Event, p state.PlayerID) int {
 	n := 0
 	for _, ev := range evs {

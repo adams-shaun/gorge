@@ -16,6 +16,23 @@ const (
 	planarDieChaos      int32 = 6
 )
 
+// inPlanarDeck reports whether id is a card in seat p's own ZPlanarDeck zone.
+// It is the own-deck membership boundary the PlaneswalkedFrom scan shares with
+// currentPlane: a hand-built or fuzzed event naming another seat's plane must
+// queue nothing, and reading the zone (not the object's Zone field alone)
+// ties the id to the seat that owns it.
+func (e *Engine) inPlanarDeck(p state.PlayerID, id state.ObjID) bool {
+	if int(p) >= len(e.G.Players) {
+		return false
+	}
+	for _, z := range e.G.Zone(state.ZPlanarDeck, p) {
+		if z == id {
+			return true
+		}
+	}
+	return false
+}
+
 // currentPlane returns the CURRENT plane of one seat's planar deck (CR 901):
 // the face-up top card of that seat's ZPlanarDeck zone. It returns nil when
 // the seat has no planar deck, no revealed plane, or the zone and the object
@@ -163,9 +180,11 @@ func (e *Engine) checkPlaneswalkTriggers(ev events.Event) {
 	// The departed plane is legitimately face DOWN after the fold (it is no
 	// longer the current plane), so only its membership in the seat's planar
 	// deck is checked -- requiring FaceDown == false here would suppress every
-	// away trigger.
+	// away trigger. The membership walk is against ev.Player's OWN deck, so a
+	// hand-built event naming a foreign seat's plane fails closed exactly as
+	// the chaos scan's currentPlane boundary does.
 	o := e.G.Obj(ev.Obj)
-	if o == nil || o.Zone != state.ZPlanarDeck {
+	if o == nil || o.Zone != state.ZPlanarDeck || !e.inPlanarDeck(ev.Player, ev.Obj) {
 		return
 	}
 	e.queuePlaneMode(ev.Obj, "PlaneswalkedFrom")
