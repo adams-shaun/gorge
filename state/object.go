@@ -619,6 +619,13 @@ type Object struct {
 	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
 	Monstrous bool
 
+	// Renowned is CR 702.112b's renowned designation: it lasts while this
+	// permanent remains on the battlefield, regardless of controller changes.
+	// Leaving the battlefield clears it; a later entry is a new permanent.
+	// Like Monstrous, it is a plain status field copied by CloneDeep and set
+	// only by an events.AlterAttribute fold.
+	Renowned bool
+
 	// PhasedOut is CR 702.25's phased-out status (api:Phases): the
 	// permanent is on the battlefield but is treated as though it does not
 	// exist. It is NOT a zone change -- the object keeps its Zone and its

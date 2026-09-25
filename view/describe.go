@@ -17,6 +17,15 @@ import (
 //
 // ClockTick describes as "" (the client hides empty lines); an unknown
 // Kind as "unknown event" rather than a panic.
+// alterAttributeGrantPhrase carries the AlterAttribute attributes whose GRANT
+// narration reads better as a gain than as "becomes <attribute>" (Suspend is
+// a keyword, not a designation). Attributes absent from the map keep the
+// designation phrase; the removal narration stays generic for every
+// attribute -- no corpus emitter clears any of these with Amount < 1.
+var alterAttributeGrantPhrase = map[string]string{
+	"Suspend": "gains suspend",
+}
+
 func firstID(ids []state.ObjID) state.ObjID {
 	if len(ids) > 0 {
 		return ids[0]
@@ -388,13 +397,19 @@ func Describe(g *state.Game, ev events.Event) string {
 		// only the conniving permanent.
 		return obj(g, ev.Obj) + " connives"
 	case events.AlterAttribute:
-		// The suspected designation's flip (task alterattr1). The grant is
-		// narrated; the removal (Amount < 0, Activate$ False / a clear fold)
-		// names the same permanent losing the designation.
+		// Attribute changes name the designation carried on the event; keep
+		// both grant and removal narration aligned with the event fold.
+		// The default phrase ("becomes <attribute>") reads for the designation
+		// attributes (Suspected/Monstrous/Renowned/Plotted); the map carries the
+		// attribute-shaped riders whose grant reads better as a gain -- Suspend
+		// is a keyword, not a designation.
 		if ev.Amount >= 1 {
-			return obj(g, ev.Obj) + " becomes suspected"
+			if phrase, ok := alterAttributeGrantPhrase[ev.Text]; ok {
+				return obj(g, ev.Obj) + " " + phrase
+			}
+			return obj(g, ev.Obj) + " becomes " + strings.ToLower(ev.Text)
 		}
-		return obj(g, ev.Obj) + " is no longer suspected"
+		return obj(g, ev.Obj) + " is no longer " + strings.ToLower(ev.Text)
 	case events.CombatRetarget:
 		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
 		// defender. The old defender needs no line (the re-pointed attack is

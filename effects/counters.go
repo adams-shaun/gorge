@@ -248,23 +248,19 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	} else if strings.TrimSpace(sa.Params["Adapt"]) != "" {
 		n = Num(h, c, sa, "Adapt", 1)
 	} else if strings.TrimSpace(sa.Params["Monstrosity"]) != "" {
-		// Monstrosity$ (CR 701.31; Giggling Skitterspike's `{5}: Monstrosity
-		// 5`, task agent-20260919T190014Z): a Monstrosity line names its own
-		// counter amount and no carrier pairs it with CounterNum$/Adapt$
-		// (measured over the 36 raw corpus lines), so the read is a fallback
-		// in the same chain. The literal AND X shapes resolve through the
-		// ordinary Num grammar -- the announced X (Domesticated Hydra's
-		// `Cost$ X G G G`, Vitality Hunter's `Cost$ X W W`) and an SVar X
-		// (Grim Giganotosaurus's `SVar:X:Count$Valid
-		// Creature.OppCtrl+powerGE4`). An unresolvable body degrades to 0,
-		// Num's convention.
+		// Monstrosity$ is a fallback count for its named counter placement.
 		n = Num(h, c, sa, "Monstrosity", 1)
+	} else if strings.TrimSpace(sa.Params["Renown"]) != "" {
+		// Renown$ carries the CR 702.112 count and, like Monstrosity$, names
+		// the counters placed by this keyword's resolving trigger.
+		n = Num(h, c, sa, "Renown", 1)
 	}
 	if n < 0 {
 		n = 0
 	}
 	adapt := strings.TrimSpace(sa.Params["Adapt"]) != ""
 	mono := strings.TrimSpace(sa.Params["Monstrosity"]) != ""
+	renown := strings.TrimSpace(sa.Params["Renown"]) != ""
 	// fx42 scoping: take every answered comma-list transport at entry and
 	// clear it before this SA can resolve a sub-ability. Resolve shares one
 	// Ctx across the chain, so leaving any of these live makes a nested
@@ -562,6 +558,25 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if mono && o.Monstrous {
 			continue
 		}
+		if renown && o.Renowned {
+			continue
+		}
+		// CR 702.112a: the Renown trigger's "it" is the source PERMANENT --
+		// "puts N +1/+1 counters on it and it becomes renowned". Once the
+		// source has left the battlefield there is no "it": a combat-damage
+		// trigger on the stack resolves even after instant-speed removal sent
+		// its source to the graveyard (or hand/exile), and the ordinary loop
+		// is deliberately zone-agnostic (CR 122.1), so without this gate the
+		// departed card would take the counters and the designation in its
+		// new zone. The gate is the mark's, not the trigger's: the ability
+		// still resolves and its other riders (if any) are untouched; only
+		// the counter batch and the Renowned designation fizzle with the
+		// source. The corpus's only Renown$ carrier is the keyword expansion
+		// body, which is never ETB$ True, so no mid-entry shape needs the
+		// battlefield exception the ETB$ True special case tolerates.
+		if renown && o.Zone != state.ZBattlefield {
+			continue
+		}
 		amount := n
 		if perDefExpr != "" {
 			// The per-object amount: the affected object's own value. A player
@@ -595,6 +610,10 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if mono && n > 0 {
 			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
 				Player: o.Controller, Text: "Monstrous", Amount: n})
+		}
+		if renown && n > 0 {
+			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
+				Player: o.Controller, Text: "Renowned", Amount: n})
 		}
 		if !t.IsPlayer && t.Obj != 0 {
 			placed = append(placed, t)
