@@ -113,3 +113,166 @@ func TestZimoneManifestDreadLooksAndChooses(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// dreadTrimLibrary shapes the library before the trigger resolves. It is the
+// prepare callback for the boundary tests below.
+func dreadTrimLibrary(t *testing.T, e *Engine, keep int) {
+	t.Helper()
+	lib := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
+	if len(lib) < keep {
+		t.Fatalf("test precondition: library has %d cards, need at least %d", len(lib), keep)
+	}
+	for _, id := range lib[keep:] {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZExile})
+	}
+	if n := len(e.G.Zone(state.ZLibrary, 0)); n != keep {
+		t.Fatalf("test precondition: library has %d cards after trim, want %d", n, keep)
+	}
+}
+
+// dreadDriveToResolution plays a Forest from seat 0's hand so Zimone's REAL
+// landfall trigger (DB$ ManifestDread) resolves, driving priority until the
+// outcome probe reports true or the asks/passes run out. A nil outcome just
+// drives the fixed number of rounds (the no-op assertions live in the
+// caller). The boundary tests expect NO manifest-dread choice: with fewer
+// than two cards the engine must not ask, so any KChoose offered fails the
+// test.
+func dreadDriveToResolution(t *testing.T, e *Engine, outcome func(e *Engine) bool) {
+	t.Helper()
+	land := searchMoveByName(t, e, "Forest", state.ZHand)
+	if land == 0 {
+		t.Fatal("test precondition: Forest must be in seat 0's hand")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("test precondition: expected priority before playing the land, got %+v", d)
+	}
+	landOption := -1
+	for _, option := range d.Options {
+		if option.Kind == "play_land" && option.Obj == land {
+			landOption = option.Index
+		}
+	}
+	if landOption < 0 {
+		t.Fatalf("test precondition: Forest %d is not offered as a land play", land)
+	}
+	submitChoices(t, e, landOption)
+	for attempts := 0; attempts < 20; attempts++ {
+		if outcome != nil && outcome(e) {
+			return
+		}
+		d = e.Pending()
+		if d == nil {
+			return
+		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "manifest_dread" {
+			t.Fatalf("a manifest-dread choice was offered for fewer than two cards: %+v", d)
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected state while resolving landfall: %+v", d)
+		}
+		pass := -1
+		for _, option := range d.Options {
+			if option.Kind == "pass" {
+				pass = option.Index
+				break
+			}
+		}
+		if pass < 0 {
+			t.Fatalf("no pass option while resolving landfall: %+v", d.Options)
+		}
+		submitChoices(t, e, pass)
+	}
+	if outcome != nil {
+		t.Fatal("trigger resolution never converged after 20 priority rounds")
+	}
+}
+
+// dreadAssertNoFallback fails when the corpus trigger resolved through the
+// unimplemented-API fallback -- the guard that keeps these boundary tests
+// from passing with the ManifestDread handler de-registered.
+func dreadAssertNoFallback(t *testing.T, e *Engine) {
+	t.Helper()
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API ManifestDread") {
+			t.Fatalf("unimplemented fallback recorded: %q", ev.Text)
+		}
+	}
+}
+
+// dreadLookCount counts the private-look notes for seat 0.
+func dreadLookCount(t *testing.T, e *Engine, wantIDs int) {
+	t.Helper()
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && ev.Text == "looks at the top two cards of the library" && ev.Player == 0 {
+			if !ev.Secret || len(ev.IDs) != wantIDs {
+				t.Fatalf("private look = %+v, want a secret note for exactly %d cards", ev, wantIDs)
+			}
+		}
+	}
+}
+
+// TestZimoneManifestDreadSingleCardLibrary pins CR 701.61's one-card
+// boundary: with exactly one library card to look at, the ability asks
+// NOTHING and manifests that card face down deterministically -- its
+// controller had only one legal answer.
+func TestZimoneManifestDreadSingleCardLibrary(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := manifestEngine(t, reg, "Zimone, Mystery Unraveler")
+	zid := searchMoveByName(t, e, "Zimone, Mystery Unraveler", state.ZHand)
+	if zid == 0 {
+		t.Fatal("test precondition: Zimone must be in seat 0's hand or library")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: zid, From: state.ZHand, To: state.ZBattlefield})
+	if e.G.Obj(zid).Zone != state.ZBattlefield {
+		t.Fatal("test precondition: Zimone did not enter the battlefield")
+	}
+	dreadTrimLibrary(t, e, 1)
+	top := e.G.Zone(state.ZLibrary, 0)[0]
+	if e.G.Obj(top).Zone != state.ZLibrary {
+		t.Fatalf("test precondition: offered card %d is in %s, want the library", top, e.G.Obj(top).Zone)
+	}
+	dreadDriveToResolution(t, e, func(e *Engine) bool {
+		o := e.G.Obj(top)
+		return o.Zone == state.ZBattlefield && o.FaceDown
+	})
+	o := e.G.Obj(top)
+	if o.Zone != state.ZBattlefield || !o.FaceDown || o.Controller != 0 {
+		t.Fatalf("manifested card zone=%s FaceDown=%v Controller=%d, want battlefield/true/0", o.Zone, o.FaceDown, o.Controller)
+	}
+	der := e.Derived(top)
+	if der.Power != 2 || der.Toughness != 2 || len(der.Types) != 1 || der.Types[0] != "Creature" {
+		t.Fatalf("manifested card derived=%+v, want face-down 2/2 Creature", der)
+	}
+	dreadAssertNoFallback(t, e)
+	dreadLookCount(t, e, 1)
+	replayCheck(t, e, cfg)
+}
+
+// TestZimoneManifestDreadEmptyLibrary pins the zero-card boundary: an empty
+// library does nothing loudly -- no look, no ask, no move -- and never the
+// unimplemented-API fallback.
+func TestZimoneManifestDreadEmptyLibrary(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := manifestEngine(t, reg, "Zimone, Mystery Unraveler")
+	zid := searchMoveByName(t, e, "Zimone, Mystery Unraveler", state.ZHand)
+	if zid == 0 {
+		t.Fatal("test precondition: Zimone must be in seat 0's hand or library")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: zid, From: state.ZHand, To: state.ZBattlefield})
+	if e.G.Obj(zid).Zone != state.ZBattlefield {
+		t.Fatal("test precondition: Zimone did not enter the battlefield")
+	}
+	dreadTrimLibrary(t, e, 0)
+	before := len(e.L.Events)
+	dreadDriveToResolution(t, e, nil)
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && ev.Counter == "entered_face_down" {
+			t.Fatalf("an empty library still manifested a card: %+v", ev)
+		}
+		if ev.Kind == events.Note && ev.Text == "looks at the top two cards of the library" {
+			t.Fatalf("an empty library still recorded a look: %q", ev.Text)
+		}
+	}
+	dreadAssertNoFallback(t, e)
+}
