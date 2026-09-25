@@ -1855,11 +1855,7 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 				}
 			}
 		case "TargetedOrController":
-			targets := c.Targets
-			if c.PickedTargets != nil {
-				targets = c.PickedTargets
-			}
-			for _, t := range targets {
+			for _, t := range c.Targets {
 				if t.IsPlayer {
 					add(t.Player)
 				} else if o := h.Game().Obj(t.Obj); o != nil {
