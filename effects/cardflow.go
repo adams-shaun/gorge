@@ -1241,6 +1241,15 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 //     DestinationZone2$ remainder placement: the untaken cards never move,
 //     so they stay on top in their existing relative order (the corpus
 //     never pairs the two; Through the Forest Gate carries it without one).
+//   - WithMayLook$ True (Ixhel, Scion of Atraxa; Gonti; Thief of Sanity;
+//     Scarlet Witch) grants the exiling effect's controller -- never the
+//     exiled card's owner -- a lasting look at the face of every card the
+//     Dig exiles face down. It is applied by the shared applyFaceDownMarker
+//     (effects/zone.go) on the primary move's MoveZone, so the Dig calls the
+//     one read every other face-down mover uses: the looker rides the
+//     "exiled_with_face_down_maylook" marker's Amount and the projection
+//     (view/cardViews) admits exactly that player. Absent the param the
+//     marker is unchanged, so every non-maylook Dig emits byte-identically.
 //
 // Still unread here: RestRandomOrder$ (the bottom pile returns in the
 // answered/offered order, never shuffled) and the exotic DestinationZone2
