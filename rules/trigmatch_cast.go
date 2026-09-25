@@ -26,6 +26,9 @@ import (
 // ACTIVATOR has cast this turn, the current cast included -- its PutOnStack
 // is already in the log when the deferred trigger fires) and ValidSA$
 // (Roiling Vortex: the Spell.ManaSpent <OP><value> comparison family).
+// ValidSAonCard$ carries the SAME mana comparison over the cast spell
+// (Ancient Cellarspawn's Spell.ManaSpent LTX); see
+// spellValidSAonCardMatches.
 func (e *Engine) spellCastMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.PutOnStack {
 		return false
@@ -152,6 +155,20 @@ func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Ev
 	}
 	if v, ok := t.Params["ValidSA"]; ok {
 		if !e.validSAMatches(source, ev, ctrl, v) {
+			return false
+		}
+	}
+	// ValidSAonCard$ on the SpellCast arm (trig:SpellCast.ValidSAonCard): a
+	// filter over the CAST SPELL's own characteristics, here the mana-spent
+	// comparison family Ancient Cellarspawn and Tokka & Rahzar carry as
+	// `Spell.ManaSpent LTX` ("less than its mana value") and Blazing Bomb /
+	// Ultros / Prompto as literal GE4/GE8 shapes. The AbilityCast arm owns
+	// the same parameter for ACTIVATED abilities (validSAonCard); the two
+	// arms share the parameter name, not the grammar, and this arm fails
+	// closed on every shape it does not model (an unsupported head stays
+	// silent rather than firing wide).
+	if v, ok := t.Params["ValidSAonCard"]; ok {
+		if !e.spellValidSAonCardMatches(obj, ev, v) {
 			return false
 		}
 	}
@@ -601,6 +618,52 @@ func (e *Engine) validSAMatches(source state.ObjID, ev events.Event, ctrl state.
 			return compareIntCount(e.manaSpentForCast(ev.Player, ev.Obj), fields[1])
 		}
 		return false
+	}
+	return false
+}
+
+// spellValidSAonCardMatches evaluates a SpellCast trigger's ValidSAonCard$
+// clause: a filter over the CAST SPELL's own ability/characteristics. The
+// one measured SpellCast shape (the corpus's five `Spell.ManaSpent` carriers)
+// is the same mana-comparison grammar validSAMatches reads for ValidSA$, with
+// one addition -- the value may be spelled `X`, the CAST SPELL's mana value
+// (the trigger-side `SVar:X:Count$CardManaCost` both LTX carriers define:
+// Ancient Cellarspawn and Tokka & Rahzar's "the amount of mana spent to cast
+// it was less than its mana value"). `Spell.ManaSpent GE4` (Blazing Bomb,
+// Ultros, Prompto) keeps the literal reading. The mana actually spent comes
+// from the SHARED manaSpentForCast log scan, the identical provenance
+// validSAMatches reads -- so the two comparison params of one SpellCast
+// trigger can never disagree on the spend.
+//
+// Every other head (Dragonlord Kolaghan's
+// `Spell.Creature+sharesNameWith YourGraveyard`, Gonti's `Spell.YouDontOwn`)
+// is an unmodelled shape and FAILS CLOSED (the trigger stays silent), per
+// the repo's unreadable-condition convention; broadening the grammar is out
+// of this fix's scope. A copy reads the ORIGINAL spell's spend through
+// manaSpentForCast, the same reading validSAMatches gives a copy today.
+func (e *Engine) spellValidSAonCardMatches(obj *state.Object, ev events.Event, clause string) bool {
+	fields := strings.Fields(strings.TrimSpace(clause))
+	if len(fields) != 2 || fields[0] != "Spell.ManaSpent" {
+		return false
+	}
+	expr := strings.TrimSpace(fields[1])
+	for _, op := range []string{"EQ", "NE", "GE", "LE", "GT", "LT"} {
+		rest := strings.TrimPrefix(expr, op)
+		if rest == expr {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(rest), "X") {
+			// X is the cast spell's mana value (CR 202.3). A face-less object
+			// cannot name one -- fail closed rather than read 0.
+			if obj == nil || obj.Face() == nil {
+				return false
+			}
+			return compareIntCount(e.manaSpentForCast(ev.Player, ev.Obj),
+				op+strconv.Itoa(int(obj.Face().ManaValue())))
+		}
+		// A literal (or any non-X value) goes through the shared comparison
+		// grammar, which fails closed on a value it cannot parse.
+		return compareIntCount(e.manaSpentForCast(ev.Player, ev.Obj), expr)
 	}
 	return false
 }
