@@ -958,9 +958,116 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			}
 		}
 		return out, true
+	case "TargetedObjects", "TargetedObjectsDistinct":
+		// Forge's TargetedObjects referent (AbilityUtils.calcX's
+		// `calcX[0].startsWith("TargetedObjects")` arm): the UNION of every
+		// targeting SA's chosen targets down the root ability's sub-ability
+		// chain. Forge's Amount includes players; object properties below skip
+		// player entries. The union
+		// is the same set Ctx.AllTargets carries when the cast pre-ask bound
+		// it (the AllTargeted ref's own source), else the resolution's own
+		// Ctx.Targets -- which for a chain with no sub targets IS the union.
+		// Builders' Bane's "Destroy X target artifacts", Fireball's and
+		// Firestorm's TargetMin$/Max$ and Choking Vines' X are the corpus
+		// users. "Distinct" (TargetedObjectsDistinct, Officious
+		// Interrogation's IncreaseCost$) de-duplicates by full target identity
+		// in first-seen order -- Forge's `new ArrayList<>(new HashSet<>(objects))`.
+		var out []state.Target
+		seen := map[state.Target]bool{}
+		for _, t := range refTargetUnion(c) {
+			if t.Obj == 0 && !t.IsPlayer {
+				continue
+			}
+			if ref == "TargetedObjectsDistinct" {
+				if seen[t] {
+					continue
+				}
+				seen[t] = true
+			}
+			out = append(out, t)
+		}
+		return out, true
+	case "SpellTargeted":
+		// Forge's SpellTargeted names the targeted SPELL -- the target that is
+		// a spell on the stack (AbilityUtils.calcX's
+		// `calcX[0].equals("SpellTargeted")` arm, which reads the FIRST of
+		// `getDefinedSpellAbilities(card, "SpellTargeted", sa)` and counts its
+		// host card). This build's target list already holds that spell's
+		// object id (the cast pre-ask stored the target), so bind the first
+		// OBJECT target; a chain with no object target yields the empty set
+		// (ok=true, a legitimate zero). Reject Imperfection's, Press the
+		// Enemy's, Gale's Redirection's and Sound the Trumpets'
+		// SpellTargeted$CardManaCostLKI are the four corpus users. The mana
+		// value is a printed face characteristic, so it survives the
+		// counter/exile that follows the read and the LKI spelling reads the
+		// same face value the plain spelling does (the shared CardManaCost/
+		// CardManaCostLKI property arm below).
+		//
+		// The spell identity is the RESOLUTION-START snapshot (Ctx.TargetSpellLKI,
+		// captured by effects.Resolve before any effect can move a target), not
+		// the live zone: a Counter or ChangeZone earlier in the same chain has
+		// already moved the spell off the stack when the later sub-ability reads
+		// this ref (Reject Imperfection's DBProliferate gate, Gale's
+		// Redirection's DBRoll modifier, Press the Enemy's DBMayPlay filter), so
+		// a live ZStack test would lose exactly the spell the ref names. A
+		// hand-built Ctx with no snapshot falls back to the live zone, which is
+		// correct for a directly-evaluated body and never admits a battlefield
+		// permanent (its object was never on the stack at entry).
+		for _, t := range refTargetUnion(c) {
+			if t.IsPlayer || t.Obj == 0 {
+				continue
+			}
+			if c.TargetSpellLKI[t.Obj] {
+				return []state.Target{t}, true
+			}
+			if o := h.Game().Obj(t.Obj); o == nil || o.Zone != state.ZStack {
+				continue
+			}
+			return []state.Target{t}, true
+		}
+		return nil, true
 	default:
+		// A ref this build's explicit cases do not name is delegated to the
+		// SAME defined-targets resolver a body's own Defined$ spelling uses
+		// (effects/context.go knownDefinedTargets), so the count vocabulary can
+		// no longer lag the defined-targets vocabulary and the next sibling
+		// spelling is covered without a new hand-written case. The explicit
+		// cases ABOVE keep the deliberate count-only distinctions (the RAW
+		// Imprinted associations, ChosenCard, the ExiledWith scan) ahead of this
+		// fallback.
+		//
+		// The delegation claims the ref only when the resolved set carries at
+		// least one OBJECT: a player-valued ref (TargetedPlayer, TriggeredTarget,
+		// Player.IsRemembered, ...) belongs to the player arm
+		// (evalPlayerRefProperty), and claiming it here with zero objects would
+		// short-circuit that arm and read every player property as 0. An empty
+		// or player-only resolution therefore still fails closed, exactly as
+		// before the fallback existed -- an unknown ref too, since
+		// knownDefinedTargets refuses a selector it does not model.
+		if ts, ok := knownDefinedTargets(h, c, ref); ok {
+			for _, t := range ts {
+				if !t.IsPlayer && t.Obj != 0 {
+					return ts, true
+				}
+			}
+		}
 		return nil, false
 	}
+}
+
+// refTargetUnion is the target set Forge's chain-union refs read: every
+// targeting SA's chosen targets down the root ability's sub-ability chain.
+// Ctx.AllTargets carries that union when the cast pre-ask bound it (the
+// AllTargeted ref's own binding); a resolution that did not bind one -- where
+// no corpus line carries a chain union -- keeps the resolution's own
+// Ctx.Targets, which for a chain with no sub targets IS the union. Shared by
+// the AllTargeted case and the TargetedObjects/SpellTargeted refs so the
+// three cannot disagree about what "the targets" means.
+func refTargetUnion(c *Ctx) []state.Target {
+	if c.AllTargets != nil {
+		return c.AllTargets
+	}
+	return c.Targets
 }
 
 // castManaSpentTotals is one cast's recorded CR 601.2h / 106.12 spend
@@ -1040,6 +1147,13 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		if !ok {
 			return 0, false
 		}
+	}
+	if (ref == "TargetedObjects" || ref == "TargetedObjectsDistinct") && prop == "Amount" {
+		n := int32(len(ts))
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n, true
 	}
 	g := h.Game()
 	var n int32

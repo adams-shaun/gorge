@@ -977,7 +977,25 @@ type Ctx struct {
 	// entry; an object already off the battlefield, or with no counters to
 	// look back at, needs no entry.
 	TargetCountersLKI map[state.ObjID][]state.Counter
-	Remembered        []state.Target
+	// TargetSpellLKI records which object targets were SPELLS on the stack at
+	// the instant this Resolve chain began. The count ref SpellTargeted (Forge
+	// AbilityUtils.calcX's `calcX[0].equals("SpellTargeted")` arm, which reads
+	// getDefinedSpellAbilities' target SPELLS) names the target that WAS a
+	// spell; a target chosen as a battlefield permanent is not one. The target
+	// object's live zone cannot answer that after resolution begins: a Counter
+	// or a ChangeZone moves the spell off the stack and events.Apply's Move
+	// leaves no "was a spell" marker, so a later sub-ability reading
+	// SpellTargeted$CardManaCostLKI (Reject Imperfection's proliferate gate,
+	// Gale's Redirection's roll modifier, Press the Enemy's Z) would read the
+	// moved target as a non-spell and return 0. The mana VALUE itself survives
+	// the move -- a face's converted cost is printed and the object id is
+	// stable -- so only the stack-kind needs the snapshot. Captured at Resolve
+	// entry (keep an existing map on re-entry: after a move the target is no
+	// longer on the stack, so a re-capture would wrongly lose it) and carried
+	// across a suspension the same way as TargetControllerLKI (rules'
+	// resumePoint). Nil when the chain's targets were never spells.
+	TargetSpellLKI map[state.ObjID]bool
+	Remembered     []state.Target
 	// ForgetOtherSnapshot retains the pre-clear IsRemembered candidates across
 	// a multi-owner ChangeZone pick/search and its mid-resolution asks. It is
 	// resolution-local; only the actual remembered set is event-backed.
@@ -2475,6 +2493,21 @@ func CloneTargetControllerLKI(m map[state.ObjID]state.PlayerID) map[state.ObjID]
 	return out
 }
 
+// CloneTargetSpellLKI returns an independent copy of a target-spell LKI set
+// threaded across a suspension (rules' resumePoint). The map is treated as
+// immutable once captured, but an explicit copy keeps a cloned engine's
+// pending frame from ever aliasing another's.
+func CloneTargetSpellLKI(m map[state.ObjID]bool) map[state.ObjID]bool {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]bool, len(m))
+	for id, ok := range m {
+		out[id] = ok
+	}
+	return out
+}
+
 // CloneTargetCountersLKI returns an independent copy of a target-counters LKI
 // map threaded across a suspension (rules' resumePoint). The map is treated as
 // immutable once captured, but an explicit copy -- inner slices included --
@@ -2666,6 +2699,32 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 					object.Zone == state.ZBattlefield && len(object.Counters) > 0 {
 					c.TargetCountersLKI[target.Obj] = append([]state.Counter(nil), object.Counters...)
 				}
+			}
+		}
+		// Capture which object targets are spells on the stack at the same
+		// instant: a Counter/ChangeZone later in the chain moves the spell off
+		// the stack and no field records that it ever was one, so the
+		// SpellTargeted count ref must read this resolution-start snapshot
+		// (Reject Imperfection's proliferate gate, Gale's Redirection's roll
+		// modifier, Press the Enemy's Z). Keep an existing map on re-entry:
+		// a resumed chain's target has already left the stack, so a re-capture
+		// would wrongly answer "never a spell". The refTargetUnion set is what
+		// SpellTargeted itself enumerates, so both bindings are captured.
+		if c.TargetSpellLKI == nil {
+			c.TargetSpellLKI = make(map[state.ObjID]bool)
+			captureTargetSpells := func(ts []state.Target) {
+				for _, target := range ts {
+					if target.IsPlayer || target.Obj == 0 {
+						continue
+					}
+					if object := h.Game().Obj(target.Obj); object != nil && object.Zone == state.ZStack {
+						c.TargetSpellLKI[target.Obj] = true
+					}
+				}
+			}
+			captureTargetSpells(c.Targets)
+			if c.AllTargets != nil {
+				captureTargetSpells(c.AllTargets)
 			}
 		}
 		// Publish the snapshot to the host for the whole of this chain, so an

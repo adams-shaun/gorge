@@ -318,6 +318,16 @@ type resumePoint struct {
 	// (Dismantle's DBPutCounter). Immutable once captured, cloned with the
 	// frame. Nil when the resolution has no countered object targets.
 	targetCountersLKI map[state.ObjID][]state.Counter
+	// targetSpellLKI is the stack-kind half of the same snapshot: the object
+	// targets that were SPELLS on the stack when Resolve began. A resumed
+	// continuation rebuilds its Ctx from the stack object's targets, whose
+	// live zone has already changed (a Counter/ChangeZone earlier in the
+	// chain), so without this the SpellTargeted count ref would lose the
+	// spell it names (Reject Imperfection's proliferate gate, Gale's
+	// Redirection's roll modifier, Press the Enemy's Z). Immutable once
+	// captured, cloned with the frame. Nil when the resolution has no
+	// stack-spell object targets.
+	targetSpellLKI map[state.ObjID]bool
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -649,6 +659,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		// their owners) still sees the CR 608.2h last-known controller.
 		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI),
 		targetCountersLKI:   resolutionTargetCounters(e.resolutionCtx),
+		targetSpellLKI:      resolutionTargetSpells(e.resolutionCtx),
 		flipMemory:          e.resolvingFlipMemory}
 }
 
@@ -708,6 +719,20 @@ func resolutionTargetCounters(c *effects.Ctx) map[state.ObjID][]state.Counter {
 		return nil
 	}
 	return effects.CloneTargetCountersLKI(c.TargetCountersLKI)
+}
+
+// resolutionTargetSpells is the target-spell snapshot a pending ask carries
+// onto its resume point: the live Resolve chain's resolution-start set of
+// object targets that were spells on the stack, cloned so the frame owns its
+// storage. Nil outside a chain (a combat or mulligan ask) or when the chain
+// captured none. Without it a resumed Ctx -- rebuilt from the stack object's
+// targets, whose live zone a completed Counter/ChangeZone has already
+// changed -- would answer SpellTargeted$CardManaCostLKI as zero.
+func resolutionTargetSpells(c *effects.Ctx) map[state.ObjID]bool {
+	if c == nil {
+		return nil
+	}
+	return effects.CloneTargetSpellLKI(c.TargetSpellLKI)
 }
 
 // resolutionPendingDamage is the DamageMap$ True mark set a pending ask
@@ -1749,6 +1774,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// resolves the entries it names.
 		TargetControllerLKI: effects.CloneTargetControllerLKI(rp.targetControllerLKI),
 		TargetCountersLKI:   effects.CloneTargetCountersLKI(rp.targetCountersLKI),
+		TargetSpellLKI:      effects.CloneTargetSpellLKI(rp.targetSpellLKI),
 		// The resolving stack-object wrapper, same anchor resolveTop's
 		// branches set: a SUSPENDED-then-resumed ability (Ulalek's pay ask is
 		// exactly such a suspension) keeps the ValidStack otherAbility
@@ -4065,6 +4091,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		if e.resume != nil {
 			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
 			f.targetCountersLKI = effects.CloneTargetCountersLKI(e.resume.targetCountersLKI)
+			f.targetSpellLKI = effects.CloneTargetSpellLKI(e.resume.targetSpellLKI)
 		}
 		// The same-resolution flip memory (Engine.Ask captured it off
 		// Engine.resolvingFlipMemory onto the pending point): a continuation
