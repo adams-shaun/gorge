@@ -452,8 +452,7 @@ func copyDecision(d *decision.Decision) *decision.Decision {
 	if d == nil {
 		return nil
 	}
-	cp := *d
-	cp.Options = append([]decision.Option(nil), d.Options...)
+	cp := *d.Clone()
 	for i := range cp.Options {
 		cp.Options[i].Label = optionLabelText(cp.Options[i].Label)
 	}

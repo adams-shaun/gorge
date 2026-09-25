@@ -462,6 +462,14 @@ type Decision struct {
 	Min     int            `json:"min"`
 	Max     int            `json:"max"`
 	Options []Option       `json:"options"`
+	// PaymentActions is an additive, separately indexed cast-payment
+	// extension. Keeping it outside Options preserves every legacy priority
+	// choice index. It remains empty until payplan-04 publishes executable
+	// offers.
+	PaymentActions []PaymentAction `json:"payment_actions,omitempty"`
+	// PaymentFallback is populated only if execution falls back to the normal
+	// manual payment window.
+	PaymentFallback *PaymentFallback `json:"payment_fallback,omitempty"`
 	// MaxSum, when > 0, is a cumulative budget over the chosen options' Value
 	// fields: the sum of the picked options' Value must not exceed MaxSum.
 	// The engine's first user is a Dig's WithTotalCMC$ ("put any number of
@@ -794,6 +802,9 @@ type Intent struct {
 	// rides the log and replays exactly (Ruling P2 submits intents as
 	// logged).
 	Rest []int `json:"rest,omitempty"`
+	// Payment selects an offered payment action and exact plan witness. It is
+	// exclusive with Choices and Rest.
+	Payment *PaymentSelection `json:"payment,omitempty"`
 }
 
 // Validate rejects anything the engine did not offer. Everything a client can
@@ -804,6 +815,9 @@ func (d *Decision) Validate(in Intent) error {
 	}
 	if in.Player != d.Player {
 		return fmt.Errorf("intent from player %d, decision is for player %d", in.Player, d.Player)
+	}
+	if in.Payment != nil {
+		return d.validatePayment(in)
 	}
 	if len(in.Choices) < d.Min || len(in.Choices) > d.Max {
 		return fmt.Errorf("expected %d..%d choices, got %d", d.Min, d.Max, len(in.Choices))

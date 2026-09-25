@@ -117,6 +117,22 @@ type TableConfig struct {
 	// so tables written before named policy selection retain production bot
 	// behavior when restored.
 	BotPolicy string `json:"bot_policy,omitempty"`
+	// BotAutoPayMana makes every hosted bot and human-seat caretaker use
+	// offered payment plans rather than manually tapping mana. It is part of
+	// persisted table configuration so a restart preserves bot behaviour.
+	BotAutoPayMana bool `json:"bot_auto_pay_mana"`
+	// AutoMana enables payment-plan publication and the Auto Mana controls for
+	// human seats. Disabled is the legacy human path: plans are never sent to
+	// a human client and only ordinary casts/manual mana are available.
+	AutoMana bool `json:"auto_mana"`
+	// OnDemand marks a browser-created play-vs-bot table. These tables are
+	// deliberately process-scoped: their seat credentials live only in the
+	// gorged process, and a restart already aborts any game in progress. The
+	// registry therefore drops them while loading a new process rather than
+	// growing tables.json forever with abandoned one-shot games. Their match
+	// logs are not the feedback archive: a submitted feedback report captures
+	// its own replayable snapshot before this disposable table is removed.
+	OnDemand bool `json:"on_demand,omitempty"`
 	// PlayerNames names each seat, independently of its deck, for the wire's
 	// player box (view.PlayerView.Name). Seat i of match k uses
 	// PlayerNames[i]; a missing or short list falls back to the deterministic
@@ -164,6 +180,14 @@ type TableConfig struct {
 	// rules.Config and on its sidecar, so a replay rebuilds the life the
 	// match actually played with.
 	StartingLife int32 `json:"starting_life,omitempty"`
+}
+
+// autoPayManaEnabled is the effective hosted-bot setting. BotAutoPayMana is
+// retained verbatim for a future feature-enabled restart, while AutoMana is
+// the top-level rollout gate: false restores the pre-payment-plan table for
+// people, bots and human-seat caretakers alike.
+func (c TableConfig) autoPayManaEnabled() bool {
+	return c.AutoMana && c.BotAutoPayMana
 }
 
 var ErrNotFound = errors.New("host: not found")
@@ -298,7 +322,7 @@ func (t *table) info() protocol.TableInfo {
 	defer t.mu.RUnlock()
 	info := protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
 		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual,
-		Format: t.cfg.Format.String(), BotPolicy: t.cfg.BotPolicy, Mulligans: t.cfg.Mulligans}
+		Format: t.cfg.Format.String(), BotPolicy: t.cfg.BotPolicy, Mulligans: t.cfg.Mulligans, AutoMana: t.cfg.AutoMana}
 	// SeatNames come from the live match's own seat list — the same
 	// []protocol.SeatInfo that MatchStart carries — so the two can never
 	// drift. cur is guarded by t.mu, which we already hold; reading its

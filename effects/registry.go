@@ -51,6 +51,16 @@ type Host interface {
 	// exchange the text boxes AS THEY EXIST at resolution, so a prior
 	// ChangeText substitution is carried across rather than discarded.
 	ObjectText(*state.Object) string
+	// ObjectKeywords returns the object's CURRENT derived keyword list (CR
+	// 613.1f), printed and granted alike, as an owned copy. api:ExchangeTextBox
+	// reads it alongside ObjectText so an exchanged text box swaps the
+	// keywords the other object's box carries (CR 612.1: a text box includes
+	// its abilities), the same AS-THEY-READ-at-resolution capture ObjectText
+	// takes; a layer-6 companion then wipes the object's own keywords and
+	// grants these. rules.Engine implements it as a copy of the Derived
+	// keyword stream (whose scratch buffer must not be aliased); the effects
+	// test double returns the printed face's keywords.
+	ObjectKeywords(*state.Object) []string
 	Emit(events.Event)
 	// EmitTokenCreate emits a token-creation event and returns every object
 	// it actually created, in mint order. A token-creation replacement may
@@ -145,6 +155,16 @@ type Host interface {
 	// Redirect effects use this shared census rather than duplicating target
 	// legality below rules (protection and continuous restrictions included).
 	LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target
+	// ChooserFor resolves the seat that answers a target ask declared by sa,
+	// per Forge's TargetingPlayer$ ("an opponent chooses the target"). The
+	// mid-resolution ValidTgts$ asks (chosenTargetsFor, changeZoneChosenTargets)
+	// have no rules-tier ask site to consult, so this seam carries the same
+	// resolver cast/trigger asks use (rules.Engine.targetAskChooser /
+	// targetChooserFromSpec). It is read for the DECISION's Player only: the
+	// caller keeps c.Controller as the legality census reference. A host with
+	// no resolver (the effects test double) returns c.Controller, the same
+	// fail-closed default as an unknown spec.
+	ChooserFor(c *Ctx, sa *cards.SA) state.PlayerID
 	// RegenerationDisallowed reports whether an Effect-registered
 	// CantRegenerate restriction makes id unable to be regenerated (Incinerate's
 	// "can't be regenerated this turn"). Consulted by ReplaceDestruction before
@@ -1103,6 +1123,22 @@ type Ctx struct {
 	// directly so a SubAbility$ chained after it can read it. The
 	// Sacrificed$<Property> heads in count.go read it.
 	Sacrificed []state.SacrificedInfo
+	// Exiled / Revealed carry the cards PAID as part of this cast's or
+	// activation's cost: the `ExileFromHand`/`ExileFromGrave`/`Exile` parts
+	// (Forge's CostExile, paid list keyed "Exiled") and the `Reveal` parts
+	// (CostReveal, keyed "Revealed"). They are NOT the source's persistent
+	// exile association (`Object.ExiledWith`) nor `Remembered`: they name the
+	// exact cards this cast's cost removed, in stable cost order. Forge reads
+	// them through AbilityUtils.getPaidCards -> SpellAbility.getPaidList, and
+	// the `Exiled$<Property>` / `Revealed$<Property>` count refs and the bare
+	// `Defined$ Exiled`/`Revealed` selectors both resolve them here (the one
+	// shared binding). rules carries them onto the engine keyed by the stack
+	// object (engine.castPaid), rebuilt by replay because payCast re-executes;
+	// a copy of the spell was never cast and carries none. Empty means "no
+	// paid list" -- a legitimate zero, never a fallback to the source or the
+	// chosen targets.
+	Exiled   []state.ObjID
+	Revealed []state.ObjID
 	// ChangeZoneLKI is the resolution's last-known-information table for
 	// ChangeZoneRememberLKI$ moves: one entry per object the move captured,
 	// holding the controller/owner it had at that instant. events.Apply's Move

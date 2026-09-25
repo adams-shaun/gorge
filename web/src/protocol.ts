@@ -75,6 +75,8 @@ export interface TableInfo {
    * reads it to recreate the same game.
    */
   mulligans: number;
+  /** Enables human payment-plan publication and the Auto Mana controls. */
+  auto_mana: boolean;
 }
 
   /**
@@ -759,6 +761,83 @@ export interface Option {
 }
 
   /**
+   * PlannedCast is the exact cast identity a payment action authorizes.
+   */
+export interface PlannedCast {
+  object: number;
+  face: number;
+  origin: string;
+}
+
+  /**
+   * PaymentCost is the resolved mana requirement. Generic is deliberately
+   * separate from true colourless (Mana[5]).
+   */
+export interface PaymentCost {
+  generic: number;
+  mana: [number, number, number, number, number, number];
+}
+
+  /**
+   * PaymentAbility is a stable source ability discriminator. Printed abilities
+   * use the card face and its printed ability index. Intrinsic abilities use a
+   * frozen name (for example "basic_land"); they never use a transient offered
+   * option index. Fields outside the selected discriminator must be zero.
+   */
+export interface PaymentAbility {
+  kind: string;
+  face?: number;
+  index?: number;
+  intrinsic?: string;
+}
+
+  /**
+   * PaymentActivation is one source activation authorized by a plan.
+   */
+export interface PaymentActivation {
+  source: number;
+  source_zone_seq: number;
+  ability: PaymentAbility;
+  produces: [number, number, number, number, number, number];
+}
+
+  /**
+   * PaymentPlan is a complete V1 execution witness. PoolSpend records which
+   * pre-existing mana units pay the cast; PoolAfter records the expected pool
+   * after activations and payment, and is independently revalidated by rules.
+   */
+export interface PaymentPlan {
+  version: number;
+  id: string;
+  cost: PaymentCost;
+  activations: PaymentActivation[];
+  pool_spend: [number, number, number, number, number, number];
+  pool_after: [number, number, number, number, number, number];
+}
+
+  /**
+   * PaymentAction is an additive priority-decision action. BaseOptionIndex is
+   * absent when floating mana is required before the cast becomes a legacy
+   * option, preserving the existing option list and its indices.
+   */
+export interface PaymentAction {
+  id: string;
+  cast: PlannedCast;
+  base_option_index?: number | null;
+  label: string;
+  plans: PaymentPlan[];
+}
+
+  /**
+   * PaymentFallback explains why an accepted plan returned to the ordinary
+   * manual payment flow. Execution publishes it in a later ticket.
+   */
+export interface PaymentFallback {
+  plan_id: string;
+  reason: string;
+}
+
+  /**
    * DamageEffect describes nominal scripted damage, NEVER guaranteed damage.
    * Prevention, replacement, conditions, division among targets and resolution
    * legality are not evaluated. Spell damage is not commander combat damage.
@@ -825,6 +904,18 @@ export interface Decision {
   min: number;
   max: number;
   options: Option[];
+  /**
+   * PaymentActions is an additive, separately indexed cast-payment
+   * extension. Keeping it outside Options preserves every legacy priority
+   * choice index. It remains empty until payplan-04 publishes executable
+   * offers.
+   */
+  payment_actions?: PaymentAction[];
+  /**
+   * PaymentFallback is populated only if execution falls back to the normal
+   * manual payment window.
+   */
+  payment_fallback?: PaymentFallback | null;
   /**
    * MaxSum, when > 0, is a cumulative budget over the chosen options' Value
    * fields: the sum of the picked options' Value must not exceed MaxSum.
@@ -1111,6 +1202,15 @@ export interface Unsubscribe {
 }
 
   /**
+   * PaymentSelection is the exclusive intent selector for an offered action and
+   * its complete, byte-for-byte equivalent plan witness.
+   */
+export interface PaymentSelection {
+  action_id: string;
+  plan: PaymentPlan;
+}
+
+  /**
    * Intent is a client's answer.
    */
 export interface Intent {
@@ -1134,4 +1234,9 @@ export interface Intent {
    * logged).
    */
   rest?: number[];
+  /**
+   * Payment selects an offered payment action and exact plan witness. It is
+   * exclusive with Choices and Rest.
+   */
+  payment?: PaymentSelection | null;
 }

@@ -155,6 +155,10 @@ var baseBuckets = map[string]bucket{
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
+	// alt.ma is payment-plan's one concrete mana-ability alternative.  It is
+	// a *cards.SA just like ma; the qualified name makes that type explicit
+	// to the census rather than allowing this planner read to evade it.
+	"alt.ma": bSA,
 	// source.original is the attack window's choice-shaped mana source's
 	// compiled pile ability (attackManaSource.original, a *cards.SA like the
 	// bare "original" entry): the targeted-equip window probe (cast.go
@@ -1555,6 +1559,14 @@ var apiSpecificRulesSA = map[string][]string{
 	// api:ChangeZone/api:Sacrifice/api:DealDamage).
 	"Engine.castWindowProbeUnits": {"Mana"},
 	"Engine.castWindowAmount":     {"Mana"},
+	// The payment-plan offer is another mana-only source walk.  It obtains
+	// windowManaUnit alternatives exclusively from AB$ Mana abilities, then
+	// reads Produced$/RestrictValid$/Cost$ (and the Amount$ helper) to build a
+	// replayable tap witness.  These reads cannot make those parameters appear
+	// implemented on unrelated resolving APIs such as Sacrifice or DealDamage.
+	"Engine.paymentPlanManaUnits":         {"Mana"},
+	"Engine.paymentPlanUnitAlternatives":  {"Mana"},
+	"Engine.executePlannedManaActivation": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).

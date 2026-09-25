@@ -582,6 +582,21 @@ type Engine struct {
 	// builds effects.Ctx.Sacrificed; the entry is removed when the stack
 	// object leaves, mirroring triggerContexts.
 	sacrificedLKI map[state.ObjID][]state.SacrificedInfo
+	// castExiled / castRevealed map a stack object id to the cards its own
+	// cast/activation COST removed: the `ExileFromHand`/`ExileFromGrave`/
+	// `Exile` parts (Forge's CostExile, paid-list key "Exiled") and the
+	// `Reveal` parts (CostReveal, key "Revealed"), in stable cost order.
+	// Engine-only scratch in the sacrificedLKI discipline: a log-only
+	// reconstruction rebuilds it because payCast re-executes, cloned with the
+	// engine at intent boundaries, read by the spell's own resolution Ctx
+	// (effects.Ctx.Exiled/Revealed) so the `Exiled$<Property>` /
+	// `Revealed$<Property>` count refs and `Defined$ Exiled`/`Revealed` read
+	// the exact paid cards, and removed with the stack object. A stack COPY
+	// inherits neither map -- referenced here is the deliberate reason the
+	// StackCopy branch does not carry them, unlike fuseTargets: a copy was
+	// never cast and paid no cost (CR 707.10).
+	castExiled   map[state.ObjID][]state.ObjID
+	castRevealed map[state.ObjID][]state.ObjID
 	// fuseTargets maps a fused (FlagFused) stack object id to its two target
 	// stages' own chosen targets (index 0 the front half's, index 1 the
 	// alternate half's). Recorded by payCast at payment, read by resolveFused
@@ -1101,6 +1116,10 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// replayPaymentPlans permits replay to reconstruct a dormant payment offer
+	// only when it encounters its recorded selector.  Live decisions remain
+	// unpublished until host integration enables them.
+	replayPaymentPlans bool
 	// etbMove parks a battlefield entry while its as-enters choice is answered
 	// through the mid-resolution decision path. etbNext is the ordinal of the
 	// next choice on that entry; both are plain data so a clone at the decision
@@ -2792,6 +2811,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.triggerLineSVars, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
+		delete(e.castExiled, ev.Obj)
+		delete(e.castRevealed, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
 		delete(e.copyTargetStage, ev.Obj)
 		delete(e.copyAnswerTargets, ev.Obj)
@@ -3253,6 +3274,22 @@ func (e *Engine) ask(d *decision.Decision) {
 		}
 	}
 	d.Seq = uint64(len(e.L.Events))
+	// Payment actions are an additive extension of a real priority ask. Build
+	// them only after Seq is fixed: both action and plan identities bind that
+	// Seq. This leaves Options (and therefore every legacy index) untouched.
+	// The planner is a pure read, so publication neither adds an event nor
+	// changes the state a normal priority ask observes.
+	if d.Kind == decision.KPriority && len(d.PaymentActions) == 0 {
+		d.PaymentActions = e.PaymentActionsForPriority(d.Player, d.Seq)
+	}
+	// PaymentActionsForPriority is an additive, pure legal-actions walk.  It
+	// may open its own Derived scope after askPriority recorded the ordinary
+	// offer walk's tail, so record the actual last priority-read generation
+	// only after the extension is built.  That keeps BeginDerivedReads able to
+	// resume the exact board read which immediately precedes this ask.
+	if d.Kind == decision.KPriority {
+		e.recordDerivedMemoTail(d)
+	}
 	e.emit(events.Event{Kind: events.DecisionAsk, Player: d.Player, Text: string(d.Kind)})
 	e.pending = d
 }
@@ -3275,6 +3312,19 @@ func decisionMadeText(kind decision.Kind, choices []int) string {
 	}
 	sb.WriteByte(']')
 	return sb.String()
+}
+
+// decisionMadePaymentText is the planned-cast extension of decisionMadeText.
+// The legacy spelling is deliberately left entirely alone: these bytes are
+// chain-bound.  Action and plan are full canonical V1 digests, so this suffix
+// binds the submitted witness without making labels or planner order part of
+// replay history.
+func decisionMadePaymentText(kind decision.Kind, choices []int, payment *decision.PaymentSelection) string {
+	text := decisionMadeText(kind, choices)
+	if payment == nil {
+		return text
+	}
+	return text + ";payment:" + payment.ActionID + ":" + payment.Plan.ID
 }
 
 // drainDeferredAsks poses the front decision ask deferred behind a
@@ -3319,6 +3369,12 @@ func (e *Engine) Submit(in decision.Intent) error {
 	d := e.pending
 	if d == nil {
 		return fmt.Errorf("no decision pending")
+	}
+	if in.Payment != nil && e.replayPaymentPlans && len(d.PaymentActions) == 0 && d.Kind == decision.KPriority {
+		// PaymentActions are intentionally not emitted with DecisionAsk.  A
+		// replay rebuilds the same deterministic, Seq-bound offer from the
+		// recorded selector rather than trusting a prior process's cache.
+		d.PaymentActions = (&decision.Decision{PaymentActions: e.PaymentActionsForPriority(d.Player, d.Seq)}).Clone().PaymentActions
 	}
 	if err := d.Validate(in); err != nil {
 		return err
@@ -3365,11 +3421,22 @@ func (e *Engine) Submit(in decision.Intent) error {
 		}
 	}
 	if d.Kind == decision.KPriority {
+		if in.Payment != nil {
+			action, ok := paymentActionFor(d, in.Payment.ActionID)
+			if !ok {
+				return fmt.Errorf("payment action is not offered") // defensive: Decision.Validate already checked.
+			}
+			if err := e.ValidateCastPayment(in.Player, action.Cast, in.Payment.Plan); err != nil {
+				return err
+			}
+		}
 		// A priority answer whose handler would no-op at its first guard is
 		// rejected before it is recorded (rules/priority_guard.go), so a
 		// stale or mis-offered option errors instead of spinning.
-		if err := e.validatePriorityChoice(d, in); err != nil {
-			return err
+		if in.Payment == nil {
+			if err := e.validatePriorityChoice(d, in); err != nil {
+				return err
+			}
 		}
 	}
 	if e.L.Intents == nil && e.intentBuf != nil {
@@ -3378,11 +3445,23 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// spare capacity.
 		e.L.Intents, e.intentBuf = e.intentBuf, nil
 	}
+	// The caller owns its intent. Keep a private witness before it becomes
+	// replay history, so a client-side mutation after Submit cannot alter it.
+	in = decision.CloneIntent(in)
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
-		Text: decisionMadeText(d.Kind, in.Choices)})
+		Text: decisionMadePaymentText(d.Kind, in.Choices, in.Payment)})
 	e.pending = nil
-	e.handle(d, in)
+	if in.Payment != nil {
+		action, _ := paymentActionFor(d, in.Payment.ActionID)
+		// Match the ordinary cast priority action exactly, then enter the same
+		// cast transaction.  The plan is only an immutable payment continuation;
+		// it never represents a second casting implementation.
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
+		e.beginCastWithPayment(in.Player, decision.Option{Kind: "cast", Obj: action.Cast.Object}, in.Payment)
+	} else {
+		e.handle(d, in)
+	}
 	// A decision posed while a commander-zone choice was outstanding waited
 	// behind it (ask's CR 903.9 arm); pose it now that the answer landed,
 	// before anything below can treat the engine as idle and advance.
@@ -3419,6 +3498,11 @@ func (e *Engine) Submit(in decision.Intent) error {
 	e.Advance()
 	return nil
 }
+
+// EnablePaymentPlanReplay remains a compatibility hook for logs recorded
+// before payment actions were published at ask time. Current replay rebuilds
+// the same extension through ask like a live engine does.
+func (e *Engine) EnablePaymentPlanReplay() { e.replayPaymentPlans = true }
 
 // drawCard draws for the turn structure, sharing effects.DrawFor with the
 // Draw primitive so the draw step and a card that says "draw a card" can

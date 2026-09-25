@@ -1661,9 +1661,23 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !optional && !promptToSkipOptional && !anyNum {
 				verb = "put "
 			}
-			prompt := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			look := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library"
 			if noLooking && !revealWin {
-				prompt = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+				look = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library"
+			}
+			// A self-contained library move (Jace, the Mind Sculptor's "you
+			// may put it on the bottom" shape) is represented by an optional
+			// KChoose.  "Choose" alone is ambiguous here: the selected card
+			// moves to the bottom, while an unselected card does not move.  Say
+			// both sides of that choice in the prompt and on each option.
+			bottomChoice := dest == state.ZLibrary && primaryPos == "-1" && skipReorder
+			prompt := look + ": " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			if bottomChoice {
+				selectVerb := "Select up to "
+				if !optional && !promptToSkipOptional && !anyNum {
+					selectVerb = "Select "
+				}
+				prompt = look + ": " + selectVerb + strconv.Itoa(int(changeNum)) + " matching card(s) to put on the bottom of your library. Leave unselected card(s) on top."
 			}
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
@@ -1691,8 +1705,12 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 						name = o.Face().Name
 					}
 				}
+				label := name
+				if bottomChoice {
+					label = "Put " + name + " on bottom"
+				}
 				opt := decision.Option{Index: len(d.Options),
-					Kind: "dig", Label: name, Obj: id, Player: p}
+					Kind: "dig", Label: label, Obj: id, Player: p}
 				// Only a budget Dig carries a Value: Option.Value is
 				// omitempty, and setting it on a budget-less Dig would put a
 				// "value" field on the wire for every offered card although
@@ -3567,6 +3585,7 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	}
 	valid := sa.Params["ValidCards"]
 	chooseFromList := sa.Params["ChooseFromList"]
+	chooseFromDefined := sa.Params["ChooseFromDefinedCards"]
 	universeBacked := len(h.Game().NameUniverse) > 0
 	random := strings.EqualFold(sa.Params["AtRandom"], "True")
 	// The resolving context's numeric-RHS resolver (paid X, a published
@@ -3574,8 +3593,43 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	// ValidCards$ such as `Creature.cmcEQX` restricts against the resolution
 	// value instead of failing every universe card closed.
 	sc := c.SpecContext(c.Controller)
-	names := NameChoicesFromListCtx(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, &sc, random)
-	if len(names) == 0 && (!universeBacked || chooseFromList == "") {
+	// ChooseFromDefinedCards asks the STRICT filter: the ordinary ValidCards
+	// totality fallback (a matched-nothing spec returning the WHOLE universe)
+	// would feed unrevealed names into the intersection below - a remembered
+	// Forest with ValidCards$ Card.nonLand over a land-only universe offered
+	// Forest. AtRandom already passes strict for the same reason.
+	names := NameChoicesFromListCtx(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, &sc, random || chooseFromDefined != "")
+	if chooseFromDefined != "" {
+		// This selector narrows the normal ValidCards name universe to the
+		// printed names of the Defined referents. Resolve through
+		// knownDefinedTargets, NOT Defined: an unrecognised selector must fail
+		// closed, while Defined's historical fallback acts on the SA source,
+		// whose printed name may never have been revealed. The recognised
+		// Remembered spelling keeps the same context-memory semantics
+		// (resolvedRemembered) Defined's arm uses. With no corpus universe (or
+		// no eligible referents), fail closed: a legacy fallback name could be
+		// neither validated nor guaranteed revealed.
+		defined, known := knownDefinedTargets(h, c, chooseFromDefined)
+		eligible := make(map[string]bool)
+		if known {
+			for _, target := range defined {
+				if target.IsPlayer || target.Obj == 0 {
+					continue
+				}
+				if obj := h.Game().Obj(target.Obj); obj != nil && obj.Face() != nil {
+					eligible[obj.Face().Name] = true
+				}
+			}
+		}
+		restricted := make([]string, 0, len(names))
+		for _, name := range names {
+			if eligible[name] {
+				restricted = append(restricted, name)
+			}
+		}
+		names = restricted
+	}
+	if chooseFromDefined == "" && len(names) == 0 && (!universeBacked || chooseFromList == "") {
 		// R-9: a host without a supplied corpus still completes
 		// deterministically, and reproduces the exact pre-feature NameCard
 		// behaviour (name the top of the caster's own library) so a log an

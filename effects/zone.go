@@ -1582,7 +1582,18 @@ func handMoveCountOf(h Host, c *Ctx, sa *cards.SA) (handMoveCount, bool) {
 // the hand owner). Every shape this function cannot model emits a Note and
 // moves nothing -- the finding's floor: never a silent no-op.
 func effChangeZoneHandOwners(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
-	owners, ok := handMoveOwners(h, c, sa)
+	// On a resume of a multi-owner walk, the owner cursor's captured list is
+	// authoritative: the first move may have cleared the remembered set the
+	// owner selector reads (DefinedPlayer$ RememberedOwner with
+	// ForgetOtherRemembered$ and no RememberChanged$), so recomputing here
+	// would return no owners and the empty-owner guard below would return
+	// before handMoveOwnersWalk can restore the list -- dropping the later
+	// owner's already-answered move. handMoveOwnersWalk's own entry restores
+	// the same list; this restores it early enough to survive the guards.
+	owners, ok := c.ForgetOtherOwners, true
+	if !c.ForgetOtherReady {
+		owners, ok = handMoveOwners(h, c, sa)
+	}
 	if !ok {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "cannot resolve the hand owner (DefinedPlayer$ " + strings.TrimSpace(sa.Params["DefinedPlayer"]) +
@@ -1593,13 +1604,6 @@ func effChangeZoneHandOwners(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "the hand owner selector names no player this engine can resolve; no hand card moves"})
 		return
-	}
-	if c.ForgetOtherReady {
-		// The answered continuation re-resolves its owner list against memory
-		// the first move cleared (a DefinedPlayer$ RememberedOwner walk);
-		// the walk's own captured set rides the ask -- the same read
-		// effSearchLibrary and effHiddenPick make for their walks.
-		owners = c.ForgetOtherOwners
 	}
 	count, ok := handMoveCountOf(h, c, sa)
 	if !ok {
@@ -1773,6 +1777,9 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// The per-type groups an EACH ChangeType asks for, computed once: the
 	// sub-specs are a property of the SA, not of the hand owner.
 	eachSubs, isEach := eachAlternatives(spec)
+	if c.ForgetOtherReady {
+		owners = c.ForgetOtherOwners
+	}
 	g := h.Game()
 	// fx42 scoping: capture and clear the answered pick (and the cursor that
 	// binds it to the owner that asked) BEFORE anything else, so a nested
@@ -1969,11 +1976,11 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			// every other mid-resolution ask boundary does (attach.go,
 			// counters.go, play.go): without it the rebuild loses the ctx-level
 			// Remembered and the revalidation re-eligible-matches nothing.
-			ResumeRemembered: copyTargets(c.Remembered),
 			// The ForgetOtherRemembered$ pre-clear snapshot rides with it: a
 			// LATER owner's pool (and any answered revalidation after an
 			// earlier owner's settle cleared the live set) still reads the
 			// candidates the walk started with.
+			ResumeRemembered:          copyTargets(c.Remembered),
 			ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
 			ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
 			ResumeForgetOtherReady:    c.ForgetOtherReady,
@@ -5586,8 +5593,11 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 			return nil, false
 		}
 	}
-	chooser := c.Controller
-	candidates := h.LegalTargets(chooser, c.Source, sa)
+	// Legality stays referenced to the ability controller; only the
+	// decision's Player moves to the TargetingPlayer$ chooser (the same
+	// resolver every rules-tier target ask uses).
+	candidates := h.LegalTargets(c.Controller, c.Source, sa)
+	chooser := h.ChooserFor(c, sa)
 	min := Num(h, c, sa, "TargetMin", 1)
 	max := Num(h, c, sa, "TargetMax", 1)
 	if max > int32(len(candidates)) {

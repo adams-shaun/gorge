@@ -1845,6 +1845,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// Wanderer's Sacrificed$CardPower does not collapse to zero after the
 	// unless-pay answer suspends resolution.
 	ctx.Sacrificed = e.sacrificedLKI[rp.obj]
+	ctx.Exiled = e.castExiled[rp.obj]
+	ctx.Revealed = e.castRevealed[rp.obj]
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a

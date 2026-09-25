@@ -135,6 +135,19 @@ type Options struct {
 	// other). The player may reconnect and answer later decisions via
 	// SubmitIntent (D2).
 	ThinkTimeout time.Duration
+	// DefaultBotAutoPayMana is applied only while restoring a table written
+	// before TableConfig recorded bot_auto_pay_mana. New tables always carry
+	// their explicit setting, including false, so a restart preserves their
+	// configured behaviour. gorged supplies its -bot-auto-mana startup flag
+	// here to migrate an existing deployment when it first runs this build.
+	DefaultBotAutoPayMana bool
+	// MaxOnDemandTables bounds browser-created private tables retained by a
+	// running process. 0 keeps the historical unlimited behaviour. A limit
+	// refuses a new game instead of deleting a finished table: its private
+	// join URL, feedback capture and replay routes remain valid until the
+	// process restarts, when OnDemand's documented process-scoped cleanup
+	// removes its config.
+	MaxOnDemandTables int
 
 	// OnBurst, when non-nil, is invoked after every recorded burst of every
 	// match created by this registry, including the genesis burst, so an
@@ -200,6 +213,9 @@ func New(o Options) (*Registry, error) {
 	if o.Ring == 0 {
 		o.Ring = 256
 	}
+	if o.MaxOnDemandTables < 0 {
+		return nil, fmt.Errorf("host: MaxOnDemandTables %d, want >= 0", o.MaxOnDemandTables)
+	}
 	r := &Registry{opts: o, tables: map[TableID]*table{}, sessions: map[string]*Session{}, done: make(chan struct{})}
 	if o.Dir != "" {
 		if err := r.load(); err != nil { // Task 12
@@ -223,6 +239,17 @@ func (r *Registry) AddTable(c TableConfig) error {
 	}
 	if _, dup := r.tables[c.ID]; dup {
 		return fmt.Errorf("host: table %s already exists", c.ID)
+	}
+	if c.OnDemand && r.opts.MaxOnDemandTables > 0 {
+		n := 0
+		for _, t := range r.tables {
+			if t.cfg.OnDemand {
+				n++
+			}
+		}
+		if n >= r.opts.MaxOnDemandTables {
+			return fmt.Errorf("host: on-demand table limit %d reached", r.opts.MaxOnDemandTables)
+		}
 	}
 	r.tables[c.ID] = newTable(c)
 	return r.saveLocked() // Task 12; a no-op in memory mode
@@ -368,6 +395,28 @@ func (r *Registry) Tables() []protocol.TableInfo {
 		t := r.tables[id]
 		r.mu.RUnlock()
 		out = append(out, t.info())
+	}
+	return out
+}
+
+// LobbyTables lists the long-lived tables that belong in the public lobby.
+// A play-vs-bot table is entered only through the unguessable join URL
+// returned by POST /api/games; advertising it here would leak an abandoned
+// private game into every visitor's lobby (and used to render one card for
+// every game restored from old persistence). It remains addressable through
+// its table-scoped routes for the lifetime of this process.
+func (r *Registry) LobbyTables() []protocol.TableInfo {
+	out := make([]protocol.TableInfo, 0)
+	for _, id := range r.ids() {
+		r.mu.RLock()
+		t := r.tables[id]
+		r.mu.RUnlock()
+		t.mu.RLock()
+		onDemand := t.cfg.OnDemand
+		t.mu.RUnlock()
+		if !onDemand {
+			out = append(out, t.info())
+		}
 	}
 	return out
 }

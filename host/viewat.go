@@ -64,7 +64,7 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 // decision (never the engine's own pointer, which play replaces between
 // bursts) — then project outside it.
 func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.PlayerID) (view.View, error) {
-	_, m, err := r.lookup(id, k)
+	t, m, err := r.lookup(id, k)
 	if err != nil {
 		return view.View{}, err
 	}
@@ -81,8 +81,10 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 	var d *decision.Decision
 	if seq == head(m) {
 		if p := m.e.Pending(); p != nil {
-			cp := *p
-			cp.Options = append([]decision.Option(nil), p.Options...)
+			cp := *p.Clone()
+			if !t.cfg.AutoMana {
+				cp.PaymentActions = nil
+			}
 			d = &cp
 		}
 	}
