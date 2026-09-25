@@ -1612,6 +1612,18 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	}
 
 	switch head {
+	case "YouDescendedThisTurn":
+		// The number of times the resolving controller descended this turn
+		// (CR 700.11): The Mycotyrant's TokenAmount$ X and Molten Collapse's
+		// CharmNum$ Count$Compare Y GE1.2.1. Reads the same fx20 provenance
+		// ledger as the Player.descended predicate (descendedThisTurn), so
+		// the head and the predicate cannot drift. An out-of-range seat and
+		// an empty ledger are both a MODELLED zero -- never the unresolvable
+		// verdict, which would make an SVar gate fail closed.
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0, true
+		}
+		return descendedThisTurn(g, c.Controller), true
 	case "Compare":
 		return evalCompare(h, c, arg, depth), true
 	case "MostCardName":
