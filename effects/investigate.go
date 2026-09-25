@@ -153,10 +153,9 @@ func investigateFor(h Host, c *Ctx, p state.PlayerID, n int32) {
 // (Will the Wise's Defined$ Opponent.!IsRemembered) reads.
 func rememberInvestigatingPlayers(h Host, c *Ctx, ps []state.PlayerID) {
 	for _, p := range ps {
-		if targetIn(c.Remembered, state.Target{Player: p, IsPlayer: true}) {
-			continue
-		}
-		c.Remembered = append(c.Remembered, state.Target{Player: p, IsPlayer: true})
-		eventRemember(h, c, state.PlayerRef(p))
+		// Shared with RememberDiscardingPlayers$: each player lands on the
+		// resolution's transient set once and on the source's event-backed
+		// persistent list once, with the two dedup checks independent.
+		rememberPlayerBothHalves(h, c, p)
 	}
 }

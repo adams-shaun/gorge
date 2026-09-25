@@ -481,19 +481,49 @@ func discardAndRememberEvent(h Host, c *Ctx, r discardRiders, ev events.Event) {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		eventRemember(h, c, id)
 	}
-	if r.rememberPlayers && !targetIn(c.Remembered, state.Target{Player: p, IsPlayer: true}) {
-		c.Remembered = append(c.Remembered, state.Target{Player: p, IsPlayer: true})
+	if r.rememberPlayers {
 		// RememberDiscardingPlayers$ is a two-half rider like
-		// RememberDiscarded$: the resolution-local Ctx.Remembered entry above
-		// dies with the resolution, but Professor Onyx's ultimate and Snort's
+		// RememberDiscarded$: the resolution-local Ctx.Remembered entry dies
+		// with the resolution, but Professor Onyx's ultimate and Snort's
 		// follow-up read the SOURCE CARD's persistent remembered list
 		// (Player.IsRemembered) from a later ability, so the discarding player
 		// must also land there through the same event-backed write the
 		// RememberDiscarded$ branch and rememberInvestigatingPlayers use.
-		// The targetIn guard retains the dedup: a player discarding twice in
-		// one resolution is persisted once.
-		eventRemember(h, c, state.PlayerRef(p))
+		// rememberPlayerBothHalves keeps the two dedup checks independent: the
+		// persistent write must not be conditional on the transient entry (a
+		// player an earlier subeffect already put in Ctx.Remembered but not on
+		// the source is still a discarder this rider must persist).
+		rememberPlayerBothHalves(h, c, p)
 	}
+}
+
+// rememberPlayerBothHalves records p on BOTH halves of the remembered
+// state a player-remember rider owns: the resolution-local Ctx.Remembered
+// set (which dies with the resolution) and the source object's event-backed
+// persistent remembered list (which Player.IsRemembered and the filter
+// spelling read from a LATER ability).
+//
+// The two dedup checks are deliberately INDEPENDENT. The transient check
+// keeps one Ctx.Remembered entry per player; the persistent check keeps one
+// event-backed entry per player. Tying the persistent write to the transient
+// guard is wrong: an earlier subeffect in the same resolution can place the
+// player in Ctx.Remembered WITHOUT persisting it (ChoosePlayer's
+// RememberChosen$, another remember rider), and then the persistent write is
+// skipped and a later Player.IsRemembered read still cannot see the player.
+// Conversely a persistent entry must not be re-emitted just because the
+// transient set no longer holds it.
+//
+// eventRemember self-gates on c.Source == 0; when the source object is
+// absent there is nothing to dedup against and one write is correct.
+func rememberPlayerBothHalves(h Host, c *Ctx, p state.PlayerID) {
+	want := state.Target{Player: p, IsPlayer: true}
+	if !targetIn(c.Remembered, want) {
+		c.Remembered = append(c.Remembered, want)
+	}
+	if o := h.Game().Obj(c.Source); o != nil && targetIn(o.Remembered, want) {
+		return
+	}
+	eventRemember(h, c, state.PlayerRef(p))
 }
 
 // discardBounds is the min/max Forge's DiscardEffect computes for its
