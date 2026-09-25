@@ -276,3 +276,61 @@ func TestZimoneManifestDreadEmptyLibrary(t *testing.T) {
 	}
 	dreadAssertNoFallback(t, e)
 }
+
+// TestManifestDreadOutOfScopeShapesStayLoud pins the fail-loud contract:
+// ManifestDread lines carrying parameters this build does not implement
+// (Amount$ 1 — a count other than CR 701.61's top two; DefinedPlayer$ — a
+// library other than the resolving controller's; RememberManifested$ True —
+// the DBAttach/DBPutCounter rider family needs the manifested object
+// remembered; Choices$ — the effManifest chooser forms) emit the SAME
+// "unimplemented API ManifestDread" note the unimplemented fallback always
+// emitted, and move nothing: no library→battlefield manifest move, no silent
+// wrong-count, wrong-player or wrong-card move.
+func TestManifestDreadOutOfScopeShapesStayLoud(t *testing.T) {
+	for _, tc := range []struct{ name, params string }{
+		{"Amount", "Amount$ 1"},
+		{"DefinedPlayer", "DefinedPlayer$ TargetedController"},
+		{"RememberManifested", "RememberManifested$ True"},
+		{"Choices", "Choices$ Creature"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := "Name:Loud Dread\nManaCost:0\nTypes:Instant\n" +
+				"A:SP$ ManifestDread | " + tc.params + "\nOracle:x\n"
+			e, cfg, id := newFixtureDeck(t, 4402, src)
+			addMana(t, e, 0, "C")
+			libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
+			d := e.Pending()
+			if d == nil {
+				t.Fatal("no decision pending")
+			}
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "cast" && o.Obj == id {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("no cast option for the fixture: %+v", d.Options)
+			}
+			submitChoices(t, e, idx)
+			passUntilStackEmpty(t, e, 20)
+			if !hasNote(e, "unimplemented API ManifestDread") {
+				t.Fatal("out-of-scope ManifestDread shape was silent: no fallback note")
+			}
+			manifestedOnBf := false
+			for _, ev := range e.L.Events {
+				if ev.Kind == events.MoveZone && ev.From == state.ZLibrary &&
+					ev.To == state.ZBattlefield && ev.Counter == "entered_face_down" {
+					manifestedOnBf = true
+				}
+			}
+			if manifestedOnBf {
+				t.Fatal("out-of-scope ManifestDread shape moved a card")
+			}
+			if len(e.G.Zone(state.ZLibrary, 0)) != len(libBefore) {
+				t.Fatal("library size changed on a failed manifest dread")
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}

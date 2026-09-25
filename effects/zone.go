@@ -3105,7 +3105,30 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 // private look is recorded before the choice; the offered identities are
 // visible only to the library's player. If the host cannot ask, choose the
 // top card deterministically, matching the engine's R-9 fallback contract.
+//
+// Scope, measured over the corpus's 37 ManifestDread lines: the plain top-two
+// body (Zimone, Mystery Unraveler and 26 others) and `Amount$ 2` (identical
+// to the default). Every other parameter family -- `Amount$ 1` (a count this
+// build does not implement), `DefinedPlayer$` (only the resolving
+// controller's library is supported) and `RememberManifested$ True` (the
+// DBAttach/DBPutCounter rider family needs the manifested object remembered)
+// -- emits the SAME loud "unimplemented API ManifestDread" note the
+// unimplemented-API fallback emits and moves nothing: fail loud, never
+// silently look at the wrong count, the wrong player's library, or lose the
+// remembered card a rider needs.
 func effManifestDread(h Host, c *Ctx, sa *cards.SA) {
+	if strings.TrimSpace(sa.Params["DefinedPlayer"]) != "" ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["RememberManifested"]), "True") ||
+		sa.Params["Choices"] != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented API ManifestDread"})
+		return
+	}
+	if raw, present := sa.Params["Amount"]; present && strings.TrimSpace(raw) != "2" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented API ManifestDread"})
+		return
+	}
 	g := h.Game()
 	p := c.ManifestDreadPlayer
 	picked := c.ManifestDreadPick
