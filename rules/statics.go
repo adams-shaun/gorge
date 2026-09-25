@@ -1262,15 +1262,38 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 	return false
 }
 
+// hasCantBlockKeyword reports whether the object's CURRENT derived keyword
+// list carries Forge's textual can't-block grant ("CARDNAME can't block."),
+// with or without the HIDDEN marker Forge prepends. Unlike HasKeyword, which
+// compares heads exactly, this normalises the optional "HIDDEN " prefix away
+// first, because the corpus spells the SAME restriction both ways: 115 files
+// carry `KW$ HIDDEN CARDNAME can't block.` (Pump/PumpAll templates,
+// Concussive Bolt) and Incite Hysteria, Unearthly Blizzard and Siegebreaker
+// Giant carry the bare `KW$ CARDNAME can't block.`. Both are one derived
+// layer-6 grant and must reach the block oracle alike; a hardcoded pair of
+// literals would miss the next spelling. The grant is a rules-side casting/
+// blocking option, so it is read from the derived list (printed plus
+// layer-granted), never the printed face.
+func (e *Engine) hasCantBlockKeyword(id state.ObjID) bool {
+	for _, k := range e.Derived(id).Keywords {
+		head := cardsKeywordHead(k)
+		head = strings.TrimSpace(strings.TrimPrefix(head, "HIDDEN "))
+		if strings.EqualFold(head, "CARDNAME can't block.") {
+			return true
+		}
+	}
+	return false
+}
+
 // blockRestricted reports whether blocker is forbidden from blocking
 // attacker (CantBlock, CantBlockBy, or a granted can't-block keyword).
 // Called from rules/combat.go's canBlock, which askBlockers and handleBlockers
 // both use for real declare-blockers option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
-	// Forge's Pump/PumpAll KW$ HIDDEN CARDNAME can't block. is a derived
+	// Forge's Pump/PumpAll KW$ (HIDDEN) CARDNAME can't block. is a derived
 	// layer-6 grant, not a static. Read it here so the same restriction
 	// governs offered blocks and validation, including Concussive Bolt.
-	if e.HasKeyword(blocker, "HIDDEN CARDNAME can't block.") {
+	if e.hasCantBlockKeyword(blocker) {
 		return true
 	}
 	// The Effect-registered CantBlockBy grants walk FIRST, beside the
