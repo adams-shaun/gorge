@@ -172,7 +172,7 @@ func compilePred(raw string) compiledPred {
 		c.stage = csType
 		return c
 	}
-	c.kp, c.hasKP = keywordPredicates[p]
+	c.kp, c.hasKP = keywordPredicateFor(p)
 	c.named = p == "NamedCard"
 	c.fn = predicates[p]
 	_, c.num = numericPred(p, nil, &state.Object{}, SpecContext{})
@@ -200,12 +200,16 @@ func compiledPositive(c *compiledPred, g *state.Game, o *state.Object, sc *SpecC
 	default:
 		return false, false
 	}
-	if c.hasKP && sc.ExtraKeywords != nil {
+	if c.hasKP {
 		has := false
-		for _, x := range sc.ExtraKeywords {
-			if strings.EqualFold(cards.KeywordHead(x), c.kp.keyword) {
-				has = true
-				break
+		if sc.ExtraKeywords == nil {
+			has = objectHasKeyword(o, c.kp.keyword)
+		} else {
+			for _, x := range sc.ExtraKeywords {
+				if strings.EqualFold(cards.KeywordHead(x), c.kp.keyword) {
+					has = true
+					break
+				}
 			}
 		}
 		if c.kp.negated {

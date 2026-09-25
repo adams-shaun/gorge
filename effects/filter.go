@@ -40,6 +40,22 @@ type keywordPredicate struct {
 
 var keywordPredicates = map[string]keywordPredicate{}
 
+// keywordPredicateFor classifies a supported with<X>/without<X> token. Forge
+// scripts retain spaces in keyword names, while the registry keys are compact;
+// only these keyword-predicate forms are normalized, leaving every other
+// predicate argument byte-for-byte significant.
+func keywordPredicateFor(p string) (keywordPredicate, bool) {
+	if kp, ok := keywordPredicates[p]; ok {
+		return kp, true
+	}
+	if strings.HasPrefix(p, "with") || strings.HasPrefix(p, "without") {
+		compact := strings.ReplaceAll(p, " ", "")
+		kp, ok := keywordPredicates[compact]
+		return kp, ok
+	}
+	return keywordPredicate{}, false
+}
+
 var predicates = map[string]predFn{
 	"YouCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller == you
@@ -383,7 +399,7 @@ func init() {
 
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace",
-		"Flanking", "Horsemanship", "Defender", "Foretell", "Shadow"} {
+		"Flanking", "Horsemanship", "Defender", "Foretell", "Shadow", "Doctor's companion"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return objectHasKeyword(o, k)
@@ -2371,6 +2387,9 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
+	if _, ok := keywordPredicateFor(p); ok {
+		return true
+	}
 	// IsGoaded is evaluated by matchPositive against SpecContext (the map's
 	// legacy predFn signature carries no SpecContext), so it is listed here
 	// like IsRemembered/EffectSource to keep the matcher and the
@@ -2513,7 +2532,7 @@ func SpecReadsKeywords(spec string) bool {
 			if p == "" {
 				continue
 			}
-			if _, ok := keywordPredicates[p]; ok {
+			if _, ok := keywordPredicateFor(p); ok {
 				return true
 			}
 		}
@@ -3263,7 +3282,14 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// predicate-map functions read the object alone and cannot see a layer-6
 	// AddKeyword$ grant. Keep this before the generic predicate map so a
 	// context-aware caller never has its bound list bypassed.
-	if kp, ok := keywordPredicates[p]; ok && sc.ExtraKeywords != nil {
+	if kp, ok := keywordPredicateFor(p); ok {
+		if sc.ExtraKeywords == nil {
+			has := objectHasKeyword(o, kp.keyword)
+			if kp.negated {
+				has = !has
+			}
+			return has, true
+		}
 		has := false
 		for _, x := range sc.ExtraKeywords {
 			if strings.EqualFold(cards.KeywordHead(x), kp.keyword) {
