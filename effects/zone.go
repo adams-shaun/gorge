@@ -1746,6 +1746,10 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// The per-type groups an EACH ChangeType asks for, computed once: the
 	// sub-specs are a property of the SA, not of the hand owner.
 	eachSubs, isEach := eachAlternatives(spec)
+	if c.ForgetOtherReady {
+		owners = c.ForgetOtherOwners
+	}
+	initForgetOtherSnapshot(h, c, sa, owners)
 	g := h.Game()
 	// fx42 scoping: capture and clear the answered pick (and the cursor that
 	// binds it to the owner that asked) BEFORE anything else, so a nested
@@ -1774,7 +1778,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	eligibleByOwner := make([][]state.ObjID, len(owners))
 	for i, owner := range owners {
 		for _, id := range zoneOf(g, state.ZHand, owner) {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 				eligibleByOwner[i] = append(eligibleByOwner[i], id)
 			}
 		}
@@ -1938,8 +1942,12 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			// every other mid-resolution ask boundary does (attach.go,
 			// counters.go, play.go): without it the rebuild loses the ctx-level
 			// Remembered and the revalidation re-eligible-matches nothing.
-			ResumeRemembered: copyTargets(c.Remembered),
-			Prompt:           handMovePromptFor(sa, to, int(n), chooser == owner)}
+			ResumeRemembered:          copyTargets(c.Remembered),
+			ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+			ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+			ResumeForgetOtherReady:    c.ForgetOtherReady,
+			ResumeForgetOtherCleared:  c.ForgetOtherCleared,
+			Prompt:                    handMovePromptFor(sa, to, int(n), chooser == owner)}
 		for _, id := range eligible {
 			name := "a card"
 			if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -2005,6 +2013,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		handLibraryTail(h, g, sa, c.Source, owner, moved, to)
 		scheduleAtEOT(h, c, sa, moved)
 	}
+	endForgetOtherSnapshot(c)
 }
 
 // handTakeOptional reads Forge's optional-vs-mandatory markers for a
