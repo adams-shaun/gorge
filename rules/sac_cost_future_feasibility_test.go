@@ -65,40 +65,63 @@ func TestManaAbilitySacChoicePreservesLaterArtifactPart(t *testing.T) {
 		"A:AB$ Mana | Cost$ Sac<1/Artifact;Creature/artifact or creature> Sac<1/Artifact> | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n"
 	artifactCreature := "Name:Artifact Crab\nTypes:Artifact Creature\nPT:1/1\nOracle:x\n"
 	creatureScript := "Name:Crab\nTypes:Creature\nPT:1/1\nOracle:x\n"
-	e, _, _ := newFixtureDeck(t, 82, outlet, artifactCreature, creatureScript)
+	e, _, _ := newFixtureDeck(t, 82, outlet, artifactCreature, creatureScript, creatureScript)
 	source := moveSeeded(t, e, 0, outlet, state.ZBattlefield)
 	artifact := putCreature(t, e, 0, artifactCreature)
-	creature := putCreature(t, e, 0, creatureScript)
-	for _, id := range []state.ObjID{source, artifact, creature} {
+	creatureA := putCreature(t, e, 0, creatureScript)
+	creatureB := putCreature(t, e, 0, creatureScript)
+	for _, id := range []state.ObjID{source, artifact, creatureA, creatureB} {
 		if e.G.Obj(id).Zone != state.ZBattlefield {
 			t.Fatalf("precondition: object %d is in %s, want battlefield", id, e.G.Obj(id).Zone)
 		}
 	}
-	if artifact == creature || !strings.Contains(strings.Join(e.G.Obj(artifact).Face().Types, " "), "Artifact") || !strings.Contains(strings.Join(e.G.Obj(artifact).Face().Types, " "), "Creature") || !strings.Contains(strings.Join(e.G.Obj(creature).Face().Types, " "), "Creature") || strings.Contains(strings.Join(e.G.Obj(creature).Face().Types, " "), "Artifact") {
-		t.Fatalf("precondition: distinct artifact creature and ordinary creature required: %d %d", artifact, creature)
+	for _, id := range []state.ObjID{creatureA, creatureB} {
+		if id == artifact || !strings.Contains(strings.Join(e.G.Obj(id).Face().Types, " "), "Creature") || strings.Contains(strings.Join(e.G.Obj(id).Face().Types, " "), "Artifact") {
+			t.Fatalf("precondition: ordinary creature %d has unexpected types %v", id, e.G.Obj(id).Face().Types)
+		}
 	}
-	e.pending = nil
-	e.Advance()
-	if len(e.G.Obj(source).Face().Abilities) == 0 {
-		t.Fatalf("precondition: fixture did not compile mana ability: face=%+v", e.G.Obj(source).Face())
+	if !strings.Contains(strings.Join(e.G.Obj(artifact).Face().Types, " "), "Artifact") || !strings.Contains(strings.Join(e.G.Obj(artifact).Face().Types, " "), "Creature") {
+		t.Fatalf("precondition: narrow-filter candidate %d must be an artifact creature", artifact)
 	}
-	ability := activateOption(t, e, source)
-	submitChoices(t, e, ability)
+	face := e.G.Obj(source).Face()
+	if len(face.Abilities) == 0 {
+		t.Fatalf("precondition: fixture did not compile mana ability: face=%+v", face)
+	}
+	ma := face.Abilities[0]
+	cost := e.parseCost(ma.Params["Cost"])
+	if len(cost.Sac) != 2 || cost.Sac[0].Spec == cost.Sac[1].Spec {
+		t.Fatalf("precondition: mana ability must compile overlapping Sac parts: %+v", cost.Sac)
+	}
+	if _, ok := e.manaSacrifices(0, source, cost); !ok {
+		t.Fatal("precondition: mana ability has no distinct sacrifice assignment")
+	}
+	if _, ok := e.manaSacrifices(0, source, ParseCost("Sac<1/Artifact> Sac<1/Artifact>")); ok {
+		t.Fatal("mana cost with two artifact parts was payable using the sole artifact candidate")
+	}
+	e.manaDiscardActivation = &manaDiscardActivation{player: 0, source: source, ability: ma, cost: cost}
+	e.continueManaDiscard()
 	first := e.Pending()
-	if first == nil || first.Kind != decision.KChoose {
-		t.Fatalf("precondition: mana ability must ask for its broad first sacrifice, pending=%+v", first)
+	if first == nil || first.Kind != decision.KChoose || len(first.Options) != 2 {
+		t.Fatalf("mana activation first choice = %+v, want a choice between the two ordinary creatures", first)
 	}
-	if len(first.Options) != 1 || first.Options[0].Obj != creature {
-		t.Fatalf("first mana sacrifice options = %+v, want only creature %d while retaining artifact %d", first.Options, creature, artifact)
+	chosen := -1
+	for _, option := range first.Options {
+		if option.Obj == artifact {
+			t.Fatalf("artifact %d is offered despite being required for the later part: %+v", artifact, first.Options)
+		}
+		if option.Obj == creatureA || option.Obj == creatureB {
+			chosen = option.Index
+		}
 	}
-	if err := first.Validate(decision.Intent{Seq: first.Seq, Player: first.Player, Choices: []int{first.Options[0].Index}}); err != nil {
-		t.Fatalf("the feasible mana sacrifice answer does not validate: %v", err)
+	if chosen < 0 {
+		t.Fatalf("no ordinary creature offered: %+v", first.Options)
 	}
-	submitChoices(t, e, first.Options[0].Index)
-	if e.G.Obj(artifact).Zone != state.ZGraveyard || e.G.Obj(creature).Zone != state.ZGraveyard {
-		t.Fatalf("mana activation did not settle both distinct sacrifices: pending=%+v artifact=%s creature=%s", e.Pending(), e.G.Obj(artifact).Zone, e.G.Obj(creature).Zone)
+	in := decision.Intent{Seq: first.Seq, Player: first.Player, Choices: []int{chosen}}
+	if err := first.Validate(in); err != nil {
+		t.Fatalf("feasible mana-sacrifice answer rejected: %v", err)
 	}
-	if e.G.Players[0].Pool[state.MR] != 1 {
-		t.Fatalf("mana pool = %+v, want the activation's red mana", e.G.Players[0].Pool)
+	submitChoices(t, e, chosen)
+	if e.G.Obj(artifact).Zone != state.ZGraveyard || (e.G.Obj(creatureA).Zone != state.ZGraveyard && e.G.Obj(creatureB).Zone != state.ZGraveyard) {
+		t.Fatalf("mana ability did not complete both distinct parts: artifact=%s creatureA=%s creatureB=%s", e.G.Obj(artifact).Zone, e.G.Obj(creatureA).Zone, e.G.Obj(creatureB).Zone)
 	}
 }
