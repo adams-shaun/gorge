@@ -1193,6 +1193,15 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			// battlefield layers. triggerLKI carries this value through the
 			// TriggerPush wrapper to both initial and resumed resolution.
 			o = c.LKI
+		} else if ref == "Remembered" {
+			for _, rememberedLKI := range c.ChangeZoneLKI {
+				if rememberedLKI.Obj == t.Obj && rememberedLKI.Snapshot.Card != nil {
+					snapshot := rememberedLKI.Snapshot
+					o = &snapshot
+					lki = true
+					break
+				}
+			}
 		}
 		if o == nil {
 			continue
