@@ -2045,6 +2045,36 @@ func Apply(g *state.Game, e Event) {
 		}
 		p.Notes = out
 
+	case CardNoted:
+		// A DB$ Pump body noted a label onto a CARD (NoteCards$ Remembered |
+		// NoteCardsFor$ <label> -- Volatile Chimera, Arcane Savant, Caller of
+		// the Untamed; NoteCards$ TriggeredSource -- Maelstrom Archangel
+		// Avatar). Obj is the noted object and Text the label; the note is
+		// read back by the shared card filter's `Card.NotedFor<label>`
+		// qualifier. Appending is idempotent (a re-note of the same label does
+		// not duplicate it) and preserves first-note order, so a log-only
+		// replay rebuilds the exact slice. An empty label or a vanished object
+		// writes nothing rather than a ghost note. A note is card-identity
+		// provenance, not zone-local state -- the setup-path carriers note
+		// cards sitting in exile -- so the fold never clears on a zone move.
+		if e.Text == "" {
+			break
+		}
+		noted := g.Obj(e.Obj)
+		if noted == nil {
+			break
+		}
+		seen := false
+		for _, n := range noted.Notes {
+			if n == e.Text {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			noted.Notes = append(noted.Notes, e.Text)
+		}
+
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
 			switch e.Counter {

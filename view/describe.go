@@ -250,6 +250,11 @@ func Describe(g *state.Game, ev events.Event) string {
 		return player(g, ev.Player) + " is noted for " + ev.Text
 	case events.PlayerNoteCleared:
 		return player(g, ev.Player) + " is no longer noted for " + ev.Text
+	case events.CardNoted:
+		// The card-notation sibling of PlayerNoted (NoteCards$ Remembered /
+		// TriggeredSource with NoteCardsFor$): Obj is the noted card, Text the
+		// label a later `Card.NotedFor<label>` filter read selects on.
+		return obj(g, ev.Obj) + " is noted for " + ev.Text
 	case events.Mutate:
 		// CR 702.140d: one mutating card merges into the surviving permanent.
 		// Text is "top" or "under" (CR 702.140b's placement).

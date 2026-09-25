@@ -254,35 +254,56 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	// NoteCards$ <defined> + NoteCardsFor$ <label> (Forge's NoteCardsEffect):
-	// the body records a player-notation that a later resolution reads through
-	// the shared player filter's `Player.NotedFor<label>` qualifier. Corpus
-	// carriers: Seize the Spotlight's fame/fortune branches, Master of
+	// the body records a notation that a later resolution reads back through
+	// the shared filters. The player half (NoteCards$ Self, state.Player.Notes
+	// and the `Player.NotedFor<label>` qualifier) is unchanged: corpus
+	// carriers are Seize the Spotlight's fame/fortune branches, Master of
 	// Ceremonies' money/friends/secrets, Wheel of Potential, Borderland
 	// Explorer. The noted SEAT is the resolution's Defined set (a remembered
 	// chooser, `Defined$ Player`, or `Defined$ Player.!IsRemembered`); Forge's
 	// NoteCardsEffect notes the CURRENT player when Defined$ is absent, which
-	// here is the resolving controller. NoteCards$ itself names the noted
-	// thing, and only its `Self` form is a PLAYER notation: every corpus
-	// player carrier carries `NoteCards$ Self`, while `Remembered`/
-	// `TriggeredSource` (Volatile Chimera, Caller of the Untamed, Arcane
-	// Savant, Maelstrom Archangel Avatar) are the card-notation half
-	// (`Card.NotedFor<label>` at ChooseCard/Play/ChangeType sites), a separate
-	// family that must NOT write a player label. The note lands through its
-	// own event so a log-only replay rebuilds state.Player.Notes exactly; the
-	// pump body then runs unchanged (a `Defined$ Remembered` chooser is a
-	// player entry, skipped by the object walk below).
-	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" && strings.TrimSpace(sa.Params["NoteCards"]) == "Self" {
-		spec := strings.TrimSpace(sa.Params["Defined"])
-		noted := false
-		for _, t := range Defined(h, c, sa) {
-			if !t.IsPlayer {
-				continue
+	// here is the resolving controller. The CARD half is the other corpus
+	// family: `NoteCards$ Remembered` (Volatile Chimera, Arcane Savant, Caller
+	// of the Untamed) notes the resolution's Remembered cards and
+	// `NoteCards$ TriggeredSource` (Maelstrom Archangel Avatar) notes the
+	// triggering source, both onto the noted CARD through events.CardNoted,
+	// for the later `Card.NotedFor<label>` reads at ChooseCard's Choices$, DB$
+	// Play's Valid$ and RepeatEach's RepeatCards$. CopyPermanent's
+	// RevealFromExile cost is an evidenced corpus shape but remains unsupported.
+	// The note lands through its own event so a
+	// log-only replay rebuilds state.Object.Notes exactly; the pump body then
+	// runs unchanged (a `Defined$ Remembered` chooser is a player entry,
+	// skipped by the object walk below). Any other NoteCards$ form stays
+	// loud-unimplemented (transcript note, no state write).
+	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" {
+		switch strings.TrimSpace(sa.Params["NoteCards"]) {
+		case "Self":
+			spec := strings.TrimSpace(sa.Params["Defined"])
+			noted := false
+			for _, t := range Defined(h, c, sa) {
+				if !t.IsPlayer {
+					continue
+				}
+				h.Emit(events.Event{Kind: events.PlayerNoted, Player: t.Player, Text: label})
+				noted = true
 			}
-			h.Emit(events.Event{Kind: events.PlayerNoted, Player: t.Player, Text: label})
-			noted = true
-		}
-		if !noted && spec == "" {
-			h.Emit(events.Event{Kind: events.PlayerNoted, Player: c.Controller, Text: label})
+			if !noted && spec == "" {
+				h.Emit(events.Event{Kind: events.PlayerNoted, Player: c.Controller, Text: label})
+			}
+		case "Remembered":
+			for _, t := range resolvedRemembered(h, c) {
+				if t.IsPlayer || t.Obj == 0 {
+					continue
+				}
+				h.Emit(events.Event{Kind: events.CardNoted, Obj: t.Obj, Text: label})
+			}
+		case "TriggeredSource":
+			if c.TriggerSource != 0 {
+				h.Emit(events.Event{Kind: events.CardNoted, Obj: c.TriggerSource, Text: label})
+			}
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unimplemented NoteCards$ " + strings.TrimSpace(sa.Params["NoteCards"])})
 		}
 	}
 
