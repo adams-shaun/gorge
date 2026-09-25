@@ -532,15 +532,18 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			}
 			continue
 		}
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, &ev)
-		if m.repl.With.API == "ReplaceEffect" {
+		ctx := e.replCtx(m, ev)
+		rewritesHeldEvent := replacementBodyRewritesHeldEvent(m.repl.With, ctx.SVars)
+		e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
+		if rewritesHeldEvent {
 			// The body rewrote the held amount (changed) or could not resolve
 			// its value and left it alone; either way the event stands and the
 			// next modifier applies to the result.
 			continue
 		}
-		// A body of another API (DB$ DealDamage, DB$ RemoveCounters, ...)
-		// supplied its own outcome; its emissions replace the original event.
+		// A body that does not rewrite the held event (DB$ DealDamage,
+		// DB$ RemoveCounters, ...) supplied its own outcome; its emissions
+		// replace the original event.
 		return ev, true
 	}
 	return ev, false
@@ -1570,6 +1573,30 @@ func (e *Engine) seedEffectReplCtx(ctx *effects.Ctx, m replMatch) {
 	for _, id := range m.remembered {
 		ctx.Remembered = append(ctx.Remembered, state.Target{Obj: id})
 	}
+}
+
+// replacementBodyRewritesHeldEvent classifies the whole ReplaceWith$
+// chain, not just its first API. A chain may perform work (for example RollDice)
+// before a later ReplaceEffect rewrites the held event. Resolve the same
+// unlinked Effect-created SubAbility shape runReplaceWith links before walking.
+func replacementBodyRewritesHeldEvent(with *cards.SA, svars map[string]string) bool {
+	var walk func(*cards.SA) bool
+	walk = func(with *cards.SA) bool {
+		if with == nil {
+			return false
+		}
+		if with.API == "ReplaceEffect" {
+			return true
+		}
+		sub := with.Sub
+		if sub == nil && svars != nil {
+			if name := strings.TrimSpace(with.Params["SubAbility"]); name != "" {
+				sub = cards.ResolveSVar(svars, name)
+			}
+		}
+		return walk(sub)
+	}
+	return walk(with)
 }
 
 // runReplaceWith resolves one ReplaceWith$ body inside the replacement
