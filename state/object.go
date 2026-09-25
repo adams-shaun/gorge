@@ -808,18 +808,22 @@ type Object struct {
 	ManaTreasureSpent int32
 	ManaCaveSpent     int32
 	ManaDesertSpent   int32
-	// ManaAddsCounterSources are the ids of the permanents whose mana-ability
-	// AddsCounters$ rider applied to this cast (Opal Palace's "if you spend
-	// this mana to cast your commander, it enters with ... counters"): the
-	// consuming sources captured at payment and carried by the pay-time
-	// CastInfo's FlagAddsCounters IDs. The rider is re-read from each source
-	// face at the spell's battlefield entry (rules' entry-counter plan), so
-	// this field holds only the links, never the resolved count -- the count
-	// head is evaluated against the board at entry. It rides the same
-	// provenance window as X/CastFlags and resets alongside them in
-	// events.Move; a stack copy was never cast and reads empty (the flag is
-	// stripped by CastProvenanceFlags and the field is cleared at the mint).
-	ManaAddsCounterSources []ObjID
+	// ManaAddsCounterGrants are the AddsCounters$ mana-spend rider grants this
+	// cast earned (Opal Palace's "if you spend this mana to cast your
+	// commander, it enters with ... counters", Biophagus, Animal Attendant,
+	// Guildmages' Forum). Each entry is one producing ABILITY's rider
+	// snapshotted at PRODUCTION (Filter, Kind, Amount -- a literal or the
+	// resolved SVar body) together with Count, how many of that ability's
+	// mana units the payment actually spent. It rides the pay-time CastInfo's
+	// FlagAddsCounters Text payload and is used verbatim by rules'
+	// entry-counter plan: the rider is never re-read from the source's
+	// current face at entry, so a copied/modified source or a second,
+	// rider-less ability of the same permanent cannot change the grant, and
+	// Count rider units yield Count grants. It rides the same provenance
+	// window as X/CastFlags and resets alongside them in events.Move; a stack
+	// copy was never cast and reads empty (the flag is stripped by
+	// CastProvenanceFlags and the field is cleared at the mint).
+	ManaAddsCounterGrants []ManaAddsCounterGrant
 	// ManaArtifactSpent is the ARTIFACT-sourced part of ManaSpent (task
 	// mayplay-mfa): how many of the mana units the cast's payment spent were
 	// produced by an Artifact permanent -- Sol Ring, Arcane Signet, the whole

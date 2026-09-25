@@ -316,17 +316,16 @@ type pendingCast struct {
 	manaSpentDesert   int32
 	manaSpentArtifact int32
 
-	// addsCounterSources (task opalp) captures, right after payment, the
-	// consuming sources whose mana ability carries an AddsCounters$ rider
-	// (Opal Palace and the three siblings). It is filtered from the same
-	// e.manaSpentSources capture emitRestrictedManaSpend builds for the
-	// TriggersWhenSpent$ dispatch, BEFORE fireManaSpentTriggers consumes and
-	// clears that capture. The pay-time CastInfo's FlagAddsCounters IDs carry
-	// these ids onto the cast object, where the entry-counter plan re-reads
-	// each source's rider. Empty for every cast that spent no rider-bearing
-	// mana, so unrelated casts stay byte-identical. Plain data, so Clone
-	// carries it like converge.
-	addsCounterSources []state.ObjID
+	// addsCounterGrants (task opalp) captures, right after payment, the
+	// AddsCounters$ rider grants the cast earned: the consumed batches'
+	// producing-ability rider snapshots and spent unit counts that
+	// emitRestrictedManaSpend accumulated in e.manaSpentAddsCounters. The
+	// pay-time CastInfo's FlagAddsCounters Text payload carries them onto the
+	// cast object, where the entry-counter plan uses them verbatim (never
+	// re-reading a source face). Empty for every cast that spent no
+	// rider-bearing mana, so unrelated casts stay byte-identical. Plain data,
+	// so Clone carries it like converge.
+	addsCounterGrants []state.ManaAddsCounterGrant
 
 	sacs    []state.ObjID
 	sacPart int
@@ -9490,14 +9489,14 @@ func (e *Engine) payCast() {
 		pc.manaSpentDesert = manaSpentTotal(spentTyped[state.TypedDesert]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
 		pc.manaSpentArtifact = manaSpentTotal(spentTyped[state.TypedArtifact]) + manaSpentTotal(spentTyped[state.TypedArtifactTreasure]) + manaSpentTotal(spentTyped[state.TypedArtifactCave]) + manaSpentTotal(spentTyped[state.TypedArtifactDesert])
 	}
-	// AddsCounters$ (task opalp): capture the rider-bearing producing sources
-	// from the SAME payment capture emitRestrictedManaSpend built for
-	// TriggersWhenSpent$. This must run before fireManaSpentTriggers consumes
-	// and clears e.manaSpentSources (nothing can suspend between the payment
-	// and here -- the capture site only emits), and only a source whose face
-	// actually carries the rider is kept, so a cast that spent ordinary (or
-	// only restricted) mana emits no rider event and stays byte-identical.
-	pc.addsCounterSources = e.manaSpentAddsCounterSources()
+	// AddsCounters$ (task opalp): capture the rider grants from the SAME
+	// payment capture emitRestrictedManaSpend built. This must run before
+	// fireManaSpentTriggers consumes and clears e.manaSpentSources (nothing
+	// can suspend between the payment and here -- the capture site only
+	// emits). The capture is already filtered to rider-bearing batches and
+	// keeps one record per spent unit, so a cast that spent ordinary (or only
+	// restricted) mana emits no rider event and stays byte-identical.
+	pc.addsCounterGrants = append([]state.ManaAddsCounterGrant(nil), e.manaSpentAddsCounters...)
 	if pc.payLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.payLife})
 	}
@@ -9828,19 +9827,19 @@ func (e *Engine) payCast() {
 		cvFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagConvoked)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(ids)), Counter: cvFlags, IDs: ids})
 	}
-	// AddsCounters$ (task opalp): the producing sources whose mana-spend rider
-	// applied to this cast ride their own TRAILING pay-time CastInfo's IDs --
+	// AddsCounters$ (task opalp): the producing abilities' rider grants this
+	// cast earned ride their own TRAILING pay-time CastInfo's Text payload --
 	// the flag (NOT ORed into the accumulating flags, the Conspired/Convoked
-	// pattern) routes the IDs into Object.ManaAddsCounterSources (events.Apply
-	// folds it outside the Amount switch), and rules' entry-counter plan
-	// re-reads each source's rider when the spell enters as a permanent.
-	// Emitted only when the payment consumed rider-bearing mana, so every
-	// unrelated cast stays byte-identical; no accumulation means no later
-	// CastInfo carries the flag, so its arm's position in the newest-first
-	// switch is order-independent.
-	if len(pc.addsCounterSources) > 0 {
+	// pattern) routes the payload into Object.ManaAddsCounterGrants
+	// (events.Apply folds it outside the Amount switch), and rules'
+	// entry-counter plan uses each snapshot verbatim when the spell enters as
+	// a permanent. Emitted only when the payment consumed rider-bearing mana,
+	// so every unrelated cast stays byte-identical; no accumulation means no
+	// later CastInfo carries the flag, so its arm's position in the
+	// newest-first switch is order-independent.
+	if len(pc.addsCounterGrants) > 0 {
 		acFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagAddsCounters)
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(pc.addsCounterSources)), Counter: acFlags, IDs: pc.addsCounterSources})
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(pc.addsCounterGrants)), Counter: acFlags, Text: events.ManaAddsCounterGrantsText(pc.addsCounterGrants)})
 	}
 	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
 	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
@@ -10112,46 +10111,10 @@ func (e *Engine) fireDeferredCastTrigger() {
 // or names no longer-resolvable body fails closed -- the rider belongs to the
 // permanent. SpellCast is spell-only; SpellAbilityCast dispatches on both
 // spell casts and activated abilities.
-// manaSpentAddsCounterSources filters the current payment's consumed-source
-// capture (e.manaSpentSources, built by emitRestrictedManaSpend) to the
-// sources whose face actually carries an AddsCounters$ rider on one of its
-// mana abilities. The pay-time CastInfo's FlagAddsCounters IDs carry these
-// ids onto the cast object; the entry-counter plan re-reads each source's
-// rider from its face at the spell's battlefield entry. Dedup keeps one entry
-// per source in payment batch order, the same order manaSpentSources has.
-func (e *Engine) manaSpentAddsCounterSources() []state.ObjID {
-	var out []state.ObjID
-	for _, src := range e.manaSpentSources {
-		o := e.G.Obj(src)
-		if o == nil || o.Face() == nil {
-			continue
-		}
-		if !faceHasAddsCountersRider(o.Face()) {
-			continue
-		}
-		if !containsObjID(out, src) {
-			out = append(out, src)
-		}
-	}
-	return out
-}
-
-// faceHasAddsCountersRider reports whether one of the face's mana abilities
-// declares a non-empty AddsCounters$ rider (Opal Palace, Biophagus, Animal
-// Attendant, Guildmages' Forum). It is the ONE predicate the payment capture
-// and the entry-counter plan share, so the two cannot disagree about which
-// sources are rider-bearing.
-func faceHasAddsCountersRider(f *cards.Face) bool {
-	if f == nil {
-		return false
-	}
-	for _, ma := range f.ManaAbilities() {
-		if strings.TrimSpace(ma.Params["AddsCounters"]) != "" {
-			return true
-		}
-	}
-	return false
-}
+// manaSpentAddsCounterSources (task opalp) is gone: the rider grant is
+// captured per batch by emitRestrictedManaSpend (e.manaSpentAddsCounters) so
+// the producing ability's snapshot and the spent unit count survive, instead
+// of a deduplicated source list that re-read the source face at entry.
 
 func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 	sources := e.manaSpentSources

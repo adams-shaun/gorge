@@ -413,6 +413,7 @@ func (e *Engine) visiblePersistentMana(p state.PlayerID, d paymentDescriptor) st
 func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[7]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
 	e.noCounterSpend = 0
 	e.manaSpentSources = nil
+	e.manaSpentAddsCounters = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
 	// otherwise removing the first of two matching batches would make the
 	// live slice shift under this loop and could skip or double-spend one.
@@ -461,6 +462,21 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, 
 		if (d.class == paymentSpell || d.class == paymentActivated) && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
 			e.manaSpentSources = append(e.manaSpentSources, r.Source)
 		}
+		// AddsCounters$ (task opalp): a consumed batch that carries the
+		// producing ability's rider contributes THIS batch's spent unit count
+		// as one grant. The rider is the batch's own snapshot, so a different
+		// ability of the same permanent cannot import its rider, and the
+		// count is per unit -- two units spent from one rider ability are two
+		// grants, never one. The amount is resolved to the producing source's
+		// SVar table HERE (cast-payment time), so the stored grant is the
+		// cast-time value; a source that changes before the spell enters
+		// cannot alter it. A malformed rider or an unresolvable amount is
+		// dropped (fail closed), never guessed.
+		if (d.class == paymentSpell || d.class == paymentActivated) && strings.TrimSpace(r.AddsCounters) != "" {
+			if g, ok := e.addsCounterGrant(r, used); ok {
+				e.manaSpentAddsCounters = append(e.manaSpentAddsCounters, g)
+			}
+		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
 			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
@@ -493,6 +509,31 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, 
 			emitSnow[state.ManaIndex(r.Color[1])] -= used
 		}
 	}
+}
+
+// addsCounterGrant resolves one consumed rider batch into the grant payCast
+// records: the producing ABILITY's rider parsed into (filter, kind, amount),
+// with a non-literal amount looked up in the producing source's SVar table
+// NOW (cast-payment time), and used -- how many of the batch's units the
+// payment spent -- as the grant's unit count. A malformed rider, an
+// unresolvable SVar name or a spent count of zero yields ok=false, so the
+// caller drops it (fail closed) instead of placing a guessed counter.
+func (e *Engine) addsCounterGrant(r state.ManaRestriction, used int32) (state.ManaAddsCounterGrant, bool) {
+	if used <= 0 {
+		return state.ManaAddsCounterGrant{}, false
+	}
+	filter, kind, amount, ok := parseAddsCounters(r.AddsCounters)
+	if !ok {
+		return state.ManaAddsCounterGrant{}, false
+	}
+	if _, err := strconv.Atoi(amount); err != nil {
+		body := svarBodyForObject(e.G.Obj(r.Source), amount)
+		if body == "" {
+			return state.ManaAddsCounterGrant{}, false
+		}
+		amount = body
+	}
+	return state.ManaAddsCounterGrant{Filter: filter, Kind: kind, Amount: amount, Count: used}, true
 }
 
 // containsObjID reports whether id is already in ids (a small linear scan;

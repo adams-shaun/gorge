@@ -5647,6 +5647,12 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			} else if provenanceOnly {
 				ev.Text = events.ManaRestrictionText("", c.Source)
 			}
+			// AddsCounters$ rides the SAME provenance encoding as the restriction
+			// (the " ac=" segment ManaAddsCountersText appends), so a replay
+			// rebuilds the batch with the producing ABILITY's rider snapshot.
+			// Composes with a restriction and with AddsNoCounter$; empty for
+			// every non-rider ability, keeping those events byte-identical.
+			ev.Text = events.ManaAddsCountersText(ev.Text, addsCounters)
 			if persistent {
 				ev.Text = events.ManaPersistentText(ev.Text)
 			}
