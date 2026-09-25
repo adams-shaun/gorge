@@ -841,6 +841,19 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replReplacedCards is the ordered plural batch (Ctx.ReplacedCards) of the
+	// replacement currently resolving -- the cascade instruction's exiled
+	// cards, the counterpart of replReplaced for Averna's Defined$
+	// ReplacedCards selector. Ask captures it onto the resume point so a
+	// ReplaceWith$ body that suspends at its hidden pick re-resolves
+	// ReplacedCards.<qual> against the same batch. nil outside a Cascade
+	// replacement.
+	replReplacedCards []state.ObjID
+	// cascadeResidue is the synthetic SA effCascade wants run after a Cascade
+	// replacement body (bottom the non-found exiled cards, then the free-cast
+	// election). It is scoped to one ProposeCascadeReplacement call, the same
+	// scratch pattern as scrySA/scryTarget; nil outside one.
+	cascadeResidue *cards.SA
 	// replacingEvent is the in-flight Damage event a DB$ ReplaceEffect body's
 	// ReplaceEvent call may rewrite (Amount/Affected). It exists only during
 	// emit, before the event is logged, so it is never part of

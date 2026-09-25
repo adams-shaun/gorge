@@ -968,10 +968,17 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	CardNoted
+	// Cascade is the cascade instruction's replacement PROPOSAL boundary
+	// (Averna, the Chaos Bloom's R:Event$ Cascade). It is never emitted: the
+	// rules tier holds it out to the replacement matcher exactly as Engine.Scry
+	// holds events.Scry, and the IDs carry the ordered exiled batch the body's
+	// ReplacedCards selector reads. Appended after CardNoted, preserving every
+	// earlier ordinal, hash chain and golden replay.
+	Cascade
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(CardNoted) + 1
+	NumKinds = int(Cascade) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1107,7 +1114,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
-	"proliferate", "evolved", "delayed_forget", "card_noted"}
+	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

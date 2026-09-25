@@ -226,6 +226,18 @@ type Host interface {
 	// the effects test double reports (count, true) unchanged (no engine to
 	// consult).
 	Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (countAfter int32, proceed, pending bool)
+	// CascadeReplacement proposes the cascade INSTRUCTION as one replaceable
+	// event (CR 614.4; Averna, the Chaos Bloom's R:Event$ Cascade) after the
+	// exile-until batch is complete and before any card is bottomed or
+	// offered for casting. batch is this invocation's ordered exiled object
+	// ids, bound as the body's Defined$ ReplacedCards; residue is the
+	// continuation the caller wants run AFTER the replacement body (bottom
+	// the rest, then the free-cast election), chained onto the body so a body
+	// that suspends at a mid-resolution ask resumes into it. It reports
+	// whether a replacement matched (a host with no replacement registry --
+	// the effects test double -- reports false, the same discipline as its
+	// Scry above). The proposal is never logged.
+	CascadeReplacement(source state.ObjID, controller state.PlayerID, batch []state.ObjID, residue *cards.SA) bool
 	// RollDiceProposed is the pre-roll replacement boundary effRollDice
 	// consults before any die of ONE roll action is rolled (CR 614.4): the
 	// host holds a synthetic events.RollDice proposal out to the R:Event$
@@ -1230,6 +1242,14 @@ type Ctx struct {
 	// -- it drives the replacement's own resolution but is never itself persisted
 	// to the event log.
 	Replaced state.ObjID
+	// ReplacedCards is the ordered plural batch a replaced INSTRUCTION was
+	// about (Defined$ ReplacedCards / ReplacedCards.<qual>): the cascade
+	// instruction's exiled cards, which Averna, the Chaos Bloom picks a land
+	// from. It is the plural counterpart of Replaced, set by
+	// rules/replacement.go on the ReplaceWith$ context of a Cascade
+	// proposal and carried through a suspension; empty outside one, and an
+	// empty batch resolves to nobody (fail closed). Context, never state.
+	ReplacedCards []state.ObjID
 	// ReplacedPlayer is the player a replaced DRAW event was about — the
 	// draw-er (Breathstealer's Crypt draws/reveals/discards "that player",
 	// Zur's Weirding's other players pay relative to them). Set only on a

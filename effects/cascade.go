@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -49,6 +51,11 @@ import (
 func init() {
 	Register("Cascade", effCascade)
 	Register("CascadeBottom", effCascadeBottom)
+	// CascadeResidue is the cascade instruction's tail (bottom the non-found
+	// exiled cards, then the free-cast election). It is never a corpus API:
+	// effCascade builds it so a Cascade replacement body that suspends at its
+	// hidden pick resumes into it.
+	Register("CascadeResidue", effCascadeResidue)
 }
 
 // cascadePlaySA builds the free-cast election's Play SA and its chained
@@ -119,28 +126,75 @@ func effCascade(h Host, c *Ctx, sa *cards.SA) {
 	// existing library order (the random-order stand-in). The found card is
 	// by construction the LAST card the scan exiled, so the final library
 	// order is the same one a single post-election bottoming would produce.
-	rest := exiled
+	//
+	// The Averna boundary (R:Event$ Cascade) sits BEFORE that bottoming and
+	// before the election: the whole exiled batch is offered to the
+	// replacement matcher as ONE proposal, and Averna's ReplaceWith$ body
+	// (a land from the batch onto the battlefield tapped) runs first. The
+	// bottoming and the election are the residue the proposal chains onto
+	// its body, so a body that suspends at its hidden pick resumes into the
+	// residue rather than losing it.
+	residue := &cards.SA{Kind: "DB", API: "CascadeResidue",
+		Params: map[string]string{"Found": boolParam(found != 0)}}
+	c.ReplacedCards = append([]state.ObjID(nil), exiled...)
+	if h.CascadeReplacement(c.Source, p, exiled, residue) {
+		// A Cascade replacement matched: its body ran the residue (or
+		// suspended, and the chained residue will run on the resume).
+		return
+	}
+	// No replacement: run the residue inline, byte-identically to the
+	// pre-Averna flow.
+	effCascadeResidue(h, c, residue)
+}
+
+// boolParam renders a boolean as the "True"/"False" spelling Forge params
+// use, so a synthetic SA carries a value the ordinary EqualFold reads accept.
+func boolParam(b bool) string {
+	if b {
+		return "True"
+	}
+	return "False"
+}
+
+// effCascadeResidue is the cascade instruction's tail, run either inline
+// (no Cascade replacement) or chained after a Cascade replacement's body so
+// a body that asked resumes into it. It bottoms every exiled card except the
+// found one, then poses the free-cast election over the found card; a card
+// the Averna body already moved out of exile (the land it put onto the
+// battlefield) is skipped by the zone recheck, never emitted back to the
+// library. Ctx.ReplacedCards is the batch; Found says whether the batch's
+// LAST card is the found card (absent for the run-out arm, where every card
+// is bottomed).
+func effCascadeResidue(h Host, c *Ctx, sa *cards.SA) {
+	batch := c.ReplacedCards
+	c.ReplacedCards = nil
+	if len(batch) == 0 {
+		return
+	}
+	g := h.Game()
+	found := state.ObjID(0)
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Found"]), "True") {
+		found = batch[len(batch)-1]
+	}
+	rest := batch
 	if found != 0 {
-		rest = exiled[:len(exiled)-1]
+		rest = batch[:len(batch)-1]
 	}
 	for _, id := range rest {
+		o := g.Obj(id)
+		if o == nil || o.Zone != state.ZExile {
+			continue
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZExile,
 			To: state.ZLibrary, Text: "cascaded card put on the bottom of the library"})
 	}
 	if found == 0 {
 		return
 	}
-	// The election: population = exactly the found card, riding the
-	// resolution's Remembered (effPlay's Defined$ Remembered read and the
-	// answer's ResumeRemembered ride are the same list). The chained
-	// CascadeBottom bottoms the found card when the election declined it.
 	c.Remembered = []state.Target{{Obj: found}}
 	playSA := cascadePlaySA()
 	effPlay(h, c, playSA)
 	if !h.Suspended() {
-		// AskNoHost (an effects-package stub host): the deterministic decline
-		// (R-9). The real engine's Ask always suspends, and the answer
-		// re-enters playSA, whose Sub chain runs CascadeBottom there.
 		effCascadeBottom(h, c, playSA.Sub)
 	}
 }
