@@ -341,6 +341,26 @@ func exiledWithSet(g *state.Game, c *Ctx) []state.Target {
 	return out
 }
 
+// paidCostTargets is the ONE home for the cast-cost PAID lists the
+// `Exiled`/`Revealed` referent spellings read: the cards this cast's or
+// activation's own cost removed, in stable cost order. Shared by the count
+// ref resolver (effects/count.go's refTargets) and the Defined$ selector
+// (definedSpec below), so a count body and a Defined$ body can never disagree
+// about which cards the paid list holds. ref is "Exiled" (Forge's
+// CostExile row key, HashLKIListKey) or "Revealed" (CostReveal.doPayment);
+// an absent binding is an empty list -- a legitimate zero, never a fallback.
+func paidCostTargets(c *Ctx, ref string) []state.Target {
+	ids := c.Exiled
+	if ref == "Revealed" {
+		ids = c.Revealed
+	}
+	out := make([]state.Target, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, state.Target{Obj: id})
+	}
+	return out
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
@@ -510,6 +530,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return out, true
 	case "Remembered":
 		return resolvedRemembered(h, c), true
+	case "Exiled", "Revealed":
+		// Forge's cast-cost PAID lists: the cards this cast's/activation's own
+		// cost exiled or revealed (see paidCostTargets -- the one shared home
+		// with count.go's refTargets case). A `Defined$ Exiled`/`Revealed`
+		// reader acts on exactly the paid cards; an absent paid list is the
+		// known-empty pool (ok=true, nobody), never a fallback to the source or
+		// the chosen targets. This is NOT Object.ExiledWith: an ExileFromGrave
+		// cost emits a plain MoveZone with no ExiledWith marker.
+		return paidCostTargets(c, spec), true
 	case "ImprintedLKI":
 		// Forge's LKI spelling of the imprint pile, distinct from the bare
 		// "Imprinted" case below: the SOURCE's persistent imprint association,

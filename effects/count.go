@@ -1028,6 +1028,22 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			}
 		}
 		return out, true
+	case "Exiled", "Revealed":
+		// Forge's cast-cost PAID lists (AbilityUtils.getPaidCards ->
+		// SpellAbility.getPaidList): the cards this cast's own cost removed --
+		// CostExile's row is keyed "Exiled" (HashLKIListKey),
+		// CostReveal.doPayment's is "Revealed". The cards ride Ctx.Exiled /
+		// Ctx.Revealed, bound from the engine's per-stack-object capture at
+		// payment, so a body such as Draconic Intervention's
+		// `SVar:X:Exiled$CardManaCost` reads the card the ExileFromGrave cost
+		// actually exiled rather than the source or a remembered set. An
+		// absent binding is a legitimate EMPTY list (ok=true, zero), never a
+		// fallback -- exactly the ExiledWith association's empty case above.
+		// This is deliberately NOT Object.ExiledWith: an ExileFromGrave cost
+		// emits a plain MoveZone with no ExiledWith marker, so aliasing the
+		// association would read zero for the real carriers. paidCostTargets
+		// is the shared home with definedSpec's own case.
+		return paidCostTargets(c, ref), true
 	case "TargetedObjects", "TargetedObjectsDistinct":
 		// Forge's TargetedObjects referent (AbilityUtils.calcX's
 		// `calcX[0].startsWith("TargetedObjects")` arm): the UNION of every

@@ -1120,6 +1120,22 @@ type Ctx struct {
 	// directly so a SubAbility$ chained after it can read it. The
 	// Sacrificed$<Property> heads in count.go read it.
 	Sacrificed []state.SacrificedInfo
+	// Exiled / Revealed carry the cards PAID as part of this cast's or
+	// activation's cost: the `ExileFromHand`/`ExileFromGrave`/`Exile` parts
+	// (Forge's CostExile, paid list keyed "Exiled") and the `Reveal` parts
+	// (CostReveal, keyed "Revealed"). They are NOT the source's persistent
+	// exile association (`Object.ExiledWith`) nor `Remembered`: they name the
+	// exact cards this cast's cost removed, in stable cost order. Forge reads
+	// them through AbilityUtils.getPaidCards -> SpellAbility.getPaidList, and
+	// the `Exiled$<Property>` / `Revealed$<Property>` count refs and the bare
+	// `Defined$ Exiled`/`Revealed` selectors both resolve them here (the one
+	// shared binding). rules carries them onto the engine keyed by the stack
+	// object (engine.castPaid), rebuilt by replay because payCast re-executes;
+	// a copy of the spell was never cast and carries none. Empty means "no
+	// paid list" -- a legitimate zero, never a fallback to the source or the
+	// chosen targets.
+	Exiled   []state.ObjID
+	Revealed []state.ObjID
 	// ChangeZoneLKI is the resolution's last-known-information table for
 	// ChangeZoneRememberLKI$ moves: one entry per object the move captured,
 	// holding the controller/owner it had at that instant. events.Apply's Move

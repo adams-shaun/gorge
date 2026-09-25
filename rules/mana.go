@@ -344,6 +344,21 @@ var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
 var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
+// choiceCostRevealOrChoose additionally recognises Forge's either-or
+// `RevealOrChoose<N/Spec>` cost (Monstrous Emergence, Dragon's Fire): reveal a
+// card matching Spec from hand, OR choose a creature you control. This build
+// models the REVEAL branch only: the token parses into the ordinary Reveal
+// part, so the card is priced correctly (its old unrecognised-symbol fallback
+// charged one generic too much and dropped the reveal entirely) and the
+// revealed card is captured onto the cast's paid list, where the
+// `Revealed$<Property>` refs read it. The CHOOSE alternative is deliberately
+// not offered by this build -- it names a battlefield creature the cast
+// controls, a different provenance (a chosen permanent, not a paid card), and
+// offering neither branch would be less faithful than offering the modelled
+// one. The remainder is reported in the ticket report; no corpus carrier's
+// choose branch is silently read as the reveal list.
+var choiceCostRevealOrChoose = regexp.MustCompile(`^RevealOrChoose<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
+
 // revealChosenCost matches the designation-reveal cost heads. Forge has two
 // spellings: RevealChosen<Player> (reveal the player you secretly chose) and
 // RevealChosen<Type/creature type> (reveal the creature type you secretly
@@ -655,6 +670,21 @@ func ParseCost(s string) Cost {
 					part.Spec, part.MinPower = stripGroupPowerFloor(part.Spec)
 					c.TapPermanent = append(c.TapPermanent, part)
 				}
+				continue
+			}
+			if m := choiceCostRevealOrChoose.FindStringSubmatch(sym); m != nil {
+				// RevealOrChoose<N/Spec> pays through the REVEAL branch only (see
+				// the regex's doc): the revealed card is a real cost-paid card and
+				// rides the ordinary Reveal list, so it is captured onto the cast's
+				// paid list and answered by the `Revealed$<Property>` refs. The
+				// choose alternative is not offered by this build.
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.Reveal = append(c.Reveal, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[2], ";", ","), Desc: m[3]})
 				continue
 			}
 			if m := revealChosenCost.FindStringSubmatch(sym); m != nil {

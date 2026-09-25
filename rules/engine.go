@@ -582,6 +582,21 @@ type Engine struct {
 	// builds effects.Ctx.Sacrificed; the entry is removed when the stack
 	// object leaves, mirroring triggerContexts.
 	sacrificedLKI map[state.ObjID][]state.SacrificedInfo
+	// castExiled / castRevealed map a stack object id to the cards its own
+	// cast/activation COST removed: the `ExileFromHand`/`ExileFromGrave`/
+	// `Exile` parts (Forge's CostExile, paid-list key "Exiled") and the
+	// `Reveal` parts (CostReveal, key "Revealed"), in stable cost order.
+	// Engine-only scratch in the sacrificedLKI discipline: a log-only
+	// reconstruction rebuilds it because payCast re-executes, cloned with the
+	// engine at intent boundaries, read by the spell's own resolution Ctx
+	// (effects.Ctx.Exiled/Revealed) so the `Exiled$<Property>` /
+	// `Revealed$<Property>` count refs and `Defined$ Exiled`/`Revealed` read
+	// the exact paid cards, and removed with the stack object. A stack COPY
+	// inherits neither map -- referenced here is the deliberate reason the
+	// StackCopy branch does not carry them, unlike fuseTargets: a copy was
+	// never cast and paid no cost (CR 707.10).
+	castExiled   map[state.ObjID][]state.ObjID
+	castRevealed map[state.ObjID][]state.ObjID
 	// fuseTargets maps a fused (FlagFused) stack object id to its two target
 	// stages' own chosen targets (index 0 the front half's, index 1 the
 	// alternate half's). Recorded by payCast at payment, read by resolveFused
@@ -2796,6 +2811,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.triggerLineSVars, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
+		delete(e.castExiled, ev.Obj)
+		delete(e.castRevealed, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
 		delete(e.copyTargetStage, ev.Obj)
 		delete(e.copyAnswerTargets, ev.Obj)
