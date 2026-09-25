@@ -1470,16 +1470,6 @@ func imprint(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// forgetOtherRemembered clears the source's replay-backed memory and the
-// resolving context only when this primitive explicitly requests it.
-func forgetOtherRemembered(h Host, c *Ctx, sa *cards.SA) {
-	if !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
-		return
-	}
-	clearEventRemembered(h, c)
-	c.Remembered = nil
-}
-
 func clearEventRemembered(h Host, c *Ctx) {
 	if c.Source != 0 {
 		if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {

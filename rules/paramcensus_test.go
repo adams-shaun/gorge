@@ -2817,8 +2817,19 @@ var knownUnsupportedParams = map[string][]string{
 	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
 	"Conjurer's Mantle":            {"param:api:Dig.RestRandomOrder"},
 	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
-	"Hercules, Olympian Hero":      {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":                {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Gift of Immortality's param:api:ChangeZone.ForgetOtherRemembered label
+	// (and the whole entry) was deleted when the ForgetOtherRemembered read
+	// landed (ticket agent-20260919T181318Z-316d7b2a): effChangeZone and
+	// effChangeZoneAll clear the prior remembered set before re-remembering
+	// (RememberChanged$), pinned end to end on the real corpus carrier The
+	// Mimeoplasm in rules/mimeoplasm_forget_test.go (its MimeoExile /
+	// MimeoChooseCopy chain) and at the bookkeeping choke points in
+	// effects/forget_remembered_test.go.
+	// Haakon, Stromgald Scourge's param:stat:Continuous.MayPlay.ValidAfterStack
+	// entry was deleted when mayPlayStatic began consuming ValidAfterStack$ as
+	// a derived spell filter (task mayplay-validafterstack).
+	"Hercules, Olympian Hero": {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":           {"param:api:ChangeZone.ValidTgtsDesc"},
 	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
 	// when the CounterType$ EachFromSource copy-each-kind shape was read
 	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --
