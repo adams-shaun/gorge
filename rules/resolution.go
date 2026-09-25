@@ -87,6 +87,13 @@ type resumePoint struct {
 	// subject after the suspension (fx44, Mox Diamond). Zero for an ordinary
 	// (non-replacement) ask.
 	replaced state.ObjID
+	// replacedCards is the plural counterpart of replaced: the ordered
+	// replaced-instruction batch (Ctx.ReplacedCards) captured at ask time
+	// when the ask is posed from inside a Cascade replacement body. The
+	// resume rebuilds Ctx.ReplacedCards from it, so a ReplacedCards.<qual>
+	// hidden pick re-resolves against the same exiled batch after the
+	// suspension (Averna, the Chaos Bloom). nil for every ordinary ask.
+	replacedCards []state.ObjID
 	// replacementTarget/replacementSource/replacementAmount are the in-flight
 	// Damage event's own target/source/amount (e.replacingEvent), captured so
 	// a DB$ ReplaceEffect body that asks mid-resolution can rebuild the same
@@ -618,6 +625,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 	}
 	return &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
+		replacedCards:     append([]state.ObjID(nil), e.replReplacedCards...),
 		redirect:          e.replRedirect,
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: replacementSource,
@@ -1798,6 +1806,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// sacrifice asks once after the flips; without this the second loser's
 		// read saw an empty set and never sacrificed).
 		FlipMemory: rp.flipMemory}
+	// The plural replaced-instruction batch (Ctx.ReplacedCards) follows the
+	// same rule as the singular Replaced below: a resumed frame that carries
+	// one restores it, so a Cascade body's hidden pick re-resolves
+	// ReplacedCards.<qual> against the same exiled batch. Set unconditionally
+	// when present, because a continuation frame of a replacement body's
+	// resolution (the CascadeResidue SA) runs with rp.replacement false yet
+	// still needs the batch.
+	if len(rp.replacedCards) > 0 {
+		ctx.ReplacedCards = append([]state.ObjID(nil), rp.replacedCards...)
+	}
 	// Publish this rebuilt Ctx for the whole of the resumed resolution (the
 	// same restore-on-return bracket effects.Resolve uses), so an ask posed
 	// from RULES machinery before the effects.Resolve re-entry -- the Ward
@@ -4102,6 +4120,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
 			f.targetCountersLKI = effects.CloneTargetCountersLKI(e.resume.targetCountersLKI)
 			f.targetSpellLKI = effects.CloneTargetSpellLKI(e.resume.targetSpellLKI)
+			f.replacedCards = append([]state.ObjID(nil), e.resume.replacedCards...)
 		}
 		// The same-resolution flip memory (Engine.Ask captured it off
 		// Engine.resolvingFlipMemory onto the pending point): a continuation

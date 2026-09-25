@@ -388,6 +388,22 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	}
+	// The DOTTED `ReplacedCards <qualifier>` selector (Averna, the Chaos
+	// Bloom's `ChooseFromDefined$ ReplacedCards.Land`): the subset of the
+	// plural replaced-instruction batch a qualifier admits, through the same
+	// dotted-qualifier grammar Targeted./ExiledWith. use. A cascade
+	// replacement binds the batch (Ctx.ReplacedCards); an ABSENT binding is a
+	// known-empty pool -- fail closed to nobody, never the whole origin zone.
+	if qual, ok := strings.CutPrefix(spec, "ReplacedCards."); ok {
+		qual = strings.TrimSpace(qual)
+		var out []state.Target
+		for _, id := range c.ReplacedCards {
+			if o := g.Obj(id); o != nil && definedCardQualifierMatches(g, c, qual, o) {
+				out = append(out, state.Target{Obj: id})
+			}
+		}
+		return out, true
+	}
 	switch spec {
 	case "":
 		return nil, false
@@ -913,6 +929,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.Replaced}}, true
 		}
 		return nil, true
+	case "ReplacedCards":
+		// The whole plural replaced-instruction batch (the bare spelling of
+		// the dotted `ReplacedCards <qualifier>` arm above). An absent or
+		// empty batch is a known-empty result, never a source fallback.
+		var out []state.Target
+		for _, id := range c.ReplacedCards {
+			if id != 0 && g.Obj(id) != nil {
+				out = append(out, state.Target{Obj: id})
+			}
+		}
+		return out, true
 	case "ReplacedTarget":
 		// Damage replacements may affect either an object or a player. Preserve
 		// that distinction rather than deriving a player through object zero.

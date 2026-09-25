@@ -90,7 +90,12 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.PlayerNoteCleared,
 		events.GainedAbilityPush, events.GainedTriggerPush,
 		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice,
-		events.DelayedForget:
+		events.DelayedForget, events.Cascade:
+		// Cascade is a never-emitted PROPOSAL (the cascade instruction's
+		// replacement boundary, events.Cascade): it is held out to the
+		// replacement matcher and logged nowhere, so no trigger mode can ever
+		// observe it and it carries no interest bits -- the zero mapping every
+		// other bookkeeping kind in this list has.
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter

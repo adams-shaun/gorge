@@ -419,6 +419,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return e.applyAddCounterReplacements(ev, matches)
 	case events.TurnFaceUp:
 		return e.applyTurnFaceUpReplacements(ev, matches)
+	case events.Cascade:
+		// The instruction proposal. Unlike every other kind here it has no
+		// logged event to emit or suppress: applyCascadeReplacements runs the
+		// matching ReplaceWith$ body with the caller's residue chained after
+		// it, and the caller owns the cascade's continuation entirely.
+		return e.applyCascadeReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -998,6 +1004,13 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "CreateToken", true
 	case events.Explore:
 		return "Explore", true
+	case events.Cascade:
+		// The cascade instruction's replacement boundary (CR 614.4; Averna,
+		// the Chaos Bloom). Only the synthetic PROPOSAL (Engine.
+		// ProposeCascadeReplacement) reaches the collection: the Kind is never
+		// emitted, so no logged event can ever map here. The exiled batch
+		// rides ev.IDs and becomes Ctx.ReplacedCards on the body's context.
+		return "Cascade", true
 	case events.Scry:
 		// The scry instruction boundary. Only the synthetic PROPOSAL
 		// (Engine.Scry) reaches the collection; the completed record is
@@ -1498,6 +1511,13 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// act on exactly the card being kept out of the graveyard -- not the
 		// source that owns the replacement.
 		Replaced: ev.Obj}
+	// The cascade instruction's ordered exiled batch, the plural referent
+	// Averna's ReplaceWith$ body reads as Defined$ ReplacedCards.<qual>. Only a
+	// Cascade proposal carries it; every other replacement leaves the field
+	// empty (the singular Replaced seed above is unchanged).
+	if ev.Kind == events.Cascade {
+		ctx.ReplacedCards = append([]state.ObjID(nil), ev.IDs...)
+	}
 	f := m.face
 	if f == nil {
 		f = o.Face()
@@ -1636,6 +1656,7 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	savedRepl, savedEvent, savedSource, savedAction, savedPlayer :=
 		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer
+	savedReplCards := e.replReplacedCards
 	savedApplying := e.applyingReplacement
 	e.applyingReplacement = true
 	action := ""
@@ -1644,9 +1665,15 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	}
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		replaced, ev, ctx.Source, action, ctx.ReplacedPlayer
+	if ctx != nil {
+		e.replReplacedCards = append([]state.ObjID(nil), ctx.ReplacedCards...)
+	} else {
+		e.replReplacedCards = nil
+	}
 	e.resolveReplacementBody(ctx, with)
 	e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer =
 		savedRepl, savedEvent, savedSource, savedAction, savedPlayer
+	e.replReplacedCards = savedReplCards
 	e.applyingReplacement = savedApplying
 }
 
@@ -1773,6 +1800,89 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 	e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
 	e.replRedirect = savedRedirect
 	return ev, true
+}
+
+// cascadeReplacementEvent builds the synthetic Cascade proposal
+// ProposeCascadeReplacement holds out to the replacement matcher. It is never
+// logged: the IDs carry the ordered exiled batch the body's ReplacedCards
+// selector reads, and Obj is the cascade spell whose trigger is resolving.
+func cascadeReplacementEvent(source state.ObjID, controller state.PlayerID, batch []state.ObjID) events.Event {
+	return events.Event{Kind: events.Cascade, Obj: source, Player: controller,
+		IDs: append([]state.ObjID(nil), batch...)}
+}
+
+// applyCascadeReplacements runs the matching Cascade replacement bodies against
+// the held instruction proposal. There is no original event to emit (the
+// cascade instruction's remainder is the caller's residue), so unlike
+// applyReplacement this never folds or logs the proposal. The LAST body gets
+// the residue chained after it (via runCascadeReplaceWith) so the bottoming
+// and the free-cast election run once, after the body -- or after it resumes,
+// when the body suspends at its hidden land pick.
+func (e *Engine) applyCascadeReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	residue := e.cascadeResidue
+	if residue == nil {
+		return ev, false
+	}
+	var bodies []replMatch
+	for _, m := range matches {
+		if m.repl.With != nil {
+			bodies = append(bodies, m)
+		}
+	}
+	if len(bodies) == 0 {
+		return ev, false
+	}
+	for i, m := range bodies {
+		var tail *cards.SA
+		if i == len(bodies)-1 {
+			tail = residue
+		}
+		ctx := e.replCtx(m, ev)
+		e.runCascadeReplaceWith(ctx, ev.Obj, m.repl.With, tail)
+	}
+	return ev, true
+}
+
+// runCascadeReplaceWith resolves one Cascade replacement body with an optional
+// residue SA chained at the end of its SubAbility$ chain. The chain is
+// DEEP-COPIED before the tail is attached: the body is shared, immutable
+// corpus data, and mutating a shared SA's Sub would corrupt every later use of
+// the same script.
+func (e *Engine) runCascadeReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA, residue *cards.SA) {
+	body := with
+	if residue != nil {
+		body = cloneChainWithTail(with, residue)
+	}
+	e.runReplaceWith(ctx, replaced, body, nil)
+}
+
+// cloneChainWithTail returns a copy of the SubAbility$ chain rooted at sa with
+// tail appended after its last link. Only the SA structs along Sub are copied;
+// Params, Line and the compiled fields are shared (the chain is immutable).
+func cloneChainWithTail(sa *cards.SA, tail *cards.SA) *cards.SA {
+	cp := *sa
+	if sa.Sub == nil {
+		cp.Sub = tail
+	} else {
+		cp.Sub = cloneChainWithTail(sa.Sub, tail)
+	}
+	return &cp
+}
+
+// CascadeReplacement implements effects.Host. It holds one synthetic
+// events.Cascade proposal out to the ordinary replacement collection and runs
+// the matching bodies, returning whether anything matched. e.cascadeResidue
+// carries the caller's residue through the synchronous dispatch (the same
+// scoped-scratch pattern as e.scrySA/e.scryTarget in Engine.Scry).
+func (e *Engine) CascadeReplacement(source state.ObjID, controller state.PlayerID, batch []state.ObjID, residue *cards.SA) bool {
+	if e.applyingReplacement {
+		return false
+	}
+	saved := e.cascadeResidue
+	e.cascadeResidue = residue
+	_, handled := e.applyReplacements(cascadeReplacementEvent(source, controller, batch))
+	e.cascadeResidue = saved
+	return handled
 }
 
 // replRedirect records one destination-changing move replacement in flight:
@@ -4777,6 +4887,20 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// the same way the Draw class reads it; the count/ignore rewrites are
 		// the With's own ReplaceEffect bodies (ReplaceEvent's PlanarRoll arm).
 		if ev.Kind != events.PlanarRoll {
+			return false
+		}
+		if vp, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "Cascade":
+		// The cascade instruction's replacement boundary (CR 614.4;
+		// Averna, the Chaos Bloom's `ValidPlayer$ You | ActiveZones$
+		// Battlefield`). Only the synthetic proposal reaches here, so there
+		// is no logged event and no ValidCard$: the caster is ev.Player and
+		// ValidPlayer$ scopes it exactly as the Draw/ProduceMana classes do.
+		if ev.Kind != events.Cascade {
 			return false
 		}
 		if vp, ok := r.Params["ValidPlayer"]; ok &&
