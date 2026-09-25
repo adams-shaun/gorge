@@ -358,6 +358,18 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.GiveGift:
 		// The completed gift marker follows the gift action's own events.
 		return player(g, ev.Player) + " gives a gift"
+	case events.Clash:
+		// The completed clash marker (CR 701.31, task clash1), one per
+		// clashing player: Player is the clashing seat, Amount 1 when that
+		// player WON the clash and 0 when they lost or tied (CR 701.31
+		// leaves a tie with no winner). The reveal and the top/bottom
+		// placements are their own preceding Note/LibraryOrder lines, so
+		// this line names only the seat and the outcome; Obj is the
+		// resolving source permanent and may be 0 for a source-less body.
+		if ev.Amount == 1 {
+			return player(g, ev.Player) + " wins the clash"
+		}
+		return player(g, ev.Player) + " loses the clash"
 	case events.Evolved:
 		// The completed evolve marker (CR 702.99b, task trig:Evolved) is a
 		// pure no-op like GiveGift/Investigate: the +1/+1 counter placement
