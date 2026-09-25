@@ -340,6 +340,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Evolved":
+		// The Evolved marker's ordinal is past the 64-bit mask's reach, the
+		// GiveGift/Surveil shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path and gated by the full
+		// matcher (evolvedMatches, task trig:Evolved). Naming the mode here
+		// rather than letting it fall to the allTriggerEvents default keeps
+		// an Evolved-only face's mask narrow for every other kind.
+		return 0
 	case "FullyUnlock":
 		// CR 709.5's "whenever you fully unlock a Room" (task
 		// agent-20260919T191104Z-95f1e316): the Eerie enchantments' other-

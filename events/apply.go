@@ -1884,6 +1884,14 @@ func Apply(g *state.Game, e Event) {
 		// so "whenever you give a gift" fires on a promise actually kept
 		// rather than on any draw or token creation.
 
+	case Evolved:
+		// One completed evolve keyword action (CR 702.99b), matched by
+		// trig:Evolved. Like GiveGift/Investigate it is a pure Apply no-op
+		// marker: the +1/+1 counter placement is its own CounterChange event
+		// rules emitted during the keyword ability's resolution, and this
+		// record exists only so "whenever this creature evolves" fires on the
+		// evolve action rather than on any unrelated counter.
+
 	case NoteNumber:
 		// A trigger's Execute$ body noted a number onto the CARD (DB$ Pump
 		// NoteNumber$ <expr> -- Lupine Harbingers' exile trigger noting

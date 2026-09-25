@@ -333,6 +333,12 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.GiveGift:
 		// The completed gift marker follows the gift action's own events.
 		return player(g, ev.Player) + " gives a gift"
+	case events.Evolved:
+		// The completed evolve marker (CR 702.99b, task trig:Evolved) is a
+		// pure no-op like GiveGift/Investigate: the +1/+1 counter placement
+		// is its own CounterChange line, so this line names only the
+		// evolving permanent (Obj is the Evolve trigger's own source).
+		return obj(g, ev.Obj) + " evolves"
 	case events.Exploit:
 		// The exploit record (CR 702.58a, task exploit1): Obj is the
 		// exploiting creature, IDs[0] the exploited (sacrificed) one. The
