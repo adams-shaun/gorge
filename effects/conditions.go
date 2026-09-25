@@ -678,8 +678,25 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	for _, t := range group {
 		if t.IsPlayer {
-			// A Card spec never matches a player entry; skip rather than
-			// hand MatchesObjectCtx an object-less target.
+			// A player entry is counted against the PLAYER-side grammar, never
+			// the object matcher. Synth Eradicator's DBPlay gate
+			// (`ConditionDefined$ Remembered | ConditionPresent$ Player |
+			// ConditionCompare$ EQ0`) asks "did the optional put NOT happen",
+			// and Play with Fire / Sonic Shrieker's GE1 ask the opposite, so a
+			// remembered player must be visible to the count. An object-typed
+			// base (Card, Creature, ...) never matches a player entry: skip
+			// rather than hand MatchesObjectCtx an object-less target. The
+			// player read goes through MatchesPlayerSpecCtx -- the ONE player
+			// matcher this build ships -- with the source bound so
+			// IsRemembered/Chosen clauses resolve, failing closed on an
+			// unreadable player qualifier per member. An object-spec member
+			// with an unknown predicate is already unresolved above.
+			if base, _, _ := strings.Cut(present, "."); present != "" && playerSpecBase(base) {
+				if MatchesPlayerSpecCtx(g, present, t.Player, c.Controller,
+					PlayerSpecCtx{Source: c.Source}) {
+					count++
+				}
+			}
 			continue
 		}
 		o := g.Obj(t.Obj)
