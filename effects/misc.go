@@ -3014,7 +3014,11 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if turnDown {
 			if o.Zone == state.ZBattlefield && !o.FaceDown {
-				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID})
+				setType := strings.TrimSpace(sa.Params["FaceDownSetType"])
+				power, hasPower := NumResolved(h, c, sa, "FaceDownPower", 0)
+				toughness, hasToughness := NumResolved(h, c, sa, "FaceDownToughness", 0)
+				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID,
+					Counter: events.FaceDownEntryCounterFor(setType, power, toughness, hasPower || hasToughness)})
 			}
 			continue
 		}
