@@ -85,8 +85,6 @@ func TestSpellIsTargetingMatchesRecordedTargets(t *testing.T) {
 		// precondition (asserted below) is that the two controllers differ.
 		{"target is the opponent's creature", []state.Target{{Obj: id["theirBear"]}}, "Spell.IsTargeting Valid Creature.YouCtrl", false},
 		{"~Other admits a non-source permanent", []state.Target{{Obj: id["myBear"]}}, "Spell.IsTargeting Valid Permanent.YouCtrl~Other", true},
-		{"plus conjunction with a candidate predicate", []state.Target{{Obj: id["myBear"]}}, "Spell.IsTargeting Valid Creature.YouCtrl+YouCtrl", true},
-		{"plus conjunction rejects an unmatched candidate predicate", []state.Target{{Obj: id["myBear"]}}, "Spell.IsTargeting Valid Creature.YouCtrl+!YouCtrl", false},
 		{"negation of a matching target", []state.Target{{Obj: id["myBear"]}}, "Spell.!IsTargeting Valid Creature.YouCtrl", false},
 		{"negation holds on a non-matching target", []state.Target{{Obj: id["theirBear"]}}, "Spell.!IsTargeting Valid Creature.YouCtrl", true},
 		{"comma OR reaching a non-matching alternative", []state.Target{{Obj: id["myBear"]}}, "Spell.IsTargeting Valid Land.YouCtrl,Spell.IsTargeting Valid Creature", true},
@@ -133,6 +131,149 @@ func TestSpellIsTargetingExcludesItsOwnSource(t *testing.T) {
 	// negative above is the exclusion's work, not the base spec's.
 	if !MatchesSpecCtx(g, "Spell.IsTargeting Valid Permanent", spell.ID, sc) {
 		t.Fatal("the same target must match without the ~Other exclusion")
+	}
+}
+
+// TestSpellIsTargetingRejectsSplitConjunction is the regression for the
+// partial-evaluation bug: `Spell.IsTargeting Valid Permanent+Other` used to
+// be split by the candidate grammar at the '+', so `IsTargeting Valid
+// Permanent` matched and the tail `Other` was evaluated against the candidate
+// SPELL -- a spell targeting the source itself wrongly matched. The argument
+// is a TARGET spec, whose own '+' conjunction cannot be told from a candidate
+// predicate in a single token, so the whole form must be rejected: the
+// alternative fails closed and its NEGATED spelling must not invert a
+// recognised-false into a match.
+func TestSpellIsTargetingRejectsSplitConjunction(t *testing.T) {
+	g, id, spell := isTargetingFixture(t)
+	sc := SpecContext{You: 0, Source: id["sourceSpell"]}
+
+	// Precondition: the target IS the source, and the candidate spell is a
+	// different object -- so the old bug's candidate-side `Other` was true.
+	spell.Targets = []state.Target{{Obj: id["sourceSpell"]}}
+	if spell.Targets[0].Obj != sc.Source || spell.ID == sc.Source {
+		t.Fatalf("precondition: target=%d source=%d spell=%d", spell.Targets[0].Obj, sc.Source, spell.ID)
+	}
+	if MatchesSpecCtx(g, "Spell.IsTargeting Valid Permanent+Other", spell.ID, sc) {
+		t.Fatal("the split '+' form must not match the source-target board")
+	}
+	// The positive predicate is unrecognised, so its negation is too: a
+	// recognised-false inverted by '!' would be the always-true bug.
+	if MatchesSpecCtx(g, "Spell.!IsTargeting Valid Permanent+Other", spell.ID, sc) {
+		t.Fatal("the negated split '+' form must not invert an unrecognised argument into a match")
+	}
+	// The census agrees: the whole form is one unknown token, never its
+	// truncated '+' head.
+	un := UnknownPredicates("Spell.IsTargeting Valid Permanent+Other")
+	if len(un) != 1 || un[0] != "IsTargeting Valid Permanent+Other" {
+		t.Fatalf("UnknownPredicates = %v, want the whole form as one unknown token", un)
+	}
+
+	// A target that is NOT the source is rejected the same way -- proving the
+	// rejection is uniform, not a coincidence of this target.
+	spell.Targets = []state.Target{{Obj: id["myBear"]}}
+	if MatchesSpecCtx(g, "Spell.IsTargeting Valid Permanent+Other", spell.ID, sc) {
+		t.Fatal("the split '+' form must fail closed for a non-source target too")
+	}
+	// The supported `~Other` spelling is the contrast: it evaluates the
+	// target-side exclusion for real.
+	if !MatchesSpecCtx(g, "Spell.IsTargeting Valid Permanent.YouCtrl~Other", spell.ID, sc) {
+		t.Fatal("the ~Other spelling must match a non-source permanent you control")
+	}
+}
+
+// TestSpellIsTargetingBaseQualifiedOnly pins the confinement the brief
+// requires: the form is recognised only under the `Spell`/`SpellAbility`
+// bases. Any other base carrying the `IsTargeting` token is an unknown
+// predicate (census and matcher agree), so a `Creature.IsTargeting` or a
+// `Card.IsTargeting` spelling can never be answered by this predicate.
+func TestSpellIsTargetingBaseQualifiedOnly(t *testing.T) {
+	g, id, spell := isTargetingFixture(t)
+	sc := SpecContext{You: 0, Source: 0}
+	spell.Targets = []state.Target{{Obj: id["myBear"]}}
+	// Precondition: the candidate really is a spell targeting the bear, so
+	// the `Spell.` spelling below is a true positive.
+	if spell.ID == 0 || len(spell.Targets) != 1 || spell.Targets[0].Obj != id["myBear"] {
+		t.Fatalf("precondition: candidate target not bound")
+	}
+	if !MatchesSpecCtx(g, "Spell.IsTargeting Valid Creature", spell.ID, sc) {
+		t.Fatal("precondition: the Spell.IsTargeting spelling must match")
+	}
+	for _, spec := range []string{
+		"Creature.IsTargeting Valid Creature",
+		"Card.IsTargeting Valid Creature",
+		"Permanent.IsTargeting Valid Creature",
+	} {
+		if MatchesSpecCtx(g, spec, spell.ID, sc) {
+			t.Fatalf("%s matched through a non-Spell base", spec)
+		}
+		if un := UnknownPredicates(spec); len(un) != 1 || un[0] != "IsTargeting Valid Creature" {
+			t.Fatalf("UnknownPredicates(%q) = %v, want the IsTargeting token unknown", spec, un)
+		}
+	}
+}
+
+// TestSpellIsTargetingAbilityOnStack pins the SpellAbility half of the form
+// against a real ability-classified stack object: positive and negative
+// cases through the SHARED matcher (not the condition gate), so the
+// SpellAbility spelling the previous round left untested is now exercised.
+//
+// The intended distinction from Spell is a base check, not a different
+// answer: matchesBase draws the shared Spell/SpellAbility line by ZONE alone
+// (both require a stack object), while the condition gate (conditions.go's
+// isSpellTargetingPresent) deliberately BYPASSES the base because a
+// triggering spell may already have left the stack. The shared matcher keeps
+// the base, so an off-stack object with the same targets fails closed.
+func TestSpellIsTargetingAbilityOnStack(t *testing.T) {
+	g, id, _ := isTargetingFixture(t)
+	sc := SpecContext{You: 0, Source: 0}
+
+	// A face-less stack object stamped as an activated ability: the engine's
+	// own ability classifier (state.StackKindOf), never a spell card.
+	ability := g.AddObject(nil, 0)
+	ability.Zone = state.ZStack
+	ability.StackKind = state.StackKindActivated
+	ability.StackKindKnown = true
+	g.SetZone(state.ZStack, 0, append(g.Zone(state.ZStack, 0), ability.ID))
+
+	// Preconditions: it is on the stack, classified as an ability, and the
+	// shared matcher's SpellAbility base admits it.
+	if ability.Zone != state.ZStack {
+		t.Fatalf("precondition: ability zone = %v, want the stack", ability.Zone)
+	}
+	if k := state.StackKindOf(g, ability); k != state.StackKindActivated {
+		t.Fatalf("precondition: StackKindOf = %v, want activated", k)
+	}
+	if !matchesBase(g, "SpellAbility", ability, sc) {
+		t.Fatal("precondition: the SpellAbility base must admit a stack object")
+	}
+
+	ability.Targets = []state.Target{{Obj: id["myBear"]}}
+	if !MatchesSpecCtx(g, "SpellAbility.IsTargeting Valid Creature", ability.ID, sc) {
+		t.Fatal("an ability targeting a creature must match the target spec")
+	}
+	// The Spell spelling answers the same on the same stack object -- the
+	// shared base line is zone-only, documented above.
+	if !MatchesSpecCtx(g, "Spell.IsTargeting Valid Creature", ability.ID, sc) {
+		t.Fatal("the Spell spelling must answer a stack object the same way")
+	}
+	// A non-matching target fails.
+	ability.Targets = []state.Target{{Obj: id["myLand"]}}
+	if MatchesSpecCtx(g, "SpellAbility.IsTargeting Valid Creature", ability.ID, sc) {
+		t.Fatal("a land target must not satisfy a creature spec")
+	}
+	// An untargeted ability is a resolved non-match.
+	ability.Targets = nil
+	if MatchesSpecCtx(g, "SpellAbility.IsTargeting Valid Creature", ability.ID, sc) {
+		t.Fatal("an untargeted ability must not match")
+	}
+	// The base is kept: the same targets read OFF the stack fail closed
+	// (unlike the condition gate, which bypasses the base). This is the
+	// pre-existing SpellBase-zone reading, asserted so the distinction is
+	// documented rather than incidental.
+	ability.Targets = []state.Target{{Obj: id["myBear"]}}
+	ability.Zone = state.ZBattlefield
+	if MatchesSpecCtx(g, "SpellAbility.IsTargeting Valid Creature", ability.ID, sc) {
+		t.Fatal("an off-stack object must fail the SpellAbility base")
 	}
 }
 
@@ -201,38 +342,10 @@ func TestSpellIsTargetingUntargetedSpellFails(t *testing.T) {
 	}
 }
 
-// TestSpellTargetingMatchesSplitsAlternatives pins the ConditionPresent$ gate's
-// wrapper: OR over the spec's comma alternatives, each cut at its Spell./
-// SpellAbility. base, evaluated through the shared matcher's normalisation --
-// so the condition gate and the ordinary filter callers cannot drift.
-func TestSpellTargetingMatchesSplitsAlternatives(t *testing.T) {
-	g, id, spell := isTargetingFixture(t)
-	sc := SpecContext{You: 0, Source: id["sourceSpell"]}
-	// Orvar's exact shape: an object target OR a player target.
-	spell.Targets = []state.Target{{Player: 1, IsPlayer: true}}
-	spec := "Spell.IsTargeting Valid Permanent.YouCtrl~Other,Spell.IsTargeting Player"
-	if !spellTargetingMatches(g, spec, spell, sc) {
-		t.Fatal("the player alternative of Orvar's OR list must carry the match")
-	}
-	// The same OR answered when only the object alternative can match.
-	spell.Targets = []state.Target{{Obj: id["myBear"]}}
-	if !spellTargetingMatches(g, spec, spell, sc) {
-		t.Fatal("the ~Other alternative of Orvar's OR list must carry the match")
-	}
-	// A SpellAbility spelling resolves the same way.
-	if !spellTargetingMatches(g, "SpellAbility.IsTargeting Valid Creature", spell, sc) {
-		t.Fatal("the SpellAbility spelling must read the same target list")
-	}
-	// A spec whose every alternative misses resolves to a plain false.
-	if spellTargetingMatches(g, "Spell.IsTargeting Valid Land", spell, sc) {
-		t.Fatal("a creature target must not satisfy a land spec")
-	}
-}
-
 // TestSpellIsTargetingCensusAgreement pins the UnknownPredicates agreement:
 // the supported complete forms are known to the census (so a ConditionPresent$
 // or Count$ caller stops failing them closed), while the malformed and
-// incomplete shapes -- no argument, a '+' the token grammar would truncate,
+// incomplete shapes -- no argument, a '+' the candidate grammar would split,
 // a malformed ValidX, an unknown inner predicate -- stay unknown, which is
 // the fail-closed direction every other predicate family takes.
 func TestSpellIsTargetingCensusAgreement(t *testing.T) {
@@ -256,18 +369,20 @@ func TestSpellIsTargetingCensusAgreement(t *testing.T) {
 		"Spell.IsTargeting Valid",  // Valid with no spec
 		"Spell.IsTargeting Valid Creature.someMechanicWeDoNotModel", // unknown inner predicate
 	} {
-		if un := UnknownPredicates(spec); len(un) != 1 || un[0] != restAfterBase(spec) {
-			t.Errorf("UnknownPredicates(%q) = %v, want the whole token reported unknown", spec, un)
+		// The census reports the WHOLE form as one unknown token (the text
+		// after the base), never its truncated '+' head; the expected token
+		// is derived from the spec so the assertion names it exactly.
+		want := strings.TrimSpace("IsTargeting" + spec[len("Spell.IsTargeting"):])
+		if un := UnknownPredicates(spec); len(un) != 1 || un[0] != want {
+			t.Errorf("UnknownPredicates(%q) = %v, want [%q]", spec, un, want)
 		}
 	}
-	// A '+'-joined argument is split by the token grammar into separate
-	// candidate predicates: the IsTargeting half is recognised on its own
-	// truncation and the other half is an ordinary candidate predicate. The
-	// census therefore reports exactly the non-IsTargeting remainder, and the
+	// A '+'-joined argument is ONE unsupported form: the whole token stays
+	// unknown so the matcher cannot partially evaluate either half. The
 	// corpus convention for the common conjunction is `~Other`, which stays
-	// whole (asserted above).
-	if un := UnknownPredicates("Spell.IsTargeting Creature.YouCtrl+someMechanicWeDoNotModel"); len(un) != 1 || un[0] != "someMechanicWeDoNotModel" {
-		t.Errorf("UnknownPredicates of a +joined argument = %v, want only the other predicate", un)
+	// whole and is recognised (asserted above).
+	if un := UnknownPredicates("Spell.IsTargeting Creature.YouCtrl+someMechanicWeDoNotModel"); len(un) != 1 || un[0] != "IsTargeting Creature.YouCtrl+someMechanicWeDoNotModel" {
+		t.Errorf("UnknownPredicates of a +joined argument = %v, want the whole form unknown", un)
 	}
 	// An unknown form must not match either: the matcher and the census agree.
 	g, id, spell := isTargetingFixture(t)
@@ -277,15 +392,4 @@ func TestSpellIsTargetingCensusAgreement(t *testing.T) {
 			t.Fatalf("%s matched an unknown argument", spec)
 		}
 	}
-}
-
-// restAfterBase strips the leading base of a census-unknown spell spec for
-// the assertion above (the census reports the token after the base cut).
-func restAfterBase(spec string) string {
-	for i := 0; i < len(spec); i++ {
-		if spec[i] == '.' {
-			return strings.TrimSpace(spec[i+1:])
-		}
-	}
-	return strings.TrimSpace(spec)
 }

@@ -2413,18 +2413,21 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 	return wordUnknown, "", false
 }
 
-// spellIsTargetingArg parses one predicate token p as Forge's
-// `IsTargeting <target-spec>` (the base -- Spell, SpellAbility -- has already
-// been cut by the alternative walk), returning the argument. ok is false for
-// every token that is not this shape, and for the UNSUPPORTED shapes inside
-// it: an empty argument, and an argument carrying a '+' -- the token grammar
-// splits a '+' conjunction into separate candidate predicates BEFORE any
-// predicate body sees the text, so an argument meant to carry one can never
-// arrive whole and must stay unknown rather than be read as its truncation
-// (Forge spells the common conjunction `~Other`, which the evaluator rewrites
-// itself; see spellIsTargetingInner). The matcher (matchPositive) and the
-// UnknownPredicates census share this one parser, so the two cannot disagree
-// about which spellings are recognised.
+// spellIsTargetingArg parses one `IsTargeting <target-spec>` body (the
+// `IsTargeting ` prefix is present; the base -- Spell, SpellAbility -- has
+// already been cut by the alternative walk), returning the argument. ok is
+// false for every body that is not this shape, and for the UNSUPPORTED shapes
+// inside it: an empty argument, and an argument carrying a '+'. The candidate
+// grammar splits a '+' into separate predicates of the CANDIDATE's chain; an
+// `IsTargeting` argument, however, is a TARGET spec whose own '+' conjunction
+// belongs to the target match, and the two cannot be told apart from a single
+// token (a bare `Valid Permanent+Other` reaches the walk as `IsTargeting Valid
+// Permanent` plus `Other`, which applies `Other` to the candidate spell, not
+// the targeted permanent). So an argument carrying a '+' is rejected WHOLE at
+// the alternative level (spellIsTargetingAlt) and never read as its truncated
+// head; Forge spells the common conjunction `~Other`, which the evaluator
+// rewrites itself (spellIsTargetingInner). The matcher and the
+// UnknownPredicates census share this one parser, so the two cannot disagree.
 func spellIsTargetingArg(p string) (arg string, ok bool) {
 	arg, ok = strings.CutPrefix(p, "IsTargeting ")
 	if !ok {
@@ -2435,6 +2438,47 @@ func spellIsTargetingArg(p string) (arg string, ok bool) {
 		return "", false
 	}
 	return arg, true
+}
+
+// spellIsTargetingShape reports whether one filter alternative (its base and
+// its entire remainder before any '+' split) is Forge's base-qualified
+// `Spell.IsTargeting ...` form, or the SpellAbility spelling, optionally under
+// a leading '!' negation. It is the shape test the matcher, the compiled
+// compiler and the UnknownPredicates census share, so all three agree on which
+// alternatives are this form and which are ordinary candidate predicates. The
+// base is PART of the form: only Spell and SpellAbility qualify, so a bare
+// `IsTargeting` token reached under any other base is not this predicate.
+// body is the remainder after the base and an optional '!'; ok is false for an
+// alternative that is not this form at all. It does NOT require the argument to
+// be answerable -- see spellIsTargetingAlt for that.
+func spellIsTargetingShape(base, rest string) (body string, neg, ok bool) {
+	if base != "Spell" && base != "SpellAbility" {
+		return "", false, false
+	}
+	body = rest
+	if b, has := strings.CutPrefix(body, "!"); has {
+		neg = true
+		body = b
+	}
+	if !strings.HasPrefix(body, "IsTargeting") {
+		return "", false, false
+	}
+	return body, neg, true
+}
+
+// spellIsTargetingAlt is spellIsTargetingShape plus the argument parse: ok is
+// true only for the COMPLETE, answerable spelling (an `IsTargeting ` body with
+// a non-empty argument carrying no '+'). Every other shape of the form -- an
+// empty argument, a '+' the candidate grammar would split, a malformed ValidX,
+// an unknown inner predicate (all judged by spellIsTargetingArgRecognised) --
+// fails the WHOLE alternative closed, never a truncated partial evaluation.
+func spellIsTargetingAlt(base, rest string) (arg string, neg, ok bool) {
+	body, neg, shape := spellIsTargetingShape(base, rest)
+	if !shape {
+		return "", false, false
+	}
+	arg, ok = spellIsTargetingArg(body)
+	return arg, neg, ok
 }
 
 // spellIsTargetingInner normalises one `IsTargeting` argument into the
@@ -2464,9 +2508,10 @@ func spellIsTargetingInner(arg string) (spec string, ok bool) {
 // spellIsTargetingArgRecognised reports whether an `IsTargeting` argument is
 // a COMPLETE form this build can answer: its normalised target-spec carries
 // no unknown predicate. Recognition is reached by the same path the evaluator
-// takes -- matchPositive delegates to the same inner normalisation and the
-// same target matchers -- so a spec the target matcher itself would fail
-// closed on stays unknown to the census, never recognised-but-false.
+// takes -- the alternative-level matcher (spellIsTargetingAlt) uses the same
+// inner normalisation and the same target matchers -- so a spec the target
+// matcher itself would fail closed on stays unknown to the census, never
+// recognised-but-false.
 func spellIsTargetingArgRecognised(arg string) bool {
 	spec, ok := spellIsTargetingInner(arg)
 	return ok && len(UnknownPredicates(spec)) == 0
@@ -2482,9 +2527,15 @@ func spellIsTargetingArgRecognised(arg string) bool {
 // `~Other`-rewritten +Other resolve against the same perspective the rest of
 // the spec sees. An untargeted spell (an empty list) is a resolved non-match,
 // never an unresolved gate; a target record with no object behind it is
-// skipped, not a match.
+// skipped, not a match. The pointer form is the compiled hot path's entry
+// (SpecContext is large and must not be copied per candidate); the value form
+// is the convenience wrapper the text path and the condition gate share.
 func spellIsTargetingMatches(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
-	if o == nil {
+	return spellIsTargetingMatchesPtr(g, spec, o, &sc)
+}
+
+func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc *SpecContext) bool {
+	if o == nil || sc == nil {
 		return false
 	}
 	for _, tgt := range o.Targets {
@@ -2497,7 +2548,7 @@ func spellIsTargetingMatches(g *state.Game, spec string, o *state.Object, sc Spe
 		if tgt.Obj == 0 {
 			continue
 		}
-		if MatchesSpecCtx(g, spec, tgt.Obj, sc) {
+		if MatchesSpecCtx(g, spec, tgt.Obj, *sc) {
 			return true
 		}
 	}
@@ -2513,15 +2564,6 @@ func spellIsTargetingMatches(g *state.Game, spec string, o *state.Object, sc Spe
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
-	// Forge's `IsTargeting <target-spec>` (Spell.IsTargeting after the base
-	// cut -- Shiko and Narset Unified's and Orvar's ConditionPresent$, the
-	// ValidSA$ cast gates, Head of the Class's ValidSpell$): recognised
-	// exactly when the argument is a complete form the evaluator answers, so
-	// a malformed ValidX or an unknown inner predicate stays unknown to the
-	// census -- the same resolution matchPositive reaches.
-	if arg, ok := spellIsTargetingArg(p); ok {
-		return spellIsTargetingArgRecognised(arg)
-	}
 	if _, ok := keywordPredicateFor(p); ok {
 		return true
 	}
@@ -3049,18 +3091,6 @@ func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
-	// Forge's `IsTargeting <target-spec>`: the candidate's own recorded
-	// target list decides, not its printed face. The token is already the
-	// recognised-shape resolution positiveRecognised made, so an argument
-	// that fails to normalise here (a malformed ValidX) is unresolved, never
-	// an always-false a negation could invert into a match.
-	if arg, ok := spellIsTargetingArg(p); ok {
-		spec, sok := spellIsTargetingInner(arg)
-		if !sok {
-			return false, false
-		}
-		return spellIsTargetingMatches(g, spec, o, sc), true
-	}
 	if hasAbilityToken(p) {
 		return objectHasAbility(o, strings.TrimPrefix(p, "hasAbility ")), true
 	}
@@ -4575,6 +4605,28 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 		} else if !matchesBase(g, base, o, sc) {
 			continue
 		}
+		// Forge's base-qualified `Spell.IsTargeting <target-spec>` form (and
+		// the SpellAbility spelling): the WHOLE argument after `IsTargeting `
+		// is the target spec, so this alternative is ONE unit -- its '+'
+		// conjunctions, if any, belong to the TARGET match and are never split
+		// into candidate predicates. An argument this grammar cannot answer
+		// whole (a '+', an empty or malformed Valid argument, an unknown inner
+		// predicate) fails the whole alternative closed: the token-level path
+		// no longer recognises IsTargeting, so a truncated head is an unknown
+		// predicate, never a partial match.
+		if _, stNeg, shape := spellIsTargetingShape(base, rest); shape {
+			if arg, _, ok := spellIsTargetingAlt(base, rest); ok && spellIsTargetingArgRecognised(arg) {
+				spec, _ := spellIsTargetingInner(arg)
+				met := spellIsTargetingMatches(g, spec, o, sc)
+				if stNeg {
+					met = !met
+				}
+				if met {
+					return true
+				}
+			}
+			continue
+		}
 		all := true
 		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
@@ -4667,6 +4719,22 @@ func matchesZoneSpecText(g *state.Game, spec string, o *state.Object, sc SpecCon
 				continue
 			}
 		} else if !matchesBaseInZone(g, base, o, sc, zone) {
+			continue
+		}
+		// The base-qualified Spell.IsTargeting form is one unit, exactly as in
+		// matchesObjectText; the zone-aware base already fails it closed off
+		// the stack, so this only keeps the two paths textually equal.
+		if _, stNeg, shape := spellIsTargetingShape(base, rest); shape {
+			if arg, _, ok := spellIsTargetingAlt(base, rest); ok && spellIsTargetingArgRecognised(arg) {
+				spec, _ := spellIsTargetingInner(arg)
+				met := spellIsTargetingMatches(g, spec, o, sc)
+				if stNeg {
+					met = !met
+				}
+				if met {
+					return true
+				}
+			}
 			continue
 		}
 		all := true
@@ -5671,7 +5739,21 @@ func UnknownPredicates(spec string) []string {
 		return out
 	}
 	for alt := range filterAlternatives(spec) {
-		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		alt = strings.TrimSpace(alt)
+		base, rest, _ := strings.Cut(alt, ".")
+		// Forge's base-qualified Spell.IsTargeting form is ONE unit: when the
+		// argument is complete and answerable whole it is recognised; every
+		// other shape of the form (an empty argument, a '+' the candidate
+		// grammar would split, a malformed ValidX, an unknown inner predicate)
+		// is ONE unknown token -- the whole form, never its truncated '+'
+		// head, so the matcher and this census stay in agreement.
+		if body, _, shape := spellIsTargetingShape(base, rest); shape {
+			if arg, _, ok := spellIsTargetingAlt(base, rest); ok && spellIsTargetingArgRecognised(arg) {
+				continue
+			}
+			out = append(out, strings.TrimSpace(body))
+			continue
+		}
 		for p := range strings.SplitSeq(rest, "+") {
 			if p == "" {
 				continue
