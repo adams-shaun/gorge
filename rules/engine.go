@@ -1091,6 +1091,16 @@ type Engine struct {
 	// boundary preserves the entry exactly.
 	etbMove *events.Event
 	etbNext int
+	// turnUpMove parks the events.TurnFaceUp marker of a morph-family
+	// turn-up while an "as this is turned face up" replacement body's own
+	// answer is outstanding (task cli-20260924T031747Z-6d0658fc): the
+	// transition must not fold until the body finishes, or the body and the
+	// turn-up's triggers would observe a face the transition already
+	// revealed. Unlike etbMove the park is consumed synchronously inside
+	// resolveReplacementBody -- before any decision can be answered -- so it
+	// need not survive a clone; the re-emit frame it installs on the body's
+	// suspension chain is what crosses the decision boundary.
+	turnUpMove *events.Event
 	// causePin is the action cause an entry-settle preview pins while its
 	// cloned stack no longer holds the entrant (rules/entry_counters.go).
 	// Zero on every live engine.

@@ -1258,13 +1258,22 @@ func (e *Engine) applyTurnFaceUpReplacements(ev events.Event, matches []replMatc
 		}
 		return ev, true
 	}
+	// Park the transition for the body's whole continuation: a body that asks
+	// (Aquamorph Entity's GenericChoice, Gift of Doom's attach) must not let
+	// the fold reveal the face before the answer, so resolveReplacementBody --
+	// the sole owner of a ReplaceWith$ body's continuation linkage -- appends
+	// the re-emit frame to the body's suspension chain. A body that asks
+	// nothing leaves the field set and the caller's clear folds the event
+	// through the ordinary path.
+	e.turnUpMove = &ev
 	for _, m := range matches {
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
 		if e.pending != nil {
-			e.parkTurnFaceUpAfterReplacement(ev)
+			e.turnUpMove = nil
 			return ev, true
 		}
 	}
+	e.turnUpMove = nil
 	return ev, false
 }
 
@@ -1273,17 +1282,6 @@ func (e *Engine) replacementOptionalDeciderOrController(m replMatch) state.Playe
 		return p
 	}
 	return e.controllerOf(m.id)
-}
-
-func (e *Engine) parkTurnFaceUpAfterReplacement(ev events.Event) {
-	if e.resume == nil {
-		return
-	}
-	tail := e.resume
-	for tail.outer != nil {
-		tail = tail.outer
-	}
-	tail.outer = &resumePoint{kind: "turn_face_up_event", event: ev}
 }
 
 // turnFaceUpCantHappen is the ONE legality predicate for a blocked turn-up:
@@ -1661,18 +1659,32 @@ func (e *Engine) resolveReplacementBody(ctx *effects.Ctx, with *cards.SA) {
 			tail = tail.outer
 		}
 		tail.outer = frame
-		return
+	} else {
+		savedChain, savedReported := e.contChain, e.repeatReported
+		e.contChain, e.repeatReported = nil, nil
+		prior := e.resume
+		e.contChainOwners++
+		e.resolveReplacementWith(ctx, with)
+		e.contChainOwners--
+		if e.resume != nil && e.resume != prior && len(e.contChain) > 0 {
+			e.resume.outer = e.buildContinuationChain(e.contChain, ctx.Source, e.resume.outer)
+		}
+		e.contChain, e.repeatReported = savedChain, savedReported
 	}
-	savedChain, savedReported := e.contChain, e.repeatReported
-	e.contChain, e.repeatReported = nil, nil
-	prior := e.resume
-	e.contChainOwners++
-	e.resolveReplacementWith(ctx, with)
-	e.contChainOwners--
-	if e.resume != nil && e.resume != prior && len(e.contChain) > 0 {
-		e.resume.outer = e.buildContinuationChain(e.contChain, ctx.Source, e.resume.outer)
+	// A TurnFaceUp replacement body that posed its own answer must not let
+	// the transition fold yet: park the marker's re-emit at the tail of the
+	// body's suspension chain, the discipline resumeETBEntry keeps for an
+	// as-enters choice (etbMove). The write lives HERE -- in the function the
+	// resume-state archtest names as the owner of a ReplaceWith$ body's
+	// continuation linkage -- not in the turn-up dispatch that set the field.
+	if e.turnUpMove != nil && e.resume != nil {
+		tail := e.resume
+		for tail.outer != nil {
+			tail = tail.outer
+		}
+		tail.outer = &resumePoint{kind: "turn_face_up_event", event: *e.turnUpMove}
+		e.turnUpMove = nil
 	}
-	e.contChain, e.repeatReported = savedChain, savedReported
 }
 
 // applyReplacement applies the ONE chosen replacement to a MoveZone event,
@@ -6075,10 +6087,14 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	if rc.kind == replChoiceFaceUp {
 		if len(chosen) > 0 && chosen[0].Index == 0 {
 			m := rc.cands[rc.selected]
+			e.turnUpMove = &rc.ev
 			e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
+			e.turnUpMove = nil
 		}
 		if e.pending != nil {
-			e.parkTurnFaceUpAfterReplacement(rc.ev)
+			// The body asked (the copy election): resolveReplacementBody
+			// already parked the marker's re-emit on the body's chain, so
+			// the transition folds only after that answer.
 			return
 		}
 		prior := e.applyingReplacement
