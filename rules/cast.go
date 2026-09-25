@@ -82,6 +82,15 @@ type pendingCast struct {
 	// top's. Zero for a spell and for every top-face ability.
 	abilityMerged int
 
+	// payment is a privately-owned V1 witness selected at priority.  It stays
+	// on the ordinary cast continuation through target choices, then drives
+	// only CR 601.2g mana activations.  All resulting state changes remain in
+	// the established mana activation and payment paths.
+	payment         *plannedCastPayment
+	paymentNext     int
+	paymentChecked  bool
+	paymentFallback *decision.PaymentFallback
+
 	// grantSource / grantSVar (task grantcost1) anchor a GRANTED activation
 	// (rules/speed.go's beginGrantedActivation, reached from the max-speed
 	// "granted" option and beginActivation's SVar branch): the body is the
@@ -2098,6 +2107,14 @@ func foldAdditionalCost(cost, extra Cost) Cost {
 // kicked/surged/flashback cost opt.Mode names), build the pendingCast, and
 // run its first stage.
 func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
+	e.beginCastWithPayment(p, opt, nil)
+}
+
+// beginCastWithPayment is the authoritative normal-cast entry with an
+// optional, already admitted payment witness.  It intentionally takes no
+// client cast descriptor: the selector is resolved against the offered action
+// in Submit before this point.
+func (e *Engine) beginCastWithPayment(p state.PlayerID, opt decision.Option, selection *decision.PaymentSelection) {
 	id := opt.Obj
 	o := e.G.Obj(id)
 	if o == nil {
@@ -2703,6 +2720,9 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		e.cast.mayPlayIgnore = e.payerGrantsIgnoreColor(p, id)
 		e.cast.mayPlayIgnoreType = e.payerGrantsIgnoreType(p, id)
 		e.cast.mayPlayRemembered = e.mayPlayManaConvertRemembered(p, id)
+	}
+	if selection != nil && e.cast != nil {
+		e.cast.payment = &plannedCastPayment{actionID: selection.ActionID, plan: decision.ClonePaymentPlan(selection.Plan)}
 	}
 	e.continueCast()
 }
@@ -6979,7 +6999,32 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, c), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	payment := paymentForCast(pc, c)
+	rider := pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}
+	if e.manaFeasibleDescriptor(pc.player, payment, c, pc.mods, pc.taxGeneric, delve, rider) {
+		return true
+	}
+	// CR 601.2b chooses a Phyrexian or hybrid face BEFORE the 601.2g mana
+	// ability window.  Pricing a face only against floating mana therefore
+	// withholds a coloured face whenever its source is still untapped: a
+	// Gitaxian Probe with an Island offered only "Pay 2 life".  Probe the same
+	// concrete source alternatives that manaWindowAsk can subsequently offer,
+	// after composing exactly the modifiers, commander tax, and Delve credit
+	// that payCast will charge.  This is an offer-side read only; the chosen
+	// face still reaches the ordinary mana window and is paid there.
+	charged := pc.mods.apply(c)
+	charged.Generic = addClampedGeneric(charged.Generic, int64(pc.taxGeneric))
+	charged.Generic -= delve
+	if charged.Generic < 0 {
+		charged.Generic = 0
+	}
+	if !charged.hasManaPayment() {
+		return false
+	}
+	av := e.manaAvailableFor(pc.player, payment)
+	return e.manaReachable(pc.player, charged, av.pool, e.G.Players[pc.player].Snow,
+		av.typed, e.G.Players[pc.player].Life, rider,
+		e.paymentConv(pc.player, payment.id, payment.class == paymentActivated), e.castWindowUnits(pc))
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -8551,10 +8596,162 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 // (chooseCast): "activate" taps the source and resolves its mana abilities
 // (a tap consumes it, so it is not re-offered) and continueCast re-enters
 // payCast to re-price the window; "done" sets windowDone so payCast pays.
+// plannedCastPayment is deliberately private continuation state rather than
+// an alternate payment engine.  Its plan is deep-copied at Submit and Clone.
+type plannedCastPayment struct {
+	actionID string
+	plan     decision.PaymentPlan
+}
+
+func (e *Engine) paymentPlanFallback(pc *pendingCast, reason string) {
+	if pc == nil || pc.payment == nil {
+		return
+	}
+	pc.paymentFallback = &decision.PaymentFallback{PlanID: pc.payment.plan.ID, Reason: reason}
+	pc.payment = nil
+	pc.paymentChecked = false
+	pc.paymentNext = 0
+}
+
+// validatePendingPaymentPlan checks the witness against the post-target,
+// pre-payment cast state.  ValidateCastPayment is intentionally used at Submit
+// while the card is in hand; this version reads the pending cast after it has
+// moved to the stack, without re-running hand-only candidate discovery.
+func (e *Engine) validatePendingPaymentPlan(pc *pendingCast) error {
+	if pc == nil || pc.payment == nil {
+		return fmt.Errorf("no payment plan")
+	}
+	plan := pc.payment.plan
+	if plan.Version != decision.PaymentPlanV1 || plan.Cost != paymentCost(e.paymentMana(pc)) {
+		return fmt.Errorf("cost_changed")
+	}
+	units := e.paymentPlanManaUnits(pc.player)
+	seen := make(map[state.ObjID]bool, len(plan.Activations))
+	pool := e.G.Players[pc.player].Pool
+	produced := state.Mana{}
+	for _, pa := range plan.Activations {
+		if seen[pa.Source] || pa.SourceZoneSeq != e.paymentSourceZoneSeq(pa.Source) {
+			return fmt.Errorf("source_changed")
+		}
+		seen[pa.Source] = true
+		matched := false
+		for _, u := range units {
+			if u.id != pa.Source {
+				continue
+			}
+			for _, candidate := range e.paymentPlanUnitAlternatives(u) {
+				if candidate.activation.Ability == pa.Ability && candidate.activation.Produces == pa.Produces {
+					pool = manaAdd(pool, candidate.mana)
+					produced = manaAdd(produced, candidate.mana)
+					matched = true
+					break
+				}
+			}
+		}
+		if !matched {
+			return fmt.Errorf("production_changed")
+		}
+	}
+	cost := e.paymentMana(pc)
+	payment, ok := cost.resolveManaWith(pool, state.Mana{}, [7]state.Mana{}, e.G.Players[pc.player].Life, false, pipRider{}, nil)
+	if !ok || paymentManaAmount(payment.pool) != plan.PoolAfter {
+		return fmt.Errorf("cost_changed")
+	}
+	_ = produced // retained above to make the exact production calculation explicit.
+	return nil
+}
+
+// executePlannedManaActivation resolves exactly one admitted ability through
+// the ordinary mana machinery.  V1 units are fixed production, so this path
+// cannot pose a colour wheel.  If an unexpected decision nevertheless arises,
+// the continuation resumes normally and the remaining automation is cancelled
+// rather than guessing an answer.
+func (e *Engine) executePlannedManaActivation(pc *pendingCast) bool {
+	if pc == nil || pc.payment == nil || pc.paymentNext >= len(pc.payment.plan.Activations) {
+		return false
+	}
+	pa := pc.payment.plan.Activations[pc.paymentNext]
+	var ma *cards.SA
+	for _, u := range e.paymentPlanManaUnits(pc.player) {
+		if u.id != pa.Source {
+			continue
+		}
+		for _, alt := range u.alts {
+			ab, ok := e.paymentAbility(pa.Source, alt.ma)
+			if !ok || ab != pa.Ability {
+				continue
+			}
+			for _, candidate := range e.paymentPlanUnitAlternatives(u) {
+				if candidate.activation.Ability != pa.Ability || candidate.activation.Produces != pa.Produces {
+					continue
+				}
+				ma = alt.ma
+				break
+			}
+			if ma != nil {
+				break
+			}
+		}
+	}
+	if ma == nil {
+		e.paymentPlanFallback(pc, "source_changed")
+		return false
+	}
+	pc.paymentNext++ // a synchronous continuation may re-enter payCast.
+	// This is a spell's CR 601.2g payment window, not the distinct
+	// cumulative/triggered-cost payment window.  The planned sequence owns
+	// its continuation below, rather than reopening any other payment ask.
+	// A fixed Produced$ Any plan records the selected colour in Produces.
+	// Resolve the ordinary ability with only that field rewritten, retaining
+	// the compiled pointer as original for activation limits and replay.
+	exec := ma
+	if strings.TrimSpace(ma.Params["Produced"]) == "Any" {
+		for i, n := range pa.Produces {
+			if n == 0 || i >= 5 {
+				continue
+			}
+			color := string(cards.ManaSymbol(i))
+			exec = withProduced(ma, ma, color)
+			break
+		}
+	}
+	e.resolveManaAbilityRefOriginal(pc.player, pa.Source, exec, ma,
+		e.gainedManaRefFor(pc.player, pa.Source, ma), true, true, true)
+	if e.pending != nil || e.choosing != chooseNone {
+		// A V1 activation should not suspend, but preserve what completed and
+		// let the regular answer path carry on manually.
+		e.paymentPlanFallback(pc, "choice_required")
+		return true
+	}
+	// Ordinary manually selected mana is resumed by the answer handler.  A
+	// payment-plan activation is selected internally, so resume the cast here
+	// to execute the next admitted source (or settle the fully funded cost).
+	if e.cast == pc {
+		e.continueCast()
+	}
+	return true
+}
+
 func (e *Engine) manaWindowAsk() bool {
 	pc := e.cast
 	if pc == nil || pc.windowDone {
 		return false
+	}
+	if pc.payment != nil {
+		if !pc.paymentChecked {
+			if err := e.validatePendingPaymentPlan(pc); err != nil {
+				reason := err.Error()
+				if reason != "cost_changed" && reason != "source_changed" && reason != "production_changed" {
+					reason = "choice_required"
+				}
+				e.paymentPlanFallback(pc, reason)
+			} else {
+				pc.paymentChecked = true
+			}
+		}
+		if pc.payment != nil && pc.paymentNext < len(pc.payment.plan.Activations) {
+			return e.executePlannedManaActivation(pc)
+		}
 	}
 	mana := e.paymentMana(pc)
 	if !pc.isAbility() {
@@ -8587,6 +8784,10 @@ func (e *Engine) manaWindowAsk() bool {
 	name := e.G.Obj(pc.card).Face().Name
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Activate mana abilities to pay for " + name, Source: pc.card}
+	if pc.paymentFallback != nil {
+		f := *pc.paymentFallback
+		d.PaymentFallback = &f
+	}
 	for _, id := range sources {
 		opt := decision.Option{Index: len(d.Options), Kind: "activate",
 			Obj: id, Label: "Activate " + e.G.Obj(id).Face().Name + " for mana"}

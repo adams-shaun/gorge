@@ -76,9 +76,19 @@ func (c Cost) manaPipCount() int {
 // supplies) and by a hard node budget; beyond that it fails closed, which is
 // the conservative direction (never offer a Pay the window cannot complete).
 func (e *Engine) unlessManaReachable(p state.PlayerID, cost Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, conv *manaConv, units []windowManaUnit) bool {
+	return e.manaReachable(p, cost, pool, snow, typed, life, pipRider{}, conv, units)
+}
+
+// manaReachable reports whether cost can be paid from pool plus at most one
+// production alternative per mana source.  The cast announcement path uses a
+// non-empty rider here: a MayPlayIgnoreColor grant must widen the same
+// candidate face test as it widens the eventual payment.  The unless-payment
+// callers deliberately retain their ordinary no-rider semantics through the
+// wrapper above.
+func (e *Engine) manaReachable(p state.PlayerID, cost Cost, pool, snow state.Mana, typed [7]state.Mana, life int32, rider pipRider, conv *manaConv, units []windowManaUnit) bool {
 	payable := func(pool state.Mana, lifeNow int32) bool {
 		_, ok := cost.resolveManaWith(pool, snow, typed, lifeNow,
-			e.payerGrantsPayLifeInsteadOfB(p), pipRider{}, conv)
+			e.payerGrantsPayLifeInsteadOfB(p), rider, conv)
 		return ok
 	}
 	if payable(pool, life) {

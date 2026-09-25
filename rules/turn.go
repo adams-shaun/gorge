@@ -904,10 +904,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 			seatFacingName(e.G, p) + " has priority",
 		Options: e.legalActions(p),
 	}
-	// The offer walk's memo stays servable to the seat's board build while
-	// this very decision is pending and nothing but its DecisionAsk marker
-	// has been logged (rules/derivedmemo.go, BeginDerivedReads).
-	e.recordDerivedMemoTail(d)
 	e.ask(d)
 }
 

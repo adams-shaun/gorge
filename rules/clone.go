@@ -45,12 +45,13 @@ func cloneCounterAddsThisTurn(in []counterAddedThisTurn) []counterAddedThisTurn 
 // start to answer "view at seq N" with at most one turn of replay.
 func (e *Engine) Clone() *Engine {
 	c := &Engine{
-		G:               e.G.Clone(),
-		L:               e.L.Clone(),
-		compiledText:    e.compiledText,
-		landTypeWords:   e.landTypeWords,
-		turnsTaken:      append([]int32(nil), e.turnsTaken...),
-		turnsTakenEpoch: e.turnsTakenEpoch,
+		G:                  e.G.Clone(),
+		L:                  e.L.Clone(),
+		compiledText:       e.compiledText,
+		replayPaymentPlans: e.replayPaymentPlans,
+		landTypeWords:      e.landTypeWords,
+		turnsTaken:         append([]int32(nil), e.turnsTaken...),
+		turnsTakenEpoch:    e.turnsTakenEpoch,
 		// turnStartTurns (the next-turn boundary cache) is copied like
 		// turnsTaken so a clone never shares the backing slice.
 		turnStartTurns: cloneTurnStartTurns(e.turnStartTurns),
@@ -791,6 +792,15 @@ func (e *Engine) Clone() *Engine {
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
 		pc.proposalTriggers = append([][2]int(nil), e.cast.proposalTriggers...)
+		if e.cast.payment != nil {
+			payment := *e.cast.payment
+			payment.plan = decision.ClonePaymentPlan(e.cast.payment.plan)
+			pc.payment = &payment
+		}
+		if e.cast.paymentFallback != nil {
+			fallback := *e.cast.paymentFallback
+			pc.paymentFallback = &fallback
+		}
 		if e.cast.mayPlayRemembered != nil {
 			m := make(map[state.ObjID][]state.ObjID, len(e.cast.mayPlayRemembered))
 			for k, v := range e.cast.mayPlayRemembered {
@@ -1050,8 +1060,7 @@ func cloneResume(rp *resumePoint) *resumePoint {
 // cloneDecision deep-copies a posed (or deferred) decision's slices, so a
 // clone's answer path never writes through to the original's.
 func cloneDecision(p *decision.Decision) *decision.Decision {
-	d := *p
-	d.Options = append([]decision.Option(nil), p.Options...)
+	d := *p.Clone()
 	d.ResumeModes = append([]string(nil), p.ResumeModes...)
 	d.ResumeChoices = append([]state.Target(nil), p.ResumeChoices...)
 	d.ResumeChosenValid = p.ResumeChosenValid

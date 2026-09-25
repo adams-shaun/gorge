@@ -108,6 +108,10 @@ type windowManaAlt struct {
 	ma     *cards.SA
 	counts [6]int32
 	amt    int32
+	// any records ProducedCounts' open-choice result.  Consumers which need a
+	// concrete witness (payment plans) must decline it even where the ordinary
+	// payment window has a deterministic fallback.
+	any bool
 	// life is the life the activation pays (a PayLife<N> activation cost).
 	// Every alt the shared windowManaUnits builds carries 0; only the
 	// cast-payment probe's paid-cost layer sets it, so the affordability
@@ -216,7 +220,7 @@ func (e *Engine) windowManaUnits(p state.PlayerID) []windowManaUnit {
 			} else if total <= 0 {
 				continue
 			}
-			alts = append(alts, windowManaAlt{ma: ma, counts: counts, amt: amt})
+			alts = append(alts, windowManaAlt{ma: ma, counts: counts, amt: amt, any: any})
 		}
 		if len(alts) == 0 {
 			continue

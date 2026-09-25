@@ -1661,9 +1661,23 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !optional && !promptToSkipOptional && !anyNum {
 				verb = "put "
 			}
-			prompt := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			look := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library"
 			if noLooking && !revealWin {
-				prompt = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+				look = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library"
+			}
+			// A self-contained library move (Jace, the Mind Sculptor's "you
+			// may put it on the bottom" shape) is represented by an optional
+			// KChoose.  "Choose" alone is ambiguous here: the selected card
+			// moves to the bottom, while an unselected card does not move.  Say
+			// both sides of that choice in the prompt and on each option.
+			bottomChoice := dest == state.ZLibrary && primaryPos == "-1" && skipReorder
+			prompt := look + ": " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			if bottomChoice {
+				selectVerb := "Select up to "
+				if !optional && !promptToSkipOptional && !anyNum {
+					selectVerb = "Select "
+				}
+				prompt = look + ": " + selectVerb + strconv.Itoa(int(changeNum)) + " matching card(s) to put on the bottom of your library. Leave unselected card(s) on top."
 			}
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
@@ -1691,8 +1705,12 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 						name = o.Face().Name
 					}
 				}
+				label := name
+				if bottomChoice {
+					label = "Put " + name + " on bottom"
+				}
 				opt := decision.Option{Index: len(d.Options),
-					Kind: "dig", Label: name, Obj: id, Player: p}
+					Kind: "dig", Label: label, Obj: id, Player: p}
 				// Only a budget Dig carries a Value: Option.Value is
 				// omitempty, and setting it on a budget-less Dig would put a
 				// "value" field on the wire for every offered card although
