@@ -1,8 +1,10 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -231,9 +233,28 @@ func TestProliferateTriggerFiresWithNoEligibleRecipient(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// countProliferateTriggerPushes counts queued triggered abilities sourced
+// from `source` in the log -- the direct, body-independent signal that a
+// matching trigger fired (a trigger can queue and still have an unsupported
+// or unresolved body, so a life delta alone cannot prove non-firing).
+func countProliferateTriggerPushes(e *Engine, source state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush && ev.Obj == source {
+			n++
+		}
+	}
+	return n
+}
+
 // TestNoProliferateTriggerOnOrdinaryCounterAddition: a plain CounterChange
 // (no api:Proliferate anywhere) carries no marker, so the trigger must stay
-// silent even with the carrier sitting on the battlefield.
+// silent even with the carrier sitting on the battlefield and a fresh
+// ordinary counter landing AFTER the life baseline. The extra addition is
+// what makes the test able to fail: a mutant matcher that fired on
+// events.CounterChange would queue a trigger here (and, once the stack is
+// resolved, swing life), whereas a baseline taken after the only counter
+// event would let such a mutant pass vacuously.
 func TestNoProliferateTriggerOnOrdinaryCounterAddition(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -243,11 +264,29 @@ func TestNoProliferateTriggerOnOrdinaryCounterAddition(t *testing.T) {
 	putNamedOnBattlefield(t, e, "Grizzly Bears")
 	carrier := putCountersOn(t, e, 0, "Grizzly Bears", "P1P1", 2)
 	e.priorityRound()
-	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
 
-	// The handler ran: an ordinary CounterChange really landed on the carrier.
+	// Precondition: the first ordinary add really landed (so the card's
+	// CounterChange watcher, if any, had its chance) and start the baseline.
 	if got := e.G.Obj(carrier).Counter("P1P1"); got != 2 {
 		t.Fatalf("precondition: carrier P1P1 = %d, want 2", got)
+	}
+	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
+	pushes0 := countProliferateTriggerPushes(e, aspirant)
+
+	// The ordinary counter addition under test: a SECOND CounterChange, after
+	// the life baseline, with a measurable delta.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: carrier, Counter: "P1P1", Amount: 1})
+	e.priorityRound()
+	// Resolve any trigger the addition queued, so a matcher that fired here
+	// would actually swing life rather than sit unresolved on the stack.
+	resolveStack(t, e)
+
+	// The handler ran: the second ordinary add landed on the carrier.
+	if got := e.G.Obj(carrier).Counter("P1P1"); got != 3 {
+		t.Fatalf("precondition: carrier P1P1 = %d, want 3 after the second ordinary add", got)
+	}
+	if got := countProliferateTriggerPushes(e, aspirant); got != pushes0 {
+		t.Fatalf("queued %d Proliferate triggers from the carrier (was %d), want none: an ordinary counter add must not fire the trigger", got, pushes0)
 	}
 	if n := countProliferateMarkers(e); n != 0 {
 		t.Fatalf("logged %d Proliferate markers, want 0 (no proliferate action was taken)", n)
@@ -257,6 +296,120 @@ func TestNoProliferateTriggerOnOrdinaryCounterAddition(t *testing.T) {
 	}
 	if got := e.G.Players[1].Life; got != life1 {
 		t.Fatalf("seat 1 life = %d, want %d (an ordinary counter add must not fire the trigger)", got, life1)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// contagionTriggerSrc is Contagion Dispenser's ACTUAL T:Mode$ Proliferate
+// line -- `ValidPlayer$ You | TriggerZones$ Battlefield | PlayerTurn$ True |
+// ActivationLimit$ 1` -- transplanted onto a fixture whose body is a
+// supported, directly observable life gain rather than the real card's
+// unsupported `DB$ Draft`. The line's trigger-level restrictions are what
+// this fixture pins; the body is a stand-in so firing is measurable. Both
+// parameters are conditioned on actionTriggerModes in the shared gates, so a
+// mode left out of that map ignores them entirely.
+const contagionTriggerSrc = "Name:LimitProbe\nTypes:Artifact\n" +
+	"T:Mode$ Proliferate | ValidPlayer$ You | TriggerZones$ Battlefield | PlayerTurn$ True | ActivationLimit$ 1 | Execute$ TrigGain | TriggerDescription$ Whenever you proliferate during your turn, you gain 3 life. This ability triggers only once each turn.\n" +
+	"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 3\n" +
+	"Oracle:x\n"
+
+// limitProbeOnBattlefield asserts the precondition both restriction tests
+// hang on: the probe permanent is on seat 0's battlefield and its face really
+// carries the Mode$ Proliferate trigger with the two restricted params, so a
+// silent result below is the gate working, not a vacuous fixture.
+func limitProbeOnBattlefield(t *testing.T, e *Engine) state.ObjID {
+	t.Helper()
+	id := moveByName(t, e, 0, "LimitProbe", state.ZBattlefield)
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: LimitProbe id %d not on the battlefield", id)
+	}
+	var trig *cards.Trigger
+	for i := range o.Face().Triggers {
+		if o.Face().Triggers[i].Mode == "Proliferate" {
+			trig = &o.Face().Triggers[i]
+		}
+	}
+	if trig == nil {
+		t.Fatal("precondition: probe has no Mode$ Proliferate trigger on its face")
+	}
+	if !strings.EqualFold(trig.Params["PlayerTurn"], "True") || trig.Params["ActivationLimit"] != "1" {
+		t.Fatalf("precondition: probe trigger params = %v, want PlayerTurn$ True and ActivationLimit$ 1", trig.Params)
+	}
+	if e.controllerOf(id) != 0 {
+		t.Fatalf("precondition: probe controller = %d, want seat 0", e.controllerOf(id))
+	}
+	return id
+}
+
+// TestProliferateTriggerActivationLimitOncePerTurn pins Contagion Dispenser's
+// "This ability triggers only once each turn": two completed proliferate
+// actions in seat 0's OWN turn queue exactly ONE trigger, so the probe's +3
+// life happens once and the second marker adds nothing.
+func TestProliferateTriggerActivationLimitOncePerTurn(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := newFixtureDeck(t, 91, contagionTriggerSrc)
+	limitProbeOnBattlefield(t, e)
+	driveToStep(t, e, 1, 0, state.StepMain1)
+
+	// Precondition: the 3-point swing is observable and this is the probe's
+	// own turn.
+	life := e.G.Players[0].Life
+	if life+3 == life {
+		t.Fatal("precondition: a 3-point life gain would be unobservable")
+	}
+	if e.G.Active != 0 {
+		t.Fatalf("precondition: active seat = %d, want seat 0's own turn", e.G.Active)
+	}
+
+	e.emit(events.Event{Kind: events.Proliferate, Player: 0})
+	e.priorityRound()
+	resolveStack(t, e)
+	if got := e.G.Players[0].Life; got != life+3 {
+		t.Fatalf("seat 0 life = %d after the first proliferate, want %d (the trigger must fire once)", got, life+3)
+	}
+	// Second completed proliferate, same turn: ActivationLimit$ 1 withholds it.
+	e.emit(events.Event{Kind: events.Proliferate, Player: 0})
+	e.priorityRound()
+	resolveStack(t, e)
+	if got := e.G.Players[0].Life; got != life+3 {
+		t.Fatalf("seat 0 life = %d after the second proliferate, want %d (ActivationLimit$ 1 must suppress the second trigger)", got, life+3)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestProliferateTriggerRespectsPlayerTurn pins Contagion Dispenser's
+// "during your turn": a completed proliferate that is NOT on the source
+// controller's turn queues no trigger, while the same marker during the
+// controller's own turn does -- the positive half here is the negative
+// half's control, so a broken matcher cannot make this test pass.
+func TestProliferateTriggerRespectsPlayerTurn(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := newFixtureDeck(t, 92, contagionTriggerSrc)
+	limitProbeOnBattlefield(t, e)
+	driveToStep(t, e, 1, 0, state.StepMain1)
+
+	// Control: on seat 0's own turn the trigger fires.
+	life := e.G.Players[0].Life
+	e.emit(events.Event{Kind: events.Proliferate, Player: 0})
+	e.priorityRound()
+	resolveStack(t, e)
+	if got := e.G.Players[0].Life; got != life+3 {
+		t.Fatalf("control: seat 0 life = %d on its own turn, want %d (the trigger must fire here)", got, life+3)
+	}
+	lifeAfterControl := e.G.Players[0].Life
+
+	// Drive to seat 1's turn (active != controller). The per-turn
+	// ActivationLimit$ resets, so only the PlayerTurn$ gate can withhold it.
+	driveToStep(t, e, 2, 1, state.StepMain1)
+	if e.G.Active != 1 {
+		t.Fatalf("precondition: active seat = %d, want seat 1's turn", e.G.Active)
+	}
+	e.emit(events.Event{Kind: events.Proliferate, Player: 0})
+	e.priorityRound()
+	resolveStack(t, e)
+	if got := e.G.Players[0].Life; got != lifeAfterControl {
+		t.Fatalf("seat 0 life = %d on seat 1's turn, want %d (PlayerTurn$ True must suppress the trigger)", got, lifeAfterControl)
 	}
 	replayCheck(t, e, cfg)
 }
