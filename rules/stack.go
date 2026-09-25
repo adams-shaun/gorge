@@ -2918,10 +2918,17 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	chooser := p
 	if spec := strings.TrimSpace(sa.Params["TargetingPlayer"]); spec != "" {
-		if tc, ok := e.triggerContexts[source]; ok {
-			if who, ok := e.targetChooserFromSpec(spec, p, nil, tc); ok {
-				chooser = who
-			}
+		// Opponent is intentionally deterministic when a game has multiple
+		// opponents: the first living seat in AliveFrom(0) answers. Forge's
+		// TargetingPlayer$ names who chooses the target, but does not specify
+		// who chooses among multiple opponents; this engine contract matches
+		// the existing trigger-time resolver and keeps asks/replays stable.
+		tc := effects.TriggerContext{}
+		if triggerContext, ok := e.triggerContexts[source]; ok {
+			tc = triggerContext
+		}
+		if who, ok := e.targetChooserFromSpec(spec, p, nil, tc); ok {
+			chooser = who
 		}
 	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KTarget, Min: min, Max: max,
