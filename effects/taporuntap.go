@@ -41,10 +41,8 @@ func init() {
 func effTapOrUntap(h Host, c *Ctx, sa *cards.SA) {
 	tapper := c.Controller
 	if spec := strings.TrimSpace(sa.Params["Tapper"]); spec != "" {
-		sub := *sa
-		sub.Params = map[string]string{"Defined": spec}
-		if ps := Defined(h, c, &sub); len(ps) > 0 {
-			tapper = PlayerOf(h, c, ps[0])
+		if ps := definedPlayerIDs(h, c, spec); len(ps) > 0 {
+			tapper = ps[0]
 		}
 	}
 	for _, t := range Defined(h, c, sa) {

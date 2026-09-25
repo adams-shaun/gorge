@@ -5058,7 +5058,11 @@ func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 	if len(targets) == 0 {
 		return
 	}
-	p := PlayerOf(h, c, targets[0])
+	players := definedPlayers(h, c, sa)
+	if len(players) == 0 {
+		return
+	}
+	p := players[0]
 	if g := h.Game(); g != nil && g.IsMonarch(p) {
 		return
 	}
