@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/state"
@@ -311,6 +312,61 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string) (int32, bool) {
 			var n int32
 			for _, p := range players {
 				n += h.LifeLostThisTurn(p)
+			}
+			return n, true
+		}
+		if _, known := playerScalarProperty(h, g, 0, prop); !known {
+			return 0, false
+		}
+		var n int32
+		for _, p := range players {
+			v, _ := playerScalarProperty(h, g, p, prop)
+			n += v
+		}
+		return n, true
+	case "PlayerCountRememberedController":
+		// Forge's PlayerCountRememberedController<group>: the CONTROLLERS of
+		// the remembered OBJECTS -- never the remembered player entries, which
+		// are not remembered objects. Tempt with Mayhem's "an additional time
+		// for each opponent who copied the spell this way"
+		// (X:PlayerCountRememberedController$Amount/Plus.1) reads the
+		// controllers of the copy objects its per-opponent DBCopy remembered;
+		// Eradicate/Sowing Salt/Splinter read a remembered card's controller's
+		// hand/library size; Faerie Slumber Party counts the remembered
+		// creatures' controllers that are opponents.
+		//
+		// Distinct controllers (Forge's set semantics), so two remembered
+		// objects controlled by one seat count once -- Tempt's "for each
+		// opponent", Faerie's "for each opponent who controlled". A remembered
+		// player entry contributes nothing, and an object entry whose id no
+		// longer resolves contributes nothing: fail closed rather than
+		// inventing a seat.
+		for _, t := range c.Remembered {
+			if t.IsPlayer || t.Obj == 0 {
+				continue
+			}
+			o := g.Obj(t.Obj)
+			if o == nil {
+				continue
+			}
+			if !slices.Contains(players, o.Controller) {
+				players = append(players, o.Controller)
+			}
+		}
+		switch prop {
+		case "Amount":
+			return int32(len(players)), true
+		}
+		if spec, hasSpec := strings.CutPrefix(prop, "HasProperty"); hasSpec {
+			// The controllers of the remembered objects filtered by the shared
+			// player grammar (Faerie Slumber Party's HasPropertyOpponent: one
+			// per opponent who controlled a remembered creature). The one home
+			// for the spec grammar is the shared player filter.
+			var n int32
+			for _, p := range players {
+				if MatchesPlayerSpec(g, spec, p, c.Controller) {
+					n++
+				}
 			}
 			return n, true
 		}
