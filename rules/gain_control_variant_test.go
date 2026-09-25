@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -116,4 +117,54 @@ func driveToSeat0EndStep(t *testing.T, e *Engine) {
 		}
 	}
 	t.Fatal("did not reach seat 0's end step")
+}
+
+// TestGainControlVariantOwnerGrantOverridesOlderStealAtCleanup pins the
+// layering the owner-directed hand-back depends on (CR 613.7): the variant
+// must register a new control effect on a matching permanent even when that
+// permanent is ALREADY under its owner's control, because an older steal can
+// still be tracked and would retake it the moment a later temporary return
+// expires. Sequence: an older PERMANENT steal to seat 0, a later EOT return
+// that leaves seat 1 visibly in control, then Alicia Masters' owner hand-back
+// while seat 1 already controls the creature. At cleanup the EOT return
+// expires; without the newer owner grant the older permanent steal becomes
+// the latest surviving effect and retakes the creature (controller 0).
+func TestGainControlVariantOwnerGrantOverridesOlderStealAtCleanup(t *testing.T) {
+	e := New(Config{Seed: 7331, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
+	alicia := e.G.AddObject(choiceCorpusCard(t, "Alicia Masters, Skilled Sculptor"), 0)
+	victim := e.G.AddObject(card(t, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	for _, id := range []state.ObjID{alicia.ID, victim.ID} {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	if o := e.G.Obj(victim.ID); o == nil || o.Zone != state.ZBattlefield || o.Owner != 1 || o.Controller != 1 {
+		t.Fatalf("precondition: victim owner/controller/zone = %d/%d/%d, want 1/1/battlefield", o.Owner, o.Controller, o.Zone)
+	}
+	// An older PERMANENT steal to seat 0.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: victim.ID, Player: 0})
+	e.RegisterControl(effects.ControlGrant{Obj: victim.ID, ObjStamp: e.G.Obj(victim.ID).Timestamp, Previous: 1, Controller: 0})
+	// A later EOT return restores the visible controller to its owner while
+	// the older permanent steal remains tracked.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: victim.ID, Player: 1})
+	e.RegisterControl(effects.ControlGrant{Obj: victim.ID, ObjStamp: e.G.Obj(victim.ID).Timestamp, Previous: 0, Controller: 1,
+		Duration: effects.ControlDuration{EOT: true}})
+	if got := e.G.Obj(victim.ID).Controller; got != 1 {
+		t.Fatalf("precondition: EOT return left controller %d, want 1", got)
+	}
+	// The owner hand-back resolves while the creature already belongs to its
+	// owner (the exact case the variant must not skip).
+	sa := cards.ResolveSVar(alicia.Face().SVars, "TrigGainControl")
+	if sa.API != "GainControlVariant" {
+		t.Fatalf("carried SA is %s, want GainControlVariant", sa.API)
+	}
+	effects.Resolve(e, &effects.Ctx{Source: alicia.ID, Controller: 0, SVars: alicia.Face().SVars}, sa)
+	if got := e.G.Obj(victim.ID).Controller; got != 1 {
+		t.Fatalf("owner hand-back changed controller to %d, want 1", got)
+	}
+	// The EOT return expires here; the newer owner grant must keep control
+	// with the owner instead of letting the older steal retake it.
+	e.EndOfTurnCleanup()
+	if got := e.G.Obj(victim.ID).Controller; got != 1 {
+		t.Fatalf("after cleanup controller = %d, want 1 (older permanent steal retook the creature)", got)
+	}
 }

@@ -90,7 +90,9 @@ func TestGainControlVariantAliciaMastersCorpusSA(t *testing.T) {
 	}
 
 	// The change is event-backed: exactly one ControlChange, for the stolen
-	// creature, naming its owner; and one registered grant describing it.
+	// creature, naming its owner; and a grant is registered for EVERY matching
+	// creature -- including the two their owners already control (CR 613.7:
+	// the newest control effect on each permanent is this one).
 	var changes []events.Event
 	for _, e := range h.log {
 		if e.Kind == events.ControlChange {
@@ -100,9 +102,21 @@ func TestGainControlVariantAliciaMastersCorpusSA(t *testing.T) {
 	if len(changes) != 1 || changes[0].Obj != ids["stolen"] || changes[0].Player != 1 {
 		t.Fatalf("ControlChange events = %+v, want exactly one for stolen -> 1", changes)
 	}
-	if len(h.controls) != 1 || h.controls[0].Obj != ids["stolen"] ||
-		h.controls[0].Previous != 0 || h.controls[0].Controller != 1 {
-		t.Fatalf("control grants = %+v, want one stolen 0 -> 1", h.controls)
+	// Arena order is bear, stolen, theirs (relic is excluded by the filter);
+	// each gets a grant, and only the stolen one moves visibly.
+	wantGrants := []ControlGrant{
+		{Obj: ids["bear"], Previous: 0, Controller: 0},
+		{Obj: ids["stolen"], Previous: 0, Controller: 1},
+		{Obj: ids["theirs"], Previous: 1, Controller: 1},
+	}
+	if len(h.controls) != len(wantGrants) {
+		t.Fatalf("control grants = %+v, want %d grants (one per matching creature)", h.controls, len(wantGrants))
+	}
+	for i, want := range wantGrants {
+		got := h.controls[i]
+		if got.Obj != want.Obj || got.Previous != want.Previous || got.Controller != want.Controller {
+			t.Fatalf("grant %d = %+v, want obj %d previous %d controller %d", i, got, want.Obj, want.Previous, want.Controller)
+		}
 	}
 }
 
@@ -111,12 +125,17 @@ func TestGainControlVariantAliciaMastersCorpusSA(t *testing.T) {
 // (Random / the chosen-direction forms Scrambleverse and Order of Succession
 // carry) must emit a loud Note and change NOTHING -- never fall through to
 // the owner-directed behaviour and flip control to the wrong player.
+//
+// Driven through Resolve rather than the handler directly, so reverting the
+// REGISTRATION (not just the hunk) also fails this test: an unregistered API
+// emits the generic "unimplemented API GainControlVariant" Note instead of
+// the fail-closed one asserted below.
 func TestGainControlVariantRejectsUnsupportedChangeController(t *testing.T) {
 	for _, value := range []string{"Random", "ChooseFromPlayerToTheirRight", "NextPlayerInChosenDirection", "ChooseNextPlayerInChosenDirection"} {
 		g, ids := gainControlVariantBoard(t)
 		h := &fakeHost{g: g}
 		variant := sa(t, "SP$ GainControlVariant | AllValid$ Creature | ChangeController$ "+value)
-		effGainControlVariant(h, &Ctx{Controller: 0, Source: ids["bear"]}, variant)
+		Resolve(h, &Ctx{Controller: 0, Source: ids["bear"]}, variant)
 
 		for _, e := range h.log {
 			if e.Kind == events.ControlChange {
@@ -128,6 +147,9 @@ func TestGainControlVariantRejectsUnsupportedChangeController(t *testing.T) {
 		}
 		if len(h.log) != 1 || h.log[0].Kind != events.Note || len(h.controls) != 0 {
 			t.Fatalf("ChangeController$ %s: expected one Note and no grant, got log=%+v grants=%+v", value, h.log, h.controls)
+		}
+		if want := "GainControlVariant ChangeController$ " + value + " unimplemented"; h.log[0].Text != want {
+			t.Fatalf("ChangeController$ %s note = %q, want %q (registration reverted?)", value, h.log[0].Text, want)
 		}
 	}
 }

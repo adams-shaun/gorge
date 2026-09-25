@@ -1241,18 +1241,20 @@ func effGainControlVariant(h Host, c *Ctx, sa *cards.SA) {
 		if o.Zone != state.ZBattlefield || !MatchesObjectCtx(g, spec, o, sc) {
 			continue
 		}
-		// "Each player gains control of all permanents they own": a permanent
-		// its owner already controls is not affected, so no event and no
-		// record is produced for it.
-		if o.Controller == o.Owner {
-			continue
-		}
 		gr := base
 		gr.Obj, gr.ObjStamp, gr.Previous, gr.Controller = o.ID, o.Timestamp, o.Controller, o.Owner
 		if ControlGrantEnded(h, gr) {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.ControlChange, Obj: o.ID, Player: o.Owner})
+		// The effect is applied to EVERY matching permanent, including one
+		// its owner already controls: it establishes a new (latest) control
+		// effect on it (CR 613.7), so a still-tracked older steal cannot
+		// retake the permanent when the older steal expires. Only a visible
+		// change of controller emits the ControlChange event; a permanent
+		// already under its owner's control gets the grant record silently.
+		if o.Controller != o.Owner {
+			h.Emit(events.Event{Kind: events.ControlChange, Obj: o.ID, Player: o.Owner})
+		}
 		h.RegisterControl(gr)
 	}
 }
