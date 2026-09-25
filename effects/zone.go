@@ -558,9 +558,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// Remembered is non-empty, the card's list is what the script meant.
 	// Mid-chain readings are unaffected: a chain that remembered its own
 	// source through the object path below wrote BOTH halves (ctx and
-	// persistent), so the replacement is the same set; a hand-path
-	// RememberChanged$ writes ctx only and leaves the persistent list empty,
-	// so the guard keeps the ctx set.
+	// persistent), so the replacement is the same set.
 	if sa.Params["Defined"] == "Remembered" {
 		if len(targets) == 1 && !targets[0].IsPlayer && targets[0].Obj == c.Source {
 			if src := h.Game().Obj(c.Source); src != nil && len(src.Remembered) > 0 {
