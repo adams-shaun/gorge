@@ -394,6 +394,13 @@ type combatFires struct {
 // modes, so no trigger of another mode that fired before stops firing or
 // fires less often.
 var actionTriggerModes = map[string]bool{
+	// Clashed joins them for the same reason: it is an event mode registered
+	// with its own marker Kind (events.Clash, task clash1), so the
+	// trigger-level parameters Forge scopes to every event mode --
+	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
+	// predicate failing closed -- apply from day one. Its own ValidPlayer$ /
+	// Won$ gate is read by clashMatches, not by this map.
+	"Clashed":                    true,
 	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "AttackerUnblocked": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true, "Untaps": true,
 	// DamagePreventedOnce joins them for the same reason: it is an event mode

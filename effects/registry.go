@@ -2284,6 +2284,21 @@ type Ctx struct {
 	// walk (the fx42 scoping discipline), so a nested FlipCoin poses its own
 	// loop. Nil on every ordinary first pass.
 	FlipRest *FlipRest
+	// ClashWon records the resolving controller's CR 701.31 clash outcome:
+	// true when their revealed card had the strictly higher mana value, false
+	// on a loss and on a tie (no winner). effClash sets it from the reveal
+	// comparison and selects its Forge WinSubAbility$/OtherwiseSubAbility$
+	// branch through it, so the branch and the emitted events.Clash records
+	// cannot disagree about who won. It is resolution-scratch like
+	// Targets/SVars -- never event-encoded (the marker carries the same bit
+	// in Amount), a replay re-derives the same value.
+	ClashWon bool
+	// ClashWinner is the seat that won the clash, or the resolving controller
+	// on a tie (CR 701.31's no-winner case, where Forge reports"False" to
+	// both clashing players). effClash's branch read uses ClashWon; this field
+	// is kept so a chained SubAbility$ (or a future Defined$ referent) can
+	// name the winner without re-deriving it from the log.
+	ClashWinner state.PlayerID
 }
 
 // VoteCount is one ballot subject's tally (see Ctx.VoteCounts).

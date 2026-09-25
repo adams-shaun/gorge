@@ -975,10 +975,26 @@ const (
 	// ReplacedCards selector reads. Appended after CardNoted, preserving every
 	// earlier ordinal, hash chain and golden replay.
 	Cascade
+	// Clash records one clashing player's win/lose result from a completed
+	// CR 701.31 clash action (Forge's TriggerType.Clashed). Obj is the
+	// resolving source permanent (0 for a source-less body), Player is the
+	// clashing seat this record reports, and Amount is 1 when that player WON
+	// the clash and 0 when they lost (or tied -- CR 701.31 treats a tie as no
+	// winner, and Forge's ClashEffect fires the trigger for both clashing
+	// players with Won$ False on a tie). The reveal and the top/bottom
+	// placements are their own preceding Notes/MoveZone/LibraryOrder events;
+	// this is a pure Apply no-op marker, exactly like Explore/Investigate /
+	// GiveGift, so an unrelated reveal never fires a clash trigger. effClash
+	// emits ONE record per clashing player (Forge fires runTrigger once per
+	// player), which is what the `Won$ True`/`Won$ False` orientation of
+	// trig:Clashed reads. Appended after Cascade, still above NumKinds,
+	// following every prior Kind's own append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected.
+	Clash
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(Cascade) + 1
+	NumKinds = int(Clash) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1114,7 +1130,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
-	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade"}
+	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade", "clash"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
