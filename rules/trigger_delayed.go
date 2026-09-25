@@ -11,6 +11,7 @@
 package rules
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -70,15 +71,20 @@ func (e *Engine) delayedRegistrationLive(dt *state.DelayedTrigger) bool {
 		return false
 	}
 	src := e.G.Obj(dt.Source)
-	if src == nil || src.Face() == nil || cards.ResolveSVar(src.Face().SVars, dt.Execute) == nil {
+	if src == nil || src.Face() == nil || events.ResolveSVarAcrossFaces(src, dt.Execute) == nil {
 		return false
 	}
 	// The sole lifetime predicate is shared by collection and both fire-time
 	// scans. In particular a permanent Effect grant ends with its source's
-	// battlefield incarnation; ordinary CR 603.7 promises remain independent.
+	// battlefield incarnation -- but ONLY when the source was a battlefield
+	// permanent at registration (CR 611.2). An opening-hand Effect
+	// (Chancellor of the Annex, source in hand) or an emblem/command-zone
+	// source has no battlefield incarnation to lose, so its Permanent
+	// promise is unbounded (SourceBattlefield false).
 	switch dt.EffectDuration {
 	case "permanent":
-		if src.Zone != state.ZBattlefield || src.Incarnation != dt.SourceIncarnation {
+		if dt.SourceBattlefield &&
+			(src.Zone != state.ZBattlefield || src.Incarnation != dt.SourceIncarnation) {
 			return false
 		}
 	case "untilendofcombat":
@@ -86,17 +92,26 @@ func (e *Engine) delayedRegistrationLive(dt *state.DelayedTrigger) bool {
 			return false
 		}
 	case "untilyournextturn", "untiltheendofyournextturn":
-		// Read the folded turn history, not a frozen absolute turn: late
-		// extra-turn grants and skipped turns move the next-turn boundary.
-		for _, ev := range e.L.Events {
-			if ev.Kind != events.TurnChange || ev.Amount <= dt.BirthTurn || ev.Player != dt.Controller {
-				continue
-			}
-			if dt.EffectDuration == "untilyournextturn" || ev.Amount < e.G.Turn ||
-				ev.Amount == e.G.Turn && e.G.Step == state.StepCleanup {
-				return false
-			}
+		// Read the folded turn history through the shared turn-start cache
+		// (nextTurnFor/rescheduleNextTurnBoundaries' own source of truth),
+		// not a frozen absolute turn: late extra-turn grants and skipped
+		// turns move the next-turn boundary. The cache is rebuilt once per
+		// log length, never per registration per event.
+		starts := e.turnStartsFor(dt.Controller)
+		first, ok := firstTurnStartAfter(starts, dt.BirthTurn)
+		if !ok {
 			break
+		}
+		if dt.EffectDuration == "untilyournextturn" {
+			return false
+		}
+		// UntilTheEndOfYourNextTurn lasts through that turn's cleanup: it is
+		// over once a LATER turn has begun, or at the cleanup of the boundary
+		// turn. A second turn start after the boundary proves the first has
+		// ended even if the intervening cleanup event was never presented.
+		_, second := firstTurnStartAfter(starts, first)
+		if second || e.G.Turn > first || (e.G.Turn == first && e.G.Step == state.StepCleanup) {
+			return false
 		}
 	}
 	if dt.EventMode != "" {
@@ -105,12 +120,45 @@ func (e *Engine) delayedRegistrationLive(dt *state.DelayedTrigger) bool {
 		}
 		raw := dt.Trigger
 		if !strings.HasPrefix(raw, "Mode$") {
-			raw = src.Face().SVars[raw]
+			raw = events.SVarAcrossFaces(src, raw)
 		}
 		t, ok := cards.ParseTriggerLine(raw)
 		return ok && t.Mode == dt.EventMode
 	}
 	return true
+}
+
+// turnStartsFor returns the sorted turn numbers at which p's turn began,
+// folded from the event log when the cache is stale. It is the ONE home for
+// the delayed next-turn boundary, so every registration shares one walk per
+// log length rather than one walk per registration per event (the collector
+// and both fire-time scans all call delayedRegistrationLive). Matches the
+// turnsTaken cache's lazy epoch pattern.
+func (e *Engine) turnStartsFor(p state.PlayerID) []int32 {
+	if len(e.turnStartTurns) != len(e.G.Players) || e.turnStartEpoch != len(e.L.Events) {
+		starts := make([][]int32, len(e.G.Players))
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.TurnChange && int(ev.Player) < len(starts) {
+				starts[ev.Player] = append(starts[ev.Player], ev.Amount)
+			}
+		}
+		e.turnStartTurns = starts
+		e.turnStartEpoch = len(e.L.Events)
+	}
+	if int(p) >= len(e.turnStartTurns) {
+		return nil
+	}
+	return e.turnStartTurns[p]
+}
+
+// firstTurnStartAfter returns the first turn number in the sorted starts
+// slice strictly greater than turn.
+func firstTurnStartAfter(starts []int32, turn int32) (int32, bool) {
+	i := sort.Search(len(starts), func(i int) bool { return starts[i] > turn })
+	if i < len(starts) {
+		return starts[i], true
+	}
+	return 0, false
 }
 
 // checkDelayedTriggers queues a pending trigger for every delayed-trigger
@@ -295,14 +343,14 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// "Mode$".
 		raw := dt.Trigger
 		if !strings.HasPrefix(raw, "Mode$") {
-			raw = src.Face().SVars[raw]
+			raw = events.SVarAcrossFaces(src, raw)
 		}
 		t, ok := cards.ParseTriggerLine(raw)
 		if !ok || t.Mode != dt.EventMode {
 			remove = append(remove, dt.ID)
 			continue
 		}
-		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
+		sa := events.ResolveSVarAcrossFaces(src, dt.Execute)
 		if sa == nil {
 			remove = append(remove, dt.ID)
 			continue

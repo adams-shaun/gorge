@@ -159,6 +159,15 @@ type Engine struct {
 	turnsTaken      []int32
 	turnsTakenEpoch int
 
+	// turnStartTurns caches, per player, the sorted turn numbers at which that
+	// player's turn began (rules.turnStartsFor). delayedRegistrationLive reads
+	// it for the next-turn lifetime boundary; turnStartEpoch is the log length
+	// it represents, so an Engine assembled around an existing log lazily
+	// rebuilds it once rather than rescanning the log per registration. Clone
+	// copies it like turnsTaken.
+	turnStartTurns [][]int32
+	turnStartEpoch int
+
 	// combatHitsThisTurn is the per-turn combat-damage-to-players ledger
 	// captured at the combat-damage site (rules/combat.go's
 	// runCombatAssignments). It is engine-side, NO-EVENT state -- deliberately

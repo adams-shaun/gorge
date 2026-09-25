@@ -19,7 +19,7 @@ func Emit(g *state.Game, l *Log, e Event) Event {
 
 // Apply folds one event into state. It must stay a pure function of (g, e):
 // no randomness, no clock, no reads outside g.
-// resolveSVarAcrossFaces resolves an Execute$ SVar name against the source
+// ResolveSVarAcrossFaces resolves an Execute$ SVar name against the source
 // object's card, trying the ACTIVE face's table first and then every face in
 // index order. A one-face card behaves exactly as before (the active face
 // IS the first hit). The multi-face case is why this helper exists: an
@@ -28,7 +28,7 @@ func Emit(g *state.Game, l *Log, e Event) Event {
 // which src.Face() -- the active face -- does not carry. First face whose
 // table defines the name wins: deterministic, and a name defined on several
 // faces resolves to the lowest index consistently on live play and replay.
-func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
+func ResolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 	if name == "" {
 		return nil
 	}
@@ -60,6 +60,39 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 		}
 	}
 	return nil
+}
+
+// SVarAcrossFaces returns the RAW SVar body named on the source's card, in
+// the same face order ResolveSVarAcrossFaces uses (active face first, then
+// every face in index order, then recovered merged under-card faces). It is
+// the raw-text sibling of ResolveSVarAcrossFaces for callers that need the
+// trigger LINE (e.g. a delayed registration's Mode$ body) rather than a
+// parsed sub-ability. A name defined on several faces resolves to the lowest
+// index, so live play and replay agree.
+func SVarAcrossFaces(src *state.Object, name string) string {
+	if name == "" {
+		return ""
+	}
+	if f := src.Face(); f != nil {
+		if raw := f.SVars[name]; raw != "" {
+			return raw
+		}
+	}
+	if src.Card != nil {
+		for _, cf := range src.Card.Faces {
+			if raw := cf.SVars[name]; raw != "" {
+				return raw
+			}
+		}
+	}
+	for i := range src.MergedCards {
+		if cf := src.MergedFaceAt(i); cf != nil {
+			if raw := cf.SVars[name]; raw != "" {
+				return raw
+			}
+		}
+	}
+	return ""
 }
 
 func Apply(g *state.Game, e Event) {
@@ -2709,7 +2742,13 @@ func Apply(g *state.Game, e Event) {
 			text = text[:i]
 		}
 		// Effect lifetime suffixes are stripped before the mode/body split.
-		// Their values are Forge tokens without a pipe delimiter.
+		// Their values are Forge tokens without a pipe delimiter. |SB is a
+		// bare flag appended LAST by the registering arm, so it is stripped
+		// FIRST (before the value-bearing suffixes and |IH).
+		sourceBattlefield := strings.HasSuffix(text, "|SB")
+		if sourceBattlefield {
+			text = strings.TrimSuffix(text, "|SB")
+		}
 		imprint := strings.HasSuffix(text, "|IH")
 		if imprint {
 			text = strings.TrimSuffix(text, "|IH")
@@ -2764,6 +2803,7 @@ func Apply(g *state.Game, e Event) {
 			ForgetCounter:     counter,
 			ForgetOnCast:      cast,
 			ImprintOnHost:     imprint,
+			SourceBattlefield: sourceBattlefield,
 		})
 		g.DelayedNext++
 
@@ -2846,7 +2886,7 @@ func Apply(g *state.Game, e Event) {
 		} else if radiationDrain {
 			sa = &cards.SA{Kind: "DB", API: "RadiationDrain", Params: map[string]string{"Defined": "You"}}
 		} else {
-			sa = resolveSVarAcrossFaces(src, e.Counter)
+			sa = ResolveSVarAcrossFaces(src, e.Counter)
 		}
 		if sa == nil {
 			break
@@ -2970,7 +3010,7 @@ func Apply(g *state.Game, e Event) {
 				break
 			}
 		}
-		sa := resolveSVarAcrossFaces(resolver, e.Counter)
+		sa := ResolveSVarAcrossFaces(resolver, e.Counter)
 		if sa == nil {
 			break
 		}
@@ -3008,7 +3048,7 @@ func Apply(g *state.Game, e Event) {
 		if g.Obj(e.Obj) == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(grantor, e.Counter)
+		sa := ResolveSVarAcrossFaces(grantor, e.Counter)
 		if sa == nil {
 			break
 		}

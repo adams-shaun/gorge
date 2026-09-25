@@ -540,6 +540,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		} else if !effectTriggerThisTurnDuration(rawDur) && dur != "untilyournextendstep" {
 			expiry = "|DU=" + dur
 		}
+		// A Duration$ Permanent Effect trigger's source-relative ending
+		// (CR 611.2) applies only when the source IS a battlefield
+		// permanent at registration. An opening-hand Effect (Chancellor of
+		// the Annex, source still in hand) or an emblem/command-zone source
+		// has no battlefield incarnation to lose, so its Permanent promise
+		// is unbounded; the |SB marker tells rules' liveness predicate
+		// whether the battlefield rule applies at all. Appended LAST (below,
+		// after every value-bearing suffix) so the decoder's HasSuffix strip
+		// sees it at the tail.
 		// The continuous side folds UntilYourNextEndStep into this-turn;
 		// use its same boundary rather than silently giving it permanence.
 		if !permanentComeback {
@@ -558,6 +567,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if imprintOnHost {
 				expiry += "|IH"
 			}
+		}
+		if dur == "permanent" && !permanentComeback &&
+			h.Game().Obj(c.Source) != nil && h.Game().Obj(c.Source).Zone == state.ZBattlefield {
+			expiry += "|SB"
 		}
 		// The Effect's own capture is what an Effect-owned trigger's
 		// `Defined$ Remembered` names. Register it so the comeback body
