@@ -10368,24 +10368,17 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // abilities).
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [7]state.Mana, life int32, conv *manaConv, units []windowManaUnit) bool {
-	payable := func(pool state.Mana, lifeNow, extraGeneric int32) bool {
-		c := cost
-		c.Generic += extraGeneric
-		_, ok := c.resolveManaWith(pool, snow, typed, lifeNow,
+	payable := func(pool state.Mana, lifeNow int32) bool {
+		_, ok := cost.resolveManaWith(pool, snow, typed, lifeNow,
 			e.payerGrantsPayLifeInsteadOfB(p), pipRider{}, conv)
 		return ok
 	}
-	if payable(spellPool, life, 0) {
+	if payable(spellPool, life) {
 		return true
 	}
-	budget := cost.manaPipCount()
-	if budget <= 0 {
-		return false
-	}
 	free := e.unrestrictedWindowPool(p)
-	// Stable free-first ordering: a free alt (costGeneric 0) sorts before a
-	// paid one, and ties keep the zone-ordered walk's sequence (the id is only
-	// a determinism guard against two units sharing a key).
+	// Stable free-first ordering: a free alt sorts before a paid one; ties
+	// retain the zone walk's order, with the id as a determinism guard.
 	ordered := append([]windowManaUnit(nil), units...)
 	for i := 1; i < len(ordered); i++ {
 		for j := i; j > 0; j-- {
@@ -10396,12 +10389,12 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 		}
 	}
 	nodes := 0
-	var rec func(start, remaining int, acc state.Mana, lifeLeft, fees int32) bool
-	rec = func(start, remaining int, acc state.Mana, lifeLeft, fees int32) bool {
-		if payable(manaAdd(spellPool, acc), lifeLeft, fees) {
+	var rec func(start int, pool, activationPool state.Mana, lifeLeft int32) bool
+	rec = func(start int, pool, activationPool state.Mana, lifeLeft int32) bool {
+		if payable(pool, lifeLeft) {
 			return true
 		}
-		if remaining <= 0 {
+		if start >= len(ordered) {
 			return false
 		}
 		nodes++
@@ -10413,21 +10406,63 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 				if a.life > lifeLeft {
 					continue
 				}
-				// The fee this activation owes must be payable from the pool
-				// the window has actually accumulated by this point in the
-				// sequence: the real pool's unrestricted share plus every
-				// prior activation's production, less fees already paid.
-				if a.costGeneric > free.Total()+acc.Total()-fees {
-					continue
-				}
-				if rec(i+1, remaining-1, manaAdd(acc, a.mana()), lifeLeft-a.life, fees+a.costGeneric) {
-					return true
+				// Pay a generic activation fee from mana the live activation
+				// gate can spend. Track the same spent colours in the spell
+				// pool; fees reduce that pool, they are not extra spell pips.
+				for _, spent := range castWindowGenericPayments(activationPool, a.costGeneric) {
+					nextPool := manaSub(pool, spent)
+					nextActivation := manaSub(activationPool, spent)
+					produced := a.mana()
+					if rec(i+1, manaAdd(nextPool, produced), manaAdd(nextActivation, produced), lifeLeft-a.life) {
+						return true
+					}
 				}
 			}
 		}
 		return false
 	}
-	return rec(0, budget, state.Mana{}, life, 0)
+	return rec(0, spellPool, free, life)
+}
+
+// castWindowGenericPayments enumerates deterministic colour allocations for
+// paying a literal generic activation fee. The activation search applies each
+// allocation to both the unrestricted activation pool and the spell pool.
+func castWindowGenericPayments(pool state.Mana, amount int32) []state.Mana {
+	if amount == 0 {
+		return []state.Mana{{}}
+	}
+	var out []state.Mana
+	var walk func(slot int, left int32, spent state.Mana)
+	walk = func(slot int, left int32, spent state.Mana) {
+		if slot == len(pool) {
+			if left == 0 {
+				out = append(out, spent)
+			}
+			return
+		}
+		max := pool[slot]
+		if max > left {
+			max = left
+		}
+		for n := max; n >= 0; n-- {
+			spent[slot] = n
+			walk(slot+1, left-n, spent)
+		}
+		spent[slot] = 0
+	}
+	walk(0, amount, state.Mana{})
+	return out
+}
+
+func manaSub(a, b state.Mana) state.Mana {
+	var m state.Mana
+	for i := range m {
+		m[i] = a[i] - b[i]
+		if m[i] < 0 {
+			m[i] = 0
+		}
+	}
+	return m
 }
 
 // castWindowUnitLess orders a unit before another when its cheapest
