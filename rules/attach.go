@@ -68,7 +68,7 @@ func (e *Engine) attachmentSBAs() bool {
 				// attachment takes the same graveyard SBA as an object Aura.
 				p := o.AttachedPlayer
 				if !isAura(o) || int(p) >= len(e.G.Players) || e.G.Players[p].Lost ||
-					!e.playerAuraStillMatchesEnchant(o, p) {
+					!e.playerAuraStillMatchesEnchant(o, p) || e.playerProtectedFrom(p, o.ID) {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "illegal player attachment"})
 					changed = true
