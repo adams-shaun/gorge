@@ -234,9 +234,13 @@ func chooseColorOffers(opts []decision.Option, l byte) bool {
 // on the re-entry after its own ask was answered it emits the one Choose
 // event the fallback emits, with the answered number (Ctx.ChosenNumberPick
 // plus the ChosenNumberAnswered marker, consumed and cleared -- the fx42
-// scoping convention). A host that cannot ask falls through to the
-// deterministic fallback 0 with no extra Note (R-9), the value the old
-// stand-in always recorded.
+// scoping convention). The option list and prompt are chooseNumberAsk's
+// (effects/number_choices.go, the one home): the card's own Max$ bound, Min$
+// floor and ListTitle$ prompt, resolved against the current resolution
+// context; a bound this context cannot honour keeps the loud fail-closed
+// fallback (a Note naming the parameter, then the deterministic 0), a host
+// that cannot ask falls through to the deterministic first legal value with
+// no extra Note (R-9), the value the old stand-in always recorded.
 //
 // A number already on the source -- an EARLIER Choose event's answer, from a
 // previous ChooseNumber SA or the entry choice an ability now re-asks -- is
@@ -267,16 +271,46 @@ func effChooseNumber(h Host, c *Ctx, sa *cards.SA) {
 	if ts := Defined(h, c, sa); len(ts) > 0 && ts[0].IsPlayer {
 		chooser = ts[0].Player
 	}
-	opts := NumberChoices()
+	opts, prompt, boundOK := chooseNumberAsk(h, c, sa)
+	if !boundOK {
+		// The card states a bound (Max$ or Min$) this context cannot honour:
+		// an unresolvable expression, an inverted or negative bound, or one
+		// past the list-pick ceiling. Fail closed loudly — a Note naming the
+		// parameter, then the deterministic 0 the fallback always records
+		// (chooseNumberAsk's doc) — rather than offering a list that could
+		// violate the bound (the ChooseColor exotic-shape convention).
+		// Name the bound the card actually states — a Min$-only failure must
+		// not be logged as a Max$ problem (the note is the one record an
+		// operator sees).
+		text := "ChooseNumber"
+		if mx := strings.TrimSpace(sa.Params["Max"]); mx != "" {
+			text += " Max$ " + mx
+		}
+		if mn := strings.TrimSpace(sa.Params["Min"]); mn != "" {
+			text += " Min$ " + mn
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: text + " cannot be resolved in this context; the choice falls back to 0"})
+		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "number", Amount: 0})
+		return
+	}
 	if len(opts) > 1 {
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
-			ResumeKind: "choosenumber", ResumeSA: sa, Prompt: "Choose a number", Source: c.Source}
+			ResumeKind: "choosenumber", ResumeSA: sa, Prompt: prompt, Source: c.Source}
 		d.Options = opts
 		if Ask(h, d) == AskAsked {
 			return
 		}
 	}
-	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "number", Amount: 0})
+	// The no-ask fallback: the deterministic first legal value of the list the
+	// ask derived — for the historical fixed list and for every measured
+	// corpus bound that is 0 (the value the old stand-in recorded, and the
+	// R-9 no-host degradation); a Min$-floored list starts at its own floor.
+	fallback := int32(0)
+	if len(opts) > 0 {
+		fallback = int32(opts[0].Amount)
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "number", Amount: fallback})
 }
 
 // effChooseType records a type choice. With the source already carrying a

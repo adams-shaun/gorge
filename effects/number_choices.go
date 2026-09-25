@@ -2,7 +2,9 @@ package effects
 
 import (
 	"strconv"
+	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 )
 
@@ -29,9 +31,90 @@ const chooseNumberMaxOffer = 12
 // option carrying its value in Amount (the same "number" wire shape the
 // as-enters ask already emitted) so the answer needs no label parsing.
 func NumberChoices() []decision.Option {
-	out := make([]decision.Option, 0, chooseNumberMaxOffer+1)
-	for i := 0; i <= chooseNumberMaxOffer; i++ {
-		out = append(out, decision.Option{Index: len(out), Kind: "number", Label: strconv.Itoa(i), Amount: i})
+	return boundedNumberChoices(0, chooseNumberMaxOffer)
+}
+
+// chooseNumberBoundedCeiling caps the option list a card's own explicit bound
+// may build (Max$ resolves through the count evaluator, so an SVar-driven
+// bound can name a value that reads huge on an unusual board): a list-pick ask
+// ranging over more values than this is not a question this wire shape can
+// honestly pose, and the ask takes the loud fail-closed fallback instead of a
+// kilo-option list. Every measured corpus bound (literals 3..20, SVar energy
+// and life totals) sits far below it.
+const chooseNumberBoundedCeiling = 1000
+
+// chooseNumberAsk derives the option list and prompt the mid-resolution
+// ChooseNumber ask (effects/choose.go effChooseNumber) offers, reading the
+// card's own bound parameters here so the ask has ONE home for them (task
+// bounded1, absorbing agent-20260922T091245Z-d777f1b6):
+//
+//   - Max$ names the inclusive upper bound of the offered list, through the
+//     ordinary parameter grammar (effects/count.go NumResolved): a literal
+//     (Max$ 5), an SVar name (Max$ Max with SVar:Max:Count$YourCountersEnergy,
+//     Rampaging Aetherhood and Territorial Aetherkite), or an inline Count$
+//     expression (Max$ Count$YourCountersEnergy, Pia Nalaar, Chief Mechanic,
+//     Localized Destruction, Aether Refinery) — resolved against the current
+//     resolution context, so the bound is the ASKING controller's actual
+//     value at ask time. NumResolvedStrict honours the SVar body's verdict,
+//     so an unmodelled body fails closed rather than enforcing a fake 0.
+//   - Min$ names the inclusive lower bound the same way (corpus: only small
+//     literals, 22 lines), through the same strict resolver — an unmodelled
+//     SVar body behind Min$ fails closed like Max$'s, never a fake floor.
+//     The default lower bound is 0, deliberately: the
+//     ask keeps the card's zero/optional semantics — a "you may pay" carrier
+//     answers 0 to decline (ChooseAnyNumber$ True's own spelling of the same
+//     shape) — so the bound work never makes a choice positive by assumption.
+//   - ListTitle$ is the prompt the chooser sees, verbatim; the historical
+//     "Choose a number" stays the fallback when the card names none.
+//
+// Without a Max$ the list stays the historical fixed 0..chooseNumberMaxOffer,
+// which the as-enters ask (rules/cast.go etbOptions' number arm) still shares
+// unchanged through NumberChoices.
+//
+// ok=false reports a bound the card states but this context cannot honour: an
+// unresolvable Max$/Min$ expression, a lower bound above the upper one, a
+// negative upper bound, or an upper bound past chooseNumberBoundedCeiling.
+// The caller keeps the loud fail-closed fallback (a Note naming the
+// parameter, then the deterministic first-legal-value emit) rather than
+// offering a list that could violate the bound — the sibling ChooseColor
+// exotic-shape convention (chooseColorOptions' askable=false), not a silent
+// default.
+func chooseNumberAsk(h Host, c *Ctx, sa *cards.SA) (opts []decision.Option, prompt string, ok bool) {
+	prompt = "Choose a number"
+	if title := strings.TrimSpace(sa.Params["ListTitle"]); title != "" {
+		prompt = title
+	}
+	if raw, hasMax := sa.Params["Max"]; !hasMax || strings.TrimSpace(raw) == "" {
+		return NumberChoices(), prompt, true
+	}
+	lo := int32(0)
+	if _, hasMin := sa.Params["Min"]; hasMin {
+		n, resolvable := NumResolvedStrict(h, c, sa, "Min", 0)
+		if !resolvable {
+			return nil, prompt, false
+		}
+		// A negative Min is no constraint the list can carry (the option values
+		// are counts); 0 stays the floor. A positive Min is the card's own
+		// floor and MUST be honoured, never padded down to 0.
+		if n > 0 {
+			lo = n
+		}
+	}
+	hi, resolvable := NumResolvedStrict(h, c, sa, "Max", 0)
+	if !resolvable || hi < 0 || lo > hi || hi > chooseNumberBoundedCeiling {
+		return nil, prompt, false
+	}
+	return boundedNumberChoices(lo, hi), prompt, true
+}
+
+// boundedNumberChoices builds the ascending lo..hi option list in the same
+// wire shape NumberChoices uses (Kind "number", the value on Amount, the
+// label the printed number), so an answered option needs no label parsing and
+// the two builders can never disagree about what a number answer carries.
+func boundedNumberChoices(lo, hi int32) []decision.Option {
+	out := make([]decision.Option, 0, hi-lo+1)
+	for i := lo; i <= hi; i++ {
+		out = append(out, decision.Option{Index: len(out), Kind: "number", Label: strconv.Itoa(int(i)), Amount: int(i)})
 	}
 	return out
 }
