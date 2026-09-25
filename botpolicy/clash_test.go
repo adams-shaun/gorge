@@ -3,13 +3,14 @@ package botpolicy
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/state"
 )
 
 func TestClashPlacementBotAnswerValidates(t *testing.T) {
-	d := &decision.Decision{Seq: 1, Player: 1, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt:  "Put the revealed card on top or bottom of your library",
-		Options: []decision.Option{{Index: 0, Kind: "bottom", Label: "Put it on the bottom", Player: 1}, {Index: 1, Kind: "top", Label: "Keep it on top", Player: 1}}}
+	d := effects.ClashPlacementDecision(1, 7, &cards.SA{}, []state.PlayerID{0, 1}, []state.ObjID{8, 9}, 0, 1, 9)
+	d.Seq = 1
 	in := Decide(Board{}, d, rng(1))
 	if err := d.Validate(in); err != nil {
 		t.Fatalf("bot answer %+v rejected by Decision.Validate: %v", in, err)

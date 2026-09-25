@@ -54,16 +54,20 @@ func init() {
 // Placement choices resume from the saved reveal and winner snapshot, so an
 // answer never repeats a reveal, comparison, earlier placement, marker, or branch.
 func effClash(h Host, c *Ctx, sa *cards.SA) {
+	// Consume the answered snapshot before nested effects can run another Clash.
+	continuation, top := c.ClashContinuation, c.ClashTop
+	c.ClashContinuation, c.ClashTop = nil, false
+
 	var players []state.PlayerID
 	var revealed []state.ObjID
 	winnerIdx, cursor := -1, 0
-	if c.ClashContinuation != nil {
-		r := c.ClashContinuation
+	if continuation != nil {
+		r := continuation
 		players = append([]state.PlayerID(nil), r.Players...)
 		revealed = append([]state.ObjID(nil), r.Revealed...)
 		winnerIdx, cursor = r.Winner, r.Cursor
 		if cursor < len(players) && revealed[cursor] != 0 {
-			if c.ClashTop {
+			if top {
 				clashMoveToTop(h, players[cursor], revealed[cursor])
 			} else {
 				clashMoveToBottom(h, players[cursor], revealed[cursor])
@@ -109,13 +113,7 @@ func effClash(h Host, c *Ctx, sa *cards.SA) {
 		if id == 0 {
 			continue
 		}
-		lib := zoneOf(h.Game(), state.ZLibrary, p)
-		if len(lib) <= 1 {
-			continue
-		}
-		d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source,
-			ResumeKind: "clash_placement", ResumeSA: sa, ResumeClash: &decision.ClashResume{Players: append([]state.PlayerID(nil), players...), Revealed: append([]state.ObjID(nil), revealed...), Winner: winnerIdx, Cursor: cursor}, Prompt: "Put the revealed card on top or bottom of your library",
-			Options: []decision.Option{{Index: 0, Kind: "bottom", Label: "Put it on the bottom", Obj: id, Player: p}, {Index: 1, Kind: "top", Label: "Keep it on top", Obj: id, Player: p}}}
+		d := ClashPlacementDecision(p, c.Source, sa, players, revealed, winnerIdx, cursor, id)
 		if Ask(h, d) == AskAsked {
 			return
 		}
@@ -203,6 +201,17 @@ func clashParticipants(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 		}
 	}
 	return out
+}
+
+// ClashPlacementDecision builds the owner-routed, always-legal two-way choice
+// used by api:Clash. Keeping construction here lets botpolicy validate the
+// exact option shape rather than maintaining a synthetic parallel decision.
+func ClashPlacementDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, players []state.PlayerID, revealed []state.ObjID, winner, cursor int, id state.ObjID) *decision.Decision {
+	return &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1, Source: source,
+		ResumeKind: "clash_placement", ResumeSA: sa,
+		ResumeClash: &decision.ClashResume{Players: append([]state.PlayerID(nil), players...), Revealed: append([]state.ObjID(nil), revealed...), Winner: winner, Cursor: cursor},
+		Prompt:      "Put the revealed card on top or bottom of your library",
+		Options:     []decision.Option{{Index: 0, Kind: "bottom", Label: "Put it on the bottom", Obj: id, Player: p}, {Index: 1, Kind: "top", Label: "Keep it on top", Obj: id, Player: p}}}
 }
 
 // clashMoveToBottom puts id on the BOTTOM of player p's library as one Secret

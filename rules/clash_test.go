@@ -67,6 +67,9 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 	if e.G.Players[1].Lost {
 		t.Fatal("seat 1 precondition: defending player is already lost")
 	}
+	if got0, got1 := e.G.Obj(high).Face().ManaValue(), e.G.Obj(low).Face().ManaValue(); got0 <= got1 {
+		t.Fatalf("clash comparison precondition: seat 0 MV=%d, seat 1 MV=%d, want seat 0 strictly higher", got0, got1)
+	}
 	hand0 := len(e.G.Zone(state.ZHand, 0))
 
 	// Marvo attacks; its attack trigger is queued. The declaration goes
@@ -82,8 +85,12 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 	e.resolveTop()
 	for _, want := range []string{"top", "bottom"} {
 		d := e.Pending()
-		if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "bottom" || d.Options[1].Kind != "top" {
-			t.Fatalf("expected owner placement ask with bottom then top, got %+v", d)
+		owner := state.PlayerID(0)
+		if want == "bottom" {
+			owner = 1
+		}
+		if d == nil || d.Player != owner || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "bottom" || d.Options[1].Kind != "top" {
+			t.Fatalf("expected placement ask for owner %d with bottom then top, got %+v", owner, d)
 		}
 		var selected int
 		for _, option := range d.Options {
