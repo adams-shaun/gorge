@@ -30,11 +30,14 @@ func TestGoblinBowlingTeamDamagePlusRoll(t *testing.T) {
 	if e.G.Obj(attacker) == nil || e.G.Obj(attacker).Zone != state.ZBattlefield {
 		t.Fatal("Goblin Bowling fixture is not on the battlefield")
 	}
-	// Drive the player-damage event combat emits while binding its source;
-	// this isolates replacement resolution without unlogged state mutation.
-	e.damaging = attacker
-	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 1})
-	e.damaging = 0
+	if e.Pending() == nil {
+		e.Advance()
+	}
+	driveToStep(t, e, 3, 0, state.StepDeclareAttackers)
+	if e.Pending() == nil {
+		e.askAttackers()
+	}
+	submitAttackers(t, e, attacker)
 
 	roll := int32(0)
 	for _, ev := range e.L.Events {
@@ -70,9 +73,14 @@ func TestDealDamageReplacementStillUsesItsEmissions(t *testing.T) {
 	if e.G.Obj(attacker) == nil || e.G.Obj(attacker).Zone != state.ZBattlefield {
 		t.Fatal("DealDamage replacement fixture is not on the battlefield")
 	}
-	e.damaging = attacker
-	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 1})
-	e.damaging = 0
+	if e.Pending() == nil {
+		e.Advance()
+	}
+	driveToStep(t, e, 3, 0, state.StepDeclareAttackers)
+	if e.Pending() == nil {
+		e.askAttackers()
+	}
+	submitAttackers(t, e, attacker)
 	if got := e.G.Players[1].Life; got != 17 {
 		t.Fatalf("defender life = %d, want 17 from replacement body's three damage", got)
 	}
