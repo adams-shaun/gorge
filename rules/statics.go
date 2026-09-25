@@ -47,6 +47,10 @@ type staticView struct {
 	// resolver's Ctx, the same flag rules' seedEffectReplCtx sets. Printed
 	// statics keep it false.
 	chosenNumberBound bool
+	// Remembered is the captured object set carried by an Effect-delivered
+	// static. It binds Card.IsRemembered in the same shared spec context as
+	// restriction registrations; printed statics leave it nil.
+	Remembered []state.ObjID
 }
 
 // costStaticViews is one ordered snapshot of cost-modifier membership. The
@@ -453,6 +457,17 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 // source object's top face.
 func (e *Engine) staticSpecCtx(sv staticView) effects.SpecContext {
 	return e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+}
+
+// assignmentStaticSpecCtx binds captured Effect memory only for the narrow
+// assignment-static path. Keeping staticSpecCtx's ordinary hot-path shape
+// preserves allocation-free matching for unrelated statics.
+func (e *Engine) assignmentStaticSpecCtx(sv staticView) effects.SpecContext {
+	sc := e.staticSpecCtx(sv)
+	for _, id := range sv.Remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
+	}
+	return sc
 }
 
 // castRestricted reports whether p is forbidden from casting id (CantBeCast).
@@ -2925,6 +2940,20 @@ func (e *Engine) assignmentStatics(mode string) []staticView {
 			}
 		}
 	}
+	// Effect-created assignment statics are admitted only for the exact mode
+	// the registration branch records; they do not participate in the printed
+	// EffectZone source-zone walk above. active() supplies lifetime and movement
+	// filtering, and its order is stable, so append in registry order.
+	for _, ce := range e.active() {
+		if ce.AssignmentStaticMode != mode {
+			continue
+		}
+		out = append(out, staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.AssignmentStaticParams, SVars: ce.AssignmentStaticSVars,
+			Remembered: ce.Remembered,
+		})
+	}
 	return out
 }
 
@@ -2951,7 +2980,7 @@ func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
 				continue
 			}
 		}
-		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.assignmentStaticSpecCtx(sv)) {
 			continue
 		}
 		return true
