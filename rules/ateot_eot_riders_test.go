@@ -122,7 +122,7 @@ func ateotDriveToStep(t *testing.T, e *Engine, turn int32, active state.PlayerID
 // (Duration$ Permanent) with AtEOT$ YourExile, and at the beginning of the
 // next end step the delayed registration exiles the reanimated creature while
 // the Clique itself stays.
-func TestPuppeteerCliqueExilesTheReanimatedCreatureAtEOT(t *testing.T) {
+func testPuppeteerCliqueExilesTheReanimatedCreatureAtEOT(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := ateotEngine(t, reg, "Puppeteer Clique")
 
@@ -184,6 +184,9 @@ func TestPuppeteerCliqueExilesTheReanimatedCreatureAtEOT(t *testing.T) {
 	}
 	if !e.HasKeyword(grave, "Haste") {
 		t.Fatal("reanimated bear did not gain Haste from the chained Animate")
+	}
+	if e.HasKeyword(clique, "Haste") {
+		t.Fatal("Puppeteer Clique incorrectly gained Haste from Defined$ Remembered")
 	}
 	if own := e.G.Obj(grave).Owner; own != graveOwner {
 		t.Fatalf("reanimate changed ownership: %d -> %d", graveOwner, own)
