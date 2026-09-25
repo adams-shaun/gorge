@@ -350,7 +350,7 @@ func matchesCompiledTerm(term predicateTerm, g *state.Game, o *state.Object, sc 
 	case predicateTermColor:
 		matched = strings.Contains(ColorsOf(o), term.arg)
 	case predicateTermType:
-		matched = hasTypeCtx(o, term.arg, *sc)
+		matched = hasTypePredicateCtx(o, term.arg, *sc)
 	case predicateTermColorless:
 		matched = ColorsOf(o) == ""
 	case predicateTermAttachedBy:

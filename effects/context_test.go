@@ -61,6 +61,8 @@ type fakeHost struct {
 	// Condition$ Delirium gate reads it; the real graveyard-census read is
 	// pinned in rules).
 	delirium bool
+	// metalcraft is the MetalcraftHolds answer used by bare Condition$ tests.
+	metalcraft bool
 	// typeChoices is the TypeChoices answer the double reports (nil by
 	// default): the effects-side ChooseType tests configure it to pose a
 	// real option list. Nil routes ChooseType through AskEmpty — the
@@ -306,6 +308,8 @@ func (h *fakeHost) RememberExploitedLKI(s state.SacrificedInfo) {
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.
 func (h *fakeHost) BeginDamageBatch() {}
 func (h *fakeHost) EndDamageBatch()   {}
+func (h *fakeHost) BeginZoneBatch()   {}
+func (h *fakeHost) EndZoneBatch()     {}
 
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.
@@ -386,6 +390,9 @@ func (h *fakeHost) RevoltHolds(_ state.PlayerID) bool { return h.revolt }
 // h.delirium flag the eval-level tests flip (the real census read is pinned
 // in rules).
 func (h *fakeHost) DeliriumHolds(_ state.PlayerID) bool { return h.delirium }
+
+// MetalcraftHolds reports the configured census answer for effects tests.
+func (h *fakeHost) MetalcraftHolds(_ state.PlayerID) bool { return h.metalcraft }
 
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }

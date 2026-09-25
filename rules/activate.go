@@ -116,6 +116,13 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 			cost.Generic = 0
 		}
 	}
+	// A RaiseCost static's non-mana Cost$ (Soul Immolation's `Cost$ Blight<X>`)
+	// rides mods.extra; fold it into the pending cost and drop it from mods so
+	// the charge cannot double it (the same agreement beginCast makes).
+	if len(mods.extra.Blight) > 0 {
+		cost = foldAdditionalCost(cost, mods.extra)
+		mods.extra = Cost{}
+	}
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
 		abilityMerged: pa.Merged, cost: cost, mods: mods, ownReduce: own}
 	e.continueCast()

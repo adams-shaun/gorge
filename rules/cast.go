@@ -1918,7 +1918,20 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if sc == "" {
 		return cost
 	}
-	extra := ParseCost(sc)
+	return foldAdditionalCost(cost, ParseCost(sc))
+}
+
+// foldAdditionalCost concatenates the non-mana parts of extra onto cost. It is
+// THE one definition shared by two carriers that must agree: withSpellAbilityExtras
+// folds a spell's own SpellAbility Cost$, and beginCast folds a RaiseCost
+// static's non-mana Cost$ (Soul Immolation's `Cost$ Blight<X>`) that the cost
+// composition carried in costMods.extra. The mana part of a Cost$ is
+// deliberately NOT folded: it RESTATES the printed mana cost rather than
+// adding to it, so re-adding it would double charge. Every OTHER component --
+// Life/Sac/Discard/SubCounter/Tap, and the whole non-mana family including
+// Exile, MoveToGrave, Reveal, Energy, Draw, LifeX, DamageYou, Mill and Blight --
+// is additional and is concatenated below.
+func foldAdditionalCost(cost, extra Cost) Cost {
 	cost.Life = addClampedGeneric(cost.Life, int64(extra.Life))
 	if len(extra.Sac) > 0 {
 		cost.Sac = append(append([]CostPart(nil), cost.Sac...), extra.Sac...)
@@ -2442,6 +2455,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	cost = converted
+	// A RaiseCost static's non-mana Cost$ (Soul Immolation's `Cost$ Blight<X>`)
+	// is carried in mods.extra so the OFFER gate (composedOfferCost, which
+	// applies mods) enforces it and the CHARGE prices it. The pending cast's
+	// own cost must carry it too, because every non-mana cost stage -- xAsk's
+	// X announcement, blightCostAsk, the settle and costAnnouncesX -- reads
+	// pc.cost, not the composed charge. Fold it in here once and drop it from
+	// mods so manaToPay's mods.apply cannot count the same part twice.
+	if len(mods.extra.Blight) > 0 {
+		cost = foldAdditionalCost(cost, mods.extra)
+		mods.extra = Cost{}
+	}
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
@@ -2688,6 +2712,13 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	}
 	cost = converted
 	mods := e.costModifiers(p, id, spellScope(""))
+	// A RaiseCost static's non-mana Cost$ rides mods.extra; fold it into the
+	// pending cost and drop it from mods so the charge cannot double it (the
+	// same agreement beginCast makes).
+	if len(mods.extra.Blight) > 0 {
+		cost = foldAdditionalCost(cost, mods.extra)
+		mods.extra = Cost{}
+	}
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
 		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard}
 	e.continueCast()

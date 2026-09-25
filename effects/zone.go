@@ -294,7 +294,24 @@ func changeZoneAltDestination(h Host, c *Ctx, sa *cards.SA, primary state.Zone) 
 	return alt
 }
 
+// clearChangeZoneImprint uses the same event as Cleanup's ClearImprinted rider.
+// In particular, ImprintLast replaces rather than appends on every mover.
+func clearChangeZoneImprint(h Host, c *Ctx) {
+	if c.Source == 0 {
+		return
+	}
+	if o := h.Game().Obj(c.Source); o != nil && (len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+	}
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
+	// Unimprint is a pre-move operation, even when no candidate is moved.
+	// Re-entering after a choice may clear an already empty list; the fold
+	// remains replayable and the later successful move supplies the new card.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Unimprint"]), "True") {
+		clearChangeZoneImprint(h, c)
+	}
 	to := changeZoneAltDestination(h, c, sa, ParseZone(sa.Params["Destination"]))
 	// Set only when an explicit multi-zone Origin$ including Hand falls
 	// through the dedicated walkers above to the object path; the diagnostic
@@ -804,13 +821,19 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			// entry riders are settled.
 			registerLeaveExile(h, c, o.ID, sa.Params["LeaveBattlefield"], "", true)
 		}
-		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
-			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
+		if strings.EqualFold(sa.Params["Imprint"], "True") &&
+			(to == state.ZExile || strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True")) {
+			if landed := h.Game().Obj(o.ID); landed != nil && landed.Zone == to &&
+				(to == state.ZExile || !landed.IsToken) {
 				imprinted = append(imprinted, o.ID)
 			}
 		}
 	}
 	if len(imprinted) > 0 {
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+			clearChangeZoneImprint(h, c)
+			imprinted = imprinted[len(imprinted)-1:]
+		}
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
 	// The mixed-Hand diagnostic, now that the pass's truth is known: every
@@ -1223,6 +1246,9 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	// collection and do not call through here, so nothing is recorded twice.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 		if o := h.Game().Obj(id); o != nil && o.Zone == to && !o.IsToken {
+			if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+				clearChangeZoneImprint(h, c)
+			}
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
 		}
 	}
@@ -3836,7 +3862,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		// imprinted.
 		if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 			if o := g.Obj(id); o != nil && o.Zone == to && !o.IsToken {
-				imprinted = append(imprinted, id)
+				if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+					clearChangeZoneImprint(h, c)
+					h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
+				} else {
+					imprinted = append(imprinted, id)
+				}
 			}
 		}
 		moved = append(moved, id)

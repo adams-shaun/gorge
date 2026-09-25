@@ -4995,6 +4995,12 @@ func (e *Engine) DeliriumHolds(controller state.PlayerID) bool {
 	return e.graveyardCardTypeCount(controller) >= 4
 }
 
+// MetalcraftHolds is the effects.Host bridge for bare Condition$ Metalcraft:
+// it shares the metalcraftHolds census used by cost, Continuous and offer gates.
+func (e *Engine) MetalcraftHolds(controller state.PlayerID) bool {
+	return e.metalcraftHolds(controller)
+}
+
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
 	seen := map[string]bool{}
 	for _, id := range e.G.Zone(state.ZGraveyard, controller) {

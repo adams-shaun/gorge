@@ -1614,6 +1614,11 @@ func Apply(g *state.Game, e Event) {
 		// (CR 400.7) starts phased in.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
 			o.PhasedOut = e.Amount >= 1
+			if e.Amount >= 1 {
+				o.WontPhaseInNormal = e.Text == "wont-phase-in-normal"
+			} else {
+				o.WontPhaseInNormal = false
+			}
 			// CR 702.25c: "A permanent that phases out is removed from
 			// combat." Phasing is deliberately NOT a zone change, so no Move
 			// fold runs to clear the combat members the way a departure does;

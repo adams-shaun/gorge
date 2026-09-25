@@ -510,6 +510,9 @@ type Host interface {
 	// and a replay derives it from the folded state like the other
 	// zone-census helpers.
 	DeliriumHolds(p state.PlayerID) bool
+	// MetalcraftHolds reports whether the controller has three or more artifacts;
+	// bare Condition$ gates share rules.Engine's census with static and offer gates.
+	MetalcraftHolds(p state.PlayerID) bool
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -574,6 +577,17 @@ type Host interface {
 	// effects-package test double reports no-ops. Neither suspends.
 	BeginDamageBatch()
 	EndDamageBatch()
+	// BeginZoneBatch/EndZoneBatch bracket the PhaseOut events one api:Phases
+	// resolution emits (CR 702.25a's "permanents phase out one at a time"
+	// still emits one event each, but the group is ONE batch for the
+	// batch-level "whenever one or more permanents phase out" trigger,
+	// Mode$ PhaseOutAll). Within the bracket the first matching PhaseOut event
+	// queues the single instance and every later one accumulates into it.
+	// rules.Engine implements the bracket with its zone-batch machinery (the
+	// same depth/reentrancy discipline ChangesZoneAll uses); the effects-package
+	// test double reports no-ops. Neither suspends.
+	BeginZoneBatch()
+	EndZoneBatch()
 	// ReplaceEvent applies a ReplaceEffect body's requested change to the
 	// event currently being replaced. It is inert outside replacement
 	// resolution; rules owns the event and records the resulting delta.

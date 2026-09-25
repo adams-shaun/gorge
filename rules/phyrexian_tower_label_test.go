@@ -31,7 +31,7 @@ func TestPhyrexianTowerWheelNamesTheSacrificeAndBothPips(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 {
 		t.Fatalf("stage-1 decision = %+v, want the two-ability Phyrexian Tower wheel", d)
 	}
-	want := []string{"Add C", "Sacrifice 1 creature: Add BB"}
+	want := []string{"Add C", "Sacrifice a creature: Add BB"}
 	for i, w := range want {
 		if o := d.Options[i]; o.Label != w || o.Kind != "mana" || o.Obj != tower || o.Ability != i {
 			t.Fatalf("stage-1 option %d = %+v, want %q (ability %d of %d)", i, o, w, i, tower)
@@ -74,8 +74,9 @@ func TestManaAbilityLabelCostAndAmount(t *testing.T) {
 		{"", "G", "", "Add G"},
 		{"T", "B", "2", "Add BB"},
 		{"T", "C", "3", "Add CCC"},
-		{"T Sac<1/Creature>", "B", "2", "Sacrifice 1 creature: Add BB"},
+		{"T Sac<1/Creature>", "B", "2", "Sacrifice a creature: Add BB"},
 		{"T PayLife<1>", "Combo B R", "", "Pay 1 life: Add B or R"},
+		{"T ExileFromHand<1/Card>", "B", "", "Exile a card from your hand: Add B"},
 		{"1 T", "C", "2", "Pay 1: Add CC"},
 		{"T", "B", "X", "Add B"},   // non-literal amount keeps one pip
 		{"T", "B", "0", "Add B"},   // non-positive literal keeps one pip

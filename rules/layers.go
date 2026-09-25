@@ -351,6 +351,27 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							} else {
 								ty.AddTypes = nil
 							}
+							// Duplicant's AddType$ ImprintedCreatureType reads the
+							// last still-exiled creature card, not a literal type word.
+							for i, word := range ty.AddTypes {
+								if word != "ImprintedCreatureType" {
+									continue
+								}
+								ty.AddTypes = append(ty.AddTypes[:i], ty.AddTypes[i+1:]...)
+								for j := len(o.Imprinted) - 1; j >= 0; j-- {
+									im := e.G.Obj(o.Imprinted[j])
+									if im == nil || im.Zone != state.ZExile || im.Face() == nil || !slices.Contains(im.Face().Types, "Creature") {
+										continue
+									}
+									for _, subtype := range im.Face().Types {
+										if effects.CreatureTypeWords(subtype) {
+											ty.AddTypes = append(ty.AddTypes, subtype)
+										}
+									}
+									break
+								}
+								break
+							}
 							// The strip flags ride the AddType emission (measured: every
 							// corpus S: line carrying RemoveCardTypes$/RemoveCreatureTypes$
 							// also carries AddType$): a strip-only static -- an AddType$
@@ -1442,6 +1463,20 @@ func (e *Engine) EndEffectSource(source state.ObjID) {
 	if source == 0 {
 		return
 	}
+	// The Effect's own lifetime also ends its EffectRepeat DELAYED-trigger
+	// registrations (the |EF form): Out of Time's comeback trigger is a
+	// registration, not a continuous effect, and its DBExileSelf body ends
+	// the effect that owns it. Removal is logged (DelayedRemove) so a replay
+	// folds the same registration set.
+	var remove []uint32
+	for i := range e.G.Delayed {
+		if e.G.Delayed[i].Source == source && e.G.Delayed[i].EffectRepeat {
+			remove = append(remove, e.G.Delayed[i].ID)
+		}
+	}
+	for _, id := range remove {
+		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
+	}
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
@@ -2333,6 +2368,15 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 						kept = append(kept, t)
 					}
 				} else if !isCreatureSubtype(t) {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
+		}
+		if len(ce.RemoveTypes) > 0 {
+			kept := ty[:0]
+			for _, t := range ty {
+				if !slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) {
 					kept = append(kept, t)
 				}
 			}

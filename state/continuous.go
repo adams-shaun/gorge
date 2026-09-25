@@ -142,6 +142,10 @@ type ContinuousEffect struct {
 	// RemoveSubTypes strips every subtype (creature, land and other kinds)
 	// before this effect's AddTypes are applied.
 	RemoveSubTypes bool
+	// RemoveTypes names the exact type words removed by Animate's
+	// RemoveTypes$ at layer 4, before this effect's AddTypes. Unlike
+	// RemoveSubTypes, this can remove a card type or supertype too.
+	RemoveTypes []string
 	// SetCreatureTypes strips only creature subtypes, preserving land and
 	// other subtype words; its replacement types live in AddTypes.
 	SetCreatureTypes bool
