@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -46,6 +47,9 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 
 	high := putTopOfLibrary(t, e, card(t, "Name:Huge Beast\nManaCost:5 G\nTypes:Creature Beast\nPT:5/5\nOracle:x\n"), 0)
 	low := putTopOfLibrary(t, e, card(t, "Name:Tiny Beast\nManaCost:0\nTypes:Creature Beast\nPT:1/1\nOracle:x\n"), 1)
+	freeSpell := e.G.AddObject(card(t, "Name:Free Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	freeSpell.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), freeSpell.ID))
 
 	// Preconditions: the attacker exists and is able to attack, both library
 	// tops are the cards under test, and the defending seat is live.
@@ -96,10 +100,27 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 	}
 
 	// The Clashed marker fires Marvo's `Won$ True` line: draw a card, then
-	// offer the optional free cast. drainProvTriggers stops on that ask.
+	// offer the optional free cast. The eligible spell is explicitly present
+	// before the trigger resolves, so this assertion cannot pass on an empty
+	// Play population.
+	if o := e.G.Obj(freeSpell.ID); o == nil || o.Zone != state.ZHand || o.Face().ManaValue() != 2 {
+		t.Fatalf("free-cast precondition: spell=%+v, want MV-2 spell in seat 0's hand", o)
+	}
 	drainProvTriggers(t, e)
 	if got := len(e.G.Zone(state.ZHand, 0)); got != hand0+1 {
 		t.Fatalf("seat 0 hand = %d after winning the clash, want %d (the Won$ True draw)", got, hand0+1)
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
+		t.Fatalf("expected Marvo's optional free-cast ask, got %+v", d)
+	}
+	if len(d.Options) != 1 || d.Options[0].Obj != freeSpell.ID {
+		t.Fatalf("Marvo's free-cast ask options = %+v, want Free Bear %d", d.Options, freeSpell.ID)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Obj(freeSpell.ID).Zone; got != state.ZBattlefield {
+		t.Fatalf("accepted free-cast spell in %s, want battlefield", got)
 	}
 }
 
