@@ -1613,7 +1613,12 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// a matched-but-unqueueable event does not consume the batch.
 				if t.Mode == "BecomesTargetOnce" && e.targetBatchOpen {
 					if e.targetBatchFired[key] {
-						continue // already queued once for this targeting action.
+						// Already queued once for this targeting action. Note the
+						// triggerFireCount bump above has already run for this
+						// absorbed event; that counter is only the maxTriggerFires
+						// runaway guard, so an off-by-one per batch is harmless and
+						// must not be "fixed" into a behavioural change.
+						continue
 					}
 					if e.targetBatchFired == nil {
 						e.targetBatchFired = map[triggerKey]bool{}

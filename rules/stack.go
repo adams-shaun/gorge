@@ -3242,6 +3242,11 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 	// second matching target of the same answer is absorbed rather than
 	// queueing a second instance. The bracket never spans a drain -- emit only
 	// appends to pendingTriggers -- so the queue stays append-only across it.
+	// Batch identity is this CALL, not the ability: a (hypothetical) ability
+	// that records its targets in two separate recordChosenTargets calls opens
+	// two batches and fires the watcher twice, where Forge fires once per
+	// ability. No corpus card takes a multi-call path with a BecomesTargetOnce
+	// watcher today; if one arrives the bracket must move up to the ability.
 	e.openTargetBatch()
 	defer e.closeTargetBatch()
 	for i, opt := range chosen {

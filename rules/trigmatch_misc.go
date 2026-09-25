@@ -364,11 +364,18 @@ func (e *Engine) becomesTargetSourceMatches(spec string, stackObj state.ObjID, s
 
 // openTargetBatch/closeTargetBatch bracket ONE targeting action's TargetsChosen
 // events for the Mode$ BecomesTargetOnce latch. recordChosenTargets
-// (rules/stack.go) -- the sole emitter of TargetsChosen -- opens the bracket,
-// emits one event per chosen target, and closes it, so every target of one
-// target answer is one batch. The latch map is per-batch scratch (the damage/
-// zone/mill/discard batches' shape) and never survives the close. A
-// hand-built emit outside any bracket is its own batch-of-one.
+// (rules/stack.go) opens the bracket, emits one event per chosen target, and
+// closes it, so every target of one target answer is one batch. It is NOT the
+// only emitter of TargetsChosen: effects/choose_control.go's recordTargets (a
+// ChangeTargets redirect, CR 114.6) also emits, with NO bracket open, so each
+// such event is its own batch-of-one and a multi-target redirect fires a
+// BecomesTargetOnce watcher once per redirected target rather than once per
+// redirect action (Forge fires once per ability). No corpus carrier exercises
+// that path today (Psychic Battle, the only ValidCause$ card, excludes itself;
+// Leyline/Hojo never watch a redirect), so the divergence is latent. The latch
+// map is per-batch scratch (the damage/zone/mill/discard batches' shape) and
+// never survives the close. A hand-built emit outside any bracket is its own
+// batch-of-one.
 func (e *Engine) openTargetBatch() {
 	e.targetBatchOpen = true
 	e.targetBatchFired = nil
