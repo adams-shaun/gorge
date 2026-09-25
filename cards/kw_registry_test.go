@@ -106,6 +106,12 @@ var expandedHeads = []string{
 	// (cards/kw_ninjutsu.go). Added after the split; the pre-split switch
 	// never had it.
 	"Ninjutsu",
+	// Crew (CR 702.122, task kw-crew): the printed K:Crew:<N> line expanded
+	// into the Vehicle's own activated ability -- a tapXType<Any/
+	// Creature.Other+withTotalPowerGE<N>> cost paying for an until-end-of-turn
+	// Animate to artifact creature (cards/kw_crew.go). Added after the split;
+	// the pre-split switch never had it.
+	"Crew",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

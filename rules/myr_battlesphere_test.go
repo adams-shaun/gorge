@@ -11,9 +11,13 @@ package rules
 //     a chained DB$ DealDamage | NumDmg$ X reading SVar:X:Count$xPaid.
 //   - Mossbridge Troll: an activated AB with tapXType<Any/
 //     Creature.Other+withTotalPowerGE10> -- the Any form binds no X, and the
-//     withTotalPowerGE10 group predicate fails closed, so the ability is
-//     never offered (pinned below as the no-free-pump guard; pre-fix the
-//     token degraded to one generic and pumped for a floating mana).
+//     withTotalPowerGE10 group predicate is a SET-level floor the tap-cost
+//     machinery enforces (Decision.MinSum over the tapped set's total
+//     power; crew_test.go pins the end-to-end shape), so the ability is
+//     offered only when the board's other untapped creatures can reach
+//     total power 10 (pinned below as the no-free-pump guard; pre-fix the
+//     token degraded to one generic and pumped for a floating mana, and
+//     before the floor was modelled the unknown predicate failed closed).
 //   - Explosive Singularity: a RaiseCost static with tapXType<Tapped/
 //     Creature>, whose count rides an announced SVar variable -- different
 //     machinery (the RaiseCost Cost$ grammar), out of scope here.
@@ -141,13 +145,15 @@ func TestMyrBattlesphereTapXEmptyElectionDeclines(t *testing.T) {
 	}
 }
 
-// TestMossbridgeTrollAnyFormIsNeverOfferedFree pins the Any form's
-// fail-closed guard: Mossbridge's tap spec
-// (Creature.Other+withTotalPowerGE10) carries the withTotalPowerGE10 group
-// predicate the filter grammar does not know, so the cost has no candidates
-// and the ability is not offered -- never a zero-tap payment of an effect
-// (+20/+20) that does not scale with the taps.
-func TestMossbridgeTrollAnyFormIsNeverOfferedFree(t *testing.T) {
+// TestMossbridgeTrollFloorWithholdsWhenPowerFallsShort pins the Any form's
+// floor guard: Mossbridge's tap spec (Creature.Other+withTotalPowerGE10)
+// carries a set-level "total power 10 or greater" floor the board's other
+// untapped creatures cannot reach (2 power at best), so the ability is not
+// offered -- never an election whose every answer Decision.Validate rejects,
+// and never a zero-tap payment of an effect (+20/+20) that does not scale
+// with the taps. The offered-and-paid direction is pinned in
+// crew_test.go's TestMossbridgeTrollPaysWhenTotalPowerReachesTheFloor.
+func TestMossbridgeTrollFloorWithholdsWhenPowerFallsShort(t *testing.T) {
 	e := handEngine(t)
 	troll := onBoard(t, e, 0, "Name:Mossbridge Troll\nManaCost:5 G G\nTypes:Creature Troll\nPT:5/5\nOracle:x\n")
 	other := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")

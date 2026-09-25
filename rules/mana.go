@@ -73,6 +73,20 @@ type CostPart struct {
 	// a head whose regex has no description group (PayLife<N>, Blight<N>)
 	// leaves it empty.
 	Desc string
+	// MinPower is the SET-level floor a withTotalPowerGE<N> group predicate
+	// places on a TapPermanent part (Mossbridge Troll's "total power 10 or
+	// greater", Crew's "total power N or greater"): the predicate constrains
+	// the TAPPED SET's total power, not each candidate on its own, so it is
+	// not a filter the per-object matcher can evaluate. stripGroupPowerFloor
+	// moves it out of the spec at parse time -- into this field, so the
+	// offer gate (rules/cast.go nonManaCastable) and the tap election
+	// (Decision.MinSum over Option.Value = the candidate's current power)
+	// enforce it against the set the payment actually taps. It is stripped
+	// for the Any form and the literal N form; an X-form part keeps the
+	// predicate in its spec, which fails closed as before (a floor whose
+	// count the announcement fixes first would need re-pricing at settle --
+	// no corpus carrier combines them).
+	MinPower int32
 }
 
 // ManaPair is one two-face hybrid symbol: each face is a WUBRGC mana symbol,
@@ -364,6 +378,42 @@ var revealChosenCost = regexp.MustCompile(`^RevealChosen<(Player|Type)(?:/([^>]*
 var dynTapCost = regexp.MustCompile(`^tapXType<(X|Any)/([^/>]+)(?:/([^>]*))?>$`)
 var blightCost = regexp.MustCompile(`^Blight<(\d+|X)>$`)
 
+// groupPowerFloor matches the withTotalPowerGE<N> GROUP predicate Forge
+// appends to a tapXType spec (Mossbridge Troll's
+// "Creature.Other+withTotalPowerGE10", Crew's "Creature.Other+withTotalPowerGE<n>").
+// The constraint is over the whole paid set -- the tapped creatures' TOTAL
+// power -- not over each candidate on its own, so a per-object filter cannot
+// evaluate it: stripGroupPowerFloor moves it into CostPart.MinPower instead
+// of leaving the unknown token to fail the whole spec closed.
+var groupPowerFloor = regexp.MustCompile(`withTotalPowerGE(\d+)`)
+
+// stripGroupPowerFloor splits a withTotalPowerGE<N> group predicate off a
+// tapXType spec: it returns the spec without the predicate (so the per-object
+// filter sees only per-candidate terms) and the floor as a number. A floor
+// that overflows int32 is clamped to MaxInt32 -- still an unpayable floor on
+// any real board, which is the fail-closed direction. A spec without the
+// predicate returns unchanged with floor 0.
+func stripGroupPowerFloor(spec string) (string, int32) {
+	m := groupPowerFloor.FindStringSubmatchIndex(spec)
+	if m == nil {
+		return spec, 0
+	}
+	n, err := strconv.ParseInt(spec[m[2]:m[3]], 10, 64)
+	if err != nil || n < 0 {
+		return spec, 0
+	}
+	if n > int64(math.MaxInt32) {
+		n = int64(math.MaxInt32)
+	}
+	out := spec[:m[0]] + spec[m[1]:]
+	// The predicate is joined by Forge's own "+" separator
+	// ("Creature.Other+withTotalPowerGE3"); with the predicate gone the
+	// trailing separator must go too, or it becomes an empty alternative the
+	// per-object matcher would read as an unparseable term.
+	out = strings.TrimSuffix(out, "+")
+	return out, int32(n)
+}
+
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
 // removing N energy counters from the payer (CR 118.2d; Forge
 // CostPayEnergy.canPay reads the payer's ENERGY counter total, and its
@@ -570,7 +620,16 @@ func ParseCost(s string) Cost {
 				// The dynamic tapXType heads (see the regex's doc): a TapPermanent
 				// part whose count the tap election resolves at payment -- "X"
 				// announcing the cast's {X}, "Any" free. N is unused.
-				c.TapPermanent = append(c.TapPermanent, CostPart{Dyn: m[1], Spec: strings.ReplaceAll(m[2], ";", ","), Desc: m[3]})
+				spec := strings.ReplaceAll(m[2], ";", ",")
+				floor := int32(0)
+				// A withTotalPowerGE<N> group predicate rides the Any form (Crew,
+				// Mossbridge Troll): the set-level floor moves into MinPower and
+				// out of the spec. The X form keeps the predicate in the spec,
+				// where the unknown token fails closed as before.
+				if m[1] == "Any" {
+					spec, floor = stripGroupPowerFloor(spec)
+				}
+				c.TapPermanent = append(c.TapPermanent, CostPart{Dyn: m[1], Spec: spec, Desc: m[3], MinPower: floor})
 				continue
 			}
 			if m := choiceCost.FindStringSubmatch(sym); m != nil {
@@ -590,6 +649,10 @@ func ParseCost(s string) Cost {
 				case "Behold":
 					c.Behold = append(c.Behold, part)
 				default:
+					// A literal tapXType form may carry a group predicate too;
+					// exactly N are tapped, so the set-level floor is enforced
+					// against the N largest candidates (rules/cast.go).
+					part.Spec, part.MinPower = stripGroupPowerFloor(part.Spec)
 					c.TapPermanent = append(c.TapPermanent, part)
 				}
 				continue
