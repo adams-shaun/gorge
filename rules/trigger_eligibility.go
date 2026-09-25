@@ -302,6 +302,22 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Foretell":
+		// trig:Foretell (task agent-20260923T032009Z-3b9d3432): "Whenever you
+		// foretell a card, ..." (CR 702.126b; Dream Devourer, the corpus's
+		// sole carrier at the pin -- measured 1 file). It matches the {2}
+		// Foretell special action's pay-time FlagForetold CastInfo
+		// (rules/cast.go's foretell branch, card still in hand; ordinal 29,
+		// inside the 64-bit mask's reach) and the effect-designation exile
+		// MoveZone markers (applyFaceDownMarker's Foretold$ True
+		// composition); both shapes existed before the mode did. The exact
+		// event shapes are the full matcher's (foretellMatches,
+		// rules/trigmatch_foretell.go) -- the MoveZone bit is needed for the
+		// designation arm and is over-approximate for every other zone
+		// change, which the mask is for by design. Naming the mode here
+		// rather than letting it fall to the allTriggerEvents default keeps
+		// a Foretell-only face's mask narrow for every other kind.
+		return 1<<events.CastInfo | 1<<events.MoveZone
 	case "Surveil":
 		// The Surveil marker's ordinal (79, task trig-surveil) is past the
 		// 64-bit mask's reach, the Discover/SeekAll shape: a mask bit is not
