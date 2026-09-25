@@ -3740,9 +3740,17 @@ func CharmEligibleModes(h Host, source state.ObjID, sa *cards.SA, choices []stri
 	}
 	excluded := make(map[string]bool, len(choices))
 	for _, mc := range o.ModeChoices {
-		if mc.Scope == scope {
-			excluded[mc.Mode] = true
+		if mc.Scope != scope {
+			continue
 		}
+		if scope == state.ModeScopeYourLastCombat &&
+			mc.Turn == o.CurCombatTurn && mc.Combat == o.CurCombatCombat {
+			// A pick made in the current combat does not constrain another
+			// trigger in that same combat; YourLastCombat means the preceding
+			// combat, whose picks were retained at BeginCombat rotation.
+			continue
+		}
+		excluded[mc.Mode] = true
 	}
 	if len(excluded) == 0 {
 		return choices

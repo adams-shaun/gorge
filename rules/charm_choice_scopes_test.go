@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
@@ -62,29 +63,52 @@ func TestCharmChoiceRestrictionYourLastCombatByElspethsCommand(t *testing.T) {
 		t.Fatalf("compiled ChoiceRestriction$ = %q", got)
 	}
 	all := []string{"PumpField", "PumpHand", "Token"}
-	beginCharmCombat(e)
-	assertCharmModes(t, effects.CharmEligibleModes(e, source, sa, all), all)
-	recordCharmMode(t, e, source, sa, "PumpField")
+	askAndChoose := func(want string, expected []string) {
+		t.Helper()
+		beginCharmCombat(e)
+		e.putTriggersOnStack()
+		if len(e.G.Stack) != 1 {
+			t.Fatalf("combat trigger stack = %v, want exactly By Elspeth's Command", e.G.Stack)
+		}
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KModes || d.ResumeKind != "modes" {
+			t.Fatalf("pending = %+v, want trigger-placement modes decision", d)
+		}
+		assertCharmModes(t, d.ResumeModes, expected)
+		idx := modeNameIndex(d, want)
+		if idx < 0 {
+			t.Fatalf("trigger ask does not offer %q: %v", want, d.ResumeModes)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("choose %s: %v", want, err)
+		}
+		if target := e.Pending(); target != nil && target.Kind == decision.KTarget {
+			if len(target.Options) == 0 {
+				t.Fatalf("target ask has no legal options: %+v", target)
+			}
+			if err := e.Submit(decision.Intent{Seq: target.Seq, Player: target.Player, Choices: []int{target.Options[0].Index}}); err != nil {
+				t.Fatalf("answer target for %s: %v", want, err)
+			}
+		}
+		if got := e.G.Obj(source).ModeChoices; len(got) == 0 || got[len(got)-1].Mode != want {
+			t.Fatalf("trigger choice %q not recorded on source: %+v", want, got)
+		}
+		passUntilStackEmpty(t, e, 60)
+	}
+
+	askAndChoose("Token", all)
 	first := e.G.Obj(source).ModeChoices[len(e.G.Obj(source).ModeChoices)-1]
 	if first.Turn != e.G.Turn || first.Combat != e.G.CombatsThisTurn {
 		t.Fatalf("pick combat stamp = (%d,%d), clock=(%d,%d)", first.Turn, first.Combat, e.G.Turn, e.G.CombatsThisTurn)
 	}
-
-	// TurnChange preserves the prior combat identity and pick; the following
-	// BeginCombat rotates it into the forbidden set for this combat.
+	// TurnChange preserves the pick; the next actual begin-combat trigger ask
+	// must withhold it across the turn boundary.
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 3})
-	beginCharmCombat(e)
-	second := effects.CharmEligibleModes(e, source, sa, all)
-	assertCharmModes(t, second, []string{"PumpHand", "Token"})
-	recordCharmMode(t, e, source, sa, "PumpHand")
-
+	askAndChoose("PumpField", []string{"PumpField", "PumpHand"})
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 4})
-	beginCharmCombat(e)
-	third := effects.CharmEligibleModes(e, source, sa, all)
-	assertCharmModes(t, third, []string{"PumpField", "Token"})
-	if !containsMode(third, "PumpField") || containsMode(third, "PumpHand") {
-		t.Fatalf("third combat did not age the first pick and retain the second: %v", third)
-	}
+	// The first pick has aged out after combat two, while combat two's pick is
+	// now the sole forbidden mode.
+	askAndChoose("Token", []string{"PumpHand", "Token"})
 	replayCheck(t, e, cfg)
 }
 
@@ -111,6 +135,9 @@ func TestCharmChoiceRestrictionYourLastCombatYotianCourier(t *testing.T) {
 	all := []string{"Powerstone", "Seek"}
 	beginCharmCombat(e)
 	recordCharmMode(t, e, source, sa, "Powerstone")
+	// A second attack trigger in this combat is not constrained by this
+	// combat's pick; only the immediately preceding combat is forbidden.
+	assertCharmModes(t, effects.CharmEligibleModes(e, source, sa, all), all)
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 3})
 	beginCharmCombat(e)
 	got := effects.CharmEligibleModes(e, source, sa, all)
@@ -123,14 +150,44 @@ func TestCharmChoiceRestrictionThisGamePersists(t *testing.T) {
 		t.Fatalf("compiled ChoiceRestriction$ = %q", sa.Params["ChoiceRestriction"])
 	}
 	all := []string{"DBPutCounter", "DBDraw", "DBClone"}
-	assertCharmModes(t, effects.CharmEligibleModes(e, source, sa, all), all)
-	recordCharmMode(t, e, source, sa, "DBDraw")
+	face := e.G.Obj(source).Face()
+	if face == nil || len(face.Triggers) == 0 || face.Triggers[0].Mode != "DamageDone" {
+		t.Fatalf("precondition: Silent Hallcreeper has no DamageDone trigger: %+v", face)
+	}
+	fireDamageTrigger := func(expected []string, choose string) {
+		t.Helper()
+		// Drive the compiled combat-damage trigger, then inspect and answer its
+		// real placement ask (not the helper in isolation).
+		e.damaging, e.combatDamaging = source, true
+		e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 1})
+		e.damaging, e.combatDamaging = 0, false
+		e.putTriggersOnStack()
+		if len(e.G.Stack) == 0 {
+			t.Fatal("combat damage did not put Silent Hallcreeper's trigger on the stack")
+		}
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KModes || d.ResumeKind != "modes" {
+			t.Fatalf("pending = %+v, want Hallcreeper trigger modes ask", d)
+		}
+		assertCharmModes(t, d.ResumeModes, expected)
+		idx := modeNameIndex(d, choose)
+		if idx < 0 {
+			t.Fatalf("Hallcreeper trigger ask omits %s: %v", choose, d.ResumeModes)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("choose %s: %v", choose, err)
+		}
+		if got := e.G.Obj(source).ModeChoices; len(got) == 0 || got[len(got)-1].Mode != choose {
+			t.Fatalf("choice %s not recorded on Hallcreeper: %+v", choose, got)
+		}
+		passUntilStackEmpty(t, e, 60)
+	}
+	fireDamageTrigger(all, "DBDraw")
 	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 3})
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 4})
 	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 5})
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 6})
-	got := effects.CharmEligibleModes(e, source, sa, all)
-	assertCharmModes(t, got, []string{"DBPutCounter", "DBClone"})
+	fireDamageTrigger([]string{"DBPutCounter", "DBClone"}, "DBClone")
 }
 
 func TestCharmChoiceRestrictionUnknownScopeNotesAndFailsOpen(t *testing.T) {
