@@ -2214,11 +2214,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		case "mana_color":
 			// A resolution-time Mana effect asked for one colour, or an
 			// allocation of Combo's produced units. The answer is carried in
-			// ordinary KChoose labels and consumed by effMana on re-entry; no
-			// event kind is needed because the resulting ManaAdd is the
-			// replayable state mutation.
+			// the chosen options' structured ManaSymbol and consumed by
+			// effMana on re-entry; no event kind is needed because the
+			// resulting ManaAdd is the replayable state mutation.
 			for _, option := range chosen {
-				colour := strings.TrimSpace(strings.TrimPrefix(option.Label, "Add "))
+				// The chosen colour is structured data (Option.ManaSymbol);
+				// labels are presentation-only.
+				colour := option.ManaSymbol
 				if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
 					continue
 				}
@@ -2650,14 +2652,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// A standalone AB$ ManaReflected colour ask (the mid-resolution
 			// choice effManaReflected poses when a DB$/SP$ body reflecting
 			// several colours resolves outside the mana-activation path) was
-			// answered. The option Label ("Add W") carries the picked colour;
-			// the re-entered effManaReflected consumes and clears it and emits
+			// answered. The chosen option's structured ManaSymbol carries the
+			// picked colour; the re-entered effManaReflected consumes and
+			// clears it and emits
 			// the answered ManaAdd, so a nested ManaReflected poses its own ask.
 			// An empty answer (malformed -- the ask is Min 1/Max 1 over a set of
 			// two or more) leaves the field empty, and the effect's re-entry
 			// degrades to its deterministic first candidate.
 			if len(chosen) > 0 {
-				ctx.ManaReflectedColor = chosen[0].Label
+				// The structured mana symbol travels with the chosen option;
+				// the option label is presentation-only.
+				ctx.ManaReflectedColor = chosen[0].ManaSymbol
 			}
 		case "taporuntap":
 			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow
