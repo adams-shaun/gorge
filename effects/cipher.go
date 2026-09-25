@@ -9,13 +9,21 @@ import (
 
 func init() { Register("Cipher", effCipher) }
 
-// effCipher implements DB$ Cipher, the body cards/kw_cipher.go expands K:Cipher
-// into: "Then you may exile this spell card encoded on a creature you
-// control." (CR 702.99a.) It is the reflexive trigger's resolution, fired by
-// the spell card's own stack->graveyard move, and it is the ONE home for the
-// encode ask and the association -- the combat-damage copy trigger the
-// association grants lives rules-side (checkCipherTriggers), because only
-// rules can queue a trigger.
+// effCipher implements DB$ Cipher, the body cards/kw_cipher.go mints as the
+// SVar rules/stack.go splices onto the TAIL of a Cipher spell's resolution
+// chain: "Then you may exile this spell card encoded on a creature you
+// control." (CR 702.99a.) It is the ONE home for the encode ask and the
+// association -- the combat-damage copy trigger the association grants lives
+// rules-side (checkCipherTriggers), because only rules can queue a trigger.
+//
+// Because the encode is the resolution's last instruction, the spell card is
+// still ON THE STACK here, not in the graveyard: the effect must not depend on
+// the spell first settling in a resting zone. It exiles the card from
+// wherever it is (the stack), which is what makes a replacement that would
+// have sent the resolved spell elsewhere irrelevant to whether it may be
+// encoded. A declined encode leaves the card on the stack, so the ordinary
+// resolution tail (rules/resolution.go's moveResolvedOffStack) sends it to its
+// resting zone as usual.
 //
 // The offer is a single mid-resolution KModes ask over the resolving
 // controller's creatures: Min 0 (an empty answer declines -- "you may"), Max
@@ -30,9 +38,9 @@ func init() { Register("Cipher", effCipher) }
 // events.Move prunes/clears it when either side leaves its zone.
 func effCipher(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
-	// The encoded card is the resolving trigger's source (ValidCard$
-	// Card.Self). An absent or departed object is a no-op -- the totality
-	// stance every effect takes.
+	// The encoded card is the resolving spell's object (Ctx.Source is the
+	// stack object for a spell resolution). An absent or departed object is a
+	// no-op -- the totality stance every effect takes.
 	card := c.Source
 	co := g.Obj(card)
 	if co == nil {
@@ -57,19 +65,25 @@ func effCipher(h Host, c *Ctx, sa *cards.SA) {
 		if len(pick) == 0 {
 			return
 		}
+		// The spell must still be resolving (on the stack) for its encode to
+		// apply; a card that already left resolved elsewhere and encodes
+		// nothing.
+		if co.Zone != state.ZStack {
+			return
+		}
 		creature := pick[0].Obj
 		target := g.Obj(creature)
-		if co.Zone != state.ZGraveyard || target == nil || target.Zone != state.ZBattlefield ||
+		if target == nil || target.Zone != state.ZBattlefield ||
 			!MatchesSpecCtx(g, "Creature.YouCtrl", creature, c.SpecContext(controller)) {
 			h.Emit(events.Event{Kind: events.Note, Obj: card,
 				Text: "cipher encode found its chosen creature no longer on the battlefield"})
 			return
 		}
 		// "Encoded" means exiled AND associated (CR 702.99a). Move the card
-		// to exile from wherever it currently sits, then write the link. The
-		// Imprint event's IDs[0] is the encoded card; Apply appends it to the
-		// creature's EncodedCards.
-		h.Emit(events.Event{Kind: events.MoveZone, Obj: card, From: state.ZGraveyard, To: state.ZExile,
+		// to exile from wherever it currently sits (the stack), then write the
+		// link. The Imprint event's IDs[0] is the encoded card; Apply appends
+		// it to the creature's EncodedCards.
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: card, From: co.Zone, To: state.ZExile,
 			Text: "encoded"})
 		if co = g.Obj(card); co == nil || co.Zone != state.ZExile {
 			return // a replacement prevented the exile; nothing was encoded.
@@ -79,10 +93,10 @@ func effCipher(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// The card must still be somewhere we can exile it from -- normally the
-	// graveyard it just resolved into. A card that has already left (a
-	// replacement exiled it instead) is nothing to encode.
-	if co.Zone != state.ZGraveyard {
+	// The encode instruction is the resolution's tail, so the spell card must
+	// still be on the stack. A card that is not (a copy that already ceased to
+	// exist, or one a replacement relocated) is nothing to encode.
+	if co.Zone != state.ZStack {
 		return
 	}
 	// Candidates: the resolving controller's creatures, in deterministic
