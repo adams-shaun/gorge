@@ -39,43 +39,52 @@ func TestValueHeadRegistryMatchesEvaluator(t *testing.T) {
 			// An off-zone object: the source a count reads, without a
 			// battlefield presence that would grow every later census.
 			id := e.G.AddObject(c, 0).ID
-			ctx := &effects.Ctx{Source: id, Controller: 0, SVars: f.SVars}
 			names := make([]string, 0, len(f.SVars))
 			for name := range f.SVars {
 				names = append(names, name)
 			}
 			sort.Strings(names)
 			for _, name := range names {
-				body := strings.TrimSpace(f.SVars[name])
-				head, ok := cards.ValueHead(body)
-				if !ok || !referenced[head] {
+				body := f.SVars[name]
+				outer, _ := cards.ValueHead(body)
+				// A body's arithmetic suffixes carry operands the evaluator
+				// resolves as full Count$ expressions (Okinec's
+				// Count$CardPower/Minus.Count$CardBasePower), and the head an
+				// operand names is its own coverage primitive. The grammar
+				// comes from the same cards.ValueHeadOperands the census
+				// attributes with, so this check and ValueHeads can never
+				// disagree about what a body reads.
+				set := map[string]struct{}{}
+				if h, ok := cards.ValueHead(body); ok {
+					set[h] = struct{}{}
+				}
+				for _, h := range cards.ValueHeadOperands(body) {
+					set[h] = struct{}{}
+				}
+				if len(set) == 0 {
 					continue
 				}
-				seen[head] = true
-				if !resolves[head] {
-					if _, ok := effects.EvalCountOK(e, ctx, body); ok {
-						resolves[head] = true
-					}
+				heads := make([]string, 0, len(set))
+				for h := range set {
+					heads = append(heads, h)
 				}
-				// Count$ operands nested inside arithmetic suffixes are separate
-				// registered heads, even though ValueHead(body) names only the
-				// outer expression.
-				for rest := body; ; {
-					i := strings.Index(rest, "Count$")
-					if i < 0 {
-						break
+				sort.Strings(heads)
+				ctx := &effects.Ctx{Source: id, Controller: 0, SVars: f.SVars}
+				for _, h := range heads {
+					if !referenced[h] || resolves[h] {
+						continue
 					}
-					rest = rest[i:]
-					nested, ok := cards.ValueHead(rest)
-					if ok && nested != head && referenced[nested] {
-						seen[nested] = true
-						if !resolves[nested] {
-							if _, ok := effects.EvalCountOK(e, ctx, "Count$"+nested); ok {
-								resolves[nested] = true
-							}
-						}
+					seen[h] = true
+					probe := body
+					if h != outer {
+						// An operand head is read through its own bare
+						// Count$ expression at run time, so that is the
+						// body whose resolution this check verifies.
+						probe = "Count$" + h
 					}
-					rest = rest[len("Count$"):]
+					if _, ok := effects.EvalCountOK(e, ctx, strings.TrimSpace(probe)); ok {
+						resolves[h] = true
+					}
 				}
 			}
 		}

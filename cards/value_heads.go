@@ -61,6 +61,60 @@ func ValueHead(body string) (string, bool) {
 	return "", false
 }
 
+// ValueHeadOperands lists the count-expression heads NESTED inside body's
+// arithmetic suffix chain, deduplicated and sorted; the outer head is NOT
+// included. Forge writes such an operand as
+// `Count$CardPower/Minus.Count$CardBasePower` (Sovereign Okinec Ahau): the
+// operand after a `Plus.`/`Minus.`/`Times.` suffix is itself a full Count$
+// expression the evaluator resolves through its own dispatch (effects'
+// applyCountOpOperandOK), so the head it names is a separate coverage
+// primitive the outer ValueHead token cannot see — ValueHeads must attribute
+// it or the honesty gate never checks it and the card joins the playable
+// pool with an amount that reads the unresolved verdict.
+//
+// The walk mirrors exactly the subset of the grammar the evaluator routes:
+// only a body ValueHead classifies as a bare Count$ head contributes (a
+// ReplaceCount$/TriggerCount$ body takes a different evaluator route, and a
+// mid-body `Count$` token inside an ability-line parameter is not an SVar
+// body this gate reads), and an operand that is not itself Count$-prefixed —
+// a numeric Plus.1 or a bare SVar-name operand the evaluator resolves
+// through the face's SVar table — contributes nothing. rules'
+// TestValueHeadRegistryMatchesEvaluator resolves each operand head through
+// this same helper, so the census and the honesty check cannot disagree
+// about the grammar.
+func ValueHeadOperands(body string) []string {
+	body = strings.TrimSpace(body)
+	if _, ok := strings.CutPrefix(body, "Count$"); !ok {
+		return nil
+	}
+	_, op, hasOp := strings.Cut(body, "/")
+	if !hasOp {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	for _, suffix := range strings.Split(op, "/") {
+		for _, prefix := range []string{"Plus.", "Minus.", "Times."} {
+			operand, ok := strings.CutPrefix(suffix, prefix)
+			if !ok {
+				continue
+			}
+			operand = strings.TrimSpace(operand)
+			if !strings.HasPrefix(operand, "Count$") {
+				continue
+			}
+			if head, ok := ValueHead(operand); ok {
+				seen[head] = struct{}{}
+			}
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for head := range seen {
+		out = append(out, head)
+	}
+	sort.Strings(out)
+	return out
+}
+
 // ValueHeads lists the "count:<head>" primitives this face's REFERENCED
 // value SVars read. An SVar counts as referenced when its name appears as a
 // token in any ability line, trigger/static/replacement parameter, keyword,
@@ -80,20 +134,8 @@ func (f *Face) ValueHeads() []string {
 		if head, ok := ValueHead(body); ok {
 			set[ValueHeadPrefix+head] = struct{}{}
 		}
-		// Arithmetic operands may themselves be Count$ expressions (for
-		// example Count$CardPower/Minus.Count$CardBasePower). They are
-		// evaluated by the same count registry and must participate in the
-		// honesty gate even though ValueHead(body) reports only the outer head.
-		for rest := body; ; {
-			i := strings.Index(rest, "Count$")
-			if i < 0 {
-				break
-			}
-			rest = rest[i:]
-			if head, ok := ValueHead(rest); ok {
-				set[ValueHeadPrefix+head] = struct{}{}
-			}
-			rest = rest[len("Count$"):]
+		for _, head := range ValueHeadOperands(body) {
+			set[ValueHeadPrefix+head] = struct{}{}
 		}
 	}
 	out := make([]string, 0, len(set))
