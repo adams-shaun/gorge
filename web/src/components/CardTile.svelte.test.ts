@@ -318,6 +318,19 @@ describe('CardTile loyalty (CR 306.5b/306.8)', () => {
     expect(html).toContain('stats__dmg');
     expect(html).toContain('P1P1');
   });
+
+  it('a land with depletion counters prints a chip without creature or walker stats', () => {
+    // fb-20260923T194401Z: Sandstone Needle uses the land fixture's counter path.
+    const land = card({ counters: { DEPLETION: 2 } });
+    expect(land.types).toBe('Land');
+    const { html } = render(CardTile, { props: { card: land } });
+    expect(html).toMatch(/class="chip(?:\s[^"]*)?"/);
+    expect(html).toContain('title="2 DEPLETION"');
+    expect(html).toContain('>2</span>DE</span>');
+    expect(html).not.toContain('stats__pt');
+    expect(html).not.toContain('stats__dmg');
+    expect(html).not.toContain('stats__loyalty');
+  });
 });
 
 describe('CardTile summoning sickness (fb-20260917T004545Z)', () => {
