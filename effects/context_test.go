@@ -140,6 +140,16 @@ func (h *fakeHost) ObjectText(o *state.Object) string {
 	}
 	return o.Face().Oracle
 }
+
+// ObjectKeywords mirrors rules.Engine.ObjectKeywords at the only fidelity the
+// effects double has: it has no layer walk, so it returns a copy of the
+// printed face's keyword list.
+func (h *fakeHost) ObjectKeywords(o *state.Object) []string {
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	return append([]string(nil), o.Face().Keywords...)
+}
 func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)

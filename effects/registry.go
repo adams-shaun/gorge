@@ -51,6 +51,16 @@ type Host interface {
 	// exchange the text boxes AS THEY EXIST at resolution, so a prior
 	// ChangeText substitution is carried across rather than discarded.
 	ObjectText(*state.Object) string
+	// ObjectKeywords returns the object's CURRENT derived keyword list (CR
+	// 613.1f), printed and granted alike, as an owned copy. api:ExchangeTextBox
+	// reads it alongside ObjectText so an exchanged text box swaps the
+	// keywords the other object's box carries (CR 612.1: a text box includes
+	// its abilities), the same AS-THEY-READ-at-resolution capture ObjectText
+	// takes; a layer-6 companion then wipes the object's own keywords and
+	// grants these. rules.Engine implements it as a copy of the Derived
+	// keyword stream (whose scratch buffer must not be aliased); the effects
+	// test double returns the printed face's keywords.
+	ObjectKeywords(*state.Object) []string
 	Emit(events.Event)
 	// EmitTokenCreate emits a token-creation event and returns every object
 	// it actually created, in mint order. A token-creation replacement may
