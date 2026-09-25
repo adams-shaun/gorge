@@ -3825,6 +3825,8 @@ func (e *Engine) resolveTop() {
 		// load it so the ability's Sacrificed$<Property> heads resolve against
 		// what it sacrificed. Mirror of triggerContexts: engine-only.
 		ctx.Sacrificed = e.sacrificedLKI[id]
+		ctx.Exiled = e.castExiled[id]
+		ctx.Revealed = e.castRevealed[id]
 		if link, ok := e.sourceLifelinkLKI[id]; ok {
 			ctx.SourceLifelinkLKI = link
 			ctx.SourceLifelinkLKIValid = true
@@ -4100,6 +4102,8 @@ func (e *Engine) resolveTop() {
 		// onto resolution so Sacrificed$<Property> heads resolve against what
 		// this spell sacrificed.
 		ctx.Sacrificed = e.sacrificedLKI[id]
+		ctx.Exiled = e.castExiled[id]
+		ctx.Revealed = e.castRevealed[id]
 		effects.SetSVars(ctx, f.SVars)
 		// CR 601.2b: a modal spell's choice was recorded on its proposal before
 		// targets and payment. Pre-seeding Modes makes effCharm execute exactly

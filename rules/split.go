@@ -251,6 +251,8 @@ func (e *Engine) runFusedHalves(o *state.Object, halves []*cards.Face, sas []*ca
 		}
 		ctx.X = o.X
 		ctx.Sacrificed = e.sacrificedLKI[o.ID]
+		ctx.Exiled = e.castExiled[o.ID]
+		ctx.Revealed = e.castRevealed[o.ID]
 		effects.SetSVars(ctx, hf.SVars)
 		ctx.Modes = o.ChosenModes
 		e.contChain = e.contChain[:0]

@@ -8658,6 +8658,34 @@ func (e *Engine) hasUntappedManaSource(p state.PlayerID) bool {
 	return false
 }
 
+// installPaidCostLists publishes the cards this cast/activation's cost exiled
+// (pc.exiles) and revealed (pc.reveals) onto the engine keyed by the stack
+// object it just minted, in stable cost order. Resolution loads them into
+// effects.Ctx.Exiled/Revealed so the `Exiled$<Property>` /
+// `Revealed$<Property>` count refs and `Defined$ Exiled`/`Revealed` read the
+// exact cards the cost paid (Forge's SpellAbility.getPaidList rows). It is the
+// sacrificedLKI discipline: engine-only scratch (a log-only reconstruction
+// rebuilds it because payCast re-executes), cloned with the engine, removed
+// with the stack object by the shared MoveZone cleanup. Empty lists are not
+// recorded -- an absent entry and an empty one read the same legitimate zero.
+func (e *Engine) installPaidCostLists(pc *pendingCast) {
+	if pc.stackObj == 0 {
+		return
+	}
+	if len(pc.exiles) > 0 {
+		if e.castExiled == nil {
+			e.castExiled = make(map[state.ObjID][]state.ObjID)
+		}
+		e.castExiled[pc.stackObj] = append([]state.ObjID(nil), pc.exiles...)
+	}
+	if len(pc.reveals) > 0 {
+		if e.castRevealed == nil {
+			e.castRevealed = make(map[state.ObjID][]state.ObjID)
+		}
+		e.castRevealed[pc.stackObj] = append([]state.ObjID(nil), pc.reveals...)
+	}
+}
+
 func (e *Engine) emitChoiceCosts(pc *pendingCast) {
 	names := func(ids []state.ObjID) string {
 		out := make([]string, 0, len(ids))
@@ -9106,6 +9134,7 @@ func (e *Engine) payCast() {
 			e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 		}
 		e.sacrificedLKI[pc.stackObj] = sacrificedLKI
+		e.installPaidCostLists(pc)
 		for _, id := range pc.sacs {
 			if id != pc.card {
 				continue
@@ -9305,6 +9334,7 @@ func (e *Engine) payCast() {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 	}
 	e.sacrificedLKI[pc.stackObj] = sacrificedLKI
+	e.installPaidCostLists(pc)
 	// A Fuse cast publishes its per-stage target split for resolution
 	// (review MAJOR 1): resolveFused reads it instead of re-deriving the
 	// split from the flat target list. Engine-only scratch like
