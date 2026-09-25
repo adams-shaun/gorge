@@ -763,8 +763,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// milled cards"); choose_control's definedCardPool resolves it
 		// through the identical read, so the two spellings of one referent
 		// cannot drift.
-		"TriggeredCards",
-		"RememberedLKI":
+		"TriggeredCards":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
@@ -786,6 +785,26 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// a Blocks trigger's Remembered carries the pair's ATTACKER, so the
 		// blocker role is the only exact referent -- see the case below.
 		return objectsOf(c.Remembered), true
+	case "RememberedLKI":
+		// The LKI spelling of the Remembered$ group names the SAME object set
+		// the RememberedLKI ref group (effects/count.go rememberedLKIGroup)
+		// resolves -- Forge's remembered list, which never contains the event
+		// object the trigger fired on. It was previously grouped with the
+		// Triggered* family above and read objectsOf(c.Remembered) raw, so a
+		// firing trigger's fire-time capture (the trigger's own source, for
+		// the ChangesZone self-trigger every `ConditionDefined$ RememberedLKI`
+		// gate reads) satisfied the gate even when nothing was remembered --
+		// Nurturing Pixie's ETB returned no permanent, yet its self-capture
+		// (itself, a permanent) made ConditionPresent$ Card.Permanent true and
+		// granted the +1/+1 counter. Route it through the one capture-excluding
+		// RememberedLKI resolver so this defined set and the count path cannot
+		// disagree: the seeded capture occurrence is dropped (an explicit
+		// later remember of the same object is kept) while genuine source
+		// memory -- RememberLKI$ True on the source itself, Cosima's self-return
+		// and Riders of the Mark's RememberChanged$ -- is retained. Only the
+		// object entries are named, matching the family above and the LKI
+		// spelling's object-only read.
+		return objectsOf(rememberedLKIGroup(h, c)), true
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// The pair's BLOCKER (trig:Blocks): prefer the fire-time TriggerBlocker
 		// role when the Blocks capture set it (Remembered names the attacker
