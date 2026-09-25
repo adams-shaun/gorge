@@ -12,6 +12,7 @@ package rules
 // events and refuses (fails closed on) every part it cannot settle.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -36,7 +37,9 @@ func manaCostBoard(t *testing.T, seed uint64, name string, energy int32) (*Engin
 }
 
 // answerManaChoose answers the pending KChoose (an ability pick or a colour
-// pick) with the option whose label is want.
+// pick) with the option whose label is want. A single-colour want also
+// matches a prefixed colour option ("Pay 1 life: Add B"), so a paid
+// activation's colour ask is selectable by its production alone.
 func answerManaChoose(t *testing.T, e *Engine, want string) {
 	t.Helper()
 	d := e.Pending()
@@ -47,6 +50,17 @@ func answerManaChoose(t *testing.T, e *Engine, want string) {
 		if o.Label == want {
 			submitChoices(t, e, o.Index)
 			return
+		}
+	}
+	if len(want) == len("Add ")+1 && strings.HasPrefix(want, "Add ") {
+		colour := want[len("Add "):]
+		for _, o := range d.Options {
+			if o.Kind == "mana" {
+				if got, ok := manaLabelColour(o.Label); ok && got == colour {
+					submitChoices(t, e, o.Index)
+					return
+				}
+			}
 		}
 	}
 	t.Fatalf("no %q option in %q: %+v", want, d.Prompt, d.Options)

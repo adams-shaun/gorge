@@ -2518,12 +2518,21 @@ func (e *Engine) addCounterAffectedPlayer(ev events.Event) (state.PlayerID, bool
 // replacements do not all commute and asks the affected player (CR 616.1)
 // which applies first. The synchronous-damage context the event was proposed
 // under rides the park, the way the life competition's does, so the resumed
-// emit sees the same provenance.
+// emit sees the same provenance. The counter ADDER (the player putting the
+// counters, the ValidSource$/EffectOnly$ role) is captured here too: the
+// answer may arrive after the proposing window has closed -- a body's
+// CounterChange poses from inside the replacement body, whose
+// applyingReplacement/replacingSource provenance is gone by resume time --
+// so the adder cannot be re-derived at the final emit.
 func (e *Engine) poseAddCounterOrderChoice(ev events.Event, cands []replMatch, p state.PlayerID) {
+	adderPlusOne := state.PlayerID(0)
+	if a, ok := e.inFlightCounterAdder(); ok {
+		adderPlusOne = a + 1
+	}
 	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceAddCounter,
 		ev: ev, cands: cands, before: e.triggerBefore, player: p,
 		damaging: e.damaging, combatDamaging: e.combatDamaging, dmgSrcOverride: e.dmgSrcOverride,
-		inResolution: e.resolvingObj != 0})
+		inResolution: e.resolvingObj != 0, counterAdderPlusOne: adderPlusOne})
 	if e.pending == nil {
 		e.askReplacementChoice(p)
 	}
@@ -2662,9 +2671,12 @@ func sameReplMatchIn(applied []replMatch, m replMatch) bool {
 // candidates re-check (CR 616.1e), a live non-commuting remainder re-poses
 // at the queue's front, and the fully rewritten event is emitted once none
 // is left (the emitLifeReplacement convention -- no new replacement pass).
+// The adder captured when the competition was posed (rc.counterAdderPlusOne)
+// rides this final emit so its observers see the placement attributed even
+// though the proposing window has closed by now.
 func (e *Engine) continueAddCounterReplacements(rc replChoice) {
 	e.driveAddCounterCompetition(rc,
-		func(ev events.Event, _ []replMatch) { e.emitAddCounterReplacement(ev) },
+		func(ev events.Event, _ []replMatch) { e.emitAddCounterReplacement(ev, rc.counterAdderPlusOne) },
 		e.reposeAddCounterCompetition)
 }
 
@@ -2720,12 +2732,25 @@ func (e *Engine) driveAddCounterCompetition(rc replChoice,
 
 // emitAddCounterReplacement logs a fully rewritten counter event without
 // starting a new replacement pass: every candidate has had its one
-// opportunity (the emitLifeReplacement convention).
-func (e *Engine) emitAddCounterReplacement(ev events.Event) {
+// opportunity (the emitLifeReplacement convention). adderPlusOne is the
+// competition's captured adder (PLUS ONE; 0 = unknown), published for the
+// emit so a trigger or the per-turn ledger reads the same "who put these"
+// role the original placement carried -- the counterReplacementFold pairing
+// below deliberately disables replacement-body inference for this settled
+// echo, so an unpublished adder would leave the placement attributed to
+// nobody.
+func (e *Engine) emitAddCounterReplacement(ev events.Event, adderPlusOne state.PlayerID) {
+	savedAdder := state.PlayerID(counterAdderUnset)
+	if adderPlusOne != 0 {
+		savedAdder = e.SetCounterAdder(adderPlusOne - 1)
+	}
 	saved, folded := e.applyingReplacement, e.counterReplacementFold
 	e.applyingReplacement, e.counterReplacementFold = true, true
 	e.emit(ev)
 	e.applyingReplacement, e.counterReplacementFold = saved, folded
+	if adderPlusOne != 0 {
+		e.SetCounterAdder(savedAdder)
+	}
 }
 
 // replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count
@@ -4970,6 +4995,12 @@ func (e *Engine) DeliriumHolds(controller state.PlayerID) bool {
 	return e.graveyardCardTypeCount(controller) >= 4
 }
 
+// MetalcraftHolds is the effects.Host bridge for bare Condition$ Metalcraft:
+// it shares the metalcraftHolds census used by cost, Continuous and offer gates.
+func (e *Engine) MetalcraftHolds(controller state.PlayerID) bool {
+	return e.metalcraftHolds(controller)
+}
+
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
 	seen := map[string]bool{}
 	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
@@ -5364,6 +5395,14 @@ type replChoice struct {
 	deadly   bool
 	toxic    int
 	cause    state.ObjID
+	// counterAdderPlusOne is kind == replChoiceAddCounter's adder provenance
+	// captured when the competition was POSED (PLUS ONE; 0 = unknown). The
+	// answer can arrive after the proposing window has closed -- a body's
+	// CounterChange poses from inside the replacement body, and the
+	// applyingReplacement/replacingSource that named the body is gone by resume
+	// time -- so the final emit in emitAddCounterReplacement republishes this
+	// captured value instead of re-deriving it (rules/replacement.go).
+	counterAdderPlusOne state.PlayerID
 	// tokenPlan/tokenNext are kind == replChoiceToken's parked plan state: the
 	// mints the already-applied matches produced and the cursor this choice
 	// was posed at (candidates are cands[cursor:]). Plain value data, the

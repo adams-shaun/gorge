@@ -651,3 +651,34 @@ func TestHypotheticalEffectsShuffleReplaysAndRejectsWrongBound(t *testing.T) {
 		t.Fatalf("effects error=%v", err)
 	}
 }
+
+// CloneHypothetical copies an actual engine into a hypothetical one with its
+// own future chance: the source is untouched, the copy accepts
+// SubmitHypothetical, and its generator is the seed's, not the source's.
+func TestCloneHypotheticalReseedsWithoutTouchingSource(t *testing.T) {
+	e := New(chanceConfig(t))
+	e.Advance()
+	head, n, draws := e.L.Head(), len(e.L.Events), e.RNGDraws()
+	c := e.CloneHypothetical(99)
+	if c.L.Head() != head || len(c.ChanceTranscript()) != 0 {
+		t.Fatal("hypothetical clone does not start at the source boundary with an empty transcript")
+	}
+	d := c.Pending()
+	if d == nil {
+		t.Fatal("no pending decision")
+	}
+	if err := c.SubmitHypothetical(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if e.L.Head() != head || len(e.L.Events) != n || e.RNGDraws() != draws {
+		t.Fatal("submitting to the hypothetical clone changed the source")
+	}
+	a, b := e.CloneHypothetical(1), e.CloneHypothetical(1)
+	if a.rng.IntN(1<<30) != b.rng.IntN(1<<30) {
+		t.Fatal("same seed, different generator")
+	}
+	src := e.Clone()
+	if e.CloneHypothetical(2).rng.IntN(1<<30) == src.rng.IntN(1<<30) && e.CloneHypothetical(3).rng.IntN(1<<30) == e.Clone().rng.IntN(1<<30) {
+		t.Fatal("hypothetical clone inherited the source generator")
+	}
+}

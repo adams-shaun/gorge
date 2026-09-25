@@ -475,6 +475,8 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// forms use the ordinary Defined resolver, so this remains extensible as
 	// Defined gains readers rather than special-casing individual cards.
 	tokenMemory := tokenRememberedTargets(h, c, sa)
+	// All selectors (owner, bearer and memory) have read the old set.
+	forgetOtherRemembered(h, c, sa)
 
 	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
 	// rider): every token this call creates enters attacking the combat's

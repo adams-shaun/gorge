@@ -99,9 +99,8 @@ func TestVanishingTidewalkerDynamicCountUpkeepAndLastCounter(t *testing.T) {
 // Grizzly Bears already on that battlefield, each TAPPED, and resolves Out of
 // Time's own printed enters trigger. api:Phases is registered
 // (effects/phases.go), so its printed AllValid$ Creature body phases the
-// bears out for real; its RememberAffected$ rider is a separate follow-up, so
-// the fixture supplies the remembered set through Choose events before
-// resolving the trigger. Its printed DB$ PutCounter then reads
+// bears out for real and remembers them through RememberAffected$. Its
+// printed DB$ PutCounter then reads
 // Count$RememberedSize from that event-backed list. This tests the real
 // count expression and Vanishing clock, NOT the phase-in half.
 func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state.ObjID) {
@@ -140,16 +139,8 @@ func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Out of Time is not on battlefield: %+v", o)
 	}
-	// api:Phases is registered (effects/phases.go), so the printed Phases body
-	// phases the bears out for real. Its RememberAffected$ rider is a separate
-	// follow-up ticket, so the fixture supplies the remembered set this test's
-	// count expression needs via Choose events.
-	for _, bid := range bears {
-		e.emit(events.Event{Kind: events.Choose, Obj: id, Counter: "remembered", IDs: []state.ObjID{bid}})
-	}
-	if got := len(e.G.Obj(id).Remembered); got != creatures {
-		t.Fatalf("precondition: remembered count = %d, want %d affected creatures", got, creatures)
-	}
+	// The printed Phases action both phases the bears out and remembers the
+	// affected set for the following Count$RememberedSize instruction.
 	// Resolve the real PRINTED enters trigger: untap, unsupported Phases,
 	// Effect, then DBPutCounter reading the remembered source list.
 	e.putTriggersOnStack()
@@ -169,7 +160,7 @@ func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state
 // TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter is the brief's
 // integration case: the real corpus Out of Time acquires its TIME counters
 // through its OWN printed Count$RememberedSize mechanism (the fixture
-// event-captures affected creatures because Phases is unimplemented;
+// RememberAffected$ event-captures the affected creatures;
 // no TIME counters are injected), the controller's Vanishing
 // upkeep removes one of that dynamic count, and reaching zero queues the
 // last-counter sacrifice.
@@ -226,11 +217,14 @@ func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
 	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
 		t.Fatalf("after resolving last-counter trigger zone = %s, want graveyard", z)
 	}
-	// The bears are phased out, so they stayed on the battlefield (CR 702.25:
-	// phasing is not a zone change) for the whole Vanishing clock.
+	// Out of Time's own Vanishing sacrifice is its departure: the printed
+	// comeback trigger fires and phases the creatures back in (CR 702.25's
+	// "phase out until CARDNAME leaves the battlefield"). They were never
+	// removed from the battlefield by phasing (it is not a zone change), so
+	// the only thing that changed at the end of the clock is the status.
 	for _, bid := range bears {
-		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield || !o.PhasedOut {
-			t.Fatalf("bear %d should be phased out on the battlefield: %+v", bid, o)
+		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
+			t.Fatalf("bear %d should have phased back in when Out of Time was sacrificed: %+v", bid, o)
 		}
 	}
 }

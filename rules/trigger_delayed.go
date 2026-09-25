@@ -146,7 +146,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// qualified ones fail closed inside MatchesPlayerSpec (the fx20
 		// convention: an unmodellable qualifier fires for nobody, never for
 		// everybody).
-		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpec(e.G, dt.ValidPlayer, e.G.Active, dt.Controller) {
+		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
 			continue
 		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
@@ -340,12 +340,12 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				}
 				delete(t.Params, "Destination")
 			}
-			if !e.zoneChangeMatches(t, dt.Source, ev, lki) {
+			if !e.zoneChangeMatchesWithCapture(t, dt.Source, ev, lki, dt.Remembered) {
 				continue
 			}
 			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
-				if !ok || !effects.MatchesPlayerSpec(e.G, vp, p, dt.Controller) {
+				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
 					continue
 				}
 			}
@@ -357,7 +357,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			// is the Effect's owner, not the creating card's controller.
 			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
-				if !ok || !effects.MatchesPlayerSpec(e.G, vp, p, dt.Controller) {
+				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
 					continue
 				}
 			}
@@ -396,6 +396,16 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			// Palace Jailer's exile promise: nothing on a MonarchChange
 			// names the exiled card, so the registration's capture IS the
 			// referent this body resolves.
+			remembered = append([]state.Target(nil), dt.Remembered...)
+		} else if dt.EffectRepeat && dt.EventMode == "ChangesZone" {
+			// An Effect-owned ChangesZone trigger's `Defined$ Remembered`
+			// names the Effect's OWN capture (Forge's created-effect
+			// Remembered list), not the zone-changing card: Out of Time's
+			// comeback body is `DB$ Phases | Defined$ Remembered` and must
+			// phase the creatures the Effect remembered, not the host that
+			// just left. The firing event's object rides the ordinary
+			// Triggered* referents (refs.DelayedObject), so a body naming
+			// the trigger source still resolves it.
 			remembered = append([]state.Target(nil), dt.Remembered...)
 		}
 		refs.DelayedRemembered = append([]state.Target(nil), dt.Remembered...)
@@ -532,6 +542,12 @@ func delayedEventModeHandled(mode string) bool {
 	return false
 }
 
+// delayedSpecCtx binds a registration's capture only for its trigger match.
+func delayedSpecCtx(sc effects.SpecContext, remembered []state.Target) effects.SpecContext {
+	sc.DelayedRemembered = remembered
+	return sc
+}
+
 // delayedEventMatches dispatches the existing trigger matchers for an event
 // delayed registration. Keeping this on the ordinary matcher helpers makes a
 // delayed body and a printed T: line agree on zone, damage and attack filters.
@@ -542,9 +558,9 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 	case "ChangesController":
 		return e.delayedChangesControllerMatches(t, dt, ev, lki)
 	case "DamageDone":
-		return e.damageMatches(t, dt.Source, ev)
+		return e.damageMatchesWithCapture(t, dt.Source, ev, dt.Remembered)
 	case "AttackersDeclared":
-		return e.attackersDeclaredOneTargetMatches(t, dt.Source, ev)
+		return e.attackersDeclaredOneTargetMatches(t, dt.Source, ev, dt.Remembered)
 	default:
 		return false
 	}
@@ -584,7 +600,7 @@ func (e *Engine) delayedChangesControllerMatches(t cards.Trigger, dt *state.Dela
 		return false
 	}
 	ctrl := dt.Controller
-	if v := t.Params["ValidCard"]; v != "" && !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(dt.Source, ctrl)) {
+	if v := t.Params["ValidCard"]; v != "" && !effects.MatchesObjectCtx(e.G, v, lki, delayedSpecCtx(e.specCtx(dt.Source, ctrl), dt.Remembered)) {
 		return false
 	}
 	if v := t.Params["ValidOriginalController"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, lki.Controller, ctrl) {
@@ -626,7 +642,7 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		if !ok {
 			return false
 		}
-		if !e.matchesSpec(spellCastPermanentSpec(v), ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
+		if !e.matchesSpec(spellCastPermanentSpec(v), ev.Obj, delayedSpecCtx(e.specCtx(dt.Source, dt.Controller), dt.Remembered)) {
 			return false
 		}
 	}

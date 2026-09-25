@@ -15,7 +15,34 @@ func renderReport(cfg config, games []gameResult, records []decisionRecord, cpuS
 	fmt.Fprintln(&b, "# pn20 step 1 — hindsight branch-mining measurement")
 	fmt.Fprintln(&b)
 	fmt.Fprintf(&b, "Held-out seeds begin at `%d`; corpus `%s`; %d losses and %d wins; adaptive %d..%d rollouts/option in blocks of %d; at most %d candidates. The five pn14/pn15 pairs cover the six constructed decks, with the measured seat alternating across pair sweeps. `.cards` was present and opened successfully.\n\n", cfg.seed, cfg.cardsDir, cfg.losses, cfg.wins, cfg.block, cfg.maxRollouts, cfg.block, cfg.candidateLimit)
-	fmt.Fprintln(&b, "Every honest rollout used a fresh history-conditioned `searchprobe.Sample` world. No sampler failure fell back to the recorded hand or library. The omniscient arm below deliberately reuses those secrets and is labelled leaked.")
+	if cfg.redeal {
+		fmt.Fprintln(&b, "Every honest rollout used a fresh history-conditioned `searchprobe.Sample` world, or -- `-redeal` was on -- when the sampler starved, a redeal of the branch engine's hidden cards the seat did not know, pinning every card its known-card projection names (pn21). The omniscient arm below deliberately reuses the real secrets and is labelled leaked.")
+	} else {
+		fmt.Fprintln(&b, "Every honest rollout used a fresh history-conditioned `searchprobe.Sample` world. No sampler failure fell back to the recorded hand or library. The omniscient arm below deliberately reuses those secrets and is labelled leaked.")
+	}
+	if cfg.redeal {
+		redealt, worlds := 0, 0
+		refused := make(map[string]int)
+		for _, r := range records {
+			if r.Evaluation.Redealt > 0 {
+				redealt++
+				worlds += r.Evaluation.Redealt
+			}
+			if r.Evaluation.RedealRefused != "" {
+				refused[r.Evaluation.RedealRefused]++
+			}
+		}
+		fmt.Fprintf(&b, "\nRedeal fallback: %d decisions used redealt worlds (%d worlds in all).", redealt, worlds)
+		reasons := make([]string, 0, len(refused))
+		for reason := range refused {
+			reasons = append(reasons, reason)
+		}
+		sort.Strings(reasons)
+		for _, reason := range reasons {
+			fmt.Fprintf(&b, " Refused %d× (%s).", refused[reason], reason)
+		}
+		fmt.Fprintln(&b)
+	}
 
 	by := make(map[string]*cell)
 	gamesByOutcome := make(map[string]int)

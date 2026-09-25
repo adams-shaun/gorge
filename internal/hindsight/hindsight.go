@@ -246,6 +246,12 @@ type Evaluation struct {
 	Attempts        int            `json:"sampler_attempts,omitempty"`
 	Accepted        int            `json:"sampler_accepted,omitempty"`
 	ESS             float64        `json:"sampler_ess,omitempty"`
+	// Redealt counts the worlds the sampler's redeal fallback supplied
+	// (searchprobe.SampleOptions.Redeal) and RedealRefused keeps the first
+	// reason a starved block could not be redealt. Both stay empty when the
+	// fallback is off.
+	Redealt       int    `json:"sampler_redealt,omitempty"`
+	RedealRefused string `json:"sampler_redeal_refused,omitempty"`
 }
 
 type EvalOptions struct {
@@ -280,6 +286,10 @@ func Evaluate(candidates []Candidate, source WorldSource, seed uint64, opts Eval
 		out.Attempts += sr.Attempts
 		out.Accepted += sr.Accepted
 		out.ESS = sr.ESS
+		out.Redealt += sr.Redealt
+		if out.RedealRefused == "" {
+			out.RedealRefused = sr.RedealRefused
+		}
 		if err != nil {
 			out.SamplerStatus = "no_world"
 			return out, nil

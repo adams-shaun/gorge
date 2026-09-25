@@ -143,7 +143,7 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 		{"TriggerRemembered$CastTotalManaSpent", 0, true},
 		{"TriggerRemembered$CardManaCostLKI", 6, true},
 		{"TriggerRemembered$GreatestCardManaCost", 0, false},
-		{"TriggerRemembered$CardTypes", 0, false},
+		{"TriggerRemembered$CardTypes", 2, true},
 	} {
 		got, ok := EvalCountOK(h, c, tc.expr)
 		if got != tc.want || ok != tc.ok {

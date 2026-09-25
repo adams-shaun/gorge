@@ -248,6 +248,7 @@ func (e *Engine) Clone() *Engine {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
 			ce.RemoveKeywords = append([]string(nil), ce.RemoveKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
+			ce.RemoveTypes = append([]string(nil), ce.RemoveTypes...)
 			if ce.RestrictParams != nil {
 				m := make(map[string]string, len(ce.RestrictParams))
 				for k, v := range ce.RestrictParams {
@@ -729,7 +730,6 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.HybridPhyrexian = append([]HybridPhyrexian(nil), e.cast.cost.HybridPhyrexian...)
 		pc.mods.reduces = append([]costMod(nil), e.cast.mods.reduces...)
 		pc.mods.raises = append([]int32(nil), e.cast.mods.raises...)
-		pc.mods.raiseBlight = append([]CostPart(nil), e.cast.mods.raiseBlight...)
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)

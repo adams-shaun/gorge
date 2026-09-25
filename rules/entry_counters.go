@@ -581,11 +581,15 @@ func (e *Engine) foldEntryWithPlaced(ev events.Event, placed []events.EntryCount
 	entrant := ev.Obj
 	for _, g := range placed {
 		// Replacement has already settled; the marker only notifies observers.
+		// The entrant's controller is the adder of its entry counters, even
+		// though this notification is an already-settled echo.
 		savedApplying, savedFold := e.applyingReplacement, e.counterReplacementFold
+		savedAdder := e.SetCounterAdder(e.controllerOf(entrant))
 		e.applyingReplacement, e.counterReplacementFold = true, true
 		e.emit(events.Event{Kind: events.CounterChange, Obj: entrant,
 			Counter: g.Kind, Amount: g.Amount, Text: events.EntryCounterNotice})
 		e.applyingReplacement, e.counterReplacementFold = savedApplying, savedFold
+		e.SetCounterAdder(savedAdder)
 	}
 	return stored
 }

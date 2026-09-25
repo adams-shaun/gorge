@@ -1614,6 +1614,11 @@ func Apply(g *state.Game, e Event) {
 		// (CR 400.7) starts phased in.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
 			o.PhasedOut = e.Amount >= 1
+			if e.Amount >= 1 {
+				o.WontPhaseInNormal = e.Text == "wont-phase-in-normal"
+			} else {
+				o.WontPhaseInNormal = false
+			}
 			// CR 702.25c: "A permanent that phases out is removed from
 			// combat." Phasing is deliberately NOT a zone change, so no Move
 			// fold runs to clear the combat members the way a departure does;
@@ -2693,13 +2698,14 @@ func Apply(g *state.Game, e Event) {
 		// ever set it), which would otherwise match registration ID 0 and
 		// delete a bystander's pending delayed trigger.
 		monarchDraw := e.Counter == "__monarch_draw"
+		radiationDrain := e.Counter == "__radiation_drain"
 		// Consume the registration first, even when its tracked permanent has
 		// changed incarnation. A stale dash/warp promise expires once; it must
 		// neither act on the returned object nor be retried forever. Ordinary
 		// delayed triggers, including Encore's group cleanup, are independent
 		// of their source and still resolve.
 		var registration *state.DelayedTrigger
-		if !monarchDraw {
+		if !monarchDraw && !radiationDrain {
 			for i := range g.Delayed {
 				if g.Delayed[i].ID == uint32(e.Amount) {
 					dt := g.Delayed[i]
@@ -2712,21 +2718,23 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 		src := g.Obj(e.Obj)
-		if src == nil {
-			break
-		}
-		if registration != nil && registration.TrackSource &&
-			src.Incarnation != registration.SourceIncarnation {
-			break
-		}
-		if src.Face() == nil {
-			break
+		if !radiationDrain {
+			if src == nil {
+				break
+			}
+			if registration != nil && registration.TrackSource &&
+				src.Incarnation != registration.SourceIncarnation {
+				break
+			}
+			if src.Face() == nil {
+				break
+			}
 		}
 		var sa *cards.SA
 		if monarchDraw {
-			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
-				"Defined": "You", "NumCards": "1",
-			}}
+			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{"Defined": "You", "NumCards": "1"}}
+		} else if radiationDrain {
+			sa = &cards.SA{Kind: "DB", API: "RadiationDrain", Params: map[string]string{"Defined": "You"}}
 		} else {
 			sa = resolveSVarAcrossFaces(src, e.Counter)
 		}
@@ -2751,12 +2759,17 @@ func Apply(g *state.Game, e Event) {
 		// StackCopy's discipline: snapshot every src field the post-mint
 		// code reads (Incarnation here) before AddObject may reallocate
 		// g.Objs and orphan the src pointer.
-		incarnation := src.Incarnation
+		var incarnation uint32
+		if src != nil {
+			incarnation = src.Incarnation
+		}
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
-		o.Source = e.Obj
+		if !radiationDrain {
+			o.Source = e.Obj
+		}
 		if registration != nil && registration.TrackSource {
 			o.SourceIncarnation = incarnation
 		}
