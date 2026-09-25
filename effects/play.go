@@ -293,6 +293,28 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		playCtl = ps[0]
 	}
 
+	// The CR 601.3 election filter (task play-prohibited-election): a
+	// candidate the CantBeCast statics prohibit for the player WHO WILL CAST
+	// (playCtl, which the Controller$ read above resolved -- Word of Command's
+	// TargetedPlayer casts it, so its restrictions, not the resolving
+	// controller's, decide) must not be OFFERED. The query is an optional Host
+	// capability implemented by rules.Engine (castRestricted is rules-side:
+	// effects cannot import rules); a host without it keeps the pre-existing
+	// behaviour and the beginPlay legality recheck stays the sole gate.
+	// An all-prohibited population then takes the ordinary empty-options
+	// path: one loud Note, the resolution continues, the found card is
+	// never begun (CR 601.3) and the effect's own tail (cascade bottoms it)
+	// proceeds as it did on a decline.
+	if ch, ok := h.(castProhibitedHost); ok {
+		kept := make([]state.ObjID, 0, len(candidates))
+		for _, id := range candidates {
+			if !ch.CastProhibited(playCtl, id) {
+				kept = append(kept, id)
+			}
+		}
+		candidates = kept
+	}
+
 	// Optional$ True makes the whole ask declinable (Min 0: the empty answer
 	// is a decline). Amount$ sizes the ask: the default (and an unparseable
 	// value, which stays conservative) is one card; a literal N offers up to
