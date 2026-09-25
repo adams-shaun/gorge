@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
@@ -94,7 +95,15 @@ func TestSetStateTurnFaceUpRevealsFaceDownPermanent(t *testing.T) {
 	if int32(o.Face().Power()) == o.FaceDownPower || int32(o.Face().Toughness()) == o.FaceDownToughness {
 		t.Fatalf("precondition: printed characteristics must differ from folded face-down values: printed=%d/%d facedown=%d/%d", o.Face().Power(), o.Face().Toughness(), o.FaceDownPower, o.FaceDownToughness)
 	}
-	e.emit(events.Event{Kind: events.TurnFaceUp, Obj: id})
+	abilityCard := card(t, "Name:SetState Turn Face Up\nTypes:Sorcery\nA:DB$ SetState | Defined$ Targeted | Mode$ TurnFaceUp\nOracle:x\n")
+	if len(abilityCard.Faces[0].Abilities) != 1 {
+		t.Fatalf("precondition: expected one compiled inline ability, got %+v", abilityCard.Faces[0].Abilities)
+	}
+	turnFaceUp := abilityCard.Faces[0].Abilities[0]
+	if turnFaceUp == nil || turnFaceUp.API != "SetState" || turnFaceUp.Params["Mode"] != "TurnFaceUp" {
+		t.Fatalf("precondition: inline SetState TurnFaceUp did not compile: %+v", turnFaceUp)
+	}
+	effects.Resolve(e, &effects.Ctx{Source: id, Controller: 0, Targets: []state.Target{{Obj: id}}}, turnFaceUp)
 	o = e.G.Obj(id)
 	if o.Zone != state.ZBattlefield || o.FaceDown || o.FaceDownSetType != "" || o.FaceDownHasPT || o.FaceDownPower != 0 || o.FaceDownToughness != 0 || o.FaceIdx != 0 {
 		t.Fatalf("turn-up did not reveal unchanged face and clear set: %+v", o)
