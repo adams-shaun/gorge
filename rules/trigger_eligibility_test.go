@@ -148,6 +148,12 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// full matcher) and past the mask's reach, so the conservative
 			// catch-all is the honest mapping (the TurnFaceUp shape).
 			want = cards.TriggerInterestAny
+		case events.Proliferate:
+			// trig-proliferate: the completed-action marker is
+			// trigger-relevant (trig:Proliferate matches it through the full
+			// matcher) and past the mask's reach, so the conservative
+			// catch-all is the honest mapping (the Surveil/TurnFaceUp shape).
+			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
