@@ -220,7 +220,9 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// qualified ones fail closed inside MatchesPlayerSpec (the fx20
 		// convention: an unmodellable qualifier fires for nobody, never for
 		// everybody).
-		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
+		pc := e.playerSpecCtx(dt.Source)
+		pc.DelayedRemembered = dt.Remembered
+		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, pc) {
 			continue
 		}
 		// IsPresent$ / PresentZone$ / PresentCompare$ (Bank Job's "at the
@@ -465,7 +467,9 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			}
 			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
-				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
+				pc := e.playerSpecCtx(dt.Source)
+				pc.DelayedRemembered = dt.Remembered
+				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
 			}
@@ -477,7 +481,9 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			// is the Effect's owner, not the creating card's controller.
 			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
-				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
+				pc := e.playerSpecCtx(dt.Source)
+				pc.DelayedRemembered = dt.Remembered
+				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
 			}
