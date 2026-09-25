@@ -398,6 +398,15 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			c.Remembered = append(c.Remembered, t)
 			eventRemember(h, c, t.Obj)
 		}
+		// RememberPumped$ True remembers the objects this Pump actually
+		// affects, rather than merely the chosen targets: an off-zone target
+		// skipped above is not added to either remembered set. The ctx half is
+		// available to chained sub-abilities; eventRemember persists the
+		// source's list for later Card.IsRemembered filters and replay.
+		if strings.EqualFold(strings.TrimSpace(sa.Params["RememberPumped"]), "True") {
+			c.Remembered = append(c.Remembered, t)
+			eventRemember(h, c, t.Obj)
+		}
 		registerPumpEffects(h, c, o.ID, att, def, sa, zone, chosenKW)
 		if atEOTInclude(h, c, sa, o.ID) {
 			ateotIDs = append(ateotIDs, o.ID)
