@@ -398,7 +398,16 @@ func TestDiscardDefinedAppliesTheRememberRiders(t *testing.T) {
 	var remembered []state.ObjID
 	for _, ev := range ah.log {
 		if ev.Kind == events.Choose && ev.Counter == "remembered" && ev.Obj == ctx.Source {
-			remembered = append(remembered, ev.IDs...)
+			for _, id := range ev.IDs {
+				// RememberDiscardingPlayers$ shares this event channel and
+				// writes the discarding player as a PlayerRef; this test
+				// pins the CARD half (ids are 1..n, player refs live in a
+				// disjoint high-bit space).
+				if _, isPlayer := id.PlayerRef(); isPlayer {
+					continue
+				}
+				remembered = append(remembered, id)
+			}
 		}
 	}
 	if len(remembered) != 2 || remembered[0] != ids[1] || remembered[1] != ids[2] {

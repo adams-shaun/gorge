@@ -483,6 +483,16 @@ func discardAndRememberEvent(h Host, c *Ctx, r discardRiders, ev events.Event) {
 	}
 	if r.rememberPlayers && !targetIn(c.Remembered, state.Target{Player: p, IsPlayer: true}) {
 		c.Remembered = append(c.Remembered, state.Target{Player: p, IsPlayer: true})
+		// RememberDiscardingPlayers$ is a two-half rider like
+		// RememberDiscarded$: the resolution-local Ctx.Remembered entry above
+		// dies with the resolution, but Professor Onyx's ultimate and Snort's
+		// follow-up read the SOURCE CARD's persistent remembered list
+		// (Player.IsRemembered) from a later ability, so the discarding player
+		// must also land there through the same event-backed write the
+		// RememberDiscarded$ branch and rememberInvestigatingPlayers use.
+		// The targetIn guard retains the dedup: a player discarding twice in
+		// one resolution is persisted once.
+		eventRemember(h, c, state.PlayerRef(p))
 	}
 }
 
