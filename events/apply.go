@@ -1695,10 +1695,11 @@ func Apply(g *state.Game, e Event) {
 
 	case TurnFaceDown:
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && !o.FaceDown {
+			setType, power, toughness, hasPT, _ := FaceDownEntryFields(e.Counter)
 			o.FaceDown = true
-			o.FaceDownSetType = ""
-			o.FaceDownPower, o.FaceDownToughness = 0, 0
-			o.FaceDownHasPT = false
+			o.FaceDownSetType = setType
+			o.FaceDownPower, o.FaceDownToughness = power, toughness
+			o.FaceDownHasPT = hasPT
 		}
 
 	case TurnFaceUp:
