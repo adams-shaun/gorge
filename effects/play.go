@@ -113,7 +113,8 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// Cipher's encoded card is deliberately captured by its damage trigger:
 		// unlike DigUntil's captured event roles, it IS the Play population.
 		if (base == "Remembered" || base == "RememberedLKI" || base == "RememberedCard" || base == "DirectRemembered") &&
-			!strings.EqualFold(sa.Params["CipherCopy"], "True") {
+			!strings.EqualFold(sa.Params["CipherCopy"], "True") &&
+			!strings.EqualFold(strings.TrimSpace(sa.Params["CopyCard"]), "True") {
 			var kept []state.ObjID
 			for _, id := range candidates {
 				captured := false
