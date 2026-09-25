@@ -309,6 +309,7 @@ type pendingCast struct {
 
 	sacs    []state.ObjID
 	sacPart int
+	sacPaid int
 
 	// emerge / emergeDone mark an Emerge cast (CR 702.118a): beginCast's
 	// "emerged" arm sets emerge and composes the printed K:Emerge cost with
@@ -4892,8 +4893,42 @@ func (e *Engine) sacAsk() bool {
 			n = int(pc.x)
 			if n == 0 {
 				pc.sacPart++
+				pc.sacPaid = 0
 				continue
 			}
+		}
+		n -= pc.sacPaid
+		if n <= 0 {
+			pc.sacPart++
+			pc.sacPaid = 0
+			continue
+		}
+		// Continuation feasibility only matters when a LATER Sac part exists:
+		// each unit of this part is then asked one at a time, and only the
+		// candidates that leave a complete distinct assignment for this part's
+		// remaining units and every later part are offered (the one home of
+		// the legal-answer rule -- the offered options themselves carry it, so
+		// Validate, Clamp and the bot cannot pick a stranding answer). The
+		// LAST Sac part has nothing downstream to strand, so it keeps the
+		// historical exact-N ask (Min == Max == n) with no feasibility walk --
+		// the wire shape TestSacrificedAmountCountsSacrificedObjects,
+		// announceSacX and the Sac<X> reduction offers pin (one N-of decision,
+		// not N one-of asks).
+		hasLaterSac := pc.sacPart+1 < len(pc.cost.Sac)
+		if hasLaterSac {
+			pools := make([][]state.ObjID, len(pc.cost.Sac))
+			needs := make([]int, len(pc.cost.Sac))
+			for i, futurePart := range pc.cost.Sac {
+				needs[i] = int(futurePart.N)
+				if futurePart.Announced {
+					needs[i] = int(pc.x)
+				}
+				if i == pc.sacPart {
+					needs[i] -= pc.sacPaid
+				}
+				pools[i] = e.sacrificeCostCandidates(pc.player, pc.card, futurePart, pc.isAbility())
+			}
+			candidates = feasibleSacrificeChoices(candidates, pools, needs, pc.sacs, pc.sacPart)
 		}
 		if n <= 0 || n > len(candidates) {
 			// A cost that can no longer be fully paid must not commit half
@@ -4929,13 +4964,23 @@ func (e *Engine) sacAsk() bool {
 			(strings.EqualFold(part.Spec, "CARDNAME") || strings.EqualFold(part.Spec, "NICKNAME")) {
 			pc.sacs = append(pc.sacs, pc.card)
 			pc.sacPart++
+			pc.sacPaid = 0
 			continue
 		}
 		verb := "cast"
 		if pc.isAbility() {
 			verb = "activate"
 		}
-		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+		// The wire shape: a part with a later Sac part is paid one unit per
+		// decision (Min == Max == 1, every option individually feasibility-
+		// filtered); the last Sac part is one exact-N decision, as before the
+		// continuation work -- nothing downstream can be stranded by its
+		// answer, so no validator rule is needed for it.
+		dmin, dmax := n, n
+		if hasLaterSac {
+			dmin, dmax = 1, 1
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: dmin, Max: dmax,
 			Prompt: "Sacrifice a permanent to " + verb + " " + e.G.Obj(pc.card).Face().Name,
 			Source: pc.card}
 		for _, id := range candidates {
@@ -7129,8 +7174,17 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 		for _, o := range chosen {
 			pc.sacs = append(pc.sacs, o.Obj)
+			pc.sacPaid++
 		}
-		pc.sacPart++
+		part := pc.cost.Sac[pc.sacPart]
+		total := int(part.N)
+		if part.Announced {
+			total = int(pc.x)
+		}
+		if pc.sacPaid >= total {
+			pc.sacPart++
+			pc.sacPaid = 0
+		}
 	case "subcounter":
 		// The chosen counter-removal pick of a SubCounter cost part: a
 		// wildcard "Any" part records one counter unit per answer (the ask
