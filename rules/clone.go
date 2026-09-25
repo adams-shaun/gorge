@@ -278,6 +278,13 @@ func (e *Engine) Clone() *Engine {
 				}
 				ce.AssignmentStaticParams = m
 			}
+			if ce.AssignmentStaticSVars != nil {
+				m := make(map[string]string, len(ce.AssignmentStaticSVars))
+				for k, v := range ce.AssignmentStaticSVars {
+					m[k] = v
+				}
+				ce.AssignmentStaticSVars = m
+			}
 			ce.Remembered = append([]state.ObjID(nil), ce.Remembered...)
 			ce.RememberedPlayers = append([]state.PlayerID(nil), ce.RememberedPlayers...)
 			// The has-all-abilities-of face lists: deep-copied like the other
