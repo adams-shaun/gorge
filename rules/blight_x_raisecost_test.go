@@ -21,7 +21,7 @@ import (
 //
 // The assertion is deliberately X-dependent: at X = 2 the opponent loses 2
 // life and their 2/2 dies, neither of which happens under the silent zero.
-func TestSoulImmolationRaiseCostBlightX(t *testing.T) {
+func TestRaiseCostBlightSoulImmolationX(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := blightEngine(t, reg, 2, "Soul Immolation")
 	spell := blightMove(t, e, 0, "Soul Immolation", state.ZHand)
