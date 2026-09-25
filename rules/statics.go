@@ -820,42 +820,57 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 }
 
 func (e *Engine) countStaticPresent(sv staticView, spec string) int {
-	zone := strings.TrimSpace(sv.Params["PresentZone"])
-	if zone == "" || zone == "Battlefield" {
+	zone, ok := presentZoneFromParam(sv.Params["PresentZone"])
+	if !ok {
+		return 0
+	}
+	if zone == state.ZBattlefield {
 		return e.countPresent(spec, sv.Source, sv.Controller)
 	}
-	var want state.Zone
-	switch zone {
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o != nil && o.Zone == zone && e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
+			n++
+		}
+	})
+	return n
+}
+
+// presentZoneFromParam maps a Forge PresentZone$ value onto the state.Zone the
+// IsPresent$ count family scans. An ABSENT (or Battlefield) value is the
+// battlefield -- the default every card without PresentZone$ reads, so the
+// empty string is a valid mapping, not an unknown one. An unrecognised value
+// reports false and the caller must fail closed (count 0), which is the
+// direction countStaticPresent has always taken and the delayed-trigger
+// presence gate (rules/trigger_delayed.go) now shares, so a new PresentZone$
+// spelling cannot mean two different things at the two count sites.
+func presentZoneFromParam(zone string) (state.Zone, bool) {
+	switch strings.TrimSpace(zone) {
+	case "", "Battlefield":
+		return state.ZBattlefield, true
 	case "Graveyard":
-		want = state.ZGraveyard
+		return state.ZGraveyard, true
 	case "Exile":
 		// IsPresent$ over exile (Ketramose, the New Dawn's
 		// `IsPresent$ Card | PresentZone$ Exile | PresentCompare$ LT7`
 		// CantAttack,CantBlock static). forEachObject walks every zone of
 		// every seat, exile included, so the same scan covers it.
-		want = state.ZExile
+		return state.ZExile, true
 	case "Hand":
 		// IsPresent$ over a hand (Kefnet the Mindful's
 		// `IsPresent$ Card.YouOwn | PresentZone$ Hand | PresentCompare$ LE6`
 		// CantAttack,CantBlock static). forEachObject walks hands too.
-		want = state.ZHand
+		return state.ZHand, true
 	case "Stack":
 		// IsPresent$ over the stack (Molten Disaster's kicked-gated AddKeyword$
 		// Split second static: IsPresent$ Card.Self+kicked | PresentZone$ Stack
 		// on its own stack object). forEachObject walks the stack zone, so the
 		// same scan covers it.
-		want = state.ZStack
+		return state.ZStack, true
 	default:
-		return 0
+		return 0, false
 	}
-	n := 0
-	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o != nil && o.Zone == want && e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
-			n++
-		}
-	})
-	return n
 }
 
 // spellMatchesValidSA checks the spell-side subset of Forge's ValidSA grammar.

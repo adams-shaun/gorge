@@ -223,6 +223,19 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
 			continue
 		}
+		// IsPresent$ / PresentZone$ / PresentCompare$ (Bank Job's "at the
+		// beginning of the next end step, if that card is still exiled"): the
+		// registering DelayedTrigger SA's presence condition, carried on the
+		// registration and evaluated at the phase occurrence exactly like a
+		// static's own present gate. Card.IsTriggerRemembered binds against
+		// THIS registration's remembered capture, so the count asks whether a
+		// still-remembered card is in the named zone. A gate the step fails
+		// leaves the one-shot registration pending for the first later
+		// occurrence that matches, the same direction ValidPlayer takes; an
+		// absent spec (every earlier registration) skips the gate whole.
+		if dt.PresentSpec != "" && !e.delayedPresentGateHolds(dt) {
+			continue
+		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
 			remove = append(remove, dt.ID)
 			continue
@@ -266,6 +279,39 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 	for _, id := range remove {
 		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
 	}
+}
+
+// delayedPresentGateHolds evaluates a Phase delayed registration's
+// IsPresent$/PresentZone$/PresentCompare$ condition at the phase occurrence.
+// The count scans PresentZone (absent = Battlefield) for objects matching
+// PresentSpec with the registration's capture bound as the IsTriggerRemembered
+// referent -- the same SpecContext binding effects.MatchesPlayerSpecCtx gets
+// for ValidPlayer, so a capture-aware filter answers identically at both
+// gates. The compare defaults to GE1 ("at least one present"), exactly the
+// static presentGate default; an unknown PresentZone$ fails closed (count 0),
+// the same direction countStaticPresent takes.
+func (e *Engine) delayedPresentGateHolds(dt *state.DelayedTrigger) bool {
+	zone, ok := presentZoneFromParam(dt.PresentZone)
+	if !ok {
+		return false
+	}
+	sc := e.specCtx(dt.Source, dt.Controller)
+	sc.DelayedRemembered = dt.Remembered
+	n := 0
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != zone {
+			return
+		}
+		if e.matchesSpec(dt.PresentSpec, id, sc) {
+			n++
+		}
+	})
+	cmp := dt.PresentCompare
+	if cmp == "" {
+		cmp = "GE1"
+	}
+	return comparePresent(n, e.presentCompareFor(cmp, dt.Source, dt.Controller))
 }
 
 // checkEventDelayedTriggers queues a pending trigger for every event-matched

@@ -3211,6 +3211,24 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	if vp := strings.TrimSpace(sa.Params["ValidPlayer"]); vp != "" {
 		text += "|VP=" + vp
 	}
+	// The Phase registration's IsPresent$/PresentZone$/PresentCompare$
+	// condition (Bank Job's "at the beginning of the next end step, if that
+	// card is still exiled") rides the same Text as further pipe suffixes.
+	// The rules-side delayed scan gates the fire on it at the phase
+	// occurrence, evaluating Card.IsTriggerRemembered against the
+	// registration's own remembered capture; a registration with no
+	// IsPresent$ carries none of the spelling and fires ungated exactly as
+	// before. The values are Forge tokens with no "|", so the decode's
+	// LastIndex strips are exact.
+	if spec := strings.TrimSpace(sa.Params["IsPresent"]); spec != "" {
+		text += "|IP=" + spec
+		if zone := strings.TrimSpace(sa.Params["PresentZone"]); zone != "" {
+			text += "|PZ=" + zone
+		}
+		if cmp := strings.TrimSpace(sa.Params["PresentCompare"]); cmp != "" {
+			text += "|PC=" + cmp
+		}
+	}
 	// RememberChain$ False (this repo's own generated-SA param, the
 	// Annihilator$-marker precedent: no raw corpus card carries it, only
 	// cards/keywords.go's generated Mobilize delay SVar does): the

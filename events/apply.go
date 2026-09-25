@@ -2831,6 +2831,33 @@ func Apply(g *state.Game, e Event) {
 		// Phase registrations append VP after OD, while event registrations
 		// have OD at the tail. Strip the phase suffix first so an optional
 		// spec cannot accidentally swallow its player gate.
+		// A Phase registration's IsPresent$/PresentZone$/PresentCompare$
+		// condition rides "|IP=<spec>", "|PZ=<zone>", "|PC=<compare>" after
+		// every other suffix effDelayedTrigger writes
+		// ("<Phase>|VP=<value>|IP=<spec>|PZ=<zone>|PC=<compare>"), so they
+		// are stripped in reverse append order, BEFORE the VP gate: a
+		// LastIndex on an earlier marker would otherwise swallow the later
+		// ones into its value (Bank Job and Grinning Totem carry ValidPlayer$
+		// YOU together with IsPresent$, so VP-before-IP is the ordinary shape,
+		// not an edge). The values are Forge filter/zone/compare tokens with
+		// no "|", so each strip is exact; a registration logged before this
+		// slot existed carries none of the spelling and decodes with all
+		// three empty, exactly as before.
+		presentCompare := ""
+		if i := strings.LastIndex(text, "|PC="); i >= 0 {
+			presentCompare = text[i+4:]
+			text = text[:i]
+		}
+		presentZone := ""
+		if i := strings.LastIndex(text, "|PZ="); i >= 0 {
+			presentZone = text[i+4:]
+			text = text[:i]
+		}
+		presentSpec := ""
+		if i := strings.LastIndex(text, "|IP="); i >= 0 {
+			presentSpec = text[i+4:]
+			text = text[:i]
+		}
 		vp := ""
 		if i := strings.LastIndex(text, "|VP="); i >= 0 {
 			vp = text[i+4:]
@@ -2895,6 +2922,9 @@ func Apply(g *state.Game, e Event) {
 			Trigger:           trigger,
 			EffectRepeat:      effectRepeat,
 			ValidPlayer:       vp,
+			PresentSpec:       presentSpec,
+			PresentZone:       presentZone,
+			PresentCompare:    presentCompare,
 			OptionalSpec:      optionalSpec,
 			EffectDuration:    duration,
 			BirthTurn:         g.Turn,
