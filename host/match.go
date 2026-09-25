@@ -279,9 +279,16 @@ func (m *match) sidecar() sidecar {
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.
 func defaultSeats(policy string, names []string, seed uint64) []seat.Seat {
+	return defaultSeatsWithAutoPayMana(policy, false, names, seed)
+}
+
+// defaultSeatsWithAutoPayMana builds every table bot with the persisted
+// auto-payment setting. Keeping the legacy wrapper preserves embedders and
+// tests that intentionally exercise the historical manual-mana policy.
+func defaultSeatsWithAutoPayMana(policy string, autoPayMana bool, names []string, seed uint64) []seat.Seat {
 	out := make([]seat.Seat, len(names))
 	for i := range names {
-		bot, err := NewBotPolicySeat(policy, seed^uint64(i+1))
+		bot, err := NewBotPolicySeatWithAutoPayMana(policy, seed^uint64(i+1), autoPayMana)
 		if err != nil {
 			panic(err) // policy was normalized before the table was registered.
 		}
@@ -308,9 +315,10 @@ type parkedDecision struct {
 // pair the old loop got straight out of seat.S Decide.
 func (pd *parkedDecision) answer() (decision.Intent, error) {
 	if pd.hs != nil {
-		return pd.hs.await()
+		in, err := pd.hs.await()
+		return decision.CloneIntent(in), err
 	}
-	return pd.in, pd.err
+	return decision.CloneIntent(pd.in), pd.err
 }
 
 // parkedData is the projected shape of one pending decision, split out of the
@@ -359,8 +367,15 @@ func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData 
 	if d == nil {
 		return nil
 	}
-	dc := *d
-	dc.Options = append([]decision.Option(nil), d.Options...)
+	dc := *d.Clone()
+	// Payment plans are an opt-in human interface. Keep the engine's pending
+	// decision intact for replay and independently configured bots, but never
+	// publish the extension to a human seat when this table has it disabled.
+	// Options are untouched, so this is precisely the legacy manual path.
+	_, isHuman := seats[d.Player].(*HumanSeat)
+	if isHuman && !m.table.cfg.AutoMana {
+		dc.PaymentActions = nil
+	}
 	// A BoardSeat answers from a botpolicy.Board and needs no projected View:
 	// build the Board from the engine the way BoardFromGame reads it (same
 	// zones, same derived P/T and keywords the View would carry) and skip
@@ -376,7 +391,6 @@ func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData 
 	// View, blanking a live player's board with nothing failing. Testing the
 	// same thing first in both places makes that unrepresentable rather than
 	// merely unlikely.
-	_, isHuman := seats[d.Player].(*HumanSeat)
 	if _, ok := seats[d.Player].(seat.BoardSeat); ok && !isHuman {
 		return &parkedData{
 			p:       d.Player,
@@ -385,7 +399,7 @@ func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData 
 			isBoard: true,
 		}
 	}
-	v := view.Project(m.e.G, m.e, d.Player, d)
+	v := view.Project(m.e.G, m.e, d.Player, &dc)
 	// The seat's view is built at head, so its round is the exact round-trip
 	// count (view.RoundOf over the live log), not the snapshot-only roundOf
 	// approximation Project fills in (ui13). A human seat renders this view,
@@ -442,7 +456,12 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 			return r.crash(t, m, err)
 		}
 	}
-	seats := defaultSeats(t.cfg.BotPolicy, m.cfg.Names, m.seed)
+	// AutoMana is the table-level feature gate. A disabled table must keep the
+	// pre-payment-plan behaviour for every participant, including bots and a
+	// human's timeout caretaker; -bot-auto-mana only takes effect when the
+	// feature itself is enabled for the table.
+	autoPayMana := t.cfg.autoPayManaEnabled()
+	seats := defaultSeatsWithAutoPayMana(t.cfg.BotPolicy, autoPayMana, m.cfg.Names, m.seed)
 	if r.opts.Seats != nil {
 		seats = r.opts.Seats(m.cfg.Names, m.seed)
 	}
@@ -467,7 +486,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// the match goroutine before the loop, so it never races a Decide.
 	for i, s := range seats {
 		if hs, ok := s.(*HumanSeat); ok {
-			caretaker, err := NewBotPolicySeat(t.cfg.BotPolicy, m.seed^uint64(i+1))
+			caretaker, err := NewBotPolicySeatWithAutoPayMana(t.cfg.BotPolicy, m.seed^uint64(i+1), autoPayMana)
 			if err != nil {
 				return r.crash(t, m, err)
 			}
