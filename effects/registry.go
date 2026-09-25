@@ -1853,6 +1853,11 @@ type Ctx struct {
 	BlightPicks  []state.ObjID
 	BlightDone   bool
 	BlightTarget int
+	// ManifestDreadPick is the chosen library object on a resumed CR 701.61
+	// resolution; Done distinguishes an answer from the first pass.
+	ManifestDreadPick   state.ObjID
+	ManifestDreadPlayer state.PlayerID
+	ManifestDreadDone   bool
 	// UnlessElected is the answered UnlessType$ election of a Discard carrying
 	// UnlessType$ (Thirst for Knowledge's "discard two cards unless you
 	// discard an artifact card"): "unless" means the player elected the

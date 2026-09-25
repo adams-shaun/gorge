@@ -3278,6 +3278,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if rp.sa != nil && rp.sa.API == "AddOrRemoveCounter" && ctx.AorKind != "" {
 				e.aorEntry(rp.obj)[ctx.AorKind] = true
 			}
+		case "manifest_dread":
+			if len(chosen) > 0 {
+				ctx.ManifestDreadPick = chosen[0].Obj
+			}
+			ctx.ManifestDreadPlayer = rp.player
+			ctx.ManifestDreadDone = true
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
 			// chooses which of their own creatures takes the −1/−1 counters)
