@@ -244,6 +244,17 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " would roll " + itoa(int64(ev.Amount)) + " dice"
 		}
 		return player(g, ev.Player) + " would roll a die"
+	case events.Cascade:
+		// The cascade-instruction replacement PROPOSAL (Averna, the Chaos
+		// Bloom's R:Event$ Cascade) is never logged -- the rules tier holds
+		// it out to the replacement matcher exactly as Engine.Scry holds
+		// events.Scry -- but the Describe-coverage walk visits every Kind,
+		// so the held proposal describes as the pending cascade
+		// replacement it is. IDs is the ordered exiled batch it carries.
+		if len(ev.IDs) == 1 {
+			return player(g, ev.Player) + " would cascade into 1 exiled card"
+		}
+		return player(g, ev.Player) + " would cascade into " + itoa(int64(len(ev.IDs))) + " exiled cards"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.PlayerNoted:
