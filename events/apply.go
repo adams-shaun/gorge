@@ -2585,7 +2585,7 @@ func Apply(g *state.Game, e Event) {
 			// card in the temporary library holding zone. The cast flow
 			// then moves this copy onto the stack. The event, rather than
 			// the rules caller, owns the mutation so replay derives its ID.
-			if src == nil || src.Zone != state.ZExile || src.Face() == nil {
+			if src == nil || src.Face() == nil {
 				break
 			}
 			card, faceIdx := src.Card, src.FaceIdx
