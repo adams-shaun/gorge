@@ -226,6 +226,18 @@ type Host interface {
 	// the effects test double reports (count, true) unchanged (no engine to
 	// consult).
 	Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (countAfter int32, proceed, pending bool)
+	// RollDiceProposed is the pre-roll replacement boundary effRollDice
+	// consults before any die of ONE roll action is rolled (CR 614.4): the
+	// host holds a synthetic events.RollDice proposal out to the R:Event$
+	// RollDice replacement class and returns the rewritten dice count and
+	// ignored-low count (the proposal seeds the ignored-low base from the
+	// rolling body's own IgnoreLower$, so a replacement's
+	// ReplaceCount$Ignore/Plus.1 is one ADDITIONAL low result). A host with
+	// no replacement registry (the effects-package double) returns the
+	// proposal unchanged, the same discipline as its Scry above. Neither
+	// suspends: the corpus's supported replacement bodies are ReplaceEffect
+	// rewrites, which never ask.
+	RollDiceProposed(p state.PlayerID, source state.ObjID, amount, ignore int32) (int32, int32)
 	// RememberExploitedLKI publishes the last-known-information snapshot of
 	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
 	// The events.Exploit marker names the exploited creature by id, but Move

@@ -235,6 +235,15 @@ func Describe(g *state.Game, ev events.Event) string {
 			return text
 		}
 		return player(g, ev.Player) + " rolls the planar die"
+	case events.RollDice:
+		// The roll-action PROPOSAL (task rolldice-repl) is never logged -- the
+		// per-die Notes are the roll's transcript lines -- but the Describe-
+		// coverage walk visits every Kind, so the held proposal describes as
+		// the pending roll action it is. Amount is the proposal's dice count.
+		if ev.Amount > 1 {
+			return player(g, ev.Player) + " would roll " + itoa(int64(ev.Amount)) + " dice"
+		}
+		return player(g, ev.Player) + " would roll a die"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.PlayerNoted:
