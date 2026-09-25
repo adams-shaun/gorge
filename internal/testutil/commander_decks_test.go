@@ -28,6 +28,7 @@ var repoCommanderDecks = []struct {
 	{"vivi-ornitier-cedh", "Vivi Ornitier"},
 	{"pro-shaper", "Hearthhull, the Worldseed"},
 	{"cavalry-charge", "Sidar Jabari of Zhalfir"},
+	{"deadly-disguise", "Kaust, Eyes of the Glade"},
 }
 
 // TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim
