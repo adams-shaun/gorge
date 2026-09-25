@@ -1559,6 +1559,15 @@ func (e *Engine) continueAfterETBEntry(rp *resumePoint) {
 // from it through the rest of the chain, which is precisely the
 // continuation that had not run yet. If that continuation asks again the
 // new pending point is linked after this one's own continuation and the
+func unlessPayChoice(chosen []decision.Option) (decision.Option, bool) {
+	for _, option := range chosen {
+		if option.Mode == decision.ModeUnlessPay {
+			return option, true
+		}
+	}
+	return decision.Option{}, false
+}
+
 // object stays on the stack; otherwise — once the re-entry and any outer
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
@@ -2231,6 +2240,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					AskElection: true}
 			}
 		case "unless_pay":
+			payOption, chosePay := unlessPayChoice(chosen)
 			if rp.unlessPay != "" {
 				ctx.UnlessPay = rp.unlessPay
 				ctx.UnlessNext = rp.target
@@ -2242,8 +2252,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 				break
 			}
-			// The payer agreed to pay (option 0 is "Pay …") or not. Payment
-			// happens HERE, in rules, because payMana owns the cost grammar and
+			// The payer chose the explicitly marked pay option or declined.
+			// Payment happens HERE, in rules, because payMana owns the cost grammar and
 			// emits the ManaAdd events — so a replay re-derives the identical
 			// payment. An answer to pay from a payer that cannot cover the cost
 			// is a decline: the effect's body runs (or not) per its orientation,
@@ -2251,7 +2261,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// several keyword-specific costs). Its payment handler owns those
 			// choices; ordinary unless-pay effects retain the shared mana path.
 			if rp.sa.API == "Ward" {
-				if len(chosen) > 0 && chosen[0].Index == 0 {
+				if chosePay {
 					paid, asked := e.beginWardPayment(rp, ctx)
 					if asked {
 						return
@@ -2280,8 +2290,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// offer the next opponent after a decline.
 			if rp.sa.API == "Sacrifice" {
 				if n, dmg := effects.ParseDamageUnlessCost(rp.sa.Params["UnlessCost"]); dmg {
-					if len(chosen) > 0 && chosen[0].Index == 0 {
-						e.payUnlessDamageCost(ctx, chosen[0].Player, n)
+					if chosePay {
+						e.payUnlessDamageCost(ctx, payOption.Player, n)
 						ctx.UnlessPay = "pay"
 					} else {
 						ctx.UnlessPay = "decline"
@@ -2339,14 +2349,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// cost type) keeps the decision on the wire for hosts to observe
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
-			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.unlessCostPayable(chosen[0].Player, rawUnlessCost, ctx, rp.obj) {
+			} else if chosePay && e.unlessCostPayable(payOption.Player, rawUnlessCost, ctx, rp.obj) {
 				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 || len(paid.Return) > 0 {
 					// Sacrifice, discard, reveal and return are choice-bearing
 					// costs.
 					// Park this resume before any mutation and let the payer
 					// select every component; finishUnlessPayment re-enters
 					// with unlessPay set, so this arm never charges it twice.
-					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					e.beginUnlessPayment(payOption.Player, paid, ctx, rp.obj, rp)
 					return
 				}
 				// CR 601.2g: a mana-only unless cost gives the payer the same
@@ -2356,19 +2366,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// (under the payment's conversion) cannot already pay and an
 				// untapped source exists; otherwise the charge below is
 				// unchanged.
-				if e.unlessManaWindowNeeded(chosen[0].Player, paid, rp.obj) {
-					e.askUnlessWardMana(chosen[0].Player, paid, rp)
+				if e.unlessManaWindowNeeded(payOption.Player, paid, rp.obj) {
+					e.askUnlessWardMana(payOption.Player, paid, rp)
 					return
 				}
-				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
+				if e.payUnlessCost(payOption.Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
-				} else if paid.hasManaPayment() && len(e.windowManaUnits(chosen[0].Player)) > 0 {
+				} else if paid.hasManaPayment() && len(e.windowManaUnits(payOption.Player)) > 0 {
 					// A failed pool-only attempt is not a decline: open the
 					// CR 601.2g mana-ability window and resume this exact frame
 					// after the payer has assembled enough floating mana. The
 					// offer gate proved the budget reachable before Pay was
 					// offered, so sources remain while the charge is unmet.
-					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					e.beginUnlessPayment(payOption.Player, paid, ctx, rp.obj, rp)
 					return
 				} else {
 					ctx.UnlessPay = "decline"

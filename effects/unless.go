@@ -545,12 +545,12 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 		// earlier riders' picks at the resumed Ctx's rebuild.
 		ResumeTargetsUnique: copyTargets(c.TargetsUnique),
 		Options: []decision.Option{
-			{Index: 0, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
+			{Index: 0, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer, Mode: decision.ModeUnlessDecline},
 		}}
 	if payable {
 		d.Options = []decision.Option{
-			{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
-			{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
+			{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer, Mode: decision.ModeUnlessPay},
+			{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer, Mode: decision.ModeUnlessDecline},
 		}
 	}
 	if Ask(h, d) == AskAsked {
