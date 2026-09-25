@@ -521,6 +521,12 @@ func applyCountOpOperandOK(h Host, c *Ctx, n int32, op string, depth int) (int32
 		if _, err := strconv.Atoi(operand); err == nil {
 			return applyCountOp(n, op), true
 		}
+		if strings.HasPrefix(operand, "Count$") {
+			value, resolved := evalCountExprOK(h, c, operand, depth+1)
+			if resolved {
+				return applyCountOp(n, prefix+strconv.FormatInt(int64(value), 10)), true
+			}
+		}
 		if c != nil && c.SVars != nil {
 			if body, exists := c.SVars[operand]; exists {
 				value, _ := evalCountExprOK(h, c, body, depth+1)
@@ -2226,6 +2232,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	case "CardPower":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
 			return refPower(h, o, false), true
+		}
+		return 0, true
+	case "CardBasePower":
+		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
+			return h.BasePower(c.Source), true
 		}
 		return 0, true
 	case "CardToughness":

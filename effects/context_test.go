@@ -491,6 +491,13 @@ func (h *fakeHost) Power(id state.ObjID) int32 {
 	}
 	return int32(o.Face().Power()) + o.Counter("P1P1") - o.Counter("M1M1")
 }
+func (h *fakeHost) BasePower(id state.ObjID) int32 {
+	o := h.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	return int32(o.Face().Power())
+}
 func (h *fakeHost) Toughness(id state.ObjID) int32 {
 	o := h.g.Obj(id)
 	if o == nil || o.Face() == nil {

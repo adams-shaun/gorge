@@ -265,6 +265,8 @@ type Host interface {
 	// Damage/count effects must not read a printed face when layers modify P/T
 	// or make a planeswalker a creature.
 	Power(id state.ObjID) int32
+	// BasePower is the layer-7b result: set effects apply, pumps and counters do not.
+	BasePower(id state.ObjID) int32
 	Toughness(id state.ObjID) int32
 	IsCreature(id state.ObjID) bool
 	// CastThisTurn counts the spells cast this turn by anyone, derived from

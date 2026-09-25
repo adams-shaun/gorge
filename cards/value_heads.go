@@ -80,6 +80,21 @@ func (f *Face) ValueHeads() []string {
 		if head, ok := ValueHead(body); ok {
 			set[ValueHeadPrefix+head] = struct{}{}
 		}
+		// Arithmetic operands may themselves be Count$ expressions (for
+		// example Count$CardPower/Minus.Count$CardBasePower). They are
+		// evaluated by the same count registry and must participate in the
+		// honesty gate even though ValueHead(body) reports only the outer head.
+		for rest := body; ; {
+			i := strings.Index(rest, "Count$")
+			if i < 0 {
+				break
+			}
+			rest = rest[i:]
+			if head, ok := ValueHead(rest); ok {
+				set[ValueHeadPrefix+head] = struct{}{}
+			}
+			rest = rest[len("Count$"):]
+		}
 	}
 	out := make([]string, 0, len(set))
 	for k := range set {
