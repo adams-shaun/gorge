@@ -2815,16 +2815,20 @@ func init() {
 		"stat:OptionalAttackCost",
 		// attackprop1: the CR 508.1g attack-prop static (rules/attack_cost.go
 		// attackPairCharge, priced per (attacker, defender) pair and paid
-		// during the declaration through the attackPay window). Only the
-		// whitelisted mana-cost shapes are enforced
-		// (cantAttackUnlessParamsReadable); the non-mana costs (Sac<...>,
-		// Return<...>, tapXType<...>, {W/P}) and the per-attacker-variable
-		// price (Nils' RememberingAttacker$) stay unregistered
-		// behaviour-wise and are ledgered in AGENTS.md.
+		// during the declaration through the attackPay window). The
+		// whitelisted shapes are enforced (cantAttackUnlessParamsReadable),
+		// including the composite non-mana components Sac<...>/Return<...>/
+		// tapXType<...>/PayLife<...>/{W/P} (chargeFromCost); an unmodelled
+		// component still skips the static fail-closed, and the
+		// per-attacker-variable price (Nils' RememberingAttacker$) is priced
+		// through the SVar grammar. The Effect-delivered form is NOT routed
+		// here (only the block side walks e.active()); see the report.
 		"stat:CantAttackUnless",
-		// blockprop1: the CR 509.1b block-prop static. Mana-priceable
-		// face statics are charged per (blocker, attacker); non-mana costs
-		// and Effect/Animate-delivered forms remain permissively skipped.
+		// blockprop1: the CR 509.1b block-prop static. Face statics are
+		// charged per (blocker, attacker) with the same composite grammar,
+		// including Sac<...>/Return<...>/PayLife<...>/tapXType<...>/{W/P};
+		// the Effect/Animate-delivered forms are charged through the
+		// e.active() walk blockPairCharge carries.
 		"stat:CantBlockUnless",
 		// canattackdefender1: the CR 702.3b permission static (the inverse of
 		// a restriction: it LIFTS the Defender wall per (attacker, defender)
