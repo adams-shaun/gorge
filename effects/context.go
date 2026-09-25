@@ -1219,10 +1219,12 @@ func imprintPileTargets(g *state.Game, c *Ctx) []state.Target {
 	return out
 }
 
-// imprintAssociationContains is the shared liveness rule for Defined$ Imprinted
-// and the IsImprinted object predicate. Ordinary imprint links expire when the
-// linked card leaves exile; token and SeekFound associations have their own
-// distinct zone semantics and only require the linked object to exist.
+// imprintAssociationContains is the shared liveness rule for Defined$ Imprinted.
+// Ordinary imprint links expire when the linked card leaves exile; token and
+// SeekFound associations have their own distinct zone semantics and only
+// require the linked object to exist. It reads the LIVE object's zone -- the
+// IsImprinted object predicate uses imprintAssociationContainsCandidate instead,
+// so a zone-change trigger's LKI candidate is judged as it was before the move.
 func imprintAssociationContains(g *state.Game, source *state.Object, id state.ObjID) bool {
 	if source == nil {
 		return false
@@ -1231,8 +1233,39 @@ func imprintAssociationContains(g *state.Game, source *state.Object, id state.Ob
 	if linked == nil {
 		return false
 	}
+	// The live object's own zone is the CR 607.2a liveness test for the
+	// ordinary exile association; token and SeekFound carry no zone rule.
+	return imprintAssociationContainsInZone(source, id, linked.Zone)
+}
+
+// imprintAssociationContainsCandidate is imprintAssociationContains for the IsImprinted object
+// predicate: the zone the ordinary exile association reads is the CANDIDATE
+// object's own zone, not the live object's. That distinction is what makes a
+// zone-change trigger work -- the matcher hands the predicate the event's LKI
+// snapshot (the moving object as it was a moment before the move, CR 603.10),
+// so a card imprinted into exile still reads as exile-linked while it is leaving
+// exile, even though g.Obj(id) is already in the destination zone. Passing the
+// live object in (the ordinary filter path) reads its live zone and expires
+// exactly as imprintAssociationContains does. Token and SeekFound associations
+// ignore the zone in both forms.
+func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o *state.Object) bool {
+	if source == nil || o == nil {
+		return false
+	}
+	if g.Obj(o.ID) == nil {
+		return false
+	}
+	return imprintAssociationContainsInZone(source, o.ID, o.Zone)
+}
+
+// imprintAssociationContainsInZone is the shared membership rule behind both
+// readers above: ordinary Imprinted links are live only while the linked card
+// is in the zone the caller supplies (the live zone for the Defined$ reader,
+// the candidate's own zone for the predicate); token and SeekFound links have
+// no zone requirement.
+func imprintAssociationContainsInZone(source *state.Object, id state.ObjID, zone state.Zone) bool {
 	for _, linkedID := range source.Imprinted {
-		if linkedID == id && linked.Zone == state.ZExile {
+		if linkedID == id && zone == state.ZExile {
 			return true
 		}
 	}
