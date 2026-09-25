@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -50,14 +51,18 @@ func TestSpaceBearingKeywordPredicates(t *testing.T) {
 		{"Creature.withoutFirst Strike", bear, true},
 		{"Creature.withDoctor's companion", doctor, true},
 		{"Creature.withoutDoctor's companion", doctor, false},
+		{"Creature.!withFirst Strike", firstStrike, false},
+		{"Creature.!withFirst Strike", bear, true},
+		{"Creature.!withoutFirst Strike", firstStrike, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.spec, func(t *testing.T) {
 			_, predicate, _ := strings.Cut(tc.spec, ".")
-			if kp, ok := keywordPredicateFor(predicate); !ok {
-				t.Fatalf("keyword classifier rejected %q", predicate)
-			} else if got, ok := matchPositive(g, predicate, g.Obj(tc.id), SpecContext{}); !ok || got != tc.want {
-				t.Errorf("direct matchPositive(%q) = %v, %v; keyword=%q", predicate, got, ok, kp.keyword)
+			positive, negated := strings.CutPrefix(predicate, "!")
+			if kp, ok := keywordPredicateFor(positive); !ok {
+				t.Fatalf("keyword classifier rejected %q", positive)
+			} else if got, ok := matchPositive(g, positive, g.Obj(tc.id), SpecContext{}); !ok || (got != tc.want) != negated {
+				t.Errorf("direct matchPositive(%q) = %v, %v; keyword=%q; negated=%v", positive, got, ok, kp.keyword, negated)
 			}
 			if got := MatchesSpec(g, tc.spec, tc.id, 0); got != tc.want {
 				t.Errorf("MatchesSpec(%q) = %v, want %v", tc.spec, got, tc.want)
@@ -65,12 +70,19 @@ func TestSpaceBearingKeywordPredicates(t *testing.T) {
 			if unknown := UnknownPredicates(tc.spec); len(unknown) != 0 {
 				t.Errorf("UnknownPredicates(%q) = %v, want no unknown predicates", tc.spec, unknown)
 			}
+			if strings.Contains(tc.spec, ".!with") && !SpecReadsKeywords(tc.spec) {
+				t.Errorf("SpecReadsKeywords(%q) = false, want keyword dependency", tc.spec)
+			}
 		})
 	}
 }
 
 func TestUnsupportedSpaceBearingKeywordPredicateFailsClosed(t *testing.T) {
 	g, ids := board(t)
+	bear := g.Obj(ids["myBear"])
+	if bear.Zone != state.ZBattlefield || !slices.Contains(bear.Face().Types, "Creature") {
+		t.Fatal("test precondition: expected myBear to be a battlefield creature")
+	}
 	for _, spec := range []string{
 		"Creature.withAt the beginning of your upkeep",
 		"Creature.!withAt the beginning of your upkeep",

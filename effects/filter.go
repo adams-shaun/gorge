@@ -2532,6 +2532,10 @@ func SpecReadsKeywords(spec string) bool {
 			if p == "" {
 				continue
 			}
+			// A leading ! negates the predicate in the filter grammar; the
+			// keyword dependency still exists because a layer-6 grant can
+			// change the result of that predicate.
+			p, _ = strings.CutPrefix(p, "!")
 			if _, ok := keywordPredicateFor(p); ok {
 				return true
 			}
