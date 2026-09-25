@@ -664,6 +664,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return ownersOf(g, c.Remembered), true
 	case "TargetedController", "TargetedPlayer":
 		return controllersOf(g, c.Targets), true
+	case "TargetedOwner":
+		// The OWNER (CR 108.3) of the resolving ability's targets, not their
+		// controller: Chaos Warp's DBDig sub-ability ("The owner of target
+		// permanent ... reveals the top card of THEIR library") and Palace
+		// Jailer's EffectOwner$ arm. An object target maps to its owner, a
+		// player target to itself, no targets (or a departed object) yields
+		// the EMPTY set with ok=true -- the fail-closed direction, never the
+		// source controller. The same ownersOf helper RememberedOwner calls.
+		return ownersOf(g, c.Targets), true
 	case "ChosenController":
 		return controllersOf(g, c.Chosen), true
 	case "ChosenCardController":
@@ -1246,10 +1255,12 @@ func imprintPileTargets(g *state.Game, c *Ctx) []state.Target {
 	return out
 }
 
-// imprintAssociationContains is the shared liveness rule for Defined$ Imprinted
-// and the IsImprinted object predicate. Ordinary imprint links expire when the
-// linked card leaves exile; token and SeekFound associations have their own
-// distinct zone semantics and only require the linked object to exist.
+// imprintAssociationContains is the shared liveness rule for Defined$ Imprinted.
+// Ordinary imprint links expire when the linked card leaves exile; token and
+// SeekFound associations have their own distinct zone semantics and only
+// require the linked object to exist. It reads the LIVE object's zone -- the
+// IsImprinted object predicate uses imprintAssociationContainsCandidate instead,
+// so a zone-change trigger's LKI candidate is judged as it was before the move.
 func imprintAssociationContains(g *state.Game, source *state.Object, id state.ObjID) bool {
 	if source == nil {
 		return false
@@ -1258,8 +1269,39 @@ func imprintAssociationContains(g *state.Game, source *state.Object, id state.Ob
 	if linked == nil {
 		return false
 	}
+	// The live object's own zone is the CR 607.2a liveness test for the
+	// ordinary exile association; token and SeekFound carry no zone rule.
+	return imprintAssociationContainsInZone(source, id, linked.Zone)
+}
+
+// imprintAssociationContainsCandidate is imprintAssociationContains for the IsImprinted object
+// predicate: the zone the ordinary exile association reads is the CANDIDATE
+// object's own zone, not the live object's. That distinction is what makes a
+// zone-change trigger work -- the matcher hands the predicate the event's LKI
+// snapshot (the moving object as it was a moment before the move, CR 603.10),
+// so a card imprinted into exile still reads as exile-linked while it is leaving
+// exile, even though g.Obj(id) is already in the destination zone. Passing the
+// live object in (the ordinary filter path) reads its live zone and expires
+// exactly as imprintAssociationContains does. Token and SeekFound associations
+// ignore the zone in both forms.
+func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o *state.Object) bool {
+	if source == nil || o == nil {
+		return false
+	}
+	if g.Obj(o.ID) == nil {
+		return false
+	}
+	return imprintAssociationContainsInZone(source, o.ID, o.Zone)
+}
+
+// imprintAssociationContainsInZone is the shared membership rule behind both
+// readers above: ordinary Imprinted links are live only while the linked card
+// is in the zone the caller supplies (the live zone for the Defined$ reader,
+// the candidate's own zone for the predicate); token and SeekFound links have
+// no zone requirement.
+func imprintAssociationContainsInZone(source *state.Object, id state.ObjID, zone state.Zone) bool {
 	for _, linkedID := range source.Imprinted {
-		if linkedID == id && linked.Zone == state.ZExile {
+		if linkedID == id && zone == state.ZExile {
 			return true
 		}
 	}
@@ -1423,11 +1465,11 @@ func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 // TriggeredTarget (the player the triggering event hit, Valiant Batrider),
 // TriggeredDefendingPlayer (Nuka-Nuke Launcher), TargetedOwner (Palace
 // Jailer), Targeted (Loch Larent), Player.IsRemembered (Chandra, Fire of
-// Kaladesh). Every spelling but the owner-suffix one is resolved through the
-// SHARED referent grammar (definedSpec/knownDefinedTargets), so the
-// effect-owner read and every other Defined$ consumer cannot drift apart;
-// TargetedOwner is the one owner-suffix spelling that grammar does not model,
-// so it is mapped here from the same resolved target set.
+// Kaladesh). Every spelling is resolved through the SHARED referent grammar
+// (definedSpec/knownDefinedTargets), so the effect-owner read and every
+// other Defined$ consumer cannot drift apart. (Task tgtowner1 moved
+// TargetedOwner into definedSpec, deleting this function's own ownersOf
+// arm: the grammar resolves the same set from the same resolved targets.)
 //
 // The second result is false when the spelling is one this build does not
 // model; a true result with NO players means the selector named nobody. The
@@ -1446,16 +1488,6 @@ func EffectOwnerPlayers(h Host, c *Ctx, raw string) ([]state.PlayerID, bool) {
 			}
 		}
 		return out, true
-	case "TargetedOwner":
-		// The OWNER (CR 108.3) of the resolving ability's targets, not
-		// their controller: Palace Jailer's exiled creature's owner. This
-		// spelling is not a general Defined$ referent (the 18 corpus
-		// `Defined$ TargetedOwner` lines are a separate, unmodelled
-		// shape), so it lives HERE rather than widening definedSpec and
-		// silently changing unrelated cards. A player target maps to
-		// itself, an object to its owner; no targets yields nobody -- the
-		// fail-closed direction, never the source controller.
-		return playerIDsFromTargets(h, c, sel, ownersOf(h.Game(), c.Targets)), true
 	}
 	ts, ok := knownDefinedTargets(h, c, sel)
 	if !ok {

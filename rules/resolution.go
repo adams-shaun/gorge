@@ -3555,11 +3555,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// graveyard resting place for those.
 			replaceGraveyard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["ReplaceGraveyard"]), "Exile") &&
 				strings.TrimSpace(rp.sa.Params["ReplaceGraveyardValid"]) == ""
-			// Cipher's CopyCard$ True + private CipherCopy marker: cast a
-			// copy, leaving the encoded card exiled. Other Play CopyCard$
-			// shapes need their own ticket and are unchanged by this one.
-			copyCard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["CopyCard"]), "True") &&
-				strings.EqualFold(strings.TrimSpace(rp.sa.Params["CipherCopy"]), "True")
+			// CopyCard$ True casts an event-minted copy of the selected card,
+			// leaving the original in its source zone. False or absent keeps
+			// the ordinary Play path.
+			copyCard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["CopyCard"]), "True")
 			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
 			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
 			// files): every card the Play actually BEGINS to play is recorded

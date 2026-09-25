@@ -113,7 +113,8 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// Cipher's encoded card is deliberately captured by its damage trigger:
 		// unlike DigUntil's captured event roles, it IS the Play population.
 		if (base == "Remembered" || base == "RememberedLKI" || base == "RememberedCard" || base == "DirectRemembered") &&
-			!strings.EqualFold(sa.Params["CipherCopy"], "True") {
+			!strings.EqualFold(sa.Params["CipherCopy"], "True") &&
+			!strings.EqualFold(strings.TrimSpace(sa.Params["CopyCard"]), "True") {
 			var kept []state.ObjID
 			for _, id := range candidates {
 				captured := false
@@ -270,21 +271,15 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	// Controller$).
 	playCtl := c.Controller
 	if ctl := strings.TrimSpace(sa.Params["Controller"]); ctl != "" {
-		ts, ok := knownDefinedTargets(h, c, ctl)
+		_, ok := knownDefinedTargets(h, c, ctl)
 		if !ok {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Play cannot resolve its Controller$ (" + ctl + "); the play does not happen"})
 			return
 		}
-		seenCtl := map[state.PlayerID]bool{}
-		var ps []state.PlayerID
-		for _, t := range ts {
-			p := PlayerOf(h, c, t)
-			if int(p) < len(g.Players) && !seenCtl[p] {
-				seenCtl[p] = true
-				ps = append(ps, p)
-			}
-		}
+		// knownDefinedTargets above preserves the fail-closed selector gate;
+		// the shared player walk applies plain-Remembered semantics.
+		ps := definedPlayerIDs(h, c, ctl)
 		if len(ps) == 0 {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Play cannot resolve its Controller$ (" + ctl + "); the play does not happen"})

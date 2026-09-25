@@ -337,7 +337,7 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 	if !ok {
 		return true
 	}
-	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, sv.Controller, effects.PlayerSpecCtx{Source: sv.Source})
+	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, sv.Controller, e.playerSpecCtx(sv.Source))
 }
 
 // specCtx builds the SpecContext a per-source "ValidCard$"/spec match is
@@ -352,6 +352,21 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 // plain scalars -- so it is deterministic and Clone-safe.
 func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
 	return e.specCtxSVars(source, you, nil)
+}
+
+// playerSpecCtx is the player-side sibling of specCtx: it carries the same
+// layer-3 rename and layer-4 derived-type tables into the player filter, so a
+// Player.controlsCreature / Player.controlsPermanent qualifier evaluates its
+// object spec against the derived characteristics every ordinary filter site
+// already reads, rather than the printed face alone. A FIELD READ, never a
+// call into the layer walk: the tables are the snapshots active() refreshes
+// after each emitted event, exactly the values specCtx binds.
+func (e *Engine) playerSpecCtx(source state.ObjID) effects.PlayerSpecCtx {
+	return effects.PlayerSpecCtx{
+		Source:         source,
+		EffectiveNames: e.renames,
+		DerivedTypes:   e.layer4Types,
+	}
 }
 
 // matchesSpec evaluates a live-object filter with its current derived

@@ -2319,9 +2319,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// prevented hit converts nothing. stat:CantPreventDamage (Spider-Punk)
 	// overrides protection's own damage-prevention arm exactly like every
 	// other prevention path, so the same cantPreventDamage gate applies here.
-	if ev.Kind == events.Damage && ev.Obj != 0 {
-		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) &&
-			!e.cantPreventDamage(src, ev.Obj) {
+	if ev.Kind == events.Damage {
+		src := e.inFlightDamageSource()
+		protected := ev.Obj != 0 && e.protectedFrom(ev.Obj, src)
+		if ev.Obj == 0 && int(ev.Player) < len(e.G.Players) {
+			protected = e.playerProtectedFrom(ev.Player, src)
+		}
+		if src != 0 && protected && !e.cantPreventDamage(src, ev.Obj) {
 			// Amount rides the stored Note (task dponce1): a prevention is a
 			// game action a triggered ability can see, and Mode$
 			// DamagePreventedOnce keys on these Notes' Amount.
@@ -2347,6 +2351,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// directly -- that would prove only that the if-lookup works, not that
 		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
+	}
+	if ev.Kind == events.Attach && ev.Obj != 0 && ev.Text == "attach to player" {
+		if attaching := e.G.Obj(ev.Obj); attaching != nil && isAura(attaching) &&
+			int(ev.Player) < len(e.G.Players) && e.playerProtectedFrom(ev.Player, ev.Obj) {
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+				Text: "cannot attach: protected"})
+		}
 	}
 	// Role-token exclusivity (the second sentence of every Role token's rules
 	// text: "If you control another Role on it, put that one into the

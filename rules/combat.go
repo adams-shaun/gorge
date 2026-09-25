@@ -1412,7 +1412,7 @@ func (e *Engine) attackRestrictLimit(defender state.PlayerID) (int, bool) {
 			continue
 		}
 		spec := strings.TrimSpace(sv.Params["ValidDefender"])
-		if spec == "" || !effects.MatchesPlayerSpecCtx(e.G, spec, defender, sv.Controller, effects.PlayerSpecCtx{Source: sv.Source}) {
+		if spec == "" || !effects.MatchesPlayerSpecCtx(e.G, spec, defender, sv.Controller, e.playerSpecCtx(sv.Source)) {
 			continue
 		}
 		n := int(parseAmount(sv.Params["MaxAttackers"], math.MaxInt32))

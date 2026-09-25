@@ -1172,6 +1172,7 @@ func (e *Engine) damageMatchesWithCapture(t cards.Trigger, source state.ObjID, e
 			}
 		} else if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{
 			Source: source, DefendingPlayer: e.damageDefendingPlayer(ev), DelayedRemembered: remembered,
+			EffectiveNames: e.renames, DerivedTypes: e.layer4Types,
 		}) {
 			return false
 		}
@@ -1219,6 +1220,8 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 		} else if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{
 			Source:          source,
 			DefendingPlayer: e.damageDefendingPlayer(ev),
+			EffectiveNames:  e.renames,
+			DerivedTypes:    e.layer4Types,
 		}) {
 			return false
 		}

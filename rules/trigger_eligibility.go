@@ -87,7 +87,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.DamageProvenance, events.EnduringStoryChange,
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
-		events.PlayerNoteCleared,
+		events.PlayerNoteCleared, events.CardNoted,
 		events.GainedAbilityPush, events.GainedTriggerPush,
 		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice,
 		events.DelayedForget, events.Cascade:
@@ -144,6 +144,16 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// the audit complete if the bound ever widens, and keeps it out of
 		// the catch-all default that would otherwise run a full trigger scan
 		// on every cleared label.
+		//
+		// CardNoted is the card-notation write (NoteCards$ Remembered /
+		// TriggeredSource | NoteCardsFor$ -- Volatile Chimera, Arcane Savant,
+		// Caller of the Untamed, Maelstrom Archangel Avatar), the object-side
+		// sibling of the PlayerNoted pair: the label is read back by the
+		// `Card.NotedFor<X>` filter predicate at a later resolution, never by
+		// a trigger mode. Its ordinal sits past triggerMaskKindBits, so both
+		// classifiers fail open before this map is consulted; naming it keeps
+		// it out of the catch-all default that would otherwise run a full
+		// trigger scan on every noted card.
 		//
 		// EnduringStoryChange (storied1) is CR 702.175's one-way "enduring
 		// story" designation latch -- the exact BlessingChange shape: a
@@ -307,6 +317,22 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Foretell":
+		// trig:Foretell (task agent-20260923T032009Z-3b9d3432): "Whenever you
+		// foretell a card, ..." (CR 702.126b; Dream Devourer, the corpus's
+		// sole carrier at the pin -- measured 1 file). It matches the {2}
+		// Foretell special action's pay-time FlagForetold CastInfo
+		// (rules/cast.go's foretell branch, card still in hand; ordinal 29,
+		// inside the 64-bit mask's reach) and the effect-designation exile
+		// MoveZone markers (applyFaceDownMarker's Foretold$ True
+		// composition); both shapes existed before the mode did. The exact
+		// event shapes are the full matcher's (foretellMatches,
+		// rules/trigmatch_foretell.go) -- the MoveZone bit is needed for the
+		// designation arm and is over-approximate for every other zone
+		// change, which the mask is for by design. Naming the mode here
+		// rather than letting it fall to the allTriggerEvents default keeps
+		// a Foretell-only face's mask narrow for every other kind.
+		return 1<<events.CastInfo | 1<<events.MoveZone
 	case "Surveil":
 		// The Surveil marker's ordinal (79, task trig-surveil) is past the
 		// 64-bit mask's reach, the Discover/SeekAll shape: a mask bit is not

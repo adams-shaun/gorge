@@ -947,13 +947,33 @@ const (
 	// Appended after Evolved, still above NumKinds, so no earlier ordinal,
 	// hash chain or golden replay is affected.
 	DelayedForget
+	// CardNoted records a card-notation write (Forge's NoteCardsEffect with
+	// `NoteCards$ Remembered | NoteCardsFor$ <label>` -- Volatile Chimera,
+	// Arcane Savant, Caller of the Untamed -- or `NoteCards$ TriggeredSource`
+	// -- Maelstrom Archangel Avatar): the resolution notes the CARD it
+	// carried (its Remembered set, or the triggering source) so a later
+	// resolution reads it back through the shared card filter's
+	// `Card.NotedFor<label>` qualifier (ChooseCard's Choices$, DB$ Play's
+	// Valid$ and RepeatEach's RepeatCards$). CopyPermanent's RevealFromExile
+	// cost is an evidenced corpus shape but remains unsupported. Obj is the
+	// noted object and Text the label; events.Apply
+	// appends Text to that object's state.Object.Notes (idempotent), which the
+	// filter reads. It is a dedicated Kind rather than a Note marker because
+	// the notation is real game state a later resolution reads. It is the
+	// object-side sibling of PlayerNoted (the `NoteCards$ Self` player half)
+	// and does not touch state.Player.Notes. A note is card-identity
+	// provenance, not zone-local state: the noted card sits in exile for the
+	// setup-path carriers, so the fold never clears on a zone move.
+	// Appended after DelayedForget, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	CardNoted
 	// Cascade is the cascade instruction's replacement PROPOSAL boundary
 	// (Averna, the Chaos Bloom's R:Event$ Cascade). It is never emitted: the
 	// rules tier holds it out to the replacement matcher exactly as Engine.Scry
 	// holds events.Scry, and the IDs carry the ordered exiled batch the body's
-	// ReplacedCards selector reads. Appended after DelayedForget, still above
-	// every earlier ordinal, so no earlier kind, hash chain or golden replay is
-	// affected.
+	// ReplacedCards selector reads. Appended after CardNoted, preserving every
+	// earlier ordinal, hash chain and golden replay.
 	Cascade
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
@@ -1094,7 +1114,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
-	"proliferate", "evolved", "delayed_forget", "cascade"}
+	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

@@ -213,6 +213,9 @@ var predicates = map[string]predFn{
 	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Monstrous
 	},
+	"IsRenowned": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Renowned
+	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
@@ -1530,6 +1533,16 @@ const (
 	// Player.DamageTakenByGame the player qualifier reads).
 	wordDealtDamageByThisGame
 	wordDealtDamageThisGameBy
+	// wordNotedFor is Forge's CardProperty `NotedFor<label>` (Card.NotedFor):
+	// the candidate object carries the card-notation label <label> in
+	// state.Object.Notes -- the object-side sibling of the player grammar's
+	// `Player.NotedFor<label>` (which MatchesPlayerSpecFrom owns). It is
+	// written by events.Apply's CardNoted case (a DB$ Pump body's `NoteCards$
+	// Remembered/TriggeredSource | NoteCardsFor$`), so matcher and census
+	// recognise it through this one classifier and no corpus spelling can
+	// drift. An empty label (a bare `NotedFor`) stays wordUnknown and fails
+	// closed, like a bare `named`.
+	wordNotedFor
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1589,6 +1602,16 @@ func wordPredicate(p string) (wordKind, string) {
 		if _, is := parseZone(z); is {
 			return wordInZone, z
 		}
+	}
+	// Forge's CardProperty NotedFor<label> (Card.NotedFor): the candidate
+	// carries the card-notation label <label> in state.Object.Notes
+	// (events.Apply's CardNoted fold -- a DB$ Pump body's `NoteCards$
+	// Remembered/TriggeredSource | NoteCardsFor$`). Classified here so the
+	// matcher and the UnknownPredicates census cannot disagree, exactly like
+	// the inZone family above; a bare `NotedFor` (empty label) stays
+	// wordUnknown and fails closed, like a bare `named`.
+	if label, ok := strings.CutPrefix(p, "NotedFor"); ok && label != "" {
+		return wordNotedFor, label
 	}
 	// The and/or Kicker's index form "kicked <n>" (Forge's Card.kicked with
 	// the part index -- Wastescape Battlemage's "Card.Self+kicked 1"): the
@@ -1879,6 +1902,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return o.CastFlags&state.FlagKicked2 != 0
 		}
 		return false
+	case wordNotedFor:
+		// Forge's Card.NotedFor<label>: the candidate carries the card-notation
+		// label in state.Object.Notes (events.Apply's CardNoted fold). Pure
+		// object state -- no SpecContext binding, so the positive and the
+		// '!'-negated spellings both evaluate on the object alone, and an
+		// unnoted object simply does not match.
+		return slices.Contains(o.Notes, key)
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
 	case wordMonoColor:
@@ -2130,7 +2160,12 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if src == nil {
 			return false
 		}
-		return imprintAssociationContains(g, src, o.ID)
+		// Judge the association against the candidate's OWN zone: for an
+		// ordinary live filter that is the live zone (and expires as before),
+		// but a zone-change trigger hands this predicate the event's LKI
+		// snapshot, whose zone is where the card was a moment ago -- so an
+		// imprinted card leaving exile still reads IsImprinted.
+		return imprintAssociationContainsCandidate(g, src, o)
 	case wordDefenderCtrl:
 		// Forge's DefenderCtrl: the object is controlled by the defending
 		// player of the resolving combat trigger (TriggerContext
@@ -4585,14 +4620,24 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // against. DefendingPlayer is the defending-player role of the triggering
 // event, which Player.TriggeredDefendingPlayer names; it is absent (IsPlayer
 // false) outside a trigger that carries one, so that clause fails closed.
-// Both fields are plain data so the four rule-engine call sites (a trigger
-// match, a static actor match and a layer restriction) can populate them
-// without a resolver callback.
+// EffectiveNames and DerivedTypes are the SAME layer-3/layer-4 tables
+// SpecContext carries (see their doc comments there, including the
+// escape-analysis rationale for plain immutable slices): the
+// Player.controlsCreature / Player.controlsPermanent family evaluates its
+// object spec through a nested SpecContext, so without them a creature a
+// layer-4 static made a Goblin is not counted by a lord question even though
+// every ordinary filter site now sees it. All fields are plain data so the
+// rule-engine call sites (a trigger match, a static actor match and a layer
+// restriction) can populate them without a resolver callback.
 type PlayerSpecCtx struct {
 	Source            state.ObjID
 	DefendingPlayer   state.Target
 	DelayedRemembered []state.Target
 	OpponentOf        []state.Target
+	// EffectiveNames is the layer-3 rename set (SetName$, CR 613.1d).
+	EffectiveNames []ObjectName
+	// DerivedTypes is the layer-4 derived type list (CR 613.1d/613.1c).
+	DerivedTypes []ObjectTypes
 }
 
 // MatchesPlayerSpecCtx is the full player-side filter: the same grammar as
@@ -4823,13 +4868,13 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				// seat qualifies when its battlefield holds an object matching
 				// <objspec> as an object filter, with an optional trailing
 				// _GE<n>-style count comparison. See playerControlsMatches.
-				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Creature", rem) {
+				if playerControlsMatches(g, p, you, pc, "Creature", rem) {
 					return true
 				}
 				continue
 			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
-				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Permanent", rem) {
+				if playerControlsMatches(g, p, you, pc, "Permanent", rem) {
 					return true
 				}
 				continue
@@ -5118,7 +5163,16 @@ func splitCountCompare(rem string) (string, string, int32, bool) {
 func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, pc PlayerSpecCtx, objBase, rem string) bool {
 	spec, op, want, counted := splitCountCompare(rem)
 	spec = objBase + "." + spec
-	sc := SpecContext{You: you, Source: pc.Source, TriggerContext: TriggerContext{DelayedRemembered: pc.DelayedRemembered}}
+	sc := SpecContext{
+		You: you, Source: pc.Source,
+		TriggerContext: TriggerContext{DelayedRemembered: pc.DelayedRemembered},
+		// The nested object filter must see the same layer-3/layer-4
+		// derived characteristics every ordinary filter site does; a
+		// controlsCreature/controlsPermanent spec otherwise reads the
+		// printed face alone.
+		EffectiveNames: pc.EffectiveNames,
+		DerivedTypes:   pc.DerivedTypes,
+	}
 	n := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
 		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {

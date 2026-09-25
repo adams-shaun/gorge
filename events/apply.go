@@ -289,6 +289,10 @@ func Apply(g *state.Game, e Event) {
 				// the designation no controller-change end -- the only clear is
 				// the Move fold's leaving-battlefield block below.
 				o.Monstrous = e.Amount >= 1
+			case "Renowned":
+				// CR 702.112b: renowned persists only for this battlefield
+				// permanent; Amount carries the Renown count for listeners.
+				o.Renowned = e.Amount >= 1
 			case "Suspend":
 				o.SuspendGranted = e.Amount >= 1
 			case "Plotted":
@@ -1045,6 +1049,7 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(e.Obj); o != nil {
 				o.Suspected = false
 				o.Monstrous = false
+				o.Renowned = false
 				o.PlottedTurn = 0
 			}
 		}
@@ -2045,6 +2050,36 @@ func Apply(g *state.Game, e Event) {
 		}
 		p.Notes = out
 
+	case CardNoted:
+		// A DB$ Pump body noted a label onto a CARD (NoteCards$ Remembered |
+		// NoteCardsFor$ <label> -- Volatile Chimera, Arcane Savant, Caller of
+		// the Untamed; NoteCards$ TriggeredSource -- Maelstrom Archangel
+		// Avatar). Obj is the noted object and Text the label; the note is
+		// read back by the shared card filter's `Card.NotedFor<label>`
+		// qualifier. Appending is idempotent (a re-note of the same label does
+		// not duplicate it) and preserves first-note order, so a log-only
+		// replay rebuilds the exact slice. An empty label or a vanished object
+		// writes nothing rather than a ghost note. A note is card-identity
+		// provenance, not zone-local state -- the setup-path carriers note
+		// cards sitting in exile -- so the fold never clears on a zone move.
+		if e.Text == "" {
+			break
+		}
+		noted := g.Obj(e.Obj)
+		if noted == nil {
+			break
+		}
+		seen := false
+		for _, n := range noted.Notes {
+			if n == e.Text {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			noted.Notes = append(noted.Notes, e.Text)
+		}
+
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
 			switch e.Counter {
@@ -2585,7 +2620,7 @@ func Apply(g *state.Game, e Event) {
 			// card in the temporary library holding zone. The cast flow
 			// then moves this copy onto the stack. The event, rather than
 			// the rules caller, owns the mutation so replay derives its ID.
-			if src == nil || src.Zone != state.ZExile || src.Face() == nil {
+			if src == nil || src.Face() == nil {
 				break
 			}
 			card, faceIdx := src.Card, src.FaceIdx

@@ -96,7 +96,7 @@ func driveToUpkeepUnlessPay(t *testing.T, e *Engine) *decision.Decision {
 func milledToGraveyard(e *Engine, lib []state.ObjID) []state.ObjID {
 	moved := map[state.ObjID]bool{}
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.MoveZone && ev.From == state.ZLibrary && ev.To == state.ZGraveyard && ev.Text == "mill cost" {
+		if events.IsMill(ev) {
 			moved[ev.Obj] = true
 		}
 	}
