@@ -947,10 +947,30 @@ const (
 	// Appended after Evolved, still above NumKinds, so no earlier ordinal,
 	// hash chain or golden replay is affected.
 	DelayedForget
+	// CardNoted records a card-notation write (Forge's NoteCardsEffect with
+	// `NoteCards$ Remembered | NoteCardsFor$ <label>` -- Volatile Chimera,
+	// Arcane Savant, Caller of the Untamed -- or `NoteCards$ TriggeredSource`
+	// -- Maelstrom Archangel Avatar): the resolution notes the CARD it
+	// carried (its Remembered set, or the triggering source) so a later
+	// resolution reads it back through the shared card filter's
+	// `Card.NotedFor<label>` qualifier (ChooseCard's Choices$, DB$ Play's
+	// Valid$, a CopyPermanent cost's RevealFromExile list, RepeatEach's
+	// RepeatCards$). Obj is the noted object and Text the label; events.Apply
+	// appends Text to that object's state.Object.Notes (idempotent), which the
+	// filter reads. It is a dedicated Kind rather than a Note marker because
+	// the notation is real game state a later resolution reads. It is the
+	// object-side sibling of PlayerNoted (the `NoteCards$ Self` player half)
+	// and does not touch state.Player.Notes. A note is card-identity
+	// provenance, not zone-local state: the noted card sits in exile for the
+	// setup-path carriers, so the fold never clears on a zone move.
+	// Appended after DelayedForget, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	CardNoted
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(DelayedForget) + 1
+	NumKinds = int(CardNoted) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the

@@ -808,6 +808,23 @@ type Object struct {
 	// (CR 400.7: an object that leaves and returns is a new object).
 	RuntimeSVars map[string]int32
 
+	// Notes is the set of card-notation labels this object carries, in the
+	// order they were noted (Forge's Card.addNotedFor: `NoteCards$
+	// Remembered/TriggeredSource | NoteCardsFor$ <label>` on a DB$ Pump body
+	// appends <label> here; the shared card filter's `Card.NotedFor<label>`
+	// qualifier reads it -- ChooseCard's Choices$, DB$ Play's Valid$, a
+	// CopyPermanent cost's RevealFromExile list, RepeatEach's RepeatCards$).
+	// It is append-only and never re-ordered, so it is deterministic on
+	// replay, and a re-note of the same label does not duplicate the entry.
+	// Written ONLY by events.Apply's CardNoted case, so a live game and a
+	// log-only reconstruction derive it identically; CloneDeep copies it
+	// (the slice is appended to in place, so sharing the backing array would
+	// let either game corrupt the other). A note is card-identity provenance,
+	// not zone-local state -- the setup-path carriers note cards sitting in
+	// exile -- so unlike RuntimeSVars it is never cleared on a zone move;
+	// the player-side sibling lives on state.Player.Notes.
+	Notes []string
+
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number, a colour (the
 	// K:ETBReplacement ChooseColor family -- Utopia Sprawl, Caged Sun,
@@ -1439,6 +1456,7 @@ func (o *Object) CloneDeep() Object {
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
 	c.EncodedCards = append([]ObjID(nil), o.EncodedCards...)
 	c.SeekFound = append([]ObjID(nil), o.SeekFound...)
+	c.Notes = append([]string(nil), o.Notes...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)

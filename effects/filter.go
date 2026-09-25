@@ -1530,6 +1530,16 @@ const (
 	// Player.DamageTakenByGame the player qualifier reads).
 	wordDealtDamageByThisGame
 	wordDealtDamageThisGameBy
+	// wordNotedFor is Forge's CardProperty `NotedFor<label>` (Card.NotedFor):
+	// the candidate object carries the card-notation label <label> in
+	// state.Object.Notes -- the object-side sibling of the player grammar's
+	// `Player.NotedFor<label>` (which MatchesPlayerSpecFrom owns). It is
+	// written by events.Apply's CardNoted case (a DB$ Pump body's `NoteCards$
+	// Remembered/TriggeredSource | NoteCardsFor$`), so matcher and census
+	// recognise it through this one classifier and no corpus spelling can
+	// drift. An empty label (a bare `NotedFor`) stays wordUnknown and fails
+	// closed, like a bare `named`.
+	wordNotedFor
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1589,6 +1599,16 @@ func wordPredicate(p string) (wordKind, string) {
 		if _, is := parseZone(z); is {
 			return wordInZone, z
 		}
+	}
+	// Forge's CardProperty NotedFor<label> (Card.NotedFor): the candidate
+	// carries the card-notation label <label> in state.Object.Notes
+	// (events.Apply's CardNoted fold -- a DB$ Pump body's `NoteCards$
+	// Remembered/TriggeredSource | NoteCardsFor$`). Classified here so the
+	// matcher and the UnknownPredicates census cannot disagree, exactly like
+	// the inZone family above; a bare `NotedFor` (empty label) stays
+	// wordUnknown and fails closed, like a bare `named`.
+	if label, ok := strings.CutPrefix(p, "NotedFor"); ok && label != "" {
+		return wordNotedFor, label
 	}
 	// The and/or Kicker's index form "kicked <n>" (Forge's Card.kicked with
 	// the part index -- Wastescape Battlemage's "Card.Self+kicked 1"): the
@@ -1879,6 +1899,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			return o.CastFlags&state.FlagKicked2 != 0
 		}
 		return false
+	case wordNotedFor:
+		// Forge's Card.NotedFor<label>: the candidate carries the card-notation
+		// label in state.Object.Notes (events.Apply's CardNoted fold). Pure
+		// object state -- no SpecContext binding, so the positive and the
+		// '!'-negated spellings both evaluate on the object alone, and an
+		// unnoted object simply does not match.
+		return slices.Contains(o.Notes, key)
 	case wordMultiColor:
 		return len(ColorsOf(o)) > 1
 	case wordMonoColor:
