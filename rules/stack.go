@@ -3962,19 +3962,22 @@ func (e *Engine) resolveTop() {
 	// before condition checks"; rules/ascend.go). Permanent faces are
 	// excluded -- their grant is the emit-side continuous scan.
 	e.grantSpellBlessing(o, f)
-	// CR 702.168b: a promised gift resolves BEFORE the spell's other effects
-	// (the gift's own "before its other effects"). The body is the face's
-	// GiftAbility SVar; it is spliced as the HEAD of the spell's own chain so
-	// the ordinary suspension/continuation machinery handles a mid-gift ask
-	// and then runs the rest of the spell, and it shares the spell's Ctx so
-	// Defined$ Promised / TokenOwner$ Promised read the promise. The
-	// events.GiveGift marker is emitted just before the gift body runs, so
-	// "whenever you give a gift" (Jolly Gerbils) queues and resolves after
-	// the whole spell, exactly as a gift given during resolution should. The
-	// splice is a SHALLOW COPY of the resolved gift SA, never a mutation of
-	// the card's parsed table.
+	// CR 702.168b: a promised gift on an INSTANT OR SORCERY resolves BEFORE
+	// the spell's other effects (the gift's own "before its other effects").
+	// The body is the face's GiftAbility SVar; it is spliced as the HEAD of
+	// the spell's own chain so the ordinary suspension/continuation machinery
+	// handles a mid-gift ask and then runs the rest of the spell, and it
+	// shares the spell's Ctx so Defined$ Promised / TokenOwner$ Promised read
+	// the promise. The events.GiveGift marker is emitted just before the gift
+	// body runs. The splice is a SHALLOW COPY of the resolved gift SA, never
+	// a mutation of the card's parsed table.
+	//
+	// A PERMANENT's promised gift is NOT spliced here: CR 702.168c makes it a
+	// "when this permanent enters" triggered ability, queued after entry by
+	// altCostEnter and pushed onto the stack by pushTrigger -- so it can be
+	// responded to and ordered against the card's own printed ETB.
 	resolveSA := sa
-	if o.CastFlags&state.FlagPromisedGift != 0 {
+	if o.CastFlags&state.FlagPromisedGift != 0 && !f.IsPermanent() {
 		if gift := cards.ResolveSVar(f.SVars, "GiftAbility"); gift != nil {
 			e.emit(events.Event{Kind: events.GiveGift, Player: o.Controller, Obj: id})
 			head := *gift

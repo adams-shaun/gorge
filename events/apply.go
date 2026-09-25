@@ -2396,6 +2396,7 @@ func Apply(g *state.Game, e Event) {
 		casualty := false
 		demonstrate := false
 		flanking := false
+		gift := e.Counter == "GiftAbility"
 		melee := e.Counter == "__kwMeleeGranted"
 		if sa == nil {
 			// A granted Melee instance has no printed SVar. Rebuild its
@@ -2596,6 +2597,29 @@ func Apply(g *state.Game, e Event) {
 						"Mentor":    "True", "CounterType": "P1P1", "CounterNum": "1"}}
 			}
 		}
+		// The Gift trigger's payload (rules.pushTrigger's GiftAbility) DOES
+		// resolve a real card SVar, but its promise referent must not read
+		// the live source: the ability resolves independently of its source
+		// (CR 112.7a), and events.Move clears the source's CastFlags bit and
+		// GiftPromisedTo the moment the permanent leaves the battlefield --
+		// the response window the trigger's own respondability creates. The
+		// promised receiver rides the payload as Remembered (IDs), and the
+		// body's Defined$/TokenOwner$ Promised referents are rewritten to
+		// PromisedSnapshot -- effects' read of that snapshot -- so the live
+		// game and a replay mint identical objects from the event text alone.
+		// The rewrite CLONES the resolved SA: the SVar table is the card's
+		// shared compiled data and Apply must never mutate it.
+		if gift && sa != nil {
+			clone := *sa
+			clone.Params = make(map[string]string, len(sa.Params))
+			for k, v := range sa.Params {
+				if (k == "Defined" || k == "TokenOwner") && v == "Promised" {
+					v = "PromisedSnapshot"
+				}
+				clone.Params[k] = v
+			}
+			sa = &clone
+		}
 		if sa == nil {
 			break
 		}
@@ -2605,8 +2629,21 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
-		o.SourceIncarnation = incarnation
-		if conspire || casualty || demonstrate || flanking || melee || cipher {
+		// The incarnation stamp makes resolveTop's source-incarnation gate
+		// drop a keyword trigger whose effect names the SOURCE PERMANENT
+		// (Evoke's "sacrifice it") once that permanent leaves and returns as
+		// a new object (CR 400.7). A promised permanent's gift (CR 702.168c)
+		// is not such a trigger: its body acts on the promised player, and an
+		// ability resolves independently of its source (CR 112.7a), so the
+		// gift must still deliver when the permanent is removed in response
+		// to its own entry triggers -- the response window its own
+		// respondability creates. Leaving the stamp at its zero value makes
+		// that gate skip the gift, exactly as it does for an ordinary
+		// matched ETB trigger.
+		if !gift {
+			o.SourceIncarnation = incarnation
+		}
+		if conspire || casualty || demonstrate || flanking || melee || cipher || gift {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
