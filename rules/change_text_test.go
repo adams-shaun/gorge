@@ -227,10 +227,10 @@ var changeTextCarriers = []string{
 // alike -- so the gate cannot pass by scoping itself to the text family, and a
 // card whose gap later closes (or opens) makes this table stale and fails.
 //
-// The two non-nil entries are unrelated to this ticket and already tracked:
-//   - Spectral Shift: kw:Entwine (no `case "Entwine"` in cards/keywords.go).
-//   - Trait Doctoring: kw:Cipher -- open ledger entry
-//     issue-agent-20260919T181215Z-71ad9572.
+// The two non-nil entries are unrelated to text modification. The operator's
+// 2026-09-25 ruling explicitly leaves these keywords out of scope here:
+//   - Spectral Shift: kw:Entwine (agent-20260925T000311Z-22c4c559).
+//   - Trait Doctoring: kw:Cipher (agent-20260919T181215Z-71ad9572).
 var changeTextCarrierGaps = map[string][]string{
 	"Alter Reality":          nil,
 	"Artificial Evolution":   nil,
@@ -248,13 +248,11 @@ var changeTextCarrierGaps = map[string][]string{
 	"Trait Doctoring":        {"kw:Cipher"},
 }
 
-// TestChangeTextCarriersUnsupportedIsExact is the brief's registration gate in
-// its strongest satisfiable form: it asserts the COMPLETE Unsupported result
-// for all 14 carriers, not merely that the text primitives are absent. Twelve
-// carriers must be fully playable; the two whose only remaining gap is an
-// unrelated keyword must report EXACTLY that keyword, so the two facts are
-// pinned rather than hidden behind a text-family filter. A card that gains or
-// loses any unsupported primitive makes this table stale and fails.
+// TestChangeTextCarriersUnsupportedIsExact implements the operator's
+// 2026-09-25 registration ruling: assert the COMPLETE Unsupported result for
+// all 14 carriers. Twelve must be fully playable; the other two must report
+// exactly their unrelated keyword gaps, not any text primitive. A card that
+// gains or loses any unsupported primitive makes this table stale and fails.
 func TestChangeTextCarriersUnsupportedIsExact(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
