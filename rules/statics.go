@@ -1208,10 +1208,16 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 }
 
 // blockRestricted reports whether blocker is forbidden from blocking
-// attacker (CantBlock, CantBlockBy). Called from rules/combat.go's canBlock,
-// which askBlockers and handleBlockers both use for real declare-blockers
-// option generation and validation.
+// attacker (CantBlock, CantBlockBy, or a granted can't-block keyword).
+// Called from rules/combat.go's canBlock, which askBlockers and handleBlockers
+// both use for real declare-blockers option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
+	// Forge's Pump/PumpAll KW$ HIDDEN CARDNAME can't block. is a derived
+	// layer-6 grant, not a static. Read it here so the same restriction
+	// governs offered blocks and validation, including Concussive Bolt.
+	if e.HasKeyword(blocker, "HIDDEN CARDNAME can't block.") {
+		return true
+	}
 	// The Effect-registered CantBlockBy grants walk FIRST, beside the
 	// CantTarget precedent (restrictionBlocksTarget): the registered
 	// restriction's ValidAttacker$ is matched against the ATTACKER with the
