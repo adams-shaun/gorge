@@ -417,6 +417,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return e.applyNonMoveReplacements(ev, matches)
 	case events.CounterChange, events.PlayerCounterChange:
 		return e.applyAddCounterReplacements(ev, matches)
+	case events.TurnFaceUp:
+		return e.applyTurnFaceUpReplacements(ev, matches)
 	}
 
 	// CR 616.1: if two or more replacement effects would modify the way this
@@ -1014,6 +1016,13 @@ func replacementEvent(ev events.Event) (string, bool) {
 		// the class; the matcher splits them on ValidCard$/ValidObject$ vs
 		// ValidPlayer$.
 		return "AddCounter", true
+	case events.TurnFaceUp:
+		// The turn-up boundary itself (CR 614.1a with CR 708.6/702.36e, task
+		// cli-20260924T031747Z-6d0658fc): Hooded Hydra's five +1/+1 counters,
+		// Karlov Watchdog's CantHappen prohibition, Gift of Doom's attach.
+		// These match the marker events.TurnFaceUp that the morph-family
+		// special action and the SetState effect's turn-up arm emit.
+		return "TurnFaceUp", true
 	default:
 		return "", false
 	}
@@ -1219,6 +1228,78 @@ func (e *Engine) applyTransformReplacement(ev events.Event, matches []replMatch)
 		}
 	}
 	return ev, false
+}
+
+// applyTurnFaceUpReplacements is the TurnFaceUp event's replacement pass
+// (R:Event$ TurnFaceUp, CR 614.1a with CR 708.6/702.36e, task
+// cli-20260924T031747Z-6d0658fc). The bodies resolve BEFORE the turn-up event
+// is folded: the counters Hooded Hydra's body places land on the permanent as
+// it turns face up, and only then does events.Apply retire the CR 708.5
+// face-down set. An augmenting body never prevents the flip -- Forge's
+// Replaced reading of these lines: the physical turn-up belongs to the
+// turn-up action/effect, the replacement only adds to it -- so after every
+// body the event is left intact (handled=false) for the ordinary fold and
+// its own trigger matching. A With==nil (Layer$ CantHappen) body -- Karlov
+// Watchdog's "permanents your opponents control can't be turned face up",
+// Unable to Scream -- IS the complete replacement: the turn-up never happens
+// and a Note records the prevention, the same shape the damage-prevention
+// arm emits.
+func (e *Engine) applyTurnFaceUpReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		if m.repl.With == nil {
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj,
+				Text: "turn face up prevented by replacement effect"}), true
+		}
+	}
+	for _, m := range matches {
+		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
+	}
+	return ev, false
+}
+
+// turnFaceUpCantHappen is the ONE legality predicate for a blocked turn-up:
+// it reports whether a live R:Event$ TurnFaceUp CantHappen replacement (a
+// printed line with no ReplaceWith$, or an Effect-created bodyless
+// registration with Layer$ CantHappen) would prevent id's turn-up outright.
+// The special action is then ILLEGAL (CR 614.1a's "can't" stops the action
+// before it starts), so the offer (rules/legal.go) and the submitted-option
+// guard (the same file's validate switch) both consult this one predicate
+// instead of re-implementing the match, and the dispatch's CantHappen arm
+// above stays as defence-in-depth for emit routes that never consult the
+// offer (an effect-driven SetState turn-up).
+func (e *Engine) turnFaceUpCantHappen(id state.ObjID) bool {
+	ev := events.Event{Kind: events.TurnFaceUp, Obj: id}
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent != "TurnFaceUp" || ce.ReplacementBody != "" ||
+			!strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Layer"]), "CantHappen") {
+			continue
+		}
+		r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
+		if e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
+			return true
+		}
+	}
+	blocked := false
+	e.forEachReplacementSource(func(source state.ObjID) {
+		if blocked {
+			return
+		}
+		f := e.replacementFace(source, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			if !replacementEventNameMatches(r.Event, "TurnFaceUp") || r.With != nil {
+				continue
+			}
+			if e.replacementMatches(*r, source, ev) {
+				blocked = true
+				return
+			}
+		}
+	})
+	return blocked
 }
 
 // continueManaReplacements implements CR 616.1 for one in-flight ManaAdd.
@@ -4046,6 +4127,26 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		}
 		if v := r.Params["ValidTarget"]; v != "" && !e.matchesSpecFrom(v, ev.IDs[0], you, source) {
 			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "TurnFaceUp":
+		// The "as this is turned face up" class (CR 614.1a with CR 708.6/
+		// CR 702.36e): the turned permanent is the turn-up event's own Obj
+		// (events.TurnFaceUp), and ValidCard$ scopes it in the replacement
+		// source's frame -- "Card.Self" for the source's own turn-up (Hooded
+		// Hydra, Gift of Doom), "Permanent.OppCtrl" for an opponent's (Karlov
+		// Watchdog). A non-turn-up event carries nothing the clause can name,
+		// so it fails closed. The match reads the object's live pre-flip state
+		// (still face down), which is exactly the state the replacement applies
+		// to; no face-down override is needed because no carrier spec names a
+		// face-down characteristic here.
+		if ev.Kind != events.TurnFaceUp || ev.Obj == 0 {
+			return false
+		}
+		if v, ok := r.Params["ValidCard"]; ok && v != "" {
+			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+				return false
+			}
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "Counter":
@@ -7025,6 +7126,12 @@ func init() {
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
 		"repl:AddCounter", "api:ReplaceCounter",
+		// repl:TurnFaceUp (task cli-20260924T031747Z-6d0658fc) is the "as this
+		// is turned face up" class (Hooded Hydra's five +1/+1 counters, Karlov
+		// Watchdog's CantHappen, Gift of Doom's attach), matched by
+		// replacementMatches's TurnFaceUp case and applied by
+		// applyTurnFaceUpReplacements.
+		"repl:TurnFaceUp",
 		// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
 		// file) via the ReplaceDamage intercept in applyReplacements, never
 		// through effects.Resolve/runReplaceWith -- this registration is the

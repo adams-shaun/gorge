@@ -3278,6 +3278,16 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if !e.costPayable(p, id, false, mf.cost) {
 			continue
 		}
+		if e.turnFaceUpCantHappen(id) {
+			// CR 614.1a: a live CantHappen turn-up replacement (Karlov
+			// Watchdog's "permanents your opponents control can't be turned
+			// face up during your turn") makes the special action illegal, so
+			// the option is never offered -- and never paid for. The one match
+			// predicate lives in rules/replacement.go (turnFaceUpCantHappen);
+			// the submitted-option guard in rules/priority_guard.go re-reads
+			// the same helper.
+			continue
+		}
 		add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
 	}
 
