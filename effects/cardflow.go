@@ -3567,6 +3567,7 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	}
 	valid := sa.Params["ValidCards"]
 	chooseFromList := sa.Params["ChooseFromList"]
+	chooseFromDefined := sa.Params["ChooseFromDefinedCards"]
 	universeBacked := len(h.Game().NameUniverse) > 0
 	random := strings.EqualFold(sa.Params["AtRandom"], "True")
 	// The resolving context's numeric-RHS resolver (paid X, a published
@@ -3575,7 +3576,30 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	// value instead of failing every universe card closed.
 	sc := c.SpecContext(c.Controller)
 	names := NameChoicesFromListCtx(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, &sc, random)
-	if len(names) == 0 && (!universeBacked || chooseFromList == "") {
+	if chooseFromDefined != "" {
+		// This selector narrows the normal ValidCards name universe to the
+		// printed names of the Defined referents. Resolve through Defined so
+		// source/context memory aliases retain their ordinary semantics. With
+		// no corpus universe (or no eligible referents), fail closed: a legacy
+		// fallback name could be neither validated nor guaranteed revealed.
+		eligible := make(map[string]bool)
+		for _, target := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": chooseFromDefined}}) {
+			if target.IsPlayer || target.Obj == 0 {
+				continue
+			}
+			if obj := h.Game().Obj(target.Obj); obj != nil && obj.Face() != nil {
+				eligible[obj.Face().Name] = true
+			}
+		}
+		restricted := make([]string, 0, len(names))
+		for _, name := range names {
+			if eligible[name] {
+				restricted = append(restricted, name)
+			}
+		}
+		names = restricted
+	}
+	if chooseFromDefined == "" && len(names) == 0 && (!universeBacked || chooseFromList == "") {
 		// R-9: a host without a supplied corpus still completes
 		// deterministically, and reproduces the exact pre-feature NameCard
 		// behaviour (name the top of the caster's own library) so a log an
