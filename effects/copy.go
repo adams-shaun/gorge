@@ -39,8 +39,9 @@ func init() {
 // gather against its original. The rider rides the StackCopy event's Counter
 // (a field the fold otherwise leaves empty) and is folded into the mint as
 // Object.CopyNonLegendary, which rules' typeCharacteristics applies as a
-// layer-4 base strip -- no event field is added or reordered, and an absent
-// or False key leaves the historical legendary copy untouched.
+// layer-4 base strip -- no event field is added or reordered. An absent or
+// False key adds no strip, but a copy of a previously stripped copy inherits
+// that copiable characteristic (CR 707.2).
 //
 // UnlessCost$ (Chain Lightning, String of Disappearances) rides the ONE
 // shared unless gate (effects.Resolve's unlessProceed dispatch, shared by
@@ -256,8 +257,8 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// field StackCopy otherwise leaves empty -- and events.Apply's fold
 	// turns it into the object marker rules' typeCharacteristics strips the
 	// supertype from, the same event-sourced shape ClonePermanent's Counter
-	// riders take. No event field is added or reordered, and an absent or
-	// False key leaves the historical legendary copy untouched.
+	// riders take. No event field is added or reordered; an absent or False
+	// key adds no strip, but a copy of a stripped copy inherits the strip.
 	nonLegendary := strings.EqualFold(strings.TrimSpace(sa.Params["NonLegendary"]), "True")
 	// RememberCopies$ True (Shiko and Narset, Unified's "copy that spell ...
 	// If you don't copy a spell this way, draw a card"; Chef's Kiss's "the

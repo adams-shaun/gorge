@@ -2434,6 +2434,7 @@ func Apply(g *state.Game, e Event) {
 		// provenance (r3): the copy resolves the same compiled SA, so it reads
 		// the same owning face.
 		gainedFace, gainedFrom := src.GainedFace, src.GainedFrom
+		copyNonLegendary := src.CopyNonLegendary
 		// The copy inherits the original's CastFlags -- a copy of a fused,
 		// bestowed or kicked spell resolves as one -- EXCEPT the cast
 		// provenance a later reader turns into an "if you cast it"
@@ -2481,14 +2482,12 @@ func Apply(g *state.Game, e Event) {
 		// the copied spell's own text still grants the election on replay,
 		// and effects/copy.go never has to reach into rules to ask.
 		o.CopyMayChooseTarget = e.Amount == 1
-		// NonLegendary$ True on the creating CopySpellAbility (The Sixth
-		// Doctor et al.): the copy resolves with the Legendary supertype
-		// stripped. The rider rides the event's Counter (StackCopy uses no
-		// other Counter value), so it is folded into the mint here, exactly
-		// as ClonePermanent folds its own Counter riders -- no new event
-		// field is added or reordered, and every pre-existing StackCopy
-		// (empty Counter) keeps its legendary characteristics.
-		o.CopyNonLegendary = e.Counter == "nonlegendary"
+		// The creating CopySpellAbility's NonLegendary$ True strips the
+		// Legendary supertype (Counter is its event discriminator). That
+		// changed characteristic is copiable: a later copy of this copy
+		// inherits the strip even without its own NonLegendary$ (CR 707.2).
+		// Snapshot it before AddObject, which may reallocate g.Objs.
+		o.CopyNonLegendary = copyNonLegendary || e.Counter == "nonlegendary"
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
