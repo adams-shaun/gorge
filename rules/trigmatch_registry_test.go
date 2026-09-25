@@ -207,6 +207,17 @@ var addedAfterTheSplit = []string{
 	// ordinary counter addition is not a proliferate action), so it could not
 	// have been in the pre-split switch.
 	"Proliferate",
+	// foretell-trig (task agent-20260923T032009Z-3b9d3432): "Whenever you
+	// foretell a card, ..." (CR 702.126b; Dream Devourer, the corpus's sole
+	// carrier at the pin -- measured
+	// `/usr/bin/grep -rlE 'T:Mode\$ Foretell' .cards/cardsfolder | wc -l`
+	// => 1). It matches the {2} Foretell special action's pay-time
+	// FlagForetold CastInfo (rules/cast.go's foretell branch, card still in
+	// hand) and the effect-designation exile MoveZone markers
+	// (applyFaceDownMarker's Foretold$ True composition), both of which
+	// existed before the mode did -- but the pre-split switch had no
+	// Foretell arm, so neither shape could have been dispatched through it.
+	"Foretell",
 }
 
 func allRegisteredModeNames() []string {

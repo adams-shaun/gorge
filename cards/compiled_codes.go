@@ -865,6 +865,13 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		// keeps a ManaExpend-only face's scan set narrow instead of the
 		// fail-open default.
 		return TriggerInterestCastInfo
+	case "Foretell":
+		// trig:Foretell (task agent-20260923T032009Z-3b9d3432) fires on the
+		// {2} Foretell action's pay-time FlagForetold CastInfo and the
+		// effect-designation exile MoveZone marker (rules'
+		// foretellMatches); the two bits keep a Foretell-only face's scan
+		// set narrow instead of the fail-open Any default.
+		return TriggerInterestCastInfo | TriggerInterestZoneChange
 	case "BecomeMonarch":
 		// The monarch designation transition (events.MonarchChange), matched
 		// by rules' becomeMonarchMatches. The dedicated bit narrows a
