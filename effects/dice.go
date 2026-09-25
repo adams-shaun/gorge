@@ -412,6 +412,20 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	if amount < 1 {
 		amount = 1
 	}
+	// IgnoreLower$ is read once here, not at the retainedDice call: the
+	// R:Event$ RollDice replacement boundary below needs its value as the
+	// held proposal's ignored-low base.
+	ignoreLower := Num(h, c, sa, "IgnoreLower", 0)
+	// R:Event$ RollDice replacement boundary (CR 614.4): before any die is
+	// rolled the action is held out as a synthetic proposal (the Scry hook's
+	// discipline -- never logged), and a matching replacement rewrites the
+	// dice count and the ignored-low count in place. The proposal seeds the
+	// ignored-low base with THIS body's own IgnoreLower$, so a replacement's
+	// ReplaceCount$Ignore/Plus.1 is one ADDITIONAL low result; nested and
+	// resumed resolutions never see the rewrite again, because the done
+	// re-entry above returns before this line and every roll body seeds its
+	// own fresh proposal.
+	amount, ignoreLower = h.RollDiceProposed(c.Controller, c.Source, amount, ignoreLower)
 	modifier := Num(h, c, sa, "Modifier", 0)
 	chosenName := strings.TrimSpace(sa.Params["ChosenSVar"])
 	otherName := strings.TrimSpace(sa.Params["OtherSVar"])
@@ -496,10 +510,19 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	}
 	h.Emit(DieRollBatchNote(c.Source, c.Controller, int32(len(dice)), batchMax, dice[len(dice)-1]))
 
+	// The RETAINED set: IgnoreLower$ / UseHighestRoll$ -- and a roll
+	// replacement's rewritten Ignore -- drop low results before anything
+	// downstream reads them. Every reader below (the range table, the
+	// publications, the counts, the choose-one ask) consumes RETAINED dice;
+	// the per-die Notes and the batch Note above remain the record of every
+	// die ROLLED. With no ignore (every plain corpus roll) the retained set
+	// is all dice, so this changes nothing for them.
+	retained := retainedDice(dice, ignoreLower, strings.EqualFold(sa.Params["UseHighestRoll"], "True"))
+
 	// ResultSubAbilities$ is evaluated only after selection: both modifiers
 	// name results, not dice to suppress rolling, so every die is still noted
 	// and remains available to ResultSVar$/chosen-result publications.
-	for _, result := range retainedDice(dice, Num(h, c, sa, "IgnoreLower", 0), strings.EqualFold(sa.Params["UseHighestRoll"], "True")) {
+	for _, result := range retained {
 		if len(ranges) == 0 {
 			continue
 		}
@@ -530,14 +553,17 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	// Primary result publication (ResultSVar$): one die's own result, the
-	// total of several, or the two-die difference.
+	// total of several, or the two-die difference -- over the RETAINED dice,
+	// so an ignored-low die's result does not count (the reading "ignore the
+	// lowest roll" gives every consumer; with no ignore the retained set is
+	// all dice, every existing publication unchanged).
 	total := int32(0)
-	for _, r := range dice {
+	for _, r := range retained {
 		total += r
 	}
 	pub := total
-	if strings.EqualFold(sa.Params["UseDifferenceBetweenRolls"], "True") && len(dice) == 2 {
-		pub = dice[0] - dice[1]
+	if strings.EqualFold(sa.Params["UseDifferenceBetweenRolls"], "True") && len(retained) == 2 {
+		pub = retained[0] - retained[1]
 		if pub < 0 {
 			pub = -pub
 		}
@@ -552,7 +578,7 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	if sa.Params["MaxRollsResults"] == "True" {
 		maxResult := sides + modifier
 		n := int32(0)
-		for _, r := range dice {
+		for _, r := range retained {
 			if r == maxResult {
 				n++
 			}
@@ -561,7 +587,7 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if sa.Params["EvenOddResults"] == "True" {
 		even, odd := int32(0), int32(0)
-		for _, r := range dice {
+		for _, r := range retained {
 			if r%2 == 0 {
 				even++
 			} else {
@@ -577,16 +603,16 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	// the other. Exactly one die is chosen (Min == Max == 1), one "roll"
 	// option per die in roll order, answered through ResumeKind "roll" with
 	// the per-die results carried on the decision for the resume.
-	if chosenName != "" && len(dice) > 1 {
+	if chosenName != "" && len(retained) > 1 {
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
 			Min:        1,
 			Max:        1,
 			Source:     c.Source,
 			ResumeKind: "roll",
 			ResumeSA:   sa,
-			Rolls:      append([]int32(nil), dice...),
+			Rolls:      append([]int32(nil), retained...),
 			Prompt:     "Choose one rolled result"}
-		for i, r := range dice {
+		for i, r := range retained {
 			d.Options = append(d.Options, decision.Option{Index: i,
 				Kind: "roll", Label: "die " + strconv.Itoa(i+1) + ": result " + strconv.FormatInt(int64(r), 10),
 				Player: c.Controller})
@@ -599,19 +625,19 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "keeps the first rolled result (no engine host to ask)"})
 		other := int32(0)
-		for _, r := range dice[1:] {
+		for _, r := range retained[1:] {
 			other += r
 		}
-		publish(chosenName, dice[0])
+		publish(chosenName, retained[0])
 		publish(otherName, other)
-		c.LastRoll, c.LastRollName = dice[0], chosenName
+		c.LastRoll, c.LastRollName = retained[0], chosenName
 		return
 	}
-	if chosenName != "" && len(dice) == 1 {
+	if chosenName != "" && len(retained) == 1 {
 		// A single-die choose is vacuous: that die is the chosen result; the
 		// other value has no die to name and publishes nothing.
-		publish(chosenName, dice[0])
-		c.LastRoll, c.LastRollName = dice[0], chosenName
+		publish(chosenName, retained[0])
+		c.LastRoll, c.LastRollName = retained[0], chosenName
 	}
 }
 

@@ -2825,9 +2825,11 @@ var knownUnsupportedParams = map[string][]string{
 	// Mimeoplasm in rules/mimeoplasm_forget_test.go (its MimeoExile /
 	// MimeoChooseCopy chain) and at the bookkeeping choke points in
 	// effects/forget_remembered_test.go.
-	"Hercules, Olympian Hero":   {"param:trig:DamageDoneOnce.FirstTime"},
-	"Haakon, Stromgald Scourge": {"param:stat:Continuous.MayPlay.ValidAfterStack"},
-	"Heroic Return":             {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Haakon, Stromgald Scourge's param:stat:Continuous.MayPlay.ValidAfterStack
+	// entry was deleted when mayPlayStatic began consuming ValidAfterStack$ as
+	// a derived spell filter (task mayplay-validafterstack).
+	"Hercules, Olympian Hero": {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":           {"param:api:ChangeZone.ValidTgtsDesc"},
 	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
 	// when the CounterType$ EachFromSource copy-each-kind shape was read
 	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --
@@ -3346,7 +3348,12 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// rules/layers.go's staticEffects reads it to place a Set static in the
 	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
 	// announced P/T), so the read is genuine on the generic bucket.
-	for _, key := range []string{"ValidAfterStack", "MayPlayPlayer"} {
+	// ValidAfterStack$ is consumed by mayPlayStatic as a derived spell filter
+	// (task mayplay-validafterstack); MayPlayPlayer$ remains fail-closed.
+	if !d.stat["Continuous.MayPlay"]["ValidAfterStack"] {
+		t.Error(`d.stat["Continuous.MayPlay"]["ValidAfterStack"] = false -- MayPlay characteristic gate lost its read`)
+	}
+	for _, key := range []string{"MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
 			if d.stat[mode][key] {
 				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)

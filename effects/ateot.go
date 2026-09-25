@@ -91,24 +91,10 @@ func atEOTBody(value string) string {
 	return ""
 }
 
-// atEOTInclude decides whether id is part of an AtEOT$-bearing body's affected
-// set. For a `Defined$ Remembered` spec the engine seeds Ctx.Remembered with
-// the trigger REFERENT (rules.triggerRemembered returns the event's object),
-// which Forge's own card remembered list does not contain -- so a bare
-// referent is not an affected object. The source is kept only when the card's
-// own persistent event-backed list genuinely remembered it (a
-// Self-remembering body), the rememberedWithSource convention
-// Count$RememberedSize and the condition grammar already read.
-//
-// KNOWN PARTIAL, not a fix of the underlying defect: the referent seeding is
-// why Puppeteer Clique's own `DB$ Animate | Defined$ Remembered` still grants
-// Haste to the Clique itself (the referent IS the Clique, so Defined() names
-// it as a target while this filter correctly withholds the rider) -- the
-// card behaves inconsistently (Clique hasty but not exiled). The proper fix
-// is in the resolver (match Forge's card remembered list the way
-// effChangeZone's O-Ring rescue does), which is engine-wide and its own
-// ticket; this guard only stops the wrongly-named object from also being
-// exiled by a stale promise. Ledgered in the task report's Issues.
+// atEOTInclude protects the source from an AtEOT$ Remembered rider unless the
+// source card's persistent remembered list actually contains it. The shared
+// Defined$ resolver removes a trigger referent that Forge's card list does not
+// remember; retain this guard as a defensive check for delayed riders.
 func atEOTInclude(h Host, c *Ctx, sa *cards.SA, id state.ObjID) bool {
 	if strings.TrimSpace(sa.Params["Defined"]) != "Remembered" || id != c.Source {
 		return true
