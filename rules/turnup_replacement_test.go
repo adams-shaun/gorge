@@ -308,6 +308,9 @@ func TestKarlovWatchdogTurnFaceUpCantHappenGatesTheOpponentsTurnUp(t *testing.T)
 	if turnFaceUpOfferedFor(t, e, 1, id) {
 		t.Fatalf("turn_face_up offered to seat 1 during seat 0's turn: Karlov Watchdog's CantHappen replacement must make the special action illegal (CR 614.1a)")
 	}
+	if reason := e.priorityOptionStale(1, decision.Option{Kind: "turn_face_up", Obj: id}); reason == "" {
+		t.Fatal("stale turn_face_up option accepted after Karlov Watchdog's CantHappen became active")
+	}
 
 	// Seat 1's turn again: the action returns and completes. The {G} pool is
 	// refilled — pools empty at the turn boundary, so the funded option is
@@ -386,6 +389,164 @@ func TestMasterOfPearlsTurnFaceUpSelfTriggerFiresOnce(t *testing.T) {
 		t.Fatalf("pool after the turn-up = %d, want 0 (the {3}{W}{W} morph cost was paid)", got)
 	}
 	replayCheck(t, e, cfg)
+}
+
+func morphDownCastWithoutPrintedOption(t *testing.T, e *Engine, name, symbols string) state.ObjID {
+	t.Helper()
+	id := searchMoveByName(t, e, name, state.ZHand)
+	addMana(t, e, 0, symbols)
+	d := e.Pending()
+	var idx = -1
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == id && o.Mode == "morphed" {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no face-down cast option for %s: %+v", name, d)
+	}
+	submitChoices(t, e, idx)
+	for d := e.Pending(); d != nil && d.Kind == decision.KModes; d = e.Pending() {
+		if len(d.Options) == 0 {
+			t.Fatalf("empty replacement mode choice: %+v", d)
+		}
+		submitChoices(t, e, d.Options[0].Index)
+	}
+	passUntilStackEmpty(t, e, 40)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+		t.Fatalf("precondition: %s did not resolve face down: %+v", name, o)
+	}
+	return id
+}
+
+// TestVesuvanShapeshifterCanDeclineItsTurnFaceUpReplacement pins Optional$:
+// declining the compiled replacement still completes the turn-up without
+// cloning, and the answer is replayable.
+func TestVesuvanShapeshifterCanDeclineItsTurnFaceUpReplacement(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := manifestEngine(t, reg, "Vesuvan Shapeshifter", "Grizzly Bears")
+	id := morphDownCastWithoutPrintedOption(t, e, "Vesuvan Shapeshifter", "CCCUU")
+	idx := turnFaceUpIndex(t, e, id)
+	mark := len(e.L.Events)
+	submitChoices(t, e, idx)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 || d.Options[1].Kind != "decline" {
+		t.Fatalf("expected the optional replacement's yes/no choice, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[1].Index)
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZGraveyard || o.FaceDown {
+		t.Fatalf("declining the optional replacement should turn up the 0/0 Vesuvan before SBA death: %+v", o)
+	}
+	assertTurnUpEventOnce(t, e, id, mark)
+	replayCheck(t, e, cfg)
+}
+
+// TestVesuvanShapeshifterCanAcceptItsTurnFaceUpReplacement pins the yes arm
+// of Optional$: the compiled Clone body resolves before the turn-up folds.
+func TestVesuvanShapeshifterCanAcceptItsTurnFaceUpReplacement(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := manifestEngine(t, reg, "Vesuvan Shapeshifter", "Grizzly Bears")
+	bear := oppBear(t, e)
+	id := morphDownCastWithoutPrintedOption(t, e, "Vesuvan Shapeshifter", "CCCUU")
+	idx := turnFaceUpIndex(t, e, id)
+	mark := len(e.L.Events)
+	submitChoices(t, e, idx)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 || d.Options[0].Kind != "apply" {
+		t.Fatalf("expected the optional replacement's yes/no choice, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	d = e.Pending()
+	if d == nil {
+		t.Fatal("accepting the optional Clone replacement did not ask which creature to copy")
+	}
+	copyChoice := -1
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			copyChoice = o.Index
+			break
+		}
+	}
+	if copyChoice < 0 {
+		t.Fatalf("Clone choice omitted the battlefield Grizzly Bears: %+v", d.Options)
+	}
+	submitChoices(t, e, copyChoice)
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.FaceDown || o.Face() == nil || o.Face().Name != "Grizzly Bears" {
+		t.Fatalf("accepting the optional replacement should turn Vesuvan face up as Grizzly Bears: %+v", o)
+	}
+	assertTurnUpEventOnce(t, e, id, mark)
+	replayCheck(t, e, cfg)
+}
+
+// TestTurnFaceUpReplacementAskParksTheTransition proves an asking ReplaceWith
+// body cannot expose the turn-up while its answer is outstanding.
+func TestTurnFaceUpReplacementAskParksTheTransition(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e := corpusEngine(t, reg, nil, nil)
+	id := onBoardCard(t, e, 0, lookup(t, reg, "Aquamorph Entity"))
+	e.emit(events.Event{Kind: events.TurnFaceDown, Obj: id})
+	if o := e.G.Obj(id); o == nil || !o.FaceDown {
+		t.Fatalf("precondition: Aquamorph Entity did not turn face down: %+v", o)
+	}
+	mark := len(e.L.Events)
+	e.emit(events.Event{Kind: events.TurnFaceUp, Obj: id})
+	if d := e.Pending(); d == nil || d.Kind != decision.KModes {
+		t.Fatalf("expected Aquamorph's replacement choice, got %+v", d)
+	}
+	if o := e.G.Obj(id); o == nil || !o.FaceDown {
+		t.Fatalf("precondition: transition folded before the replacement answer: %+v", o)
+	}
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.TurnFaceUp && ev.Obj == id {
+			t.Fatal("TurnFaceUp event was logged while replacement choice was pending")
+		}
+	}
+	d := e.Pending()
+	if len(d.Options) == 0 {
+		t.Fatalf("replacement choice has no options: %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(id); o == nil || o.FaceDown {
+		t.Fatalf("answered replacement did not complete turn-up: %+v", o)
+	}
+	assertTurnUpEventOnce(t, e, id, mark)
+}
+
+// TestTurnFaceUpStaleOptionRechecksCantHappen pins the submitted-option guard
+// separately from the offer gate: an offered option becomes stale once the
+// prohibition appears, even if the player still submits the old option.
+func TestTurnFaceUpStaleOptionRechecksCantHappen(t *testing.T) {
+	reg := searchTestRegistry(t)
+	forest := searchCorpusCard(t, reg, "Forest")
+	fill := func(name string) []*cards.Card {
+		deck := []*cards.Card{searchCorpusCard(t, reg, name)}
+		for len(deck) < 40 {
+			deck = append(deck, forest)
+		}
+		return deck
+	}
+	cfg := seatZeroStart(Config{Seed: 7702, Names: []string{"karlov", "opponent"},
+		Decks: [][]*cards.Card{fill("Karlov Watchdog"), fill("Kin-Tree Warden")}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	warden := castFromHandByName(t, e, "Karlov Watchdog", "CCCWWW")
+	if o := e.G.Obj(warden); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Karlov Watchdog is not on battlefield: %+v", o)
+	}
+	driveToStep(t, e, 2, 1, state.StepMain1)
+	probe := morphDownCastSeat(t, e, 1, "Kin-Tree Warden", "morphed", "CCCG", 1)
+	opt := decision.Option{Kind: "turn_face_up", Obj: probe}
+	if got := e.priorityOptionStale(1, opt); got != "" {
+		t.Fatalf("precondition: actual morph turn-up option was already stale: %s", got)
+	}
+	driveToStepAny(t, e, 3, 0, state.StepMain1)
+	if got := e.priorityOptionStale(1, opt); got == "" {
+		t.Fatal("stale turn_face_up option accepted after Karlov Watchdog's CantHappen became active")
+	}
 }
 
 // TestTurnFaceUpIsRegistered pins the RegisterNonAPI registration: the

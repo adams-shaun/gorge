@@ -1251,10 +1251,39 @@ func (e *Engine) applyTurnFaceUpReplacements(ev events.Event, matches []replMatc
 				Text: "turn face up prevented by replacement effect"}), true
 		}
 	}
+	if len(matches) == 1 && strings.EqualFold(matches[0].repl.Params["Optional"], "True") {
+		e.replChoices = append(e.replChoices, replChoice{kind: replChoiceFaceUp, ev: ev, cands: matches, selected: 0})
+		if e.pending == nil {
+			e.askReplacementChoice(e.replacementOptionalDeciderOrController(matches[0]))
+		}
+		return ev, true
+	}
 	for _, m := range matches {
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
+		if e.pending != nil {
+			e.parkTurnFaceUpAfterReplacement(ev)
+			return ev, true
+		}
 	}
 	return ev, false
+}
+
+func (e *Engine) replacementOptionalDeciderOrController(m replMatch) state.PlayerID {
+	if p, ok := e.replacementOptionalDecider(*m.repl, m.id); ok {
+		return p
+	}
+	return e.controllerOf(m.id)
+}
+
+func (e *Engine) parkTurnFaceUpAfterReplacement(ev events.Event) {
+	if e.resume == nil {
+		return
+	}
+	tail := e.resume
+	for tail.outer != nil {
+		tail = tail.outer
+	}
+	tail.outer = &resumePoint{kind: "turn_face_up_event", event: ev}
 }
 
 // turnFaceUpCantHappen is the ONE legality predicate for a blocked turn-up:
@@ -5562,6 +5591,7 @@ const (
 	// an isolated post-entry preview before the staged entry re-emits. It is
 	// appended so existing in-memory enum values remain unchanged.
 	replChoiceEntryOrder
+	replChoiceFaceUp
 )
 
 type lifeExchangeTransaction struct {
@@ -5924,6 +5954,17 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		}
 		e.ask(d)
 		return
+	case replChoiceFaceUp:
+		m := rc.cands[rc.selected]
+		name := "this replacement effect"
+		if o := e.G.Obj(m.id); o != nil && o.Face() != nil && o.Face().Name != "" {
+			name = o.Face().Name
+		}
+		d.Prompt = "Apply " + name + "'s optional turn-face-up replacement?"
+		d.Options = []decision.Option{{Index: 0, Kind: "apply", Obj: m.id, Label: "Yes — apply this replacement"},
+			{Index: 1, Kind: "decline", Obj: m.id, Label: "No — do not apply this replacement"}}
+		e.ask(d)
+		return
 	case replChoiceUntap:
 		name := "this object"
 		if o := e.G.Obj(rc.ev.Obj); o != nil && o.Face() != nil && o.Face().Name != "" {
@@ -6031,6 +6072,21 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.resume = rp
 	}
 	chosen := d.Chosen(in)
+	if rc.kind == replChoiceFaceUp {
+		if len(chosen) > 0 && chosen[0].Index == 0 {
+			m := rc.cands[rc.selected]
+			e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
+		}
+		if e.pending != nil {
+			e.parkTurnFaceUpAfterReplacement(rc.ev)
+			return
+		}
+		prior := e.applyingReplacement
+		e.applyingReplacement = true
+		e.emit(rc.ev)
+		e.applyingReplacement = prior
+		return
+	}
 	damageKind := rc.kind == replChoiceDamage || rc.kind == replChoiceCounter
 	if len(chosen) == 0 || (damageKind && (chosen[0].Index < 0 || chosen[0].Index > len(rc.cands) ||
 		(chosen[0].Index == len(rc.cands) && !(rc.kind == replChoiceDamage && hasOptionalReplacement(rc.cands))))) {
