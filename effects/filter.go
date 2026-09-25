@@ -2413,6 +2413,97 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 	return wordUnknown, "", false
 }
 
+// spellIsTargetingArg parses one predicate token p as Forge's
+// `IsTargeting <target-spec>` (the base -- Spell, SpellAbility -- has already
+// been cut by the alternative walk), returning the argument. ok is false for
+// every token that is not this shape, and for the UNSUPPORTED shapes inside
+// it: an empty argument, and an argument carrying a '+' -- the token grammar
+// splits a '+' conjunction into separate candidate predicates BEFORE any
+// predicate body sees the text, so an argument meant to carry one can never
+// arrive whole and must stay unknown rather than be read as its truncation
+// (Forge spells the common conjunction `~Other`, which the evaluator rewrites
+// itself; see spellIsTargetingInner). The matcher (matchPositive) and the
+// UnknownPredicates census share this one parser, so the two cannot disagree
+// about which spellings are recognised.
+func spellIsTargetingArg(p string) (arg string, ok bool) {
+	arg, ok = strings.CutPrefix(p, "IsTargeting ")
+	if !ok {
+		return "", false
+	}
+	arg = strings.TrimSpace(arg)
+	if arg == "" || strings.Contains(arg, "+") {
+		return "", false
+	}
+	return arg, true
+}
+
+// spellIsTargetingInner normalises one `IsTargeting` argument into the
+// target-spec each of the spell's targets is matched against. It is the ONE
+// home of the argument conventions the ConditionPresent$ gate (Shiko and
+// Narset Unified, Orvar, the All-Form) established: a `Valid ` prefix names
+// Forge's target-validity spec and is stripped; any other `Valid`-prefixed
+// spelling (ValidX) is a shape this grammar does not read (ok=false -- the
+// caller fails closed); a `~Other` suffix is Forge's "other than <source>"
+// idiom, rewritten to the filter grammar's own `+Other` conjunction so the
+// exclusion is the matcher's source-relative reading (predicates["Other"]).
+func spellIsTargetingInner(arg string) (spec string, ok bool) {
+	if inner, has := strings.CutPrefix(arg, "Valid "); has {
+		spec = strings.TrimSpace(inner)
+	} else if strings.HasPrefix(arg, "Valid") {
+		// A malformed `ValidX` is not a shape this evaluator reads.
+		return "", false
+	} else {
+		spec = arg
+	}
+	if inner, has := strings.CutSuffix(spec, "~Other"); has {
+		spec = strings.TrimSpace(inner) + "+Other"
+	}
+	return spec, true
+}
+
+// spellIsTargetingArgRecognised reports whether an `IsTargeting` argument is
+// a COMPLETE form this build can answer: its normalised target-spec carries
+// no unknown predicate. Recognition is reached by the same path the evaluator
+// takes -- matchPositive delegates to the same inner normalisation and the
+// same target matchers -- so a spec the target matcher itself would fail
+// closed on stays unknown to the census, never recognised-but-false.
+func spellIsTargetingArgRecognised(arg string) bool {
+	spec, ok := spellIsTargetingInner(arg)
+	return ok && len(UnknownPredicates(spec)) == 0
+}
+
+// spellIsTargetingMatches evaluates one normalised `IsTargeting` target-spec
+// against a candidate stack spell or ability: met when ANY of the spell's
+// recorded targets (state.Object.Targets -- the same chosen-target provenance
+// the engine's target offers record) matches the spec. Object targets go
+// through MatchesSpecCtx and player targets through MatchesPlayerSpecCtx --
+// the two matchers the rest of the filter grammar uses -- with the caller's
+// SpecContext binding You/Source, so YouCtrl/Self/Other clauses and the
+// `~Other`-rewritten +Other resolve against the same perspective the rest of
+// the spec sees. An untargeted spell (an empty list) is a resolved non-match,
+// never an unresolved gate; a target record with no object behind it is
+// skipped, not a match.
+func spellIsTargetingMatches(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	if o == nil {
+		return false
+	}
+	for _, tgt := range o.Targets {
+		if tgt.IsPlayer {
+			if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
+				return true
+			}
+			continue
+		}
+		if tgt.Obj == 0 {
+			continue
+		}
+		if MatchesSpecCtx(g, spec, tgt.Obj, sc) {
+			return true
+		}
+	}
+	return false
+}
+
 // positiveRecognised reports whether a predicate token p is a recognised
 // positive-evaluation shape: an entry in the `predicates` map, a numeric
 // <field><CMP><n> predicate, a generic non<X> negation whose <X> is a
@@ -2422,6 +2513,15 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
+	// Forge's `IsTargeting <target-spec>` (Spell.IsTargeting after the base
+	// cut -- Shiko and Narset Unified's and Orvar's ConditionPresent$, the
+	// ValidSA$ cast gates, Head of the Class's ValidSpell$): recognised
+	// exactly when the argument is a complete form the evaluator answers, so
+	// a malformed ValidX or an unknown inner predicate stays unknown to the
+	// census -- the same resolution matchPositive reaches.
+	if arg, ok := spellIsTargetingArg(p); ok {
+		return spellIsTargetingArgRecognised(arg)
+	}
 	if _, ok := keywordPredicateFor(p); ok {
 		return true
 	}
@@ -2949,6 +3049,18 @@ func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	// Forge's `IsTargeting <target-spec>`: the candidate's own recorded
+	// target list decides, not its printed face. The token is already the
+	// recognised-shape resolution positiveRecognised made, so an argument
+	// that fails to normalise here (a malformed ValidX) is unresolved, never
+	// an always-false a negation could invert into a match.
+	if arg, ok := spellIsTargetingArg(p); ok {
+		spec, sok := spellIsTargetingInner(arg)
+		if !sok {
+			return false, false
+		}
+		return spellIsTargetingMatches(g, spec, o, sc), true
+	}
 	if hasAbilityToken(p) {
 		return objectHasAbility(o, strings.TrimPrefix(p, "hasAbility ")), true
 	}

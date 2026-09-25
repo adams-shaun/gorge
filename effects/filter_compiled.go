@@ -134,6 +134,13 @@ func specialPositiveToken(p string) bool {
 		"IsRemembered", "IsTriggerRemembered":
 		return true
 	}
+	// Forge's `IsTargeting <target-spec>`: recognised through the same
+	// completeness resolution the census and the textual matcher use, so an
+	// incomplete argument classifies as unknown (csUnknown) and fails closed
+	// exactly where matchPositive would have refused it.
+	if arg, ok := spellIsTargetingArg(p); ok {
+		return spellIsTargetingArgRecognised(arg)
+	}
 	return strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") ||
 		strings.HasPrefix(p, "greatestPower") ||
 		strings.HasPrefix(p, "greatestCMC_") ||

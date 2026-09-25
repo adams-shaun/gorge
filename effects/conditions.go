@@ -662,10 +662,14 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// The `Spell.IsTargeting <target-spec>` present form (Shiko and Narset's
 	// and Orvar, the All-Form's `ConditionDefined$ TriggeredSpellAbility`
 	// guards) is a property of the triggering spell's own TARGET LIST, not of
-	// its printed face. The generic matcher has no IsTargeting predicate and
-	// would report the token unknown (fail-open); only this group's present
-	// spec is answered here, and only when the spec is exactly this shape, so
-	// every other group and shape keeps the ordinary matcher untouched.
+	// its printed face. The shared matcher now knows the predicate
+	// (positiveRecognised/matchPositive delegate to spellIsTargetingMatches),
+	// but the ordinary path would still apply the Spell BASE first -- and the
+	// base reads the candidate's zone (state.ZStack), which a triggering spell
+	// that has already resolved no longer satisfies. So the shape is still
+	// routed here, bypassing the base, when -- and only when -- every
+	// alternative is exactly this shape and the shared grammar answers its
+	// argument whole; every other group and shape keeps the ordinary matcher.
 	spellTargeting := defined == "TriggeredSpellAbility" && isSpellTargetingPresent(present)
 	if present != "" {
 		check := present
@@ -851,9 +855,15 @@ func conditionMetBattlefield(h Host, c *Ctx, present, compare string) (met, reso
 // isSpellTargetingPresent reports whether spec is exactly Forge's
 // `Spell.IsTargeting <target-spec>` present filter (or the SpellAbility
 // spelling), possibly an OR list of those forms. It is deliberately strict:
-// a `+`-joined predicate, an unknown base or an empty argument leaves the
-// spec to the ordinary matcher and its UnknownPredicates fail-open, so this
-// local evaluator can never claim a shape it does not fully answer.
+// a `+`-joined predicate, an unknown base, an empty argument or an argument
+// the shared grammar cannot answer whole (a malformed ValidX, an unknown
+// inner predicate -- spellIsTargetingArgRecognised) leaves the spec to the
+// ordinary matcher and its UnknownPredicates census, so this gate can never
+// claim a shape it does not fully answer. The evaluation itself is the
+// shared matcher's (spellIsTargetingMatches via spellTargetingMatches); this
+// function only decides whether the ordinary object matcher's BASE check
+// (Spell reads the candidate's zone) must be bypassed in favour of the
+// spell's recorded targets.
 func isSpellTargetingPresent(spec string) bool {
 	if spec == "" {
 		return false
@@ -863,8 +873,8 @@ func isSpellTargetingPresent(spec string) bool {
 		if !ok || (base != "Spell" && base != "SpellAbility") {
 			return false
 		}
-		arg, ok := strings.CutPrefix(rest, "IsTargeting ")
-		if !ok || strings.TrimSpace(arg) == "" || strings.Contains(arg, "+") {
+		arg, ok := spellIsTargetingArg(rest)
+		if !ok || !spellIsTargetingArgRecognised(arg) {
 			return false
 		}
 	}
@@ -872,48 +882,32 @@ func isSpellTargetingPresent(spec string) bool {
 }
 
 // spellTargetingMatches evaluates Forge's `Spell.IsTargeting <target-spec>`
-// against a member spell: it is met when ANY of the spell's recorded targets
-// matches the spec. `Valid <spec>` (Shiko, Orvar) narrows to targets matching
-// <spec>; a bare player spec (`Player`) admits any player target. The target
-// list is state.Object.Targets -- the same chosen-target provenance the
-// engine's target offers record -- so an untargeted spell (an empty list) is
-// a resolved non-match, never an unresolved gate. Forge's `~Other` suffix
-// (Orvar's `Permanent.YouCtrl~Other`, "other permanents you control") is
-// rewritten to the existing `+Other` predicate conjunction, so the source
-// exclusion is the matcher's own source-relative reading.
+// against a member spell: met when ANY of the spell's recorded targets
+// matches the spec, OR over the spec's comma alternatives. The argument
+// conventions (`Valid ` strip, `~Other` rewrite) and the target walk are the
+// shared matcher's own (spellIsTargetingInner / spellIsTargetingMatches in
+// filter.go) -- this wrapper only splits the alternatives and cuts the
+// Spell./SpellAbility. base the alternative grammar carries, so the condition
+// gate and every other filter caller cannot drift apart. The strictness of
+// isSpellTargetingPresent means the argument always normalises here; the
+// continues are unreachable for a spec the gate admitted and stay as the
+// fail-closed backstop.
 func spellTargetingMatches(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
 	for alt := range filterAlternatives(spec) {
 		_, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
 		if !ok {
 			continue
 		}
-		arg, ok := strings.CutPrefix(rest, "IsTargeting ")
+		arg, ok := spellIsTargetingArg(rest)
 		if !ok {
 			continue
 		}
-		arg = strings.TrimSpace(arg)
-		if inner, ok := strings.CutPrefix(arg, "Valid "); ok {
-			arg = strings.TrimSpace(inner)
-		} else if strings.HasPrefix(arg, "Valid") {
-			// A malformed `ValidX` is not a shape this evaluator reads.
+		inner, ok := spellIsTargetingInner(arg)
+		if !ok {
 			continue
 		}
-		if inner, ok := strings.CutSuffix(arg, "~Other"); ok {
-			arg = strings.TrimSpace(inner) + "+Other"
-		}
-		for _, t := range o.Targets {
-			if t.IsPlayer {
-				if MatchesPlayerSpecCtx(g, arg, t.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
-					return true
-				}
-				continue
-			}
-			if t.Obj == 0 {
-				continue
-			}
-			if MatchesSpecCtx(g, arg, t.Obj, sc) {
-				return true
-			}
+		if spellIsTargetingMatches(g, inner, o, sc) {
+			return true
 		}
 	}
 	return false
