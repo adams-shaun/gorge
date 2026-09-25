@@ -3986,6 +3986,16 @@ func (e *Engine) resolveTop() {
 			resolveSA = &head
 		}
 	}
+	// Cipher (CR 702.99a): the encode is the resolving spell's own tail
+	// instruction, not a triggered ability. rules/cipher.go appends it to a
+	// copy of the chain so the ordinary suspension/continuation machinery runs
+	// it after the spell's effects and before the move off the stack below. A
+	// stack COPY (o.IsCopy) is not a card, so it cannot be encoded.
+	if !o.IsCopy {
+		if withCipher := cipherTailFor(f, resolveSA); withCipher != nil {
+			resolveSA = withCipher
+		}
+	}
 	if resolveSA != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,

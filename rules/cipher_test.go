@@ -32,6 +32,12 @@ const cipherProbeSrc = "Name:Test Cipher Probe\nManaCost:0\nTypes:Sorcery\nK:Cip
 // cipherBeanSrc is a vanilla 2/2 the tests attack with.
 const cipherBeanSrc = "Name:Bean\nManaCost:0\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
+// cipherOppInstantSrc is a targetless instant parked in seat 1's library so a
+// test can move it to seat 1's graveyard: Arcane Heist's spell ability targets
+// an instant or sorcery card in an OPPONENT's graveyard, and a spell with no
+// legal target fizzles (CR 608.2b) before its encode tail runs.
+const cipherOppInstantSrc = "Name:Opp Probe\nManaCost:0\nTypes:Instant\nA:SP$ GainLife | LifeAmount$ 1\nOracle:x\n"
+
 // cipherBoard builds a two-seat genesis whose seat-0 deck holds cipherCard
 // (when non-nil) plus the inline creature sources. Every creature is placed on
 // the battlefield, not summoning sick, ready to attack; the cipher card (if
@@ -53,8 +59,9 @@ func cipherBoard(t *testing.T, reg *cards.Registry, cipherCard *cards.Card, crea
 		t.Fatalf("cipherBoard deck has %d named cards, exceeds 40", len(deck0))
 	}
 	deck0 = append(deck0, mountainDeck(t, 40-len(deck0))...)
+	deck1 := append([]*cards.Card{card(t, cipherOppInstantSrc)}, mountainDeck(t, 39)...)
 	cfg := Config{Seed: 73, Names: []string{"a", "b"}, Tokens: reg.Tokens,
-		Decks: [][]*cards.Card{deck0, mountainDeck(t, 40)}}
+		Decks: [][]*cards.Card{deck0, deck1}}
 	e := New(cfg)
 
 	var cipherID state.ObjID
@@ -88,9 +95,12 @@ func cipherBoard(t *testing.T, reg *cards.Registry, cipherCard *cards.Card, crea
 	return e, cfg, cipherID, placed
 }
 
-// resolveCipher moves the cipher card onto the stack and then stack->graveyard
-// -- the exact move cards/kw_cipher.go's reflexive trigger fires on -- and
-// drains the encode ask. encodeChoice is the KModes answer (nil declines).
+// resolveCipher performs a REAL free cast of the cipher card, then drains the
+// stack through the encode ask -- the resolution path cards/kw_cipher.go's
+// tail instruction rides. It no longer fakes the stack->graveyard move the
+// removed trigger fired on: the encode is part of spell resolution, so the
+// test must exercise that resolution to reach the ask. encodeChoice is the
+// KModes answer (nil declines).
 func resolveCipher(t *testing.T, e *Engine, cipherID state.ObjID, encodeChoice []int) {
 	t.Helper()
 	o := e.G.Obj(cipherID)
@@ -100,11 +110,16 @@ func resolveCipher(t *testing.T, e *Engine, cipherID state.ObjID, encodeChoice [
 	if o.Zone != state.ZLibrary {
 		t.Fatalf("precondition: cipher card in zone %v, want library", o.Zone)
 	}
-	name := o.Face().Name
-	e.emit(events.Event{Kind: events.PutOnStack, Obj: cipherID, Player: 0,
-		From: state.ZLibrary, To: state.ZStack, Text: name})
-	e.emit(events.Event{Kind: events.MoveZone, Obj: cipherID, From: state.ZStack, To: state.ZGraveyard})
-	e.priorityRound()
+	base := len(e.L.Events)
+	e.beginPlay(0, cipherID, true, "", false, false)
+	if n := countPutOnStackFor(e, base, o.Face().Name); n != 1 {
+		t.Fatalf("precondition: actual cast put %d %s on the stack, want one", n, o.Face().Name)
+	}
+	if e.Pending() == nil {
+		// A targetless spell is cast and left on the stack awaiting its first
+		// priority round; a target-bearing one already posed its target ask.
+		e.priorityRound()
+	}
 	drainCipher(t, e, 40, encodeChoice, nil)
 }
 
@@ -176,20 +191,20 @@ func cipherEncodedOn(e *Engine, id state.ObjID) []state.ObjID {
 	return nil
 }
 
-// cipherHasExpanderTrigger reports whether the card's face carries the Cipher
-// keyword trigger the expander adds -- the precondition every e2e test depends
-// on (without it, the engine silently does nothing and a "nothing happened"
-// assertion would pass vacuously).
-func cipherHasExpanderTrigger(c *cards.Card) bool {
-	if len(c.Faces) == 0 {
+// cipherHasResolutionTail reports whether the card's face carries the Cipher
+// resolution-tail expansion the expander mints (the __kwCipher SVar
+// rules/cipher.go appends to the resolving spell's chain) -- the precondition
+// every e2e test depends on (without it, the engine silently does nothing and
+// a "nothing happened" assertion would pass vacuously).
+func cipherHasResolutionTail(c *cards.Card) bool {
+	if c == nil || len(c.Faces) == 0 {
 		return false
 	}
-	for _, tr := range c.Faces[0].Triggers {
-		if tr.Params["Keyword"] == "Cipher" {
-			return true
-		}
+	f := c.Faces[0]
+	if _, ok := f.KeywordParam("Cipher"); !ok {
+		return false
 	}
-	return false
+	return cards.ResolveSVar(f.SVars, "__kwCipher") != nil
 }
 
 // castCipherDelusions drives the compiled spell through an actual free cast,
@@ -276,7 +291,7 @@ func zoneOf(o *state.Object) any {
 func TestCipherKeywordRegistration(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	c := mustCorpusCard(t, reg, "Paranoid Delusions")
-	if !cipherHasExpanderTrigger(c) {
+	if !cipherHasResolutionTail(c) {
 		t.Fatal("precondition: Cipher keyword did not expand")
 	}
 	if !effects.Supported()["kw:Cipher"] {
@@ -286,18 +301,26 @@ func TestCipherKeywordRegistration(t *testing.T) {
 
 // TestCipherArcaneHeistEncodesOntoCreature drives the REAL compiled corpus
 // card Arcane Heist through the encode half: its K:Cipher line expands into a
-// reflexive trigger, resolving the spell offers the optional exile-encoded,
-// and accepting it exiles the card and records the association on the chosen
-// creature. Before the fix the keyword never expanded, no trigger existed, and
-// the card simply sat in the graveyard.
+// resolution-tail instruction, resolving the spell offers the optional
+// exile-encoded, and accepting it exiles the card and records the association
+// on the chosen creature. Arcane Heist's spell ability targets an instant or
+// sorcery in an opponent's graveyard, so a legal target is parked there first:
+// with none the spell fizzles (CR 608.2b) and never reaches its encode tail,
+// which would make the assertion below vacuous.
 func TestCipherArcaneHeistEncodesOntoCreature(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	heist := mustCorpusCard(t, reg, "Arcane Heist")
-	if !cipherHasExpanderTrigger(heist) {
-		t.Fatalf("Arcane Heist's K:Cipher did not expand into a trigger")
+	if !cipherHasResolutionTail(heist) {
+		t.Fatalf("Arcane Heist's K:Cipher did not expand into a resolution tail")
 	}
 	e, cfg, cipherID, creatures := cipherBoard(t, reg, heist, cipherBeanSrc)
 	creature := creatures[0]
+	// Arcane Heist's ValidTgts$ Instant.OppOwn,Sorcery.OppOwn: put one in
+	// seat 1's graveyard so the spell actually resolves.
+	oppTarget := negMoveByName(t, e, 1, "Opp Probe", state.ZGraveyard)
+	if o := e.G.Obj(oppTarget); o == nil || o.Zone != state.ZGraveyard || o.Owner != 1 {
+		t.Fatalf("precondition: legal opponent-graveyard target missing: %+v", o)
+	}
 
 	resolveCipher(t, e, cipherID, []int{0})
 
@@ -321,7 +344,7 @@ func TestCipherArcaneHeistEncodesOntoCreature(t *testing.T) {
 func TestCipherEncodedCombatDamageOffersCopyCast(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	delusions := mustCorpusCard(t, reg, "Paranoid Delusions")
-	if !cipherHasExpanderTrigger(delusions) {
+	if !cipherHasResolutionTail(delusions) {
 		t.Fatalf("Paranoid Delusions' K:Cipher did not expand into a trigger")
 	}
 	e, cfg, cipherID, creatures := cipherBoard(t, reg, delusions, cipherBeanSrc)
@@ -411,7 +434,7 @@ func TestCipherCopyDeclineCastsNothing(t *testing.T) {
 func TestCipherEncodeDeclineLeavesCardInGraveyard(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	probe := card(t, cipherProbeSrc)
-	if !cipherHasExpanderTrigger(probe) {
+	if !cipherHasResolutionTail(probe) {
 		t.Fatal("precondition: Cipher keyword did not expand")
 	}
 	e, cfg, cipherID, creatures := cipherBoard(t, reg, probe, cipherBeanSrc)
@@ -434,7 +457,7 @@ func TestCipherEncodeDeclineLeavesCardInGraveyard(t *testing.T) {
 func TestCipherNoCreatureDoesNotEncode(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	probe := card(t, cipherProbeSrc)
-	if !cipherHasExpanderTrigger(probe) {
+	if !cipherHasResolutionTail(probe) {
 		t.Fatal("precondition: Cipher keyword did not expand")
 	}
 	e, cfg, cipherID, _ := cipherBoard(t, reg, probe)
@@ -463,7 +486,7 @@ func TestCipherNoCreatureDoesNotEncode(t *testing.T) {
 func TestCipherOpponentCreatureIsNotAnEncodeHost(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	probe := card(t, cipherProbeSrc)
-	if !cipherHasExpanderTrigger(probe) {
+	if !cipherHasResolutionTail(probe) {
 		t.Fatal("precondition: Cipher keyword did not expand")
 	}
 	e, cfg, cipherID, creatures := cipherBoard(t, reg, probe, cipherBeanSrc)
