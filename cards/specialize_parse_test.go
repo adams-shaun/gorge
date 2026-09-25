@@ -58,8 +58,24 @@ func TestRegistrySpecializeCorpusFaces(t *testing.T) {
 			unsupported[d.Msg]++
 		}
 	}
+	wantRiders := map[string]bool{
+		"unsupported K:Specialize rider AdditionalActivationZone$": false,
+		"unsupported K:Specialize rider ReduceCost$":               false,
+	}
+	for msg := range unsupported {
+		if _, ok := wantRiders[msg]; !ok {
+			t.Errorf("unexpected Specialize rider diagnostic %q", msg)
+			continue
+		}
+		wantRiders[msg] = true
+	}
+	for msg, seen := range wantRiders {
+		if !seen {
+			t.Errorf("missing Specialize rider diagnostic %q (got %v)", msg, unsupported)
+		}
+	}
 	if len(unsupported) != 2 {
-		t.Errorf("unsupported Specialize rider diagnostics = %v, want Karlach AdditionalActivationZone$ and Imoen ReduceCost$", unsupported)
+		t.Errorf("unsupported Specialize rider diagnostics = %v, want exactly AdditionalActivationZone$ and ReduceCost$", unsupported)
 	}
 	count := 0
 	for _, c := range r.Cards {
