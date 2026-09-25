@@ -2241,6 +2241,32 @@ func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 // mid-resolution choice. That makes a multi-player search continue after the
 // owner whose answer suspended the effect, rather than rebuilding from the
 // first owner on every re-entry.
+// chooseFromDefinedPool is the ONE resolver for the ChangeZone
+// ChooseFromDefined$ selector: the value is a full Defined selector, resolved
+// through the shared Defined machinery (knownDefinedTargets) into the
+// eligible-object pool every dispatch path bounds its offered set with --
+// effHiddenPick's public-origin pick, effSearchLibrary's option list and
+// applyLibrarySearch's answer recheck. An unknown, unresolvable or
+// player-only result fails CLOSED: ok=false means the caller offers and
+// moves NOTHING (plus its loud Note), never the whole origin zone.
+func chooseFromDefinedPool(h Host, c *Ctx, raw string) (map[state.ObjID]bool, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, true
+	}
+	ts, ok := knownDefinedTargets(h, c, raw)
+	if !ok {
+		return nil, false
+	}
+	pool := make(map[state.ObjID]bool, len(ts))
+	for _, t := range ts {
+		if !t.IsPlayer && t.Obj != 0 {
+			pool[t.Obj] = true
+		}
+	}
+	return pool, true
+}
+
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state.Zone) {
 	players := searchPlayers(h, c, sa)
 	if c.ForgetOtherReady {
@@ -2264,6 +2290,25 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		start = searchTarget
 	}
 	g := h.Game()
+	// ChooseFromDefined$ narrows the offered pool to the objects a defined
+	// selector names -- the search path's twin of effHiddenPick's block, so a
+	// selector-constrained search (Sanar, Innovative First-Year's
+	// `Remembered.White`, The Celestial Toymaker's and Phyrexian Portal's
+	// bare `Remembered`, Assemble the Team's `TopThirdOfLibrary`) offers the
+	// resolved pool and never the whole library. Unresolved fails CLOSED:
+	// one Note, an empty pool, no options -- never a full-library search.
+	var cfdPool map[state.ObjID]bool
+	cfdActive := false
+	cfdResolved := true
+	if raw := strings.TrimSpace(sa.Params["ChooseFromDefined"]); raw != "" {
+		cfdActive = true
+		var ok bool
+		if cfdPool, ok = chooseFromDefinedPool(h, c, raw); !ok {
+			cfdResolved = false
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "ChangeZone ChooseFromDefined$ " + raw + " is not resolvable; nothing is offered"})
+		}
+	}
 	for targetIndex, owner := range players {
 		if targetIndex < start {
 			continue
@@ -2336,6 +2381,22 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 					seen[id] = true
 				}
 			}
+		}
+		// The ChooseFromDefined$ pool bounds the offered options in library
+		// order (a deterministic intersection): a non-member of the resolved
+		// set is never an option, and an unresolved selector leaves the pool
+		// empty -- the fail-to-find tail below completes the search with
+		// nothing moved, exactly like a filter that admits no card.
+		if cfdActive {
+			narrowed := make([]state.ObjID, 0, len(eligible))
+			if cfdResolved {
+				for _, id := range eligible {
+					if cfdPool[id] {
+						narrowed = append(narrowed, id)
+					}
+				}
+			}
+			eligible = narrowed
 		}
 		// WithTotalCMC$ is the cumulative mana-value budget over the found cards
 		// (Protean Hulk: "any number of creature cards with total mana value 6 or
@@ -3333,14 +3394,47 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		budget = 0
 	}
 	rider := classifyAttackingEntry(c, sa, to)
+	// ChooseFromDefined$ narrows the offered pool to the objects a defined
+	// selector names -- Cass, Hand of Vengeance's `ChooseFromDefined$ AttachedTo
+	// TriggeredCardLKICopy.Aura` offers only the Aura cards that WERE attached
+	// to the creature that died, not every Aura in the origin zone. The value
+	// is a full Defined selector resolved through the ONE shared pool resolver
+	// (chooseFromDefinedPool -- knownDefinedTargets, the same machinery every
+	// other Defined position reads), so an unknown or unresolvable value fails
+	// CLOSED (an empty pool, plus one Note) rather than silently offering the
+	// whole zone. The supported spellings are the resolver's own: the dotted
+	// `AttachedTo <referent>` form and every other referent it modelled
+	// (TriggeredCards, TriggeredSources, Remembered/Remembered.<color>,
+	// TopThirdOfLibrary, Targeted.<qualifier>, ExiledWith.<qualifier>); an
+	// unresolvable spelling reaches the same fail-closed Note. It is declared
+	// before the apply closure so the closure's answer recheck can bind it.
+	chooseFromDefined := make(map[state.ObjID]bool)
+	hasChooseFromDefined := false
+	chooseFromDefinedResolved := false
+	if raw := strings.TrimSpace(sa.Params["ChooseFromDefined"]); raw != "" {
+		hasChooseFromDefined = true
+		if pool, ok := chooseFromDefinedPool(h, c, raw); ok {
+			chooseFromDefinedResolved = true
+			chooseFromDefined = pool
+		}
+	}
+	if hasChooseFromDefined && !chooseFromDefinedResolved {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "ChangeZone ChooseFromDefined$ " + strings.TrimSpace(sa.Params["ChooseFromDefined"]) + " is not resolvable; nothing is offered"})
+	}
 	forgot := false
 	apply := func(owner state.PlayerID, ids []state.ObjID) []state.ObjID {
 		g := h.Game()
-		// Revalidate all picks before the clear, including IsRemembered.
+		// Revalidate all picks before the clear, including IsRemembered, and
+		// re-bound the answer by the ChooseFromDefined$ pool: the options only
+		// ever carried pool members, so a host that bypassed the wire cannot
+		// move a card outside the resolved selector either (an unresolved
+		// selector re-fails closed here the option build already noted).
 		valid := make([]state.ObjID, 0, len(ids))
 		for _, id := range ids {
 			o := g.Obj(id)
-			if o != nil && zoneIn(originZones, o.Zone) && MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
+			if o != nil && zoneIn(originZones, o.Zone) && MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) &&
+				(!hasChooseFromDefined || !chooseFromDefinedResolved || chooseFromDefined[id]) {
 				valid = append(valid, id)
 			}
 		}
@@ -3390,34 +3484,6 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		// not be dropped silently).
 		scheduleAtEOT(h, c, sa, moved)
 		return moved
-	}
-	// ChooseFromDefined$ narrows the offered pool to the objects a defined
-	// selector names -- Cass, Hand of Vengeance's `ChooseFromDefined$ AttachedTo
-	// TriggeredCardLKICopy.Aura` offers only the Aura cards that WERE attached
-	// to the creature that died, not every Aura in the origin zone. The value
-	// is a full Defined selector resolved through knownDefinedTargets, so an
-	// unknown or unresolvable value fails CLOSED (an empty pool, plus one
-	// Note) rather than silently offering the whole zone. Only the
-	// AttachedTo <referent> spelling is a modelled value here; the other
-	// ChooseFromDefined spellings are out of this ticket's scope (see the
-	// report's Issues) and reach the same fail-closed Note.
-	chooseFromDefined := make(map[state.ObjID]bool)
-	hasChooseFromDefined := false
-	chooseFromDefinedResolved := false
-	if raw := strings.TrimSpace(sa.Params["ChooseFromDefined"]); raw != "" {
-		hasChooseFromDefined = true
-		if ts, ok := knownDefinedTargets(h, c, raw); ok {
-			chooseFromDefinedResolved = true
-			for _, t := range ts {
-				if !t.IsPlayer && t.Obj != 0 {
-					chooseFromDefined[t.Obj] = true
-				}
-			}
-		}
-	}
-	if hasChooseFromDefined && !chooseFromDefinedResolved {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "ChangeZone ChooseFromDefined$ " + strings.TrimSpace(sa.Params["ChooseFromDefined"]) + " is not resolvable; nothing is offered"})
 	}
 	// "Any number" (Cass's OptionalPrompt$ text) is the absent-ChangeNum$
 	// reading when ChooseFromDefined$ is present: the pool itself bounds the
@@ -3867,6 +3933,25 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 	}
 	window := searchLibraryWindow(h, c, sa, zoneOf(g, state.ZLibrary, owner))
+	// ChooseFromDefined$ bounds the search's VALID answers the same way the
+	// option list was bounded in effSearchLibrary (the two reads share the ONE
+	// pool resolver, so they cannot drift): a host that bypassed the wire
+	// cannot move a card outside the resolved selector, and an unresolved
+	// selector with an actual answer re-fails closed loudly (the option build
+	// already noted; this is the bypass guard).
+	var cfdPool map[state.ObjID]bool
+	cfdActive := false
+	if raw := strings.TrimSpace(sa.Params["ChooseFromDefined"]); raw != "" {
+		if pool, ok := chooseFromDefinedPool(h, c, raw); ok {
+			cfdPool, cfdActive = pool, true
+		} else {
+			if len(chosen) > 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "ChangeZone ChooseFromDefined$ " + raw + " is not resolvable; nothing is offered"})
+			}
+			chosen = nil
+		}
+	}
 	moved := make([]state.ObjID, 0, len(chosen))
 	// Imprint$ True records the cards this search actually moved in the
 	// source's persistent imprintedCards association (state.Object.Imprinted),
@@ -3884,6 +3969,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		o := g.Obj(id)
 		if o != nil && o.Owner == owner && zoneIn(zones, o.Zone) &&
 			(o.Zone != state.ZLibrary || containsID(window, id)) &&
+			(!cfdActive || cfdPool[id]) &&
 			MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 			valid = append(valid, id)
 		}
