@@ -1824,53 +1824,77 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 					Label: "Cast " + mf.Name, Obj: id, Mode: "modal_spell"})
 			}
 		}
-		if castRestricted(p, id) {
-			continue
-		}
 		// CR 709.4/709.5: a non-Room split card's alternate half is castable
 		// on its own (mode split_alt, consumed by beginCast's FlipFace exactly
 		// like room_alt) and, when the card carries K:Fuse, BOTH halves may be
 		// cast as one fused spell (mode fuse, paying the combined cost and
-		// resolving both halves). Both offers read the half's OWN timing
-		// (review MAJOR 2), targets and cost through
+		// resolving both halves). The split_alt offer reads the half's OWN
+		// timing (review MAJOR 2), targets and cost through
 		// splitCastTargetsAvailable, so a half with no legal target -- or one
 		// the seat cannot pay for -- is withheld independently of the front
-		// face. They stand ABOVE the front-face spellTimingOK gate below on
+		// face. It stands ABOVE the front-face spellTimingOK gate below on
 		// purpose: CR 709.4 gives each half its own timing, so a front-Sorcery
 		// half must not withhold its instant alternate half during an
 		// opponent's turn (incubation_incongruity, discovery_dispersal,
-		// said_done, spring_mind). For that reason they also precede the
-		// plain cast in the option list for a split card. The card-level
-		// castRestricted/castSuppressed gates above stay shared -- casting a
-		// half is casting the card.
+		// said_done, spring_mind). For that reason it also precedes the plain
+		// cast in the option list for a split card.
+		//
+		// The prohibition gate is castRestrictedAsFace on the HALF being cast,
+		// not the card-level castRestricted continue below (which reads the
+		// front face). A restriction matching only the front half must not
+		// withhold this half's offer, and one matching only this half must not
+		// be missed by probing the front (the same two directions the
+		// modal_spell offer fixed in e89e1a48b; regression-tested in
+		// rules/alternate_face_restriction_test.go). castSuppressed above
+		// stays shared: casting a half is casting the card.
 		if sf := splitAlternateCastFace(o); sf != nil {
 			instant := sf.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)
-			if (instant || sorcery) && e.splitCastTargetsAvailable(p, id, sf) {
+			if (instant || sorcery) && e.splitCastTargetsAvailable(p, id, sf) &&
+				!castRestrictedAsFace(p, id, sf) {
 				if offerCastableAsFace(p, id, sf, withSpellAbilityExtras(sf, e.parseCost(sf.ManaCost)), spellScope("")) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + sf.Name, Obj: id, Mode: "split_alt"})
 				}
 			}
 		}
+		// CR 714.3a: an Adventure spell face has its own timing and may be
+		// cast from hand even when the creature front is not currently castable.
+		// It stands above the front-face gate for the same reason split_alt
+		// does, and its prohibition is probed against the ADVENTURE face it
+		// casts (castRestrictedAsFace), not the creature front the card-level
+		// continue below reads -- a restriction matching only one face must
+		// decide only that face's offer.
+		if int(o.FaceIdx) == 0 {
+			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
+				e.castTargetsAvailable(p, id, af.SpellAbility()) && !castRestrictedAsFace(p, id, af) {
+				if offerCastableAsFace(p, id, af, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
+				}
+			}
+		}
+		// The card-level continue withholds the ORDINARY front-face cast (and
+		// every front-face alternative below it -- foretell, mayflash, kicker,
+		// Room doors, ...) when a CantBeCast restriction matches the front
+		// face. The alternate-face offers above already ran, each probed
+		// against its own face.
+		if castRestricted(p, id) {
+			continue
+		}
+		// CR 709.5: a fuse card's fused cast is a single spell with BOTH
+		// halves' characteristics, so it is NOT an alternate-face cast: the
+		// object stays at its front face (beginCast's fuse arm flips nothing),
+		// and the front-face castRestricted gate above is exactly the
+		// restriction the ordinary cast reads. A restriction that names only
+		// the alternate half therefore does not withhold the fused offer -- a
+		// known limitation reported in the ticket, not a silent substitution
+		// of an alternate-face probe for a fused cast.
 		if ff, fa := fusedSplitFaces(o); ff != nil {
 			if e.fusedTimingOK(p, id, ff, fa, sorcery) &&
 				e.splitCastTargetsAvailable(p, id, ff) && e.splitCastTargetsAvailable(p, id, fa) {
 				if offerCastable(p, id, e.fuseCost(ff, fa), spellScope(""), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + ff.Name + " // " + fa.Name + " (fused)", Obj: id, Mode: "fuse"})
-				}
-			}
-		}
-		// CR 714.3a: an Adventure spell face has its own timing and may be
-		// cast from hand even when the creature front is not currently castable.
-		// Keep the card-level restriction/suppression gates above shared, but
-		// evaluate this alternate face before the front-face timing gate.
-		if int(o.FaceIdx) == 0 {
-			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
-				e.castTargetsAvailable(p, id, af.SpellAbility()) {
-				if offerCastableAsFace(p, id, af, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
-					out = append(out, decision.Option{Index: len(out), Kind: "cast",
-						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
 				}
 			}
 		}
@@ -2494,11 +2518,15 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// ordinary cast transaction -- rawBaseCost, targets and resolution then
 	// read the aftermath face. The withSpellAbilityExtras fold prices the
 	// face's own SP Cost$ parts exactly like the adventure_alt offer above:
-	// without it a Finish-shaped gate would offer an unpayable cast.
+	// without it a Finish-shaped gate would offer an unpayable cast. The
+	// prohibition gate probes the AFTERMATH face being cast
+	// (castRestrictedAsFace), not the front face still displayed in the
+	// graveyard: a restriction matching only one half must decide only that
+	// half's offer.
 	for _, id := range e.G.Zone(state.ZGraveyard, p) {
 		o := e.G.Obj(id)
 		af := aftermathAlternateFace(o)
-		if af == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+		if af == nil || castRestrictedAsFace(p, id, af) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !e.spellTimingOK(p, id, af, sorcery) {
@@ -2686,9 +2714,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// Adventure face in exile, exactly the reason the Room offer parses its
 		// own face's cost too. The adventure-zone entry from a non-resolution
 		// path (CR 714.3b) is out of scope, and adventureZoneAvailable refuses
-		// it.
+		// it. The prohibition gate probes the MAIN face the recast actually
+		// casts (castRestrictedAsFace), not the Adventure spell face still
+		// displayed in exile: probing the displayed face would withhold an
+		// unrestricted front cast or offer a prohibited one whenever the
+		// restriction distinguishes the two faces.
 		if adventureSpellFace(o) != nil && int(o.FaceIdx) == 1 && e.adventureZoneAvailable(id) &&
-			!castRestricted(p, id) && !e.castSuppressed(p, id) {
+			!castRestrictedAsFace(p, id, o.Card.Faces[0]) && !e.castSuppressed(p, id) {
 			front := o.Card.Faces[0]
 			if e.spellTimingOK(p, id, front, sorcery) && e.castTargetsAvailable(p, id, front.SpellAbility()) &&
 				offerCastableAsFace(p, id, front, ParseCost(front.ManaCost), spellScope("")) {
