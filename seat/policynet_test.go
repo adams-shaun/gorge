@@ -842,7 +842,7 @@ func TestPolicyNetBlockersShapes(t *testing.T) {
 		return decision.Option{Index: idx, Kind: "block", Obj: blocker, Attacker: attacker, Player: 0,
 			Group: "blocker:" + string(rune('0'+blocker))}
 	}
-	board := boardFromView(view.View{Viewer: 0, Active: 1, Phase: "combat"})
+	board := BoardFromView(view.View{Viewer: 0, Active: 1, Phase: "combat"})
 	// Blockers 1 and 2, each able to block attackers 10 and 11.
 	d := &decision.Decision{Kind: decision.KBlockers, Min: 0, Max: 4, Seq: 5, Player: 0,
 		Options: []decision.Option{blk(0, 1, 10), blk(1, 1, 11), blk(2, 2, 10), blk(3, 2, 11)}}
