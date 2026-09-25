@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
-	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -25,18 +24,28 @@ import (
 // onto the battlefield permanent, and the printed face (which is retained on
 // the object even while face down, CR 708.8 only hides it from the RULES)
 // carries the cost.
-func init() {
-	// The coverage census: the morph family's cast side (rules/cast.go's
-	// morphDownFamily) and its turn-face-up special action (this file) are
-	// read directly off the printed K: line, so all three heads register
-	// here in their own files exactly as bestow.go, mutate.go and
-	// mayflashsac.go register theirs. Proof: rules/morph_test.go drives the
-	// face-down {3} cast for each family, rules/morph_turnup_test.go drives
-	// the CR 708.6 special action (Megamorph's +1/+1 counter, Disguise's
-	// Ward 2), and rules/morph_command_zone_test.go drives the command-zone
-	// offer.
-	effects.RegisterNonAPI("kw:Morph", "kw:Megamorph", "kw:Disguise")
-}
+// COVERAGE NOTE (deliberately NOT registered): kw:Morph / kw:Megamorph /
+// kw:Disguise stay OUT of effects.Supported(). The cast side
+// (rules/cast.go's morphDownFamily) and the CR 708.6 turn-face-up special
+// action (this file) work for the ordinary shapes -- a mana-only turn-up
+// cost (rules/morph_turnup_test.go) and a face-down {3} cast
+// (rules/morph_test.go) -- but two shapes the corpus prints are still
+// unsupported, and registering the head would claim them:
+//
+//  1. A LAND with the keyword (Zoetic Cavern K:Morph:2, Branch of Vitu-Ghazi
+//     K:Disguise:3) cannot be cast face down: legal.go's playableFromHand
+//     walk handles f.IsLand() and continues before the face-down offer, so
+//     the land's only offered action is play_land.
+//  2. A non-mana turn-face-up cost is parsed by morphFaceUpCost but never
+//     paid: turnFaceUp calls only payMana, so a Reveal<...> (Watcher of the
+//     Roost), a Sac<...> (Skirk Volcanist) or an {X} (Bane of the Living)
+//     turns face up for free.
+//
+// The Deadly Disguise import (internal/testutil/decks/deadly-disguise.json)
+// seats 24 carriers of these heads; the acceptance ratchet therefore names
+// them in knownUnsupported rather than over-claiming support. Register all
+// three heads here once both shapes are implemented (the land face-down
+// offer and the full turn-up cost grammar).
 
 type morphFaceUp struct {
 	cost Cost

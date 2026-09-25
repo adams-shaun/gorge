@@ -1,14 +1,13 @@
 // deadly_disguise_deck_test.go — the Deadly Disguise (MKC) Commander precon
-// import. The deck is a face-down/morph-family list, so the acceptance
-// ratchet cannot cover it without the three morph heads (kw:Morph,
-// kw:Megamorph, kw:Disguise) being registered: the cast side
-// (rules/cast.go's morphDownFamily) and the CR 708.6 turn-face-up special
-// action (rules/morph_turnup.go) read them straight off the printed K: line,
-// so they register beside bestow.go, mutate.go and mayflashsac.go.
-//
-// These tests assert the deck is actually seated by the ratchet and that its
-// morph-family carriers measure fully supported — the exact two things that
-// fail if the deck file or the registration is removed.
+// import. The deck is a face-down/morph-family list, and the family's two
+// remaining shapes are unimplemented: a LAND carrying the keyword cannot be
+// cast face down (legal.go's playableFromHand walk handles f.IsLand() and
+// continues before the face-down offer), and a non-mana turn-face-up cost
+// (Reveal/Sac/{X}) is parsed but never paid. So kw:Morph / kw:Megamorph /
+// kw:Disguise stay OUT of effects.Supported() and the deck's 24 carriers are
+// named in knownUnsupported as measured gaps (see rules/morph_turnup.go's
+// file comment). These tests pin that honest state: the deck is seated by the
+// ratchet and every carrier measures against its exact table entry.
 package rules
 
 import (
@@ -17,6 +16,21 @@ import (
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/internal/testutil"
 )
+
+// morphHeads are the three family heads the deck's carriers print.
+var morphHeads = []string{"kw:Morph", "kw:Megamorph", "kw:Disguise"}
+
+// morphHeadOn returns the family head a face prints, or "".
+func morphHeadOn(f interface {
+	KeywordParam(string) (string, bool)
+}) string {
+	for _, h := range []string{"Morph", "Megamorph", "Disguise"} {
+		if _, ok := f.KeywordParam(h); ok {
+			return "kw:" + h
+		}
+	}
+	return ""
+}
 
 // TestDeadlyDisguiseDeckIsSeatedByTheRatchet asserts the imported precon is
 // a repo deck the acceptance and param-census ratchets seat: RepoDeckNames
@@ -57,19 +71,23 @@ func TestDeadlyDisguiseDeckIsSeatedByTheRatchet(t *testing.T) {
 	}
 }
 
-// TestDeadlyDisguiseMorphFamilyHeadsAreRegistered pins the registration the
-// deck's 24 morph-family carriers depend on: all three heads must be in
-// effects.Supported(), and every carrier in the deck must then measure with
-// no missing primitive. Reverting the RegisterNonAPI call in
-// rules/morph_turnup.go makes the first assertion fail and makes 24 entries
-// reappear in the ratchet's measured set.
-func TestDeadlyDisguiseMorphFamilyHeadsAreRegistered(t *testing.T) {
+// TestDeadlyDisguiseMorphCarriersAreMeasuredGaps pins the honest measurement
+// the registration revert restores: none of the three heads is in
+// effects.Supported() while the land face-down cast and the non-mana turn-up
+// cost are unimplemented, and every morph-family carrier in the deck measures
+// exactly the head its face prints, matching its knownUnsupported entry.
+//
+// The count is asserted non-zero first so the per-card loop cannot pass
+// vacuously over an empty set. If the heads later become fully supported the
+// ratchet itself fails the stale entries; this test fails too, at the
+// Supported() assertion, which is the reminder to delete both.
+func TestDeadlyDisguiseMorphCarriersAreMeasuredGaps(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	supported := effects.Supported()
 
-	for _, head := range []string{"kw:Morph", "kw:Megamorph", "kw:Disguise"} {
-		if !supported[head] {
-			t.Fatalf("effects.Supported() is missing %q — the Deadly Disguise carriers will measure as gaps", head)
+	for _, head := range morphHeads {
+		if supported[head] {
+			t.Fatalf("effects.Supported() claims %q while a land face-down cast and a non-mana turn-up cost are unimplemented", head)
 		}
 	}
 
@@ -77,17 +95,19 @@ func TestDeadlyDisguiseMorphFamilyHeadsAreRegistered(t *testing.T) {
 	// this, the per-card loop below would pass vacuously over an empty set.
 	carriers := 0
 	for _, c := range testutil.RepoDeck(t, reg, "deadly-disguise") {
-		f := c.Faces[0]
-		if _, ok := f.KeywordParam("Morph"); !ok {
-			if _, ok := f.KeywordParam("Megamorph"); !ok {
-				if _, ok := f.KeywordParam("Disguise"); !ok {
-					continue
-				}
-			}
+		head := morphHeadOn(c.Faces[0])
+		if head == "" {
+			continue
 		}
 		carriers++
-		if m := reg.Unsupported(c, supported); len(m) != 0 {
-			t.Errorf("%s: Unsupported = %v, want none (its morph family is registered)", f.Name, m)
+		got := reg.Unsupported(c, supported)
+		want, ok := knownUnsupported[c.Faces[0].Name]
+		if !ok {
+			t.Errorf("%s needs %v, not in knownUnsupported — the deck's gap must be in the ratchet table", c.Faces[0].Name, got)
+			continue
+		}
+		if !sameSet(want, got) {
+			t.Errorf("%s: measured %v, knownUnsupported says %v", c.Faces[0].Name, got, want)
 		}
 	}
 	if carriers == 0 {
