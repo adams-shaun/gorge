@@ -292,34 +292,55 @@ func TestFaceDownExileHasNoExiledWithAssociation(t *testing.T) {
 }
 
 // TestFaceDownCarriersAreNotInRepoDecks asserts the discipline the head pins
-// rely on: none of the 12 bare-FaceDown$ ChangeZone carriers is in any repo
-// deck, so these tests cannot move TestHeads. It fails loudly if a deck
-// addition (e.g. the Deadly Disguise precon) ever imports one.
+// rely on: none of the 12 bare-FaceDown$ ChangeZone carriers is in a deck the
+// golden seat-count games seat from, so these tests cannot move TestHeads.
+//
+// The pool checked is LegacyDeckNames -- the CLOSED 12-deck list
+// rules/heads_test.go's TestHeads seats through playAcceptance -- not
+// RepoDeckNames. The head pins are byte-identical games over those 12 only
+// (acceptance_test.go: "The pool is LegacyDeckNames, never RepoDeckNames"),
+// and a Commander precon imported later may legitimately carry a carrier
+// without touching a single pinned game: the Deadly Disguise precon does
+// (Ashcloud Phoenix, Deathmist Raptor, Yedora, Grave Gardener).
+// TestFaceDownCarriersAreOutsideTheHeadPinnedPool pins that sweep from the
+// deck import's side. This test fails loudly if a HEAD-PINNED deck ever gains
+// one of the carriers, which is the regression it exists to catch.
 func TestFaceDownCarriersAreNotInRepoDecks(t *testing.T) {
-	carriers := map[string]bool{
-		"Ashcloud Phoenix":            true,
-		"Deathmist Raptor":            true,
-		"Yedora, Grave Gardener":      true,
-		"Yarus, Roar of the Old Gods": true,
-		"Shorecrasher Elemental":      true,
-		"Magar of the Magic Strings":  true,
-		"Missy":                       true,
-		"Tezzeret, Cruel Machinist":   true,
-		"The Moonbase":                true,
-		"The Cyber-Controller":        true,
-		"Tezzeret's Reckoning":        true,
-		"Cybership":                   true,
-		"Death in Heaven":             true,
+	pool := testutil.LegacyDeckNames()
+	// PRECONDITION: the head-pinned pool is non-empty, so the scan below
+	// cannot pass vacuously if the pool ever empties.
+	if len(pool) == 0 {
+		t.Fatal("LegacyDeckNames() is empty; the head-pin carrier scan would pass vacuously")
 	}
-	for _, name := range testutil.RepoDeckNames() {
+	for _, name := range pool {
 		f, err := testutil.LoadRepoDeckFile(name)
 		if err != nil {
 			t.Fatalf("load deck %s: %v", name, err)
 		}
 		for _, c := range f.Cards {
-			if carriers[c.Name] {
+			if faceDownChangeZoneCarriers[c.Name] {
 				t.Errorf("deck %s carries face-down ChangeZone carrier %q; the face-down head pins are no longer safe", name, c.Name)
 			}
 		}
 	}
+}
+
+// faceDownChangeZoneCarriers is the set the face-down pins act on: every
+// corpus card that returns a permanent to the battlefield with a bare
+// FaceDown$ True ChangeZone. Kept in one place so the head-pin discipline
+// test and the deck-import sweep cannot drift apart.
+var faceDownChangeZoneCarriers = map[string]bool{
+	"Ashcloud Phoenix":            true,
+	"Deathmist Raptor":            true,
+	"Yedora, Grave Gardener":      true,
+	"Yarus, Roar of the Old Gods": true,
+	"Shorecrasher Elemental":      true,
+	"Magar of the Magic Strings":  true,
+	"Missy":                       true,
+	"Tezzeret, Cruel Machinist":   true,
+	"The Moonbase":                true,
+	"The Cyber-Controller":        true,
+	"Tezzeret's Reckoning":        true,
+	"Cybership":                   true,
+	"Death in Heaven":             true,
 }

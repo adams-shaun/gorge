@@ -16,8 +16,11 @@
 //
 // The decks are compiled corpus cards only (no Forge script text is
 // committed here). The helpers come from manifest_test.go, altcast_test.go
-// and cast_test.go. No repo deck carries a morph carrier, so these tests do
-// not move the golden heads or the botbench pin.
+// and cast_test.go. The import of the Deadly Disguise precon
+// (internal/testutil/decks/deadly-disguise.json) seated 24 morph-family
+// carriers in the repo deck set, but they join the acceptance/replay pool,
+// not the closed legacyDeckNames list the golden heads seat from, so these
+// tests still do not move the golden heads or the botbench pin.
 package rules
 
 import (
