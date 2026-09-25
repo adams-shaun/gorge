@@ -309,6 +309,7 @@ type pendingCast struct {
 
 	sacs    []state.ObjID
 	sacPart int
+	sacPaid int
 
 	// emerge / emergeDone mark an Emerge cast (CR 702.118a): beginCast's
 	// "emerged" arm sets emerge and composes the printed K:Emerge cost with
@@ -4895,6 +4896,27 @@ func (e *Engine) sacAsk() bool {
 				continue
 			}
 		}
+		n -= pc.sacPaid
+		if n <= 0 {
+			pc.sacPart++
+			pc.sacPaid = 0
+			continue
+		}
+		if n > 0 && (n > 1 || pc.sacPart+1 < len(pc.cost.Sac)) {
+			pools := make([][]state.ObjID, len(pc.cost.Sac))
+			needs := make([]int, len(pc.cost.Sac))
+			for i, futurePart := range pc.cost.Sac {
+				needs[i] = int(futurePart.N)
+				if futurePart.Announced {
+					needs[i] = int(pc.x)
+				}
+				if i == pc.sacPart {
+					needs[i] -= pc.sacPaid
+				}
+				pools[i] = e.sacrificeCostCandidates(pc.player, pc.card, futurePart, pc.isAbility())
+			}
+			candidates = feasibleSacrificeChoices(candidates, pools, needs, pc.sacs, pc.sacPart)
+		}
 		if n <= 0 || n > len(candidates) {
 			// A cost that can no longer be fully paid must not commit half
 			// paid (fix round 1, reviewer Important 1). Abort the whole
@@ -4935,7 +4957,7 @@ func (e *Engine) sacAsk() bool {
 		if pc.isAbility() {
 			verb = "activate"
 		}
-		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 			Prompt: "Sacrifice a permanent to " + verb + " " + e.G.Obj(pc.card).Face().Name,
 			Source: pc.card}
 		for _, id := range candidates {
@@ -7129,8 +7151,17 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 		for _, o := range chosen {
 			pc.sacs = append(pc.sacs, o.Obj)
+			pc.sacPaid++
 		}
-		pc.sacPart++
+		part := pc.cost.Sac[pc.sacPart]
+		total := int(part.N)
+		if part.Announced {
+			total = int(pc.x)
+		}
+		if pc.sacPaid >= total {
+			pc.sacPart++
+			pc.sacPaid = 0
+		}
 	case "subcounter":
 		// The chosen counter-removal pick of a SubCounter cost part: a
 		// wildcard "Any" part records one counter unit per answer (the ask
