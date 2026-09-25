@@ -238,10 +238,33 @@ func TestChangeZoneForgetOtherRememberedReplacesTheSet(t *testing.T) {
 	}
 }
 
-// TestChooseCardChoicesFromPersistentRemembered pins the ask half of the
-// Mimeoplasm's MimeoChooseCopy: with the persistent remembered pair in exile
-// and Choices$ Creature.IsRemembered | ChoiceZone$ Exile, the fresh ask
-// offers exactly those cards -- the ask the ForgetChosen bookkeeping serves.
+// A hand move replaces both resolution-local and persistent remembered sets.
+func TestChangeZoneHandForgetOtherRememberedClearsBeforeMoving(t *testing.T) {
+	h, src, cards := forgetFixtureHost(t, "Hand Card", "Stale Card")
+	moving, stale := cards[0], cards[1]
+	h.g.SetZone(state.ZHand, 0, []state.ObjID{moving.ID})
+	moving.Zone = state.ZHand
+	seedRemembered(h, src, stale.ID)
+	c := &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: stale.ID}}}
+	sa := sa(t, "DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeNum$ 1 | ForgetOtherRemembered$ True | RememberChanged$ True")
+	if moving.Zone != state.ZHand || stale.ID == moving.ID {
+		t.Fatal("precondition: hand candidate and remembered stale card must be distinct")
+	}
+	c.HandMove = []state.ObjID{moving.ID}
+	c.HandMoveDone = true
+	Resolve(h, c, sa)
+	if moving.Zone != state.ZExile {
+		t.Fatalf("hand candidate zone = %s, want exile", moving.Zone)
+	}
+	if len(c.Remembered) != 1 || c.Remembered[0].Obj != moving.ID {
+		t.Errorf("ctx remembered = %v, want only moved hand card %d", c.Remembered, moving.ID)
+	}
+	if got := rememberedIDs(h.g.Obj(src.ID).Remembered); !sameIDs(got, []state.ObjID{moving.ID}) {
+		t.Errorf("persistent remembered = %v, want only moved hand card %d", got, moving.ID)
+	}
+}
+
+// TestChooseCardChoicesFromPersistentRemembered pins the Mimeoplasm's ask.
 func TestChooseCardChoicesFromPersistentRemembered(t *testing.T) {
 	h, src, cards := forgetFixtureHost(t, "First Creature", "Second Creature")
 	first, second := cards[0], cards[1]

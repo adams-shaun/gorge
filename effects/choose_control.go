@@ -353,6 +353,20 @@ func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target, playerCho
 	}
 }
 
+// chooseCardRecord is the shared completion point for answered, random and
+// no-host picks. ForgetChosen removes only picked objects, after recording the
+// choice, so the chosen-card binding remains available to the next ability.
+func chooseCardRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target) {
+	choiceRecord(h, c, sa, picked, false)
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChosen"]), "True") {
+		for _, t := range picked {
+			if !t.IsPlayer {
+				forgetRememberedOne(h, c, t.Obj)
+			}
+		}
+	}
+}
+
 // keepChosenPlayers returns only player entries, the half a ChooseCard keeps.
 func keepChosenPlayers(ts []state.Target) []state.Target {
 	var out []state.Target
@@ -462,14 +476,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	i := c.ChoiceTarget
 	if c.ChoiceDone {
 		answered := c.Choice
-		choiceRecord(h, c, sa, c.Choice, false)
-		if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChosen"]), "True") {
-			for _, picked := range c.Choice {
-				if !picked.IsPlayer {
-					forgetRememberedOne(h, c, picked.Obj)
-				}
-			}
-		}
+		chooseCardRecord(h, c, sa, c.Choice)
 		c.ChoiceDone, c.Choice = false, nil
 		// c.ChoiceTarget is the asking pair's flat index, so choosers[i/groups]
 		// is who answered this.
@@ -543,7 +550,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		if each == nil && strings.EqualFold(sa.Params["AtRandom"], "True") {
-			choiceRecord(h, c, sa, randomChoices(h, choices, max), false)
+			chooseCardRecord(h, c, sa, randomChoices(h, choices, max))
 			continue
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
@@ -573,7 +580,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if hasBudget {
 			recorded = greedy
 		}
-		choiceRecord(h, c, sa, recorded, false)
+		chooseCardRecord(h, c, sa, recorded)
 		if reveal {
 			emitChosenReveal(h, chooser, recorded)
 		}
