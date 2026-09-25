@@ -143,6 +143,9 @@ func (e *Engine) priorityOptionStale(p state.PlayerID, opt decision.Option) stri
 		if _, ok := morphFaceUpCost(o); !ok {
 			return "the permanent is no longer a face-down morph-family permanent"
 		}
+		if e.turnFaceUpCantHappen(o.ID) {
+			return "the turn-up is prevented by a CantHappen replacement effect (CR 614.1a)"
+		}
 	}
 	return ""
 }

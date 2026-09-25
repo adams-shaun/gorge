@@ -2443,6 +2443,16 @@ func init() {
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated", "trig:SearchedLibrary",
 		"trig:Exploited",
+		// trig:TurnFaceUp (task cli-20260924T031747Z-6d0658fc): "When
+		// CARDNAME is turned face up" (CR 702.36e for morph/megamorph,
+		// CR 708.6 for manifest/cloak; Master of Pearls, Kheru
+		// Spellsnatcher and the mode's 125 corpus carriers). Matched by
+		// turnFaceUpMatches (rules/trigmatch_faceup.go) off the
+		// events.TurnFaceUp marker the morph-family special action and
+		// effSetState's Mode$ TurnFaceUp arm emit; proved by
+		// rules/turnup_replacement_test.go's
+		// TestMasterOfPearlsTurnFaceUpSelfTriggerFiresOnce.
+		"trig:TurnFaceUp",
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",

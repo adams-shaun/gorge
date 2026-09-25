@@ -75,6 +75,7 @@ import (
 type resumePoint struct {
 	kind        string
 	obj         state.ObjID
+	event       events.Event
 	sa          *cards.SA
 	outer       *resumePoint
 	replacement bool
@@ -1537,6 +1538,17 @@ func (e *Engine) continueAfterETBEntry(rp *resumePoint) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	if rp.kind == "turn_face_up_event" {
+		prior := e.applyingReplacement
+		e.applyingReplacement = true
+		e.emit(rp.event)
+		e.applyingReplacement = prior
+		e.resume = nil
+		if rp.outer != nil {
+			e.resumeResolution(rp.outer, nil)
+		}
+		return
+	}
 	if rp.kind == "deferred_ask" {
 		// A deferred second ask (Engine.Ask): everything chained before it
 		// has run, so pose it now and park on the resume point captured when
