@@ -529,6 +529,9 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
 				emitPutCounterChange(h, c, sa, events.Event{Kind: events.PlayerCounterChange, Player: p,
 					Counter: kind, Amount: n})
+				if n > 0 && strings.EqualFold(strings.TrimSpace(sa.Params["RememberPut"]), "True") {
+					placed = append(placed, state.Target{Player: p, IsPlayer: true})
+				}
 			}
 			continue
 		}
@@ -622,7 +625,14 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
 				Player: o.Controller, Text: "Renowned", Amount: n})
 		}
-		if !t.IsPlayer && t.Obj != 0 {
+		// RememberPut$ (Synth Eradicator's DBEnergy) names the objects this
+		// pass actually CounterChanged, never the attempt: a body whose count
+		// resolves to zero (a `CounterNum$ X` the unmodelled cost token leaves
+		// at 0, or a per-defined head degrading to 0) emits no positive
+		// CounterChange, so it must not remember the recipient and must not let
+		// a gated follow-up run as though a counter landed. The player branch
+		// above carries the same n > 0 guard.
+		if !t.IsPlayer && t.Obj != 0 && amount > 0 {
 			placed = append(placed, t)
 		}
 	}
@@ -702,6 +712,7 @@ func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string
 		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
 			continue
 		}
+		anyPlaced := false
 		for i, src := range srcs {
 			if src.IsPlayer {
 				continue
@@ -710,10 +721,17 @@ func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string
 				if amt := k.N * mult; amt > 0 {
 					h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID,
 						Counter: k.Kind, Amount: amt})
+					anyPlaced = true
 				}
 			}
 		}
-		placed = append(placed, t)
+		// The same RememberPut$/RememberCards$ positivity contract the
+		// ordinary target loop keeps: a source whose counters are all gone
+		// (or a multiplier resolving to 0) places nothing, so the recipient
+		// must not enter the remembered set.
+		if anyPlaced {
+			placed = append(placed, t)
+		}
 	}
 	rememberPlaced(c, sa, placed)
 }
@@ -834,8 +852,9 @@ func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
 	return false
 }
 
-// rememberPlaced folds the objects a PutCounter pass just countered into the
-// resolution's Remembered set, when the SA carries RememberCards$ True. The
+// rememberPlaced folds the recipients a PutCounter pass just countered into
+// the resolution's Remembered set, when the SA carries RememberCards$ True or
+// RememberPut$ True. The
 // flag names the cards that WERE countered, never the attempt: a pass that
 // placed no counter remembers nothing. A RepeatEach loop's rememberIteration
 // propagates what the iteration remembered into the loop's own set, so
@@ -843,7 +862,8 @@ func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
 // loop-tail DBEffect (RememberObjects$ Remembered) both see the vowed
 // creatures without any event-backed persistence.
 func rememberPlaced(c *Ctx, sa *cards.SA, placed []state.Target) {
-	if len(placed) == 0 || !strings.EqualFold(strings.TrimSpace(sa.Params["RememberCards"]), "True") {
+	if len(placed) == 0 || (!strings.EqualFold(strings.TrimSpace(sa.Params["RememberCards"]), "True") &&
+		!strings.EqualFold(strings.TrimSpace(sa.Params["RememberPut"]), "True")) {
 		return
 	}
 	c.Remembered = append(c.Remembered, placed...)
@@ -1129,7 +1149,12 @@ func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, pic
 			continue
 		}
 		emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
-		placed = append(placed, state.Target{Obj: id})
+		// RememberCards$/RememberPut$ name the recipients that actually took
+		// a counter: a CounterNum$ resolving to 0 places nothing (the event
+		// is a zero CounterChange), so it must not be remembered.
+		if n > 0 {
+			placed = append(placed, state.Target{Obj: id})
+		}
 	}
 	rememberPlaced(c, sa, placed)
 }

@@ -1736,8 +1736,9 @@ func GoadStaticGrantReadable(params map[string]string) bool {
 // effectRemembered resolves RememberObjects$ into the concrete object ids the
 // Effect captured. "Targeted"/"ParentTarget" remember the chosen targets;
 // "Remembered" (and creature-flavoured spellings) remember the objects the
-// resolution already had; "You & Targeted" and the default degrade to the
-// source plus the chosen targets. Objects only: a player-only remember yields
+// resolution already had, while "Imprinted" reads the source's persistent
+// imprint list; "You & Targeted" and the default degrade to the source plus
+// the chosen targets. Objects only: a player-only remember yields
 // an empty slice, which a restriction whose ValidCard$ is Card.IsRemembered
 // then applies to nothing. The player half of the same capture lives in
 // effectRememberedPlayers below.
@@ -1768,6 +1769,16 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			for _, t := range c.Remembered {
 				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
 					out = append(out, t.Obj)
+				}
+			}
+		case "Imprinted":
+			// Effect RememberObjects$ Imprinted captures the source's persistent
+			// Dig/ChangeZone imprint list (Synth Eradicator's may-play rider).
+			if o := h.Game().Obj(c.Source); o != nil {
+				for _, id := range o.Imprinted {
+					if h.Game().Obj(id) != nil {
+						out = append(out, id)
+					}
 				}
 			}
 		case "ReplacedCard":
