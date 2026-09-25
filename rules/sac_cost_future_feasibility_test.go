@@ -319,3 +319,59 @@ func TestManaAbilityOverlappingSacPartsNotOfferedWithoutAssignment(t *testing.T)
 		t.Fatalf("the overlapping-part mana ability was offered with no distinct assignment: %+v", e.Pending().Options)
 	}
 }
+
+// TestCastMultiUnitSacPartLeavesLaterPartItsOwnCandidate pins the split
+// shape's nontrivial case: a multi-unit CURRENT part beside a later part is
+// paid one unit per decision, and each unit's options keep a complete
+// distinct assignment for the remaining units AND the later part -- the
+// three artifacts are offered three, then two, then the later part takes
+// the last one alone.
+func TestCastMultiUnitSacPartLeavesLaterPartItsOwnCandidate(t *testing.T) {
+	e, spell, ids := dargoEngine(t, []string{
+		"Name:Anvil\nTypes:Artifact\nOracle:x\n",
+		"Name:Anvil2\nTypes:Artifact\nOracle:x\n",
+		"Name:Anvil3\nTypes:Artifact\nOracle:x\n",
+	}, "RRRRR")
+	for i, id := range ids {
+		if e.G.Obj(id).Zone != state.ZBattlefield {
+			t.Fatalf("precondition: artifact %d in %s, want battlefield", i, e.G.Obj(id).Zone)
+		}
+	}
+	if a, b, c := e.G.Obj(ids[0]), e.G.Obj(ids[1]), e.G.Obj(ids[2]); a.ID == b.ID || b.ID == c.ID || a.ID == c.ID {
+		t.Fatal("precondition: the three artifacts must be distinct objects")
+	}
+	cost := ParseCost("Sac<2/Artifact> Sac<1/Artifact>")
+	if len(cost.Sac) != 2 || cost.Sac[0].N != 2 || cost.Sac[1].N != 1 {
+		t.Fatalf("precondition: cost did not compile two Sac parts of 2 and 1: %+v", cost.Sac)
+	}
+	pc := &pendingCast{player: 0, card: spell, from: state.ZHand, ability: -1, cost: cost}
+	e.cast = pc
+	if !e.sacAsk() {
+		t.Fatal("sacrifice choice did not suspend")
+	}
+	paid := map[state.ObjID]bool{}
+	for want := 3; want >= 1; want-- {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != want {
+			t.Fatalf("unit ask %d: %+v, want a one-of ask over exactly %d candidates", 4-want, d, want)
+		}
+		for _, o := range d.Options {
+			if paid[o.Obj] {
+				t.Fatalf("unit ask %d re-offered already-paid object %d: %+v", 4-want, o.Obj, d.Options)
+			}
+		}
+		// After the first two units the sole remaining artifact is offered to
+		// the LAST part alone, never consumed early.
+		pick := d.Options[0]
+		paid[pick.Obj] = true
+		submitChoices(t, e, pick.Index)
+	}
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("spell zone = %s, want stack (cast completed after the three-unit cost)", e.G.Obj(spell).Zone)
+	}
+	for i, id := range ids {
+		if e.G.Obj(id).Zone != state.ZGraveyard {
+			t.Fatalf("artifact %d zone = %s, want graveyard (all three sacrificed)", i, e.G.Obj(id).Zone)
+		}
+	}
+}
