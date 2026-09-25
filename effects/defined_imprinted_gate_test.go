@@ -50,10 +50,10 @@ func TestDefinedImprintedKeepsTheExileGate(t *testing.T) {
 	if got := Defined(h, c, sa(t, "SP$ X | Defined$ Imprinted")); len(got) != 0 {
 		t.Fatalf("Defined$ Imprinted -> %v, want empty through the public Defined entry", got)
 	}
-	// ImprintedController outside a repeat iteration has no object whose
-	// controller to take and still resolves empty (no pile read either).
-	if got, ok := definedSpec(h, c, "ImprintedController"); !ok || len(got) != 0 {
-		t.Fatalf("definedSpec ImprintedController -> %v, want empty outside a repeat iteration", got)
+	// The player selector is a separate raw association read: even this
+	// battlefield-linked card names its current controller.
+	if got, ok := definedSpec(h, c, "ImprintedController"); !ok || len(got) != 1 || got[0] != (state.Target{Player: 0, IsPlayer: true}) {
+		t.Fatalf("definedSpec ImprintedController -> %v ok=%v, want controller 0", got, ok)
 	}
 
 	// The contrast that makes the gate meaningful: the DAMAGE-SOURCE reader
