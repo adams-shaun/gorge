@@ -2585,6 +2585,7 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 
 	if done {
 		applyProliferate(h, c, sa, picks, n)
+		h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 		return
 	}
 
@@ -2605,7 +2606,11 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if len(eligible) == 0 {
 		// Nothing carries a counter: no choice exists, so no ask (and no
-		// Note -- this is the correct resolution, not a degradation).
+		// Note -- this is the correct resolution, not a degradation). The
+		// proliferate action still happened, so the completed-action marker
+		// still records it (trig-proliferate: a "whenever you proliferate"
+		// trigger fires on the action, not on a counter landing).
+		h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 		return
 	}
 
@@ -2647,6 +2652,7 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 		Text: "proliferate resolved without a choice (no engine host to ask)"})
 	applyProliferate(h, c, sa, eligible, n)
+	h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 }
 
 // applyProliferate gives each live chosen recipient +n of each kind of

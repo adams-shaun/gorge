@@ -474,6 +474,16 @@ var actionTriggerModes = map[string]bool{
 	// trigger_match.go entry), not this map; the map only makes ActivationLimit$
 	// count the batch's single queue slot.
 	"DiscardedAll": true,
+	// Proliferate joins them for the same reason: it is an event mode whose
+	// marker Kind (events.Proliferate, task trig-proliferate) api:Proliferate
+	// emits, and the corpus carriers scope the trigger-level parameters Forge
+	// applies to every event mode -- Contagion Dispenser's line carries BOTH
+	// PlayerTurn$ True and ActivationLimit$ 1 ("Whenever you proliferate
+	// during your turn, ... triggers only once each turn"), so without
+	// membership it could fire on an opponent's turn and repeatedly on its
+	// controller's. Membership also makes an unevaluable CheckDefinedPlayer$
+	// predicate fail closed for the mode.
+	"Proliferate": true,
 }
 
 // triggerGameLimitFor parses a trigger's GameActivationLimit$ param (the
@@ -2423,6 +2433,12 @@ func init() {
 		"trig:Discover", "trig:SeekAll",
 		"trig:Surveil", "trig:Scry",
 		"trig:PhaseOutAll",
+		// trig-proliferate: "Whenever you proliferate ..." (CR 701.27; the 6
+		// corpus carriers at the pin, Voidwing Hybrid and Ezuri Stalker of
+		// Spheres among them). Matched by proliferateMatches on the
+		// events.Proliferate marker effProliferate emits once per completed
+		// action.
+		"trig:Proliferate",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched
