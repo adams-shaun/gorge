@@ -931,6 +931,32 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			}
 		}
 		return nil, true
+	case "PromisedSnapshot":
+		// CR 702.168c: the promised receiver a PERMANENT's gift trigger
+		// carries. The receiver is snapshotted at queue time (rules'
+		// altCostEnter reads the entering object's GiftPromisedTo), rides the
+		// KeywordTriggerPush payload as Remembered, and the body's
+		// Defined$/TokenOwner$ Promised referents are rewritten to this
+		// spelling at the mint (events.Apply's KeywordTriggerPush gift arm):
+		// the gift resolves independently of its source (CR 112.7a), and
+		// events.Move clears the source's live promise the moment the
+		// permanent leaves the battlefield -- the very interaction the
+		// respondable trigger's response window makes real. Resolves to the
+		// snapshot's player; a payload without one (a malformed push, a mint
+		// that carried no IDs) fail-closes to NOBODY with ok=true, the
+		// FlippedHeads convention. It deliberately never falls back to the
+		// live "Promised" read above -- that is the CR 702.168b
+		// spell-resolution path's own referent, and mixing them would make a
+		// resolved gift depend on whichever read happened to succeed.
+		for _, t := range c.Captured {
+			if t.IsPlayer {
+				if int(t.Player) < len(g.Players) {
+					return []state.Target{{Player: t.Player, IsPlayer: true}}, true
+				}
+				return nil, true
+			}
+		}
+		return nil, true
 	case "ReplacedCard":
 		// The card a zone-change replacement is acting on. Outside such a
 		// replacement (or after the object ceased to exist), resolve nothing.

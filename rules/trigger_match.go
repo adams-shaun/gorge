@@ -56,7 +56,14 @@ type pendingTrigger struct {
 	Evoke bool
 	// Gift marks the CR 702.168c triggered ability created by a promised
 	// permanent's entry. Its body is the source face's GiftAbility SVar.
-	Gift bool
+	// GiftTo is the promised receiver, snapshotted HERE at queue time from
+	// the entering object's GiftPromisedTo: the ability resolves
+	// independently of its source (CR 112.7a), and events.Move clears the
+	// live promise the moment the permanent leaves the battlefield, so the
+	// receiver travels with the KeywordTriggerPush payload (IDs) onto the
+	// resolving stack object instead of being re-read from it.
+	Gift   bool
+	GiftTo state.PlayerID
 	// Delayed marks a Mode$ Phase delayed trigger registration (CR 603.7)
 	// rather than a matched T: line. It is queued by checkDelayedTriggers when
 	// the registered phase is entered, and pushTrigger routes it to a

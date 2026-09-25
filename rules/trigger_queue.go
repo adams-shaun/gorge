@@ -418,11 +418,19 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
-		// CR 702.168c: this is a real ETB trigger. GiveGift is recorded
-		// when the trigger is put on the stack, not during spell resolution.
+		if int(pt.GiftTo) >= len(e.G.Players) {
+			return
+		}
+		// CR 702.168c: this is a real ETB trigger. GiveGift is recorded when
+		// the trigger is put on the stack, not during spell resolution -- and
+		// with the promised receiver snapshotted into the payload (IDs), the
+		// gift it marks stays deliverable however the permanent moves from
+		// here on, so the CR 702.168d reader fires for a gift that will be
+		// given.
 		e.emit(events.Event{Kind: events.GiveGift, Player: pt.Controller, Obj: pt.Source})
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "GiftAbility", Text: "gift ability"})
+			Obj: pt.Source, Counter: "GiftAbility", Text: "gift ability",
+			IDs: []state.ObjID{state.PlayerRef(pt.GiftTo)}})
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

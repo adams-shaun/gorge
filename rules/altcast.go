@@ -66,7 +66,15 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		cards.ResolveSVar(o.Face().SVars, "GiftAbility") != nil {
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source: ev.Obj, Controller: o.Controller, Gift: true,
-			Ctx: effects.Ctx{Source: ev.Obj, Controller: o.Controller},
+			// CR 702.168c: the promised receiver is snapshotted NOW, while
+			// the entering object still carries GiftPromisedTo. The trigger
+			// resolves after its source may have left the battlefield (CR
+			// 112.7a) -- the response window its respondability creates --
+			// and events.Move clears the live promise on any zone change, so
+			// the receiver rides the push payload instead of being re-read at
+			// resolution.
+			GiftTo: o.GiftPromisedTo,
+			Ctx:    effects.Ctx{Source: ev.Obj, Controller: o.Controller},
 		})
 	}
 	if o.CastFlags&state.FlagEvoked != 0 {
