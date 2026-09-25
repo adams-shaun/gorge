@@ -1002,9 +1002,23 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// counter/exile that follows the read and the LKI spelling reads the
 		// same face value the plain spelling does (the shared CardManaCost/
 		// CardManaCostLKI property arm below).
+		//
+		// The spell identity is the RESOLUTION-START snapshot (Ctx.TargetSpellLKI,
+		// captured by effects.Resolve before any effect can move a target), not
+		// the live zone: a Counter or ChangeZone earlier in the same chain has
+		// already moved the spell off the stack when the later sub-ability reads
+		// this ref (Reject Imperfection's DBProliferate gate, Gale's
+		// Redirection's DBRoll modifier, Press the Enemy's DBMayPlay filter), so
+		// a live ZStack test would lose exactly the spell the ref names. A
+		// hand-built Ctx with no snapshot falls back to the live zone, which is
+		// correct for a directly-evaluated body and never admits a battlefield
+		// permanent (its object was never on the stack at entry).
 		for _, t := range refTargetUnion(c) {
 			if t.IsPlayer || t.Obj == 0 {
 				continue
+			}
+			if c.TargetSpellLKI[t.Obj] {
+				return []state.Target{t}, true
 			}
 			if o := h.Game().Obj(t.Obj); o == nil || o.Zone != state.ZStack {
 				continue

@@ -22,8 +22,9 @@ import (
 //     explicit cases still precede the fallback, preserving the deliberate
 //     count-only distinctions (notably the RAW Imprinted associations).
 //  2. Explicit count refs that definedSpec does not model but Forge's calcX
-//     does: TargetedObjects/TargetedObjectsDistinct (the object-only union of
-//     the chain's target choices) and SpellTargeted (the targeted spell).
+//     does: TargetedObjects/TargetedObjectsDistinct (Forge's player-inclusive
+//     union of the chain's target choices; the Distinct spelling de-duplicates
+//     by full target identity) and SpellTargeted (the targeted spell).
 //
 // Every test loads the RECORDED SVar body off a real corpus card (corpus
 // Lookup) and evaluates exactly that body, the cast_ref_head_test.go pattern.
