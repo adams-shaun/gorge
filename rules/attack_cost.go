@@ -21,14 +21,10 @@
 // for a Phyrexian pip both branches of which are affordable, asks the real
 // colour-versus-life election.
 //
-// A static this build cannot price is SKIPPED, never enforced blanket -- the
-// permissive direction the shipped-restriction convention (combatrestriction1)
-// fixed for CantAttack/CantSacrifice: an unwhitelisted parameter (Nils'
-// RememberingAttacker$, a per-creature variable price) or an unresolvable
-// cost body (a hybrid, an announced Sac<X>, a dynamic tap head, an
-// {X}/{T}/Snow/Energy/Discard/Exile component) leaves the creature free to
-// attack. The skipped shape is the only remainder and is reported in the
-// ticket, not silently degraded to a phantom generic.
+// A static this build cannot price fails closed: the matching pair is marked
+// unpriceable and not offered, rather than letting the creature attack or
+// block for free. Unsupported grammar is reported as a remaining deviation,
+// never silently degraded to phantom generic mana.
 package rules
 
 import (
@@ -59,7 +55,7 @@ const chooseBlockPay chooseFor = 41
 // carrier passes, Dáin's Condition$ EnduringStory included now that rules/
 // storied.go reads the CR 702.175 latch.
 //
-// RememberingAttacker$ True is readable: attackUnlessPrice binds the
+// RememberingAttacker$ True is readable: attackUnlessCharge binds the
 // attacking creature into the pricing context as Remembered, which is what
 // the Remembered$CardCounters.ALL SVar body (Nils, Discipline Enforcer)
 // resolves against. It is meaningful only for the attack direction, so
@@ -87,8 +83,8 @@ func cantAttackUnlessParamsReadable(params map[string]string) bool {
 // shared cost-token grammar (chargeFromCost) for Sac/Return/tapXType/PayLife
 // and Phyrexian components. A cost this resolver cannot price (a hybrid, an
 // announced Sac<X>, an unresolvable SVar, ...) returns ok=false and the
-// caller skips the static -- so an unsupported shape never lets a creature
-// attack for free and never blocks it either.
+// matching pair is marked unpriceable, so an unsupported shape never lets a
+// creature attack or block for free.
 // The charge is re-derived per ATTACKER so a RememberingAttacker$ static can
 // read the creature the charge is for. attacker is the attacking creature
 // whose pair is being priced, or 0 for the block direction (a CantBlockUnless
@@ -99,7 +95,7 @@ func (e *Engine) attackUnlessCharge(sv staticView, attacker state.ObjID) (blockC
 		return blockCharge{}, false
 	}
 	if n, err := strconv.Atoi(raw); err == nil {
-		if n <= 0 {
+		if n < 0 {
 			return blockCharge{}, false
 		}
 		return blockCharge{mana: int32(n)}, true
@@ -114,14 +110,14 @@ func (e *Engine) attackUnlessCharge(sv staticView, attacker state.ObjID) (blockC
 	}
 	if strings.HasPrefix(raw, "Count$") {
 		n, ok := effects.EvalCountOK(e, ctx, raw)
-		if !ok || n <= 0 {
+		if !ok || n < 0 {
 			return blockCharge{}, false
 		}
 		return blockCharge{mana: n}, true
 	}
 	if body, ok := sv.SVars[raw]; ok {
 		n, ok2 := effects.EvalCountOK(e, ctx, body)
-		if !ok2 || n <= 0 {
+		if !ok2 || n < 0 {
 			return blockCharge{}, false
 		}
 		return blockCharge{mana: n}, true
@@ -248,8 +244,8 @@ func (c blockCharge) plus(o blockCharge) blockCharge {
 // other component -- a hybrid, a {T}, an {X}, a Snow/Energy/Discard/Exile/
 // Reveal/Behold/Blight/Draw/Counter part, a plain coloured pip, or an
 // unrecognised token -- leaves the whole cost unpriced (ok=false), so the
-// caller skips the static; the build never degrades an unmodelled cost to a
-// phantom generic, which would let a creature attack for free. Phyrexian
+// matching combat pair fails closed; the build never degrades an unmodelled
+// cost to phantom generic mana. Phyrexian
 // pips ARE modelled (as the life-or-colour component); the mana component is
 // generic only, and a plain coloured pip fails closed rather than being
 // promised as generic.
@@ -293,9 +289,6 @@ func (e *Engine) chargeFromCost(c Cost, source state.ObjID) (blockCharge, bool) 
 		ch.returns = append(ch.returns, chargeObjReq{n: part.N, spec: part.Spec, source: source})
 	}
 	ch.phyrexian = append(ch.phyrexian, c.Phyrexian...)
-	if ch.zero() {
-		return blockCharge{}, false
-	}
 	return ch, true
 }
 
@@ -307,9 +300,8 @@ func (e *Engine) chargeFromCost(c Cost, source state.ObjID) (blockCharge, bool) 
 // Count$ChosenNumber); then the shared cost-token grammar
 // (chargeFromCost) for PayLife, tapXType, Sac, Return and Phyrexian
 // components. Anything else -- a dynamic tapXType head (X/Any), a hybrid, an
-// unresolvable SVar -- returns ok=false and the caller skips the static (the
-// permissive direction: an unpriced static never blocks a creature, and it
-// never charges a phantom generic either).
+// unresolvable SVar -- returns ok=false, marking the matching pair
+// unpriceable rather than allowing a free block.
 func (e *Engine) blockUnlessCharge(sv staticView) (blockCharge, bool) {
 	raw := strings.TrimSpace(sv.Params["Cost"])
 	if raw == "" {
@@ -318,21 +310,21 @@ func (e *Engine) blockUnlessCharge(sv staticView) (blockCharge, bool) {
 	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: sv.SVars,
 		ChosenNumber: sv.ChosenNumber, ChosenNumberBound: sv.chosenNumberBound}
 	if n, err := strconv.Atoi(raw); err == nil {
-		if n <= 0 {
+		if n < 0 {
 			return blockCharge{}, false
 		}
 		return blockCharge{mana: int32(n)}, true
 	}
 	if strings.HasPrefix(raw, "Count$") {
 		n, ok := effects.EvalCountOK(e, ctx, raw)
-		if !ok || n <= 0 {
+		if !ok || n < 0 {
 			return blockCharge{}, false
 		}
 		return blockCharge{mana: n}, true
 	}
 	if body, ok := sv.SVars[raw]; ok {
 		n, ok2 := effects.EvalCountOK(e, ctx, body)
-		if !ok2 || n <= 0 {
+		if !ok2 || n < 0 {
 			return blockCharge{}, false
 		}
 		return blockCharge{mana: n}, true
@@ -601,7 +593,7 @@ func (e *Engine) openCombatPayPlan(p state.PlayerID, c blockCharge, excluded map
 	}
 	plan := &combatPayPlan{player: p, charge: c, taps: taps, sacs: sacs, returns: returns}
 	if len(c.phyrexian) > 0 {
-		both, canColour, canLife := e.combatPhyBothBranches(p, c)
+		both, canColour, canLife := e.combatPhyBothBranches(p, c, plan.tapExclude(), excluded)
 		plan.phyElection = both
 		if !both && !canColour && canLife {
 			plan.phyToLife = int32(len(c.phyrexian))
@@ -672,13 +664,19 @@ func (e *Engine) manaSatisfied(pl *combatPayPlan) bool {
 // branch, because the two white must also cover the two generic, and the
 // round-1 read checked the pips and the generic independently against the
 // same sources (the review's atomicity defect).
-func (e *Engine) combatPhyBothBranches(p state.PlayerID, c blockCharge) (both bool, canColour, canLife bool) {
+func (e *Engine) combatPhyBothBranches(p state.PlayerID, c blockCharge, excluded ...map[state.ObjID]bool) (both bool, canColour, canLife bool) {
 	if len(c.phyrexian) == 0 {
 		return false, false, false
 	}
 	player := e.G.Players[p]
 	conv := e.paymentConv(p, 0, false)
-	units := e.attackWindowUnits(p, nil)
+	exclude := make(map[state.ObjID]bool)
+	for _, set := range excluded {
+		for id := range set {
+			exclude[id] = true
+		}
+	}
+	units := e.attackWindowUnits(p, exclude)
 	// Colour branch: the generic plus every pip in its own colour, no pip paid
 	// with life. A coloured Cost entry, not a Phyrexian one, so this probes
 	// REAL colour mana; unlessManaReachable counts the payer's untapped
@@ -743,8 +741,16 @@ func (e *Engine) combatChargeAffordable(p state.PlayerID, c blockCharge, exclude
 	for _, id := range taps {
 		exclude[id] = true
 	}
-	return e.unlessManaReachable(p, mc, player.Pool, player.Snow, player.ManaUnits(),
+	reachable := e.unlessManaReachable(p, mc, player.Pool, player.Snow, player.ManaUnits(),
 		life-c.life, e.paymentConv(p, 0, false), e.attackWindowUnits(p, exclude))
+	if !reachable || len(c.phyrexian) == 0 {
+		return reachable
+	}
+	// The current choice contract routes all Phyrexian pips together. Do not
+	// offer a mixed-only multi-pip charge that the payment continuation cannot
+	// settle; a future per-pip chooser can widen this safely.
+	_, canColour, canLife := e.combatPhyBothBranches(p, c, exclude)
+	return canColour || canLife
 }
 
 // blockChargeAffordable is the block-direction alias of the shared
