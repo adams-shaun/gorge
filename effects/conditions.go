@@ -480,10 +480,10 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
 		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" &&
-		defined != "Returned" && defined != "TriggeredSourceLKICopy" &&
+		defined != "Returned" && defined != "ChosenCard" && defined != "TriggeredSourceLKICopy" &&
 		defined != "TriggeredSpellAbility" {
 		// Only the Remembered, Self, TriggeredCard, Imprinted, Targeted,
-		// Discarded and Returned families are in scope among DEFINED groups:
+		// Discarded, Returned and ChosenCard families are in scope among DEFINED groups:
 		// the objects a walk
 		// carries in Ctx.Remembered, the resolving source object alone (the
 		// Addendum shape: ConditionDefined$ Self | ConditionPresent$
@@ -501,14 +501,28 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// own chosen targets (Stalking Leonin's `ConditionDefined$ Targeted |
 		// ConditionPresent$ Card.ChosenCtrl`: the exile runs only when the
 		// targeted attacker is controlled by the secretly chosen player).
-		// ChosenCard, the LKI-copy variants and the rest need Ctx state this
-		// gate does not model (and whose fail-closed skip would change
-		// unrelated cards).
+		// The LKI-copy variants and the rest need Ctx state this gate does not
+		// model (and whose fail-closed skip would change unrelated cards).
 		return false, false
 	}
 	sc := c.SpecContext(c.Controller)
 	count := 0
 	group := rememberedWithSource(h, c)
+	if defined == "ChosenCard" {
+		// Use the same in-flight or event-backed binding as Defined$ ChosenCard.
+		// An absent binding/source stays unresolved (and therefore fail-open);
+		// an explicitly answered empty choice is a known zero.
+		group = ChosenTargets(g, c)
+		chosenBound := c.ChosenValid || len(c.Chosen) > 0
+		if !chosenBound {
+			if o := g.Obj(c.Source); o != nil && (o.Chosen != nil || len(o.Chosen) > 0) {
+				chosenBound = true
+			}
+		}
+		if !chosenBound {
+			return false, false
+		}
+	}
 	if defined == "Targeted" {
 		// ConditionDefined$ Targeted is the resolving ability's OWN answered
 		// targets: Forge's `Targeted` defined group. It reads the same two
