@@ -135,25 +135,13 @@ func TestAttachedToTargetedBoundFromContext(t *testing.T) {
 	}
 }
 
-// The player-attachment word stays unknown. `You` sits in predicateTypeWords
-// only because one card prints `Types:Legendary Planeswalker You`, but every
-// corpus `AttachedTo You` (Witchbane Orb, Lynde, Cheerful Tormentor) means a
-// Curse attached to the PLAYER, which state.Object.AttachedTo cannot express.
-// Recognising it would match nothing AND lift it out of UnknownPredicates,
-// which is what the card-validation pass uses to refuse a card it would
-// otherwise misplay -- so the card would start being accepted while its curse
-// test silently never fires. Recognised-and-inert is worse than unknown here.
-func TestAttachedToPlayerWordStaysUnknown(t *testing.T) {
-	for _, spec := range []string{"Card.AttachedTo You", "Aura.AttachedTo You"} {
-		unknown := UnknownPredicates(spec)
-		found := false
-		for _, u := range unknown {
-			if u == "AttachedTo You" {
-				found = true
-			}
-		}
-		if !found {
-			t.Errorf("%s: UnknownPredicates = %v, want it to still report %q so card validation keeps refusing the card", spec, unknown, "AttachedTo You")
-		}
-	}
-}
+// The player-attachment word is now RECOGNISED. The refusal this file used to
+// pin (TestAttachedToPlayerWordStaysUnknown) was correct while
+// state.Object.AttachedTo was an ObjID and a player attachment had no
+// representation, but the AttachedPlayer/HasAttachedPlayer pair landed since
+// and the positive behaviour is pinned by
+// TestAttachedToPlayerWordRecognised (effects/attachedto_player_test.go). A
+// word the state model can express must not be left unknown: unknown is what
+// the card-validation pass REFUSES on, so a recognised-and-correct read is
+// strictly better than a refusal, and a recognised-and-INERT read is exactly
+// what the new matcher avoids.

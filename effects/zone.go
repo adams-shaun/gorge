@@ -894,7 +894,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 // can be attached in a hidden zone) and is left unread.
 func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 	val := strings.TrimSpace(sa.Params["AttachedTo"])
-	if val == "" || moved == 0 {
+	playerVal := strings.TrimSpace(sa.Params["AttachedToPlayer"])
+	if moved == 0 || (val == "" && playerVal == "") {
+		return
+	}
+	if playerVal != "" {
+		changeZoneAttachedToPlayer(h, c, sa, moved, playerVal)
 		return
 	}
 	sub := *sa
@@ -930,6 +935,47 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 		return
 	}
 	emitAttach(h, moved, to)
+}
+
+// changeZoneAttachedToPlayer implements ChangeZone's AttachedToPlayer$ param:
+// "the moved card enters the battlefield attached to the resolved PLAYER"
+// (Lynde, Cheerful Tormentor's `AttachedToPlayer$ You`, Curse of Misfortunes'
+// `EnchantedPlayer`, Bitterheart Witch's `Targeted`, the two Trandformed$
+// Curses' `ParentTarget`). It is the player-destination twin of
+// changeZoneAttachedTo above; state.Object cannot carry both a permanent and
+// a player bearer, and events.Attach's player branch is what folds the seat
+// into AttachedPlayer/HasAttachedPlayer. The value is resolved with the
+// ordinary resolver against a shallow SA carrying it in Defined$ (the same
+// shape the object twin takes and definedSpec already supports: You,
+// Targeted, ParentTarget, EnchantedPlayer), and the FIRST living player it
+// names is the bearer. A value that resolves to no living seat -- an
+// unmodelled selector, or a target that left -- is ONE loud Note and the card
+// enters unattached, never a guessed seat. Battlefield destinations only (the
+// caller gates on that); nothing can be attached in a hidden zone.
+func changeZoneAttachedToPlayer(h Host, c *Ctx, sa *cards.SA, moved state.ObjID, val string) {
+	sub := *sa
+	sub.Params = map[string]string{"Defined": val}
+	var seat state.PlayerID
+	found := false
+	for _, t := range Defined(h, c, &sub) {
+		if t.IsPlayer && int(t.Player) < len(h.Game().Players) && !h.Game().Players[t.Player].Lost {
+			seat, found = t.Player, true
+			break
+		}
+	}
+	if !found {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "ChangeZone AttachedToPlayer$ " + val + " resolved to nothing; the card enters unattached"})
+		return
+	}
+	// The raw player-attach event, exactly the shape effAttach's own
+	// Enchant:Player branch emits: Obj is the MOVED card, Player the seat.
+	// emitAttach is deliberately NOT reused -- its Unattached detach half
+	// reads o.AttachedTo (the permanent link) only, and the Attach fold's
+	// player branch already clears AttachedTo, so a re-attach from one
+	// player to another or from a permanent to a player is handled by the
+	// one event (CR 701.3b: the new attachment supersedes the old).
+	h.Emit(events.Event{Kind: events.Attach, Obj: moved, Player: seat, Text: "attach to player"})
 }
 
 // applyFaceDownMarker stamps a just-built ChangeZone MoveZone with the

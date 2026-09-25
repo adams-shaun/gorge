@@ -44,6 +44,40 @@ func emitAttach(h Host, obj, bearer state.ObjID) {
 	h.Emit(events.Event{Kind: events.Attach, Obj: obj, IDs: []state.ObjID{bearer}})
 }
 
+// playerAttachPool resolves a DB$ Attach PlayerChoices$ spec to the living
+// seats it admits, in the deterministic AliveFrom seat walk, evaluated with
+// the resolving controller as You and the resolving source bound (so a
+// source-anchored spec such as `Player.!IsRemembered` reads the source's own
+// list). It is the ONE pool derivation: the asking pass offers these seats as
+// the decision's options and the answered re-entry re-checks the chosen seat
+// against the same helper, so the bot's own answer can never be outside what
+// the re-entry accepts (the one-home rule for a decision's legal answers).
+func playerAttachPool(h Host, c *Ctx, spec string) []state.PlayerID {
+	g := h.Game()
+	var out []state.PlayerID
+	for _, p := range g.AliveFrom(0) {
+		if MatchesPlayerSpecFrom(g, spec, p, c.Controller, c.Source) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// emitPlayerAttach emits the player-destination Attach event and, when
+// RememberAttached$ True, the two-half remember the object path's attachTo
+// makes (Lynde's DBDraw conditions on Remembered). The event is the raw
+// player-attach shape events.apply's Attach branch folds into
+// AttachedPlayer/HasAttachedPlayer; it is deliberately not routed through
+// emitAttach, whose Unattached detach half reads the permanent AttachedTo link
+// only.
+func emitPlayerAttach(h Host, c *Ctx, sa *cards.SA, attachObj state.ObjID, seat state.PlayerID) {
+	h.Emit(events.Event{Kind: events.Attach, Obj: attachObj, Player: seat, Text: "attach to player"})
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberAttached"]), "True") {
+		c.Remembered = append(c.Remembered, state.Target{Obj: attachObj})
+		eventRemember(h, c, attachObj)
+	}
+}
+
 // Attachable reports whether obj may legally be attached to target. Task 14
 // leaves this always-true: the full check includes "the target is not
 // protected from the attachment's colours" (CR 702.16e for being attached
@@ -170,7 +204,10 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	answered := c.AttachChoice
 	answerDests := c.AttachDests
 	answeredDone := c.AttachChoiceDone
+	answerPlayer := c.AttachPlayer
+	answeredPlayerDone := c.AttachPlayerDone
 	c.AttachChoice, c.AttachChoiceDone, c.AttachDests = nil, false, nil
+	c.AttachPlayer, c.AttachPlayerDone = 0, false
 
 	obj := c.Source
 	// objs is the resolved Object$ list. It names one object for every
@@ -231,25 +268,82 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			objs = objs[:0]
 		}
 	}
-	// An Aura with Enchant:Player attaches to a seat, not a permanent.
-	// The ordinary destination walker below intentionally accepts only
-	// battlefield objects; keep other Attach bodies on that existing path.
+	// An Aura with Enchant:Player or Enchant:Opponent attaches to a seat, not
+	// a permanent. The ordinary destination walker below intentionally accepts
+	// only battlefield objects; keep other Attach bodies on that existing path.
+	//
+	// Enchant:Opponent (Archnemesis, Maddening Hex, Overencumbered, Psychic
+	// Possession, Tenuous Truce) is the same player destination with a cast-
+	// time restriction the target offer already enforced (kwEnchant mints
+	// `ValidTgts$ Opponent`); this branch re-checks the restriction so a
+	// stale/malformed resolution can never enchant the controller.
 	if sa.Params["Keyword"] == "Enchant" && sa.Params["Object"] == "Self" {
 		if aura := h.Game().Obj(obj); aura != nil && aura.Face() != nil {
 			if param, ok := aura.Face().KeywordParam("Enchant"); ok {
 				spec, _, _ := strings.Cut(param, ":")
-				if spec == "Player" {
+				if spec == "Player" || spec == "Opponent" {
 					for _, dest := range Defined(h, c, sa) {
-						if dest.IsPlayer && int(dest.Player) < len(h.Game().Players) && !h.Game().Players[dest.Player].Lost {
-							h.Emit(events.Event{Kind: events.Attach, Obj: obj, Player: dest.Player, Text: "attach to player"})
-							return
+						if !dest.IsPlayer || int(dest.Player) >= len(h.Game().Players) || h.Game().Players[dest.Player].Lost {
+							continue
 						}
+						if spec == "Opponent" && dest.Player == c.Controller {
+							continue
+						}
+						h.Emit(events.Event{Kind: events.Attach, Obj: obj, Player: dest.Player, Text: "attach to player"})
+						return
 					}
 					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal player"})
 					return
 				}
 			}
 		}
+	}
+	// PlayerChoices$ (Curse of Leeches' `DB$ Attach | Object$ Self |
+	// PlayerChoices$ Player`, Lynde's `DB$ Attach | Object$ ChosenCard |
+	// PlayerChoices$ Opponent`): the destination is a player chosen from the
+	// named pool. The value names the DESTINATION POOL, not the chooser --
+	// `PlayerChoices$ Player` admits every living seat, `PlayerChoices$
+	// Opponent` the resolving controller's opponents. The chooser is the
+	// resolving controller (Forge's Chooser$ override is not carried by either
+	// corpus carrier and is not invented here). Keyed on the param, NOT on the
+	// Enchant:Player branch above: neither carrier carries a Keyword$ param.
+	if spec := strings.TrimSpace(sa.Params["PlayerChoices"]); spec != "" {
+		pool := playerAttachPool(h, c, spec)
+		if answeredPlayerDone {
+			// The answered seat is re-checked against the live pool
+			// (recomputed here with the SAME helper the asking pass used), so
+			// a stale or malformed answer is refused with no Attach (the
+			// malformed-answer conservative read) and the chain continues via
+			// Resolve. Deriving ask and re-check from one helper is what keeps
+			// the bot's own option-0 answer inside the validator.
+			for _, p := range pool {
+				if p == answerPlayer {
+					emitPlayerAttach(h, c, sa, obj, p)
+					return
+				}
+			}
+			return
+		}
+		if len(pool) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: "cannot attach: no legal player"})
+			return
+		}
+		if len(pool) == 1 {
+			// The only legal answer is not a decision anybody could answer
+			// differently: attach without an ask (the object path's auto-take
+			// convention).
+			emitPlayerAttach(h, c, sa, obj, pool[0])
+			return
+		}
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "attach_player_choice", ResumeSA: sa,
+			ResumeRemembered: copyTargets(c.Remembered),
+			Prompt:           choicePrompt(sa)}
+		for i, p := range pool {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "player", Player: p})
+		}
+		_ = Ask(h, d)
+		return
 	}
 	var legalT []state.Target
 	destCandidatesFor := func(attachObj state.ObjID) []state.Target {
