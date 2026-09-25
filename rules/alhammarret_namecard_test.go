@@ -1,14 +1,52 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
 
+// sVarHasToken asserts the raw SVar body carries the exact parameter token.
+// It keeps this real-card test tied to what the corpus script actually
+// says: a corpus re-pin that drops or renames a parameter must fail the
+// test instead of silently invalidating its coverage.
+func sVarHasToken(t *testing.T, raw, key, want string) {
+	t.Helper()
+	for _, tok := range strings.Split(raw, "|") {
+		if strings.TrimSpace(tok) == want {
+			return
+		}
+	}
+	t.Fatalf("precondition: SVar %q = %q, want token %q", key, raw, want)
+}
+
 func TestAlhammarretNameCardChooseFromDefinedCards(t *testing.T) {
 	e, reg := nameCardEngine(t, "Alhammarret, High Arbiter")
+	// Script precondition (the ticket's coverage target): the ETB reveal
+	// remembers the revealed cards and chains into a NameCard sub-ability
+	// whose choices are drawn from that memory, filtered to nonlands.
+	card, ok := reg.Lookup("Alhammarret, High Arbiter")
+	if !ok {
+		t.Fatal("corpus precondition: Alhammarret, High Arbiter missing")
+	}
+	face := card.Faces[0]
+	reveal, hasReveal := face.SVars["RevealHand"]
+	if !hasReveal {
+		t.Fatal("corpus precondition: RevealHand SVar missing")
+	}
+	sVarHasToken(t, reveal, "RevealHand", "DB$ RevealHand")
+	sVarHasToken(t, reveal, "RevealHand", "RememberRevealed$ True")
+	sVarHasToken(t, reveal, "RevealHand", "SubAbility$ DBNameCard")
+	nameSVar, hasName := face.SVars["DBNameCard"]
+	if !hasName {
+		t.Fatal("corpus precondition: DBNameCard SVar missing")
+	}
+	sVarHasToken(t, nameSVar, "DBNameCard", "DB$ NameCard")
+	sVarHasToken(t, nameSVar, "DBNameCard", "ValidCards$ Card.nonLand")
+	sVarHasToken(t, nameSVar, "DBNameCard", "ChooseFromDefinedCards$ Remembered")
+	sVarHasToken(t, nameSVar, "DBNameCard", "SubAbility$ DBCleanup")
 	arbiter := e.G.Zone(state.ZHand, 0)[0]
 	var opponentHand []state.ObjID
 	for _, name := range []string{"Grizzly Bears", "Counterspell", "Forest"} {
