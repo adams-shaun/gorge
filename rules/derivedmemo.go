@@ -242,7 +242,9 @@ func (e *Engine) derivedMemoizedAt(id state.ObjID, atStack state.Zone) Derived {
 
 func (e *Engine) verifyDerivedMemo(id state.ObjID, atStack state.Zone, got Derived) {
 	want := e.derivedCompute(id, atStack)
-	if got.Power != want.Power || got.Toughness != want.Toughness || got.Name != want.Name ||
+	if got.Power != want.Power || got.Toughness != want.Toughness ||
+		got.BasePower != want.BasePower || got.BaseToughness != want.BaseToughness ||
+		got.Name != want.Name ||
 		got.Colors != want.Colors || !slices.Equal(got.Keywords, want.Keywords) || !slices.Equal(got.Types, want.Types) {
 		panic(fmt.Sprintf("rules: derived memo stale for obj %d: cached %+v, fresh %+v", id, got, want))
 	}

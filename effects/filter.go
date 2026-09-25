@@ -3653,6 +3653,32 @@ func objectToughness(o *state.Object) int {
 	return f.Toughness() + int(o.Counter("P1P1"))
 }
 
+// objectBasePower / objectBaseToughness are the object-alone BASE P/T read:
+// the printed face value with NO counters. They are the fallback for a filter
+// call whose SpecContext carries no rules-bound base characteristic (a direct
+// effects-level match, or the census probe). The rules tier binds the real
+// base through SpecContext.BasePower/BaseToughness -- the value through layer
+// 7b, before 7c modifies and 7d counters (CR 613.4) -- and that binding is
+// authoritative when present. The fallback deliberately never adds a +1/+1
+// counter, so a counter can never move a base-power comparison on a caller
+// that forgot to bind.
+func objectBasePower(o *state.Object) int {
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return f.Power()
+}
+
+// objectBaseToughness is objectBasePower's toughness counterpart.
+func objectBaseToughness(o *state.Object) int {
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return f.Toughness()
+}
+
 // objectManaValue is the one mana-value read the extreme-CMC classifier
 // shares with the rest of the engine: the compiled face's CMC, the same
 // Face().Cmc() read manaValueOf, cascade and the Count$ walkers use. It is
@@ -3730,7 +3756,81 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		}
 		return false, false
 	}
-	for _, field := range [...]string{"power", "toughness", "cmc"} {
+	// The four characteristic operands a power/toughness comparison may name, on
+	// the candidate object this spec is matched against. `power`/`toughness`
+	// are the CURRENT derived values; `basePower`/`baseToughness` are the base
+	// through layer 7b (CR 613.4: printed or characteristic-defining, then a
+	// 7b set, BEFORE 7c modifies and 7d counters). When the rules tier bound
+	// the candidate's layer-derived values (SpecContext.HasDerivedPT /
+	// HasBasePT, set by rules' matchesSpec) those are authoritative; an
+	// unbound context -- a direct filter call or the census probe -- keeps the
+	// object-alone read the power predicates always had (printed face plus
+	// P1P1 counters for current, printed face alone for base).
+	currentPower := func() int {
+		if sc.HasDerivedPT {
+			return int(sc.DerivedPower)
+		}
+		return objectPower(o)
+	}
+	currentToughness := func() int {
+		if sc.HasDerivedPT {
+			return int(sc.DerivedToughness)
+		}
+		return objectToughness(o)
+	}
+	basePowerValue := func() int {
+		if sc.HasBasePT {
+			return int(sc.BasePower)
+		}
+		return objectBasePower(o)
+	}
+	baseToughnessValue := func() int {
+		if sc.HasBasePT {
+			return int(sc.BaseToughness)
+		}
+		return objectBaseToughness(o)
+	}
+	// fieldValue reads one of the four characteristic operands by name. It is
+	// the one place the RHS-operand spelling and the LHS field spelling agree,
+	// so `powerGTbasePower` and `basePowerEQ1` read the same values. The
+	// capitalised RHS spellings (`Power`/`Toughness`/`BasePower`/
+	// `BaseToughness`) are Forge's alias for the same operand.
+	fieldValue := func(operand string) (int, bool) {
+		switch operand {
+		case "power", "Power":
+			return currentPower(), true
+		case "toughness", "Toughness":
+			return currentToughness(), true
+		case "basePower", "BasePower":
+			return basePowerValue(), true
+		case "baseToughness", "BaseToughness":
+			return baseToughnessValue(), true
+		}
+		return 0, false
+	}
+	// applyCmp folds the comparison operator. `NOT` is Forge's "not equal"
+	// spelling (powerNOTbasePower, "power different from its base power");
+	// the other four are the two-character operators. An unrecognised operator
+	// reports ok=false so a caller can distinguish "not this shape" from a
+	// recognised-but-false comparison.
+	applyCmp := func(cmp string, lhs, rhs int) (result, ok bool) {
+		switch cmp {
+		case "LE":
+			return lhs <= rhs, true
+		case "GE":
+			return lhs >= rhs, true
+		case "EQ":
+			return lhs == rhs, true
+		case "LT":
+			return lhs < rhs, true
+		case "GT":
+			return lhs > rhs, true
+		case "NOT":
+			return lhs != rhs, true
+		}
+		return false, false
+	}
+	for _, field := range [...]string{"power", "toughness", "cmc", "basePower", "baseToughness"} {
 		if !strings.HasPrefix(name, field) {
 			continue
 		}
@@ -3739,38 +3839,22 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			return false, false
 		}
 		cmp, numStr := rest[:2], rest[2:]
-		// powerLTtoughness / powerGTtoughness / powerEQtoughness (and the
-		// mirror): compare the two characteristics instead of a numeric RHS
-		// (Assault Formation, Bedrock Tortoise, Ancient Lumberknot). The
-		// shape is recognised before any object read, so UnknownPredicates'
+		if strings.HasPrefix(rest, "NOT") {
+			cmp, numStr = "NOT", rest[3:]
+			if numStr == "" {
+				return false, false
+			}
+		}
+		// powerLTtoughness / powerGTbasePower / powerNOTbasePower (and the
+		// mirrors): compare two characteristics instead of a numeric RHS
+		// (Assault Formation, Bedrock Tortoise, Baird Argivian Recruiter).
+		// The shape is recognised before any object read, so UnknownPredicates'
 		// nil-object probe resolves it and the matcher and the census cannot
 		// disagree.
-		if (field == "power" || field == "toughness") && (numStr == "power" || numStr == "toughness" ||
-			numStr == "Power" || numStr == "Toughness") {
-			var lhs, rhs int
-			if field == "power" {
-				lhs = objectPower(o)
-			} else {
-				lhs = objectToughness(o)
+		if lhs, lhsOK := fieldValue(field); lhsOK {
+			if rhs, rhsOK := fieldValue(numStr); rhsOK {
+				return applyCmp(cmp, lhs, rhs)
 			}
-			if numStr == "power" || numStr == "Power" {
-				rhs = objectPower(o)
-			} else {
-				rhs = objectToughness(o)
-			}
-			switch cmp {
-			case "LE":
-				return lhs <= rhs, true
-			case "GE":
-				return lhs >= rhs, true
-			case "EQ":
-				return lhs == rhs, true
-			case "LT":
-				return lhs < rhs, true
-			case "GT":
-				return lhs > rhs, true
-			}
-			return false, false
 		}
 		n, err := strconv.Atoi(numStr)
 		if err != nil {
@@ -3787,9 +3871,13 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		var have int
 		switch field {
 		case "power":
-			have = objectPower(o)
+			have = currentPower()
 		case "toughness":
-			have = f.Toughness() + int(o.Counter("P1P1"))
+			have = currentToughness()
+		case "basePower":
+			have = basePowerValue()
+		case "baseToughness":
+			have = baseToughnessValue()
 		case "cmc":
 			// CR 202.3e: {X} counts as its chosen value in a spell's mana
 			// value. A caller that has the chosen X in hand (the CR 601.2e
@@ -3803,19 +3891,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 				have = int(parseCMC(f.ManaCost))
 			}
 		}
-		switch cmp {
-		case "LE":
-			return have <= n, true
-		case "GE":
-			return have >= n, true
-		case "EQ":
-			return have == n, true
-		case "LT":
-			return have < n, true
-		case "GT":
-			return have > n, true
-		}
-		return false, false
+		return applyCmp(cmp, have, n)
 	}
 	return false, false
 }
@@ -4072,6 +4148,24 @@ type SpecContext struct {
 	// overwhelmingly common board), so the linear scan below is cheaper than
 	// building a map.
 	DerivedTypes []ObjectTypes
+	// DerivedPower/DerivedToughness optionally supply the candidate object's
+	// CURRENT derived power/toughness (printed plus every applied continuous
+	// effect in layer order, then 7d counters) and BasePower/BaseToughness its
+	// BASE values through layer 7b (CR 613.4: printed or characteristic-
+	// defining, then a set, BEFORE 7c modifies and 7d counters). rules' layer
+	// walk binds them from Engine.Derived for the ONE object a spec is matched
+	// against (matchesSpec), so the numeric power/basePower predicates read the
+	// same values the rest of the engine does. HasDerivedPT / HasBasePT mark
+	// the binding present: an unbound context (a direct filter call or the
+	// census probe) falls back to the object-alone read, exactly the power
+	// predicates' pre-binding behaviour. Plain value fields, deliberately not a
+	// callable resolver: the same escape-analysis rationale as ExtraTypes.
+	DerivedPower     int32
+	DerivedToughness int32
+	HasDerivedPT     bool
+	BasePower        int32
+	BaseToughness    int32
+	HasBasePT        bool
 }
 
 // ObjectName binds one object to its layer-3 derived name.
