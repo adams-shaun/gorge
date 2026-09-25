@@ -527,7 +527,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			// behaviour) silently dropped the whole instruction -- the corpus
 			// carries 156 player-targeted PutCounter lines.
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
-				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+				emitPutCounterChange(h, c, sa, events.Event{Kind: events.PlayerCounterChange, Player: p,
 					Counter: kind, Amount: n})
 			}
 			continue
