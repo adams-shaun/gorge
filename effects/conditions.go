@@ -691,11 +691,9 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			// IsRemembered/Chosen clauses resolve, failing closed on an
 			// unreadable player qualifier per member. An object-spec member
 			// with an unknown predicate is already unresolved above.
-			if base, _, _ := strings.Cut(present, "."); present != "" && playerSpecBase(base) {
-				if MatchesPlayerSpecCtx(g, present, t.Player, c.Controller,
-					PlayerSpecCtx{Source: c.Source}) {
-					count++
-				}
+			if present != "" && MatchesPlayerSpecCtx(g, present, t.Player, c.Controller,
+				PlayerSpecCtx{Source: c.Source}) {
+				count++
 			}
 			continue
 		}
