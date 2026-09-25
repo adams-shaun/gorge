@@ -7,20 +7,23 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
-// newBloodCard is New Blood verbatim from the corpus: the GainControl's
-// SubAbility is the ChangeText body the test drives.
-func newBloodCard(t testing.TB) *cards.Card {
-	return card(t, "Name:New Blood\nManaCost:2 B B\nTypes:Sorcery\n"+
-		"A:SP$ GainControl | Cost$ 2 B B tapXType<1/Vampire> | ValidTgts$ Creature | SubAbility$ DBChangeText | SpellDescription$ x\n"+
-		"SVar:DBChangeText:DB$ ChangeText | Defined$ ParentTarget | ChangeTypeWord$ ChooseCreatureType Vampire | Duration$ Permanent\n"+
-		"Oracle:x\n")
+// corpusTextCard requires the exact compiled SA at the pinned corpus revision,
+// rather than re-parsing a test approximation of the carrier script.
+func corpusTextCard(t *testing.T, name string) *cards.Card {
+	t.Helper()
+	c, ok := testutil.CorpusRegistry(t).Lookup(name)
+	if !ok {
+		t.Fatalf("%s not found in compiled corpus", name)
+	}
+	return c
 }
 
-// TestNewBloodChangeTextEndToEnd casts New Blood for real and pins its compiled
+// TestNewBloodChangeTextEndToEnd casts compiled corpus New Blood and pins its
 // ChangeText body end to end: after the cast resolves, the stolen creature's
 // text carries the chosen creature type replaced by Vampire. Preconditions
 // make the assertion non-vacuous -- the victim is on the battlefield, its
@@ -28,7 +31,7 @@ func newBloodCard(t testing.TB) *cards.Card {
 // creature-type ask really was posed and answered.
 func TestNewBloodChangeTextEndToEnd(t *testing.T) {
 	t.Parallel()
-	newBlood := newBloodCard(t)
+	newBlood := corpusTextCard(t, "New Blood")
 	vampire := card(t, "Name:Vampire Source\nManaCost:1 B\nTypes:Creature Vampire\nPT:2/2\nOracle:x\n")
 	elf := card(t, "Name:Llanowar Elves\nManaCost:G\nTypes:Creature Elf Druid\nPT:1/1\nOracle:x\n")
 	victim := card(t, "Name:Elf Lord\nManaCost:1 G\nTypes:Creature Elf\nPT:1/1\nOracle:Other Elf creatures you control get +1/+1.\n")
@@ -49,6 +52,12 @@ func TestNewBloodChangeTextEndToEnd(t *testing.T) {
 	}
 	if victimID == 0 || vampireID == 0 {
 		t.Fatalf("setup: victim=%d vampire=%d, both must be on the battlefield", victimID, vampireID)
+	}
+	// New Blood must actually steal an opponent's permanent, not merely
+	// re-resolve GainControl on a creature the caster already controls.
+	e.emit(events.Event{Kind: events.ControlChange, Obj: victimID, Player: 1})
+	if e.G.Obj(victimID).Controller != 1 || e.G.Obj(vampireID).Controller != 0 {
+		t.Fatalf("precondition: victim and Vampire must have opposing controllers")
 	}
 	printed := e.G.Obj(victimID).Face().Oracle
 	if !strings.Contains(printed, "Elf") || strings.Contains(printed, "Vampire") {
@@ -99,6 +108,9 @@ func TestNewBloodChangeTextEndToEnd(t *testing.T) {
 		t.Fatal("api:ChangeText never posed its creature-type ask")
 	}
 
+	if e.G.Obj(victimID).Controller != 0 {
+		t.Fatalf("New Blood did not steal the target: controller=%d", e.G.Obj(victimID).Controller)
+	}
 	got := e.Text(victimID)
 	want := "Other Vampire creatures you control get +1/+1."
 	if got != want {
@@ -107,15 +119,11 @@ func TestNewBloodChangeTextEndToEnd(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestChangeTextSubstitutesAChosenColorWord pins the ChangeColorWord$ Choose
-// Choose shape (alter_reality/magical_hack): both the from and the to words are
-// chosen, asked one at a time, and the substitution is whole-word.
+// TestChangeTextSubstitutesAChosenColorWord casts compiled Alter Reality's
+// ChangeColorWord$ Choose Choose: both words are picked in one combined ask.
 func TestChangeTextSubstitutesAChosenColorWord(t *testing.T) {
 	t.Parallel()
-	recolor := card(t, "Name:Test Recolor\nManaCost:B\nTypes:Sorcery\n"+
-		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ +0 | NumDef$ +0 | SubAbility$ DBRecolor\n"+
-		"SVar:DBRecolor:DB$ ChangeText | Defined$ ParentTarget | ChangeColorWord$ Choose Choose | Duration$ Permanent\n"+
-		"Oracle:x\n")
+	recolor := corpusTextCard(t, "Alter Reality")
 	target := card(t, "Name:Black Knight\nManaCost:B B\nTypes:Creature Human Knight\nPT:2/2\nOracle:Protection from black.\n")
 	e, cfg, _ := corpusDeckEngine(t, []*cards.Card{recolor}, []*cards.Card{target})
 	var id state.ObjID
@@ -131,8 +139,8 @@ func TestChangeTextSubstitutesAChosenColorWord(t *testing.T) {
 		t.Fatalf("precondition: printed text = %q", e.Text(id))
 	}
 
-	addMana(t, e, 0, "B")
-	castCardNow(t, e, "Test Recolor")
+	addMana(t, e, 0, "UU")
+	castCardNow(t, e, "Alter Reality")
 	sawAsks := 0
 	for i := 0; i < 60; i++ {
 		d := e.Pending()
