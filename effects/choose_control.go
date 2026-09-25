@@ -15,6 +15,7 @@ func init() {
 	Register("ChoosePlayer", effChoosePlayer)
 	Register("ChooseSource", effChooseSource)
 	Register("GainControl", effGainControl)
+	Register("GainControlVariant", effGainControlVariant)
 	Register("ControlSpell", effControlSpell)
 	Register("ChangeTargets", effChangeTargets)
 	Register("RepeatEach", effRepeatEach)
@@ -485,7 +486,14 @@ func chooseEachPool(g *state.Game, c *Ctx, pool []state.Target, chooser state.Pl
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	choosers := chooseCardChoosers(h, c, sa)
 	selection := *c // candidate filters read the pre-clear remembered set
+	initForgetOtherSnapshot(h, c, sa, choosers, 2)
 	forgetOtherRemembered(h, c, sa)
+	if c.ForgetOtherReady {
+		// The snapshot is authoritative across the asks: a resumed chooser's
+		// pool must still match the pre-clear candidates (plus anything
+		// re-remembered since) after the first move cleared the live set.
+		selection.Remembered = append(append([]state.Target(nil), selection.Remembered...), c.ForgetOtherSnapshot...)
+	}
 	// Reveal$ True (Planetary Annihilation's "each player chooses six lands
 	// they keep" is public knowledge — CR 701.x's open choice): each chooser's
 	// ANSWERED choice is revealed to every seat with the same ids-Note
@@ -602,6 +610,12 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
+		// The ForgetOtherRemembered$ pre-clear snapshot rides the ask: a later
+		// chooser's pool (the cardChoices read above re-runs on every resumed
+		// pass) still matches the pre-clear candidates after the clear.
+		d.ResumeForgetOtherSnapshot = copyTargets(c.ForgetOtherSnapshot)
+		d.ResumeForgetOtherOwners = append([]state.PlayerID(nil), c.ForgetOtherOwners...)
+		d.ResumeForgetOtherReady, d.ResumeForgetOtherCleared = c.ForgetOtherReady, c.ForgetOtherCleared
 		if hasBudget {
 			d.MaxSum, d.Budgeted = int(budget), true
 		}
@@ -633,6 +647,9 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 			emitChosenReveal(h, chooser, recorded)
 		}
 	}
+	// The walk completed: release the ride (the same boundary the search and
+	// hidden walks end at), so a later ability in the chain cannot inherit it.
+	endForgetOtherSnapshot(c)
 }
 
 // chooseCardPower is the offered card's current power -- the WithTotalPower$
@@ -1192,6 +1209,72 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 }
+
+// effGainControlVariant implements Forge's GainControlVariant: the
+// owner-directed batch control effect (Alicia Masters, Trostani Discordant,
+// Homeward Path, Brooding Saurian, ...). Unlike GainControl it takes no
+// target: it enumerates every battlefield permanent matching AllValid$ and
+// hands each to the player ChangeController$ names.
+//
+// Only ChangeController$ CardOwner is implemented -- "each player gains
+// control of all permanents they own" (Alicia Masters). The other corpus
+// values (Random, ChooseFromPlayerToTheirRight, NextPlayerInChosenDirection,
+// ChooseNextPlayerInChosenDirection) each need a separate player-selection
+// mechanic the engine models nowhere; applying CardOwner for them would hand
+// every permanent to its owner, which is a different and WRONG result, so
+// they fail loudly with a Note and change nothing. This is the fail-closed
+// direction the ordinary effGainControl takes for an unbound NewController$.
+func effGainControlVariant(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	change := strings.TrimSpace(sa.Params["ChangeController"])
+	if !strings.EqualFold(change, "CardOwner") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "GainControlVariant ChangeController$ " + change + " unimplemented"})
+		return
+	}
+	spec := strings.TrimSpace(sa.Params["AllValid"])
+	if spec == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "GainControlVariant has no AllValid$ filter"})
+		return
+	}
+	dur, unknown := ParseControlDuration(sa.Params["LoseControl"])
+	if unknown != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControlVariant LoseControl$ " + unknown + " unimplemented"})
+		return
+	}
+	base := ControlGrant{You: c.Controller, Source: c.Source, Duration: dur, SVars: c.SVars,
+		AddKeywords: cards.SplitKeywordList(sa.Params["AddKWs"])}
+	if src := g.Obj(c.Source); src != nil && src.Zone == state.ZBattlefield {
+		base.SourceStamp = src.Timestamp
+	}
+	// The dense object arena is creation order, so the walk (and therefore
+	// the emitted ControlChange sequence and its ControlGrant records) is
+	// deterministic across a replay.
+	sc := c.SpecContext(c.Controller)
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		if o.Zone != state.ZBattlefield || !MatchesObjectCtx(g, spec, o, sc) {
+			continue
+		}
+		gr := base
+		gr.Obj, gr.ObjStamp, gr.Previous, gr.Controller = o.ID, o.Timestamp, o.Controller, o.Owner
+		if ControlGrantEnded(h, gr) {
+			continue
+		}
+		// The effect is applied to EVERY matching permanent, including one
+		// its owner already controls: it establishes a new (latest) control
+		// effect on it (CR 613.7), so a still-tracked older steal cannot
+		// retake the permanent when the older steal expires. Only a visible
+		// change of controller emits the ControlChange event; a permanent
+		// already under its owner's control gets the grant record silently.
+		if o.Controller != o.Owner {
+			h.Emit(events.Event{Kind: events.ControlChange, Obj: o.ID, Player: o.Owner})
+		}
+		h.RegisterControl(gr)
+	}
+}
+
 func effControlSpell(h Host, c *Ctx, sa *cards.SA) {
 	// Mode$ (Commandeer's "Gain"): what the control transfer targets. "Gain"
 	// — the corpus's only value — takes control of the target SPELL on the

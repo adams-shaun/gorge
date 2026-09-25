@@ -666,9 +666,8 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 // 1; the corpus's one non-default is Blue Loyal Raptor's CounterNum$ 1),
 // emitted as one CounterChange per kind per target -- the same one-event-per-
 // kind discipline effMultiplyCounter uses, so the event stream records the
-// real folds. A target off the battlefield (and not ETB$ True mid-entry) is
-// skipped exactly like the ordinary loop; RememberCards$ still remembers
-// what was actually countered.
+// real folds. Non-nil object targets are eligible in any zone;
+// RememberCards$ still remembers what was actually countered.
 func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string) {
 	g := h.Game()
 	if ref == "" {
@@ -709,7 +708,7 @@ func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string
 			continue // no corpus carrier targets a player here
 		}
 		o := g.Obj(t.Obj)
-		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
+		if o == nil {
 			continue
 		}
 		anyPlaced := false

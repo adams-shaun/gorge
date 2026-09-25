@@ -9,7 +9,7 @@ one missing primitive makes the whole card unplayable, so this is a strict
 lower bound on what the engine can do.
 
 - Cards in the corpus: **33667**
-- Fully playable: **30351 (90.2%)**
+- Fully playable: **30359 (90.2%)**
 - Token scripts compiled: **839**
 - Corpus pin: `Card-Forge/forge@95f04e8a04c8925fa97cb226fc3341cabcc90a53`
 
@@ -26,12 +26,12 @@ engine subsystems are finished.
 
 | Card type | Cards | Playable | % |
 |---|---:|---:|---:|
-| Creature | 18544 | 16710 | 90.1% |
+| Creature | 18544 | 16715 | 90.1% |
 | Instant | 3774 | 3470 | 91.9% |
-| Sorcery | 3519 | 3194 | 90.8% |
-| Enchantment | 3445 | 3209 | 93.1% |
+| Sorcery | 3519 | 3195 | 90.8% |
+| Enchantment | 3445 | 3210 | 93.2% |
 | Artifact | 2480 | 2218 | 89.4% |
-| Land | 1152 | 1127 | 97.8% |
+| Land | 1152 | 1128 | 97.9% |
 | Other | 384 | 99 | 25.8% |
 | Planeswalker | 332 | 290 | 87.3% |
 | Battle | 37 | 34 | 91.9% |
@@ -43,26 +43,26 @@ colour indicator — not its Commander colour identity.
 
 | Colour | Cards | Playable | % |
 |---|---:|---:|---:|
-| White | 4977 | 4463 | 89.7% |
-| Red | 4975 | 4517 | 90.8% |
-| Black | 4946 | 4531 | 91.6% |
-| Green | 4868 | 4418 | 90.8% |
-| Blue | 4860 | 4393 | 90.4% |
-| Multicolour | 4704 | 4297 | 91.3% |
-| Colorless | 4337 | 3732 | 86.1% |
+| White | 4977 | 4464 | 89.7% |
+| Red | 4975 | 4519 | 90.8% |
+| Black | 4946 | 4532 | 91.6% |
+| Green | 4868 | 4419 | 90.8% |
+| Blue | 4860 | 4394 | 90.4% |
+| Multicolour | 4704 | 4298 | 91.4% |
+| Colorless | 4337 | 3733 | 86.1% |
 
 ## By mana value
 
 | Mana value | Cards | Playable | % |
 |---|---:|---:|---:|
-| 0 | 1701 | 1317 | 77.4% |
+| 0 | 1701 | 1318 | 77.5% |
 | 1 | 3250 | 3014 | 92.7% |
-| 2 | 7135 | 6586 | 92.3% |
-| 3 | 8037 | 7330 | 91.2% |
-| 4 | 6276 | 5651 | 90.0% |
-| 5 | 3927 | 3543 | 90.2% |
+| 2 | 7135 | 6587 | 92.3% |
+| 3 | 8037 | 7331 | 91.2% |
+| 4 | 6276 | 5652 | 90.1% |
+| 5 | 3927 | 3545 | 90.3% |
 | 6 | 2018 | 1771 | 87.8% |
-| 7+ | 1323 | 1139 | 86.1% |
+| 7+ | 1323 | 1141 | 86.2% |
 
 ## What the gap is waiting on
 
