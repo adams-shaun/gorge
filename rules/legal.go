@@ -952,7 +952,8 @@ func (e *Engine) activationLimitReachedAt(id state.ObjID, p state.PlayerID, abil
 
 // activationLimitBlocked is the ONE gate every activation offer site calls
 // for ActivationLimit$ (this turn), GameActivationLimit$ (the whole game),
-// and Exhaust$ True (once per game). All three are read here so a new offer
+// Exhaust$ True, and PowerUp$ True (once per host card per game). All are
+// read here so a new offer
 // site cannot miss one -- the printed and granted loops in this file and the
 // mana walk in mana_activation.go all funnel through it. svar is the
 // granted-ability identity ("" for a printed ability); merged selects the face
@@ -978,9 +979,11 @@ func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *ca
 			return true
 		}
 	}
-	// Exhaust$ True uses the same host-card, per-game counter as
-	// GameActivationLimit$: leaving and returning does not re-arm it.
-	if strings.EqualFold(strings.TrimSpace(sa.Params["Exhaust"]), "True") &&
+	// Exhaust$ True and PowerUp$ True use the same host-card, per-game
+	// counter as GameActivationLimit$: leaving and returning does not re-arm
+	// either restriction.
+	if (strings.EqualFold(strings.TrimSpace(sa.Params["Exhaust"]), "True") ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["PowerUp"]), "True")) &&
 		e.activationUsedCount(id, ability, svar, false) >= 1 {
 		return true
 	}
