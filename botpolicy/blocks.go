@@ -432,32 +432,10 @@ func legalBlockChoices(b Board, d *decision.Decision, choices []int) []int {
 	// over the defender's total is dropped, earliest kept -- the same
 	// earliest-kept convention the Max trim below uses. MaxSum == 0 means no
 	// mana budget was published (no mana-priced option was offered), so the
-	// mana term is skipped.
-	affordable := make([]int, 0, len(choices))
-	spentMana, spentLife := 0, int32(0)
-	defenderLife := b.Life[d.Player]
-	for _, ci := range choices {
-		if ci < 0 || ci >= len(d.Options) {
-			affordable = append(affordable, ci)
-			continue
-		}
-		o := &d.Options[ci]
-		if o.CostTaps > 0 {
-			continue
-		}
-		if d.MaxSum > 0 && spentMana+o.Value > d.MaxSum {
-			continue
-		}
-		if o.CostLife > 0 {
-			if spentLife+int32(o.CostLife) > defenderLife {
-				continue
-			}
-			spentLife += int32(o.CostLife)
-		}
-		spentMana += o.Value
-		affordable = append(affordable, ci)
-	}
-	choices = affordable
+	// mana term is skipped. The rule itself lives in the shared
+	// decision.ChargeOptionConstraints, so the attack and block arms cannot
+	// drift.
+	choices = decision.ChargeOptionConstraints(d, choices, b.Life[d.Player], d.MaxSum)
 	if len(choices) == 0 {
 		return choices
 	}
@@ -539,28 +517,9 @@ func LegalAttackChoices(b Board, d *decision.Decision, choices []int) []int {
 // guard before Clamp repairs it. Output order is the input order, so the
 // guard consumes no randomness and never ranges a map into the result.
 func legalAttackChoices(b Board, d *decision.Decision, choices []int) []int {
-	if len(choices) == 0 {
-		return choices
-	}
-	out := make([]int, 0, len(choices))
-	spentLife := int32(0)
-	life := b.Life[d.Player]
-	for _, ci := range choices {
-		if ci < 0 || ci >= len(d.Options) {
-			out = append(out, ci)
-			continue
-		}
-		o := &d.Options[ci]
-		if o.CostTaps > 0 {
-			continue
-		}
-		if o.CostLife > 0 {
-			if spentLife+int32(o.CostLife) > life {
-				continue
-			}
-			spentLife += int32(o.CostLife)
-		}
-		out = append(out, ci)
-	}
-	return out
+	// The shared published-field charge rule (decision.ChargeOptionConstraints):
+	// a tapXType obligation the wire cannot verify is dropped, and the
+	// cumulative CostLife is bounded by the acting player's life total. The
+	// mana budget is left to Clamp (maxSum 0).
+	return decision.ChargeOptionConstraints(d, choices, b.Life[d.Player], 0)
 }

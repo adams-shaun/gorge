@@ -789,33 +789,30 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	// so the window's coverage guard cannot fail here; the Note path is the
 	// loud defensive fallback.
 	if charge := e.attackCharge(chosen); !charge.zero() {
-		if e.poolCoversCombatCharge(d.Player, charge) {
-			// The floating pool already covers the whole charge (mana and any
-			// Phyrexian pips paid in colour); settle inline through the same
-			// plan/pay path the window uses.
-			if plan, ok := e.openCombatPayPlan(d.Player, charge, chosenAttackers(chosen)); ok {
-				e.payCombatChargeInline(plan)
-			} else {
-				e.emit(events.Event{Kind: events.Note, Player: d.Player,
-					Text: "could not pay the attack cost"})
-				e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
-				return
-			}
-		} else if !e.startAttackPay(chosen, d.Player, charge) {
-			// Unreachable through a submitted intent: the KAttackers decision
-			// carries Decision.MaxSum = the payer's budget, so Validate rejects
-			// an over-budget declaration before this handler runs. One loud
-			// Note (startAttackPay no longer emits its own) and then ABORT:
-			// the cost is a CR 508.1 declaration cost, so an unpaid charge may
-			// not silently commit -- the fallback emits the empty no-attack
-			// declaration (the same event the len(chosen)==0 branch emits) and
-			// advances the step. Per-missive by accident would be the opposite
-			// danger: committing an attack nobody paid for.
+		plan, ok := e.openCombatPayPlan(d.Player, charge, chosenAttackers(chosen))
+		if !ok {
 			e.emit(events.Event{Kind: events.Note, Player: d.Player,
-				Text: fmt.Sprintf("could not pay the {%d} attack cost", charge.mana)})
+				Text: "could not pay the attack cost"})
 			e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 			return
+		}
+		if e.combatPlanSettlesInline(plan) {
+			// The floating pool already covers the whole charge (mana and any
+			// Phyrexian pips on the deterministic branch); settle inline through
+			// the same plan/pay path the window uses. When a CR 107.4f election
+			// is owed, combatPlanSettlesInline is false and the window opens to
+			// pose it even though the pool could pay the colour branch.
+			e.payCombatChargeInline(plan)
+		} else if e.startAttackPay(chosen, plan) {
+			return
 		} else {
+			// The window could not complete the charge; startAttackPay emitted
+			// the loud Note. ABORT: the cost is a CR 508.1 declaration cost, so
+			// an unpaid charge may not silently commit -- emit the empty
+			// no-attack declaration (the same event the len(chosen)==0 branch
+			// emits) and advance the step. Permissive by accident would be the
+			// opposite danger: committing an attack nobody paid for.
+			e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 			return
 		}
 	}
@@ -1924,11 +1921,22 @@ func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
 	charge := e.blockChargeOf(chosen)
 	if !charge.zero() {
-		if e.poolCoversCombatCharge(d.Player, charge) {
-			if plan, ok := e.openCombatPayPlan(d.Player, charge, chosenBlockers(chosen)); ok {
-				e.payCombatChargeInline(plan)
-			}
-		} else if e.startBlockPay(chosen, d.Player, charge) {
+		plan, ok := e.openCombatPayPlan(d.Player, charge, chosenBlockers(chosen))
+		if !ok {
+			// An obligation cannot be met: decline rather than committing an
+			// unpaid declaration.
+			e.declineBlockDeclaration(d.Player)
+			return
+		}
+		if e.combatPlanSettlesInline(plan) {
+			e.payCombatChargeInline(plan)
+		} else if e.startBlockPay(chosen, plan) {
+			return
+		} else {
+			// The payment window could not complete the charge: decline the
+			// declaration. Committing here would be the review's unpaid-block
+			// defect.
+			e.declineBlockDeclaration(d.Player)
 			return
 		}
 	}

@@ -159,6 +159,11 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) block
 		}
 		ch, ok := e.attackUnlessCharge(sv, id)
 		if !ok {
+			// The static matches the pair but its Cost$ is a shape this build
+			// cannot price. Fail CLOSED: the pair is marked unpriceable and the
+			// offer/affordability gates reject it, rather than skipping the
+			// static and letting the creature attack for free.
+			total.unpriceable = true
 			continue
 		}
 		total = total.plus(ch)
@@ -204,12 +209,25 @@ type blockCharge struct {
 	// phyrexian holds one colour letter per Phyrexian pip ({W/P} is 'W'),
 	// each payable with one mana of that colour OR two life (CR 107.4f).
 	phyrexian []byte
+	// unpriceable is set when a static that MATCHES the pair charges a Cost$
+	// this build cannot price (a hybrid, an announced Sac<X>, a dynamic tap
+	// head, ...). Such a pair is never offered and never settles: the brief's
+	// fail-closed direction. It is deliberately NOT a zero() component -- a
+	// caller that only reads the priced parts keeps working -- every offer and
+	// affordability gate tests it explicitly.
+	unpriceable bool
 }
 
 func (c blockCharge) zero() bool {
-	return c.mana == 0 && c.life == 0 && len(c.taps) == 0 &&
+	return !c.unpriceable && c.mana == 0 && c.life == 0 && len(c.taps) == 0 &&
 		len(c.sacs) == 0 && len(c.returns) == 0 && len(c.phyrexian) == 0
 }
+
+// payable reports whether the charge may be offered and settled at all: a
+// priceable charge or the zero charge (a free pair). An unpriceable charge is
+// never payable, which is how a matching static this build cannot price fails
+// closed instead of letting the creature attack or block for free.
+func (c blockCharge) payable() bool { return !c.unpriceable }
 
 func (c blockCharge) plus(o blockCharge) blockCharge {
 	out := c
@@ -219,6 +237,7 @@ func (c blockCharge) plus(o blockCharge) blockCharge {
 	out.sacs = append(out.sacs, o.sacs...)
 	out.returns = append(out.returns, o.returns...)
 	out.phyrexian = append(out.phyrexian, o.phyrexian...)
+	out.unpriceable = out.unpriceable || o.unpriceable
 	return out
 }
 
@@ -359,6 +378,10 @@ func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) blockCharge {
 		}
 		if ch, ok := e.blockUnlessCharge(sv); ok {
 			total = total.plus(ch)
+		} else {
+			// Matching static, unpriceable Cost$: fail closed (see
+			// attackPairCharge).
+			total.unpriceable = true
 		}
 	}
 	for _, ce := range e.active() {
@@ -380,6 +403,8 @@ func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) blockCharge {
 		}
 		if ch, ok := e.blockUnlessCharge(sv); ok {
 			total = total.plus(ch)
+		} else {
+			total.unpriceable = true
 		}
 	}
 	return total
@@ -412,37 +437,6 @@ func (e *Engine) blockTapCandidates(p state.PlayerID, t blockTapReq, excluded ma
 	return out
 }
 
-// blockTapPlan reserves the exact permanents a charge's tap obligations
-// take: per requirement in charge order, the first unreserved candidates in
-// zone order (deterministic; R-9 -- the build never asks which permanents
-// to tap, the same no-ask reading every deterministic cost payment takes).
-// A requirement with fewer eligible candidates than n reserves what exists;
-// callers that need the full charge check blockChargeAffordable first.
-func (e *Engine) blockTapPlan(p state.PlayerID, c blockCharge, excluded map[state.ObjID]bool) []state.ObjID {
-	plan := make([]state.ObjID, 0, len(c.taps))
-	for _, t := range c.taps {
-		taken := int32(0)
-		for _, id := range e.blockTapCandidates(p, t, excluded) {
-			if taken >= t.n {
-				break
-			}
-			reserved := false
-			for _, pid := range plan {
-				if pid == id {
-					reserved = true
-					break
-				}
-			}
-			if reserved {
-				continue
-			}
-			plan = append(plan, id)
-			taken++
-		}
-	}
-	return plan
-}
-
 // chargeObjCandidates lists the payer's battlefield permanents that satisfy
 // one Sac/Return obligation's spec, minus the given exclusions. The spec is
 // resolved relative to the static's source, exactly as blockTapCandidates
@@ -465,54 +459,100 @@ func (e *Engine) chargeObjCandidates(p state.PlayerID, r chargeObjReq, kind stri
 	return out
 }
 
-// chargeObjPlan reserves the exact permanents a charge's Sac/Return
-// obligations take: per requirement in charge order, the first unreserved
-// candidates in zone order, the same deterministic no-ask reading (R-9)
-// blockTapPlan takes. It walks the taps first, then the sacrifices, then the
-// returns, so a permanent cannot pay two obligations within one charge.
-// Returns nil, false when any obligation cannot be filled.
+// chargeObjPlan reserves the exact permanents a charge's tap/sac/return
+// obligations take, solving the JOINT assignment rather than a per-requirement
+// greedy one: a tapXType<1/Creature> and a Sac<1/Creature.Artifact> on the
+// same board must not let the tap reservation claim a permanent the sacrifice
+// uniquely needs. Each obligation takes candidates in zone order and the
+// obligations are tried in a fixed order (taps, then sacrifices, then
+// returns), so the first full assignment the search finds is deterministic
+// (R-9: the build never asks which permanents to tap/sacrifice/return). A
+// permanent pays at most one obligation. Returns nil, false when no assignment
+// fills every obligation. The search is bounded; beyond the bound it fails
+// closed, the conservative direction (a charge the search cannot settle is
+// never offered).
 func (e *Engine) chargeObjPlan(p state.PlayerID, c blockCharge, excluded map[state.ObjID]bool) (taps, sacs, returns []state.ObjID, ok bool) {
+	type obligation struct {
+		kind   string
+		req    chargeObjReq
+		tapReq blockTapReq
+	}
+	var obs []obligation
+	for _, t := range c.taps {
+		obs = append(obs, obligation{kind: "tap", tapReq: t})
+	}
+	for _, r := range c.sacs {
+		obs = append(obs, obligation{kind: "sacrifice", req: r})
+	}
+	for _, r := range c.returns {
+		obs = append(obs, obligation{kind: "returncost", req: r})
+	}
 	taken := make(map[state.ObjID]bool, len(excluded))
 	for id := range excluded {
 		taken[id] = true
 	}
-	takeFrom := func(cands []state.ObjID, n int32) ([]state.ObjID, bool) {
-		var out []state.ObjID
-		for _, id := range cands {
-			if int32(len(out)) >= n {
-				break
+	picks := make([][]state.ObjID, len(obs))
+	nodes := 0
+	var solve func(i int) bool
+	solve = func(i int) bool {
+		if i == len(obs) {
+			return true
+		}
+		nodes++
+		if nodes > 1<<16 {
+			return false
+		}
+		ob := obs[i]
+		var cands []state.ObjID
+		var n int32
+		if ob.kind == "tap" {
+			cands = e.blockTapCandidates(p, ob.tapReq, taken)
+			n = ob.tapReq.n
+		} else {
+			cands = e.chargeObjCandidates(p, ob.req, ob.kind, taken)
+			n = ob.req.n
+		}
+		var choose func(start int, got []state.ObjID) bool
+		choose = func(start int, got []state.ObjID) bool {
+			if int32(len(got)) == n {
+				picks[i] = append([]state.ObjID(nil), got...)
+				for _, id := range got {
+					taken[id] = true
+				}
+				if solve(i + 1) {
+					return true
+				}
+				for _, id := range got {
+					delete(taken, id)
+				}
+				picks[i] = nil
+				return false
 			}
-			if taken[id] {
-				continue
+			for j := start; j < len(cands); j++ {
+				id := cands[j]
+				if taken[id] {
+					continue
+				}
+				if choose(j+1, append(got, id)) {
+					return true
+				}
 			}
-			taken[id] = true
-			out = append(out, id)
+			return false
 		}
-		return out, int32(len(out)) >= n
+		return choose(0, nil)
 	}
-	for _, t := range c.taps {
-		cands := e.blockTapCandidates(p, t, taken)
-		got, ok2 := takeFrom(cands, t.n)
-		if !ok2 {
-			return nil, nil, nil, false
-		}
-		taps = append(taps, got...)
+	if !solve(0) {
+		return nil, nil, nil, false
 	}
-	for _, r := range c.sacs {
-		cands := e.chargeObjCandidates(p, r, "sacrifice", taken)
-		got, ok2 := takeFrom(cands, r.n)
-		if !ok2 {
-			return nil, nil, nil, false
+	for i, ob := range obs {
+		switch ob.kind {
+		case "tap":
+			taps = append(taps, picks[i]...)
+		case "sacrifice":
+			sacs = append(sacs, picks[i]...)
+		default:
+			returns = append(returns, picks[i]...)
 		}
-		sacs = append(sacs, got...)
-	}
-	for _, r := range c.returns {
-		cands := e.chargeObjCandidates(p, r, "returncost", taken)
-		got, ok2 := takeFrom(cands, r.n)
-		if !ok2 {
-			return nil, nil, nil, false
-		}
-		returns = append(returns, got...)
 	}
 	return taps, sacs, returns, true
 }
@@ -527,28 +567,47 @@ const combatPhyLife = 2
 // verbatim at completion -- the mana window's own taps can remove a
 // candidate (tapping a creature land), so re-deriving would drift.
 // phyToLife is the number of Phyrexian pips paid with life rather than
-// colour; phyDecided records whether that election was made (a charge with
-// no Phyrexian pips, or one where only a single branch is affordable, skips
-// the ask and settles deterministically).
+// colour; phyDecided records whether that election was made; phyElection is
+// TRUE when BOTH branches are affordable, so the CR 107.4f colour-versus-life
+// choice is owed and the window must pose it (a charge with no Phyrexian
+// pips, or one where only a single branch is affordable, settles
+// deterministically).
 type combatPayPlan struct {
-	player     state.PlayerID
-	charge     blockCharge
-	taps       []state.ObjID
-	sacs       []state.ObjID
-	returns    []state.ObjID
-	phyToLife  int32
-	phyDecided bool
+	player      state.PlayerID
+	charge      blockCharge
+	taps        []state.ObjID
+	sacs        []state.ObjID
+	returns     []state.ObjID
+	phyToLife   int32
+	phyDecided  bool
+	phyElection bool
 }
 
-// openCombatPayPlan freezes the plan for a charge against the payer's board.
+// openCombatPayPlan freezes the plan for a charge against the payer's board
+// and applies the DETERMINISTIC Phyrexian routing when no election is owed:
+// a charge whose only affordable pip branch is life has its pips routed to
+// life up front, so the inline/coverage read and the payment window both see
+// the same mana requirement. A charge with BOTH branches affordable sets
+// phyElection and leaves phyToLife 0, so the window poses the real choice.
 // excluded holds the declaration's own committed creatures. Returns nil,
-// false when an obligation cannot be met (the caller falls back / aborts).
+// false when an obligation cannot be met (the caller declines).
 func (e *Engine) openCombatPayPlan(p state.PlayerID, c blockCharge, excluded map[state.ObjID]bool) (*combatPayPlan, bool) {
+	if !c.payable() {
+		return nil, false
+	}
 	taps, sacs, returns, ok := e.chargeObjPlan(p, c, excluded)
 	if !ok {
 		return nil, false
 	}
-	return &combatPayPlan{player: p, charge: c, taps: taps, sacs: sacs, returns: returns}, true
+	plan := &combatPayPlan{player: p, charge: c, taps: taps, sacs: sacs, returns: returns}
+	if len(c.phyrexian) > 0 {
+		both, canColour, canLife := e.combatPhyBothBranches(p, c)
+		plan.phyElection = both
+		if !both && !canColour && canLife {
+			plan.phyToLife = int32(len(c.phyrexian))
+		}
+	}
+	return plan, true
 }
 
 // manaCost is the part of the charge the mana window must satisfy: the
@@ -572,6 +631,22 @@ func (pl *combatPayPlan) manaCost() Cost {
 // lifeExtra is the life the life-routed Phyrexian pips charge (two per pip).
 func (pl *combatPayPlan) lifeExtra() int32 { return pl.phyToLife * combatPhyLife }
 
+// tapExclude is the set of permanents the plan reserves for its tap
+// obligations. The mana window withholds them from its tap list: a permanent
+// already paying a tapXType cost cannot also be tapped for mana (the
+// double-tap defect), and the affordability read excludes the same set so the
+// offer gate and the window agree.
+func (pl *combatPayPlan) tapExclude() map[state.ObjID]bool {
+	if len(pl.taps) == 0 {
+		return nil
+	}
+	m := make(map[state.ObjID]bool, len(pl.taps))
+	for _, id := range pl.taps {
+		m[id] = true
+	}
+	return m
+}
+
 // manaSatisfied reports whether the payer's floating pool already satisfies
 // the plan's mana requirement (used to decide whether the mana window must
 // ask for another source, and whether it may complete).
@@ -591,80 +666,85 @@ func (e *Engine) manaSatisfied(pl *combatPayPlan) bool {
 // branch of a charge's Phyrexian pips are individually affordable, so the
 // payer may be offered the real CR 107.4f choice. A charge with a single
 // affordable branch skips the ask and settles deterministically.
+//
+// Both branches price the charge's GENERIC component JOINTLY with the pips:
+// a `Cost$ 2 WP` with only two white mana in reach is affordable in NEITHER
+// branch, because the two white must also cover the two generic, and the
+// round-1 read checked the pips and the generic independently against the
+// same sources (the review's atomicity defect).
 func (e *Engine) combatPhyBothBranches(p state.PlayerID, c blockCharge) (both bool, canColour, canLife bool) {
 	if len(c.phyrexian) == 0 {
 		return false, false, false
 	}
 	player := e.G.Players[p]
 	conv := e.paymentConv(p, 0, false)
-	// Colour branch: every pip paid with its colour, no life. A coloured
-	// Cost entry, not a Phyrexian one, so this probes REAL colour mana, and
-	// unlessManaReachable counts the payer's untapped sources (the pool
-	// alone would miss a Plains the payer has not tapped yet).
-	ife := Cost{}
+	units := e.attackWindowUnits(p, nil)
+	// Colour branch: the generic plus every pip in its own colour, no pip paid
+	// with life. A coloured Cost entry, not a Phyrexian one, so this probes
+	// REAL colour mana; unlessManaReachable counts the payer's untapped
+	// sources (the pool alone would miss a Plains the payer has not tapped).
+	colourCost := Cost{Generic: c.mana}
 	for _, col := range c.phyrexian {
-		ife.Colored[state.ManaIndex(col)]++
+		colourCost.Colored[state.ManaIndex(col)]++
 	}
-	canColour = e.unlessManaReachable(p, ife, player.Pool, player.Snow, player.ManaUnits(),
-		player.Life-c.life, conv, e.windowManaUnits(p))
-	// Life branch: every pip paid with two life each.
-	canLife = player.Life-c.life >= int32(len(c.phyrexian))*combatPhyLife
+	canColour = e.unlessManaReachable(p, colourCost, player.Pool, player.Snow, player.ManaUnits(),
+		player.Life-c.life, conv, units)
+	// Life branch: the generic reachable with no life spent on pips, and the
+	// payer's life after the fixed life charge covers two per pip.
+	canLife = player.Life-c.life >= int32(len(c.phyrexian))*combatPhyLife &&
+		e.unlessManaReachable(p, Cost{Generic: c.mana}, player.Pool, player.Snow, player.ManaUnits(),
+			player.Life-c.life, conv, units)
 	return canColour && canLife, canColour, canLife
 }
 
-// combatColourReachable is the colour-branch affordance for a charge's
-// Phyrexian pips: the shared window reachability search over the payer's pool
-// and colour-specific sources, with no life. It is what the offer gate uses
-// to admit a pair whose pips can be paid in colour.
-func (e *Engine) combatColourReachable(p state.PlayerID, c blockCharge) bool {
-	if len(c.phyrexian) == 0 {
-		return true
-	}
-	player := e.G.Players[p]
-	mc := Cost{Phyrexian: append([]byte(nil), c.phyrexian...)}
-	return e.unlessManaReachable(p, mc, player.Pool, player.Snow, player.ManaUnits(),
-		player.Life-c.life, e.paymentConv(p, 0, false), e.windowManaUnits(p))
-}
-
 // combatChargeAffordable reports whether the payer can pay every component of
-// the charge: the mana-and-Phyrexian-colour requirement reachable from the
-// payer's floating pool plus the legal window mana sources (with the
-// Phyrexian life branch also counted), the fixed life, and enough distinct
-// permanents for every tap/sac/return obligation. excluded holds any
-// permanent the declaration already commits.
+// the charge: the JOINT mana requirement (generic plus every Phyrexian pip,
+// each payable with one mana of its colour OR two life, CR 107.4f) reachable
+// from the payer's floating pool plus the legal window mana sources, the
+// fixed life, and enough distinct permanents for every tap/sac/return
+// obligation. excluded holds any permanent the declaration already commits.
 //
 // This is the ONE affordability read: the offer gate, the whole-declaration
 // validator and the payment all re-derive from it, so they cannot disagree
-// about what is payable. A charge this build cannot fully price never reaches
-// here (chargeFromCost fails closed), and a charge whose obligations cannot
-// all be met is unaffordable, never free.
+// about what is payable. A charge with an unpriceable component is never
+// affordable (fail closed), and a charge whose obligations cannot all be met
+// is unaffordable, never free.
+//
+// The mana is priced as ONE Cost in a single reachability call, so the
+// generic and the pips compete for the same units: checking them separately
+// against the same pool admitted a `Cost$ 2 WP` the payer could not actually
+// pay (the review's atomicity defect). The plan's own tap obligations are
+// excluded from the mana sources, so a permanent reserved to pay a tapXType
+// cost cannot also be counted as a mana source (the double-tap defect).
 func (e *Engine) combatChargeAffordable(p state.PlayerID, c blockCharge, excluded map[state.ObjID]bool) bool {
+	if !c.payable() {
+		return false
+	}
 	player := e.G.Players[p]
 	life := player.Life
 	if life < c.life {
 		return false
 	}
-	// The generic mana component: the payer's whole combat budget (the
-	// existing attackBudget read, so a choice-shaped source still counts).
-	if c.mana > 0 && e.attackBudget(p) < c.mana {
+	// Solve the obligation assignment first: its tap reservations must be
+	// withheld from the mana sources, so the two components are one joint
+	// problem, not two independent checks.
+	taps, _, _, ok := e.chargeObjPlan(p, c, excluded)
+	if !ok {
 		return false
 	}
-	// The Phyrexian pips: each is payable with one mana of its colour OR two
-	// life (CR 107.4f). unlessManaReachable performs exactly that search
-	// against the shared window membership and the payer's remaining life, so
-	// the offer gate and the payment cannot drift. The colour branch counts
-	// only the colour-specific window membership (a choice-shaped source is
-	// deliberately not promised a specific colour here; see the report's
-	// narrowing note).
-	if len(c.phyrexian) > 0 {
-		mc := Cost{Phyrexian: append([]byte(nil), c.phyrexian...)}
-		if !e.unlessManaReachable(p, mc, player.Pool, player.Snow, player.ManaUnits(),
-			life-c.life, e.paymentConv(p, 0, false), e.windowManaUnits(p)) {
-			return false
-		}
+	mc := Cost{Generic: c.mana, Phyrexian: append([]byte(nil), c.phyrexian...)}
+	if mc.Generic == 0 && len(mc.Phyrexian) == 0 {
+		return true
 	}
-	_, _, _, ok := e.chargeObjPlan(p, c, excluded)
-	return ok
+	exclude := make(map[state.ObjID]bool, len(excluded)+len(taps))
+	for id := range excluded {
+		exclude[id] = true
+	}
+	for _, id := range taps {
+		exclude[id] = true
+	}
+	return e.unlessManaReachable(p, mc, player.Pool, player.Snow, player.ManaUnits(),
+		life-c.life, e.paymentConv(p, 0, false), e.attackWindowUnits(p, exclude))
 }
 
 // blockChargeAffordable is the block-direction alias of the shared
@@ -698,13 +778,15 @@ func (e *Engine) payCombatExtras(p state.PlayerID, c blockCharge, taps, sacs, re
 	}
 }
 
-// poolCoversCombatCharge reports whether the payer's floating pool already
-// covers the charge's mana component and its Phyrexian pips in colour, with
-// no window tap. An obligation/life component is settled inline either way,
-// so it does not affect this read. Used to decide whether the declaration can
-// settle without opening the payment window.
-func (e *Engine) poolCoversCombatCharge(p state.PlayerID, c blockCharge) bool {
-	plan := &combatPayPlan{player: p, charge: c}
+// combatPlanSettlesInline reports whether the plan can settle without
+// opening the payment window: no Phyrexian election is owed and the pool
+// already covers the (deterministically routed) mana requirement. An
+// obligation/life component is settled inline either way, so it does not
+// affect this read.
+func (e *Engine) combatPlanSettlesInline(plan *combatPayPlan) bool {
+	if plan.phyElection {
+		return false
+	}
 	return e.manaSatisfied(plan)
 }
 
@@ -744,22 +826,37 @@ type blockPayWindow struct {
 }
 
 // startBlockPay opens the block payment window for a declaration whose
-// composite charge cannot be settled inline, or completes it inline when the
-// charge is already covered. It returns false when the charge cannot be paid
-// at all (the caller then abandons the declaration).
-func (e *Engine) startBlockPay(chosen []decision.Option, player state.PlayerID, charge blockCharge) bool {
-	plan, ok := e.openCombatPayPlan(player, charge, chosenBlockers(chosen))
-	if !ok {
-		return false
-	}
+// composite charge the OPENER's plan could not settle inline. It returns
+// false when the charge cannot be paid at all -- a mana window that ran out
+// of sources while the pool still did not cover the charge -- and the caller
+// then declines the declaration rather than committing it unpaid.
+func (e *Engine) startBlockPay(chosen []decision.Option, plan *combatPayPlan) bool {
 	e.blockPay = &blockPayWindow{chosen: chosen, plan: plan}
 	if !e.askNextBlockPay() {
-		// Nothing left to ask (a zero-mana, zero-Phyrexian charge, or an
-		// already-covered one): settle and commit now.
 		e.blockPay = nil
+		if !e.manaSatisfied(plan) {
+			// The window found nothing left to ask while the pool still does
+			// not cover the charge: refuse the declaration. Committing here is
+			// the review's unpaid-block defect. The caller owns the loud Note
+			// and the empty DeclareBlockers marker (declineBlockDeclaration).
+			return false
+		}
 		e.completeBlockPay(chosen, plan)
 	}
 	return true
+}
+
+// declineBlockDeclaration records a refused blocking declaration: one loud
+// Note, the empty DeclareBlockers marker for this defender (the same terminal
+// event the ordinary empty branch emits) and the cursor advance. It is the
+// block-direction sibling of the attack side's abort branch in
+// attackPayAnswer, and the ONE place a refused declaration is settled, so no
+// path can fall through to commit a charge nobody paid.
+func (e *Engine) declineBlockDeclaration(player state.PlayerID) {
+	e.blockPay = nil
+	e.emit(events.Event{Kind: events.Note, Player: player, Text: "could not pay the block cost"})
+	e.emit(events.Event{Kind: events.DeclareBlockers, Player: player})
+	e.blockerRound.cursor++
 }
 
 // completeBlockPay settles the plan's mana and non-mana components and emits
@@ -788,28 +885,29 @@ func (e *Engine) askNextBlockPay() bool {
 		return false
 	}
 	plan := st.plan
-	if len(plan.charge.phyrexian) > 0 && !plan.phyDecided {
-		both, canColour, canLife := e.combatPhyBothBranches(plan.player, plan.charge)
-		if both {
-			d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
-				Prompt: "Pay the Phyrexian cost with mana or life"}
-			d.Options = append(d.Options,
-				decision.Option{Index: 0, Kind: "block_phy_colour", Label: "Pay the Phyrexian symbols with mana"},
-				decision.Option{Index: 1, Kind: "block_phy_life", Label: fmt.Sprintf("Pay %d life", int32(len(plan.charge.phyrexian))*combatPhyLife)})
-			e.choosing = chooseBlockPay
-			e.ask(d)
-			return true
-		}
-		// Only one branch is affordable: settle deterministically (R-9).
-		plan.phyDecided = true
-		if !canColour && canLife {
-			plan.phyToLife = int32(len(plan.charge.phyrexian))
-		}
+	if plan.phyElection && !plan.phyDecided {
+		d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Pay the Phyrexian cost with mana or life"}
+		d.Options = append(d.Options,
+			decision.Option{Index: 0, Kind: "block_phy_colour", Label: "Pay the Phyrexian symbols with mana"},
+			decision.Option{Index: 1, Kind: "block_phy_life", Label: fmt.Sprintf("Pay %d life", int32(len(plan.charge.phyrexian))*combatPhyLife)})
+		e.choosing = chooseBlockPay
+		e.ask(d)
+		return true
 	}
 	if e.manaSatisfied(plan) {
 		return false
 	}
 	sources := e.attackManaSources(plan.player)
+	if x := plan.tapExclude(); x != nil {
+		kept := sources[:0]
+		for _, s := range sources {
+			if !x[s.id] {
+				kept = append(kept, s)
+			}
+		}
+		sources = kept
+	}
 	if len(sources) == 0 {
 		return false
 	}
@@ -852,6 +950,12 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 	}
 	if !e.askNextBlockPay() {
 		plan := st.plan
+		if !e.manaSatisfied(plan) {
+			// The window ran out while the pool still did not cover the
+			// charge: decline rather than committing it unpaid.
+			e.declineBlockDeclaration(plan.player)
+			return
+		}
 		e.blockPay = nil
 		e.completeBlockPay(st.chosen, plan)
 	}
@@ -873,11 +977,42 @@ type attackManaSource struct {
 	// before a Produced$ rewrite.
 	gained gainedManaRef
 	units  int32
+	// counts and amt are the production's slot vector and per-activation
+	// scaling, kept beside prod so attackWindowUnits can rebuild the same
+	// mana vector unlessManaReachable prices against.
+	counts [6]int32
+	amt    int32
 	// prod is the exact production one activation yields, rendered as braced
 	// symbols ("{R}", "{C}{C}"): the tap option's label, so the
 	// alternatives of one multi-ability permanent are distinguishable on the
 	// wire and the payer taps the ability it meant to tap.
 	prod string
+}
+
+// attackWindowUnits groups the attack window's mana sources by permanent into
+// the windowManaUnit shape unlessManaReachable consumes, minus the sources in
+// exclude. The affordability read and the tap list therefore share ONE
+// membership (attackManaSources): the offer gate can never promise a source
+// the window cannot tap, and a permanent reserved to pay a tapXType
+// obligation is withheld from both. A unit with several priceable abilities
+// keeps one alt per ability, exactly as the window offers one option per
+// ability.
+func (e *Engine) attackWindowUnits(p state.PlayerID, exclude map[state.ObjID]bool) []windowManaUnit {
+	idx := make(map[state.ObjID]int)
+	var out []windowManaUnit
+	for _, s := range e.attackManaSources(p) {
+		if exclude[s.id] {
+			continue
+		}
+		alt := windowManaAlt{ma: s.ma, counts: s.counts, amt: s.amt}
+		if i, ok := idx[s.id]; ok {
+			out[i].alts = append(out[i].alts, alt)
+			continue
+		}
+		idx[s.id] = len(out)
+		out = append(out, windowManaUnit{id: s.id, alts: []windowManaAlt{alt}})
+	}
+	return out
 }
 
 // manaUnitsLabel renders a production as braced mana symbols, e.g. "{R}{R}":
@@ -956,7 +1091,7 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 			if units <= 0 {
 				continue
 			}
-			out = append(out, attackManaSource{id: u.id, ma: a.ma, original: a.ma, gained: e.gainedManaRefFor(p, u.id, a.ma), units: units, prod: manaUnitsLabel(a.counts, a.amt)})
+			out = append(out, attackManaSource{id: u.id, ma: a.ma, original: a.ma, gained: e.gainedManaRefFor(p, u.id, a.ma), units: units, counts: a.counts, amt: a.amt, prod: manaUnitsLabel(a.counts, a.amt)})
 		}
 	}
 	// The choice-shaped productions the shared membership deliberately
@@ -1052,7 +1187,7 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 			gained := e.gainedManaRefFor(p, id, ma)
 			rewritten := withProduced(ma, ma, oneColourProduced(counts))
 			pc, _ := cards.ProducedCounts(oneColourProduced(counts))
-			out = append(out, attackManaSource{id: id, ma: rewritten, original: ma, gained: gained, units: units, prod: manaUnitsLabel(pc, amt)})
+			out = append(out, attackManaSource{id: id, ma: rewritten, original: ma, gained: gained, units: units, counts: pc, amt: amt, prod: manaUnitsLabel(pc, amt)})
 		}
 	}
 	return out
@@ -1358,22 +1493,27 @@ type attackPayWindow struct {
 	sources []attackManaSource
 }
 
-// startAttackPay opens the payment window for a declaration whose composite
-// charge cannot be settled from the floating pool. The coverage guard is the
-// shared affordability read the offer list already applied (attackOffers
-// admits each individually-affordable pair) re-checked here for the
-// defensive paths. Returns false (the caller emits the one loud Note and
-// completes the declaration) when even the budget cannot cover the charge --
-// unreachable through a submitted intent whose total Decision.MaxSum already
-// bounded the mana, kept for a hand-built declaration.
-func (e *Engine) startAttackPay(chosen []decision.Option, player state.PlayerID, charge blockCharge) bool {
-	plan, ok := e.openCombatPayPlan(player, charge, chosenAttackers(chosen))
-	if !ok {
-		return false
-	}
+// startAttackPay opens the payment window for a declaration whose plan could
+// not settle inline. The coverage guard is the shared affordability read the
+// offer list already applied (attackOffers admits each individually-affordable
+// pair) re-checked here for the defensive paths. Returns false (the caller
+// emits the one loud Note and completes the empty declaration) when the
+// window cannot complete the charge -- unreachable through a submitted intent
+// whose total Decision.MaxSum already bounded the mana, kept for a hand-built
+// declaration.
+func (e *Engine) startAttackPay(chosen []decision.Option, plan *combatPayPlan) bool {
 	e.attackPay = &attackPayWindow{chosen: chosen, plan: plan}
 	if !e.askNextAttackPay() {
 		e.attackPay = nil
+		if !e.manaSatisfied(plan) {
+			// The window found nothing left to ask while the pool still does
+			// not cover the charge: refuse the declaration. Committing here is
+			// the review's unpaid-attack defect (the probe's `Cost$ 2 WP`
+			// against two white and one life committed with nothing spent).
+			e.emit(events.Event{Kind: events.Note, Player: plan.player,
+				Text: fmt.Sprintf("could not pay the {%d} attack cost", plan.charge.mana)})
+			return false
+		}
 		e.completeAttackPay(chosen, plan)
 	}
 	return true
@@ -1419,27 +1559,29 @@ func (e *Engine) askNextAttackPay() bool {
 		return false
 	}
 	plan := st.plan
-	if len(plan.charge.phyrexian) > 0 && !plan.phyDecided {
-		both, canColour, canLife := e.combatPhyBothBranches(plan.player, plan.charge)
-		if both {
-			d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
-				Prompt: "Pay the Phyrexian cost with mana or life"}
-			d.Options = append(d.Options,
-				decision.Option{Index: 0, Kind: "attack_phy_colour", Label: "Pay the Phyrexian symbols with mana"},
-				decision.Option{Index: 1, Kind: "attack_phy_life", Label: fmt.Sprintf("Pay %d life", int32(len(plan.charge.phyrexian))*combatPhyLife)})
-			e.choosing = chooseAttackPay
-			e.ask(d)
-			return true
-		}
-		plan.phyDecided = true
-		if !canColour && canLife {
-			plan.phyToLife = int32(len(plan.charge.phyrexian))
-		}
+	if plan.phyElection && !plan.phyDecided {
+		d := &decision.Decision{Player: plan.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Pay the Phyrexian cost with mana or life"}
+		d.Options = append(d.Options,
+			decision.Option{Index: 0, Kind: "attack_phy_colour", Label: "Pay the Phyrexian symbols with mana"},
+			decision.Option{Index: 1, Kind: "attack_phy_life", Label: fmt.Sprintf("Pay %d life", int32(len(plan.charge.phyrexian))*combatPhyLife)})
+		e.choosing = chooseAttackPay
+		e.ask(d)
+		return true
 	}
 	if e.manaSatisfied(plan) {
 		return false
 	}
 	sources := e.attackManaSources(plan.player)
+	if x := plan.tapExclude(); x != nil {
+		kept := sources[:0]
+		for _, s := range sources {
+			if !x[s.id] {
+				kept = append(kept, s)
+			}
+		}
+		sources = kept
+	}
 	if len(sources) == 0 {
 		// Unreachable while the coverage invariant holds (the remaining
 		// sources' units are always >= the remaining charge). Loud and
