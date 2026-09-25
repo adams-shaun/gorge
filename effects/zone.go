@@ -4956,6 +4956,33 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// sacTargetCardReferent resolves a SacValid$ spec that names the resolution's
+// card TARGET rather than the resolving source. Forge writes this referent as
+// the base `TargetedCard` with the `.Self` property (“the card this ability
+// targeted”), e.g. Enchanter's Bane's `SacValid$ TargetedCard.Self`: the
+// sacrifice is aimed at the targeted enchantment's controller, and the only
+// eligible permanent is that enchanted enchantment itself. The engine's filter
+// grammar reads a bare `Self` relative to the resolving SOURCE, so this base
+// is unrecognised there and fails closed; resolving it here, against the
+// resolution's object targets, is what admits the actual targeted card. Any
+// other base (including `Self`/`Card.Self`, whose subject IS the source) and any
+// qualifier other than `.Self` are not this referent and return ok=false,
+// leaving MatchesSpecCtx's own reading in place -- fail closed, never widened.
+// The caller checks the returned id against the pool object, so a referent that
+// is not in the asked player's battlefield never becomes eligible.
+func sacTargetCardReferent(spec string, c *Ctx) (state.ObjID, bool) {
+	base, qual, _ := strings.Cut(strings.TrimSpace(spec), ".")
+	if base != "TargetedCard" || qual != "Self" {
+		return 0, false
+	}
+	for _, t := range c.Targets {
+		if !t.IsPlayer && t.Obj != 0 {
+			return t.Obj, true
+		}
+	}
+	return 0, false
+}
+
 // effSacrifice moves permanents to the graveyard. Sacrifice ignores
 // Indestructible: sacrificing is not destruction (CR 701.16), so no
 // HasKeyword/Indestructible gate and no ReplaceDestruction/regeneration
@@ -5161,7 +5188,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				// ValidCard$, when present, narrows the same pool: a permanent
 				// must match BOTH spellings (they never co-occur, so this is
 				// just SacValid$ and ValidCard$ in turn).
-				if MatchesSpecCtx(g, spec, id, sc) &&
+				matchesSacValid := MatchesSpecCtx(g, spec, id, sc)
+				if ref, ok := sacTargetCardReferent(spec, c); ok {
+					// A SacValid$ that names the resolution's card TARGET
+					// (TargetedCard.Self) must admit exactly that object, not the
+					// resolving source the filter grammar's bare Self reads. The
+					// player-targeted pool is already this player's battlefield,
+					// so id == ref is also the "belongs to the player asked"
+					// check. Unknown referent forms stay with MatchesSpecCtx,
+					// which fails closed.
+					matchesSacValid = id == ref
+				}
+				if matchesSacValid &&
 					(validCard == "" || MatchesSpecCtx(g, validCard, id, sc)) {
 					eligible = append(eligible, id)
 				}
