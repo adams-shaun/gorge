@@ -2937,6 +2937,11 @@ func hasChosenPlayers(ts []state.Target) bool {
 // overwhelmingly common two-face case and a no-op for anything with fewer
 // than two faces (a token, or a single-faced card).
 //
+// Mode$ Unspecialize is the other face-SELECTING mode: Forge's Specialize
+// alternate mode (Bloomburrow Commander's Lukamina family) exits back to the
+// card's FRONT face -- index 0 -- from whatever later face it wears, never
+// the next face in the walk.
+//
 // Mode$ TurnFaceUp is the one exception: it is not a face change at all but
 // CR 708.6's reveal of a face-down battlefield permanent's printed face, so
 // it emits events.TurnFaceUp (which clears the face-down marker in Apply)
@@ -2962,6 +2967,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
 	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
+	unspecialize := strings.EqualFold(strings.TrimSpace(mode), "Unspecialize")
 	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
 	if optional && optAns == "" {
 		// Unanswered: pose the yes/no election -- but only when the change
@@ -2972,7 +2978,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		// stand-in (R-9): the clamp-answered bot path answers option 0 =
 		// "yes", so a bot game stays byte-identical to the pre-ask
 		// always-change.
-		if setStateWouldChange(h, c, sa, turnUp, turnDown) {
+		if setStateWouldChange(h, c, sa, turnUp, turnDown, unspecialize) {
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 				Source: c.Source, ResumeKind: "setstate_optional", ResumeSA: sa,
 				ResumeRemembered: copyTargets(c.Remembered),
@@ -3012,6 +3018,21 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 			}
 			continue
 		}
+		if unspecialize {
+			// Restore the FRONT face (index 0), whatever face the object
+			// wears now -- never the generic next-face walk, which from a
+			// later face lands on a DIFFERENT specialization (or wraps).
+			// Event-sourced like the rest of this primitive: the same
+			// FlipFace fold events.Apply reconstructs the face from, so a
+			// replay of the emitted stream shows the front face.
+			if o.Card == nil || len(o.Card.Faces) < 2 || o.FaceIdx == 0 {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
+				Text: "flips to face 0 (Unspecialize)"})
+			h.Emit(events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: 0})
+			continue
+		}
 		if o.Card == nil || len(o.Card.Faces) < 2 {
 			continue
 		}
@@ -3027,7 +3048,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // ask from being posed when decline and accept are the same outcome. It is the
 // exact per-object predicate the emitting loop below applies, so the gate can
 // never disagree with what the loop would do.
-func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown bool) bool {
+func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspecialize bool) bool {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -3044,6 +3065,15 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown bool) bo
 		}
 		if turnDown {
 			if o.Zone == state.ZBattlefield && !o.FaceDown {
+				return true
+			}
+			continue
+		}
+		if unspecialize {
+			// The would-change read shares Unspecialize's own semantics (ONE
+			// home with effSetState's branch above): only a multi-faced
+			// object not already on its front face changes.
+			if o.Card != nil && len(o.Card.Faces) >= 2 && o.FaceIdx != 0 {
 				return true
 			}
 			continue
