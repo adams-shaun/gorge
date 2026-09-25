@@ -1272,10 +1272,7 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		case (ref == "TriggerObjectsCards" || ref == "TriggerRemembered") && prop == "CardTypes":
 			if f != nil {
 				for _, typ := range f.Types {
-					// Preserve TriggerObjectsCards' existing all-types count;
-					// only TriggerRemembered needs the CR 205.1 card types
-					// (not creature types such as Golem).
-					if ref == "TriggerObjectsCards" || cardTypeWords[typ] {
+					if cardTypeWords[typ] {
 						triggerObjectTypes[typ] = true
 					}
 				}
