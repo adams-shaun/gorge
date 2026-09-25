@@ -2765,9 +2765,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// card can also leave the ForgetOnMoved$ zone from the graveyard or
 		// the hand.
 		e.effectMoveSweep(ev)
+		e.sweepEffectDelayed(ev)
 	}
 	if ev.Kind == events.PutOnStack {
 		e.effectMoveSweep(ev)
+		e.sweepEffectDelayed(ev)
 	}
 	if ev.Kind == events.CounterChange {
 		// Effect-created continuous effects' counter-driven lifetime (task
@@ -2777,6 +2779,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// as it has a vow counter on it". Applied before this event's own
 		// triggers are checked, the same timing effectMoveSweep keeps.
 		e.effectCounterSweep(ev)
+		e.sweepEffectDelayed(ev)
 	}
 	// Damage batch (CR 510.4, Forge dealAssignedDamage): DamageDealtOnce/
 	// DamageDoneOnce latch once per damage BATCH. A Damage event arriving with

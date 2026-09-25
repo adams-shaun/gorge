@@ -1516,6 +1516,7 @@ func (e *Engine) EndImprintedEffects(source state.ObjID) {
 	if source == 0 {
 		return
 	}
+	e.endImprintedDelayed(source)
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {

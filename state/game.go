@@ -471,6 +471,16 @@ type DelayedTrigger struct {
 	// ("|OD=<spec>") the same way ValidPlayer$ and MaxTurn do. Empty for
 	// every registration with no election.
 	OptionalSpec string
+	// Effect-created trigger lifetime riders, folded from DelayedRegister.Text.
+	// BirthTurn distinguishes a later turn belonging to the effect controller
+	// from the turn in which the promise was created.
+	EffectDuration string
+	BirthTurn      int32
+	ForgetOnMoved  string
+	ExileOnMoved   string
+	ForgetCounter  string
+	ForgetOnCast   string
+	ImprintOnHost  bool
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:

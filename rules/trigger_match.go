@@ -855,7 +855,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	// their own, so a live EffectRepeat registration widens the event gate.
 	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange ||
 		ev.Kind == events.ControlChange || ev.Kind == events.Damage || ev.Kind == events.DeclareAttackers ||
-		e.hasEffectRepeatDelayed() {
+		(ev.Kind != events.DelayedRegister && e.hasEffectRepeatDelayed()) {
 		e.checkEventDelayedTriggers(ev, lki)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one

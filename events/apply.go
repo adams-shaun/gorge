@@ -2695,16 +2695,38 @@ func Apply(g *state.Game, e Event) {
 		// do. It is stripped before the mode/Trigger split below so the
 		// suffix cannot reach the stored body name; the value never contains
 		// "|", so a single LastIndex is exact.
-		optionalSpec := ""
-		if i := strings.LastIndex(text, "|OD="); i >= 0 {
-			optionalSpec = text[i+4:]
-			text = text[:i]
-		}
+		// Phase registrations append VP after OD, while event registrations
+		// have OD at the tail. Strip the phase suffix first so an optional
+		// spec cannot accidentally swallow its player gate.
 		vp := ""
 		if i := strings.LastIndex(text, "|VP="); i >= 0 {
 			vp = text[i+4:]
 			text = text[:i]
 		}
+		optionalSpec := ""
+		if i := strings.LastIndex(text, "|OD="); i >= 0 {
+			optionalSpec = text[i+4:]
+			text = text[:i]
+		}
+		// Effect lifetime suffixes are stripped before the mode/body split.
+		// Their values are Forge tokens without a pipe delimiter.
+		imprint := strings.HasSuffix(text, "|IH")
+		if imprint {
+			text = strings.TrimSuffix(text, "|IH")
+		}
+		strip := func(key string) string {
+			if i := strings.LastIndex(text, key); i >= 0 {
+				value := text[i+len(key):]
+				text = text[:i]
+				return value
+			}
+			return ""
+		}
+		cast := strip("|FC=")
+		counter := strip("|FK=")
+		exile := strip("|XM=")
+		forget := strip("|FM=")
+		duration := strip("|DU=")
 		maxTurn := int32(0)
 		if i := strings.LastIndex(text, "|TT="); i >= 0 {
 			if n, err := strconv.Atoi(strings.TrimSpace(text[i+4:])); err == nil && n > 0 {
@@ -2735,8 +2757,29 @@ func Apply(g *state.Game, e Event) {
 			EffectRepeat:      effectRepeat,
 			ValidPlayer:       vp,
 			OptionalSpec:      optionalSpec,
+			EffectDuration:    duration,
+			BirthTurn:         g.Turn,
+			ForgetOnMoved:     forget,
+			ExileOnMoved:      exile,
+			ForgetCounter:     counter,
+			ForgetOnCast:      cast,
+			ImprintOnHost:     imprint,
 		})
 		g.DelayedNext++
+
+	case DelayedForget:
+		for i := range g.Delayed {
+			if g.Delayed[i].ID != uint32(e.Amount) {
+				continue
+			}
+			for j, target := range g.Delayed[i].Remembered {
+				if target.Obj == e.Obj {
+					g.Delayed[i].Remembered = append(g.Delayed[i].Remembered[:j:j], g.Delayed[i].Remembered[j+1:]...)
+					break
+				}
+			}
+			break
+		}
 
 	case DelayedRemove:
 		for i := range g.Delayed {

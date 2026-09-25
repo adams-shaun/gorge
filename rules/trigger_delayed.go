@@ -73,6 +73,32 @@ func (e *Engine) delayedRegistrationLive(dt *state.DelayedTrigger) bool {
 	if src == nil || src.Face() == nil || cards.ResolveSVar(src.Face().SVars, dt.Execute) == nil {
 		return false
 	}
+	// The sole lifetime predicate is shared by collection and both fire-time
+	// scans. In particular a permanent Effect grant ends with its source's
+	// battlefield incarnation; ordinary CR 603.7 promises remain independent.
+	switch dt.EffectDuration {
+	case "permanent":
+		if src.Zone != state.ZBattlefield || src.Incarnation != dt.SourceIncarnation {
+			return false
+		}
+	case "untilendofcombat":
+		if !isCombatStep(e.G.Step) {
+			return false
+		}
+	case "untilyournextturn", "untiltheendofyournextturn":
+		// Read the folded turn history, not a frozen absolute turn: late
+		// extra-turn grants and skipped turns move the next-turn boundary.
+		for _, ev := range e.L.Events {
+			if ev.Kind != events.TurnChange || ev.Amount <= dt.BirthTurn || ev.Player != dt.Controller {
+				continue
+			}
+			if dt.EffectDuration == "untilyournextturn" || ev.Amount < e.G.Turn ||
+				ev.Amount == e.G.Turn && e.G.Step == state.StepCleanup {
+				return false
+			}
+			break
+		}
+	}
 	if dt.EventMode != "" {
 		if dt.Trigger == "" {
 			return false
@@ -250,12 +276,12 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			remove = append(remove, dt.ID)
 			continue
 		}
-		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+		if !e.delayedRegistrationLive(dt) {
 			remove = append(remove, dt.ID)
 			continue
 		}
 		src := e.G.Obj(dt.Source)
-		if src == nil || src.Face() == nil || dt.Trigger == "" {
+		if dt.Trigger == "" {
 			remove = append(remove, dt.ID)
 			continue
 		}

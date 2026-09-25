@@ -510,13 +510,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
 		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
 			strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
-		// Delayed promises only encode a turn ceiling. Never let an explicit
-		// longer Effect lifetime silently turn into a permanent promise,
-		// except for the comeback idiom above whose lifetime the Effect's own
-		// self-exile ends.
-		if (!effectTriggerThisTurnDuration(rawDur) && !permanentComeback) ||
-			forgetOn != "" || exileOn != "" ||
-			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
+		// Only lifetimes the delayed registry can retire may arm a trigger.
+		// ForgetOnPhasedIn's comeback idiom retains its independent one-shot
+		// lifetime: the host's departure, not the source's departure, fires it.
+		dur := strings.ToLower(strings.TrimSpace(rawDur))
+		supported := effectTriggerThisTurnDuration(rawDur) || permanentComeback ||
+			dur == "permanent" || IsNextTurnDuration(rawDur) ||
+			dur == "untilendofcombat" || dur == "untilyournextendstep"
+		_, forgetZoneOK := ParseZoneWord(forgetOn)
+		_, exileZoneOK := ParseZoneWord(exileOn)
+		if !supported || forgetOnPhasedIn && !permanentComeback ||
+			forgetOn != "" && !forgetZoneOK || exileOn != "" && !exileZoneOK {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
 			registered = true
@@ -533,6 +537,27 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		expiry := "|TT=" + strconv.Itoa(int(h.Game().Turn))
 		if permanentComeback {
 			expiry = ""
+		} else if !effectTriggerThisTurnDuration(rawDur) && dur != "untilyournextendstep" {
+			expiry = "|DU=" + dur
+		}
+		// The continuous side folds UntilYourNextEndStep into this-turn;
+		// use its same boundary rather than silently giving it permanence.
+		if !permanentComeback {
+			if forgetOn != "" {
+				expiry += "|FM=" + forgetOn
+			}
+			if exileOn != "" {
+				expiry += "|XM=" + exileOn
+			}
+			if forgetCounter != "" {
+				expiry += "|FK=" + forgetCounter
+			}
+			if forgetOnCast != "" {
+				expiry += "|FC=" + forgetOnCast
+			}
+			if imprintOnHost {
+				expiry += "|IH"
+			}
 		}
 		// The Effect's own capture is what an Effect-owned trigger's
 		// `Defined$ Remembered` names. Register it so the comeback body
@@ -541,7 +566,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// the host that just left. Every other Effect trigger keeps its
 		// existing registration set untouched.
 		regIDs := c.Remembered
-		if permanentComeback {
+		if permanentComeback || forgetOn != "" || exileOn != "" || forgetCounter != "" {
 			regIDs = make([]state.Target, 0, len(remembered))
 			for _, id := range remembered {
 				regIDs = append(regIDs, state.Target{Obj: id})
@@ -608,7 +633,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: step, Counter: exec,
-					IDs: encodeRemembered(c.Remembered), Text: text})
+					IDs: encodeRemembered(regIDs), Text: text})
 			}
 			registered = true
 		default:
@@ -627,7 +652,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
 			}
 			registered = true
 		}
