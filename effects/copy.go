@@ -425,6 +425,25 @@ func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool
 			}
 		}
 		return 0, false
+	case "Remembered", "RememberedController":
+		// Tempt with Mayhem's per-opponent copy: the RepeatEach loop binds its
+		// current subject (a player) as Remembered, and prior iterations' copy
+		// objects are remembered too. A remembered PLAYER named directly wins
+		// over an object's controller -- the same precedence Defined$'s
+		// single-player read takes -- so the copy belongs to the current
+		// subject, else to the first remembered object's controller. An absent
+		// binding returns false and the caller keeps the resolving controller.
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+		}
+		for _, t := range c.Remembered {
+			if o := g.Obj(t.Obj); o != nil {
+				return o.Controller, true
+			}
+		}
+		return 0, false
 	case "You":
 		return c.Controller, true
 	case "NextOpponentToYourLeft", "NextPlayerToYourLeft":
