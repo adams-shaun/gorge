@@ -326,6 +326,21 @@ func attachedToDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, boo
 // DamageSource$ resolution, damage.go's ValidPlayers$ resolution) reads the
 // bool and fails closed to its own conservative default instead of silently
 // redirecting at the chosen targets.
+// exiledWithSet is the card set the `ExiledWith` referent family reads:
+// every card in the resolving controller's exile zone whose ExiledWith
+// association names the resolving source. The BARE `ExiledWith` case and the
+// DOTTED `ExiledWith <qualifier>` selector in definedSpec both consume it, so
+// the two spellings of one referent cannot drift.
+func exiledWithSet(g *state.Game, c *Ctx) []state.Target {
+	var out []state.Target
+	for _, id := range g.Zone(state.ZExile, c.Controller) {
+		if o := g.Obj(id); o != nil && o.ExiledWith == c.Source {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	return out
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
@@ -335,6 +350,43 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// `AttachedTo` case below stays the resolving source's own bearer.
 	if ts, ok := attachedToDefinedSelector(h, c, spec); ok {
 		return ts, true
+	}
+	// The DOTTED `Targeted <qualifier>` selector (Back for Seconds'
+	// `ChooseFromDefined$ Targeted.cmcLE4`): the subset of the resolution's
+	// TARGETED OBJECTS the qualifier admits, in target order. The qualifier
+	// rides the ONE shared dotted-qualifier grammar
+	// (definedCardQualifierMatches, the same matcher DefinedCards$' dotted
+	// forms use) so a selector and a choice pool can never disagree about
+	// what "cmcLE4" means. Player targets and unbound ids are not card
+	// anchors and drop out; an empty set is known-empty (fail closed to
+	// nobody, never to the whole target list).
+	if qual, ok := strings.CutPrefix(spec, "Targeted."); ok {
+		qual = strings.TrimSpace(qual)
+		var out []state.Target
+		for _, t := range c.Targets {
+			if t.IsPlayer || t.Obj == 0 {
+				continue
+			}
+			if o := g.Obj(t.Obj); o != nil && definedCardQualifierMatches(g, c, qual, o) {
+				out = append(out, t)
+			}
+		}
+		return out, true
+	}
+	// The DOTTED `ExiledWith <qualifier>` selector (Throne of the Grim
+	// Captain's `ChooseFromDefined$ ExiledWith.Creature`): the subset of the
+	// ExiledWith set a qualifier admits. The BARE case below consumes the
+	// same set (exiledWithSet), so a dotted qualifier and a bare read can
+	// never disagree about which cards the association holds.
+	if qual, ok := strings.CutPrefix(spec, "ExiledWith."); ok {
+		qual = strings.TrimSpace(qual)
+		var out []state.Target
+		for _, t := range exiledWithSet(g, c) {
+			if o := g.Obj(t.Obj); o != nil && definedCardQualifierMatches(g, c, qual, o) {
+				out = append(out, t)
+			}
+		}
+		return out, true
 	}
 	switch spec {
 	case "":
@@ -353,6 +405,20 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return []state.Target{{Obj: c.Source}}, true
 	case "You":
 		return []state.Target{{Player: c.Controller, IsPlayer: true}}, true
+	case "TopThirdOfLibrary":
+		// Forge's library-search population (Assemble the Team's
+		// `ChooseFromDefined$ TopThirdOfLibrary`): the top THIRD of the
+		// resolving controller's library, ROUNDED UP, in zone order. It names
+		// the pool a ChooseFromDefined$ search offers over, not one card (the
+		// TopOfLibrary pair below), and stays a controller read -- an absent
+		// or empty library is a known-empty pool, never a fallback.
+		lib := g.Zone(state.ZLibrary, c.Controller)
+		n := (len(lib) + 2) / 3
+		out := make([]state.Target, 0, n)
+		for _, id := range lib[:n] {
+			out = append(out, state.Target{Obj: id})
+		}
+		return out, true
 	case "EnchantedPlayer":
 		// Forge's EnchantedPlayer on a Defined-position reader (Curse of
 		// Misfortunes' `AttachedToPlayer$ EnchantedPlayer`): the seat the
@@ -637,6 +703,13 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		"TriggeredNewCardLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy",
+		// TriggeredCards is the PLURAL batch spelling of the same captured
+		// set (Colossal Grave-Reaver's, Paranormal Analyst's and Rinoa
+		// Angel Wing's `ChooseFromDefined$ TriggeredCards` -- "one of those
+		// milled cards"); choose_control's definedCardPool resolves it
+		// through the identical read, so the two spellings of one referent
+		// cannot drift.
+		"TriggeredCards",
 		"RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
@@ -718,11 +791,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{c.TriggerTarget}, true
 		}
 		return copyTargets(c.Targets), true
-	case "TriggeredSource":
+	case "TriggeredSource", "TriggeredSources":
 		// The damage source the causing event recorded (pg2's
 		// TriggerContext.TriggerSource): a DamageDone execute's "that source
-		// deals ..." reading. Prefer the event role when the firing trigger
-		// captured one -- for a DamageDone trigger Remembered holds the
+		// deals ..." reading, and its PLURAL batch spelling (Zurgo and
+		// Ojutai's `ChooseFromDefined$ TriggeredSources` -- the Dragon that
+		// dealt the combat damage the trigger fired for, the same role
+		// choose_control's definedCardPool resolves the spelling through).
+		// Prefer the event role when the firing trigger captured one -- for a
+		// DamageDone trigger Remembered holds the
 		// DAMAGED object, so the old objectsOf fallback names the recipient,
 		// not the dealer. No corpus card uses Defined$ TriggeredSource (the
 		// 6 DamageSource$ TriggeredSource lines are the only users), and the
@@ -941,13 +1018,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return nil, true
 	case "ExiledWith":
-		var out []state.Target
-		for _, id := range g.Zone(state.ZExile, c.Controller) {
-			if o := g.Obj(id); o != nil && o.ExiledWith == c.Source {
-				out = append(out, state.Target{Obj: id})
-			}
-		}
-		return out, true
+		return exiledWithSet(g, c), true
 	case "Equipped", "Enchanted", "AttachedTo":
 		// The corpus spells this three ways depending on whether the source
 		// is Equipment, an Aura, or a generic script; all three name the
