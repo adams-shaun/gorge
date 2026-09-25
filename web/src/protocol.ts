@@ -860,6 +860,17 @@ export interface Decision {
    */
   groupLimit?: number;
   /**
+   * GroupLimits maps a Group name to its own selection cap, overriding the
+   * decision-wide GroupLimit for that group. A per-defender attack ceiling
+   * (AttackRestrict's MaxAttackers$ scoped by ValidDefender$) is exactly
+   * this shape: each defended player is its own Group, and two such
+   * restrictions can cap different defenders differently, which one scalar
+   * GroupLimit cannot express. A group absent from the map, or mapped to a
+   * value below 2, falls back to GroupCap. GroupCapFor is the one reader,
+   * so Validate, FitRequired and botpolicy's repair cannot drift.
+   */
+  groupLimits?: Record<string, number>;
+  /**
    * Repeatable relaxes Validate's no-duplicate-index rule: when true the
    * SAME option index may be chosen more than once in one answer. It is
    * set only by a modal (Charm) decision whose SA carries

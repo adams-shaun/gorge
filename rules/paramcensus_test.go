@@ -1766,6 +1766,12 @@ var handRoots = struct {
 		// mustAttackRequired scans MustAttack statics directly, with no
 		// activeStatics call; its Params reads are the whitelist switch.
 		"MustAttack": {"Engine.mustAttackRequired"},
+		// AttackRestrict: attackRestrictStatics is the literal activeStatics
+		// root the scan already attributes; maxAttackers and attackRestrictLimit
+		// are its callers and carry the mode's ValidDefender$/MaxAttackers$
+		// reads, so they are declared here too (a caller of a collector root is
+		// not reachable FROM that root).
+		"AttackRestrict": {"Engine.attackRestrictStatics", "Engine.maxAttackers", "Engine.attackRestrictLimit"},
 		// untapOtherStaticsMatch scans UntapOtherPlayer statics directly over
 		// the face's Statics slice (Endbringer's foreign-untap shape), with
 		// no activeStatics call -- the same direct-scan shape
