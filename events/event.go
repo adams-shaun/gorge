@@ -1002,10 +1002,13 @@ const (
 	// PlanarWalk rotates the current plane to the bottom and reveals the next.
 	// Appended here after PlanarReveal; earlier ordinals remain stable.
 	PlanarWalk
+	// Specialize records a permanent's chosen specialization face. Amount is
+	// the destination face index; Apply bounds-checks it just like FlipFace.
+	Specialize
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(PlanarWalk) + 1
+	NumKinds = int(Specialize) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1142,7 +1145,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
 	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade", "clash",
-	"planar_deck_shuffle", "planar_reveal", "planar_walk"}
+	"planar_deck_shuffle", "planar_reveal", "planar_walk", "specialize"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

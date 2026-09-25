@@ -1727,7 +1727,7 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
-	case FlipFace:
+	case FlipFace, Specialize:
 		if o := g.Obj(e.Obj); o != nil && o.Card != nil &&
 			e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
 			o.FaceIdx = uint8(e.Amount)
