@@ -100,11 +100,25 @@ func (e *Engine) zoneChangeMatchesWithCapture(t cards.Trigger, source state.ObjI
 			source == ev.Obj && lki != nil && leftBattlefield(ev) {
 			ctrl = lki.Controller
 		}
+		// A departure from EXILE is the third LKI case: the ordinary imprint
+		// association's liveness rule is exile-only (CR 607.2a, the IsImprinted
+		// predicate), so the departure triggers that read it — Knowledge Pool,
+		// Mimic Vat and the other Origin$ Exile carriers — fire on a card
+		// LEAVING exile and must judge it as it existed there (CR 603.10's
+		// circumstances of the event). The live object is already in the
+		// destination zone, where the association is dead, so a live read can
+		// never match: the moving card's LKI snapshot (captured in emit before
+		// Apply folded the move, its Zone still ev.From) is what the predicate
+		// must see. Ordinary live filtering and Defined$ Imprinted keep their
+		// live-zone readers (effects.imprintAssociationContains) — this gate
+		// widens only the trigger matcher's candidate choice.
 		// The bare wasCastFromYourHandByYou qualifier (the "if you cast it
 		// from your hand" ETB family) is split out and evaluated against the
 		// log here, where the Engine is in scope; the remainder matches as
 		// before (task castprov1).
-		if ev.Obj != 0 && lki != nil && (source == ev.Obj || leftBattlefield(ev)) {
+		if ev.Obj != 0 && lki != nil &&
+			(source == ev.Obj || leftBattlefield(ev) ||
+				(ev.From == state.ZExile && ev.To != state.ZBattlefield)) {
 			spec, ok := e.castProvenanceAdmits(v, lki.ID, ctrl)
 			// The IsGoaded static route (staticgoad1), bound inline the same
 			// shape matchesSpec keeps (this LKI reader runs per zone-change

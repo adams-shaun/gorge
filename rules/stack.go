@@ -932,6 +932,13 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 // count.go's provenance fallback. The clamp contract is targetBounds',
 // applied AFTER resolution: min >= 0, max >= 1, max >= min.
 func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int, int) {
+	return e.resolvedTargetBoundsWithGift(p, source, sa, x, nil)
+}
+
+// resolvedTargetBoundsWithGift is the offer-gate variant: a non-nil promise
+// override evaluates Count$PromisedGift as though that Gift election had been
+// made, without changing the source object or the normal post-election reader.
+func (e *Engine) resolvedTargetBoundsWithGift(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32, promised *bool) (int, int) {
 	min, max := targetBounds(sa)
 	if !targetBoundsDynamic(sa) {
 		return min, max
@@ -941,6 +948,7 @@ func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *
 		return min, max
 	}
 	ctx.X = x
+	ctx.PromisedGiftOverride = promised
 	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
 		if n, resolved := effects.NumResolvedStrict(e, ctx, sa, "TargetMin", 1); resolved {
 			min = int(n)
@@ -3962,19 +3970,22 @@ func (e *Engine) resolveTop() {
 	// before condition checks"; rules/ascend.go). Permanent faces are
 	// excluded -- their grant is the emit-side continuous scan.
 	e.grantSpellBlessing(o, f)
-	// CR 702.168b: a promised gift resolves BEFORE the spell's other effects
-	// (the gift's own "before its other effects"). The body is the face's
-	// GiftAbility SVar; it is spliced as the HEAD of the spell's own chain so
-	// the ordinary suspension/continuation machinery handles a mid-gift ask
-	// and then runs the rest of the spell, and it shares the spell's Ctx so
-	// Defined$ Promised / TokenOwner$ Promised read the promise. The
-	// events.GiveGift marker is emitted just before the gift body runs, so
-	// "whenever you give a gift" (Jolly Gerbils) queues and resolves after
-	// the whole spell, exactly as a gift given during resolution should. The
-	// splice is a SHALLOW COPY of the resolved gift SA, never a mutation of
-	// the card's parsed table.
+	// CR 702.168b: a promised gift on an INSTANT OR SORCERY resolves BEFORE
+	// the spell's other effects (the gift's own "before its other effects").
+	// The body is the face's GiftAbility SVar; it is spliced as the HEAD of
+	// the spell's own chain so the ordinary suspension/continuation machinery
+	// handles a mid-gift ask and then runs the rest of the spell, and it
+	// shares the spell's Ctx so Defined$ Promised / TokenOwner$ Promised read
+	// the promise. The events.GiveGift marker is emitted just before the gift
+	// body runs. The splice is a SHALLOW COPY of the resolved gift SA, never
+	// a mutation of the card's parsed table.
+	//
+	// A PERMANENT's promised gift is NOT spliced here: CR 702.168c makes it a
+	// "when this permanent enters" triggered ability, queued after entry by
+	// altCostEnter and pushed onto the stack by pushTrigger -- so it can be
+	// responded to and ordered against the card's own printed ETB.
 	resolveSA := sa
-	if o.CastFlags&state.FlagPromisedGift != 0 {
+	if o.CastFlags&state.FlagPromisedGift != 0 && !f.IsPermanent() {
 		if gift := cards.ResolveSVar(f.SVars, "GiftAbility"); gift != nil {
 			e.emit(events.Event{Kind: events.GiveGift, Player: o.Controller, Obj: id})
 			head := *gift
@@ -4054,7 +4065,9 @@ func (e *Engine) resolveTop() {
 // countered, so only this resolved-spell helper may return it to hand.
 func spellRestZone(o *state.Object) state.Zone {
 	if o != nil && (state.ExilesLeavingStack(o.CastFlags) ||
-		o.IsCopy || o.CastFlags&state.FlagAdventure != 0 || o.CastFlags&state.FlagReplaceGraveyard != 0) {
+		o.IsCopy || o.CastFlags&state.FlagAdventure != 0 ||
+		o.CastFlags&state.FlagReplaceGraveyard != 0 ||
+		o.CastFlags&state.FlagRebound != 0) {
 		return state.ZExile
 	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {

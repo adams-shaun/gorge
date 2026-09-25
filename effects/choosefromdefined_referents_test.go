@@ -473,37 +473,70 @@ func TestChangeZoneChooseFromDefinedExiledWithCreature(t *testing.T) {
 	}
 }
 
-// TestChangeZoneChooseFromDefinedReplacedCardsFailsClosed pins Averna, the
-// Chaos Bloom's real `ChooseFromDefined$ ReplacedCards.Land` staying
-// loud-fail-closed: this build binds no plural replaced-cards set, so the
-// selector is unresolvable -- one Note, no ask, nothing offered or moved,
-// even though the exile zone holds cards the ChangeType would admit.
-func TestChangeZoneChooseFromDefinedReplacedCardsFailsClosed(t *testing.T) {
+// TestChangeZoneChooseFromDefinedReplacedCards pins Averna, the Chaos
+// Bloom's real `ChooseFromDefined$ ReplacedCards.Land`. With a plural
+// replaced-cards batch bound (Ctx.ReplacedCards) the selector resolves to the
+// batch's LANDS and only those -- the pick offers exactly them, a nonmember
+// land also in exile is never offered, and the answered land moves. With NO
+// binding the pool is a known-empty set that fails CLOSED: no ask, nothing
+// moved, never the whole origin zone.
+func TestChangeZoneChooseFromDefinedReplacedCards(t *testing.T) {
 	sa := isolate(chooseFromDefinedSA(t, "Averna, the Chaos Bloom", "ReplacedCards.Land"))
 	if sa.API != "ChangeZone" || sa.Params["Origin"] != "Exile" || sa.Params["Destination"] != "Battlefield" {
 		t.Fatalf("corpus pin moved: leg is %+v", sa)
 	}
+	// A nonmember land also sits in exile: the pool, not the zone, must
+	// bound the offer.
 	h, ids := cfdBoard(t,
 		cfdFixture{"Name:Averna\nTypes:Creature Elemental\nPT:4/2\nOracle:x\n", 0, state.ZBattlefield},
-		cfdFixture{"Name:Exiled Land\nTypes:Land\nOracle:x\n", 0, state.ZExile},
+		cfdFixture{"Name:Batch Land\nTypes:Land\nOracle:x\n", 0, state.ZExile},
 		cfdFixture{"Name:Exiled Beast\nManaCost:2 G\nTypes:Creature Beast\nPT:3/3\nOracle:x\n", 0, state.ZExile},
+		cfdFixture{"Name:Nonmember Land\nTypes:Land\nOracle:x\n", 0, state.ZExile},
 	)
-	aver, land, beast := ids[0], ids[1], ids[2]
-	for _, id := range []state.ObjID{land, beast} {
+	aver, land, beast, other := ids[0], ids[1], ids[2], ids[3]
+	for _, id := range []state.ObjID{land, beast, other} {
 		if o := h.g.Obj(id); o == nil || o.Zone != state.ZExile {
 			t.Fatalf("precondition failed: %d zone %v, want exile", id, h.g.Obj(id))
 		}
 	}
-	c := &Ctx{Source: aver, Controller: 0}
+	// The batch is exactly {batch land, exiled beast}; the nonmember land is
+	// NOT in it even though it is a land in the same zone.
+	c := &Ctx{Source: aver, Controller: 0, ReplacedCards: []state.ObjID{land, beast}}
 	effChangeZone(h, c, sa)
-	if h.asked != nil {
-		t.Fatalf("a pick was offered over an unresolvable selector: %+v", h.asked)
+	if h.asked == nil || h.asked.ResumeKind != "hidden_pick" {
+		t.Fatalf("no hidden-pick ask for the ReplacedCards.Land leg: %+v", h.asked)
 	}
-	assertNote(t, h, "ReplacedCards.Land")
-	if got := h.g.Obj(land).Zone; got != state.ZExile {
-		t.Fatalf("exiled land moved to %v, want exile", got)
+	assertOfferSet(t, h.asked, land)
+	assertOptionsExclude(t, h.asked, beast, other)
+	// Answer the pick: the batch land moves to the battlefield.
+	c.HiddenPick, c.HiddenPickDone, c.HiddenPickTarget = []state.ObjID{land}, true, 0
+	effChangeZone(h, c, sa)
+	if got := h.g.Obj(land).Zone; got != state.ZBattlefield {
+		t.Fatalf("picked land zone = %v, want battlefield", got)
+	}
+	if got := h.g.Obj(other).Zone; got != state.ZExile {
+		t.Fatalf("nonmember land zone = %v, want exile (never offered)", got)
 	}
 	if got := h.g.Obj(beast).Zone; got != state.ZExile {
-		t.Fatalf("exiled beast moved to %v, want exile", got)
+		t.Fatalf("nonland batch card zone = %v, want exile (not a land)", got)
+	}
+
+	// Absent binding: a known-empty pool, no ask, nothing moved -- never a
+	// fallback to the whole exile zone.
+	h2, ids2 := cfdBoard(t,
+		cfdFixture{"Name:Averna\nTypes:Creature Elemental\nPT:4/2\nOracle:x\n", 0, state.ZBattlefield},
+		cfdFixture{"Name:Exiled Land\nTypes:Land\nOracle:x\n", 0, state.ZExile},
+	)
+	aver2, land2 := ids2[0], ids2[1]
+	if o := h2.g.Obj(land2); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("precondition failed: %d zone %v, want exile", land2, h2.g.Obj(land2))
+	}
+	c2 := &Ctx{Source: aver2, Controller: 0}
+	effChangeZone(h2, c2, sa)
+	if h2.asked != nil {
+		t.Fatalf("a pick was offered over an unbound ReplacedCards pool: %+v", h2.asked)
+	}
+	if got := h2.g.Obj(land2).Zone; got != state.ZExile {
+		t.Fatalf("unbound land moved to %v, want exile", got)
 	}
 }

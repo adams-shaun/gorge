@@ -388,6 +388,22 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	}
+	// The DOTTED `ReplacedCards <qualifier>` selector (Averna, the Chaos
+	// Bloom's `ChooseFromDefined$ ReplacedCards.Land`): the subset of the
+	// plural replaced-instruction batch a qualifier admits, through the same
+	// dotted-qualifier grammar Targeted./ExiledWith. use. A cascade
+	// replacement binds the batch (Ctx.ReplacedCards); an ABSENT binding is a
+	// known-empty pool -- fail closed to nobody, never the whole origin zone.
+	if qual, ok := strings.CutPrefix(spec, "ReplacedCards."); ok {
+		qual = strings.TrimSpace(qual)
+		var out []state.Target
+		for _, id := range c.ReplacedCards {
+			if o := g.Obj(id); o != nil && definedCardQualifierMatches(g, c, qual, o) {
+				out = append(out, state.Target{Obj: id})
+			}
+		}
+		return out, true
+	}
 	switch spec {
 	case "":
 		return nil, false
@@ -648,6 +664,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return ownersOf(g, c.Remembered), true
 	case "TargetedController", "TargetedPlayer":
 		return controllersOf(g, c.Targets), true
+	case "TargetedOwner":
+		// The OWNER (CR 108.3) of the resolving ability's targets, not their
+		// controller: Chaos Warp's DBDig sub-ability ("The owner of target
+		// permanent ... reveals the top card of THEIR library") and Palace
+		// Jailer's EffectOwner$ arm. An object target maps to its owner, a
+		// player target to itself, no targets (or a departed object) yields
+		// the EMPTY set with ok=true -- the fail-closed direction, never the
+		// source controller. The same ownersOf helper RememberedOwner calls.
+		return ownersOf(g, c.Targets), true
 	case "ChosenController":
 		return controllersOf(g, c.Chosen), true
 	case "ChosenCardController":
@@ -906,6 +931,32 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			}
 		}
 		return nil, true
+	case "PromisedSnapshot":
+		// CR 702.168c: the promised receiver a PERMANENT's gift trigger
+		// carries. The receiver is snapshotted at queue time (rules'
+		// altCostEnter reads the entering object's GiftPromisedTo), rides the
+		// KeywordTriggerPush payload as Remembered, and the body's
+		// Defined$/TokenOwner$ Promised referents are rewritten to this
+		// spelling at the mint (events.Apply's KeywordTriggerPush gift arm):
+		// the gift resolves independently of its source (CR 112.7a), and
+		// events.Move clears the source's live promise the moment the
+		// permanent leaves the battlefield -- the very interaction the
+		// respondable trigger's response window makes real. Resolves to the
+		// snapshot's player; a payload without one (a malformed push, a mint
+		// that carried no IDs) fail-closes to NOBODY with ok=true, the
+		// FlippedHeads convention. It deliberately never falls back to the
+		// live "Promised" read above -- that is the CR 702.168b
+		// spell-resolution path's own referent, and mixing them would make a
+		// resolved gift depend on whichever read happened to succeed.
+		for _, t := range c.Captured {
+			if t.IsPlayer {
+				if int(t.Player) < len(g.Players) {
+					return []state.Target{{Player: t.Player, IsPlayer: true}}, true
+				}
+				return nil, true
+			}
+		}
+		return nil, true
 	case "ReplacedCard":
 		// The card a zone-change replacement is acting on. Outside such a
 		// replacement (or after the object ceased to exist), resolve nothing.
@@ -913,6 +964,17 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.Replaced}}, true
 		}
 		return nil, true
+	case "ReplacedCards":
+		// The whole plural replaced-instruction batch (the bare spelling of
+		// the dotted `ReplacedCards <qualifier>` arm above). An absent or
+		// empty batch is a known-empty result, never a source fallback.
+		var out []state.Target
+		for _, id := range c.ReplacedCards {
+			if id != 0 && g.Obj(id) != nil {
+				out = append(out, state.Target{Obj: id})
+			}
+		}
+		return out, true
 	case "ReplacedTarget":
 		// Damage replacements may affect either an object or a player. Preserve
 		// that distinction rather than deriving a player through object zero.
@@ -1219,10 +1281,12 @@ func imprintPileTargets(g *state.Game, c *Ctx) []state.Target {
 	return out
 }
 
-// imprintAssociationContains is the shared liveness rule for Defined$ Imprinted
-// and the IsImprinted object predicate. Ordinary imprint links expire when the
-// linked card leaves exile; token and SeekFound associations have their own
-// distinct zone semantics and only require the linked object to exist.
+// imprintAssociationContains is the shared liveness rule for Defined$ Imprinted.
+// Ordinary imprint links expire when the linked card leaves exile; token and
+// SeekFound associations have their own distinct zone semantics and only
+// require the linked object to exist. It reads the LIVE object's zone -- the
+// IsImprinted object predicate uses imprintAssociationContainsCandidate instead,
+// so a zone-change trigger's LKI candidate is judged as it was before the move.
 func imprintAssociationContains(g *state.Game, source *state.Object, id state.ObjID) bool {
 	if source == nil {
 		return false
@@ -1231,8 +1295,39 @@ func imprintAssociationContains(g *state.Game, source *state.Object, id state.Ob
 	if linked == nil {
 		return false
 	}
+	// The live object's own zone is the CR 607.2a liveness test for the
+	// ordinary exile association; token and SeekFound carry no zone rule.
+	return imprintAssociationContainsInZone(source, id, linked.Zone)
+}
+
+// imprintAssociationContainsCandidate is imprintAssociationContains for the IsImprinted object
+// predicate: the zone the ordinary exile association reads is the CANDIDATE
+// object's own zone, not the live object's. That distinction is what makes a
+// zone-change trigger work -- the matcher hands the predicate the event's LKI
+// snapshot (the moving object as it was a moment before the move, CR 603.10),
+// so a card imprinted into exile still reads as exile-linked while it is leaving
+// exile, even though g.Obj(id) is already in the destination zone. Passing the
+// live object in (the ordinary filter path) reads its live zone and expires
+// exactly as imprintAssociationContains does. Token and SeekFound associations
+// ignore the zone in both forms.
+func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o *state.Object) bool {
+	if source == nil || o == nil {
+		return false
+	}
+	if g.Obj(o.ID) == nil {
+		return false
+	}
+	return imprintAssociationContainsInZone(source, o.ID, o.Zone)
+}
+
+// imprintAssociationContainsInZone is the shared membership rule behind both
+// readers above: ordinary Imprinted links are live only while the linked card
+// is in the zone the caller supplies (the live zone for the Defined$ reader,
+// the candidate's own zone for the predicate); token and SeekFound links have
+// no zone requirement.
+func imprintAssociationContainsInZone(source *state.Object, id state.ObjID, zone state.Zone) bool {
 	for _, linkedID := range source.Imprinted {
-		if linkedID == id && linked.Zone == state.ZExile {
+		if linkedID == id && zone == state.ZExile {
 			return true
 		}
 	}
@@ -1396,11 +1491,11 @@ func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 // TriggeredTarget (the player the triggering event hit, Valiant Batrider),
 // TriggeredDefendingPlayer (Nuka-Nuke Launcher), TargetedOwner (Palace
 // Jailer), Targeted (Loch Larent), Player.IsRemembered (Chandra, Fire of
-// Kaladesh). Every spelling but the owner-suffix one is resolved through the
-// SHARED referent grammar (definedSpec/knownDefinedTargets), so the
-// effect-owner read and every other Defined$ consumer cannot drift apart;
-// TargetedOwner is the one owner-suffix spelling that grammar does not model,
-// so it is mapped here from the same resolved target set.
+// Kaladesh). Every spelling is resolved through the SHARED referent grammar
+// (definedSpec/knownDefinedTargets), so the effect-owner read and every
+// other Defined$ consumer cannot drift apart. (Task tgtowner1 moved
+// TargetedOwner into definedSpec, deleting this function's own ownersOf
+// arm: the grammar resolves the same set from the same resolved targets.)
 //
 // The second result is false when the spelling is one this build does not
 // model; a true result with NO players means the selector named nobody. The
@@ -1419,16 +1514,6 @@ func EffectOwnerPlayers(h Host, c *Ctx, raw string) ([]state.PlayerID, bool) {
 			}
 		}
 		return out, true
-	case "TargetedOwner":
-		// The OWNER (CR 108.3) of the resolving ability's targets, not
-		// their controller: Palace Jailer's exiled creature's owner. This
-		// spelling is not a general Defined$ referent (the 18 corpus
-		// `Defined$ TargetedOwner` lines are a separate, unmodelled
-		// shape), so it lives HERE rather than widening definedSpec and
-		// silently changing unrelated cards. A player target maps to
-		// itself, an object to its owner; no targets yields nobody -- the
-		// fail-closed direction, never the source controller.
-		return playerIDsFromTargets(h, c, sel, ownersOf(h.Game(), c.Targets)), true
 	}
 	ts, ok := knownDefinedTargets(h, c, sel)
 	if !ok {

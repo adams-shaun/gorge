@@ -68,6 +68,12 @@ var addedAfterTheSplit = []string{
 	// the K:Exploit expansion emits, which was appended for it, so the mode
 	// could not have been in the pre-split switch.
 	"Exploited",
+	// clash1: "Whenever you win/lose a clash ..." (CR 701.31: Marvo, Deep
+	// Operative; Entangling Trap; Rebellion of the Flamekin; Sylvan Echoes --
+	// 6 raw lines / 4 files at the pin). It matches the events.Clash marker
+	// Kind effClash emits (one per clashing player), appended for it, so it
+	// could not have been in the pre-split switch.
+	"Clashed",
 	// manaexpend1: "Whenever you expend N ..." (the Bloomburrow Commander
 	// expend keyword: Teapot Slinger, Trailtracker Scout, Wandertale Mentor,
 	// Pyreswipe Hawk and 8 more corpus carriers). It matches rules/cast.go's
@@ -207,6 +213,17 @@ var addedAfterTheSplit = []string{
 	// ordinary counter addition is not a proliferate action), so it could not
 	// have been in the pre-split switch.
 	"Proliferate",
+	// foretell-trig (task agent-20260923T032009Z-3b9d3432): "Whenever you
+	// foretell a card, ..." (CR 702.126b; Dream Devourer, the corpus's sole
+	// carrier at the pin -- measured
+	// `/usr/bin/grep -rlE 'T:Mode\$ Foretell' .cards/cardsfolder | wc -l`
+	// => 1). It matches the {2} Foretell special action's pay-time
+	// FlagForetold CastInfo (rules/cast.go's foretell branch, card still in
+	// hand) and the effect-designation exile MoveZone markers
+	// (applyFaceDownMarker's Foretold$ True composition), both of which
+	// existed before the mode did -- but the pre-split switch had no
+	// Foretell arm, so neither shape could have been dispatched through it.
+	"Foretell",
 }
 
 func allRegisteredModeNames() []string {

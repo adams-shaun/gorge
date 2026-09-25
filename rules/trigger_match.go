@@ -54,6 +54,16 @@ type pendingTrigger struct {
 	// altCostEnter. It has no yes/no choice; pushTrigger mints a real
 	// respondable keyword-triggered ability on the stack.
 	Evoke bool
+	// Gift marks the CR 702.168c triggered ability created by a promised
+	// permanent's entry. Its body is the source face's GiftAbility SVar.
+	// GiftTo is the promised receiver, snapshotted HERE at queue time from
+	// the entering object's GiftPromisedTo: the ability resolves
+	// independently of its source (CR 112.7a), and events.Move clears the
+	// live promise the moment the permanent leaves the battlefield, so the
+	// receiver travels with the KeywordTriggerPush payload (IDs) onto the
+	// resolving stack object instead of being re-read from it.
+	Gift   bool
+	GiftTo state.PlayerID
 	// Delayed marks a Mode$ Phase delayed trigger registration (CR 603.7)
 	// rather than a matched T: line. It is queued by checkDelayedTriggers when
 	// the registered phase is entered, and pushTrigger routes it to a
@@ -384,6 +394,13 @@ type combatFires struct {
 // modes, so no trigger of another mode that fired before stops firing or
 // fires less often.
 var actionTriggerModes = map[string]bool{
+	// Clashed joins them for the same reason: it is an event mode registered
+	// with its own marker Kind (events.Clash, task clash1), so the
+	// trigger-level parameters Forge scopes to every event mode --
+	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
+	// predicate failing closed -- apply from day one. Its own ValidPlayer$ /
+	// Won$ gate is read by clashMatches, not by this map.
+	"Clashed":                    true,
 	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "AttackerUnblocked": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true, "Untaps": true,
 	// DamagePreventedOnce joins them for the same reason: it is an event mode

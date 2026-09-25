@@ -337,7 +337,7 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 	if !ok {
 		return true
 	}
-	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, sv.Controller, effects.PlayerSpecCtx{Source: sv.Source})
+	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, sv.Controller, e.playerSpecCtx(sv.Source))
 }
 
 // specCtx builds the SpecContext a per-source "ValidCard$"/spec match is
@@ -352,6 +352,21 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 // plain scalars -- so it is deterministic and Clone-safe.
 func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecContext {
 	return e.specCtxSVars(source, you, nil)
+}
+
+// playerSpecCtx is the player-side sibling of specCtx: it carries the same
+// layer-3 rename and layer-4 derived-type tables into the player filter, so a
+// Player.controlsCreature / Player.controlsPermanent qualifier evaluates its
+// object spec against the derived characteristics every ordinary filter site
+// already reads, rather than the printed face alone. A FIELD READ, never a
+// call into the layer walk: the tables are the snapshots active() refreshes
+// after each emitted event, exactly the values specCtx binds.
+func (e *Engine) playerSpecCtx(source state.ObjID) effects.PlayerSpecCtx {
+	return effects.PlayerSpecCtx{
+		Source:         source,
+		EffectiveNames: e.renames,
+		DerivedTypes:   e.layer4Types,
+	}
 }
 
 // matchesSpec evaluates a live-object filter with its current derived
@@ -2800,16 +2815,20 @@ func init() {
 		"stat:OptionalAttackCost",
 		// attackprop1: the CR 508.1g attack-prop static (rules/attack_cost.go
 		// attackPairCharge, priced per (attacker, defender) pair and paid
-		// during the declaration through the attackPay window). Only the
-		// whitelisted mana-cost shapes are enforced
-		// (cantAttackUnlessParamsReadable); the non-mana costs (Sac<...>,
-		// Return<...>, tapXType<...>, {W/P}) and the per-attacker-variable
-		// price (Nils' RememberingAttacker$) stay unregistered
-		// behaviour-wise and are ledgered in AGENTS.md.
+		// during the declaration through the attackPay window). The
+		// whitelisted shapes are enforced (cantAttackUnlessParamsReadable),
+		// including the composite non-mana components Sac<...>/Return<...>/
+		// tapXType<...>/PayLife<...>/{W/P} (chargeFromCost); an unmodelled
+		// component still skips the static fail-closed, and the
+		// per-attacker-variable price (Nils' RememberingAttacker$) is priced
+		// through the SVar grammar. The Effect-delivered form is NOT routed
+		// here (only the block side walks e.active()); see the report.
 		"stat:CantAttackUnless",
-		// blockprop1: the CR 509.1b block-prop static. Mana-priceable
-		// face statics are charged per (blocker, attacker); non-mana costs
-		// and Effect/Animate-delivered forms remain permissively skipped.
+		// blockprop1: the CR 509.1b block-prop static. Face statics are
+		// charged per (blocker, attacker) with the same composite grammar,
+		// including Sac<...>/Return<...>/PayLife<...>/tapXType<...>/{W/P};
+		// the Effect/Animate-delivered forms are charged through the
+		// e.active() walk blockPairCharge carries.
 		"stat:CantBlockUnless",
 		// canattackdefender1: the CR 702.3b permission static (the inverse of
 		// a restriction: it LIFTS the Defender wall per (attacker, defender)

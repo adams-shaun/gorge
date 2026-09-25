@@ -87,6 +87,13 @@ type resumePoint struct {
 	// subject after the suspension (fx44, Mox Diamond). Zero for an ordinary
 	// (non-replacement) ask.
 	replaced state.ObjID
+	// replacedCards is the plural counterpart of replaced: the ordered
+	// replaced-instruction batch (Ctx.ReplacedCards) captured at ask time
+	// when the ask is posed from inside a Cascade replacement body. The
+	// resume rebuilds Ctx.ReplacedCards from it, so a ReplacedCards.<qual>
+	// hidden pick re-resolves against the same exiled batch after the
+	// suspension (Averna, the Chaos Bloom). nil for every ordinary ask.
+	replacedCards []state.ObjID
 	// replacementTarget/replacementSource/replacementAmount are the in-flight
 	// Damage event's own target/source/amount (e.replacingEvent), captured so
 	// a DB$ ReplaceEffect body that asks mid-resolution can rebuild the same
@@ -618,6 +625,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 	}
 	return &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
+		replacedCards:     append([]state.ObjID(nil), e.replReplacedCards...),
 		redirect:          e.replRedirect,
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: replacementSource,
@@ -1798,6 +1806,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// sacrifice asks once after the flips; without this the second loser's
 		// read saw an empty set and never sacrificed).
 		FlipMemory: rp.flipMemory}
+	// The plural replaced-instruction batch (Ctx.ReplacedCards) follows the
+	// same rule as the singular Replaced below: a resumed frame that carries
+	// one restores it, so a Cascade body's hidden pick re-resolves
+	// ReplacedCards.<qual> against the same exiled batch. Set unconditionally
+	// when present, because a continuation frame of a replacement body's
+	// resolution (the CascadeResidue SA) runs with rp.replacement false yet
+	// still needs the batch.
+	if len(rp.replacedCards) > 0 {
+		ctx.ReplacedCards = append([]state.ObjID(nil), rp.replacedCards...)
+	}
 	// Publish this rebuilt Ctx for the whole of the resumed resolution (the
 	// same restore-on-return bracket effects.Resolve uses), so an ask posed
 	// from RULES machinery before the effects.Resolve re-entry -- the Ward
@@ -3537,11 +3555,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// graveyard resting place for those.
 			replaceGraveyard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["ReplaceGraveyard"]), "Exile") &&
 				strings.TrimSpace(rp.sa.Params["ReplaceGraveyardValid"]) == ""
-			// Cipher's CopyCard$ True + private CipherCopy marker: cast a
-			// copy, leaving the encoded card exiled. Other Play CopyCard$
-			// shapes need their own ticket and are unchanged by this one.
-			copyCard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["CopyCard"]), "True") &&
-				strings.EqualFold(strings.TrimSpace(rp.sa.Params["CipherCopy"]), "True")
+			// CopyCard$ True casts an event-minted copy of the selected card,
+			// leaving the original in its source zone. False or absent keeps
+			// the ordinary Play path.
+			copyCard := strings.EqualFold(strings.TrimSpace(rp.sa.Params["CopyCard"]), "True")
 			// ImprintPlayed$ True (task imprintplayed: Rashmi and Ragavan,
 			// Kefka, Beseech the Mirror, Soundwave, Smuggler's Buggy — 5 corpus
 			// files): every card the Play actually BEGINS to play is recorded
@@ -4102,6 +4119,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
 			f.targetCountersLKI = effects.CloneTargetCountersLKI(e.resume.targetCountersLKI)
 			f.targetSpellLKI = effects.CloneTargetSpellLKI(e.resume.targetSpellLKI)
+			f.replacedCards = append([]state.ObjID(nil), e.resume.replacedCards...)
 		}
 		// The same-resolution flip memory (Engine.Ask captured it off
 		// Engine.resolvingFlipMemory onto the pending point): a continuation
@@ -4331,10 +4349,43 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 		return
 	}
 	rest := spellRestZone(o)
+	// CR 702.95a: a hand-cast Rebound spell is exiled as it resolves and
+	// leaves a delayed promise to recast it at its controller's next upkeep.
+	// Both the flag and the controller are captured before the MoveZone:
+	// events.Apply resets CastFlags on the stack->exile move, and the emit
+	// below runs synchronously. The registration is created only when the
+	// card actually reached exile -- a replacement that redirected the move
+	// leaves the promise uncreated, so no stale permission can outlive it.
+	// FlagRebound is a cast-provenance bit, so a stack COPY -- put on the
+	// stack, never cast (CR 707.10) -- carries none at the mint and registers
+	// nothing. (No corpus card grants Rebound to a permanent, so the
+	// permanent branch above's lack of a registration site stays
+	// corpus-unreachable.)
+	rebound := o.CastFlags&state.FlagRebound != 0
+	controller := o.Controller
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest})
+	if rebound && rest == state.ZExile {
+		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZExile {
+			e.registerRebound(id, controller)
+		}
+	}
 	e.ensureLeftTheStack(id, rest, "a replacement fully discarded this resolved "+
 		"spell's own move off the stack without relocating it anywhere; sent to its "+
 		"resting zone instead of re-resolving forever")
+}
+
+// registerRebound creates the CR 702.95a delayed trigger for a Rebound spell
+// that was just exiled: at the controller's next upkeep, that player may cast
+// the card from exile without paying its mana cost. The registration's source
+// IS the exiled card, so the builtin __kwReboundCast body's Card.Self names
+// it, and ValidZone$ Exile keeps the offer to the exile zone even if the card
+// has left it (or later returns). ValidPlayer$ You gates the fire to the
+// registration controller's own upkeep, and the one-shot DelayedPush consumes
+// the registration on its first firing, so the permission never outlives the
+// next upkeep.
+func (e *Engine) registerRebound(id state.ObjID, controller state.PlayerID) {
+	e.emit(events.Event{Kind: events.DelayedRegister, Obj: id, Player: controller,
+		Step: state.StepUpkeep, Counter: "__kwReboundCast", Text: "Upkeep|VP=You"})
 }
 
 // payUnlessDamageCost lands the damage an accepting opponent chose to take

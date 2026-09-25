@@ -310,6 +310,13 @@ func (h *fakeHost) RollDiceProposed(_ state.PlayerID, _ state.ObjID, amount, ign
 	return amount, ignore
 }
 
+// CascadeReplacement has no replacement registry to consult here, the same
+// discipline as the double's Scry above: it reports that nothing replaced the
+// cascade instruction, so the caller runs its residue inline.
+func (h *fakeHost) CascadeReplacement(_ state.ObjID, _ state.PlayerID, _ []state.ObjID, _ *cards.SA) bool {
+	return false
+}
+
 // RememberExploitedLKI records the snapshot so an effects-level test can see
 // what effExploit published (the real engine attaches it to the trig:Exploited
 // pending trigger's LKI; that half is pinned in rules).

@@ -213,7 +213,7 @@ func triggerOrdersDuplicates(t cards.Trigger) bool {
 // different line entirely.
 func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
-		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
+		!pt.Evoke && !pt.Gift && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0 && pt.Cipher == 0
 }
 
@@ -411,6 +411,26 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
 			Obj: pt.Source, Counter: "__kwMadnessCast", Text: "madness cast"})
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	if pt.Gift {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		if int(pt.GiftTo) >= len(e.G.Players) {
+			return
+		}
+		// CR 702.168c: this is a real ETB trigger. GiveGift is recorded when
+		// the trigger is put on the stack, not during spell resolution -- and
+		// with the promised receiver snapshotted into the payload (IDs), the
+		// gift it marks stays deliverable however the permanent moves from
+		// here on, so the CR 702.168d reader fires for a gift that will be
+		// given.
+		e.emit(events.Event{Kind: events.GiveGift, Player: pt.Controller, Obj: pt.Source})
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "GiftAbility", Text: "gift ability",
+			IDs: []state.ObjID{state.PlayerRef(pt.GiftTo)}})
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
@@ -1393,7 +1413,7 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	if pt.RingEmblem > 0 {
 		return 0, false, false
 	}
-	if pt.Evoke || pt.Madness {
+	if pt.Evoke || pt.Gift || pt.Madness {
 		return 0, false, false
 	}
 	t, ok := e.triggerOf(pt)
@@ -1603,6 +1623,13 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			}
 		}
 		return name + ": demonstrate copy trigger"
+	}
+	if pt.Gift {
+		name := "it"
+		if o := e.G.Obj(pt.Source); o != nil && o.Face() != nil && o.Face().Name != "" {
+			name = o.Face().Name
+		}
+		return name + ": gift"
 	}
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"

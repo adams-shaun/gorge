@@ -250,6 +250,7 @@ type manaDiscardActivation struct {
 	ability    *cards.SA
 	cost       Cost
 	sacs       []state.ObjID
+	sacPaid    int
 	discards   []state.ObjID
 	exiles     []state.ObjID
 	sacPart    int
@@ -338,6 +339,20 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 // inspects the list can reuse one buffer across objects. With out nil it
 // returns exactly what availableManaAbilitiesUsing always returned.
 func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
+	return e.appendAvailableManaAbilitiesGate(out, statics, p, id, false)
+}
+
+// appendAvailableManaAbilitiesGate is appendAvailableManaAbilities with the
+// live-pool payability gate made optional. ignorePayable is true ONLY for the
+// cast-window probe's own walk (castWindowProbeUnits): a CR 601.2g window can
+// fund a paid activation from mana it produced earlier in the SAME window, so
+// the probe must see a source whose fee the CURRENT pool cannot yet cover and
+// let its ordered reachability search prove the funding. Every other caller
+// (the priority offer, the payment windows, the potential-action walk)
+// keeps the live gate. The non-mana gates (zone, loyalty, activation
+// condition, restriction, activation limit) are unchanged, so the probe's
+// membership is still a subset of what the window can eventually offer.
+func (e *Engine) appendAvailableManaAbilitiesGate(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID, ignorePayable bool) []*cards.SA {
 	o := e.G.Obj(id)
 	// CR 702.25b: a phased-out permanent is treated as though it does not
 	// exist, so its mana abilities do not exist. PhasedOut is only ever set on
@@ -441,7 +456,7 @@ func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionSt
 		// offer loop in rules/legal.go applies, so the priority action, the
 		// payment window and the chosen activation share one member set.
 		if e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
-			!abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
+			!abilityRestricted(ma) && (ignorePayable || e.manaAbilityPayable(p, id, ma)) {
 			// ActivationLimit$ / GameActivationLimit$ (Vivi Ornitier's "only once
 			// each turn", Stalking Leonin's "Activate only once"): the non-mana
 			// ability offer loops in legal.go gate on these parameters, but this
@@ -1048,27 +1063,44 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 // Candidates are still returned in deterministic battlefield order for the
 // no-choice path.
 func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost) ([]state.ObjID, bool) {
-	var sacs []state.ObjID
-	reserved := map[state.ObjID]bool{}
-	for _, part := range cost.Sac {
-		var candidates []state.ObjID
-		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if e.sacrificeBlockedForCost(id, costCauseActivated) {
-				continue
-			}
-			if !reserved[id] && e.matchesSpecFrom(part.Spec, id, p, source) {
-				candidates = append(candidates, id)
-			}
-		}
-		if part.N <= 0 || len(candidates) < int(part.N) {
+	candidates := make([][]state.ObjID, len(cost.Sac))
+	needs := make([]int, len(cost.Sac))
+	for i, part := range cost.Sac {
+		needs[i] = int(part.N)
+		if needs[i] <= 0 {
 			return nil, false
 		}
-		for _, id := range candidates[:int(part.N)] {
-			reserved[id] = true
-			sacs = append(sacs, id)
-		}
+		candidates[i] = e.sacrificeCostCandidates(p, source, part, true)
 	}
-	return sacs, true
+	used := make(map[state.ObjID]bool)
+	var chosen []state.ObjID
+	var assign func(int, int) bool
+	assign = func(part, unit int) bool {
+		for part < len(needs) && unit >= needs[part] {
+			part++
+			unit = 0
+		}
+		if part == len(needs) {
+			return true
+		}
+		for _, id := range candidates[part] {
+			if used[id] {
+				continue
+			}
+			used[id] = true
+			chosen = append(chosen, id)
+			if assign(part, unit+1) {
+				return true
+			}
+			chosen = chosen[:len(chosen)-1]
+			delete(used, id)
+		}
+		return false
+	}
+	if !assign(0, 0) {
+		return nil, false
+	}
+	return chosen, true
 }
 
 // manaDiscards performs the pure offer-side feasibility walk for a mana
@@ -1140,30 +1172,66 @@ func (e *Engine) continueManaDiscard() {
 			reserved[id] = true
 		}
 		var candidates []state.ObjID
-		for _, id := range e.G.Zone(state.ZBattlefield, md.player) {
-			if reserved[id] || e.sacrificeBlockedForCost(id, costCauseActivated) {
-				continue
-			}
-			if e.matchesSpecFrom(part.Spec, id, md.player, md.source) {
+		for _, id := range e.sacrificeCostCandidates(md.player, md.source, part, true) {
+			if !reserved[id] {
 				candidates = append(candidates, id)
 			}
 		}
-		n := int(part.N)
+		n := int(part.N) - md.sacPaid
+		// The same split sacAsk makes: only a part with a LATER Sac part is
+		// paid one unit per decision under the feasibility filter (every
+		// offered option leaves a complete distinct assignment for the later
+		// parts, so Validate, Clamp and the bot cannot strand one). The LAST
+		// Sac part keeps the historical exact-N shape -- forced when exactly n
+		// candidates remain, else one Min == Max == n ask -- because nothing
+		// downstream can be stranded by its answer.
+		hasLaterSac := md.sacPart+1 < len(md.cost.Sac)
+		if hasLaterSac {
+			pools := make([][]state.ObjID, len(md.cost.Sac))
+			needs := make([]int, len(md.cost.Sac))
+			for i, futurePart := range md.cost.Sac {
+				needs[i] = int(futurePart.N)
+				if i == md.sacPart {
+					needs[i] -= md.sacPaid
+				}
+				pools[i] = e.sacrificeCostCandidates(md.player, md.source, futurePart, true)
+			}
+			candidates = feasibleSacrificeChoices(candidates, pools, needs, md.sacs, md.sacPart)
+		}
 		if n <= 0 || n > len(candidates) {
 			e.manaDiscardActivation = nil
 			e.choosing = chooseNone
 			return
 		}
-		// Exactly N candidates makes the sacrifice forced. Record that
-		// deterministic battlefield-order set without a zero-information ask;
-		// only a wider candidate set gives the player a choice.
-		if len(candidates) == n {
-			md.sacs = append(md.sacs, candidates...)
-			md.sacPart++
-			continue
+		var d *decision.Decision
+		if hasLaterSac {
+			// A singleton candidate is forced. Record it and continue one unit
+			// at a time so each pick preserves a complete assignment for later
+			// parts.
+			if len(candidates) == 1 {
+				md.sacs = append(md.sacs, candidates[0])
+				md.sacPaid++
+				if md.sacPaid >= int(part.N) {
+					md.sacPart++
+					md.sacPaid = 0
+				}
+				continue
+			}
+			d = &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: 1, Max: 1,
+				Prompt: "Choose permanents to sacrifice for the mana ability", Source: md.source}
+		} else {
+			// Exactly N candidates makes the sacrifice forced. Record that
+			// deterministic battlefield-order set without a zero-information
+			// ask; only a wider candidate set gives the player a choice.
+			if len(candidates) == n {
+				md.sacs = append(md.sacs, candidates...)
+				md.sacPart++
+				md.sacPaid = 0
+				continue
+			}
+			d = &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: n, Max: n,
+				Prompt: "Choose permanents to sacrifice for the mana ability", Source: md.source}
 		}
-		d := &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: n, Max: n,
-			Prompt: "Choose permanents to sacrifice for the mana ability", Source: md.source}
 		for _, id := range candidates {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "sacrifice", Obj: id, Label: e.G.Obj(id).Face().Name})
 		}
@@ -1344,8 +1412,13 @@ func (e *Engine) answerManaSacrifice(chosen []decision.Option) bool {
 	}
 	for _, opt := range chosen {
 		md.sacs = append(md.sacs, opt.Obj)
+		md.sacPaid++
 	}
-	md.sacPart++
+	part := md.cost.Sac[md.sacPart]
+	if md.sacPaid >= int(part.N) {
+		md.sacPart++
+		md.sacPaid = 0
+	}
 	cast := md.cast
 	e.continueManaDiscard()
 	return cast

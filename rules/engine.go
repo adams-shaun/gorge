@@ -844,6 +844,19 @@ type Engine struct {
 	// completed move never happens (fx44, Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID
+	// replReplacedCards is the ordered plural batch (Ctx.ReplacedCards) of the
+	// replacement currently resolving -- the cascade instruction's exiled
+	// cards, the counterpart of replReplaced for Averna's Defined$
+	// ReplacedCards selector. Ask captures it onto the resume point so a
+	// ReplaceWith$ body that suspends at its hidden pick re-resolves
+	// ReplacedCards.<qual> against the same batch. nil outside a Cascade
+	// replacement.
+	replReplacedCards []state.ObjID
+	// cascadeResidue is the synthetic SA effCascade wants run after a Cascade
+	// replacement body (bottom the non-found exiled cards, then the free-cast
+	// election). It is scoped to one ProposeCascadeReplacement call, the same
+	// scratch pattern as scrySA/scryTarget; nil outside one.
+	cascadeResidue *cards.SA
 	// replacingEvent is the in-flight Damage event a DB$ ReplaceEffect body's
 	// ReplaceEvent call may rewrite (Amount/Affected). It exists only during
 	// emit, before the event is logged, so it is never part of
@@ -2324,9 +2337,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// prevented hit converts nothing. stat:CantPreventDamage (Spider-Punk)
 	// overrides protection's own damage-prevention arm exactly like every
 	// other prevention path, so the same cantPreventDamage gate applies here.
-	if ev.Kind == events.Damage && ev.Obj != 0 {
-		if src := e.inFlightDamageSource(); src != 0 && e.protectedFrom(ev.Obj, src) &&
-			!e.cantPreventDamage(src, ev.Obj) {
+	if ev.Kind == events.Damage {
+		src := e.inFlightDamageSource()
+		protected := ev.Obj != 0 && e.protectedFrom(ev.Obj, src)
+		if ev.Obj == 0 && int(ev.Player) < len(e.G.Players) {
+			protected = e.playerProtectedFrom(ev.Player, src)
+		}
+		if src != 0 && protected && !e.cantPreventDamage(src, ev.Obj) {
 			// Amount rides the stored Note (task dponce1): a prevention is a
 			// game action a triggered ability can see, and Mode$
 			// DamagePreventedOnce keys on these Notes' Amount.
@@ -2352,6 +2369,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// directly -- that would prove only that the if-lookup works, not that
 		// a game state reaches it.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
+	}
+	if ev.Kind == events.Attach && ev.Obj != 0 && ev.Text == "attach to player" {
+		if attaching := e.G.Obj(ev.Obj); attaching != nil && isAura(attaching) &&
+			int(ev.Player) < len(e.G.Players) && e.playerProtectedFrom(ev.Player, ev.Obj) {
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+				Text: "cannot attach: protected"})
+		}
 	}
 	// Role-token exclusivity (the second sentence of every Role token's rules
 	// text: "If you control another Role on it, put that one into the

@@ -4651,6 +4651,16 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZExile && h.ExileBlocked(id, false) {
 			return
 		}
+		// Capture before MoveZone folds: battlefield departure resets control,
+		// clears counters and removes battlefield-derived characteristics.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") {
+			if o := g.Obj(id); o != nil {
+				snapshot := o.CloneDeep()
+				c.ChangeZoneLKI = append(c.ChangeZoneLKI, state.LKIObject{
+					Obj: id, Controller: o.Controller, Owner: o.Owner, Snapshot: snapshot,
+				})
+			}
+		}
 		ev := moveZoneEvent(c, id, z, to)
 		applyFaceDownMarker(h, sa, c, &ev, to)
 		h.Emit(ev)
@@ -4695,6 +4705,10 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		// entries alone and only for the ExiledWithSource provenance shape
 		// (Valakut Exploration); the persistent half is what the Mimeoplasm
 		// chain's IsRemembered/Remembered$CardPower reads need.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") &&
+			!strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		}
 		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 			eventRemember(h, c, id)
@@ -4832,7 +4846,20 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
-	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True")
+	// RememberTargets$ records only objects that actually leave the
+	// battlefield. RememberDestroyed$ True (Transforming Flourish) is Forge's
+	// spelling of the same "this permanent was destroyed this way" record.
+	// RememberLKI$ True (Noxious Gearhulk) does BOTH -- it records the object
+	// and captures its last-known-information snapshot (CR 603.10 look-back),
+	// because the chained read (RememberedLKI$CardToughness) needs the
+	// battlefield P/T that events.Apply's Move clears. The snapshot rides
+	// Ctx.LKI/LKIPower/LKIToughness, the same fields rules' triggerLKI publishes
+	// and evalRefProperty reads for a zone-change trigger; evalRefProperty
+	// applies it only when the snapshot names the referenced object, so no
+	// other remembered read is affected.
+	rememberTargets := strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True")
+	rememberDestroyed := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDestroyed"]), "True")
+	rememberLKI := strings.EqualFold(strings.TrimSpace(sa.Params["RememberLKI"]), "True")
 	// Same pre-batch discipline as effDestroyAll: the targets Defined
 	// resolves are destroyed as one simultaneous batch (a multi-target
 	// Destroy over a lifelink Equipment and its bearer must not make the
@@ -4875,13 +4902,30 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
+		// Capture the last-known information BEFORE the Move folds: the
+		// snapshot must see the battlefield permanent (its counters, pump
+		// layers and printed toughness), not the graveyard card the move
+		// leaves behind. The zone guard above proved o is on the battlefield.
+		var lki *state.Object
+		var lkiPower, lkiToughness int32
+		var lkiValid bool
+		if rememberLKI {
+			cp := o.CloneDeep()
+			lki = &cp
+			lkiPower, lkiToughness = h.Power(id), h.Toughness(id)
+			lkiValid = true
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		// Host.Emit applies move replacements before folding the move. Only
 		// remember a permanent that actually ended up in the graveyard; a
 		// replacement such as exile must not feed a later IsRemembered search.
-		if remember {
+		if rememberTargets || rememberDestroyed || rememberLKI {
 			if moved := h.Game().Obj(id); moved != nil && moved.Zone == state.ZGraveyard {
+				if rememberLKI {
+					c.LKI = lki
+					c.LKIPower, c.LKIToughness, c.LKIPTValid = lkiPower, lkiToughness, lkiValid
+				}
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}
@@ -4954,6 +4998,33 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+}
+
+// sacTargetCardReferent resolves a SacValid$ spec that names the resolution's
+// card TARGET rather than the resolving source. Forge writes this referent as
+// the base `TargetedCard` with the `.Self` property (“the card this ability
+// targeted”), e.g. Enchanter's Bane's `SacValid$ TargetedCard.Self`: the
+// sacrifice is aimed at the targeted enchantment's controller, and the only
+// eligible permanent is that enchanted enchantment itself. The engine's filter
+// grammar reads a bare `Self` relative to the resolving SOURCE, so this base
+// is unrecognised there and fails closed; resolving it here, against the
+// resolution's object targets, is what admits the actual targeted card. Any
+// other base (including `Self`/`Card.Self`, whose subject IS the source) and any
+// qualifier other than `.Self` are not this referent and return ok=false,
+// leaving MatchesSpecCtx's own reading in place -- fail closed, never widened.
+// The caller checks the returned id against the pool object, so a referent that
+// is not in the asked player's battlefield never becomes eligible.
+func sacTargetCardReferent(spec string, c *Ctx) (state.ObjID, bool) {
+	base, qual, _ := strings.Cut(strings.TrimSpace(spec), ".")
+	if base != "TargetedCard" || qual != "Self" {
+		return 0, false
+	}
+	for _, t := range c.Targets {
+		if !t.IsPlayer && t.Obj != 0 {
+			return t.Obj, true
+		}
+	}
+	return 0, false
 }
 
 // effSacrifice moves permanents to the graveyard. Sacrifice ignores
@@ -5161,7 +5232,18 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				// ValidCard$, when present, narrows the same pool: a permanent
 				// must match BOTH spellings (they never co-occur, so this is
 				// just SacValid$ and ValidCard$ in turn).
-				if MatchesSpecCtx(g, spec, id, sc) &&
+				matchesSacValid := MatchesSpecCtx(g, spec, id, sc)
+				if ref, ok := sacTargetCardReferent(spec, c); ok {
+					// A SacValid$ that names the resolution's card TARGET
+					// (TargetedCard.Self) must admit exactly that object, not the
+					// resolving source the filter grammar's bare Self reads. The
+					// player-targeted pool is already this player's battlefield,
+					// so id == ref is also the "belongs to the player asked"
+					// check. Unknown referent forms stay with MatchesSpecCtx,
+					// which fails closed.
+					matchesSacValid = id == ref
+				}
+				if matchesSacValid &&
 					(validCard == "" || MatchesSpecCtx(g, validCard, id, sc)) {
 					eligible = append(eligible, id)
 				}

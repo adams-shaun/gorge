@@ -1736,8 +1736,9 @@ func GoadStaticGrantReadable(params map[string]string) bool {
 // effectRemembered resolves RememberObjects$ into the concrete object ids the
 // Effect captured. "Targeted"/"ParentTarget" remember the chosen targets;
 // "Remembered" (and creature-flavoured spellings) remember the objects the
-// resolution already had; "You & Targeted" and the default degrade to the
-// source plus the chosen targets. Objects only: a player-only remember yields
+// resolution already had, while "Imprinted" reads the source's persistent
+// imprint list; "You & Targeted" and the default degrade to the source plus
+// the chosen targets. Objects only: a player-only remember yields
 // an empty slice, which a restriction whose ValidCard$ is Card.IsRemembered
 // then applies to nothing. The player half of the same capture lives in
 // effectRememberedPlayers below.
@@ -1768,6 +1769,16 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			for _, t := range c.Remembered {
 				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
 					out = append(out, t.Obj)
+				}
+			}
+		case "Imprinted":
+			// Effect RememberObjects$ Imprinted captures the source's persistent
+			// Dig/ChangeZone imprint list (Synth Eradicator's may-play rider).
+			if o := h.Game().Obj(c.Source); o != nil {
+				for _, id := range o.Imprinted {
+					if h.Game().Obj(id) != nil {
+						out = append(out, id)
+					}
 				}
 			}
 		case "ReplacedCard":
@@ -2937,6 +2948,11 @@ func hasChosenPlayers(ts []state.Target) bool {
 // overwhelmingly common two-face case and a no-op for anything with fewer
 // than two faces (a token, or a single-faced card).
 //
+// Mode$ Unspecialize is the other face-SELECTING mode: Forge's Specialize
+// alternate mode (Bloomburrow Commander's Lukamina family) exits back to the
+// card's FRONT face -- index 0 -- from whatever later face it wears, never
+// the next face in the walk.
+//
 // Mode$ TurnFaceUp is the one exception: it is not a face change at all but
 // CR 708.6's reveal of a face-down battlefield permanent's printed face, so
 // it emits events.TurnFaceUp (which clears the face-down marker in Apply)
@@ -2962,6 +2978,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
 	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
+	unspecialize := strings.EqualFold(strings.TrimSpace(mode), "Unspecialize")
 	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
 	if optional && optAns == "" {
 		// Unanswered: pose the yes/no election -- but only when the change
@@ -2972,7 +2989,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		// stand-in (R-9): the clamp-answered bot path answers option 0 =
 		// "yes", so a bot game stays byte-identical to the pre-ask
 		// always-change.
-		if setStateWouldChange(h, c, sa, turnUp, turnDown) {
+		if setStateWouldChange(h, c, sa, turnUp, turnDown, unspecialize) {
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 				Source: c.Source, ResumeKind: "setstate_optional", ResumeSA: sa,
 				ResumeRemembered: copyTargets(c.Remembered),
@@ -3003,13 +3020,35 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if turnUp {
 			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
+				setstateRememberChanged(c, sa, o.ID)
 			}
 			continue
 		}
 		if turnDown {
 			if o.Zone == state.ZBattlefield && !o.FaceDown {
-				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID})
+				setType := strings.TrimSpace(sa.Params["FaceDownSetType"])
+				power, hasPower := NumResolved(h, c, sa, "FaceDownPower", 0)
+				toughness, hasToughness := NumResolved(h, c, sa, "FaceDownToughness", 0)
+				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID,
+					Counter: events.FaceDownEntryCounterFor(setType, power, toughness, hasPower || hasToughness)})
+				setstateRememberChanged(c, sa, o.ID)
 			}
+			continue
+		}
+		if unspecialize {
+			// Restore the FRONT face (index 0), whatever face the object
+			// wears now -- never the generic next-face walk, which from a
+			// later face lands on a DIFFERENT specialization (or wraps).
+			// Event-sourced like the rest of this primitive: the same
+			// FlipFace fold events.Apply reconstructs the face from, so a
+			// replay of the emitted stream shows the front face.
+			if o.Card == nil || len(o.Card.Faces) < 2 || o.FaceIdx == 0 {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
+				Text: "flips to face 0 (Unspecialize)"})
+			h.Emit(events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: 0})
+			setstateRememberChanged(c, sa, o.ID)
 			continue
 		}
 		if o.Card == nil || len(o.Card.Faces) < 2 {
@@ -3019,6 +3058,24 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
 		h.Emit(events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: int32(next)})
+		setstateRememberChanged(c, sa, o.ID)
+	}
+}
+
+// setstateRememberChanged honours a SetState body's RememberChanged$ True: each
+// object the loop above actually emitted a face change for joins the
+// resolution's Remembered, where the chained SubAbility$ reads it -- Megatron,
+// Tyrant's DBMana (ConditionDefined$ Remembered), Soul Seizer's DB$ Attach, the
+// Enduring Angel lose-game gate, Lukamina's DBReturn. It is the Dig precedent,
+// digRemember (cardflow.go), and it is Ctx-only, never the persistent
+// eventRemember half: every measured consumer reads the list inside the same
+// chain and each of those chains ends in ClearRemembered$ True. Absent the
+// parameter (the corpus default) the walk adds nothing, so every pre-existing
+// game replays byte-identically. Decline and no-op paths never reach an emit,
+// so they remember nothing -- Forge remembers the objects whose state CHANGED.
+func setstateRememberChanged(c *Ctx, sa *cards.SA, id state.ObjID) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberChanged"]), "True") {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
 }
 
@@ -3027,7 +3084,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 // ask from being posed when decline and accept are the same outcome. It is the
 // exact per-object predicate the emitting loop below applies, so the gate can
 // never disagree with what the loop would do.
-func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown bool) bool {
+func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspecialize bool) bool {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -3044,6 +3101,15 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown bool) bo
 		}
 		if turnDown {
 			if o.Zone == state.ZBattlefield && !o.FaceDown {
+				return true
+			}
+			continue
+		}
+		if unspecialize {
+			// The would-change read shares Unspecialize's own semantics (ONE
+			// home with effSetState's branch above): only a multi-faced
+			// object not already on its front face changes.
+			if o.Card != nil && len(o.Card.Faces) >= 2 && o.FaceIdx != 0 {
 				return true
 			}
 			continue
@@ -5058,7 +5124,11 @@ func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 	if len(targets) == 0 {
 		return
 	}
-	p := PlayerOf(h, c, targets[0])
+	players := definedPlayers(h, c, sa)
+	if len(players) == 0 {
+		return
+	}
+	p := players[0]
 	if g := h.Game(); g != nil && g.IsMonarch(p) {
 		return
 	}

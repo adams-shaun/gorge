@@ -947,10 +947,54 @@ const (
 	// Appended after Evolved, still above NumKinds, so no earlier ordinal,
 	// hash chain or golden replay is affected.
 	DelayedForget
+	// CardNoted records a card-notation write (Forge's NoteCardsEffect with
+	// `NoteCards$ Remembered | NoteCardsFor$ <label>` -- Volatile Chimera,
+	// Arcane Savant, Caller of the Untamed -- or `NoteCards$ TriggeredSource`
+	// -- Maelstrom Archangel Avatar): the resolution notes the CARD it
+	// carried (its Remembered set, or the triggering source) so a later
+	// resolution reads it back through the shared card filter's
+	// `Card.NotedFor<label>` qualifier (ChooseCard's Choices$, DB$ Play's
+	// Valid$ and RepeatEach's RepeatCards$). CopyPermanent's RevealFromExile
+	// cost is an evidenced corpus shape but remains unsupported. Obj is the
+	// noted object and Text the label; events.Apply
+	// appends Text to that object's state.Object.Notes (idempotent), which the
+	// filter reads. It is a dedicated Kind rather than a Note marker because
+	// the notation is real game state a later resolution reads. It is the
+	// object-side sibling of PlayerNoted (the `NoteCards$ Self` player half)
+	// and does not touch state.Player.Notes. A note is card-identity
+	// provenance, not zone-local state: the noted card sits in exile for the
+	// setup-path carriers, so the fold never clears on a zone move.
+	// Appended after DelayedForget, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	CardNoted
+	// Cascade is the cascade instruction's replacement PROPOSAL boundary
+	// (Averna, the Chaos Bloom's R:Event$ Cascade). It is never emitted: the
+	// rules tier holds it out to the replacement matcher exactly as Engine.Scry
+	// holds events.Scry, and the IDs carry the ordered exiled batch the body's
+	// ReplacedCards selector reads. Appended after CardNoted, preserving every
+	// earlier ordinal, hash chain and golden replay.
+	Cascade
+	// Clash records one clashing player's win/lose result from a completed
+	// CR 701.31 clash action (Forge's TriggerType.Clashed). Obj is the
+	// resolving source permanent (0 for a source-less body), Player is the
+	// clashing seat this record reports, and Amount is 1 when that player WON
+	// the clash and 0 when they lost (or tied -- CR 701.31 treats a tie as no
+	// winner, and Forge's ClashEffect fires the trigger for both clashing
+	// players with Won$ False on a tie). The reveal and the top/bottom
+	// placements are their own preceding Notes/MoveZone/LibraryOrder events;
+	// this is a pure Apply no-op marker, exactly like Explore/Investigate /
+	// GiveGift, so an unrelated reveal never fires a clash trigger. effClash
+	// emits ONE record per clashing player (Forge fires runTrigger once per
+	// player), which is what the `Won$ True`/`Won$ False` orientation of
+	// trig:Clashed reads. Appended after Cascade, still above NumKinds,
+	// following every prior Kind's own append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected.
+	Clash
 	// PlanarDeckShuffle records the seeded order of one seat's private planar
-	// deck. Appended after DelayedForget, following every prior Kind's own
-	// append-only precedent, so no earlier ordinal, hash chain or golden replay
-	// is affected.
+	// deck. Appended after Clash (the kinds main already carries), following
+	// every prior Kind's own append-only precedent, so no earlier ordinal, hash
+	// chain or golden replay is affected.
 	PlanarDeckShuffle
 	// PlanarReveal publicly turns the top planar-deck card face up.
 	// Appended here after PlanarDeckShuffle; earlier ordinals remain stable.
@@ -1097,7 +1141,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
-	"proliferate", "evolved", "delayed_forget", "planar_deck_shuffle", "planar_reveal", "planar_walk"}
+	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade", "clash",
+	"planar_deck_shuffle", "planar_reveal", "planar_walk"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -1443,6 +1488,12 @@ var flagNames = [...]struct {
 	// predicate, the Count$PromisedGift head and Defined$ Promised. Appended
 	// at the end per the table's own ordering rule.
 	{"promisedgift", state.FlagPromisedGift},
+	// Rebound's hand-cast provenance (CR 702.95a): the spell was cast from
+	// its controller's hand, so it is exiled as it resolves and its next
+	// upkeep offers the free recast. Read by spellRestZone and
+	// moveResolvedOffStack. Appended at the end per the table's own ordering
+	// rule.
+	{"rebound", state.FlagRebound},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

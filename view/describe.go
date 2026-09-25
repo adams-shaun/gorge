@@ -17,6 +17,15 @@ import (
 //
 // ClockTick describes as "" (the client hides empty lines); an unknown
 // Kind as "unknown event" rather than a panic.
+// alterAttributeGrantPhrase carries the AlterAttribute attributes whose GRANT
+// narration reads better as a gain than as "becomes <attribute>" (Suspend is
+// a keyword, not a designation). Attributes absent from the map keep the
+// designation phrase; the removal narration stays generic for every
+// attribute -- no corpus emitter clears any of these with Amount < 1.
+var alterAttributeGrantPhrase = map[string]string{
+	"Suspend": "gains suspend",
+}
+
 func firstID(ids []state.ObjID) state.ObjID {
 	if len(ids) > 0 {
 		return ids[0]
@@ -250,12 +259,28 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " would roll " + itoa(int64(ev.Amount)) + " dice"
 		}
 		return player(g, ev.Player) + " would roll a die"
+	case events.Cascade:
+		// The cascade-instruction replacement PROPOSAL (Averna, the Chaos
+		// Bloom's R:Event$ Cascade) is never logged -- the rules tier holds
+		// it out to the replacement matcher exactly as Engine.Scry holds
+		// events.Scry -- but the Describe-coverage walk visits every Kind,
+		// so the held proposal describes as the pending cascade
+		// replacement it is. IDs is the ordered exiled batch it carries.
+		if len(ev.IDs) == 1 {
+			return player(g, ev.Player) + " would cascade into 1 exiled card"
+		}
+		return player(g, ev.Player) + " would cascade into " + itoa(int64(len(ev.IDs))) + " exiled cards"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.PlayerNoted:
 		return player(g, ev.Player) + " is noted for " + ev.Text
 	case events.PlayerNoteCleared:
 		return player(g, ev.Player) + " is no longer noted for " + ev.Text
+	case events.CardNoted:
+		// The card-notation sibling of PlayerNoted (NoteCards$ Remembered /
+		// TriggeredSource with NoteCardsFor$): Obj is the noted card, Text the
+		// label a later `Card.NotedFor<label>` filter read selects on.
+		return obj(g, ev.Obj) + " is noted for " + ev.Text
 	case events.Mutate:
 		// CR 702.140d: one mutating card merges into the surviving permanent.
 		// Text is "top" or "under" (CR 702.140b's placement).
@@ -339,6 +364,18 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.GiveGift:
 		// The completed gift marker follows the gift action's own events.
 		return player(g, ev.Player) + " gives a gift"
+	case events.Clash:
+		// The completed clash marker (CR 701.31, task clash1), one per
+		// clashing player: Player is the clashing seat, Amount 1 when that
+		// player WON the clash and 0 when they lost or tied (CR 701.31
+		// leaves a tie with no winner). The reveal and the top/bottom
+		// placements are their own preceding Note/LibraryOrder lines, so
+		// this line names only the seat and the outcome; Obj is the
+		// resolving source permanent and may be 0 for a source-less body.
+		if ev.Amount == 1 {
+			return player(g, ev.Player) + " wins the clash"
+		}
+		return player(g, ev.Player) + " loses the clash"
 	case events.Evolved:
 		// The completed evolve marker (CR 702.99b, task trig:Evolved) is a
 		// pure no-op like GiveGift/Investigate: the +1/+1 counter placement
@@ -389,13 +426,19 @@ func Describe(g *state.Game, ev events.Event) string {
 		// only the conniving permanent.
 		return obj(g, ev.Obj) + " connives"
 	case events.AlterAttribute:
-		// The suspected designation's flip (task alterattr1). The grant is
-		// narrated; the removal (Amount < 0, Activate$ False / a clear fold)
-		// names the same permanent losing the designation.
+		// Attribute changes name the designation carried on the event; keep
+		// both grant and removal narration aligned with the event fold.
+		// The default phrase ("becomes <attribute>") reads for the designation
+		// attributes (Suspected/Monstrous/Renowned/Plotted); the map carries the
+		// attribute-shaped riders whose grant reads better as a gain -- Suspend
+		// is a keyword, not a designation.
 		if ev.Amount >= 1 {
-			return obj(g, ev.Obj) + " becomes suspected"
+			if phrase, ok := alterAttributeGrantPhrase[ev.Text]; ok {
+				return obj(g, ev.Obj) + " " + phrase
+			}
+			return obj(g, ev.Obj) + " becomes " + strings.ToLower(ev.Text)
 		}
-		return obj(g, ev.Obj) + " is no longer suspected"
+		return obj(g, ev.Obj) + " is no longer " + strings.ToLower(ev.Text)
 	case events.CombatRetarget:
 		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
 		// defender. The old defender needs no line (the re-pointed attack is

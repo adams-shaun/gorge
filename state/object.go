@@ -54,19 +54,16 @@ type SacrificedInfo struct {
 	Counters []Counter
 }
 
-// LKIObject is the last-known-information snapshot of an object a
-// ChangeZoneRememberLKI$ move captured: the controller and owner it had
-// while the move happened. events.Apply's Move resets a battlefield
-// departure's controller to its owner (CR 400.7), so a later reader of "the
-// exiled creature's controller" -- Forge's TokenOwner$ ImprintedController,
-// the Boar Curse of the Swine makes for each exiled creature -- can no
-// longer recover it from the live object. Forge captures a full Card LKI
-// copy at the same point (ChangeZoneEffect's CardCopyService.getLKICopy);
-// this struct is the slice of it this build's readers need.
+// LKIObject is the last-known-information snapshot captured by a
+// ChangeZoneRememberLKI$ move. Controller and Owner preserve the pre-move
+// relationship (events.Apply's Move resets a battlefield departure's
+// controller to its owner); Snapshot preserves the object's pre-move
+// characteristics and counters for resolution-local Remembered readers.
 type LKIObject struct {
 	Obj        ObjID
 	Controller PlayerID
 	Owner      PlayerID
+	Snapshot   Object
 }
 
 // CastFlags bits record how an object was cast. Several can be set at once
@@ -342,6 +339,22 @@ const (
 	// (a copy was never cast, so it must not inherit it -- CR 707.10).
 	// Appended per the enum's own append-only precedent.
 	FlagPromisedGift
+	// FlagRebound marks a spell cast from its controller's HAND whose face
+	// carries K:Rebound (CR 702.95a: "If you cast this spell from your hand,
+	// exile it as it resolves"). It is set by payCast from the pendingCast's
+	// origin zone, so the re-bound cast from exile -- which CR 702.95e says
+	// "doesn't rebound again" -- carries no bit and resolves to the
+	// graveyard like any other spell. rules/stack.go's spellRestZone reads it
+	// to exile on resolution (the fizzle reader deliberately does not: a
+	// countered rebound spell never resolves and stays in the graveyard), and
+	// rules/resolution.go's moveResolvedOffStack reads it to register the
+	// delayed upkeep recast. It IS a CastProvenanceFlag: CR 702.95a's
+	// exile-and-promise is conditioned on the spell having been CAST from its
+	// controller's hand, so a stack copy -- put on the stack, never cast
+	// (CR 707.10/706.10) -- must not inherit it; the resolution destination
+	// follows the flag, not the other way round.
+	// Appended per the enum's own append-only precedent.
+	FlagRebound
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -371,7 +384,11 @@ const (
 // (CR 702.168a), so a stack copy -- put on the stack, never cast -- cannot
 // inherit it and the copy's PromisedGift predicate and Count$PromisedGift
 // head read false.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift
+// FlagRebound joins the set for the same reason: CR 702.95a's rider is
+// conditioned on the cast ("If you cast this spell from your hand, exile it
+// as it resolves"), so a stack copy -- never cast, its origin a stack mint
+// rather than a hand -- resolves without the exile-and-promise.
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -619,6 +636,13 @@ type Object struct {
 	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
 	Monstrous bool
 
+	// Renowned is CR 702.112b's renowned designation: it lasts while this
+	// permanent remains on the battlefield, regardless of controller changes.
+	// Leaving the battlefield clears it; a later entry is a new permanent.
+	// Like Monstrous, it is a plain status field copied by CloneDeep and set
+	// only by an events.AlterAttribute fold.
+	Renowned bool
+
 	// PhasedOut is CR 702.25's phased-out status (api:Phases): the
 	// permanent is on the battlefield but is treated as though it does not
 	// exist. It is NOT a zone change -- the object keeps its Zone and its
@@ -807,6 +831,24 @@ type Object struct {
 	// with the cast-time window when the permanent leaves the battlefield
 	// (CR 400.7: an object that leaves and returns is a new object).
 	RuntimeSVars map[string]int32
+
+	// Notes is the set of card-notation labels this object carries, in the
+	// order they were noted (Forge's Card.addNotedFor: `NoteCards$
+	// Remembered/TriggeredSource | NoteCardsFor$ <label>` on a DB$ Pump body
+	// appends <label> here; the shared card filter's `Card.NotedFor<label>`
+	// qualifier reads it -- ChooseCard's Choices$, DB$ Play's Valid$ and
+	// RepeatEach's RepeatCards$. CopyPermanent's RevealFromExile cost is an
+	// evidenced corpus shape but remains unsupported.
+	// It is append-only and never re-ordered, so it is deterministic on
+	// replay, and a re-note of the same label does not duplicate the entry.
+	// Written ONLY by events.Apply's CardNoted case, so a live game and a
+	// log-only reconstruction derive it identically; CloneDeep copies it
+	// (the slice is appended to in place, so sharing the backing array would
+	// let either game corrupt the other). A note is card-identity provenance,
+	// not zone-local state -- the setup-path carriers note cards sitting in
+	// exile -- so unlike RuntimeSVars it is never cleared on a zone move;
+	// the player-side sibling lives on state.Player.Notes.
+	Notes []string
 
 	// Chosen* record answers to "as this enters/resolves, choose ..."
 	// effects: a card name, a creature type, a number, a colour (the
@@ -1439,6 +1481,7 @@ func (o *Object) CloneDeep() Object {
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
 	c.EncodedCards = append([]ObjID(nil), o.EncodedCards...)
 	c.SeekFound = append([]ObjID(nil), o.SeekFound...)
+	c.Notes = append([]string(nil), o.Notes...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)

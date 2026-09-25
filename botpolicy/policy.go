@@ -503,6 +503,12 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 
 	case decision.KAttackers:
 		in.Choices = b.chooseAttackersMode(d, lethalPressure, combinedLethal)
+		// The attack-cost non-mana charge (CostLife/CostTaps) is a
+		// whole-declaration constraint the per-pair option list cannot express,
+		// and the engine rejects an unpayable declaration; the combat
+		// heuristic is charge-blind, so route every KAttackers answer through
+		// the one guard before Clamp repairs the mana budget and quota.
+		in.Choices = LegalAttackChoices(b, d, in.Choices)
 		return Clamp(d, in)
 
 	case decision.KBlockers:

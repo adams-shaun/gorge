@@ -289,6 +289,10 @@ func Apply(g *state.Game, e Event) {
 				// the designation no controller-change end -- the only clear is
 				// the Move fold's leaving-battlefield block below.
 				o.Monstrous = e.Amount >= 1
+			case "Renowned":
+				// CR 702.112b: renowned persists only for this battlefield
+				// permanent; Amount carries the Renown count for listeners.
+				o.Renowned = e.Amount >= 1
 			case "Suspend":
 				o.SuspendGranted = e.Amount >= 1
 			case "Plotted":
@@ -1085,6 +1089,7 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(e.Obj); o != nil {
 				o.Suspected = false
 				o.Monstrous = false
+				o.Renowned = false
 				o.PlottedTurn = 0
 			}
 		}
@@ -1730,10 +1735,11 @@ func Apply(g *state.Game, e Event) {
 
 	case TurnFaceDown:
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && !o.FaceDown {
+			setType, power, toughness, hasPT, _ := FaceDownEntryFields(e.Counter)
 			o.FaceDown = true
-			o.FaceDownSetType = ""
-			o.FaceDownPower, o.FaceDownToughness = 0, 0
-			o.FaceDownHasPT = false
+			o.FaceDownSetType = setType
+			o.FaceDownPower, o.FaceDownToughness = power, toughness
+			o.FaceDownHasPT = hasPT
 		}
 
 	case TurnFaceUp:
@@ -2018,6 +2024,16 @@ func Apply(g *state.Game, e Event) {
 		// record exists only so "whenever this creature evolves" fires on the
 		// evolve action rather than on any unrelated counter.
 
+	case Clash:
+		// One clashing player's win/lose outcome from a completed CR 701.31
+		// clash action, matched by trig:Clashed. Like GiveGift it is a pure
+		// Apply no-op marker: the reveal Note and the top/bottom placements
+		// are their own preceding events, and this record exists only so
+		// "whenever you win/lose a clash" fires on a clash rather than on any
+		// reveal. Amount carries the Won$ orientation (1 = won, 0 = lost or
+		// tied), already read off the live event by clashMatches, so Apply
+		// stores nothing.
+
 	case NoteNumber:
 		// A trigger's Execute$ body noted a number onto the CARD (DB$ Pump
 		// NoteNumber$ <expr> -- Lupine Harbingers' exile trigger noting
@@ -2084,6 +2100,36 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 		p.Notes = out
+
+	case CardNoted:
+		// A DB$ Pump body noted a label onto a CARD (NoteCards$ Remembered |
+		// NoteCardsFor$ <label> -- Volatile Chimera, Arcane Savant, Caller of
+		// the Untamed; NoteCards$ TriggeredSource -- Maelstrom Archangel
+		// Avatar). Obj is the noted object and Text the label; the note is
+		// read back by the shared card filter's `Card.NotedFor<label>`
+		// qualifier. Appending is idempotent (a re-note of the same label does
+		// not duplicate it) and preserves first-note order, so a log-only
+		// replay rebuilds the exact slice. An empty label or a vanished object
+		// writes nothing rather than a ghost note. A note is card-identity
+		// provenance, not zone-local state -- the setup-path carriers note
+		// cards sitting in exile -- so the fold never clears on a zone move.
+		if e.Text == "" {
+			break
+		}
+		noted := g.Obj(e.Obj)
+		if noted == nil {
+			break
+		}
+		seen := false
+		for _, n := range noted.Notes {
+			if n == e.Text {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			noted.Notes = append(noted.Notes, e.Text)
+		}
 
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
@@ -2401,6 +2447,7 @@ func Apply(g *state.Game, e Event) {
 		casualty := false
 		demonstrate := false
 		flanking := false
+		gift := e.Counter == "GiftAbility"
 		melee := e.Counter == "__kwMeleeGranted"
 		if sa == nil {
 			// A granted Melee instance has no printed SVar. Rebuild its
@@ -2601,6 +2648,29 @@ func Apply(g *state.Game, e Event) {
 						"Mentor":    "True", "CounterType": "P1P1", "CounterNum": "1"}}
 			}
 		}
+		// The Gift trigger's payload (rules.pushTrigger's GiftAbility) DOES
+		// resolve a real card SVar, but its promise referent must not read
+		// the live source: the ability resolves independently of its source
+		// (CR 112.7a), and events.Move clears the source's CastFlags bit and
+		// GiftPromisedTo the moment the permanent leaves the battlefield --
+		// the response window the trigger's own respondability creates. The
+		// promised receiver rides the payload as Remembered (IDs), and the
+		// body's Defined$/TokenOwner$ Promised referents are rewritten to
+		// PromisedSnapshot -- effects' read of that snapshot -- so the live
+		// game and a replay mint identical objects from the event text alone.
+		// The rewrite CLONES the resolved SA: the SVar table is the card's
+		// shared compiled data and Apply must never mutate it.
+		if gift && sa != nil {
+			clone := *sa
+			clone.Params = make(map[string]string, len(sa.Params))
+			for k, v := range sa.Params {
+				if (k == "Defined" || k == "TokenOwner") && v == "Promised" {
+					v = "PromisedSnapshot"
+				}
+				clone.Params[k] = v
+			}
+			sa = &clone
+		}
 		if sa == nil {
 			break
 		}
@@ -2610,8 +2680,21 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
-		o.SourceIncarnation = incarnation
-		if conspire || casualty || demonstrate || flanking || melee || cipher {
+		// The incarnation stamp makes resolveTop's source-incarnation gate
+		// drop a keyword trigger whose effect names the SOURCE PERMANENT
+		// (Evoke's "sacrifice it") once that permanent leaves and returns as
+		// a new object (CR 400.7). A promised permanent's gift (CR 702.168c)
+		// is not such a trigger: its body acts on the promised player, and an
+		// ability resolves independently of its source (CR 112.7a), so the
+		// gift must still deliver when the permanent is removed in response
+		// to its own entry triggers -- the response window its own
+		// respondability creates. Leaving the stamp at its zero value makes
+		// that gate skip the gift, exactly as it does for an ordinary
+		// matched ETB trigger.
+		if !gift {
+			o.SourceIncarnation = incarnation
+		}
+		if conspire || casualty || demonstrate || flanking || melee || cipher || gift {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
@@ -2625,7 +2708,7 @@ func Apply(g *state.Game, e Event) {
 			// card in the temporary library holding zone. The cast flow
 			// then moves this copy onto the stack. The event, rather than
 			// the rules caller, owns the mutation so replay derives its ID.
-			if src == nil || src.Zone != state.ZExile || src.Face() == nil {
+			if src == nil || src.Face() == nil {
 				break
 			}
 			card, faceIdx := src.Card, src.FaceIdx
@@ -2662,6 +2745,19 @@ func Apply(g *state.Game, e Event) {
 		// rules/altcast.go's battlefield-entry hook has no IsCopy left to
 		// tell a never-cast token from the real cast.
 		x, castFlags := src.X, src.CastFlags&^state.CastProvenanceFlags
+		// CR 708.4: a stack COPY of a face-down (morph-family) spell stays
+		// face down. The original's stack marker was folded by the MoveZone
+		// branch above from the face-down entry Counter, but a copy is minted
+		// by AddObject and never passes through that fold -- so derive the
+		// face-down status from the morph-family cast flags it inherits (the
+		// same family rules/resolution.go's entry hook re-carries). The flags
+		// are read here, before AddObject may reallocate g.Objs. An ordinary
+		// (face-up) spell carries none of these bits, so its copy stays
+		// unmarked and the view's redaction (view/view.go stackViews) is
+		// unchanged for it. Cloaked mirrors the Disguise entry's marker so a
+		// copied disguised spell keeps the same state bit the cloak machinery
+		// reads.
+		morphFlags := castFlags & (state.FlagMorphed | state.FlagMegamorphed | state.FlagDisguised)
 		// Deep-copy, never alias: the copy's Targets/Remembered must be
 		// able to change independently of the original's once both sit on
 		// the stack.
@@ -2693,6 +2789,10 @@ func Apply(g *state.Game, e Event) {
 		o.Remembered = remembered
 		o.ChosenModes = chosenModes
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+		if morphFlags != 0 {
+			o.FaceDown = true
+			o.Cloaked = morphFlags&state.FlagDisguised != 0
+		}
 		// CR 707.10c: Amount is the creating CopySpellAbility's
 		// MayChooseTarget$ discriminator (1 = true). It rides the event so the
 		// permission travels with the COPY instance -- an external copier

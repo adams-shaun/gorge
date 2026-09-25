@@ -11,12 +11,11 @@ package rules
 // sacrifices everything the chooser did not keep, so the cap is visible on
 // the board.
 //
-// NOTE on the pool itself: the real script carries no Choices$, so the
-// engine's candidate pool (effects.cardChoices) is every battlefield object
-// of BOTH players -- the "creatures they control" restriction is a separate
-// pre-existing pool question, out of this ticket's scope (reported). The
-// boards below keep every seat's affordable set well-defined under either
-// reading, so the budget assertions survive a pool fix without rewriting.
+// The real script carries no Choices$ or ControlledByPlayer$, so its implicit
+// candidate pool is each chooser's own battlefield objects. Seat 1 therefore
+// has a qualifying creature too: this pins the second ask's budget without
+// relying on the old cross-controller pool to manufacture an ask from seat 0's
+// objects.
 
 import (
 	"strings"
@@ -135,13 +134,12 @@ func sttAskOptions(d *decision.Decision) ([]state.ObjID, []int) {
 func TestSlaughterTheStrongTotalPowerCapNarrowsThePool(t *testing.T) {
 	reg := searchTestRegistry(t)
 	spell := lookup(t, reg, "Slaughter the Strong")
-	// Seat 0: a 5/5 (alone over the cap), a 3/3, a 2/2 and a 1/1. Seat 1:
-	// nothing -- their pool under the current cross-controller Choices$
-	// default would otherwise offer seat 0's creatures to seat 1's ask, and
-	// the ticket's pin is the budget, not the pool.
+	// Seat 0: a 5/5 (alone over the cap), a 3/3, a 2/2 and a 1/1. Seat 1
+	// has a qualifying 2/2 so its own chooser-controlled pool produces a real
+	// second ask rather than borrowing seat 0's creatures.
 	e, board := sttEngine(t, reg, spell,
 		[][2]string{{"Stt Giant", "5/5"}, {"Stt Three", "3/3"}, {"Stt Two A", "2/2"}, {"Stt One", "1/1"}},
-		nil)
+		[][2]string{{"Stt Seat One Two", "2/2"}})
 	sttCast(t, e, "Slaughter the Strong", "1WW")
 
 	// Seat 0's ask: the budget rides the decision (MaxSum 4, Budgeted so the
@@ -171,11 +169,9 @@ func TestSlaughterTheStrongTotalPowerCapNarrowsThePool(t *testing.T) {
 	}
 	submitCardChoice(t, e, d, board[0][1]) // keep the 3/3
 
-	// Seat 1's ask: Defined$ Player asks every player. Under the current
-	// cross-controller pool seat 1 is offered seat 0's remaining affordable
-	// creatures; whichever pool reading holds, their ask must carry THEIR
-	// own 4-power budget and only affordable options. Decline (Min 0 makes
-	// the empty answer legal -- seat 1 controls nothing to keep).
+	// Seat 1's ask: Defined$ Player asks every player. The ask carries THEIR
+	// own 4-power budget and their qualifying 2/2 is affordable. Decline (Min
+	// 0 makes the empty answer legal).
 	d = passUntilAskKind(t, e, decision.KChoose, 200)
 	if d.Player != 1 || !d.HasBudget() || d.MaxSum != 4 {
 		t.Fatalf("seat 1 ask = %+v, want seat 1's own 4-power budget", d)

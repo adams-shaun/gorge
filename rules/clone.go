@@ -262,6 +262,7 @@ func (e *Engine) Clone() *Engine {
 		for i, ce := range e.continuous {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
 			ce.RemoveKeywords = append([]string(nil), ce.RemoveKeywords...)
+			ce.CantHaveKeywords = append([]string(nil), ce.CantHaveKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
 			ce.RemoveTypes = append([]string(nil), ce.RemoveTypes...)
 			if ce.RestrictParams != nil {
@@ -1012,6 +1013,7 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	// The AmountFromVotes$ tally snapshot: plain value entries, copied so the
 	// clone never shares a backing array with the original's pending frames.
 	cp.voteCounts = cloneVoteCounts(rp.voteCounts)
+	cp.replacedCards = append([]state.ObjID(nil), rp.replacedCards...)
 	// The pre-move controller snapshot is immutable once captured, but a clone
 	// must not share the original's map storage: an explicit copy keeps the
 	// two engines' pending frames independent.

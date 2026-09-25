@@ -5,11 +5,10 @@ package rules
 // for the Effect's lifetime. The generic effEffect path must honour it for
 // every registration mode with a non-repeat delayed dispatch -- not just
 // SpellCast/ChangesZone. These pin the two modes the earlier round left
-// recurring: the generic matcher arm (DamageDone, the modal shape) and the
-// Phase arm (inherently one-shot). rules/effect_trigger_owner_generic_test.go
-// covers the SpellCast opening-hand double-fire; the recurring control for
-// DamageDone is rules/effect_event_modes_test.go's
-// TestEffectDamageDoneTriggerRepeatsWithinTurn.
+// recurring: the generic matcher arm (DamageDone and AttackersDeclared) and
+// the Phase arm (inherently one-shot). The SpellCast
+// opening-hand case is covered in rules/effect_trigger_owner_generic_test.go;
+// recurring controls for DamageDone are in rules/effect_event_modes_test.go.
 
 import (
 	"testing"
@@ -75,6 +74,42 @@ func TestEffectOneOffDamageDoneConsumesOnFirstFiring(t *testing.T) {
 	}
 	if got := e.G.Players[0].Life; got != before-2 {
 		t.Fatalf("second damage resolved the consumed body: life %d, want %d", got, before-2)
+	}
+}
+
+// AttackersDeclared uses its own event matcher and consumes the registration
+// through the same non-repeat delayed path.
+func TestEffectOneOffAttackersDeclaredConsumesOnFirstFiring(t *testing.T) {
+	promise := card(t, "Name:OneOffAttackers\nManaCost:U\nTypes:Sorcery\n"+
+		"A:SP$ Effect | Triggers$ TrigAttack\n"+
+		"SVar:TrigAttack:Mode$ AttackersDeclared | ValidAttackers$ Creature | OneOff$ True | TriggerZones$ Command | Execute$ TrigPain\n"+
+		"SVar:TrigPain:DB$ LoseLife | Defined$ You | LifeAmount$ 2\nOracle:x\n")
+	e := handEngine(t, promise)
+	e.G.Players[0].Pool[state.MU] = 1
+	e.askPriority(0)
+	castFirst(t, e, "cast")
+	passUntilStackEmpty(t, e, 8)
+	if len(e.G.Delayed) != 1 || e.G.Delayed[0].EventMode != "AttackersDeclared" || e.G.Delayed[0].EffectRepeat {
+		t.Fatalf("precondition: Effect did not arm a one-shot AttackersDeclared registration: %+v", e.G.Delayed)
+	}
+	attacker := onBoard(t, e, 0, "Name:Declared attacker\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	if obj := e.G.Obj(attacker); obj == nil || obj.Zone != state.ZBattlefield || !e.IsCreature(attacker) {
+		t.Fatalf("precondition: attacker %d is not a battlefield creature", attacker)
+	}
+	before := e.G.Players[0].Life
+	for n := 1; n <= 2; n++ {
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{attacker}})
+		e.putTriggersOnStack()
+		passUntilStackEmpty(t, e, 8)
+		if got := e.G.Players[0].Life; got != before-2 {
+			t.Fatalf("after declaration %d, controller life = %d, want %d (one firing total)", n, got, before-2)
+		}
+		if n == 1 && len(e.G.Delayed) != 0 {
+			t.Fatalf("one-shot AttackersDeclared registration survived first firing: %+v", e.G.Delayed)
+		}
+	}
+	if len(e.G.Delayed) != 0 {
+		t.Fatalf("consumed AttackersDeclared registration returned: %+v", e.G.Delayed)
 	}
 }
 

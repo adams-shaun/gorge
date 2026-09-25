@@ -220,7 +220,9 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// qualified ones fail closed inside MatchesPlayerSpec (the fx20
 		// convention: an unmodellable qualifier fires for nobody, never for
 		// everybody).
-		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
+		pc := e.playerSpecCtx(dt.Source)
+		pc.DelayedRemembered = dt.Remembered
+		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, pc) {
 			continue
 		}
 		// IsPresent$ / PresentZone$ / PresentCompare$ (Bank Job's "at the
@@ -465,7 +467,9 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			}
 			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
-				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
+				pc := e.playerSpecCtx(dt.Source)
+				pc.DelayedRemembered = dt.Remembered
+				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
 			}
@@ -477,7 +481,9 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			// is the Effect's owner, not the creating card's controller.
 			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
-				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, effects.PlayerSpecCtx{Source: dt.Source, DelayedRemembered: dt.Remembered}) {
+				pc := e.playerSpecCtx(dt.Source)
+				pc.DelayedRemembered = dt.Remembered
+				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
 			}
@@ -498,8 +504,23 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		} else {
 			continue
 		}
-		if dt.EventMode != "BecomeMonarch" && !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
-			continue
+		if dt.EventMode != "BecomeMonarch" {
+			// The registration's OWN capture binds Card.IsTriggerRemembered
+			// inside the body's IsPresent$/IsPresent2$ clauses (Stolen
+			// Uniform's "if it's attached to a creature you control"): the
+			// unbound generic walk answers the capture-aware spec unknown
+			// and fails closed, so a qualifying control change would never
+			// fire. The binding rides the caller's TriggerContext, so every
+			// other condition clause keeps its single evaluation with
+			// unchanged semantics (Fight for the Throne's non-capture
+			// IsPresent$ Card.IsCommander+... is untouched). A failed
+			// condition does not spend the registration: the fire is simply
+			// not collected, so a later matching event, once the condition
+			// holds, may fire -- the same pending direction ValidPlayer$
+			// and the Phase arm's own present gate take.
+			if !e.triggerConditionHoldsAsWithDelayedRemembered(t, dt.Source, dt.Controller, dt.Remembered) {
+				continue
+			}
 		}
 		refs := e.triggerReferents(t, dt.Source, ev, referentsArg)
 		refs.DelayedObject = ev.Obj
