@@ -2018,12 +2018,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		}
 		// Casualty is an optional additional sacrifice, not a mana cost.
 		// Price the ordinary spell and require at least one creature whose
-		// derived power meets the printed or layer-granted threshold.
+		// derived power meets the printed or layer-granted threshold. The
+		// variable form (Casualty:X, Ob Nixilis, the Adversary) has no
+		// threshold: the sacrificed creature's own power names the amount, so
+		// any creature qualifies and the ask's power gate reads 0.
 		if targetsAvailable {
-			if n := e.casualtyValue(id); n >= 0 && len(e.casualtyCandidates(p, id, n)) > 0 &&
-				offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
-				out = append(out, decision.Option{Index: len(out), Kind: "cast",
-					Label: "Cast " + f.Name + " (casualty)", Obj: id, Mode: "casualty"})
+			if info, ok := e.casualtySpec(id); ok {
+				n := info.threshold
+				if info.variable {
+					n = 0
+				}
+				if len(e.casualtyCandidates(p, id, n)) > 0 &&
+					offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + f.Name + " (casualty)", Obj: id, Mode: "casualty"})
+				}
 			}
 		}
 		// The alternative-cost keyword family (altcosts), from the hand: evoke

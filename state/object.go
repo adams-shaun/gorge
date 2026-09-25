@@ -1077,6 +1077,19 @@ type Object struct {
 	// replay like CopyMayChooseTarget; false on every ordinary object.
 	CopyNonLegendary bool
 
+	// CopyLoyalty (with CopyLoyaltySet) is the CopySpellAbility SetLoyalty$
+	// rider (the corpus's one carrier is Ob Nixilis, the Adversary's
+	// Casualty:X script): the override of the copy's CR 306.5b starting
+	// loyalty, delivered RESOLVED by the creating effect (the casualty amount
+	// the payment computed -- the sacrificed creature's power). It is set by
+	// the StackCopy fold from the creating effect's event OR inherited from a
+	// spell copy being copied again (CR 707.2), and read by
+	// events.EntryCounterGrants when the copy enters the battlefield.
+	// Engine-runtime, rebuilt from the event stream on replay like
+	// CopyNonLegendary; CopyLoyaltySet false on every ordinary object.
+	CopyLoyalty    int32
+	CopyLoyaltySet bool
+
 	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
 	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face
 	// instead of the object's own card face, so every read site -- name,

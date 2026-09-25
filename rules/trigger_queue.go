@@ -551,7 +551,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwCasualty:", IDs: []state.ObjID{pt.Source}, Text: "casualty ability"})
+			Obj: pt.Source, Counter: "__kwCasualty:" + pt.CasPayload, IDs: []state.ObjID{pt.Source}, Text: "casualty ability"})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {

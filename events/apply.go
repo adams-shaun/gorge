@@ -2405,10 +2405,29 @@ func Apply(g *state.Game, e Event) {
 						"MayChooseTarget": "True"}}
 				conspire = ok
 			}
-			if e.Counter == "__kwCasualty:" {
+			// A CASUALTY cast trigger (rules.pushTrigger's __kwCasualty:
+			// payload) has no SVar either: rebuilt structurally into the same
+			// DB$ CopySpellAbility | Defined$ TriggeredSpellAbility body the
+			// printed K:Casualty expansion cannot carry (the keyword is read
+			// directly by the cast flow, not expanded). The triggering spell
+			// rides IDs as Remembered. The payload after the colon is the
+			// StackCopyCounter grammar: the Casualty:X carrier's script riders
+			// (Ob Nixilis, the Adversary) -- the copy isn't legendary and its
+			// starting loyalty is the casualty amount -- which the live game
+			// and the replay mint identically from the event text alone. The
+			// trailing colon keeps the payload from aliasing the "__kwCasualty"
+			// SVar a printed bare K:Casualty line mints.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwCasualty:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "MayChooseTarget": "True"}}
-				casualty = true
+				cc := ParseStackCopyCounter(rest)
+				if cc.NonLegendary {
+					sa.Params["NonLegendary"] = "True"
+				}
+				if cc.HasLoyalty {
+					sa.Params["SetLoyalty"] = strconv.Itoa(int(cc.Loyalty))
+				}
+				casualty = ok
 			}
 			// A CIPHER combat-damage trigger (rules.pushTrigger's __kwCipher:
 			// payload) has no SVar either -- the association that grants it is
@@ -2593,6 +2612,7 @@ func Apply(g *state.Game, e Event) {
 		// the same owning face.
 		gainedFace, gainedFrom := src.GainedFace, src.GainedFrom
 		copyNonLegendary := src.CopyNonLegendary
+		copyLoyalty, copyLoyaltySet := src.CopyLoyalty, src.CopyLoyaltySet
 		// The copy inherits the original's CastFlags -- a copy of a fused,
 		// bestowed or kicked spell resolves as one -- EXCEPT the cast
 		// provenance a later reader turns into an "if you cast it"
@@ -2640,12 +2660,27 @@ func Apply(g *state.Game, e Event) {
 		// the copied spell's own text still grants the election on replay,
 		// and effects/copy.go never has to reach into rules to ask.
 		o.CopyMayChooseTarget = e.Amount == 1
-		// The creating CopySpellAbility's NonLegendary$ True strips the
-		// Legendary supertype (Counter is its event discriminator). That
-		// changed characteristic is copiable: a later copy of this copy
-		// inherits the strip even without its own NonLegendary$ (CR 707.2).
-		// Snapshot it before AddObject, which may reallocate g.Objs.
-		o.CopyNonLegendary = copyNonLegendary || e.Counter == "nonlegendary"
+		// The creating CopySpellAbility's rider payload (Counter, the
+		// StackCopyCounter grammar): NonLegendary$ True strips the Legendary
+		// supertype and SetLoyalty$ overrides the entry's starting loyalty
+		// (Ob Nixilis, the Adversary's Casualty:X script). Both changed
+		// characteristics are copiable: a later copy of this copy inherits
+		// them even without its own payload (CR 707.2), the event's own
+		// payload winning when present. Snapshot before AddObject, which may
+		// reallocate g.Objs.
+		if cc := ParseStackCopyCounter(e.Counter); cc.NonLegendary || cc.HasLoyalty {
+			if cc.NonLegendary {
+				o.CopyNonLegendary = true
+			}
+			if cc.HasLoyalty {
+				o.CopyLoyalty, o.CopyLoyaltySet = cc.Loyalty, true
+			}
+		} else {
+			o.CopyNonLegendary = copyNonLegendary
+			if copyLoyaltySet {
+				o.CopyLoyalty, o.CopyLoyaltySet = copyLoyalty, true
+			}
+		}
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {

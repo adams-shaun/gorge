@@ -1461,3 +1461,48 @@ func FlagsString(f uint64) string {
 	}
 	return strings.Join(parts, ",")
 }
+
+// StackCopyCounter is the rider payload the StackCopy event's Counter may
+// carry (the field every other StackCopy leaves empty). The corpus's one
+// carrier is the Casualty:X script-rider family (Ob Nixilis, the Adversary:
+// the copy "isn't legendary and has starting loyalty X"), delivered through
+// the __kwCasualty: trigger rebuild in Apply; the same grammar composes the
+// NonLegendary$/SetLoyalty$ params of any CopySpellAbility whose copy must
+// resolve with changed characteristics. Tokens are comma-joined, fixed order:
+// "nonlegendary", then "loyalty=<n>". A 0 loyalty token is real (the copy
+// enters with no loyalty counters and dies), so presence is a separate bit.
+type StackCopyCounter struct {
+	NonLegendary bool
+	Loyalty      int32
+	HasLoyalty   bool
+}
+
+// ParseStackCopyCounter reads the grammar StackCopyCounterString writes; an
+// empty or unrecognised payload reads as no riders.
+func ParseStackCopyCounter(counter string) StackCopyCounter {
+	var cc StackCopyCounter
+	for tok := range strings.SplitSeq(counter, ",") {
+		switch {
+		case tok == "nonlegendary":
+			cc.NonLegendary = true
+		case strings.HasPrefix(tok, "loyalty="):
+			if n, err := strconv.Atoi(strings.TrimPrefix(tok, "loyalty=")); err == nil && n >= 0 {
+				cc.Loyalty, cc.HasLoyalty = int32(n), true
+			}
+		}
+	}
+	return cc
+}
+
+// StackCopyCounterString is ParseStackCopyCounter's inverse: empty for no
+// riders, "nonlegendary" before "loyalty=<n>" otherwise.
+func StackCopyCounterString(cc StackCopyCounter) string {
+	toks := make([]string, 0, 2)
+	if cc.NonLegendary {
+		toks = append(toks, "nonlegendary")
+	}
+	if cc.HasLoyalty {
+		toks = append(toks, "loyalty="+strconv.Itoa(int(cc.Loyalty)))
+	}
+	return strings.Join(toks, ",")
+}
