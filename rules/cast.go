@@ -4764,8 +4764,12 @@ func (e *Engine) sacAsk() bool {
 			pc.sacPart++
 			continue
 		}
+		verb := "cast"
+		if pc.isAbility() {
+			verb = "activate"
+		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
-			Prompt: "Sacrifice a permanent to cast " + e.G.Obj(pc.card).Face().Name,
+			Prompt: "Sacrifice a permanent to " + verb + " " + e.G.Obj(pc.card).Face().Name,
 			Source: pc.card}
 		for _, id := range candidates {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "sacrifice",
