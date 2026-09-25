@@ -1637,7 +1637,8 @@ func (e *Engine) drawCostCard(p state.PlayerID) {
 
 // payMillCost settles every Mill<N> cost component: the payer mills the SUM
 // of the parts' requirements from the top of their own library, one real
-// MoveZone event per card in deterministic top-first order. No choice is
+// MoveZone event per card in deterministic top-first order. The moves share a
+// mill batch so MilledAll triggers once for this cost payment. No choice is
 // involved, so nothing is asked. A mill instruction moves all remaining cards
 // when its count exceeds the library size, so the snapshot clamps to the
 // available prefix.
@@ -1653,9 +1654,11 @@ func (e *Engine) payMillCost(p state.PlayerID, parts []CostPart) {
 	// Snapshot the ids before emitting: each MoveZone mutates the library
 	// the slice was read from.
 	ids := append([]state.ObjID(nil), lib[:total]...)
+	e.BeginMillBatch()
 	for _, id := range ids {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary, To: state.ZGraveyard, Text: "mill cost"})
+		e.emit(events.Mill(id, p))
 	}
+	e.EndMillBatch()
 }
 
 func (e *Engine) payMillCostParts(pc *pendingCast) {
