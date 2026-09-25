@@ -1004,6 +1004,7 @@ func cloneResume(rp *resumePoint) *resumePoint {
 		return nil
 	}
 	cp := *rp
+	cp.clash = cloneClashResume(rp.clash)
 	cp.choices = append([]state.Target(nil), rp.choices...)
 	cp.chosenValid = rp.chosenValid
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
@@ -1052,6 +1053,7 @@ func cloneResume(rp *resumePoint) *resumePoint {
 func cloneDecision(p *decision.Decision) *decision.Decision {
 	d := *p
 	d.Options = append([]decision.Option(nil), p.Options...)
+	d.ResumeClash = cloneClashResume(p.ResumeClash)
 	d.ResumeModes = append([]string(nil), p.ResumeModes...)
 	d.ResumeChoices = append([]state.Target(nil), p.ResumeChoices...)
 	d.ResumeChosenValid = p.ResumeChosenValid
