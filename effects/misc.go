@@ -3020,6 +3020,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if turnUp {
 			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
+				setstateRememberChanged(c, sa, o.ID)
 			}
 			continue
 		}
@@ -3030,6 +3031,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 				toughness, hasToughness := NumResolved(h, c, sa, "FaceDownToughness", 0)
 				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID,
 					Counter: events.FaceDownEntryCounterFor(setType, power, toughness, hasPower || hasToughness)})
+				setstateRememberChanged(c, sa, o.ID)
 			}
 			continue
 		}
@@ -3046,6 +3048,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
 				Text: "flips to face 0 (Unspecialize)"})
 			h.Emit(events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: 0})
+			setstateRememberChanged(c, sa, o.ID)
 			continue
 		}
 		if o.Card == nil || len(o.Card.Faces) < 2 {
@@ -3055,6 +3058,24 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
 		h.Emit(events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: int32(next)})
+		setstateRememberChanged(c, sa, o.ID)
+	}
+}
+
+// setstateRememberChanged honours a SetState body's RememberChanged$ True: each
+// object the loop above actually emitted a face change for joins the
+// resolution's Remembered, where the chained SubAbility$ reads it -- Megatron,
+// Tyrant's DBMana (ConditionDefined$ Remembered), Soul Seizer's DB$ Attach, the
+// Enduring Angel lose-game gate, Lukamina's DBReturn. It is the Dig precedent,
+// digRemember (cardflow.go), and it is Ctx-only, never the persistent
+// eventRemember half: every measured consumer reads the list inside the same
+// chain and each of those chains ends in ClearRemembered$ True. Absent the
+// parameter (the corpus default) the walk adds nothing, so every pre-existing
+// game replays byte-identically. Decline and no-op paths never reach an emit,
+// so they remember nothing -- Forge remembers the objects whose state CHANGED.
+func setstateRememberChanged(c *Ctx, sa *cards.SA, id state.ObjID) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberChanged"]), "True") {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
 }
 
