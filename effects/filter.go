@@ -3824,7 +3824,7 @@ func matchesBase(g *state.Game, base string, o *state.Object, sc SpecContext) bo
 		// depends on.
 		return o.Face() != nil && o.Face().IsPermanent()
 	case "Spell":
-		return o.Zone == state.ZStack
+		return o.Zone == state.ZStack || sc.AsStack
 	case "SpellAbility":
 		// Forge's SpellAbility base (ValidSource$ SpellAbility.OppCtrl on the
 		// "becomes the target of a spell or ability" family -- Thunderbreak
