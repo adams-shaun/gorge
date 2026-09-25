@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -99,6 +100,19 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 	drainProvTriggers(t, e)
 	if got := len(e.G.Zone(state.ZHand, 0)); got != hand0+1 {
 		t.Fatalf("seat 0 hand = %d after winning the clash, want %d (the Won$ True draw)", got, hand0+1)
+	}
+}
+
+// TestClashPrimitivesRegistered pins that both halves of the mechanic are
+// declared supported, so the coverage census counts the 29 api:Clash and the 4
+// trig:Clashed corpus carriers as playable. Reverting either registration is a
+// silent coverage regression this fails on.
+func TestClashPrimitivesRegistered(t *testing.T) {
+	supported := effects.Supported()
+	for _, p := range []string{"api:Clash", "trig:Clashed"} {
+		if !supported[p] {
+			t.Fatalf("effects.Supported() is missing %s", p)
+		}
 	}
 }
 

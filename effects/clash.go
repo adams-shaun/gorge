@@ -8,7 +8,14 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-func init() { Register("Clash", effClash) }
+func init() {
+	Register("Clash", effClash)
+	// The trigger half of the mechanic, registered here beside the marker
+	// emitting primitive (the effects/gift.go shape): effects.Supported()
+	// reports trig:Clashed so the coverage census counts the four corpus
+	// carriers as playable.
+	RegisterNonAPI("trig:Clashed")
+}
 
 // effClash implements DB$/SP$/AB$ Clash (CR 701.31, Forge's ClashEffect; 29
 // corpus SA lines across 29 files). The resolving ability's controller clashes
