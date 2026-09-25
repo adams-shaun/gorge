@@ -1186,6 +1186,26 @@ func Apply(g *state.Game, e Event) {
 		// the real ordinal. TurnChange resets it below.
 		if e.Step.Valid() && e.Step == state.StepBeginCombat {
 			g.CombatsThisTurn++
+			// ChoiceRestriction$ YourLastCombat: preserve only picks from
+			// each controlled permanent's immediately preceding combat, then
+			// rotate its combat identity. The log is the forbidden set during
+			// the combat just begun; an intervening pickless combat therefore
+			// releases an older pick on the following combat.
+			for i := range g.Objs {
+				o := &g.Objs[i]
+				if o.Zone != state.ZBattlefield || o.Controller != g.Active {
+					continue
+				}
+				kept := o.ModeChoices[:0]
+				for _, pick := range o.ModeChoices {
+					if pick.Scope != state.ModeScopeYourLastCombat ||
+						(pick.Turn == o.CurCombatTurn && pick.Combat == o.CurCombatCombat) {
+						kept = append(kept, pick)
+					}
+				}
+				o.ModeChoices = kept
+				o.CurCombatTurn, o.CurCombatCombat = g.Turn, g.CombatsThisTurn
+			}
 		}
 		// kw:Echo's provenance (CR 702.35a): the Draw step's beginning means
 		// this turn's upkeep just ended, so the turn's upkeep is now the
@@ -1242,10 +1262,16 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].EnlistedCombat = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
-				// A Charm's ChoiceRestriction$ ThisTurn log is a per-turn fact, so
-				// the picks are dropped at the turn boundary (a new turn offers
-				// every mode again).
-				g.Objs[i].ModeChoices = nil
+				// ChoiceRestriction$ ThisTurn is the only per-turn scope. Keep
+				// ThisGame for the battlefield stint and YourLastCombat across
+				// turns; its combat-start rotation expires it at the right boundary.
+				keptModes := g.Objs[i].ModeChoices[:0]
+				for _, pick := range g.Objs[i].ModeChoices {
+					if pick.Scope != state.ModeScopeThisTurn {
+						keptModes = append(keptModes, pick)
+					}
+				}
+				g.Objs[i].ModeChoices = keptModes
 			}
 			// The per-add entry list is per-turn state too.
 			g.Entered = nil
@@ -2046,14 +2072,13 @@ func Apply(g *state.Game, e Event) {
 				if len(e.IDs) > 0 {
 					o.ETBCloneChoice = e.IDs[0]
 				}
-			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn:
-				// ChoiceRestriction$ (task charm-choice-restriction): one Charm
-				// mode pick, named in Text, keyed ThisTurn. The entry is pruned
-				// in the TurnChange per-object loop and cleared when the source
-				// leaves the battlefield (CR 400.7 -- battlefield-stint state).
+			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn,
+				state.ModeChoiceCounterPrefix + state.ModeScopeThisGame,
+				state.ModeChoiceCounterPrefix + state.ModeScopeYourLastCombat:
+				scope := strings.TrimPrefix(e.Counter, state.ModeChoiceCounterPrefix)
 				o.ModeChoices = append(o.ModeChoices, state.ModeChoice{
-					Mode:  e.Text,
-					Scope: state.ModeScopeThisTurn,
+					Mode: e.Text, Scope: scope,
+					Turn: g.Turn, Combat: g.CombatsThisTurn,
 				})
 			case "protector":
 				// CR 310.10: the Siege protector chosen as this Battle
@@ -3747,6 +3772,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// permanent that leaves and returns (blink, reanimation) starts
 			// with an empty log, even in the same turn.
 			o.ModeChoices = nil
+			o.CurCombatTurn, o.CurCombatCombat = 0, 0
 			// Exert state is the old permanent's, not the new object's
 			// (CR 400.7): a re-entering Combat Celebrant may exert again
 			// this turn and carries no untap-skip window.

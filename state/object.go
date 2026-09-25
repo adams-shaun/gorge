@@ -414,21 +414,20 @@ func ObjectWasCastFromGraveyard(o *Object) bool {
 
 // ModeChoice is one ChoiceRestriction$ pick recorded on an object: the
 // chosen Choices$ SVar name and the restriction scope the picking Charm
-// named. This build only records ModeScopeThisTurn (the brief's scope); the
-// Scope field is kept so the shape is self-describing and a future scope can
-// widen it without a re-type.
+// named. Turn and Combat stamp the event-folded combat identity for
+// ModeScopeYourLastCombat picks; ThisTurn and ThisGame do not use the stamp.
 type ModeChoice struct {
-	Mode  string
-	Scope string
+	Mode   string
+	Scope  string
+	Turn   int32
+	Combat int32
 }
 
 // The ChoiceRestriction$ scopes and the events.Choose counter key a pick is
 // recorded under. state owns them so effects (which emits the pick) and events
-// (which folds it) cannot drift apart. Only ThisTurn is modelled end to end:
-// ThisGame and YourLastCombat are named here for the corpus census but their
-// filtering is deliberately unimplemented (CharmEligibleModes returns the
-// input unchanged for them, and RecordCharmChoices emits nothing), so their
-// carriers keep pre-fix behaviour.
+// (which folds it) cannot drift apart. ThisTurn, ThisGame and YourLastCombat
+// are modelled end to end; YourLastCombat stamps are aged at each controller
+// combat start.
 const (
 	ModeScopeThisTurn       = "ThisTurn"
 	ModeScopeThisGame       = "ThisGame"
@@ -887,16 +886,19 @@ type Object struct {
 
 	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$
 	// reads (task charm-choice-restriction): every mode this object has chosen
-	// this turn, with the scope the picking Charm named. Unlike ChosenModes it is
-	// NOT cleared when the choosing stack object resolves -- the whole point is
+	// under the scope the picking Charm named. Unlike ChosenModes it is NOT
+	// cleared when the choosing stack object resolves -- the whole point is
 	// that a LATER trigger instance on the same source sees the earlier pick --
 	// so it lives on the source permanent and is folded by events.Choose's
-	// scope-keyed pick markers. It is battlefield-stint state: the TurnChange
-	// loop clears it (ThisTurn is a per-turn fact) and the Move battlefield
-	// departure block clears it (CR 400.7 -- a permanent that leaves and returns
-	// is a new object), so a re-entered Parapet Thrasher offers every mode
-	// again.
-	ModeChoices []ModeChoice
+	// scope-keyed pick markers. TurnChange prunes ThisTurn entries, combat start
+	// ages YourLastCombat entries, and Move's battlefield departure block clears
+	// all entries (CR 400.7 -- a permanent that leaves and returns is a new
+	// object), so a re-entered permanent offers every mode again.
+	// CurCombatTurn/CurCombatCombat identify this object's controller's most
+	// recently begun combat and rotate YourLastCombat picks at combat start.
+	ModeChoices     []ModeChoice
+	CurCombatTurn   int32
+	CurCombatCombat int32
 
 	// EncodedCards holds the CIPHER spell cards exiled ENCODED on this creature
 	// (CR 702.99a: "exile this spell card encoded on a creature you control").
