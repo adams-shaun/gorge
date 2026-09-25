@@ -10351,13 +10351,11 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // (windowManaAlt.costGeneric) and a life fee before its production is added,
 // and that fee may be funded by mana an earlier same-window activation
 // already produced. The live window offers one source at a time and
-// re-enters after each activation, so this sequence -- free sources first,
-// then a paid source the accumulated pool can cover -- is exactly what
-// manaWindowAsk can perform; the probe must therefore never claim a paid
-// source it cannot fund. Units are ordered free-first (a stable, id-broken
-// sort) so a paid ability funded only by a free source is found regardless of
-// battlefield order, while every shared-window alt carries costGeneric 0 so
-// the attack/unless callers of unlessManaReachable are untouched.
+// re-enters after each activation, so the search explores executable source
+// orders and never claims a paid source it cannot fund. Units are visited in
+// stable fee/id order, but every remaining source can be selected next;
+// every shared-window alt carries costGeneric 0 so the attack/unless callers
+// of unlessManaReachable are untouched.
 //
 // spellPool is the payer's restriction-adjusted pool for the SPELL (the same
 // projection unlessManaReachable receives); activation fees are funded from
@@ -10368,12 +10366,12 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // abilities).
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [7]state.Mana, life int32, conv *manaConv, units []windowManaUnit) bool {
-	payable := func(pool state.Mana, lifeNow int32) bool {
-		_, ok := cost.resolveManaWith(pool, snow, typed, lifeNow,
+	payable := func(pool, snowPool state.Mana, lifeNow int32) bool {
+		_, ok := cost.resolveManaWith(pool, snowPool, typed, lifeNow,
 			e.payerGrantsPayLifeInsteadOfB(p), pipRider{}, conv)
 		return ok
 	}
-	if payable(spellPool, life) {
+	if payable(spellPool, snow, life) {
 		return true
 	}
 	free := e.unrestrictedWindowPool(p)
@@ -10389,19 +10387,20 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 		}
 	}
 	nodes := 0
-	var rec func(start int, pool, activationPool state.Mana, lifeLeft int32) bool
-	rec = func(start int, pool, activationPool state.Mana, lifeLeft int32) bool {
-		if payable(pool, lifeLeft) {
+	used := make([]bool, len(ordered))
+	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32) bool
+	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32) bool {
+		if payable(pool, spellSnow, lifeLeft) {
 			return true
-		}
-		if start >= len(ordered) {
-			return false
 		}
 		nodes++
 		if nodes > 1<<18 {
 			return false
 		}
-		for i := start; i < len(ordered); i++ {
+		for i := range ordered {
+			if used[i] {
+				continue
+			}
 			for _, a := range ordered[i].alts {
 				if a.life > lifeLeft {
 					continue
@@ -10409,49 +10408,30 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 				// Pay a generic activation fee from mana the live activation
 				// gate can spend. Track the same spent colours in the spell
 				// pool; fees reduce that pool, they are not extra spell pips.
-				for _, spent := range castWindowGenericPayments(activationPool, a.costGeneric) {
-					nextPool := manaSub(pool, spent)
-					nextActivation := manaSub(activationPool, spent)
-					produced := a.mana()
-					if rec(i+1, manaAdd(nextPool, produced), manaAdd(nextActivation, produced), lifeLeft-a.life) {
-						return true
-					}
+				activationFee, feeOK := (Cost{Generic: a.costGeneric}).resolveMana(
+					activationPool, activationSnow, [7]state.Mana{}, lifeLeft, nil)
+				if !feeOK {
+					continue
+				}
+				spent := manaSub(activationPool, activationFee.pool)
+				snowSpent := manaSub(activationSnow, activationFee.snow)
+				nextPool := manaSub(pool, spent)
+				nextSpellSnow := manaSub(spellSnow, snowSpent)
+				nextActivation := activationFee.pool
+				nextActivationSnow := activationFee.snow
+				produced := a.mana()
+				used[i] = true
+				found := rec(manaAdd(nextPool, produced), nextSpellSnow,
+					manaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.life)
+				used[i] = false
+				if found {
+					return true
 				}
 			}
 		}
 		return false
 	}
-	return rec(0, spellPool, free, life)
-}
-
-// castWindowGenericPayments enumerates deterministic colour allocations for
-// paying a literal generic activation fee. The activation search applies each
-// allocation to both the unrestricted activation pool and the spell pool.
-func castWindowGenericPayments(pool state.Mana, amount int32) []state.Mana {
-	if amount == 0 {
-		return []state.Mana{{}}
-	}
-	var out []state.Mana
-	var walk func(slot int, left int32, spent state.Mana)
-	walk = func(slot int, left int32, spent state.Mana) {
-		if slot == len(pool) {
-			if left == 0 {
-				out = append(out, spent)
-			}
-			return
-		}
-		max := pool[slot]
-		if max > left {
-			max = left
-		}
-		for n := max; n >= 0; n-- {
-			spent[slot] = n
-			walk(slot+1, left-n, spent)
-		}
-		spent[slot] = 0
-	}
-	walk(0, amount, state.Mana{})
-	return out
+	return rec(spellPool, snow, free, snow, life)
 }
 
 func manaSub(a, b state.Mana) state.Mana {
@@ -10467,7 +10447,7 @@ func manaSub(a, b state.Mana) state.Mana {
 
 // castWindowUnitLess orders a unit before another when its cheapest
 // alternative is cheaper in generic activation cost, tie-broken by zone id,
-// so castWindowReachable's free-first ordering is total and deterministic.
+// giving castWindowReachable a stable traversal order.
 func castWindowUnitLess(a, b windowManaUnit) bool {
 	ka, kb := int32(-1), int32(-1)
 	for _, x := range a.alts {
