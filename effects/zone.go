@@ -3434,7 +3434,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		for _, id := range ids {
 			o := g.Obj(id)
 			if o != nil && zoneIn(originZones, o.Zone) && MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) &&
-				(!hasChooseFromDefined || !chooseFromDefinedResolved || chooseFromDefined[id]) {
+				(!hasChooseFromDefined || (chooseFromDefinedResolved && chooseFromDefined[id])) {
 				valid = append(valid, id)
 			}
 		}
