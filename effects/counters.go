@@ -276,6 +276,13 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	if kind == "" {
 		kind = "P1P1"
 	}
+	if placer := strings.TrimSpace(sa.Params["Placer"]); placer != "" {
+		if _, ok := putCounterPlacerFor(h, c, placer); !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "PutCounter Placer$ unresolvable (" + placer + ")"})
+			return
+		}
+	}
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
 		switch {
 		case optAns != "" && optAns != "yes":
@@ -520,7 +527,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			// behaviour) silently dropped the whole instruction -- the corpus
 			// carries 156 player-targeted PutCounter lines.
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
-				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+				emitPutCounterChange(h, c, sa, events.Event{Kind: events.PlayerCounterChange, Player: p,
 					Counter: kind, Amount: n})
 			}
 			continue
@@ -589,10 +596,10 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if len(kindsAns) > 0 && kindsDone {
 			for _, chosenKind := range kindsAns {
-				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: chosenKind, Amount: amount})
+				emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: chosenKind, Amount: amount})
 			}
 		} else {
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+			emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
 		}
 		// The mark (CR 701.31b: "...and it becomes monstrous"): one
 		// AlterAttribute per placed object, emitted AFTER its counters so the
@@ -1020,17 +1027,6 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []
 			Text: "PutCounter Chooser$ unresolvable (" + sa.Params["Chooser"] + ")"})
 		return
 	}
-	// Placer$ names whose placement the counters are attributed to; on the
-	// choice shape every carrier spells it equal to Chooser$ and the
-	// placement target is the chosen object regardless, so a value that
-	// resolves to the chooser (or is absent) is a silent no-op and anything
-	// else is one loud Note, placement unchanged.
-	if pl := strings.TrimSpace(sa.Params["Placer"]); pl != "" {
-		if pp, pok := putCounterChooserFor(h, c, pl); !pok || pp != chooser {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "PutCounter Placer$ unmodelled (" + pl + ")"})
-		}
-	}
 	var eligible []state.ObjID
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
@@ -1132,7 +1128,7 @@ func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, pic
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
+		emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
 		placed = append(placed, state.Target{Obj: id})
 	}
 	rememberPlaced(c, sa, placed)
@@ -1304,6 +1300,46 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.Ob
 		picks = picks[:max]
 	}
 	putCounterPickApply(h, c, sa, 1, kind, picks)
+}
+
+func putCounterPlacerFor(h Host, c *Ctx, v string) (state.PlayerID, bool) {
+	g := h.Game()
+	switch v {
+	case "Controller":
+		return c.Controller, true
+	case "Owner":
+		if o := g.Obj(c.Source); o != nil {
+			return o.Owner, true
+		}
+		return 0, false
+	case "TriggeredSource":
+		if o := g.Obj(c.TriggerSource); o != nil {
+			return o.Controller, true
+		}
+		return 0, false
+	case "TriggeredSourceController":
+		if o := g.Obj(c.TriggerSource); o != nil {
+			return o.Controller, true
+		}
+		return 0, false
+	}
+	return putCounterChooserFor(h, c, v)
+}
+
+// emitPutCounterChange publishes the Placer$ role only while this event is
+// folded. The event format remains unchanged; the engine's existing in-flight
+// counter-adder channel is consumed synchronously by replacement and trigger
+// matching, and replay re-executes this setter around the same emission.
+func emitPutCounterChange(h Host, c *Ctx, sa *cards.SA, ev events.Event) {
+	if placer := strings.TrimSpace(sa.Params["Placer"]); placer != "" {
+		if p, ok := putCounterPlacerFor(h, c, placer); ok {
+			previous := h.SetCounterAdder(p)
+			h.Emit(ev)
+			h.SetCounterAdder(previous)
+			return
+		}
+	}
+	h.Emit(ev)
 }
 
 func putCounterChooserFor(h Host, c *Ctx, v string) (state.PlayerID, bool) {
