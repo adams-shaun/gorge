@@ -106,3 +106,66 @@ func TestPutCounterRememberPutZeroPlayerRecipientIsNotRemembered(t *testing.T) {
 		t.Fatalf("Remembered = %+v, want empty: a zero-count energy put remembers nothing", c.Remembered)
 	}
 }
+
+// TestPutCounterPickApplyRemembersOnlyPositivePlacement covers the Choices$
+// mid-resolution pick sibling (effects/counters.go putCounterPickApply): it
+// appends its chosen recipients to the same placed list rememberPlaced folds
+// under RememberPut$/RememberCards$, so it must keep the same positivity
+// contract -- a CounterNum$ resolving to 0 emits a zero CounterChange and
+// must not leave the recipient remembered.
+func TestPutCounterPickApplyRemembersOnlyPositivePlacement(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	target := putCounterObject(t, &h.fakeHost)
+	sa := &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{"RememberPut": "True"}}
+
+	zero := &Ctx{Source: target, Controller: 0}
+	putCounterPickApply(h, zero, sa, 0, "P1P1", []state.ObjID{target})
+	if len(zero.Remembered) != 0 {
+		t.Fatalf("zero-count pick Remembered = %+v, want empty", zero.Remembered)
+	}
+
+	pos := &Ctx{Source: target, Controller: 0}
+	putCounterPickApply(h, pos, sa, 2, "P1P1", []state.ObjID{target})
+	if len(pos.Remembered) != 1 || pos.Remembered[0].Obj != target {
+		t.Fatalf("positive pick Remembered = %+v, want exactly the countered object %d", pos.Remembered, target)
+	}
+}
+
+// TestPutCounterEachFromSourceRemembersOnlyPositivePlacement covers the
+// EachFromSource$ copy sibling (effects/counters.go putCounterEachFromSource):
+// a source whose counters are all gone (or a CounterNum$ multiplier resolving
+// to 0) emits no CounterChange, so the destination must not be remembered by
+// RememberPut$.
+func TestPutCounterEachFromSourceRemembersOnlyPositivePlacement(t *testing.T) {
+	run := func(srcCounters []state.Counter) []state.Target {
+		h := &askHost{}
+		h.g = state.NewGame(names(2))
+		srcCard := mkCard(t, "Name:EachSrc\nTypes:Creature\nPT:1/1\nOracle:x\n")
+		src := h.g.AddObject(srcCard, 0)
+		src.Zone = state.ZBattlefield
+		src.Counters = srcCounters
+		dstCard := mkCard(t, "Name:EachDst\nTypes:Creature\nPT:1/1\nOracle:x\n")
+		dst := h.g.AddObject(dstCard, 0)
+		dst.Zone = state.ZBattlefield
+		sa := &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+			"Defined": "Targeted", "CounterType": "EachFromSource",
+			"EachFromSource": "Remembered", "CounterNum": "1", "RememberPut": "True",
+		}}
+		c := &Ctx{Source: src.ID, Controller: 0,
+			Targets:    []state.Target{{Obj: dst.ID}},
+			Remembered: []state.Target{{Obj: src.ID}}}
+		base := len(c.Remembered)
+		putCounterEachFromSource(h, c, sa, false, "Remembered")
+		// Return only what the pass APPENDED: c.Remembered is pre-seeded with
+		// the EachFromSource$ referent, so the whole slice is never empty.
+		return c.Remembered[base:]
+	}
+
+	if got := run(nil); len(got) != 0 {
+		t.Fatalf("counter-less source Remembered = %+v, want empty", got)
+	}
+	if got := run([]state.Counter{{Kind: "P1P1", N: 1}}); len(got) != 1 {
+		t.Fatalf("counter-carrying source Remembered = %+v, want exactly one destination", got)
+	}
+}
