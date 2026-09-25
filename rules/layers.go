@@ -1511,11 +1511,14 @@ func (e *Engine) EndEffectSource(source state.ObjID) {
 // Word of Command and Semester's End run the same idiom inside one chain).
 // A registration without the marker -- the same source's OTHER effects and
 // its printed abilities -- is untouched. Engine-runtime only, rebuilt by
-// re-execution on replay exactly like EndEffect; it emits no event.
+// re-execution on replay exactly like EndEffect; it emits no event of its
+// own (the delayed-trigger half emits DelayedRemove so a replay folds the
+// same registration set).
 func (e *Engine) EndImprintedEffects(source state.ObjID) {
 	if source == 0 {
 		return
 	}
+	e.endImprintedDelayed(source)
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {

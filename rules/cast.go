@@ -9530,6 +9530,7 @@ func (e *Engine) fireDeferredCastTrigger() {
 	e.deferredPush = nil
 	lki := e.deferredPushLKI
 	e.deferredPushLKI = nil
+	e.sweepEffectDelayedCast(*ev)
 	e.checkTriggers(*ev, lki, 0, 0, false)
 }
 
