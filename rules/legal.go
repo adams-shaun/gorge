@@ -30,6 +30,17 @@ func modalLandBack(o *state.Object) *cards.Face {
 	return o.Card.Faces[1]
 }
 
+// modalSpellBack identifies a Modal DFC's nonland back face when it is in hand.
+func modalSpellBack(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || o.FaceIdx != 0 ||
+		o.Card.AlternateMode != "Modal" || len(o.Card.Faces) != 2 ||
+		o.Card.Faces[0] == nil || o.Card.Faces[1] == nil ||
+		o.Zone != state.ZHand || o.Card.Faces[1].IsLand() {
+		return nil
+	}
+	return o.Card.Faces[1]
+}
+
 // sorcerySpeed reports whether p may take a sorcery-speed action right now.
 func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 	return e.G.Active == p && e.G.Step.IsMain() && len(e.G.Stack) == 0
@@ -1737,6 +1748,16 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		}
 		if e.castSuppressed(p, id) {
 			continue
+		}
+		// CR 712.8: a Modal DFC's nonland back face can be cast from hand
+		// independently of its front face. The chosen face's timing, targets,
+		// and composed cost govern this offer; beginCast flips provisionally.
+		if mf := modalSpellBack(o); mf != nil && e.spellTimingOK(p, id, mf, sorcery) &&
+			e.castTargetsAvailable(p, id, mf.SpellAbility()) {
+			if offerCastableAsFace(p, id, mf, withSpellAbilityExtras(mf, e.parseCost(mf.ManaCost)), spellScope("")) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + mf.Name, Obj: id, Mode: "modal_spell"})
+			}
 		}
 		// CR 709.4/709.5: a non-Room split card's alternate half is castable
 		// on its own (mode split_alt, consumed by beginCast's FlipFace exactly

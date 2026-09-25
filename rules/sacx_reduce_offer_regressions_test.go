@@ -57,7 +57,12 @@ func sacXFixture(t *testing.T, cardName string, permanents []string, mana string
 // picks the given announced count, and returns the resulting sacrifice ask.
 func announceSacX(t *testing.T, e *Engine, spell state.ObjID, x int) *decision.Decision {
 	t.Helper()
-	submitChoices(t, e, castOption(t, e, spell))
+	return announceSacXAt(t, e, castOption(t, e, spell), x)
+}
+
+func announceSacXAt(t *testing.T, e *Engine, option, x int) *decision.Decision {
+	t.Helper()
+	submitChoices(t, e, option)
 	dx := e.Pending()
 	if dx == nil || dx.Kind != decision.KChoose || len(dx.Options) == 0 || dx.Options[0].Kind != "x" {
 		t.Fatalf("Sac<X> did not announce a count ask: %+v", dx)
@@ -70,6 +75,13 @@ func announceSacX(t *testing.T, e *Engine, spell state.ObjID, x int) *decision.D
 	}
 	if seen < 0 {
 		t.Fatalf("X=%d (the reducing announcement) not offered: %+v", x, dx.Options)
+	}
+	if x == 3 {
+		for _, o := range dx.Options {
+			if o.Kind == "x" && o.Amount == 4 {
+				t.Fatalf("X=4 offered despite only three eligible nonlands: %+v", dx.Options)
+			}
+		}
 	}
 	submitChoices(t, e, seen)
 	ds := e.Pending()
@@ -195,14 +207,22 @@ func TestRottenmouthCastOfferedWhenSacrificeReducesManaCost(t *testing.T) {
 	// The X ask's max is 3, not 4: the land was never a candidate. announceSacX
 	// already proved X=3 is offered; the land exclusion is the point below.
 	chosen := make([]int, 0, 3)
+	wantIDs := map[state.ObjID]bool{ids[0]: true, ids[1]: true, ids[2]: true}
+	gotIDs := map[state.ObjID]bool{}
 	for _, o := range ds.Options {
 		if o.Obj == land {
 			t.Fatalf("the land was offered as a Permanent.nonLand sacrifice candidate: %+v", o)
 		}
 		chosen = append(chosen, o.Index)
+		gotIDs[o.Obj] = true
 	}
-	if len(chosen) != 3 {
-		t.Fatalf("sacrifice options %+v, want the three nonlands", ds.Options)
+	if len(chosen) != 3 || len(gotIDs) != len(wantIDs) {
+		t.Fatalf("sacrifice options %+v, want exactly the three nonlands", ds.Options)
+	}
+	for id := range wantIDs {
+		if !gotIDs[id] {
+			t.Fatalf("sacrifice options %+v omit eligible nonland Obj %d", ds.Options, id)
+		}
 	}
 	submitChoices(t, e, chosen...)
 	drainResolution(t, e, 60)
@@ -229,11 +249,8 @@ func TestRottenmouthCastOfferedWhenSacrificeReducesManaCost(t *testing.T) {
 // offerSacXMods at the hand-cast offer; four creatures and a pool of {B}{R}
 // cannot pay the unreduced {6}{B}{R} (8), but X=4 leaves {B}{R}.
 //
-// The card is the back face of the modal Extus, Oriq Overlord. This build has
-// no offer for a non-land modal back face, so the test flips the hand object
-// to its back face directly -- the same state a CR 712.8 face choice would
-// establish -- and then takes the ordinary hand-cast offer, which reads
-// o.Face() and folds that face's own SP Cost$.
+// The card is the back face of the modal Extus, Oriq Overlord. Its reachable
+// CR 712.8 modal-spell offer must select and cast that face from the hand.
 func TestAwakenTheBloodAvatarAbilityOfferSacrificeReducesManaCost(t *testing.T) {
 	e, spell, ids := sacXFixture(t, "Awaken the Blood Avatar", []string{
 		"Name:C1\nTypes:Creature\nPT:1/1\nOracle:x\n",
@@ -241,15 +258,18 @@ func TestAwakenTheBloodAvatarAbilityOfferSacrificeReducesManaCost(t *testing.T) 
 		"Name:C3\nTypes:Creature\nPT:1/1\nOracle:x\n",
 		"Name:C4\nTypes:Creature\nPT:1/1\nOracle:x\n",
 	}, "BR")
-	// Precondition: pick the back face explicitly and prove it before casting.
-	e.emit(events.Event{Kind: events.FlipFace, Obj: spell, Amount: 1})
-	// The event changed the face the offer gate reads, so re-run the priority
-	// round to rebuild the pending option list from the flipped face (addMana's
-	// priority round ran against the front face).
-	e.priorityRound()
 	o := e.G.Obj(spell)
-	if o.FaceIdx != 1 || o.Face().Name != "Awaken the Blood Avatar" || o.Face().ManaCost != "6 B R" {
-		t.Fatalf("precondition: hand card is face %d %q cost %q, want the Awaken back face", o.FaceIdx, o.Face().Name, o.Face().ManaCost)
+	if o.FaceIdx != 0 || o.Face().Name != "Extus, Oriq Overlord" || o.Zone != state.ZHand {
+		t.Fatalf("precondition: card is zone=%s face=%d %q, want Extus front in hand", o.Zone, o.FaceIdx, o.Face().Name)
+	}
+	var modalOption int = -1
+	for _, option := range e.Pending().Options {
+		if option.Kind == "cast" && option.Obj == spell && option.Mode == "modal_spell" && option.Label == "Cast Awaken the Blood Avatar" {
+			modalOption = option.Index
+		}
+	}
+	if modalOption < 0 {
+		t.Fatalf("precondition: reachable Awaken modal-spell offer missing: %+v", e.Pending().Options)
 	}
 	if onField := len(e.G.Zone(state.ZBattlefield, 0)); onField != 4 {
 		t.Fatalf("precondition: %d permanents on seat 0's battlefield, want the four creatures", onField)
@@ -257,7 +277,10 @@ func TestAwakenTheBloodAvatarAbilityOfferSacrificeReducesManaCost(t *testing.T) 
 	if pool := e.G.Players[0].Pool; pool.Total() >= 8 {
 		t.Fatalf("precondition: pool %+v totals %d, want below the unreduced {6}{B}{R}=8", pool, pool.Total())
 	}
-	ds := announceSacX(t, e, spell, 4)
+	ds := announceSacXAt(t, e, modalOption, 4)
+	if e.G.Obj(spell).FaceIdx != 1 || e.G.Obj(spell).Face().Name != "Awaken the Blood Avatar" {
+		t.Fatalf("modal spell offer did not select Awaken face: %+v", e.G.Obj(spell))
+	}
 	if len(ds.Options) != 4 {
 		t.Fatalf("sacrifice options %+v, want exactly the four creatures", ds.Options)
 	}

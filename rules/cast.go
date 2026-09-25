@@ -2074,6 +2074,14 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// back (CR 733.1). See emitProposalFlip.
 	preSuppress, preAborts := e.suppressedCast, e.castAborts
 	var faceBefore *uint8
+	if opt.Mode == "modal_spell" {
+		if modalSpellBack(o) == nil {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
+	}
 	if opt.Mode == "room_alt" {
 		if roomAlternateCastFace(o) == nil {
 			return
@@ -2487,7 +2495,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		cost = cost.Plus(parts[opt.AltCostIndex-1])
 		optionalCost = parts[opt.AltCostIndex-1]
 	}
-	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
+	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "modal_spell" || opt.Mode == "room_alt" ||
 		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "casualty" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
