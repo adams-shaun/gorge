@@ -490,6 +490,22 @@ func init() {
 	predicates["Attached"] = func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return objectIsAttached(g, o)
 	}
+	// modified: Forge's CardProperty.modified (CR 700.9) -- a permanent is
+	// modified if it has one or more counters on it, is equipped, or is
+	// enchanted by an Aura its controller controls. This is the gate the
+	// attacks-trigger family carrying `ValidCard$ Creature.modified+YouCtrl`
+	// (Arna Kennerüd, Skycaptain; Kodama of the West Tree; Akki Battle Squad;
+	// Kami of Celebration; 35 corpus files) needs; before it, the unknown
+	// token failed closed, so no such trigger ever fired and every
+	// `Count$Valid ...modified...` read 0. The predicate is
+	// player-INDEPENDENT: CR 700.9 reads the candidate permanent's OWN
+	// controller for the Aura clause, and every corpus carrier adds a
+	// separate `+YouCtrl` token to pick the seat, so no player argument is
+	// folded in here. A recognised-shape entry: the compiled predicate layer
+	// marks an unlisted term `maybe` and falls through to this textual oracle,
+	// so no twin term is owed, and UnknownPredicates classifies it through
+	// this same map, so census and matcher cannot disagree.
+	predicates["modified"] = modifiedPermanent
 	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.103): the
 	// Affected$ spec `Creature.PairedWith` names the creature a source is
 	// paired with, and `Creature.Self+Paired` names the source itself when it
@@ -595,6 +611,43 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 				continue
 			}
 			if s.Face() != nil && hasType(s, kind) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// modifiedPermanent is the CR 700.9 body for the `modified` CardProperty: a
+// permanent is modified if it has one or more counters of any kind on it, is
+// equipped, or is enchanted by an Aura its controller also controls. The
+// counter loop skips non-positive entries exactly as objectHasKeyword does
+// (a counter removed to zero leaves a zero-N record behind); the Equipment
+// half reuses hasAttachmentOfKind, whose printed-face type read is the same
+// limit the neighbouring `equipped` predicate carries. The Aura half cannot
+// reuse it because CR 700.9 adds the controller condition -- the Aura must be
+// controlled by the candidate's controller -- so it scans the same
+// deterministic battlefield slices itself. The predicate needs no player
+// argument; the candidate's own controller is what the Aura clause reads.
+func modifiedPermanent(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+	if o == nil {
+		return false
+	}
+	for _, c := range o.Counters {
+		if c.N > 0 {
+			return true
+		}
+	}
+	if hasAttachmentOfKind(g, o.ID, "Equipment") {
+		return true
+	}
+	for _, p := range g.AliveFrom(0) {
+		for _, sid := range g.Zone(state.ZBattlefield, p) {
+			s := g.Obj(sid)
+			if s == nil || s.AttachedTo != o.ID {
+				continue
+			}
+			if s.Face() != nil && hasType(s, "Aura") && s.Controller == o.Controller {
 				return true
 			}
 		}
