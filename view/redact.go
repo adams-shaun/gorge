@@ -173,6 +173,9 @@ func visibleTo(g *state.Game, id state.ObjID, viewer state.PlayerID) bool {
 	if o == nil {
 		return false
 	}
+	if o.Zone == state.ZPlanarDeck && !o.FaceDown {
+		return true
+	}
 	return !o.Zone.Hidden() || o.Owner == viewer
 }
 

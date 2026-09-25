@@ -166,6 +166,7 @@ type PlayerView struct {
 	Lost          bool           `json:"lost"`
 	LibrarySize   int            `json:"library_size"`
 	HandSize      int            `json:"hand_size"`
+	PlanarDeck    []CardView     `json:"planar_deck,omitempty"`
 	GraveyardSize int            `json:"graveyard_size"`
 	// LibraryTop is the player's own library's top card, revealed only when
 	// a live Continuous MayLookAt grant covers it (Oracle of Mul Daya's
@@ -559,6 +560,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 			ID: p.ID, Name: displayName(p), Life: p.Life, Lost: p.Lost,
 			LibrarySize:    len(g.Zone(state.ZLibrary, p.ID)),
 			HandSize:       len(g.Zone(state.ZHand, p.ID)),
+			PlanarDeck:     cardViews(g, ch, g.Zone(state.ZPlanarDeck, p.ID), false, p.ID, viewer, false),
 			GraveyardSize:  len(g.Zone(state.ZGraveyard, p.ID)),
 			Battlefield:    cardViews(g, ch, g.Zone(state.ZBattlefield, p.ID), true, p.ID, viewer, false),
 			Graveyard:      cardViews(g, ch, g.Zone(state.ZGraveyard, p.ID), false, p.ID, viewer, false),

@@ -409,6 +409,46 @@ func Apply(g *state.Game, e Event) {
 			g.SetZone(state.ZLibrary, e.Player, append([]state.ObjID(nil), e.IDs...))
 		}
 
+	case PlanarDeckShuffle:
+		if validPlayer(g, e.Player) {
+			ids := append([]state.ObjID(nil), e.IDs...)
+			for _, id := range ids {
+				if o := g.Obj(id); o != nil {
+					o.Zone, o.FaceDown = state.ZPlanarDeck, true
+				}
+			}
+			g.SetZone(state.ZPlanarDeck, e.Player, ids)
+		}
+
+	case PlanarReveal:
+		if validPlayer(g, e.Player) {
+			ids := g.Zone(state.ZPlanarDeck, e.Player)
+			if len(ids) > 0 && ids[0] == e.Obj {
+				if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZPlanarDeck {
+					o.FaceDown = false
+				}
+			}
+		}
+
+	case PlanarWalk:
+		if validPlayer(g, e.Player) {
+			ids := g.Zone(state.ZPlanarDeck, e.Player)
+			if len(ids) > 0 {
+				if len(ids) > 1 {
+					ids = append(append([]state.ObjID(nil), ids[1:]...), ids[0])
+				}
+				for _, id := range ids {
+					if o := g.Obj(id); o != nil && o.Zone == state.ZPlanarDeck {
+						o.FaceDown = true
+					}
+				}
+				if o := g.Obj(ids[0]); o != nil && o.Zone == state.ZPlanarDeck {
+					o.FaceDown = false
+				}
+				g.SetZone(state.ZPlanarDeck, e.Player, ids)
+			}
+		}
+
 	case MonarchChange:
 		if validPlayer(g, e.Player) {
 			g.Monarch, g.HasMonarch = e.Player, true

@@ -373,6 +373,7 @@ export interface PlayerView {
   lost: boolean;
   library_size: number;
   hand_size: number;
+  planar_deck?: CardView[];
   graveyard_size: number;
   /**
    * LibraryTop is the player's own library's top card, revealed only when
