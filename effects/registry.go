@@ -2115,7 +2115,7 @@ type Ctx struct {
 	// deeper in the same chain poses its own fresh ask.
 	ETBNumberRecorded bool
 	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
-	// colour pick: the option Label ("Add W") the chooser picked, set by
+	// colour pick: the chosen option's structured ManaSymbol ("W"), set by
 	// rules' "manareflected" resume arm before the suspended sub-ability is
 	// re-run. effManaReflected's re-entry consumes and clears it, accepts the
 	// colour only when the resolution still offers it, and emits the one

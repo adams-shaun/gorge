@@ -573,6 +573,11 @@ export interface Option {
   label: string;
   obj?: number;
   /**
+   * ManaSymbol is the exact mana symbol selected by a colour option. Labels
+   * remain presentation-only; omitempty keeps unrelated options unchanged.
+   */
+  mana_symbol?: string;
+  /**
    * Counter identifies the counter kind for wildcard counter-removal costs.
    * It is omitted for choices that do not select a counter kind.
    */
