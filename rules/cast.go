@@ -6010,7 +6010,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			// one alternative per source, instead of offering a target whose
 			// activation will abort at payment (CR 601.2h).
 			av := e.manaAvailableFor(pc.player, pay)
-			if e.unlessManaReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
+			if e.castWindowReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
 				e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), windowUnits) {
 				out = append(out, candidate)
 			}
@@ -10069,30 +10069,7 @@ func (e *Engine) dropProposalTriggers(pc *pendingCast) {
 func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 	p := pc.player
 	windowUnits := e.windowManaUnits(p)
-	for _, source := range e.attackChoiceManaSources(p) {
-		produced := substituteChosenProduced(source.original.Params["Produced"], e.chosenProducedColour(source.id))
-		counts, _ := cards.ProducedCounts(produced)
-		idx := -1
-		for i := range windowUnits {
-			if windowUnits[i].id == source.id {
-				idx = i
-				break
-			}
-		}
-		if idx == -1 {
-			windowUnits = append(windowUnits, windowManaUnit{id: source.id})
-			idx = len(windowUnits) - 1
-		}
-		for colour, n := range counts {
-			if n == 0 {
-				continue
-			}
-			var single [6]int32
-			single[colour] = 1
-			windowUnits[idx].alts = append(windowUnits[idx].alts, windowManaAlt{counts: single, amt: source.units})
-		}
-	}
-	windowUnits = e.castWindowPaidUnits(pc, windowUnits)
+	windowUnits = e.castWindowProbeUnits(pc, windowUnits)
 	// SUPERSET GUARD (the anti-abort invariant): a source this cast already
 	// committed to Convoke/Harmonize/Improvise (pc.convoke) or Conspire
 	// (pc.taps) is NOT offered by manaWindowAsk (cast.go's convokeCommitted
@@ -10109,18 +10086,31 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 	return out
 }
 
-// castWindowPaidUnits is castWindowUnits' cast-only paid/dynamic layer. It
-// adds the activation shapes the shared windowManaUnits deliberately
-// withholds from EVERY payment window -- free-cost abilities whose Amount$ is
-// not a literal, and non-free activation costs -- priced NET and only when
-// deterministically resolvable. The conservatism of windowManaUnits is
-// load-bearing for the attack-cost and unless-cost windows, which cannot
-// pose a sub-ask while tapping; the CR 601.2g cast window CAN: manaWindowAsk
-// offers any untapped non-InstantSpeed mana source and the activation runs
-// through resolveManaAbilityRef, which pays the full activation cost and
-// evaluates the Amount$ body. Every source added here comes from the same
-// availableManaAbilitiesForWindow walk manaWindowAsk's untappedManaSource
-// uses, so the probe can never promise a tap the window will not offer.
+// castWindowProbeUnits is castWindowUnits' cast-only activation-cost layer.
+// It adds the shapes the shared windowManaUnits withholds from EVERY payment
+// window: choice-shaped productions (a colour chosen when the source is
+// tapped), free abilities whose Amount$ is not a literal, and non-free
+// activation costs (a literal generic <N>, a PayLife<N>, a deterministic
+// self-sacrifice, or a choice-shaped production behind any of them). The
+// conservatism of windowManaUnits is load-bearing for the attack-cost and
+// unless-cost windows, which cannot pose a sub-ask while tapping; the CR
+// 601.2g cast window CAN: manaWindowAsk offers any untapped non-InstantSpeed
+// mana source and the activation runs through resolveManaAbilityRef, which
+// pays the full activation cost and evaluates the Amount$ body. Every source
+// added here comes from the same availableManaAbilitiesForWindow walk
+// manaWindowAsk's untappedManaSource uses, so the probe can never promise a
+// tap the window will not offer.
+//
+// A literal generic <N> activation cost is carried on the alt as costGeneric
+// rather than netted into the production: the cast-only eligibility search
+// (castWindowReachable) pays it from the mana this window has already
+// accumulated, so the fee can be funded by an earlier same-window activation
+// and a multi-colour production stays expressible without choosing which
+// colour the generic consumed. A PayLife<N> activation carries its life on
+// the alt so the search debits it. The CHOICE-SHAPED production is split
+// into one alt per producible colour, exactly the shared walk's
+// one-alt-per-alternative shape, so the payer's colour choice is made by
+// picking an alt and never needs a nested sub-ask.
 //
 // Deliberately EXCLUDED (fail closed), each for a named reason:
 //
@@ -10129,21 +10119,11 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 //     priced cost, and the dotted matcher only admits a subset of the
 //     grammar, so no restriction is priced here (AGENTS.md row 1's
 //     direction).
-//   - choice-shaped paid productions: the alt is one unit per activation
-//     and a paid colour choice needs the colour sub-ask this probe cannot
-//     pose; the free choice-shaped family is handled by castWindowUnits'
-//     existing loop.
 //   - tapXType, SubCounter, Mill, UnlessCost$, Return<>, coloured activation
 //     pips, multi-part or overlapping Sac costs, loyalty-ability mana
 //     producers (never exposed by availableManaAbilities), and every
 //     Amount$ body the count evaluator does not understand.
-//
-// A literal generic <N> activation cost is priced only when the production
-// is a single mana type (so "production minus N" is expressible) and the
-// floating pool already covers N (the activation can then be performed
-// before the accumulated window mana is spent); a PayLife<N> activation
-// carries its life in the alt so the reachability search debits it.
-func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUnit) []windowManaUnit {
+func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaUnit) []windowManaUnit {
 	p := pc.player
 	pl := e.G.Players[p]
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -10151,27 +10131,27 @@ func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUn
 		if o == nil || o.Tapped || o.Face() == nil {
 			continue
 		}
-		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
+		for _, ma := range e.castWindowProbeAbilities(p, id) {
 			if strings.TrimSpace(ma.Params["RestrictValid"]) != "" {
 				continue
 			}
 			cost := e.parseCost(ma.Params["Cost"])
 			lifeCost := int32(0)
-			netCost := int32(0)
+			genericCost := int32(0)
+			free := manaFreeCost(cost)
 			switch {
-			case manaFreeCost(cost):
-				// windowManaUnits already counted a literal free production;
-				// only the dynamic amount it withholds is added here.
-				if availableAmount(ma) > 0 {
-					continue
-				}
+			case free:
+				// windowManaUnits already counted a free PLAIN literal
+				// production; only a choice-shaped or dynamic amount it
+				// withholds is added here (the skip test runs below, after
+				// the production is parsed).
 			case castWindowPayLifeCost(cost):
 				lifeCost = cost.Life
 				if pl.Life <= lifeCost {
 					continue
 				}
-			case castWindowGenericCost(cost, pl.Pool.Total()):
-				netCost = cost.Generic
+			case castWindowGenericCostShape(cost):
+				genericCost = cost.Generic
 			case e.castWindowSelfSacCost(p, id, cost):
 			default:
 				continue
@@ -10180,10 +10160,20 @@ func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUn
 			if !ok {
 				continue
 			}
-			counts, any := cards.ProducedCounts(ma.Params["Produced"])
-			if any {
-				continue
+			// Chosen is an as-enters read: substitute the recorded colour
+			// BEFORE the parse so a "Combo R Chosen" land recorded as G
+			// offers R/G only, never the raw parser's WUBRG superset. Without
+			// a record it produces no colour and stays out of this window
+			// (the same fail-closed direction the shared walk takes).
+			produced := strings.TrimSpace(ma.Params["Produced"])
+			if producedNeedsChosen(produced) {
+				chosen := e.chosenProducedColour(id)
+				if chosen == "" {
+					continue
+				}
+				produced = substituteChosenProduced(produced, chosen)
 			}
+			counts, any := cards.ProducedCounts(produced)
 			total := int32(0)
 			for _, n := range counts {
 				total += n
@@ -10191,22 +10181,46 @@ func (e *Engine) castWindowPaidUnits(pc *pendingCast, windowUnits []windowManaUn
 			if total <= 0 {
 				continue
 			}
-			// A generic net cost is expressible only against a single mana
-			// type ("production minus N"); a multi-colour production keeps
-			// the full amount and is excluded rather than mispriced.
-			if netCost > 0 {
-				if !castWindowSingleManaType(counts) {
+			if free {
+				// A free plain literal production is windowManaUnits' domain
+				// (already counted); a free choice-shaped one is not, and a
+				// free dynamic amount is the shape this layer adds.
+				if !any && availableAmount(ma) > 0 {
 					continue
 				}
-				amt -= netCost
 			}
-			if amt <= 0 {
+			if any {
+				for colour, n := range counts {
+					if n == 0 {
+						continue
+					}
+					var single [6]int32
+					single[colour] = 1
+					windowUnits = appendCastWindowAlt(windowUnits, id, ma, single, amt, lifeCost, genericCost)
+				}
 				continue
 			}
-			windowUnits = appendCastWindowAlt(windowUnits, id, ma, counts, amt, lifeCost)
+			windowUnits = appendCastWindowAlt(windowUnits, id, ma, counts, amt, lifeCost, genericCost)
 		}
 	}
 	return windowUnits
+}
+
+// castWindowProbeAbilities is the cast-window probe's own member walk: the
+// same gates as availableManaAbilitiesForWindow, EXCEPT the live-pool
+// payability gate, which a CR 601.2g window can satisfy later in the same
+// window (appendAvailableManaAbilitiesGate's ignorePayable). InstantSpeed$
+// True abilities stay withheld exactly as the shared window walk withholds
+// them, so no ability the live payment window cannot activate is ever priced.
+func (e *Engine) castWindowProbeAbilities(p state.PlayerID, id state.ObjID) []*cards.SA {
+	var out []*cards.SA
+	for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+		if e.instantSpeedOnly(ma) {
+			continue
+		}
+		out = append(out, ma)
+	}
+	return out
 }
 
 // castWindowAmount resolves a window mana ability's Amount$ the way the
@@ -10255,21 +10269,19 @@ func castWindowPayLifeCost(c Cost) bool {
 		len(c.Sac) == 0 && castWindowOtherPartsAbsent(c)
 }
 
-// castWindowGenericCost reports whether c is a literal generic <N> activation
-// cost this probe can price: exactly one literal generic mana and nothing
-// else (bar the tap), with the floating pool already covering N (poolTotal).
-// A coloured pip, an {X} component or any other part is refused.
+// castWindowGenericCostShape reports whether c is a literal generic <N>
+// activation cost this probe can price: exactly one literal generic mana and
+// nothing else (bar the tap). A coloured pip, an {X} component or any other
+// part is refused.
 //
-// poolTotal is the RAW Pool.Total: the source's own activation payability is
-// already certified by availableManaAbilitiesForWindow's manaAbilityPayable
-// gate, which prices this exact cost against manaAvailableFor's
-// restriction-adjusted pool (mana_activation.go's manaAbilityPayablePool). A
-// RestrictValid$ batch that cannot pay an ability activation therefore never
-// reaches this switch at all, so no separate restriction guard is needed here
-// -- adding one was measured unreachable (the ability is dropped before the
-// walk) and only withheld sources the unrestricted share can pay.
-func castWindowGenericCost(c Cost, poolTotal int32) bool {
-	return c.Generic > 0 && c.Generic <= poolTotal && c.Colored == (state.Mana{}) &&
+// The pool is deliberately NOT consulted here: the fee may be funded by an
+// earlier same-window activation, which the cast-only eligibility search
+// (castWindowReachable) proves. The live window offers this source once it is
+// untapped and re-checks payability at each activation
+// (manaAbilityPayablePool), so promising only a source the search can actually
+// fund stays sound.
+func castWindowGenericCostShape(c Cost) bool {
+	return c.Generic > 0 && c.Colored == (state.Mana{}) &&
 		len(c.Sac) == 0 && castWindowOtherPartsAbsent(c)
 }
 
@@ -10314,23 +10326,10 @@ func castWindowOtherPartsAbsent(c Cost) bool {
 		len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 && c.Snow == 0 && c.X == 0
 }
 
-// castWindowSingleManaType reports whether counts names exactly one mana
-// type, so a generic net cost can be folded into the amount without
-// ambiguity about which unit it consumed.
-func castWindowSingleManaType(counts [6]int32) bool {
-	slots := 0
-	for _, n := range counts {
-		if n > 0 {
-			slots++
-		}
-	}
-	return slots == 1
-}
-
 // appendCastWindowAlt merges one production alternative into the unit for id
 // (creating it if absent), so the affordability search can never tap the same
 // permanent twice through two separate unit entries.
-func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, counts [6]int32, amt, life int32) []windowManaUnit {
+func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, counts [6]int32, amt, life, costGeneric int32) []windowManaUnit {
 	idx := -1
 	for i := range units {
 		if units[i].id == id {
@@ -10342,8 +10341,153 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 		units = append(units, windowManaUnit{id: id})
 		idx = len(units) - 1
 	}
-	units[idx].alts = append(units[idx].alts, windowManaAlt{ma: ma, counts: counts, amt: amt, life: life})
+	units[idx].alts = append(units[idx].alts, windowManaAlt{ma: ma, counts: counts, amt: amt, life: life, costGeneric: costGeneric})
 	return units
+}
+
+// castWindowReachable is the cast-only CR 601.2g eligibility search. It is
+// unlessManaReachable plus the one transition the cast window has and the
+// attack/unless windows do not: an activation may PAY a literal generic fee
+// (windowManaAlt.costGeneric) and a life fee before its production is added,
+// and that fee may be funded by mana an earlier same-window activation
+// already produced. The live window offers one source at a time and
+// re-enters after each activation, so the search explores executable source
+// orders and never claims a paid source it cannot fund. Units are visited in
+// stable fee/id order, but every remaining source can be selected next;
+// every shared-window alt carries costGeneric 0 so the attack/unless callers
+// of unlessManaReachable are untouched.
+//
+// spellPool is the payer's restriction-adjusted pool for the SPELL (the same
+// projection unlessManaReachable receives); activation fees are funded from
+// the payer's real pool minus every restricted batch a non-matching
+// descriptor would hide (unrestrictedWindowPool), never from spell-restricted
+// mana, so the sequence is executable under the live activation gate. Every
+// produced unit is unrestricted (both probe walks exclude RestrictValid$
+// abilities).
+func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
+	typed [7]state.Mana, life int32, conv *manaConv, units []windowManaUnit) bool {
+	payable := func(pool, snowPool state.Mana, lifeNow int32) bool {
+		_, ok := cost.resolveManaWith(pool, snowPool, typed, lifeNow,
+			e.payerGrantsPayLifeInsteadOfB(p), pipRider{}, conv)
+		return ok
+	}
+	if payable(spellPool, snow, life) {
+		return true
+	}
+	free := e.unrestrictedWindowPool(p)
+	// Stable free-first ordering: a free alt sorts before a paid one; ties
+	// retain the zone walk's order, with the id as a determinism guard.
+	ordered := append([]windowManaUnit(nil), units...)
+	for i := 1; i < len(ordered); i++ {
+		for j := i; j > 0; j-- {
+			if !castWindowUnitLess(ordered[j], ordered[j-1]) {
+				break
+			}
+			ordered[j], ordered[j-1] = ordered[j-1], ordered[j]
+		}
+	}
+	nodes := 0
+	used := make([]bool, len(ordered))
+	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32) bool
+	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32) bool {
+		if payable(pool, spellSnow, lifeLeft) {
+			return true
+		}
+		nodes++
+		if nodes > 1<<18 {
+			return false
+		}
+		for i := range ordered {
+			if used[i] {
+				continue
+			}
+			for _, a := range ordered[i].alts {
+				if a.life > lifeLeft {
+					continue
+				}
+				// Pay a generic activation fee from mana the live activation
+				// gate can spend. Track the same spent colours in the spell
+				// pool; fees reduce that pool, they are not extra spell pips.
+				activationFee, feeOK := (Cost{Generic: a.costGeneric}).resolveMana(
+					activationPool, activationSnow, [7]state.Mana{}, lifeLeft, nil)
+				if !feeOK {
+					continue
+				}
+				spent := manaSub(activationPool, activationFee.pool)
+				snowSpent := manaSub(activationSnow, activationFee.snow)
+				nextPool := manaSub(pool, spent)
+				nextSpellSnow := manaSub(spellSnow, snowSpent)
+				nextActivation := activationFee.pool
+				nextActivationSnow := activationFee.snow
+				produced := a.mana()
+				used[i] = true
+				found := rec(manaAdd(nextPool, produced), nextSpellSnow,
+					manaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.life)
+				used[i] = false
+				if found {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return rec(spellPool, snow, free, snow, life)
+}
+
+func manaSub(a, b state.Mana) state.Mana {
+	var m state.Mana
+	for i := range m {
+		m[i] = a[i] - b[i]
+		if m[i] < 0 {
+			m[i] = 0
+		}
+	}
+	return m
+}
+
+// castWindowUnitLess orders a unit before another when its cheapest
+// alternative is cheaper in generic activation cost, tie-broken by zone id,
+// giving castWindowReachable a stable traversal order.
+func castWindowUnitLess(a, b windowManaUnit) bool {
+	ka, kb := int32(-1), int32(-1)
+	for _, x := range a.alts {
+		if ka < 0 || x.costGeneric < ka {
+			ka = x.costGeneric
+		}
+	}
+	for _, x := range b.alts {
+		if kb < 0 || x.costGeneric < kb {
+			kb = x.costGeneric
+		}
+	}
+	if ka != kb {
+		return ka < kb
+	}
+	return a.id < b.id
+}
+
+// unrestrictedWindowPool is the payer's real floating pool minus every
+// restricted batch (a non-empty Valid) a non-matching descriptor would hide.
+// Only these units are guaranteed spendable on a mana-ability activation
+// regardless of the activation's own restriction terms, so castWindowReachable
+// funds activation fees from them and never from spell-restricted mana.
+// Empty-Valid batches are unrestricted (Boseiju's AddsNoCounter$ provenance)
+// and stay counted, matching manaAvailableFor's own rule.
+func (e *Engine) unrestrictedWindowPool(p state.PlayerID) state.Mana {
+	pl := e.G.Players[p]
+	free := pl.Pool
+	for _, r := range pl.RestrictedMana {
+		if r.Valid == "" {
+			continue
+		}
+		idx := state.ManaSlot(r.Color)
+		if free[idx] < r.Amount {
+			free[idx] = 0
+		} else {
+			free[idx] -= r.Amount
+		}
+	}
+	return free
 }
 
 // striveAffordableTargets is the Decision.AffordableTargets hint for a Strive
@@ -10398,7 +10542,7 @@ func (e *Engine) striveAffordableTargets(pc *pendingCast, max int) int {
 			units, unitsBuilt = e.castWindowUnits(pc), true
 		}
 		av := e.manaAvailableFor(pc.player, pay)
-		return e.unlessManaReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
+		return e.castWindowReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
 			e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), units)
 	}
 	// Ascending: the price is monotone in n, so the first unaffordable count

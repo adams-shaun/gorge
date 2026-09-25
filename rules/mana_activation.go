@@ -339,6 +339,20 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 // inspects the list can reuse one buffer across objects. With out nil it
 // returns exactly what availableManaAbilitiesUsing always returned.
 func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
+	return e.appendAvailableManaAbilitiesGate(out, statics, p, id, false)
+}
+
+// appendAvailableManaAbilitiesGate is appendAvailableManaAbilities with the
+// live-pool payability gate made optional. ignorePayable is true ONLY for the
+// cast-window probe's own walk (castWindowProbeUnits): a CR 601.2g window can
+// fund a paid activation from mana it produced earlier in the SAME window, so
+// the probe must see a source whose fee the CURRENT pool cannot yet cover and
+// let its ordered reachability search prove the funding. Every other caller
+// (the priority offer, the payment windows, the potential-action walk)
+// keeps the live gate. The non-mana gates (zone, loyalty, activation
+// condition, restriction, activation limit) are unchanged, so the probe's
+// membership is still a subset of what the window can eventually offer.
+func (e *Engine) appendAvailableManaAbilitiesGate(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID, ignorePayable bool) []*cards.SA {
 	o := e.G.Obj(id)
 	// CR 702.25b: a phased-out permanent is treated as though it does not
 	// exist, so its mana abilities do not exist. PhasedOut is only ever set on
@@ -442,7 +456,7 @@ func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionSt
 		// offer loop in rules/legal.go applies, so the priority action, the
 		// payment window and the chosen activation share one member set.
 		if e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
-			!abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
+			!abilityRestricted(ma) && (ignorePayable || e.manaAbilityPayable(p, id, ma)) {
 			// ActivationLimit$ / GameActivationLimit$ (Vivi Ornitier's "only once
 			// each turn", Stalking Leonin's "Activate only once"): the non-mana
 			// ability offer loops in legal.go gate on these parameters, but this

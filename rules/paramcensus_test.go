@@ -1544,21 +1544,17 @@ var apiSpecificRulesSA = map[string][]string{
 	// api:Mana alone -- left in the generic union they mask every other API's
 	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
 	"Engine.attackChoiceManaSources": {"Mana"},
-	// castWindowUnits folds choice-shaped mana sources into the cast-payment
-	// window reachability probe (affordableTargetCandidates' targeted-equip
-	// gate, striveAffordableTargets' hint); its Produced$ read is over
-	// api:Mana sources only, not over the spell or ability being priced.
-	"Engine.castWindowUnits": {"Mana"},
-	// The cast-payment window's paid/dynamic layer: castWindowPaidUnits walks
-	// the same availableManaAbilitiesForWindow set as windowManaUnits and
-	// reads each api:Mana ability's Cost$/RestrictValid$/Produced$, while
+	// The cast-payment window's activation-cost layer: castWindowProbeUnits
+	// walks untapped api:Mana abilities (with the live-pool payability gate
+	// lifted, so a fee an earlier same-window activation funds is priced) and
+	// reads each ability's Cost$/RestrictValid$/Produced$, while
 	// castWindowAmount reads its Amount$ (and the SVar body behind it). Both
 	// are cast-window-only readers of api:Mana abilities, so their reads
 	// belong to api:Mana alone -- left in the generic union they mask every
 	// other API's unread Amount$/Produced$ (measured:
 	// api:ChangeZone/api:Sacrifice/api:DealDamage).
-	"Engine.castWindowPaidUnits": {"Mana"},
-	"Engine.castWindowAmount":    {"Mana"},
+	"Engine.castWindowProbeUnits": {"Mana"},
+	"Engine.castWindowAmount":     {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
