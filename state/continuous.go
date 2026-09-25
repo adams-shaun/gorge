@@ -55,13 +55,18 @@ const (
 // evaluation itself lives in rules.Engine.Derived, which is free to import
 // effects; this type only needs to be nameable from both packages.)
 type ContinuousEffect struct {
-	Source     ObjID
-	Timestamp  uint32
-	Layer      Layer
-	Sub        Sublayer
-	Affects    string
-	Controller PlayerID
-	UntilEOT   bool
+	Source ObjID
+	// DurationSource is the permanent whose continued presence controls a
+	// source-scoped one-shot effect. Source remains the object used by Affects
+	// and layer derivation; this separate anchor handles effects such as
+	// Exchange of Words that modify other objects while its enchantment stays.
+	DurationSource ObjID
+	Timestamp      uint32
+	Layer          Layer
+	Sub            Sublayer
+	Affects        string
+	Controller     PlayerID
+	UntilEOT       bool
 
 	// FromEffect marks a registration created by the api:Effect primitive (the
 	// Ctx-side stand-in for Forge's implicit Command-zone effect object). The

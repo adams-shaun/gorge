@@ -296,7 +296,7 @@ func effExchangeTextBox(h Host, c *Ctx, sa *cards.SA) {
 func registerTextSet(h Host, c *Ctx, id state.ObjID, text, dur string) {
 	permanent, untilEOT := textChangeDuration(dur, false)
 	ce := state.ContinuousEffect{
-		Source: id, Affects: "Card.Self", Controller: c.Controller,
+		Source: id, DurationSource: c.Source, Affects: "Card.Self", Controller: c.Controller,
 		Layer: state.LText, TextSet: text,
 		Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
 	}

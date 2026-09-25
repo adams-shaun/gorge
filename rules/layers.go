@@ -2185,7 +2185,14 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 		return e.G.Turn <= ce.UntilTurn
 	}
 	o := e.G.Obj(ce.Source)
-	return o != nil && o.Zone == state.ZBattlefield
+	if o == nil || o.Zone != state.ZBattlefield {
+		return false
+	}
+	if ce.DurationSource != 0 {
+		durationSource := e.G.Obj(ce.DurationSource)
+		return durationSource != nil && durationSource.Zone == state.ZBattlefield
+	}
+	return true
 }
 
 // active returns the effects that still exist, sorted into CR 613 order:
