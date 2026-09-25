@@ -157,13 +157,33 @@ func (e *Engine) finishUntapStep(next int) bool {
 		// the scan is gated on `next == 0` so a resumed scan (an untap-step
 		// choice parked this scan at untapResume) never re-emits the
 		// phase-ins.
+		//
+		// The same scan serves CR 702.26a's keyword half (task phasing-kw):
+		// a permanent with the Phasing keyword "phases in or out before [the
+		// active player] untaps during each of [his or her] untap steps", so
+		// a phased-in carrier phases OUT here too. Each permanent is read
+		// exactly once in one pass, which is what makes the two halves a
+		// TOGGLE: a carrier already phased out is phase-in material only
+		// (it phases in and is not re-phased-out the same step), while a
+		// phased-in carrier with the keyword is phase-out material only. A
+		// WontPhaseInNormal carrier (phased out indirectly, CR 702.25f's
+		// Teferi's Protection shape) keeps the existing skip in both halves:
+		// it is phased out, so the keyword arm never reaches it.
 		for _, p := range e.G.AliveFrom(0) {
 			if p != e.G.Active {
 				continue
 			}
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				if o := e.G.Obj(id); o != nil && o.PhasedOut && !o.WontPhaseInNormal {
-					e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
+				o := e.G.Obj(id)
+				if o == nil {
+					continue
+				}
+				if o.PhasedOut {
+					if !o.WontPhaseInNormal {
+						e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
+					}
+				} else if e.HasKeyword(id, "Phasing") {
+					e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: 1})
 				}
 			}
 		}
