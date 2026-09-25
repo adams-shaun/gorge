@@ -930,6 +930,13 @@ type Ctx struct {
 	// look back at, needs no entry.
 	TargetCountersLKI map[state.ObjID][]state.Counter
 	Remembered        []state.Target
+	// ForgetOtherSnapshot retains the pre-clear IsRemembered candidates across
+	// a multi-owner ChangeZone pick/search and its mid-resolution asks. It is
+	// resolution-local; only the actual remembered set is event-backed.
+	ForgetOtherSnapshot []state.Target
+	ForgetOtherOwners   []state.PlayerID
+	ForgetOtherReady    bool
+	ForgetOtherCleared  bool
 	// RepeatOptional is set only when a RepeatOptional$ answer is being
 	// resumed. A nil value means this is the first pass through the Repeat.
 	RepeatOptional *RepeatOptionalContinuation

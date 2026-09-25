@@ -573,6 +573,12 @@ type Decision struct {
 	// again. Server-side runtime continuation state, never client input --
 	// the same class as ResumeRemembered.
 	ResumeSearchKnown []state.Target `json:"-"`
+	// ResumeForgetOtherSnapshot is the original eligibility set for a
+	// multi-owner ChangeZone whose first move cleared remembered memory.
+	ResumeForgetOtherSnapshot []state.Target   `json:"-"`
+	ResumeForgetOtherOwners   []state.PlayerID `json:"-"`
+	ResumeForgetOtherReady    bool             `json:"-"`
+	ResumeForgetOtherCleared  bool             `json:"-"`
 	// ResumeDigUntilMove carries an earlier OptionalFoundMove$ answer through
 	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
 	ResumeDigUntilMove     string `json:"-"`

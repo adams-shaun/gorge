@@ -1334,10 +1334,43 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 // Only a literal ChangeNum$ (or its absent default 1) reaches here: the
 // routing in effChangeZone Notes a non-literal before this is ever called.
 func forgetOtherRemembered(h Host, c *Ctx, sa *cards.SA) {
-	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") && !c.ForgetOtherCleared {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
+		if c.ForgetOtherReady {
+			c.ForgetOtherCleared = true
+		}
 	}
+}
+
+// A multi-owner walk must match every owner's candidates against the memory
+// from BEFORE the first move. The actual remembered list is still cleared at
+// the first move and rebuilt by events; this snapshot is only a filter input.
+// It rides the owner cursor across asks, including the answered owner's recheck.
+func initForgetOtherSnapshot(h Host, c *Ctx, sa *cards.SA, owners []state.PlayerID) {
+	if len(owners) < 2 || c.ForgetOtherReady || !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
+		return
+	}
+	c.ForgetOtherReady = true
+	c.ForgetOtherOwners = append([]state.PlayerID(nil), owners...)
+	c.ForgetOtherSnapshot = append([]state.Target(nil), c.Remembered...)
+	if src := h.Game().Obj(c.Source); src != nil {
+		c.ForgetOtherSnapshot = append(c.ForgetOtherSnapshot, src.Remembered...)
+	}
+}
+
+func endForgetOtherSnapshot(c *Ctx) {
+	c.ForgetOtherSnapshot = nil
+	c.ForgetOtherOwners = nil
+	c.ForgetOtherReady, c.ForgetOtherCleared = false, false
+}
+
+func forgetOtherSpecContext(c *Ctx) SpecContext {
+	sc := c.SpecContext(c.Controller)
+	if c.ForgetOtherReady {
+		sc.Remembered = append(append([]state.Target(nil), sc.Remembered...), c.ForgetOtherSnapshot...)
+	}
+	return sc
 }
 
 func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
@@ -2164,9 +2197,13 @@ func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 // first owner on every re-entry.
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state.Zone) {
 	players := searchPlayers(h, c, sa)
+	if c.ForgetOtherReady {
+		players = c.ForgetOtherOwners
+	}
 	if len(players) == 0 {
 		return
 	}
+	initForgetOtherSnapshot(h, c, sa, players)
 	searchTarget := c.LibraryTarget
 	searchDone := c.SearchDone
 	chosen := append([]state.ObjID(nil), c.Search...)
@@ -2235,7 +2272,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		eligible := make([]state.ObjID, 0, len(lib))
 		seen := make(map[state.ObjID]bool, len(lib))
 		for _, id := range lookWindow {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 				eligible = append(eligible, id)
 				seen[id] = true
 			}
@@ -2248,7 +2285,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 				if seen[id] {
 					continue
 				}
-				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 					eligible = append(eligible, id)
 					seen[id] = true
 				}
@@ -2406,7 +2443,11 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			// The known-card set rides the ask too: this leg's answer rebuilds a
 			// fresh Ctx, and the NEXT leg (or a chained sub that asks again) must
 			// still label its options with the names the chooser already learned.
-			ResumeSearchKnown: copyTargets(c.SearchKnown)}
+			ResumeSearchKnown:         copyTargets(c.SearchKnown),
+			ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+			ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+			ResumeForgetOtherReady:    c.ForgetOtherReady,
+			ResumeForgetOtherCleared:  c.ForgetOtherCleared}
 		if eachStructured {
 			eachPerType = max
 			if eachPerType > 1 {
@@ -2582,6 +2623,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			return
 		}
 	}
+	endForgetOtherSnapshot(c)
 }
 
 // libraryFetch is one owner and the direct-library objects moved for them.
@@ -3192,6 +3234,10 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			Text: "ChangeZone Origin$ " + from + " includes a zone this engine does not model (no outside-the-game cards exist); nothing is offered from it"})
 	}
 	players := hiddenPickPlayers(h, c, sa)
+	if c.ForgetOtherReady {
+		players = c.ForgetOtherOwners
+	}
+	initForgetOtherSnapshot(h, c, sa, players)
 	// Forge branches on the origin zones, not on the fetch player: game-wide
 	// only when the origin holds no hidden-info zone and no fetch player was
 	// named (Kor Skyfisher's ChangeType$ filter does the scoping).
@@ -3245,7 +3291,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		valid := make([]state.ObjID, 0, len(ids))
 		for _, id := range ids {
 			o := g.Obj(id)
-			if o != nil && zoneIn(originZones, o.Zone) && MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if o != nil && zoneIn(originZones, o.Zone) && MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 				valid = append(valid, id)
 			}
 		}
@@ -3336,7 +3382,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 					continue
 				}
 				o := h.Game().Obj(id)
-				if o == nil || !MatchesSpecCtx(h.Game(), spec, id, c.SpecContext(c.Controller)) {
+				if o == nil || !MatchesSpecCtx(h.Game(), spec, id, forgetOtherSpecContext(c)) {
 					continue
 				}
 				eligible = append(eligible, id)
@@ -3437,8 +3483,12 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			// re-entered effHiddenPick revalidates against ChangeType$, which
 			// can be a ctx-Remembered predicate.
 			ResumeKind: "hidden_pick", ResumeSA: sa, ResumeTarget: i,
-			ResumeRemembered: copyTargets(c.Remembered),
-			Prompt:           prompt}
+			ResumeRemembered:          copyTargets(c.Remembered),
+			ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+			ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+			ResumeForgetOtherReady:    c.ForgetOtherReady,
+			ResumeForgetOtherCleared:  c.ForgetOtherCleared,
+			Prompt:                    prompt}
 		if mandatory {
 			d.Min = int(m)
 		}
@@ -3538,6 +3588,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		}
 		apply(owner, picked)
 	}
+	endForgetOtherSnapshot(c)
 }
 
 // differentNamesEnabled is the one DifferentNames$ read shared by the two
@@ -3781,7 +3832,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		o := g.Obj(id)
 		if o != nil && o.Owner == owner && zoneIn(zones, o.Zone) &&
 			(o.Zone != state.ZLibrary || containsID(window, id)) &&
-			MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 			valid = append(valid, id)
 		}
 	}
@@ -4114,6 +4165,9 @@ func searchShuffleTail(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, moved
 	d := &decision.Decision{Player: owner, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: c.Source, ResumeKind: "search_mayshuffle", ResumeSA: sa,
 		ResumeTarget: c.LibraryTarget, ResumeRemembered: copyTargets(c.Remembered),
+		ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+		ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+		ResumeForgetOtherReady:    c.ForgetOtherReady, ResumeForgetOtherCleared: c.ForgetOtherCleared,
 		ResumeMoved: append([]state.ObjID(nil), moved...),
 		Prompt:      "Shuffle your library?",
 		Options: []decision.Option{
