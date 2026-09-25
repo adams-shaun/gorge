@@ -1930,11 +1930,27 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				}
 			}
 		}
+		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
+		// consumed by beginCast, which records a FlipFace before the ordinary
+		// cast transaction; from then on every cost/target/resolution reader
+		// sees the selected face. Like the other alternate-face offers, this
+		// precedes the front-face restriction gate and probes the door being
+		// cast (rather than the displayed front face).
+		if rf := roomAlternateCastFace(o); rf != nil {
+			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
+			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) &&
+				!castRestrictedAsFace(p, id, rf) {
+				if offerCastableAsFace(p, id, rf, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope("")) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
+				}
+			}
+		}
 		// The card-level continue withholds the ORDINARY front-face cast (and
 		// every front-face alternative below it -- foretell, mayflash, kicker,
-		// Room doors, ...) when a CantBeCast restriction matches the front
-		// face. The alternate-face offers above already ran, each probed
-		// against its own face.
+		// ...) when a CantBeCast restriction matches the front face. The
+		// alternate-face offers above already ran, each probed against its own
+		// face.
 		if castRestricted(p, id) {
 			continue
 		}
@@ -2045,22 +2061,6 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if offerCastable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(extra), spellScope("optionalcost"), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + f.Name + " (optional cost)", Obj: id, Mode: "optionalcost", AltCostIndex: i + 1})
-				}
-			}
-		}
-		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
-		// consumed by beginCast, which records a FlipFace before the ordinary
-		// cast transaction; from then on every cost/target/resolution reader
-		// sees the selected face. This is structural over every two-door Room,
-		// not a card-name exception (Spiked Corridor is the front-trigger case).
-		// (The split_alt/fuse offers live ABOVE the front-face timing gate --
-		// see their comment there.)
-		if rf := roomAlternateCastFace(o); rf != nil {
-			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
-			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
-				if offerCastableAsFace(p, id, rf, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope("")) {
-					out = append(out, decision.Option{Index: len(out), Kind: "cast",
-						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
 				}
 			}
 		}
