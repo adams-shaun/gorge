@@ -625,9 +625,15 @@ func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		}
 		add(enchanted.Controller)
 	case "EnchantedPlayer":
-		// Attachments to players are not represented by state.Object (its
-		// AttachedTo is an ObjID), so there is no honest binding to use.
-		return nil, false
+		// The seat an Aura/Curse source enchants. The link is the source's
+		// own AttachedPlayer/HasAttachedPlayer pair (written only by
+		// events.Attach's player branch); a source that is not attached to a
+		// player has no honest binding and fails closed, exactly as before.
+		source := g.Obj(c.Source)
+		if source == nil || !source.HasAttachedPlayer {
+			return nil, false
+		}
+		add(source.AttachedPlayer)
 	case "ReplacedPlayer", "NonReplacedPlayer":
 		// The draw-er of a replaced Draw event, and its complement (Zur's
 		// Weirding's "any other player may pay 2 life"). Set only on a Draw

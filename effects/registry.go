@@ -1464,6 +1464,16 @@ type Ctx struct {
 	AttachChoice     []state.ObjID
 	AttachChoiceDone bool
 	AttachDests      []state.ObjID
+	// AttachPlayer is the answered PlayerChoices$ Attach player on a
+	// re-entered Attach resolution (Curse of Leeches' `DB$ Attach | Object$
+	// Self | PlayerChoices$ Player`, Lynde's `DB$ Attach | Object$ ChosenCard
+	// | PlayerChoices$ Opponent`): the chosen seat the object attaches to.
+	// AttachPlayerDone distinguishes "answered" from an unanswered ask. Both
+	// ride the ask (the same runtime-continuation class as AttachChoice) and
+	// are consumed and cleared at the re-entry's top (fx42 scoping), so a
+	// nested Attach poses its own ask.
+	AttachPlayer     state.PlayerID
+	AttachPlayerDone bool
 	// ScryOpt is the answered Optional$ True Scry election ("yes"/"no").
 	ScryOpt string
 	// PutOpt is the answered Optional$ True put-counter election ("yes"/"no")

@@ -894,7 +894,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 // can be attached in a hidden zone) and is left unread.
 func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 	val := strings.TrimSpace(sa.Params["AttachedTo"])
-	if val == "" || moved == 0 {
+	playerVal := strings.TrimSpace(sa.Params["AttachedToPlayer"])
+	if moved == 0 || (val == "" && playerVal == "") {
+		return
+	}
+	if playerVal != "" {
+		changeZoneAttachedToPlayer(h, c, sa, moved, playerVal)
 		return
 	}
 	sub := *sa
@@ -932,6 +937,47 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 	emitAttach(h, moved, to)
 }
 
+// changeZoneAttachedToPlayer implements ChangeZone's AttachedToPlayer$ param:
+// "the moved card enters the battlefield attached to the resolved PLAYER"
+// (Lynde, Cheerful Tormentor's `AttachedToPlayer$ You`, Curse of Misfortunes'
+// `EnchantedPlayer`, Bitterheart Witch's `Targeted`, the two Trandformed$
+// Curses' `ParentTarget`). It is the player-destination twin of
+// changeZoneAttachedTo above; state.Object cannot carry both a permanent and
+// a player bearer, and events.Attach's player branch is what folds the seat
+// into AttachedPlayer/HasAttachedPlayer. The value is resolved with the
+// ordinary resolver against a shallow SA carrying it in Defined$ (the same
+// shape the object twin takes and definedSpec already supports: You,
+// Targeted, ParentTarget, EnchantedPlayer), and the FIRST living player it
+// names is the bearer. A value that resolves to no living seat -- an
+// unmodelled selector, or a target that left -- is ONE loud Note and the card
+// enters unattached, never a guessed seat. Battlefield destinations only (the
+// caller gates on that); nothing can be attached in a hidden zone.
+func changeZoneAttachedToPlayer(h Host, c *Ctx, sa *cards.SA, moved state.ObjID, val string) {
+	sub := *sa
+	sub.Params = map[string]string{"Defined": val}
+	var seat state.PlayerID
+	found := false
+	for _, t := range Defined(h, c, &sub) {
+		if t.IsPlayer && int(t.Player) < len(h.Game().Players) && !h.Game().Players[t.Player].Lost {
+			seat, found = t.Player, true
+			break
+		}
+	}
+	if !found {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "ChangeZone AttachedToPlayer$ " + val + " resolved to nothing; the card enters unattached"})
+		return
+	}
+	// The raw player-attach event, exactly the shape effAttach's own
+	// Enchant:Player branch emits: Obj is the MOVED card, Player the seat.
+	// emitAttach is deliberately NOT reused -- its Unattached detach half
+	// reads o.AttachedTo (the permanent link) only, and the Attach fold's
+	// player branch already clears AttachedTo, so a re-attach from one
+	// player to another or from a permanent to a player is handled by the
+	// one event (CR 701.3b: the new attachment supersedes the old).
+	h.Emit(events.Event{Kind: events.Attach, Obj: moved, Player: seat, Text: "attach to player"})
+}
+
 // applyFaceDownMarker stamps a just-built ChangeZone MoveZone with the
 // face-down encoding the card text asks for. Two spellings reach it, and they
 // mean different CR things:
@@ -941,6 +987,7 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 //     records the exiling source as the ExiledWith association -- the same
 //     encoding Hideaway's face-down exile uses. The IDs provenance payload is
 //     cleared so the two carriers cannot disagree on one event.
+//
 //   - FaceDown$ True (Yedora, Grave Gardener; the manifest marker's own
 //     spelling) on a battlefield entry: the "entered_face_down" decode folds
 //     Object.FaceDown plus the optional FaceDownSetType$/FaceDownPower$/
@@ -949,20 +996,49 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 //     would otherwise leak through the transcript), matching the Manifest
 //     precedent; a graveyard-origin one stays public (CR 708.9 already
 //     revealed it on leaving the battlefield).
+//
 //   - FaceDown$ True on an exile destination (Tezzeret's Reckoning): the card
 //     is put into exile face down WITHOUT an ExiledWith association, so the
 //     bare spelling uses its own "face_down" marker rather than borrowing
 //     ExileFaceDown$'s source-carrying one.
 //
+//   - WithMayLook$ True with an exile face-down destination (Ixhel, Scion of
+//     Atraxa; Gonti; Thief of Sanity): the exiling effect's controller may
+//     look at the exiled card's face for as long as it remains exiled, even
+//     though the card's owner may NOT. It rides the same MoveZone as
+//     ExileFaceDown$, but with the looker in Amount and the exiling source in
+//     IDs (the marker's own layout, decoded under the
+//     "exiled_with_face_down_maylook" Counter value), so replay folds both
+//     the look permission and the ExiledWith provenance with no new event kind
+//     and no Event field change. The pair composes with Foretold$ (a distinct
+//     marker) because Forge keeps the two designations independent; measured
+//     at the current corpus pin no card carries both, but the decode keeps
+//     them separable rather than silently dropping one.
+//
 // It is called from every ChangeZone mover (the object path, the shared
 // settle helper the hand/library routes use, and applyLibrarySearch), so the
-// read composes with each without a second caller-side branch.
+// read composes with each without a second caller-side branch. The Dig
+// mover (effects/cardflow.go effDig) calls it too, so the same WithMayLook$
+// read serves both APIs from this one choke point.
 func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
 	faceDown := strings.EqualFold(strings.TrimSpace(sa.Params["FaceDown"]), "True")
 	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
+	withMayLook := strings.EqualFold(strings.TrimSpace(sa.Params["WithMayLook"]), "True")
+	foretold := strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True")
 	switch {
+	case to == state.ZExile && exileFaceDown && withMayLook:
+		// The may-look layout: Amount carries the looker (the exiling
+		// effect's controller), IDs carries the exiling source. The looker
+		// is authoritative, so the card's owner is NOT admitted by the
+		// view's default controller check.
+		ev.Counter = "exiled_with_face_down_maylook"
+		if foretold {
+			ev.Counter = "exiled_with_face_down_maylook_foretold"
+		}
+		ev.Amount = int32(c.Controller)
+		ev.IDs = []state.ObjID{c.Source}
 	case to == state.ZExile && exileFaceDown:
-		if strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True") {
+		if foretold {
 			ev.Counter = "exiled_with_face_down_foretold"
 		} else {
 			ev.Counter = "exiled_with_face_down"

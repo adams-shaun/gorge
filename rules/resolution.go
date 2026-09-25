@@ -2852,6 +2852,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.AttachDests = append(ctx.AttachDests, t.Obj)
 				}
 			}
+		case "attach_player_choice":
+			// A PlayerChoices$ Attach's player choice was answered (Curse of
+			// Leeches' `DB$ Attach | Object$ Self | PlayerChoices$ Player`,
+			// Lynde's `DB$ Attach | Object$ ChosenCard | PlayerChoices$
+			// Opponent`). The chosen seat is recorded for the re-entered
+			// effect to consume and clear (fx42 scoping); the re-entry
+			// re-checks it against the live pool the asking pass derived, so a
+			// stale answer attaches nothing. AttachPlayerDone distinguishes
+			// "answered" from an unanswered ask, so a Min-1 mandatory ask that
+			// somehow produced an empty answer is a real no-attach rather than
+			// a re-ask livelock.
+			ctx.AttachPlayerDone = true
+			for _, o := range chosen {
+				if o.Kind == "player" {
+					ctx.AttachPlayer = o.Player
+					break
+				}
+			}
 		case "planeswalk_optional":
 			// An Optional$ True Planeswalk election is a KChoose yes/no. The
 			// effect is a no-op without a planar deck, but its election is still

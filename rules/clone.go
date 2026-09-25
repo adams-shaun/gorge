@@ -8,6 +8,17 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+func cloneTurnStartTurns(in [][]int32) [][]int32 {
+	if in == nil {
+		return nil
+	}
+	out := make([][]int32, len(in))
+	for i, v := range in {
+		out[i] = append([]int32(nil), v...)
+	}
+	return out
+}
+
 func cloneCounterAddsThisTurn(in []counterAddedThisTurn) []counterAddedThisTurn {
 	if in == nil {
 		return nil
@@ -40,6 +51,10 @@ func (e *Engine) Clone() *Engine {
 		landTypeWords:   e.landTypeWords,
 		turnsTaken:      append([]int32(nil), e.turnsTaken...),
 		turnsTakenEpoch: e.turnsTakenEpoch,
+		// turnStartTurns (the next-turn boundary cache) is copied like
+		// turnsTaken so a clone never shares the backing slice.
+		turnStartTurns: cloneTurnStartTurns(e.turnStartTurns),
+		turnStartEpoch: e.turnStartEpoch,
 		// combatHitsThisTurn (the per-turn combat-damage ledger): a plain
 		// value slice, copied like turnsTaken so an undo/DVR clone owns its
 		// own ledger.

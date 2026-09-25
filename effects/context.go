@@ -419,6 +419,21 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			out = append(out, state.Target{Obj: id})
 		}
 		return out, true
+	case "EnchantedPlayer":
+		// Forge's EnchantedPlayer on a Defined-position reader (Curse of
+		// Misfortunes' `AttachedToPlayer$ EnchantedPlayer`): the seat the
+		// resolving SOURCE -- an Aura/Curse -- enchants. The link is the
+		// source object's own AttachedPlayer/HasAttachedPlayer pair, written
+		// only by events.Attach's player branch. A source that is not attached
+		// to a player resolves to NOBODY with ok=true (the fail-closed
+		// convention of the absent-binding cases above): the caller acts on
+		// nobody rather than guessing a seat, and it never falls through to a
+		// wrong target. A departed seat is not filtered here -- whether the
+		// seat is still a legal attach destination is the caller's own read.
+		if o := g.Obj(c.Source); o != nil && o.HasAttachedPlayer && int(o.AttachedPlayer) < len(g.Players) {
+			return []state.Target{{Player: o.AttachedPlayer, IsPlayer: true}}, true
+		}
+		return nil, true
 	case "TopOfLibrary", "BottomOfLibrary":
 		// Library order is top-first. These selectors name one known card, not
 		// a player whose whole library should be searched; hidden-origin

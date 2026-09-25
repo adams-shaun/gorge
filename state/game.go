@@ -471,12 +471,32 @@ type DelayedTrigger struct {
 	// ("|OD=<spec>") the same way ValidPlayer$ and MaxTurn do. Empty for
 	// every registration with no election.
 	OptionalSpec string
+	// Effect-created trigger lifetime riders, folded from DelayedRegister.Text.
+	// BirthTurn distinguishes a later turn belonging to the effect controller
+	// from the turn in which the promise was created.
+	EffectDuration string
+	BirthTurn      int32
+	ForgetOnMoved  string
+	ExileOnMoved   string
+	ForgetCounter  string
+	ForgetOnCast   string
+	ImprintOnHost  bool
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:
 	// they exist independently of their source after registration.
 	SourceIncarnation uint32
 	TrackSource       bool
+	// SourceBattlefield records whether the source was a battlefield
+	// permanent at REGISTRATION time. A Duration$ Permanent api:Effect
+	// trigger's source-relative ending (CR 611.2: the effect ends when its
+	// source leaves the battlefield) applies only to such a source; an
+	// opening-hand Effect (Chancellor of the Annex, source in hand) or an
+	// emblem/command-zone source has no battlefield incarnation to lose, so
+	// its Permanent promise is unbounded and must not be killed by the
+	// battlefield liveness rule. It rides the DelayedRegister event's Text
+	// ("|SB") because the event gains no field (Ruling T20-a).
+	SourceBattlefield bool
 }
 
 const startingLife = 20

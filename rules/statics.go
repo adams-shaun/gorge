@@ -362,7 +362,17 @@ func (e *Engine) matchesSpec(spec string, id state.ObjID, sc effects.SpecContext
 	// supplies its keywords-so-far snapshot directly.
 	if e.activeDepth == 0 {
 		if o := e.G.Obj(id); o != nil {
-			sc.ExtraKeywords = e.Derived(id).Keywords
+			d := e.Derived(id)
+			sc.ExtraKeywords = d.Keywords
+			// The numeric power/basePower predicates read the same derived
+			// values the rest of the engine does: the candidate's current P/T
+			// and its base P/T through layer 7b (CR 613.4). Binding both here
+			// -- the one seam every rules-side filter match goes through --
+			// keeps `powerGTbasePower` from comparing two printed faces:
+			// a +1/+1 counter or a 7c pump moves DerivedPower while
+			// BasePower stays put.
+			sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = d.Power, d.Toughness, true
+			sc.BasePower, sc.BaseToughness, sc.HasBasePT = d.BasePower, d.BaseToughness, true
 		}
 		// The IsGoaded predicate's static route (staticgoad1): a spec that
 		// consults IsGoaded binds the live static-goad table, so EVERY

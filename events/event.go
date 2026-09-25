@@ -942,10 +942,15 @@ const (
 	// after every earlier Kind, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Evolved
+	// DelayedForget drops one remembered target from an Effect trigger.
+	// Amount identifies its registration; Obj is the remembered card.
+	// Appended after Evolved, still above NumKinds, so no earlier ordinal,
+	// hash chain or golden replay is affected.
+	DelayedForget
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(Evolved) + 1
+	NumKinds = int(DelayedForget) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1081,7 +1086,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
-	"proliferate", "evolved"}
+	"proliferate", "evolved", "delayed_forget"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

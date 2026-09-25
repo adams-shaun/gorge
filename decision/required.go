@@ -135,6 +135,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 	}
 	if len(choices) <= d.maxChoices() &&
 		(!d.HasBudget() || sum <= d.MaxSum) &&
+		(d.MinSum <= 0 || sum >= d.MinSum) &&
 		d.RequiredChosen(choices) >= d.RequiredQuota() &&
 		!d.groupCapExceeded(choices) {
 		return choices
@@ -235,6 +236,41 @@ func (d *Decision) FitRequired(choices []int) []int {
 		sort.SliceStable(neg, func(a, b int) bool { return d.Options[neg[a]].Value < d.Options[neg[b]].Value })
 		for _, c := range neg {
 			if sum <= d.MaxSum || len(out) >= d.maxChoices() {
+				break
+			}
+			o := &d.Options[c]
+			if (o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group)) || (d.Kind == KAttackers && objTaken[o.Obj]) {
+				continue
+			}
+			sum += o.Value
+			out = append(out, c)
+			have[c] = true
+			objTaken[o.Obj] = true
+			if o.Group != "" {
+				groups[o.Group]++
+			}
+		}
+	}
+	// The cumulative floor (Decision.MinSum, a withTotalPowerGE<N> group
+	// predicate's "total power N or greater"): if the rebuilt answer's sum
+	// falls short, top up with the remaining options of highest Value first
+	// -- Max, Groups and the one-pair-per-creature rule still apply. The
+	// engine poses a floor ask only when a satisfying set exists within the
+	// offered options (the offer gate proved the candidates can reach the
+	// floor), so this reaches a valid answer whenever one exists. Highest
+	// Value first keeps the repair deterministic and spends the fewest
+	// picks, and the sum is order-insensitive, so how equal Values sort in
+	// cannot reach an event.
+	if d.MinSum > 0 && sum < d.MinSum {
+		var rest []int
+		for i := range d.Options {
+			if !have[i] {
+				rest = append(rest, i)
+			}
+		}
+		sort.SliceStable(rest, func(a, b int) bool { return d.Options[rest[a]].Value > d.Options[rest[b]].Value })
+		for _, c := range rest {
+			if sum >= d.MinSum || len(out) >= d.maxChoices() {
 				break
 			}
 			o := &d.Options[c]
