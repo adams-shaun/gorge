@@ -3763,6 +3763,19 @@ func (e *Engine) resolveTop() {
 			ctx.DamageSourceLKI = cloneDamageSourceLKI(lki)
 		}
 		effects.SetSVars(ctx, svars)
+		// The Evolve keyword's own counter trigger (CR 702.99a) is identified
+		// so its resolution can announce the completed evolve action (CR
+		// 702.99b, trig:Evolved) once the counter lands below. Capturing the
+		// pre-resolution +1/+1 count is what keeps a replaced or skipped
+		// placement from firing the mode: only a real increase counts.
+		var evolveWatch bool
+		var evolveCountersBefore int32
+		if triggered && rt.Params["Evolve"] != "" {
+			if src := e.G.Obj(o.Source); src != nil {
+				evolveWatch = true
+				evolveCountersBefore = src.Counter("P1P1")
+			}
+		}
 		// CR 603.3c: the mode choice was announced at placement (pushTrigger
 		// asked KModes and handleModes recorded the answer into ChosenModes).
 		// Pre-seeding Ctx.Modes makes effCharm take its re-entry branch and
@@ -3777,6 +3790,22 @@ func (e *Engine) resolveTop() {
 		effects.Resolve(e, ctx, o.Ability)
 		e.contChainOwners--
 		e.damaging = 0
+		// CR 702.99b (task trig:Evolved): when this resolving ability is the
+		// Evolve keyword's own counter trigger (its line carries Evolve$ True)
+		// and it actually put the +1/+1 counter, announce the completed evolve
+		// action so a sibling T:Mode$ Evolved ability on the same creature
+		// fires. The marker is emitted AFTER the body so it names only an
+		// evolve whose counter really landed: a source that left the
+		// battlefield before resolution (effPutCounter skips a non-battlefield
+		// recipient) places nothing and is not an evolve. A suspension
+		// (e.resume != nil) is left to the resumed pass, which reaches this
+		// same tail again. The counter read is the body's own P1P1 kind
+		// (cards/kw_evolve.go's CounterType$ P1P1).
+		if evolveWatch && e.resume == nil {
+			if src := e.G.Obj(o.Source); src != nil && src.Counter("P1P1") > evolveCountersBefore {
+				e.emit(events.Event{Kind: events.Evolved, Obj: o.Source, Player: o.Controller})
+			}
+		}
 		if e.resume != nil {
 			// A placement-announced modal ability can reach a nested ask during
 			// this initial pass. Preserve every enclosing continuation exactly as

@@ -930,10 +930,22 @@ const (
 	// after RollDice, following every prior Kind's own append-only precedent,
 	// so no earlier ordinal, hash chain or golden replay is affected.
 	Proliferate
+	// Evolved records one completed evolve keyword action (CR 702.99b): the
+	// Evolve keyword ability resolved and put its +1/+1 counter on the
+	// evolving creature. It is a pure Apply no-op marker, exactly like
+	// GiveGift/Investigate -- the counter placement is its own CounterChange
+	// event, and this record is what trig:Evolved matches ("whenever this
+	// creature evolves"). Obj is the evolving permanent (the Evolve trigger's
+	// own source, so ValidCard$ Card.Self matches) and Player its controller.
+	// A separate Kind rather than a CounterChange rider because an unrelated
+	// +1/+1 counter must not fire the mode. Appended after Proliferate, still
+	// after every earlier Kind, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	Evolved
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(Proliferate) + 1
+	NumKinds = int(Evolved) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1069,7 +1081,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
-	"proliferate"}
+	"proliferate", "evolved"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
