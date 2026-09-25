@@ -89,7 +89,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
 		events.GainedAbilityPush, events.GainedTriggerPush,
-		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice:
+		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice,
+		events.DelayedForget:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -159,6 +160,15 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// ordinal sits past triggerMaskKindBits, so both classifiers fail
 		// open before this map is consulted; naming it keeps the audit
 		// complete if the bound ever widens.
+		//
+		// DelayedForget (efftrig1) drops one remembered card from an Effect
+		// trigger registration (a ForgetOnMoved$/ForgetCounter$ trim). No
+		// trigger mode fires on it: it is the registration-local trim the
+		// continuous side also performs, and the trim is read back through the
+		// registration's Remembered list at the promise's own fire time, never
+		// through a T: line. It is the DelayedRemove shape (already zero-mapped
+		// above): bookkeeping about the delayed registry, not a game event a
+		// matcher consults.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
