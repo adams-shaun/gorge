@@ -2130,7 +2130,12 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if src == nil {
 			return false
 		}
-		return imprintAssociationContains(g, src, o.ID)
+		// Judge the association against the candidate's OWN zone: for an
+		// ordinary live filter that is the live zone (and expires as before),
+		// but a zone-change trigger hands this predicate the event's LKI
+		// snapshot, whose zone is where the card was a moment ago -- so an
+		// imprinted card leaving exile still reads IsImprinted.
+		return imprintAssociationContainsCandidate(g, src, o)
 	case wordDefenderCtrl:
 		// Forge's DefenderCtrl: the object is controlled by the defending
 		// player of the resolving combat trigger (TriggerContext
