@@ -4349,10 +4349,38 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 		return
 	}
 	rest := spellRestZone(o)
+	// CR 702.95a: a hand-cast Rebound spell is exiled as it resolves and
+	// leaves a delayed promise to recast it at its controller's next upkeep.
+	// Both the flag and the controller are captured before the MoveZone:
+	// events.Apply resets CastFlags on the stack->exile move, and the emit
+	// below runs synchronously. The registration is created only when the
+	// card actually reached exile -- a replacement that redirected the move
+	// leaves the promise uncreated, so no stale permission can outlive it.
+	rebound := o.CastFlags&state.FlagRebound != 0
+	controller := o.Controller
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest})
+	if rebound && rest == state.ZExile {
+		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZExile {
+			e.registerRebound(id, controller)
+		}
+	}
 	e.ensureLeftTheStack(id, rest, "a replacement fully discarded this resolved "+
 		"spell's own move off the stack without relocating it anywhere; sent to its "+
 		"resting zone instead of re-resolving forever")
+}
+
+// registerRebound creates the CR 702.95a delayed trigger for a Rebound spell
+// that was just exiled: at the controller's next upkeep, that player may cast
+// the card from exile without paying its mana cost. The registration's source
+// IS the exiled card, so the builtin __kwReboundCast body's Card.Self names
+// it, and ValidZone$ Exile keeps the offer to the exile zone even if the card
+// has left it (or later returns). ValidPlayer$ You gates the fire to the
+// registration controller's own upkeep, and the one-shot DelayedPush consumes
+// the registration on its first firing, so the permission never outlives the
+// next upkeep.
+func (e *Engine) registerRebound(id state.ObjID, controller state.PlayerID) {
+	e.emit(events.Event{Kind: events.DelayedRegister, Obj: id, Player: controller,
+		Step: state.StepUpkeep, Counter: "__kwReboundCast", Text: "Upkeep|VP=You"})
 }
 
 // payUnlessDamageCost lands the damage an accepting opponent chose to take

@@ -339,6 +339,20 @@ const (
 	// (a copy was never cast, so it must not inherit it -- CR 707.10).
 	// Appended per the enum's own append-only precedent.
 	FlagPromisedGift
+	// FlagRebound marks a spell cast from its controller's HAND whose face
+	// carries K:Rebound (CR 702.95a: "If you cast this spell from your hand,
+	// exile it as it resolves"). It is set by payCast from the pendingCast's
+	// origin zone, so the re-bound cast from exile -- which CR 702.95e says
+	// "doesn't rebound again" -- carries no bit and resolves to the
+	// graveyard like any other spell. rules/stack.go's spellRestZone reads it
+	// to exile on resolution (the fizzle reader deliberately does not: a
+	// countered rebound spell never resolves and stays in the graveyard), and
+	// rules/resolution.go's moveResolvedOffStack reads it to register the
+	// delayed upkeep recast. It is NOT a CastProvenanceFlag: its reader is a
+	// resolution destination, not an "if you cast it" obligation, the same
+	// category as FlagFlashback/FlagWarped.
+	// Appended per the enum's own append-only precedent.
+	FlagRebound
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
