@@ -1459,6 +1459,9 @@ func (e *Engine) targetChooserFromSpec(spec string, controller state.PlayerID, r
 }
 
 func (e *Engine) targetChooserAlive(p state.PlayerID) bool {
+	// PlayerID is uint8: negative referents cannot reach this function. A
+	// converted negative integer becomes a large unsigned ID and fails the
+	// upper bound before indexing Players.
 	return int(p) < len(e.G.Players) && !e.G.Players[p].Lost
 }
 

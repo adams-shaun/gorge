@@ -109,6 +109,24 @@ func hasTargetingPlayerTrigger(card *cards.Card, spec string) bool {
 	return false
 }
 
+// TestTargetChooserInvalidPlayerIDFailsClosed pins the bounds check for an
+// invalid player-valued trigger binding. PlayerID is uint8, so a negative
+// value cannot be represented: casting -1 from an external integer produces
+// 255, which must fail closed without indexing the players slice.
+func TestTargetChooserInvalidPlayerIDFailsClosed(t *testing.T) {
+	e, _ := combatTriggerBoard(t, testutil.CorpusRegistry(t), nil, nil, nil, nil)
+	const controller state.PlayerID = 0
+	negative := -1
+	invalid := state.PlayerID(negative) // conversion wraps to 255
+	if negative >= 0 || invalid != 255 || len(e.G.Players) < 2 || int(invalid) < len(e.G.Players) || invalid == controller {
+		t.Fatalf("invalid-player fixture broken: players=%d, invalid=%d, controller=%d", len(e.G.Players), invalid, controller)
+	}
+	tc := effects.TriggerContext{TriggerTarget: state.Target{IsPlayer: true, Player: invalid}}
+	if who, ok := e.targetChooserFromSpec("TriggeredTarget", controller, nil, tc); ok || who != controller {
+		t.Fatalf("invalid player referent = (%d, %v), want (%d, false)", who, ok, controller)
+	}
+}
+
 // TestTargetChooserFromSpecFailsClosed pins the resolver's contract: a known
 // trigger-relative referent resolves to its seat; an unknown spelling, an
 // unbound role and a dead referent all fail closed so the ask stays with the
