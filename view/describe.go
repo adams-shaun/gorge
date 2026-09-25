@@ -98,6 +98,18 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.TurnFaceUp:
 		// CR 708.6: Obj is the permanent that revealed its printed face.
 		return obj(g, ev.Obj) + " is turned face up"
+	case events.Specialize:
+		// A permanent specializes into one of its alternate faces: Obj is the
+		// specializing permanent, Amount the destination face index. Name the
+		// chosen face the way the board reads it.
+		if g != nil {
+			if o := g.Obj(ev.Obj); o != nil && o.Card != nil && int(ev.Amount) >= 0 && int(ev.Amount) < len(o.Card.Faces) {
+				if f := o.Card.Faces[ev.Amount]; f.Name != "" {
+					return obj(g, ev.Obj) + " specializes into " + f.Name
+				}
+			}
+		}
+		return obj(g, ev.Obj) + " specializes"
 	case events.PhaseOut:
 		// CR 702.25: Amount 1 is a permanent phasing out, -1 phasing in.
 		if ev.Amount >= 1 {

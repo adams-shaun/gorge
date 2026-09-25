@@ -113,10 +113,16 @@ func (e *Engine) specializeLegal(p state.PlayerID, id state.ObjID, faceIdx int) 
 	return cost, true
 }
 
+// specializesMatches is Mode$ Specializes: "Whenever this permanent
+// specializes". The specializing permanent is the event's Obj (events.
+// Specialize), so the matcher fires on the object itself, exactly as
+// TurnFaceUp fires on the turned permanent.
+func (e *Engine) specializesMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	return ev.Kind == events.Specialize && ev.Obj == source
+}
+
 func init() {
-	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
-		return ev.Kind == events.Specialize && ev.Obj == source
-	}, "Specializes")
+	registerTrigMatcher((*Engine).specializesMatches, "Specializes")
 }
 
 // specialize resolves the special action: emit the priority marker (the
