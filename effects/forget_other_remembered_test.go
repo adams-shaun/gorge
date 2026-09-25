@@ -19,6 +19,15 @@ func TestForgetOtherRememberedPrimitives(t *testing.T) {
 		wantNew          bool
 	}{
 		{"Dig", "DB$ Dig | Defined$ You | DigNum$ 1 | ChangeNum$ 1 | ChangeValid$ Card.IsRemembered | RememberChanged$ True", "library", false, true},
+		// The reported corpus shape (Primal Surge's DBDig, Search the City's
+		// SetupSearch): ChangeNum$ All with an Exile primary destination and
+		// RememberChanged$ True. The first case is the line as written (the
+		// ChangeValid$ default "Card" never reads memory); the second adds
+		// ChangeValid$ Card.IsRemembered so the eligibility match exercises the
+		// PRE-CLEAR snapshot (selection := *c) -- with the clear gone or ordered
+		// after the match the window match fails and the card is never taken.
+		{"DigAllExile", "DB$ Dig | Defined$ You | DigNum$ 1 | ChangeNum$ All | DestinationZone$ Exile | RememberChanged$ True", "library", false, true},
+		{"DigAllExileIsRemembered", "DB$ Dig | Defined$ You | DigNum$ 1 | ChangeNum$ All | ChangeValid$ Card.IsRemembered | DestinationZone$ Exile | RememberChanged$ True", "library", false, true},
 		{"DigUntil", "DB$ DigUntil | Valid$ Card.IsRemembered | RememberRevealed$ True", "library", false, true},
 		{"TokenDB", "DB$ Token | TokenScript$ test_token | RememberTokens$ True", "battlefield", true, true},
 		{"TokenAB", "AB$ Token | TokenScript$ test_token | RememberTokens$ True", "battlefield", true, true},
@@ -56,7 +65,7 @@ func TestForgetOtherRememberedPrimitives(t *testing.T) {
 					if len(h.g.Obj(src.ID).Remembered) != 2 || old.ID == fresh.ID || h.g.Obj(fresh.ID).Zone != zone {
 						t.Fatalf("invalid fixture: memory %v, fresh zone %v", h.g.Obj(src.ID).Remembered, h.g.Obj(fresh.ID).Zone)
 					}
-					if (tc.name == "Dig" || tc.name == "DigUntil" || tc.name == "ChooseCard" || strings.HasPrefix(tc.name, "Hand")) && !MatchesSpecCtx(h.g, "Card.IsRemembered", fresh.ID, ctx.SpecContext(0)) {
+					if (tc.name == "Dig" || tc.name == "DigUntil" || tc.name == "ChooseCard" || strings.HasPrefix(tc.name, "Hand") || tc.name == "DigAllExileIsRemembered") && !MatchesSpecCtx(h.g, "Card.IsRemembered", fresh.ID, ctx.SpecContext(0)) {
 						t.Fatal("selector cannot see remembered fixture")
 					}
 					before := len(h.log)
@@ -102,9 +111,13 @@ func TestForgetOtherRememberedPrimitives(t *testing.T) {
 							t.Fatalf("new token not replay-backed on source: %v", mem)
 						}
 					}
-					if tc.name == "Dig" || tc.name == "DigUntil" {
-						if h.g.Obj(fresh.ID).Zone != state.ZHand {
-							t.Fatalf("selector did not take remembered library card: %v", h.g.Obj(fresh.ID).Zone)
+					if tc.name == "Dig" || tc.name == "DigUntil" || strings.HasPrefix(tc.name, "DigAllExile") {
+						want := state.ZHand
+						if strings.Contains(tc.line, "DestinationZone$ Exile") {
+							want = state.ZExile
+						}
+						if h.g.Obj(fresh.ID).Zone != want {
+							t.Fatalf("selector did not take remembered library card: %v, want %v", h.g.Obj(fresh.ID).Zone, want)
 						}
 					}
 					if strings.HasPrefix(tc.name, "Hand") {
