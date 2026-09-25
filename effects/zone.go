@@ -5593,8 +5593,11 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 			return nil, false
 		}
 	}
-	chooser := c.Controller
-	candidates := h.LegalTargets(chooser, c.Source, sa)
+	// Legality stays referenced to the ability controller; only the
+	// decision's Player moves to the TargetingPlayer$ chooser (the same
+	// resolver every rules-tier target ask uses).
+	candidates := h.LegalTargets(c.Controller, c.Source, sa)
+	chooser := h.ChooserFor(c, sa)
 	min := Num(h, c, sa, "TargetMin", 1)
 	max := Num(h, c, sa, "TargetMax", 1)
 	if max > int32(len(candidates)) {
