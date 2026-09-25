@@ -115,6 +115,19 @@ type windowManaAlt struct {
 	// that spends life must not be promised as if the life were still
 	// available for the cost being priced.
 	life int32
+	// costGeneric is the literal generic mana the activation pays BEFORE the
+	// production is added (a "{N}, {T}: add ..." activation cost). Every alt
+	// the shared windowManaUnits builds carries 0 (a free tap), so the field
+	// is inert for the attack/unless payment windows. The cast-payment
+	// probe's paid-cost layer sets it and the cast-only ordered eligibility
+	// search (castWindowReachable) pays it from the pool this window has
+	// already accumulated, so a generic fee can be funded by an earlier
+	// same-window activation -- the exact sequence the live CR 601.2g window
+	// can perform, one source at a time. It is deliberately NOT netted into
+	// counts/amt: a multi-colour production cannot express "minus N" without
+	// choosing which colour the generic consumed, and the choice is the
+	// payer's at activation time.
+	costGeneric int32
 }
 
 // mana is the alt's production as a mana vector, the form the walk's
