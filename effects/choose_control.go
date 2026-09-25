@@ -1406,6 +1406,17 @@ func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 		for _, p := range h.Game().AliveFrom(c.Controller) {
 			selected[p] = p != c.Controller && !selected[p]
 		}
+	case "OppNonTriggeredDefender":
+		// Attacks triggers capture the player being attacked separately from
+		// the player whose action/event caused the trigger. These carriers
+		// copy the attacker for each OTHER opponent: omit the captured
+		// defender, not TriggerPlayer/AttackingPlayer.
+		if !c.DefendingPlayer.IsPlayer || int(c.DefendingPlayer.Player) >= len(h.Game().Players) {
+			break
+		}
+		for _, p := range h.Game().AliveFrom(c.Controller) {
+			selected[p] = p != c.Controller && p != c.DefendingPlayer.Player
+		}
 	case ".Chosen,You", "Chosen,You":
 		add(c.Chosen)
 		selected[c.Controller] = true
