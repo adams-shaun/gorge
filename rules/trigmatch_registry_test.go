@@ -217,6 +217,17 @@ var addedAfterTheSplit = []string{
 	// ordinary counter addition is not a proliferate action), so it could not
 	// have been in the pre-split switch.
 	"Proliferate",
+	// trig:BecomesTargetOnce (task agent-20260919T192459Z-2d5505d7):
+	// Forge's TriggerBecomesTargetOnce, the BATCH sibling of Mode$
+	// BecomesTarget ("whenever one or more creatures you control become the
+	// target of an activated ability", Professor Hojo; Leyline of Combustion;
+	// Psychic Battle). It matches the pre-existing events.TargetsChosen the
+	// per-target sibling already matches -- no new event Kind -- but the
+	// pre-split switch had only a BecomesTarget arm, so a Mode$
+	// BecomesTargetOnce line fell off its end and never fired; the batch
+	// cadence it needs (one instance per targeting ACTION) rides the
+	// queue-time target-batch latch (rules/trigger_match.go).
+	"BecomesTargetOnce",
 	// foretell-trig (task agent-20260923T032009Z-3b9d3432): "Whenever you
 	// foretell a card, ..." (CR 702.126b; Dream Devourer, the corpus's sole
 	// carrier at the pin -- measured

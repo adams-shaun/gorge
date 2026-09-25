@@ -1032,6 +1032,19 @@ type Engine struct {
 	// paramcensus_test.go) to mode DiscardedAll instead of attributing it to
 	// every trigger mode through the shared dispatcher.
 	discardAllFirstTime bool
+	// targetBatch brackets ONE targeting action's TargetsChosen events for the
+	// Mode$ BecomesTargetOnce "one or more" latch (Forge's
+	// TriggerBecomesTargetOnce fires once per spell/ability, after it has
+	// chosen its targets). recordChosenTargets (rules/stack.go) opens the
+	// bracket, emits one TargetsChosen per chosen target, and closes it;
+	// checkFaceTriggers records the trigger LINES already queued in the open
+	// batch in targetBatchFired, so a second matching target of the same
+	// action cannot queue a second instance. Both the open flag and the map
+	// are per-batch scratch, cleared on open and close, so no state survives
+	// a targeting action and none needs cloning or a turn reset (the bracket
+	// is entirely within one emit sequence, never across a drain).
+	targetBatchOpen  bool
+	targetBatchFired map[triggerKey]bool
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how

@@ -443,7 +443,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// rules' becomeMonarchMatches. MonarchChange is ordinal 43, inside the
 		// 64-bit mask's reach, so an exact bit is encodable.
 		return 1 << events.MonarchChange
-	case "CommitCrime", "BecomesTarget":
+	case "CommitCrime", "BecomesTarget", "BecomesTargetOnce":
 		return 1 << events.TargetsChosen
 	case "Attached":
 		return 1 << events.Attach
