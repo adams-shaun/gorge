@@ -260,7 +260,12 @@ func TestParseCostModelsDynamicTapXType(t *testing.T) {
 		t.Fatalf("X form reported Unknown %v", c.Unknown)
 	}
 	c = ParseCost("tapXType<Any/Creature.Other+withTotalPowerGE10>")
-	if len(c.TapPermanent) != 1 || c.TapPermanent[0].Dyn != "Any" || c.TapPermanent[0].Spec != "Creature.Other+withTotalPowerGE10" {
+	// The Any form's withTotalPowerGE<N> group predicate is a SET-level floor:
+	// it moves into CostPart.MinPower and out of the spec, so the per-object
+	// filter sees only the per-candidate terms (crew_test.go pins the
+	// end-to-end floor; the X form keeps the predicate in the spec and fails
+	// closed as before).
+	if len(c.TapPermanent) != 1 || c.TapPermanent[0].Dyn != "Any" || c.TapPermanent[0].Spec != "Creature.Other" || c.TapPermanent[0].MinPower != 10 {
 		t.Fatalf("Any form parsed %+v", c.TapPermanent)
 	}
 	if len(c.Unknown) != 0 {
@@ -277,13 +282,28 @@ func TestParseCostModelsDynamicTapXType(t *testing.T) {
 	if len(c.Unknown) != 0 {
 		t.Fatalf("composed form reported Unknown %v", c.Unknown)
 	}
-	// The literal form is untouched.
+	// The literal form is untouched; a literal spec's group predicate also
+	// moves into MinPower (exactly N are tapped, so the floor is enforced
+	// against the N largest candidates).
 	c = ParseCost("tapXType<2/Artifact>")
 	if len(c.TapPermanent) != 1 || c.TapPermanent[0].Dyn != "" || c.TapPermanent[0].N != 2 {
 		t.Fatalf("literal form parsed %+v", c.TapPermanent)
 	}
+	c = ParseCost("tapXType<2/Creature+withTotalPowerGE5>")
+	if len(c.TapPermanent) != 1 || c.TapPermanent[0].N != 2 || c.TapPermanent[0].Spec != "Creature" || c.TapPermanent[0].MinPower != 5 {
+		t.Fatalf("literal floor form parsed %+v", c.TapPermanent)
+	}
+	if len(c.Unknown) != 0 {
+		t.Fatalf("literal floor form reported Unknown %v", c.Unknown)
+	}
 	// formatCost round-trips the dynamic token (the Dyn token, not N=0).
 	if got := formatCost(ParseCost("tapXType<Any/Creature>")); !strings.Contains(got, "tapXType<Any/Creature>") {
+		t.Fatalf("formatCost = %q, want it to carry the Any token", got)
+	}
+	// A floored Any form round-trips with the stripped spec; formatCost is a
+	// display/wire renderer (decision.Option.Cost), the floor itself lives in
+	// MinSum/Validate at payment, so the predicate is not re-emitted here.
+	if got := formatCost(ParseCost("tapXType<Any/Creature.Other+withTotalPowerGE10>")); !strings.Contains(got, "tapXType<Any/Creature.Other>") {
 		t.Fatalf("formatCost = %q, want it to carry the Any token", got)
 	}
 }
