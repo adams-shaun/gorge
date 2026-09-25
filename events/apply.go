@@ -434,6 +434,7 @@ func Apply(g *state.Game, e Event) {
 				o.Imprinted = nil
 				o.ImprintTokens = nil
 				o.SeekFound = nil
+				o.EncodedCards = nil
 			} else if e.Text == "forget" {
 				// ForgetImprinted$ (Pump's Chrome Mox body): remove exactly the
 				// named ids from the persistent Imprinted list, keeping the
@@ -464,6 +465,13 @@ func Apply(g *state.Game, e Event) {
 					}
 				}
 				o.SeekFound = keptFound
+				keptEncoded := make([]state.ObjID, 0, len(o.EncodedCards))
+				for _, id := range o.EncodedCards {
+					if !drop[id] {
+						keptEncoded = append(keptEncoded, id)
+					}
+				}
+				o.EncodedCards = keptEncoded
 			} else {
 				// Text is an in-kind discriminator, not a new Event field:
 				// ImprintCards$ records Forge's imprintedCards list while a
@@ -509,6 +517,14 @@ func Apply(g *state.Game, e Event) {
 						// ordinary Imprinted list's exile-only reader keeps its
 						// CR 607.2a contract.
 						list = &o.SeekFound
+					} else if e.Text == "encoded" {
+						// Cipher (CR 702.99a): the resolving spell card is exiled
+						// ENCODED on this creature. state.Object.EncodedCards is
+						// the creature-side link the combat-damage trigger reads;
+						// it is pruned when the card leaves exile and cleared when
+						// this object leaves the battlefield (both in Move), so
+						// only text without that cleanup names a different list.
+						list = &o.EncodedCards
 					}
 					for _, id := range e.IDs {
 						if g.Obj(id) != nil {
@@ -2235,6 +2251,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
+		cipher := false
 		casualty := false
 		demonstrate := false
 		flanking := false
@@ -2286,6 +2303,24 @@ func Apply(g *state.Game, e Event) {
 				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "MayChooseTarget": "True"}}
 				casualty = true
+			}
+			// A CIPHER combat-damage trigger (rules.pushTrigger's __kwCipher:
+			// payload) has no SVar either -- the association that grants it is
+			// state.Object.EncodedCards -- so it is rebuilt structurally into
+			// the same body the printed expansion cannot carry: a free cast of
+			// a COPY of the encoded card (CR 702.99b). The encoded card rides
+			// IDs as Remembered, which Defined$ Remembered resolves; CopyCard$
+			// True makes that a copy on the stack while the exiled original
+			// stays put, and Optional$ True makes the cast the "may". The
+			// trailing colon (the Ward/Afflict/Conspire shape) keeps the
+			// payload distinct from the "__kwCipher" SVar a printed bare
+			// K:Cipher line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwCipher:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Play",
+					Params: map[string]string{"Defined": "Remembered", "ValidZone": "Exile",
+						"ValidSA": "Spell", "CopyCard": "True", "CipherCopy": "True", "WithoutManaCost": "True",
+						"Optional": "True", "TriggerDescription": "Cipher"}}
+				cipher = true
 			}
 			// A granted Demonstrate (rules.pushTrigger's __kwDemonstrate:
 			// payload) has no SVar either: rebuilt structurally into the same
@@ -2411,7 +2446,7 @@ func Apply(g *state.Game, e Event) {
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire || casualty || demonstrate || flanking || melee {
+		if conspire || casualty || demonstrate || flanking || melee || cipher {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
@@ -2420,6 +2455,19 @@ func Apply(g *state.Game, e Event) {
 			break
 		}
 		src := g.Obj(e.Obj)
+		if e.Text == "copy card for play" {
+			// Cipher's CopyCard$ True on Play: mint a copy of the encoded
+			// card in the temporary library holding zone. The cast flow
+			// then moves this copy onto the stack. The event, rather than
+			// the rules caller, owns the mutation so replay derives its ID.
+			if src == nil || src.Zone != state.ZExile || src.Face() == nil {
+				break
+			}
+			card, faceIdx := src.Card, src.FaceIdx
+			o := g.AddObject(card, e.Player)
+			o.FaceIdx, o.IsCopy = faceIdx, true
+			break
+		}
 		if src == nil || src.Zone != state.ZStack {
 			break
 		}
@@ -3245,6 +3293,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		for i := range g.Objs {
 			g.Objs[i].ExiledCards = withoutObjID(g.Objs[i].ExiledCards, id)
 			g.Objs[i].ExileReturn = withoutExileReturnObj(g.Objs[i].ExileReturn, id)
+			// Cipher (CR 702.99): the encoded link is a zone relationship too.
+			// Once the encoded card leaves exile -- cast, blinked, moved by any
+			// effect -- it is no longer that creature's encoded card, so prune
+			// it exactly as ExiledCards prunes, inside the event fold so live
+			// play and log replay agree.
+			g.Objs[i].EncodedCards = withoutObjID(g.Objs[i].EncodedCards, id)
 		}
 		// CR 701.34c: a plotted card is no longer plotted once it leaves
 		// exile (cast from exile to the stack, or moved on by any effect), so
@@ -3307,6 +3361,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	if wasBattlefield && to != state.ZBattlefield {
 		o.Controller = o.Owner
 		o.PhasedOut = false
+	}
+	if wasBattlefield && to != state.ZBattlefield {
+		// CR 702.99: a creature's encoded cards are battlefield-stint state.
+		// A creature that leaves the battlefield is a new object (CR 400.7),
+		// and its encoded cards stay in exile un-encoded; the association is
+		// dropped here so no later damage trigger reads a stale link.
+		o.EncodedCards = nil
 	}
 	// CR 113.7a: an ability on the stack is not a card, and once it leaves
 	// the stack it ceases to exist. The resolved/countered ability's move is

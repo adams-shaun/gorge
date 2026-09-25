@@ -110,7 +110,10 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 		// DB$ Play | Defined$ Remembered, so no carrier loses a legitimate
 		// candidate to this read.
 		base := strings.Split(strings.TrimSpace(spec), ".")[0]
-		if base == "Remembered" || base == "RememberedLKI" || base == "RememberedCard" || base == "DirectRemembered" {
+		// Cipher's encoded card is deliberately captured by its damage trigger:
+		// unlike DigUntil's captured event roles, it IS the Play population.
+		if (base == "Remembered" || base == "RememberedLKI" || base == "RememberedCard" || base == "DirectRemembered") &&
+			!strings.EqualFold(sa.Params["CipherCopy"], "True") {
 			var kept []state.ObjID
 			for _, id := range candidates {
 				captured := false
