@@ -54,6 +54,9 @@ type pendingTrigger struct {
 	// altCostEnter. It has no yes/no choice; pushTrigger mints a real
 	// respondable keyword-triggered ability on the stack.
 	Evoke bool
+	// Gift marks the CR 702.168c triggered ability created by a promised
+	// permanent's entry. Its body is the source face's GiftAbility SVar.
+	Gift bool
 	// Delayed marks a Mode$ Phase delayed trigger registration (CR 603.7)
 	// rather than a matched T: line. It is queued by checkDelayedTriggers when
 	// the registered phase is entered, and pushTrigger routes it to a

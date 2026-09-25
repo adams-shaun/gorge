@@ -365,7 +365,10 @@ func TestGiftKitnapPromisedDrawsAndSkipsStunCounters(t *testing.T) {
 		t.Fatalf("Kitnap target ask does not offer the bear: %+v", d.Options)
 	}
 	submitChoices(t, e, i)
-	passUntilStackEmpty(t, e, 20)
+	// CR 702.168c: the promised gift is now a real ETB trigger queued beside
+	// Kitnap's printed "when it enters, tap enchanted creature" trigger, so
+	// the controller orders the two before either resolves.
+	drainEntryTriggers(t, e, bear)
 	// Precondition: Kitnap really entered attached to the bear.
 	if z := e.G.Obj(kitnapID).Zone; z != state.ZBattlefield {
 		t.Fatalf("Kitnap zone = %v, want battlefield", z)
@@ -412,6 +415,40 @@ func TestGiftKitnapDeclinedPutsThreeStunCounters(t *testing.T) {
 		t.Fatalf("declined opponent hand = %d, want %d (no gift, no draw)", got, oppHand)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// drainEntryTriggers drives a promised permanent's entry interaction to
+// completion: it answers every controller trigger-order ask over the CR
+// 702.168c gift trigger and the card's printed ETB, passes priority, and
+// answers any mid-resolution target ask the printed ETB poses. It stops once
+// the gift trigger has been placed and has left the stack (countGiveGift > 0
+// and an empty stack), before a priority pass could roll the turn into
+// another player's draw step.
+func drainEntryTriggers(t *testing.T, e *Engine, wants ...state.ObjID) {
+	t.Helper()
+	for n := 0; n < 30; n++ {
+		if len(e.G.Stack) == 0 && countGiveGift(e) > 0 {
+			return
+		}
+		d := e.Pending()
+		if d == nil {
+			return
+		}
+		if d.Kind == decision.KTriggerOrder {
+			choices := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				choices = append(choices, o.Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+				t.Fatalf("submit entry trigger order: %v", err)
+			}
+			continue
+		}
+		if err := answerPriorityOrTarget(t, e, wants...); err != nil {
+			t.Fatalf("drain entry triggers: %v", err)
+		}
+	}
+	t.Fatalf("entry triggers did not settle (stack=%v, GiveGift=%d)", e.G.Stack, countGiveGift(e))
 }
 
 // stunCountersOn is the named-counter read the stun assertions use. The

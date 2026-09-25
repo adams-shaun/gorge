@@ -62,6 +62,13 @@ func (e *Engine) altCostEnter(ev events.Event) {
 	if int(o.Controller) >= len(e.G.Players) || e.G.Players[o.Controller].Lost {
 		return
 	}
+	if o.CastFlags&state.FlagPromisedGift != 0 && o.Face().IsPermanent() &&
+		cards.ResolveSVar(o.Face().SVars, "GiftAbility") != nil {
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source: ev.Obj, Controller: o.Controller, Gift: true,
+			Ctx: effects.Ctx{Source: ev.Obj, Controller: o.Controller},
+		})
+	}
 	if o.CastFlags&state.FlagEvoked != 0 {
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source:     ev.Obj,
