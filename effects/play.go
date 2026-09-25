@@ -50,6 +50,18 @@ func init() { Register("Play", effPlay) }
 //     PlayDone re-entry below) drops each actually-begun card from the
 //     remembered set so a chained "if you don't play it" arm only sees the
 //     unplayed remainder.
+func playValidReadsOtherHand(valid string) bool {
+	for _, token := range strings.FieldsFunc(valid, func(r rune) bool {
+		return r == '.' || r == '+' || r == ','
+	}) {
+		switch strings.ToLower(strings.TrimSpace(token)) {
+		case "isremembered", "targetedplayerctrl":
+			return true
+		}
+	}
+	return false
+}
+
 func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	if c.PlayDone {
 		// Re-entry after the answer -- INCLUDING a decline (an Optional$
@@ -149,13 +161,11 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 				return
 			}
 		} else if statedValid {
-			// Forge's PlayEffect default zone for a Valid$-population Play
-			// with no ValidZone$: the resolving controller's hand ("you may
-			// cast a spell ... from your hand"). Four corpus carriers omit
-			// the zone; the two whose filter can match the controller's own
-			// hand (The Face of Boe, The Conundrum of Bowls) now resolve,
-			// while My Wish Is Your Command and Reversal of Fortune name
-			// remembered/other-hand cards and stay inert.
+			// Forge's default is the resolving controller's hand. Two filters
+			// explicitly bind a revealed non-controller population: remembered
+			// cards (My Wish Is Your Command) and the targeted player's cards
+			// (Reversal of Fortune). Only those shapes may widen the hand walk;
+			// every other Valid$ filter remains private to its controller.
 			zones = []state.Zone{state.ZHand}
 		} else {
 			// NO population param at all: no ValidTgts$, no Defined$, no
@@ -177,9 +187,16 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			// so a public zone is scanned across every alive seat in seat
 			// order and the spec's own ownership predicates decide -- the same
 			// all-seats walk mayPlaySpellIds uses. A private zone (hand,
-			// library) scans only the resolving controller's slice, so the
-			// hidden information never leaks into the option list.
+			// library) normally scans only the resolving controller's slice;
+			// the hand widens only for the two explicit cross-seat filter
+			// predicates above, after the chain has revealed that hand.
 			seats := []state.PlayerID{c.Controller}
+			if zn == state.ZHand && playValidReadsOtherHand(valid) {
+				seats = nil
+				for _, q := range g.AliveFrom(0) {
+					seats = append(seats, q)
+				}
+			}
 			if zn == state.ZExile || zn == state.ZGraveyard {
 				seats = nil
 				for _, q := range g.AliveFrom(0) {
