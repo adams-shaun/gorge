@@ -1084,6 +1084,30 @@ func (e *Engine) resolveActivationLimitAt(id state.ObjID, p state.PlayerID, raw 
 	return 0, false
 }
 
+// targetBoundReadsPromisedGift limits the alternate-branch offer check to
+// target bounds whose SVar table can read Count$PromisedGift. It is a
+// conservative over-approximation: a SVar that reads PromisedGift for a
+// non-bound purpose also trips it. That is the safe direction for an
+// OFFER-feasibility union (it can only widen the offered set, never narrow
+// it, and the post-election ask still reads the elected branch), so the
+// false-positive cost is an offered cast whose only feasible branch the
+// player then does not elect -- the ordinary CR 601.2c reversal.
+func targetBoundReadsPromisedGift(o *state.Object, sa *cards.SA) bool {
+	if o == nil || o.Face() == nil || sa == nil {
+		return false
+	}
+	if strings.Contains(sa.Params["TargetMin"], "Count$PromisedGift") ||
+		strings.Contains(sa.Params["TargetMax"], "Count$PromisedGift") {
+		return true
+	}
+	for _, body := range o.Face().SVars {
+		if strings.Contains(body, "Count$PromisedGift") {
+			return true
+		}
+	}
+	return false
+}
+
 // targetSAAvailable reports whether a target declaration has enough legal
 // candidates for its resolved mandatory minimum. It is intentionally a
 // feasibility census, not a full cast/payment check: target-dependent cost
@@ -1112,6 +1136,20 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 		return true
 	}
 	min, _ := e.resolvedTargetBounds(p, id, sa, x)
+	// CR 702.168a: the Gift election has not been made yet when this census
+	// runs, so a bound that reads Count$PromisedGift is feasible if EITHER
+	// branch of the promise is satisfiable. The union is a min of the two
+	// branches' minimums: the census compares candidates against min, and a
+	// smaller min is satisfiable exactly when at least one branch is. The
+	// post-election ask (and every other reader) still resolves the ELECTED
+	// branch through the nil-override resolvedTargetBounds, so promising
+	// remains what switches the actual bound.
+	if targetBoundReadsPromisedGift(e.G.Obj(id), sa) {
+		promised := true
+		if pmin, _ := e.resolvedTargetBoundsWithGift(p, id, sa, x, &promised); pmin < min {
+			min = pmin
+		}
+	}
 	// The census is a pure read, so the two answers that never look at it
 	// return before it runs, and the count stops at min (candidatesForLimit).
 	if min <= 0 {
