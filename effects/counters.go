@@ -705,6 +705,7 @@ func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string
 		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
 			continue
 		}
+		anyPlaced := false
 		for i, src := range srcs {
 			if src.IsPlayer {
 				continue
@@ -713,10 +714,17 @@ func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string
 				if amt := k.N * mult; amt > 0 {
 					h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID,
 						Counter: k.Kind, Amount: amt})
+					anyPlaced = true
 				}
 			}
 		}
-		placed = append(placed, t)
+		// The same RememberPut$/RememberCards$ positivity contract the
+		// ordinary target loop keeps: a source whose counters are all gone
+		// (or a multiplier resolving to 0) places nothing, so the recipient
+		// must not enter the remembered set.
+		if anyPlaced {
+			placed = append(placed, t)
+		}
 	}
 	rememberPlaced(c, sa, placed)
 }
@@ -1145,7 +1153,12 @@ func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, pic
 			continue
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
-		placed = append(placed, state.Target{Obj: id})
+		// RememberCards$/RememberPut$ name the recipients that actually took
+		// a counter: a CounterNum$ resolving to 0 places nothing (the event
+		// is a zero CounterChange), so it must not be remembered.
+		if n > 0 {
+			placed = append(placed, state.Target{Obj: id})
+		}
 	}
 	rememberPlaced(c, sa, placed)
 }
