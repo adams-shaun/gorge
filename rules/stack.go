@@ -4367,6 +4367,19 @@ func (e *Engine) ObjectText(o *state.Object) string {
 	}
 	return e.Text(o.ID)
 }
+
+// ObjectKeywords is effects.Host's derived-keyword read (CR 613.1f): the
+// object's current keyword list, printed and granted alike, copied so the
+// caller never aliases Derived's scratch buffer (Engine.Keywords' own
+// documented hazard). api:ExchangeTextBox carries the other box's keywords
+// across a text-box exchange through this read, so the grant is the partner's
+// AS-IT-READS list rather than its printed face.
+func (e *Engine) ObjectKeywords(o *state.Object) []string {
+	if o == nil {
+		return nil
+	}
+	return append([]string(nil), e.Derived(o.ID).Keywords...)
+}
 func (e *Engine) Emit(ev events.Event) { e.emit(ev) }
 
 // CastProhibited is effects' optional castProhibitedHost read (task

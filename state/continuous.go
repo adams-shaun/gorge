@@ -101,11 +101,14 @@ type ContinuousEffect struct {
 	// timestamp order by rules' layer walk. An empty TextFrom substitutes
 	// nothing (a substitution whose source word is empty is never
 	// meaningful), so a zero value leaves the printed text untouched.
-	// TextSet, when non-empty, REPLACES the printed text outright (the
-	// sibling api:ExchangeTextBox swaps two objects' text boxes): the walk
-	// starts from TextSet and then applies any TextFrom/TextTo substitutions.
+	// TextSet replaces the printed text outright (the sibling
+	// api:ExchangeTextBox swaps two objects' text boxes). TextSetSet
+	// distinguishes an intentionally empty text box from no TextSet effect;
+	// the walk starts from TextSet and then applies any TextFrom/TextTo
+	// substitutions.
 	TextFrom, TextTo string
 	TextSet          string
+	TextSetSet       bool
 
 	// AddPowerExpr preserves a static P/T parameter that must be evaluated
 	// against its source each time characteristics are derived (for example

@@ -3148,7 +3148,7 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 			// what the walk has so far; each TextFrom/TextTo then substitutes
 			// in timestamp order, so two chained ChangeText effects compose the
 			// way their timestamps order them.
-			if ce.TextSet != "" {
+			if ce.TextSetSet {
 				text = ce.TextSet
 			}
 			if ce.TextFrom != "" {

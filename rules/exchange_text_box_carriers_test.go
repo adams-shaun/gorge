@@ -58,13 +58,14 @@ func TestExchangeTextBoxDeadpoolTradingCard(t *testing.T) {
 	textA, textB := assertTextBoxPrecondition(t, e, a, b)
 	beforeA, beforeB := e.Derived(a), e.Derived(b)
 
-	// The corpus omits Duration$: this exchange lasts while Deadpool remains.
+	// The corpus omits Duration$: under CR 611.2a the exchange has no
+	// stated end, apart from the affected objects changing zones.
 	effects.Resolve(e, &effects.Ctx{Source: a, Controller: 0, Chosen: []state.Target{{Obj: b}}, ChosenValid: true},
 		&cards.SA{API: "ExchangeTextBox", Params: map[string]string{"Defined": "Self & ChosenCard"}})
 	assertSwappedAndCharacteristicsPreserved(t, e, a, b, textA, textB, beforeA, beforeB)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: a, From: state.ZBattlefield, To: state.ZGraveyard})
-	if got := e.Text(b); got != otherCard.Faces[0].Oracle {
-		t.Fatalf("after Deadpool leaves play, other text = %q, want printed %q", got, otherCard.Faces[0].Oracle)
+	if got := e.Text(b); got != textA {
+		t.Fatalf("after Deadpool leaves play, other text = %q, want Deadpool's indefinite box %q", got, textA)
 	}
 }
 
