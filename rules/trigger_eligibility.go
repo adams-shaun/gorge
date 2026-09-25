@@ -84,12 +84,12 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CopyToken, events.Exert, events.PlanarRoll,
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent, events.CloneStatic, events.TurnFaceDown,
-		events.DamageProvenance,
+		events.DamageProvenance, events.EnduringStoryChange,
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
 		events.GainedAbilityPush, events.GainedTriggerPush,
-		events.StoreSVar, events.RollDice:
+		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -139,6 +139,26 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// the catch-all default that would otherwise run a full trigger scan
 		// on every cleared label.
 		//
+		// EnduringStoryChange (storied1) is CR 702.175's one-way "enduring
+		// story" designation latch -- the exact BlessingChange shape: a
+		// seat-status fact the corpus reads through the state predicate
+		// (rules/layers.go's `EnduringStory` SVar read; Dáin's Condition$
+		// EnduringStory; Balin Loremaster's "if you have an enduring story"
+		// trigger rider), never through a trigger mode -- no T: line in the
+		// corpus fires on the designation being GAINED. Its ordinal (94) sits
+		// past triggerMaskKindBits, so both classifiers fail open before this
+		// map is consulted; naming it keeps the audit complete if the bound
+		// ever widens and keeps it out of the catch-all default that would
+		// otherwise claim the kind trigger-relevant.
+		//
+		// PhaseOut (phases1) records CR 702.25's phased-out/phase-in status
+		// on a battlefield permanent. No trigger mode fires on it: the
+		// corpus's `Mode$ Phase` is the beginning-of-combat PHASE step
+		// (events.StepChange), never this status fold, and a phased-out
+		// permanent is read through state predicates, not a trigger. Its
+		// ordinal sits past triggerMaskKindBits, so both classifiers fail
+		// open before this map is consulted; naming it keeps the audit
+		// complete if the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -215,7 +235,20 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareBlockers
 	case "Untaps":
 		return 1 << events.Untap
-	case "Sacrificed", "Discarded", "LandPlayed", "Milled", "MilledAll":
+	case "PhaseOutAll":
+		// CR 702.25b: the batch-level "whenever one or more permanents phase
+		// out" trigger matches the events.PhaseOut marker the api:Phases
+		// primitive emits (Amount >= 1 is a phase-out; the phase-in half is
+		// the opposite event). The Kind's ordinal is past the 64-bit mask's
+		// reach, the Surveil/Discover shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (phaseOutAllMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents
+		// default keeps a PhaseOutAll-only face's mask narrow for every other
+		// kind.
+		return 0
+	case "Sacrificed", "Discarded", "DiscardedAll", "LandPlayed", "Milled", "MilledAll":
 		return 1 << events.MoveZone
 	case "Cycled":
 		return 1 << events.MoveZone
@@ -233,6 +266,13 @@ func triggerModeEvents(mode string) triggerEventMask {
 	case "SearchedLibrary":
 		// This marker is appended beyond the 64-bit trigger-mask range, so
 		// naming it keeps a SearchedLibrary-only face narrow on older Kinds.
+		return 0
+	case "GiveGift":
+		// The GiveGift marker's ordinal is past the 64-bit mask's reach, the
+		// Investigated/Surveil shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path. Naming the mode here
+		// keeps a GiveGift-only face's mask narrow for every other kind.
 		return 0
 	case "Investigated":
 		// The Kind's ordinal (67) is past the 64-bit mask's reach, the
@@ -290,6 +330,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "FullyUnlock":
+		// CR 709.5's "whenever you fully unlock a Room" (task
+		// agent-20260919T191104Z-95f1e316): the Eerie enchantments' other-
+		// permanent half, matched by fullyUnlockMatches (rules/
+		// trigmatch_room.go). It fires on the single DoorUnlock transition
+		// event the unlock activation emits, whose ordinal (41) is inside the
+		// 64-bit mask's reach, so an exact bit is encodable -- naming the mode
+		// rather than letting it fall to the allTriggerEvents default keeps a
+		// FullyUnlock-only face's mask narrow for every other kind.
+		return 1 << events.DoorUnlock
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past

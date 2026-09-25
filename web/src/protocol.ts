@@ -735,6 +735,14 @@ export interface Option {
    * of the game. A bare tap (every plain land) omits the field, so every
    * existing option list and every plain-land window serialises
    * byte-identically. omitempty: only a beyond-tap activation carries it.
+   *
+   * An "ability" option (a printed non-mana activated ability) carries its
+   * offer-time cost here too, the same string the card's AbilityCosts
+   * projects: its label is "<card name>: <description>" for every ability
+   * of the card, and a planeswalker's description omits the loyalty cost,
+   * so the cost is what lets the client's radial tell them apart. Every
+   * Cost reader that means the mana-activation marker filters on
+   * Kind == "activate".
    */
   cost?: string;
   /**
@@ -851,6 +859,17 @@ export interface Decision {
    * from GroupCap, never a second copy.
    */
   groupLimit?: number;
+  /**
+   * GroupLimits maps a Group name to its own selection cap, overriding the
+   * decision-wide GroupLimit for that group. A per-defender attack ceiling
+   * (AttackRestrict's MaxAttackers$ scoped by ValidDefender$) is exactly
+   * this shape: each defended player is its own Group, and two such
+   * restrictions can cap different defenders differently, which one scalar
+   * GroupLimit cannot express. A group absent from the map, or mapped to a
+   * value below 2, falls back to GroupCap. GroupCapFor is the one reader,
+   * so Validate, FitRequired and botpolicy's repair cannot drift.
+   */
+  groupLimits?: Record<string, number>;
   /**
    * Repeatable relaxes Validate's no-duplicate-index rule: when true the
    * SAME option index may be chosen more than once in one answer. It is

@@ -248,6 +248,7 @@ func (e *Engine) Clone() *Engine {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
 			ce.RemoveKeywords = append([]string(nil), ce.RemoveKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
+			ce.RemoveTypes = append([]string(nil), ce.RemoveTypes...)
 			if ce.RestrictParams != nil {
 				m := make(map[string]string, len(ce.RestrictParams))
 				for k, v := range ce.RestrictParams {
@@ -515,6 +516,12 @@ func (e *Engine) Clone() *Engine {
 		c.tappedTurn = make(map[state.ObjID]int32, len(e.tappedTurn))
 		for id, turn := range e.tappedTurn {
 			c.tappedTurn[id] = turn
+		}
+	}
+	if e.discardAllTurn != nil {
+		c.discardAllTurn = make(map[triggerKey]int32, len(e.discardAllTurn))
+		for k, turn := range e.discardAllTurn {
+			c.discardAllTurn[k] = turn
 		}
 	}
 	// tapObj/tapPlayer/tapEntering and tappingForMana/tappingManaProduced are

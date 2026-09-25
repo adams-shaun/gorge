@@ -68,7 +68,8 @@ type pendingTrigger struct {
 	// MonarchDraw is the CR 724.2a beginning-of-end-step triggered draw.
 	// It is represented as a real stack ability through the existing delayed
 	// push event, rather than as an immediate turn action.
-	MonarchDraw bool
+	MonarchDraw    bool
+	RadiationDrain bool
 	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
 	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
 	// push must resolve that name against the UNDER-CARD's own face, never
@@ -142,6 +143,9 @@ type pendingTrigger struct {
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
 	Conspire bool
+	// Casualty is queued only for a paid sacrifice at the completed cast
+	// boundary. The keyword trigger body is rebuilt from its logged push.
+	Casualty bool
 	// Demonstrate is a GRANTED demonstrate keyword (a layer-6 AddKeyword$
 	// Demonstrate -- Silverquill Lecturer's "Creature spells you cast have
 	// demonstrate", The Twelfth Doctor's non-hand grant, Try-My-Deck
@@ -323,6 +327,21 @@ type millBatchEntry struct {
 	milled []state.Target
 }
 
+// discardBatchEntry records one DiscardedAll trigger line already queued
+// inside the open discard batch: the pendingTriggers index it queued at (the
+// queue is append-only while a batch is open) plus the number of cards this
+// line's ValidCard$ matched and their deduplicated set. closeDiscardBatch
+// patches the count into the queued trigger's TriggerAmount (the
+// TriggerCount$Amount head Magmakin Artillerist's X reads) and the set into
+// its Remembered/Captured plural capture (Pure Intentions' Defined$
+// TriggeredCards).
+type discardBatchEntry struct {
+	key       triggerKey
+	idx       int
+	amount    int32
+	discarded []state.Target
+}
+
 // turnFires is one T: line's trigger count within the turn it last
 // triggered (Engine.triggerTurnFires).
 type turnFires struct {
@@ -445,6 +464,16 @@ var actionTriggerModes = map[string]bool{
 	// mill entry), not this map; the map only makes ActivationLimit$ count
 	// the batch's single queue slot.
 	"Milled": true, "MilledAll": true,
+	// DiscardedAll joins them for the same reason: it is an event mode
+	// registered from the start (discardedAllMatches over the discard
+	// MoveZone marker, task DiscardedAll), so the trigger-level parameters
+	// Forge scopes to every event mode apply from day one -- ActivationLimit$
+	// ("This ability triggers only once each turn" on a DiscardedAll line),
+	// PlayerTurn$ and an unevaluable CheckDefinedPlayer$ predicate failing
+	// closed. DiscardedAll's own FirstTime$ cadence is its batch latch (the
+	// trigger_match.go entry), not this map; the map only makes ActivationLimit$
+	// count the batch's single queue slot.
+	"DiscardedAll": true,
 }
 
 // triggerGameLimitFor parses a trigger's GameActivationLimit$ param (the
@@ -1025,7 +1054,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
 	visit := func(id state.ObjID) {
 		o := observer.G.Obj(id)
-		if o == nil {
+		if o == nil || o.PhasedOut {
 			return
 		}
 		f := o.Face()
@@ -1175,6 +1204,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				if !observer.triggerMatches(t, id, ev, objLKI) {
 					continue
 				}
+				// Capture the DiscardedAll FirstTime$ clause the matcher just parsed
+				// (discardedAllMatches records it on its own receiver) BEFORE
+				// secondaryYields below -- which also drives this observer -- can
+				// overwrite the scratch value.
+				discardedAllFirstTime := t.Mode == "DiscardedAll" && observer.discardAllFirstTime
 				// Forge's Secondary$ True: a marked secondary is the second
 				// half of one card text, and it does not fire when the same
 				// event already fired its card's paired primary (the
@@ -1335,17 +1369,19 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// reach the trigger ONCE (Forge RepeatEachEffect's CardZoneTable
 				// calling triggerChangesZoneAll after the loop), so it fires ONCE
 				// for the whole batch if at least one matching move happened,
-				// not once per move. The latch keys on the trigger line ALONE
-				// (DamageAll's shape): the first matching move queues the single
-				// instance and every later matching move in the batch accumulates
-				// its object into the entry's deduplicated moved set, which
-				// closeZoneBatch patches into the queued trigger's Remembered/
-				// Captured -- the plural capture the "for each of them" bodies
-				// resolve. No batch open (every ordinary context) means every
-				// zone change is its own batch-of-one: the mode queues per move
-				// exactly as before this gate existed, and Mode$ ChangesZone is
-				// never batch-scoped at all.
-				if t.Mode == "ChangesZoneAll" && e.zoneBatchOpen {
+				// not once per move. PhaseOutAll (The War Doctor's "whenever one
+				// or more other permanents phase out") shares the bracket: one
+				// api:Phases resolution that phases out N permanents opens one
+				// batch and the latency fires once. The latch keys on the trigger
+				// line ALONE (DamageAll's shape): the first matching phase-out
+				// queues the single instance and every later matching phase-out
+				// in the batch accumulates its object into the entry's
+				// deduplicated set, which closeZoneBatch patches into the queued
+				// trigger's Remembered/Captured. No batch open (every ordinary
+				// context) means every zone change is its own batch-of-one: the
+				// mode queues per move exactly as before this gate existed, and
+				// Mode$ ChangesZone is never batch-scoped at all.
+				if (t.Mode == "ChangesZoneAll" || t.Mode == "PhaseOutAll") && e.zoneBatchOpen {
 					if e.zoneBatchIdx == nil {
 						e.zoneBatchIdx = map[zoneBatchKey]int{}
 					}
@@ -1401,6 +1437,94 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.millBatchLog = append(e.millBatchLog, ent)
 					// Fall through: the trigger queues now; closeMillBatch patches
 					// its count and plural capture to the mill action's totals.
+				}
+				// DiscardedAll inside an open discard batch (one api:Discard
+				// resolution, effects/cardflow.go's effDiscard) is the discard twin
+				// of the MilledAll latch above: the batch's discarded cards reach
+				// the trigger ONCE, not once per card, so it fires ONCE for the
+				// whole discard action if at least one matching card was discarded.
+				// The latch keys on the trigger line ALONE (DamageAll's shape);
+				// the first matching discarded card queues the single instance and
+				// every later matching card accumulates into the entry's COUNT,
+				// which closeDiscardBatch patches into the queued trigger's
+				// TriggerAmount (the TriggerCount$Amount head Magmakin
+				// Artillerist's X reads). Only cards this line's ValidCard$
+				// matched are counted, exactly as MilledAll only counts matching
+				// cards and DamageAll only accumulates matching pairs.
+				//
+				// FirstTime$ True (Veronica's "for the first time each turn") is
+				// the batch-level once-per-turn latch: a line that already queued
+				// a batch this turn queues nothing for a later batch, and the
+				// LATER batch is not accumulated into the earlier open entry
+				// either (the check is before the entry lookup). It is read here,
+				// not in the matcher, because batch identity lives in the latch;
+				// firstMarkerThisTurn's per-EVENT scan cannot tell one batch from
+				// the next. The stamp is the trigger line's turn only, exact for
+				// every corpus carrier (their ValidPlayer$ is the source's own
+				// controller).
+				//
+				// No batch open (a discard that is not an api:Discard, e.g. a cost
+				// discard or a cleanup discard) means every discard is its own
+				// batch-of-one and the per-event referent below already carries
+				// count 1.
+				if t.Mode == "DiscardedAll" {
+					// FirstTime$ True (Veronica, Rielle: "for the first time each
+					// turn") is the batch-level once-per-turn gate. It was read by
+					// discardedAllMatches and captured above as
+					// discardedAllFirstTime; it is decided when a NEW batch entry is
+					// created and recorded then, so a later batch this turn queues
+					// nothing while the SAME batch's further matching cards still
+					// accumulate into the count (Rielle's "draw that many" needs a
+					// multi-card first batch's full size). Batch identity lives in
+					// the latch; firstMarkerThisTurn's per-EVENT scan cannot tell one
+					// discard batch from the next. The stamp is the trigger line's
+					// turn only, exact for every corpus carrier (their ValidPlayer$
+					// is the source's own controller).
+					firstTime := discardedAllFirstTime
+					if e.discardBatchOpen {
+						if entIdx, ok := e.discardBatchIdx[key]; ok {
+							ent := &e.discardBatchLog[entIdx]
+							ent.amount++
+							if ev.Obj != 0 {
+								ent.discarded = batchAppendTarget(ent.discarded, state.Target{Obj: ev.Obj})
+							}
+							continue // already queued once for this discard action.
+						}
+						if firstTime && e.discardAllTurn[key] == e.G.Turn {
+							continue // FirstTime$: this line already fired a batch this turn.
+						}
+						if e.discardBatchIdx == nil {
+							e.discardBatchIdx = map[triggerKey]int{}
+						}
+						ent := discardBatchEntry{key: key, idx: len(e.pendingTriggers), amount: 1}
+						if ev.Obj != 0 {
+							ent.discarded = batchAppendTarget(ent.discarded, state.Target{Obj: ev.Obj})
+						}
+						e.discardBatchIdx[key] = len(e.discardBatchLog)
+						e.discardBatchLog = append(e.discardBatchLog, ent)
+						if firstTime {
+							if e.discardAllTurn == nil {
+								e.discardAllTurn = map[triggerKey]int32{}
+							}
+							e.discardAllTurn[key] = e.G.Turn
+						}
+						// Fall through: the trigger queues now; closeDiscardBatch
+						// patches its count and plural capture to the action's totals.
+					} else {
+						// No open batch (a cost or cleanup discard): this event is
+						// its own batch-of-one and the referent below already carries
+						// count 1. FirstTime$ is still enforced and recorded, so a
+						// later single discard this turn is rejected too.
+						if firstTime && e.discardAllTurn[key] == e.G.Turn {
+							continue // FirstTime$: already fired this turn.
+						}
+						if firstTime {
+							if e.discardAllTurn == nil {
+								e.discardAllTurn = map[triggerKey]int32{}
+							}
+							e.discardAllTurn[key] = e.G.Turn
+						}
+					}
 				}
 				// RolledDie's Number$ N ("your third die each turn"): gated
 				// LAST, at the queue point, so a speculative matcher call or a
@@ -1784,6 +1908,70 @@ func (e *Engine) closeMillBatch() {
 	}
 	e.millBatchIdx = nil
 	e.millBatchLog = nil
+}
+
+// BeginDiscardBatch/EndDiscardBatch are effects.Host's discard-batch bracket
+// (effects/cardflow.go's effDiscard opens them around one api:Discard
+// resolution): the discard MoveZone events emitted until the matching
+// EndDiscardBatch are one discard action for the Mode$ DiscardedAll latch.
+// Reentrant brackets nest by depth so an inner discard (a rider, or a
+// SubAbility$ reachable from the resolving body) cannot close its caller's
+// batch early.
+func (e *Engine) BeginDiscardBatch() { e.openDiscardBatch() }
+func (e *Engine) EndDiscardBatch()   { e.closeDiscardBatch() }
+
+// openDiscardBatch opens a discard batch: the discard MoveZone events emitted
+// until the matching closeDiscardBatch are one discard action for Mode$
+// DiscardedAll. Unlike the mill bracket, api:Discard's resolution may suspend
+// mid-action for a player's choice, so effDiscard opens this on the FIRST pass
+// and closes it only on the pass that completes without suspending; a
+// re-entrant (resumed) pass must not open a second batch for the action it is
+// continuing.
+func (e *Engine) openDiscardBatch() {
+	if e.discardBatchDepth == 0 {
+		e.discardBatchOpen = true
+		e.discardBatchIdx = nil
+		e.discardBatchLog = nil
+	}
+	e.discardBatchDepth++
+}
+
+// closeDiscardBatch closes the open discard batch: every entry's queued
+// trigger gets its TriggerAmount patched to the count of matching cards and
+// its Remembered/Captured plural capture to their set, then the bookkeeping
+// is dropped. The latch lives entirely inside the open batch -- entries are
+// the latch, and closing clears them -- so nothing persists between discard
+// actions. The pendingTriggers index is re-checked against the trigger it was
+// recorded for before patching (the same guard as closeMillBatch:
+// pendingTriggers is append-only while a batch is open, so a trigger whose
+// Execute$ never resolved queued nothing).
+func (e *Engine) closeDiscardBatch() {
+	if e.discardBatchDepth == 0 {
+		return
+	}
+	e.discardBatchDepth--
+	if e.discardBatchDepth != 0 {
+		return
+	}
+	e.discardBatchOpen = false
+	for _, ent := range e.discardBatchLog {
+		if ent.idx >= len(e.pendingTriggers) {
+			continue
+		}
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+			if len(ent.discarded) > 0 {
+				pt.Ctx.Remembered = append([]state.Target(nil), ent.discarded...)
+				pt.Ctx.Captured = append([]state.Target(nil), ent.discarded...)
+			}
+		}
+	}
+	e.discardBatchIdx = nil
+	e.discardBatchLog = nil
 }
 
 // openZoneBatch opens a zone batch: the zone-change events (MoveZone,
@@ -2177,6 +2365,28 @@ func compareIntCount(n int32, expr string) bool {
 	return false
 }
 
+// phaseOutAllMatches matches a Mode$ PhaseOutAll trigger (The War Doctor's
+// "whenever one or more other permanents phase out") against one PhaseOut
+// event. Only a phase-OUT (Amount >= 1) counts; a phase-IN (Amount -1) is the
+// opposite event. The line's ValidCards$/ValidCard$ filter is evaluated
+// against the phasing permanent with the trigger's source bound the way every
+// object matcher binds it, so `Permanent.phasedOutOther` can exclude the
+// source itself. The once-per-batch cadence is the latch in triggerMatches,
+// not this matcher.
+func phaseOutAllMatches(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.PhaseOut || ev.Amount < 1 || ev.Obj == 0 {
+		return false
+	}
+	spec := strings.TrimSpace(t.Params["ValidCards"])
+	if spec == "" {
+		spec = strings.TrimSpace(t.Params["ValidCard"])
+	}
+	if spec == "" {
+		return true
+	}
+	return e.matchesSpec(spec, ev.Obj, e.specCtx(source, e.controllerOf(source)))
+}
+
 func init() {
 	// CR 603.8 state trigger: the event under test is irrelevant; the trigger
 	// fires when its condition holds (see triggerConditionHolds) and no
@@ -2184,6 +2394,17 @@ func init() {
 	registerTrigMatcher(func(*Engine, cards.Trigger, state.ObjID, events.Event, *state.Object) bool {
 		return true
 	}, "Always")
+
+	// PhaseOutAll (CR 702.25, phaseoutall1): the batch-level "whenever one or
+	// more other permanents phase out" trigger (The War Doctor). It matches
+	// the events.PhaseOut marker the api:Phases primitive emits, which existed
+	// before the mode did; the mode itself is new to the table. Registered
+	// through a func literal calling the pack-level matcher so the census can
+	// read the callee (registerTrigMatcher takes a method expression or a
+	// literal whose first call names the matcher).
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+		return phaseOutAllMatches(e, t, source, ev, lki)
+	}, "PhaseOutAll")
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
@@ -2201,6 +2422,7 @@ func init() {
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
 		"trig:Surveil", "trig:Scry",
+		"trig:PhaseOutAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched
@@ -2290,7 +2512,7 @@ func init() {
 		//     text (CR 702.128's ETB may-search for the named partner), which
 		//     cards/kw_partner_with.go expands into an ordinary trigger; the
 		//     bare kw:Partner line and "kw:CARDNAME..." remain play-free.
-		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
+		"trig:UnlockDoor", "trig:FullyUnlock", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",
 		// kw:Doctor's companion (the WHO two-commander keyword, the

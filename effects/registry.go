@@ -43,6 +43,14 @@ type Host interface {
 	// ObjectColors returns the object's live layer-5 colours when it is on the
 	// battlefield, and its face/CDA colours in other zones.
 	ObjectColors(*state.Object) string
+	// ObjectText returns the object's CURRENT derived rules text (CR 613.1d)
+	// -- printed Oracle after every layer-3 text effect already registered on
+	// it, in timestamp order. rules.Engine implements it through the same
+	// Derived.Text render the engine's own Text accessor uses; the effects
+	// test double returns the printed Oracle. api:ExchangeTextBox reads it to
+	// exchange the text boxes AS THEY EXIST at resolution, so a prior
+	// ChangeText substitution is carried across rather than discarded.
+	ObjectText(*state.Object) string
 	Emit(events.Event)
 	// EmitTokenCreate emits a token-creation event and returns every object
 	// it actually created, in mint order. A token-creation replacement may
@@ -54,6 +62,15 @@ type Host interface {
 	// unreplaced event returns the single token it minted (empty when nothing
 	// was created).
 	EmitTokenCreate(events.Event) []state.ObjID
+	// EmitStackCopy emits a StackCopy event and returns the object it actually
+	// minted, if any. The copy object is created inside events.Apply's
+	// StackCopy fold (AddObject assigns it the pre-emit NextID), so an effect
+	// cannot read the minted id off its own event; effects/copy.go's
+	// RememberCopies$ rider (Forge's card.addRemembered(copies)) calls this
+	// instead of Emit to append the copy to the remembered set. The empty
+	// return covers the fold's early breaks (no source, source already left
+	// the stack) -- a proposed copy that minted nothing.
+	EmitStackCopy(events.Event) []state.ObjID
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
 	// result; an amount-changing replacement returns Damage with the applied
@@ -151,6 +168,20 @@ type Host interface {
 	// Implemented by rules.Engine (rules/layers.go); the
 	// effects test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID, forCost bool) bool
+	// ExileBlocked reports whether id is forbidden from being exiled by the
+	// given cause -- an Effect-registered CantExile restriction or a face
+	// CantExile static (The Master, Multiplied: "Triggered abilities you
+	// control can't cause you to ... exile creature tokens you control").
+	// Consulted at every effect-driven exile candidate choke point
+	// (effChangeZone's object path, effChangeZoneAll's sweep and the shared
+	// ChangeZone settle) so a blocked permanent is never exiled. forCost is
+	// the call site's provenance exactly as on SacrificeBlocked: the
+	// effect-driven paths (this package's callers) pass false, so a static's
+	// ForCost$ False scoping reads the split -- a cost-driven battlefield
+	// exile calls the engine's cause-aware exileBlockedForCost instead.
+	// Implemented by rules.Engine (rules/layers.go); the effects test double
+	// reports false (no engine to consult).
+	ExileBlocked(id state.ObjID, forCost bool) bool
 	// SurveilLookExtra reports the additional cards a surveil performed by
 	// player p looks at, from the battlefield statics with Mode$ SurveilNum
 	// whose ValidPlayer$ admits p ("You may look at an additional two cards
@@ -499,6 +530,9 @@ type Host interface {
 	// and a replay derives it from the folded state like the other
 	// zone-census helpers.
 	DeliriumHolds(p state.PlayerID) bool
+	// MetalcraftHolds reports whether the controller has three or more artifacts;
+	// bare Condition$ gates share rules.Engine's census with static and offer gates.
+	MetalcraftHolds(p state.PlayerID) bool
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -563,6 +597,17 @@ type Host interface {
 	// effects-package test double reports no-ops. Neither suspends.
 	BeginDamageBatch()
 	EndDamageBatch()
+	// BeginZoneBatch/EndZoneBatch bracket the PhaseOut events one api:Phases
+	// resolution emits (CR 702.25a's "permanents phase out one at a time"
+	// still emits one event each, but the group is ONE batch for the
+	// batch-level "whenever one or more permanents phase out" trigger,
+	// Mode$ PhaseOutAll). Within the bracket the first matching PhaseOut event
+	// queues the single instance and every later one accumulates into it.
+	// rules.Engine implements the bracket with its zone-batch machinery (the
+	// same depth/reentrancy discipline ChangesZoneAll uses); the effects-package
+	// test double reports no-ops. Neither suspends.
+	BeginZoneBatch()
+	EndZoneBatch()
 	// ReplaceEvent applies a ReplaceEffect body's requested change to the
 	// event currently being replaced. It is inert outside replacement
 	// resolution; rules owns the event and records the resulting delta.
@@ -1104,6 +1149,15 @@ type Ctx struct {
 	// the head falls through to the list-length read every pre-existing
 	// consumer keeps.
 	RememberedCMCBound bool
+	// PendingDamage holds the damage a DealDamage with DamageMap$ True MARKED
+	// for this chain's later DB$ DamageResolve flush instead of dealing it
+	// (Forge's mark-then-resolve damage pattern). It is resolution-scratch
+	// like Remembered -- never event-encoded; a replay re-derives it by
+	// re-running the same resolution -- and rules carries it across a
+	// mid-chain ask on the pending frame, the same way Remembered rides
+	// ResumeRemembered. The marks are unexported-typed so the rules package
+	// holds them opaquely. See effects/damage.go's effDamageResolve.
+	PendingDamage []PendingDamage
 	// EffectFrame names the Effect-created continuous-effect registration
 	// whose replacement body this Ctx is resolving (rules' seedEffectReplCtx
 	// sets it from the match's "effect:<source>:<timestamp>" key; zero Source
@@ -1240,6 +1294,17 @@ type Ctx struct {
 	// the same SA can never steal it.
 	TargetsPick     []state.Target
 	TargetsPickDone bool
+	// DamageSplit is the answered allocation of a DealDamage
+	// DividedAsYouChoose$ total: DamageSplit[i] is the damage assigned to
+	// the i-th target of the resolution's Defined$ list, in that order (the
+	// order the ask's one-option-per-target list uses). DamageSplitDone
+	// marks the answer present -- an answered allocation, or the silent
+	// no-ask path when there was nothing to divide -- so the primitive
+	// never re-poses the ask on a later round. rules' "damage_split" resume
+	// arm fills it from the answered multiset; a target the answer never
+	// picked is absent (zero damage).
+	DamageSplit     []int32
+	DamageSplitDone bool
 	// OfferedSA is the SA whose ValidTgts$ targeting the placement or
 	// announcement ask actually covered (rules' resolveTop and
 	// resumeResolution both set it; chosenTargetsFor skips exactly that SA,
@@ -1403,6 +1468,15 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// SetStateOpt is the answered Optional$ True SetState election
+	// ("yes"/"no") on a re-entered SetState resolution (Dowsing Dagger's
+	// "you may transform this Equipment", High Marshal Arguel's "you may
+	// transform it"): "yes" runs the ordinary face change, anything else
+	// declines, changes nothing and still runs the chained SubAbility$. It
+	// rides the ask (the same runtime-continuation class as PutOpt) and is
+	// consumed and cleared at the re-entry's top (fx42 scoping), so a nested
+	// SetState poses its own ask.
+	SetStateOpt string
 	// CounterKind is the answered kind for a comma-separated PutCounter list.
 	// CounterKindDone distinguishes an answered first-option fallback from the
 	// first pass; CounterKinds carries a ChooseDifferent$ multi-answer.
@@ -1875,6 +1949,16 @@ type Ctx struct {
 	// top of its walk (the fx42 scoping discipline), so a nested
 	// ChooseColor cannot inherit the outer answer.
 	ChosenColor string
+	// ChangeTextFrom/ChangeTextTo are the answered mid-resolution api:ChangeText
+	// word asks: the pair of words the chooser picked for the substitution's
+	// "from" and "to" halves. rules' "changetext" resume arm sets whichever
+	// the answered option's Kind names before the suspended sub-ability is
+	// re-run; effChangeText's re-entry consumes and clears both once it has
+	// resolved the pair (the fx42 scoping discipline), so a nested ChangeText
+	// cannot inherit the outer answer. Non-empty IS the answered marker for
+	// each half independently (the option labels are never empty), because the
+	// two halves may be asked sequentially across re-entries.
+	ChangeTextFrom, ChangeTextTo string
 	// ETBColorRecorded marks the ONE ChooseColor invocation that must not
 	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
 	// ChooseColor). The entry machinery (rules' applyETBChoiceReplacement ->
@@ -1971,6 +2055,18 @@ type Ctx struct {
 	DrawUptoIdx      int32
 	DrawUptoCount    int32
 	DrawUptoAnswered bool
+	// InvestigateOptIdx/InvestigateOpt carry an Optional$ True Investigate's
+	// per-player continuation (Will the Wise's "each opponent may
+	// investigate", Nick Valentine, Private Eye's "you may investigate"):
+	// Idx is the actingPlayers index whose may-investigate ask or answered
+	// election is in flight, Opt the answered election ("yes" or "no") for
+	// that player. rules' "investigate_optional" resume arm sets both from
+	// the recorded answer (Idx = the ask's ResumeTarget cursor). effInvestigate
+	// consumes the marker as it completes each player, so the next player
+	// poses its own ask (fx42 scoping), and resets Idx when the walk finishes
+	// so a chained optional Investigate poses its own elections.
+	InvestigateOptIdx int32
+	InvestigateOpt    string
 	// TapOrUntap is the answered mid-resolution TapOrUntap election
 	// (api:TapOrUntap): the kind of the chosen option, "tap" or "untap". ""
 	// on the first pass, where effTapOrUntap poses the ask (or, when the host

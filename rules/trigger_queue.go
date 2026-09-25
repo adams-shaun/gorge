@@ -213,7 +213,7 @@ func triggerOrdersDuplicates(t cards.Trigger) bool {
 // different line entirely.
 func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
-		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Cascade &&
+		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0
 }
 
@@ -383,6 +383,13 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
+	if pt.RadiationDrain {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__radiation_drain"})
+		return
+	}
 	if pt.MonarchDraw {
 		// Use DelayedPush's event-sourced stack-object creation. Apply has a
 		// dedicated synthetic body for this engine-owned trigger, so no card
@@ -443,7 +450,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	}
 	// A layer-6 Melee instance has no printed trigger index. Its captured
 	// attacked-opponent player refs are logged in IDs, so replay and stack
-	// copies read the same Count$RememberedNumber as a printed instance.
+	// copies read the same cards.MeleePumpCount as a printed instance.
 	if pt.Melee {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
@@ -510,6 +517,23 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
 			Obj: pt.Source, Counter: "__kwConspire:", IDs: ids, Text: "conspire ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	if pt.Casualty {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwCasualty:", IDs: []state.ObjID{pt.Source}, Text: "casualty ability"})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
@@ -1400,6 +1424,47 @@ func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembe
 	return who, true
 }
 
+// targetChooserFromSpec resolves a trigger-relative target chooser. Unknown or
+// absent referents fail closed to the caller's controller.
+func (e *Engine) targetChooserFromSpec(spec string, controller state.PlayerID, remembered []state.Target, tc effects.TriggerContext) (state.PlayerID, bool) {
+	var target state.Target
+	switch strings.TrimSpace(spec) {
+	case "TriggeredTarget":
+		target = tc.TriggerTarget
+	case "TriggeredPlayer":
+		target = tc.TriggerPlayer
+	case "TriggeredDefendingPlayer", "DefendingPlayer":
+		target = tc.DefendingPlayer
+	case "TriggeredAttackingPlayer":
+		target = tc.AttackingPlayer
+	case "TriggeredCardController":
+		if p, ok := effects.TriggeredCardController(e.G, tc, remembered); ok {
+			return p, e.targetChooserAlive(p)
+		}
+		return controller, false
+	case "Opponent", "Player.Opponent":
+		for _, p := range e.G.AliveFrom(0) {
+			if p != controller {
+				return p, true
+			}
+		}
+		return controller, false
+	default:
+		return controller, false
+	}
+	if !target.IsPlayer || !e.targetChooserAlive(target.Player) {
+		return controller, false
+	}
+	return target.Player, true
+}
+
+func (e *Engine) targetChooserAlive(p state.PlayerID) bool {
+	// PlayerID is uint8: negative referents cannot reach this function. A
+	// converted negative integer becomes a large unsigned ID and fails the
+	// upper bound before indexing Players.
+	return int(p) < len(e.G.Players) && !e.G.Players[p].Lost
+}
+
 // PendingTriggers reports the triggers matched but not yet on the stack, in
 // queue order (index 0 is placed first). Read-only; the slice is fresh, and
 // so is each entry's own Label -- neither aliases e.pendingTriggers, so a
@@ -1499,6 +1564,9 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			}
 		}
 		return name + ": cascade"
+	}
+	if pt.Casualty {
+		return "casualty copy trigger"
 	}
 	if pt.Conspire {
 		name := "a spell"
@@ -1719,6 +1787,14 @@ func (e *Engine) askTriggerOrder(p state.PlayerID, n int) {
 		pt := e.pendingTriggers[i]
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: "trigger",
 			Label: e.triggerLabel(pt), Obj: pt.Source, Player: pt.Controller})
+	}
+	for i := 0; i < n; i++ {
+		if e.pendingTriggers[i].Casualty {
+			// Ashad's EQ0 stack grant has expired on this cast. Invalidate
+			// the pre-payment layer snapshot before the ordering decision.
+			e.activeEpoch, e.staticEpoch = -1, -1
+			break
+		}
 	}
 	e.ask(d)
 }

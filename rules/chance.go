@@ -178,3 +178,18 @@ func (s *chanceState) record(n, value int) int {
 	s.draws = append(s.draws, ChanceDraw{Bound: n, Value: value})
 	return value
 }
+
+// CloneHypothetical returns an independent copy of e (Clone) whose future
+// chance is a fresh generator seeded by seed, recorded like any hypothetical
+// engine's so SubmitHypothetical accepts it. Nothing of e's own generator
+// position is carried over: a search world built from an actual engine must
+// not inherit that game's future random outcomes. The copy's transcript
+// starts empty, so it is not replayable from Config; it is a search world,
+// never a match. e itself is not changed.
+func (e *Engine) CloneHypothetical(seed uint64) *Engine {
+	c := e.Clone()
+	r := newRNG(seed)
+	r.chance = &chanceState{}
+	c.rng = r
+	return c
+}

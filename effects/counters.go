@@ -15,6 +15,8 @@ import (
 func init() {
 	Register("PutCounter", effPutCounter)
 	Register("Poison", effPoison)
+	Register("Radiation", effRadiation)
+	Register("RadiationDrain", effRadiationDrain)
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
 	Register("RemoveCounter", effRemoveCounter)
@@ -132,6 +134,52 @@ func splitCounterKinds(raw string) []string {
 // Leeches uses a negative amount to remove the target's existing poison.
 // PlayerCounterChange is the shared event choke point, so replacement effects
 // and the poison-loss SBA observe both placement and removal.
+func effRadiation(h Host, c *Ctx, sa *cards.SA) {
+	n := Num(h, c, sa, "Num", 1)
+	g := h.Game()
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) < 0 || int(p) >= len(g.Players) {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: "RAD", Amount: n})
+	}
+}
+
+func effRadiationDrain(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	p := c.Controller
+	if int(p) < 0 || int(p) >= len(g.Players) {
+		return
+	}
+	n := g.Players[p].Counter("RAD")
+	for i := int32(0); i < n; i++ {
+		lib := g.Zone(state.ZLibrary, p)
+		if len(lib) == 0 {
+			break
+		}
+		id := lib[0]
+		o := g.Obj(id)
+		land := false
+		if o != nil && o.Face() != nil {
+			for _, typ := range o.Face().Types {
+				if typ == "Land" {
+					land = true
+					break
+				}
+			}
+		}
+		h.Emit(events.Mill(id, p))
+		if !land {
+			h.Emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -1})
+			h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: "RAD", Amount: -1})
+		}
+	}
+}
+
 func effPoison(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Num", 1)
 	g := h.Game()
@@ -146,6 +194,41 @@ func effPoison(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
 			Counter: "POISON", Amount: n})
 	}
+}
+
+// caseVariantCounterKinds maps the corpus's minority spellings of a counter
+// kind to the one every reader uses. Forge resolves CounterType$ through
+// CounterEnumType case-insensitively, so `CounterType$ Stun` (72 PutCounter
+// lines, e.g. Fear of Sleep Paralysis) IS the STUN counter that the untap
+// replacement (effects/untap.go) and `ValidCounterType$ STUN` read; likewise
+// Overseer of Vault 76's `Quest` (paid back as RemoveAnyCounter<3/QUEST>) and
+// Lost Isle Calling's `Verse` (read back as CardCounters.VERSE). These are the
+// only kinds the corpus spells in two casings (measured over every
+// CounterType$ line), and every minority spelling is a PutCounter line. A
+// blanket upper-casing would be wrong: keyword counters (Flying, Deathtouch,
+// ...) and the engine's own Shield marker are case-significant here.
+var caseVariantCounterKinds = map[string]string{
+	"Stun":  "STUN",
+	"Quest": "QUEST",
+	"Verse": "VERSE",
+}
+
+// canonicalCounterKind folds a CounterType$ value (or each entry of a comma
+// list) onto its canonical spelling; anything else is returned unchanged.
+func canonicalCounterKind(kind string) string {
+	if !strings.Contains(kind, ",") {
+		if k, ok := caseVariantCounterKinds[strings.TrimSpace(kind)]; ok {
+			return k
+		}
+		return kind
+	}
+	parts := strings.Split(kind, ",")
+	for i, p := range parts {
+		if k, ok := caseVariantCounterKinds[strings.TrimSpace(p)]; ok {
+			parts[i] = k
+		}
+	}
+	return strings.Join(parts, ",")
 }
 
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
@@ -193,7 +276,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	c.CounterKind, c.CounterKindDone = "", false
 	c.CounterKinds, c.CounterKindsDone = nil, false
 	c.CounterKindAnswers, c.CounterKindAnswerIndex, c.CounterKindAnswerSet = nil, 0, false
-	kind := sa.Params["CounterType"]
+	kind := canonicalCounterKind(sa.Params["CounterType"])
 	if kind == "" {
 		kind = "P1P1"
 	}

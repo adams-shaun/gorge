@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adams-shaun/gorge/internal/policynet"
 	"github.com/adams-shaun/gorge/internal/searchseat"
 )
 
@@ -28,6 +29,41 @@ import (
 // -search-* flags. Write-once before any game starts, read-only afterwards --
 // the same pattern as castProfileOverride and policynetModel.
 var searchKnobs = searchseat.Defaults()
+
+// searchOracleCheckpoint is the -search-oracle-checkpoint path (ticket
+// pn17-a1); empty is off and leaves searchKnobs, and so the bench output,
+// untouched.
+var searchOracleCheckpoint string
+
+// withSearchOracle is -search-oracle-checkpoint's front door, run by mainExit
+// before any game starts: it loads the oracle value checkpoint
+// (policynet.LoadOracleCheckpointFile: a FeaturesMZOppHand model with a
+// value head) into knobs.OracleValue, so the search seat scores its
+// non-terminal rollout leaves from the omniscient projection of each SAMPLED
+// world. Mirrors cmd/searchteacher's -value-checkpoint gate: refused unless a
+// side is search, and refused with -search-horizon 0 (a game-end rollout never
+// stops at a non-terminal leaf, so the model would never be read). Every
+// other misconfiguration is searchseat.Options.Validate's.
+func withSearchOracle(path, aName, bName string, knobs searchseat.Options) (searchseat.Options, error) {
+	if path == "" {
+		return knobs, nil
+	}
+	if aName != "search" && bName != "search" {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint was given but neither side is search")
+	}
+	if knobs.HorizonTurns <= 0 {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint needs -search-horizon > 0: a game-end rollout never stops at a non-terminal leaf, so the oracle value head would never be read")
+	}
+	m, err := policynet.LoadOracleCheckpointFile(path)
+	if err != nil {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint %s: %w", path, err)
+	}
+	knobs.OracleValue = m
+	if err := knobs.Validate(); err != nil {
+		return knobs, fmt.Errorf("-search-oracle-checkpoint %s: %w", path, err)
+	}
+	return knobs, nil
+}
 
 // searchStats collects the Watch diags; guarded, because the pool plays
 // several games at once.
@@ -68,6 +104,8 @@ func searchCostReport(totalGames int) string {
 
 	var total, sampleMS, searchMS []float64
 	var covered int
+	type kindCount struct{ asked, covered, overrides int }
+	byKind := map[string]*kindCount{}
 	type bucket struct {
 		asked, covered                     int
 		attempts, accepted, prefixRejected int
@@ -91,6 +129,18 @@ func searchCostReport(totalGames int) string {
 	}
 	var fallbacks map[string]int
 	for _, dg := range diags {
+		kc := byKind[dg.Trace.Kind]
+		if kc == nil {
+			kc = &kindCount{}
+			byKind[dg.Trace.Kind] = kc
+		}
+		kc.asked++
+		if dg.Trace.Covered {
+			kc.covered++
+			if dg.Trace.Index != 0 {
+				kc.overrides++
+			}
+		}
 		ms := dg.SampleMS + dg.SearchMS
 		total = append(total, ms)
 		sampleMS = append(sampleMS, dg.SampleMS)
@@ -126,6 +176,10 @@ func searchCostReport(totalGames int) string {
 		len(diags), totalGames, float64(len(diags))/float64(totalGames), covered, 100*float64(covered)/float64(len(diags)))
 	fmt.Fprintf(&b, "ms/asked decision total: mean %.1f p50 %.1f p95 %.1f (sample %.1f + search %.1f means)\n",
 		meanF(total), quantF(total, .5), quantF(total, .95), meanF(sampleMS), meanF(searchMS))
+	if mana := byKind["mana"]; mana != nil {
+		fmt.Fprintf(&b, "mana tap search: asked %d, covered %d, changed source %d\n",
+			mana.asked, mana.covered, mana.overrides)
+	}
 	for _, name := range []string{"t01-06", "t07-12", "t13+"} {
 		bk := buckets[name]
 		if bk.asked == 0 {

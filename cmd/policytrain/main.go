@@ -51,6 +51,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		valueWeight    = fs.Float64("value-weight", 0, "weight of the value head's BCE term on the game outcome (0 = no value head; the run is then bit-identical to a pre-value-head trainer)")
 		valueBlend     = fs.Float64("value-blend", 0, "value target blend b in [0,1]: (1-b)*game outcome + b*teacher-chosen candidate's rollout mean")
 		ppoCorpora     = fs.String("ppo-corpus", "", "comma-separated ON-POLICY corpus paths (cmd/botbench -onpolicy-corpus): switches to the PPO mode (ticket pn13), which fine-tunes -init on its own games; -corpus must then be empty")
+		valueCorpora   = fs.String("value-corpus", "", "pn17: comma-separated state/outcome dump paths (JSONL, policynet.LoadStateOutcome): switches to the VALUE-ONLY mode, which trains ONLY the value head on the records' outcomes (BCE/log-loss) — the dump has no labelled options; -corpus/-ppo-corpus must be empty, and the split is always by seed block (-holdout-by is a policy-mode flag)")
+		oracleCkpt     = fs.Bool("oracle-checkpoint", false, "pn17-a1, value-only mode with -features mz-opphand: write the model as an ORACLE checkpoint (policynet.WriteOracleCheckpoint) for botbench -search-oracle-checkpoint, instead of the measurement-only no-checkpoint run; refused for any other feature set or mode")
 		initCkpt       = fs.String("init", "", "PPO mode: the checkpoint that played the -ppo-corpus games (required; training starts from it)")
 		ppoClip        = fs.Float64("ppo-clip", 0.2, "PPO mode: surrogate clip epsilon")
 		ppoKL          = fs.Float64("ppo-kl", 0.1, "PPO mode: KL(pi_old || pi) anchor weight")
@@ -74,6 +76,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
+	setFlags := map[string]bool{}
+	fs.Visit(func(f *flag.Flag) { setFlags[f.Name] = true })
 	if *setResidual >= 0 {
 		return runSetResidual(*initCkpt, *out, float32(*setResidual), stdout, stderr)
 	}
@@ -96,6 +100,25 @@ func run(args []string, stdout, stderr io.Writer) int {
 				PPOClip: *ppoClip, PPOKL: *ppoKL, ValueWeight: *valueWeight, ValueHidden: *valueHidden,
 				AdvNorm: *ppoAdvNorm, Baseline: *ppoBaseline, VDWM: *vdwm, VDWMMargin: *vdwmMargin, Log: stdout},
 		}, stdout, stderr)
+	}
+	if *valueCorpora != "" {
+		if *corpora != "" || *ppoCorpora != "" {
+			fmt.Fprintln(stderr, "policytrain: -value-corpus is mutually exclusive with -corpus and -ppo-corpus")
+			return 2
+		}
+		if setFlags["holdout-by"] {
+			fmt.Fprintln(stderr, "policytrain: -holdout-by is a policy-mode flag; the value-only mode always splits by seed block")
+			return 2
+		}
+		return runValueOnly(*valueCorpora, *out, lo, ValueOnlyConfig{
+			Epochs: *epochs, Batch: *batch, LR: *lr, Seed: *seed, Holdout: *holdout,
+			Embed: *embed, Hidden: *hidden, ValueHidden: *valueHidden, Clip: *clip,
+			OracleCheckpoint: *oracleCkpt,
+		}, stdout, stderr)
+	}
+	if *oracleCkpt {
+		fmt.Fprintln(stderr, "policytrain: -oracle-checkpoint is a value-only (-value-corpus) flag")
+		return 2
 	}
 	if *corpora == "" || *out == "" {
 		fmt.Fprintln(stderr, "policytrain: -corpus and -out are required")

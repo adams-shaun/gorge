@@ -37,49 +37,85 @@ type ObservedDecision struct {
 }
 
 func (c *Collector) Actions(d *decision.Decision, in decision.Intent) ([]Action, error) {
+	choices, _, err := c.IntentActions(d, in)
+	return choices, err
+}
+
+// IntentActions translates both ordered parts of an intent into stable
+// observer-local actions. Most callers need only Choices and use Actions;
+// hindsight branching also preserves KArrange's independently ordered Rest
+// pile, which cannot be represented by Choices alone.
+func (c *Collector) IntentActions(d *decision.Decision, in decision.Intent) (choices, rest []Action, err error) {
 	if d == nil || d.Player != c.actor {
-		return nil, fmt.Errorf("may only capture the acting seat's own answer")
+		return nil, nil, fmt.Errorf("may only capture the acting seat's own answer")
 	}
 	if err := d.Validate(in); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := make([]Action, 0, len(in.Choices))
-	for _, i := range in.Choices {
-		a, err := c.action(d, d.Options[i])
-		if err != nil {
-			return nil, err
+	translate := func(indices []int) ([]Action, error) {
+		out := make([]Action, 0, len(indices))
+		for _, i := range indices {
+			a, err := c.action(d, d.Options[i])
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, a)
 		}
-		out = append(out, a)
+		return out, nil
 	}
-	return out, nil
+	choices, err = translate(in.Choices)
+	if err != nil {
+		return nil, nil, err
+	}
+	rest, err = translate(in.Rest)
+	return choices, rest, err
 }
 
 // Match must use the target world's collector after Capture has validated its
 // observed prefix. Never reuse the source world's raw-ID dictionary.
 func (c *Collector) Match(d *decision.Decision, actions []Action) (decision.Intent, error) {
+	return c.MatchIntent(d, actions, nil)
+}
+
+// MatchIntent is Match with KArrange's ordered complement. Keeping Rest as a
+// second semantic list lets an undo branch replay both piles without changing
+// Action (and therefore without changing existing sampler history digests).
+func (c *Collector) MatchIntent(d *decision.Decision, choices, rest []Action) (decision.Intent, error) {
 	if d == nil || d.Player != c.actor {
 		return decision.Intent{}, fmt.Errorf("may only match the acting seat's own answer")
 	}
-	in := decision.Intent{Seq: d.Seq, Player: d.Player}
-	for _, want := range actions {
-		found := -1
-		for i, o := range d.Options {
-			got, err := c.action(d, o)
-			if err != nil {
-				return decision.Intent{}, err
-			}
-			if got == want {
-				if found >= 0 {
-					return decision.Intent{}, fmt.Errorf("ambiguous semantic action %+v", want)
+	match := func(actions []Action) ([]int, error) {
+		indices := make([]int, 0, len(actions))
+		for _, want := range actions {
+			found := -1
+			for i, o := range d.Options {
+				got, err := c.action(d, o)
+				if err != nil {
+					return nil, err
 				}
-				found = i
+				if got == want {
+					if found >= 0 {
+						return nil, fmt.Errorf("ambiguous semantic action %+v", want)
+					}
+					found = i
+				}
 			}
+			if found < 0 {
+				return nil, fmt.Errorf("missing semantic action %+v", want)
+			}
+			indices = append(indices, found)
 		}
-		if found < 0 {
-			return decision.Intent{}, fmt.Errorf("missing semantic action %+v", want)
-		}
-		in.Choices = append(in.Choices, found)
+		return indices, nil
 	}
+	chosen, err := match(choices)
+	if err != nil {
+		return decision.Intent{}, err
+	}
+	remainder, err := match(rest)
+	if err != nil {
+		return decision.Intent{}, err
+	}
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: chosen, Rest: remainder}
 	if err := d.Validate(in); err != nil {
 		return decision.Intent{}, err
 	}

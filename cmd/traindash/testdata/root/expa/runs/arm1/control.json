@@ -1,0 +1,1 @@
+{"pairs":[{"pair":"x:a","a_win_rate":0.5,"a_win_rate_ci":[0.45,0.55]},{"pair":"x:b","a_win_rate":0.52}],"pooled":{"a_win_rate":0.51,"a_win_rate_ci":[0.49,0.53],"mean_turns":17.5,"games":4000}}

@@ -333,6 +333,15 @@ const (
 	FlagMorphed
 	FlagMegamorphed
 	FlagDisguised
+	// FlagPromisedGift marks a spell cast with the CR 702.168 Gift promise:
+	// the caster named an opponent as the gift's receiver. It is folded by
+	// events.GiftPromise from the cast-flow election and read by the
+	// PromisedGift filter predicate, the Count$PromisedGift head and the
+	// Defined$ Promised / TokenOwner$ Promised referent. It is a
+	// CastProvenanceFlag because the promise is a statement about the CAST
+	// (a copy was never cast, so it must not inherit it -- CR 707.10).
+	// Appended per the enum's own append-only precedent.
+	FlagPromisedGift
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -358,7 +367,11 @@ const (
 // comparable cases (the copied-kicker precedent), so changing them is a
 // separate ruling with its own corpus measurement. Add a bit here only when
 // its reader's condition is the cast itself.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay
+// FlagPromisedGift joins the set: the promise is made as the spell is cast
+// (CR 702.168a), so a stack copy -- put on the stack, never cast -- cannot
+// inherit it and the copy's PromisedGift predicate and Count$PromisedGift
+// head read false.
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -607,6 +620,25 @@ type Object struct {
 	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
 	Monstrous bool
 
+	// PhasedOut is CR 702.25's phased-out status (api:Phases): the
+	// permanent is on the battlefield but is treated as though it does not
+	// exist. It is NOT a zone change -- the object keeps its Zone and its
+	// Zone() membership -- so no Move fires and no leaves/enters trigger
+	// sees it; the status is folded by events.PhaseOut and cleared by
+	// events.Apply's Move when the permanent actually leaves the
+	// battlefield (CR 400.7: a later entry is a new object, CR 702.25e).
+	// Phase-in happens at its controller's untap step (CR 702.25d, rules
+	// finishUntapStep). Every reader that treats a permanent as existing
+	// gates on it: targeting (rules/stack.go candidatesFor), the layer
+	// static/level walk (rules/layers.go staticEffects/activeStatics),
+	// combat (rules/combat.go canAttack), the SBA sweep (rules/sba.go)
+	// and the view projection (view). A plain value copy in CloneDeep
+	// carries it.
+	PhasedOut bool
+	// WontPhaseInNormal is the CR 702.25d exception carried by a Phases
+	// effect; its phase-in must come from that effect's return instruction.
+	WontPhaseInNormal bool
+
 	// SuspendGranted is the replayed characteristic grant made by a
 	// Pump/PumpAll KW$ Suspend effect. It is separate from CastFlags.FlagSuspend:
 	// the latter records the suspend action, while this records gaining the
@@ -799,6 +831,17 @@ type Object struct {
 	// survives the hand/stack path and Move consumes it on battlefield entry,
 	// exactly like RiotChoice.
 	UnleashChoice string
+	// GiftPromisedTo is the CR 702.168 Gift promise's receiver: the opponent
+	// the cast's election named. The promise itself is the CastFlags bit
+	// state.FlagPromisedGift (folded by events.GiftPromise, preserved across
+	// the stack->battlefield move and stripped from a stack copy by
+	// CastProvenanceFlags), so the PromisedGift predicate, the
+	// Count$PromisedGift head and the Defined$ Promised referent share one
+	// home for the bit; this field carries only the receiver, read by
+	// Defined$ Promised / TokenOwner$ Promised. Zero when no promise was
+	// made, and reset with the CastFlags window when the object leaves the
+	// battlefield or the stack.
+	GiftPromisedTo PlayerID
 	// Protector is the CR 310.10 Siege protector: the opponent its
 	// controller chose to protect this Battle as it entered. It is a property
 	// of the battle (not a counter), recorded through a Choose "protector"
@@ -924,6 +967,19 @@ type Object struct {
 	// writes the link; a permanent and a player are mutually exclusive.
 	AttachedPlayer    PlayerID
 	HasAttachedPlayer bool
+
+	// LastBearer is the permanent this object was MOST RECENTLY attached to
+	// before it became unattached, 0 if it never was. It answers the corpus's
+	// "objects that WERE attached to it" reads (Cass, Hand of Vengeance;
+	// Rhuk, Hexgold Nabber; Fumble; Murderous Spoils), which a trigger
+	// resolves only AFTER the attachment sweep has cleared AttachedTo. Like
+	// LastNotedMana this field is written ONLY inside events.Apply: set by
+	// the Unattached fold from that event's former-bearer carrier, set by
+	// the Move-leaves-battlefield fold from the pre-clear AttachedTo, and
+	// cleared by an Attach fold that re-attaches. It is a pure fold of
+	// already-recorded event bytes, so replay rebuilds it identically and no
+	// event encoding or chain head changes.
+	LastBearer ObjID
 
 	// ExiledWith is the object whose effect most recently put this card into
 	// exile. events.Apply derives it from a MoveZone event's existing IDs

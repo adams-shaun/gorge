@@ -112,10 +112,13 @@ export function pickOption(d: Decision, index: number, picked: number[]): number
   if (g) {
     // The per-Group cap: groupLimit raises the exclusivity marker from "at
     // most one" to "at most N" (Decision.GroupLimit, Forge's EACH per-type
-    // ChangeNum). At the default cap the group is already represented, so
-    // the pick REPLACES that member; above it the pick appends until the
-    // cap is full, then replaces the oldest member.
-    const cap = d.groupLimit && d.groupLimit > 1 ? d.groupLimit : 1;
+    // ChangeNum), and groupLimits raises ONE named group above even that
+    // (Decision.GroupLimits, a per-defender attack ceiling). At the default
+    // cap the group is already represented, so the pick REPLACES that member;
+    // above it the pick appends until the cap is full, then replaces the
+    // oldest member.
+    const cap =
+      d.groupLimits?.[g] ?? (d.groupLimit && d.groupLimit > 1 ? d.groupLimit : 1);
     const members = picked.filter((i) => optionAt(d, i)?.group === g);
     if (members.length >= cap) {
       // Replace: drop the oldest group member, keep the rest's click order,
@@ -153,6 +156,48 @@ export function isConcede(o: Option): boolean {
 /** optionAt resolves a wire option by its own index, never by array position (R-E4-1). */
 function optionAt(d: Decision, index: number): Option | undefined {
   return d.options.find((o) => o.index === index);
+}
+
+/**
+ * MANA_FOLLOW_UP_KINDS is the one eligibility rule for arming the card
+ * follow-up expectation, measured from the engine: the only decision
+ * resolveCardFollowUp can open (2-6 all-'mana' options on one object) is
+ * posed by rules/mana_activation.go, and only two answers lead straight
+ * into it for the SAME object:
+ *
+ * - `activate` -- activateManaFor, entered only from an `activate` option,
+ *   whatever decision carries it: the priority window (rules/legal.go), the
+ *   CR 601.2g mid-cast mana window, and the ward, cumulative-upkeep and
+ *   unless-payment windows (all `choose` decisions). It poses the stage-1
+ *   ability pick (`mana` options on the source) or goes straight to
+ *   askManaColor (a Treasure's colour ask on the source).
+ * - `mana` -- the stage-1 ability pick; answering an Any / Combo Any /
+ *   Chosen ability poses askManaColor's stage-2 wheel on the same source
+ *   (fb-e079def5: Talisman, Vivid Marsh).
+ *
+ * The rule reads option kinds, never the decision kind, because the same
+ * `activate` shape appears on priority and on choose windows. Nothing else
+ * reaches a same-object mana ask: an `ability` option goes on the stack (mana
+ * abilities are offered only as `activate`), and target (`permanent`/
+ * `player`), arrange (`card`), cast, sacrifice and mode answers do not arm.
+ */
+const MANA_FOLLOW_UP_KINDS: ReadonlySet<string> = new Set(['activate', 'mana']);
+
+/**
+ * followUpArm returns the expectation a hand post arms: the first answered
+ * option whose kind can hand back a same-object mana ask
+ * (MANA_FOLLOW_UP_KINDS) and that carries an obj. The obj is read from the
+ * answered option itself (R-E4-1), never rebuilt from position. Anything
+ * else returns null, which disarms.
+ */
+export function followUpArm(d: Decision, choices: number[]): { seq: number; obj: number } | null {
+  for (const index of choices) {
+    const option = optionAt(d, index);
+    if (option !== undefined && MANA_FOLLOW_UP_KINDS.has(option.kind) && option.obj !== undefined) {
+      return { seq: d.seq, obj: option.obj };
+    }
+  }
+  return null;
 }
 
 /**
@@ -460,6 +505,39 @@ export class SeatPanelState {
   picked = $state<number[]>([]);
   /** postedSeq is the seq of the last intent the server accepted; while the pending decision has this seq the answer is in and the options stay hidden. */
   postedSeq = $state<number | null>(null);
+  /**
+   * followUpExpected is the ONE armed card-follow-up expectation, and this
+   * state is its one home because it is the one place BOTH posting surfaces
+   * meet: a hand click on a card's tile posts through click() exactly as a
+   * click on the panel's own option button does, so arming here makes the
+   * tile and the panel behave identically (fb-20260923T050205Z: a treasure
+   * activated from the seat panel never armed it, so the colour ask fell
+   * back to the panel's plain button list instead of raising the radial mana
+   * wheel).
+   *
+   * The one rule: a HAND post whose answered option is of a kind that can
+   * hand back a same-object mana ask (followUpArm / MANA_FOLLOW_UP_KINDS:
+   * `activate` or `mana`) arms the expectation with that option's own obj
+   * (R-E4-1 — never a rebuilt position). Machine posts (auto, the one-shot runs, the empty-window
+   * floor, passClick/primaryClick, the auto-order and remembered-trigger
+   * submits) arm nothing: they post pass/resolve answers, whose options carry
+   * no obj, and they never reach a hand post's arming branch regardless.
+   *
+   * The decoder is not here — the owner (Table.svelte) receives each arm
+   * through onFollowUpArm, mirrors it into its own $state and decodes it with
+   * cardoptions.resolveCardFollowUp, whose kind gate (2-6 all-'mana' options
+   * on the expected obj) is what keeps every other follow-up off the wheel.
+   *
+   * Deliberately a PLAIN field, not $state, and handed out through a callback
+   * rather than read by the route's effect: reading the panel (a $derived in
+   * Table) or any of its state from that effect adds a reactive edge that
+   * re-ran it across the starting_player -> mulligan transition and tripped
+   * SeatPanel's null-ctx read (agent-20260924T114750Z-ba517e3b), hanging the
+   * seated page. The effect's dependencies stay exactly the route's own.
+   */
+  followUpExpected: { seq: number; obj: number } | null = null;
+  /** onFollowUpArm is called with every hand post's arm (null disarms); the route mirrors it into its decode effect's own state. */
+  onFollowUpArm: ((arm: { seq: number; obj: number } | null) => void) | null = null;
   /** confirming arms the concede option's required second confirmation (R-E4-1). */
   confirming = $state(false);
   /** error surfaces a rejected intent — never swallowed (a stale seq must be seen and recovered from, not silently dropped). */
@@ -1861,7 +1939,7 @@ export class SeatPanelState {
       // player's answer to this prompt, and the next identical ask offers the
       // checkbox again to overwrite it.
       if (d.kind === 'trigger_optional' && this.rememberChoice) this.rememberAnswer(d, index);
-      void this.post([index], opts?.holdPriority ?? false);
+      void this.post([index], opts?.holdPriority ?? false, undefined, true);
       return;
     }
     this.picked = pickOption(d, index, this.picked);
@@ -1937,7 +2015,15 @@ export class SeatPanelState {
       seen.add(i);
     }
     this.handAnswer();
-    void this.post([...keep], false, [...rest]);
+    // `hand=true` because this IS a hand post: the popup's final keep order
+    // is the player's own answer, and its options (the library cards the
+    // arrange walker offers) carry objs, so it follows the one arming rule
+    // exactly as click() and submit() do — a hand post whose answered
+    // options carry an `obj` arms. An arrange follow-up is not the mana
+    // wheel, so cardoptions.resolveCardFollowUp's kind gate keeps it off;
+    // routing it here keeps the rule consistent rather than carving an
+    // exception the next hand-post path would have to rediscover.
+    void this.post([...keep], false, [...rest], true);
   }
 
   /** passClick posts only the pass-by-kind option, using its own wire index. */
@@ -1976,7 +2062,7 @@ export class SeatPanelState {
     if (d === null || d.seq === this.postedSeq || this.busy) return;
     if (this.picked.length < d.min || this.picked.length > d.max) return;
     this.handAnswer();
-    void this.post([...this.picked], holdPriority);
+    void this.post([...this.picked], holdPriority, undefined, true);
   }
 
   /**
@@ -1995,7 +2081,7 @@ export class SeatPanelState {
     this.submit();
   }
 
-  private async post(choices: number[], holdPriority = false, rest?: number[]) {
+  private async post(choices: number[], holdPriority = false, rest?: number[], hand = false) {
     const d = this.pending;
     if (d === null || this.busy) return;
     this.busy = true;
@@ -2013,6 +2099,22 @@ export class SeatPanelState {
       // panel (pending was cleared, the restored decision re-adopted).
       if (epoch !== this.seqEpoch) return;
       this.postedSeq = d.seq;
+      // The armed card-follow-up expectation (fb-20260923T050205Z) lives on
+      // the ACCEPTED hand post: a card action can hand the server a follow-up
+      // decision for the same object (a treasure's activate -> its colour
+      // ask; a multi-ability mana source's stage-1 pick -> its stage-2
+      // wheel), and the seat panel's own option buttons post through exactly
+      // this path, so arming here covers the panel exactly as the tile path
+      // used to. The obj is the answered option's OWN wire obj (R-E4-1,
+      // never a rebuilt position), and only an `activate`/`mana` answer arms
+      // (followUpArm); every other answer disarms instead, so a stale
+      // expectation can never survive into an unrelated window. Only a hand
+      // post arms: the machine paths post a pass/resolve index and their
+      // options carry no obj regardless.
+      if (hand) {
+        this.followUpExpected = followUpArm(d, choices);
+        this.onFollowUpArm?.(this.followUpExpected);
+      }
       // The hand answers that can carry a real action are click()'s post-on-click
       // (min == max == 1) and submit()'s multi-pick commit; both funnel through
       // here, so the pass-after-arming test lives on the ACCEPTED post — a

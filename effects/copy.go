@@ -235,6 +235,14 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// flags it unread (review sol2: the earlier empty if-block was dropped).
 	_ = sa.Params["IgnoreFreeze"]
 	mayChoose := strings.EqualFold(strings.TrimSpace(sa.Params["MayChooseTarget"]), "True")
+	// RememberCopies$ True (Shiko and Narset, Unified's "copy that spell ...
+	// If you don't copy a spell this way, draw a card"; Chef's Kiss's "the
+	// spell and the copy"; Tempt with Mayhem's per-copier count): Forge's
+	// CopySpellAbilityEffect.resolve ends with card.addRemembered(copies) for
+	// EVERY copy it actually made. Read once here and threaded into both
+	// emit sites below; an absent/False key leaves the remembered set
+	// untouched, exactly the historical behaviour.
+	rememberCopies := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCopies"]), "True")
 	// DefinedTarget$ (Feather, Radiant Arbiter's DefinedTarget$ ChosenCard,
 	// Ivy, Gleeful Spellthief's DefinedTarget$ Self): Forge's
 	// CopySpellAbilityEffect makes ONE copy per defined target, each with
@@ -256,7 +264,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		// carrier combines the two; Forge's definedTarget branch ignores it
 		// too).
 		for _, t := range targets {
-			h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}})
+			emitCopy(h, c, rememberCopies, events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}})
 		}
 	case defined:
 		// A resolvable param whose set is empty (nothing chosen): no copy,
@@ -284,9 +292,31 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 					// stand-in.
 					ev.Amount = 1
 				}
-				h.Emit(ev)
+				emitCopy(h, c, rememberCopies, ev)
 			}
 		}
+	}
+}
+
+// emitCopy emits one StackCopy event. When remember is set it routes through
+// the mint-returning Host.EmitStackCopy and appends every minted copy object
+// to the resolution's remembered set -- both halves, exactly as
+// effects/token.go's RememberTokens$ rider does for a token mint: the chain
+// local Ctx.Remembered (read by Defined$ Remembered and by the ConditionDefined$
+// Remembered gate) and the source object's persistent event-backed list via
+// eventRemember (Forge's card.addRemembered). A copy that the fold did not
+// actually mint (an early break -- the source left the stack) returns no id
+// and is not remembered, mirroring Forge's own early returns. An absent or
+// False RememberCopies$ leaves remember false, so emission is the historical
+// plain Emit.
+func emitCopy(h Host, c *Ctx, remember bool, ev events.Event) {
+	if !remember {
+		h.Emit(ev)
+		return
+	}
+	for _, id := range h.EmitStackCopy(ev) {
+		c.Remembered = append(c.Remembered, state.Target{Obj: id})
+		eventRemember(h, c, id)
 	}
 }
 

@@ -12,6 +12,7 @@ package rules
 // events and refuses (fails closed on) every part it cannot settle.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -36,7 +37,9 @@ func manaCostBoard(t *testing.T, seed uint64, name string, energy int32) (*Engin
 }
 
 // answerManaChoose answers the pending KChoose (an ability pick or a colour
-// pick) with the option whose label is want.
+// pick) with the option whose label is want. A single-colour want also
+// matches a prefixed colour option ("Pay 1 life: Add B"), so a paid
+// activation's colour ask is selectable by its production alone.
 func answerManaChoose(t *testing.T, e *Engine, want string) {
 	t.Helper()
 	d := e.Pending()
@@ -49,12 +52,24 @@ func answerManaChoose(t *testing.T, e *Engine, want string) {
 			return
 		}
 	}
+	if len(want) == len("Add ")+1 && strings.HasPrefix(want, "Add ") {
+		colour := want[len("Add "):]
+		for _, o := range d.Options {
+			if o.Kind == "mana" {
+				if got, ok := manaLabelColour(o.Label); ok && got == colour {
+					submitChoices(t, e, o.Index)
+					return
+				}
+			}
+		}
+	}
 	t.Fatalf("no %q option in %q: %+v", want, d.Prompt, d.Options)
 }
 
 // answerRitualistAbility answers Oasis Ritualist's ability pick with its
-// exert ability (exert true) or its plain {T} ability. Both are labelled
-// "Add any color", so the option is matched by the ability's own cost.
+// exert ability (exert true) or its plain {T} ability. Both produce "Add any
+// color" (the exert one behind its "Exert it: " cost prefix), so the option
+// is matched by the ability's own cost.
 func answerRitualistAbility(t *testing.T, e *Engine, rit state.ObjID, exert bool) {
 	t.Helper()
 	d := e.Pending()
@@ -96,7 +111,7 @@ func TestManaCostPartsParsePrecisely(t *testing.T) {
 func TestAetherHubManaAbilityPaysEnergy(t *testing.T) {
 	e, cfg, hub := manaCostBoard(t, 81, "Aether Hub", 1)
 	submitChoices(t, e, activateOption(t, e, hub))
-	answerManaChoose(t, e, "Add any color")
+	answerManaChoose(t, e, "Pay 1 energy: Add any color")
 	answerManaChoose(t, e, "Add G")
 	if got := e.G.Players[0].Counter("ENERGY"); got != 0 {
 		t.Fatalf("energy after Aether Hub's PayEnergy<1> ability = %d, want 0", got)

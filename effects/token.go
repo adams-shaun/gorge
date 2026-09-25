@@ -423,6 +423,50 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			withAmt, withOK = 1, true
 		}
 	}
+	// PumpKeywords$/PumpDuration$: the keyword rider a token enters with or
+	// is granted for a bounded time (Loyal Apprentice's Lieutenant Thopter
+	// "gains haste until end of turn"; 25 corpus `DB$ Token` lines carry the
+	// pair). The keywords resolve through cards.SplitKeywordList -- the same
+	// ampersand-joined list reader CopyPermanent's PumpKeywords$ uses, so
+	// "Menace & Haste" is two -- and each mint gets ONE LAbilities effect
+	// sourced to the token itself, the exact shape the CopyPermanent path
+	// registers, so the layer system re-derives it on replay.
+	//
+	// api:Token's default differs from CopyPermanent's: a bare
+	// `PumpKeywords$ Haste` Token line means "until end of turn" (measured:
+	// all 3 Token carriers without a PumpDuration$ read "gains haste until
+	// end of turn" in Oracle), because the token is the lasting object and
+	// the grant is the temporary part. CopyPermanent's bare form instead
+	// keeps the keyword for as long as the copy exists (Mirage Phalanx). The
+	// duration goes through the SAME parser the Effect primitive uses
+	// (effectUntilEOT), so the turn-spanning forms get the identical
+	// AddContinuous UntilTurn boundary and Unknown spellings are one loud
+	// Note rather than a silent wrong lifetime.
+	pumpKeywords := cards.SplitKeywordList(sa.Params["PumpKeywords"])
+	pumpDuration := strings.TrimSpace(sa.Params["PumpDuration"])
+	pumpPermanent := false
+	pumpUntilEOT := false
+	if len(pumpKeywords) > 0 {
+		switch {
+		case IsNextTurnDuration(pumpDuration):
+			// AddContinuous derives the UntilTurn boundary from the live rotation.
+		case pumpDuration == "":
+			pumpUntilEOT = true
+		case strings.EqualFold(pumpDuration, "untilendofcombat"):
+			// The Duration value rides the registration; EndOfTurnCleanup
+			// reclaims it (CR 511.2).
+		case effectUntilEOT(h, 0, pumpDuration):
+			// Source 0 deliberately disables effectUntilEOT's one-shot-spell
+			// shortcut: a token's pump rider is not the spell's own effect, so
+			// only the Duration$ vocabulary (this-turn spellings) is reused
+			// here, never the "an instant/sorcery effect defaults to EOT" rule.
+			pumpUntilEOT = true
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "PumpDuration$ " + pumpDuration + " is not implemented; the token keeps the keyword"})
+			pumpPermanent = true
+		}
+	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
 	// TokenRemembered$ binds the newly-created token's persistent memory to
 	// the named Defined$ group.  ExiledCards is Forge's name for the cards
@@ -431,6 +475,8 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// forms use the ordinary Defined resolver, so this remains extensible as
 	// Defined gains readers rather than special-casing individual cards.
 	tokenMemory := tokenRememberedTargets(h, c, sa)
+	// All selectors (owner, bearer and memory) have read the old set.
+	forgetOtherRemembered(h, c, sa)
 
 	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
 	// rider): every token this call creates enters attacking the combat's
@@ -529,6 +575,13 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 					}
 					if withOK {
 						h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
+					}
+					if len(pumpKeywords) > 0 {
+						h.AddContinuous(state.ContinuousEffect{
+							Source: want, Controller: mintOwner, Affects: "Card.Self",
+							Layer: state.LAbilities, AddKeywords: pumpKeywords,
+							Duration: pumpDuration, Permanent: pumpPermanent, UntilEOT: pumpUntilEOT,
+						})
 					}
 					if tapped {
 						h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: mintOwner, Text: "entered tapped"})

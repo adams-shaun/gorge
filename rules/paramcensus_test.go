@@ -72,7 +72,6 @@ package rules
 import (
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -981,15 +980,18 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		if pkg == "effects" && fname == "saMentionsGoaded" {
 			return
 		}
-		// emitFromEachSource copies the rider parameters while deliberately
-		// omitting DamageSource, which is resolved once by its caller. This
-		// filtered copy is not a parameter consumer.
-		if pkg == "effects" && fname == "emitFromEachSource" && damageSourceRiderCopy(rs, keyIdent.Name) {
-			return
-		}
 		// A copy loop (`for k, v := range src.Params { dst.Params[k] = v }`)
 		// is not a read: every use of the key sits in a write-position index.
 		if rangeKeyIsWriteOnly(rs, keyIdent.Name, writes) {
+			return
+		}
+		// A FILTERED copy (`for k, v := range src.Params { if k != "X" { dst.Params[k] = v } }`)
+		// is likewise not a read: it deliberately omits one already-resolved
+		// key (DamageSource, resolved once by the caller) and copies every
+		// other key into a new SA. Matched by shape, not by function name, so
+		// extracting or renaming the helper cannot silently turn the copy into
+		// an unclassified read.
+		if filteredParamsCopy(rs, keyIdent.Name, writes) {
 			return
 		}
 		s.failf(t, fset.Position(rs.X.Pos()),
@@ -1001,24 +1003,91 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 	}
 }
 
-// damageSourceRiderCopy accepts only emitFromEachSource's filtered rider
-// copy: it omits the already-resolved DamageSource key and writes every
-// other key/value into saRider.Params.
-func damageSourceRiderCopy(rs *ast.RangeStmt, key string) bool {
-	if len(rs.Body.List) != 2 {
-		return false
-	}
+// filteredParamsCopy accepts a Params copy loop that deliberately omits one
+// or more already-resolved keys and copies every other key/value into a new
+// SA map. Two body shapes are accepted (the code has carried both across
+// refactors):
+//
+//	for k, v := range src.Params { if k != "X" { dst.Params[k] = v } }
+//	for k, v := range src.Params { if k == "X" { continue }; dst.Params[k] = v }
+//
+// Recognition is by SHAPE, not by function name: the key must appear only in
+// (a) comparison guards against a constant string, and (b) write-position
+// index expressions `dst.Params[k]` that are assignments. Every such
+// assignment must copy the range value straight through. The copy consumes no
+// parameter, so it contributes no read; any other use of the key falls through
+// to the rot guard.
+func filteredParamsCopy(rs *ast.RangeStmt, key string, writes map[ast.Node]bool) bool {
 	if key != "k" {
 		return false
 	}
-	// Keep this classification tied to the intentional exclusion and copy
-	// destination; changes to the loop must be reviewed as parameter reads.
-	var body strings.Builder
+	wrote := false
 	for _, stmt := range rs.Body.List {
-		_ = format.Node(&body, token.NewFileSet(), stmt)
+		switch v := stmt.(type) {
+		case *ast.IfStmt:
+			// A guard that compares the key against a constant string and
+			// either copies inside or `continue`s. Anything else rejects.
+			if v.Else != nil || !keyConstCompare(v.Cond, key) {
+				return false
+			}
+			if len(v.Body.List) != 1 {
+				return false
+			}
+			if br, ok := v.Body.List[0].(*ast.BranchStmt); ok {
+				if br.Tok != token.CONTINUE {
+					return false
+				}
+				continue // `if k == "X" { continue }` filter
+			}
+			if !keyCopyAssign(v.Body.List[0], key, writes) {
+				return false
+			}
+			wrote = true
+		case *ast.AssignStmt:
+			if !keyCopyAssign(v, key, writes) {
+				return false
+			}
+			wrote = true
+		default:
+			return false
+		}
 	}
-	return strings.Contains(body.String(), `if k == "DamageSource"`) &&
-		strings.Contains(body.String(), "saRider.Params[k] = v")
+	return wrote
+}
+
+// keyCopyAssign reports whether stmt is `dst.Params[k] = v` (the key in
+// write-position index, the range value copied straight through).
+func keyCopyAssign(stmt ast.Stmt, key string, writes map[ast.Node]bool) bool {
+	as, ok := stmt.(*ast.AssignStmt)
+	if !ok || as.Tok != token.ASSIGN || len(as.Lhs) != 1 || len(as.Rhs) != 1 {
+		return false
+	}
+	ix, ok := as.Lhs[0].(*ast.IndexExpr)
+	if !ok || !writes[ix] {
+		return false
+	}
+	id, ok := ix.Index.(*ast.Ident)
+	if !ok || id.Name != key {
+		return false
+	}
+	val, ok := as.Rhs[0].(*ast.Ident)
+	return ok && val.Name == "v"
+}
+
+// keyConstCompare reports whether cond is a `key == "X"` / `key != "X"`
+// comparison of the range key against a constant string, with no other use of
+// the key.
+func keyConstCompare(cond ast.Expr, key string) bool {
+	be, ok := cond.(*ast.BinaryExpr)
+	if !ok || (be.Op != token.EQL && be.Op != token.NEQ) {
+		return false
+	}
+	id, ok := be.X.(*ast.Ident)
+	if !ok || id.Name != key {
+		return false
+	}
+	lit, ok := be.Y.(*ast.BasicLit)
+	return ok && lit.Kind == token.STRING
 }
 
 // rangeKeyIsWriteOnly reports whether the range body is a pure Params copy
@@ -1400,7 +1469,9 @@ var apiSpecificRulesSA = map[string][]string{
 	// activatedMatchesValidSA's Produced$-based mana-ability recognition --
 	// all run on mana abilities (api:Mana) only.
 	"Engine.manaAbilityPayablePool": {"Mana"},
-	"manaAbilityLabel":              {"Mana"},
+	"manaProducedLabel":             {"Mana"},
+	"manaAmountPips":                {"Mana"},
+	"manaAbilityCostPrefix":         {"Mana"},
 	// The intrinsic-append dedup read (rules/mana_activation.go): the CR 305.6
 	// all-land-types walk reads a mana ability's Produced$ ONLY, so left in
 	// the generic union it would mask every other API's unread Produced$
@@ -1588,6 +1659,14 @@ var apiSpecificRulesSA = map[string][]string{
 // The rot guard fails on a stale entry (renamed function, or one that no
 // longer reads static params); a NEW mode-scoped reader must be added here
 // or its reads over-suppress every other static's real gaps.
+// mayPlayStaticParams attributes these genuine effects/mayPlayParams map reads
+// to the synthetic MayPlay static family; the forwarded map parameter itself
+// is intentionally stringMapParams-whitelisted.
+var mayPlayStaticParamReads = map[string]bool{
+	"MayPlayIgnoreColor": true,
+	"MayPlayIgnoreType":  true,
+}
+
 var apiSpecificRulesStat = map[string]string{
 	// The MayPlay grant path: mayPlayGrant (the offer walk's per-card
 	// evaluation, over the card's own face statics and activeStatics
@@ -1687,6 +1766,12 @@ var handRoots = struct {
 		// mustAttackRequired scans MustAttack statics directly, with no
 		// activeStatics call; its Params reads are the whitelist switch.
 		"MustAttack": {"Engine.mustAttackRequired"},
+		// AttackRestrict: attackRestrictStatics is the literal activeStatics
+		// root the scan already attributes; maxAttackers and attackRestrictLimit
+		// are its callers and carry the mode's ValidDefender$/MaxAttackers$
+		// reads, so they are declared here too (a caller of a collector root is
+		// not reachable FROM that root).
+		"AttackRestrict": {"Engine.attackRestrictStatics", "Engine.maxAttackers", "Engine.attackRestrictLimit"},
 		// untapOtherStaticsMatch scans UntapOtherPlayer statics directly over
 		// the face's Statics slice (Endbringer's foreign-untap shape), with
 		// no activeStatics call -- the same direct-scan shape
@@ -1970,6 +2055,11 @@ func (s *scan) derived() *derivedReads {
 		}
 		for k := range extra {
 			keys[k] = true
+		}
+		if fam == "Continuous.MayPlay" {
+			for k := range mayPlayStaticParamReads {
+				keys[k] = true
+			}
 		}
 		d.stat[fam] = keys
 	}
@@ -2727,15 +2817,9 @@ var knownUnsupportedParams = map[string][]string{
 	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
 	"Conjurer's Mantle":            {"param:api:Dig.RestRandomOrder"},
 	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
-	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted
-	// when the ChangeZone AttachedTo$ read landed (effects/zone.go
-	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
-	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
-	// unread.
-	"Gift of Immortality":       {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":   {"param:trig:DamageDoneOnce.FirstTime"},
-	"Haakon, Stromgald Scourge": {"param:stat:Continuous.MayPlay.ValidAfterStack"},
-	"Heroic Return":             {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Hercules, Olympian Hero":      {"param:trig:DamageDoneOnce.FirstTime"},
+	"Haakon, Stromgald Scourge":    {"param:stat:Continuous.MayPlay.ValidAfterStack"},
+	"Heroic Return":                {"param:api:ChangeZone.ValidTgtsDesc"},
 	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
 	// when the CounterType$ EachFromSource copy-each-kind shape was read
 	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --
@@ -2755,15 +2839,10 @@ var knownUnsupportedParams = map[string][]string{
 	// no-param control proving the recheck stays live for everyone else.)
 	"Methods of the Mighty":   {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter": {"param:stat:Continuous.RemoveType"},
-	// Opposition Agent, Rakdos the Muscle and Sundering Eruption each carry their
-	// stat:Continuous rider on a raw StaticAbilities$
-	// body an Effect names (the census correction below), so these param
-	// labels were invisible before that walk existed. Each label is the same
-	// pre-existing static-scan gap a printed S: line with the same param
-	// reports -- the primitive is registered; only the parameter is unread.
-	"Opposition Agent":        {"param:stat:Continuous.MayPlay.MayPlayIgnoreColor"},
+	// Opposition Agent's and Rakdos, the Muscle's MayPlayIgnoreColor$/
+	// MayPlayIgnoreType$ keys are consumed by effects/mayPlayParams; their
+	// former labels were analyzer attribution gaps, not unsupported params.
 	"Patriot, Shield Wielder": {"param:api:Pump.ValidTgtsDesc"},
-	"Rakdos, the Muscle":      {"param:stat:Continuous.MayPlay.MayPlayIgnoreType"},
 	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
 	// partial clear and the TurnChange expiry — pinned end to end on the real
@@ -3218,6 +3297,23 @@ func TestParamCensusAttributesSpecialisedRulesPaths(t *testing.T) {
 // withheld-whole MayPlay static's recognition key is a RECOGNITION, never a
 // consumption, and no census label misreads it as a live gap the offer path
 // would honour.
+func TestParamCensusMayPlayRiderFixture(t *testing.T) {
+	_, d := measureParamCensus(t, nil)
+	params := map[string]string{"MayPlay": "True", "Affected": "Card", "AffectedZone": "Graveyard", "MayPlayIgnoreColor": "True", "MayPlayIgnoreType": "True"}
+	if params["MayPlay"] == "" || params["MayPlayIgnoreColor"] == "" || params["MayPlayIgnoreType"] == "" {
+		t.Fatal("fixture must identify the MayPlay family and distinct rider values")
+	}
+	c := &cards.Card{Faces: []*cards.Face{{Name: "fixture", Statics: []cards.Static{{Mode: "Continuous", Params: params}}}}}
+	if statCensusMode(c.Faces[0].Statics[0].Mode, params) != "Continuous.MayPlay" {
+		t.Fatal("fixture static did not map to Continuous.MayPlay")
+	}
+	for _, label := range cardCensusLabels(c, d, nil) {
+		if label == "param:stat:Continuous.MayPlay.MayPlayIgnoreColor" || label == "param:stat:Continuous.MayPlay.MayPlayIgnoreType" {
+			t.Errorf("effects/mayPlayParams reads should be attributed; got %s", label)
+		}
+	}
+}
+
 func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	res, d := measureParamCensus(t, nil)
 	// The MayPlay family's read set: the generic Continuous union PLUS the
@@ -3225,7 +3321,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// alt-cost delivery (mayPlayAltCosts genuinely offers the priced
 	// alternative -- Darksteel Monolith's "pay {0}") after having been a
 	// fail-closed recognition.
-	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost", "RaiseCost"} {
+	for _, key := range []string{"Condition", "IsPresent", "MayPlay", "Affected", "AffectedZone", "MayPlayLimit", "MayPlayAltManaCost", "RaiseCost", "MayPlayIgnoreColor", "MayPlayIgnoreType"} {
 		if !d.stat["Continuous.MayPlay"][key] {
 			t.Errorf("d.stat[Continuous.MayPlay][%q] = false -- the family attribution lost a real MayPlay-gate read", key)
 		}
@@ -3269,7 +3365,7 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 			t.Errorf("d.stat[Continuous][%q] = false -- the generic Continuous reader lost a real gate read", key)
 		}
 	}
-	for _, key := range []string{"MayPlayLimit"} {
+	for _, key := range []string{"MayPlayLimit", "MayPlayIgnoreColor", "MayPlayIgnoreType"} {
 		if d.stat["Continuous"][key] {
 			t.Errorf("d.stat[Continuous][%q] = true -- the MayPlay family reader still over-suppresses the generic Continuous bucket", key)
 		}
@@ -3369,21 +3465,26 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	// LoseLife's UnlessCost$ WAS the fixture's unread body key until the
 	// shared unless gate made every API's UnlessCost$ a read (the
 	// unlessProceed dispatch reads the parameter before any primitive
-	// dispatch); the body key below moved to TargetingPlayer$, which no
-	// LoseLife reader touches. PayEnergy<X> WAS the fixture's unmodelled
+	// dispatch); the body key below moved to RememberObjects$, which no
+	// LoseLife reader touches. (It was TargetingPlayer$ until the shared
+	// target-ask read made that parameter read for every API; the
+	// SVar-body-gap fixture is only meaningful while its key stays unread.)
+	// PayEnergy<X> WAS the fixture's unmodelled
 	// cost token until ParseCost gained a real Energy field; the body cost
 	// below moved to the fictional Waterbend<X>, which ParseCost can never
 	// model.
 	if !d.api["Charm"]["Choices"] || !d.api["Repeat"]["RepeatSubAbility"] {
 		t.Fatalf("outer Choices$/RepeatSubAbility$ reads lost -- fixture premise broken")
 	}
-	if d.api["LoseLife"]["TargetingPlayer"] {
-		t.Fatalf("api:LoseLife now reads TargetingPlayer$ -- re-point the fixture at a genuinely unread key")
+	if d.api["LoseLife"]["RememberObjects"] {
+		t.Fatalf("api:LoseLife now reads RememberObjects$ -- re-point the fixture at a genuinely unread key")
 	}
 	c := &cards.Card{Faces: []*cards.Face{{
 		// A modal spell whose one mode loses life for the player who targeted
-		// its source (the TargetingPlayer$ spelling no LoseLife reader
-		// touches), and a repeat whose body carries an energy cost ParseCost
+		// its source (the RememberObjects$ spelling no LoseLife reader
+		// touches -- TargetingPlayer$ WAS this fixture's unread body key
+		// until this ticket's shared target-ask read made it read for every
+		// API), and a repeat whose body carries an energy cost ParseCost
 		// does not model (the Chthonian Nightmare shape, reached through
 		// RepeatSubAbility$).
 		Abilities: []*cards.SA{
@@ -3391,18 +3492,18 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 			{Kind: "SP", API: "Repeat", Params: map[string]string{"RepeatNum": "2", "RepeatSubAbility": "DBMoney"}},
 		},
 		SVars: map[string]string{
-			"DBMode":  "DB$ LoseLife | TargetingPlayer$ TriggeredDefendingPlayer | Defined$ Remembered",
+			"DBMode":  "DB$ LoseLife | RememberObjects$ True | Defined$ Remembered",
 			"DBMoney": "DB$ LoseLife | Cost$ Waterbend<X>",
 		},
 	}}}
-	want := []string{"param:api:LoseLife.TargetingPlayer", "cost:Waterbend"}
+	want := []string{"param:api:LoseLife.RememberObjects", "cost:Waterbend"}
 	if got := cardCensusLabels(c, d, nil); !sameSet(got, want) {
 		t.Errorf("SVar-body census = %v, want %v -- an unread key or unmodelled token inside a Choices$/RepeatSubAbility$ body is not being reported", got, want)
 	}
 	// The drop plumbing reaches the bodies too: pretending the LoseLife
-	// TargetingPlayer$ read existed (it does not) must not un-report the
+	// RememberObjects$ read existed (it does not) must not un-report the
 	// body's gap through some other path.
-	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"TargetingPlayer": true}}); !sameSet(got, want) {
+	if got := cardCensusLabels(c, d, map[string]map[string]bool{"api:LoseLife": {"RememberObjects": true}}); !sameSet(got, want) {
 		t.Errorf("drop-simulated census = %v, want %v", got, want)
 	}
 }
@@ -3473,6 +3574,11 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>", nil},
 		{"ExiledMoveToGrave<2/Card.OppOwn>", nil},
 		{"ExiledMoveToGrave<99999999999999999999/Creature>", []string{"ExiledMoveToGrave"}},
+		// XMin<N> (task cost-xmin1) is the announced-X LOWER BOUND, "X can't
+		// be 0": modelled as Cost.XMin with no phantom generic pip and no
+		// Unknown entry, for both corpus values (XMin1 and XMin4).
+		{"XMin1 X", nil},
+		{"XMin4", nil},
 		{"", nil},
 	}
 	for _, tc := range cases {

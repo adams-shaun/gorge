@@ -81,6 +81,13 @@ func set(s string) map[string]bool {
 // cmd/exitloop (the L10 expert-iteration loop) reads it only to report each
 // stage's wall seconds in timing.tsv; the stages are separate processes and no
 // label, checkpoint, game or summary.tsv byte reads it.
+// cmd/traindash (the live read-only training dashboard) reads it only to
+// stamp Generated:/last-modified fields and to decide a run's live/stale
+// status from file mtimes; it scans a training output tree and never drives
+// the engine, so no game, event, view or replay depends on its clock.
+// cmd/hindsight (the pn20 branch-mining tool) reads it only to report run and
+// per-decision wall seconds; every sample, rollout and record is a pure
+// function of its seeds.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
 		module + "/host":              true,
@@ -93,6 +100,8 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 		module + "/cmd/searchteacher": true,
 		module + "/cmd/cardfuzz":      true,
 		module + "/cmd/exitloop":      true,
+		module + "/cmd/traindash":     true,
+		module + "/cmd/hindsight":     true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {

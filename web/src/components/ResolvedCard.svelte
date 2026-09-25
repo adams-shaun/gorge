@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { View, SeatInfo } from '../protocol';
   import { recentlyMattered, findCardAnywhere } from '../lib/board';
   import { seatColour } from '../lib/colours';
@@ -94,7 +95,8 @@
   let root = $state<HTMLElement | null>(null);
   // Seeded from the prop (a test's injected rect) at mount/SSR time only —
   // in production only capture() ever sets it, from a real pointer event.
-  let anchor = $state<AnchorRect | null>(anchorProp ?? null);
+  // untrack says so to the compiler: a one-time seed, not a live binding.
+  let anchor = $state<AnchorRect | null>(untrack(() => anchorProp) ?? null);
 
   $effect(() => {
     if (card) hover.superviseRendering(card.id);

@@ -212,6 +212,17 @@ type StackEntry struct {
 	Controller state.PlayerID
 	IsSpell    bool
 	CMC        int32
+	// ManaCost is the spell's printed cost in Forge notation, empty for an
+	// ability object (which is Face-less -- the view half's sv.Card is nil
+	// for a "trigger"/"ability"). It carries the coloured pips CMC cannot:
+	// the target policy reads it to price the PENDING payment a cast-target
+	// ask precedes (CR 601.2b/c -- the spell is on the stack but unpaid), so
+	// effectRanker's spare-mana reserve test deducts what the payment will
+	// actually consume instead of assuming at most one unit. Both adapter
+	// halves fill it the same way from the same printed face (the game half's
+	// o.Face().ManaCost for a spell, the view half's StackView.Card.ManaCost),
+	// so C8's stack census stays equal whichever host asked.
+	ManaCost string
 }
 
 // closesClock reports whether an unblocked swing from the creature id —
@@ -647,6 +658,24 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			break
 		}
 		switch d.Options[0].Kind {
+		case "gift_decline", "gift_promise":
+			// CR 702.168: the Gift election. The deterministic bot declines
+			// (the plain-cast direction, exactly the R-9 no-ask stand-in's
+			// behaviour), selected by KIND rather than index so a reordered
+			// option list that put a promise first still takes the decline.
+			// The option Kind is the one shared identifier the engine's
+			// castAnswer arm dispatches on too, so the bot can never submit an
+			// answer the flow routes differently. Min 1 / Max 1 is the whole
+			// legal-answer rule, and any offered option satisfies it -- the
+			// botpolicy gift test runs this answer back through
+			// Decision.Validate.
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Kind == "gift_decline" {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
 		case "protector":
 			// CR 310.10 protector. The protector is the opponent the battle
 			// will be attacked by/for, so prefer the opponent closest to
@@ -791,10 +820,9 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				// count map never fires and the fill is the historical first-Max
 				// take, byte-identical.
 				groups := make(map[string]int)
-				limit := d.GroupCap()
 				for j := 0; j < len(d.Options) && len(in.Choices) < d.Max; j++ {
 					o := d.Options[j]
-					if o.Group != "" && groups[o.Group] >= limit {
+					if o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group) {
 						continue
 					}
 					if o.Group != "" {
@@ -944,18 +972,17 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				in.Choices = []int{d.Options[0].Index}
 				break
 			}
-			// groups counts picks per Group against d.GroupCap() -- the same
+			// groups counts picks per Group against d.GroupCapFor -- the same
 			// cap Decision.Validate enforces -- so an EACH search's per-type
 			// ChangeNum (each type contributes up to that many) is filled per
 			// type, in option order, and the answer stays legal by construction.
 			// At the default cap of 1 this is the historical one-per-Group fill.
 			groups := make(map[string]int)
-			limit := d.GroupCap()
 			for _, o := range d.Options {
 				if len(in.Choices) >= d.Max {
 					break
 				}
-				if o.Group == "" || groups[o.Group] >= limit {
+				if o.Group == "" || groups[o.Group] >= d.GroupCapFor(o.Group) {
 					continue
 				}
 				groups[o.Group]++
@@ -1206,7 +1233,6 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		// byte-identical.
 		groups := make(map[string]int) // picked options per Group.
 		sum := 0                       // running MaxSum budget over the chosen set.
-		limit := d.GroupCap()
 		for _, c := range in.Choices {
 			have[c] = true
 			if c >= 0 && c < len(d.Options) {
@@ -1251,7 +1277,7 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			// past a Group's cap would hand back an intent Validate rejects --
 			// an answer the engine cannot accept and clamp cannot repair, so
 			// the capped Group is skipped the way a duplicate index is.
-			if o.Group != "" && groups[o.Group] >= limit {
+			if o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group) {
 				continue
 			}
 			if !fits(o) || (d.TargetsWithSameController && haveTargetController && o.Controller != targetController) {

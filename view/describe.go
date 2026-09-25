@@ -81,13 +81,20 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.MonarchChange:
 		return player(g, ev.Player) + " becomes the monarch"
 	case events.BlessingChange:
-		// CR 702.131: the one-way latch -- folded state always shows it set.
 		return player(g, ev.Player) + " gets the city's blessing"
+	case events.EnduringStoryChange:
+		return player(g, ev.Player) + " has an enduring story"
 	case events.TurnFaceDown:
 		return obj(g, ev.Obj) + " is turned face down"
 	case events.TurnFaceUp:
 		// CR 708.6: Obj is the permanent that revealed its printed face.
 		return obj(g, ev.Obj) + " is turned face up"
+	case events.PhaseOut:
+		// CR 702.25: Amount 1 is a permanent phasing out, -1 phasing in.
+		if ev.Amount >= 1 {
+			return obj(g, ev.Obj) + " phases out"
+		}
+		return obj(g, ev.Obj) + " phases in"
 	case events.SearchedLibrary:
 		// CR 701.23: the completed-search marker (trig:SearchedLibrary).
 		// Player is the seat whose library was searched; the resolving source
@@ -299,14 +306,10 @@ func Describe(g *state.Game, ev events.Event) string {
 		if n != 1 {
 			s += "s"
 		}
-		// CR 122.1d: a stun counter is removed instead of untapping. The
-		// event carries no provenance (a direct RemoveCounter effect emits
-		// the identical CounterChange), so the suffix states the rule rather
-		// than asserting this event was an untap replacement -- but it is the
-		// line that connects "lost a STUN counter" to the untap the player
-		// was watching for (feedback 20260921T204701Z).
 		if ev.Counter == "STUN" && ev.Amount < 0 {
-			s += " (stun counters are removed instead of untapping)"
+			if ev.Text == events.UntapReplacedByStunNotice {
+				return obj(g, ev.Obj) + " would untap, but a stun counter is removed instead"
+			}
 		}
 		return s
 	case events.Explore:
@@ -320,6 +323,16 @@ func Describe(g *state.Game, ev events.Event) string {
 		// line names only the investigating seat (Player; Obj is the source
 		// permanent, which may be 0 for a game-rule investigate).
 		return player(g, ev.Player) + " investigates"
+	case events.GiftPromise:
+		// CR 702.168: the promise is attached to the cast object; Amount
+		// distinguishes a decline from the promised-opponent seat in Player.
+		if ev.Amount != 0 {
+			return player(g, objController(g, ev.Obj)) + " promises a gift to " + player(g, ev.Player)
+		}
+		return player(g, objController(g, ev.Obj)) + " declines to promise a gift"
+	case events.GiveGift:
+		// The completed gift marker follows the gift action's own events.
+		return player(g, ev.Player) + " gives a gift"
 	case events.Exploit:
 		// The exploit record (CR 702.58a, task exploit1): Obj is the
 		// exploiting creature, IDs[0] the exploited (sacrificed) one. The

@@ -1,0 +1,349 @@
+package searchprobe
+
+import (
+	"encoding/json"
+	"fmt"
+	"math/rand/v2"
+	"reflect"
+	"sort"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/rules"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// RedealBase opts Sample into the redeal fallback (pn21 stretch): when the
+// rejection sampler starves, worlds are built from Engine -- the engine the
+// deciding seat is playing in, at the observed boundary -- by re-dealing every
+// hidden card the seat does not know, with the known-card projection pinning
+// the rest. Observer is that seat's collector at the same boundary (it maps
+// the history's references to Engine's objects). Neither is modified.
+//
+// What of Engine a redealt world keeps is exactly its PUBLIC state (checked:
+// the redealt world must capture the same board and decision as the last
+// observed frame), the seat's known cards (the projection), and each hidden
+// zone's SIZE. Hidden identities are re-dealt from each owner's pool, the
+// hidden cards Engine actually holds; the redeal proceeds only when that pool
+// equals the pool the seat can derive itself (the public deck list minus every
+// card it has seen outside the hidden zones and every known hidden card), so
+// the pool carries nothing the seat could not count. Future chance is
+// re-seeded (rules.Engine.CloneHypothetical): a world never inherits the
+// game's own random future.
+//
+// Every refusal is fail-closed and named in SampleResult.RedealRefused. Two of
+// them compare against the real engine (the projection must hold there, and
+// the derivable pool must match), so a refusal can depend on hidden state;
+// both only fire when the seat's own accounting is wrong, never in normal
+// play, and they cost a missing world rather than a wrong one.
+type RedealBase struct {
+	Engine   *rules.Engine
+	Observer *Collector
+}
+
+type redealBoard struct {
+	Players []struct {
+		ID          state.PlayerID `json:"seat"`
+		Battlefield []knownCardID  `json:"battlefield"`
+		Graveyard   []knownCardID  `json:"graveyard"`
+		Exile       []knownCardID  `json:"exile"`
+		Command     []knownCardID  `json:"command"`
+	} `json:"players"`
+	Stack []struct {
+		ID      uint32 `json:"id"`
+		Source  uint32 `json:"source"`
+		Targets []struct {
+			Obj uint32 `json:"obj"`
+		} `json:"targets"`
+	} `json:"stack"`
+}
+
+// redealPlan is one player's fixed facts: which cards stay put and which are
+// dealt.
+type redealPlan struct {
+	player   state.PlayerID
+	hand     []state.ObjID // base hand, base order
+	libLen   int
+	pinHand  map[state.ObjID]bool
+	top, bot []state.ObjID
+	loose    []state.ObjID // known library members with no known position
+	unknown  []state.ObjID // sorted by name, then ObjID
+	handFree int
+}
+
+func redealWorlds(setup PublicGame, h History, known KnownCards, base *RedealBase, n int, seed func(int) [2]uint64) ([]World, string) {
+	if base == nil || base.Engine == nil || base.Observer == nil || base.Observer.actor != h.Actor {
+		return nil, "no base engine for this seat"
+	}
+	e := base.Engine
+	last := h.Frames[len(h.Frames)-1]
+	now, err := base.Observer.Clone().Capture(e, nil)
+	if err != nil {
+		return nil, "base capture: " + err.Error()
+	}
+	if string(now.Board) != string(last.Board) || !reflect.DeepEqual(now.Decision, last.Decision) {
+		return nil, "base engine is not at the observed boundary"
+	}
+	if err := known.holds(e, base.Observer); err != nil {
+		return nil, "projection does not hold in the base engine: " + err.Error()
+	}
+	names := make(map[uint32]Identity)
+	for _, frame := range h.Frames {
+		for _, identity := range frame.Identities {
+			names[identity.ID] = identity
+		}
+	}
+	var board redealBoard
+	if err := json.Unmarshal(last.Board, &board); err != nil {
+		return nil, "board: " + err.Error()
+	}
+	// Every object the observed frame still refers to must be public, the
+	// actor's own, or pinned: re-dealing one would change what the decision
+	// or the stack means.
+	pinned := make(map[state.ObjID]bool)
+	for _, hand := range known.Hands {
+		for _, c := range hand.Cards {
+			pinned[base.Observer.object(c.ID)] = true
+		}
+	}
+	for _, lib := range known.Libraries {
+		for _, c := range lib.Members {
+			pinned[base.Observer.object(c.ID)] = true
+		}
+	}
+	var referenced []uint32
+	for _, s := range board.Stack {
+		referenced = append(referenced, s.ID, s.Source)
+		for _, target := range s.Targets {
+			referenced = append(referenced, target.Obj)
+		}
+	}
+	if d := last.Decision; d != nil {
+		referenced = append(referenced, d.Source)
+		for _, o := range d.Options {
+			referenced = append(referenced, o.Action.Obj, o.Action.Attacker)
+		}
+	}
+	for _, ref := range referenced {
+		id := base.Observer.object(ref)
+		if o := e.G.Obj(id); o != nil && o.Zone.Hidden() && !pinned[id] {
+			return nil, "observed frame refers to an unpinned hidden card"
+		}
+	}
+	// The seat-derivable pool: deck list minus cards seen outside hidden
+	// zones minus known hidden cards.
+	public := make(map[state.PlayerID]map[string]int)
+	take := func(owner state.PlayerID, name string) {
+		if int(owner) >= len(setup.Decks) || !deckHas(setup.Decks[owner], name) {
+			// A token (or anything else no deck-list card could be) is not
+			// part of the owner's pool.
+			return
+		}
+		if public[owner] == nil {
+			public[owner] = make(map[string]int)
+		}
+		public[owner][name]++
+	}
+	for _, p := range board.Players {
+		for _, zone := range [][]knownCardID{p.Battlefield, p.Graveyard, p.Exile, p.Command} {
+			for _, c := range zone {
+				if identity, ok := names[c.ID]; ok {
+					take(identity.Owner, identity.Name)
+				}
+			}
+		}
+	}
+	for _, s := range board.Stack {
+		if o := e.G.Obj(base.Observer.object(s.ID)); o != nil && o.Card != nil {
+			if identity, ok := names[s.ID]; ok {
+				take(identity.Owner, identity.Name)
+			}
+		}
+	}
+	var plans []redealPlan
+	for pi := range e.G.Players {
+		p := state.PlayerID(pi)
+		plan := redealPlan{player: p, hand: append([]state.ObjID(nil), e.G.Zone(state.ZHand, p)...), pinHand: make(map[state.ObjID]bool)}
+		lib := e.G.Zone(state.ZLibrary, p)
+		plan.libLen = len(lib)
+		pinLib := make(map[state.ObjID]bool)
+		for _, hand := range known.Hands {
+			if hand.Player == p {
+				for _, c := range hand.Cards {
+					plan.pinHand[base.Observer.object(c.ID)] = true
+					take(p, c.Name)
+				}
+			}
+		}
+		for _, l := range known.Libraries {
+			if l.Player != p {
+				continue
+			}
+			positioned := make(map[state.ObjID]bool)
+			for _, c := range l.Top {
+				plan.top = append(plan.top, base.Observer.object(c.ID))
+				positioned[base.Observer.object(c.ID)] = true
+			}
+			for _, c := range l.Bottom {
+				plan.bot = append(plan.bot, base.Observer.object(c.ID))
+				positioned[base.Observer.object(c.ID)] = true
+			}
+			for _, c := range l.Members {
+				id := base.Observer.object(c.ID)
+				pinLib[id] = true
+				take(p, c.Name)
+				if !positioned[id] {
+					plan.loose = append(plan.loose, id)
+				}
+			}
+		}
+		for _, id := range append(append([]state.ObjID(nil), plan.hand...), lib...) {
+			if !plan.pinHand[id] && !pinLib[id] {
+				plan.unknown = append(plan.unknown, id)
+			}
+		}
+		sortByName(e, plan.unknown)
+		plan.handFree = len(plan.hand) - len(plan.pinHand)
+		if pi >= len(setup.Decks) {
+			return nil, "seat outside the public deck lists"
+		}
+		derivable := make(map[string]int)
+		for _, c := range setup.Decks[pi] {
+			derivable[c.Faces[0].Name]++
+		}
+		for name, count := range public[p] {
+			derivable[name] -= count
+		}
+		actual := make(map[string]int)
+		for _, id := range plan.unknown {
+			if o := e.G.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+				actual[o.Card.Faces[0].Name]++
+			} else {
+				return nil, fmt.Sprintf("player %d hidden object %d has no card", p, id)
+			}
+		}
+		for name, count := range derivable {
+			if count != actual[name] {
+				return nil, fmt.Sprintf("player %d hidden pool is not derivable from public information", p)
+			}
+		}
+		for name, count := range actual {
+			if derivable[name] != count {
+				return nil, fmt.Sprintf("player %d hidden pool is not derivable from public information", p)
+			}
+		}
+		plans = append(plans, plan)
+	}
+	probe := base.Observer.Clone()
+	var worlds []World
+	for i := 0; i < n; i++ {
+		s := seed(i)
+		r := rand.New(rand.NewPCG(s[0], s[1]))
+		w := e.CloneHypothetical(s[1])
+		for _, plan := range plans {
+			if reason := redealPlayer(w, plan, r); reason != "" {
+				return nil, reason
+			}
+		}
+		if err := known.holds(w, base.Observer); err != nil {
+			return nil, "redealt world breaks the projection: " + err.Error()
+		}
+		frame, err := probe.Clone().Capture(w, nil)
+		if err != nil || string(frame.Board) != string(now.Board) || !reflect.DeepEqual(frame.Decision, now.Decision) {
+			return nil, "redealt world changes the observation"
+		}
+		worlds = append(worlds, World{Engine: w, Observer: base.Observer.Clone()})
+	}
+	return worlds, ""
+}
+
+// redealPlayer deals one player's unknown hidden cards uniformly: into the
+// hand's free slots, then with the position-less known members across the
+// library's free positions. Every change is a Secret event through
+// events.Emit on the world's own log.
+func redealPlayer(w *rules.Engine, plan redealPlan, r *rand.Rand) string {
+	// Both deals start from a canonical (name, object) order, so the names
+	// dealt are a function of the name multiset and the seed alone -- not of
+	// which same-named copy the real game happened to leave hidden.
+	deal := append([]state.ObjID(nil), plan.unknown...)
+	r.Shuffle(len(deal), func(i, j int) { deal[i], deal[j] = deal[j], deal[i] })
+	if plan.handFree < 0 || plan.handFree > len(deal) {
+		return fmt.Sprintf("player %d hand does not fit its pool", plan.player)
+	}
+	newHand := deal[:plan.handFree]
+	free := append(append([]state.ObjID(nil), deal[plan.handFree:]...), plan.loose...)
+	sortByName(w, free)
+	r.Shuffle(len(free), func(i, j int) { free[i], free[j] = free[j], free[i] })
+	lib := make([]state.ObjID, plan.libLen)
+	for i, id := range plan.top {
+		lib[i] = id
+	}
+	for i, id := range plan.bot {
+		at := plan.libLen - len(plan.bot) + i
+		if lib[at] != 0 && lib[at] != id {
+			return fmt.Sprintf("player %d known top and bottom disagree", plan.player)
+		}
+		lib[at] = id
+	}
+	next := 0
+	for i := range lib {
+		if lib[i] != 0 {
+			continue
+		}
+		if next >= len(free) {
+			return fmt.Sprintf("player %d library does not fit its pool", plan.player)
+		}
+		lib[i] = free[next]
+		next++
+	}
+	if next != len(free) {
+		return fmt.Sprintf("player %d library does not fit its pool", plan.player)
+	}
+	if plan.handFree > 0 {
+		// Rebuild the hand in a canonical order -- pinned cards by object,
+		// then the dealt cards in deal order -- so which dealt cards were
+		// really in the hand (and where) does not survive as hand order.
+		for _, id := range plan.hand {
+			events.Emit(w.G, w.L, events.Event{Kind: events.MoveZone, Player: plan.player, Obj: id, From: state.ZHand, To: state.ZLibrary, Secret: true})
+		}
+		var pins []state.ObjID
+		for id := range plan.pinHand {
+			pins = append(pins, id)
+		}
+		sort.Slice(pins, func(i, j int) bool { return pins[i] < pins[j] })
+		for _, id := range append(pins, newHand...) {
+			events.Emit(w.G, w.L, events.Event{Kind: events.MoveZone, Player: plan.player, Obj: id, From: state.ZLibrary, To: state.ZHand, Secret: true})
+		}
+	}
+	events.Emit(w.G, w.L, events.Event{Kind: events.LibraryOrder, Player: plan.player, IDs: lib, Secret: true})
+	if len(w.G.Zone(state.ZHand, plan.player)) != len(plan.hand) || !reflect.DeepEqual(w.G.Zone(state.ZLibrary, plan.player), lib) {
+		return fmt.Sprintf("player %d redeal did not land", plan.player)
+	}
+	return ""
+}
+
+func deckHas(deck []*cards.Card, name string) bool {
+	for _, c := range deck {
+		if c != nil && len(c.Faces) > 0 && c.Faces[0] != nil && c.Faces[0].Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// sortByName orders objects by card name, then object id.
+func sortByName(e *rules.Engine, ids []state.ObjID) {
+	name := func(id state.ObjID) string {
+		if o := e.G.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+			return o.Card.Faces[0].Name
+		}
+		return ""
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		a, b := name(ids[i]), name(ids[j])
+		if a != b {
+			return a < b
+		}
+		return ids[i] < ids[j]
+	})
+}

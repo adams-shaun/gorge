@@ -44,6 +44,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Shadow":         "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Horsemanship":   "TestHorsemanshipCanBlockOnlyHorsemanshipAttackers",
 		"kw:Skulk":          "TestSkulkBlocksOnlyGreaterPowerBlockers",
+		"kw:Intimidate":     "TestIntimidateBlocksOnlyArtifactsAndSharedColors",
 		"kw:Landwalk":       "TestLandwalkEvadesDefenderLands",
 		"kw:Protection":     "TestProtectionUsesAllLiveColourQualities",
 		"kw:Flanking":       "TestFlankingKnightOfTheHolyNimbusDebuffsBlockers",

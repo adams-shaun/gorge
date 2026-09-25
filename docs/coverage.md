@@ -9,7 +9,7 @@ one missing primitive makes the whole card unplayable, so this is a strict
 lower bound on what the engine can do.
 
 - Cards in the corpus: **33667**
-- Fully playable: **29820 (88.6%)**
+- Fully playable: **30095 (89.4%)**
 - Token scripts compiled: **839**
 - Corpus pin: `Card-Forge/forge@95f04e8a04c8925fa97cb226fc3341cabcc90a53`
 
@@ -26,14 +26,14 @@ engine subsystems are finished.
 
 | Card type | Cards | Playable | % |
 |---|---:|---:|---:|
-| Creature | 18544 | 16524 | 89.1% |
-| Instant | 3774 | 3399 | 90.1% |
-| Sorcery | 3519 | 3141 | 89.3% |
-| Enchantment | 3445 | 3186 | 92.5% |
-| Artifact | 2480 | 2036 | 82.1% |
-| Land | 1152 | 1122 | 97.4% |
-| Other | 384 | 98 | 25.5% |
-| Planeswalker | 332 | 281 | 84.6% |
+| Creature | 18544 | 16681 | 90.0% |
+| Instant | 3774 | 3460 | 91.7% |
+| Sorcery | 3519 | 3167 | 90.0% |
+| Enchantment | 3445 | 3198 | 92.8% |
+| Artifact | 2480 | 2043 | 82.4% |
+| Land | 1152 | 1125 | 97.7% |
+| Other | 384 | 99 | 25.8% |
+| Planeswalker | 332 | 289 | 87.0% |
 | Battle | 37 | 33 | 89.2% |
 
 ## By colour
@@ -43,26 +43,26 @@ colour indicator — not its Commander colour identity.
 
 | Colour | Cards | Playable | % |
 |---|---:|---:|---:|
-| White | 4977 | 4411 | 88.6% |
-| Red | 4975 | 4415 | 88.7% |
-| Black | 4946 | 4452 | 90.0% |
-| Green | 4868 | 4381 | 90.0% |
-| Blue | 4860 | 4294 | 88.4% |
-| Multicolour | 4704 | 4231 | 89.9% |
-| Colorless | 4337 | 3636 | 83.8% |
+| White | 4977 | 4436 | 89.1% |
+| Red | 4975 | 4490 | 90.3% |
+| Black | 4946 | 4502 | 91.0% |
+| Green | 4868 | 4397 | 90.3% |
+| Blue | 4860 | 4357 | 89.7% |
+| Multicolour | 4704 | 4269 | 90.8% |
+| Colorless | 4337 | 3644 | 84.0% |
 
 ## By mana value
 
 | Mana value | Cards | Playable | % |
 |---|---:|---:|---:|
-| 0 | 1701 | 1310 | 77.0% |
-| 1 | 3250 | 2981 | 91.7% |
-| 2 | 7135 | 6460 | 90.5% |
-| 3 | 8037 | 7188 | 89.4% |
-| 4 | 6276 | 5540 | 88.3% |
-| 5 | 3927 | 3487 | 88.8% |
-| 6 | 2018 | 1737 | 86.1% |
-| 7+ | 1323 | 1117 | 84.4% |
+| 0 | 1701 | 1314 | 77.2% |
+| 1 | 3250 | 3006 | 92.5% |
+| 2 | 7135 | 6523 | 91.4% |
+| 3 | 8037 | 7264 | 90.4% |
+| 4 | 6276 | 5588 | 89.0% |
+| 5 | 3927 | 3514 | 89.5% |
+| 6 | 2018 | 1756 | 87.0% |
+| 7+ | 1323 | 1130 | 85.4% |
 
 ## What the gap is waiting on
 
@@ -77,9 +77,7 @@ it alone blocks. Implementing the top row unlocks that many cards at once.
 | `trig:ChaosEnsues` | 139 |
 | `trig:TurnFaceUp` | 125 |
 | `trig:SetInMotion` | 84 |
-| `api:DamageResolve` | 64 |
 | `kw:Unearth` | 58 |
-| `api:Phases` | 56 |
 | `kw:Foretell` | 55 |
 | `api:Debuff` | 48 |
 | `kw:Disguise` | 47 |
@@ -87,9 +85,11 @@ it alone blocks. Implementing the top row unlocks that many cards at once.
 | `trig:PlaneswalkedTo` | 46 |
 | `api:SetLife` | 45 |
 | `api:Venture` | 45 |
-| `kw:Ninjutsu` | 45 |
 | `kw:You may choose not to untap CARDNAME during your untap step.` | 45 |
 | `trig:CrankContraption` | 45 |
 | `api:Draft` | 42 |
+| `stat:OptionalCost` | 40 |
+| `kw:Bushido` | 37 |
+| `kw:Shroud` | 37 |
 
 Regenerate this file with `make coverage`.
