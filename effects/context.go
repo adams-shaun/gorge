@@ -1513,8 +1513,25 @@ func copyTargets(s []state.Target) []state.Target {
 // card remembered list does not contain. Chain writes remain: they update both
 // the resolution and the persistent list. With an untouched captured context,
 // the persistent list is the complete Forge Remembered population.
+//
+// A delayed-trigger REGISTRATION is the exception. It saves the target set it
+// captured at registration time in TriggerContext.DelayedRemembered and seeds
+// that same set into BOTH Remembered and Captured (a Mode$ Phase registration
+// has no firing event, so its saved list IS the referent). That set is the
+// body's own memory, not a firing-event referent: Forge reads it independently
+// of the source's later mutable remembered list, so a source whose memory was
+// cleared or replaced before the delayed trigger fires (Turn to Mist's
+// TrigReturn: ChangeZone | Defined$ Remembered after the same card is recast)
+// must still resolve to the registration's original target. Detect it by
+// Captured aliasing the registration capture and hand that set back unchanged:
+// an event-matched delayed registration's Captured is the firing EVENT's
+// object, which differs from the registration's own set, so it keeps the
+// ordinary referent treatment above.
 func resolvedRemembered(h Host, c *Ctx) []state.Target {
 	if len(c.Captured) == 0 {
+		return copyTargets(c.Remembered)
+	}
+	if len(c.DelayedRemembered) > 0 && sameTargets(c.Captured, c.DelayedRemembered) {
 		return copyTargets(c.Remembered)
 	}
 	var persistent []state.Target
