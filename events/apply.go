@@ -2657,6 +2657,19 @@ func Apply(g *state.Game, e Event) {
 		// rules/altcast.go's battlefield-entry hook has no IsCopy left to
 		// tell a never-cast token from the real cast.
 		x, castFlags := src.X, src.CastFlags&^state.CastProvenanceFlags
+		// CR 708.4: a stack COPY of a face-down (morph-family) spell stays
+		// face down. The original's stack marker was folded by the MoveZone
+		// branch above from the face-down entry Counter, but a copy is minted
+		// by AddObject and never passes through that fold -- so derive the
+		// face-down status from the morph-family cast flags it inherits (the
+		// same family rules/resolution.go's entry hook re-carries). The flags
+		// are read here, before AddObject may reallocate g.Objs. An ordinary
+		// (face-up) spell carries none of these bits, so its copy stays
+		// unmarked and the view's redaction (view/view.go stackViews) is
+		// unchanged for it. Cloaked mirrors the Disguise entry's marker so a
+		// copied disguised spell keeps the same state bit the cloak machinery
+		// reads.
+		morphFlags := castFlags & (state.FlagMorphed | state.FlagMegamorphed | state.FlagDisguised)
 		// Deep-copy, never alias: the copy's Targets/Remembered must be
 		// able to change independently of the original's once both sit on
 		// the stack.
@@ -2688,6 +2701,10 @@ func Apply(g *state.Game, e Event) {
 		o.Remembered = remembered
 		o.ChosenModes = chosenModes
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+		if morphFlags != 0 {
+			o.FaceDown = true
+			o.Cloaked = morphFlags&state.FlagDisguised != 0
+		}
 		// CR 707.10c: Amount is the creating CopySpellAbility's
 		// MayChooseTarget$ discriminator (1 = true). It rides the event so the
 		// permission travels with the COPY instance -- an external copier
