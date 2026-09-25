@@ -768,8 +768,9 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 // refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
 // TriggerRemembered$Amount), evalRememberedOK's Amount head,
 // evalCountExprOK's RememberedNumber head, rememberedWithSource (the plain
-// Remembered$ group every Valid/condition reader resolves through) and
-// evalRefProperty's Remembered$<Property> heads.
+// Remembered$ group every Valid/condition reader resolves through),
+// rememberedLKIGroup (the RememberedLKI ref group) and evalRefProperty's
+// Remembered$<Property> heads.
 // A no-capture ctx (captured empty) returns the list unchanged; the helper
 // is idempotent -- the instance ctx effImmediateTrigger builds has Captured
 // and Remembered disjoint, so applying it a second time there answers the
@@ -793,6 +794,50 @@ func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
 			continue
 		}
 		out = append(out, t)
+	}
+	return out
+}
+
+// rememberedLKIGroup resolves the RememberedLKI ref group: the SAME
+// remembered set the plain-Remembered resolver (rememberedWithSource)
+// answers -- Forge's host remembered list is the source card's persistent
+// event-backed list UNIONED with the resolution's own ctx memory -- with ONE
+// deviation: an object that IS the resolving source is kept when the
+// resolution explicitly remembered it. rememberedWithSource drops
+// c.Source unconditionally, which was this build's stand-in for keeping the
+// fire-time capture out of a plain Remembered read; for RememberedLKI the
+// capture-excluding helper above already removes exactly the seeded capture
+// occurrences, so the blanket exclusion only ever deleted a REAL memory of
+// the source -- Cosima's DBReturn (Defined$ Self RememberLKI$ True: the
+// exiled god returns to the battlefield and its own X reads
+// RememberedLKI$CardCounters.VOYAGE off itself) and Riders of the Mark
+// (RememberChanged$ True on a Defined$ Self move, its toughness read
+// RememberedLKI$CardToughness) both went to zero under it. The union is
+// deduped by id (the same object may sit in both halves -- an explicit
+// RememberChanged$/RememberLKI$ append after a capture seed, or a rider that
+// eventRemembered into the persistent list while the ctx list already carried
+// it), and the helper is idempotent: a ctx whose capture is already excluded
+// answers the same set again.
+func rememberedLKIGroup(h Host, c *Ctx) []state.Target {
+	out := make([]state.Target, 0, len(c.Remembered))
+	seen := make(map[state.ObjID]bool, len(c.Remembered))
+	if o := h.Game().Obj(c.Source); o != nil {
+		for _, t := range o.Remembered {
+			if !t.IsPlayer && !seen[t.Obj] {
+				seen[t.Obj] = true
+				out = append(out, t)
+			}
+		}
+	}
+	for _, t := range rememberedExcludingCapture(h, c) {
+		if t.IsPlayer {
+			out = append(out, t)
+			continue
+		}
+		if !seen[t.Obj] {
+			seen[t.Obj] = true
+			out = append(out, t)
+		}
 	}
 	return out
 }
@@ -845,8 +890,24 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		"TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
-		"DelayTriggerRememberedLKI", "RememberedLKI":
+		"DelayTriggerRememberedLKI":
 		return c.Remembered, true
+	case "RememberedLKI":
+		// The LKI spelling of the Remembered$ group names the SAME objects
+		// (Forge's remembered list, which never contains the event object the
+		// trigger fired on); only the characteristic read differs, through
+		// Ctx.LKI's pre-move snapshot. Route it through the one RememberedLKI
+		// resolver so the two cannot disagree about WHICH objects are
+		// remembered -- a raw Ctx.Remembered read summed a triggered
+		// Destroy/ChangeZone's fire-time capture (the trigger's own source)
+		// into a chained RememberedLKI$CardToughness (Noxious Gearhulk,
+		// Rotfeaster Maggot), inflating the read by the source's own
+		// characteristic, while the plain resolver's blanket source exclusion
+		// dropped an object that IS the source and was genuinely remembered
+		// (Cosima's self-return RememberLKI$ read, Riders of the Mark's
+		// RememberChanged$ one). The capture-occurrence exclusion is precise;
+		// the source itself is kept.
+		return rememberedLKIGroup(h, c), true
 	case "TriggerRemembered":
 		// TriggerRemembered (task triggerremembered1) is Forge's name for the
 		// trigger's own RememberObjects$ capture -- the set the resolving

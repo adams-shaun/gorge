@@ -96,12 +96,16 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 		// The adjacent refs on the same ctx keep their own binding: the
 		// plain TriggeredCard read is the WHOLE Remembered list (capture
 		// included), proving the exclusion is TriggerRemembered's alone.
+		// RememberedLKI shares the plain-Remembered resolver instead: the LKI
+		// spelling changes only HOW a characteristic is read (through Ctx.LKI's
+		// pre-move snapshot), not WHICH objects are remembered, so it is
+		// capture-excluded too (Noxious Gearhulk's Destroy rider).
 		{"TriggeredCard$Amount", 3},
 		{"TriggeredCard$CardPower", 8},
 		{"TriggeredCard$CardToughness", 9},
 		{"TriggeredCard$CardManaCost", 6},
 		{"TriggeredCard$CardCounters.P1P1", 2},
-		{"RememberedLKI$Amount", 3},
+		{"RememberedLKI$Amount", 2},
 		// An unknown ref stays zero.
 		{"UnknownRef$CardPower", 0},
 	} {
