@@ -901,10 +901,23 @@ const (
 	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
 	// is affected.
 	GiveGift
+	// RollDice is the SYNTHETIC roll-action PROPOSAL rules' RollDiceProposed
+	// hook holds out to R:Event$ RollDice replacement matching before any die
+	// of one roll action is rolled (CR 614.4's before-the-action window, task
+	// rolldice-repl; the Scry proposal's discipline). Player is the roller,
+	// Obj the rolling source, Amount the proposed dice count and Counter the
+	// proposed ignored-low count (decimal, "" = none). It is NEVER emitted --
+	// the roll's log witnesses are the per-die and batch Notes the ordinary
+	// effRollDice path emits -- so no log event ever carries this Kind and
+	// every earlier ordinal, the hash chain and the golden replays are
+	// untouched. Appended after GiveGift, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	RollDice
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(GiveGift) + 1
+	NumKinds = int(RollDice) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1039,7 +1052,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
-	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift"}
+	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
