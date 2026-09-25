@@ -1064,10 +1064,15 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		}
 		f := o.Face()
 		switch {
-		case ref == "TriggerObjectsCards" && prop == "CardTypes":
+		case (ref == "TriggerObjectsCards" || ref == "TriggerRemembered") && prop == "CardTypes":
 			if f != nil {
 				for _, typ := range f.Types {
-					triggerObjectTypes[typ] = true
+					// Preserve TriggerObjectsCards' existing all-types count;
+					// only TriggerRemembered needs the CR 205.1 card types
+					// (not creature types such as Golem).
+					if ref == "TriggerObjectsCards" || cardTypeWords[typ] {
+						triggerObjectTypes[typ] = true
+					}
 				}
 			}
 		case ref == "TriggerObjectsCards" && prop == "GreatestCardManaCost":
@@ -1225,7 +1230,7 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			return 0, false
 		}
 	}
-	if ref == "TriggerObjectsCards" && prop == "CardTypes" {
+	if (ref == "TriggerObjectsCards" || ref == "TriggerRemembered") && prop == "CardTypes" {
 		n = int32(len(triggerObjectTypes))
 	}
 	if diffKind != diffNone {
