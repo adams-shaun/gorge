@@ -793,9 +793,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// S: static shape, with the Effect's Remembered set seeding the
 				// grant so the Affected$ Card.IsRemembered spec matches the cards
 				// the resolution exiled/remembered (rules' grant walk matches
-				// through a SpecContext that carries this list). The shared
-				// MayPlayStaticParams whitelist keeps both registration paths
-				// honest: a rider this build does not read fails closed here too.
+				// through a SpecContext that carries this list). mayPlayEffectParams
+				// is this path's whitelist -- the printed route's stricter
+				// MayPlayStaticParams plus the ValidAfterStack$ qualifier, which
+				// rides MayPlayValidAfterStack for rules to evaluate with the
+				// derived stack view; a rider this build does not read fails
+				// closed here too.
 				grant.Source = c.Source
 				grant.Controller = c.Controller
 				grant.Name = effectName
@@ -814,10 +817,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// cost", Idol of Endurance, Nicol Bolas, God-Pharaoh): the same
 				// registration shape the plain grant above uses, with the
 				// MayPlayWithoutManaCost$ True rider carried as the MayPlayFree
-				// field rules' grant walk reads for the free half. The shared
-				// MayPlayFreeStaticParams whitelist keeps this path honest the
-				// same way: a rider this build does not read fails closed here
-				// too. The lifetime fields are exactly the plain grant's.
+				// field rules' grant walk reads for the free half. mayPlayEffectFreeParams
+				// keeps this path honest the same way -- the printed route's
+				// MayPlayFreeStaticParams plus the ValidAfterStack$ qualifier
+				// (Nahiri's STPlay2: free Equipment casts gated on
+				// Spell.Equipment): a rider this build does not read fails
+				// closed here too. The lifetime fields are exactly the plain
+				// grant's.
 				grant.Source = c.Source
 				grant.Controller = c.Controller
 				grant.Name = effectName
@@ -1299,9 +1305,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // mayPlayGrantFromLine builds the may-play ContinuousEffect from one parsed
-// static line (an SVar static body effEffect registers, or the S: line rules
-// passes through MayPlayStaticParams). ok=false is the fail-closed grant:
-// nothing is registered rather than a half-read grant going live.
+// SVar static line an Effect SA registers. ok=false is the fail-closed grant:
+// nothing is registered rather than a half-read grant going live. Unlike the
+// printed S: route's MayPlayStaticParams, this path may carry a
+// ValidAfterStack$ spell-characteristic qualifier (Nahiri, Forged in Fury's
+// STPlay2), returned verbatim on MayPlayValidAfterStack for rules to evaluate.
 //
 // cascadeKeywordGrantFromLine is the AddKeyword$ Cascade twin (task
 // cascade1): ok only when the line's AddKeyword$ value is entirely Cascade
@@ -1398,18 +1406,19 @@ func HandSizeValueOK(raw string) (int, bool) {
 const UnlimitedHandSize = 1 << 20
 
 func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
-	ignoreColor, ignoreType, limit, playerTurn, ok := MayPlayStaticParams(params)
+	ignoreColor, ignoreType, limit, playerTurn, afterStack, ok := mayPlayEffectParams(params, false)
 	if !ok {
 		return state.ContinuousEffect{}, false
 	}
 	return state.ContinuousEffect{
-		Affects:            params["Affected"],
-		AffectedZone:       strings.TrimSpace(params["AffectedZone"]),
-		MayPlay:            true,
-		MayPlayIgnoreColor: ignoreColor,
-		MayPlayIgnoreType:  ignoreType,
-		MayPlayLimit:       limit,
-		MayPlayPlayerTurn:  playerTurn,
+		Affects:                params["Affected"],
+		AffectedZone:           strings.TrimSpace(params["AffectedZone"]),
+		MayPlay:                true,
+		MayPlayIgnoreColor:     ignoreColor,
+		MayPlayIgnoreType:      ignoreType,
+		MayPlayLimit:           limit,
+		MayPlayPlayerTurn:      playerTurn,
+		MayPlayValidAfterStack: afterStack,
 	}, true
 }
 
@@ -1424,17 +1433,18 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 // CHANGES what the cast costs, and the field is consumed exactly where the
 // plain grant's cost is (rules/mayplay.go's mayPlayGrant).
 func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
-	limit, playerTurn, ok := MayPlayFreeStaticParams(params)
+	limit, playerTurn, afterStack, ok := mayPlayEffectFreeParams(params)
 	if !ok {
 		return state.ContinuousEffect{}, false
 	}
 	return state.ContinuousEffect{
-		Affects:           params["Affected"],
-		AffectedZone:      strings.TrimSpace(params["AffectedZone"]),
-		MayPlay:           true,
-		MayPlayFree:       true,
-		MayPlayLimit:      limit,
-		MayPlayPlayerTurn: playerTurn,
+		Affects:                params["Affected"],
+		AffectedZone:           strings.TrimSpace(params["AffectedZone"]),
+		MayPlay:                true,
+		MayPlayFree:            true,
+		MayPlayLimit:           limit,
+		MayPlayPlayerTurn:      playerTurn,
+		MayPlayValidAfterStack: afterStack,
 	}, true
 }
 
@@ -1459,8 +1469,38 @@ func MayPlayStaticParams(params map[string]string) (ignoreColor, ignoreType bool
 	if !okv || !strings.EqualFold(strings.TrimSpace(v), "True") {
 		return false, false, 0, false, false
 	}
-	ignoreColor, ignoreType, limit, playerTurn, ok = mayPlayParams(params, false)
+	ignoreColor, ignoreType, limit, playerTurn, _, ok = mayPlayParamsScan(params, false, false)
 	return ignoreColor, ignoreType, limit, playerTurn, ok
+}
+
+// mayPlayEffectParams is the Effect-delivery sibling of MayPlayStaticParams:
+// the same MayPlay$ True grammar, but the DB$ Effect registration path
+// (mayPlayGrantFromLine) may additionally carry a ValidAfterStack$
+// spell-characteristic qualifier (Nahiri, Forged in Fury's
+// MayPlay$ True + ValidAfterStack$ Spell.Equipment static). The value is
+// returned verbatim to ride state.ContinuousEffect.MayPlayValidAfterStack and
+// is NOT interpreted here -- effects must not reach into rules' spec matcher.
+// The printed-S: route keeps the stricter MayPlayStaticParams, so
+// rules/layers.go's printed grant (which carries no such field) never
+// silently drops the qualifier and widens the offer.
+func mayPlayEffectParams(params map[string]string, allowFree bool) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, validAfterStack string, ok bool) {
+	v, okv := params["MayPlay"]
+	if !okv || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false, false, 0, false, "", false
+	}
+	return mayPlayParamsScan(params, allowFree, true)
+}
+
+// mayPlayEffectFreeParams is the free-cast Effect-delivery sibling of
+// MayPlayFreeStaticParams: MayPlay$ True + MayPlayWithoutManaCost$ True plus
+// the optional ValidAfterStack$ qualifier the effect route may carry (Nahiri's
+// STPlay2: free Equipment casts gated on Spell.Equipment).
+func mayPlayEffectFreeParams(params map[string]string) (limit int32, playerTurn bool, validAfterStack string, ok bool) {
+	if !strings.EqualFold(strings.TrimSpace(params["MayPlayWithoutManaCost"]), "True") {
+		return 0, false, "", false
+	}
+	_, _, limit, playerTurn, validAfterStack, ok = mayPlayParamsScan(params, true, true)
+	return limit, playerTurn, validAfterStack, ok
 }
 
 // MayPlayFreeStaticParams reports whether a Mode$ Continuous static body
@@ -1483,15 +1523,20 @@ func MayPlayFreeStaticParams(params map[string]string) (limit int32, playerTurn 
 	if !strings.EqualFold(strings.TrimSpace(params["MayPlayWithoutManaCost"]), "True") {
 		return 0, false, false
 	}
-	_, _, limit, playerTurn, ok = mayPlayParams(params, true)
+	_, _, limit, playerTurn, _, ok = mayPlayParamsScan(params, true, false)
 	return limit, playerTurn, ok
 }
 
-// mayPlayParams is the ONE parameter scan MayPlayStaticParams and
-// MayPlayFreeStaticParams share. allowFree widens the key whitelist by
-// exactly MayPlayWithoutManaCost$ (the caller has already required it to be
-// True); every other unknown key fails closed.
-func mayPlayParams(params map[string]string, allowFree bool) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, ok bool) {
+// mayPlayParamsScan is the ONE parameter scan every may-play whitelist
+// shares. allowFree widens the key whitelist by exactly
+// MayPlayWithoutManaCost$ (the caller has already required it to be True);
+// allowAfterStack widens it by exactly ValidAfterStack$ (the
+// Effect-delivery path accepts the qualifier and carries it verbatim on the
+// registered effect for rules to evaluate). Every other unknown key fails
+// closed. The ValidAfterStack$ value is returned unread -- effects must not
+// interpret rules' spec grammar -- so an unsupported value is fail-closed at
+// the matcher, never here.
+func mayPlayParamsScan(params map[string]string, allowFree, allowAfterStack bool) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, validAfterStack string, ok bool) {
 	for key := range params {
 		switch key {
 		case "Mode", "MayPlay", "MayPlayIgnoreColor", "MayPlayIgnoreType",
@@ -1499,10 +1544,14 @@ func mayPlayParams(params map[string]string, allowFree bool) (ignoreColor, ignor
 			// The keys the implemented grant (and only it) carries.
 		case "MayPlayWithoutManaCost":
 			if !allowFree {
-				return false, false, 0, false, false
+				return false, false, 0, false, "", false
+			}
+		case "ValidAfterStack":
+			if !allowAfterStack {
+				return false, false, 0, false, "", false
 			}
 		default:
-			return false, false, 0, false, false
+			return false, false, 0, false, "", false
 		}
 	}
 	limit = 0
@@ -1511,7 +1560,7 @@ func mayPlayParams(params map[string]string, allowFree bool) (ignoreColor, ignor
 		if err != nil || n < 0 {
 			// A MayPlayLimit$ value this build cannot enforce must not
 			// silently become "unlimited".
-			return false, false, 0, false, false
+			return false, false, 0, false, "", false
 		}
 		limit = int32(n)
 	}
@@ -1520,11 +1569,14 @@ func mayPlayParams(params map[string]string, allowFree bool) (ignoreColor, ignor
 		// A Condition$ other than PlayerTurn changes when the grant lives;
 		// never register it half-read.
 		_, _ = cond, okv
-		return false, false, 0, false, false
+		return false, false, 0, false, "", false
 	}
 	ignoreColor = strings.EqualFold(strings.TrimSpace(params["MayPlayIgnoreColor"]), "True")
 	ignoreType = strings.EqualFold(strings.TrimSpace(params["MayPlayIgnoreType"]), "True")
-	return ignoreColor, ignoreType, limit, playerTurn, true
+	if allowAfterStack {
+		validAfterStack = strings.TrimSpace(params["ValidAfterStack"])
+	}
+	return ignoreColor, ignoreType, limit, playerTurn, validAfterStack, true
 }
 
 // parseStaticLine parses an S: static body an SVar holds ("Mode$ CantTarget |

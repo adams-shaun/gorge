@@ -657,6 +657,35 @@ func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate b
 	return plain, mutate
 }
 
+// effectGrantMatches reports whether an Effect-delivered may-play grant ce
+// covers the card id: the Affects spec (Affected$) plus, when the grant
+// carries one, its ValidAfterStack$ derived-stack-view spell characteristic
+// filter (Nahiri, Forged in Fury's "You may cast Equipment spells this way").
+// It is the ONE per-card gate every effect-delivered grant walk shares -- the
+// offer walks (legal.go's mayPlayLandIds/mayPlaySpellIds) and the single-card
+// classification paths (mayPlayEffectFree/mayPlayEffectGrantsCast) -- so the
+// qualifier is evaluated at exactly the places the Affects filter it extends
+// already was, and a new caller cannot forget it. The card is still in its
+// origin zone while the permission is offered, so the qualifier is matched
+// with SpecContext.AsStack set: the derived override makes a `Spell.<...>`
+// filter read the card's printed spell characteristics, the same way
+// mayPlayStatic evaluates a printed S: grant's ValidAfterStack$. An
+// unsupported value fails closed inside matchesSpec (no grant).
+func (e *Engine) effectGrantMatches(ce state.ContinuousEffect, id state.ObjID) bool {
+	sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+		Remembered: rememberedTargets(ce.Remembered), Resolving: true})
+	if !e.matchesSpec(ce.Affects, id, sc) {
+		return false
+	}
+	if ce.MayPlayValidAfterStack != "" {
+		sc.AsStack = true
+		if !e.matchesSpec(ce.MayPlayValidAfterStack, id, sc) {
+			return false
+		}
+	}
+	return true
+}
+
 // mayPlayEffectFree reports whether an active EFFECT-delivered FREE-cast
 // may-play grant (a ContinuousEffect with MayPlay and MayPlayFree set -- the
 // MayPlayWithoutManaCost$ True shape) covers card o for player p right now.
@@ -689,9 +718,7 @@ func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, cov
 		if !all && !slices.Contains(zones, o.Zone) {
 			continue
 		}
-		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
-			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-		if !e.matchesSpec(ce.Affects, o.ID, sc) {
+		if !e.effectGrantMatches(ce, o.ID) {
 			continue
 		}
 		return true, true
@@ -731,9 +758,7 @@ func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool
 		if !all && !slices.Contains(zones, o.Zone) {
 			continue
 		}
-		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
-			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-		if e.matchesSpec(ce.Affects, o.ID, sc) {
+		if e.effectGrantMatches(ce, o.ID) {
 			return true
 		}
 	}

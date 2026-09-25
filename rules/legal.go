@@ -97,9 +97,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 					if o == nil || o.Face() == nil || !o.Face().IsLand() {
 						continue
 					}
-					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
-						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-					if !e.matchesSpec(ce.Affects, id, sc) {
+					if !e.effectGrantMatches(ce, id) {
 						continue
 					}
 					dup := false
@@ -326,9 +324,7 @@ func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
 					if o == nil || o.Face() == nil || o.Face().IsLand() {
 						continue
 					}
-					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
-						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-					if !e.matchesSpec(ce.Affects, id, sc) {
+					if !e.effectGrantMatches(ce, id) {
 						continue
 					}
 					consider(z, id)

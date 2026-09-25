@@ -419,6 +419,23 @@ type ContinuousEffect struct {
 	// MayPlay.
 	MayPlayFree bool
 
+	// MayPlayValidAfterStack is an Effect-delivered may-play grant's
+	// ValidAfterStack$ qualifier (Nahiri, Forged in Fury's "You may cast
+	// Equipment spells this way without paying their mana costs":
+	// ValidAfterStack$ Spell.Equipment). It is a DERIVED stack-view spell
+	// characteristic filter, not a state fact: the card is still in its
+	// origin zone while the permission is offered, so rules evaluates it
+	// through the ordinary spec matcher with SpecContext.AsStack set, the
+	// same derived override mayPlayStatic uses for a printed S: grant's
+	// ValidAfterStack$. An absent value means no characteristic gate; an
+	// unsupported value fails closed in the matcher (no grant). Registered
+	// only from the Effect-delivery path (a DB$ Effect's StaticAbilities$
+	// SVar static); the printed-S: route keeps MayPlayStaticParams' refusal
+	// because rules/layers.go's printed grant carries no such field and
+	// evaluates the qualifier inline in mayPlayStatic. Set only together
+	// with MayPlay.
+	MayPlayValidAfterStack string
+
 	// AddTrigger is a static-grant's triggered ability (AddTrigger$ on a
 	// Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you
 	// sacrifice a land"): the SVar-parsed trigger (cards.ParseTriggerLine

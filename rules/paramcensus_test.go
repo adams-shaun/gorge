@@ -1238,12 +1238,19 @@ var stringMapParams = map[string]string{
 	// effects/misc.go MayPlayFreeStaticParams: the same static-line map -- the
 	// free-cast shape's own whitelist, shared grammar with MayPlayStaticParams.
 	"effects:MayPlayFreeStaticParams:params": "keys of a static may-play line (S: or parseStaticLine-built), not a card Params map",
-	// effects/misc.go mayPlayParams: the ONE key-scan both MayPlay whitelists
-	// delegate to (the key-range loop plus the four rider reads). Its reads
-	// are also made -- and genuinely attributed -- by rules/mayplay.go's
+	// effects/misc.go mayPlayParamsScan: the ONE key-scan every MayPlay
+	// whitelist delegates to (the key-range loop plus the rider reads). Its
+	// reads are also made -- and genuinely attributed -- by rules/mayplay.go's
 	// mayPlayStatic on the static family, so skipping the effects-side
 	// attribution masks nothing.
-	"effects:mayPlayParams:params": "shared key-scan of a static may-play line (S: or parseStaticLine-built), not a card Params map",
+	"effects:mayPlayParamsScan:params": "shared key-scan of a static may-play line (S: or parseStaticLine-built), not a card Params map",
+	// effects/misc.go mayPlayEffectParams: the Effect-delivery sibling of
+	// MayPlayStaticParams -- the same static-line map, widened by the
+	// ValidAfterStack$ qualifier the effect registration path carries.
+	"effects:mayPlayEffectParams:params": "keys of a static may-play line (S: or parseStaticLine-built), not a card Params map",
+	// effects/misc.go mayPlayEffectFreeParams: the free-cast Effect-delivery
+	// sibling, the same static-line map.
+	"effects:mayPlayEffectFreeParams:params": "keys of a static may-play line (S: or parseStaticLine-built), not a card Params map",
 	// effects/misc.go cascadeKeywordGrantFromLine: params is the same
 	// parseStaticLine-built SVar static line (the AddKeyword$ Cascade grant
 	// arm's whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is
