@@ -263,6 +263,14 @@ type pendingCast struct {
 	casualtyN    int32
 	casualtyDone bool
 	casualtyPaid bool
+	// Casualty:X (the variable form, Ob Nixilis, the Adversary): the amount
+	// is the sacrificed creature's power (CR 702.249a), so no threshold
+	// gates the election (casualtyN reads 0, every creature qualifies) and
+	// casualtySac/casualtyX carry the chosen creature and the power read
+	// live at payment. Plain data, so Clone copies it like casualtyN.
+	casualtyVariable bool
+	casualtySac      state.ObjID
+	casualtyX        int32
 
 	// converge (task converge1) is CR 107.4f-family's count of distinct
 	// colours (WUBRG) of mana actually spent to cast this spell, captured at
@@ -953,23 +961,63 @@ func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.Ob
 	return out
 }
 
-// casualtyValue reads both printed and layer-6 granted keywords against the
+// casualtySpec reads both printed and layer-6 granted keywords against the
 // proposed stack zone. A grant scoped to AffectedZone$ Stack therefore works
-// before pushCast, including CheckSVar-gated first-spell grants.
-func (e *Engine) casualtyValue(id state.ObjID) int32 {
+// before pushCast, including CheckSVar-gated first-spell grants. The keyword
+// line is `Casualty:<amount>` with optional script riders after further
+// colons: the corpus's one rider carrier (Ob Nixilis, the Adversary) spells
+// `K:Casualty:X:NonLegendary$ True | SetLoyalty$ Casualty:The copy isn't
+// legendary and has starting loyalty X.` -- the amount token is X, the
+// sacrificed creature's power (CR 702.249a's variable form), and the riders
+// name the COPY's characteristics. A line whose amount parses neither as a
+// nonnegative integer nor as X is skipped, the same skip casualtyValue made;
+// the first parseable line wins.
+type casualtyInfo struct {
+	threshold    int32 // the fixed threshold, when !variable
+	variable     bool  // amount token X: the amount is the sacrificed creature's power
+	nonLegendary bool  // NonLegendary$ True rider: the copy isn't legendary
+	setLoyalty   bool  // SetLoyalty$ Casualty rider: the copy's starting loyalty is the amount
+}
+
+func (e *Engine) casualtySpec(id state.ObjID) (casualtyInfo, bool) {
 	for _, k := range e.derivedWith(id, state.ZStack).Keywords {
-		if strings.EqualFold(cardsKeywordHead(k), "Casualty") {
-			var n int32
-			_, param, found := strings.Cut(k, ":")
-			if found {
-				_, err := fmt.Sscanf(strings.TrimSpace(param), "%d", &n)
-				if err == nil && n >= 0 {
-					return n
-				}
-			}
+		if !strings.EqualFold(cardsKeywordHead(k), "Casualty") {
+			continue
+		}
+		if info, ok := parseCasualtyLine(k); ok {
+			return info, true
 		}
 	}
-	return -1
+	return casualtyInfo{}, false
+}
+
+// parseCasualtyLine splits one Casualty keyword line into its amount token
+// (the text up to the first further colon) and the riders/description tail
+// after it, then reads the riders the corpus's one carrier spells: a literal
+// `NonLegendary$ True` and a literal `SetLoyalty$ Casualty` (the copy's
+// starting loyalty is the casualty amount). No other spelling is honoured --
+// the tail scan is scoped to this measured shape.
+func parseCasualtyLine(k string) (casualtyInfo, bool) {
+	_, rest, found := strings.Cut(k, ":")
+	if !found {
+		return casualtyInfo{}, false
+	}
+	amt, riders := rest, ""
+	if i := strings.IndexByte(rest, ':'); i >= 0 {
+		amt, riders = rest[:i], rest[i+1:]
+	}
+	var info casualtyInfo
+	if strings.EqualFold(strings.TrimSpace(amt), "x") {
+		info.variable = true
+	} else {
+		if _, err := fmt.Sscanf(strings.TrimSpace(amt), "%d", &info.threshold); err != nil || info.threshold < 0 {
+			return casualtyInfo{}, false
+		}
+	}
+	low := strings.ToLower(riders)
+	info.nonLegendary = strings.Contains(low, "nonlegendary$ true")
+	info.setLoyalty = strings.Contains(low, "setloyalty$ casualty")
+	return info, true
 }
 
 func (e *Engine) casualtyCandidates(p state.PlayerID, spell state.ObjID, n int32) []state.ObjID {
@@ -2592,7 +2640,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		e.cast.conspireSet = true
 	}
 	if opt.Mode == "casualty" {
-		e.cast.casualtyN = e.casualtyValue(id)
+		if info, ok := e.casualtySpec(id); ok {
+			if info.variable {
+				e.cast.casualtyVariable = true
+				e.cast.casualtyN = 0
+			} else {
+				e.cast.casualtyN = info.threshold
+			}
+		} else {
+			e.cast.casualtyN = -1
+		}
 	}
 	// CR 401.5's MayPlayIgnoreColor$ rider: "you may spend mana as though it
 	// were mana of any color to cast it". Recorded from the grant the offer
@@ -7019,6 +7076,10 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		if len(chosen) == 1 {
 			pc.sacs = append(pc.sacs, chosen[0].Obj)
 			pc.casualtyPaid = true
+			// Casualty:X: the chosen creature's power names the amount; it is
+			// read live at payment (payCast), the rules time the sacrifice
+			// settles.
+			pc.casualtySac = chosen[0].Obj
 		}
 	case "gift_decline":
 		// CR 702.168: a declined gift is the plain cast -- no promise, and
@@ -9057,6 +9118,15 @@ func (e *Engine) payCast() {
 	for _, id := range pc.sacs {
 		sacrificedLKI = append(sacrificedLKI, state.SacrificedInfoOf(e.G, id))
 	}
+	// Casualty:X (Ob Nixilis, the Adversary): the amount is the sacrificed
+	// creature's power, read live here -- the sacrifice settles with the
+	// cost parts below, and the copy trigger queued later in this same
+	// payment carries the resolved value (CR 702.249a).
+	if pc.casualtyVariable && pc.casualtySac != 0 {
+		if o := e.G.Obj(pc.casualtySac); o != nil && o.Zone == state.ZBattlefield {
+			pc.casualtyX = e.Power(pc.casualtySac)
+		}
+	}
 	for _, id := range pc.sacs {
 		e.emit(events.Sacrifice(id))
 	}
@@ -9403,11 +9473,30 @@ func (e *Engine) payCast() {
 	// Queue a respondable ability, rather than copying at payment; the event
 	// payload rebuilds its body during replay (including permanent copies).
 	if pc.casualtyPaid && castEv.Kind == events.PutOnStack {
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		pt := pendingTrigger{
 			Source: pc.card, Controller: pc.player, Casualty: true,
 			Ctx: effects.Ctx{Source: pc.card, Controller: pc.player,
 				Remembered: []state.Target{{Obj: pc.card}}},
-		})
+		}
+		// Casualty:X's script riders (Ob Nixilis, the Adversary's
+		// NonLegendary$ True | SetLoyalty$ Casualty:...): the copy's
+		// characteristics ride the trigger event's payload, so the replay
+		// rebuilds the identical copy body. The loyalty value is the
+		// casualty amount resolved at payment: the sacrificed creature's
+		// power for X, the printed threshold for a numeric carrier that
+		// named the rider (no corpus carrier does).
+		if spec, ok := e.casualtySpec(pc.card); ok && (spec.nonLegendary || spec.setLoyalty) {
+			var cc events.StackCopyCounter
+			cc.NonLegendary = spec.nonLegendary
+			if spec.setLoyalty {
+				cc.Loyalty, cc.HasLoyalty = spec.threshold, true
+				if pc.casualtyVariable {
+					cc.Loyalty = pc.casualtyX
+				}
+			}
+			pt.CasPayload = events.StackCopyCounterString(cc)
+		}
+		e.pendingTriggers = append(e.pendingTriggers, pt)
 	}
 	if castEv.Kind == events.PutOnStack {
 		e.fireManaSpentTriggers(castEv, castLKI)

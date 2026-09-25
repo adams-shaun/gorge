@@ -146,6 +146,13 @@ type pendingTrigger struct {
 	// Casualty is queued only for a paid sacrifice at the completed cast
 	// boundary. The keyword trigger body is rebuilt from its logged push.
 	Casualty bool
+	// CasPayload is the copy body's rider payload, in the StackCopy Counter
+	// grammar (events.StackCopyCounter): the Casualty:X carrier's script
+	// riders (Ob Nixilis, the Adversary's NonLegendary$ True |
+	// SetLoyalty$ Casualty:...), so the __kwCasualty: rebuild mints the
+	// identical copy body on replay. Empty for every numeric Casualty, whose
+	// copy is an exact copy. Plain data carried to the push's Counter.
+	CasPayload string
 	// Demonstrate is a GRANTED demonstrate keyword (a layer-6 AddKeyword$
 	// Demonstrate -- Silverquill Lecturer's "Creature spells you cast have
 	// demonstrate", The Twelfth Doctor's non-hand grant, Try-My-Deck

@@ -159,7 +159,22 @@ func EntryCounterGrants(o *state.Object, faceDown bool) []EntryCounterGrant {
 	// the same total-fail-closed stance the fold took. The Phyrexian
 	// compleated payment (CR 702.143) lowers it by the life paid.
 	if f := o.Face(); f != nil && f.IsPlaneswalker() {
-		if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
+		// CR 306.5b: a planeswalker enters with loyalty counters equal to its
+		// starting loyalty. A CopySpellAbility SetLoyalty$ rider (Ob Nixilis,
+		// the Adversary's Casualty:X copy) names the starting loyalty
+		// directly, replacing the printed face value; a 0 value is real (the
+		// copy enters with no loyalty counters). A face whose printed
+		// starting loyalty this engine cannot read (absent, non-numeric) or
+		// the dynamic Loyalty:X form grants nothing, the same total
+		// fail-closed stance the fold took. The Phyrexian compleated payment
+		// (CR 702.143) lowers it by the life paid.
+		if o.CopyLoyaltySet {
+			loyalty := o.CopyLoyalty - o.CompleatedLifePaid
+			if loyalty < 0 {
+				loyalty = 0
+			}
+			grants = append(grants, EntryCounterGrant{Kind: "LOYALTY", Amount: loyalty})
+		} else if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
 			loyalty := int32(n) - o.CompleatedLifePaid
 			if loyalty < 0 {
 				loyalty = 0

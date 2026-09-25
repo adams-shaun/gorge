@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -260,6 +261,23 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// riders take. No event field is added or reordered; an absent or False
 	// key adds no strip, but a copy of a stripped copy inherits the strip.
 	nonLegendary := strings.EqualFold(strings.TrimSpace(sa.Params["NonLegendary"]), "True")
+	// SetLoyalty$ (the corpus's one carrier is Ob Nixilis, the Adversary's
+	// Casualty:X script rider): the copy's starting loyalty, delivered
+	// RESOLVED -- the creating trigger's payload already substituted the
+	// casualty amount for the script's `Casualty` value, so the value here
+	// is a number. The rider composes into the StackCopy event's Counter
+	// payload (events.StackCopyCounter), which the entry fold
+	// (events.EntryCounterGrants) places instead of the printed face value.
+	// An absent key leaves the printed starting loyalty; an unparseable
+	// value cannot arise from the payload path and is ignored.
+	var riders events.StackCopyCounter
+	riders.NonLegendary = nonLegendary
+	if raw := strings.TrimSpace(sa.Params["SetLoyalty"]); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
+			riders.Loyalty, riders.HasLoyalty = int32(n), true
+		}
+	}
+	payload := events.StackCopyCounterString(riders)
 	// RememberCopies$ True (Shiko and Narset, Unified's "copy that spell ...
 	// If you don't copy a spell this way, draw a card"; Chef's Kiss's "the
 	// spell and the copy"; Tempt with Mayhem's per-copier count): Forge's
@@ -289,10 +307,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		// carrier combines the two; Forge's definedTarget branch ignores it
 		// too).
 		for _, t := range targets {
-			ev := events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}}
-			if nonLegendary {
-				ev.Counter = "nonlegendary"
-			}
+			ev := events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}, Counter: payload}
 			emitCopy(h, c, rememberCopies, ev)
 		}
 	case defined:
@@ -311,10 +326,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		}
 		for _, sp := range copies {
 			for i := 0; i < n; i++ {
-				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller}
-				if nonLegendary {
-					ev.Counter = "nonlegendary"
-				}
+				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller, Counter: payload}
 				if mayChoose {
 					// CR 707.10c: the copy's controller may choose new targets. The
 					// permission rides the StackCopy event (Amount 1), so it is
