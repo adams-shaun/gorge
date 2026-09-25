@@ -4408,6 +4408,7 @@ type PlayerSpecCtx struct {
 	Source            state.ObjID
 	DefendingPlayer   state.Target
 	DelayedRemembered []state.Target
+	OpponentOf        []state.Target
 }
 
 // MatchesPlayerSpecCtx is the full player-side filter: the same grammar as
@@ -4675,6 +4676,18 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			continue
 		}
 		switch qualifier {
+		case "OpponentOf Remembered":
+			// This supported referent is bound by a resolving ChoosePlayer's
+			// Ctx.Remembered. Other OpponentOf spellings remain fail-closed;
+			// their event roles need distinct, explicit bindings.
+			if base == "Player" || base == "Any" {
+				for _, ref := range pc.OpponentOf {
+					if ref.IsPlayer && int(ref.Player) < len(g.Players) &&
+						int(p) < len(g.Players) && p != ref.Player {
+						return true
+					}
+				}
+			}
 		case "IsCorrupted":
 			if playerIsCorrupted(g, p) {
 				return true
@@ -5084,7 +5097,10 @@ func MatchesPlayerSpecWithSVars(h Host, c *Ctx, spec string, p, you state.Player
 			}
 			clauses[i] = prefix + base + ".life" + op + strconv.FormatInt(int64(threshold), 10)
 		}
-		if resolved && MatchesPlayerSpecFrom(h.Game(), strings.Join(clauses, "+"), p, you, c.Source) {
+		if resolved && MatchesPlayerSpecCtx(h.Game(), strings.Join(clauses, "+"), p, you, PlayerSpecCtx{
+			Source:     c.Source,
+			OpponentOf: c.Remembered,
+		}) {
 			return true
 		}
 	}
