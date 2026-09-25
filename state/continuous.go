@@ -348,6 +348,11 @@ type ContinuousEffect struct {
 	// way the timestamps order independent effects. Empty on every effect
 	// that removes none.
 	RemoveKeywords []string
+	// CantHaveKeywords names keywords the affected object can't have or gain
+	// (CR 613.1f): after the layer-6 walk has applied every grant, Derived
+	// removes each prohibited keyword head, suppressing printed, intrinsic and
+	// granted keywords alike. Empty on effects that prohibit none.
+	CantHaveKeywords []string
 	// MayPlay marks a may-play-from-zone grant (CR 401.5: "you may play
 	// cards of a certain kind from a zone other than the one they would
 	// normally be played from", e.g. Conduit of Worlds' "You may play lands

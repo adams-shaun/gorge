@@ -237,12 +237,16 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							pt.AddToughnessAffected = effects.AffectedXStaticAmount(pt.AddToughnessExpr)
 							out = append(out, pt)
 						}
-						if hasStat(st, "AddKeyword") {
+						if hasStat(st, "AddKeyword") || hasStat(st, "RemoveKeyword") || hasStat(st, "CantHaveKeyword") {
 							kw := base
 							kw.Layer = LAbilities
 							kw.AddKeywords = statKeywords(st)
+							kw.RemoveKeywords = statRemoveKeywords(st)
+							kw.CantHaveKeywords = statCantHaveKeywords(st)
 							kw.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
-							out = append(out, kw)
+							if len(kw.AddKeywords) > 0 || len(kw.RemoveKeywords) > 0 || len(kw.CantHaveKeywords) > 0 {
+								out = append(out, kw)
+							}
 						}
 						// A printed Continuous AddAbility$ static (Ichormoon Gauntlet's
 						// "Planeswalkers you control have [0]: Proliferate", a lord
@@ -1225,6 +1229,14 @@ func addPT(a, b int32) int32 {
 // inside a keyword's parameters.
 func statKeywords(st cards.Static) []string {
 	return cards.SplitKeywordList(st.Params["AddKeyword"])
+}
+
+func statRemoveKeywords(st cards.Static) []string {
+	return cards.SplitKeywordList(st.Params["RemoveKeyword"])
+}
+
+func statCantHaveKeywords(st cards.Static) []string {
+	return cards.SplitKeywordList(st.Params["CantHaveKeyword"])
 }
 
 // statList parses additive TYPE parameters. Type lists retain their existing
@@ -2262,18 +2274,17 @@ func (e *Engine) active() []ContinuousEffect {
 			}
 			return 1
 		}
-		// A full tie inside layer 6 between an ability-REMOVING effect and an
-		// ability-granting one (a static line carrying both RemoveAllAbilities$
-		// True and AddKeyword$ -- Darksteel Mutation, Deep Freeze, Stasis Field,
-		// Spider-Man No More; measured 4 corpus files) applies removal first:
-		// the oracle's "loses all OTHER abilities" grants after stripping (CR
-		// 613.1f's removal-then-grant reading of a simultaneous pair). Without
-		// this tie-break the stable sort keeps the scanner's emission order and
-		// the removal wipes the very grant on its own line. Timestamps still
+		// A full tie inside layer 6 between an ability/keyword-removing effect
+		// and an ability-granting one applies removal first: static lines that
+		// strip and grant together follow CR 613.1f's removal-then-grant reading
+		// of a simultaneous pair. Without this tie-break the stable sort keeps
+		// scanner emission order and may wipe the grant. Timestamps still
 		// dominate: a LATER removal (Humility entering after) still wipes an
 		// earlier grant.
-		if a.Layer == LAbilities && a.RemoveAbilities != b.RemoveAbilities {
-			if a.RemoveAbilities {
+		aRemovesKeywords := a.RemoveAbilities || len(a.RemoveKeywords) > 0
+		bRemovesKeywords := b.RemoveAbilities || len(b.RemoveKeywords) > 0
+		if a.Layer == LAbilities && aRemovesKeywords != bRemovesKeywords {
+			if aRemovesKeywords {
 				return -1
 			}
 			return 1
@@ -3093,6 +3104,7 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	// colour change never gates another layer's match on this corpus, and
 	// layer 4 settled above.
 	seq := e.abilityDependencyOrder(active, id, ty, kw, atStack)
+	var cantHaveKeywords [][]string
 	for _, ce := range seq {
 		// kw is the walk's keywords-so-far list for THIS object (printed
 		// keywords, IntrinsicKeywords, marker-counter grants and every
@@ -3114,6 +3126,9 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
 				continue
 			}
+		}
+		if len(ce.CantHaveKeywords) > 0 {
+			cantHaveKeywords = append(cantHaveKeywords, ce.CantHaveKeywords)
 		}
 		switch ce.Layer {
 		case LText:
@@ -3182,6 +3197,18 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 			}
 		}
 	}
+	// CR 613.1f / Forge Card.updateKeywords: a CantHaveKeyword$ prohibition is
+	// a final filter after every layer-6 grant. It suppresses printed keywords,
+	// marker-counter grants and later AddKeyword$ grants alike.
+	for _, prohibited := range cantHaveKeywords {
+		kept := kw[:0]
+		for _, k := range kw {
+			if !containsKeywordHead(prohibited, k) {
+				kept = append(kept, k)
+			}
+		}
+		kw = kept
+	}
 	colors := col.String()
 	if e.derivedDepth <= 1 {
 		// Keep the grown buffers on the Engine for the next build; a re-entrant
@@ -3234,7 +3261,17 @@ func abilityKWAfter(ce ContinuousEffect, kw []string) []string {
 		}
 		out = kept
 	}
-	return append(out, ce.AddKeywords...)
+	out = append(out, ce.AddKeywords...)
+	if len(ce.CantHaveKeywords) > 0 {
+		kept := out[:0]
+		for _, k := range out {
+			if !containsKeywordHead(ce.CantHaveKeywords, k) {
+				kept = append(kept, k)
+			}
+		}
+		out = kept
+	}
+	return out
 }
 
 // abilityDependencyOrder applies CR 613.6's dependency reordering to the
@@ -3281,7 +3318,7 @@ func (e *Engine) abilityDependencyOrder(active []ContinuousEffect, id state.ObjI
 	var gated, mods []int
 	for gi := range group {
 		ce := &group[gi]
-		if ce.RemoveAbilities || len(ce.RemoveKeywords) > 0 || len(ce.AddKeywords) > 0 {
+		if ce.RemoveAbilities || len(ce.RemoveKeywords) > 0 || len(ce.CantHaveKeywords) > 0 || len(ce.AddKeywords) > 0 {
 			mods = append(mods, gi)
 		}
 		if effects.SpecReadsKeywords(ce.Affects) {
