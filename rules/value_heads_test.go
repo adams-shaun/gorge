@@ -46,17 +46,45 @@ func TestValueHeadRegistryMatchesEvaluator(t *testing.T) {
 			sort.Strings(names)
 			for _, name := range names {
 				body := f.SVars[name]
-				head, ok := cards.ValueHead(body)
-				if !ok || !referenced[head] {
+				outer, _ := cards.ValueHead(body)
+				// A body's arithmetic suffixes carry operands the evaluator
+				// resolves as full Count$ expressions (Okinec's
+				// Count$CardPower/Minus.Count$CardBasePower), and the head an
+				// operand names is its own coverage primitive. The grammar
+				// comes from the same cards.ValueHeadOperands the census
+				// attributes with, so this check and ValueHeads can never
+				// disagree about what a body reads.
+				set := map[string]struct{}{}
+				if h, ok := cards.ValueHead(body); ok {
+					set[h] = struct{}{}
+				}
+				for _, h := range cards.ValueHeadOperands(body) {
+					set[h] = struct{}{}
+				}
+				if len(set) == 0 {
 					continue
 				}
-				seen[head] = true
-				if resolves[head] {
-					continue
+				heads := make([]string, 0, len(set))
+				for h := range set {
+					heads = append(heads, h)
 				}
+				sort.Strings(heads)
 				ctx := &effects.Ctx{Source: id, Controller: 0, SVars: f.SVars}
-				if _, ok := effects.EvalCountOK(e, ctx, strings.TrimSpace(body)); ok {
-					resolves[head] = true
+				for _, h := range heads {
+					if !referenced[h] || resolves[h] {
+						continue
+					}
+					seen[h] = true
+					probe := body
+					if h != outer {
+						// An operand head is read through its own bare
+						// Count$ expression at run time, so that is the
+						// body whose resolution this check verifies.
+						probe = "Count$" + h
+					}
+					if _, ok := effects.EvalCountOK(e, ctx, strings.TrimSpace(probe)); ok {
+						resolves[h] = true
+					}
 				}
 			}
 		}
