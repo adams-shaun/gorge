@@ -522,6 +522,9 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
 				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
 					Counter: kind, Amount: n})
+				if n > 0 && strings.EqualFold(strings.TrimSpace(sa.Params["RememberPut"]), "True") {
+					placed = append(placed, state.Target{Player: p, IsPlayer: true})
+				}
 			}
 			continue
 		}
@@ -827,8 +830,9 @@ func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
 	return false
 }
 
-// rememberPlaced folds the objects a PutCounter pass just countered into the
-// resolution's Remembered set, when the SA carries RememberCards$ True. The
+// rememberPlaced folds the recipients a PutCounter pass just countered into
+// the resolution's Remembered set, when the SA carries RememberCards$ True or
+// RememberPut$ True. The
 // flag names the cards that WERE countered, never the attempt: a pass that
 // placed no counter remembers nothing. A RepeatEach loop's rememberIteration
 // propagates what the iteration remembered into the loop's own set, so
@@ -836,7 +840,8 @@ func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
 // loop-tail DBEffect (RememberObjects$ Remembered) both see the vowed
 // creatures without any event-backed persistence.
 func rememberPlaced(c *Ctx, sa *cards.SA, placed []state.Target) {
-	if len(placed) == 0 || !strings.EqualFold(strings.TrimSpace(sa.Params["RememberCards"]), "True") {
+	if len(placed) == 0 || (!strings.EqualFold(strings.TrimSpace(sa.Params["RememberCards"]), "True") &&
+		!strings.EqualFold(strings.TrimSpace(sa.Params["RememberPut"]), "True")) {
 		return
 	}
 	c.Remembered = append(c.Remembered, placed...)
