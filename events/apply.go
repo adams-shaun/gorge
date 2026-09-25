@@ -909,6 +909,13 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 		if o := g.Obj(e.Obj); o != nil {
+			// A WithMayLook$ look permission is a property of ONE face-down
+			// exile, so every later move clears it: the "exiled_with_face_down_
+			// maylook" branch below re-sets it for the exile that grants it.
+			// Without this reset a card exiled face down a second time (or
+			// otherwise moved) would keep a stale looker and leak its face.
+			o.HasMayLook = false
+			o.MayLookPlayer = 0
 			if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
 				applyEntryCounterPairs(o, e.Pairs)
 			}
@@ -944,6 +951,26 @@ func Apply(g *state.Game, e Event) {
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
 					if moveCounter == "exiled_with_face_down_foretold" {
+						o.CastFlags |= state.FlagForetold
+					}
+				case "exiled_with_face_down_maylook", "exiled_with_face_down_maylook_foretold":
+					// A WithMayLook$ True face-down exile (Ixhel, Scion of Atraxa):
+					// same state as the Hideaway spell, plus the look permission the
+					// exiling effect's controller holds. This marker's own layout
+					// puts the LOOKER in Amount and the exiling source in IDs, so
+					// both survive replay with no new event kind and no Event field
+					// change. MayLookPlayer replaces Object.Controller as the
+					// privileged viewer (view/cardViews), so the card's owner cannot
+					// read a face the owner never had the right to look at.
+					o.FaceDown = true
+					o.MayLookPlayer = state.PlayerID(e.Amount)
+					o.HasMayLook = true
+					if len(e.IDs) > 0 {
+						o.ExiledWith = e.IDs[0]
+					} else {
+						o.ExiledWith = 0
+					}
+					if moveCounter == "exiled_with_face_down_maylook_foretold" {
 						o.CastFlags |= state.FlagForetold
 					}
 				case "face_down":

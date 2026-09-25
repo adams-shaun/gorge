@@ -2857,10 +2857,18 @@ var knownUnsupportedParams = map[string][]string{
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
 	// partial clear and the TurnChange expiry — pinned end to end on the real
 	// corpus carrier Rousing Refrain in rules/persistent_mana_test.go.)
-	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
-	"Rescue, Pepper Potts":           {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook"},
-	"Speed, Young Avenger":           {"param:api:Effect.ValidTgtsDesc"},
+	"Purphoros, God of the Forge": {"param:stat:Continuous.RemoveType"},
+	"Rescue, Pepper Potts":        {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Scarlet Witch, Chaotic Avenger's param:api:Dig.WithMayLook entry was
+	// deleted when effDig's shared face-down marker learned to read
+	// WithMayLook$ (ticket agent-20260919T181318Z-631ddc68): the exiling
+	// effect's controller is recorded as the one player who may look at the
+	// face-down exiled card (effects/zone.go applyFaceDownMarker, the
+	// "exiled_with_face_down_maylook" MoveZone marker; view/cardViews redacts
+	// to that looker), pinned end to end on the real corpus Ixhel carrier in
+	// rules/dig_withmaylook_test.go. The Dig library-position and
+	// random-order variants are separate, already-listed gaps.
+	"Speed, Young Avenger": {"param:api:Effect.ValidTgtsDesc"},
 	// (Spinerock Knoll and West Coast Expansion's param:api:Play.Controller
 	// / param:api:Play.WithoutManaCost rows retired when the Play
 	// Controller$ read landed and the play resume arm's rider reads were
