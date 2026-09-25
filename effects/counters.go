@@ -529,8 +529,17 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			}
 			continue
 		}
+		// CR 122.1: counters can exist on an object in ANY zone -- a
+		// suspended card's time counters live on the exiled card (CR
+		// 702.62a), and The Tenth Doctor's recalled permanent takes them in
+		// exile. The gate was a battlefield-only precondition, which silently
+		// dropped the whole instruction for a non-battlefield recipient (the
+		// ETB$ True special case was the only tolerated exception); the
+		// recipient is now whatever object the effect's own Defined$ referent
+		// resolved, in whatever zone it currently sits. CounterChange folds
+		// through events.Apply for any live object regardless of zone.
 		o := h.Game().Obj(t.Obj)
-		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
+		if o == nil {
 			continue
 		}
 		// Adapt$'s put is itself conditional (CR 702.35a: "If this creature has
@@ -755,7 +764,9 @@ func targetCountersLKI(c *Ctx, id state.ObjID, o *state.Object) ([]state.Counter
 //     read, so the election is never posed over a pool the placement
 //     would refuse;
 //   - the plain target loop: a player target whose PlayerOf resolves, or
-//     an object target on the battlefield (or mid-entry when ETB$ True).
+//     any existing object target (in any zone -- CR 122.1, the same
+//     recipients the ordinary loop now places on; an ETB$ True mid-entry
+//     object included, since it is a live object either way).
 //
 // It is a pure read: no event, no state change, replay-safe.
 func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
@@ -783,7 +794,6 @@ func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
 		}
 		return Num(h, c, sa, "ChoiceAmount", defMax) >= 1
 	}
-	etb := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
@@ -791,11 +801,7 @@ func putCounterWouldPlace(h Host, c *Ctx, sa *cards.SA) bool {
 			}
 			continue
 		}
-		o := g.Obj(t.Obj)
-		if o == nil {
-			continue
-		}
-		if o.Zone == state.ZBattlefield || etb {
+		if o := g.Obj(t.Obj); o != nil {
 			return true
 		}
 	}
