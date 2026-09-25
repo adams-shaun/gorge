@@ -2080,6 +2080,19 @@ func Apply(g *state.Game, e Event) {
 					Mode: e.Text, Scope: scope,
 					Turn: g.Turn, Combat: g.CombatsThisTurn,
 				})
+				if scope == state.ModeScopeYourLastCombat {
+					// Resynchronise the object's combat identity to the clock the
+					// pick was just stamped from. An object that entered the
+					// battlefield (or changed controller) after this combat's
+					// BeginCombat rotation was not in that loop, so its
+					// CurCombat* is stale or zero; without this, a second ask in
+					// the SAME combat would wrongly treat the current combat's
+					// pick as an earlier combat's and withhold its mode. Setting
+					// it here keeps the identity derived from the same game clock
+					// the pick carries, so rotation at the next combat start still
+					// retains exactly this pick.
+					o.CurCombatTurn, o.CurCombatCombat = g.Turn, g.CombatsThisTurn
+				}
 			case "protector":
 				// CR 310.10: the Siege protector chosen as this Battle
 				// entered. Player carries the chosen opponent's seat.

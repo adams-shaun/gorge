@@ -202,6 +202,44 @@ func TestCharmChoiceRestrictionUnknownScopeNotesAndFailsOpen(t *testing.T) {
 	}
 }
 
+func TestCharmChoiceRestrictionYourLastCombatObjectEnteredAfterBeginCombat(t *testing.T) {
+	// A permanent that enters the battlefield AFTER this combat's BeginCombat
+	// rotation (a blink, a flash creature, a reanimation) was not in the
+	// rotation loop, so its CurCombat* stamp is zero/stale. A pick it makes in
+	// THIS combat is still a current-combat pick, so a second ask in the same
+	// combat must not withhold that mode -- only the preceding combat's picks
+	// are forbidden. Before the Choose-fold resync this test failed: the
+	// second ask returned [PumpField PumpHand] instead of all three modes.
+	e, _, source, sa := charmScopeFixture(t, "By Elspeth's Command")
+	all := []string{"PumpField", "PumpHand", "Token"}
+	beginCharmCombat(e)
+	// Blink the source: leave the battlefield and return. The departure block
+	// clears ModeChoices and the combat stamp (CR 400.7), so the returning
+	// permanent is a new object that was never rotated this combat.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: state.ZExile, To: state.ZBattlefield})
+	o := e.G.Obj(source)
+	if o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 {
+		t.Fatalf("precondition: blinked source not a controlled battlefield permanent: %+v", o)
+	}
+	if o.CurCombatTurn != 0 || o.CurCombatCombat != 0 {
+		t.Fatalf("precondition: blinked source kept a combat stamp (%d,%d), want zero", o.CurCombatTurn, o.CurCombatCombat)
+	}
+	if len(o.ModeChoices) != 0 {
+		t.Fatalf("precondition: blinked source kept mode picks: %+v", o.ModeChoices)
+	}
+	recordCharmMode(t, e, source, sa, "Token")
+	pick := e.G.Obj(source).ModeChoices[len(e.G.Obj(source).ModeChoices)-1]
+	if pick.Scope != state.ModeScopeYourLastCombat || pick.Mode != "Token" {
+		t.Fatalf("precondition: pick not recorded as a YourLastCombat Token: %+v", pick)
+	}
+	// Same combat, second ask: the current combat's own pick must not exclude.
+	assertCharmModes(t, effects.CharmEligibleModes(e, source, sa, all), all)
+	// The next combat ages it, so it is then withheld.
+	beginCharmCombat(e)
+	assertCharmModes(t, effects.CharmEligibleModes(e, source, sa, all), []string{"PumpField", "PumpHand"})
+}
+
 func containsMode(modes []string, name string) bool {
 	for _, mode := range modes {
 		if mode == name {
