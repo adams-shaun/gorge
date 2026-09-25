@@ -5161,7 +5161,21 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				// ValidCard$, when present, narrows the same pool: a permanent
 				// must match BOTH spellings (they never co-occur, so this is
 				// just SacValid$ and ValidCard$ in turn).
-				if MatchesSpecCtx(g, spec, id, sc) &&
+				matchesSacValid := MatchesSpecCtx(g, spec, id, sc)
+				if spec == "TargetedCard.Self" {
+					// This SacValid referent names the card target itself, not the
+					// resolving source (Self). A player-targeted sacrifice asks
+					// that card's controller, so admit the exact targeted object
+					// when it is in this player's battlefield pool.
+					matchesSacValid = false
+					for _, target := range c.Targets {
+						if !target.IsPlayer && target.Obj == id {
+							matchesSacValid = true
+							break
+						}
+					}
+				}
+				if matchesSacValid &&
 					(validCard == "" || MatchesSpecCtx(g, validCard, id, sc)) {
 					eligible = append(eligible, id)
 				}
