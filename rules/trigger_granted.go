@@ -153,6 +153,70 @@ func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjI
 	}
 }
 
+// checkCipherTriggers synthesizes Cipher's combat-damage trigger (CR 702.99b)
+// for the creature that just dealt combat damage to a player, when that
+// creature has one or more ENCODED cards. Unlike every checkGranted* walk
+// there is no keyword to read: the association is runtime state
+// (state.Object.EncodedCards, written by effCipher and folded by the Imprint
+// kind's "encoded" discriminator).
+//
+// It is driven directly from checkTriggers -- NOT from the per-object face
+// walk -- because a Damage event dealt to a PLAYER has no object recipient
+// (ev.Obj == 0), so the live walk's zone-skip path would not visit the
+// dealing creature at all (trigMustVisit names only ev.Obj/ev.IDs/ev.Pairs).
+// The dealer is e.damaging, the same source resolution damageEventSource
+// uses, and e.combatDamaging is the flag the combat assignment loop sets.
+// The scan is over battlefield permanents that actually carry an encoded
+// card, and the gate is exact: COMBAT damage (e.combatDamaging), dealt BY
+// that creature (e.damaging == id), to a PLAYER (ev.Obj == 0, ev.Player a
+// seat). A non-combat Damage event never fires it, and a hit redirected onto
+// a permanent (ev.Obj != 0) is not combat damage to a player. The trigger's
+// controller is the creature's CURRENT controller, which is what "its
+// controller may cast" means.
+func (e *Engine) checkCipherTriggers(ev events.Event) {
+	if ev.Obj != 0 || ev.Amount <= 0 || !e.combatDamaging || e.damaging == 0 {
+		return
+	}
+	if int(ev.Player) >= len(e.G.Players) {
+		return
+	}
+	id := e.damaging
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || len(o.EncodedCards) == 0 {
+		return
+	}
+	if int(o.Controller) >= len(e.G.Players) || e.G.Players[o.Controller].Lost {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	for _, card := range o.EncodedCards {
+		c := e.G.Obj(card)
+		if c == nil || c.Zone != state.ZExile {
+			// Defensive: Move already prunes a card that left exile, so a
+			// stale link should be impossible -- but encode nothing rather
+			// than queue a trigger over a card no longer in exile.
+			continue
+		}
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			return // cascade bound: see maxTriggerFires.
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     id,
+			Controller: o.Controller,
+			Cipher:     card,
+			Ctx: effects.Ctx{
+				Source:     id,
+				Controller: o.Controller,
+				Remembered: []state.Target{{Obj: card}},
+			},
+		})
+	}
+}
+
 // checkGrantedExploitTriggers synthesizes Exploit's ETB election (CR 702.58a)
 // for a creature that currently HAS the keyword but does not print it: a
 // layer-6 AddKeyword$ Exploit grant (Colonel Autumn's "Other legendary

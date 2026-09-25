@@ -214,7 +214,7 @@ func triggerOrdersDuplicates(t cards.Trigger) bool {
 func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
 		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
-		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0
+		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0 && pt.Cipher == 0
 }
 
 // orderDuplicatesGroup returns the duplicate-group identity of pt's trigger
@@ -524,6 +524,24 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
 		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	if pt.Cipher != 0 {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, 1)
+		if o := e.G.Obj(pt.Cipher); o != nil && o.Zone == state.ZExile {
+			ids = append(ids, pt.Cipher)
+		}
+		if len(ids) == 0 {
+			// The encoded card left exile between the match and the push; the
+			// trigger has nothing to copy.
+			return
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwCipher:", IDs: ids, Text: "cipher copy trigger"})
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

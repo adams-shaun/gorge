@@ -2183,6 +2183,15 @@ type Ctx struct {
 	DemonstrateStage int
 	DemonstrateYes   bool
 	DemonstrateOpp   []state.Target
+	// Cipher carries the api:Cipher (CR 702.99a) encode ask's answer across a
+	// mid-resolution suspension. CipherDone marks the ask answered and
+	// CipherPick is the chosen creature (one object target; an empty slice is
+	// the decline). rules' "cipher" resume arm rebuilds both from the
+	// decision's answer, and effCipher consumes and clears both at the top of
+	// its walk (the fx42 scoping discipline), so a nested Cipher poses its own
+	// ask.
+	CipherDone bool
+	CipherPick []state.Target
 	// VoteCounts is the per-subject tally the most recent api:Vote left for
 	// this resolution's AmountFromVotes$ readers (effects/choose_control.go's
 	// effRepeatEach): one entry per ballot subject -- every player the

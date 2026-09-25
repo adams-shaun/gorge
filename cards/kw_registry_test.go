@@ -106,6 +106,8 @@ var expandedHeads = []string{
 	// (cards/kw_ninjutsu.go). Added after the split; the pre-split switch
 	// never had it.
 	"Ninjutsu",
+	// Cipher: printed spell encode plus a runtime encoded-creature trigger.
+	"Cipher",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

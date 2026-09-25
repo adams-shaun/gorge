@@ -157,6 +157,18 @@ type pendingTrigger struct {
 	// with the cast spell riding IDs as Remembered. Idx and SA are unset
 	// for it.
 	Demonstrate bool
+	// Cipher is the combat-damage-to-player trigger a creature's ENCODED
+	// card grants (CR 702.99b: "Whenever that creature deals combat damage
+	// to a player, its controller may cast a copy of the encoded card
+	// without paying its mana cost"). It has no printed trigger index --
+	// the association that grants it is runtime state (state.Object
+	// .EncodedCards) -- so this field carries the encoded CARD's object id
+	// (0 = not a cipher trigger, so the zero value is never a real one).
+	// The drain pushes a KeywordTriggerPush whose __kwCipher: payload
+	// events.Apply rebuilds into the same DB$ Play body that copies and
+	// casts the exiled card, with the encoded card riding IDs as
+	// Remembered. Idx and SA are unset for it.
+	Cipher state.ObjID
 	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
 	// cascade1): the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
@@ -832,6 +844,9 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
+	if ev.Kind == events.Damage {
+		e.checkCipherTriggers(ev)
+	}
 	if ev.Kind == events.TurnChange {
 		e.collectExpiredDelayedTriggers()
 	}

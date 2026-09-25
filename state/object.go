@@ -898,6 +898,18 @@ type Object struct {
 	// again.
 	ModeChoices []ModeChoice
 
+	// EncodedCards holds the CIPHER spell cards exiled ENCODED on this creature
+	// (CR 702.99a: "exile this spell card encoded on a creature you control").
+	// It is the creature-side home of the association: the encoded card is an
+	// ordinary card in exile, and each entry stays a live link only while that
+	// card remains in exile AND this object remains on the battlefield --
+	// events.Move prunes an entry whose card left exile, and clears the whole
+	// list when this object leaves the battlefield, so nothing reads a stale
+	// link. Event-backed through the Imprint kind's "encoded" Text
+	// discriminator, so a replay rebuilds the same association. The combat
+	// trigger the encoded card grants reads it at damage time.
+	EncodedCards []ObjID
+
 	// Imprinted holds cards ImprintCards$ explicitly associated with this
 	// object. It is distinct from ExiledCards: Forge's host card has separate
 	// imprintedCards and exiledCards collections, and their consumers must not
