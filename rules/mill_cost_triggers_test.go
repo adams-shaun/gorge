@@ -26,14 +26,19 @@ func millCostTriggerEngine(t *testing.T, triggerNames []string, n int) (*Engine,
 	return e, triggerIDs, lib[:n]
 }
 
-func queuedMillTriggers(e *Engine, source state.ObjID) int {
-	n := 0
+// queuedMillTriggers returns the number of queued trigger instances for
+// source and the TriggerAmount the last one carries. closeMillBatch patches
+// the batch's matching-card count into the queued MilledAll trigger's
+// TriggerContext.TriggerAmount, so the amount proves the batch latch engaged
+// and not merely that the trigger queued.
+func queuedMillTriggers(e *Engine, source state.ObjID) (count int, amount int32) {
 	for _, tr := range e.pendingTriggers {
 		if tr.Source == source {
-			n++
+			count++
+			amount = tr.Ctx.TriggerContext.TriggerAmount
 		}
 	}
-	return n
+	return count, amount
 }
 
 func TestMillCostTriggersMilledPerCard(t *testing.T) {
@@ -48,8 +53,8 @@ func TestMillCostTriggersMilledPerCard(t *testing.T) {
 			t.Fatalf("precondition: cost-milled card %d is not in graveyard: %+v", id, o)
 		}
 	}
-	if got := queuedMillTriggers(e, sources[0]); got != 1 {
-		t.Fatalf("Glowing One queued trigger count = %d, want 1 for one cost-milled card", got)
+	if got, amount := queuedMillTriggers(e, sources[0]); got != 1 || amount != 1 {
+		t.Fatalf("Glowing One queued trigger count = %d amount = %d, want 1/1 for one cost-milled card", got, amount)
 	}
 }
 
@@ -65,7 +70,7 @@ func TestMillCostTriggersMilledAllOnceForBatch(t *testing.T) {
 			t.Fatalf("precondition: cost-milled card %d is not in graveyard: %+v", id, o)
 		}
 	}
-	if got := queuedMillTriggers(e, sources[0]); got != 1 {
-		t.Fatalf("Mothman queued trigger count = %d, want one MilledAll trigger for a three-card cost mill", got)
+	if got, amount := queuedMillTriggers(e, sources[0]); got != 1 || amount != 3 {
+		t.Fatalf("Mothman queued trigger count = %d amount = %d, want one MilledAll trigger with the batch amount 3 for a three-card cost mill", got, amount)
 	}
 }
