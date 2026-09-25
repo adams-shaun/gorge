@@ -92,7 +92,7 @@ func TestBotReserveCountsJustPlayedLand(t *testing.T) {
 	// Precondition 2: the adapter hands the policy four live basic green
 	// sources and a {G}{G} instant reserve in hand, with the pending burn on
 	// the stack whose cost the policy will price.
-	b := boardFromView(v)
+	b := BoardFromView(v)
 	live := 0
 	for id := state.ObjID(1); id <= 4; id++ {
 		c := b.Cards[id]

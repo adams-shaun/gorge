@@ -8,7 +8,7 @@
 // package existed the two sides each carried a line-for-line copy of the
 // policy under a "keep the two in step" comment. This package is that
 // comment made code: there is one policy, and the two adapters are thin
-// value constructions (seat/bot.go's boardFromView; rules/testbot_test.go's
+// value constructions (seat/bot.go's BoardFromView; rules/testbot_test.go's
 // answer) feeding the same Decide with the same rng consumption points.
 // seat/integration_test.go's TestBotAdaptersAgree* pins the two halves to
 // the same Board for the same game facts.
@@ -24,7 +24,7 @@ import (
 
 // Board is the plain-data picture of the game the policy reads. Every fact
 // the policy branches on lives here, produced identically by the two
-// adapter halves — seat/bot.go's boardFromView lifts it off the projected
+// adapter halves — seat/bot.go's BoardFromView lifts it off the projected
 // View a real client receives, and BoardFromGame (combat.go) lifts it off
 // the engine's state.Game — so whatever the heuristic sees, whichever host
 // asks, is the same board (pinned over a whole game by seat/integration_test.go's
@@ -117,7 +117,7 @@ type Board struct {
 	//	(cast.go's C8) reads it to tell whose spells are on the stack: a
 	//	counter cast is worth its mana only when a FOREIGN spell is there to
 	//	counter, never at an own-spells-only (or empty) stack. Both adapter
-	//	halves fill it identically (seat/bot.go's boardFromView off the
+	//	halves fill it identically (seat/bot.go's BoardFromView off the
 	//	projected StackView list; BoardFromGame off state.Game.Stack), pinned
 	//	on every intent of a whole game by seat/integration_test.go's parity
 	//	tests.
@@ -132,7 +132,7 @@ type Board struct {
 	// spells are on the stack: a counter cast is worth its mana only when
 	// a FOREIGN spell is there to counter, never at an own-spells-only (or
 	// empty) stack. Both adapter halves fill it identically (seat/bot.go's
-	// boardFromView off the projected StackView list; BoardFromGame off
+	// BoardFromView off the projected StackView list; BoardFromGame off
 	// state.Game.Stack), pinned on every intent of a whole game by
 	// seat/integration_test.go's parity tests.
 	Stack []StackEntry
@@ -178,7 +178,7 @@ type Board struct {
 }
 
 // Commander is the Board's per-commander commander-format bookkeeping,
-// filled identically by both adapter halves (seat/bot.go's boardFromView
+// filled identically by both adapter halves (seat/bot.go's BoardFromView
 // off the projected View's Commanders/CommanderCasts/CmdDamage fields,
 // BoardFromGame off state.Game's Player.Commanders/CmdCasts/CmdDamage —
 // combat.go). Casts is the CR 903.8 tax base: the next command-zone cast
