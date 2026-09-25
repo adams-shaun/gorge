@@ -90,6 +90,9 @@ func TestTeacherChoiceRollsEveryCandidateOnSampledWorlds(t *testing.T) {
 	if err != nil || got.Rollouts != 4 || len(got.Values) != 2 {
 		t.Fatalf("teacher %+v %v", got, err)
 	}
+	if len(got.WinsOverBaseline) != 2 || len(got.LossesToBaseline) != 2 || got.WinsOverBaseline[1]+got.LossesToBaseline[1] > 2 {
+		t.Fatalf("paired outcomes do not describe the two common worlds: %+v", got)
+	}
 	again, err := TeacherChoice(result.Worlds, cands, opts)
 	if err != nil || again.Index != got.Index || again.Values[0] != got.Values[0] || again.Values[1] != got.Values[1] {
 		t.Fatalf("teacher not deterministic: %+v vs %+v", got, again)

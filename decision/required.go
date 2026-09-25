@@ -135,7 +135,8 @@ func (d *Decision) FitRequired(choices []int) []int {
 	}
 	if len(choices) <= d.maxChoices() &&
 		(!d.HasBudget() || sum <= d.MaxSum) &&
-		d.RequiredChosen(choices) >= d.RequiredQuota() {
+		d.RequiredChosen(choices) >= d.RequiredQuota() &&
+		!d.groupCapExceeded(choices) {
 		return choices
 	}
 
@@ -143,12 +144,11 @@ func (d *Decision) FitRequired(choices []int) []int {
 	sum = 0
 	slotOf := make(map[state.ObjID]int, len(out)) // Obj -> position in out.
 	have := make(map[int]bool, len(out)+len(choices))
-	// groups counts the picked options per Group against GroupCap() -- the
+	// groups counts the picked options per Group against GroupCapFor -- the
 	// same cap Decision.Validate enforces, so a repaired answer can never be
 	// one Validate rejects. At the default cap of 1 a nonzero count is the
 	// historical boolean "already represented", so every limit-free decision
 	// repairs byte-identically.
-	limit := d.GroupCap()
 	groups := make(map[string]int)
 	objTaken := make(map[state.ObjID]bool, len(out)) // membership only.
 	for i, c := range out {
@@ -175,7 +175,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 		if requiredObj[o.Obj] {
 			if slot, ok := slotOf[o.Obj]; ok {
 				old := &d.Options[out[slot]]
-				if (o.Group != "" && o.Group != old.Group && groups[o.Group] >= limit) || !fits(o.Value-old.Value) {
+				if (o.Group != "" && o.Group != old.Group && groups[o.Group] >= d.GroupCapFor(o.Group)) || !fits(o.Value-old.Value) {
 					continue
 				}
 				sum += o.Value - old.Value
@@ -200,7 +200,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 		if d.Kind == KAttackers && objTaken[o.Obj] {
 			continue
 		}
-		if (o.Group != "" && groups[o.Group] >= limit) || !fits(o.Value) {
+		if (o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group)) || !fits(o.Value) {
 			continue
 		}
 		sum += o.Value
@@ -238,7 +238,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 				break
 			}
 			o := &d.Options[c]
-			if (o.Group != "" && groups[o.Group] >= limit) || (d.Kind == KAttackers && objTaken[o.Obj]) {
+			if (o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group)) || (d.Kind == KAttackers && objTaken[o.Obj]) {
 				continue
 			}
 			sum += o.Value

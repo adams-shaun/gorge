@@ -80,6 +80,11 @@ var addedAfterTheSplit = []string{
 	// event the level-up activator's PutCounter emits, so the event existed
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
+	// phaseoutall1: "Whenever one or more other permanents phase out" (CR
+	// 702.25b; The War Doctor). It matches the events.PhaseOut marker the
+	// api:Phases primitive emits, which existed before the mode did, so no
+	// pre-split switch arm could have dispatched it.
+	"PhaseOutAll",
 	"ClassLevelGained",
 	// trig-damageall: "Whenever one or more <sources> deal damage to one or
 	// more <targets>" (Contaminant Grafter, Malcolm Keen-Eyed Navigator,

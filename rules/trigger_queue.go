@@ -383,6 +383,13 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
+	if pt.RadiationDrain {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__radiation_drain"})
+		return
+	}
 	if pt.MonarchDraw {
 		// Use DelayedPush's event-sourced stack-object creation. Apply has a
 		// dedicated synthetic body for this engine-owned trigger, so no card
@@ -1415,6 +1422,47 @@ func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembe
 		return who, false
 	}
 	return who, true
+}
+
+// targetChooserFromSpec resolves a trigger-relative target chooser. Unknown or
+// absent referents fail closed to the caller's controller.
+func (e *Engine) targetChooserFromSpec(spec string, controller state.PlayerID, remembered []state.Target, tc effects.TriggerContext) (state.PlayerID, bool) {
+	var target state.Target
+	switch strings.TrimSpace(spec) {
+	case "TriggeredTarget":
+		target = tc.TriggerTarget
+	case "TriggeredPlayer":
+		target = tc.TriggerPlayer
+	case "TriggeredDefendingPlayer", "DefendingPlayer":
+		target = tc.DefendingPlayer
+	case "TriggeredAttackingPlayer":
+		target = tc.AttackingPlayer
+	case "TriggeredCardController":
+		if p, ok := effects.TriggeredCardController(e.G, tc, remembered); ok {
+			return p, e.targetChooserAlive(p)
+		}
+		return controller, false
+	case "Opponent", "Player.Opponent":
+		for _, p := range e.G.AliveFrom(0) {
+			if p != controller {
+				return p, true
+			}
+		}
+		return controller, false
+	default:
+		return controller, false
+	}
+	if !target.IsPlayer || !e.targetChooserAlive(target.Player) {
+		return controller, false
+	}
+	return target.Player, true
+}
+
+func (e *Engine) targetChooserAlive(p state.PlayerID) bool {
+	// PlayerID is uint8: negative referents cannot reach this function. A
+	// converted negative integer becomes a large unsigned ID and fails the
+	// upper bound before indexing Players.
+	return int(p) < len(e.G.Players) && !e.G.Players[p].Lost
 }
 
 // PendingTriggers reports the triggers matched but not yet on the stack, in

@@ -2,6 +2,7 @@ package effects
 
 import (
 	"iter"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -76,11 +77,26 @@ var predicates = map[string]predFn{
 	"firstTurnControlled": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Zone == state.ZBattlefield && o.SummonSick
 	},
-	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
-	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
-	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
-	"tapped":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
-	"untapped":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
+	"OppOwn":   func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
+	"Self":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
+	"Other":    func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
+	"tapped":   func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
+	"untapped": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
+	// phasedOut is Forge's Card.isPhasedOut (CR 702.25b): a phased-out
+	// BATTLEFIELD permanent. Phasing is a status, not a zone, so a card that
+	// left the battlefield (its PhasedOut cleared by the Move fold, CR
+	// 702.25e) never matches; the zone half is read here rather than in the
+	// predicate name to keep every phased-out spec in one home.
+	"phasedOut": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.PhasedOut && o.Zone == state.ZBattlefield
+	},
+	// phasedOutOther is the source-relative spelling (The War Doctor's
+	// `Permanent.phasedOutOther`): a phased-out battlefield permanent that is
+	// not the source itself. Like every bare `Other`, an unbound source
+	// (id 0) matches nothing rather than widening to every permanent.
+	"phasedOutOther": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ID != src && o.PhasedOut && o.Zone == state.ZBattlefield
+	},
 	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
 	// unblocked is the CR 509.1h "attacking creature ... with no creatures
 	// blocking it" predicate: the object is attacking and no blocker is
@@ -1253,6 +1269,7 @@ const (
 	// .Protector, recorded through the Choose "protector" event).
 	wordOppProtect
 	wordHistoric
+	wordAdventureCard
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
@@ -1568,6 +1585,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordOppProtect, ""
 	case "Historic":
 		return wordHistoric, ""
+	case "AdventureCard":
+		return wordAdventureCard, ""
 	case "IsCommander":
 		return wordIsCommander, ""
 	case "blockingSource":
@@ -1655,6 +1674,12 @@ func wordPredicate(p string) (wordKind, string) {
 	if predicateTypeWords[p] {
 		return wordType, p
 	}
+	// Forge spells the established subtype Time Lord as two separate type
+	// words on the face, but as one token in filters. Do not accept arbitrary
+	// pairs of known type words as new subtype names.
+	if p == "Time Lord" {
+		return wordType, p
+	}
 	return wordUnknown, ""
 }
 
@@ -1712,7 +1737,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		chosen := colourLetter(src.ChosenColor)
 		return chosen != 0 && strings.Contains(ColorsOf(o), string(chosen))
 	case wordType:
-		return hasTypeCtx(o, key, sc)
+		return hasTypePredicateCtx(o, key, sc)
 	case wordColorless:
 		return ColorsOf(o) == ""
 	case wordControllerDealtCombatDamageBySource:
@@ -1862,6 +1887,20 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).
 		return hasTypeCtx(o, "Artifact", sc) || hasTypeCtx(o, "Legendary", sc) || hasTypeCtx(o, "Saga", sc)
+	case wordAdventureCard:
+		if o == nil || o.Card == nil || o.Card.AlternateMode != "Adventure" || len(o.Card.Faces) != 2 {
+			return false
+		}
+		face := o.Card.Faces[1]
+		if face == nil || (!face.IsInstant() && !face.IsSorcery()) {
+			return false
+		}
+		for _, typ := range face.Types {
+			if typ == "Adventure" {
+				return true
+			}
+		}
+		return false
 	case wordIsCommander:
 		// Forge's IsCommander: the object is one of a seat's commanders.
 		// The commander list lives on the Players at genesis.
@@ -2226,7 +2265,7 @@ func positiveRecognised(p string) bool {
 	if p == "IsGoaded" {
 		return true
 	}
-	if p == "IsRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+	if p == "IsRemembered" || p == "IsTriggerRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		// EffectSource is matched by matchPositive against SpecContext.Source;
 		// listing it here keeps the matcher and the UnknownPredicates census
 		// (both driven by positiveRecognised) in agreement.
@@ -2238,7 +2277,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if hasAbilityToken(p) {
@@ -2754,6 +2793,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// every matching token without the distinctness narrowing.
 		return o.IsToken, true
 	}
+	if mode, has := strings.CutPrefix(p, "ChosenMode"); has && mode != "" {
+		// ChosenMode<X> reads the candidate object's event-backed modal
+		// announcement. An unresolved choice has no recorded mode and fails
+		// closed; the ordinary ! wrapper would invert that result for a negated
+		// predicate (no corpus carrier uses !ChosenMode).
+		return slices.Contains(o.ChosenModes, mode), true
+	}
 	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" {
 		// Forge's ChosenCard and ChosenCardStrict are one predicate for this
 		// build: the candidate is (or, under nonChosenCard, is not) one of the
@@ -2899,6 +2945,20 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 			return true, true
 		}
 		return sc.StaticGoads[o.ID], true
+	}
+	if p == "IsTriggerRemembered" {
+		// Only a delayed registration's captured set binds this predicate;
+		// the source's persistent Remembered list is unrelated. An absent
+		// or empty capture stays unknown even under negation.
+		if len(sc.DelayedRemembered) == 0 {
+			return false, false
+		}
+		for _, t := range sc.DelayedRemembered {
+			if !t.IsPlayer && t.Obj == o.ID {
+				return true, true
+			}
+		}
+		return false, true
 	}
 	if p == "IsRemembered" {
 		// Forge's IsRemembered (CardProperty "IsRemembered" ->
@@ -3317,6 +3377,26 @@ func chosenCtrlMatches(g *state.Game, o *state.Object, src state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// hasTypePredicateCtx matches a type word, or a space-separated multi-word
+// subtype (Time Lord) as every one of its words. strings.Cut rather than
+// strings.Fields: this is the filter hot path and must not allocate
+// (TestSimpleFilterMatchingDoesNotAllocate).
+func hasTypePredicateCtx(o *state.Object, t string, sc SpecContext) bool {
+	if t == "" {
+		return false
+	}
+	for {
+		word, rest, more := strings.Cut(t, " ")
+		if word != "" && !hasTypeCtx(o, word, sc) {
+			return false
+		}
+		if !more {
+			return true
+		}
+		t = rest
+	}
 }
 
 func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
@@ -4272,8 +4352,9 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // match, a static actor match and a layer restriction) can populate them
 // without a resolver callback.
 type PlayerSpecCtx struct {
-	Source          state.ObjID
-	DefendingPlayer state.Target
+	Source            state.ObjID
+	DefendingPlayer   state.Target
+	DelayedRemembered []state.Target
 }
 
 // MatchesPlayerSpecCtx is the full player-side filter: the same grammar as
@@ -4391,6 +4472,25 @@ func isBarePlayerProperty(clause string) bool {
 	return false
 }
 
+// playerBaseMatches reports whether a bare player-spec base matches seat p
+// relative to the perspective seat you. It is the shared base predicate the
+// ordinary qualifier switch below already spells inline (Player/Any always,
+// You is the perspective seat, Opponent/Other is anyone else) and that the
+// source-anchored Chosen/IsRemembered membership read now consults first, so
+// a membership read can never widen past its base. An unknown base fails
+// closed, exactly as the inline switch does.
+func playerBaseMatches(base string, p, you state.PlayerID) bool {
+	switch base {
+	case "Player", "Any":
+		return true
+	case "You":
+		return p == you
+	case "Opponent", "Other":
+		return p != you
+	}
+	return false
+}
+
 // matchesPlayerSingleSpec is the original single-alternative player-spec
 // evaluator: one clause, no `,` or `+` (the callers above split those).
 func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
@@ -4427,7 +4527,22 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			}
 			continue
 		}
-		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+		if qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
+			// The source-anchored chosen/remembered membership read, on EVERY
+			// base the grammar evaluates (Player/Any as always, plus the
+			// qualified You/Opponent/Other spellings -- Will the Wise's
+			// `Defined$ Opponent.!IsRemembered` "each opponent who doesn't"
+			// is the corpus carrier). Reading it only on Player/Any left the
+			// Opponent-base qualifier permanently false, which the `!`
+			// spelling inverted into admitting EVERY opponent. The base is
+			// checked FIRST, so a membership read cannot admit the source's
+			// own controller under an `Opponent` base (or an opponent under a
+			// `You` base); only the set membership is base-independent. The
+			// set is still the source object's own event-backed list, so every
+			// base reads one home.
+			if !playerBaseMatches(base, p, you) {
+				continue
+			}
 			o := g.Obj(pc.Source)
 			if o == nil {
 				continue
@@ -4457,19 +4572,26 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				}
 				continue
 			}
+			if rem, is := strings.CutPrefix(qualifier, "controlsCard."); is {
+				// This ticket models only the registration-relative card form.
+				if rem == "IsTriggerRemembered" && playerControlsMatches(g, p, you, pc, "Card", rem) {
+					return true
+				}
+				continue
+			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsCreature."); is {
 				// Forge's Player.controlsCreature.<objspec> / controlsPermanent.
 				// <objspec> property (PlayerControlsCreatures/Permanents): the
 				// seat qualifies when its battlefield holds an object matching
 				// <objspec> as an object filter, with an optional trailing
 				// _GE<n>-style count comparison. See playerControlsMatches.
-				if playerControlsMatches(g, p, you, pc.Source, "Creature", rem) {
+				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Creature", rem) {
 					return true
 				}
 				continue
 			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
-				if playerControlsMatches(g, p, you, pc.Source, "Permanent", rem) {
+				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Permanent", rem) {
 					return true
 				}
 				continue
@@ -4725,13 +4847,14 @@ func splitCountCompare(rem string) (string, string, int32, bool) {
 // evaluated with the same SpecContext binding MatchesPlayerSpecFrom carries
 // (the perspective seat and the source permanent), so the named<Name>,
 // MultiColor, IsRemembered and EnchantedBy object predicates all resolve
-// unchanged. A spec that matches nothing -- including one carrying an
-// unmodelled predicate, which fails closed inside the object matcher --
-// never matches for that seat.
-func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, source state.ObjID, objBase, rem string) bool {
+// unchanged. The controlsCard.IsTriggerRemembered caller additionally binds
+// the delayed registration's capture. A spec that matches nothing -- including
+// one carrying an unmodelled predicate, which fails closed inside the object
+// matcher -- never matches for that seat.
+func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, pc PlayerSpecCtx, objBase, rem string) bool {
 	spec, op, want, counted := splitCountCompare(rem)
 	spec = objBase + "." + spec
-	sc := SpecContext{You: you, Source: source}
+	sc := SpecContext{You: you, Source: pc.Source, TriggerContext: TriggerContext{DelayedRemembered: pc.DelayedRemembered}}
 	n := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
 		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {

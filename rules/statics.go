@@ -1208,10 +1208,16 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 }
 
 // blockRestricted reports whether blocker is forbidden from blocking
-// attacker (CantBlock, CantBlockBy). Called from rules/combat.go's canBlock,
-// which askBlockers and handleBlockers both use for real declare-blockers
-// option generation and validation.
+// attacker (CantBlock, CantBlockBy, or a granted can't-block keyword).
+// Called from rules/combat.go's canBlock, which askBlockers and handleBlockers
+// both use for real declare-blockers option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
+	// Forge's Pump/PumpAll KW$ HIDDEN CARDNAME can't block. is a derived
+	// layer-6 grant, not a static. Read it here so the same restriction
+	// governs offered blocks and validation, including Concussive Bolt.
+	if e.HasKeyword(blocker, "HIDDEN CARDNAME can't block.") {
+		return true
+	}
 	// The Effect-registered CantBlockBy grants walk FIRST, beside the
 	// CantTarget precedent (restrictionBlocksTarget): the registered
 	// restriction's ValidAttacker$ is matched against the ATTACKER with the
@@ -1455,6 +1461,7 @@ type costMod struct {
 // (each with its own MinMana floor), then a SetCost floor last.
 type costMods struct {
 	raises []int32
+	extra  Cost
 	// raiseCol / raiseLife carry the aggregated RaiseCost Cost$ raises: the
 	// coloured pips, generic and life a "Black spells you cast cost {B} more"
 	// static adds to the total (an additional cost — never reduced by the
@@ -1469,7 +1476,7 @@ type costMods struct {
 // empty reports whether the composition would change nothing, so a caller can
 // keep its old zero-value shorthand.
 func (m costMods) empty() bool {
-	return len(m.raises) == 0 && m.raiseGen == 0 && m.raiseLife == 0 &&
+	return len(m.raises) == 0 && len(m.extra.Blight) == 0 && m.raiseGen == 0 && m.raiseLife == 0 &&
 		m.raiseCol.Total() == 0 && len(m.reduces) == 0 && m.setFloor == 0
 }
 
@@ -1480,6 +1487,7 @@ func (m costMods) empty() bool {
 // the SetCost floor raised to last (Trinisphere: total mana below 3 becomes
 // 3). Generic never dips below zero at any point.
 func (m costMods) apply(c Cost) Cost {
+	c = c.Plus(m.extra)
 	for _, r := range m.raises {
 		c.Generic = addClampedGeneric(c.Generic, int64(r))
 	}
@@ -1916,6 +1924,45 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	return effects.EvalCount(e, ctx, raw)
 }
 
+// raiseExtraFromCost parses a RaiseCost Cost$ that raiseFromCost does NOT
+// model as plain mana/life into the non-mana ADDITIONAL cost it names, which
+// the cast flow folds into the pending cost exactly like a SpellAbility's own
+// Cost$ (withSpellAbilityExtras). Only the Blight<X>/Blight<N> shape is
+// bridged here: Soul Immolation's `Cost$ Blight<X>` and Blighted Nightmare's
+// same-token ability cost are the corpus's two carriers, and the whole point
+// is that the announced X must survive into offer gating, the X ask, the
+// blight payment and the X-dependent effect with ONE representation
+// (costMods.extra, folded by costMods.apply and by the pending cast), never a
+// re-parse that could disagree.
+//
+// The Cost$ must parse into EXACTLY the blight part: a mixed token the parser
+// also leaves an Unknown for, or a mana/other non-mana part beside it, reports
+// false so the static degrades to the ordinary Amount$ fallback (fail closed,
+// the raiseFromCost convention for an unmodelled shape). Other non-mana
+// RaiseCost shapes (Waterbend, ExileFromHand, Sac<...>) remain unsupported and
+// are not bridged here.
+func raiseExtraFromCost(s string) (Cost, bool) {
+	if strings.TrimSpace(s) == "" {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Blight) == 0 || len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	// Reject anything beyond the blight part: bridging must not silently drop
+	// a mana or other non-mana component of a mixed Cost$.
+	if c.Colored.Total() != 0 || c.Generic != 0 || c.Life != 0 || c.X != 0 || c.XMin != 0 ||
+		c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 ||
+		len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 ||
+		len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 ||
+		len(c.Energy) > 0 || len(c.Return) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 ||
+		len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0 || len(c.Mill) > 0 || len(c.Evidence) > 0 ||
+		len(c.Exert) > 0 || c.Forage {
+		return Cost{}, false
+	}
+	return Cost{Blight: c.Blight}, true
+}
+
 // raiseFromCost parses a RaiseCost Cost$ into its mana and life raise. Only
 // the plain shapes apply: single colour letters, numeric tokens, and the
 // fixed PayLife<N> token. Anything else — hybrid pips (none in the corpus's
@@ -2060,6 +2107,15 @@ func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state
 						continue
 					}
 				}
+				// A non-mana RaiseCost Cost$ the plain parser rejected (the
+				// Blight<X> bridge) is carried as an ADDITIONAL cost so its X
+				// announcement, offer gate and payment all price the same way.
+				if _, hasAmt := sv.Params["Amount"]; !hasAmt {
+					if extra, ok := raiseExtraFromCost(sv.Params["Cost"]); ok {
+						mods.extra = mods.extra.Plus(extra)
+						continue
+					}
+				}
 				mods.raises = append(mods.raises, e.modAmountX(sv, x))
 				continue
 			}
@@ -2158,6 +2214,15 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 						}
 						mods.raiseGen = addClampedGeneric(mods.raiseGen, int64(rg))
 						mods.raiseLife = addClampedGeneric(mods.raiseLife, int64(rl))
+						continue
+					}
+				}
+				// A non-mana RaiseCost Cost$ the plain parser rejected (the
+				// Blight<X> bridge) is carried as an ADDITIONAL cost so its X
+				// announcement, offer gate and payment all price the same way.
+				if _, hasAmt := sv.Params["Amount"]; !hasAmt {
+					if extra, ok := raiseExtraFromCost(sv.Params["Cost"]); ok {
+						mods.extra = mods.extra.Plus(extra)
 						continue
 					}
 				}

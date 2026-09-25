@@ -53,7 +53,7 @@ import (
 //     controller's graveyard (Descend upon the Sinful's DB$ Token), read
 //     through Host.DeliriumHolds — the same census the "Delirium —"
 //     activation/continuous/replacement gates already share. The other
-//     bare-Condition values (OptionalCost, Bargain, Threshold, Metalcraft,
+//     bare-Condition values (OptionalCost, Bargain, Threshold,
 //     Hellbent, Surge — ~25 SAs) stay unresolved.
 //  5. `ConditionDefined$ Imprinted` (34 corpus lines over 26 files) — the
 //     source card's persistent imprint list (state.Object.Imprinted, the
@@ -381,7 +381,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// holding four or more distinct core card types, through
 	// Host.DeliriumHolds (the same census the "Delirium —" activation,
 	// continuous and replacement gates read, so the spellings cannot drift);
-	// OptionalCost/Bargain/Threshold/Metalcraft/Hellbent/Surge stay
+	// OptionalCost/Bargain/Threshold/Hellbent/Surge stay
 	// unresolved and run unconditionally. A bare Condition beside a group key or beside
 	// ConditionSVarCompare$ is a mixed shape no single evaluator covers (~11
 	// corpus SAs).
@@ -418,6 +418,9 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			// out-of-range controller denies -- a graveyard this build cannot
 			// name cannot hold four types.
 			return h.DeliriumHolds(c.Controller), true
+		case strings.EqualFold(bare, "Metalcraft"):
+			// Share the rules-side artifact census used by static and activation gates.
+			return h.MetalcraftHolds(c.Controller), true
 		case strings.EqualFold(bare, "Blessing"):
 			// CR 702.131: the city's blessing (Ascend), read off the one-way
 			// latch state.Player.Blessing that events.Apply's BlessingChange

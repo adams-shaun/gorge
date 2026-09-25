@@ -476,6 +476,15 @@ type Decision struct {
 	// rule's one home; FitRequired and botpolicy's Clamp derive the same cap
 	// from GroupCap, never a second copy.
 	GroupLimit int `json:"groupLimit,omitempty"`
+	// GroupLimits maps a Group name to its own selection cap, overriding the
+	// decision-wide GroupLimit for that group. A per-defender attack ceiling
+	// (AttackRestrict's MaxAttackers$ scoped by ValidDefender$) is exactly
+	// this shape: each defended player is its own Group, and two such
+	// restrictions can cap different defenders differently, which one scalar
+	// GroupLimit cannot express. A group absent from the map, or mapped to a
+	// value below 2, falls back to GroupCap. GroupCapFor is the one reader,
+	// so Validate, FitRequired and botpolicy's repair cannot drift.
+	GroupLimits map[string]int `json:"groupLimits,omitempty"`
 	// Repeatable relaxes Validate's no-duplicate-index rule: when true the
 	// SAME option index may be chosen more than once in one answer. It is
 	// set only by a modal (Charm) decision whose SA carries
@@ -703,6 +712,39 @@ func (d *Decision) GroupCap() int {
 	return 1
 }
 
+// GroupCapFor is the effective cap for ONE named Group: GroupLimits[group]
+// when it raises one, else the decision-wide GroupCap. It is the single
+// reader every enforcement site uses, so a raised cap cannot be applied by
+// Validate while a repair path still assumes the default.
+func (d *Decision) GroupCapFor(group string) int {
+	if n := d.GroupLimits[group]; n > 1 {
+		return n
+	}
+	return d.GroupCap()
+}
+
+// groupCapExceeded reports whether choices select more than GroupCapFor(g)
+// options of any one Group -- the same per-Group rule Validate enforces, in
+// the cheapest form FitRequired's fast path needs. A repeated index counts
+// each occurrence, exactly as Validate's loop does.
+func (d *Decision) groupCapExceeded(choices []int) bool {
+	counts := make(map[string]int, len(choices))
+	for _, c := range choices {
+		if c < 0 || c >= len(d.Options) {
+			continue
+		}
+		g := d.Options[c].Group
+		if g == "" {
+			continue
+		}
+		counts[g]++
+		if counts[g] > d.GroupCapFor(g) {
+			return true
+		}
+	}
+	return false
+}
+
 // Intent is a client's answer.
 type Intent struct {
 	Seq     uint64         `json:"seq"`
@@ -740,7 +782,6 @@ func (d *Decision) Validate(in Intent) error {
 	seen := make(map[int]bool, len(in.Choices))
 	seenGroups := make(map[string]int, len(in.Choices))
 	groupCount := make(map[string]int, len(in.Choices))
-	limit := d.GroupCap()
 	var controller state.PlayerID
 	haveController := false
 	if d.TargetsWithSameController {
@@ -769,10 +810,11 @@ func (d *Decision) Validate(in Intent) error {
 		// general wire contract, not a combat rule -- the group field says
 		// nothing about what its members are, only that they are exclusive.
 		if g := d.Options[c].Group; g != "" {
-			// The per-Group cap: at most GroupCap options of one Group may be
-			// selected together. At the default cap of 1 this is the historical
+			// The per-Group cap: at most GroupCapFor(g) options of one Group may
+			// be selected together. At the default cap of 1 this is the historical
 			// mutual-exclusion rule with its historical message; a raised cap
 			// (EACH's per-type ChangeNum) reports the count it refused.
+			limit := d.GroupCapFor(g)
 			if groupCount[g] >= limit {
 				if limit == 1 {
 					return fmt.Errorf("choices %d and %d are mutually exclusive (group %q)", seenGroups[g], c, g)

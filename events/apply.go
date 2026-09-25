@@ -1614,6 +1614,11 @@ func Apply(g *state.Game, e Event) {
 		// (CR 400.7) starts phased in.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
 			o.PhasedOut = e.Amount >= 1
+			if e.Amount >= 1 {
+				o.WontPhaseInNormal = e.Text == "wont-phase-in-normal"
+			} else {
+				o.WontPhaseInNormal = false
+			}
 			// CR 702.25c: "A permanent that phases out is removed from
 			// combat." Phasing is deliberately NOT a zone change, so no Move
 			// fold runs to clear the combat members the way a departure does;
@@ -1935,6 +1940,10 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenType = e.Text
 			case "color":
 				o.ChosenColor = e.Text
+			case "mode":
+				// SetChosenMode$ on an as-enters GenericChoice: the mode
+				// persists on the permanent, unlike a stack-only modal answer.
+				o.ChosenModes = []string{e.Text}
 			case "number":
 				o.ChosenNumber = e.Amount
 			case "riot":
@@ -2425,6 +2434,7 @@ func Apply(g *state.Game, e Event) {
 		// provenance (r3): the copy resolves the same compiled SA, so it reads
 		// the same owning face.
 		gainedFace, gainedFrom := src.GainedFace, src.GainedFrom
+		copyNonLegendary := src.CopyNonLegendary
 		// The copy inherits the original's CastFlags -- a copy of a fused,
 		// bestowed or kicked spell resolves as one -- EXCEPT the cast
 		// provenance a later reader turns into an "if you cast it"
@@ -2472,6 +2482,12 @@ func Apply(g *state.Game, e Event) {
 		// the copied spell's own text still grants the election on replay,
 		// and effects/copy.go never has to reach into rules to ask.
 		o.CopyMayChooseTarget = e.Amount == 1
+		// The creating CopySpellAbility's NonLegendary$ True strips the
+		// Legendary supertype (Counter is its event discriminator). That
+		// changed characteristic is copiable: a later copy of this copy
+		// inherits the strip even without its own NonLegendary$ (CR 707.2).
+		// Snapshot it before AddObject, which may reallocate g.Objs.
+		o.CopyNonLegendary = copyNonLegendary || e.Counter == "nonlegendary"
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
@@ -2689,13 +2705,14 @@ func Apply(g *state.Game, e Event) {
 		// ever set it), which would otherwise match registration ID 0 and
 		// delete a bystander's pending delayed trigger.
 		monarchDraw := e.Counter == "__monarch_draw"
+		radiationDrain := e.Counter == "__radiation_drain"
 		// Consume the registration first, even when its tracked permanent has
 		// changed incarnation. A stale dash/warp promise expires once; it must
 		// neither act on the returned object nor be retried forever. Ordinary
 		// delayed triggers, including Encore's group cleanup, are independent
 		// of their source and still resolve.
 		var registration *state.DelayedTrigger
-		if !monarchDraw {
+		if !monarchDraw && !radiationDrain {
 			for i := range g.Delayed {
 				if g.Delayed[i].ID == uint32(e.Amount) {
 					dt := g.Delayed[i]
@@ -2708,21 +2725,23 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 		src := g.Obj(e.Obj)
-		if src == nil {
-			break
-		}
-		if registration != nil && registration.TrackSource &&
-			src.Incarnation != registration.SourceIncarnation {
-			break
-		}
-		if src.Face() == nil {
-			break
+		if !radiationDrain {
+			if src == nil {
+				break
+			}
+			if registration != nil && registration.TrackSource &&
+				src.Incarnation != registration.SourceIncarnation {
+				break
+			}
+			if src.Face() == nil {
+				break
+			}
 		}
 		var sa *cards.SA
 		if monarchDraw {
-			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
-				"Defined": "You", "NumCards": "1",
-			}}
+			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{"Defined": "You", "NumCards": "1"}}
+		} else if radiationDrain {
+			sa = &cards.SA{Kind: "DB", API: "RadiationDrain", Params: map[string]string{"Defined": "You"}}
 		} else {
 			sa = resolveSVarAcrossFaces(src, e.Counter)
 		}
@@ -2747,12 +2766,17 @@ func Apply(g *state.Game, e Event) {
 		// StackCopy's discipline: snapshot every src field the post-mint
 		// code reads (Incarnation here) before AddObject may reallocate
 		// g.Objs and orphan the src pointer.
-		incarnation := src.Incarnation
+		var incarnation uint32
+		if src != nil {
+			incarnation = src.Incarnation
+		}
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
-		o.Source = e.Obj
+		if !radiationDrain {
+			o.Source = e.Obj
+		}
 		if registration != nil && registration.TrackSource {
 			o.SourceIncarnation = incarnation
 		}
@@ -3582,12 +3606,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// CastFlags just above.
 			o.GiftPromisedTo = 0
 		}
-		// ChosenModes is needed only while a modal spell/ability resolves (or
-		// when a permanent spell carries its announcement onto the battlefield).
-		// Clearing it as an object leaves the stack keeps this derived cache out
-		// of graveyards/exile; an aborted cast restores its captured prior value
-		// after the reverse stack move.
-		if wasStack {
+		// ChosenModes is needed while a modal spell/ability resolves or for
+		// the lifetime of a mode-chosen permanent (SetChosenMode$). A fresh
+		// battlefield stint must choose again. An aborted cast restores its
+		// captured prior value after the reverse stack move.
+		if wasStack || wasBattlefield {
 			o.ChosenModes = nil
 		}
 		// AttachedTo has no legal life off the battlefield at all (an Aura/

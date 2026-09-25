@@ -235,6 +235,19 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareBlockers
 	case "Untaps":
 		return 1 << events.Untap
+	case "PhaseOutAll":
+		// CR 702.25b: the batch-level "whenever one or more permanents phase
+		// out" trigger matches the events.PhaseOut marker the api:Phases
+		// primitive emits (Amount >= 1 is a phase-out; the phase-in half is
+		// the opposite event). The Kind's ordinal is past the 64-bit mask's
+		// reach, the Surveil/Discover shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (phaseOutAllMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents
+		// default keeps a PhaseOutAll-only face's mask narrow for every other
+		// kind.
+		return 0
 	case "Sacrificed", "Discarded", "DiscardedAll", "LandPlayed", "Milled", "MilledAll":
 		return 1 << events.MoveZone
 	case "Cycled":

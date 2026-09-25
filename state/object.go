@@ -635,6 +635,9 @@ type Object struct {
 	// and the view projection (view). A plain value copy in CloneDeep
 	// carries it.
 	PhasedOut bool
+	// WontPhaseInNormal is the CR 702.25d exception carried by a Phases
+	// effect; its phase-in must come from that effect's return instruction.
+	WontPhaseInNormal bool
 
 	// SuspendGranted is the replayed characteristic grant made by a
 	// Pump/PumpAll KW$ Suspend effect. It is separate from CastFlags.FlagSuspend:
@@ -1036,6 +1039,19 @@ type Object struct {
 	// through TargetsChosen, whose fold clears the flag; a log-only replay
 	// rebuilds set-then-cleared identically.
 	CopyMayChooseTarget bool
+
+	// CopyNonLegendary is the CopySpellAbility NonLegendary$ True rider (The
+	// Sixth Doctor's "copy it, except the copy isn't legendary" and the
+	// corpus's six-carrier family): a copied legendary permanent SPELL
+	// resolves into a token that must not carry the Legendary supertype, or
+	// the CR 704.5j legend rule would bin one of the pair. It is set by the
+	// StackCopy fold from the creating effect's event OR inherited from a
+	// spell copy being copied again (CR 707.2), and read by rules'
+	// typeCharacteristics as a layer-4 base strip, so every derived-type
+	// reader (Derived.Types, legendaryUnderLayers) agrees without touching
+	// the printed face. Engine-runtime, rebuilt from the event stream on
+	// replay like CopyMayChooseTarget; false on every ordinary object.
+	CopyNonLegendary bool
 
 	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
 	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face

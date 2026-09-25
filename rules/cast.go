@@ -1296,6 +1296,16 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || (selfInZone && oid == id) {
 				continue
 			}
+			// A battlefield Exile cost part (Exile<N/Spec>, Karn's Sylex,
+			// Mechtitan Core) is a COST exile: a CantExile static whose
+			// ForCost$ True restricts cost payments withholds the candidate
+			// here, while a ForCost$ False line (The Master, Multiplied)
+			// leaves it offered. exileBlockedForCost carries the pending
+			// cast/activation identity so a cost-path ValidCause$ can be
+			// evaluated, the same plumbing sacrificeCostCandidates uses.
+			if zone == state.ZBattlefield && e.exileBlockedForCost(oid, costCauseForAbility(ability)) {
+				continue
+			}
 			if e.matchesSpecFrom(part.Spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
@@ -1908,7 +1918,20 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if sc == "" {
 		return cost
 	}
-	extra := ParseCost(sc)
+	return foldAdditionalCost(cost, ParseCost(sc))
+}
+
+// foldAdditionalCost concatenates the non-mana parts of extra onto cost. It is
+// THE one definition shared by two carriers that must agree: withSpellAbilityExtras
+// folds a spell's own SpellAbility Cost$, and beginCast folds a RaiseCost
+// static's non-mana Cost$ (Soul Immolation's `Cost$ Blight<X>`) that the cost
+// composition carried in costMods.extra. The mana part of a Cost$ is
+// deliberately NOT folded: it RESTATES the printed mana cost rather than
+// adding to it, so re-adding it would double charge. Every OTHER component --
+// Life/Sac/Discard/SubCounter/Tap, and the whole non-mana family including
+// Exile, MoveToGrave, Reveal, Energy, Draw, LifeX, DamageYou, Mill and Blight --
+// is additional and is concatenated below.
+func foldAdditionalCost(cost, extra Cost) Cost {
 	cost.Life = addClampedGeneric(cost.Life, int64(extra.Life))
 	if len(extra.Sac) > 0 {
 		cost.Sac = append(append([]CostPart(nil), cost.Sac...), extra.Sac...)
@@ -2432,6 +2455,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	cost = converted
+	// A RaiseCost static's non-mana Cost$ (Soul Immolation's `Cost$ Blight<X>`)
+	// is carried in mods.extra so the OFFER gate (composedOfferCost, which
+	// applies mods) enforces it and the CHARGE prices it. The pending cast's
+	// own cost must carry it too, because every non-mana cost stage -- xAsk's
+	// X announcement, blightCostAsk, the settle and costAnnouncesX -- reads
+	// pc.cost, not the composed charge. Fold it in here once and drop it from
+	// mods so manaToPay's mods.apply cannot count the same part twice.
+	if len(mods.extra.Blight) > 0 {
+		cost = foldAdditionalCost(cost, mods.extra)
+		mods.extra = Cost{}
+	}
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
@@ -2678,6 +2712,13 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	}
 	cost = converted
 	mods := e.costModifiers(p, id, spellScope(""))
+	// A RaiseCost static's non-mana Cost$ rides mods.extra; fold it into the
+	// pending cost and drop it from mods so the charge cannot double it (the
+	// same agreement beginCast makes).
+	if len(mods.extra.Blight) > 0 {
+		cost = foldAdditionalCost(cost, mods.extra)
+		mods.extra = Cost{}
+	}
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
 		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard}
 	e.continueCast()
@@ -3282,6 +3323,15 @@ func (e *Engine) exAsk() bool {
 			// 0) is untouched: encore's Cost$ ExileFromGrave<1/CARDNAME>
 			// really does exile its own source.
 			if !pc.isAbility() && oid == pc.card {
+				continue
+			}
+			// A battlefield Exile cost candidate is withheld by a CantExile
+			// static whose ForCost$ True restricts cost payments -- the
+			// exAsk half of the same guard nonManaCastable's offer walk
+			// applies, keeping the ask from offering an unpayable permanent
+			// (which would abort the cast). ForCost$ False (The Master)
+			// leaves the candidate offered.
+			if zone == state.ZBattlefield && e.exileBlockedForCost(oid, costCauseForAbility(pc.isAbility())) {
 				continue
 			}
 			match := e.matchesSpecFrom(part.Spec, oid, pc.player, pc.card)
@@ -4233,6 +4283,19 @@ func (e *Engine) xAsk() bool {
 			vals = append(vals, x)
 		}
 	}
+	if len(vals) == 0 {
+		// A LOWER-BOUNDED announcement (Cost.XMin, from an XMin<N> leading
+		// token or an X1+/... counter-removal argument) whose every cap sits
+		// below the floor: the old offer is empty too (maxOld < min), and the
+		// old min==0 paths always kept X=0, so only this new shape can arrive
+		// here. No legal announcement exists (CR 601.2b's announcement must
+		// be one the payment can settle), and posing a decision with no
+		// options would wedge the seat -- so the cast aborts here, the CR
+		// 733.2 fail-closed direction, the same site the other
+		// no-longer-payable announcements use.
+		e.abortCast(pc, "announced X has no payable value; cast aborted", true)
+		return true
+	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose a value for X", Source: pc.card}
 	for _, x := range vals {
@@ -4701,8 +4764,12 @@ func (e *Engine) sacAsk() bool {
 			pc.sacPart++
 			continue
 		}
+		verb := "cast"
+		if pc.isAbility() {
+			verb = "activate"
+		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
-			Prompt: "Sacrifice a permanent to cast " + e.G.Obj(pc.card).Face().Name,
+			Prompt: "Sacrifice a permanent to " + verb + " " + e.G.Obj(pc.card).Face().Name,
 			Source: pc.card}
 		for _, id := range candidates {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "sacrifice",

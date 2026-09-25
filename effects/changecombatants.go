@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -54,8 +55,8 @@ func init() {
 //
 // Out of scope, each LOUD (a Note naming the shape, then no move — the
 // registered equivalent of the unimplemented-API fallback these SAs used to
-// hit): every other Attacking$ value (RememberedPlayer midnight_crusader_shuttle,
-// Player.OpponentOf CardController capricopian, TargetedPlayer
+// hit): every other Attacking$ value (Player.OpponentOf CardController
+// capricopian, TargetedPlayer
 // portal_manipulator — needs parent-target/trigger-referent plumbing that
 // does not exist, and portal_manipulator's ask rides a DEEPER sub the
 // mvts1 pre-ask never reaches; `.Defending & Valid Planeswalker.Defending`
@@ -66,6 +67,33 @@ func init() {
 // DefendingPlayer on already-queued stack objects) is out of scope too.
 func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 	mode := strings.TrimSpace(sa.Params["Attacking"])
+	if mode == "RememberedPlayer" {
+		// Midnight Crusader Shuttle's stolen creature joins the current combat
+		// attacking the villainous-choice victim. It was not declared as an
+		// attacker; TokenAttacks records that distinction and is replayable.
+		// RememberedPlayer names player entries only: Defined()'s spelling
+		// "RememberedPlayer" is not an object referent and would lose them.
+		var players []state.PlayerID
+		for _, t := range c.Remembered {
+			if t.IsPlayer && !slices.Contains(players, t.Player) {
+				players = append(players, t.Player)
+			}
+		}
+		g := h.Game()
+		if len(players) != 1 || g.Step < state.StepDeclareAttackers || g.Step > state.StepEndCombat {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "ChangeCombatants RememberedPlayer has no combat defender"})
+			return
+		}
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				continue
+			}
+			if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield && o.Controller == g.Active && !o.IsAttacking && players[0] != o.Controller && !g.Players[players[0]].Lost {
+				h.Emit(events.Event{Kind: events.TokenAttacks, Obj: o.ID, Player: o.Controller, IDs: []state.ObjID{state.ObjID(players[0])}})
+			}
+		}
+		return
+	}
 	if mode != "True" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "ChangeCombatants Attacking$ " + mode + " is not implemented; no combatant changed"})

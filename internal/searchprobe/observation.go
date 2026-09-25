@@ -64,7 +64,10 @@ func NewCollector(actor state.PlayerID) *Collector {
 	return &Collector{actor: actor, known: make(map[state.ObjID]uint32), byRef: []state.ObjID{0}}
 }
 
-func (c *Collector) clone() *Collector {
+// Clone returns an independent copy at the current observation boundary.
+// It is used by undo-style diagnostics that retain an earlier engine and must
+// later map semantic actions back into that engine's raw object ids.
+func (c *Collector) Clone() *Collector {
 	out := NewCollector(c.actor)
 	for id, ref := range c.known {
 		out.known[id] = ref
@@ -73,6 +76,9 @@ func (c *Collector) clone() *Collector {
 	out.introduced = append([]Identity(nil), c.introduced...)
 	return out
 }
+
+func (c *Collector) clone() *Collector { return c.Clone() }
+
 func (c *Collector) Capture(e *rules.Engine, burst []events.Event) (Frame, error) {
 	return c.capture(e, burst, false, true)
 }

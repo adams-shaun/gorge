@@ -18,8 +18,8 @@
    * The command zone remains on the board as art tiles (CZ1).
    *
    * The rail never scrolls as a whole: every section is intrinsically sized
-   * or explicitly capped except the STACK, which takes the leftover height
-   * and scrolls inside itself.
+   * or explicitly capped except the stack FRAME (history + live stack),
+   * which takes the leftover height and scrolls inside itself.
    *
    * Revisited (U-rail-2, "the stack is very important in a lot of games, we
    * can hardly see 1 card"): the stack used to be capped small like every
@@ -153,22 +153,29 @@
     </p>
   {/if}
 
+  <!-- The last resolved object's artwork (fb-20260916T225456Z; lifetime
+       narrowed by fb-20260917T231516Z; placement fb-20260923T015554Z): a
+       card popping OFF this stack shows in its own rail band, BEFORE the
+       Stack heading — recent history the player asked to read separately,
+       not a current stack member (under the heading it read as one). It
+       clears on the next resolve, the next turn/step boundary, or the
+       event window bound, and renders nothing while nothing is showing.
+       Both history and current stack share the one scroll budget, so the
+       history row cannot push Pending below the viewport. The component's
+       internal divider is replaced by spacing before the Stack heading. -->
+  <div class="history-frame">
+    <ResolvedCard {view} {events} {seats} />
+    <section class="stack">
+      <h3>Stack{#if topFirst.length > 0} <span class="count">{topFirst.length}</span>{/if}</h3>
+      {#each topFirst as s, i (s.id)}
+        <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} {yields} {onYield} {viewerSeat} />
+      {/each}
+    </section>
+  </div>
+
   <!-- The pending tray sits directly above the transcript and directly below
        the stack, because it is literally what is about to become stack
        (design system, "Layout"); the transcript is the band under this rail. -->
-  <section class="stack">
-    <h3>Stack{#if topFirst.length > 0} <span class="count">{topFirst.length}</span>{/if}</h3>
-    <!-- The last resolved object's artwork (fb-20260916T225456Z; lifetime
-         narrowed by fb-20260917T231516Z): a card popping OFF this stack
-         shows at its top, labelled, where it reads as the stack's own
-         history — the old RecentStrip board overlay is gone. It clears on
-         the next resolve, the next turn/step boundary, or the event window
-         bound, and renders nothing while nothing is showing. -->
-    <ResolvedCard {view} {events} {seats} />
-    {#each topFirst as s, i (s.id)}
-      <StackTile stack={s} {view} emphasized={emphasizeTop && i === 0} dimmed={emphasizeTop && i > 0} {yields} {onYield} {viewerSeat} />
-    {/each}
-  </section>
 
   <section class="pending">
     <h3>Pending</h3>
@@ -184,12 +191,10 @@
    * is meant to read as an instrument face.
    *
    * The column is the height contract. Everything is capped or intrinsically
-   * sized except the STACK, which is the one section with `flex: 1` and
-   * takes exactly the leftover; the detail pane and the pending tray are
-   * capped and scroll inside themselves instead. So the rail's content is
-   * the rail's height whatever the game does, and no section can push
-   * another off the bottom (U2) — and the section that most needs the room
-   * (the stack, U-rail-2) is the one that gets it.
+   * sized except the stack frame, which takes the leftover height and
+   * scrolls history AND live stack together. The detail pane and pending
+   * tray are capped and scroll inside themselves, so neither history nor
+   * stack tiles can push Pending off the bottom (U2).
    */
   .rail-inner {
     display: flex;
@@ -278,16 +283,22 @@
     max-height: 11rem;
     overflow-y: auto;
   }
-  /* The stack is the rail's primary region (U-rail-2): the only section that
-     grows, so it fills whatever the seat table, the detail pane and pending
-     leave over — at a tall viewport that is many entries at once, at a short
-     one it is still more than the fixed cap this replaced ever gave it, and
-     `min-height` (not a fixed height) is what keeps it from ever demanding
-     more room than a short viewport has. */
-  section.stack {
+  /* History and live stack share the same flexible, scrollable region.
+     In a short viewport, the history row consumes scroll space rather than
+     shrinking the Pending tray or overflowing the non-scrolling rail. */
+  .rail-inner > .history-frame {
     flex: 1 1 8rem;
     min-height: 6rem;
     overflow-y: auto;
+  }
+  /* The resolved row is a separate history band BEFORE the Stack heading;
+     its own border and the gap distinguish it from the live tiles. Suppress
+     ResolvedCard's old internal divider at this embedding only. */
+  .history-frame > :global(div.resolved) {
+    margin-bottom: var(--sp-2);
+  }
+  .history-frame > :global(div.resolved__divider) {
+    display: none;
   }
   section.pending {
     flex: 0 1 auto;

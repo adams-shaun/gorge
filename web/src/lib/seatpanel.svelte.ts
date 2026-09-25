@@ -112,10 +112,13 @@ export function pickOption(d: Decision, index: number, picked: number[]): number
   if (g) {
     // The per-Group cap: groupLimit raises the exclusivity marker from "at
     // most one" to "at most N" (Decision.GroupLimit, Forge's EACH per-type
-    // ChangeNum). At the default cap the group is already represented, so
-    // the pick REPLACES that member; above it the pick appends until the
-    // cap is full, then replaces the oldest member.
-    const cap = d.groupLimit && d.groupLimit > 1 ? d.groupLimit : 1;
+    // ChangeNum), and groupLimits raises ONE named group above even that
+    // (Decision.GroupLimits, a per-defender attack ceiling). At the default
+    // cap the group is already represented, so the pick REPLACES that member;
+    // above it the pick appends until the cap is full, then replaces the
+    // oldest member.
+    const cap =
+      d.groupLimits?.[g] ?? (d.groupLimit && d.groupLimit > 1 ? d.groupLimit : 1);
     const members = picked.filter((i) => optionAt(d, i)?.group === g);
     if (members.length >= cap) {
       // Replace: drop the oldest group member, keep the rest's click order,

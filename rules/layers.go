@@ -351,6 +351,27 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							} else {
 								ty.AddTypes = nil
 							}
+							// Duplicant's AddType$ ImprintedCreatureType reads the
+							// last still-exiled creature card, not a literal type word.
+							for i, word := range ty.AddTypes {
+								if word != "ImprintedCreatureType" {
+									continue
+								}
+								ty.AddTypes = append(ty.AddTypes[:i], ty.AddTypes[i+1:]...)
+								for j := len(o.Imprinted) - 1; j >= 0; j-- {
+									im := e.G.Obj(o.Imprinted[j])
+									if im == nil || im.Zone != state.ZExile || im.Face() == nil || !slices.Contains(im.Face().Types, "Creature") {
+										continue
+									}
+									for _, subtype := range im.Face().Types {
+										if effects.CreatureTypeWords(subtype) {
+											ty.AddTypes = append(ty.AddTypes, subtype)
+										}
+									}
+									break
+								}
+								break
+							}
 							// The strip flags ride the AddType emission (measured: every
 							// corpus S: line carrying RemoveCardTypes$/RemoveCreatureTypes$
 							// also carries AddType$): a strip-only static -- an AddType$
@@ -1329,6 +1350,13 @@ type Derived struct {
 	Types            []string
 	// Name is the current layer-3 name. SetName$ overwrites the printed name.
 	Name string
+	// Text is the object's current CR 613.1d text: its printed Oracle text
+	// ("" while a battlefield object is face down, CR 708.5) after every
+	// applicable layer-3 effect in timestamp order -- a TextSet outright
+	// replacement (api:ExchangeTextBox) then each TextFrom/TextTo
+	// whole-word substitution (api:ChangeText). It is the one place the
+	// engine renders an object's changed rules text.
+	Text string
 	// Colors is the object's current colour set as WUBRG letters (CR 613.1e):
 	// its face's colours (effects.ColorsOf, which already applies Devoid)
 	// then every applicable layer-5 effect in timestamp order -- an
@@ -1441,6 +1469,20 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 func (e *Engine) EndEffectSource(source state.ObjID) {
 	if source == 0 {
 		return
+	}
+	// The Effect's own lifetime also ends its EffectRepeat DELAYED-trigger
+	// registrations (the |EF form): Out of Time's comeback trigger is a
+	// registration, not a continuous effect, and its DBExileSelf body ends
+	// the effect that owns it. Removal is logged (DelayedRemove) so a replay
+	// folds the same registration set.
+	var remove []uint32
+	for i := range e.G.Delayed {
+		if e.G.Delayed[i].Source == source && e.G.Delayed[i].EffectRepeat {
+			remove = append(remove, e.G.Delayed[i].ID)
+		}
+	}
+	for _, id := range remove {
+		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
 	}
 	kept := e.continuous[:0]
 	changed := false
@@ -2268,6 +2310,23 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	if o.FaceDown && o.Zone == state.ZBattlefield {
 		base = o.FaceDownTypeWords()
 	}
+	if o.CopyNonLegendary {
+		// CopySpellAbility NonLegendary$ True (The Sixth Doctor and the
+		// corpus's six-carrier family): the copy's characteristic set has
+		// the Legendary supertype removed. It is a layer-4 base strip in
+		// exactly the sense CopyPermanent's RemoveLegendary$ is, and it
+		// must reach the DERIVED list -- not just the printed face --
+		// because CR 704.5j's legendGroups reads the derived types. An
+		// instant/sorcery copy never reaches the battlefield, so this is
+		// harmless there.
+		stripped := make([]string, 0, len(base))
+		for _, t := range base {
+			if !strings.EqualFold(t, "Legendary") {
+				stripped = append(stripped, t)
+			}
+		}
+		base = stripped
+	}
 	zone := o.Zone
 	if atStack != 0 {
 		zone = atStack
@@ -2333,6 +2392,15 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 						kept = append(kept, t)
 					}
 				} else if !isCreatureSubtype(t) {
+					kept = append(kept, t)
+				}
+			}
+			ty = kept
+		}
+		if len(ce.RemoveTypes) > 0 {
+			kept := ty[:0]
+			for _, t := range ty {
+				if !slices.ContainsFunc(ce.RemoveTypes, func(remove string) bool { return strings.EqualFold(t, remove) }) {
 					kept = append(kept, t)
 				}
 			}
@@ -2913,6 +2981,12 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	// 837910f4's type-aware wrapper — a bare SpecContext carries no
 	// ExtraTypes, so MatchesSpecCtx here would regress to printed types only.
 	name := f.Name
+	text := f.Oracle
+	if faceDown {
+		// CR 708.5: a face-down permanent's printed rules text does not exist,
+		// the same way its printed types and colours do not.
+		text = ""
+	}
 	col := effects.ColorMaskOf(o)
 	if faceDown {
 		col = 0 // CR 708.5: a face-down permanent has no colours
@@ -2949,6 +3023,18 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 		case LText:
 			if ce.SetName != "" {
 				name = ce.SetName
+			}
+			// CR 613.1d / CR 612: a text-changing effect replaces the text.
+			// An outright TextSet (api:ExchangeTextBox's exchanged box, which
+			// already carries the other object's substituted text) replaces
+			// what the walk has so far; each TextFrom/TextTo then substitutes
+			// in timestamp order, so two chained ChangeText effects compose the
+			// way their timestamps order them.
+			if ce.TextSet != "" {
+				text = ce.TextSet
+			}
+			if ce.TextFrom != "" {
+				text = substituteTextWord(text, ce.TextFrom, ce.TextTo)
 			}
 		case LAbilities:
 			// CR 613.1f / 613.4b: an ability-removing effect (Humility)
@@ -3021,8 +3107,17 @@ func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	power, toughness := e.derivedScalarFrom(id, o, f, active, kw)
 	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = prevStashSet, prevStashID, prevStashColors
 	e.derivedDepth--
-	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Text: text, Colors: colors}
 }
+
+// substituteTextWord replaces every whole-word, case-insensitive instance of
+// from in text with to (CR 612's "replace all instances of one ... word"):
+// the match is bounded by non-letter characters on both sides, so substituting
+// "Wall" never rewrites "Wallop" and substituting "Elf" never rewrites
+// "Elves". The replacement is inserted verbatim (the corpus's replacement
+// words are printed forms like "Vampire", "blue", "Mountain"), so a
+// reproduced word keeps the card's own spelling. An empty from never matches;
+// an empty to deletes the matched word.
 
 // abilityKWAfter applies one layer-6 effect's keyword action to a COPY of
 // the walk's keyword list -- the same three steps the main walk's LAbilities
@@ -3170,6 +3265,74 @@ func (e *Engine) abilityDependencyOrder(active []ContinuousEffect, id state.ObjI
 // Name returns the current layer-3 name of an object. Callers that render or
 // compare characteristics must use this rather than the printed face name.
 func (e *Engine) Name(id state.ObjID) string { return e.Derived(id).Name }
+
+// Text returns the object's current layer-3 text (CR 613.1d / CR 612): its
+// printed Oracle text after every applicable text-changing effect. Callers
+// that render or compare an object's rules text must use this rather than
+// o.Face().Oracle.
+func (e *Engine) Text(id state.ObjID) string { return e.Derived(id).Text }
+
+// substituteTextWord replaces every whole-word, case-insensitive instance of
+// from in text with to (CR 612's "replace all instances of one ... word").
+// A match is a run equal to `from` under EqualFold bounded by non-letter
+// characters, so "Wall" never rewrites "Wallop" and "Elf" never rewrites
+// "Elves"; the replacement is inserted verbatim. Deterministic and
+// allocation-light: it walks the bytes once, appending into a builder only
+// when a match is found.
+func substituteTextWord(text, from, to string) string {
+	if from == "" {
+		return text
+	}
+	lowerText := strings.ToLower(text)
+	lowerFrom := strings.ToLower(from)
+	var b strings.Builder
+	changed := false
+	i := 0
+	for i < len(text) {
+		j := strings.Index(lowerText[i:], lowerFrom)
+		if j < 0 {
+			break
+		}
+		start := i + j
+		end := start + len(from)
+		// Whole-word boundaries: the character before start and after end (if
+		// any) must not be a letter. indexOf runs over bytes; the corpus's
+		// words are ASCII, and a non-ASCII byte is not a letter by isLetter's
+		// byte test, so a Unicode word boundary degrades conservatively (it
+		// never splits a multi-byte rune inside a match because from is only
+		// matched as a byte run and cannot start mid-rune when from is ASCII).
+		if (start == 0 || !isLetterByte(text[start-1])) && (end >= len(text) || !isLetterByte(text[end])) {
+			if !changed {
+				b.Grow(len(text))
+				changed = true
+			}
+			b.WriteString(text[i:start])
+			b.WriteString(to)
+			i = end
+			continue
+		}
+		// Not a whole word: keep searching from the character after this
+		// occurrence's start so an overlapping later match is still found.
+		if !changed {
+			b.Grow(len(text))
+			changed = true
+		}
+		b.WriteString(text[i : start+1])
+		i = start + 1
+	}
+	if !changed {
+		return text
+	}
+	b.WriteString(text[i:])
+	return b.String()
+}
+
+// isLetterByte reports whether c is an ASCII letter, the whole-word boundary
+// test substituteTextWord uses (a digit or underscore counts as a boundary,
+// matching CR 612's word sense closely enough for the corpus's words).
+func isLetterByte(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
 
 func (e *Engine) Power(id state.ObjID) int32 {
 	p, _ := e.derivedScalar(id)
@@ -3562,6 +3725,90 @@ func (e *Engine) sacrificeBlocked(id state.ObjID, forCost bool, cause costCause)
 		// identity instead (causeCostAdmits) -- a cost sacrifice is caused by
 		// the spell being cast or the ability being activated, never by the
 		// object already on the stack.
+		if spec := sv.Params["ValidCause"]; spec != "" {
+			if forCost {
+				if !causeCostAdmits(spec, cause) {
+					continue
+				}
+			} else if !e.causeSpecAdmits(spec, sv.Source) {
+				continue
+			}
+		}
+		if spec := sv.Params["ValidCard"]; spec != "" &&
+			e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			return true
+		}
+	}
+	return false
+}
+
+// ExileBlocked implements effects.Host for the CantExile restriction: reports
+// whether id is forbidden from being exiled by the cause currently in flight
+// — an Effect-registered CantExile restriction or a face CantExile static
+// (The Master, Multiplied: "Triggered abilities you control can't cause you
+// to ... exile creature tokens you control"). Consulted at every
+// effect-driven exile candidate choke point in effects/zone.go
+// (effChangeZone's object path, effChangeZoneAll's sweep and the shared
+// ChangeZone settle), so a blocked permanent is never exiled.
+//
+// forCost names the call site's provenance exactly as SacrificeBlocked's does:
+// the effect-driven callers (this package's own effects.Host consumers) pass
+// false, so a ForCost$ False line restricts them and a ForCost$ True line does
+// not. The rules-side COST walks call exileBlockedForCost, which carries the
+// pending cast/activation so a cost-path ValidCause$ can be evaluated.
+func (e *Engine) ExileBlocked(id state.ObjID, forCost bool) bool {
+	return e.exileBlocked(id, forCost, costCauseNone)
+}
+
+// exileBlockedForCost is the cost path's entry point, the CantExile sibling of
+// sacrificeBlockedForCost: the rules-side battlefield-Exile cost walk knows
+// what the exile is paying for, so it passes the cost's own cause instead of
+// the effects.Host method. causeCostAdmits reads it, so a `ForCost$ True |
+// ValidCause$ ...` CantExile static would block a matching cost exile while
+// leaving an effect's exile alone. The Master's own line is ForCost$ False, so
+// it never restricts a cost path (the permissive direction for a cost
+// payment, and the only corpus CantExile carrier).
+func (e *Engine) exileBlockedForCost(id state.ObjID, cause costCause) bool {
+	return e.exileBlocked(id, true, cause)
+}
+
+// exileBlocked is the shared CantExile reader. The continuous branch is
+// deliberately unconditional: effEffect's registration gate
+// (effects.CantRestrictionParamsReadable) refuses to register any
+// cause-scoped CantExile body, so a continuous CantExile reaching this walk
+// carries only ValidCard$ and the blanket reading is exact. The face-static
+// branch evaluates the full body: ForCost$ against the caller's provenance and
+// ValidCause$ against the in-flight cause — actionCause() on the effect path
+// (the resolving wrapper at the top of the stack), the pending
+// cast/activation identity on the cost path (causeCostAdmits), the same
+// classifier discipline sacrificeBlocked keeps.
+func (e *Engine) exileBlocked(id state.ObjID, forCost bool, cause costCause) bool {
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantExile" {
+			continue
+		}
+		if e.restrictionApplies(ce, id) {
+			return true
+		}
+	}
+	for _, sv := range e.activeStatics("CantExile") {
+		if !effects.CantExileRestrictionParamsReadable(sv.Params) {
+			continue
+		}
+		// The cause-scoping parameters, evaluated before the ValidCard match
+		// so an unevaluable shape stays skipped (the permissive direction)
+		// instead of blanket-blocking. ForCost$ True restricts only COST
+		// exiles; ForCost$ False never restricts one.
+		switch sv.Params["ForCost"] {
+		case "True":
+			if !forCost {
+				continue
+			}
+		case "False":
+			if forCost {
+				continue
+			}
+		}
 		if spec := sv.Params["ValidCause"]; spec != "" {
 			if forCost {
 				if !causeCostAdmits(spec, cause) {
