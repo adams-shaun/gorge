@@ -133,8 +133,8 @@ func definedCardQualifierMatches(g *state.Game, c *Ctx, qualifier string, o *sta
 // shape whose pool is otherwise unconstrained. Choices$, DefinedCards$ and
 // ValidTgts$ each supply their own pool and the default is not applied to
 // them: a Choices$ spec already encodes ownership through the
-// chooser-perspective filter, while a DefinedCards$/ValidTgts$ set is chosen
-// by the ability's controller and may legitimately name objects another
+// chooser-perspective filter, while DefinedCards$/ValidTgts$ and AllCards$
+// explicitly supply their candidate pool and may include objects another
 // player controls (Wild Swing's random pick among three targeted permanents,
 // Hunted by the Family's creature you don't control). Slaughter the Strong and
 // Destined Confrontation ("each player chooses ... creatures they control",
@@ -145,6 +145,9 @@ func chooseCardControl(sa *cards.SA) string {
 		return v
 	}
 	if strings.TrimSpace(sa.Params["Choices"]) != "" || strings.TrimSpace(sa.Params["DefinedCards"]) != "" {
+		return ""
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["AllCards"]), "True") {
 		return ""
 	}
 	if _, ok := sa.Params["ValidTgts"]; ok {

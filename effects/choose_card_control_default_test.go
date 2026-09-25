@@ -7,7 +7,7 @@ package effects
 // they control"). These tests pin the candidate pool itself for each chooser
 // (not the eventual chosen result), the one home of the default
 // (chooseCardControl), and the boundary that the explicit-pool shapes --
-// Choices$, DefinedCards$, ValidTgts$ -- keep their prior behaviour.
+// Choices$, DefinedCards$, ValidTgts$, AllCards$ -- keep their prior behaviour.
 
 import (
 	"testing"
@@ -132,9 +132,31 @@ func TestChooseCardControlDefaultBoundary(t *testing.T) {
 		t.Fatalf("ValidTgts$ ChooseCard control = %q, want unchanged empty (preserve target pool)", got)
 	}
 
+	all := sa(t, "SP$ ChooseCard | AllCards$ True")
+	if got := chooseCardControl(all); got != "" {
+		t.Fatalf("AllCards$ ChooseCard control = %q, want unchanged empty (preserve all-card pool)", got)
+	}
+
 	explicit := sa(t, "SP$ ChooseCard | ControlledByPlayer$ Left")
 	if got := chooseCardControl(explicit); got != "Left" {
 		t.Fatalf("explicit ControlledByPlayer$ = %q, want Left as written", got)
+	}
+}
+
+// TestChooseCardAllCardsPoolKeepsOpponentObject pins the AllCards$ boundary:
+// this explicit pool remains cross-controller when Choices$ is absent.
+func TestChooseCardAllCardsPoolKeepsOpponentObject(t *testing.T) {
+	all := sa(t, "SP$ ChooseCard | AllCards$ True")
+	h := newHost(t, 2)
+	mine := controlCreature(t, h, 0, "My AllCard", "2/2")
+	theirs := controlCreature(t, h, 1, "Their AllCard", "2/2")
+	if mine.Zone != state.ZBattlefield || theirs.Zone != state.ZBattlefield || mine.Controller == theirs.Controller {
+		t.Fatalf("precondition: expected distinct controllers' battlefield objects, got zones %v/%v controllers %d/%d",
+			mine.Zone, theirs.Zone, mine.Controller, theirs.Controller)
+	}
+	got := choiceIDs(cardChoices(h, &Ctx{Controller: 0}, all, 0))
+	if !sameIDs(got, []state.ObjID{mine.ID, theirs.ID}) {
+		t.Fatalf("AllCards$ pool = %v, want both controllers' objects [%d %d]", got, mine.ID, theirs.ID)
 	}
 }
 
