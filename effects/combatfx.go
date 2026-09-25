@@ -268,8 +268,9 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	// `NoteCards$ TriggeredSource` (Maelstrom Archangel Avatar) notes the
 	// triggering source, both onto the noted CARD through events.CardNoted,
 	// for the later `Card.NotedFor<label>` reads at ChooseCard's Choices$, DB$
-	// Play's Valid$, a CopyPermanent cost's RevealFromExile list and
-	// RepeatEach's RepeatCards$. The note lands through its own event so a
+	// Play's Valid$ and RepeatEach's RepeatCards$. CopyPermanent's
+	// RevealFromExile cost is an evidenced corpus shape but remains unsupported.
+	// The note lands through its own event so a
 	// log-only replay rebuilds state.Object.Notes exactly; the pump body then
 	// runs unchanged (a `Defined$ Remembered` chooser is a player entry,
 	// skipped by the object walk below). Any other NoteCards$ form stays

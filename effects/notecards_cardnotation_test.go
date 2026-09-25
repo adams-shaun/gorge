@@ -6,8 +6,8 @@ package effects
 // events.CardNoted (Forge's NoteCardsEffect with NoteCards$ Remembered or
 // TriggeredSource), and a later resolution reads it back through the shared
 // card filter's `Card.NotedFor<label>` qualifier -- ChooseCard's Choices$,
-// DB$ Play's Valid$, a CopyPermanent cost's RevealFromExile list and
-// RepeatEach's RepeatCards$ all resolve through that one read.
+// DB$ Play's Valid$ and RepeatEach's RepeatCards$ resolve through that read.
+// CopyPermanent's RevealFromExile cost is present in corpus but unsupported.
 //
 // The real corpus carriers pin the exact spellings. Volatile Chimera is the
 // reported card:
@@ -143,7 +143,7 @@ func TestCardNotedFoldIsIdempotentOrderedAndReplayable(t *testing.T) {
 // TestCardNotationTriggeredSourceNotesTheTriggerCard drives Maelstrom
 // Archangel Avatar's real TrigNote body: the DamageDone trigger executes DB$
 // Pump | NoteCards$ TriggeredSource | NoteCardsFor$ MaelstromArchangelAvatar,
-// and the vanguard's RepeatCards$ reader
+// and the vanguard's actual TrigRepeatEach RepeatCards$ reader
 // (`Card.NotedForMaelstromArchangelAvatar`) must select exactly the creature
 // that dealt the damage.
 func TestCardNotationTriggeredSourceNotesTheTriggerCard(t *testing.T) {
@@ -177,6 +177,25 @@ func TestCardNotationTriggeredSourceNotesTheTriggerCard(t *testing.T) {
 	}
 	if MatchesSpec(h.g, "Card.NotedForMaelstromArchangelAvatar", bystander, 0) {
 		t.Fatal("RepeatCards$ spec matched a creature the trigger did not name")
+	}
+
+	_, repeat := corpusSA(t, "Maelstrom Archangel Avatar", "TrigRepeatEach")
+	if repeat.Params["RepeatCards"] != "Card.NotedForMaelstromArchangelAvatar" {
+		t.Fatalf("Maelstrom TrigRepeatEach RepeatCards$ = %q", repeat.Params["RepeatCards"])
+	}
+	if repeat.Params["Zone"] != "Battlefield,Graveyard,Exile,Library,Hand" {
+		t.Fatalf("Maelstrom RepeatEach Zone$ = %q", repeat.Params["Zone"])
+	}
+	got, ok := repeatedCards(h, &Ctx{Controller: 0}, repeat)
+	if !ok {
+		t.Fatal("Maelstrom RepeatEach did not run its RepeatCards$ reader")
+	}
+	selected := make(map[state.ObjID]bool, len(got))
+	for _, target := range got {
+		selected[target.Obj] = true
+	}
+	if !selected[dealer] || selected[bystander] {
+		t.Fatalf("Maelstrom RepeatEach selected %v, want dealer %d and exclude bystander %d", got, dealer, bystander)
 	}
 }
 

@@ -812,8 +812,9 @@ type Object struct {
 	// order they were noted (Forge's Card.addNotedFor: `NoteCards$
 	// Remembered/TriggeredSource | NoteCardsFor$ <label>` on a DB$ Pump body
 	// appends <label> here; the shared card filter's `Card.NotedFor<label>`
-	// qualifier reads it -- ChooseCard's Choices$, DB$ Play's Valid$, a
-	// CopyPermanent cost's RevealFromExile list, RepeatEach's RepeatCards$).
+	// qualifier reads it -- ChooseCard's Choices$, DB$ Play's Valid$ and
+	// RepeatEach's RepeatCards$. CopyPermanent's RevealFromExile cost is an
+	// evidenced corpus shape but remains unsupported.
 	// It is append-only and never re-ordered, so it is deterministic on
 	// replay, and a re-note of the same label does not duplicate the entry.
 	// Written ONLY by events.Apply's CardNoted case, so a live game and a

@@ -954,8 +954,9 @@ const (
 	// carried (its Remembered set, or the triggering source) so a later
 	// resolution reads it back through the shared card filter's
 	// `Card.NotedFor<label>` qualifier (ChooseCard's Choices$, DB$ Play's
-	// Valid$, a CopyPermanent cost's RevealFromExile list, RepeatEach's
-	// RepeatCards$). Obj is the noted object and Text the label; events.Apply
+	// Valid$ and RepeatEach's RepeatCards$). CopyPermanent's RevealFromExile
+	// cost is an evidenced corpus shape but remains unsupported. Obj is the
+	// noted object and Text the label; events.Apply
 	// appends Text to that object's state.Object.Notes (idempotent), which the
 	// filter reads. It is a dedicated Kind rather than a Note marker because
 	// the notation is real game state a later resolution reads. It is the
