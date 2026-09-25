@@ -4846,7 +4846,20 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
-	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True")
+	// RememberTargets$ records only objects that actually leave the
+	// battlefield. RememberDestroyed$ True (Transforming Flourish) is Forge's
+	// spelling of the same "this permanent was destroyed this way" record.
+	// RememberLKI$ True (Noxious Gearhulk) does BOTH -- it records the object
+	// and captures its last-known-information snapshot (CR 603.10 look-back),
+	// because the chained read (RememberedLKI$CardToughness) needs the
+	// battlefield P/T that events.Apply's Move clears. The snapshot rides
+	// Ctx.LKI/LKIPower/LKIToughness, the same fields rules' triggerLKI publishes
+	// and evalRefProperty reads for a zone-change trigger; evalRefProperty
+	// applies it only when the snapshot names the referenced object, so no
+	// other remembered read is affected.
+	rememberTargets := strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True")
+	rememberDestroyed := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDestroyed"]), "True")
+	rememberLKI := strings.EqualFold(strings.TrimSpace(sa.Params["RememberLKI"]), "True")
 	// Same pre-batch discipline as effDestroyAll: the targets Defined
 	// resolves are destroyed as one simultaneous batch (a multi-target
 	// Destroy over a lifelink Equipment and its bearer must not make the
@@ -4889,13 +4902,30 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
+		// Capture the last-known information BEFORE the Move folds: the
+		// snapshot must see the battlefield permanent (its counters, pump
+		// layers and printed toughness), not the graveyard card the move
+		// leaves behind. The zone guard above proved o is on the battlefield.
+		var lki *state.Object
+		var lkiPower, lkiToughness int32
+		var lkiValid bool
+		if rememberLKI {
+			cp := o.CloneDeep()
+			lki = &cp
+			lkiPower, lkiToughness = h.Power(id), h.Toughness(id)
+			lkiValid = true
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		// Host.Emit applies move replacements before folding the move. Only
 		// remember a permanent that actually ended up in the graveyard; a
 		// replacement such as exile must not feed a later IsRemembered search.
-		if remember {
+		if rememberTargets || rememberDestroyed || rememberLKI {
 			if moved := h.Game().Obj(id); moved != nil && moved.Zone == state.ZGraveyard {
+				if rememberLKI {
+					c.LKI = lki
+					c.LKIPower, c.LKIToughness, c.LKIPTValid = lkiPower, lkiToughness, lkiValid
+				}
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}

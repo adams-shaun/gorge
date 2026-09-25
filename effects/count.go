@@ -845,8 +845,20 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		"TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
-		"DelayTriggerRememberedLKI", "RememberedLKI":
+		"DelayTriggerRememberedLKI":
 		return c.Remembered, true
+	case "RememberedLKI":
+		// The LKI spelling of the Remembered$ group names the SAME objects
+		// (Forge's remembered list, which never contains the event object the
+		// trigger fired on); only the characteristic read differs, through
+		// Ctx.LKI's pre-move snapshot. Route it through the one plain
+		// Remembered resolver so the two cannot disagree about WHICH objects
+		// are remembered -- otherwise a triggered Destroy/ChangeZone's
+		// fire-time capture (the trigger's own source) is summed into a
+		// chained RememberedLKI$CardToughness (Noxious Gearhulk,
+		// Rotfeaster Maggot), inflating the read by the source's own
+		// characteristic.
+		return rememberedWithSource(h, c), true
 	case "TriggerRemembered":
 		// TriggerRemembered (task triggerremembered1) is Forge's name for the
 		// trigger's own RememberObjects$ capture -- the set the resolving
