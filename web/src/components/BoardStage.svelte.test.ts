@@ -124,7 +124,11 @@ describe('BoardStage — the phase band is a reserved lane', () => {
     const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
     await page.goto(`${url}src/components/PhaseLane.geometry.html?seats=2`);
     const tabs = page.locator('[data-hot-tab]');
-    await expect.poll(() => tabs.count()).toBe(5);
+    // Six fixed tabs: ACTIONS, PASS, END TURN, RESOLVE ALL, UNDO and DONE.
+    // RESOLVE ALL owns its slot unconditionally since 7022042e6 (disabled
+    // outside a live-stack priority window), so it is counted here even
+    // though the fixture carries an empty stack.
+    await expect.poll(() => tabs.count()).toBe(6);
     const count = await tabs.count();
     for (let i = 0; i < count; i++) await expect.soft(tabs.nth(i).getAttribute('aria-label')).resolves.toBeTruthy();
     await expect.soft(page.locator('[data-undo]').getAttribute('aria-label')).resolves.toBe('Undo my last action');
