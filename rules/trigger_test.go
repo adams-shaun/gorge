@@ -844,6 +844,11 @@ func replayFromLog(t *testing.T, cfg Config, log []events.Event) *state.Game {
 			}
 			g.SetZone(state.ZSideboard, p, sb)
 		}
+		if i < len(cfg.PlanarDecks) {
+			for _, c := range cfg.PlanarDecks[i] {
+				g.AddObject(c, p)
+			}
+		}
 	}
 	for _, ev := range log {
 		events.Apply(g, ev)

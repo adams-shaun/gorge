@@ -4459,6 +4459,23 @@ func (e *Engine) finishLifeExchange(tx *lifeExchangeTransaction) {
 }
 func (e *Engine) Rand(n int) int { return e.rng.IntN(n) }
 
+// shufflePlanarDeck uses the match RNG; the emitted event, rather than this
+// temporary order, is the replayable state change.
+func (e *Engine) shufflePlanarDeck(player state.PlayerID, order []state.ObjID) []state.ObjID {
+	out := append([]state.ObjID(nil), order...)
+	e.rng.Shuffle(out)
+	return out
+}
+
+// Planeswalk rotates this seat's current plane to the bottom and reveals the
+// next plane. With fewer than two cards there is no next plane to reveal.
+func (e *Engine) Planeswalk(player state.PlayerID) {
+	if int(player) >= len(e.G.Players) || len(e.G.Zone(state.ZPlanarDeck, player)) == 0 {
+		return
+	}
+	e.emit(events.Event{Kind: events.PlanarWalk, Player: player})
+}
+
 // ShuffleLibrary is the single library-shuffle path used by rules and effects.
 // State changes only when the caller emits the resulting Shuffle event.
 func (e *Engine) ShuffleLibrary(player state.PlayerID, order []state.ObjID) []state.ObjID {

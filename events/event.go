@@ -991,10 +991,21 @@ const (
 	// following every prior Kind's own append-only precedent, so no earlier
 	// ordinal, hash chain or golden replay is affected.
 	Clash
+	// PlanarDeckShuffle records the seeded order of one seat's private planar
+	// deck. Appended after Clash (the kinds main already carries), following
+	// every prior Kind's own append-only precedent, so no earlier ordinal, hash
+	// chain or golden replay is affected.
+	PlanarDeckShuffle
+	// PlanarReveal publicly turns the top planar-deck card face up.
+	// Appended here after PlanarDeckShuffle; earlier ordinals remain stable.
+	PlanarReveal
+	// PlanarWalk rotates the current plane to the bottom and reveals the next.
+	// Appended here after PlanarReveal; earlier ordinals remain stable.
+	PlanarWalk
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(Clash) + 1
+	NumKinds = int(PlanarWalk) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1130,7 +1141,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
-	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade", "clash"}
+	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade", "clash",
+	"planar_deck_shuffle", "planar_reveal", "planar_walk"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

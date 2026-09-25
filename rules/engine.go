@@ -49,6 +49,9 @@ type Config struct {
 	// configuration rather than an event, so replay receives the same cards
 	// without changing any existing event schema.
 	Sideboards [][]*cards.Card
+	// PlanarDecks carries each seat's optional Planechase deck. It is genesis
+	// configuration, like Sideboards, and a zero value emits no new events.
+	PlanarDecks [][]*cards.Card
 	// Format names the construction format. Zero means Constructed; the other
 	// tasks in the Commander milestone (the tax, CR 903.9, commander damage)
 	// read it. This task is plumbing: it reads Commanders and StartingLife
@@ -1940,6 +1943,9 @@ func newWithRNG(cfg Config, random *rng, tossAsk bool) *Engine {
 		if i < len(cfg.Sideboards) {
 			initialObjects += len(cfg.Sideboards[i])
 		}
+		if i < len(cfg.PlanarDecks) {
+			initialObjects += len(cfg.PlanarDecks[i])
+		}
 	}
 	// Headroom past the dealt cards for the objects a game mints as it plays
 	// (tokens, ability objects on the stack, copies): measured over the repo
@@ -2071,6 +2077,18 @@ func newWithRNG(cfg Config, random *rng, tossAsk bool) *Engine {
 				sb = append(sb, o.ID)
 			}
 			e.G.SetZone(state.ZSideboard, p, sb)
+		}
+		if i < len(cfg.PlanarDecks) && len(cfg.PlanarDecks[i]) > 0 {
+			planes := make([]state.ObjID, 0, len(cfg.PlanarDecks[i]))
+			for _, c := range cfg.PlanarDecks[i] {
+				o := e.G.AddObject(c, p)
+				planes = append(planes, o.ID)
+			}
+			planes = e.shufflePlanarDeck(p, planes)
+			e.emit(events.Event{Kind: events.PlanarDeckShuffle, Player: p, IDs: planes, Secret: true})
+			if len(planes) > 0 {
+				e.emit(events.Event{Kind: events.PlanarReveal, Player: p, Obj: planes[0]})
+			}
 		}
 		// Commanders leave the library for the command zone here, BEFORE the
 		// shuffle and BEFORE the opening hand is dealt, so they are neither

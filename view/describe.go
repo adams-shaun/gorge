@@ -244,6 +244,12 @@ func Describe(g *state.Game, ev events.Event) string {
 			return text
 		}
 		return player(g, ev.Player) + " rolls the planar die"
+	case events.PlanarDeckShuffle:
+		return player(g, ev.Player) + " shuffles the planar deck"
+	case events.PlanarReveal:
+		return obj(g, ev.Obj) + " is revealed as the current plane"
+	case events.PlanarWalk:
+		return "Planeswalk to the next plane"
 	case events.RollDice:
 		// The roll-action PROPOSAL (task rolldice-repl) is never logged -- the
 		// per-die Notes are the roll's transcript lines -- but the Describe-
