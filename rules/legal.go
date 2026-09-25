@@ -961,6 +961,57 @@ func (e *Engine) activationLimitReachedAt(id state.ObjID, p state.PlayerID, abil
 	return e.activationUsedCount(id, ability, "", true) >= limit
 }
 
+// additionalActivationLimit returns the largest finite MinLimit$ supplied by
+// an applicable Activations static, or baseline when none applies. Forge's
+// MinLimit is an absolute ceiling (e.g. 2 means twice, not baseline + 2).
+// Negative/unparseable limits are deliberately ignored: they represent a
+// different unbounded/conditional rule and must not disable a finite cap.
+func (e *Engine) additionalActivationLimit(id state.ObjID, actor state.PlayerID, ab *cards.SA, baseline int) int {
+	limit := baseline
+	for _, sv := range e.activeStatics("Activations") {
+		validSA := strings.TrimSpace(sv.Params["ValidSA"])
+		matched := false
+		for alt := range strings.SplitSeq(validSA, ",") {
+			parts := strings.SplitN(strings.TrimSpace(alt), ".", 2)
+			if len(parts) != 2 || parts[0] != "Activated" {
+				continue
+			}
+			switch parts[1] {
+			case "Exhaust":
+				matched = strings.EqualFold(strings.TrimSpace(ab.Params["Exhaust"]), "True")
+			case "PowerUp":
+				matched = strings.EqualFold(strings.TrimSpace(ab.Params["PowerUp"]), "True")
+			}
+			if matched {
+				break
+			}
+		}
+		if !matched {
+			continue
+		}
+		if spec := strings.TrimSpace(sv.Params["ValidCard"]); spec != "" &&
+			!e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
+			continue
+		}
+		if !e.actorMatches(sv, "ValidPlayer", actor) {
+			continue
+		}
+		if turn := strings.TrimSpace(sv.Params["PlayerTurn"]); turn != "" {
+			if turn != "You" || e.G.Active != actor {
+				continue
+			}
+		}
+		if !e.checkSVarHolds(sv) {
+			continue
+		}
+		min, err := strconv.Atoi(strings.TrimSpace(sv.Params["MinLimit"]))
+		if err == nil && min > limit {
+			limit = min
+		}
+	}
+	return limit
+}
+
 // activationLimitBlocked is the ONE gate every activation offer site calls
 // for ActivationLimit$ (this turn), GameActivationLimit$ (the whole game),
 // Exhaust$ True, and PowerUp$ True (once per host card per game). All are
@@ -985,18 +1036,24 @@ func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *ca
 		}
 	}
 	if raw, ok := sa.Params["GameActivationLimit"]; ok {
-		if limit, ok := e.resolveActivationLimitAt(id, p, raw, merged); ok && limit >= 0 &&
-			e.activationUsedCount(id, ability, svar, false) >= limit {
-			return true
+		if limit, ok := e.resolveActivationLimitAt(id, p, raw, merged); ok && limit >= 0 {
+			limit = e.additionalActivationLimit(id, p, sa, limit)
+			if e.activationUsedCount(id, ability, svar, false) >= limit {
+				return true
+			}
 		}
 	}
 	// Exhaust$ True and PowerUp$ True use the same host-card, per-game
 	// counter as GameActivationLimit$: leaving and returning does not re-arm
-	// either restriction.
-	if (strings.EqualFold(strings.TrimSpace(sa.Params["Exhaust"]), "True") ||
-		strings.EqualFold(strings.TrimSpace(sa.Params["PowerUp"]), "True")) &&
-		e.activationUsedCount(id, ability, svar, false) >= 1 {
-		return true
+	// either restriction. Activations statics raise this finite ceiling; they
+	// never make the ability unlimited unless a supported static explicitly
+	// has a negative MinLimit; those conditional/unbounded statics are not modeled.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Exhaust"]), "True") ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["PowerUp"]), "True") {
+		limit := e.additionalActivationLimit(id, p, sa, 1)
+		if limit >= 0 && e.activationUsedCount(id, ability, svar, false) >= limit {
+			return true
+		}
 	}
 	return false
 }
