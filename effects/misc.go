@@ -3722,14 +3722,16 @@ func CharmChoiceRestriction(sa *cards.SA) string {
 // turn" rule. The returned slice keeps the input's order, so the caller's
 // option indices stay dense and map back to the same SVar names.
 //
-// Only ThisTurn is read (the scope the brief authorises). A scope this build
-// does not model -- ThisGame, YourLastCombat -- returns the input unchanged,
-// the pre-fix behaviour: never a wrong-wide filter that would withhold a legal
-// mode, and never a live semantics change for the 13 ThisGame / 2
-// YourLastCombat corpus carriers. A pick is recorded only under ThisTurn (see
-// RecordCharmChoices), so the log holds nothing else to filter on.
+// ThisTurn, ThisGame and YourLastCombat are read from the source object's
+// event-folded pick log. Unknown non-empty scopes fail open (with one Note per
+// ask), rather than silently withholding a potentially legal mode.
 func CharmEligibleModes(h Host, source state.ObjID, sa *cards.SA, choices []string) []string {
-	if CharmChoiceRestriction(sa) != state.ModeScopeThisTurn || source == 0 {
+	scope := CharmChoiceRestriction(sa)
+	if scope == "" || source == 0 {
+		return choices
+	}
+	if scope != state.ModeScopeThisTurn && scope != state.ModeScopeThisGame && scope != state.ModeScopeYourLastCombat {
+		h.Emit(events.Event{Kind: events.Note, Obj: source, Text: "unmodelled ChoiceRestriction$ scope: " + scope})
 		return choices
 	}
 	o := h.Game().Obj(source)
@@ -3738,9 +3740,17 @@ func CharmEligibleModes(h Host, source state.ObjID, sa *cards.SA, choices []stri
 	}
 	excluded := make(map[string]bool, len(choices))
 	for _, mc := range o.ModeChoices {
-		if mc.Scope == state.ModeScopeThisTurn {
-			excluded[mc.Mode] = true
+		if mc.Scope != scope {
+			continue
 		}
+		if scope == state.ModeScopeYourLastCombat &&
+			mc.Turn == o.CurCombatTurn && mc.Combat == o.CurCombatCombat {
+			// A pick made in the current combat does not constrain another
+			// trigger in that same combat; YourLastCombat means the preceding
+			// combat, whose picks were retained at BeginCombat rotation.
+			continue
+		}
+		excluded[mc.Mode] = true
 	}
 	if len(excluded) == 0 {
 		return choices
@@ -3756,17 +3766,17 @@ func CharmEligibleModes(h Host, source state.ObjID, sa *cards.SA, choices []stri
 
 // RecordCharmChoices emits one events.Choose marker per answered mode name so
 // a LATER offer of the same Charm on the same source sees the pick through
-// CharmEligibleModes. It is a no-op unless the SA carries the scope this build
-// models (ThisTurn), so every ordinary Charm AND every out-of-scope
-// ChoiceRestriction$ carrier's event stream is byte-identical to pre-fix. The
-// scope is encoded in the event's Counter (state.ModeChoiceCounterPrefix +
-// scope) and the mode name in Text; events.Apply stamps the turn from its own
-// clock, so a replay derives the same log.
+// CharmEligibleModes. It records all three supported corpus scopes; unknown
+// scopes are noted at offer time and remain unrecorded. The scope is encoded
+// in the event's Counter (state.ModeChoiceCounterPrefix + scope) and the mode
+// name in Text; events.Apply stamps combat identity from its own clock, so a
+// replay derives the same log.
 func RecordCharmChoices(h Host, source state.ObjID, sa *cards.SA, names []string) {
-	if CharmChoiceRestriction(sa) != state.ModeScopeThisTurn || source == 0 || len(names) == 0 {
+	scope := CharmChoiceRestriction(sa)
+	if (scope != state.ModeScopeThisTurn && scope != state.ModeScopeThisGame && scope != state.ModeScopeYourLastCombat) || source == 0 || len(names) == 0 {
 		return
 	}
-	counter := state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn
+	counter := state.ModeChoiceCounterPrefix + scope
 	for _, name := range names {
 		if name == "" {
 			continue
