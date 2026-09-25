@@ -233,7 +233,7 @@ func (e *Engine) attackRequirements(id state.ObjID) attackRequirementSet {
 			s.broad = true
 			continue
 		}
-		if p, ok := e.requirementDefender(spec, ce.Source, ce.RememberedPlayers); ok {
+		if p, ok := e.requirementDefender(spec, ce.Source, ce.Controller, ce.RememberedPlayers); ok {
 			s.addNamed(p)
 		}
 	}
@@ -249,7 +249,7 @@ func (e *Engine) attackRequirements(id state.ObjID) attackRequirementSet {
 			s.broad = true
 			continue
 		}
-		if p, ok := e.requirementDefender(spec, sv.Source, nil); ok {
+		if p, ok := e.requirementDefender(spec, sv.Source, sv.Controller, nil); ok {
 			s.addNamed(p)
 		}
 	}
@@ -312,16 +312,13 @@ func CantAttackParamsReadableForRules(params map[string]string) bool {
 // Chosen list (the ChoosePlayer answer, which survives from the begin-combat
 // trigger to the declare-attackers step because choiceRecord emits it on the
 // source). RememberedPlayer/Player.IsRemembered reads the registration's
-// captured PLAYERS (state.ContinuousEffect.RememberedPlayers,
-// For Each of You a Gift / Furygale Flocking / City of the Daleks), and
+// captured PLAYERS (state.ContinuousEffect.RememberedPlayers), and
 // Remembered.NonActive additionally requires that player not be the active
-// one. Every other reference (You, EffectSource, CardOwner,
-// EnchantedController, Opponent.lifeEQX, ...) names a binding or evaluator
-// this build does not carry, so it fails closed -- the requirement is simply
-// not counted, which is the safe direction for a requirement and is the
-// pre-existing behaviour for every one of them. They are listed in the
-// ticket report's Issues section rather than implemented unproven.
-func (e *Engine) requirementDefender(spec string, source state.ObjID, rememberedPlayers []state.PlayerID) (state.PlayerID, bool) {
+// one. You binds to the controller captured by the registration. Remembered
+// binds only when exactly one player was captured; ambiguous registrations
+// fail closed. Other references need bindings or evaluators this build does
+// not carry and therefore fail closed.
+func (e *Engine) requirementDefender(spec string, source state.ObjID, controller state.PlayerID, rememberedPlayers []state.PlayerID) (state.PlayerID, bool) {
 	switch strings.TrimSpace(spec) {
 	case "ChosenPlayer", "Player.Chosen":
 		if o := e.G.Obj(source); o != nil {
@@ -333,6 +330,12 @@ func (e *Engine) requirementDefender(spec string, source state.ObjID, remembered
 		}
 	case "RememberedPlayer", "Player.IsRemembered":
 		if len(rememberedPlayers) > 0 {
+			return rememberedPlayers[0], true
+		}
+	case "You":
+		return controller, true
+	case "Remembered":
+		if len(rememberedPlayers) == 1 {
 			return rememberedPlayers[0], true
 		}
 	case "Remembered.NonActive":
