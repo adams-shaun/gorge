@@ -15,6 +15,7 @@ func init() {
 	Register("ChoosePlayer", effChoosePlayer)
 	Register("ChooseSource", effChooseSource)
 	Register("GainControl", effGainControl)
+	Register("GainControlVariant", effGainControlVariant)
 	Register("ControlSpell", effControlSpell)
 	Register("ChangeTargets", effChangeTargets)
 	Register("RepeatEach", effRepeatEach)
@@ -1192,6 +1193,72 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 }
+
+// effGainControlVariant implements Forge's GainControlVariant: the
+// owner-directed batch control effect (Alicia Masters, Trostani Discordant,
+// Homeward Path, Brooding Saurian, ...). Unlike GainControl it takes no
+// target: it enumerates every battlefield permanent matching AllValid$ and
+// hands each to the player ChangeController$ names.
+//
+// Only ChangeController$ CardOwner is implemented -- "each player gains
+// control of all permanents they own" (Alicia Masters). The other corpus
+// values (Random, ChooseFromPlayerToTheirRight, NextPlayerInChosenDirection,
+// ChooseNextPlayerInChosenDirection) each need a separate player-selection
+// mechanic the engine models nowhere; applying CardOwner for them would hand
+// every permanent to its owner, which is a different and WRONG result, so
+// they fail loudly with a Note and change nothing. This is the fail-closed
+// direction the ordinary effGainControl takes for an unbound NewController$.
+func effGainControlVariant(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	change := strings.TrimSpace(sa.Params["ChangeController"])
+	if !strings.EqualFold(change, "CardOwner") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "GainControlVariant ChangeController$ " + change + " unimplemented"})
+		return
+	}
+	spec := strings.TrimSpace(sa.Params["AllValid"])
+	if spec == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "GainControlVariant has no AllValid$ filter"})
+		return
+	}
+	dur, unknown := ParseControlDuration(sa.Params["LoseControl"])
+	if unknown != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControlVariant LoseControl$ " + unknown + " unimplemented"})
+		return
+	}
+	base := ControlGrant{You: c.Controller, Source: c.Source, Duration: dur, SVars: c.SVars,
+		AddKeywords: cards.SplitKeywordList(sa.Params["AddKWs"])}
+	if src := g.Obj(c.Source); src != nil && src.Zone == state.ZBattlefield {
+		base.SourceStamp = src.Timestamp
+	}
+	// The dense object arena is creation order, so the walk (and therefore
+	// the emitted ControlChange sequence and its ControlGrant records) is
+	// deterministic across a replay.
+	sc := c.SpecContext(c.Controller)
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		if o.Zone != state.ZBattlefield || !MatchesObjectCtx(g, spec, o, sc) {
+			continue
+		}
+		gr := base
+		gr.Obj, gr.ObjStamp, gr.Previous, gr.Controller = o.ID, o.Timestamp, o.Controller, o.Owner
+		if ControlGrantEnded(h, gr) {
+			continue
+		}
+		// The effect is applied to EVERY matching permanent, including one
+		// its owner already controls: it establishes a new (latest) control
+		// effect on it (CR 613.7), so a still-tracked older steal cannot
+		// retake the permanent when the older steal expires. Only a visible
+		// change of controller emits the ControlChange event; a permanent
+		// already under its owner's control gets the grant record silently.
+		if o.Controller != o.Owner {
+			h.Emit(events.Event{Kind: events.ControlChange, Obj: o.ID, Player: o.Owner})
+		}
+		h.RegisterControl(gr)
+	}
+}
+
 func effControlSpell(h Host, c *Ctx, sa *cards.SA) {
 	// Mode$ (Commandeer's "Gain"): what the control transfer targets. "Gain"
 	// — the corpus's only value — takes control of the target SPELL on the
