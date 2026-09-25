@@ -9,11 +9,17 @@ import (
 
 // LegacyDecide preserves the pre-B2 heuristic for the botbench head-to-head:
 // attackers are still all declared, and blockers are still selected by the
-// historical per-option coin. Its blocker arm additionally reads attacker
-// keyword facts and the decision's published blocker bounds to avoid emitting
-// a whole declaration the engine rejects. This remains a benchmark snapshot,
-// not a production policy. The Effect-specific no-host decline remains the
-// other deliberate deviation; game seats, acceptance and fuzz use Decide.
+// historical per-option coin. Its blocker arm is the one branch that reads
+// attacker facts beyond Board.IsMain: after the coin loop it drops a whole
+// block declaration that leaves a team-needing attacker (a derived Menace
+// keyword on Board.Creatures, or an offered option's published MinBlockers)
+// with fewer than its required blockers, because the engine rejects such a
+// declaration and a rejected intent aborts the bench. This is a deliberate
+// reversal of the original "no Board facts at all" contract, scoped to that
+// branch: the heuristic -- attack rule, coin, every other arm -- is otherwise
+// the historical snapshot, and this remains a benchmark driver, not a
+// production policy. The Effect-specific no-host decline remains the other
+// deliberate deviation; game seats, acceptance and fuzz use Decide.
 func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	in := decision.Intent{Seq: d.Seq, Player: d.Player}
 	switch d.Kind {
@@ -90,27 +96,16 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 				ch = append(ch, o.Index)
 			}
 		}
-		// Preserve every coin draw above; only then remove lone blocks that
-		// violate a team-size requirement. Clamp repairs required attackers.
-		counts := make(map[state.ObjID]int)
-		for _, ci := range ch {
-			if ci >= 0 && ci < len(d.Options) {
-				counts[d.Options[ci].Attacker]++
-			}
-		}
-		filtered := make([]int, 0, len(ch))
-		for _, ci := range ch {
-			if ci < 0 || ci >= len(d.Options) {
-				filtered = append(filtered, ci)
-				continue
-			}
-			o := d.Options[ci]
-			if counts[o.Attacker] == 1 && (b.Creatures[o.Attacker].hasKeyword("Menace") || o.MinBlockers > 1) {
-				continue
-			}
-			filtered = append(filtered, ci)
-		}
-		in.Choices = filtered
+		// Preserve every coin draw above; only then drop whole block
+		// declarations that violate a team-size requirement. The shared
+		// legalBlockChoices guard is the same rule the production KBlockers
+		// arms and the search teacher route through, so a partial team
+		// (0 < chosen < required Min) is dropped entirely rather than
+		// truncated to a lone block the engine still rejects. It reads the
+		// same two facts the engine validates against: the derived Menace
+		// keyword on Board.Creatures and the MinMaxBlocker bound published
+		// on each offered option. Clamp repairs required attackers.
+		in.Choices = legalBlockChoices(b, d, ch)
 		return Clamp(d, in)
 
 	case decision.KTriggerOrder:

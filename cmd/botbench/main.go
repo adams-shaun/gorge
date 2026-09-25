@@ -172,8 +172,8 @@ var policies = map[string]func(seed uint64) seat.Seat{
 		return seat.NewCastProfileBotWithWeights(seed, w)
 	},
 	// legacy is the benchmark's historical heuristic, with blocker legality
-	// blocker legality facts supplied by the shared view adapter. It is not
-	// a production policy -- nothing but the bench drives it.
+	// facts supplied by the shared view adapter. It is not a production
+	// policy -- nothing but the bench drives it.
 	"legacy": func(seed uint64) seat.Seat {
 		return &legacySeat{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 	},
