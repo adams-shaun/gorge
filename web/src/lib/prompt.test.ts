@@ -94,3 +94,57 @@ describe('promptContext — the context line', () => {
     expect(promptContextText(promptContext(decision({ kind: 'priority' }), view()))).toBeNull();
   });
 });
+
+// fb-20260924T023233Z-ae628f55: the target is mandatory now, but the
+// optional trigger's effect can still be declined at resolution.
+const sageTarget = () => decision({
+  seq: 1107, kind: 'target', source: 204, prompt: 'Choose a target for Reclamation Sage',
+  min: 1, max: 1, options: [{ index: 0, kind: 'permanent', label: 'Sol Ring (You)', obj: 62, player: 0 }],
+});
+const sageView = (over: Partial<StackView> = {}): View => ({
+  ...view(), stack: [{
+    id: 204, kind: 'trigger', name: 'Reclamation Sage', text: '', controller: 0,
+    targets: [], optional: true, decider: 0, ...over,
+  }],
+});
+
+describe('promptContext — resolution-time opt-out', () => {
+  const ordinaryLine = 'From Reclamation Sage (a triggered ability) · Pick 1 target';
+  const hint = 'you choose whether the effect happens when it resolves';
+
+  it('names the later choice for this seat on the captured target-ask shape', () => {
+    const d = sageTarget();
+    const v = sageView();
+    expect(d).toMatchObject({ kind: 'target', source: 204, min: 1, max: 1 });
+    expect(v.stack[0]).toMatchObject({ id: 204, kind: 'trigger', optional: true, decider: v.viewer });
+    const ctx = promptContext(d, v);
+    expect(ctx.declinable).toBe(hint);
+    expect(promptContextText(ctx)).toBe(`${ordinaryLine} · ${hint}`);
+  });
+
+  it('does not promise a decline when a different seat decides', () => {
+    const ctx = promptContext(sageTarget(), sageView({ decider: 1 }));
+    expect(ctx.declinable).toBeNull();
+    expect(promptContextText(ctx)).toBe(ordinaryLine);
+  });
+
+  it('does not promise a decline for a non-optional trigger or absent decider', () => {
+    for (const stack of [sageView({ optional: false }), sageView({ decider: null }), sageView({ decider: undefined })]) {
+      const ctx = promptContext(sageTarget(), stack);
+      expect(ctx.declinable).toBeNull();
+      expect(promptContextText(ctx)).toBe(ordinaryLine);
+    }
+  });
+
+  it('does not guess when the source is not on the stack', () => {
+    const ctx = promptContext(sageTarget(), sageView({ id: 205 }));
+    expect(ctx.declinable).toBeNull();
+    expect(promptContextText(ctx)).toBe('Pick 1 target');
+  });
+
+  it('does not repeat the optional-trigger shape line at the resolution ask', () => {
+    const ctx = promptContext(decision({ ...sageTarget(), kind: 'trigger_optional' }), sageView());
+    expect(ctx.declinable).toBeNull();
+    expect(promptContextText(ctx)).toBe('From Reclamation Sage (a triggered ability) · Optional ability — choose Yes or No');
+  });
+});
