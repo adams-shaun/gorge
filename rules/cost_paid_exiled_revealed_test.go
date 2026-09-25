@@ -434,6 +434,51 @@ func TestDreadDefilerPaidExileSizesLifeLoss(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestSoulExchangePaidExileValidTracksThrull pins `Exiled$Valid <type>` end to
+// end on a fully-supported corpus carrier: Soul Exchange's cost exiles a
+// creature you control (bare `Exile<1/Creature>`, which feeds the paid list),
+// and `X:Exiled$Valid Thrull` sizes the +2/+2 counter on the returned creature.
+// A non-Thrull exiled creature would place zero counters, so the counter proves
+// the paid card was matched, not just counted.
+func TestSoulExchangePaidExileValidTracksThrull(t *testing.T) {
+	e, cfg := paidCostEngine(t, []string{"Soul Exchange", "Blood Pet", "Grizzly Bears"}, nil)
+	thrull := paidCostMoveTo(t, e, 0, "Blood Pet", state.ZBattlefield)
+	returned := paidCostMoveTo(t, e, 0, "Grizzly Bears", state.ZGraveyard)
+	spell := paidCostMoveTo(t, e, 0, "Soul Exchange", state.ZHand)
+	// Precondition: the two creatures differ on the Thrull predicate, so a
+	// match on the wrong one is impossible to confuse with a match on the
+	// paid one.
+	if !hasTypeWord(e.G.Obj(thrull).Face().Types, "Thrull") {
+		t.Fatalf("precondition: Blood Pet types = %v, want a Thrull", e.G.Obj(thrull).Face().Types)
+	}
+	if hasTypeWord(e.G.Obj(returned).Face().Types, "Thrull") {
+		t.Fatalf("precondition: returned creature must not be a Thrull: %v", e.G.Obj(returned).Face().Types)
+	}
+	if e.G.Obj(returned).Zone != state.ZGraveyard {
+		t.Fatalf("precondition: return target zone = %s, want graveyard", e.G.Obj(returned).Zone)
+	}
+
+	paidCostCast(t, e, spell, "BB")
+	answerPaidCostAsk(t, e, "exilecost", thrull)
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+		for _, o := range d.Options {
+			if o.Obj == returned {
+				submitChoices(t, e, o.Index)
+			}
+		}
+	}
+	passUntilStackEmpty(t, e, 30)
+	if o := e.G.Obj(thrull); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("precondition: paid exile zone = %+v, want exile", o)
+	}
+	if o := e.G.Obj(returned); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("returned creature zone = %+v, want battlefield", o)
+	} else if got := o.Counter("P2P2"); got != 1 {
+		t.Fatalf("returned creature P2P2 counters = %d, want 1 (Exiled$Valid Thrull matched the exiled Blood Pet)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestMonstrousEmergenceRevealOrChooseParsesAsARevealCost is the grammar leaf:
 // RevealOrChoose<N/Spec> prices as a reveal part (no generic substitution, no
 // Unknown census entry) and lands in Cost.Reveal.
