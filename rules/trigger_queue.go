@@ -1424,6 +1424,44 @@ func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembe
 	return who, true
 }
 
+// targetChooserFromSpec resolves a trigger-relative target chooser. Unknown or
+// absent referents fail closed to the caller's controller.
+func (e *Engine) targetChooserFromSpec(spec string, controller state.PlayerID, remembered []state.Target, tc effects.TriggerContext) (state.PlayerID, bool) {
+	var target state.Target
+	switch strings.TrimSpace(spec) {
+	case "TriggeredTarget":
+		target = tc.TriggerTarget
+	case "TriggeredPlayer":
+		target = tc.TriggerPlayer
+	case "TriggeredDefendingPlayer", "DefendingPlayer":
+		target = tc.DefendingPlayer
+	case "TriggeredAttackingPlayer":
+		target = tc.AttackingPlayer
+	case "TriggeredCardController":
+		if p, ok := effects.TriggeredCardController(e.G, tc, remembered); ok {
+			return p, e.targetChooserAlive(p)
+		}
+		return controller, false
+	case "Opponent", "Player.Opponent":
+		for _, p := range e.G.AliveFrom(0) {
+			if p != controller {
+				return p, true
+			}
+		}
+		return controller, false
+	default:
+		return controller, false
+	}
+	if !target.IsPlayer || !e.targetChooserAlive(target.Player) {
+		return controller, false
+	}
+	return target.Player, true
+}
+
+func (e *Engine) targetChooserAlive(p state.PlayerID) bool {
+	return int(p) < len(e.G.Players) && !e.G.Players[p].Lost
+}
+
 // PendingTriggers reports the triggers matched but not yet on the stack, in
 // queue order (index 0 is placed first). Read-only; the slice is fresh, and
 // so is each entry's own Label -- neither aliases e.pendingTriggers, so a
