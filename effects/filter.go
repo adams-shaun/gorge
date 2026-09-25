@@ -1049,14 +1049,54 @@ func attachedToReferent(ref string) (string, bool) {
 	return "", false
 }
 
+// attachedToPlayerReferent classifies the PLAYER-referent forms `AttachedTo
+// <ref>` accepts -- a Curse attached to a seat rather than a permanent. `You`
+// is the whole family today (Lynde, Cheerful Tormentor's `Choices$
+// Curse.AttachedTo You`, Witchbane Orb's `ValidCards$ Curse.AttachedTo You`):
+// the candidate must be attached to the spec's you (SpecContext.You, the
+// resolving controller). It is deliberately separate from attachedToReferent
+// -- a player is not an object, and a player attachment is not represented by
+// state.Object.AttachedTo (its ObjID), but by the AttachedPlayer/
+// HasAttachedPlayer pair. Its companion resolution is
+// attachedToReferentPlayer. Any other token (an object referent, a nested
+// predicate, an unrecognised role) is rejected so the classifier and
+// UnknownPredicates stay in agreement.
+func attachedToPlayerReferent(ref string) (string, bool) {
+	switch ref {
+	case "You":
+		return ref, true
+	}
+	return "", false
+}
+
+// attachedToReferentPlayer resolves an attachedToPlayerReferent spelling to
+// the live seat it names in this SpecContext, and reports whether the
+// referent is BOUND. `You` binds SpecContext.You; an absent binding (a
+// SpecContext whose You is not a real seat of the game) returns (0, false) so
+// both the matcher and contextPredicateBound fail closed -- never an invented
+// seat and never an always-true negation.
+func attachedToReferentPlayer(g *state.Game, sc SpecContext, ref string) (state.PlayerID, bool) {
+	if g == nil {
+		return 0, false
+	}
+	switch ref {
+	case "You":
+		if int(sc.You) >= 0 && int(sc.You) < len(g.Players) {
+			return sc.You, true
+		}
+	}
+	return 0, false
+}
+
 // attachedToReferentObjects resolves an attachedToReferent spelling to the
 // live object ids it names in this SpecContext, and reports whether the
 // referent is BOUND. An absent binding (Targeted outside a resolution, or a
 // trigger referent with no remembered object), or a stale object ID, returns
 // (nil, false) so both the matcher and contextPredicateBound fail closed -- never an invented
-// bearer and never an always-true negation. Player-only entries are dropped:
-// state.Object.AttachedTo can only name an object, so a player referent is
-// unrepresentable and admits nothing.
+// bearer and never an always-true negation. Player-only entries are dropped
+// because state.Object.AttachedTo can only name an object; the PLAYER link
+// is the separate AttachedPlayer/HasAttachedPlayer pair, read by
+// attachedToReferentPlayer for the `AttachedTo You` spelling.
 //
 // Cardinality: the supported binding is EXACTLY ONE object. A plural binding
 // (a resolution with several object targets, or a trigger that remembered
@@ -1183,18 +1223,17 @@ func attachedToArg(p string) (string, bool) {
 	case "Card", "Permanent", "Spell":
 		return arg, true
 	}
-	// "You" is in predicateTypeWords only because one card literally prints
-	// `Types:Legendary Planeswalker You`, but every corpus `AttachedTo You`
-	// (Witchbane Orb, Lynde) means a Curse attached to YOU THE PLAYER. This
-	// engine cannot model that: state.Object.AttachedTo is an ObjID and a
-	// player is not an object. Reading it as "attached to a permanent of type
-	// You" would match nothing -- harmless on its own, but it would also lift
-	// the token out of UnknownPredicates, and that is what the card-validation
-	// pass uses to REFUSE a card it would otherwise misplay. Recognising it
-	// would let those cards through while their curse test silently never
-	// fires. It stays unknown, and stays refused.
-	if arg == "You" {
-		return "", false
+	// The player-referent family `AttachedTo You` (Witchbane Orb, Lynde): a
+	// Curse attached to the PLAYER. state.Object.AttachedTo is an ObjID and a
+	// player is not an object, but the engine now carries the player link on
+	// state.Object.AttachedPlayer/HasAttachedPlayer (written only by
+	// events.Attach's player branch), so this is a real, modelable read rather
+	// than the recognised-and-inert unknown it once was. It is checked before
+	// the literal type-word fallback so `You` cannot be mistaken for the
+	// `Types:Legendary Planeswalker You` spelling (a different position
+	// entirely).
+	if _, ok := attachedToPlayerReferent(arg); ok {
+		return arg, true
 	}
 	if predicateTypeWords[arg] {
 		return arg, true
@@ -2174,6 +2213,23 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// attached to a permanent the spec's you controls -- Umbra Mystic);
 		// the key was validated by attachedToArg, so the re-split here
 		// cannot miss.
+		// The player-referent family: the candidate enchants the named seat
+		// (Lynde / Witchbane Orb's `Curse.AttachedTo You`). A player-attached
+		// Curse has AttachedTo == 0 and HasAttachedPlayer true, so this branch
+		// precedes the bare AttachedTo==0 guard below. The zone check mirrors
+		// the Player.EnchantedBy sweep (a departed Aura must not continue to
+		// enchant -- matchesPlayerSingleSpec's EnchantedBy case checks
+		// ZBattlefield explicitly).
+		if pref, ok := attachedToPlayerReferent(key); ok {
+			if o.Zone != state.ZBattlefield || !o.HasAttachedPlayer {
+				return false
+			}
+			seat, bound := attachedToReferentPlayer(g, sc, pref)
+			if !bound {
+				return false
+			}
+			return o.AttachedPlayer == seat
+		}
 		if o.AttachedTo == 0 {
 			return false
 		}
@@ -2264,6 +2320,10 @@ func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecCont
 	case wordAttachedTo:
 		if ref, ok := attachedToReferent(key); ok {
 			_, bound := attachedToReferentObjects(g, sc, ref)
+			return bound
+		}
+		if ref, ok := attachedToPlayerReferent(key); ok {
+			_, bound := attachedToReferentPlayer(g, sc, ref)
 			return bound
 		}
 	}
