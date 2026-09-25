@@ -662,9 +662,10 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// The `Spell.IsTargeting <target-spec>` present form (Shiko and Narset's
 	// and Orvar, the All-Form's `ConditionDefined$ TriggeredSpellAbility`
 	// guards) is a property of the triggering spell's own TARGET LIST, not of
-	// its printed face. The shared matcher now knows the predicate
-	// (positiveRecognised/matchPositive delegate to spellIsTargetingMatches),
-	// but the ordinary path would still apply the Spell BASE first -- and the
+	// its printed face. The shared matcher now knows the predicate at the
+	// alternative level (spellIsTargetingAlt, evaluated by matchesObjectText /
+	// matchesZoneSpecText / compileSpec through spellIsTargetingMatches), but
+	// the ordinary path would still apply the Spell BASE first -- and the
 	// base reads the candidate's zone (state.ZStack), which a triggering spell
 	// that has already resolved no longer satisfies. So the shape is still
 	// routed here, bypassing the base, when -- and only when -- every
