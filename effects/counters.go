@@ -618,7 +618,14 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
 				Player: o.Controller, Text: "Renowned", Amount: n})
 		}
-		if !t.IsPlayer && t.Obj != 0 {
+		// RememberPut$ (Synth Eradicator's DBEnergy) names the objects this
+		// pass actually CounterChanged, never the attempt: a body whose count
+		// resolves to zero (a `CounterNum$ X` the unmodelled cost token leaves
+		// at 0, or a per-defined head degrading to 0) emits no positive
+		// CounterChange, so it must not remember the recipient and must not let
+		// a gated follow-up run as though a counter landed. The player branch
+		// above carries the same n > 0 guard.
+		if !t.IsPlayer && t.Obj != 0 && amount > 0 {
 			placed = append(placed, t)
 		}
 	}
