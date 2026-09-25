@@ -227,10 +227,12 @@ var changeTextCarriers = []string{
 // alike -- so the gate cannot pass by scoping itself to the text family, and a
 // card whose gap later closes (or opens) makes this table stale and fails.
 //
-// The two non-nil entries are unrelated to text modification. The operator's
-// 2026-09-25 ruling explicitly leaves these keywords out of scope here:
+// The one non-nil entry is unrelated to text modification. The operator's
+// 2026-09-25 ruling explicitly leaves this keyword out of scope here:
 //   - Spectral Shift: kw:Entwine (agent-20260925T000311Z-22c4c559).
-//   - Trait Doctoring: kw:Cipher (agent-20260919T181215Z-71ad9572).
+//
+// Trait Doctoring's former kw:Cipher gap closed when agent-20260919T181215Z-
+// 71ad9572 landed Cipher, so it is now fully playable and reads nil.
 var changeTextCarrierGaps = map[string][]string{
 	"Alter Reality":          nil,
 	"Artificial Evolution":   nil,
@@ -245,7 +247,7 @@ var changeTextCarrierGaps = map[string][]string{
 	"Deadpool, Trading Card": nil,
 	"Exchange of Words":      nil,
 	"Spectral Shift":         {"kw:Entwine"},
-	"Trait Doctoring":        {"kw:Cipher"},
+	"Trait Doctoring":        nil,
 }
 
 // TestChangeTextCarriersUnsupportedIsExact implements the operator's
