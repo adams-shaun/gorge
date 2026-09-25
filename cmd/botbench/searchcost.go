@@ -104,6 +104,8 @@ func searchCostReport(totalGames int) string {
 
 	var total, sampleMS, searchMS []float64
 	var covered int
+	type kindCount struct{ asked, covered, overrides int }
+	byKind := map[string]*kindCount{}
 	type bucket struct {
 		asked, covered                     int
 		attempts, accepted, prefixRejected int
@@ -127,6 +129,18 @@ func searchCostReport(totalGames int) string {
 	}
 	var fallbacks map[string]int
 	for _, dg := range diags {
+		kc := byKind[dg.Trace.Kind]
+		if kc == nil {
+			kc = &kindCount{}
+			byKind[dg.Trace.Kind] = kc
+		}
+		kc.asked++
+		if dg.Trace.Covered {
+			kc.covered++
+			if dg.Trace.Index != 0 {
+				kc.overrides++
+			}
+		}
 		ms := dg.SampleMS + dg.SearchMS
 		total = append(total, ms)
 		sampleMS = append(sampleMS, dg.SampleMS)
@@ -162,6 +176,10 @@ func searchCostReport(totalGames int) string {
 		len(diags), totalGames, float64(len(diags))/float64(totalGames), covered, 100*float64(covered)/float64(len(diags)))
 	fmt.Fprintf(&b, "ms/asked decision total: mean %.1f p50 %.1f p95 %.1f (sample %.1f + search %.1f means)\n",
 		meanF(total), quantF(total, .5), quantF(total, .95), meanF(sampleMS), meanF(searchMS))
+	if mana := byKind["mana"]; mana != nil {
+		fmt.Fprintf(&b, "mana tap search: asked %d, covered %d, changed source %d\n",
+			mana.asked, mana.covered, mana.overrides)
+	}
 	for _, name := range []string{"t01-06", "t07-12", "t13+"} {
 		bk := buckets[name]
 		if bk.asked == 0 {

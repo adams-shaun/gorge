@@ -56,7 +56,8 @@ import (
 // caller deliberately differs.
 type Options struct {
 	// Kinds gates which decision kinds the teacher answers. The implemented
-	// set is "attackers", "blockers", "cast" (a KPriority decision
+	// set is "attackers", "blockers", "mana" (alternative bare mana
+	// sources at priority), "cast" (a KPriority decision
 	// offering two or more distinct castable objects) and "target" (a
 	// single-choice, unbudgeted KTarget, searchprobe.SingleTarget); every
 	// other decision delegates. Defaults leaves "blockers" and "target" off.
@@ -248,8 +249,22 @@ func Eligible(d *decision.Decision, opts Options) bool {
 		return true
 	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
 		return true
+	case d.Kind == decision.KPriority && opts.Kinds["mana"] && bareManaSources(d) >= 2:
+		return true
 	}
 	return false
+}
+
+// bareManaSources counts source taps the bot can compare without putting a
+// non-mana cost (life, sacrifice, pool mana) into the root candidate set.
+func bareManaSources(d *decision.Decision) int {
+	n := 0
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Cost == "" {
+			n++
+		}
+	}
+	return n
 }
 
 // CastOptions counts the DISTINCT castable objects a priority decision offers.
@@ -471,8 +486,39 @@ func candidates(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 			out = append(out, []searchprobe.Action{c})
 		}
 		return out, "cast", true
+	case d.Kind == decision.KPriority && opts.Kinds["mana"] && bareManaSources(d) >= 2:
+		if len(bot.Choices) != 1 || bot.Choices[0] < 0 || bot.Choices[0] >= len(d.Options) {
+			return nil, "mana", false
+		}
+		chosen := d.Options[bot.Choices[0]]
+		if chosen.Kind != "activate" || chosen.Cost != "" {
+			return nil, "mana", false
+		}
+		out := make([][]searchprobe.Action, 0, opts.Limit)
+		for _, idx := range append([]int{bot.Choices[0]}, bareManaAlternatives(d, bot.Choices[0])...) {
+			in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}
+			a, err := collector.Actions(d, in)
+			if err != nil || len(a) != 1 {
+				return nil, "mana", false
+			}
+			out = append(out, a)
+			if len(out) >= opts.Limit {
+				break
+			}
+		}
+		return out, "mana", len(out) >= 2
 	}
 	return nil, "", false
+}
+
+func bareManaAlternatives(d *decision.Decision, chosen int) []int {
+	var out []int
+	for i, o := range d.Options {
+		if i != chosen && o.Kind == "activate" && o.Cost == "" {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 // sampleWorlds returns the worlds to search. The clairvoyant ceiling skips
