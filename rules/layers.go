@@ -1344,6 +1344,11 @@ const (
 // continuous effect has been applied in CR 613 order. Nothing outside this
 // file may read printed power, toughness or keywords directly — Derived (or
 // the Power/Toughness/HasKeyword/Keywords accessors below) is the only path.
+type derivedPTSnapshot struct {
+	id                                         state.ObjID
+	power, toughness, basePower, baseToughness int32
+}
+
 type Derived struct {
 	Power, Toughness int32
 	// BasePower/BaseToughness are the object's BASE power and toughness: the
@@ -2641,6 +2646,13 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 // `Creature.withFlying+Other+YouCtrl` +1/+0 over a creature an earlier
 // layer-6 effect granted flying is the measured case.
 func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone) bool {
+	return e.matchesWithCharsPT(ce, id, types, keywords, atStack, 0, 0, 0, 0, false)
+}
+
+// matchesWithCharsPT binds the layer-7 walk's in-progress P/T values when an
+// Affected$ predicate is evaluated during that walk. Calling Derived here
+// would recurse through the same active layer scan.
+func (e *Engine) matchesWithCharsPT(ce ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone, power, toughness, basePower, baseToughness int32, hasPT bool) bool {
 	// CR 702.25b: a phased-out permanent is treated as though it does not
 	// exist, so NO continuous effect applies to it -- a lord's pump, a
 	// keyword grant, a type change. This is the one applicability gate every
@@ -2668,6 +2680,10 @@ func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, ke
 	sc.AsStack = atStack != 0
 	sc.ExtraTypes = types
 	sc.ExtraKeywords = keywords
+	if hasPT {
+		sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = power, toughness, true
+		sc.BasePower, sc.BaseToughness, sc.HasBasePT = basePower, baseToughness, true
+	}
 	// The walk's types-so-far list above is authoritative for this match, so
 	// the published layer-4 table (layer4types.go's DerivedTypes, bound by
 	// specCtx) must not be consulted as a fallback: it may carry a type a
@@ -2743,6 +2759,17 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 // so a 7c pump or a +1/+1 counter moves power/toughness while leaving the base
 // pair where it was. That is the value the base filter predicates read.
 func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Face, active []ContinuousEffect, kw []string) (power, toughness, basePower, baseToughness int32) {
+	frameIndex := len(e.derivedPTFrames)
+	e.derivedPTFrames = append(e.derivedPTFrames, derivedPTSnapshot{id: id})
+	defer func() { e.derivedPTFrames = e.derivedPTFrames[:frameIndex] }()
+	setFrame := func() {
+		currentPower, currentToughness := power, toughness
+		if o != nil {
+			currentPower += o.Counter("P1P1") - o.Counter("M1M1")
+			currentToughness += o.Counter("P1P1") - o.Counter("M1M1")
+		}
+		e.derivedPTFrames[frameIndex] = derivedPTSnapshot{id: id, power: currentPower, toughness: currentToughness, basePower: basePower, baseToughness: baseToughness}
+	}
 	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
 		// CR 708.5's base: a face-down battlefield permanent is a 2/2
 		// creature; its printed P/T and any printed characteristic-defining
@@ -2779,6 +2806,7 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 	// The base pair starts at the same 7a basis and is advanced only by a 7b
 	// set below.
 	basePower, baseToughness = power, toughness
+	setFrame()
 	// typeCharacteristics is 837910f4's layer-4-aware type derivation; the
 	// active list comes in as a parameter (230574a2's plumbing) because
 	// active() is a cached, idempotent read — same slice, no recomputation.
@@ -2792,7 +2820,8 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 		// (`Affected$ ...+withFlying`) must see the grant CR 613 ordered
 		// below it. matchesWithChars reads a nil list as the printed-face
 		// fallback, so a caller that did not build one is unchanged.
-		if !e.matchesWithChars(ce, id, types, kw, 0) {
+		setFrame()
+		if !e.matchesWithCharsPT(ce, id, types, kw, 0, power, toughness, basePower, baseToughness, true) {
 			continue
 		}
 		switch ce.Sub {
@@ -2890,6 +2919,24 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 // read-only, do-not-retain discipline applies to them.
 func (e *Engine) Derived(id state.ObjID) Derived {
 	return e.derivedWith(id, 0)
+}
+
+// FilterDerivedPT exposes a value snapshot for effects-side zone counts. The
+// effects package cannot depend on rules, so its Count$Valid fold discovers
+// this bridge through an optional interface and binds the values into the
+// candidate's SpecContext.
+func (e *Engine) FilterDerivedPT(id state.ObjID) (power, toughness, basePower, baseToughness int32, ok bool) {
+	for i := len(e.derivedPTFrames) - 1; i >= 0; i-- {
+		if frame := e.derivedPTFrames[i]; frame.id == id && id != 0 {
+			return frame.power, frame.toughness, frame.basePower, frame.baseToughness, true
+		}
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0, 0, 0, 0, false
+	}
+	d := e.Derived(id)
+	return d.Power, d.Toughness, d.BasePower, d.BaseToughness, true
 }
 
 // Characteristics returns the three derived facts botpolicy projects in one

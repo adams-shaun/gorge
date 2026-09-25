@@ -462,6 +462,9 @@ type Engine struct {
 	derivedKW    []string
 	derivedTypes []string
 	derivedDepth int
+	// derivedPTFrames are the in-progress layer-7 snapshots exposed to
+	// effects-side Count$Valid scans, including nested candidate derivations.
+	derivedPTFrames []derivedPTSnapshot
 
 	// derivedMemo / derivedMemoDepth / derivedMemoGen are Derived's per-object
 	// memo for ONE legal-actions walk (rules/derivedmemo.go): derivedMemoDepth

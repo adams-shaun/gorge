@@ -4210,6 +4210,20 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		}
 		matchSpec = s
 	}
+	// Count$Valid is an effects-side scan, but battlefield numeric filters
+	// still read rules' layer-derived characteristics. Bind the candidate's
+	// values through a small optional value interface; effects remains below
+	// rules and SpecContext carries no callable resolver.
+	if zone == state.ZBattlefield {
+		if provider, ok := f.h.(interface {
+			FilterDerivedPT(state.ObjID) (power, toughness, basePower, baseToughness int32, ok bool)
+		}); ok {
+			if power, toughness, basePower, baseToughness, found := provider.FilterDerivedPT(id); found {
+				specCtx.DerivedPower, specCtx.DerivedToughness, specCtx.HasDerivedPT = power, toughness, true
+				specCtx.BasePower, specCtx.BaseToughness, specCtx.HasBasePT = basePower, baseToughness, true
+			}
+		}
+	}
 	if !matchesZoneSpecCtx(f.g, matchSpec, id, specCtx, zone) {
 		return
 	}
