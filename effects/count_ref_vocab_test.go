@@ -135,9 +135,9 @@ func TestCountRefEnchantedEquippedMatchDefinedSpec(t *testing.T) {
 	}
 }
 
-// TestCountRefTargetedObjects pins Forge's object-only target union ref
-// (AbilityUtils.calcX): the chain's chosen objects, players dropped, and the
-// Distinct spelling de-duplicated. Carrier: Builder's Bane's
+// TestCountRefTargetedObjects pins Forge's target union count ref
+// (AbilityUtils.calcX): all chosen targets including players, and the Distinct
+// spelling de-duplicated. Carrier: Builder's Bane's
 // SVar:X:TargetedObjects$Amount ("Destroy X target artifacts").
 func TestCountRefTargetedObjects(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
@@ -159,7 +159,7 @@ func TestCountRefTargetedObjects(t *testing.T) {
 		{Obj: artB.ID},
 	}
 	// Precondition: the two object targets exist and are distinct, and a
-	// player target is interleaved so the "objects only" filter is exercised.
+	// player target is interleaved so the player-inclusive Amount is exercised.
 	if h.g.Obj(artA.ID) == nil || h.g.Obj(artB.ID) == nil || artA.ID == artB.ID {
 		t.Fatal("precondition: object targets missing or not distinct")
 	}
@@ -167,39 +167,38 @@ func TestCountRefTargetedObjects(t *testing.T) {
 		t.Fatal("precondition: no player target seeded")
 	}
 
-	// Two objects, the player excluded.
-	if got := EvalCount(h, c, body); got != 2 {
-		t.Errorf("%s = %d, want 2 (two object targets, player excluded)", body, got)
+	// Two objects plus one player target.
+	if got := EvalCount(h, c, body); got != 3 {
+		t.Errorf("%s = %d, want 3 (two objects and one player target)", body, got)
 	}
-	if got := EvalCount(h, c, "TargetedObjects$Amount"); got != 2 {
-		t.Errorf("TargetedObjects$Amount = %d, want 2", got)
+	if got := EvalCount(h, c, "TargetedObjects$Amount"); got != 3 {
+		t.Errorf("TargetedObjects$Amount = %d, want 3", got)
 	}
 
 	// The chain union (Ctx.AllTargets) is what Forge enumerates: it carries a
-	// DUPLICATE of artA, so the plain count sees 3 object entries while
-	// Distinct de-duplicates to 2. This proves the Distinct spelling reads the
-	// union and dedups by identity, not by list position.
+	// DUPLICATE of artA, so the plain count sees 4 target entries while
+	// Distinct de-duplicates to 3 (two objects and the player). This proves
+	// Distinct reads the union and dedups by full target identity.
 	c.AllTargets = []state.Target{
 		{Obj: artA.ID},
 		{Player: 1, IsPlayer: true},
 		{Obj: artB.ID},
 		{Obj: artA.ID},
 	}
-	if got := EvalCount(h, c, "TargetedObjects$Amount"); got != 3 {
-		t.Errorf("union TargetedObjects$Amount = %d, want 3 (duplicate counted)", got)
+	if got := EvalCount(h, c, "TargetedObjects$Amount"); got != 4 {
+		t.Errorf("union TargetedObjects$Amount = %d, want 4 (duplicate counted)", got)
 	}
-	if got := EvalCount(h, c, "TargetedObjectsDistinct$Amount"); got != 2 {
-		t.Errorf("TargetedObjectsDistinct$Amount = %d, want 2 (de-duplicated)", got)
+	if got := EvalCount(h, c, "TargetedObjectsDistinct$Amount"); got != 3 {
+		t.Errorf("TargetedObjectsDistinct$Amount = %d, want 3 (de-duplicated)", got)
 	}
 
-	// A list with only player targets is a legitimate zero, not fail-closed:
-	// ok=true so a CheckSVar gate evaluates against 0 rather than staying
-	// silent.
+	// A player-only target list counts that player; it is not lost as a
+	// non-object sentinel.
 	onlyPlayers := *c
 	onlyPlayers.AllTargets = nil
 	onlyPlayers.Targets = []state.Target{{Player: 1, IsPlayer: true}}
-	if n, ok := EvalCountOK(h, &onlyPlayers, body); !ok || n != 0 {
-		t.Errorf("player-only %s = (%d,%v), want (0,true)", body, n, ok)
+	if n, ok := EvalCountOK(h, &onlyPlayers, body); !ok || n != 1 {
+		t.Errorf("player-only %s = (%d,%v), want (1,true)", body, n, ok)
 	}
 }
 

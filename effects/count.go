@@ -959,29 +959,30 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		}
 		return out, true
 	case "TargetedObjects", "TargetedObjectsDistinct":
-		// Forge's object-only target referent (AbilityUtils.calcX's
+		// Forge's TargetedObjects referent (AbilityUtils.calcX's
 		// `calcX[0].startsWith("TargetedObjects")` arm): the UNION of every
 		// targeting SA's chosen targets down the root ability's sub-ability
-		// chain, with PLAYER targets dropped (the "Objects" half). The union
+		// chain. Forge's Amount includes players; object properties below skip
+		// player entries. The union
 		// is the same set Ctx.AllTargets carries when the cast pre-ask bound
 		// it (the AllTargeted ref's own source), else the resolution's own
 		// Ctx.Targets -- which for a chain with no sub targets IS the union.
 		// Builders' Bane's "Destroy X target artifacts", Fireball's and
 		// Firestorm's TargetMin$/Max$ and Choking Vines' X are the corpus
 		// users. "Distinct" (TargetedObjectsDistinct, Officious
-		// Interrogation's IncreaseCost$) de-duplicates by object id in
-		// first-seen order -- Forge's `new ArrayList<>(new HashSet<>(objects))`.
+		// Interrogation's IncreaseCost$) de-duplicates by full target identity
+		// in first-seen order -- Forge's `new ArrayList<>(new HashSet<>(objects))`.
 		var out []state.Target
-		seen := map[state.ObjID]bool{}
+		seen := map[state.Target]bool{}
 		for _, t := range refTargetUnion(c) {
-			if t.IsPlayer || t.Obj == 0 {
+			if t.Obj == 0 && !t.IsPlayer {
 				continue
 			}
 			if ref == "TargetedObjectsDistinct" {
-				if seen[t.Obj] {
+				if seen[t] {
 					continue
 				}
-				seen[t.Obj] = true
+				seen[t] = true
 			}
 			out = append(out, t)
 		}
@@ -1003,6 +1004,9 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// CardManaCostLKI property arm below).
 		for _, t := range refTargetUnion(c) {
 			if t.IsPlayer || t.Obj == 0 {
+				continue
+			}
+			if o := h.Game().Obj(t.Obj); o == nil || o.Zone != state.ZStack {
 				continue
 			}
 			return []state.Target{t}, true
@@ -1129,6 +1133,13 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		if !ok {
 			return 0, false
 		}
+	}
+	if (ref == "TargetedObjects" || ref == "TargetedObjectsDistinct") && prop == "Amount" {
+		n := int32(len(ts))
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n, true
 	}
 	g := h.Game()
 	var n int32
