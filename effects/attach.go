@@ -133,20 +133,50 @@ func attachSpecAdmitsOffBattlefield(g *state.Game, attachObj state.ObjID, tg *st
 	return MatchesSpecFrom(g, spec, tg.ID, controller, attachObj)
 }
 
+// attachSpecAdmitsPlayer reports whether the attaching object's own Enchant
+// spec names a player (Enchant:Player / Enchant:Opponent) and so admits a
+// player as a legal bearer. It is the player-side twin of
+// attachSpecAdmitsOffBattlefield: an object attaches to a seat only when its
+// OWN current enchant spec says a player is enchantable, so the ordinary
+// destination walk can admit a player referent (Archnemesis' `Defined$
+// TriggeredAttackingPlayer`, Maddening Hex's `Defined$ ChosenPlayer`, Ardenn's
+// `Defined$ Targeted` over `K:Enchant:Player` Auras) without ever letting a
+// non-Aura permanent -- an Equipment, a Living Weapon germ -- attach to a
+// seat. Equip and every other non-player-enchant attach keep the
+// battlefield-object-only rule byte-identically.
+func attachSpecAdmitsPlayer(g *state.Game, attachObj state.ObjID) bool {
+	o := g.Obj(attachObj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	param, ok := o.Face().KeywordParam("Enchant")
+	if !ok || strings.TrimSpace(param) == "" {
+		return false
+	}
+	spec, _, _ := strings.Cut(param, ":")
+	switch strings.TrimSpace(spec) {
+	case "Player", "Opponent":
+		return true
+	}
+	return false
+}
+
 // effAttach implements "Attach": it fastens obj (Object$ Self by default --
 // Aura's SP$ Attach is cast with Object$ Self so the STILL-ON-THE-STACK aura
 // is the object being attached, Living Weapon's SVar is also Object$ Self
 // with Defined$ Remembered naming the germ) onto the first Defined$ target
 // that is a legal point of attachment: an object currently on the
-// battlefield, not obj itself, and one Attachable accepts. The very first
-// legal target wins, which is what makes the living-weapon shape work (the
-// freshly minted germ is Remembered[0]).
+// battlefield, not obj itself, and one Attachable accepts -- or, for an
+// object whose OWN Enchant spec names a player (Enchant:Player /
+// Enchant:Opponent), a living seat. The very first legal target wins, which
+// is what makes the living-weapon shape work (the freshly minted germ is
+// Remembered[0]).
 //
-// When no Defined$ target qualifies -- a player target (a player is never an
-// attachment point), a non-battlefield object, obj itself, or nothing legal
-// at all -- it refuses with a Note rather than emitting an Attach. The
-// refusal is how the effect stays deterministic and observable while it has
-// nothing legal to do.
+// When no Defined$ target qualifies -- a seat the attaching object cannot
+// enchant, a non-battlefield object, obj itself, or nothing legal at all --
+// it refuses with a Note rather than emitting an Attach. The refusal is how
+// the effect stays deterministic and observable while it has nothing legal
+// to do.
 //
 // Choices$ names the pool the RESOLVING CONTROLLER picks the unspecified
 // side from: with no Object$ key it names the OBJECT to attach (Goldwardens'
@@ -350,6 +380,21 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		var out []state.Target
 		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
+				// A player is a legal bearer only when the attaching object's
+				// OWN Enchant spec names a player (an Enchant:Player /
+				// Enchant:Opponent Aura). Without that gate a `Defined$` that
+				// happens to resolve a player for an unrelated reason (a
+				// ChoosePlayer upstream, a triggered attacking player) could
+				// fasten an Equipment to a seat. Archnemesis, Maddening Hex and
+				// Ardenn are the three corpus carriers this admits; a departed
+				// seat is refused exactly as a departed object bearer is.
+				if !attachSpecAdmitsPlayer(h.Game(), attachObj) {
+					continue
+				}
+				if int(t.Player) >= len(h.Game().Players) || h.Game().Players[t.Player].Lost {
+					continue
+				}
+				out = append(out, t)
 				continue
 			}
 			target := t.Obj
@@ -522,6 +567,17 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		var eligiblePool []state.Target
 		for _, candidate := range pool {
 			candidateDests := destCandidatesFor(candidate.Obj)
+			// The object-side Choices$ pool compares destinations by ObjID (a
+			// player target carries Obj==0), so a player bearer has no
+			// identity here and is deliberately left to the no-Choices
+			// ordinary walk below, which dispatches on IsPlayer.
+			var objDests []state.Target
+			for _, d := range candidateDests {
+				if !d.IsPlayer {
+					objDests = append(objDests, d)
+				}
+			}
+			candidateDests = objDests
 			if len(candidateDests) == 0 {
 				continue
 			}
@@ -590,13 +646,22 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	// exactly the old destCandidatesFor(obj) list, so the single-object
 	// carriers take the same first legal target byte-identically.
 	legalT = legalT[:0]
-	seenDest := make(map[state.ObjID]bool)
+	// A destination's identity is (player?, seat/obj): two distinct player
+	// seats both carry Obj==0, so the dedup key must include IsPlayer+Player
+	// or the first seat would mask every later one.
+	type destKey struct {
+		isPlayer bool
+		player   state.PlayerID
+		obj      state.ObjID
+	}
+	seenDest := make(map[destKey]bool)
 	for _, o := range objs {
 		for _, t := range destCandidatesFor(o) {
-			if seenDest[t.Obj] {
+			k := destKey{isPlayer: t.IsPlayer, player: t.Player, obj: t.Obj}
+			if seenDest[k] {
 				continue
 			}
-			seenDest[t.Obj] = true
+			seenDest[k] = true
 			legalT = append(legalT, t)
 		}
 	}
@@ -639,7 +704,15 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	attached := 0
 	for _, o := range objs {
 		for _, t := range destCandidatesFor(o) {
-			attachTo(o, t.Obj)
+			if t.IsPlayer {
+				// The player destination (Archnemesis, Maddening Hex, Ardenn):
+				// the raw player-attach emit folds into
+				// AttachedPlayer/HasAttachedPlayer and carries the two-half
+				// remember, exactly like the PlayerChoices$ branch above.
+				emitPlayerAttach(h, c, sa, o, t.Player)
+			} else {
+				attachTo(o, t.Obj)
+			}
 			attached++
 			break
 		}

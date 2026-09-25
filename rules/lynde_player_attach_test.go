@@ -329,13 +329,6 @@ func TestWitchbaneOrbDestroysCurseAttachedToYou(t *testing.T) {
 	t.Fatal("Witchbane Orb never destroyed the Curse attached to its controller")
 }
 
-// ChangeZone AttachedToPlayer$ You brings the Curse back to the battlefield
-// ATTACHED to Lynde's controller. Before the fix AttachedToPlayer$ was unread,
-// the Curse entered unattached, the CR 704.5m attachment SBA swept it straight
-// back to the graveyard, and that re-fired Lynde's own trigger -- a
-// deterministic battlefield<->graveyard ping-pong. The test asserts the return
-// is on the battlefield and attached to seat 0, and that no second
-// battlefield->graveyard MoveZone happened in the same window.
 // TestEnchantOpponentAuraCastAttachesToOpponent covers the absorbed
 // ticket's K:Enchant:Opponent clause through the same player-destination
 // branch: an Aura whose printed Enchant spec is Opponent attaches to the
@@ -387,6 +380,13 @@ func TestEnchantOpponentAuraCastAttachesToOpponent(t *testing.T) {
 	}
 }
 
+// ChangeZone AttachedToPlayer$ You brings the Curse back to the battlefield
+// ATTACHED to Lynde's controller. Before the fix AttachedToPlayer$ was unread,
+// the Curse entered unattached, the CR 704.5m attachment SBA swept it straight
+// back to the graveyard, and that re-fired Lynde's own trigger -- a
+// deterministic battlefield<->graveyard ping-pong. The test asserts the return
+// is on the battlefield and attached to seat 0, and that no second
+// battlefield->graveyard MoveZone happened in the same window.
 func TestLyndeGraveyardReturnAttachesToYou(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _, ids := dsBoard(t, reg, "Lynde, Cheerful Tormentor", "Curse of the Pierced Heart")
