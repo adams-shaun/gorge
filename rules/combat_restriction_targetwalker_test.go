@@ -168,17 +168,17 @@ func TestCantAttackUnlessWalkerTargetPricesAttackCharge(t *testing.T) {
 	if o := e.G.Obj(bear1); o == nil || o.Zone != state.ZBattlefield || o.Controller != 1 {
 		t.Fatalf("precondition: the attacking bear is not seat 1's battlefield creature: %+v", e.G.Obj(bear1))
 	}
-	if got := e.attackPairCharge(bear1, 0); got != 0 {
+	if got := e.attackPairCharge(bear1, 0).mana; got != 0 {
 		t.Fatalf("precondition: the pair was charged %d before the oathkeeper's controller controlled a planeswalker, want 0", got)
 	}
 	walker := onBoard(t, e, 0, targetWalkerFixture)
 	if o := e.G.Obj(walker); o == nil || o.Zone != state.ZBattlefield || !faceHasType(o, "Planeswalker") || o.Controller != 0 {
 		t.Fatalf("precondition: Target Walker is not seat 0's battlefield planeswalker: %+v", e.G.Obj(walker))
 	}
-	if got := e.attackPairCharge(bear1, 0); got != 1 {
+	if got := e.attackPairCharge(bear1, 0).mana; got != 1 {
 		t.Fatalf("attacking the oathkeeper's controller was charged %d, want the static's Cost$ 1 via its walker-only Target$", got)
 	}
-	if got := e.attackPairCharge(bear1, 1); got != 0 {
+	if got := e.attackPairCharge(bear1, 1).mana; got != 0 {
 		t.Fatalf("the defender whose battlefield holds no clause-matching planeswalker was charged %d, want 0", got)
 	}
 }

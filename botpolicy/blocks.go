@@ -517,3 +517,50 @@ func legalBlockChoices(b Board, d *decision.Decision, choices []int) []int {
 	}
 	return out
 }
+
+// LegalAttackChoices is legalAttackChoices exported for callers outside the
+// bot that build their own KAttackers answers (the search teacher's candidate
+// builder). It is a thin wrapper: the unexported guard stays the
+// implementation.
+func LegalAttackChoices(b Board, d *decision.Decision, choices []int) []int {
+	return legalAttackChoices(b, d, choices)
+}
+
+// legalAttackChoices is the KAttackers sibling of legalBlockChoices: it drops
+// any chosen attacker option whose non-mana charge the acting player cannot
+// jointly pay. The published fields are the only channel -- Option.CostTaps
+// is the tapXType obligation count (the policy never sees the eligible-
+// permanent pool the engine's deterministic plan resolves, so a positive
+// value is dropped outright, exactly as the KBlockers guard does) and
+// Option.CostLife is the life charge (summed against the acting player's
+// life total). The engine's validateAttackers rejects a declaration whose
+// joint combatChargeAffordable check fails, and a rejected bot intent crashes
+// the match, so every KAttackers policy routes its answer through this one
+// guard before Clamp repairs it. Output order is the input order, so the
+// guard consumes no randomness and never ranges a map into the result.
+func legalAttackChoices(b Board, d *decision.Decision, choices []int) []int {
+	if len(choices) == 0 {
+		return choices
+	}
+	out := make([]int, 0, len(choices))
+	spentLife := int32(0)
+	life := b.Life[d.Player]
+	for _, ci := range choices {
+		if ci < 0 || ci >= len(d.Options) {
+			out = append(out, ci)
+			continue
+		}
+		o := &d.Options[ci]
+		if o.CostTaps > 0 {
+			continue
+		}
+		if o.CostLife > 0 {
+			if spentLife+int32(o.CostLife) > life {
+				continue
+			}
+			spentLife += int32(o.CostLife)
+		}
+		out = append(out, ci)
+	}
+	return out
+}
