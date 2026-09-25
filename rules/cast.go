@@ -9320,6 +9320,23 @@ func (e *Engine) payCast() {
 			flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMayFlashSac)
 		}
 	}
+	// kw:Rebound (CR 702.95a): a spell cast from its controller's HAND whose
+	// face carries the keyword is exiled as it resolves and offers the free
+	// recast at the next upkeep. The flag is stamped only for a hand-origin
+	// cast, so the re-bound cast from exile (CR 702.95e: "doesn't rebound
+	// again") carries none and resolves ordinarily. The bit is a
+	// CastProvenanceFlag, so a stack copy -- put on the stack, never cast
+	// (CR 707.10) -- is stripped of it at the mint and resolves without the
+	// promise. The modeFlags switch has no case for this keyword because
+	// the cast is ORDINARY -- the keyword grants no alternative cost and no
+	// mode; only the origin zone sets the flag.
+	if !pc.isAbility() && pc.from == state.ZHand {
+		if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
+			if _, ok := o.Face().KeywordParam("Rebound"); ok {
+				flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagRebound)
+			}
+		}
+	}
 	// Replicate (CR 702.55a): the payment count rides the same pay-time
 	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED
 	// replicate (count 0) must stay the byte-identical plain cast, no flag

@@ -1460,6 +1460,12 @@ var flagNames = [...]struct {
 	// predicate, the Count$PromisedGift head and Defined$ Promised. Appended
 	// at the end per the table's own ordering rule.
 	{"promisedgift", state.FlagPromisedGift},
+	// Rebound's hand-cast provenance (CR 702.95a): the spell was cast from
+	// its controller's hand, so it is exiled as it resolves and its next
+	// upkeep offers the free recast. Read by spellRestZone and
+	// moveResolvedOffStack. Appended at the end per the table's own ordering
+	// rule.
+	{"rebound", state.FlagRebound},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
