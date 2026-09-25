@@ -1755,7 +1755,11 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 		case "You", "Self", "Source":
 			out = append(out, c.Source)
 		case "Targeted", "ParentTarget":
-			for _, t := range c.Targets {
+			targets := c.Targets
+			if part == "Targeted" && c.PickedTargets != nil {
+				targets = c.PickedTargets
+			}
+			for _, t := range targets {
 				if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
 					out = append(out, t.Obj)
 				}
@@ -1841,13 +1845,21 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 		part = strings.TrimSpace(part)
 		switch part {
 		case "TargetedPlayer", "Targeted":
-			for _, t := range c.Targets {
+			targets := c.Targets
+			if part == "Targeted" && c.PickedTargets != nil {
+				targets = c.PickedTargets
+			}
+			for _, t := range targets {
 				if t.IsPlayer {
 					add(t.Player)
 				}
 			}
 		case "TargetedOrController":
-			for _, t := range c.Targets {
+			targets := c.Targets
+			if c.PickedTargets != nil {
+				targets = c.PickedTargets
+			}
+			for _, t := range targets {
 				if t.IsPlayer {
 					add(t.Player)
 				} else if o := h.Game().Obj(t.Obj); o != nil {

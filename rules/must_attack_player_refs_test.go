@@ -28,14 +28,31 @@ func TestMustAttackYouBindsRegistrationController(t *testing.T) {
 	if !strings.Contains(line, "MustAttack$ You") || !strings.Contains(line, "ValidCreature$ Creature.IsRemembered") {
 		t.Fatalf("precondition: Alluring Siren MustAttack SVar is not its You requirement: %q", line)
 	}
-	_, params := effects.ParseStaticLine(cardDef.Faces[0].SVars, "MustAttack")
-	if params["MustAttack"] != "You" || params["ValidCreature"] != "Creature.IsRemembered" {
-		t.Fatalf("precondition: parsed Alluring Siren SVar = %v", params)
+	if len(cardDef.Faces[0].Abilities) != 1 {
+		t.Fatalf("precondition: expected Alluring Siren's one compiled activated ability, got %d", len(cardDef.Faces[0].Abilities))
 	}
-	e.AddContinuous(state.ContinuousEffect{
-		Source: source, Controller: 0, UntilEOT: true, Restriction: "MustAttack",
-		RestrictParams: params, Remembered: []state.ObjID{token},
-	})
+	ability := cardDef.Faces[0].Abilities[0]
+	if ability.API != "Effect" || ability.Params["RememberObjects"] != "Targeted" || ability.Params["StaticAbilities"] != "MustAttack" {
+		t.Fatalf("precondition: Alluring Siren compiled ability = %+v", ability)
+	}
+	ctx := &effects.Ctx{Source: source, Controller: 0, SVars: cardDef.Faces[0].SVars,
+		Targets: []state.Target{{Obj: token}}, OfferedSA: ability}
+	effects.Resolve(e, ctx, ability)
+	regs := 0
+	for _, ce := range e.active() {
+		if ce.Restriction == "MustAttack" {
+			regs++
+			if len(ce.Remembered) != 1 || ce.Remembered[0] != token {
+				t.Fatalf("Alluring Siren captured %v, want targeted creature %d", ce.Remembered, token)
+			}
+			if ce.Controller != 0 {
+				t.Fatalf("Alluring Siren registration controller = %d, want 0", ce.Controller)
+			}
+		}
+	}
+	if regs != 1 {
+		t.Fatalf("expected Alluring Siren's real ability to register MustAttack once, got %d", regs)
+	}
 
 	rs := e.attackRequirements(token)
 	if !rs.any() || rs.named[0] != 1 {
@@ -91,9 +108,19 @@ func TestMustAttackRememberedBindsUniqueCapturedPlayer(t *testing.T) {
 	if !strings.Contains(line, "MustAttack$ Remembered") || !strings.Contains(line, "ValidCreature$ Creature.IsRemembered") {
 		t.Fatalf("precondition: Dulcet Sirens must carry the exact Remembered player form: %q", line)
 	}
+	db := cards.ResolveSVar(cardDef.Faces[0].SVars, "DBEffect")
+	if db == nil || db.API != "Effect" || db.Params["RememberObjects"] != "ParentTarget & Targeted" || db.Params["StaticAbilities"] != "MustAttack" {
+		t.Fatalf("precondition: Dulcet Sirens compiled DBEffect = %+v", db)
+	}
+	ability := cardDef.Faces[0].Abilities[0]
+	if ability.API != "Pump" || ability.Sub == nil || ability.Sub.API != "Effect" || ability.Sub.Line != db.Line {
+		t.Fatalf("precondition: Dulcet Sirens root/sub ability chain = %+v / %+v", ability, ability.Sub)
+	}
+	playerTarget := state.Target{Player: 2, IsPlayer: true}
 	ctx := &effects.Ctx{Source: source, Controller: 0, SVars: cardDef.Faces[0].SVars,
-		Remembered: []state.Target{{Obj: token}, {Player: 2, IsPlayer: true}}}
-	effects.Resolve(e, ctx, &cards.SA{API: "Effect", Params: map[string]string{"RememberObjects": "Remembered", "StaticAbilities": "MustAttack"}})
+		Targets: []state.Target{{Obj: token}}, TargetsOffered: true, OfferedSA: ability,
+		SubPreAsk: map[string][]state.Target{db.Line: {playerTarget}}}
+	effects.Resolve(e, ctx, ability)
 
 	regs := 0
 	for _, ce := range e.active() {
@@ -103,7 +130,7 @@ func TestMustAttackRememberedBindsUniqueCapturedPlayer(t *testing.T) {
 				t.Fatalf("captured player = %v, want unique player 2", ce.RememberedPlayers)
 			}
 			if len(ce.Remembered) != 1 || ce.Remembered[0] != token {
-				t.Fatalf("captured creature = %v, want [%d]", ce.Remembered, token)
+				t.Fatalf("ParentTarget object capture = %v, want parent creature %d (Targeted is the player half)", ce.Remembered, token)
 			}
 		}
 	}
