@@ -180,6 +180,7 @@ func entryBodyAbsorbable(sa *cards.SA) bool {
 	if saHasParam(sa, "Optional") || saHasParam(sa, "Choices") || saHasParam(sa, "Divided") ||
 		saHasParam(sa, "DividedAsYouChoose") || saHasParam(sa, "RandomType") || saHasParam(sa, "Bolster") ||
 		saHasParam(sa, "Support") || saHasParam(sa, "Adapt") || saHasParam(sa, "Monstrosity") ||
+		saHasParam(sa, "Renown") ||
 		saHasParam(sa, "CounterNumPerDefined") || saHasParam(sa, "CounterTypePerDefined") ||
 		saHasParam(sa, "EachFromSource") || saHasParam(sa, "PerDefined") {
 		return false

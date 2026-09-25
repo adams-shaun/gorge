@@ -561,6 +561,22 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if renown && o.Renowned {
 			continue
 		}
+		// CR 702.112a: the Renown trigger's "it" is the source PERMANENT --
+		// "puts N +1/+1 counters on it and it becomes renowned". Once the
+		// source has left the battlefield there is no "it": a combat-damage
+		// trigger on the stack resolves even after instant-speed removal sent
+		// its source to the graveyard (or hand/exile), and the ordinary loop
+		// is deliberately zone-agnostic (CR 122.1), so without this gate the
+		// departed card would take the counters and the designation in its
+		// new zone. The gate is the mark's, not the trigger's: the ability
+		// still resolves and its other riders (if any) are untouched; only
+		// the counter batch and the Renowned designation fizzle with the
+		// source. The corpus's only Renown$ carrier is the keyword expansion
+		// body, which is never ETB$ True, so no mid-entry shape needs the
+		// battlefield exception the ETB$ True special case tolerates.
+		if renown && o.Zone != state.ZBattlefield {
+			continue
+		}
 		amount := n
 		if perDefExpr != "" {
 			// The per-object amount: the affected object's own value. A player

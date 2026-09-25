@@ -89,6 +89,56 @@ func TestConstableOfTheRealmRenownPutsTwoCountersOnce(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestRenownTriggerFizzesAfterSourceLeftBattlefield pins the CR 702.112a
+// boundary (round-r3 MAJOR): a renown combat-damage trigger put on the stack
+// still resolves after instant-speed removal sends its source off the
+// battlefield, but the departed card takes NEITHER the +1/+1 counters NOR
+// the Renowned designation -- "puts N +1/+1 counters on it and it becomes
+// renowned" has no "it" once the permanent is gone. The ordinary PutCounter
+// recipient loop is deliberately zone-agnostic (CR 122.1), so the gate must
+// live in the Renown$ arm (effects/counters.go).
+func TestRenownTriggerFizzesAfterSourceLeftBattlefield(t *testing.T) {
+	e, cfg := combatTriggerBoard(t, testutil.CorpusRegistry(t), []string{"Knight of the Pilgrim's Road"}, nil, nil, nil)
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})
+	id := findBattlefield(t, e, 0, "Knight of the Pilgrim's Road", 0)
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || o.Renowned || o.Counter("P1P1") != 0 {
+		t.Fatalf("precondition: unrenowned 0-counter battlefield Knight not met: %+v", o)
+	}
+	e.askAttackers()
+	submitAttackers(t, e, id)
+	drainCombatDamagePriority(t, e)
+	// Precondition: the renown trigger IS on the stack (the removal below
+	// responds to it; a test where the trigger never existed proves nothing).
+	if len(e.G.Stack) == 0 {
+		t.Fatal("precondition: no trigger on the stack after combat damage")
+	}
+	// Removal in response: the source leaves the battlefield while its
+	// trigger waits. A logged MoveZone is the same fold a real departure
+	// travels (CR 400.7).
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	passUntilStackEmpty(t, e, 30)
+	o := e.G.Obj(id)
+	if o.Zone != state.ZGraveyard {
+		t.Fatalf("precondition: departed card is in zone %v, want graveyard", o.Zone)
+	}
+	if got := o.Counter("P1P1"); got != 0 {
+		t.Fatalf("departed card took %d +1/+1 counters from its renown trigger, want 0", got)
+	}
+	if o.Renowned {
+		t.Fatal("departed card became renowned")
+	}
+	if marks := renownMarks(e, id); len(marks) != 0 {
+		t.Fatalf("renown trigger emitted a Renowned mark on a departed card: %+v", marks)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == id && ev.Counter == "P1P1" {
+			t.Fatalf("renown trigger emitted a CounterChange on a departed card: %+v", ev)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
 func TestEnshroudingMistConditionPresentReadsRenowned(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	for _, tc := range []struct {
