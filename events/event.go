@@ -999,8 +999,14 @@ const (
 	// PlanarReveal publicly turns the top planar-deck card face up.
 	// Appended here after PlanarDeckShuffle; earlier ordinals remain stable.
 	PlanarReveal
-	// PlanarWalk rotates the current plane to the bottom and reveals the next.
-	// Appended here after PlanarReveal; earlier ordinals remain stable.
+	// PlanarWalk planeswalks a seat to a plane (CR 901.8): Player is the
+	// walking seat, Obj the plane being walked AWAY from (0 when there is
+	// none, so the away trigger has no source), and IDs the destination
+	// plane(s) of a Defined$ planeswalk (empty for the ordinary rotation,
+	// which takes the next plane of the deck). Amount carries
+	// PlanarWalkDontPlaneswalkAway when the walk's DontPlaneswalkAway$ True
+	// suppresses the away-from trigger (Norn's Seedcore). Appended here
+	// after PlanarReveal; earlier ordinals remain stable.
 	PlanarWalk
 	// Specialize records a permanent's chosen specialization face. Amount is
 	// the destination face index; Apply bounds-checks it just like FlipFace.
@@ -1019,6 +1025,13 @@ const (
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
 	NumKinds = int(ChaosEnsues) + 1
 )
+
+// PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
+// DB$ Planeswalk carried DontPlaneswalkAway$ True, so the walk does not fire
+// the walked-away-from plane's PlaneswalkedFrom ability (CR 901.8; Norn's
+// Seedcore's "don't planeswalk away from any plane"). It is not a count, so
+// the only defined values are 0 (absent) and this flag.
+const PlanarWalkDontPlaneswalkAway int32 = 1
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
 // under-card's own Triggers index; the pile index sits above it. Both are

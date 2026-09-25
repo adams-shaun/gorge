@@ -183,15 +183,20 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// complete if the bound ever widens.
 		//
 		// PlanarDeckShuffle, PlanarReveal and PlanarWalk are the CR 901
-		// planar-deck lifecycle markers this foundation ticket adds. No
-		// trigger mode fires on any of them: the deck shuffle is private
-		// bookkeeping, the reveal and the walk are the state moves the
-		// parent ticket's PlaneswalkedTo/ChaosEnsues matchers will
-		// eventually read, and neither is matched by a Mode$ line today.
-		// All three ordinals sit past triggerMaskKindBits, so both
-		// classifiers fail open before this map is consulted; naming them
-		// keeps the audit complete if the bound ever widens and keeps them
-		// out of the catch-all default that would otherwise claim the kinds
+		// planar-deck lifecycle markers this foundation ticket adds. The
+		// deck shuffle is private bookkeeping and the reveal is the state
+		// move that turns the top plane face up; neither is matched by a
+		// Mode$ line. PlanarWalk IS matched now -- trig:PlaneswalkedTo and
+		// trig:PlaneswalkedFrom (rules/planar.go's planeswalkedToMatches /
+		// planeswalkedFromMatches) -- but through the per-event synthetic
+		// plane scan checkPlaneswalkTriggers, not the per-face prefilter
+		// this function feeds: a plane lives in the private ZPlanarDeck
+		// zone, which the per-face walk never visits, so this map's zero
+		// answer for PlanarWalk never gates a walk trigger. All three
+		// ordinals sit past triggerMaskKindBits, so both classifiers fail
+		// open before this map is consulted; naming them keeps the audit
+		// complete if the bound ever widens and keeps them out of the
+		// catch-all default that would otherwise claim the kinds
 		// trigger-relevant.
 		//
 		// DelayedForget (efftrig1) drops one remembered card from an Effect

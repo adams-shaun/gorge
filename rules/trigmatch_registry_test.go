@@ -80,6 +80,12 @@ var addedAfterTheSplit = []string{
 	// ChaosEnsues verb emit, appended for it, so it could not have been in
 	// the pre-split switch.
 	"ChaosEnsues",
+	// planar-verbs: "When you planeswalk to CARDNAME" (CR 901.8; 46 corpus
+	// files) and "When you planeswalk away from CARDNAME" (6 corpus files).
+	// They match the events.PlanarWalk event's arriving/departing planes; no
+	// new event Kind was needed, but neither mode existed in the pre-split
+	// switch, so they could not have been dispatched there.
+	"PlaneswalkedTo", "PlaneswalkedFrom",
 	// manaexpend1: "Whenever you expend N ..." (the Bloomburrow Commander
 	// expend keyword: Teapot Slinger, Trailtracker Scout, Wandertale Mentor,
 	// Pyreswipe Hawk and 8 more corpus carriers). It matches rules/cast.go's

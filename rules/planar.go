@@ -92,6 +92,123 @@ func (e *Engine) chaosEnsuesMatches(t cards.Trigger, source state.ObjID, ev even
 	return ev.Obj == source
 }
 
+// planeswalkedToMatches implements Mode$ PlaneswalkedTo (CR 901.8): "When you
+// planeswalk to CARDNAME", fired by the synthetic plane scan below on the
+// plane the walk arrived at (ev.IDs[0], or the new current plane for an
+// ordinary rotation). The arriving plane is the trigger's source.
+func (e *Engine) planeswalkedToMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.PlanarWalk {
+		return false
+	}
+	return e.arrivingPlane(ev) == source
+}
+
+// planeswalkedFromMatches implements Mode$ PlaneswalkedFrom (CR 901.8): "When
+// you planeswalk away from CARDNAME", fired by the synthetic plane scan below
+// on the plane the walk left (ev.Obj). A walk whose DontPlaneswalkAway$ flag is
+// set does not fire it (Norn's Seedcore's "don't planeswalk away from any
+// plane"): the scanner never queues the ability at all in that case, and this
+// matcher rejects it too as a second boundary for a hand-built event.
+func (e *Engine) planeswalkedFromMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.PlanarWalk || ev.Obj == 0 || ev.Obj != source {
+		return false
+	}
+	return ev.Amount != events.PlanarWalkDontPlaneswalkAway
+}
+
+// arrivingPlane returns the plane a PlanarWalk event arrived at: the first
+// named Defined$ destination when the walk was destination-directed, else the
+// face-up current plane after the fold. It returns 0 when nothing arrived (an
+// empty or all-stale destination, or a deck with a single plane).
+func (e *Engine) arrivingPlane(ev events.Event) state.ObjID {
+	if len(ev.IDs) > 0 {
+		want := ev.IDs[0]
+		for _, id := range ev.IDs {
+			if o := e.G.Obj(id); o != nil && o.Zone == state.ZPlanarDeck && !o.FaceDown {
+				want = id
+				break
+			}
+		}
+		return want
+	}
+	if p := e.currentPlane(ev.Player); p != nil {
+		return p.ID
+	}
+	return 0
+}
+
+// checkPlaneswalkTriggers queues a plane's Mode$ PlaneswalkedTo ability for the
+// plane a PlanarWalk event arrived at, and its Mode$ PlaneswalkedFrom ability
+// for the plane the walk left (unless DontPlaneswalkAway$ suppressed it). Both
+// planes live in the private ZPlanarDeck zone, which forEachObject's
+// ZLibrary..ZStack walk never visits, so this is the per-event synthetic scan
+// site -- the checkChaosEnsuesTriggers precedent. The arriving plane must be
+// the seat's face-up current plane and the departing plane must still be in
+// that seat's planar deck, so a malformed event fails closed.
+//
+// TriggerZones$ Command (every corpus carrier spells it) is not run through
+// zoneGate: a gorge plane is in ZPlanarDeck, not ZCommand, so the ordinary
+// Command gate would reject the plane's own zone. This scan is already scoped
+// to the one plane the walk moved and the one mode at a time.
+func (e *Engine) checkPlaneswalkTriggers(ev events.Event) {
+	if ev.Kind != events.PlanarWalk {
+		return
+	}
+	if arriving := e.arrivingPlane(ev); arriving != 0 && e.currentPlane(ev.Player) != nil && e.currentPlane(ev.Player).ID == arriving {
+		e.queuePlaneMode(arriving, "PlaneswalkedTo")
+	}
+	if ev.Obj == 0 || ev.Amount == events.PlanarWalkDontPlaneswalkAway {
+		return
+	}
+	// The departed plane is legitimately face DOWN after the fold (it is no
+	// longer the current plane), so only its membership in the seat's planar
+	// deck is checked -- requiring FaceDown == false here would suppress every
+	// away trigger.
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Zone != state.ZPlanarDeck {
+		return
+	}
+	e.queuePlaneMode(ev.Obj, "PlaneswalkedFrom")
+}
+
+// queuePlaneMode appends one pending trigger for the named mode on the plane
+// object id, reading the mode off its printed face and resolving the body out
+// of the plane's own SVar table exactly as checkChaosEnsuesTriggers does. The
+// plane's chaos/planeswalk abilities are controlled by the plane's controller
+// (CR 901), which the planar-deck genesis set to the deck's owner.
+func (e *Engine) queuePlaneMode(plane state.ObjID, mode string) {
+	o := e.G.Obj(plane)
+	if o == nil || o.Face() == nil {
+		return
+	}
+	controller := o.Controller
+	key := triggerKey{Source: plane, Idx: -1}
+	for ti, t := range o.Face().Triggers {
+		if t.Mode != mode || t.Effect == nil {
+			continue
+		}
+		key.Idx = ti
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			continue
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     plane,
+			Controller: controller,
+			Idx:        ti,
+			SA:         t.Effect,
+			Ctx: effects.Ctx{
+				Source:         plane,
+				Controller:     controller,
+				TriggerContext: effects.TriggerContext{TriggerCard: plane},
+			},
+		})
+	}
+}
+
 // checkChaosEnsuesTriggers queues the current plane's Mode$ ChaosEnsues
 // ability when the chaos-ensues marker is checked (CR 901.9). The plane
 // lives in the private ZPlanarDeck zone, which forEachObject's
@@ -111,6 +228,15 @@ func (e *Engine) chaosEnsuesMatches(t cards.Trigger, source state.ObjID, ev even
 // not.
 func (e *Engine) checkChaosEnsuesTriggers(ev events.Event) {
 	if ev.Kind != events.ChaosEnsues || ev.Obj == 0 {
+		return
+	}
+	// The marker is only valid when it names the seat's own face-up current
+	// plane: an event boundary that named another seat's plane, a face-down
+	// plane, or a non-top plane must not queue anything (a hand-built or
+	// fuzzed marker must fail closed rather than erupt a plane that is not in
+	// play). Ordinary emitters construct exactly this shape.
+	cur := e.currentPlane(ev.Player)
+	if cur == nil || cur.ID != ev.Obj {
 		return
 	}
 	o := e.G.Obj(ev.Obj)
