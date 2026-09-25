@@ -134,17 +134,11 @@ func attachSpecAdmitsOffBattlefield(g *state.Game, attachObj state.ObjID, tg *st
 }
 
 // attachSpecAdmitsPlayer reports whether the attaching object's own Enchant
-// spec names a player (Enchant:Player / Enchant:Opponent) and so admits a
-// player as a legal bearer. It is the player-side twin of
-// attachSpecAdmitsOffBattlefield: an object attaches to a seat only when its
-// OWN current enchant spec says a player is enchantable, so the ordinary
-// destination walk can admit a player referent (Archnemesis' `Defined$
-// TriggeredAttackingPlayer`, Maddening Hex's `Defined$ ChosenPlayer`, Ardenn's
-// `Defined$ Targeted` over `K:Enchant:Player` Auras) without ever letting a
-// non-Aura permanent -- an Equipment, a Living Weapon germ -- attach to a
-// seat. Equip and every other non-player-enchant attach keep the
-// battlefield-object-only rule byte-identically.
-func attachSpecAdmitsPlayer(g *state.Game, attachObj state.ObjID) bool {
+// spec admits this particular player bearer. Use the same player-spec matcher
+// as the attachment SBA: checking only that the keyword names some player
+// would let an Enchant:Opponent Aura attach to its controller through an
+// ordinary Defined$ destination (for example Ardenn's Targeted player).
+func attachSpecAdmitsPlayer(g *state.Game, attachObj state.ObjID, bearer state.PlayerID) bool {
 	o := g.Obj(attachObj)
 	if o == nil || o.Face() == nil {
 		return false
@@ -154,11 +148,7 @@ func attachSpecAdmitsPlayer(g *state.Game, attachObj state.ObjID) bool {
 		return false
 	}
 	spec, _, _ := strings.Cut(param, ":")
-	switch strings.TrimSpace(spec) {
-	case "Player", "Opponent":
-		return true
-	}
-	return false
+	return MatchesPlayerSpecFrom(g, strings.TrimSpace(spec), bearer, o.Controller, o.ID)
 }
 
 // effAttach implements "Attach": it fastens obj (Object$ Self by default --
@@ -388,7 +378,7 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 				// fasten an Equipment to a seat. Archnemesis, Maddening Hex and
 				// Ardenn are the three corpus carriers this admits; a departed
 				// seat is refused exactly as a departed object bearer is.
-				if !attachSpecAdmitsPlayer(h.Game(), attachObj) {
+				if !attachSpecAdmitsPlayer(h.Game(), attachObj, t.Player) {
 					continue
 				}
 				if int(t.Player) >= len(h.Game().Players) || h.Game().Players[t.Player].Lost {
