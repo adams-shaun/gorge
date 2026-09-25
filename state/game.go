@@ -449,6 +449,25 @@ type DelayedTrigger struct {
 	// field-reuse precedent); the SpellCast decode never collides because a
 	// Phase$ value contains no "|".
 	ValidPlayer string
+	// PresentSpec, PresentZone and PresentCompare are the registering
+	// DelayedTrigger SA's IsPresent$/PresentZone$/PresentCompare$ condition
+	// when it has one (Bank Job's "at the beginning of the next end step, if
+	// that card is still exiled"). The rules-side delayed-trigger scan gates
+	// the fire on it at the phase occurrence: the count of objects in the
+	// named zone matching PresentSpec with this registration's Remembered
+	// bound as the IsTriggerRemembered referent must satisfy PresentCompare
+	// (default GE1). A gate the step fails leaves the one-shot registration
+	// pending for the first later occurrence that matches, exactly like
+	// ValidPlayer. Empty PresentSpec keeps the ungated fire every earlier
+	// registration had. The triple rides the DelayedRegister event's Text
+	// ("<Phase>|VP=<value>|IP=<spec>|PZ=<zone>|PC=<compare>") because the
+	// event gains no field (Ruling T20-a's field-reuse precedent); the values
+	// contain no "|", so the LastIndex strips are exact and an already-logged
+	// registration without the suffixes decodes exactly as before (all three
+	// empty, every presence gate skipped).
+	PresentSpec    string
+	PresentZone    string
+	PresentCompare string
 	// MaxTurn is the LATEST game turn the trigger may fire in (zero = no
 	// bound) — the mirror of MinTurn for a ThisTurn$ True registration
 	// (Mistrise Village's "the next spell you cast this turn can't be
