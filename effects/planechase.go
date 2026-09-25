@@ -6,16 +6,21 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
 )
 
 // This file holds the three planechase effect verbs Forge's card corpus uses
 // on plane cards and the "Will of the Planeswalkers" cycle (Path of the
-// Pyromancer/Animist/Schemer/Enigma/Ghosthunter). This build has no planar
-// deck and no planar zone (see the DigUntil row in AGENTS.md: "only Library
-// is a real zone — the PlanarDeck carriers scan NO zone"), so the two real
-// verbs degrade to a recorded no-op and the display spacer to nothing at all.
-// Each is a genuine registration rather than a RegisterNonAPI marker: they
-// are DB$ APIs the resolver dispatches, not keywords/triggers/statics.
+// Pyromancer/Animist/Schemer/Enigma/Ghosthunter). The planar deck and zone
+// now exist (CR 901; task agent-20260924T183758Z-1ddc7625), so a seat with a
+// planar deck planeswalks for real (the events.PlanarWalk fold rotates the
+// deck and reveals the next plane) and DB$ ChaosEnsues erupts the current
+// plane for real (the events.ChaosEnsues marker makes the plane's own
+// Mode$ ChaosEnsues ability trigger). A seat with NO planar deck keeps the
+// recorded no-op Note the verbs have always had, so a non-Planechase game
+// that resolves one of these SVars is still visible and harmless. Each is a
+// genuine registration rather than a RegisterNonAPI marker: they are DB$
+// APIs the resolver dispatches, not keywords/triggers/statics.
 
 func init() {
 	Register("BlankLine", effBlankLine)
@@ -67,7 +72,15 @@ func effPlaneswalk(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	notePlanechaseNoDeck(h, c, "planeswalk")
+	if !hasPlanarDeck(h, c) {
+		notePlanechaseNoDeck(h, c, "planeswalk")
+		return
+	}
+	// CR 901.8: move to the next plane. The rotation itself is the
+	// events.PlanarWalk fold (events/apply.go), the ONE state-mutating path,
+	// so the effect only proposes the action -- the same shape
+	// effRollPlanarDice uses for events.PlanarRoll.
+	h.Emit(events.Event{Kind: events.PlanarWalk, Player: c.Controller})
 }
 
 // effChaosEnsues is CR 901.9's chaos action: when the planar die rolls the
@@ -77,7 +90,48 @@ func effPlaneswalk(h Host, c *Ctx, sa *cards.SA) {
 // Defined$/Remembered$ riders are unread for the same reason: there is no
 // plane object for them to name.
 func effChaosEnsues(h Host, c *Ctx, _ *cards.SA) {
-	notePlanechaseNoDeck(h, c, "chaos ensues")
+	if !hasPlanarDeck(h, c) {
+		notePlanechaseNoDeck(h, c, "chaos ensues")
+		return
+	}
+	// CR 901.9: the current plane's chaos ability triggers. Propose the
+	// events.ChaosEnsues marker naming the plane; rules' synthetic plane
+	// scan (checkChaosEnsuesTriggers) queues that plane's Mode$ ChaosEnsues
+	// ability. With a deck but no revealed plane (all planes walked and the
+	// zone empty) there is nothing to erupt: fall through to the no-deck
+	// Note so the action stays visible.
+	plane := currentPlaneOf(h, c.Controller)
+	if plane == 0 {
+		notePlanechaseNoDeck(h, c, "chaos ensues")
+		return
+	}
+	h.Emit(events.Event{Kind: events.ChaosEnsues, Player: c.Controller, Obj: plane})
+}
+
+// hasPlanarDeck reports whether the resolving controller has a planar deck
+// (CR 901). A nil Game or an empty ZPlanarDeck zone means the seat is not
+// playing Planechase, so the verbs keep their recorded no-op degrade.
+func hasPlanarDeck(h Host, c *Ctx) bool {
+	if c == nil {
+		return false
+	}
+	return len(h.Game().Zone(state.ZPlanarDeck, c.Controller)) > 0
+}
+
+// currentPlaneOf returns the controller's face-up current plane (the top of
+// their ZPlanarDeck zone), or 0 when the seat has no planar deck or the
+// plane is still face down. It is the effects-side read of the same fact
+// rules/planar.go's currentPlane resolves for the engine.
+func currentPlaneOf(h Host, p state.PlayerID) state.ObjID {
+	ids := h.Game().Zone(state.ZPlanarDeck, p)
+	if len(ids) == 0 {
+		return 0
+	}
+	o := h.Game().Obj(ids[0])
+	if o == nil || o.FaceDown || o.Zone != state.ZPlanarDeck {
+		return 0
+	}
+	return o.ID
 }
 
 // notePlanechaseNoDeck records the shared "resolved, but there is no planar

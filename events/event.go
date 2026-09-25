@@ -1005,10 +1005,19 @@ const (
 	// Specialize records a permanent's chosen specialization face. Amount is
 	// the destination face index; Apply bounds-checks it just like FlipFace.
 	Specialize
+	// ChaosEnsues marks the moment chaos ensues on a seat's current plane
+	// (CR 901.9): Player is the seat whose planar deck owns the plane, Obj
+	// that seat's current plane object. It is an Apply no-op marker like
+	// PlanarRoll: the plane's chaos ability is an ordinary triggered ability
+	// (Mode$ ChaosEnsues) that the trigger walk queues when this marker is
+	// checked. Emitted by rules when a kept planar-die result shows the chaos
+	// face, and by effects' DB$ ChaosEnsues (the "Will of the Planeswalkers"
+	// cycle). Appended here after Specialize; earlier ordinals remain stable.
+	ChaosEnsues
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(Specialize) + 1
+	NumKinds = int(ChaosEnsues) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -1145,7 +1154,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
 	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade", "clash",
-	"planar_deck_shuffle", "planar_reveal", "planar_walk", "specialize"}
+	"planar_deck_shuffle", "planar_reveal", "planar_walk", "specialize", "chaos_ensues"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

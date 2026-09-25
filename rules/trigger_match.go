@@ -941,6 +941,11 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 	// renders here BEFORE any trigger check, so level 4 sees its own
 	// temptation) and queues one entry per firing seat.
 	e.checkRingEmblemTriggers(ev)
+	// A chaos-ensues marker (CR 901.9, task planar-verbs): the current
+	// plane's Mode$ ChaosEnsues ability. The plane lives in ZPlanarDeck,
+	// which the per-face walk above never visits, so this synthetic scan
+	// queues it -- the checkRingEmblemTriggers precedent.
+	e.checkChaosEnsuesTriggers(ev)
 }
 
 // The Ring emblem's four level gates (CR 701.54c). Level N is active iff the

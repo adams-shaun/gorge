@@ -937,6 +937,7 @@ func init() {
 	registerTrigMatcher((*Engine).giveGiftMatches, "GiveGift")
 	registerTrigMatcher((*Engine).evolvedMatches, "Evolved")
 	registerTrigMatcher((*Engine).clashMatches, "Clashed")
+	registerTrigMatcher((*Engine).chaosEnsuesMatches, "ChaosEnsues")
 	registerTrigMatcher((*Engine).searchedLibraryMatches, "SearchedLibrary")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")

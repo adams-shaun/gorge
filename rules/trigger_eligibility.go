@@ -91,7 +91,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.GainedAbilityPush, events.GainedTriggerPush,
 		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice,
 		events.DelayedForget, events.Cascade, events.Clash,
-		events.PlanarDeckShuffle, events.PlanarReveal, events.PlanarWalk:
+		events.PlanarDeckShuffle, events.PlanarReveal, events.PlanarWalk,
+		events.ChaosEnsues:
 		// Cascade is a never-emitted PROPOSAL (the cascade instruction's
 		// replacement boundary, events.Cascade): it is held out to the
 		// replacement matcher and logged nowhere, so no trigger mode can ever
@@ -400,6 +401,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// matcher (clashMatches). Naming the mode here rather than letting it
 		// fall to the allTriggerEvents default keeps a Clashed-only face's
 		// mask narrow for every other kind.
+		return 0
+	case "ChaosEnsues":
+		// The ChaosEnsues marker's ordinal is past the 64-bit mask's reach,
+		// the Clashed/GiveGift shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path and gated by the
+		// synthetic plane scan (checkChaosEnsuesTriggers) plus the full
+		// matcher (chaosEnsuesMatches). Naming the mode here rather than
+		// letting it fall to the allTriggerEvents default keeps a
+		// ChaosEnsues-only face's mask narrow for every other kind.
 		return 0
 	case "BecomeMonstrous":
 		// The AlterAttribute carrier's ordinal is past the 64-bit mask's

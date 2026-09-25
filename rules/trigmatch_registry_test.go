@@ -74,6 +74,12 @@ var addedAfterTheSplit = []string{
 	// Kind effClash emits (one per clashing player), appended for it, so it
 	// could not have been in the pre-split switch.
 	"Clashed",
+	// planar-verbs: "Whenever chaos ensues" (CR 901.9; 139 corpus files at
+	// the pin, every plane card's chaos ability). It matches the
+	// events.ChaosEnsues marker the planar-dice roll dispatch and the DB$
+	// ChaosEnsues verb emit, appended for it, so it could not have been in
+	// the pre-split switch.
+	"ChaosEnsues",
 	// manaexpend1: "Whenever you expend N ..." (the Bloomburrow Commander
 	// expend keyword: Teapot Slinger, Trailtracker Scout, Wandertale Mentor,
 	// Pyreswipe Hawk and 8 more corpus carriers). It matches rules/cast.go's

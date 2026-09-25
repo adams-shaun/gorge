@@ -453,6 +453,13 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case ChaosEnsues:
+		// The chaos-ensues marker (CR 901.9, task planar-verbs) is a pure
+		// marker, exactly like PlanarRoll: no state folds. The current plane's
+		// chaos ability is an ordinary triggered ability (Mode$ ChaosEnsues)
+		// that rules' trigger walk queues when this marker is checked, so the
+		// logged event is the record and replay re-derives the trigger queue.
+
 	case MonarchChange:
 		if validPlayer(g, e.Player) {
 			g.Monarch, g.HasMonarch = e.Player, true
