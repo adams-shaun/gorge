@@ -2452,6 +2452,7 @@ func init() {
 		// effSetState's Mode$ TurnFaceUp arm emit; proved by
 		// rules/turnup_replacement_test.go's
 		// TestMasterOfPearlsTurnFaceUpSelfTriggerFiresOnce.
+		"trig:TurnFaceUp",
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",

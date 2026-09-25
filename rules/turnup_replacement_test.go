@@ -27,7 +27,9 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -248,9 +250,10 @@ func TestTrailOfMysteryTurnFaceUpTriggerPumpsOnce(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestKarlovWatchdogCantHappenGatesTheOpponentsTurnUp proves the CantHappen
-// turn-up replacement end to end across the turn boundary. Karlov Watchdog
-// sits on seat 0's battlefield; seat 1's Kin-Tree Warden is face down:
+// TestKarlovWatchdogTurnFaceUpCantHappenGatesTheOpponentsTurnUp proves the
+// CantHappen turn-up replacement end to end across the turn boundary.
+// Karlov Watchdog sits on seat 0's battlefield; seat 1's Kin-Tree Warden is
+// face down:
 //
 //   - on seat 1's OWN turn the prohibition is dormant (PlayerTurn$ True is
 //     the controller's turn) and the turn_face_up option IS offered — the
@@ -260,10 +263,28 @@ func TestTrailOfMysteryTurnFaceUpTriggerPumpsOnce(t *testing.T) {
 //     seat 1 at all;
 //   - back on seat 1's turn the option returns, the action turns the warden
 //     up for its {G}, and the game replays byte-identically.
-func TestKarlovWatchdogCantHappenGatesTheOpponentsTurnUp(t *testing.T) {
+func TestKarlovWatchdogTurnFaceUpCantHappenGatesTheOpponentsTurnUp(t *testing.T) {
 	reg := searchTestRegistry(t)
-	e, cfg := manifestEngine(t, reg, "Karlov Watchdog", "Kin-Tree Warden")
-	karlov := castFromHandByName(t, e, "Karlov Watchdog", "WWW")
+	// Each seat holds its own carrier: seat 0 the prohibition's source, seat
+	// 1 the face-down morph target (manifestEngine deals every fixture into
+	// SEAT 0's hand, so this scenario builds its own deck pair). All corpus
+	// cards, replayable from cfg's genesis.
+	forest := searchCorpusCard(t, reg, "Forest")
+	fill := func(name string) []*cards.Card {
+		deck := []*cards.Card{searchCorpusCard(t, reg, name)}
+		for len(deck) < 40 {
+			deck = append(deck, forest)
+		}
+		return deck
+	}
+	cfg := seatZeroStart(Config{Seed: 7701, Names: []string{"karlov", "opponent"},
+		Decks: [][]*cards.Card{fill("Karlov Watchdog"), fill("Kin-Tree Warden")}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	// The plain {3}{W} cast needs 4 mana out of a 3C+3W pool (a vacuous cast
+	// must fail the precondition, not silently skip the prohibition's source).
+	karlov := castFromHandByName(t, e, "Karlov Watchdog", "CCCWWW")
 	// Precondition: the prohibition's source is on seat 0's battlefield.
 	if o := e.G.Obj(karlov); o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Karlov Watchdog is not on the battlefield (zone=%s)", o.Zone)
@@ -277,14 +298,22 @@ func TestKarlovWatchdogCantHappenGatesTheOpponentsTurnUp(t *testing.T) {
 		t.Fatalf("turn_face_up not offered on the morph permanent's controller's own turn — the CantHappen replacement over-blocked (PlayerTurn$ True binds only during Karlov Watchdog's controller's turn)")
 	}
 
-	// Seat 0's turn: CR 614.1a — the action is illegal, never offered.
-	driveToStep(t, e, 3, 0, state.StepMain1)
+	// Seat 0's turn: CR 614.1a — the action is illegal, never offered. Seat
+	// 1 is FRESHLY FUNDED with the {G} the turn-up costs, so the absence of
+	// the option is the prohibition's doing — an unfunded pool would make
+	// this clause vacuously pass even without the gate. Karlov is on the
+	// battlefield, so the drive answers the combat asks (empty attack).
+	driveToStepAny(t, e, 3, 0, state.StepMain1)
+	addMana(t, e, 1, "G")
 	if turnFaceUpOfferedFor(t, e, 1, id) {
 		t.Fatalf("turn_face_up offered to seat 1 during seat 0's turn: Karlov Watchdog's CantHappen replacement must make the special action illegal (CR 614.1a)")
 	}
 
-	// Seat 1's turn again: the action returns and completes.
-	driveToStep(t, e, 4, 1, state.StepMain1)
+	// Seat 1's turn again: the action returns and completes. The {G} pool is
+	// refilled — pools empty at the turn boundary, so the funded option is
+	// the one whose presence this clause pins.
+	driveToStepAny(t, e, 4, 1, state.StepMain1)
+	addMana(t, e, 1, "G")
 	if o := e.G.Obj(id); !o.FaceDown {
 		t.Fatalf("precondition: Kin-Tree Warden is no longer face down")
 	}
@@ -357,4 +386,62 @@ func TestMasterOfPearlsTurnFaceUpSelfTriggerFiresOnce(t *testing.T) {
 		t.Fatalf("pool after the turn-up = %d, want 0 (the {3}{W}{W} morph cost was paid)", got)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestTurnFaceUpIsRegistered pins the RegisterNonAPI registration: the
+// coverage report (cmd/forgec) reads effects.Supported(), so a revert of the
+// trigger_match.go registration line would silently drop trig:TurnFaceUp from
+// the measured corpus coverage — not just the census.
+func TestTurnFaceUpIsRegistered(t *testing.T) {
+	if !effects.Supported()["trig:TurnFaceUp"] {
+		t.Fatal(`effects.Supported() lacks "trig:TurnFaceUp" — the trigger_match.go registration was reverted`)
+	}
+	if !effects.Supported()["repl:TurnFaceUp"] {
+		t.Fatal(`effects.Supported() lacks "repl:TurnFaceUp" — the replacement.go registration was reverted`)
+	}
+}
+
+// TestTurnFaceUpCantHappenStopsTheRawEmitRoute is the defence-in-depth arm:
+// the morph special action never even OFFERS a turn-up a live CantHappen
+// prohibition blocks (the offer gate in rules/legal.go), but the
+// effect-driven route (AB$ SetState | Mode$ TurnFaceUp — Woolly Loxodon and
+// its 22 corpus siblings) emits events.TurnFaceUp without ever consulting
+// that offer. There the dispatch's CantHappen arm is the only thing that
+// stops the flip: Karlov Watchdog's prohibition, live on seat 0's turn, must
+// prevent a raw-emitted turn-up of seat 1's face-down permanent — the
+// FaceDown marker survives and a Note records the prevention.
+func TestTurnFaceUpCantHappenStopsTheRawEmitRoute(t *testing.T) {
+	reg := searchTestRegistry(t)
+	// onBoardCard is eventless direct placement (the panoptic_projektor_test
+	// precedent), so this scenario has no replayable genesis — the raw-emit
+	// prevention is what is being pinned here, not a replay chain.
+	e := corpusEngine(t, reg, nil, nil)
+	karlov := onBoardCard(t, e, 0, lookup(t, reg, "Karlov Watchdog"))
+	probe := onBoardCard(t, e, 1, lookup(t, reg, "Kin-Tree Warden"))
+	if o := e.G.Obj(karlov); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Karlov Watchdog is not on the battlefield (obj=%+v)", o)
+	}
+	if o := e.G.Obj(probe); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: the probe is not on the battlefield (obj=%+v)", o)
+	}
+	e.emit(events.Event{Kind: events.TurnFaceDown, Obj: probe})
+	if o := e.G.Obj(probe); !o.FaceDown {
+		t.Fatalf("precondition: the TurnFaceDown event did not put the probe face down")
+	}
+	e.emit(events.Event{Kind: events.TurnFaceUp, Obj: probe})
+	if !e.G.Obj(probe).FaceDown {
+		t.Fatal("the raw-emitted turn-up went through: the CantHappen dispatch arm must prevent it (CR 614.1a) — only the offer gate stood between the rules")
+	}
+	// The prevention is silent: ONE matching replacement needs no CR 616.1
+	// order ask. The generic fall-through would park the event on a
+	// KReplacement order choice the controller never owes (repl:TurnFaceUp
+	// registration reverted or the dispatch arm removed), so a replacement
+	// ask here is the regression signal too.
+	if d := e.Pending(); d != nil && d.Kind == decision.KReplacement {
+		t.Fatalf("the CantHappen prevention parked the turn-up on a CR 616.1 replacement-order ask (%+v) — one matching replacement prevents silently", d)
+	}
+	answerQuiet(t, e, 60)
+	if !e.G.Obj(probe).FaceDown {
+		t.Fatal("the probe turned up after the drain — the turn-up was never prevented")
+	}
 }
