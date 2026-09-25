@@ -411,7 +411,10 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		}
 		n := c.ReplacementAmount
 		if hasOp {
-			n = applyCountOp(n, op)
+			// Resolve named operands consistently with the SVar$ head above.
+			// Runtime-published roll values are resolved on the live
+			// replacement path by resolveCountOperand's bare-word arm.
+			n = applyCountOpOperand(h, c, n, op, depth)
 		}
 		return n, true
 	}
