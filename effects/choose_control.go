@@ -127,8 +127,35 @@ func definedCardQualifierMatches(g *state.Game, c *Ctx, qualifier string, o *sta
 	return choiceMatches(g, c, "Card."+qualifier, o)
 }
 
+// chooseCardControl is the effective ControlledByPlayer$ a cardChoices walk
+// reads. An explicit parameter is used as written. When the SA carries none,
+// Forge's implicit default is the CHOOSER's own objects -- but only for the
+// shape whose pool is otherwise unconstrained. Choices$, DefinedCards$ and
+// ValidTgts$ each supply their own pool and the default is not applied to
+// them: a Choices$ spec already encodes ownership through the
+// chooser-perspective filter, while a DefinedCards$/ValidTgts$ set is chosen
+// by the ability's controller and may legitimately name objects another
+// player controls (Wild Swing's random pick among three targeted permanents,
+// Hunted by the Family's creature you don't control). Slaughter the Strong and
+// Destined Confrontation ("each player chooses ... creatures they control",
+// no Choices$/ControlledByPlayer$) are the corpus's only instances of the
+// unconstrained shape.
+func chooseCardControl(sa *cards.SA) string {
+	if v := strings.TrimSpace(sa.Params["ControlledByPlayer"]); v != "" {
+		return v
+	}
+	if strings.TrimSpace(sa.Params["Choices"]) != "" || strings.TrimSpace(sa.Params["DefinedCards"]) != "" {
+		return ""
+	}
+	if _, ok := sa.Params["ValidTgts"]; ok {
+		return ""
+	}
+	return "Chooser"
+}
+
 func cardChoices(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID) []state.Target {
 	g, spec := h.Game(), sa.Params["Choices"]
+	control := chooseCardControl(sa)
 	var candidates []state.Target
 	zones := choiceZones(sa)
 	if raw := strings.TrimSpace(sa.Params["DefinedCards"]); raw != "" {
@@ -159,7 +186,7 @@ func cardChoices(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID) []state.T
 		if o == nil || (zones != nil && !zones[o.Zone]) {
 			continue
 		}
-		if !controlledByChoicePlayer(g, c, sa.Params["ControlledByPlayer"], chooser, o) {
+		if !controlledByChoicePlayer(g, c, control, chooser, o) {
 			continue
 		}
 		// The choice's filter is evaluated from the chooser's perspective:
@@ -244,7 +271,8 @@ func sacrificeableAlternative(h Host, g *state.Game, c *Ctx, alt string, o *stat
 	return !h.SacrificeBlocked(o.ID, false) && choiceMatches(g, c, stripped, o), true
 }
 
-// controlledByChoicePlayer applies ChooseCard's ControlledByPlayer$, the
+// controlledByChoicePlayer applies ChooseCard's ControlledByPlayer$ (or the
+// implicit Chooser default chooseCardControl derives), the
 // player whose objects the chooser picks among. Corpus values: Chooser 30,
 // Remembered 4 (the RepeatEach subject: Winnowing, Tragic Arrogance), Left 2,
 // Right 1 (Juggle the Performance), You 1. Left is the next living player in
