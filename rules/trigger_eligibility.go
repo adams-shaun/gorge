@@ -90,7 +90,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.PlayerNoteCleared, events.CardNoted,
 		events.GainedAbilityPush, events.GainedTriggerPush,
 		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice,
-		events.DelayedForget, events.Cascade, events.Clash:
+		events.DelayedForget, events.Cascade, events.Clash,
+		events.PlanarDeckShuffle, events.PlanarReveal, events.PlanarWalk:
 		// Cascade is a never-emitted PROPOSAL (the cascade instruction's
 		// replacement boundary, events.Cascade): it is held out to the
 		// replacement matcher and logged nowhere, so no trigger mode can ever
@@ -179,6 +180,18 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// ordinal sits past triggerMaskKindBits, so both classifiers fail
 		// open before this map is consulted; naming it keeps the audit
 		// complete if the bound ever widens.
+		//
+		// PlanarDeckShuffle, PlanarReveal and PlanarWalk are the CR 901
+		// planar-deck lifecycle markers this foundation ticket adds. No
+		// trigger mode fires on any of them: the deck shuffle is private
+		// bookkeeping, the reveal and the walk are the state moves the
+		// parent ticket's PlaneswalkedTo/ChaosEnsues matchers will
+		// eventually read, and neither is matched by a Mode$ line today.
+		// All three ordinals sit past triggerMaskKindBits, so both
+		// classifiers fail open before this map is consulted; naming them
+		// keeps the audit complete if the bound ever widens and keeps them
+		// out of the catch-all default that would otherwise claim the kinds
+		// trigger-relevant.
 		//
 		// DelayedForget (efftrig1) drops one remembered card from an Effect
 		// trigger registration (a ForgetOnMoved$/ForgetCounter$ trim). No
