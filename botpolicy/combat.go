@@ -44,7 +44,7 @@ type derivedReadScoper interface {
 
 // Creature is one battlefield creature's combat-relevant facts, in the
 // plain-data shape that keeps the adapter pair in step: the view-shaped
-// half (seat/bot.go's boardFromView) reads Power/Toughness/Keywords off the
+// half (seat/bot.go's BoardFromView) reads Power/Toughness/Keywords off the
 // projected View (which the engine derives post-effects) and the rest off
 // public CardView fields; the game-shaped half (BoardFromGame) reads the
 // same facts off the engine and state.Game. seat/integration_test.go's
@@ -108,7 +108,7 @@ func NewBoard(numPlayers int) Board {
 
 // BoardFromGame is the game-shaped half of the adapter pair: the Board a
 // decision is answered from, derived from the engine's own state.Game the
-// way seat/bot.go's boardFromView derives it from the projected View a real
+// way seat/bot.go's BoardFromView derives it from the projected View a real
 // client would receive. me is the player the decision that will be answered
 // is asked of — the same seat whose hand the view-shaped half projects — so
 // the casting Card facts below come from exactly the zones that seat may
@@ -119,7 +119,7 @@ func NewBoard(numPlayers int) Board {
 // matches the View's exactly: every object the View lists in each
 // battlefield (it already drops cardless ability objects and
 // off-battlefield ephemerals), further filtered to creatures the same way
-// boardFromView filters on the joined type list (cards/face.go's hasType is
+// BoardFromView filters on the joined type list (cards/face.go's hasType is
 // an EqualFold membership check on exactly those words).
 func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 	b := NewBoard(len(g.Players))
@@ -263,7 +263,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	}
 	// The casting Card census: every object in the deciding seat's own hand,
 	// graveyard, battlefield and command zone — exactly the zones
-	// boardFromView fills from the viewer's own Hand/Graveyard/Battlefield/
+	// BoardFromView fills from the viewer's own Hand/Graveyard/Battlefield/
 	// Command CardViews. Reading the face's Types and ManaCost and the
 	// engine's derived Power here, and the CardView's matching fields on the
 	// view side, fills the same fact with the same function (CmcOf,

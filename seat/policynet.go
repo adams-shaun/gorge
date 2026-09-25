@@ -67,7 +67,7 @@ package seat
 //     declaration order (the engine reads that order for CR 510.1c), then
 //     repaired by decision.FitRequired, the bot's block guard
 //     (botpolicy.LegalBlockChoices: CR 509.1a MinMaxBlocker bounds and
-//     CR 509.1b charges, over boardFromView) and Clamp. An answer that still
+//     CR 509.1b charges, over BoardFromView) and Clamp. An answer that still
 //     fails Validate or misses the Required quota is refused, and the bot's
 //     declaration stands.
 //   - KTarget (opt-in): a single-choice CE kind, so the priority rule
@@ -602,7 +602,7 @@ func (b *PolicyNetBot) sampleAnswer(v view.View, d *decision.Decision, scores []
 		if d.Kind == decision.KAttackers {
 			return attackersFromScoresVote(d, pseudo, true)
 		}
-		return blockersFromScoresVote(d, pseudo, boardFromView(v), botIn, true)
+		return blockersFromScoresVote(d, pseudo, BoardFromView(v), botIn, true)
 	}
 	return decision.Intent{}, false
 }

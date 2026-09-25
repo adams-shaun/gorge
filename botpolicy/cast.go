@@ -15,7 +15,7 @@ import (
 // deciding seat can legally see (its own hand, graveyard and battlefield):
 // whether it is a creature, its derived power, its printed mana value, and
 // whether it is a basic land. The facts are exactly the ones the casting
-// rules below read, produced identically by boardFromView (off the
+// rules below read, produced identically by BoardFromView (off the
 // projected CardViews the seat receives) and BoardFromGame (off
 // state.Game), so a card the policy ranks means the same thing whichever
 // host asked. Every field below is read by a rule branch, so none is
@@ -311,7 +311,7 @@ func twobridManaValue(sym string) (int32, bool) {
 
 // hasTypeWord is botpolicy's type-membership test, re-expressed so the two
 // adapter halves say the same thing without either importing view or rules:
-// boardFromView splits the projected CardView.Types string; BoardFromGame
+// BoardFromView splits the projected CardView.Types string; BoardFromGame
 // reads the face's own Types slice. "Basic" being present is how a land is
 // a basic land (a basic Plains is "Types:Basic Land Plains"; a dual like
 // Underground Sea is "Types:Land Island Swamp" — subtypes "Island Swamp"
@@ -715,7 +715,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// prices the tax at 0 and so casts at its base score (C5's own
 		// degenerate shape); a real commander always carries CMC on both
 		// adapter halves (combat.go's census fills it for the command zone,
-		// and seat/bot.go's boardFromView the same). A command-zone cast is
+		// and seat/bot.go's BoardFromView the same). A command-zone cast is
 		// also never held for the reserve's sake (the deck must be able to
 		// cast its commander), so it is priced by value alone.
 		inCmd := b.Commanders[o.Obj].InCommandZone

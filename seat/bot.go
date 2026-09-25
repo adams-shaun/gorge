@@ -38,7 +38,7 @@ type Bot struct {
 	// runs, so the cast scorer (cardWorth/castScore/chooseCast) dots its
 	// features with the profile instead of the default. Set once at
 	// construction from a parsed profile; the Board refill (BoardFromGame /
-	// boardFromView) never touches Board.Cast, so the profile survives the
+	// BoardFromView) never touches Board.Cast, so the profile survives the
 	// reuse contract untouched. With the embedded default profile (whose
 	// weights equal DefaultCastWeights, pinned in botpolicy/profile_test.go)
 	// the decisions are identical to NewBot's by the L1 equivalence table.
@@ -52,7 +52,7 @@ var _ Seat = (*Bot)(nil)
 
 // M4: Bot also satisfies BoardSeat — the game-shaped half of the adapter
 // pair, answered without a projected View. host builds the botpolicy.Board
-// (via BoardFromGame, the same Board boardFromView would lift off the View)
+// (via BoardFromGame, the same Board BoardFromView would lift off the View)
 // under the match's exclusive lock and calls this instead of Decide, so a
 // bot seat never forces cardViews' string round-trip.
 var _ BoardSeat = (*Bot)(nil)
@@ -141,7 +141,7 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 // Decide answers d with the combat-aware policy in botpolicy. v is read
 // for two things -- whether it is currently a main phase, and the public
 // battlefield/life facts the combat heuristic reads (both halves of
-// boardFromView below) -- the reason Decide takes a View at all rather
+// BoardFromView below) -- the reason Decide takes a View at all rather
 // than acting on d alone. rules/testbot_test.go's testBot has no View and
 // gets the same facts from the engine (e.G.Step.IsMain, botpolicy.BoardFromGame)
 // instead -- the game-shaped half of the same adapter pair;
