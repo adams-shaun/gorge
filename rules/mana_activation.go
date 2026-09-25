@@ -215,8 +215,8 @@ func (e *Engine) answerNestedManaColor(ma *manaColorActivation, chosen []decisio
 		}
 	}
 	for _, option := range chosen {
-		colour := strings.TrimSpace(strings.TrimPrefix(option.Label, "Add "))
-		if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
+		colour, ok := manaLabelColour(option.Label)
+		if !ok || !strings.Contains("WUBRG", colour) {
 			continue
 		}
 		if len(chosen) == 1 {
@@ -826,10 +826,93 @@ func manaAmountPips(ma *cards.SA, pip string) string {
 // manaAbilityCostPrefix names a mana ability's activation cost BEYOND the
 // {T} every wheel option shares, as "<Cost phrase>: " -- empty when the cost
 // is the bare tap (or blank), so the common "Add C" label is unchanged. It
-// phrases the parsed cost with costPhrase, the engine's one human cost
-// renderer (the unless prompts, turn-face-up, ward), with the tap clause
-// cleared: every option on the wheel is tapping this source, so the tap is
-// not what the player is choosing between.
+// phrases the parsed cost with manaAbilityCostPhrase: costPhrase with the tap
+// clause cleared (every option on the wheel is tapping this source, so the
+// tap is not what the player is choosing between), plus the article and
+// origin-zone wording a wheel label wants.
+func manaAbilityCostPhrase(c Cost) string {
+	phrase := costPhrase(c)
+	// costPhrase keeps the synthesized count as digits (its objectPhrase),
+	// which reads as engine jargon on a mana wheel: "Sacrifice 1 creature".
+	// Replace each object clause with its article form for a single object
+	// ("a creature"), keyed on the parsed spec's own noun -- so an artifact
+	// or enchantment sacrifice reads the same as a creature one, and the
+	// next object noun the grammar learns needs no new string here. A count
+	// other than one, an announced X count and an embedded description keep
+	// objectPhrase's exact text, so N > 1 keeps its number.
+	for _, part := range c.Sac {
+		phrase = replaceObjectClause(phrase, part, "permanent")
+	}
+	for _, part := range c.Discard {
+		if strings.EqualFold(part.Spec, "Hand") {
+			// Forge's Discard<N/Hand> pays the WHOLE hand (N is the
+			// discard-all marker, 0 on the corpus's Lion's Eye Diamond),
+			// so objectPhrase's "0 card"/"1 card" is not the payment.
+			phrase = strings.Replace(phrase, "discard "+objectPhrase(part, "card"), "discard your hand", 1)
+			continue
+		}
+		phrase = replaceObjectClause(phrase, part, "card")
+	}
+	for _, part := range c.Exile {
+		clause := objectPhrase(part, "card")
+		repl := articleObjectClause(part, "card") + exileOriginPhrase(part.Zone)
+		phrase = strings.Replace(phrase, "exile "+clause, "exile "+repl, 1)
+	}
+	return phrase
+}
+
+// replaceObjectClause swaps one cost part's rendered object clause
+// (":sacrifice 1 creature") for its article form within an already-rendered
+// phrase. It is a no-op when the two are identical.
+func replaceObjectClause(phrase string, part CostPart, defNoun string) string {
+	clause := objectPhrase(part, defNoun)
+	repl := articleObjectClause(part, defNoun)
+	if clause == repl {
+		return phrase
+	}
+	return strings.Replace(phrase, clause, repl, 1)
+}
+
+// articleObjectClause renders one cost part's object the way the wheel
+// reads: "a creature" for a single ordinary object, objectPhrase's own text
+// for every other shape (a count, an announced X, or a corpus description
+// that already names the object). specNoun supplies the noun, so the next
+// object type the grammar learns is covered without a new string here.
+func articleObjectClause(part CostPart, defNoun string) string {
+	if !part.Announced && part.N == 1 && part.Desc == "" {
+		return articleNoun(specNoun(part.Spec, defNoun))
+	}
+	return objectPhrase(part, defNoun)
+}
+
+// articleNoun returns the indefinite article plus noun ("a creature", "an
+// artifact"), so a single object cost reads naturally.
+func articleNoun(noun string) string {
+	if noun == "" {
+		return noun
+	}
+	switch noun[0] {
+	case 'a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U':
+		return "an " + noun
+	}
+	return "a " + noun
+}
+
+// exileOriginPhrase names the origin zone an exile cost pays from, so
+// "Exile a card" reads as the oracle's "Exile a card from your hand". The
+// zero zone is the hand default the mana continuation itself uses
+// (manaExiles); a graveyard exile names its zone too.
+func exileOriginPhrase(z state.Zone) string {
+	switch z {
+	case 0, state.ZHand:
+		return " from your hand"
+	case state.ZGraveyard:
+		return " from your graveyard"
+	default:
+		return ""
+	}
+}
+
 func manaAbilityCostPrefix(ma *cards.SA) string {
 	raw := strings.TrimSpace(ma.Params["Cost"])
 	if raw == "" {
@@ -837,11 +920,30 @@ func manaAbilityCostPrefix(ma *cards.SA) string {
 	}
 	c := ParseCost(raw)
 	c.Tap = false
-	phrase := costPhrase(c)
+	phrase := manaAbilityCostPhrase(c)
 	if phrase == "" {
 		return ""
 	}
 	return strings.ToUpper(phrase[:1]) + phrase[1:] + ": "
+}
+
+// manaLabelColour recovers the single colour a decision option's label names,
+// for the answer paths that carry only the label. It reads the label's LAST
+// "Add <C>" segment: a paid activation prefixes the cost ("Pay 1 life: Add
+// B"), so trimming "Add " off the whole label would miss the prefixed form
+// and silently drop the mana the player chose. Reports ok=false for a label
+// whose last Add segment is not exactly one WUBRGC pip ("Add any color",
+// "Add B or R", a non-mana label).
+func manaLabelColour(label string) (string, bool) {
+	i := strings.LastIndex(label, "Add ")
+	if i < 0 {
+		return "", false
+	}
+	colour := strings.TrimSpace(label[i+len("Add "):])
+	if len(colour) != 1 || !strings.Contains("WUBRGC", colour) {
+		return "", false
+	}
+	return colour, true
 }
 
 // manaAbilityPayable is the mana-ability equivalent of the cast cost gate.
@@ -1940,9 +2042,16 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: min, Max: max,
 		Prompt: manaColourPrompt(ma), Source: source}
+	// The colour ask is the ONLY place a single-ability source's cost can
+	// appear: activateManaFor resolves a one-ability source directly, with
+	// no stage-1 wheel to name the cost (Mount Doom's "{T}, Pay 1 life: Add
+	// {B} or {R}"). Name it on every colour option, so a paid activation
+	// never offers a bare "Add B" that hides the life (fb-bbe4fd8f); a
+	// multi-ability wheel's prefix is repeated here for the same reason.
+	prefix := manaAbilityCostPrefix(ma)
 	for unit := 0; unit < max; unit++ {
 		for _, color := range colours {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source, Label: "Add " + color})
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source, Label: prefix + "Add " + color})
 		}
 	}
 	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative, triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...), allocation: allocation}
@@ -2055,8 +2164,8 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 	}
 	var symbols strings.Builder
 	for _, option := range chosen {
-		color := strings.TrimPrefix(option.Label, "Add ")
-		if len(color) != 1 || !strings.Contains("WUBRGC", color) {
+		color, ok := manaLabelColour(option.Label)
+		if !ok {
 			return ma.cast
 		}
 		symbols.WriteString(color)
@@ -2118,8 +2227,8 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 			gained = ma.gained[idx]
 		}
 		if _, ok := manaAbilityComboColours(ab, e.chosenProducedColour(ma.source)); ok {
-			color := strings.TrimPrefix(chosen[0].Label, "Add ")
-			if len(color) == 1 && strings.Contains("WUBRGC", color) {
+			color, alive := manaLabelColour(chosen[0].Label)
+			if alive {
 				// abilities entries are chain heads (printed faces list
 				// top-level abilities; granted and static-granted ones
 				// come from ResolveSVar bodies), so head == target copies
