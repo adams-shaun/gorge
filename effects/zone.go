@@ -1562,7 +1562,18 @@ func handMoveCountOf(h Host, c *Ctx, sa *cards.SA) (handMoveCount, bool) {
 // the hand owner). Every shape this function cannot model emits a Note and
 // moves nothing -- the finding's floor: never a silent no-op.
 func effChangeZoneHandOwners(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
-	owners, ok := handMoveOwners(h, c, sa)
+	// On a resume of a multi-owner walk, the owner cursor's captured list is
+	// authoritative: the first move may have cleared the remembered set the
+	// owner selector reads (DefinedPlayer$ RememberedOwner with
+	// ForgetOtherRemembered$ and no RememberChanged$), so recomputing here
+	// would return no owners and the empty-owner guard below would return
+	// before handMoveOwnersWalk can restore the list -- dropping the later
+	// owner's already-answered move. handMoveOwnersWalk's own entry restores
+	// the same list; this restores it early enough to survive the guards.
+	owners, ok := c.ForgetOtherOwners, true
+	if !c.ForgetOtherReady {
+		owners, ok = handMoveOwners(h, c, sa)
+	}
 	if !ok {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "cannot resolve the hand owner (DefinedPlayer$ " + strings.TrimSpace(sa.Params["DefinedPlayer"]) +
