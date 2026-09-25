@@ -7,6 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
+	"github.com/adams-shaun/gorge/view"
 )
 
 // TestZimoneManifestDreadLooksAndChooses exercises the real corpus trigger:
@@ -85,6 +86,54 @@ func TestZimoneManifestDreadLooksAndChooses(t *testing.T) {
 	}
 	if got := e.G.Obj(other).Zone; got != state.ZGraveyard {
 		t.Fatalf("unchosen card %d is in %s, want graveyard", other, got)
+	}
+	// CR 701.61: the graveyard is a public zone, so the unchosen card's move
+	// must survive projection for every seat AND a public spectator -- a
+	// Secret move would strip Obj and hide a now-public identity from the
+	// transcript. The private look and the face-down move must stay hidden.
+	var graveyardMove *events.Event
+	for i := range e.L.Events {
+		ev := &e.L.Events[i]
+		if ev.Kind == events.MoveZone && ev.Obj == other && ev.To == state.ZGraveyard {
+			graveyardMove = ev
+		}
+	}
+	if graveyardMove == nil {
+		t.Fatalf("no graveyard move for unchosen card %d in the log", other)
+	}
+	if graveyardMove.Secret {
+		t.Fatalf("graveyard move for %d is Secret; a public zone move must be public", other)
+	}
+	for _, viewer := range []state.PlayerID{0, 1} {
+		redacted := view.RedactEvent(e.G, *graveyardMove, viewer)
+		if redacted.Obj != other {
+			t.Fatalf("seat %d projection of the graveyard move = %+v, want Obj %d visible", viewer, redacted, other)
+		}
+	}
+	public := view.RedactEventFor(e.G, *graveyardMove, view.NoSeat, view.Public)
+	if public.Obj != other {
+		t.Fatalf("public spectator projection of the graveyard move = %+v, want Obj %d visible", public, other)
+	}
+	var faceDownMove *events.Event
+	for i := range e.L.Events {
+		ev := &e.L.Events[i]
+		if ev.Kind == events.MoveZone && ev.Obj == selected && ev.To == state.ZBattlefield && ev.Counter == "entered_face_down" {
+			faceDownMove = ev
+		}
+	}
+	if faceDownMove == nil {
+		t.Fatalf("no face-down battlefield move for chosen card %d", selected)
+	}
+	if opponent := view.RedactEvent(e.G, *faceDownMove, 1); opponent.Obj != 0 {
+		t.Fatalf("opponent learned the manifested card's identity: %+v", opponent)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && ev.Text == "looks at the top two cards of the library" && ev.Player == 0 {
+			opponent := view.RedactEvent(e.G, ev, 1)
+			if len(opponent.IDs) != 0 {
+				t.Fatalf("opponent learned the private look ids: %+v", opponent)
+			}
+		}
 	}
 	o := e.G.Obj(selected)
 	if !o.FaceDown || o.Controller != 0 {
@@ -200,14 +249,27 @@ func dreadAssertNoFallback(t *testing.T, e *Engine) {
 	}
 }
 
-// dreadLookCount counts the private-look notes for seat 0.
-func dreadLookCount(t *testing.T, e *Engine, wantIDs int) {
+// dreadLookCount requires EXACTLY ONE private-look note for seat 0 carrying
+// the expected ids, so a regression that omits the look (or records it twice)
+// fails instead of silently passing because no note matched.
+func dreadLookCount(t *testing.T, e *Engine, wantIDs ...state.ObjID) {
 	t.Helper()
+	var looks []events.Event
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Note && ev.Text == "looks at the top two cards of the library" && ev.Player == 0 {
-			if !ev.Secret || len(ev.IDs) != wantIDs {
-				t.Fatalf("private look = %+v, want a secret note for exactly %d cards", ev, wantIDs)
-			}
+			looks = append(looks, ev)
+		}
+	}
+	if len(looks) != 1 {
+		t.Fatalf("private look notes for seat 0 = %d, want exactly 1: %+v", len(looks), looks)
+	}
+	got := looks[0]
+	if !got.Secret || len(got.IDs) != len(wantIDs) {
+		t.Fatalf("private look = %+v, want a secret note for exactly %d cards", got, len(wantIDs))
+	}
+	for i := range wantIDs {
+		if got.IDs[i] != wantIDs[i] {
+			t.Fatalf("private look ids = %v, want %v", got.IDs, wantIDs)
 		}
 	}
 }
@@ -245,7 +307,7 @@ func TestZimoneManifestDreadSingleCardLibrary(t *testing.T) {
 		t.Fatalf("manifested card derived=%+v, want face-down 2/2 Creature", der)
 	}
 	dreadAssertNoFallback(t, e)
-	dreadLookCount(t, e, 1)
+	dreadLookCount(t, e, top)
 	replayCheck(t, e, cfg)
 }
 

@@ -3179,6 +3179,14 @@ func effManifestDread(h Host, c *Ctx, sa *cards.SA) {
 	manifestDreadMove(h, c, p, window, window[0])
 }
 
+// manifestDreadMove applies CR 701.61's two destinations. The chosen card's
+// move onto the battlefield face down is Secret (the private look must not
+// leak which card was manifested); the unchosen card's move to the graveyard
+// is PUBLIC -- a graveyard is a public zone, so every seat and spectator
+// learns which card went there, exactly as applyNonlandExplore's
+// library-to-graveyard move does. Marking it Secret would strip Obj from
+// every non-owner projection, leaving the transcript a nameless move even
+// though the card's identity is public the moment it lands.
 func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, chosen state.ObjID) {
 	for _, id := range window {
 		if id == chosen {
@@ -3187,7 +3195,7 @@ func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, c
 		} else {
 			o := h.Game().Obj(id)
 			if o != nil {
-				h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: o.Owner, From: state.ZLibrary, To: state.ZGraveyard, Secret: true})
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: o.Owner, From: state.ZLibrary, To: state.ZGraveyard})
 			}
 		}
 	}
