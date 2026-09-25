@@ -366,7 +366,7 @@ func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	if v, ok := t.Params["ValidPlayer"]; ok {
 		// StepChange carries no Player of its own -- a step always belongs
 		// to the current active player.
-		if !effects.MatchesPlayerSpecCtx(e.G, v, e.G.Active, e.controllerOf(source), effects.PlayerSpecCtx{Source: source}) {
+		if !effects.MatchesPlayerSpecCtx(e.G, v, e.G.Active, e.controllerOf(source), e.playerSpecCtx(source)) {
 			return false
 		}
 	}

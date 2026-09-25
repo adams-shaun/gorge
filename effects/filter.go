@@ -4585,14 +4585,24 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // against. DefendingPlayer is the defending-player role of the triggering
 // event, which Player.TriggeredDefendingPlayer names; it is absent (IsPlayer
 // false) outside a trigger that carries one, so that clause fails closed.
-// Both fields are plain data so the four rule-engine call sites (a trigger
-// match, a static actor match and a layer restriction) can populate them
-// without a resolver callback.
+// EffectiveNames and DerivedTypes are the SAME layer-3/layer-4 tables
+// SpecContext carries (see their doc comments there, including the
+// escape-analysis rationale for plain immutable slices): the
+// Player.controlsCreature / Player.controlsPermanent family evaluates its
+// object spec through a nested SpecContext, so without them a creature a
+// layer-4 static made a Goblin is not counted by a lord question even though
+// every ordinary filter site now sees it. All fields are plain data so the
+// rule-engine call sites (a trigger match, a static actor match and a layer
+// restriction) can populate them without a resolver callback.
 type PlayerSpecCtx struct {
 	Source            state.ObjID
 	DefendingPlayer   state.Target
 	DelayedRemembered []state.Target
 	OpponentOf        []state.Target
+	// EffectiveNames is the layer-3 rename set (SetName$, CR 613.1d).
+	EffectiveNames []ObjectName
+	// DerivedTypes is the layer-4 derived type list (CR 613.1d/613.1c).
+	DerivedTypes []ObjectTypes
 }
 
 // MatchesPlayerSpecCtx is the full player-side filter: the same grammar as
@@ -4823,13 +4833,13 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				// seat qualifies when its battlefield holds an object matching
 				// <objspec> as an object filter, with an optional trailing
 				// _GE<n>-style count comparison. See playerControlsMatches.
-				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Creature", rem) {
+				if playerControlsMatches(g, p, you, pc, "Creature", rem) {
 					return true
 				}
 				continue
 			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
-				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Permanent", rem) {
+				if playerControlsMatches(g, p, you, pc, "Permanent", rem) {
 					return true
 				}
 				continue
@@ -5118,7 +5128,16 @@ func splitCountCompare(rem string) (string, string, int32, bool) {
 func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, pc PlayerSpecCtx, objBase, rem string) bool {
 	spec, op, want, counted := splitCountCompare(rem)
 	spec = objBase + "." + spec
-	sc := SpecContext{You: you, Source: pc.Source, TriggerContext: TriggerContext{DelayedRemembered: pc.DelayedRemembered}}
+	sc := SpecContext{
+		You: you, Source: pc.Source,
+		TriggerContext: TriggerContext{DelayedRemembered: pc.DelayedRemembered},
+		// The nested object filter must see the same layer-3/layer-4
+		// derived characteristics every ordinary filter site does; a
+		// controlsCreature/controlsPermanent spec otherwise reads the
+		// printed face alone.
+		EffectiveNames: pc.EffectiveNames,
+		DerivedTypes:   pc.DerivedTypes,
+	}
 	n := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
 		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {

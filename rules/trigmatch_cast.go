@@ -105,7 +105,7 @@ func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Ev
 		castAlts = alts
 	}
 	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
-		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
+		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, e.playerSpecCtx(source)) {
 			return false
 		}
 	}
@@ -288,7 +288,7 @@ func (e *Engine) spellAbilityCastSpellMatches(t cards.Trigger, source state.ObjI
 		// ev.Player is the player who cast the spell; MatchesPlayerSpecCtx
 		// resolves "You" as the trigger's controller and
 		// Player.EnchantedController against the trigger's source permanent.
-		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
+		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, e.playerSpecCtx(source)) {
 			return false
 		}
 	}
@@ -421,7 +421,7 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
 		// ev.Player is the player who activated the ability;
 		// MatchesPlayerSpecCtx resolves "You" as the trigger's controller.
-		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
+		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, e.playerSpecCtx(source)) {
 			return false
 		}
 	}
@@ -894,7 +894,7 @@ func (e *Engine) manaExpendMatches(t cards.Trigger, source state.ObjID, ev event
 	if player == "" {
 		player = "You"
 	}
-	if !effects.MatchesPlayerSpecCtx(e.G, player, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
+	if !effects.MatchesPlayerSpecCtx(e.G, player, ev.Player, ctrl, e.playerSpecCtx(source)) {
 		return false
 	}
 	n, ok := e.manaExpendAmount(source, t.Params["Amount"], ctrl)
