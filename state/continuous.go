@@ -548,6 +548,17 @@ type ContinuousEffect struct {
 	// replay like every other continuous-effect field.
 	ForgetOnCast string
 
+	// AssignmentStaticMode carries an Effect-delivered combat-assignment
+	// static's mode (currently CombatDamageToughness). Its consumer joins this
+	// registration with printed assignment statics in the shared deterministic
+	// collector; unrelated StaticAbilities modes are not made live by this
+	// field. Empty when the Effect delivers no assignment static.
+	AssignmentStaticMode string
+	// AssignmentStaticParams are the parsed parameters of the delivered static.
+	AssignmentStaticParams map[string]string
+	// AssignmentStaticSVars is the SVar table that owns the delivered body.
+	AssignmentStaticSVars map[string]string
+
 	// CostStaticMode carries an Effect-delivered cost-modifier static's
 	// mode ("ReduceCost"/"RaiseCost"/"SetCost"/"AlternativeCost" -- the
 	// parseStaticLine Mode$ of the SVar body the Effect SA's

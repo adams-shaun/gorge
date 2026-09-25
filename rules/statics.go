@@ -47,6 +47,10 @@ type staticView struct {
 	// resolver's Ctx, the same flag rules' seedEffectReplCtx sets. Printed
 	// statics keep it false.
 	chosenNumberBound bool
+	// Remembered is the captured object set carried by an Effect-delivered
+	// static. It binds Card.IsRemembered in the same shared spec context as
+	// restriction registrations; printed statics leave it nil.
+	Remembered []state.ObjID
 }
 
 // costStaticViews is one ordered snapshot of cost-modifier membership. The
@@ -452,7 +456,11 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 // its own SVar table when the view carries one (an under-card static), else the
 // source object's top face.
 func (e *Engine) staticSpecCtx(sv staticView) effects.SpecContext {
-	return e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+	sc := e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)
+	for _, id := range sv.Remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
+	}
+	return sc
 }
 
 // castRestricted reports whether p is forbidden from casting id (CantBeCast).
@@ -2924,6 +2932,20 @@ func (e *Engine) assignmentStatics(mode string) []staticView {
 				}
 			}
 		}
+	}
+	// Effect-created assignment statics are admitted only for the exact mode
+	// the registration branch records; they do not participate in the printed
+	// EffectZone source-zone walk above. active() supplies lifetime and movement
+	// filtering, and its order is stable, so append in registry order.
+	for _, ce := range e.active() {
+		if ce.AssignmentStaticMode != mode {
+			continue
+		}
+		out = append(out, staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.AssignmentStaticParams, SVars: ce.AssignmentStaticSVars,
+			Remembered: ce.Remembered,
+		})
 	}
 	return out
 }

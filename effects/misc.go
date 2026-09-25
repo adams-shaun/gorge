@@ -1130,6 +1130,27 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			}
 			effectContinuous(h, ce)
 			registered = true
+		case "CombatDamageToughness":
+			// This assignment static is consumed by rules' existing combat
+			// assignment collector. Keep its body parameters and SVar table on
+			// the registration so the ordinary static applicability gates run
+			// unchanged, with the Effect's remembered targets bound by the
+			// assignment view.
+			untilEOT := effectUntilEOT(h, c.Source, rawDur)
+			if sa.Params["Duration"] == "" && absentDurationMeansThisTurn(mode) {
+				untilEOT = true
+			}
+			ce := state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller, Name: effectName,
+				UntilEOT:             untilEOT,
+				AssignmentStaticMode: mode, AssignmentStaticParams: params,
+				AssignmentStaticSVars: c.SVars,
+				Remembered:            remembered, Duration: dur,
+				ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
+				ForgetCounter: forgetCounter, ImprintOnHost: imprintOnHost,
+			}
+			effectContinuous(h, ce)
+			registered = true
 		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost", "ManaConvert":
 			// An Effect-delivered cost-modifier or ManaConvert static (task
 			// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather
@@ -2483,7 +2504,7 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 // restriction a turn early, the wrong-wide direction.
 func absentDurationMeansThisTurn(mode string) bool {
 	switch mode {
-	case "CantPutCounter", "CantBlockBy", "CanAttackDefender", "NumLoyaltyAct":
+	case "CantPutCounter", "CantBlockBy", "CanAttackDefender", "NumLoyaltyAct", "CombatDamageToughness":
 		return true
 	}
 	return false
