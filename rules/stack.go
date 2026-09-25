@@ -932,6 +932,13 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 // count.go's provenance fallback. The clamp contract is targetBounds',
 // applied AFTER resolution: min >= 0, max >= 1, max >= min.
 func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int, int) {
+	return e.resolvedTargetBoundsWithGift(p, source, sa, x, nil)
+}
+
+// resolvedTargetBoundsWithGift is the offer-gate variant: a non-nil promise
+// override evaluates Count$PromisedGift as though that Gift election had been
+// made, without changing the source object or the normal post-election reader.
+func (e *Engine) resolvedTargetBoundsWithGift(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32, promised *bool) (int, int) {
 	min, max := targetBounds(sa)
 	if !targetBoundsDynamic(sa) {
 		return min, max
@@ -941,6 +948,7 @@ func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *
 		return min, max
 	}
 	ctx.X = x
+	ctx.PromisedGiftOverride = promised
 	if v, ok := sa.Params["TargetMin"]; ok && !isLiteralBound(v) {
 		if n, resolved := effects.NumResolvedStrict(e, ctx, sa, "TargetMin", 1); resolved {
 			min = int(n)
