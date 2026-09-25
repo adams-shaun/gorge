@@ -145,7 +145,7 @@ func TestTargetingPlayerOpponentMultiSeatIsDeterministic(t *testing.T) {
 				}
 			}
 			if tc.lost > 0 {
-				e.G.Players[tc.lost].Lost = true
+				e.emit(events.Event{Kind: events.PlayerLost, Player: tc.lost, Text: "conceded"})
 				if got := e.G.AliveFrom(0); len(got) != 2 || got[0] != 0 || got[1] != tc.want {
 					t.Fatalf("post-loss turn order = %v, want %v", got, tc.aliveOrder)
 				}

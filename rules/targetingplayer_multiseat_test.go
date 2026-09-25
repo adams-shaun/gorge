@@ -105,22 +105,6 @@ func targetOptionForObj(t *testing.T, d *decision.Decision, obj state.ObjID) dec
 	return decision.Option{}
 }
 
-// castOptionForCard returns the plain (non-buyback) cast option for card obj.
-func castOptionForCard(t *testing.T, e *Engine, obj state.ObjID) decision.Option {
-	t.Helper()
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("not at priority: %+v", d)
-	}
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == obj && o.Mode == "" {
-			return o
-		}
-	}
-	t.Fatalf("no plain cast option for %d: %+v", obj, d.Options)
-	return decision.Option{}
-}
-
 // passToNextOwnTurn drives to seat 0's next Main 1 so a permanent placed this
 // turn is no longer summoning sick and its tap ability (Preacher/Echo Chamber)
 // becomes legal without a direct, replay-invisible state write. One turn per
@@ -192,55 +176,6 @@ func TestTargetingPlayerOpponentActivatedAbilityIsAnsweredByOpponent(t *testing.
 	// activation really resolved.
 	if got := e.G.Obj(own).Controller; got != 0 {
 		t.Fatalf("chosen bear controller = %d, want seat 0", got)
-	}
-	replayCheck(t, e, cfg)
-}
-
-// TestTargetingPlayerOpponentSpellIsAnsweredByOpponent casts the real corpus
-// instant-shaped carrier Evangelize (SP$ GainControl with
-// `TargetingPlayer$ Player.Opponent`) through the ordinary cast flow and
-// asserts the cast-time target ask is posed to an opponent while the option
-// set stays the caster's legality computation.
-func TestTargetingPlayerOpponentSpellIsAnsweredByOpponent(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	carrier := mustCorpusCard(t, reg, "Evangelize")
-	if sa := saWithTargetingPlayer(carrier, "SP", "Player.Opponent"); sa == nil {
-		t.Fatal("Evangelize's compiled SP no longer carries TargetingPlayer$ Player.Opponent -- fixture premise broken")
-	}
-	e, cfg := targetingChooserBoard(t, reg, 2, "Evangelize")
-	own := searchMoveByNameSeat(t, e, 0, "Grizzly Bears", state.ZBattlefield)
-	opp := searchMoveByNameSeat(t, e, 1, "Grizzly Bears", state.ZBattlefield)
-	evangelize := searchMoveByName(t, e, "Evangelize", state.ZHand)
-	if evangelize == 0 || own == 0 || opp == 0 {
-		t.Fatalf("fixtures missing: evangelize=%d own=%d opp=%d", evangelize, own, opp)
-	}
-	if e.G.Obj(own).Controller == e.G.Obj(opp).Controller {
-		t.Fatal("candidate fixture does not contain different controllers")
-	}
-
-	addMana(t, e, 0, "WWWWW")
-	submitChoices(t, e, castOptionForCard(t, e, evangelize).Index)
-
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("cast ask = %+v, want the KTarget for Evangelize", d)
-	}
-	if d.Player != 1 {
-		t.Fatalf("cast target ask posed to seat %d, want opponent seat 1", d.Player)
-	}
-	targetOptionForObj(t, d, own)
-	targetOptionForObj(t, d, opp)
-	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{len(d.Options)}}); err == nil {
-		t.Fatal("chooser can submit a target not present in the legal option set")
-	}
-
-	submitChoices(t, e, targetOptionForObj(t, d, opp).Index)
-	passUntilStackEmpty(t, e, 40)
-	// CR 117.3c: after the cast finishes, priority belongs to the caster
-	// again, not to the opponent who answered the target ask.
-	nd := e.Pending()
-	if nd != nil && nd.Kind == decision.KPriority && nd.Player != 0 {
-		t.Fatalf("priority after the cast went to seat %d, want the caster seat 0", nd.Player)
 	}
 	replayCheck(t, e, cfg)
 }

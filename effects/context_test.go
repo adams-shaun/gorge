@@ -267,6 +267,14 @@ func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *
 	return out
 }
 
+// ChooserFor has no rules-tier resolver to consult in the test double, so it
+// keeps the ability controller as the chooser -- the same fail-closed default
+// as an unknown TargetingPlayer$ spec. Tests that need the opponent redirect
+// drive the real rules.Engine Host instead.
+func (h *fakeHost) ChooserFor(c *Ctx, sa *cards.SA) state.PlayerID {
+	return c.Controller
+}
+
 // RegenerationDisallowed has no registry to consult here (the engine-side
 // restriction lives in rules.Engine); the effects-package tests that exercise
 // ReplaceDestruction set up their own boards and never rely on an

@@ -155,6 +155,16 @@ type Host interface {
 	// Redirect effects use this shared census rather than duplicating target
 	// legality below rules (protection and continuous restrictions included).
 	LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target
+	// ChooserFor resolves the seat that answers a target ask declared by sa,
+	// per Forge's TargetingPlayer$ ("an opponent chooses the target"). The
+	// mid-resolution ValidTgts$ asks (chosenTargetsFor, changeZoneChosenTargets)
+	// have no rules-tier ask site to consult, so this seam carries the same
+	// resolver cast/trigger asks use (rules.Engine.targetAskChooser /
+	// targetChooserFromSpec). It is read for the DECISION's Player only: the
+	// caller keeps c.Controller as the legality census reference. A host with
+	// no resolver (the effects test double) returns c.Controller, the same
+	// fail-closed default as an unknown spec.
+	ChooserFor(c *Ctx, sa *cards.SA) state.PlayerID
 	// RegenerationDisallowed reports whether an Effect-registered
 	// CantRegenerate restriction makes id unable to be regenerated (Incinerate's
 	// "can't be regenerated this turn"). Consulted by ReplaceDestruction before

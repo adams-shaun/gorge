@@ -2896,14 +2896,14 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 	return c.kind != "player" && c.obj == t.Obj
 }
 
-// targetAskChooser resolves who answers a target ask declared by sa. Forge's
-// TargetingPlayer$ names another player as the chooser; the trigger-relative
-// grammar in targetChooserFromSpec resolves those referents from the stored
-// trigger context, while the non-triggered cast/activation form names an
-// opponent. It is the ONE home for the chooser redirect, called by both
-// askTarget (trigger placement and resolution sub-abilities, this file) and
-// targetAsk (CR 601.2c cast and activation targeting, rules/cast.go), so
-// every target ask -- not only the trigger-gated one -- consults it.
+// targetChooserCore is the ONE home for the TargetingPlayer$ redirect: it
+// reads the parameter off sa and resolves the referent against the stored
+// trigger context (trigger-relative referents) or the living-seat table (the
+// non-triggered Opponent form). Both the rules-tier ask sites
+// (targetAskChooser) and the effects-tier mid-resolution asks
+// (Engine.ChooserFor, which effects.Host calls) reach it, so the cast,
+// activation, trigger, resolution-sub and mid-resolution ValidTgts$
+// (mvts1 "tgts" and ChangeZone "choice") paths cannot drift.
 //
 // The opponent form is deterministic when more than one opponent is alive:
 // the first living seat in AliveFrom(0) other than the controller answers.
@@ -2917,7 +2917,7 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 //
 // Returns (controller, false) when sa names no chooser, or the spec is
 // unknown, unbound or dead, so the ask stays with the controller.
-func (e *Engine) targetAskChooser(controller state.PlayerID, source state.ObjID, sa *cards.SA) (state.PlayerID, bool) {
+func (e *Engine) targetChooserCore(controller state.PlayerID, remembered []state.Target, tc effects.TriggerContext, sa *cards.SA) (state.PlayerID, bool) {
 	if sa == nil {
 		return controller, false
 	}
@@ -2925,11 +2925,45 @@ func (e *Engine) targetAskChooser(controller state.PlayerID, source state.ObjID,
 	if spec == "" {
 		return controller, false
 	}
+	return e.targetChooserFromSpec(spec, controller, remembered, tc)
+}
+
+// targetAskChooser resolves who answers a target ask declared by sa at a
+// rules-tier ask site. Forge's TargetingPlayer$ names another player as the
+// chooser; the trigger-relative grammar in targetChooserFromSpec resolves
+// those referents from the stored trigger context, while the non-triggered
+// cast/activation form names an opponent. It delegates to targetChooserCore,
+// the shared home, and is called by askTarget (trigger placement and
+// resolution sub-abilities, this file), targetAsk (CR 601.2c cast and
+// activation targeting, rules/cast.go) and subTargetAsk (chained
+// sub-abilities). The effects-tier mid-resolution asks reach the same core
+// through Engine.ChooserFor.
+//
+// Returns (controller, false) when sa names no chooser, or the spec is
+// unknown, unbound or dead, so the ask stays with the controller.
+func (e *Engine) targetAskChooser(controller state.PlayerID, source state.ObjID, sa *cards.SA) (state.PlayerID, bool) {
 	tc := effects.TriggerContext{}
 	if triggerContext, ok := e.triggerContexts[source]; ok {
 		tc = triggerContext
 	}
-	return e.targetChooserFromSpec(spec, controller, nil, tc)
+	return e.targetChooserCore(controller, nil, tc, sa)
+}
+
+// ChooserFor implements effects.Host's chooser seam for the mid-resolution
+// ValidTgts$ asks (effects.chosenTargetsFor and effects.changeZoneChosenTargets).
+// Those asks run below the rules tier and cannot import it, so the resolver
+// arrives through this hook instead; c carries the controller, source,
+// remembered set and trigger context the effects-side ask already holds. An
+// absent chooser (or an unknown/unbound/dead referent) keeps c.Controller,
+// the same fail-closed default every rules-tier ask uses.
+func (e *Engine) ChooserFor(c *effects.Ctx, sa *cards.SA) state.PlayerID {
+	if c == nil {
+		return 0
+	}
+	if who, ok := e.targetChooserCore(c.Controller, c.Remembered, c.TriggerContext, sa); ok {
+		return who
+	}
+	return c.Controller
 }
 
 // askTarget offers every legal target for a spell or ability. It deliberately
