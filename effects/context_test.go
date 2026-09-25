@@ -41,6 +41,10 @@ type fakeHost struct {
 	// machinery lives in rules.Engine, so the effects-package tests configure the
 	// answers they need instead of inventing a registry.
 	sacrificeBlocked map[state.ObjID]bool
+	// exileBlocked is the per-object ExileBlocked answer the double reports
+	// (nil = nothing blocked, the default), the CantExile counterpart of
+	// sacrificeBlocked above.
+	exileBlocked map[state.ObjID]bool
 	// castFromHand is the WasCastFromHandByYou answer the double reports;
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
@@ -57,6 +61,8 @@ type fakeHost struct {
 	// Condition$ Delirium gate reads it; the real graveyard-census read is
 	// pinned in rules).
 	delirium bool
+	// metalcraft is the MetalcraftHolds answer used by bare Condition$ tests.
+	metalcraft bool
 	// typeChoices is the TypeChoices answer the double reports (nil by
 	// default): the effects-side ChooseType tests configure it to pose a
 	// real option list. Nil routes ChooseType through AskEmpty — the
@@ -124,6 +130,16 @@ type fakeHost struct {
 
 func (h *fakeHost) Game() *state.Game                   { return h.g }
 func (h *fakeHost) ObjectColors(o *state.Object) string { return ColorsOf(o) }
+
+// ObjectText mirrors rules.Engine.ObjectText's derived-text read at the only
+// fidelity the effects double has: it has no layer walk, so it returns the
+// object's printed Oracle (an object with no face reads "").
+func (h *fakeHost) ObjectText(o *state.Object) string {
+	if o == nil || o.Face() == nil {
+		return ""
+	}
+	return o.Face().Oracle
+}
 func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)
@@ -257,6 +273,14 @@ func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 	return h.sacrificeBlocked[id]
 }
 
+// ExileBlocked has no registry to consult here (the engine-side CantExile
+// restriction lives in rules.Engine), the same discipline as SacrificeBlocked
+// above: the double reports the per-object answers exileBlocked configures
+// (nil = false everywhere -- nothing blocked).
+func (h *fakeHost) ExileBlocked(id state.ObjID, forCost bool) bool {
+	return h.exileBlocked[id]
+}
+
 // SurveilLookExtra has no static registry to consult here (the activeStatics
 // walk lives in rules.Engine), the same discipline as SacrificeBlocked above:
 // the double reports zero rather than inventing a registry it cannot answer
@@ -280,6 +304,12 @@ func (h *fakeHost) Scry(p state.PlayerID, source state.ObjID, count int32, sa *c
 // replacement pipeline to bypass, the same discipline as its Scry above.
 func (h *fakeHost) EmitScryRecord(e events.Event) { h.Emit(e) }
 
+// RollDiceProposed has no replacement registry to consult here, the same
+// discipline as the double's Scry above: the proposal returns unchanged.
+func (h *fakeHost) RollDiceProposed(_ state.PlayerID, _ state.ObjID, amount, ignore int32) (int32, int32) {
+	return amount, ignore
+}
+
 // RememberExploitedLKI records the snapshot so an effects-level test can see
 // what effExploit published (the real engine attaches it to the trig:Exploited
 // pending trigger's LKI; that half is pinned in rules).
@@ -294,6 +324,8 @@ func (h *fakeHost) RememberExploitedLKI(s state.SacrificedInfo) {
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.
 func (h *fakeHost) BeginDamageBatch() {}
 func (h *fakeHost) EndDamageBatch()   {}
+func (h *fakeHost) BeginZoneBatch()   {}
+func (h *fakeHost) EndZoneBatch()     {}
 
 // CastThisTurn has no real turn log to count here (Task 17); the effects
 // package tests set up their own boards, so the double reports zero.
@@ -374,6 +406,9 @@ func (h *fakeHost) RevoltHolds(_ state.PlayerID) bool { return h.revolt }
 // h.delirium flag the eval-level tests flip (the real census read is pinned
 // in rules).
 func (h *fakeHost) DeliriumHolds(_ state.PlayerID) bool { return h.delirium }
+
+// MetalcraftHolds reports the configured census answer for effects tests.
+func (h *fakeHost) MetalcraftHolds(_ state.PlayerID) bool { return h.metalcraft }
 
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }

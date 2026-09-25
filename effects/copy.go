@@ -31,6 +31,18 @@ func init() {
 // Casting, a Storm or Replicate copy) grants it too. Copies keep their
 // targets only when the parameter is absent or False.
 //
+// NonLegendary$ True (The Sixth Doctor's Time Lord's Prerogative, and the
+// corpus's six-carrier CopySpellAbility family: Osgood Operation Double, Iron
+// Man Bleeding Edge, Jackal Genius Geneticist, Storm of Saruman, The Clone
+// Saga) drops the Legendary supertype from the copy's characteristics, so a
+// copied legendary PERMANENT spell resolves into a token CR 704.5j must not
+// gather against its original. The rider rides the StackCopy event's Counter
+// (a field the fold otherwise leaves empty) and is folded into the mint as
+// Object.CopyNonLegendary, which rules' typeCharacteristics applies as a
+// layer-4 base strip -- no event field is added or reordered. An absent or
+// False key adds no strip, but a copy of a previously stripped copy inherits
+// that copiable characteristic (CR 707.2).
+//
 // UnlessCost$ (Chain Lightning, String of Disappearances) rides the ONE
 // shared unless gate (effects.Resolve's unlessProceed dispatch, shared by
 // every API): the payer is UnlessPayer$'s resolved target (default the
@@ -235,6 +247,19 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// flags it unread (review sol2: the earlier empty if-block was dropped).
 	_ = sa.Params["IgnoreFreeze"]
 	mayChoose := strings.EqualFold(strings.TrimSpace(sa.Params["MayChooseTarget"]), "True")
+	// NonLegendary$ True (The Sixth Doctor's "copy it, except the copy isn't
+	// legendary", and the corpus's six-carrier CopySpellAbility family:
+	// Osgood Operation Double, Iron Man Bleeding Edge, Jackal Genius
+	// Geneticist, Storm of Saruman, The Clone Saga). The copy's
+	// characteristics drop the Legendary supertype, so a copied legendary
+	// PERMANENT spell resolves into a token CR 704.5j must not gather against
+	// its original. The rider rides the StackCopy event's Counter -- the
+	// field StackCopy otherwise leaves empty -- and events.Apply's fold
+	// turns it into the object marker rules' typeCharacteristics strips the
+	// supertype from, the same event-sourced shape ClonePermanent's Counter
+	// riders take. No event field is added or reordered; an absent or False
+	// key adds no strip, but a copy of a stripped copy inherits the strip.
+	nonLegendary := strings.EqualFold(strings.TrimSpace(sa.Params["NonLegendary"]), "True")
 	// RememberCopies$ True (Shiko and Narset, Unified's "copy that spell ...
 	// If you don't copy a spell this way, draw a card"; Chef's Kiss's "the
 	// spell and the copy"; Tempt with Mayhem's per-copier count): Forge's
@@ -264,7 +289,11 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		// carrier combines the two; Forge's definedTarget branch ignores it
 		// too).
 		for _, t := range targets {
-			emitCopy(h, c, rememberCopies, events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}})
+			ev := events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}}
+			if nonLegendary {
+				ev.Counter = "nonlegendary"
+			}
+			emitCopy(h, c, rememberCopies, ev)
 		}
 	case defined:
 		// A resolvable param whose set is empty (nothing chosen): no copy,
@@ -283,6 +312,9 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		for _, sp := range copies {
 			for i := 0; i < n; i++ {
 				ev := events.Event{Kind: events.StackCopy, Obj: sp, Player: controller}
+				if nonLegendary {
+					ev.Counter = "nonlegendary"
+				}
 				if mayChoose {
 					// CR 707.10c: the copy's controller may choose new targets. The
 					// permission rides the StackCopy event (Amount 1), so it is
@@ -390,6 +422,25 @@ func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool
 		for _, t := range c.Chosen {
 			if t.IsPlayer {
 				return t.Player, true
+			}
+		}
+		return 0, false
+	case "Remembered", "RememberedController":
+		// Tempt with Mayhem's per-opponent copy: the RepeatEach loop binds its
+		// current subject (a player) as Remembered, and prior iterations' copy
+		// objects are remembered too. A remembered PLAYER named directly wins
+		// over an object's controller -- the same precedence Defined$'s
+		// single-player read takes -- so the copy belongs to the current
+		// subject, else to the first remembered object's controller. An absent
+		// binding returns false and the caller keeps the resolving controller.
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				return t.Player, true
+			}
+		}
+		for _, t := range c.Remembered {
+			if o := g.Obj(t.Obj); o != nil {
+				return o.Controller, true
 			}
 		}
 		return 0, false

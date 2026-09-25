@@ -89,7 +89,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
 		events.GainedAbilityPush, events.GainedTriggerPush,
-		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut:
+		events.StoreSVar, events.GiftPromise, events.GiveGift, events.PhaseOut, events.RollDice:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -235,6 +235,19 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareBlockers
 	case "Untaps":
 		return 1 << events.Untap
+	case "PhaseOutAll":
+		// CR 702.25b: the batch-level "whenever one or more permanents phase
+		// out" trigger matches the events.PhaseOut marker the api:Phases
+		// primitive emits (Amount >= 1 is a phase-out; the phase-in half is
+		// the opposite event). The Kind's ordinal is past the 64-bit mask's
+		// reach, the Surveil/Discover shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (phaseOutAllMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents
+		// default keeps a PhaseOutAll-only face's mask narrow for every other
+		// kind.
+		return 0
 	case "Sacrificed", "Discarded", "DiscardedAll", "LandPlayed", "Milled", "MilledAll":
 		return 1 << events.MoveZone
 	case "Cycled":
@@ -288,6 +301,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// mode here rather than letting it fall to the allTriggerEvents
 		// default keeps a Surveil-only face's mask narrow for every other
 		// kind.
+		return 0
+	case "Proliferate":
+		// The Proliferate marker's ordinal is past the 64-bit mask's reach
+		// (task trig-proliferate, appended after GiveGift), the
+		// Surveil/Discover shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path and gated by the full
+		// matcher (proliferateMatches). Naming the mode here rather than
+		// letting it fall to the allTriggerEvents default keeps a
+		// Proliferate-only face's mask narrow for every other kind.
 		return 0
 	case "Scry":
 		// The Scry marker's ordinal is past the 64-bit mask's reach, the

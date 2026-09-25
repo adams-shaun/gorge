@@ -231,7 +231,7 @@ func attackersDeclaredBatch(t cards.Trigger) bool {
 // checkFaceTriggers (Engine.attackersDeclaredFired). A direct synthetic emit
 // with no declaration scratch falls back to ev.IDs, which is the declaration
 // itself in every single-defender case.
-func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event, remembered ...[]state.Target) bool {
 	if ev.Kind != events.DeclareAttackers || len(ev.IDs) == 0 {
 		return false
 	}
@@ -252,8 +252,13 @@ func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state
 		return false
 	}
 	matches := 0
+	var capture []state.Target
+	if len(remembered) != 0 {
+		capture = remembered[0]
+	}
 	for _, id := range ids {
-		if v := t.Params["ValidAttackers"]; v == "" || e.matchesSpec(v, id, e.specCtx(source, ctrl)) {
+		sc := delayedSpecCtx(e.specCtx(source, ctrl), capture)
+		if v := t.Params["ValidAttackers"]; v == "" || e.matchesSpec(v, id, sc) {
 			matches++
 		}
 	}
@@ -1123,6 +1128,10 @@ func blockedAttackerIn(pairs [][2]state.ObjID, id state.ObjID) bool {
 // match is the "both halves match" test, and checkTriggers' all-latch turns
 // the first such event in a batch into the single "one or more" instance.
 func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	return e.damageMatchesWithCapture(t, source, ev, nil)
+}
+
+func (e *Engine) damageMatchesWithCapture(t cards.Trigger, source state.ObjID, ev events.Event, remembered []state.Target) bool {
 	if ev.Kind != events.Damage {
 		return false
 	}
@@ -1152,18 +1161,17 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 		// the published override, e.damaging during combat's assignment loop,
 		// else the resolving stack object).
 		src := e.damageEventSource()
-		if src == 0 || !e.matchesSpec(v, src, e.specCtx(source, ctrl)) {
+		if src == 0 || !e.matchesSpec(v, src, delayedSpecCtx(e.specCtx(source, ctrl), remembered)) {
 			return false
 		}
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		if ev.Obj != 0 {
-			if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+			if !e.matchesSpec(v, ev.Obj, delayedSpecCtx(e.specCtx(source, ctrl), remembered)) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{
-			Source:          source,
-			DefendingPlayer: e.damageDefendingPlayer(ev),
+			Source: source, DefendingPlayer: e.damageDefendingPlayer(ev), DelayedRemembered: remembered,
 		}) {
 			return false
 		}

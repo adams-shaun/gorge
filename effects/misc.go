@@ -282,6 +282,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			Text: "unmodelled Effect ImprintOnHost$ " + v})
 	}
 	imprintOnHost := strings.EqualFold(strings.TrimSpace(sa.Params["ImprintOnHost"]), "True")
+	// ForgetOnPhasedIn$ True (CR 702.25, the "phase out until CARDNAME leaves
+	// the battlefield" family: Out of Time, Oubliette, The Moment). The
+	// Effect's comeback trigger is a printed ChangesZone trigger
+	// (Origin$ Battlefield | Destination$ Any | ValidCard$ Card.IsImprinted,
+	// Static$ True) whose Duration$ Permanent lifetime has no turn ceiling:
+	// it lives until the Effect's own DBExileSelf body runs. The turn-ceiling
+	// registration below cannot express that, so a Permanent lifetime is
+	// allowed only for this marker and only for a ChangesZone body (the
+	// comeback idiom); every other Effect trigger lifetime stays loud.
+	forgetOnPhasedIn := strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOnPhasedIn"]), "True")
 	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
 	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
 	// "True", which is Targeted in the corpus's spelling) is exactly the
@@ -299,6 +309,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	// Capture the effect's own subjects before discarding older source memory.
+	forgetOtherRemembered(h, c, sa)
 	if imprintOnHost && len(remembered) > 0 {
 		// ImprintOnHost$ retains the objects captured by this Effect on its
 		// host card. Keep the association event-backed so replay and later
@@ -490,9 +502,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// The "until CARDNAME leaves the battlefield" comeback idiom (CR
+		// 702.25): a Duration$ Permanent Effect owns a ChangesZone trigger
+		// that fires when the imprinted host leaves. It carries no turn
+		// ceiling -- |TT= is deliberately omitted so the registration survives
+		// every TurnChange -- and its retirement is the Effect's own
+		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
+		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
+			strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
 		// Delayed promises only encode a turn ceiling. Never let an explicit
-		// longer Effect lifetime silently turn into a permanent promise.
-		if !effectTriggerThisTurnDuration(rawDur) || forgetOn != "" || exileOn != "" ||
+		// longer Effect lifetime silently turn into a permanent promise,
+		// except for the comeback idiom above whose lifetime the Effect's own
+		// self-exile ends.
+		if (!effectTriggerThisTurnDuration(rawDur) && !permanentComeback) ||
+			forgetOn != "" || exileOn != "" ||
 			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
@@ -508,6 +531,35 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		expiry := "|TT=" + strconv.Itoa(int(h.Game().Turn))
+		if permanentComeback {
+			expiry = ""
+		}
+		// The Effect's own capture is what an Effect-owned trigger's
+		// `Defined$ Remembered` names. Register it so the comeback body
+		// phases the Effect's memory (Oubliette's `RememberObjects$
+		// Targeted`, Out of Time's `RememberObjects$ Remembered`) rather than
+		// the host that just left. Every other Effect trigger keeps its
+		// existing registration set untouched.
+		regIDs := c.Remembered
+		if permanentComeback {
+			regIDs = make([]state.Target, 0, len(remembered))
+			for _, id := range remembered {
+				regIDs = append(regIDs, state.Target{Obj: id})
+			}
+		}
+		// The comeback body matches the HOST card leaving: the printed
+		// `ValidCard$ Card.IsImprinted` pairs with the Effect's
+		// `ImprintCards$ Self`, which in Forge imprints the host on its own
+		// effect. This build's Card.IsImprinted predicate is deliberately
+		// exile-scoped (the dig-and-play association: a linked card stops
+		// matching once it leaves exile), so a host still on the battlefield
+		// as it leaves would never match. Normalise exactly this comeback
+		// body to Card.Self -- the same object the Self-imprint names -- and
+		// leave the predicate's exile rule untouched for every other carrier.
+		regTrigger := name
+		if permanentComeback && strings.Contains(raw, "Card.IsImprinted") {
+			regTrigger = strings.ReplaceAll(raw, "Card.IsImprinted", "Card.Self")
+		}
 		switch tr.Mode {
 		case "SpellCast", "ChangesZone":
 			// Fire-time match re-parses the named body on the source face.
@@ -524,7 +576,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + efMarker})
 			}
 			registered = true
 		case "Phase":
@@ -896,7 +948,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock", "NumLoyaltyAct":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantExile", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock", "NumLoyaltyAct":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -912,6 +964,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// blanket — it is reported unimplemented instead, so the two
 			// registration paths cannot disagree about what is readable.
 			if (mode == "CantAttack" || mode == "CantSacrifice") && !CantRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantExile" && !CantRestrictionParamsReadable(params) {
+				// Mirror CantAttack/CantSacrifice above: the Effect-delivered
+				// continuous path cannot evaluate a cause, so a body carrying
+				// ValidCause$/ForCost$ (or any other unread scoping term) must not
+				// register blanket -- a `ForCost$ False | ValidCause$ Triggered`
+				// body registered here would over-restrict every exile, not just a
+				// triggered one. The wide cause-aware whitelist is reserved for the
+				// rules-side face-static walk (rules/layers.go exileBlocked), exactly
+				// as CantSacrificeRestrictionParamsReadable is for CantSacrifice.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -2135,6 +2201,45 @@ func CantSacrificeRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary", "ValidCause", "ForCost":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantExileRestrictionParamsReadable is the parameter whitelist a face
+// CantExile static must pass before rules' ExileBlocked enforces it -- the
+// CantSacrifice list above with the exile restriction's own object scope.
+// Readable: the mode, the object spec (ValidCard$, the corpus's dominant
+// `Creature.YouCtrl+token` shape; the ValidCards$ plural and the
+// ValidObject$ alias are the other spellings the shared spec reader resolves),
+// the player spec ValidTarget$ the CantAttack reader shares, the two
+// cause-scoping parameters exileBlocked itself evaluates -- ValidCause$
+// against actionCause() through the shared stack-kind classifier
+// (rules/layers.go causeSpecAdmits) and ForCost$ against the
+// cost-driven/effect-driven split of the ExileBlocked callers -- and display
+// text. The Master, Multiplied's `ValidCard$ Creature.YouCtrl+token |
+// ValidCause$ Triggered.YouCtrl | ForCost$ False` is the corpus's one
+// carrier.
+//
+// It is used by the rules-side face-static walk (rules/layers.go
+// exileBlocked) alone; effEffect's registration gate keeps the NARROWER
+// CantRestrictionParamsReadable for CantExile, the same asymmetry
+// CantSacrificeRestrictionParamsReadable documents -- the cause-scoped body is
+// read on the face route that evaluates ValidCause$/ForCost$, while an
+// Effect-delivered body carrying those keys stays an unimplemented Note
+// rather than registering a blanket prohibition the continuous path cannot
+// scope. A line carrying any other parameter names a condition or scoping
+// this build does not evaluate; enforcing it blanket would OVER-restrict --
+// the permissive direction for a restriction -- so the static is
+// skipped/reported instead. Secondary$ is allowed: it marks a Forge-side
+// duplicate for modifier composition, and a boolean restriction cannot be
+// applied twice.
+func CantExileRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidCards", "ValidObject", "ValidTarget", "Target", "Description", "Secondary", "ValidCause", "ForCost":
 		default:
 			return false
 		}
@@ -3844,18 +3949,9 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 				c.VillainousVictims = append(c.VillainousVictims, target)
 			}
 		}
-		// Nested asks (for example DBSac's permanent picker) carry the
-		// Remembered victim but not this primitive's private cursor. Recover
-		// the cursor from that stable victim so the body is not re-asked and
-		// the following victims are still processed.
-		if c.Modes == nil && len(c.Remembered) > 0 {
-			for i, target := range c.VillainousVictims {
-				if target == c.Remembered[len(c.Remembered)-1] {
-					c.VillainousIndex = i + 1
-					break
-				}
-			}
-		}
+		// The trigger's original Remembered can already end in its victim
+		// (Attacks supplies the defender). That is not proof of a resumed
+		// body: the explicit VillainousRest cursor handles nested asks.
 	}
 	for c.VillainousIndex < len(c.VillainousVictims) {
 		victim := c.VillainousVictims[c.VillainousIndex]

@@ -15,6 +15,8 @@ import (
 func init() {
 	Register("PutCounter", effPutCounter)
 	Register("Poison", effPoison)
+	Register("Radiation", effRadiation)
+	Register("RadiationDrain", effRadiationDrain)
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
 	Register("RemoveCounter", effRemoveCounter)
@@ -132,6 +134,52 @@ func splitCounterKinds(raw string) []string {
 // Leeches uses a negative amount to remove the target's existing poison.
 // PlayerCounterChange is the shared event choke point, so replacement effects
 // and the poison-loss SBA observe both placement and removal.
+func effRadiation(h Host, c *Ctx, sa *cards.SA) {
+	n := Num(h, c, sa, "Num", 1)
+	g := h.Game()
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) < 0 || int(p) >= len(g.Players) {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: "RAD", Amount: n})
+	}
+}
+
+func effRadiationDrain(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	p := c.Controller
+	if int(p) < 0 || int(p) >= len(g.Players) {
+		return
+	}
+	n := g.Players[p].Counter("RAD")
+	for i := int32(0); i < n; i++ {
+		lib := g.Zone(state.ZLibrary, p)
+		if len(lib) == 0 {
+			break
+		}
+		id := lib[0]
+		o := g.Obj(id)
+		land := false
+		if o != nil && o.Face() != nil {
+			for _, typ := range o.Face().Types {
+				if typ == "Land" {
+					land = true
+					break
+				}
+			}
+		}
+		h.Emit(events.Mill(id, p))
+		if !land {
+			h.Emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -1})
+			h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: "RAD", Amount: -1})
+		}
+	}
+}
+
 func effPoison(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Num", 1)
 	g := h.Game()
@@ -2537,6 +2585,7 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 
 	if done {
 		applyProliferate(h, c, sa, picks, n)
+		h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 		return
 	}
 
@@ -2557,7 +2606,11 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if len(eligible) == 0 {
 		// Nothing carries a counter: no choice exists, so no ask (and no
-		// Note -- this is the correct resolution, not a degradation).
+		// Note -- this is the correct resolution, not a degradation). The
+		// proliferate action still happened, so the completed-action marker
+		// still records it (trig-proliferate: a "whenever you proliferate"
+		// trigger fires on the action, not on a counter landing).
+		h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 		return
 	}
 
@@ -2599,6 +2652,7 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 		Text: "proliferate resolved without a choice (no engine host to ask)"})
 	applyProliferate(h, c, sa, eligible, n)
+	h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 }
 
 // applyProliferate gives each live chosen recipient +n of each kind of

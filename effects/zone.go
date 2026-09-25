@@ -294,7 +294,24 @@ func changeZoneAltDestination(h Host, c *Ctx, sa *cards.SA, primary state.Zone) 
 	return alt
 }
 
+// clearChangeZoneImprint uses the same event as Cleanup's ClearImprinted rider.
+// In particular, ImprintLast replaces rather than appends on every mover.
+func clearChangeZoneImprint(h Host, c *Ctx) {
+	if c.Source == 0 {
+		return
+	}
+	if o := h.Game().Obj(c.Source); o != nil && (len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+	}
+}
+
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
+	// Unimprint is a pre-move operation, even when no candidate is moved.
+	// Re-entering after a choice may clear an already empty list; the fold
+	// remains replayable and the later successful move supplies the new card.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Unimprint"]), "True") {
+		clearChangeZoneImprint(h, c)
+	}
 	to := changeZoneAltDestination(h, c, sa, ParseZone(sa.Params["Destination"]))
 	// Set only when an explicit multi-zone Origin$ including Hand falls
 	// through the dedicated walkers above to the object path; the diagnostic
@@ -558,9 +575,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// Remembered is non-empty, the card's list is what the script meant.
 	// Mid-chain readings are unaffected: a chain that remembered its own
 	// source through the object path below wrote BOTH halves (ctx and
-	// persistent), so the replacement is the same set; a hand-path
-	// RememberChanged$ writes ctx only and leaves the persistent list empty,
-	// so the guard keeps the ctx set.
+	// persistent), so the replacement is the same set.
 	if sa.Params["Defined"] == "Remembered" {
 		if len(targets) == 1 && !targets[0].IsPlayer && targets[0].Obj == c.Source {
 			if src := h.Game().Obj(c.Source); src != nil && len(src.Remembered) > 0 {
@@ -568,6 +583,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	forgetOtherRemembered(h, c, sa)
 	// ForgetOtherTargets$ True (Journey to Nowhere, Leonin Relic-Warder):
 	// Forge's ChangeZoneEffect.forgetOtherTargets -- forget every previously
 	// remembered object before this effect resolves, so a source that
@@ -691,6 +707,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if _, present := sa.Params["Origin"]; present && !originAll && !zoneIn(originZones, o.Zone) {
 			continue
 		}
+		// A CantExile restriction (The Master, Multiplied: "Triggered abilities
+		// you control can't cause you to ... exile creature tokens you
+		// control") withholds the object from this exile entirely: it never
+		// leaves the battlefield, no MoveZone is emitted and none of the
+		// inlined riders (exiled-with, RememberChanged, exile-return) run. The
+		// shared settle path (settleChangeZoneMoveAs) carries the same guard
+		// for every other ChangeZone mover.
+		if to == state.ZExile && h.ExileBlocked(o.ID, false) {
+			continue
+		}
 		// Inlined rather than routed through settleChangeZoneMove: this loop
 		// carries the exiled-with association and the RememberChanged$
 		// event-backed rider (eventRemember) in a specific order (MoveZone,
@@ -792,13 +818,19 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			// entry riders are settled.
 			registerLeaveExile(h, c, o.ID, sa.Params["LeaveBattlefield"], "", true)
 		}
-		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
-			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
+		if strings.EqualFold(sa.Params["Imprint"], "True") &&
+			(to == state.ZExile || strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True")) {
+			if landed := h.Game().Obj(o.ID); landed != nil && landed.Zone == to &&
+				(to == state.ZExile || !landed.IsToken) {
 				imprinted = append(imprinted, o.ID)
 			}
 		}
 	}
 	if len(imprinted) > 0 {
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+			clearChangeZoneImprint(h, c)
+			imprinted = imprinted[len(imprinted)-1:]
+		}
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
 	// The mixed-Hand diagnostic, now that the pass's truth is known: every
@@ -1156,6 +1188,16 @@ func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.Play
 }
 
 func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool, rider *attackingEntry) {
+	// A CantExile restriction (The Master, Multiplied) swallows the exile
+	// before it happens: the object stays where it is, no MoveZone event is
+	// emitted and none of this settle path's riders (exiled-with, exile-return,
+	// imprint) run. This is the shared ChangeZone settle every mover below the
+	// two inlined paths (effChangeZone's object loop and applyLibrarySearch's
+	// library-origin move) funnels through, so a battlefield token can never be
+	// taken by an exile that reached here instead.
+	if to == state.ZExile && h.ExileBlocked(id, false) {
+		return
+	}
 	ev := moveZoneEvent(c, id, from, to)
 	if strings.EqualFold(sa.Params["RememberLKI"], "True") {
 		if o := h.Game().Obj(id); o != nil {
@@ -1201,6 +1243,9 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	// collection and do not call through here, so nothing is recorded twice.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 		if o := h.Game().Obj(id); o != nil && o.Zone == to && !o.IsToken {
+			if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+				clearChangeZoneImprint(h, c)
+			}
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
 		}
 	}
@@ -1334,6 +1379,46 @@ func handChangeNum(sa *cards.SA) (int32, bool) {
 // delegates to with the one-owner, chooser==owner, no-random configuration.
 // Only a literal ChangeNum$ (or its absent default 1) reaches here: the
 // routing in effChangeZone Notes a non-literal before this is ever called.
+func forgetOtherRemembered(h Host, c *Ctx, sa *cards.SA) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") && !c.ForgetOtherCleared {
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+		if c.ForgetOtherReady {
+			c.ForgetOtherCleared = true
+		}
+	}
+}
+
+// A multi-owner walk must match every owner's candidates against the memory
+// from BEFORE the first move. The actual remembered list is still cleared at
+// the first move and rebuilt by events; this snapshot is only a filter input.
+// It rides the owner cursor across asks, including the answered owner's recheck.
+func initForgetOtherSnapshot(h Host, c *Ctx, sa *cards.SA, owners []state.PlayerID) {
+	if len(owners) < 2 || c.ForgetOtherReady || !strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
+		return
+	}
+	c.ForgetOtherReady = true
+	c.ForgetOtherOwners = append([]state.PlayerID(nil), owners...)
+	c.ForgetOtherSnapshot = append([]state.Target(nil), c.Remembered...)
+	if src := h.Game().Obj(c.Source); src != nil {
+		c.ForgetOtherSnapshot = append(c.ForgetOtherSnapshot, src.Remembered...)
+	}
+}
+
+func endForgetOtherSnapshot(c *Ctx) {
+	c.ForgetOtherSnapshot = nil
+	c.ForgetOtherOwners = nil
+	c.ForgetOtherReady, c.ForgetOtherCleared = false, false
+}
+
+func forgetOtherSpecContext(c *Ctx) SpecContext {
+	sc := c.SpecContext(c.Controller)
+	if c.ForgetOtherReady {
+		sc.Remembered = append(append([]state.Target(nil), sc.Remembered...), c.ForgetOtherSnapshot...)
+	}
+	return sc
+}
+
 func effChangeZoneHand(h Host, c *Ctx, sa *cards.SA, to state.Zone) {
 	count, _ := handMoveCountOf(h, c, sa)
 	handMoveOwnersWalk(h, c, sa, to, []state.PlayerID{c.Controller}, count, false, nil, false)
@@ -1608,17 +1693,30 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// hand-origin mover, so concrete Defined$ objects and future hand-owner
 	// selectors cannot silently miss the tapped entry.
 	rider := classifyAttackingEntry(c, sa, to)
+	// Snapshot eligibility before forgetting: an IsRemembered filter must
+	// still admit an answered card after the old set has been cleared.
+	eligibleByOwner := make([][]state.ObjID, len(owners))
+	for i, owner := range owners {
+		for _, id := range zoneOf(g, state.ZHand, owner) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligibleByOwner[i] = append(eligibleByOwner[i], id)
+			}
+		}
+	}
+	forgot := false
 	settleHandMove := func(id state.ObjID, owner state.PlayerID) {
+		if !forgot {
+			forgetOtherRemembered(h, c, sa)
+			forgot = true
+		}
 		settleChangeZoneMoveAs(h, c, sa, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer, &rider)
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+			eventRemember(h, c, id)
+		}
 	}
 	for i, owner := range owners {
 		hand := zoneOf(g, state.ZHand, owner)
-		eligible := make([]state.ObjID, 0, len(hand))
-		for _, id := range hand {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-				eligible = append(eligible, id)
-			}
-		}
+		eligible := eligibleByOwner[i]
 		if done && i < cursor {
 			// This owner answered on an earlier pass, before a later owner
 			// suspended the walk. Re-running it could move a second batch, so
@@ -1639,7 +1737,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				if o == nil || o.Zone != state.ZHand {
 					continue
 				}
-				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				if !containsID(eligible, id) {
 					continue
 				}
 				settleHandMove(id, owner)
@@ -2145,9 +2243,13 @@ func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 // first owner on every re-entry.
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state.Zone) {
 	players := searchPlayers(h, c, sa)
+	if c.ForgetOtherReady {
+		players = c.ForgetOtherOwners
+	}
 	if len(players) == 0 {
 		return
 	}
+	initForgetOtherSnapshot(h, c, sa, players)
 	searchTarget := c.LibraryTarget
 	searchDone := c.SearchDone
 	chosen := append([]state.ObjID(nil), c.Search...)
@@ -2216,7 +2318,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		eligible := make([]state.ObjID, 0, len(lib))
 		seen := make(map[state.ObjID]bool, len(lib))
 		for _, id := range lookWindow {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 				eligible = append(eligible, id)
 				seen[id] = true
 			}
@@ -2229,7 +2331,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 				if seen[id] {
 					continue
 				}
-				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				if MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
 					eligible = append(eligible, id)
 					seen[id] = true
 				}
@@ -2387,7 +2489,11 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			// The known-card set rides the ask too: this leg's answer rebuilds a
 			// fresh Ctx, and the NEXT leg (or a chained sub that asks again) must
 			// still label its options with the names the chooser already learned.
-			ResumeSearchKnown: copyTargets(c.SearchKnown)}
+			ResumeSearchKnown:         copyTargets(c.SearchKnown),
+			ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+			ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+			ResumeForgetOtherReady:    c.ForgetOtherReady,
+			ResumeForgetOtherCleared:  c.ForgetOtherCleared}
 		if eachStructured {
 			eachPerType = max
 			if eachPerType > 1 {
@@ -2563,6 +2669,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			return
 		}
 	}
+	endForgetOtherSnapshot(c)
 }
 
 // libraryFetch is one owner and the direct-library objects moved for them.
@@ -2690,6 +2797,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 	// owner).
 	var ateotMoved []state.ObjID
 	rider := classifyAttackingEntry(c, sa, to)
+	forgot := false
 	for i := range fetches {
 		f := &fetches[i]
 		moved := make([]state.ObjID, 0, len(f.ids))
@@ -2700,7 +2808,14 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 			if o == nil || o.Zone != state.ZLibrary || o.Owner != f.owner {
 				continue
 			}
+			if !forgot {
+				forgetOtherRemembered(h, c, sa)
+				forgot = true
+			}
 			settleChangeZoneMove(h, c, sa, id, state.ZLibrary, to, withKind, withAmt, &rider)
+			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+				eventRemember(h, c, id)
+			}
 			eventForgetChanged(h, c, sa, id)
 			moved = append(moved, id)
 			ateotMoved = append(ateotMoved, id)
@@ -3165,6 +3280,10 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			Text: "ChangeZone Origin$ " + from + " includes a zone this engine does not model (no outside-the-game cards exist); nothing is offered from it"})
 	}
 	players := hiddenPickPlayers(h, c, sa)
+	if c.ForgetOtherReady {
+		players = c.ForgetOtherOwners
+	}
+	initForgetOtherSnapshot(h, c, sa, players)
 	// Forge branches on the origin zones, not on the fetch player: game-wide
 	// only when the origin holds no hidden-info zone and no fetch player was
 	// named (Kor Skyfisher's ChangeType$ filter does the scoping).
@@ -3214,16 +3333,28 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		budget = 0
 	}
 	rider := classifyAttackingEntry(c, sa, to)
+	forgot := false
 	apply := func(owner state.PlayerID, ids []state.ObjID) []state.ObjID {
 		g := h.Game()
-		moved := make([]state.ObjID, 0, len(ids))
+		// Revalidate all picks before the clear, including IsRemembered.
+		valid := make([]state.ObjID, 0, len(ids))
 		for _, id := range ids {
+			o := g.Obj(id)
+			if o != nil && zoneIn(originZones, o.Zone) && MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
+				valid = append(valid, id)
+			}
+		}
+		moved := make([]state.ObjID, 0, len(valid))
+		for _, id := range valid {
 			o := g.Obj(id)
 			// Recheck at the point of movement: the answered card must still
 			// sit in an origin zone and match the filter, or it stays.
-			if o == nil || !zoneIn(originZones, o.Zone) ||
-				!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if o == nil || !zoneIn(originZones, o.Zone) {
 				continue
+			}
+			if !forgot {
+				forgetOtherRemembered(h, c, sa)
+				forgot = true
 			}
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true, &rider)
 			// AttachedTo$ on a hidden public-origin pick (Cass, Hand of
@@ -3238,11 +3369,8 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			}
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
-				// Keep the resolution-local set with the event-backed source
-				// memory: a linked SubAbility (Winter's DBReturn) reads the
-				// former through IsRemembered, while later effects read the
-				// latter from the source object's Choose events.
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				// settleChangeZoneMoveAs recorded the resolution-local half;
+				// persist the same moved object for later resolutions.
 				eventRemember(h, c, id)
 			}
 			eventForgetChanged(h, c, sa, id)
@@ -3303,7 +3431,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 					continue
 				}
 				o := h.Game().Obj(id)
-				if o == nil || !MatchesSpecCtx(h.Game(), spec, id, c.SpecContext(c.Controller)) {
+				if o == nil || !MatchesSpecCtx(h.Game(), spec, id, forgetOtherSpecContext(c)) {
 					continue
 				}
 				eligible = append(eligible, id)
@@ -3404,8 +3532,12 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			// re-entered effHiddenPick revalidates against ChangeType$, which
 			// can be a ctx-Remembered predicate.
 			ResumeKind: "hidden_pick", ResumeSA: sa, ResumeTarget: i,
-			ResumeRemembered: copyTargets(c.Remembered),
-			Prompt:           prompt}
+			ResumeRemembered:          copyTargets(c.Remembered),
+			ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+			ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+			ResumeForgetOtherReady:    c.ForgetOtherReady,
+			ResumeForgetOtherCleared:  c.ForgetOtherCleared,
+			Prompt:                    prompt}
 		if mandatory {
 			d.Min = int(m)
 		} else if mayPick {
@@ -3508,6 +3640,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		}
 		apply(owner, picked)
 	}
+	endForgetOtherSnapshot(c)
 }
 
 // differentNamesEnabled is the one DifferentNames$ read shared by the two
@@ -3745,12 +3878,25 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// below (the public-origin settle and the library-origin direct emit)
 	// share it, so a degrading rider is one Note per search, not one per card.
 	rider := classifyAttackingEntry(c, sa, to)
+	// Snapshot the rechecked pick before clearing persistent IsRemembered.
+	valid := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {
 		o := g.Obj(id)
-		if o == nil || o.Owner != owner || !zoneIn(zones, o.Zone) ||
-			(o.Zone == state.ZLibrary && !containsID(window, id)) ||
-			!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+		if o != nil && o.Owner == owner && zoneIn(zones, o.Zone) &&
+			(o.Zone != state.ZLibrary || containsID(window, id)) &&
+			MatchesSpecCtx(g, spec, id, forgetOtherSpecContext(c)) {
+			valid = append(valid, id)
+		}
+	}
+	forgot := false
+	for _, id := range valid {
+		o := g.Obj(id)
+		if o == nil || !zoneIn(zones, o.Zone) {
 			continue
+		}
+		if !forgot {
+			forgetOtherRemembered(h, c, sa)
+			forgot = true
 		}
 		// A chosen candidate from a PUBLIC origin zone (OriginAlternative$
 		// Graveyard/Hand/Exile) moves through the ordinary cross-zone settle:
@@ -3812,7 +3958,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		// imprinted.
 		if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
 			if o := g.Obj(id); o != nil && o.Zone == to && !o.IsToken {
-				imprinted = append(imprinted, id)
+				if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintLast"]), "True") {
+					clearChangeZoneImprint(h, c)
+					h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
+				} else {
+					imprinted = append(imprinted, id)
+				}
 			}
 		}
 		moved = append(moved, id)
@@ -4071,6 +4222,9 @@ func searchShuffleTail(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, moved
 	d := &decision.Decision{Player: owner, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: c.Source, ResumeKind: "search_mayshuffle", ResumeSA: sa,
 		ResumeTarget: c.LibraryTarget, ResumeRemembered: copyTargets(c.Remembered),
+		ResumeForgetOtherSnapshot: copyTargets(c.ForgetOtherSnapshot),
+		ResumeForgetOtherOwners:   append([]state.PlayerID(nil), c.ForgetOtherOwners...),
+		ResumeForgetOtherReady:    c.ForgetOtherReady, ResumeForgetOtherCleared: c.ForgetOtherCleared,
 		ResumeMoved: append([]state.ObjID(nil), moved...),
 		Prompt:      "Shuffle your library?",
 		Options: []decision.Option{
@@ -4287,6 +4441,30 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		return &placements[len(placements)-1]
 	}
 	players := changeZoneAllPlayers(h, c, sa)
+	// ForgetOtherRemembered$ True (The Mimeoplasm's MimeoExile, 11 corpus
+	// ChangeZoneAll carriers): Forge forgets every previously remembered
+	// object before this effect resolves, so a setup that remembered its own
+	// candidates (the ChooseCard's RememberChosen$) plus stale memory from an
+	// earlier resolution leaves exactly the moved set behind (RememberChanged$
+	// re-remembers it). The ChangeType$ Card.IsRemembered selector reads the
+	// very memory the clear drops, so the matched set is snapshotted BEFORE
+	// the clear and the sweep below matches against the snapshot -- matching
+	// after the clear would sweep nothing.
+	var preMatched map[state.ObjID]bool
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherRemembered"]), "True") {
+		preMatched = make(map[state.ObjID]bool)
+		for _, z := range from {
+			for _, p := range players {
+				for _, id := range g.Zone(z, p) {
+					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+						preMatched[id] = true
+					}
+				}
+			}
+		}
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
 	// RandomOrder$ True (task mordorparams1, Gríma, Saruman's Footman's
 	// "Then that player puts the exiled cards that weren't cast this way on
 	// the bottom of their library in a random order"): the destination
@@ -4304,6 +4482,13 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
 	rider := classifyAttackingEntry(c, sa, to)
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
+		// A CantExile restriction withholds the object from a battlefield exile
+		// before the MoveZone (and the moved bookkeeping) is produced -- the
+		// ChangeZoneAll half of the same guard effChangeZone's object loop and
+		// settleChangeZoneMoveAs carry.
+		if to == state.ZExile && h.ExileBlocked(id, false) {
+			return
+		}
 		ev := moveZoneEvent(c, id, z, to)
 		applyFaceDownMarker(h, sa, c, &ev, to)
 		h.Emit(ev)
@@ -4340,13 +4525,17 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 			findOwnerMoved(owner).ids = append(findOwnerMoved(owner).ids, id)
 		}
-		// ChangeZoneAll's remembered movement is needed for the
-		// exiled-with-this-source cleanup/tally shape (Valakut
-		// Exploration). Other ChangeZoneAll RememberChanged forms
-		// remain outside this narrow provenance feature.
-		if strings.EqualFold(sa.Params["RememberChanged"], "True") &&
-			strings.Contains(sa.Params["ChangeType"], "ExiledWithSource") {
+		// RememberChanged$ True re-remembers the moved cards in both halves
+		// (the ctx list the chain's later sub-abilities read and the source's
+		// event-backed persistent list a later resolution's IsRemembered /
+		// Remembered$ head reads -- The Mimeoplasm's MimeoChooseCopy, Gift of
+		// Immortality's return trigger). Previously this recorded the ctx
+		// entries alone and only for the ExiledWithSource provenance shape
+		// (Valakut Exploration); the persistent half is what the Mimeoplasm
+		// chain's IsRemembered/Remembered$CardPower reads need.
+		if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
 		}
 	}
 	if randomOrder {
@@ -4369,7 +4558,11 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				// Snapshot the zone exactly like the emit loop does.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
-					if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					if preMatched != nil {
+						if !preMatched[id] {
+							continue
+						}
+					} else if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						continue
 					}
 					owner := p
@@ -4415,7 +4608,13 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 					if changeCap >= 0 && int32(len(moved)) >= changeCap {
 						break sweep
 					}
-					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					matched := false
+					if preMatched != nil {
+						matched = preMatched[id]
+					} else {
+						matched = MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller))
+					}
+					if matched {
 						emitMove(id, z, p)
 					}
 				}

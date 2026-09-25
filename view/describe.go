@@ -235,6 +235,15 @@ func Describe(g *state.Game, ev events.Event) string {
 			return text
 		}
 		return player(g, ev.Player) + " rolls the planar die"
+	case events.RollDice:
+		// The roll-action PROPOSAL (task rolldice-repl) is never logged -- the
+		// per-die Notes are the roll's transcript lines -- but the Describe-
+		// coverage walk visits every Kind, so the held proposal describes as
+		// the pending roll action it is. Amount is the proposal's dice count.
+		if ev.Amount > 1 {
+			return player(g, ev.Player) + " would roll " + itoa(int64(ev.Amount)) + " dice"
+		}
+		return player(g, ev.Player) + " would roll a die"
 	case events.NoteNumber:
 		return obj(g, ev.Obj) + " notes " + itoa(int64(ev.Amount))
 	case events.PlayerNoted:
@@ -334,7 +343,7 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " " + obj(g, ev.IDs[0])
 		}
 		return s
-	case events.Discover, events.Seek, events.Surveil, events.Scry:
+	case events.Discover, events.Seek, events.Surveil, events.Scry, events.Proliferate:
 		// The discover (CR 701.57), seek (task trigdisc1), surveil
 		// (CR 701.42) and scry (CR 701.18, task scrybottom) records are pure
 		// markers: the action's own state changes (the exiles/reveals and the
@@ -349,6 +358,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		}
 		if ev.Kind == events.Scry {
 			return player(g, ev.Player) + " scries"
+		}
+		if ev.Kind == events.Proliferate {
+			// The completed proliferate marker (CR 701.27, task
+			// trig-proliferate) follows the counter batch's own lines and
+			// names only the proliferating seat; Obj is the source permanent.
+			return player(g, ev.Player) + " proliferates"
 		}
 		return player(g, ev.Player) + " discovers"
 	case events.StoreSVar:

@@ -153,9 +153,12 @@ type resumePoint struct {
 	// across a planted placement leg's own suspension (Decision
 	// .ResumeSearchKnown): the leg's answer rebuilds a fresh Ctx, and the next
 	// leg must still see which library cards the chooser already knew.
-	searchKnown      []state.Target
-	digUntilMove     string
-	digUntilMoveDone bool
+	searchKnown                          []state.Target
+	forgetOtherSnapshot                  []state.Target
+	forgetOtherOwners                    []state.PlayerID
+	forgetOtherReady, forgetOtherCleared bool
+	digUntilMove                         string
+	digUntilMoveDone                     bool
 	// clonePick/clonePickDone ride a DB$ Clone's answered Choices$ pick across
 	// a later Optional$ may-copy ask in the same walk (the Decision.ResumeClonePick
 	// rider, Ask copies them here): the re-entry's Choices$ branch consumes
@@ -613,9 +616,12 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
-		pendingDamage: effects.ClonePendingDamage(e.resolutionPendingDamage()),
-		searchKnown:   append([]state.Target(nil), d.ResumeSearchKnown...),
-		digUntilMove:  d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
+		pendingDamage:       effects.ClonePendingDamage(e.resolutionPendingDamage()),
+		searchKnown:         append([]state.Target(nil), d.ResumeSearchKnown...),
+		forgetOtherSnapshot: append([]state.Target(nil), d.ResumeForgetOtherSnapshot...),
+		forgetOtherOwners:   append([]state.PlayerID(nil), d.ResumeForgetOtherOwners...),
+		forgetOtherReady:    d.ResumeForgetOtherReady, forgetOtherCleared: d.ResumeForgetOtherCleared,
+		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		clonePick: d.ResumeClonePick, clonePickDone: d.ResumeClonePickDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
@@ -2002,6 +2008,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.searchKnown != nil {
 		ctx.SearchKnown = append([]state.Target(nil), rp.searchKnown...)
 	}
+	ctx.ForgetOtherSnapshot = append([]state.Target(nil), rp.forgetOtherSnapshot...)
+	ctx.ForgetOtherOwners = append([]state.PlayerID(nil), rp.forgetOtherOwners...)
+	ctx.ForgetOtherReady, ctx.ForgetOtherCleared = rp.forgetOtherReady, rp.forgetOtherCleared
 	// The TargetUnique$ accumulator, captured at ask time: the resumed Ctx
 	// re-binds it so a LATER TargetUnique$ rider in the same chain still
 	// excludes the targets earlier riders chose (a fresh Ctx would otherwise
@@ -2471,6 +2480,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// so a nested ChooseColor below poses its own ask.
 			if len(chosen) > 0 {
 				ctx.ChosenColor = chosen[0].Label
+			}
+		case "changetext":
+			// A mid-resolution api:ChangeText word ask (the Choose/
+			// ChooseCreatureType/ChooseBasicLandType halves of a
+			// ChangeColorWord$/ChangeTypeWord$ substitution) was answered.
+			// Each answered option's Kind says which half it is
+			// ("changetext_from"/"changetext_to"), so a one-pick ask and a
+			// future combined ask use the same transport. The re-entered
+			// effChangeText consumes and clears whichever halves it now has
+			// (fx42 scoping), so a nested ChangeText asks its own words.
+			for _, o := range chosen {
+				switch o.Kind {
+				case "changetext_from":
+					ctx.ChangeTextFrom = o.Label
+				case "changetext_to":
+					ctx.ChangeTextTo = o.Label
+				}
 			}
 		case "choosenumber":
 			// A mid-resolution ChooseNumber ask (task

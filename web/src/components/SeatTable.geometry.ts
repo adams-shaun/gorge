@@ -67,9 +67,11 @@ const railView: View = {
 // widest lost seat the rail can hold.
 const lostSeat = new URLSearchParams(window.location.search).get('lost') === '1';
 if (lostSeat) railPlayers[1].lost = true;
+const resolved = new URLSearchParams(window.location.search).get('resolved') === '1';
+if (resolved) railPlayers[1].graveyard = [card(42, 'Resolved Thing')];
 const railEvents: { event: { kind: string; player: number; text?: string; obj?: number } }[] = lostSeat
   ? [{ event: { kind: 'player_lost', player: 1, text: 'commander damage (21 or more from one commander)' } }]
-  : [];
+  : resolved ? [{ event: { kind: 'stack_resolve', player: 1, obj: 42 } }] : [];
 // Rail is mounted through RailFixture so the fixture can render the REAL
 // concede control (ConcedeControl) as Rail's logbar snippet — the same seam
 // Table.svelte uses on the live route — when the page URL asks for it

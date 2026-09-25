@@ -43,6 +43,14 @@ type Host interface {
 	// ObjectColors returns the object's live layer-5 colours when it is on the
 	// battlefield, and its face/CDA colours in other zones.
 	ObjectColors(*state.Object) string
+	// ObjectText returns the object's CURRENT derived rules text (CR 613.1d)
+	// -- printed Oracle after every layer-3 text effect already registered on
+	// it, in timestamp order. rules.Engine implements it through the same
+	// Derived.Text render the engine's own Text accessor uses; the effects
+	// test double returns the printed Oracle. api:ExchangeTextBox reads it to
+	// exchange the text boxes AS THEY EXIST at resolution, so a prior
+	// ChangeText substitution is carried across rather than discarded.
+	ObjectText(*state.Object) string
 	Emit(events.Event)
 	// EmitTokenCreate emits a token-creation event and returns every object
 	// it actually created, in mint order. A token-creation replacement may
@@ -160,6 +168,20 @@ type Host interface {
 	// Implemented by rules.Engine (rules/layers.go); the
 	// effects test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID, forCost bool) bool
+	// ExileBlocked reports whether id is forbidden from being exiled by the
+	// given cause -- an Effect-registered CantExile restriction or a face
+	// CantExile static (The Master, Multiplied: "Triggered abilities you
+	// control can't cause you to ... exile creature tokens you control").
+	// Consulted at every effect-driven exile candidate choke point
+	// (effChangeZone's object path, effChangeZoneAll's sweep and the shared
+	// ChangeZone settle) so a blocked permanent is never exiled. forCost is
+	// the call site's provenance exactly as on SacrificeBlocked: the
+	// effect-driven paths (this package's callers) pass false, so a static's
+	// ForCost$ False scoping reads the split -- a cost-driven battlefield
+	// exile calls the engine's cause-aware exileBlockedForCost instead.
+	// Implemented by rules.Engine (rules/layers.go); the effects test double
+	// reports false (no engine to consult).
+	ExileBlocked(id state.ObjID, forCost bool) bool
 	// SurveilLookExtra reports the additional cards a surveil performed by
 	// player p looks at, from the battlefield statics with Mode$ SurveilNum
 	// whose ValidPlayer$ admits p ("You may look at an additional two cards
@@ -204,6 +226,18 @@ type Host interface {
 	// the effects test double reports (count, true) unchanged (no engine to
 	// consult).
 	Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (countAfter int32, proceed, pending bool)
+	// RollDiceProposed is the pre-roll replacement boundary effRollDice
+	// consults before any die of ONE roll action is rolled (CR 614.4): the
+	// host holds a synthetic events.RollDice proposal out to the R:Event$
+	// RollDice replacement class and returns the rewritten dice count and
+	// ignored-low count (the proposal seeds the ignored-low base from the
+	// rolling body's own IgnoreLower$, so a replacement's
+	// ReplaceCount$Ignore/Plus.1 is one ADDITIONAL low result). A host with
+	// no replacement registry (the effects-package double) returns the
+	// proposal unchanged, the same discipline as its Scry above. Neither
+	// suspends: the corpus's supported replacement bodies are ReplaceEffect
+	// rewrites, which never ask.
+	RollDiceProposed(p state.PlayerID, source state.ObjID, amount, ignore int32) (int32, int32)
 	// RememberExploitedLKI publishes the last-known-information snapshot of
 	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
 	// The events.Exploit marker names the exploited creature by id, but Move
@@ -496,6 +530,9 @@ type Host interface {
 	// and a replay derives it from the folded state like the other
 	// zone-census helpers.
 	DeliriumHolds(p state.PlayerID) bool
+	// MetalcraftHolds reports whether the controller has three or more artifacts;
+	// bare Condition$ gates share rules.Engine's census with static and offer gates.
+	MetalcraftHolds(p state.PlayerID) bool
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the
@@ -560,6 +597,17 @@ type Host interface {
 	// effects-package test double reports no-ops. Neither suspends.
 	BeginDamageBatch()
 	EndDamageBatch()
+	// BeginZoneBatch/EndZoneBatch bracket the PhaseOut events one api:Phases
+	// resolution emits (CR 702.25a's "permanents phase out one at a time"
+	// still emits one event each, but the group is ONE batch for the
+	// batch-level "whenever one or more permanents phase out" trigger,
+	// Mode$ PhaseOutAll). Within the bracket the first matching PhaseOut event
+	// queues the single instance and every later one accumulates into it.
+	// rules.Engine implements the bracket with its zone-batch machinery (the
+	// same depth/reentrancy discipline ChangesZoneAll uses); the effects-package
+	// test double reports no-ops. Neither suspends.
+	BeginZoneBatch()
+	EndZoneBatch()
 	// ReplaceEvent applies a ReplaceEffect body's requested change to the
 	// event currently being replaced. It is inert outside replacement
 	// resolution; rules owns the event and records the resulting delta.
@@ -930,6 +978,13 @@ type Ctx struct {
 	// look back at, needs no entry.
 	TargetCountersLKI map[state.ObjID][]state.Counter
 	Remembered        []state.Target
+	// ForgetOtherSnapshot retains the pre-clear IsRemembered candidates across
+	// a multi-owner ChangeZone pick/search and its mid-resolution asks. It is
+	// resolution-local; only the actual remembered set is event-backed.
+	ForgetOtherSnapshot []state.Target
+	ForgetOtherOwners   []state.PlayerID
+	ForgetOtherReady    bool
+	ForgetOtherCleared  bool
 	// RepeatOptional is set only when a RepeatOptional$ answer is being
 	// resumed. A nil value means this is the first pass through the Repeat.
 	RepeatOptional *RepeatOptionalContinuation
@@ -1901,6 +1956,16 @@ type Ctx struct {
 	// top of its walk (the fx42 scoping discipline), so a nested
 	// ChooseColor cannot inherit the outer answer.
 	ChosenColor string
+	// ChangeTextFrom/ChangeTextTo are the answered mid-resolution api:ChangeText
+	// word asks: the pair of words the chooser picked for the substitution's
+	// "from" and "to" halves. rules' "changetext" resume arm sets whichever
+	// the answered option's Kind names before the suspended sub-ability is
+	// re-run; effChangeText's re-entry consumes and clears both once it has
+	// resolved the pair (the fx42 scoping discipline), so a nested ChangeText
+	// cannot inherit the outer answer. Non-empty IS the answered marker for
+	// each half independently (the option labels are never empty), because the
+	// two halves may be asked sequentially across re-entries.
+	ChangeTextFrom, ChangeTextTo string
 	// ETBColorRecorded marks the ONE ChooseColor invocation that must not
 	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
 	// ChooseColor). The entry machinery (rules' applyETBChoiceReplacement ->

@@ -368,6 +368,20 @@ func choiceRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target, playerCho
 	}
 }
 
+// chooseCardRecord is the shared completion point for answered, random and
+// no-host picks. ForgetChosen removes only picked objects, after recording the
+// choice, so the chosen-card binding remains available to the next ability.
+func chooseCardRecord(h Host, c *Ctx, sa *cards.SA, picked []state.Target) {
+	choiceRecord(h, c, sa, picked, false)
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetChosen"]), "True") {
+		for _, t := range picked {
+			if !t.IsPlayer {
+				forgetRememberedOne(h, c, t.Obj)
+			}
+		}
+	}
+}
+
 // keepChosenPlayers returns only player entries, the half a ChooseCard keeps.
 func keepChosenPlayers(ts []state.Target) []state.Target {
 	var out []state.Target
@@ -439,6 +453,8 @@ func chooseEachPool(g *state.Game, c *Ctx, pool []state.Target, chooser state.Pl
 
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	choosers := chooseCardChoosers(h, c, sa)
+	selection := *c // candidate filters read the pre-clear remembered set
+	forgetOtherRemembered(h, c, sa)
 	// Reveal$ True (Planetary Annihilation's "each player chooses six lands
 	// they keep" is public knowledge — CR 701.x's open choice): each chooser's
 	// ANSWERED choice is revealed to every seat with the same ids-Note
@@ -477,7 +493,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	i := c.ChoiceTarget
 	if c.ChoiceDone {
 		answered := c.Choice
-		choiceRecord(h, c, sa, c.Choice, false)
+		chooseCardRecord(h, c, sa, c.Choice)
 		c.ChoiceDone, c.Choice = false, nil
 		// c.ChoiceTarget is the asking pair's flat index, so choosers[i/groups]
 		// is who answered this.
@@ -501,9 +517,9 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	total := len(choosers) * groups
 	for ; i < total; i++ {
 		chooser := choosers[i/groups]
-		choices := cardChoices(h, c, sa, chooser)
+		choices := cardChoices(h, &selection, sa, chooser)
 		if each != nil {
-			choices = chooseEachPool(h.Game(), c, choices, chooser, each[i%groups])
+			choices = chooseEachPool(h.Game(), &selection, choices, chooser, each[i%groups])
 		}
 		// A card whose own power exceeds the budget can never be picked,
 		// however few are taken (effDig's `affordable` rule): narrow the pool
@@ -551,7 +567,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		if each == nil && strings.EqualFold(sa.Params["AtRandom"], "True") {
-			choiceRecord(h, c, sa, randomChoices(h, choices, max), false)
+			chooseCardRecord(h, c, sa, randomChoices(h, choices, max))
 			continue
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
@@ -581,7 +597,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if hasBudget {
 			recorded = greedy
 		}
-		choiceRecord(h, c, sa, recorded, false)
+		chooseCardRecord(h, c, sa, recorded)
 		if reveal {
 			emitChosenReveal(h, chooser, recorded)
 		}
@@ -1055,7 +1071,37 @@ func effGainControl(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	var ts []state.Target
-	if spec := sa.Params["AllValid"]; spec != "" {
+	if strings.TrimSpace(sa.Params["Choices"]) != "" {
+		if c.ChoiceDone {
+			ts = append([]state.Target(nil), c.Choice...)
+			choiceRecord(h, c, sa, ts, false)
+			c.ChoiceDone, c.Choice = false, nil
+		} else {
+			chooser := changeTargetChooser(h, c, sa)
+			choices := cardChoices(h, c, sa, chooser)
+			if len(choices) == 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControl Choices$ has no eligible cards"})
+				return
+			}
+			if len(choices) > 1 {
+				d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: 1, Max: 1, ResumeKind: "choice", ResumeSA: sa, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
+				for i, t := range choices {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "card", Obj: t.Obj, Player: chooser})
+				}
+				if d.Prompt == "" {
+					d.Prompt = "Choose card"
+				}
+				if Ask(h, d) != AskAsked {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "GainControl Choices$ requires a player choice"})
+					return
+				}
+				return
+			} else {
+				ts = choices
+			}
+			choiceRecord(h, c, sa, ts, false)
+		}
+	} else if spec := sa.Params["AllValid"]; spec != "" {
 		for i := range g.Objs {
 			o := &g.Objs[i]
 			if o.Zone == state.ZBattlefield && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller)) {

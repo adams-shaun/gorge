@@ -31,8 +31,8 @@ type TeacherOptions struct {
 	// rollout to game end.
 	HorizonTurns int32
 	// Leaf scores a NON-TERMINAL leaf -- a rollout stopped by HorizonTurns or
-	// MaxSubmits -- from the deciding seat's redacted projection of it, as a
-	// win probability for actor. Nil means LeafValue (the frozen material
+	// MaxSubmits -- from the deciding seat's projection of it (redacted, or
+	// omniscient under LeafOmniscient), as a win probability for actor. Nil means LeafValue (the frozen material
 	// heuristic), and a nil Leaf reproduces the pre-Leaf results bit for bit.
 	// A terminal leaf never reaches it: game over stays 1 / 0 / 0.5.
 	//
@@ -42,6 +42,16 @@ type TeacherOptions struct {
 	// must be a pure function of its arguments or the result stops being
 	// independent of Parallelism.
 	Leaf func(v view.View, actor state.PlayerID) float64
+	// LeafOmniscient (ticket pn17-a1) hands Leaf the OMNISCIENT projection of
+	// a non-terminal leaf (view.ProjectFor with view.Omniscient, viewer =
+	// actor: every seat's hand, never library order) instead of the actor's
+	// redacted one, so a full-information value model can score it. That is
+	// sound only because each world is SAMPLED: the opponent hand the leaf
+	// reads is the sampler's, never the real one. It is therefore refused
+	// together with Clairvoyant, whose worlds are clones of the real engine.
+	// False (the zero value) is the redacted leaf, bit for bit. A nil Leaf
+	// ignores it (LeafValue reads only public material either way).
+	LeafOmniscient bool
 	// MaxSubmits caps each rollout; a capped rollout is scored as a leaf.
 	MaxSubmits int
 	// Margin is how much a candidate's mean value must exceed candidate 0's
@@ -65,6 +75,12 @@ type TeacherResult struct {
 	Terminal, Capped    int
 	WinsByCandidate     []int
 	TerminalByCandidate []int
+	// WinsOverBaseline/LossesToBaseline retain the paired terminal outcome
+	// needed by hindsight confidence intervals. For candidate i, they count
+	// sampled worlds where i won and candidate 0 did not, or vice versa.
+	// Common worlds and bot seeds make these genuine paired observations.
+	WinsOverBaseline []int
+	LossesToBaseline []int
 }
 
 // LeafValue squashes the frozen LeafScore into (0,1). Terminal states map to
@@ -102,21 +118,44 @@ func leafValue(leaf func(view.View, state.PlayerID) float64, v view.View, actor 
 	return x
 }
 
+// SemanticIntent is one observer-stable answer. Rest is KArrange's ordered
+// complement; it stays separate so the longstanding Action/history encoding
+// and sampler seeds remain unchanged.
+type SemanticIntent struct {
+	Choices []Action
+	Rest    []Action
+}
+
 // TeacherChoice rolls every candidate on every world. candidates[0] must be
-// the default bot's answer; each candidate is the full semantic answer (a
-// multi-select attackers declaration is several Actions).
-//
+// the default bot's answer; each candidate is the full semantic choice list
+// (a multi-select attackers declaration is several Actions).
+func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (TeacherResult, error) {
+	intents := make([]SemanticIntent, len(candidates))
+	for i := range candidates {
+		intents[i].Choices = candidates[i]
+	}
+	return TeacherIntentChoice(worlds, intents, opts)
+}
+
+// TeacherIntentChoice is TeacherChoice with support for KArrange's Rest.
 // A panic inside a rollout is returned as an error (the caller falls back to
 // the bot). Measured cause on 2026-09-19: rules/livelock.go detect() indexes
 // sigAt(j-p) below zero while a Clone's freshly reset watcher window is short
 // and its signatures repeat.
-func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (res TeacherResult, err error) {
+func TeacherIntentChoice(worlds []World, candidates []SemanticIntent, opts TeacherOptions) (res TeacherResult, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			err = fmt.Errorf("rollout panic: %v", p)
 		}
 	}()
-	res = TeacherResult{Values: make([]float64, len(candidates)), WinsByCandidate: make([]int, len(candidates)), TerminalByCandidate: make([]int, len(candidates))}
+	res = TeacherResult{
+		Values:          make([]float64, len(candidates)),
+		WinsByCandidate: make([]int, len(candidates)), TerminalByCandidate: make([]int, len(candidates)),
+		WinsOverBaseline: make([]int, len(candidates)), LossesToBaseline: make([]int, len(candidates)),
+	}
+	if opts.Clairvoyant && opts.LeafOmniscient {
+		return res, fmt.Errorf("teacher: an omniscient leaf cannot be combined with the clairvoyant ceiling (its world is the real engine, so the leaf would read the real opponent's hand)")
+	}
 	if len(candidates) < 2 || len(worlds) == 0 || opts.MaxSubmits < 1 {
 		return res, fmt.Errorf("teacher needs >=2 candidates, >=1 world and a submit budget")
 	}
@@ -151,7 +190,7 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 			o.err = fmt.Errorf("world has no pending root decision")
 			return
 		}
-		in, err := w.Observer.Match(d, cand)
+		in, err := w.Observer.MatchIntent(d, cand.Choices, cand.Rest)
 		if err != nil {
 			o.err = fmt.Errorf("candidate %d does not map into world %d: %w", ci, wi, err)
 			return
@@ -182,7 +221,11 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 		o.over = e.G.Over
 		o.won = e.G.Over && !e.G.Draw && e.G.Winner == actor
 		o.capped = !e.G.Over && o.submits >= opts.MaxSubmits
-		o.value = leafValue(opts.Leaf, view.Project(e.G, e, actor, e.Pending()), actor)
+		vis := view.Seat
+		if opts.LeafOmniscient {
+			vis = view.Omniscient
+		}
+		o.value = leafValue(opts.Leaf, view.ProjectFor(e.G, e, actor, vis, e.Pending()), actor)
 	}
 	if workers := min(opts.Parallelism, len(outs)); workers > 1 {
 		engines := make([]*rules.Engine, len(outs))
@@ -238,6 +281,20 @@ func TeacherChoice(worlds []World, candidates [][]Action, opts TeacherOptions) (
 			res.Capped++
 		}
 		res.Values[ci] += o.value / float64(len(worlds))
+	}
+	// Fold paired wins only after every rollout succeeded. outs is laid out
+	// world-major, so candidate 0 is the common-world baseline for each row.
+	for wi := range worlds {
+		base := outs[wi*len(candidates)].won
+		for ci := 1; ci < len(candidates); ci++ {
+			won := outs[wi*len(candidates)+ci].won
+			switch {
+			case won && !base:
+				res.WinsOverBaseline[ci]++
+			case base && !won:
+				res.LossesToBaseline[ci]++
+			}
+		}
 	}
 	best := 0
 	for i := 1; i < len(res.Values); i++ {

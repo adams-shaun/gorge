@@ -64,7 +64,10 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
-	case GameStart, DecisionAsk, DecisionMade, Note, ModeChosen, ManaActivate:
+	// RollDice is the proposal-only roll-action Kind (task rolldice-repl): it
+	// is held out to replacement matching, never emitted, so it folds nothing
+	// -- the marker shape PlanarRoll keeps.
+	case GameStart, DecisionAsk, DecisionMade, Note, ModeChosen, ManaActivate, RollDice:
 		// Markers. ModeChosen is a marker too: rules carries
 		// its answer in a cast/trigger cache or suspended-resolution context, so
 		// Apply writes nothing; the log lets replay re-derive the same branch.
@@ -211,17 +214,18 @@ func Apply(g *state.Game, e Event) {
 		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
 
-	case Discover, Seek, Surveil, Scry:
+	case Discover, Seek, Surveil, Scry, Proliferate:
 		// The discover (CR 701.57), seek (task trigdisc1), surveil
-		// (CR 701.42, task trig-surveil) and scry (CR 701.18, task
-		// scrybottom) records are pure markers, exactly like
-		// Explore/Investigate: the action's own state changes (the
-		// exiles/reveals, the sought card's move, the KArrange answer's
-		// LibraryOrder) are their own events that surround this one, and the
-		// record is what trig:Discover / trig:SeekAll / trig:Surveil /
-		// trig:Scry match. Player is the acting seat, Obj the resolving source
-		// permanent; Scry's Amount is the number of cards put on the bottom.
-		// One marker per completed action.
+		// (CR 701.42, task trig-surveil), scry (CR 701.18, task
+		// scrybottom) and proliferate (CR 701.27, task trig-proliferate)
+		// records are pure markers, exactly like Explore/Investigate: the
+		// action's own state changes (the exiles/reveals, the sought card's
+		// move, the KArrange answer's LibraryOrder, the counter batch per
+		// chosen recipient) are their own events that surround this one, and
+		// the record is what trig:Discover / trig:SeekAll / trig:Surveil /
+		// trig:Scry / trig:Proliferate match. Player is the acting seat, Obj
+		// the resolving source permanent; Scry's Amount is the number of
+		// cards put on the bottom. One marker per completed action.
 
 	case Exploit:
 		// The exploit record (CR 702.58a, task exploit1) is a pure marker,
@@ -1614,6 +1618,11 @@ func Apply(g *state.Game, e Event) {
 		// (CR 400.7) starts phased in.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield {
 			o.PhasedOut = e.Amount >= 1
+			if e.Amount >= 1 {
+				o.WontPhaseInNormal = e.Text == "wont-phase-in-normal"
+			} else {
+				o.WontPhaseInNormal = false
+			}
 			// CR 702.25c: "A permanent that phases out is removed from
 			// combat." Phasing is deliberately NOT a zone change, so no Move
 			// fold runs to clear the combat members the way a departure does;
@@ -2429,6 +2438,7 @@ func Apply(g *state.Game, e Event) {
 		// provenance (r3): the copy resolves the same compiled SA, so it reads
 		// the same owning face.
 		gainedFace, gainedFrom := src.GainedFace, src.GainedFrom
+		copyNonLegendary := src.CopyNonLegendary
 		// The copy inherits the original's CastFlags -- a copy of a fused,
 		// bestowed or kicked spell resolves as one -- EXCEPT the cast
 		// provenance a later reader turns into an "if you cast it"
@@ -2476,6 +2486,12 @@ func Apply(g *state.Game, e Event) {
 		// the copied spell's own text still grants the election on replay,
 		// and effects/copy.go never has to reach into rules to ask.
 		o.CopyMayChooseTarget = e.Amount == 1
+		// The creating CopySpellAbility's NonLegendary$ True strips the
+		// Legendary supertype (Counter is its event discriminator). That
+		// changed characteristic is copiable: a later copy of this copy
+		// inherits the strip even without its own NonLegendary$ (CR 707.2).
+		// Snapshot it before AddObject, which may reallocate g.Objs.
+		o.CopyNonLegendary = copyNonLegendary || e.Counter == "nonlegendary"
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
@@ -2693,13 +2709,14 @@ func Apply(g *state.Game, e Event) {
 		// ever set it), which would otherwise match registration ID 0 and
 		// delete a bystander's pending delayed trigger.
 		monarchDraw := e.Counter == "__monarch_draw"
+		radiationDrain := e.Counter == "__radiation_drain"
 		// Consume the registration first, even when its tracked permanent has
 		// changed incarnation. A stale dash/warp promise expires once; it must
 		// neither act on the returned object nor be retried forever. Ordinary
 		// delayed triggers, including Encore's group cleanup, are independent
 		// of their source and still resolve.
 		var registration *state.DelayedTrigger
-		if !monarchDraw {
+		if !monarchDraw && !radiationDrain {
 			for i := range g.Delayed {
 				if g.Delayed[i].ID == uint32(e.Amount) {
 					dt := g.Delayed[i]
@@ -2712,21 +2729,23 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 		src := g.Obj(e.Obj)
-		if src == nil {
-			break
-		}
-		if registration != nil && registration.TrackSource &&
-			src.Incarnation != registration.SourceIncarnation {
-			break
-		}
-		if src.Face() == nil {
-			break
+		if !radiationDrain {
+			if src == nil {
+				break
+			}
+			if registration != nil && registration.TrackSource &&
+				src.Incarnation != registration.SourceIncarnation {
+				break
+			}
+			if src.Face() == nil {
+				break
+			}
 		}
 		var sa *cards.SA
 		if monarchDraw {
-			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
-				"Defined": "You", "NumCards": "1",
-			}}
+			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{"Defined": "You", "NumCards": "1"}}
+		} else if radiationDrain {
+			sa = &cards.SA{Kind: "DB", API: "RadiationDrain", Params: map[string]string{"Defined": "You"}}
 		} else {
 			sa = resolveSVarAcrossFaces(src, e.Counter)
 		}
@@ -2751,12 +2770,17 @@ func Apply(g *state.Game, e Event) {
 		// StackCopy's discipline: snapshot every src field the post-mint
 		// code reads (Incarnation here) before AddObject may reallocate
 		// g.Objs and orphan the src pointer.
-		incarnation := src.Incarnation
+		var incarnation uint32
+		if src != nil {
+			incarnation = src.Incarnation
+		}
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
-		o.Source = e.Obj
+		if !radiationDrain {
+			o.Source = e.Obj
+		}
 		if registration != nil && registration.TrackSource {
 			o.SourceIncarnation = incarnation
 		}

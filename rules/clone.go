@@ -248,6 +248,7 @@ func (e *Engine) Clone() *Engine {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
 			ce.RemoveKeywords = append([]string(nil), ce.RemoveKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
+			ce.RemoveTypes = append([]string(nil), ce.RemoveTypes...)
 			if ce.RestrictParams != nil {
 				m := make(map[string]string, len(ce.RestrictParams))
 				for k, v := range ce.RestrictParams {
@@ -973,6 +974,8 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	cp.choices = append([]state.Target(nil), rp.choices...)
 	cp.chosenValid = rp.chosenValid
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
+	cp.forgetOtherSnapshot = append([]state.Target(nil), rp.forgetOtherSnapshot...)
+	cp.forgetOtherOwners = append([]state.PlayerID(nil), rp.forgetOtherOwners...)
 	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
 	// The AmountFromVotes$ tally snapshot: plain value entries, copied so the
 	// clone never shares a backing array with the original's pending frames.
@@ -1019,6 +1022,8 @@ func cloneDecision(p *decision.Decision) *decision.Decision {
 	d.ResumeChosenValid = p.ResumeChosenValid
 	d.ResumeRemembered = append([]state.Target(nil), p.ResumeRemembered...)
 	d.ResumeSearchKnown = append([]state.Target(nil), p.ResumeSearchKnown...)
+	d.ResumeForgetOtherSnapshot = append([]state.Target(nil), p.ResumeForgetOtherSnapshot...)
+	d.ResumeForgetOtherOwners = append([]state.PlayerID(nil), p.ResumeForgetOtherOwners...)
 	d.ResumeVillainousVictims = append([]state.Target(nil), p.ResumeVillainousVictims...)
 	d.ResumeVillainousIndex = p.ResumeVillainousIndex
 	d.ResumeGenericChoosers = append([]state.Target(nil), p.ResumeGenericChoosers...)

@@ -171,7 +171,7 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// or predicate rather than acting on the whole set).
 	if filterSpec, ok := strings.CutPrefix(spec, "Remembered."); ok {
 		var out []state.Target
-		for _, t := range c.Remembered {
+		for _, t := range resolvedRemembered(h, c) {
 			if !t.IsPlayer {
 				if o := g.Obj(t.Obj); o != nil && MatchesObjectCtx(g, "Card."+filterSpec, o, c.SpecContext(c.Controller)) {
 					out = append(out, t)
@@ -412,7 +412,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	case "Remembered":
-		return copyTargets(c.Remembered), true
+		return resolvedRemembered(h, c), true
 	case "ImprintedLKI":
 		// Forge's LKI spelling of the imprint pile, distinct from the bare
 		// "Imprinted" case below: the SOURCE's persistent imprint association,
@@ -1497,6 +1497,94 @@ func resolutionChosenCards(g *state.Game, c *Ctx) []state.Target {
 
 func copyTargets(s []state.Target) []state.Target {
 	return append([]state.Target(nil), s...)
+}
+
+// resolvedRemembered removes trigger-captured referents that Forge's source
+// card remembered list does not contain. Forge's Defined$ Remembered reads the
+// host card's remembered list; this engine seeds the trigger REFERENT into
+// Ctx.Remembered/Captured, so a body that names Remembered after a
+// `RememberChanged$`/`RememberObjects$` write would otherwise act on the
+// referent too (Puppeteer Clique's `DB$ Animate | Defined$ Remembered`
+// granting Haste to the Clique itself, while the AtEOT$ rider correctly skips
+// it). It is reached from both the bare `Defined$ Remembered` case and the
+// dotted `Remembered.<spec>` path, so every consumer reads the same set.
+//
+// Three shapes must be told apart, and the capture alone cannot do it:
+//
+//   - The source has WRITTEN its own list (non-empty persistent Remembered).
+//     The capture is a referent that list does not contain: when the context
+//     is exactly the capture (the O-Ring return's self-referent), Forge's list
+//     is the whole answer; otherwise (the Clique's `[self, reanimated]`)
+//     filter the captured entries the list does not hold.
+//
+//   - An ordinary trigger whose source wrote nothing (empty persistent list,
+//     empty DelayedRemembered). The capture is all the context has -- the
+//     referent a Watcher pump reads, or an explicitly set per-resolution set
+//     (VillainousChoice's victim, a gained trigger's remembered object) -- and
+//     it is returned unchanged, exactly the read before this helper existed.
+//
+//   - A delayed-trigger REGISTRATION, which saves the target set it captured
+//     at registration time in TriggerContext.DelayedRemembered and seeds that
+//     same set into BOTH Remembered and Captured (a Mode$ Phase registration
+//     has no firing event, so its saved list IS the referent). That set is the
+//     body's own memory, not a firing-event referent: Forge reads it
+//     independently of the source's later mutable remembered list, so a source
+//     whose memory was cleared or replaced before the delayed trigger fires
+//     (Turn to Mist's `TrigReturn: ChangeZone | Defined$ Remembered` after the
+//     same card is recast) must still resolve to the registration's original
+//     target. When Captured aliases DelayedRemembered it IS that saved set and
+//     is handed back unchanged. An event-matched delayed registration seeds
+//     Captured with the firing EVENT's object, a different list
+//     (rules/trigger_delayed.go), so it is filtered like an ordinary written
+//     list -- the firing referent is not a card-list read even when the source
+//     has written nothing else.
+func resolvedRemembered(h Host, c *Ctx) []state.Target {
+	if len(c.Captured) == 0 {
+		return copyTargets(c.Remembered)
+	}
+	delayed := len(c.DelayedRemembered) > 0
+	if delayed && sameTargets(c.Captured, c.DelayedRemembered) {
+		return copyTargets(c.Remembered)
+	}
+	var persistent []state.Target
+	if src := h.Game().Obj(c.Source); src != nil {
+		persistent = src.Remembered
+	}
+	if !delayed && len(persistent) == 0 {
+		return copyTargets(c.Remembered)
+	}
+	if sameTargets(c.Remembered, c.Captured) && len(persistent) > 0 {
+		return copyTargets(persistent)
+	}
+	out := make([]state.Target, 0, len(c.Remembered))
+	for _, t := range c.Remembered {
+		if containsTarget(c.Captured, t) && !containsTarget(persistent, t) {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+func sameTargets(a, b []state.Target) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func containsTarget(ts []state.Target, want state.Target) bool {
+	for _, t := range ts {
+		if t == want {
+			return true
+		}
+	}
+	return false
 }
 
 // moveZoneEvent preserves an exile's source provenance in MoveZone's existing

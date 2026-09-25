@@ -49,7 +49,7 @@ target.innerHTML = '<main class="table"><section class="stage"></section><aside>
 mount(BoardStage, {
   target: target.querySelector('.stage')!,
   props: {
-    view, seats, seat: 0,
+    view, seats, seat: 0, controlsLive: true,
     stops: { yours: new Set<string>(), opponents: new Set<string>() },
     onToggle: () => {},
     controls: { state: panel, ctx: { seat: 0, token: 'geometry' }, table: 'fixture', match: 1, showLog: true, onToggleLog: () => {} },

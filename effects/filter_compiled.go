@@ -58,7 +58,7 @@ const (
 	cbPermanent
 	cbAffinity
 	cbPermanentCard
-	cbSpell // Spell and SpellAbility: o.Zone == ZStack
+	cbSpell // Spell (including derived AsStack) and SpellAbility (actual stack only)
 )
 
 type compiledAlt struct {
@@ -131,7 +131,7 @@ func specialPositiveToken(p string) bool {
 		"blockingTriggeredAttacker",
 		"EffectSource",
 		"IsGoaded",
-		"IsRemembered":
+		"IsRemembered", "IsTriggerRemembered":
 		return true
 	}
 	return strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") ||
@@ -342,7 +342,7 @@ func compiledBaseMatch(a *compiledAlt, o *state.Object, sc *SpecContext, zone st
 	case cbPermanentCard:
 		m = o.Face() != nil && o.Face().IsPermanent()
 	case cbSpell:
-		m = o.Zone == state.ZStack
+		m = o.Zone == state.ZStack || (a.base == "Spell" && sc.AsStack)
 	default:
 		m = hasTypeCtxSub(o, a.typ, a.typSub, sc)
 	}

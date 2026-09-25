@@ -2170,6 +2170,9 @@ func main() {
 	searchMaxSubmits := flag.Int("search-max-submits", 5000, "search policy: per-rollout and per-sample-attempt submit cap (teacher default 5000)")
 	searchCandidates := flag.Int("search-candidates", 6, "search policy: max candidates per decision, bot answer first (teacher default 6)")
 	searchParallelism := flag.Int("search-parallelism", 1, "search policy: goroutines WITHIN one searched decision; latency only, never changes an answer. Keep 1 when -workers already fills the cores; a live gorged seat may set 4")
+	searchMana := flag.Bool("search-mana", false, "PN22: compare alternative bare mana-source taps when the bot taps at priority (opt-in)")
+	searchRedeal := flag.Bool("search-redeal", false, "use the known-card-preserving redeal fallback when search's history sampler starves (opt-in)")
+	flag.StringVar(&searchOracleCheckpoint, "search-oracle-checkpoint", "", "search policy, ticket pn17-a1: score non-terminal rollout leaves with this ORACLE value checkpoint (a mz-opphand model with a value head) read from the omniscient projection of each sampled world; needs -search-horizon > 0 and a search side. Empty (default) = the heuristic leaf, byte for byte")
 	cpuprofile := flag.String("cpuprofile", "", "write a CPU profile to this pprof file over the whole run (empty = off)")
 	memprofile := flag.String("memprofile", "", "write a heap profile to this pprof file after the last game finishes (pprof reads both alloc_space and inuse_space from it; empty = off)")
 	flag.Parse()
@@ -2181,7 +2184,7 @@ func main() {
 	decisionStatsEnabled = *decisionStats
 	actionCoverageEnabled = *actionCoverage
 	searchKnobs = searchseat.Options{
-		Kinds:        map[string]bool{"attackers": true, "cast": true},
+		Kinds:        map[string]bool{"attackers": true, "cast": true, "mana": *searchMana},
 		Worlds:       *searchWorlds,
 		Attempts:     *searchAttempts,
 		MinESS:       *searchMinESS,
@@ -2191,6 +2194,7 @@ func main() {
 		MaxSubmits:   *searchMaxSubmits,
 		SampleSeed:   54321,
 		Parallelism:  *searchParallelism,
+		Redeal:       *searchRedeal,
 	}
 
 	os.Exit(mainExit(*a, *b, *games, *seed, *seats, *rotate, *pairs, *format, *out, *workers,
@@ -2251,6 +2255,11 @@ func mainExit(aName, bName string, games int, seed uint64, seats, rotate int, pa
 	if !policynetSide && checkpoint != "" {
 		return fail(fmt.Errorf("-checkpoint was given but neither side is policynet"))
 	}
+	oracleKnobs, err := withSearchOracle(searchOracleCheckpoint, aName, bName, searchKnobs)
+	if err != nil {
+		return fail(err)
+	}
+	searchKnobs = oracleKnobs
 	// -policynet-kinds is policynet's flag too: validated against the seat's
 	// scored-kind vocabulary before any game starts, refused for a run that
 	// names no policynet side.

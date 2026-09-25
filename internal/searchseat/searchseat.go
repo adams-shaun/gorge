@@ -40,6 +40,7 @@ package searchseat
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
@@ -55,7 +56,8 @@ import (
 // caller deliberately differs.
 type Options struct {
 	// Kinds gates which decision kinds the teacher answers. The implemented
-	// set is "attackers", "blockers", "cast" (a KPriority decision
+	// set is "attackers", "blockers", "mana" (alternative bare mana
+	// sources at priority), "cast" (a KPriority decision
 	// offering two or more distinct castable objects) and "target" (a
 	// single-choice, unbudgeted KTarget, searchprobe.SingleTarget); every
 	// other decision delegates. Defaults leaves "blockers" and "target" off.
@@ -85,7 +87,28 @@ type Options struct {
 	// HorizonTurns > 0 or a MaxSubmits cap: a game-end rollout has no
 	// non-terminal leaf. The Model is shared read-only across rollout
 	// goroutines, which Model.Value allows.
+	//
+	// Value must read the redacted view: a model of a diagnostic (oracle)
+	// feature set here is a configuration error (Validate), because the
+	// redacted leaf has no opponent hand to give it.
 	Value *policynet.Model
+	// OracleValue (ticket pn17-a1), when non-nil, is an ORACLE value model: a
+	// FeaturesMZOppHand checkpoint (policynet.LoadOracleCheckpointFile) whose
+	// value head scores every non-terminal rollout leaf from the OMNISCIENT
+	// projection of that leaf (searchprobe.TeacherOptions.LeafOmniscient),
+	// the opponent's hand read off it as the Diag the model was trained with
+	// (policynet.SplitOmniscientView). This is legitimate at deploy time only
+	// because every leaf lives in a SAMPLED world: the hand it reads is the
+	// sampled one, never the real opponent's. Hence it refuses Clairvoyant,
+	// whose one world is a clone of the real engine.
+	//
+	// Validate refuses, besides Clairvoyant: a model without a value head, a
+	// non-diagnostic feature set (a redacted model has no use for the
+	// omniscient view and would silently ignore it), FeaturesMZOracle (its
+	// next-draw tokens are library ORDER, which no view carries, so every
+	// leaf would be off its training distribution), and Value set too. Nil
+	// is off, and today's search bit for bit.
+	OracleValue *policynet.Model
 	// SampleSeed is the fixed sampler seed base. The teacher's own seed is
 	// derived from it per decision exactly as cmd/searchteacher derives it, so
 	// a seat and the generator score a given decision identically.
@@ -118,6 +141,12 @@ type Options struct {
 	// replay's potential-action walk and counts the rejections it alone
 	// decides (Trace.BoardPotentialActionsOnly). A playing seat leaves it false.
 	ComparePotentialActions bool
+	// Redeal turns on searchprobe's redeal fallback (pn21): when the sampler
+	// starves, the seat's unknown hidden cards are redealt from clones of the
+	// engine it is deciding in, pinning every card its observation history
+	// knows (searchprobe.RedealBase documents what is and is not read). Off
+	// by default; off changes nothing.
+	Redeal bool
 	// Clairvoyant searches one clone of the ACTUAL engine instead of sampled
 	// worlds. It cheats by construction and exists only as a measurement
 	// ceiling (cmd/searchteacher's -oracle); a playing seat must leave it
@@ -220,8 +249,22 @@ func Eligible(d *decision.Decision, opts Options) bool {
 		return true
 	case d.Kind == decision.KPriority && opts.Kinds["cast"] && CastOptions(d) >= 2:
 		return true
+	case d.Kind == decision.KPriority && opts.Kinds["mana"] && bareManaSources(d) >= 2:
+		return true
 	}
 	return false
+}
+
+// bareManaSources counts source taps the bot can compare without putting a
+// non-mana cost (life, sacrifice, pool mana) into the root candidate set.
+func bareManaSources(d *decision.Decision) int {
+	n := 0
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Cost == "" {
+			n++
+		}
+	}
+	return n
 }
 
 // CastOptions counts the DISTINCT castable objects a priority decision offers.
@@ -267,6 +310,10 @@ func Choose(
 	if !ok || len(cands) < 2 {
 		return bot, false, tr
 	}
+	if err := opts.Validate(); err != nil {
+		tr.Fallback = "options: " + err.Error()
+		return bot, false, tr
+	}
 
 	worlds, sample, err := sampleWorlds(setup, h, collector, e, opts)
 	if opts.AfterSample != nil {
@@ -283,14 +330,19 @@ func Choose(
 	}
 	tr.Worlds = len(worlds)
 
+	leaf := valueLeaf(opts.Value)
+	if opts.OracleValue != nil {
+		leaf = oracleLeaf(opts.OracleValue)
+	}
 	res, err := searchprobe.TeacherChoice(worlds, cands, searchprobe.TeacherOptions{
-		Seed:         teacherSeed(opts.SampleSeed, e),
-		HorizonTurns: opts.HorizonTurns,
-		MaxSubmits:   opts.MaxSubmits,
-		Margin:       opts.Margin,
-		Clairvoyant:  opts.Clairvoyant,
-		Parallelism:  opts.Parallelism,
-		Leaf:         valueLeaf(opts.Value),
+		Seed:           teacherSeed(opts.SampleSeed, e),
+		HorizonTurns:   opts.HorizonTurns,
+		MaxSubmits:     opts.MaxSubmits,
+		Margin:         opts.Margin,
+		Clairvoyant:    opts.Clairvoyant,
+		Parallelism:    opts.Parallelism,
+		Leaf:           leaf,
+		LeafOmniscient: opts.OracleValue != nil,
 	})
 	if opts.AfterSearch != nil {
 		opts.AfterSearch()
@@ -330,6 +382,48 @@ func valueLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
 	return func(v view.View, actor state.PlayerID) float64 {
 		return float64(m.Value(policynet.EncodeStateWith(m.Features, v, actor, nil)))
 	}
+}
+
+// oracleLeaf is the leaf evaluator for an oracle value model. Its view is the
+// OMNISCIENT projection of the leaf (TeacherOptions.LeafOmniscient), which it
+// splits back into a training record's shape -- the actor's view plus the
+// opponents' hands as the Diag -- before encoding, so the model sees exactly
+// the features it was trained on. Nil for no model or no value head.
+func oracleLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
+	if m == nil || !m.HasValue() {
+		return nil
+	}
+	return func(v view.View, actor state.PlayerID) float64 {
+		own, diag := policynet.SplitOmniscientView(v, actor)
+		return float64(m.Value(policynet.EncodeStateWith(m.Features, own, actor, diag)))
+	}
+}
+
+// Validate reports a leaf configuration Choose must not search with; every
+// Choose call checks it and delegates to the bot on an error, and a caller
+// that builds Options from flags should call it up front. The zero Options
+// are valid.
+func (o Options) Validate() error {
+	if o.Value != nil && o.Value.Features.Diagnostic() {
+		return fmt.Errorf("value model of feature set %s reads hidden information: it is an oracle model, usable only as OracleValue (an omniscient leaf)", o.Value.Features)
+	}
+	m := o.OracleValue
+	if m == nil {
+		return nil
+	}
+	switch {
+	case o.Value != nil:
+		return errors.New("Value and OracleValue are exclusive: one leaf evaluator per search")
+	case o.Clairvoyant:
+		return errors.New("OracleValue cannot be combined with Clairvoyant: the ceiling's one world is a clone of the REAL engine, so an omniscient leaf there would read the real opponent's hand")
+	case !m.HasValue():
+		return errors.New("OracleValue model has no value head")
+	case m.Features == policynet.FeaturesMZOracle:
+		return fmt.Errorf("OracleValue feature set %s reads library order, which no view carries; only %s is supported", m.Features, policynet.FeaturesMZOppHand)
+	case !m.Features.Diagnostic():
+		return fmt.Errorf("OracleValue model of feature set %s reads no hidden information: it cannot use the omniscient leaf (use Value)", m.Features)
+	}
+	return nil
 }
 
 // teacherSeed derives the per-decision teacher seed. It is deliberately the
@@ -392,8 +486,39 @@ func candidates(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 			out = append(out, []searchprobe.Action{c})
 		}
 		return out, "cast", true
+	case d.Kind == decision.KPriority && opts.Kinds["mana"] && bareManaSources(d) >= 2:
+		if len(bot.Choices) != 1 || bot.Choices[0] < 0 || bot.Choices[0] >= len(d.Options) {
+			return nil, "mana", false
+		}
+		chosen := d.Options[bot.Choices[0]]
+		if chosen.Kind != "activate" || chosen.Cost != "" {
+			return nil, "mana", false
+		}
+		out := make([][]searchprobe.Action, 0, opts.Limit)
+		for _, idx := range append([]int{bot.Choices[0]}, bareManaAlternatives(d, bot.Choices[0])...) {
+			in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}
+			a, err := collector.Actions(d, in)
+			if err != nil || len(a) != 1 {
+				return nil, "mana", false
+			}
+			out = append(out, a)
+			if len(out) >= opts.Limit {
+				break
+			}
+		}
+		return out, "mana", len(out) >= 2
 	}
 	return nil, "", false
+}
+
+func bareManaAlternatives(d *decision.Decision, chosen int) []int {
+	var out []int
+	for i, o := range d.Options {
+		if i != chosen && o.Kind == "activate" && o.Cost == "" {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 // sampleWorlds returns the worlds to search. The clairvoyant ceiling skips
@@ -413,11 +538,19 @@ func sampleWorlds(setup searchprobe.PublicGame, h searchprobe.History, collector
 
 		NoLandExclusion:         opts.NoLandExclusion,
 		ComparePotentialActions: opts.ComparePotentialActions,
+		Redeal:                  redealBase(e, collector, opts),
 	})
 	// The result is returned even on error: its rejection buckets are the
 	// diagnostics that explain the failure, and dropping them would make a
 	// sampler fallback unexplainable.
 	return sr.Worlds, sr, err
+}
+
+func redealBase(e *rules.Engine, collector *searchprobe.Collector, opts Options) *searchprobe.RedealBase {
+	if !opts.Redeal {
+		return nil
+	}
+	return &searchprobe.RedealBase{Engine: e, Observer: collector}
 }
 
 // sampleFallback classifies a sampler error into the fallback string. A
