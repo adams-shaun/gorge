@@ -29,21 +29,37 @@ func TestPlanarDeckGenesisAndWalkReplay(t *testing.T) {
 	if first == nil || second == nil || first.FaceDown || !second.FaceDown || first.Face() == nil || second.Face() == nil || first.Face().Name == second.Face().Name {
 		t.Fatalf("genesis did not reveal a distinct top plane: order=%v first=%+v second=%+v", ids, first, second)
 	}
-	var shuffle, reveal bool
-	for _, ev := range e.L.Events {
-		shuffle = shuffle || ev.Kind == events.PlanarDeckShuffle && ev.Secret && len(ev.IDs) == 2
+	var shuffle *events.Event
+	var reveal bool
+	for i := range e.L.Events {
+		ev := &e.L.Events[i]
+		if ev.Kind == events.PlanarDeckShuffle && ev.Secret {
+			shuffle = ev
+		}
 		reveal = reveal || ev.Kind == events.PlanarReveal && ev.Obj == ids[0] && !ev.Secret
 	}
-	if !shuffle || !reveal {
-		t.Fatalf("genesis events missing planar shuffle/reveal: shuffle=%v reveal=%v", shuffle, reveal)
+	if shuffle == nil || len(shuffle.IDs) != 2 || !reveal {
+		t.Fatalf("genesis events missing planar shuffle/reveal: shuffle=%+v reveal=%v", shuffle, reveal)
+	}
+	if e.G.Obj(shuffle.IDs[0]).Face().Name == e.G.Obj(shuffle.IDs[1]).Face().Name {
+		t.Fatalf("privacy fixture needs distinguishable planes, shuffle IDs=%v", shuffle.IDs)
+	}
+	for _, viewer := range []state.PlayerID{0, 1} {
+		redacted := view.RedactEvent(e.G, *shuffle, viewer)
+		if len(redacted.IDs) != 0 || redacted.Obj != 0 || !redacted.Secret || redacted.Kind != events.PlanarDeckShuffle {
+			t.Fatalf("viewer %d learned private planar shuffle order: %+v", viewer, redacted)
+		}
 	}
 	sameSeed := New(cfg).G.Zone(state.ZPlanarDeck, 0)
 	if len(sameSeed) != len(ids) || sameSeed[0] != ids[0] || sameSeed[1] != ids[1] {
 		t.Fatalf("same seed produced planar order %v, want %v", sameSeed, ids)
 	}
-	projected := view.Project(e.G, e, 1, nil)
-	if len(projected.Players[0].PlanarDeck) != 2 || projected.Players[0].PlanarDeck[0].Name == "" || !projected.Players[0].PlanarDeck[1].FaceDown || projected.Players[0].PlanarDeck[1].Name != "" {
-		t.Fatalf("opponent planar deck projection leaked or hid current plane: %+v", projected.Players[0].PlanarDeck)
+	for _, viewer := range []state.PlayerID{0, 1} {
+		projected := view.Project(e.G, e, viewer, nil)
+		deckView := projected.Players[0].PlanarDeck
+		if len(deckView) != 2 || deckView[0].Name == "" || !deckView[1].FaceDown || deckView[1].Name != "" {
+			t.Fatalf("viewer %d planar deck projection leaked or hid current plane: %+v", viewer, deckView)
+		}
 	}
 	clone := e.G.Clone()
 	if got := clone.Zone(state.ZPlanarDeck, 0); len(got) != 2 || got[0] != ids[0] || got[1] != ids[1] {

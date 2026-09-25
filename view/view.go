@@ -881,7 +881,9 @@ func cardViews(g *state.Game, ch Chars, ids []state.ObjID, includeAbilityCosts b
 			if o.HasMayLook {
 				looker = o.MayLookPlayer
 			}
-			if !revealFaceDown && viewer != looker {
+			// A face-down planar-deck card is unknown to every seat, including
+			// its owner. Only the face-up current plane is public.
+			if o.Zone == state.ZPlanarDeck || (!revealFaceDown && viewer != looker) {
 				cv = CardView{ID: id, FaceDown: true, Token: "#" + strconv.FormatUint(uint64(id), 10),
 					Controller: o.Controller, Owner: o.Owner}
 			}
