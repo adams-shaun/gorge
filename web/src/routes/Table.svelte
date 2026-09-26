@@ -150,6 +150,11 @@
   // expanding the rail or the whole table.
   let optionsOpen = $state(false);
   let optionsPopover = $state<HTMLDivElement | null>(null);
+  // The outside-click test needs the WHOLE control (button + popover). It
+  // used to share optionsPopover's binding, which the popover's own
+  // bind:this took over the moment it mounted, so the opening click itself
+  // bubbled to the window as "outside" and closed it again.
+  let optionsRoot = $state<HTMLDivElement | null>(null);
   let optionsButton = $state<HTMLButtonElement | null>(null);
   function dismissOptions(): void {
     if (!optionsOpen) return;
@@ -167,7 +172,7 @@
     }
   }
   function closeOptionsOutside(event: MouseEvent): void {
-    if (optionsOpen && optionsPopover && !optionsPopover.contains(event.target as Node)) dismissOptions();
+    if (optionsOpen && optionsRoot && !optionsRoot.contains(event.target as Node)) dismissOptions();
   }
   $effect(() => {
     if (optionsOpen) void tick().then(() => optionsPopover?.focus());
@@ -407,10 +412,15 @@
           {controlsLive}
         />
         {#if m.view.players.length <= 2}
-          <div class="seat-pill-dock seat-zero" data-seat-pill-dock="seat-0">
+          <!-- A seated player's own pill docks in their own half (the hand
+               strip's identity bay) and the opponent's in theirs, so neither
+               lands on the viewer's hand. A spectator keeps the absolute
+               seat-0/seat-1 anchors. -->
+          {@const own = seatCtx?.seat ?? null}
+          <div class="seat-pill-dock" class:seat-zero={own === null} class:near={own === 0} class:far={own !== null && own !== 0} data-seat-pill-dock="seat-0">
             <SeatPills view={m.view} seats={m.seats} options={boardOptions} seat={0} />
           </div>
-          <div class="seat-pill-dock seat-one" data-seat-pill-dock="seat-1">
+          <div class="seat-pill-dock" class:seat-one={own === null} class:near={own === 1} class:far={own !== null && own !== 1} data-seat-pill-dock="seat-1">
             <SeatPills view={m.view} seats={m.seats} options={boardOptions} seat={1} />
           </div>
         {:else}
@@ -505,7 +515,7 @@
               />
             {/if}
             {#if panel && optionsReachable}
-              <div class="rail-options" bind:this={optionsPopover} data-rail-options>
+              <div class="rail-options" bind:this={optionsRoot} data-rail-options>
                 <button
                   type="button"
                   class="rail-options__button"
@@ -647,6 +657,19 @@
     right: var(--sp-3);
     transform: translateY(-100%);
   }
+  /* Seated 1v1: the viewer's pill is flush to the board's bottom-left, in
+     the --own-seat-w bay HandFan's track already leaves free (the retired
+     IdentityBar's own-seat corner); the opponent's sits top-left of the
+     enemy half, the Arena/MTGO convention. */
+  .seat-pill-dock.near {
+    bottom: 0;
+    left: 0;
+    width: var(--own-seat-w, 12rem);
+  }
+  .seat-pill-dock.far {
+    top: var(--sp-3);
+    left: var(--sp-3);
+  }
   .seat-pill-dock.seat-many {
     top: var(--sp-3);
     right: var(--sp-3);
@@ -752,10 +775,12 @@
     border-color: var(--ink-dim);
     color: var(--ink);
   }
+  /* The Options control sits at the TOP of the rail, so the popover drops
+     down from it; anchored with bottom it opened above the viewport. */
   .rail-options__popover {
     position: absolute;
     right: 0;
-    bottom: calc(100% + var(--sp-2));
+    top: calc(100% + var(--sp-2));
     width: min(25rem, calc(100vw - var(--sp-4)));
     max-height: min(38rem, calc(100vh - 5rem));
     display: flex;

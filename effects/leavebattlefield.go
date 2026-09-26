@@ -68,6 +68,62 @@ func registerLeaveExile(h Host, c *Ctx, id state.ObjID, value, dur string, perma
 	})
 }
 
+// registerAnimateReplacements is the Replacements$ grant's registration for
+// ONE animated object: each named SVar on the ANIMATING face's table is an
+// R:-shaped replacement body (Spirit-Sister's Call's `ReplaceLeaves:Event$
+// Moved | ActiveZones$ Battlefield | Origin$ Battlefield | ValidCard$
+// Card.Self | ReplaceWith$ Exile`, whose ReplaceWith$ names the sibling
+// `Exile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$
+// ReplacedCard`), resolved through the SAME Effect-created replacement path
+// the LeaveBattlefield$ promise above uses -- an Effect-created Moved
+// replacement scoped to id's own departure (ValidCard$ Card.Self resolves
+// against Source = id), registered through Host.AddContinuous, never a
+// second replacement engine.
+//
+// The body travels as TEXT, exactly as effEffect's ReplacementEffects$ path
+// keeps it: rules reconstructs it under the source's SVar context at
+// application time (rules/replacement.go's effect-created scan). Only the
+// body shapes rules' dispatcher actually resolves live are admitted -- the
+// exile redirect the flagship carries, a PutCounter ETB upgrade, and the
+// damage rewrite -- the same three classes effEffect admits; every other
+// shape keeps ONE loud Note so a half-modelled replacement can never silently
+// LOSE the moved object.
+//
+// Lifetime is the animation's own, expressed through the caller's
+// ExileOnMoved$/Remembered pair: the sweep ends the promise the instant the
+// animated object leaves the battlefield, so a card that later re-enters is a
+// plain permanent again (CR 400.7) and the replacement cannot re-arm on the
+// departure it already redirected. dur/permanent are the animation's own
+// duration fields, so an UntilEOT animation's replacement ends at cleanup.
+func registerAnimateReplacements(h Host, c *Ctx, id state.ObjID, names []string, dur string, permanent bool, exileOn string, remembered []state.ObjID) {
+	for _, name := range names {
+		event, params := parseReplacementLine(c.SVars, name)
+		if event == "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate Replacements$ " + name + " has no replacement body; ignored"})
+			continue
+		}
+		body := c.SVars[replacementLineWith(params)]
+		if body == "" || !(event == "DamageDone" ||
+			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
+			(event == "Moved" && replacementRedirectsToExile(params, body, c.SVars))) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate Replacements$ " + name + " is not implemented; ignored"})
+			continue
+		}
+		if h.Game().Obj(id) == nil {
+			return
+		}
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Duration: dur, Permanent: permanent, UntilEOT: !permanent,
+			Remembered:       remembered,
+			ExileOnMoved:     exileOn,
+			ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
+		})
+	}
+}
+
 // registerAnimateStaticAbilities registers staticAbilities$ bodies on the
 // animated object. The Animate parameter is a list of SVar names, not a
 // Mode$ Continuous body: it is the same static table used by Effect's

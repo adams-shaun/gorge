@@ -1605,11 +1605,16 @@ var flagNames = [...]struct {
 	// moveResolvedOffStack. Appended at the end per the table's own ordering
 	// rule.
 	{"rebound", state.FlagRebound},
+	// The K:Blitz alternative-cost cast (CR 702.152a): the flag is the
+	// provenance rules/altcast.go's entry hook (blitzEnter) reads for the
+	// haste grant, the dies-draw granted trigger and the next-end-step
+	// sacrifice. Appended at the end per the table's own ordering rule.
+	{"blitzed", state.FlagBlitzed},
 	// The AddsCounters$ mana-spend rider (Opal Palace, Biophagus, Animal
 	// Attendant, Guildmages' Forum: 4 corpus files): a spell whose payment
-	// consumed a rider-bearing mana batch stamps this flag, and the consuming
-	// sources ride the same CastInfo's IDs into Object.ManaAddsCounterSources.
-	// Appended at the end per the table's own ordering rule.
+	// consumed a rider-bearing mana batch stamps this flag, and the grants
+	// ride the same CastInfo's Text into Object.ManaAddsCounterGrants.
+	// Appended after main's blitzed entry to preserve its ordering.
 	{"addscounters", state.FlagAddsCounters},
 }
 

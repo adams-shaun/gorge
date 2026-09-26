@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 // maxSiblingCaches bounds how many fingerprint-keyed IR caches one corpus
@@ -59,6 +60,7 @@ func openCorpus(dir, fingerprint string) (*Registry, error) {
 	stale := cacheErr != nil || (lockErr == nil && lockInfo.ModTime().After(cacheInfo.ModTime()))
 	if !stale {
 		if r, err := LoadRegistry(cache); err == nil {
+			rerootPaths(r, dir)
 			return r, nil
 		}
 	}
@@ -112,5 +114,39 @@ func PruneCaches(dir, keepPath string) {
 	})
 	for _, e := range entries[maxSiblingCaches:] {
 		_ = os.Remove(e.path)
+	}
+}
+
+// rerootPaths points every card's and token's script Path at dir, the corpus
+// directory this process actually opened. A cache records the absolute paths
+// of whichever process compiled it, and .cards is shared into every seat
+// worktree by symlink, so a cache compiled from .worktrees/<id>/.cards names
+// files under that worktree. Once the worktree is removed after its merge,
+// host's feedback capture cannot read any token script back (all of them land
+// in tokens_unread), which failed cmd/repro on main and in every worktree
+// (measured 2026-09-25). The part from the corpus subdirectory on is the
+// same in every copy, so only the prefix is replaced.
+func rerootPaths(r *Registry, dir string) {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return
+	}
+	fix := func(c *Card) {
+		if c == nil {
+			return
+		}
+		for _, sub := range []string{"cardsfolder", "tokenscripts"} {
+			seg := string(filepath.Separator) + sub + string(filepath.Separator)
+			if i := strings.LastIndex(c.Path, seg); i >= 0 {
+				c.Path = filepath.Join(abs, c.Path[i+1:])
+				return
+			}
+		}
+	}
+	for _, c := range r.Cards {
+		fix(c)
+	}
+	for _, c := range r.Tokens {
+		fix(c)
 	}
 }

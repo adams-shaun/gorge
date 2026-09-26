@@ -1680,19 +1680,24 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	}); ok {
 		zoneBatcher = z
 	}
-	firstPass := true
 	if cur := c.Repeat; cur != nil && cur.SA == sa {
 		// Re-entry after an iteration suspended: continue with the subjects
 		// the loop started with, after the one that asked, and keep what the
 		// completed iteration remembered.
 		c.Repeat = nil
-		subjects, start, firstPass = cur.Subjects, cur.Next, false
+		subjects, start = cur.Subjects, cur.Next
 		if cur.HasLast && start > 0 && start <= len(subjects) {
 			prev := subjects[start-1]
 			c.Remembered = rememberIteration(c.Remembered, cur.Last, iterationBase(c, prev), prev)
 		}
 	} else {
 		var ok bool
+		// cardsSubjects is true only when the subjects came from Forge's
+		// repeatCards list (RepeatCards$/DefinedCards$): ChooseOrder$ orders
+		// that list and only that list. The RepeatPlayers$,
+		// RepeatSpellAbilities$ and RepeatTargeted$ loops are never ordered in
+		// Forge, so the ask is gated on this flag.
+		var cardsSubjects bool
 		switch {
 		case sa.Params["RepeatPlayers"] != "":
 			var ps []state.PlayerID
@@ -1706,40 +1711,94 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			subjects, ok = copyTargets(c.Targets), true
 		default:
 			subjects, ok = repeatedCards(h, c, sa)
+			cardsSubjects = true
 		}
 		if !ok {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "RepeatEach selector unimplemented"})
 			return
 		}
-	}
-	// ClearRememberedBeforeLoop$ applies after selecting the subjects but only
-	// on the first pass: a resumed iteration must retain what prior iterations
-	// remembered. Thus RepeatPlayers$ Remembered can form its subject set while
-	// the body starts without the temporary chooser bindings.
-	if firstPass && strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
-		c.Remembered = nil
-	}
-	if batched && firstPass && batcher != nil {
-		batcher.BeginDamageBatch()
-	}
-	if zoneTable && firstPass && zoneBatcher != nil {
-		zoneBatcher.BeginZoneBatch()
-	}
-	// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the
-	// host's remembered list before the loop"): drop the resolving spell or
-	// ability's accumulated Remembered before the FIRST iteration body runs,
-	// so a chain's earlier remembered players/cards do not leak into the
-	// loop's iterations. Corpus carriers: Seize the Spotlight (clear the
-	// GenericChoice's remembered choosers before walking the notated players),
-	// Master of Ceremonies, Enter the Dungeon, Shahrazad. It is applied ONCE,
-	// on the first pass only: a resume after a mid-loop suspension must keep
-	// what the completed iterations remembered. It is applied AFTER the
-	// subject selector resolves, so `RepeatPlayers$ Remembered` (a real
-	// selector in the corpus) still sees the remembered set it names -- the
-	// clear is a loop-hygiene bound on the iteration bodies, not on the
-	// loop's own subject derivation.
-	if firstPass && strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
-		c.Remembered = nil
+		// The loop's first-pass setup runs HERE, before the ChooseOrder$ ask
+		// below: the answered ask re-enters the SA with a Repeat cursor, so
+		// this else is never taken again and any first-pass-only step that
+		// stayed after the ask would never run for a hosted ordering loop.
+		// Measured otherwise-broken carrier: Ezuri's Predation carries BOTH
+		// ChooseOrder$ and ChangeZoneTable$ -- with the zone bracket opened
+		// after the ask, its ChangesZoneAll batching silently became
+		// per-move. The clear is likewise ordered before the ask so the ask's
+		// suspension (and thus the re-entered loop) binds the post-clear
+		// Remembered.
+		// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the
+		// host's remembered list before the loop"): drop the resolving spell or
+		// ability's accumulated Remembered before the FIRST iteration body runs,
+		// so a chain's earlier remembered players/cards do not leak into the
+		// loop's iterations. Corpus carriers: Seize the Spotlight (clear the
+		// GenericChoice's remembered choosers before walking the notated players),
+		// Master of Ceremonies, Enter the Dungeon, Shahrazad. It is applied ONCE,
+		// on the first pass only: a resume after a mid-loop suspension must keep
+		// what the completed iterations remembered. It is applied AFTER the
+		// subject selector resolves, so `RepeatPlayers$ Remembered` (a real
+		// selector in the corpus) still sees the remembered set it names -- the
+		// clear is a loop-hygiene bound on the iteration bodies, not on the
+		// loop's own subject derivation.
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
+			c.Remembered = nil
+		}
+		// The damage/zone brackets open around the WHOLE loop (see the
+		// DamageMap$/ChangeZoneTable$ comments above for the Forge semantics).
+		// Opened only here, on the first pass -- a mid-loop suspension (the
+		// ordering ask included) leaves the engine's open batch intact across
+		// the resume, and the re-entry pass closes it when the loop completes,
+		// so the bracket is balanced however many resumes interleave.
+		if batched && batcher != nil {
+			batcher.BeginDamageBatch()
+		}
+		if zoneTable && zoneBatcher != nil {
+			zoneBatcher.BeginZoneBatch()
+		}
+		// ChooseOrder$ (Forge RepeatEachEffect.resolve): when the repeatCards
+		// list has more than one entry, the chooser orders it BEFORE the loop
+		// runs, and the loop then processes that order. `True` means the
+		// resolving controller chooses; any other value names a defined player
+		// (Aetherspouts/Chaotic Transformation `ChooseOrder$ RememberedPlayer`).
+		// The ask is posed once, on the first pass, before any body: the
+		// answer permutes the loop cursor's subject slice, so every later
+		// iteration -- and every mid-loop suspension -- carries the chosen
+		// order and the subjects are never re-derived or re-sorted. Subjects
+		// are NOT silently sorted: the offered list is the selector/scan order
+		// and the answer names a permutation of it. A no-host host (R-9) keeps
+		// that scan order as its deterministic stand-in.
+		if cardsSubjects && len(subjects) > 1 && strings.TrimSpace(sa.Params["ChooseOrder"]) != "" {
+			chooser := c.Controller
+			if !strings.EqualFold(strings.TrimSpace(sa.Params["ChooseOrder"]), "True") {
+				if ps := definedPlayerIDs(h, c, strings.TrimSpace(sa.Params["ChooseOrder"])); len(ps) > 0 {
+					chooser = ps[0]
+				}
+			}
+			d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+				Min: len(subjects), Max: len(subjects), Source: c.Source,
+				ResumeKind: "repeat_choose_order", ResumeSA: sa,
+				Prompt: "Choose the order the repeated ability processes these in"}
+			for i, t := range subjects {
+				o := decision.Option{Index: i, Kind: "order", Player: PlayerOf(h, c, t)}
+				if t.IsPlayer {
+					o.Label = "player " + strconv.Itoa(int(t.Player))
+				} else if obj := h.Game().Obj(t.Obj); obj != nil && obj.Face() != nil {
+					o.Obj, o.Label = t.Obj, obj.Face().Name
+				}
+				d.Options = append(d.Options, o)
+			}
+			if Ask(h, d) == AskAsked {
+				h.SuspendRepeat(RepeatSuspension{
+					RepeatCursor: RepeatCursor{SA: sa, Subjects: copyTargets(subjects), Next: 0, ChooseOrder: true},
+					Body:         copyTargets(c.Remembered),
+					Outer:        copyTargets(c.Remembered),
+					Chosen:       copyTargets(c.Chosen),
+					ChosenValid:  c.ChosenValid,
+					VoteCounts:   append([]VoteCount(nil), c.VoteCounts...),
+				})
+				return
+			}
+		}
 	}
 	// RepeatOptionalForEachPlayer$ True (Tempting Contract, the Tempt cycle,
 	// Zagorka): each subject of the loop is offered its own yes/no election

@@ -2464,7 +2464,7 @@ func (e *Engine) beginCastWithPayment(p state.PlayerID, opt decision.Option, sel
 		if e.HasKeyword(id, "Jump-start") {
 			cost = cost.Plus(jumpstartExtra())
 		}
-	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
+	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed", "blitzed":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
 		// Miracle shape. Evoke and Madness casts come from hand and exile
@@ -2473,7 +2473,7 @@ func (e *Engine) beginCastWithPayment(p state.PlayerID, opt decision.Option, sel
 		// only a hand-built option) falls back to the empty cost rather than
 		// charging the printed mana cost.
 		head := map[string]string{"evoked": "Evoke", "dashed": "Dash",
-			"overloaded": "Overload", "warped": "Warp", "madness": "Madness"}[opt.Mode]
+			"overloaded": "Overload", "warped": "Warp", "madness": "Madness", "blitzed": "Blitz"}[opt.Mode]
 		if opt.Mode == "bestowed" {
 			// Bestow goes through the ONE resolver the offer gate used
 			// (rules/bestow.go's bestowCost: the colon cut and the Unknown
@@ -7575,6 +7575,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagEvoked)
 	case "dashed":
 		return events.FlagsString(state.FlagDashed)
+	// Blitz (CR 702.152a): the flag is what the ETB machinery
+	// (altCostEnter -> blitzEnter) reads for the haste grant, the dies-draw
+	// granted trigger and the next-end-step sacrifice. It is a
+	// CastProvenanceFlag (state/object.go), so a stack copy does not inherit
+	// it.
+	case "blitzed":
+		return events.FlagsString(state.FlagBlitzed)
 	case "overloaded":
 		return events.FlagsString(state.FlagOverloaded)
 	case "warped":
@@ -8660,6 +8667,35 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 			// window. With false, a seat that re-picks the same X (the only
 			// value it knows) re-announces the same illegal spell forever.
 			e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", true)
+			return true
+		}
+	}
+	// Target-conditional CastWithFlash (task istargeting-flash): a spell
+	// announced at a time a sorcery could not have been cast on the strength
+	// of a CastWithFlash permission whose ValidSA$ requires targeting
+	// something must actually have a qualifying announced target. The
+	// permission is otherwise unread after the offer, so without this a cast
+	// that took the flash window on a target the grant never covered would
+	// still complete. offSorcery is set only by beginCast (the ordinary
+	// offered cast: beginPlay's free-cast routes leave it false), and among
+	// those it is true only when the face is not an instant, has no Flash and
+	// no MayFlashSac rider -- so for a card with a target-conditional grant
+	// the ONLY remaining way the offer passed spellTimingOK is that grant.
+	// Re-running the same castWithFlashTargets the offer read, now with the
+	// announced targets, keeps offer and recheck on ONE interpretation.
+	//
+	// The mode exclusion covers the two offers that grant their own timing
+	// WITHOUT spellTimingOK (MayFlashCost's paid flash and the defeat cast) and
+	// split_alt, whose instant-speed check reads castWithFlash against the
+	// FRONT face while the cast flips to the alternate half: none can be a
+	// target-conditional-CastWithFlash card in the corpus, and policing a cast
+	// whose timing came from elsewhere would be a false reversal.
+	if pc.offSorcery && pc.mode != "mayflash" && pc.mode != "defeat_cast" && pc.mode != "split_alt" {
+		f := o.Face()
+		if f != nil && !f.IsInstant() && !e.HasKeyword(pc.card, "Flash") && !mayFlashSacFace(f) &&
+			e.hasTargetConditionalFlash(pc.player, pc.card) &&
+			!e.castWithFlashTargets(pc.player, pc.card, pc.targets) {
+			e.abortCast(pc, "cast aborted: flash permission's target requirement unmet (CR 601.2e)", true)
 			return true
 		}
 	}
@@ -10257,6 +10293,13 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Unearth (CR 702.84): the graveyard return is an ordinary
+		// activated ability cards/kw_unearth.go expands from the K: line,
+		// and its three riders are rules-layer (rules/unearth.go) -- the
+		// haste grant, the end-step exile promise, and the exile-instead
+		// replacement. Registered non-API because the keyword's whole
+		// implementation lives in rules plus the one builtin SVar body.
+		"kw:Unearth",
 		// kw:Escalate: the modal additional cost "pay this for each mode chosen
 		// beyond the first" -- read directly off the K: line by beginCast's
 		// capture and the cast_modes answer handler's fold, and bounded by
@@ -10348,6 +10391,13 @@ func init() {
 		// the level-band statics read the counter through the existing
 		// counters_<CMP><n>_LEVEL predicate, so no separate path of its own.
 		"kw:Level up",
+		// kw:Outlast: CR 702.107, expanded by cards/kw_outlast.go into an
+		// ordinary sorcery-speed PutCounter activation (CounterType$ P1P1,
+		// Cost$ T <mana>); the leading T is the CR 702.107a tap cost and
+		// makes the keyword repeatable only across untaps, with no
+		// once-per-turn machinery of its own. Proof:
+		// rules/outlast_test.go.
+		"kw:Outlast",
 		// kw:Class: CR 702.118, expanded by cards/keywords.go into one
 		// sorcery-speed level-up activator per level (the kw:Level up shape,
 		// gated on the Class's level being below that level) plus the level's

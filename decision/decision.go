@@ -171,6 +171,9 @@ type Option struct {
 	Kind  string      `json:"kind"`
 	Label string      `json:"label"`
 	Obj   state.ObjID `json:"obj,omitempty"`
+	// ManaSymbol is the exact mana symbol selected by a colour option. Labels
+	// remain presentation-only; omitempty keeps unrelated options unchanged.
+	ManaSymbol string `json:"mana_symbol,omitempty"`
 	// Counter identifies the counter kind for wildcard counter-removal costs.
 	// It is omitted for choices that do not select a counter kind.
 	Counter string `json:"counter,omitempty"`

@@ -5349,7 +5349,7 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool)
 	for unit := 0; unit < max; unit++ {
 		for _, colour := range colours {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana",
-				Label: "Add " + colour, Obj: c.Source, Player: chooser})
+				Label: "Add " + colour, ManaSymbol: colour, Obj: c.Source, Player: chooser})
 		}
 	}
 	if Ask(h, d) == AskAsked {

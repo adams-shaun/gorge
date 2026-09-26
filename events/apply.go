@@ -2971,6 +2971,7 @@ func Apply(g *state.Game, e Event) {
 		// if that card later changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
 			strings.HasPrefix(e.Counter, "__kwWarp") ||
+			strings.HasPrefix(e.Counter, "__kwUnearth") ||
 			strings.HasPrefix(e.Counter, "__kwAtEOT") ||
 			strings.HasPrefix(e.Counter, "__kwMayFlashSac")
 		// Event-matched (non-phase) registrations encode

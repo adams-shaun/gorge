@@ -231,6 +231,17 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		ev.To == state.ZGraveyard && e.finalityReplacementApplies(ev.Obj) {
 		ev.To = state.ZExile
 	}
+	// CR 702.84b (Unearth): "Exile it ... if it would leave the
+	// battlefield." A replacement effect, so it is matched at this common
+	// move boundary before the destination is logged -- any departure
+	// (graveyard, hand, library, exile, command zone) is redirected to
+	// exile while the unearth promise is live (rules/unearth.go). The read
+	// is game-state-derived from the live __kwUnearthExile registration, so
+	// a log-only replay redirects the same move.
+	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
+		e.unearthReplacementApplies(ev.Obj) {
+		ev.To = state.ZExile
+	}
 	// Madness is an optional discard replacement and must park before either
 	// destination is logged. The guarded re-emit still permits ordinary card
 	// and format replacements to redirect the chosen destination.
@@ -6097,7 +6108,7 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		d.Prompt = "Choose the colour of the replacement mana."
 		for i, color := range []string{"W", "U", "B", "R", "G"} {
 			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: rc.cands[rc.selected].id,
-				Label: "Add " + color})
+				Label: "Add " + color, ManaSymbol: color})
 		}
 		e.ask(d)
 		return
@@ -6440,7 +6451,9 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		rc.applied[i] = true
 		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped, rc.manaProducer)
 	case replChoiceManaColor:
-		color := strings.TrimPrefix(chosen[0].Label, "Add ")
+		// The chosen colour is structured data (Option.ManaSymbol); the
+		// label is presentation-only.
+		color := chosen[0].ManaSymbol
 		if len(color) != 1 || !strings.Contains("WUBRG", color) ||
 			rc.selected < 0 || rc.selected >= len(rc.cands) {
 			e.triggerBefore = before
