@@ -46,9 +46,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerResult = result
 			c.TriggerResultMax = maxResult
 		}
-	case "BecomesTarget":
+	case "BecomesTarget", "BecomesTargetOnce":
 		// This matcher fires only for its own source being targeted, even when
 		// the causing spell chose several targets. ev.Obj is that spell/ability.
+		// BecomesTargetOnce carries the same roles -- its batch latch is the
+		// queue-time gate, not this capture -- so the plural-mode body
+		// resolves TriggeredSourceSA/TriggeredSourceSAController exactly as
+		// the per-target mode does (Leyline of Combustion's payout).
 		c.TriggerTarget = state.Target{Obj: source}
 		c.TriggerSource = e.protectionSource(ev.Obj)
 		c.TriggerStack = ev.Obj

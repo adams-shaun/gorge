@@ -3236,6 +3236,19 @@ func targetOptions(chosen []decision.Option) []state.Target {
 // front half's targets first and must not have the alternate half's first
 // target replace them on the stack object.
 func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Option, appendFirst bool) {
+	// One target answer is one BATCH for Mode$ BecomesTargetOnce (Forge fires
+	// TriggerBecomesTargetOnce once per targeting action, not once per
+	// target): the latch is open for exactly the events this loop emits, so a
+	// second matching target of the same answer is absorbed rather than
+	// queueing a second instance. The bracket never spans a drain -- emit only
+	// appends to pendingTriggers -- so the queue stays append-only across it.
+	// Batch identity is this CALL, not the ability: a (hypothetical) ability
+	// that records its targets in two separate recordChosenTargets calls opens
+	// two batches and fires the watcher twice, where Forge fires once per
+	// ability. No corpus card takes a multi-call path with a BecomesTargetOnce
+	// watcher today; if one arrives the bracket must move up to the ability.
+	e.openTargetBatch()
+	defer e.closeTargetBatch()
 	for i, opt := range chosen {
 		ev := events.Event{Kind: events.TargetsChosen, Obj: targetObj}
 		appendThis := i > 0 || appendFirst
