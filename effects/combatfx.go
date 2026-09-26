@@ -671,15 +671,30 @@ type animateGrant struct {
 	removeTypes         []string
 	allCreatureTypes    bool
 	removeCardTypes     bool
-	colorsRaw           string
-	colors              []string
-	overwriteColors     bool
-	colorsGrant         bool
-	kws                 []string
-	abilities           []string
-	duration            string
-	permanent           bool
-	zone                string
+	// name is the Name$ rider: the animated object's derived NAME for the
+	// animation's own lifetime (CR 613.1d, layer 3). It is registered as a
+	// real layer-3 SetName ContinuousEffect -- the same characteristic the
+	// printed SetName$ static registers and rules' layer walk folds into
+	// Derived.Name -- never a display-only alias, so every reader of the
+	// derived name (view, name filters through the rename table, a copy
+	// effect that reads the animated object's derived name) sees it. Empty
+	// when the SA carries no Name$.
+	//
+	// CR 706.2: a rename is NOT a copiable value, so a copy effect that
+	// copies this object copies its PRINTED face's name, exactly as the
+	// printed SetName$ static behaves. What "derived" buys here is that the
+	// rename is the same characteristic every layer-3 reader consults, not
+	// that it transfers through a copy.
+	name            string
+	colorsRaw       string
+	colors          []string
+	overwriteColors bool
+	colorsGrant     bool
+	kws             []string
+	abilities       []string
+	duration        string
+	permanent       bool
+	zone            string
 	// endOnLeave ends the grant the moment the animated object leaves the
 	// battlefield, regardless of Duration$. registerAnimateEffects expresses
 	// it through the existing move-driven lifetime (ExileOnMoved$ + the
@@ -735,12 +750,24 @@ type animateGrant struct {
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
 // effAnimate's doc for the layer assignment (base P/T = 7b SubSet, types = 4,
-// colours = 5, keywords/abilities = 6) and for the no-P/T guard.
+// colours = 5, keywords/abilities = 6) and for the no-P/T guard; Name$ is the
+// layer-3 rename.
 func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	ag := animateGrant{
 		duration:  sa.Params["Duration"],
 		colorsRaw: strings.TrimSpace(sa.Params["Colors"]),
 		zone:      strings.TrimSpace(sa.Params["Zone"]),
+	}
+	// Name$ is a literal replacement name (The Curse of Fenric's "named
+	// Fenric", Awakening of Vitu-Ghazi's "named Vitu-Ghazi"); a value the
+	// corpus writes as a chooser token is not a rename this parser can
+	// resolve, so it fails closed to no rename rather than overwriting the
+	// object's name with a literal token word. Trimmed, and compared
+	// case-insensitively against the two chooser spellings so a stray
+	// "ChosenName" cannot leak onto the board as a name.
+	if raw := strings.TrimSpace(sa.Params["Name"]); raw != "" &&
+		!strings.EqualFold(raw, "ChosenName") && !strings.EqualFold(raw, "Chosen") {
+		ag.name = raw
 	}
 	_, ag.hasPower = sa.Params["Power"]
 	_, ag.hasTough = sa.Params["Toughness"]
@@ -953,6 +980,22 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
+	if ag.name != "" {
+		// Name$ (CR 613.1d, layer 3): the rename is the SAME characteristic
+		// a printed SetName$ static registers, so Derived.Name and every
+		// reader built on it (the resolving filter table, the view) answer
+		// the new name. Layer 3 precedes the type/colour/ability/P-T halves
+		// below in CR 613 order, and the walk keeps timestamp order inside
+		// layer 3, so two competing renames resolve the way their grants
+		// were registered.
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer: state.LText, SetName: ag.name,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
+			ExileOnMoved: exileOn, Remembered: remembered,
+			AffectedZone: ag.zone,
+		})
+	}
 	if ag.colorsGrant {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
@@ -1057,6 +1100,9 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	// animateAllUnreadNote's "not implemented; ignored" note.
 	ag.removeKeywords = nil
 	ag.replacements = nil
+	// AnimateAll's Name$ stays unread too: the rename is Animate-scoped, so
+	// clear what the shared parser read, exactly as the two parameters above.
+	ag.name = ""
 	emitAnimateColorsNotes(h, c, ag, "AnimateAll")
 	emitAnimateTriggersNotes(h, c, ag, "AnimateAll")
 	animateAllUnreadNote(h, c, sa)
