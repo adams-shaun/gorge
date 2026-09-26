@@ -1927,19 +1927,34 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	case "OptionalGenericCostPaid":
 		// OptionalCost's paid/unpaid branches are a boolean cast provenance.
 		// The CastSA indirection has already bound c.Source to the cast object.
+		// Each branch token is a numeric literal in the common case
+		// (Count$OptionalGenericCostPaid.4.2), but Forge also writes another
+		// SVar's value as the branch (Dragon's Fire's
+		// `SVar:Y:Count$OptionalGenericCostPaid.X.3`, where the paid branch is
+		// SVar X = Revealed$CardPower): a non-numeric token resolves as an
+		// SVar$ indirection through the SAME runtime -> printed -> publication
+		// precedence the SVar$ head uses, so the paired X/Y sizes from the
+		// chosen card rather than collapsing to an unresolved zero.
 		parts := strings.Split(strings.TrimSpace(arg), ".")
 		if len(parts) < 2 {
 			return 0, false
 		}
-		paid, ok1 := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 32)
-		unpaid, ok2 := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 32)
-		if ok1 != nil || ok2 != nil {
+		branch := func(tok string) (int32, bool) {
+			tok = strings.TrimSpace(tok)
+			if n, err := strconv.ParseInt(tok, 10, 32); err == nil {
+				return int32(n), true
+			}
+			return evalCountExprOK(h, c, "SVar$"+tok, depth+1)
+		}
+		paid, ok1 := branch(parts[0])
+		unpaid, ok2 := branch(parts[1])
+		if !ok1 || !ok2 {
 			return 0, false
 		}
 		if o := g.Obj(c.Source); o != nil && o.OptionalCostPaid {
-			return int32(paid), true
+			return paid, true
 		}
-		return int32(unpaid), true
+		return unpaid, true
 	case "OffspringPaid":
 		// CR 702.175a: whether the resolving spell's cast paid the optional
 		// Offspring additional cost ("You may pay an additional [cost] as you

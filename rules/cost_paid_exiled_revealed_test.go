@@ -480,8 +480,10 @@ func TestSoulExchangePaidExileValidTracksThrull(t *testing.T) {
 }
 
 // TestMonstrousEmergenceRevealOrChooseParsesAsARevealCost is the grammar leaf:
-// RevealOrChoose<N/Spec> prices as a reveal part (no generic substitution, no
-// Unknown census entry) and lands in Cost.Reveal.
+// RevealOrChoose<N/Spec> prices with no generic substitution and no Unknown
+// census entry, and lands in the DISTINCT Cost.RevealOrChoose slice (not the
+// plain Reveal list): the token is an either-or cost whose choose arm must
+// not be read as a hand reveal.
 func TestMonstrousEmergenceRevealOrChooseParsesAsARevealCost(t *testing.T) {
 	c := ParseCost("1 G RevealOrChoose<1/Creature>")
 	if c.Generic != 1 {
@@ -490,7 +492,10 @@ func TestMonstrousEmergenceRevealOrChooseParsesAsARevealCost(t *testing.T) {
 	if len(c.Unknown) != 0 {
 		t.Fatalf("ParseCost Unknown = %v, want none", c.Unknown)
 	}
-	if len(c.Reveal) != 1 || c.Reveal[0].Spec != "Creature" || c.Reveal[0].N != 1 {
-		t.Fatalf("ParseCost Reveal = %+v, want one Creature part", c.Reveal)
+	if len(c.Reveal) != 0 {
+		t.Fatalf("ParseCost Reveal = %+v, want none (the either-or cost is its own slice)", c.Reveal)
+	}
+	if len(c.RevealOrChoose) != 1 || c.RevealOrChoose[0].Spec != "Creature" || c.RevealOrChoose[0].N != 1 {
+		t.Fatalf("ParseCost RevealOrChoose = %+v, want one Creature part", c.RevealOrChoose)
 	}
 }

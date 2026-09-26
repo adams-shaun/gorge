@@ -90,6 +90,7 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 func manaFreeCost(c Cost) bool {
 	return len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
 		len(c.AddCounter) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 &&
+		len(c.RevealOrChoose) == 0 &&
 		len(c.RevealChosen) == 0 &&
 		len(c.Behold) == 0 && len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		c.Generic == 0 && c.Life == 0 && c.Colored == (state.Mana{}) && c.X == 0 &&
