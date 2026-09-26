@@ -271,20 +271,14 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 	se := r.OpenSession()
 	m.mu.RLock()
 	dStarted := make(chan struct{}, 2)
-	dSubDone := make(chan protocol.Frame, 1)
+	dSubDone := make(chan struct{}, 1)
 	dRewindDone := make(chan struct{}, 1)
 	go func() {
 		dStarted <- struct{}{}
 		if err := r.Subscribe(se, "t1", protocol.ModeFocus); err != nil {
 			t.Errorf("overlapping Subscribe: %v", err)
-			return
 		}
-		select {
-		case f := <-se.Out():
-			dSubDone <- f
-		case <-time.After(10 * time.Second):
-			t.Errorf("overlapping Subscribe delivered no snapshot")
-		}
+		dSubDone <- struct{}{}
 	}()
 	go func() {
 		dStarted <- struct{}{}
@@ -311,9 +305,8 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 	default:
 	}
 	m.mu.RUnlock()
-	var dSub protocol.Frame
 	select {
-	case dSub = <-dSubDone:
+	case <-dSubDone:
 	case <-time.After(10 * time.Second):
 		t.Fatalf("overlapping Subscribe did not complete after m.mu was released — deadlock")
 	}
@@ -322,15 +315,48 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatalf("overlapping pushRewind did not complete after m.mu was released — deadlock")
 	}
-	if dSub.T != protocol.TSnapshot {
-		t.Fatalf("overlapping Subscribe delivered %s, want TSnapshot", dSub.T)
+	// Subscribe registers se.subs BEFORE it takes t.fanMu, so pushRewind's
+	// sessionsFor can already include se and win the exclusive projection
+	// lock: se's FIRST frame may legitimately be a TRewind rather than its
+	// own TSnapshot (and in the other schedule, [TSnapshot TRewind]). Both
+	// are correct deliveries, so scan the whole stream for the frames this
+	// phase owes instead of assuming an order the scheduling does not
+	// guarantee — an ordering assertion here would fail a healthy build.
+	subFrames := drainNow(se)
+	var subSnap, subRewind *protocol.Frame
+	for i := range subFrames {
+		switch subFrames[i].T {
+		case protocol.TSnapshot:
+			if subSnap == nil {
+				subSnap = &subFrames[i]
+			}
+		case protocol.TRewind:
+			if subRewind == nil {
+				subRewind = &subFrames[i]
+			}
+		}
 	}
-	assertSnapshotMatches(t, "overlapping Subscribe snapshot", decode[protocol.Snapshot](t, dSub), base)
-	rewindAfter := drainNow(sd)
-	if len(rewindAfter) == 0 || rewindAfter[0].T != protocol.TRewind {
-		t.Fatalf("overlapping pushRewind delivered %v, want a TRewind", frameTypes(rewindAfter))
+	if subSnap == nil {
+		t.Fatalf("overlapping Subscribe delivered %v, want a TSnapshot", frameTypes(subFrames))
 	}
-	assertSnapshotMatches(t, "overlapping pushRewind snapshot", decode[protocol.Snapshot](t, rewindAfter[0]), base)
+	assertSnapshotMatches(t, "overlapping Subscribe snapshot", decode[protocol.Snapshot](t, *subSnap), base)
+	if subRewind != nil {
+		// If the competing rewind beat Subscribe to se, that rewind still
+		// owes the same uncorrupted board.
+		assertSnapshotMatches(t, "overlapping Subscribe rewind", decode[protocol.Snapshot](t, *subRewind), base)
+	}
+	sdFrames := drainNow(sd)
+	var sdRewind *protocol.Frame
+	for i := range sdFrames {
+		if sdFrames[i].T == protocol.TRewind {
+			sdRewind = &sdFrames[i]
+			break
+		}
+	}
+	if sdRewind == nil {
+		t.Fatalf("overlapping pushRewind delivered %v, want a TRewind", frameTypes(sdFrames))
+	}
+	assertSnapshotMatches(t, "overlapping pushRewind snapshot", decode[protocol.Snapshot](t, *sdRewind), base)
 
 	// Phase E: many exclusive live projections at once must all produce a
 	// snapshot byte-identical to the single-threaded baseline — including the
