@@ -1436,6 +1436,20 @@ type Engine struct {
 	// recorded ManaAdd events.
 	manaSpentSources []state.ObjID
 
+	// manaSpentAddsCounters is the transient capture of emitRestrictedManaSpend's
+	// SPELL/ACTIVATED arm for the AddsCounters$ rider: every consumed
+	// restriction batch that carries a rider (state.ManaRestriction.AddsCounters,
+	// the producing ability's snapshot) contributes its spent unit count as one
+	// grant record, in insertion order. Unlike manaSpentSources this is NOT
+	// deduplicated by source: two units from the same permanent's rider ability
+	// are two grants, and two different abilities of the same permanent keep
+	// their own rider snapshots. payCast reads it once, synchronously, right
+	// after the payment. Nothing can suspend between the capture and the read
+	// (it emits, never asks), and Clone copies nothing of it, so a replay
+	// re-derives the same grants from the recorded ManaAdd/ManaRestriction
+	// events.
+	manaSpentAddsCounters []state.ManaAddsCounterGrant
+
 	// stackGrantCast is the in-flight cast whose OWN stack-grant walk is
 	// running (queueCascadeTriggers' cascadeInstances read, the only
 	// consumer): set around that one walk and cleared before it returns —
