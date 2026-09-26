@@ -407,10 +407,15 @@
           {controlsLive}
         />
         {#if m.view.players.length <= 2}
-          <div class="seat-pill-dock seat-zero" data-seat-pill-dock="seat-0">
+          <!-- A seated player's own pill docks in their own half (the hand
+               strip's identity bay) and the opponent's in theirs, so neither
+               lands on the viewer's hand. A spectator keeps the absolute
+               seat-0/seat-1 anchors. -->
+          {@const own = seatCtx?.seat ?? null}
+          <div class="seat-pill-dock" class:seat-zero={own === null} class:near={own === 0} class:far={own !== null && own !== 0} data-seat-pill-dock="seat-0">
             <SeatPills view={m.view} seats={m.seats} options={boardOptions} seat={0} />
           </div>
-          <div class="seat-pill-dock seat-one" data-seat-pill-dock="seat-1">
+          <div class="seat-pill-dock" class:seat-one={own === null} class:near={own === 1} class:far={own !== null && own !== 1} data-seat-pill-dock="seat-1">
             <SeatPills view={m.view} seats={m.seats} options={boardOptions} seat={1} />
           </div>
         {:else}
@@ -646,6 +651,19 @@
     top: calc(50% - var(--phase-lane-h) / 2 - 2rem);
     right: var(--sp-3);
     transform: translateY(-100%);
+  }
+  /* Seated 1v1: the viewer's pill is flush to the board's bottom-left, in
+     the --own-seat-w bay HandFan's track already leaves free (the retired
+     IdentityBar's own-seat corner); the opponent's sits top-left of the
+     enemy half, the Arena/MTGO convention. */
+  .seat-pill-dock.near {
+    bottom: 0;
+    left: 0;
+    width: var(--own-seat-w, 12rem);
+  }
+  .seat-pill-dock.far {
+    top: var(--sp-3);
+    left: var(--sp-3);
   }
   .seat-pill-dock.seat-many {
     top: var(--sp-3);
