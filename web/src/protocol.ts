@@ -75,7 +75,9 @@ export interface TableInfo {
    * reads it to recreate the same game.
    */
   mulligans: number;
-  /** Enables human payment-plan publication and the Auto Mana controls. */
+  /**
+   * AutoMana enables the human payment-plan UI for this table.
+   */
   auto_mana: boolean;
 }
 
