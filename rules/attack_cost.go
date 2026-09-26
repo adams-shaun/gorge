@@ -254,6 +254,7 @@ func (e *Engine) chargeFromCost(c Cost, source state.ObjID) (blockCharge, bool) 
 		c.Tap || c.Snow > 0 || c.X > 0 || c.Forage || c.LifeHalfUp ||
 		len(c.Unknown) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 ||
 		len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 ||
+		len(c.RevealOrChoose) > 0 ||
 		len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.Blight) > 0 ||
 		len(c.Draw) > 0 || len(c.Energy) > 0 || len(c.LifeX) > 0 ||
 		len(c.PutToLib) > 0 || len(c.DamageYou) > 0 ||

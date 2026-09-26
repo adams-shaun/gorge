@@ -148,6 +148,18 @@ type Cost struct {
 	AddCounter      []CostPart
 	Exile           []CostPart
 	Reveal          []CostPart
+	// RevealOrChoose carries Forge's either-or `RevealOrChoose<N/Spec>` cost
+	// (Monstrous Emergence, Dragon's Fire): reveal N hand cards matching Spec
+	// OR choose N permanents matching Spec you control. It is deliberately a
+	// DISTINCT slice from Reveal: the reveal arm is a real hand-card reveal
+	// (public Note, the card rides the Revealed paid list), while the choose
+	// arm elects a permanent already on the battlefield -- a different
+	// provenance that must not be read as a hand reveal. Both arms' elected
+	// objects land in the same paid list the `Revealed$<Property>` refs read
+	// (Forge's CostReveal owns both arms), but only the hand arm is announced
+	// as a reveal. Spec serves both arms (the card's own chooser reads one
+	// type for the hand card and the permanent).
+	RevealOrChoose []CostPart
 	// RevealChosen carries RevealChosen<Player> and RevealChosen<Type/...>
 	// components (Stalking Leonin, Guardian Archon, Emissary of Grudges, A
 	// Killer Among Us): the payer publicly reveals a designation that was
@@ -346,17 +358,12 @@ var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:
 
 // choiceCostRevealOrChoose additionally recognises Forge's either-or
 // `RevealOrChoose<N/Spec>` cost (Monstrous Emergence, Dragon's Fire): reveal a
-// card matching Spec from hand, OR choose a creature you control. This build
-// models the REVEAL branch only: the token parses into the ordinary Reveal
-// part, so the card is priced correctly (its old unrecognised-symbol fallback
-// charged one generic too much and dropped the reveal entirely) and the
-// revealed card is captured onto the cast's paid list, where the
-// `Revealed$<Property>` refs read it. The CHOOSE alternative is deliberately
-// not offered by this build -- it names a battlefield creature the cast
-// controls, a different provenance (a chosen permanent, not a paid card), and
-// offering neither branch would be less faithful than offering the modelled
-// one. The remainder is reported in the ticket report; no corpus carrier's
-// choose branch is silently read as the reveal list.
+// card matching Spec from hand, OR choose a permanent matching Spec you
+// control. Both arms are modelled as the distinct Cost.RevealOrChoose slice
+// (see its doc): the reveal arm is announced and its card rides the Revealed
+// paid list, the choose arm elects an already-controlled permanent and is
+// announced as a choice, never a reveal. The former unrecognised-symbol
+// fallback charged one generic too much and dropped the cost entirely.
 var choiceCostRevealOrChoose = regexp.MustCompile(`^RevealOrChoose<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 
 // revealChosenCost matches the designation-reveal cost heads. Forge has two
@@ -673,18 +680,17 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			if m := choiceCostRevealOrChoose.FindStringSubmatch(sym); m != nil {
-				// RevealOrChoose<N/Spec> pays through the REVEAL branch only (see
-				// the regex's doc): the revealed card is a real cost-paid card and
-				// rides the ordinary Reveal list, so it is captured onto the cast's
-				// paid list and answered by the `Revealed$<Property>` refs. The
-				// choose alternative is not offered by this build.
+				// RevealOrChoose<N/Spec> is an either-or cost: reveal N hand cards
+				// matching Spec OR choose N permanents matching Spec you control.
+				// It lands in its OWN slice so both arms stay distinct (the choose
+				// arm must not be read as a hand reveal); see the slice's doc.
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
 					c.Generic = addClampedGeneric(c.Generic, 1)
 					c.reportUnknown(sym)
 					continue
 				}
-				c.Reveal = append(c.Reveal, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[2], ";", ","), Desc: m[3]})
+				c.RevealOrChoose = append(c.RevealOrChoose, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[2], ";", ","), Desc: m[3]})
 				continue
 			}
 			if m := revealChosenCost.FindStringSubmatch(sym); m != nil {
@@ -1371,6 +1377,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Reveal) > 0 {
 		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
 	}
+	if len(d.RevealOrChoose) > 0 {
+		c.RevealOrChoose = append(append([]CostPart(nil), c.RevealOrChoose...), d.RevealOrChoose...)
+	}
 	if len(d.RevealChosen) > 0 {
 		c.RevealChosen = append(append([]CostPart(nil), c.RevealChosen...), d.RevealChosen...)
 	}
@@ -1934,6 +1943,18 @@ func formatCost(c Cost) string {
 		parts = append(parts, head+"<"+n+"/"+part.Spec+">")
 	}
 	appendCostParts("Reveal", c.Reveal)
+	// RevealOrChoose prints its own head so Compile/Decompile round-trips back
+	// into the distinct slice (appendCostParts' generic head would print the
+	// bare kind name and re-parse as the fallback). The optional trailing
+	// description field is preserved when present, matching the parser's
+	// three-field form.
+	for _, part := range c.RevealOrChoose {
+		head := "RevealOrChoose<" + strconv.FormatInt(int64(part.N), 10) + "/" + part.Spec
+		if part.Desc != "" {
+			head += "/" + part.Desc
+		}
+		parts = append(parts, head+">")
+	}
 	for _, part := range c.RevealChosen {
 		// RevealChosen<Player> has no trailing field; RevealChosen<Type/...>
 		// prints its description. Both are re-parseable by revealChosenCost.
@@ -2064,6 +2085,9 @@ func costPhrase(c Cost) string {
 	}
 	for _, part := range c.Reveal {
 		clauses = append(clauses, "reveal "+objectPhrase(part, "card"))
+	}
+	for _, part := range c.RevealOrChoose {
+		clauses = append(clauses, "reveal "+objectPhrase(part, "card")+" or choose "+objectPhrase(part, "permanent")+" you control")
 	}
 	for _, part := range c.RevealChosen {
 		if strings.EqualFold(part.Spec, "Player") {

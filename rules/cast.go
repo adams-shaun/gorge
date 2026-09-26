@@ -576,6 +576,18 @@ type pendingCast struct {
 	revealPart, beholdPart, tapPart, blightPart int
 	forageDone                                  bool
 
+	// revealOrChoosePart indexes pc.cost.RevealOrChoose through the same ask
+	// stage revealCostAsk drives for plain Reveal parts. reveals carries the
+	// elected object of each arm (both arms feed the `Revealed$<Property>`
+	// refs, Forge's CostReveal owning both), and revealHandArm is parallel to
+	// reveals: true for a hand card the REVEAL arm announced, false for a
+	// permanent the CHOOSE arm elected off the battlefield. Only the true
+	// entries are announced by emitChoiceCosts -- a chosen permanent is a
+	// public choice, never a reveal of a hand card. Plain Reveal parts and
+	// every other paid card append true (they reveal).
+	revealOrChoosePart int
+	revealHandArm      []bool
+
 	// ninjutsuDefender is the defender (CR 702.49b: the player, planeswalker
 	// or battle the returned creature was attacking) captured when a
 	// K:Ninjutsu activation paid its Return cost. ninjutsuHasDefender
@@ -1437,6 +1449,20 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			return false
 		}
 	}
+	// RevealOrChoose<N/Spec> is the either-or cost: the cast is payable when
+	// EITHER arm can pay -- N matching hand cards to reveal, OR N matching
+	// permanents p controls to choose. The gate is existential, not the
+	// reveal arm's alone: Monstrous Emergence must be castable with only a
+	// controlled creature and no creature card in hand. Which arm is elected
+	// is asked at payment (revealCostOrChooseAsk); here only existence is
+	// tested, and the payability of the CHOOSE arm reads the battlefield, the
+	// reveal arm the hand, exactly as revealCostOrChooseAsk offers them.
+	for _, part := range cost.RevealOrChoose {
+		hand, battlefield := e.revealOrChooseCandidates(p, id, part)
+		if len(hand) < int(part.N) && len(battlefield) < int(part.N) {
+			return false
+		}
+	}
 	// RevealChosen<Player>/<Type> parts (Stalking Leonin, Guardian Archon,
 	// Emissary of Grudges, A Killer Among Us): there is no hand choice and no
 	// mana to pay, so the ONLY gate is that the ability's source still carries
@@ -1889,6 +1915,23 @@ func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state
 	return out
 }
 
+// revealOrChooseCandidates returns the objects that can pay one
+// RevealOrChoose<N/Spec> part, hand cards first (the REVEAL arm) then
+// battlefield permanents (the CHOOSE arm). The two arms' candidate lists are
+// DISTINCT -- a card in hand is never a legal choose-arm candidate and a
+// permanent is never a legal reveal-arm candidate -- so the ask can offer
+// them as separate option kinds and the payment records which arm was used.
+// The choose arm scans the payer's own battlefield (costCandidates' zone walk
+// is controller-scoped), which is the "you control" the card text requires;
+// a permanent controlled by an opponent is not offered. One helper backs both
+// the offer gate (nonManaCastable) and the ask so the count that offered the
+// cast and the objects the payer may elect cannot disagree.
+func (e *Engine) revealOrChooseCandidates(p state.PlayerID, source state.ObjID, part CostPart) (hand, battlefield []state.ObjID) {
+	hand = e.costCandidates(p, source, state.ZHand, part.Spec, true, false)
+	battlefield = e.costCandidates(p, source, state.ZBattlefield, part.Spec, false, false)
+	return hand, battlefield
+}
+
 // sacrificeMatchSpec normalizes Forge's NICKNAME spelling to CARDNAME before
 // the source-aware filter is applied. The filter owns CARDNAME's object-ID
 // semantics; costs use this helper at both offer and payment time so the two
@@ -2105,6 +2148,9 @@ func foldAdditionalCost(cost, extra Cost) Cost {
 	}
 	if len(extra.Reveal) > 0 {
 		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
+	}
+	if len(extra.RevealOrChoose) > 0 {
+		cost.RevealOrChoose = append(append([]CostPart(nil), cost.RevealOrChoose...), extra.RevealOrChoose...)
 	}
 	if len(extra.RevealChosen) > 0 {
 		cost.RevealChosen = append(append([]CostPart(nil), cost.RevealChosen...), extra.RevealChosen...)
@@ -3006,7 +3052,7 @@ func (e *Engine) continueCast() {
 	if e.giftAsk() {
 		return
 	}
-	if e.forageAsk() || e.revealCostAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+	if e.forageAsk() || e.revealCostAsk() || e.revealCostOrChooseAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
 		return
 	}
 	// CR 601.2b: the replicate count (CR 702.55a's optional additional cost,
@@ -3294,6 +3340,9 @@ func (e *Engine) revealCostAsk() bool {
 		}
 		if len(candidates) == int(part.N) {
 			pc.reveals = append(pc.reveals, candidates...)
+			for range candidates {
+				pc.revealHandArm = append(pc.revealHandArm, true)
+			}
 			pc.revealPart++
 			continue
 		}
@@ -3305,6 +3354,81 @@ func (e *Engine) revealCostAsk() bool {
 		e.choosing = chooseCast
 		e.ask(d)
 		return true
+	}
+	return false
+}
+
+// revealCostOrChooseAsk drives the either-or `RevealOrChoose<N/Spec>` parts,
+// one at a time, through the same chooseCast suspend/resume shape
+// revealCostAsk drives. It is explicit whenever BOTH arms can pay: the payer
+// picks the arm (reveal a hand card OR choose a permanent they control) and
+// the object, even when each arm has exactly one candidate -- an either-or
+// additional cost is a real cast-time election and must not be silently
+// resolved by the engine. When only ONE arm can pay, that arm is settled by
+// the ordinary reveal rule (auto when exactly N candidates, else ask), and
+// when NEITHER arm can pay the cast aborts, exactly as revealCostAsk does.
+// The elected objects ride pc.reveals (the shared `Revealed$<Property>` paid
+// list) with a parallel pc.revealHandArm marking which arm each came from.
+func (e *Engine) revealCostOrChooseAsk() bool {
+	pc := e.cast
+	for pc.revealOrChoosePart < len(pc.cost.RevealOrChoose) {
+		part := pc.cost.RevealOrChoose[pc.revealOrChoosePart]
+		hand, battlefield := e.revealOrChooseCandidates(pc.player, pc.card, part)
+		handViable := len(hand) >= int(part.N)
+		bfViable := len(battlefield) >= int(part.N)
+		switch {
+		case !handViable && !bfViable:
+			e.abortCast(pc, "reveal-or-choose cost no longer payable; cast aborted", true)
+			return true
+		case handViable && bfViable:
+			// Both arms can pay: pose the election. Options carry their arm as
+			// the option kind so the answer records which branch paid.
+			d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+				Prompt: "Reveal a card from hand or choose a permanent you control", Source: pc.card}
+			for _, id := range hand {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "revealorchoose", Obj: id, Label: e.targetName(id)})
+			}
+			for _, id := range battlefield {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "choosecost", Obj: id, Label: e.targetName(id)})
+			}
+			e.choosing = chooseCast
+			e.ask(d)
+			return true
+		case handViable:
+			if len(hand) == int(part.N) {
+				pc.reveals = append(pc.reveals, hand...)
+				for range hand {
+					pc.revealHandArm = append(pc.revealHandArm, true)
+				}
+				pc.revealOrChoosePart++
+				continue
+			}
+			d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+				Prompt: "Choose cards to reveal", Source: pc.card}
+			for _, id := range hand {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "revealorchoose", Obj: id, Label: e.targetName(id)})
+			}
+			e.choosing = chooseCast
+			e.ask(d)
+			return true
+		default: // battlefield only
+			if len(battlefield) == int(part.N) {
+				pc.reveals = append(pc.reveals, battlefield...)
+				for range battlefield {
+					pc.revealHandArm = append(pc.revealHandArm, false)
+				}
+				pc.revealOrChoosePart++
+				continue
+			}
+			d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
+				Prompt: "Choose a permanent you control", Source: pc.card}
+			for _, id := range battlefield {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "choosecost", Obj: id, Label: e.targetName(id)})
+			}
+			e.choosing = chooseCast
+			e.ask(d)
+			return true
+		}
 	}
 	return false
 }
@@ -7407,8 +7531,27 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	case "revealcost":
 		for _, o := range chosen {
 			pc.reveals = append(pc.reveals, o.Obj)
+			pc.revealHandArm = append(pc.revealHandArm, true)
 		}
 		pc.revealPart++
+	case "revealorchoose":
+		// Either-or cost, REVEAL arm: the elected hand cards are a real public
+		// reveal (revealHandArm true; emitChoiceCosts announces them).
+		for _, o := range chosen {
+			pc.reveals = append(pc.reveals, o.Obj)
+			pc.revealHandArm = append(pc.revealHandArm, true)
+		}
+		pc.revealOrChoosePart++
+	case "choosecost":
+		// Either-or cost, CHOOSE arm: a permanent the payer controls, elected
+		// at cast time. It rides the same paid list the `Revealed$<Property>`
+		// refs read (Forge's CostReveal owns both arms) but revealHandArm is
+		// false, so emitChoiceCosts announces a choice, never a reveal.
+		for _, o := range chosen {
+			pc.reveals = append(pc.reveals, o.Obj)
+			pc.revealHandArm = append(pc.revealHandArm, false)
+		}
+		pc.revealOrChoosePart++
 	case "beholdcost":
 		for _, o := range chosen {
 			pc.beholds = append(pc.beholds, o.Obj)
@@ -9013,8 +9156,27 @@ func (e *Engine) emitChoiceCosts(pc *pendingCast) {
 		return strings.Join(out, ", ")
 	}
 	if len(pc.reveals) > 0 {
-		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
-			IDs: append([]state.ObjID(nil), pc.reveals...), Text: "revealed " + names(pc.reveals) + " as a cost"})
+		// Split the paid list by arm: an announced hand reveal (a plain Reveal
+		// card, the REVEAL arm of an either-or cost, or any legacy entry with no
+		// arm recorded) is a public reveal; a permanent elected by the CHOOSE
+		// arm is a public CHOICE, never a reveal of a hand card. Both ride the
+		// same paid list the `Revealed$<Property>` refs read.
+		var revealed, chosen []state.ObjID
+		for i, id := range pc.reveals {
+			if i < len(pc.revealHandArm) && !pc.revealHandArm[i] {
+				chosen = append(chosen, id)
+			} else {
+				revealed = append(revealed, id)
+			}
+		}
+		if len(revealed) > 0 {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+				IDs: append([]state.ObjID(nil), revealed...), Text: "revealed " + names(revealed) + " as a cost"})
+		}
+		if len(chosen) > 0 {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+				IDs: append([]state.ObjID(nil), chosen...), Text: "chose " + names(chosen) + " as a cost"})
+		}
 	}
 	// RevealChosen<Player>/<Type> parts: the payer's secret designation is
 	// made public as the cost is paid. One public Note per part, naming the
@@ -10770,7 +10932,7 @@ func (e *Engine) castWindowSelfSacCost(p state.PlayerID, source state.ObjID, c C
 // refused, as is any token the parser did not understand.
 func castWindowOtherPartsAbsent(c Cost) bool {
 	return len(c.Discard) == 0 && len(c.SubCounter) == 0 && len(c.AddCounter) == 0 &&
-		len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.RevealChosen) == 0 &&
+		len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.RevealOrChoose) == 0 && len(c.RevealChosen) == 0 &&
 		len(c.Behold) == 0 && len(c.TapPermanent) == 0 && len(c.Blight) == 0 &&
 		len(c.Exert) == 0 && !c.Forage && !c.LifeHalfUp && len(c.Draw) == 0 &&
 		len(c.Energy) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0 &&
