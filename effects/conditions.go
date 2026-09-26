@@ -481,6 +481,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
 		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" &&
 		defined != "Returned" && defined != "ChosenCard" && defined != "TriggeredSourceLKICopy" &&
+		defined != "RememberedLKI" &&
 		defined != "TriggeredSpellAbility" {
 		// Only the Remembered, Self, TriggeredCard, Imprinted, Targeted,
 		// Discarded, Returned and ChosenCard families are in scope among DEFINED groups:
@@ -508,6 +509,21 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	sc := c.SpecContext(c.Controller)
 	count := 0
 	group := rememberedWithSource(h, c)
+	if defined == "RememberedLKI" {
+		// ConditionDefined$ RememberedLKI (Nurturing Pixie's
+		// `ConditionDefined$ RememberedLKI | ConditionPresent$ Card.Permanent`
+		// gate on the put-counter sub): the LKI spelling of the Remembered
+		// group. It must enumerate the SAME capture-excluding set the
+		// Defined$ RememberedLKI resolver and the count path's refTargets
+		// use (rememberedLKIGroup, effects/count.go) -- a default
+		// rememberedWithSource group here would read the trigger's fire-time
+		// capture (the triggering permanent itself) as memory and satisfy the
+		// gate when the resolution remembered nothing. This value was
+		// previously absent from the supported set, so the whole gate was
+		// UNRESOLVED and every such sub ran unconditionally; routing it
+		// through the one shared helper is what fixes the reported card.
+		group = rememberedLKIGroup(h, c)
+	}
 	if defined == "ChosenCard" {
 		// Use the same in-flight or event-backed binding as Defined$ ChosenCard.
 		// An absent binding/source stays unresolved (and therefore fail-open);
