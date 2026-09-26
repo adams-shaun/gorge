@@ -438,7 +438,16 @@ func Apply(g *state.Game, e Event) {
 		if validPlayer(g, e.Player) {
 			ids := g.Zone(state.ZPlanarDeck, e.Player)
 			if len(ids) > 0 {
-				if len(ids) > 1 {
+				if len(e.IDs) > 0 {
+					// A Defined$ planeswalk names its destination(s): move each
+					// named plane to the front (in the order named), keeping
+					// every other plane's relative order. The previously-current
+					// plane stays in the zone where it was, which is what
+					// DontPlaneswalkAway$'s "don't planeswalk away" leaves
+					// behind (Norn's Seedcore); the away trigger itself is
+					// suppressed separately by the event's Amount flag.
+					ids = planarWalkToOrder(ids, e.IDs)
+				} else if len(ids) > 1 {
 					ids = append(append([]state.ObjID(nil), ids[1:]...), ids[0])
 				}
 				for _, id := range ids {
@@ -452,6 +461,13 @@ func Apply(g *state.Game, e Event) {
 				g.SetZone(state.ZPlanarDeck, e.Player, ids)
 			}
 		}
+
+	case ChaosEnsues:
+		// The chaos-ensues marker (CR 901.9, task planar-verbs) is a pure
+		// marker, exactly like PlanarRoll: no state folds. The current plane's
+		// chaos ability is an ordinary triggered ability (Mode$ ChaosEnsues)
+		// that rules' trigger walk queues when this marker is checked, so the
+		// logged event is the record and replay re-derives the trigger queue.
 
 	case MonarchChange:
 		if validPlayer(g, e.Player) {
@@ -4069,6 +4085,34 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 //     it continuously since their most recent turn began. TurnChange clears it
 //     from the active player's list, i.e. at its new controller's next turn.
 //
+// planarWalkToOrder is the Defined$ planeswalk fold's destination move: each
+// named destination plane is moved to the front of ids in the order named,
+// and every plane not named keeps its relative order after them. A
+// destination not present in the zone is skipped (a stale remembered card),
+// and duplicates are placed once. The result is a permutation of the input,
+// so the fold can never lose or duplicate a plane.
+func planarWalkToOrder(ids, dests []state.ObjID) []state.ObjID {
+	inZone := make(map[state.ObjID]bool, len(ids))
+	for _, id := range ids {
+		inZone[id] = true
+	}
+	out := make([]state.ObjID, 0, len(ids))
+	placed := make(map[state.ObjID]bool, len(dests))
+	for _, d := range dests {
+		if !inZone[d] || placed[d] {
+			continue
+		}
+		placed[d] = true
+		out = append(out, d)
+	}
+	for _, id := range ids {
+		if !placed[id] {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 // withoutObjID returns ids without id, retaining its order and avoiding an
 // allocation when no entry matches. ExiledCards is a short insertion-ordered
 // relation, so an ordered slice preserves deterministic selector results.

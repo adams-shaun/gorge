@@ -999,17 +999,39 @@ const (
 	// PlanarReveal publicly turns the top planar-deck card face up.
 	// Appended here after PlanarDeckShuffle; earlier ordinals remain stable.
 	PlanarReveal
-	// PlanarWalk rotates the current plane to the bottom and reveals the next.
-	// Appended here after PlanarReveal; earlier ordinals remain stable.
+	// PlanarWalk planeswalks a seat to a plane (CR 901.8): Player is the
+	// walking seat, Obj the plane being walked AWAY from (0 when there is
+	// none, so the away trigger has no source), and IDs the destination
+	// plane(s) of a Defined$ planeswalk (empty for the ordinary rotation,
+	// which takes the next plane of the deck). Amount carries
+	// PlanarWalkDontPlaneswalkAway when the walk's DontPlaneswalkAway$ True
+	// suppresses the away-from trigger (Norn's Seedcore). Appended here
+	// after PlanarReveal; earlier ordinals remain stable.
 	PlanarWalk
 	// Specialize records a permanent's chosen specialization face. Amount is
 	// the destination face index; Apply bounds-checks it just like FlipFace.
 	Specialize
+	// ChaosEnsues marks the moment chaos ensues on a seat's current plane
+	// (CR 901.9): Player is the seat whose planar deck owns the plane, Obj
+	// that seat's current plane object. It is an Apply no-op marker like
+	// PlanarRoll: the plane's chaos ability is an ordinary triggered ability
+	// (Mode$ ChaosEnsues) that the trigger walk queues when this marker is
+	// checked. Emitted by rules when a kept planar-die result shows the chaos
+	// face, and by effects' DB$ ChaosEnsues (the "Will of the Planeswalkers"
+	// cycle). Appended here after Specialize; earlier ordinals remain stable.
+	ChaosEnsues
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(Specialize) + 1
+	NumKinds = int(ChaosEnsues) + 1
 )
+
+// PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
+// DB$ Planeswalk carried DontPlaneswalkAway$ True, so the walk does not fire
+// the walked-away-from plane's PlaneswalkedFrom ability (CR 901.8; Norn's
+// Seedcore's "don't planeswalk away from any plane"). It is not a count, so
+// the only defined values are 0 (absent) and this flag.
+const PlanarWalkDontPlaneswalkAway int32 = 1
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
 // under-card's own Triggers index; the pile index sits above it. Both are
@@ -1145,7 +1167,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static",
 	"damage_provenance", "enduring_story_change", "phase_out", "gift_promise", "give_gift", "roll_dice",
 	"proliferate", "evolved", "delayed_forget", "card_noted", "cascade", "clash",
-	"planar_deck_shuffle", "planar_reveal", "planar_walk", "specialize"}
+	"planar_deck_shuffle", "planar_reveal", "planar_walk", "specialize", "chaos_ensues"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

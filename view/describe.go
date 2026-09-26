@@ -262,6 +262,15 @@ func Describe(g *state.Game, ev events.Event) string {
 		return obj(g, ev.Obj) + " is revealed as the current plane"
 	case events.PlanarWalk:
 		return "Planeswalk to the next plane"
+	case events.ChaosEnsues:
+		// CR 901.9 (task planar-verbs): the chaos-ensues marker. Obj is the
+		// plane it erupts on when the emitter resolved one (the roll path and
+		// the DB$ ChaosEnsues verb both do; the Describe-coverage fuzz may
+		// carry a zero Obj, so the bare form stays grammatical).
+		if ev.Obj != 0 {
+			return obj(g, ev.Obj) + " erupts in chaos"
+		}
+		return "Chaos ensues"
 	case events.RollDice:
 		// The roll-action PROPOSAL (task rolldice-repl) is never logged -- the
 		// per-die Notes are the roll's transcript lines -- but the Describe-

@@ -2920,6 +2920,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if onlyEventBatch {
 		e.closeDamageBatch()
 	}
+	if stored.Kind == events.PlanarRoll {
+		// CR 901.4 (task planar-verbs): a completed planar-dice roll's kept
+		// results have their consequences — the planeswalk face walks the
+		// roller to the next plane, the chaos face makes chaos ensue on the
+		// roller's current plane. The record above is logged, so the nested
+		// PlanarWalk/ChaosEnsues events follow it in the log deterministically.
+		e.planarRollConsequences(stored)
+	}
 	if ev.Kind == events.Tap && !e.tapIsEntryState(ev) {
 		// Recorded after the triggers above were matched, so a FirstTime$
 		// trigger sees whether an EARLIER tap happened this turn.
