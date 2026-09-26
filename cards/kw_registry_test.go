@@ -124,6 +124,12 @@ var expandedHeads = []string{
 	// the end-step exile, and redirect any departure to exile. Added after
 	// the split; the pre-split switch never expanded it.
 	"Unearth",
+	// Outlast (CR 702.107, task agent-20260920T061844Z-8c4b9690): the
+	// printed K:Outlast:<cost> line expanded into one ordinary sorcery-speed
+	// PutCounter activation -- Cost$ T <mana> (the CR 702.107a {T} plus the
+	// printed mana), one P1P1 counter on Self (cards/kw_outlast.go). Added
+	// after the split; the pre-split switch never expanded it.
+	"Outlast",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
