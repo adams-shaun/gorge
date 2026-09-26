@@ -95,6 +95,31 @@ Types:Artifact
 Oracle:x
 `
 
+// acrSameColourTotemSrc has TWO {R} mana abilities of the SAME colour: the
+// first is rider-LESS but restricted to spells (so it, too, is a real
+// provenance batch spendable on a creature spell), the second carries the
+// rider. Both produce {R}, so a same-colour ordinary unit genuinely competes
+// with the rider unit while mana is present. The carve consumes matching
+// batches in insertion order, so the first-produced unit is the one paid and
+// the rider unit stays in the pool: this is the unit-level distinction a
+// different-colour fixture cannot make.
+const acrSameColourTotemSrc = `Name:Red Totem
+ManaCost:no cost
+Types:Land
+A:AB$ Mana | Cost$ T | Produced$ R | RestrictValid$ Spell | SpellDescription$ Add {R}. Spend this mana only to cast a spell.
+A:AB$ Mana | Cost$ T | Produced$ R | AddsCounters$ Card.Creature_P1P1_1 | SpellDescription$ Add {R}. If this mana is spent to cast a creature spell, that creature enters with an additional +1/+1 counter on it.
+Oracle:x
+`
+
+// acrSameColourCreatureSrc is a one-red creature payable by either of the
+// totem's {R} abilities.
+const acrSameColourCreatureSrc = `Name:Same Colour Beast
+ManaCost:R
+Types:Creature Beast
+PT:2/2
+Oracle:x
+`
+
 // activateAnyRider activates the AddsCounters$-bearing mana ability on obj,
 // answering the ability wheel (only posed when the source has more than one
 // mana ability) with that ability and then the colour ask with the requested
@@ -189,6 +214,9 @@ func TestBiophagusAddsCountersPaysCreatureNotArtifact(t *testing.T) {
 	}
 	if len(e.G.Players[0].RestrictedMana) != 0 {
 		t.Fatalf("precondition: the rider batch was not consumed by the artifact cast: %+v", e.G.Players[0].RestrictedMana)
+	}
+	if got := ro.Counter("P1P1"); got != 0 {
+		t.Fatalf("Plain Relic counters after the Biophagus rider mana paid = %d, want 0 (Card.Creature fails)", got)
 	}
 
 	// Positive: untap, produce another rider unit, and pay for a creature.
@@ -324,6 +352,88 @@ func TestGuildmagesForumAddsCountersPaysMultiColorNotMono(t *testing.T) {
 	}
 	if got := go2.Counter("P1P1"); got != 1 {
 		t.Fatalf("Gold Beast counters after the multicolour rider mana paid = %d, want 1", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestAddsCountersRiderSameColourUnitIsNotPaid pins the UNIT-level
+// non-attribution the different-colour sibling cannot: a rider-less {R} batch
+// and a rider-bearing {R} batch of the SAME colour are both in the pool
+// simultaneously. The carve consumes matching batches in insertion order, so
+// with the rider-less unit produced first it is the unit the creature cast
+// spends, and the creature gets no counter even though a same-colour rider
+// unit is present and the permanent carries the rider. The positive half then
+// spends the rider unit itself and gets the counter, proving the distinction is
+// which unit was paid, not a blanket suppression.
+func TestAddsCountersRiderSameColourUnitIsNotPaid(t *testing.T) {
+	e, cfg := riderGame(t, 604,
+		card(t, acrSameColourTotemSrc), card(t, acrSameColourCreatureSrc), card(t, acrSameColourCreatureSrc))
+	totem := moveToBattlefieldByName(t, e, 0, "Red Totem")
+	beast := moveSeededToHand(t, e, 0, "Same Colour Beast")
+
+	if o := e.G.Obj(totem); o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+		t.Fatalf("precondition: Red Totem = %+v, want untapped on the battlefield", o)
+	}
+	noRider := riderManaAbilityIndex(t, e, totem, false)
+	rider := riderManaAbilityIndex(t, e, totem, true)
+
+	// Produce the rider-LESS same-colour unit first, then the rider unit, so
+	// insertion order makes the rider-less unit the one the carve charges.
+	activateRiderMana(t, e, totem, noRider)
+	untapRider(t, e, totem)
+	activateRiderMana(t, e, totem, rider)
+	b := e.G.Players[0].RestrictedMana
+	if len(b) != 2 {
+		t.Fatalf("precondition: provenance batches = %d, want 2 same-colour units", len(b))
+	}
+	if b[0].Source != totem || b[0].Color != "R" || strings.TrimSpace(b[0].AddsCounters) != "" {
+		t.Fatalf("precondition: batch[0] = %+v, want the rider-less same-colour {R} unit", b[0])
+	}
+	if b[1].Source != totem || b[1].Color != "R" || strings.TrimSpace(b[1].AddsCounters) == "" {
+		t.Fatalf("precondition: batch[1] = %+v, want the rider-bearing same-colour {R} unit", b[1])
+	}
+	if got := e.G.Players[0].Pool[state.MR]; got != 2 {
+		t.Fatalf("precondition: pool R = %d, want 2 (both same-colour units present)", got)
+	}
+
+	// Negative: pay the creature with the rider-less unit; the rider unit must
+	// stay unspent, so the creature gets no counter.
+	castSeeded(t, e, beast)
+	passUntilStackEmpty(t, e, 30)
+	bo := e.G.Obj(beast)
+	if bo == nil || bo.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Same Colour Beast zone = %v, want the battlefield", bo.Zone)
+	}
+	if got := bo.Counter("P1P1"); got != 0 {
+		t.Fatalf("Same Colour Beast counters after the rider-less same-colour unit paid = %d, want 0", got)
+	}
+	rem := e.G.Players[0].RestrictedMana
+	if len(rem) != 1 || rem[0].Source != totem || strings.TrimSpace(rem[0].AddsCounters) == "" {
+		t.Fatalf("precondition: remaining batches = %+v, want the rider unit still unspent (proving it was not the unit paid)", rem)
+	}
+	if got := e.G.Players[0].Pool[state.MR]; got != 1 {
+		t.Fatalf("precondition: pool R after the rider-less unit paid = %d, want 1", got)
+	}
+
+	// Positive: return a second copy and spend the rider unit itself.
+	e.emit(events.Event{Kind: events.Untap, Obj: totem})
+	e.pending = nil
+	e.Advance()
+	beast2 := moveSeededToHand(t, e, 0, "Same Colour Beast")
+	if beast2 == beast {
+		t.Fatalf("precondition: expected a second Same Colour Beast, got the same object %d", beast)
+	}
+	castSeeded(t, e, beast2)
+	passUntilStackEmpty(t, e, 30)
+	bo2 := e.G.Obj(beast2)
+	if bo2 == nil || bo2.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: second Same Colour Beast zone = %v, want the battlefield", bo2.Zone)
+	}
+	if len(e.G.Players[0].RestrictedMana) != 0 {
+		t.Fatalf("precondition: the rider unit was not consumed by the second cast: %+v", e.G.Players[0].RestrictedMana)
+	}
+	if got := bo2.Counter("P1P1"); got != 1 {
+		t.Fatalf("second Same Colour Beast counters after the rider unit paid = %d, want 1", got)
 	}
 	replayCheck(t, e, cfg)
 }
