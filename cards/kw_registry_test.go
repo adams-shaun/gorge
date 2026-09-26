@@ -118,6 +118,12 @@ var expandedHeads = []string{
 	// Cipher: printed spell encode appended as the resolving spell's own tail
 	// instruction, plus a runtime encoded-creature trigger.
 	"Cipher",
+	// Unearth (CR 702.84, task kw-unearth): the printed K:Unearth:<cost>
+	// line expanded into the card's own graveyard activated ability
+	// (cards/kw_unearth.go), whose rules-side riders grant haste, register
+	// the end-step exile, and redirect any departure to exile. Added after
+	// the split; the pre-split switch never expanded it.
+	"Unearth",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
