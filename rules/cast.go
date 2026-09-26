@@ -8781,37 +8781,62 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	}
 	// CR 202.3e: the spell's mana value counts {X} at the chosen value, and
 	// is a property of the card's printed mana cost -- never the alternative
-	// cost (flashback) it may be paid with.
-	printed := ParseCost(o.Face().ManaCost)
-	mv := printed.CMC()
-	if printed.X > 0 {
-		mv = printed.WithX(pc.x).CMC()
+	// cost (flashback) it may be paid with. restrictionOnFace evaluates the
+	// same continuous-gate + ValidCard grammar the offer's
+	// castRestrictedUsing runs, against one face, with that face's mana
+	// value: the offer reads the front face for the ordinary cast and, for a
+	// fuse cast, BOTH halves through castRestrictedAsFace (CR 709.5), so the
+	// recheck must answer with the same both-halves rule or an offered cast
+	// would abort here (or a prohibited one would slip through). offerAsFace
+	// is the scoped read the offer probes with; for the front face it is a
+	// no-op.
+	restrictionOnFace := func(face *cards.Face) bool {
+		if face == nil {
+			return false
+		}
+		printed := ParseCost(face.ManaCost)
+		mv := printed.CMC()
+		if printed.X > 0 {
+			mv = printed.WithX(pc.x).CMC()
+		}
+		return e.offerAsFace(pc.card, face, func() bool {
+			for _, sv := range e.castRestrictionSources(e.activeStatics("CantBeCast"), pc.card) {
+				if !e.actorMatches(sv, "Caster", pc.player) {
+					continue
+				}
+				// The same shared continuous gate castRestrictedUsing runs: the
+				// CR 608.2b recheck must answer with the ONE grammar the offer
+				// answered with, or a cast offered under a false gate would abort
+				// here (and vice versa). It subsumes the checkSVarHolds the caller
+				// used to run separately.
+				if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
+					continue
+				}
+				sc := e.specCtx(sv.Source, sv.Controller)
+				sc.HasManaValue = true
+				sc.ManaValue = mv
+				if e.matchesSpec(sv.Params["ValidCard"], pc.card, sc) {
+					return true
+				}
+			}
+			return false
+		})
 	}
-	for _, sv := range e.castRestrictionSources(e.activeStatics("CantBeCast"), pc.card) {
-		if !e.actorMatches(sv, "Caster", pc.player) {
-			continue
+	restricted := restrictionOnFace(o.Face())
+	if !restricted && pc.mode == "fuse" {
+		if _, fa := fusedSplitFaces(o); fa != nil {
+			restricted = restrictionOnFace(fa)
 		}
-		// The same shared continuous gate castRestrictedUsing runs: the
-		// CR 608.2b recheck must answer with the ONE grammar the offer
-		// answered with, or a cast offered under a false gate would abort
-		// here (and vice versa). It subsumes the checkSVarHolds the caller
-		// used to run separately.
-		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
-			continue
-		}
-		sc := e.specCtx(sv.Source, sv.Controller)
-		sc.HasManaValue = true
-		sc.ManaValue = mv
-		if e.matchesSpec(sv.Params["ValidCard"], pc.card, sc) {
-			// suppress=true, not false: an illegal-proposal abort is a
-			// no-progress reversal (CR 733.1) exactly like every other abort
-			// site, so it rides the same F05-2 (CR 733.2) discipline -- first
-			// identical abort retryable, second holds the option out of the
-			// window. With false, a seat that re-picks the same X (the only
-			// value it knows) re-announces the same illegal spell forever.
-			e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", true)
-			return true
-		}
+	}
+	if restricted {
+		// suppress=true, not false: an illegal-proposal abort is a
+		// no-progress reversal (CR 733.1) exactly like every other abort
+		// site, so it rides the same F05-2 (CR 733.2) discipline -- first
+		// identical abort retryable, second holds the option out of the
+		// window. With false, a seat that re-picks the same X (the only
+		// value it knows) re-announces the same illegal spell forever.
+		e.abortCast(pc, "cast aborted: proposed spell is illegal (CR 601.2e)", true)
+		return true
 	}
 	// Target-conditional CastWithFlash (task istargeting-flash): a spell
 	// announced at a time a sorcery could not have been cast on the strength
