@@ -2910,6 +2910,17 @@ var knownUnsupportedParams = map[string][]string{
 	"Glacial Chasm":         {"param:api:Sacrifice.ChangeNum"},
 	"Green Sun's Zenith":    {"param:api:ChangeZone.AIXMax"},
 	"Natural Order":         {"param:api:ChangeZone.AISearchGoal"},
+	// The Science! (pip) Commander precon import (2026-09-26,
+	// internal/testutil/decks/science-pip.json). Its 90 distinct cards expose
+	// exactly two parameter gaps, both measured by the first ratchet run; the
+	// deck added no primitive gap (C.A.M.P.'s kw:Fortify was already
+	// implemented). Overencumbered's cost token Y is the {Y} Phyrexian-style
+	// generic payment ParseCost does not model; Expert-Level Safe's
+	// ChooseNumber Secretly/MatchedAbility/UnmatchedAbility shape is a
+	// face-down guessed-number ask this build never poses (the card is
+	// otherwise fully registered).
+	"Expert-Level Safe": {"param:api:ChooseNumber.MatchedAbility", "param:api:ChooseNumber.Secretly", "param:api:ChooseNumber.UnmatchedAbility"},
+	"Overencumbered":    {"cost:Y"},
 }
 
 // TestEveryRepoDeckParamsAreRead is the parameter ratchet: every card across
