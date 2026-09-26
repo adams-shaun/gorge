@@ -114,6 +114,15 @@ var builtinSVars = map[string]string{
 	// makes the ask declinable -- a decline leaves the card exiled, which is
 	// exactly CR 702.95's result.
 	"__kwReboundCast": "DB$ Play | Valid$ Card.Self | ValidZone$ Exile | WithoutManaCost$ True | Optional$ True",
+	// Blitz (CR 702.152c-d): the cast-for-blitz permanent is sacrificed at
+	// the beginning of the next end step. The registration's Source is the
+	// permanent itself, so Defined$ Self is it.
+	"__kwBlitzSacrifice": "DB$ Sacrifice | Defined$ Self",
+	// Blitz (CR 702.152c): the cast-for-blitz permanent has "When this
+	// creature dies, draw a card." rules/altcast.go's blitzEnter registers a
+	// ContinuousEffect whose AddTrigger$ names this SVar, so the body is
+	// resolved against the permanent's own face (or this builtin fallback).
+	"__kwBlitzDraw": "DB$ Draw | NumCards$ 1",
 }
 
 // ResolveSVar compiles the ability an SVar name refers to, recursively

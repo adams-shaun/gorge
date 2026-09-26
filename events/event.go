@@ -1519,6 +1519,11 @@ var flagNames = [...]struct {
 	// moveResolvedOffStack. Appended at the end per the table's own ordering
 	// rule.
 	{"rebound", state.FlagRebound},
+	// The K:Blitz alternative-cost cast (CR 702.152a): the flag is the
+	// provenance rules/altcast.go's entry hook (blitzEnter) reads for the
+	// haste grant, the dies-draw granted trigger and the next-end-step
+	// sacrifice. Appended at the end per the table's own ordering rule.
+	{"blitzed", state.FlagBlitzed},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

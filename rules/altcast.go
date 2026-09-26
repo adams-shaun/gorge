@@ -14,6 +14,12 @@
 //     delayed trigger registered here and resolved through the ordinary
 //     DelayedPush machinery with the __kwDashReturn builtin SVar
 //     (cards/link.go).
+//   - Blitz (CR 702.152c-d): "it gains haste and 'When this creature dies,
+//     draw a card.' Sacrifice it at the beginning of the next end step." The
+//     haste is the Dash UntilEOT grant, the dies-draw is a runtime-granted
+//     AddTrigger$ (rules/blitz.go's blitzEnter, the builtin __kwBlitzDraw
+//     body) and the sacrifice is a delayed trigger with the builtin
+//     __kwBlitzSacrifice body.
 //   - Warp: "exile this creature at the beginning of the next end step,
 //     then you may cast it from exile on a later turn" -- a delayed trigger
 //     registers the exile (__kwWarpExile), and legal.go's exile walk offers
@@ -99,6 +105,11 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		})
 		e.emit(events.Event{Kind: events.DelayedRegister, Obj: ev.Obj,
 			Player: o.Controller, Step: state.StepEnd, Counter: "__kwDashReturn"})
+	}
+	if o.CastFlags&state.FlagBlitzed != 0 {
+		// CR 702.152c-d: a blitzed creature gains haste and the dies-draw
+		// trigger, and is sacrificed at the beginning of the next end step.
+		e.blitzEnter(ev.Obj, o.Controller)
 	}
 	if o.CastFlags&state.FlagWarped != 0 {
 		e.emit(events.Event{Kind: events.DelayedRegister, Obj: ev.Obj,

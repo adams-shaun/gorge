@@ -355,6 +355,18 @@ const (
 	// follows the flag, not the other way round.
 	// Appended per the enum's own append-only precedent.
 	FlagRebound
+	// FlagBlitzed marks a cast paid for with the card's Blitz cost (CR
+	// 702.152a): the spell was cast from hand (or, via a MayPlay$ Spell.Blitz
+	// static, from a graveyard) for the keyword's alternative cost. The
+	// permanent it becomes gains haste and "When this creature dies, draw a
+	// card", and is sacrificed at the beginning of the next end step -- all
+	// read by rules/altcast.go's entry hook (blitzEnter). It IS a
+	// CastProvenanceFlag: the whole rider package is conditioned on the spell
+	// having been CAST for its blitz cost ("If you cast this spell for its
+	// blitz cost"), so a stack copy -- put on the stack, never cast
+	// (CR 707.10) -- must not inherit it. Appended per the enum's own
+	// append-only precedent.
+	FlagBlitzed
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -388,7 +400,7 @@ const (
 // conditioned on the cast ("If you cast this spell from your hand, exile it
 // as it resolves"), so a stack copy -- never cast, its origin a stack mint
 // rather than a hand -- resolves without the exile-and-promise.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound | FlagBlitzed
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it

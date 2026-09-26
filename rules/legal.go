@@ -2230,7 +2230,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// graveyard and -- after an end-step exile -- from exile, in the walks
 		// below.
 		for _, ka := range [...]struct{ mode, head string }{
-			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"}, {"warped", "Warp"},
+			{"evoked", "Evoke"}, {"dashed", "Dash"}, {"overloaded", "Overload"}, {"warped", "Warp"}, {"blitzed", "Blitz"},
 		} {
 			alt, ok := keywordAltCost(f, ka.head)
 			if !ok || (ka.mode != "overloaded" && !targetsAvailable) ||
@@ -2388,7 +2388,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// ValidSA$ is the ordinary permission, so this splits the historical
 		// single offer into its plain and mutate halves without changing any
 		// unrestricted grant's behaviour.
-		plain, mutate := e.mayPlayKinds(p, id)
+		plain, mutate, blitz := e.mayPlayKinds(p, id)
 		if plain && e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			base := e.rawBaseCost(p, id)
 			if free, ok := e.mayPlayGrant(p, id); ok && free {
@@ -2432,6 +2432,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				offerCastable(p, id, mc, spellScope("mutated"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: "Cast " + f.Name + " (mutated)", Obj: id, Mode: "mutated"})
+			}
+		}
+		// Blitz half: the permission names the blitz cast (Sabin, Master Monk's
+		// `ValidSA$ Spell.Blitz`, "You may cast CARDNAME from its graveyard
+		// using its blitz ability"). CR 702.152a's alternative cost replaces
+		// the mana cost, so the graveyard offer prices the printed K:Blitz
+		// parameter (including its Discard<1/Card> part) through the same
+		// keywordAltCost the hand walk uses; beginCast's "blitzed" case charges
+		// exactly that cost, so offer and charge cannot drift.
+		if blitz {
+			if bc, ok := keywordAltCost(f, "Blitz"); ok &&
+				e.castTargetsAvailable(p, id, f.SpellAbility()) &&
+				offerCastable(p, id, bc, spellScope("blitzed"), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (blitzed)", Obj: id, Mode: "blitzed"})
 			}
 		}
 	}

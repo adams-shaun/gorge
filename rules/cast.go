@@ -2453,7 +2453,7 @@ func (e *Engine) beginCastWithPayment(p state.PlayerID, opt decision.Option, sel
 		if e.HasKeyword(id, "Jump-start") {
 			cost = cost.Plus(jumpstartExtra())
 		}
-	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
+	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed", "blitzed":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
 		// Miracle shape. Evoke and Madness casts come from hand and exile
@@ -2462,7 +2462,7 @@ func (e *Engine) beginCastWithPayment(p state.PlayerID, opt decision.Option, sel
 		// only a hand-built option) falls back to the empty cost rather than
 		// charging the printed mana cost.
 		head := map[string]string{"evoked": "Evoke", "dashed": "Dash",
-			"overloaded": "Overload", "warped": "Warp", "madness": "Madness"}[opt.Mode]
+			"overloaded": "Overload", "warped": "Warp", "madness": "Madness", "blitzed": "Blitz"}[opt.Mode]
 		if opt.Mode == "bestowed" {
 			// Bestow goes through the ONE resolver the offer gate used
 			// (rules/bestow.go's bestowCost: the colon cut and the Unknown
@@ -7564,6 +7564,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagEvoked)
 	case "dashed":
 		return events.FlagsString(state.FlagDashed)
+	// Blitz (CR 702.152a): the flag is what the ETB machinery
+	// (altCostEnter -> blitzEnter) reads for the haste grant, the dies-draw
+	// granted trigger and the next-end-step sacrifice. It is a
+	// CastProvenanceFlag (state/object.go), so a stack copy does not inherit
+	// it.
+	case "blitzed":
+		return events.FlagsString(state.FlagBlitzed)
 	case "overloaded":
 		return events.FlagsString(state.FlagOverloaded)
 	case "warped":

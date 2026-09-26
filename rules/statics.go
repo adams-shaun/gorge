@@ -2711,10 +2711,15 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 
 // spellConstraintMatches checks one ValidSpell$ Spell.* constraint against a
 // cast. The constraints the engine can evaluate: bare (any spell), the cast
-// variant modes the cast flow names, and the card types Instant/Sorcery.
-// Everything else — Bargain, Buyback, Blitz, Dash, isCastFaceDown,
-// IsTargeting, MayPlaySource — is a casting option or target shape this
-// build does not model, and denies.
+// variant modes the cast flow names (Flashback, Kicked, ...), and the card
+// types Instant/Sorcery. Everything else — Bargain, Buyback, the Blitz/Dash
+// alternative casts, isCastFaceDown, IsTargeting, MayPlaySource — is a
+// casting option or target shape this function does not read, and denies.
+// (Blitz and Dash are real cast modes elsewhere -- legal.go offers them and
+// beginCast charges them -- but a cost static's ValidSpell$ constraint has no
+// case for their modes here; the one corpus carrier is Henzie, Toolbox
+// Torre's "Blitz costs you pay cost {1} less" ReduceCost, reported in the
+// ticket's Issues.)
 func (e *Engine) spellConstraintMatches(scope costScope, id state.ObjID, constraint string) bool {
 	switch strings.TrimSpace(constraint) {
 	case "":
