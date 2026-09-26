@@ -150,3 +150,51 @@ func TestCachePruningKeepsNewestBoundsSiblingGrowth(t *testing.T) {
 		t.Fatalf("prune removed the cache it was called to keep: %v", left)
 	}
 }
+
+// TestCachedPathsFollowTheOpenedDirectory pins the removed-worktree case: a
+// cache compiled through one corpus path and loaded through another (the
+// shared .cards opened via a different worktree's symlink, or the compiling
+// worktree since removed) must name script files under the directory this
+// process opened, or host's feedback capture cannot read a token back.
+func TestCachedPathsFollowTheOpenedDirectory(t *testing.T) {
+	base := t.TempDir()
+	first := filepath.Join(base, "first")
+	writeScript(t, first, "mountain.txt", "Name:Mountain\nTypes:Basic Land Mountain\nOracle:\n")
+	tokens := filepath.Join(first, "tokenscripts")
+	if err := os.MkdirAll(tokens, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tokens, "c_1_1_thopter.txt"),
+		[]byte("Name:Thopter Token\nTypes:Artifact Creature Thopter\nPT:1/1\nOracle:\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := openCorpus(first, "0123456789abcdef0123456789abcdef"); err != nil {
+		t.Fatal(err)
+	}
+	second := filepath.Join(base, "second")
+	if err := os.Rename(first, second); err != nil {
+		t.Fatal(err)
+	}
+	r, err := openCorpus(second, "0123456789abcdef0123456789abcdef")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Tokens) == 0 {
+		t.Fatal("no tokens compiled; the fixture token script did not parse")
+	}
+	check := func(what, p string) {
+		t.Helper()
+		if !strings.HasPrefix(p, second+string(filepath.Separator)) {
+			t.Errorf("%s path %q does not follow the opened directory %q", what, p, second)
+		}
+		if _, err := os.Stat(p); err != nil {
+			t.Errorf("%s path unreadable: %v", what, err)
+		}
+	}
+	for _, c := range r.Cards {
+		check("card", c.Path)
+	}
+	for stem, c := range r.Tokens {
+		check("token "+stem, c.Path)
+	}
+}
