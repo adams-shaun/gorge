@@ -189,6 +189,43 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	return out
 }
 
+// mayhemLandPlayIds returns the ids of lands in player p's graveyard that the
+// bare, parameterless K:Mayhem permission makes playable this turn -- the
+// "you may play this card from your graveyard if you discarded it this turn"
+// land shape (Oscorp Industries is the sole corpus carrier). A land play is
+// NOT a cast, so this is deliberately separate from mayhemCastCost, which
+// withholds an empty parameter; the two cannot drift because a card's K:Mayhem
+// is either a priced cast or the bare play permission, never both. The
+// once-per-turn land-drop gate is the same sorcerySpeed &&
+// LandsPlayed < 1+adjustLandPlays condition the hand walk and mayPlayLandIds
+// apply, so a hand land, a granted graveyard land and a bare-Mayhem graveyard
+// land all share one land drop. Provenance comes from mayhemDiscardedThisTurn,
+// the same log-derived this-turn discard window the mayhem cast walk uses -- a
+// mill move, another player's discard or a last-turn discard opens nothing.
+// Graveyard zone slices are keyed by owner, so Zone(ZGraveyard, p) is p's own
+// graveyard.
+func (e *Engine) mayhemLandPlayIds(p state.PlayerID) []state.ObjID {
+	if !e.sorcerySpeed(p) || e.G.Players[p].LandsPlayed >= int32(1+e.adjustLandPlays(p)) {
+		return nil
+	}
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || !o.Face().IsLand() {
+			continue
+		}
+		raw, ok := e.derivedKeywordParam(id, "Mayhem")
+		if !ok || strings.TrimSpace(raw) != "" {
+			continue
+		}
+		if !e.mayhemDiscardedThisTurn(p, id) {
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
 // mayPlaysThisTurn counts the card plays this turn that went through a
 // may-play-from-zone grant, in deterministic log order since the last
 // TurnChange: CastInfo events carrying the mayplay flag (attributed by the
@@ -2355,6 +2392,31 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	for _, id := range e.mayPlayLandIds(p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
+			continue
+		}
+		add("play_land", "Play "+o.Face().Name, id)
+	}
+
+	// The bare, parameterless K:Mayhem permission (Oscorp Industries) is a
+	// land-only PLAY from the graveyard, not a cast -- the "Timing rules still
+	// apply" land shape the mayhem cast walk withholds. It is a THIRD
+	// play_land source alongside the hand walk and mayPlayLandIds, sharing
+	// their once-per-turn land-drop gate and paying no mana. Deduped against a
+	// land a MayPlay grant already offered so the same graveyard land never
+	// yields two identical options.
+	for _, id := range e.mayhemLandPlayIds(p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		dup := false
+		for _, prev := range out {
+			if prev.Kind == "play_land" && prev.Obj == id {
+				dup = true
+				break
+			}
+		}
+		if dup {
 			continue
 		}
 		add("play_land", "Play "+o.Face().Name, id)
