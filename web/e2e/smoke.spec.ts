@@ -933,6 +933,26 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
           return document.querySelector(`.quadrant [data-obj="${obj}"]`) !== null;
         }, pick.obj as number, { timeout: STALL_MS });
 
+        // The Options drop, now that the seat's controls are live. Two
+        // regressions shipped unseen because no gate clicked it: the opening
+        // click bubbled to the window as an "outside" click and closed it,
+        // and the popover opened upward past the top of the viewport.
+        const optionsButton = page.locator('[data-rail-options] button[aria-haspopup="dialog"]');
+        await optionsButton.click({ timeout: WAIT_MS });
+        const popover = page.locator('#play-options-popover');
+        await popover.waitFor({ state: 'visible', timeout: WAIT_MS });
+        await page.waitForTimeout(300);
+        expect(await optionsButton.getAttribute('aria-expanded'), `${label} Options stays open after its own click`).toBe('true');
+        const pop = await popover.boundingBox();
+        const vp = page.viewportSize();
+        expect(pop, `${label} Options popover has a box`).not.toBeNull();
+        if (pop && vp) {
+          expect(pop.y, `${label} Options popover top ${pop.y} must be on screen`).toBeGreaterThanOrEqual(0);
+          expect(pop.y + pop.height, `${label} Options popover bottom must be on screen`).toBeLessThanOrEqual(vp.height + 1);
+        }
+        await page.keyboard.press('Escape');
+        await popover.waitFor({ state: 'detached', timeout: WAIT_MS });
+
         expectClean(c, `${label} R-E4-1 card menu`);
         await page.close();
       } finally {

@@ -150,6 +150,11 @@
   // expanding the rail or the whole table.
   let optionsOpen = $state(false);
   let optionsPopover = $state<HTMLDivElement | null>(null);
+  // The outside-click test needs the WHOLE control (button + popover). It
+  // used to share optionsPopover's binding, which the popover's own
+  // bind:this took over the moment it mounted, so the opening click itself
+  // bubbled to the window as "outside" and closed it again.
+  let optionsRoot = $state<HTMLDivElement | null>(null);
   let optionsButton = $state<HTMLButtonElement | null>(null);
   function dismissOptions(): void {
     if (!optionsOpen) return;
@@ -167,7 +172,7 @@
     }
   }
   function closeOptionsOutside(event: MouseEvent): void {
-    if (optionsOpen && optionsPopover && !optionsPopover.contains(event.target as Node)) dismissOptions();
+    if (optionsOpen && optionsRoot && !optionsRoot.contains(event.target as Node)) dismissOptions();
   }
   $effect(() => {
     if (optionsOpen) void tick().then(() => optionsPopover?.focus());
@@ -510,7 +515,7 @@
               />
             {/if}
             {#if panel && optionsReachable}
-              <div class="rail-options" bind:this={optionsPopover} data-rail-options>
+              <div class="rail-options" bind:this={optionsRoot} data-rail-options>
                 <button
                   type="button"
                   class="rail-options__button"
@@ -770,10 +775,12 @@
     border-color: var(--ink-dim);
     color: var(--ink);
   }
+  /* The Options control sits at the TOP of the rail, so the popover drops
+     down from it; anchored with bottom it opened above the viewport. */
   .rail-options__popover {
     position: absolute;
     right: 0;
-    bottom: calc(100% + var(--sp-2));
+    top: calc(100% + var(--sp-2));
     width: min(25rem, calc(100vw - var(--sp-4)));
     max-height: min(38rem, calc(100vh - 5rem));
     display: flex;
