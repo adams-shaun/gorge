@@ -2499,6 +2499,20 @@ func spellIsTargetingInner(arg string) (spec string, ok bool) {
 	} else {
 		spec = arg
 	}
+	// `Self` and `Other` are entries in the `predicates` map -- they are
+	// source-relative predicate words, not filter BASES -- so a bare (or
+	// `Valid `-prefixed) argument naming one is normalised here to the
+	// base-qualified spelling the target matcher reads, exactly the
+	// `Card.Self`/`Card.Other` spelling the rest of the filter grammar uses.
+	// Without this the whole bare word is read as a base, matchesBase finds no
+	// such base, and the argument silently reports "does not target" -- and
+	// worse, `!`-negating that false result answers a question the build cannot
+	// actually read. The normalisation is the ONE home the compiled matcher
+	// (matchesObjectText), the zone matcher and the census all share, so they
+	// stay in agreement.
+	if spec == "Self" || spec == "Other" {
+		spec = "Card." + spec
+	}
 	if inner, has := strings.CutSuffix(spec, "~Other"); has {
 		spec = strings.TrimSpace(inner) + "+Other"
 	}
