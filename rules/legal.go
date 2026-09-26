@@ -1887,6 +1887,30 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 						Label: "Play " + back.Name, Obj: id, Mode: "modal_land"})
 				}
 			}
+			// CR 702.37a/702.168a/702.169a: a LAND printed with the Morph/
+			// Megamorph/Disguise keyword is ALSO castable face down for {3}
+			// (Zoetic Cavern, Branch of Vitu-Ghazi).  That cast is a creature
+			// SPELL, not a land play: it does not consume the land drop and
+			// it goes on the stack (CR 305.1 "play a land" is a special
+			// action), so it is offered even after the land play for the turn
+			// has been used.  This block sits INSIDE the IsLand branch on
+			// purpose: the front-face land must never acquire the ordinary
+			// printed cast the nonland walk below offers, and only the
+			// fixed-{3} face-down mode is added.  The same guards the existing
+			// nonland face-down offer relies on are applied here explicitly
+			// (this branch continues before the walk reaches them): the
+			// castSuppressed/castRestricted prohibitions, the ordinary
+			// spellTimingOK gate, and offerCastable's cost-modifier
+			// affordability.  Like that offer it deliberately does NOT gate
+			// on targetsAvailable (CR 708.4: a face-down spell has no targets)
+			// and never charges the printed keyword parameter (the later
+			// turn-face-up cost).
+			if fam := morphDownFamily(f); fam != "" && !e.castSuppressed(p, id) &&
+				!castRestricted(p, id) && e.spellTimingOK(p, id, f, sorcery) &&
+				offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
+			}
 			continue
 		}
 		// CR 712.8/712.4d: a Modal DFC in hand may be played as its back

@@ -29,14 +29,12 @@ import (
 // (rules/cast.go's morphDownFamily) and the CR 708.6 turn-face-up special
 // action (this file) work for the ordinary shapes -- a mana-only turn-up
 // cost (rules/morph_turnup_test.go) and a face-down {3} cast
-// (rules/morph_test.go) -- but two shapes the corpus prints are still
-// unsupported, and registering the head would claim them:
+// (rules/morph_test.go), including a printed LAND carrier
+// (rules/morph_land_test.go: Zoetic Cavern, Branch of Vitu-Ghazi) -- but
+// one shape the corpus prints is still unsupported, and registering the
+// head would claim it:
 //
-//  1. A LAND with the keyword (Zoetic Cavern K:Morph:2, Branch of Vitu-Ghazi
-//     K:Disguise:3) cannot be cast face down: legal.go's playableFromHand
-//     walk handles f.IsLand() and continues before the face-down offer, so
-//     the land's only offered action is play_land.
-//  2. A non-mana turn-face-up cost is parsed by morphFaceUpCost but never
+//  1. A non-mana turn-face-up cost is parsed by morphFaceUpCost but never
 //     paid: turnFaceUp calls only payMana, so a Reveal<...> (Watcher of the
 //     Roost), a Sac<...> (Skirk Volcanist) or an {X} (Bane of the Living)
 //     turns face up for free.
@@ -44,8 +42,8 @@ import (
 // The Deadly Disguise import (internal/testutil/decks/deadly-disguise.json)
 // seats 24 carriers of these heads; the acceptance ratchet therefore names
 // them in knownUnsupported rather than over-claiming support. Register all
-// three heads here once both shapes are implemented (the land face-down
-// offer and the full turn-up cost grammar).
+// three heads here once that remaining shape is implemented (the full
+// turn-up cost grammar).
 
 type morphFaceUp struct {
 	cost Cost
