@@ -15,16 +15,21 @@ package host
 // lock over a write. They now go through Registry.projectLive, which takes
 // m.mu EXCLUSIVELY.
 //
-// The test is lock-sensitive, not probabilistic: it holds m.mu.RLock (the
-// lock the old projection used) and asserts that each production entry point
-// BLOCKS instead of completing. With the fix reverted the entry point's own
-// RLock is compatible, it completes, and the assertion fails. Each phase
-// then releases the read lock and asserts the entry point completes and
-// delivers a decodable frame (no deadlock), and a final storm runs many
-// exclusive live projections concurrently to prove none corrupts a
-// snapshot.
+// The test is lock-sensitive, not probabilistic, in the failure direction
+// that matters: it holds m.mu.RLock (the lock the old projection used)
+// BEFORE launching each production entry point, so a correctly exclusive
+// projection can never complete while the read lock is held — there is no
+// window in which it could. With the fix reverted the entry point's own
+// RLock is compatible, it completes, and the pinned assertion fails. The
+// test also validates the payload and ordering each entry point delivers
+// (a snapshot/rewind that decodes, matches the single-threaded baseline
+// board including derived P/T, and arrives in the right order), and runs
+// overlapping focus subscribes against start/rewind so a broken payload or
+// a reordered delivery fails too.
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"testing"
@@ -72,26 +77,58 @@ func liveProjectionBoard(t *testing.T) (*Registry, *table, *match) {
 	return r, tb, m
 }
 
-// assertLiveProjectionPinned holds m.mu.RLock and asserts that run does not
-// complete while it is held, then releases the lock and asserts run completes
-// within a bound. The precondition it depends on is the new lock discipline:
-// run must take m.mu exclusively (projectLive). Under the old RLock
-// discipline the read lock is compatible, run finishes early, and the
-// "completed while pinned" branch fails — a real regression, not a timing
-// guess. A non-nil label appears in the failure so a run names the exact
-// entry point that escaped exclusive ownership.
+// assertSnapshotMatches is the payload half of the regression: a frame a
+// live-projection entry point delivered must decode to the SAME board the
+// single-threaded baseline projection built — head, seat roster, turn starts
+// and the WHOLE wire view, including the layer-7 derived power/toughness. It
+// compares the marshalled JSON, not reflect.DeepEqual: the projection's
+// contract is the bytes a client receives, and DeepEqual would also (and
+// spuriously) fail on Go-level nil-vs-empty slice distinctions that never
+// reach the wire.
+func assertSnapshotMatches(t *testing.T, label string, got protocol.Snapshot, base protocol.Snapshot) {
+	t.Helper()
+	if got.Head != base.Head {
+		t.Fatalf("%s: snapshot head %d differs from baseline %d", label, got.Head, base.Head)
+	}
+	gj, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("%s: marshal delivered snapshot: %v", label, err)
+	}
+	bj, err := json.Marshal(base)
+	if err != nil {
+		t.Fatalf("%s: marshal baseline snapshot: %v", label, err)
+	}
+	if !bytes.Equal(gj, bj) {
+		t.Fatalf("%s: projected snapshot differs from the single-threaded baseline "+
+			"(a concurrent projection corrupted the shared derived-P/T state)\n got=%s\nbase=%s", label, gj, bj)
+	}
+}
+
+// assertLiveProjectionPinned holds m.mu.RLock BEFORE launching run and
+// asserts run does not complete while it is held, then releases the lock and
+// asserts run completes within a bound. It returns after run has finished.
+//
+// Locking first is what makes the assertion sound rather than a timing
+// guess: a correctly exclusive run (projectLive's m.mu.Lock) can NEVER
+// satisfy the read lock this test holds, so it cannot complete early no
+// matter how the scheduler orders it — only a broken run that takes
+// m.mu.RLock can. The bounded Gosched spin after the started handshake only
+// reduces the chance of missing a broken build (the read lock is compatible
+// with the old discipline, so a broken run may still be descheduled before
+// it reaches its own RLock); it can never fail a correct one.
 func assertLiveProjectionPinned(t *testing.T, m *match, label string, run func()) {
 	t.Helper()
+	m.mu.RLock()
+	started := make(chan struct{})
 	resumed := make(chan struct{})
 	go func() {
+		close(started)
 		run()
 		close(resumed)
 	}()
-	// Hold the m.mu read lock — the lock the broken projection took — and
-	// give run every chance to (wrongly) proceed.
-	m.mu.RLock()
+	<-started
 	for i := 0; i < 2000; i++ {
-		runtime.Gosched()
+		runtime.Gosched() // give run every chance to (wrongly) pass the projection lock
 	}
 	select {
 	case <-resumed:
@@ -109,7 +146,7 @@ func assertLiveProjectionPinned(t *testing.T, m *match, label string, run func()
 
 // TestConcurrentLiveSnapshotsSerializeEngineProjection proves every live
 // engine projection takes exclusive m.mu, and that concurrent projections
-// produce valid, uncorrupted snapshots.
+// produce valid, uncorrupted snapshots in the right order.
 func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 	t.Parallel()
 	r, tb, m := liveProjectionBoard(t)
@@ -127,34 +164,36 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 	}
 	// A live projection in isolation succeeds and carries derived P/T on at
 	// least one permanent, so the frames the race would corrupt are actually
-	// built. This also pins the deterministic (single-threaded) result the
-	// storm below must reproduce.
+	// built. This also pins the deterministic (single-threaded) result every
+	// concurrent projection below must reproduce byte for byte.
 	var base protocol.Snapshot
 	r.projectLive(m, func() { base = r.snapshotBody(tb, m) })
-	derivedSeen := false
+	derivedSeen := 0
 	for _, p := range base.View.Players {
 		for _, c := range p.Battlefield {
 			if c.Power != 0 || c.Toughness != 0 {
-				derivedSeen = true
+				derivedSeen++
 			}
 		}
 	}
-	if !derivedSeen {
+	if derivedSeen == 0 {
 		t.Fatalf("precondition: projected board has no permanent with derived power/toughness")
 	}
 
-	// A focus subscriber must exist for onMatchStart/pushRewind to build a
-	// snapshot at all (they return early with no sessions); Subscribe also
-	// exercises the snapshot path itself.
-	focus := r.OpenSession()
-	if err := r.Subscribe(focus, "t1", protocol.ModeFocus); err != nil {
+	// A standing focus subscriber must exist for onMatchStart/pushRewind to
+	// build a snapshot at all (they return early with no sessions); Subscribe
+	// also exercises the snapshot path itself.
+	standing := r.OpenSession()
+	if err := r.Subscribe(standing, "t1", protocol.ModeFocus); err != nil {
 		t.Fatal(err)
 	}
-	if f := <-focus.Out(); f.T != protocol.TSnapshot {
+	if f := <-standing.Out(); f.T != protocol.TSnapshot {
 		t.Fatalf("focus Subscribe delivered %s first, want TSnapshot", f.T)
 	}
 
-	// Phase A: Subscribe's own live projection.
+	// Phase A: Subscribe's own live projection. The frame it delivers must
+	// arrive and must match the baseline board.
+	var subFrame protocol.Frame
 	assertLiveProjectionPinned(t, m, "Subscribe", func() {
 		s := r.OpenSession()
 		if err := r.Subscribe(s, "t1", protocol.ModeFocus); err != nil {
@@ -163,29 +202,144 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 		}
 		select {
 		case f := <-s.Out():
-			if f.T != protocol.TSnapshot {
-				t.Errorf("concurrent Subscribe delivered %s, want TSnapshot", f.T)
-			}
+			subFrame = f
 		case <-time.After(10 * time.Second):
 			t.Errorf("concurrent Subscribe delivered no snapshot")
 		}
 	})
+	if subFrame.T != protocol.TSnapshot {
+		t.Fatalf("Subscribe delivered %s, want TSnapshot", subFrame.T)
+	}
+	assertSnapshotMatches(t, "Subscribe snapshot", decode[protocol.Snapshot](t, subFrame), base)
 
-	// Phase B: match-start's live projection.
-	assertLiveProjectionPinned(t, m, "onMatchStart", func() {
-		r.onMatchStart(tb, m)
-	})
+	// Phase B: match-start's live projection. A fresh focus subscriber gets
+	// the subscribe snapshot first; onMatchStart then owes it a
+	// TMatchStart frame followed by a TSnapshot of the same board, IN THAT
+	// ORDER.
+	sb := r.OpenSession()
+	if err := r.Subscribe(sb, "t1", protocol.ModeFocus); err != nil {
+		t.Fatal(err)
+	}
+	if f := <-sb.Out(); f.T != protocol.TSnapshot {
+		t.Fatalf("phase-B subscribe delivered %s first, want TSnapshot", f.T)
+	}
+	assertLiveProjectionPinned(t, m, "onMatchStart", func() { r.onMatchStart(tb, m) })
+	startFrames := drainNow(sb)
+	if len(startFrames) != 2 || startFrames[0].T != protocol.TMatchStart || startFrames[1].T != protocol.TSnapshot {
+		t.Fatalf("onMatchStart delivered %v, want [TMatchStart TSnapshot] in that order", frameTypes(startFrames))
+	}
+	assertSnapshotMatches(t, "onMatchStart snapshot", decode[protocol.Snapshot](t, startFrames[1]), base)
 
-	// Phase C: rewind's live projection.
-	assertLiveProjectionPinned(t, m, "pushRewind", func() {
+	// Phase C: rewind's live projection. A fresh focus subscriber gets the
+	// subscribe snapshot first; pushRewind then owes it a TRewind frame
+	// carrying the full board, before any decision frame.
+	sc := r.OpenSession()
+	if err := r.Subscribe(sc, "t1", protocol.ModeFocus); err != nil {
+		t.Fatal(err)
+	}
+	if f := <-sc.Out(); f.T != protocol.TSnapshot {
+		t.Fatalf("phase-C subscribe delivered %s first, want TSnapshot", f.T)
+	}
+	assertLiveProjectionPinned(t, m, "pushRewind", func() { r.pushRewind(tb, m) })
+	rewindFrames := drainNow(sc)
+	if len(rewindFrames) == 0 || rewindFrames[0].T != protocol.TRewind {
+		t.Fatalf("pushRewind delivered %v, want a TRewind first", frameTypes(rewindFrames))
+	}
+	for i, f := range rewindFrames {
+		if i == 0 {
+			continue
+		}
+		if f.T == protocol.TRewind {
+			t.Fatalf("pushRewind delivered a second TRewind at index %d", i)
+		}
+	}
+	assertSnapshotMatches(t, "pushRewind snapshot", decode[protocol.Snapshot](t, rewindFrames[0]), base)
+
+	// Phase D: an overlapping focus Subscribe and a pushRewind must BOTH
+	// block on the exclusive projection lock and then both deliver a valid
+	// board — the competing-projection case the race crashed on. (Subscribe
+	// holds t.fanMu while it waits for m.mu here; pushRewind drops m.mu
+	// before t.fanMu, so this also exercises the fanMu -> m.mu order under
+	// contention rather than deadlocking.)
+	sd := r.OpenSession()
+	if err := r.Subscribe(sd, "t1", protocol.ModeFocus); err != nil {
+		t.Fatal(err)
+	}
+	if f := <-sd.Out(); f.T != protocol.TSnapshot {
+		t.Fatalf("phase-D subscribe delivered %s first, want TSnapshot", f.T)
+	}
+	se := r.OpenSession()
+	m.mu.RLock()
+	dStarted := make(chan struct{}, 2)
+	dSubDone := make(chan protocol.Frame, 1)
+	dRewindDone := make(chan struct{}, 1)
+	go func() {
+		dStarted <- struct{}{}
+		if err := r.Subscribe(se, "t1", protocol.ModeFocus); err != nil {
+			t.Errorf("overlapping Subscribe: %v", err)
+			return
+		}
+		select {
+		case f := <-se.Out():
+			dSubDone <- f
+		case <-time.After(10 * time.Second):
+			t.Errorf("overlapping Subscribe delivered no snapshot")
+		}
+	}()
+	go func() {
+		dStarted <- struct{}{}
+		// pushRewind delivers to every focus subscriber; sd is the one whose
+		// stream this phase reads (fresh and otherwise quiescent).
 		r.pushRewind(tb, m)
-	})
+		dRewindDone <- struct{}{}
+	}()
+	<-dStarted
+	<-dStarted
+	for i := 0; i < 2000; i++ {
+		runtime.Gosched()
+	}
+	select {
+	case <-dSubDone:
+		m.mu.RUnlock()
+		t.Fatalf("overlapping Subscribe completed while m.mu was pinned by a reader")
+	default:
+	}
+	select {
+	case <-dRewindDone:
+		m.mu.RUnlock()
+		t.Fatalf("overlapping pushRewind completed while m.mu was pinned by a reader")
+	default:
+	}
+	m.mu.RUnlock()
+	var dSub protocol.Frame
+	select {
+	case dSub = <-dSubDone:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("overlapping Subscribe did not complete after m.mu was released — deadlock")
+	}
+	select {
+	case <-dRewindDone:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("overlapping pushRewind did not complete after m.mu was released — deadlock")
+	}
+	if dSub.T != protocol.TSnapshot {
+		t.Fatalf("overlapping Subscribe delivered %s, want TSnapshot", dSub.T)
+	}
+	assertSnapshotMatches(t, "overlapping Subscribe snapshot", decode[protocol.Snapshot](t, dSub), base)
+	rewindAfter := drainNow(sd)
+	if len(rewindAfter) == 0 || rewindAfter[0].T != protocol.TRewind {
+		t.Fatalf("overlapping pushRewind delivered %v, want a TRewind", frameTypes(rewindAfter))
+	}
+	assertSnapshotMatches(t, "overlapping pushRewind snapshot", decode[protocol.Snapshot](t, rewindAfter[0]), base)
 
-	// Phase D: many exclusive live projections at once must all produce a
-	// snapshot with the same head and a non-nil seat list as the
-	// single-threaded baseline — a corrupted shared derived-P/T stack would
-	// show up as a panicked goroutine (crashing the test binary) or a
-	// divergent snapshot.
+	// Phase E: many exclusive live projections at once must all produce a
+	// snapshot byte-identical to the single-threaded baseline — including the
+	// derived power/toughness the race corrupts. A panicked goroutine would
+	// crash the test binary; a divergent board fails on the comparison.
+	baseJSON, err := json.Marshal(base)
+	if err != nil {
+		t.Fatalf("marshal baseline: %v", err)
+	}
 	const n = 32
 	errs := make(chan error, n)
 	for i := 0; i < n; i++ {
@@ -204,8 +358,13 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 				errs <- fmt.Errorf("storm snapshot head %d differs from baseline %d", snap.Head, base.Head)
 				return
 			}
-			if snap.Seats == nil {
-				errs <- fmt.Errorf("storm snapshot has nil Seats")
+			sj, err := json.Marshal(snap)
+			if err != nil {
+				errs <- fmt.Errorf("storm snapshot marshal: %v", err)
+				return
+			}
+			if !bytes.Equal(sj, baseJSON) {
+				errs <- fmt.Errorf("storm snapshot differs from the single-threaded baseline: %s", sj)
 				return
 			}
 			errs <- nil
@@ -222,4 +381,13 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 		t.Fatal("m.mu still held after every live projection returned")
 	}
 	m.mu.Unlock()
+}
+
+// frameTypes names the frame types in order, for a readable ordering failure.
+func frameTypes(fs []protocol.Frame) []protocol.FrameType {
+	ts := make([]protocol.FrameType, len(fs))
+	for i, f := range fs {
+		ts[i] = f.T
+	}
+	return ts
 }
