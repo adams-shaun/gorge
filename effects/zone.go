@@ -1021,11 +1021,23 @@ func changeZoneAttachedToPlayer(h Host, c *Ctx, sa *cards.SA, moved state.ObjID,
 // read composes with each without a second caller-side branch. The Dig
 // mover (effects/cardflow.go effDig) calls it too, so the same WithMayLook$
 // read serves both APIs from this one choke point.
+//
+// Unearth$ True (cards/kw_unearth.go's K:Unearth expansion) also lands on
+// the battlefield entry here: it stamps the "entered_unearthed" counter so
+// rules' entry hook (rules/unearth.go, reached from checkTriggers) can tell
+// an unearth return from every other battlefield entry and apply CR
+// 702.84a's haste grant and end-step exile promise. The counter is not a
+// face-down marker (IsFaceDownEntry returns false for it), so the two
+// encodings never collide; no corpus line combines Unearth with
+// FaceDown$/ExileFaceDown$.
 func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to state.Zone) {
 	faceDown := strings.EqualFold(strings.TrimSpace(sa.Params["FaceDown"]), "True")
 	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
 	withMayLook := strings.EqualFold(strings.TrimSpace(sa.Params["WithMayLook"]), "True")
 	foretold := strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True")
+	if to == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["Unearth"]), "True") {
+		ev.Counter = events.UnearthEntryCounter
+	}
 	switch {
 	case to == state.ZExile && exileFaceDown && withMayLook:
 		// The may-look layout: Amount carries the looker (the exiling

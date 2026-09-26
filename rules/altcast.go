@@ -115,6 +115,13 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		e.emit(events.Event{Kind: events.DelayedRegister, Obj: ev.Obj,
 			Player: o.Controller, Step: state.StepEnd, Counter: "__kwWarpExile"})
 	}
+	// Unearth (CR 702.84a, rules/unearth.go): the activation is a graveyard
+	// ability, not a cast, so there is no CastFlags bit to read -- the
+	// entered_unearthed Counter effects/zone.go stamped on the MoveZone is
+	// the provenance. The hook grants haste and registers the end-step exile.
+	if ev.Counter == events.UnearthEntryCounter {
+		e.unearthEnter(ev.Obj)
+	}
 	if o.CastFlags&state.FlagMayFlashSac != 0 {
 		// K:MayFlashSac (CR 702.8): cast off-sorcery through the keyword's
 		// flash permission, so the permanent it became is sacrificed at the

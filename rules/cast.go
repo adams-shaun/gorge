@@ -10226,6 +10226,13 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Unearth (CR 702.84): the graveyard return is an ordinary
+		// activated ability cards/kw_unearth.go expands from the K: line,
+		// and its three riders are rules-layer (rules/unearth.go) -- the
+		// haste grant, the end-step exile promise, and the exile-instead
+		// replacement. Registered non-API because the keyword's whole
+		// implementation lives in rules plus the one builtin SVar body.
+		"kw:Unearth",
 		// kw:Escalate: the modal additional cost "pay this for each mode chosen
 		// beyond the first" -- read directly off the K: line by beginCast's
 		// capture and the cast_modes answer handler's fold, and bounded by
