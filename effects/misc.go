@@ -992,7 +992,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantExile", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock", "NumLoyaltyAct":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantExile", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "CantAttackUnless", "MustBlock", "NumLoyaltyAct":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -1046,6 +1046,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			if mode == "CantBlockUnless" && !CantBlockUnlessRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantAttackUnless" && !CantAttackUnlessRestrictionParamsReadable(params) {
+				// The attack-prop sibling of CantBlockUnless: Sivitri, Dragon
+				// Master's +1, Forbidding Spirit, Summon: Yojimbo and War Tax
+				// deliver this body through an Effect's StaticAbilities$ entry.
+				// The delivered registration and rules' attackPairCharge
+				// consultation share this one whitelist, so the two paths cannot
+				// disagree about what is readable; a body carrying a scoping term
+				// this build does not evaluate reports unimplemented instead of
+				// registering a blanket tax.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -2306,6 +2320,37 @@ func CantBlockUnlessRestrictionParamsReadable(params map[string]string) bool {
 		switch k {
 		case "Mode", "ValidCard", "Attacker", "Cost", "Description", "Secondary",
 			"IsPresent", "IsPresent2", "CheckSVar", "SVarCompare", "Condition":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantAttackUnlessRestrictionParamsReadable is the parameter whitelist a
+// CantAttackUnless static must pass before this build enforces it -- used by
+// BOTH delivery routes that can register one (effEffect's restriction case
+// and registerAnimateStaticAbilities' staticAbilities$ grant) AND by rules'
+// attackPairCharge pricing read, so the three cannot disagree about what is
+// readable. The readable parameters are the mode, the two combat specs the
+// attack-prop reader resolves (ValidCard$ against the attacking creature,
+// Target$ against the defending player/planeswalker -- the same list
+// restrictionPlayerTargetMatches reads), the Cost$ the reader prices
+// (rules' attackUnlessCharge), the gate parameters the shared
+// continuousGateHolds grammar evaluates, RememberingAttacker$ (which binds
+// the attacking creature into the pricing SVar context), and display text
+// (Description$ and the TriggerDescription$ an oracle-triggered DB$ Effect
+// body writes -- Sivitri's SVar carries TriggerDescription$, not
+// Description$). A static carrying any other parameter names a condition or
+// scoping this build does not evaluate -- enforcing it blanket would
+// OVER-restrict, the permissive direction for a restriction -- so it is
+// reported unimplemented instead.
+func CantAttackUnlessRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Target", "Cost", "Description", "TriggerDescription", "Secondary", "Attacker",
+			"IsPresent", "IsPresent2", "CheckSVar", "SVarCompare", "Condition",
+			"RememberingAttacker":
 		default:
 			return false
 		}

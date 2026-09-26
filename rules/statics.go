@@ -2978,13 +2978,14 @@ func init() {
 		// attackprop1: the CR 508.1g attack-prop static (rules/attack_cost.go
 		// attackPairCharge, priced per (attacker, defender) pair and paid
 		// during the declaration through the attackPay window). The
-		// whitelisted shapes are enforced (cantAttackUnlessParamsReadable),
+		// whitelisted shapes are enforced (cantAttackUnlessParamsReadable,
+		// delegating to effects.CantAttackUnlessRestrictionParamsReadable),
 		// including the composite non-mana components Sac<...>/Return<...>/
 		// tapXType<...>/PayLife<...>/{W/P} (chargeFromCost); an unmodelled
 		// component still skips the static fail-closed, and the
 		// per-attacker-variable price (Nils' RememberingAttacker$) is priced
-		// through the SVar grammar. The Effect-delivered form is NOT routed
-		// here (only the block side walks e.active()); see the report.
+		// through the SVar grammar. The Effect/Animate-delivered forms are
+		// charged through the e.active() walk attackPairCharge carries.
 		"stat:CantAttackUnless",
 		// blockprop1: the CR 509.1b block-prop static. Face statics are
 		// charged per (blocker, attacker) with the same composite grammar,

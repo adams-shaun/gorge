@@ -48,12 +48,14 @@ const chooseAttackPay chooseFor = chooseEnlist + 1
 const chooseBlockPay chooseFor = 41
 
 // cantAttackUnlessParamsReadable is the parameter whitelist a face
-// CantAttackUnless static must pass before this build enforces it. The gate
+// CantAttackUnless static must pass before this build enforces it. It
+// delegates to effects.CantAttackUnlessRestrictionParamsReadable -- the ONE
+// whitelist the two delivery routes (effEffect's restriction case and
+// registerAnimateStaticAbilities' staticAbilities$ grant) and this pricing
+// read share, so no path can disagree about what is readable. The gate
 // parameters (IsPresent$/IsPresent2$/CheckSVar$/SVarCompare$/Condition$) are
 // evaluated by the shared continuousGateHolds grammar; every other parameter
-// fails the whitelist and the static is skipped permissively. Every corpus
-// carrier passes, Dáin's Condition$ EnduringStory included now that rules/
-// storied.go reads the CR 702.175 latch.
+// fails the whitelist and the static is skipped permissively.
 //
 // RememberingAttacker$ True is readable: attackUnlessCharge binds the
 // attacking creature into the pricing context as Remembered, which is what
@@ -61,16 +63,7 @@ const chooseBlockPay chooseFor = 41
 // resolves against. It is meaningful only for the attack direction, so
 // blockPairCharge deliberately prices with a zero attacker.
 func cantAttackUnlessParamsReadable(params map[string]string) bool {
-	for k := range params {
-		switch k {
-		case "Mode", "ValidCard", "Target", "Cost", "Description", "Secondary", "Attacker",
-			"IsPresent", "IsPresent2", "CheckSVar", "SVarCompare", "Condition",
-			"RememberingAttacker":
-		default:
-			return false
-		}
-	}
-	return true
+	return effects.CantAttackUnlessRestrictionParamsReadable(params)
 }
 
 // attackUnlessCharge prices one static's Cost$ into a composite charge: a
@@ -100,7 +93,8 @@ func (e *Engine) attackUnlessCharge(sv staticView, attacker state.ObjID) (blockC
 		}
 		return blockCharge{mana: int32(n)}, true
 	}
-	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: sv.SVars}
+	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: sv.SVars,
+		ChosenNumber: sv.ChosenNumber, ChosenNumberBound: sv.chosenNumberBound}
 	// RememberingAttacker$ True makes the attacking creature the resolution's
 	// Remembered referent (Forge's CostRememberingAttacker convention), so an
 	// SVar body such as Nils's `Remembered$CardCounters.ALL` prices the charge
@@ -128,10 +122,15 @@ func (e *Engine) attackUnlessCharge(sv staticView, attacker state.ObjID) (blockC
 // attackPairCharge prices the (attacker, defender) pair: the total charge the
 // attacker's controller must pay for that creature attacking defender, the
 // sum of every live face CantAttackUnless static that admits the pair and
-// prices. It is a pure read (no event, no state write) and deterministic (the
-// activeStatics walk is the one deterministic scan every static consumer
-// shares), so the offer list, the requirement solver, the validator and the
-// payer all re-derive the same charge.
+// prices PLUS every delivered one: an Effect's StaticAbilities$ CantAttackUnless
+// registration (Sivitri, Dragon Master's +1, Forbidding Spirit, Summon:
+// Yojimbo, War Tax) and an Animate's staticAbilities$ grant (Whipgrass
+// Entangler) register into the continuous-effect registry with the granting
+// ability's SVar table, and the registry walk below consults them beside the
+// printed statics with the same read. It is a pure read (no event, no state
+// write) and deterministic (both walks are the fixed scans every static
+// consumer shares), so the offer list, the requirement solver, the validator
+// and the payer all re-derive the same charge.
 func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) blockCharge {
 	total := blockCharge{}
 	for _, sv := range e.activeStatics("CantAttackUnless") {
@@ -163,6 +162,38 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) block
 			continue
 		}
 		total = total.plus(ch)
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantAttackUnless" {
+			continue
+		}
+		sv := staticView{Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			ChosenNumber: ce.ChosenNumber, chosenNumberBound: true}
+		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
+			continue
+		}
+		spec := sv.Params["ValidCard"]
+		if spec == "" {
+			continue
+		}
+		sc := e.specCtx(ce.Source, ce.Controller)
+		for _, r := range ce.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+		}
+		if !e.matchesSpec(spec, id, sc) {
+			continue
+		}
+		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, ce.Controller, ce.Source, nil) {
+			continue
+		}
+		if ch, ok := e.attackUnlessCharge(sv, id); ok {
+			total = total.plus(ch)
+		} else {
+			// Matching delivered static, unpriceable Cost$: fail closed (see
+			// the printed walk above).
+			total.unpriceable = true
+		}
 	}
 	return total
 }

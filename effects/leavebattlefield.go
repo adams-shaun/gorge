@@ -138,7 +138,7 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 				Text: "Animate staticAbilities$ " + name + " has no static body; ignored"})
 			continue
 		}
-		if mode != "CantSacrifice" && mode != "CantBlockUnless" {
+		if mode != "CantSacrifice" && mode != "CantBlockUnless" && mode != "CantAttackUnless" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
 			continue
@@ -149,6 +149,15 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			continue
 		}
 		if mode == "CantBlockUnless" && !CantBlockUnlessRestrictionParamsReadable(params) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
+			continue
+		}
+		if mode == "CantAttackUnless" && !CantAttackUnlessRestrictionParamsReadable(params) {
+			// The attack-side sibling of Whipgrass Entangler's CantBlockUnless
+			// grant: an Animate staticAbilities$ CantAttackUnless body registers a
+			// restriction rules' attackPairCharge prices through the same shared
+			// whitelist. Whipgrass's WhipgrassCantAttack is the corpus carrier.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
 			continue
