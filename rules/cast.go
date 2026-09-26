@@ -645,12 +645,43 @@ func twoPartKickerCosts(f *cards.Face) (Cost, Cost, bool) {
 	return ca, cb, true
 }
 
+// entwineCost resolves the Entwine keyword's additional cost (CR 702.42,
+// Forge's K:Entwine:<cost>). Entwine is an OPTIONAL additional cost paid once
+// as the spell is cast; if paid, every eligible mode is chosen rather than the
+// normal one. The cost forms the corpus carries are plain mana (30 of the 32
+// carriers at the pin) and a sacrifice (Sac<3/Land> on Betrayal of Flesh and
+// Sac<2/Land> on Solar Tide), and ParseCost models both, so the cost is not
+// withheld for any corpus carrier -- but ANY cost ParseCost cannot price fails
+// closed here (the replicateCost direction), leaving the card's gap in the
+// coverage report rather than charging a degraded generic.
+func entwineCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Entwine")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
 func surgeCost(f *cards.Face) (Cost, bool) {
 	s, ok := f.KeywordParam("Surge")
 	if !ok {
 		return Cost{}, false
 	}
 	return ParseCost(s), true
+}
+
+// isCharmSpell reports whether f's spell ability is a modal Charm (the only
+// shape Entwine has a modelled meaning for: "follow the instructions of all
+// its modes"). It is the single reader legal.go's entwined offer and any
+// future entwine site share, so the offer and the all-modes announcement
+// cannot disagree about which faces are modal.
+func isCharmSpell(f *cards.Face) bool {
+	sa := f.SpellAbility()
+	return sa != nil && sa.API == "Charm" && strings.TrimSpace(sa.Params["Choices"]) != ""
 }
 
 // replicateCost resolves the Replicate keyword's payment cost (CR 702.55a,
@@ -2272,6 +2303,17 @@ func (e *Engine) beginCastWithPayment(p state.PlayerID, opt decision.Option, sel
 	case "surged":
 		if sc, ok := surgeCost(f); ok {
 			cost = sc
+		}
+	case "entwined":
+		// Entwine (CR 702.42a): the additional cost is paid ON TOP of the
+		// printed mana cost -- the Buyback shape. The offer gate priced the
+		// SAME read (legal.go's offer), so the two stages cannot disagree.
+		// The mode announcement then forces every eligible mode in
+		// castModeAsk; a stale option whose keyword is gone still pays the
+		// base cost alone (no fake charge), and the cast_mode answer falls
+		// back to the ordinary single-mode bounds.
+		if ec, ok := entwineCost(f); ok {
+			cost = cost.Plus(ec)
 		}
 	case "buyback":
 		if bc, ok := buybackCost(f); ok {
@@ -3898,6 +3940,34 @@ func (e *Engine) castModeAsk() bool {
 	// triggered and mid-resolution asks do.
 	legal = effects.CharmEligibleModes(e, pc.card, sa, legal)
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	// Entwine (CR 702.42b): "If the entwine cost was paid, follow the
+	// instructions of all its modes." So an entwined cast announces EVERY
+	// eligible mode -- Min and Max both move to the filtered legal count, and
+	// the answer handler, Decision.Validate and the bot arm all read those
+	// bounds (the one-home rule), so no other site needs an entwine branch.
+	// The cost was already folded into pc.cost by beginCast, so no
+	// affordability clamp applies here: a cost that could not be paid never
+	// offered, and an entwined cast pays it whether one or all modes are
+	// legal. A repeatable Charm forces each distinct mode exactly once --
+	// "follow the instructions of all its modes" is a distinct-mode pick, not
+	// a licence to repeat one -- so the same distinct count is forced there
+	// too (no corpus carrier is both repeatable and Entwine, but the
+	// semantics are the same either way). When NO mode is legal the ordinary
+	// min>len(legal) abort below still fires and the charge reverses through
+	// the CR 733.1 path -- the card plus cost never strands.
+	if pc.mode == "entwined" {
+		if len(legal) == 0 {
+			// An entwined cast must follow ALL modes, so with no eligible
+			// mode the additional cost buys nothing and the cast is not a
+			// legal announcement. Abort it loudly (the CR 733.1 reversal
+			// path restores the board) rather than posing an empty ask or
+			// silently resolving zero modes.
+			e.abortCast(pc, "cast aborted: no legal modal choice", true)
+			return true
+		}
+		min = len(legal)
+		max = len(legal)
+	}
 	// Escalate (the modal additional cost): a cast choosing N modes pays the
 	// escalate cost N-1 times, so a mode count the board cannot pay for is
 	// not a legal announcement -- clamp Max to 1 + the largest number of
@@ -10158,6 +10228,18 @@ func init() {
 		// never offered. All 9 corpus carriers parse (7 plain mana,
 		// tapXType<1/Creature> and Discard<1/Card>).
 		"kw:Escalate",
+		// kw:Entwine: CR 702.42, the OPTIONAL additional cost "pay this as you
+		// cast a modal spell; if you do, follow the instructions of all its
+		// modes". The offer lives in legal.go's hand/command-zone cast walk
+		// (mode "entwined", composing the printed cost plus the entwine cost
+		// through offerCastable), the charge in beginCast's "entwined" case,
+		// and the all-modes announcement in castModeAsk (Min and Max forced to
+		// the filtered legal count). The corpus forms -- plain mana (30
+		// carriers) and a Sac<2/Land>/Sac<3/Land> sacrifice (Betrayal of
+		// Flesh, Solar Tide) -- all price through ParseCost; an unpriceable
+		// form fails closed in entwineCost and never offers. Proof:
+		// rules/entwine_test.go.
+		"kw:Entwine",
 		// kw:Strive: CR 702.52, the mandatory additional cost "this spell
 		// costs <cost> more for each target beyond the first" -- read directly
 		// off the K: line by beginCast's capture (no keyword expansion; the

@@ -2130,6 +2130,23 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (surged)", Obj: id, Mode: "surged"})
 		}
+		// Entwine (CR 702.42a): "You may pay an additional [cost] as you cast
+		// this spell." It is an optional additional cost paid ON TOP of the
+		// printed cost (the buyback/offspring shape), so the entwined variant
+		// is its own cast option priced base+cost through offerCastable's
+		// shared gate. Unlike Escalate it is a flat cost, not a per-extra-mode
+		// charge, so the offer needs no mode-count clamp and the magic is all
+		// in beginCast's fold plus castModeAsk's all-modes announcement. The
+		// offer is gated on the card actually having a Charm spell ability:
+		// Entwine's ONLY modelled meaning is "choose all modes", so charging
+		// its cost for a face with no modal body (no corpus carrier -- all 32
+		// Entwine files are Charms) would take mana for nothing; such a face
+		// keeps its printed-cast path and its coverage gap stays visible.
+		if ec, ok := entwineCost(f); ok && targetsAvailable && isCharmSpell(f) &&
+			offerCastable(p, id, e.rawBaseCost(p, id).Plus(ec), spellScope("entwined"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (entwined)", Obj: id, Mode: "entwined"})
+		}
 		// Replicate (CR 702.55a): the replicated variant is its own cast
 		// option paying the base cost plus ONE replicate payment -- one
 		// payment is what gates the offer; the count ask (replicateAsk)
