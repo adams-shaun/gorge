@@ -8672,7 +8672,14 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	// the ONLY remaining way the offer passed spellTimingOK is that grant.
 	// Re-running the same castWithFlashTargets the offer read, now with the
 	// announced targets, keeps offer and recheck on ONE interpretation.
-	if pc.offSorcery {
+	//
+	// The mode exclusion covers the two offers that grant their own timing
+	// WITHOUT spellTimingOK (MayFlashCost's paid flash and the defeat cast) and
+	// split_alt, whose instant-speed check reads castWithFlash against the
+	// FRONT face while the cast flips to the alternate half: none can be a
+	// target-conditional-CastWithFlash card in the corpus, and policing a cast
+	// whose timing came from elsewhere would be a false reversal.
+	if pc.offSorcery && pc.mode != "mayflash" && pc.mode != "defeat_cast" && pc.mode != "split_alt" {
 		f := o.Face()
 		if f != nil && !f.IsInstant() && !e.HasKeyword(pc.card, "Flash") && !mayFlashSacFace(f) &&
 			e.hasTargetConditionalFlash(pc.player, pc.card) &&
