@@ -342,9 +342,10 @@ type parkedData struct {
 // engine — never a seat — so the loop can hold it under m.mu.Lock. That is
 // the fix's lock discipline: view.Project mutates the engine's Derived cache
 // (rules/layers.go Engine.active), so projecting the live engine must not run
-// concurrently with a focus subscriber's own snapshot projection (which takes
-// only m.mu.RLock); running it inside the Submit's exclusive section keeps
-// the two from ever overlapping.
+// concurrently with any other live projection — a focus subscriber's own
+// snapshot build now also takes m.mu exclusively (through projectLive, see
+// fanout.go), so the two can never overlap; running it inside the Submit's
+// exclusive section keeps this projection on the same side of the rule.
 //
 // seats lets it type-assert the deciding seat: a seat that implements
 // seat.BoardSeat gets a botpolicy.Board built from the engine (under the same
@@ -623,12 +624,12 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 				return fmt.Errorf("persist: %w", err)
 			}
 			// Still exclusive: project the engine's NEXT decision (nil when the
-			// game just ended) so a focus subscriber, which projects the live
-			// engine under RLock to build its snapshot, can never run that
-			// projection concurrently with this one (view.Project writes the
-			// Derived cache). The old loop got the same serialization because
-			// its projection immediately preceded this Submit; this keeps it
-			// now that the park happens after the Submit.
+			// game just ended) so a focus subscriber, which also projects the live
+			// engine through projectLive's exclusive m.mu, can never run its own
+			// projection concurrently with this one (view.Project/view.ProjectFor
+			// write the Derived cache). The old loop got the same serialization
+			// because its projection immediately preceded this Submit; this keeps
+			// it now that the park happens after the Submit.
 			nextData = projectNext(m, seats, &brd)
 			return nil
 		})
