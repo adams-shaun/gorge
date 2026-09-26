@@ -3368,11 +3368,27 @@ func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
 // under THAT opponent's control") need exactly this — the counted member IS
 // the filter's You.
 func evalThisTurnEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, rest string) (int32, bool) {
+	// The optional trailing `$<Property>` sum form (Genesis of the Daleks'
+	// `Count$ThisTurnEntered_Graveyard_from_Battlefield_Dalek$CardPower` --
+	// "each of your opponents loses life equal to the total power of Daleks
+	// that died this turn"): a recognised sum property is split off the
+	// <Valid> tail and each matching entry contributes its value through the
+	// shared objectProperty reader, the same per-object read the
+	// `Count$Valid <spec>$CardPower` aggregate uses. An unrecognised property
+	// keeps the WHOLE token as <Valid> -- the fail-closed read the
+	// Count$Valid family also takes for a property it does not model, so a
+	// `token$DifferentCardNames`-style qualifier can never be mistaken for a
+	// sum. Only the count path splits here; parseThisTurnEnteredSpec stays
+	// the one grammar PlayerCount validation shares, unchanged.
+	prop := ""
+	if spec, tail, ok := strings.Cut(rest, "$"); ok && modeledProperty(tail) {
+		rest, prop = spec, strings.TrimSpace(tail)
+	}
 	dest, origin, valid, parsed := parseThisTurnEnteredSpec(rest)
 	if !parsed {
 		return 0, false
 	}
-	return countEnteredAs(g, c, you, dest, origin, valid)
+	return countEnteredAs(g, c, you, dest, origin, valid, prop)
 }
 
 // parseThisTurnEnteredSpec splits a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
@@ -3418,9 +3434,11 @@ func parseThisTurnEnteredSpec(rest string) (dest state.Zone, origin *state.Zone,
 }
 
 // countEntered folds the per-add entry list over one destination zone (and
-// optionally one origin zone), counting the entries whose object matches
-// valid from the resolving controller's perspective.
-func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, origin *state.Zone, valid string) (int32, bool) {
+// optionally one origin zone): the entries whose object matches valid from
+// the resolving controller's perspective are counted, or -- when prop names a
+// modelled sum property -- their values are summed through objectProperty
+// (the Genesis of the Daleks total-power form).
+func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, origin *state.Zone, valid, prop string) (int32, bool) {
 	if valid == "" {
 		return 0, false
 	}
@@ -3439,9 +3457,19 @@ func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, 
 		// reads a non-battlefield `Permanent` base as a permanent CARD
 		// (Forge's Card.isPermanent()), which is what Gravestorm's
 		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent needs.
-		if matchesZoneSpecCtx(g, valid, e.Obj, c.SpecContext(you), e.To) {
-			n++
+		if !matchesZoneSpecCtx(g, valid, e.Obj, c.SpecContext(you), e.To) {
+			continue
 		}
+		// The plain count form, and the $<Property> sum form's per-entry
+		// contribution (CardPower's printed face plus its +1/+1 counters, the
+		// objectProperty read the Count$Valid aggregate shares). A property
+		// the split did not recognise never reaches here -- it stayed in
+		// <Valid> and failed the match above.
+		if prop == "" {
+			n++
+			continue
+		}
+		n += objectProperty(g, e.Obj, prop)
 	}
 	return n, true
 }
