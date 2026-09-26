@@ -157,6 +157,14 @@ func (d *Decision) Clone() *Decision {
 	if d == nil {
 		return nil
 	}
+	c := d.CloneValue()
+	return &c
+}
+
+// CloneValue is Clone returning the copy by value, so a caller that only
+// needs a Decision (view's projection copy) does not pay a heap allocation
+// for the struct itself.
+func (d *Decision) CloneValue() Decision {
 	c := *d
 	c.Options = append([]Option(nil), d.Options...)
 	c.PaymentActions = make([]PaymentAction, len(d.PaymentActions))
@@ -167,7 +175,7 @@ func (d *Decision) Clone() *Decision {
 		f := *d.PaymentFallback
 		c.PaymentFallback = &f
 	}
-	return &c
+	return c
 }
 
 // CloneIntent makes an owned copy at an admission or persistence boundary.
