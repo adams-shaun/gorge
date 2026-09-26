@@ -1,9 +1,10 @@
 // deadly_disguise_deck_test.go — the Deadly Disguise (MKC) Commander precon
-// import. The deck is a face-down/morph-family list, and the family's two
-// remaining shapes are unimplemented: a LAND carrying the keyword cannot be
-// cast face down (legal.go's playableFromHand walk handles f.IsLand() and
-// continues before the face-down offer), and a non-mana turn-face-up cost
-// (Reveal/Sac/{X}) is parsed but never paid. So kw:Morph / kw:Megamorph /
+// import. The deck is a face-down/morph-family list, and the family's one
+// remaining shape is unimplemented: a non-mana turn-face-up cost
+// (Reveal/Sac/{X}) is parsed but never paid. The printed-LAND face-down cast
+// (Zoetic Cavern, Branch of Vitu-Ghazi) IS implemented and covered by
+// rules/morph_land_test.go; the heads stay unregistered for the remaining
+// turn-up shape. So kw:Morph / kw:Megamorph /
 // kw:Disguise stay OUT of effects.Supported() and the deck's 24 carriers are
 // named in knownUnsupported as measured gaps (see rules/morph_turnup.go's
 // file comment). These tests pin that honest state: the deck is seated by the
