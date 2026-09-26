@@ -6108,7 +6108,7 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		d.Prompt = "Choose the colour of the replacement mana."
 		for i, color := range []string{"W", "U", "B", "R", "G"} {
 			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: rc.cands[rc.selected].id,
-				Label: "Add " + color})
+				Label: "Add " + color, ManaSymbol: color})
 		}
 		e.ask(d)
 		return
@@ -6451,7 +6451,9 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		rc.applied[i] = true
 		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped, rc.manaProducer)
 	case replChoiceManaColor:
-		color := strings.TrimPrefix(chosen[0].Label, "Add ")
+		// The chosen colour is structured data (Option.ManaSymbol); the
+		// label is presentation-only.
+		color := chosen[0].ManaSymbol
 		if len(color) != 1 || !strings.Contains("WUBRG", color) ||
 			rc.selected < 0 || rc.selected >= len(rc.cands) {
 			e.triggerBefore = before

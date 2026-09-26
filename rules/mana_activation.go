@@ -215,8 +215,8 @@ func (e *Engine) answerNestedManaColor(ma *manaColorActivation, chosen []decisio
 		}
 	}
 	for _, option := range chosen {
-		colour, ok := manaLabelColour(option.Label)
-		if !ok || !strings.Contains("WUBRG", colour) {
+		colour := option.ManaSymbol
+		if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
 			continue
 		}
 		if len(chosen) == 1 {
@@ -723,12 +723,13 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		if cols, ok := manaAbilityComboColours(ma, chosen); ok {
 			for _, col := range cols {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
-					Ability: i, Label: manaAbilityCostPrefix(ma) + "Add " + manaAmountPips(ma, col)})
+					Ability: i, Label: manaAbilityCostPrefix(ma) + "Add " + manaAmountPips(ma, col), ManaSymbol: col})
 			}
 			continue
 		}
+		label := manaAbilityLabel(ma, chosen)
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source,
-			Ability: i, Label: manaAbilityLabel(ma, chosen)})
+			Ability: i, Label: label})
 	}
 	gained := make([]gainedManaRef, len(abilities))
 	for i, ma := range abilities {
@@ -940,25 +941,6 @@ func manaAbilityCostPrefix(ma *cards.SA) string {
 		return ""
 	}
 	return strings.ToUpper(phrase[:1]) + phrase[1:] + ": "
-}
-
-// manaLabelColour recovers the single colour a decision option's label names,
-// for the answer paths that carry only the label. It reads the label's LAST
-// "Add <C>" segment: a paid activation prefixes the cost ("Pay 1 life: Add
-// B"), so trimming "Add " off the whole label would miss the prefixed form
-// and silently drop the mana the player chose. Reports ok=false for a label
-// whose last Add segment is not exactly one WUBRGC pip ("Add any color",
-// "Add B or R", a non-mana label).
-func manaLabelColour(label string) (string, bool) {
-	i := strings.LastIndex(label, "Add ")
-	if i < 0 {
-		return "", false
-	}
-	colour := strings.TrimSpace(label[i+len("Add "):])
-	if len(colour) != 1 || !strings.Contains("WUBRGC", colour) {
-		return "", false
-	}
-	return colour, true
 }
 
 // manaAbilityPayable is the mana-ability equivalent of the cast cost gate.
@@ -1624,7 +1606,7 @@ func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger,
 		Prompt: manaColourPrompt(mana), Source: pt.Source}
 	for unit := 0; unit < max; unit++ {
 		for _, color := range colours {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: pt.Source, Label: "Add " + color})
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: pt.Source, Label: "Add " + color, ManaSymbol: color})
 		}
 	}
 	parked := pt
@@ -2122,7 +2104,7 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	prefix := manaAbilityCostPrefix(ma)
 	for unit := 0; unit < max; unit++ {
 		for _, color := range colours {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source, Label: prefix + "Add " + color})
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source, Label: prefix + "Add " + color, ManaSymbol: color})
 		}
 	}
 	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative, triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...), allocation: allocation}
@@ -2235,8 +2217,8 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 	}
 	var symbols strings.Builder
 	for _, option := range chosen {
-		color, ok := manaLabelColour(option.Label)
-		if !ok {
+		color := option.ManaSymbol
+		if len(color) != 1 || !strings.Contains("WUBRGC", color) {
 			return ma.cast
 		}
 		symbols.WriteString(color)
@@ -2298,8 +2280,10 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 			gained = ma.gained[idx]
 		}
 		if _, ok := manaAbilityComboColours(ab, e.chosenProducedColour(ma.source)); ok {
-			color, alive := manaLabelColour(chosen[0].Label)
-			if alive {
+			// WUBRGC matches the set the removed label parser accepted, so a
+			// combo colour is admitted exactly as it was before the field.
+			color := chosen[0].ManaSymbol
+			if len(color) == 1 && strings.Contains("WUBRGC", color) {
 				// abilities entries are chain heads (printed faces list
 				// top-level abilities; granted and static-granted ones
 				// come from ResolveSVar bodies), so head == target copies

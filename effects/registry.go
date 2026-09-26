@@ -795,6 +795,12 @@ type RepeatCursor struct {
 	// Ctx.RepeatEachOptional on re-entry (Accept false skips that subject's
 	// body and continues at Next+1).
 	Election bool
+	// ChooseOrder marks a cursor parked on a RepeatEach ChooseOrder$ loop's
+	// one-before-the-loop ordering ask rather than on a body or an election.
+	// Next is 0 (no iteration has run); the answer permutes Subjects before
+	// the first body, and the reordered slice then rides every later
+	// cursor, so the order a body suspension carries is the chosen one.
+	ChooseOrder bool
 }
 
 // RepeatSuspension is what effRepeatEach reports when an iteration asks.
@@ -2109,7 +2115,7 @@ type Ctx struct {
 	// deeper in the same chain poses its own fresh ask.
 	ETBNumberRecorded bool
 	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
-	// colour pick: the option Label ("Add W") the chooser picked, set by
+	// colour pick: the chosen option's structured ManaSymbol ("W"), set by
 	// rules' "manareflected" resume arm before the suspended sub-ability is
 	// re-run. effManaReflected's re-entry consumes and clears it, accepts the
 	// colour only when the resolution still offers it, and emits the one

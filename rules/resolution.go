@@ -409,6 +409,11 @@ type repeatCursor struct {
 	// RepeatOptionalForEachPlayer$ offer: next is the subject whose election
 	// was posed, and the answer rides Ctx.RepeatEachOptional on re-entry.
 	election bool
+	// chooseOrder marks a RepeatEach frame parked on a ChooseOrder$ loop's
+	// one-before-the-loop ordering ask: next is 0, and the answered order
+	// permutes subjects before the loop re-enters (rules' repeat_choose_order
+	// resume arm).
+	chooseOrder bool
 }
 
 // fusedRest is a fuse-rest continuation's captured remainder (CR 702.101b):
@@ -943,7 +948,7 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	}
 	e.contChain = append(e.contChain, contFrame{
 		sa:          s.SA,
-		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next, election: s.Election},
+		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next, election: s.Election, chooseOrder: s.ChooseOrder},
 		bound:       true,
 		remembered:  append([]state.Target(nil), s.Outer...),
 		voteCounts:  cloneVoteCounts(votes),
@@ -2209,11 +2214,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		case "mana_color":
 			// A resolution-time Mana effect asked for one colour, or an
 			// allocation of Combo's produced units. The answer is carried in
-			// ordinary KChoose labels and consumed by effMana on re-entry; no
-			// event kind is needed because the resulting ManaAdd is the
-			// replayable state mutation.
+			// the chosen options' structured ManaSymbol and consumed by
+			// effMana on re-entry; no event kind is needed because the
+			// resulting ManaAdd is the replayable state mutation.
 			for _, option := range chosen {
-				colour := strings.TrimSpace(strings.TrimPrefix(option.Label, "Add "))
+				// The chosen colour is structured data (Option.ManaSymbol);
+				// labels are presentation-only.
+				colour := option.ManaSymbol
 				if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
 					continue
 				}
@@ -2229,6 +2236,49 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if cur := rp.repeat; cur != nil {
 				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: cur.subjects, Next: cur.next,
 					Last: cur.last, HasLast: cur.hasLast}
+			}
+		case "repeat_choose_order":
+			// A RepeatEach ChooseOrder$ loop's before-the-loop ordering ask was
+			// answered. Its loop frame is rp.outer (SuspendRepeat parked it with
+			// ChooseOrder set); consume it here so the loop is re-entered exactly
+			// once, with the subject order the answer named, rather than a
+			// second time through the outer recursion. Each option's Index is
+			// the subject's position in the offered (selector/scan) order, so
+			// the answer is applied by permuting the cursor's subject slice --
+			// the subjects are never re-derived after the ask, and every later
+			// mid-loop suspension copies the reordered slice. The loop's own
+			// accumulated bindings ride the frame exactly as the
+			// repeat_each_optional arm carries them.
+			if lf := rp.outer; lf != nil && lf.kind == "repeat" && lf.repeat != nil && lf.repeat.chooseOrder {
+				ordered := append([]state.Target(nil), lf.repeat.subjects...)
+				// A well-formed answer is a permutation (Min == Max == len); a
+				// malformed one (unreachable past Decision.Validate) keeps the
+				// offered order rather than dropping or duplicating a subject.
+				if len(chosen) == len(ordered) {
+					seen := make([]bool, len(ordered))
+					ok := true
+					for pos, o := range chosen {
+						if o.Index < 0 || o.Index >= len(ordered) || seen[o.Index] {
+							ok = false
+							break
+						}
+						seen[o.Index] = true
+						ordered[pos] = lf.repeat.subjects[o.Index]
+					}
+					if !ok {
+						ordered = append([]state.Target(nil), lf.repeat.subjects...)
+					}
+				}
+				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: ordered,
+					Next: lf.repeat.next, Last: lf.repeat.last, HasLast: lf.repeat.hasLast}
+				if lf.loopBound {
+					rp.loopBound = true
+					rp.loopRemembered = append([]state.Target(nil), lf.loopRemembered...)
+				}
+				if lf.voteCounts != nil {
+					rp.voteCounts = cloneVoteCounts(lf.voteCounts)
+				}
+				rp.outer = lf.outer
 			}
 		case "repeat_each_optional":
 			// A RepeatEach RepeatOptionalForEachPlayer$ election was answered.
@@ -2602,14 +2652,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// A standalone AB$ ManaReflected colour ask (the mid-resolution
 			// choice effManaReflected poses when a DB$/SP$ body reflecting
 			// several colours resolves outside the mana-activation path) was
-			// answered. The option Label ("Add W") carries the picked colour;
-			// the re-entered effManaReflected consumes and clears it and emits
+			// answered. The chosen option's structured ManaSymbol carries the
+			// picked colour; the re-entered effManaReflected consumes and
+			// clears it and emits
 			// the answered ManaAdd, so a nested ManaReflected poses its own ask.
 			// An empty answer (malformed -- the ask is Min 1/Max 1 over a set of
 			// two or more) leaves the field empty, and the effect's re-entry
 			// degrades to its deterministic first candidate.
 			if len(chosen) > 0 {
-				ctx.ManaReflectedColor = chosen[0].Label
+				// The structured mana symbol travels with the chosen option;
+				// the option label is presentation-only.
+				ctx.ManaReflectedColor = chosen[0].ManaSymbol
 			}
 		case "taporuntap":
 			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow

@@ -732,6 +732,14 @@ type animateGrant struct {
 	// parameter unread: effAnimateAll clears the field and
 	// animateAllUnreadNote still names it.
 	removeAbilities bool
+	// replacements names the Replacements$ SVars the animated object gains
+	// for the animation's own lifetime: each is an R:-shaped body on THIS
+	// face's table (Spirit-Sister's Call's ReplaceLeaves: "If this permanent
+	// would leave the battlefield, exile it instead"). registerAnimateEffects
+	// resolves each into an Effect-created replacement (effects'
+	// registerAnimateReplacements). AnimateAll keeps the parameter unread:
+	// it clears the field, and animateAllUnreadNote names it.
+	replacements []string
 }
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
@@ -838,6 +846,17 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// the Animate-param path. See animateGrant.removeAbilities.
 	ag.removeAbilities = strings.EqualFold(strings.TrimSpace(sa.Params["RemoveAllAbilities"]), "True")
 	ag.leaveExile = strings.TrimSpace(sa.Params["LeaveBattlefield"])
+	// Replacements$ names (comma-separated) SVars on THIS face's table whose
+	// bodies are R:-shaped replacements the animated object gains for the
+	// animation's own lifetime (Spirit-Sister's Call's ReplaceLeaves). Each
+	// is resolved at registration time under this face's SVar context, so the
+	// named body -- not a parsed copy -- travels (effects'
+	// registerAnimateReplacements). AnimateAll clears the field.
+	for nm := range strings.SplitSeq(sa.Params["Replacements"], ",") {
+		if nm = strings.TrimSpace(nm); nm != "" {
+			ag.replacements = append(ag.replacements, nm)
+		}
+	}
 	for nm := range strings.SplitSeq(sa.Params["sVars"], ",") {
 		if nm = strings.TrimSpace(nm); nm != "" {
 			ag.svars = append(ag.svars, nm)
@@ -1048,6 +1067,10 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	registerLeaveExile(h, c, id, ag.leaveExile, ag.duration, ag.permanent)
 	registerSVarGrants(h, c, id, ag.svars, ag.leaveExile, ag.duration, ag.permanent)
 	registerAnimateStaticAbilities(h, c, id, ag.staticAbilities, ag.duration, ag.permanent, exileOn, remembered)
+	// The Replacements$ grant: one Effect-created replacement per named SVar
+	// body, riding the animation's own lifetime (ExileOnMoved$/Remembered),
+	// exactly like the LeaveBattlefield$ promise above.
+	registerAnimateReplacements(h, c, id, ag.replacements, ag.duration, ag.permanent, exileOn, remembered)
 }
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
@@ -1092,6 +1115,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	// animateAllUnreadNote's "not implemented; ignored" note.
 	ag.removeKeywords = nil
 	ag.removeAbilities = false
+	ag.replacements = nil
 	emitAnimateColorsNotes(h, c, ag, "AnimateAll")
 	emitAnimateTriggersNotes(h, c, ag, "AnimateAll")
 	animateAllUnreadNote(h, c, sa)
