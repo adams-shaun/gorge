@@ -8659,6 +8659,35 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 			return true
 		}
 	}
+	// Target-conditional CastWithFlash (task istargeting-flash): a spell
+	// announced at a time a sorcery could not have been cast on the strength
+	// of a CastWithFlash permission whose ValidSA$ requires targeting
+	// something must actually have a qualifying announced target. The
+	// permission is otherwise unread after the offer, so without this a cast
+	// that took the flash window on a target the grant never covered would
+	// still complete. offSorcery is set only by beginCast (the ordinary
+	// offered cast: beginPlay's free-cast routes leave it false), and among
+	// those it is true only when the face is not an instant, has no Flash and
+	// no MayFlashSac rider -- so for a card with a target-conditional grant
+	// the ONLY remaining way the offer passed spellTimingOK is that grant.
+	// Re-running the same castWithFlashTargets the offer read, now with the
+	// announced targets, keeps offer and recheck on ONE interpretation.
+	//
+	// The mode exclusion covers the two offers that grant their own timing
+	// WITHOUT spellTimingOK (MayFlashCost's paid flash and the defeat cast) and
+	// split_alt, whose instant-speed check reads castWithFlash against the
+	// FRONT face while the cast flips to the alternate half: none can be a
+	// target-conditional-CastWithFlash card in the corpus, and policing a cast
+	// whose timing came from elsewhere would be a false reversal.
+	if pc.offSorcery && pc.mode != "mayflash" && pc.mode != "defeat_cast" && pc.mode != "split_alt" {
+		f := o.Face()
+		if f != nil && !f.IsInstant() && !e.HasKeyword(pc.card, "Flash") && !mayFlashSacFace(f) &&
+			e.hasTargetConditionalFlash(pc.player, pc.card) &&
+			!e.castWithFlashTargets(pc.player, pc.card, pc.targets) {
+			e.abortCast(pc, "cast aborted: flash permission's target requirement unmet (CR 601.2e)", true)
+			return true
+		}
+	}
 	return false
 }
 

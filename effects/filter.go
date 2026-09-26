@@ -2520,7 +2520,8 @@ func spellIsTargetingArgRecognised(arg string) bool {
 // spellIsTargetingMatches evaluates one normalised `IsTargeting` target-spec
 // against a candidate stack spell or ability: met when ANY of the spell's
 // recorded targets (state.Object.Targets -- the same chosen-target provenance
-// the engine's target offers record) matches the spec. Object targets go
+// the engine's target offers record, or SpecContext.ProposedTargets for a
+// spell still being announced) matches the spec. Object targets go
 // through MatchesSpecCtx and player targets through MatchesPlayerSpecCtx --
 // the two matchers the rest of the filter grammar uses -- with the caller's
 // SpecContext binding You/Source, so YouCtrl/Self/Other clauses and the
@@ -2538,7 +2539,11 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 	if o == nil || sc == nil {
 		return false
 	}
-	for _, tgt := range o.Targets {
+	targets := o.Targets
+	if sc.ProposedTargets != nil {
+		targets = sc.ProposedTargets
+	}
+	for _, tgt := range targets {
 		if tgt.IsPlayer {
 			if MatchesPlayerSpecCtx(g, spec, tgt.Player, sc.You, PlayerSpecCtx{Source: sc.Source}) {
 				return true
@@ -4259,6 +4264,17 @@ type SpecContext struct {
 	// its own targets have been chosen. Resolving distinguishes a real empty
 	// target list from no resolving object at all.
 	ResolutionTargets []state.Target
+	// ProposedTargets are the announced-but-not-yet-recorded targets of a spell
+	// being cast or a permission being checked (CR 601.2c runs while the
+	// announced spell is still in hand, so state.Object.Targets is necessarily
+	// empty). When non-nil it is authoritative for the `Spell.IsTargeting`
+	// predicate: a target-conditional static (CastWithFlash's ValidSA$, a cost
+	// static's ValidSpell$) must read the proposed targets rather than the
+	// candidate object's recorded list. Nil keeps state.Object.Targets
+	// authoritative (the stack/resolution path); an empty non-nil slice is a
+	// proposed list that matches nothing (a resolved non-match, never an
+	// unresolved gate).
+	ProposedTargets []state.Target
 	// AsStack is a DERIVED-CHARACTERISTICS override, not a resolution fact:
 	// rules.derivedWith sets it while evaluating an AffectedZone$ Stack grant
 	// for the spell a cast is announcing (CR 601.2b runs while the announced
