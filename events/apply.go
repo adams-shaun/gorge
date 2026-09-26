@@ -2711,18 +2711,22 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
-		// The incarnation stamp makes resolveTop's source-incarnation gate
-		// drop a keyword trigger whose effect names the SOURCE PERMANENT
-		// (Evoke's "sacrifice it") once that permanent leaves and returns as
-		// a new object (CR 400.7). A promised permanent's gift (CR 702.168c)
-		// is not such a trigger: its body acts on the promised player, and an
+		// The incarnation stamp arms resolveTop's source-incarnation gate,
+		// which drops a keyword trigger whose effect names the SOURCE
+		// PERMANENT (Evoke's "sacrifice it") once that permanent leaves and
+		// returns as a new object (CR 400.7). It is armed ONLY for a trigger
+		// that demonstrably acts on its source (keywordTriggerBindsSource): an
 		// ability resolves independently of its source (CR 112.7a), so the
-		// gift must still deliver when the permanent is removed in response
-		// to its own entry triggers -- the response window its own
-		// respondability creates. Leaving the stamp at its zero value makes
-		// that gate skip the gift, exactly as it does for an ordinary
-		// matched ETB trigger.
-		if !gift {
+		// default is NO stamp. A granted Ward or Afflict, for example, acts on
+		// the targeting spell / captured defender and must still resolve when
+		// the granting permanent is removed in response to its own trigger
+		// -- the response window that trigger's respondability creates. A
+		// promised permanent's gift (CR 702.168c) is likewise independent: its
+		// body acts on the promised player (snapshotted into Remembered), so
+		// it must still deliver after the source is removed. Leaving the stamp
+		// at its zero value makes the gate skip such a trigger exactly as it
+		// does for an ordinary matched ETB trigger pushed by TriggerPush.
+		if !gift && keywordTriggerBindsSource(e.Counter, sa) {
 			o.SourceIncarnation = incarnation
 		}
 		if conspire || casualty || demonstrate || flanking || melee || cipher || gift {
