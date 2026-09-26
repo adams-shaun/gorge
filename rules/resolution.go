@@ -409,6 +409,11 @@ type repeatCursor struct {
 	// RepeatOptionalForEachPlayer$ offer: next is the subject whose election
 	// was posed, and the answer rides Ctx.RepeatEachOptional on re-entry.
 	election bool
+	// chooseOrder marks a RepeatEach frame parked on a ChooseOrder$ loop's
+	// one-before-the-loop ordering ask: next is 0, and the answered order
+	// permutes subjects before the loop re-enters (rules' repeat_choose_order
+	// resume arm).
+	chooseOrder bool
 }
 
 // fusedRest is a fuse-rest continuation's captured remainder (CR 702.101b):
@@ -943,7 +948,7 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	}
 	e.contChain = append(e.contChain, contFrame{
 		sa:          s.SA,
-		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next, election: s.Election},
+		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next, election: s.Election, chooseOrder: s.ChooseOrder},
 		bound:       true,
 		remembered:  append([]state.Target(nil), s.Outer...),
 		voteCounts:  cloneVoteCounts(votes),
@@ -2229,6 +2234,49 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if cur := rp.repeat; cur != nil {
 				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: cur.subjects, Next: cur.next,
 					Last: cur.last, HasLast: cur.hasLast}
+			}
+		case "repeat_choose_order":
+			// A RepeatEach ChooseOrder$ loop's before-the-loop ordering ask was
+			// answered. Its loop frame is rp.outer (SuspendRepeat parked it with
+			// ChooseOrder set); consume it here so the loop is re-entered exactly
+			// once, with the subject order the answer named, rather than a
+			// second time through the outer recursion. Each option's Index is
+			// the subject's position in the offered (selector/scan) order, so
+			// the answer is applied by permuting the cursor's subject slice --
+			// the subjects are never re-derived after the ask, and every later
+			// mid-loop suspension copies the reordered slice. The loop's own
+			// accumulated bindings ride the frame exactly as the
+			// repeat_each_optional arm carries them.
+			if lf := rp.outer; lf != nil && lf.kind == "repeat" && lf.repeat != nil && lf.repeat.chooseOrder {
+				ordered := append([]state.Target(nil), lf.repeat.subjects...)
+				// A well-formed answer is a permutation (Min == Max == len); a
+				// malformed one (unreachable past Decision.Validate) keeps the
+				// offered order rather than dropping or duplicating a subject.
+				if len(chosen) == len(ordered) {
+					seen := make([]bool, len(ordered))
+					ok := true
+					for pos, o := range chosen {
+						if o.Index < 0 || o.Index >= len(ordered) || seen[o.Index] {
+							ok = false
+							break
+						}
+						seen[o.Index] = true
+						ordered[pos] = lf.repeat.subjects[o.Index]
+					}
+					if !ok {
+						ordered = append([]state.Target(nil), lf.repeat.subjects...)
+					}
+				}
+				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: ordered,
+					Next: lf.repeat.next, Last: lf.repeat.last, HasLast: lf.repeat.hasLast}
+				if lf.loopBound {
+					rp.loopBound = true
+					rp.loopRemembered = append([]state.Target(nil), lf.loopRemembered...)
+				}
+				if lf.voteCounts != nil {
+					rp.voteCounts = cloneVoteCounts(lf.voteCounts)
+				}
+				rp.outer = lf.outer
 			}
 		case "repeat_each_optional":
 			// A RepeatEach RepeatOptionalForEachPlayer$ election was answered.
