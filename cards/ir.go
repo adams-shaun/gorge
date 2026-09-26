@@ -39,21 +39,22 @@ type Repl struct {
 // Face is one printed face. Most cards have exactly one; ALTERNATE starts
 // another.
 type Face struct {
-	Name      string
-	ManaCost  string
-	Types     []string
-	PT        string
-	Loyalty   string
-	Defense   string
-	Colors    string
-	Oracle    string
-	Keywords  []string
-	Aliases   []string // Universes-Within flavour names a decklist may use
-	Abilities []*SA
-	Triggers  []Trigger
-	Statics   []Static
-	Repls     []Repl
-	SVars     map[string]string
+	SpecializeColor string // color token from a SPECIALIZE:<COLOR> boundary, if any
+	Name            string
+	ManaCost        string
+	Types           []string
+	PT              string
+	Loyalty         string
+	Defense         string
+	Colors          string
+	Oracle          string
+	Keywords        []string
+	Aliases         []string // Universes-Within flavour names a decklist may use
+	Abilities       []*SA
+	Triggers        []Trigger
+	Statics         []Static
+	Repls           []Repl
+	SVars           map[string]string
 
 	// Derived values, computed once at load (Face.derive), never written
 	// into the gob cache: a stale cache decodes these as zero and derive

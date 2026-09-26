@@ -412,6 +412,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			}
 		}
 		if b.IsMain {
+			// A specialize option is already gated by the engine's shared
+			// legality predicate (face, activation riders and payment). Take
+			// the offered face deterministically before ordinary main-phase
+			// development actions.
+			for _, o := range d.Options {
+				if o.Kind == "specialize" {
+					in.Choices = []int{o.Index}
+					return Clamp(d, in)
+				}
+			}
 			// T1 (tap.go): the need-aware tap gate. The block this replaced
 			// tapped the first "activate" option in every main phase until
 			// every source was spent -- need-blind and position-first -- which

@@ -277,6 +277,10 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareBlockers
 	case "Untaps":
 		return 1 << events.Untap
+	case "Specializes":
+		// The event Kind is beyond this mask's bit width; allow the matcher
+		// to inspect the full event and keep this mode's candidate set narrow.
+		return 0
 	case "PhaseOutAll":
 		// CR 702.25b: the batch-level "whenever one or more permanents phase
 		// out" trigger matches the events.PhaseOut marker the api:Phases

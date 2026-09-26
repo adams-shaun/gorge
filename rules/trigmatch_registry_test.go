@@ -81,6 +81,10 @@ var addedAfterTheSplit = []string{
 	// on the caster's battlefield, so no new event Kind was needed -- but the
 	// mode is new to the table, so it lands here.
 	"ManaExpend",
+	// specialize-alternate-mode-layer-unparsed: Specializes matches the newly
+	// appended events.Specialize transition; the pre-split switch could not
+	// dispatch an event kind that did not exist.
+	"Specializes",
 	// kw-class: "When this Class becomes level N" (CR 702.118c; 13 corpus
 	// TriggerClassLevel SVar bodies). It matches the ordinary CounterChange
 	// event the level-up activator's PutCounter emits, so the event existed

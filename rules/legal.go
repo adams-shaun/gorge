@@ -3477,6 +3477,26 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
 	}
 
+	// Specialize is a no-stack special action and may be taken only as a
+	// sorcery. Each legal target face is a separate option, avoiding a second
+	// decision while preserving player choice.
+	if sorcery {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Card == nil {
+				continue
+			}
+			for i := 1; i < len(o.Card.Faces); i++ {
+				cost, ok := e.specializeLegal(p, id, i)
+				if !ok {
+					continue
+				}
+				add("specialize", "Specialize as "+o.Card.Faces[i].Name+" ("+costPhrase(cost)+")", id)
+				out[len(out)-1].Mode = strconv.Itoa(i)
+			}
+		}
+	}
+
 	// K:Split second (CR 702.62, rules/split_second.go): while a split-second
 	// spell is on the stack, players can't cast spells or activate abilities
 	// that aren't mana abilities. The filter runs here -- at the ONE choke
@@ -3680,6 +3700,9 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// payment and the delayed-shape ability mint.
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		e.beginGrantedActivation(in.Player, opt)
+
+	case "specialize":
+		e.specialize(in.Player, opt)
 
 	case "turn_face_up":
 		// Morph-family turn face up (CR 708.6 / CR 116.2b): a special action
