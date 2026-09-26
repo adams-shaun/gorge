@@ -170,10 +170,8 @@ func TestSpecializeShadowheartSVarGateBinds(t *testing.T) {
 // way: front face enters, the specialization to the Crocodile form replaces
 // the face (and its Mode$ Specializes trigger taps an opponent's nonland
 // permanent), then the Crocodile death trigger runs the real compiled Mode$
-// Unspecialize body and flips the card back to the front face. (The body's
-// chained DBReturn does not return it to the battlefield: the plain-Remembered
-// condition group excludes the resolving source by design -- see the comment
-// at the death section and the report's Issues section.)
+// Unspecialize body, flips the card back to the front face, and its chained
+// DBReturn returns it to the battlefield tapped.
 func TestSpecializeLukaminaCorpusEndToEnd(t *testing.T) {
 	lukamina := corpusCard(t, "Lukamina, Moon Druid")
 	if got := len(lukamina.Faces); got != 6 {
@@ -241,19 +239,24 @@ func TestSpecializeLukaminaCorpusEndToEnd(t *testing.T) {
 		t.Fatalf("Crocodile specialize trigger did not tap the opponent's permanent")
 	}
 
+	// Precondition for the return half: the Crocodile face really is the one
+	// wearing the Unspecialize death trigger, so a build that flipped from the
+	// wrong face could not reach it.
+	if got := o.FaceIdx; got != 2 {
+		t.Fatalf("precondition: card face before dying = %d, want 2 (Crocodile Form)", got)
+	}
+
 	// Death: the Crocodile death trigger runs the real compiled
 	// `Mode$ Unspecialize` SA body, which flips the card back to its FRONT
-	// face (Lukamina, Moon Druid). The SA's own chained DBReturn
-	// (`ChangeZone | ConditionDefined$ Remembered | ... | Defined$ Remembered`)
-	// does NOT return it to the battlefield in this build: the plain-Remembered
-	// condition group (effects/context.go rememberedWithSource) deliberately
-	// drops any remembered entry whose object IS the resolving source, and the
-	// object Lukamina remembers is itself. That exclusion is intentional and
-	// pinned by effects/count_rememberedlki_source_test.go, so this ticket does
-	// not change it; the return half is filed as a separate defect (see the
-	// report's Issues section). What this test proves is the part the ticket
-	// owns: the layout compiles real faces, so the death trigger finds the
-	// per-face Mode$ Unspecialize body and it runs.
+	// face (Lukamina, Moon Druid) and then runs its chained DBReturn
+	// (`ChangeZone | ConditionDefined$ Remembered | ConditionPresent$ Card |
+	// Origin$ Graveyard | Destination$ Battlefield | Tapped$ True |
+	// Defined$ Remembered`) to return the card tapped. The SetState remembers
+	// the changed object (`RememberChanged$ True`), which IS the resolving
+	// source; the plain-Remembered group now keeps that explicitly-remembered
+	// source occurrence (effects/context.go rememberedWithSource == the one
+	// resolution rule shared with rememberedLKIGroup), so the gate holds and
+	// the return runs.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
 		t.Fatalf("precondition: card zone after dying = %s, want Graveyard", got)
@@ -281,6 +284,24 @@ func TestSpecializeLukaminaCorpusEndToEnd(t *testing.T) {
 	}
 	if o.FaceIdx != 0 || o.Face().Name != "Lukamina, Moon Druid" {
 		t.Fatalf("after unspecialize face = %d %q, want the front face", o.FaceIdx, o.Face().Name)
+	}
+	// The DBReturn half: the card must be back on the battlefield, tapped.
+	if o.Zone != state.ZBattlefield {
+		t.Fatalf("after DBReturn zone = %s, want Battlefield (graveyard return did not run)", o.Zone)
+	}
+	if !o.Tapped {
+		t.Fatalf("after DBReturn the card is untapped, want tapped (Tapped$ True)")
+	}
+	// And the return must be event-sourced: a graveyard-to-battlefield
+	// MoveZone for this id must be in the log.
+	sawReturn := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.Obj == id && ev.From == state.ZGraveyard && ev.To == state.ZBattlefield {
+			sawReturn = true
+		}
+	}
+	if !sawReturn {
+		t.Fatal("DBReturn did not emit a Graveyard->Battlefield MoveZone for the card")
 	}
 }
 

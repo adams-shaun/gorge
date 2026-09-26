@@ -1271,26 +1271,35 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 }
 
 // rememberedWithSource returns the remembered group a Forge SVAR/condition
-// named plain "Remembered" reads: the SOURCE object's persistent event-backed
+// named plain "Remembered" reads. It is the SAME group the RememberedLKI ref
+// group reads -- one resolution rule, rememberedLKIGroup (effects/count.go),
+// shared by both spellings so the plain and LKI readers of "Remembered" can
+// never disagree. That group is the SOURCE object's persistent event-backed
 // Remembered list first (Forge's executing ability shares the HOST CARD's
 // remembered list, so a later trigger of the same card -- Skyclave
 // Apparition's leave trigger, whose X is the card the earlier ETB trigger
 // remembered -- reads what an earlier resolution of the same source
-// recorded), then every ctx entry that is neither already present nor the
-// source itself, deduplicated by object id. The ctx walk's list is the
-// CAPTURE-EXCLUDED remembered set (rememberedExcludingCapture, the one-home
-// helper): Forge's host remembered list never contains the event object the
-// trigger fired on, and rules seeds a firing trigger's ctx with Remembered ==
-// Captured == that event capture, so a raw ctx read would count the referent
-// as card-level remembered and inflate every plain-Remembered group and
-// count (the event-object case the source-skip below does NOT mask: a
-// Damage/ChangesZone trigger's capture is ev.Obj, not the source). The
-// ctx-except-self rule keeps
-// the walk's own remembers (some legs record only at ctx level) while
-// leaving out the trigger REFERENT capture when it happens to BE the source.
-// Players in ctx pass through after the objects. Deterministic (slices in
-// order, no map range reaches a caller's output) and allocation-only: it
-// writes no state and emits no event.
+// recorded), then every ctx entry that is not already present, deduplicated
+// by object id. The ctx walk's list is the CAPTURE-EXCLUDED remembered set
+// (rememberedExcludingCapture, the one-home helper): Forge's host remembered
+// list never contains the event object the trigger fired on, and rules seeds
+// a firing trigger's ctx with Remembered == Captured == that event capture, so
+// a raw ctx read would count the referent as card-level remembered and
+// inflate every plain-Remembered group and count (the event-object case a
+// source-skip would NOT mask: a Damage/ChangesZone trigger's capture is
+// ev.Obj, not the source).
+//
+// The exclusion is BY OCCURRENCE, not by source identity. An earlier build
+// dropped every ctx entry whose object IS the resolving source as a stand-in
+// for keeping the fire-time capture out; but that also deleted a REAL memory
+// of the source -- an ability that changes its own state and then remembers
+// itself (RememberChanged$ True on a Defined$ Self SetState; Lukamina, Moon
+// Druid's per-face Unspecialize body) is genuinely remembered, and Forge's
+// host list holds it. rememberedExcludingCapture already removes exactly the
+// seeded capture occurrence, so the blanket source drop is wrong. Players in
+// ctx pass through after the objects. Deterministic (slices in order, no map
+// range reaches a caller's output) and allocation-only: it writes no state
+// and emits no event.
 //
 // imprintPileTargets resolves the SOURCE's persistent imprint association
 // (state.Object.Imprinted + ImprintTokens): the exiled cards -- Imprint links
@@ -1393,27 +1402,7 @@ func imprintAssociationContainsInZone(source *state.Object, id state.ObjID, zone
 }
 
 func rememberedWithSource(h Host, c *Ctx) []state.Target {
-	out := make([]state.Target, 0, len(c.Remembered))
-	seen := make(map[state.ObjID]bool, len(c.Remembered))
-	if o := h.Game().Obj(c.Source); o != nil {
-		for _, t := range o.Remembered {
-			if !t.IsPlayer && !seen[t.Obj] {
-				seen[t.Obj] = true
-				out = append(out, t)
-			}
-		}
-	}
-	for _, t := range rememberedExcludingCapture(h, c) {
-		if t.IsPlayer {
-			out = append(out, t)
-			continue
-		}
-		if t.Obj != c.Source && !seen[t.Obj] {
-			seen[t.Obj] = true
-			out = append(out, t)
-		}
-	}
-	return out
+	return rememberedLKIGroup(h, c)
 }
 
 // lkiControllerFor returns the last-known controller ChangeZone's
