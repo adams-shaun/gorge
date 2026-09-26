@@ -10324,6 +10324,13 @@ func init() {
 		// the level-band statics read the counter through the existing
 		// counters_<CMP><n>_LEVEL predicate, so no separate path of its own.
 		"kw:Level up",
+		// kw:Outlast: CR 702.107, expanded by cards/kw_outlast.go into an
+		// ordinary sorcery-speed PutCounter activation (CounterType$ P1P1,
+		// Cost$ T <mana>); the leading T is the CR 702.107a tap cost and
+		// makes the keyword repeatable only across untaps, with no
+		// once-per-turn machinery of its own. Proof:
+		// rules/outlast_test.go.
+		"kw:Outlast",
 		// kw:Class: CR 702.118, expanded by cards/keywords.go into one
 		// sorcery-speed level-up activator per level (the kw:Level up shape,
 		// gated on the Class's level being below that level) plus the level's
