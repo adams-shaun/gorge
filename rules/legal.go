@@ -2017,14 +2017,20 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		}
 		// CR 709.5: a fuse card's fused cast is a single spell with BOTH
 		// halves' characteristics, so it is NOT an alternate-face cast: the
-		// object stays at its front face (beginCast's fuse arm flips nothing),
-		// and the front-face castRestricted gate above is exactly the
-		// restriction the ordinary cast reads. A restriction that names only
-		// the alternate half therefore does not withhold the fused offer -- a
-		// known limitation reported in the ticket, not a silent substitution
-		// of an alternate-face probe for a fused cast.
+		// object stays at its front face (beginCast's fuse arm flips nothing).
+		// The gate is therefore the front-face castRestricted continue just
+		// above for the front half PLUS a castRestrictedAsFace probe for the
+		// alternate half: a prohibition that matches either half's
+		// characteristics withholds the fused offer (CR 709.5 -- one spell
+		// with both halves' characteristics). Probing the alternate half is
+		// the same scoped face read the split_alt offer uses and restores the
+		// face before returning, so replay is untouched; it must NOT replace
+		// the front-face continue, or a front-restricted card would offer its
+		// fused cast. The recheck (CR 601.2e, cast.go's recheckIllegal) runs
+		// the same both-halves rule so offer and enforcement agree.
 		if ff, fa := fusedSplitFaces(o); ff != nil {
-			if e.fusedTimingOK(p, id, ff, fa, sorcery) &&
+			if !castRestrictedAsFace(p, id, fa) &&
+				e.fusedTimingOK(p, id, ff, fa, sorcery) &&
 				e.splitCastTargetsAvailable(p, id, ff) && e.splitCastTargetsAvailable(p, id, fa) {
 				if offerCastable(p, id, e.fuseCost(ff, fa), spellScope(""), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
