@@ -9,7 +9,7 @@ one missing primitive makes the whole card unplayable, so this is a strict
 lower bound on what the engine can do.
 
 - Cards in the corpus: **33667**
-- Fully playable: **30464 (90.5%)**
+- Fully playable: **30498 (90.6%)**
 - Token scripts compiled: **839**
 - Corpus pin: `Card-Forge/forge@95f04e8a04c8925fa97cb226fc3341cabcc90a53`
 
@@ -26,11 +26,11 @@ engine subsystems are finished.
 
 | Card type | Cards | Playable | % |
 |---|---:|---:|---:|
-| Creature | 18544 | 16735 | 90.2% |
-| Instant | 3774 | 3523 | 93.3% |
-| Sorcery | 3519 | 3224 | 91.6% |
-| Enchantment | 3445 | 3213 | 93.3% |
-| Artifact | 2480 | 2218 | 89.4% |
+| Creature | 18544 | 16746 | 90.3% |
+| Instant | 3774 | 3527 | 93.5% |
+| Sorcery | 3519 | 3229 | 91.8% |
+| Enchantment | 3445 | 3222 | 93.5% |
+| Artifact | 2480 | 2223 | 89.6% |
 | Land | 1152 | 1128 | 97.9% |
 | Other | 384 | 99 | 25.8% |
 | Planeswalker | 332 | 290 | 87.3% |
@@ -43,25 +43,25 @@ colour indicator — not its Commander colour identity.
 
 | Colour | Cards | Playable | % |
 |---|---:|---:|---:|
-| White | 4977 | 4482 | 90.1% |
-| Red | 4975 | 4541 | 91.3% |
-| Black | 4946 | 4552 | 92.0% |
-| Green | 4864 | 4435 | 91.2% |
-| Blue | 4860 | 4419 | 90.9% |
-| Multicolour | 4708 | 4301 | 91.4% |
-| Colorless | 4337 | 3734 | 86.1% |
+| White | 4977 | 4486 | 90.1% |
+| Red | 4975 | 4543 | 91.3% |
+| Black | 4946 | 4554 | 92.1% |
+| Green | 4864 | 4447 | 91.4% |
+| Blue | 4860 | 4428 | 91.1% |
+| Multicolour | 4708 | 4304 | 91.4% |
+| Colorless | 4337 | 3736 | 86.1% |
 
 ## By mana value
 
 | Mana value | Cards | Playable | % |
 |---|---:|---:|---:|
 | 0 | 1701 | 1318 | 77.5% |
-| 1 | 3250 | 3017 | 92.8% |
-| 2 | 7142 | 6605 | 92.5% |
-| 3 | 8035 | 7360 | 91.6% |
-| 4 | 6275 | 5676 | 90.5% |
-| 5 | 3925 | 3559 | 90.7% |
-| 6 | 2017 | 1781 | 88.3% |
+| 1 | 3250 | 3021 | 93.0% |
+| 2 | 7142 | 6611 | 92.6% |
+| 3 | 8035 | 7375 | 91.8% |
+| 4 | 6275 | 5681 | 90.5% |
+| 5 | 3925 | 3562 | 90.8% |
+| 6 | 2017 | 1782 | 88.3% |
 | 7+ | 1322 | 1148 | 86.8% |
 
 ## What the gap is waiting on
@@ -88,8 +88,8 @@ it alone blocks. Implementing the top row unlocks that many cards at once.
 | `stat:OptionalCost` | 40 |
 | `kw:Bushido` | 37 |
 | `kw:Shroud` | 37 |
-| `api:ManifestDread` | 36 |
 | `kw:Daybound` | 36 |
 | `kw:Nightbound` | 36 |
+| `api:ExchangeControl` | 35 |
 
 Regenerate this file with `make coverage`.
