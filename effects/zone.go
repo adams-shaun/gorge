@@ -17,6 +17,7 @@ func init() {
 	Register("DestroyAll", effDestroyAll)
 	Register("Sacrifice", effSacrifice)
 	Register("Manifest", effManifest)
+	Register("ManifestDread", effManifestDread)
 	Register("Cloak", effCloak)
 	Register("Seek", effSeek)
 }
@@ -3048,9 +3049,8 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 // body (Y, or X outside a cast's own X-value) -- emits the SAME loud
 // "unimplemented API Manifest" note the unimplemented-API fallback emits
 // and moves nothing: fail loud, never silently move the wrong card.
-// ManifestDread is a DIFFERENT API (31 corpus files) and stays on that
-// fallback; turning a face-down permanent face up (CR 708.6) is not
-// implemented anywhere (AGENTS.md's manifest row).
+// Turning a face-down permanent face up (CR 708.6) is not implemented
+// anywhere (AGENTS.md's manifest row).
 func effManifest(h Host, c *Ctx, sa *cards.SA) {
 	if strings.TrimSpace(sa.Params["Defined"]) != "" ||
 		strings.TrimSpace(sa.Params["Choices"]) != "" ||
@@ -3097,6 +3097,106 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: top, Player: p,
 				From: state.ZLibrary, To: state.ZBattlefield,
 				Counter: "entered_face_down", Secret: true})
+		}
+	}
+}
+
+// effManifestDread implements CR 701.61's two-card library operation. The
+// private look is recorded before the choice; the offered identities are
+// visible only to the library's player. If the host cannot ask, choose the
+// top card deterministically, matching the engine's R-9 fallback contract.
+//
+// Scope, measured over the corpus's 37 ManifestDread lines: the plain top-two
+// body (Zimone, Mystery Unraveler and 26 others) and `Amount$ 2` (identical
+// to the default). Every other parameter family -- `Amount$ 1` (a count this
+// build does not implement), `DefinedPlayer$` (only the resolving
+// controller's library is supported) and `RememberManifested$ True` (the
+// DBAttach/DBPutCounter rider family needs the manifested object remembered)
+// -- emits the SAME loud "unimplemented API ManifestDread" note the
+// unimplemented-API fallback emits and moves nothing: fail loud, never
+// silently look at the wrong count, the wrong player's library, or lose the
+// remembered card a rider needs.
+func effManifestDread(h Host, c *Ctx, sa *cards.SA) {
+	if strings.TrimSpace(sa.Params["DefinedPlayer"]) != "" ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["RememberManifested"]), "True") ||
+		sa.Params["Choices"] != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented API ManifestDread"})
+		return
+	}
+	if raw, present := sa.Params["Amount"]; present && strings.TrimSpace(raw) != "2" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented API ManifestDread"})
+		return
+	}
+	g := h.Game()
+	p := c.ManifestDreadPlayer
+	picked := c.ManifestDreadPick
+	done := c.ManifestDreadDone
+	c.ManifestDreadPick, c.ManifestDreadDone = 0, false
+	if int(p) >= len(g.Players) {
+		p = c.Controller
+	}
+	if done {
+		if o := g.Obj(picked); o != nil && o.Zone == state.ZLibrary && o.Owner == p {
+			window := []state.ObjID{picked}
+			for _, id := range g.Zone(state.ZLibrary, p) {
+				if id != picked && len(window) < 2 {
+					window = append(window, id)
+				}
+			}
+			manifestDreadMove(h, c, p, window, picked)
+		}
+		return
+	}
+	p = c.Controller
+	lib := g.Zone(state.ZLibrary, p)
+	if len(lib) == 0 {
+		return
+	}
+	window := append([]state.ObjID(nil), lib[:min(2, len(lib))]...)
+	emitLook(h, []state.PlayerID{p}, state.ZLibrary, window, "looks at the top two cards of the library")
+	if len(window) == 1 {
+		manifestDreadMove(h, c, p, window, window[0])
+		return
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "manifest_dread", ResumeSA: sa,
+		Prompt: "Choose a card to manifest dread"}
+	for _, id := range window {
+		label := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			label = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "manifest_dread", Label: label, Obj: id, Player: p})
+	}
+	c.ManifestDreadPlayer = p
+	if Ask(h, d) == AskAsked {
+		return
+	}
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+		Text: "manifests the top card (no engine host to ask)", Secret: true})
+	manifestDreadMove(h, c, p, window, window[0])
+}
+
+// manifestDreadMove applies CR 701.61's two destinations. The chosen card's
+// move onto the battlefield face down is Secret (the private look must not
+// leak which card was manifested); the unchosen card's move to the graveyard
+// is PUBLIC -- a graveyard is a public zone, so every seat and spectator
+// learns which card went there, exactly as applyNonlandExplore's
+// library-to-graveyard move does. Marking it Secret would strip Obj from
+// every non-owner projection, leaving the transcript a nameless move even
+// though the card's identity is public the moment it lands.
+func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, chosen state.ObjID) {
+	for _, id := range window {
+		if id == chosen {
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary,
+				To: state.ZBattlefield, Counter: "entered_face_down", Secret: true})
+		} else {
+			o := h.Game().Obj(id)
+			if o != nil {
+				h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: o.Owner, From: state.ZLibrary, To: state.ZGraveyard})
+			}
 		}
 	}
 }
