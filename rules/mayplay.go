@@ -634,7 +634,7 @@ func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate, 
 			continue
 		}
 		if applies, grants, _, _, _, _ := e.mayPlayStatic(st.Params, id, o.Controller, id); applies && grants {
-			pl, mu, bl := mayPlayValidSAKinds(st.Params["ValidSA"], o.Face(), id, id)
+			pl, mu, bl := e.mayPlayValidSAKinds(st.Params["ValidSA"], o.Face(), id, id, p)
 			plain = plain || pl
 			mutate = mutate || mu
 			blitz = blitz || bl
@@ -645,7 +645,7 @@ func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate, 
 			continue
 		}
 		if applies, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source); applies && grants {
-			pl, mu, bl := mayPlayValidSAKinds(sv.Params["ValidSA"], o.Face(), id, sv.Source)
+			pl, mu, bl := e.mayPlayValidSAKinds(sv.Params["ValidSA"], o.Face(), id, sv.Source, p)
 			plain = plain || pl
 			mutate = mutate || mu
 			blitz = blitz || bl
@@ -779,12 +779,18 @@ func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool
 // ordinary permission. The mutate and blitz tokens are matched
 // case-insensitively as whole alternatives, never as substrings, so a future
 // `Spell.Mutates`-style token cannot be misread as the cast permission.
-func mayPlayValidSAKinds(validSA string, f *cards.Face, id, source state.ObjID) (plain, mutate, blitz bool) {
+func (e *Engine) mayPlayValidSAKinds(validSA string, f *cards.Face, id, source state.ObjID, you state.PlayerID) (plain, mutate, blitz bool) {
 	raw := strings.TrimSpace(validSA)
 	if raw == "" {
 		return true, false, false
 	}
-	if spellMatchesValidSA(f, raw, id, source) {
+	// A nil target list is deliberate: a may-play permission is evaluated
+	// before any target is announced, so a target-conditional
+	// `Spell.IsTargeting` alternative stays fail-closed here. A may-play
+	// permission must not become an unconditional instant-speed grant merely
+	// because the card has some legal target (the CastWithFlash offer path is
+	// where prospective targets are read).
+	if e.spellMatchesValidSA(f, raw, id, source, you, nil) {
 		plain = true
 	}
 	for alt := range strings.SplitSeq(raw, ",") {

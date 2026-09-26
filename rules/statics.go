@@ -62,9 +62,11 @@ type costStaticViews struct {
 	reduce   []staticView
 	set      []staticView
 	optional []staticView
-	// validTarget: some raise/reduce/set member carries ValidTarget$, the
-	// one parameter through which a composition reads the chosen targets
-	// (see offerCastableUsing's potential-target retry).
+	// validTarget: some raise/reduce/set member's predicate reads the chosen
+	// targets -- either a ValidTarget$ or a target-conditional ValidSpell$
+	// (`Spell.IsTargeting <spec>`, Head of the Class) -- the one condition under
+	// which a composition must be retried with the potential targets (see
+	// offerCastableUsing's potential-target retry).
 	validTarget bool
 }
 
@@ -730,8 +732,35 @@ func (e *Engine) adjustedCost(p state.PlayerID, id state.ObjID) Cost {
 // permission to cast id at instant speed. It is intentionally shared by every
 // zone that can cast a spell; a Vedalken Orrery must not stop working when a
 // later alternative permits casting from another zone.
+//
+// The offer walk passes id's POTENTIAL legal targets: a target-conditional
+// grant such as Flash Photography's
+// `ValidSA$ Spell.IsTargeting Valid Permanent.YouCtrl` is permission only when
+// some legal target can satisfy the restriction. CR 601.2e's recheckIllegal
+// re-runs castWithFlashTargets with the ANNOUNCED targets, so a cast that took
+// the permission on a non-qualifying target is reversed rather than completed.
 func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
-	for _, sv := range e.activeStatics("CastWithFlash") {
+	// Fast path: with no CastWithFlash static anywhere (the overwhelming
+	// majority of offers), do not pay for a potential-target census.
+	if len(e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash")) == 0 {
+		return false
+	}
+	return e.castWithFlashTargets(p, id, e.costPotentialTargets(p, id, spellScope("")))
+}
+
+// castWithFlashTargets is castWithFlash against an explicit target list. The
+// whole CastWithFlash collection is read through ONE home -- the battlefield
+// walk every static consumer uses plus the card's OWN face statics, which
+// activeStatics never sees while the card is still in hand (the same two
+// sources alternativeCosts reads for a self-carried AlternativeCost) -- so the
+// offer and the recheck cannot disagree about which statics grant the
+// permission.
+func (e *Engine) castWithFlashTargets(p state.PlayerID, id state.ObjID, targets []state.Target) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, sv := range e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash") {
 		if !e.actorMatches(sv, "Caster", p) || !e.staticTimingGate(sv) {
 			continue
 		}
@@ -745,11 +774,73 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 				continue
 			}
 		}
-		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"], id, sv.Source) {
+		if !e.spellMatchesValidSA(o.Face(), sv.Params["ValidSA"], id, sv.Source, p, targets) {
 			continue
 		}
 		if e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+			return true
+		}
+	}
+	return false
+}
+
+// withSelfStatics appends the named statics the card carries on its OWN face
+// to a collected list: activeStatics never sees a self-carried static while
+// the card is still in hand (the same second source alternativeCosts reads
+// for a self-carried AlternativeCost). A self static's source and controller
+// are the card itself, so its Caster$/You context resolves relative to the
+// caster's own card. base is copied before any append because activeStatics
+// returns a cached slice during a legal-actions walk and must never be
+// mutated.
+func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string) []staticView {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return base
+	}
+	var count int
+	for _, st := range o.Face().Statics {
+		if st.Mode == mode {
+			count++
+		}
+	}
+	if count == 0 {
+		return base
+	}
+	out := append([]staticView(nil), base...)
+	for _, st := range o.Face().Statics {
+		if st.Mode == mode {
+			out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params})
+		}
+	}
+	return out
+}
+
+// hasTargetConditionalFlash reports whether id carries or is granted a
+// CastWithFlash static whose ValidSA$ names an `IsTargeting` alternative. It
+// is the narrow predicate recheckIllegal uses to decide whether an off-sorcery
+// cast's timing rested on a target-conditional grant (a card with no such
+// static keeps its existing CR 601.2e behaviour).
+func (e *Engine) hasTargetConditionalFlash(p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range e.withSelfStatics(e.activeStatics("CastWithFlash"), id, "CastWithFlash") {
+		if !e.actorMatches(sv, "Caster", p) {
+			continue
+		}
+		if validSpellHasTargeting(sv.Params["ValidSA"]) {
+			return true
+		}
+	}
+	return false
+}
+
+// validSpellHasTargeting reports whether a ValidSA$/ValidSpell$ OR-list
+// carries an `IsTargeting` alternative under the Spell base. Both parameters
+// spell that shape identically (Flash Photography's
+// `ValidSA$ Spell.IsTargeting Valid Permanent.YouCtrl`, Head of the Class's
+// `ValidSpell$ Spell.IsTargeting Valid Creature`).
+func validSpellHasTargeting(raw string) bool {
+	for alt := range strings.SplitSeq(raw, ",") {
+		kind, constraint, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		if kind == "Spell" && strings.HasPrefix(strings.TrimSpace(constraint), "IsTargeting") {
 			return true
 		}
 	}
@@ -889,17 +980,25 @@ func presentZoneFromParam(zone string) (state.Zone, bool) {
 }
 
 // spellMatchesValidSA checks the spell-side subset of Forge's ValidSA grammar.
-// Activated-only or target/X-dependent constraints are not knowable before
-// announcing a spell and therefore do not accidentally grant flash timing.
-// id is the card the cast offers and staticSource the static's source: the
-// "Spell.Self" form (115 corpus lines, all on self-granting AlternativeCost
-// statics, Daze the most-played) means the affected card itself is the spell
-// -- true exactly when the cast card IS the static's source (the card's own
-// S: line, where alternativeCosts builds the view with source == id), false
-// for a grant from another permanent. Constraint values beyond Self
-// (XCostLE3, Teamwork, IsTargeting...) are unimplemented shapes and fail
+// Activated-only constraints are not knowable before announcing a spell and
+// therefore do not accidentally grant flash timing. id is the card the cast
+// offers and staticSource the static's source: the "Spell.Self" form (115
+// corpus lines, all on self-granting AlternativeCost statics, Daze the
+// most-played) means the affected card itself is the spell -- true exactly
+// when the cast card IS the static's source (the card's own S: line, where
+// alternativeCosts builds the view with source == id), false for a grant from
+// another permanent.
+//
+// The target-conditional form (`Spell.IsTargeting <spec>`, Flash Photography
+// and Timely Ward) is evaluated through effects' ONE `Spell.IsTargeting`
+// grammar against the targets argument: the offer passes the potential legal
+// targets and CR 601.2e's recheck passes the announced ones. A nil/empty
+// target list matches nothing, so an IsTargeting alternative never grants
+// unconditional timing. you is the caster the target spec's You clause binds
+// (never the granting static's controller). Constraint values beyond Self and
+// IsTargeting (XCostLE3, Teamwork, ...) remain unimplemented shapes and fail
 // closed.
-func spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID) bool {
+func (e *Engine) spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID, you state.PlayerID, targets []state.Target) bool {
 	if strings.TrimSpace(raw) == "" {
 		return true
 	}
@@ -912,6 +1011,14 @@ func spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID
 			}
 			if constraint == "Self" && id == staticSource {
 				return true
+			}
+			if strings.HasPrefix(constraint, "IsTargeting") {
+				sc := e.specCtx(staticSource, you)
+				sc.AsStack = true
+				sc.ProposedTargets = targets
+				if e.matchesSpec("Spell."+constraint, id, sc) {
+					return true
+				}
 			}
 		case "Instant":
 			if constraint == "" && f.IsInstant() {
@@ -1929,6 +2036,14 @@ func markCostValidTarget(out *costStaticViews) {
 				out.validTarget = true
 				return
 			}
+			// A target-conditional ValidSpell$ (Head of the Class's
+			// `Spell.IsTargeting Valid Creature` reduction) reads the chosen
+			// targets exactly as ValidTarget$ does, so the offer gate's
+			// potential-target retry must run for it too.
+			if validSpellHasTargeting(sv.Params["ValidSpell"]) {
+				out.validTarget = true
+				return
+			}
 		}
 	}
 }
@@ -2427,7 +2542,7 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 		scope.kind == "Foretell" && e.firstForetellUsed(p) {
 		return false
 	}
-	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
+	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(sv, scope, p, id, vs, targets) {
 		return false
 	}
 	if az, ok := sv.Params["AffectedZone"]; ok && scope.kind == "Ability" {
@@ -2671,7 +2786,14 @@ func affectedZoneOK(v string, z state.Zone) bool {
 // constraint this build cannot evaluate denies — a discount that wrongly
 // applies is a wrong cost, the same fail-closed direction the ValidSA$
 // grammar takes.
-func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.ObjID, spec string) bool {
+//
+// sv is the owning static (its source and controller bind the constraint's
+// spec context), p the caster and targets the cast's target list: the
+// nil-target offer phase denies a target-conditional Spell.IsTargeting
+// constraint, the potential-target phase admits it on any matching
+// candidate, and the chosen-target re-price enforces the announced target —
+// the same three-phase discipline costTargetsMatch already applies.
+func (e *Engine) validSpellMatches(sv staticView, scope costScope, p state.PlayerID, id state.ObjID, spec string, targets []state.Target) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
@@ -2690,7 +2812,7 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 			if scope.kind != "Spell" {
 				continue
 			}
-			if e.spellConstraintMatches(scope, id, constraint) {
+			if e.spellConstraintMatches(sv, scope, p, id, constraint, targets) {
 				return true
 			}
 		case "Activated":
@@ -2711,17 +2833,28 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 
 // spellConstraintMatches checks one ValidSpell$ Spell.* constraint against a
 // cast. The constraints the engine can evaluate: bare (any spell), the cast
-// variant modes the cast flow names (Flashback, Kicked, ...), and the card
-// types Instant/Sorcery. Everything else — Bargain, Buyback, the Blitz/Dash
-// alternative casts, isCastFaceDown, IsTargeting, MayPlaySource — is a
-// casting option or target shape this function does not read, and denies.
+// variant modes the cast flow names (Flashback, Kicked, ...), the card
+// types Instant/Sorcery, and the target-conditional `IsTargeting <spec>` form
+// (Head of the Class's "the first spell you cast each turn that targets a
+// creature"), which rides effects' ONE `Spell.IsTargeting` grammar against
+// the same target list costTargetsMatch reads. Everything else — Bargain,
+// Buyback, the Blitz/Dash alternative casts, isCastFaceDown, MayPlaySource —
+// is a casting option this function does not read, and denies.
 // (Blitz and Dash are real cast modes elsewhere -- legal.go offers them and
 // beginCast charges them -- but a cost static's ValidSpell$ constraint has no
 // case for their modes here; the one corpus carrier is Henzie, Toolbox
 // Torre's "Blitz costs you pay cost {1} less" ReduceCost, reported in the
 // ticket's Issues.)
-func (e *Engine) spellConstraintMatches(scope costScope, id state.ObjID, constraint string) bool {
-	switch strings.TrimSpace(constraint) {
+func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.PlayerID, id state.ObjID, constraint string, targets []state.Target) bool {
+	c := strings.TrimSpace(constraint)
+	if strings.HasPrefix(c, "IsTargeting") {
+		sc := e.staticSpecCtx(sv)
+		sc.You = p
+		sc.AsStack = true
+		sc.ProposedTargets = targets
+		return e.matchesSpec("Spell."+c, id, sc)
+	}
+	switch c {
 	case "":
 		return true
 	case "Flashback":
