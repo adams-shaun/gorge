@@ -738,6 +738,15 @@ type animateGrant struct {
 	// the parameter unread: effAnimateAll clears the field and
 	// animateAllUnreadNote still names it.
 	removeKeywords []string
+	// removeAbilities is the RemoveAllAbilities$ read (state.ContinuousEffect
+	// .RemoveAbilities, the same layer-6 strip Humility's static and
+	// CopyPermanent use): when set the animation clears the object's printed
+	// (and any earlier-granted) keywords at layer 6 before its own Keywords$
+	// apply -- the control-theft rider on Opportunistic Dragon ("gain control
+	// of that permanent, it loses all abilities"). AnimateAll keeps the
+	// parameter unread: effAnimateAll clears the field and
+	// animateAllUnreadNote still names it.
+	removeAbilities bool
 	// replacements names the Replacements$ SVars the animated object gains
 	// for the animation's own lifetime: each is an R:-shaped body on THIS
 	// face's table (Spirit-Sister's Call's ReplaceLeaves: "If this permanent
@@ -859,6 +868,10 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 		ag.triggers = append(ag.triggers, t)
 	}
 	ag.permanent = strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
+	// RemoveAllAbilities$ True (state.ContinuousEffect.RemoveAbilities): the
+	// layer-6 ability strip the static Humility carries, delivered here by
+	// the Animate-param path. See animateGrant.removeAbilities.
+	ag.removeAbilities = strings.EqualFold(strings.TrimSpace(sa.Params["RemoveAllAbilities"]), "True")
 	ag.leaveExile = strings.TrimSpace(sa.Params["LeaveBattlefield"])
 	// Replacements$ names (comma-separated) SVars on THIS face's table whose
 	// bodies are R:-shaped replacements the animated object gains for the
@@ -888,6 +901,32 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 		}
 	}
 	return ag
+}
+
+// animateHostScoped reports a Duration$ value whose grant lasts only while
+// the ANIMATING source remains on the battlefield (Duration$ UntilHostLeavesPlay
+// on the control-theft rider -- Opportunistic Dragon's "For as long as
+// CARDNAME remains on the battlefield, gain control of that permanent, it
+// loses all abilities"). The effect's Source is the ANIMATED object (Affects
+// Card.Self), so the host presence cannot come from the ordinary source-leaves
+// check; registerAnimateEffects anchors it through ContinuousEffect
+// .DurationSource, the Exchange of Words mechanism rules' continuousLive
+// already honours.
+func animateHostScoped(dur string) bool {
+	return strings.EqualFold(strings.TrimSpace(dur), "UntilHostLeavesPlay")
+}
+
+// animateUntilEOT is registerAnimateEffects' one UntilEOT decision, shared by
+// every half of one animation so the halves can never disagree about the
+// lifetime. A host-scoped duration is NOT UntilEOT (it ends on the host's
+// departure instead); a Duration$ Permanent is not; a next-turn duration gets
+// its own turn boundary from AddContinuous. Every other value -- the absent
+// Duration$ and UntilEndOfTurn -- keeps the historic end-of-turn cleanup.
+func animateUntilEOT(dur string) bool {
+	if animateHostScoped(dur) {
+		return false
+	}
+	return !strings.EqualFold(strings.TrimSpace(dur), "Permanent") && !IsNextTurnDuration(dur)
 }
 
 // emitAnimateTriggersNotes is the shared Triggers$ fail-closed surface: one
@@ -925,6 +964,16 @@ func emitAnimateColorsNotes(h Host, c *Ctx, ag animateGrant, api string) {
 // never named avoids polluting Engine.continuous with an effect that would
 // never do anything.
 func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
+	// Every half of one animation shares ONE lifetime decision: a Duration$
+	// UntilHostLeavesPlay grant is anchored to the ANIMATING source (the host)
+	// through DurationSource, while the ordinary Duration$ values keep the
+	// until-end-of-turn / Permanent classes. Hoisting it keeps the halves from
+	// disagreeing (see animateUntilEOT).
+	untilEOT := animateUntilEOT(ag.duration)
+	var durSource state.ObjID
+	if animateHostScoped(ag.duration) {
+		durSource = c.Source
+	}
 	// The move-driven lifetime (ag.endOnLeave): the animated object's own id
 	// rides Remembered and ExileOnMoved$ names the battlefield, so
 	// effectMoveSweep ends EVERY half of the grant on the departure Move --
@@ -964,7 +1013,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			// half-permanent — types kept while an UntilEOT P/T set
 			// strips them to an untransformed-basis 0/0 the CR 704.5f
 			// SBA destroys.
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -975,7 +1024,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer: state.LType, AddTypes: ag.types,
 			RemoveCreatureTypes: ag.removeCreatureTypes, RemoveTypes: ag.removeTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1000,16 +1049,25 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LColor, AddColors: ag.colors, OverwriteColors: ag.overwriteColors,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
 	}
-	if len(ag.kws) > 0 || len(ag.removeKeywords) > 0 {
+	if ag.removeAbilities || len(ag.kws) > 0 || len(ag.removeKeywords) > 0 {
+		// CR 613.1f: RemoveAllAbilities$, RemoveKeywords$ and the keyword grant
+		// of ONE animation are a single simultaneous layer-6 modification, so
+		// they register as ONE LAbilities effect. The layer walk's in-effect
+		// order (clear on RemoveAbilities, then the named removals, then
+		// AddKeywords) is the card text's own; splitting them into separate
+		// AddContinuous calls would stamp each its own ClockTick and let the
+		// removal run at a LATER timestamp than a grant it must precede (the
+		// defect registerStaticEffectGrant fixed for the identical static body).
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
-			Layer: state.LAbilities, AddKeywords: ag.kws, RemoveKeywords: ag.removeKeywords,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
+			Layer: state.LAbilities, RemoveAbilities: ag.removeAbilities,
+			AddKeywords: ag.kws, RemoveKeywords: ag.removeKeywords,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1019,7 +1077,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
 			SVars: c.SVars, AbilityGrantor: svarTableOwner(h, c),
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1040,7 +1098,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer:          state.LAbilities,
 			AddTrigger:     &t,
 			TriggerGrantor: ag.triggerGrantor,
-			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
+			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1094,11 +1152,12 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 // card sits there.
 func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	ag := parseAnimateGrant(h, c, sa)
-	// AnimateAll's RemoveKeywords$ stays unread (out of scope for the
-	// graveyard-enchant ticket that read it on Animate): clear what the
-	// shared parser read so the sweep below cannot apply it behind
+	// AnimateAll's RemoveKeywords$ and RemoveAllAbilities$ stay unread (out of
+	// scope for the tickets that read them on Animate): clear what the shared
+	// parser read so the sweep below cannot apply them behind
 	// animateAllUnreadNote's "not implemented; ignored" note.
 	ag.removeKeywords = nil
+	ag.removeAbilities = false
 	ag.replacements = nil
 	// AnimateAll's Name$ stays unread too: the rename is Animate-scoped, so
 	// clear what the shared parser read, exactly as the two parameters above.
