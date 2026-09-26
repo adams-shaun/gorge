@@ -61,7 +61,13 @@ import (
 // completion moves the object off the stack. Plain data, cloned by value
 // (the *cards.SA is shared immutable card data, the same class
 // Engine.Clone already shares everywhere).
-//
+func cloneClashResume(r *decision.ClashResume) *decision.ClashResume {
+	if r == nil {
+		return nil
+	}
+	return &decision.ClashResume{Players: append([]state.PlayerID(nil), r.Players...), Revealed: append([]state.ObjID(nil), r.Revealed...), Winner: r.Winner, Cursor: r.Cursor}
+}
+
 // `replacement` records whether the suspended resolution is running inside
 // a replacement effect's ReplaceWith$ body (fx44). applyReplacements sets
 // e.applyingReplacement while it resolves that body and resets it to false
@@ -345,6 +351,7 @@ type resumePoint struct {
 	// value data, cloned with the point; a replay re-derives the same rolls
 	// from the same seeded draws. Nil for every other ask.
 	rolls []int32
+	clash *decision.ClashResume
 	// replSource is the host of the replacement whose body asked (the
 	// ReplaceWith$ body's own Ctx.Source); zero outside a replacement.
 	replSource state.ObjID
@@ -632,7 +639,7 @@ func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bo
 		replacementAmount: replacementAmount,
 		effectFrame:       e.currentEffectFrame,
 		before:            e.triggerBefore, target: d.ResumeTarget, player: d.Player,
-		direct: direct, rolls: d.Rolls,
+		direct: direct, rolls: d.Rolls, clash: cloneClashResume(d.ResumeClash),
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		pendingDamage:       effects.ClonePendingDamage(e.resolutionPendingDamage()),
@@ -1765,6 +1772,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// resumed pass). resolvedAbilityTally is the same read resolveTop's
 		// ability branch makes, in one home.
 		ResolvedThisTurn:    e.resolvedAbilityTally(o),
+		ClashContinuation:   cloneClashResume(rp.clash),
 		ActivationsThisTurn: e.activationsThisTurnFor(o.Source, o.Ability),
 		// alltargeted1: a re-entered walk keeps consuming the cast flow's
 		// pre-asked sub-ability target answers (kept until the stack object
@@ -3020,6 +3028,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.DigDone = true
 			ctx.DigTarget = rp.target
+		case "clash_placement":
+			ctx.ClashContinuation = cloneClashResume(rp.clash)
+			ctx.ClashTop = len(chosen) > 0 && chosen[0].Kind == "top"
 		case "twopiles_split":
 			// A TwoPiles pile split was answered (task twopiles1, Fact or
 			// Fiction): the separator picked pile A out of the card set, in

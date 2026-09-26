@@ -85,9 +85,13 @@ func TestCollectorCaptureReusesRedactionStorageWithoutAliasingFrames(t *testing.
 	// in the Collector's own redaction scratch this test guards). 52 is the
 	// measured post-walk cost with scratch reuse intact. 50 after the offer
 	// walk moved its option list and mana-ability lists onto Engine scratch
-	// (perf-allocs).
-	if allocs > 50 {
-		t.Fatalf("Capture allocations = %.0f, want <= 50 after scratch reuse", allocs)
+	// (perf-allocs). 51 after bf2668175 changed view.copyDecision from a
+	// hand-copied Options slice to `cp := *d.Clone()`, which heap-allocates
+	// the whole decision.Decision (Clone returns a pointer) per projection --
+	// one extra allocation, not in the Collector's redaction scratch. The
+	// projected input is a decision on this fixture, so the +1 shows up here.
+	if allocs > 51 {
+		t.Fatalf("Capture allocations = %.0f, want <= 51 after scratch reuse", allocs)
 	}
 
 	if _, err := c.Capture(e, []events.Event{{Kind: events.Note, Player: 0, Text: "later capture"}}); err != nil {

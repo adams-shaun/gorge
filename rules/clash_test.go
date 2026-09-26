@@ -45,6 +45,8 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 	marvo := onBoardCard(t, e, 0, unblockedCorpusCard(t, "m/marvo_deep_operative.txt"))
 	e.G.Obj(marvo).SummonSick = false
 
+	filler0 := putTopOfLibrary(t, e, card(t, "Name:Seat Zero Filler\nManaCost:2\nTypes:Creature Beast\nPT:2/2\nOracle:x\n"), 0)
+	filler1 := putTopOfLibrary(t, e, card(t, "Name:Seat One Filler\nManaCost:3\nTypes:Creature Beast\nPT:3/3\nOracle:x\n"), 1)
 	high := putTopOfLibrary(t, e, card(t, "Name:Huge Beast\nManaCost:5 G\nTypes:Creature Beast\nPT:5/5\nOracle:x\n"), 0)
 	low := putTopOfLibrary(t, e, card(t, "Name:Tiny Beast\nManaCost:0\nTypes:Creature Beast\nPT:1/1\nOracle:x\n"), 1)
 	freeSpell := e.G.AddObject(card(t, "Name:Free Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
@@ -65,6 +67,9 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 	if e.G.Players[1].Lost {
 		t.Fatal("seat 1 precondition: defending player is already lost")
 	}
+	if got0, got1 := e.G.Obj(high).Face().ManaValue(), e.G.Obj(low).Face().ManaValue(); got0 <= got1 {
+		t.Fatalf("clash comparison precondition: seat 0 MV=%d, seat 1 MV=%d, want seat 0 strictly higher", got0, got1)
+	}
 	hand0 := len(e.G.Zone(state.ZHand, 0))
 
 	// Marvo attacks; its attack trigger is queued. The declaration goes
@@ -78,25 +83,53 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 		t.Fatal("Marvo's attack trigger was not queued by the declaration")
 	}
 	e.resolveTop()
+	for _, want := range []string{"top", "bottom"} {
+		d := e.Pending()
+		owner := state.PlayerID(0)
+		if want == "bottom" {
+			owner = 1
+		}
+		if d == nil || d.Player != owner || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "bottom" || d.Options[1].Kind != "top" {
+			t.Fatalf("expected placement ask for owner %d with bottom then top, got %+v", owner, d)
+		}
+		var selected int
+		for _, option := range d.Options {
+			if option.Kind == want {
+				selected = option.Index
+			}
+		}
+		submitChoices(t, e, selected)
+	}
 
 	// The clash ran: the unimplemented-API fallback must be ABSENT, and seat
 	// 0's win must be recorded.
 	if hasNote(e, "unimplemented API Clash") {
 		t.Fatal("api:Clash resolved through the unregistered fallback Note, not the registered handler")
 	}
-	if !hasClashEvent(e, 0, true) {
-		t.Fatal("no Clash marker recording seat 0's win")
+	markerCount := map[state.PlayerID]int{}
+	revealCount := map[state.ObjID]int{}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Clash {
+			markerCount[ev.Player]++
+		}
+		if ev.Kind == events.Note && len(ev.IDs) == 1 {
+			revealCount[ev.IDs[0]]++
+		}
 	}
-	if !hasClashEvent(e, 1, false) {
-		t.Fatal("no Clash marker recording seat 1's loss")
+	if !hasClashEvent(e, 0, true) || markerCount[0] != 1 {
+		t.Fatalf("seat 0 clash markers = %d, want exactly one win", markerCount[0])
 	}
-	// The placement stand-in: both revealed cards are on the bottom of their
-	// owner's library.
-	if lib0 := e.G.Zone(state.ZLibrary, 0); len(lib0) == 0 || lib0[len(lib0)-1] != high {
-		t.Fatalf("seat 0 revealed card %d is not on the bottom of its library: %v", high, lib0)
+	if !hasClashEvent(e, 1, false) || markerCount[1] != 1 {
+		t.Fatalf("seat 1 clash markers = %d, want exactly one loss", markerCount[1])
 	}
-	if lib1 := e.G.Zone(state.ZLibrary, 1); len(lib1) == 0 || lib1[len(lib1)-1] != low {
-		t.Fatalf("seat 1 revealed card %d is not on the bottom of its library: %v", low, lib1)
+	if revealCount[high] != 1 || revealCount[low] != 1 {
+		t.Fatalf("clash reveal notes: high=%d low=%d, want exactly once each", revealCount[high], revealCount[low])
+	}
+	if lib0 := e.G.Zone(state.ZLibrary, 0); len(lib0) < 2 || lib0[0] != high || lib0[1] != filler0 {
+		t.Fatalf("seat 0 top election order = %v, want revealed card %d retained above %d", lib0, high, filler0)
+	}
+	if lib1 := e.G.Zone(state.ZLibrary, 1); len(lib1) < 2 || lib1[len(lib1)-1] != low || lib1[0] != filler1 {
+		t.Fatalf("seat 1 bottom election order = %v, want filler %d retained above revealed card %d", lib1, filler1, low)
 	}
 
 	// The Clashed marker fires Marvo's `Won$ True` line: draw a card, then
@@ -114,10 +147,16 @@ func TestMarvoDeepOperativeClashWinsDrawsAndOffersFreeCast(t *testing.T) {
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
 		t.Fatalf("expected Marvo's optional free-cast ask, got %+v", d)
 	}
-	if len(d.Options) != 1 || d.Options[0].Obj != freeSpell.ID {
+	freeChoice := -1
+	for _, option := range d.Options {
+		if option.Obj == freeSpell.ID {
+			freeChoice = option.Index
+		}
+	}
+	if freeChoice < 0 {
 		t.Fatalf("Marvo's free-cast ask options = %+v, want Free Bear %d", d.Options, freeSpell.ID)
 	}
-	submitChoices(t, e, d.Options[0].Index)
+	submitChoices(t, e, freeChoice)
 	passUntilStackEmpty(t, e, 20)
 	if got := e.G.Obj(freeSpell.ID).Zone; got != state.ZBattlefield {
 		t.Fatalf("accepted free-cast spell in %s, want battlefield", got)

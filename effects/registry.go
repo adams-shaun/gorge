@@ -927,8 +927,11 @@ type RepeatEachOptionalContinuation struct {
 
 type Ctx struct {
 	TriggerContext
-	Source     state.ObjID
-	Controller state.PlayerID
+	// ClashContinuation resumes CR 701.31's saved reveal/winner snapshot after an owner answers.
+	ClashContinuation *decision.ClashResume
+	ClashTop          bool
+	Source            state.ObjID
+	Controller        state.PlayerID
 	// PromisedGiftOverride is bound only by rules' pre-election target-feasibility
 	// census, which must consider either branch before the player elects Gift.
 	PromisedGiftOverride *bool

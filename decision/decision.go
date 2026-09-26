@@ -445,6 +445,14 @@ type DamageEffect struct {
 	Amount *int `json:"amount"`
 }
 
+// ClashResume is the immutable snapshot and cursor for CR 701.31's sequential owner choices.
+type ClashResume struct {
+	Players  []state.PlayerID
+	Revealed []state.ObjID
+	Winner   int
+	Cursor   int
+}
+
 // Decision is the engine asking one player for one answer.
 type Decision struct {
 	Seq     uint64         `json:"seq"`
@@ -583,10 +591,11 @@ type Decision struct {
 	// targets already completed before suspension, and continues with later
 	// libraries. rules alone selects these fields; clients never see them. Card data is shared immutable compiled corpus, so the SA
 	// pointer is safe across Clone/replay.
-	ResumeKind   string    `json:"-"`
-	ResumeSA     *cards.SA `json:"-"`
-	ResumeModes  []string  `json:"-"`
-	ResumeTarget int       `json:"-"`
+	ResumeKind   string       `json:"-"`
+	ResumeClash  *ClashResume `json:"-"`
+	ResumeSA     *cards.SA    `json:"-"`
+	ResumeModes  []string     `json:"-"`
+	ResumeTarget int          `json:"-"`
 	// Rolls is engine-internal context for the one KChoose that asks a
 	// player to choose among ALREADY-ROLLED dice (effects/dice.go's
 	// ChosenSVar$/OtherSVar$ shape, the Endeavor cycle): the per-die results

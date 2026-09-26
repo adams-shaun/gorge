@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -24,12 +25,9 @@ func init() {
 //  1. Each clashing player reveals the top card of their library (a public
 //     ids-Note each, the same non-Secret reveal encoding the Dig window and
 //     effReveal emit).
-//  2. Each revealed card is put on the TOP or the BOTTOM of its owner's
-//     library. CR 701.31 leaves that placement to the card's owner; this
-//     build uses the documented deterministic stand-in BOTTOM for every
-//     player (see the note below), emitted as one Secret events.LibraryOrder
-//     reordering the whole library -- the same single-event record rules'
-//     handleArrange and Dig's moveRestToBottom use.
+//  2. Each revealed card's owner chooses TOP or BOTTOM. The choice is an
+//     owner-routed KChoose; the deterministic no-host fallback is BOTTOM.
+//     A changed order is one Secret events.LibraryOrder for the whole library.
 //  3. The player whose card had the strictly higher mana value wins; equal
 //     mana values (including two empty libraries, both read as -1) leave NO
 //     winner (CR 701.31, Forge's ClashEffect).
@@ -53,63 +51,74 @@ func init() {
 // fallback, made deterministic rather than random. The resolving controller
 // is always the first clashing player.
 //
-// Placement stand-in (bottom): CR 701.31's "top or bottom" is a per-player
-// choice this build does not pose. It is a documented deterministic stand-in,
-// not a silent omission: the reveal, the mana-value comparison and the
-// win/lose record -- everything the mechanic and its trigger turn on -- are
-// exact, and the card always ends in the library where CR 701.31 puts it.
+// Placement choices resume from the saved reveal and winner snapshot, so an
+// answer never repeats a reveal, comparison, earlier placement, marker, or branch.
 func effClash(h Host, c *Ctx, sa *cards.SA) {
-	players := clashParticipants(h, c, sa)
-	if len(players) == 0 {
-		return
-	}
+	// Consume the answered snapshot before nested effects can run another Clash.
+	continuation, top := c.ClashContinuation, c.ClashTop
+	c.ClashContinuation, c.ClashTop = nil, false
 
-	// Reveal phase: each clashing player's top card, in participant order.
-	// revealed[i] is 0 when that player's library is empty (their mana value
-	// reads -1 and they cannot beat any real card). The Notes are public and
-	// carry the ids, matching the Dig/Explore reveal encoding.
-	revealed := make([]state.ObjID, len(players))
-	cmc := make([]int, len(players))
-	for i, p := range players {
-		cmc[i] = -1
-		lib := zoneOf(h.Game(), state.ZLibrary, p)
-		if len(lib) == 0 {
-			continue
+	var players []state.PlayerID
+	var revealed []state.ObjID
+	winnerIdx, cursor := -1, 0
+	if continuation != nil {
+		r := continuation
+		players = append([]state.PlayerID(nil), r.Players...)
+		revealed = append([]state.ObjID(nil), r.Revealed...)
+		winnerIdx, cursor = r.Winner, r.Cursor
+		if cursor < len(players) && revealed[cursor] != 0 {
+			if top {
+				clashMoveToTop(h, players[cursor], revealed[cursor])
+			} else {
+				clashMoveToBottom(h, players[cursor], revealed[cursor])
+			}
 		}
-		top := lib[0]
-		revealed[i] = top
-		cmc[i] = manaValueOf(h.Game(), top)
-		h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{top}})
-	}
-
-	// The winner is the single participant with the strictly highest mana
-	// value; a tie of any width (all -1, or two equal cards) leaves no winner.
-	winnerIdx := -1
-	for i := range cmc {
-		best := true
-		for j := range cmc {
-			if j != i && cmc[j] >= cmc[i] {
-				best = false
+		cursor++
+	} else {
+		players = clashParticipants(h, c, sa)
+		if len(players) == 0 {
+			return
+		}
+		revealed = make([]state.ObjID, len(players))
+		cmc := make([]int, len(players))
+		for i, p := range players {
+			cmc[i] = -1
+			lib := zoneOf(h.Game(), state.ZLibrary, p)
+			if len(lib) == 0 {
+				continue
+			}
+			revealed[i], cmc[i] = lib[0], manaValueOf(h.Game(), lib[0])
+			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{lib[0]}})
+		}
+		for i := range cmc {
+			best := cmc[i] >= 0
+			for j := range cmc {
+				if j != i && cmc[j] >= cmc[i] {
+					best = false
+					break
+				}
+			}
+			if best {
+				winnerIdx = i
 				break
 			}
 		}
-		if best && cmc[i] >= 0 {
-			winnerIdx = i
-			break
-		}
 	}
-	c.ClashWinner = players[0]
-	c.ClashWon = winnerIdx == 0
+	c.ClashWinner, c.ClashWon = players[0], winnerIdx == 0
 	if winnerIdx >= 0 {
 		c.ClashWinner = players[winnerIdx]
 	}
-
-	// Placement phase: bottom, in participant order. A card revealed from the
-	// top of a library ends on the bottom; an empty library moves nothing.
-	for i, p := range players {
-		if revealed[i] != 0 {
-			clashMoveToBottom(h, p, revealed[i])
+	for ; cursor < len(players); cursor++ {
+		p, id := players[cursor], revealed[cursor]
+		if id == 0 {
+			continue
 		}
+		d := ClashPlacementDecision(p, c.Source, sa, players, revealed, winnerIdx, cursor, id)
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		h.Emit(events.Event{Kind: events.Note, Player: p, Text: "Clash placement: no decision host; put revealed card on bottom"})
+		clashMoveToBottom(h, p, id)
 	}
 
 	// The win/lose markers FIRST, so a WinSubAbility$/OtherwiseSubAbility$
@@ -194,12 +203,44 @@ func clashParticipants(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return out
 }
 
+// ClashPlacementDecision builds the owner-routed, always-legal two-way choice
+// used by api:Clash. Keeping construction here lets botpolicy validate the
+// exact option shape rather than maintaining a synthetic parallel decision.
+func ClashPlacementDecision(p state.PlayerID, source state.ObjID, sa *cards.SA, players []state.PlayerID, revealed []state.ObjID, winner, cursor int, id state.ObjID) *decision.Decision {
+	return &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1, Source: source,
+		ResumeKind: "clash_placement", ResumeSA: sa,
+		ResumeClash: &decision.ClashResume{Players: append([]state.PlayerID(nil), players...), Revealed: append([]state.ObjID(nil), revealed...), Winner: winner, Cursor: cursor},
+		Prompt:      "Put the revealed card on top or bottom of your library",
+		Options:     []decision.Option{{Index: 0, Kind: "bottom", Label: "Put it on the bottom", Obj: id, Player: p}, {Index: 1, Kind: "top", Label: "Keep it on top", Obj: id, Player: p}}}
+}
+
 // clashMoveToBottom puts id on the BOTTOM of player p's library as one Secret
 // events.LibraryOrder carrying the whole reordered library -- the same
 // single-event record Dig's moveRestToBottom emits, so a replay re-derives
 // the same order. The emit is skipped when the card already sits on the
 // bottom (a one-card library), which leaves the log byte-identical to the
 // no-op it is.
+func clashMoveToTop(h Host, p state.PlayerID, id state.ObjID) {
+	lib := zoneOf(h.Game(), state.ZLibrary, p)
+	if len(lib) == 0 || lib[0] == id {
+		return
+	}
+	newLib := append([]state.ObjID(nil), lib...)
+	idx := -1
+	for i, card := range newLib {
+		if card == id {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return
+	}
+	copy(newLib[1:idx+1], newLib[:idx])
+	newLib[0] = id
+	h.Emit(events.Event{Kind: events.LibraryOrder, Player: p, IDs: newLib, Secret: true})
+}
+
 func clashMoveToBottom(h Host, p state.PlayerID, id state.ObjID) {
 	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, p)
