@@ -20,6 +20,11 @@ import (
 // schema, the fingerprint guards the parser that produced the values.
 var CompilerFingerprint = computeCompilerFingerprint()
 
+// CacheVersion is this build's IR cache schema version (cacheVersion), for
+// build manifests such as dzgorge version. It lives here, outside the
+// fingerprinted sources, so exporting it costs no corpus recompile.
+func CacheVersion() int { return cacheVersion }
+
 func computeCompilerFingerprint() string {
 	entries, err := compilerSources.ReadDir(".")
 	if err != nil {

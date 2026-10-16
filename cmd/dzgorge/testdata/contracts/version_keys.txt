@@ -1,0 +1,16 @@
+cards_compiler_fingerprint
+cards_lock
+cards_lock.commit
+cards_lock.digest
+cards_lock.repo
+contracts
+entity_encoder_hash
+format
+go
+ir_cache_version
+module
+module.path
+module.version
+vcs
+vcs.modified
+vcs.revision

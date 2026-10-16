@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/bots/sbtactical"
@@ -145,6 +147,12 @@ func (p *policySpec) setLookup(reg *cards.Registry) {
 	}
 }
 
+// flagKeys are the spec keys that take no value: present means on.
+var flagKeys = map[string]bool{
+	"explore": true, "nonoise": true, "autopay": true, "mull": true, "keep7": true,
+	"oppnodes": true, "oppfull": true, "closedlist": true, "morekinds": true,
+}
+
 func parsePolicy(s string) (*policySpec, error) {
 	// remote=unix:/path and remote=tcp:host:port contain colons: take the rest of the spec.
 	rest := ""
@@ -159,7 +167,11 @@ func parsePolicy(s string) (*policySpec, error) {
 		return nil, fmt.Errorf("policy %q: want random, bot, sbtactical, az or prior", s)
 	}
 	for _, kv := range parts[1:] {
-		k, v, _ := strings.Cut(kv, "=")
+		k, v, hasValue := strings.Cut(kv, "=")
+		if hasValue && flagKeys[k] {
+			// A flag key reads no value: autopay=0 would otherwise turn autopay ON.
+			return nil, fmt.Errorf("policy %q: %s is a flag and takes no value (write :%s, or leave it out)", s, kv, k)
+		}
 		var err error
 		switch k {
 		case "sims":
@@ -252,6 +264,9 @@ func parsePolicy(s string) (*policySpec, error) {
 			return nil, fmt.Errorf("policy %q: %w", s, err)
 		}
 		p.model = m
+		if g, err := gonet.Shared(p.GoNet); err == nil {
+			warnUncheckedNet(p.GoNet, g)
+		}
 	}
 	if p.Remote != "" {
 		m, err := remoteModel(p.Remote)
@@ -282,6 +297,23 @@ func parsePolicy(s string) (*policySpec, error) {
 		}
 	}
 	return p, nil
+}
+
+// warnedNets are the gonet= paths warnUncheckedNet already warned about.
+var warnedNets sync.Map
+
+// warnUncheckedNet prints one stderr warning per path for a .dzgw whose header
+// carries no encoder_hash: it loaded, but nothing proved it was trained on this
+// build's entity encoding (contract dzgw, docs/contracts.md).
+func warnUncheckedNet(path string, g *gonet.Net) {
+	if g.EncoderHashChecked() {
+		return
+	}
+	if _, dup := warnedNets.LoadOrStore(path, true); dup {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "dzgorge: warning: %s has no encoder_hash in its header; it is assumed to match this build's entity encoder %016x (re-export it with the field to have that checked)\n",
+		path, policynet.EncoderHashFor(policynet.FeaturesEntity))
 }
 
 // recordFeatures is the encoding visit corpora are written in (play -record-features).

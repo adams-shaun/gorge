@@ -1,0 +1,14 @@
+{
+ "format": "dzg-pack-1",
+ "games": [
+  "p0000000g0",
+  "p0000000g1"
+ ],
+ "kinds": [
+  "target",
+  "priority",
+  "attackers"
+ ],
+ "n": 3,
+ "source": "visits.jsonl.gz"
+}

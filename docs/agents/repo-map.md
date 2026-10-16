@@ -31,4 +31,5 @@ below; this file changes only when a DOMAIN appears, not when a package does.
 | Add a repo deck | `internal/testutil/decks/*.json` via `cmd/deckimport`; it must be fully supported (the acceptance ratchet). |
 | Turn a player report into a test | `go run ./cmd/repro -emit-test <pkg> <feedback-dir>`. |
 | Change the wire | `protocol/`, then `make gentypes`. |
+| Change an external file, wire or grammar (dzgorge outputs, `.dzgw`, visit corpus) | Its owner package, then `contracts/registry.json`; the rules are in `docs/contracts.md`. |
 | Change a seat's projected view | The family file for the seam: a card/battlefield projection in `view/card.go`, a stack projection in `view/stack.go`. Only an assembler change (`Project`/`project`) belongs in `view/view.go`, which two projection tickets once collided on. |

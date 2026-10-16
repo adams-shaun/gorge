@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -145,6 +147,7 @@ type gnBlock struct {
 
 type Net struct {
 	path                string
+	hashChecked         bool // the header carried an encoder_hash, and it matched
 	d, ff, dEmb, cd, hh int
 	table               []float32 // TableRows×dEmb
 	cardRaw, cardRows   gnLinear
@@ -185,12 +188,17 @@ const (
 )
 
 type gnHeader struct {
-	Format  string             `json:"format"`
-	Arch    string             `json:"arch"`
-	Config  map[string]float64 `json:"config"`
-	Consts  map[string]int     `json:"consts"`
-	Eps     map[string]float64 `json:"layernorm_eps"`
-	Tensors []struct {
+	Format string `json:"format"`
+	// EncoderHash, when present, is the %016x policynet.EncoderHashFor of the
+	// feature set the network was trained on (dzgw-1 additive field). It must
+	// equal this build's entity encoder hash; a file without it loads, and
+	// Net.EncoderHashChecked reports that nothing was checked.
+	EncoderHash string             `json:"encoder_hash,omitempty"`
+	Arch        string             `json:"arch"`
+	Config      map[string]float64 `json:"config"`
+	Consts      map[string]int     `json:"consts"`
+	Eps         map[string]float64 `json:"layernorm_eps"`
+	Tensors     []struct {
 		Name   string `json:"name"`
 		Shape  []int  `json:"shape"`
 		Offset int64  `json:"offset"`
@@ -198,6 +206,13 @@ type gnHeader struct {
 	} `json:"tensors"`
 }
 
+// EncoderHashChecked reports whether the file's header carried an
+// encoder_hash (and so matched this build's entity encoder: Load refuses a
+// mismatch). False is a dzgw-1 file exported before the field existed: it
+// loads, unchecked, and the caller decides whether to warn.
+func (g *Net) EncoderHashChecked() bool { return g.hashChecked }
+
+// Load reads a .dzgw file (contract dzgw, docs/contracts.md).
 func Load(path string) (*Net, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -217,6 +232,17 @@ func Load(path string) (*Net, error) {
 	}
 	if h.Format != "dzgw-1" {
 		return nil, fmt.Errorf("gonet %s: format %q, want dzgw-1", path, h.Format)
+	}
+	hashChecked := false
+	if h.EncoderHash != "" {
+		got, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
+		if err != nil {
+			return nil, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
+		}
+		if want := policynet.EncoderHashFor(policynet.FeaturesEntity); got != want {
+			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, want)
+		}
+		hashChecked = true
 	}
 	if h.Arch != "mlp" {
 		return nil, fmt.Errorf("gonet %s: arch %q: only mlp has a Go forward pass", path, h.Arch)
@@ -255,7 +281,7 @@ func Load(path string) (*Net, error) {
 		tensors[t.Name], shapes[t.Name] = f, t.Shape
 	}
 	cfg := func(k string) int { return int(h.Config[k]) }
-	g := &Net{path: path, d: cfg("d"), ff: cfg("ff"), dEmb: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
+	g := &Net{path: path, hashChecked: hashChecked, d: cfg("d"), ff: cfg("ff"), dEmb: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
 	var errs []error
 	get := func(name string, shape ...int) []float32 {
 		t, ok := tensors[name]

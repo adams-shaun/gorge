@@ -34,8 +34,13 @@ type tensor struct {
 	data  []float32
 }
 
-// Write writes the network to dir/name and returns its path.
-func Write(dir, name string) (string, error) {
+// Write writes the network to dir/name and returns its path. Its header
+// carries no encoder_hash, like every network exported before that field.
+func Write(dir, name string) (string, error) { return WriteWith(dir, name, nil) }
+
+// WriteWith is Write with extra header fields set (or overridden), for
+// example {"encoder_hash": "..."}.
+func WriteWith(dir, name string, extra map[string]any) (string, error) {
 	var ts []tensor
 	rng := uint64(0x9E3779B97F4A7C15)
 	next := func() float32 {
@@ -101,31 +106,15 @@ func Write(dir, name string) (string, error) {
 	lin("value.0", d, hh, true)
 	lin("value.2", hh, 1, true)
 
-	type entry struct {
-		Name   string `json:"name"`
-		Shape  []int  `json:"shape"`
-		Offset int64  `json:"offset"`
-		NBytes int64  `json:"nbytes"`
-	}
-	var table []entry
+	var table []Entry
 	var body []byte
 	for _, t := range ts {
-		table = append(table, entry{t.name, t.shape, int64(len(body)), int64(4 * len(t.data))})
+		table = append(table, Entry{t.name, t.shape, int64(len(body)), int64(4 * len(t.data))})
 		for _, v := range t.data {
 			body = binary.LittleEndian.AppendUint32(body, math.Float32bits(v))
 		}
 	}
-	header, err := json.Marshal(map[string]any{
-		"format": "dzgw-1",
-		"arch":   "mlp",
-		"config": map[string]float64{"d": d, "ff": ff, "d_emb": e, "card_d": cd, "head_hidden": hh,
-			"layers": 1, "policy_layers": 1, "value_layers": 1},
-		"consts": map[string]int{"DENSE_W": policynet.DenseWidth, "RAW_W": policynet.EntityRawWidth,
-			"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": policynet.TableRows,
-			"SLOT_ROWS": policynet.OptionSlotWidth, "GROUPS": grps},
-		"layernorm_eps": map[string]float64{"blocks.0.norm": 1e-5, "norm": 1e-5, "opt_norm": 1e-5},
-		"tensors":       table,
-	})
+	header, err := Header(table, extra)
 	if err != nil {
 		return "", err
 	}
@@ -137,4 +126,34 @@ func Write(dir, name string) (string, error) {
 	out = append(out, body...)
 	path := filepath.Join(dir, name)
 	return path, os.WriteFile(path, out, 0o644)
+}
+
+// Entry is one tensor's row in a .dzgw header's tensor table.
+type Entry struct {
+	Name   string `json:"name"`
+	Shape  []int  `json:"shape"`
+	Offset int64  `json:"offset"`
+	NBytes int64  `json:"nbytes"`
+}
+
+// Header is the JSON header Write puts after the magic for tensor table
+// tensors, with extra fields set or overridden (contract dzgw: the golden
+// internal/gonet/testdata/contracts/dzgw_header.json is Header with a short
+// table and an encoder_hash).
+func Header(tensors []Entry, extra map[string]any) ([]byte, error) {
+	h := map[string]any{
+		"format": "dzgw-1",
+		"arch":   "mlp",
+		"config": map[string]float64{"d": d, "ff": ff, "d_emb": e, "card_d": cd, "head_hidden": hh,
+			"layers": 1, "policy_layers": 1, "value_layers": 1},
+		"consts": map[string]int{"DENSE_W": policynet.DenseWidth, "RAW_W": policynet.EntityRawWidth,
+			"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": policynet.TableRows,
+			"SLOT_ROWS": policynet.OptionSlotWidth, "GROUPS": grps},
+		"layernorm_eps": map[string]float64{"blocks.0.norm": 1e-5, "norm": 1e-5, "opt_norm": 1e-5},
+		"tensors":       tensors,
+	}
+	for k, v := range extra {
+		h[k] = v
+	}
+	return json.Marshal(h)
 }

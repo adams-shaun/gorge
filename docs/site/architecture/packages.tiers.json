@@ -311,6 +311,11 @@
       "tier": "tooling",
       "status": "TOOL"
     },
+    "contracts": {
+      "tier": "host",
+      "status": "SUPP",
+      "purpose": "Registry of external contracts (file layouts, wires, grammars): name, major version and pinned golden hashes."
+    },
     "decision": {
       "tier": "core",
       "status": "CORE"

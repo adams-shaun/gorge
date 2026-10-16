@@ -22,6 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/contracts"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/azmcts"
@@ -36,8 +37,13 @@ import (
 	"github.com/adams-shaun/gorge/view"
 )
 
-// gameRec is one game, one JSON line of -out.
+// gameRec is one game, one JSON line of -out: contract dzg-games
+// (docs/contracts.md). Fields are only ever added; anything else bumps the
+// major in Format.
 type gameRec struct {
+	Format string     `json:"format"` // "dzg-games-1"
+	Gorge  gorgeBuild `json:"gorge"`  // the build that played it
+
 	Game    int       `json:"game"`
 	Pair    int       `json:"pair"`
 	Leg     int       `json:"leg"` // 0: A in seat 0; 1: the policies swapped
@@ -418,6 +424,8 @@ func runPlay(args []string) int {
 	}
 	el := time.Since(t0).Seconds()
 	sum := map[string]any{
+		"format":                    gamesFormat,
+		"gorge":                     buildGorge,
 		"a":                         specs[0].Raw,
 		"b":                         specs[1].Raw,
 		"split":                     *split,
@@ -511,6 +519,9 @@ func runPlay(args []string) int {
 	return 0
 }
 
+// gamesFormat is games.jsonl's and its summary's format tag.
+var gamesFormat = contracts.Format(contracts.DZGGames, contracts.DZGGamesVersion)
+
 // score is A's share of the points, a draw or stall counting half.
 func score(a, b, half int) float64 {
 	n := a + b + half
@@ -526,7 +537,7 @@ var sparePool sync.Pool
 var noPaidManaCensus, mmStatsOn bool
 
 func playOne(jb job, specs []*policySpec, dc *deckCache, reg *cards.Registry, maxTurns, maxIntents, mulligans int, record bool) (gameRec, []byte) {
-	rec := gameRec{Game: jb.game, Pair: jb.pair, Leg: jb.leg, Seed: jb.seed, Decks: jb.decks, Winner: -1}
+	rec := gameRec{Format: gamesFormat, Gorge: buildGorge, Game: jb.game, Pair: jb.pair, Leg: jb.leg, Seed: jb.seed, Decks: jb.decks, Winner: -1}
 	seats := make([]seat.Seat, 2)
 	search := false
 	var vrecs []policynet.VisitRecord

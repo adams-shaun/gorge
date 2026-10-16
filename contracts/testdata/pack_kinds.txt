@@ -1,0 +1,13 @@
+priority
+attackers
+blockers
+target
+mulligan
+modes
+trigger_order
+trigger_optional
+commander_zone
+choose
+replacement
+arrange
+starting_player

@@ -1,0 +1,31 @@
+{
+ "encoder_hash": "0123456789abcdef",
+ "format": "dzg-pack-2",
+ "games": [
+  "p0000000g0",
+  "p0000000g1"
+ ],
+ "gorge": {
+  "version": "v0.0.0-golden",
+  "revision": "0123456789abcdef0123456789abcdef01234567"
+ },
+ "kinds": [
+  "priority",
+  "attackers",
+  "blockers",
+  "target",
+  "mulligan",
+  "modes",
+  "trigger_order",
+  "trigger_optional",
+  "commander_zone",
+  "choose",
+  "replacement",
+  "arrange",
+  "starting_player"
+ ],
+ "n": 3,
+ "record_type": "azvisits-v1",
+ "schema_version": 1,
+ "source": "visits.jsonl.gz"
+}

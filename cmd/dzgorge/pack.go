@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"encoding/binary"
 	"encoding/json"
@@ -13,27 +14,46 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/adams-shaun/gorge/contracts"
 	"github.com/adams-shaun/gorge/internal/policynet"
 )
 
 // runPack converts visit corpora (play -corpus, recorded under -record-features entity)
 // into dzg's training shards (gorge/dzg/SPEC.md §2): one directory of .npy arrays per
-// shard of -shard records.
+// shard of -shard records. The layout is contract dzg-pack (docs/contracts.md):
+// -format 2, the default, writes dzg-pack-2; -format 1 writes the deprecated
+// dzg-pack-1 layout byte for byte (first-seen kind indices, no encoder hash in
+// meta.json) and is kept for one release.
+//
+// Every record of every input must agree on record_type, schema_version and
+// encoder_hash: corpora recorded under different feature sets are refused, never
+// mixed. Under -format 2 a record that does not decode is an error naming its
+// file and line (-allow-truncated keeps what came before a truncated gzip tail,
+// the mark of a run killed mid-write).
 func runPack(args []string) int {
 	fs := flag.NewFlagSet("pack", flag.ExitOnError)
 	in := fs.String("in", "", "comma-separated visit corpora (.jsonl.gz)")
 	out := fs.String("out", "", "output directory; shards go to OUT/00000, OUT/00001, ...")
 	shard := fs.Int("shard", 200000, "records per shard")
+	format := fs.Int("format", contracts.DZGPackVersion, "dzg-pack major to write: 2, or 1 (deprecated: first-seen kind indices, no encoder hash)")
+	allowTrunc := fs.Bool("allow-truncated", false, "-format 2: keep the records before a truncated gzip tail instead of failing")
 	fs.Parse(args)
 	if *in == "" || *out == "" {
 		fmt.Fprintln(os.Stderr, "pack: -in and -out are required")
 		return 2
 	}
-	w := &shardWriter{dir: *out, per: *shard, source: *in}
+	if *format != 1 && *format != 2 {
+		fmt.Fprintf(os.Stderr, "pack: -format %d: want 2 (dzg-pack-2) or 1 (deprecated dzg-pack-1)\n", *format)
+		return 2
+	}
+	if *format == 1 {
+		fmt.Fprintln(os.Stderr, "pack: -format 1 (dzg-pack-1) is deprecated and will be removed after one release; readers should move to dzg-pack-2")
+	}
+	w := &shardWriter{dir: *out, per: *shard, source: *in, format: *format, allowTrunc: *allowTrunc}
 	w.reset()
 	for _, path := range strings.Split(*in, ",") {
 		if err := packCorpus(path, w); err != nil {
-			fmt.Fprintf(os.Stderr, "pack: %s: %v\n", path, err)
+			fmt.Fprintf(os.Stderr, "pack: %v\n", err)
 			return 1
 		}
 	}
@@ -46,6 +66,7 @@ func runPack(args []string) int {
 	return 0
 }
 
+// packCorpus adds every record of one corpus file, one JSON record per line.
 func packCorpus(path string, w *shardWriter) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -54,28 +75,69 @@ func packCorpus(path string, w *shardWriter) error {
 	defer f.Close()
 	zr, err := gzip.NewReader(bufio.NewReaderSize(f, 1<<20))
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", path, err)
 	}
-	dec := json.NewDecoder(zr)
-	for {
-		var rec policynet.VisitRecord
-		if err := dec.Decode(&rec); err == io.EOF {
-			return nil
-		} else if err != nil {
-			// A run killed mid-write leaves a truncated last game: keep what came before.
-			fmt.Fprintf(os.Stderr, "pack: %s: stopped at a bad record (%v)\n", path, err)
+	br := bufio.NewReaderSize(zr, 1<<20)
+	for line := 1; ; line++ {
+		raw, rerr := br.ReadBytes('\n')
+		if rerr != nil && rerr != io.EOF {
+			// The stream itself broke (a gzip member cut short by a killed run).
+			if w.format == 1 || w.allowTrunc {
+				fmt.Fprintf(os.Stderr, "pack: %s:%d: stopped at a truncated stream (%v)\n", path, line, rerr)
+				return nil
+			}
+			return fmt.Errorf("%s:%d: %w (a run killed mid-write leaves a truncated tail; -allow-truncated keeps what came before)", path, line, rerr)
+		}
+		if len(bytes.TrimSpace(raw)) > 0 {
+			var rec policynet.VisitRecord
+			if err := json.Unmarshal(raw, &rec); err != nil {
+				if w.format == 1 {
+					// dzg-pack-1 behaviour: keep what came before.
+					fmt.Fprintf(os.Stderr, "pack: %s: stopped at a bad record (%v)\n", path, err)
+					return nil
+				}
+				return fmt.Errorf("%s:%d: bad record: %w", path, line, err)
+			}
+			if err := w.check(&rec, fmt.Sprintf("%s:%d", path, line)); err != nil {
+				return err
+			}
+			if err := w.add(&rec); err != nil {
+				return fmt.Errorf("%s:%d: %w", path, line, err)
+			}
+		}
+		if rerr == io.EOF {
 			return nil
 		}
-		if err := w.add(&rec); err != nil {
-			return err
-		}
 	}
+}
+
+// check holds rec to the corpus identity the first record set: one record type,
+// schema version and encoder hash across every input.
+func (w *shardWriter) check(rec *policynet.VisitRecord, at string) error {
+	if rec.RecordType != policynet.VisitRecordType || rec.SchemaVersion != policynet.VisitSchemaVersion {
+		return fmt.Errorf("%s: record_type %q schema_version %d: this build reads %s schema_version %d only",
+			at, rec.RecordType, rec.SchemaVersion, policynet.VisitRecordType, policynet.VisitSchemaVersion)
+	}
+	if w.firstAt == "" {
+		w.recordType, w.schemaVersion, w.encoderHash, w.firstAt = rec.RecordType, rec.SchemaVersion, rec.EncoderHash, at
+		return nil
+	}
+	if rec.EncoderHash != w.encoderHash {
+		return fmt.Errorf("%s: encoder_hash %s, but %s has encoder_hash %s: corpora recorded under different feature sets cannot share a pack",
+			at, rec.EncoderHash, w.firstAt, w.encoderHash)
+	}
+	return nil
 }
 
 type shardWriter struct {
 	dir, source string
 	per         int
-	p           packer
+	format      int  // the dzg-pack major written: 2, or the deprecated 1
+	allowTrunc  bool // -allow-truncated
+	// the corpus identity every record must share (check)
+	recordType, encoderHash, firstAt string
+	schemaVersion                    int
+	p                                packer
 	// per-record training columns (SPEC §2's second table)
 	outcome, rootValue, cVisits, cPrior, cQ []float32
 	turn, sims, choice, game, candOff       []int32
@@ -145,11 +207,9 @@ func (w *shardWriter) add(rec *policynet.VisitRecord) error {
 		sub = 1
 	}
 	w.subset = append(w.subset, sub)
-	k, ok := w.kinds[string(rec.Kind)]
-	if !ok {
-		k = uint8(len(w.kindNames))
-		w.kinds[string(rec.Kind)] = k
-		w.kindNames = append(w.kindNames, string(rec.Kind))
+	k, err := w.kindIndex(string(rec.Kind))
+	if err != nil {
+		return err
 	}
 	w.kind = append(w.kind, k)
 	g, ok := w.gameIdx[rec.GameID]
@@ -186,6 +246,25 @@ func (w *shardWriter) add(rec *policynet.VisitRecord) error {
 	return nil
 }
 
+// kindIndex is kind's kind-column value: its contracts.PackKinds index under
+// dzg-pack-2, its first-seen index in this run under the deprecated dzg-pack-1.
+func (w *shardWriter) kindIndex(kind string) (uint8, error) {
+	if w.format != 1 {
+		i := contracts.PackKindIndex(kind)
+		if i < 0 {
+			return 0, fmt.Errorf("decision kind %q has no index in the dzg-pack kind table (contracts.PackKinds): append it there", kind)
+		}
+		return uint8(i), nil
+	}
+	k, ok := w.kinds[kind]
+	if !ok {
+		k = uint8(len(w.kindNames))
+		w.kinds[kind] = k
+		w.kindNames = append(w.kindNames, kind)
+	}
+	return k, nil
+}
+
 func (w *shardWriter) flush() error {
 	n := w.p.states()
 	if n == 0 {
@@ -218,8 +297,14 @@ func (w *shardWriter) flush() error {
 			return err
 		}
 	}
-	meta, _ := json.MarshalIndent(map[string]any{"format": "dzg-pack-1", "n": n, "games": w.games,
-		"kinds": w.kindNames, "source": w.source}, "", " ")
+	m := map[string]any{"format": "dzg-pack-1", "n": n, "games": w.games, "kinds": w.kindNames, "source": w.source}
+	if w.format != 1 {
+		m["format"] = contracts.Format(contracts.DZGPack, contracts.DZGPackVersion)
+		m["kinds"] = contracts.PackKinds
+		m["encoder_hash"], m["record_type"], m["schema_version"] = w.encoderHash, w.recordType, w.schemaVersion
+		m["gorge"] = buildGorge
+	}
+	meta, _ := json.MarshalIndent(m, "", " ")
 	if err := os.WriteFile(filepath.Join(dir, "meta.json"), meta, 0o644); err != nil {
 		return err
 	}

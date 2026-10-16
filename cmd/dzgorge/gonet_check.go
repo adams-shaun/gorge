@@ -34,6 +34,7 @@ func runGonetCheck(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	warnUncheckedNet(*netPath, g)
 	load := time.Since(t0)
 	recs, err := readParity(*parity)
 	if err != nil {

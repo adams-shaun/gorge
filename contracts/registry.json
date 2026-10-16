@@ -1,0 +1,220 @@
+{
+ "contracts": [
+  {
+   "name": "dzg-games",
+   "version": 1,
+   "description": "dzgorge play's games.jsonl (one game per line) and its .summary.json; both carry format and gorge {version, revision}",
+   "owner": "cmd/dzgorge",
+   "goldens": [
+    {
+     "path": "cmd/dzgorge/testdata/contracts/games.jsonl",
+     "sha256": "6cb4fe1d5fbcbd4eda1583b6022c455142f68172c6ddfc12400e20fc44b059e2"
+    }
+   ]
+  },
+  {
+   "name": "dzg-pack",
+   "version": 2,
+   "description": "dzgorge pack's training shards: a directory of .npy columns plus meta.json; the kind column indexes contracts.PackKinds",
+   "owner": "cmd/dzgorge",
+   "goldens": [
+    {
+     "path": "cmd/dzgorge/testdata/contracts/pack2/SHA256SUMS",
+     "sha256": "f393de29caf44cd1d1e6411efd1a2fe4d29722eecc6f1eafcf64190a172e21e3"
+    },
+    {
+     "path": "cmd/dzgorge/testdata/contracts/pack1/SHA256SUMS",
+     "sha256": "6edd8311cb5d4bfad12beb2a466414f1533832c42e6c112f8c32e99a9465aad0"
+    },
+    {
+     "path": "contracts/testdata/pack_kinds.txt",
+     "sha256": "356a20c8bde2baf04a9e81148c6934d5435e8d630c6c876b81fb89b4ef91e76d"
+    }
+   ]
+  },
+  {
+   "name": "azvisits",
+   "version": 1,
+   "description": "the visit corpus: gzip JSON lines of policynet.VisitRecord, record_type azvisits-v1, with the feature set's encoder_hash",
+   "owner": "internal/policynet",
+   "goldens": [
+    {
+     "path": "internal/policynet/testdata/contracts/azvisits.jsonl",
+     "sha256": "3dbafa6e38e15111f318a4e0d0c86aa99a880e7968509c2aaa10aafc9bdd41d5"
+    }
+   ]
+  },
+  {
+   "name": "dzgw",
+   "version": 1,
+   "description": "a .dzgw network-weights file: DZGW0001 magic, a JSON header (format dzgw-1, optional encoder_hash), 64-aligned float32 tensors",
+   "owner": "internal/gonet",
+   "goldens": [
+    {
+     "path": "internal/gonet/testdata/contracts/dzgw_header.json",
+     "sha256": "17fe721a6d714eb8878f1974208239d249cd5aa74aa2b672ba601d01e5d179e4"
+    }
+   ]
+  },
+  {
+   "name": "dzg-remote",
+   "version": 1,
+   "description": "the GZB1 request / GZR1 response frames of a remote= batch scorer (python -m dzg.serve)",
+   "owner": "cmd/dzgorge",
+   "goldens": [
+    {
+     "path": "cmd/dzgorge/testdata/contracts/remote_request.bin",
+     "sha256": "f7293cd2a9a40b34ab6b5a317c28641196b8b1051399571b6134469a460fbff7"
+    },
+    {
+     "path": "cmd/dzgorge/testdata/contracts/remote_response.bin",
+     "sha256": "f91e7a8d60186028f4d1b38e8596549761c035656f256b2f147e849112db95e6"
+    }
+   ]
+  },
+  {
+   "name": "gorge-agent",
+   "version": 1,
+   "description": "draftlab/extern/wire's gorge-agent/1 JSON-lines protocol for out-of-process drafters, builders and players",
+   "owner": "draftlab/extern/wire",
+   "goldens": [
+    {
+     "path": "draftlab/extern/wire/testdata/batch_build.json",
+     "sha256": "adf0a642f92f8687da6aa2667eefde79acdab8b9dadf50d6efc45e0f6e3223d9"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/batch_decide.json",
+     "sha256": "f182b058b0effcd0564214b7c88cb7af5bbc9a5be4066ff1341dba4f4c090423"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/batch_pick.json",
+     "sha256": "f77bc2d10cb3fcfeb9287191f1398ed94d9e2def3a37cc2c6c6400dca79b987d"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/bye.json",
+     "sha256": "c1ffc6a6cad1e1c08fcf07279f935cd9a348b15a5a416ea2ca055572398112cc"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/error.json",
+     "sha256": "c8585bee27eca5c71ac2892af099a3833da64402458ba65df1553c642e6b9679"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/hello_agent.json",
+     "sha256": "bb150dffd047853fb80e8acbe22030909069eb7cca89f7cca67fe8883c5c62f7"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/hello_gorge.json",
+     "sha256": "2907055bfbcf25407dc51a44dc3a8f8ad1f53bb28896722413faa1401ec4c57b"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/result.json",
+     "sha256": "177b103c90f55a3ee11f1cec9141d495abdf5d1ed087fe0791fdcfbee17e5a5e"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/result_refused.json",
+     "sha256": "ee9797d2e6285bc6a30e4f2ceab6f0d95d1e39af16fb06336eeacb9c1ee9bfdd"
+    },
+    {
+     "path": "draftlab/extern/wire/testdata/stream_end.json",
+     "sha256": "93281816e7a1915aacab5978827f4a29cf115d4ec139f2e24512c509823e46ac"
+    }
+   ]
+  },
+  {
+   "name": "gorge-protocol",
+   "version": 1,
+   "description": "protocol's host-client frame envelope and bodies (protocol.Version)",
+   "owner": "protocol",
+   "goldens": [
+    {
+     "path": "protocol/testdata/decision.json",
+     "sha256": "f26d26a2715175b2cd793212602b1badd4b02dd51cf90b3f59adee6d410edf23"
+    },
+    {
+     "path": "protocol/testdata/draft_pack.json",
+     "sha256": "0385d3ac4da60dded701cc64fa248a7697765c812c5446da56573520b0f04033"
+    },
+    {
+     "path": "protocol/testdata/error.json",
+     "sha256": "aff84ed27bb4188d956620e957ee1f1300246d019e483a407ae70a54bbc47a03"
+    },
+    {
+     "path": "protocol/testdata/event.json",
+     "sha256": "fe615465f2de6dfcdf30790c8c743e64444e3062c4173e497a6950dce2be2409"
+    },
+    {
+     "path": "protocol/testdata/event_state.json",
+     "sha256": "ce3ed7cf97bf66b855657f4341b204395870f117b6c6f39fec9aed60aa1a2504"
+    },
+    {
+     "path": "protocol/testdata/hello.json",
+     "sha256": "313cb48d4b1d537c2233c1005a167699592afacaeadff98cd90eb33c6bba6c08"
+    },
+    {
+     "path": "protocol/testdata/match_end.json",
+     "sha256": "7c272705cf68298cf3ee1558fd1ef0f4869285efc9da0609e2da161a9380743c"
+    },
+    {
+     "path": "protocol/testdata/match_start.json",
+     "sha256": "c9a6719c98e1d79e3f3be61b0dd28aadc874ac15fe6aa26d68885e62301f0915"
+    },
+    {
+     "path": "protocol/testdata/overflow.json",
+     "sha256": "4e3a6c460b3f921fabffe45d52246eab19e57544b87d5bb4e9cbcf85f7f393b3"
+    },
+    {
+     "path": "protocol/testdata/pod_progress.json",
+     "sha256": "11df94455e99e44220190af117473691ce5ed164fd41843b07c0302fbd4eeb92"
+    },
+    {
+     "path": "protocol/testdata/rewind.json",
+     "sha256": "b11ccf311db1e9202e34ef9aa45c97fdbfcb1a2d9d8d71102d02e14655192a73"
+    },
+    {
+     "path": "protocol/testdata/series_update.json",
+     "sha256": "a0f13865e06f1f191a8fd752122e396eaf057f3edfa18486c9451cc442f34b5b"
+    },
+    {
+     "path": "protocol/testdata/snapshot.json",
+     "sha256": "7d2789ecc404db23510d2d9cc83225bda91ed58edf7c8c5006fcb553649e21da"
+    },
+    {
+     "path": "protocol/testdata/table_halted.json",
+     "sha256": "837938c33961a660c131000ad124a7df61f992e60a11f4e5f894e94898a7958b"
+    },
+    {
+     "path": "protocol/testdata/table_state.json",
+     "sha256": "cc8be3b12ade1a4539e0720be76ca5379edf71e38f4498103da907cab6b12f54"
+    },
+    {
+     "path": "protocol/testdata/widget.json",
+     "sha256": "92b0f3fdc12a941631c8f8e56d2d8196781d90323d7058212fb781cb85594856"
+    }
+   ]
+  },
+  {
+   "name": "dzgorge-spec",
+   "version": 1,
+   "description": "dzgorge's policy spec grammar (kind:key=value:flag...), as each accepted spec's parsed form and the rejected spellings",
+   "owner": "cmd/dzgorge",
+   "goldens": [
+    {
+     "path": "cmd/dzgorge/testdata/contracts/spec_grammar.jsonl",
+     "sha256": "734191808d27c55500c58580d146cd27c8eae05137b490d6f59b31d5580de960"
+    }
+   ]
+  },
+  {
+   "name": "dzgorge-version",
+   "version": 1,
+   "description": "dzgorge version's JSON object: the build, every contract's major, the encoder hash and the card corpus pins",
+   "owner": "cmd/dzgorge",
+   "goldens": [
+    {
+     "path": "cmd/dzgorge/testdata/contracts/version_keys.txt",
+     "sha256": "19f84bb179eec2ffb030146f8590bff49ba6d1589790f32ccc8482f0e32a292a"
+    }
+   ]
+  }
+ ]
+}
