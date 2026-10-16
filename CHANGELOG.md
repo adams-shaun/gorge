@@ -39,6 +39,30 @@ major version.
 
 <!-- Changes to entries in contracts/registry.json: name, old -> new major, what changed. -->
 
+- New `contracts` package and `docs/contracts.md`. Every external file, wire
+  and grammar has a name, a major version and golden hashes pinned in
+  `contracts/registry.json` (#7).
+- dzgorge-version 1 (new): `dzgorge version` prints one JSON object with the
+  build, every contract's major version, the entity encoder hash, the cards
+  compiler fingerprint, the IR cache version and the `cards.lock` commit and
+  digest.
+- dzg-games 1 (additive): each `games.jsonl` record and the `.summary.json`
+  carry `format: "dzg-games-1"` and `gorge: {version, revision}`.
+- dzgw 1 (additive): the `.dzgw` header may carry `encoder_hash`. A network
+  whose hash differs from this build's entity encoder is refused; one without
+  the field loads with a warning.
+- dzgorge-spec 1: a flag-style policy key given a value (`autopay=0`) is an
+  error. It used to enable the flag silently.
+
 ### Breaking
 
 <!-- Incompatible changes to stable packages (.github/stable-packages.txt) or contracts, with migration notes. -->
+
+- dzg-pack 1 -> 2: `dzgorge pack` writes `dzg-pack-2` by default. `meta.json`
+  adds `encoder_hash`, `record_type`, `schema_version` and `gorge`. `kinds` is
+  the canonical append-only table `contracts.PackKinds`, and the `kind` column
+  indexes into it. Inputs that disagree on encoder hash, record type or schema
+  version are refused, and an undecodable record is an error at file:line
+  (`-allow-truncated` tolerates a truncated gzip tail). Migration:
+  `pack -format 1` still writes dzg-pack-1 byte for byte, deprecated, and is
+  removed in the release after next.
