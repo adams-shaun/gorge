@@ -283,6 +283,14 @@ type pickRec struct {
 
 	drafterIdx int
 	packIdx    []int32 // table index per pack card, -1 when absent
+	inBin      []byte  // net seats: the pick's learner.bin record body (InputsBinSource)
+}
+
+// InputsBinSource is a net drafter that keeps its last pick's encoded
+// network inputs, logits, chosen index and behaviour log-prob
+// (appendLearnerBin), for the PPO trainer.
+type InputsBinSource interface {
+	LastInputsBin() []byte
 }
 
 // recordingDrafter wraps one seat's drafter: before each pick it extracts
@@ -342,6 +350,11 @@ func (d *recordingDrafter) pick(v pickbot.PickView, r *rand.Rand, fallible bool)
 			if bs, ok := d.inner.(BehaviourSource); ok {
 				rec.Temp, rec.LogProb, rec.HasBehaviour = bs.LastBehaviour()
 			}
+		}
+	}
+	if is, ok := d.inner.(InputsBinSource); ok {
+		if b := is.LastInputsBin(); b != nil {
+			rec.inBin = append([]byte(nil), b...)
 		}
 	}
 	*d.out = append(*d.out, rec)

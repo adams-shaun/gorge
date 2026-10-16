@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -83,7 +84,13 @@ type netLogitDrafter struct {
 	pickbot.NetDrafter
 	last []float32
 	logp float32
+	bin  []byte
 }
+
+// LastInputsBin is the last pick's learner.bin record body: an inputs.bin
+// record whose score slots carry the logits, then i32 chosen index and f32
+// behaviour log-prob (0 for an argmax seat).
+func (d *netLogitDrafter) LastInputsBin() []byte { return d.bin }
 
 func (d *netLogitDrafter) Record(v pickbot.PickView, f *draftfeat.Features, in *draftnet.Inputs, logits []float32, chosen int) {
 	d.last = append(d.last[:0], logits...)
@@ -91,6 +98,9 @@ func (d *netLogitDrafter) Record(v pickbot.PickView, f *draftfeat.Features, in *
 	if d.Temperature > 0 {
 		d.logp = float32(pickbot.SoftmaxLogProb(logits, d.Temperature, chosen))
 	}
+	d.bin = appendBCInputsBin(d.bin[:0], in, logits)
+	d.bin = binary.LittleEndian.AppendUint32(d.bin, uint32(int32(chosen)))
+	d.bin = binary.LittleEndian.AppendUint32(d.bin, math.Float32bits(d.logp))
 }
 
 func (d *netLogitDrafter) LastLogits() []float32 { return d.last }

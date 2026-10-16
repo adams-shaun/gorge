@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -533,6 +534,28 @@ func writeRollout(lab *draftlab.Lab, o rolloutOpts, table *draftfeat.SetTable, l
 	}
 	if err := writeFile(filepath.Join(o.out, "picks.bin"), func(w io.Writer) error {
 		return writePicksBin(w, table.Hash(), league, res.Picks)
+	}); err != nil {
+		return err
+	}
+	// learner.bin: every net seat's picks, i32 pod, i32 seat, then the
+	// record body (netLogitDrafter.LastInputsBin), for the PPO trainer.
+	if err := writeFile(filepath.Join(o.out, "learner.bin"), func(w io.Writer) error {
+		var hdr [8]byte
+		for i := range res.Picks {
+			pr := &res.Picks[i]
+			if pr.inBin == nil {
+				continue
+			}
+			binary.LittleEndian.PutUint32(hdr[:4], uint32(int32(pr.Pod)))
+			binary.LittleEndian.PutUint32(hdr[4:], uint32(int32(pr.Seat)))
+			if _, err := w.Write(hdr[:]); err != nil {
+				return err
+			}
+			if _, err := w.Write(pr.inBin); err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
 		return err
 	}
