@@ -65,4 +65,4 @@ major version.
   version are refused, and an undecodable record is an error at file:line
   (`-allow-truncated` tolerates a truncated gzip tail). Migration:
   `pack -format 1` still writes dzg-pack-1 byte for byte, deprecated, and is
-  removed in the release after next.
+  removed in the next release.
