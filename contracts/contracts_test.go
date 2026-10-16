@@ -58,6 +58,7 @@ func TestConstantsMatchRegistry(t *testing.T) {
 		{GorgeProtocol, GorgeProtocolVersion},
 		{DZGorgeSpec, DZGorgeSpecVersion},
 		{DZGorgeVersion, DZGorgeVersionVersion},
+		{DZGorgeConfig, DZGorgeConfigVersion},
 	}
 	got := Versions()
 	if len(got) != len(want) {

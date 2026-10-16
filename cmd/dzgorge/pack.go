@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"encoding/binary"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"math"
@@ -14,11 +13,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cli"
 	"github.com/adams-shaun/gorge/contracts"
 	"github.com/adams-shaun/gorge/internal/policynet"
 )
 
-// runPack converts visit corpora (play -corpus, recorded under -record-features entity)
+// packCommand converts visit corpora (play -corpus, recorded under -record-features entity)
 // into dzg's training shards (gorge/dzg/SPEC.md §2): one directory of .npy arrays per
 // shard of -shard records. The layout is contract dzg-pack (docs/contracts.md):
 // -format 2, the default, writes dzg-pack-2; -format 1 writes the deprecated
@@ -30,28 +30,40 @@ import (
 // mixed. Under -format 2 a record that does not decode is an error naming its
 // file and line (-allow-truncated keeps what came before a truncated gzip tail,
 // the mark of a run killed mid-write).
-func runPack(args []string) int {
-	fs := flag.NewFlagSet("pack", flag.ExitOnError)
-	in := fs.String("in", "", "comma-separated visit corpora (.jsonl.gz)")
-	out := fs.String("out", "", "output directory; shards go to OUT/00000, OUT/00001, ...")
-	shard := fs.Int("shard", 200000, "records per shard")
-	format := fs.Int("format", contracts.DZGPackVersion, "dzg-pack major to write: 2, or 1 (deprecated: first-seen kind indices, no encoder hash)")
-	allowTrunc := fs.Bool("allow-truncated", false, "-format 2: keep the records before a truncated gzip tail instead of failing")
-	fs.Parse(args)
-	if *in == "" || *out == "" {
+func packCommand() *cli.Command {
+	var in, out string
+	var shard, format int
+	var allowTrunc bool
+	return &cli.Command{
+		Name:      "pack",
+		Short:     "a visit corpus as dzg training shards (dzg-pack)",
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&in, "in", "", "comma-separated visit corpora (.jsonl.gz)")
+			fs.StringVar(&out, "out", "", "output directory; shards go to OUT/00000, OUT/00001, ...")
+			fs.IntVar(&shard, "shard", 200000, "records per shard")
+			fs.IntVar(&format, "format", contracts.DZGPackVersion, "dzg-pack major to write: 2, or 1 (deprecated: first-seen kind indices, no encoder hash)")
+			fs.BoolVar(&allowTrunc, "allow-truncated", false, "-format 2: keep the records before a truncated gzip tail instead of failing")
+		},
+		Run: func(c *cli.Context, args []string) error { return cli.Exit(pack(in, out, shard, format, allowTrunc)) },
+	}
+}
+
+func pack(in, out string, shard, format int, allowTrunc bool) int {
+	if in == "" || out == "" {
 		fmt.Fprintln(os.Stderr, "pack: -in and -out are required")
 		return 2
 	}
-	if *format != 1 && *format != 2 {
-		fmt.Fprintf(os.Stderr, "pack: -format %d: want 2 (dzg-pack-2) or 1 (deprecated dzg-pack-1)\n", *format)
+	if format != 1 && format != 2 {
+		fmt.Fprintf(os.Stderr, "pack: -format %d: want 2 (dzg-pack-2) or 1 (deprecated dzg-pack-1)\n", format)
 		return 2
 	}
-	if *format == 1 {
+	if format == 1 {
 		fmt.Fprintln(os.Stderr, "pack: -format 1 (dzg-pack-1) is deprecated and will be removed after one release; readers should move to dzg-pack-2")
 	}
-	w := &shardWriter{dir: *out, per: *shard, source: *in, format: *format, allowTrunc: *allowTrunc}
+	w := &shardWriter{dir: out, per: shard, source: in, format: format, allowTrunc: allowTrunc}
 	w.reset()
-	for _, path := range strings.Split(*in, ",") {
+	for _, path := range strings.Split(in, ",") {
 		if err := packCorpus(path, w); err != nil {
 			fmt.Fprintf(os.Stderr, "pack: %v\n", err)
 			return 1
@@ -62,7 +74,7 @@ func runPack(args []string) int {
 		return 1
 	}
 	fmt.Printf("packed %d records (%d without a known outcome, %d not entity-encoded) into %d shards under %s\n",
-		w.total, w.unknown, w.noEntity, w.shards, *out)
+		w.total, w.unknown, w.noEntity, w.shards, out)
 	return 0
 }
 

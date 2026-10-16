@@ -1,0 +1,25 @@
+a group
+
+Usage:
+  tool grp <command> [flags]
+
+Commands:
+  help   show a command's help (tool grp help <command>)
+  leaf   a nested leaf
+
+Flags:
+      --shared string   a root flag every subcommand inherits (default "s0")
+
+Global flags:
+      --config string   read flag values from this JSON file (env GORGE_TOOL_CONFIG)
+  -h, --help            show this help
+      --print-config    print the effective configuration as JSON (loadable with --config) and exit
+
+Environment and config:
+  Inherited flags (--shared) are read from their own command's variable
+  and config section (e.g. GORGE_TOOL_SHARED).
+  Precedence: flag > environment > config > default; --print-config prints
+  the result. A long flag may also be spelled with one dash (-name value),
+  as Go's flag package spells it.
+
+Run 'tool grp <command> --help' for a command's flags.

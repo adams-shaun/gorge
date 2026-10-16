@@ -2,41 +2,54 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"math"
 	"os"
 	"time"
 
+	"github.com/adams-shaun/gorge/cli"
 	"github.com/adams-shaun/gorge/internal/gonet"
 	"github.com/adams-shaun/gorge/internal/policynet"
 )
 
-// runGonetCheck is the hidden subcommand gonet-check: the Go network against
+// gonetCheckCommand is the hidden subcommand gonet-check: the Go network against
 // PyTorch's outputs on the same states (python -m dzg.gonet_parity), and its speed.
 //
 //	dzgorge gonet-check -net best.dzgw -parity parity.json [-tol 1e-3] [-bench 2000]
-func runGonetCheck(args []string) int {
-	fs := flag.NewFlagSet("gonet-check", flag.ExitOnError)
-	netPath := fs.String("net", "", ".dzgw network (python -m dzg.export)")
-	parity := fs.String("parity", "", "parity JSON (python -m dzg.gonet_parity)")
-	tol := fs.Float64("tol", 1e-3, "largest allowed |Go - PyTorch| on option logits and values")
-	bench := fs.Int("bench", 0, "also time this many evaluations of the parity states (single goroutine)")
-	fs.Parse(args)
-	if *netPath == "" || *parity == "" {
+func gonetCheckCommand() *cli.Command {
+	var netPath, parity string
+	var tol float64
+	var bench int
+	return &cli.Command{
+		Name:      "gonet-check",
+		Short:     "the in-process network against PyTorch's outputs, and its speed",
+		Hidden:    true,
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&netPath, "net", "", ".dzgw network (python -m dzg.export)")
+			fs.StringVar(&parity, "parity", "", "parity JSON (python -m dzg.gonet_parity)")
+			fs.Float64Var(&tol, "tol", 1e-3, "largest allowed |Go - PyTorch| on option logits and values")
+			fs.IntVar(&bench, "bench", 0, "also time this many evaluations of the parity states (single goroutine)")
+		},
+		Run: func(c *cli.Context, args []string) error { return cli.Exit(gonetCheck(netPath, parity, tol, bench)) },
+	}
+}
+
+func gonetCheck(netPath, parity string, tol float64, bench int) int {
+	if netPath == "" || parity == "" {
 		fmt.Fprintln(os.Stderr, "gonet-check: -net and -parity are required")
 		return 2
 	}
 	gonet.CacheSize, gonet.CardCacheSize = 0, 0 // parity runs every forward from scratch
 	t0 := time.Now()
-	g, err := gonet.Load(*netPath)
+	g, err := gonet.Load(netPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	warnUncheckedNet(*netPath, g)
+	warnUncheckedNet(netPath, g)
 	load := time.Since(t0)
-	recs, err := readParity(*parity)
+	recs, err := readParity(parity)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -64,13 +77,13 @@ func runGonetCheck(args []string) int {
 			return 1
 		}
 	}
-	ok := maxScore < *tol && maxValue < *tol
-	out := map[string]any{"net": *netPath, "states": len(recs), "options": nopt, "load_ms": load.Seconds() * 1000,
+	ok := maxScore < tol && maxValue < tol
+	out := map[string]any{"net": netPath, "states": len(recs), "options": nopt, "load_ms": load.Seconds() * 1000,
 		"max_abs_logit_diff": maxScore, "max_abs_value_diff": maxValue, "max_abs_value_logit_diff": maxLogit,
 		"worst_logit_record": recs[worstScore].index, "worst_value_record": recs[worstValue].index,
-		"tol": *tol, "pass": ok}
-	if *bench > 0 {
-		for k, v := range gonetBench(g, recs, *bench) {
+		"tol": tol, "pass": ok}
+	if bench > 0 {
+		for k, v := range gonetBench(g, recs, bench) {
 			out[k] = v
 		}
 	}

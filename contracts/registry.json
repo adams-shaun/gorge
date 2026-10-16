@@ -215,6 +215,22 @@
      "sha256": "19f84bb179eec2ffb030146f8590bff49ba6d1589790f32ccc8482f0e32a292a"
     }
    ]
+  },
+  {
+   "name": "dzgorge-config",
+   "version": 1,
+   "description": "dzgorge's --config JSON file and --print-config output (package cli; $schema dzgorge-config-1): a section per subcommand whose keys are its flags; play's -a/-b also take the policy object form",
+   "owner": "cmd/dzgorge",
+   "goldens": [
+    {
+     "path": "cmd/dzgorge/testdata/contracts/config_example.json",
+     "sha256": "79e0713185e4a5569075c3d2bdfa10e225c316a05c4784effdd78ba76442a73f"
+    },
+    {
+     "path": "cmd/dzgorge/testdata/contracts/config_print.json",
+     "sha256": "113eee3118bd65d64f6b4ce44d28a40d0bdacc1654f89bf102fae3376b1adf79"
+    }
+   ]
   }
  ]
 }

@@ -1,0 +1,17 @@
+{
+  "$schema": "gorge-cli-config-1",
+  "run": {
+    "a": "x<y&z",
+    "big": -3,
+    "games": 6,
+    "seed": 99,
+    "single": true,
+    "tag": [
+      "p",
+      "q"
+    ],
+    "tol": 0.25,
+    "word": "MIXED"
+  },
+  "shared": "env"
+}

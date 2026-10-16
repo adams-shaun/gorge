@@ -56,6 +56,9 @@ const (
 	// DZGorgeVersion is dzgorge version's JSON object.
 	DZGorgeVersion        = "dzgorge-version"
 	DZGorgeVersionVersion = 1
+	// DZGorgeConfig is dzgorge's --config file and --print-config output.
+	DZGorgeConfig        = "dzgorge-config"
+	DZGorgeConfigVersion = 1
 )
 
 // Format is a contract's versioned format tag, "<name>-<major>" (for

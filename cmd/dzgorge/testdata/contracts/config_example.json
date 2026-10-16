@@ -1,0 +1,26 @@
+{
+  "$schema": "dzgorge-config-1",
+  "play": {
+    "decks": "inputs/decks",
+    "pool": "inputs/pool.tsv",
+    "split": "eval",
+    "a": {"kind": "az", "sims": 200, "autopay": true, "oppnodes": true, "oppfull": true, "morekinds": true, "topk": 6, "gonet": "models/c5:best.dzgw"},
+    "b": "sbtactical",
+    "pairs": 200,
+    "seed": 78,
+    "workers": 8,
+    "mulligans": 2,
+    "mull-heuristic": true,
+    "lines": true,
+    "remote-wait": "1ms",
+    "out": "runs/base.jsonl"
+  },
+  "pack": {
+    "in": "runs/base.visits.jsonl.gz",
+    "out": "shards/base",
+    "shard": 100000
+  },
+  "version": {
+    "cards": ".cards"
+  }
+}

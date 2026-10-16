@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"os"
 	"runtime/debug"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/cli"
 	"github.com/adams-shaun/gorge/contracts"
 	"github.com/adams-shaun/gorge/internal/policynet"
 )
@@ -96,15 +95,22 @@ func buildVersionInfo(cardsDir string) versionInfo {
 	return v
 }
 
-func runVersion(args []string) int {
-	fs := flag.NewFlagSet("version", flag.ExitOnError)
-	cardsDir := fs.String("cards", ".cards", "gorge corpus directory whose cards.lock to report")
-	fs.Parse(args)
-	js, err := json.MarshalIndent(buildVersionInfo(*cardsDir), "", " ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "version:", err)
-		return 1
+func versionCommand() *cli.Command {
+	var cardsDir string
+	return &cli.Command{
+		Name:      "version",
+		Short:     "this build and its contract versions, as JSON (dzgorge-version)",
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&cardsDir, "cards", ".cards", "gorge corpus directory whose cards.lock to report")
+		},
+		Run: func(c *cli.Context, args []string) error {
+			js, err := json.MarshalIndent(buildVersionInfo(cardsDir), "", " ")
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(c.Stdout, string(js))
+			return nil
+		},
 	}
-	fmt.Println(string(js))
-	return 0
 }

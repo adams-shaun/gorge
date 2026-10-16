@@ -11,7 +11,8 @@ The registry is the package [`contracts`](../contracts/contracts.go):
 `contracts/registry.json` lists every contract (name, major, description,
 owner package, goldens with their hashes), and Go constants mirror each name
 and major (`contracts.DZGPack`, `contracts.DZGPackVersion`, ...).
-`dzgorge version` prints every contract's major.
+`dzgorge version` prints every contract's major. Command-line conventions
+(flags, environment variables, config files) are in [cli.md](cli.md).
 
 ## Change rules
 
@@ -171,10 +172,22 @@ is `0123456789abcdef`, and the gorge build is `v0.0.0-golden`.
   `mull`, `keep7`, `oppnodes`, `oppfull`, `closedlist`, `morekinds`) given a
   value is an error: before this contract `autopay=0` silently turned autopay
   on. `skippass` takes an optional value.
+- **Object form:** in a config file (or as a `-a`/`-b` value starting with
+  `{`), a spec may be a JSON object with the same keys:
+  `{"kind": "az", "sims": 200, "autopay": true, "topk": 6, "gonet": "model.dzgw"}`.
+  Flag keys are bools (`false` means absent), `kinds` is an array of names,
+  `skippass` is `true` or a number, and the rest are numbers or strings. An
+  unknown key or a wrong type is an error. `mull` with `keep7`, or
+  `morekinds` with `kinds`, is an error, where the string form lets the last
+  one win. A path may contain `:`, which the string form cannot express. Both
+  forms set each key through the same code (`policySpec.setKey`). The
+  recorded spec (`pols` in dzg-games) of an object is its canonical string:
+  the kind, then the keys in `policyKeys` order.
 - **Golden:** `cmd/dzgorge/testdata/contracts/spec_grammar.jsonl`, each
   accepted spec's parsed struct and the refused spellings
-  (`TestContractSpecGrammar`, `TestFlagKeysRefuseValue`).
-- **Known gaps:** the `dzgorge play` flags are not pinned.
+  (`TestContractSpecGrammar`, `TestFlagKeysRefuseValue`). Every accepted spec
+  round-trips through the object form to the identical struct
+  (`TestPolicyObjectRoundTrip`).
 
 ### dzgorge-version, v1
 
@@ -192,9 +205,40 @@ is `0123456789abcdef`, and the gorge build is `v0.0.0-golden`.
 - **Golden:** the key set, `cmd/dzgorge/testdata/contracts/version_keys.txt`
   (`TestContractVersionKeys`). Values vary by build.
 
+### dzgorge-config, v1
+
+- **Owner:** `cmd/dzgorge` (`rootCommand`), built on package `cli`
+  ([cli.md](cli.md)).
+- **Consumers:** DraftZero run configs, and anyone who saves a
+  `--print-config`.
+- **Layout:** one JSON object. `"$schema": "dzgorge-config-1"` is optional on
+  input, always written by `--print-config`, and any other value is refused.
+  Each subcommand has a section (`"play"`, `"pack"`, `"coverage"`,
+  `"version"`, `"gonet-check"`) whose keys are that subcommand's flag names,
+  with JSON values typed per flag: string, number, bool, or a duration string
+  for `remote-wait`. `play`'s `a` and `b` take a dzgorge-spec string or its
+  object form. dzgorge's root command has no flags of its own, so there are
+  no top-level keys besides `$schema`. Unknown keys, wrong types and
+  duplicate keys are errors naming the file and the dotted key, in every
+  section, not only the invoked one.
+- **Precedence:** explicit flag > `GORGE_DZGORGE_<CMD>_<FLAG>` (upper case,
+  `-` as `_`, for example `GORGE_DZGORGE_PLAY_MAX_TURNS`) > config file
+  (`--config`, or `GORGE_DZGORGE_CONFIG`) > default. Old single-dash
+  invocations (`-a az:sims=200:autopay -pairs 100`) parse exactly as before.
+- **Versioning:** a new flag is additive (regenerate `config_print.json` and
+  rehash). Renaming or removing a flag, changing its type, or changing a
+  default (the printed configuration changes meaning) is dzgorge-config v2,
+  and the `$schema` tag moves to `dzgorge-config-2`.
+- **Goldens:** `cmd/dzgorge/testdata/contracts/config_example.json`, a
+  hand-written config using both policy forms, and `config_print.json`,
+  `dzgorge play --config config_example.json --print-config`. That second
+  file pins every `play` flag with its type and default
+  (`TestContractConfig`, which also checks the round trip).
+- **Known gaps:** a reader for a previous major does not exist yet, because
+  there is none. When v2 comes, the root needs a list of accepted tags.
+
 ## Not yet registered
 
-- The `dzgorge play` flag set.
 - The belief corpus `dzgorge play` reads for `:closedlist`: the deck
   directory and the `pool.tsv` split.
 - `sealed-pools` JSON lines. Its command lives only on DraftZero's fork

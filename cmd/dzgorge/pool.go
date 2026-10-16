@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/cli"
 	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/effects"
 )
@@ -101,31 +101,43 @@ func unsupported(reg *cards.Registry, names []string) map[string][]string {
 	return out
 }
 
-// runCoverage checks every pool deck against the corpus: which cards resolve and
+// coverageCommand checks every pool deck against the corpus: which cards resolve and
 // are fully supported, and how many decks play only supported cards.
-func runCoverage(args []string) int {
-	fs := flag.NewFlagSet("coverage", flag.ExitOnError)
-	cardsDir := fs.String("cards", ".cards", "gorge corpus directory")
-	decksDir := fs.String("decks", "", "pool deck directory (gorge/decks.py)")
-	poolPath := fs.String("pool", "", "pool.tsv (gorge/decks.py)")
-	out := fs.String("out", "", "write the supported-deck list here (one deck per line)")
-	fs.Parse(args)
-	reg, err := cards.SharedCorpus(*cardsDir)
+func coverageCommand() *cli.Command {
+	var cardsDir, decksDir, poolPath, out string
+	return &cli.Command{
+		Name:      "coverage",
+		Short:     "which pool decks gorge fully supports",
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&cardsDir, "cards", ".cards", "gorge corpus directory")
+			fs.StringVar(&decksDir, "decks", "", "pool deck directory (gorge/decks.py)")
+			fs.StringVar(&poolPath, "pool", "", "pool.tsv (gorge/decks.py)")
+			fs.StringVar(&out, "out", "", "write the supported-deck list here (one deck per line)")
+		},
+		Run: func(c *cli.Context, args []string) error {
+			return cli.Exit(coverage(cardsDir, decksDir, poolPath, out))
+		},
+	}
+}
+
+func coverage(cardsDir, decksDir, poolPath, out string) int {
+	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	pool, err := readPool(*poolPath, "all")
+	pool, err := readPool(poolPath, "all")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	dc := &deckCache{reg: reg, dir: *decksDir, m: map[string][]*cards.Card{}}
+	dc := &deckCache{reg: reg, dir: decksDir, m: map[string][]*cards.Card{}}
 	names := map[string]int{}
 	decksWith := map[string][]string{}
 	failed := 0
 	for _, p := range pool {
-		f, err := os.ReadFile(filepath.Join(*decksDir, p.Name+".json"))
+		f, err := os.ReadFile(filepath.Join(decksDir, p.Name+".json"))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
@@ -161,14 +173,14 @@ func runCoverage(args []string) int {
 	}
 	fmt.Printf("%d distinct cards in %d decks; %d unsupported; %d decks failed to resolve; %d of %d decks play only supported cards\n",
 		len(all), len(pool), len(gaps), failed, len(pool)-len(bad)-failed, len(pool))
-	if *out != "" {
+	if out != "" {
 		var b strings.Builder
 		for _, p := range pool {
 			if !bad[p.Name] {
 				b.WriteString(p.Name + "\n")
 			}
 		}
-		if err := os.WriteFile(*out, []byte(b.String()), 0o644); err != nil {
+		if err := os.WriteFile(out, []byte(b.String()), 0o644); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}

@@ -1,0 +1,27 @@
+tool is a test command tree.
+
+Usage:
+  tool <command> [flags]
+
+Commands:
+  grp    a group
+  help   show a command's help (tool help <command>)
+  run    run some games
+
+Flags:
+      --shared string   a root flag every subcommand inherits (default "s0")
+
+Global flags:
+      --config string   read flag values from this JSON file (env GORGE_TOOL_CONFIG)
+  -h, --help            show this help
+      --print-config    print the effective configuration as JSON (loadable with --config) and exit
+
+Environment and config:
+  Each flag is also read from the environment variable GORGE_TOOL_<FLAG>
+  (upper case, '-' as '_'; e.g. GORGE_TOOL_SHARED) and from the top level of the
+  JSON file --config names.
+  Precedence: flag > environment > config > default; --print-config prints
+  the result. A long flag may also be spelled with one dash (-name value),
+  as Go's flag package spells it.
+
+Run 'tool <command> --help' for a command's flags.

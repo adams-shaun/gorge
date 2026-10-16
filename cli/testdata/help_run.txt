@@ -1,0 +1,32 @@
+Run plays some games.
+
+It is the test tree's leaf.
+
+Usage:
+  tool run [flags]
+
+Flags:
+  -a string             policy A (default "bot")
+      --big int64       an int64
+  -g, --games int       games to play (default 1)
+      --seed uint64     base seed (default 1)
+      --shared string   a root flag every subcommand inherits (default "s0")
+      --single          one leg
+      --tag strings     tags (repeatable, comma-separated)
+      --tol float       tolerance (default 0.001)
+      --word word       an upper-cased word (default w)
+
+Global flags:
+      --config string   read flag values from this JSON file (env GORGE_TOOL_CONFIG)
+  -h, --help            show this help
+      --print-config    print the effective configuration as JSON (loadable with --config) and exit
+
+Environment and config:
+  Each flag is also read from the environment variable GORGE_TOOL_RUN_<FLAG>
+  (upper case, '-' as '_'; e.g. GORGE_TOOL_RUN_A) and from the "run" section of the
+  JSON file --config names.
+  Inherited flags (--shared) are read from their own command's variable
+  and config section (e.g. GORGE_TOOL_SHARED).
+  Precedence: flag > environment > config > default; --print-config prints
+  the result. A long flag may also be spelled with one dash (-name value),
+  as Go's flag package spells it.

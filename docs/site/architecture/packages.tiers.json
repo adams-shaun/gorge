@@ -99,6 +99,10 @@
       "tier": "core",
       "status": "TOOL"
     },
+    "cli": {
+      "tier": "tooling",
+      "status": "TOOL"
+    },
     "cmd/autopayaudit": {
       "tier": "cmd",
       "status": "TOOL"

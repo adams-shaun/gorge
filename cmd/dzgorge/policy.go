@@ -154,17 +154,39 @@ var flagKeys = map[string]bool{
 }
 
 func parsePolicy(s string) (*policySpec, error) {
+	p, err := lexPolicy(s)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.load(s); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// newPolicy is a spec of kind with every key at its default.
+func newPolicy(raw, kind string) (*policySpec, error) {
+	p := &policySpec{Raw: raw, Kind: kind, Sims: azmcts.DefaultOptions().Sims, CPUCT: -1, FPU: -1, Cands: -1}
+	switch p.Kind {
+	case "random", "bot", "sbtactical", "az", "prior":
+	default:
+		return nil, fmt.Errorf("policy %q: want random, bot, sbtactical, az or prior", raw)
+	}
+	return p, nil
+}
+
+// lexPolicy reads a spec string's kind and keys and runs check: everything
+// but loading a network and building a test seat (load).
+func lexPolicy(s string) (*policySpec, error) {
 	// remote=unix:/path and remote=tcp:host:port contain colons: take the rest of the spec.
 	rest := ""
 	if i := strings.Index(s, ":remote="); i >= 0 {
 		s, rest = s[:i], s[i+len(":remote="):]
 	}
 	parts := strings.Split(s, ":")
-	p := &policySpec{Raw: s, Kind: parts[0], Sims: azmcts.DefaultOptions().Sims, CPUCT: -1, FPU: -1, Cands: -1}
-	switch p.Kind {
-	case "random", "bot", "sbtactical", "az", "prior":
-	default:
-		return nil, fmt.Errorf("policy %q: want random, bot, sbtactical, az or prior", s)
+	p, err := newPolicy(s, parts[0])
+	if err != nil {
+		return nil, err
 	}
 	for _, kv := range parts[1:] {
 		k, v, hasValue := strings.Cut(kv, "=")
@@ -172,96 +194,132 @@ func parsePolicy(s string) (*policySpec, error) {
 			// A flag key reads no value: autopay=0 would otherwise turn autopay ON.
 			return nil, fmt.Errorf("policy %q: %s is a flag and takes no value (write :%s, or leave it out)", s, kv, k)
 		}
-		var err error
-		switch k {
-		case "sims":
-			p.Sims, err = strconv.Atoi(v)
-		case "net":
-			p.Net = v
-		case "gonet":
-			p.GoNet = v
-		case "leaf":
-			if v != "heuristic" && v != "net" {
-				return nil, fmt.Errorf("policy %q: leaf=%s, want heuristic or net", s, v)
-			}
-			p.HeurLeaf = v == "heuristic"
-		case "prior":
-			if v != "uniform" && v != "net" {
-				return nil, fmt.Errorf("policy %q: prior=%s, want uniform or net", s, v)
-			}
-			p.UniPrior = v == "uniform"
-		case "worlds":
-			p.Worlds, err = strconv.Atoi(v)
-		case "explore":
-			p.Explore = true
-		case "nonoise":
-			p.NoNoise = true
-		case "exploreturns":
-			p.ExploreTurns, err = strconv.Atoi(v)
-			if err == nil && p.ExploreTurns < 0 {
-				err = fmt.Errorf("want >= 0")
-			}
-		case "temp":
-			p.Temp, err = strconv.ParseFloat(v, 64)
-			if err == nil && !(p.Temp > 0) {
-				err = fmt.Errorf("want > 0")
-			}
-		case "second":
-			p.Second, err = strconv.ParseFloat(v, 64)
-			if err == nil && !(p.Second > 0 && p.Second <= 1) {
-				err = fmt.Errorf("want in (0,1]")
-			}
-		case "aseed":
-			p.ASeed, err = strconv.ParseUint(v, 10, 64)
-		case "cpuct":
-			p.CPUCT, err = strconv.ParseFloat(v, 64)
-		case "fpu":
-			p.FPU, err = strconv.ParseFloat(v, 64)
-		case "cands":
-			p.Cands, err = strconv.Atoi(v)
-		case "autopay":
-			p.AutoPay = true
-		case "mull":
-			p.Mull = botpolicy.MulliganLands
-		case "keep7":
-			p.Mull = botpolicy.MulliganNever
-		case "topk":
-			p.TopK, err = strconv.Atoi(v)
-		case "oppnodes":
-			p.OppNodes = true
-		case "oppfull":
-			p.OppFull = true
-		case "closedlist":
-			p.Closed = true
-		case "morekinds":
-			p.Kinds = azmcts.FullKinds()
-		case "kinds":
-			p.Kinds, err = azmcts.ParseKinds(v)
-		case "skippass":
-			p.SkipPass = 1
-			if v != "" {
-				p.SkipPass, err = strconv.Atoi(v)
-			}
-		default:
+		if k == "remote" {
+			// Only a bare ":remote" reaches here (":remote=" took the rest above).
 			return nil, fmt.Errorf("policy %q: unknown key %q", s, k)
 		}
-		if err != nil {
-			return nil, fmt.Errorf("policy %q: %s: %w", s, k, err)
+		if err := p.setKey(s, k, v); err != nil {
+			return nil, err
 		}
 	}
 	if rest != "" {
 		p.Raw, p.Remote = s+":remote="+rest, rest
 	}
+	if err := p.check(p.Raw); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// setKey applies one key of a spec (label names the spec in an error). The
+// string form and the object form (policy_object.go) both set every key here,
+// so the two cannot drift apart.
+func (p *policySpec) setKey(label, k, v string) error {
+	var err error
+	switch k {
+	case "sims":
+		p.Sims, err = strconv.Atoi(v)
+	case "net":
+		p.Net = v
+	case "gonet":
+		p.GoNet = v
+	case "remote":
+		p.Remote = v
+	case "leaf":
+		if v != "heuristic" && v != "net" {
+			return fmt.Errorf("policy %q: leaf=%s, want heuristic or net", label, v)
+		}
+		p.HeurLeaf = v == "heuristic"
+	case "prior":
+		if v != "uniform" && v != "net" {
+			return fmt.Errorf("policy %q: prior=%s, want uniform or net", label, v)
+		}
+		p.UniPrior = v == "uniform"
+	case "worlds":
+		p.Worlds, err = strconv.Atoi(v)
+	case "explore":
+		p.Explore = true
+	case "nonoise":
+		p.NoNoise = true
+	case "exploreturns":
+		p.ExploreTurns, err = strconv.Atoi(v)
+		if err == nil && p.ExploreTurns < 0 {
+			err = fmt.Errorf("want >= 0")
+		}
+	case "temp":
+		p.Temp, err = strconv.ParseFloat(v, 64)
+		if err == nil && !(p.Temp > 0) {
+			err = fmt.Errorf("want > 0")
+		}
+	case "second":
+		p.Second, err = strconv.ParseFloat(v, 64)
+		if err == nil && !(p.Second > 0 && p.Second <= 1) {
+			err = fmt.Errorf("want in (0,1]")
+		}
+	case "aseed":
+		p.ASeed, err = strconv.ParseUint(v, 10, 64)
+	case "cpuct":
+		p.CPUCT, err = strconv.ParseFloat(v, 64)
+	case "fpu":
+		p.FPU, err = strconv.ParseFloat(v, 64)
+	case "cands":
+		p.Cands, err = strconv.Atoi(v)
+	case "autopay":
+		p.AutoPay = true
+	case "mull":
+		p.Mull = botpolicy.MulliganLands
+	case "keep7":
+		p.Mull = botpolicy.MulliganNever
+	case "topk":
+		p.TopK, err = strconv.Atoi(v)
+	case "oppnodes":
+		p.OppNodes = true
+	case "oppfull":
+		p.OppFull = true
+	case "closedlist":
+		p.Closed = true
+	case "morekinds":
+		p.Kinds = azmcts.FullKinds()
+	case "kinds":
+		p.Kinds, err = azmcts.ParseKinds(v)
+	case "skippass":
+		p.SkipPass = 1
+		if v != "" {
+			p.SkipPass, err = strconv.Atoi(v)
+		}
+	default:
+		return fmt.Errorf("policy %q: unknown key %q", label, k)
+	}
+	if err != nil {
+		return fmt.Errorf("policy %q: %s: %w", label, k, err)
+	}
+	return nil
+}
+
+// check is the spec's cross-key rules (no file is read).
+func (p *policySpec) check(label string) error {
 	if p.Kind == "prior" && p.Net == "" && p.Remote == "" && p.GoNet == "" {
-		return nil, fmt.Errorf("policy %q: prior needs net=, remote= or gonet=", s)
+		return fmt.Errorf("policy %q: prior needs net=, remote= or gonet=", label)
 	}
 	if nets := btoi(p.Net != "") + btoi(p.Remote != "") + btoi(p.GoNet != ""); nets > 1 {
-		return nil, fmt.Errorf("policy %q: net=, remote= and gonet= are exclusive", s)
+		return fmt.Errorf("policy %q: net=, remote= and gonet= are exclusive", label)
 	}
+	if (p.ExploreTurns != 0 || p.Temp != 0 || p.Second != 0 || p.ASeed != 0) && p.Kind != "az" {
+		return fmt.Errorf("policy %q: exploreturns, temp, second and aseed are az keys", label)
+	}
+	if p.Closed && p.Kind != "az" {
+		return fmt.Errorf("policy %q: closedlist is an az key", label)
+	}
+	return nil
+}
+
+// load loads the spec's network (net=, gonet= or remote=) and, for a search
+// seat, builds one seat to validate the configuration.
+func (p *policySpec) load(label string) error {
 	if p.GoNet != "" {
 		m, err := gonet.Model(p.GoNet)
 		if err != nil {
-			return nil, fmt.Errorf("policy %q: %w", s, err)
+			return fmt.Errorf("policy %q: %w", label, err)
 		}
 		p.model = m
 		if g, err := gonet.Shared(p.GoNet); err == nil {
@@ -271,32 +329,26 @@ func parsePolicy(s string) (*policySpec, error) {
 	if p.Remote != "" {
 		m, err := remoteModel(p.Remote)
 		if err != nil {
-			return nil, fmt.Errorf("policy %q: %w", s, err)
+			return fmt.Errorf("policy %q: %w", label, err)
 		}
 		p.model = m
 	}
 	if p.Net != "" {
 		m, err := policynet.LoadCheckpointFile(p.Net)
 		if err != nil {
-			return nil, fmt.Errorf("policy %q: %w", s, err)
+			return fmt.Errorf("policy %q: %w", label, err)
 		}
 		p.model = m
-	}
-	if (p.ExploreTurns != 0 || p.Temp != 0 || p.Second != 0 || p.ASeed != 0) && p.Kind != "az" {
-		return nil, fmt.Errorf("policy %q: exploreturns, temp, second and aseed are az keys", s)
-	}
-	if p.Closed && p.Kind != "az" {
-		return nil, fmt.Errorf("policy %q: closedlist is an az key", s)
 	}
 	if p.Kind == "az" || p.Kind == "prior" {
 		// Validated open: the closed world's belief is loaded later (setBelief).
 		q := *p
 		q.Closed = false
 		if _, err := q.seat(1); err != nil {
-			return nil, fmt.Errorf("policy %q: %w", s, err)
+			return fmt.Errorf("policy %q: %w", label, err)
 		}
 	}
-	return p, nil
+	return nil
 }
 
 // warnedNets are the gonet= paths warnUncheckedNet already warned about.

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"math/rand/v2"
 	"net/http"
@@ -22,6 +21,7 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/cli"
 	"github.com/adams-shaun/gorge/contracts"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
@@ -132,79 +132,138 @@ func refusalReasons() map[string]int {
 	return out
 }
 
-func runPlay(args []string) int {
-	fs := flag.NewFlagSet("play", flag.ExitOnError)
-	cardsDir := fs.String("cards", ".cards", "gorge corpus directory")
-	decksDir := fs.String("decks", "", "pool deck directory (gorge/decks.py)")
-	poolPath := fs.String("pool", "", "pool.tsv (gorge/decks.py)")
-	split := fs.String("split", "eval", "pool split the decks come from: train, eval or all")
-	onlyPath := fs.String("only", "", "optional list of allowed decks (dzgorge coverage -out)")
-	aSpec := fs.String("a", "bot", "policy A (see policy.go)")
-	bSpec := fs.String("b", "bot", "policy B")
-	pairs := fs.Int("pairs", 100, "deck pairs; each is played twice (policies swapped) unless -a == -b or -single")
-	single := fs.Bool("single", false, "play each pair once, A in seat 0")
-	firstPair := fs.Int("first-pair", 0, "index of the first pair (to extend a run with fresh pairs on the same seed)")
-	seed := fs.Uint64("seed", 1, "base seed: the deck pairs and every game's shuffles derive from it")
-	workers := fs.Int("workers", 0, "games in parallel (0 = GOMAXPROCS)")
-	out := fs.String("out", "", "games JSONL (required)")
-	corpus := fs.String("corpus", "", "write every decision an az seat searched as a gzip visit corpus (policytrain -visits-corpus)")
-	maxTurns := fs.Int("max-turns", 100, "turn cap (gorge counts both players' turns); a capped game is a stall")
-	maxIntents := fs.Int("max-intents", 20000, "decision cap per game; a capped game is a stall")
-	// Off by default: gorge's bot answers keep/mulligan with a fixed 1/3 chance of a mulligan,
-	// whatever the hand holds (botpolicy/policy.go), and every seat here delegates that ask to it.
-	// -mull-heuristic (or a seat's :mull key) replaces the coin with a land-count rule.
-	mulligans := fs.Int("mulligans", 0, "London mulligans each player may take (0 skips the round)")
-	mullHeur := fs.Bool("mull-heuristic", false, "every bot, sbtactical, az and prior seat mulligans by land count (the :mull key) unless its spec says :keep7")
-	progress := fs.Int("progress", 0, "print progress every N games (0 = about 20 times)")
-	fs.IntVar(&recordEvery, "record-every", 1, "write one searched decision in K to -corpus (cheap games for the value)")
-	recFeat := fs.String("record-features", "mz", "encoding of the -corpus records: mz, or entity for dzg's networks (dzgorge pack)")
-	fs.IntVar(&remoteConns, "remote-conns", remoteConns, "connections to each remote= network server")
-	fs.IntVar(&remoteBatch, "remote-batch", remoteBatch, "most states in one remote request")
-	fs.DurationVar(&remoteWait, "remote-wait", remoteWait, "how long a remote request waits for more states")
-	fs.IntVar(&remoteCache, "remote-cache", remoteCache, "cached remote evaluations (states)")
-	fs.IntVar(&gonet.CacheSize, "gonet-cache", gonet.CacheSize, "cached gonet= evaluations (states; 0 = none)")
-	fs.IntVar(&gonet.CardCacheSize, "gonet-card-cache", gonet.CardCacheSize, "cached gonet= card vectors (0 = none)")
-	fs.BoolVar(&noPaidManaCensus, "no-paid-mana-census", false, "Config.DisablePaidManaCensus: turn OFF the (default-on) paid-cost mana census (rules/paid_mana_census.go)")
-	fs.BoolVar(&linesOn, "lines", false, "record each seat's first-turns action sequence and instant timing counters (game record field lines; PL-3)")
-	fs.BoolVar(&mmStatsOn, "mm-stats", false, "per seat and game, count priority windows, option-list sizes and the options the paid-mana census adds (game record field mm)")
-	beliefDecks := fs.String("belief-decks", "", "a :closedlist seat's belief corpus: deck directory (default -decks)")
-	beliefPool := fs.String("belief-pool", "", "a :closedlist seat's belief corpus: pool.tsv (default -pool)")
-	beliefSplit := fs.String("belief-split", "train", "a :closedlist seat's belief corpus: the pool split its decks come from")
-	pprofAddr := fs.String("pprof", "", "serve net/http/pprof at this address (e.g. 127.0.0.1:6060); diagnostic only")
-	fs.Parse(args)
+// playOpts are play's flags.
+type playOpts struct {
+	cardsDir, decksDir, poolPath, split, onlyPath string
+	a, b                                          *policyFlag
+	pairs                                         int
+	single                                        bool
+	firstPair                                     int
+	seed                                          uint64
+	workers                                       int
+	out, corpus                                   string
+	maxTurns, maxIntents, mulligans               int
+	mullHeur                                      bool
+	progress                                      int
+	recFeat                                       string
+	beliefDecks, beliefPool, beliefSplit          string
+	pprofAddr                                     string
+}
+
+// Defaults of the package variables play's flags set, captured before any
+// flag can change them (a Flags func may run more than once).
+var (
+	defRemoteConns, defRemoteBatch, defRemoteCache = remoteConns, remoteBatch, remoteCache
+	defRemoteWait                                  = remoteWait
+	defGonetCache, defGonetCardCache               = gonet.CacheSize, gonet.CardCacheSize
+)
+
+func playCommand() *cli.Command {
+	o := &playOpts{}
+	return &cli.Command{
+		Name:  "play",
+		Short: "play deck pairs between policies A and B; one games.jsonl line per game",
+		Long: `Play draws deck pairs from the pool's split and plays policy A against policy B.
+
+With -a != -b each pair is played twice on the same seed, the policies
+swapping seats; with -a == -b (or -single) once. -a and -b take a policy spec
+(az:sims=100:autopay, sbtactical, ...; dzgorge-spec, docs/contracts.md) or,
+from a config file or as a value starting with '{', its object form
+({"kind":"az","sims":100,"autopay":true}).`,
+		ValidArgs: cli.NoArgs,
+		Flags: func(fs *cli.FlagSet) {
+			fs.StringVar(&o.cardsDir, "cards", ".cards", "gorge corpus directory")
+			fs.StringVar(&o.decksDir, "decks", "", "pool deck directory (gorge/decks.py)")
+			fs.StringVar(&o.poolPath, "pool", "", "pool.tsv (gorge/decks.py)")
+			fs.StringVar(&o.split, "split", "eval", "pool split the decks come from: train, eval or all")
+			fs.StringVar(&o.onlyPath, "only", "", "optional list of allowed decks (dzgorge coverage -out)")
+			o.a, o.b = newPolicyFlag("bot"), newPolicyFlag("bot")
+			fs.Var(o.a, "a", "policy A: a spec string or (config) its object form (see policy.go)")
+			fs.Var(o.b, "b", "policy B")
+			fs.IntVar(&o.pairs, "pairs", 100, "deck pairs; each is played twice (policies swapped) unless -a == -b or -single")
+			fs.BoolVar(&o.single, "single", false, "play each pair once, A in seat 0")
+			fs.IntVar(&o.firstPair, "first-pair", 0, "index of the first pair (to extend a run with fresh pairs on the same seed)")
+			fs.Uint64Var(&o.seed, "seed", 1, "base seed: the deck pairs and every game's shuffles derive from it")
+			fs.IntVar(&o.workers, "workers", 0, "games in parallel (0 = GOMAXPROCS)")
+			fs.StringVar(&o.out, "out", "", "games JSONL (required)")
+			fs.StringVar(&o.corpus, "corpus", "", "write every decision an az seat searched as a gzip visit corpus (policytrain -visits-corpus)")
+			fs.IntVar(&o.maxTurns, "max-turns", 100, "turn cap (gorge counts both players' turns); a capped game is a stall")
+			fs.IntVar(&o.maxIntents, "max-intents", 20000, "decision cap per game; a capped game is a stall")
+			// Off by default: gorge's bot answers keep/mulligan with a fixed 1/3 chance of a mulligan,
+			// whatever the hand holds (botpolicy/policy.go), and every seat here delegates that ask to it.
+			// -mull-heuristic (or a seat's :mull key) replaces the coin with a land-count rule.
+			fs.IntVar(&o.mulligans, "mulligans", 0, "London mulligans each player may take (0 skips the round)")
+			fs.BoolVar(&o.mullHeur, "mull-heuristic", false, "every bot, sbtactical, az and prior seat mulligans by land count (the :mull key) unless its spec says :keep7")
+			fs.IntVar(&o.progress, "progress", 0, "print progress every N games (0 = about 20 times)")
+			fs.IntVar(&recordEvery, "record-every", 1, "write one searched decision in K to -corpus (cheap games for the value)")
+			fs.StringVar(&o.recFeat, "record-features", "mz", "encoding of the -corpus records: mz, or entity for dzg's networks (dzgorge pack)")
+			fs.IntVar(&remoteConns, "remote-conns", defRemoteConns, "connections to each remote= network server")
+			fs.IntVar(&remoteBatch, "remote-batch", defRemoteBatch, "most states in one remote request")
+			remoteWait = defRemoteWait
+			fs.Var((*durationFlag)(&remoteWait), "remote-wait", "how long a remote request waits for more states")
+			fs.IntVar(&remoteCache, "remote-cache", defRemoteCache, "cached remote evaluations (states)")
+			fs.IntVar(&gonet.CacheSize, "gonet-cache", defGonetCache, "cached gonet= evaluations (states; 0 = none)")
+			fs.IntVar(&gonet.CardCacheSize, "gonet-card-cache", defGonetCardCache, "cached gonet= card vectors (0 = none)")
+			fs.BoolVar(&noPaidManaCensus, "no-paid-mana-census", false, "Config.DisablePaidManaCensus: turn OFF the (default-on) paid-cost mana census (rules/paid_mana_census.go)")
+			fs.BoolVar(&linesOn, "lines", false, "record each seat's first-turns action sequence and instant timing counters (game record field lines; PL-3)")
+			fs.BoolVar(&mmStatsOn, "mm-stats", false, "per seat and game, count priority windows, option-list sizes and the options the paid-mana census adds (game record field mm)")
+			fs.StringVar(&o.beliefDecks, "belief-decks", "", "a :closedlist seat's belief corpus: deck directory (default -decks)")
+			fs.StringVar(&o.beliefPool, "belief-pool", "", "a :closedlist seat's belief corpus: pool.tsv (default -pool)")
+			fs.StringVar(&o.beliefSplit, "belief-split", "train", "a :closedlist seat's belief corpus: the pool split its decks come from")
+			fs.StringVar(&o.pprofAddr, "pprof", "", "serve net/http/pprof at this address (e.g. 127.0.0.1:6060); diagnostic only")
+		},
+		Run: func(c *cli.Context, args []string) error { return cli.Exit(o.run()) },
+	}
+}
+
+// durationFlag is a time.Duration flag (cli itself never imports time).
+type durationFlag time.Duration
+
+func (d *durationFlag) Set(s string) error {
+	v, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	*d = durationFlag(v)
+	return nil
+}
+func (d *durationFlag) String() string { return time.Duration(*d).String() }
+func (d *durationFlag) Type() string   { return "duration" }
+
+func (o *playOpts) run() int {
 	tuneGC()
-	if *pprofAddr != "" {
+	if o.pprofAddr != "" {
 		runtime.SetBlockProfileRate(1)
 		runtime.SetMutexProfileFraction(1)
 		go func() {
-			if err := http.ListenAndServe(*pprofAddr, nil); err != nil {
+			if err := http.ListenAndServe(o.pprofAddr, nil); err != nil {
 				fmt.Fprintln(os.Stderr, "play: -pprof:", err)
 			}
 		}()
 	}
-	if f, err := policynet.ParseFeatureSet(*recFeat); err != nil || f.Diagnostic() {
-		fmt.Fprintf(os.Stderr, "play: -record-features %q: want mz or entity\n", *recFeat)
+	if f, err := policynet.ParseFeatureSet(o.recFeat); err != nil || f.Diagnostic() {
+		fmt.Fprintf(os.Stderr, "play: -record-features %q: want mz or entity\n", o.recFeat)
 		return 2
 	} else {
 		recordFeatures = f
 	}
-	if *out == "" {
+	if o.out == "" {
 		fmt.Fprintln(os.Stderr, "play: -out is required")
 		return 2
 	}
 	specs := make([]*policySpec, 2)
-	for i, s := range []string{*aSpec, *bSpec} {
-		p, err := parsePolicy(s)
+	for i, f := range []*policyFlag{o.a, o.b} {
+		p, err := f.resolve()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 2
 		}
-		if *mullHeur && p.Mull == botpolicy.MulliganCoin {
+		if o.mullHeur && p.Mull == botpolicy.MulliganCoin {
 			p.Mull = botpolicy.MulliganLands
 		}
 		specs[i] = p
 	}
-	reg, err := cards.SharedCorpus(*cardsDir)
+	reg, err := cards.SharedCorpus(o.cardsDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -213,35 +272,35 @@ func runPlay(args []string) int {
 		p.setLookup(reg)
 	}
 	if specs[0].Closed || specs[1].Closed {
-		bd, bp := *beliefDecks, *beliefPool
+		bd, bp := o.beliefDecks, o.beliefPool
 		if bd == "" {
-			bd = *decksDir
+			bd = o.decksDir
 		}
 		if bp == "" {
-			bp = *poolPath
+			bp = o.poolPath
 		}
-		if *beliefSplit == *split && *split != "train" {
-			fmt.Fprintf(os.Stderr, "play: -belief-split %q is the games' own split: the belief would hold the opponents' real decks\n", *beliefSplit)
+		if o.beliefSplit == o.split && o.split != "train" {
+			fmt.Fprintf(os.Stderr, "play: -belief-split %q is the games' own split: the belief would hold the opponents' real decks\n", o.beliefSplit)
 			return 2
 		}
 		tb := time.Now()
-		b, skipped, err := loadBelief(reg, bd, bp, *beliefSplit)
+		b, skipped, err := loadBelief(reg, bd, bp, o.beliefSplit)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "play:", err)
 			return 1
 		}
-		fmt.Fprintf(os.Stderr, "belief: %d %s decks (%d skipped), %d distinct cards, %.1fs\n", b.Decks(), *beliefSplit, skipped, b.Cards().Len(), time.Since(tb).Seconds())
+		fmt.Fprintf(os.Stderr, "belief: %d %s decks (%d skipped), %d distinct cards, %.1fs\n", b.Decks(), o.beliefSplit, skipped, b.Cards().Len(), time.Since(tb).Seconds())
 		for _, p := range specs {
 			p.setBelief(b)
 		}
 	}
-	pool, err := readPool(*poolPath, *split)
+	pool, err := readPool(o.poolPath, o.split)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	if *onlyPath != "" {
-		raw, err := os.ReadFile(*onlyPath)
+	if o.onlyPath != "" {
+		raw, err := os.ReadFile(o.onlyPath)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
@@ -259,17 +318,17 @@ func runPlay(args []string) int {
 		pool = kept
 	}
 	if len(pool) < 2 {
-		fmt.Fprintf(os.Stderr, "play: %d decks in split %q\n", len(pool), *split)
+		fmt.Fprintf(os.Stderr, "play: %d decks in split %q\n", len(pool), o.split)
 		return 1
 	}
 	legs := 2
-	if *aSpec == *bSpec || *single {
+	if specs[0].Raw == specs[1].Raw || o.single {
 		legs = 1
 	}
 	// Deck pairs and seeds: a pure function of -seed and the pair index.
 	var jobs []job
-	for p := *firstPair; p < *firstPair+*pairs; p++ {
-		r := rand.New(rand.NewPCG(*seed, uint64(p)))
+	for p := o.firstPair; p < o.firstPair+o.pairs; p++ {
+		r := rand.New(rand.NewPCG(o.seed, uint64(p)))
 		i := r.IntN(len(pool))
 		j := r.IntN(len(pool) - 1)
 		if j >= i {
@@ -284,7 +343,7 @@ func runPlay(args []string) int {
 			jobs = append(jobs, jb)
 		}
 	}
-	dc := &deckCache{reg: reg, dir: *decksDir, m: map[string][]*cards.Card{}, names: map[*cards.Card]string{}}
+	dc := &deckCache{reg: reg, dir: o.decksDir, m: map[string][]*cards.Card{}, names: map[*cards.Card]string{}}
 	for _, jb := range jobs {
 		for _, d := range jb.decks {
 			if _, err := dc.get(d); err != nil {
@@ -293,7 +352,7 @@ func runPlay(args []string) int {
 			}
 		}
 	}
-	nw := *workers
+	nw := o.workers
 	if nw <= 0 {
 		nw = runtime.GOMAXPROCS(0)
 	}
@@ -327,7 +386,7 @@ func runPlay(args []string) int {
 			}
 		}
 	}
-	outF, err := os.Create(*out)
+	outF, err := os.Create(o.out)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -335,14 +394,14 @@ func runPlay(args []string) int {
 	defer outF.Close()
 	w := bufio.NewWriter(outF)
 	var corpusF *os.File
-	if *corpus != "" {
-		if corpusF, err = os.Create(*corpus); err != nil {
+	if o.corpus != "" {
+		if corpusF, err = os.Create(o.corpus); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
 		defer corpusF.Close()
 	}
-	every := *progress
+	every := o.progress
 	if every <= 0 {
 		every = max(1, len(jobs)/20)
 	}
@@ -366,7 +425,7 @@ func runPlay(args []string) int {
 		go func() {
 			defer wg.Done()
 			for jb := range ch {
-				rec, member := playOne(jb, specs, dc, reg, *maxTurns, *maxIntents, *mulligans, *corpus != "")
+				rec, member := playOne(jb, specs, dc, reg, o.maxTurns, o.maxIntents, o.mulligans, o.corpus != "")
 				line, _ := json.Marshal(rec)
 				mu.Lock()
 				pending[jb.game] = finished{line, member}
@@ -428,11 +487,11 @@ func runPlay(args []string) int {
 		"gorge":                     buildGorge,
 		"a":                         specs[0].Raw,
 		"b":                         specs[1].Raw,
-		"split":                     *split,
-		"pairs":                     *pairs,
-		"first_pair":                *firstPair,
+		"split":                     o.split,
+		"pairs":                     o.pairs,
+		"first_pair":                o.firstPair,
 		"legs":                      legs,
-		"seed":                      *seed,
+		"seed":                      o.seed,
 		"workers":                   nw,
 		"games":                     tally.done,
 		"a_wins":                    tally.a,
@@ -446,9 +505,9 @@ func runPlay(args []string) int {
 		"games_per_hour_per_worker": float64(tally.done) / el * 3600 / float64(nw),
 		"mean_turns":                float64(tally.turns) / float64(max(1, tally.done)),
 		"visit_records":             tally.visits,
-		"max_turns":                 *maxTurns,
-		"mulligans":                 *mulligans,
-		"mull_heuristic":            *mullHeur,
+		"max_turns":                 o.maxTurns,
+		"mulligans":                 o.mulligans,
+		"mull_heuristic":            o.mullHeur,
 		"a_mulligans_per_game":      float64(tally.mull[0]) / float64(max(1, tally.done)),
 		"b_mulligans_per_game":      float64(tally.mull[1]) / float64(max(1, tally.done)),
 	}
@@ -511,7 +570,7 @@ func runPlay(args []string) int {
 		fmt.Fprintf(os.Stderr, "prio_memo hits=%d misses=%d skips=%d\n", h, m, k)
 	}
 	js, _ := json.MarshalIndent(sum, "", " ")
-	if err := os.WriteFile(*out+".summary.json", js, 0o644); err != nil {
+	if err := os.WriteFile(o.out+".summary.json", js, 0o644); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
