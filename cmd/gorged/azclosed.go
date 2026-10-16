@@ -26,6 +26,7 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/azc4"
 	"github.com/adams-shaun/gorge/bots/azc5"
+	"github.com/adams-shaun/gorge/bots/azc6"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/host/httpapi"
@@ -34,7 +35,7 @@ import (
 )
 
 // closedAZ is one closed-list az policy's flags. config holds one per policy
-// (az4, az5); closedAZs fills in which policy each is, so a hand-built
+// (az4, az5, az6); closedAZs fills in which policy each is, so a hand-built
 // config{} in a test needs only the flag values.
 type closedAZ struct {
 	// policy is the registry key and the flags' prefix ("az-c4").
@@ -48,12 +49,13 @@ type closedAZ struct {
 }
 
 // closedAZs returns every closed-list az policy's flags, in registration
-// (and demo-table) order: az-c4, then az-c5.
+// (and demo-table) order: az-c4, az-c5, then az-c6.
 func (c config) closedAZs() []closedAZ {
-	a4, a5 := c.az4, c.az5
+	a4, a5, a6 := c.az4, c.az5, c.az6
 	a4.policy, a4.register = azc4.Policy, azc4.Enable
 	a5.policy, a5.register = azc5.Policy, azc5.Enable
-	return []closedAZ{a4, a5}
+	a6.policy, a6.register = azc6.Policy, azc6.Enable
+	return []closedAZ{a4, a5, a6}
 }
 
 // closedAZ returns the named closed-list policy's flags.

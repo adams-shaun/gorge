@@ -65,8 +65,7 @@ func (w eventsWiring) hook(o *host.Options) {
 // startEvents builds the eventhost — which resumes every stored event —
 // and points the wiring's relay at it, so the event games' results recorded
 // by host OnMatchEnd reach it. The offered policy set is the server's
-// -bot-policies set minus decklist readers (an Env policy never seats in a
-// draft event), and the default is -bot-policy unless it reads decklists,
+// -bot-policies set filtered by eventPolicies, and the default is -bot-policy unless it reads decklists,
 // else bots.Default. Returns nil when -events is off.
 func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registry, gate *seatGate) (*eventhost.Host, error) {
 	if w.store == nil {
@@ -75,15 +74,7 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 	if gate == nil {
 		return nil, fmt.Errorf("gorged: draft events need a seat gate to mint game tokens")
 	}
-	// A policy with a reserved deck pool (az-c4) plays only those decks, and
-	// an event deals its own, so it is left out too.
-	reserved := c.reservedPolicyNames()
-	policies := make([]string, 0, len(c.botPolicies))
-	for _, p := range c.botPolicies {
-		if !bots.ReadsDecklists(p) && !containsString(reserved, p) {
-			policies = append(policies, p)
-		}
-	}
+	policies := c.eventPolicies()
 	def := c.botPolicy
 	if bots.ReadsDecklists(def) {
 		def = bots.Default
@@ -109,4 +100,21 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 	w.relay.Set(evh.OnMatchEnd)
 	w.series.Set(evh.Series)
 	return evh, nil
+}
+
+// eventPolicies is the policy set draft events offer: -bot-policies minus
+// every decklist reader (an Env policy without closed lists never seats in a
+// draft event). A reserved-pool policy is offered only when it does not read
+// decklists -- the closed-list az policies (az-c4, az-c5, az-c6;
+// bots.Info.ClosedLists): the event deals its own drafted FDN limited decks
+// and the policy plays them, guessing its opponent's list from its belief as
+// at any table. az-c3, a reserved-pool decklist reader, stays out.
+func (c config) eventPolicies() []string {
+	policies := make([]string, 0, len(c.botPolicies))
+	for _, p := range c.botPolicies {
+		if !bots.ReadsDecklists(p) {
+			policies = append(policies, p)
+		}
+	}
+	return policies
 }

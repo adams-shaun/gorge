@@ -51,6 +51,10 @@
       "tier": "bots",
       "status": "EXT"
     },
+    "bots/azc6": {
+      "tier": "bots",
+      "status": "EXT"
+    },
     "bots/azredeal": {
       "tier": "bots",
       "status": "EXT"
@@ -464,6 +468,10 @@
     "internal/searchbench/statespec": {
       "tier": "bots",
       "status": "EXT"
+    },
+    "internal/draftpersona": {
+      "tier": "bots",
+      "status": "EXT (linked into gorged)"
     },
     "internal/searchprobe": {
       "tier": "bots",

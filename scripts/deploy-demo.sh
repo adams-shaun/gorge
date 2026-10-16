@@ -145,6 +145,16 @@ AZ_C5_NET=${AZ_C5_NET-}
 AZ_C5_DECKS=${AZ_C5_DECKS-}
 AZ_C5_BELIEF=${AZ_C5_BELIEF-}
 AZ_C5_BELIEF_POOL=${AZ_C5_BELIEF_POOL-}
+# AZ_C6_NET / AZ_C6_DECKS / AZ_C6_BELIEF (all three or none), and the optional
+# AZ_C6_BELIEF_POOL, serve the az-c6 bot exactly as the AZ_C5 variables serve
+# az-c5: the C6 net (closed-list self-play restarted after the 2026-10-16
+# data loss, trained on 17lands FDN decks), with az-c5's config. AZ_C6_DECKS
+# may share another az policy's directory. It gets its own az-c6 vs az-c6
+# spectator table.
+AZ_C6_NET=${AZ_C6_NET-}
+AZ_C6_DECKS=${AZ_C6_DECKS-}
+AZ_C6_BELIEF=${AZ_C6_BELIEF-}
+AZ_C6_BELIEF_POOL=${AZ_C6_BELIEF_POOL-}
 PUB_PORT=${PUB_PORT:-8080}
 # OMNI_PORT empty (the default) runs no second server.
 OMNI_PORT=${OMNI_PORT-}
@@ -229,7 +239,7 @@ if [ -n "$AZ_C3_NET$AZ_C3_DECKS" ]; then
 	[ -r "$AZ_C3_NET" ] && [ -d "$AZ_C3_DECKS" ] || { echo "deploy-demo: AZ_C3_NET is not a file or AZ_C3_DECKS is not a directory" >&2; exit 1; }
 	AZ_ARGS=(-az-c3-net "$AZ_C3_NET" -az-c3-decks "$AZ_C3_DECKS" -allow-decklist-bots)
 fi
-# closed_az C4 adds the az-c4 flags from the AZ_C4_* variables (C5: az-c5).
+# closed_az C4 adds the az-c4 flags from the AZ_C4_* variables (C5: az-c5, C6: az-c6).
 # No -allow-decklist-bots: the closed-list policies never read a decklist.
 closed_az() {
 	local v=AZ_$1 p
@@ -245,6 +255,7 @@ closed_az() {
 }
 closed_az C4
 closed_az C5
+closed_az C6
 say() { printf 'deploy-demo: %s\n' "$*"; }
 
 # SWEEP=ports (default) stops only the gorged serving the two demo ports —
@@ -429,6 +440,13 @@ if [ -n "$AZ_C5_DECKS" ] && [ "$AZ_C5_DECKS" != "$AZ_C3_DECKS" ] && [ "$AZ_C5_DE
 		-prewarm-art-budget "$ART_FILL_BUDGET" \
 		-prewarm-art-max-consecutive-failures "$ART_FILL_MAX_FAILURES" \
 		-decks "$AZ_C5_DECKS" -art-dir "$ART_DIR" || say "!!! az-c5 art fill incomplete (exit $?); the demo still starts"
+fi
+if [ -n "$AZ_C6_DECKS" ] && [ "$AZ_C6_DECKS" != "$AZ_C3_DECKS" ] && [ "$AZ_C6_DECKS" != "$AZ_C4_DECKS" ] && [ "$AZ_C6_DECKS" != "$AZ_C5_DECKS" ]; then
+	say "filling card-art cache for the az-c6 decks in $AZ_C6_DECKS"
+	${TIMEOUT:+"$TIMEOUT" -k 5s "$ART_FILL_CEILING"} "$BIN" -prewarm-art-only \
+		-prewarm-art-budget "$ART_FILL_BUDGET" \
+		-prewarm-art-max-consecutive-failures "$ART_FILL_MAX_FAILURES" \
+		-decks "$AZ_C6_DECKS" -art-dir "$ART_DIR" || say "!!! az-c6 art fill incomplete (exit $?); the demo still starts"
 fi
 stop_all
 start_one "$PUB_PORT" "$SPECTATOR" "$PUB_DIR" "$PUB_LOG" "$VSBOT_SPECTATOR" ${AZ_ARGS[@]+"${AZ_ARGS[@]}"}

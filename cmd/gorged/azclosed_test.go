@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/azc3"
 	"github.com/adams-shaun/gorge/bots/azc4"
 	"github.com/adams-shaun/gorge/bots/azc5"
+	"github.com/adams-shaun/gorge/bots/azc6"
 	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/host/httpapi"
 	"github.com/adams-shaun/gorge/internal/gonet/gonettest"
@@ -20,9 +21,9 @@ import (
 )
 
 // closedPolicies is every closed-list az policy gorged serves.
-var closedPolicies = []string{azc4.Policy, azc5.Policy}
+var closedPolicies = []string{azc4.Policy, azc5.Policy, azc6.Policy}
 
-var closedAZOnce = map[string]*sync.Once{azc4.Policy: {}, azc5.Policy: {}}
+var closedAZOnce = map[string]*sync.Once{azc4.Policy: {}, azc5.Policy: {}, azc6.Policy: {}}
 
 // withClosedAZ returns c with policy's flags set to a.
 func withClosedAZ(c config, policy string, a closedAZ) config {
@@ -31,6 +32,8 @@ func withClosedAZ(c config, policy string, a closedAZ) config {
 		c.az4 = a
 	case azc5.Policy:
 		c.az5 = a
+	case azc6.Policy:
+		c.az6 = a
 	default:
 		panic(policy)
 	}
@@ -255,7 +258,7 @@ func TestReservedPoliciesShareADeckDirectory(t *testing.T) {
 	if d, err := load("FDN_b"); err != nil || len(d.Cards) != 40 {
 		t.Errorf("load(FDN_b) = %d cards, %v", len(d.Cards), err)
 	}
-	// Draft events never offer a policy with a reserved pool.
+	// The reserved-pool policies (draft events still exclude az-c3, which reads decklists).
 	if got := c.reservedPolicyNames(); !reflect.DeepEqual(got, []string{azc3.Policy, azc4.Policy, azc5.Policy}) {
 		t.Errorf("reserved policies %v", got)
 	}

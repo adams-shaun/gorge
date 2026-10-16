@@ -39,6 +39,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/azc3"
 	"github.com/adams-shaun/gorge/bots/azc4"
 	"github.com/adams-shaun/gorge/bots/azc5"
+	"github.com/adams-shaun/gorge/bots/azc6"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
@@ -62,7 +63,7 @@ var azc4BeliefDecks = []string{
 
 // closedPolicies is every closed-list hosted az policy's Enable: each takes
 // a network and a belief, and they differ only in the network.
-var closedPolicies = map[string]func(string, *searchprobe.Belief) error{azc4.Policy: azc4.Enable, azc5.Policy: azc5.Enable}
+var closedPolicies = map[string]func(string, *searchprobe.Belief) error{azc4.Policy: azc4.Enable, azc5.Policy: azc5.Enable, azc6.Policy: azc6.Enable}
 
 var (
 	closedMu     sync.Mutex
@@ -442,6 +443,7 @@ func TestDecklistGateAtHumanTables(t *testing.T) {
 	enableAZC3(t)
 	enableAZC4(t)
 	enableClosedPolicy(t, azc5.Policy)
+	enableClosedPolicy(t, azc6.Policy)
 	table := func(policy string, humans []int, optIn bool) TableConfig {
 		return TableConfig{ID: "t1", Seats: 2, Decks: []string{"a", "b"}, Seed: 1, Spectator: view.Public,
 			Humans: humans, BotPolicy: policy, AutoMana: true, BotAutoPayMana: true, AllowDecklistBots: optIn}
@@ -462,7 +464,7 @@ func TestDecklistGateAtHumanTables(t *testing.T) {
 			r.Close()
 		}
 	}
-	for _, policy := range []string{azc4.Policy, azc5.Policy} {
+	for _, policy := range []string{azc4.Policy, azc5.Policy, azc6.Policy} {
 		if bots.ReadsDecklists(policy) {
 			t.Fatalf("%s reads decklists", policy)
 		}
@@ -484,7 +486,7 @@ func TestDecklistGateAtHumanTables(t *testing.T) {
 // in through Options.Seats) crashes at match start, before the seat is asked
 // anything.
 func TestClosedListGuardRefusesAnOpenSeatAtAHumanTable(t *testing.T) {
-	for _, policy := range []string{azc4.Policy, azc5.Policy} {
+	for _, policy := range []string{azc4.Policy, azc5.Policy, azc6.Policy} {
 		t.Run(policy, func(t *testing.T) { openSeatGuardRow(t, policy) })
 	}
 }

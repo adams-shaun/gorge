@@ -23,6 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/azc3"
 	"github.com/adams-shaun/gorge/bots/azc4"
 	"github.com/adams-shaun/gorge/bots/azc5"
+	"github.com/adams-shaun/gorge/bots/azc6"
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/deck"
 	"github.com/adams-shaun/gorge/eventhost"
@@ -148,8 +149,8 @@ type config struct {
 	// closed-list search guesses the opponent's list from. Neither ever
 	// reads an opponent's decklist, so both are offered against humans and
 	// need no -allow-decklist-bots.
-	az4, az5    closedAZ
-	policyPools map[string][]string
+	az4, az5, az6 closedAZ
+	policyPools   map[string][]string
 	// allowDecklistBots is the -allow-decklist-bots flag (azc3.go): the
 	// operator's explicit opt-in that lets the server's own BOT-ONLY tables
 	// run a policy that reads every seat's real decklist (bots.Info.Env).
@@ -366,6 +367,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.StringVar(&c.az3Decks, "az-c3-decks", "", "directory of the decks az-c3 may play: the FDN limited decks it was trained on. They are reserved for it, and it plays nothing else")
 	c.az4.registerFlags(fs, azc4.Policy, "its .dzgw network")
 	c.az5.registerFlags(fs, azc5.Policy, "its .dzgw network (the C5 net, trained after the payment-plan fixes)")
+	c.az6.registerFlags(fs, azc6.Policy, "its .dzgw network (the C6 net, closed-list self-play restarted after the 2026-10-16 data loss)")
 	fs.BoolVar(&c.allowDecklistBots, "allow-decklist-bots", false, "let the server's own bot-only tables run a bot policy that reads every seat's real decklist (today only the az-c3 demo table, which needs it before -az-c3-net is accepted); such a policy never seats against a human")
 	fs.BoolVar(&c.manabrew, "manabrew", false, "mount the ManaBrew protocol adapter (host/manabrewhttp) on the main listener; requires -humans or -vsbot")
 	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew; refuses :8080/:8081)")
