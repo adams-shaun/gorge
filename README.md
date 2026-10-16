@@ -437,10 +437,27 @@ pass the agent spec's kill criteria (§12.3):
   `docs/superpowers/reports/`: the command, the seeds, the game count, and the
   CI against a same-seed control.
 
+## Stability
+
+gorge is pre-1.0. Releases are `v0.x.y` tags. Only the packages listed in
+[`.github/stable-packages.txt`](.github/stable-packages.txt) promise a stable
+Go API. They are currently `decision` and `draftlab/extern/wire`, and CI
+checks them with `apidiff` against the newest tag. While in v0, a break in one
+of them bumps the minor version. Every other package can change in any
+release. Wire and file formats that other programs read are versioned
+separately: each contract has its own major version in
+`contracts/registry.json`. See [docs/releasing.md](docs/releasing.md).
+
 ## Contributing
 
-Start with [`docs/agents/`](docs/agents/README.md), written for coding agents
-and humans alike:
+Outside contributors should start with [CONTRIBUTING.md](CONTRIBUTING.md).
+It covers the fork-and-PR flow, what CI runs and how to reproduce it, and the
+hard rules. The [contracts](docs/contracts.md) and the
+[versioning policy](docs/releasing.md) govern changes to public formats and
+APIs. Record user-visible changes in [CHANGELOG.md](CHANGELOG.md).
+
+The engine's internals are documented in [`docs/agents/`](docs/agents/README.md),
+written for coding agents and humans alike:
 
 - [repo-map.md](docs/agents/repo-map.md) (the index, with per-domain files)
   says what lives where, including the `internal/` packages and `cmd/` tools

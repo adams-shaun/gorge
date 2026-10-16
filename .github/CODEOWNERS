@@ -1,0 +1,13 @@
+# Code owners: a PR touching these paths requests review from the listed owner.
+# The last matching pattern wins, so the explicit lines below must come after
+# the default.
+* @adams-shaun
+
+# Public contracts and the stability policy that governs them.
+/contracts/ @adams-shaun
+/docs/contracts.md @adams-shaun
+/docs/releasing.md @adams-shaun
+/CHANGELOG.md @adams-shaun
+
+# CI, the stable-package list and these ownership rules.
+/.github/ @adams-shaun
