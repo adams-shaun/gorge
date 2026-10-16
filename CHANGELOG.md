@@ -28,6 +28,20 @@ major version.
   package must stay API-compatible with the newest release tag unless the PR
   is labelled `breaking-change`.
 
+- Package `cli`, a stdlib-only cobra/viper-style command layer: subcommands,
+  GNU flags that still accept Go `flag` single-dash spellings,
+  `GORGE_<CMD>_<FLAG>` environment variables, a JSON `--config` file and
+  `--print-config`. Precedence is flag > env > config > default. See
+  `docs/cli.md` (#9).
+
+### Changed
+
+- `dzgorge` is built on `cli`. Every flag keeps its name and default, and
+  existing `-flag value` invocations are unchanged. New: `dzgorge help`,
+  `--help`, `GORGE_DZGORGE_<CMD>_<FLAG>`, `--config` and `--print-config`.
+  A stray positional argument is now an error (exit 2); it used to be
+  ignored silently (#9).
+
 ### Fixed
 
 - CR 113.6: a card's own `MayPlay$` static now functions only on the
@@ -53,6 +67,11 @@ major version.
   the field loads with a warning.
 - dzgorge-spec 1: a flag-style policy key given a value (`autopay=0`) is an
   error. It used to enable the flag silently.
+- dzgorge-spec 1 (additive): `play -a/-b` accept a policy as a JSON object
+  (`{"kind":"az","sims":200,"autopay":true}`), in a config file or as a
+  `{...}` flag value. Paths may contain `:` in this form (#9).
+- dzgorge-config 1 (new): the `dzgorge --config` file, tagged
+  `"$schema": "dzgorge-config-1"` (#9).
 
 ### Breaking
 
