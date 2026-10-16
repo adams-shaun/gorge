@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/eventhost"
 	"github.com/adams-shaun/gorge/host"
 	"github.com/adams-shaun/gorge/host/httpapi"
+	"github.com/adams-shaun/gorge/internal/draftpersona"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -75,6 +76,10 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 		return nil, fmt.Errorf("gorged: draft events need a seat gate to mint game tokens")
 	}
 	policies := c.eventPolicies()
+	drafter, err := draftpersona.Register(c.eventDrafter)
+	if err != nil {
+		return nil, fmt.Errorf("-event-drafter: %w", err)
+	}
 	def := c.botPolicy
 	if bots.ReadsDecklists(def) {
 		def = bots.Default
@@ -85,6 +90,7 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 		Cards:          reg,
 		Policies:       policies,
 		DefaultPolicy:  def,
+		DefaultDrafter: drafter,
 		MaxLiveEvents:  c.maxEvents,
 		Mulligans:      c.mulligans,
 		AutoMana:       c.autoMana,

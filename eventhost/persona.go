@@ -19,24 +19,19 @@ type (
 	pickbotBuilder = pickbot.Builder
 )
 
-// newPersona builds one fresh drafter/builder pair for a named persona.
-// Only the concrete v1 types the registry ships are supported: the pair is
-// rebuilt with the caller's Lookup so no persona ever shares a card-facts
-// closure with the registry's zero values.
+// newPersona builds one fresh drafter/builder pair for a named persona
+// through the registry's constructors, with the caller's Lookup injected so
+// no persona shares a card-facts closure with another. Any registered pair
+// is accepted: the stock rating-colour/best23, or a trained drafter a
+// server registered at startup (cmd/gorged -event-drafter). Every pickbot
+// Drafter answers from the seat's own PickView alone.
 func (h *Host) newPersona(name string, lookup pickbotCardLookup) (pickbotDrafter, pickbotBuilder, error) {
-	d, b, ok := pickbot.Lookup(name)
+	d, b, ok := pickbot.New(name, lookup)
 	if !ok {
 		return nil, nil, fmt.Errorf("unknown pickbot persona %q (known: %s)", name, strings.Join(pickbot.Names(), ", "))
 	}
-	switch d.(type) {
-	case *pickbot.RatingColour:
-	default:
-		return nil, nil, fmt.Errorf("persona %q drafts with unsupported type %T", name, d)
+	if d == nil || b == nil {
+		return nil, nil, fmt.Errorf("persona %q has no drafter or builder", name)
 	}
-	switch b.(type) {
-	case *pickbot.Best23:
-	default:
-		return nil, nil, fmt.Errorf("persona %q builds with unsupported type %T", name, b)
-	}
-	return &pickbot.RatingColour{Lookup: lookup}, &pickbot.Best23{Lookup: lookup}, nil
+	return d, b, nil
 }

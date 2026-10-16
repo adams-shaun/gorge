@@ -30,6 +30,12 @@ type Options struct {
 	Cards          *cards.Registry
 	Policies       []string // bot game policies offered; empty = every non-Env policy
 	DefaultPolicy  string   // "" = bots.Default
+	// DefaultDrafter is the pickbot persona a bot seat drafts with when
+	// its create request names none, and the one a lobby fill gives the
+	// seats it converts; "" = "rating-colour". It must be registered
+	// (pickbot.Register) before New. A drafter reads only its own seat's
+	// PickView (the pod hands it nothing else).
+	DefaultDrafter string
 	MaxHumans      int      // 0 = 4 (E3-5)
 	MaxLiveEvents  int      // 0 = 4
 	MaxAttempts    int      // 0 = 3 (E1-5 uses this)
@@ -246,6 +252,13 @@ func (r *run) prepare(lookup pickbotCardLookup) error {
 			persona = "rating-colour"
 		}
 		d, b, err := r.h.newPersona(persona, lookup)
+		if err != nil && ms.Kind == "bot" && persona != "rating-colour" {
+			// A stored persona this server no longer registers (an
+			// -event-drafter flag dropped across a restart): the seat
+			// keeps drafting, with the stock persona, instead of halting
+			// the event. Logged picks are replayed, not re-asked.
+			d, b, err = r.h.newPersona("rating-colour", lookup)
+		}
 		if err != nil {
 			return fmt.Errorf("seat %d: %w", s, err)
 		}
@@ -404,7 +417,7 @@ func (h *Host) CreateEvent(req protocol.CreateEventRequest) (protocol.CreateEven
 			}
 			drafter := cs.Drafter
 			if drafter == "" {
-				drafter = "rating-colour"
+				drafter = h.defaultDrafter()
 			}
 			if _, _, err := h.newPersona(drafter, h.lookup()); err != nil {
 				h.mu.Unlock()
@@ -492,6 +505,14 @@ func (h *Host) liveID() func(string) bool {
 		_, ok := h.events[id]
 		return ok
 	}
+}
+
+// defaultDrafter is Options.DefaultDrafter, else "rating-colour".
+func (h *Host) defaultDrafter() string {
+	if h.opts.DefaultDrafter != "" {
+		return h.opts.DefaultDrafter
+	}
+	return "rating-colour"
 }
 
 func (h *Host) maxHumans() int {

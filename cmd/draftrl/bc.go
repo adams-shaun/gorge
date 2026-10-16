@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -50,6 +51,7 @@ type bcOpts struct {
 	workers                int
 	jsonl                  bool
 	dumpInputs             int
+	inputsBin              bool
 	out                    string
 }
 
@@ -112,6 +114,7 @@ func parseBC(args []string) (bcOpts, error) {
 	fs.StringVar(&o.table, "table", "", "draftfeat SetTable JSON; empty = rollout's stand-in (facts + z-scored teacher ratings)")
 	fs.IntVar(&o.workers, "workers", 4, "pods drafted at once (records are written in pod order)")
 	fs.BoolVar(&o.jsonl, "jsonl", false, "also write picks.jsonl (large)")
+	fs.BoolVar(&o.inputsBin, "inputs-bin", false, "write every pick's draftnet.Inputs (Go's Fill; card facts by table index) and the teacher's scores to inputs.bin, the trainer's compact input (see writeBCInputsBin)")
 	fs.IntVar(&o.dumpInputs, "dump-inputs", 0, "write the first N picks' draftnet.Inputs (Go's Fill) to inputs.jsonl, for the trainer's parity check")
 	fs.StringVar(&o.out, "out", "", "output directory (required)")
 	if err := fs.Parse(args); err != nil {
@@ -177,6 +180,7 @@ type teacherScored struct {
 
 	dump  *[]bcInputs
 	limit int
+	bin   *[]byte
 	table *draftfeat.SetTable
 	ex    draftfeat.Extractor
 	in    draftnet.Inputs
@@ -191,10 +195,16 @@ func (d *teacherScored) Pick(v pickbot.PickView, r *rand.Rand) string {
 	for _, x := range d.scores {
 		d.last = append(d.last, float32(x))
 	}
-	if d.dump != nil && len(*d.dump) < d.limit {
+	wantDump := d.dump != nil && len(*d.dump) < d.limit
+	if wantDump || d.bin != nil {
 		f := d.ex.Extract(v, d.table)
 		d.in.Fill(&f, v, d.table)
-		*d.dump = append(*d.dump, newBCInputs(d.pod, d.seat, d.n, &d.in))
+		if wantDump {
+			*d.dump = append(*d.dump, newBCInputs(d.pod, d.seat, d.n, &d.in))
+		}
+		if d.bin != nil {
+			*d.bin = appendBCInputsBin(*d.bin, &d.in, d.last)
+		}
 	}
 	d.n++
 	return d.inner.Pick(v, r)
@@ -288,11 +298,59 @@ func newBCInputs(pod, seat, pick int, in *draftnet.Inputs) bcInputs {
 	return b
 }
 
+// appendBCInputsBin appends one inputs.bin record (little-endian):
+//
+//	i32 nSeat, i32 nPool, i32 nCand,
+//	CtxDim × f32 ctx,
+//	nSeat × (i32 offset, SeatDim × f32),
+//	nPool × (i32 table index, i32 pick ordinal),
+//	nCand × (i32 table index, CandDim × f32),
+//	nCand × f32 teacher score (v.Pack order; the BC target's logits)
+//
+// Card facts are not repeated: they are a pure function of the table row
+// (draftnet fillCard), which the trainer rebuilds from table.json.
+func appendBCInputsBin(b []byte, in *draftnet.Inputs, scores []float32) []byte {
+	i32 := func(x int32) { b = binary.LittleEndian.AppendUint32(b, uint32(x)) }
+	f32 := func(x float32) { b = binary.LittleEndian.AppendUint32(b, math.Float32bits(x)) }
+	nc := len(in.Cand)
+	i32(int32(in.NSeat))
+	i32(int32(len(in.Pool)))
+	i32(int32(nc))
+	for _, x := range in.Ctx {
+		f32(x)
+	}
+	for j := 0; j < in.NSeat; j++ {
+		i32(int32(in.SeatOff[j]))
+		for _, x := range in.Seat[j] {
+			f32(x)
+		}
+	}
+	for _, p := range in.Pool {
+		i32(p.Emb)
+		i32(p.Pick)
+	}
+	for _, c := range in.Cand {
+		i32(c.Emb)
+		for _, x := range c.Feat {
+			f32(x)
+		}
+	}
+	for j := 0; j < nc; j++ {
+		var x float32
+		if j < len(scores) {
+			x = scores[j]
+		}
+		f32(x)
+	}
+	return b
+}
+
 // bcPod is one drafted pod's records.
 type bcPod struct {
 	picks  []pickRec
 	seats  []seatRec
 	inputs []bcInputs
+	bin    []byte
 	err    error
 }
 
@@ -375,6 +433,7 @@ func bc(args []string, out io.Writer) (*bcResult, error) {
 		kinds := bcSeats(o, podSeed)
 		var podPicks [4][]pickRec
 		var inputs []bcInputs
+		var bin []byte
 		drafters := make([]draftlab.NamedDrafter, 4)
 		for s := range drafters {
 			teacher, err := newRC(-1, tov)
@@ -410,6 +469,9 @@ func bc(args []string, out io.Writer) (*bcResult, error) {
 			if p == 0 && o.dumpInputs > 0 {
 				ts.dump, ts.limit = &inputs, o.dumpInputs
 			}
+			if o.inputsBin {
+				ts.bin = &bin
+			}
 			drafters[s] = draftlab.NamedDrafter{
 				Ref: draftlab.AgentRef{Name: "bc-" + strings.ReplaceAll(names[kinds[s]], ":", "-")},
 				Drafter: &recordingDrafter{inner: ts, table: table, pod: p, seat: s, podSeed: podSeed,
@@ -420,7 +482,7 @@ func bc(args []string, out io.Writer) (*bcResult, error) {
 		if err != nil {
 			return bcPod{err: fmt.Errorf("pod seed %d: %w", podSeed, err)}
 		}
-		res := bcPod{inputs: inputs}
+		res := bcPod{inputs: inputs, bin: bin}
 		for s := 0; s < 4; s++ {
 			res.picks = append(res.picks, podPicks[s]...)
 		}
@@ -494,7 +556,7 @@ func bc(args []string, out io.Writer) (*bcResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	var jsonS, inS *sink
+	var jsonS, inS, ibS *sink
 	files := []string{"picks.bin", "seats.jsonl"}
 	if o.jsonl {
 		if jsonS, err = open("picks.jsonl"); err != nil {
@@ -507,6 +569,12 @@ func bc(args []string, out io.Writer) (*bcResult, error) {
 			return nil, err
 		}
 		files = append(files, "inputs.jsonl")
+	}
+	if o.inputsBin {
+		if ibS, err = open("inputs.bin"); err != nil {
+			return nil, err
+		}
+		files = append(files, "inputs.bin")
 	}
 	// picks.bin: the header once, then each pod's records in pod order.
 	if err := writePicksBin(binS.w, table.Hash(), names, nil); err != nil {
@@ -584,13 +652,18 @@ func bc(args []string, out io.Writer) (*bcResult, error) {
 				}
 			}
 		}
+		if ibS != nil {
+			if _, err := ibS.w.Write(r.bin); err != nil {
+				firstErr = err
+			}
+		}
 		if time.Since(lastLog) > 30*time.Second {
 			lastLog = time.Now()
 			fmt.Fprintf(out, "bc: %d/%d pods, %.1f pods/s\n", p+1, o.pods, float64(p+1)/time.Since(start).Seconds())
 		}
 	}
 	wg.Wait()
-	if err := closeAll(binS, seatS, jsonS, inS); err != nil && firstErr == nil {
+	if err := closeAll(binS, seatS, jsonS, inS, ibS); err != nil && firstErr == nil {
 		firstErr = err
 	}
 	if firstErr != nil {

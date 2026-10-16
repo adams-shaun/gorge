@@ -473,6 +473,10 @@
       "tier": "bots",
       "status": "EXT (linked into gorged)"
     },
+    "internal/draftpersona/personatest": {
+      "tier": "bots",
+      "status": "SUPP (test helper)"
+    },
     "internal/searchprobe": {
       "tier": "bots",
       "status": "EXT (linked into host)"

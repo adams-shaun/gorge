@@ -240,6 +240,9 @@ type config struct {
 	// COMPLETE the server serves at once. A new event past the bound is
 	// refused 409 capacity, never queued.
 	maxEvents int
+	// eventDrafter is the -event-drafter flag: the pickbot persona spec
+	// draft-event bot seats draft with (internal/draftpersona).
+	eventDrafter string
 }
 
 func main() {
@@ -374,6 +377,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.DurationVar(&c.manabrewThink, "manabrew-think", 0, "override the human-seat think timeout while -manabrew is on (0 = inherit the server default)")
 	fs.BoolVar(&c.events, "events", false, "host 4-seat draft events under /api/events (eventhost; persistence under <dir>/events)")
 	fs.IntVar(&c.maxEvents, "max-events", 4, "maximum draft events not yet COMPLETE")
+	fs.StringVar(&c.eventDrafter, "event-drafter", "rating-colour", "with -events: what draft-event bot seats draft with: rating-colour (17Lands ratings) | net:WEIGHTS.dpkw[@TABLE.json] (a trained draft-RL policy net; table.json beside the weights by default) | ovr:VALUES.json#FIELD (rating-colour on a cardval value table). A trained drafter reads only its own seat's pick view, and drafts rating-colour on sets it was not trained on")
 	return fs, c
 }
 
