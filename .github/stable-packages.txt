@@ -1,0 +1,7 @@
+# Stable Go packages: one import path per line, relative to the module root
+# (github.com/adams-shaun/gorge). Their exported API is held to semver by
+# scripts/apidiff.sh (CI job `apidiff` in .github/workflows/contracts.yml)
+# against the newest v* tag. Every other package is unstable.
+# Adding or removing a line is a policy change: see docs/releasing.md.
+decision
+draftlab/extern/wire

@@ -1,0 +1,70 @@
+# Contract and API-stability gate (docs/releasing.md).
+#
+# changelog: a PR that touches a wire/file contract (contracts/registry.json or
+#   docs/contracts.md) must also change CHANGELOG.md.
+# apidiff: every package in .github/stable-packages.txt is compared against the
+#   newest v* release tag by scripts/apidiff.sh. An incompatible change fails a
+#   PR unless the PR carries the `breaking-change` label. On a push to main the
+#   result is informational only: the PR gate already ran, and a break stays
+#   visible until the next release tag moves the baseline.
+#
+# GitHub-hosted runners only; nothing here needs a token beyond read access.
+name: contracts
+
+on:
+  pull_request:
+    branches: [main, dev]
+    # labeled/unlabeled so adding `breaking-change` re-runs the gate.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changelog:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The PR merge commit and its first parent (the base tip).
+          fetch-depth: 2
+      - name: A contract change carries a CHANGELOG entry
+        run: |
+          changed=$(git diff --name-only HEAD^1 HEAD)
+          echo "changed files:"; echo "$changed" | sed 's/^/  /'
+          if echo "$changed" | grep -qxE 'contracts/registry\.json|docs/contracts\.md'; then
+            if echo "$changed" | grep -qx 'CHANGELOG.md'; then
+              echo "contract change with a CHANGELOG.md entry: OK"
+            else
+              echo "::error::this PR changes a contract (contracts/registry.json or docs/contracts.md) but not CHANGELOG.md; add an entry under [Unreleased] ### Contracts"
+              exit 1
+            fi
+          else
+            echo "no contract change"
+          fi
+
+  apidiff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the release tags and the commits they name
+      - name: Fetch tags
+        run: git fetch --tags --force --quiet origin
+      - uses: actions/setup-go@v5
+        with:
+          # golang.org/x/exp (apidiff) declares go 1.26; the 1.26 toolchain
+          # builds this go 1.25.8 module unchanged.
+          go-version: '1.26.x'
+          cache: false
+      - name: Stable package API vs the newest release tag
+        env:
+          BREAKING_OK: ${{ (github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'breaking-change')) && '1' || '0' }}
+        run: bash scripts/apidiff.sh
