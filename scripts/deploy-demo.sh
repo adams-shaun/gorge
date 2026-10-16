@@ -256,6 +256,11 @@ closed_az() {
 closed_az C4
 closed_az C5
 closed_az C6
+# EVENT_DRAFTER (default rating-colour) is what draft-event bot seats draft
+# with: net:WEIGHTS.dpkw[@TABLE.json] or ovr:VALUES.json#FIELD (gorged
+# -event-drafter, internal/draftpersona).
+EVENT_DRAFTER=${EVENT_DRAFTER:-rating-colour}
+AZ_ARGS+=(-event-drafter "$EVENT_DRAFTER")
 say() { printf 'deploy-demo: %s\n' "$*"; }
 
 # SWEEP=ports (default) stops only the gorged serving the two demo ports —
