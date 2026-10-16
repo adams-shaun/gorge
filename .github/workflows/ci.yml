@@ -14,12 +14,16 @@
 #
 # Fork PRs get a read-only token and no secrets; nothing here needs either.
 #
-# Runner: pull_request jobs ALWAYS run on GitHub-hosted runners. Push, schedule
-# and dispatch jobs run on the operator's ephemeral k8s runners (label
-# gorge-box, bm-infra docs/gh-runner.md) when the repository variable
-# CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
-# approval policy is all_external_contributors, so a fork cannot retarget a
-# job onto gorge-box without the owner approving that run.
+# Runners are split between GitHub-hosted machines and the operator's ephemeral
+# k8s runners (label gorge-box, bm-infra docs/gh-runner.md). With the repository
+# variable CI_SELF_HOSTED set to 'true', the test shards listed in
+# CI_LOCAL_SHARDS (comma-separated, default "0,3": the two slowest) run on
+# gorge-box and every other job runs GitHub-hosted, so both pools work in
+# parallel. Only code from this repository runs on gorge-box: pushes, schedule,
+# dispatch, and pull requests whose head branch lives in this repository. A fork's
+# pull request always runs GitHub-hosted, and the fork-PR approval policy is
+# all_external_contributors, so a fork cannot retarget a job onto gorge-box
+# without the owner approving that run.
 # Caches are SAVED only on pushes to main/dev and the schedule, so a PR can read
 # the base branch's cache but never write one.
 name: ci
@@ -46,7 +50,7 @@ env:
 
 jobs:
   lint:
-    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -75,7 +79,7 @@ jobs:
           key: gocache-lint-${{ github.sha }}
 
   test:
-    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && contains(format(',{0},', vars.CI_LOCAL_SHARDS || '0,3'), format(',{0},', matrix.shard)) && 'gorge-box' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
