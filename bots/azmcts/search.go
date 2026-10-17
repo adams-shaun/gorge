@@ -119,6 +119,8 @@ func (o Options) Validate(net *policynet.Model) error {
 	case o.PriorTopK < 0 || o.PriorTopK == 1:
 		// One kept candidate is the bot's alone: nothing would be searched.
 		return fmt.Errorf("azmcts: prior top-k %d must be 0 (off) or >= 2", o.PriorTopK)
+	case o.PriorRankMaxOptions < 0:
+		return fmt.Errorf("azmcts: prior rank max options %d must be >= 0 (0 is off)", o.PriorRankMaxOptions)
 	case !o.Kinds.any():
 		return errors.New("azmcts: no searched decision kinds")
 	case o.OpponentMirror && !o.OpponentNodes:
@@ -230,7 +232,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	}
 	// The prior comes before the Result's candidate lists: under PriorTopK
 	// it decides which candidates they hold.
-	cands, prior, fell, before := rankedPrior(priorNet, topK, root.Engine, root.Decision, root.Bot, kind, cands, &views.prior)
+	cands, prior, fell, before := rankedPrior(priorNet, topK, opts.PriorRankMaxOptions, root.Engine, root.Decision, root.Bot, kind, cands, &views.prior)
 	if fell {
 		res.Stats.PriorFallbacks++
 	}
@@ -261,7 +263,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	}
 	rootPt := &Point{Keys: res.Keys, Prior: treePrior}
 	cfg := &walkConfig{
-		net: net, heuristicLeaf: opts.HeuristicLeaf, kinds: kinds, limit: opts.Limit, priorTopK: topK, maxSteps: opts.MaxSteps,
+		net: net, heuristicLeaf: opts.HeuristicLeaf, kinds: kinds, limit: opts.Limit, priorTopK: topK, rankMax: opts.PriorRankMaxOptions, maxSteps: opts.MaxSteps,
 		envSeed: splitmix(opts.Seed ^ 0x656e762d73656564), actor: root.Decision.Player, autoPayment: opts.AutoPayment, skipPass: opts.SkipPass,
 		uniformPrior: opts.UniformPrior, rootPerWorld: opts.RootPerWorld,
 		nameKeys: opts.NameKeys, rootRefs: root.Observer.Introduced(),

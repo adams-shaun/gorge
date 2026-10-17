@@ -403,7 +403,7 @@ func oppWalk(t *testing.T, r measureRoot, net *policynet.Model, k int, autoPay, 
 	if !ok {
 		t.Fatalf("%s: no candidates", r.name)
 	}
-	cands, prior, _, _ := rankedPrior(net, k, r.e, r.d, r.bot, kind, full, nil)
+	cands, prior, _, _ := rankedPrior(net, k, 0, r.e, r.d, r.bot, kind, full, nil)
 	var st Stats
 	limit := DefaultOptions().Limit
 	cfg := &walkConfig{

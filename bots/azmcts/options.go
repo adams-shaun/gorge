@@ -155,6 +155,15 @@ type Options struct {
 	// prior falls back to uniform (priorsWith). 0 is off; without a network
 	// prior it does nothing. Stats.PriorTopK* count it.
 	PriorTopK int
+	// PriorRankMaxOptions, when > 0, skips PriorTopK's network ranking at a
+	// point whose decision has more options than this: the point keeps the
+	// bot's answer and the enumeration's next PriorTopK-1 candidates under a
+	// uniform prior, as with no network, counted in Stats.PriorFallbacks.
+	// The ranking encodes every option at every simulation that reaches the
+	// point; a decision with hundreds of options (seen: 388) then costs
+	// minutes per searched move and can hold a game for hours. 0 (the
+	// default) ranks every decision; it does nothing without PriorTopK.
+	PriorRankMaxOptions int
 
 	// AbsoluteUnvisitedQ replaces first-play urgency: an unvisited child's Q
 	// is the constant UnvisitedQ instead of its parent's Q minus FPU. The
