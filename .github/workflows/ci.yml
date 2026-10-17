@@ -1,5 +1,5 @@
 # CI gate for pull requests (from this repo's branches and from forks) and for
-# pushes to main and dev.
+# pushes to main and develop.
 #
 # Affected packages only, by Go's own cache: GOCACHE holds both the build cache
 # and the test-result cache, and it is restored from the newest run on the base
@@ -20,15 +20,15 @@
 # CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
 # approval policy is all_external_contributors, so a fork cannot retarget a
 # job onto gorge-box without the owner approving that run.
-# Caches are SAVED only on pushes to main/dev and the schedule, so a PR can read
+# Caches are SAVED only on pushes to main/develop and the schedule, so a PR can read
 # the base branch's cache but never write one.
 name: ci
 
 on:
   pull_request:
-    branches: [main, dev]
+    branches: [main, develop]
   push:
-    branches: [main, dev]
+    branches: [main, develop]
   schedule:
     - cron: '41 8 * * *'
   workflow_dispatch:
