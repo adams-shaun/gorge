@@ -23,6 +23,13 @@ type SeatConfig struct {
 	// Search are the per-decision knobs; Seed, Noise and Sample are set per
 	// decision by the seat and ignored here.
 	Search Options
+	// SimsByKind, when set, overrides Search.Sims at a decision of a listed
+	// kind: a per-kind simulation budget, e.g. more for casting (priority)
+	// and fewer for blocks. An entry of 0, and every kind not listed, uses
+	// Search.Sims; Search.Sims <= 0 still turns the search off. Keys are
+	// decision.Kinds members and entries >= 0 (NewSeat refuses others). Only
+	// looked up, never ranged.
+	SimsByKind map[decision.Kind]int
 	// Explore is generation mode (ticket 3's azgen): Dirichlet noise at every
 	// searched root, and moves sampled proportional to visits while the game
 	// turn is <= ExploreTurns (spec §2: turns 1-4). Eval leaves it false:
@@ -156,6 +163,9 @@ func newSeat(seed uint64, net *policynet.Model, cfg SeatConfig) (*Seat, error) {
 	if err := cfg.Search.Validate(net); err != nil {
 		return nil, err
 	}
+	if err := cfg.validateSimsByKind(); err != nil {
+		return nil, err
+	}
 	switch cfg.World {
 	case WorldRedeal:
 	case WorldRedealClosed:
@@ -178,6 +188,27 @@ func newSeat(seed uint64, net *policynet.Model, cfg SeatConfig) (*Seat, error) {
 		def = def.EnableAutoPayMana()
 	}
 	return &Seat{def: def, seed: seed, net: net, cfg: cfg}, nil
+}
+
+// validateSimsByKind refuses a SimsByKind entry that is negative or keyed by
+// a kind outside decision.Kinds. It walks decision.Kinds in order, never the
+// map, so the error it names is deterministic.
+func (c *SeatConfig) validateSimsByKind() error {
+	known := 0
+	for _, k := range decision.Kinds {
+		n, ok := c.SimsByKind[k]
+		if !ok {
+			continue
+		}
+		known++
+		if n < 0 {
+			return fmt.Errorf("azmcts: SimsByKind[%s] %d must be >= 0 (0 uses Search.Sims)", k, n)
+		}
+	}
+	if known != len(c.SimsByKind) {
+		return errors.New("azmcts: SimsByKind has a key outside decision.Kinds")
+	}
+	return nil
 }
 
 // Decide is the plain Seat half: the wrapped bot.
@@ -230,6 +261,9 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 	}
 	obs := searchprobe.NewCollector(d.Player)
 	opts := s.cfg.Search
+	if n := s.cfg.SimsByKind[d.Kind]; n > 0 {
+		opts.Sims = n
+	}
 	opts.Seed = DecisionSeed(s.seed, d.Seq)
 	var src WorldSource
 	var redeal *RedealSource
