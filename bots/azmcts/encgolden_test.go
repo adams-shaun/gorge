@@ -120,7 +120,7 @@ func encGoldenLines(t *testing.T, net *policynet.Model) []string {
 					}
 					var pv2 view.View
 					p0, fell0 := priors(net, e, d, in, kind, cands, &pv2)
-					kept, p1, fell1, before := rankedPrior(net, 6, e, d, in, kind, cands, &pv2)
+					kept, p1, fell1, before := rankedPrior(net, 6, 0, e, d, in, kind, cands, &pv2)
 					keys := make([]string, len(kept))
 					for i, c := range kept {
 						keys[i] = fmt.Sprintf("%x", sha256.Sum256([]byte(c.key)))[:8]
@@ -244,6 +244,6 @@ func BenchmarkPriorPath(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		q := &ps[i%len(ps)]
-		rankedPrior(net, 6, q.e, q.e.Pending(), q.in, q.kind, q.c, &pv)
+		rankedPrior(net, 6, 0, q.e, q.e.Pending(), q.in, q.kind, q.c, &pv)
 	}
 }

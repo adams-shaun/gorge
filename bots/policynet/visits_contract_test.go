@@ -13,7 +13,7 @@ import (
 
 var updateContracts = flag.Bool("update-contracts", false, "rewrite bots/policynet/testdata/contracts goldens")
 
-// TestContractVisitRecord pins contract azvisits (lab/contracts/registry.json):
+// TestContractVisitRecord pins contract azvisits (four-yay contracts/registry.json):
 // one visit record's JSON line, every field set. A new field is additive
 // (rewrite with -update-contracts, rehash the registry, CHANGELOG line); a
 // renamed, retyped or removed one is VisitSchemaVersion 2.
@@ -28,7 +28,7 @@ func TestContractVisitRecord(t *testing.T) {
 		Options: []OnPolicyOption{{SlotsR: []uint16{1}, SlotsV: []float32{1}, HashedR: []uint16{8}, HashedV: []float32{0.5},
 			Dense: []float32{1, 0}, BotPick: true, InSpace: true, EntA: 1, EntB: 2}},
 		Cands: [][]int{{}, {0}}, Visits: []int{10, 54}, Prior: []float64{0.5, 0.5}, Q: []float64{0.25, 0.75},
-		RootValue: 0.7, Choice: 1, Outcome: 1, OutcomeKnown: true,
+		RootValue: 0.7, Choice: 1, Outcome: 1, OutcomeKnown: true, Weight: 0.25,
 	}
 	got, err := json.Marshal(rec)
 	if err != nil {

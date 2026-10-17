@@ -47,6 +47,10 @@ import (
 //	root_value, choice           the root's mean value; the candidate played
 //	outcome, outcome_known       the recording seat's result (1, 0.5, 0);
 //	                             unknown for a truncated or halted game
+//	weight                       optional training weight in (0,1), absent (0) for
+//	                             weight 1: the az seat's decided-game searches
+//	                             (azmcts SeatConfig.DecidedWeight); readers that
+//	                             predate it ignore it (the schema version is 1)
 const (
 	VisitRecordType    = "azvisits-v1"
 	VisitSchemaVersion = 1
@@ -80,6 +84,10 @@ type VisitRecord struct {
 	Choice        int              `json:"choice"`
 	Outcome       float64          `json:"outcome"`
 	OutcomeKnown  bool             `json:"outcome_known"`
+	// Weight is the record's training weight when it is not 1 (omitted, 0,
+	// for weight 1, so a corpus without weighted records is unchanged byte
+	// for byte). LoadVisits does not apply it; dzgorge pack carries it.
+	Weight float64 `json:"weight,omitempty"`
 }
 
 // VisitTarget is a visit-corpus example's policy target: a distribution Pi

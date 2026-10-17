@@ -184,7 +184,7 @@ func (c *nodeCache) simulate(top *node, sim int, opts Options, st *Stats) error 
 				marks = append(marks, kid)
 			}
 		}
-		sel := selectEdge(nd, pt, opts)
+		sel := selectAt(nd, nd == top, pt, opts, st)
 		if pt.Opp {
 			st.OppPoints++
 		}

@@ -23,6 +23,13 @@ type SeatConfig struct {
 	// Search are the per-decision knobs; Seed, Noise and Sample are set per
 	// decision by the seat and ignored here.
 	Search Options
+	// SimsByKind, when set, overrides Search.Sims at a decision of a listed
+	// kind: a per-kind simulation budget, e.g. more for casting (priority)
+	// and fewer for blocks. An entry of 0, and every kind not listed, uses
+	// Search.Sims; Search.Sims <= 0 still turns the search off. Keys are
+	// decision.Kinds members and entries >= 0 (NewSeat refuses others). Only
+	// looked up, never ranged.
+	SimsByKind map[decision.Kind]int
 	// Explore is generation mode (ticket 3's azgen): Dirichlet noise at every
 	// searched root, and moves sampled proportional to visits while the game
 	// turn is <= ExploreTurns (spec §2: turns 1-4). Eval leaves it false:
@@ -64,6 +71,47 @@ type SeatConfig struct {
 	// WithMulligan), which answers every KMulligan ask (the round is never
 	// searched). The zero value is the default bot's 1/3 coin.
 	Mulligan botpolicy.MulliganRule
+	// FullProb, CheapSims and FullProbByKind are KataGo's playout-cap
+	// randomization (pcr.go): with FullProb > 0 each searched root
+	// decision is a FULL search with probability FullProb (its kind's
+	// FullProbByKind entry when there is one), else a CHEAP one. A full
+	// search is the seat's usual one: Search.Sims (SimsByKind), root noise
+	// and visit sampling as Explore says, and it is recorded (SetRecorder).
+	// A cheap search runs CheapSims simulations with no root noise, plays
+	// the most-visited candidate (Search.Temp and Search.Second still apply
+	// when set) and is never recorded. The draw is a pure function of the
+	// seat's seed and the decision's sequence number (PCRFull). Decisions
+	// inside a simulation (the opponent's points) are unaffected. FullProb 0
+	// is off: every searched decision is full, the seat exactly as without
+	// these fields. NewSeat refuses FullProb outside [0,1].
+	FullProb float64
+	// CheapSims is a cheap search's simulation budget, >= 1 whenever a
+	// decision can be cheap.
+	CheapSims int
+	// FullProbByKind overrides FullProb at a decision of a listed searched
+	// kind, by its name (KindNames, ExtraKindNames: priority, attackers,
+	// blockers, target, modes, optional, choose, multitarget -- the :kinds=
+	// names); each in [0,1], 0 making every decision of that kind cheap.
+	// Needs FullProb > 0. Only looked up, never ranged.
+	FullProbByKind map[string]float64
+	// DecidedHigh, DecidedN, DecidedSims and DecidedWeight are KataGo's
+	// fewer visits once the game is decided (decided.go): once DecidedN
+	// consecutive searched root values of the seat are all above
+	// DecidedHigh, or all below 1 - DecidedHigh, each later full search is
+	// a DECIDED one -- DecidedSims simulations, no root noise, the
+	// most-visited candidate (Search.Temp and Search.Second still apply
+	// when set), no forced playouts -- recorded with training
+	// weight DecidedWeight (VisitRecord.Weight; 1 records it as usual, 0
+	// not at all), until a searched root value leaves that side's band. A
+	// playout-cap cheap decision stays cheap. Only searches that completed
+	// (no refusal, not every simulation failed) count. DecidedHigh 0 is off
+	// (the default): the seat exactly as without these fields, whatever
+	// the other three say; else DecidedHigh in (0.5, 1), DecidedN >= 1,
+	// DecidedSims >= 1 and DecidedWeight in [0, 1].
+	DecidedHigh   float64
+	DecidedN      int
+	DecidedSims   int
+	DecidedWeight float64
 }
 
 // DefaultSeatConfig is the eval seat with the spec's knobs.
@@ -89,6 +137,12 @@ type Diag struct {
 	// came from. Diagnostic only.
 	Seed uint64
 	Seq  uint64
+	// Cheap marks a searched decision playout-cap randomization made cheap
+	// (SeatConfig.FullProb): CheapSims, no root noise, argmax, unrecorded.
+	Cheap bool
+	// Decided marks a decided-game search (SeatConfig.DecidedHigh):
+	// DecidedSims, no root noise, argmax, recorded at DecidedWeight.
+	Decided bool
 }
 
 // Millis is the monotonic elapsed-milliseconds clock the driving command
@@ -121,6 +175,11 @@ type Seat struct {
 	// seat's decisions are answered one at a time, and every world of a
 	// decision is spent once its Search returns.
 	spare rules.Spare
+	// pcrFull and pcrCheap count the searched decisions playout-cap
+	// randomization made full and cheap (PCRCounts; 0 with it off).
+	pcrFull, pcrCheap int
+	// dec is the decided-game state (decided.go; SeatConfig.DecidedHigh).
+	dec decidedState
 }
 
 // SetRecorder installs the visit-corpus recorder (M1b; four-yay cmd/botbench
@@ -156,6 +215,15 @@ func newSeat(seed uint64, net *policynet.Model, cfg SeatConfig) (*Seat, error) {
 	if err := cfg.Search.Validate(net); err != nil {
 		return nil, err
 	}
+	if err := cfg.validateSimsByKind(); err != nil {
+		return nil, err
+	}
+	if err := cfg.validatePCR(); err != nil {
+		return nil, err
+	}
+	if err := cfg.validateDecided(); err != nil {
+		return nil, err
+	}
 	switch cfg.World {
 	case WorldRedeal:
 	case WorldRedealClosed:
@@ -178,6 +246,27 @@ func newSeat(seed uint64, net *policynet.Model, cfg SeatConfig) (*Seat, error) {
 		def = def.EnableAutoPayMana()
 	}
 	return &Seat{def: def, seed: seed, net: net, cfg: cfg}, nil
+}
+
+// validateSimsByKind refuses a SimsByKind entry that is negative or keyed by
+// a kind outside decision.Kinds. It walks decision.Kinds in order, never the
+// map, so the error it names is deterministic.
+func (c *SeatConfig) validateSimsByKind() error {
+	known := 0
+	for _, k := range decision.Kinds {
+		n, ok := c.SimsByKind[k]
+		if !ok {
+			continue
+		}
+		known++
+		if n < 0 {
+			return fmt.Errorf("azmcts: SimsByKind[%s] %d must be >= 0 (0 uses Search.Sims)", k, n)
+		}
+	}
+	if known != len(c.SimsByKind) {
+		return errors.New("azmcts: SimsByKind has a key outside decision.Kinds")
+	}
+	return nil
 }
 
 // Decide is the plain Seat half: the wrapped bot.
@@ -229,8 +318,14 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 		t0 = Millis()
 	}
 	obs := searchprobe.NewCollector(d.Player)
-	opts := s.cfg.Search
-	opts.Seed = DecisionSeed(s.seed, d.Seq)
+	// The budget, seed, root noise and sampling; cheap is a playout-cap
+	// cheap search (never with SeatConfig.FullProb 0).
+	opts, cheap := s.rootOptions(&d, env.Engine.G.Turn)
+	// A full search once the game is decided is a decided one (decided.go).
+	decided := !cheap && s.decided()
+	if decided {
+		opts = s.decidedOptions(opts)
+	}
 	var src WorldSource
 	var redeal *RedealSource
 	if s.redeals() {
@@ -246,11 +341,6 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 			return decision.Intent{}, err
 		}
 		src = cs
-	}
-	opts.Noise, opts.Sample = false, false
-	if s.cfg.Explore {
-		opts.Noise = !s.cfg.NoNoise
-		opts.Sample = env.Engine.G.Turn <= s.cfg.ExploreTurns
 	}
 	root := Root{Engine: env.Engine, Decision: &d, Bot: botIn, Observer: obs}
 	// The tap backstop: under AutoPayment a bot answer that taps mana by hand
@@ -280,14 +370,38 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 		}
 		dealFailed = redeal.DealFailed()
 	}
-	if s.record != nil && res.Stats.Searched == 1 && res.Stats.AllFailed == 0 && refused == "" {
-		s.record(visitRecord(env.Engine, &d, res, s.cfg.RecordFeatures, s.worldName(), opts.Sims))
+	searched := res.Stats.Searched == 1
+	if searched && s.cfg.FullProb > 0 {
+		if cheap {
+			s.pcrCheap++
+		} else {
+			s.pcrFull++
+		}
+	}
+	if searched && decided {
+		s.dec.searched++
+		if s.dec.side > 0 {
+			s.dec.winning++
+		}
+	}
+	complete := searched && res.Stats.AllFailed == 0 && refused == ""
+	if s.cfg.DecidedHigh > 0 && complete && res.Stats.DeadlineHits == 0 {
+		s.dec.observe(res.RootValue, s.cfg.DecidedHigh)
+	}
+	// A cheap search only moves the game on: it is never recorded. A decided
+	// one is recorded at DecidedWeight (not at all at 0).
+	if s.record != nil && !cheap && complete && (!decided || s.cfg.DecidedWeight > 0) {
+		r := visitRecord(env.Engine, &d, res, s.cfg.RecordFeatures, s.worldName(), opts.Sims)
+		if decided && s.cfg.DecidedWeight < 1 {
+			r.Weight = s.cfg.DecidedWeight
+		}
+		s.record(r)
 	}
 	if res.Kind != "" && Watch != nil {
 		dg := Diag{
-			Turn: env.Engine.G.Turn, Kind: res.Kind, Searched: res.Stats.Searched == 1,
+			Turn: env.Engine.G.Turn, Kind: res.Kind, Searched: searched,
 			Candidates: len(res.Candidates), Choice: res.Choice, Stats: res.Stats, Refused: refused, DealFailed: dealFailed,
-			Seed: s.seed, Seq: d.Seq,
+			Seed: s.seed, Seq: d.Seq, Cheap: cheap && searched, Decided: decided && searched,
 		}
 		if Millis != nil {
 			dg.MS = Millis() - t0

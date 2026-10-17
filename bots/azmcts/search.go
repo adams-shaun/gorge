@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand/v2"
 
 	"github.com/adams-shaun/gorge/bots/policynet"
@@ -58,6 +59,11 @@ type Result struct {
 	Choice     int
 	Intent     decision.Intent // the answer to play
 	Stats      Stats
+	// Target, parallel to Visits, is the policy target after forced-playout
+	// pruning (Options.ForcedK, forced.go): the visits the seat records and,
+	// under Sample, draws the move from. nil with ForcedK 0, or when no
+	// simulation completed.
+	Target []int
 }
 
 // RootRow is one root child of a Search: its semantic key, a
@@ -119,6 +125,8 @@ func (o Options) Validate(net *policynet.Model) error {
 	case o.PriorTopK < 0 || o.PriorTopK == 1:
 		// One kept candidate is the bot's alone: nothing would be searched.
 		return fmt.Errorf("azmcts: prior top-k %d must be 0 (off) or >= 2", o.PriorTopK)
+	case o.PriorRankMaxOptions < 0:
+		return fmt.Errorf("azmcts: prior rank max options %d must be >= 0 (0 is off)", o.PriorRankMaxOptions)
 	case !o.Kinds.any():
 		return errors.New("azmcts: no searched decision kinds")
 	case o.OpponentMirror && !o.OpponentNodes:
@@ -129,6 +137,8 @@ func (o Options) Validate(net *policynet.Model) error {
 		return fmt.Errorf("azmcts: unknown discount unit %d", o.DiscountUnit)
 	case o.AbsoluteUnvisitedQ && (o.UnvisitedQ < 0 || o.UnvisitedQ > 1 || o.UnvisitedQ != o.UnvisitedQ):
 		return fmt.Errorf("azmcts: unvisited Q %g must be in [0,1]", o.UnvisitedQ)
+	case !(o.ForcedK >= 0) || math.IsInf(o.ForcedK, 1):
+		return fmt.Errorf("azmcts: forced-playout k %g must be finite and >= 0 (0 is off)", o.ForcedK)
 	}
 	if net != nil {
 		if !net.HasValue() {
@@ -230,7 +240,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	}
 	// The prior comes before the Result's candidate lists: under PriorTopK
 	// it decides which candidates they hold.
-	cands, prior, fell, before := rankedPrior(priorNet, topK, root.Engine, root.Decision, root.Bot, kind, cands, &views.prior)
+	cands, prior, fell, before := rankedPrior(priorNet, topK, opts.PriorRankMaxOptions, root.Engine, root.Decision, root.Bot, kind, cands, &views.prior)
 	if fell {
 		res.Stats.PriorFallbacks++
 	}
@@ -253,6 +263,9 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		return res, errors.New("azmcts: Search needs a world source")
 	}
 	res.Stats.Searched = 1
+	if opts.ForcedK > 0 {
+		res.Stats.ForcedSearched = 1
+	}
 	countSearched(&res.Stats, kind)
 	rng := rand.New(rand.NewPCG(opts.Seed^opts.ChoiceSalt, opts.Seed^0x9e3779b97f4a7c15))
 	treePrior := prior
@@ -261,7 +274,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	}
 	rootPt := &Point{Keys: res.Keys, Prior: treePrior}
 	cfg := &walkConfig{
-		net: net, heuristicLeaf: opts.HeuristicLeaf, kinds: kinds, limit: opts.Limit, priorTopK: topK, maxSteps: opts.MaxSteps,
+		net: net, heuristicLeaf: opts.HeuristicLeaf, kinds: kinds, limit: opts.Limit, priorTopK: topK, rankMax: opts.PriorRankMaxOptions, maxSteps: opts.MaxSteps,
 		envSeed: splitmix(opts.Seed ^ 0x656e762d73656564), actor: root.Decision.Player, autoPayment: opts.AutoPayment, skipPass: opts.SkipPass,
 		uniformPrior: opts.UniformPrior, rootPerWorld: opts.RootPerWorld,
 		nameKeys: opts.NameKeys, rootRefs: root.Observer.Introduced(),
@@ -305,7 +318,15 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		res.Stats.AllFailed = 1
 		return res, nil
 	}
-	res.Choice = chooseMove(res.Visits, opts, rng)
+	played := res.Visits
+	if opts.ForcedK > 0 {
+		// The argmax is unchanged by the pruning; a sampled move (Sample, or
+		// Temp/Second's randomised line) is drawn from the pruned target, as
+		// KataGo plays from its pruned visits.
+		res.Target = pruneTarget(res.Visits, res.Q, res.Avail, treePrior, opts, &res.Stats)
+		played = res.Target
+	}
+	res.Choice = chooseMove(played, opts, rng)
 	if res.Choice != 0 || !botFound {
 		res.Intent = cands[res.Choice].in
 	}

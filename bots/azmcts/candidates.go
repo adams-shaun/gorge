@@ -1042,11 +1042,20 @@ func payCastOption(e *rules.Engine, d *decision.Decision, c cand) (decision.Opti
 // rankedPrior is a searched point's candidates and prior. With k == 0 (no
 // PriorTopK, or no network prior) they are cands and priors' prior. With
 // k > 0 the ranking prior (priorsWith's payCasts form) is formed over every
-// candidate and priorTopK cuts it: before is priorTopK's.
-func rankedPrior(net *policynet.Model, k int, e *rules.Engine, d *decision.Decision, bot decision.Intent, kind string, cands []cand, pv *view.View) (kept []cand, prior []float64, fell bool, before int) {
+// candidate and priorTopK cuts it: before is priorTopK's. rankMax > 0
+// (Options.PriorRankMaxOptions) skips the ranking at a decision with more
+// options than rankMax.
+func rankedPrior(net *policynet.Model, k, rankMax int, e *rules.Engine, d *decision.Decision, bot decision.Intent, kind string, cands []cand, pv *view.View) (kept []cand, prior []float64, fell bool, before int) {
 	if k <= 0 {
 		prior, fell = priors(net, e, d, bot, kind, cands, pv)
 		return cands, prior, fell, 0
+	}
+	if rankMax > 0 && len(d.Options) > rankMax {
+		// Too many options to encode at every simulation: keep the bot's
+		// answer and the enumeration's next k-1 under a uniform prior, as
+		// with no network, counted as a fallback.
+		kept, prior, before = priorTopK(cands, uniform(len(cands)), k)
+		return kept, prior, true, before
 	}
 	prior, fell = priorsWith(net, e, d, bot, kind, cands, pv, true)
 	kept, prior, before = priorTopK(cands, prior, k)
