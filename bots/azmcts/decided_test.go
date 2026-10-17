@@ -31,10 +31,11 @@ func TestDecidedRun(t *testing.T) {
 
 // decided needs DecidedHigh > 0 and a run of at least DecidedN values; a
 // decided search's options are the full search's with DecidedSims, no
-// noise and no sampling, the seed unchanged.
+// noise, no sampling and no forced playouts, the seed unchanged.
 func TestDecidedOptions(t *testing.T) {
 	s := pcrSeat(t, func(c *SeatConfig) {
 		c.DecidedHigh, c.DecidedN, c.DecidedSims, c.DecidedWeight = 0.9, 3, 7, 0.1
+		c.Search.ForcedK = 2
 	})
 	for _, tc := range []struct {
 		side int8
@@ -53,12 +54,12 @@ func TestDecidedOptions(t *testing.T) {
 	}
 	d := &decision.Decision{Kind: decision.KPriority, Seq: 11}
 	full, cheap := s.rootOptions(d, 2)
-	if cheap || !full.Noise || !full.Sample {
+	if cheap || !full.Noise || !full.Sample || full.ForcedK != 2 {
 		t.Fatalf("full options %+v", full)
 	}
 	got := s.decidedOptions(full)
 	want := full
-	want.Sims, want.Noise, want.Sample = 7, false, false
+	want.Sims, want.Noise, want.Sample, want.ForcedK = 7, false, false, 0
 	if got != want {
 		t.Fatalf("decided options %+v, want %+v", got, want)
 	}

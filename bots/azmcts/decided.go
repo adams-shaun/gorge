@@ -8,11 +8,12 @@ import "fmt"
 // DecidedHigh, or all below 1 - DecidedHigh, the game is as good as decided
 // (DraftZero's offline count: 18.4% of recorded decisions, whose side agreed
 // with the result 98% of the time), so its later full searches are cheaper
-// -- DecidedSims, no root noise, the most-visited candidate -- and their
-// records carry the training weight DecidedWeight (VisitRecord.Weight). A
-// searched root value outside that side's band ends the run, and the next
-// full search is full again. The run is the seat's own and a pure function
-// of its searches, so it never depends on the worker count.
+// -- DecidedSims, no root noise, the most-visited candidate, no forced
+// playouts -- and their records carry the training weight DecidedWeight
+// (VisitRecord.Weight). A searched root value outside that side's band ends
+// the run, and the next full search is full again. The run is the seat's
+// own and a pure function of its searches, so it never depends on the
+// worker count.
 
 // decidedState is a seat's run of decided root values and its counts.
 type decidedState struct {
@@ -79,10 +80,10 @@ func (s *Seat) decided() bool {
 }
 
 // decidedOptions turns a full search's options into a decided one's:
-// DecidedSims simulations, no root noise and no visit sampling; the seed is
-// the full search's.
+// DecidedSims simulations, no root noise, no visit sampling and no forced
+// playouts; the seed is the full search's.
 func (s *Seat) decidedOptions(opts Options) Options {
-	opts.Sims, opts.Noise, opts.Sample = s.cfg.DecidedSims, false, false
+	opts.Sims, opts.Noise, opts.Sample, opts.ForcedK = s.cfg.DecidedSims, false, false, 0
 	return opts
 }
 

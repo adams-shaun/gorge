@@ -15,7 +15,8 @@ import (
 // searched decision d of engine e: the searching seat's REDACTED view
 // encoded under fs (the student's input), the options any candidate
 // references in decision order (the candidates re-expressed as positions in
-// that list), and the search's visits, prior, Q, root value and choice. The
+// that list), and the search's visits (its pruned policy target under
+// Options.ForcedK, Result.Target), prior, Q, root value and choice. The
 // opponent's hand rides beside it as the diagnostic FeaturesMZOppHand rows,
 // read off an omniscient projection of the real engine -- recorded for the
 // measurement-only student and never readable by a checkpointable one. The
@@ -30,7 +31,7 @@ func visitRecord(e *rules.Engine, d *decision.Decision, res Result, fs policynet
 		Seat: int(d.Player), Kind: d.Kind, Turn: e.G.Turn, Sequence: d.Seq,
 		Subset: res.Kind == "attackers" || res.Kind == "blockers" || (extraIndex(res.Kind) >= 0 && severalChoices(res.Candidates)),
 		State:  policynet.EncodeOnPolicyState(st),
-		Visits: append([]int(nil), res.Visits...), Prior: append([]float64(nil), res.Prior...),
+		Visits: append([]int(nil), res.policyTarget()...), Prior: append([]float64(nil), res.Prior...),
 		Q: append([]float64(nil), res.Q...), RootValue: res.RootValue, Choice: res.Choice,
 	}
 	if fs == policynet.FeaturesMZ {

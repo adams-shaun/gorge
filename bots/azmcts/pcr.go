@@ -116,13 +116,14 @@ func (s *Seat) searchedKind(d *decision.Decision) string {
 // cheap search. A full search (every search with PCR off) runs Search.Sims
 // (d's kind's SimsByKind when set) with root noise and visit sampling as
 // Explore says; a cheap one runs CheapSims with neither: no noise, the
-// most-visited candidate. The seed is DecisionSeed either way.
+// most-visited candidate, and no forced playouts (Options.ForcedK, which a
+// full search keeps). The seed is DecisionSeed either way.
 func (s *Seat) rootOptions(d *decision.Decision, turn int32) (Options, bool) {
 	opts := s.cfg.Search
 	opts.Seed = DecisionSeed(s.seed, d.Seq)
 	opts.Noise, opts.Sample = false, false
 	if !s.fullSearch(d, opts.Seed) {
-		opts.Sims = s.cfg.CheapSims
+		opts.Sims, opts.ForcedK = s.cfg.CheapSims, 0
 		return opts, true
 	}
 	if n := s.cfg.SimsByKind[d.Kind]; n > 0 {

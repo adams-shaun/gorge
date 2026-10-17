@@ -42,6 +42,8 @@ func sameResult(a, b Result) string {
 		return fmt.Sprintf("avail %v vs %v", a.Avail, b.Avail)
 	case !reflect.DeepEqual(a.Visits, b.Visits):
 		return fmt.Sprintf("visits %v vs %v", a.Visits, b.Visits)
+	case !reflect.DeepEqual(a.Target, b.Target):
+		return fmt.Sprintf("target %v vs %v", a.Target, b.Target)
 	case !reflect.DeepEqual(bits(a.Q), bits(b.Q)):
 		return fmt.Sprintf("Q %v vs %v", a.Q, b.Q)
 	case !reflect.DeepEqual(bits(a.Prior), bits(b.Prior)):

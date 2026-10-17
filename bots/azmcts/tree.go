@@ -228,21 +228,37 @@ func selectEdge(nd *node, pt *Point, opts Options) *edge {
 		if !hasKey(pt.Keys, kid.key) {
 			continue
 		}
-		q := parentQ - opts.FPU
-		if opts.AbsoluteUnvisitedQ {
-			q = opts.UnvisitedQ
-		}
-		if kid.n > 0 {
-			q = kid.w / float64(kid.n)
-			if pt.Opp {
-				q = 1 - q
-			}
-		}
-		if s := puctScore(q, kid.prior, kid.avail+1, kid.n, opts.CPUCT); best == nil || s > bestScore {
+		if s := edgeScore(kid, parentQ, pt.Opp, opts); best == nil || s > bestScore {
 			best, bestScore = kid, s
 		}
 	}
 	return best
+}
+
+// edgeScore is kid's PUCT score in selectEdge: parentQ is the parent's Q
+// read from the selecting side (1 - Q at an opponent's point, opp), which
+// first-play urgency starts from.
+func edgeScore(kid *edge, parentQ float64, opp bool, opts Options) float64 {
+	q := parentQ - opts.FPU
+	if opts.AbsoluteUnvisitedQ {
+		q = opts.UnvisitedQ
+	}
+	if kid.n > 0 {
+		q = kid.w / float64(kid.n)
+		if opp {
+			q = 1 - q
+		}
+	}
+	return puctScore(q, kid.prior, kid.avail+1, kid.n, opts.CPUCT)
+}
+
+// selectAt is the walk's selection at node nd: selectEdge, or at the root
+// (root) under Options.ForcedK the forced-playout rule (selectForced).
+func selectAt(nd *node, root bool, pt *Point, opts Options, st *Stats) *edge {
+	if root && opts.ForcedK > 0 {
+		return selectForced(nd, pt, opts, st)
+	}
+	return selectEdge(nd, pt, opts)
 }
 
 // RunTree runs opts.Sims simulations from root over src and returns the
@@ -365,7 +381,7 @@ func simulate(top *node, env Env, opts Options, st *Stats) error {
 				marks = append(marks, kid)
 			}
 		}
-		sel := selectEdge(nd, pt, opts)
+		sel := selectAt(nd, nd == top, pt, opts, st)
 		if pt.Opp {
 			st.OppPoints++
 		}

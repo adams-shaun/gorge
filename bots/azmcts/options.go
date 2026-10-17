@@ -265,6 +265,26 @@ type Options struct {
 	// (Stats.PriorTopK* count them too). Neither changes either flag's effect
 	// on the searching seat's own decisions.
 	OpponentMirror bool
+
+	// ForcedK is KataGo's forced playouts with policy target pruning
+	// (forced.go; arXiv:1902.10565 §3.1), at the root only: a root child c
+	// the world offers whose visits are below n_forced(c) = sqrt(ForcedK *
+	// P(c) * the root children's visits) -- P the tree's root prior, root
+	// noise included -- is selected before PUCT is asked (the one PUCT
+	// scores highest among several), and Result.Target is the visits with
+	// those forced playouts taken back out: every child but the
+	// most-visited loses up to n_forced visits while its PUCT value stays
+	// below the most-visited child's, and a child left with one visit or
+	// none is dropped. Target is the policy target the seat records and,
+	// under Sample, the distribution the move is drawn from; the argmax
+	// move is unchanged. In-walk points are never forced. 0 is off (the
+	// default): no forced playout and no Target, every counter and choice
+	// as before. The az seat sets it only on its full (recorded) searches
+	// (SeatConfig: never on a playout-cap cheap or a decided-game search).
+	// Under CachedWorlds each world's tree forces its own root against its
+	// own visits, while pruning reads the merged root, so the target can
+	// keep somewhat more forced visits there. NodeCache is exact under it.
+	ForcedK float64
 }
 
 // DiscountUnit is what one step of the backup discount counts.
@@ -431,6 +451,17 @@ type Stats struct {
 	// over the auto-payment vocabulary (OpponentMirror with AutoPayment), a
 	// discarded simulation's included.
 	OppPayPoints int
+
+	// ForcedSearched counts searches run with Options.ForcedK > 0 (0 or 1
+	// per Search). ForcedPlayouts counts the root selections the forced
+	// rule made where plain PUCT would have chosen another child (a
+	// discarded simulation's included). PrunedVisits sums the visits policy
+	// target pruning took out of Result.Target, and PrunedChildren counts
+	// the visited children it dropped to zero. All stay 0 with ForcedK 0.
+	ForcedSearched int
+	ForcedPlayouts int
+	PrunedVisits   int
+	PrunedChildren int
 }
 
 // The searched kinds, indexing Stats' per-kind breakdowns.
@@ -567,6 +598,10 @@ func (s *Stats) Add(o Stats) {
 	s.PriorTopKCuts += o.PriorTopKCuts
 	s.PriorTopKBefore += o.PriorTopKBefore
 	s.OppPayPoints += o.OppPayPoints
+	s.ForcedSearched += o.ForcedSearched
+	s.ForcedPlayouts += o.ForcedPlayouts
+	s.PrunedVisits += o.PrunedVisits
+	s.PrunedChildren += o.PrunedChildren
 	for x := range s.ExtraSearched {
 		s.ExtraSearched[x] += o.ExtraSearched[x]
 		s.ExtraPoints[x] += o.ExtraPoints[x]
