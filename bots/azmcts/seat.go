@@ -94,6 +94,24 @@ type SeatConfig struct {
 	// names); each in [0,1], 0 making every decision of that kind cheap.
 	// Needs FullProb > 0. Only looked up, never ranged.
 	FullProbByKind map[string]float64
+	// DecidedHigh, DecidedN, DecidedSims and DecidedWeight are KataGo's
+	// fewer visits once the game is decided (decided.go): once DecidedN
+	// consecutive searched root values of the seat are all above
+	// DecidedHigh, or all below 1 - DecidedHigh, each later full search is
+	// a DECIDED one -- DecidedSims simulations, no root noise, the
+	// most-visited candidate (Search.Temp and Search.Second still apply
+	// when set) -- recorded with training weight
+	// DecidedWeight (VisitRecord.Weight; 1 records it as usual, 0 not at
+	// all), until a searched root value leaves that side's band. A
+	// playout-cap cheap decision stays cheap. Only searches that completed
+	// (no refusal, not every simulation failed) count. DecidedHigh 0 is off
+	// (the default): the seat exactly as without these fields, whatever
+	// the other three say; else DecidedHigh in (0.5, 1), DecidedN >= 1,
+	// DecidedSims >= 1 and DecidedWeight in [0, 1].
+	DecidedHigh   float64
+	DecidedN      int
+	DecidedSims   int
+	DecidedWeight float64
 }
 
 // DefaultSeatConfig is the eval seat with the spec's knobs.
@@ -122,6 +140,9 @@ type Diag struct {
 	// Cheap marks a searched decision playout-cap randomization made cheap
 	// (SeatConfig.FullProb): CheapSims, no root noise, argmax, unrecorded.
 	Cheap bool
+	// Decided marks a decided-game search (SeatConfig.DecidedHigh):
+	// DecidedSims, no root noise, argmax, recorded at DecidedWeight.
+	Decided bool
 }
 
 // Millis is the monotonic elapsed-milliseconds clock the driving command
@@ -157,6 +178,8 @@ type Seat struct {
 	// pcrFull and pcrCheap count the searched decisions playout-cap
 	// randomization made full and cheap (PCRCounts; 0 with it off).
 	pcrFull, pcrCheap int
+	// dec is the decided-game state (decided.go; SeatConfig.DecidedHigh).
+	dec decidedState
 }
 
 // SetRecorder installs the visit-corpus recorder (M1b; four-yay cmd/botbench
@@ -196,6 +219,9 @@ func newSeat(seed uint64, net *policynet.Model, cfg SeatConfig) (*Seat, error) {
 		return nil, err
 	}
 	if err := cfg.validatePCR(); err != nil {
+		return nil, err
+	}
+	if err := cfg.validateDecided(); err != nil {
 		return nil, err
 	}
 	switch cfg.World {
@@ -295,6 +321,11 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 	// The budget, seed, root noise and sampling; cheap is a playout-cap
 	// cheap search (never with SeatConfig.FullProb 0).
 	opts, cheap := s.rootOptions(&d, env.Engine.G.Turn)
+	// A full search once the game is decided is a decided one (decided.go).
+	decided := !cheap && s.decided()
+	if decided {
+		opts = s.decidedOptions(opts)
+	}
 	var src WorldSource
 	var redeal *RedealSource
 	if s.redeals() {
@@ -347,15 +378,30 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 			s.pcrFull++
 		}
 	}
-	// A cheap search only moves the game on: it is never recorded.
-	if s.record != nil && !cheap && searched && res.Stats.AllFailed == 0 && refused == "" {
-		s.record(visitRecord(env.Engine, &d, res, s.cfg.RecordFeatures, s.worldName(), opts.Sims))
+	if searched && decided {
+		s.dec.searched++
+		if s.dec.side > 0 {
+			s.dec.winning++
+		}
+	}
+	complete := searched && res.Stats.AllFailed == 0 && refused == ""
+	if s.cfg.DecidedHigh > 0 && complete && res.Stats.DeadlineHits == 0 {
+		s.dec.observe(res.RootValue, s.cfg.DecidedHigh)
+	}
+	// A cheap search only moves the game on: it is never recorded. A decided
+	// one is recorded at DecidedWeight (not at all at 0).
+	if s.record != nil && !cheap && complete && (!decided || s.cfg.DecidedWeight > 0) {
+		r := visitRecord(env.Engine, &d, res, s.cfg.RecordFeatures, s.worldName(), opts.Sims)
+		if decided && s.cfg.DecidedWeight < 1 {
+			r.Weight = s.cfg.DecidedWeight
+		}
+		s.record(r)
 	}
 	if res.Kind != "" && Watch != nil {
 		dg := Diag{
 			Turn: env.Engine.G.Turn, Kind: res.Kind, Searched: searched,
 			Candidates: len(res.Candidates), Choice: res.Choice, Stats: res.Stats, Refused: refused, DealFailed: dealFailed,
-			Seed: s.seed, Seq: d.Seq, Cheap: cheap && searched,
+			Seed: s.seed, Seq: d.Seq, Cheap: cheap && searched, Decided: decided && searched,
 		}
 		if Millis != nil {
 			dg.MS = Millis() - t0

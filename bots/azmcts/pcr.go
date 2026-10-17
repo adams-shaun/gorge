@@ -136,5 +136,6 @@ func (s *Seat) rootOptions(d *decision.Decision, turn int32) (Options, bool) {
 }
 
 // PCRCounts are the seat's searched root decisions (a tree was built) that
-// playout-cap randomization made full and cheap, both 0 with PCR off.
+// playout-cap randomization made full and cheap, both 0 with PCR off. A
+// decided-game search (SeatConfig.DecidedHigh) counts among the full.
 func (s *Seat) PCRCounts() (full, cheap int) { return s.pcrFull, s.pcrCheap }
