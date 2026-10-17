@@ -57,7 +57,7 @@ The layering design for `engine/rules` is
 
 | Package | What it owns |
 |---|---|
-| `server/gorged` | The importable server (`Main`, `Serve`): flags, persistence, demo tables, art prewarm. Extension seams: `Extensions{Events EventsPlugin}` (draft events under `/api/events`, refused without a plugin) and `RegisterNetBot` (the az-c3/c4/c5 network bots). `cmd/gorged` is its thin main. |
+| `server/gorged` | The importable server (`Main`, `Serve`): flags, persistence, demo tables, art prewarm. Extension seams: `Extensions{Events EventsPlugin; Flags}` (draft events under `/api/events`, refused without a plugin; the binary's own flags on gorged's command line), `RegisterNetBot` (the az-c3/c4/c5 network bots) and `RegisterClosedNetBot` (further closed-list net policies, served by the az-c4/c5 machinery under their own `-<policy>-*` flags). Draft events offer every policy that does not read decklists, closed-list net policies included (`eventPolicies`). `cmd/gorged` is its thin main. |
 | `server/host` | Tables (one goroutine each), sessions, snapshots, persistence, undo, the hosted bot-policy vocabulary (`server/host/bot_policy.go`). Its only clock is an injected sleep. |
 | `server/host/httpapi` | `net/http` JSON + SSE + the embedded web client. Every seat route goes through `claimForTable`. |
 | `server/host/manabrewhttp` | The ManaBrew HTTP surface. |

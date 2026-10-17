@@ -10,9 +10,24 @@ import (
 // an argument list against the real flags and read back the parsed values by
 // name (fs.Lookup(name).Value). four-yay's deploy test uses it to prove that
 // what its demo deploy script passes is accepted by the server it starts.
-func ServeFlagSet() *flag.FlagSet {
-	fs, _ := serveFlags()
+func ServeFlagSet() *flag.FlagSet { return ServeFlagSetFor(Extensions{}) }
+
+// ServeFlagSetFor is ServeFlagSet for a binary that links ext: its flag set
+// carries the extensions' own flags (Extensions.Flags) too.
+func ServeFlagSetFor(ext Extensions) *flag.FlagSet {
+	fs, _ := flagsFor(ext)
 	fs.Init(fs.Name(), flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	return fs
+}
+
+// flagsFor is serveFlags with ext linked in: the config carries ext and the
+// flag set the extensions' own flags.
+func flagsFor(ext Extensions) (*flag.FlagSet, *config) {
+	fs, c := serveFlags()
+	c.ext = ext
+	if ext.Flags != nil {
+		ext.Flags(fs)
+	}
+	return fs, c
 }

@@ -3,6 +3,7 @@ package gorged
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"path/filepath"
 
@@ -19,6 +20,12 @@ type Extensions struct {
 	// Events, when set, serves draft events under /api/events with -events
 	// (four-yay's draft runtime). Without it -events is refused at startup.
 	Events EventsPlugin
+	// Flags, when set, registers the extensions' own flags on gorged's
+	// command line (Main, Serve and ServeFlagSetFor call it on the fresh
+	// flag set before parsing). The values it binds are read by the
+	// extensions themselves, e.g. a plugin's Start; a flag name gorged
+	// already defines panics.
+	Flags func(fs *flag.FlagSet)
 }
 
 // EventsPlugin is a draft-event runtime: it owns a store under the server's
@@ -44,7 +51,7 @@ type EventsWiring interface {
 type EventsEnv struct {
 	Registry       *host.Registry
 	Cards          *cards.Registry
-	Policies       []string // the offered policy set minus decklist readers and reserved-pool policies
+	Policies       []string // the offered policy set minus decklist readers (eventPolicies)
 	DefaultPolicy  string
 	MaxLiveEvents  int
 	Mulligans      int
@@ -94,11 +101,8 @@ func (w eventsWiring) hook(o *host.Options) {
 }
 
 // startEvents starts the runtime, which resumes every stored event. The
-// offered policy set is the server's -bot-policies set minus decklist
-// readers (an Env policy never seats in a draft event) and reserved-pool
-// policies (they play only their own decks; an event deals its own), and the
-// default is -bot-policy unless it reads decklists, else bots.Default.
-// Returns nil when -events is off.
+// offered policy set is eventPolicies, and the default is -bot-policy unless
+// it reads decklists, else bots.Default. Returns nil when -events is off.
 func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registry, gate *seatGate) (EventRuntime, error) {
 	if w.w == nil {
 		return nil, nil
@@ -106,13 +110,7 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 	if gate == nil {
 		return nil, fmt.Errorf("gorged: draft events need a seat gate to mint game tokens")
 	}
-	reserved := c.reservedPolicyNames()
-	policies := make([]string, 0, len(c.botPolicies))
-	for _, p := range c.botPolicies {
-		if !bots.ReadsDecklists(p) && !containsString(reserved, p) {
-			policies = append(policies, p)
-		}
-	}
+	policies := c.eventPolicies()
 	def := c.botPolicy
 	if bots.ReadsDecklists(def) {
 		def = bots.Default
@@ -131,6 +129,23 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 			return gate.mint(t, state.PlayerID(seat))
 		},
 	})
+}
+
+// eventPolicies is the policy set draft events offer: -bot-policies minus
+// every decklist reader (bots.ReadsDecklists: an Env policy without closed
+// lists never seats in a draft event). A policy with a reserved deck pool is
+// offered when it does not read decklists -- the closed-list net policies
+// (bots.Info.ClosedLists): the event deals its own drafted decks and the
+// policy plays them, guessing its opponent's list from its belief as at any
+// table. az-c3, a reserved-pool decklist reader, stays out.
+func (c config) eventPolicies() []string {
+	policies := make([]string, 0, len(c.botPolicies))
+	for _, p := range c.botPolicies {
+		if !bots.ReadsDecklists(p) {
+			policies = append(policies, p)
+		}
+	}
+	return policies
 }
 
 // prewarmExtensionArt fills the cache for the names the events runtime

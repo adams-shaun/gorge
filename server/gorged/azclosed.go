@@ -32,8 +32,9 @@ import (
 )
 
 // closedAZ is one closed-list az policy's flags. config holds one per policy
-// (az4, az5); closedAZs fills in which policy each is, so a hand-built
-// config{} in a test needs only the flag values.
+// (az4, az5, then extraAZ for each RegisterClosedNetBot policy); closedAZs
+// fills in which policy az4 and az5 are, so a hand-built config{} in a test
+// needs only the flag values (an extraAZ entry carries its own policy).
 type closedAZ struct {
 	// policy is the registry key and the flags' prefix ("az-c4").
 	policy string
@@ -47,11 +48,12 @@ type closedAZ struct {
 }
 
 // closedAZs returns every closed-list az policy's flags, in registration
-// (and demo-table) order: az-c4, then az-c5.
+// (and demo-table) order: az-c4, az-c5, then the RegisterClosedNetBot
+// policies in their registration order.
 func (c config) closedAZs() []closedAZ {
 	a4, a5 := c.az4, c.az5
 	a4.policy, a5.policy = policyAZC4, policyAZC5
-	out := []closedAZ{a4, a5}
+	out := append([]closedAZ{a4, a5}, c.extraAZ...)
 	for i := range out {
 		if nb, ok := netBot(out[i].policy); ok {
 			out[i].register = nb.Enable
@@ -304,15 +306,4 @@ func (a closedAZ) table(c config, id host.TableID, seed uint64, pool []string, v
 		Mulligans: c.mulligans, Format: host.FormatConstructed, BotPolicy: a.policy,
 		BotAutoPayMana: c.botAutoPayMana, AutoMana: c.autoMana,
 	}
-}
-
-// reservedPolicyNames is every policy with a reserved deck pool. Draft
-// events deal their own decks, so they never offer one.
-func (c config) reservedPolicyNames() []string {
-	var out []string
-	for p := range c.policyPools {
-		out = append(out, p)
-	}
-	sort.Strings(out)
-	return out
 }

@@ -147,7 +147,10 @@ type config struct {
 	// closed-list search guesses the opponent's list from. Neither ever
 	// reads an opponent's decklist, so both are offered against humans and
 	// need no -allow-decklist-bots.
-	az4, az5    closedAZ
+	az4, az5 closedAZ
+	// extraAZ is one closedAZ per RegisterClosedNetBot policy, in
+	// registration order, each carrying its policy name (serveFlags).
+	extraAZ     []closedAZ
 	policyPools map[string][]string
 	// allowDecklistBots is the -allow-decklist-bots flag (azc3.go): the
 	// operator's explicit opt-in that lets the server's own BOT-ONLY tables
@@ -245,8 +248,7 @@ type config struct {
 // the extensions linked into this binary (gorge's own cmd/gorged passes
 // none). It returns the process exit status.
 func Main(args []string, ext Extensions) int {
-	fs, c := serveFlags()
-	c.ext = ext
+	fs, c := flagsFor(ext)
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(os.Stderr, "gorged:", err)
 		return 2
@@ -288,8 +290,7 @@ func Main(args []string, ext Extensions) int {
 // is the entry point a test (in this module or one that links extensions)
 // drives a real server through.
 func Serve(ctx context.Context, args []string, ln net.Listener, ext Extensions) error {
-	fs, c := serveFlags()
-	c.ext = ext
+	fs, c := flagsFor(ext)
 	fs.SetOutput(io.Discard)
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -388,6 +389,12 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.StringVar(&c.az3Decks, "az-c3-decks", "", "directory of the decks az-c3 may play: the FDN limited decks it was trained on. They are reserved for it, and it plays nothing else")
 	c.az4.registerFlags(fs, policyAZC4, "its .dzgw network")
 	c.az5.registerFlags(fs, policyAZC5, "its .dzgw network (the C5 net, trained after the payment-plan fixes)")
+	extra := extraClosedNetBots()
+	c.extraAZ = make([]closedAZ, len(extra))
+	for i, x := range extra {
+		c.extraAZ[i].policy = x.policy
+		c.extraAZ[i].registerFlags(fs, x.policy, x.netHelp)
+	}
 	fs.BoolVar(&c.allowDecklistBots, "allow-decklist-bots", false, "let the server's own bot-only tables run a bot policy that reads every seat's real decklist (today only the az-c3 demo table, which needs it before -az-c3-net is accepted); such a policy never seats against a human")
 	fs.BoolVar(&c.manabrew, "manabrew", false, "mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot")
 	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew; refuses :8080/:8081)")

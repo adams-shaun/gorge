@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -251,8 +252,14 @@ func TestReservedPoliciesShareADeckDirectory(t *testing.T) {
 	if d, err := load("FDN_b"); err != nil || len(d.Cards) != 40 {
 		t.Errorf("load(FDN_b) = %d cards, %v", len(d.Cards), err)
 	}
-	// Draft events never offer a policy with a reserved pool.
-	if got := c.reservedPolicyNames(); !reflect.DeepEqual(got, []string{policyAZC3, policyAZC4, policyAZC5}) {
+	// Every policy has its reserved pool (draft events still leave out az-c3,
+	// which reads decklists: eventPolicies).
+	var reserved []string
+	for p := range c.policyPools {
+		reserved = append(reserved, p)
+	}
+	sort.Strings(reserved)
+	if got := reserved; !reflect.DeepEqual(got, []string{policyAZC3, policyAZC4, policyAZC5}) {
 		t.Errorf("reserved policies %v", got)
 	}
 }
