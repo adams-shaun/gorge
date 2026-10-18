@@ -179,7 +179,7 @@ func topKWalk(t *testing.T, r measureRoot, net *policynet.Model, k int, autoPay 
 	if !ok {
 		t.Fatalf("%s: no candidates", r.name)
 	}
-	cands, prior, _, _ := rankedPrior(net, k, r.e, r.d, r.bot, kind, full, nil)
+	cands, prior, _, _ := rankedPrior(net, k, 0, r.e, r.d, r.bot, kind, full, nil)
 	var st Stats
 	cfg := &walkConfig{
 		net: net, kinds: AllKinds(), limit: BenchCandidateLimit, priorTopK: k, maxSteps: 2000,
@@ -413,5 +413,55 @@ func TestValidateRefusesAOneCandidateTopK(t *testing.T) {
 	opts.PriorTopK = 2
 	if err := opts.Validate(hashNet()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// PriorRankMaxOptions skips the ranking at a root with more options than
+// the cap: the bot's answer and the enumeration's next k-1 under a uniform
+// prior, counted as a fallback. A cap no point reaches is the plain
+// PriorTopK search, byte for byte (the cap applies at in-walk points too,
+// which can offer more options than the root).
+func TestPriorRankMaxOptionsSkipsTheRanking(t *testing.T) {
+	const k = 3
+	net := hashNet()
+	skipped := 0
+	for i, r := range measureRoots(t, 10) {
+		full, _, _, ok, _ := enumerateCut(searchprobe.NewCollector(r.d.Player), r.e, r.d, r.bot, AllKinds(), BenchCandidateLimit, false)
+		if !ok || len(full) <= k {
+			continue
+		}
+		opts := DefaultOptions()
+		opts.Sims, opts.Seed, opts.PriorTopK, opts.HeuristicLeaf = 24, uint64(i)+1, k, true
+		plain := searchAt(t, r.e, r.d, r.bot, net, opts)
+		opts.PriorRankMaxOptions = 1 << 20
+		if same := searchAt(t, r.e, r.d, r.bot, net, opts); !reflect.DeepEqual(same, plain) {
+			t.Fatalf("%s: a cap no point reaches changed the search", r.name)
+		}
+		opts.PriorRankMaxOptions = len(r.d.Options) - 1
+		if opts.PriorRankMaxOptions < 1 {
+			continue
+		}
+		res := searchAt(t, r.e, r.d, r.bot, net, opts)
+		checkResult(t, r.d, r.bot, res, opts.Sims)
+		if want := keysOf(full[:k]); !reflect.DeepEqual(res.Keys, want) {
+			t.Fatalf("%s: capped root kept %v, want the enumeration's first %d %v", r.name, res.Keys, k, want)
+		}
+		for _, p := range res.Prior {
+			if !near(p, 1.0/k) {
+				t.Fatalf("%s: capped root prior %v, want uniform", r.name, res.Prior)
+			}
+		}
+		if res.Stats.PriorFallbacks < 1 {
+			t.Fatalf("%s: capped root not counted as a prior fallback", r.name)
+		}
+		skipped++
+	}
+	if skipped == 0 {
+		t.Fatal("no root exercised the cap")
+	}
+	opts := DefaultOptions()
+	opts.PriorRankMaxOptions = -1
+	if err := opts.Validate(nil); err == nil {
+		t.Fatal("PriorRankMaxOptions -1 accepted")
 	}
 }

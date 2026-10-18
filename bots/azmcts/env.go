@@ -40,6 +40,9 @@ type walkConfig struct {
 	// candidates rankedPrior keeps at every in-walk point of the searching
 	// seat, which then enumerates past limit (enumLimit).
 	priorTopK int
+	// rankMax is Options.PriorRankMaxOptions: above that many options a
+	// point skips the network ranking (rankedPrior).
+	rankMax int
 	// rootPerWorld re-derives the root candidates in every world
 	// (Options.RootPerWorld).
 	rootPerWorld bool
@@ -474,7 +477,7 @@ func (e *engineEnv) advance() (*Point, error) {
 				}
 				// Under priorTopK the network keeps the point's best
 				// candidates (after nameKeys, which may merge two).
-				cands, prior, fell, before := rankedPrior(e.cfg.priorNet(), e.cfg.priorTopK, e.e, pd, in, kind, cands, e.cfg.priorView())
+				cands, prior, fell, before := rankedPrior(e.cfg.priorNet(), e.cfg.priorTopK, e.cfg.rankMax, e.e, pd, in, kind, cands, e.cfg.priorView())
 				e.cur, e.cands = pd, cands
 				if fell {
 					e.cfg.stats.PriorFallbacks++
@@ -561,7 +564,7 @@ func (e *engineEnv) oppPoint(pd *decision.Decision, in decision.Intent) *Point {
 	if cut {
 		e.cfg.stats.Truncated++
 	}
-	cands, prior, fell, before := rankedPrior(e.cfg.priorNet(), topK, e.e, pd, in, kind, cands, e.cfg.priorView())
+	cands, prior, fell, before := rankedPrior(e.cfg.priorNet(), topK, e.cfg.rankMax, e.e, pd, in, kind, cands, e.cfg.priorView())
 	keys := make([]Key, len(cands))
 	for i := range cands {
 		cands[i].key = Key(oppKeyPrefix + string(cands[i].key))
