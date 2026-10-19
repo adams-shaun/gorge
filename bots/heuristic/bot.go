@@ -244,6 +244,13 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	if b.mulligan != botpolicy.MulliganCoin {
 		brd.Mulligan = b.mulligan
 	}
+	// The opt-in A2 rules travel on the Board like cast and mulligan, so they
+	// are applied HERE rather than in an entry point: a caller builds the
+	// Board and cannot know this bot's policy configuration, and a per-entry
+	// assignment is one forgotten line away from silently un-arming the
+	// rules. The zero value leaves brd unchanged, so the default bot is
+	// unaffected.
+	brd.Targets = b.targets
 	if b.autoPayMana {
 		if in, ok := b.paymentIntent(brd, d); ok {
 			return in
@@ -502,7 +509,6 @@ func (b *Bot) decideWithoutAutoPay(brd botpolicy.Board, d *decision.Decision) de
 // same Board for the same game facts.
 func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
 	brd := BoardFromView(v)
-	brd.Targets = b.targets
 	return b.decide(brd, &d), nil
 }
 
@@ -513,11 +519,6 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 // was built from derives exactly the facts the projected View would have
 // carried (TestBotAdaptersAgreeOverWholeGame pins the two halves).
 func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Decision) (decision.Intent, error) {
-	// The caller built brd from the engine and cannot know this bot's policy
-	// configuration, so the opt-in A2 rules are applied here exactly as
-	// Decide applies them to the view-shaped Board. The zero value leaves
-	// brd unchanged, so the default bot is unaffected.
-	brd.Targets = b.targets
 	return b.decide(brd, &d), nil
 }
 
