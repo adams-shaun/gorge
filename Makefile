@@ -69,6 +69,7 @@ help:
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
 	@echo "  make enginebench-verify [REV=.]        — memo-verify-mode smoke over the bench rows"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
+	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
 	@echo "  make gorged         — run the M2a table server (browser client at the addr)"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into server/gorged/webdist"
@@ -308,3 +309,20 @@ clean-cards:
 .PHONY: coverage
 coverage: $(BIN_DIR)/forgec
 	$(BIN_DIR)/forgec coverage -dir $(CARDS_DIR) -out .coverage
+
+# ---- pull requests ------------------------------------------------------------
+# make pr                 open (or refresh) a GitHub PR: current branch -> origin's default branch
+#   PR_HEAD=<branch>      branch to propose (default: the checked-out branch)
+#   PR_BASE=<branch>      target branch (default: origin's default branch)
+#   TITLE="..."           PR title (default: the commit subject, or "<head> → <base>: N commits")
+#   SUMMARY="..."         a paragraph placed under the overview table
+#   DRAFT=1               open as a draft      DRY=1   print the title and body only
+.PHONY: pr
+pr: export HEAD = $(PR_HEAD)
+pr: export BASE = $(PR_BASE)
+pr: export TITLE := $(TITLE)
+pr: export SUMMARY := $(SUMMARY)
+pr: export DRAFT := $(DRAFT)
+pr: export DRY := $(DRY)
+pr:
+	@bash scripts/open-pr.sh
