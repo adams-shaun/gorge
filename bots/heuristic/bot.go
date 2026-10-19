@@ -110,16 +110,11 @@ func NewBotOn(src *rand.PCG) *Bot {
 
 // EnableTargetRules arms the A2 target-selection rules (botpolicy.TargetRules)
 // on this bot and returns it, so an opt-in constructor chains like the other
-// Enable* methods. The default bot never calls it.
+// Enable* methods. The default bot never calls it; the forge-heuristic policy
+// (bots/forgeheuristic) is the registered constructor that does.
 func (b *Bot) EnableTargetRules(r botpolicy.TargetRules) *Bot {
 	b.targets = r
 	return b
-}
-
-// NewBotWithTargetRules is the opt-in constructor for the A2 rules: the
-// default NewBot, with the given rules armed.
-func NewBotWithTargetRules(seed uint64, r botpolicy.TargetRules) *Bot {
-	return NewBotOn(BotSource(seed)).EnableTargetRules(r)
 }
 
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
@@ -632,6 +627,32 @@ func BoardFromView(v view.View) botpolicy.Board {
 			}
 			b.Commanders.Set(cv.ID, cmdr)
 		}
+	}
+	// The public-card colour census (A2): every player's battlefield,
+	// graveyard and exile, then the stack -- the same canonical order
+	// BoardFromGameInto's fillPublicCards walks. A face-down card carries
+	// FaceDown and a ZERO colour, because the projection redacts its printed
+	// identity (CR 708.5); the A2 fold must never read it.
+	for _, p := range v.Players {
+		for _, zone := range [][]view.CardView{p.Battlefield, p.Graveyard, p.Exile} {
+			for _, cv := range zone {
+				pc := botpolicy.PublicCard{Controller: cv.Controller, FaceDown: cv.FaceDown}
+				if !cv.FaceDown {
+					pc.Colour = cv.ColourIdentity
+				}
+				b.PublicCards.Set(cv.ID, pc)
+			}
+		}
+	}
+	for _, sv := range v.Stack {
+		if sv.Card == nil {
+			continue
+		}
+		pc := botpolicy.PublicCard{Controller: sv.Controller, FaceDown: sv.Card.FaceDown}
+		if !sv.Card.FaceDown {
+			pc.Colour = sv.Card.ColourIdentity
+		}
+		b.PublicCards.Set(sv.ID, pc)
 	}
 	// The CR 903.10 clock, filled from every player's damage keys. The map
 	// iteration order is irrelevant: each entry lands in b.Commanders[id]'s

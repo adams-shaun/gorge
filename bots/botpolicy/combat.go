@@ -99,11 +99,12 @@ func (c Creature) pt() int32 { return c.Power + c.Toughness }
 // count the Life map is sized to (len(g.Players) at the time).
 func NewBoard(numPlayers int) Board {
 	return Board{
-		Creatures:  makeTable[state.ObjID, Creature](32),
-		Life:       makeTable[state.PlayerID, int32](numPlayers),
-		Cards:      makeTable[state.ObjID, Card](16),
-		Commanders: makeTable[state.ObjID, Commander](8),
-		Stack:      make([]StackEntry, 0, 8),
+		Creatures:   makeTable[state.ObjID, Creature](32),
+		Life:        makeTable[state.PlayerID, int32](numPlayers),
+		Cards:       makeTable[state.ObjID, Card](16),
+		PublicCards: makeTable[state.ObjID, PublicCard](16),
+		Commanders:  makeTable[state.ObjID, Commander](8),
+		Stack:       make([]StackEntry, 0, 8),
 	}
 }
 
@@ -151,6 +152,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	b.Creatures.Reset()
 	b.Life.Reset()
 	b.Cards.Reset()
+	b.PublicCards.Reset()
 	b.Commanders.Reset()
 	b.kwArena = b.kwArena[:0]
 	// The public stack census (C8's facts): the stack's own bottom-to-top
@@ -435,7 +437,56 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			}
 		}
 	}
+	fillPublicCards(g, b, func(_ *state.Object, f *cards.Face) cards.ColourMask {
+		return cards.ColourMask(f.ColourIdentity())
+	})
 	return *b
+}
+
+// fillPublicCards fills Board.PublicCards with every player's public-zone
+// cards -- battlefield, graveyard, exile, then the stack -- in one canonical
+// order shared by the scratch and incremental fills, so boardsDiffer sees
+// the same entry order either way. colourOf is the half's own printed-face
+// read (the scratch fill reads the face directly; the incremental fill reuses
+// its cached row). A face-down object contributes Controller and FaceDown
+// but a ZERO Colour: its printed identity is hidden (CR 708.5), and the A2
+// fold must never see it.
+func fillPublicCards(g *state.Game, b *Board, colourOf func(*state.Object, *cards.Face) cards.ColourMask) {
+	for i := range g.Players {
+		p := &g.Players[i]
+		for _, z := range [...]state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+			for _, id := range g.Zone(z, p.ID) {
+				o := g.Obj(id)
+				if o == nil || o.Ephemeral() {
+					continue
+				}
+				f := o.Face()
+				if f == nil {
+					continue
+				}
+				pc := PublicCard{Controller: o.Controller, FaceDown: o.FaceDown}
+				if !o.FaceDown {
+					pc.Colour = colourOf(o, f)
+				}
+				b.PublicCards.Set(id, pc)
+			}
+		}
+	}
+	for _, id := range g.Stack {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		pc := PublicCard{Controller: o.Controller, FaceDown: o.FaceDown}
+		if !o.FaceDown {
+			pc.Colour = colourOf(o, f)
+		}
+		b.PublicCards.Set(id, pc)
+	}
 }
 
 // The commander bookkeeping: every commander in the match, in the

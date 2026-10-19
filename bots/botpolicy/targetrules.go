@@ -49,23 +49,22 @@ const (
 	prominentColourBonus int32 = 2
 )
 
-// deckColourMix reads the deciding seat's own manifest and returns, per
-// colour slot (cards.ColourMask bit order), the number of cards carrying
-// that colour identity.
-//
-// It reads Board.OwnDeck alone: the manifest is the seat's own deck list, so
-// the fold can leak nothing, and it needs no new adapter fact. Colour
-// identity, not "is this card coloured", is the measure because it is what
-// CR 903.4 defines and what ManifestRow.Colour carries: a land that can only
-// make black still counts toward black, which is exactly how a deck's colour
-// posture is read from the cards it plays.
-func (b Board) deckColourMix() [5]int32 {
+// publicColourMix returns, per colour slot (cards.ColourMask bit order), how
+// many of player's PUBLIC cards carry that colour identity. It reads
+// Board.PublicCards alone -- battlefield, graveyard, exile and stack, all
+// facts the deciding seat may legally see -- never the player's hidden deck
+// list. Colour identity, not "is this card coloured", is the measure because
+// it is what CR 903.4 defines: a land that can only make black still counts
+// toward black, which is exactly how a deck's colour posture is read from
+// the cards it plays. A face-down card and a colourless card contribute
+// nothing, so "unknown" is never read as a colour.
+func (b Board) publicColourMix(player state.PlayerID) [5]int32 {
 	var mix [5]int32
-	if b.OwnDeck == nil {
-		return mix
-	}
-	for _, row := range b.OwnDeck.Main {
-		addColourMask(&mix, row.Colour, int32(row.Count))
+	for _, pc := range b.PublicCards.All() {
+		if pc.Controller != player || pc.FaceDown || pc.Colour == 0 {
+			continue
+		}
+		addColourMask(&mix, pc.Colour, 1)
 	}
 	return mix
 }
@@ -80,8 +79,8 @@ func addColourMask(mix *[5]int32, m cards.ColourMask, n int32) {
 }
 
 // dominantColour is the slot holding the most of mix, ties broken by slot
-// order. It returns -1 when the deck names no colour: a colourless deck has
-// no prominent colour, and "unknown" must never be read as "white".
+// order. It returns -1 when the public cards name no colour: a colourless
+// board has no prominent colour, and "unknown" must never be read as "white".
 func dominantColour(mix [5]int32) int {
 	best, bestN := -1, int32(0)
 	for i := 0; i < 5; i++ {

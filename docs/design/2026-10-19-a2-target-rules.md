@@ -20,7 +20,9 @@ Three clean-room target-selection rules re-expressed from Forge's
    demoted below the better copy.
 
 Behind `botpolicy.TargetRules` (zero value = off) on `Board.Targets`, armed
-through `heuristic.NewBotWithTargetRules` / `Bot.EnableTargetRules`.
+through `heuristic.Bot.EnableTargetRules`. The registered `forge-heuristic`
+policy (`bots/forgeheuristic`, experimental) is the constructor that arms all
+three; the default `bot` leaves them off.
 
 **Facts added to carry them** (all printed, all filled identically by both
 adapters, pinned by the existing board-parity tests):
@@ -29,7 +31,11 @@ adapters, pinned by the existing board-parity tests):
   word-set signature, because `Card` must stay comparable).
 - `view.CardView.ColourIdentity` (json-tagged: it changes the frame
   encoding, so the searchprobe goldens were re-pinned with attribution).
-- `deck.ManifestRow.Colour`, so the colour fold reads `Board.OwnDeck` alone.
+- `botpolicy.Board.PublicCards` (`PublicCard.Controller`, `.Colour`,
+  `.FaceDown`), filled identically by both adapters from every player's
+  public zones (battlefield, graveyard, exile, stack). The colour fold reads
+  the TARGET controller's public cards, never the deciding seat's hidden
+  deck list; a face-down card contributes nothing.
 
 ## The gate, run
 
@@ -75,11 +81,12 @@ that pool.
 Per the ticket's own acceptance rule -- "if it cannot beat the gate, the note
 says so and the code is deleted or left opt-in with the number written down"
 -- the code stays **opt-in, default path untouched**, and this note is the
-number. It is not promoted, not hosted, and not referenced by any production
-constructor.
+number. It is registered as the experimental `forge-heuristic` policy so it
+can be selected and benched, but it is not the default and no production
+constructor arms it implicitly.
 
-The Board/view/manifest facts added to carry the rules are kept because they
-are printed-card facts with independent value (a bot reading a deck's colour
+The Board/view facts added to carry the rules are kept because they are
+printed-card facts with independent value (a bot reading a public colour
 posture), and both adapters are pinned to agree on them.
 
 ## Reproducing
@@ -91,9 +98,10 @@ Add one to a scratch checkout of four-yay before measuring:
 ```go
 // in cmd/botbench/main.go's policies map
 "targets": func(seed uint64) seat.Seat {
-	return heuristic.NewBotWithTargetRules(seed, botpolicy.TargetRules{
+	b := heuristic.NewBot(seed).EnableTargetRules(botpolicy.TargetRules{
 		LandPriority: true, ProminentColour: true, FilterFatalCopies: true,
 	})
+	return b
 },
 ```
 

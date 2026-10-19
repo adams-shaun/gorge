@@ -17,13 +17,6 @@ type ManifestRow struct {
 	Name  string `json:"name"`
 	Count int    `json:"count"`
 	Land  bool   `json:"land,omitempty"`
-	// Colour is the row's card's colour IDENTITY as a cards.ColourMask
-	// (CR 903.4, the same mask cards.Face.ColourIdentity returns). It is a
-	// printed fact of the deck the seat itself authored, so carrying it
-	// leaks nothing: it is on the manifest the seat already holds. It lets a
-	// bot read a deck's colour posture (which colour the deck is built
-	// around, which splashes) from view.OwnDeck without a registry lookup.
-	Colour cards.ColourMask `json:"colour,omitempty"`
 }
 
 // Manifest is the immutable, unordered genesis list assigned to one seat.
@@ -85,17 +78,12 @@ func (m Manifest) Clone() Manifest {
 func manifestRows(cardsIn []*cards.Card) []ManifestRow {
 	counts := make(map[string]int)
 	land := make(map[string]bool)
-	colour := make(map[string]cards.ColourMask)
 	for _, c := range cardsIn {
 		if c != nil && len(c.Faces) > 0 && c.Faces[0].Name != "" {
 			counts[c.Faces[0].Name]++
 			if c.Faces[0].IsLand() {
 				land[c.Faces[0].Name] = true
 			}
-			// A double-faced card's colour identity is its front face's, the
-			// same face the row names (CR 712.8: identity is computed on the
-			// front face).
-			colour[c.Faces[0].Name] = cards.ColourMask(c.Faces[0].ColourIdentity())
 		}
 	}
 	names := make([]string, 0, len(counts))
@@ -105,7 +93,7 @@ func manifestRows(cardsIn []*cards.Card) []ManifestRow {
 	sort.Strings(names)
 	rows := make([]ManifestRow, 0, len(names))
 	for _, name := range names {
-		rows = append(rows, ManifestRow{Name: name, Count: counts[name], Land: land[name], Colour: colour[name]})
+		rows = append(rows, ManifestRow{Name: name, Count: counts[name], Land: land[name]})
 	}
 	return rows
 }

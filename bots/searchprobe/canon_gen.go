@@ -821,12 +821,6 @@ func (e *canonEncoder) encdeck_ManifestRow(v *deck.ManifestRow) error {
 			e.buf = append(e.buf, 0)
 		}
 	}
-	if v.Colour == 0 {
-		e.buf = append(e.buf, 0)
-	} else {
-		e.buf = append(e.buf, 1)
-		e.buf = binary.AppendUvarint(e.buf, uint64(v.Colour))
-	}
 	return nil
 }
 

@@ -501,16 +501,12 @@ func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) f
 		}
 		// A2: the land and prominent-colour rules tune the value tier. Both
 		// are zero unless Board.Targets armed them, so the default ranking is
-		// unchanged. The opponent's dominant colour is folded once per call
-		// from the DECIDING seat's own manifest -- their deck is a colour
-		// posture, and the target's controller is the opponent whose deck
-		// this policy cannot read; the dominant colour of a deck we cannot
-		// see is therefore read off OUR OWN deck's colour mix, which is the
-		// conservative choice a shared colour axis needs (the mirror match is
-		// exact, a two-colour opponent is ordered by our own bias, never
-		// invented).
+		// unchanged. The target controller's dominant colour is folded from
+		// that player's PUBLIC cards (Board.PublicCards: battlefield,
+		// graveyard, exile, stack), never from a hidden deck list; a
+		// face-down or colourless card contributes nothing.
 		if b.Targets.LandPriority || b.Targets.ProminentColour {
-			dominant := dominantColour(b.deckColourMix())
+			dominant := dominantColour(b.publicColourMix(o.Controller))
 			if b.Targets.LandPriority {
 				bonus += b.landPriority(o.Obj, dominant)
 			}

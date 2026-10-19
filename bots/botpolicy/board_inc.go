@@ -336,6 +336,9 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			}
 		}
 	}
+	fillPublicCards(g, b, func(o *state.Object, f *cards.Face) cards.ColourMask {
+		return inc.face(o.ID, f, k).colour
+	})
 	return true
 }
 
@@ -358,6 +361,8 @@ func boardsDiffer(a, b Board) string {
 		return fmt.Sprintf("Creatures %v / %v vs %v / %v", a.Creatures.Keys(), a.Creatures.Values(), b.Creatures.Keys(), b.Creatures.Values())
 	case !tablesSame(a.Cards, b.Cards, comparableEqual[Card]):
 		return fmt.Sprintf("Cards %v / %+v vs %v / %+v", a.Cards.Keys(), a.Cards.Values(), b.Cards.Keys(), b.Cards.Values())
+	case !tablesSame(a.PublicCards, b.PublicCards, comparableEqual[PublicCard]):
+		return fmt.Sprintf("PublicCards %v / %+v vs %v / %+v", a.PublicCards.Keys(), a.PublicCards.Values(), b.PublicCards.Keys(), b.PublicCards.Values())
 	case !tablesSame(a.Life, b.Life, comparableEqual[int32]):
 		return "Life"
 	case !tablesSame(a.Commanders, b.Commanders, commanderEqual):

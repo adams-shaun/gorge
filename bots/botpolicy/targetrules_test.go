@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -15,21 +14,27 @@ func removalDecision(options []tgt) *decision.Decision {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KTarget, Min: 1, Max: 1,
 		TargetEffect: &decision.TargetEffect{API: "Destroy", Removal: &decision.RemovalEffect{Kind: "destroy"}}}
 	for _, o := range options {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: o.kind, Obj: o.obj, Player: o.pl})
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: o.kind, Obj: o.obj, Player: o.pl, Controller: o.pl})
 	}
 	return &d
 }
 
 // ruleBoard is a board with the given cards and creatures, both tables
-// allocated, so a rule can look up either.
-func ruleBoard(cs map[state.ObjID]Card, crs []state.ObjID, deckList *deck.Manifest) Board {
-	return ruleBoardKw(cs, crs, nil, deckList)
+// allocated, so a rule can look up either. public is the public-card colour
+// census the A2 colour fold reads, keyed by object id.
+func ruleBoard(cs map[state.ObjID]Card, crs []state.ObjID, public map[state.ObjID]PublicCard) Board {
+	return ruleBoardKw(cs, crs, nil, public)
 }
 
 // ruleBoardKw is ruleBoard with per-creature keyword lists, for the copy
 // rule's keyword-superset test.
-func ruleBoardKw(cs map[state.ObjID]Card, crs []state.ObjID, kw map[state.ObjID][]string, deckList *deck.Manifest) Board {
-	b := Board{Cards: TableOf(map[state.ObjID]Card{}), Creatures: TableOf(map[state.ObjID]Creature{}), Life: TableOf(map[state.PlayerID]int32{}), OwnDeck: deckList}
+func ruleBoardKw(cs map[state.ObjID]Card, crs []state.ObjID, kw map[state.ObjID][]string, public map[state.ObjID]PublicCard) Board {
+	b := Board{
+		Cards:       TableOf(map[state.ObjID]Card{}),
+		Creatures:   TableOf(map[state.ObjID]Creature{}),
+		Life:        TableOf(map[state.PlayerID]int32{}),
+		PublicCards: TableOf(public),
+	}
 	for id, c := range cs {
 		b.Cards.Set(id, c)
 	}
@@ -40,38 +45,22 @@ func ruleBoardKw(cs map[state.ObjID]Card, crs []state.ObjID, kw map[state.ObjID]
 	return b
 }
 
-// TestDominantColour FoldsA mono-black manifest to black and a deck with no
-// manifest to "no colour".
-func TestDominantColourFoldsTheManifest(t *testing.T) {
-	m := deck.Manifest{Main: []deck.ManifestRow{
-		{Name: "Swamp", Count: 22, Land: true, Colour: cards.ColourMaskBlack},
-		{Name: "Doom Blade", Count: 4, Colour: cards.ColourMaskBlack},
-		{Name: "Ghost Quarter", Count: 2, Land: true},
-	}}
-	b := Board{OwnDeck: &m}
-	if got := dominantColour(b.deckColourMix()); got != 2 {
-		t.Fatalf("dominant colour = %d, want 2 (black)", got)
-	}
-	if got := dominantColour(Board{}.deckColourMix()); got != -1 {
-		t.Fatalf("colourless deck dominant = %d, want -1", got)
-	}
-}
-
 // TestLandPriorityPrefersTheDominantColoursLand is the core A2 land rule:
 // with land priority armed, a removal targets the opponent's black land over
 // an off-colour land of the same cost, and the unarmed default keeps the
 // option index's order.
 func TestLandPriorityPrefersTheDominantColoursLand(t *testing.T) {
-	m := deck.Manifest{Main: []deck.ManifestRow{
-		{Name: "Swamp", Count: 22, Land: true, Colour: cards.ColourMaskBlack},
-	}}
 	// Option 0 is the splash land, option 1 the black land: the plain
 	// ranking takes option 0 (equal score, lower index).
 	cs := map[state.ObjID]Card{
 		10: {PrintedName: "Mountain", Land: true, Colour: cards.ColourMaskRed, CMC: 1},
 		11: {PrintedName: "Swamp", Land: true, Colour: cards.ColourMaskBlack, CMC: 1},
 	}
-	b := ruleBoard(cs, nil, &m)
+	public := map[state.ObjID]PublicCard{
+		10: {Controller: 1, Colour: cards.ColourMaskRed},
+		11: {Controller: 1, Colour: cards.ColourMaskBlack},
+	}
+	b := ruleBoard(cs, nil, public)
 	d := removalDecision([]tgt{{kind: "permanent", obj: 10, pl: 1}, {kind: "permanent", obj: 11, pl: 1}})
 
 	if got := Decide(b, d, rng(1)).Choices; len(got) != 1 || got[0] != 0 {
@@ -86,9 +75,11 @@ func TestLandPriorityPrefersTheDominantColoursLand(t *testing.T) {
 // TestColourlessLandEarnsNoPriority: a colourless land is never the source a
 // deck is built around, so it gains nothing.
 func TestColourlessLandEarnsNoPriority(t *testing.T) {
-	m := deck.Manifest{Main: []deck.ManifestRow{{Name: "Swamp", Count: 22, Land: true, Colour: cards.ColourMaskBlack}}}
-	b := ruleBoard(map[state.ObjID]Card{10: {PrintedName: "Wastes", Land: true, CMC: 1}}, nil, &m)
-	if got := b.landPriority(10, dominantColour(b.deckColourMix())); got != 0 {
+	public := map[state.ObjID]PublicCard{
+		11: {Controller: 1, Colour: cards.ColourMaskBlack},
+	}
+	b := ruleBoard(map[state.ObjID]Card{10: {PrintedName: "Wastes", Land: true, CMC: 1}}, nil, public)
+	if got := b.landPriority(10, dominantColour(b.publicColourMix(1))); got != 0 {
 		t.Fatalf("colourless land priority = %d, want 0", got)
 	}
 }
@@ -97,12 +88,15 @@ func TestColourlessLandEarnsNoPriority(t *testing.T) {
 // creature of the dominant colour outranks an off-colour creature of equal
 // stats; the unarmed default takes the lower index.
 func TestProminentColourBoostsTheEnginesCreature(t *testing.T) {
-	m := deck.Manifest{Main: []deck.ManifestRow{{Name: "Doom Blade", Count: 4, Colour: cards.ColourMaskBlack}}}
 	cs := map[state.ObjID]Card{
 		10: {PrintedName: "Goblin", Creature: true, Power: 2, Toughness: 2, Colour: cards.ColourMaskRed},
 		11: {PrintedName: "Zombie", Creature: true, Power: 2, Toughness: 2, Colour: cards.ColourMaskBlack},
 	}
-	b := ruleBoard(cs, []state.ObjID{10, 11}, &m)
+	public := map[state.ObjID]PublicCard{
+		10: {Controller: 1, Colour: cards.ColourMaskRed},
+		11: {Controller: 1, Colour: cards.ColourMaskBlack},
+	}
+	b := ruleBoard(cs, []state.ObjID{10, 11}, public)
 	d := removalDecision([]tgt{{kind: "permanent", obj: 10, pl: 1}, {kind: "permanent", obj: 11, pl: 1}})
 
 	if got := Decide(b, d, rng(1)).Choices; len(got) != 1 || got[0] != 0 {
