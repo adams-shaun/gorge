@@ -27,23 +27,28 @@
         },
         {
           "name": "Mountain Almsgiver 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Bolt 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Growth 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Warden 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Whelp 0",
-          "count": 7
+          "count": 7,
+          "colour": 8
         }
       ],
       "curve": [
@@ -556,6 +561,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -574,6 +580,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -592,6 +599,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -610,6 +618,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -629,6 +638,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -648,6 +658,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },
@@ -667,6 +678,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },
@@ -686,6 +698,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },
@@ -704,6 +717,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -722,6 +736,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -740,6 +755,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -758,6 +774,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -777,6 +794,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -796,6 +814,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -815,6 +834,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -834,6 +854,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -853,6 +874,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -875,6 +897,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -893,6 +916,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -911,6 +935,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -931,6 +956,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },
@@ -950,6 +976,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -997,6 +1024,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -1058,23 +1086,28 @@
         },
         {
           "name": "Mountain Almsgiver 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Bolt 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Growth 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Warden 0",
-          "count": 4
+          "count": 4,
+          "colour": 8
         },
         {
           "name": "Mountain Whelp 0",
-          "count": 7
+          "count": 7,
+          "colour": 8
         }
       ],
       "curve": [
@@ -1559,6 +1592,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -1577,6 +1611,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -1595,6 +1630,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -1613,6 +1649,7 @@
             "name": "Mountain Almsgiver 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Almsgiver 0"
             },
@@ -1632,6 +1669,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -1651,6 +1689,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -1670,6 +1709,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -1689,6 +1729,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },
@@ -1708,6 +1749,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },
@@ -1727,6 +1769,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },
@@ -1745,6 +1788,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -1763,6 +1807,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -1781,6 +1826,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -1799,6 +1845,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -1818,6 +1865,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -1837,6 +1885,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -1856,6 +1905,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -1875,6 +1925,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -1897,6 +1948,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "DealDamage",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
             },
@@ -1915,6 +1967,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -1962,6 +2015,7 @@
             "name": "Mountain Whelp 0",
             "types": "Creature Whelp",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Whelp 0"
             },
@@ -1981,6 +2035,7 @@
             "name": "Mountain Warden 0",
             "types": "Enchantment",
             "mana_cost": "R",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Warden 0"
             },
@@ -2000,6 +2055,7 @@
             "types": "Instant",
             "mana_cost": "R",
             "spell_api": "Pump",
+            "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
             },

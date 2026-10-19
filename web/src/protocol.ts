@@ -175,6 +175,15 @@ export interface ManifestRow {
   name: string;
   count: number;
   land?: boolean;
+  /**
+   * Colour is the row's card's colour IDENTITY as a cards.ColourMask
+   * (CR 903.4, the same mask cards.Face.ColourIdentity returns). It is a
+   * printed fact of the deck the seat itself authored, so carrying it
+   * leaks nothing: it is on the manifest the seat already holds. It lets a
+   * bot read a deck's colour posture (which colour the deck is built
+   * around, which splashes) from view.OwnDeck without a registry lookup.
+   */
+  colour?: number;
 }
 
   /**
@@ -302,6 +311,17 @@ export interface CardView {
    * CardViews at all, so this never leaks hidden information.
    */
   spell_api?: string;
+  /**
+   * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
+   * the printed cost's pips, the colour indicator and every colour-naming
+   * mana symbol in the rules text -- CR 903.4's definition, the same one
+   * cards.Face.ColourIdentity derives). It is a printed fact of a visible
+   * card, like Types and ManaCost, and it is projected so a bot can read a
+   * deck's colour splash from the lands it plays without re-parsing text.
+   * Carried into botpolicy.Card.Colour; a face-down or unreadable card
+   * projects zero, which is "identity unknown", never "colourless".
+   */
+  colour_identity?: number;
   /**
    * Printing is what an image lookup keys on; Token ("#12") tells two
    * copies of one card apart in the stack, the log and an arrow.
