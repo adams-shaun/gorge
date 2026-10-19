@@ -66,10 +66,10 @@ func (c TableConfig) seatBotPolicy(i int) string {
 // seatBotPolicy(i) per seat and the table's CommonSense. It panics on a
 // bots.New error the way defaultSeatsWithAutoPayMana does — the table was
 // validated, so every named policy is registered and buildable.
-func seatPolicySeats(c TableConfig, autoPayMana bool, names []string, seed uint64, searchParallelism int, deps bots.Deps, deadlineMS int) []seat.Seat {
+func seatPolicySeats(c TableConfig, autoPayMana bool, names []string, seed uint64, searchParallelism int, deps bots.Deps, deadlineMS int, configs map[string]map[string]string) []seat.Seat {
 	out := make([]seat.Seat, len(names))
 	for i := range names {
-		bot, err := bots.New(c.seatBotPolicy(i), bots.Options{Seed: seed ^ uint64(i+1), AutoPayMana: autoPayMana, CommonSense: c.BotCommonSense, SearchParallelism: searchParallelism, Deps: deps, DecisionDeadlineMS: deadlineMS})
+		bot, err := bots.New(c.seatBotPolicy(i), bots.Options{Seed: seed ^ uint64(i+1), AutoPayMana: autoPayMana, CommonSense: c.BotCommonSense, SearchParallelism: searchParallelism, Deps: deps, DecisionDeadlineMS: deadlineMS, Config: configs[c.seatBotPolicy(i)]})
 		if err != nil {
 			panic(err) // policy was normalized before the table was registered.
 		}

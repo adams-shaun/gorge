@@ -34,8 +34,8 @@ func NewBotPolicySeat(name string, seed uint64) (seat.Seat, error) {
 // wrapper keeps its load-bearing CommonSense-free signature (cmd/cardfuzz and
 // tests build the plain seat); this internal path threads the full option set
 // the table path (defaultSeatsWithAutoPayMana) threads.
-func newCaretakerSeat(name string, seed uint64, autoPayMana, commonSense bool, deps bots.Deps) (seat.Seat, error) {
-	s, err := bots.New(name, bots.Options{Seed: seed, AutoPayMana: autoPayMana, CommonSense: commonSense, Deps: deps, DecisionDeadlineMS: hostedDecisionDeadlineMS})
+func newCaretakerSeat(name string, seed uint64, autoPayMana, commonSense bool, deps bots.Deps, config map[string]string) (seat.Seat, error) {
+	s, err := bots.New(name, bots.Options{Seed: seed, AutoPayMana: autoPayMana, CommonSense: commonSense, Deps: deps, DecisionDeadlineMS: hostedDecisionDeadlineMS, Config: config})
 	if err != nil {
 		return nil, err
 	}

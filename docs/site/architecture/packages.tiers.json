@@ -180,6 +180,11 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "examples/nativebot": {
+      "tier": "cmd",
+      "status": "EXT",
+      "purpose": "Minimal linked-in bot policy and gorged example binary."
+    },
     "engine/cards": {
       "tier": "engine",
       "status": "CORE"

@@ -110,6 +110,12 @@ type config struct {
 	// botPolicies is the parsed offered set, in registry order (production
 	// first, then name), resolved by validateBotPolicyFlags at serve time.
 	botPolicies []string
+	// botOpts and botConfigs are the repeatable -bot-opt and -bot-config
+	// arguments in command-line order; botConfig is the merged, validated
+	// map handed to every hosted bot factory (resolveBotOptions).
+	botOpts    []string
+	botConfigs []string
+	botConfig  map[string]map[string]string
 	// botSearchSlots is the -bot-search-slots flag: how many searched
 	// decisions run concurrently registry-wide (host.Options.SearchSlots; 0
 	// is unbounded at the host, but the flag's default is
@@ -262,6 +268,10 @@ func Main(args []string, ext Extensions) int {
 		fmt.Fprintln(os.Stderr, "gorged:", err)
 		return 2
 	}
+	if err := c.resolveBotOptions(); err != nil {
+		fmt.Fprintln(os.Stderr, "gorged:", err)
+		return 2
+	}
 	// The one-shot art fill needs no listener, no corpus and no tables — it
 	// reads deck JSON and writes the cache — so it dispatches before the
 	// bind. A non-zero exit means the cache is not complete; the deploy
@@ -298,6 +308,9 @@ func Serve(ctx context.Context, args []string, ln net.Listener, ext Extensions) 
 	if err := c.validateBotFlagNumbers(); err != nil {
 		return err
 	}
+	if err := c.resolveBotOptions(); err != nil {
+		return err
+	}
 	return serve(ctx, *c, ln)
 }
 
@@ -326,6 +339,18 @@ func (c config) validateBotFlagNumbers() error {
 	if c.maxSearchTables < 0 {
 		return fmt.Errorf("-max-search-tables %d, want >= 0", c.maxSearchTables)
 	}
+	return nil
+}
+
+// resolveBotOptions merges and validates the repeatable -bot-opt and
+// -bot-config flags against the registry's declared options. It is called
+// once on the parsed flag values, before a listener opens.
+func (c *config) resolveBotOptions() error {
+	resolved, err := resolveBotOptions(c.botOpts, c.botConfigs, os.Getenv)
+	if err != nil {
+		return err
+	}
+	c.botConfig = resolved
 	return nil
 }
 
@@ -367,6 +392,14 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.BoolVar(&c.autoMana, "auto-mana", true, "enable automatic mana payment plans and controls for human seats (disable with -auto-mana=false for the legacy manual path)")
 	fs.StringVar(&c.botPolicy, "bot-policy", host.LethalPressurePolicy, "default hosted bot policy for a vs-bot request that omits bot_policy; must be registered, offered, and support both formats (bot, lethal-pressure, cast-profile)")
 	fs.StringVar(&c.botPoliciesRaw, "bot-policies", defaultBotPoliciesRaw, "comma-separated set of bot policies this server OFFERS (the /api/bot-policies listing and accepted POST /api/games names); empty offers every registered entry that does not read opponents' decklists (a decklist-reading policy can never be offered: vs-bot always seats a human)")
+	fs.Func("bot-opt", "set a bot policy option: <policy>.<key>=<value> (repeatable; overrides -bot-config and the environment)", func(arg string) error {
+		c.botOpts = append(c.botOpts, arg)
+		return nil
+	})
+	fs.Func("bot-config", "read a bot policy's options from a JSON object file: <policy>=<file.json> (repeatable; overrides built-in defaults, below -bot-opt and the environment)", func(arg string) error {
+		c.botConfigs = append(c.botConfigs, arg)
+		return nil
+	})
 	fs.IntVar(&c.botSearchSlots, "bot-search-slots", defaultBotSearchSlots(), "maximum concurrent searched bot decisions across the process; decisions queue, never degrade (>= 1; default max(1, GOMAXPROCS/2))")
 	fs.IntVar(&c.botSearchParallelism, "bot-search-parallelism", 1, "goroutines within one searched decision (latency only, never an answer; >= 1)")
 	fs.IntVar(&c.maxSearchTables, "max-search-tables", 8, "maximum live on-demand tables whose policy is a search entry (0 = unlimited)")
@@ -976,7 +1009,8 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 		// BP-13 (spec §3.2): every hosted bot factory receives the served card
 		// registry, so a policy that reads printed card facts (sb-tactical)
 		// builds with the same corpus the table deals.
-		BotDeps: bots.Deps{Cards: reg}}
+		BotDeps:   bots.Deps{Cards: reg},
+		BotConfig: g.botConfig}
 }
 
 // artCacheDir resolves where the card-art cache lives: -art-dir when set,

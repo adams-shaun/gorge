@@ -124,7 +124,7 @@ func wrappedBot(t *testing.T, s seat.Seat) seat.Seat {
 func TestBotCommonSenseBuildsWrappedSeats(t *testing.T) {
 	names := []string{"a", "b"}
 	for _, tc := range []struct{ commonSense, wantWrapped bool }{{false, false}, {true, true}} {
-		seats := defaultSeatsWithAutoPayMana(BotPolicy, false, tc.commonSense, names, 7, 0, bots.Deps{}, hostedDecisionDeadlineMS)
+		seats := defaultSeatsWithAutoPayMana(BotPolicy, false, tc.commonSense, names, 7, 0, bots.Deps{}, hostedDecisionDeadlineMS, nil)
 		for i, s := range seats {
 			if !tc.wantWrapped {
 				// Precondition: the flag-off seat really is the plain
@@ -141,7 +141,7 @@ func TestBotCommonSenseBuildsWrappedSeats(t *testing.T) {
 				t.Fatalf("commonSense=true seat %d unwrapped to %T, want the built *heuristic.Bot", i, inner)
 			}
 		}
-		caretaker, err := newCaretakerSeat(BotPolicy, 7, false, tc.commonSense, bots.Deps{})
+		caretaker, err := newCaretakerSeat(BotPolicy, 7, false, tc.commonSense, bots.Deps{}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
