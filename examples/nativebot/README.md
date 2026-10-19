@@ -25,7 +25,8 @@ go build ./examples/nativebot
   -bot-opt nativebot.greeting=hello
 ```
 
-The first decision logs `nativebot: hello` once per game. Open
+The first decision of each `nativebot` seat logs `nativebot: hello`; the
+example test seats one, so that game logs it once. Open
 `http://127.0.0.1:8090/` to watch the table. Use the `8090-8099` port range on
 the shared box, and a unique `-dir` (never the repo-root `gorged-data`).
 
