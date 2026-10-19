@@ -85,8 +85,15 @@ type boardRow struct {
 	gen  uint32
 	fill uint32
 	// static facts of face
-	creature, basic, instant, counter, reusable bool
-	cmc                                         int32
+	creature, basic, instant, counter, reusable, land bool
+	cmc                                               int32
+	// colour is the face's colour IDENTITY (cards.Face.ColourIdentity), a
+	// static printed fact like land: it never depends on layers, so it is
+	// cached beside them rather than re-derived per fill.
+	colour cards.ColourMask
+	// typeSig is the face's printed type-word set signature (TypeSigOf), a
+	// static fact like colour: layers do not change a card's kinds.
+	typeSig uint64
 	// pflash/pflashback are the face's printed keyword list's Flash and
 	// Flashback facts.
 	pflash, pflashback bool
@@ -149,6 +156,9 @@ func (inc *boardInc) face(id state.ObjID, f *cards.Face, k boardReadKeyer) *boar
 	if r.face != f {
 		r.face = f
 		r.creature = f.IsCreature()
+		r.land = f.IsLand()
+		r.colour = cards.ColourMask(f.ColourIdentity())
+		r.typeSig = TypeSigOf(f.Types)
 		r.basic = f.TypeLineHas("Basic", twBasic)
 		r.instant = f.TypeLineHas("Instant", twInstant)
 		r.counter = isCounterSpell(f)
@@ -275,6 +285,9 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				Toughness:     r.toughness,
 				CMC:           r.cmc,
 				Basic:         r.basic,
+				Land:          r.land,
+				Colour:        r.colour,
+				TypeSig:       r.typeSig,
 				AttachedTo:    o.AttachedTo,
 				Activated:     o.ActivatedThisTurn,
 				ManaCost:      f.ManaCost,
@@ -314,6 +327,9 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				Power:       r.power,
 				CMC:         r.cmc,
 				Basic:       r.basic,
+				Land:        r.land,
+				Colour:      r.colour,
+				TypeSig:     r.typeSig,
 				ManaCost:    f.ManaCost,
 				Toughness:   r.toughness,
 				Activated:   o.ActivatedThisTurn, // public; A5 (BoardFromGameInto's foreign walk)

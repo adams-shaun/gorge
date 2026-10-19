@@ -49,6 +49,12 @@ type Board struct {
 	// the engine's own step (g.Step.IsMain), which is the same function of
 	// the same five-phase string.
 	IsMain bool
+	// Targets selects the opt-in A2 targeting rules (targetrules.go). The
+	// zero value leaves the ranking in target.go exactly as it was; an
+	// adapter that never sets it is unchanged. It is a policy choice, not a
+	// board fact, so it is filled by the seat constructor that arms it, not
+	// by either adapter's walk.
+	Targets TargetRules
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public

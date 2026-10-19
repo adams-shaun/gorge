@@ -821,6 +821,12 @@ func (e *canonEncoder) encdeck_ManifestRow(v *deck.ManifestRow) error {
 			e.buf = append(e.buf, 0)
 		}
 	}
+	if v.Colour == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.Colour))
+	}
 	return nil
 }
 
@@ -867,6 +873,12 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 	} else {
 		e.buf = append(e.buf, 1)
 		e.appendString(string(v.SpellAPI))
+	}
+	if v.ColourIdentity == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.buf = binary.AppendUvarint(e.buf, uint64(v.ColourIdentity))
 	}
 	if err := e.encview_Printing(&v.Printing); err != nil {
 		return err

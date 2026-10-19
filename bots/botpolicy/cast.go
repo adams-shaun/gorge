@@ -153,6 +153,31 @@ type Card struct {
 	// creature-source modelling. Basic land mana abilities remain usable
 	// while their land is summoning-sick, so the target reserve does not read it.
 	Sick bool
+	// Land reports whether this card's type line carries the Land type. It
+	// is the fact the land-removal priority reads: an effect aimed at a
+	// land ranks by the LAND's role (a colour's only source, a utility
+	// land, a man-land), which needs the type known before the threat
+	// scale -- a land is not a creature, so rankOption's creature lookup
+	// misses it and it would otherwise score 0. Both adapter halves fill
+	// it from the same printed source (CardView.Types on the view half, the
+	// face's own type line on the game half), so they agree.
+	Land bool
+	// Colour is the card's colour IDENTITY as a cards.ColourMask -- the same
+	// encoding cards.Face.ColourIdentity returns and the projection carries
+	// in CardView.ColourIdentity, so both adapter halves are one bit test
+	// apart. Colour identity, not "is this card
+	// coloured", is what the prominent-colour fold needs: a land's identity
+	// is the colours its mana symbols name, which is how a deck's colour
+	// splash is read from lands whose production is restricted.
+	Colour cards.ColourMask
+	// TypeSig is a stable signature of the card's printed type-line word SET
+	// (order-insensitive, case-insensitive), 0 for an unreadable card. Card
+	// must stay comparable (board_inc.go's tablesSame uses generic equality
+	// on it), so the type line is carried as a hash rather than a slice.
+	// Its one reader is the A2 "don't remove a worse copy" rule, which asks
+	// whether two permanents have the same creature types -- an exact
+	// signature match is the right question there, never an ordering.
+	TypeSig uint64
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -1246,4 +1271,42 @@ func (b Board) chooseLand(d *decision.Decision) int {
 		}
 	}
 	return best
+}
+
+// TypeSigOf is Card.TypeSig's derivation: a stable, order- and
+// case-insensitive signature of a printed type line given as words. An empty
+// word list is 0 ("unreadable"), which no real type line can produce: a
+// permanent always carries at least one card type.
+//
+// The fold is a sum of per-word hashes rather than an ordered hash precisely
+// because two printings of the same creature type set ("Creature Goblin",
+// "Goblin Creature") must compare equal, and the autocorrelation a sum gives
+// is enough for a same-set test over the handful of words a type line holds.
+func TypeSigOf(words []string) uint64 {
+	if len(words) == 0 {
+		return 0
+	}
+	var sig uint64
+	for _, w := range words {
+		sig += typeWordHash(strings.ToLower(w))
+	}
+	if sig == 0 {
+		// A non-empty line must never alias the unreadable zero.
+		return 1
+	}
+	return sig
+}
+
+// typeWordHash is FNV-1a over one lower-cased type word.
+func typeWordHash(w string) uint64 {
+	const (
+		offset = 14695981039346656037
+		prime  = 1099511628211
+	)
+	h := uint64(offset)
+	for i := 0; i < len(w); i++ {
+		h ^= uint64(w[i])
+		h *= prime
+	}
+	return h
 }

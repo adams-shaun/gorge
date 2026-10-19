@@ -499,6 +499,34 @@ func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) f
 		case "bounce":
 			bonus = 5
 		}
+		// A2: the land and prominent-colour rules tune the value tier. Both
+		// are zero unless Board.Targets armed them, so the default ranking is
+		// unchanged. The opponent's dominant colour is folded once per call
+		// from the DECIDING seat's own manifest -- their deck is a colour
+		// posture, and the target's controller is the opponent whose deck
+		// this policy cannot read; the dominant colour of a deck we cannot
+		// see is therefore read off OUR OWN deck's colour mix, which is the
+		// conservative choice a shared colour axis needs (the mirror match is
+		// exact, a two-colour opponent is ordered by our own bias, never
+		// invented).
+		if b.Targets.LandPriority || b.Targets.ProminentColour {
+			dominant := dominantColour(b.deckColourMix())
+			if b.Targets.LandPriority {
+				bonus += b.landPriority(o.Obj, dominant)
+			}
+			if b.Targets.ProminentColour {
+				if c, ok := b.Cards.Lookup(o.Obj); ok {
+					bonus += prominentColourContribution(c, dominant)
+				}
+			}
+		}
+		// A2: a strictly worse copy of a creature the same opponent controls
+		// is a wasted removal -- the bigger copy stays. Demote it below the
+		// other value-tier targets without leaving the tier, so a decision
+		// that offers only worse copies still kills something.
+		if b.Targets.FilterFatalCopies && b.worseCopy(o.Obj, me) {
+			bonus -= worseCopyPenalty
+		}
 		r.score = tierValue + value + bonus
 		return r
 	}

@@ -38,6 +38,10 @@ type Bot struct {
 	// manually activating mana abilities. It is configured once by the hosted
 	// table and does not add state or RNG to the match.
 	autoPayMana bool
+	// targets selects the opt-in A2 targeting rules (botpolicy.TargetRules).
+	// Configured once by an opt-in constructor; the zero value leaves the
+	// default ranking untouched, so every hosted policy is unchanged.
+	targets botpolicy.TargetRules
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
@@ -102,6 +106,20 @@ func BotSource(seed uint64) *rand.PCG {
 // NewBot(seed).
 func NewBotOn(src *rand.PCG) *Bot {
 	return &Bot{r: rand.New(src)}
+}
+
+// EnableTargetRules arms the A2 target-selection rules (botpolicy.TargetRules)
+// on this bot and returns it, so an opt-in constructor chains like the other
+// Enable* methods. The default bot never calls it.
+func (b *Bot) EnableTargetRules(r botpolicy.TargetRules) *Bot {
+	b.targets = r
+	return b
+}
+
+// NewBotWithTargetRules is the opt-in constructor for the A2 rules: the
+// default NewBot, with the given rules armed.
+func NewBotWithTargetRules(seed uint64, r botpolicy.TargetRules) *Bot {
+	return NewBotOn(BotSource(seed)).EnableTargetRules(r)
 }
 
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
@@ -483,7 +501,9 @@ func (b *Bot) decideWithoutAutoPay(brd botpolicy.Board, d *decision.Decision) de
 // TestBotAdaptersAgree* (integration_test.go) pins the two halves to the
 // same Board for the same game facts.
 func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	return b.decide(BoardFromView(v), &d), nil
+	brd := BoardFromView(v)
+	brd.Targets = b.targets
+	return b.decide(brd, &d), nil
 }
 
 // DecideBoard is the game-shaped half of Decide: the Board is already built
@@ -493,6 +513,11 @@ func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decis
 // was built from derives exactly the facts the projected View would have
 // carried (TestBotAdaptersAgreeOverWholeGame pins the two halves).
 func (b *Bot) DecideBoard(_ context.Context, brd botpolicy.Board, d decision.Decision) (decision.Intent, error) {
+	// The caller built brd from the engine and cannot know this bot's policy
+	// configuration, so the opt-in A2 rules are applied here exactly as
+	// Decide applies them to the view-shaped Board. The zero value leaves
+	// brd unchanged, so the default bot is unaffected.
+	brd.Targets = b.targets
 	return b.decide(brd, &d), nil
 }
 
@@ -673,6 +698,9 @@ func BoardFromView(v view.View) botpolicy.Board {
 				Toughness:     cv.Toughness,
 				CMC:           botpolicy.CmcOf(cv.ManaCost),
 				Basic:         hasBasicView(cv),
+				Land:          hasTypeView(cv, "Land"),
+				Colour:        cv.ColourIdentity,
+				TypeSig:       botpolicy.TypeSigOf(strings.Fields(cv.Types)),
 				AttachedTo:    cv.AttachedTo,
 				Activated:     cv.ActivatedThisTurn,
 				ManaCost:      cv.ManaCost,
@@ -705,6 +733,9 @@ func BoardFromView(v view.View) botpolicy.Board {
 					Toughness:   cv.Toughness,
 					CMC:         botpolicy.CmcOf(cv.ManaCost),
 					Basic:       hasBasicView(cv),
+					Land:        hasTypeView(cv, "Land"),
+					Colour:      cv.ColourIdentity,
+					TypeSig:     botpolicy.TypeSigOf(strings.Fields(cv.Types)),
 					ManaCost:    cv.ManaCost,
 					Activated:   cv.ActivatedThisTurn,
 				})
@@ -728,6 +759,17 @@ func BoardFromView(v view.View) botpolicy.Board {
 func hasFlashbackView(cv view.CardView) bool {
 	for _, k := range cv.Keywords {
 		if strings.EqualFold(cards.KeywordHead(k), "Flashback") {
+			return true
+		}
+	}
+	return false
+}
+
+// hasTypeView reports whether the projected type line names t, mirroring
+// cards.Face.TypeLineHas's EqualFold word match on the game half.
+func hasTypeView(cv view.CardView, t string) bool {
+	for w := range strings.FieldsSeq(cv.Types) {
+		if strings.EqualFold(w, t) {
 			return true
 		}
 	}
