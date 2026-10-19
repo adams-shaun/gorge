@@ -75,7 +75,7 @@ func init() {
 				Key:     "greeting",
 				Type:    "string",
 				Default: "hello from nativebot",
-				Help:    "text logged once per game",
+				Help:    "text logged once per seat",
 			}},
 		},
 		New: newNativeBot,
