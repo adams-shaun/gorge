@@ -26,6 +26,14 @@ import (
 
 const defaultMaxIntents = 400000
 
+// maxHumanIntentRefusals bounds how many times one parked human decision may
+// be answered with an engine-refused intent. A waiting registry submit gets
+// the final refusal as its 409 before the match gives up, so no handler is
+// stranded; the match then crashes with the reason instead of retrying a
+// client's rejected answer forever. A human is still asked again for every
+// refusal below this cap (D1b), never auto-answered.
+const maxHumanIntentRefusals = 16
+
 // DefaultMaxDecisionsPerTurn is the recommended value for
 // Options.MaxDecisionsPerTurn — the one gorged installs for its served
 // tables. The number is sized from measurement, not chosen round: the
@@ -429,6 +437,16 @@ func (pd *parkedDecision) answer() (decision.Intent, error) {
 		return decision.CloneIntent(in), err
 	}
 	return decision.CloneIntent(pd.in), pd.err
+}
+
+// waitingHumanSubmit reports whether this parking's answer came from a
+// registry submit that is waiting for the engine's verdict (its ack channel).
+// Only such an answer can be refused and re-parked for the same human: a
+// caretaker or plain Decide answer has no reply channel and no human to ask
+// again, so it must take the ordinary ladder/crash path instead of
+// re-parking the same refused answer forever.
+func (pd *parkedDecision) waitingHumanSubmit() bool {
+	return pd.hs != nil && pd.hs.ack != nil
 }
 
 // provenance reports HD-2's provenance bits for the decision this parking
@@ -952,6 +970,7 @@ playLoop:
 		var in decision.Intent
 		var next *parkedDecision
 		var nextData *parkedData
+		humanRefusals := 0
 		for {
 			var err error
 			in, err = parked.answer()
@@ -994,6 +1013,18 @@ playLoop:
 			// -- so attempt may be called again for the ladder's next rung; a
 			// post-Submit failure is fatal and must crash, never retry.
 			attempt := func(in decision.Intent) (refused bool, err error) {
+				// A panic anywhere inside the attempt (Submit, persistence or
+				// the post-Submit projection) unwinds to play's recover, which
+				// crashes the match. Reply to the waiting submit first: await
+				// already marked it received, so its own defer will not close
+				// abandoned, and without this reply the handler would wait
+				// forever on a goroutine that is gone.
+				defer func() {
+					if p := recover(); p != nil {
+						parked.reply(fmt.Errorf("match crashed: %v", p))
+						panic(p)
+					}
+				}()
 				err = m.locked(func() error {
 					before = len(m.e.L.Events)
 					// d is the decision this intent answers. It is read before the
@@ -1060,16 +1091,25 @@ playLoop:
 				}
 				break
 			}
-			// The engine refused the seat's answer. A human is asked again,
-			// never auto-answered: re-park the same pending decision and tell
-			// the waiting submit why its answer was refused (the 409). The
-			// old parking's slot was claimed by that submit; the new parking
-			// installs a fresh slot so the next POST can answer it.
-			if parked.hs != nil {
+			// The engine refused the seat's answer. Only a waiting registry
+			// submit has a human to ask again: re-park the same pending
+			// decision and tell that submit why its answer was refused (the
+			// 409). The old parking's slot was claimed by that submit; the new
+			// parking installs a fresh slot so the next POST can answer it.
+			// A caretaker or plain Decide answer (ack nil) has no waiting
+			// human -- re-parking it would make the same caretaker answer the
+			// same refused decision forever -- so it falls through to the
+			// ordinary ladder/crash below.
+			if parked.waitingHumanSubmit() {
 				m.mu.Lock()
 				m.refusals++
 				m.mu.Unlock()
+				humanRefusals++
 				refusedParking := parked
+				if humanRefusals >= maxHumanIntentRefusals {
+					refusedParking.reply(err)
+					return r.crash(t, m, fmt.Errorf("decision %d refused %d times: %w", n, humanRefusals, err))
+				}
 				parked = parkSeat(ctx, seats, refusedParking.data, m.undo.signal, gate, t.stop)
 				refusedParking.reply(err)
 				continue

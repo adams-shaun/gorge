@@ -50,8 +50,13 @@ func TestConcurrentIdenticalSubmitsAnswerOnceAndNeverHang(t *testing.T) {
 			accepted++
 			continue
 		}
-		if !strings.Contains(err.Error(), "no pending decision") {
-			t.Fatalf("losing submit error = %q, want the stale-slot refusal", err)
+		// A loser normally sees the claimed slot ("no pending decision"). A
+		// loser descheduled past the winner's acceptance and the seat's next
+		// park can instead validate against the NEW decision and see a stale
+		// seq; both are refusals, and neither may hang. Accept either so the
+		// concurrency assertion does not depend on scheduler timing.
+		if !strings.Contains(err.Error(), "no pending decision") && !strings.Contains(err.Error(), "intent seq") {
+			t.Fatalf("losing submit error = %q, want the stale-slot or stale-seq refusal", err)
 		}
 	}
 	if accepted != 1 {

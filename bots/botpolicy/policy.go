@@ -1528,7 +1528,8 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			}
 			if o.Kind == "pass" && !have[o.Index] && fits(o) &&
 				(!d.TargetsWithSameController || !haveTargetController || o.Controller == targetController) &&
-				(d.Kind != decision.KBlockers || d.BlockPairAdmits(in.Choices, o.Index)) {
+				(d.Kind != decision.KBlockers || d.BlockPairAdmits(in.Choices, o.Index)) &&
+				(d.Kind != decision.KAttackers || d.AttackPairAdmits(in.Choices, o.Index)) {
 				add(o)
 			}
 		}
