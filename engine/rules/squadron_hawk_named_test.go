@@ -135,11 +135,6 @@ func TestSquadronHawkSearchFindsUpToThreeNamed(t *testing.T) {
 	}
 	start := len(e.L.Events)
 	submitChoices(t, e, 0, 1, 2)
-	// ShuffleNonMandatory$: the fetch's may-shuffle confirm (searchmay1) —
-	// accept it, so the pinned "shuffles once" below still counts the shuffle
-	// this test was written around.
-	msYes, _ := mayShuffleConfirm(t, e, 0)
-	submitChoices(t, e, msYes)
 	if got := hawkIn(e, state.ZHand); got != 3 {
 		t.Fatalf("hand hawks after search = %d, want 3 (the found ones)", got)
 	}
@@ -178,15 +173,9 @@ func TestSquadronHawkSearchWithNoHawksResolvesSilently(t *testing.T) {
 	if e.G.Over {
 		t.Fatalf("game wedged: over=%v", e.G.Over)
 	}
-	// searchmay1: the fail-to-find shape now poses the may-shuffle confirm --
-	// the search still owes its mandatory shuffle (CR 701.23b), and the
-	// confirm is what may spare it. Accept it, so the pinned "shuffles once"
-	// below still counts the shuffle this test was written around.
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.ResumeKind == "search" {
 		t.Fatalf("empty library search published a search KChoose: %+v", d)
 	}
-	msYes, _ := mayShuffleConfirm(t, e, 0)
-	submitChoices(t, e, msYes)
 	moves, shuffles := 0, 0
 	for _, ev := range e.L.Events[start:] {
 		if ev.Kind == events.MoveZone && ev.From == state.ZLibrary {
@@ -218,11 +207,6 @@ func TestSquadronHawkTwoHawksInLibrary(t *testing.T) {
 	}
 	start := len(e.L.Events)
 	submitChoices(t, e, d.Options[1].Index, d.Options[0].Index)
-	// ShuffleNonMandatory$: the fetch's may-shuffle confirm (searchmay1) —
-	// decline it, so the pinned move-order assertion below is unchanged and
-	// this pin also holds the decline branch on a second corpus shape.
-	_, msNo := mayShuffleConfirm(t, e, 0)
-	submitChoices(t, e, msNo)
 	want := []state.ObjID{d.Options[1].Obj, d.Options[0].Obj}
 	var moved []state.ObjID
 	for _, ev := range e.L.Events[start:] {
