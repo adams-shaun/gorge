@@ -77,11 +77,18 @@ counts as "the turn before the AI's".
 combat-trick timing. `Card.PumpPower`/`Card.PumpToughness` are the literal,
 non-negative `NumAtt$`/`NumDef$` of the card's primary `SP$ Pump` ability when
 its target scope names a creature (`effects.CastPumpBonus`); a curse, an {X}
-or SVar amount, a mixed sign and a non-creature target all read 0/0, so the
-rule never treats an unknown as a pump.
+or SVar amount, a mixed sign, a non-creature target and an opponent-only
+target scope all read 0/0, so the rule never treats an unknown as a pump.
+`Card.PumpOwn` (`effects.CastPumpOwnCombatants`) says whether that filter can
+name both the caster's own attacking and blocking creatures: an attacking-only
+(Run Amok), blocking-only, non-attacker, defending-player or otherwise
+narrowed scope answers false, and the rule holds the cast rather than firing
+it and falling through to the ordinary target ranking, which leads with the
+opposing creature.
 
-The cast gate fires only when all three hold:
+The cast gate fires only when all four hold:
 
+- the filter can name the seat's own combatants (`Card.PumpOwn`);
 - `Board.Step == state.StepDeclareBlockers` -- the one window the trick is
   for;
 - no spell the deciding seat controls is already on the stack (a second pump
@@ -150,7 +157,7 @@ The A6a rule's focused tests pin both directions:
   fires the cast.
 - `TestPumpInCombatFiresKillingBlocker`: an attacker that survives either way
   still fires the cast when the bonus kills the blocker.
-- `TestPumpInCombatFiresLethal`: a 2-power unblocked attacker against 3 life
+- `TestPumpInCombatFiresLethal`: a 2-power unblocked attacker against 4 life
   fires; an attack already at lethal is held.
 - `TestPumpInCombatHoldsOutsideDeclareBlockers`,
   `TestPumpInCombatHoldsWhenOwnSpellOnStack` and
@@ -163,9 +170,13 @@ The A6a rule's focused tests pin both directions:
   board.
 - `TestPumpAdaptersAgree`: a parsed Giant Growth projects +3/+3 on the
   `CardView` and on both Board halves, while a curse, a dynamic amount and a
-  non-creature target project 0/0.
-- `TestCastPumpBonusReadsTheCompiledPump`: the reader's unknown-is-zero
-  boundary.
+  non-creature target project 0/0, and an attacking-only or blocking-only
+  scope projects the literal bonus with `PumpOwn` false.
+- `TestPumpHoldsRestrictedTargetScope`: a `Creature.attacking` pump that could
+  only "save" a blocker the card cannot name is held at declare blockers.
+- `TestCastPumpBonusReadsTheCompiledPump` and
+  `TestCastPumpOwnCombatantsReadsTheTargetScope`: the reader's
+  unknown-is-zero and target-scope boundaries.
 
 ## Why it is opt-in
 

@@ -898,6 +898,16 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		e.buf = append(e.buf, 1)
 		e.buf = binary.AppendVarint(e.buf, int64(v.PumpToughness))
 	}
+	if !v.PumpOwn {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.PumpOwn {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
 	if len(v.PlayMain1) == 0 {
 		e.buf = append(e.buf, 0)
 	} else {

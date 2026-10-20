@@ -658,6 +658,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
@@ -680,6 +681,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
@@ -702,6 +704,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
@@ -965,6 +968,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
@@ -1750,6 +1754,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
@@ -1772,6 +1777,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
@@ -1794,6 +1800,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"
@@ -2085,6 +2092,7 @@
             "spell_api": "Pump",
             "pump_power": 2,
             "pump_toughness": 2,
+            "pump_own_combatants": true,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Growth 0"

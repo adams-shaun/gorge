@@ -207,14 +207,20 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// (json:"-"): the old digests return byte-for-byte. Measured after:
 		// frames 126, attempts 64, accepted 6, worlds 8, ESS 6 (land
 		// exclusion: accepted 20, ESS 20).
-		{"pre-optimisation sampler", true, "11fa08a55a91e357bef8290fa7f01d6d76790e50a84caab704dcdeabc8f9daf9"},
+		// Re-measured for the A6a restricted-target-scope fact
+		// (view.CardView.PumpOwn): the captured frames marshal one more key
+		// per card, so the sampled worlds move again. Attributed by hiding
+		// that field (json:"-"): the previous digests return byte-for-byte.
+		// Measured after: frames 126, attempts 64, accepted 9, worlds 8,
+		// ESS 9 (land exclusion: accepted 32, ESS 32).
+		{"pre-optimisation sampler", true, "c4106450e02ab1b54aa845298b3f86a61df62370904a861198a9c6335874f9d8"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
-		{"land exclusion", false, "f24dba595a49f29d87261c3ee52e8b279eca1378785dbb8786de54edeec2d997"},
+		{"land exclusion", false, "fbf76731e28413f73e10f5b4d5a0da46a7efbc81ed1e72471328a96ad1cb92d4"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -453,7 +459,14 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Submits 3097, Terminal 32, Capped 0, WinsByCandidate [8,8,8,8],
 	// TerminalByCandidate [8,8,8,8], WinsOverBaseline [0,0,0,0],
 	// LossesToBaseline [0,0,0,0].
-	const want = "559319328b8ab1c4c4dda39064527879b0b648d96e7ea58f1cfd12a087aad165"
+	// Re-measured for the A6a restricted-target-scope fact
+	// (view.CardView.PumpOwn): one more key per card moves the decoded frames
+	// and the rollouts again. Attributed by hiding that field (json:"-"): the
+	// previous digest and result return byte-for-byte. Measured after:
+	// Index 0, Values [1,1,1,1], Rollouts 32, Submits 3309, Terminal 32,
+	// Capped 0, WinsByCandidate [8,8,8,8], TerminalByCandidate [8,8,8,8],
+	// WinsOverBaseline [0,0,0,0], LossesToBaseline [0,0,0,0].
+	const want = "61334ee7b83b1185828eb735630ee95eae597a7c3149f5b8a8e724efdfac6476"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

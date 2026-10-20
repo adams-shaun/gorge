@@ -25,17 +25,20 @@ func TestPumpAdaptersAgree(t *testing.T) {
 		src   string
 		power int32
 		tough int32
+		own   bool
 	}{
 		{
 			name:  "literal pump",
 			src:   "Name:Giant Growth\nManaCost:G\nTypes:Instant\nOracle:Target creature gets +3/+3 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +3 | NumDef$ +3 | SpellDescription$ Target creature gets +3/+3 until end of turn.\n",
 			power: 3,
 			tough: 3,
+			own:   true,
 		},
 		{
 			name:  "power only",
 			src:   "Name:Rush of Adrenaline\nManaCost:R\nTypes:Instant\nOracle:Target creature gets +2/+0 and gains haste until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +2 | SpellDescription$ Target creature gets +2/+0 and gains haste until end of turn.\n",
 			power: 2,
+			own:   true,
 		},
 		{
 			name: "negative bonus",
@@ -56,6 +59,25 @@ func TestPumpAdaptersAgree(t *testing.T) {
 		{
 			name: "you-dont-control target",
 			src:  "Name:Not Yours\nManaCost:U\nTypes:Instant\nOracle:Target creature you don't control gets +2/+2 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature.YouDontCtrl | NumAtt$ +2 | NumDef$ +2 | SpellDescription$ Target creature you don't control gets +2/+2 until end of turn.\n",
+		},
+		{
+			name:  "attacking-only target",
+			src:   "Name:Run Amok\nManaCost:1 R\nTypes:Instant\nOracle:Target attacking creature gets +3/+3 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature.attacking | NumAtt$ +3 | NumDef$ +3 | SpellDescription$ Target attacking creature gets +3/+3 until end of turn.\n",
+			power: 3,
+			tough: 3,
+		},
+		{
+			name:  "blocking-only target",
+			src:   "Name:Barge In\nManaCost:R\nTypes:Instant\nOracle:Target blocking creature gets +2/+2 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature.blocking+YouCtrl | NumAtt$ +2 | NumDef$ +2 | SpellDescription$ Target blocking creature gets +2/+2 until end of turn.\n",
+			power: 2,
+			tough: 2,
+		},
+		{
+			name:  "own-creature target",
+			src:   "Name:Might of the Masses\nManaCost:G\nTypes:Instant\nOracle:Target creature you control gets +1/+1 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature.YouCtrl | NumAtt$ +1 | NumDef$ +1 | SpellDescription$ Target creature you control gets +1/+1 until end of turn.\n",
+			power: 1,
+			tough: 1,
+			own:   true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -78,17 +100,17 @@ func TestPumpAdaptersAgree(t *testing.T) {
 			if cv == nil {
 				t.Fatalf("projection: hand card %d missing", o.ID)
 			}
-			if cv.PumpPower != tc.power || cv.PumpToughness != tc.tough {
-				t.Fatalf("projected pump = %d/%d, want %d/%d", cv.PumpPower, cv.PumpToughness, tc.power, tc.tough)
+			if cv.PumpPower != tc.power || cv.PumpToughness != tc.tough || cv.PumpOwn != tc.own {
+				t.Fatalf("projected pump = %d/%d own %v, want %d/%d own %v", cv.PumpPower, cv.PumpToughness, cv.PumpOwn, tc.power, tc.tough, tc.own)
 			}
 
 			gameCard := botpolicy.BoardFromGame(g, printedChars{}, 0).Cards.Get(o.ID)
 			viewCard := heuristic.BoardFromView(v).Cards.Get(o.ID)
-			if gameCard.PumpPower != tc.power || gameCard.PumpToughness != tc.tough {
-				t.Fatalf("game facts pump = %d/%d, want %d/%d", gameCard.PumpPower, gameCard.PumpToughness, tc.power, tc.tough)
+			if gameCard.PumpPower != tc.power || gameCard.PumpToughness != tc.tough || gameCard.PumpOwn != tc.own {
+				t.Fatalf("game facts pump = %d/%d own %v, want %d/%d own %v", gameCard.PumpPower, gameCard.PumpToughness, gameCard.PumpOwn, tc.power, tc.tough, tc.own)
 			}
-			if viewCard.PumpPower != tc.power || viewCard.PumpToughness != tc.tough {
-				t.Fatalf("view facts pump = %d/%d, want %d/%d", viewCard.PumpPower, viewCard.PumpToughness, tc.power, tc.tough)
+			if viewCard.PumpPower != tc.power || viewCard.PumpToughness != tc.tough || viewCard.PumpOwn != tc.own {
+				t.Fatalf("view facts pump = %d/%d own %v, want %d/%d own %v", viewCard.PumpPower, viewCard.PumpToughness, viewCard.PumpOwn, tc.power, tc.tough, tc.own)
 			}
 		})
 	}

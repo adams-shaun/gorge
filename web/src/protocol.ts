@@ -345,14 +345,26 @@ export interface CardView {
    * PumpPower and PumpToughness are the literal, non-negative bonus of
    * the card's primary Pump ability (effects.CastPumpBonus), both 0 for
    * every shape the cast policy does not read: a curse, a mixed-sign or
-   * dynamic amount, a non-creature target, or a non-Pump spell. They are
-   * printed facts of a visible card, like RemovalDamage, and the opt-in
-   * A6 pump timing rule reads them to decide whether a combat trick can
-   * change a combat. A 0 answers "not a literal creature pump", never
-   * "pumps for zero".
+   * dynamic amount, a non-creature target, an opponent-only target
+   * scope, or a non-Pump spell. They are printed facts of a visible
+   * card, like RemovalDamage, and the opt-in A6 pump timing rule reads
+   * them to decide whether a combat trick can change a combat. A 0
+   * answers "not a literal creature pump", never "pumps for zero".
    */
   pump_power?: number;
   pump_toughness?: number;
+  /**
+   * PumpOwn reports whether that Pump ability's target filter
+   * can name both the caster's own attacking and blocking creatures
+   * (effects.CastPumpOwnCombatants). It is true for an unrestricted
+   * creature filter and false for a narrowed one -- attacking-only,
+   * blocking-only, a colour/type/state restriction, or an opponent-only
+   * scope. The A6 pump timing rule holds a literal pump it cannot aim at
+   * its own combatants rather than casting it into the ordinary target
+   * ranking. Only meaningful when PumpPower or PumpToughness is
+   * positive; a false answer there means "not a pump the rule governs".
+   */
+  pump_own_combatants?: boolean;
   /**
    * PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
    * "ALWAYS", "TRUE" (cast in the first main while the caster controls a

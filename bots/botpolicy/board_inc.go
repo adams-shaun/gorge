@@ -306,6 +306,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			r := inc.face(id, f, k)
 			inc.derive(r, id, combined, vtypes)
 			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
+			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       r.creature,
@@ -333,6 +334,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
 				PumpPower:      pumpPower,
 				PumpToughness:  pumpToughness,
+				PumpOwn:        pumpOwnCombatants,
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
 				AuraLogic:      effects.CastAuraLogic(f),

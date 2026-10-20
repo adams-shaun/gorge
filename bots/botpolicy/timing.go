@@ -54,6 +54,9 @@ func (b Board) timingNow(d *decision.Decision, o decision.Option) bool {
 		}
 	}
 	if b.Timing.PumpInCombat && b.isTimedPump(c) {
+		if !c.PumpOwn {
+			return false
+		}
 		if b.Step != state.StepDeclareBlockers || b.ownSpellOnStack(d.Player) {
 			return false
 		}
@@ -66,6 +69,9 @@ func (b Board) timingNow(d *decision.Decision, o decision.Option) bool {
 
 // isTimedPump reports whether c is a castable instant-speed creature pump
 // with a literal, positive bonus -- the cards the PumpInCombat rule governs.
+// A pump whose target filter cannot name both the caster's own attackers and
+// blockers is governed too, and timingNow holds it: the rule must never fire
+// a cast whose only legal target is the opponent's creature.
 func (b Board) isTimedPump(c Card) bool {
 	return c.Castable && c.InstantSpeed && (c.PumpPower > 0 || c.PumpToughness > 0)
 }

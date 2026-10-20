@@ -399,6 +399,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(ch.Keywords(id))
 			}
 			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
+			pumpOwnCombatants := effects.CastPumpOwnCombatants(f.SpellAbility())
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       hasTypeWord(words, "Creature"),
@@ -426,6 +427,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
 				PumpPower:      pumpPower,
 				PumpToughness:  pumpToughness,
+				PumpOwn:        pumpOwnCombatants,
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
 				AuraLogic:      effects.CastAuraLogic(f),

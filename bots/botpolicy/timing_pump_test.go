@@ -15,7 +15,7 @@ import (
 func pumpBoard(timing TimingRules) Board {
 	b := Board{MyTurn: true, IsMain: false, Step: state.StepDeclareBlockers, Timing: timing,
 		Cards: TableOf(map[state.ObjID]Card{
-			10: {InstantSpeed: true, CMC: 1, ManaCost: "G", Castable: true, PumpPower: 3, PumpToughness: 3},
+			10: {InstantSpeed: true, CMC: 1, ManaCost: "G", Castable: true, PumpPower: 3, PumpToughness: 3, PumpOwn: true},
 		}),
 	}
 	b.Pool[state.MG] = 1
@@ -402,5 +402,37 @@ func TestPumpInCombatDefaultUntouched(t *testing.T) {
 	b := pumpSaveBoard(TimingRules{})
 	if got, d := castDecision(b, pumpOptions()); d.Options[got].Kind != "cast" {
 		t.Fatalf("zero TimingRules chose %q, want the cast", d.Options[got].Kind)
+	}
+}
+
+// TestPumpHoldsRestrictedTargetScope: a pump whose filter can only name
+// attacking creatures cannot save the defending seat's blocking 2/2, even
+// though the bonus would. The armed rule holds the cast instead of firing it
+// and falling through to the ordinary target ranking, which leads with the
+// opponent's attacker. This is the corpus Run Amok / Built to Smash shape.
+func TestPumpHoldsRestrictedTargetScope(t *testing.T) {
+	build := func(timing TimingRules) Board {
+		b := withCreatures(pumpBoard(timing), map[state.ObjID]Creature{
+			20: {Power: 2, Toughness: 2, Controller: 1, Attacking: true, Defender: 0},
+			30: {Power: 2, Toughness: 2, Controller: 0, Blocks: 20},
+		})
+		b.MyTurn = false
+		card := b.Cards.Get(10)
+		card.PumpOwn = false
+		b.Cards.Set(10, card)
+		return b
+	}
+	// Precondition: without the scope guard the save fold would fire on the
+	// blocker the card cannot legally target.
+	if id, ok := build(TimingRules{PumpInCombat: true}).bestPumpTarget(0, 3, 3); !ok || id != 30 {
+		t.Fatalf("bestPumpTarget = %d, %v, want the saving blocker 30", id, ok)
+	}
+	off, d := castDecision(build(TimingRules{}), pumpOptions())
+	if d.Options[off].Kind != "cast" {
+		t.Fatalf("rule off: chose %q, want the cast (0)", d.Options[off].Kind)
+	}
+	on, d := castDecision(build(TimingRules{PumpInCombat: true}), pumpOptions())
+	if d.Options[on].Kind != "pass" {
+		t.Fatalf("rule on: chose %q, want the pass: the filter cannot name the own blocker", d.Options[on].Kind)
 	}
 }

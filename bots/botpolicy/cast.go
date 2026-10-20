@@ -172,15 +172,25 @@ type Card struct {
 	RemovalDamage int32
 	// PumpPower and PumpToughness are the literal, non-negative bonus of
 	// this card's primary Pump ability (effects.CastPumpBonus), both 0 for
-	// a curse, a mixed-sign or dynamic amount, a non-creature target, or a
-	// non-Pump spell. They are filled by both adapter halves from the same
-	// printed ability -- the projected CardView.PumpPower/PumpToughness on
-	// the view half, the face's own SpellAbility on the game half -- and
-	// only on the deciding seat's own-zone entries, exactly like Counter
-	// and Draw/Token. The A6 pump timing rule reads them to know whether
-	// the trick can actually change a combat.
+	// a curse, a mixed-sign or dynamic amount, a non-creature target, an
+	// opponent-only target scope, or a non-Pump spell. They are filled by
+	// both adapter halves from the same printed ability -- the projected
+	// CardView.PumpPower/PumpToughness on the view half, the face's own
+	// SpellAbility on the game half -- and only on the deciding seat's
+	// own-zone entries, exactly like Counter and Draw/Token. The A6 pump
+	// timing rule reads them to know whether the trick can actually change
+	// a combat.
 	PumpPower     int32
 	PumpToughness int32
+	// PumpOwn reports whether that same Pump ability can target
+	// both the caster's own attacking and blocking creatures
+	// (effects.CastPumpOwnCombatants; the projected
+	// CardView.PumpOwn on the view half, the face's own
+	// SpellAbility on the game half). A narrowed filter -- attacking-only,
+	// blocking-only, a colour/type/state restriction, or an opponent-only
+	// scope -- answers false, and the A6 pump rule holds the cast rather
+	// than aiming at a creature the card cannot name.
+	PumpOwn bool
 	// Toughness is the engine's derived toughness (ch.Toughness), the
 	// creature body's other half. It is a cast-scorer feature only -- the
 	// CreatureToughness weight in castScore -- never part of the shared base

@@ -335,8 +335,8 @@ type StackEntry struct {
 	// target ask arrives after the spell has left its owner's hand, so the
 	// cast-time Card facts are no longer in the census; both halves fill
 	// these from the same printed face (the game half's spell object, the
-	// view half's StackView.Card) and leave them zero for an ability object
-	// or a face-down spell.
+	// view half's StackView.Card) and leave them zero for an ability object,
+	// and for a face-down spell to every viewer but its controller.
 	PumpPower     int32
 	PumpToughness int32
 }
