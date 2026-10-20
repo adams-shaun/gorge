@@ -32,8 +32,9 @@ import (
 //     future Secret emitter that starts carrying Pairs or Amount is
 //     covered automatically, which an enumerated strip list is not.
 //     - Player == viewer: pass through untouched -- it is their own
-//     secret, EXCEPT PlanarDeckShuffle, whose ordered IDs must remain
-//     private even from the deck's owner.
+//     secret, EXCEPT Shuffle and PlanarDeckShuffle, whose ordered IDs
+//     must remain private even from the library's owner (CR 701.20a:
+//     a shuffled library is randomized, so no one knows its order).
 //  2. Not Secret, a zone-move kind (MoveZone, Draw, PutOnStack): its Obj is
 //     stripped when the move is entirely between hidden zones
 //     (From.Hidden() && To.Hidden()) and the moved object is not visible
@@ -118,19 +119,18 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 	e.IDs = append([]state.ObjID(nil), e.IDs...)
 	e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
 	if e.Secret {
-		// Unlike a library shuffle, a planar-deck shuffle's order is hidden
-		// from every seat, including its owner (CR 901.5). CR 720.4 widens
-		// "the owner's own secret" to the player controlling that owner while
-		// the control is live: the controller may look at all cards the
-		// controlled player could see, so a Secret event emitted by a
-		// controlled seat reaches its controller unchanged. A planar-deck
-		// shuffle still redacts even for the controller (CR 901.5 hides it
-		// from everyone).
-		if (e.Player != viewer && !controlsSeat(g, viewer, e.Player)) || e.Kind == events.PlanarDeckShuffle {
-			return events.Event{
-				Seq: e.Seq, Kind: e.Kind, Player: e.Player,
-				From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,
-			}
+		// A shuffle randomizes a library: CR 701.20a means nobody knows the
+		// resulting order, so a library Shuffle's ordered IDs are hidden from
+		// every viewer, its owner and that owner's controller included. A
+		// planar-deck shuffle is the same story for its plane deck (CR 901.5).
+		// The event's shape survives so the "X shuffles their library" line
+		// still renders. CR 720.4 widens "the owner's own secret" to the
+		// player controlling that owner while the control is live: every
+		// OTHER Secret event emitted by a controlled seat reaches its
+		// controller unchanged.
+		if e.Kind == events.Shuffle || e.Kind == events.PlanarDeckShuffle ||
+			e.Player != viewer && !controlsSeat(g, viewer, e.Player) {
+			return secretShape(e)
 		}
 		// The owner's own secret: rule 1 does not apply to them at all,
 		// and neither do rules (2)/(3) -- a Secret event is wholly its
