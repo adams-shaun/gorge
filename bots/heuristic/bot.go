@@ -46,6 +46,10 @@ type Bot struct {
 	// Configured once by an opt-in constructor; the zero value leaves every
 	// cast decision unchanged.
 	removal botpolicy.RemovalRules
+	// posture selects the opt-in A4 deck-shape posture rules
+	// (botpolicy.PostureRules). Configured once by an opt-in constructor;
+	// the zero value leaves every combat and cast decision unchanged.
+	posture botpolicy.PostureRules
 	// timing selects the opt-in A6 "is now a good time" rules
 	// (botpolicy.TimingRules). Configured once by an opt-in constructor; the
 	// zero value leaves every cast and tap decision unchanged.
@@ -150,6 +154,20 @@ func (b *Bot) EnableRemovalRules(r botpolicy.RemovalRules) *Bot {
 // RemovalRules reports the A1 removal-now rule armed on this bot.
 func (b *Bot) RemovalRules() botpolicy.RemovalRules {
 	return b.removal
+}
+
+// EnablePostureRules arms the A4 deck-shape posture rules
+// (botpolicy.PostureRules) on this bot and returns it, so an opt-in
+// constructor chains like the other Enable* methods. The default bot never
+// calls it.
+func (b *Bot) EnablePostureRules(r botpolicy.PostureRules) *Bot {
+	b.posture = r
+	return b
+}
+
+// PostureRules reports the A4 posture rules armed on this bot.
+func (b *Bot) PostureRules() botpolicy.PostureRules {
+	return b.posture
 }
 
 // EnableTimingRules arms the A6 "is now a good time" rules
@@ -331,6 +349,7 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	// unaffected.
 	brd.Targets = b.targets
 	brd.Removal = b.removal
+	brd.Posture = b.posture
 	brd.Timing = b.timing
 	brd.AIHints = b.aiHints
 	brd.Attach = b.attach

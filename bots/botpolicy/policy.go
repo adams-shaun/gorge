@@ -76,6 +76,11 @@ type Board struct {
 	// Removal it is policy configuration, not a board fact, so only the
 	// arming constructor fills it.
 	AIHints AIHints
+	// Posture selects the opt-in A4 deck-shape posture (posture.go). The
+	// zero value leaves every combat and cast decision exactly as it was;
+	// like AIHints it is policy configuration, not a board fact, so only the
+	// arming constructor fills it.
+	Posture PostureRules
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public

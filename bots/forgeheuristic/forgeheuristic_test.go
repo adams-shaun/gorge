@@ -64,6 +64,9 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 	if got := hb.AttachRules(); got != (botpolicy.AttachRules{AuraPolarity: true, Carrier: true}) {
 		t.Errorf("armed AttachRules = %+v, want AuraPolarity and Carrier", got)
 	}
+	if got := hb.PostureRules(); got != (botpolicy.PostureRules{Attack: true, Reserve: true}) {
+		t.Errorf("armed PostureRules = %+v, want Attack and Reserve", got)
+	}
 }
 
 // TestForgeHeuristicPlaysAndReplays is the end-to-end contract: the policy

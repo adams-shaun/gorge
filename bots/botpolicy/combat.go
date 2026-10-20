@@ -1362,6 +1362,8 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// AR4: hold back a best blocker if attacking leaves nobody to block
 	// with. Zero remaining after the attack (attackers tap without
 	// Vigilance) plus an opponent that could attack back is the trigger;
+	// A4's armed aggro posture releases the hold when the whole crack-back
+	// cannot kill us (posture.go's aggroReleasesBlocker).
 	// only blockable attackers are candidates, since an unblockable one is
 	// the way a defensive board still wins. Task m34 generalizes the M1
 	// check from the single defender to ANY opponent: "leave the board
@@ -1387,7 +1389,7 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 			break
 		}
 	}
-	if canStillBlock == 0 && anyOppThreat && len(chosen) > 0 {
+	if canStillBlock == 0 && anyOppThreat && len(chosen) > 0 && !b.aggroReleasesBlocker(me) {
 		hold := -1 // position in chosen, NOT an option index -- the slice
 		// below cuts at it (a latent M1 bug wrote the option index here,
 		// which only happened to equal the position while every attacker
