@@ -181,10 +181,11 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 			sparePool.Put(spare, e)
 		}
 	}()
-	// CR 103.1's winner-chooses ask: mtgsim has no chooser seat, so Advance
-	// applies the R-9 default before the seats attach and the seat's
-	// game_start names the actual starting seat.
-	e.Advance()
+	// CR 103.1's winner-chooses ask: pose it before the seats attach so the
+	// table's own policy answers it, and the seat's game_start sees the
+	// choice pending. The drive loop answers the pending decision; no Advance
+	// runs the R-9 default underneath it.
+	e.AskStartingPlayer()
 
 	seats, err := matchSeats(e, seed, names, policyA, policyB, out)
 	if err != nil {

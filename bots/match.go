@@ -19,6 +19,14 @@ import (
 type MatchContext struct {
 	Context context.Context
 	Engine  *rules.Engine
+	// Projection serializes a seat's engine reads against the host's view
+	// projections when the host supplies one. The host projects subscriber
+	// views under its match lock; a seat that reads rules.Derived (identity
+	// refs, mapping, a heuristic fallback) shares the engine's scratch walk
+	// and must run those reads under the same lock. It must never wrap a
+	// blocking agent round-trip. Nil means the caller has no concurrent
+	// projector and the read runs directly.
+	Projection func(f func())
 	// Registry is the card corpus when the caller has one. Bench and command
 	// callers may leave it nil; the host does not hold a full registry.
 	Registry *cards.Registry

@@ -51,6 +51,7 @@ var (
 	errMalformed = errors.New("malformed response")
 	errAgent     = errors.New("agent error")
 	errInvalid   = errors.New("invalid selection")
+	errTransport = errors.New("transport error")
 )
 
 // Agent is one Spellbench v2 agent process playing one seat of one match.
@@ -78,6 +79,9 @@ type Agent struct {
 	done              bool
 	forfeit           string
 	fallbackLogged    bool
+	// startup is the handshake deadline seam. Tests replace it to shorten
+	// the budget; nil uses the advertised startupBudget.
+	startup func() (context.Context, context.CancelFunc)
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -322,7 +326,24 @@ func (a *Agent) gameStart() error {
 }
 
 func (a *Agent) startupContext() (context.Context, context.CancelFunc) {
+	if a.startup != nil {
+		return a.startup()
+	}
 	return context.WithTimeout(a.ctx, startupBudget)
+}
+
+// projected runs f under the host's projection lock when the MatchContext
+// supplies one. Engine reads that reach rules.Derived (identity keys, mapping
+// refs and the heuristic fallback) share Engine's scratch walk, while the
+// host projects views for subscribers under its own lock; serializing the two
+// keeps a live match from racing its own fanout. The agent round-trip is
+// never inside f.
+func (a *Agent) projected(f func()) {
+	if a.mc != nil && a.mc.Projection != nil {
+		a.mc.Projection(f)
+		return
+	}
+	f()
 }
 
 func (a *Agent) nextID() string {
@@ -338,8 +359,20 @@ func (a *Agent) roundTrip(ctx context.Context, req any) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The deadline covers the WRITE as well as the read: a child that never
+	// drains its stdin blocks Write, not ReadBytes, and the handshake budget
+	// must still end it. Killing the process unblocks both sides.
+	if ctx != nil {
+		if cmd := a.cmd; cmd != nil && cmd.Process != nil {
+			stopKill := context.AfterFunc(ctx, func() { _ = cmd.Process.Kill() })
+			defer stopKill()
+		}
+	}
 	if _, err := a.stdin.Write(append(b, '\n')); err != nil {
-		return nil, err
+		if ctx != nil && ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, fmt.Errorf("%w: write: %v", errTransport, err)
 	}
 	line, err := a.reader.ReadBytes('\n')
 	if err != nil {
@@ -349,7 +382,7 @@ func (a *Agent) roundTrip(ctx context.Context, req any) ([]byte, error) {
 		if a.ctx != nil && a.ctx.Err() != nil {
 			return nil, a.ctx.Err()
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: read: %v", errTransport, err)
 	}
 	return line, nil
 }
@@ -382,7 +415,9 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 	if a.mc == nil || a.e == nil || a.env == nil {
 		return decision.Intent{}, errors.New("spellbench seat: Decide before AttachMatch")
 	}
-	if err := a.env.IDs.Sync(a.e); err != nil {
+	var syncErr error
+	a.projected(func() { syncErr = a.env.IDs.Sync(a.e) })
+	if syncErr != nil {
 		a.forfeit = forfeitAgent
 		return a.forfeitAnswer(ctx, v, d), nil
 	}
@@ -415,7 +450,14 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 		if in, ok := autoPayment(&d); ok {
 			return in, nil
 		}
-		if in, ok, err := mapping.Internal(a.env, &d); ok || err != nil {
+		var (
+			in  decision.Intent
+			ok  bool
+			tx  mapping.Transaction
+			err error
+		)
+		a.projected(func() { in, ok, err = mapping.Internal(a.env, &d) })
+		if ok || err != nil {
 			if err != nil {
 				a.forfeit = forfeitAgent
 				a.logf("spellbench seat %d (%s): internal decision: %v", d.Player, a.name, err)
@@ -423,7 +465,7 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 			}
 			return in, nil
 		}
-		tx, err := mapping.Begin(a.env, &d)
+		a.projected(func() { tx, err = mapping.Begin(a.env, &d) })
 		if err != nil {
 			a.forfeit = forfeitAgent
 			a.logf("spellbench seat %d (%s): unmapped decision: %v", d.Player, a.name, err)
@@ -436,7 +478,11 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 	// answer produces the engine Intent. Keep the transaction and ask again
 	// until it commits.
 	for {
-		p, err := a.tx.Pose()
+		var (
+			p   *mapping.Pose
+			err error
+		)
+		a.projected(func() { p, err = a.tx.Pose() })
 		if err != nil {
 			a.tx = nil
 			a.forfeit = forfeitAgent
@@ -455,7 +501,11 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 				a.env.Action = &mapping.ActionContext{Seat: p.Seat, Obj: obj, Since: a.e.G.NextID}
 			}
 		}
-		commit, done, err := a.tx.Answer(i)
+		var (
+			commit []decision.Intent
+			done   bool
+		)
+		a.projected(func() { commit, done, err = a.tx.Answer(i) })
 		a.step++
 		a.seatStep[p.Seat]++
 		if p.SubstepIndex+1 == p.SubstepCount {
@@ -546,6 +596,8 @@ func (a *Agent) cause(err error) string {
 		return forfeitInvalid
 	case errors.Is(err, errMalformed):
 		return forfeitAgent
+	case errors.Is(err, errTransport):
+		return forfeitTransport
 	default:
 		return forfeitTransport
 	}
@@ -555,19 +607,14 @@ func (a *Agent) ask(ctx context.Context, p *mapping.Pose) (int, error) {
 	if a.stdin == nil {
 		return 0, errors.New("spellbench seat: process is not running")
 	}
-	// The host arms the per-decision deadline on ctx; kill the child when it
-	// fires so a blocked ReadBytes cannot outlive the budget.
-	cmd := a.cmd
-	stopKill := context.AfterFunc(ctx, func() {
-		if cmd != nil && cmd.Process != nil {
-			_ = cmd.Process.Kill()
-		}
-	})
-	defer stopKill()
 	holder := a.priorityHolder(p)
 	known := append([]protocol.Known(nil), p.Known...)
 	observe.SortKnown(known)
-	obs, err := a.env.Obs.Observation(p.Seat, observe.State{PriorityHolder: holder, Known: known})
+	var obs protocol.Observation
+	var err error
+	a.projected(func() {
+		obs, err = a.env.Obs.Observation(p.Seat, observe.State{PriorityHolder: holder, Known: known})
+	})
 	if err != nil {
 		return 0, err
 	}
@@ -658,7 +705,11 @@ func (a *Agent) forfeitAnswer(ctx context.Context, v view.View, d decision.Decis
 		a.fallbackLogged = true
 		a.logf("spellbench seat %d (%s): forfeit %s: defaulting non-priority %s until a concede window", d.Player, a.name, a.forfeit, d.Kind)
 	}
-	in, err := a.fallback.Decide(ctx, v, d)
+	var (
+		in  decision.Intent
+		err error
+	)
+	a.projected(func() { in, err = a.fallback.Decide(ctx, v, d) })
 	if err == nil {
 		return in
 	}

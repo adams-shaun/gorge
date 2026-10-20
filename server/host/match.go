@@ -313,6 +313,17 @@ func (m *match) locked(fn func() error) error {
 	return fn()
 }
 
+// projection runs a seat's engine reads under the exclusive m.mu projectLive
+// and snapshotBody take. Those projections use rules.Derived's per-engine
+// scratch walk; so do a v2 seat's identity keys, mapping refs and heuristic
+// fallback. Serializing the two is what keeps a live match's fanout from
+// racing its own seat. The agent round-trip is never inside this call.
+func (m *match) projection(f func()) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	f()
+}
+
 // afterSubmit records the burst that a successful Submit just produced.
 // Called with m.mu held.
 func (m *match) afterSubmit(before int) {
@@ -789,6 +800,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		mc := &bots.MatchContext{
 			Context:      ctx,
 			Engine:       m.e,
+			Projection:   m.projection,
 			GameID:       gameID,
 			Seat:         i,
 			Seats:        len(seats),
