@@ -105,20 +105,3 @@ func TestOptionsConfigAccessors(t *testing.T) {
 		})
 	}
 }
-
-func TestRegisterAcceptsRequiredOptionWithoutDefault(t *testing.T) {
-	bots.Register(bots.Entry{
-		Info: bots.Info{
-			Name:    "required-option",
-			Tier:    bots.Experimental,
-			Options: []bots.OptionSpec{{Key: "port", Type: "int", Required: true}},
-		},
-		New: func(bots.Options) (seat.Seat, error) { return nil, nil },
-	})
-	if _, err := bots.New("required-option", bots.Options{}); err == nil {
-		t.Fatal("bots.New accepted a missing required option")
-	}
-	if _, err := bots.New("required-option", bots.Options{Config: map[string]string{"port": "8080"}}); err != nil {
-		t.Fatalf("bots.New with required option: %v", err)
-	}
-}

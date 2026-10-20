@@ -77,7 +77,7 @@ func resolveBotOptionsFor(all []bots.Entry, optArgs, configArgs []string, getenv
 		}
 		sort.Strings(keys)
 		for _, key := range keys {
-			spec, ok := optionSpecFor(e.Options, key)
+			spec, ok := bots.OptionSpecFor(e.Options, key)
 			if !ok {
 				return nil, unknownBotOption("-bot-config", policy, key, e.Options)
 			}
@@ -85,7 +85,7 @@ func resolveBotOptionsFor(all []bots.Entry, optArgs, configArgs []string, getenv
 			if err != nil {
 				return nil, fmt.Errorf("-bot-config %q: option %q: %w", arg, key, err)
 			}
-			if err := validateBotOptionValue(spec, value); err != nil {
+			if err := bots.ValidateOptionValue(spec, value); err != nil {
 				return nil, fmt.Errorf("-bot-config %q: option %q: %w", arg, key, err)
 			}
 			resolved[policy][key] = value
@@ -102,7 +102,7 @@ func resolveBotOptionsFor(all []bots.Entry, optArgs, configArgs []string, getenv
 			if value == "" {
 				continue
 			}
-			if err := validateBotOptionValue(spec, value); err != nil {
+			if err := bots.ValidateOptionValue(spec, value); err != nil {
 				return nil, fmt.Errorf("%s: option %q: %w", name, spec.Key, err)
 			}
 			resolved[e.Name][spec.Key] = value
@@ -121,16 +121,21 @@ func resolveBotOptionsFor(all []bots.Entry, optArgs, configArgs []string, getenv
 		if len(e.Options) == 0 {
 			return nil, fmt.Errorf("-bot-opt %q: bot policy %q declares no options", arg, policy)
 		}
-		spec, ok := optionSpecFor(e.Options, key)
+		spec, ok := bots.OptionSpecFor(e.Options, key)
 		if !ok {
 			return nil, unknownBotOption("-bot-opt", policy, key, e.Options)
 		}
-		if err := validateBotOptionValue(spec, value); err != nil {
+		if err := bots.ValidateOptionValue(spec, value); err != nil {
 			return nil, fmt.Errorf("-bot-opt %q: option %q: %w", arg, key, err)
 		}
 		resolved[policy][key] = value
 	}
 
+	// Required options are checked across every registered policy, not just
+	// the offered set: this runs before the offered set is resolved (az-c3/
+	// c4/c5 register during serve), and a policy a table names must already
+	// be buildable. A linked policy that declares Required must therefore be
+	// configurable on every server that links it.
 	for _, e := range all {
 		for _, spec := range e.Options {
 			if !spec.Required || resolved[e.Name][spec.Key] != "" {
@@ -155,15 +160,6 @@ func parseBotOptArg(arg string) (policy, key, value string, err error) {
 	return policy, key, value, nil
 }
 
-func optionSpecFor(specs []bots.OptionSpec, key string) (bots.OptionSpec, bool) {
-	for _, spec := range specs {
-		if spec.Key == key {
-			return spec, true
-		}
-	}
-	return bots.OptionSpec{}, false
-}
-
 func unknownBotOption(flagName, policy, key string, specs []bots.OptionSpec) error {
 	keys := make([]string, 0, len(specs))
 	for _, spec := range specs {
@@ -186,28 +182,6 @@ func configValueString(v any) (string, error) {
 	default:
 		return "", fmt.Errorf("want a string, number or bool, got %T", v)
 	}
-}
-
-func validateBotOptionValue(spec bots.OptionSpec, value string) error {
-	switch spec.Type {
-	case "string", "path":
-		return nil
-	case "int":
-		if _, err := strconv.Atoi(value); err != nil {
-			return fmt.Errorf("want int, got %q", value)
-		}
-	case "float":
-		if _, err := strconv.ParseFloat(value, 64); err != nil {
-			return fmt.Errorf("want float, got %q", value)
-		}
-	case "bool":
-		if _, err := strconv.ParseBool(value); err != nil {
-			return fmt.Errorf("want bool, got %q", value)
-		}
-	default:
-		return fmt.Errorf("unknown type %q", spec.Type)
-	}
-	return nil
 }
 
 func entryNames(entries []bots.Entry) []string {

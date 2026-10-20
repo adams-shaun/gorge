@@ -233,12 +233,11 @@ fills every declared default before calling it. Read them with
 Precedence is flag, then environment, then config file, then the declared
 default. Every value is validated before a listener opens: an unknown policy
 or key, a value that does not parse as its declared type, or a missing
-required option exits non-zero with the flag and key named. `gorged -help`
-prints every registered policy's options, and the option values never appear
-in `/api/bot-policies`.
-
-`examples/nativebot` is the minimal working policy: one `greeting` string
-option, first-legal-option answers, and an end-to-end host test.
+required option exits non-zero with the flag and key named. Startup validates
+every registered policy, not only the offered set, so a linked policy that
+declares a required option must be configurable on every server that links it.
+`gorged -help` prints every registered policy's options, and the option values
+never appear in `/api/bot-policies`.
 
 ## Rules for bot code
 

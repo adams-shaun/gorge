@@ -34,7 +34,10 @@ func validOptionType(t string) bool {
 	return false
 }
 
-func validOptionValue(spec OptionSpec, value string) error {
+// ValidateOptionValue reports whether value parses as spec's declared Type.
+// The host's flag/env/file resolution uses it so a supplied value is held to
+// exactly the rule Register applied to the spec's default.
+func ValidateOptionValue(spec OptionSpec, value string) error {
 	switch spec.Type {
 	case "string", "path":
 		return nil
@@ -72,14 +75,16 @@ func validateOptionSpecs(name string, specs []OptionSpec) {
 		// A required option may omit its default entirely; "" is then the
 		// marker for "not supplied", and New refuses to build the policy.
 		if spec.Default != "" || !spec.Required {
-			if err := validOptionValue(spec, spec.Default); err != nil {
+			if err := ValidateOptionValue(spec, spec.Default); err != nil {
 				panic(fmt.Sprintf("bots: entry %q: option %q: invalid default: %v", name, spec.Key, err))
 			}
 		}
 	}
 }
 
-func optionSpec(specs []OptionSpec, key string) (OptionSpec, bool) {
+// OptionSpecFor returns the spec declared for key, if any. The host uses it
+// to look up a supplied key against the same declarations Register validated.
+func OptionSpecFor(specs []OptionSpec, key string) (OptionSpec, bool) {
 	for _, spec := range specs {
 		if spec.Key == key {
 			return spec, true
