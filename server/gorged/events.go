@@ -15,7 +15,8 @@ import (
 )
 
 // Extensions are what a binary links into gorged beyond the platform. The
-// zero value is gorge's own server: no draft events.
+// zero value is the bare platform: no draft events and no review loader
+// (gorge's own cmd/gorged links only the feedback-snapshot review loader).
 type Extensions struct {
 	// Events, when set, serves draft events under /api/events with -events
 	// (four-yay's draft runtime). Without it -events is refused at startup.
@@ -26,6 +27,10 @@ type Extensions struct {
 	// extensions themselves, e.g. a plugin's Start; a flag name gorged
 	// already defines panics.
 	Flags func(fs *flag.FlagSet)
+	// Review, when set, is the loader `gorged review` turns each input path
+	// into a recorded match with (review.go). Without it review mode refuses
+	// to start; the live server ignores it entirely.
+	Review ReviewLoader
 }
 
 // EventsPlugin is a draft-event runtime: it owns a store under the server's
