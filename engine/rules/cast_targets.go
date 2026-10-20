@@ -310,6 +310,15 @@ func (e *Engine) targetAsk() bool {
 		return true
 	}
 	min, max := e.resolvedTargetBounds(pc.player, pc.card, sa, pc.x)
+	// CR 601.2d: each target of a division receives at least 1, so a cast
+	// announces at most as many targets as the total it divides.
+	if total, ok := e.castDivisionTotal(pc, sa); ok && int(total) < max {
+		max = int(total)
+		if max < min {
+			e.abortCast(pc, "cast aborted: too little to divide among the minimum number of targets", true)
+			return true
+		}
+	}
 	// CR 115.5: a spell may not target itself (excludeSelf == the card); an
 	// activated ability CAN target its own Source permanent (Mother of Runes
 	// targeting itself). The Face-less ability stack object on the stack is
@@ -754,6 +763,10 @@ func (e *Engine) postTargetAsks(pc *pendingCast) bool {
 		return false
 	}
 	if e.subTargetAsk(pc) {
+		return true
+	}
+	// CR 601.2d: the division follows every target choice.
+	if e.divisionAsk(pc) {
 		return true
 	}
 	if e.evidenceAsk() {

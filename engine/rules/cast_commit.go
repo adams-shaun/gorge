@@ -485,6 +485,8 @@ func (e *Engine) payCast() {
 		if pc.stackObj != 0 && pc.rootOpts != nil {
 			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
 		}
+		// CR 601.2d / 602.2b: the announced division, after the root targets.
+		e.recordCastDivision(pc)
 		// The chain links' announced targets (CR 601.2c / 602.2b), after the
 		// root's: the ability object exists only now.
 		e.recordCastSubTargets(pc)
