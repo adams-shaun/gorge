@@ -221,7 +221,9 @@ func profileOf(c *cards.Card) *tProfile {
 			p.affinity = true
 		}
 	}
-	if v, ok := f.SVars["PlayMain1"]; ok && strings.EqualFold(strings.TrimSpace(v), "TRUE") {
+	// Read the canonical hint rather than the raw SVar, so ALWAYS and
+	// OPPONENTCREATURES count as PlayMain1 too (and FALSE/empty do not).
+	if f.PlayMain1Hint() != "" {
 		p.playMain1 = true
 	}
 	p.abilities = make([]tAbility, len(f.Abilities))

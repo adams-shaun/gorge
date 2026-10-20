@@ -36,7 +36,10 @@ func (b Board) aiHintsVetoCast(c Card) bool {
 }
 
 // aiHintsCastBonus is the timing bonus the A3 PlayMain1 rule adds in the
-// first main phase. A value outside the closed set earns nothing; the
+// caster's own first main phase. firstMain must already be the active
+// player's first main (callers pass b.FirstMain && b.MyTurn): the hint is
+// "play this precombat", which is the active player's window, not an
+// opponent's first main. A value outside the closed set earns nothing; the
 // own-creature condition is Forge's default for TRUE and every unknown
 // spelling, and OPPONENTCREATURES names the other side explicitly.
 func (b Board) aiHintsCastBonus(c Card, firstMain bool, ownCreatures, oppCreatures int32) int32 {

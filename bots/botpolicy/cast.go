@@ -858,7 +858,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// cast its commander), so it is priced by value alone.
 		inCmd := b.Commanders.Get(o.Obj).InCommandZone
 		s := b.castScore(*o)
-		s += b.aiHintsCastBonus(card, b.FirstMain, ctx.ownCreatures, ctx.oppCreatures)
+		s += b.aiHintsCastBonus(card, b.FirstMain && b.MyTurn, ctx.ownCreatures, ctx.oppCreatures)
 		// The context features, dotted with their weights. With the default
 		// profile every weight here is 0, so the default bot's pick is the
 		// pre-refactor arithmetic to the digit (pinned by cast_weights_test.go).
@@ -1188,6 +1188,11 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 			continue
 		}
 		if b.Cards.Get(o.Obj).Counter && !foreignSpell {
+			continue
+		}
+		// AIHints: the cast veto applies to C11's candidate table too, so a
+		// SetValue subset search cannot price a card chooseCast refuses.
+		if b.aiHintsVetoCast(b.Cards.Get(o.Obj)) {
 			continue
 		}
 		if !b.removalNow(d, *o) {

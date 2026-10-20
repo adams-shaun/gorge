@@ -14,7 +14,7 @@ import (
 // above that base, so only the +40 hint can clear it.
 func TestAIHintsPlayMain1CastsPrecombat(t *testing.T) {
 	card := Card{Creature: true, Power: 2, Castable: true, PlayMain1: cards.PlayMain1Always}
-	b := Board{IsMain: true, FirstMain: true,
+	b := Board{IsMain: true, FirstMain: true, MyTurn: true,
 		Cards: TableOf(map[state.ObjID]Card{1: card})}
 	d := &decision.Decision{Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{castCreature(0, 1)}}
@@ -33,6 +33,13 @@ func TestAIHintsPlayMain1CastsPrecombat(t *testing.T) {
 	armed.FirstMain = false
 	if got := armed.chooseCast(d); got != -1 {
 		t.Fatalf("hint on outside the first main = option %d, want -1", got)
+	}
+	// An opponent's first main is not the caster's precombat window: the
+	// bonus must not fire with MyTurn false even though FirstMain is set.
+	armed.FirstMain = true
+	armed.MyTurn = false
+	if got := armed.chooseCast(d); got != -1 {
+		t.Fatalf("hint on in the opponent's first main = option %d, want -1", got)
 	}
 }
 
@@ -85,5 +92,52 @@ func TestAIHintsRemoveDeckNeverCast(t *testing.T) {
 		Options: []decision.Option{castCreature(0, 1)}}
 	if got := armed.chooseCast(only); got != -1 {
 		t.Fatalf("hint on with only the RemoveDeck card = option %d, want -1", got)
+	}
+}
+
+// TestAIHintsRemoveDeckNeverTapTarget: the armed veto must reach the tap gate
+// too. chooseCast refuses the RemoveDeck card, so floating mana toward it
+// wastes the tap (and defeats the auto-pay adapter's waste protection through
+// TapIntent/AnyCastableNow). With the rule off the same board still taps.
+func TestAIHintsRemoveDeckNeverTapTarget(t *testing.T) {
+	var island cards.ManaProduction
+	island.Colour[state.MU] = 1
+	brd := Board{IsMain: true, FirstMain: true, MyTurn: true,
+		Cards: TableOf(map[state.ObjID]Card{
+			1: {Castable: true, CMC: 1, RemoveDeck: true},
+			7: {OnBattlefield: true, Basic: true, Produces: island},
+		}),
+	}
+	d := &decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
+		Options: []decision.Option{
+			{Index: 0, Kind: "activate", Obj: 7},
+			{Index: 1, Kind: "pass"},
+		}}
+
+	// Preconditions: the card really is unpayable, and the gate really does
+	// want a tap for it with the rule off.
+	if brd.poolPays(1, brd.Cards.Get(1)) {
+		t.Fatalf("precondition: poolPays(1) = true, want the card unpayable")
+	}
+	if !brd.tapWants(d) {
+		t.Fatalf("precondition: tapWants = false with the rule off, want a tap")
+	}
+	if got := brd.chooseTap(d); got != 0 {
+		t.Fatalf("hint off chooseTap = option %d, want 0 (tap the island)", got)
+	}
+	if !brd.AnyCastableNow(0, d) {
+		t.Fatalf("hint off AnyCastableNow = false, want true")
+	}
+
+	armed := brd
+	armed.AIHints = AIHints{Enabled: true}
+	if armed.tapWants(d) {
+		t.Fatalf("hint on tapWants = true, want false: the RemoveDeck card is vetoed")
+	}
+	if got := armed.chooseTap(d); got != -1 {
+		t.Fatalf("hint on chooseTap = option %d, want -1", got)
+	}
+	if armed.AnyCastableNow(0, d) {
+		t.Fatalf("hint on AnyCastableNow = true, want false: the only intent is vetoed")
 	}
 }
