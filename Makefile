@@ -56,7 +56,13 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # Card-Forge/forge#12243/#12245).
 # 098b05531 = 1dc038bc6 + The Earth Crystal targets only creatures you control
 # (ValidTgts$ Creature.YouCtrl; Card-Forge/forge#12255/#12256).
-FORGE_REF  ?= 098b055313459c4b36c9e1f1d4e81a2c8aef815e
+# 76fd7691a = 098b05531 + 8 card-script fixes against the printed card: "up to
+# one target" (#12316); P/T, loyalty, cost, types and keywords for 18 cards
+# (#12318); three Sorceries (#12319); Kutzil's Flanker and Sarkhan's
+# Dragonfire amounts (#12320); exact/required target counts (#12321);
+# planeswalker/battle targets (#12322); Dream Beavers' Defined$ and
+# Tresserhorn's Lord's ValidTgts$ (#12323), all Card-Forge/forge.
+FORGE_REF  ?= 76fd7691ab45ab1b42cef19ad04b41bf364501f4
 
 .PHONY: help
 help:
