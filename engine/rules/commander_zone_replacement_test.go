@@ -1,27 +1,18 @@
-// Task m32: CR 903.9, a commander's return to the command zone. A commander
-// about to be put into its owner's graveyard, hand or library from anywhere,
-// or exiled from anywhere, may instead be put into the command zone by its
-// OWNER -- a replacement effect that applies before the object would change
-// zones (engine/rules/replacement.go's commanderZoneReplacementApplies +
-// parkCommanderZoneMove + handleCmdZone, asked as decision.KCommanderZone).
+// Task m32 (narrowed by cr-g01a): CR 903.9, a commander's return to the
+// command zone. CR 903.9b: a commander about to be put into its owner's
+// hand or library from anywhere may instead be put into the command zone
+// by its OWNER -- a replacement effect asked before anything moves
+// (commanderZoneReplacementApplies + parkCommanderZoneMove +
+// handleCmdZone). CR 903.9a: a commander put into a graveyard or exile
+// goes there for real, and the next state-based check asks its owner
+// (commanderZoneSBA); the graveyard/exile tests below drive that check.
 //
-// The five traps CR 903.9 trips on, each pinned by a named test below:
-//   - it is a REPLACEMENT EFFECT, not a trigger that moves the card after:
-//     the commander never touches the destination zone, and the choice is
-//     asked of the owner before anything moves;
-//   - "may": the owner may decline, and a decline changes nothing (the
-//     original zone change happens unchanged -- and must not re-offer);
-//   - "from anywhere": battlefield, stack, graveyard, hand and library are
-//     all sources (there is no From restriction);
-//   - the four destinations are graveyard, hand, library and exile: a
-//     commander moving to the battlefield or the stack is not replaced;
-//   - ownership, not control: a stolen commander goes to its owner's
-//     command zone and its owner is asked.
-//
-// Everything is gated on Config.Format == FormatCommander (a Constructed
-// game, even one carrying a Commanders config, never runs any of it), and
-// the choice is a recorded intent with the resulting MoveZone in the log,
-// so a log-only replay reproduces both branches.
+// Pinned below: the owner may decline (and a decline is never re-offered),
+// "from anywhere" (battlefield, stack, graveyard sources), the
+// destination guard (battlefield and stack are never asked), and
+// ownership, not control. Everything is gated on Config.Format ==
+// FormatCommander, and the choice is a recorded intent with the resulting
+// MoveZone in the log, so a log-only replay reproduces both branches.
 package rules
 
 import (
@@ -114,20 +105,32 @@ func TestDestroyedCommanderOffersTheOwnerTheChoiceAndAcceptSendsItToTheCommandZo
 		t.Fatalf("decision source = %d, want %d (the dying commander)", got, cmd)
 	}
 
+	// CR 903.9a: the commander is asked from the graveyard, after it died.
+	if got := e.G.Obj(cmd).Zone; got != state.ZGraveyard {
+		t.Fatalf("commander zone while asked = %v, want graveyard (CR 903.9a: it dies first)", got)
+	}
+
 	submit(t, e, 0) // accept: into the command zone
 
 	if got := e.G.Obj(cmd).Zone; got != state.ZCommand {
 		t.Fatalf("accepted commander zone = %v, want command", got)
 	}
 	if contains(e.G.Zone(state.ZGraveyard, 0), cmd) {
-		t.Fatal("accepted commander is in the graveyard: the replacement must apply BEFORE the zone change")
+		t.Fatal("accepted commander is still in the graveyard")
 	}
-	// The replacement-effect point, as a log fact: no MoveZone of this
-	// commander to the graveyard ever happened.
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.MoveZone && ev.Obj == cmd && ev.To == state.ZGraveyard {
-			t.Fatalf("log records the commander touching the graveyard: %+v (replacement must precede the move)", ev)
+	// As log facts: the battlefield -> graveyard death, then graveyard ->
+	// command zone.
+	toGY, toCZ := -1, -1
+	for i, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.Obj == cmd && ev.From == state.ZBattlefield && ev.To == state.ZGraveyard {
+			toGY = i
 		}
+		if ev.Kind == events.MoveZone && ev.Obj == cmd && ev.From == state.ZGraveyard && ev.To == state.ZCommand {
+			toCZ = i
+		}
+	}
+	if toGY < 0 || toCZ < toGY {
+		t.Fatalf("log commander moves: to graveyard at %d, graveyard -> command at %d; want the death first", toGY, toCZ)
 	}
 }
 
@@ -176,6 +179,10 @@ func TestCommanderExiledAcceptsTheCommandZone(t *testing.T) {
 	cmd := fieldCommander(t, e, 0, 0)
 
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cmd, From: state.ZBattlefield, To: state.ZExile})
+	if got := e.G.Obj(cmd).Zone; got != state.ZExile || e.Pending() != nil {
+		t.Fatalf("exile is not replaced (CR 903.9a): zone %v pending %+v, want exile and nothing asked", got, e.Pending())
+	}
+	e.checkStateBased()
 	if d := e.Pending(); d == nil || d.Kind != decision.KCommanderZone {
 		t.Fatalf("pending = %+v, want a commander_zone decision for the exile", d)
 	}
@@ -185,7 +192,7 @@ func TestCommanderExiledAcceptsTheCommandZone(t *testing.T) {
 		t.Fatalf("exiled-then-accepted commander zone = %v, want command", got)
 	}
 	if contains(e.G.Zone(state.ZExile, 0), cmd) {
-		t.Fatal("accepted commander is in exile: the move must be replaced, not followed by a second one")
+		t.Fatal("accepted commander is still in exile")
 	}
 }
 
@@ -251,6 +258,7 @@ func TestCounteredCommanderOnTheStackIsOfferedTheChoice(t *testing.T) {
 	}
 
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cmd, From: state.ZStack, To: state.ZGraveyard, Text: "countered"})
+	e.checkStateBased() // CR 903.9a: asked by the next state-based check
 	if d := e.Pending(); d == nil || d.Kind != decision.KCommanderZone {
 		t.Fatalf("pending = %+v, want a commander_zone decision for the countered spell", d)
 	}
@@ -260,7 +268,7 @@ func TestCounteredCommanderOnTheStackIsOfferedTheChoice(t *testing.T) {
 		t.Fatalf("countered-and-accepted commander zone = %v, want command", got)
 	}
 	if contains(e.G.Stack, cmd) {
-		t.Fatal("accepted commander is still on the stack: the counter's move must be fully replaced")
+		t.Fatal("accepted commander is still on the stack")
 	}
 }
 
@@ -318,6 +326,7 @@ func TestStolenCommanderGoesToItsOwnersCommandZoneByItsOwnersChoice(t *testing.T
 	}
 
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cmd, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.checkStateBased() // CR 903.9a: asked by the next state-based check
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KCommanderZone {
 		t.Fatalf("pending = %+v, want a commander_zone decision", d)

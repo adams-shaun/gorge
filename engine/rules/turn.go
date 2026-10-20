@@ -1345,9 +1345,10 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 	case decision.KCommanderZone:
 		// The CR 903.9 "put it into the command zone instead" choice (Task
 		// m32): the answered decision emits the parked MoveZone for real --
-		// to the command zone on an accept, verbatim on a decline -- and
-		// hands the queue to the next parked commander if any. See
-		// handleCmdZone (engine/rules/replacement.go).
+		// to the command zone on an accept, verbatim on a decline (a CR 903.9a
+		// sba entry: graveyard/exile -> command zone on an accept, nothing on
+		// a decline) -- and hands the queue to the next parked commander if
+		// any. See handleCmdZone (engine/rules/replacement.go).
 		e.handleCmdZone(d, in)
 	case decision.KReplacement:
 		// The CR 616.1 order choice among competing replacement effects

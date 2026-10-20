@@ -8,26 +8,19 @@ package host
 // decision — and boundsOf/viewAt treated the last ask as the end of the
 // log. These tests pin the fixed model end to end on a deterministic
 // commander fixture that reaches the reported shape: a burst whose SBA
-// pass asks the CR 903.9 commander_zone replacement decision and then
-// keeps sweeping lethal-damage creatures past it.
+// pass asks the CR 903.9a commander_zone decision and then keeps going
+// past it (the same pass removes destroyed tokens).
 //
-// The fixture is measured, not constructed: decks foundations-wretched-
-// ranks vs foundations-reign-of-dragons at seed 1111 (match k=1, the slot
-// takeMatchSlot reserves), burst 407 — the resolving spell deals damage to
-// three creatures in one pass, its caster's priority returns, seat 1's
-// commander_zone is asked (obj 214 died in the pass), and two more
-// "lethal damage" sweeps land AFTER the ask. The park lands on that ask;
-// replaying the recorded intents reproduces the tail byte for byte. The
-// shape is re-derived from the live match below, so a corpus or engine
-// move fails here loudly instead of testing nothing.
-//
-// Re-measured 2026-09-17 (rv2d static variable P/T): the previous measured
-// shape (seed 1111, burst 407) stopped existing — the live course's burst
-// 407 ask no longer parks (its overshoot tail moved), so seed 1111 now ends
-// with no commander_zone overshoot burst to park on. Same decks, new
-// measured seed (found by replaying the pure-bot course across seeds and
-// taking the first whose burst carries seat 1's commander_zone ask with the
-// post-ask lethal tail).
+// The fixture is measured, not constructed: decks foundations-reign-of-
+// dragons vs foundations-calling-all-angels, seed 1, burst 664 — a board
+// wipe destroys seat 1's commander, the next state-based check asks seat 1
+// at its first pass, and the same pass removes three destroyed tokens
+// ("ceased to exist") AFTER the ask. The park lands on that ask; replaying
+// the recorded intents reproduces the tail byte for byte. The shape is
+// re-derived from the live match below, so a corpus or engine move fails
+// here loudly instead of testing nothing. (Measured history: before CR
+// 903.9a, cr-g01a, the shape was an ask parked mid-lethal-sweep on
+// wretched-ranks vs reign-of-dragons; that burst no longer exists.)
 
 import (
 	"context"
@@ -49,9 +42,9 @@ import (
 )
 
 const (
-	overshootDeckA = "foundations-wretched-ranks"
-	overshootDeckB = "foundations-reign-of-dragons"
-	overshootSeed  = 2
+	overshootDeckA = "foundations-reign-of-dragons"
+	overshootDeckB = "foundations-calling-all-angels"
+	overshootSeed  = 1
 	// cli-20260922T225141Z-e771720d: the hosted game now opens with the CR
 	// 103.1 winner-chooses ask, whose answer is the toss winner naming
 	// itself -- one recorded intent at genesis -- so every later intent
@@ -70,7 +63,18 @@ const (
 	// (rules 24bbba791): players receive priority in the combat damage step
 	// after the regular damage, two more passes per such combat before the
 	// burst: 541 -> 551, the same turn-21 burst, re-measured on seed 2.
-	overshootIntents = 551 // intents recorded when parked on the overshoot burst's pending ask
+	// CR 903.9a (cr-g01a, 2026-10-20): a commander's graveyard/exile move is no
+	// longer parked, so the old seed-2 burst (an ask parked mid-lethal-sweep) no
+	// longer exists; across seeds 1-29 of the old pair no burst ends past its
+	// last ask. Re-measured over the five FDN commander decks:
+	// foundations-reign-of-dragons vs foundations-calling-all-angels, seed 1,
+	// burst 664. A board wipe destroys seat 1's commander, the next check asks
+	// seat 1 at its first pass, and the same pass removes three destroyed tokens
+	// ("ceased to exist") after the ask. assertOvershootShape now requires that
+	// token-cleanup tail rather than a lethal-damage sweep. The capture was
+	// re-recorded via TestGenerateOvershootCapture: 3652 events, 664 intents,
+	// head d04e5ccdfb15e2f6.
+	overshootIntents = 664 // intents recorded when parked on the overshoot burst's pending ask
 )
 
 // gateSeat is a bot behind a test gate: every decision is signalled to the
@@ -196,12 +200,9 @@ func assertOvershootShape(t *testing.T, m *match) (askSeq uint64, burstEnd uint6
 		t.Fatalf("fixture has %d burst boundaries, want %d", len(m.bounds), overshootIntents+1)
 	}
 	lo, hi := m.bounds[overshootIntents-1], m.bounds[overshootIntents]
-	damages, lastAsk := 0, uint64(0)
+	lastAsk := uint64(0)
 	for s := lo; s < hi; s++ {
-		switch m.e.L.Events[s].Kind {
-		case events.Damage:
-			damages++
-		case events.DecisionAsk:
+		if m.e.L.Events[s].Kind == events.DecisionAsk {
 			lastAsk = s
 		}
 	}
@@ -214,17 +215,14 @@ func assertOvershootShape(t *testing.T, m *match) (askSeq uint64, burstEnd uint6
 		t.Fatalf("overshoot ask at %d is %q for seat %d, want commander_zone for seat 1 — the measured shape moved",
 			lastAsk, ask.Text, ask.Player)
 	}
-	lethal := 0
+	ceased := 0
 	for s := lastAsk + 1; s < hi; s++ {
-		if ev := m.e.L.Events[s]; ev.Kind == events.MoveZone && ev.Text == "lethal damage" {
-			lethal++
+		if ev := m.e.L.Events[s]; ev.Kind == events.MoveZone && ev.Text == "ceased to exist" {
+			ceased++
 		}
 	}
-	if lethal == 0 {
-		t.Fatal("no lethal-damage sweep landed after the ask — the measured shape moved")
-	}
-	if damages < 2 {
-		t.Fatalf("burst carries %d damage events, want the shared-lethal pass's several", damages)
+	if ceased == 0 {
+		t.Fatal("no token cleanup landed after the ask — the measured shape moved")
 	}
 	d := m.e.Pending()
 	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 1 {
@@ -480,7 +478,7 @@ func TestArchivedParkedTailMatchLoadsAfterRestart(t *testing.T) {
 	}
 	found := false
 	for _, b := range bodies {
-		if b.Event.Kind == "move_zone" && b.Event.Text == "lethal damage" {
+		if b.Event.Kind == "move_zone" && b.Event.Text == "ceased to exist" {
 			found = true
 		}
 	}
@@ -667,6 +665,17 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // passes inserted (two per combat with regular damage), no answer changed.
 // 2230 events, 398 intents, head fc7001a63b429c7b; the parked ask and its
 // tail are unchanged.
+// CR 903.9a (cr-g01a, 2026-10-20): a commander's graveyard/exile move is no
+// longer parked, so the old seed-2 burst (an ask parked mid-lethal-sweep) no
+// longer exists; across seeds 1-29 of the old pair no burst ends past its
+// last ask. Re-measured over the five FDN commander decks:
+// foundations-reign-of-dragons vs foundations-calling-all-angels, seed 1,
+// burst 664. A board wipe destroys seat 1's commander, the next check asks
+// seat 1 at its first pass, and the same pass removes three destroyed tokens
+// ("ceased to exist") after the ask. assertOvershootShape now requires that
+// token-cleanup tail rather than a lethal-damage sweep. The capture was
+// re-recorded via TestGenerateOvershootCapture: 3652 events, 664 intents,
+// head d04e5ccdfb15e2f6.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -692,8 +701,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 2230 {
-		t.Fatalf("capture carries %d events, want the full 2230-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 3652 {
+		t.Fatalf("capture carries %d events, want the full 3652-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
@@ -719,13 +728,13 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if prev := l.Events[len(l.Events)-2]; prev.Kind != events.MoveZone || prev.Text != "ceased to exist" {
 		t.Fatalf("second-to-last event is %+v, want a token's post-sweep cleanup", prev)
 	}
-	sweep := false
+	asked := false
 	for _, ev := range l.Events[len(l.Events)-6:] {
-		if ev.Kind == events.MoveZone && ev.Text == "lethal damage" {
-			sweep = true
+		if ev.Kind == events.DecisionAsk && ev.Text == string(decision.KCommanderZone) {
+			asked = true
 		}
 	}
-	if !sweep {
-		t.Fatal("no lethal-damage sweep found in the capture's tail")
+	if !asked {
+		t.Fatal("no commander_zone ask found ahead of the capture's token-cleanup tail")
 	}
 }

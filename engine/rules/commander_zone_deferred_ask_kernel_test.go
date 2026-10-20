@@ -9,12 +9,13 @@ import (
 )
 
 // TestCommanderZoneAskIsNotOverwrittenByLaterResolutionAskKernel is the
-// botbench livelock shape: a spell exiles the commander (parking the CR 903.9
-// move and asking its owner) and the same resolution then asks "its
-// controller may search". The commander-zone choice is posed first and never
-// overwritten; its answer moves the commander (command zone on accept, exile
-// on decline); the search choice follows; exactly one commander-zone ask is
-// logged and a log-only replay agrees.
+// botbench livelock shape on the CR 903.9b path: a spell bounces the
+// commander (parking the hand-bound move and asking its owner) and the same
+// resolution then asks "its controller may search". The commander-zone
+// choice is posed first and never overwritten; its answer moves the
+// commander (command zone on accept, hand on decline); the search choice
+// follows; exactly one commander-zone ask is logged and a log-only replay
+// agrees.
 func TestCommanderZoneAskIsNotOverwrittenByLaterResolutionAskKernel(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -23,15 +24,15 @@ func TestCommanderZoneAskIsNotOverwrittenByLaterResolutionAskKernel(t *testing.T
 		want   state.Zone
 	}{
 		{"accept", 0, state.ZCommand},
-		{"decline", 1, state.ZExile},
+		{"decline", 1, state.ZHand},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			e, cfg := colourIdentityGame(t, 11, FormatCommander, card(t, tinyCmdSrc), nil, card(t, exileThenSearchFixtureSrc))
+			e, cfg := colourIdentityGame(t, 11, FormatCommander, card(t, tinyCmdSrc), nil, card(t, bounceThenSearchFixtureSrc))
 			toMain1(t, e)
 			cmd := fieldCommander(t, e, 0, 0)
-			spell := moveToHandByName(t, e, 0, "Fixture Banish Then Search")
+			spell := moveToHandByName(t, e, 0, "Fixture Bounce Then Search")
 			e.priorityRound()
-			opt := castByName(t, e, 0, "Fixture Banish Then Search")
+			opt := castByName(t, e, 0, "Fixture Bounce Then Search")
 			if opt == nil {
 				t.Fatal("fixture spell not castable")
 			}
@@ -52,7 +53,7 @@ func TestCommanderZoneAskIsNotOverwrittenByLaterResolutionAskKernel(t *testing.T
 			submit(t, e, picked)
 			d = passPriorityUntilNonPriority(t, e)
 			if d.Kind != decision.KCommanderZone {
-				t.Fatalf("pending after the exile = %v, want the commander-zone choice", pendingKind(d))
+				t.Fatalf("pending after the bounce = %v, want the commander-zone choice", pendingKind(d))
 			}
 			if got := e.G.Obj(cmd).Zone; got != state.ZBattlefield {
 				t.Fatalf("commander zone before the answer = %v, want battlefield (the move is parked)", got)

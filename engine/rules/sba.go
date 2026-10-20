@@ -278,7 +278,10 @@ func (e *Engine) checkStateBased() {
 	// point without emitting anything, and nothing an SBA reads has moved
 	// since, so running it again would apply nothing.
 	ep0 := len(e.L.Events)
-	quiet := e.sbaQuietNow()
+	if e.format == FormatCommander {
+		e.collectCommanderArrivals()
+	}
+	quiet := len(e.cmdZoneDue) == 0 && e.sbaQuietNow()
 	if quiet && !sbaQuietVerify {
 		e.checkGameOver()
 		e.releasePendingDecisionOfDepartedPlayer()
@@ -291,6 +294,12 @@ func (e *Engine) checkStateBased() {
 	facts := &sbaBoardFacts{at: -1}
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		tried.skips = 0
+		if e.format == FormatCommander {
+			e.collectCommanderArrivals()
+			if len(e.cmdZoneDue) > 0 {
+				e.commanderZoneSBA()
+			}
+		}
 		changed := e.checkLoseConditions(tried)
 		if e.sbaFacts(facts).counterPair && e.annihilateOppositeCounters() {
 			changed = true
@@ -1481,6 +1490,9 @@ func (e *Engine) checkGameOver() {
 // priority: the proposal as a cast "in flight", the marker read by the next
 // KChoose answer's dispatch and by the legend-rule SBA gate.
 func (e *Engine) dropDepartedFlow(d *decision.Decision) {
+	if d.Kind == decision.KCommanderZone && len(e.cmdZone) > 0 {
+		e.cmdZone = e.cmdZone[1:] // the released ask's parked move (CR 800.4a)
+	}
 	if e.cast != nil && (e.cast.player == d.Player || e.cast.player == d.Acting()) {
 		e.cast = nil
 		e.deferredPush, e.deferredPushLKI = nil, nil

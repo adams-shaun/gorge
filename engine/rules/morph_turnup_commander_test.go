@@ -11,9 +11,11 @@ import (
 )
 
 // A Morph card's cost sacrifices another creature. The chosen commander
-// belongs to seat 1 but is controlled by seat 0, exercising owner-not-controller
-// choice and suspension across its CR 903.9 replacement.
-func TestMorphTurnFaceUpWaitsForSacrificedCommanderReplacement(t *testing.T) {
+// belongs to seat 1 but is controlled by seat 0. Under CR 903.9a the
+// sacrifice is not replaced: the commander goes to its owner's graveyard, the
+// morph turns face up at once, and the owner (seat 1, not the controller) is
+// asked by the state-based check that follows.
+func TestMorphTurnFaceUpSacrificedCommanderAsksItsOwnerAfterwards(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name string
@@ -52,8 +54,8 @@ func TestMorphTurnFaceUpWaitsForSacrificedCommanderReplacement(t *testing.T) {
 			if cands := pay.SacrificeCostCandidates(asPayer(e), 0, id, mf.cost.Sac[0], false); !turnUpContainsObj(cands, cmd) {
 				t.Fatalf("precondition: commander %d not in Creature.Other sacrifice candidates: %v", cmd, cands)
 			}
-			if !e.commanderZoneReplacementApplies(events.Sacrifice(cmd)) {
-				t.Fatalf("precondition: commander %d does not carry the CR 903.9 replacement", cmd)
+			if e.commanderZoneReplacementApplies(events.Sacrifice(cmd)) {
+				t.Fatalf("precondition: a sacrifice of commander %d must not be replaced (CR 903.9a)", cmd)
 			}
 			mark := len(e.L.Events)
 			if !e.morphTurnUpPayable(0, id, mf.cost, costMods{}) {
@@ -63,26 +65,21 @@ func TestMorphTurnFaceUpWaitsForSacrificedCommanderReplacement(t *testing.T) {
 			submit(t, e, turnFaceUpIndex(t, e, id))
 			d := e.Pending()
 			if d == nil || d.Kind != decision.KCommanderZone || d.Player != 1 {
-				t.Fatalf("pending = %+v, want seat 1's commander-zone replacement choice", d)
+				t.Fatalf("pending = %+v, want seat 1's (the owner's) commander-zone choice", d)
 			}
-			if !e.G.Obj(id).FaceDown {
-				t.Fatal("morph turned face up before its sacrifice replacement resolved")
+			if e.G.Obj(id).FaceDown {
+				t.Fatal("morph still face down: the sacrifice cost is paid at once under CR 903.9a")
 			}
-			for _, ev := range e.L.Events[mark:] {
-				if ev.Kind == events.TurnFaceUp && ev.Obj == id {
-					t.Fatal("TurnFaceUp logged before commander-zone answer")
-				}
+			if got := e.G.Obj(cmd).Zone; got != state.ZGraveyard || !contains(e.G.Zone(state.ZGraveyard, 1), cmd) {
+				t.Fatalf("sacrificed commander zone = %v, want its owner's (seat 1) graveyard", got)
 			}
 			submit(t, e, tc.pick)
 			if got := e.G.Obj(cmd).Zone; got != tc.zone {
 				t.Fatalf("commander zone = %v, want %v", got, tc.zone)
 			}
-			if e.G.Obj(id).FaceDown {
-				t.Fatal("morph remained face down after replacement answer")
-			}
 			moveAt, flipAt := -1, -1
 			for i, ev := range e.L.Events[mark:] {
-				if ev.Kind == events.MoveZone && ev.Obj == cmd {
+				if ev.Kind == events.MoveZone && ev.Obj == cmd && ev.To == state.ZGraveyard && moveAt < 0 {
 					moveAt = i
 				}
 				if ev.Kind == events.TurnFaceUp && ev.Obj == id {
@@ -90,7 +87,7 @@ func TestMorphTurnFaceUpWaitsForSacrificedCommanderReplacement(t *testing.T) {
 				}
 			}
 			if moveAt < 0 || flipAt <= moveAt {
-				t.Fatalf("replacement move index=%d TurnFaceUp index=%d; want move first", moveAt, flipAt)
+				t.Fatalf("sacrifice move index=%d TurnFaceUp index=%d; want the sacrifice first", moveAt, flipAt)
 			}
 			replayCheck(t, e, cfg)
 		})

@@ -172,23 +172,16 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if e.applySiegeProtector(ev) {
 		return ev, true
 	}
-	// CR 903.9 (Task m32): a commander about to be put into its owner's
-	// graveyard, hand or library from anywhere, or exiled from anywhere, may
-	// instead be put into the command zone by its OWNER. This is a
-	// replacement effect exactly like the R: lines below -- it applies before
-	// the object would change zones, so the commander never touches the
-	// destination -- but it is a construct rule, not a card line, so it is
-	// matched first (before any card-text replacement the same move might
-	// also match, which per CR 616.1 would then apply to whichever zone
-	// change actually happens). Matching parks the event: the owner is asked
-	// (decision.KCommanderZone) and the parked move is emitted for real only
-	// when the answer arrives -- to the command zone on an accept, verbatim
-	// on a decline -- so the log always carries the zone change that actually
-	// happened and a log-only replay reproduces it. The choice itself is a
-	// player decision recorded as an Intent plus the DecisionAsk/DecisionMade
-	// events every ask produces. Returning handled discards the original
-	// event, which is exactly right: nothing has happened yet, and whatever
-	// happens is the owner's answer, not this park.
+	// CR 903.9b (Task m32, narrowed by cr-g01a): a commander about to be put
+	// into its owner's hand or library from anywhere may instead be put into
+	// the command zone by its OWNER. A construct-rule replacement, matched
+	// before any card-text replacement; matching parks the event and asks
+	// the owner (decision.KCommanderZone), and the parked move is emitted
+	// for real only when the answer arrives -- to the command zone on an
+	// accept, verbatim on a decline. A commander bound for a GRAVEYARD or
+	// EXILE is not replaced at all (CR 903.9a): that move goes through every
+	// card replacement below and fires its triggers, and the state-based
+	// check that follows offers the command zone (commanderZoneSBA).
 	if ev.Kind == events.MoveZone && e.commanderZoneReplacementApplies(ev) {
 		e.parkCommanderZoneMove(ev)
 		return ev, true
