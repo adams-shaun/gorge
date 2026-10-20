@@ -736,6 +736,14 @@ func (a *Agent) EndMatch(result bots.MatchResult) {
 			winner = otherSeat(a.mc)
 			reason = "forfeit:" + a.forfeit
 		}
+		// The protocol has no empty outcome: a forfeit is the opponent's win
+		// and any other unfinished game is "halted".
+		if outcome == "" {
+			outcome = "halted"
+			if classification == "forfeit" && winner != "" {
+				outcome = winner + "_win"
+			}
+		}
 		var wp *string
 		if winner != "" {
 			w := winner
