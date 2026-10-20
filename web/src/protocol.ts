@@ -97,6 +97,14 @@ export interface TableInfo {
    * table is byte-identical to a table before the field existed.
    */
   event?: boolean;
+  /**
+   * Review marks a read-only review table (host.Registry.AddReviewTable,
+   * served only by `gorged review`): one recorded match, no seats, no run
+   * loop, omniscient. A client shows the decision overlay for it and offers
+   * no restart. omitempty, like Series: a live table is byte-identical to a
+   * table before the field existed.
+   */
+  review?: boolean;
 }
 
   /**

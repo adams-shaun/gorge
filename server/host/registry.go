@@ -559,7 +559,9 @@ func (r *Registry) Start(id TableID) error {
 		r.mu.Unlock()
 		return fmt.Errorf("host: registry is closed")
 	}
-	if t.started {
+	if t.started || t.review {
+		// A review table (AddReviewTable) has no run loop: starting it is a
+		// no-op, so StartAll over a registry holding one stays harmless.
 		r.mu.Unlock()
 		return nil
 	}
