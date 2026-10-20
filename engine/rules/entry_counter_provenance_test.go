@@ -99,7 +99,7 @@ func TestDoublingSeasonSagaEntryAndProgressionCounts(t *testing.T) {
 	t.Parallel()
 	ds := tokenReplCorpusCard(t, "Doubling Season")
 	// Three chapters so the doubled 2-lore entry (2 < 3) survives the CR
-	// 704.5v sacrifice long enough to measure the turn-based counter.
+	// 704.5s sacrifice long enough to measure the turn-based counter.
 	saga := card(t, "Name:Triage Saga\nTypes:Enchantment Saga\nK:Chapter:3:D1,D2,D3\n"+
 		"SVar:D1:DB$ Draw | Defined$ You | NumCards$ 1\n"+
 		"SVar:D2:DB$ Draw | Defined$ You | NumCards$ 1\n"+
