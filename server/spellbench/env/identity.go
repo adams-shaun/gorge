@@ -105,3 +105,9 @@ func helloOK(id string, e protocol.Engine, flags map[string]bool, autoPay bool) 
 		Rewind:         false, Fairness: map[string]bool{"noninterference_probe": false},
 		Extensions: []protocol.Extension{{Name: "x_gorge_view_v1", NativeIDs: false}}}
 }
+
+// EngineIdentity exports the identity the v2 engine role advertises, for a
+// seat adapter that must send the same engine block to an agent.
+func EngineIdentity(sourceRevision *string, reg *cards.Registry) protocol.Engine {
+	return engineIdentity(sourceRevision, reg)
+}

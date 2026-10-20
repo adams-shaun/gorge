@@ -238,6 +238,9 @@ func ArrangeCard(src *ObjectRef, purpose string, card ObjectRef, idx, count uint
 func ChooseReplacement(affected TargetRef, event string, replSrc *ObjectRef, idx, count uint32) Semantic {
 	return sem("choose_replacement", "affected", affected, "event", event, "replacement_source", replSrc, "replacement_index", idx, "replacement_count", count)
 }
+func ChooseStartingPlayer(seat string) Semantic {
+	return sem("choose_starting_player", "player", seat)
+}
 func DeclareAttack(attacker ObjectRef, defender *TargetRef) Semantic {
 	return sem("declare_attack", "attacker", attacker, "defender", defender)
 }

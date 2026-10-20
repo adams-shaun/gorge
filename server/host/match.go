@@ -2,8 +2,10 @@ package host
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log"
 	"runtime/debug"
 	"sort"
 	"sync"
@@ -309,6 +311,17 @@ func (m *match) locked(fn func() error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return fn()
+}
+
+// projection runs a seat's engine reads under the exclusive m.mu projectLive
+// and snapshotBody take. Those projections use rules.Derived's per-engine
+// scratch walk; so do a v2 seat's identity keys, mapping refs and heuristic
+// fallback. Serializing the two is what keeps a live match's fanout from
+// racing its own seat. The agent round-trip is never inside this call.
+func (m *match) projection(f func()) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	f()
 }
 
 // afterSubmit records the burst that a successful Submit just produced.
@@ -649,7 +662,9 @@ func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData, undo <-cha
 		in, err := bs.DecideBoard(ctx, pd.brd, pd.dc)
 		return &parkedDecision{p: pd.p, in: in, err: err}
 	}
-	in, err := seats[pd.p].Decide(ctx, pd.v, pd.dc)
+	cctx, cancel := decisionCtx(ctx, seats[pd.p])
+	in, err := seats[pd.p].Decide(cctx, pd.v, pd.dc)
+	cancel()
 	return &parkedDecision{p: pd.p, in: in, err: err}
 }
 
@@ -753,6 +768,59 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 				return r.crash(t, m, err)
 			}
 			hs.configure(r.opts.ThinkTimeout, caretaker)
+		}
+	}
+	// Give a seat that needs match-level context (an external agent, a
+	// replaying adapter) one chance to attach before the first decision, and
+	// report the terminal result once after play returns. A seat that does not
+	// implement bots.MatchSeat/MatchEnd is unaffected.
+	gameID, secret := matchIdentity(m.seed, m.k)
+	defer func() {
+		result := bots.MatchResult{Reason: m.reason, DecisionCount: uint64(m.intents)}
+		switch m.state {
+		case protocol.MatchFinished:
+			result.Classification = "natural"
+			if m.result == "draw" {
+				result.Outcome = "draw"
+			} else if m.winner != nil {
+				result.Outcome = fmt.Sprintf("p%d_win", *m.winner)
+				result.Winner = fmt.Sprintf("p%d", *m.winner)
+			}
+		case protocol.MatchAborted:
+			result.Classification = "halted"
+			result.Reason = "aborted"
+		default:
+			result.Classification = "halted"
+		}
+		for _, s := range seats {
+			bots.EndMatch(s, result)
+		}
+	}()
+	for i, s := range seats {
+		mc := &bots.MatchContext{
+			Context:      ctx,
+			Engine:       m.e,
+			Projection:   m.projection,
+			GameID:       gameID,
+			Seat:         i,
+			Seats:        len(seats),
+			Format:       tableFormatName(m.cfg.Format),
+			Seed:         []byte(fmt.Sprintf("%d/%d", m.seed, m.k)),
+			Secret:       secret,
+			OwnDeck:      m.e.OwnDeck(state.PlayerID(i)),
+			Mulligan:     mulliganName(m.cfg.Mulligans),
+			StartingSeat: int(m.e.G.Active),
+			DeadlineMS:   budget,
+			Logf: func(format string, args ...any) {
+				log.Printf("match %s seat %d: "+format, append([]any{gameID, i}, args...)...)
+			},
+		}
+		if t.cfg.AllowDecklistBots && len(seats) == 2 {
+			mc.OpponentDeck = m.e.OwnDeck(state.PlayerID(1 - i))
+			mc.OpponentVisible = mc.OpponentDeck != nil
+		}
+		if err := bots.AttachMatch(s, mc); err != nil {
+			return r.crash(t, m, fmt.Errorf("seat %d: attach match: %w", i, err))
 		}
 	}
 	maxIntents := r.opts.MaxIntents
@@ -1138,4 +1206,27 @@ func (r *Registry) crash(t *table, m *match, err error) string {
 	r.onMatchEnd(t, m)
 	r.observeMatchEnd(t, m) // Task M2c-1
 	return protocol.MatchCrashed
+}
+
+// matchIdentity derives the stable per-match game id and v2 secret from the
+// table seed and match index. The host has no protocol-level game id of its
+// own, and an external seat must see the same value for a replayed match.
+func matchIdentity(seed uint64, k int) (gameID string, secret []byte) {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("gorge-match:%d:%d", seed, k)))
+	gameID = fmt.Sprintf("g-%016x", sum[:8])
+	return gameID, sum[:]
+}
+
+func tableFormatName(f rules.Format) string {
+	if f == rules.FormatCommander {
+		return "commander"
+	}
+	return "constructed"
+}
+
+func mulliganName(n int) string {
+	if n > 0 {
+		return "london"
+	}
+	return "none"
 }

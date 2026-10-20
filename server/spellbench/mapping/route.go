@@ -53,6 +53,8 @@ func Route(d *decision.Decision) string {
 			return "trigger_optional/madness"
 		}
 		return "trigger_optional/optional"
+	case decision.KStartingPlayer:
+		return "starting_player/player"
 	case decision.KReplacement:
 		if k["madness_exile"] || k["madness_graveyard"] {
 			return "replacement/madness"

@@ -61,6 +61,12 @@ func NewHypotheticalPlanned(cfg Config, prefix []ChanceDraw, planner ShufflePlan
 	return e, nil
 }
 
+// Hypothetical reports whether the engine carries a chance boundary, so a
+// caller can choose SubmitHypothetical over Submit on a clone.
+func (e *Engine) Hypothetical() bool {
+	return e != nil && e.rng != nil && e.rng.chance != nil
+}
+
 // SubmitHypothetical submits an intent and reports an incompatible chance
 // prefix as an error. A chance failure may happen mid-resolution: the engine
 // is then unusable and must be discarded, never repaired or used for scoring.

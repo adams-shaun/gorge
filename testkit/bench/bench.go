@@ -222,6 +222,52 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 		})
 	}
 	e.Advance()
+	// Seats that need match-level context (an external agent, a replaying
+	// adapter) attach after the live engine exists and before the first
+	// decision, exactly as the host does. A seat that does not implement
+	// bots.MatchSeat is unaffected. Bench games run unbounded (DeadlineMS 0),
+	// the brief's default for benches.
+	gameID := fmt.Sprintf("bench-%016x", cfg.Seed)
+	format := "constructed"
+	if cfg.Format == rules.FormatCommander {
+		format = "commander"
+	}
+	mulligan := "none"
+	if cfg.Mulligans > 0 {
+		mulligan = "london"
+	}
+	defer func() {
+		result := bots.MatchResult{Classification: "halted", Reason: "not_finished"}
+		if e.G.Over {
+			result.Classification = "natural"
+			if e.G.Draw {
+				result.Outcome = "draw"
+			} else {
+				result.Outcome = fmt.Sprintf("p%d_win", e.G.Winner)
+				result.Winner = fmt.Sprintf("p%d", e.G.Winner)
+			}
+		}
+		for _, s := range seats {
+			bots.EndMatch(s, result)
+		}
+	}()
+	for i, s := range seats {
+		mc := &bots.MatchContext{
+			Context:      context.Background(),
+			Engine:       e,
+			GameID:       gameID,
+			Seat:         i,
+			Seats:        len(seats),
+			Format:       format,
+			Seed:         []byte(fmt.Sprintf("%d", cfg.Seed)),
+			OwnDeck:      e.OwnDeck(state.PlayerID(i)),
+			Mulligan:     mulligan,
+			StartingSeat: int(e.G.Active),
+		}
+		if err := bots.AttachMatch(s, mc); err != nil {
+			return Outcome{}, e, fmt.Errorf("bench: attach seat %d: %w", i, err)
+		}
+	}
 	// leanViews are the per-seat reusable Views of view.LeanReader seats;
 	// rounds folds the board clock incrementally over the append-only log.
 	leanViews := make([]view.View, len(seats))
