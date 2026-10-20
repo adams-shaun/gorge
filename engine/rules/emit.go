@@ -46,7 +46,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// replacement, reporting prevention as a Note. Damage uses the published
 	// source (or e.damaging); zero means no source. This precedes planeswalker
 	// loyalty conversion, and CantPreventDamage bypasses the prevention gate.
-	if ev.Kind == events.Damage {
+	// A non-positive Damage event removes marked damage; it is not damage, so
+	// protection never stops it.
+	if ev.Kind == events.Damage && ev.Amount > 0 {
 		src := e.inFlightDamageSource()
 		protected := ev.Obj != 0 && e.protectedFrom(ev.Obj, src)
 		if ev.Obj == 0 && int(ev.Player) < len(e.G.Players) {
