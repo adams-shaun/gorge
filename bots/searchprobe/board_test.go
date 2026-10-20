@@ -67,13 +67,25 @@ import (
 // holds a card moves; frames 1 and 2 are unchanged, and the fixture is still
 // 126 frames. Attributed by tagging the two fields json:"-": the old digests
 // return byte-for-byte.
+//
+// Re-pinned for the A6a pump-timing port (view.CardView.PumpPower,
+// PumpToughness): the frame encoding gained two fields, so every prefix
+// digest moves; the fixture is still 126 frames, so no game moved.
+// Attributed by tagging the two fields json:"-": the old digests return
+// byte-for-byte.
+//
+// Re-pinned again for the A6a restricted-target-scope fact
+// (view.CardView.PumpOwn): the frame encoding gained one more field, so every
+// prefix digest moves; the fixture is still 126 frames, so no game moved.
+// Attributed by tagging the field json:"-": the previous digests return
+// byte-for-byte.
 func TestHistoryDigestMatchesTheJSONBoardEncoding(t *testing.T) {
 	f := benchRoot(t)
 	golden := map[int]string{
-		1:   "eb77b4df406ee3db808816480f72360cbaecfc64acd3fa386cbe22e9a257a25d",
-		2:   "7fa1857b7ddc2870f028ee7eed62545ce07eb7a76f85f180b9b0a3cab3a7d2ef",
-		17:  "46cd7c41ac1ef71e2d3c2ccb78521caba8b376b5ee6ddcf7165392e58a7bd71a",
-		126: "3356066bc15df434045d133da5274fb99cffde50799b5b71f873810ce477ce56",
+		1:   "da15cbe662d941fb1bd529d430b2e131c634633caed30b5ff4db49f70fef6a7d",
+		2:   "5ecc49c3f0979e6088f3f97853b6df1a02cde3d70f20a08485959936d86ddd34",
+		17:  "dc1736fa366fbfdb18833c99d0257f3376a201bb802c2652a32c615a40daa5e2",
+		126: "79a2c20374128c7be32033959ba05474af7075836bde8b70eddcbe3c84d49436",
 	}
 	if len(f.h.Frames) != 126 {
 		t.Fatalf("bench fixture has %d frames, the goldens were measured on 126", len(f.h.Frames))

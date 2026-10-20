@@ -257,6 +257,7 @@ func probeServed(t *testing.T, rs []route) {
 		Seat:       func(*http.Request) (SeatClaim, bool) { return SeatClaim{Table: "t1"}, true },
 		CreateGame: func(CreateGameOptions) (CreateGameResponse, error) { return CreateGameResponse{}, errors.New("probe") },
 		Events:     stubEvents{},
+		Decisions:  func(host.TableID, int) ([]protocol.ReviewDecision, error) { return nil, nil },
 	})
 	fill := strings.NewReplacer("{t}", "t1", "{k}", "1", "{id}", "e1")
 	for _, r := range rs {
@@ -355,6 +356,7 @@ var schemaRoots = []struct{ pkg, name string }{
 	{"github.com/adams-shaun/gorge/server/protocol", "EventSubscribe"},
 	{"github.com/adams-shaun/gorge/server/protocol", "EventSetInfo"},
 	{"github.com/adams-shaun/gorge/server/protocol", "EventPersonas"},
+	{"github.com/adams-shaun/gorge/server/protocol", "ReviewDecision"},
 	{"github.com/adams-shaun/gorge/engine/decision", "Decision"},
 	{"github.com/adams-shaun/gorge/engine/decision", "Intent"},
 	{"github.com/adams-shaun/gorge/engine/decision", "Kind"},

@@ -158,9 +158,11 @@ func serveReview(ctx context.Context, c reviewConfig, ln net.Listener, load Revi
 }
 
 // reviewHandler is the review server's API and client: httpapi with no seat
-// resolver (every seat route 403s), no game creation and no events.
+// resolver (every seat route 403s), no game creation and no events, plus the
+// one review-only route, the decision index (Options.Decisions), which no
+// live server mounts.
 func reviewHandler(r *host.Registry) http.Handler {
-	return httpapi.NewHandler(r, httpapi.Options{Web: webFS()})
+	return httpapi.NewHandler(r, httpapi.Options{Web: webFS(), Decisions: r.ReviewDecisions})
 }
 
 // buildReviewRegistry loads every input through load and registers it as a

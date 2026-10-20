@@ -13,6 +13,9 @@
   import PileHost from '../components/PileHost.svelte';
   import Transcript from '../components/Transcript.svelte';
   import ReplayTransport from '../components/ReplayTransport.svelte';
+  import DecisionPanel from '../components/DecisionPanel.svelte';
+  import { timelineMarks } from '../lib/review';
+  import type { ReviewDecision } from '../protocol';
   import { parseReplayQuery, replaySearch, resolveStart, type StepUnit } from '../lib/replay';
   import MatchList from '../components/MatchList.svelte';
   import ConcedeControl from '../components/ConcedeControl.svelte';
@@ -178,6 +181,18 @@
   // The table's own public config (format, bot_policy, mulligans), for the
   // restart control's POST. TableInfo always carries all three.
   const tableInfo = $derived(tables.list.find((t) => t.info.id === table)?.info ?? null);
+  // A review table (`gorged review`, TableInfo.review) adds the decision
+  // panel to the rail and override/fallback marks to the transport. Only the
+  // finished-match route of an unseated viewer ever shows it.
+  const reviewMatch = $derived(finished && !seated && tableInfo?.review === true ? match : null);
+  let reviewEntries = $state<ReviewDecision[]>([]);
+  const reviewMarks = $derived(
+    reviewMatch === null ? [] : timelineMarks(reviewEntries, (p) => m.seats[p]?.name ?? `Seat ${p + 1}`),
+  );
+  function reviewScrub(seq: number) {
+    replayPlaying = false;
+    m.dispatch({ type: 'scrub', seq });
+  }
   // The table capability is authoritative: with it off this state remains the
   // manual baseline even if a stale response carried a payment extension.
   $effect(() => {
@@ -475,6 +490,10 @@
         const fm = m;
         void fm.loadFinished(match).then(() => applyReplayQuery(fm));
       }
+      // A finished match opened directly has no table listing yet (no
+      // overview visited, no stream); read it once so the review bit is
+      // known.
+      if (tableInfo === null) tables.load().catch(() => {});
       return;
     }
     let closed = false;
@@ -588,7 +607,7 @@
              used to live inside the rail's log section, which put it in the
              right pane once the v3 layout moved the log into the rail. -->
         <div class="transport-row">
-          <ReplayTransport dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} seats={m.seats}
+          <ReplayTransport dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} seats={m.seats} marks={reviewMarks}
             bind:unit={replayUnit} bind:speed={replaySpeed} bind:playing={replayPlaying} />
         </div>
       {/if}
@@ -611,6 +630,9 @@
           <PromptRailSlot placement="dock" clearFeedback={railSide !== 'left'}>
             {#if panel && seatCtx && controlsLive && m.view}<PromptDock view={m.view} logic={panel} seat={seatCtx.seat} />{/if}
           </PromptRailSlot>
+        {/if}
+        {#if reviewMatch !== null}
+          <DecisionPanel {table} match={reviewMatch} seats={m.seats} cursor={m.dvr.cursor} onScrub={reviewScrub} bind:entries={reviewEntries} />
         {/if}
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed

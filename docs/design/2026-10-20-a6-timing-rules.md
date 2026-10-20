@@ -1,7 +1,7 @@
-# A6 timing: counters and draw/token, opt-in, with firing evidence
+# A6 timing: counters, draw/token and pump-in-combat, opt-in, with firing evidence
 
 Date: 2026-10-20.
-Tickets: A6b and A6c of the A6 split
+Tickets: A6b, A6c and A6a of the A6 split
 (`docs/design/2026-10-19-forge-heuristics-go-port-design.md`).
 Outcome: **implemented and armed only on the experimental `forge-heuristic`
 policy.** The default `bot` is unchanged and no win rate is claimed.
@@ -71,6 +71,52 @@ Approximations, recorded here rather than in AGENTS.md: a sorcery token with
 haste is deferred too, and in a multiplayer game any opponent's end step
 counts as "the turn before the AI's".
 
+## The pump-in-combat rule (A6a)
+
+`PumpInCombat` is the third armed rule, a clean-room reading of Forge's
+combat-trick timing. `Card.PumpPower`/`Card.PumpToughness` are the literal,
+non-negative `NumAtt$`/`NumDef$` of the card's primary `SP$ Pump` ability when
+its target scope names a creature (`effects.CastPumpBonus`); a curse, an {X}
+or SVar amount, a mixed sign, a non-creature target and an opponent-only
+target scope all read 0/0, so the rule never treats an unknown as a pump.
+`Card.PumpOwn` (`effects.CastPumpOwnCombatants`) says whether that filter can
+name both the caster's own attacking and blocking creatures: an attacking-only
+(Run Amok), blocking-only, non-attacker, defending-player or otherwise
+narrowed scope answers false, and the rule holds the cast rather than firing
+it and falling through to the ordinary target ranking, which leads with the
+opposing creature.
+
+The cast gate fires only when all four hold:
+
+- the filter can name the seat's own combatants (`Card.PumpOwn`);
+- `Board.Step == state.StepDeclareBlockers` -- the one window the trick is
+  for;
+- no spell the deciding seat controls is already on the stack (a second pump
+  cannot affect this combat before the first resolves);
+- `bestPumpTarget` finds a combatant the bonus actually helps.
+
+`bestPumpTarget` simulates the combat with and without the bonus through the
+same `blockCombat` the combat heuristic uses, and scores each own creature
+that is attacking or blocking (shrouded ones excluded):
+
+- **save** (3): it dies unpumped and survives pumped, or a blocking creature
+  dies unpumped and survives pumped;
+- **kill** (2): an opposing creature survives unpumped and dies pumped (for
+  an attacker, one of its blockers; for a blocker, the attacker);
+- **lethal** (1): an unblocked attacker's team total is below the defender's
+  life and the bonus takes it to at least that life.
+
+Indestructible creatures are never saved or killed by damage, so those classes
+skip them. The winner is the highest class, then the highest `threat()`, then
+the lowest object id -- a deterministic max fold with no map-order input. The
+target half (`timingTargetPick`) reads the pump bonus from the resolving stack
+entry (`d.Source`) and picks that combatant from the offered options.
+
+Approximations, recorded here rather than in AGENTS.md: the combat simulation
+orders blockers and damage assignment by object id; it models neither trample
+nor infect; and an attack against a planeswalker is counted against that
+planeswalker's controller's life.
+
 ## Firing evidence
 
 The focused botpolicy tests pin both directions:
@@ -101,6 +147,36 @@ The A6c rule's focused tests pin both directions:
 - `TestDrawTokenAdaptersAgree`: a parsed Divination and Raise the Alarm
   classify as Draw and Token on the projected `CardView` and on both Board
   halves, and Lightning Bolt as neither.
+
+The A6a rule's focused tests pin both directions:
+
+- `TestPumpInCombatHoldsWithoutTarget`: with no worthwhile combatant the
+  armed rule passes and the zero rules cast.
+- `TestPumpInCombatFiresSavingAttacker` and
+  `TestPumpInCombatFiresSavingBlocker`: the bonus saving a 2/2 that would die
+  fires the cast.
+- `TestPumpInCombatFiresKillingBlocker`: an attacker that survives either way
+  still fires the cast when the bonus kills the blocker.
+- `TestPumpInCombatFiresLethal`: a 2-power unblocked attacker against 4 life
+  fires; an attack already at lethal is held.
+- `TestPumpInCombatHoldsOutsideDeclareBlockers`,
+  `TestPumpInCombatHoldsWhenOwnSpellOnStack` and
+  `TestPumpInCombatHoldsForIndestructible`: the window, own-stack and
+  indestructible boundaries hold the pump.
+- `TestPumpInCombatTargetsBestClass` and
+  `TestPumpInCombatTargetPicksLowestIDOnTie`: the target half picks the save
+  over the kill and breaks a full tie on the lowest id.
+- `TestPumpInCombatDefaultUntouched`: the zero `TimingRules` is the rule-off
+  board.
+- `TestPumpAdaptersAgree`: a parsed Giant Growth projects +3/+3 on the
+  `CardView` and on both Board halves, while a curse, a dynamic amount and a
+  non-creature target project 0/0, and an attacking-only or blocking-only
+  scope projects the literal bonus with `PumpOwn` false.
+- `TestPumpHoldsRestrictedTargetScope`: a `Creature.attacking` pump that could
+  only "save" a blocker the card cannot name is held at declare blockers.
+- `TestCastPumpBonusReadsTheCompiledPump` and
+  `TestCastPumpOwnCombatantsReadsTheTargetScope`: the reader's
+  unknown-is-zero and target-scope boundaries.
 
 ## Why it is opt-in
 

@@ -41,8 +41,16 @@ func reviewLoad(path string) (host.ReviewMatch, error) {
 	if len(rec.Chance) > 0 {
 		return host.ReviewMatch{}, fmt.Errorf("record carries a chance transcript; review of kernel-sourced records needs replay.WalkChance (T6)")
 	}
+	explain := rec.Explain
+	if len(explain) > 0 && len(explain) != len(rec.Log.Intents) {
+		// The seam (bots/explain) is one note per intent or none at all; a
+		// misaligned sidecar would pin notes on the wrong decisions, so it
+		// is dropped -- the game itself is still reviewable.
+		fmt.Fprintf(os.Stderr, "gorged review: %s: explain has %d entries for %d intents; ignoring it\n", path, len(explain), len(rec.Log.Intents))
+		explain = nil
+	}
 	return host.ReviewMatch{Config: cfg, Log: rec.Log, Names: rec.Match.Names,
-		Policies: rec.Producer.Policies, Label: rec.Producer.Tool}, nil
+		Policies: rec.Producer.Policies, Label: rec.Producer.Tool, Explain: explain}, nil
 }
 
 // reviewCorpus opens the checkout's corpus once for every record input.

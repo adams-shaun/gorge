@@ -17,6 +17,7 @@ func comparableEqual[V comparable](a, b *V) bool { return *a == *b }
 func creatureEqual(a, b *Creature) bool {
 	return a.Power == b.Power && a.Toughness == b.Toughness && a.Damage == b.Damage &&
 		a.Tapped == b.Tapped && a.Controller == b.Controller &&
+		a.Attacking == b.Attacking && a.Defender == b.Defender && a.Blocks == b.Blocks &&
 		(a.Keywords == nil) == (b.Keywords == nil) && slices.Equal(a.Keywords, b.Keywords)
 }
 
