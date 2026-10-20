@@ -246,6 +246,12 @@ type Card struct {
 	// cards.Face.RemoveDeck on the game half). The opt-in AIHints cast policy
 	// vetoes such a card; the zero-value AIHints leaves it untouched.
 	RemoveDeck bool
+	// AuraLogic is the AttachAILogic hint of a card whose spell is an Aura
+	// aimed at a creature ("" for any other card). Both adapter halves fill
+	// it from the same printed face fact (CardView.AuraLogic, or
+	// effects.CastAuraLogic on the game half); the opt-in A5 HoldOwnAura
+	// rule reads it.
+	AuraLogic string
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -828,6 +834,8 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	// commander does). A hard block, by contrast, made the bot decline
 	// casting its good hands and sat passively on mana the phase threw away.
 	res := b.reserve()
+	// A4's R4: the reserve's weight by deck posture (posture.go).
+	resScale := b.reserveScale(w)
 	// C8's census: is there a foreign spell on the stack for a counter to
 	// eat? ForeignSpell is its one home, read in b.Stack's own order.
 	foreignSpell := b.ForeignSpell(d.Player)
@@ -863,6 +871,10 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// creature's threat clears the bar. With the rule off this is a
 		// no-op, so the default cast ranking is unchanged.
 		if !b.removalNow(d, *o) {
+			continue
+		}
+		// A5: hold a boon Aura while no own creature could carry it.
+		if b.auraHeld(d, o.Obj) {
 			continue
 		}
 		// A6: a timing rule that governs this card may hold the cast even
@@ -971,7 +983,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 				continue // CR1: the recast has priced itself out — do not cast
 			}
 		} else if res > 0 && pool-cost >= res {
-			s += res * w.ReserveScale // C7: prefer a cast that keeps the reserve
+			s += res * resScale // C7: prefer a cast that keeps the reserve
 		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
 			best, bestScore, bestInCmd = o.Index, s, inCmd
@@ -1219,6 +1231,10 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 			continue
 		}
 		if !b.removalNow(d, *o) {
+			continue
+		}
+		// A5: hold a boon Aura while no own creature could carry it.
+		if b.auraHeld(d, o.Obj) {
 			continue
 		}
 		// A6: a timing rule that governs this card may hold the cast even

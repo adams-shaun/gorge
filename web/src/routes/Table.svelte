@@ -12,7 +12,8 @@
   import Rail from '../components/Rail.svelte';
   import PileHost from '../components/PileHost.svelte';
   import Transcript from '../components/Transcript.svelte';
-  import DvrBar from '../components/DvrBar.svelte';
+  import ReplayTransport from '../components/ReplayTransport.svelte';
+  import { parseReplayQuery, replaySearch, resolveStart, type StepUnit } from '../lib/replay';
   import MatchList from '../components/MatchList.svelte';
   import ConcedeControl from '../components/ConcedeControl.svelte';
   import TableEventOverlay from '../components/event/TableEventOverlay.svelte';
@@ -67,6 +68,14 @@
   // it always was (R-E4-4).
   const seatCtx = getSeat();
   const seated = seatCtx !== null;
+  // The replay transport's playback settings (ReplayTransport binds them),
+  // seeded from the URL on a finished replay (?unit=, ?speed=, ?play=).
+  let replayUnit = $state<StepUnit>('decision');
+  let replaySpeed = $state(1);
+  let replayPlaying = $state(false);
+  // urlSynced turns on once the URL's own position has been applied, so the
+  // cursor-to-URL sync below never overwrites a ?seq= before it is read.
+  let urlSynced = $state(false);
   // The log starts hidden for a SEATED player (they are playing, not reading)
   // and stays shown for a spectator (they follow the game through it, and its
   // scrubbing). The choice is persisted per table and per scope — the stops
@@ -429,9 +438,43 @@
       : null,
   );
 
+  /**
+   * applyReplayQuery positions a finished replay from its URL: ?seq= (or
+   * ?event=), ?intent= (the board with that intent pending, as `repro -at N`
+   * prints it), or ?turn= (the round the phase bar calls "Turn N"); plus
+   * ?unit=, ?speed= and ?play=1.
+   */
+  function applyReplayQuery(fm: MatchState) {
+    if (fm.match === null || fm.loadError) return;
+    const q = parseReplayQuery(location.search);
+    if (q.unit) replayUnit = q.unit;
+    if (q.speed) replaySpeed = q.speed;
+    const seq = resolveStart(q, fm.dvr, fm.seats.length);
+    if (seq !== null) fm.dispatch({ type: 'scrub', seq });
+    if (q.play) replayPlaying = true;
+    urlSynced = true;
+  }
+
+  // A finished replay keeps its position in the URL (replaceState, no history
+  // entry per step), so a copied link reopens at the same event.
+  $effect(() => {
+    if (!finished || !urlSynced) return;
+    const cursor = m.dvr.cursor;
+    const unit = replayUnit;
+    const speed = replaySpeed;
+    const t = setTimeout(() => {
+      const next = location.pathname + replaySearch(location.search, cursor, unit, speed) + location.hash;
+      if (next !== location.pathname + location.search + location.hash) history.replaceState(history.state, '', next);
+    }, 250);
+    return () => clearTimeout(t);
+  });
+
   onMount(() => {
     if (match !== null) {
-      if (m instanceof MatchState) void m.loadFinished(match);
+      if (m instanceof MatchState) {
+        const fm = m;
+        void fm.loadFinished(match).then(() => applyReplayQuery(fm));
+      }
       return;
     }
     let closed = false;
@@ -492,7 +535,7 @@
     <MatchList {table} />
   </main>
 {:else}
-  <main class="table rail-{railSide}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen}>
+  <main class="table rail-{railSide}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen} class:with-transport={!seated && !!m.view}>
     <!-- Motion overlay (spec sub-project 5): renders nothing here; it plays
          the client model's transitions in a fixed layer on <body>. Mounted
          outside the view guard so a match change does not remount it. -->
@@ -539,6 +582,16 @@
           {/key}
         {/if}
       </section>
+      {#if !seated}
+        <!-- The DVR transport sits under the board, across its full width,
+             for every unseated view (finished replay and live spectator). It
+             used to live inside the rail's log section, which put it in the
+             right pane once the v3 layout moved the log into the rail. -->
+        <div class="transport-row">
+          <ReplayTransport dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} seats={m.seats}
+            bind:unit={replayUnit} bind:speed={replaySpeed} bind:playing={replayPlaying} />
+        </div>
+      {/if}
       {#snippet handFan({ cardWidth, visible, raise }: { cardWidth: number; visible: number; raise: boolean })}
         <!-- The seated player's own hand (Task ui17), in the hand row the
              layout sizes from its row unit. ui23: the hand gets the same
@@ -641,9 +694,6 @@
         <!-- The log lives in the rail beneath the stack (the v3 layout),
              shown or hidden by the per-table choice or the layout profile. -->
         <section class="transcript" class:hidden={!showLog} aria-label="Game log">
-          {#if !seated}
-            <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
-          {/if}
           <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} cards={logCards} notes={panel?.autoLog ?? []} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
         </section>
         {#if promptPlacement === 'dock-bottom'}
@@ -773,6 +823,19 @@
     min-width: 0;
     min-height: 0;
   }
+  /* An unseated view adds the DVR transport as a second row under the board,
+     in the board's column; the rail spans both rows. */
+  .table.with-transport {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .table.with-transport .board { grid-row: 1; }
+  .table.with-transport .rail { grid-row: 1 / -1; }
+  .transport-row {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+  .table.rail-left .transport-row { grid-column: 2; }
 
   .rail {
     position: relative;

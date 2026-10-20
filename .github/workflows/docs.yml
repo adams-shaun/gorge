@@ -78,6 +78,21 @@ jobs:
             echo "no perf-data branch yet; the tracking page shows 'no data yet'"
           fi
 
+      # gorge-compliance's nightly compliance job publishes its per-set status
+      # (Level A for every set, Level B for the printed sets) to its orphan
+      # docs-data branch. Without it the set page shows its hand snapshot.
+      - name: Fetch the per-set compliance status
+        run: |
+          if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
+            d=$(mktemp -d)
+            for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done
+            commit=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$d/meta.json")
+            date=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["date"])' "$d/meta.json")
+            python3 scripts/docs_sets.py "$d/status-A.jsonl" --level-b "$d/status-B.jsonl" --commit "$commit" --date "$date"
+          else
+            echo "no gorge-compliance docs-data branch yet; the set page shows its hand snapshot"
+          fi
+
       - name: Build the site
         run: mkdocs build --strict
 

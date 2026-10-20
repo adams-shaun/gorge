@@ -284,6 +284,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				PumpToughness:  pumpToughness,
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
+				AuraLogic:      effects.CastAuraLogic(f),
 			}
 		}
 	}
@@ -358,6 +359,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
+				AuraLogic:      effects.CastAuraLogic(f),
 			}
 		}
 	}

@@ -51,6 +51,7 @@ game; on a pinned core that is the core-time the game used.
 | gorge | every `decision.Decision` the engine poses: priority, each mana tap (manual policies), each target, attack and block declarations, mulligans, choices | `enginebench` `detail.Decisions` |
 | dirty-dirac | every intent the kernel asks a policy for | `kplay` `intents` per game |
 | XMage | each `priority`, `selectAttackers` and `selectBlockers` call on the game thread (targets and other asks are not counted) | the driver's counter |
+| mtg-kernel | every `advance_until_decision` call on the raw engine API (every priority window, each mana ability) | the driver's counter |
 | Forge | not counted: the driver has no per-decision hook | - |
 
 ## The workload
@@ -67,13 +68,25 @@ the same files every engine reads:
 They are 40-card decks of 17lands-sourced (CC BY 4.0) Premier Draft lists. FDN
 is used because it is the one card pool every engine here plays in full:
 dirty-dirac is generated for a fixed set of cards (FDN among them), while
-gorge, XMage and Forge have every card. The Burn mirror deck that
-`enginebench` also carries is not used here, because dirty-dirac does not play
-it. Seats alternate every game, 20 life, 7-card hands, no mulligans except
+gorge, XMage and Forge have every card.
+
+**mtg-kernel** implements 245 of FDN's 286 card names at the measured commit
+(and 452 card definitions in all, most of them for its Pauper pool). Pair A
+is exactly its two FDN fixture decks, so it plays pair A; pair B needs four
+cards it lacks (Goblin Negotiation, Leyline Axe, Drakuseth, Maw of Flames and
+Imprisoned in the Moon), so it has no pair-B row. A second workload is played
+for it: the **Burn mirror** (`burn.json`, the 60-card mono-red Pauper list
+from mtg-kernel's own pool, MIT), which is its home deck. gorge, XMage and
+Forge play Burn too; dirty-dirac does not (it has no Burn card set). Burn is
+played as Pauper constructed: 60 cards, 20 life.
+
+Seats alternate every game, 20 life, 7-card hands, no mulligans except
 where an engine's own AI decides one (XMage and Forge AIs may mulligan; the
 gorge and dirty-dirac runs use their default of no mulligan round). Every game
 has a turn cap (300 turns in `enginebench`, 100 in the other drivers); in the
-published run no game reached it, stalled or failed.
+published rows no game reached it, stalled or failed. The one exception was
+left out of the tables: XMage's base `ComputerPlayer` on the Burn mirror casts
+nothing, and every one of its games hit the cap without a winner.
 
 ## The player policies
 
@@ -89,6 +102,7 @@ lines, so the cost is listing the legal actions and applying the chosen one.
 | gorge | `random` | uniform over every option including each individual mana tap, so it wastes mana and plays about twice as many turns per game |
 | dirty-dirac | `random` | uniform over the kernel's options at every intent |
 | XMage | `random` | at each priority, a uniformly random playable ability or pass (the rule of XMage's own MCTS rollout player `SimulatedPlayerMCTS`), random attackers, random blockers. Targets, modes and the other asks are answered by XMage's base `ComputerPlayer` heuristics, so this row carries some AI cost |
+| mtg-kernel | `random` | the random policy of mtg-kernel's own benchmark (`random_action_for_decision` in `examples/bench_kernel.rs`): uniform over every legal action through the raw engine API, every priority window and every mana ability asked separately (like gorge's manual-tap `random`), each eligible attacker with probability 1/2, a block with probability 0.35. The driver adds one thing: a dual land's colour, which that policy (written for mono-coloured decks) does not choose, is picked at random from the colours the engine offers |
 | Forge | - | Forge ships no random player; this comparison has no Forge random row |
 
 **Each engine's own AI** measures what a game costs with the engine's built-in
@@ -104,6 +118,7 @@ not as engine speed.
 | XMage | `simple` | the base `ComputerPlayer`: no look-ahead. Its games run long (it rarely races) |
 | XMage | `mad` | `ComputerPlayer7`, "Computer - mad", the XMage client's default AI, at skill 1 (search depth 4, at most 3 s per decision) |
 | Forge | `ai` | Forge's `PlayerControllerAi` with the default AI profile on both seats, as Forge plays AI-vs-AI matches |
+| mtg-kernel | - | no row: its built-in searchers (the kernel-native search opponent, the model-guided search) are wired to its training and evaluation contracts and have no standalone game runner, so they were not driven here |
 
 Separating engine cost from AI cost: within one engine, the random row is the
 engine floor and the AI rows add the AI on top. In gorge the default bot plays
@@ -166,6 +181,14 @@ writes a JSON line per game (about 1 KB) inside its measured window, while
       differ too.
     - **XMage's random row is not fully random**: non-priority asks go to its
       base AI.
+    - **mtg-kernel plays a few hundred cards.** It is a Rust kernel for a
+      fixed pool (452 card definitions: its Pauper decks and 245 FDN names),
+      against Forge's ~34,000-card corpus, about 94% of which gorge plays.
+      Its FDN registry is behind a cargo feature (`limited-fdn-fixtures`),
+      and that build is several times slower on the Burn mirror than the
+      default build (32 against 157 games per core-second in a smoke run), so
+      each workload uses the build that plays it: pair A the FDN build, Burn
+      the default build.
     - **One machine, one load.** All numbers come from one shared machine at a
       moderate load. Relative positions are robust to that; absolute numbers
       are not.
@@ -214,14 +237,17 @@ OUT=/tmp/xengine CORES="2 4 6" SECS=60 WARM=40 scripts/xengine-bench.sh xmage
 Forge is built by gorge-compliance's `make forge-oracle-setup` (forge-core,
 forge-game and forge-ai at `FORGE_ORACLE_REF` from gorge's Forge fork, with
 their classpath in `cp.txt`). The whole-game driver is `forge.oracle.GameReplay`
-in the fork's `forge-oracle` module.
+in the fork's `forge-oracle` module, on branch
+[`oracle-harness`](https://github.com/adams-shaun/forge/tree/oracle-harness)
+(since `abbeafb93a`); clone it with
+`git clone -b oracle-harness https://github.com/adams-shaun/forge.git`.
 
 ```sh
 cd gorge-compliance && make forge-oracle-setup FORGE_ORACLE_DIR=$HOME/forgeoracle
 F=$HOME/forgeoracle
 cd ../gorge
 JAVA=$HOME/xmage/jdk/bin/java FORGE_CP=$F/cp.txt FORGE_RES=$F/forge/forge-gui/res \
-FORGE_SRC=<forge-oracle checkout with GameReplay>/forge-oracle/src/main/java \
+FORGE_SRC=<forge checkout>/forge-oracle/src/main/java \
 OUT=/tmp/xengine CORES="2 4 6" SECS=60 WARM=40 scripts/xengine-bench.sh forge
 ```
 
@@ -241,6 +267,42 @@ KPLAY=<kplay binary> OUT=/tmp/xengine CORES="24 26 28" SECS=30 scripts/xengine-b
 #           -pairs 0 -a random|hbot -b random|hbot -wall 30s -out <games.jsonl>
 ```
 
+### 5. mtg-kernel
+
+[mtg-kernel](https://github.com/jackmaiorino/mtg-kernel) (MIT) was measured
+at `058d075e30532b15a6417cafd7086e5b98fd88da` (2026-10-20) with the Rust
+toolchain its `rust-toolchain.toml` pins (1.94.1), release profile (thin LTO,
+one codegen unit). Its own benchmark, `examples/bench_kernel.rs`, plays
+random Burn mirrors; gorge adds a small mode to it, `--xengine-json`, that
+plays any two deck lists for a fixed CPU time with that benchmark's own random
+policy and prints one JSON line. The mode is gorge's code (Apache-2.0 or MIT),
+in [`cmd/enginebench/scripts/xengine/mtgkernel/`](https://github.com/adams-shaun/gorge/tree/main/cmd/enginebench/scripts/xengine/mtgkernel):
+`xengine.rs` and `apply.py`, which copies it into a checkout and adds the
+three-line dispatch to `bench_kernel`'s `main`. Nothing from mtg-kernel is
+committed to gorge.
+
+```sh
+git clone https://github.com/jackmaiorino/mtg-kernel && cd mtg-kernel
+git checkout 058d075e30532b15a6417cafd7086e5b98fd88da
+(cd mtg-kernel && python3 ../../gorge/cmd/enginebench/scripts/xengine/mtgkernel/apply.py \
+   ../../gorge/cmd/enginebench/scripts/xengine/mtgkernel/xengine.rs)
+CARGO_TARGET_DIR=$PWD/target     cargo build --release -p mtg-kernel --example bench_kernel
+CARGO_TARGET_DIR=$PWD/target-fdn cargo build --release -p mtg-kernel --example bench_kernel \
+   --features limited-fdn-fixtures          # about 10 minutes each on 3-4 cores
+cd ../gorge
+MTGKERNEL_BENCH=../mtg-kernel/target-fdn/release/examples/bench_kernel MK_PAIRS=A \
+  OUT=/tmp/xengine CORES="2 4 6" SECS=30 scripts/xengine-bench.sh mtg-kernel
+MTGKERNEL_BENCH=../mtg-kernel/target/release/examples/bench_kernel MK_PAIRS=burn \
+  OUT=/tmp/xengine CORES="2 4 6" SECS=30 scripts/xengine-bench.sh mtg-kernel
+```
+
+The driver refuses a deck with a card mtg-kernel does not fully support
+(`preflight_fully_supported_deck`) instead of measuring something else, warms
+up for `MK_WARM` (default 5) CPU-seconds, reads its CPU time from
+`/proc/self/stat`, and counts halted games, engine errors and capped games
+(none in the published run). The other engines play the Burn rows with
+`PAIRS=burn`.
+
 ### Reading the output
 
 `runs.jsonl` holds one line per run: `engine`, `row`, `pair`, `rep`, `core`,
@@ -250,11 +312,39 @@ KPLAY=<kplay binary> OUT=/tmp/xengine CORES="24 26 28" SECS=30 scripts/xengine-b
 `other_busy` (the core contention above). Rerun the table with
 `python3 scripts/xengine-bench-summarize.py $OUT/runs.jsonl`.
 
+## Search bots
+
+The search rows measure what one MCTS simulation costs, the number that
+decides how much look-ahead a search bot can afford. Each run is one process
+on one pinned core, three reps at once, 30 seconds, FDN pair A.
+
+| Row | What runs | How cost is counted |
+|---|---|---|
+| gorge MCTS, heuristic leaf | `enginebench -row az -sims N` (build tag `enginebench_az`): the `azmcts` seat behind `az-redeal`, every simulation over a freshly re-dealt world of what the seat cannot see, a heuristic leaf value, gorge's heuristic bot playing every unsearched decision inside the search. It searches priority roots from turns 5-8 of seeded pair-A games | CPU time inside the search only, divided by simulations (`sims_per_cpu_s`) and by searched roots |
+| dirty-dirac MCTS, heuristic leaf | the kernel's game runner with an MCTS seat on both sides (`-a az:sims=N -b az:sims=N`): the same algorithm shape (re-dealt worlds, the native port of gorge's heuristic bot as the in-search player), heuristic leaf | process CPU over whole games (searched and unsearched decisions, the engine between searches), divided by completed simulations; so it slightly overstates the search's own cost against the gorge row |
+| dirty-dirac MCTS, network leaf | the same with `:gonet=<weights.dzgw>`: a small multilayer perceptron (one 64-wide layer, about 2.4 MB of weights) evaluated in-process on the CPU as the leaf value | as above |
+
+No network leaf is measured for gorge, because `enginebench`'s `az` row has no
+network option. No mtg-kernel search row is published, for the reason given
+under the player policies.
+
+The cost split comes from profiles: for dirty-dirac the kernel's own
+per-simulation timers (a `kprof` build of its runner), for gorge
+`go tool pprof` on `enginebench -cpuprofile`.
+
+```sh
+go build -tags enginebench_az -o /tmp/eb-az ./cmd/enginebench
+for n in 25 100 1000; do taskset -c 24 env GOMAXPROCS=1 /tmp/eb-az -row az -sims $n -secs 30; done
+```
+
+The dirty-dirac rows come from the private module's game runner, run as
+`kplay -cards .cards -deckfile <pair A> -pairs-file <games> -pairs 0 -a az:sims=N[:gonet=W] -b az:sims=N[:gonet=W] -wall 30s`
+with `GOMAXPROCS=1` on one pinned core.
+
 ## Adding an engine
 
 An engine needs a driver that plays whole games between two `.dck` deck lists
 on one thread, pinned, and reports games, turns, decisions and CPU time for a
 measured window after any warm-up. Add a `<engine>_run` and `<engine>_all`
 function to the script and a `KIND` to `--record` in the summarizer. Other
-engines were not added because none is installed on the measuring machine;
-Rust engines such as mtg-kernel would also need a Rust toolchain there.
+engines were not added because none is installed on the measuring machine.

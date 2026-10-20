@@ -20,9 +20,18 @@ how well they play.
     - **dirty-dirac, the fixed-card-set kernel checked in lockstep against
       gorge, is another 15-20× faster than gorge** (0.6 ms a game, 23 µs a
       turn), at the cost of playing only its generated card sets.
+    - **mtg-kernel**, a public Rust kernel with a few hundred cards, is about
+      as fast as gorge on its home Burn mirror (174 against 118-143 random
+      games per core-second) and 6-13× slower per turn on FDN pair A, the
+      FDN pair it plays ([details](#a-second-comparison-decks-mtg-kernel-plays)).
+    - **Search:** one MCTS simulation costs 57-108 µs on dirty-dirac with a
+      heuristic leaf, 90-177 µs with a small network leaf, and 0.9-1.6 ms on
+      gorge, at 25-1,000 simulations per decision; almost all of it is the
+      rules engine ([details](#search-bots-cost-per-simulation)).
     - **Memory:** one game-playing process peaks at about 350 MB for gorge
       (the whole card corpus loaded), 0.9 GB for Forge and 1.2-1.3 GB for
-      XMage with a 2 GB heap cap.
+      XMage with a 2 GB heap cap; mtg-kernel, with its cards compiled in,
+      11-16 MB.
 
 ## The numbers
 
@@ -301,17 +310,317 @@ and costs 50-100 ms a turn; Forge's AI costs 46-68 ms a turn.
 **Search.** Search bots clone and step the engine many times per decision, so
 the per-operation costs matter more than per-game ones: gorge clones a
 mid-game state in 14 µs (28 µs with GC) and clones-and-steps in 39 µs, and
-its MCTS search runs about 1,100 simulations per core-second (see
-[Engine speed](engine.md#current-numbers)). These rows have no equivalent in
-this harness for the other engines.
+its MCTS search runs about 1,000-1,100 simulations per core-second at 25-100
+simulations a decision (see [Engine speed](engine.md#current-numbers) and
+[Search bots](#search-bots-cost-per-simulation) below, which compares it with
+dirty-dirac's search).
+
+## A second comparison: decks mtg-kernel plays
+
+[mtg-kernel](https://github.com/jackmaiorino/mtg-kernel) is a public Rust
+rules kernel (MIT) built for reinforcement learning on a fixed card pool. It
+cannot play FDN pair B (it lacks four of its cards), so it is not in the
+tables above. This section adds it on the two workloads it does play,
+measured the same way (one pinned core per run, three reps, medians with
+min-max): **FDN pair A**, which is exactly mtg-kernel's two FDN fixture decks
+and which every engine here plays, and the **Burn mirror**, the mono-red
+Pauper deck from mtg-kernel's own pool, which every engine except dirty-dirac
+plays. mtg-kernel has no standalone built-in bot, so it has a random row only
+([why](methodology.md#the-player-policies)).
+
+!!! info "What differs about mtg-kernel"
+    - **Card pool.** 452 card definitions at the measured commit: its Pauper
+      decks plus 245 of FDN's 286 names. gorge plays about 94% of Forge's
+      ~34,000-card corpus; XMage and Forge play every card.
+    - **Its FDN cards are a build option.** They sit behind the cargo feature
+      `limited-fdn-fixtures`, and that build plays Burn several times slower
+      than the default build, so pair A uses the FDN build and Burn the
+      default one.
+    - **Its random player is the one from its own benchmark**: every priority
+      window and every mana ability is a decision, as in gorge's manual-tap
+      random row, which is the closest gorge row to compare with.
+    - **Memory is not comparable**: mtg-kernel compiles its few hundred
+      cards into the binary (11-16 MB resident), while gorge, XMage and Forge
+      load a card database of tens of thousands of cards.
+
+### FDN pair A, every engine
+
+<figure markdown>
+<svg viewBox="0 0 760 372" width="100%" role="img" aria-label="Bar chart, log scale: CPU microseconds per turn on FDN pair A for each engine and policy">
+<text class="dg-text-bold" x="0" y="16">CPU µs per turn, FDN pair A (log scale; lower is cheaper)</text>
+<rect class="dg-box-solid" x="460" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="476" y="16">random legal action</text>
+<rect class="dg-box-accent" x="610" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="626" y="16">engine's own AI</text>
+<line class="dg-line-dashed" x1="210.0" y1="28" x2="210.0" y2="350"/>
+<text class="dg-text-muted" x="210.0" y="364" text-anchor="middle">10.0</text>
+<line class="dg-line-dashed" x1="330.0" y1="28" x2="330.0" y2="350"/>
+<text class="dg-text-muted" x="330.0" y="364" text-anchor="middle">100</text>
+<line class="dg-line-dashed" x1="450.0" y1="28" x2="450.0" y2="350"/>
+<text class="dg-text-muted" x="450.0" y="364" text-anchor="middle">1,000</text>
+<line class="dg-line-dashed" x1="570.0" y1="28" x2="570.0" y2="350"/>
+<text class="dg-text-muted" x="570.0" y="364" text-anchor="middle">10,000</text>
+<line class="dg-line-dashed" x1="690.0" y1="28" x2="690.0" y2="350"/>
+<text class="dg-text-muted" x="690.0" y="364" text-anchor="middle">100,000</text>
+<g><title>dirty-dirac · random: 22.9 µs/turn (min 22.8, max 22.9)</title>
+<text class="dg-text" x="202" y="48" text-anchor="end">dirty-dirac · random</text>
+<rect class="dg-box-solid" x="210" y="34" width="43.1" height="20" rx="3"/>
+<line class="dg-line" x1="253.1" y1="44" x2="253.2" y2="44"/>
+<text class="dg-text" x="259.2" y="48">22.9</text></g>
+<g><title>gorge · random (auto-pay): 471 µs/turn (min 468, max 473)</title>
+<text class="dg-text" x="202" y="76" text-anchor="end">gorge · random (auto-pay)</text>
+<rect class="dg-box-solid" x="210" y="62" width="200.8" height="20" rx="3"/>
+<line class="dg-line" x1="410.5" y1="72" x2="411.0" y2="72"/>
+<text class="dg-text" x="417.0" y="76">471</text></g>
+<g><title>gorge · random (manual): 232 µs/turn (min 232, max 233)</title>
+<text class="dg-text" x="202" y="104" text-anchor="end">gorge · random (manual)</text>
+<rect class="dg-box-solid" x="210" y="90" width="163.9" height="20" rx="3"/>
+<line class="dg-line" x1="373.8" y1="100" x2="374.0" y2="100"/>
+<text class="dg-text" x="380.0" y="104">232</text></g>
+<g><title>mtg-kernel · random: 3,075 µs/turn (min 3,011, max 3,113)</title>
+<text class="dg-text" x="202" y="132" text-anchor="end">mtg-kernel · random</text>
+<rect class="dg-box-solid" x="210" y="118" width="298.5" height="20" rx="3"/>
+<line class="dg-line" x1="507.5" y1="128" x2="509.2" y2="128"/>
+<text class="dg-text" x="515.2" y="132">3,075</text></g>
+<g><title>XMage · random: 13,063 µs/turn (min 12,774, max 13,145)</title>
+<text class="dg-text" x="202" y="160" text-anchor="end">XMage · random</text>
+<rect class="dg-box-solid" x="210" y="146" width="373.9" height="20" rx="3"/>
+<line class="dg-line" x1="582.8" y1="156" x2="584.2" y2="156"/>
+<text class="dg-text" x="590.2" y="160">13,063</text></g>
+<g><title>dirty-dirac · hbot: 38.1 µs/turn (min 38.1, max 38.6)</title>
+<text class="dg-text" x="202" y="188" text-anchor="end">dirty-dirac · hbot</text>
+<rect class="dg-box-accent" x="210" y="174" width="69.8" height="20" rx="3"/>
+<line class="dg-line" x1="279.7" y1="184" x2="280.4" y2="184"/>
+<text class="dg-text" x="286.4" y="188">38.1</text></g>
+<g><title>gorge · bot (auto-pay): 540 µs/turn (min 538, max 544)</title>
+<text class="dg-text" x="202" y="216" text-anchor="end">gorge · bot (auto-pay)</text>
+<rect class="dg-box-accent" x="210" y="202" width="207.9" height="20" rx="3"/>
+<line class="dg-line" x1="417.7" y1="212" x2="418.3" y2="212"/>
+<text class="dg-text" x="424.3" y="216">540</text></g>
+<g><title>gorge · bot (manual): 412 µs/turn (min 410, max 417)</title>
+<text class="dg-text" x="202" y="244" text-anchor="end">gorge · bot (manual)</text>
+<rect class="dg-box-accent" x="210" y="230" width="193.8" height="20" rx="3"/>
+<line class="dg-line" x1="403.6" y1="240" x2="404.4" y2="240"/>
+<text class="dg-text" x="410.4" y="244">412</text></g>
+<g><title>XMage · simple AI: 747 µs/turn (min 743, max 753)</title>
+<text class="dg-text" x="202" y="272" text-anchor="end">XMage · simple AI</text>
+<rect class="dg-box-accent" x="210" y="258" width="224.8" height="20" rx="3"/>
+<line class="dg-line" x1="434.5" y1="268" x2="435.2" y2="268"/>
+<text class="dg-text" x="441.2" y="272">747</text></g>
+<g><title>XMage · mad AI: 51,169 µs/turn (min 49,069, max 51,492)</title>
+<text class="dg-text" x="202" y="300" text-anchor="end">XMage · mad AI</text>
+<rect class="dg-box-accent" x="210" y="286" width="445.1" height="20" rx="3"/>
+<line class="dg-line" x1="652.9" y1="296" x2="655.4" y2="296"/>
+<text class="dg-text" x="661.4" y="300">51,169</text></g>
+<g><title>Forge · Forge AI: 67,548 µs/turn (min 58,991, max 71,387)</title>
+<text class="dg-text" x="202" y="328" text-anchor="end">Forge · Forge AI</text>
+<rect class="dg-box-accent" x="210" y="314" width="459.6" height="20" rx="3"/>
+<line class="dg-line" x1="662.5" y1="324" x2="672.4" y2="324"/>
+<text class="dg-text" x="678.4" y="328">67,548</text></g>
+<line class="dg-line" x1="210" y1="28" x2="210" y2="350"/>
+</svg>
+<figcaption>CPU µs per turn on FDN pair A, log scale. Median of 3 runs, thin line = min-max. 2026-10-20 (17:45-18:07 UTC; mtg-kernel 18:50 UTC), gorge <code>ad3777023</code>, mtg-kernel <code>058d075e3</code>, one pinned core per run (24/26/28); <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
+</figure>
+
+| Engine · policy | games / core-s | ms / game | µs / turn | µs / decision | turns / game | peak RSS (MB) |
+|---|--:|--:|--:|--:|--:|--:|
+| dirty-dirac · random | 1,848 <small>(1,845–1,848)</small> | 0.541 <small>(0.541–0.542)</small> | 22.9 <small>(22.8–22.9)</small> | 4.55 <small>(4.54–4.56)</small> | 24 | 361 |
+| gorge · random (auto-pay) | 92.3 <small>(91.9–93.9)</small> | 10.8 <small>(10.7–10.9)</small> | 471 <small>(468–473)</small> | 19.7 <small>(19.5–19.7)</small> | 23 | 351 |
+| gorge · random (manual) | 103 <small>(102–103)</small> | 9.74 <small>(9.70–9.78)</small> | 232 <small>(232–233)</small> | 8.50 <small>(8.48–8.54)</small> | 42 | 349 |
+| mtg-kernel · random | 18.6 <small>(18.4–19.4)</small> | 53.8 <small>(51.6–54.5)</small> | 3,075 <small>(3,011–3,113)</small> | 57.2 <small>(56.3–57.7)</small> | 17 | 15.7 |
+| XMage · random | 2.50 <small>(2.40–2.58)</small> | 400 <small>(387–416)</small> | 13,063 <small>(12,774–13,145)</small> | 495 <small>(487–496)</small> | 31 | 1,228 |
+| dirty-dirac · hbot | 1,457 <small>(1,439–1,462)</small> | 0.686 <small>(0.684–0.695)</small> | 38.1 <small>(38.1–38.6)</small> | 6.76 <small>(6.75–6.84)</small> | 18 | 490 |
+| gorge · bot (auto-pay) | 103 <small>(102–103)</small> | 9.70 <small>(9.68–9.83)</small> | 540 <small>(538–544)</small> | 21.5 <small>(21.4–21.7)</small> | 18 | 346 |
+| gorge · bot (manual) | 134 <small>(132–136)</small> | 7.45 <small>(7.37–7.58)</small> | 412 <small>(410–417)</small> | 14.7 <small>(14.7–14.9)</small> | 18 | 355 |
+| XMage · simple AI | 19.6 <small>(19.5–19.7)</small> | 50.9 <small>(50.7–51.3)</small> | 747 <small>(743–753)</small> | 47.4 <small>(47.1–47.8)</small> | 68 | 1,218 |
+| XMage · mad AI | 1.22 <small>(1.18–1.25)</small> | 822 <small>(801–850)</small> | 51,169 <small>(49,069–51,492)</small> | 2,349 <small>(2,292–2,391)</small> | 16 | 1,286 |
+| Forge · Forge AI | 0.807 <small>(0.723–0.966)</small> | 1,239 <small>(1,035–1,383)</small> | 67,548 <small>(58,991–71,387)</small> | n/a | 18 | 868 |
+
+### Burn mirror
+
+<figure markdown>
+<svg viewBox="0 0 760 288" width="100%" role="img" aria-label="Bar chart, log scale: CPU microseconds per turn on Burn mirror for each engine and policy">
+<text class="dg-text-bold" x="0" y="16">CPU µs per turn, Burn mirror (log scale; lower is cheaper)</text>
+<rect class="dg-box-solid" x="460" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="476" y="16">random legal action</text>
+<rect class="dg-box-accent" x="610" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="626" y="16">engine's own AI</text>
+<line class="dg-line-dashed" x1="210.0" y1="28" x2="210.0" y2="266"/>
+<text class="dg-text-muted" x="210.0" y="280" text-anchor="middle">100</text>
+<line class="dg-line-dashed" x1="330.0" y1="28" x2="330.0" y2="266"/>
+<text class="dg-text-muted" x="330.0" y="280" text-anchor="middle">1,000</text>
+<line class="dg-line-dashed" x1="450.0" y1="28" x2="450.0" y2="266"/>
+<text class="dg-text-muted" x="450.0" y="280" text-anchor="middle">10,000</text>
+<line class="dg-line-dashed" x1="570.0" y1="28" x2="570.0" y2="266"/>
+<text class="dg-text-muted" x="570.0" y="280" text-anchor="middle">100,000</text>
+<line class="dg-line-dashed" x1="690.0" y1="28" x2="690.0" y2="266"/>
+<text class="dg-text-muted" x="690.0" y="280" text-anchor="middle">1,000,000</text>
+<g><title>gorge · random (auto-pay): 267 µs/turn (min 266, max 267)</title>
+<text class="dg-text" x="202" y="48" text-anchor="end">gorge · random (auto-pay)</text>
+<rect class="dg-box-solid" x="210" y="34" width="51.2" height="20" rx="3"/>
+<line class="dg-line" x1="261.0" y1="44" x2="261.2" y2="44"/>
+<text class="dg-text" x="267.2" y="48">267</text></g>
+<g><title>gorge · random (manual): 240 µs/turn (min 238, max 240)</title>
+<text class="dg-text" x="202" y="76" text-anchor="end">gorge · random (manual)</text>
+<rect class="dg-box-solid" x="210" y="62" width="45.5" height="20" rx="3"/>
+<line class="dg-line" x1="255.1" y1="72" x2="255.6" y2="72"/>
+<text class="dg-text" x="261.6" y="76">240</text></g>
+<g><title>mtg-kernel · random: 367 µs/turn (min 365, max 368)</title>
+<text class="dg-text" x="202" y="104" text-anchor="end">mtg-kernel · random</text>
+<rect class="dg-box-solid" x="210" y="90" width="67.8" height="20" rx="3"/>
+<line class="dg-line" x1="277.5" y1="100" x2="277.8" y2="100"/>
+<text class="dg-text" x="283.8" y="104">367</text></g>
+<g><title>XMage · random: 11,188 µs/turn (min 10,856, max 11,308)</title>
+<text class="dg-text" x="202" y="132" text-anchor="end">XMage · random</text>
+<rect class="dg-box-solid" x="210" y="118" width="245.9" height="20" rx="3"/>
+<line class="dg-line" x1="454.3" y1="128" x2="456.4" y2="128"/>
+<text class="dg-text" x="462.4" y="132">11,188</text></g>
+<g><title>gorge · bot (auto-pay): 437 µs/turn (min 434, max 439)</title>
+<text class="dg-text" x="202" y="160" text-anchor="end">gorge · bot (auto-pay)</text>
+<rect class="dg-box-accent" x="210" y="146" width="76.8" height="20" rx="3"/>
+<line class="dg-line" x1="286.6" y1="156" x2="287.0" y2="156"/>
+<text class="dg-text" x="293.0" y="160">437</text></g>
+<g><title>gorge · bot (manual): 308 µs/turn (min 306, max 309)</title>
+<text class="dg-text" x="202" y="188" text-anchor="end">gorge · bot (manual)</text>
+<rect class="dg-box-accent" x="210" y="174" width="58.6" height="20" rx="3"/>
+<line class="dg-line" x1="268.4" y1="184" x2="268.7" y2="184"/>
+<text class="dg-text" x="274.7" y="188">308</text></g>
+<g><title>XMage · mad AI: 272,821 µs/turn (min 226,484, max 345,899)</title>
+<text class="dg-text" x="202" y="216" text-anchor="end">XMage · mad AI</text>
+<rect class="dg-box-accent" x="210" y="202" width="412.3" height="20" rx="3"/>
+<line class="dg-line" x1="612.6" y1="212" x2="634.7" y2="212"/>
+<text class="dg-text" x="640.7" y="216">272,821</text></g>
+<g><title>Forge · Forge AI: 35,533 µs/turn (min 33,783, max 36,489)</title>
+<text class="dg-text" x="202" y="244" text-anchor="end">Forge · Forge AI</text>
+<rect class="dg-box-accent" x="210" y="230" width="306.1" height="20" rx="3"/>
+<line class="dg-line" x1="513.4" y1="240" x2="517.5" y2="240"/>
+<text class="dg-text" x="523.5" y="244">35,533</text></g>
+<line class="dg-line" x1="210" y1="28" x2="210" y2="266"/>
+</svg>
+<figcaption>CPU µs per turn on the Burn mirror, log scale. XMage's base AI is left out: on Burn it casts nothing and every game hits the 100-turn cap. Median of 3 runs, thin line = min-max. 2026-10-20 (18:50-19:00 UTC, load average 6-36), gorge <code>ad3777023</code>, mtg-kernel <code>058d075e3</code>, one pinned core per run (24/26/28); <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
+</figure>
+
+| Engine · policy | games / core-s | ms / game | µs / turn | µs / decision | turns / game | peak RSS (MB) |
+|---|--:|--:|--:|--:|--:|--:|
+| gorge · random (auto-pay) | 143 <small>(142–143)</small> | 6.98 <small>(6.97–7.06)</small> | 267 <small>(266–267)</small> | 12.2 <small>(12.1–12.2)</small> | 26 | 354 |
+| gorge · random (manual) | 118 <small>(117–118)</small> | 8.48 <small>(8.45–8.53)</small> | 240 <small>(238–240)</small> | 10.9 <small>(10.9–10.9)</small> | 36 | 353 |
+| mtg-kernel · random | 174 <small>(173–174)</small> | 5.75 <small>(5.74–5.78)</small> | 367 <small>(365–368)</small> | 8.15 <small>(8.11–8.15)</small> | 16 | 10.9 |
+| XMage · random | 3.14 <small>(2.91–3.18)</small> | 318 <small>(315–344)</small> | 11,188 <small>(10,856–11,308)</small> | 527 <small>(508–534)</small> | 29 | 1,262 |
+| gorge · bot (auto-pay) | 111 <small>(110–112)</small> | 9.00 <small>(8.96–9.05)</small> | 437 <small>(434–439)</small> | 18.7 <small>(18.6–18.7)</small> | 21 | 347 |
+| gorge · bot (manual) | 159 <small>(158–159)</small> | 6.30 <small>(6.27–6.31)</small> | 308 <small>(306–309)</small> | 12.1 <small>(12.1–12.2)</small> | 20 | 352 |
+| XMage · mad AI | 0.259 <small>(0.179–0.282)</small> | 3,864 <small>(3,547–5,597)</small> | 272,821 <small>(226,484–345,899)</small> | 13,226 <small>(11,010–17,280)</small> | 16 | 1,336 |
+| Forge · Forge AI | 1.58 <small>(1.45–1.64)</small> | 633 <small>(609–688)</small> | 35,533 <small>(33,783–36,489)</small> | n/a | 18 | 892 |
+
+On FDN pair A, gorge's random players spend 233-471 µs a turn against
+mtg-kernel's 3,075 µs; on its home Burn mirror mtg-kernel is close to gorge
+(367 µs a turn against 240-267 µs), and its games are shorter, so it plays
+174 games per core-second against gorge's 118-143. dirty-dirac remains
+the fastest engine on pair A by an order of magnitude.
+
+## Search bots: cost per simulation
+
+A search bot clones and steps the game many times per decision, so its cost
+is the cost of one simulation times the simulation budget. These rows put an
+MCTS search on both seats (dirty-dirac) or on searched priority roots (gorge)
+of FDN pair A at 25, 100 and 1,000 simulations per searched decision, on one
+pinned core, three reps; [Methodology](methodology.md#search-bots) says
+exactly what runs and how each is counted. They measure speed only.
+
+<figure markdown>
+<svg viewBox="0 0 760 316" width="100%" role="img" aria-label="Bar chart, log scale: CPU microseconds per MCTS simulation for dirty-dirac and gorge search bots at 25, 100 and 1000 simulations per decision">
+<text class="dg-text-bold" x="0" y="16">CPU µs per simulation (log scale; lower is cheaper)</text>
+<rect class="dg-box-solid" x="460" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="476" y="16">dirty-dirac</text>
+<rect class="dg-box-accent" x="610" y="6" width="12" height="12" rx="2"/><text class="dg-text-muted" x="626" y="16">gorge</text>
+<line class="dg-line-dashed" x1="300.0" y1="28" x2="300.0" y2="294"/>
+<text class="dg-text-muted" x="300.0" y="308" text-anchor="middle">10.0</text>
+<line class="dg-line-dashed" x1="430.0" y1="28" x2="430.0" y2="294"/>
+<text class="dg-text-muted" x="430.0" y="308" text-anchor="middle">100</text>
+<line class="dg-line-dashed" x1="560.0" y1="28" x2="560.0" y2="294"/>
+<text class="dg-text-muted" x="560.0" y="308" text-anchor="middle">1,000</text>
+<line class="dg-line-dashed" x1="690.0" y1="28" x2="690.0" y2="294"/>
+<text class="dg-text-muted" x="690.0" y="308" text-anchor="middle">10,000</text>
+<g><title>dirty-dirac, heuristic leaf, 25 sims: 57.1 µs/sim (min 56.9, max 58.1)</title>
+<text class="dg-text" x="292" y="48" text-anchor="end">dirty-dirac, heuristic leaf, 25 sims</text>
+<rect class="dg-box-solid" x="300" y="34" width="98.4" height="20" rx="3"/>
+<line class="dg-line" x1="398.2" y1="44" x2="399.3" y2="44"/>
+<text class="dg-text" x="405.3" y="48">57.1</text></g>
+<g><title>dirty-dirac, heuristic leaf, 100 sims: 74.3 µs/sim (min 73.9, max 79.6)</title>
+<text class="dg-text" x="292" y="76" text-anchor="end">dirty-dirac, heuristic leaf, 100 sims</text>
+<rect class="dg-box-solid" x="300" y="62" width="113.2" height="20" rx="3"/>
+<line class="dg-line" x1="412.9" y1="72" x2="417.1" y2="72"/>
+<text class="dg-text" x="423.1" y="76">74.3</text></g>
+<g><title>dirty-dirac, heuristic leaf, 1000 sims: 108 µs/sim (min 89.9, max 109)</title>
+<text class="dg-text" x="292" y="104" text-anchor="end">dirty-dirac, heuristic leaf, 1000 sims</text>
+<rect class="dg-box-solid" x="300" y="90" width="134.2" height="20" rx="3"/>
+<line class="dg-line" x1="424.0" y1="100" x2="434.7" y2="100"/>
+<text class="dg-text" x="440.7" y="104">108</text></g>
+<g><title>dirty-dirac, network leaf, 25 sims: 99.3 µs/sim (min 96.9, max 103)</title>
+<text class="dg-text" x="292" y="132" text-anchor="end">dirty-dirac, network leaf, 25 sims</text>
+<rect class="dg-box-solid" x="300" y="118" width="129.6" height="20" rx="3"/>
+<line class="dg-line" x1="428.2" y1="128" x2="431.5" y2="128"/>
+<text class="dg-text" x="437.5" y="132">99.3</text></g>
+<g><title>dirty-dirac, network leaf, 100 sims: 90.0 µs/sim (min 89.4, max 95.2)</title>
+<text class="dg-text" x="292" y="160" text-anchor="end">dirty-dirac, network leaf, 100 sims</text>
+<rect class="dg-box-solid" x="300" y="146" width="124.1" height="20" rx="3"/>
+<line class="dg-line" x1="423.7" y1="156" x2="427.2" y2="156"/>
+<text class="dg-text" x="433.2" y="160">90.0</text></g>
+<g><title>dirty-dirac, network leaf, 1000 sims: 177 µs/sim (min 163, max 189)</title>
+<text class="dg-text" x="292" y="188" text-anchor="end">dirty-dirac, network leaf, 1000 sims</text>
+<rect class="dg-box-solid" x="300" y="174" width="162.2" height="20" rx="3"/>
+<line class="dg-line" x1="457.5" y1="184" x2="465.9" y2="184"/>
+<text class="dg-text" x="471.9" y="188">177</text></g>
+<g><title>gorge azmcts, heuristic leaf, 25 sims: 914 µs/sim (min 908, max 966)</title>
+<text class="dg-text" x="292" y="216" text-anchor="end">gorge azmcts, heuristic leaf, 25 sims</text>
+<rect class="dg-box-accent" x="300" y="202" width="254.9" height="20" rx="3"/>
+<line class="dg-line" x1="554.5" y1="212" x2="558.0" y2="212"/>
+<text class="dg-text" x="564.0" y="216">914</text></g>
+<g><title>gorge azmcts, heuristic leaf, 100 sims: 942 µs/sim (min 939, max 978)</title>
+<text class="dg-text" x="292" y="244" text-anchor="end">gorge azmcts, heuristic leaf, 100 sims</text>
+<rect class="dg-box-accent" x="300" y="230" width="256.7" height="20" rx="3"/>
+<line class="dg-line" x1="556.5" y1="240" x2="558.7" y2="240"/>
+<text class="dg-text" x="564.7" y="244">942</text></g>
+<g><title>gorge azmcts, heuristic leaf, 1000 sims: 1,604 µs/sim (min 1,281, max 1,687)</title>
+<text class="dg-text" x="292" y="272" text-anchor="end">gorge azmcts, heuristic leaf, 1000 sims</text>
+<rect class="dg-box-accent" x="300" y="258" width="286.7" height="20" rx="3"/>
+<line class="dg-line" x1="574.0" y1="268" x2="589.5" y2="268"/>
+<text class="dg-text" x="595.5" y="272">1,604</text></g>
+<line class="dg-line" x1="300" y1="28" x2="300" y2="294"/>
+</svg>
+<figcaption>CPU µs per MCTS simulation, log scale, FDN pair A, median of 3 runs, thin line = min-max. 2026-10-20 18:35-18:41 UTC, gorge <code>ad3777023</code>, one pinned core per run (24/26/28), load average 17-32 (core contention at most 10%). dirty-dirac counts whole games' CPU per simulation, gorge only the search's CPU.</figcaption>
+</figure>
+
+| Search bot | sims per decision | µs per simulation | simulations per core-second | ms per searched decision | ms per game | games or roots per run |
+|---|--:|--:|--:|--:|--:|--:|
+| dirty-dirac MCTS, heuristic leaf | 25 | 57.1 <small>(56.9–58.1)</small> | 17,499 <small>(17,222–17,560)</small> | 1.43 <small>(1.42–1.45)</small> | 108 <small>(105–113)</small> | 278-286-266 |
+| dirty-dirac MCTS, heuristic leaf | 100 | 74.3 <small>(73.9–79.6)</small> | 13,455 <small>(12,560–13,527)</small> | 7.43 <small>(7.39–7.96)</small> | 546 <small>(535–623)</small> | 49-55-57 |
+| dirty-dirac MCTS, heuristic leaf | 1000 | 108 <small>(89.9–109)</small> | 9,277 <small>(9,201–11,119)</small> | 108 <small>(89.9–109)</small> | 8,219 <small>(7,263–9,428)</small> | 4-4-4 |
+| dirty-dirac MCTS, network leaf | 25 | 99.3 <small>(96.9–103)</small> | 10,075 <small>(9,737–10,323)</small> | 2.48 <small>(2.42–2.57)</small> | 171 <small>(168–174)</small> | 165-157-161 |
+| dirty-dirac MCTS, network leaf | 100 | 90.0 <small>(89.4–95.2)</small> | 11,107 <small>(10,508–11,185)</small> | 9.00 <small>(8.94–9.52)</small> | 617 <small>(594–632)</small> | 51-48-49 |
+| dirty-dirac MCTS, network leaf | 1000 | 177 <small>(163–189)</small> | 5,654 <small>(5,298–6,142)</small> | 177 <small>(163–189)</small> | 11,792 <small>(7,978–12,205)</small> | 4-3-3 |
+| gorge MCTS (azmcts), heuristic leaf | 25 | 914 <small>(908–966)</small> | 1,094 <small>(1,035–1,102)</small> | 22.9 <small>(22.7–24.1)</small> | n/a | 1143-1131-1075 |
+| gorge MCTS (azmcts), heuristic leaf | 100 | 942 <small>(939–978)</small> | 1,061 <small>(1,023–1,065)</small> | 94.2 <small>(93.9–97.8)</small> | n/a | 301-312-311 |
+| gorge MCTS (azmcts), heuristic leaf | 1000 | 1,604 <small>(1,281–1,687)</small> | 623 <small>(593–780)</small> | 1,604 <small>(1,281–1,687)</small> | n/a | 26-20-20 |
+
+**Where a simulation's time goes**, at 100 simulations:
+
+| Search bot | Engine (re-deal, replay and expansion of the world) | Leaf evaluator | Search bookkeeping (select, backup) |
+|---|--:|--:|--:|
+| dirty-dirac MCTS, heuristic leaf (79 µs a simulation) | 78.8 µs (99.7%): re-deal 1.7, replaying the line 51.2, expanding the node 25.1 | included in the engine column | 0.24 µs |
+| dirty-dirac MCTS, network leaf (99 µs a simulation) | 82.6 µs (84%) | 15.7 µs (16%): building the input 10.7, the forward pass 5.0 | 0.29 µs |
+| gorge MCTS, heuristic leaf (about 940 µs a simulation) | most of it: `Engine.Submit` 83% cumulative (game play inside the search), re-dealing the world about 3%, building the in-search bot's board 5.7% | under 1% (`heuristicLeafValue` 0.15%) | about 1% (`azmcts` flat) |
+
+The dirty-dirac split is its runner's per-simulation timers (wall time
+inside the search, so its totals differ slightly from the CPU-time table);
+the gorge split is a 20-second CPU profile of `enginebench -row az -sims 100`.
+In both engines almost all of a simulation is the rules engine replaying and
+extending a line of play; the search itself is noise, and a small network
+leaf adds about a quarter on dirty-dirac. The per-simulation cost grows with
+the budget because deeper trees replay longer lines.
 
 ## Caveats
 
 !!! warning "Not apples to apples"
     - **Card coverage differs.** XMage and Forge implement every card; gorge
       implements most of Forge's corpus; dirty-dirac plays only its generated
-      card sets, two players. The workload is FDN because it is the pool all
-      four play.
+      card sets, two players; mtg-kernel plays a few hundred cards. The main
+      workload is FDN because it is the pool the first four play; mtg-kernel
+      plays only pair A of it.
     - **Policies differ.** The random players are close but not identical
       (XMage answers non-priority asks with its base AI); the AIs differ in
       kind and strength. Each row's policy is spelled out in
@@ -330,17 +639,18 @@ this harness for the other engines.
 
 | | |
 |---|---|
-| Date | 2026-10-20, 17:45-18:07 UTC |
+| Date | 2026-10-20: FDN pairs A and B 17:45-18:07 UTC; search rows 18:35-18:41 UTC; mtg-kernel and the Burn mirror 18:50-19:00 UTC |
 | Machine | AMD Ryzen 9 9950X (16 cores, 32 threads), 120 GB, Linux 6.17, `performance` governor |
 | Cores | one per run: 24, 26, 28 (three reps at once); `GOMAXPROCS=1` for Go; JVMs pinned the same way (serial GC, `-Xmx2g`) |
-| Load | 1-minute load average 4.4-15 across the session (per-row ranges in the per-pair table) |
+| Load | 1-minute load average 4.4-15 for the FDN A/B tables (per-row ranges in the per-pair table), 6-36 for the Burn rows, 17-32 for the search rows; no published rep had more than 10% of its core taken by other work except one XMage `mad` pair-A rep (28%), whose result sits inside the other two reps' spread |
 | gorge | `ad3777023` (develop), Go 1.26.3, `cmd/enginebench` |
 | dirty-dirac | private kernel, built from the companion module that pins gorge `aa421da93` |
 | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance) |
 | Forge | gorge's Forge fork at `da1c712c31` (forge-core/game/ai 2.0.16-SNAPSHOT), JDK 17.0.20.1, driver `forge.oracle.GameReplay` |
-| Command | `SECS=30 scripts/xengine-bench.sh gorge dirty-dirac`, then `SECS=60 WARM=40 scripts/xengine-bench.sh xmage forge`, with `CORES="24 26 28"` |
+| mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3` (2026-10-20), Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode; FDN pair A from the `limited-fdn-fixtures` build, Burn from the default build |
+| Command | `SECS=30 scripts/xengine-bench.sh gorge dirty-dirac`, then `SECS=60 WARM=40 scripts/xengine-bench.sh xmage forge`, with `CORES="24 26 28"`; the Burn rows the same with `PAIRS=burn`; mtg-kernel with `MTGKERNEL_BENCH=… MK_PAIRS=A` (FDN build) and `MK_PAIRS=burn` (default build); search rows as in [Methodology](methodology.md#search-bots) |
 | Measured time | 30 CPU-s per gorge and dirty-dirac run; 40 s warm-up + 60 CPU-s per XMage and Forge run |
-| Errors | no stalled, unfinished or failed game in any run |
+| Errors | no stalled, unfinished or failed game in any published row. XMage's base AI on the Burn mirror ended every game at the 100-turn cap without a winner (it never casts its burn spells), so that row is left out |
 
 Engines that are not on this page were not installed on the measuring
 machine; [Methodology](methodology.md#adding-an-engine) says what adding one

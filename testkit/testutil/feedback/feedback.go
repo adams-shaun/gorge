@@ -14,8 +14,10 @@
 // from.
 //
 // This package sits at the far end of the dependency order (it imports
-// cards, state, events, rules and replay), one step before cmd/*: nothing
-// in the engine may import it. It mirrors the snapshot's JSON shapes
+// cards, state, events, rules and replay, plus server/matchrecord, the
+// engine-only leaf whose Match.Config is the one Config builder both this
+// loader and the match-record loader share), one step before cmd/*:
+// nothing in the engine may import it. It mirrors the snapshot's JSON shapes
 // locally rather than importing host, so a package anywhere in the tree —
 // including a generated repro test inside an early package — can depend on
 // it without dragging the host tier in. The mirror is pinned by host's own
@@ -40,6 +42,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/matchrecord"
 )
 
 // matchJSON is match.json's shape, mirroring host.FeedbackMatch's tags
@@ -235,85 +238,47 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 	return &lg.Log, cfg, meta, nil
 }
 
-// config rebuilds a rules.Config from match.json's content: decks from the
-// recorded card-name lists (resolved through the registry exactly the way
-// deck.File.Resolve resolves a deck file — Lookup normalises the name, so
-// the recorded printed name finds its card), the sideboards the same way
-// when the capture recorded any (Sideboards are genesis configuration: the
-// engine mints their objects before the first event, so a replay without
-// them shifts every later object ID), the already-compiled token
-// scripts (resolved by resolveTokens — never raw text, which may be
-// GPL-3.0), and the format/life/commander/mulligan settings. The seed is
-// carried but replay overwrites it with the log's own seed (replay's
-// Ruling P5), which is the one that produced the log.
+// config rebuilds a rules.Config from match.json's content through
+// server/matchrecord's shared builder (Match.Config), so a feedback
+// snapshot and a match record cannot drift in how a Config is rebuilt:
+// decks and sideboards from the recorded card-name lists resolved through
+// the registry (Sideboards are genesis configuration: the engine mints
+// their objects before the first event, so a replay without them shifts
+// every later object ID), the already-compiled token scripts (resolved by
+// resolveTokens — never raw text, which may be GPL-3.0), and the
+// format/life/commander/mulligan/chooser/mode settings. The one field a
+// match record never carries is the pinned name-universe label list: a
+// live, uncommitted capture has it and it overrides the list the engine
+// would derive; a size-stripped committed fixture does not, and the engine
+// then derives the list from this corpus at genesis. The seed is carried
+// but replay overwrites it with the log's own seed (replay's Ruling P5).
 func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (rules.Config, error) {
-	if len(m.DeckCards) == 0 {
-		return rules.Config{}, fmt.Errorf("feedback: match.json records no deck_cards")
+	cfg, err := m.record().Config(reg, tokens)
+	if err != nil {
+		return rules.Config{}, fmt.Errorf("feedback: match.json: %w", err)
 	}
-	decks := make([][]*cards.Card, len(m.DeckCards))
-	for i, names := range m.DeckCards {
-		decks[i] = make([]*cards.Card, len(names))
-		for j, n := range names {
-			c, ok := reg.Lookup(n)
-			if !ok {
-				return rules.Config{}, fmt.Errorf("feedback: seat %d card %d (%q) is not in the corpus", i, j, n)
-			}
-			decks[i][j] = c
-		}
-	}
-	var sideboards [][]*cards.Card
-	if len(m.Sideboards) > 0 {
-		sideboards = make([][]*cards.Card, len(m.Sideboards))
-		for i, names := range m.Sideboards {
-			sideboards[i] = make([]*cards.Card, len(names))
-			for j, n := range names {
-				c, ok := reg.Lookup(n)
-				if !ok {
-					return rules.Config{}, fmt.Errorf("feedback: sideboard %d card %d (%q) is not in the corpus", i, j, n)
-				}
-				sideboards[i][j] = c
-			}
-		}
-	}
-	cfg := rules.Config{
-		Seed:        m.Seed,
-		Names:       m.Names,
-		PlayerNames: m.PlayerNames,
-		Decks:       decks,
-		Sideboards:  sideboards,
-		Mulligans:   m.Mulligans,
-		Tokens:      tokens,
-	}
-	if m.Format == "commander" {
-		cfg.Format = rules.FormatCommander
-		cfg.StartingLife = m.StartingLife
-		cfg.Commanders = m.Commanders
-	}
-	// E3-2: the configured starting-player chooser is genesis replay input
-	// like Mulligans — the genesis Note names it — so a copy rides the
-	// rebuilt Config; absent (a pre-E3 capture) is the toss, unchanged.
-	if m.StartChooser != nil {
-		chooser := *m.StartChooser
-		cfg.StartChooser = &chooser
-	}
-	// The name-card universe is a match MODE, restored the way host's own
-	// matchForLog restores it (server/host/viewat.go): only a capture that records
-	// the mode replays with one, so a pre-feature snapshot still takes the
-	// legacy no-ask path and reproduces unchanged. With the mode set, the
-	// universe itself is the live corpus (the same registry the decks were
-	// resolved through above) and the pinned label list overrides the
-	// derived one when the capture carried it — a live, uncommitted capture
-	// always does; a size-stripped committed fixture does not, and then the
-	// engine derives the list from this corpus at genesis.
 	if m.NameUniverse {
-		cfg.NameUniverse = reg.Universe()
 		cfg.NameUniverseNames = append([]string(nil), m.NameUniverseNames...)
 	}
-	// The paid-cost census is the other match MODE: a capture made with it
-	// records the bit, and a pre-flip capture carries none, which reads back
-	// as the narrow census those matches ran.
-	cfg.DisablePaidManaCensus = !m.PaidManaCensus
 	return cfg, nil
+}
+
+// record is match.json's replay-input subset in the shared shape.
+func (m matchJSON) record() matchrecord.Match {
+	return matchrecord.Match{
+		Seed:           m.Seed,
+		Names:          m.Names,
+		PlayerNames:    m.PlayerNames,
+		DeckCards:      m.DeckCards,
+		Sideboards:     m.Sideboards,
+		Format:         m.Format,
+		StartingLife:   m.StartingLife,
+		Commanders:     m.Commanders,
+		Mulligans:      m.Mulligans,
+		StartChooser:   m.StartChooser,
+		NameUniverse:   m.NameUniverse,
+		PaidManaCensus: m.PaidManaCensus,
+	}
 }
 
 // resolveTokens decides which token scripts a Load replays with. Three
@@ -473,6 +438,11 @@ func EngineAt(t testing.TB, dir string, n int) *rules.Engine {
 	}
 	return e
 }
+
+// Corpus opens the repo's .cards corpus the way Load does: the registry a
+// snapshot or a match record (server/matchrecord.Load) is resolved
+// through. A checkout with no .cards/ is an error, not a skip.
+func Corpus() (*cards.Registry, error) { return openCorpus() }
 
 // openCorpus finds and opens the repo's .cards corpus. The repo root is
 // resolved the way engine/cards/boundary_test.go and testutil.CorpusRegistry do —

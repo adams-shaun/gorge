@@ -4,7 +4,7 @@
   xengine-bench-summarize.py RUNS.jsonl
       print the per-row table: median and min-max over reps
   xengine-bench-summarize.py --record ENGINE ROW PAIR REP CORE LOAD0 TIMEFILE RESULT KIND LOAD1
-      print one normalised run line (KIND: enginebench, xmage, kplay, forge:WARM:SECS)
+      print one normalised run line (KIND: enginebench, xmage, kplay, mtgkernel, forge:WARM:SECS)
   xengine-bench-summarize.py --forge-games DECKS DECK_A DECK_B SEED N
       print N forge.oracle.GameReplay request lines, seats alternating
   xengine-bench-summarize.py --kplay-decks DECKS DECK_A DECK_B DECKFILE PAIRSFILE SEED
@@ -65,6 +65,13 @@ def record(engine, row, pair, rep, core, load0, timefile, result, kind, load1):
         s = [json.loads(l) for l in open(result) if '"summary"' in l][-1]
         games, turns, decisions, cpu_s = s["games"], s["turns"], s["decisions"], s["cpu_s"]
         warm, errors = s["warmup_games"], s["no_winner"]
+    elif kind == "mtgkernel":
+        r = json.loads(open(result).read().strip().splitlines()[-1])
+        if "error" in r:
+            raise SystemExit("mtg-kernel: " + r["error"])
+        games, turns, decisions, cpu_s = r["games"], r["turns"], r["decisions"], r["cpu_s"]
+        warm = r["warmup_games"]
+        errors = r["halted"] + r["errors"] + r["capped"]
     elif kind == "kplay":
         s = json.load(open(result))
         rows = [json.loads(l) for l in open(result[: -len(".summary.json")]) if l.strip()]

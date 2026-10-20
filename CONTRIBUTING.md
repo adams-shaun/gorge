@@ -127,6 +127,10 @@ example of the shape we like.
 - [ ] `go run ./cmd/gentypes -check` if you changed anything in
       `server/protocol` (it regenerates `web/src/protocol.ts`; `make gentypes`
       rewrites it).
+- [ ] `go test ./server/host/httpapi -run TestOpenAPI` if you changed
+      `server/protocol` or an HTTP route: the published API spec
+      (`docs/site/api/openapi.json`) must match the code. Regenerate its
+      generated parts with `-update` and commit the result.
 - [ ] Focused `go test` of the packages you touched, **with `.cards/`
       present**.
 - [ ] `make sim`: 20/20 `replay OK`.

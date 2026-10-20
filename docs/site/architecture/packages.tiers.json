@@ -301,6 +301,10 @@
       "tier": "server",
       "status": "EXT (linked into host)"
     },
+    "server/matchrecord": {
+      "tier": "server",
+      "status": "SUPP"
+    },
     "server/gorged": {
       "tier": "server",
       "status": "CORE"

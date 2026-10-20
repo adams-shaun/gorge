@@ -257,6 +257,11 @@ type config struct {
 // the extensions linked into this binary (gorge's own cmd/gorged passes
 // none). It returns the process exit status.
 func Main(args []string, ext Extensions) int {
+	// `gorged review` is a separate, read-only mode (review.go), never a
+	// toggle on a live server: it shares no flags and no registry with it.
+	if len(args) > 0 && args[0] == "review" {
+		return reviewMain(args[1:], ext)
+	}
 	fs, c := flagsFor(ext)
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(os.Stderr, "gorged:", err)

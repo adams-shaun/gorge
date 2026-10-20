@@ -252,6 +252,10 @@
           "minimum": 0,
           "type": "integer"
         },
+        "aura_logic": {
+          "description": "AuraLogic is the AttachAILogic hint (\"Pump\", \"Curse\", ...) of a card whose spell is an Aura aimed at a creature, \"\" for every other card. It is a printed deck-builder hint of a visible card. The opt-in A5 attach rules read it to hold a boon Aura while the caster controls no creature that could use it.",
+          "type": "string"
+        },
         "blocked_by": {
           "items": {
             "maximum": 4294967295,
@@ -352,6 +356,10 @@
           "minimum": 0,
           "type": "integer"
         },
+        "play_main1": {
+          "description": "PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint: \"ALWAYS\", \"TRUE\" (cast in the first main while the caster controls a creature) or \"OPPONENTCREATURES\" (while an opponent does), and \"\" for no hint. It is a printed deck-builder hint of a visible card, never hidden information. The opt-in AIHints cast rule reads it; the default bot ignores it.",
+          "type": "string"
+        },
         "power": {
           "format": "int32",
           "type": "integer"
@@ -380,6 +388,10 @@
         "removal_targets": {
           "description": "RemovalTargets is the coarse target scope of that same removal ability, read off its ValidTgts$ alternatives' base tokens: \"creature\" when they name creatures and no players, \"player\" when they name players and no creatures, \"any\" when they name both, and \"\" when they name neither (an artifact or land destruction spell, a graveyard move). It is derived from the same printed ability as RemovalKind and never set without it, so it is a visible card fact. The bot policy's removal-now hold rule reads it to know whether a spell could even aim at a creature (the threat gate) or at a player (the lethal-face shortcut).",
           "type": "string"
+        },
+        "remove_deck": {
+          "description": "RemoveDeck reports that the card carries an `AI:RemoveDeck` deck-builder hint (Forge's \"the AI does not know how to play this card\"). It is a printed fact of a visible card, projected so the opt-in AIHints cast policy can veto it; the default bot ignores it.",
+          "type": "boolean"
         },
         "spell_api": {
           "description": "SpellAPI is the API of the card's primary cast-shape ability (its SP$ line -- \"Counter\" for Counterspell, \"DealDamage\" for Lightning Bolt, \"\" for a card with no spell ability, which is every creature and every activated-ability permanent). It is a printed card fact, projected for exactly the cards the projection already carries the printed ManaCost and Types of -- a visible card's own text is open information -- so a seat that can read a card's cost can read what the cast does at the same grain. The bot policy's casting rule reads it (carried into botpolicy.Card.Counter) to tell a counter spell from any other cast. A hidden hand's cards are never projected as CardViews at all, so this never leaks hidden information.",
@@ -3499,6 +3511,10 @@
           "type": "string"
         },
         "perpetual": {
+          "type": "boolean"
+        },
+        "review": {
+          "description": "Review marks a read-only review table (host.Registry.AddReviewTable, served only by `gorged review`): one recorded match, no seats, no run loop, omniscient. A client shows the decision overlay for it and offers no restart. omitempty, like Series: a live table is byte-identical to a table before the field existed.",
           "type": "boolean"
         },
         "seat_names": {

@@ -149,6 +149,12 @@ type TableInfo struct {
 	// (a fresh vs-bot game) from it. omitempty, like Series: a non-event
 	// table is byte-identical to a table before the field existed.
 	Event bool `json:"event,omitempty"`
+	// Review marks a read-only review table (host.Registry.AddReviewTable,
+	// served only by `gorged review`): one recorded match, no seats, no run
+	// loop, omniscient. A client shows the decision overlay for it and offers
+	// no restart. omitempty, like Series: a live table is byte-identical to a
+	// table before the field existed.
+	Review bool `json:"review,omitempty"`
 }
 
 // Widget is the overview cell: enough to draw a 2x2 life grid, a turn

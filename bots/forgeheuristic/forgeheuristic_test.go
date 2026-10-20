@@ -61,6 +61,27 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 	if got := hb.TimingRules(); got != (botpolicy.TimingRules{CounterTop: true, DrawTokenLate: true, PumpInCombat: true}) {
 		t.Errorf("armed TimingRules = %+v, want CounterTop, DrawTokenLate and PumpInCombat", got)
 	}
+	if got := hb.AttachRules(); got != (botpolicy.AttachRules{AuraPolarity: true, Carrier: true, HoldOwnAura: true}) {
+		t.Errorf("armed AttachRules = %+v, want AuraPolarity, Carrier and HoldOwnAura", got)
+	}
+	if got := hb.PostureRules(); got != (botpolicy.PostureRules{Attack: true, Reserve: true}) {
+		t.Errorf("armed PostureRules = %+v, want Attack and Reserve", got)
+	}
+	if got := hb.MulliganRule(); got != botpolicy.MulliganForge {
+		t.Errorf("armed MulliganRule = %s, want forge", got)
+	}
+
+	def, err := bots.New(bots.Default, bots.Options{Seed: 1})
+	if err != nil {
+		t.Fatalf("bots.New(%q): %v", bots.Default, err)
+	}
+	db, ok := def.(*heuristic.Bot)
+	if !ok {
+		t.Fatalf("default bot is %T, want *heuristic.Bot", def)
+	}
+	if got := db.MulliganRule(); got != botpolicy.MulliganCoin {
+		t.Errorf("default bot MulliganRule = %s, want the coin (zero effect on bot)", got)
+	}
 }
 
 // TestForgeHeuristicPlaysAndReplays is the end-to-end contract: the policy

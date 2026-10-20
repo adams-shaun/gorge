@@ -97,6 +97,14 @@ export interface TableInfo {
    * table is byte-identical to a table before the field existed.
    */
   event?: boolean;
+  /**
+   * Review marks a read-only review table (host.Registry.AddReviewTable,
+   * served only by `gorged review`): one recorded match, no seats, no run
+   * loop, omniscient. A client shows the decision overlay for it and offers
+   * no restart. omitempty, like Series: a live table is byte-identical to a
+   * table before the field existed.
+   */
+  review?: boolean;
 }
 
   /**
@@ -361,6 +369,14 @@ export interface CardView {
    * policy can veto it; the default bot ignores it.
    */
   remove_deck?: boolean;
+  /**
+   * AuraLogic is the AttachAILogic hint ("Pump", "Curse", ...) of a card
+   * whose spell is an Aura aimed at a creature, "" for every other card.
+   * It is a printed deck-builder hint of a visible card. The opt-in A5
+   * attach rules read it to hold a boon Aura while the caster controls no
+   * creature that could use it.
+   */
+  aura_logic?: string;
   /**
    * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
    * the printed cost's pips, the colour indicator and every colour-naming
