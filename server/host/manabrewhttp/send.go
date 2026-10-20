@@ -109,13 +109,13 @@ func (h *handler) send(w http.ResponseWriter, r *http.Request) {
 		sc.setPolicy(nil)
 		w.WriteHeader(http.StatusNoContent)
 	case outcome.Intent != nil:
-		if err := h.reg.SubmitIntent(t, k, claim.Seat, *outcome.Intent); err != nil {
+		if err := h.submitIntent(t, k, claim.Seat, *outcome.Intent); err != nil {
 			// TranslateResponse validated the intent against the decision
-			// this handler itself just fetched; a rejection here means the
-			// live decision moved between that fetch and this submit (a
-			// genuine race, not a client mistake), which is exactly what
-			// stalePrompt describes.
-			pe := mb.ProtocolError{Code: mb.CodeStalePrompt, Message: err.Error(), PromptID: promptIDOf(pending)}
+			// this handler itself just fetched, so the engine either refused
+			// that answer (the decision is still pending) or the live
+			// decision moved under us (a genuine stale prompt). The helper
+			// tells those two apart instead of mislabelling every refusal.
+			pe := h.submitProtocolError(t, k, claim.Seat, d, err)
 			sc.pushMsg(mb.EngineMessage{Value: mb.ErrorMessage{Error: pe}})
 			writeProtocolError(w, pe)
 			return
