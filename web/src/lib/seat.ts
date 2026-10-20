@@ -6,9 +6,10 @@
  * the whole contract.
  *
  * The token is a bearer credential for a local fixture. It is held here and
- * built into request URLs in api.ts (and, for the ManaBrew wire,
- * lib/manabrew/transport.ts), and nowhere else: never logged, never
- * put in the transcript, never rendered, never echoed in an error message.
+ * built into request URLs in api.ts, the SSE stream URL in
+ * session.svelte.ts (and, for the ManaBrew wire, lib/manabrew/transport.ts),
+ * and nowhere else: never logged, never put in the transcript, never
+ * rendered, never echoed in an error message.
  * The render path (routes/components) receives only SeatCtx via getSeat,
  * and no component string ever interpolates `token`.
  */

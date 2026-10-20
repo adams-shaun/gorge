@@ -31,13 +31,16 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 	if fresh {
 		s = h.reg.OpenSession()
 	}
-	// A seat token proves a claim to one table. Include that table in hello
-	// even when it is a private on-demand game: the seated client needs its
-	// TableInfo for auto-mana and restart, while every other stream still
-	// gets only the lobby list.
+	// A seat token proves a claim to one table. Bind it to the session so
+	// later subscriptions can distinguish the seated client from an
+	// anonymous one, and include that table in hello even when it is a
+	// private on-demand game: the seated client needs its TableInfo for
+	// auto-mana and restart, while every other stream still gets only the
+	// lobby list.
 	var include []host.TableID
 	if h.opts.Seat != nil {
 		if claim, ok := h.opts.Seat(r); ok && claim.Table != "" {
+			s.BindSeat(claim.Table)
 			include = append(include, claim.Table)
 		}
 	}

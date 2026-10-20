@@ -159,7 +159,7 @@ exactly one seat at one table, and is the only credential there is. For
 local testing, `-seat-token devtoken` fixes seat 0's token to `devtoken` and
 the next human seat's to `devtoken-1`.
 
-!!! note "Hidden hands are opt-in"
+!!! note "Showing every hand is opt-in"
     `-spectator` defaults to `public`, so anyone who opens `/t/t1` without a
     token, including either player in a second tab, sees only the public
     view. Pass `-spectator omniscient` to show **every hand**; do that only

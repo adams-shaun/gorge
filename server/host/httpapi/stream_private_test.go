@@ -31,10 +31,17 @@ func TestHelloIncludesOnlyTheSeatClaimedPrivateTable(t *testing.T) {
 		Decks: []string{"a", "b"}, Seed: 8, Spectator: view.Public, OnDemand: true}); err != nil {
 		t.Fatal(err)
 	}
+	if err := r.AddTable(host.TableConfig{ID: "g2", Name: "Other private game", Seats: 2,
+		Decks: []string{"a", "b"}, Seed: 9, Spectator: view.Public, OnDemand: true}); err != nil {
+		t.Fatal(err)
+	}
 
 	_, mux := newHandler(r, Options{Seat: func(req *http.Request) (SeatClaim, bool) {
-		if req.URL.Query().Get("token") == "seat-token" {
+		switch req.URL.Query().Get("token") {
+		case "seat-token":
 			return SeatClaim{Table: "g1", Seat: 0}, true
+		case "other-token":
+			return SeatClaim{Table: "g2", Seat: 0}, true
 		}
 		return SeatClaim{}, false
 	}})
@@ -73,15 +80,15 @@ func TestHelloIncludesOnlyTheSeatClaimedPrivateTable(t *testing.T) {
 		return false
 	}
 
-	// Precondition: the private table exists and is addressable, so its
+	// Precondition: both private tables exist and are addressable, so their
 	// absence below is the hello filter and not a missing fixture.
-	if got := r.Tables(); len(got) != 2 {
-		t.Fatalf("registry has %d tables, want the public t1 and private g1", len(got))
+	if got := r.Tables(); len(got) != 3 {
+		t.Fatalf("registry has %d tables, want the public t1 and private g1, g2", len(got))
 	}
 
 	anon := readHello(srv.URL + "/api/stream")
-	if has(anon, "g1") {
-		t.Fatalf("anonymous hello advertised private table g1: %+v", anon.Tables)
+	if has(anon, "g1") || has(anon, "g2") {
+		t.Fatalf("anonymous hello advertised a private table: %+v", anon.Tables)
 	}
 	if !has(anon, "t1") {
 		t.Fatalf("anonymous hello lost the lobby table: %+v", anon.Tables)
@@ -94,9 +101,22 @@ func TestHelloIncludesOnlyTheSeatClaimedPrivateTable(t *testing.T) {
 	if !has(seated, "t1") {
 		t.Fatalf("seat-claimed hello lost the lobby table: %+v", seated.Tables)
 	}
+	if has(seated, "g2") {
+		t.Fatalf("a claim for g1 also advertised g2: %+v", seated.Tables)
+	}
+
+	// A valid token for a different private table must reveal only that
+	// table, never g1.
+	other := readHello(srv.URL + "/api/stream?token=other-token")
+	if !has(other, "g2") {
+		t.Fatalf("g2-claimed hello omitted its own private table: %+v", other.Tables)
+	}
+	if has(other, "g1") {
+		t.Fatalf("a claim for g2 advertised private table g1: %+v", other.Tables)
+	}
 
 	wrong := readHello(srv.URL + "/api/stream?token=wrong-token")
-	if has(wrong, "g1") {
-		t.Fatalf("an invalid token advertised private table g1: %+v", wrong.Tables)
+	if has(wrong, "g1") || has(wrong, "g2") {
+		t.Fatalf("an invalid token advertised a private table: %+v", wrong.Tables)
 	}
 }
