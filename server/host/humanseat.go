@@ -67,6 +67,15 @@ func (s *HumanSeat) configure(timeout time.Duration, caretaker seat.Seat) {
 type slotAnswer struct {
 	in   decision.Intent
 	auto bool
+	// reply, when non-nil, is where the play loop delivers the engine's
+	// verdict for this answer: nil when Submit accepted it, the engine's
+	// refusal reason when it did not. The registry path arms it so an HTTP
+	// intent can answer with 204 only after the engine took it, and 409 with
+	// the reason when it did not (D1b). The plain seat API leaves it nil: a
+	// bare Decide has no match goroutine to produce a verdict and must not
+	// wait for one. Buffered (capacity 1) so the play loop's reply can never
+	// block on a handler that has already gone away.
+	reply chan error
 }
 
 // pendingSlot binds one decision to the recv channel that answers it. Keep
@@ -78,6 +87,21 @@ type slotAnswer struct {
 type pendingSlot struct {
 	dec  decision.Decision
 	recv chan slotAnswer
+	// abandoned is closed when the parking stops accepting an answer without
+	// delivering the submitted one to the engine: ctx cancellation, a timeout
+	// with no caretaker, an undo, or an undo discard (abandon). A submit that
+	// claimed the slot before that selects on it around both the channel send
+	// and the wait for the engine's verdict, so it can never block on a match
+	// goroutine that is gone (D2). closeOnce makes the close idempotent across
+	// await's defer and abandon.
+	abandoned chan struct{}
+	closeOnce sync.Once
+}
+
+// closeAbandoned publishes that no engine verdict will ever arrive for this
+// slot. Idempotent: await's defer and abandon may both reach it.
+func (sl *pendingSlot) closeAbandoned() {
+	sl.closeOnce.Do(func() { close(sl.abandoned) })
 }
 
 // NewHumanSeat returns a HumanSeat with no decision pending.
@@ -136,6 +160,16 @@ type parking struct {
 	// receive (server/host/divergence_ledger.go). False for a caretaker answer,
 	// which never rides the channel.
 	auto bool
+	// ack is the reply channel of the submitted answer await received (nil
+	// when the answer did not come from a waiting submit: the plain seat API
+	// or the caretaker). The play loop's reply delivers the engine's verdict
+	// on it after the Submit attempt, so a registry submit's 204/409 reflects
+	// the engine's decision rather than the channel send.
+	ack chan error
+	// received records that await took an answer off the slot's channel. Only
+	// then is there a submit waiting for a verdict; every other return path
+	// closes the slot's abandoned channel instead.
+	received bool
 }
 
 // park installs d as the seat's pending decision without blocking, returning
@@ -147,7 +181,7 @@ type parking struct {
 // a nil channel never fires.
 func (s *HumanSeat) park(ctx context.Context, v view.View, d decision.Decision, undo <-chan state.PlayerID) *parking {
 	owned := *d.Clone()
-	slot := &pendingSlot{dec: owned, recv: make(chan slotAnswer, 1)}
+	slot := &pendingSlot{dec: owned, recv: make(chan slotAnswer, 1), abandoned: make(chan struct{})}
 	s.mu.Lock()
 	s.slot = slot
 	timeout := s.timeout
@@ -177,6 +211,9 @@ func (p *parking) abandon() {
 		s.slot = nil
 	}
 	s.mu.Unlock()
+	// A submit that already claimed the slot may be waiting for a verdict this
+	// discarded parking will never produce; release it now.
+	p.slot.closeAbandoned()
 }
 
 // await is the blocking second half of Decide: it waits until the parked
@@ -195,6 +232,13 @@ func (p *parking) await() (decision.Intent, error) {
 			s.slot = nil
 		}
 		s.mu.Unlock()
+		if !p.received {
+			// No submit is waiting for a verdict: this return path answered
+			// (caretaker) or abandoned (ctx/timeout/undo) without delivering a
+			// channel answer to the engine. Release any submit that claimed
+			// the slot and is now waiting for a reply that will never come.
+			p.slot.closeAbandoned()
+		}
 	}()
 
 	if p.timeout > 0 {
@@ -203,6 +247,8 @@ func (p *parking) await() (decision.Intent, error) {
 		select {
 		case ans := <-p.slot.recv:
 			p.auto = ans.auto
+			p.ack = ans.reply
+			p.received = true
 			return ans.in, nil
 		case <-p.ctx.Done():
 			if p.caretaker != nil {
@@ -227,6 +273,8 @@ func (p *parking) await() (decision.Intent, error) {
 	select {
 	case ans := <-p.slot.recv:
 		p.auto = ans.auto
+		p.ack = ans.reply
+		p.received = true
 		return ans.in, nil
 	case <-p.ctx.Done():
 		if p.caretaker != nil {
@@ -238,7 +286,19 @@ func (p *parking) await() (decision.Intent, error) {
 	}
 }
 
-// viaCaretaker records a caretaker substitution and performs it. The caretaker
+// reply delivers the engine's verdict for the answer await received to the
+// submit waiting for it. nil means the engine accepted the intent (the
+// registry's 204); a non-nil error is the engine's refusal reason (its 409).
+// A no-op for an answer that carried no reply channel (the plain seat API and
+// the caretaker), and safe after the submit has gone away because the channel
+// is buffered.
+func (p *parking) reply(err error) {
+	if p.ack == nil {
+		return
+	}
+	p.ack <- err
+}
+
 // argument is the copy the caller took under the mutex (and validated non-nil
 // on the same copy), so this helper performs the substitution against that
 // validated copy rather than re-reading the field -- the nil guard and the
@@ -287,23 +347,41 @@ func (s *HumanSeat) pending() (bool, *decision.Decision) {
 // so a send can never block a holder of s.mu (a leaked per-decision send would
 // otherwise deadlock pending() and the next Decide).
 func (s *HumanSeat) submit(in decision.Intent) error {
-	return s.submitAdmitted(in, nil, false)
+	return s.submitAdmittedWait(in, nil, false, false)
 }
 
-// submitAdmitted is submit with an optional host admission check.  The check
-// runs while slot is still protected, after the wire-level decision validation
-// and before the intent is accepted into the slot's channel.  This lets the
-// host reject an offered-looking payment witness which the rules engine can no
-// longer execute, without waking the match goroutine into a crash.
+// submitAdmitted is the registry path: it waits for the engine's verdict on
+// the answer so the caller can report acceptance (nil) or refusal (the
+// engine's error) instead of the mere channel send. See submitAdmittedWait.
+func (s *HumanSeat) submitAdmitted(in decision.Intent, admit func(decision.Decision, decision.Intent) error, auto bool) error {
+	return s.submitAdmittedWait(in, admit, auto, true)
+}
+
+// submitAdmittedWait is submit with an optional host admission check and an
+// optional wait for the engine's verdict. The check runs while slot is still
+// protected, after the wire-level decision validation and before the intent is
+// claimed. This lets the host reject an offered-looking payment witness which
+// the rules engine can no longer execute, without waking the match goroutine
+// into a crash.
 //
+// The slot is CLAIMED under s.mu (set to nil) before the send: exactly one
+// submit can answer a decision, so two racing POSTs cannot both be admitted
+// and hang the handler waiting for a verdict only one of them will get (D2).
 // The channel send remains outside s.mu: a receiver may be delayed and must
 // never block Pending or another stale-answer rejection while holding the seat
-// mutex.  Clone before admission so the exact value admitted is the one sent.
+// mutex. Clone before admission so the exact value admitted is the one sent.
 // auto is HD-2's client-autopilot bit: it rides the channel beside the
 // intent, so the receiving parking's await reads the accepted answer's own
 // mark after the receive that the send happens-before — the play loop reads
 // it only there, and it never reaches decision.Intent or the log.
-func (s *HumanSeat) submitAdmitted(in decision.Intent, admit func(decision.Decision, decision.Intent) error, auto bool) error {
+//
+// wait arms the answer's reply channel: the play loop then replies with the
+// engine's verdict (nil accepted, error refused) once it has attempted the
+// Submit. The plain seat API passes false because a bare Decide has no match
+// goroutine to produce a verdict. Either way both the send and the wait select
+// on the slot's abandoned channel, so a match goroutine that vanished
+// (cancellation, undo) cannot strand the caller.
+func (s *HumanSeat) submitAdmittedWait(in decision.Intent, admit func(decision.Decision, decision.Intent) error, auto, wait bool) error {
 	in = decision.CloneIntent(in)
 	s.mu.Lock()
 	if s.slot == nil {
@@ -321,7 +399,27 @@ func (s *HumanSeat) submitAdmitted(in decision.Intent, admit func(decision.Decis
 			return err
 		}
 	}
+	// Claim: the decision is answered by this submit from here on, so a second
+	// racing submit is rejected above instead of parking on a verdict that can
+	// never come.
+	s.slot = nil
 	s.mu.Unlock()
-	slot.recv <- slotAnswer{in: in, auto: auto}
-	return nil
+	ans := slotAnswer{in: in, auto: auto}
+	if wait {
+		ans.reply = make(chan error, 1)
+	}
+	select {
+	case slot.recv <- ans:
+	case <-slot.abandoned:
+		return fmt.Errorf("no pending decision")
+	}
+	if !wait {
+		return nil
+	}
+	select {
+	case err := <-ans.reply:
+		return err
+	case <-slot.abandoned:
+		return fmt.Errorf("no pending decision")
+	}
 }

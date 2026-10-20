@@ -102,10 +102,9 @@ func waitRewind(t *testing.T, rewound <-chan int) int {
 // answerOnce submits one legal intent for the human seat (the same
 // first-Min-options answer action_test's legalIntent builds) and waits for
 // the game to move past it. after must be the Seq of the decision answered
-// immediately before on the same seat (0 for a seat's first ask): inside the
-// stale-ask window between SubmitIntent's acceptance and the match goroutine
-// clearing the slot, a first-200 poll re-serves the just-answered decision,
-// so the initial poll must wait for a Seq past after.
+// immediately before on the same seat (0 for a seat's first ask): a submit
+// claims the slot before its send, but the initial poll can still race it,
+// so wait for a Seq past after and never return the answered decision.
 func answerOnce(t *testing.T, r *Registry, id TableID, after uint64) *decision.Decision {
 	t.Helper()
 	d := waitNextPending(t, r, id, 1, 0, after)

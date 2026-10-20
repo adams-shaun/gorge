@@ -387,18 +387,13 @@ func fastPollDecision(t *testing.T, pendingURL, seat, tok string) decision.Decis
 
 // nextDecision polls the pending endpoint until it serves a decision NEWER
 // than `after` (strictly greater Seq; after == 0 accepts the first decision
-// served) — the shape every poll that FOLLOWS an answer needs. Between
-// SubmitIntent's 204 and the match goroutine consuming the answer, the seat
-// slot is still installed (server/host/humanseat.go: the parked await's defer clears
-// it), so Pending serves the just-answered ask with 200; a first-200 poll
-// inside that window re-serves the stale decision. That is exactly what
-// flaked the 2026-10-01 module gate on
-// TestVsBotGameHonoursRequestedMulliganAllowance — "bottoming ask is mulligan
-// Min 1 Max 1, want mulligan 3/3" was the stale keep-only ask (whose Min/Max
-// is 1/1) served in the window after the keep answer's 204. Seq is stamped
-// from the event count, which only grows, so a strictly greater Seq is the
-// new ask — the same advance test the intent-answering helpers in this file
-// already rely on.
+// served) — the shape every poll that FOLLOWS an answer needs. A submit now
+// claims the seat's slot before its send, so Pending cannot re-serve the
+// just-answered ask once SubmitIntent returns 204; the Seq guard is retained
+// because the poll can still race the submit. Seq is stamped from the event
+// count, which only grows, so a strictly greater Seq is the new ask — the
+// same advance test the intent-answering helpers in this file already rely
+// on.
 func nextDecision(t *testing.T, pendingURL, seat, tok string, after uint64) decision.Decision {
 	t.Helper()
 	deadline := time.Now().Add(10 * time.Second)
@@ -1175,8 +1170,8 @@ func TestVsBotGameHonoursRequestedMulliganAllowance(t *testing.T) {
 	// Take three mulligans: option 1 ("mulligan") of each keep/mulligan ask.
 	// last is the highest Seq served so far: every poll below follows an
 	// answer, so each waits for a strictly newer decision (nextDecision) —
-	// a first-200 poll can re-serve the just-answered ask inside the stale
-	// window between the 204 and the match goroutine consuming it.
+	// the poll can race the submit even though a claimed slot is never
+	// served again after its 204.
 	var last uint64
 	for taken := 1; taken <= 3; taken++ {
 		d := nextDecision(t, pendingURL, "0", tok, last)
