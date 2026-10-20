@@ -18,7 +18,7 @@ import (
 func RunCaretakerLifePlanContract(t ContractT, policy string) {
 	t.Helper()
 	d, v := lifeOnlyDecision()
-	caretaker, err := newCaretakerSeat(policy, 19, true, false, bots.Deps{})
+	caretaker, err := newCaretakerSeat(policy, 19, true, false, bots.Deps{}, nil)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

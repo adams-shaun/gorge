@@ -1,4 +1,6 @@
-// Package bots provides the closed registry of policies available to callers.
+// Package bots is the registry of bot policies a host can link in. A policy
+// declares its own configuration options through Info.Options; the host
+// validates values before building any seat.
 package bots
 
 import (
@@ -65,6 +67,12 @@ type Info struct {
 	// without payment plans when the table is registered, rather than letting
 	// the factory's refusal crash the match at its first seat.
 	NeedsAutoPay bool
+	// Options declares the configuration keys this policy's factory reads.
+	// Register validates the declarations, and bots.New fills every key's
+	// Default into Options.Config before the factory runs, so a factory can
+	// read a declared key unconditionally through Options.String/Int/Float/
+	// Bool.
+	Options []OptionSpec
 }
 
 type Options struct {
@@ -90,6 +98,12 @@ type Options struct {
 	// exactly the unwrapped policy, so no head, name or training run moves.
 	// No other policy reads it.
 	CommonSense bool
+	// Config holds this policy's declared option values. bots.New fills
+	// each Info.Options Default into it before calling the factory; callers
+	// may supply explicit values (the host resolves flags, the environment
+	// and config files into this map). Read values through String, Int,
+	// Float and Bool.
+	Config map[string]string
 }
 
 type Deps struct{ Cards *cards.Registry }
@@ -120,6 +134,7 @@ func Register(e Entry) {
 	if _, exists := entries[e.Name]; exists {
 		panic("bots: duplicate entry " + e.Name)
 	}
+	validateOptionSpecs(e.Name, e.Options)
 	entries[e.Name] = e
 }
 
@@ -140,7 +155,23 @@ func New(name string, o Options) (seat.Seat, error) {
 	if err != nil {
 		return nil, err
 	}
-	return entries[name].New(o)
+	e := entries[name]
+	if len(e.Options) > 0 {
+		config := make(map[string]string, len(e.Options)+len(o.Config))
+		for _, spec := range e.Options {
+			config[spec.Key] = spec.Default
+		}
+		for key, value := range o.Config {
+			config[key] = value
+		}
+		for _, spec := range e.Options {
+			if spec.Required && config[spec.Key] == "" {
+				return nil, fmt.Errorf("bots: policy %q requires option %q", name, spec.Key)
+			}
+		}
+		o.Config = config
+	}
+	return e.New(o)
 }
 
 func Names() []string {
