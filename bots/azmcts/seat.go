@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/bots/searchseat"
@@ -185,6 +186,9 @@ type Seat struct {
 	pcrFull, pcrCheap int
 	// dec is the decided-game state (decided.go; SeatConfig.DecidedHigh).
 	dec decidedState
+	// note, when set (SetExplain), receives one decision note per decision
+	// the seat answers (explain.go). nil builds nothing.
+	note func(explain.Note)
 }
 
 // SetRecorder installs the visit-corpus recorder (M1b; four-yay cmd/botbench
@@ -285,7 +289,11 @@ func (s *Seat) DecideBoard(ctx context.Context, b botpolicy.Board, d decision.De
 	if Watch != nil {
 		Watch(Diag{Stats: Stats{FeedStopped: 1}, Seed: s.seed, Seq: d.Seq})
 	}
-	return s.def.DecideBoard(ctx, b, d)
+	in, err := s.def.DecideBoard(ctx, b, d)
+	if s.note != nil && err == nil {
+		s.noteBot(d.Player, explain.Heuristic, "", in)
+	}
+	return in, err
 }
 
 // DecideRootRefused is DecideBoard for a decision whose feed is live but
@@ -296,7 +304,11 @@ func (s *Seat) DecideRootRefused(ctx context.Context, b botpolicy.Board, d decis
 	if Watch != nil {
 		Watch(Diag{Stats: Stats{FeedStopped: 1, RootRefused: 1}, Refused: reason, Seed: s.seed, Seq: d.Seq})
 	}
-	return s.def.DecideBoard(ctx, b, d)
+	in, err := s.def.DecideBoard(ctx, b, d)
+	if s.note != nil && err == nil {
+		s.noteBot(d.Player, explain.FallbackRoot, reason, in)
+	}
+	return in, err
 }
 
 // DecideSearch answers one of the seat's own decisions: the bot's answer
@@ -316,6 +328,9 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 		return s.decidePrior(ctx, env, d, botIn)
 	}
 	if s.cfg.Search.Sims <= 0 || env.Engine == nil {
+		if s.note != nil {
+			s.noteBot(d.Player, explain.Heuristic, "", botIn)
+		}
 		return botIn, nil
 	}
 	var t0 float64
@@ -417,6 +432,15 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 		}
 		Watch(dg)
 	}
+	if s.note != nil {
+		sn := searchNote{d: &d, bot: botIn, res: res, root: env.Engine, refused: refused, cheap: cheap && searched,
+			noBot: tapReroot, rankSkip: rankSkips(opts.priorTopK(s.net), opts.PriorRankMaxOptions, &d),
+			searchedOK: searched && res.Stats.AllFailed == 0 && res.Stats.DeadlineHits == 0}
+		if Millis != nil {
+			sn.ms = Millis() - t0
+		}
+		s.noteSearch(sn)
+	}
 	return res.Intent, nil
 }
 
@@ -453,6 +477,9 @@ func (s *Seat) decidePrior(ctx context.Context, env searchseat.Env, d decision.D
 		return decision.Intent{}, err
 	}
 	if len(res.Candidates) < 2 {
+		if s.note != nil {
+			s.noteBot(d.Player, explain.Forced, "", botIn)
+		}
 		return botIn, nil
 	}
 	best := 0
@@ -463,6 +490,9 @@ func (s *Seat) decidePrior(ctx context.Context, env searchseat.Env, d decision.D
 	}
 	if Watch != nil {
 		Watch(Diag{Turn: env.Engine.G.Turn, Kind: res.Kind, Candidates: len(res.Candidates), Choice: best, Stats: res.Stats})
+	}
+	if s.note != nil {
+		s.notePrior(d.Player, botIn, res, best)
 	}
 	if best == 0 {
 		return botIn, nil

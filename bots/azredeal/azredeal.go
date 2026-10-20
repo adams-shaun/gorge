@@ -26,6 +26,7 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/azmcts"
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/bots/searchseat"
@@ -155,6 +156,7 @@ var (
 	_ seat.PaymentPlanConsumer  = (*hostedSeat)(nil)
 	_ searchseat.SearchSeat     = (*hostedSeat)(nil)
 	_ searchseat.ClosedListSeat = (*hostedSeat)(nil)
+	_ explain.Emitter           = (*hostedSeat)(nil)
 )
 
 // Decide is the plain Seat half: the wrapped bot. Decisions where WantsEnv is
@@ -173,6 +175,14 @@ func (s *hostedSeat) SetRecorder(fn func(policynet.VisitRecord)) {
 		SetRecorder(func(policynet.VisitRecord))
 	}); ok {
 		recorder.SetRecorder(fn)
+	}
+}
+
+// SetExplain forwards the decision-note sink (explain.Emitter) to the
+// wrapped az seat, which emits one note per decision it answers.
+func (s *hostedSeat) SetExplain(fn func(explain.Note)) {
+	if em, ok := s.bot.(explain.Emitter); ok {
+		em.SetExplain(fn)
 	}
 }
 

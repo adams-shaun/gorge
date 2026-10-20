@@ -38,6 +38,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/bots/searchseat"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -324,6 +325,12 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 			feeds[i].Unchain()
 		}
 	}
+	// The decision overlay (explain.go): only a recorded game builds it.
+	var xt *explainTape
+	if hooks.Record != nil {
+		xt = newExplainTape(seats, hooks.Record.Producer.Policies)
+		defer xt.release(seats)
+	}
 	n := 0
 	// The livelock watcher fires inside a single Submit call -- the loop is
 	// stuck there, so there is no error return to read -- and panics with a
@@ -358,6 +365,9 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 				}
 			}
 			d := e.Pending()
+			if xt != nil {
+				xt.begin(int(d.Player))
+			}
 			if consumer, ok := seats[d.Player].(seat.PaymentPlanConsumer); ok && consumer.WantsPaymentActions() {
 				e.EnsurePaymentActions()
 			}
@@ -417,6 +427,9 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 					bots.RootSeed(cfg.Seed^(uint64(d.Player)+1), d.Seq))
 				if reason != "" && fd != nil && FallbackTrace != nil {
 					FallbackTrace(cfg.Seed, int(d.Player), d, "honest root refused: "+reason)
+				}
+				if xt != nil {
+					xt.envRoute(fd, reason)
 				}
 				v := view.Project(e.G, e, d.Player, d)
 				v.Round = rounds.Of(e.G, e.L.Events)
@@ -481,6 +494,9 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 						}
 						fdLive = false
 						rootRefused = reason
+						if xt != nil {
+							xt.route(explain.FallbackRoot, reason, 0)
+						}
 					}
 				}
 				if fdLive {
@@ -502,6 +518,9 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 				} else {
 					if !fdFrame && FallbackTrace != nil {
 						FallbackTrace(cfg.Seed, int(d.Player), d, "feed stopped (search branch): "+fd.StopReason())
+					}
+					if xt != nil {
+						xt.searchRoute(fd, fdFrame, rootRefused)
 					}
 					in, err = seats[d.Player].(searchseat.SearchSeat).DecideBoard(context.Background(), b, *d)
 				}
@@ -559,10 +578,25 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 					if searchFeed(feeds, seats, d.Player) != nil || envRecorded {
 						return nil, nil, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, err)
 					}
-					if ferr := reanswerRefused(e, seats, d, in); ferr != nil {
+					if xt != nil {
+						xt.refused()
+					}
+					src, rung, ferr := reanswerRefused(e, seats, d, in)
+					if ferr != nil {
 						return nil, nil, fmt.Errorf("seed %d, intent %d: %w", cfg.Seed, n, ferr)
 					}
+					if xt != nil {
+						xt.route(src, err.Error(), rung)
+					}
 				}
+			}
+			if xt != nil {
+				// The accepted intent is the n-th logged: with Record set
+				// every intent is answered by this loop (SyncAnswer is off),
+				// and the resolve kernel's re-execution can leave
+				// len(e.L.Intents) short of it mid-resolution, so the loop's
+				// own count is the index.
+				xt.commit(n)
 			}
 			n++
 		}
@@ -575,7 +609,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 		o = recordStarter(o, e)
 		var recErr error
 		if hooks.Record != nil && lle == nil && panicDiag == "" {
-			recErr = emitRecord(hooks.Record, cfg, e.L)
+			recErr = emitRecord(hooks.Record, cfg, e.L, xt)
 		}
 		if hooks.Finish != nil {
 			hooks.Finish(o)
@@ -612,8 +646,12 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 // nothing of it but the nil check.
 //
 //go:noinline
-func emitRecord(sink *matchrecord.Sink, cfg rules.Config, l *events.Log) error {
-	if err := sink.Emit(cfg, l); err != nil {
+func emitRecord(sink *matchrecord.Sink, cfg rules.Config, l *events.Log, xt *explainTape) error {
+	notes, err := xt.final(len(l.Intents))
+	if err == nil {
+		err = sink.EmitExplain(cfg, l, notes)
+	}
+	if err != nil {
 		return fmt.Errorf("bench: seed %d: match record: %w", cfg.Seed, err)
 	}
 	return nil
@@ -626,29 +664,37 @@ func emitRecord(sink *matchrecord.Sink, cfg rules.Config, l *events.Log) error {
 // are tried in order. The first intent the engine accepts wins; nil means one
 // of them was accepted. The seat's answer to the ORIGINAL decision is passed
 // through as refused. The board is built once for the deciding seat, the same
-// way a BoardSeat's board is built.
-func reanswerRefused(e *rules.Engine, seats []seat.Seat, d *decision.Decision, refused decision.Intent) error {
+// way a BoardSeat's board is built. src and rung name the accepted answer for
+// the decision overlay: explain.RefusalRetry for the seat's own
+// AnswerRefused, explain.RefusalFallback with the 1-based bots.Fallbacks rung
+// otherwise.
+func reanswerRefused(e *rules.Engine, seats []seat.Seat, d *decision.Decision, refused decision.Intent) (src explain.Source, rung int, err error) {
 	brd := botpolicy.NewBoard(len(seats))
 	botpolicy.BoardFromGameInto(e.G, e, d.Player, &brd)
 	var candidates []decision.Intent
+	retry := 0
 	if ra, ok := seats[d.Player].(bots.RefusalAnswerer); ok {
 		v := view.Project(e.G, e, d.Player, d)
 		v.Round = view.RoundOf(e.G, e.L.Events)
 		candidates = append(candidates, ra.AnswerRefused(v, *d, refused))
+		retry = 1
 	}
 	candidates = append(candidates, bots.Fallbacks(d, brd, int(d.Player))...)
 	var last error
-	for _, c := range candidates {
+	for i, c := range candidates {
 		err := e.Submit(c)
 		if err == nil {
-			return nil
+			if i < retry {
+				return explain.RefusalRetry, 0, nil
+			}
+			return explain.RefusalFallback, i - retry + 1, nil
 		}
 		last = err
 	}
 	if last == nil {
 		last = fmt.Errorf("no refusal fallback for decision %s", d.Kind)
 	}
-	return last
+	return "", 0, last
 }
 
 // searchFeed is the deciding seat's feed, or nil when that seat is not a
