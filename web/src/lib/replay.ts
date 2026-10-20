@@ -44,12 +44,14 @@ export function nextStop(stops: readonly number[], cursor: number, dir: 1 | -1):
 /**
  * stepTarget is where one step of `unit` in `dir` moves the cursor. Past the
  * last stop it lands on head (forward) or 0 (back), so a step is never a no-op
- * while there is log left to move through.
+ * while there is log left to move through. decisionStops, when given,
+ * replaces the decision unit's stops (a review table skipping pass-only
+ * decisions, lib/review decisionStops); otherwise every decision_ask stops.
  */
-export function stepTarget(dvr: DvrState, unit: StepUnit, dir: 1 | -1): number {
+export function stepTarget(dvr: DvrState, unit: StepUnit, dir: 1 | -1, decisionStops?: readonly number[] | null): number {
   const clamp = (n: number) => Math.max(0, Math.min(dvr.head, n));
   if (unit === 'event') return clamp(dvr.cursor + dir);
-  const stops = unit === 'turn' ? dvr.turnStarts : seqsOfKind(dvr.events, 'decision_ask');
+  const stops = unit === 'turn' ? dvr.turnStarts : (decisionStops ?? seqsOfKind(dvr.events, 'decision_ask'));
   return nextStop(stops, dvr.cursor, dir) ?? (dir > 0 ? dvr.head : 0);
 }
 

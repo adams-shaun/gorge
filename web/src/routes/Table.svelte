@@ -14,7 +14,7 @@
   import Transcript from '../components/Transcript.svelte';
   import ReplayTransport from '../components/ReplayTransport.svelte';
   import DecisionPanel from '../components/DecisionPanel.svelte';
-  import { timelineMarks } from '../lib/review';
+  import { decisionStops, timelineMarks } from '../lib/review';
   import type { ReviewDecision } from '../protocol';
   import { parseReplayQuery, replaySearch, resolveStart, type StepUnit } from '../lib/replay';
   import MatchList from '../components/MatchList.svelte';
@@ -76,6 +76,27 @@
   let replayUnit = $state<StepUnit>('decision');
   let replaySpeed = $state(1);
   let replayPlaying = $state(false);
+  // Skip passes: on a review table the Decision step passes over decisions
+  // whose only options are Pass priority and Concede. A viewer preference,
+  // so it is remembered per browser (storage may be unavailable; default on).
+  const SKIP_PASSES_KEY = 'gorge.replay.skipPasses';
+  let replaySkipPasses = $state(
+    (() => {
+      try {
+        return localStorage.getItem(SKIP_PASSES_KEY) !== '0';
+      } catch {
+        return true;
+      }
+    })(),
+  );
+  $effect(() => {
+    const v = replaySkipPasses ? '1' : '0';
+    try {
+      localStorage.setItem(SKIP_PASSES_KEY, v);
+    } catch {
+      // private mode / blocked storage: the setting lasts this page only
+    }
+  });
   // urlSynced turns on once the URL's own position has been applied, so the
   // cursor-to-URL sync below never overwrites a ?seq= before it is read.
   let urlSynced = $state(false);
@@ -189,6 +210,7 @@
   const reviewMarks = $derived(
     reviewMatch === null ? [] : timelineMarks(reviewEntries, (p) => m.seats[p]?.name ?? `Seat ${p + 1}`),
   );
+  const reviewStops = $derived(reviewMatch === null || reviewEntries.length === 0 ? null : decisionStops(reviewEntries));
   function reviewScrub(seq: number) {
     replayPlaying = false;
     m.dispatch({ type: 'scrub', seq });
@@ -608,6 +630,7 @@
              right pane once the v3 layout moved the log into the rail. -->
         <div class="transport-row">
           <ReplayTransport dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} seats={m.seats} marks={reviewMarks}
+            decisionStops={reviewStops} bind:skipPasses={replaySkipPasses}
             bind:unit={replayUnit} bind:speed={replaySpeed} bind:playing={replayPlaying} />
         </div>
       {/if}

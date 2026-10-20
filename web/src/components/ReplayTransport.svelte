@@ -24,6 +24,8 @@
     playing = $bindable(false),
     hotkeys = true,
     marks = [],
+    decisionStops = null,
+    skipPasses = $bindable(true),
   }: {
     dvr: DvrState;
     onAction: (a: DvrAction) => void;
@@ -36,7 +38,17 @@
     hotkeys?: boolean;
     /** marks are the review overlay's override/fallback ticks (a review table only). */
     marks?: TimelineMark[];
+    /**
+     * decisionStops are the Decision step's stops with pass-only decisions
+     * left out (a review table only, which knows every decision's options);
+     * null steps through every decision_ask.
+     */
+    decisionStops?: number[] | null;
+    /** skipPasses applies decisionStops; the toggle shows only when they exist. */
+    skipPasses?: boolean;
   } = $props();
+
+  const stops = $derived(decisionStops && skipPasses ? decisionStops : null);
 
   const bands = $derived(turnBands(dvr, seats.length));
   const here = $derived(bandAt(bands, dvr.cursor));
@@ -52,7 +64,7 @@
 
   function step(dir: 1 | -1, by: StepUnit = unit) {
     playing = false;
-    onAction({ type: 'scrub', seq: stepTarget(dvr, by, dir) });
+    onAction({ type: 'scrub', seq: stepTarget(dvr, by, dir, stops) });
   }
 
   function togglePlay() {
@@ -75,7 +87,7 @@
         playing = false;
         return;
       }
-      onAction({ type: 'scrub', seq: stepTarget(dvr, unit, 1) });
+      onAction({ type: 'scrub', seq: stepTarget(dvr, unit, 1, stops) });
     }, intervalMs(unit, speed));
     return () => clearInterval(id);
   });
@@ -246,6 +258,12 @@
         <button type="button" role="radio" aria-checked={unit === u} class:on={unit === u} onclick={() => (unit = u)} use:pointerRelease>{unitLabel[u]}</button>
       {/each}
     </div>
+    {#if decisionStops && unit === 'decision'}
+      <label class="skip" title="Step and play past decisions whose only options are Pass priority and Concede">
+        <input type="checkbox" bind:checked={skipPasses} use:pointerRelease />
+        Skip passes
+      </label>
+    {/if}
     <label class="speed">
       <span class="sr">Speed</span>
       <select bind:value={speed} aria-label="Playback speed">
@@ -311,6 +329,9 @@
   }
   .buttons .live.is-live { color: var(--verdigris); border-color: color-mix(in srgb, var(--verdigris) 50%, transparent); }
   .behind { color: var(--ink-faint); margin-left: var(--sp-1); }
+  .skip { display: flex; align-items: center; gap: var(--sp-1); white-space: nowrap; cursor: pointer; }
+  .skip input { margin: 0; accent-color: var(--gilt); }
+  .skip input:focus-visible { outline: 2px solid var(--gilt); outline-offset: 2px; }
   button:focus-visible, select:focus-visible, .track:focus-visible {
     outline: 2px solid var(--gilt);
     outline-offset: 2px;
