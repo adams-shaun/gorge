@@ -9617,17 +9617,12 @@
     },
     {
       "seq": 1755,
-      "kind": 4,
-      "amount": 2
-    },
-    {
-      "seq": 1756,
       "kind": 5,
       "obj": 5,
       "amount": 3
     },
     {
-      "seq": 1757,
+      "seq": 1756,
       "kind": 93,
       "obj": 49,
       "amount": 3,
@@ -9635,6 +9630,11 @@
       "ids": [
         5
       ]
+    },
+    {
+      "seq": 1757,
+      "kind": 4,
+      "amount": 2
     },
     {
       "seq": 1758,
@@ -18629,7 +18629,7 @@
       ]
     }
   ],
-  "head": "47ad2e8585c666f1",
+  "head": "1bf68a255e60ef80",
   "intent_count": 515,
   "turn": 20,
   "step": "main1",
