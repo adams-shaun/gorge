@@ -235,6 +235,11 @@ if ! node --version 2>/dev/null | grep -q '^v24'; then
   exit 1
 fi
 
+# Pin the browser cache in this shell too: the helper installs in its own
+# process, and the launches below must resolve the same path even when the
+# harness points XDG_CACHE_HOME at a per-run temp dir.
+: "${PLAYWRIGHT_BROWSERS_PATH:=$HOME/.cache/ms-playwright}"
+export PLAYWRIGHT_BROWSERS_PATH
 echo "== smoke: ensuring Playwright Chromium =="
 bash "$REPO_ROOT/scripts/ensure-playwright.sh"
 
