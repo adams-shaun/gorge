@@ -334,6 +334,18 @@ export interface CardView {
    */
   removal_damage?: number;
   /**
+   * PumpPower and PumpToughness are the literal, non-negative bonus of
+   * the card's primary Pump ability (effects.CastPumpBonus), both 0 for
+   * every shape the cast policy does not read: a curse, a mixed-sign or
+   * dynamic amount, a non-creature target, or a non-Pump spell. They are
+   * printed facts of a visible card, like RemovalDamage, and the opt-in
+   * A6 pump timing rule reads them to decide whether a combat trick can
+   * change a combat. A 0 answers "not a literal creature pump", never
+   * "pumps for zero".
+   */
+  pump_power?: number;
+  pump_toughness?: number;
+  /**
    * PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
    * "ALWAYS", "TRUE" (cast in the first main while the caster controls a
    * creature) or "OPPONENTCREATURES" (while an opponent does), and "" for

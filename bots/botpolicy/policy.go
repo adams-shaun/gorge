@@ -320,6 +320,15 @@ type StackEntry struct {
 	// o.Face().ManaCost for a spell, the view half's StackView.Card.ManaCost),
 	// so C8's stack census stays equal whichever host asked.
 	ManaCost string
+	// PumpPower and PumpToughness carry the spell's literal creature-pump
+	// bonus (effects.CastPumpBonus) while it sits on the stack. The A6 pump
+	// target ask arrives after the spell has left its owner's hand, so the
+	// cast-time Card facts are no longer in the census; both halves fill
+	// these from the same printed face (the game half's spell object, the
+	// view half's StackView.Card) and leave them zero for an ability object
+	// or a face-down spell.
+	PumpPower     int32
+	PumpToughness int32
 }
 
 // closesClock reports whether an unblocked swing from the creature id —

@@ -1,6 +1,8 @@
 package botpolicy
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -19,10 +21,15 @@ type TimingRules struct {
 	// and an instant token until an opponent's declare-attackers step
 	// onward.
 	DrawTokenLate bool
+	// PumpInCombat casts an instant creature pump only at declare
+	// blockers, and only when the bonus saves a combatant that would die,
+	// lets one kill an opposing creature that would otherwise survive, or
+	// makes an unblocked attack lethal.
+	PumpInCombat bool
 }
 
 // Enabled reports whether any A6 timing rule is armed.
-func (r TimingRules) Enabled() bool { return r.CounterTop || r.DrawTokenLate }
+func (r TimingRules) Enabled() bool { return r.CounterTop || r.DrawTokenLate || r.PumpInCombat }
 
 // counterSkipCMC is the mana value the counter rule refuses: Forge counters
 // a CMC-1 spell only 30% of the time, so the deterministic reading holds
@@ -34,21 +41,184 @@ const counterSkipCMC int32 = 1
 // allow in this window. A rule returns true for a card it does not govern,
 // so the zero TimingRules is a no-op and each rule can be armed alone.
 func (b Board) timingNow(d *decision.Decision, o decision.Option) bool {
-	if b.Timing.CounterTop {
-		c := b.Cards.Get(o.Obj)
-		if c.Counter {
-			top, ok := b.stackTop(0)
-			if !ok || !top.IsSpell || top.Controller == d.Player || top.CMC == counterSkipCMC {
-				return false
-			}
+	c := b.Cards.Get(o.Obj)
+	if b.Timing.CounterTop && c.Counter {
+		top, ok := b.stackTop(0)
+		if !ok || !top.IsSpell || top.Controller == d.Player || top.CMC == counterSkipCMC {
+			return false
 		}
 	}
 	if b.Timing.DrawTokenLate {
-		if !b.drawTokenNow(b.Cards.Get(o.Obj)) {
+		if !b.drawTokenNow(c) {
+			return false
+		}
+	}
+	if b.Timing.PumpInCombat && b.isTimedPump(c) {
+		if b.Step != state.StepDeclareBlockers || b.ownSpellOnStack(d.Player) {
+			return false
+		}
+		if _, ok := b.bestPumpTarget(d.Player, c.PumpPower, c.PumpToughness); !ok {
 			return false
 		}
 	}
 	return true
+}
+
+// isTimedPump reports whether c is a castable instant-speed creature pump
+// with a literal, positive bonus -- the cards the PumpInCombat rule governs.
+func (b Board) isTimedPump(c Card) bool {
+	return c.Castable && c.InstantSpeed && (c.PumpPower > 0 || c.PumpToughness > 0)
+}
+
+// ownSpellOnStack reports whether the stack already holds a spell player
+// controls. A second pump while the first is unresolved is never worth
+// casting (CR 117.3c: it cannot affect the same combat before the first
+// resolves), so the cast gate holds it.
+func (b Board) ownSpellOnStack(player state.PlayerID) bool {
+	for _, s := range b.Stack {
+		if s.IsSpell && s.Controller == player {
+			return true
+		}
+	}
+	return false
+}
+
+// Pump decision classes, in ascending value: a save beats a kill, which
+// beats a lethal push. Zero means "the bonus changes nothing".
+const (
+	pumpClassNone int32 = iota
+	pumpClassLethal
+	pumpClassKill
+	pumpClassSave
+)
+
+// bestPumpTarget is the combatant an instant pump of power/toughness should
+// aim at, if any. It considers the seat's own creatures that are attacking
+// or blocking (and are not shrouded), simulates the combat with and without
+// the bonus through the same blockCombat the combat heuristic uses, and
+// returns the best class, then the highest threat(), then the lowest object
+// id -- an order-independent max fold.
+func (b Board) bestPumpTarget(me state.PlayerID, power, toughness int32) (state.ObjID, bool) {
+	if power <= 0 && toughness <= 0 {
+		return 0, false
+	}
+	ids := make([]state.ObjID, 0, b.Creatures.Len())
+	for id, cr := range b.Creatures.All() {
+		if cr.Controller != me || cr.hasKeyword("Shroud") {
+			continue
+		}
+		if !cr.Attacking && cr.Blocks == 0 {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	var bestID state.ObjID
+	var bestClass, bestThreat int32
+	found := false
+	for _, id := range ids {
+		t := b.Creatures.Get(id)
+		pumped := t
+		pumped.Power += power
+		pumped.Toughness += toughness
+		class := b.pumpClass(me, id, t, pumped)
+		if class == pumpClassNone {
+			continue
+		}
+		th := t.threat()
+		if !found || class > bestClass || (class == bestClass && th > bestThreat) {
+			bestID, bestClass, bestThreat, found = id, class, th, true
+		}
+	}
+	return bestID, found
+}
+
+// pumpClass scores what the pumped body does in its combat: saves it from
+// death (3), lets it kill an opposing creature that would survive (2), or
+// makes an unblocked attack lethal (1). Indestructible creatures are never
+// saved or killed by damage, so they never justify the pump that way.
+func (b Board) pumpClass(me state.PlayerID, id state.ObjID, t, pumped Creature) int32 {
+	if t.Attacking {
+		blockerIDs, blockers := b.blockersOf(id)
+		if len(blockerIDs) > 0 {
+			aDead, dead := blockCombat(t, blockers)
+			aDeadP, deadP := blockCombat(pumped, blockers)
+			if aDead && !aDeadP && !t.hasKeyword("Indestructible") {
+				return pumpClassSave
+			}
+			for i := range blockers {
+				if !dead[i] && deadP[i] && !blockers[i].hasKeyword("Indestructible") {
+					return pumpClassKill
+				}
+			}
+			return pumpClassNone
+		}
+		return b.pumpLethal(t, pumped.Power-t.Power)
+	}
+	attacker, ok := b.Creatures.Lookup(t.Blocks)
+	if !ok || attacker.Controller == me {
+		return pumpClassNone
+	}
+	blockerIDs, blockers := b.blockersOf(t.Blocks)
+	idx := slices.Index(blockerIDs, id)
+	if idx < 0 {
+		return pumpClassNone
+	}
+	pumpedBlockers := slices.Clone(blockers)
+	pumpedBlockers[idx] = pumped
+	aDead, dead := blockCombat(attacker, blockers)
+	aDeadP, deadP := blockCombat(attacker, pumpedBlockers)
+	if dead[idx] && !deadP[idx] && !t.hasKeyword("Indestructible") {
+		return pumpClassSave
+	}
+	if !aDead && aDeadP && !attacker.hasKeyword("Indestructible") {
+		return pumpClassKill
+	}
+	return pumpClassNone
+}
+
+// pumpLethal reports the lethal class when an unblocked attacker's bonus
+// takes its team's unblocked damage from below the defender's life to at or
+// above it. An attack that is already lethal never justifies the pump.
+func (b Board) pumpLethal(t Creature, bonus int32) int32 {
+	if bonus <= 0 || t.Blocks != 0 {
+		return pumpClassNone
+	}
+	life := b.Life.Get(t.Defender)
+	if life <= 0 {
+		return pumpClassNone
+	}
+	var sum int32
+	for _, cr := range b.Creatures.All() {
+		if cr.Controller != t.Controller || !cr.Attacking || cr.Blocks != 0 || cr.Defender != t.Defender {
+			continue
+		}
+		if cr.Power > 0 {
+			sum += cr.Power
+		}
+	}
+	if sum < life && sum+bonus >= life {
+		return pumpClassLethal
+	}
+	return pumpClassNone
+}
+
+// blockersOf returns the ids and facts of every creature blocking attacker,
+// in ascending id order so the combat simulation (and every tie) is
+// deterministic.
+func (b Board) blockersOf(attacker state.ObjID) ([]state.ObjID, []Creature) {
+	var ids []state.ObjID
+	for id, cr := range b.Creatures.All() {
+		if cr.Blocks == attacker {
+			ids = append(ids, id)
+		}
+	}
+	slices.Sort(ids)
+	crs := make([]Creature, len(ids))
+	for i, id := range ids {
+		crs[i] = b.Creatures.Get(id)
+	}
+	return ids, crs
 }
 
 // drawTokenNow reports whether the draw/token timing rule allows casting c
@@ -87,7 +257,8 @@ func (b Board) castHeld(d *decision.Decision, id state.ObjID) bool {
 // (the tap gate is for instants); its hold comes from timingNow.
 func (b Board) timedCard(c Card) bool {
 	return b.Timing.CounterTop && c.Counter ||
-		b.Timing.DrawTokenLate && c.InstantSpeed && (c.Draw || c.Token)
+		b.Timing.DrawTokenLate && c.InstantSpeed && (c.Draw || c.Token) ||
+		b.Timing.PumpInCombat && b.isTimedPump(c)
 }
 
 // timedTap is the out-of-main tap gate for the timing rules. It is the
@@ -147,16 +318,47 @@ func (b Board) stackTop(skip state.ObjID) (StackEntry, bool) {
 // removal ranking's highest-CMC foreign spell. It returns false when no
 // armed rule governs this ask, leaving chooseTargets unchanged.
 func (b Board) timingTargetPick(d *decision.Decision) (int, bool) {
-	if !b.Timing.CounterTop || d.TargetEffect == nil || d.TargetEffect.API != "Counter" {
+	if d.TargetEffect == nil {
 		return 0, false
 	}
-	top, ok := b.stackTop(d.Source)
-	if !ok || !top.IsSpell || top.Controller == d.Player {
-		return 0, false
-	}
-	for i := range d.Options {
-		if d.Options[i].Obj == top.ID {
-			return i, true
+	switch d.TargetEffect.API {
+	case "Counter":
+		if !b.Timing.CounterTop {
+			return 0, false
+		}
+		top, ok := b.stackTop(d.Source)
+		if !ok || !top.IsSpell || top.Controller == d.Player {
+			return 0, false
+		}
+		for i := range d.Options {
+			if d.Options[i].Obj == top.ID {
+				return i, true
+			}
+		}
+	case "Pump":
+		if !b.Timing.PumpInCombat {
+			return 0, false
+		}
+		var power, toughness int32
+		found := false
+		for i := range b.Stack {
+			if b.Stack[i].ID == d.Source && b.Stack[i].IsSpell {
+				power, toughness = b.Stack[i].PumpPower, b.Stack[i].PumpToughness
+				found = true
+				break
+			}
+		}
+		if !found || (power <= 0 && toughness <= 0) {
+			return 0, false
+		}
+		id, ok := b.bestPumpTarget(d.Player, power, toughness)
+		if !ok {
+			return 0, false
+		}
+		for i := range d.Options {
+			if d.Options[i].Obj == id {
+				return i, true
+			}
 		}
 	}
 	return 0, false

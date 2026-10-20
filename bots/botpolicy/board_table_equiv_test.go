@@ -62,6 +62,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 		}
 		var cmc int32
 		var manaCost string
+		var pumpPower, pumpToughness int32
 		if f := o.Face(); f != nil {
 			cmc = cmcOfFace(f)
 			// Only a spell carries a printed payment; an ability object is
@@ -70,9 +71,12 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 			// in step even if a face ever rides an ability stack object.
 			if o.Ability == nil {
 				manaCost = f.ManaCost
+				if !o.FaceDown {
+					pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
+				}
 			}
 		}
-		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc, ManaCost: manaCost})
+		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc, ManaCost: manaCost, PumpPower: pumpPower, PumpToughness: pumpToughness})
 	}
 	// The manifest is read, never written, by everything a Board reaches,
 	// so the engine's shared read-only pointer (rules.Engine.OwnDeckShared)
@@ -131,6 +135,11 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				toughness = ch.Toughness(id)
 				keywords = append([]string(nil), ch.Keywords(id)...)
 			}
+			attacking := o.IsAttacking
+			var defender state.PlayerID
+			if attacking {
+				defender = o.Attacking
+			}
 			b.Creatures[id] = Creature{
 				Power:      power,
 				Toughness:  toughness,
@@ -138,6 +147,28 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				Keywords:   keywords,
 				Tapped:     o.Tapped,
 				Controller: o.Controller,
+				Attacking:  attacking,
+				Defender:   defender,
+			}
+		}
+	}
+	if g.BlockersLive() {
+		for i := range g.Players {
+			for _, id := range g.Zone(state.ZBattlefield, g.Players[i].ID) {
+				o := g.Obj(id)
+				if o == nil || !o.IsAttacking {
+					continue
+				}
+				for _, blocker := range o.BlockedBy {
+					cr, ok := b.Creatures[blocker]
+					if !ok {
+						continue
+					}
+					if cr.Blocks == 0 || id < cr.Blocks {
+						cr.Blocks = id
+						b.Creatures[blocker] = cr
+					}
+				}
 			}
 		}
 	}
@@ -221,6 +252,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id)))
 				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(ch.Keywords(id))
 			}
+			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
 			b.Cards[id] = Card{
 				PrintedName:    f.Name,
 				Creature:       hasTypeWord(words, "Creature"),
@@ -246,6 +278,8 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
+				PumpPower:      pumpPower,
+				PumpToughness:  pumpToughness,
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
 			}

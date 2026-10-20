@@ -634,14 +634,16 @@ func BoardFromView(v view.View) botpolicy.Board {
 	for _, sv := range v.Stack {
 		var cmc int32
 		var manaCost string
+		var pumpPower, pumpToughness int32
 		// A trigger can include its source card for display, but the stack
 		// ability itself has no face or mana cost. Only spells have a CMC
 		// in the game-shaped adapter (BoardFromGameInto).
 		if sv.Kind == "spell" && sv.Card != nil {
 			cmc = botpolicy.CmcOf(sv.Card.ManaCost)
 			manaCost = sv.Card.ManaCost
+			pumpPower, pumpToughness = sv.Card.PumpPower, sv.Card.PumpToughness
 		}
-		b.Stack = append(b.Stack, botpolicy.StackEntry{ID: sv.ID, Controller: sv.Controller, IsSpell: sv.Kind == "spell", CMC: cmc, ManaCost: manaCost})
+		b.Stack = append(b.Stack, botpolicy.StackEntry{ID: sv.ID, Controller: sv.Controller, IsSpell: sv.Kind == "spell", CMC: cmc, ManaCost: manaCost, PumpPower: pumpPower, PumpToughness: pumpToughness})
 	}
 	for _, p := range v.Players {
 		b.Life.Set(p.ID, p.Life)
@@ -668,6 +670,10 @@ func BoardFromView(v view.View) botpolicy.Board {
 			if !isCreatureView(cv) {
 				continue
 			}
+			var defender state.PlayerID
+			if cv.Attacking && cv.AttackingPlayer != nil {
+				defender = *cv.AttackingPlayer
+			}
 			b.Creatures.Set(cv.ID, botpolicy.Creature{
 				Power:      cv.Power,
 				Toughness:  cv.Toughness,
@@ -675,6 +681,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 				Keywords:   cv.Keywords,
 				Tapped:     cv.Tapped,
 				Controller: cv.Controller,
+				Attacking:  cv.Attacking,
+				Defender:   defender,
 			})
 		}
 		// The commander bookkeeping: the projected roster (p.Commanders,
@@ -697,6 +705,29 @@ func BoardFromView(v view.View) botpolicy.Board {
 				}
 			}
 			b.Commanders.Set(cv.ID, cmdr)
+		}
+	}
+	// The blocking second pass: the projected attackers carry their
+	// BlockedBy list, so record on each blocked creature the lowest
+	// attacker id blocking it, exactly as the game half's fillBlocks does.
+	// Reading the View's own order (players, then battlefield) makes the
+	// pass deterministic, and the lowest-id fold makes it independent of
+	// the order the block lists were populated in.
+	for _, p := range v.Players {
+		for _, cv := range p.Battlefield {
+			if !cv.Attacking {
+				continue
+			}
+			for _, blocker := range cv.BlockedBy {
+				cr, ok := b.Creatures.Lookup(blocker)
+				if !ok {
+					continue
+				}
+				if cr.Blocks == 0 || cv.ID < cr.Blocks {
+					cr.Blocks = cv.ID
+					b.Creatures.Set(blocker, cr)
+				}
+			}
 		}
 	}
 	// The public-card colour census (A2): every player's battlefield,
@@ -813,6 +844,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 				RemovalKind:    cv.RemovalKind,
 				RemovalTargets: cv.RemovalTargets,
 				RemovalDamage:  cv.RemovalDamage,
+				PumpPower:      cv.PumpPower,
+				PumpToughness:  cv.PumpToughness,
 				PlayMain1:      cv.PlayMain1,
 				RemoveDeck:     cv.RemoveDeck,
 			})

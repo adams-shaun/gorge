@@ -89,6 +89,19 @@ type Creature struct {
 	Keywords   []string
 	Tapped     bool
 	Controller state.PlayerID
+	// Attacking reports whether this creature is an attacker in the current
+	// combat (state.Object.IsAttacking / the projected CardView.Attacking).
+	// Defender is the seat it is attacking, 0 when it is not an attacker;
+	// it is state.Object.Attacking, which a planeswalker attack still sets
+	// to the walker's controller (the A6 pump rule counts that against that
+	// seat's life, a documented approximation).
+	Attacking bool
+	Defender  state.PlayerID
+	// Blocks is the object id of the attacker this creature is blocking,
+	// 0 when it blocks nothing. It is the LOWEST such id, so a creature
+	// declared as a blocker of one attacker reads the same regardless of
+	// the order the attacker's BlockedBy list was filled in.
+	Blocks state.ObjID
 }
 
 // hasKeyword is the engine's own keyword match (engine/rules/engine.go's
@@ -195,6 +208,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		}
 		var cmc int32
 		var manaCost string
+		var pumpPower, pumpToughness int32
 		if f := o.Face(); f != nil {
 			cmc = cmcOfFace(f)
 			// Only a spell carries a printed payment; an ability object is
@@ -203,9 +217,14 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			// in step even if a face ever rides an ability stack object.
 			if o.Ability == nil {
 				manaCost = f.ManaCost
+				// A face-down spell's printed pump bonus is hidden (the view
+				// half projects a stripped CardView), so it stays zero.
+				if !o.FaceDown {
+					pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
+				}
 			}
 		}
-		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc, ManaCost: manaCost})
+		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc, ManaCost: manaCost, PumpPower: pumpPower, PumpToughness: pumpToughness})
 	}
 	// The manifest is read, never written, by everything a Board reaches,
 	// so the engine's shared read-only pointer (rules.Engine.OwnDeckShared)
@@ -305,6 +324,11 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				b.kwArena = append(b.kwArena, keywords...)
 				keywords = b.kwArena[start:len(b.kwArena):len(b.kwArena)]
 			}
+			attacking := o.IsAttacking
+			var defender state.PlayerID
+			if attacking {
+				defender = o.Attacking
+			}
 			*b.Creatures.slot(id) = Creature{
 				Power:      power,
 				Toughness:  toughness,
@@ -312,9 +336,12 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				Keywords:   keywords,
 				Tapped:     o.Tapped,
 				Controller: o.Controller,
+				Attacking:  attacking,
+				Defender:   defender,
 			}
 		}
 	}
+	fillBlocks(g, b)
 	fillCommanders(g, b)
 	// The casting Card census: every object in the deciding seat's own hand,
 	// graveyard, battlefield and command zone — exactly the zones
@@ -368,6 +395,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id)))
 				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(ch.Keywords(id))
 			}
+			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       hasTypeWord(words, "Creature"),
@@ -393,6 +421,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
+				PumpPower:      pumpPower,
+				PumpToughness:  pumpToughness,
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
 			}
@@ -527,6 +557,37 @@ func fillPublicCards(g *state.Game, b *Board, colourOf func(*state.Object, *card
 			pc.Colour = colourOf(o, f)
 		}
 		b.PublicCards.Set(id, pc)
+	}
+}
+
+// fillBlocks is the second creature pass: it records, for every creature
+// listed in an attacker's BlockedBy, the LOWEST attacker id blocking it.
+// Filling it after the census (rather than while walking each object) makes
+// the result independent of the order the block lists were populated in, and
+// the g.BlockersLive() guard is the engine's own optimisation: while no
+// BlockedBy list is non-empty the pass writes nothing, leaving the zero
+// value every creature already carries.
+func fillBlocks(g *state.Game, b *Board) {
+	if !g.BlockersLive() {
+		return
+	}
+	for i := range g.Players {
+		for _, id := range g.Zone(state.ZBattlefield, g.Players[i].ID) {
+			o := g.Obj(id)
+			if o == nil || !o.IsAttacking {
+				continue
+			}
+			for _, blocker := range o.BlockedBy {
+				cr, ok := b.Creatures.Lookup(blocker)
+				if !ok {
+					continue
+				}
+				if cr.Blocks == 0 || id < cr.Blocks {
+					cr.Blocks = id
+					b.Creatures.Set(blocker, cr)
+				}
+			}
+		}
 	}
 }
 

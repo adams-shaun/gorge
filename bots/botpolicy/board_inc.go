@@ -272,6 +272,11 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				continue
 			}
 			inc.derive(r, id, combined, vtypes)
+			attacking := o.IsAttacking
+			var defender state.PlayerID
+			if attacking {
+				defender = o.Attacking
+			}
 			*b.Creatures.slot(id) = Creature{
 				Power:      r.power,
 				Toughness:  r.toughness,
@@ -279,9 +284,12 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				Keywords:   r.keywords(),
 				Tapped:     o.Tapped,
 				Controller: o.Controller,
+				Attacking:  attacking,
+				Defender:   defender,
 			}
 		}
 	}
+	fillBlocks(g, b)
 	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZBattlefield, state.ZCommand} {
 		if hideHand && z == state.ZHand {
 			continue
@@ -297,6 +305,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			}
 			r := inc.face(id, f, k)
 			inc.derive(r, id, combined, vtypes)
+			pumpPower, pumpToughness := effects.CastPumpBonus(f.SpellAbility())
 			*b.Cards.slot(id) = Card{
 				PrintedName:    f.Name,
 				Creature:       r.creature,
@@ -322,6 +331,8 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
+				PumpPower:      pumpPower,
+				PumpToughness:  pumpToughness,
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
 			}

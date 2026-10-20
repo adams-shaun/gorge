@@ -92,6 +92,16 @@ type CardView struct {
 	// firing now. A 0 answers "unknown", never "no damage" -- the policy
 	// treats an unknown figure as no face candidate at all.
 	RemovalDamage int32 `json:"removal_damage,omitempty"`
+	// PumpPower and PumpToughness are the literal, non-negative bonus of
+	// the card's primary Pump ability (effects.CastPumpBonus), both 0 for
+	// every shape the cast policy does not read: a curse, a mixed-sign or
+	// dynamic amount, a non-creature target, or a non-Pump spell. They are
+	// printed facts of a visible card, like RemovalDamage, and the opt-in
+	// A6 pump timing rule reads them to decide whether a combat trick can
+	// change a combat. A 0 answers "not a literal creature pump", never
+	// "pumps for zero".
+	PumpPower     int32 `json:"pump_power,omitempty"`
+	PumpToughness int32 `json:"pump_toughness,omitempty"`
 	// PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
 	// "ALWAYS", "TRUE" (cast in the first main while the caster controls a
 	// creature) or "OPPONENTCREATURES" (while an opponent does), and "" for
@@ -630,6 +640,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 			cv.RemovalKind = effects.CastRemovalKind(sa)
 			cv.RemovalTargets = effects.CastRemovalTargets(sa)
 			cv.RemovalDamage = effects.CastRemovalDamage(sa)
+			cv.PumpPower, cv.PumpToughness = effects.CastPumpBonus(sa)
 		}
 		// The mana-production projection (Task dp2): what tapping this card
 		// puts in the pool, from its own abilities. A nil pointer keeps a card
