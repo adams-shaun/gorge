@@ -825,6 +825,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 				Produces:       produces,
 				InstantSpeed:   instantSpeedView(cv),
 				Counter:        cv.SpellAPI == "Counter",
+				Draw:           cv.SpellAPI == "Draw",
+				Token:          cv.SpellAPI == "Token",
 				RemovalKind:    cv.RemovalKind,
 				RemovalTargets: cv.RemovalTargets,
 				RemovalDamage:  cv.RemovalDamage,
