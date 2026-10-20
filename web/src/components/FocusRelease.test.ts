@@ -202,11 +202,11 @@ describe('a pointer click on every focusable table family releases focus (hotkey
   it('F6: a pointer click on the DVR pause button records the action and leaves Space to the hotkey', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/FocusRelease.fixture.html`);
-    const pause = page.locator('#dvr [aria-label="pause"]');
+    const pause = page.locator('#dvr [aria-label="pause live"]');
     await pause.click();
     // Precondition: the button did its job.
     expect(await page.evaluate(() => (window as unknown as { __dvrActions: unknown[] }).__dvrActions)).toEqual([{ type: 'pause' }]);
-    expect(await activeIs(page, '[aria-label="pause"]')).toBe(false);
+    expect(await activeIs(page, '[aria-label="pause live"]')).toBe(false);
     await page.keyboard.press('Space');
     expect(await nextPassPost(page, 0)).toEqual([{ seq: 7, player: 0, choices: [9] }]);
     await page.close();
