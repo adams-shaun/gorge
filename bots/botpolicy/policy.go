@@ -61,6 +61,11 @@ type Board struct {
 	// it is policy configuration, not a board fact, so the arming constructor
 	// fills it rather than either adapter's walk.
 	Removal RemovalRules
+	// Timing selects the opt-in A6 "is now a good time" rules (timing.go).
+	// The zero value leaves every cast and tap decision exactly as it was;
+	// like Removal it is policy configuration, not a board fact, so the
+	// arming constructor fills it rather than either adapter's walk.
+	Timing TimingRules
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public
@@ -522,6 +527,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// is nothing to pay for, so the land drop below is reached with
 			// unmade taps instead of exhausted ones.
 			if pick := b.chooseTap(d); pick >= 0 {
+				in.Choices = []int{pick}
+				return Clamp(d, in)
+			}
+		}
+		// A6: outside a main phase the ordinary tap gate does not run, so a
+		// manual seat could never float mana toward a counter (or the other
+		// timed instants) the rules allow. When a rule is armed and a timed
+		// tap exists, take it; otherwise the ordinary flow is unchanged.
+		if !b.IsMain && b.Timing.Enabled() {
+			if pick := b.timedTap(d); pick >= 0 {
 				in.Choices = []int{pick}
 				return Clamp(d, in)
 			}

@@ -1,11 +1,13 @@
 // Package forgeheuristic registers the Forge-derived experimental policy.
 //
 // The policy is the production heuristic bot with the A2 target-selection
-// rules armed (LandPriority, ProminentColour, FilterFatalCopies) and the A1
-// removal-now rule (HoldForBigger). Those rules are clean-room re-expressions
-// of Forge's ComputerUtilCard behaviour in gorge's own vocabulary
-// (docs/design/2026-10-19-a2-target-rules.md and
-// docs/design/2026-10-20-a1-removal-now.md); nothing here is translated from
+// rules armed (LandPriority, ProminentColour, FilterFatalCopies), the A1
+// removal-now rule (HoldForBigger) and the A6 counter timing rule
+// (CounterTop). Those rules are clean-room re-expressions of Forge's
+// ComputerUtilCard behaviour in gorge's own vocabulary
+// (docs/design/2026-10-19-a2-target-rules.md,
+// docs/design/2026-10-20-a1-removal-now.md and
+// docs/design/2026-10-20-a6-timing-rules.md); nothing here is translated from
 // Forge's GPL-3.0 Java. A2 was measured inert on the 30-deck constructed
 // corpus (46.8% A, 95% CI [41.9, 51.6] over 400 games, indistinguishable from
 // the bot-vs-bot seat/deck bias), so the policy stays opt-in and the default
@@ -26,7 +28,7 @@ func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
 		Label:       "Forge heuristic",
-		Description: "The production heuristic bot with the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter) and the A1 removal-now hold rule.",
+		Description: "The production heuristic bot with the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule and the A6 counter timing rule.",
 		Tier:        bots.Experimental,
 		Strength: []bots.Measurement{{
 			Claim:   "46.8% A [41.9, 51.6] vs bot over 400 games, indistinguishable from the 46.5% bot-vs-bot seat/deck control",
@@ -49,6 +51,8 @@ func New(o bots.Options) (seat.Seat, error) {
 		FilterFatalCopies: true,
 	}).EnableRemovalRules(botpolicy.RemovalRules{
 		HoldForBigger: true,
+	}).EnableTimingRules(botpolicy.TimingRules{
+		CounterTop: true,
 	})
 	if o.AutoPayMana {
 		b.EnableAutoPayMana()

@@ -46,6 +46,10 @@ type Bot struct {
 	// Configured once by an opt-in constructor; the zero value leaves every
 	// cast decision unchanged.
 	removal botpolicy.RemovalRules
+	// timing selects the opt-in A6 "is now a good time" rules
+	// (botpolicy.TimingRules). Configured once by an opt-in constructor; the
+	// zero value leaves every cast and tap decision unchanged.
+	timing botpolicy.TimingRules
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
@@ -139,6 +143,20 @@ func (b *Bot) EnableRemovalRules(r botpolicy.RemovalRules) *Bot {
 // RemovalRules reports the A1 removal-now rule armed on this bot.
 func (b *Bot) RemovalRules() botpolicy.RemovalRules {
 	return b.removal
+}
+
+// EnableTimingRules arms the A6 "is now a good time" rules
+// (botpolicy.TimingRules) on this bot and returns it, so an opt-in
+// constructor chains like the other Enable* methods. The default bot never
+// calls it.
+func (b *Bot) EnableTimingRules(r botpolicy.TimingRules) *Bot {
+	b.timing = r
+	return b
+}
+
+// TimingRules reports the A6 timing rules armed on this bot.
+func (b *Bot) TimingRules() botpolicy.TimingRules {
+	return b.timing
 }
 
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
@@ -271,6 +289,7 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	// unaffected.
 	brd.Targets = b.targets
 	brd.Removal = b.removal
+	brd.Timing = b.timing
 	if b.autoPayMana {
 		if in, ok := b.paymentIntent(brd, d); ok {
 			return in

@@ -58,6 +58,9 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 	if got := hb.RemovalRules(); got != (botpolicy.RemovalRules{HoldForBigger: true}) {
 		t.Errorf("armed RemovalRules = %+v, want HoldForBigger", got)
 	}
+	if got := hb.TimingRules(); got != (botpolicy.TimingRules{CounterTop: true}) {
+		t.Errorf("armed TimingRules = %+v, want CounterTop", got)
+	}
 }
 
 // TestForgeHeuristicPlaysAndReplays is the end-to-end contract: the policy
