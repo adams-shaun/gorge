@@ -306,17 +306,31 @@ func newDamageRider(h Host, c *Ctx, spec string, amount int32) damageRider {
 		hasWither: hasWither, hasDeathtouch: hasDeathtouch}
 }
 
+// lifelinkGainer is the optional rules-side hook for CR 702.15a/702.15e:
+// inside a damage batch the host sums the gain per source and emits ONE
+// LifeChange when the batch ends, so one source's simultaneous damage to
+// several recipients is one life-gain event (CR 119.9). It is optional, like
+// the BeginLifeLossBatch hook, so effects stay below rules and test hosts
+// need no change.
+type lifelinkGainer interface {
+	GainFromLifelink(source state.ObjID, player state.PlayerID, amount int32)
+}
+
 // payLifelinkRider is CR 702.15a's life gain for NON-COMBAT damage: when
 // damage from a source with lifelink actually landed, the source's controller
-// gains `r.amount` life. Lifelink is not a trigger (CR 702.15a) -- the
-// LifeChange rides the damage emit itself, so the gain is visible at the same
-// instant the damage is, with no stack, no trigger queue and no ask.
+// gains `r.amount` life. The gain is not a trigger: inside a damage batch the
+// host sums it per source and emits ONE LifeChange when the batch ends
+// (CR 702.15e, 119.9); outside one it is emitted at once.
 //
 // dealt is the amount on the Damage event that actually landed after
 // replacement effects. It is zero for prevention, and may differ from the
 // proposed amount for a multiplier or other amount-changing replacement.
 func payLifelinkRider(r damageRider, dealt int32) {
 	if dealt <= 0 || !r.hasLifelink {
+		return
+	}
+	if g, ok := r.h.(lifelinkGainer); ok {
+		g.GainFromLifelink(r.source, r.controller, dealt)
 		return
 	}
 	r.h.Emit(events.Event{Kind: events.LifeChange, Player: r.controller,

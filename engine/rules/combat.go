@@ -2558,7 +2558,7 @@ func (e *Engine) runCombatAssignments() {
 			}
 		}
 		if x.hasLink && !prevented {
-			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: dealt})
+			e.gainFromLifelink(x.from, x.lifelink, dealt, true)
 		}
 		e.damaging = 0
 		e.combatDamaging = false
@@ -2566,6 +2566,10 @@ func (e *Engine) runCombatAssignments() {
 			e.combatRound.damageNext = i + 1
 			return
 		}
+	}
+	if !e.flushLifelinkBatch(true) {
+		e.combatRound.damageNext = len(e.combatRound.assignments)
+		return
 	}
 	// CR 726.2, the one adjudication of this simultaneous pass (see the
 	// collection block above): among the distinct controllers whose creatures
