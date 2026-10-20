@@ -398,7 +398,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.BoolVar(&c.botAutoPayMana, "bot-auto-mana", true, "have hosted bots and human-seat caretakers cast through offered automatic mana payment plans")
 	fs.BoolVar(&c.botCommonSense, "bot-common-sense", false, "wrap hosted bots and human-seat caretakers in the bots/sanity CommonSense guard (drop hostile self-removal from the option list, answer the London mulligan by the constructed policy); opt-in, default off")
 	fs.BoolVar(&c.autoMana, "auto-mana", true, "enable automatic mana payment plans and controls for human seats (disable with -auto-mana=false for the legacy manual path)")
-	fs.StringVar(&c.botPolicy, "bot-policy", host.LethalPressurePolicy, "default hosted bot policy for a vs-bot request that omits bot_policy; must be registered, offered, and support both formats (bot, lethal-pressure, cast-profile)")
+	fs.StringVar(&c.botPolicy, "bot-policy", host.LethalPressurePolicy, "default hosted bot policy for a vs-bot request that omits bot_policy; must be registered, offered, and support both formats (registered: "+strings.Join(bots.Names(), ", ")+")")
 	fs.StringVar(&c.botPoliciesRaw, "bot-policies", defaultBotPoliciesRaw, "comma-separated set of bot policies this server OFFERS (the /api/bot-policies listing and accepted POST /api/games names); empty offers every registered entry that does not read opponents' decklists (a decklist-reading policy can never be offered: vs-bot always seats a human)")
 	fs.Func("bot-opt", "set a bot policy option: <policy>.<key>=<value> (repeatable; overrides -bot-config and the environment)", func(arg string) error {
 		c.botOpts = append(c.botOpts, arg)

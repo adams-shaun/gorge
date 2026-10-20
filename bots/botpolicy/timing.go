@@ -13,10 +13,16 @@ type TimingRules struct {
 	// stack, and never at a mana value of counterSkipCMC (Forge's
 	// deterministic majority reading of its 30/75/100% bands).
 	CounterTop bool
+	// DrawTokenLate holds a draw or token spell until the window Forge
+	// waits for: a sorcery until the seat's own second main, an instant
+	// draw until an opponent's end step (or a hand of at most one card),
+	// and an instant token until an opponent's declare-attackers step
+	// onward.
+	DrawTokenLate bool
 }
 
 // Enabled reports whether any A6 timing rule is armed.
-func (r TimingRules) Enabled() bool { return r.CounterTop }
+func (r TimingRules) Enabled() bool { return r.CounterTop || r.DrawTokenLate }
 
 // counterSkipCMC is the mana value the counter rule refuses: Forge counters
 // a CMC-1 spell only 30% of the time, so the deterministic reading holds
@@ -37,7 +43,34 @@ func (b Board) timingNow(d *decision.Decision, o decision.Option) bool {
 			}
 		}
 	}
+	if b.Timing.DrawTokenLate {
+		if !b.drawTokenNow(b.Cards.Get(o.Obj)) {
+			return false
+		}
+	}
 	return true
+}
+
+// drawTokenNow reports whether the draw/token timing rule allows casting c
+// now. It governs only a card whose primary spell ability is Draw or Token;
+// every other card, and every card while the rule is off, is allowed.
+// Sorcery-speed draw/token is held in the seat's own first main (the second
+// main re-offers it). An instant draw waits for an opponent's end step
+// unless the hand is nearly empty, and an instant token waits for the
+// opponent's declare-attackers step onward. The multiplayer reading of "the
+// turn before the AI's" is any opponent's turn, as documented in the A6
+// design note.
+func (b Board) drawTokenNow(c Card) bool {
+	if !b.Timing.DrawTokenLate || (!c.Draw && !c.Token) {
+		return true
+	}
+	if !c.InstantSpeed {
+		return !(b.MyTurn && b.FirstMain)
+	}
+	if c.Draw {
+		return (!b.MyTurn && b.Step == state.StepEnd) || b.HandSize <= 1
+	}
+	return !b.MyTurn && b.Step >= state.StepDeclareAttackers && b.Step <= state.StepEnd
 }
 
 // castHeld is the tap gate's half of the timing rules: it reports whether
@@ -49,9 +82,12 @@ func (b Board) castHeld(d *decision.Decision, id state.ObjID) bool {
 }
 
 // timedCard reports whether c is a card one of the armed timing rules
-// governs. Only a counter is in this ticket's scope.
+// governs: a counter under CounterTop, or an instant-speed draw/token under
+// DrawTokenLate. A sorcery-speed draw/token is not a timed tap candidate
+// (the tap gate is for instants); its hold comes from timingNow.
 func (b Board) timedCard(c Card) bool {
-	return b.Timing.CounterTop && c.Counter
+	return b.Timing.CounterTop && c.Counter ||
+		b.Timing.DrawTokenLate && c.InstantSpeed && (c.Draw || c.Token)
 }
 
 // timedTap is the out-of-main tap gate for the timing rules. It is the

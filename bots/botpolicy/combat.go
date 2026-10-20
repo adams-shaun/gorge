@@ -388,6 +388,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				Produces:       f.ManaProduction(),
 				InstantSpeed:   instantSpeed,
 				Counter:        isCounterSpell(f),
+				Draw:           spellAPIIs(f, "Draw"),
+				Token:          spellAPIIs(f, "Token"),
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
@@ -574,6 +576,13 @@ func fillCommanders(g *state.Game, b *Board) {
 func isCounterSpell(f *cards.Face) bool {
 	sa := f.SpellAbility()
 	return sa != nil && sa.API == "Counter"
+}
+
+// spellAPIIs reports whether f's primary spell ability is api (one
+// SpellAbility lookup, not two).
+func spellAPIIs(f *cards.Face, api string) bool {
+	sa := f.SpellAbility()
+	return sa != nil && sa.API == api
 }
 
 // ownCreature is the creature census entry the Cards pass may reuse for id:
