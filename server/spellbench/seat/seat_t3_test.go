@@ -3,6 +3,7 @@ package seat
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -15,14 +16,17 @@ import (
 
 func TestStartupBudgetKillsSilentHello(t *testing.T) {
 	python(t)
+	marker := filepath.Join(t.TempDir(), "marker")
+	t.Setenv("SPELLBENCH_MARKER", marker)
 	e, _, _ := testEngine(t)
 	raw, err := New("test-agent", []string{script(t, "silent_hello_bot.py")}, bots.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	agent := raw.(*Agent)
+	deadline := newFiredDeadline()
 	agent.startup = func() (context.Context, context.CancelFunc) {
-		return context.WithTimeout(agent.ctx, 150*time.Millisecond)
+		return deadline, func() {}
 	}
 	mc := &bots.MatchContext{
 		Context:      context.Background(),
@@ -38,18 +42,16 @@ func TestStartupBudgetKillsSilentHello(t *testing.T) {
 		Logf:         t.Logf,
 	}
 	done := make(chan error, 1)
-	start := time.Now()
 	go func() { done <- agent.AttachMatch(mc) }()
+	awaitMarker(t, marker)
+	deadline.fire()
 	select {
 	case err := <-done:
 		if err != nil {
 			t.Fatalf("AttachMatch: %v", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("startup budget did not interrupt a silent hello")
-	}
-	if elapsed := time.Since(start); elapsed > 3*time.Second {
-		t.Fatalf("handshake took %v with a 150ms budget", elapsed)
 	}
 	if agent.forfeit != forfeitTimeout {
 		t.Fatalf("startup forfeit = %q, want %q", agent.forfeit, forfeitTimeout)

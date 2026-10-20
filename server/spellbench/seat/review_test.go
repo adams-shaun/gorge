@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -127,11 +128,19 @@ func TestStartupContextArmsStartupDeadline(t *testing.T) {
 
 func TestStartupHandshakeTimeoutForfeits(t *testing.T) {
 	e, _, _ := testEngine(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
+	marker := filepath.Join(t.TempDir(), "marker")
+	t.Setenv("SPELLBENCH_MARKER", marker)
+	ctx := newFiredDeadline()
+	go func() {
+		waitMarker(marker, 10*time.Second)
+		ctx.fire()
+	}()
 	agent, fallback := attachTestSeatContext(t, e, 0, []string{script(t, "silent_hello_bot.py")}, ctx)
 	defer endTestMatch([]engineseat.Seat{agent, fallback})
 
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatalf("helper agent never read hello: %v", err)
+	}
 	if agent.forfeit != forfeitTimeout {
 		t.Fatalf("startup forfeit = %q, want %q", agent.forfeit, forfeitTimeout)
 	}

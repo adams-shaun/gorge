@@ -126,14 +126,30 @@ func TestV2AgentSeatPlaysGorgeAgent(t *testing.T) {
 }
 
 func TestV2AgentSeatForfeitsOnTimeout(t *testing.T) {
+	marker := filepath.Join(t.TempDir(), "marker")
+	t.Setenv("SPELLBENCH_MARKER", marker)
 	e, _, _ := testEngine(t)
 	agent, fallback := attachTestSeatScript(t, e, 0, script(t, "silent_bot.py"), 0)
 	defer endTestMatch([]engineseat.Seat{agent, fallback})
 
 	d, v := nextAgentAsk(t, e, agent, fallback)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-	in, err := agent.Decide(ctx, v, d)
+	ctx := newFiredDeadline()
+	var (
+		in  decision.Intent
+		err error
+	)
+	done := make(chan struct{})
+	go func() {
+		in, err = agent.Decide(ctx, v, d)
+		close(done)
+	}()
+	awaitMarker(t, marker)
+	ctx.fire()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Decide did not return after the deadline fired")
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
