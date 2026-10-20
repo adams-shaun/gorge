@@ -209,6 +209,36 @@ A policy moves up one rung at a time. Each rung has a gate.
      (`archived 2026-09-19-learned-cast-profile.md (docs/design/ARCHIVE.md)`,
      "Operator decisions").
 
+## Native bots
+
+A bot policy linked into a server declares itself through `bots.Register`. The
+entry's `Info` names the policy, its tier, formats, seat bound and — for any
+knob the factory reads — its `Options []bots.OptionSpec`. Each spec names a
+key, a type (`string`, `int`, `float`, `bool` or `path`), an optional default,
+help text and whether the option is required. `Register` rejects an invalid
+key, an unknown type, a duplicate key or a default that does not parse.
+
+The factory receives the resolved values in `bots.Options.Config`; `bots.New`
+fills every declared default before calling it. Read them with
+`Options.String`, `Int`, `Float` and `Bool`, which panic on an undeclared key
+(a programming error, not a user error).
+
+`gorged` is the reference host:
+
+- `-bot-opt <policy>.<key>=<value>` sets one value and is repeatable.
+- `-bot-config <policy>=<file.json>` reads a flat JSON object; repeatable.
+- `GORGED_BOT_<POLICY>_<KEY>` (upper case, `-` becomes `_`) supplies a value
+  without a flag.
+
+Precedence is flag, then environment, then config file, then the declared
+default. Every value is validated before a listener opens: an unknown policy
+or key, a value that does not parse as its declared type, or a missing
+required option exits non-zero with the flag and key named. Startup validates
+every registered policy, not only the offered set, so a linked policy that
+declares a required option must be configurable on every server that links it.
+`gorged -help` prints every registered policy's options, and the option values
+never appear in `/api/bot-policies`.
+
 ## Rules for bot code
 
 - **Determinism.** Seeded `math/rand/v2` only, and no map order in anything

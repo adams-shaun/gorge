@@ -18,6 +18,7 @@ import (
 	"math/rand/v2"
 	"slices"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -49,6 +50,12 @@ type Board struct {
 	// the engine's own step (g.Step.IsMain), which is the same function of
 	// the same five-phase string.
 	IsMain bool
+	// Targets selects the opt-in A2 targeting rules (targetrules.go). The
+	// zero value leaves the ranking in target.go exactly as it was; an
+	// adapter that never sets it is unchanged. It is a policy choice, not a
+	// board fact, so it is filled by the seat constructor that arms it, not
+	// by either adapter's walk.
+	Targets TargetRules
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public
@@ -75,6 +82,14 @@ type Board struct {
 	// own, so carrying it in the Board is no information leak (Ruling C0):
 	// it is exactly what that seat may see.
 	Cards CardTable
+	// PublicCards is every player's public-zone card colour identity, keyed
+	// by object id: battlefield, graveyard, exile and stack. It is filled by
+	// both adapters from facts the deciding seat may legally see, so a policy
+	// can read an OPPONENT's colour posture without reading their hidden
+	// deck. FaceDown is true for a face-down permanent or spell; its Colour
+	// is zero because the printed identity is not public (CR 708.5). The A2
+	// colour fold (targetrules.go) is the only reader.
+	PublicCards PublicCardTable
 	// Pool is the deciding seat's current mana pool. The tap gate
 	// (tap.go) reads it to decide whether another tap could newly enable a
 	// cast: a pool that already pays some castable card's cost is a pool
@@ -249,6 +264,17 @@ type Commander struct {
 	Casts         int32
 	InCommandZone bool
 	Damage        map[state.PlayerID]int32
+}
+
+// PublicCard is one card in a public zone as the A2 colour fold reads it:
+// who controls it and its printed colour identity. FaceDown carries CR 708.5
+// redaction explicitly so a face-down card can never contribute its hidden
+// identity even if a caller fills one in; both adapters zero Colour on it as
+// well.
+type PublicCard struct {
+	Controller state.PlayerID
+	Colour     cards.ColourMask
+	FaceDown   bool
 }
 
 // StackEntry is one object on the stack, the plain-data shape of a

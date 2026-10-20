@@ -1,0 +1,45 @@
+package minihost_test
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/server/spellbench/catalog"
+	"github.com/adams-shaun/gorge/server/spellbench/env"
+	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
+	"github.com/adams-shaun/gorge/server/spellbench/minihost"
+	"github.com/adams-shaun/gorge/server/spellbench/observe"
+	"github.com/adams-shaun/gorge/server/spellbench/validate"
+)
+
+func host(t *testing.T) *minihost.Host {
+	s := env.New(testcorpus.Registry(t), nil)
+	s.EnableAutoPay()
+	return hostFor(t, s)
+}
+
+func hostFor(t *testing.T, s *env.Server) *minihost.Host {
+	kinds := map[string]bool{}
+	for _, k := range env.DecisionKinds {
+		kinds[k] = true
+	}
+	return &minihost.Host{RunSecret: make([]byte, 32), Engine: &minihost.EngineLink{S: s},
+		Profile:  validate.Profile{Kinds: kinds, Flags: observe.Flags, Extensions: map[string]bool{"x_gorge_view_v1": true}},
+		MaxSteps: 20000, MaxDecisions: 9999}
+}
+
+func TestUniformGamesOnEveryDeckValidateAndReplay(t *testing.T) {
+	for i, d := range catalog.Decks() {
+		agents := [2]minihost.Link{&minihost.Uniform{}, &minihost.Uniform{}}
+		a, err := host(t).Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, agents)
+		if err != nil {
+			t.Fatalf("%s: %v", d.CatalogID, err)
+		}
+		if a.Terminal.Classification == "halted" {
+			t.Fatalf("%s halted: %s", d.CatalogID, a.Terminal.Reason)
+		}
+		b, _ := host(t).Play(uint64(i), d, "london", []string{"x_gorge_view_v1"}, [2]minihost.Link{&minihost.Uniform{}, &minihost.Uniform{}})
+		if a.Digest != b.Digest {
+			t.Fatalf("%s: rerun digest %s != %s", d.CatalogID, b.Digest, a.Digest)
+		}
+	}
+}

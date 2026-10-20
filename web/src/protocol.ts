@@ -303,6 +303,17 @@ export interface CardView {
    */
   spell_api?: string;
   /**
+   * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
+   * the printed cost's pips, the colour indicator and every colour-naming
+   * mana symbol in the rules text -- CR 903.4's definition, the same one
+   * cards.Face.ColourIdentity derives). It is a printed fact of a visible
+   * card, like Types and ManaCost, and it is projected so a bot can read a
+   * deck's colour splash from the lands it plays without re-parsing text.
+   * Carried into botpolicy.Card.Colour; a face-down or unreadable card
+   * projects zero, which is "identity unknown", never "colourless".
+   */
+  colour_identity?: number;
+  /**
    * Printing is what an image lookup keys on; Token ("#12") tells two
    * copies of one card apart in the stack, the log and an arrow.
    */

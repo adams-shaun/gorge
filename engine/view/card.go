@@ -66,6 +66,15 @@ type CardView struct {
 	// from any other cast. A hidden hand's cards are never projected as
 	// CardViews at all, so this never leaks hidden information.
 	SpellAPI string `json:"spell_api,omitempty"`
+	// ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
+	// the printed cost's pips, the colour indicator and every colour-naming
+	// mana symbol in the rules text -- CR 903.4's definition, the same one
+	// cards.Face.ColourIdentity derives). It is a printed fact of a visible
+	// card, like Types and ManaCost, and it is projected so a bot can read a
+	// deck's colour splash from the lands it plays without re-parsing text.
+	// Carried into botpolicy.Card.Colour; a face-down or unreadable card
+	// projects zero, which is "identity unknown", never "colourless".
+	ColourIdentity cards.ColourMask `json:"colour_identity,omitempty"`
 	// Printing is what an image lookup keys on; Token ("#12") tells two
 	// copies of one card apart in the stack, the log and an arrow.
 	Printing Printing `json:"printing"`
@@ -566,6 +575,12 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		cv.ManaCost = f.ManaCost
 		cv.PrintedPT = f.PT
 		cv.Printing = Printing{Name: f.Name}
+		// The colour identity (CR 903.4), a printed fact of the face. A
+		// colourless face's zero mask is indistinguishable from an
+		// unreadable card's, which is why the field is documented as
+		// "identity unknown or colourless" -- the colour fold treats an
+		// empty identity as no evidence, never as colourless evidence.
+		cv.ColourIdentity = cards.ColourMask(f.ColourIdentity())
 		// The spell-ability API projection: the card's own SP$ line, the
 		// same fact boardFromGame reads for the casting census. Empty when
 		// the card has no spell ability (a creature, a land, a permanent

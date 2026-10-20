@@ -39,6 +39,9 @@ func (c TableConfig) validatedSeatPolicies() (TableConfig, error) {
 				if e.NeedsAutoPay && !c.autoPayManaEnabled() {
 					return TableConfig{}, fmt.Errorf("host: table %s: seat %d: bot policy %q needs automatic mana payment (auto_mana and bot_auto_pay_mana both on)", c.ID, i, policy)
 				}
+				if e.MaxSeats > 0 && c.Seats > e.MaxSeats {
+					return TableConfig{}, fmt.Errorf("host: table %s: seat %d: bot policy %q seats at most %d, table has %d", c.ID, i, policy, e.MaxSeats, c.Seats)
+				}
 			}
 		}
 		c.SeatBotPolicies = policies
@@ -66,10 +69,10 @@ func (c TableConfig) seatBotPolicy(i int) string {
 // seatBotPolicy(i) per seat and the table's CommonSense. It panics on a
 // bots.New error the way defaultSeatsWithAutoPayMana does — the table was
 // validated, so every named policy is registered and buildable.
-func seatPolicySeats(c TableConfig, autoPayMana bool, names []string, seed uint64, searchParallelism int, deps bots.Deps, deadlineMS int) []seat.Seat {
+func seatPolicySeats(c TableConfig, autoPayMana bool, names []string, seed uint64, searchParallelism int, deps bots.Deps, deadlineMS int, configs map[string]map[string]string) []seat.Seat {
 	out := make([]seat.Seat, len(names))
 	for i := range names {
-		bot, err := bots.New(c.seatBotPolicy(i), bots.Options{Seed: seed ^ uint64(i+1), AutoPayMana: autoPayMana, CommonSense: c.BotCommonSense, SearchParallelism: searchParallelism, Deps: deps, DecisionDeadlineMS: deadlineMS})
+		bot, err := bots.New(c.seatBotPolicy(i), bots.Options{Seed: seed ^ uint64(i+1), AutoPayMana: autoPayMana, CommonSense: c.BotCommonSense, SearchParallelism: searchParallelism, Deps: deps, DecisionDeadlineMS: deadlineMS, Config: configs[c.seatBotPolicy(i)]})
 		if err != nil {
 			panic(err) // policy was normalized before the table was registered.
 		}

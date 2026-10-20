@@ -61,6 +61,12 @@ func NewHypotheticalPlanned(cfg Config, prefix []ChanceDraw, planner ShufflePlan
 	return e, nil
 }
 
+// Hypothetical reports whether the engine carries a chance boundary, so a
+// caller can choose SubmitHypothetical over Submit on a clone.
+func (e *Engine) Hypothetical() bool {
+	return e != nil && e.rng != nil && e.rng.chance != nil
+}
+
 // SubmitHypothetical submits an intent and reports an incompatible chance
 // prefix as an error. A chance failure may happen mid-resolution: the engine
 // is then unusable and must be discarded, never repaired or used for scoring.
@@ -107,6 +113,12 @@ type chanceState struct {
 	failure         error
 	planner         ShufflePlanner
 	shuffleOrdinals map[state.PlayerID]int
+	// unplanned counts draws recorded from the engine's own generator. It is
+	// a counter, not len(draws)-len(prefix): a planned shuffle materializes
+	// the already-generated suffix into prefix (rng.forcePermutation), so the
+	// lengths alone would retroactively claim those earlier draws were
+	// supplied by a planner.
+	unplanned int
 }
 
 func (s *chanceState) clone() *chanceState {
@@ -114,10 +126,23 @@ func (s *chanceState) clone() *chanceState {
 		return nil
 	}
 	return &chanceState{
-		prefix:  append([]ChanceDraw(nil), s.prefix...),
-		draws:   append([]ChanceDraw(nil), s.draws...),
-		failure: s.failure,
+		prefix:    append([]ChanceDraw(nil), s.prefix...),
+		draws:     append([]ChanceDraw(nil), s.draws...),
+		failure:   s.failure,
+		unplanned: s.unplanned,
 	}
+}
+
+// UnplannedDraws reports how many of a hypothetical engine's recorded draws no
+// planner or prefix supplied. The count is taken when each draw is recorded,
+// so a later planned shuffle cannot reclassify an earlier unplanned draw. A
+// restore rewinds it with the transcript, so a replayed lineage reports its
+// own history, not the sum of every aborted re-run.
+func (e *Engine) UnplannedDraws() int {
+	if e == nil || e.rng == nil || e.rng.chance == nil {
+		return 0
+	}
+	return e.rng.chance.unplanned
 }
 
 // ClearHypotheticalPlanner ends proposal construction. Future chance uses the
@@ -174,6 +199,8 @@ func (s *chanceState) check(n int) {
 func (s *chanceState) record(n, value int) int {
 	if i := len(s.draws); i < len(s.prefix) {
 		value = s.prefix[i].Value
+	} else {
+		s.unplanned++
 	}
 	s.draws = append(s.draws, ChanceDraw{Bound: n, Value: value})
 	return value

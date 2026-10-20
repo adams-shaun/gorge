@@ -151,6 +151,14 @@ type Options struct {
 	// survives a restart verbatim. Default false leaves every pre-field
 	// deployment byte-identical to the unwrapped policies it served.
 	DefaultBotCommonSense bool
+	// BotConfig carries each hosted policy's resolved configuration values
+	// (bots.Options.Config) into every seat the host builds: table bots,
+	// per-seat policies and human-seat caretakers. A policy with no entry
+	// gets nil, so its factory sees only the declared defaults bots.New
+	// fills. Values are not persisted on TableConfig: they are server
+	// configuration, and a table restored after a restart is rebuilt with
+	// the values this process was started with.
+	BotConfig map[string]map[string]string
 	// MaxOnDemandTables bounds browser-created private tables retained by a
 	// running process. 0 keeps the historical unlimited behaviour. A limit
 	// refuses a new game instead of deleting a finished table: its private

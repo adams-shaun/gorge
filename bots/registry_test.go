@@ -8,7 +8,7 @@ import (
 )
 
 func TestRegister(t *testing.T) {
-	for _, name := range []string{"bot", "lethal-pressure", "az-redeal", "sb-tactical"} {
+	for _, name := range []string{"bot", "lethal-pressure", "az-redeal", "sb-tactical", "forge-heuristic"} {
 		if _, ok := bots.Lookup(name); !ok {
 			t.Fatalf("built-in %q was not registered", name)
 		}
@@ -16,7 +16,7 @@ func TestRegister(t *testing.T) {
 }
 
 func TestNormalize(t *testing.T) {
-	for _, tc := range []struct{ in, want string }{{"", "bot"}, {"bot", "bot"}, {"lethal-pressure", "lethal-pressure"}, {"az-redeal", "az-redeal"}, {"sb-tactical", "sb-tactical"}} {
+	for _, tc := range []struct{ in, want string }{{"", "bot"}, {"bot", "bot"}, {"lethal-pressure", "lethal-pressure"}, {"az-redeal", "az-redeal"}, {"sb-tactical", "sb-tactical"}, {"forge-heuristic", "forge-heuristic"}} {
 		got, err := bots.Normalize(tc.in)
 		if err != nil || got != tc.want {
 			t.Errorf("Normalize(%q) = %q, %v; want %q", tc.in, got, err, tc.want)
@@ -29,11 +29,11 @@ func TestNormalize(t *testing.T) {
 
 func TestEntries(t *testing.T) {
 	entries := bots.Entries()
-	// gorge links four built-ins (bots/all); the research policies register
+	// gorge links five built-ins (bots/all); the research policies register
 	// from four-yay. The count pin and name-based blocks below move together
 	// with the built-in set; update this test deliberately on the next policy.
-	if len(entries) != 4 {
-		t.Fatalf("Entries() has %d entries, want 4", len(entries))
+	if len(entries) != 5 {
+		t.Fatalf("Entries() has %d entries, want 5", len(entries))
 	}
 	if entries[0].Name != "bot" || entries[0].Tier != bots.Production {
 		t.Fatalf("production entry is not first: %+v", entries[0])
@@ -61,6 +61,18 @@ func TestEntries(t *testing.T) {
 	}
 	if sbEntry.Tier != bots.Experimental || !sbEntry.Env || sbEntry.Search {
 		t.Errorf("sb-tactical entry is not the experimental Env-only policy: %+v", sbEntry.Info)
+	}
+	var forgeEntry *bots.Entry
+	for i := range entries {
+		if entries[i].Name == "forge-heuristic" {
+			forgeEntry = &entries[i]
+		}
+	}
+	if forgeEntry == nil {
+		t.Fatal("no forge-heuristic entry in Entries()")
+	}
+	if forgeEntry.Tier != bots.Experimental || forgeEntry.Env || forgeEntry.Search {
+		t.Errorf("forge-heuristic entry is not the plain experimental policy: %+v", forgeEntry.Info)
 	}
 	for _, e := range entries {
 		if e.Label == "" || e.Description == "" || len(e.Strength) == 0 || e.Cost.Note == "" || len(e.Formats) == 0 {

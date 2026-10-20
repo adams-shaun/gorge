@@ -9,12 +9,12 @@ import type { Transport } from './transport';
 import { parseEngineMessage, type EngineMessage } from './wire';
 
 /**
- * The server's own golden transcript (host/manabrewhttp/testdata/golden,
+ * The server's own golden transcript (server/host/manabrewhttp/testdata/golden,
  * MB-11): a whole fixed-seed 2-seat game's engine→client stream for seat 0,
  * exactly as the transport writes it. Replaying it through the adapter
  * exercises every state and prompt a real game sends, in order.
  */
-const golden = fileURLToPath(new URL('../../../../host/manabrewhttp/testdata/golden/2seat.ndjson.gz', import.meta.url));
+const golden = fileURLToPath(new URL('../../../../server/host/manabrewhttp/testdata/golden/2seat.ndjson.gz', import.meta.url));
 const messages: EngineMessage[] = gunzipSync(readFileSync(golden)).toString('utf8').split('\n').filter((l) => l.trim() !== '').map((l) => parseEngineMessage(l)!).filter((m) => m !== null);
 
 /** duplicates is every id that occurs twice in a list the board renders keyed by id. */

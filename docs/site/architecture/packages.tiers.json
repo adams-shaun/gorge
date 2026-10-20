@@ -52,6 +52,11 @@
       "tier": "bots",
       "status": "CORE"
     },
+    "bots/forgeheuristic": {
+      "tier": "bots",
+      "status": "EXT",
+      "purpose": "Experimental registration of the heuristic bot with the A2 target rules armed."
+    },
     "bots/gonet": {
       "tier": "bots",
       "status": "EXT"
@@ -175,6 +180,16 @@
     "cmd/repro": {
       "tier": "cmd",
       "status": "TOOL"
+    },
+    "cmd/spellbench-gorge-agent": {
+      "tier": "cmd",
+      "status": "EXT",
+      "purpose": "stdio entrypoint for the SpellBench Protocol v2 agent adapter."
+    },
+    "cmd/spellbench-gorge-env": {
+      "tier": "cmd",
+      "status": "EXT",
+      "purpose": "stdio entrypoint for the SpellBench Protocol v2 environment adapter."
     },
     "cmd/testbudget": {
       "tier": "cmd",
@@ -321,6 +336,79 @@
     "server/protocol/manabrew/internal/schemagen": {
       "tier": "server",
       "status": "TOOL"
+    },
+    "server/spellbench/agent": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/catalog": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/env": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/gamecfg": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/identity": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/internal/testcorpus": {
+      "tier": "server",
+      "status": "TOOL"
+    },
+    "server/spellbench/internal/testgame": {
+      "tier": "server",
+      "status": "TOOL"
+    },
+    "server/spellbench/mapping": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/minihost": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/neutral": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/observe": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/protocol": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/secrets": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/seat": {
+      "tier": "server",
+      "status": "EXT",
+      "purpose": "Adapts a SpellBench v2 stdio-NDJSON agent to gorge's seat contract and registers it as a bot policy."
+    },
+    "server/spellbench/session": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/validate": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/wire": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/xview": {
+      "tier": "server",
+      "status": "EXT"
     },
     "testkit/bench": {
       "tier": "tooling",

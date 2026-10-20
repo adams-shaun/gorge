@@ -2,6 +2,7 @@ package gorged
 
 import (
 	"flag"
+	"fmt"
 	"io"
 )
 
@@ -28,6 +29,11 @@ func flagsFor(ext Extensions) (*flag.FlagSet, *config) {
 	c.ext = ext
 	if ext.Flags != nil {
 		ext.Flags(fs)
+	}
+	fs.Usage = func() {
+		fmt.Fprintf(fs.Output(), "Usage of %s:\n", fs.Name())
+		fs.PrintDefaults()
+		printBotOptionHelp(fs.Output())
 	}
 	return fs, c
 }
