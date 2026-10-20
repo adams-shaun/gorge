@@ -31,6 +31,16 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 	if fresh {
 		s = h.reg.OpenSession()
 	}
+	// A seat token proves a claim to one table. Include that table in hello
+	// even when it is a private on-demand game: the seated client needs its
+	// TableInfo for auto-mana and restart, while every other stream still
+	// gets only the lobby list.
+	var include []host.TableID
+	if h.opts.Seat != nil {
+		if claim, ok := h.opts.Seat(r); ok && claim.Table != "" {
+			include = append(include, claim.Table)
+		}
+	}
 	h.cancelGrace(s.ID) // a reconnect, resumed or fresh, cancels any pending close
 
 	// Every return from here on means the client is gone; arm the grace
@@ -53,7 +63,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 	write := func(f protocol.Frame) error { return writeFrame(w, s.ID, f) }
 
 	if fresh {
-		if err := write(h.reg.Hello(s)); err != nil {
+		if err := write(h.reg.Hello(s, include...)); err != nil {
 			disconnected = true
 			return
 		}

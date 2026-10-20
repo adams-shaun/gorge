@@ -219,8 +219,32 @@ func (s *Session) modeFor(id TableID) (string, bool) {
 // they are from GET /api/tables: their ids are discoverable only through the
 // join URL. A client holding a seat token still receives such a table through
 // its explicit focus subscription (Subscribe).
-func (r *Registry) Hello(s *Session) protocol.Frame {
-	f, err := protocol.NewFrame(protocol.THello, "", 0, 0, protocol.Hello{Session: s.ID, Tables: r.LobbyTables()})
+//
+// include names tables the caller holds a claim to (the HTTP layer passes a
+// resolved seat claim's table). They are appended when they exist and are
+// not already in the lobby list, so a seated player keeps the TableInfo the
+// client needs for auto-mana and restart without advertising the private table
+// to every other stream.
+func (r *Registry) Hello(s *Session, include ...TableID) protocol.Frame {
+	tables := r.LobbyTables()
+	seen := make(map[TableID]bool, len(tables)+len(include))
+	for _, ti := range tables {
+		seen[TableID(ti.ID)] = true
+	}
+	for _, id := range include {
+		if seen[id] {
+			continue
+		}
+		r.mu.RLock()
+		t, ok := r.tables[id]
+		r.mu.RUnlock()
+		if !ok {
+			continue
+		}
+		tables = append(tables, t.info())
+		seen[id] = true
+	}
+	f, err := protocol.NewFrame(protocol.THello, "", 0, 0, protocol.Hello{Session: s.ID, Tables: tables})
 	if err != nil {
 		panic("host: hello frame: " + err.Error()) // a marshal failure of our own struct is a bug
 	}
