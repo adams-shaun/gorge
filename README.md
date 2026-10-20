@@ -1,5 +1,16 @@
 # gorge
 
+> [!NOTE]
+> **Documentation: [adams-shaun.github.io/gorge](https://adams-shaun.github.io/gorge/)**
+>
+> | I want to… | Start at |
+> |---|---|
+> | understand how the engine works | [Architecture](https://adams-shaun.github.io/gorge/architecture/) |
+> | run the demo or bot-vs-bot games | [User's guide](https://adams-shaun.github.io/gorge/guide/) |
+> | connect a bot (Go, Python, Java) | [Bots](https://adams-shaun.github.io/gorge/bots/) and the [API reference](https://adams-shaun.github.io/gorge/api/) |
+> | fix a card or a rule | [Contributing](https://adams-shaun.github.io/gorge/contributing/) |
+> | compare speed or card coverage | [Performance](https://adams-shaun.github.io/gorge/performance/) and [Card support](https://adams-shaun.github.io/gorge/support/sets/) |
+
 A deterministic, event-sourced *Magic: The Gathering* rules engine, written in
 pure Go. Card behaviour is not hand-written per card: gorge compiles
 [Forge](https://github.com/Card-Forge/forge)'s card scripts into an
