@@ -3,6 +3,8 @@ package botpolicy
 import (
 	"slices"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 func creatureCard(cmc, power int32, cost string) Card {
@@ -156,6 +158,45 @@ func TestForgeKeepCensusMismatch(t *testing.T) {
 	}
 }
 
+// TestForgeCommanderNotInHand pins that a commander sitting in the command
+// zone is not counted as a hand card: seven Plains plus the commander is a
+// seven-card hand, so the one-mulligan flood rule still mulligans.
+func TestForgeCommanderNotInHand(t *testing.T) {
+	b := handBoard(MulliganForge, sevenWith(7)...)
+	b.Cards.Set(8, Card{PrintedName: "commander", Creature: true, Power: 2, CMC: 2, ManaCost: "1 W", Castable: true})
+	b.Commanders.Set(8, Commander{InCommandZone: true})
+	if forgeKeeps(t, b, 1) {
+		t.Error("7 Plains with the commander in the command zone after one mulligan: forge must mulligan (6/6 lands, ratio 3)")
+	}
+}
+
+// TestForgeKeepUsesHandOrder pins that the keep-time bottoming simulation
+// reads the hand in hand order, the same order the bottoming ask offers, not
+// in ObjID order. The land is drawn last (highest ObjID) but sits first in
+// hand order, so the simulation must bottom a free artifact, not the land.
+func TestForgeKeepUsesHandOrder(t *testing.T) {
+	b := Board{Mulligan: MulliganForge, HandSize: 7, OwnDeck: manifestWithLands(8, 60)}
+	b.Cards.Set(9, plainsCard())
+	for i := 1; i <= 6; i++ {
+		b.Cards.Set(state.ObjID(i), instantCard(0, "0"))
+	}
+	if !forgeKeeps(t, b, 1) {
+		t.Error("one land plus six free artifacts, land first in hand order: forge must keep")
+	}
+	d := bottomDecision(7, 1)
+	d.Options[0].Obj = 9
+	for i := 1; i <= 6; i++ {
+		d.Options[i].Obj = state.ObjID(i)
+	}
+	got := Decide(b, &d, rng(1)).Choices
+	if slices.Equal(got, []int{0}) {
+		t.Error("forge bottomed the land; the keep simulation and the ask disagree on hand order")
+	}
+	if !slices.Equal(got, []int{6}) {
+		t.Errorf("forge bottoming = %v, want [6] (cheapest, ties to the last in hand order)", got)
+	}
+}
+
 func TestForgeBottomNonProducingLandFirst(t *testing.T) {
 	hand := []Card{plainsCard(), plainsCard(), plainsCard(), wildsCard(),
 		spellCard(2, "1 W"), spellCard(2, "1 W"), spellCard(2, "1 W")}
@@ -195,6 +236,20 @@ func TestForgeBottomUncastableSpell(t *testing.T) {
 	off := Decide(handBoard(MulliganConstructed, hand...), &d, rng(1)).Choices
 	if !slices.Equal(off, []int{3, 4}) {
 		t.Errorf("constructed bottoming = %v, want [3,4]", off)
+	}
+
+	// A hand where the coin's chooseDiscard differs, so this test isolates
+	// the forge path rather than coinciding with the default arm.
+	flood := []Card{plainsCard(), plainsCard(), plainsCard(), plainsCard(),
+		spellCard(2, "1 W"), spellCard(2, "1 W"), spellCard(2, "1 W")}
+	d = bottomDecision(7, 2)
+	got = Decide(handBoard(MulliganForge, flood...), &d, rng(1)).Choices
+	if !slices.Equal(got, []int{0, 4}) {
+		t.Errorf("forge bottoming = %v, want [0,4]", got)
+	}
+	coin := Decide(handBoard(MulliganCoin, flood...), &d, rng(1)).Choices
+	if slices.Equal(got, coin) {
+		t.Errorf("coin bottoming = %v, want a different answer from forge's %v", coin, got)
 	}
 }
 

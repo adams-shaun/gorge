@@ -241,16 +241,21 @@ func forgeTuck(hand []forgeHandCard, k int) []int {
 	return out
 }
 
-// forgeHand is the deciding seat's hand census, in ascending ObjID order (the
-// IDTable's insertion order is the adapter's zone walk, not a hand order).
-// ok is false when the census disagrees with HandSize, and the caller keeps.
+// forgeHand is the deciding seat's hand census in HAND order: the adapters
+// fill Cards hand-first (state.ZHand before the other zones), so the table's
+// insertion order is the hand's order and matches the option order of the
+// engine's bottoming ask. Command-zone commanders are castable but are not in
+// the hand, so they are excluded from the census. ok is false when the census
+// disagrees with HandSize, and the caller keeps.
 func (b Board) forgeHand() ([]forgeHandCard, bool) {
-	ids := slices.Clone(b.Cards.Keys())
-	slices.Sort(ids)
+	ids := b.Cards.Keys()
 	hand := make([]forgeHandCard, 0, len(ids))
 	for _, id := range ids {
 		c, known := b.Cards.Lookup(id)
 		if !known || !c.Castable || c.OnBattlefield {
+			continue
+		}
+		if cm, ok := b.Commanders.Lookup(id); ok && cm.InCommandZone {
 			continue
 		}
 		hand = append(hand, forgeHandCard{idx: len(hand), c: c, land: known && isLandCard(c)})
@@ -313,7 +318,9 @@ func (b Board) keepForge(bottom int) bool {
 	}
 }
 
-// forgeBottoming is MulliganForge's bottoming answer. It returns the option
+// forgeBottoming is MulliganForge's bottoming answer. The options arrive in
+// the engine's hand order (the same order forgeHand reads), so ties break
+// exactly as they do in the keep-time simulation. It returns the option
 // indices to bottom, ascending.
 func (b Board) forgeBottoming(d *decision.Decision) []int {
 	m := d.Max
