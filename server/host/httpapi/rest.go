@@ -165,7 +165,9 @@ func uintQuery(w http.ResponseWriter, r *http.Request, name string) (uint64, boo
 // seat claim naming that table, so a guessed sequential gN id cannot confirm
 // the table exists. Public tables — including publicly watchable event
 // tables — need no claim. The same ErrNotFound is deliberate: a missing table
-// and a fenced one must be indistinguishable.
+// and a fenced one must be indistinguishable. Callers resolve ?seat= first, so
+// a malformed or unauthorised seat query answers the same for a private table
+// and an unknown id; this gate only runs once the request shape is known-good.
 func (h *handler) privateTableVisible(w http.ResponseWriter, r *http.Request, table host.TableID) bool {
 	if !h.reg.PrivateTable(table) {
 		return true
@@ -241,11 +243,14 @@ func (h *handler) view(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !h.privateTableVisible(w, r, t) {
-		return
-	}
+	// Resolve ?seat= before the private gate: a malformed or unauthorised
+	// seat query must answer exactly as it does for an unknown id, or a
+	// guessed gN could still be confirmed by the difference in status.
 	seat, scoped, ok := h.seatFromQuery(w, r, t)
 	if !ok {
+		return
+	}
+	if !h.privateTableVisible(w, r, t) {
 		return
 	}
 	if !given {
@@ -290,11 +295,13 @@ func (h *handler) events(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !h.privateTableVisible(w, r, t) {
-		return
-	}
+	// Resolve ?seat= before the private gate (see view): the status and body
+	// must match an unknown id for every request shape.
 	seat, scoped, ok := h.seatFromQuery(w, r, t)
 	if !ok {
+		return
+	}
+	if !h.privateTableVisible(w, r, t) {
 		return
 	}
 	var (

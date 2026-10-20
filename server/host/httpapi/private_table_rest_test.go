@@ -86,6 +86,22 @@ func TestPrivatePlayVsBotTableRestReadsNeedSeatClaim(t *testing.T) {
 				t.Fatalf("unclaimed private table: %d %+v, want the unknown-id not-found %+v", code, privateErr, unknownErr)
 			}
 
+			// A seat query must not become an existence oracle: an unclaimed
+			// ?seat=0 (401) and a malformed ?seat=abc (400) answer exactly as
+			// they do for an unknown id, never a private-only 404.
+			for _, q := range []struct{ name, query string }{
+				{"unclaimed-seat", "?seat=0"},
+				{"malformed-seat", "?seat=abc"},
+			} {
+				t.Run(q.name, func(t *testing.T) {
+					unknownCode, unknownBody := getJSON(t, srv.URL+unknown+q.query, nil)
+					privateCode, privateBody := getJSON(t, srv.URL+private+q.query, nil)
+					if privateCode != unknownCode || privateBody != unknownBody {
+						t.Fatalf("private table %s: %d %+v, want unknown-id %d %+v", q.query, privateCode, privateBody, unknownCode, unknownBody)
+					}
+				})
+			}
+
 			code, wrongErr, _ := seatReq(t, http.MethodGet, srv.URL+private, "e1-seat0", nil)
 			if code != http.StatusNotFound || wrongErr != unknownErr {
 				t.Fatalf("private table with another table's claim: %d %+v", code, wrongErr)
@@ -94,6 +110,9 @@ func TestPrivatePlayVsBotTableRestReadsNeedSeatClaim(t *testing.T) {
 			code, _, raw := seatReq(t, http.MethodGet, srv.URL+private, "g1-seat0", nil)
 			if code != http.StatusOK || len(raw) == 0 {
 				t.Fatalf("private table with its own claim: %d %s", code, raw)
+			}
+			if code, _, raw := seatReq(t, http.MethodGet, srv.URL+private+"?seat=0", "g1-seat0", nil); code != http.StatusOK || len(raw) == 0 {
+				t.Fatalf("private table with its own claim and ?seat=0: %d %s", code, raw)
 			}
 
 			publicEvent := fmt.Sprintf(route.path, "e1")
