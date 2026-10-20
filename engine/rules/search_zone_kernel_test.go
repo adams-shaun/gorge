@@ -15,59 +15,40 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestSearchShuffleTailFailToFindAsks: a hidden-library search that finds
-// nothing still owes its shuffle (CR 701.23b), and ShuffleNonMandatory$
-// makes it the "Shuffle your library?" search_mayshuffle confirm: nothing is
-// shuffled while posed, yes shuffles once, no keeps the order.
-func TestSearchShuffleTailFailToFindAsks(t *testing.T) {
+// TestSearchShuffleTailFailToFindShuffles: a hidden-library search that
+// finds nothing still shuffles (CR 701.24d), and ShuffleNonMandatory$ does
+// not turn that shuffle into a question.
+func TestSearchShuffleTailFailToFindShuffles(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Fruitless Search\nManaCost:U\nTypes:Sorcery\n" +
 		"A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Card.namedNothing | ShuffleNonMandatory$ True\nOracle:x\n"
-	for i, accept := range []bool{true, false} {
-		name := "decline keeps order"
-		if accept {
-			name = "accept shuffles"
+	e, cfg := kr3Game(t, 171, kr3Cards(t, spell), nil)
+	kr3Move(t, e, 0, "Fruitless Search", state.ZHand)
+	hand := len(e.G.Zone(state.ZHand, 0))
+	mark := len(e.L.Events)
+	d := kr3Cast(t, e, "Fruitless Search", "U", -1)
+	if d != nil && d.ResumeKind == "search" {
+		if len(d.Options) != 0 {
+			t.Fatalf("a namedNothing search offered %+v", d.Options)
 		}
-		t.Run(name, func(t *testing.T) {
-			e, cfg := kr3Game(t, uint64(171+i), kr3Cards(t, spell), nil)
-			kr3Move(t, e, 0, "Fruitless Search", state.ZHand)
-			hand := len(e.G.Zone(state.ZHand, 0))
-			mark := len(e.L.Events)
-			d := kr3Cast(t, e, "Fruitless Search", "U", -1)
-			if d != nil && d.ResumeKind == "search" {
-				if len(d.Options) != 0 {
-					t.Fatalf("a namedNothing search offered %+v", d.Options)
-				}
-				d = kr3Answer(t, e)
-			}
-			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search_mayshuffle" || d.Prompt != "Shuffle your library?" {
-				t.Fatalf("decision = %+v, want the may-shuffle confirm", d)
-			}
-			if n := kr3Count(e, mark, events.Shuffle); n != 0 {
-				t.Fatalf("shuffled %d time(s) while the confirm is posed", n)
-			}
-			ans, want := kr3OptionKind(t, d, "no"), 0
-			if accept {
-				ans, want = kr3OptionKind(t, d, "yes"), 1
-			}
-			if d := kr3Answer(t, e, ans); d != nil {
-				t.Fatalf("unexpected follow-up %+v", d)
-			}
-			n := 0
-			for _, ev := range e.L.Events[mark:] {
-				if ev.Kind == events.Shuffle && ev.Player == 0 {
-					n++
-				}
-			}
-			if n != want {
-				t.Fatalf("shuffles = %d, want %d", n, want)
-			}
-			if got := len(e.G.Zone(state.ZHand, 0)); got != hand-1 {
-				t.Fatalf("hand = %d, want %d (the search found nothing)", got, hand-1)
-			}
-			replayCheck(t, e, cfg)
-		})
+		d = kr3Answer(t, e)
 	}
+	if d != nil {
+		t.Fatalf("unexpected follow-up %+v, want the search to finish with its shuffle", d)
+	}
+	n := 0
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Shuffle && ev.Player == 0 {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("shuffles = %d, want 1", n)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != hand-1 {
+		t.Fatalf("hand = %d, want %d (the search found nothing)", got, hand-1)
+	}
+	replayCheck(t, e, cfg)
 }
 
 // TestTargetedGateLeavesAPreAskSASubRunnable: a sub-ability with its own

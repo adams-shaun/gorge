@@ -75,7 +75,7 @@ func TestOptionalLibrarySearchConfirm(t *testing.T) {
 	for _, accept := range []bool{false, true} {
 		name := "empty pool confirms, decline skips the tail"
 		if accept {
-			name = "empty pool confirms, accept owes the may-shuffle tail"
+			name = "empty pool confirms, accept owes the mandatory shuffle"
 		}
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -97,11 +97,17 @@ func TestOptionalLibrarySearchConfirm(t *testing.T) {
 			if d != nil && d.ResumeKind == "search" && len(d.Options) == 0 {
 				d = kr2Answer(t, e, d)
 			}
-			kr2Want(t, d, "search_mayshuffle")
+			if d != nil {
+				t.Fatalf("an accepted empty-pool search posed %+v, want no further ask", d)
+			}
+			n := 0
 			for _, ev := range kr2Events(e, from, events.Shuffle) {
 				if ev.Player == 0 {
-					t.Fatalf("the tail shuffled before its answer: %+v", ev)
+					n++
 				}
+			}
+			if n != 1 {
+				t.Fatalf("an accepted empty-pool search shuffled %d time(s), want 1 (CR 701.24d)", n)
 			}
 		})
 	}

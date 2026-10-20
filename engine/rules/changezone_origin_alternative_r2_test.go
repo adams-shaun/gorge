@@ -63,8 +63,8 @@ func TestChangeZoneOriginAlternativeGraveyardAuraEntersAttached(t *testing.T) {
 	}
 
 	// The ETB trigger is OptionalDecider$ You: answer the election with yes,
-	// then the search KChoose (ResumeKind "search") with the graveyard Web,
-	// then the ShuffleNonMandatory$ confirm.
+	// then the search KChoose (ResumeKind "search") with the graveyard Web;
+	// the library shuffle that follows is mandatory and asks nothing.
 	d := nextAsk()
 	var pick decision.Option
 	found := false
@@ -73,11 +73,6 @@ func TestChangeZoneOriginAlternativeGraveyardAuraEntersAttached(t *testing.T) {
 		case decision.KTriggerOptional, decision.KModes:
 			submitChoices(t, e, 0)
 		case decision.KChoose:
-			if d.ResumeKind == "search_mayshuffle" {
-				// ShuffleNonMandatory$ True rides the carrier: confirm.
-				submitChoices(t, e, 0)
-				break
-			}
 			if d.ResumeKind != "search" {
 				t.Fatalf("unexpected %v ask: %+v", d.ResumeKind, d)
 			}
