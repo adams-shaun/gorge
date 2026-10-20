@@ -741,6 +741,13 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if cz.DefinedDelayRemembered {
 		targets = dropDelayedRememberedMoved(h, c, targets)
 	}
+	// "You may shuffle ... into your library" (ShuffleNonMandatory$ on the
+	// object path): the election comes before any move; a decline (or no
+	// object to shuffle in) moves nothing and shuffles nothing.
+	if to == state.ZLibrary && objectPathShuffleOwed(cz) && cz.ShuffleNonMandatory &&
+		!objectPathMayShuffle(h, c, sa, targets) {
+		return
+	}
 	// The battlefield departures of the move loop below are one simultaneous
 	// departure batch; see changeZoneDepartureBatch.
 	if departing := changeZoneDepartureBatch(h, cz, targets, to, originAll); len(departing) > 0 {
@@ -884,25 +891,23 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// AtEOT$ (Puppeteer Clique's reanimation: "at the beginning of your next
 	// end step, exile it"): schedule the end-step departure for every object
-	// this move actually moved. Scheduled BEFORE the library shuffle tail,
-	// which returns early after an answered confirm -- the same order
-	// applyLibrarySearch uses for its own hidden-origin tail.
+	// this move actually moved. Scheduled BEFORE the library shuffle tail --
+	// the same order applyLibrarySearch uses for its own hidden-origin tail.
 	scheduleAtEOT(h, c, sa, moved)
-	// Object-path library shuffle tail (searchmay1): a ChangeZone that moved
-	// objects INTO a library and states Shuffle$ True now shuffles. This is
-	// the tail the AGENTS.md row named as "the object-path shuffle": the
-	// path previously shuffled nothing at all. Four corpus lines also set
-	// ShuffleNonMandatory$; three SP-parented DB subs (Cathartic Parting,
-	// Devious Cover-Up, Put Away) still inherit the parent's targets and
-	// cannot reach this tail until sub-ability targeting is separated. The 76
-	// mandatory carriers (Turn the Earth, Quandrix Command, Rite of Renewal,
-	// Stream of Consciousness, the death-trigger "shuffle CARDNAME into its
-	// owner's library" family) shuffled nothing either and now shuffle. Only
-	// the explicit Shuffle$ True is read: the corpus's LibraryPosition$
-	// "put it on top" movers state no Shuffle$ and must NOT shuffle. Each
-	// distinct card owner's library is shuffled once (a cross-graveyard mover
-	// like Turn the Earth touches several players), in first-move order so
-	// the event stream stays deterministic.
+	// Object-path library shuffle tail (searchmay1): a ChangeZone INTO a
+	// library that states Shuffle$ True shuffles the library of every owner
+	// of its object referents -- even when an object was not in the Origin$
+	// zone and so did not move (CR 701.24c). The four ShuffleNonMandatory$
+	// carriers (Cathartic Parting, Devious Cover-Up, Put Away, Ghostly
+	// Castigator) were asked before the moves (objectPathMayShuffle above)
+	// and reach this tail only on "yes". The mandatory carriers (Turn the
+	// Earth, Quandrix Command, Rite of Renewal, Stream of Consciousness, the
+	// death-trigger "shuffle CARDNAME into its owner's library" family)
+	// shuffle with no ask. Only the explicit Shuffle$ True is read: the
+	// corpus's LibraryPosition$ "put it on top" movers state no Shuffle$ and
+	// must NOT shuffle. Each distinct card owner's library is shuffled once
+	// (a cross-graveyard mover like Turn the Earth touches several players),
+	// in referent order so the event stream stays deterministic.
 	// LibraryPosition$ placement tail on the object-target path
 	// (golgari_thug1): every targeted mover -- a ValidTgts$ ask, a
 	// changeZoneChosenTargets answer, or a Defined$ that names concrete
@@ -921,10 +926,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if to == state.ZLibrary && len(moved) > 0 && !altEngaged {
 		placeTargetedLibraryObjects(h, c, cz, moved)
 	}
-	if to == state.ZLibrary && len(moved) > 0 && objectPathShuffleOwed(cz) {
-		if objectPathShuffleTail(h, c, sa, cz, moved) {
-			return
-		}
+	if to == state.ZLibrary && objectPathShuffleOwed(cz) {
+		objectPathShuffleOwners(h, targets)
 	}
 	if altEngaged && len(moved) > 0 {
 		position := int32(0)

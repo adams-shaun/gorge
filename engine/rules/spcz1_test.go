@@ -112,12 +112,13 @@ func chooseObj(t *testing.T, e *Engine, kind string, obj state.ObjID) {
 // target ask WITH THE CAST (CR 601.2c: a cast_sub KTarget, not a resolution
 // KChoose), the answered card -- deliberately a DIFFERENT card than the
 // countered spell, proving the answer decoupled from Ctx.Targets -- moves to
-// the library, and the may-shuffle confirm appears and is honoured on both
-// branches.
+// the library on "yes", and the may-shuffle election appears and is honoured
+// on both branches: "no" leaves the card in the graveyard (the "may" covers
+// the whole shuffle-in, cr-g09).
 func TestPutAwaySubAsksGraveyardTarget(t *testing.T) {
 	t.Parallel()
 	for _, accept := range []bool{true, false} {
-		name := "decline keeps order, no shuffle"
+		name := "decline leaves the card, no shuffle"
 		if accept {
 			name = "accept shuffles once"
 		}
@@ -201,11 +202,16 @@ func TestPutAwaySubAsksGraveyardTarget(t *testing.T) {
 			}
 			drainAfterAnswer(t, e)
 
-			// The ANSWERED card is in the library; the countered spell's card
-			// (Put Away sends it to the graveyard) stayed exactly where the
-			// counter put it -- the answer was the ask's, not Ctx.Targets'.
-			if o := e.G.Obj(forest); o == nil || o.Zone != state.ZLibrary {
-				t.Fatalf("after resolution: the answered graveyard card is %+v, want it in seat 0's library", o)
+			// On "yes" the ANSWERED card is in the library; on "no" it never
+			// left the graveyard. The countered spell's card (Put Away sends it
+			// to the graveyard) stayed exactly where the counter put it -- the
+			// answer was the ask's, not Ctx.Targets'.
+			wantZone := state.ZGraveyard
+			if accept {
+				wantZone = state.ZLibrary
+			}
+			if o := e.G.Obj(forest); o == nil || o.Zone != wantZone {
+				t.Fatalf("after resolution: the answered graveyard card is %+v, want it in seat 0's %v", o, wantZone)
 			}
 			if o := e.G.Obj(bearStack); o == nil || o.Zone != state.ZGraveyard {
 				t.Fatalf("after resolution: the countered spell is %+v, want it in the graveyard untouched by the sub", o)
