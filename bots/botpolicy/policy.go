@@ -1528,7 +1528,8 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			}
 			if o.Kind == "pass" && !have[o.Index] && fits(o) &&
 				(!d.TargetsWithSameController || !haveTargetController || o.Controller == targetController) &&
-				(d.Kind != decision.KBlockers || d.BlockPairAdmits(in.Choices, o.Index)) {
+				(d.Kind != decision.KBlockers || d.BlockPairAdmits(in.Choices, o.Index)) &&
+				(d.Kind != decision.KAttackers || d.AttackPairAdmits(in.Choices, o.Index)) {
 				add(o)
 			}
 		}
@@ -1553,8 +1554,11 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 				// One blocker may block one attacker unless a BlockAllDefined
 				// pair admits it (Decision.Validate's KBlockers rule, 858182dc8);
 				// topping up with a second pairing for the same blocker hands
-				// back an intent the engine rejects.
-				(d.Kind == decision.KBlockers && !d.BlockPairAdmits(in.Choices, o.Index)) {
+				// back an intent the engine rejects. KAttackers is the mirror:
+				// one attacker attacks exactly one defender (CR 508.1), so a
+				// second pairing for the same attacker is refused the same way.
+				(d.Kind == decision.KBlockers && !d.BlockPairAdmits(in.Choices, o.Index)) ||
+				(d.Kind == decision.KAttackers && !d.AttackPairAdmits(in.Choices, o.Index)) {
 				continue
 			}
 			if o.Group != "" {

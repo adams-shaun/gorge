@@ -66,10 +66,12 @@ func (r *Registry) Pending(id TableID, k int, player state.PlayerID) (*decision.
 // match k of table id. It never drives the engine: it validates the intent
 // exactly as decision.Decision.Validate does (stale Seq, wrong player, wrong
 // option indices, wrong min-max, duplicates are all rejected — D2) and hands
-// it to the parked seat, whose submit wakes the blocked Decide. The actual
-// engine Submit still runs inside play() on the match goroutine (D7), so a
-// caller who sends on SubmitIntent can never race the log. A rejected intent
-// leaves the seat parked and the game exactly where it was.
+// it to the parked seat. The call blocks until the match goroutine has
+// attempted the engine Submit: it returns nil once the engine accepted the
+// intent, or the engine's refusal as its error (the HTTP layer's 409), with
+// the decision left pending for a legal answer. The actual engine Submit runs
+// inside play() on the match goroutine (D7), so a caller who sends on
+// SubmitIntent can never race the log.
 func (r *Registry) SubmitIntent(id TableID, k int, player state.PlayerID, in decision.Intent) error {
 	return r.SubmitIntentFrom(id, k, player, in, false)
 }

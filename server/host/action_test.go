@@ -67,10 +67,9 @@ func legalIntent(d *decision.Decision) decision.Intent {
 
 // waitPending polls Pending until it returns a decision (the seat has
 // parked) or fails the test on timeout. Only for polls that PRECEDE any
-// answer on that seat: inside the stale-ask window between SubmitIntent's
-// acceptance and the match goroutine clearing the slot, a first-200 poll
-// re-serves the just-answered ask — after an answer, use waitNextPending
-// and wait for a different Seq.
+// answer on that seat: a submit claims the slot before its send, so Pending
+// stops serving the decision as soon as SubmitIntent accepts it. After an
+// answer, wait for a different Seq.
 func waitPending(t *testing.T, r *Registry, id TableID, k int, p state.PlayerID) *decision.Decision {
 	t.Helper()
 	deadline := time.Now().Add(20 * time.Second)

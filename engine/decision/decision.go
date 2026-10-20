@@ -1426,6 +1426,15 @@ func (d *Decision) Validate(in Intent) error {
 		if d.Kind == KBlockers && !d.BlockPairAdmits(in.Choices[:choicePos], c) {
 			return fmt.Errorf("blocker %d cannot block multiple attackers outside BlockAllDefined pairs", d.Options[c].Obj)
 		}
+		// CR 508.1: one creature attacks exactly one defender (a player, a
+		// planeswalker or a battle). The KAttackers option list publishes one
+		// option per (attacker, defender) pair, so a client can pick the same
+		// attacker for two defenders; the engine's validateAttackers refuses
+		// that declaration, and the same rule must fence it here so the seat
+		// re-answers instead of the match crashing on Submit.
+		if d.Kind == KAttackers && !d.AttackPairAdmits(in.Choices[:choicePos], c) {
+			return fmt.Errorf("attacker %d declared against more than one defender", d.Options[c].Obj)
+		}
 	}
 	// CR 509.1a / CR 702.111b: the per-attacker team bound each option
 	// publishes (MinBlockers/MaxBlockers, which the rules layer folds Menace
@@ -1517,6 +1526,40 @@ func (d *Decision) Validate(in Intent) error {
 		}
 	}
 	return nil
+}
+
+// AttackPairAdmits is the shared incremental KAttackers rule: option c may
+// join choices only if no choice there names the same attacker Obj. CR
+// 508.1 says one creature attacks exactly one defender, while a KAttackers
+// option list publishes one option per (attacker, defender) pair, so the same
+// attacker can be offered against several defenders. Validate, FitRequired
+// and the bot's Clamp top-up all read this one rule, so a repair can never
+// return an answer the engine rejects.
+func (d *Decision) AttackPairAdmits(choices []int, c int) bool {
+	if c < 0 || c >= len(d.Options) {
+		return false
+	}
+	for _, c2 := range choices {
+		if c2 >= 0 && c2 < len(d.Options) && d.Options[c2].Obj == d.Options[c].Obj {
+			return false
+		}
+	}
+	return true
+}
+
+// repeatedAttacker reports the first attacker Obj choices names more than
+// once, if any. Map-free: a declaration names few attackers, so the prefix
+// scan suffices.
+func (d *Decision) repeatedAttacker(choices []int) (state.ObjID, bool) {
+	for i, c := range choices {
+		if c < 0 || c >= len(d.Options) {
+			continue
+		}
+		if !d.AttackPairAdmits(choices[:i], c) {
+			return d.Options[c].Obj, true
+		}
+	}
+	return 0, false
 }
 
 // validateRest is the ONE home of the pile-B partition rule: on a KArrange

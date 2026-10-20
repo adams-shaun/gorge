@@ -403,6 +403,11 @@ type parkedDecision struct {
 	hs  *parking
 	in  decision.Intent
 	err error
+	// data is the projected decision this parking was installed for. A human
+	// refusal keeps the pending decision alive and re-parks the same data, so
+	// the seat can answer it again without re-projecting the engine (D1b).
+	// Nil for a bot parking, whose answer is already resolved.
+	data *parkedData
 	// searchSlot (BP-10, spec §7) marks a decision that parked on the
 	// registry's FIFO search-slot gate. When such a decision's seat error
 	// surfaces while the table's context is cancelled — the slot wait
@@ -426,6 +431,16 @@ func (pd *parkedDecision) answer() (decision.Intent, error) {
 	return decision.CloneIntent(pd.in), pd.err
 }
 
+// waitingHumanSubmit reports whether this parking's answer came from a
+// registry submit that is waiting for the engine's verdict (its ack channel).
+// Only such an answer can be refused and re-parked for the same human: a
+// caretaker or plain Decide answer has no reply channel and no human to ask
+// again, so it must take the ordinary ladder/crash path instead of
+// re-parking the same refused answer forever.
+func (pd *parkedDecision) waitingHumanSubmit() bool {
+	return pd.hs != nil && pd.hs.ack != nil
+}
+
 // provenance reports HD-2's provenance bits for the decision this parking
 // just answered (server/host/divergence_ledger.go): the caretaker bit is the seat's
 // caretakerFires delta across the await — the counter's only writer is the
@@ -440,6 +455,26 @@ func (pd *parkedDecision) provenance() (caretaker, auto bool) {
 		return false, false
 	}
 	return pd.hs.s.caretakerCount() > pd.hs.fires0, pd.hs.auto
+}
+
+// reply delivers the engine's verdict for this parking's answer to a waiting
+// registry submit: nil when Submit accepted it, the engine's refusal reason
+// when it did not. A bot parking has no waiting submit, and a plain seat
+// answer carries no reply channel, so both are no-ops.
+func (pd *parkedDecision) reply(err error) {
+	if pd.hs != nil {
+		pd.hs.reply(err)
+	}
+}
+
+// releaseUnanswered stops a parking play installed but never awaited from
+// accepting an answer or stranding a submit that already claimed its slot. It
+// is nil-safe (a match that ended has no parking) and a no-op for a bot
+// parking (which has no slot) or one whose verdict was already delivered.
+func (pd *parkedDecision) releaseUnanswered() {
+	if pd != nil && pd.hs != nil {
+		pd.hs.releaseUnanswered()
+	}
 }
 
 // parkedData is the projected shape of one pending decision, split out of the
@@ -624,7 +659,7 @@ func controlledSeats(g *state.Game, viewer state.PlayerID) []state.PlayerID {
 // consumed.
 func parkSeat(ctx context.Context, seats []seat.Seat, pd *parkedData, undo <-chan state.PlayerID, gate *searchSlots, stop <-chan struct{}) *parkedDecision {
 	if hs, ok := seats[pd.p].(*HumanSeat); ok {
-		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc, undo)}
+		return &parkedDecision{p: pd.p, hs: hs.park(ctx, pd.v, pd.dc, undo), data: pd}
 	}
 	// BP-08 (spec §5.1): the EnvSeat answers from the host-built Env, OUTSIDE
 	// the match lock — DecideEnv may run a whole search, and a blocking seat
@@ -857,6 +892,16 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// errors, the error is surfaced as a crash rather than masked by a stop
 	// abort that raced the first park.
 	var parked *parkedDecision
+	// Release a parking the loop installed but never awaited when play exits
+	// for any reason other than the normal answer path: the t.stop abort, the
+	// maxIntents guard, a crash, or a panic outside attempt. A submit that
+	// claimed that slot during the pace window is waiting for a verdict only
+	// this goroutine could produce; without this it waits forever even though
+	// Close has returned (D2). A parking whose verdict was already delivered
+	// is left alone: closing abandoned would let an accepted answer be
+	// reported as "no pending decision". Deferred after the recover defer, so
+	// it runs first and releases the parking before the crash is recorded.
+	defer func() { parked.releaseUnanswered() }()
 	var before int
 	// Task d2 (buffered reuse): one botpolicy.Board for the whole match,
 	// refilled for every decision a BoardSeat answers. projectNext fills it
@@ -868,6 +913,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// retains the Board). Sized to len(m.e.G.Players) like BoardFromGame's own
 	// Life map, once per match — three small maps, nothing per decision.
 	brd := botpolicy.NewBoard(len(m.e.G.Players))
+playLoop:
 	for n := 0; ; n++ {
 		select {
 		case <-t.stop:
@@ -930,108 +976,157 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 		// iteration or at the end of the previous one). A bot seat resolved
 		// synchronously in parkSeat and returns immediately; a human seat
 		// parks here on its slot until a SubmitIntent arrives or ctx/timeout
-		// fires the caretaker.
-		in, err := parked.answer()
-		if err != nil {
-			// The parked human's await saw the undo signal before any intent:
-			// rewind exactly as the top-of-loop check would. The await's own
-			// defer has already cleared the seat's slot.
-			if req, isUndo := asUndo(err); isUndo {
-				var uerr error
-				parked, uerr = r.serviceUndo(ctx, t, m, seats, &brd, req)
-				if uerr != nil {
-					return r.crash(t, m, uerr)
-				}
-				n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
-				continue
-			}
-			// BP-10 (spec §7): a SEARCH decision (one that parked on the
-			// registry's FIFO search-slot gate) whose seat error surfaced while
-			// the table's context is cancelled — its slot wait unblocked by
-			// Close, or the search seat unwound by the same cancellation —
-			// aborts the match instead of crashing it: a table being closed is
-			// not a crash. Every other seat keeps the historical crash contract
-			// (Ruling FL-17): a cancelled plain seat crashes the match.
-			if parked.searchSlot && (ctx.Err() != nil || errors.Is(err, errTableClosed)) {
-				return r.abort(m)
-			}
-			return r.crash(t, m, fmt.Errorf("seat %d: %w", parked.p, err))
-		}
+		// fires the caretaker. The loop re-parks a human whose answer the
+		// engine refused (D1b): refusal preserves the pending decision, so the
+		// same seat answers it again instead of the match crashing.
+		var in decision.Intent
 		var next *parkedDecision
 		var nextData *parkedData
-		// HD-2's provenance bits for the intent the seat just gave (the doc
-		// on parkedDecision.provenance). They mark THIS seat's own answer;
-		// the refusal ladder's rungs below are bots.RefusalAnswerer
-		// fallbacks — a HumanSeat is never one, so a human's caretaker/auto
-		// bits can never ride a rung, and for a bot seat both bits are false
-		// — so the same flags append on every rung the ladder submits.
-		caretaker, auto := parked.provenance()
-		// attempt runs one Submit attempt as its own exclusive section and
-		// reports whether the ENGINE refused it (a submission error) as
-		// opposed to a post-Submit failure (persistence). A refused Submit
-		// leaves the pending decision intact -- refusal is preserve-and-reject
-		// -- so attempt may be called again for the ladder's next rung; a
-		// post-Submit failure is fatal and must crash, never retry.
-		attempt := func(in decision.Intent) (refused bool, err error) {
-			err = m.locked(func() error {
-				before = len(m.e.L.Events)
-				// d is the decision this intent answers. It is read before the
-				// Submit because a successful Submit consumes it; on a refusal
-				// the pending decision survives and the ladder's next rung
-				// answers the same d. A successful Submit also RETIRES the
-				// arena generation d lives in before it returns
-				// (decision_arena_live.go), so the feed's post-Submit record
-				// needs an owned copy taken here, while d is still valid.
-				d := m.e.Pending()
-				var drec *decision.Decision
-				if d != nil && m.feeds != nil {
-					// A payment-plan answer (in.Payment / in.Announce) names
-					// one of the decision's PaymentActions, which the engine
-					// builds lazily -- Submit builds them to validate it. A
-					// seat that opts out of PaymentPlanConsumer (az-redeal's
-					// manual config, or a test seat) leaves them
-					// unbuilt on the live decision, so the copy recorded on
-					// the feed could not translate the answer and the feed
-					// stopped for the rest of the game. Build them first: a
-					// pure derived read, no event, no RNG.
-					if in.Payment != nil || in.Announce != nil {
-						m.e.EnsurePaymentActions()
+		for {
+			var err error
+			in, err = parked.answer()
+			if err != nil {
+				// The parked human's await saw the undo signal before any intent:
+				// rewind exactly as the top-of-loop check would. The await's own
+				// defer has already cleared the seat's slot.
+				if req, isUndo := asUndo(err); isUndo {
+					var uerr error
+					parked, uerr = r.serviceUndo(ctx, t, m, seats, &brd, req)
+					if uerr != nil {
+						return r.crash(t, m, uerr)
 					}
-					drec = d.Clone()
+					n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
+					continue playLoop
 				}
-				if e := m.e.Submit(in); e != nil {
-					refused = true
-					return e
+				// BP-10 (spec §7): a SEARCH decision (one that parked on the
+				// registry's FIFO search-slot gate) whose seat error surfaced while
+				// the table's context is cancelled — its slot wait unblocked by
+				// Close, or the search seat unwound by the same cancellation —
+				// aborts the match instead of crashing it: a table being closed is
+				// not a crash. Every other seat keeps the historical crash contract
+				// (Ruling FL-17): a cancelled plain seat crashes the match.
+				if parked.searchSlot && (ctx.Err() != nil || errors.Is(err, errTableClosed)) {
+					return r.abort(m)
 				}
-				m.afterSubmit(before)
-				// HD-2: the accepted intent's provenance byte, appended in
-				// the same exclusive section (a refused submit appends
-				// nothing). server/host/divergence_ledger.go holds the shape.
-				m.ledgerAppend(caretaker, auto)
-				// Record the ACCEPTED intent (which may be a refusal-ladder
-				// rung, not the seat's first answer) on the actor's feed, after
-				// the Submit that took it (§5.2 Record).
-				m.feeds.record(drec, in)
-				if e := r.afterBurst(t, m, before); e != nil { // Tasks 11, 12
-					return fmt.Errorf("persist: %w", e)
+				return r.crash(t, m, fmt.Errorf("seat %d: %w", parked.p, err))
+			}
+			// HD-2's provenance bits for the intent the seat just gave (the doc
+			// on parkedDecision.provenance). They mark THIS seat's own answer;
+			// the refusal ladder's rungs below are bots.RefusalAnswerer
+			// fallbacks — a HumanSeat is never one, so a human's caretaker/auto
+			// bits can never ride a rung, and for a bot seat both bits are false
+			// — so the same flags append on every rung the ladder submits.
+			caretaker, auto := parked.provenance()
+			// attempt runs one Submit attempt as its own exclusive section and
+			// reports whether the ENGINE refused it (a submission error) as
+			// opposed to a post-Submit failure (persistence). A refused Submit
+			// leaves the pending decision intact -- refusal is preserve-and-reject
+			// -- so attempt may be called again for the ladder's next rung; a
+			// post-Submit failure is fatal and must crash, never retry.
+			attempt := func(in decision.Intent) (refused bool, err error) {
+				// A panic anywhere inside the attempt (Submit, persistence or
+				// the post-Submit projection) unwinds to play's recover, which
+				// crashes the match. Reply to the waiting submit first: await
+				// already marked it received, so its own defer will not close
+				// abandoned, and without this reply the handler would wait
+				// forever on a goroutine that is gone.
+				defer func() {
+					if p := recover(); p != nil {
+						parked.reply(fmt.Errorf("match crashed: %v", p))
+						panic(p)
+					}
+				}()
+				err = m.locked(func() error {
+					before = len(m.e.L.Events)
+					// d is the decision this intent answers. It is read before the
+					// Submit because a successful Submit consumes it; on a refusal
+					// the pending decision survives and the ladder's next rung
+					// answers the same d. A successful Submit also RETIRES the
+					// arena generation d lives in before it returns
+					// (decision_arena_live.go), so the feed's post-Submit record
+					// needs an owned copy taken here, while d is still valid.
+					d := m.e.Pending()
+					var drec *decision.Decision
+					if d != nil && m.feeds != nil {
+						// A payment-plan answer (in.Payment / in.Announce) names
+						// one of the decision's PaymentActions, which the engine
+						// builds lazily -- Submit builds them to validate it. A
+						// seat that opts out of PaymentPlanConsumer (az-redeal's
+						// manual config, or a test seat) leaves them
+						// unbuilt on the live decision, so the copy recorded on
+						// the feed could not translate the answer and the feed
+						// stopped for the rest of the game. Build them first: a
+						// pure derived read, no event, no RNG.
+						if in.Payment != nil || in.Announce != nil {
+							m.e.EnsurePaymentActions()
+						}
+						drec = d.Clone()
+					}
+					if e := m.e.Submit(in); e != nil {
+						refused = true
+						return e
+					}
+					m.afterSubmit(before)
+					// HD-2: the accepted intent's provenance byte, appended in
+					// the same exclusive section (a refused submit appends
+					// nothing). server/host/divergence_ledger.go holds the shape.
+					m.ledgerAppend(caretaker, auto)
+					// Record the ACCEPTED intent (which may be a refusal-ladder
+					// rung, not the seat's first answer) on the actor's feed, after
+					// the Submit that took it (§5.2 Record).
+					m.feeds.record(drec, in)
+					if e := r.afterBurst(t, m, before); e != nil { // Tasks 11, 12
+						return fmt.Errorf("persist: %w", e)
+					}
+					// Still exclusive: project the engine's NEXT decision (nil when the
+					// game just ended) so a focus subscriber, which also projects the live
+					// engine through projectLive's exclusive m.mu, can never run its own
+					// projection concurrently with this one (view.Project/view.ProjectFor
+					// write the Derived cache). The old loop got the same serialization
+					// because its projection immediately preceded this Submit; this keeps
+					// it now that the park happens after the Submit.
+					nextData = projectNext(m, seats, &brd)
+					return nil
+				})
+				return refused, err
+			}
+			refused, err := attempt(in)
+			if !refused {
+				// The engine accepted the seat's answer: release a registry
+				// submit waiting for the verdict BEFORE any post-Submit failure
+				// can crash the match (the submit must never be stranded on a
+				// goroutine that is gone).
+				parked.reply(nil)
+				if err != nil {
+					return r.crash(t, m, err)
 				}
-				// Still exclusive: project the engine's NEXT decision (nil when the
-				// game just ended) so a focus subscriber, which also projects the live
-				// engine through projectLive's exclusive m.mu, can never run its own
-				// projection concurrently with this one (view.Project/view.ProjectFor
-				// write the Derived cache). The old loop got the same serialization
-				// because its projection immediately preceded this Submit; this keeps
-				// it now that the park happens after the Submit.
-				nextData = projectNext(m, seats, &brd)
-				return nil
-			})
-			return refused, err
-		}
-		refused, err := attempt(in)
-		if err != nil && !refused {
-			return r.crash(t, m, err)
-		}
-		if refused {
+				break
+			}
+			// The engine refused the seat's answer. Only a waiting registry
+			// submit has a human to ask again: re-park the same pending
+			// decision and tell that submit why its answer was refused (the
+			// 409). The old parking's slot was claimed by that submit; the new
+			// parking installs a fresh slot so the next POST can answer it.
+			// A caretaker or plain Decide answer (ack nil) has no waiting
+			// human -- re-parking it would make the same caretaker answer the
+			// same refused decision forever -- so it falls through to the
+			// ordinary ladder/crash below.
+			//
+			// There is deliberately no refusal cap: each refusal is one
+			// client-initiated POST answered with a 409, and the decision stays
+			// pending for a legal answer. A client that never sends one is no
+			// worse than a client that never answers at all (the configured
+			// ThinkTimeout caretaker still applies), and crashing the whole
+			// match on the 17th bad POST would let one seat kill the table.
+			if parked.waitingHumanSubmit() {
+				m.mu.Lock()
+				m.refusals++
+				m.mu.Unlock()
+				refusedParking := parked
+				parked = parkSeat(ctx, seats, refusedParking.data, m.undo.signal, gate, t.stop)
+				refusedParking.reply(err)
+				continue
+			}
 			// BP-06 refusal ladder (spec §5.5). Only a seat that opts in with
 			// bots.RefusalAnswerer gets the ladder; every other seat keeps
 			// today's crash, unchanged.
@@ -1085,9 +1180,10 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 					return r.crash(t, m, fmt.Errorf("intent %d rejected: %w", n, lastErr))
 				}
 			}
-		}
-		if err != nil {
-			return r.crash(t, m, err)
+			if err != nil {
+				return r.crash(t, m, err)
+			}
+			break
 		}
 		// Task HW1: advance the per-turn progress counter now that the
 		// Submit's burst is applied. G.Turn only ever increases, so a turn

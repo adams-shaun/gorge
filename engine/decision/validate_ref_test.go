@@ -112,6 +112,14 @@ func (d *Decision) validateRef(in Intent) error {
 		if d.Kind == KBlockers && !d.BlockPairAdmits(in.Choices[:choicePos], c) {
 			return fmt.Errorf("blocker %d cannot block multiple attackers outside BlockAllDefined pairs", d.Options[c].Obj)
 		}
+		// CR 508.1: one creature attacks exactly one defender.
+		if d.Kind == KAttackers {
+			for _, c2 := range in.Choices[:choicePos] {
+				if d.Options[c2].Obj == d.Options[c].Obj {
+					return fmt.Errorf("attacker %d declared against more than one defender", d.Options[c].Obj)
+				}
+			}
+		}
 	}
 	// CR 509.1a / CR 702.111b: the published per-attacker team bound. The
 	// map-based reference count of the map-free Validate.

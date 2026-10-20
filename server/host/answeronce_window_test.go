@@ -2,14 +2,11 @@ package host
 
 import "testing"
 
-// TestAnswerOnceWaitsPastTheStaleAskWindow pins the seq-aware shape of
-// answerOnce: between SubmitIntent's acceptance and the match goroutine
-// consuming the answer, the human seat's slot is still installed, so a
-// first-200 Pending poll re-serves the just-answered decision. answerOnce's
-// initial poll must therefore wait for a Seq past the previously answered
-// one; a first-200 poll would re-serve the stale ask, the duplicate submit
-// would be orphaned (or rejected once the slot re-parks), and the helper
-// would return the answered decision as if it were the next ask.
+// TestAnswerOnceWaitsPastTheStaleAskWindow pins answerOnce's Seq guard. A
+// submit now claims the seat's slot before its send, so a first-200 Pending
+// poll cannot re-serve the just-answered decision; the guard is retained
+// because the poll still races the submit, and the helper must never return
+// the answered decision as if it were the next ask.
 func TestAnswerOnceWaitsPastTheStaleAskWindow(t *testing.T) {
 	t.Parallel()
 	r, id := startHumanTable(t)
