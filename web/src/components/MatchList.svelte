@@ -3,6 +3,7 @@
   import type { MatchInfo } from '../protocol';
   import { fetchMatches } from '../lib/api';
   import { href, navigate } from '../lib/router';
+  import { getSeat } from '../lib/seat';
 
   /** MatchList is a table's match history — every finished (or in-progress) match, in host order, linking to its replay. */
   let { table }: { table: string } = $props();
@@ -11,7 +12,7 @@
   let loaded = $state(false);
 
   onMount(() => {
-    void fetchMatches(table).then((m) => { matches = m; loaded = true; }).catch(() => { loaded = true; });
+    void fetchMatches(table, getSeat() ?? undefined).then((m) => { matches = m; loaded = true; }).catch(() => { loaded = true; });
   });
 
   function winnerLabel(m: MatchInfo): string {

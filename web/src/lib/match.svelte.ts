@@ -391,12 +391,12 @@ export class MatchState implements ClientModelSource {
   async loadFinished(k: number) {
     this.loadError = null;
     try {
-      const infos = await fetchMatches(this.table);
+      const infos = this.seat ? await fetchMatches(this.table, this.seat) : await fetchMatches(this.table);
       const info = infos.find((m) => m.match === k);
       if (!info || info.events === 0) throw new Error(`no match ${k}`);
       this.match = k;
       this.seats = info.seats;
-      const all = await fetchEvents(this.table, k, 0);
+      const all = await this.fetchEventsAt(k, 0);
       this.dispatch({ type: 'snapshot', match: `${this.table}/${k}`, head: info.events - 1, turnStarts: turnStartsFrom(all) });
       this.dispatch({ type: 'backfill', events: all });
       this.dispatch({ type: 'pause' });

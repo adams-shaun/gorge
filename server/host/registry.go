@@ -812,9 +812,9 @@ func (r *Registry) LobbyTables() []protocol.TableInfo {
 }
 
 // PrivateTable reports whether id names a private on-demand play-vs-bot
-// table: the same predicate the stream's private-table fence applies. An
-// event table is on-demand too but publicly watchable, so it is not private.
-// An unknown id is not private; its route answers ErrNotFound from the lookup.
+// table. An event table is on-demand too but publicly watchable, so it is not
+// private. An unknown id is not private; its route answers ErrNotFound from
+// the lookup.
 func (r *Registry) PrivateTable(id TableID) bool {
 	r.mu.RLock()
 	t, ok := r.tables[id]

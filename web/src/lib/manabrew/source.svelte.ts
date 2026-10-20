@@ -38,7 +38,7 @@ interface RingEntry { seq: number; view: View }
 
 interface Deps {
   transport: Transport;
-  fetchMatches: (t: string) => Promise<MatchInfo[]>;
+  fetchMatches: (t: string, ctx?: SeatCtx) => Promise<MatchInfo[]>;
   /** The compat auto-pass (compat.ts); read from the setting when not given. */
   compat: boolean;
 }
@@ -104,7 +104,7 @@ export class ManaBrewMatch implements ClientModelSource, SeatTransport {
   async start(): Promise<StartResult> {
     let info: MatchInfo | undefined;
     try {
-      const ms = await this.deps.fetchMatches(this.table);
+      const ms = await this.deps.fetchMatches(this.table, this.seat);
       info = ms.find((m) => m.state === 'live') ?? [...ms].sort((a, b) => b.match - a.match)[0];
     } catch (e) {
       return { ok: false, reason: `could not list this table's matches (${e instanceof Error ? e.message : String(e)})` };
