@@ -254,6 +254,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	for targetIndex, p := range players {
 		lib := zoneOf(g, state.ZLibrary, p)
 		chooser := digChooser(h, c, dp, p)
+		// saw records that this target's walk has shown the chooser the window
+		// (a look Note or a public reveal): from then on the walk's Secret
+		// moves are the chooser's (digSecretTo).
+		saw := false
 		libPhrase := "your library"
 		if chooser != p {
 			libPhrase = "that player's library"
@@ -300,8 +304,8 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{id}})
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
-			ev.Player, ev.Secret = p, true
 			applyFaceDownMarker(h, sa, c, &ev, dest)
+			ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
 			if dest == state.ZLibrary {
 				primaryMoved = append(primaryMoved, id)
 			}
@@ -416,7 +420,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					h.Emit(events.Event{Kind: events.Note, Player: p, IDs: []state.ObjID{id}})
 				}
 				ev := moveZoneEvent(c, id, state.ZLibrary, dest2)
-				ev.Player, ev.Secret = p, true
+				ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
 				h.Emit(ev)
 				digRemember(c, dp, id)
 			}
@@ -499,8 +503,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// otherwise the look stays private to the chooser.
 			if revealWin {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
+				saw = true
 			} else if !noLooking {
 				emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
+				saw = true
 			}
 			minv := int32(0)
 			if !optional && !promptToSkipOptional && !anyNum {
@@ -639,16 +645,19 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// exactly where it is (SkipReorder$, or a top LibraryPosition2$).
 		if revealWin && len(top) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
+			saw = true
 		}
 		if bottomRest && !revealWin && !noLooking && int32(len(top)-len(greedy)) >= 2 {
 			// The ordered-bottom ask is coming: the look that authorises it is
 			// recorded here, the same Secret chooser's Note the take-ask path
 			// emits before ITS ask (a Reveal$ window is already public).
 			emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
+			saw = true
 		} else if chooser != p && dest == state.ZLibrary && !revealWin && !noLooking && len(top) > 0 {
 			// A pure look (no take) at another player's library still records
 			// the look for the chooser (Rootwater Mystic, Moonring Island).
 			emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
+			saw = true
 		}
 		taken := make(map[state.ObjID]bool, len(greedy))
 		for _, id := range greedy {
@@ -667,6 +676,28 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// The walk completed: release the ride (the same boundary the search and
 	// hidden walks end at), so a later ability in the chain cannot inherit it.
 	endForgetOtherSnapshot(c)
+}
+
+// digSecretTo is the one seat a Dig's Secret library move hands its payload
+// to (engine/view/redact.go rule (1)): the seat that has seen the card. A
+// WithMayLook$ face-down exile names its looker in Amount (the seat the
+// projection admits to the face). Otherwise it is the chooser once the walk
+// has shown them the window (saw: a look Note or a public reveal), and the
+// library's owner when it has not -- a blind move (Pyxis of Pandemonium's
+// "each player exiles the top card of their library face down") showed the
+// chooser nothing, so its payload stays where it was. When the owner, the
+// chooser and the controller are one seat (every Dig of your own library)
+// every arm returns that seat, so those moves encode byte-identically
+// (cr-g47; CR 401.2, CR 406.3, CR 701.20e).
+func digSecretTo(ev *events.Event, chooser, owner state.PlayerID, saw bool) state.PlayerID {
+	switch ev.Counter {
+	case "exiled_with_face_down_maylook", "exiled_with_face_down_maylook_foretold":
+		return state.PlayerID(ev.Amount)
+	}
+	if saw {
+		return chooser
+	}
+	return owner
 }
 
 // digChooser is the player who looks at, takes from and orders the library

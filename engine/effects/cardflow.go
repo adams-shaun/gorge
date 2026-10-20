@@ -1990,7 +1990,7 @@ func effHideaway(h Host, c *Ctx, sa *cards.SA) {
 	// The no-host degradation chooses the first card, then retains the offered
 	// order for the rest on the bottom.
 	h.Emit(events.Event{Kind: events.MoveZone, Obj: lib[0], From: state.ZLibrary, To: state.ZExile,
-		Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
+		Player: c.Controller, Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
 	hideawayBottom(h, c, sa)
 }
 
@@ -2005,7 +2005,7 @@ func hideawayPicked(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 		return
 	}
 	h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZExile,
-		Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
+		Player: c.Controller, Counter: "exiled_with_face_down", Amount: int32(c.Source), Secret: true})
 	hideawayBottom(h, c, sa)
 }
 
