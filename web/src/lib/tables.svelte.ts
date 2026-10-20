@@ -101,7 +101,13 @@ class Tables {
   }
   async load() {
     const infos = await fetchTables();
-    this.#list = infos.map((info) => ({ info, widget: this.find(info.id)?.widget ?? null, seats: this.seedSeats(info.id, info), match: info.match }));
+    const lobby = infos.map((info) => ({ info, widget: this.find(info.id)?.widget ?? null, seats: this.seedSeats(info.id, info), match: info.match }));
+    // /api/tables is the public lobby, so it omits private on-demand tables.
+    // A client already seated at one keeps its TableInfo (and widget/seats)
+    // across an Overview visit rather than losing Auto Mana/Restart. Entries
+    // the lobby does return take the response, including its order.
+    const lobbyIDs = new Set(infos.map((info) => info.id));
+    this.#list = [...lobby, ...this.#list.filter((t) => !lobbyIDs.has(t.info.id))];
   }
 }
 
