@@ -36,23 +36,27 @@ func objectPathShuffleOwed(cz *ChangeZoneParams) bool {
 	return cz.ShuffleTrue && !cz.NoShuffle
 }
 
-// objectPathShuffleTail finishes an object-target ChangeZone that moved
-// objects into a library, after the moves landed in effChangeZone. It
-// shuffles each distinct card owner's library once, and when the SA also sets
-// ShuffleNonMandatory$ it poses Forge's may-shuffle confirm first. Today's
-// flag-bearing corpus lines target their controller's own graveyard, so the
-// controller is the owner; this is not a per-owner election for future
-// multi-owner movers. SP-parented DB carriers reach this tail since task
-// spcz1: their own targeting is offered by changeZoneChosenTargets's ask
-// (engine/rules/ pins the live path on Put Away and Cathartic Parting).
-// The confirm is answered in place via AskTape and the tail completes here;
-// an answered confirm returns true, which ends effChangeZone after the tail
-// (the AlternativeDecider$ placement does not run). A host that cannot ask
-// takes the deterministic decline (R-9), the same stand-in every other
-// may-shuffle confirm uses, and returns false.
-func objectPathShuffleTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, moved []state.ObjID) bool {
-	if !cz.ShuffleNonMandatory {
-		objectPathShuffleOwners(h, moved)
+// objectPathMayShuffle is the "you may shuffle ... into your library"
+// election of an object-target ChangeZone whose SA sets ShuffleNonMandatory$
+// (the four Origin$ Graveyard corpus carriers: Put Away, Cathartic Parting,
+// Devious Cover-Up, Ghostly Castigator). The "may" covers the whole move,
+// so the election is posed BEFORE anything moves (Forge's
+// changeKnownOriginResolve confirms first and returns on a decline):
+// true means the move and its shuffle go ahead, false means nothing moves
+// and nothing is shuffled. With no object referent (an "up to N" target
+// ask elected zero, or a target ask still pending) there is nothing to
+// shuffle in and nothing is asked: false. The election is answered in place
+// via AskTape; a host that cannot ask takes the deterministic decline (R-9),
+// the same stand-in the arrange_mayshuffle confirm uses.
+func objectPathMayShuffle(h Host, c *Ctx, sa *cards.SA, targets []state.Target) bool {
+	found := false
+	for _, t := range targets {
+		if !t.IsPlayer && h.Game().Obj(t.Obj) != nil {
+			found = true
+			break
+		}
+	}
+	if !found {
 		return false
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
@@ -63,24 +67,27 @@ func objectPathShuffleTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, m
 			{Index: 1, Kind: "no", Label: "No — keep the order", Player: c.Controller},
 		}}
 	if ans, ok := AskTape(h, d); ok {
-		// Answered in place: the answered tail; the caller stops after it.
-		if tapeAnswerYes(ans) {
-			objectPathShuffleOwners(h, moved)
-		}
-		return true
+		return tapeAnswerYes(ans)
 	}
-	// No-host stand-in (R-9): decline the shuffle, keep the order.
+	// No-host stand-in (R-9): decline -- nothing moves, nothing shuffles.
 	return false
 }
 
 // objectPathShuffleOwners shuffles the library of every distinct owner among
-// the moved objects, each once, in first-move order (deterministic; never a
-// map range). An object that has already left the game is skipped.
-func objectPathShuffleOwners(h Host, moved []state.ObjID) {
+// an object-target ChangeZone's object referents (its targets / Defined$
+// objects), each once, in referent order (deterministic; never a map range).
+// It runs whether or not the object actually moved: CR 701.24c shuffles the
+// library "even if none of those objects are in the zone they're expected to
+// be in". A player referent and an object that has left the game are
+// skipped; with no object referent at all nothing is shuffled.
+func objectPathShuffleOwners(h Host, targets []state.Target) {
 	g := h.Game()
-	seen := make(map[state.PlayerID]bool, len(moved))
-	for _, id := range moved {
-		o := g.Obj(id)
+	seen := make(map[state.PlayerID]bool, len(targets))
+	for _, t := range targets {
+		if t.IsPlayer {
+			continue
+		}
+		o := g.Obj(t.Obj)
 		if o == nil || seen[o.Owner] {
 			continue
 		}
