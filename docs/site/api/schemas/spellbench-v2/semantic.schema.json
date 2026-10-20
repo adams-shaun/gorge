@@ -1,0 +1,1327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adams-shaun.github.io/gorge/api/schemas/spellbench-v2/semantic.schema.json",
+  "title": "SpellBench v2 candidate semantic (gorge)",
+  "description": "A candidate's semantic object: one of the kinds of server/spellbench/protocol/kinds.go (kindTable), every field required and no others, vocabularies from Vocab. Generated from kinds.go; server/spellbench/protocol/schema_doc_test.go fails when they drift.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/kind_pass"
+    },
+    {
+      "$ref": "#/$defs/kind_play_land"
+    },
+    {
+      "$ref": "#/$defs/kind_cast_spell"
+    },
+    {
+      "$ref": "#/$defs/kind_activate_mana_ability"
+    },
+    {
+      "$ref": "#/$defs/kind_activate_ability"
+    },
+    {
+      "$ref": "#/$defs/kind_special_action"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_target"
+    },
+    {
+      "$ref": "#/$defs/kind_finish_target_selection"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_cost_target"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_cast_method"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_spell_mode"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_option"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_color"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_number"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_boolean"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_name"
+    },
+    {
+      "$ref": "#/$defs/kind_select_object"
+    },
+    {
+      "$ref": "#/$defs/kind_finish_selection"
+    },
+    {
+      "$ref": "#/$defs/kind_optional_cost"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_cost_option"
+    },
+    {
+      "$ref": "#/$defs/kind_optional_cast"
+    },
+    {
+      "$ref": "#/$defs/kind_mulligan"
+    },
+    {
+      "$ref": "#/$defs/kind_order_pick"
+    },
+    {
+      "$ref": "#/$defs/kind_arrange_card"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_replacement"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_starting_player"
+    },
+    {
+      "$ref": "#/$defs/kind_declare_attack"
+    },
+    {
+      "$ref": "#/$defs/kind_declare_block"
+    },
+    {
+      "$ref": "#/$defs/kind_distribute"
+    },
+    {
+      "$ref": "#/$defs/kind_choose_pile"
+    }
+  ],
+  "$defs": {
+    "kind_pass": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "pass"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "kind_play_land": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "play_land"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "face": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "face"
+      ],
+      "additionalProperties": false
+    },
+    "kind_cast_spell": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "cast_spell"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/vocab_method"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "method"
+      ],
+      "additionalProperties": false
+    },
+    "kind_activate_mana_ability": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "activate_mana_ability"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "ability_index": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "mana_choice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/vocab_mana_symbol"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cost_target": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/TargetRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "ability_index",
+        "mana_choice",
+        "cost_target"
+      ],
+      "additionalProperties": false
+    },
+    "kind_activate_ability": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "activate_ability"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "ability_index": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "ability_index"
+      ],
+      "additionalProperties": false
+    },
+    "kind_special_action": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "special_action"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "action": {
+          "$ref": "#/$defs/vocab_special_action.action"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_target": {
+      "description": "Field constraint (Semantic.Check, not expressible here): minimum <= maximum and selected_count < maximum.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_target"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "slot": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "target": {
+          "$ref": "common.schema.json#/$defs/TargetRef"
+        },
+        "selected_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "minimum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "maximum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "slot",
+        "target",
+        "selected_count",
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": false
+    },
+    "kind_finish_target_selection": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "finish_target_selection"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "slot": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "selected_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "slot",
+        "selected_count"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_cost_target": {
+      "description": "Field constraint (Semantic.Check, not expressible here): minimum <= maximum and selected_count < maximum.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_cost_target"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "cost_kind": {
+          "$ref": "#/$defs/vocab_choose_cost_target.cost_kind"
+        },
+        "candidate": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "selected_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "minimum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "maximum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "cost_kind",
+        "candidate",
+        "selected_count",
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_cast_method": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_cast_method"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "method": {
+          "$ref": "#/$defs/vocab_method"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "method"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_spell_mode": {
+      "description": "Field constraint (Semantic.Check, not expressible here): mode_index < mode_count, minimum <= maximum <= mode_count, selected_count < maximum.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_spell_mode"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "mode_index": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "mode_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "selected_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "minimum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "maximum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "mode_index",
+        "mode_count",
+        "selected_count",
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_option": {
+      "description": "Field constraint (Semantic.Check, not expressible here): option_index < option_count.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_option"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_choose_option.purpose"
+        },
+        "option_index": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "option_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "option_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "option_index",
+        "option_count",
+        "option_label"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_color": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_color"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_choose_color.purpose"
+        },
+        "color": {
+          "$ref": "#/$defs/vocab_color"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_number": {
+      "description": "Field constraint (Semantic.Check, not expressible here): minimum <= value <= maximum.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_number"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_choose_number.purpose"
+        },
+        "value": {
+          "$ref": "common.schema.json#/$defs/i32"
+        },
+        "minimum": {
+          "$ref": "common.schema.json#/$defs/i32"
+        },
+        "maximum": {
+          "$ref": "common.schema.json#/$defs/i32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "value",
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_boolean": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_choose_boolean.purpose"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_name": {
+      "description": "Field constraint (Semantic.Check, not expressible here): when purpose is card_type, value is a card_type vocabulary word.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_name"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_choose_name.purpose"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "kind_select_object": {
+      "description": "Field constraint (Semantic.Check, not expressible here): minimum <= maximum and selected_count < maximum.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "select_object"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_select_object.purpose"
+        },
+        "choice": {
+          "$ref": "common.schema.json#/$defs/TargetRef"
+        },
+        "selected_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "minimum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "maximum": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "choice",
+        "selected_count",
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": false
+    },
+    "kind_finish_selection": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "finish_selection"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_finish_selection.purpose"
+        },
+        "selected_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "selected_count"
+      ],
+      "additionalProperties": false
+    },
+    "kind_optional_cost": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "optional_cost"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "cost": {
+          "$ref": "#/$defs/vocab_optional_cost.cost"
+        },
+        "pay": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "cost",
+        "pay"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_cost_option": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_cost_option"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "choice": {
+          "$ref": "common.schema.json#/$defs/snake"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "choice"
+      ],
+      "additionalProperties": false
+    },
+    "kind_optional_cast": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "optional_cast"
+        },
+        "card": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "method": {
+          "$ref": "#/$defs/vocab_method"
+        },
+        "cast_it": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "card",
+        "method",
+        "cast_it"
+      ],
+      "additionalProperties": false
+    },
+    "kind_mulligan": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "mulligan"
+        },
+        "hand_size": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "mulligans_taken": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "keep": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "hand_size",
+        "mulligans_taken",
+        "keep"
+      ],
+      "additionalProperties": false
+    },
+    "kind_order_pick": {
+      "description": "Field constraint (Semantic.Check, not expressible here): position < count.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "order_pick"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_order_pick.purpose"
+        },
+        "item": {
+          "$ref": "common.schema.json#/$defs/OrderItem"
+        },
+        "position": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "item",
+        "position",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "kind_arrange_card": {
+      "description": "Field constraint (Semantic.Check, not expressible here): card_index < card_count.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "arrange_card"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_arrange_card.purpose"
+        },
+        "card": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "card_index": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "card_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "destination": {
+          "$ref": "#/$defs/vocab_arrange_card.destination"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "card",
+        "card_index",
+        "card_count",
+        "destination"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_replacement": {
+      "description": "Field constraint (Semantic.Check, not expressible here): 2 <= replacement_count and replacement_index < replacement_count.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_replacement"
+        },
+        "affected": {
+          "$ref": "common.schema.json#/$defs/TargetRef"
+        },
+        "event": {
+          "$ref": "#/$defs/vocab_choose_replacement.event"
+        },
+        "replacement_source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replacement_index": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "replacement_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "affected",
+        "event",
+        "replacement_source",
+        "replacement_index",
+        "replacement_count"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_starting_player": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_starting_player"
+        },
+        "player": {
+          "$ref": "common.schema.json#/$defs/seat"
+        }
+      },
+      "required": [
+        "kind",
+        "player"
+      ],
+      "additionalProperties": false
+    },
+    "kind_declare_attack": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "declare_attack"
+        },
+        "attacker": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "defender": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/TargetRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "attacker",
+        "defender"
+      ],
+      "additionalProperties": false
+    },
+    "kind_declare_block": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "declare_block"
+        },
+        "blocker": {
+          "$ref": "common.schema.json#/$defs/ObjectRef"
+        },
+        "attacker": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "blocker",
+        "attacker"
+      ],
+      "additionalProperties": false
+    },
+    "kind_distribute": {
+      "description": "Field constraint (Semantic.Check, not expressible here): amount <= remaining.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "distribute"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_distribute.purpose"
+        },
+        "recipient": {
+          "$ref": "common.schema.json#/$defs/TargetRef"
+        },
+        "amount": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "remaining": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "recipient",
+        "amount",
+        "remaining"
+      ],
+      "additionalProperties": false
+    },
+    "kind_choose_pile": {
+      "description": "Field constraint (Semantic.Check, not expressible here): pile_index <= 1 and exactly 2 piles.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "choose_pile"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/vocab_choose_pile.purpose"
+        },
+        "pile_index": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "piles": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "pile_index",
+        "piles"
+      ],
+      "additionalProperties": false
+    },
+    "kind_name": {
+      "description": "Every candidate kind (kindTable).",
+      "enum": [
+        "pass",
+        "play_land",
+        "cast_spell",
+        "activate_mana_ability",
+        "activate_ability",
+        "special_action",
+        "choose_target",
+        "finish_target_selection",
+        "choose_cost_target",
+        "choose_cast_method",
+        "choose_spell_mode",
+        "choose_option",
+        "choose_color",
+        "choose_number",
+        "choose_boolean",
+        "choose_name",
+        "select_object",
+        "finish_selection",
+        "optional_cost",
+        "choose_cost_option",
+        "optional_cast",
+        "mulligan",
+        "order_pick",
+        "arrange_card",
+        "choose_replacement",
+        "choose_starting_player",
+        "declare_attack",
+        "declare_block",
+        "distribute",
+        "choose_pile"
+      ]
+    },
+    "vocab_zone": {
+      "enum": [
+        "library",
+        "hand",
+        "battlefield",
+        "graveyard",
+        "stack",
+        "exile",
+        "command"
+      ]
+    },
+    "vocab_select_object.purpose": {
+      "enum": [
+        "discard",
+        "sacrifice",
+        "exile",
+        "destroy",
+        "return_to_hand",
+        "search",
+        "reveal",
+        "put_onto_battlefield",
+        "put_into_hand",
+        "put_into_graveyard",
+        "legend_rule",
+        "tap",
+        "untap",
+        "delve",
+        "convoke",
+        "attach",
+        "keep",
+        "vote",
+        "modes",
+        "other"
+      ]
+    },
+    "vocab_finish_selection.purpose": {
+      "enum": [
+        "discard",
+        "sacrifice",
+        "exile",
+        "destroy",
+        "return_to_hand",
+        "search",
+        "reveal",
+        "put_onto_battlefield",
+        "put_into_hand",
+        "put_into_graveyard",
+        "legend_rule",
+        "tap",
+        "untap",
+        "delve",
+        "convoke",
+        "attach",
+        "keep",
+        "vote",
+        "modes",
+        "other"
+      ]
+    },
+    "vocab_choose_boolean.purpose": {
+      "enum": [
+        "may_ability",
+        "optional_trigger",
+        "may_cast",
+        "change_copy_targets",
+        "optional_replacement",
+        "reveal",
+        "other"
+      ]
+    },
+    "vocab_choose_number.purpose": {
+      "enum": [
+        "x_value",
+        "amount",
+        "life_payment",
+        "cost_repetitions",
+        "vote",
+        "other"
+      ]
+    },
+    "vocab_choose_option.purpose": {
+      "enum": [
+        "effect_option",
+        "top_or_bottom",
+        "odd_or_even",
+        "vote",
+        "other"
+      ]
+    },
+    "vocab_choose_color.purpose": {
+      "enum": [
+        "mana",
+        "protection",
+        "effect",
+        "other"
+      ]
+    },
+    "vocab_choose_name.purpose": {
+      "enum": [
+        "card_name",
+        "creature_type",
+        "card_type",
+        "land_type",
+        "basic_land_type",
+        "other"
+      ]
+    },
+    "vocab_order_pick.purpose": {
+      "enum": [
+        "triggers",
+        "library_top",
+        "library_bottom",
+        "mulligan_bottom",
+        "arrangement",
+        "other"
+      ]
+    },
+    "vocab_arrange_card.purpose": {
+      "enum": [
+        "scry",
+        "surveil",
+        "dig",
+        "look_at_top",
+        "pile_split",
+        "other"
+      ]
+    },
+    "vocab_arrange_card.destination": {
+      "enum": [
+        "top",
+        "bottom",
+        "graveyard",
+        "exile",
+        "hand",
+        "battlefield",
+        "pile_0",
+        "pile_1"
+      ]
+    },
+    "vocab_distribute.purpose": {
+      "enum": [
+        "damage",
+        "combat_damage",
+        "counters",
+        "mana",
+        "life",
+        "other"
+      ]
+    },
+    "vocab_choose_pile.purpose": {
+      "enum": [
+        "effect",
+        "other"
+      ]
+    },
+    "vocab_method": {
+      "enum": [
+        "normal",
+        "alternative",
+        "flashback",
+        "escape",
+        "evoke",
+        "overload",
+        "adventure",
+        "disturb",
+        "foretell",
+        "plot",
+        "mdfc_back",
+        "split_left",
+        "split_right",
+        "fuse",
+        "prototype",
+        "morph",
+        "disguise",
+        "madness",
+        "miracle",
+        "cascade",
+        "discover",
+        "rebound",
+        "suspend",
+        "free",
+        "other"
+      ]
+    },
+    "vocab_optional_cost.cost": {
+      "enum": [
+        "kicker",
+        "buyback",
+        "entwine",
+        "conspire",
+        "casualty",
+        "bargain",
+        "gift",
+        "offspring",
+        "copy",
+        "unless_payment",
+        "additional",
+        "other"
+      ]
+    },
+    "vocab_choose_cost_target.cost_kind": {
+      "enum": [
+        "sacrifice",
+        "discard",
+        "exile",
+        "tap",
+        "untap",
+        "return_to_hand",
+        "reveal",
+        "remove_counter",
+        "other"
+      ]
+    },
+    "vocab_special_action.action": {
+      "enum": [
+        "turn_face_up",
+        "plot",
+        "foretell",
+        "suspend",
+        "unlock_door",
+        "other"
+      ]
+    },
+    "vocab_choose_replacement.event": {
+      "enum": [
+        "zone_change",
+        "damage",
+        "draw",
+        "enter_battlefield",
+        "counters",
+        "life",
+        "other"
+      ]
+    },
+    "vocab_color": {
+      "enum": [
+        "white",
+        "blue",
+        "black",
+        "red",
+        "green"
+      ]
+    },
+    "vocab_mana_symbol": {
+      "enum": [
+        "W",
+        "U",
+        "B",
+        "R",
+        "G",
+        "C"
+      ]
+    },
+    "vocab_card_type": {
+      "enum": [
+        "artifact",
+        "battle",
+        "conspiracy",
+        "creature",
+        "dungeon",
+        "enchantment",
+        "instant",
+        "kindred",
+        "land",
+        "phenomenon",
+        "plane",
+        "planeswalker",
+        "scheme",
+        "sorcery",
+        "vanguard"
+      ]
+    }
+  }
+}

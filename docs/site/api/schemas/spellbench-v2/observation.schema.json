@@ -1,0 +1,867 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adams-shaun.github.io/gorge/api/schemas/spellbench-v2/observation.schema.json",
+  "title": "SpellBench v2 observation (gorge)",
+  "description": "seat_decision.observation (protocol/observation.go). A field behind an observation flag the engine declared false is null.",
+  "type": "object",
+  "properties": {
+    "viewer": {
+      "$ref": "common.schema.json#/$defs/seat"
+    },
+    "turn": {
+      "$ref": "common.schema.json#/$defs/u32"
+    },
+    "phase_step": {
+      "enum": [
+        "pregame",
+        "untap",
+        "upkeep",
+        "draw",
+        "precombat_main",
+        "beginning_of_combat",
+        "declare_attackers",
+        "declare_blockers",
+        "combat_damage",
+        "end_of_combat",
+        "postcombat_main",
+        "end_step",
+        "cleanup"
+      ]
+    },
+    "active_seat": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "priority_seat": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "passed_seats": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/seat"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "day_night": {
+      "anyOf": [
+        {
+          "enum": [
+            "day",
+            "night",
+            "none"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "players": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PlayerObs"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "stack": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/StackEntry"
+      }
+    },
+    "pending_triggers": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PendingTrigger"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "known": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Known"
+      }
+    }
+  },
+  "required": [
+    "viewer",
+    "turn",
+    "phase_step",
+    "active_seat",
+    "priority_seat",
+    "passed_seats",
+    "day_night",
+    "players",
+    "stack",
+    "pending_triggers",
+    "known"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "ManaPool": {
+      "type": "object",
+      "properties": {
+        "W": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "U": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "B": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "R": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "G": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "C": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "W",
+        "U",
+        "B",
+        "R",
+        "G",
+        "C"
+      ],
+      "additionalProperties": false
+    },
+    "Characteristics": {
+      "type": "object",
+      "properties": {
+        "supertypes": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/snake"
+          }
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "$ref": "semantic.schema.json#/$defs/vocab_card_type"
+          }
+        },
+        "subtypes": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/snake"
+          }
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "semantic.schema.json#/$defs/vocab_color"
+          }
+        },
+        "mana_value": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "power": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/i32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toughness": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/i32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "keywords": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/snake"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "supertypes",
+        "types",
+        "subtypes",
+        "colors",
+        "mana_value",
+        "power",
+        "toughness",
+        "keywords"
+      ],
+      "additionalProperties": false
+    },
+    "Permanent": {
+      "type": "object",
+      "properties": {
+        "tapped": {
+          "type": "boolean"
+        },
+        "summoning_sick": {
+          "type": "boolean"
+        },
+        "damage": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "counters": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "common.schema.json#/$defs/u32"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attached_to": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/TargetRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attacking": {
+          "type": "boolean"
+        },
+        "attack_target": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/TargetRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "blocked_attackers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/ObjectRef"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phased_out": {
+          "type": "boolean"
+        },
+        "statuses": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/snake"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "class_level": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "chosen": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "tapped",
+        "summoning_sick",
+        "damage",
+        "counters",
+        "attached_to",
+        "attacking",
+        "attack_target",
+        "blocking",
+        "blocked_attackers",
+        "phased_out",
+        "statuses",
+        "class_level",
+        "chosen"
+      ],
+      "additionalProperties": false
+    },
+    "ObjectRecord": {
+      "type": "object",
+      "properties": {
+        "object_id": {
+          "type": "string"
+        },
+        "card_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "owner_seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "controller_seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "zone": {
+          "$ref": "semantic.schema.json#/$defs/vocab_zone"
+        },
+        "full_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "face_down": {
+          "type": "boolean"
+        },
+        "token": {
+          "type": "boolean"
+        },
+        "copy": {
+          "type": "boolean"
+        },
+        "characteristics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Characteristics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "permanent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Permanent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exiled_by": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "object_id",
+        "card_name",
+        "owner_seat",
+        "controller_seat",
+        "zone",
+        "full_name",
+        "face_down",
+        "token",
+        "copy",
+        "characteristics",
+        "permanent",
+        "exiled_by"
+      ],
+      "additionalProperties": false
+    },
+    "Progress": {
+      "type": "object",
+      "properties": {
+        "dungeon": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dungeon_room": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ring_tempted": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "speed": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "dungeon",
+        "dungeon_room",
+        "ring_tempted",
+        "speed"
+      ],
+      "additionalProperties": false
+    },
+    "PlayerObs": {
+      "type": "object",
+      "properties": {
+        "seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "life": {
+          "$ref": "common.schema.json#/$defs/i32"
+        },
+        "poison": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "counters": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "common.schema.json#/$defs/u32"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mana_pool": {
+          "$ref": "#/$defs/ManaPool"
+        },
+        "lands_played_this_turn": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "mulligans_taken": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "designations": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/snake"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Progress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hand_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "library_count": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "hand": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ObjectRecord"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "battlefield": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectRecord"
+          }
+        },
+        "graveyard": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectRecord"
+          }
+        },
+        "exile": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectRecord"
+          }
+        },
+        "command": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectRecord"
+          }
+        }
+      },
+      "required": [
+        "seat",
+        "life",
+        "poison",
+        "counters",
+        "mana_pool",
+        "lands_played_this_turn",
+        "mulligans_taken",
+        "designations",
+        "progress",
+        "hand_count",
+        "library_count",
+        "hand",
+        "battlefield",
+        "graveyard",
+        "exile",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "StackEntry": {
+      "type": "object",
+      "properties": {
+        "object_id": {
+          "type": "string"
+        },
+        "card_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "owner_seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "controller_seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "zone": {
+          "$ref": "semantic.schema.json#/$defs/vocab_zone"
+        },
+        "stack_kind": {
+          "enum": [
+            "spell",
+            "activated_ability",
+            "triggered_ability"
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "face_down": {
+          "type": "boolean"
+        },
+        "copy": {
+          "type": "boolean"
+        },
+        "characteristics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Characteristics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "common.schema.json#/$defs/TargetRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "divided": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/u32"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modes": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/u32"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "x_value": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "object_id",
+        "card_name",
+        "owner_seat",
+        "controller_seat",
+        "zone",
+        "stack_kind",
+        "source",
+        "face_down",
+        "copy",
+        "characteristics",
+        "targets",
+        "divided",
+        "modes",
+        "x_value",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "PendingTrigger": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "controller_seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "optional": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "source_name",
+        "controller_seat",
+        "label",
+        "optional"
+      ],
+      "additionalProperties": false
+    },
+    "Known": {
+      "type": "object",
+      "properties": {
+        "owner_seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "zone": {
+          "$ref": "semantic.schema.json#/$defs/vocab_zone"
+        },
+        "card_name": {
+          "type": "string"
+        },
+        "object_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "position_from_top": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "position_from_bottom": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "how": {
+          "$ref": "common.schema.json#/$defs/snake"
+        }
+      },
+      "required": [
+        "owner_seat",
+        "zone",
+        "card_name",
+        "object_id",
+        "position_from_top",
+        "position_from_bottom",
+        "how"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

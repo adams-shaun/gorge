@@ -1,0 +1,894 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adams-shaun.github.io/gorge/api/schemas/spellbench-v2/requests.schema.json",
+  "title": "SpellBench v2 requests (gorge)",
+  "description": "Engine-role requests (host to engine: hello, reset, step, validate_deck, probe_resample) match gorge's strict decoder, server/spellbench/protocol/requests.go: exactly these fields. Agent-role requests (host to agent: hello, game_start, choose, game_over) are what server/spellbench/seat/wire.go sends.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/engine_request"
+    },
+    {
+      "$ref": "#/$defs/agent_request"
+    }
+  ],
+  "$defs": {
+    "hello": {
+      "description": "Engine and agent role alike. gorge accepts any u32 protocol_minor and answers 0.",
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "hello"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "protocol_minor": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "protocol_minor"
+      ],
+      "additionalProperties": false
+    },
+    "reset": {
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "reset"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "format": {
+          "type": "string"
+        },
+        "seats": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "type": "object",
+              "properties": {
+                "seat": {
+                  "const": "p0"
+                },
+                "deck": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "deck_id": {
+                          "$ref": "common.schema.json#/$defs/sha256_id"
+                        },
+                        "catalog_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "deck_id",
+                        "catalog_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "deck_id": {
+                          "$ref": "common.schema.json#/$defs/sha256_id"
+                        },
+                        "decklist": {
+                          "$ref": "common.schema.json#/$defs/Decklist"
+                        }
+                      },
+                      "required": [
+                        "deck_id",
+                        "decklist"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "seat",
+                "deck"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "seat": {
+                  "const": "p1"
+                },
+                "deck": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "deck_id": {
+                          "$ref": "common.schema.json#/$defs/sha256_id"
+                        },
+                        "catalog_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "deck_id",
+                        "catalog_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "deck_id": {
+                          "$ref": "common.schema.json#/$defs/sha256_id"
+                        },
+                        "decklist": {
+                          "$ref": "common.schema.json#/$defs/Decklist"
+                        }
+                      },
+                      "required": [
+                        "deck_id",
+                        "decklist"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "seat",
+                "deck"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "rules": {
+          "allOf": [
+            {
+              "type": "object",
+              "properties": {
+                "opponent_decklist": {
+                  "enum": [
+                    "visible",
+                    "hidden"
+                  ]
+                },
+                "mulligan": {
+                  "enum": [
+                    "london",
+                    "none"
+                  ]
+                },
+                "starting_player": {
+                  "enum": [
+                    "host_assigned",
+                    "toss_winner_chooses"
+                  ]
+                },
+                "starting_seat": {
+                  "anyOf": [
+                    {
+                      "$ref": "common.schema.json#/$defs/seat"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "card_name_domain": {
+                  "description": "domain_id must equal DomainID(names) (else malformed_request).",
+                  "type": "object",
+                  "properties": {
+                    "domain_id": {
+                      "$ref": "common.schema.json#/$defs/sha256_id"
+                    },
+                    "names": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "common.schema.json#/$defs/card_name"
+                      },
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "domain_id",
+                    "names"
+                  ],
+                  "additionalProperties": false
+                },
+                "extensions": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/extension_name"
+                  },
+                  "uniqueItems": true
+                },
+                "probe": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "opponent_decklist",
+                "mulligan",
+                "starting_player",
+                "starting_seat",
+                "card_name_domain",
+                "extensions",
+                "probe"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "oneOf": [
+                {
+                  "properties": {
+                    "starting_player": {
+                      "const": "host_assigned"
+                    },
+                    "starting_seat": {
+                      "$ref": "common.schema.json#/$defs/seat"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "starting_player": {
+                      "const": "toss_winner_chooses"
+                    },
+                    "starting_seat": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "game_secret": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "max_decisions": {
+          "$ref": "common.schema.json#/$defs/u53"
+        },
+        "max_steps": {
+          "$ref": "common.schema.json#/$defs/u53"
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "game_id",
+        "format",
+        "seats",
+        "rules",
+        "game_secret",
+        "max_decisions",
+        "max_steps"
+      ],
+      "additionalProperties": false
+    },
+    "step": {
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "step"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "expected_step": {
+          "$ref": "common.schema.json#/$defs/u53"
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            "semantic_echo": {
+              "$ref": "semantic.schema.json"
+            }
+          },
+          "required": [
+            "candidate_id",
+            "semantic_echo"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "game_id",
+        "expected_step",
+        "selection"
+      ],
+      "additionalProperties": false
+    },
+    "validate_deck": {
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "validate_deck"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "format": {
+          "type": "string"
+        },
+        "deck": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "catalog_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "catalog_id"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "decklist": {
+                  "$ref": "common.schema.json#/$defs/Decklist"
+                }
+              },
+              "required": [
+                "decklist"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "format",
+        "deck"
+      ],
+      "additionalProperties": false
+    },
+    "probe_resample": {
+      "description": "Decoded strictly, then refused: gorge answers unsupported_request.",
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "probe_resample"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "samples": {
+          "$ref": "common.schema.json#/$defs/u32"
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "game_id",
+        "samples"
+      ],
+      "additionalProperties": false
+    },
+    "game_start": {
+      "description": "Host to agent. opponent_deck is present only when rules.opponent_decklist is visible.",
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "game_start"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "agent_seed": {
+          "$ref": "common.schema.json#/$defs/u53"
+        },
+        "engine": {
+          "$ref": "common.schema.json#/$defs/Engine"
+        },
+        "engine_profile": {
+          "type": "object",
+          "properties": {
+            "decision_kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "semantic.schema.json#/$defs/kind_name"
+              }
+            },
+            "engine_defaults": {
+              "$ref": "common.schema.json#/$defs/EngineDefaults"
+            },
+            "extensions": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/Extension"
+              }
+            },
+            "fairness": {
+              "type": "object",
+              "properties": {
+                "noninterference_probe": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "noninterference_probe"
+              ],
+              "additionalProperties": false
+            },
+            "observation": {
+              "$ref": "common.schema.json#/$defs/ObservationFlags"
+            },
+            "rewind": {
+              "type": "boolean"
+            },
+            "rules_supported": {
+              "$ref": "common.schema.json#/$defs/RulesSupported"
+            }
+          },
+          "required": [
+            "decision_kinds",
+            "engine_defaults",
+            "extensions",
+            "fairness",
+            "observation",
+            "rewind",
+            "rules_supported"
+          ],
+          "additionalProperties": false
+        },
+        "format": {
+          "type": "string"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "max_decisions": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "max_seat_decisions_per_game": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "max_seat_decisions_per_turn": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "max_seat_steps_per_game": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "max_steps": {
+              "$ref": "common.schema.json#/$defs/u53"
+            }
+          },
+          "required": [
+            "max_decisions",
+            "max_seat_decisions_per_game",
+            "max_seat_decisions_per_turn",
+            "max_seat_steps_per_game",
+            "max_steps"
+          ],
+          "additionalProperties": false
+        },
+        "opponent_deck": {
+          "type": "object",
+          "properties": {
+            "deck_id": {
+              "$ref": "common.schema.json#/$defs/sha256_id"
+            },
+            "decklist": {
+              "$ref": "common.schema.json#/$defs/Decklist"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "deck_id",
+            "decklist",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "own_deck": {
+          "type": "object",
+          "properties": {
+            "deck_id": {
+              "$ref": "common.schema.json#/$defs/sha256_id"
+            },
+            "decklist": {
+              "$ref": "common.schema.json#/$defs/Decklist"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "deck_id",
+            "decklist",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "cpus": {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            "engine_cpus": {
+              "$ref": "common.schema.json#/$defs/u32"
+            },
+            "gpu": {
+              "type": "boolean"
+            },
+            "memory_mb": {
+              "$ref": "common.schema.json#/$defs/u32"
+            }
+          },
+          "required": [
+            "cpus",
+            "engine_cpus",
+            "gpu",
+            "memory_mb"
+          ],
+          "additionalProperties": false
+        },
+        "rules": {
+          "allOf": [
+            {
+              "type": "object",
+              "properties": {
+                "card_name_domain": {
+                  "description": "domain_id must equal DomainID(names) (else malformed_request).",
+                  "type": "object",
+                  "properties": {
+                    "domain_id": {
+                      "$ref": "common.schema.json#/$defs/sha256_id"
+                    },
+                    "names": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "common.schema.json#/$defs/card_name"
+                      },
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "domain_id",
+                    "names"
+                  ],
+                  "additionalProperties": false
+                },
+                "extensions": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/extension_name"
+                  }
+                },
+                "mulligan": {
+                  "enum": [
+                    "london",
+                    "none"
+                  ]
+                },
+                "opponent_decklist": {
+                  "enum": [
+                    "visible",
+                    "hidden"
+                  ]
+                },
+                "probe": {
+                  "type": "boolean"
+                },
+                "starting_player": {
+                  "enum": [
+                    "host_assigned",
+                    "toss_winner_chooses"
+                  ]
+                },
+                "starting_seat": {
+                  "anyOf": [
+                    {
+                      "$ref": "common.schema.json#/$defs/seat"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "card_name_domain",
+                "extensions",
+                "mulligan",
+                "opponent_decklist",
+                "probe",
+                "starting_player",
+                "starting_seat"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "oneOf": [
+                {
+                  "properties": {
+                    "starting_player": {
+                      "const": "host_assigned"
+                    },
+                    "starting_seat": {
+                      "$ref": "common.schema.json#/$defs/seat"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "starting_player": {
+                      "const": "toss_winner_chooses"
+                    },
+                    "starting_seat": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "seat": {
+          "$ref": "common.schema.json#/$defs/seat"
+        },
+        "time_control": {
+          "type": "object",
+          "properties": {
+            "bank_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "engine_step_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "game_start_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "increment_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "max_decision_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "startup_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            }
+          },
+          "required": [
+            "bank_ms",
+            "engine_step_ms",
+            "game_start_ms",
+            "increment_ms",
+            "max_decision_ms",
+            "startup_ms"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "agent_seed",
+        "engine",
+        "engine_profile",
+        "format",
+        "game_id",
+        "limits",
+        "own_deck",
+        "resources",
+        "rules",
+        "seat",
+        "time_control"
+      ],
+      "additionalProperties": false
+    },
+    "choose": {
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "choose"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "clock": {
+          "type": "object",
+          "properties": {
+            "max_decision_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "remaining_ms": {
+              "$ref": "common.schema.json#/$defs/u53"
+            }
+          },
+          "required": [
+            "max_decision_ms",
+            "remaining_ms"
+          ],
+          "additionalProperties": false
+        },
+        "decision": {
+          "$ref": "common.schema.json#/$defs/SeatDecision"
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "game_id",
+        "clock",
+        "decision"
+      ],
+      "additionalProperties": false
+    },
+    "game_over": {
+      "type": "object",
+      "properties": {
+        "request_type": {
+          "const": "game_over"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "terminal": {
+          "type": "object",
+          "properties": {
+            "classification": {
+              "enum": [
+                "natural",
+                "truncated",
+                "halted",
+                "forfeit"
+              ]
+            },
+            "outcome": {
+              "description": "gorged's seat sends \"\" for a halted or forfeited game.",
+              "enum": [
+                "p0_win",
+                "p1_win",
+                "draw",
+                "truncated",
+                "halted",
+                ""
+              ]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "seat_step_count": {
+              "$ref": "common.schema.json#/$defs/u53"
+            },
+            "winner": {
+              "anyOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/seat"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "classification",
+            "outcome",
+            "reason",
+            "seat_step_count",
+            "winner"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "request_type",
+        "protocol",
+        "request_id",
+        "game_id",
+        "terminal"
+      ],
+      "additionalProperties": false
+    },
+    "engine_request": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/hello"
+        },
+        {
+          "$ref": "#/$defs/reset"
+        },
+        {
+          "$ref": "#/$defs/step"
+        },
+        {
+          "$ref": "#/$defs/validate_deck"
+        },
+        {
+          "$ref": "#/$defs/probe_resample"
+        }
+      ]
+    },
+    "agent_request": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/hello"
+        },
+        {
+          "$ref": "#/$defs/game_start"
+        },
+        {
+          "$ref": "#/$defs/choose"
+        },
+        {
+          "$ref": "#/$defs/game_over"
+        }
+      ]
+    }
+  }
+}

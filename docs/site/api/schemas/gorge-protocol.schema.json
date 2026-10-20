@@ -1,0 +1,3869 @@
+{
+  "$defs": {
+    "AnnounceSelection": {
+      "description": "AnnounceSelection is the announce-then-pay selector (spec docs/design/2026-09-27-announce-then-pay.md §3): it names an offered PaymentAction by ID and asks the engine to begin that ordinary cast WITHOUT a payment witness, so the caster pays in the CR 601.2g mana window (\"select mana\" prompt) instead. It is exclusive with Choices, Rest and Payment, valid only on a priority answer, and only for an action that carries at least one plan -- the planner's proof that the floating pool plus untapped sources can pay the cast.",
+      "properties": {
+        "action_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.AnnounceSelection"
+    },
+    "ArchetypePosterior": {
+      "description": "ArchetypePosterior is a posterior over an opponent's deck archetype, inferred from the cards revealed about that seat. It is nil for the viewer's own seat and for a spectator: the fact is an OPPONENT archetype posterior, and a seat's own deck identity is already the manifest's job (deck.File.Archetype), not something to re-infer from its graveyard.",
+      "properties": {
+        "known": {
+          "description": "Known reports whether any revealed card carried a classifiable signal.",
+          "type": "boolean"
+        },
+        "scores": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Scores is the full normalised posterior, keyed by archetype name. It is built with a fixed key order (dense index order) and only ever read by key, so no map-range order can reach the wire.",
+          "type": "object"
+        },
+        "seen": {
+          "description": "Seen is how many distinct revealed cards were classified.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "top": {
+          "description": "Top is the highest-probability archetype's name (\"\" when !Known).",
+          "type": "string"
+        },
+        "top_score": {
+          "description": "TopScore is that archetype's posterior probability.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "known",
+        "seen"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.ArchetypePosterior"
+    },
+    "ArtNamed": {
+      "description": "The two fields of a Scryfall named-card response the client reads, with `image_uris.normal` rewritten to this server's own content-addressed /art/blob/ route.",
+      "properties": {
+        "image_uris": {
+          "properties": {
+            "normal": {
+              "description": "Same-origin path: /art/blob/<64 hex>.jpg",
+              "type": "string"
+            }
+          },
+          "required": [
+            "normal"
+          ],
+          "type": "object"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "image_uris"
+      ],
+      "type": "object"
+    },
+    "BotMeasurement": {
+      "description": "BotMeasurement is one measured claim of a hosted bot policy. It is the wire twin of bots.Measurement: a single label with the setting and source it was measured under, never a number the client is expected to interpret.",
+      "properties": {
+        "claim": {
+          "type": "string"
+        },
+        "setting": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "versus": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim",
+        "setting",
+        "source",
+        "versus"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.BotMeasurement"
+    },
+    "BotPolicyInfo": {
+      "description": "BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies). It is the wire twin of bots.Info, carrying only what a client needs to render a picker and disclose the measurement; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go).",
+      "properties": {
+        "cost_note": {
+          "type": "string"
+        },
+        "cost_scope": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "formats": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "mean_ms": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "p95_ms": {
+          "type": "number"
+        },
+        "search": {
+          "type": "boolean"
+        },
+        "strength": {
+          "items": {
+            "$ref": "#/$defs/BotMeasurement"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "tier": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cost_note",
+        "cost_scope",
+        "description",
+        "formats",
+        "label",
+        "mean_ms",
+        "name",
+        "p95_ms",
+        "search",
+        "strength",
+        "tier"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.BotPolicyInfo"
+    },
+    "BotPolicyList": {
+      "description": "BotPolicyList is GET /api/bot-policies: the offered set, in display order, and the server's default. An unset list is the empty policy set with an empty default, so an older server answers the endpoint without exposing any state.",
+      "properties": {
+        "default": {
+          "type": "string"
+        },
+        "policies": {
+          "items": {
+            "$ref": "#/$defs/BotPolicyInfo"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "default",
+        "policies"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.BotPolicyList"
+    },
+    "CardFacts": {
+      "description": "A card's six printed facts, cached from Scryfall beside its art (server/gorged/art.go cardFacts). Empty facts are omitted.",
+      "properties": {
+        "mana_cost": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "oracle_text": {
+          "type": "string"
+        },
+        "power": {
+          "type": "string"
+        },
+        "toughness": {
+          "type": "string"
+        },
+        "type_line": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "CardView": {
+      "description": "CardView is one object's public face: printed identity plus its current, derived characteristics. Nothing here is read from a hidden zone unless the viewer owns it — cardViews is only ever called with a zone list the caller has already decided is visible.",
+      "properties": {
+        "ability_costs": {
+          "description": "AbilityCosts is the current offer-time Forge-notation cost of each non-mana activated ability, in face ability order. Applicable RaiseCost/ReduceCost statics have already been composed exactly as the engine's legal-action gate composes them; this is deliberately not just the printed Cost$. It is projected only for battlefield cards and the viewer's own hand: those are the cards an interactive seat can use to decide whether floating mana would unlock an ability. Other zones leave it nil, rather than turning this into a general rules-text projection.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "activated_this_turn": {
+          "description": "ActivatedThisTurn is how many non-mana activated abilities of this object were activated this turn (events.Apply's AbilityPush census on state.Object.ActivatedThisTurn). Public fact, like the tap state it rides beside; the bot policy's repeatable-ability budget (A5) reads it to bound its own loop-shaped activations (Basalt Monolith's untap re-enabling its own tap) without ever gating a human seat, for whom unlimited activations stay legal and offered.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "attached_player": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "attached_to": {
+          "description": "AttachedTo is the permanent this Aura or Equipment is currently attached to, 0 meaning unattached -- the same zero-value convention Obj uses, so omitempty keeps an unattached permanent (or a non- permanent: a spell, a card in a hand) from emitting a field. It comes straight from state.Object.AttachedTo, which the engine's Attach event sets and clears; without it a client could not render an attachment beneath the permanent it modifies -- could not tell what is attached to what at all.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "attached_to_player": {
+          "description": "AttachedToPlayer is true when this Aura/Curse is attached to the player AttachedPlayer rather than to a permanent (AttachedTo stays 0); the bool disambiguates seat 0 from \"no player\", the omitted zero.",
+          "type": "boolean"
+        },
+        "attacking": {
+          "type": "boolean"
+        },
+        "attacking_player": {
+          "description": "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay (PL-17) and come straight from the object's combat fields, which EndCombatReset clears.",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "blocked_by": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "card_name": {
+          "description": "CardName is the object's PRINTED card name -- its card's front face, the name its genesis deck list (deck.Manifest) records -- when that differs from Name: a transformed or back-face-played double-faced card, a split or adventure half on the stack, a permanent a copy effect (CopyFace) or a SetName$ renamed. Empty when it equals Name, and on every redacted face-down CardView (the redaction rebuilds the view from a fresh literal). The physical card's identity is exactly as visible as the object carrying it: a copy or a transformed permanent is a public card whose printed front every player can read. The honest own-library composition (view.OwnLibrary) keys on it, so a Clone copying one of the seat's own cards is counted as the Clone it is, not as a second copy of what it copies.",
+          "type": "string"
+        },
+        "colour_identity": {
+          "description": "ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask: the printed cost's pips, the colour indicator and every colour-naming mana symbol in the rules text -- CR 903.4's definition, the same one cards.Face.ColourIdentity derives). It is a printed fact of a visible card, like Types and ManaCost, and it is projected so a bot can read a deck's colour splash from the lands it plays without re-parsing text. Carried into botpolicy.Card.Colour; a face-down or unreadable card projects zero, which is \"identity unknown\", never \"colourless\".",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "controller": {
+          "description": "Controller and Owner can differ (a stolen permanent, a stack object created for someone else's turn); a client needs both. Battlefield zone lists are keyed by controller, every hidden/graveyard/exile list by owner (engine/events/apply.go's zoneOwner), so a CardView carries both regardless of which zone list it came from.",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "counters": {
+          "additionalProperties": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "damage": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "effective_mana_cost": {
+          "description": "EffectiveManaCost is the offer-time cost to cast this card when the engine can determine a non-X own-cost composition that differs from the printed ManaCost. Empty means use ManaCost.",
+          "type": "string"
+        },
+        "exiled_cards": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "face_down": {
+          "type": "boolean"
+        },
+        "flags": {
+          "description": "Flags are the permanent's status designations (CardFlag bits), straight from the state.Object fields the engine folds from events: suspected, renowned, monstrous, harnessed, solved, cloaked, the Ring-bearer, a morph/disguise cast and the unlocked Room doors. Public facts like the tap state; zero (omitted) on every ordinary card, so a view without any of them serialises byte-identically to before the field existed.",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "imprinted": {
+          "description": "Imprinted lists the cards this permanent imprinted (state.Object.Imprinted, CR 607.2a), Paired the creature it is soulbond-paired with (0 = none), and ExiledCards the cards it exiled that are still in exile (the Oblivion Ring link). They are bare object ids: the cards themselves are the CardViews of whichever zone list they sit in, so a reader resolves them there and a hidden card stays hidden. All omitted when empty.",
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "is_copy": {
+          "type": "boolean"
+        },
+        "is_token": {
+          "description": "IsToken and IsCopy are the object's own state.Object flags projected for every visible card: a battlefield token (CR 111.7) and a copy (CR 707.10; a battlefield token copy carries BOTH) are public identity facts like the name they sit beside, and a client wire that mints its own identity DTO reads them rather than re-deriving one from Token -- which is the display tag every card carries, never a token flag. cardViews' face-down replacement rebuilds the CardView from a fresh literal without them, so a card hidden behind its face reveals no more than that projection already did; and since a token exists only on the battlefield and a copy only on the stack or the battlefield, neither flag can name a card in a hidden zone.",
+          "type": "boolean"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "mana_cost": {
+          "description": "ManaCost is the printed cost in Forge's notation (\"1 W\", \"R\", \"X G\"). Hand lists render it as symbols.",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "paired": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "power": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "printed_pt": {
+          "description": "PrintedPT is the face's PRINTED power/toughness as text (\"1/1\", \"*/*\"), the value the physical card or token is printed with. Power/Toughness above are the CURRENT layer-7 values a counter or an anthem moves; a token whose current P/T differs from its printed P/T (a 1/1 Soldier with a +1/+1 counter reads \"2/2\") must still resolve to the same art as its un-pumped sibling, and only the printed value is stable across pumping. Empty for a face with no printed P/T (a noncreature) and on every redacted face-down CardView, which is rebuilt from a fresh literal.",
+          "type": "string"
+        },
+        "printing": {
+          "$ref": "#/$defs/Printing",
+          "description": "Printing is what an image lookup keys on; Token (\"#12\") tells two copies of one card apart in the stack, the log and an arrow."
+        },
+        "produces": {
+          "$ref": "#/$defs/ManaProduction",
+          "description": "Produces is what this card's mana abilities add to the pool when a tap-for-mana activation runs them, derived from the compiled abilities (cards.Face.ManaProduction) rather than land subtypes: a basic land's intrinsic {W}, a dual's {W}{U}, an \"add any colour\" source's five colour alternatives (one unit each, flagged Any -- the colour is chosen when it is tapped, CR 106.1b), a colourless rock's {C}{C}. nil when the card has no mana ability at all, so a creature or a spell never pays for the six-entry array on the wire. It is a projected characteristic like ManaCost and Keywords -- a mana ability's production is a card fact every seat sees, and it is projected for the same zones the card itself is visible in. This is what the bot policy's colour-aware tap and land heuristics read (carried into botpolicy.Card as plain data, never the view type)."
+        },
+        "removal_damage": {
+          "description": "RemovalDamage is the literal NumDmg$ of that same removal ability when it is a plain integer, 0 when it is absent, dynamic ({X}, an SVar) or not positive. Like RemovalKind it is a printed card fact of a visible card. The hold rule reads it as the spell's damage against an opponent's projected life: a literal damage figure at or above a player's life total is a lethal face target, so the removal is worth firing now. A 0 answers \"unknown\", never \"no damage\" -- the policy treats an unknown figure as no face candidate at all.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "removal_kind": {
+          "description": "RemovalKind names the one-shot removal shape of SpellAPI: \"destroy\", \"damage\", or \"bounce\". Empty means the card is not one of the shapes the cast policy holds. It is derived from the same printed ability SpellAPI names, so it is a visible card fact, never hidden information.",
+          "type": "string"
+        },
+        "removal_targets": {
+          "description": "RemovalTargets is the coarse target scope of that same removal ability, read off its ValidTgts$ alternatives' base tokens: \"creature\" when they name creatures and no players, \"player\" when they name players and no creatures, \"any\" when they name both, and \"\" when they name neither (an artifact or land destruction spell, a graveyard move). It is derived from the same printed ability as RemovalKind and never set without it, so it is a visible card fact. The bot policy's removal-now hold rule reads it to know whether a spell could even aim at a creature (the threat gate) or at a player (the lethal-face shortcut).",
+          "type": "string"
+        },
+        "spell_api": {
+          "description": "SpellAPI is the API of the card's primary cast-shape ability (its SP$ line -- \"Counter\" for Counterspell, \"DealDamage\" for Lightning Bolt, \"\" for a card with no spell ability, which is every creature and every activated-ability permanent). It is a printed card fact, projected for exactly the cards the projection already carries the printed ManaCost and Types of -- a visible card's own text is open information -- so a seat that can read a card's cost can read what the cast does at the same grain. The bot policy's casting rule reads it (carried into botpolicy.Card.Counter) to tell a counter spell from any other cast. A hidden hand's cards are never projected as CardViews at all, so this never leaks hidden information.",
+          "type": "string"
+        },
+        "summon_sick": {
+          "type": "boolean"
+        },
+        "tapped": {
+          "type": "boolean"
+        },
+        "token": {
+          "type": "string"
+        },
+        "toughness": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "types": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attacking",
+        "controller",
+        "damage",
+        "id",
+        "name",
+        "owner",
+        "power",
+        "printing",
+        "summon_sick",
+        "tapped",
+        "token",
+        "toughness",
+        "types"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.CardView"
+    },
+    "CreateEventRequest": {
+      "description": "CreateEventRequest is the POST /api/events body: the drafted set, the series format and the four seats. BestOf is 1 or 3 (0 = 1). PickTimer is \"\", \"off\", \"standard\" or \"relaxed\". The seed is always minted by the server; no client field may choose it.",
+      "properties": {
+        "best_of": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "pick_timer": {
+          "type": "string"
+        },
+        "seats": {
+          "items": {
+            "$ref": "#/$defs/CreateEventSeat"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "set": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "seats",
+        "set"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.CreateEventRequest"
+    },
+    "CreateEventResponse": {
+      "description": "CreateEventResponse is the POST /api/events reply: the event id, one invite per seat and the event's initial state.",
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "invites": {
+          "items": {
+            "$ref": "#/$defs/EventInvite"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/EventState"
+        }
+      },
+      "required": [
+        "event",
+        "invites",
+        "state"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.CreateEventResponse"
+    },
+    "CreateEventSeat": {
+      "description": "CreateEventSeat is one seat of a CreateEventRequest. Kind is \"human\" or \"bot\"; Policy names the bot's game policy (\"\" = server default) and Drafter the pickbot persona (\"\" = \"rating-colour\").",
+      "properties": {
+        "drafter": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.CreateEventSeat"
+    },
+    "CreateGameRequest": {
+      "description": "CreateGameRequest is the POST /api/games body. Deck ids are optional: an omitted id leaves that seat's assignment to the server, preserving the original random flow. They are filename stems from GET /api/decks.",
+      "properties": {
+        "bot_deck": {
+          "type": "string"
+        },
+        "bot_policy": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "human_deck": {
+          "type": "string"
+        },
+        "mulligans": {
+          "description": "Mulligans is the optional London mulligan allowance for the created game (finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/host/httpapi.CreateGameRequest"
+    },
+    "CreateGameResponse": {
+      "description": "CreateGameResponse is what a successful POST /api/games returns: the new table's identity plus the human seat's bearer token and the join path the client follows. Token is the only place the seat credential leaves the server (the caller owns it), so the response is the whole of the hand-off; a viewer replaying the match needs only the table id and seed, both here and on the match's own wire records.",
+      "properties": {
+        "bot_policy": {
+          "type": "string"
+        },
+        "join": {
+          "description": "Join is the base-relative path the human opens to sit in the seat, carrying the seat and its token: /t/<table>?seat=N&token=….",
+          "type": "string"
+        },
+        "match": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "seat": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "seed": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "table": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bot_policy",
+        "join",
+        "match",
+        "seat",
+        "seed",
+        "table",
+        "token"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/host/httpapi.CreateGameResponse"
+    },
+    "CurveRow": {
+      "description": "CurveRow is one bucket of a deck's mana curve: Count copies whose front-face converted mana cost is CMC.",
+      "properties": {
+        "cmc": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "count": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cmc",
+        "count"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/deck.CurveRow"
+    },
+    "DamageEffect": {
+      "description": "DamageEffect describes nominal scripted damage, NEVER guaranteed damage. Prevention, replacement, conditions, division among targets and resolution legality are not evaluated. Spell damage is not commander combat damage.",
+      "properties": {
+        "amount": {
+          "description": "Amount is the nonnegative literal or context-resolved amount at the point the target decision is posed, or nil (JSON null) if it is absent, unresolvable, invalid or outside the supported range. X and SVar expressions are evaluated when the announced/resolving context supplies their value. A known zero is a non-nil pointer to 0. There is deliberately no numeric default: Go consumers must check nil before dereferencing; wire consumers must check null before arithmetic. This is not a lethal-damage claim.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.DamageEffect"
+    },
+    "Decision": {
+      "description": "Decision is the engine asking one player for one answer.",
+      "properties": {
+        "allow_none": {
+          "description": "AllowNone makes the EMPTY answer legal beside the Min..Max range: the legal answer sizes are {0} and Min..Max. It is the \"you may ... exactly N\" shape -- Forge's Exactly$ True search (\"You may reveal exactly two cards you own with different names\", Extrapolate the Impossible) is all or nothing, so Min == Max == N carries the \"exactly\" and AllowNone the \"you may\". No Min/Max pair alone can say it: Min 0 would admit one card, Min N would refuse the decline. Validate is the rule's one home; a client that ignores the field only loses the decline (its Min..Max answers stay legal). omitempty: every other decision serialises byte-identically.",
+          "type": "boolean"
+        },
+        "budgeted": {
+          "description": "Budgeted marks MaxSum as a PRESENT budget even when it is zero or negative: a MaxSum of 0 alone reads as \"no budget\" (the omitempty zero), which cannot express a total-power cap of 0 or less (MaxTotalTargetPower$ <= 0, where negative-power options can offset a positive one: powers 2,-1,-1 under a cap of 0 total 0). HasBudget is the one reader; false (the zero) omits the field, so every existing decision serialises byte-identically.",
+          "type": "boolean"
+        },
+        "budgeted2": {
+          "type": "boolean"
+        },
+        "charge_tap_pool": {
+          "description": "ChargeTapPool is the number of permanents eligible to pay the declaration's tapXType obligation(s), measured BEFORE any attacker is declared -- the pool the obligation draws from. The engine plans the obligation with the declared attackers set aside, so a declaration that commits every candidate leaves the obligation unpayable; publishing the pool (with each option's Option.TapPoolCost) lets a rules-ignorant client see that in advance and lets ChargeTapPoolFit reject or repair such a declaration. It is published only when some offered pair carries a tapXType obligation whose candidates are a single readable shape, so every ordinary, tap-free declaration serialises byte-identically (0 = omitted = not published).",
+          "format": "int64",
+          "type": "integer"
+        },
+        "distinctTypePicks": {
+          "description": "DistinctTypePicks requires each picked card to be assigned a different matching ChangeValid alternative (DigMultiple). SetProps lists the alternatives each option satisfies, including overlapping types.",
+          "type": "boolean"
+        },
+        "groupLimit": {
+          "description": "GroupLimit caps how many options ONE Group may contribute to an answer: the sum of the picked options sharing a Group must not exceed it. It is the per-type pick count of Forge's EACH multi-type search grammar (\"EACH Forest & Plains\" with ChangeNum$ 2 finds two Forests and two Plainses), where one Group is one listed type and its cap is ChangeNum -- a cap the single-pick exclusivity rule cannot express. 0 or 1 reads as the ordinary at-most-one-per-Group rule, so every existing decision serialises byte-identically and validates unchanged. Validate is the rule's one home; FitRequired and botpolicy's Clamp derive the same cap from GroupCap, never a second copy.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "groupLimits": {
+          "additionalProperties": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": "GroupLimits maps a Group name to its own selection cap, overriding the decision-wide GroupLimit for that group. A per-defender attack ceiling (AttackRestrict's MaxAttackers$ scoped by ValidDefender$) is exactly this shape: each defended player is its own Group, and two such restrictions can cap different defenders differently, which one scalar GroupLimit cannot express. A group absent from the map, or mapped to a value below 2, falls back to GroupCap. GroupCapFor is the one reader, so Validate, FitRequired and botpolicy's repair cannot drift.",
+          "type": "object"
+        },
+        "kind": {
+          "$ref": "#/$defs/Kind"
+        },
+        "mana_payment": {
+          "$ref": "#/$defs/ManaPaymentWindow",
+          "description": "ManaPayment is present only on the announced CR 601.2g window (the \"select mana\" prompt, announce-then-pay spec §4.1): total cost, what is still owed, the pool and the Auto-fill sources. Absent everywhere else, so every other decision serialises byte-identically."
+        },
+        "max": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "maxSum": {
+          "description": "MaxSum, when > 0, is a cumulative budget over the chosen options' Value fields: the sum of the picked options' Value must not exceed MaxSum. The engine's first user is a Dig's WithTotalCMC$ (\"put any number of nonland permanent cards with total mana value 4 or less from among them\"), which Option.Group's exclusivity cannot express -- a group says \"not both of these\", a budget says \"not all of these\". Validate enforces it as one more wire contract, so a rules-ignorant client can grey out an unaffordable pick without summing anything itself. 0 (no budget) omits the field, so every existing decision serialises byte-identically.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "maxSum2": {
+          "description": "MaxSum2 and Budgeted2 are the independent second cumulative budget. Budgeted2 preserves a present zero or negative cap, just as Budgeted does.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "min": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "minSum": {
+          "description": "MinSum is the mirror of MaxSum: a cumulative FLOOR over the chosen options' Value fields -- the sum must REACH it, not stay under it. The engine's first user is the tap-cost election of a withTotalPowerGE<N> group predicate (Crew's \"tap any number of other untapped creatures you control with total power N or greater\", Mossbridge Troll's): Option.Value carries the candidate's current power, and the floor is the whole \"total power N or greater\" clause. Validate enforces it as one more wire contract, so a rules-ignorant client can grey out an unaffordable pick without learning what power is; FitRequired's repair derives the same floor from this field, never a second copy. Every corpus floor is >= 1, so 0 unambiguously reads as \"no floor\" and omits the field, keeping every existing decision byte-identical.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/Option"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "payer_life": {
+          "description": "PayerLife is the acting player's life total, published as the bound on a combat option's combined non-mana LIFE charge: the sum of the chosen options' CostLife plus each CostPhyrexian pip (priced at two life, CR 107.4f). It is the same kind of published rule input as MaxSum, and it exists because the combined charge is a WHOLE-declaration property the per-option list cannot express: a per-attacker state-based tax (Norn's Annex) offers every (attacker, defender) pair payable on its own, and only the sum overruns. Decision.requiredCore, RequiredQuota and FitRequired derive the charge-feasible required set from this one field, so the engine's declaration check and every client repair agree. 0 (omitted) means \"not published\" -- a player at 0 life has lost and cannot be asked, in the same way MaxSum 0 means \"no budget\" -- so every decision without a combat charge serialises byte-identically.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "payment_actions": {
+          "description": "PaymentActions is an additive, separately indexed cast-payment extension. Keeping it outside Options preserves every legacy priority choice index. It remains empty until payplan-04 publishes executable offers.",
+          "items": {
+            "$ref": "#/$defs/PaymentAction"
+          },
+          "type": "array"
+        },
+        "payment_fallback": {
+          "$ref": "#/$defs/PaymentFallback",
+          "description": "PaymentFallback is populated only if execution falls back to the normal manual payment window."
+        },
+        "player": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "repeatable": {
+          "description": "Repeatable relaxes Validate's no-duplicate-index rule: when true the SAME option index may be chosen more than once in one answer. It is set only by a modal (Charm) decision whose SA carries CanRepeatModes$ True -- CR 601.2b's \"you may choose the same mode more than once\" -- where the option list is the distinct modes and the answer is an ordered multiset of them. Every other decision keeps the strict rule. omitempty: a non-repeatable decision carries no field, so every existing payload serialises byte-identically.",
+          "type": "boolean"
+        },
+        "restable": {
+          "description": "Restable marks a KArrange ask whose answer MAY carry Intent.Rest -- the player-chosen order for pile B, the complement of the chosen set. Set only by the scry/surveil ask (effLookAndArrange), whose pile B can be non-empty AND observably ordered (CR 701.17's \"in any order\" for both piles). An ask without the flag still ACCEPTS a well-formed Rest (Validate's partition rule is kind-generic), but a client should not send one it was not offered -- for a Min == Max == N ask the only valid Rest is empty, so the flag is how a rules-ignorant client knows the second list exists. omitempty: every decision a client sees today serialises byte-identically.",
+          "type": "boolean"
+        },
+        "seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "source": {
+          "description": "Source names the object this decision resolves for -- the spell whose {X} is being chosen, the card whose \"as it enters\" choice is pending -- so a prompt can always name its source (survey #18) without the client guessing it from the option labels. omitempty mirrors Obj: an ObjID of 0 means \"no object\", so decisions that do not resolve for a specific object (priority, mulligan, trigger order) carry no field and today's payloads are unchanged for them.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "target_effect": {
+          "$ref": "#/$defs/TargetEffect",
+          "description": "TargetEffect is host-independent targeting context. It is absent on other decision kinds and on older servers; absent means unknown."
+        },
+        "window_reasons": {
+          "description": "WindowReasons is an opt-in diagnostic sidecar: the first gate that withheld each of this seat's candidates. Tokens only; never replay input. Nil when disabled, preserving every existing decision's bytes.",
+          "items": {
+            "$ref": "#/$defs/WindowReason"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "max",
+        "min",
+        "options",
+        "player",
+        "prompt",
+        "seq"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.Decision"
+    },
+    "DecisionBody": {
+      "description": "DecisionBody says who is being asked what; options come with the player seat (M2b), not here.",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "player": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "prompt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "player",
+        "prompt"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DecisionBody"
+    },
+    "DecisionFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/DecisionBody"
+            },
+            "t": {
+              "const": "decision"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Focus: who is being asked what (kind and prompt only). A seat reads the full decision from GET .../pending."
+    },
+    "DecisionKindGuide": {
+      "description": "The closed set of decision kinds (decision.Kinds; the generated `Kind` enum) and what each asks. An answer is always an Intent naming option indices; Decision.Validate is the one fence.\n\n| kind | min / max | options and answer |\n|---|---|---|\n| `priority` | 1 / 1 | One option per legal action (`play_land`, `cast`, `activate`, `ability`, ...) plus `pass` and `concede`. A `cast` option may be backed by `payment_actions` (auto-mana plans), answered with `payment`/`announce` instead of `choices`. |\n| `target` | per spell | One option per legal target (`player` or an object). `target_effect` describes what the targeting step does (damage, removal, granted statics). |\n| `attackers` | 0 / N | One `attacker` option per (creature, defender) pair; `player` is the defender seat, `battle` a permanent being attacked. Options sharing a `group` are mutually exclusive; `required` options must be included when they can be. |\n| `blockers` | 0 / N | One `block` option per (blocker, attacker) pair; `attacker` names the attacker; `group` keeps each blocker on one attacker; `min_blockers`/`max_blockers` bound an attacker's blocker count. |\n| `mulligan` | 1 / 1, or k / k | Keep phase: `keep` and (while a mulligan remains) `mulligan`. Bottom phase: one `bottom` option per card in hand, choose exactly as many as mulligans taken. |\n| `modes` | MinCharmNum / CharmNum | One `mode` option per mode, in printed order. Unless-pay asks use option `mode` `unless_pay` / `unless_decline`. |\n| `trigger_order` | N / N | A permutation of the controller's simultaneous triggers. `choices[0]` is put on the stack FIRST and so resolves LAST. |\n| `trigger_optional` | 1 / 1 | Exactly `yes` then `no`: put the optional trigger on the stack or not. |\n| `commander_zone` | 1 / 1 | Exactly `command_zone` then `leave`; asked of the commander's OWNER. |\n| `choose` | varies | One list pick; every option shares a kind naming what is chosen: `x` (with `amount`), `exile`, `sacrifice`, `discard`, `search`, `dig`, `name`, `type`, `number`, `yes`/`no`, `keep`, `dungeon`, `room`. |\n| `replacement` | 1 / 1 | Which applicable `replacement` applies next (`obj` is its source); also `mana` colour options and `apply`/`decline` for an optional replacement. |\n| `arrange` | varies | An ordered subset: chosen indices, in answer order, become pile A (index 0 ends closest to the top); the rest go to pile B, whose destination is the shared option kind (`bottom`, `graveyard`, `exile`, `hand`). `rest` may order pile B when `restable` is set. `hideaway_bottom`/`dig_bottom`: everything goes to the bottom, in answer order. |\n| `starting_player` | 1 / 1 | The toss winner picks who takes the first turn: one `player` option per living player. |",
+      "enum": [
+        "priority",
+        "target",
+        "attackers",
+        "blockers",
+        "mulligan",
+        "modes",
+        "trigger_order",
+        "trigger_optional",
+        "commander_zone",
+        "choose",
+        "replacement",
+        "arrange",
+        "starting_player"
+      ],
+      "type": "string"
+    },
+    "DeckCheck": {
+      "description": "DeckCheck is the deck-check reply: whether the submitted (or suggested) deck is legal, its total card count, the auto-land counts the builder would add to this main, and the revision a successful save produced.",
+      "properties": {
+        "auto_lands": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "type": "array"
+        },
+        "error": {
+          "type": "string"
+        },
+        "rev": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "total": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "valid": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "auto_lands",
+        "total",
+        "valid"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckCheck"
+    },
+    "DeckInfo": {
+      "description": "DeckInfo is one selectable deck loaded by the server. Format is the game format used by CreateGame (not free-form authoring metadata), so the client can filter the catalogue without reproducing the server's pool rules.",
+      "properties": {
+        "archetype": {
+          "type": "string"
+        },
+        "commander": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pool": {
+          "description": "Pool names the bot policy this deck is reserved for (\"\" for an ordinary deck). A reserved deck is dealt only to games against that policy, and that policy deals nothing else (server/gorged/azc3.go). A deck reserved for several policies (az-c3 and az-c4 sharing one deck directory, server/gorged/azclosed.go) names them all, comma-separated (JoinPools).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "archetype",
+        "format",
+        "id",
+        "name"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/host/httpapi.DeckInfo"
+    },
+    "DeckRecord": {
+      "description": "DeckRecord is one row of the public deck leaderboard (GET /api/stats/decks): aggregate counts for a deck name over finished bot-vs-bot games.",
+      "properties": {
+        "deck": {
+          "type": "string"
+        },
+        "draws": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "games": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "losses": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "win_rate": {
+          "type": "number"
+        },
+        "wins": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "deck",
+        "draws",
+        "games",
+        "losses",
+        "win_rate",
+        "wins"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckRecord"
+    },
+    "DeckRequest": {
+      "description": "DeckRequest is a seat's deck list: maindeck CardRef IDs from its own pool plus basic-land counts (W U B R G). It is also DeckPool's saved-deck and suggestion shape.",
+      "properties": {
+        "basics": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "type": "array"
+        },
+        "main": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "basics",
+        "main"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckRequest"
+    },
+    "DeckTally": {
+      "description": "DeckTally is the GET /api/stats/decks body.",
+      "properties": {
+        "decks": {
+          "items": {
+            "$ref": "#/$defs/DeckRecord"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "matches_counted": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "min_games": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "decks",
+        "matches_counted",
+        "min_games"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckTally"
+    },
+    "DraftCard": {
+      "description": "DraftCard is one card as a draft client sees it: the server-minted instance ID to answer a pick with, plus the printed facts it renders. Rarity is one letter: C U R M (mythic) L (special) S.",
+      "properties": {
+        "colors": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "mana_cost": {
+          "type": "string"
+        },
+        "mana_value": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "number": {
+          "type": "string"
+        },
+        "rarity": {
+          "type": "string"
+        },
+        "set": {
+          "type": "string"
+        },
+        "type_line": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "number",
+        "rarity",
+        "set"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DraftCard"
+    },
+    "DraftPack": {
+      "description": "DraftPack is the draft_pack body: the pack waiting at a seat's queue head and the pool it has drafted so far. Waiting means no pack is queued for this seat right now, so Pack and Pool carry their last-known (or empty) contents.",
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "pack": {
+          "items": {
+            "$ref": "#/$defs/DraftCard"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "pick_no": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "pool": {
+          "items": {
+            "$ref": "#/$defs/DraftCard"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "remaining_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "round": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "seat": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "time_limit_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "waiting": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "event",
+        "pack",
+        "pick_no",
+        "pool",
+        "round",
+        "seat",
+        "waiting"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DraftPack"
+    },
+    "DraftPackFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/DraftPack"
+            },
+            "t": {
+              "const": "draft_pack"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Draft events: the subscribing seat's current pack."
+    },
+    "DungeonView": {
+      "description": "DungeonView is the public projection of one active dungeon.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "room": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "room"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.DungeonView"
+    },
+    "ErrorBody": {
+      "description": "ErrorBody is every error reply and the error frame. Head is set only on a 409 \"seq beyond head\" reply: the last valid seq, so a client can clamp.",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "head": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ErrorBody"
+    },
+    "ErrorCode": {
+      "description": "The `code` values httpapi writes into ErrorBody (server/host/httpapi/errors.go, rest.go, handler.go). A draft-event backend may add its own codes.",
+      "enum": [
+        "bad_request",
+        "unauthorized",
+        "forbidden",
+        "not_found",
+        "method_not_allowed",
+        "conflict",
+        "beyond_head",
+        "internal"
+      ],
+      "type": "string",
+      "x-enum-descriptions": {
+        "bad_request": "400: malformed query parameter or JSON body, or a value the handler rejects (unknown format, mode, policy).",
+        "beyond_head": "409: seq/since past the head; `head` carries the last valid seq.",
+        "conflict": "409: the match is not in the state the request assumed: not live, not a human seat, nothing pending, or the intent is stale, for another player, out of range, duplicated or outside min/max. `message` is the engine's reason.",
+        "forbidden": "403: spectator-only server, or the claim is for another seat or table.",
+        "internal": "500: a bug or an I/O failure.",
+        "method_not_allowed": "405: known path, wrong method.",
+        "not_found": "404: unknown table, match, session or endpoint.",
+        "unauthorized": "401: a seat-scoped request without a seat claim."
+      }
+    },
+    "ErrorFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/ErrorBody"
+            },
+            "t": {
+              "const": "error"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Reserved error frame type (protocol.TError); the stream handler itself does not currently send it."
+    },
+    "Event": {
+      "description": "Event is events.Event for the wire: the same fields, with Kind, zones and step as their names. Zone and step names are set only for the kinds that carry them, so a Tap never reads as \"from library\". events.Event's own JSON is untouched — it is what the .events file holds.",
+      "properties": {
+        "amount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "counter": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        },
+        "ids": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "obj": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pairs": {
+          "items": {
+            "items": {
+              "maximum": 4294967295,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "player": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "secret": {
+          "type": "boolean"
+        },
+        "seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "step": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "player",
+        "seq"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Event"
+    },
+    "EventBody": {
+      "description": "EventBody is one redacted event with its transcript line.",
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/Event"
+        },
+        "line": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "event",
+        "line"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventBody"
+    },
+    "EventFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/EventBody"
+            },
+            "t": {
+              "const": "event"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Focus: one redacted event and its transcript line; `seq` is the event's seq."
+    },
+    "EventInvite": {
+      "description": "EventInvite is one seat's join token in a CreateEventResponse. Join is the tokenised event URL /e/{event}?seat=N&token=T.",
+      "properties": {
+        "join": {
+          "type": "string"
+        },
+        "seat": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "join",
+        "seat",
+        "token"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventInvite"
+    },
+    "EventLog": {
+      "description": "EventLog is the GET /api/events/{id}/log body: the event's log entries. Entries stay redacted until the event is COMPLETE (see event.LogFor).",
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "entries": {
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "event": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "complete",
+        "entries",
+        "event"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventLog"
+    },
+    "EventPersonas": {
+      "description": "EventPersonas is the GET /api/events/personas reply: the registered pickbot persona names, offered to a create body's Drafter fields.",
+      "properties": {
+        "builders": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "drafters": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "builders",
+        "drafters"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventPersonas"
+    },
+    "EventPool": {
+      "description": "EventPool is the GET /api/events/{id}/pool body: the seat's drafted cards, its latest saved deck revision (nil before the first save), whether the seat has readied, and the bot builder's suggested deck for this pool. Playing is, in a round, the deck the seat plays or last played in its series, with PlayingRev naming its revision.",
+      "properties": {
+        "deck": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeckRequest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event": {
+          "type": "string"
+        },
+        "playing": {
+          "$ref": "#/$defs/DeckRequest"
+        },
+        "playing_rev": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "pool": {
+          "items": {
+            "$ref": "#/$defs/DraftCard"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "rev": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "seat": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "suggestion": {
+          "$ref": "#/$defs/DeckRequest"
+        }
+      },
+      "required": [
+        "deck",
+        "event",
+        "pool",
+        "ready",
+        "rev",
+        "seat",
+        "suggestion"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventPool"
+    },
+    "EventSeat": {
+      "description": "EventSeat is one entrant of a draft event. Kind is \"human\" or \"bot\"; Policy and Drafter name a bot seat's game policy and pickbot persona. Picks is the public count of cards drafted so far, never the cards.",
+      "properties": {
+        "drafter": {
+          "type": "string"
+        },
+        "joined": {
+          "type": "boolean"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "picks": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "seat": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "joined",
+        "kind",
+        "name",
+        "picks",
+        "ready",
+        "seat"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventSeat"
+    },
+    "EventSeries": {
+      "description": "EventSeries is one pairing of an event round. State is \"pending\", \"live\", \"between\" or \"ended\" — \"between\" names the sideboarding step between two games of a series (E3-3). Table names the live (or last) game's host table, so a spectator can watch at /t/{table}; Attempt is the game attempt in flight. Game is the live game, or the next one while between. Games is the winner seat per played game (-1 for a draw); Chooser names the event seat choosing play/draw for Game; Waiting lists the seats still to submit their deck while between. Winner is nil while the series is not ended and for a drawn series. Join appears only in the viewer's own state: the seat-tokenised spectate URL for that seat's side of the live game.",
+      "properties": {
+        "a": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "attempt": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "b": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "best_of": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "chooser": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "game": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "games": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "join": {
+          "type": "string"
+        },
+        "round": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "score": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "waiting": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "winner": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "best_of",
+        "round",
+        "score",
+        "state",
+        "winner"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventSeries"
+    },
+    "EventSetInfo": {
+      "description": "EventSetInfo is one draftable set as GET /api/events/sets reports it. Ratings is the rating source the pickbot uses for it: \"17lands\" when a ratings manifest exists, \"heuristic\" otherwise.",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pack_size": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "ratings": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "name",
+        "pack_size",
+        "ratings"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventSetInfo"
+    },
+    "EventStanding": {
+      "description": "EventStanding is one row of the event standings: MTR Appendix C points and match/game win percentages.",
+      "properties": {
+        "gw": {
+          "type": "number"
+        },
+        "mw": {
+          "type": "number"
+        },
+        "ogw": {
+          "type": "number"
+        },
+        "omw": {
+          "type": "number"
+        },
+        "points": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "seat": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "gw",
+        "mw",
+        "ogw",
+        "omw",
+        "points",
+        "seat"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventStanding"
+    },
+    "EventState": {
+      "description": "EventState is the full public draft-event state, the event_state body. You is the viewer's seat when a valid seat token was presented, nil for a spectator. Series lists every pairing of rounds 1..3 in round then pairing order. Error carries a human-readable problem with the event's progress (a crashed game attempt that could not be rescheduled), never a request-validation message.",
+      "properties": {
+        "best_of": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "event": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "pick_timer": {
+          "type": "string"
+        },
+        "round": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "seats": {
+          "items": {
+            "$ref": "#/$defs/EventSeat"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "series": {
+          "items": {
+            "$ref": "#/$defs/EventSeries"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "set": {
+          "type": "string"
+        },
+        "standings": {
+          "items": {
+            "$ref": "#/$defs/EventStanding"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "you": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "best_of",
+        "event",
+        "phase",
+        "round",
+        "seats",
+        "series",
+        "set",
+        "standings",
+        "you"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventState"
+    },
+    "EventStateFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/EventState"
+            },
+            "t": {
+              "const": "event_state"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Draft events: an event's state changed (sent through POST /api/events/{id}/subscribe)."
+    },
+    "EventSubscribe": {
+      "description": "EventSubscribe is the POST /api/events/{id}/subscribe body: the session id the client echoes, opening its event SSE stream.",
+      "properties": {
+        "session": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "session"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventSubscribe"
+    },
+    "FeedbackCreated": {
+      "properties": {
+        "id": {
+          "description": "The report id: a UTC timestamp and a random suffix; the report is stored under <feedback dir>/<id>/.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "Frame": {
+      "description": "Frame is the envelope. ID is the session-wide frame counter and the SSE id; 0 means \"not resumable\" (widgets). Table/Match/Seq locate the body in a match's chain: Seq is the engine's own event sequence, the number the hash chain covers.",
+      "properties": {
+        "body": {},
+        "id": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "match": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "t": {
+          "$ref": "#/$defs/FrameType"
+        },
+        "table": {
+          "type": "string"
+        },
+        "v": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "body",
+        "seq",
+        "t",
+        "v"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Frame"
+    },
+    "FrameType": {
+      "description": "FrameType is the envelope's discriminator.",
+      "enum": [
+        "event_state",
+        "draft_pack",
+        "pod_progress",
+        "series_update",
+        "hello",
+        "widget",
+        "match_start",
+        "snapshot",
+        "event",
+        "decision",
+        "match_end",
+        "table_halted",
+        "table_state",
+        "overflow",
+        "error",
+        "rewind"
+      ],
+      "type": "string",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.FrameType"
+    },
+    "Hello": {
+      "description": "Hello opens every stream: the session id the client echoes in POSTs and the table list as of now.",
+      "properties": {
+        "session": {
+          "type": "string"
+        },
+        "tables": {
+          "items": {
+            "$ref": "#/$defs/TableInfo"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "session",
+        "tables"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Hello"
+    },
+    "HelloFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/Hello"
+            },
+            "t": {
+              "const": "hello"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "First frame of a fresh session (no SSE id): the session id to send in subscribe/unsubscribe, and every table."
+    },
+    "Intent": {
+      "description": "Intent is a client's answer.",
+      "properties": {
+        "announce": {
+          "$ref": "#/$defs/AnnounceSelection",
+          "description": "Announce begins an offered payment action's cast without a witness, so the caster pays in the CR 601.2g window (announce-then-pay spec §3). It is exclusive with Choices, Rest and Payment."
+        },
+        "choices": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "payment": {
+          "$ref": "#/$defs/PaymentSelection",
+          "description": "Payment selects an offered payment action and exact plan witness. It is exclusive with Choices and Rest."
+        },
+        "player": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rest": {
+          "description": "Rest is the answer's order for the COMPLEMENT of Choices — the second ordered list a KArrange answer may carry (the pile-B order): the options the player did not choose, in the order the player wants them, where \"where they go\" is still the decision's shared Option.Kind (bottom, graveyard, ...). Absent or empty means the legacy contract: the complement is taken in the order the options were OFFERED. The two lists together must be a partition of the offered options -- Rest's indices are in range, distinct, disjoint from Choices, and len(Rest) == len(Options) - len(Choices) -- which Decision.Validate enforces (one rule, one home: validateRest). Every non-arrange kind rejects a non-empty Rest outright. omitempty: every intent a client sends today serialises byte-identically, and a recorded intent's Rest rides the log and replays exactly (Ruling P2 submits intents as logged).",
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "choices",
+        "player",
+        "seq"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.Intent"
+    },
+    "JoinEventRequest": {
+      "description": "JoinEventRequest is the POST /api/events/{id}/join body: the joining human's display name.",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.JoinEventRequest"
+    },
+    "Kind": {
+      "enum": [
+        "priority",
+        "target",
+        "attackers",
+        "blockers",
+        "mulligan",
+        "modes",
+        "trigger_order",
+        "trigger_optional",
+        "commander_zone",
+        "choose",
+        "replacement",
+        "arrange",
+        "starting_player"
+      ],
+      "type": "string",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.Kind"
+    },
+    "ManaPaymentWindow": {
+      "description": "ManaPaymentWindow is the announced CR 601.2g window's readout (spec §4.1): the spell being paid for, its total mana cost, what the floating pool does not yet cover, the pool itself, and the sources Auto-fill would activate. It is present only on that window, so every other decision serialises byte-identically.",
+      "properties": {
+        "autofill": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "card": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "cost": {
+          "$ref": "#/$defs/PaymentCost"
+        },
+        "owed": {
+          "$ref": "#/$defs/PaymentCost"
+        },
+        "pool": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        }
+      },
+      "required": [
+        "card",
+        "cost",
+        "owed",
+        "pool"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.ManaPaymentWindow"
+    },
+    "ManaProduction": {
+      "description": "ManaProduction is a face's mana-production capability summary, expressed as plain data so any later package (view, botpolicy, the seat adapter) can carry it without importing a package to its right. It is derived from the face's own abilities -- never from land subtypes. A face with several mana abilities lists their possible production here; rules selects exactly one when a shared tap cost is paid (engine/rules/mana_activation.go).",
+      "properties": {
+        "any": {
+          "type": "boolean"
+        },
+        "colour": {
+          "items": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        }
+      },
+      "required": [
+        "any",
+        "colour"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/cards.ManaProduction"
+    },
+    "Manifest": {
+      "description": "Manifest is the immutable, unordered genesis list assigned to one seat. Call Clone before publishing or retaining it outside its owner.",
+      "properties": {
+        "archetype": {
+          "description": "Archetype is the deck's authoring archetype (File.Archetype), carried so the seat's own prior survives into the projection the bot reads as view.View.OwnDeck. Empty for a deck file that declares none, which marshals away (omitempty) and preserves the pre-field wire shape.",
+          "type": "string"
+        },
+        "commanders": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "curve": {
+          "description": "Curve is the derived mana curve over Main (CurveOf): one row per front-face CMC in ascending order, each carrying the copies at that cost. Derived observation data like the rows themselves, not game state.",
+          "items": {
+            "$ref": "#/$defs/CurveRow"
+          },
+          "type": "array"
+        },
+        "main": {
+          "items": {
+            "$ref": "#/$defs/ManifestRow"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "sideboard": {
+          "items": {
+            "$ref": "#/$defs/ManifestRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "main",
+        "name"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/deck.Manifest"
+    },
+    "ManifestRow": {
+      "description": "ManifestRow is one canonical card-name/count pair in an own-deck manifest. Land is whether the card's FRONT face is a land: the face every card in a library presents (CR 711.2/712.2 -- a double-faced card has only its front face's characteristics outside the stack and battlefield), so it is the land/nonland split of whatever copies remain in the library (LibraryComposition). A printed card fact of the seat's own list, not game state; omitted from the wire when false.",
+      "properties": {
+        "count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "land": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "name"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/deck.ManifestRow"
+    },
+    "MatchEnd": {
+      "description": "MatchEnd closes a match: Result is \"win\" or \"draw\"; Winner is null for a draw; Head is the chain head the .events file replays to.",
+      "properties": {
+        "head": {
+          "type": "string"
+        },
+        "result": {
+          "type": "string"
+        },
+        "winner": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "head",
+        "result",
+        "winner"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.MatchEnd"
+    },
+    "MatchEndFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/MatchEnd"
+            },
+            "t": {
+              "const": "match_end"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "A match ended (both modes): result, winner, chain head."
+    },
+    "MatchInfo": {
+      "description": "MatchInfo is one row of a table's match list, from its sidecar.",
+      "properties": {
+        "bot_policy": {
+          "type": "string"
+        },
+        "events": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "head": {
+          "type": "string"
+        },
+        "match": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "result": {
+          "type": "string"
+        },
+        "seats": {
+          "items": {
+            "$ref": "#/$defs/SeatInfo"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "seed": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "turns": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "winner": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "bot_policy",
+        "events",
+        "match",
+        "seats",
+        "seed",
+        "state",
+        "table",
+        "turns",
+        "winner"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.MatchInfo"
+    },
+    "MatchStart": {
+      "description": "MatchStart announces match k on a subscribed table.",
+      "properties": {
+        "bot_policy": {
+          "type": "string"
+        },
+        "seats": {
+          "items": {
+            "$ref": "#/$defs/SeatInfo"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "seed": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "spectator": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bot_policy",
+        "seats",
+        "seed",
+        "spectator"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.MatchStart"
+    },
+    "MatchStartFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/MatchStart"
+            },
+            "t": {
+              "const": "match_start"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "A match began on a subscribed table (both modes)."
+    },
+    "Option": {
+      "description": "Option is one legal choice. Obj and Player are echoed only so a client can highlight the object; selection is by Index.",
+      "properties": {
+        "ability": {
+          "description": "Ability anchors an \"ability\" option to its exact activated ability: the index into the source Face().Abilities being offered (Task 10), so a client can pop that ability's own text up beside the right ability on the card. The engine reads it in beginActivation, where a stale index degrades to a no-op. omitempty: options that are not ability options carry no field, and on an ability option a missing field is index 0 (the first ability), the one value that omits.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "alt_cost_index": {
+          "description": "AltCostIndex says which cost a \"cast\" option pays: 0 is the card's own (RaiseCost/ReduceCost-adjusted) cost, i+1 is alternativeCosts(p, id)[i] -- an AlternativeCost static's cost instead -- so a client can show which of several costs the option pays. An \"ability\" option uses the same field for the same purpose: 0 is the ability's printed Cost$, 1 is its own AlternateCost$ rider (engine/rules/activate.go's abilityAlternateCost, the K:Equip expansion's fourth colon field), so an equip offering its alternate cost is distinguishable from the printed-cost option without parsing the label. omitempty mirrors Obj: an option paying the card's own cost (the common case, and the default every other Option literal in the tree relies on) carries no field, so today's payloads are unchanged for it.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "amount": {
+          "description": "Amount is the X value an \"x\" choose option represents. The option's Index is its position in the list, not its value (see engine/rules/cast.go's xAsk), so without this field a client could not tell \"X = 4\" from \"X = 1\" without rereading the label. omitempty: only x options carry it, and on an x option a missing field is exactly X = 0 (the one value that omits), which the option's own label \"X = 0\" already shows.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "attacker": {
+          "description": "Attacker tells a block option's client which attacker this blocker would block, so a human can see the pairing an in-process bot already can (the declare-blockers step is otherwise guessing). omitempty mirrors Obj: an ObjID of 0 means \"no object\", so an option that has no attacker (any non-block option) emits no field.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "battle": {
+          "description": "Battle, on an attacker option, names the non-player permanent being attacked -- a CR 310.7 battle or a planeswalker -- 0 meaning a player attack. Obj is the attacking creature and Player is the permanent's seat (the battle's protector, or the planeswalker's controller), so the pair alone cannot tell a permanent attack from a player attack by the same creature; this field is what the engine reads back at declaration time to record Object.AttackingBattle. omitempty: a player attack emits no field, so every existing option list serialises byte-identically.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "cost": {
+          "description": "Cost is the activation cost of a priority-window \"activate\" option whose mana ability costs MORE than a bare tap, in the same whitespace-delimited Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over ParseCost of the ability's Cost$ param) — \"T Sac<1/Lion's Eye Diamond>\" for Lion's Eye Diamond, \"T PayLife<1>\" for Mana Confluence. It is the wire marker the client's empty-priority-window floor and auto-pass need (fb-20260917T192520Z-26136705): isActionKind excludes every \"activate\" because a bare tap is offered at every window and is not a play, but a costly activation is exactly the play a ritual-combo deck needs the window for, and an empty hand leaves it the window's ONLY action — the floor passed it away unseen, and the card was unreachable for the rest of the game. A bare tap (every plain land) omits the field, so every existing option list and every plain-land window serialises byte-identically. omitempty: only a beyond-tap activation carries it.",
+          "type": "string"
+        },
+        "cost_life": {
+          "description": "CostLife is a block option's non-mana life component (CR 509.1b): the life the defender pays for declaring this block, beside Value's mana (the MaxSum budget's currency). A rules-ignorant client sums it against the defender's life total the same way. omitempty: an uncharged option emits no field, so every ordinary option list serialises byte-identically.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "cost_phyrexian": {
+          "description": "CostPhyrexian is the number of Phyrexian pips a combat option's charge carries ({W/P} and friends, CR 107.4f): each pip is payable with one mana of its colour OR two life. The wire publishes the pip COUNT, not the colour below it -- a rules-ignorant client cannot see whether the colour branch is reachable, so it prices the life branch (two per pip) against the acting player's life total, exactly as it prices CostLife. omitempty as CostLife.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "cost_taps": {
+          "description": "CostTaps is a block option's total tapXType obligation: how many permanents declaring this block taps. The engine resolves the exact permanents deterministically (rules' blockTapPlan), so a client that cannot see the eligible pool -- the shipped bot policy included -- treats a positive value as an obligation it cannot verify and declines the option rather than submit a declaration the validator may reject. omitempty as CostLife.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "counter": {
+          "description": "Counter identifies the counter kind for wildcard counter-removal costs. It is omitted for choices that do not select a counter kind.",
+          "type": "string"
+        },
+        "group": {
+          "description": "Group is an exclusivity marker: two options carrying the SAME non-empty Group are mutually exclusive, and at most one of them may be selected in a single answer. The whole contract is that sentence -- it says nothing about blockers, creatures or combat, which is exactly so a rules-ignorant client may enforce it without learning any rules. A client that sees the player pick an option whose Group is already represented in the picked set naturally REPLACES the previously picked option from that group (moving a blocker from one attacker to another should just work) rather than refusing the click. No two options of one Group may be selected together, which Decision.Validate enforces as a general rule.",
+          "type": "string"
+        },
+        "index": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "keyword": {
+          "description": "Keyword anchors an \"ability\" option whose body a DERIVED keyword line grants (CR 613.1f): a layer-6 `AddKeyword$ Cycling:1 U` / `AddKeyword$ TypeCycling:Sliver:3` static (Tectonic Reformation, Rhet-Tomb Mystic, Jo Grant, Homing Sliver) gives a hand card a cycling ability no printed face carries, so neither the Ability index nor the SVar name anchors it -- the option carries the keyword line itself (\"Cycling:1 U\"), which beginActivation synthesizes the ability body from, exactly the SVar-anchor shape with the line standing in for the name. omitempty: only keyword-granted options carry it, so every existing option list serialises byte-identically.",
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "mana_symbol": {
+          "description": "ManaSymbol is the exact mana symbol selected by a colour option. Labels remain presentation-only; omitempty keeps unrelated options unchanged.",
+          "type": "string"
+        },
+        "max_blockers": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "min_blockers": {
+          "description": "MinBlockers/MaxBlockers are the CR 509.1a MinMaxBlocker bounds on the ATTACKER this block option names (Min$ N: the attacker can be blocked only by 0 or at least N creatures; Max$ N: by at most N; both set) together for Min$ All, where the attacker must be blocked by every legal blocker). They exist for the same reason Required does: the engine REJECTS a whole-declaration count outside the bounds (combat.ValidateMinMaxBlockers), so a rules-ignorant client -- the bot policy included -- needs the bound on the wire to answer legally. Both are omitted for an unbounded attacker, so every ordinary option list serialises byte-identically.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "Mode distinguishes a \"cast\" option's payment kind: \"\" the card's own cost, \"kicked\", \"surged\", \"flashback\", \"miracle\" -- what the engine reads in beginCast's switch. A client renders a kicked/surged/ flashback/miracle cast differently from an ordinary one instead of parsing the label for a keyword. omitempty: an ordinary cast (Mode \"\") carries no field.",
+          "type": "string"
+        },
+        "obj": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "player": {
+          "description": "Player is always emitted because 0 is a valid seat (0-indexed), unlike Obj where 0 means \"no object\".",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "required": {
+          "description": "Required marks an attacker option whose creature MUST attack this combat (CR 508.1d): a goaded creature (CR 701.38) or one under an unconditional MustAttack static. A rules-ignorant client needs the flag because the engine REJECTS a declaration that omits a required creature it could have included (validateAttackDeclaration) -- an omission that looks legal on the wire otherwise. omitempty: a non-required option emits no field, so every existing option list serialises byte-identically.",
+          "type": "boolean"
+        },
+        "svar": {
+          "description": "SVar anchors a \"granted\" option (engine/rules/speed.go, the kw:Start your engines max-speed static's AddAbility$): the SVar name on the source face whose AB the activation resolves through. A granted ability is not a Face().Abilities index (the ordinary \"ability\" anchor), so it carries the name instead; beginGrantedActivation re-resolves it, so a stale name degrades to a no-op. omitempty: only granted options carry it.",
+          "type": "string"
+        },
+        "tap_pool_cost": {
+          "description": "TapPoolCost is the declaration-dependent half of a tapXType obligation: how many of the decision's published tap-candidate pool (Decision.ChargeTapPool) this option's permanent would occupy if chosen. A selected attacker that matches the obligation's spec is excluded from the pool the engine plans the obligation against (Hollow Warrior's tapXType<1/Creature.!attacking>), so a declaration can consume the very candidates its own tap obligation needs. The per-option CostTaps alone cannot express this -- the excluded candidate is the SELECTED creature, not the charging one -- so the option publishes its own pool cost and the shared rule (ChargeTapPoolFit) compares the pool the declaration leaves with the obligations it owes. 0 (omitted) means this option does not consume a published pool candidate, so every ordinary option list serialises byte-identically.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "target_hints": {
+          "description": "TargetHints is the engine's opt-in hint for a cast or activation whose first targeting step is a hostile effect: own and opponent legal-target counts (see TargetHints). Information only; built by Engine.EnsureTargetHints for seats that ask. omitempty: absent for every option otherwise, so existing option lists serialise byte-identically.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "value": {
+          "description": "Value is the option's price under a decision carrying a cumulative budget (Decision.MaxSum): a Dig's WithTotalCMC$ cap sums the mana values of the picked cards, so each offered card names its own mana value here -- what lets Decision.Validate enforce \"total mana value <= N\" over the chosen set without learning what a card is. Zero (mana value 0, or a decision with no budget) omits the field, so every existing option list serialises byte-identically.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "value2": {
+          "description": "Value2 is the option's price under the decision's second cumulative budget (Decision.MaxSum2).",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "kind",
+        "label",
+        "player"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.Option"
+    },
+    "Overflow": {
+      "description": "Overflow is the last frame on a stream whose session channel filled.",
+      "properties": {
+        "dropped": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "dropped"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Overflow"
+    },
+    "OverflowFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/Overflow"
+            },
+            "t": {
+              "const": "overflow"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Last frame of a session whose outbound buffer filled; the stream then closes and the client must reconnect without Last-Event-ID."
+    },
+    "PaymentAbility": {
+      "description": "PaymentAbility is a stable source ability discriminator. Printed abilities use the card face and its printed ability index. Intrinsic abilities use a frozen name (for example \"basic_land\"); they never use a transient offered option index. Fields outside the selected discriminator must be zero.",
+      "properties": {
+        "face": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "index": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "intrinsic": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentAbility"
+    },
+    "PaymentAction": {
+      "description": "PaymentAction is an additive priority-decision action. BaseOptionIndex is absent when floating mana is required before the cast becomes a legacy option, preserving the existing option list and its indices.",
+      "properties": {
+        "base_option_index": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "cast": {
+          "$ref": "#/$defs/PlannedCast"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "plans": {
+          "items": {
+            "$ref": "#/$defs/PaymentPlan"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "target_hints": {
+          "description": "TargetHints is the same opt-in hint Option.TargetHints carries, for the action's card: set by Engine.EnsureTargetHints, including for an action with no base option (a floating-mana plan) that no Option can carry it for. omitempty: absent unless the seat asked for hints.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cast",
+        "id",
+        "label",
+        "plans"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentAction"
+    },
+    "PaymentActivation": {
+      "description": "PaymentActivation is one source activation authorized by a plan. Consequence is present exactly on a last-resort step (spec §3.2, §4): it discloses what the activation costs beyond the tap, and it is part of the witness, so validation compares it and the plan identity binds it.",
+      "properties": {
+        "ability": {
+          "$ref": "#/$defs/PaymentAbility"
+        },
+        "consequence": {
+          "$ref": "#/$defs/PaymentConsequence"
+        },
+        "produces": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        },
+        "source": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "source_zone_seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ability",
+        "produces",
+        "source",
+        "source_zone_seq"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentActivation"
+    },
+    "PaymentConsequence": {
+      "description": "PaymentConsequence is a last-resort step's disclosed consequence. A present consequence sets at least one field, so \"absent\" and \"nothing\" have exactly one spelling (nil). Clients derive \"needs confirmation\" from Life > 0.",
+      "properties": {
+        "damage": {
+          "description": "Damage is damage the source deals to its controller.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "life": {
+          "description": "Life is life paid as a cost (PayLife<N>).",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "no_untap": {
+          "description": "NoUntap: the source doesn't untap during its controller's untap step.",
+          "type": "boolean"
+        },
+        "return_to_hand": {
+          "description": "ReturnToHand: the source returns to its owner's hand.",
+          "type": "boolean"
+        },
+        "sacrifice": {
+          "description": "Sacrifice: the source itself is sacrificed as part of the cost.",
+          "type": "boolean"
+        }
+      },
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentConsequence"
+    },
+    "PaymentCost": {
+      "description": "PaymentCost is the resolved mana requirement. Generic is deliberately separate from true colourless (Mana[5]).",
+      "properties": {
+        "generic": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "mana": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        }
+      },
+      "required": [
+        "generic",
+        "mana"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentCost"
+    },
+    "PaymentFallback": {
+      "description": "PaymentFallback explains why an accepted plan returned to the ordinary manual payment flow. Execution publishes it in a later ticket.",
+      "properties": {
+        "plan_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "reason"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentFallback"
+    },
+    "PaymentPlan": {
+      "description": "PaymentPlan is a complete V1 execution witness. PoolSpend records which pre-existing mana units pay the cast; PoolAfter records the expected pool after activations and payment, and is independently revalidated by rules.",
+      "properties": {
+        "activations": {
+          "items": {
+            "$ref": "#/$defs/PaymentActivation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cost": {
+          "$ref": "#/$defs/PaymentCost"
+        },
+        "id": {
+          "type": "string"
+        },
+        "pool_after": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        },
+        "pool_spend": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "type": "array"
+        },
+        "version": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "activations",
+        "cost",
+        "id",
+        "pool_after",
+        "pool_spend",
+        "version"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentPlan"
+    },
+    "PaymentSelection": {
+      "description": "PaymentSelection is the exclusive intent selector for an offered action and its complete, byte-for-byte equivalent plan witness.",
+      "properties": {
+        "action_id": {
+          "type": "string"
+        },
+        "plan": {
+          "$ref": "#/$defs/PaymentPlan"
+        }
+      },
+      "required": [
+        "action_id",
+        "plan"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentSelection"
+    },
+    "PendingView": {
+      "description": "PendingView is a trigger that will hit the stack once its controller has ordered it / its decider has accepted it. R3.",
+      "properties": {
+        "controller": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "decider": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "label": {
+          "type": "string"
+        },
+        "optional": {
+          "type": "boolean"
+        },
+        "source": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "controller",
+        "label",
+        "optional",
+        "source"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.PendingView"
+    },
+    "PickRequest": {
+      "description": "PickRequest is the POST /api/events/{id}/pick body: which card instance the seat takes from the pack at its queue head. Round and PickNo are compared against server state; a stale answer is a 409.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "pick_no": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "round": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "pick_no",
+        "round"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.PickRequest"
+    },
+    "PlannedCast": {
+      "description": "PlannedCast is the exact cast identity a payment action authorizes.",
+      "properties": {
+        "face": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "object": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "origin": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "face",
+        "object",
+        "origin"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PlannedCast"
+    },
+    "PlayerView": {
+      "description": "PlayerView is one seat's own public state, plus (only when this is the viewer's own seat) the private parts.",
+      "properties": {
+        "archetype": {
+          "$ref": "#/$defs/ArchetypePosterior",
+          "description": "Archetype is a posterior over this seat's deck archetype, inferred from the cards REVEALED about it (its public battlefield, graveyard, exile and command-zone lists). It is filled for every seat EXCEPT the viewer's own -- the fact is an OPPONENT archetype posterior, and a seat's own deck identity is the manifest's job (deck.File.Archetype), not something to re-infer. It is nil when the viewer is a spectator or nothing classifiable has been revealed yet, and it never reads a hidden zone (a hidden hand is not a CardView at all) or a card name. Like Available it carries omitempty so a view with no posterior serialises byte-identically to before the field existed."
+        },
+        "available": {
+          "additionalProperties": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "description": "Available is what this player could produce right now by tapping untapped permanents' free-to-tap mana abilities — the \"free mana one gains by tapping lands or other effects\" half of the seat box's line 3. It is derived from the battlefield (public), so it is filled for every seat under every visibility (seat, public, omniscient), never gated on \"is this the viewer's own seat\". It is always non-nil, even when empty (\"{}\"), like Pool. It is separate from Pool on purpose — a reader must never mistake mana that could be tapped for mana already floating. It carries omitempty (so an empty availability is absent, never a JSON null): Available is a public quantity that is only ever present-when- nonzero. Pool, in contrast, carries no omitempty and is always present as an object. This mirrors the sibling CmdDamage field, another public per-player map that is omitted when zero rather than sent as {}.",
+          "type": "object"
+        },
+        "battlefield": {
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cmd_damage": {
+          "additionalProperties": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "description": "CmdDamage is the commander damage this player has taken (CR 903.10), keyed by each commander's object id -- the 21-damage clock, public for every seat like a life total. nil/absent when the player has taken no commander damage (omitempty: absence is zero), so a Constructed game never pays for a per-player empty map.",
+          "type": "object"
+        },
+        "command": {
+          "description": "Command is the command zone (CR 903.6): the player's commanders currently sitting there, in zone order. A commander leaves it when it is cast (the object itself moves; its id is stable), so Command is the ever-shrinking subset of Commanders that can still be cast from the command zone under the CR 903.8 tax. Public for every seat -- ZCommand is not a hidden zone, and commander identity is open information.",
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "commander_casts": {
+          "description": "CommanderCasts runs parallel to Commanders: entry k is how many times Commanders[k] has been cast from the command zone, the CR 903.8 tax base for its next command-zone cast (an additional {2} per prior cast). Public for every seat -- the count is derived from public events.",
+          "items": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "commanders": {
+          "description": "Commanders is the player's full commander roster -- the same list m30's genesis built, in the same order, never shrunk as commanders are cast or die. A roster CardView projects the commander's CURRENT zone's state (a cast commander is a battlefield object, a dead one a graveyard object), so the roster is what lets a client -- and the bot policy's view-shaped half -- tell that a battlefield creature is a commander (the CR 903.10 clock's subject) even when it has left the command zone and not yet dealt damage. Public for every seat: the identity of a player's commanders is the premise of the format.",
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "completed_dungeons": {
+          "description": "CompletedDungeons is the number of dungeons this seat has completed.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "counters": {
+          "additionalProperties": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "description": "Counters are the player's own counters by kind (poison, energy, experience, ...; state.Player.Counters). Public like the life total; omitted when the seat holds none, so a view without player counters serialises byte-identically to before this field existed.",
+          "type": "object"
+        },
+        "dungeon": {
+          "$ref": "#/$defs/DungeonView",
+          "description": "Dungeon is this player's active public dungeon and venture room."
+        },
+        "exile": {
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "graveyard": {
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "graveyard_size": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "hand": {
+          "description": "Hand is nil (marshalling to a literal JSON null, not an omitted key -- it deliberately carries no \"omitempty\" tag) for every seat but the viewer's own, whose Hand is always non-nil even when empty (\"[]\"). omitempty cannot express \"present but possibly empty\": with it, the viewer's own EMPTY hand would have marshalled identically to another seat's HIDDEN one (the key simply missing either way), which is exactly the ambiguity this type exists to avoid everywhere else (Winner's own *PlayerID is the same shaped fix). null-vs-[] is what a client checks instead. Hand is a hidden zone under CR 400.2 and is gated on \"is this the viewer's own seat\", widened by CR 720.4 to a seat the viewer controls (you may look at all cards that player could see), unlike Pool (next field), which is public.",
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "hand_size": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "has_initiative": {
+          "description": "HasInitiative is the CR 726.1 initiative designation: true for the one player who currently has it. Public for every seat -- like the monarch, the designation is open information and drives attacking decisions. It carries omitempty so a match with no initiative (the common case) serialises byte-identically to before this field existed; an absent key means \"this seat does not have the initiative\", the Available convention.",
+          "type": "boolean"
+        },
+        "land_drop_spent": {
+          "description": "LandDropSpent is true when the seat may not play another land this turn by the land-drop count alone (lands played this turn has reached the allowance, Exploration-style extras included): the negation of MageZero's CanPlayLand, stated this way so the ordinary state -- a land still playable -- is the omitted zero. Timing (whose turn, which step, the stack) is deliberately not folded in: the fact is the count's.",
+          "type": "boolean"
+        },
+        "library": {
+          "description": "Library is the viewer's own library as an UNORDERED list of cards: the contents a human knows about their own deck, without the secret order CR 400.2 hides from every player (including its owner, who may not reorder or inspect it). It is sorted into a canonical order (by card name, then object id) that is a pure function of the CONTENTS, so it never preserves and never leaks the library's actual order. Like Hand it is a CR 400.2 hidden zone and is filled only for the viewer's own seat (widened by CR 720.4 to a seat the viewer controls); for every other seat it is nil and omitted from the wire, and a spectator never matches the gate. LibrarySize (an int) and LibraryTop (one card, gated on a MayLookAt grant) are not it.",
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": "array"
+        },
+        "library_size": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "library_top": {
+          "$ref": "#/$defs/CardView",
+          "description": "LibraryTop is the player's own library's top card, revealed only when a live Continuous MayLookAt grant covers it (Oracle of Mul Daya's \"play with the top card of your library revealed\") and only to that player's own seat -- the CR 400.2 hidden-zone redaction the Hand field documents applies to it in full. nil (an omitted JSON key) for every other seat and whenever no grant is live."
+        },
+        "life": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "life_gained_this_turn": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "life_lost_this_turn": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "lost": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "planar_deck": {
+          "items": {
+            "$ref": "#/$defs/CardView"
+          },
+          "type": "array"
+        },
+        "pool": {
+          "additionalProperties": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "description": "Pool is the mana currently floating in this player's pool. It is PUBLIC information under the CR: a mana pool is not one of the seven zones in CR 400.1 and holds no cards, so CR 400.2's hidden-zone framework (library and hand) has no purchase on it; instead CR 106.4a, 106.4b, 117.3d and 118.3a all require a player to ANNOUNCE what is in their pool, an obligation that is incoherent for information meant to be hidden. So Pool is projected for every seat under every visibility (seat, public, omniscient), like Available. It is always non-nil, even when empty (\"{}\"), because there is no longer a hidden state to distinguish: an empty pool is simply \"{}\". The field carries no omitempty, so it is always present even when zero -- the one wire distinction it keeps against Available (which carries omitempty and is absent when nothing is available).",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "pool_restrictions": {
+          "description": "PoolRestrictions annotates Pool: one entry per batch of floating mana whose producing ability carried a RestrictValid$ spend limit, naming the colour, the amount and a human-readable spend text. It exists because Pool alone renders a bare spendable-looking chip for mana a cast may in fact refuse (Cavern of Souls' {B} that pays only for a creature spell of the chosen type), leaving the seat unable to learn why no cast was offered. Like Pool it is public information -- the restriction is derived from a public battlefield permanent's own ability (CR 106.4a/106.4b), so it is projected for every seat under every visibility. It carries omitempty: a seat holding no restricted mana is absent, never a JSON null, so every view without a restriction serialises byte-identically to before this field existed (the Available convention). A batch whose Valid is empty -- an AddsNoCounter$-only batch, which imposes no spend limit -- is omitted: this field names spend restrictions, and such a batch has none.",
+          "items": {
+            "$ref": "#/$defs/PoolRestrictionView"
+          },
+          "type": "array"
+        },
+        "potential_actions": {
+          "description": "PotentialActions is this seat's \"what could I still do after tapping out\" projection, filled ONLY for the viewer's own seat (the walk reads the seat's own hand, command zone and graveyard -- a CR 400.2 hidden zone, so another seat's would leak it). Empty/nil means the engine would offer nothing the seat could pay for even after floating every untapped source: the auto-pass stop decision reads this field and nothing else, so it inherits the engine's own cost rules (live RaiseCost/ReduceCost, commander tax, command-zone and flashback casts, X priced at 0, indeterminate sources) instead of a client-side re-derivation of them. It carries omitempty: a seat with no potential actions is absent, like Available.",
+          "items": {
+            "$ref": "#/$defs/PotentialAction"
+          },
+          "type": "array"
+        },
+        "seat": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "spells_cast_this_turn": {
+          "description": "Per-turn watchers (state.Player's *ThisTurn tallies): public counts for this seat since the last turn change, for every viewer.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "tokens_created_this_turn": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "battlefield",
+        "command",
+        "commander_casts",
+        "commanders",
+        "completed_dungeons",
+        "exile",
+        "graveyard",
+        "graveyard_size",
+        "hand",
+        "hand_size",
+        "library_size",
+        "life",
+        "life_gained_this_turn",
+        "life_lost_this_turn",
+        "lost",
+        "name",
+        "pool",
+        "seat",
+        "spells_cast_this_turn",
+        "tokens_created_this_turn"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.PlayerView"
+    },
+    "PodProgress": {
+      "description": "PodProgress is the pod_progress body: how far every seat is through the current draft round, as public counts.",
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "picks": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "queued": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "round": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "event",
+        "picks",
+        "queued",
+        "round"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.PodProgress"
+    },
+    "PodProgressFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/PodProgress"
+            },
+            "t": {
+              "const": "pod_progress"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Draft events: pick progress of the pod."
+    },
+    "PoolRestrictionView": {
+      "description": "PoolRestrictionView is one restricted floating-mana batch as the wire sees it: the produced symbol verbatim (a bare WUBRGC letter, an \"S<colour>\" snow unit or a \"<Tag><colour>\" typed unit, exactly ManaRestriction.Color), the unit count, and Text -- a sentence naming what the mana may be spent on, or the raw Valid$ string when the formatter does not recognise the shape (an honest floor).",
+      "properties": {
+        "amount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "color": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "color",
+        "text"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.PoolRestrictionView"
+    },
+    "PotentialAction": {
+      "description": "PotentialAction is one action a seat COULD take if it first floated every mana its untapped sources could produce: the engine's own legal-offer walk (engine/rules/legal.go) priced against a hypothetical pool instead of the floating one. It is the server-side answer to the float-then-cast payment model -- the engine prices a cast against the FLOATING pool only, so the priority window carries no cast option yet, and a client that re-derives \"castable after tapping\" on its own (printed costs, no live modifiers, no command zone, no flashback) drifts from the engine on every cost rule (Thalia's RaiseCost, a Medallion's ReduceCost, an Indeterminate Tron source, an X spell at 0). The projection carries only what the client's stop decisions need: which kind of action and where its object lives. A card/ability id is NOT a promise the action is currently offered -- it is a promise the engine WOULD offer it once the mana floated.",
+      "properties": {
+        "ability": {
+          "description": "Ability anchors an \"ability\" potential action to its exact activated ability, the index into the source Face().Abilities, exactly as Option.Ability does. omitempty: casts and land drops carry no field.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "kind": {
+          "description": "Kind is the action kind, the same vocabulary decision.Option uses but restricted to real plays: \"cast\", \"ability\", \"granted\" (a max-speed granted ability), \"unlock\" (a Room door), \"turn_face_up\" (the morph family), \"specialize\", \"play_land\" and \"station\" -- every play kind the priority offer walk emits (rules.potentialPlayKind). The mana tap (\"activate\"), pass and concede are deliberately absent -- they are offered at every priority window and are never a play.",
+          "type": "string"
+        },
+        "label": {
+          "description": "Label is the offer label (\"Cast X\", \"Name: ability text\") -- the same string the corresponding Option would carry, so a client can surface the action without re-deriving it. omitempty: never empty in practice, but a defensive omit keeps the wire free of empty strings.",
+          "type": "string"
+        },
+        "mode": {
+          "description": "Mode distinguishes a \"cast\" potential action's payment kind (\"\", \"kicked\", \"surged\", \"flashback\", \"miracle\"), and a \"specialize\" one's target face index, exactly as Option.Mode does. omitempty: an ordinary cast carries no field.",
+          "type": "string"
+        },
+        "obj": {
+          "description": "Obj is the card or permanent the action names (the spell to cast from hand/command zone/graveyard, or the source of the ability), 0 when the action has no object. The id is the CardView id the client already has.",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "payable": {
+          "description": "Payable is the payment planner's verdict for an ordinary cast from the hand or (Commander) the command zone: false only when the planner PROVED the cast unpayable -- an \"insufficient\" verdict whose source census is complete, or whose missed abilities a relaxation of them still cannot pay (decision.PotentialUnpayableCasts). It is what lets a client withhold a \"tap other mana first\" affordance that no amount of tapping can satisfy (fb-20261006T100405Z). nil (omitted) for every other kind, for a cast in an alternative/additional-cost mode, for a cast outside the hand and command zone, and for every verdict that is not a proof -- \"unsupported\" (a shape the planner does not price, e.g. Delve), \"search_limit\", \"ambiguous\" and a census-incomplete insufficiency -- because those do not prove the play possible or impossible. A client must not re-derive this from printed mana_cost: castable.ts records the cost rules that drift.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PotentialAction"
+    },
+    "Printing": {
+      "description": "Printing is the identity a client resolves an image by: the exact face name today. Set and Number stay empty until a printing table exists (roadmap open question 1); the fields are here so the wire shape does not change when it does.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "number": {
+          "type": "string"
+        },
+        "set": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.Printing"
+    },
+    "ReadyRequest": {
+      "description": "ReadyRequest is the POST /api/events/{id}/ready body: the deck revision the seat is readying; a stale revision is a 409.",
+      "properties": {
+        "rev": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rev"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ReadyRequest"
+    },
+    "RemovalEffect": {
+      "description": "RemovalEffect is a conservative classification of an active removal SA. It describes the scripted operation, not whether the target will actually leave at resolution (replacement effects, conditions and legality remain outside a targeting decision). Kind is one of destroy, sacrifice, exile, bounce, graveyard, library or command; Destination is populated for the ChangeZone family and repeats its normalized destination for clients that want the zone rather than the operation.",
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.RemovalEffect"
+    },
+    "RewindFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/Snapshot"
+            },
+            "t": {
+              "const": "rewind"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "An undo rolled the live match back in place: discard everything past `body.head`, then apply the body like a snapshot."
+    },
+    "SeatInfo": {
+      "description": "SeatInfo names a seat for the identity bars; Colour is the seat colour the client keeps consistent from overview to focused view. Human marks a seat played by a real person (TableConfig.Humans): additive and omitempty (old sidecars and every bot seat omit it), it is what tells a client whether an undo control may be offered — the registry refuses an undo on any table whose human seats are not all the requester, so a seat that can see two humans on the wire can know its UNDO button would be refused (dispatch fb-20260911T201015Z).",
+      "properties": {
+        "colour": {
+          "type": "string"
+        },
+        "deck": {
+          "type": "string"
+        },
+        "deck_id": {
+          "description": "DeckID is the exact deck id this seat plays — the TableConfig.Decks entry the match loaded (server/host/match.go's deckNames), NOT the deck's display Name. The two can differ: cmd/gorged's catalogue falls back to the file stem only when a deck file has no Name. A client that restarts the game must post this id back as human_deck/bot_deck; posting the display name would 400 \"unknown deck\". omitempty matches Human's additive shape.",
+          "type": "string"
+        },
+        "human": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "colour",
+        "deck",
+        "name"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.SeatInfo"
+    },
+    "SeriesUpdate": {
+      "description": "SeriesUpdate is the series_update body: one series' row changed.",
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "series": {
+          "$ref": "#/$defs/EventSeries"
+        }
+      },
+      "required": [
+        "event",
+        "series"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.SeriesUpdate"
+    },
+    "SeriesUpdateFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/SeriesUpdate"
+            },
+            "t": {
+              "const": "series_update"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Draft events: one series' score changed."
+    },
+    "SideboardRequest": {
+      "description": "SideboardRequest is the POST /api/events/{id}/sideboard body: the seat's deck for game Game of its current series. Keep re-submits the deck it played last game; otherwise Deck is the new list (pool CardRef ids plus basics), saved as a new revision. Exactly one of Keep and Deck is set. Game is compared with the server's next game; a stale one is a 409.",
+      "properties": {
+        "deck": {
+          "$ref": "#/$defs/DeckRequest"
+        },
+        "game": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "keep": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "game"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.SideboardRequest"
+    },
+    "Snapshot": {
+      "description": "Snapshot is the whole view at Head plus the turn-start seqs so far — the DVR's scrub ticks.",
+      "properties": {
+        "head": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "seats": {
+          "description": "Seats is the live match's seat list, the same []SeatInfo MatchStart carries. A focus subscriber (server/host/session.go's Subscribe) receives a snapshot but not the match's match_start frame — that went out before it connected — so without this the table route has no way to learn the seats for the current match (ui16). Always populated for a live match; never omitempty, so the client type stays a plain SeatInfo[].",
+          "items": {
+            "$ref": "#/$defs/SeatInfo"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "turn_starts": {
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "view": {
+          "$ref": "#/$defs/View"
+        }
+      },
+      "required": [
+        "head",
+        "seats",
+        "turn_starts",
+        "view"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Snapshot"
+    },
+    "SnapshotFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/Snapshot"
+            },
+            "t": {
+              "const": "snapshot"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Focus subscriptions: the whole board at `seq`, sent on subscribe and at each match start."
+    },
+    "StackView": {
+      "description": "StackView is one object on the stack. Kind is \"spell\", \"trigger\" (an object minted by a TriggerPush) or \"ability\" (any other ability object).",
+      "properties": {
+        "card": {
+          "$ref": "#/$defs/CardView"
+        },
+        "controller": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "decider": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kicks": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "modes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "optional": {
+          "description": "Optional and Decider are Ruling VW-1: an optional triggered ability on the stack, awaiting its resolution-time yes/no (CR 603.5), reports that it is optional and names the seat that answers it. Decider is nil unless Optional.",
+          "type": "boolean"
+        },
+        "source": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "targets": {
+          "description": "Targets is a public list (Ruling T23-u): non-nil, \"[]\" not \"null\", even when nothing has been targeted yet.",
+          "items": {
+            "$ref": "#/$defs/TargetView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "x": {
+          "description": "X is the announced value of X for this spell or ability (CR 107.3), 0 (omitted) when it has none; Kicks is how many times it was kicked (CR 702.33 / 702.43: 1 for a plain kicked cast, the multikicker count otherwise), 0 for a copy or an unkicked cast; Modes are the SVar names of the sub-abilities a modal spell or trigger chose (CR 601.2b), in execution order. Public cast-time facts every seat can read off the stack; all omitted when empty, so an ordinary stack object serialises byte-identically to before these fields existed.",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "controller",
+        "id",
+        "kind",
+        "name",
+        "optional",
+        "targets",
+        "text"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.StackView"
+    },
+    "StreamFrame": {
+      "description": "One `data:` payload of GET /api/stream: a protocol.Frame whose `body` shape is selected by `t`. On the wire each frame is one SSE message:\n\n    id: <session>:<frame id>      (omitted for hello, widget and overflow)\n    event: <t>\n    data: <the Frame as one line of JSON>\n\nplus a `: ping` comment every 15 s. The id is what a reconnect sends back as Last-Event-ID.",
+      "discriminator": {
+        "mapping": {
+          "decision": "#/$defs/DecisionFrame",
+          "draft_pack": "#/$defs/DraftPackFrame",
+          "error": "#/$defs/ErrorFrame",
+          "event": "#/$defs/EventFrame",
+          "event_state": "#/$defs/EventStateFrame",
+          "hello": "#/$defs/HelloFrame",
+          "match_end": "#/$defs/MatchEndFrame",
+          "match_start": "#/$defs/MatchStartFrame",
+          "overflow": "#/$defs/OverflowFrame",
+          "pod_progress": "#/$defs/PodProgressFrame",
+          "rewind": "#/$defs/RewindFrame",
+          "series_update": "#/$defs/SeriesUpdateFrame",
+          "snapshot": "#/$defs/SnapshotFrame",
+          "table_halted": "#/$defs/TableHaltedFrame",
+          "table_state": "#/$defs/TableStateFrame",
+          "widget": "#/$defs/WidgetFrame"
+        },
+        "propertyName": "t"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/HelloFrame"
+        },
+        {
+          "$ref": "#/$defs/WidgetFrame"
+        },
+        {
+          "$ref": "#/$defs/MatchStartFrame"
+        },
+        {
+          "$ref": "#/$defs/SnapshotFrame"
+        },
+        {
+          "$ref": "#/$defs/EventFrame"
+        },
+        {
+          "$ref": "#/$defs/DecisionFrame"
+        },
+        {
+          "$ref": "#/$defs/MatchEndFrame"
+        },
+        {
+          "$ref": "#/$defs/TableHaltedFrame"
+        },
+        {
+          "$ref": "#/$defs/TableStateFrame"
+        },
+        {
+          "$ref": "#/$defs/RewindFrame"
+        },
+        {
+          "$ref": "#/$defs/OverflowFrame"
+        },
+        {
+          "$ref": "#/$defs/ErrorFrame"
+        },
+        {
+          "$ref": "#/$defs/EventStateFrame"
+        },
+        {
+          "$ref": "#/$defs/DraftPackFrame"
+        },
+        {
+          "$ref": "#/$defs/PodProgressFrame"
+        },
+        {
+          "$ref": "#/$defs/SeriesUpdateFrame"
+        }
+      ]
+    },
+    "Subscribe": {
+      "description": "Subscribe and Unsubscribe are the POST bodies.",
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "session": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "session",
+        "table"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Subscribe"
+    },
+    "TableHaltedBody": {
+      "description": "TableHaltedBody is spec D15: a crashed table stops and says why.",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.TableHaltedBody"
+    },
+    "TableHaltedFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/TableHaltedBody"
+            },
+            "t": {
+              "const": "table_halted"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "The table crashed and stopped, with the reason."
+    },
+    "TableInfo": {
+      "description": "TableInfo is one row of the overview.",
+      "properties": {
+        "auto_mana": {
+          "description": "AutoMana enables the human payment-plan UI for this table.",
+          "type": "boolean"
+        },
+        "bot_policy": {
+          "description": "BotPolicy is the effective hosted policy for bot seats and human-seat caretakers. It is public table configuration, never private game state.",
+          "type": "string"
+        },
+        "event": {
+          "description": "Event marks a table owned by a draft event (TableConfig.Event): its games are the event's to schedule, so the client offers no restart (a fresh vs-bot game) from it. omitempty, like Series: a non-event table is byte-identical to a table before the field existed.",
+          "type": "boolean"
+        },
+        "format": {
+          "description": "Format is the table's construction format, \"constructed\" or \"commander\" (host.Format.String()). Always emitted: the zero Format is \"constructed\", a real value, so an omitted field would be indistinguishable from it.",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "match": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "mulligans": {
+          "description": "Mulligans is the table's London mulligan allowance (TableConfig.Mulligans): each player may take up to this many pre-game mulligans. Always emitted, like Format: the zero value is 0, a real value that disables the pre-game round, so an omitted field would be indistinguishable from it. It is public table configuration, never private game state — a restart control reads it to recreate the same game.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "perpetual": {
+          "type": "boolean"
+        },
+        "seat_names": {
+          "description": "SeatNames names the table's seats in seat order: the deck name each seat is playing, as MatchStart carries them. Empty when no match has started on this table yet. It is public information -- the overview already shows every table's life totals and deck identities in its transcript -- so it is not redacted per viewer. omitempty is right here, unlike Format: an absent list and an empty list mean the same thing (no match yet), so there is no value that omitting would make ambiguous.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "seats": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "series": {
+          "description": "Series marks a series table (TableConfig.Series, E3-2): it plays match after match, its end decided by the series hook rather than a match count, and between games it sits in the \"between_games\" table_state while players sideboard. omitempty: false is the default and the zero value, so a non-series table is byte-identical to a table before the field existed.",
+          "type": "boolean"
+        },
+        "spectator": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "auto_mana",
+        "bot_policy",
+        "format",
+        "id",
+        "match",
+        "mulligans",
+        "name",
+        "perpetual",
+        "seats",
+        "spectator",
+        "state"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.TableInfo"
+    },
+    "TableStateBody": {
+      "description": "TableStateBody is the table_state frame: a table's coarse lifecycle state as it changes, so a client need not infer it from match_end. State is TableBetweenGames while a series table sideboards between two games, TableLive while a match is on the table, and TableIdle otherwise. The envelope's Table names the table.",
+      "properties": {
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.TableStateBody"
+    },
+    "TableStateFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/TableStateBody"
+            },
+            "t": {
+              "const": "table_state"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "A series table's coarse lifecycle state changed (idle, live, between_games); ordinary tables never send it."
+    },
+    "TargetEffect": {
+      "description": "TargetEffect describes only the active SA being targeted, not its parent, sub-abilities or the eventual outcome. API is the compiled primitive name (e.g. DealDamage, Destroy, Counter, Draw). Consumers must treat unfamiliar APIs conservatively; ChangeZone alone does not imply hostile removal. This contains no script text, hidden state or server continuation pointers.",
+      "properties": {
+        "api": {
+          "type": "string"
+        },
+        "damage": {
+          "$ref": "#/$defs/DamageEffect",
+          "description": "Damage is present only for recognised direct damage primitives (DealDamage and DamageAll). Absence is not proof that a whole spell's other abilities cannot deal damage."
+        },
+        "removal": {
+          "$ref": "#/$defs/RemovalEffect",
+          "description": "Removal classifies the active SA's direct zone-removal shape. It is absent for an unknown API, a non-removal destination, or a ChangeZone whose destination this vocabulary does not model."
+        },
+        "statics": {
+          "description": "Statics names the resolved Mode$ values of the continuous statics an Effect SA grants (its StaticAbilities$ SVar bodies). It is populated only for API \"Effect\" whose granted bodies resolve to a readable Mode$. The modes describe the static's SHAPE (CantBlockBy, Continuous, MustAttack, ...), never a verdict: a consumer must classify polarity itself, because the same mode can be a boon (CantBlockBy on one's own creature) or a restriction (Continuous shrinking an opponent). Empty when nothing resolves.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "api"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.TargetEffect"
+    },
+    "TargetView": {
+      "description": "TargetView is one chosen target: exactly one of Obj and Player means anything, discriminated by IsPlayer — the same shape as state.Target.",
+      "properties": {
+        "is_player": {
+          "type": "boolean"
+        },
+        "label": {
+          "description": "Label is what the object was allowed to target, in the card's own words: its TgtPrompt$ when it has one (\"Select any target\"), else its ValidTgts$ (\"Creature\"). Empty when the object declares neither.",
+          "type": "string"
+        },
+        "obj": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "player": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "is_player",
+        "player"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.TargetView"
+    },
+    "Unsubscribe": {
+      "properties": {
+        "session": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "session",
+        "table"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Unsubscribe"
+    },
+    "View": {
+      "description": "View is one seat's complete picture of the game: everything public, plus whatever is theirs alone (their hand, their mana pool, a decision asked of them).",
+      "properties": {
+        "active": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "decision": {
+          "$ref": "#/$defs/Decision"
+        },
+        "draw": {
+          "type": "boolean"
+        },
+        "over": {
+          "type": "boolean"
+        },
+        "own_deck": {
+          "$ref": "#/$defs/Manifest"
+        },
+        "pending": {
+          "description": "Pending is the trigger queue, in the order it will be placed on the stack. Public for every seat — R3.",
+          "items": {
+            "$ref": "#/$defs/PendingView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "phase": {
+          "type": "string"
+        },
+        "players": {
+          "description": "Players, Stack and Pending (below) are every public list this type carries. All of them are built non-nil even when empty (Ruling T23-u): a client should never have to treat a bare JSON `null` and an empty `[]` as the same \"nothing here\" case for one of these, the way it legitimately must for Hand/Pool below.",
+          "items": {
+            "$ref": "#/$defs/PlayerView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "priority": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "round": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "stack": {
+          "description": "Stack keeps g.Stack's own order: index 0 is the bottom, the last entry is the top. Public for every seat — R3.",
+          "items": {
+            "$ref": "#/$defs/StackView"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "step": {
+          "type": "string"
+        },
+        "turn": {
+          "description": "Turn is the engine's per-player-turn counter (TurnChange events). It increments once per seat's turn, so a four-seat table reads \"Turn 22\" after five and a half rounds. Round is the exact round-trip count of the players still alive, folded over the ordered event stream (RoundOf) by host, which has the log in hand when it builds this view; a caller with only a snapshot gets the roundOf approximation instead. Both Turn and Round are sent because the raw engine counter is what the transcript (\"Turn N: <player>\") refers to, and the round is what the board's clock shows.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "viewer": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "visibility": {
+          "description": "Visibility names which rule set built this view: \"seat\", \"public\" or \"omniscient\" (see Visibility).",
+          "type": "string"
+        },
+        "winner": {
+          "description": "Winner is nil unless Over && !Draw: PlayerID's zero value is seat 0, a real seat, so a bare PlayerID field could never distinguish \"seat 0 won\" from \"the game is still going\" or \"it was a draw\" (Task 22 finding 5). A JSON null is unambiguous where a bare 0 would not be.",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "active",
+        "draw",
+        "over",
+        "pending",
+        "phase",
+        "players",
+        "priority",
+        "round",
+        "stack",
+        "step",
+        "turn",
+        "viewer",
+        "visibility",
+        "winner"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/view.View"
+    },
+    "Widget": {
+      "description": "Widget is the overview cell: enough to draw a 2x2 life grid, a turn marker and a stack-depth badge, plus the last transcript line.",
+      "properties": {
+        "active": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "last": {
+          "type": "string"
+        },
+        "life": {
+          "items": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "lost": {
+          "items": {
+            "type": "boolean"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "phase": {
+          "type": "string"
+        },
+        "priority": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "stack_depth": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "step": {
+          "type": "string"
+        },
+        "turn": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "active",
+        "last",
+        "life",
+        "lost",
+        "phase",
+        "priority",
+        "stack_depth",
+        "state",
+        "step",
+        "turn"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Widget"
+    },
+    "WidgetFrame": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Frame"
+        },
+        {
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/Widget"
+            },
+            "t": {
+              "const": "widget"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Overview subscriptions: the latest coalesced cell per table, flushed every 250 ms. Never has an SSE id and is never replayed on resume."
+    },
+    "WindowReason": {
+      "description": "WindowReason is a closed-vocabulary explanation for one withheld option.",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "obj": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "obj",
+        "reason"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/engine/decision.WindowReason"
+    }
+  },
+  "$id": "https://adams-shaun.github.io/gorge/api/schemas/gorge-protocol.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Rendered from openapi.json's components by server/host/httpapi's openapi_test.go; do not edit. Validate one stream frame against #/$defs/StreamFrame.",
+  "title": "gorge host-client wire (server/protocol)"
+}
