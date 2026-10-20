@@ -223,7 +223,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.7d | follows | `engine/events/apply_zone.go#move` | - |  |
 | 613.7e | deviates | `engine/events/apply_zone.go#foldAttach` `engine/events/apply_zone.go#move` | - |  |
 | 613.7f | deviates | `engine/events/apply_copy.go#foldTurnFaceUp` `engine/events/apply_copy.go#foldTurnFaceDown` | - | no restamp on face change (cr-g38) |
-| 613.7g | deviates | `engine/events/apply_copy.go#foldFlipFace` | - | no restamp on transform; Forge Card.java:702 does (cr-g38) |
+| 613.7g | deviates | `engine/events/apply_copy.go#foldFlipFace` | - | no restamp on transform; another engine does (cr-g38) |
 | 613.7h | unknown | - | - | variant cards |
 | 613.7i | unknown | - | - | - |
 | 613.7j | unknown | - | - | - |

@@ -100,11 +100,15 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 			}
 			path, sym := m[1], m[2]
 			full := filepath.Join(root, filepath.FromSlash(path))
-			if _, err := os.Stat(full); err != nil {
+			info, err := os.Stat(full)
+			if err != nil {
 				t.Errorf("%s: %s does not exist", at, path)
 				continue
 			}
 			if sym == "" {
+				if info.IsDir() {
+					t.Errorf("%s: %s is a directory, not a file", at, path)
+				}
 				continue
 			}
 			if !strings.HasSuffix(path, ".go") {
@@ -131,7 +135,7 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 			}
 		}
 	}
-	checkCRSummary(t, files, rows)
+	checkCRSummary(t, rows)
 }
 
 func crKnownStatus(s string) bool {
@@ -288,7 +292,7 @@ func crTestNames(t *testing.T, root string) map[string]bool {
 }
 
 // checkCRSummary compares README.md's summary block with the tables' counts.
-func checkCRSummary(t *testing.T, files []string, rows []crRow) {
+func checkCRSummary(t *testing.T, rows []crRow) {
 	t.Helper()
 	readme := filepath.Join(crCoverageDir, "README.md")
 	data, err := os.ReadFile(readme)

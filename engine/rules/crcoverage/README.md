@@ -7,7 +7,7 @@ only where the status or the code differs.
 
 The tables were seeded from a full CR audit on 2026-10-20 (eleven slices, each
 rule checked against the code and, where gorge was suspected wrong, against
-XMage and Forge). They are not a snapshot: **a change that alters how gorge
+another rules engine). They are not a snapshot: **a change that alters how gorge
 handles a rule updates that rule's row in the same commit**, and
 `TestCRCoverageIsCurrent` (`engine/rules/crcoverage_test.go`) fails the build
 when a row stops matching the code.

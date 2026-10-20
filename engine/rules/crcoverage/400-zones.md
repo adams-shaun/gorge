@@ -8,7 +8,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 400.2 | follows | `engine/state/ids.go#Zone.Hidden` `engine/view/redact.go#visibleTo` | - |  |
 | 400.3 | follows | `engine/events/apply_state_helpers.go#zoneOwner` | `TestCounterMovesTheTargetedSpellToItsOwnersGraveyard` |  |
 | 400.4 | not-impl | - | - | umbrella for 400.4a-b; see those rows |
-| 400.4a | not-impl | - | - | SILENT; no instant/sorcery battlefield gate (Forge has one); no supported card reaches it |
+| 400.4a | not-impl | - | - | SILENT; no instant/sorcery battlefield gate (other engines have one); no supported card reaches it |
 | 400.4b | unknown | `engine/rules/planar.go#Engine.inPlanarDeck` | - | planes kept in ZPlanarDeck, not command zone; not reached |
 | 400.5 | follows | `engine/events/apply_zone.go#foldLibraryOrder` `engine/events/apply_zone.go#foldShuffle` | - | order changes only via explicit events |
 | 400.6 | follows | `engine/rules/replacement.go#Engine.applyReplacements` | - |  |

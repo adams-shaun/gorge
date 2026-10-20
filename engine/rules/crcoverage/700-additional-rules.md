@@ -264,7 +264,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 707.4 | follows | `engine/events/apply_copy.go#foldClonePermanent` `engine/state/object.go#Object.SetCopyFace` | `TestMirageMirrorBecomesACopyOfTargetCreature` `TestCloneKayaTargetTokenBecomesCopy` | in-place copy-face swap, no zone change |
 | 707.5 | follows | `engine/effects/clone.go#effClone` `engine/rules/replacement.go#Engine.runReplaceWith` `engine/rules/cast_etbchoice.go#Engine.entryETBChoice` | `TestTokenCopyOfDiregrafGhoulEntersTapped` `TestFleshDuplicateETBGrantedVanishing` | copied enters-with/as-enters replacements and ETB triggers apply |
 | 707.6 | follows | `engine/rules/cast_etbchoice.go#Engine.entryETBChoice` | `TestHeraldicBannerTokenCopyAsksItsColour` | the copy's controller makes its own as-enters choice |
-| 707.7 | partial | `engine/state/object.go#Object.ExiledCards` `engine/state/object.go#Object.Imprinted` | - | gorge links are per-host-object lists (Forge model), not per ability pair |
+| 707.7 | partial | `engine/state/object.go#Object.ExiledCards` `engine/state/object.go#Object.Imprinted` | - | gorge links are per-host-object lists (host-object model), not per ability pair |
 | 707.8 | follows | `engine/events/apply_copy.go#foldClonePermanent` | - | copies the face currently up (FaceIdx) |
 | 707.8a | follows | `engine/events/apply_copy.go#foldCopyToken` | - | token copy keeps the whole card and its face index |
 | 707.9 | follows | `engine/effects/clone_params.go#compileClone` `engine/effects/copypermanent_params.go` | `TestCompileClone` | copy effects carry exception parameters |
@@ -284,7 +284,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 707.11 | follows | `engine/effects/context.go#DefinedSpec` | - | self references resolve by object id, not name |
 | 707.12,707.12a | partial | `engine/rules/cast_begin.go#Engine.beginPlay` `engine/effects/play.go#effPlay` | `TestPlayCopyCardCastsCopyAndLeavesOriginalInExileKernel` `TestPrepareStubBackPreparedCopyCastable` | copy minted in a library holding zone, not the original's zone |
 | 707.13 | not-impl | `engine/effects/play.go#effPlay` | - | Garth One-Eye's Play CopyFromChosenName$ has no population and returns: SILENT |
-| 707.14 | unknown | `engine/effects/play.go#effPlay` | `TestMagarReturnsASpellAsA33FaceDownCreature` | Forge shape: face-down 3/3 tested; casting the CopyCard copy untested, ZoneRegardless$ unread |
+| 707.14 | unknown | `engine/effects/play.go#effPlay` | `TestMagarReturnsASpellAsA33FaceDownCreature` | shape: face-down 3/3 tested; casting the CopyCard copy untested, ZoneRegardless$ unread |
 | 708.1 | follows | `engine/rules/chars/derive.go#Compute` `engine/rules/layers_types.go#Engine.faceDownPrintedHides` | `TestManifestedLandIsA22Creature` |  |
 | 708.2-708.2a | partial | `engine/rules/chars/derive.go#PT` `engine/rules/chars/types.go#TypesAndAllCreatureTypes` `engine/effects/filter_value.go#objectManaValue` | `TestManifestedLandIsA22Creature` `TestFaceDownHidesPrintedSubtypes` | 2/2, types, colour, text ok; mana value and name read printed face (cr-g13) |
 | 708.2b | follows | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceDown` | - | already face down: no-op |
@@ -309,7 +309,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 709.5c-709.5g | follows | `engine/state/object.go#Object.DoorUnlocked` `engine/rules/rooms.go#Engine.unlockRoomFaceCost` `engine/effects/unlockdoor.go#effUnlockDoor` | `TestPaidRoomUnlockPaysAndUnlocksSelectedDoor` `TestNonCastRoomHasNoLiveDoorsAndCastEntryDesignatesFace` `TestRoomRelockCastFaceThenUnlock` | designations, sorcery-timed unlock special action, lock via DoorLock |
 | 709.5h-709.5i | follows | `engine/rules/rooms.go#Engine.checkUnlockTriggers` `engine/rules/trigmatch/room.go#fullyUnlockMatches` | `TestFearOfSleepParalysisFullyUnlockTapsOnceOnFinalDoor` `TestRoomRepeatFaceUnlockDoesNotQueueUnlockDoorTrigger` | - |
 | 709.5j | follows | `engine/effects/unlockdoor.go#countUnlockedDoors` | `TestCountUnlockedDoorsCountsFacesNotRooms` | door is a half |
-| 710.1-710.1c | follows | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldFlipFace` | `TestFlipFaceChangesActiveFace` | flipped face repeats ManaCost in Forge data |
+| 710.1-710.1c | follows | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldFlipFace` | `TestFlipFaceChangesActiveFace` | flipped face repeats ManaCost in the card data |
 | 710.2 | deviates | `engine/events/apply_zone.go#move` | - | flipped card never resets on leaving battlefield |
 | 710.3 | n/a | - | - | physical |
 | 710.4 | deviates | `engine/effects/resolve.go#effSetState` | - | flip is (FaceIdx+1)%2: a second flip unflips |
@@ -319,7 +319,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.1-712.3c | n/a | - | - | definitional/physical |
 | 712.4-712.4b | follows | `engine/events/apply_meld.go#foldMeld` `engine/effects/meld.go#Meld` | `TestMeldGiselaBrunaBrisela` `TestMeldRefusesANonPair` |  |
 | 712.4c | deviates | `engine/effects/resolve.go#effSetState` | - | result-carrying meld card can be transformed |
-| 712.5-712.5g | follows | `engine/effects/meld.go#meldRoles` `engine/state/meld.go#MeldResultFace` | `TestMeldCorpusCarriers` `TestMeldVanilleFangRagnarok` `TestMeldAPIDispatchHanweir` | pairs from Forge AlternateMode:Meld data |
+| 712.5-712.5g | follows | `engine/effects/meld.go#meldRoles` `engine/state/meld.go#MeldResultFace` | `TestMeldCorpusCarriers` `TestMeldVanilleFangRagnarok` `TestMeldAPIDispatchHanweir` | pairs from AlternateMode:Meld data |
 | 712.6-712.7 | n/a | - | - | physical |
 | 712.8 | follows | `engine/state/object.go#Object.Face` `engine/cards/parse.go#ParseBytes` | - | one Face per side |
 | 712.8a | partial | `engine/events/apply_zone.go#move` | `TestTransformDFCLeavesBattlefieldFrontFace` `TestCR712ModalDFCLandBackResetsToFrontOnExit` | reset only on leaving battlefield; back-face spell leaving stack keeps back face |

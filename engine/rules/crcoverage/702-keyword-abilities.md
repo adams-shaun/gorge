@@ -8,7 +8,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.1a,d | follows | `engine/effects/filter.go#init` | - | "with [kw]" reads derived keywords |
 | 702.1b,c | unknown | - | - | variable-in-granted-keyword reevaluation unchecked |
 | 702.2a,c,d,f | follows | `engine/rules/combat.go#Engine.lethalDamageNeed` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - | 1 is lethal for assignment; noncombat too |
-| 702.2b | deviates | `engine/rules/sba.go#Engine.destroyLethalDamage` `engine/rules/combat.go#Engine.cleanupBody` | - | mark outlives the SBA check (Forge/XMage same) |
+| 702.2b | deviates | `engine/rules/sba.go#Engine.destroyLethalDamage` `engine/rules/combat.go#Engine.cleanupBody` | - | mark outlives the SBA check (other engines same) |
 | 702.2e | follows | `engine/rules/engine_damage.go#damageKeywordLKI` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - |  |
 | 702.3a-c | follows | `engine/rules/combat/attack.go#CanAttack` `engine/rules/combat/attack.go#CanAttackPair` | - |  |
 | 702.4a-e | follows | `engine/rules/combat.go#combatRound.firstStrikers` `engine/rules/combat.go#Engine.anyFirstStrike` `engine/rules/combat.go#Engine.actsThisDamageStep` | `TestCR510PriorityBetweenDoubleStrikeDamageSteps` | 702.4c/d follow from step-begin record |
