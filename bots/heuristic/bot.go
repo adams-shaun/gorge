@@ -58,6 +58,9 @@ type Bot struct {
 	// (botpolicy.AIHints). Configured once by an opt-in constructor; the zero
 	// value leaves the cast scorer unchanged.
 	aiHints botpolicy.AIHints
+	// attach selects the opt-in A5 attach rules (botpolicy.AttachRules).
+	// Configured once by an opt-in constructor; the zero value is off.
+	attach botpolicy.AttachRules
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
@@ -192,6 +195,19 @@ func (b *Bot) EnableAIHints(h botpolicy.AIHints) *Bot {
 // AIHints reports the A3 AI-hint rules armed on this bot.
 func (b *Bot) AIHints() botpolicy.AIHints {
 	return b.aiHints
+}
+
+// EnableAttachRules arms the A5 attach rules (botpolicy.AttachRules) on this
+// bot and returns it. The default bot never calls it; the forge-heuristic
+// policy is the registered constructor that does.
+func (b *Bot) EnableAttachRules(r botpolicy.AttachRules) *Bot {
+	b.attach = r
+	return b
+}
+
+// AttachRules reports the A5 attach rules armed on this bot.
+func (b *Bot) AttachRules() botpolicy.AttachRules {
+	return b.attach
 }
 
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
@@ -336,6 +352,7 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	brd.Posture = b.posture
 	brd.Timing = b.timing
 	brd.AIHints = b.aiHints
+	brd.Attach = b.attach
 	if b.autoPayMana {
 		if in, ok := b.paymentIntent(brd, d); ok {
 			return in

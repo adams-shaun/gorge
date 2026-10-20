@@ -604,6 +604,11 @@ func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *
 	if sa.API == "Effect" {
 		out.Statics = e.grantedStaticModes(p, source, sa)
 	}
+	if sa.API == "Attach" {
+		if o := e.G.Obj(e.protectionSource(source)); o != nil {
+			out.AttachLogic = effects.AttachAILogic(o.Face())
+		}
+	}
 	switch sa.APIKind() {
 	case cards.APIDealDamage, cards.APIDamageAll:
 		out.Damage = &decision.DamageEffect{}
