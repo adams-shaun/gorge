@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -368,25 +369,28 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(ch.Keywords(id))
 			}
 			*b.Cards.slot(id) = Card{
-				PrintedName:   f.Name,
-				Creature:      hasTypeWord(words, "Creature"),
-				Power:         power,
-				Toughness:     toughness,
-				CMC:           cmcOfFace(f),
-				Basic:         hasTypeWord(words, "Basic"),
-				Land:          hasTypeWord(words, "Land"),
-				Colour:        cards.ColourMask(f.ColourIdentity()),
-				TypeSig:       TypeSigOf(words),
-				AttachedTo:    o.AttachedTo,
-				Activated:     o.ActivatedThisTurn,
-				ManaCost:      f.ManaCost,
-				Castable:      castable,
-				OnBattlefield: z == state.ZBattlefield,
-				Tapped:        o.Tapped,
-				Sick:          o.SummonSick,
-				Produces:      f.ManaProduction(),
-				InstantSpeed:  instantSpeed,
-				Counter:       isCounterSpell(f),
+				PrintedName:    f.Name,
+				Creature:       hasTypeWord(words, "Creature"),
+				Power:          power,
+				Toughness:      toughness,
+				CMC:            cmcOfFace(f),
+				Basic:          hasTypeWord(words, "Basic"),
+				Land:           hasTypeWord(words, "Land"),
+				Colour:         cards.ColourMask(f.ColourIdentity()),
+				TypeSig:        TypeSigOf(words),
+				AttachedTo:     o.AttachedTo,
+				Activated:      o.ActivatedThisTurn,
+				ManaCost:       f.ManaCost,
+				Castable:       castable,
+				OnBattlefield:  z == state.ZBattlefield,
+				Tapped:         o.Tapped,
+				Sick:           o.SummonSick,
+				Produces:       f.ManaProduction(),
+				InstantSpeed:   instantSpeed,
+				Counter:        isCounterSpell(f),
+				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
 			}
 		}
 	}
@@ -451,17 +455,20 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			f := o.Face()
 			words := effectiveTypeWords(f, id, ch)
 			*b.Cards.slot(id) = Card{
-				PrintedName: f.Name,
-				Creature:    hasTypeWord(words, "Creature"),
-				Power:       power,
-				CMC:         cmcOfFace(f),
-				Basic:       hasTypeWord(words, "Basic"),
-				Land:        hasTypeWord(words, "Land"),
-				Colour:      cards.ColourMask(f.ColourIdentity()),
-				TypeSig:     TypeSigOf(words),
-				ManaCost:    f.ManaCost,
-				Toughness:   toughness,
-				Activated:   o.ActivatedThisTurn,
+				PrintedName:    f.Name,
+				Creature:       hasTypeWord(words, "Creature"),
+				Power:          power,
+				CMC:            cmcOfFace(f),
+				Basic:          hasTypeWord(words, "Basic"),
+				Land:           hasTypeWord(words, "Land"),
+				Colour:         cards.ColourMask(f.ColourIdentity()),
+				TypeSig:        TypeSigOf(words),
+				ManaCost:       f.ManaCost,
+				Toughness:      toughness,
+				Activated:      o.ActivatedThisTurn,
+				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
 			}
 		}
 	}

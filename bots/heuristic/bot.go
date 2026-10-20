@@ -42,6 +42,10 @@ type Bot struct {
 	// Configured once by an opt-in constructor; the zero value leaves the
 	// default ranking untouched, so every hosted policy is unchanged.
 	targets botpolicy.TargetRules
+	// removal selects the opt-in A1 removal-now rule (botpolicy.RemovalRules).
+	// Configured once by an opt-in constructor; the zero value leaves every
+	// cast decision unchanged.
+	removal botpolicy.RemovalRules
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
@@ -122,6 +126,19 @@ func (b *Bot) EnableTargetRules(r botpolicy.TargetRules) *Bot {
 // forge-heuristic constructor actually armed the rules it advertises.
 func (b *Bot) TargetRules() botpolicy.TargetRules {
 	return b.targets
+}
+
+// EnableRemovalRules arms the A1 removal-now rule (botpolicy.RemovalRules)
+// on this bot and returns it, so an opt-in constructor chains like the other
+// Enable* methods. The default bot never calls it.
+func (b *Bot) EnableRemovalRules(r botpolicy.RemovalRules) *Bot {
+	b.removal = r
+	return b
+}
+
+// RemovalRules reports the A1 removal-now rule armed on this bot.
+func (b *Bot) RemovalRules() botpolicy.RemovalRules {
+	return b.removal
 }
 
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
@@ -253,6 +270,7 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	// rules. The zero value leaves brd unchanged, so the default bot is
 	// unaffected.
 	brd.Targets = b.targets
+	brd.Removal = b.removal
 	if b.autoPayMana {
 		if in, ok := b.paymentIntent(brd, d); ok {
 			return in
@@ -725,25 +743,28 @@ func BoardFromView(v view.View) botpolicy.Board {
 				printedName = cv.Name
 			}
 			b.Cards.Set(cv.ID, botpolicy.Card{
-				PrintedName:   printedName,
-				Creature:      isCreatureView(cv),
-				Power:         cv.Power,
-				Toughness:     cv.Toughness,
-				CMC:           botpolicy.CmcOf(cv.ManaCost),
-				Basic:         hasBasicView(cv),
-				Land:          hasTypeView(cv, "Land"),
-				Colour:        cv.ColourIdentity,
-				TypeSig:       botpolicy.TypeSigOf(strings.Fields(cv.Types)),
-				AttachedTo:    cv.AttachedTo,
-				Activated:     cv.ActivatedThisTurn,
-				ManaCost:      cv.ManaCost,
-				Castable:      castable(cv),
-				OnBattlefield: battlefield,
-				Tapped:        cv.Tapped,
-				Sick:          cv.SummonSick,
-				Produces:      produces,
-				InstantSpeed:  instantSpeedView(cv),
-				Counter:       cv.SpellAPI == "Counter",
+				PrintedName:    printedName,
+				Creature:       isCreatureView(cv),
+				Power:          cv.Power,
+				Toughness:      cv.Toughness,
+				CMC:            botpolicy.CmcOf(cv.ManaCost),
+				Basic:          hasBasicView(cv),
+				Land:           hasTypeView(cv, "Land"),
+				Colour:         cv.ColourIdentity,
+				TypeSig:        botpolicy.TypeSigOf(strings.Fields(cv.Types)),
+				AttachedTo:     cv.AttachedTo,
+				Activated:      cv.ActivatedThisTurn,
+				ManaCost:       cv.ManaCost,
+				Castable:       castable(cv),
+				OnBattlefield:  battlefield,
+				Tapped:         cv.Tapped,
+				Sick:           cv.SummonSick,
+				Produces:       produces,
+				InstantSpeed:   instantSpeedView(cv),
+				Counter:        cv.SpellAPI == "Counter",
+				RemovalKind:    cv.RemovalKind,
+				RemovalTargets: cv.RemovalTargets,
+				RemovalDamage:  cv.RemovalDamage,
 			})
 		}
 	}
@@ -760,17 +781,20 @@ func BoardFromView(v view.View) botpolicy.Board {
 					}
 				}
 				b.Cards.Set(cv.ID, botpolicy.Card{
-					PrintedName: printedName,
-					Creature:    isCreatureView(cv),
-					Power:       cv.Power,
-					Toughness:   cv.Toughness,
-					CMC:         botpolicy.CmcOf(cv.ManaCost),
-					Basic:       hasBasicView(cv),
-					Land:        hasTypeView(cv, "Land"),
-					Colour:      cv.ColourIdentity,
-					TypeSig:     botpolicy.TypeSigOf(strings.Fields(cv.Types)),
-					ManaCost:    cv.ManaCost,
-					Activated:   cv.ActivatedThisTurn,
+					PrintedName:    printedName,
+					Creature:       isCreatureView(cv),
+					Power:          cv.Power,
+					Toughness:      cv.Toughness,
+					CMC:            botpolicy.CmcOf(cv.ManaCost),
+					Basic:          hasBasicView(cv),
+					Land:           hasTypeView(cv, "Land"),
+					Colour:         cv.ColourIdentity,
+					TypeSig:        botpolicy.TypeSigOf(strings.Fields(cv.Types)),
+					ManaCost:       cv.ManaCost,
+					Activated:      cv.ActivatedThisTurn,
+					RemovalKind:    cv.RemovalKind,
+					RemovalTargets: cv.RemovalTargets,
+					RemovalDamage:  cv.RemovalDamage,
 				})
 			}
 			continue

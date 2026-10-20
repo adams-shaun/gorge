@@ -188,14 +188,21 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// only that field (json:"-"): the old digests return byte-for-byte.
 		// Measured after: frames 126, attempts 64, accepted 8, worlds 8,
 		// ESS 8 (land exclusion: accepted 30, ESS 30).
-		{"pre-optimisation sampler", true, "2979184d0e92313cd4c3d5952a762a0fa48299f51e9ee5d33b23d42d6d58abbd"},
+		// Re-measured for the A1 removal-now port (view.CardView.RemovalKind,
+		// RemovalTargets, RemovalDamage): the captured frames marshal three
+		// more keys per card, so the sampled worlds move exactly as they did
+		// for ColourIdentity. Attributed by hiding the three fields (json:"-"):
+		// the old digests return byte-for-byte. Measured after: frames 126,
+		// attempts 64, accepted 6, worlds 8, ESS 6 (land exclusion: accepted
+		// 24, ESS 24).
+		{"pre-optimisation sampler", true, "881be922a2ca9d7d6d758fdc3fc10af1b24e78b10dc70872e3071859557bf0ff"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
-		{"land exclusion", false, "1b0580932e2abde051bad95044e628df938b0bb72098fedc5345ba0412158c5b"},
+		{"land exclusion", false, "15c1dbbc469be6f8ed934c4b08906ea1c3d17345bdc5bcd3a0aa5140bc0a78e9"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -407,7 +414,16 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Rollouts 32, Submits 4150, Terminal 32, Capped 0,
 	// WinsByCandidate [8,7,8,8], TerminalByCandidate [8,8,8,8],
 	// WinsOverBaseline [0,0,0,0], LossesToBaseline [0,1,0,0].
-	const want = "e9aebf4324c0cfb79e98e03d46bea1811fe8d7a65ecc529dfd2df787a12911fb"
+	// Re-measured for the A1 removal-now port (view.CardView.RemovalKind,
+	// RemovalTargets, RemovalDamage): the captured frames marshal three more
+	// keys per card, so the sampled worlds are decoded from differently
+	// encoded frames and the rollouts run on different games. Attributed by
+	// hiding the three fields (json:"-"): the old digest and this test's old
+	// result return byte-for-byte. Measured after: Index 0, Values [1,1,1,1],
+	// Rollouts 32, Submits 3625, Terminal 32, Capped 0, WinsByCandidate
+	// [8,8,8,8], TerminalByCandidate [8,8,8,8], WinsOverBaseline [0,0,0,0],
+	// LossesToBaseline [0,0,0,0].
+	const want = "538023063bebc5acd4f9cca2fc09ea50d8b58d09056a2ba0a80557fb0df7dae3"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

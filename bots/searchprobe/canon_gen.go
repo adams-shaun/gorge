@@ -868,6 +868,24 @@ func (e *canonEncoder) encview_CardView(v *view.CardView) error {
 		e.buf = append(e.buf, 1)
 		e.appendString(string(v.SpellAPI))
 	}
+	if len(v.RemovalKind) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.appendString(string(v.RemovalKind))
+	}
+	if len(v.RemovalTargets) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.appendString(string(v.RemovalTargets))
+	}
+	if v.RemovalDamage == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.buf = binary.AppendVarint(e.buf, int64(v.RemovalDamage))
+	}
 	if v.ColourIdentity == 0 {
 		e.buf = append(e.buf, 0)
 	} else {

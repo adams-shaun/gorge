@@ -56,6 +56,11 @@ type Board struct {
 	// board fact, so it is filled by the seat constructor that arms it, not
 	// by either adapter's walk.
 	Targets TargetRules
+	// Removal selects the opt-in A1 removal-now rule (removalnow.go). The
+	// zero value leaves every cast decision exactly as it was; like Targets
+	// it is policy configuration, not a board fact, so the arming constructor
+	// fills it rather than either adapter's walk.
+	Removal RemovalRules
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public

@@ -93,6 +93,12 @@ func (b Board) tapWants(d *decision.Decision) bool {
 		if c := &cs[i]; !c.Castable || c.CMC <= 0 {
 			continue
 		}
+		// A1: a held removal spell is not a tap need -- chooseCast refuses
+		// it (removalNow false), so floating mana toward it only empties at
+		// step end. With the rule off removalHeld is false for every card.
+		if b.removalHeld(d, keys[i]) {
+			continue
+		}
 		if !tapTarget(d, keys[i]) {
 			continue
 		}
@@ -245,6 +251,12 @@ func (b Board) bestUnpayable(d *decision.Decision, offered [5]bool) (state.ObjID
 			continue
 		}
 		id, c := keys[i], cs[i]
+		// A1: a held removal spell is never the tap gate's intended spell
+		// (removalHeld); see tapWants. CastableNow and TapIntent both reach
+		// the card through this fold, so the skip covers them too.
+		if b.removalHeld(d, id) {
+			continue
+		}
 		if !tapTarget(d, id) {
 			continue
 		}
@@ -523,6 +535,12 @@ func (b Board) AnyCastableNow(player state.PlayerID, d *decision.Decision) bool 
 	offered := b.offeredColours(d)
 	for id, c := range b.Cards.All() {
 		if !c.Castable || c.CMC <= 0 || !tapTarget(d, id) {
+			continue
+		}
+		// A1: a held removal spell is not a cast this policy would make, so
+		// it cannot be the stranded cast that justifies a plan-less window's
+		// tap (removalHeld; see tapWants).
+		if b.removalHeld(d, id) {
 			continue
 		}
 		if b.poolPays(id, c) {
