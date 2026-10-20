@@ -149,14 +149,11 @@ func TestAggressiveBiomancy(t *testing.T) {
 		t.Fatalf("fight power precondition copy/Wall = %d/%d, want 2/0", cp, gp)
 	}
 	damage := fightDamageEvents(e)
-	if len(damage) != 2 {
-		t.Fatalf("granted Fight damage events = %+v, want exactly the two fight hits", damage)
+	if len(damage) != 1 {
+		t.Fatalf("granted Fight damage events = %+v, want only the Wall taking 2 (CR 120.8: the 0-power hit is no event)", damage)
 	}
 	if damage[0].Obj != giant || damage[0].Amount != 2 {
 		t.Fatalf("copy→Wall fight hit = %+v, want Wall %d taking 2", damage[0], giant)
-	}
-	if damage[1].Obj != copyID || damage[1].Amount != 0 {
-		t.Fatalf("Wall→copy fight hit = %+v, want copy %d taking 0", damage[1], copyID)
 	}
 	if e.G.Obj(giant).Damage != 2 || e.G.Obj(copyID).Damage != 0 {
 		t.Fatalf("fight damage state Wall/copy = %d/%d, want 2/0", e.G.Obj(giant).Damage, e.G.Obj(copyID).Damage)
