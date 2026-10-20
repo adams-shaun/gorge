@@ -63,9 +63,10 @@ func TestRemovalKindAdaptersAgree(t *testing.T) {
 			kind: "",
 		},
 		{
-			name: "X damage is an unknown figure",
-			src:  "Name:Fireball\nManaCost:X R\nTypes:Instant\nOracle:Fireball deals X damage divided as you choose.\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ X | SpellDescription$ Fireball deals X damage.\n",
-			kind: "damage",
+			name:    "X damage is an unknown figure",
+			src:     "Name:Fireball\nManaCost:X R\nTypes:Instant\nOracle:Fireball deals X damage divided as you choose.\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ X | SpellDescription$ Fireball deals X damage.\n",
+			kind:    "damage",
+			targets: "any",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

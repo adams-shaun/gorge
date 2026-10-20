@@ -310,6 +310,30 @@ export interface CardView {
    */
   removal_kind?: string;
   /**
+   * RemovalTargets is the coarse target scope of that same removal
+   * ability, read off its ValidTgts$ alternatives' base tokens:
+   * "creature" when they name creatures and no players, "player" when
+   * they name players and no creatures, "any" when they name both, and
+   * "" when they name neither (an artifact or land destruction spell, a
+   * graveyard move). It is derived from the same printed ability as
+   * RemovalKind and never set without it, so it is a visible card fact.
+   * The bot policy's removal-now hold rule reads it to know whether a
+   * spell could even aim at a creature (the threat gate) or at a player
+   * (the lethal-face shortcut).
+   */
+  removal_targets?: string;
+  /**
+   * RemovalDamage is the literal NumDmg$ of that same removal ability
+   * when it is a plain integer, 0 when it is absent, dynamic ({X}, an
+   * SVar) or not positive. Like RemovalKind it is a printed card fact of
+   * a visible card. The hold rule reads it as the spell's damage against
+   * an opponent's projected life: a literal damage figure at or above a
+   * player's life total is a lethal face target, so the removal is worth
+   * firing now. A 0 answers "unknown", never "no damage" -- the policy
+   * treats an unknown figure as no face candidate at all.
+   */
+  removal_damage?: number;
+  /**
    * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
    * the printed cost's pips, the colour indicator and every colour-naming
    * mana symbol in the rules text -- CR 903.4's definition, the same one
