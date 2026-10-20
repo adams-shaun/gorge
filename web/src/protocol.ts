@@ -358,6 +358,14 @@ export interface CardView {
    */
   remove_deck?: boolean;
   /**
+   * AuraLogic is the AttachAILogic hint ("Pump", "Curse", ...) of a card
+   * whose spell is an Aura aimed at a creature, "" for every other card.
+   * It is a printed deck-builder hint of a visible card. The opt-in A5
+   * attach rules read it to hold a boon Aura while the caster controls no
+   * creature that could use it.
+   */
+  aura_logic?: string;
+  /**
    * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
    * the printed cost's pips, the colour indicator and every colour-naming
    * mana symbol in the rules text -- CR 903.4's definition, the same one

@@ -35,18 +35,23 @@ theme:
     - content.code.copy
     - content.action.edit
     - search.highlight
+  font:
+    text: Schibsted Grotesk
+    code: Spline Sans Mono
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep orange
-      accent: deep orange
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep orange
-      accent: deep orange
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -78,6 +83,7 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/diagrams.css
+  - stylesheets/theme.css
 
 extra_javascript:
   - javascripts/perf-tracking.js

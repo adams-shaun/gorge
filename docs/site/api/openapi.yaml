@@ -326,6 +326,9 @@ components:
           maximum: 255
           minimum: 0
           type: "integer"
+        aura_logic:
+          description: "AuraLogic is the AttachAILogic hint (\"Pump\", \"Curse\", ...) of a card whose spell is an Aura aimed at a creature, \"\" for every other card. It is a printed deck-builder hint of a visible card. The opt-in A5 attach rules read it to hold a boon Aura while the caster controls no creature that could use it."
+          type: "string"
         blocked_by:
           items:
             maximum: 4294967295

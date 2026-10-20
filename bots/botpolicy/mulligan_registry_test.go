@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// TestMulliganBuiltinsHaveStableIDs pins the registry's first four ids: the
+// TestMulliganBuiltinsHaveStableIDs pins the registry's built-in ids: the
 // existing constants keep their meaning, so every stored/zero-value
 // MulliganRule is unchanged.
 func TestMulliganBuiltinsHaveStableIDs(t *testing.T) {
@@ -20,6 +20,7 @@ func TestMulliganBuiltinsHaveStableIDs(t *testing.T) {
 		{MulliganLands, "lands"},
 		{MulliganNever, "never"},
 		{MulliganConstructed, "constructed"},
+		{MulliganForge, "forge"},
 	}
 	for i, b := range builtins {
 		if int(b.id) != i {
@@ -36,14 +37,14 @@ func TestMulliganBuiltinsHaveStableIDs(t *testing.T) {
 	}
 }
 
-// TestMulliganNamesSorted asserts the listing is sorted and carries the four
+// TestMulliganNamesSorted asserts the listing is sorted and carries the
 // built-ins.
 func TestMulliganNamesSorted(t *testing.T) {
 	names := MulliganNames()
 	if !slices.IsSorted(names) {
 		t.Fatalf("MulliganNames not sorted: %v", names)
 	}
-	for _, want := range []string{"coin", "lands", "never", "constructed"} {
+	for _, want := range []string{"coin", "lands", "never", "constructed", "forge"} {
 		if !slices.Contains(names, want) {
 			t.Fatalf("MulliganNames missing %q: %v", want, names)
 		}
@@ -82,7 +83,7 @@ func (p mullPolicy) Answer(b Board, d *decision.Decision) ([]int, bool) {
 	return []int{d.Options[0].Index}, true
 }
 
-// TestMulliganPluginProof registers a fifth policy, selects it BY NAME onto
+// TestMulliganPluginProof registers another policy, selects it BY NAME onto
 // a Board, and shows a KMulligan decision is answered by it while the
 // lands rule on the same hand keeps. No non-test file knows the plugin.
 func TestMulliganPluginProof(t *testing.T) {

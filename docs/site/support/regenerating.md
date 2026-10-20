@@ -30,12 +30,13 @@ flowchart LR
     R["make report<br/>make coverage"] --> P1["corpus figures"]
     T["go test ./engine/rules"] --> P2["repo-deck ratchets"]
   end
-  subgraph gorge-compliance
+  subgraph gorge-compliance["gorge-compliance (nightly CI)"]
     SA["oraclediff status -level A"] --> JA["status-A.jsonl"]
     SB["oraclediff status -level B"] --> JB["status-B.jsonl"]
+    JA --> DD[("docs-data branch")]
+    JB --> DD
   end
-  JA --> DS["scripts/docs_sets.py"]
-  JB --> DS
+  DD -->|"gorge docs.yml fetches"| DS["scripts/docs_sets.py"]
   DS --> FR["support/_generated_sets.md<br/>(gitignored)"]
   P1 --> H["sets.md<br/>hand snapshot"]
   P2 --> H
@@ -46,7 +47,7 @@ flowchart LR
 
 ## gorge: corpus coverage
 
-You need the Forge corpus once (`make fetch-cards compile-cards`, about 25 MB,
+You need the Forge corpus once (`make fetch-cards compile-cards`, about 140 MB on disk,
 pinned to `FORGE_REF` in the
 [Makefile](https://github.com/adams-shaun/gorge/blob/main/Makefile)). Then:
 
@@ -177,11 +178,25 @@ public regenerates these numbers.
 
 [`.github/workflows/docs.yml`](https://github.com/adams-shaun/gorge/blob/main/.github/workflows/docs.yml)
 builds the site on pushes to `main` and `develop` and on pull requests, and
-deploys from `main`. It generates the package map and fetches the
-engine-speed history from the orphan `perf-data` branch, but **it no longer
-generates the set table**: the compliance oracle moved to gorge-compliance on
-2026-10-16, and gorge's CI has neither the oracle nor its verdicts. So the set
-page is a hand snapshot, refreshed by running the commands above and editing
-`sets.md`. gorge-compliance's nightly CI job already runs
-`make compliance-status` and uploads `status.md` as an artifact, but nothing
-carries it to the docs build yet.
+deploys from `main` (push, the daily 09:17 UTC rebuild, or a manual run). Before
+the build it:
+
+1. generates the package map (`go run ./cmd/pkgmap`);
+2. fetches the engine-speed history from gorge's orphan `perf-data` branch;
+3. fetches **gorge-compliance's orphan `docs-data` branch**
+   (`status-A.jsonl`, `status-B.jsonl`, `meta.json`) and runs
+   `scripts/docs_sets.py` on it, which writes the automated per-set table at the
+   end of [Support by set](sets.md).
+
+gorge-compliance's nightly `compliance` job writes `docs-data`. After
+`make compliance-status` it runs the two status commands above (Level A over
+every set, then Level B over the sets with a printed list, about 2 minutes
+together) and force-pushes them as one commit, the way `perf-data` works: only
+the latest state is kept. gorge-compliance is public, so the docs build needs no
+token. When the branch is missing or a fetch fails, the fragment is absent and
+the page shows only its hand snapshot.
+
+The hand-written figures at the top of `sets.md` (the headline table, the
+funnel, the corpus and ratchet numbers, dirty-dirac's pools) are still a dated
+snapshot. Refresh them with the commands above when they drift from the
+automated table.

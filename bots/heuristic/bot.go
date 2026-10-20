@@ -233,6 +233,9 @@ func (b *Bot) WithMulligan(rule botpolicy.MulliganRule) *Bot {
 // Limited land-count mulligan heuristic.
 func (b *Bot) EnableLandMulligan() *Bot { return b.WithMulligan(botpolicy.MulliganLands) }
 
+// MulliganRule reports the London-mulligan rule armed on this bot.
+func (b *Bot) MulliganRule() botpolicy.MulliganRule { return b.mulligan }
+
 // SkipLifePlans makes the bot treat an offered payment action whose plan pays
 // life as having no plan, so its policy sees the ordinary options for that
 // cast. Only the host's caretaker for a human seat sets it. It returns b.
@@ -851,6 +854,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 				RemovalDamage:  cv.RemovalDamage,
 				PlayMain1:      cv.PlayMain1,
 				RemoveDeck:     cv.RemoveDeck,
+				AuraLogic:      cv.AuraLogic,
 			})
 		}
 	}
@@ -883,6 +887,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 					RemovalDamage:  cv.RemovalDamage,
 					PlayMain1:      cv.PlayMain1,
 					RemoveDeck:     cv.RemoveDeck,
+					AuraLogic:      cv.AuraLogic,
 				})
 			}
 			continue
