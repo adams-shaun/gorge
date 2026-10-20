@@ -4,7 +4,7 @@ Source: https://github.com/jackmaiorino/spellbench
 Revision: 1beea4c104911bba77a5672c644e570ed9afe28a
 License: MIT
 
-Portions of server/spellbench and cmd/spellbench-gorge-env are derived from
+Portions of server/spellbench (agent, neutral and the A1 packages) and cmd/spellbench-gorge-agent and cmd/spellbench-gorge-env are derived from
 SpellBench's gorge engine adapter.
 
 MIT License
