@@ -120,6 +120,21 @@ func (s *chanceState) clone() *chanceState {
 	}
 }
 
+// UnplannedDraws reports how many of a hypothetical engine's recorded draws no
+// planner or prefix supplied. The chance transcript holds every draw; the
+// prefix holds the forced ones, so the difference is the count that came from
+// the engine's own generator. A restore rewinds both, so a replayed lineage
+// reports its own history, not the sum of every aborted re-run.
+func (e *Engine) UnplannedDraws() int {
+	if e == nil || e.rng == nil || e.rng.chance == nil {
+		return 0
+	}
+	if n := len(e.rng.chance.draws) - len(e.rng.chance.prefix); n > 0 {
+		return n
+	}
+	return 0
+}
+
 // ClearHypotheticalPlanner ends proposal construction. Future chance uses the
 // hypothesis's independently seeded generator while the recorded prefix stays
 // available for replay.
