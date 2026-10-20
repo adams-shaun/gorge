@@ -46,21 +46,6 @@ This is deliberately narrower than the rules-side `targetRemoval` classifier:
 it must not hold a reanimation spell, a graveyard return, or a pump spell
 that merely mentions a zone change.
 
-## Firing evidence
-
-The focused botpolicy tests pin both directions:
-
-- `TestRemovalNowHoldsSmallThreat`: a castable Destroy spell plus a 3/3
-  opponent casts with the rule off and passes with it on.
-- `TestRemovalNowFiresAtLargeThreat`: a 6/6 opponent casts in both
-  configurations.
-- `TestRemovalKindAdaptersAgree`: destroy, damage and bounce parse to the
-  same kind through the game-shaped and view-shaped adapters.
-
-The board-table parity reference was extended with the new facts, so every
-whole-game parity test also holds the two adapters to the same
-`RemovalKind`, `RemovalTargets` and `RemovalDamage`.
-
 ## The candidate rules (review round 2)
 
 The r1 build held a spell on ANY opposing creature's threat; the r2 review
@@ -126,6 +111,10 @@ attempts are each one of these:
   a graveyard return and an X-damage spell parse to the same kind, scope and
   damage through `view.Project` (the real projection) and both Board
   adapters.
+
+The board-table parity reference (`board_table_equiv_test.go`) was extended
+with the new facts, so every whole-game parity test also holds the two
+adapters to the same `RemovalKind`, `RemovalTargets` and `RemovalDamage`.
 
 ## What was not ported
 
