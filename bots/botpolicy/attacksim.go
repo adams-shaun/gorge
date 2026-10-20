@@ -590,6 +590,7 @@ func (b Board) chooseAttackersSim(d *decision.Decision, p *AttackSimParams) []in
 	}
 
 	w := newSimWorld(b, me, defender)
+	ownPct, oppPct := b.postureLifePcts()
 
 	maxAtk := d.Max
 	evalMask := func(mask uint32) (int64, bool) {
@@ -617,6 +618,9 @@ func (b Board) chooseAttackersSim(d *decision.Decision, p *AttackSimParams) []in
 					sw.followUp(b, me, defender)
 				}
 			}
+		}
+		if ownPct != postureLifeBasePct || oppPct != postureLifeBasePct {
+			return sw.scorePosture(p.LifeUnit, ownPct, oppPct), true
 		}
 		return sw.score(p.LifeUnit), true
 	}
