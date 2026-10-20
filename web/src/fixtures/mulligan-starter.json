@@ -634,6 +634,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
@@ -894,6 +896,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
@@ -974,6 +978,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
@@ -1023,6 +1029,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
@@ -1664,6 +1672,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
@@ -1685,6 +1695,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
@@ -1706,6 +1718,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
@@ -1946,6 +1960,8 @@
             "mana_cost": "R",
             "spell_api": "DealDamage",
             "removal_kind": "damage",
+            "removal_targets": "any",
+            "removal_damage": 2,
             "colour_identity": 8,
             "printing": {
               "name": "Mountain Bolt 0"
