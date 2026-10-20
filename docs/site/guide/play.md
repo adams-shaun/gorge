@@ -130,12 +130,14 @@ Anyone who opens a table without a seat token is a spectator. Spectators get
 a **DVR bar** to scrub back through the match (step, pause, a slider with turn
 ticks, back to *live*), and the log is open by default. Each finished match
 has a frozen replay at `/t/<table>/m/<k>`, linked from the table's match list.
+[Replays](replays.md) covers the transport, its keys and links, and
+`gorged review`, which adds every decision and the bots' reasoning.
 
 How much a spectator sees is the server's choice, never the client's:
 
 | Flag | Default | Applies to |
 |---|---|---|
-| `-spectator public\|omniscient` | `omniscient` (every hand visible) | the startup tables `t1`…`tN`, **including a `-humans` table** |
+| `-spectator public\|omniscient` | `public` (hands hidden) | the startup tables `t1`…`tN`, **including a `-humans` table** |
 | `-vsbot-spectator public\|omniscient` | `public` (hands hidden) | the on-demand play-vs-bot tables |
 
 ## Play against other people
@@ -159,12 +161,11 @@ exactly one seat at one table, and is the only credential there is. For
 local testing, `-seat-token devtoken` fixes seat 0's token to `devtoken` and
 the next human seat's to `devtoken-1`.
 
-!!! warning "Pass `-spectator public` for a table with people at it"
-    The `-spectator` default is `omniscient`, and it applies to the `-humans`
-    table too. With the default, anyone who opens `/t/t1` without a token,
-    including either player in a second tab, sees **both hands**. Verified:
-    `GET /api/tables/t1/matches/1/view` on a default `-humans 0,1` table
-    returned both players' hands to a request with no token.
+!!! note "Showing every hand is opt-in"
+    `-spectator` defaults to `public`, so anyone who opens `/t/t1` without a
+    token, including either player in a second tab, sees only the public
+    view. Pass `-spectator omniscient` to show **every hand**; do that only
+    when every watcher is trusted, never on a table with people at it.
 
 Things to know about human tables:
 
@@ -353,20 +354,23 @@ Know what that exposes. `gorged` has **no login, no TLS and no rate
 limiting**. The only credential is the per-seat token in a join URL. Anyone
 who can reach the port can:
 
-- list and watch every startup table, with every hand visible under the
-  default `-spectator omniscient`;
+- list and watch every startup table; hands are hidden by default
+  (`-spectator public`) and visible only when the operator passes
+  `-spectator omniscient`;
 - start play-vs-bot games (up to `-max-on-demand-tables`) and so spend your
   CPU;
 - submit feedback reports, which are written to your disk (size-capped at
   12 MiB each).
 
 A seat token travels in the URL query string, so it ends up in browser
-history and in any proxy's access log, and a feedback report from a seated
-player includes the page URL with its token.
+history and in any proxy's access log. Feedback reports strip `token` and
+`seat_token` from the page URL before storing it, but treat a join URL itself
+as the credential it is.
 
 For anything beyond a trusted LAN, keep `gorged` on loopback and put it behind
 something that adds authentication and TLS (an SSH tunnel, or a reverse proxy
-with a login), and run human tables with `-spectator public`. `-pprof`
+with a login), and leave `-spectator` at its `public` default for human
+tables. `-pprof`
 (runtime profiles) is refused unless the listener is loopback, and a proxy in
 front of it would expose it anyway.
 

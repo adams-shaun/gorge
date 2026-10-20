@@ -149,7 +149,7 @@ async function driveToCardOptionsWindow(
   seat: number,
   token: string,
 ): Promise<{ kind: string; options: Array<{ index: number; kind: string; obj?: number }> }> {
-  const mResp = await request.get(`${b}/api/tables/${table}/matches`);
+  const mResp = await request.get(`${b}/api/tables/${table}/matches?token=${encodeURIComponent(token)}`);
   expect(mResp.ok(), `GET /api/tables/${table}/matches on ${b} should succeed`).toBe(true);
   const matches = (await mResp.json()) as Array<{ match: number; events: number }>;
   const have = matches.filter((m) => m.events > 0);
@@ -342,10 +342,11 @@ async function settleMulliganKeep(
 /** matchOfTable resolves the most recent live match on a table -- the startup
  *  table's match for the seat-1 join path, whose URL (unlike /api/games)
  *  carries no match id. Mirrors driveFixtureUntil's own resolution. */
-async function matchOfTable(request: APIRequestContext, base: string, table: string): Promise<number> {
+async function matchOfTable(request: APIRequestContext, base: string, table: string, token?: string): Promise<number> {
   const deadline = Date.now() + STALL_MS;
+  const q = token ? `?token=${encodeURIComponent(token)}` : '';
   while (Date.now() < deadline) {
-    const r = await request.get(`${base}/api/tables/${table}/matches`);
+    const r = await request.get(`${base}/api/tables/${table}/matches${q}`);
     if (r.ok()) {
       const ms = (await r.json()) as Array<{ match: number; events: number }>;
       const live = ms.filter((m) => m.events > 0);
@@ -976,13 +977,14 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         // this test measures.
         const joinURL = new URL(page.url());
         const table = joinURL.pathname.split('/')[2]!;
-        const seatedMatch = await matchOfTable(request, b, table);
-        await settleMulliganKeep(request, b, table, seatedMatch, 0, joinURL.searchParams.get('token')!);
+        const token = joinURL.searchParams.get('token')!;
+        const seatedMatch = await matchOfTable(request, b, table, token);
+        await settleMulliganKeep(request, b, table, seatedMatch, 0, token);
         await page.locator('.handtrack .handfan').waitFor({ state: 'visible', timeout: WAIT_MS });
 
         // The resulting real game exposes the selected deck identities both
         // in its match record and in the rendered rail's accessible labels.
-        const mResp = await request.get(`${b}/api/tables/${table}/matches`);
+        const mResp = await request.get(`${b}/api/tables/${table}/matches?token=${encodeURIComponent(token)}`);
         expect(mResp.ok()).toBe(true);
         const matches = await mResp.json() as Array<{ seats: Array<{ deck: string }> }>;
         expect(matches[0].seats.map((s) => s.deck)).toEqual(['the-epic-storm', 'uw-control']);

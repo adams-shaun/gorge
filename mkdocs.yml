@@ -63,6 +63,7 @@ markdown_extensions:
   - admonition
   - tables
   - attr_list
+  - def_list
   - md_in_html
   - toc:
       permalink: true
@@ -124,6 +125,7 @@ nav:
       - Install and build: guide/install.md
       - Play in the browser: guide/play.md
       - Bot-vs-bot games: guide/bot-games.md
+      - Replays: guide/replays.md
       - Troubleshooting: guide/troubleshooting.md
   - Bots:
       - bots/index.md

@@ -61,6 +61,13 @@ type Options struct {
 	// (eventhost.Host implements it; cmd/gorged wires it). nil — the default —
 	// leaves every /api/events path the JSON 404 it is today.
 	Events EventService
+	// Decisions, when non-nil, arms GET /api/tables/{t}/matches/{k}/decisions,
+	// a review table's decision index (match reviewer, design T4). Only
+	// `gorged review` sets it (to host.Registry.ReviewDecisions); nil -- the
+	// default, and every live server -- leaves the route unregistered, so it
+	// answers the JSON 404 like any path the handler does not serve and the
+	// live mux carries no extra pattern.
+	Decisions func(t host.TableID, k int) ([]protocol.ReviewDecision, error)
 }
 
 func (o Options) withDefaults() Options {
@@ -117,6 +124,7 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 		writeError(w, http.StatusNotFound, "not_found", "no such endpoint")
 	})
 	h.mountEvents(mux)
+	h.mountDecisions(mux)
 	h.mountStream(mux) // Task 15
 	h.mountStatic(mux) // Task 15
 	return h, h.authorized(mux)

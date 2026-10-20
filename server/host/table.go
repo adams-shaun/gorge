@@ -387,6 +387,10 @@ type table struct {
 	// table is registered and never changed, so it is read without a lock.
 	// Start is a no-op for it and info() reports it as TableInfo.Review.
 	review bool
+	// decisions is a review table's decision index (one entry per intent of
+	// its one match, ReviewDecisions), built by AddReviewTable's load walk
+	// and never changed after registration. nil on every live table.
+	decisions []protocol.ReviewDecision
 
 	mu    sync.RWMutex
 	state string // protocol.Table*

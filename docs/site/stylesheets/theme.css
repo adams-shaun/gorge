@@ -352,3 +352,57 @@
 @media (max-width: 600px) {
   .md-typeset .gg-hero .gg-lede { font-size: 1rem; }
 }
+
+/* ---------- annotated screenshots (guide/replays) ----------
+ * A screenshot with its regions outlined over it. The overlay SVG shares
+ * the image's coordinate box (viewBox = the capture's CSS pixels), so the
+ * outlines track the image at any width. The capture is always the client's
+ * dark board, so the overlay's colours are fixed, not themed. */
+.md-typeset figure.gg-annot { width: 100%; max-width: none; margin: 1.6rem 0 0.4rem; }
+.gg-annot-frame { position: relative; line-height: 0; }
+.md-typeset .gg-annot-frame img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.md-typeset figure.gg-annot svg.gg-annot-ov {
+  position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; pointer-events: none;
+}
+.gg-annot-region { fill: rgba(124, 199, 188, 0.05); stroke: #7cc7bc; stroke-width: 3; }
+.gg-annot-lead { stroke: #7cc7bc; stroke-width: 3; }
+.gg-annot-dot { fill: #7cc7bc; }
+.gg-annot-tag rect { fill: #1c2b33; stroke: #7cc7bc; stroke-width: 2; }
+.gg-annot-tag text { fill: #eef0ec; font-size: 25px; font-weight: 700; letter-spacing: -0.01em; }
+.md-typeset figure.gg-annot figcaption { max-width: 44rem; margin: 0.7rem 0 0; text-align: left; }
+/* Below this width the tags would be unreadably small; the region list
+ * under the figure carries the same names. */
+@media (max-width: 40em) { .gg-annot-tag, .gg-annot-lead, .gg-annot-dot { display: none; } }
+
+/* The region list: a definition list laid out as a two-column key. */
+.md-typeset .gg-regions dl {
+  display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.4rem; margin: 1.2rem 0 0; max-width: 46rem;
+}
+.md-typeset .gg-regions dt { margin: 0; font-weight: 700; }
+.md-typeset .gg-regions dd { margin: 0; }
+.md-typeset .gg-regions dd p { margin: 0; }
+@media (max-width: 40em) {
+  .md-typeset .gg-regions dl { grid-template-columns: 1fr; gap: 0.1rem; }
+  .md-typeset .gg-regions dd { margin-bottom: 0.7rem; }
+}
+
+/* The transport diagram's own marks: the board's seat bands, the played
+ * part of the timeline, and the review ticks in the accent. */
+.gg-tr-band { opacity: 0.55; }
+.gg-tr-played { fill: var(--md-default-fg-color); opacity: 0.12; }
+.gg-tr-mark { fill: var(--md-accent-fg-color); }
+.gg-tr-on { fill: var(--gg-riverbed); }
+
+/* The decision panel beside its key. */
+.md-typeset .gg-panel {
+  display: grid; grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr); gap: 1.6rem; align-items: start; margin: 1.2rem 0;
+}
+.md-typeset .gg-panel figure { margin: 0; position: sticky; top: 4.5rem; }
+.md-typeset .gg-panel figure img { display: block; width: 100%; border-radius: 6px; }
+.md-typeset .gg-panel figcaption { text-align: left; margin-top: 0.5rem; }
+.md-typeset .gg-panel p:first-child { margin-top: 0; }
+@media (max-width: 52em) {
+  .md-typeset .gg-panel { grid-template-columns: 1fr; }
+  .md-typeset .gg-panel figure { position: static; max-width: 20rem; }
+}
+.gg-tr-bg { fill: var(--md-code-bg-color); }

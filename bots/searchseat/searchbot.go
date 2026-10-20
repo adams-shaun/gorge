@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -53,6 +54,9 @@ type SearchBot struct {
 	// before returning), so plain fields need no lock. They are diagnostics
 	// only and never reach an answer.
 	sampleMS, searchMS float64
+	// note, when set (SetExplain), receives one decision note per
+	// DecideSearch (explain.go). nil builds nothing.
+	note func(explain.Note)
 }
 
 // SearchSeat is the driver-side contract testkit/bench.PlayGame type-asserts
@@ -164,9 +168,15 @@ func (s *SearchBot) DecideSearch(ctx context.Context, env Env, d decision.Decisi
 	// driver normally routes around this (its own DecideBoard fallback), so
 	// this guard is defence in depth, never the expected path.
 	if !env.Feed.Live() || env.Feed.Frames() == 0 {
+		if s.note != nil {
+			s.noteChoose(env, d, botIn, botIn, nil, "feed not live")
+		}
 		return botIn, nil
 	}
 	if !Eligible(&d, s.opts) {
+		if s.note != nil {
+			s.noteChoose(env, d, botIn, botIn, nil, "")
+		}
 		return botIn, nil
 	}
 	opts := s.opts
@@ -182,5 +192,8 @@ func (s *SearchBot) DecideSearch(ctx context.Context, env Env, d decision.Decisi
 	// Reset the per-decision scratch so a stale time never reaches the next
 	// diagnostic when the timing hooks are absent.
 	s.sampleMS, s.searchMS = 0, 0
+	if s.note != nil {
+		s.noteChoose(env, d, botIn, in, &tr, "")
+	}
 	return in, nil
 }

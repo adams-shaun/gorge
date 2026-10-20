@@ -1,4 +1,4 @@
-import type { BotPolicyList, Decision, ErrorBody, EventBody, Intent, MatchInfo, TableInfo, View } from '../protocol';
+import type { BotPolicyList, Decision, ErrorBody, EventBody, Intent, MatchInfo, ReviewDecision, TableInfo, View } from '../protocol';
 import type { SeatCtx } from './seat';
 import { withBase } from './basepath';
 
@@ -13,7 +13,10 @@ const enc = encodeURIComponent;
 // value the client reads once at startup. With an empty base (the default)
 // each one is byte-identical to the pre-base client.
 export const tablesURL = () => withBase('/api/tables');
-export const matchesURL = (t: string) => withBase(`/api/tables/${enc(t)}/matches`);
+export const matchesURL = (t: string, ctx?: SeatCtx) => {
+  const base = withBase(`/api/tables/${enc(t)}/matches`);
+  return ctx ? `${base}${seatQuery(ctx)}` : base;
+};
 export const pendingURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/pending`);
 export const intentURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/intent`);
 export const undoURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/undo`);
@@ -21,6 +24,9 @@ export const gamesURL = () => withBase('/api/games');
 export const decksURL = () => withBase('/api/decks');
 export const deckStatsURL = () => withBase('/api/stats/decks');
 export const botPoliciesURL = () => withBase('/api/bot-policies');
+// decisionsURL is the review server's decision index (`gorged review` only;
+// a live server 404s it).
+export const decisionsURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/decisions`);
 
 // seatQuery is the seat/token query threading on the seat-scoped GETs
 // (M2e-3's FL-99: ?seat=N&token=…). The token is a bearer credential for
@@ -107,7 +113,8 @@ async function postJSON(path: string, body: unknown): Promise<void> {
 }
 
 export const fetchTables = () => getJSON<TableInfo[]>(tablesURL());
-export const fetchMatches = (t: string) => getJSON<MatchInfo[]>(matchesURL(t));
+export const fetchMatches = (t: string, ctx?: SeatCtx) => getJSON<MatchInfo[]>(matchesURL(t, ctx));
+export const fetchDecisions = (t: string, k: number) => getJSON<ReviewDecision[]>(decisionsURL(t, k));
 
 export interface DeckInfo {
   id: string;

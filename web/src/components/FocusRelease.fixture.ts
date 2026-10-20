@@ -7,7 +7,7 @@ import '../app.css';
 import HotButtonStrip from './HotButtonStrip.svelte';
 import CentreStrip from './CentreStrip.svelte';
 import LayoutDrawer from './LayoutDrawer.svelte';
-import DvrBar from './DvrBar.svelte';
+import ReplayTransport from './ReplayTransport.svelte';
 import ManaPaymentPanel from './ManaPaymentPanel.svelte';
 import ListPrompt from './prompts/ListPrompt.svelte';
 import PlaySettingsPanel from './PlaySettingsPanel.svelte';
@@ -176,11 +176,12 @@ mount(PileHost, { target: document.querySelector('#pilehost')!, props: { view, s
 
 // F6: the DVR transport.
 const dvr: DvrState = { ...initialDvr, head: 3, cursor: 3, events: [] };
-mount(DvrBar, {
+mount(ReplayTransport, {
   target: document.querySelector('#dvr')!,
   props: {
     dvr,
     onAction: (a: DvrAction) => { win.__dvrActions.push(a); },
+    hotkeys: false,
   },
 });
 

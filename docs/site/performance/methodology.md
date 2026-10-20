@@ -237,14 +237,17 @@ OUT=/tmp/xengine CORES="2 4 6" SECS=60 WARM=40 scripts/xengine-bench.sh xmage
 Forge is built by gorge-compliance's `make forge-oracle-setup` (forge-core,
 forge-game and forge-ai at `FORGE_ORACLE_REF` from gorge's Forge fork, with
 their classpath in `cp.txt`). The whole-game driver is `forge.oracle.GameReplay`
-in the fork's `forge-oracle` module.
+in the fork's `forge-oracle` module, on branch
+[`oracle-harness`](https://github.com/adams-shaun/forge/tree/oracle-harness)
+(since `abbeafb93a`); clone it with
+`git clone -b oracle-harness https://github.com/adams-shaun/forge.git`.
 
 ```sh
 cd gorge-compliance && make forge-oracle-setup FORGE_ORACLE_DIR=$HOME/forgeoracle
 F=$HOME/forgeoracle
 cd ../gorge
 JAVA=$HOME/xmage/jdk/bin/java FORGE_CP=$F/cp.txt FORGE_RES=$F/forge/forge-gui/res \
-FORGE_SRC=<forge-oracle checkout with GameReplay>/forge-oracle/src/main/java \
+FORGE_SRC=<forge checkout>/forge-oracle/src/main/java \
 OUT=/tmp/xengine CORES="2 4 6" SECS=60 WARM=40 scripts/xengine-bench.sh forge
 ```
 

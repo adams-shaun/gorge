@@ -330,6 +330,15 @@ type StackEntry struct {
 	// o.Face().ManaCost for a spell, the view half's StackView.Card.ManaCost),
 	// so C8's stack census stays equal whichever host asked.
 	ManaCost string
+	// PumpPower and PumpToughness carry the spell's literal creature-pump
+	// bonus (effects.CastPumpBonus) while it sits on the stack. The A6 pump
+	// target ask arrives after the spell has left its owner's hand, so the
+	// cast-time Card facts are no longer in the census; both halves fill
+	// these from the same printed face (the game half's spell object, the
+	// view half's StackView.Card) and leave them zero for an ability object,
+	// and for a face-down spell to every viewer but its controller.
+	PumpPower     int32
+	PumpToughness int32
 }
 
 // closesClock reports whether an unblocked swing from the creature id —
@@ -1519,7 +1528,8 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			}
 			if o.Kind == "pass" && !have[o.Index] && fits(o) &&
 				(!d.TargetsWithSameController || !haveTargetController || o.Controller == targetController) &&
-				(d.Kind != decision.KBlockers || d.BlockPairAdmits(in.Choices, o.Index)) {
+				(d.Kind != decision.KBlockers || d.BlockPairAdmits(in.Choices, o.Index)) &&
+				(d.Kind != decision.KAttackers || d.AttackPairAdmits(in.Choices, o.Index)) {
 				add(o)
 			}
 		}
@@ -1544,8 +1554,11 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 				// One blocker may block one attacker unless a BlockAllDefined
 				// pair admits it (Decision.Validate's KBlockers rule, 858182dc8);
 				// topping up with a second pairing for the same blocker hands
-				// back an intent the engine rejects.
-				(d.Kind == decision.KBlockers && !d.BlockPairAdmits(in.Choices, o.Index)) {
+				// back an intent the engine rejects. KAttackers is the mirror:
+				// one attacker attacks exactly one defender (CR 508.1), so a
+				// second pairing for the same attacker is refused the same way.
+				(d.Kind == decision.KBlockers && !d.BlockPairAdmits(in.Choices, o.Index)) ||
+				(d.Kind == decision.KAttackers && !d.AttackPairAdmits(in.Choices, o.Index)) {
 				continue
 			}
 			if o.Group != "" {

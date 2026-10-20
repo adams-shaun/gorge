@@ -52,6 +52,11 @@
       "tier": "bots",
       "status": "CORE"
     },
+    "bots/explain": {
+      "tier": "bots",
+      "status": "SUPP",
+      "purpose": "Per-intent decision notes (who answered, search table, net scores) a match record carries for the reviewer."
+    },
     "bots/forgeheuristic": {
       "tier": "bots",
       "status": "EXT",

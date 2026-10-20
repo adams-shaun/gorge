@@ -84,17 +84,12 @@ func humanFirstSeat(human **HumanSeat) func(names []string, seed uint64) []seat.
 // keep going until the match reaches MatchFinished. It returns once the
 // match is finished, and fails the test on a crash or a stall.
 //
-// Each distinct pending Seq is submitted exactly once: last guards against
-// Pending returning a snapshot of a decision that has already been answered
-// (the seat's slot is cleared by the parked Decide's defer, which runs after
-// the intent is consumed -- so a fast poll can read a decision that was just
-// handed to the engine). Submitting the same Seq twice could queue a second
-// intent on an already-full channel M2b-2's abandoned-slot design explicitly
-// forbids; the Seq guard makes the embedder loop correct for any interleaving.
+// Submitting claims the seat's slot before the send, so Pending can never
+// return an already-answered decision; each distinct pending Seq is submitted
+// exactly once and a racing duplicate is refused by the seat.
 func driveHumanSeat(t *testing.T, r *Registry, id TableID) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Minute)
-	var last uint64 = ^uint64(0) // a Seq no decision can carry
 	for {
 		if time.Now().After(deadline) {
 			r.Close()
@@ -124,16 +119,10 @@ func driveHumanSeat(t *testing.T, r *Registry, id TableID) {
 			time.Sleep(time.Millisecond)
 			continue
 		}
-		if d.Seq == last {
-			// A re-read of the decision we just answered; wait for the next.
-			time.Sleep(time.Millisecond)
-			continue
-		}
 		if err := r.SubmitIntent(id, 1, 0, legalIntent(d)); err != nil {
 			r.Close()
 			t.Fatalf("SubmitIntent(seq %d): %v", d.Seq, err)
 		}
-		last = d.Seq
 	}
 }
 

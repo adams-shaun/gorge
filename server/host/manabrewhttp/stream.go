@@ -43,6 +43,9 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 
 	sess := h.reg.OpenSession()
 	defer h.reg.CloseSession(sess.ID)
+	// The claim was resolved above; bind it so Subscribe can admit this
+	// session to a private on-demand table.
+	sess.BindSeat(t)
 	if err := h.reg.Subscribe(sess, t, protocol.ModeFocus); err != nil {
 		writeError(w, http.StatusNotFound, "not_found", err.Error())
 		return
@@ -87,21 +90,52 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if d != nil && d.Kind == decision.KPriority {
+			// A refused automatic answer must not be dropped: report it on
+			// the stream, stop the policy so it cannot retry the same
+			// refused intent forever, and (for an engine refusal) fall
+			// through to the state/prompt below so the still-open decision
+			// stays answerable. A stale race returns and lets the next
+			// wake-up show the decision that replaced this one.
+			autoRefused := false
 			if sc.takeConcedeQueued() {
 				if in, cerr := manabrew.ConcedeIntent(d); cerr == nil {
-					_ = h.reg.SubmitIntent(t, k, claim.Seat, in)
-					return nil
+					if err := h.submitIntent(t, k, claim.Seat, in); err != nil {
+						pe := h.submitProtocolError(t, k, claim.Seat, d, err)
+						sc.setPolicy(nil)
+						autoRefused = true
+						if werr := write(mb.EngineMessage{Value: mb.ErrorMessage{Error: pe}}); werr != nil {
+							return werr
+						}
+						if pe.Code == mb.CodeStalePrompt {
+							return nil // the next wake-up shows the decision that replaced d
+						}
+					} else {
+						return nil
+					}
 				}
 			}
-			if pol := sc.getPolicy(); pol != nil {
-				if in, doPass := tr.AutoPass(pol, d, v); doPass {
-					_ = h.reg.SubmitIntent(t, k, claim.Seat, in)
-					return nil
+			if !autoRefused {
+				if pol := sc.getPolicy(); pol != nil {
+					if in, doPass := tr.AutoPass(pol, d, v); doPass {
+						if err := h.submitIntent(t, k, claim.Seat, in); err != nil {
+							pe := h.submitProtocolError(t, k, claim.Seat, d, err)
+							sc.setPolicy(nil)
+							if werr := write(mb.EngineMessage{Value: mb.ErrorMessage{Error: pe}}); werr != nil {
+								return werr
+							}
+							if pe.Code == mb.CodeStalePrompt {
+								return nil // the next wake-up shows the decision that replaced d
+							}
+						} else {
+							return nil
+						}
+					} else {
+						// ShouldPass is false: either the policy was never active
+						// (a plain pass) or a stop condition was reached (§6.5).
+						// Either way there is nothing left for it to do.
+						sc.setPolicy(nil)
+					}
 				}
-				// ShouldPass is false: either the policy was never active
-				// (a plain pass) or a stop condition was reached (§6.5).
-				// Either way there is nothing left for it to do.
-				sc.setPolicy(nil)
 			}
 		} else if d != nil {
 			// A non-priority prompt clears any running policy — its own

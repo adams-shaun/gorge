@@ -1,6 +1,7 @@
 package host
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -26,12 +27,19 @@ import (
 //   - Policies are the per-seat policy names that played, for display only;
 //     they never build a seat (a review table has none).
 //   - Label is the table's display name; empty uses the table id.
+//   - Explain is the record's per-intent explain sidecar
+//     (matchrecord.Record.Explain): entry i is a bots/explain.Note's JSON
+//     for Log.Intents[i], or JSON null. The host treats each entry as
+//     opaque bytes and serves it on the matching decision entry
+//     (ReviewDecisions); it is never replay input. A slice whose length is
+//     not the intent count is ignored (the loader warns and drops it).
 type ReviewMatch struct {
 	Config   rules.Config
 	Log      *events.Log
 	Names    []string
 	Policies []string
 	Label    string
+	Explain  []json.RawMessage
 }
 
 // AddReviewTable registers a read-only review table (match reviewer, design
@@ -47,7 +55,9 @@ type ReviewMatch struct {
 // The load then walks the log once more (replay.Walk) to clone the engine at
 // genesis and at every boundary whose burst began a turn, the same
 // turn-start snapshots a live match's afterBurst takes, so viewAt serves any
-// seq by replaying at most one turn.
+// seq by replaying at most one turn. The same walk builds the decision index
+// ReviewDecisions serves: at boundary i the engine's pending decision is
+// exactly the one Log.Intents[i] answered (design D8).
 //
 // Review tables live only in a memory-mode registry (Options.Dir == ""): a
 // persisted registry would write them into tables.json and a restart would
@@ -84,7 +94,11 @@ func (r *Registry) AddReviewTable(id string, m ReviewMatch) error {
 	if err != nil {
 		return fmt.Errorf("host: review table %s does not replay: %w", id, err)
 	}
-	snaps, err := reviewSnapshots(m.Log, cfg)
+	explain := m.Explain
+	if len(explain) != len(m.Log.Intents) {
+		explain = nil
+	}
+	snaps, decisions, err := reviewWalk(m.Log, cfg, explain)
 	if err != nil {
 		return fmt.Errorf("host: review table %s: %w", id, err)
 	}
@@ -101,6 +115,7 @@ func (r *Registry) AddReviewTable(id string, m ReviewMatch) error {
 	}
 	t := newTable(r, tc)
 	t.review = true
+	t.decisions = decisions
 	t.k = 1
 
 	seats := make([]protocol.SeatInfo, n)
@@ -151,13 +166,16 @@ func (r *Registry) AddReviewTable(id string, m ReviewMatch) error {
 	return nil
 }
 
-// reviewSnapshots walks (l, cfg) once and clones the engine at genesis
-// (intent 0) and at every intent boundary whose preceding burst contained a
-// TurnChange: exactly the boundaries a live match snapshots (snapshotGenesis
-// and afterBurst), so viewAt finds the same structure it finds on a live
-// match.
-func reviewSnapshots(l *events.Log, cfg rules.Config) ([]snapshot, error) {
+// reviewWalk walks (l, cfg) once. It clones the engine at genesis (intent
+// 0) and at every intent boundary whose preceding burst contained a
+// TurnChange: exactly the boundaries a live match snapshots
+// (snapshotGenesis and afterBurst), so viewAt finds the same structure it
+// finds on a live match. At every boundary before the last it also indexes
+// the pending decision (reviewDecisionIndex.at), with explain[i] (nil or
+// one entry per intent) riding on entry i.
+func reviewWalk(l *events.Log, cfg rules.Config, explain []json.RawMessage) ([]snapshot, []protocol.ReviewDecision, error) {
 	var snaps []snapshot
+	ix := newReviewDecisionIndex(l, explain)
 	prev := 0
 	_, err := replay.Walk(l, cfg, len(l.Intents), func(e *rules.Engine, i int) error {
 		n := len(e.L.Events)
@@ -168,12 +186,15 @@ func reviewSnapshots(l *events.Log, cfg rules.Config) ([]snapshot, error) {
 			snaps = append(snaps, snapshot{intent: i, seq: uint64(n) - 1, e: e.Clone()})
 		}
 		prev = n
+		if i < len(l.Intents) {
+			return ix.at(e, i)
+		}
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("snapshot walk: %w", err)
+		return nil, nil, fmt.Errorf("snapshot walk: %w", err)
 	}
-	return snaps, nil
+	return snaps, ix.out, nil
 }
 
 // joinPolicies is the table-level policy label: the distinct per-seat

@@ -321,10 +321,11 @@ func (d *Decision) requiredAt(c int) bool {
 }
 
 // FitRequired returns an answer that satisfies the Max ceiling, the MaxSum
-// budget and the RequiredQuota at once, keeping as much of choices (a
-// client's preferred answer, in its order) as those allow. When choices
-// already satisfies all three it is returned unchanged, so a decision with no
-// budget and no requirement pressure is byte-identical.
+// budget, the RequiredQuota and (for KAttackers) one pair per creature at
+// once, keeping as much of choices (a client's preferred answer, in its
+// order) as those allow. When choices already satisfies all of them it is
+// returned unchanged, so a decision with no budget and no requirement
+// pressure is byte-identical.
 //
 // Otherwise the answer is rebuilt from the requiredCore -- exactly the set
 // RequiredQuota counts, so the quota is met by construction -- and then each
@@ -351,7 +352,9 @@ func (d *Decision) FitRequired(choices []int) []int {
 			sum2 += d.Options[c].Value2
 		}
 	}
+	_, repeated := d.repeatedAttacker(choices)
 	if len(choices) <= d.maxChoices() &&
+		(d.Kind != KAttackers || !repeated) &&
 		(!d.HasBudget() || sum <= d.MaxSum) &&
 		(!d.HasBudget2() || sum2 <= d.MaxSum2) &&
 		(d.MinSum <= 0 || sum >= d.MinSum || (d.AllowNone && len(choices) == 0)) &&

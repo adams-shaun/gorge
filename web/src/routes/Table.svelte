@@ -12,7 +12,11 @@
   import Rail from '../components/Rail.svelte';
   import PileHost from '../components/PileHost.svelte';
   import Transcript from '../components/Transcript.svelte';
-  import DvrBar from '../components/DvrBar.svelte';
+  import ReplayTransport from '../components/ReplayTransport.svelte';
+  import DecisionPanel from '../components/DecisionPanel.svelte';
+  import { decisionStops, timelineMarks } from '../lib/review';
+  import type { ReviewDecision } from '../protocol';
+  import { parseReplayQuery, replaySearch, resolveStart, type StepUnit } from '../lib/replay';
   import MatchList from '../components/MatchList.svelte';
   import ConcedeControl from '../components/ConcedeControl.svelte';
   import TableEventOverlay from '../components/event/TableEventOverlay.svelte';
@@ -67,6 +71,35 @@
   // it always was (R-E4-4).
   const seatCtx = getSeat();
   const seated = seatCtx !== null;
+  // The replay transport's playback settings (ReplayTransport binds them),
+  // seeded from the URL on a finished replay (?unit=, ?speed=, ?play=).
+  let replayUnit = $state<StepUnit>('decision');
+  let replaySpeed = $state(1);
+  let replayPlaying = $state(false);
+  // Skip passes: on a review table the Decision step passes over decisions
+  // whose only options are Pass priority and Concede. A viewer preference,
+  // so it is remembered per browser (storage may be unavailable; default on).
+  const SKIP_PASSES_KEY = 'gorge.replay.skipPasses';
+  let replaySkipPasses = $state(
+    (() => {
+      try {
+        return localStorage.getItem(SKIP_PASSES_KEY) !== '0';
+      } catch {
+        return true;
+      }
+    })(),
+  );
+  $effect(() => {
+    const v = replaySkipPasses ? '1' : '0';
+    try {
+      localStorage.setItem(SKIP_PASSES_KEY, v);
+    } catch {
+      // private mode / blocked storage: the setting lasts this page only
+    }
+  });
+  // urlSynced turns on once the URL's own position has been applied, so the
+  // cursor-to-URL sync below never overwrites a ?seq= before it is read.
+  let urlSynced = $state(false);
   // The log starts hidden for a SEATED player (they are playing, not reading)
   // and stays shown for a spectator (they follow the game through it, and its
   // scrubbing). The choice is persisted per table and per scope — the stops
@@ -169,6 +202,19 @@
   // The table's own public config (format, bot_policy, mulligans), for the
   // restart control's POST. TableInfo always carries all three.
   const tableInfo = $derived(tables.list.find((t) => t.info.id === table)?.info ?? null);
+  // A review table (`gorged review`, TableInfo.review) adds the decision
+  // panel to the rail and override/fallback marks to the transport. Only the
+  // finished-match route of an unseated viewer ever shows it.
+  const reviewMatch = $derived(finished && !seated && tableInfo?.review === true ? match : null);
+  let reviewEntries = $state<ReviewDecision[]>([]);
+  const reviewMarks = $derived(
+    reviewMatch === null ? [] : timelineMarks(reviewEntries, (p) => m.seats[p]?.name ?? `Seat ${p + 1}`),
+  );
+  const reviewStops = $derived(reviewMatch === null || reviewEntries.length === 0 ? null : decisionStops(reviewEntries));
+  function reviewScrub(seq: number) {
+    replayPlaying = false;
+    m.dispatch({ type: 'scrub', seq });
+  }
   // The table capability is authoritative: with it off this state remains the
   // manual baseline even if a stale response carried a payment extension.
   $effect(() => {
@@ -429,9 +475,47 @@
       : null,
   );
 
+  /**
+   * applyReplayQuery positions a finished replay from its URL: ?seq= (or
+   * ?event=), ?intent= (the board with that intent pending, as `repro -at N`
+   * prints it), or ?turn= (the round the phase bar calls "Turn N"); plus
+   * ?unit=, ?speed= and ?play=1.
+   */
+  function applyReplayQuery(fm: MatchState) {
+    if (fm.match === null || fm.loadError) return;
+    const q = parseReplayQuery(location.search);
+    if (q.unit) replayUnit = q.unit;
+    if (q.speed) replaySpeed = q.speed;
+    const seq = resolveStart(q, fm.dvr, fm.seats.length);
+    if (seq !== null) fm.dispatch({ type: 'scrub', seq });
+    if (q.play) replayPlaying = true;
+    urlSynced = true;
+  }
+
+  // A finished replay keeps its position in the URL (replaceState, no history
+  // entry per step), so a copied link reopens at the same event.
+  $effect(() => {
+    if (!finished || !urlSynced) return;
+    const cursor = m.dvr.cursor;
+    const unit = replayUnit;
+    const speed = replaySpeed;
+    const t = setTimeout(() => {
+      const next = location.pathname + replaySearch(location.search, cursor, unit, speed) + location.hash;
+      if (next !== location.pathname + location.search + location.hash) history.replaceState(history.state, '', next);
+    }, 250);
+    return () => clearTimeout(t);
+  });
+
   onMount(() => {
     if (match !== null) {
-      if (m instanceof MatchState) void m.loadFinished(match);
+      if (m instanceof MatchState) {
+        const fm = m;
+        void fm.loadFinished(match).then(() => applyReplayQuery(fm));
+      }
+      // A finished match opened directly has no table listing yet (no
+      // overview visited, no stream); read it once so the review bit is
+      // known.
+      if (tableInfo === null) tables.load().catch(() => {});
       return;
     }
     let closed = false;
@@ -492,7 +576,7 @@
     <MatchList {table} />
   </main>
 {:else}
-  <main class="table rail-{railSide}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen}>
+  <main class="table rail-{railSide}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen} class:with-transport={!seated && !!m.view}>
     <!-- Motion overlay (spec sub-project 5): renders nothing here; it plays
          the client model's transitions in a fixed layer on <body>. Mounted
          outside the view guard so a match change does not remount it. -->
@@ -539,6 +623,17 @@
           {/key}
         {/if}
       </section>
+      {#if !seated}
+        <!-- The DVR transport sits under the board, across its full width,
+             for every unseated view (finished replay and live spectator). It
+             used to live inside the rail's log section, which put it in the
+             right pane once the v3 layout moved the log into the rail. -->
+        <div class="transport-row">
+          <ReplayTransport dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} seats={m.seats} marks={reviewMarks}
+            decisionStops={reviewStops} bind:skipPasses={replaySkipPasses}
+            bind:unit={replayUnit} bind:speed={replaySpeed} bind:playing={replayPlaying} />
+        </div>
+      {/if}
       {#snippet handFan({ cardWidth, visible, raise }: { cardWidth: number; visible: number; raise: boolean })}
         <!-- The seated player's own hand (Task ui17), in the hand row the
              layout sizes from its row unit. ui23: the hand gets the same
@@ -558,6 +653,9 @@
           <PromptRailSlot placement="dock" clearFeedback={railSide !== 'left'}>
             {#if panel && seatCtx && controlsLive && m.view}<PromptDock view={m.view} logic={panel} seat={seatCtx.seat} />{/if}
           </PromptRailSlot>
+        {/if}
+        {#if reviewMatch !== null}
+          <DecisionPanel {table} match={reviewMatch} seats={m.seats} cursor={m.dvr.cursor} onScrub={reviewScrub} bind:entries={reviewEntries} />
         {/if}
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed
@@ -641,9 +739,6 @@
         <!-- The log lives in the rail beneath the stack (the v3 layout),
              shown or hidden by the per-table choice or the layout profile. -->
         <section class="transcript" class:hidden={!showLog} aria-label="Game log">
-          {#if !seated}
-            <DvrBar dvr={m.dvr} onAction={(a) => m.dispatch(a)} {finished} />
-          {/if}
           <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} cards={logCards} notes={panel?.autoLog ?? []} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
         </section>
         {#if promptPlacement === 'dock-bottom'}
@@ -773,6 +868,19 @@
     min-width: 0;
     min-height: 0;
   }
+  /* An unseated view adds the DVR transport as a second row under the board,
+     in the board's column; the rail spans both rows. */
+  .table.with-transport {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .table.with-transport .board { grid-row: 1; }
+  .table.with-transport .rail { grid-row: 1 / -1; }
+  .transport-row {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+  .table.rail-left .transport-row { grid-column: 2; }
 
   .rail {
     position: relative;
