@@ -2,7 +2,7 @@
 # xengine-bench.sh [ENGINE...]: whole-game throughput of gorge against other
 # Magic rules engines on one box, on the same decks, one pinned core per run.
 #
-# ENGINE is any of gorge xmage forge dirty-dirac (default: every engine that
+# ENGINE is any of gorge xmage forge dirty-dirac mtg-kernel (default: every engine that
 # is set up; gorge always is). Each engine plays FDN pair A
 # (FDN_top_04956_UG vs FDN_top_20626_WG) and pair B (FDN_top_07961_WR vs
 # FDN_top_02581_UR) from cmd/enginebench/testdata/decks, under each policy it
@@ -20,7 +20,7 @@
 #   CORES    one core per concurrent rep (default "24 26 28"; REPS = their count)
 #   SECS     measured seconds per run (default 30)
 #   WARM     JVM warm-up seconds before measuring, XMage and Forge (default 30)
-#   PAIRS    deck pairs (default "A B")
+#   PAIRS    deck pairs (default "A B"; "burn" is the Burn mirror, which dirty-dirac cannot play)
 #   JAVA     java binary for XMage and Forge (default: java on PATH)
 #   JAVA_HEAP  -Xmx for both JVMs (default 2g)
 #   gorge:   nothing; it builds cmd/enginebench from this checkout (CARDS=.cards)
@@ -35,6 +35,10 @@
 #            FORGE_SRC     the forge-oracle driver sources (src/main/java with
 #                          forge.oracle.GameReplay)
 #   dirty-dirac: KPLAY     a kplay binary (private module; skipped when unset)
+#   mtg-kernel: MTGKERNEL_BENCH  bench_kernel built with the xengine mode
+#            (cmd/enginebench/scripts/xengine/mtgkernel/); MK_PAIRS (default A),
+#            MK_WARM warm-up CPU-seconds (default 5), MK_ROW the row label
+#            (default random; label a second build's rows differently)
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
@@ -52,8 +56,17 @@ RUNS=$OUT/runs.jsonl
 
 die() { echo "xengine-bench: $*" >&2; exit 2; }
 load1() { cut -d' ' -f1 /proc/loadavg; }
-deck_a() { case $1 in A) echo FDN_top_04956_UG ;; B) echo FDN_top_07961_WR ;; *) die "pair $1: want A or B" ;; esac; }
-deck_b() { case $1 in A) echo FDN_top_20626_WG ;; B) echo FDN_top_02581_UR ;; esac; }
+deck_a() { case $1 in A) echo FDN_top_04956_UG ;; B) echo FDN_top_07961_WR ;; burn) echo burn ;; *) die "pair $1: want A, B or burn" ;; esac; }
+deck_b() { case $1 in A) echo FDN_top_20626_WG ;; B) echo FDN_top_02581_UR ;; burn) echo burn ;; esac; }
+# Every driver but enginebench reads .dck lists from DK: the four FDN decks,
+# and the Burn mirror's burn.json written out as burn.dck ("N Name" lines).
+DK=$OUT/work/decks
+mkdir -p "$DK"
+for f in "$DECKS"/*.dck; do ln -sf "$f" "$DK/"; done
+python3 -I -c 'import json,sys; d=json.load(open(sys.argv[1])); open(sys.argv[2],"w").write("NAME:Burn\n"+"".join("%d %s\n" % (c["count"], c["name"]) for c in d["cards"]))' \
+	"$DECKS/burn.json" "$DK/burn.dck"
+# XMage resolves set-less lines only through its MTGO-text importer (.txt).
+sed 1d "$DK/burn.dck" > "$DK/burn.txt"
 
 # corestat CORE: that core's /proc/stat line (busy and idle jiffies).
 corestat() { awk -v c="cpu$1" '$1 == c' /proc/stat; }
@@ -124,7 +137,8 @@ xmage_setup() {
 }
 xmage_run() { # POLICY PAIR REP CORE
 	local pol=$1 pair=$2 rep=$3 core=$4
-	local w=$OUT/work/xmage-$pol-$pair-$rep l0 cwd
+	local w=$OUT/work/xmage-$pol-$pair-$rep l0 cwd xext=dck
+	[ "$pair" = burn ] && xext=txt
 	# A private cwd per JVM: XMage's H2 card DB (db/cards.h2) cannot be shared
 	# between JVMs, so each run gets a copy and links to the rest of Mage.Tests.
 	cwd=$w.cwd
@@ -133,7 +147,7 @@ xmage_run() { # POLICY PAIR REP CORE
 	cp "$XMAGE_TESTS/db/cards.h2.mv.db" "$cwd/db/"
 	l0=$(load1); corestat "$core" > "$w.stat0"
 	(cd "$cwd" && pinned "$core" "$w.time" "$JAVA" -Xmx"$JAVA_HEAP" -Dlog4j.configuration=file:/dev/null -cp "$XCP" \
-		org.mage.test.bench.XEngineBench "$pol" "$DECKS/$(deck_a "$pair").dck" "$DECKS/$(deck_b "$pair").dck" \
+		org.mage.test.bench.XEngineBench "$pol" "$DK/$(deck_a "$pair").$xext" "$DK/$(deck_b "$pair").$xext" \
 		"$WARM" "$SECS" $((1 + 1000003 * rep)) 100 1 >"$w.jsonl" 2>"$w.log")
 	rm -rf "$cwd"
 	record xmage "$pol" "$pair" "$rep" "$core" "$l0" "$w.time" "$w.jsonl" xmage
@@ -167,7 +181,7 @@ kill_java_below() {
 forge_run() { # PAIR REP CORE
 	local pair=$1 rep=$2 core=$3
 	local w=$OUT/work/forge-ai-$pair-$rep l0 pid
-	python3 -I "$REPO/scripts/xengine-bench-summarize.py" --forge-games "$DECKS" "$(deck_a "$pair")" "$(deck_b "$pair")" \
+	python3 -I "$REPO/scripts/xengine-bench-summarize.py" --forge-games "$DK" "$(deck_a "$pair")" "$(deck_b "$pair")" \
 		$((1 + 1000003 * rep)) 2000 > "$w.in.jsonl"
 	mkdir -p "$w.tmp"
 	l0=$(load1); corestat "$core" > "$w.stat0"
@@ -202,7 +216,7 @@ forge_all() {
 kplay_run() { # POLICY PAIR REP CORE
 	local pol=$1 pair=$2 rep=$3 core=$4
 	local w=$OUT/work/dirty-dirac-$pol-$pair-$rep l0
-	python3 -I "$REPO/scripts/xengine-bench-summarize.py" --kplay-decks "$DECKS" "$(deck_a "$pair")" "$(deck_b "$pair")" \
+	python3 -I "$REPO/scripts/xengine-bench-summarize.py" --kplay-decks "$DK" "$(deck_a "$pair")" "$(deck_b "$pair")" \
 		"$w.decks.jsonl" "$w.pairs.tsv" $((1 + 1000003 * rep))
 	l0=$(load1); corestat "$core" > "$w.stat0"
 	pinned "$core" "$w.time" env GOMAXPROCS=1 "$KPLAY" -cards "$CARDS" -deckfile "$w.decks.jsonl" -pairs-file "$w.pairs.tsv" \
@@ -216,12 +230,35 @@ kplay_all() {
 	done
 }
 
+# ---- mtg-kernel (jackmaiorino/mtg-kernel, with the xengine bench mode) -------
+# MTGKERNEL_BENCH is mtg-kernel's bench_kernel example built with the
+# --xengine-json mode from cmd/enginebench/scripts/xengine/mtgkernel/ and the
+# limited-fdn-fixtures feature (methodology.md, "mtg-kernel"). It implements a
+# few dozen FDN cards: it plays pair A and refuses a pair it cannot play, so
+# the default pair list for it is A.
+mtgkernel_run() { # PAIR REP CORE
+	local pair=$1 rep=$2 core=$3
+	local w=$OUT/work/mtg-kernel-${MK_ROW:-random}-$pair-$rep l0
+	l0=$(load1); corestat "$core" > "$w.stat0"
+	pinned "$core" "$w.time" "$MTGKERNEL_BENCH" --xengine-json "$DK/$(deck_a "$pair").dck" "$DK/$(deck_b "$pair").dck" \
+		"${MK_WARM:-5}" "$SECS" $((1 + 1000003 * rep)) >"$w.json" 2>"$w.log" || true
+	record mtg-kernel "${MK_ROW:-random}" "$pair" "$rep" "$core" "$l0" "$w.time" "$w.json" mtgkernel
+}
+mtgkernel_all() {
+	local pairs
+	read -r -a pairs <<< "${MK_PAIRS:-A}"
+	for pair in "${pairs[@]}"; do
+		batch "mtg-kernel ${MK_ROW:-random} $pair" mtgkernel_run "$pair"
+	done
+}
+
 engines=("$@")
 if [ ${#engines[@]} -eq 0 ]; then
 	engines=(gorge)
 	xmage_ready && engines+=(xmage)
 	forge_ready && engines+=(forge)
 	[ -n "${KPLAY:-}" ] && engines+=(dirty-dirac)
+	[ -n "${MTGKERNEL_BENCH:-}" ] && engines+=(mtg-kernel)
 fi
 {
 	echo "xengine-bench $(date -u +%FT%TZ) host=$(uname -n) cpu=\"$(sed -n 's/^model name\s*: //p' /proc/cpuinfo | head -1)\""
@@ -235,7 +272,8 @@ for e in "${engines[@]}"; do
 	xmage) xmage_ready || die "xmage: set XMAGE_TESTS, XMAGE_CP and XMAGE_BENCH"; xmage_all ;;
 	forge) forge_ready || die "forge: set FORGE_CP, FORGE_RES and FORGE_SRC"; forge_all ;;
 	dirty-dirac) [ -n "${KPLAY:-}" ] || die "dirty-dirac: set KPLAY"; kplay_all ;;
-	*) die "unknown engine $e (gorge xmage forge dirty-dirac)" ;;
+	mtg-kernel) [ -n "${MTGKERNEL_BENCH:-}" ] || die "mtg-kernel: set MTGKERNEL_BENCH"; mtgkernel_all ;;
+	*) die "unknown engine $e (gorge xmage forge dirty-dirac mtg-kernel)" ;;
 	esac
 done
 python3 -I "$REPO/scripts/xengine-bench-summarize.py" "$RUNS"
