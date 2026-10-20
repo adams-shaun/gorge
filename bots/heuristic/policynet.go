@@ -103,6 +103,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/seat"
@@ -139,6 +140,9 @@ type PolicyNetBot struct {
 	// seeded from the game seed; nothing else reads it.
 	sampleT   float64
 	sampleRng *rand.Rand
+	// note, when set (SetExplain), receives one decision note per decision
+	// (policynet_explain.go). nil builds nothing.
+	note func(explain.Note)
 }
 
 // SetSampling makes the seat SAMPLE its scored answers at temperature temp
@@ -453,20 +457,33 @@ func (b *PolicyNetBot) WantsPaymentActions() bool { return false }
 // residual-prior paragraph above for the determinism contract.
 func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
 	if !b.scoresKind(&d) {
-		return b.def.Decide(ctx, v, d)
+		in, err := b.def.Decide(ctx, v, d)
+		if b.note != nil && err == nil {
+			b.noteBot(d.Player, in, "")
+		}
+		return in, err
 	}
 	botIn, err := b.def.Decide(ctx, v, d)
 	if err != nil {
 		return decision.Intent{}, err
 	}
 	if d.Kind == decision.KPriority && (b.scorer == nil || !priorityScorable(&d, botIn, b.scorer.ResidualWeight())) {
+		if b.note != nil {
+			b.noteBot(d.Player, botIn, "out of distribution")
+		}
 		return botIn, nil
 	}
 	if d.Kind == decision.KTarget && (b.scorer == nil || !targetScorable(&d, botIn, b.scorer.ResidualWeight())) {
+		if b.note != nil {
+			b.noteBot(d.Player, botIn, "out of distribution")
+		}
 		return botIn, nil
 	}
 	st, opts, ok := b.encode(v, &d)
 	if !ok {
+		if b.note != nil {
+			b.noteBot(d.Player, botIn, "nothing to score")
+		}
 		return botIn, nil
 	}
 	markBotPicks(&d, opts, botIn)
@@ -477,6 +494,9 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 		in, scored = b.sampleAnswer(v, &d, scores, botIn)
 		if scored && b.record != nil {
 			b.report(v, &d, st, opts, scores, in, botIn)
+		}
+		if b.note != nil {
+			b.noteScored(d.Player, st, scores, botIn, scored)
 		}
 		if scored {
 			return in, nil
@@ -492,6 +512,9 @@ func (b *PolicyNetBot) Decide(ctx context.Context, v view.View, d decision.Decis
 		in, scored = blockersFromScoresVote(&d, scores, BoardFromView(v), botIn, b.signAdmission)
 	case decision.KTarget:
 		in, scored = targetFromScores(&d, scores)
+	}
+	if b.note != nil {
+		b.noteScored(d.Player, st, scores, botIn, scored)
 	}
 	if scored {
 		if b.record != nil {

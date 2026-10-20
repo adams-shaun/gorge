@@ -9,7 +9,7 @@ import (
 
 func TestBoardEqualMatchesDeepEqual(t *testing.T) {
 	for typ, n := range map[reflect.Type]int{
-		reflect.TypeFor[Creature]():  6,
+		reflect.TypeFor[Creature]():  9,
 		reflect.TypeFor[Commander](): 3,
 	} {
 		if typ.NumField() != n {
@@ -19,6 +19,7 @@ func TestBoardEqualMatchesDeepEqual(t *testing.T) {
 	cr := []Creature{
 		{}, {Keywords: []string{}}, {Keywords: []string{"Flying"}}, {Keywords: []string{"Flying", "Haste"}},
 		{Power: 1}, {Toughness: 1}, {Damage: 1}, {Tapped: true}, {Controller: 1},
+		{Attacking: true}, {Defender: 1}, {Blocks: 1},
 	}
 	for i := range cr {
 		for j := range cr {

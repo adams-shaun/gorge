@@ -342,6 +342,30 @@ export interface CardView {
    */
   removal_damage?: number;
   /**
+   * PumpPower and PumpToughness are the literal, non-negative bonus of
+   * the card's primary Pump ability (effects.CastPumpBonus), both 0 for
+   * every shape the cast policy does not read: a curse, a mixed-sign or
+   * dynamic amount, a non-creature target, an opponent-only target
+   * scope, or a non-Pump spell. They are printed facts of a visible
+   * card, like RemovalDamage, and the opt-in A6 pump timing rule reads
+   * them to decide whether a combat trick can change a combat. A 0
+   * answers "not a literal creature pump", never "pumps for zero".
+   */
+  pump_power?: number;
+  pump_toughness?: number;
+  /**
+   * PumpOwn reports whether that Pump ability's target filter
+   * can name both the caster's own attacking and blocking creatures
+   * (effects.CastPumpOwnCombatants). It is true for an unrestricted
+   * creature filter and false for a narrowed one -- attacking-only,
+   * blocking-only, a colour/type/state restriction, or an opponent-only
+   * scope. The A6 pump timing rule holds a literal pump it cannot aim at
+   * its own combatants rather than casting it into the ordinary target
+   * ranking. Only meaningful when PumpPower or PumpToughness is
+   * positive; a false answer there means "not a pump the rule governs".
+   */
+  pump_own_combatants?: boolean;
+  /**
    * PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
    * "ALWAYS", "TRUE" (cast in the first main while the caster controls a
    * creature) or "OPPONENTCREATURES" (while an opponent does), and "" for
@@ -2119,6 +2143,61 @@ export interface EventSetInfo {
 export interface EventPersonas {
   drafters: string[];
   builders: string[];
+}
+
+  /**
+   * ReviewOption is one offered option of a ReviewDecision: its index in the
+   * decision (the number Chosen and an explain note's choices refer to), the
+   * label the live client shows for it, and the option kind.
+   */
+export interface ReviewOption {
+  index: number;
+  label: string;
+  kind?: string;
+}
+
+  /**
+   * ReviewDecision is one entry of a review table's decision index, served
+   * only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions
+   * (match reviewer, design D8/T4). Entry i describes the match log's
+   * Intents[i]: the decision the engine offered at that point and the answer
+   * the seat gave. It is derived at load from the replay itself -- the
+   * options and labels are never stored in a record -- so it is exactly what
+   * the seat was shown.
+   *
+   *   - AskSeq and MadeSeq are the seqs of the intent's decision_ask and
+   *     decision_made events. AskSeq is the cursor the client's Decision step
+   *     stops on.
+   *   - Turn is the engine turn number; Round the round the phase bar calls
+   *     "Turn N".
+   *   - Options carry the labels the live client renders for the same pending
+   *     decision (the view projection's own option labels), capped at
+   *     ReviewDecisionOptionCap; OptionsTotal is the uncapped count.
+   *   - Chosen is the intent's Choices; Rest its arrange complement order.
+   *     Answer is a short server-built label of the answer (the chosen
+   *     options' labels, or the payment action a planned or announced cast
+   *     selected); Made is the decision_made event's text, verbatim.
+   *   - Explain is the record's explain note for this intent (bots/explain.Note
+   *     JSON) passed through untouched, or null when none was recorded.
+   */
+export interface ReviewDecision {
+  intent: number;
+  ask_seq: number;
+  made_seq: number;
+  turn: number;
+  round: number;
+  seat: number;
+  kind: string;
+  prompt?: string;
+  min: number;
+  max: number;
+  options: ReviewOption[];
+  options_total: number;
+  chosen: number[];
+  rest?: number[];
+  answer?: string;
+  made: string;
+  explain: unknown;
 }
 
   /**

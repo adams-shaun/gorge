@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
 )
@@ -85,12 +86,18 @@ func TestPublishedDecisionIsAnswerableTheMomentItPublishes(t *testing.T) {
 			mu.Unlock()
 			return
 		}
-		if serr := r.SubmitIntent("t1", 1, 0, legalIntent(answer)); serr != nil {
-			mu.Lock()
-			fails++
-			mu.Unlock()
-			return
-		}
+		// SubmitIntent now waits for the engine's verdict (D1b: the handler's
+		// 204/409 reflects the Submit attempt, not the channel send), so it
+		// must not run on the match goroutine this Sleep hook occupies. The
+		// answer is still read and submitted from inside the published window;
+		// only the wait moves to a goroutine the play loop can unblock.
+		go func(answer *decision.Decision) {
+			if serr := r.SubmitIntent("t1", 1, 0, legalIntent(answer)); serr != nil {
+				mu.Lock()
+				fails++
+				mu.Unlock()
+			}
+		}(answer)
 		mu.Lock()
 		seenHuman++
 		mu.Unlock()

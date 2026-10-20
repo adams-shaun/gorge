@@ -2,6 +2,7 @@ import { openStream, type Stream } from './stream';
 import { subscribe, unsubscribe } from './api';
 import { eventApi } from './eventapi';
 import { withBase } from './basepath';
+import { parseSeat } from './seat';
 import type { Frame } from '../protocol';
 
 /**
@@ -22,6 +23,16 @@ export function setResubscribeDelay(fn: (ms: number) => Promise<void>): (ms: num
   return previous;
 }
 
+// streamURL carries the page's seat token when it has one. The server answers
+// a valid claim by including that table in hello even when it is a private
+// on-demand game: the seated client needs the TableInfo for auto-mana and
+// restart, while a stream without the token still gets only the lobby list.
+function streamURL(): string {
+  const url = withBase('/api/stream');
+  const seat = typeof location === 'undefined' ? null : parseSeat(location.search);
+  return seat ? `${url}?token=${encodeURIComponent(seat.token)}` : url;
+}
+
 class Session {
   readonly stream: Stream;
   private wantOverview = false;
@@ -35,7 +46,7 @@ class Session {
   constructor() {
     // The SSE stream is just another same-origin request path and rides the
     // same base as everyone else.
-    this.stream = openStream(withBase('/api/stream'));
+    this.stream = openStream(streamURL());
     this.stream.onFrame((f: Frame) => {
       if (f.t !== 'hello') return;
       this.#id = this.stream.session;

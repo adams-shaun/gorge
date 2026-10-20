@@ -66,9 +66,10 @@ type Record struct {
 	// carries one, since the ordinary replay implements Config-only
 	// randomness.
 	Chance []rules.ChanceDraw `json:"chance,omitempty"`
-	// Explain is the per-intent decision sidecar (design §3). It is never
-	// replay input, never hashed, and empty until the explain emitters land
-	// (ticket T3); its entry shape belongs to that ticket.
+	// Explain is the per-intent decision sidecar (design §3): empty, or one
+	// entry per Log.Intents entry, JSON null where nothing was noted. An
+	// entry is a bots/explain.Note, which this package never decodes. It is
+	// never replay input and never hashed.
 	Explain []json.RawMessage `json:"explain,omitempty"`
 }
 

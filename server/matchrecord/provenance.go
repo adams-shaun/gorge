@@ -1,6 +1,8 @@
 package matchrecord
 
 import (
+	"encoding/json"
+	"fmt"
 	"runtime/debug"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -88,8 +90,19 @@ type Sink struct {
 // Emit builds the record of the game cfg configured and l logged and hands
 // it to Put. A nil Sink or Put records nothing.
 func (s *Sink) Emit(cfg rules.Config, l *events.Log) error {
+	return s.EmitExplain(cfg, l, nil)
+}
+
+// EmitExplain is Emit with the record's per-intent decision notes
+// (Record.Explain): explain is empty, or holds one entry per logged intent,
+// null where nothing was noted. Its entries' shape is bots/explain.Note,
+// which this package never decodes.
+func (s *Sink) EmitExplain(cfg rules.Config, l *events.Log, explain []json.RawMessage) error {
 	if s == nil || s.Put == nil {
 		return nil
+	}
+	if len(explain) != 0 && len(explain) != len(l.Intents) {
+		return fmt.Errorf("matchrecord: %d explain notes for %d intents", len(explain), len(l.Intents))
 	}
 	p := s.Producer
 	if p.GorgeCommit == "" {
@@ -100,5 +113,6 @@ func (s *Sink) Emit(cfg rules.Config, l *events.Log) error {
 	if err != nil {
 		return err
 	}
+	r.Explain = explain
 	return s.Put(r)
 }

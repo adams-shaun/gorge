@@ -493,7 +493,11 @@ func TestTotalityUnderArbitraryMinMax(t *testing.T) {
 		// distinct blockers has NO valid answer. The engine never poses one;
 		// skip it rather than demand the impossible. Feasible blocker asks
 		// (case 14's shape) stay covered.
-		if d.Kind == decision.KBlockers {
+		//
+		// KAttackers has the mirror rule: one creature attacks exactly one
+		// defender (CR 508.1), so an ask whose Min exceeds its distinct
+		// attacker Objs is equally impossible.
+		if d.Kind == decision.KBlockers || d.Kind == decision.KAttackers {
 			distinct := map[state.ObjID]bool{}
 			for _, o := range opts {
 				distinct[o.Obj] = true

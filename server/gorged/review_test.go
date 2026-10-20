@@ -137,7 +137,8 @@ func TestReviewServesTheFinishedMatchRouteWithEveryHand(t *testing.T) {
 
 // TestReviewHandlerServesNoSeatRoute: review mode mounts httpapi with no seat
 // resolver, so every seat-scoped route is refused 403 -- reads and writes
-// alike -- and neither play-vs-bot nor a decisions route exists.
+// alike -- and play-vs-bot does not exist. Its one extra route, the decision
+// index, serves the review table (and 404s a table that is not one).
 func TestReviewHandlerServesNoSeatRoute(t *testing.T) {
 	t.Parallel()
 	srv := reviewServer(t)
@@ -153,7 +154,11 @@ func TestReviewHandlerServesNoSeatRoute(t *testing.T) {
 		{"POST", m + "/intent?seat=0", http.StatusForbidden},
 		{"POST", m + "/undo?seat=0", http.StatusForbidden},
 		{"POST", srv.URL + "/api/games", http.StatusNotFound},
-		{"GET", m + "/decisions", http.StatusNotFound},
+		{"GET", m + "/decisions", http.StatusOK},
+		{"GET", m + "/decisions?seat=0", http.StatusOK},
+		{"POST", m + "/decisions", http.StatusMethodNotAllowed},
+		{"GET", srv.URL + "/api/tables/nope/matches/1/decisions", http.StatusNotFound},
+		{"GET", srv.URL + "/api/tables/20260914T120000Z-fb01/matches/2/decisions", http.StatusNotFound},
 	} {
 		req, err := http.NewRequest(tc.method, tc.path, strings.NewReader(`{}`))
 		if err != nil {

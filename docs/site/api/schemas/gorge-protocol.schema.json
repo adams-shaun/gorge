@@ -376,6 +376,19 @@
           "$ref": "#/$defs/ManaProduction",
           "description": "Produces is what this card's mana abilities add to the pool when a tap-for-mana activation runs them, derived from the compiled abilities (cards.Face.ManaProduction) rather than land subtypes: a basic land's intrinsic {W}, a dual's {W}{U}, an \"add any colour\" source's five colour alternatives (one unit each, flagged Any -- the colour is chosen when it is tapped, CR 106.1b), a colourless rock's {C}{C}. nil when the card has no mana ability at all, so a creature or a spell never pays for the six-entry array on the wire. It is a projected characteristic like ManaCost and Keywords -- a mana ability's production is a card fact every seat sees, and it is projected for the same zones the card itself is visible in. This is what the bot policy's colour-aware tap and land heuristics read (carried into botpolicy.Card as plain data, never the view type)."
         },
+        "pump_own_combatants": {
+          "description": "PumpOwn reports whether that Pump ability's target filter can name both the caster's own attacking and blocking creatures (effects.CastPumpOwnCombatants). It is true for an unrestricted creature filter and false for a narrowed one -- attacking-only, blocking-only, a colour/type/state restriction, or an opponent-only scope. The A6 pump timing rule holds a literal pump it cannot aim at its own combatants rather than casting it into the ordinary target ranking. Only meaningful when PumpPower or PumpToughness is positive; a false answer there means \"not a pump the rule governs\".",
+          "type": "boolean"
+        },
+        "pump_power": {
+          "description": "PumpPower and PumpToughness are the literal, non-negative bonus of the card's primary Pump ability (effects.CastPumpBonus), both 0 for every shape the cast policy does not read: a curse, a mixed-sign or dynamic amount, a non-creature target, an opponent-only target scope, or a non-Pump spell. They are printed facts of a visible card, like RemovalDamage, and the opt-in A6 pump timing rule reads them to decide whether a combat trick can change a combat. A 0 answers \"not a literal creature pump\", never \"pumps for zero\".",
+          "format": "int32",
+          "type": "integer"
+        },
+        "pump_toughness": {
+          "format": "int32",
+          "type": "integer"
+        },
         "removal_damage": {
           "description": "RemovalDamage is the literal NumDmg$ of that same removal ability when it is a plain integer, 0 when it is absent, dynamic ({X}, an SVar) or not positive. Like RemovalKind it is a printed card fact of a visible card. The hold rule reads it as the spell's damage against an opponent's projected life: a literal damage figure at or above a player's life total is a lethal face target, so the removal is worth firing now. A 0 answers \"unknown\", never \"no damage\" -- the policy treats an unknown figure as no face candidate at all.",
           "format": "int32",
@@ -3107,6 +3120,128 @@
       ],
       "type": "object",
       "x-go-type": "github.com/adams-shaun/gorge/engine/decision.RemovalEffect"
+    },
+    "ReviewDecision": {
+      "description": "ReviewDecision is one entry of a review table's decision index, served only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions (match reviewer, design D8/T4). Entry i describes the match log's Intents[i]: the decision the engine offered at that point and the answer the seat gave. It is derived at load from the replay itself -- the options and labels are never stored in a record -- so it is exactly what the seat was shown.",
+      "properties": {
+        "answer": {
+          "type": "string"
+        },
+        "ask_seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "chosen": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "explain": {},
+        "intent": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "made": {
+          "type": "string"
+        },
+        "made_seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "min": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/ReviewOption"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "options_total": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "rest": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "round": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "seat": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "turn": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ask_seq",
+        "chosen",
+        "explain",
+        "intent",
+        "kind",
+        "made",
+        "made_seq",
+        "max",
+        "min",
+        "options",
+        "options_total",
+        "round",
+        "seat",
+        "turn"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ReviewDecision"
+    },
+    "ReviewOption": {
+      "description": "ReviewOption is one offered option of a ReviewDecision: its index in the decision (the number Chosen and an explain note's choices refer to), the label the live client shows for it, and the option kind.",
+      "properties": {
+        "index": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "index",
+        "label"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ReviewOption"
     },
     "RewindFrame": {
       "allOf": [

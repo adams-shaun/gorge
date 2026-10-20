@@ -2,12 +2,12 @@
 //
 // The policy is the production heuristic bot with the A2 target-selection
 // rules armed (LandPriority, ProminentColour, FilterFatalCopies), the A1
-// removal-now rule (HoldForBigger), the A6 timing rules (CounterTop and
-// DrawTokenLate), the A3 Forge AI-hint rules (PlayMain1 timing and the
-// RemoveDeck cast veto), the A4 deck-shape posture (R2 aggro releases the
-// held blocker, R3 attack-sim life weights, R4 reserve scale) and the A7
-// combat rules (gang blocks, a gang-aware predicted reply and Double Strike in
-// blocked combat, all inside the combat simulation). Those rules are
+// removal-now rule (HoldForBigger), the A6 timing rules (CounterTop,
+// DrawTokenLate and PumpInCombat), the A3 Forge AI-hint rules (PlayMain1
+// timing and the RemoveDeck cast veto), the A4 deck-shape posture (R2 aggro
+// releases the held blocker, R3 attack-sim life weights, R4 reserve scale) and
+// the A7 combat rules (gang blocks, a gang-aware predicted reply and Double
+// Strike in blocked combat, all inside the combat simulation). Those rules are
 // clean-room re-expressions of Forge's
 // ComputerUtilCard behaviour in gorge's own vocabulary
 // (docs/design/2026-10-19-a2-target-rules.md,
@@ -35,7 +35,7 @@ func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
 		Label:       "Forge heuristic",
-		Description: "The production bot (combat simulation, auto-pay mana, common-sense wrap) plus the Forge rules: the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule, the A6 counter and draw/token timing rules, the A3 Forge AI hints (PlayMain1 timing, RemoveDeck veto), the A5 attach rules (aura polarity, carrier choice, boon-Aura hold), the A4 deck-shape posture (aggro releases the last blocker, sim life weights, reserve scale), the A7 combat rules (gang blocks, gang-aware predicted reply, Double Strike in blocked combat) and Forge's London mulligan (keep/mulligan and bottoming).",
+		Description: "The production bot (combat simulation, auto-pay mana, common-sense wrap) plus the Forge rules: the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule, the A6 counter, draw/token and pump-in-combat timing rules, the A3 Forge AI hints (PlayMain1 timing, RemoveDeck veto), the A5 attach rules (aura polarity, carrier choice, boon-Aura hold), the A4 deck-shape posture (aggro releases the last blocker, sim life weights, reserve scale), the A7 combat rules (gang blocks, gang-aware predicted reply, Double Strike in blocked combat) and Forge's London mulligan (keep/mulligan and bottoming).",
 		Tier:        bots.Experimental,
 		Strength: []bots.Measurement{{
 			Claim:   "46.8% A [41.9, 51.6] vs bot over 400 games, indistinguishable from the 46.5% bot-vs-bot seat/deck control; measured before F0: no attack sim on auto-pay tables. Measured before FORGE-A8 armed the forge mulligan.",
@@ -70,6 +70,7 @@ func New(o bots.Options) (seat.Seat, error) {
 	}).EnableTimingRules(botpolicy.TimingRules{
 		CounterTop:    true,
 		DrawTokenLate: true,
+		PumpInCombat:  true,
 	}).EnableAIHints(botpolicy.AIHints{
 		Enabled: true,
 	}).EnableAttachRules(botpolicy.AttachRules{
