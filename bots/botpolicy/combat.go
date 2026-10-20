@@ -623,6 +623,22 @@ func canBlockLike(a, b Creature) bool {
 // engine's exact resolution would cost a slightly off bot move, not a
 // replay violation.
 func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
+	return blockCombatDS(a, block, false)
+}
+
+// blockCombatDS is blockCombat with Double Strike optionally honoured in a
+// blocked combat (CR 702.4b: the creature deals damage in the first-strike
+// step and again in the regular one; a creature killed in the first-strike
+// step neither hits back nor takes regular damage). With doubleStrike false,
+// or when no participant has Double Strike, it is exactly blockCombat's
+// model; the engine-side decisions keep that, the attack-sim opts in.
+func blockCombatDS(a Creature, block []Creature, doubleStrike bool) (aDead bool, dead []bool) {
+	if doubleStrike {
+		doubleStrike = a.hasKeyword("Double Strike")
+		for i := range block {
+			doubleStrike = doubleStrike || block[i].hasKeyword("Double Strike")
+		}
+	}
 	dead = make([]bool, len(block))
 	aRem := a.remTough()
 	taken := make([]int32, len(block))
@@ -630,7 +646,11 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 	var aTaken int32
 	aDT := false // a took Deathtouch damage from some blocker
 	rem := func(i int) int32 { return block[i].remTough() }
-	fsA := a.hasKeyword("First Strike")
+	dsA := doubleStrike && a.hasKeyword("Double Strike")
+	fsA := a.hasKeyword("First Strike") || dsA
+	dsB := func(i int) bool { return doubleStrike && block[i].hasKeyword("Double Strike") }
+	fsB := func(i int) bool { return block[i].hasKeyword("First Strike") || dsB(i) }
+	deadNow := func(i int) bool { return taken[i] >= rem(i) || dt[i] }
 
 	// aAssign is one full attack round: a's power to the blockers in order,
 	// every blocker but the last capped at its own need, the last absorbing
@@ -666,10 +686,43 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 		}
 	}
 	aLethal := func() bool { return aTaken >= aRem || aDT }
+	// deadFS is who the first-strike step killed (Double Strike only).
+	deadFS := make([]bool, len(block))
+	// aAssign2 is a Double Strike attacker's regular-step round: the blockers
+	// the first-strike step killed are gone, each live one but the last takes
+	// only what it still needs, the last absorbs the remainder.
+	aAssign2 := func() {
+		last := -1
+		for i := range block {
+			if !deadFS[i] {
+				last = i
+			}
+		}
+		remaining := a.Power
+		for i := range block {
+			if remaining <= 0 {
+				break
+			}
+			if deadFS[i] {
+				continue
+			}
+			give := remaining
+			if need := rem(i) - taken[i]; i != last && give > need {
+				give = need
+			}
+			if give > 0 {
+				taken[i] += give
+				if a.hasKeyword("Deathtouch") {
+					dt[i] = true
+				}
+			}
+			remaining -= give
+		}
+	}
 
 	anyFS := fsA
 	for i := range block {
-		anyFS = anyFS || block[i].hasKeyword("First Strike")
+		anyFS = anyFS || fsB(i)
 	}
 	if anyFS {
 		// First-strike step: participants with First Strike deal, then the
@@ -680,24 +733,39 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 			aAssign()
 		}
 		for i := range block {
-			if block[i].hasKeyword("First Strike") {
+			if fsB(i) {
 				aHit(i)
 			}
 		}
 		if aLethal() {
+			if doubleStrike {
+				for i := range block {
+					dead[i] = deadNow(i)
+				}
+			}
 			return true, dead
+		}
+		if doubleStrike {
+			for i := range block {
+				deadFS[i] = deadNow(i)
+			}
 		}
 		// Regular step: a (unless it is first-strike, which already dealt)
 		// and every surviving blocker without First Strike deal, all
 		// simultaneous.
 		if !fsA {
 			aAssign()
+		} else if dsA {
+			aAssign2()
 		}
 		for i := range block {
-			if block[i].hasKeyword("First Strike") {
+			if fsB(i) && !dsB(i) {
 				continue
 			}
-			if taken[i] >= rem(i) || dt[i] {
+			if doubleStrike && deadFS[i] {
+				continue
+			}
+			if !doubleStrike && deadNow(i) {
 				continue // a's first-strike step already killed this one
 			}
 			aHit(i)
@@ -709,7 +777,7 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 		}
 	}
 	for i := range block {
-		dead[i] = taken[i] >= rem(i) || dt[i]
+		dead[i] = deadNow(i)
 	}
 	return aLethal(), dead
 }
