@@ -44,9 +44,9 @@ repository root, after `make fetch-cards compile-cards`):
 
     `-humans 0` makes seat 0 of table `t1` an HTTP seat; `-seat-token`
     fixes its token (omit it and the server mints a random one and prints the
-    join URL). Pass `-spectator public`: the default, `omniscient`, lets any
-    unauthenticated spectator read every hand on the table, including the
-    one your bot is playing against.
+    join URL). Leave `-spectator` at its `public` default: that keeps every
+    hand hidden from an unauthenticated spectator, including the one your bot
+    is playing against. `-spectator omniscient` opens every hand.
 
 Use a persistence directory of your own (`-dir`); two servers sharing one
 corrupt each other.
@@ -382,9 +382,9 @@ idle. Sixteen agents on one server played 16 games, 4,156 decisions, in
     defender`). Pick at most one option per `obj`.
 
 - **Spectator visibility.** On a `-humans` server the default spectator
-  visibility is `omniscient`; anyone can read every hand through
-  `/api/stream` or a seat-less `/view`. Start such servers with
-  `-spectator public` (play-vs-bot tables default to public).
+  visibility is `public`, so `/api/stream` and a seat-less `/view` hide every
+  hand. Do not pass `-spectator omniscient` on a table with people at it
+  (play-vs-bot tables default to public too).
 - **Concede is an option.** A random policy that samples every priority
   option will concede in its first few turns. Filter it out.
 - **The first poll can 404.** A fresh table goes live a moment after

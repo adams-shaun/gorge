@@ -134,13 +134,12 @@ send, so the window closes and any later submit is a `409`. Cost XS.
 
 ### D3: the default spectator visibility shows hidden cards
 
-`gorged -spectator` defaults to `omniscient`. On a `-humans` server, every
-unauthenticated client can open `/api/stream` or `GET .../view` without
-`?seat=` and read every hand, including the one an HTTP bot is playing
+`gorged -spectator` used to default to `omniscient`. On a `-humans` server,
+every unauthenticated client could open `/api/stream` or `GET .../view`
+without `?seat=` and read every hand, including the one an HTTP bot is playing
 against. (Play-vs-bot tables default to `public` through
-`-vsbot-spectator`.) **Decision:** default `-spectator` to `public`
-whenever `-humans` is set, and refuse `omniscient` there unless an explicit
-flag accepts the leak. Cost XS.
+`-vsbot-spectator`.) **Decision (implemented):** `-spectator` defaults to
+`public`; `omniscient` is an explicit opt-in. Cost XS.
 
 ### Smaller findings
 

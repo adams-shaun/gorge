@@ -20,12 +20,17 @@ type Session struct {
 	// is separate from ID because IDs are unguessable random capabilities.
 	serial uint64
 
-	mu         sync.Mutex
-	out        chan protocol.Frame
-	ring       []protocol.Frame // oldest first, len <= cap(out); Options.Ring sizes both
-	nextID     uint64
-	subs       map[TableID]string // table -> mode; TableAll for "every table, overview"
-	widgets    map[TableID]protocol.Frame
+	mu      sync.Mutex
+	out     chan protocol.Frame
+	ring    []protocol.Frame // oldest first, len <= cap(out); Options.Ring sizes both
+	nextID  uint64
+	subs    map[TableID]string // table -> mode; TableAll for "every table, overview"
+	widgets map[TableID]protocol.Frame
+	// seatTable is the table this session proved a seat claim for (the
+	// HTTP layer binds it from the stream's token). It gates private
+	// on-demand tables: a wildcard overview and an explicit subscription
+	// both see one only when the claim names it.
+	seatTable  TableID
 	dropped    int
 	overflowed bool
 	closed     bool
@@ -199,11 +204,42 @@ func (s *Session) Since(id uint64) ([]protocol.Frame, bool) {
 	return out, true
 }
 
-// modeFor is the session's mode for a table: its own entry, else the
-// wildcard's.
-func (s *Session) modeFor(id TableID) (string, bool) {
+// BindSeat records the table this session proved a seat claim for. The
+// HTTP stream resolves the claim from the request's token; the ManaBrew
+// stream resolves it before opening its own session. It never widens a
+// session's visibility on its own: Subscribe still requires the claim for a
+// private table, and the wildcard overview skips private tables unless the
+// claim names them.
+func (s *Session) BindSeat(id TableID) {
+	s.mu.Lock()
+	s.seatTable = id
+	s.mu.Unlock()
+}
+
+func (s *Session) seatTableFor() TableID {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.seatTable
+}
+
+// privateTable reports whether a table is a private on-demand play-vs-bot
+// table. Event/series tables are on-demand too (seatpolicy.go requires it),
+// but they are publicly watchable: the event hub links to them without a seat
+// token, so only a play-vs-bot table is fenced behind the session's claim.
+func privateTable(cfg TableConfig) bool {
+	return cfg.OnDemand && cfg.Event == ""
+}
+
+// modeFor is the session's mode for a table: its own entry, else the
+// wildcard's. A private play-vs-bot table is visible only to a session whose
+// seat claim names it, so the wildcard never announces one to an anonymous
+// overview client.
+func (s *Session) modeFor(id TableID, private bool) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if private && s.seatTable != id {
+		return "", false
+	}
 	if m, ok := s.subs[id]; ok {
 		return m, true
 	}
@@ -213,11 +249,38 @@ func (s *Session) modeFor(id TableID) (string, bool) {
 	return "", false
 }
 
-// Hello is the stream's first frame: the session id and the table list. It
-// carries no frame id (the http layer sends it before Last-Event-ID
-// resumption applies).
-func (r *Registry) Hello(s *Session) protocol.Frame {
-	f, err := protocol.NewFrame(protocol.THello, "", 0, 0, protocol.Hello{Session: s.ID, Tables: r.Tables()})
+// Hello is the stream's first frame: the session id and the lobby's table
+// list. It carries no frame id (the http layer sends it before Last-Event-ID
+// resumption applies). Private on-demand play-vs-bot tables are omitted, as
+// they are from GET /api/tables: a stream without a claim for one must not
+// learn its (sequential) id. A client holding a seat token still receives such
+// a table through its explicit focus subscription (Subscribe).
+//
+// include names tables the caller holds a claim to (the HTTP layer passes a
+// resolved seat claim's table). They are appended when they exist and are
+// not already in the lobby list, so a seated player keeps the TableInfo the
+// client needs for auto-mana and restart without advertising the private table
+// to every other stream.
+func (r *Registry) Hello(s *Session, include ...TableID) protocol.Frame {
+	tables := r.LobbyTables()
+	seen := make(map[TableID]bool, len(tables)+len(include))
+	for _, ti := range tables {
+		seen[TableID(ti.ID)] = true
+	}
+	for _, id := range include {
+		if seen[id] {
+			continue
+		}
+		r.mu.RLock()
+		t, ok := r.tables[id]
+		r.mu.RUnlock()
+		if !ok {
+			continue
+		}
+		tables = append(tables, t.info())
+		seen[id] = true
+	}
+	f, err := protocol.NewFrame(protocol.THello, "", 0, 0, protocol.Hello{Session: s.ID, Tables: tables})
 	if err != nil {
 		panic("host: hello frame: " + err.Error()) // a marshal failure of our own struct is a bug
 	}
@@ -244,6 +307,15 @@ func (r *Registry) Subscribe(s *Session, id TableID, mode string) error {
 	t, ok := r.tables[id]
 	r.mu.RUnlock()
 	if !ok {
+		return ErrNotFound
+	}
+	t.mu.RLock()
+	private := privateTable(t.cfg)
+	t.mu.RUnlock()
+	// A private table exists only for the client that proved its claim.
+	// ErrNotFound keeps the rejection indistinguishable from a missing id,
+	// so a guessed sequential gN learns nothing.
+	if private && s.seatTableFor() != id {
 		return ErrNotFound
 	}
 	s.mu.Lock()
@@ -299,10 +371,17 @@ func (r *Registry) sessionsFor(id TableID) (ss []*Session, modes []string) {
 	for _, s := range r.sessions {
 		all = append(all, s)
 	}
+	t := r.tables[id]
 	r.mu.RUnlock()
+	private := false
+	if t != nil {
+		t.mu.RLock()
+		private = privateTable(t.cfg)
+		t.mu.RUnlock()
+	}
 	sort.Slice(all, func(i, j int) bool { return all[i].serial < all[j].serial })
 	for _, s := range all {
-		if m, ok := s.modeFor(id); ok {
+		if m, ok := s.modeFor(id, private); ok {
 			ss = append(ss, s)
 			modes = append(modes, m)
 		}

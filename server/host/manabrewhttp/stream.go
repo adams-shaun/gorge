@@ -43,6 +43,9 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 
 	sess := h.reg.OpenSession()
 	defer h.reg.CloseSession(sess.ID)
+	// The claim was resolved above; bind it so Subscribe can admit this
+	// session to a private on-demand table.
+	sess.BindSeat(t)
 	if err := h.reg.Subscribe(sess, t, protocol.ModeFocus); err != nil {
 		writeError(w, http.StatusNotFound, "not_found", err.Error())
 		return

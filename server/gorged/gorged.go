@@ -387,7 +387,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.StringVar(&c.dir, "dir", "gorged-data", "persistence directory")
 	fs.StringVar(&c.feedback, "feedback", "feedback", "directory player bug reports are written to (kept OUT of -dir, which deploys wipe)")
 	fs.StringVar(&c.artDir, "art-dir", "", "durable card-art cache directory (default <dir>/art, which deploy scripts wipe with the persistence dir)")
-	fs.StringVar(&c.spectator, "spectator", "omniscient", "spectator visibility: public or omniscient")
+	fs.StringVar(&c.spectator, "spectator", "public", "spectator visibility: public (default, every hand hidden) or omniscient (every hand visible)")
 	fs.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	fs.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
 	fs.IntVar(&c.mulligans, "mulligans", 1, "London mulligans per player before turn 1; 0 disables the pre-game round")

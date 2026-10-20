@@ -107,6 +107,40 @@ type report struct {
 	Snapshot   string `json:"snapshot,omitempty"`
 }
 
+// redactFeedbackURL removes a seat's credential from the page URL a report
+// carries. The web client submits location.href verbatim, so a seated
+// player's join URL puts its ?token= (or seat_token=) in the report; the
+// server never stores a credential, whatever the client sent. Other query
+// parameters (seat, seq, ...) stay: they are the report's context.
+func redactFeedbackURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	u, err := url.Parse(raw)
+	if err != nil {
+		// An unparseable URL cannot be trusted to have its credential removed
+		// selectively; keep the page path and drop the whole query.
+		if i := strings.IndexByte(raw, '?'); i >= 0 {
+			return raw[:i]
+		}
+		return raw
+	}
+	q, err := url.ParseQuery(u.RawQuery)
+	if err != nil {
+		// A query we cannot parse cannot be trusted to have its credential
+		// removed selectively either; drop it and keep the page path.
+		u.RawQuery = ""
+		return u.String()
+	}
+	if _, ok := q["token"]; !ok {
+		if _, ok := q["seat_token"]; !ok {
+			return raw
+		}
+	}
+	q.Del("token")
+	q.Del("seat_token")
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
 // submit handles POST /api/feedback: a multipart form with a required `text`
 // part, an optional `url` part naming the page the reporter was on, an
 // optional `screenshot` part, and — when the client knows them — optional
@@ -144,7 +178,7 @@ func (fs *feedbackStore) submit(w http.ResponseWriter, r *http.Request) {
 	rep := report{
 		Received:  time.Now().UTC().Format(time.RFC3339),
 		Text:      text,
-		URL:       strings.TrimSpace(r.FormValue("url")),
+		URL:       redactFeedbackURL(r.FormValue("url")),
 		UserAgent: r.UserAgent(),
 		Table:     strings.TrimSpace(r.FormValue("table")),
 		Seat:      strings.TrimSpace(r.FormValue("seat")),
