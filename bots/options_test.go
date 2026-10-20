@@ -65,7 +65,7 @@ func TestOptionsConfigAccessors(t *testing.T) {
 		"count":   "7",
 		"ratio":   "1.25",
 		"enabled": "true",
-		"dir":     "/tmp/nativebot",
+		"dir":     "/tmp/bot-option-path",
 	}}
 	if got := o.String("name"); got != "hello" {
 		t.Errorf("String = %q, want hello", got)
@@ -79,8 +79,8 @@ func TestOptionsConfigAccessors(t *testing.T) {
 	if got := o.Bool("enabled"); !got {
 		t.Errorf("Bool = %v, want true", got)
 	}
-	if got := o.String("dir"); got != "/tmp/nativebot" {
-		t.Errorf("String(path) = %q, want /tmp/nativebot", got)
+	if got := o.String("dir"); got != "/tmp/bot-option-path" {
+		t.Errorf("String(path) = %q, want /tmp/bot-option-path", got)
 	}
 
 	for _, tc := range []struct {
