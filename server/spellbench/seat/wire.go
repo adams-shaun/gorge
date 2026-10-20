@@ -3,8 +3,6 @@ package seat
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -145,7 +143,7 @@ type response struct {
 	ResponseType string `json:"response_type"`
 	Protocol     string `json:"protocol"`
 	RequestID    string `json:"request_id"`
-	Selection    struct {
+	Selection    *struct {
 		CandidateID uint32 `json:"candidate_id"`
 	} `json:"selection"`
 	Error struct {
@@ -156,13 +154,12 @@ type response struct {
 
 func deckWire(m *deck.Manifest) deckSpec {
 	spec := deckSpec{Name: m.Name}
-	var lines []string
+	rows := make([]wire.DeckRow, 0, len(m.Main))
 	for _, r := range m.Main {
 		spec.Decklist = append(spec.Decklist, protocol.DeckRow{Name: r.Name, Count: uint32(r.Count)})
-		lines = append(lines, fmt.Sprintf("%d %s", r.Count, r.Name))
+		rows = append(rows, wire.DeckRow{Name: r.Name, Count: r.Count})
 	}
-	sum := sha256.Sum256([]byte(wire.DomainID(lines)))
-	spec.DeckID = "sha256:" + hex.EncodeToString(sum[:])
+	spec.DeckID = wire.DeckID(rows)
 	return spec
 }
 

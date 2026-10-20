@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -35,9 +36,15 @@ import (
 const (
 	forfeitTimeout   = "timeout"
 	forfeitTransport = "transport_error"
-	forfeitMalformed = "malformed_response"
 	forfeitAgent     = "agent_error"
 	forfeitInvalid   = "invalid_selection"
+
+	// startupMS is the game_start StartupMS the seat advertises; the same
+	// budget bounds the hello/game_start handshake. startupBudget is an
+	// untyped nanosecond constant so this package need not import time (the
+	// archtest clock rule allows only the host and named tools to read it).
+	startupMS     = 300000
+	startupBudget = startupMS * 1_000_000
 )
 
 var (
@@ -70,6 +77,7 @@ type Agent struct {
 	attached          bool
 	done              bool
 	forfeit           string
+	fallbackLogged    bool
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -105,6 +113,12 @@ func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 	}
 	if mc == nil {
 		return errors.New("spellbench seat: nil match context")
+	}
+	if mc.Engine == nil {
+		return errors.New("spellbench seat: match context has no engine")
+	}
+	if mc.OwnDeck == nil {
+		return errors.New("spellbench seat: match context has no own deck")
 	}
 	if mc.Seats > 2 {
 		return fmt.Errorf("spellbench seat: v2 is two-seat, table has %d seats", mc.Seats)
@@ -189,7 +203,9 @@ var errUnmetRequirement = errors.New("spellbench seat: agent requirement not off
 
 func (a *Agent) hello() error {
 	id := a.nextID()
-	line, err := a.roundTrip(a.ctx, helloReq{RequestType: "hello", Protocol: protocolName, ProtocolMinor: protocolMinor, RequestID: id})
+	ctx, cancel := a.startupContext()
+	defer cancel()
+	line, err := a.roundTrip(ctx, helloReq{RequestType: "hello", Protocol: protocolName, ProtocolMinor: protocolMinor, RequestID: id})
 	if err != nil {
 		return err
 	}
@@ -225,7 +241,7 @@ func (a *Agent) gameStart() error {
 	mana := "engine_autopay"
 	combat := "engine_order"
 	profile := engineProfile{
-		DecisionKinds: sbenv.DecisionKinds,
+		DecisionKinds: seatDecisionKinds(),
 		EngineDefaults: map[string]*string{
 			"combat_damage_assignment": &combat,
 			"mana_payment":             &mana,
@@ -281,7 +297,7 @@ func (a *Agent) gameStart() error {
 			GameStartMS:   60000,
 			IncrementMS:   2000,
 			MaxDecisionMS: int64(a.deadlineMS()),
-			StartupMS:     300000,
+			StartupMS:     startupMS,
 		},
 	}
 	if mc.OpponentVisible && mc.OpponentDeck != nil {
@@ -289,7 +305,9 @@ func (a *Agent) gameStart() error {
 		req.OpponentDeck = &opp
 		req.Rules.OpponentDecklist = "visible"
 	}
-	line, err := a.roundTrip(a.ctx, req)
+	ctx, cancel := a.startupContext()
+	defer cancel()
+	line, err := a.roundTrip(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -301,6 +319,10 @@ func (a *Agent) gameStart() error {
 		return fmt.Errorf("%w: game_start response %q (request %q)", errMalformed, resp.ResponseType, resp.RequestID)
 	}
 	return nil
+}
+
+func (a *Agent) startupContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(a.ctx, startupBudget)
 }
 
 func (a *Agent) nextID() string {
@@ -358,7 +380,7 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 		return a.forfeitAnswer(ctx, v, d), nil
 	}
 	if a.mc == nil || a.e == nil || a.env == nil {
-		return a.fallback.Decide(ctx, v, d)
+		return decision.Intent{}, errors.New("spellbench seat: Decide before AttachMatch")
 	}
 	if err := a.env.IDs.Sync(a.e); err != nil {
 		a.forfeit = forfeitAgent
@@ -474,7 +496,10 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 			in.Seq, in.Player = d.Seq, d.Player
 		}
 		if in.Seq != d.Seq || in.Player != d.Player {
-			return a.fallback.Decide(ctx, v, d)
+			a.tx = nil
+			a.forfeit = forfeitAgent
+			a.logf("spellbench seat %d (%s): mapped intent %d/%d does not answer decision %d/%d", d.Player, a.name, in.Seq, in.Player, d.Seq, d.Player)
+			return a.forfeitAnswer(ctx, v, d), nil
 		}
 		return in, nil
 	}
@@ -520,7 +545,7 @@ func (a *Agent) cause(err error) string {
 	case errors.Is(err, errInvalid):
 		return forfeitInvalid
 	case errors.Is(err, errMalformed):
-		return forfeitMalformed
+		return forfeitAgent
 	default:
 		return forfeitTransport
 	}
@@ -578,6 +603,9 @@ func (a *Agent) ask(ctx context.Context, p *mapping.Pose) (int, error) {
 	}
 	switch resp.ResponseType {
 	case "choice":
+		if resp.Selection == nil {
+			return 0, fmt.Errorf("%w: choice has no selection", errMalformed)
+		}
 		if int(resp.Selection.CandidateID) >= len(p.Candidates) {
 			return 0, fmt.Errorf("%w: candidate %d out of range", errInvalid, resp.Selection.CandidateID)
 		}
@@ -625,6 +653,10 @@ func (a *Agent) forfeitAnswer(ctx context.Context, v view.View, d decision.Decis
 				return mapping.Intent(&d, o.Index)
 			}
 		}
+	}
+	if !a.fallbackLogged {
+		a.fallbackLogged = true
+		a.logf("spellbench seat %d (%s): forfeit %s: defaulting non-priority %s until a concede window", d.Player, a.name, a.forfeit, d.Kind)
 	}
 	in, err := a.fallback.Decide(ctx, v, d)
 	if err == nil {
@@ -756,6 +788,22 @@ func autoPayment(d *decision.Decision) (decision.Intent, bool) {
 		}
 	}
 	return decision.Intent{}, false
+}
+
+func seatDecisionKinds() []string {
+	kinds := append([]string(nil), sbenv.DecisionKinds...)
+	found := false
+	for _, k := range kinds {
+		if k == "choose_starting_player" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		kinds = append(kinds, "choose_starting_player")
+	}
+	sort.Strings(kinds)
+	return kinds
 }
 
 var _ engineseat.Seat = (*Agent)(nil)

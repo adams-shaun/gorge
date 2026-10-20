@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,6 +12,9 @@ import (
 
 func TestRunPlaysASpellbenchAgent(t *testing.T) {
 	dir := testutil.CorpusDirOrSkip(t)
+	if _, err := exec.LookPath("python3"); err != nil {
+		t.Skip("python3 is not installed")
+	}
 	script, err := filepath.Abs("../../server/spellbench/seat/testdata/minimal_bot.py")
 	if err != nil {
 		t.Fatal(err)
@@ -26,5 +30,8 @@ func TestRunPlaysASpellbenchAgent(t *testing.T) {
 	}
 	if !strings.Contains(out, "winner=") && !strings.Contains(out, "draw") {
 		t.Fatalf("agent game produced no result:\n%s", out)
+	}
+	if strings.Contains(out, "forfeit") {
+		t.Fatalf("agent forfeited instead of playing:\n%s", out)
 	}
 }

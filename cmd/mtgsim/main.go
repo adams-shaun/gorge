@@ -365,7 +365,10 @@ func matchSeats(e *rules.Engine, seed uint64, names []string, policyA, policyB s
 			policy = policyB
 		}
 		if policy == "" {
-			seatsOut[i] = heuristic.NewBot(seed + uint64(i))
+			// Preserve mtgsim's pre-SB history: every default heuristic
+			// seat shares the game seed, so the pinned replay corpus is
+			// unchanged. A named policy still gets its own per-seat seed.
+			seatsOut[i] = heuristic.NewBot(seed)
 			continue
 		}
 		s, err := bots.New(policy, bots.Options{Seed: seed + uint64(i), AutoPayMana: true})
