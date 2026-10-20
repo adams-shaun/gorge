@@ -3315,6 +3315,128 @@
         "type": "object",
         "x-go-type": "github.com/adams-shaun/gorge/engine/decision.RemovalEffect"
       },
+      "ReviewDecision": {
+        "description": "ReviewDecision is one entry of a review table's decision index, served only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions (match reviewer, design D8/T4). Entry i describes the match log's Intents[i]: the decision the engine offered at that point and the answer the seat gave. It is derived at load from the replay itself -- the options and labels are never stored in a record -- so it is exactly what the seat was shown.",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "ask_seq": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "chosen": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "explain": {},
+          "intent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "made": {
+            "type": "string"
+          },
+          "made_seq": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "max": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "min": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "options_total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "rest": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "round": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "seat": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "turn": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ask_seq",
+          "chosen",
+          "explain",
+          "intent",
+          "kind",
+          "made",
+          "made_seq",
+          "max",
+          "min",
+          "options",
+          "options_total",
+          "round",
+          "seat",
+          "turn"
+        ],
+        "type": "object",
+        "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ReviewDecision"
+      },
+      "ReviewOption": {
+        "description": "ReviewOption is one offered option of a ReviewDecision: its index in the decision (the number Chosen and an explain note's choices refer to), the label the live client shows for it, and the option kind.",
+        "properties": {
+          "index": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "label"
+        ],
+        "type": "object",
+        "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ReviewOption"
+      },
       "RewindFrame": {
         "allOf": [
           {
@@ -5922,6 +6044,86 @@
         }
       ]
     },
+    "/api/tables/{t}/matches/{k}/decisions": {
+      "get": {
+        "description": "The recorded match's decision index: one entry per intent of the log, in order. Each entry names the decision the engine offered at that point (asking seat, kind, prompt, options with the labels the live client shows, capped at 64 plus every option the answer or explain note names; `options_total` is the uncapped count), the answer (`chosen`, `rest`, a short `answer` label and the `decision_made` text), the `ask_seq`/`made_seq` of its decision events (the replay's Decision step stops on `ask_seq`), and the record's explain note for that intent (a `bots/explain.Note`, or null). Mounted only by `gorged review`: a live server has no such route.",
+        "operationId": "getReviewDecisions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "priority": {
+                    "summary": "a priority decision with no explain note",
+                    "value": [
+                      {
+                        "answer": "Pass priority",
+                        "ask_seq": 221,
+                        "chosen": [
+                          0
+                        ],
+                        "explain": null,
+                        "intent": 40,
+                        "kind": "priority",
+                        "made": "priority:[0]",
+                        "made_seq": 222,
+                        "max": 1,
+                        "min": 1,
+                        "options": [
+                          {
+                            "index": 0,
+                            "kind": "pass",
+                            "label": "Pass priority"
+                          },
+                          {
+                            "index": 1,
+                            "kind": "concede",
+                            "label": "Concede"
+                          }
+                        ],
+                        "options_total": 2,
+                        "prompt": "turn 2, draw — dimir-tempo has priority",
+                        "round": 1,
+                        "seat": 0,
+                        "turn": 2
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewDecision"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The decision index."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          }
+        },
+        "summary": "A review table's decisions",
+        "tags": [
+          "review"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/table"
+        },
+        {
+          "$ref": "#/components/parameters/match"
+        }
+      ]
+    },
     "/api/tables/{t}/matches/{k}/events": {
       "get": {
         "description": "Every event from `since` (inclusive) to the head, redacted (for the table's spectator visibility, or for `seat`), each with its transcript line. `since=0` on a long match is the whole log, which can be megabytes.",
@@ -8174,6 +8376,10 @@
     {
       "description": "Go runtime profiles (net/http/pprof), mounted only with -pprof on a loopback -addr.",
       "name": "debug"
+    },
+    {
+      "description": "Match review (`gorged review`): read-only tables built from recorded games. Served only in review mode; a live server answers every path here with the JSON 404.",
+      "name": "review"
     }
   ]
 }

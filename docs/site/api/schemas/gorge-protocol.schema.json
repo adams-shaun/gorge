@@ -3108,6 +3108,128 @@
       "type": "object",
       "x-go-type": "github.com/adams-shaun/gorge/engine/decision.RemovalEffect"
     },
+    "ReviewDecision": {
+      "description": "ReviewDecision is one entry of a review table's decision index, served only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions (match reviewer, design D8/T4). Entry i describes the match log's Intents[i]: the decision the engine offered at that point and the answer the seat gave. It is derived at load from the replay itself -- the options and labels are never stored in a record -- so it is exactly what the seat was shown.",
+      "properties": {
+        "answer": {
+          "type": "string"
+        },
+        "ask_seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "chosen": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "explain": {},
+        "intent": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "made": {
+          "type": "string"
+        },
+        "made_seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "min": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/ReviewOption"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "options_total": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "rest": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "round": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "seat": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "turn": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ask_seq",
+        "chosen",
+        "explain",
+        "intent",
+        "kind",
+        "made",
+        "made_seq",
+        "max",
+        "min",
+        "options",
+        "options_total",
+        "round",
+        "seat",
+        "turn"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ReviewDecision"
+    },
+    "ReviewOption": {
+      "description": "ReviewOption is one offered option of a ReviewDecision: its index in the decision (the number Chosen and an explain note's choices refer to), the label the live client shows for it, and the option kind.",
+      "properties": {
+        "index": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "index",
+        "label"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.ReviewOption"
+    },
     "RewindFrame": {
       "allOf": [
         {
