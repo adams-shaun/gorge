@@ -61,8 +61,8 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 	if got := hb.TimingRules(); got != (botpolicy.TimingRules{CounterTop: true, DrawTokenLate: true}) {
 		t.Errorf("armed TimingRules = %+v, want CounterTop and DrawTokenLate", got)
 	}
-	if got := hb.AttachRules(); got != (botpolicy.AttachRules{AuraPolarity: true, Carrier: true}) {
-		t.Errorf("armed AttachRules = %+v, want AuraPolarity and Carrier", got)
+	if got := hb.AttachRules(); got != (botpolicy.AttachRules{AuraPolarity: true, Carrier: true, HoldOwnAura: true}) {
+		t.Errorf("armed AttachRules = %+v, want AuraPolarity, Carrier and HoldOwnAura", got)
 	}
 	if got := hb.PostureRules(); got != (botpolicy.PostureRules{Attack: true, Reserve: true}) {
 		t.Errorf("armed PostureRules = %+v, want Attack and Reserve", got)

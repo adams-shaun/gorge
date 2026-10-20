@@ -235,6 +235,12 @@ type Card struct {
 	// cards.Face.RemoveDeck on the game half). The opt-in AIHints cast policy
 	// vetoes such a card; the zero-value AIHints leaves it untouched.
 	RemoveDeck bool
+	// AuraLogic is the AttachAILogic hint of a card whose spell is an Aura
+	// aimed at a creature ("" for any other card). Both adapter halves fill
+	// it from the same printed face fact (CardView.AuraLogic, or
+	// effects.CastAuraLogic on the game half); the opt-in A5 HoldOwnAura
+	// rule reads it.
+	AuraLogic string
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -856,6 +862,10 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		if !b.removalNow(d, *o) {
 			continue
 		}
+		// A5: hold a boon Aura while no own creature could carry it.
+		if b.auraHeld(d, o.Obj) {
+			continue
+		}
 		// A6: a timing rule that governs this card may hold the cast even
 		// though C8 and A1 allowed it. With every rule off this is a no-op.
 		if !b.timingNow(d, *o) {
@@ -1210,6 +1220,10 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 			continue
 		}
 		if !b.removalNow(d, *o) {
+			continue
+		}
+		// A5: hold a boon Aura while no own creature could carry it.
+		if b.auraHeld(d, o.Obj) {
 			continue
 		}
 		// A6: a timing rule that governs this card may hold the cast even

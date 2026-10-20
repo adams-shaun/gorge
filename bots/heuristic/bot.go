@@ -851,6 +851,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 				RemovalDamage:  cv.RemovalDamage,
 				PlayMain1:      cv.PlayMain1,
 				RemoveDeck:     cv.RemoveDeck,
+				AuraLogic:      cv.AuraLogic,
 			})
 		}
 	}
@@ -883,6 +884,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 					RemovalDamage:  cv.RemovalDamage,
 					PlayMain1:      cv.PlayMain1,
 					RemoveDeck:     cv.RemoveDeck,
+					AuraLogic:      cv.AuraLogic,
 				})
 			}
 			continue

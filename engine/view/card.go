@@ -104,6 +104,12 @@ type CardView struct {
 	// printed fact of a visible card, projected so the opt-in AIHints cast
 	// policy can veto it; the default bot ignores it.
 	RemoveDeck bool `json:"remove_deck,omitempty"`
+	// AuraLogic is the AttachAILogic hint ("Pump", "Curse", ...) of a card
+	// whose spell is an Aura aimed at a creature, "" for every other card.
+	// It is a printed deck-builder hint of a visible card. The opt-in A5
+	// attach rules read it to hold a boon Aura while the caster controls no
+	// creature that could use it.
+	AuraLogic string `json:"aura_logic,omitempty"`
 	// ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
 	// the printed cost's pips, the colour indicator and every colour-naming
 	// mana symbol in the rules text -- CR 903.4's definition, the same one
@@ -630,6 +636,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 			cv.RemovalKind = effects.CastRemovalKind(sa)
 			cv.RemovalTargets = effects.CastRemovalTargets(sa)
 			cv.RemovalDamage = effects.CastRemovalDamage(sa)
+			cv.AuraLogic = effects.CastAuraLogic(f)
 		}
 		// The mana-production projection (Task dp2): what tapping this card
 		// puts in the pool, from its own abilities. A nil pointer keeps a card

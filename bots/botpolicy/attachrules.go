@@ -18,8 +18,9 @@ type AttachRules struct {
 	// boon Auras (a Defender is a last resort, untapped is only a tiebreak)
 	// and declines an equip activation when no own creature could use it.
 	Carrier bool
-	// HoldOwnAura is reserved for the cast-side hold of a boon Aura with no
-	// usable carrier.
+	// HoldOwnAura holds a boon Aura (a creature Aura whose hint is Pump,
+	// Animate or Curiosity) in hand, and the mana toward it, while the seat
+	// controls no creature that could use it.
 	HoldOwnAura bool
 }
 
@@ -96,6 +97,18 @@ func (b Board) ownCarrierExists(me state.PlayerID, exclude state.ObjID) bool {
 		}
 	}
 	return false
+}
+
+// auraHeld reports whether the cast of card id is held because it is a boon
+// Aura and the seat has no creature to put it on. The same answer gates
+// chooseCast, castEntries and the tap gate (castHeld), so no mana floats
+// toward a spell the policy will not cast. With HoldOwnAura off, or for any
+// card without a boon creature-Aura hint, it is false.
+func (b Board) auraHeld(d *decision.Decision, id state.ObjID) bool {
+	if !b.Attach.HoldOwnAura {
+		return false
+	}
+	return attachPolarity(b.Cards.Get(id).AuraLogic) > 0 && !b.ownCarrierExists(d.Player, 0)
 }
 
 // equipNoCarrier is true for a first-time attach activation (an unattached

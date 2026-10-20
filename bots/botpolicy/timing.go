@@ -75,10 +75,10 @@ func (b Board) drawTokenNow(c Card) bool {
 
 // castHeld is the tap gate's half of the timing rules: it reports whether
 // the cast of card id is held right now, so no tap may be aimed at making it
-// payable. It composes removalHeld (A1) with the A6 gate, so the main-phase
-// tap gate and the timing rules share one answer.
+// payable. It composes removalHeld (A1) and auraHeld (A5) with the A6 gate, so
+// the main-phase tap gate and the timing rules share one answer.
 func (b Board) castHeld(d *decision.Decision, id state.ObjID) bool {
-	return b.removalHeld(d, id) || !b.timingNow(d, decision.Option{Kind: "cast", Obj: id})
+	return b.removalHeld(d, id) || b.auraHeld(d, id) || !b.timingNow(d, decision.Option{Kind: "cast", Obj: id})
 }
 
 // timedCard reports whether c is a card one of the armed timing rules
