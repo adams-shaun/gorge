@@ -53,7 +53,7 @@ printed this (2026-10-20, the server on another port):
         "id": "t1",
         "name": "Table 1",
         "seats": 2,
-        "spectator": "omniscient",
+        "spectator": "public",
         "state": "live",
         "match": 1,
         "perpetual": false,

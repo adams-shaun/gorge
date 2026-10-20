@@ -104,8 +104,10 @@ restart no longer work.
 
 ### Spectators can see the players' hands
 
-The startup tables, including a `-humans` table, use `-spectator omniscient`
-by default. Run human tables with `-spectator public`
+The startup tables, including a `-humans` table, use `-spectator public` by
+default, so a seat-less `/view` or `/api/stream` hides every hand. An
+operator who passed `-spectator omniscient` explicitly opens every hand to
+every unauthenticated spectator; do that only on a table with no people at it
 ([Play](play.md#play-against-other-people)).
 
 ### Undo is greyed out
