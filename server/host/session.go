@@ -213,11 +213,14 @@ func (s *Session) modeFor(id TableID) (string, bool) {
 	return "", false
 }
 
-// Hello is the stream's first frame: the session id and the table list. It
-// carries no frame id (the http layer sends it before Last-Event-ID
-// resumption applies).
+// Hello is the stream's first frame: the session id and the lobby's table
+// list. It carries no frame id (the http layer sends it before Last-Event-ID
+// resumption applies). Private on-demand play-vs-bot tables are omitted, as
+// they are from GET /api/tables: their ids are discoverable only through the
+// join URL. A client holding a seat token still receives such a table through
+// its explicit focus subscription (Subscribe).
 func (r *Registry) Hello(s *Session) protocol.Frame {
-	f, err := protocol.NewFrame(protocol.THello, "", 0, 0, protocol.Hello{Session: s.ID, Tables: r.Tables()})
+	f, err := protocol.NewFrame(protocol.THello, "", 0, 0, protocol.Hello{Session: s.ID, Tables: r.LobbyTables()})
 	if err != nil {
 		panic("host: hello frame: " + err.Error()) // a marshal failure of our own struct is a bug
 	}
