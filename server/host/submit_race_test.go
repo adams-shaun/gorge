@@ -80,21 +80,31 @@ func TestSubmitClaimsTheSlotBeforeTheAnswerIsConsumed(t *testing.T) {
 	const n = 8
 	start := make(chan struct{})
 	errs := make([]error, n)
-	var wg sync.WaitGroup
+	done := make(chan int, n)
 	for i := 0; i < n; i++ {
-		wg.Add(1)
 		go func(i int) {
-			defer wg.Done()
 			<-start
 			errs[i] = s.submitAdmittedWait(in, nil, false, true)
+			done <- i
 		}(i)
 	}
 	close(start)
 
-	// Let every submit reach the seat's slot check before the answer is
-	// consumed; a claimed slot rejects the losers immediately, so the wait
-	// costs nothing when the fix is present.
-	time.Sleep(100 * time.Millisecond)
+	// Wait until every loser has returned before consuming the winner's
+	// answer: a claimed slot rejects them immediately, so exactly n-1
+	// submits finish without await. Waiting on their completions (rather
+	// than a wall-clock window) proves each one reached the slot check
+	// before any answer was consumed. Without the claim, all n block on the
+	// send and this deadline fires.
+	finished := 0
+	for finished < n-1 {
+		select {
+		case <-done:
+			finished++
+		case <-time.After(10 * time.Second):
+			t.Fatalf("only %d of %d submits were refused before the answer was consumed: a losing submit is blocked on a verdict it can never receive", finished, n-1)
+		}
+	}
 
 	got := make(chan decision.Intent, 1)
 	go func() {
@@ -111,12 +121,10 @@ func TestSubmitClaimsTheSlotBeforeTheAnswerIsConsumed(t *testing.T) {
 	}
 	p.reply(nil)
 
-	done := make(chan struct{})
-	go func() { wg.Wait(); close(done) }()
 	select {
 	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Fatal("a losing submit hung waiting for a verdict it can never receive")
+	case <-time.After(10 * time.Second):
+		t.Fatal("the admitted submit hung waiting for its verdict")
 	}
 
 	accepted := 0
