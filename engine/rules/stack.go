@@ -506,8 +506,23 @@ func (e *Engine) resolveTop() {
 	// and moveResolvedOffStack enters the permanent attached (the entry
 	// keeps an Attach set on the stack). The flag is the pay-time CastInfo
 	// provenance modeFlags("bestowed") rode.
+	//
+	// CR 608.3b / 702.103e: as a bestowed Aura spell begins resolving, if
+	// its target is illegal it ceases to be bestowed and continues
+	// resolving as a creature spell. The AlterAttribute removal clears
+	// FlagBestowed (so BestowedAuraSpell reads false and every type read,
+	// entry replacements included, sees a creature spell), sa stays the
+	// face's own (nil: no bestow carrier has an SP), and the ordinary
+	// permanent tail below moves it to the battlefield unattached.
+	unbestowed := false
 	if o.CastFlags&state.FlagBestowed != 0 {
-		sa = bestowedAttachSA()
+		if bsa := bestowedAttachSA(); e.bestowTargetIllegal(o, bsa) {
+			e.emit(events.Event{Kind: events.AlterAttribute, Obj: id, Text: events.AttrBestowed, Amount: -1})
+			o = e.G.Obj(id)
+			unbestowed = true
+		} else {
+			sa = bsa
+		}
 	}
 	// Morph / Megamorph / Disguise (CR 702.37a/702.168a/702.169a via
 	// CR 708.4): a face-down cast resolves as a vanilla creature spell --
@@ -527,9 +542,21 @@ func (e *Engine) resolveTop() {
 	// the battlefield): resolveMutate emits the Mutate fold, which parks this
 	// object off the stack. A mutate card carries no SP, so the spell block
 	// below would resolve nothing anyway.
+	//
+	// CR 608.3b / 702.140b: if the target is illegal as the spell begins
+	// resolving, it ceases to be a mutating creature spell (the
+	// AlterAttribute removal clears FlagMutated/FlagMutatedTop) and falls
+	// through to the ordinary permanent tail, entering the battlefield as
+	// its own creature under its controller's control.
+	unmutated := false
 	if o.CastFlags&state.FlagMutated != 0 {
-		e.resolveMutate(o, o.Targets)
-		return
+		if victim := e.mutateVictim(o); victim != 0 {
+			e.resolveMutate(o, victim)
+			return
+		}
+		e.emit(events.Event{Kind: events.AlterAttribute, Obj: id, Text: events.AttrMutating, Amount: -1})
+		o = e.G.Obj(id)
+		unmutated = true
 	}
 	// Fuse (CR 702.101b): a fused split spell is one spell whose BOTH halves'
 	// spell abilities resolve in sequence. The card stays at its front face;
@@ -544,6 +571,10 @@ func (e *Engine) resolveTop() {
 		return
 	}
 	targets := o.Targets
+	if unbestowed || unmutated {
+		// The creature spell it became has no target (CR 702.103e/702.140b).
+		targets = nil
+	}
 	charmModeTargets, charmFlatTargets, charmHandled := e.recheckCharmTargets(o)
 	if charmHandled {
 		targets = charmFlatTargets

@@ -243,6 +243,17 @@ func DepartureDefaultCreature(o *state.Object) bool {
 	return f != nil && f.IsCreature()
 }
 
+// AttrBestowed and AttrMutating are the rules-only AlterAttribute names
+// resolveTop emits (Amount -1) when a bestowed Aura spell or a mutating
+// creature spell finds its target illegal as it begins resolving (CR 608.3b,
+// 702.103e, 702.140b). No card script names them: effects'
+// alterAttributeNames never lists them, so an Attributes$ line cannot reach
+// these folds.
+const (
+	AttrBestowed = "Bestowed"
+	AttrMutating = "Mutating"
+)
+
 // IsAlterAttribute reports whether ev is the AlterAttribute grant for the
 // named attribute ("Saddled", "Plotted", ...), the designation the trigger
 // matchers for Mode$ Becomes* read. The attribute name is a parameter so the

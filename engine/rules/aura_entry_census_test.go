@@ -261,7 +261,6 @@ var auraEntryCensusRules = map[string]string{
 	"entry_counters.go:Engine.foldEntryMove":                    "raw: the entry fold, reached only after the gate",
 	"entry_counters.go:Engine.foldEntryWithPlaced":              "raw: the entry fold, reached only after the gate",
 	"hidden_identity.go:ReidentifyHidden":                       "raw: hidden-identity redeal in a HYPOTHETICAL search world (CloneHypothetical), never a real battlefield entry",
-	"mutate.go:Engine.resolveMutate":                            "stack: mutating spell resolution",
 	"opening_hand.go:Engine.applyOpeningEffect":                 "gate: Leyline-style opening-hand entry",
 	"oracle_run.go:oracleRun.do":                                "gate: oracle-audit scenario move op through e.emit",
 	"oracle_run.go:oraclePrelude":                               "attach: oracle-audit attach prelude for an existing battlefield permanent",

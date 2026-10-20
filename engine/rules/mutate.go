@@ -96,47 +96,35 @@ func (e *Engine) mutatePlaceAsk() bool {
 	return true
 }
 
-// resolveMutate lands a resolved mutate spell: it emits the events.Mutate
-// fold onto the surviving target permanent and returns WITHOUT the ordinary
-// moveResolvedOffStack, because the mutating card does not become an
-// independent permanent -- it merges into the target (CR 702.140d). The
-// fold parks the spell's object, so this must run before any other move of
-// that object.
-//
-// CR 608.2b: like every other spell, the mutate spell does not resolve if
-// its target became illegal. The target is the sole creature target already
-// rechecked by resolveTop's shared branch, so a missing battlefield target
-// here means the spell simply has nothing to merge with and the caller
-// finishes it in its resting zone.
-func (e *Engine) resolveMutate(o *state.Object, targets []state.Target) {
-	id := o.ID
+// mutateVictim is CR 702.140b's resolution-start check: the permanent a
+// resolving mutating creature spell merges with, or 0 when its target is
+// illegal. The mutating target is a sole-object target, revalidated with the
+// same legalTargets helper every other spell's CR 608.2b recheck uses, so a
+// target that left the battlefield or no longer matches
+// Creature.nonHuman+YouOwn yields 0.
+func (e *Engine) mutateVictim(o *state.Object) state.ObjID {
 	sa := mutateTargetSA()
-	// CR 608.2b: the target must still be legal as the spell resolves. The
-	// mutating target is a sole-object target, so a target that left the
-	// battlefield or no longer matches Creature.nonHuman+YouOwn fizzles the
-	// spell; it is revalidated with the same legalTargets helper every other
-	// spell uses before the merge.
-	legal := e.legalTargets(targets, sa, targetZones(sa), o.Controller, id, id)
-	var victim state.ObjID
-	for _, t := range legal {
+	for _, t := range e.legalTargets(o.Targets, sa, targetZones(sa), o.Controller, o.ID, o.ID) {
 		if t.IsPlayer || t.Obj == 0 {
 			continue
 		}
 		if to := e.G.Obj(t.Obj); to != nil && to.Zone == state.ZBattlefield {
-			victim = t.Obj
-			break
+			return t.Obj
 		}
 	}
-	if victim == 0 {
-		// CR 608.2b: every target became illegal. The spell does not resolve
-		// and goes straight to its resting zone -- no Resolve event.
-		rest := spellFizzleZone(o)
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest,
-			Text: "fizzled: no legal mutate target remains"})
-		e.ensureLeftTheStack(id, rest, "a mutate spell with no legal target was not "+
-			"moved off the stack; sent to its resting zone instead of re-resolving forever")
-		return
-	}
+	return 0
+}
+
+// resolveMutate lands a resolved mutate spell onto victim (mutateVictim's
+// legal target): it emits the events.Mutate fold onto the surviving target
+// permanent and returns WITHOUT the ordinary moveResolvedOffStack, because
+// the mutating card does not become an independent permanent -- it merges
+// into the target (CR 702.140c). The fold parks the spell's object, so this
+// must run before any other move of that object. An illegal target never
+// reaches here: resolveTop un-mutates the spell (CR 702.140b) and resolves
+// it as a creature spell instead.
+func (e *Engine) resolveMutate(o *state.Object, victim state.ObjID) {
+	id := o.ID
 	place := "under"
 	if o.CastFlags&state.FlagMutatedTop != 0 {
 		place = "top"
