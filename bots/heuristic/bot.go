@@ -38,6 +38,10 @@ type Bot struct {
 	// manually activating mana abilities. It is configured once by the hosted
 	// table and does not add state or RNG to the match.
 	autoPayMana bool
+	// targets selects the opt-in A2 targeting rules (botpolicy.TargetRules).
+	// Configured once by an opt-in constructor; the zero value leaves the
+	// default ranking untouched, so every hosted policy is unchanged.
+	targets botpolicy.TargetRules
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
@@ -102,6 +106,22 @@ func BotSource(seed uint64) *rand.PCG {
 // NewBot(seed).
 func NewBotOn(src *rand.PCG) *Bot {
 	return &Bot{r: rand.New(src)}
+}
+
+// EnableTargetRules arms the A2 target-selection rules (botpolicy.TargetRules)
+// on this bot and returns it, so an opt-in constructor chains like the other
+// Enable* methods. The default bot never calls it; the forge-heuristic policy
+// (bots/forgeheuristic) is the registered constructor that does.
+func (b *Bot) EnableTargetRules(r botpolicy.TargetRules) *Bot {
+	b.targets = r
+	return b
+}
+
+// TargetRules reports the A2 target-selection rules armed on this bot. It is
+// the read side of EnableTargetRules, so a registry test can assert the
+// forge-heuristic constructor actually armed the rules it advertises.
+func (b *Bot) TargetRules() botpolicy.TargetRules {
+	return b.targets
 }
 
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
@@ -226,6 +246,13 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	if b.mulligan != botpolicy.MulliganCoin {
 		brd.Mulligan = b.mulligan
 	}
+	// The opt-in A2 rules travel on the Board like cast and mulligan, so they
+	// are applied HERE rather than in an entry point: a caller builds the
+	// Board and cannot know this bot's policy configuration, and a per-entry
+	// assignment is one forgotten line away from silently un-arming the
+	// rules. The zero value leaves brd unchanged, so the default bot is
+	// unaffected.
+	brd.Targets = b.targets
 	if b.autoPayMana {
 		if in, ok := b.paymentIntent(brd, d); ok {
 			return in
@@ -483,7 +510,8 @@ func (b *Bot) decideWithoutAutoPay(brd botpolicy.Board, d *decision.Decision) de
 // TestBotAdaptersAgree* (integration_test.go) pins the two halves to the
 // same Board for the same game facts.
 func (b *Bot) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	return b.decide(BoardFromView(v), &d), nil
+	brd := BoardFromView(v)
+	return b.decide(brd, &d), nil
 }
 
 // DecideBoard is the game-shaped half of Decide: the Board is already built
@@ -607,6 +635,36 @@ func BoardFromView(v view.View) botpolicy.Board {
 			b.Commanders.Set(cv.ID, cmdr)
 		}
 	}
+	// The public-card colour census (A2): every player's battlefield,
+	// graveyard and exile, then the stack -- the same canonical order
+	// BoardFromGameInto's fillPublicCards walks. A face-down card carries
+	// FaceDown and a ZERO colour, because the projection redacts its printed
+	// identity (CR 708.5); the A2 fold must never read it.
+	for _, p := range v.Players {
+		for _, zone := range [][]view.CardView{p.Battlefield, p.Graveyard, p.Exile} {
+			for _, cv := range zone {
+				pc := botpolicy.PublicCard{Controller: cv.Controller, FaceDown: cv.FaceDown}
+				if !cv.FaceDown {
+					pc.Colour = cv.ColourIdentity
+				}
+				b.PublicCards.Set(cv.ID, pc)
+			}
+		}
+	}
+	for _, sv := range v.Stack {
+		// Only a spell is a card. A trigger/ability StackView may carry its
+		// source CardView for display, but the game half's fillPublicCards
+		// skips the face-less ability object, so including it here would make
+		// the two public-card censuses disagree.
+		if sv.Kind != "spell" || sv.Card == nil {
+			continue
+		}
+		pc := botpolicy.PublicCard{Controller: sv.Controller, FaceDown: sv.Card.FaceDown}
+		if !sv.Card.FaceDown {
+			pc.Colour = sv.Card.ColourIdentity
+		}
+		b.PublicCards.Set(sv.ID, pc)
+	}
 	// The CR 903.10 clock, filled from every player's damage keys. The map
 	// iteration order is irrelevant: each entry lands in b.Commanders[id]'s
 	// own Damage map keyed by the player who took it, and no policy branch
@@ -673,6 +731,9 @@ func BoardFromView(v view.View) botpolicy.Board {
 				Toughness:     cv.Toughness,
 				CMC:           botpolicy.CmcOf(cv.ManaCost),
 				Basic:         hasBasicView(cv),
+				Land:          hasTypeView(cv, "Land"),
+				Colour:        cv.ColourIdentity,
+				TypeSig:       botpolicy.TypeSigOf(strings.Fields(cv.Types)),
 				AttachedTo:    cv.AttachedTo,
 				Activated:     cv.ActivatedThisTurn,
 				ManaCost:      cv.ManaCost,
@@ -705,6 +766,9 @@ func BoardFromView(v view.View) botpolicy.Board {
 					Toughness:   cv.Toughness,
 					CMC:         botpolicy.CmcOf(cv.ManaCost),
 					Basic:       hasBasicView(cv),
+					Land:        hasTypeView(cv, "Land"),
+					Colour:      cv.ColourIdentity,
+					TypeSig:     botpolicy.TypeSigOf(strings.Fields(cv.Types)),
 					ManaCost:    cv.ManaCost,
 					Activated:   cv.ActivatedThisTurn,
 				})
@@ -728,6 +792,17 @@ func BoardFromView(v view.View) botpolicy.Board {
 func hasFlashbackView(cv view.CardView) bool {
 	for _, k := range cv.Keywords {
 		if strings.EqualFold(cards.KeywordHead(k), "Flashback") {
+			return true
+		}
+	}
+	return false
+}
+
+// hasTypeView reports whether the projected type line names t, mirroring
+// cards.Face.TypeLineHas's EqualFold word match on the game half.
+func hasTypeView(cv view.CardView, t string) bool {
+	for w := range strings.FieldsSeq(cv.Types) {
+		if strings.EqualFold(w, t) {
 			return true
 		}
 	}

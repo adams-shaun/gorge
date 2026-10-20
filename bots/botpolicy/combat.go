@@ -32,6 +32,28 @@ type combinedChars interface {
 	Characteristics(state.ObjID) (power, toughness int32, keywords []string)
 }
 
+// derivedTypeReader is an optional Chars capability: the engine's layer-4
+// type line (rules.Engine.ViewTypes), the same list the projected
+// CardView.Types carries. ok is false when no type-changing effect applies,
+// in which case the face's printed line stands.
+type derivedTypeReader interface {
+	ViewTypes(state.ObjID) (types []string, ok bool)
+}
+
+// effectiveTypeWords returns id's layer-4 type line when ch exposes one, else
+// the face's printed line. Both adapter halves read this same source: the
+// view half reads CardView.Types, the game half this helper, so a layer-4
+// type change (Imprisoned in the Moon, an animated land) cannot make them
+// disagree about Creature/Land/Basic/Instant.
+func effectiveTypeWords(f *cards.Face, id state.ObjID, ch any) []string {
+	if v, ok := ch.(derivedTypeReader); ok {
+		if types, changed := v.ViewTypes(id); changed {
+			return types
+		}
+	}
+	return f.Types
+}
+
 // derivedReadScoper is an optional Chars fast path: an implementation that
 // memoizes derived characteristics for the duration of a pure read
 // (*rules.Engine: BeginDerivedReads/EndDerivedReads) lets the board build
@@ -99,11 +121,12 @@ func (c Creature) pt() int32 { return c.Power + c.Toughness }
 // count the Life map is sized to (len(g.Players) at the time).
 func NewBoard(numPlayers int) Board {
 	return Board{
-		Creatures:  makeTable[state.ObjID, Creature](32),
-		Life:       makeTable[state.PlayerID, int32](numPlayers),
-		Cards:      makeTable[state.ObjID, Card](16),
-		Commanders: makeTable[state.ObjID, Commander](8),
-		Stack:      make([]StackEntry, 0, 8),
+		Creatures:   makeTable[state.ObjID, Creature](32),
+		Life:        makeTable[state.PlayerID, int32](numPlayers),
+		Cards:       makeTable[state.ObjID, Card](16),
+		PublicCards: makeTable[state.ObjID, PublicCard](16),
+		Commanders:  makeTable[state.ObjID, Commander](8),
+		Stack:       make([]StackEntry, 0, 8),
 	}
 }
 
@@ -151,6 +174,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	b.Creatures.Reset()
 	b.Life.Reset()
 	b.Cards.Reset()
+	b.PublicCards.Reset()
 	b.Commanders.Reset()
 	b.kwArena = b.kwArena[:0]
 	// The public stack census (C8's facts): the stack's own bottom-to-top
@@ -253,7 +277,11 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		b.Life.Set(p.ID, p.Life)
 		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
 			o := g.Obj(id)
-			if o == nil || o.Face() == nil || o.Ephemeral() || !o.Face().IsCreature() {
+			if o == nil || o.Face() == nil || o.Ephemeral() {
+				continue
+			}
+			f := o.Face()
+			if !hasTypeWord(effectiveTypeWords(f, id, ch), "Creature") {
 				continue
 			}
 			var power, toughness int32
@@ -318,6 +346,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			if f == nil {
 				continue
 			}
+			words := effectiveTypeWords(f, id, ch)
 			var power, toughness int32
 			var castable, instantSpeed bool
 			if cr := b.ownCreature(hasCombined, z, id); cr != nil {
@@ -326,25 +355,28 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				// included, copied), so read them instead of querying the
 				// same object again. A battlefield card is never castable.
 				power, toughness = cr.Power, cr.Toughness
-				instantSpeed = f.TypeLineHas("Instant", twInstant) || hasFlash(cr.Keywords)
+				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(cr.Keywords)
 			} else if hasCombined {
 				var keywords []string
 				power, toughness, keywords = combined.Characteristics(id)
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(keywords))
-				instantSpeed = f.TypeLineHas("Instant", twInstant) || hasFlash(keywords)
+				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(keywords)
 			} else {
 				power = ch.Power(id)
 				toughness = ch.Toughness(id)
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id)))
-				instantSpeed = f.TypeLineHas("Instant", twInstant) || hasFlash(ch.Keywords(id))
+				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(ch.Keywords(id))
 			}
 			*b.Cards.slot(id) = Card{
 				PrintedName:   f.Name,
-				Creature:      f.IsCreature(),
+				Creature:      hasTypeWord(words, "Creature"),
 				Power:         power,
 				Toughness:     toughness,
 				CMC:           cmcOfFace(f),
-				Basic:         f.TypeLineHas("Basic", twBasic),
+				Basic:         hasTypeWord(words, "Basic"),
+				Land:          hasTypeWord(words, "Land"),
+				Colour:        cards.ColourMask(f.ColourIdentity()),
+				TypeSig:       TypeSigOf(words),
 				AttachedTo:    o.AttachedTo,
 				Activated:     o.ActivatedThisTurn,
 				ManaCost:      f.ManaCost,
@@ -417,19 +449,72 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				toughness = ch.Toughness(id)
 			}
 			f := o.Face()
+			words := effectiveTypeWords(f, id, ch)
 			*b.Cards.slot(id) = Card{
 				PrintedName: f.Name,
-				Creature:    f.IsCreature(),
+				Creature:    hasTypeWord(words, "Creature"),
 				Power:       power,
 				CMC:         cmcOfFace(f),
-				Basic:       f.TypeLineHas("Basic", twBasic),
+				Basic:       hasTypeWord(words, "Basic"),
+				Land:        hasTypeWord(words, "Land"),
+				Colour:      cards.ColourMask(f.ColourIdentity()),
+				TypeSig:     TypeSigOf(words),
 				ManaCost:    f.ManaCost,
 				Toughness:   toughness,
 				Activated:   o.ActivatedThisTurn,
 			}
 		}
 	}
+	fillPublicCards(g, b, func(_ *state.Object, f *cards.Face) cards.ColourMask {
+		return cards.ColourMask(f.ColourIdentity())
+	})
 	return *b
+}
+
+// fillPublicCards fills Board.PublicCards with every player's public-zone
+// cards -- battlefield, graveyard, exile, then the stack -- in one canonical
+// order shared by the scratch and incremental fills, so boardsDiffer sees
+// the same entry order either way. colourOf is the half's own printed-face
+// read (the scratch fill reads the face directly; the incremental fill reuses
+// its cached row). A face-down object contributes Controller and FaceDown
+// but a ZERO Colour: its printed identity is hidden (CR 708.5), and the A2
+// fold must never see it.
+func fillPublicCards(g *state.Game, b *Board, colourOf func(*state.Object, *cards.Face) cards.ColourMask) {
+	for i := range g.Players {
+		p := &g.Players[i]
+		for _, z := range [...]state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+			for _, id := range g.Zone(z, p.ID) {
+				o := g.Obj(id)
+				if o == nil || o.Ephemeral() {
+					continue
+				}
+				f := o.Face()
+				if f == nil {
+					continue
+				}
+				pc := PublicCard{Controller: o.Controller, FaceDown: o.FaceDown}
+				if !o.FaceDown {
+					pc.Colour = colourOf(o, f)
+				}
+				b.PublicCards.Set(id, pc)
+			}
+		}
+	}
+	for _, id := range g.Stack {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		pc := PublicCard{Controller: o.Controller, FaceDown: o.FaceDown}
+		if !o.FaceDown {
+			pc.Colour = colourOf(o, f)
+		}
+		b.PublicCards.Set(id, pc)
+	}
 }
 
 // The commander bookkeeping: every commander in the match, in the

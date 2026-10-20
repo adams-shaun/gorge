@@ -52,6 +52,11 @@
       "tier": "bots",
       "status": "CORE"
     },
+    "bots/forgeheuristic": {
+      "tier": "bots",
+      "status": "EXT",
+      "purpose": "Experimental registration of the heuristic bot with the A2 target rules armed."
+    },
     "bots/gonet": {
       "tier": "bots",
       "status": "EXT"

@@ -182,14 +182,20 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// Re-measured for the CR 510.3 post-damage priority round (rules
 		// 24bbba791): 124 -> 126 frames. Measured after: attempts 64,
 		// accepted 7, worlds 8, ESS 7 (land exclusion: accepted 31, ESS 31).
-		{"pre-optimisation sampler", true, "ad676a29cfa6b3c6d758cfdf972ec56711e46a38eec5989ea13150951c9f4c1b"},
+		// Re-measured for the A2 targeting port (view.CardView.ColourIdentity):
+		// the captured frames marshal one more key per token, so the sampled
+		// worlds move exactly as they did for printed_pt. Attributed by hiding
+		// only that field (json:"-"): the old digests return byte-for-byte.
+		// Measured after: frames 126, attempts 64, accepted 8, worlds 8,
+		// ESS 8 (land exclusion: accepted 30, ESS 30).
+		{"pre-optimisation sampler", true, "2979184d0e92313cd4c3d5952a762a0fa48299f51e9ee5d33b23d42d6d58abbd"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
-		{"land exclusion", false, "949d19344ff788c9907b6e48ea1adac0205414893165328e47bd51f242773d03"},
+		{"land exclusion", false, "1b0580932e2abde051bad95044e628df938b0bb72098fedc5345ba0412158c5b"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -392,7 +398,16 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// 24bbba791), the sampled worlds again: Submits 3939 -> 3529; Index,
 	// Values [1,1,1,1], Rollouts 32, Terminal 32, Capped 0 and the 8/8/8/8
 	// splits unchanged.
-	const want = "1eb0d00c500134889aaf25be808ef0d2ae3e51dc5a8d9079a039b73c358624b2"
+	// Re-measured for the A2 targeting port (view.CardView.ColourIdentity,
+	// json-tagged so every frame encoding gains a field): the sampled
+	// worlds are decoded from those frames, so the rollouts run on
+	// differently-encoded worlds. Attributed by tagging only that field
+	// json:"-": the old digest and this test's old result return
+	// byte-for-byte. Measured after: Index 0, Values [1,0.875,1,1],
+	// Rollouts 32, Submits 4150, Terminal 32, Capped 0,
+	// WinsByCandidate [8,7,8,8], TerminalByCandidate [8,8,8,8],
+	// WinsOverBaseline [0,0,0,0], LossesToBaseline [0,1,0,0].
+	const want = "e9aebf4324c0cfb79e98e03d46bea1811fe8d7a65ecc529dfd2df787a12911fb"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

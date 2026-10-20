@@ -485,19 +485,35 @@ func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) f
 		if c, ok := b.Cards.Lookup(o.Obj); ok && value == 0 {
 			value = c.CMC * 3
 		}
-		if value == 0 {
+		// A2: the land and prominent-colour rules tune the value tier. Both
+		// are zero unless Board.Targets armed them, so the default ranking is
+		// unchanged. A CMC-0 land scores zero on the ordinary scale, so its
+		// A2 contribution must be computed before the zero-value early return
+		// or land priority can never fire. The target controller's dominant
+		// colour is folded from that player's PUBLIC cards (Board.PublicCards:
+		// battlefield, graveyard, exile, stack), never from a hidden deck
+		// list; a face-down or colourless card contributes nothing.
+		a2 := b.a2RemovalBonus(o)
+		if value == 0 && a2 <= 0 {
 			return r
 		}
-		bonus := int32(0)
+		bonus := a2
 		switch effect.Removal.Kind {
 		case "exile", "command":
-			bonus = 30
+			bonus += 30
 		case "library":
-			bonus = 20
+			bonus += 20
 		case "graveyard", "destroy", "sacrifice":
-			bonus = 10
+			bonus += 10
 		case "bounce":
-			bonus = 5
+			bonus += 5
+		}
+		// A2: a strictly worse copy of a creature the same opponent controls
+		// is a wasted removal -- the bigger copy stays. Demote it below the
+		// other value-tier targets without leaving the tier, so a decision
+		// that offers only worse copies still kills something.
+		if b.Targets.FilterFatalCopies && b.worseCopy(o.Obj, me) {
+			bonus -= worseCopyPenalty
 		}
 		r.score = tierValue + value + bonus
 		return r

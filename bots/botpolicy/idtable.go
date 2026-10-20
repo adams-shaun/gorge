@@ -203,10 +203,11 @@ func (t IDTable[K, V]) Equal(u IDTable[K, V], eq func(a, b V) bool) bool {
 	return true
 }
 
-// The Board's four tables.
+// The Board's five tables.
 type (
-	CreatureTable  = IDTable[state.ObjID, Creature]
-	CardTable      = IDTable[state.ObjID, Card]
-	LifeTable      = IDTable[state.PlayerID, int32]
-	CommanderTable = IDTable[state.ObjID, Commander]
+	CreatureTable   = IDTable[state.ObjID, Creature]
+	CardTable       = IDTable[state.ObjID, Card]
+	LifeTable       = IDTable[state.PlayerID, int32]
+	CommanderTable  = IDTable[state.ObjID, Commander]
+	PublicCardTable = IDTable[state.ObjID, PublicCard]
 )
