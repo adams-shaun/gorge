@@ -123,7 +123,7 @@ func Write(path string, r *Record) (err error) {
 			os.Remove(tmp)
 		}
 	}()
-	zw, err := gzip.NewWriterLevel(f, gzip.BestCompression)
+	zw, err := gzip.NewWriterLevel(f, gzip.DefaultCompression)
 	if err != nil {
 		return fmt.Errorf("matchrecord: write %s: %w", path, err)
 	}
