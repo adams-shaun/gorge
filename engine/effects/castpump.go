@@ -43,12 +43,28 @@ func CastPumpBonus(sa *cards.SA) (power, toughness int32) {
 }
 
 // pumpTargetsCreature reports whether some ValidTgts$ alternative's base
-// token is "creature" (case-insensitive).
+// token is "creature" (case-insensitive) and its scope does not restrict the
+// target to the opponent's creatures. A positive pump that can only target
+// Creature.OppCtrl/YouDontCtrl must read 0/0: the timing rule only aims at
+// the seat's own combatants, so treating such a card as a pump would fire the
+// cast gate on an illegal own-creature target and let the ordinary target
+// ranking buff the opponent instead.
 func pumpTargetsCreature(sa *cards.SA) bool {
 	spec := TargetsOf(sa).ValidTgts
 	for alt := range strings.SplitSeq(spec, ",") {
-		base, _, _ := strings.Cut(strings.TrimSpace(alt), ".")
-		if strings.EqualFold(base, "creature") {
+		parts := strings.Split(strings.TrimSpace(alt), ".")
+		if !strings.EqualFold(parts[0], "creature") {
+			continue
+		}
+		opponentOnly := false
+		for _, q := range parts[1:] {
+			if strings.EqualFold(strings.TrimSpace(q), "OppCtrl") ||
+				strings.EqualFold(strings.TrimSpace(q), "YouDontCtrl") {
+				opponentOnly = true
+				break
+			}
+		}
+		if !opponentOnly {
 			return true
 		}
 	}

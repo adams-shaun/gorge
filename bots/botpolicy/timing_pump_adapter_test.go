@@ -1,11 +1,13 @@
 package botpolicy_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 )
@@ -47,6 +49,14 @@ func TestPumpAdaptersAgree(t *testing.T) {
 			name: "not a creature",
 			src:  "Name:Twiddle\nManaCost:U\nTypes:Instant\nOracle:Tap or untap target artifact.\nA:SP$ Pump | ValidTgts$ Artifact | NumAtt$ +1 | SpellDescription$ Tap or untap target artifact.\n",
 		},
+		{
+			name: "opponent-only target",
+			src:  "Name:Wrong Target\nManaCost:U\nTypes:Instant\nOracle:Target creature an opponent controls gets +3/+3 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature.OppCtrl | NumAtt$ +3 | NumDef$ +3 | SpellDescription$ Target creature an opponent controls gets +3/+3 until end of turn.\n",
+		},
+		{
+			name: "you-dont-control target",
+			src:  "Name:Not Yours\nManaCost:U\nTypes:Instant\nOracle:Target creature you don't control gets +2/+2 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature.YouDontCtrl | NumAtt$ +2 | NumDef$ +2 | SpellDescription$ Target creature you don't control gets +2/+2 until end of turn.\n",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			card, diags := cards.ParseBytes("timing_pump_adapter_test.go", []byte(tc.src))
@@ -81,5 +91,94 @@ func TestPumpAdaptersAgree(t *testing.T) {
 				t.Fatalf("view facts pump = %d/%d, want %d/%d", viewCard.PumpPower, viewCard.PumpToughness, tc.power, tc.tough)
 			}
 		})
+	}
+}
+
+// TestPumpCreatureFactsAdaptersAgree pins the A6a Creature facts both halves
+// must fill from the same combat state: Attacking, Defender and Blocks (the
+// lowest blocker id) agree between BoardFromGame and BoardFromView.
+func TestPumpCreatureFactsAdaptersAgree(t *testing.T) {
+	g := state.NewGame([]string{"a", "b"})
+	mk := func(name string, owner state.PlayerID) *state.Object {
+		src := fmt.Sprintf("Name:%s\nTypes:Creature\nPT:2/2\nOracle:x\n", name)
+		card, diags := cards.ParseBytes("timing_pump_adapter_test.go", []byte(src))
+		if len(diags) != 0 {
+			t.Fatalf("parse: %v", diags)
+		}
+		card.Link()
+		o := g.AddObject(card, owner)
+		g.SetZone(state.ZBattlefield, owner, []state.ObjID{o.ID})
+		return o
+	}
+	attackerID := mk("Attacker", 0).ID
+	blockerID := mk("Blocker", 1).ID
+	attacker := g.Obj(attackerID)
+	attacker.IsAttacking, attacker.Attacking = true, 1
+	attacker.BlockedBy = []state.ObjID{blockerID}
+	g.Obj(blockerID).IsBlocking = true
+	g.NoteBlockers()
+
+	gameBoard := botpolicy.BoardFromGame(g, printedChars{}, 0)
+	viewBoard := heuristic.BoardFromView(view.Project(g, nil, 0, nil))
+	for _, id := range []state.ObjID{attackerID, blockerID} {
+		gc, vc := gameBoard.Creatures.Get(id), viewBoard.Creatures.Get(id)
+		if gc.Attacking != vc.Attacking || gc.Defender != vc.Defender || gc.Blocks != vc.Blocks {
+			t.Fatalf("creature %d: game %+v vs view %+v disagree on Attacking/Defender/Blocks", id, gc, vc)
+		}
+	}
+	if a := gameBoard.Creatures.Get(attackerID); !a.Attacking || a.Defender != 1 || a.Blocks != 0 {
+		t.Fatalf("attacker facts = %+v, want Attacking, Defender 1, Blocks 0", a)
+	}
+	if b := gameBoard.Creatures.Get(blockerID); b.Attacking || b.Blocks != attacker.ID {
+		t.Fatalf("blocker facts = %+v, want Blocks %d", b, attackerID)
+	}
+}
+
+// TestPumpFaceDownStackFactsAdaptersAgree is the CR 708.4 half of the
+// StackEntry pump parity: the controller sees their own face-down spell's
+// printed bonus on both halves, while an opponent sees 0/0 on both.
+func TestPumpFaceDownStackFactsAdaptersAgree(t *testing.T) {
+	src := "Name:Giant Growth\nManaCost:G\nTypes:Instant\nOracle:x\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +3 | NumDef$ +3 | SpellDescription$ x\n"
+	card, diags := cards.ParseBytes("timing_pump_adapter_test.go", []byte(src))
+	if len(diags) != 0 {
+		t.Fatalf("parse: %v", diags)
+	}
+	card.Link()
+	g := state.NewGame([]string{"a", "b"})
+	o := g.AddObject(card, 0)
+	g.SetZone(state.ZHand, 0, []state.ObjID{o.ID})
+	events.Apply(g, events.Event{Kind: events.PutOnStack, Obj: o.ID, Player: 0,
+		From: state.ZHand, To: state.ZStack, Counter: events.FaceDownEntryCounter})
+	if !g.Obj(o.ID).FaceDown {
+		t.Fatal("precondition: the spell is not face down")
+	}
+	for _, tc := range []struct {
+		viewer   state.PlayerID
+		power    int32
+		tough    int32
+		scenario string
+	}{
+		{viewer: 0, power: 3, tough: 3, scenario: "controller"},
+		{viewer: 1, power: 0, tough: 0, scenario: "opponent"},
+	} {
+		gameBoard := botpolicy.BoardFromGame(g, printedChars{}, tc.viewer)
+		viewBoard := heuristic.BoardFromView(view.Project(g, nil, tc.viewer, nil))
+		var gs, vs botpolicy.StackEntry
+		for _, s := range gameBoard.Stack {
+			if s.ID == o.ID {
+				gs = s
+			}
+		}
+		for _, s := range viewBoard.Stack {
+			if s.ID == o.ID {
+				vs = s
+			}
+		}
+		if gs.PumpPower != tc.power || gs.PumpToughness != tc.tough {
+			t.Fatalf("%s game stack pump = %d/%d, want %d/%d", tc.scenario, gs.PumpPower, gs.PumpToughness, tc.power, tc.tough)
+		}
+		if vs.PumpPower != tc.power || vs.PumpToughness != tc.tough {
+			t.Fatalf("%s view stack pump = %d/%d, want %d/%d", tc.scenario, vs.PumpPower, vs.PumpToughness, tc.power, tc.tough)
+		}
 	}
 }

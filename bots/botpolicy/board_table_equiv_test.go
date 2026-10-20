@@ -71,7 +71,9 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 			// in step even if a face ever rides an ability stack object.
 			if o.Ability == nil {
 				manaCost = f.ManaCost
-				if !o.FaceDown {
+				// CR 708.4: the controller sees a face-down spell's printed
+				// pump bonus; every other viewer sees a stripped CardView.
+				if !o.FaceDown || o.Controller == me {
 					pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
 				}
 			}

@@ -59,7 +59,7 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 		t.Errorf("armed RemovalRules = %+v, want HoldForBigger", got)
 	}
 	if got := hb.TimingRules(); got != (botpolicy.TimingRules{CounterTop: true, DrawTokenLate: true, PumpInCombat: true}) {
-		t.Errorf("armed TimingRules = %+v, want CounterTop and DrawTokenLate", got)
+		t.Errorf("armed TimingRules = %+v, want CounterTop, DrawTokenLate and PumpInCombat", got)
 	}
 }
 

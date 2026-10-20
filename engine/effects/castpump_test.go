@@ -49,6 +49,14 @@ func TestCastPumpBonusReadsTheCompiledPump(t *testing.T) {
 			sa:   &cards.SA{API: "Pump", Params: map[string]string{"ValidTgts": "Artifact", "NumAtt": "+1"}},
 		},
 		{
+			name: "opponent-only target is not read",
+			sa:   &cards.SA{API: "Pump", Params: map[string]string{"ValidTgts": "Creature.OppCtrl", "NumAtt": "+3", "NumDef": "+3"}},
+		},
+		{
+			name: "you-dont-control target is not read",
+			sa:   &cards.SA{API: "Pump", Params: map[string]string{"ValidTgts": "Creature.YouDontCtrl", "NumAtt": "+2"}},
+		},
+		{
 			name:  "a creature alternative still names a creature",
 			sa:    &cards.SA{API: "Pump", Params: map[string]string{"ValidTgts": "Artifact,Creature.YouCtrl", "NumAtt": "+1"}},
 			power: 1,

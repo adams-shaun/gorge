@@ -105,6 +105,11 @@ the lowest object id -- a deterministic max fold with no map-order input. The
 target half (`timingTargetPick`) reads the pump bonus from the resolving stack
 entry (`d.Source`) and picks that combatant from the offered options.
 
+Approximations, recorded here rather than in AGENTS.md: the combat simulation
+orders blockers and damage assignment by object id; it models neither trample
+nor infect; and an attack against a planeswalker is counted against that
+planeswalker's controller's life.
+
 ## Firing evidence
 
 The focused botpolicy tests pin both directions:

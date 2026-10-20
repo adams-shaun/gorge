@@ -217,9 +217,12 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			// in step even if a face ever rides an ability stack object.
 			if o.Ability == nil {
 				manaCost = f.ManaCost
-				// A face-down spell's printed pump bonus is hidden (the view
-				// half projects a stripped CardView), so it stays zero.
-				if !o.FaceDown {
+				// A face-down spell's printed pump bonus is hidden from every
+				// viewer but its controller (CR 708.4). The view half keeps
+				// the printed CardView for the controller and a stripped one
+				// for everyone else, so the game half fills the bonus for the
+				// controller and zero for an opponent -- the same split.
+				if !o.FaceDown || o.Controller == me {
 					pumpPower, pumpToughness = effects.CastPumpBonus(f.SpellAbility())
 				}
 			}

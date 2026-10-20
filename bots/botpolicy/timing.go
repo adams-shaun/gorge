@@ -252,9 +252,10 @@ func (b Board) castHeld(d *decision.Decision, id state.ObjID) bool {
 }
 
 // timedCard reports whether c is a card one of the armed timing rules
-// governs: a counter under CounterTop, or an instant-speed draw/token under
-// DrawTokenLate. A sorcery-speed draw/token is not a timed tap candidate
-// (the tap gate is for instants); its hold comes from timingNow.
+// governs: a counter under CounterTop, an instant-speed draw/token under
+// DrawTokenLate, or a castable instant creature pump with a positive literal
+// bonus under PumpInCombat. A sorcery-speed draw/token is not a timed tap
+// candidate (the tap gate is for instants); its hold comes from timingNow.
 func (b Board) timedCard(c Card) bool {
 	return b.Timing.CounterTop && c.Counter ||
 		b.Timing.DrawTokenLate && c.InstantSpeed && (c.Draw || c.Token) ||
@@ -315,8 +316,11 @@ func (b Board) stackTop(skip state.ObjID) (StackEntry, bool) {
 // timingTargetPick is the target half of the timing rules. A counter may
 // only target the foreign spell on top of the stack below the counter being
 // cast (skip d.Source), so it picks that option instead of the ordinary
-// removal ranking's highest-CMC foreign spell. It returns false when no
-// armed rule governs this ask, leaving chooseTargets unchanged.
+// removal ranking's highest-CMC foreign spell. A pump being cast picks the
+// combatant bestPumpTarget names (the save/kill/lethal fold), not the
+// ordinary ranking's target -- which would otherwise lead with the opposing
+// creature. It returns false when no armed rule governs this ask, leaving
+// chooseTargets unchanged.
 func (b Board) timingTargetPick(d *decision.Decision) (int, bool) {
 	if d.TargetEffect == nil {
 		return 0, false
