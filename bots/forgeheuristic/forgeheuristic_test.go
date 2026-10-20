@@ -61,6 +61,9 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 	if got := hb.TimingRules(); got != (botpolicy.TimingRules{CounterTop: true, DrawTokenLate: true}) {
 		t.Errorf("armed TimingRules = %+v, want CounterTop and DrawTokenLate", got)
 	}
+	if got := hb.PostureRules(); got != (botpolicy.PostureRules{Attack: true, Reserve: true}) {
+		t.Errorf("armed PostureRules = %+v, want Attack and Reserve", got)
+	}
 }
 
 // TestForgeHeuristicPlaysAndReplays is the end-to-end contract: the policy
