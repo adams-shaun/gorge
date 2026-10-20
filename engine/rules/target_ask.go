@@ -488,6 +488,17 @@ func (e *Engine) OpponentPickAsk(c *effects.Ctx, sa *cards.SA) (state.PlayerID, 
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
+	// CR 603.3d / 601.2d: each target of a division receives at least 1, so
+	// at most the divided total may be targeted; a total below the minimum
+	// leaves no legal choice and the ability is removed (the exit below).
+	divisionShort := false
+	if total, ok := e.placedDivisionTotal(source, sa); ok && int(total) < max {
+		if int(total) < min {
+			divisionShort = true
+		} else {
+			max = int(total)
+		}
+	}
 	if max == 0 {
 		// A dynamic bound RESOLVED to zero: this stage takes no targets, so
 		// pose no ask (the effects-side askTargets has the same max <= 0 arm).
@@ -565,7 +576,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		if len(d.Options) == 0 {
 			return
 		}
-	} else if len(d.Options) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity) || (setMode != decision.SetPropNone && min > setCapacity) {
+	} else if divisionShort || len(d.Options) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity) || (setMode != decision.SetPropNone && min > setCapacity) {
 		// A target-hungry subject with fewer legal targets than Min -- or one
 		// whose per-controller constraint admits fewer distinct controllers
 		// than Min (exclusive && min > distinct: two mandatory targets, both
@@ -758,9 +769,22 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	}
 	e.recordTpControlsChooser(d.Source, d.ResumeSA, in.Player)
 	e.recordChosenTargets(d.Source, chosen, false)
+	// CR 603.3d: a divided ability announces its division (601.2d) right
+	// after its root targets; the answer continues through finishPlacedTargets.
+	if e.placedDivisionAsk(d.Source, d.ResumeSA) {
+		return
+	}
+	e.finishPlacedTargets(d.Source, in.Player)
+}
+
+// finishPlacedTargets is the tail of a placed ability's root target answer
+// (handleTarget) and of its division answer (answerPlacedDivision): the
+// chain-link announcement, then the drain's resume or the answering
+// player's priority.
+func (e *Engine) finishPlacedTargets(obj state.ObjID, player state.PlayerID) {
 	// The root's answer opens a placed trigger's chain-link announcement
 	// (CR 603.3d); the last link's answer resumes the drain instead.
-	if e.trigSub != nil && e.trigSub.obj == d.Source && e.askTriggerSubTargets() {
+	if e.trigSub != nil && e.trigSub.obj == obj && e.askTriggerSubTargets() {
 		return
 	}
 	// A target decision asked by a trigger drain (putTriggersOnStack's
@@ -778,7 +802,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	}
 	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
 	// player who chose the target (the caster) keeps priority.
-	e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+	e.emit(events.Event{Kind: events.Priority, Player: player, Amount: 0})
 }
 
 // targetOptions converts a target decision's selected options to the

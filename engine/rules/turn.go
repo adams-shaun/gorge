@@ -1413,6 +1413,13 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.resumeETBEntry(chosen)
 		return
 	}
+	if e.choosing == chooseTrigDivision {
+		// The CR 603.3d division of an ability being put on the stack
+		// (engine/rules/cast_division.go placedDivisionAsk).
+		e.choosing = chooseNone
+		e.answerPlacedDivision(d, chosen)
+		return
+	}
 	if e.choosing == chooseOppPick {
 		// The TargetingPlayer$ Opponent controller-selection ask
 		// (engine/rules/stack.go poseOpponentPick). The answer must NOT fall
