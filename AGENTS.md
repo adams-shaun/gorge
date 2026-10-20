@@ -7,7 +7,7 @@ Pure-Go Magic rules engine.
 The rules engine that will replace `mtgplay`'s XMage bridge. Card behaviour is
 compiled from Forge card scripts into an IR; the engine implements the
 primitives that IR references. See
-[`docs/site/architecture/overview.md`](docs/site/architecture/overview.md).
+[`docs/site/architecture/index.md`](docs/site/architecture/index.md).
 
 ## Repository layout
 
