@@ -309,8 +309,9 @@ func TestLifelinkAbilityDamageToCreatureGainsLife(t *testing.T) {
 // TestLifelinkDeathSweepSumsLife pins DamageAll on the real corpus card the
 // defect was found beside: Piru, the Volatile has printed lifelink, and when
 // it dies its sweep deals 7 to each nonlegendary creature -- two Grizzly
-// Bears means two landed 7s, and the controller gains the SUM (14), not one
-// rider for the resolution.
+// Bears means two landed 7s, and the controller gains the SUM (14) as ONE
+// life-gain event (CR 702.15e: one source, one event), not one rider per
+// recipient.
 func TestLifelinkDeathSweepSumsLife(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -352,8 +353,11 @@ func TestLifelinkDeathSweepSumsLife(t *testing.T) {
 	if got := e.G.Players[0].Life; got != 34 {
 		t.Fatalf("Piru's controller life = %d, want 34 (20 + 7 + 7 lifelink)", got)
 	}
-	if n := countLifeChanges(t, e, 0, 7); n != 2 {
-		t.Fatalf("logged %d lifelink LifeChange(0, +7) events, want 2 (one per landed hit)", n)
+	if n := countLifeChanges(t, e, 0, 14); n != 1 {
+		t.Fatalf("logged %d lifelink LifeChange(0, +14) events, want 1 (CR 702.15e: one source, one event)", n)
+	}
+	if n := countLifeChanges(t, e, 0, 7); n != 0 {
+		t.Fatalf("logged %d lifelink LifeChange(0, +7) events, want 0 per-recipient events", n)
 	}
 	if got := e.G.Players[1].Life; got != 20 {
 		t.Fatalf("opponent life = %d, want 20 (the sweep hurts creatures, not players)", got)

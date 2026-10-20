@@ -525,6 +525,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 	}
 	c.excessBatch = e.excessBatch
 	c.excessBatch.entries = append([]excessBatchEntry(nil), e.excessBatch.entries...)
+	c.lifelinkBatch = append([]lifelinkGain(nil), e.lifelinkBatch...)
 	if e.zoneBatchOpen {
 		c.zoneBatchOpen = e.zoneBatchOpen
 		c.zoneBatchDepth = e.zoneBatchDepth

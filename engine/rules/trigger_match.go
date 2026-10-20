@@ -2155,6 +2155,11 @@ func (e *Engine) closeDamageBatch() {
 	e.damageBatchLog = nil
 	e.excessDamageBaseline = nil
 	flushExcessBatch(&e.excessBatch, e.emit)
+	// CR 702.15e: the batch's per-(source, player) lifelink totals are one
+	// LifeChange each, emitted after every Damage event of the batch. Combat
+	// already flushed at the end of its pass, so this is a no-op there; for
+	// effects this is the only flush.
+	e.flushLifelinkBatch(false)
 }
 
 // batchAppendSource appends id to a DamageAll entry's deduplicated source
