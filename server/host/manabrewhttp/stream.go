@@ -92,8 +92,10 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 		if d != nil && d.Kind == decision.KPriority {
 			// A refused automatic answer must not be dropped: report it on
 			// the stream, stop the policy so it cannot retry the same
-			// refused intent forever, and fall through to the state/prompt
-			// below so the still-open decision stays answerable.
+			// refused intent forever, and (for an engine refusal) fall
+			// through to the state/prompt below so the still-open decision
+			// stays answerable. A stale race returns and lets the next
+			// wake-up show the decision that replaced this one.
 			autoRefused := false
 			if sc.takeConcedeQueued() {
 				if in, cerr := manabrew.ConcedeIntent(d); cerr == nil {
@@ -103,6 +105,9 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 						autoRefused = true
 						if werr := write(mb.EngineMessage{Value: mb.ErrorMessage{Error: pe}}); werr != nil {
 							return werr
+						}
+						if pe.Code == mb.CodeStalePrompt {
+							return nil // the next wake-up shows the decision that replaced d
 						}
 					} else {
 						return nil
@@ -117,6 +122,9 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 							sc.setPolicy(nil)
 							if werr := write(mb.EngineMessage{Value: mb.ErrorMessage{Error: pe}}); werr != nil {
 								return werr
+							}
+							if pe.Code == mb.CodeStalePrompt {
+								return nil // the next wake-up shows the decision that replaced d
 							}
 						} else {
 							return nil
