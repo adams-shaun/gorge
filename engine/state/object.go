@@ -988,6 +988,13 @@ type Object struct {
 	// it) is a new object (CR 400.7) even though its ObjID is the same.
 	// Cleared with Targets on a zone change.
 	TargetStamps []TargetStamp
+	// Division is the CR 601.2d division announced for Targets while the
+	// spell was cast or the ability activated: Division[i] is the amount
+	// Targets[i] receives (each >= 1). Positional, so a target changed in
+	// place keeps the original share (CR 115.7f). Folded by events.Choose
+	// "divide"; cleared with Targets on a zone change; nil when nothing was
+	// announced (the resolution-time path then applies).
+	Division []int32
 	// Remembered carries a triggered ability's Ctx.Remembered from the
 	// moment it was queued (rules.checkTriggers) through to resolution. An
 	// ability object has no Face (Ruling F3) and therefore no card-script
@@ -1717,7 +1724,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [54]byte
+	_ [30]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
@@ -2267,6 +2274,7 @@ func (o *Object) cloneDeepIntoArena(c *Object, a *cloneArena) {
 	c.Targets = carveClone(&a.tgs, o.Targets)
 	c.SubTargets = carveClone(&a.tgs, o.SubTargets)
 	c.TargetStamps = carveClone(&a.stm, o.TargetStamps)
+	c.Division = append([]int32(nil), o.Division...)
 	c.Remembered = carveClone(&a.tgs, o.Remembered)
 	c.BlockedBy = carveClone(&a.ids, o.BlockedBy)
 	c.BlockedByThisTurn = carveClone(&a.ids, o.BlockedByThisTurn)

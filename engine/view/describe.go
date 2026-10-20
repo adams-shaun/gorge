@@ -625,6 +625,9 @@ func Describe(g *state.Game, ev events.Event) string {
 			what = "the type " + ev.Text
 		case "number":
 			what = "the number " + itoa(int64(ev.Amount))
+		case events.DivisionCounter:
+			// CR 601.2d: the announced shares, in target order.
+			what = "the division " + strings.ReplaceAll(ev.Text, ",", "/")
 		}
 		return player(g, objController(g, ev.Obj)) + " chooses " + what + " for " + obj(g, ev.Obj)
 	case events.TokenCreate:
