@@ -130,7 +130,7 @@
 //	MayDiffer/Touch/Act/Visited/       cache keyed by log length, continuousVersion and object
 //	IncrBuilds, typesProbe/True/       count; Clone copies none (zero = whole-board rebuild);
 //	Epoch/Version/Objs                 Visited/IncrBuilds count rebuild work, not the game
-//	ascend, storied                    incremental arena scans ("a pure cache, zero = rescan")
+//	ascend, storied, cmdZoneScan      incremental scans keyed by log length ("a pure cache, zero = rescan")
 //	turnsTaken/Epoch, turnStartTurns/  TurnChange census caches keyed by log length
 //	Epoch
 //	continuousVersion                  cache-invalidation counter over e.continuous (which is

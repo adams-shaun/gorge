@@ -141,6 +141,7 @@ var excluded = map[excludedField]bool{
 	// compared; the version only invalidates caches built over it).
 	{"rules.Engine", "ascend"}:            true,
 	{"rules.Engine", "storied"}:           true,
+	{"rules.Engine", "cmdZoneScan"}:       true, // CR 903.9a arrival-scan cursor: a pure function of the log
 	{"rules.Engine", "turnsTaken"}:        true,
 	{"rules.Engine", "turnsTakenEpoch"}:   true,
 	{"rules.Engine", "turnStartTurns"}:    true,

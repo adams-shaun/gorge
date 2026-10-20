@@ -72,8 +72,8 @@ const (
 	// seat 1 at its first pass, and the same pass removes three destroyed tokens
 	// ("ceased to exist") after the ask. assertOvershootShape now requires that
 	// token-cleanup tail rather than a lethal-damage sweep. The capture was
-	// re-recorded via TestGenerateOvershootCapture: 3652 events, 664 intents,
-	// head d04e5ccdfb15e2f6.
+	// re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
+	// head 6d7b5325284ddbc4 (one more event after the develop rebase).
 	overshootIntents = 664 // intents recorded when parked on the overshoot burst's pending ask
 )
 
@@ -674,8 +674,8 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // seat 1 at its first pass, and the same pass removes three destroyed tokens
 // ("ceased to exist") after the ask. assertOvershootShape now requires that
 // token-cleanup tail rather than a lethal-damage sweep. The capture was
-// re-recorded via TestGenerateOvershootCapture: 3652 events, 664 intents,
-// head d04e5ccdfb15e2f6.
+// re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
+// head 6d7b5325284ddbc4 (one more event after the develop rebase).
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -701,8 +701,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 3652 {
-		t.Fatalf("capture carries %d events, want the full 3652-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 3653 {
+		t.Fatalf("capture carries %d events, want the full 3653-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {
