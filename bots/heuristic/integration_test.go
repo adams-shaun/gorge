@@ -344,6 +344,9 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 			}
 			return b
 		}},
+		{name: "posture", new: func(seed uint64) *Bot {
+			return NewBot(seed).EnablePostureRules(botpolicy.PostureRules{Attack: true, Reserve: true})
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) { agreeOverWholeGame(t, tc.new) })
 	}

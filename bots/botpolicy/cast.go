@@ -805,6 +805,8 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	// commander does). A hard block, by contrast, made the bot decline
 	// casting its good hands and sat passively on mana the phase threw away.
 	res := b.reserve()
+	// A4's R4: the reserve's weight by deck posture (posture.go).
+	resScale := b.reserveScale(w)
 	// C8's census: is there a foreign spell on the stack for a counter to
 	// eat? ForeignSpell is its one home, read in b.Stack's own order.
 	foreignSpell := b.ForeignSpell(d.Player)
@@ -948,7 +950,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 				continue // CR1: the recast has priced itself out — do not cast
 			}
 		} else if res > 0 && pool-cost >= res {
-			s += res * w.ReserveScale // C7: prefer a cast that keeps the reserve
+			s += res * resScale // C7: prefer a cast that keeps the reserve
 		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
 			best, bestScore, bestInCmd = o.Index, s, inCmd
