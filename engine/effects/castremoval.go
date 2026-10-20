@@ -86,16 +86,18 @@ func CastRemovalTargets(sa *cards.SA) string {
 // all (the ft1 contract's standing rule, an unknown must never be treated as
 // lethal). The negative clamp mirrors DealDamage's own
 // (engine/effects/damage_deal.go): a negative NumDmg deals 0, so it is no
-// face candidate either.
+// face candidate either. The read goes through DamageAmount -- NumDmg$'s one
+// reader (params.DamageAmount, DealDamage's compiled one) -- so this view
+// fact reads exactly what the resolution deals.
 func CastRemovalDamage(sa *cards.SA) int32 {
 	if CastRemovalKind(sa) == "" {
 		return 0
 	}
-	v, ok := sa.Param(cards.PKNumDmg)
-	if !ok {
+	amt := DamageAmount(sa)
+	if !amt.Present {
 		return 0
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(v))
+	n, err := strconv.Atoi(strings.TrimSpace(amt.Text))
 	if err != nil || n <= 0 {
 		return 0
 	}
