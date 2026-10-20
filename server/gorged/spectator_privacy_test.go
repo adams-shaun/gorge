@@ -67,6 +67,8 @@ func spectatorView(t *testing.T, url string) view.View {
 		if time.Now().After(deadline) {
 			t.Fatalf("no two-seat spectator view served (err %v)", err)
 		}
-		time.Sleep(50 * time.Millisecond)
+		// One-second interval: the 30s deadline above is the real bound, and a
+		// full-second poll stays clear of the sub-second-wall-clock ratchet.
+		time.Sleep(time.Second)
 	}
 }
