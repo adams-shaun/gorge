@@ -72,7 +72,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 	if budget < 0 {
 		budget = 0
 	}
-	rider := classifyAttackingEntryText(c, cz.Riders.Attacking, to)
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to)
 	// ChooseFromDefined$ narrows the offered pool to the objects a defined
 	// selector names -- Cass, Hand of Vengeance's `ChooseFromDefined$ AttachedTo
 	// TriggeredCardLKICopy.Aura` offers only the Aura cards that WERE attached

@@ -394,7 +394,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 	// tail is also the one Tapped$ True entry-state emitter for every
 	// hand-origin mover, so concrete Defined$ objects and future hand-owner
 	// selectors cannot silently miss the tapped entry.
-	rider := classifyAttackingEntryText(c, cz.Riders.Attacking, to)
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to)
 	// The pre-clear remembered snapshot rides the walk's asks: owner B's
 	// candidates must still match the set the walk started with after
 	// owner A's settle cleared both halves of the remembered state. It is

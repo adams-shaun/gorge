@@ -250,7 +250,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// One classification for the whole Dig call, before the target walk: a
 	// degrading Attacking$ rider is one Note per dig, not one per taken card
 	// (nor one per Defined$ library).
-	rider := classifyAttackingEntry(c, sa, dest)
+	rider := classifyAttackingEntry(h, c, sa, dest)
 	for targetIndex, p := range players {
 		lib := zoneOf(g, state.ZLibrary, p)
 		chooser := digChooser(h, c, dp, p)

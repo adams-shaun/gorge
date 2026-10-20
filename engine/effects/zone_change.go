@@ -759,7 +759,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// The Attacking$ entry rider is classified ONCE for the whole call, before
 	// the mover loop: its degrades are one Note per ChangeZone, not one per
 	// moved object.
-	rider := classifyAttackingEntryText(c, cz.Riders.Attacking, to)
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to)
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -1521,16 +1521,16 @@ type attackingEntry struct {
 	noted  bool
 }
 
-func classifyAttackingEntry(c *Ctx, sa *cards.SA, to state.Zone) attackingEntry {
+func classifyAttackingEntry(h Host, c *Ctx, sa *cards.SA, to state.Zone) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
-	return classifyAttackingEntryText(c, attackingParam(sa), to)
+	return classifyAttackingEntryText(h, c, attackingParam(sa), to)
 }
 
 // classifyAttackingEntryText is classifyAttackingEntry over a compiled
 // Attacking$ text.
-func classifyAttackingEntryText(c *Ctx, attack string, to state.Zone) attackingEntry {
+func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
@@ -1538,8 +1538,8 @@ func classifyAttackingEntryText(c *Ctx, attack string, to state.Zone) attackingE
 		return attackingEntry{}
 	}
 	if strings.EqualFold(attack, "True") {
-		if c.DefendingPlayer.IsPlayer {
-			return attackingEntry{kind: attackingEntryAttacks, defender: c.DefendingPlayer.Player, battle: c.DefendingBattle}
+		if d, ok := resolveEnteringDefender(h, c, c.Controller, true, "permanent"); ok {
+			return attackingEntry{kind: attackingEntryAttacks, defender: d.Player, battle: d.Obj}
 		}
 		return attackingEntry{kind: attackingEntryNoDefender,
 			note: "Attacking$ with no defending player in context; the permanent enters but does not attack"}

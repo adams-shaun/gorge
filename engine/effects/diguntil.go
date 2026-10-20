@@ -178,7 +178,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// the destination it is handed), so it is classified against that zone
 	// rather than against either of the two destinations the walk picks
 	// between.
-	rider := classifyAttackingEntry(c, sa, state.ZBattlefield)
+	rider := classifyAttackingEntry(h, c, sa, state.ZBattlefield)
 	players := playerIDsFromTargets(h, c, dp.Defined.Raw, targets)
 	selection := *c // Valid$ Card.IsRemembered uses the pre-clear set.
 	// The snapshot arms for any player count, a single library included.

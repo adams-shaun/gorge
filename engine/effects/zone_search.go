@@ -655,7 +655,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 	// scheduled by ONE call after the loop (one Note per call, never per
 	// owner).
 	var ateotMoved []state.ObjID
-	rider := classifyAttackingEntryText(c, cz.Riders.Attacking, to)
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to)
 	for i := range fetches {
 		f := &fetches[i]
 		moved := make([]state.ObjID, 0, len(f.ids))
@@ -1228,7 +1228,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// One classification for this search's whole mover loop: both branches
 	// below (the public-origin settle and the library-origin direct emit)
 	// share it, so a degrading rider is one Note per search, not one per card.
-	rider := classifyAttackingEntryText(c, cz.Riders.Attacking, to)
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to)
 	// Snapshot the rechecked pick before clearing persistent IsRemembered.
 	valid := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {

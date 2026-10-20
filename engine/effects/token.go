@@ -283,28 +283,30 @@ func tokenAttackingPlayers(h Host, c *Ctx, raw string) (seats []state.PlayerID, 
 // tokenAttackingPlayers, and an unresolvable value degrades with ONE loud Note
 // naming the limitation -- never a guessed defender, never silence. noun is
 // the minted object's word ("token"/"copy") for the note text. The returned
-// bool is whether every mint should be marked attacking, and state.PlayerID the
-// defender it attacks.
-func tokenAttackingRider(h Host, c *Ctx, attack, noun string) (bool, state.PlayerID) {
+// bool is whether every mint should be marked attacking, state.PlayerID the
+// defender it attacks, and state.ObjID the planeswalker or battle defender
+// (zero for a player).
+func tokenAttackingRider(h Host, c *Ctx, attack, noun string) (bool, state.PlayerID, state.ObjID) {
 	switch {
-	case strings.EqualFold(attack, "True") && c.DefendingPlayer.IsPlayer:
-		return true, c.DefendingPlayer.Player
 	case strings.EqualFold(attack, "True"):
+		if d, ok := resolveEnteringDefender(h, c, c.Controller, noun == "token", noun); ok {
+			return true, d.Player, d.Obj
+		}
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "TokenAttacking$ with no defending player in context; the " + noun + " enters but does not attack"})
-		return false, 0
+		return false, 0, 0
 	}
 	seats, objectArm := tokenAttackingPlayers(h, c, attack)
 	if len(seats) == 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "TokenAttacking$ " + attack + " is not implemented; the " + noun + " enters but does not attack"})
-		return false, 0
+		return false, 0, 0
 	}
 	if objectArm {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "TokenAttacking$ " + attack + ": the planeswalker arm is not implemented; the " + noun + " attacks the named player"})
 	}
-	return true, seats[0]
+	return true, seats[0], 0
 }
 
 // tokenRememberedTargets resolves the set TokenRemembered$ (name, trimmed)
@@ -614,8 +616,9 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// value must not emit one Note per token.
 	attackCtx := false
 	var attackDefender state.PlayerID
+	var attackBattle state.ObjID
 	if attack := tp.Attacking; attack != "" {
-		attackCtx, attackDefender = tokenAttackingRider(h, c, attack, "token")
+		attackCtx, attackDefender, attackBattle = tokenAttackingRider(h, c, attack, "token")
 	}
 
 	job := TokenJob{
@@ -625,7 +628,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		PumpKeywords: pumpKeywords, PumpDuration: pumpDuration,
 		PumpPermanent: pumpPermanent, PumpUntilEOT: pumpUntilEOT,
 		Tapped: tapped, TokenMemory: tokenMemory,
-		AttackCtx: attackCtx, AttackDefender: attackDefender,
+		AttackCtx: attackCtx, AttackDefender: attackDefender, AttackBattle: attackBattle,
 	}
 	runTokenMints(h, c, sa, tp, &job)
 }
@@ -658,6 +661,9 @@ type TokenJob struct {
 	TokenMemory    []state.Target
 	AttackCtx      bool
 	AttackDefender state.PlayerID
+	// AttackBattle is the planeswalker or battle the mint attacks, zero for
+	// a player defender.
+	AttackBattle state.ObjID
 }
 
 // auraTokenWithheld reports whether a mint of token script key must not
@@ -811,8 +817,12 @@ func applyTokenMintRiders(h Host, c *Ctx, job *TokenJob, owner state.PlayerID, w
 		h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: mintOwner, Text: "entered tapped"})
 	}
 	if job.AttackCtx {
+		ids := []state.ObjID{state.ObjID(job.AttackDefender)}
+		if job.AttackBattle != 0 {
+			ids = append(ids, job.AttackBattle)
+		}
 		h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: mintOwner,
-			IDs: []state.ObjID{state.ObjID(job.AttackDefender)}, Text: "entered attacking"})
+			IDs: ids, Text: "entered attacking"})
 	}
 	if (job.HasPow || job.HasTgh) && g.Obj(want).Face() != nil {
 		// The absent side keeps the token script's printed value. Every

@@ -356,7 +356,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	var attacking bool
 	var defender state.PlayerID
 	if attack := cp.TokenAttacking; attack != "" {
-		attacking, defender = tokenAttackingRider(h, c, attack, "copy")
+		attacking, defender, _ = tokenAttackingRider(h, c, attack, "copy")
 	}
 
 	// Copy count: a literal or resolvable NumCopies$ is honoured; an
