@@ -3402,10 +3402,16 @@ func predicateNeedsResolver(name string) bool {
 		_, err := strconv.Atoi(numStr)
 		return err != nil
 	}
+	if _, _, parity := parityPredicate(name); parity {
+		return false
+	}
 	for _, field := range [...]string{"power", "toughness", "cmc"} {
 		rest, ok := strings.CutPrefix(name, field)
 		if !ok || len(rest) < 3 {
 			continue
+		}
+		if numericCmpOrNotCodes.Code(rest[:2]) == 0 && !strings.HasPrefix(rest, "NOT") {
+			return false
 		}
 		numStr := rest[2:]
 		// The characteristic-vs-characteristic shapes need no resolver.
