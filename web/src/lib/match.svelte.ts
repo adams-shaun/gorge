@@ -63,7 +63,7 @@ export class MatchState implements ClientModelSource {
   // view is assigned, so a motion listener can still measure the old DOM.
   private model = new ModelBus();
 
-  constructor(readonly table: string, readonly seat?: SeatCtx) {}
+  constructor(readonly table: string, public seat?: SeatCtx) {}
 
   /** ClientModelSource: the viewer's pending decision as the rendered view carries it. */
   get clientDecision(): PendingDecision | null {
@@ -285,8 +285,8 @@ export class MatchState implements ClientModelSource {
     return this.seat ? fetchView(this.table, this.match!, seq, this.seat) : fetchView(this.table, this.match!, seq);
   }
 
-  private fetchEventsAt(k: number, since: number): Promise<EventBody[]> {
-    return this.seat ? fetchEvents(this.table, k, since, this.seat) : fetchEvents(this.table, k, since);
+  private fetchEventsAt(k: number, since: number, seat: SeatCtx | undefined = this.seat): Promise<EventBody[]> {
+    return seat ? fetchEvents(this.table, k, since, seat) : fetchEvents(this.table, k, since);
   }
 
   // Seat claims are process-local and table-bound. A redeploy deliberately
@@ -296,6 +296,7 @@ export class MatchState implements ClientModelSource {
   private leaveRejectedSeatClaim(e: unknown) {
     if (this.seat && typeof location !== 'undefined' && e instanceof ApiError && (e.status === 401 || e.status === 403)) {
       forgetTableSeat(this.table);
+      this.seat = undefined;
       location.assign(withBase('/'));
     }
   }
@@ -391,22 +392,43 @@ export class MatchState implements ClientModelSource {
    * failed fetch is reported through loadError instead, so a stale
    * `/t/{t}/m/{k}` link (fire-and-forget from Table.svelte) can't leave an
    * unhandled rejection behind. Callers render from loadError, not a catch.
+   *
+   * A remembered seat can outlive its token across a redeploy. The replay
+   * link restores that seat, so a refused read must forget it and retry once
+   * as a spectator: a public table's replay still renders, and a private one
+   * answers not-found with the stale key gone instead of dead-ending every
+   * later load on the same rejected claim.
    */
   async loadFinished(k: number) {
     this.loadError = null;
     try {
-      const infos = this.seat ? await fetchMatches(this.table, this.seat) : await fetchMatches(this.table);
-      const info = infos.find((m) => m.match === k);
-      if (!info || info.events === 0) throw new Error(`no match ${k}`);
-      this.match = k;
-      this.seats = info.seats;
-      const all = await this.fetchEventsAt(k, 0);
-      this.dispatch({ type: 'snapshot', match: `${this.table}/${k}`, head: info.events - 1, turnStarts: turnStartsFrom(all) });
-      this.dispatch({ type: 'backfill', events: all });
-      this.dispatch({ type: 'pause' });
-      this.dispatch({ type: 'scrub', seq: info.events - 1 });
+      await this.loadFinishedAs(k, this.seat);
     } catch (e) {
+      if (this.seat && e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+        forgetTableSeat(this.table);
+        this.seat = undefined;
+        try {
+          await this.loadFinishedAs(k, undefined);
+          return;
+        } catch (retry) {
+          this.loadError = retry instanceof Error ? retry.message : String(retry);
+          return;
+        }
+      }
       this.loadError = e instanceof Error ? e.message : String(e);
     }
+  }
+
+  private async loadFinishedAs(k: number, seat: SeatCtx | undefined) {
+    const infos = seat ? await fetchMatches(this.table, seat) : await fetchMatches(this.table);
+    const info = infos.find((m) => m.match === k);
+    if (!info || info.events === 0) throw new Error(`no match ${k}`);
+    this.match = k;
+    this.seats = info.seats;
+    const all = await this.fetchEventsAt(k, 0, seat);
+    this.dispatch({ type: 'snapshot', match: `${this.table}/${k}`, head: info.events - 1, turnStarts: turnStartsFrom(all) });
+    this.dispatch({ type: 'backfill', events: all });
+    this.dispatch({ type: 'pause' });
+    this.dispatch({ type: 'scrub', seq: info.events - 1 });
   }
 }
