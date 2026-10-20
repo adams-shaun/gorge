@@ -129,6 +129,18 @@ type Card struct {
 	// and is out of the cast-side rule's scope by design -- those route
 	// through the ability/trigger paths, not chooseCast.
 	Counter bool
+	// Draw reports whether this card's primary cast-shape ability (its SP$
+	// line) draws cards, and Token reports whether it creates tokens. Both
+	// are filled by the adapter halves from the same printed face fact --
+	// the projected CardView.SpellAPI on the view half, the face's own
+	// cards.Face.SpellAbility().API on the game half -- and only on the
+	// deciding seat's OWN-zone entries; a foreign entry leaves both false,
+	// exactly like Counter. The A6 draw/token timing rule reads them to
+	// hold the spell for Forge's window. A card whose draw or token lives
+	// on an AB/trigger line is not one of these, by the same scope as
+	// Counter.
+	Draw  bool
+	Token bool
 	// RemovalKind names the one-shot removal shape of this card's primary
 	// spell ability: "destroy", "damage", or "bounce". It is filled by both
 	// adapter halves from effects.CastRemovalKind -- the projected

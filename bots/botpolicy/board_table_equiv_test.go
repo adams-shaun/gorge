@@ -241,6 +241,8 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				Produces:       f.ManaProduction(),
 				InstantSpeed:   instantSpeed,
 				Counter:        f.SpellAbility() != nil && f.SpellAbility().API == "Counter",
+				Draw:           spellAPIIs(f, "Draw"),
+				Token:          spellAPIIs(f, "Token"),
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),

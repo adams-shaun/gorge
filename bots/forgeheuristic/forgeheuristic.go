@@ -2,8 +2,8 @@
 //
 // The policy is the production heuristic bot with the A2 target-selection
 // rules armed (LandPriority, ProminentColour, FilterFatalCopies), the A1
-// removal-now rule (HoldForBigger) and the A6 counter timing rule
-// (CounterTop). Those rules are clean-room re-expressions of Forge's
+// removal-now rule (HoldForBigger) and the A6 timing rules (CounterTop and
+// DrawTokenLate). Those rules are clean-room re-expressions of Forge's
 // ComputerUtilCard behaviour in gorge's own vocabulary
 // (docs/design/2026-10-19-a2-target-rules.md,
 // docs/design/2026-10-20-a1-removal-now.md and
@@ -28,7 +28,7 @@ func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
 		Label:       "Forge heuristic",
-		Description: "The production heuristic bot with the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule and the A6 counter timing rule.",
+		Description: "The production heuristic bot with the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule and the A6 counter and draw/token timing rules.",
 		Tier:        bots.Experimental,
 		Strength: []bots.Measurement{{
 			Claim:   "46.8% A [41.9, 51.6] vs bot over 400 games, indistinguishable from the 46.5% bot-vs-bot seat/deck control",
@@ -52,7 +52,8 @@ func New(o bots.Options) (seat.Seat, error) {
 	}).EnableRemovalRules(botpolicy.RemovalRules{
 		HoldForBigger: true,
 	}).EnableTimingRules(botpolicy.TimingRules{
-		CounterTop: true,
+		CounterTop:    true,
+		DrawTokenLate: true,
 	})
 	if o.AutoPayMana {
 		b.EnableAutoPayMana()
