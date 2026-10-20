@@ -1444,10 +1444,10 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	}
 
 	// AtEOT$ rides the search's moved set too, scheduled BEFORE the
-	// may-shuffle confirm.
+	// library shuffle tail.
 	scheduleAtEOT(h, c, sa, moved)
 	if zoneIn(zones, state.ZLibrary) {
-		searchShuffleTail(h, c, sa, cz, owner, moved, to)
+		searchShuffleTail(h, c, cz, owner, moved, to)
 	}
 }
 
