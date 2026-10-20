@@ -125,7 +125,7 @@ func TestAgentNeutralWorldPlaysBot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Terminal.Classification == "halted" {
-		t.Fatalf("halted: %s", res.Terminal.Reason)
+	if res.Terminal.Classification != "natural" {
+		t.Fatalf("terminal %q: %s", res.Terminal.Classification, res.Terminal.Reason)
 	}
 }
