@@ -96,6 +96,12 @@ jobs:
       - name: Build the site
         run: mkdocs build --strict
 
+      # --strict never parses Mermaid (Material renders it in the browser), so
+      # a diagram syntax error would ship as an error box: parse every diagram
+      # with the Mermaid the site loads, in the runner's Chrome.
+      - name: Parse every Mermaid diagram
+        run: python3 scripts/docs_mermaid_check.py site
+
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
