@@ -66,6 +66,11 @@ type Board struct {
 	// like Removal it is policy configuration, not a board fact, so the
 	// arming constructor fills it rather than either adapter's walk.
 	Timing TimingRules
+	// AIHints selects the opt-in A3 Forge AI-hint rules (aihints.go). The
+	// zero value leaves the cast scorer exactly as it was; like Targets and
+	// Removal it is policy configuration, not a board fact, so only the
+	// arming constructor fills it.
+	AIHints AIHints
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public

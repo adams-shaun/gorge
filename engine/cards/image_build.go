@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-const imageSchema uint32 = 1
+const imageSchema uint32 = 2
 
 type imageBuilder struct {
 	im  *Image
@@ -104,6 +104,7 @@ func (b *imageBuilder) card(c *Card) CardRec {
 		fr.Oracle = b.str(f.Oracle)
 		fr.SpecializeColor = b.str(f.SpecializeColor)
 		fr.CopyFaceFrom = b.str(f.CopyFaceFrom)
+		fr.RemoveDeck = b.str(f.RemoveDeck)
 		for _, typ := range f.Types {
 			fr.TypeMask |= typeMaskFor(typ)
 		}

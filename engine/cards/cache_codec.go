@@ -82,6 +82,7 @@ func (e *faceEncoder) face(f *Face) {
 	e.str(f.Oracle)
 	e.strs(f.Keywords)
 	e.strs(f.Aliases)
+	e.str(f.RemoveDeck)
 	e.n(len(f.Abilities))
 	for _, s := range f.Abilities {
 		e.sa(s)
@@ -204,6 +205,7 @@ func (d *faceDecoder) face(f *Face) {
 	f.Oracle = d.str()
 	f.Keywords = d.strs()
 	f.Aliases = d.strs()
+	f.RemoveDeck = d.str()
 	if n := d.n(); n > 0 {
 		f.Abilities = make([]*SA, n)
 		for i := range f.Abilities {

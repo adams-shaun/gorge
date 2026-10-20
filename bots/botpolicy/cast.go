@@ -210,6 +210,19 @@ type Card struct {
 	// whether two permanents have the same creature types -- an exact
 	// signature match is the right question there, never an ordering.
 	TypeSig uint64
+	// PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint
+	// (cards.Face.PlayMain1Hint): "ALWAYS", "TRUE", "OPPONENTCREATURES" or
+	// "". Both adapter halves fill it from the same printed face fact -- the
+	// projected CardView.PlayMain1 on the view half, the face's own method on
+	// the game half -- so the opt-in AIHints precombat rule (aihints.go) reads
+	// the same hint whichever host asks.
+	PlayMain1 string
+	// RemoveDeck reports an `AI:RemoveDeck` deck-builder hint: Forge's "the
+	// AI does not know how to play this card". It is filled identically by
+	// both adapter halves from the printed face (CardView.RemoveDeck, or
+	// cards.Face.RemoveDeck on the game half). The opt-in AIHints cast policy
+	// vetoes such a card; the zero-value AIHints leaves it untouched.
+	RemoveDeck bool
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -810,10 +823,17 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		if o.Kind != "cast" {
 			continue
 		}
+		card := b.Cards.Get(o.Obj)
 		// C8: a counter with no foreign spell to counter is not cast at all,
 		// whatever it would otherwise score — the wasted self-counter is
 		// refused at the commit point, before the mana is ever spent.
-		if b.Cards.Get(o.Obj).Counter && !foreignSpell {
+		if card.Counter && !foreignSpell {
+			continue
+		}
+		// AIHints: a card carrying Forge's RemoveDeck hint is never chosen
+		// while the opt-in rule is armed. The zero value reads no hint and
+		// leaves the ranking untouched.
+		if b.aiHintsVetoCast(card) {
 			continue
 		}
 		// A1: hold a one-shot removal spell until the best opposing
@@ -838,6 +858,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// cast its commander), so it is priced by value alone.
 		inCmd := b.Commanders.Get(o.Obj).InCommandZone
 		s := b.castScore(*o)
+		s += b.aiHintsCastBonus(card, b.FirstMain && b.MyTurn, ctx.ownCreatures, ctx.oppCreatures)
 		// The context features, dotted with their weights. With the default
 		// profile every weight here is 0, so the default bot's pick is the
 		// pre-refactor arithmetic to the digit (pinned by cast_weights_test.go).
@@ -909,7 +930,6 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		}
 		// C10's interaction features: the card's class conjuncted with the
 		// same decision-level context, fixed evaluation order.
-		card := b.Cards.Get(o.Obj)
 		if card.Creature {
 			if b.FirstMain {
 				s += w.CreaturePrecombat // creature × first main phase
@@ -1168,6 +1188,11 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 			continue
 		}
 		if b.Cards.Get(o.Obj).Counter && !foreignSpell {
+			continue
+		}
+		// AIHints: the cast veto applies to C11's candidate table too, so a
+		// SetValue subset search cannot price a card chooseCast refuses.
+		if b.aiHintsVetoCast(b.Cards.Get(o.Obj)) {
 			continue
 		}
 		if !b.removalNow(d, *o) {

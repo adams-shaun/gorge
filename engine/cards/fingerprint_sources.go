@@ -26,6 +26,7 @@ import "embed"
 // naming whichever step is missing.
 //
 //go:embed ability_class.go
+//go:embed aihints.go
 //go:embed affected_defined.go
 //go:embed ateot_values.go
 //go:embed cache_canon.go

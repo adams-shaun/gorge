@@ -38,7 +38,7 @@ type TokenRec struct {
 }
 type FaceRec struct {
 	Name, ManaCost, PT, Loyalty, Defense, Colors, Oracle StringID
-	SpecializeColor, CopyFaceFrom                        StringID
+	SpecializeColor, CopyFaceFrom, RemoveDeck            StringID
 	Types, Keywords, Aliases                             Span
 	Abilities                                            Span
 	Triggers, Statics, Repls, SVars                      Span

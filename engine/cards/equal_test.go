@@ -43,6 +43,7 @@ func TestEqualMatchesDeepEqual(t *testing.T) {
 		func(f *Face) { f.Triggers[0].Effect.API = "Draw" },
 		func(f *Face) { f.Repls[0].With = nil },
 		func(f *Face) { f.SVars = map[string]string{} },
+		func(f *Face) { f.RemoveDeck = "All" },
 		func(f *Face) { f.Statics = nil },
 		func(f *Face) { f.Abilities[0].ps = newParamSet(f.Abilities[0].Params) },
 		func(f *Face) { f.power = 3 },
