@@ -46,6 +46,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/server/matchrecord"
 )
 
 // SeatCtor builds the seat for one side of one game from that seat's seed.
@@ -182,6 +183,18 @@ type Hooks struct {
 	// — never the live engine. false (the zero value) changes nothing: such a
 	// seat is driven as before.
 	EnvSeats bool
+	// Record, when non-nil, receives the match record (server/matchrecord)
+	// of every game PlayGame finishes -- a natural end or a watchdog stall,
+	// whose log is a clean prefix that replays -- once, after the game and
+	// before Finish. A game that ended in an engine-bug abort (livelock,
+	// panic, the object cap) is not recorded: its log stopped mid-Submit and
+	// no replay can reproduce it. A Put error is returned as PlayGame's
+	// error beside the outcome. Setting Record keeps SyncAnswer off: an
+	// inline answer is still logged as an intent, so the record would be
+	// complete, but it bypasses every per-decision observer, and the
+	// decision overlay a record will carry needs one entry per intent.
+	// nil (the zero value) records nothing and costs one nil check per game.
+	Record *matchrecord.Sink
 }
 
 // PlayGame plays one game between the given per-seat seats to completion, or
@@ -211,7 +224,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 		hooks.Setup(e)
 	}
 	board := botpolicy.NewBoard(len(seats))
-	if hooks.SyncAnswer && hooks.Decision == nil && hooks.Submit == nil && allPlainBoardSeats(seats) {
+	if hooks.SyncAnswer && hooks.Decision == nil && hooks.Submit == nil && hooks.Record == nil && allPlainBoardSeats(seats) {
 		rules.SetTapeAnswerer(e, func(d *decision.Decision, reject error) (decision.Intent, bool) {
 			if reject != nil {
 				return decision.Intent{}, false
@@ -560,10 +573,14 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	}
 	finish := func(o Outcome) (Outcome, *rules.Engine, error) {
 		o = recordStarter(o, e)
+		var recErr error
+		if hooks.Record != nil && lle == nil && panicDiag == "" {
+			recErr = emitRecord(hooks.Record, cfg, e.L)
+		}
 		if hooks.Finish != nil {
 			hooks.Finish(o)
 		}
-		return o, e, nil
+		return o, e, recErr
 	}
 	if lle != nil && rules.IsVolumeReason(lle.Reason) {
 		// A runaway burst on a board past rules.RunawayBigBoardObjs (CV-2)
@@ -588,6 +605,18 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 		return finish(Outcome{StallOn: "intents", Turns: e.G.Turn, Intents: n})
 	}
 	return finish(outcomeFrom(e, n))
+}
+
+// emitRecord hands a finished game's match record to the caller's sink.
+// It is its own function so the off path (Hooks.Record nil) carries
+// nothing of it but the nil check.
+//
+//go:noinline
+func emitRecord(sink *matchrecord.Sink, cfg rules.Config, l *events.Log) error {
+	if err := sink.Emit(cfg, l); err != nil {
+		return fmt.Errorf("bench: seed %d: match record: %w", cfg.Seed, err)
+	}
+	return nil
 }
 
 // reanswerRefused is PlayGame's refusal ladder, the driver-side mirror of the
