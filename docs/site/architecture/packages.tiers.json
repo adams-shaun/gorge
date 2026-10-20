@@ -389,6 +389,11 @@
       "tier": "server",
       "status": "EXT"
     },
+    "server/spellbench/seat": {
+      "tier": "server",
+      "status": "EXT",
+      "purpose": "Adapts a SpellBench v2 stdio-NDJSON agent to gorge's seat contract and registers it as a bot policy."
+    },
     "server/spellbench/session": {
       "tier": "server",
       "status": "EXT"

@@ -39,6 +39,9 @@ func (c TableConfig) validatedSeatPolicies() (TableConfig, error) {
 				if e.NeedsAutoPay && !c.autoPayManaEnabled() {
 					return TableConfig{}, fmt.Errorf("host: table %s: seat %d: bot policy %q needs automatic mana payment (auto_mana and bot_auto_pay_mana both on)", c.ID, i, policy)
 				}
+				if e.MaxSeats > 0 && c.Seats > e.MaxSeats {
+					return TableConfig{}, fmt.Errorf("host: table %s: seat %d: bot policy %q seats at most %d, table has %d", c.ID, i, policy, e.MaxSeats, c.Seats)
+				}
 			}
 		}
 		c.SeatBotPolicies = policies

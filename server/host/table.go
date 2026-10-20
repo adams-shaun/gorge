@@ -270,6 +270,9 @@ func (c TableConfig) validated(load func(string) (Deck, error)) (TableConfig, er
 	if e, ok := bots.Lookup(policy); ok && e.NeedsAutoPay && !c.autoPayManaEnabled() {
 		return TableConfig{}, fmt.Errorf("host: table %s: bot policy %q needs automatic mana payment (auto_mana and bot_auto_pay_mana both on)", c.ID, policy)
 	}
+	if e, ok := bots.Lookup(policy); ok && e.MaxSeats > 0 && c.Seats > e.MaxSeats {
+		return TableConfig{}, fmt.Errorf("host: table %s: bot policy %q seats at most %d, table has %d", c.ID, policy, e.MaxSeats, c.Seats)
+	}
 	// Operator ruling 2026-10-13: a policy that reads every seat's real
 	// decklist (bots.Info.Env; server/host/botenv.go envData) never seats against a
 	// human, and only runs on a bot-only table that explicitly opted in.

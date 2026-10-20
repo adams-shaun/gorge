@@ -97,6 +97,11 @@ func (g *Game) Submit(in decision.Intent) error {
 // contents (Section 13 F3); Task 28's resample check is the net.
 func (g *Game) Probe(ins ...decision.Intent) (*rules.Engine, error) {
 	c := g.E.Clone()
+	if !g.E.Hypothetical() {
+		// The host's live engine has no chance boundary; a probe only judges
+		// legality, so give the clone one rather than reject every option.
+		c = g.E.CloneHypothetical(0)
+	}
 	for _, in := range ins {
 		if err := c.SubmitHypothetical(in); err != nil {
 			return nil, err

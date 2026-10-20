@@ -57,6 +57,11 @@ func init() {
 			return protocol.OptionalCast(card, "madness", o.Kind == "yes"), true, nil
 		})
 	})
+	Register("starting_player/player", func(env *Env, d *decision.Decision) (Transaction, error) {
+		return SingleChoice(env, d, choice(nil, ""), func(o decision.Option) (protocol.Semantic, bool, error) {
+			return protocol.ChooseStartingPlayer(observe.Seat(o.Player)), o.Kind == "player", nil
+		})
+	})
 	Register("choose/yesno", func(env *Env, d *decision.Decision) (Transaction, error) {
 		src, err := ResolveSource(env, d)
 		if err != nil {

@@ -116,6 +116,9 @@ type config struct {
 	botOpts    []string
 	botConfigs []string
 	botConfig  map[string]map[string]string
+	// sbAgents are the -sb-agent specs (name=/path/to/agent), registered into
+	// the bots registry before validateBotPolicyFlags resolves the offered set.
+	sbAgents []sbAgentSpec
 	// botSearchSlots is the -bot-search-slots flag: how many searched
 	// decisions run concurrently registry-wide (host.Options.SearchSlots; 0
 	// is unbounded at the host, but the flag's default is
@@ -400,6 +403,14 @@ func serveFlags() (*flag.FlagSet, *config) {
 		c.botConfigs = append(c.botConfigs, arg)
 		return nil
 	})
+	fs.Func("sb-agent", "register a SpellBench v2 stdio agent as a bot policy: name=/path/to/agent (repeatable; name matches ^[a-z0-9-]+$)", func(arg string) error {
+		spec, err := parseSBAgentSpec(arg)
+		if err != nil {
+			return err
+		}
+		c.sbAgents = append(c.sbAgents, spec)
+		return nil
+	})
 	fs.IntVar(&c.botSearchSlots, "bot-search-slots", defaultBotSearchSlots(), "maximum concurrent searched bot decisions across the process; decisions queue, never degrade (>= 1; default max(1, GOMAXPROCS/2))")
 	fs.IntVar(&c.botSearchParallelism, "bot-search-parallelism", 1, "goroutines within one searched decision (latency only, never an answer; >= 1)")
 	fs.IntVar(&c.maxSearchTables, "max-search-tables", 8, "maximum live on-demand tables whose policy is a search entry (0 = unlimited)")
@@ -477,6 +488,11 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	// beliefs are read from the corpus, so they register once the corpus is
 	// open and before the offered set is resolved (azclosed.go).
 	if err := c.enableClosedAZ(reg); err != nil {
+		return err
+	}
+	// -sb-agent names must be in the registry before the offered set is
+	// resolved, or the default empty set would omit them.
+	if err := registerSBAgents(c.sbAgents); err != nil {
 		return err
 	}
 	// -bot-policy and -bot-policies are validated together (BP-18, spec

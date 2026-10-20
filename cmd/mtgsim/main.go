@@ -12,15 +12,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 
+	"github.com/adams-shaun/gorge/bots"
+	_ "github.com/adams-shaun/gorge/bots/all"
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
-	"github.com/adams-shaun/gorge/engine/seat"
+	engineseat "github.com/adams-shaun/gorge/engine/seat"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
+	sbseat "github.com/adams-shaun/gorge/server/spellbench/seat"
 	"github.com/adams-shaun/gorge/testkit/bench"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -45,9 +50,16 @@ func main() {
 	verify := flag.Bool("verify", false, "replay each game and compare its event chain against the live run")
 	verbose := flag.Bool("v", false, "print the deck assigned to each seat before every game")
 	dir := flag.String("dir", ".cards", "corpus directory (holds ir.gob.gz / cardsfolder)")
+	policyA := flag.String("a", "", "bot policy name for seat 0 (default: heuristic)")
+	policyB := flag.String("b", "", "bot policy name for seat 1 (default: heuristic)")
+	var sbAgents []string
+	flag.Func("sb-agent", "register a SpellBench v2 stdio agent: name=/path/to/agent (repeatable)", func(arg string) error {
+		sbAgents = append(sbAgents, arg)
+		return nil
+	})
 	flag.Parse()
 
-	if err := run(*decksFlag, *seats, *seed, *games, *verify, *verbose, *dir, os.Stdout); err != nil {
+	if err := runAgents(*decksFlag, *seats, *seed, *games, *verify, *verbose, *dir, *policyA, *policyB, sbAgents, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "mtgsim:", err)
 		os.Exit(1)
 	}
@@ -65,11 +77,21 @@ func main() {
 // actually exercised by a test, which the old *os.File signature made
 // impossible without writing to a real file.
 func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir string, out io.Writer) error {
+	return runAgents(decksFlag, seats, baseSeed, games, verify, verbose, dir, "", "", nil, out)
+}
+
+func runAgents(decksFlag string, seats int, baseSeed uint64, games int, verify, verbose bool, dir, policyA, policyB string, sbAgents []string, out io.Writer) error {
 	if seats < 1 {
 		return fmt.Errorf("-seats must be at least 1, got %d", seats)
 	}
 	if games < 1 {
 		return fmt.Errorf("-games must be at least 1, got %d", games)
+	}
+	if seats < 2 && (policyA != "" || policyB != "") {
+		return fmt.Errorf("-a/-b name seats 0 and 1, but -seats is %d", seats)
+	}
+	if err := registerSBAgents(sbAgents); err != nil {
+		return err
 	}
 
 	names, err := deckNames(decksFlag, seats)
@@ -100,7 +122,7 @@ func run(decksFlag string, seats int, baseSeed uint64, games int, verify, verbos
 	failures := 0
 	for g := 0; g < games; g++ {
 		gameSeed := baseSeed + uint64(g)
-		if !playOne(out, gameSeed, names, decks, reg.Tokens, reg.Universe(), verify) {
+		if !playOne(out, gameSeed, names, decks, reg.Tokens, reg.Universe(), verify, policyA, policyB) {
 			failures++
 		}
 	}
@@ -142,7 +164,7 @@ func deckNames(flagVal string, seats int) ([]string, error) {
 // its one-line summary, then -- if verify is set -- a second line reporting
 // the replay outcome. It returns false for anything Ruling §5 counts as
 // failure: non-termination, a replay error or a chain divergence.
-func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, tokens map[string]*cards.Card, nameUniverse *cards.Universe, verify bool) (ok bool) {
+func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, tokens map[string]*cards.Card, nameUniverse *cards.Universe, verify bool, policyA, policyB string) (ok bool) {
 	cfg := rules.Config{Seed: seed, Names: append([]string(nil), names...), Decks: decks, Tokens: tokens, NameUniverse: nameUniverse}
 	// The default object cap (CV-8), the same volume bound the shared drive
 	// loop arms: a degenerate token storm here ends as a LIVELOCK failure
@@ -159,13 +181,32 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 			sparePool.Put(spare, e)
 		}
 	}()
-	b := heuristic.NewBot(seed)
-	// CR 103.1's winner-chooses ask: pose it so the bot answers it (the
-	// recorded Intent replays through the log's DecisionAsk).
-	e.AskStartingPlayer()
+	// CR 103.1's winner-chooses ask: mtgsim has no chooser seat, so Advance
+	// applies the R-9 default before the seats attach and the seat's
+	// game_start names the actual starting seat.
 	e.Advance()
 
-	n, err := driveGame(e, b)
+	seats, err := matchSeats(e, seed, names, policyA, policyB, out)
+	if err != nil {
+		fmt.Fprintf(out, "seed %d: %d seats -- FAILED: %v\n", seed, len(names), err)
+		return false
+	}
+	defer func() {
+		result := bots.MatchResult{Classification: "halted", Reason: "not_finished"}
+		if e.G.Over {
+			result.Classification = "natural"
+			result.Outcome = "draw"
+			if !e.G.Draw {
+				result.Outcome = fmt.Sprintf("p%d_win", e.G.Winner)
+				result.Winner = fmt.Sprintf("p%d", e.G.Winner)
+			}
+		}
+		for _, s := range seats {
+			bots.EndMatch(s, result)
+		}
+	}()
+
+	n, err := driveMatch(e, seats)
 	if err != nil {
 		reportDriveFailure(out, seed, len(names), n, err)
 		return false
@@ -219,7 +260,11 @@ func reportDriveFailure(out io.Writer, seed uint64, seats, n int, err error) boo
 // converts it to a plain return, and leaves every other panic -- a real bug
 // either way -- crashing loudly. The engine is abandoned once it has
 // livelocked; nothing may drive it again.
-func driveGame(e *rules.Engine, s seat.Seat) (n int, err error) {
+func driveGame(e *rules.Engine, s engineseat.Seat) (int, error) {
+	return driveMatch(e, []engineseat.Seat{s})
+}
+
+func driveMatch(e *rules.Engine, seats []engineseat.Seat) (n int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if lle, ok := r.(*rules.LivelockError); ok {
@@ -234,7 +279,10 @@ func driveGame(e *rules.Engine, s seat.Seat) (n int, err error) {
 		d := e.Pending()
 		v := view.Project(e.G, e, d.Player, d)
 		v.Round = view.RoundOf(e.G, e.L.Events)
-		in, err := s.Decide(ctx, v, *d)
+		if int(d.Player) >= len(seats) {
+			return n, fmt.Errorf("decision for seat %d, but only %d seats", d.Player, len(seats))
+		}
+		in, err := seats[d.Player].Decide(ctx, v, *d)
 		if err != nil {
 			return n, fmt.Errorf("bot error at intent %d: %w", n, err)
 		}
@@ -280,4 +328,74 @@ func printReplayOutcome(out io.Writer, err error, chainHead string) bool {
 	}
 	fmt.Fprintf(out, "  replay error: %v\n", err)
 	return false
+}
+
+func registerSBAgents(specs []string) error {
+	seen := map[string]bool{}
+	for _, spec := range specs {
+		name, argv, err := sbseat.ParseSpec(spec)
+		if err != nil {
+			return err
+		}
+		if seen[name] {
+			return fmt.Errorf("-sb-agent: duplicate name %q", name)
+		}
+		seen[name] = true
+		if _, err := exec.LookPath(argv[0]); err != nil {
+			return fmt.Errorf("-sb-agent %s: %w", name, err)
+		}
+		if _, ok := bots.Lookup(name); ok {
+			return fmt.Errorf("-sb-agent: %q is already a registered bot policy", name)
+		}
+		if err := sbseat.Register(name, argv); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func matchSeats(e *rules.Engine, seed uint64, names []string, policyA, policyB string, logOut io.Writer) ([]engineseat.Seat, error) {
+	seatsOut := make([]engineseat.Seat, len(names))
+	for i := range names {
+		policy := ""
+		switch i {
+		case 0:
+			policy = policyA
+		case 1:
+			policy = policyB
+		}
+		if policy == "" {
+			seatsOut[i] = heuristic.NewBot(seed + uint64(i))
+			continue
+		}
+		s, err := bots.New(policy, bots.Options{Seed: seed + uint64(i), AutoPayMana: true})
+		if err != nil {
+			return nil, err
+		}
+		seatsOut[i] = s
+	}
+	for i, s := range seatsOut {
+		mc := &bots.MatchContext{
+			Engine:       e,
+			GameID:       fmt.Sprintf("g-%016x", seed),
+			Seat:         i,
+			Seats:        len(names),
+			Format:       "constructed",
+			Seed:         []byte(fmt.Sprintf("%d", seed)),
+			OwnDeck:      e.OwnDeck(state.PlayerID(i)),
+			Mulligan:     "none",
+			StartingSeat: int(e.G.Active),
+			DeadlineMS:   0,
+			Logf: func(format string, args ...any) {
+				fmt.Fprintf(logOut, "  "+format+"\n", args...)
+			},
+		}
+		if err := bots.AttachMatch(s, mc); err != nil {
+			for _, attached := range seatsOut[:i] {
+				bots.EndMatch(attached, bots.MatchResult{Classification: "halted", Reason: "attach_failed"})
+			}
+			return nil, fmt.Errorf("seat %d (%s): %w", i, names[i], err)
+		}
+	}
+	return seatsOut, nil
 }
