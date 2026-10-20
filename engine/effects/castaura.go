@@ -29,7 +29,7 @@ func CastAuraLogic(f *cards.Face) string {
 		return ""
 	}
 	sa := f.SpellAbility()
-	if sa == nil || sa.API != "Attach" || !strings.HasPrefix(sa.Params["ValidTgts"], "Creature") {
+	if sa == nil || sa.API != "Attach" || !strings.HasPrefix(TargetsOf(sa).ValidTgts, "Creature") {
 		return ""
 	}
 	return logic
