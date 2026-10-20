@@ -263,7 +263,7 @@ sequenceDiagram
   Note over O: bounced to hand: ver 6
   Note over O: cast again, resolves: ver 8, back on the battlefield
   S->>O: resolves: objs[17].ver (8) != tver (5)
-  Note over S: target illegal; with no legal target left the spell does nothing (CR 608.2b)
+  Note over S: target illegal, and with no legal target left the spell does nothing (CR 608.2b)
 ```
 
 The same check applies to an ability's source (`srcVer`): an activated or
