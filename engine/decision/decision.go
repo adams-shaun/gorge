@@ -592,6 +592,13 @@ type TargetEffect struct {
 	// creature) or a restriction (Continuous shrinking an opponent). Empty
 	// when nothing resolves.
 	Statics []string `json:"statics,omitempty"`
+	// AttachLogic is the source face's AttachAILogic SVar (Pump, Curse, ...)
+	// for an API "Attach" ask: the script author's statement of whom the
+	// attachment is for. It is server-side only (json:"-"): both adapters
+	// receive the same Decision, so the bot reads it identically, and the
+	// wire and the canonical Board encoding never carry it. Empty when the
+	// source declares none.
+	AttachLogic string `json:"-"`
 }
 
 // RemovalEffect is a conservative classification of an active removal SA.

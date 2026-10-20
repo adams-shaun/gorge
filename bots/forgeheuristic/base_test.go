@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/bot"
-	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/seat"
@@ -40,8 +39,8 @@ func TestForgeHeuristicUsesCombatSimOnAutoPay(t *testing.T) {
 		t.Fatal("auto-pay: CombatSim() = false, want true")
 	}
 	p, ok := hb.AttackSimParams()
-	if !ok || p != botpolicy.DefaultAttackSimParams() {
-		t.Errorf("AttackSimParams() = %+v, %v; want the default params, true", p, ok)
+	if !ok || p != simParams() {
+		t.Errorf("AttackSimParams() = %+v, %v; want simParams() (the production params plus the A7 combat rules), true", p, ok)
 	}
 
 	s, err = New(bots.Options{Seed: 7})

@@ -91,6 +91,9 @@ type AttackSimParams struct {
 	// players are too cautious" correction applied only where the evaluator
 	// is indifferent.
 	TieAggro bool
+	// Combat selects the opt-in A7 combat rules (combatrules.go); the zero
+	// value is the shipped search.
+	Combat CombatRules
 }
 
 // DefaultAttackSimParams is the arm's measured configuration (dev seeds
@@ -125,6 +128,7 @@ type simWorld struct {
 	me, opp state.PlayerID
 	life    map[state.PlayerID]int32
 	units   []simUnit // sorted by id
+	rules   CombatRules
 }
 
 // newSimWorld is the starting world: every battlefield creature of the two
@@ -146,7 +150,7 @@ func newSimWorld(b Board, me, opp state.PlayerID) *simWorld {
 }
 
 func (w *simWorld) clone() *simWorld {
-	n := &simWorld{me: w.me, opp: w.opp, life: map[state.PlayerID]int32{w.me: w.life[w.me], w.opp: w.life[w.opp]}}
+	n := &simWorld{me: w.me, opp: w.opp, rules: w.rules, life: map[state.PlayerID]int32{w.me: w.life[w.me], w.opp: w.life[w.opp]}}
 	n.units = make([]simUnit, len(w.units))
 	copy(n.units, w.units)
 	return n
@@ -343,6 +347,9 @@ func (w *simWorld) predictBlocks(base Board, defender state.PlayerID, attackers 
 		o := opts[ci]
 		out[o.Attacker] = append(out[o.Attacker], o.Obj)
 	}
+	if w.rules.GangPredict {
+		w.gangReinforce(defender, attackers, out)
+	}
 	return out
 }
 
@@ -376,7 +383,7 @@ func (w *simWorld) resolve(attacker, defender state.PlayerID, attackers []state.
 			team[k] = w.units[idx[k]].c
 			absorb += team[k].remTough()
 		}
-		aDead, dead := blockCombat(a, team)
+		aDead, dead := blockCombatDS(a, team, w.rules.DoubleStrike)
 		allDead := true
 		for k := range dead {
 			if dead[k] && !team[k].hasKeyword("Indestructible") {
@@ -590,6 +597,8 @@ func (b Board) chooseAttackersSim(d *decision.Decision, p *AttackSimParams) []in
 	}
 
 	w := newSimWorld(b, me, defender)
+	w.rules = p.Combat
+	ownPct, oppPct := b.postureLifePcts()
 
 	maxAtk := d.Max
 	evalMask := func(mask uint32) (int64, bool) {
@@ -617,6 +626,9 @@ func (b Board) chooseAttackersSim(d *decision.Decision, p *AttackSimParams) []in
 					sw.followUp(b, me, defender)
 				}
 			}
+		}
+		if ownPct != postureLifeBasePct || oppPct != postureLifeBasePct {
+			return sw.scorePosture(p.LifeUnit, ownPct, oppPct), true
 		}
 		return sw.score(p.LifeUnit), true
 	}

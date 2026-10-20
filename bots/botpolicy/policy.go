@@ -61,6 +61,11 @@ type Board struct {
 	// it is policy configuration, not a board fact, so the arming constructor
 	// fills it rather than either adapter's walk.
 	Removal RemovalRules
+	// Attach selects the opt-in A5 attach rules (attachrules.go). The zero
+	// value leaves every target and ability decision exactly as it was; like
+	// Removal it is policy configuration, not a board fact, so the arming
+	// constructor fills it rather than either adapter's walk.
+	Attach AttachRules
 	// Timing selects the opt-in A6 "is now a good time" rules (timing.go).
 	// The zero value leaves every cast and tap decision exactly as it was;
 	// like Removal it is policy configuration, not a board fact, so the
@@ -71,6 +76,11 @@ type Board struct {
 	// Removal it is policy configuration, not a board fact, so only the
 	// arming constructor fills it.
 	AIHints AIHints
+	// Posture selects the opt-in A4 deck-shape posture (posture.go). The
+	// zero value leaves every combat and cast decision exactly as it was;
+	// like AIHints it is policy configuration, not a board fact, so only the
+	// arming constructor fills it.
+	Posture PostureRules
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public
