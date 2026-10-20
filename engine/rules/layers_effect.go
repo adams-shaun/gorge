@@ -113,8 +113,8 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		e.layer4InPool = true
 	}
 	// A REGISTERED "loses all abilities" effect ends the no-loss proof
-	// (abilityloss.go).
-	if ce.RemoveAbilities {
+	// (abilityloss.go); so does a CR 305.7 land-subtype setter.
+	if ce.RemoveAbilities || state.SetsBasicLandSubtypes(&ce) {
 		e.lossProof.seen = true
 	}
 	// Bump the cache version: active() (below) caches its sorted effect list

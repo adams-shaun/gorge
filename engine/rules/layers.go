@@ -942,7 +942,7 @@ func (e *Engine) activeBuild() []ContinuousEffect {
 	removers := false
 	for _, p := range src {
 		buf = append(buf, *p)
-		removers = removers || p.RemoveAbilities
+		removers = removers || p.RemoveAbilities || state.SetsBasicLandSubtypes(p)
 	}
 	if e.activeDepth <= 1 {
 		clear(src)

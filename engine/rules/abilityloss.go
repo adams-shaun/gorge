@@ -44,6 +44,16 @@ import (
 // the removal of its source's abilities (CR 613.8a) and is dropped by any
 // removal, as is one beginning in layer 7 or a rules modification that is no
 // layer effect at all.
+//
+// CR 305.7 feeds the same two halves from layer 4: a land whose subtype an
+// applied effect set to basic land types (state.SetsBasicLandSubtypes: Blood
+// Moon, Spreading Seas) loses every ability its rules text generates. That
+// loss never removes an ability another effect GRANTED the land -- it is part
+// of the layer-4 effect, before any layer-6 grant -- so abilityLoss reports
+// lost with a zero timestamp and grantLostTo's "removal newer than the grant"
+// stays false. The land's own layer-6+ statics stop through the same pruner;
+// ones that began in layers 1-5 (a self-setter like Multiversal Passage's)
+// keep applying (CR 613.6).
 
 // ruleModAbilityLayer is the SourceAbilityLayer of a static-generated rules
 // modification that is not a layer effect (Layer zero: MayPlay,
@@ -115,12 +125,16 @@ type sourceLoss struct {
 func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousEffect {
 	var removerBuf [8]int
 	removers := removerBuf[:0]
+	landSetters := false
 	for i := range list {
 		if list[i].Layer == LAbilities && list[i].RemoveAbilities {
 			removers = append(removers, i)
 		}
+		if state.SetsBasicLandSubtypes(&list[i]) {
+			landSetters = true
+		}
 	}
-	if len(removers) == 0 {
+	if len(removers) == 0 && !landSetters {
 		return list
 	}
 	var deadBuf [8]bool
@@ -153,6 +167,18 @@ func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousE
 		}
 		return 0, false
 	}
+	// landSet: CR 305.7 applies to source (read off list before compaction).
+	landSet := func(source state.ObjID) bool {
+		if !landSetters {
+			return false
+		}
+		o := e.G.Obj(source)
+		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+			return false
+		}
+		_, set := e.typesAndLandSetActive(list, source)
+		return set
+	}
 	// A remover that is itself a static ability beginning in layer 6 is
 	// silenced by an EARLIER live remover applying to its source; it is
 	// never silenced by itself or a later one (CR 613.6).
@@ -162,6 +188,8 @@ func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousE
 			continue
 		}
 		if ts, ok := earliest(r.Source, k); ok && ts < r.Timestamp {
+			dead[k] = true
+		} else if landSet(r.Source) {
 			dead[k] = true
 		}
 	}
@@ -174,6 +202,9 @@ func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousE
 			}
 		}
 		ts, ok := earliest(source, len(removers))
+		if !ok && landSet(source) {
+			ok = true
+		}
 		losses = append(losses, sourceLoss{id: source, lost: ok, first: ts})
 		return ts, ok
 	}
@@ -263,6 +294,14 @@ func (e *Engine) abilityLoss(o *state.Object) (uint32, bool) {
 	typed := false
 	var latest uint32
 	lost := false
+	if m.landSetters {
+		// CR 305.7: a land whose subtype an effect set loses its rules-text
+		// abilities, but never an ability another effect granted it -- so
+		// this loss leaves latest alone (grantLostTo's "removal newer than
+		// the grant" stays false for it).
+		types, lost = e.typesAndLandSetActive(act, o.ID)
+		typed = true
+	}
 	for i := range act {
 		r := &act[i]
 		if r.Layer != LAbilities || !r.RemoveAbilities {
@@ -344,7 +383,7 @@ func (e *Engine) abilityLossPossible() bool {
 	}
 	if n := len(e.continuous); n != pr.contLen || (n > 0 && &e.continuous[0] != pr.contPtr) {
 		for i := range e.continuous {
-			if e.continuous[i].RemoveAbilities {
+			if e.continuous[i].RemoveAbilities || state.SetsBasicLandSubtypes(&e.continuous[i]) {
 				pr.seen = true
 				return true
 			}
@@ -378,7 +417,7 @@ func faceMayRemoveAbilities(f *cards.Face) bool {
 	}
 	for i := range f.Statics {
 		st := &f.Statics[i]
-		if st.HasParam(cards.PKRemoveAllAbilities) {
+		if st.HasParam(cards.PKRemoveAllAbilities) || st.HasParam(cards.PKRemoveLandTypes) {
 			return true
 		}
 	}

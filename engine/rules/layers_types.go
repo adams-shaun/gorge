@@ -42,6 +42,14 @@ func (e *Engine) typeCharacteristicsActive(act []ContinuousEffect, id state.ObjI
 	return chars.Types(asChars(e), act, id, atStack)
 }
 
+// typesAndLandSetActive is typeCharacteristicsActive plus CR 305.7's
+// verdict (chars.TypesAndLandSubtypeSet): whether an applied layer-4 effect
+// set id's land subtype to basic land types.
+func (e *Engine) typesAndLandSetActive(act []ContinuousEffect, id state.ObjID) ([]string, bool) {
+	ty, _, set := chars.TypesAndLandSubtypeSet(asChars(e), act, id, 0)
+	return ty, set
+}
+
 func (e *Engine) matchesWithTypes(ce *ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
 	return e.matchesWithChars(ce, id, types, nil, atStack)
 }

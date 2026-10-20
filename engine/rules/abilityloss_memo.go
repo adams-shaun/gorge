@@ -55,7 +55,9 @@ type abilityLossMemo struct {
 	gen uint64
 	// live: the list built at seq holds a "loses all abilities" effect.
 	live bool
-	ents []abilityLossEnt
+	// landSetters: the list also holds a CR 305.7 land-subtype setter.
+	landSetters bool
+	ents        []abilityLossEnt
 }
 
 type abilityLossEnt struct {
@@ -83,10 +85,14 @@ func (m *abilityLossMemo) boardLive(e *Engine) ([]ContinuousEffect, bool) {
 	if m.gen == 0 || m.seq != e.activeBuildSeq {
 		m.gen++
 		m.seq = e.activeBuildSeq
-		m.live = e.activeSummaryOf(act).hasRemoveAbilities
+		sum := e.activeSummaryOf(act)
+		m.landSetters = sum.hasLandSubtypeSetter
+		m.live = sum.hasRemoveAbilities || m.landSetters
 	} else if abilityLossMemoVerify {
-		if fresh := e.activeSummaryOf(act).hasRemoveAbilities; fresh != m.live {
-			panic(fmt.Sprintf("rules: ability-loss memo's remover flag stale at build %d: cached %v, fresh %v", m.seq, m.live, fresh))
+		sum := e.activeSummaryOf(act)
+		if fresh := sum.hasRemoveAbilities || sum.hasLandSubtypeSetter; fresh != m.live || sum.hasLandSubtypeSetter != m.landSetters {
+			panic(fmt.Sprintf("rules: ability-loss memo's remover flags stale at build %d: cached (%v, %v), fresh (%v, %v)",
+				m.seq, m.live, m.landSetters, fresh, sum.hasLandSubtypeSetter))
 		}
 	}
 	return act, m.live
