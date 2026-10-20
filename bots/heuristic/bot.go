@@ -268,6 +268,15 @@ func NewAttackSimBot(seed uint64, p botpolicy.AttackSimParams) *Bot {
 // simulation (NewAttackSimBot).
 func (b *Bot) CombatSim() bool { return b.attackSim != nil }
 
+// AttackSimParams returns the combat-sim parameters the bot was built with and
+// true, or the zero value and false when it has no combat sim.
+func (b *Bot) AttackSimParams() (botpolicy.AttackSimParams, bool) {
+	if b.attackSim == nil {
+		return botpolicy.AttackSimParams{}, false
+	}
+	return *b.attackSim, true
+}
+
 // NewCastProfileBot returns the cast-profile policy playing the named
 // embedded profile (today: the default one). The only error is an embedded
 // profile that fails its own strict loader -- never reachable for a valid
