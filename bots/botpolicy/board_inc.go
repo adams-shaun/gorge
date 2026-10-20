@@ -317,6 +317,8 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				Produces:       f.ManaProduction(),
 				InstantSpeed:   r.instant || r.flash,
 				Counter:        r.counter,
+				Draw:           spellAPIIs(f, "Draw"),
+				Token:          spellAPIIs(f, "Token"),
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
