@@ -12,4 +12,4 @@ import (
 	"github.com/adams-shaun/gorge/server/gorged"
 )
 
-func main() { os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{Review: feedbackReview})) }
+func main() { os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{Review: reviewLoad})) }
