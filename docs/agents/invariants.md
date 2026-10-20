@@ -313,6 +313,8 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    bisected and fixed now, not labelled "pre-existing". A red run in a
    *shared* checkout may be a peer's half-written file: check `git status` and
    mtimes before assuming it is yours.
+6. **A change to how a CR rule is handled updates that rule's row in
+   `engine/rules/crcoverage/` in the same commit** (see its README).
 
 ### Commits
 
