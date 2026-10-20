@@ -222,8 +222,16 @@ func (s *Session) seatTableFor() TableID {
 	return s.seatTable
 }
 
+// privateTable reports whether a table is a private on-demand play-vs-bot
+// table. Event/series tables are on-demand too (seatpolicy.go requires it),
+// but they are publicly watchable: the event hub links to them without a seat
+// token, so only a play-vs-bot table is fenced behind the session's claim.
+func privateTable(cfg TableConfig) bool {
+	return cfg.OnDemand && cfg.Event == ""
+}
+
 // modeFor is the session's mode for a table: its own entry, else the
-// wildcard's. A private on-demand table is visible only to a session whose
+// wildcard's. A private play-vs-bot table is visible only to a session whose
 // seat claim names it, so the wildcard never announces one to an anonymous
 // overview client.
 func (s *Session) modeFor(id TableID, private bool) (string, bool) {
@@ -302,7 +310,7 @@ func (r *Registry) Subscribe(s *Session, id TableID, mode string) error {
 		return ErrNotFound
 	}
 	t.mu.RLock()
-	private := t.cfg.OnDemand
+	private := privateTable(t.cfg)
 	t.mu.RUnlock()
 	// A private table exists only for the client that proved its claim.
 	// ErrNotFound keeps the rejection indistinguishable from a missing id,
@@ -368,7 +376,7 @@ func (r *Registry) sessionsFor(id TableID) (ss []*Session, modes []string) {
 	private := false
 	if t != nil {
 		t.mu.RLock()
-		private = t.cfg.OnDemand
+		private = privateTable(t.cfg)
 		t.mu.RUnlock()
 	}
 	sort.Slice(all, func(i, j int) bool { return all[i].serial < all[j].serial })
