@@ -33,12 +33,14 @@ func (e *Engine) GainFromLifelink(source state.ObjID, player state.PlayerID, amo
 // down to 0 gains nothing). With no open batch it emits immediately through
 // emitLifelinkGain; otherwise it adds to the entry with the same source AND
 // player, or appends a new one (CR 702.15e: one source's simultaneous damage
-// is one gain, different sources stay separate gains).
+// is one gain, different sources stay separate gains). A batch whose damage
+// replacement is still parked has closed its other bookkeeping but keeps
+// lifelinkBatchOpen set, so the parked hit's gain merges into the same event.
 func (e *Engine) gainFromLifelink(source state.ObjID, player state.PlayerID, amount int32, combat bool) {
 	if amount <= 0 {
 		return
 	}
-	if e.damageBatchDepth == 0 {
+	if e.damageBatchDepth == 0 && !e.lifelinkBatchOpen {
 		e.emitLifelinkGain(lifelinkGain{source: source, player: player, amount: amount, combat: combat})
 		return
 	}
@@ -84,4 +86,28 @@ func (e *Engine) flushLifelinkBatch(stopOnAsk bool) bool {
 	}
 	e.lifelinkBatch = nil
 	return true
+}
+
+// parkedDamageReplacement reports whether a CR 616.1 damage order choice is
+// still queued. The front entry is the posed ask while it is outstanding, so
+// scanning the queue covers both the pending decision and the ones behind it.
+func (e *Engine) parkedDamageReplacement() bool {
+	for i := range e.replChoices {
+		if e.replChoices[i].kind == replChoiceDamage {
+			return true
+		}
+	}
+	return false
+}
+
+// flushDeferredLifelink flushes the accumulation closeDamageBatch kept open
+// across a parked damage replacement. It runs once the parked damage queue has
+// drained, so every hit of the batch has paid its lifelink and the merged
+// per-(source, player) events are complete (CR 702.15e).
+func (e *Engine) flushDeferredLifelink() {
+	if !e.lifelinkBatchOpen {
+		return
+	}
+	e.lifelinkBatchOpen = false
+	e.flushLifelinkBatch(false)
 }

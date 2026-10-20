@@ -28,6 +28,7 @@ func cloneEngineFields(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	cloneFieldsEngineDrain(c, e, sp, remap)
 	cloneFieldsEngineTokenMint(c, e, sp, remap)
 	cloneFieldsEngineTriggerBatches(c, e, sp, remap)
+	cloneFieldsEngineTriggerBatches2(c, e, sp, remap)
 	cloneFieldsEngineContinuation(c, e, sp, remap)
 	cloneFieldsEngineContinuation2(c, e, sp, remap)
 	cloneFieldsEngineParked(c, e, sp, remap)
@@ -526,6 +527,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 	c.excessBatch = e.excessBatch
 	c.excessBatch.entries = append([]excessBatchEntry(nil), e.excessBatch.entries...)
 	c.lifelinkBatch = append([]lifelinkGain(nil), e.lifelinkBatch...)
+	c.lifelinkBatchOpen = e.lifelinkBatchOpen
 	if e.zoneBatchOpen {
 		c.zoneBatchOpen = e.zoneBatchOpen
 		c.zoneBatchDepth = e.zoneBatchDepth
@@ -629,6 +631,9 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.triggerTurnDice[k0] = v0
 		}
 	}
+}
+
+func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.triggerTurnDiceTurn = e.triggerTurnDiceTurn
 }
 

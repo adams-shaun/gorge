@@ -750,6 +750,13 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 				}
 			}
 		}
+		if completed && len(e.replChoices) == 0 {
+			// No parked replacement remains, so a damage batch that deferred
+			// its lifelink accumulation is complete: emit the merged
+			// per-(source, player) events now (CR 702.15e). A combat pass
+			// keeps its own batch open and flushes in runCombatAssignments.
+			e.flushDeferredLifelink()
+		}
 		if completed && rc.combat && e.combatRound.assignments != nil {
 			// A combat damage pass was parked at this assignment. Finish the
 			// remaining precomputed assignments before running SBAs or the

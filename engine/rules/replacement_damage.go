@@ -575,7 +575,12 @@ func (e *Engine) finishChosenDamage(rc replChoice) {
 			Counter: "Deathtouched", Amount: 1})
 	}
 	if rc.lifelink {
-		e.emit(events.Event{Kind: events.LifeChange, Player: e.controllerOf(rc.damaging), Amount: applied.Amount})
+		// CR 702.15e: a parked hit pays through the same accumulator as every
+		// other hit of its batch. Combat's batch is still open across the
+		// answer, and a non-combat batch whose close kept lifelinkBatchOpen
+		// set merges this hit with the ones that already landed; either way
+		// one source's simultaneous damage is ONE life-gain event.
+		e.gainFromLifelink(rc.damaging, e.controllerOf(rc.damaging), applied.Amount, rc.combat)
 	}
 	if rc.combat && applied.Obj == 0 {
 		if e.format == FormatCommander {

@@ -2158,7 +2158,16 @@ func (e *Engine) closeDamageBatch() {
 	// CR 702.15e: the batch's per-(source, player) lifelink totals are one
 	// LifeChange each, emitted after every Damage event of the batch. Combat
 	// already flushed at the end of its pass, so this is a no-op there; for
-	// effects this is the only flush.
+	// effects this is the only flush. A damage replacement still parked here
+	// has not paid its lifelink yet, so keep the accumulation open: the
+	// parked hit must merge into the same event when its answer lands
+	// (Battletide Alchemist's optional prevention). handleReplacement's
+	// drain flushes it.
+	if e.parkedDamageReplacement() {
+		e.lifelinkBatchOpen = true
+		return
+	}
+	e.lifelinkBatchOpen = false
 	e.flushLifelinkBatch(false)
 }
 

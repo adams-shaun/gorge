@@ -91,8 +91,12 @@ func lifelinkSeatBoard(t *testing.T, reg *cards.Registry, seats ...[]string) (*E
 			}
 		}
 	}
+	// Only seat 0's creatures need to be attack/ability-ready; leaving every
+	// other seat's summoning sickness alone keeps the board reproducible from
+	// the logged MoveZone events (the same rule combatTriggerBoard follows).
 	for i := range e.G.Objs {
-		if o := &e.G.Objs[i]; o.Zone == state.ZBattlefield && o.Face() != nil && o.Face().IsCreature() {
+		if o := &e.G.Objs[i]; o.Zone == state.ZBattlefield && o.Owner == 0 &&
+			o.Face() != nil && o.Face().IsCreature() {
 			o.SummonSick = false
 		}
 	}

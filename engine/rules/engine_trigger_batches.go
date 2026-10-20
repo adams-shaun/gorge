@@ -81,6 +81,12 @@ type engineTriggerBatches struct {
 	// decision, and a clone taken there must resume with it. Nil = nothing
 	// pending.
 	lifelinkBatch []lifelinkGain `clone:"deep"`
+	// lifelinkBatchOpen keeps that accumulation alive past closeDamageBatch
+	// while a CR 616.1 damage replacement is still parked: the parked hit has
+	// not paid its lifelink yet, and when it lands it must merge with the
+	// hits that already did (CR 702.15e). handleReplacement flushes it once
+	// the parked damage queue drains. False outside that window.
+	lifelinkBatchOpen bool `clone:"deep"`
 	// zoneBatch (RepeatEach's ChangeZoneTable$ True): the zone changes every
 	// loop iteration's body causes are ONE ChangesZoneAll batch, presented
 	// once after the loop completes. Same shape as the damage batch above:
