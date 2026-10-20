@@ -117,6 +117,13 @@ func (b *Bot) EnableTargetRules(r botpolicy.TargetRules) *Bot {
 	return b
 }
 
+// TargetRules reports the A2 target-selection rules armed on this bot. It is
+// the read side of EnableTargetRules, so a registry test can assert the
+// forge-heuristic constructor actually armed the rules it advertises.
+func (b *Bot) TargetRules() botpolicy.TargetRules {
+	return b.targets
+}
+
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
 // priority. It returns b so every hosted policy constructor can retain its
 // existing deterministic policy shape and seed derivation.
@@ -645,7 +652,11 @@ func BoardFromView(v view.View) botpolicy.Board {
 		}
 	}
 	for _, sv := range v.Stack {
-		if sv.Card == nil {
+		// Only a spell is a card. A trigger/ability StackView may carry its
+		// source CardView for display, but the game half's fillPublicCards
+		// skips the face-less ability object, so including it here would make
+		// the two public-card censuses disagree.
+		if sv.Kind != "spell" || sv.Card == nil {
 			continue
 		}
 		pc := botpolicy.PublicCard{Controller: sv.Controller, FaceDown: sv.Card.FaceDown}

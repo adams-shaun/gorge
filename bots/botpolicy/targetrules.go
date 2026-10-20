@@ -2,6 +2,7 @@ package botpolicy
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -91,6 +92,26 @@ func dominantColour(mix [5]int32) int {
 	return best
 }
 
+// a2RemovalBonus is the A2 contribution to a removal target's value tier.
+// It is zero when no A2 rule is armed, so the default ranking stays
+// byte-identical.
+func (b Board) a2RemovalBonus(o decision.Option) int32 {
+	if !b.Targets.LandPriority && !b.Targets.ProminentColour {
+		return 0
+	}
+	dominant := dominantColour(b.publicColourMix(o.Controller))
+	bonus := int32(0)
+	if b.Targets.LandPriority {
+		bonus += b.landPriority(o.Obj, dominant)
+	}
+	if b.Targets.ProminentColour {
+		if c, ok := b.Cards.Lookup(o.Obj); ok {
+			bonus += prominentColourContribution(c, dominant)
+		}
+	}
+	return bonus
+}
+
 // isLand is the Land-typed lookup both land rules share.
 func (b Board) isLand(id state.ObjID) (Card, bool) {
 	c, ok := b.Cards.Lookup(id)
@@ -126,7 +147,7 @@ func (b Board) landPriority(id state.ObjID, dominant int) int32 {
 // for a colourless creature (not an engine) and for a deck with no dominant
 // colour.
 func prominentColourContribution(c Card, dominant int) int32 {
-	if dominant < 0 || c.Colour&(1<<dominant) == 0 {
+	if !c.Creature || dominant < 0 || c.Colour&(1<<dominant) == 0 {
 		return 0
 	}
 	return prominentColourBonus
@@ -134,10 +155,11 @@ func prominentColourContribution(c Card, dominant int) int32 {
 
 // worseCopy reports whether target `id` is a strictly worse copy of another
 // creature the same opponent controls: same type-line signature, and the
-// other is at least as good on every fact the policy prices (power, remaining
-// toughness, and a superset of keywords). Removing the worse copy spends a
-// removal the bigger copy will still need, which is the "don't remove a worse
-// copy" rule.
+// other is STRICTLY better on the facts the policy prices (power, remaining
+// toughness, and a superset of keywords). Two identical copies are neither
+// worse than the other, so neither is demoted. Removing the worse copy spends
+// a removal the bigger copy will still need, which is the "don't remove a
+// worse copy" rule.
 //
 // The type test uses Card.TypeSig, the same-set signature both adapters fill,
 // so "copy" means exactly "same printed types", never a similar creature. A
@@ -158,7 +180,7 @@ func (b Board) worseCopy(id state.ObjID, me state.PlayerID) bool {
 		if b.typeSigOf(oid) != tsig {
 			continue
 		}
-		if notWorseThan(other, target) {
+		if strictlyBetter(other, target) {
 			return true
 		}
 	}
@@ -172,6 +194,13 @@ func (b Board) typeSigOf(id state.ObjID) uint64 {
 		return 0
 	}
 	return c.TypeSig
+}
+
+// strictlyBetter reports whether a is better than t on the policy's facts:
+// a is not worse on any of them, and t is worse on at least one. Equality is
+// explicitly NOT strictly better, so identical copies never demote each other.
+func strictlyBetter(a, t Creature) bool {
+	return notWorseThan(a, t) && !notWorseThan(t, a)
 }
 
 // notWorseThan reports whether a is at least as good as t on every fact the

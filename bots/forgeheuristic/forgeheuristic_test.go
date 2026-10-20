@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	_ "github.com/adams-shaun/gorge/bots/bot"
+	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
@@ -42,12 +43,17 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 		t.Errorf("bots.Validate: %v", err)
 	}
 
-	s, err := New(bots.Options{Seed: 1, AutoPayMana: true})
+	s, err := bots.New(Policy, bots.Options{Seed: 1, AutoPayMana: true})
 	if err != nil {
-		t.Fatalf("New: %v", err)
+		t.Fatalf("bots.New(%q): %v", Policy, err)
 	}
-	if _, ok := s.(*heuristic.Bot); !ok {
-		t.Errorf("built seat is %T, want *heuristic.Bot", s)
+	hb, ok := s.(*heuristic.Bot)
+	if !ok {
+		t.Fatalf("built seat is %T, want *heuristic.Bot", s)
+	}
+	want := botpolicy.TargetRules{LandPriority: true, ProminentColour: true, FilterFatalCopies: true}
+	if got := hb.TargetRules(); got != want {
+		t.Errorf("armed TargetRules = %+v, want %+v", got, want)
 	}
 }
 
@@ -58,11 +64,15 @@ func TestForgeHeuristicPlaysAndReplays(t *testing.T) {
 	names, decks := testutil.SampleDecks(t, 2)
 	cfg := rules.Config{Seed: 11, Names: names, Decks: decks, Mulligans: 1}
 	seats := func() []seat.Seat {
-		s, err := New(bots.Options{Seed: 11, AutoPayMana: true})
+		forge, err := bots.New(Policy, bots.Options{Seed: 11, AutoPayMana: true})
 		if err != nil {
-			t.Fatalf("New: %v", err)
+			t.Fatalf("bots.New(%q): %v", Policy, err)
 		}
-		return []seat.Seat{s, heuristic.NewBot(11).EnableAutoPayMana()}
+		base, err := bots.New(bots.Default, bots.Options{Seed: 11, AutoPayMana: true})
+		if err != nil {
+			t.Fatalf("bots.New(%q): %v", bots.Default, err)
+		}
+		return []seat.Seat{forge, base}
 	}
 	_, e, err := bench.PlayGame(cfg, seats(), 200, 40000, bench.Hooks{})
 	if err != nil {

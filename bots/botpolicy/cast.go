@@ -159,8 +159,10 @@ type Card struct {
 	// land, a man-land), which needs the type known before the threat
 	// scale -- a land is not a creature, so rankOption's creature lookup
 	// misses it and it would otherwise score 0. Both adapter halves fill
-	// it from the same printed source (CardView.Types on the view half, the
-	// face's own type line on the game half), so they agree.
+	// it from the same effective type line: the layer-4 line when a
+	// type-changing effect applies (CardView.Types on the view half,
+	// effectiveTypeWords on the game half), the printed face otherwise, so
+	// they agree.
 	Land bool
 	// Colour is the card's colour IDENTITY as a cards.ColourMask -- the same
 	// encoding cards.Face.ColourIdentity returns and the projection carries
@@ -170,8 +172,9 @@ type Card struct {
 	// is the colours its mana symbols name, which is how a deck's colour
 	// splash is read from lands whose production is restricted.
 	Colour cards.ColourMask
-	// TypeSig is a stable signature of the card's printed type-line word SET
-	// (order-insensitive, case-insensitive), 0 for an unreadable card. Card
+	// TypeSig is a stable signature of the card's effective type-line word SET
+	// (the layer-4 line when present, the printed face otherwise;
+	// order-insensitive, case-insensitive), 0 for an unreadable card. Card
 	// must stay comparable (board_inc.go's tablesSame uses generic equality
 	// on it), so the type line is carried as a hash rather than a slice.
 	// Its one reader is the A2 "don't remove a worse copy" rule, which asks

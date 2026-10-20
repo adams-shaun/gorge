@@ -22,6 +22,7 @@ type refBoard struct {
 	Creatures                 map[state.ObjID]Creature
 	Life                      map[state.PlayerID]int32
 	Cards                     map[state.ObjID]Card
+	PublicCards               map[state.ObjID]PublicCard
 	Commanders                map[state.ObjID]Commander
 	Stack                     []StackEntry
 	Pool, PoolRestricted      state.Mana
@@ -41,6 +42,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 	b.Creatures = make(map[state.ObjID]Creature)
 	b.Life = make(map[state.PlayerID]int32)
 	b.Cards = make(map[state.ObjID]Card)
+	b.PublicCards = make(map[state.ObjID]PublicCard)
 	b.Commanders = make(map[state.ObjID]Commander)
 	// The public stack census (C8's facts): the stack's own bottom-to-top
 	// order, truncated in place so the reused Board's slice never carries a
@@ -111,7 +113,11 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 		b.Life[p.ID] = p.Life
 		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
 			o := g.Obj(id)
-			if o == nil || o.Face() == nil || o.Ephemeral() || !o.Face().IsCreature() {
+			if o == nil || o.Face() == nil || o.Ephemeral() {
+				continue
+			}
+			f := o.Face()
+			if !hasTypeWord(effectiveTypeWords(f, id, ch), "Creature") {
 				continue
 			}
 			var power, toughness int32
@@ -200,29 +206,30 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 			if f == nil {
 				continue
 			}
+			words := effectiveTypeWords(f, id, ch)
 			var power, toughness int32
 			var castable, instantSpeed bool
 			if hasCombined {
 				var keywords []string
 				power, toughness, keywords = combined.Characteristics(id)
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(keywords))
-				instantSpeed = f.TypeLineHas("Instant", twInstant) || hasFlash(keywords)
+				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(keywords)
 			} else {
 				power = ch.Power(id)
 				toughness = ch.Toughness(id)
 				castable = z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && hasFlashback(ch.Keywords(id)))
-				instantSpeed = f.TypeLineHas("Instant", twInstant) || hasFlash(ch.Keywords(id))
+				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(ch.Keywords(id))
 			}
 			b.Cards[id] = Card{
 				PrintedName:   f.Name,
-				Creature:      f.IsCreature(),
+				Creature:      hasTypeWord(words, "Creature"),
 				Power:         power,
 				Toughness:     toughness,
 				CMC:           cmcOfFace(f),
-				Basic:         f.TypeLineHas("Basic", twBasic),
-				Land:          f.IsLand(),
+				Basic:         hasTypeWord(words, "Basic"),
+				Land:          hasTypeWord(words, "Land"),
 				Colour:        cards.ColourMask(f.ColourIdentity()),
-				TypeSig:       TypeSigOf(f.Types),
+				TypeSig:       TypeSigOf(words),
 				AttachedTo:    o.AttachedTo,
 				Activated:     o.ActivatedThisTurn,
 				ManaCost:      f.ManaCost,
@@ -289,20 +296,56 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				toughness = ch.Toughness(id)
 			}
 			f := o.Face()
+			words := effectiveTypeWords(f, id, ch)
 			b.Cards[id] = Card{
 				PrintedName: f.Name,
-				Creature:    f.IsCreature(),
+				Creature:    hasTypeWord(words, "Creature"),
 				Power:       power,
 				CMC:         cmcOfFace(f),
-				Basic:       f.TypeLineHas("Basic", twBasic),
-				Land:        f.IsLand(),
+				Basic:       hasTypeWord(words, "Basic"),
+				Land:        hasTypeWord(words, "Land"),
 				Colour:      cards.ColourMask(f.ColourIdentity()),
-				TypeSig:     TypeSigOf(f.Types),
+				TypeSig:     TypeSigOf(words),
 				ManaCost:    f.ManaCost,
 				Toughness:   toughness,
 				Activated:   o.ActivatedThisTurn,
 			}
 		}
+	}
+	for i := range g.Players {
+		p := &g.Players[i]
+		for _, z := range [...]state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+			for _, id := range g.Zone(z, p.ID) {
+				o := g.Obj(id)
+				if o == nil || o.Ephemeral() {
+					continue
+				}
+				f := o.Face()
+				if f == nil {
+					continue
+				}
+				pc := PublicCard{Controller: o.Controller, FaceDown: o.FaceDown}
+				if !o.FaceDown {
+					pc.Colour = cards.ColourMask(f.ColourIdentity())
+				}
+				b.PublicCards[id] = pc
+			}
+		}
+	}
+	for _, id := range g.Stack {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		pc := PublicCard{Controller: o.Controller, FaceDown: o.FaceDown}
+		if !o.FaceDown {
+			pc.Colour = cards.ColourMask(f.ColourIdentity())
+		}
+		b.PublicCards[id] = pc
 	}
 	return *b
 }
@@ -346,6 +389,7 @@ func boardMatchesRef(b Board, r refBoard) string {
 		tableMatchesMap("Creatures", b.Creatures, r.Creatures),
 		tableMatchesMap("Life", b.Life, r.Life),
 		tableMatchesMap("Cards", b.Cards, r.Cards),
+		tableMatchesMap("PublicCards", b.PublicCards, r.PublicCards),
 		tableMatchesMap("Commanders", b.Commanders, r.Commanders),
 	} {
 		if d != "" {
@@ -437,6 +481,7 @@ func TestBoardTablesMatchMapReference(t *testing.T) {
 			}
 			totals["creatures"] += len(ref.Creatures)
 			totals["cards"] += len(ref.Cards)
+			totals["public_cards"] += len(ref.PublicCards)
 			totals["commanders"] += len(ref.Commanders)
 			for _, c := range ref.Creatures {
 				totals["keywords"] += len(c.Keywords)
@@ -451,7 +496,7 @@ func TestBoardTablesMatchMapReference(t *testing.T) {
 	}
 	// Non-vacuity: the games populated every table, commanders and keyword
 	// lists included.
-	for _, k := range []string{"decisions", "creatures", "cards", "commanders", "keywords"} {
+	for _, k := range []string{"decisions", "creatures", "cards", "public_cards", "commanders", "keywords"} {
 		if totals[k] == 0 {
 			t.Fatalf("no %s were compared: the equivalence check is vacuous (%v)", k, totals)
 		}

@@ -24,8 +24,10 @@ through `heuristic.Bot.EnableTargetRules`. The registered `forge-heuristic`
 policy (`bots/forgeheuristic`, experimental) is the constructor that arms all
 three; the default `bot` leaves them off.
 
-**Facts added to carry them** (all printed, all filled identically by both
-adapters, pinned by the existing board-parity tests):
+**Facts added to carry them** (filled identically by both adapters, pinned
+by the existing board-parity tests). The type facts (`Land`, `TypeSig`) read
+the effective type line on both halves: the layer-4 line when a type-changing
+effect applies, the printed face otherwise:
 
 - `botpolicy.Card.Land`, `.Colour` (`cards.ColourMask`), `.TypeSig` (a
   word-set signature, because `Card` must stay comparable).

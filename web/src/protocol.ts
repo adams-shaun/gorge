@@ -175,15 +175,6 @@ export interface ManifestRow {
   name: string;
   count: number;
   land?: boolean;
-  /**
-   * Colour is the row's card's colour IDENTITY as a cards.ColourMask
-   * (CR 903.4, the same mask cards.Face.ColourIdentity returns). It is a
-   * printed fact of the deck the seat itself authored, so carrying it
-   * leaks nothing: it is on the manifest the seat already holds. It lets a
-   * bot read a deck's colour posture (which colour the deck is built
-   * around, which splashes) from view.OwnDeck without a registry lookup.
-   */
-  colour?: number;
 }
 
   /**

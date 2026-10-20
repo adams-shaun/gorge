@@ -226,6 +226,9 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 		if !maps.Equal(boardView.Cards.Map(), boardGame.Cards.Map()) {
 			t.Fatalf("intent %d: casting Card census diverged (step %s)", n, eGame.G.Step)
 		}
+		if !maps.Equal(boardView.PublicCards.Map(), boardGame.PublicCards.Map()) {
+			t.Fatalf("intent %d: public Card census diverged (step %s)", n, eGame.G.Step)
+		}
 		// The exact step fact, the commander twin of the whole-game pin.
 		if boardView.Step != boardGame.Step {
 			t.Fatalf("intent %d: step diverged: view %v vs game %v", n, boardView.Step, boardGame.Step)
@@ -510,6 +513,9 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		}
 		if !maps.Equal(boardView.Cards.Map(), boardGame.Cards.Map()) {
 			t.Fatalf("intent %d: casting Card census diverged: view %v vs game %v (step %s)", n, boardView.Cards.Map(), boardGame.Cards.Map(), eGame.G.Step)
+		}
+		if !maps.Equal(boardView.PublicCards.Map(), boardGame.PublicCards.Map()) {
+			t.Fatalf("intent %d: public Card census diverged: view %v vs game %v (step %s)", n, boardView.PublicCards.Map(), boardGame.PublicCards.Map(), eGame.G.Step)
 		}
 		// Replacement sources may be controlled by another seat. Their
 		// printed identity is public and must agree across the view and game

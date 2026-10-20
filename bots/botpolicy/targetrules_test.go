@@ -51,10 +51,12 @@ func ruleBoardKw(cs map[state.ObjID]Card, crs []state.ObjID, kw map[state.ObjID]
 // option index's order.
 func TestLandPriorityPrefersTheDominantColoursLand(t *testing.T) {
 	// Option 0 is the splash land, option 1 the black land: the plain
-	// ranking takes option 0 (equal score, lower index).
+	// ranking takes option 0 (equal score, lower index). Both are CMC 0,
+	// the score a land actually carries, so this pins that the A2 rules
+	// are applied before removalRanker's zero-value early return.
 	cs := map[state.ObjID]Card{
-		10: {PrintedName: "Mountain", Land: true, Colour: cards.ColourMaskRed, CMC: 1},
-		11: {PrintedName: "Swamp", Land: true, Colour: cards.ColourMaskBlack, CMC: 1},
+		10: {PrintedName: "Mountain", Land: true, Colour: cards.ColourMaskRed, CMC: 0},
+		11: {PrintedName: "Swamp", Land: true, Colour: cards.ColourMaskBlack, CMC: 0},
 	}
 	public := map[state.ObjID]PublicCard{
 		10: {Controller: 1, Colour: cards.ColourMaskRed},

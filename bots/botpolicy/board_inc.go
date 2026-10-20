@@ -22,11 +22,12 @@ import (
 // boardInc is a Board's per-object row cache, dense by ObjID, that carries
 // both across refills:
 //
-//   - a face's static facts (creature, basic, instant, counter spell, mana
-//     value), keyed by the face pointer they were read from -- a face is
+//   - a face's static facts (counter spell, mana value, colour, printed
+//     keywords), keyed by the face pointer they were read from -- a face is
 //     immutable compiled data, and the row holding the pointer keeps it
 //     alive, so an equal pointer is the same face;
-//   - the object's derived power, toughness and keyword facts, keyed by the
+//   - the object's derived type line (layer 4), power, toughness and keyword
+//     facts, keyed by the
 //     engine's own Derived-memo key (rules.Engine.BoardReadKey): they are
 //     reused only on the same engine lineage, at an unchanged key, for an
 //     object whose derivation the engine reuses across walks
@@ -84,15 +85,17 @@ type boardRow struct {
 	face *cards.Face
 	gen  uint32
 	fill uint32
-	// static facts of face
+	// creature, basic, instant, land and typeSig are the object's effective
+	// type facts: the layer-4 line when the engine exposes one, else the
+	// face's printed line. They are re-derived with the rest of the row.
+	// counter, reusable and cmc are static facts of face.
 	creature, basic, instant, counter, reusable, land bool
 	cmc                                               int32
 	// colour is the face's colour IDENTITY (cards.Face.ColourIdentity), a
-	// static printed fact like land: it never depends on layers, so it is
-	// cached beside them rather than re-derived per fill.
+	// static printed fact: CR 903.4's identity never depends on layers, so
+	// it is cached rather than re-derived per fill.
 	colour cards.ColourMask
-	// typeSig is the face's printed type-word set signature (TypeSigOf), a
-	// static fact like colour: layers do not change a card's kinds.
+	// typeSig is the effective type-word set signature (TypeSigOf).
 	typeSig uint64
 	// pflash/pflashback are the face's printed keyword list's Flash and
 	// Flashback facts.
@@ -170,13 +173,27 @@ func (inc *boardInc) face(id state.ObjID, f *cards.Face, k boardReadKeyer) *boar
 	return r
 }
 
-// derive makes r's derived facts current for id.
-func (inc *boardInc) derive(r *boardRow, id state.ObjID, combined combinedChars) {
+// derive makes r's derived facts current for id. vtypes is the engine's
+// layer-4 type line (nil when ch does not expose one); it is the same source
+// the view half reads as CardView.Types, so a type-changing effect cannot
+// make the two adapters disagree about Creature/Land/Basic/Instant.
+func (inc *boardInc) derive(r *boardRow, id state.ObjID, combined combinedChars, vtypes derivedTypeReader) {
 	if r.fill == inc.fill || r.gen == inc.gen {
 		r.fill = inc.fill
 		return
 	}
 	inc.derivations++
+	words := r.face.Types
+	if vtypes != nil {
+		if types, changed := vtypes.ViewTypes(id); changed {
+			words = types
+		}
+	}
+	r.creature = hasTypeWord(words, "Creature")
+	r.basic = hasTypeWord(words, "Basic")
+	r.instant = hasTypeWord(words, "Instant")
+	r.land = hasTypeWord(words, "Land")
+	r.typeSig = TypeSigOf(words)
 	p, t, kw := combined.Characteristics(id)
 	r.power, r.toughness = p, t
 	if n := len(kw); n > 0 && n == len(r.face.Keywords) && &kw[0] == &r.face.Keywords[0] {
@@ -219,6 +236,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 	if !ok {
 		return false
 	}
+	vtypes, _ := ch.(derivedTypeReader)
 	inc := b.inc
 	if inc == nil {
 		// A Board's first refill is a scratch fill; the cache starts with
@@ -249,10 +267,10 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				continue
 			}
 			r := inc.face(id, f, k)
-			if !r.creature {
+			if !hasTypeWord(effectiveTypeWords(f, id, vtypes), "Creature") {
 				continue
 			}
-			inc.derive(r, id, combined)
+			inc.derive(r, id, combined, vtypes)
 			*b.Creatures.slot(id) = Creature{
 				Power:      r.power,
 				Toughness:  r.toughness,
@@ -277,7 +295,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				continue
 			}
 			r := inc.face(id, f, k)
-			inc.derive(r, id, combined)
+			inc.derive(r, id, combined, vtypes)
 			*b.Cards.slot(id) = Card{
 				PrintedName:   f.Name,
 				Creature:      r.creature,
@@ -320,7 +338,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				continue
 			}
 			r := inc.face(id, f, k)
-			inc.derive(r, id, combined)
+			inc.derive(r, id, combined, vtypes)
 			*b.Cards.slot(id) = Card{
 				PrintedName: f.Name,
 				Creature:    r.creature,
