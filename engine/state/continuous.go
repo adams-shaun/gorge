@@ -802,3 +802,24 @@ func (ce ContinuousEffect) ReplacementParam(k cards.ParamKey) string {
 func (ce ContinuousEffect) CostStaticParam(k cards.ParamKey) string {
 	return ce.CostStaticParams[k.String()]
 }
+
+// SetsBasicLandSubtypes reports whether ce is a CR 305.7 land-subtype
+// setter: a layer-4 effect that strips the land subtypes (RemoveLandTypes)
+// and adds at least one basic land type (Plains, Island, Swamp, Mountain,
+// Forest, or Forge's AllBasicLandType token) -- Blood Moon, Spreading Seas.
+// A land it applies to loses every ability its rules text generates. An
+// effect that adds a basic land type WITHOUT the strip ("in addition to its
+// other types", Urborg) is not one, and neither is a strip with no basic
+// type added (Alpine Moon's, which removes abilities on its own).
+func SetsBasicLandSubtypes(ce *ContinuousEffect) bool {
+	if ce.Layer != LType || !ce.RemoveLandTypes {
+		return false
+	}
+	for _, t := range ce.AddTypes {
+		switch t {
+		case "Plains", "Island", "Swamp", "Mountain", "Forest", "AllBasicLandType":
+			return true
+		}
+	}
+	return false
+}
