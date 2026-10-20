@@ -298,26 +298,28 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			r := inc.face(id, f, k)
 			inc.derive(r, id, combined, vtypes)
 			*b.Cards.slot(id) = Card{
-				PrintedName:   f.Name,
-				Creature:      r.creature,
-				Power:         r.power,
-				Toughness:     r.toughness,
-				CMC:           r.cmc,
-				Basic:         r.basic,
-				Land:          r.land,
-				Colour:        r.colour,
-				TypeSig:       r.typeSig,
-				AttachedTo:    o.AttachedTo,
-				Activated:     o.ActivatedThisTurn,
-				ManaCost:      f.ManaCost,
-				Castable:      z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && r.flashback),
-				OnBattlefield: z == state.ZBattlefield,
-				Tapped:        o.Tapped,
-				Sick:          o.SummonSick,
-				Produces:      f.ManaProduction(),
-				InstantSpeed:  r.instant || r.flash,
-				Counter:       r.counter,
-				RemovalKind:   effects.CastRemovalKind(f.SpellAbility()),
+				PrintedName:    f.Name,
+				Creature:       r.creature,
+				Power:          r.power,
+				Toughness:      r.toughness,
+				CMC:            r.cmc,
+				Basic:          r.basic,
+				Land:           r.land,
+				Colour:         r.colour,
+				TypeSig:        r.typeSig,
+				AttachedTo:     o.AttachedTo,
+				Activated:      o.ActivatedThisTurn,
+				ManaCost:       f.ManaCost,
+				Castable:       z == state.ZHand || z == state.ZCommand || (z == state.ZGraveyard && r.flashback),
+				OnBattlefield:  z == state.ZBattlefield,
+				Tapped:         o.Tapped,
+				Sick:           o.SummonSick,
+				Produces:       f.ManaProduction(),
+				InstantSpeed:   r.instant || r.flash,
+				Counter:        r.counter,
+				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
 			}
 		}
 	}
@@ -342,18 +344,20 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 			r := inc.face(id, f, k)
 			inc.derive(r, id, combined, vtypes)
 			*b.Cards.slot(id) = Card{
-				PrintedName: f.Name,
-				Creature:    r.creature,
-				Power:       r.power,
-				CMC:         r.cmc,
-				Basic:       r.basic,
-				Land:        r.land,
-				Colour:      r.colour,
-				TypeSig:     r.typeSig,
-				ManaCost:    f.ManaCost,
-				Toughness:   r.toughness,
-				Activated:   o.ActivatedThisTurn, // public; A5 (BoardFromGameInto's foreign walk)
-				RemovalKind: effects.CastRemovalKind(f.SpellAbility()),
+				PrintedName:    f.Name,
+				Creature:       r.creature,
+				Power:          r.power,
+				CMC:            r.cmc,
+				Basic:          r.basic,
+				Land:           r.land,
+				Colour:         r.colour,
+				TypeSig:        r.typeSig,
+				ManaCost:       f.ManaCost,
+				Toughness:      r.toughness,
+				Activated:      o.ActivatedThisTurn, // public; A5 (BoardFromGameInto's foreign walk)
+				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
 			}
 		}
 	}

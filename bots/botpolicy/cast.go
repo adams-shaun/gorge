@@ -137,6 +137,27 @@ type Card struct {
 	// host asks. Empty means the card is not a one-shot removal the rule
 	// holds.
 	RemovalKind string
+	// RemovalTargets is the coarse target scope of that same removal
+	// ability (effects.CastRemovalTargets): "creature" when its ValidTgts$
+	// alternatives name creatures and no players, "player" the reverse,
+	// "any" both, and "" neither (an artifact or land destruction filter).
+	// It is filled by both adapter halves from the same printed ability --
+	// the projected CardView.RemovalTargets on the view half, the face's
+	// own SpellAbility on the game half -- and is only meaningful when
+	// RemovalKind is non-empty. The A1 hold rule reads it to know whether
+	// the spell could even aim at a creature (the threat gate) or at a
+	// player (the lethal-face shortcut): a Shatter is never held on
+	// creature threat.
+	RemovalTargets string
+	// RemovalDamage is the literal NumDmg$ of that same removal ability,
+	// 0 when it is absent, dynamic or not positive (effects.CastRemoval-
+	// Damage; the projected CardView.RemovalDamage on the view half, the
+	// face's own SpellAbility on the game half). The A1 hold rule reads it
+	// as the spell's damage against the opponents' projected life: a
+	// literal figure at or above some opponent's life is a lethal face
+	// target, so the burn fires now instead of parking its mana. A 0
+	// answers "unknown", never "no damage".
+	RemovalDamage int32
 	// Toughness is the engine's derived toughness (ch.Toughness), the
 	// creature body's other half. It is a cast-scorer feature only -- the
 	// CreatureToughness weight in castScore -- never part of the shared base
