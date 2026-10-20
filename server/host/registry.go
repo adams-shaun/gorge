@@ -824,7 +824,7 @@ func (r *Registry) PrivateTable(id TableID) bool {
 	}
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	return t.cfg.OnDemand && t.cfg.Event == ""
+	return privateTable(t.cfg)
 }
 
 // Matches lists a table's matches in ascending order; the live one last.
