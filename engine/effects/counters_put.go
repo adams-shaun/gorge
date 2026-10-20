@@ -131,7 +131,14 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			putCounterPickDistribute(h, c, sa, n, kind)
 			return
 		}
-		placed := putCounterSplit(h, n, kind, Defined(h, c, sa))
+		ts := Defined(h, c, sa)
+		// CR 601.2d: a distribution announced while casting is final; a
+		// recipient the CR 608.2b recheck dropped loses its share.
+		if shares, ok := AnnouncedDivision(h, c, sa, ts); ok {
+			rememberPlaced(c, sa, putCounterShares(h, kind, ts, shares))
+			return
+		}
+		placed := putCounterSplit(h, n, kind, ts)
 		rememberPlaced(c, sa, placed)
 		return
 	}
@@ -771,6 +778,23 @@ func putCounterSplit(h Host, total int32, kind string, ts []state.Target) []stat
 		if amt := shares[id]; amt > 0 {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: amt})
 			placed = append(placed, state.Target{Obj: id})
+		}
+	}
+	return placed
+}
+
+// putCounterShares places an announced CR 601.2d distribution: shares[i]
+// counters on ts[i] when it is still on the battlefield, one CounterChange
+// per recipient with a positive share, in target order.
+func putCounterShares(h Host, kind string, ts []state.Target, shares []int32) []state.Target {
+	var placed []state.Target
+	for i, t := range ts {
+		if t.IsPlayer || i >= len(shares) || shares[i] <= 0 {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: t.Obj, Counter: kind, Amount: shares[i]})
+			placed = append(placed, state.Target{Obj: t.Obj})
 		}
 	}
 	return placed

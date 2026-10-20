@@ -13,7 +13,14 @@ import (
 // back at resolution (effects.AnnouncedDivision). A divided primitive outside
 // it keeps its resolution-time division.
 func castDivisionAPI(sa *cards.SA) bool {
-	return sa != nil && sa.API == "DealDamage"
+	if sa == nil {
+		return false
+	}
+	switch sa.API {
+	case "DealDamage", "PutCounter", "PreventDamage":
+		return true
+	}
+	return false
 }
 
 // divisionTotalFor resolves the total a targeted castDivisionAPI SA divides
