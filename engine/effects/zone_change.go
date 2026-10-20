@@ -1509,7 +1509,7 @@ func classifyAttackingEntryText(c *Ctx, attack string, to state.Zone) attackingE
 			return attackingEntry{kind: attackingEntryAttacks, defender: c.DefendingPlayer.Player, battle: c.DefendingBattle}
 		}
 		return attackingEntry{kind: attackingEntryNoDefender,
-			note: "Attacking$ with no defending player in context; the permanent enters tapped but does not attack"}
+			note: "Attacking$ with no defending player in context; the permanent enters but does not attack"}
 	}
 	return attackingEntry{kind: attackingEntryUnsupported,
 		note: "Attacking$ " + attack + " is not implemented; the permanent enters but does not attack"}
@@ -1531,13 +1531,8 @@ func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.Play
 		return
 	}
 	if a.kind == attackingEntryNoDefender {
-		// An "enters attacking" object must enter TAPPED even when the
-		// trigger context cannot identify a defender. Keep that entry state
-		// while degrading only the attack assignment; callers that already
-		// emitted their Tapped$ entry event do not get a duplicate Tap.
-		if o := h.Game().Obj(id); o != nil && !o.Tapped {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: player, Text: "entered tapped"})
-		}
+		// No defender in context, so degrade only the attack assignment; the
+		// mover's own Tapped$ entry Tap (if the script has one) is untouched.
 	}
 	if a.noted {
 		return

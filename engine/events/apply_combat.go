@@ -80,7 +80,7 @@ func foldCombatRetarget(g *state.Game, e *Event) {
 	// attacker, Player the NEW defender. Deliberately narrower than
 	// DeclareAttackers (which must not be reused here -- its Apply case
 	// increments AttacksThisTurn and would refire every Attacks trigger on
-	// a reselect, and TokenAttacks taps too): IsAttacking is already true
+	// a reselect): IsAttacking is already true
 	// and stays true, only the defender and the block list move. The same
 	// defensive shape as DeclareAttackers' own case: the defender must be
 	// a valid seat, still in the game, and the attacker still on the
@@ -335,8 +335,9 @@ func foldDamageProvenance(g *state.Game, e *Event) {
 
 // foldTokenAttacks folds Kind TokenAttacks into state.
 func foldTokenAttacks(g *state.Game, e *Event) {
-	// A permanent that entered tapped and attacking (TokenAttacking$ or a
-	// move body's Attacking$ True rider). Unlike MyriadCopy -- which MINTS
+	// A permanent marked attacking (TokenAttacking$ or a move body's
+	// Attacking$ True rider); it taps only when the effect says so, through
+	// its own entry Tap. Unlike MyriadCopy -- which MINTS
 	// a copy of the source card and flags IsMyriad, which MyriadCleanup
 	// exiles at end of combat -- this marks an ALREADY-EXISTING battlefield
 	// object: Obj is the permanent, Player its controller and IDs[0] the
@@ -353,7 +354,6 @@ func foldTokenAttacks(g *state.Game, e *Event) {
 			}
 			battle = b.ID
 		}
-		o.Tapped = true
 		o.IsAttacking = true
 		o.Attacking = state.PlayerID(e.IDs[0])
 		o.AttackingBattle = battle

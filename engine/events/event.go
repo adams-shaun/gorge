@@ -369,8 +369,9 @@ const (
 	// chain or golden replay is affected.
 	ManaActivate
 	// TokenAttacks marks an already-existing permanent that entered the
-	// battlefield TAPPED AND ATTACKING (TokenAttacking$ or a move body's
-	// Attacking$ True rider). It is NOT a mint: events.Apply's TokenCreate or
+	// battlefield attacking (TokenAttacking$ or a move body's Attacking$ True
+	// rider); it never taps -- the effect's Tapped$/TokenTapped$ owns that.
+	// It is NOT a mint: events.Apply's TokenCreate or
 	// MoveZone case already made the object, and Obj here is that battlefield
 	// object, Player its controller and IDs[0] the defender it attacks.
 	// MyriadCopy must not be reused for this: it
