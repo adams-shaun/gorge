@@ -12,8 +12,9 @@ package effects
 //     resolving controller controls. Every printed pip spelling counts:
 //     plain pips, two-colour hybrid ("GW"), monocolour hybrid ("2G"/"2/G"),
 //     Phyrexian ("GP", CR 107.4f) and the compleated tricolour ("GUP").
-//   - Count$DevotionDual.<A>.<B> — the two-colour sum; each hybrid symbol
-//     counts once toward EACH of its colours.
+//   - Count$DevotionDual.<A>.<B> — CR 700.5's two-colour devotion: the
+//     number of mana symbols that are <A>, <B> or both, so a hybrid symbol
+//     of both colours counts ONCE, not once per colour.
 //   - Count$Devotion.Chosen — the colour read off the source object's own
 //     recorded colour choice (events.Choose's "color" fold); unchosen fails
 //     closed to the unresolvable verdict, never a fake zero.
@@ -121,9 +122,10 @@ func TestDevotionChosenReadsTheRecordedChoice(t *testing.T) {
 	}
 }
 
-// TestDevotionDualSumsBothColours pins the two-colour head: two {B/R}
-// hybrids (each counts once for EACH colour) plus a plain {B} creature gives
-// 3 black + 2 red = 5; an unreadable colour is unresolvable.
+// TestDevotionDualSumsBothColours pins the two-colour head: {B}{R} is two
+// symbols, {2}{B/R} is ONE symbol that is both colours (CR 700.5: "that are
+// [color 1], [color 2], or both colors"), {1}{B} is one -- 4 in all, while
+// devotion to black alone is still 3; an unreadable colour is unresolvable.
 func TestDevotionDualSumsBothColours(t *testing.T) {
 	g := state.NewGame([]string{"a", "b"})
 	mk := func(src string) {
@@ -140,23 +142,76 @@ func TestDevotionDualSumsBothColours(t *testing.T) {
 		o.Zone = state.ZBattlefield
 		g.SetZone(state.ZBattlefield, 0, append(g.Zone(state.ZBattlefield, 0), o.ID))
 	}
-	mk("Name:HybridOne\nManaCost:B R\nTypes:Creature Horror\nPT:2/2\nOracle:x\n")  // {B}{R}: 1+1
-	mk("Name:HybridTwo\nManaCost:2 BR\nTypes:Creature Horror\nPT:2/2\nOracle:x\n") // {B/R}: 1+1
+	mk("Name:HybridOne\nManaCost:B R\nTypes:Creature Horror\nPT:2/2\nOracle:x\n")  // {B}{R}: 2 symbols
+	mk("Name:HybridTwo\nManaCost:2 BR\nTypes:Creature Horror\nPT:2/2\nOracle:x\n") // {B/R}: 1 symbol, both colours
 	mk("Name:PlainBlack\nManaCost:1 B\nTypes:Creature Rat\nPT:2/1\nOracle:x\n")    // {B}: 1
 	h := &fakeHost{g: g}
 	c := &Ctx{Controller: 0, Source: g.Zone(state.ZBattlefield, 0)[0]}
 	if len(g.Zone(state.ZBattlefield, 0)) != 3 {
 		t.Fatalf("fixture broken: %d battlefield objects, want 3", len(g.Zone(state.ZBattlefield, 0)))
 	}
-	// Each hybrid's B/R pips plus the plain black: 3 black, 2 red.
-	if got, ok := EvalCountOK(h, c, "Count$DevotionDual.Black.Red"); !ok || got != 5 {
-		t.Fatalf("Count$DevotionDual.Black.Red = (%d, %v), want (5, true)", got, ok)
+	// {B}, {R}, {B/R} once, {B}: 4 symbols that are black, red or both.
+	if got, ok := EvalCountOK(h, c, "Count$DevotionDual.Black.Red"); !ok || got != 4 {
+		t.Fatalf("Count$DevotionDual.Black.Red = (%d, %v), want (4, true) -- the {B/R} hybrid is one symbol (CR 700.5)", got, ok)
 	}
 	if got, ok := EvalCountOK(h, c, "Count$Devotion.Black"); !ok || got != 3 {
 		t.Fatalf("Count$Devotion.Black = (%d, %v), want (3, true)", got, ok)
 	}
 	if got, ok := EvalCountOK(h, c, "Count$DevotionDual.Black.Purple"); ok {
 		t.Fatalf("Count$DevotionDual.Black.Purple = (%d, %v), want unresolvable", got, ok)
+	}
+}
+
+// TestDevotionDualCountsEverySpellingOnce is CR 700.5's two-colour devotion
+// over every printed pip spelling the corpus carries (the ManaCost token
+// census at the pin): a symbol counts once when it is red, green or both --
+// two-colour hybrid {R/G} ("RG"), hybrid Phyrexian {R/G/P} ("PRG"),
+// off-pair hybrid {R/W} ("RW"), monocoloured hybrid {2/R} ("2R"/"2/R"),
+// colourless hybrid {C/G} ("CG"), Phyrexian {G/P} ("GP") -- and a colourless
+// {C}, {X}, generic or off-colour {U} counts nothing. The two colour orders
+// agree, and each single-colour count is unchanged by the fix.
+func TestDevotionDualCountsEverySpellingOnce(t *testing.T) {
+	g := state.NewGame([]string{"a", "b"})
+	mk := func(cost string) {
+		t.Helper()
+		c, d := cards.ParseBytes("t.txt", []byte("Name:Pip "+cost+"\nManaCost:"+cost+"\nTypes:Artifact\nOracle:x\n"))
+		if len(d) != 0 {
+			t.Fatalf("diags: %v", d)
+		}
+		c.Link()
+		for _, f := range c.Faces {
+			f.ApplyIntrinsics()
+		}
+		o := g.AddObject(c, 0)
+		o.Zone = state.ZBattlefield
+		g.SetZone(state.ZBattlefield, 0, append(g.Zone(state.ZBattlefield, 0), o.ID))
+	}
+	mk("RG RG")  // {R/G}{R/G}: 2 (4 if double-counted)
+	mk("1 PRG")  // {R/G/P}: 1 (2 if double-counted)
+	mk("RW")     // {R/W}: 1 (red only)
+	mk("2R 2/G") // {2/R}{2/G}: 2
+	mk("CG GP")  // {C/G}{G/P}: 2
+	mk("R G")    // {R}{G}: 2
+	mk("X C U")  // nothing red or green: 0
+	if n := len(g.Zone(state.ZBattlefield, 0)); n != 7 {
+		t.Fatalf("fixture broken: %d battlefield objects, want 7", n)
+	}
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0, Source: g.Zone(state.ZBattlefield, 0)[0]}
+	for _, head := range []string{"Count$DevotionDual.Red.Green", "Count$DevotionDual.Green.Red"} {
+		if got, ok := EvalCountOK(h, c, head); !ok || got != 10 {
+			t.Fatalf("%s = (%d, %v), want (10, true): every red-or-green symbol once (CR 700.5)", head, got, ok)
+		}
+	}
+	// Single-colour guards: red = RG RG PRG RW 2R R = 6; green = RG RG PRG 2/G CG GP G = 7.
+	if got, ok := EvalCountOK(h, c, "Count$Devotion.Red"); !ok || got != 6 {
+		t.Fatalf("Count$Devotion.Red = (%d, %v), want (6, true)", got, ok)
+	}
+	if got, ok := EvalCountOK(h, c, "Count$Devotion.Green"); !ok || got != 7 {
+		t.Fatalf("Count$Devotion.Green = (%d, %v), want (7, true)", got, ok)
+	}
+	if got, ok := EvalCountOK(h, c, "Count$Devotion.Blue"); !ok || got != 1 {
+		t.Fatalf("Count$Devotion.Blue = (%d, %v), want (1, true)", got, ok)
 	}
 }
 

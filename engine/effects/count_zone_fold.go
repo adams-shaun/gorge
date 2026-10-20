@@ -4,6 +4,7 @@ import (
 	"math/bits"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -26,16 +27,17 @@ func colourLetter(s string) byte {
 	return 0
 }
 
-// devotionCount is CR 700.5's devotion to one colour: the number of mana
-// symbols of that colour among the mana costs of the permanents the player
-// controls. Every printed spelling the corpus carries counts -- plain pips
-// ("2 B B"), two-colour hybrid ("GW"), monocolour hybrid ("2B"/"2/B"),
-// Phyrexian ("BP", CR 107.4f: it is a symbol of its colour) and the
-// compleated tricolour ("GWP"/"PRG") -- because each WUBRG letter inside a
-// pip token counts once for its colour (manaCostColourSymbols below). A
-// face-down battlefield permanent has no mana cost (CR 708.5's vanilla set)
-// and contributes nothing; an out-of-range controller counts nothing.
-func devotionCount(g *state.Game, controller state.PlayerID, col byte) int32 {
+// devotionCount is CR 700.5's devotion to one or two colours: the number of
+// mana symbols whose colours intersect mask among the mana costs of the
+// permanents the player controls. Every printed spelling the corpus carries
+// counts once -- plain pips ("2 B B"), two-colour hybrid ("GW", CR 107.4e: a
+// symbol that is both colours), monocolour hybrid ("2B"/"2/B"), Phyrexian
+// ("BP", CR 107.4f: it is a symbol of its colour) and the compleated
+// tricolour ("GWP"/"PRG") -- through cards.ManaCostChroma's per-symbol read,
+// so a symbol of both queried colours is never counted twice. A face-down
+// battlefield permanent has no mana cost (CR 708.5's vanilla set) and
+// contributes nothing; an out-of-range controller counts nothing.
+func devotionCount(g *state.Game, controller state.PlayerID, mask uint8) int32 {
 	if int(controller) < 0 || int(controller) >= len(g.Players) {
 		return 0
 	}
@@ -49,24 +51,7 @@ func devotionCount(g *state.Game, controller state.PlayerID, col byte) int32 {
 		if f == nil {
 			continue
 		}
-		n += manaCostColourSymbols(f.ManaCost, col)
-	}
-	return n
-}
-
-// manaCostColourSymbols counts one printed ManaCost string's symbols of one
-// colour. The corpus costs are space-separated pip tokens (measured: zero
-// brace-form costs at the current pin); each WUBRG letter inside a token
-// counts once for its colour, so hybrid/Phyrexian/compleated spellings read
-// once per component colour. Generic digits, {X}, {S}, {C} and the P of a
-// Phyrexian pip contribute to no colour.
-func manaCostColourSymbols(cost string, col byte) int32 {
-	if cost == "" || strings.EqualFold(cost, "no cost") {
-		return 0
-	}
-	var n int32
-	for sym := range strings.FieldsSeq(cost) {
-		n += int32(strings.Count(sym, string(col)))
+		n += cards.ManaCostChroma(f.ManaCost, mask)
 	}
 	return n
 }
