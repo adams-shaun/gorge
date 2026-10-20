@@ -235,7 +235,7 @@ sequenceDiagram
     S-->>C: 409 conflict, message = the engine's reason
   end
   C->>S: GET .../pending?seat=0
-  S-->>C: 409 "no decision pending" while the bot thinks; poll or watch the stream
+  S-->>C: 409 "no decision pending" while the bot thinks, so poll or watch the stream
 ```
 
 A real `attackers` decision, as `pending` returned it:
