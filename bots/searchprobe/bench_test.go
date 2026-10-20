@@ -188,14 +188,27 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// only that field (json:"-"): the old digests return byte-for-byte.
 		// Measured after: frames 126, attempts 64, accepted 8, worlds 8,
 		// ESS 8 (land exclusion: accepted 30, ESS 30).
-		{"pre-optimisation sampler", true, "2979184d0e92313cd4c3d5952a762a0fa48299f51e9ee5d33b23d42d6d58abbd"},
+		// Re-measured for the A1 removal-now port (view.CardView.RemovalKind,
+		// RemovalTargets, RemovalDamage): the captured frames marshal three
+		// more keys per card, so the sampled worlds move exactly as they did
+		// for ColourIdentity. Attributed by hiding the three fields (json:"-"):
+		// the old digests return byte-for-byte. Measured after: frames 126,
+		// attempts 64, accepted 6, worlds 8, ESS 6 (land exclusion: accepted
+		// 24, ESS 24).
+		// Re-measured for the A3 Forge AI-hint port (view.CardView.PlayMain1,
+		// RemoveDeck): the captured frames marshal two more keys for hinted
+		// cards, so the sampled worlds move. Attributed by hiding the two
+		// fields (json:"-"): the old digests return byte-for-byte. Measured
+		// after: frames 126, attempts 64, accepted 10, worlds 8, ESS 10 (land
+		// exclusion: accepted 22, ESS 22).
+		{"pre-optimisation sampler", true, "ebee68bfa19824ebbc3f15943a5470fd2b524f8e456b031834196367bedaa591"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
-		{"land exclusion", false, "1b0580932e2abde051bad95044e628df938b0bb72098fedc5345ba0412158c5b"},
+		{"land exclusion", false, "f7f971bb627cdeca3f42caa9a4e5872a5d7796c2a718668143324bad76d588ff"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -407,7 +420,25 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Rollouts 32, Submits 4150, Terminal 32, Capped 0,
 	// WinsByCandidate [8,7,8,8], TerminalByCandidate [8,8,8,8],
 	// WinsOverBaseline [0,0,0,0], LossesToBaseline [0,1,0,0].
-	const want = "e9aebf4324c0cfb79e98e03d46bea1811fe8d7a65ecc529dfd2df787a12911fb"
+	// Re-measured for the A1 removal-now port (view.CardView.RemovalKind,
+	// RemovalTargets, RemovalDamage): the captured frames marshal three more
+	// keys per card, so the sampled worlds are decoded from differently
+	// encoded frames and the rollouts run on different games. Attributed by
+	// hiding the three fields (json:"-"): the old digest and this test's old
+	// result return byte-for-byte. Measured after: Index 0, Values [1,1,1,1],
+	// Rollouts 32, Submits 3625, Terminal 32, Capped 0, WinsByCandidate
+	// [8,8,8,8], TerminalByCandidate [8,8,8,8], WinsOverBaseline [0,0,0,0],
+	// LossesToBaseline [0,0,0,0].
+	// Re-measured for the A3 Forge AI-hint port (view.CardView.PlayMain1,
+	// RemoveDeck): the captured frames marshal two more keys for hinted
+	// cards, so the sampled worlds are decoded from differently encoded
+	// frames and the rollouts run on different games. Attributed by hiding the
+	// two fields (json:"-"): the old digest and this test's old result return
+	// byte-for-byte. Measured after: Index 0, Values [1,1,1,1], Rollouts 32,
+	// Submits 4489, Terminal 32, Capped 0, WinsByCandidate [8,8,8,8],
+	// TerminalByCandidate [8,8,8,8], WinsOverBaseline [0,0,0,0],
+	// LossesToBaseline [0,0,0,0].
+	const want = "806d6bdbbb75ffb729e9392c7d73b9ca26e592e4bcaad6a46e5c87c2a69324f2"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

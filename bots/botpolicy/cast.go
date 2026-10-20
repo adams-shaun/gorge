@@ -129,6 +129,47 @@ type Card struct {
 	// and is out of the cast-side rule's scope by design -- those route
 	// through the ability/trigger paths, not chooseCast.
 	Counter bool
+	// Draw reports whether this card's primary cast-shape ability (its SP$
+	// line) draws cards, and Token reports whether it creates tokens. Both
+	// are filled by the adapter halves from the same printed face fact --
+	// the projected CardView.SpellAPI on the view half, the face's own
+	// cards.Face.SpellAbility().API on the game half -- and only on the
+	// deciding seat's OWN-zone entries; a foreign entry leaves both false,
+	// exactly like Counter. The A6 draw/token timing rule reads them to
+	// hold the spell for Forge's window. A card whose draw or token lives
+	// on an AB/trigger line is not one of these, by the same scope as
+	// Counter.
+	Draw  bool
+	Token bool
+	// RemovalKind names the one-shot removal shape of this card's primary
+	// spell ability: "destroy", "damage", or "bounce". It is filled by both
+	// adapter halves from effects.CastRemovalKind -- the projected
+	// CardView.RemovalKind on the view half, the face's own SpellAbility on
+	// the game half -- so the A1 hold rule reads the same shape whichever
+	// host asks. Empty means the card is not a one-shot removal the rule
+	// holds.
+	RemovalKind string
+	// RemovalTargets is the coarse target scope of that same removal
+	// ability (effects.CastRemovalTargets): "creature" when its ValidTgts$
+	// alternatives name creatures and no players, "player" the reverse,
+	// "any" both, and "" neither (an artifact or land destruction filter).
+	// It is filled by both adapter halves from the same printed ability --
+	// the projected CardView.RemovalTargets on the view half, the face's
+	// own SpellAbility on the game half -- and is only meaningful when
+	// RemovalKind is non-empty. The A1 hold rule reads it to know whether
+	// the spell could even aim at a creature (the threat gate) or at a
+	// player (the lethal-face shortcut): a Shatter is never held on
+	// creature threat.
+	RemovalTargets string
+	// RemovalDamage is the literal NumDmg$ of that same removal ability,
+	// 0 when it is absent, dynamic or not positive (effects.CastRemoval-
+	// Damage; the projected CardView.RemovalDamage on the view half, the
+	// face's own SpellAbility on the game half). The A1 hold rule reads it
+	// as the spell's damage against the opponents' projected life: a
+	// literal figure at or above some opponent's life is a lethal face
+	// target, so the burn fires now instead of parking its mana. A 0
+	// answers "unknown", never "no damage".
+	RemovalDamage int32
 	// Toughness is the engine's derived toughness (ch.Toughness), the
 	// creature body's other half. It is a cast-scorer feature only -- the
 	// CreatureToughness weight in castScore -- never part of the shared base
@@ -181,6 +222,25 @@ type Card struct {
 	// whether two permanents have the same creature types -- an exact
 	// signature match is the right question there, never an ordering.
 	TypeSig uint64
+	// PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint
+	// (cards.Face.PlayMain1Hint): "ALWAYS", "TRUE", "OPPONENTCREATURES" or
+	// "". Both adapter halves fill it from the same printed face fact -- the
+	// projected CardView.PlayMain1 on the view half, the face's own method on
+	// the game half -- so the opt-in AIHints precombat rule (aihints.go) reads
+	// the same hint whichever host asks.
+	PlayMain1 string
+	// RemoveDeck reports an `AI:RemoveDeck` deck-builder hint: Forge's "the
+	// AI does not know how to play this card". It is filled identically by
+	// both adapter halves from the printed face (CardView.RemoveDeck, or
+	// cards.Face.RemoveDeck on the game half). The opt-in AIHints cast policy
+	// vetoes such a card; the zero-value AIHints leaves it untouched.
+	RemoveDeck bool
+	// AuraLogic is the AttachAILogic hint of a card whose spell is an Aura
+	// aimed at a creature ("" for any other card). Both adapter halves fill
+	// it from the same printed face fact (CardView.AuraLogic, or
+	// effects.CastAuraLogic on the game half); the opt-in A5 HoldOwnAura
+	// rule reads it.
+	AuraLogic string
 }
 
 // braceForm normalises a brace-form mana cost ("{2}{U}{U}") to the
@@ -763,6 +823,8 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	// commander does). A hard block, by contrast, made the bot decline
 	// casting its good hands and sat passively on mana the phase threw away.
 	res := b.reserve()
+	// A4's R4: the reserve's weight by deck posture (posture.go).
+	resScale := b.reserveScale(w)
 	// C8's census: is there a foreign spell on the stack for a counter to
 	// eat? ForeignSpell is its one home, read in b.Stack's own order.
 	foreignSpell := b.ForeignSpell(d.Player)
@@ -781,10 +843,32 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		if o.Kind != "cast" {
 			continue
 		}
+		card := b.Cards.Get(o.Obj)
 		// C8: a counter with no foreign spell to counter is not cast at all,
 		// whatever it would otherwise score — the wasted self-counter is
 		// refused at the commit point, before the mana is ever spent.
-		if b.Cards.Get(o.Obj).Counter && !foreignSpell {
+		if card.Counter && !foreignSpell {
+			continue
+		}
+		// AIHints: a card carrying Forge's RemoveDeck hint is never chosen
+		// while the opt-in rule is armed. The zero value reads no hint and
+		// leaves the ranking untouched.
+		if b.aiHintsVetoCast(card) {
+			continue
+		}
+		// A1: hold a one-shot removal spell until the best opposing
+		// creature's threat clears the bar. With the rule off this is a
+		// no-op, so the default cast ranking is unchanged.
+		if !b.removalNow(d, *o) {
+			continue
+		}
+		// A5: hold a boon Aura while no own creature could carry it.
+		if b.auraHeld(d, o.Obj) {
+			continue
+		}
+		// A6: a timing rule that governs this card may hold the cast even
+		// though C8 and A1 allowed it. With every rule off this is a no-op.
+		if !b.timingNow(d, *o) {
 			continue
 		}
 		// CR1: price the command-zone tax on the commander's mana value, not
@@ -798,6 +882,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		// cast its commander), so it is priced by value alone.
 		inCmd := b.Commanders.Get(o.Obj).InCommandZone
 		s := b.castScore(*o)
+		s += b.aiHintsCastBonus(card, b.FirstMain && b.MyTurn, ctx.ownCreatures, ctx.oppCreatures)
 		// The context features, dotted with their weights. With the default
 		// profile every weight here is 0, so the default bot's pick is the
 		// pre-refactor arithmetic to the digit (pinned by cast_weights_test.go).
@@ -869,7 +954,6 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		}
 		// C10's interaction features: the card's class conjuncted with the
 		// same decision-level context, fixed evaluation order.
-		card := b.Cards.Get(o.Obj)
 		if card.Creature {
 			if b.FirstMain {
 				s += w.CreaturePrecombat // creature × first main phase
@@ -888,7 +972,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 				continue // CR1: the recast has priced itself out — do not cast
 			}
 		} else if res > 0 && pool-cost >= res {
-			s += res * w.ReserveScale // C7: prefer a cast that keeps the reserve
+			s += res * resScale // C7: prefer a cast that keeps the reserve
 		}
 		if best == -1 || s > bestScore || (s == bestScore && o.Index < best) {
 			best, bestScore, bestInCmd = o.Index, s, inCmd
@@ -1128,6 +1212,23 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 			continue
 		}
 		if b.Cards.Get(o.Obj).Counter && !foreignSpell {
+			continue
+		}
+		// AIHints: the cast veto applies to C11's candidate table too, so a
+		// SetValue subset search cannot price a card chooseCast refuses.
+		if b.aiHintsVetoCast(b.Cards.Get(o.Obj)) {
+			continue
+		}
+		if !b.removalNow(d, *o) {
+			continue
+		}
+		// A5: hold a boon Aura while no own creature could carry it.
+		if b.auraHeld(d, o.Obj) {
+			continue
+		}
+		// A6: a timing rule that governs this card may hold the cast even
+		// though C8 and A1 allowed it. With every rule off this is a no-op.
+		if !b.timingNow(d, *o) {
 			continue
 		}
 		e := byObj[o.Obj]

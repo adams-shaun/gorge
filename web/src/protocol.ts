@@ -97,6 +97,14 @@ export interface TableInfo {
    * table is byte-identical to a table before the field existed.
    */
   event?: boolean;
+  /**
+   * Review marks a read-only review table (host.Registry.AddReviewTable,
+   * served only by `gorged review`): one recorded match, no seats, no run
+   * loop, omniscient. A client shows the decision overlay for it and offers
+   * no restart. omitempty, like Series: a live table is byte-identical to a
+   * table before the field existed.
+   */
+  review?: boolean;
 }
 
   /**
@@ -302,6 +310,61 @@ export interface CardView {
    * CardViews at all, so this never leaks hidden information.
    */
   spell_api?: string;
+  /**
+   * RemovalKind names the one-shot removal shape of SpellAPI: "destroy",
+   * "damage", or "bounce". Empty means the card is not one of the shapes
+   * the cast policy holds. It is derived from the same printed ability
+   * SpellAPI names, so it is a visible card fact, never hidden information.
+   */
+  removal_kind?: string;
+  /**
+   * RemovalTargets is the coarse target scope of that same removal
+   * ability, read off its ValidTgts$ alternatives' base tokens:
+   * "creature" when they name creatures and no players, "player" when
+   * they name players and no creatures, "any" when they name both, and
+   * "" when they name neither (an artifact or land destruction spell, a
+   * graveyard move). It is derived from the same printed ability as
+   * RemovalKind and never set without it, so it is a visible card fact.
+   * The bot policy's removal-now hold rule reads it to know whether a
+   * spell could even aim at a creature (the threat gate) or at a player
+   * (the lethal-face shortcut).
+   */
+  removal_targets?: string;
+  /**
+   * RemovalDamage is the literal NumDmg$ of that same removal ability
+   * when it is a plain integer, 0 when it is absent, dynamic ({X}, an
+   * SVar) or not positive. Like RemovalKind it is a printed card fact of
+   * a visible card. The hold rule reads it as the spell's damage against
+   * an opponent's projected life: a literal damage figure at or above a
+   * player's life total is a lethal face target, so the removal is worth
+   * firing now. A 0 answers "unknown", never "no damage" -- the policy
+   * treats an unknown figure as no face candidate at all.
+   */
+  removal_damage?: number;
+  /**
+   * PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
+   * "ALWAYS", "TRUE" (cast in the first main while the caster controls a
+   * creature) or "OPPONENTCREATURES" (while an opponent does), and "" for
+   * no hint. It is a printed deck-builder hint of a visible card, never
+   * hidden information. The opt-in AIHints cast rule reads it; the default
+   * bot ignores it.
+   */
+  play_main1?: string;
+  /**
+   * RemoveDeck reports that the card carries an `AI:RemoveDeck` deck-builder
+   * hint (Forge's "the AI does not know how to play this card"). It is a
+   * printed fact of a visible card, projected so the opt-in AIHints cast
+   * policy can veto it; the default bot ignores it.
+   */
+  remove_deck?: boolean;
+  /**
+   * AuraLogic is the AttachAILogic hint ("Pump", "Curse", ...) of a card
+   * whose spell is an Aura aimed at a creature, "" for every other card.
+   * It is a printed deck-builder hint of a visible card. The opt-in A5
+   * attach rules read it to hold a boon Aura while the caster controls no
+   * creature that could use it.
+   */
+  aura_logic?: string;
   /**
    * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
    * the printed cost's pips, the colour indicator and every colour-naming

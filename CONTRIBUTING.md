@@ -7,6 +7,12 @@ read this page and then follow
 Unfamiliar terms (IR, primitive, `api:`, SVar, chain head, ratchet) are
 defined in the [glossary](docs/site/contributing/glossary.md).
 
+The full contributor's guide is published at
+https://adams-shaun.github.io/gorge/contributing/ (source:
+[docs/site/contributing/index.md](docs/site/contributing/index.md)). **Open
+PRs against `develop`**, not `main`: work lands on `develop`, and `develop ->
+main` is a maintainer-merged PR (`make pr PR_BASE=develop`).
+
 ## Prerequisites
 
 - **Go**: the version in `go.mod` (`go 1.25.8` at the time of writing). With
@@ -121,6 +127,10 @@ example of the shape we like.
 - [ ] `go run ./cmd/gentypes -check` if you changed anything in
       `server/protocol` (it regenerates `web/src/protocol.ts`; `make gentypes`
       rewrites it).
+- [ ] `go test ./server/host/httpapi -run TestOpenAPI` if you changed
+      `server/protocol` or an HTTP route: the published API spec
+      (`docs/site/api/openapi.json`) must match the code. Regenerate its
+      generated parts with `-update` and commit the result.
 - [ ] Focused `go test` of the packages you touched, **with `.cards/`
       present**.
 - [ ] `make sim`: 20/20 `replay OK`.
@@ -148,7 +158,7 @@ example of the shape we like.
 | Add a decision kind | Don't, without a maintainer decision: the set is closed and every seat, bot, client and the wire must answer it. |
 | Change a seat's projected view | `engine/view/card.go` (cards, battlefield), `engine/view/stack.go` (stack); `engine/view/view.go` only for the assembler. |
 | Change the wire | `server/protocol/`, then `make gentypes`. |
-| Add a bot policy | Bench-only: a `seat.Seat` driven through `testkit/bench`. Hosted: `bots.Register` in an `init()` (`bots/registry.go`), linked from `bots/all`. Read [docs/site/research/bots.md](docs/site/research/bots.md) first. |
+| Add a bot policy | Bench-only: a `seat.Seat` driven through `testkit/bench`. Hosted: `bots.Register` in an `init()` (`bots/registry.go`), linked from `bots/all`. Read [docs/site/bots/native-go.md](docs/site/bots/native-go.md) and [training-and-adoption.md](docs/site/bots/training-and-adoption.md) first. |
 | Add a repo deck | `testkit/testutil/decks/*.json` via `cmd/deckimport`; every card in it must be fully supported. |
 | Turn a player's feedback report into a test | `go run ./cmd/repro -emit-test <pkg> <feedback-dir>` (see `AGENTS.md`, "Reproduce a feedback report"). |
 | Add a package | Anywhere it fits the tiers, plus an entry in `docs/site/architecture/packages.tiers.json`. |

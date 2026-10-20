@@ -42,6 +42,25 @@ type Bot struct {
 	// Configured once by an opt-in constructor; the zero value leaves the
 	// default ranking untouched, so every hosted policy is unchanged.
 	targets botpolicy.TargetRules
+	// removal selects the opt-in A1 removal-now rule (botpolicy.RemovalRules).
+	// Configured once by an opt-in constructor; the zero value leaves every
+	// cast decision unchanged.
+	removal botpolicy.RemovalRules
+	// posture selects the opt-in A4 deck-shape posture rules
+	// (botpolicy.PostureRules). Configured once by an opt-in constructor;
+	// the zero value leaves every combat and cast decision unchanged.
+	posture botpolicy.PostureRules
+	// timing selects the opt-in A6 "is now a good time" rules
+	// (botpolicy.TimingRules). Configured once by an opt-in constructor; the
+	// zero value leaves every cast and tap decision unchanged.
+	timing botpolicy.TimingRules
+	// aiHints selects the opt-in A3 Forge AI-hint rules
+	// (botpolicy.AIHints). Configured once by an opt-in constructor; the zero
+	// value leaves the cast scorer unchanged.
+	aiHints botpolicy.AIHints
+	// attach selects the opt-in A5 attach rules (botpolicy.AttachRules).
+	// Configured once by an opt-in constructor; the zero value is off.
+	attach botpolicy.AttachRules
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
@@ -124,6 +143,73 @@ func (b *Bot) TargetRules() botpolicy.TargetRules {
 	return b.targets
 }
 
+// EnableRemovalRules arms the A1 removal-now rule (botpolicy.RemovalRules)
+// on this bot and returns it, so an opt-in constructor chains like the other
+// Enable* methods. The default bot never calls it.
+func (b *Bot) EnableRemovalRules(r botpolicy.RemovalRules) *Bot {
+	b.removal = r
+	return b
+}
+
+// RemovalRules reports the A1 removal-now rule armed on this bot.
+func (b *Bot) RemovalRules() botpolicy.RemovalRules {
+	return b.removal
+}
+
+// EnablePostureRules arms the A4 deck-shape posture rules
+// (botpolicy.PostureRules) on this bot and returns it, so an opt-in
+// constructor chains like the other Enable* methods. The default bot never
+// calls it.
+func (b *Bot) EnablePostureRules(r botpolicy.PostureRules) *Bot {
+	b.posture = r
+	return b
+}
+
+// PostureRules reports the A4 posture rules armed on this bot.
+func (b *Bot) PostureRules() botpolicy.PostureRules {
+	return b.posture
+}
+
+// EnableTimingRules arms the A6 "is now a good time" rules
+// (botpolicy.TimingRules) on this bot and returns it, so an opt-in
+// constructor chains like the other Enable* methods. The default bot never
+// calls it.
+func (b *Bot) EnableTimingRules(r botpolicy.TimingRules) *Bot {
+	b.timing = r
+	return b
+}
+
+// TimingRules reports the A6 timing rules armed on this bot.
+func (b *Bot) TimingRules() botpolicy.TimingRules {
+	return b.timing
+}
+
+// EnableAIHints arms the A3 Forge AI-hint rules (botpolicy.AIHints) on this
+// bot and returns it. The default bot never calls it; the forge-heuristic
+// policy is the registered constructor that does.
+func (b *Bot) EnableAIHints(h botpolicy.AIHints) *Bot {
+	b.aiHints = h
+	return b
+}
+
+// AIHints reports the A3 AI-hint rules armed on this bot.
+func (b *Bot) AIHints() botpolicy.AIHints {
+	return b.aiHints
+}
+
+// EnableAttachRules arms the A5 attach rules (botpolicy.AttachRules) on this
+// bot and returns it. The default bot never calls it; the forge-heuristic
+// policy is the registered constructor that does.
+func (b *Bot) EnableAttachRules(r botpolicy.AttachRules) *Bot {
+	b.attach = r
+	return b
+}
+
+// AttachRules reports the A5 attach rules armed on this bot.
+func (b *Bot) AttachRules() botpolicy.AttachRules {
+	return b.attach
+}
+
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
 // priority. It returns b so every hosted policy constructor can retain its
 // existing deterministic policy shape and seed derivation.
@@ -146,6 +232,9 @@ func (b *Bot) WithMulligan(rule botpolicy.MulliganRule) *Bot {
 // EnableLandMulligan is WithMulligan(botpolicy.MulliganLands): the opt-in
 // Limited land-count mulligan heuristic.
 func (b *Bot) EnableLandMulligan() *Bot { return b.WithMulligan(botpolicy.MulliganLands) }
+
+// MulliganRule reports the London-mulligan rule armed on this bot.
+func (b *Bot) MulliganRule() botpolicy.MulliganRule { return b.mulligan }
 
 // SkipLifePlans makes the bot treat an offered payment action whose plan pays
 // life as having no plan, so its policy sees the ordinary options for that
@@ -216,6 +305,15 @@ func NewAttackSimBot(seed uint64, p botpolicy.AttackSimParams) *Bot {
 // simulation (NewAttackSimBot).
 func (b *Bot) CombatSim() bool { return b.attackSim != nil }
 
+// AttackSimParams returns the combat-sim parameters the bot was built with and
+// true, or the zero value and false when it has no combat sim.
+func (b *Bot) AttackSimParams() (botpolicy.AttackSimParams, bool) {
+	if b.attackSim == nil {
+		return botpolicy.AttackSimParams{}, false
+	}
+	return *b.attackSim, true
+}
+
 // NewCastProfileBot returns the cast-profile policy playing the named
 // embedded profile (today: the default one). The only error is an embedded
 // profile that fails its own strict loader -- never reachable for a valid
@@ -253,6 +351,11 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	// rules. The zero value leaves brd unchanged, so the default bot is
 	// unaffected.
 	brd.Targets = b.targets
+	brd.Removal = b.removal
+	brd.Posture = b.posture
+	brd.Timing = b.timing
+	brd.AIHints = b.aiHints
+	brd.Attach = b.attach
 	if b.autoPayMana {
 		if in, ok := b.paymentIntent(brd, d); ok {
 			return in
@@ -725,25 +828,33 @@ func BoardFromView(v view.View) botpolicy.Board {
 				printedName = cv.Name
 			}
 			b.Cards.Set(cv.ID, botpolicy.Card{
-				PrintedName:   printedName,
-				Creature:      isCreatureView(cv),
-				Power:         cv.Power,
-				Toughness:     cv.Toughness,
-				CMC:           botpolicy.CmcOf(cv.ManaCost),
-				Basic:         hasBasicView(cv),
-				Land:          hasTypeView(cv, "Land"),
-				Colour:        cv.ColourIdentity,
-				TypeSig:       botpolicy.TypeSigOf(strings.Fields(cv.Types)),
-				AttachedTo:    cv.AttachedTo,
-				Activated:     cv.ActivatedThisTurn,
-				ManaCost:      cv.ManaCost,
-				Castable:      castable(cv),
-				OnBattlefield: battlefield,
-				Tapped:        cv.Tapped,
-				Sick:          cv.SummonSick,
-				Produces:      produces,
-				InstantSpeed:  instantSpeedView(cv),
-				Counter:       cv.SpellAPI == "Counter",
+				PrintedName:    printedName,
+				Creature:       isCreatureView(cv),
+				Power:          cv.Power,
+				Toughness:      cv.Toughness,
+				CMC:            botpolicy.CmcOf(cv.ManaCost),
+				Basic:          hasBasicView(cv),
+				Land:           hasTypeView(cv, "Land"),
+				Colour:         cv.ColourIdentity,
+				TypeSig:        botpolicy.TypeSigOf(strings.Fields(cv.Types)),
+				AttachedTo:     cv.AttachedTo,
+				Activated:      cv.ActivatedThisTurn,
+				ManaCost:       cv.ManaCost,
+				Castable:       castable(cv),
+				OnBattlefield:  battlefield,
+				Tapped:         cv.Tapped,
+				Sick:           cv.SummonSick,
+				Produces:       produces,
+				InstantSpeed:   instantSpeedView(cv),
+				Counter:        cv.SpellAPI == "Counter",
+				Draw:           cv.SpellAPI == "Draw",
+				Token:          cv.SpellAPI == "Token",
+				RemovalKind:    cv.RemovalKind,
+				RemovalTargets: cv.RemovalTargets,
+				RemovalDamage:  cv.RemovalDamage,
+				PlayMain1:      cv.PlayMain1,
+				RemoveDeck:     cv.RemoveDeck,
+				AuraLogic:      cv.AuraLogic,
 			})
 		}
 	}
@@ -760,17 +871,23 @@ func BoardFromView(v view.View) botpolicy.Board {
 					}
 				}
 				b.Cards.Set(cv.ID, botpolicy.Card{
-					PrintedName: printedName,
-					Creature:    isCreatureView(cv),
-					Power:       cv.Power,
-					Toughness:   cv.Toughness,
-					CMC:         botpolicy.CmcOf(cv.ManaCost),
-					Basic:       hasBasicView(cv),
-					Land:        hasTypeView(cv, "Land"),
-					Colour:      cv.ColourIdentity,
-					TypeSig:     botpolicy.TypeSigOf(strings.Fields(cv.Types)),
-					ManaCost:    cv.ManaCost,
-					Activated:   cv.ActivatedThisTurn,
+					PrintedName:    printedName,
+					Creature:       isCreatureView(cv),
+					Power:          cv.Power,
+					Toughness:      cv.Toughness,
+					CMC:            botpolicy.CmcOf(cv.ManaCost),
+					Basic:          hasBasicView(cv),
+					Land:           hasTypeView(cv, "Land"),
+					Colour:         cv.ColourIdentity,
+					TypeSig:        botpolicy.TypeSigOf(strings.Fields(cv.Types)),
+					ManaCost:       cv.ManaCost,
+					Activated:      cv.ActivatedThisTurn,
+					RemovalKind:    cv.RemovalKind,
+					RemovalTargets: cv.RemovalTargets,
+					RemovalDamage:  cv.RemovalDamage,
+					PlayMain1:      cv.PlayMain1,
+					RemoveDeck:     cv.RemoveDeck,
+					AuraLogic:      cv.AuraLogic,
 				})
 			}
 			continue

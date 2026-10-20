@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -368,25 +369,33 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				instantSpeed = hasTypeWord(words, "Instant") || hasFlash(ch.Keywords(id))
 			}
 			*b.Cards.slot(id) = Card{
-				PrintedName:   f.Name,
-				Creature:      hasTypeWord(words, "Creature"),
-				Power:         power,
-				Toughness:     toughness,
-				CMC:           cmcOfFace(f),
-				Basic:         hasTypeWord(words, "Basic"),
-				Land:          hasTypeWord(words, "Land"),
-				Colour:        cards.ColourMask(f.ColourIdentity()),
-				TypeSig:       TypeSigOf(words),
-				AttachedTo:    o.AttachedTo,
-				Activated:     o.ActivatedThisTurn,
-				ManaCost:      f.ManaCost,
-				Castable:      castable,
-				OnBattlefield: z == state.ZBattlefield,
-				Tapped:        o.Tapped,
-				Sick:          o.SummonSick,
-				Produces:      f.ManaProduction(),
-				InstantSpeed:  instantSpeed,
-				Counter:       isCounterSpell(f),
+				PrintedName:    f.Name,
+				Creature:       hasTypeWord(words, "Creature"),
+				Power:          power,
+				Toughness:      toughness,
+				CMC:            cmcOfFace(f),
+				Basic:          hasTypeWord(words, "Basic"),
+				Land:           hasTypeWord(words, "Land"),
+				Colour:         cards.ColourMask(f.ColourIdentity()),
+				TypeSig:        TypeSigOf(words),
+				AttachedTo:     o.AttachedTo,
+				Activated:      o.ActivatedThisTurn,
+				ManaCost:       f.ManaCost,
+				Castable:       castable,
+				OnBattlefield:  z == state.ZBattlefield,
+				Tapped:         o.Tapped,
+				Sick:           o.SummonSick,
+				Produces:       f.ManaProduction(),
+				InstantSpeed:   instantSpeed,
+				Counter:        isCounterSpell(f),
+				Draw:           spellAPIIs(f, "Draw"),
+				Token:          spellAPIIs(f, "Token"),
+				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
+				PlayMain1:      f.PlayMain1Hint(),
+				RemoveDeck:     f.RemoveDeck != "",
+				AuraLogic:      effects.CastAuraLogic(f),
 			}
 		}
 	}
@@ -451,17 +460,23 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			f := o.Face()
 			words := effectiveTypeWords(f, id, ch)
 			*b.Cards.slot(id) = Card{
-				PrintedName: f.Name,
-				Creature:    hasTypeWord(words, "Creature"),
-				Power:       power,
-				CMC:         cmcOfFace(f),
-				Basic:       hasTypeWord(words, "Basic"),
-				Land:        hasTypeWord(words, "Land"),
-				Colour:      cards.ColourMask(f.ColourIdentity()),
-				TypeSig:     TypeSigOf(words),
-				ManaCost:    f.ManaCost,
-				Toughness:   toughness,
-				Activated:   o.ActivatedThisTurn,
+				PrintedName:    f.Name,
+				Creature:       hasTypeWord(words, "Creature"),
+				Power:          power,
+				CMC:            cmcOfFace(f),
+				Basic:          hasTypeWord(words, "Basic"),
+				Land:           hasTypeWord(words, "Land"),
+				Colour:         cards.ColourMask(f.ColourIdentity()),
+				TypeSig:        TypeSigOf(words),
+				ManaCost:       f.ManaCost,
+				Toughness:      toughness,
+				Activated:      o.ActivatedThisTurn,
+				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
+				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
+				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
+				PlayMain1:      f.PlayMain1Hint(),
+				RemoveDeck:     f.RemoveDeck != "",
+				AuraLogic:      effects.CastAuraLogic(f),
 			}
 		}
 	}
@@ -565,6 +580,13 @@ func isCounterSpell(f *cards.Face) bool {
 	return sa != nil && sa.API == "Counter"
 }
 
+// spellAPIIs reports whether f's primary spell ability is api (one
+// SpellAbility lookup, not two).
+func spellAPIIs(f *cards.Face, api string) bool {
+	sa := f.SpellAbility()
+	return sa != nil && sa.API == api
+}
+
 // ownCreature is the creature census entry the Cards pass may reuse for id:
 // only an own battlefield card, and only when the census was filled from
 // the combined characteristics query.
@@ -603,6 +625,22 @@ func canBlockLike(a, b Creature) bool {
 // engine's exact resolution would cost a slightly off bot move, not a
 // replay violation.
 func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
+	return blockCombatDS(a, block, false)
+}
+
+// blockCombatDS is blockCombat with Double Strike optionally honoured in a
+// blocked combat (CR 702.4b: the creature deals damage in the first-strike
+// step and again in the regular one; a creature killed in the first-strike
+// step neither hits back nor takes regular damage). With doubleStrike false,
+// or when no participant has Double Strike, it is exactly blockCombat's
+// model; the engine-side decisions keep that, the attack-sim opts in.
+func blockCombatDS(a Creature, block []Creature, doubleStrike bool) (aDead bool, dead []bool) {
+	if doubleStrike {
+		doubleStrike = a.hasKeyword("Double Strike")
+		for i := range block {
+			doubleStrike = doubleStrike || block[i].hasKeyword("Double Strike")
+		}
+	}
 	dead = make([]bool, len(block))
 	aRem := a.remTough()
 	taken := make([]int32, len(block))
@@ -610,7 +648,11 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 	var aTaken int32
 	aDT := false // a took Deathtouch damage from some blocker
 	rem := func(i int) int32 { return block[i].remTough() }
-	fsA := a.hasKeyword("First Strike")
+	dsA := doubleStrike && a.hasKeyword("Double Strike")
+	fsA := a.hasKeyword("First Strike") || dsA
+	dsB := func(i int) bool { return doubleStrike && block[i].hasKeyword("Double Strike") }
+	fsB := func(i int) bool { return block[i].hasKeyword("First Strike") || dsB(i) }
+	deadNow := func(i int) bool { return taken[i] >= rem(i) || dt[i] }
 
 	// aAssign is one full attack round: a's power to the blockers in order,
 	// every blocker but the last capped at its own need, the last absorbing
@@ -646,10 +688,43 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 		}
 	}
 	aLethal := func() bool { return aTaken >= aRem || aDT }
+	// deadFS is who the first-strike step killed (Double Strike only).
+	deadFS := make([]bool, len(block))
+	// aAssign2 is a Double Strike attacker's regular-step round: the blockers
+	// the first-strike step killed are gone, each live one but the last takes
+	// only what it still needs, the last absorbs the remainder.
+	aAssign2 := func() {
+		last := -1
+		for i := range block {
+			if !deadFS[i] {
+				last = i
+			}
+		}
+		remaining := a.Power
+		for i := range block {
+			if remaining <= 0 {
+				break
+			}
+			if deadFS[i] {
+				continue
+			}
+			give := remaining
+			if need := rem(i) - taken[i]; i != last && give > need {
+				give = need
+			}
+			if give > 0 {
+				taken[i] += give
+				if a.hasKeyword("Deathtouch") {
+					dt[i] = true
+				}
+			}
+			remaining -= give
+		}
+	}
 
 	anyFS := fsA
 	for i := range block {
-		anyFS = anyFS || block[i].hasKeyword("First Strike")
+		anyFS = anyFS || fsB(i)
 	}
 	if anyFS {
 		// First-strike step: participants with First Strike deal, then the
@@ -660,24 +735,39 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 			aAssign()
 		}
 		for i := range block {
-			if block[i].hasKeyword("First Strike") {
+			if fsB(i) {
 				aHit(i)
 			}
 		}
 		if aLethal() {
+			if doubleStrike {
+				for i := range block {
+					dead[i] = deadNow(i)
+				}
+			}
 			return true, dead
+		}
+		if doubleStrike {
+			for i := range block {
+				deadFS[i] = deadNow(i)
+			}
 		}
 		// Regular step: a (unless it is first-strike, which already dealt)
 		// and every surviving blocker without First Strike deal, all
 		// simultaneous.
 		if !fsA {
 			aAssign()
+		} else if dsA {
+			aAssign2()
 		}
 		for i := range block {
-			if block[i].hasKeyword("First Strike") {
+			if fsB(i) && !dsB(i) {
 				continue
 			}
-			if taken[i] >= rem(i) || dt[i] {
+			if doubleStrike && deadFS[i] {
+				continue
+			}
+			if !doubleStrike && deadNow(i) {
 				continue // a's first-strike step already killed this one
 			}
 			aHit(i)
@@ -689,7 +779,7 @@ func blockCombat(a Creature, block []Creature) (aDead bool, dead []bool) {
 		}
 	}
 	for i := range block {
-		dead[i] = taken[i] >= rem(i) || dt[i]
+		dead[i] = deadNow(i)
 	}
 	return aLethal(), dead
 }
@@ -1342,6 +1432,8 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// AR4: hold back a best blocker if attacking leaves nobody to block
 	// with. Zero remaining after the attack (attackers tap without
 	// Vigilance) plus an opponent that could attack back is the trigger;
+	// A4's armed aggro posture releases the hold when the whole crack-back
+	// cannot kill us (posture.go's aggroReleasesBlocker).
 	// only blockable attackers are candidates, since an unblockable one is
 	// the way a defensive board still wins. Task m34 generalizes the M1
 	// check from the single defender to ANY opponent: "leave the board
@@ -1367,7 +1459,7 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 			break
 		}
 	}
-	if canStillBlock == 0 && anyOppThreat && len(chosen) > 0 {
+	if canStillBlock == 0 && anyOppThreat && len(chosen) > 0 && !b.aggroReleasesBlocker(me) {
 		hold := -1 // position in chosen, NOT an option index -- the slice
 		// below cuts at it (a latent M1 bug wrote the option index here,
 		// which only happened to equal the position while every attacker

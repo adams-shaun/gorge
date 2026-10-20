@@ -55,13 +55,25 @@ import (
 // frame encoding gained a field, so every prefix digest moves; the fixture
 // is still 126 frames, so no game moved. Attributed by tagging only that
 // field json:"-": the old digests return byte-for-byte.
+//
+// Re-pinned for the A1 removal-now port (view.CardView.RemovalKind,
+// RemovalTargets, RemovalDamage): the frame encoding gained three fields, so
+// every prefix digest moves; the fixture is still 126 frames, so no game
+// moved. Attributed by tagging the three fields json:"-": the old digests
+// return byte-for-byte.
+//
+// Re-pinned for the A3 Forge AI-hint port (view.CardView.PlayMain1,
+// RemoveDeck): the frame encoding gained two fields, so every prefix that
+// holds a card moves; frames 1 and 2 are unchanged, and the fixture is still
+// 126 frames. Attributed by tagging the two fields json:"-": the old digests
+// return byte-for-byte.
 func TestHistoryDigestMatchesTheJSONBoardEncoding(t *testing.T) {
 	f := benchRoot(t)
 	golden := map[int]string{
-		1:   "c48c384948f92c34562b52c1ad77b87af7da85a0e14f842ede37f635a73190a8",
-		2:   "6348be7ff5bd05d4546333252e95ba816ba3a9abc352a1c01bb13f82c7484491",
-		17:  "5496d673b2c5c95805236dc61591a5550d44c89c9dafbb554a5d4c078f969dab",
-		126: "b20c30b405b168c031b76164d58e26769f835b0107fd3cf64fc6483267e16407",
+		1:   "eb77b4df406ee3db808816480f72360cbaecfc64acd3fa386cbe22e9a257a25d",
+		2:   "7fa1857b7ddc2870f028ee7eed62545ce07eb7a76f85f180b9b0a3cab3a7d2ef",
+		17:  "46cd7c41ac1ef71e2d3c2ccb78521caba8b376b5ee6ddcf7165392e58a7bd71a",
+		126: "3356066bc15df434045d133da5274fb99cffde50799b5b71f873810ce477ce56",
 	}
 	if len(f.h.Frames) != 126 {
 		t.Fatalf("bench fixture has %d frames, the goldens were measured on 126", len(f.h.Frames))

@@ -7,9 +7,13 @@ merged fix. The worked example is the first outside contribution to gorge,
 Sight* on top of its library let its owner cast it from there. Both cards
 were reading their own static ability in a zone where it does not function.
 
-You need the corpus fetched and compiled first (`make fetch-cards
-compile-cards`; see [Getting started](../getting-started.md)). Terms in
+It is for a contributor fixing their first bug. You need the corpus fetched
+and compiled first (`make fetch-cards compile-cards`), and if you work in a
+git worktree, `.cards` linked into it; see [Contributing](index.md). Terms in
 *italics* are defined in the [glossary](glossary.md).
+
+*Helper locations and the example test re-checked on `develop` @
+`ad3777023`, 2026-10-20.*
 
 ## 1. Confirm and triage
 
@@ -29,8 +33,9 @@ into a commit, a test or an issue.
 
 **Check that it is not already known or deliberate.**
 
-- `AGENTS.md`'s *Known approximations* table lists primitives that knowingly
-  behave more narrowly than the card text.
+- [`AGENTS.md`](https://github.com/adams-shaun/gorge/blob/main/AGENTS.md)'s
+  *Known approximations* table lists primitives that knowingly behave more
+  narrowly than the card text.
 - `docs/design/2026-09-22-engine-contracts.md` lists behaviour
   that is a deliberate contract, not a bug.
 - `engine/rules/testdata/known-unsupported/` names repo-deck cards the build
@@ -246,9 +251,10 @@ Then check that the existing ratchets agree (see [Testing](testing.md)):
 
 ## 6. Gates and the PR
 
-Run the [PR checklist](https://github.com/adams-shaun/gorge/blob/main/CONTRIBUTING.md#pr-checklist):
+Run the [PR checklist](index.md#commits-and-pull-requests):
 gofmt, `go vet` on the touched packages, `go run ./cmd/gentypes -check` if
 `server/protocol` changed, the focused tests (with `.cards/` present), `make
 sim`, and `TestHeads`. Then write the commit message the way `git show
 786510b3f` does: the rule and its CR number, what was wrong and where, what
-you measured, and the gates you ran.
+you measured, and the gates you ran. Open the pull request against
+`develop`.

@@ -44,6 +44,9 @@ func NewLoader() *Loader {
 	return &Loader{fset: fset, imp: importer.ForCompiler(fset, "source", nil).(types.ImporterFrom)}
 }
 
+// FileSet is the file set every package this Loader checks is parsed into.
+func (l *Loader) FileSet() *token.FileSet { return l.fset }
+
 // Lookup type-checks pkgPath and returns its package-level type name.
 func (l *Loader) Lookup(pkgPath, name string) (types.Type, error) {
 	pkg, err := l.imp.ImportFrom(pkgPath, ".", 0)
@@ -377,6 +380,9 @@ func (c *comments) structDoc(t *types.Named) string {
 	return c.pkg(t).structs[t.Obj().Name()]
 }
 
+// typeDoc returns the doc comment above any named type, or "".
+func (c *comments) typeDoc(t *types.Named) string { return c.structDoc(t) }
+
 // fieldDoc returns the doc comment above a struct field, or "".
 func (c *comments) fieldDoc(t *types.Named, field string) string {
 	pc := c.pkg(t)
@@ -510,19 +516,21 @@ func collectStructComments(pc *pkgComments, f *ast.File, overwrite bool) {
 			if !ok {
 				continue
 			}
-			st, ok := ts.Type.(*ast.StructType)
-			if !ok {
-				continue
-			}
 			// A single type declaration hangs its comment on the GenDecl's Doc,
 			// not the TypeSpec's; a grouped `type ( ... )`'s comments live on
 			// each TypeSpec. Prefer the TypeSpec, fall back to the GenDecl.
+			// Every named type's doc is kept (typeDoc reads a non-struct's for
+			// the JSON Schema enums); structDoc is only ever asked of a struct.
 			doc := commentText(ts.Doc)
 			if doc == "" {
 				doc = commentText(gd.Doc)
 			}
 			if doc != "" && (overwrite || pc.structs[ts.Name.Name] == "") {
 				pc.structs[ts.Name.Name] = doc
+			}
+			st, ok := ts.Type.(*ast.StructType)
+			if !ok {
+				continue
 			}
 			if len(st.Fields.List) == 0 {
 				continue

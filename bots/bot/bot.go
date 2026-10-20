@@ -17,13 +17,25 @@ func init() {
 	}, New: newBot})
 }
 
-func newBot(o bots.Options) (seat.Seat, error) {
-	var s seat.Seat
+// Base builds the production bot's policy, unwrapped: the two-ply combat
+// simulation for attacks and blocks with auto-pay mana on auto-pay tables, the
+// plain heuristic bot otherwise. Policies that layer rules over the production
+// bot (forge-heuristic) start from it so they share its combat play.
+func Base(o bots.Options) *heuristic.Bot {
+	return BaseWithSim(o, botpolicy.DefaultAttackSimParams())
+}
+
+// BaseWithSim is Base with caller-supplied combat-sim parameters. The
+// parameters apply only when o.AutoPayMana is set; otherwise there is no sim.
+func BaseWithSim(o bots.Options, p botpolicy.AttackSimParams) *heuristic.Bot {
 	if o.AutoPayMana {
-		s = heuristic.NewAttackSimBot(o.Seed, botpolicy.DefaultAttackSimParams()).EnableAutoPayMana()
-	} else {
-		s = heuristic.NewBot(o.Seed)
+		return heuristic.NewAttackSimBot(o.Seed, p).EnableAutoPayMana()
 	}
+	return heuristic.NewBot(o.Seed)
+}
+
+func newBot(o bots.Options) (seat.Seat, error) {
+	s := Base(o)
 	if o.CommonSense {
 		return sanity.Wrap(s), nil
 	}

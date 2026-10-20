@@ -36,7 +36,7 @@ import (
 func (c Creature) threat() int32 {
 	v := c.Power*3 + c.remTough()*2
 	if !c.Tapped {
-		v += 6
+		v += threatUntapped
 	}
 	if c.hasKeyword("Flying") {
 		v += 16
@@ -55,6 +55,9 @@ func (c Creature) threat() int32 {
 	}
 	return v
 }
+
+// threatUntapped is what threat() adds for an untapped creature.
+const threatUntapped int32 = 6
 
 // faceScore is what pointing a targetable-at-player effect at the
 // opponent's face is worth on the PLAIN ranking path (rankOption), the one
@@ -680,6 +683,12 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 		return nil
 	}
 	me := d.Player
+	// A6: a timing rule that names the only sensible target (a counter at
+	// the foreign spell on top of the stack) answers before the ordinary
+	// removal ranking; Clamp tops up any Min it leaves short.
+	if idx, ok := b.timingTargetPick(d); ok {
+		return []int{idx}
+	}
 
 	// R5: how many targets to produce, decided here independently of clamp.
 	pick := d.Min
@@ -712,11 +721,13 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	// null/absent amount all take the plain path -- the unknown-is-no rule
 	// collapses into one branch, never assumed lethal per call site.
 	var rank func(decision.Option) targetRank
-	leadOwn := false
+	leadOwn, ownAsc := false, false
 	if dmg, ok := b.effectDamage(d); ok {
 		rank = b.effectRankerAfter(me, dmg, b.pendingSpellCost(d.Source))
 	} else if d.TargetEffect != nil && (d.TargetEffect.API == "Counter" || d.TargetEffect.Removal != nil) {
 		rank = b.removalRanker(me, d.TargetEffect)
+	} else if b.Attach.Enabled() && d.TargetEffect != nil && d.TargetEffect.API == "Attach" {
+		rank, leadOwn, ownAsc = b.attachRanking(d)
 	} else if beneficialGrant(d.TargetEffect) {
 		// A one-way boon (Whirler Rogue's "can't be blocked"): the target
 		// is the seat's OWN board, ranked by what the boon is worth to
@@ -843,7 +854,11 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 		byScore(foreign)
 		pickFrom(foreign)
 		if len(choices) < pick {
-			byScore(own)
+			if ownAsc {
+				byScoreAsc(own) // a curse forced onto our own board costs least on the weakest.
+			} else {
+				byScore(own)
+			}
 			pickFrom(own)
 		}
 	}

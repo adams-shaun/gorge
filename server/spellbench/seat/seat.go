@@ -3,7 +3,6 @@
 package seat
 
 import (
-	"bufio"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -87,7 +86,7 @@ type Agent struct {
 	cancel context.CancelFunc
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
-	reader *bufio.Reader
+	reader *wire.Reader
 }
 
 // New builds a v2 agent seat. argv is the agent command line; the first
@@ -199,7 +198,7 @@ func (a *Agent) start() error {
 	}
 	a.cmd = cmd
 	a.stdin = stdin
-	a.reader = bufio.NewReaderSize(stdout, 1<<20)
+	a.reader = wire.NewReader(stdout)
 	return nil
 }
 
@@ -374,7 +373,7 @@ func (a *Agent) roundTrip(ctx context.Context, req any) ([]byte, error) {
 		}
 		return nil, fmt.Errorf("%w: write: %v", errTransport, err)
 	}
-	line, err := a.reader.ReadBytes('\n')
+	line, err := a.reader.ReadLine()
 	if err != nil {
 		if ctx != nil && ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -734,8 +733,16 @@ func (a *Agent) EndMatch(result bots.MatchResult) {
 		if a.forfeit != "" {
 			classification = "forfeit"
 			outcome = ""
-			reason = "forfeit:" + a.forfeit
 			winner = otherSeat(a.mc)
+			reason = "forfeit:" + a.forfeit
+		}
+		// The protocol has no empty outcome: a forfeit is the opponent's win
+		// and any other unfinished game is "halted".
+		if outcome == "" {
+			outcome = "halted"
+			if classification == "forfeit" && winner != "" {
+				outcome = winner + "_win"
+			}
 		}
 		var wp *string
 		if winner != "" {

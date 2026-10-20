@@ -56,6 +56,31 @@ type Board struct {
 	// board fact, so it is filled by the seat constructor that arms it, not
 	// by either adapter's walk.
 	Targets TargetRules
+	// Removal selects the opt-in A1 removal-now rule (removalnow.go). The
+	// zero value leaves every cast decision exactly as it was; like Targets
+	// it is policy configuration, not a board fact, so the arming constructor
+	// fills it rather than either adapter's walk.
+	Removal RemovalRules
+	// Attach selects the opt-in A5 attach rules (attachrules.go). The zero
+	// value leaves every target and ability decision exactly as it was; like
+	// Removal it is policy configuration, not a board fact, so the arming
+	// constructor fills it rather than either adapter's walk.
+	Attach AttachRules
+	// Timing selects the opt-in A6 "is now a good time" rules (timing.go).
+	// The zero value leaves every cast and tap decision exactly as it was;
+	// like Removal it is policy configuration, not a board fact, so the
+	// arming constructor fills it rather than either adapter's walk.
+	Timing TimingRules
+	// AIHints selects the opt-in A3 Forge AI-hint rules (aihints.go). The
+	// zero value leaves the cast scorer exactly as it was; like Targets and
+	// Removal it is policy configuration, not a board fact, so only the
+	// arming constructor fills it.
+	AIHints AIHints
+	// Posture selects the opt-in A4 deck-shape posture (posture.go). The
+	// zero value leaves every combat and cast decision exactly as it was;
+	// like AIHints it is policy configuration, not a board fact, so only the
+	// arming constructor fills it.
+	Posture PostureRules
 	// Creatures is every creature on every battlefield, keyed by object id:
 	// the attacker and blocker census the combat heuristic reads. Both
 	// adapters fill it from public facts only — a battlefield is public
@@ -517,6 +542,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// is nothing to pay for, so the land drop below is reached with
 			// unmade taps instead of exhausted ones.
 			if pick := b.chooseTap(d); pick >= 0 {
+				in.Choices = []int{pick}
+				return Clamp(d, in)
+			}
+		}
+		// A6: outside a main phase the ordinary tap gate does not run, so a
+		// manual seat could never float mana toward a counter (or the other
+		// timed instants) the rules allow. When a rule is armed and a timed
+		// tap exists, take it; otherwise the ordinary flow is unchanged.
+		if !b.IsMain && b.Timing.Enabled() {
+			if pick := b.timedTap(d); pick >= 0 {
 				in.Choices = []int{pick}
 				return Clamp(d, in)
 			}

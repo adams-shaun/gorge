@@ -382,6 +382,12 @@ type table struct {
 	// started is guarded by Registry.mu, not mu below. See the struct doc.
 	started bool
 
+	// review marks a table AddReviewTable registered (server/host/review.go):
+	// one recorded match in history, no slots, no run loop. Set before the
+	// table is registered and never changed, so it is read without a lock.
+	// Start is a no-op for it and info() reports it as TableInfo.Review.
+	review bool
+
 	mu    sync.RWMutex
 	state string // protocol.Table*
 	// reason is the halt error's message, set by Registry.halt; empty
@@ -437,7 +443,7 @@ func (t *table) info() protocol.TableInfo {
 	info := protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
 		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual,
 		Format: t.cfg.Format.String(), BotPolicy: t.cfg.BotPolicy, Mulligans: t.cfg.Mulligans, AutoMana: t.cfg.AutoMana,
-		Series: t.cfg.Series, Event: t.cfg.Event != ""}
+		Series: t.cfg.Series, Event: t.cfg.Event != "", Review: t.review}
 	// SeatNames come from the live match's own seat list — the same
 	// []protocol.SeatInfo that MatchStart carries — so the two can never
 	// drift. cur is guarded by t.mu, which we already hold; reading its

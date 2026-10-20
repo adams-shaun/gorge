@@ -93,6 +93,18 @@ func (b Board) tapWants(d *decision.Decision) bool {
 		if c := &cs[i]; !c.Castable || c.CMC <= 0 {
 			continue
 		}
+		// AIHints: chooseCast refuses a RemoveDeck card while the rule is
+		// armed, so floating mana toward it is pure waste. Zero value reads
+		// no hint and leaves the gate untouched.
+		if b.aiHintsVetoCast(cs[i]) {
+			continue
+		}
+		// A1: a held removal spell is not a tap need -- chooseCast refuses
+		// it (removalNow false), so floating mana toward it only empties at
+		// step end. With every rule off castHeld is false for every card.
+		if b.castHeld(d, keys[i]) {
+			continue
+		}
 		if !tapTarget(d, keys[i]) {
 			continue
 		}
@@ -245,6 +257,18 @@ func (b Board) bestUnpayable(d *decision.Decision, offered [5]bool) (state.ObjID
 			continue
 		}
 		id, c := keys[i], cs[i]
+		// AIHints: a vetoed RemoveDeck card is never the tap gate's intended
+		// spell (see tapWants). CastableNow and TapIntent both reach the card
+		// through this fold, so the skip covers them too.
+		if b.aiHintsVetoCast(c) {
+			continue
+		}
+		// A1: a held removal spell is never the tap gate's intended spell
+		// (castHeld); see tapWants. CastableNow and TapIntent both reach
+		// the card through this fold, so the skip covers them too.
+		if b.castHeld(d, id) {
+			continue
+		}
 		if !tapTarget(d, id) {
 			continue
 		}
@@ -370,6 +394,15 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	if !ok {
 		return -1
 	}
+	return b.tapToward(d, c)
+}
+
+// tapToward picks the "activate" option that best advances card c toward
+// castability in this window. It is the tail of chooseTap extracted verbatim
+// (T1/T3 and the colour-need ranking), so a timing rule that has already
+// chosen its intended card (timedTap) uses the same tap ranking as the main
+// phase.
+func (b Board) tapToward(d *decision.Decision, c Card) int {
 	castOffered := false
 	for oi := range d.Options {
 		o := &d.Options[oi]
@@ -523,6 +556,17 @@ func (b Board) AnyCastableNow(player state.PlayerID, d *decision.Decision) bool 
 	offered := b.offeredColours(d)
 	for id, c := range b.Cards.All() {
 		if !c.Castable || c.CMC <= 0 || !tapTarget(d, id) {
+			continue
+		}
+		// AIHints: a vetoed RemoveDeck card is not a cast this policy would
+		// make, so it cannot justify a plan-less window's tap (see tapWants).
+		if b.aiHintsVetoCast(c) {
+			continue
+		}
+		// A1: a held removal spell is not a cast this policy would make, so
+		// it cannot be the stranded cast that justifies a plan-less window's
+		// tap (castHeld; see tapWants).
+		if b.castHeld(d, id) {
 			continue
 		}
 		if b.poolPays(id, c) {

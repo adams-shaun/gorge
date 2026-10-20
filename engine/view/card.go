@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -66,6 +67,49 @@ type CardView struct {
 	// from any other cast. A hidden hand's cards are never projected as
 	// CardViews at all, so this never leaks hidden information.
 	SpellAPI string `json:"spell_api,omitempty"`
+	// RemovalKind names the one-shot removal shape of SpellAPI: "destroy",
+	// "damage", or "bounce". Empty means the card is not one of the shapes
+	// the cast policy holds. It is derived from the same printed ability
+	// SpellAPI names, so it is a visible card fact, never hidden information.
+	RemovalKind string `json:"removal_kind,omitempty"`
+	// RemovalTargets is the coarse target scope of that same removal
+	// ability, read off its ValidTgts$ alternatives' base tokens:
+	// "creature" when they name creatures and no players, "player" when
+	// they name players and no creatures, "any" when they name both, and
+	// "" when they name neither (an artifact or land destruction spell, a
+	// graveyard move). It is derived from the same printed ability as
+	// RemovalKind and never set without it, so it is a visible card fact.
+	// The bot policy's removal-now hold rule reads it to know whether a
+	// spell could even aim at a creature (the threat gate) or at a player
+	// (the lethal-face shortcut).
+	RemovalTargets string `json:"removal_targets,omitempty"`
+	// RemovalDamage is the literal NumDmg$ of that same removal ability
+	// when it is a plain integer, 0 when it is absent, dynamic ({X}, an
+	// SVar) or not positive. Like RemovalKind it is a printed card fact of
+	// a visible card. The hold rule reads it as the spell's damage against
+	// an opponent's projected life: a literal damage figure at or above a
+	// player's life total is a lethal face target, so the removal is worth
+	// firing now. A 0 answers "unknown", never "no damage" -- the policy
+	// treats an unknown figure as no face candidate at all.
+	RemovalDamage int32 `json:"removal_damage,omitempty"`
+	// PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
+	// "ALWAYS", "TRUE" (cast in the first main while the caster controls a
+	// creature) or "OPPONENTCREATURES" (while an opponent does), and "" for
+	// no hint. It is a printed deck-builder hint of a visible card, never
+	// hidden information. The opt-in AIHints cast rule reads it; the default
+	// bot ignores it.
+	PlayMain1 string `json:"play_main1,omitempty"`
+	// RemoveDeck reports that the card carries an `AI:RemoveDeck` deck-builder
+	// hint (Forge's "the AI does not know how to play this card"). It is a
+	// printed fact of a visible card, projected so the opt-in AIHints cast
+	// policy can veto it; the default bot ignores it.
+	RemoveDeck bool `json:"remove_deck,omitempty"`
+	// AuraLogic is the AttachAILogic hint ("Pump", "Curse", ...) of a card
+	// whose spell is an Aura aimed at a creature, "" for every other card.
+	// It is a printed deck-builder hint of a visible card. The opt-in A5
+	// attach rules read it to hold a boon Aura while the caster controls no
+	// creature that could use it.
+	AuraLogic string `json:"aura_logic,omitempty"`
 	// ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
 	// the printed cost's pips, the colour indicator and every colour-naming
 	// mana symbol in the rules text -- CR 903.4's definition, the same one
@@ -581,12 +625,18 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		// "identity unknown or colourless" -- the colour fold treats an
 		// empty identity as no evidence, never as colourless evidence.
 		cv.ColourIdentity = cards.ColourMask(f.ColourIdentity())
+		cv.PlayMain1 = f.PlayMain1Hint()
+		cv.RemoveDeck = f.RemoveDeck != ""
 		// The spell-ability API projection: the card's own SP$ line, the
 		// same fact boardFromGame reads for the casting census. Empty when
 		// the card has no spell ability (a creature, a land, a permanent
 		// with only activated abilities).
 		if sa := f.SpellAbility(); sa != nil {
 			cv.SpellAPI = sa.API
+			cv.RemovalKind = effects.CastRemovalKind(sa)
+			cv.RemovalTargets = effects.CastRemovalTargets(sa)
+			cv.RemovalDamage = effects.CastRemovalDamage(sa)
+			cv.AuraLogic = effects.CastAuraLogic(f)
 		}
 		// The mana-production projection (Task dp2): what tapping this card
 		// puts in the pool, from its own abilities. A nil pointer keeps a card

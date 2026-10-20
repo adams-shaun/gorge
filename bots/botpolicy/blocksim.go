@@ -100,6 +100,7 @@ func (b Board) chooseBlockersSim(d *decision.Decision, p *AttackSimParams) []int
 	sort.Slice(sortedAtk, func(i, j int) bool { return sortedAtk[i] < sortedAtk[j] })
 
 	w := newSimWorld(b, me, opp)
+	w.rules = p.Combat
 	eval := func(assign []int) (int64, bool) {
 		blocks := make(map[state.ObjID][]state.ObjID, len(atkOrder))
 		for k, ai := range assign {
@@ -187,6 +188,11 @@ func (b Board) chooseBlockersSim(d *decision.Decision, p *AttackSimParams) []int
 		none[k] = -1
 	}
 	climb(none)
+	if p.Combat.GangBlocks {
+		if seed, ok := b.gangSeed(baseAssign, blkOrder, choices, atkOrder); ok {
+			climb(seed)
+		}
+	}
 	if bestScore <= baseScore+p.Margin {
 		return base
 	}

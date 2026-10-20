@@ -38,8 +38,8 @@ func (p mulliganFunc) Answer(b Board, d *decision.Decision) ([]int, bool) {
 }
 
 // mulliganRegistry is the ordered registry: index == MulliganRule id. The
-// four built-ins register first in init() so their ids stay the existing
-// constants (Coin=0, Lands=1, Never=2, Constructed=3).
+// built-ins register first in init() so their ids stay the existing
+// constants (Coin=0, Lands=1, Never=2, Constructed=3, Forge=4).
 var mulliganRegistry []MulliganPolicy
 
 // RegisterMulligan appends p and returns its id (its index, usable as a
@@ -104,6 +104,9 @@ func init() {
 	}})
 	RegisterMulligan(mulliganFunc{name: "constructed", answer: func(b Board, d *decision.Decision) ([]int, bool) {
 		return mulliganAskAnswer(d, b.keepConstructed, func() []int { return b.landBottoming(d) })
+	}})
+	RegisterMulligan(mulliganFunc{name: "forge", answer: func(b Board, d *decision.Decision) ([]int, bool) {
+		return mulliganAskAnswer(d, b.keepForge, func() []int { return b.forgeBottoming(d) })
 	}})
 }
 

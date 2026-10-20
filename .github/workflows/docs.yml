@@ -1,5 +1,6 @@
 # Build the public documentation site (mkdocs.yml, docs/site/) and publish it
-# to GitHub Pages.
+# to GitHub Pages. Every push to develop and every PR runs the same strict
+# build as a check; only main (push, cron, manual run) deploys.
 #
 # The set-support table is no longer measured here: the compliance oracle
 # that measures it (oraclediff) lives in gorge-compliance
@@ -12,7 +13,16 @@ name: docs
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
+    paths:
+      - docs/site/**
+      - mkdocs.yml
+      - scripts/docs_sets.py
+      - cmd/pkgmap/**
+      - .github/workflows/docs.yml
+  # A PR (develop -> main above all) builds the site strictly but never
+  # deploys it, so a broken link fails before it reaches the public site.
+  pull_request:
     paths:
       - docs/site/**
       - mkdocs.yml
@@ -30,7 +40,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -68,15 +78,33 @@ jobs:
             echo "no perf-data branch yet; the tracking page shows 'no data yet'"
           fi
 
+      # gorge-compliance's nightly compliance job publishes its per-set status
+      # (Level A for every set, Level B for the printed sets) to its orphan
+      # docs-data branch. Without it the set page shows its hand snapshot.
+      - name: Fetch the per-set compliance status
+        run: |
+          if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
+            d=$(mktemp -d)
+            for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done
+            commit=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$d/meta.json")
+            date=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["date"])' "$d/meta.json")
+            python3 scripts/docs_sets.py "$d/status-A.jsonl" --level-b "$d/status-B.jsonl" --commit "$commit" --date "$date"
+          else
+            echo "no gorge-compliance docs-data branch yet; the set page shows its hand snapshot"
+          fi
+
       - name: Build the site
         run: mkdocs build --strict
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: site
 
+  # Only main publishes; develop pushes and PRs stop at the strict build.
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

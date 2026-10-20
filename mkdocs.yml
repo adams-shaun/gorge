@@ -27,23 +27,31 @@ theme:
   name: material
   features:
     - navigation.sections
+    - navigation.tabs
+    - navigation.indexes
+    - content.tabs.link
     - navigation.instant
     - navigation.top
     - content.code.copy
     - content.action.edit
     - search.highlight
+  font:
+    text: Schibsted Grotesk
+    code: Spline Sans Mono
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep orange
-      accent: deep orange
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep orange
-      accent: deep orange
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -64,32 +72,80 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
   - pymdownx.snippets:
       base_path: [docs/site]
       check_paths: false
+
+extra_css:
+  - stylesheets/diagrams.css
+  - stylesheets/theme.css
 
 extra_javascript:
   - javascripts/perf-tracking.js
 
 nav:
-  - Home: index.md
-  - Getting started: getting-started.md
+  - Home:
+      - index.md
+      - Getting started: getting-started.md
+      - The three repos: repos/index.md
+  - Architecture:
+      - architecture/index.md
+      - gorge kernel:
+          - Events and replay: architecture/gorge/events.md
+          - Game loop and decisions: architecture/gorge/game-loop.md
+          - Cards and primitives: architecture/gorge/cards.md
+          - The rules core: architecture/gorge/rules.md
+          - Views and hidden information: architecture/gorge/views.md
+          - The server tier: architecture/gorge/server.md
+      - dirty-dirac kernel:
+          - architecture/dirty-dirac/index.md
+          - State: architecture/dirty-dirac/state.md
+          - Step and Apply: architecture/dirty-dirac/step-apply.md
+          - Cards: architecture/dirty-dirac/cards.md
+          - Verification: architecture/dirty-dirac/oracle.md
+          - Search: architecture/dirty-dirac/search.md
+      - Invariants: architecture/invariants.md
+      - Packages: architecture/packages.md
+      - Cleanup roadmap: architecture/cleanup.md
   - Contributing:
+      - contributing/index.md
+      - Repository layout: contributing/repo-layout.md
       - Your first card fix: contributing/first-card-fix.md
       - Testing: contributing/testing.md
       - The card pipeline: contributing/card-pipeline.md
       - Glossary: contributing/glossary.md
-  - Architecture:
-      - Overview: architecture/overview.md
-      - Packages: architecture/packages.md
-      - Invariants: architecture/invariants.md
-      - Cleanup roadmap: architecture/cleanup.md
+  - User's guide:
+      - guide/index.md
+      - Install and build: guide/install.md
+      - Play in the browser: guide/play.md
+      - Bot-vs-bot games: guide/bot-games.md
+      - Troubleshooting: guide/troubleshooting.md
+  - Bots:
+      - bots/index.md
+      - Writing a native Go bot: bots/native-go.md
+      - Playing a seat over HTTP: bots/http.md
+      - Python and Java examples: bots/examples.md
+      - SpellBench v2 agents: bots/spellbench.md
+      - Training and adoption: bots/training-and-adoption.md
+      - Interface review: bots/interfaces-review.md
+  - API reference:
+      - api/index.md
+      - HTTP API: api/http.md
+      - Event stream (SSE): api/sse.md
+      - Wire protocol: api/protocol.md
+      - SpellBench v2: api/spellbench-v2.md
+      - Go embedding API: api/go.md
   - Performance:
+      - performance/index.md
+      - Methodology: performance/methodology.md
       - Engine speed: performance/engine.md
-      - Bots and learned policies: performance/bots.md
+      - "Bots: cost and strength": performance/bots.md
       - Tracking over time: performance/tracking.md
-  - Research:
-      - Bot training and adoption: research/bots.md
   - Card support:
       - Support by set: support/sets.md
       - Regenerating the tables: support/regenerating.md

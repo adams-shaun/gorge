@@ -1,7 +1,13 @@
 # The card pipeline
 
 How a Forge card script becomes behaviour in a game, and how gorge measures
-which cards it can play.
+which cards it can play: the contributor's how-to view, for someone about to
+change a card, a parser or a primitive. The runtime internals (the IR types
+in depth, how the engine dispatches primitives during play) are in
+[the card pipeline architecture page](../architecture/gorge/cards.md).
+
+*Function names and files re-checked on `develop` @ `ad3777023`,
+2026-10-20.*
 
 ```mermaid
 flowchart LR
@@ -108,7 +114,7 @@ is a card's missing primitives. An empty result means the card is
 *playable*. `Registry.Coverage` aggregates that over the corpus.
 
 ```sh
-make report     # cards: N  playable: M (P%), then the top missing primitives by cards unlocked
+make report     # cards: 34074  playable: 32082 (94.2%) on 2026-10-20, then the top missing primitives
 make coverage   # the same as markdown tables in .coverage/ (gitignored), by type, colour, mana value
 ```
 
@@ -121,7 +127,7 @@ that gap:
 - the oracle scenarios, which check behaviour against the printed text;
 - the compliance oracles, which compare gorge with XMage and Forge.
 
-Both live in the public companion repository [gorge-compliance](https://github.com/adams-shaun/gorge-compliance),
+The scenarios and the oracles live in the public companion repository [gorge-compliance](https://github.com/adams-shaun/gorge-compliance),
 which measures a pinned gorge revision; the results are summarised on the
 sets page.
 

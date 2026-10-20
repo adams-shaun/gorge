@@ -1,0 +1,532 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adams-shaun.github.io/gorge/api/schemas/spellbench-v2/responses.schema.json",
+  "title": "SpellBench v2 responses (gorge)",
+  "description": "Engine-role responses (engine to host) as server/spellbench/env and protocol/messages.go write them, and agent-role responses (agent to host) as gorged's seat reads them.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/engine_response"
+    },
+    {
+      "$ref": "#/$defs/agent_response"
+    }
+  ],
+  "$defs": {
+    "engine_error_code": {
+      "description": "server/spellbench/protocol/errors.go, in order.",
+      "enum": [
+        "malformed_json",
+        "malformed_request",
+        "protocol_mismatch",
+        "request_id_reuse_mismatch",
+        "step_before_reset",
+        "game_already_active",
+        "game_id_mismatch",
+        "expected_step_mismatch",
+        "candidate_id_out_of_range",
+        "semantic_echo_mismatch",
+        "unsupported_format",
+        "unsupported_deck",
+        "deck_id_mismatch",
+        "unsupported_rule",
+        "unsupported_request",
+        "probe_refused",
+        "game_already_terminal"
+      ]
+    },
+    "agent_error_code": {
+      "description": "Agent-role error codes seen in the SpellBench v2 goldens. gorge's agent emits malformed_json, malformed_request and internal_error.",
+      "enum": [
+        "malformed_json",
+        "malformed_request",
+        "protocol_mismatch",
+        "decision_pending",
+        "game_already_active",
+        "unknown_game",
+        "internal_error"
+      ]
+    },
+    "engine_hello_ok": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "hello_ok"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "protocol_minor": {
+          "$ref": "common.schema.json#/$defs/u32"
+        },
+        "engine": {
+          "$ref": "common.schema.json#/$defs/Engine"
+        },
+        "formats": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deck_sources": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "catalog",
+              "decklist"
+            ]
+          }
+        },
+        "catalog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "catalog_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "decklist": {
+                "$ref": "common.schema.json#/$defs/Decklist"
+              }
+            },
+            "required": [
+              "catalog_id",
+              "name",
+              "decklist"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "rules_supported": {
+          "$ref": "common.schema.json#/$defs/RulesSupported"
+        },
+        "observation": {
+          "$ref": "common.schema.json#/$defs/ObservationFlags"
+        },
+        "decision_kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "semantic.schema.json#/$defs/kind_name"
+          }
+        },
+        "engine_defaults": {
+          "$ref": "common.schema.json#/$defs/EngineDefaults"
+        },
+        "rewind": {
+          "type": "boolean"
+        },
+        "fairness": {
+          "type": "object",
+          "properties": {
+            "noninterference_probe": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "noninterference_probe"
+          ],
+          "additionalProperties": false
+        },
+        "extensions": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/Extension"
+          }
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id",
+        "protocol_minor",
+        "engine",
+        "formats",
+        "deck_sources",
+        "catalog",
+        "rules_supported",
+        "observation",
+        "decision_kinds",
+        "engine_defaults",
+        "rewind",
+        "fairness",
+        "extensions"
+      ],
+      "additionalProperties": false
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "decision"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "step": {
+          "$ref": "common.schema.json#/$defs/u53"
+        },
+        "seat_decision": {
+          "$ref": "common.schema.json#/$defs/SeatDecision"
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id",
+        "game_id",
+        "step",
+        "seat_decision",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "terminal": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "terminal"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "game_id": {
+          "$ref": "common.schema.json#/$defs/game_id"
+        },
+        "outcome": {
+          "enum": [
+            "p0_win",
+            "p1_win",
+            "draw",
+            "truncated",
+            "halted"
+          ]
+        },
+        "classification": {
+          "enum": [
+            "natural",
+            "truncated",
+            "halted"
+          ]
+        },
+        "winner": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/seat"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "step_count": {
+          "$ref": "common.schema.json#/$defs/u53"
+        },
+        "decision_count": {
+          "$ref": "common.schema.json#/$defs/u53"
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "x_gorge": {
+          "description": "gorge extension, present only with engine auto-pay.",
+          "type": "object",
+          "properties": {
+            "autopay_fallbacks": {
+              "$ref": "common.schema.json#/$defs/u53"
+            }
+          },
+          "required": [
+            "autopay_fallbacks"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id",
+        "game_id",
+        "outcome",
+        "classification",
+        "winner",
+        "reason",
+        "step_count",
+        "decision_count",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "deck_ok": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "deck_ok"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "engine_error": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "error"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "description": "The request's id, or \"\" when it could not be read.",
+          "type": "string"
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/engine_error_code"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "agent_hello_ok": {
+      "description": "gorged's seat requires bot.name and bot.version; requires and extensions_accepted may be omitted; extra fields are ignored.",
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "hello_ok"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "bot": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "name",
+            "version"
+          ],
+          "additionalProperties": true
+        },
+        "requires": {
+          "type": "object",
+          "properties": {
+            "observation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "extensions": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/extension_name"
+              }
+            }
+          },
+          "required": [
+            "observation",
+            "extensions"
+          ],
+          "additionalProperties": true
+        },
+        "extensions_accepted": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/extension_name"
+          }
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id",
+        "bot"
+      ],
+      "additionalProperties": true
+    },
+    "ack": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "ack"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id"
+      ],
+      "additionalProperties": true
+    },
+    "choice": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "choice"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "$ref": "common.schema.json#/$defs/request_id"
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "$ref": "common.schema.json#/$defs/u32"
+            }
+          },
+          "required": [
+            "candidate_id"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id",
+        "selection"
+      ],
+      "additionalProperties": true
+    },
+    "agent_error": {
+      "type": "object",
+      "properties": {
+        "response_type": {
+          "const": "error"
+        },
+        "protocol": {
+          "$ref": "common.schema.json#/$defs/protocol"
+        },
+        "request_id": {
+          "description": "The request's id, or \"\" when it could not be read.",
+          "type": "string"
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/agent_error_code"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "response_type",
+        "protocol",
+        "request_id",
+        "error"
+      ],
+      "additionalProperties": true
+    },
+    "engine_response": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/engine_hello_ok"
+        },
+        {
+          "$ref": "#/$defs/decision"
+        },
+        {
+          "$ref": "#/$defs/terminal"
+        },
+        {
+          "$ref": "#/$defs/deck_ok"
+        },
+        {
+          "$ref": "#/$defs/engine_error"
+        }
+      ]
+    },
+    "agent_response": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/agent_hello_ok"
+        },
+        {
+          "$ref": "#/$defs/ack"
+        },
+        {
+          "$ref": "#/$defs/choice"
+        },
+        {
+          "$ref": "#/$defs/agent_error"
+        }
+      ]
+    }
+  }
+}

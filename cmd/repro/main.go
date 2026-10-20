@@ -25,6 +25,13 @@
 // corpus is a moving pin), and repro says so when it happens, naming the
 // first event where the replay parted ways with the recording.
 //
+// A match record file (server/matchrecord, `<id>.match.json.gz`, the
+// record a bot driver writes per game) is accepted anywhere a feedback
+// directory is: `repro <file>`, `-at`, `-list` and `-omniscient` all work on
+// it, replayed against the local corpus. `-emit-test` takes a feedback
+// directory only: a record holds every hidden card of a real game and is
+// never committed into a test package.
+//
 // Flags may come before or after the directory: `repro <dir> -at 0` and
 // `repro -at 0 <dir>` are equivalent.
 //
@@ -50,6 +57,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/divergence"
+	"github.com/adams-shaun/gorge/server/matchrecord"
 	"github.com/adams-shaun/gorge/testkit/testutil/feedback"
 )
 
@@ -68,12 +76,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if fs.NArg() != 1 {
-		fmt.Fprintln(stderr, "usage: repro <feedback-dir> [-at N] [-list] [-omniscient] [-emit-test <pkg>]")
+		fmt.Fprintln(stderr, "usage: repro <feedback-dir|record.match.json.gz> [-at N] [-list] [-omniscient] [-emit-test <pkg>]")
 		return 2
 	}
 	dir := fs.Arg(0)
 
-	l, cfg, meta, err := feedback.Load(dir)
+	l, cfg, meta, title, err := load(dir, stdout)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 2
@@ -101,6 +109,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	if *emit != "" {
+		if title.record {
+			// A match record holds every hidden card of a real game and must
+			// never be committed; -emit-test exists to commit its input.
+			fmt.Fprintln(stderr, "repro: -emit-test takes a feedback directory; a match record is never committed into a test package")
+			return 2
+		}
 		if err := emitTest(*emit, dir, meta, stdout); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 2
@@ -120,8 +134,62 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	printSummary(e, l, n, meta, *omniscient, stdout)
+	printSummary(e, l, n, meta, title, *omniscient, stdout)
 	return 0
+}
+
+// source says what repro was pointed at: a feedback snapshot directory or
+// a match record file (server/matchrecord), and how to title its summary.
+type source struct {
+	record bool
+	header string
+}
+
+// load reads the replay input at path. A directory is a feedback snapshot
+// (feedback.Load); anything else is a match record file
+// (<id>.match.json.gz), loaded through matchrecord.Load against the same
+// corpus feedback.Load uses and adapted to the snapshot's Meta so every
+// mode (-at, -list, -omniscient) runs unchanged. A record pinned to a
+// different corpus than the local .cards prints a warning first: its
+// replay is then expected to diverge.
+func load(path string, stdout io.Writer) (*events.Log, rules.Config, feedback.Meta, source, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, rules.Config{}, feedback.Meta{}, source{}, fmt.Errorf("repro: %w", err)
+	}
+	if fi.IsDir() {
+		l, cfg, meta, err := feedback.Load(path)
+		return l, cfg, meta, source{header: fmt.Sprintf("feedback report %s (table %s, match %d)", meta.ID, meta.Table, meta.Match)}, err
+	}
+	reg, err := feedback.Corpus()
+	if err != nil {
+		return nil, rules.Config{}, feedback.Meta{}, source{}, err
+	}
+	rec, cfg, err := matchrecord.Load(path, reg)
+	if err != nil {
+		return nil, rules.Config{}, feedback.Meta{}, source{}, err
+	}
+	if root, err := feedback.Root(); err == nil && rec.Producer.ForgeRef != "" {
+		if local := matchrecord.ForgeRef(filepath.Join(root, ".cards")); local != "" && local != rec.Producer.ForgeRef {
+			fmt.Fprintf(stdout, "warning: the record was played against corpus %s, the local .cards is %s; expect DIVERGED\n",
+				rec.Producer.ForgeRef, local)
+		}
+	}
+	id := strings.TrimSuffix(filepath.Base(path), matchrecord.Ext)
+	meta := feedback.Meta{
+		Dir: path, ID: id, Head: rec.Head, IntentCount: len(rec.Log.Intents), Seats: len(rec.Match.DeckCards),
+	}
+	p := rec.Producer
+	header := fmt.Sprintf("match record %s (tool %s, policies %s, gorge %s)", id,
+		orDash(p.Tool), orDash(strings.Join(p.Policies, " v ")), orDash(p.GorgeCommit))
+	return rec.Log, cfg, meta, source{record: true, header: header}, nil
+}
+
+func orDash(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
 }
 
 // replayCapture verifies every recorded intent and event, then checks the
@@ -159,7 +227,7 @@ func printDivergence(w io.Writer, err error) {
 // decision and the last ~20 described log lines. It reads the engine's own
 // pending decision (server-side shape) rather than the projected one —
 // repro is a triage tool, not a seat.
-func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, omniscient bool, stdout io.Writer) {
+func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, src source, omniscient bool, stdout io.Writer) {
 	g := e.G
 	vis := view.Public
 	if omniscient {
@@ -168,7 +236,7 @@ func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, omn
 	v := view.ProjectFor(g, e, view.NoSeat, vis, nil)
 	v.Round = view.RoundOf(g, e.L.Events)
 
-	fmt.Fprintf(stdout, "== feedback report %s (table %s, match %d) ==\n", meta.ID, meta.Table, meta.Match)
+	fmt.Fprintf(stdout, "== %s ==\n", src.header)
 	if meta.Report != "" {
 		fmt.Fprintf(stdout, "snapshot: %s\n", meta.Report)
 	}
