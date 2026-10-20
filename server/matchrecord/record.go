@@ -133,6 +133,11 @@ func Write(path string, r *Record) (err error) {
 	if err = zw.Close(); err != nil {
 		return fmt.Errorf("matchrecord: write %s: %w", path, err)
 	}
+	// CreateTemp makes the file owner-only; a record is an ordinary output
+	// file of its run, readable the way the run's other outputs are.
+	if err = f.Chmod(0o644); err != nil {
+		return fmt.Errorf("matchrecord: write %s: %w", path, err)
+	}
 	if err = f.Close(); err != nil {
 		return fmt.Errorf("matchrecord: write %s: %w", path, err)
 	}

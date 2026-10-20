@@ -20,8 +20,11 @@ const module = "github.com/adams-shaun/gorge"
 //     botbench and dzgorge), the gorge dependency's module version, whose
 //     pseudo-version carries the pinned commit.
 //
-// It is empty when no stamp exists: `go test` and `go run` binaries carry
-// no vcs settings. Provenance only; nothing replays from it.
+// It is empty when no stamp exists (`go test` binaries carry no vcs
+// settings). The stamp is the toolchain's: a binary built inside a git
+// worktree nested in another checkout (gorge's .worktrees/<id>) is stamped
+// with the OUTER checkout's revision, because the go command finds the
+// outer .git directory first. Provenance only; nothing replays from it.
 func GorgeCommit() string {
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
