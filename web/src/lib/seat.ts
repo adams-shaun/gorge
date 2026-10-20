@@ -17,7 +17,10 @@
  * (/t/{table}/m/{k}) carries no query, so without this a reload or a new tab
  * on a private play-vs-bot table's replay would load spectator-only and the
  * fenced REST reads would answer not-found. The remembered token is
- * re-validated through parseSeat before use.
+ * re-validated through parseSeat before use, and is restored ONLY on that
+ * match-replay path: a bare /t/{table} load stays spectator-only, as it was
+ * before this store existed. A seat the server refuses is forgotten
+ * (forgetTableSeat), so a stale token cannot bounce every later load.
  */
 
 import type { Decision, Intent } from '../protocol';
@@ -66,6 +69,15 @@ function tableOfPath(pathname: string): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+/**
+ * isMatchReplayPath is /t/{table}/m/{k}, the only path that restores a
+ * remembered seat. A bare /t/{table} load (a live table, a bookmark) keeps
+ * the pre-store spectator default even when the browser remembers a seat.
+ */
+function isMatchReplayPath(pathname: string): boolean {
+  return /^\/t\/[^/]+\/m\/[^/]+/.test(pathname);
+}
+
 function rememberSeat(table: string, ctx: SeatCtx): void {
   try {
     safeStorage()?.setItem(TABLE_KEY + table, JSON.stringify({ seat: ctx.seat, token: ctx.token }));
@@ -87,22 +99,46 @@ function rememberedSeat(table: string): SeatCtx | null {
 }
 
 let current: SeatCtx | null = null;
+let currentTable: string | null = null;
 
 /**
  * initSeatContext is called once at startup (main.ts) with location.search
  * and location.pathname. A join URL's seat is remembered for its table; a
- * bare table path (a match replay link, a reload) restores the remembered
- * seat for that table.
+ * match replay path (/t/{table}/m/{k}) restores the remembered seat for that
+ * table. Any other table path stays spectator-only.
  */
 export function initSeatContext(search: string, pathname = ''): SeatCtx | null {
   const table = tableOfPath(pathname);
   current = parseSeat(search);
+  currentTable = table;
   if (current) {
     if (table) rememberSeat(table, current);
     return current;
   }
-  if (table) current = rememberedSeat(table);
+  currentTable = null;
+  if (table && isMatchReplayPath(pathname)) {
+    current = rememberedSeat(table);
+    if (current) currentTable = table;
+  }
   return current;
+}
+
+/**
+ * forgetTableSeat drops a remembered seat the server refused (a redeployed
+ * gorged rejects every old token), and clears it from the live page context
+ * when it belongs to that table. Without this a stale token would be
+ * restored on every later match link and bounce the browser to the lobby.
+ */
+export function forgetTableSeat(table: string): void {
+  try {
+    safeStorage()?.removeItem(TABLE_KEY + table);
+  } catch {
+    /* best-effort */
+  }
+  if (currentTable === table) {
+    current = null;
+    currentTable = null;
+  }
 }
 
 /** getSeat returns the page's seat, if the join URL had one. */

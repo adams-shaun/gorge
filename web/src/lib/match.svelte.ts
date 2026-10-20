@@ -4,7 +4,7 @@ import { ApiError, fetchEvents, fetchMatches, fetchView } from './api';
 import { withBase } from './basepath';
 import { ViewCache } from './viewcache';
 import { turnStartsFrom } from './turns';
-import type { SeatCtx } from './seat';
+import { forgetTableSeat, type SeatCtx } from './seat';
 import { clientBreadcrumbs } from './breadcrumbs';
 import { ModelBus, stepTransitions } from './clientmodel/gorge';
 import type { ClientModelSource, ModelListener, PendingDecision } from './clientmodel/types';
@@ -290,10 +290,14 @@ export class MatchState implements ClientModelSource {
   }
 
   // Seat claims are process-local and table-bound. A redeploy deliberately
-  // rejects an old join token; leave the stale table instead of swallowing
-  // that 401/403 forever and presenting a page that can never refresh.
+  // rejects an old join token; forget the remembered seat and leave the
+  // stale table instead of restoring that 401/403 on every later load and
+  // presenting a page that can never refresh.
   private leaveRejectedSeatClaim(e: unknown) {
-    if (this.seat && typeof location !== 'undefined' && e instanceof ApiError && (e.status === 401 || e.status === 403)) location.assign(withBase('/'));
+    if (this.seat && typeof location !== 'undefined' && e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+      forgetTableSeat(this.table);
+      location.assign(withBase('/'));
+    }
   }
 
   /** refreshLive is PL-16: one GET per burst, coalesced. */
