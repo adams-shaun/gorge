@@ -11,9 +11,17 @@
  * put in the transcript, never rendered, never echoed in an error message.
  * The render path (routes/components) receives only SeatCtx via getSeat,
  * and no component string ever interpolates `token`.
+ *
+ * The join URL's seat is also remembered per table in localStorage, exactly
+ * as eventseat.ts remembers an event seat. A table's match link
+ * (/t/{table}/m/{k}) carries no query, so without this a reload or a new tab
+ * on a private play-vs-bot table's replay would load spectator-only and the
+ * fenced REST reads would answer not-found. The remembered token is
+ * re-validated through parseSeat before use.
  */
 
 import type { Decision, Intent } from '../protocol';
+import { safeStorage } from './storage';
 
 /**
  * SeatTransport is an alternative game channel for the seat's answers (the
@@ -50,11 +58,50 @@ export function parseSeat(search: string): SeatCtx | null {
   return { seat: Number(seatRaw), token };
 }
 
+const TABLE_KEY = 'gorge.table.seat.';
+
+/** tableOfPath is the /t/{table} prefix of a pathname, or null for another route. */
+function tableOfPath(pathname: string): string | null {
+  const m = pathname.match(/^\/t\/([^/]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function rememberSeat(table: string, ctx: SeatCtx): void {
+  try {
+    safeStorage()?.setItem(TABLE_KEY + table, JSON.stringify({ seat: ctx.seat, token: ctx.token }));
+  } catch {
+    /* quota or private mode: the URL still carries the seat for this page */
+  }
+}
+
+function rememberedSeat(table: string): SeatCtx | null {
+  try {
+    const raw = safeStorage()?.getItem(TABLE_KEY + table);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<SeatCtx>;
+    if (typeof v.seat !== 'number' || typeof v.token !== 'string') return null;
+    return parseSeat(`?seat=${v.seat}&token=${encodeURIComponent(v.token)}`);
+  } catch {
+    return null;
+  }
+}
+
 let current: SeatCtx | null = null;
 
-/** initSeatContext is called once at startup (main.ts) with location.search. */
-export function initSeatContext(search: string): SeatCtx | null {
+/**
+ * initSeatContext is called once at startup (main.ts) with location.search
+ * and location.pathname. A join URL's seat is remembered for its table; a
+ * bare table path (a match replay link, a reload) restores the remembered
+ * seat for that table.
+ */
+export function initSeatContext(search: string, pathname = ''): SeatCtx | null {
+  const table = tableOfPath(pathname);
   current = parseSeat(search);
+  if (current) {
+    if (table) rememberSeat(table, current);
+    return current;
+  }
+  if (table) current = rememberedSeat(table);
   return current;
 }
 
