@@ -5,6 +5,7 @@
   import { seatColour } from '../lib/colours';
   import { pointerRelease } from '../lib/pointer';
   import { SPEEDS, STEP_UNITS, bandAt, intervalMs, stepTarget, turnBands, type StepUnit } from '../lib/replay';
+  import type { TimelineMark } from '../lib/review';
 
   /**
    * ReplayTransport is the DVR's bottom strip for every unseated view: the
@@ -22,6 +23,7 @@
     speed = $bindable(1),
     playing = $bindable(false),
     hotkeys = true,
+    marks = [],
   }: {
     dvr: DvrState;
     onAction: (a: DvrAction) => void;
@@ -32,6 +34,8 @@
     playing?: boolean;
     /** hotkeys binds Space/K and the arrows table-wide (an unseated view only). */
     hotkeys?: boolean;
+    /** marks are the review overlay's override/fallback ticks (a review table only). */
+    marks?: TimelineMark[];
   } = $props();
 
   const bands = $derived(turnBands(dvr, seats.length));
@@ -79,7 +83,7 @@
   // Scrubbing on the timeline: pointer position to seq, with capture so a
   // drag that leaves the strip keeps scrubbing.
   let track: HTMLDivElement | undefined = $state();
-  let hover = $state<{ x: number; seq: number } | null>(null);
+  let hover = $state<{ x: number; seq: number; mark: TimelineMark | null } | null>(null);
   function seqAt(clientX: number): number {
     if (!track) return dvr.cursor;
     const r = track.getBoundingClientRect();
@@ -95,7 +99,18 @@
   function onPointerMove(e: PointerEvent) {
     if (!track) return;
     const r = track.getBoundingClientRect();
-    const h = { x: e.clientX - r.left, seq: seqAt(e.clientX) };
+    const x = e.clientX - r.left;
+    // A mark within a few pixels of the pointer names itself in the tip.
+    let mark: TimelineMark | null = null;
+    let best = 5;
+    for (const m of marks) {
+      const d = Math.abs((Math.min(dvr.head, m.seq) / span) * r.width - x);
+      if (d <= best) {
+        best = d;
+        mark = m;
+      }
+    }
+    const h = { x, seq: seqAt(e.clientX), mark };
     hover = h;
     if (track.hasPointerCapture(e.pointerId)) onAction({ type: 'scrub', seq: h.seq });
   }
@@ -203,6 +218,13 @@
       <div class="played" style:width={pct(dvr.cursor)}></div>
       <div class="head" style:left={pct(dvr.cursor)}></div>
     </div>
+    {#if marks.length > 0}
+      <div class="marks" aria-hidden="true">
+        {#each marks as mk (mk.seq)}
+          <span class="mark mark-{mk.kind}" style:left={pct(mk.seq)}></span>
+        {/each}
+      </div>
+    {/if}
     <div class="rounds" aria-hidden="true">
       {#each bands as b (b.start)}
         {#if (b.turn - 1) % Math.max(1, seats.length) === 0 && (b.round === 1 || b.round % labelEvery === 0)}
@@ -212,7 +234,7 @@
     </div>
     {#if hover}
       <div class="tip" style:left={`${hover.x}px`} aria-hidden="true">
-        {hoverBand ? `Turn ${hoverBand.round}, ${seatName(hoverBand.player)}` : 'Setup'} <span class="tip-seq">event {hover.seq}</span>
+        {#if hover.mark}<span class="tip-mark tip-{hover.mark.kind}">{hover.mark.tip}</span>{:else}{hoverBand ? `Turn ${hoverBand.round}, ${seatName(hoverBand.player)}` : 'Setup'} <span class="tip-seq">event {hover.seq}</span>{/if}
       </div>
     {/if}
   </div>
@@ -354,7 +376,42 @@
     background: var(--gilt);
     box-shadow: 0 0 0 1px var(--felt-sunk);
     pointer-events: none;
+    z-index: 2;
   }
+  /* The review overlay's ticks: a thin stem through the lane with a cap
+     above it, verdigris for an override (the bot's alternative colour in
+     the decision panel), ember for a fallback. They sit under the playhead. */
+  .marks {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0.35rem;
+    height: 0.9rem;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .mark {
+    position: absolute;
+    top: -0.3rem;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+  }
+  .mark::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -2px;
+    width: 6px;
+    height: 4px;
+    border-radius: 1px;
+    background: inherit;
+  }
+  .mark-override { background: var(--verdigris); }
+  .mark-fallback { background: var(--ember); }
+  .tip-override { color: var(--verdigris); }
+  .tip-fallback { color: var(--ember); }
   .rounds {
     position: absolute;
     left: 0;
