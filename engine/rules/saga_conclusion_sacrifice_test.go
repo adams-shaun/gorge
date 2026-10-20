@@ -287,3 +287,51 @@ func TestSagaThatLostItsAbilitiesHasNoChapters(t *testing.T) {
 		t.Fatalf("Saga at lore 3 with its abilities back is in %s, want the graveyard", o.Zone)
 	}
 }
+
+// TestSagaConclusionIgnoresOpponentCauseRestriction: Sigarda, Host of Herons'
+// "spells and abilities your opponents control can't cause you to sacrifice
+// permanents" is a ValidCause$ SpellAbility.OppCtrl CantSacrifice static. It
+// does not stop the CR 704.5s SBA: an SBA has no cause, so an opponent's
+// ability merely sitting on the stack is not the reason the Saga is
+// sacrificed. Pre-fix SacrificeBlocked evaluated ValidCause$ against
+// actionCause() (that unrelated ability) and wrongly left the Saga on the
+// battlefield.
+func TestSagaConclusionIgnoresOpponentCauseRestriction(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	sagaCard := card(t, "Name:Cause Saga\nManaCost:1 W\nTypes:Enchantment Saga\n"+
+		"K:Chapter:2:DBGain,DBGain\n"+
+		"SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\n"+
+		"Oracle:I, II — You gain 1 life.\n")
+	relic := card(t, "Name:Opp Relic\nTypes:Artifact\n"+
+		"A:AB$ GainLife | Cost$ T | Defined$ You | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\n"+
+		"Oracle:{T}: You gain 1 life.\n")
+	e := corpusEngine(t, reg,
+		[]*cards.Card{sagaCard, lookup(t, reg, "Sigarda, Host of Herons")},
+		[]*cards.Card{relic})
+	saga := moveByName(t, e, 0, "Cause Saga", state.ZBattlefield)
+	moveByName(t, e, 0, "Sigarda, Host of Herons", state.ZBattlefield)
+	relicID := moveByName(t, e, 1, "Opp Relic", state.ZBattlefield)
+	sagaSettle(t, e, 80)
+	if got := e.G.Obj(saga).Counter("LORE"); got != 1 {
+		t.Fatalf("precondition: Saga entered with %d lore, want 1", got)
+	}
+	// The opponent's ability is the top of the stack at the SBA check.
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: relicID, Player: 1})
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Controller != 1 {
+		t.Fatalf("precondition: want one opponent-controlled ability on the stack, stack %v", e.G.Stack)
+	}
+	sagaAddLore(e, saga, 1) // chapter II
+	e.priorityRound()       // chapter II above the opponent's ability
+	if len(e.G.Stack) != 2 || e.G.Obj(e.G.Stack[1]).Source != saga {
+		t.Fatalf("precondition: want chapter II above the opponent's ability, stack %v", e.G.Stack)
+	}
+	e.resolveTop() // chapter II resolves; the opponent's ability stays
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Controller != 1 {
+		t.Fatalf("precondition: the opponent's ability should still be on the stack, stack %v", e.G.Stack)
+	}
+	e.checkStateBased()
+	if o := e.G.Obj(saga); o.Zone != state.ZGraveyard {
+		t.Fatalf("Saga is in %s while an opponent's unrelated ability is on the stack, want the graveyard (an SBA has no cause)", o.Zone)
+	}
+}

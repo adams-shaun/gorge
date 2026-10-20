@@ -173,9 +173,9 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 // never triggers this (a script defect, not a Saga). Reports whether anything
 // was sacrificed, for the SBA loop's fixed-point test. One attempt per Saga
 // per checkStateBased call (tried),
-// re-armed on an alive-set shrink like every other pass here, so a
-// replacement that permanently blocks the move burns one attempt, not the
-// whole pass budget.
+// re-armed on an alive-set shrink like every other pass here, so a replacement
+// or a can't-be-sacrificed restriction that permanently blocks the move burns
+// one attempt, not the whole pass budget.
 func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 	changed := false
 	// The battlefield snapshot the walk ranges (emit moves objects out
@@ -222,7 +222,7 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 				continue
 			}
 			markTried(&tried.sagas, id)
-			if e.SacrificeBlocked(id, false) {
+			if e.sacrificeBlockedBySBA(id) {
 				continue
 			}
 			e.emit(events.Sacrifice(id))
