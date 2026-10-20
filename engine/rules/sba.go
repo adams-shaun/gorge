@@ -1491,7 +1491,28 @@ func (e *Engine) checkGameOver() {
 // KChoose answer's dispatch and by the legend-rule SBA gate.
 func (e *Engine) dropDepartedFlow(d *decision.Decision) {
 	if d.Kind == decision.KCommanderZone && len(e.cmdZone) > 0 {
-		e.cmdZone = e.cmdZone[1:] // the released ask's parked move (CR 800.4a)
+		// The released ask's own parked move goes with it (CR 800.4a), and so
+		// does every entry behind it whose owner has left the game: their
+		// cards leave too, so there is nothing left to move. A living owner's
+		// entry stays -- and since the released ask was the one that would
+		// have handed the queue on (handleCmdZone's tail runs only on an
+		// answer), the new front is posed here. Left parked it would block
+		// every later commander's ask forever: commanderZoneSBA refuses to
+		// pose while the queue is non-empty.
+		e.cmdZone = e.cmdZone[1:]
+		kept := e.cmdZone[:0]
+		for _, pm := range e.cmdZone {
+			o := e.G.Obj(pm.obj)
+			if o != nil && int(o.Owner) < len(e.G.Players) && !e.G.Players[o.Owner].Lost {
+				kept = append(kept, pm)
+			}
+		}
+		e.cmdZone = kept
+		if len(e.cmdZone) > 0 && e.pending == nil {
+			if o := e.G.Obj(e.cmdZone[0].obj); o != nil && int(o.Owner) < len(e.G.Players) {
+				e.askCommandZone(o.Owner)
+			}
+		}
 	}
 	if e.cast != nil && (e.cast.player == d.Player || e.cast.player == d.Acting()) {
 		e.cast = nil

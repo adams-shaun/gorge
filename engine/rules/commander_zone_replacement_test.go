@@ -76,13 +76,13 @@ func assertAskCount(t *testing.T, l *events.Log, want int) {
 }
 
 // TestDestroyedCommanderOffersTheOwnerTheChoiceAndAcceptSendsItToTheCommandZone
-// is the SBA path of the acceptance's headline case: a commander destroyed
-// by lethal damage parks its graveyard-bound move and asks its OWNER; an
-// accept emits a real MoveZone to the command zone, so the commander lands
-// there and never touches the graveyard (the replacement-effect point: the
-// log holds no commander MoveZone to the graveyard at all). The decision
-// shape is pinned too: Min == Max == 1, options "command_zone" first then
-// "leave", Player the owner.
+// is the CR 903.9a acceptance headline: a commander destroyed by lethal
+// damage dies into its owner's graveyard for real (a logged
+// battlefield->graveyard MoveZone, CR 903.9a) and the state-based check then
+// asks its OWNER; an accept emits a graveyard->command-zone MoveZone, so the
+// commander ends up in the command zone having really touched the graveyard.
+// The decision shape is pinned too: Min == Max == 1, options "command_zone"
+// first then "leave", Player the owner.
 func TestDestroyedCommanderOffersTheOwnerTheChoiceAndAcceptSendsItToTheCommandZone(t *testing.T) {
 	t.Parallel()
 	e, _ := cmdZoneGame(t, [][]string{{tinyCmdSrc}, {}})
@@ -135,14 +135,13 @@ func TestDestroyedCommanderOffersTheOwnerTheChoiceAndAcceptSendsItToTheCommandZo
 }
 
 // TestDestroyedCommanderDeclineLetsTheGraveyardHappen is the "may" half: a
-// decline answers option 1 and the park is emitted verbatim, so the
-// commander goes to the graveyard exactly as it would have with no
-// commander rule at all. It is also the no-spin pin: after the decline the
-// engine advances through a real priority decision -- the SBA pass that
-// destroyed the commander does not re-offer the same choice (the attempted
-// set, the queue dedup and the "replacement applies only once" de-park
-// emit each close a re-offer arm), and the log carries exactly one
-// commander-zone ask.
+// decline answers option 1 and emits nothing (a CR 903.9a sba decline), so
+// the commander stays in the graveyard exactly as it would have with no
+// commander rule at all. It is also the no-spin pin: the choice is one-shot
+// -- the log scan collects each arrival once, and a commander not taken
+// stays put and is not re-offered until it arrives anew -- so the SBA pass
+// that destroyed the commander does not re-offer it, and the log carries
+// exactly one commander-zone ask.
 func TestDestroyedCommanderDeclineLetsTheGraveyardHappen(t *testing.T) {
 	t.Parallel()
 	e, _ := cmdZoneGame(t, [][]string{{tinyCmdSrc}, {}})
@@ -161,9 +160,8 @@ func TestDestroyedCommanderDeclineLetsTheGraveyardHappen(t *testing.T) {
 
 	// No-spin: after the decline the game continues (Submit's tail already
 	// advanced it) to a real decision, and the log never offers the choice
-	// again -- the SBA pass that destroyed the commander does not re-offer
-	// it (the attempted set, the queue dedup and the "replacement applies
-	// only once" de-park emit each close a re-offer arm).
+	// again -- the arrival was collected once by the log scan, and a
+	// commander not taken stays put until it arrives anew (CR 903.9a).
 	if d := e.Pending(); d == nil || d.Kind == decision.KCommanderZone {
 		t.Fatalf("after the decline the game must continue to a real decision, got %+v", d)
 	}
@@ -421,14 +419,12 @@ func TestNonCommanderCreatureIsNeverAsked(t *testing.T) {
 }
 
 // TestTwoCommandersParkedAtOnceAreAskedOneAtATime pins the queue: a burst
-// that would destroy two of the same owner's commanders (a board-wipe
-// shape, or one SBA pass finding two lethal) parks both but asks only one
-// decision at a time -- the first answer emits its move and hands the queue
-// to the second. Both accepts land both commanders in the command zone, and
-// the log carries exactly two commander-zone asks (never one, never three).
-// The dedup in parkCommanderZoneMove is what keeps the SBA pass that
-// re-runs between the two answers from re-parking the second commander
-// (the no-progress failure shape).
+// that would destroy two of the same owner's commanders parks both as CR
+// 903.9a arrivals (each a logged graveyard move in cmdZoneDue) but asks only
+// one decision at a time -- the first answer moves its commander, and the
+// state-based check that follows the answer (Submit's tail) asks the second.
+// Both accepts land both commanders in the command zone, and the log
+// carries exactly two commander-zone asks (never one, never three).
 func TestTwoCommandersParkedAtOnceAreAskedOneAtATime(t *testing.T) {
 	t.Parallel()
 	e, _ := cmdZoneGame(t, [][]string{{tinyCmdSrc, tinyCmdSrc2}, {}})

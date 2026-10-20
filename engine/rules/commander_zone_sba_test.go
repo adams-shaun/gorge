@@ -157,3 +157,58 @@ func TestCR903_9aDepartedOwnersAskDoesNotBlockLaterCommanders(t *testing.T) {
 		t.Fatalf("pending = %s for seat %d, want seat 1's commander_zone decision for its dead commander", pendingKind(d), d.Player)
 	}
 }
+
+// TestCR903_9aDepartedOwnersReleasedAskDoesNotStrandTheQueueBehindIt is the
+// multi-entry case of the departure release: two hand-bound (CR 903.9b)
+// parks in one burst -- seat 0's commander asked, seat 1's parked behind --
+// and then seat 0 loses at the same state-based check. Releasing seat 0's
+// ask (CR 800.4a) must drop seat 0's entry, keep seat 1's, and pose seat 1's
+// ask right there: the released ask was the one that would have handed the
+// queue on, and commanderZoneSBA refuses to pose while the queue is
+// non-empty, so a stranded entry would block every later commander-zone ask
+// for the rest of the game.
+func TestCR903_9aDepartedOwnersReleasedAskDoesNotStrandTheQueueBehindIt(t *testing.T) {
+	t.Parallel()
+	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{tinyCmdSrc}, {tinyCmdSrc2}, {}})
+	a := fieldCommander(t, e, 0, 0)
+	b := fieldCommander(t, e, 1, 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: a, From: state.ZBattlefield, To: state.ZHand})
+	if d := e.Pending(); d == nil || d.Kind != decision.KCommanderZone || d.Player != 0 {
+		t.Fatalf("fixture: pending after seat 0's hand-bound park = %s, want seat 0's commander_zone ask", pendingKind(d))
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: b, From: state.ZBattlefield, To: state.ZHand})
+	if len(e.cmdZone) != 2 {
+		t.Fatalf("fixture: %d parked moves, want 2 (seat 1's parked behind seat 0's ask)", len(e.cmdZone))
+	}
+	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: -40})
+
+	e.checkStateBased()
+
+	if !e.G.Players[0].Lost {
+		t.Fatal("fixture: seat 0 at 0 life must lose at the check")
+	}
+	if len(e.cmdZone) != 1 {
+		t.Fatalf("parked entries after the release = %d, want 1 (seat 1's; seat 0's dropped with the released ask)", len(e.cmdZone))
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KCommanderZone || d.Player != 1 || d.Source != b {
+		t.Fatalf("pending = %s for seat %d, want seat 1's commander_zone ask posed by the release", pendingKind(d), d.Player)
+	}
+	if got := e.G.Obj(b).Zone; got != state.ZBattlefield {
+		t.Fatalf("seat 1's commander zone while asked = %v, want battlefield (its move is still parked)", got)
+	}
+	submit(t, e, 0) // seat 1 accepts: into the command zone
+	if got := e.G.Obj(b).Zone; got != state.ZCommand {
+		t.Fatalf("accepted commander zone = %v, want command", got)
+	}
+	if len(e.cmdZone) != 0 {
+		t.Fatalf("parked entries after the answer = %d, want 0", len(e.cmdZone))
+	}
+	// The queue is clean, so a later commander death is asked as usual.
+	fieldCommanderByID(t, e, b)
+	e.G.Obj(b).Damage = 1
+	d = passPriorityUntilNonPriority(t, e)
+	if d.Kind != decision.KCommanderZone || d.Player != 1 {
+		t.Fatalf("pending after the later death = %s, want seat 1's commander_zone ask", pendingKind(d))
+	}
+}
