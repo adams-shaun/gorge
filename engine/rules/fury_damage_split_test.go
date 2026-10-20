@@ -1,11 +1,12 @@
 package rules
 
-// TestFuryDividesDamageAmongTargets pins DealDamage.DividedAsYouChoose$ as a
-// real player allocation, not the old deterministic round-robin stand-in:
-// after the target ask the engine poses a DISTINCT KChoose over exactly the
-// chosen targets (Min == Max == the named total, Repeatable), a non-round-
-// robin multiset is honoured, zero shares are legal, and the answer resumes
-// through the ordinary replay pathway.
+// TestFuryDividesDamageAmongTargets pins DealDamage.DividedAsYouChoose$ on a
+// triggered ability as a real player allocation announced while the trigger
+// is put on the stack (CR 603.3d, 601.2d): after the target ask the engine
+// poses a DISTINCT KChoose over exactly the chosen targets. Each target takes
+// at least 1, so the ask places the remaining points: Min == Max == total
+// minus the target count, Repeatable, an option's multiplicity being its
+// target's share above 1. A non-round-robin answer is honoured and replays.
 
 import (
 	"testing"
@@ -76,16 +77,17 @@ func furySetup(t *testing.T) (*Engine, Config, *decision.Decision, state.ObjID, 
 }
 
 // furyAllocationAsk answers the target ask with BOTH bears and returns the
-// distinct allocation decision it suspends on.
+// distinct division decision it suspends on (4 damage, 2 targets: each takes
+// 1 and the ask places the other 2).
 func furyAllocationAsk(t *testing.T, e *Engine, td *decision.Decision, bear1, bear2 state.ObjID) *decision.Decision {
 	t.Helper()
 	submitChoices(t, e, furyOptionForObj(t, td, bear1), furyOptionForObj(t, td, bear2))
 	ad := drainUntilAsk(t, e, 30)
-	if ad == nil || ad.Kind != decision.KChoose || ad.ResumeKind != "damage_split" {
-		t.Fatalf("allocation ask missing after target selection: %+v", ad)
+	if !isCastDivision(ad) {
+		t.Fatalf("division ask missing after target selection: %+v", ad)
 	}
-	if ad.Min != 4 || ad.Max != 4 || !ad.Repeatable {
-		t.Fatalf("allocation bounds = [%d,%d] repeatable=%v, want [4,4] repeatable", ad.Min, ad.Max, ad.Repeatable)
+	if ad.Min != 2 || ad.Max != 2 || !ad.Repeatable {
+		t.Fatalf("division bounds = [%d,%d] repeatable=%v, want [2,2] repeatable", ad.Min, ad.Max, ad.Repeatable)
 	}
 	if len(ad.Options) != 2 {
 		t.Fatalf("allocation offered %d options, want exactly the two chosen bears: %+v", len(ad.Options), ad.Options)
@@ -107,9 +109,9 @@ func TestFuryDividesDamageAmongTargets(t *testing.T) {
 	o1 := furyOptionForObj(t, ad, bear1)
 	o2 := furyOptionForObj(t, ad, bear2)
 	if err := ad.Validate(decision.Intent{Seq: ad.Seq, Player: ad.Player, Choices: []int{o1, o2, o1}}); err == nil {
-		t.Fatalf("a 3-damage total was accepted; the exact-total rule must reject it")
+		t.Fatalf("a 5-damage total was accepted; the exact-total rule must reject it")
 	}
-	if err := ad.Validate(decision.Intent{Seq: ad.Seq, Player: ad.Player, Choices: []int{o1, o1, o1, 99}}); err == nil {
+	if err := ad.Validate(decision.Intent{Seq: ad.Seq, Player: ad.Player, Choices: []int{o1, 99}}); err == nil {
 		t.Fatalf("an out-of-range recipient was accepted")
 	}
 	if o1 == o2 {
@@ -118,7 +120,7 @@ func TestFuryDividesDamageAmongTargets(t *testing.T) {
 
 	// Assign 3 to bear1 and 1 to bear2 -- NOT the round-robin 2/2. The damage
 	// assertions below can only hold if this answer was applied.
-	submitChoices(t, e, o1, o1, o1, o2)
+	submitChoices(t, e, o1, o1)
 	// passUntilStackEmpty fatals on any non-priority decision it does not
 	// recognise, so a re-posed target ask or a re-posed allocation ask fails
 	// here loudly: the answer must resume without repeating either.
@@ -137,10 +139,10 @@ func TestFuryDividesDamageAmongTargets(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestFuryDamageSplitAllowsZeroShare pins that a chosen target may receive
-// nothing while the full total is assigned elsewhere ("divided as you choose"
-// allows a zero share for any chosen target).
-func TestFuryDamageSplitAllowsZeroShare(t *testing.T) {
+// TestFuryDivisionFloorsEachTargetAtOne pins CR 601.2d's floor: every chosen
+// target receives at least 1, so no answer can put all 4 on one bear (the
+// whole answer places only the 2 above the floor).
+func TestFuryDivisionFloorsEachTargetAtOne(t *testing.T) {
 	t.Parallel()
 	e, _, td, bear1, bear2 := furySetup(t)
 	ad := furyAllocationAsk(t, e, td, bear1, bear2)
@@ -149,14 +151,17 @@ func TestFuryDamageSplitAllowsZeroShare(t *testing.T) {
 	if o1 == o2 {
 		t.Fatalf("precondition: the two shares must be distinguishable options, got %d and %d", o1, o2)
 	}
-	// All four on bear1; bear2 is chosen but takes zero.
-	submitChoices(t, e, o1, o1, o1, o1)
-	passUntilStackEmpty(t, e, 30)
-	if got := e.G.Obj(bear1).Damage; got != 4 {
-		t.Fatalf("bear1 damage = %d, want 4 (the whole total on one target)", got)
+	if err := ad.Validate(decision.Intent{Seq: ad.Seq, Player: ad.Player, Choices: []int{o1, o1, o1}}); err == nil {
+		t.Fatalf("an answer giving bear2 nothing was accepted; CR 601.2d floors each target at 1")
 	}
-	if got := e.G.Obj(bear2).Damage; got != 0 {
-		t.Fatalf("bear2 damage = %d, want 0 (a legal zero share)", got)
+	// Everything above the floor on bear1: 3 and 1.
+	submitChoices(t, e, o1, o1)
+	passUntilStackEmpty(t, e, 30)
+	if got := e.G.Obj(bear1).Damage; got != 3 {
+		t.Fatalf("bear1 damage = %d, want 3", got)
+	}
+	if got := e.G.Obj(bear2).Damage; got != 1 {
+		t.Fatalf("bear2 damage = %d, want 1 (the CR 601.2d floor)", got)
 	}
 }
 

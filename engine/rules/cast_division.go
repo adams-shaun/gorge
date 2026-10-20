@@ -183,3 +183,51 @@ func (e *Engine) recordCastDivision(pc *pendingCast) {
 	pc.divisionRecorded = true
 	e.emitDivision(pc.stackObj, pc.player, pc.division)
 }
+
+// chooseTrigDivision marks the CR 603.3d division ask of an ability being put
+// on the stack (placedDivisionAsk). 53 is the next free chooseFor value
+// (TestChooseForValuesAreDistinct).
+const chooseTrigDivision chooseFor = 53
+
+// placedDivisionTotal is divisionTotalFor for the root target declaration of
+// the ability object obj being put on the stack (CR 603.3d). A modal mode's
+// declaration (sa is not obj's own Ability) announces no division here.
+func (e *Engine) placedDivisionTotal(obj state.ObjID, sa *cards.SA) (int32, bool) {
+	o := e.G.Obj(obj)
+	if o == nil || o.Zone != state.ZStack || o.Ability == nil || sa == nil || o.Ability.Line != sa.Line {
+		return 0, false
+	}
+	return e.divisionTotalFor(sa, o.Controller, obj, 0)
+}
+
+// placedDivisionAsk announces the division of the ability object obj right
+// after its root targets were recorded (CR 603.3d imports 601.2c-d). The
+// controller announces it. One target, or a total equal to the target count,
+// is recorded without an ask. It returns true when it posed the ask.
+func (e *Engine) placedDivisionAsk(obj state.ObjID, sa *cards.SA) bool {
+	total, ok := e.placedDivisionTotal(obj, sa)
+	if !ok {
+		return false
+	}
+	o := e.G.Obj(obj)
+	n := len(o.Targets)
+	if n == 0 || total < int32(n) {
+		return false
+	}
+	if n > 1 && total > int32(n) {
+		e.choosing = chooseTrigDivision
+		e.ask(e.divisionDecision(o.Controller, obj, o.Targets, total))
+		return true
+	}
+	e.emitDivision(obj, o.Controller, floorDivision(n, total))
+	return false
+}
+
+// answerPlacedDivision records the placedDivisionAsk answer and continues the
+// placement exactly as the target answer would have.
+func (e *Engine) answerPlacedDivision(d *decision.Decision, chosen []decision.Option) {
+	if o := e.G.Obj(d.Source); o != nil && o.Zone == state.ZStack && len(o.Targets) == len(d.Options) {
+		e.emitDivision(d.Source, d.Player, divisionAnswer(len(d.Options), chosen))
+	}
+	e.finishPlacedTargets(d.Source, d.Player)
+}
