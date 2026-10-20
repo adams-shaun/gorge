@@ -31,7 +31,7 @@ func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
 		Label:       "Forge heuristic",
-		Description: "The production bot (combat simulation, auto-pay mana, common-sense wrap) plus the Forge rules: the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule, the A6 counter timing rule and the A3 Forge AI hints (PlayMain1 timing, RemoveDeck veto).",
+		Description: "The production bot (combat simulation, auto-pay mana, common-sense wrap) plus the Forge rules: the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule, the A6 counter timing rule the A3 Forge AI hints (PlayMain1 timing, RemoveDeck veto) and the A5 attach rules (aura polarity, carrier choice).",
 		Tier:        bots.Experimental,
 		Strength: []bots.Measurement{{
 			Claim:   "46.8% A [41.9, 51.6] vs bot over 400 games, indistinguishable from the 46.5% bot-vs-bot seat/deck control; measured before F0: no attack sim on auto-pay tables",
@@ -58,6 +58,9 @@ func New(o bots.Options) (seat.Seat, error) {
 		CounterTop: true,
 	}).EnableAIHints(botpolicy.AIHints{
 		Enabled: true,
+	}).EnableAttachRules(botpolicy.AttachRules{
+		AuraPolarity: true,
+		Carrier:      true,
 	})
 	if o.CommonSense {
 		return sanity.Wrap(b), nil

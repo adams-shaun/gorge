@@ -86,6 +86,9 @@ func (b Board) abilityScore(o decision.Option, me state.PlayerID) (score int32, 
 	if b.equipNoOp(o, me) {
 		return 0, false // A1: a provable no-op is never activated.
 	}
+	if b.equipNoCarrier(o, me) {
+		return 0, false // A5: no own creature could use the attachment.
+	}
 	if b.grantNoOp(o) {
 		return 0, false // A1: a redundant keyword grant is never activated.
 	}
