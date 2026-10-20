@@ -130,6 +130,8 @@ Anyone who opens a table without a seat token is a spectator. Spectators get
 a **DVR bar** to scrub back through the match (step, pause, a slider with turn
 ticks, back to *live*), and the log is open by default. Each finished match
 has a frozen replay at `/t/<table>/m/<k>`, linked from the table's match list.
+[Replays](replays.md) covers the transport, its keys and links, and
+`gorged review`, which adds every decision and the bots' reasoning.
 
 How much a spectator sees is the server's choice, never the client's:
 
