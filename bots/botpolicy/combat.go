@@ -391,6 +391,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
+				PlayMain1:      f.PlayMain1Hint(),
+				RemoveDeck:     f.RemoveDeck != "",
 			}
 		}
 	}
@@ -469,6 +471,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				RemovalKind:    effects.CastRemovalKind(f.SpellAbility()),
 				RemovalTargets: effects.CastRemovalTargets(f.SpellAbility()),
 				RemovalDamage:  effects.CastRemovalDamage(f.SpellAbility()),
+				PlayMain1:      f.PlayMain1Hint(),
+				RemoveDeck:     f.RemoveDeck != "",
 			}
 		}
 	}

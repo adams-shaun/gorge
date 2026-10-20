@@ -334,6 +334,22 @@ export interface CardView {
    */
   removal_damage?: number;
   /**
+   * PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
+   * "ALWAYS", "TRUE" (cast in the first main while the caster controls a
+   * creature) or "OPPONENTCREATURES" (while an opponent does), and "" for
+   * no hint. It is a printed deck-builder hint of a visible card, never
+   * hidden information. The opt-in AIHints cast rule reads it; the default
+   * bot ignores it.
+   */
+  play_main1?: string;
+  /**
+   * RemoveDeck reports that the card carries an `AI:RemoveDeck` deck-builder
+   * hint (Forge's "the AI does not know how to play this card"). It is a
+   * printed fact of a visible card, projected so the opt-in AIHints cast
+   * policy can veto it; the default bot ignores it.
+   */
+  remove_deck?: boolean;
+  /**
    * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
    * the printed cost's pips, the colour indicator and every colour-naming
    * mana symbol in the rules text -- CR 903.4's definition, the same one

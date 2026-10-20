@@ -50,6 +50,10 @@ type Bot struct {
 	// (botpolicy.TimingRules). Configured once by an opt-in constructor; the
 	// zero value leaves every cast and tap decision unchanged.
 	timing botpolicy.TimingRules
+	// aiHints selects the opt-in A3 Forge AI-hint rules
+	// (botpolicy.AIHints). Configured once by an opt-in constructor; the zero
+	// value leaves the cast scorer unchanged.
+	aiHints botpolicy.AIHints
 	// skipLifePlans withholds every offered payment plan with a step that
 	// pays life (spec §6: a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
@@ -157,6 +161,19 @@ func (b *Bot) EnableTimingRules(r botpolicy.TimingRules) *Bot {
 // TimingRules reports the A6 timing rules armed on this bot.
 func (b *Bot) TimingRules() botpolicy.TimingRules {
 	return b.timing
+}
+
+// EnableAIHints arms the A3 Forge AI-hint rules (botpolicy.AIHints) on this
+// bot and returns it. The default bot never calls it; the forge-heuristic
+// policy is the registered constructor that does.
+func (b *Bot) EnableAIHints(h botpolicy.AIHints) *Bot {
+	b.aiHints = h
+	return b
+}
+
+// AIHints reports the A3 AI-hint rules armed on this bot.
+func (b *Bot) AIHints() botpolicy.AIHints {
+	return b.aiHints
 }
 
 // EnableAutoPayMana configures this bot to select payment-plan witnesses at
@@ -290,6 +307,7 @@ func (b *Bot) decide(brd botpolicy.Board, d *decision.Decision) decision.Intent 
 	brd.Targets = b.targets
 	brd.Removal = b.removal
 	brd.Timing = b.timing
+	brd.AIHints = b.aiHints
 	if b.autoPayMana {
 		if in, ok := b.paymentIntent(brd, d); ok {
 			return in
@@ -784,6 +802,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 				RemovalKind:    cv.RemovalKind,
 				RemovalTargets: cv.RemovalTargets,
 				RemovalDamage:  cv.RemovalDamage,
+				PlayMain1:      cv.PlayMain1,
+				RemoveDeck:     cv.RemoveDeck,
 			})
 		}
 	}
@@ -814,6 +834,8 @@ func BoardFromView(v view.View) botpolicy.Board {
 					RemovalKind:    cv.RemovalKind,
 					RemovalTargets: cv.RemovalTargets,
 					RemovalDamage:  cv.RemovalDamage,
+					PlayMain1:      cv.PlayMain1,
+					RemoveDeck:     cv.RemoveDeck,
 				})
 			}
 			continue

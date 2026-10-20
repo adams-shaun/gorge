@@ -74,7 +74,7 @@ func (im *Image) rawRecord(r CardRec) *Card {
 		if fr.Nil != 0 {
 			continue
 		}
-		f := &Face{SpecializeColor: im.str(fr.SpecializeColor), CopyFaceFrom: im.str(fr.CopyFaceFrom), Name: im.str(fr.Name), ManaCost: im.str(fr.ManaCost), PT: im.str(fr.PT), Loyalty: im.str(fr.Loyalty), Defense: im.str(fr.Defense), Colors: im.str(fr.Colors), Oracle: im.str(fr.Oracle), Types: im.words(fr.Types), Keywords: im.words(fr.Keywords), Aliases: im.words(fr.Aliases)}
+		f := &Face{SpecializeColor: im.str(fr.SpecializeColor), CopyFaceFrom: im.str(fr.CopyFaceFrom), Name: im.str(fr.Name), ManaCost: im.str(fr.ManaCost), PT: im.str(fr.PT), Loyalty: im.str(fr.Loyalty), Defense: im.str(fr.Defense), Colors: im.str(fr.Colors), Oracle: im.str(fr.Oracle), Types: im.words(fr.Types), Keywords: im.words(fr.Keywords), Aliases: im.words(fr.Aliases), RemoveDeck: im.str(fr.RemoveDeck)}
 		x, y := im.slice(fr.Abilities, len(im.FaceSAs))
 		if x != y {
 			f.Abilities = make([]*SA, y-x)

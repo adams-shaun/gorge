@@ -40,6 +40,7 @@ type fingerprintFile struct {
 // recompile per edit; a false "false" serves a stale IR cache.
 var fingerprintCensus = map[string]fingerprintFile{
 	"ability_class.go":        {true, "IsManaAbilitySA/requiresTarget classify abilities during compile"},
+	"aihints.go":              {true, "canonicalRemoveDeck shapes the parsed Face.RemoveDeck IR field"},
 	"affected_defined.go":     {true, "NormalizeAffectedDefined rewrites static params during compile"},
 	"ateot_values.go":         {true, "atEOTValues feeds Primitives, so which AtEOT$ values are unsupported is part of the compiled IR"},
 	"breakdown.go":            {false, "coverage-report grouping (CoverageGroup); report time only, nothing compiled"},

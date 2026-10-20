@@ -125,10 +125,32 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 				continue
 			}
 			cur.SVars[name] = body
+		case "AI":
+			// The only AI: hints the policy reads are the closed deck-builder
+			// set RemoveDeck/RemoveDeckAll/RemoveDeckCard; RemoveDeck's value
+			// (All/Random/NonCommander) is part of the same hint. Every other
+			// AI: parameter stays ignored exactly as before.
+			if key, value, ok := strings.Cut(val, ":"); ok {
+				switch {
+				case strings.EqualFold(strings.TrimSpace(key), "RemoveDeck"):
+					cur.RemoveDeck = canonicalRemoveDeck(value)
+				case strings.EqualFold(strings.TrimSpace(key), "RemoveDeckAll"):
+					cur.RemoveDeck = "All"
+				case strings.EqualFold(strings.TrimSpace(key), "RemoveDeckCard"):
+					cur.RemoveDeck = "Card"
+				}
+			} else {
+				switch {
+				case strings.EqualFold(strings.TrimSpace(val), "RemoveDeckAll"):
+					cur.RemoveDeck = "All"
+				case strings.EqualFold(strings.TrimSpace(val), "RemoveDeckCard"):
+					cur.RemoveDeck = "Card"
+				}
+			}
 		}
-		// Unrecognised keys (DeckHas, AI, Draft, ...) are deck-builder and AI
-		// hints Forge's own tooling consumes. Ignoring them is correct, not a
-		// gap: they carry no rules meaning.
+		// Unrecognised keys (DeckHas, Draft, ...) are deck-builder hints
+		// Forge's own tooling consumes. Ignoring them is correct, not a gap:
+		// they carry no rules meaning.
 	}
 	if err := sc.Err(); err != nil {
 		diags = append(diags, Diag{path, err.Error()})

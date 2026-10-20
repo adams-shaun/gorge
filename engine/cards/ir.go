@@ -112,11 +112,18 @@ type Face struct {
 	Oracle       string
 	Keywords     []string
 	Aliases      []string // Universes-Within flavour names a decklist may use
-	Abilities    []*SA
-	Triggers     []Trigger
-	Statics      []Static
-	Repls        []Repl
-	SVars        map[string]string
+	// RemoveDeck is the value of the card's `AI:RemoveDeck:` hint, a
+	// deck-builder hint that the AI does not know how to play the card:
+	// "All", "Random" or "NonCommander" in the pinned corpus. `AI:RemoveDeckAll`
+	// and `AI:RemoveDeckCard` canonicalise to "All" and "Card". Empty means no
+	// hint. It is a card fact, not a rules restriction; the opt-in AIHints cast
+	// policy reads it and the default bot ignores it.
+	RemoveDeck string
+	Abilities  []*SA
+	Triggers   []Trigger
+	Statics    []Static
+	Repls      []Repl
+	SVars      map[string]string
 
 	// Derived values, computed once at load (Face.derive), never written
 	// into the gob cache: a stale cache decodes these as zero and derive
