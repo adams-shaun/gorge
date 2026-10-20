@@ -1,8 +1,14 @@
 # Testing
 
-gorge has a large test suite. The full run happens after merge on the
-maintainers' machine. Day to day you run **focused** tests and learn to read
-the handful of ratchet and golden tests that guard the whole engine.
+gorge has a large test suite (11,506 top-level `Test` functions on
+2026-10-20). The full run happens in CI and after merge. Day to day you run
+**focused** tests and learn to read the handful of ratchet and golden tests
+that guard the whole engine. This page is for contributors writing or
+debugging tests; setup and the worktree workflow are on
+[Contributing](index.md), and the reasons behind each guard on
+[Invariants](../architecture/invariants.md).
+
+*Test names and paths re-checked on `develop` @ `ad3777023`, 2026-10-20.*
 
 ## Focused runs
 
@@ -13,7 +19,9 @@ go test -v -run '^TestHeads$/^4seats$' ./engine/rules/
 ```
 
 - One package per invocation, with a `-run` pattern. Do not use `go test ./...`
-  as an inner loop.
+  (or `make test`, which is the same with `-p=2`) as an inner loop.
+- On a shared machine, cap the run at the per-test budget:
+  `systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -timeout 2m -run X ./pkg`.
 - **Never `-count=1`.** It defeats the test cache. Go re-runs a test whose
   inputs changed. The one input it cannot see is the corpus (it is outside the
   module), so `make fetch-cards` clears the test cache whenever the pin moves.
@@ -60,8 +68,9 @@ their locations in
 An oracle scenario is a JSON file that states what a card does according to
 its printed text and the CR; gorge's runner (`engine/rules/oracle_run.go`)
 sets up a real game, drives it through player actions only, and asserts
-observable state. The scenario corpora (about 3,200 hand-authored audit
-scenarios and 540 XMage-ported ones) live in
+observable state. The scenario corpora (3,227 hand-authored audit
+scenarios in 1,001 files and 543 XMage-ported ones, counted at
+gorge-compliance `ec18426`, 2026-10-20) live in
 [gorge-compliance](https://github.com/adams-shaun/gorge-compliance)
 (`scenarios/oracle/`, `scenarios/xmageport/`), whose `audit/` drivers
 `TestOracleAudit` and `TestXMagePortScenarios` play them against a pinned
@@ -107,8 +116,8 @@ rejects that.
 
 ## Before you open a PR
 
-The checklist is in
-[CONTRIBUTING.md](https://github.com/adams-shaun/gorge/blob/main/CONTRIBUTING.md#pr-checklist):
+The checklist is on
+[Contributing](index.md#commits-and-pull-requests):
 gofmt, `go vet` on the touched packages, `go run ./cmd/gentypes -check` if
 protocol types moved, focused tests with the corpus present, `make sim`
 (20/20 `replay OK`), and `TestHeads`.

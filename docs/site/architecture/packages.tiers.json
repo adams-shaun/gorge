@@ -13,12 +13,12 @@
     {
       "id": "server",
       "title": "Server (`server/`)",
-      "intro": "The reference host and its HTTP API, the wire protocol, the ManaBrew adapter and the divergence recorder."
+      "intro": "The importable reference server (`server/gorged`), the host and its HTTP API, the wire protocol, the ManaBrew and SpellBench v2 adapters, and the divergence recorder."
     },
     {
       "id": "tooling",
-      "title": "Tooling (`internal/`)",
-      "intro": "Ratchets, test support, benchmarks and code generators. Shell and Python helpers live in `scripts/` (contributor/CI); they are not Go packages."
+      "title": "Tooling (`internal/`, `testkit/`, `cli/`)",
+      "intro": "Module-private ratchets and code generators (`internal/`), plus the public test support, game runner and command-line layer that outside modules may import (`testkit/`, `cli/`). Shell and Python helpers live in `scripts/` (contributor/CI); they are not Go packages."
     },
     {
       "id": "cmd",

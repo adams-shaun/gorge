@@ -42,8 +42,9 @@ so it stays out of every turn's context:
 - [do-not.md](docs/agents/do-not.md): mistakes that have actually happened
   here.
 
-Bot and policy work starts at README's *Bot player training and adoption
-guidelines*.
+Bot and policy work starts at
+[`docs/site/bots/`](docs/site/bots/index.md) (native Go, HTTP seat, SpellBench
+v2, and the training and adoption ladder).
 
 ## Hard rules
 
@@ -67,7 +68,7 @@ guidelines*.
 ## Build / run / test
 
 ```sh
-make fetch-cards          # one-time; ~25 MB, pinned commit from adams-shaun/forge (our fork of Card-Forge/forge; FORGE_REPO)
+make fetch-cards          # one-time; ~140 MB, pinned commit from adams-shaun/forge (our fork of Card-Forge/forge; FORGE_REPO)
 make compile-cards        # parse into the IR cache
 make report               # card coverage against implemented primitives
 make sim                  # build mtgsim and play 20 verified 4-seat games
@@ -160,7 +161,7 @@ cannot support fails, named together with its missing primitives. A table
 entry the build now supports is stale and fails too. **The test's log line is
 the live count.**
 
-Measured 2026-10-12 on `main` (`go test ./engine/rules/ -run
+Measured 2026-10-20 on `develop` ad3777023 (`go test ./engine/rules/ -run
 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v`,
 `make report`, `engine/rules/testdata/heads/*.txt`). The live, regenerated numbers
 are on the docs site, https://adams-shaun.github.io/gorge/; prefer it over
@@ -171,10 +172,10 @@ this snapshot.
   decks and 15 100-card Commander decks. The two are:
   - Incinerate (`stat:CantRegenerate`)
   - Vines of Vastwood (`stat:CantTarget`)
-- **Param census: 17 of 1123.** `TestEveryRepoDeckParamsAreRead`
+- **Param census: 16 of 1123.** `TestEveryRepoDeckParamsAreRead`
   (`engine/rules/paramcensus_test.go`) is the companion ratchet over the same decks'
-  parameters. Its per-card files in `engine/rules/testdata/paramcensus/` hold 17 cards that carry an
-  unread param or an unmodelled cost token: 13 distinct param labels and 1
+  parameters. Its per-card files in `engine/rules/testdata/paramcensus/` hold 16 cards that carry an
+  unread param or an unmodelled cost token: 12 distinct param labels and 1
   cost label.
 - **Golden games.** The 12 pinned Legacy decks (`legacyDeckNames`, which
   deliberately excludes the Commander decks) round-robin across 2/4/6/8 seats
@@ -185,12 +186,12 @@ this snapshot.
 
   | seats | 2 | 4 | 6 | 8 |
   |---|---|---|---|---|
-  | chain head | `bb7767feee2605c2` | `2c7ebe53e20824f9` | `377baec806442301` | `59cc83bb290c5005` |
+  | chain head | `8217b4d928faaff6` | `d9121c4d664ce04e` | `854c981f520b1c5e` | `4142eea449d63de1` |
 
 - **`make sim`:** 20/20 `replay OK` over 20 verified 4-seat games (last
   measured 2026-09-28; not re-run for this snapshot).
 - **Corpus coverage** at the pin `098b055313459c4b36c9e1f1d4e81a2c8aef815e`
-  (`FORGE_REF`): `make report` prints `cards: 34074  playable: 32089 (94.2%)`
+  (`FORGE_REF`): `make report` prints `cards: 34074  playable: 32082 (94.2%)`
   and `tokens: 854`. Since
   fuzz-cov3 (2026-09-24) the gate also counts the `count:<head>` value heads
   that a card's SVars read (`effects.modelledValueHeads`, held to the

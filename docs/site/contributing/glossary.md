@@ -1,7 +1,9 @@
 # Glossary
 
-The words gorge's code, commits and reviews use, for a Go developer who knows
-neither Magic engine internals nor Forge.
+The words gorge's code, commits, reviews and this site use, for a Go
+developer who knows neither Magic engine internals nor Forge. The first
+group is about cards and the engine; the [second](#repositories-kernels-and-process)
+about the repositories, the second kernel and how changes land.
 
 **Card script.** One text file per card in Forge's corpus,
 `.cards/cardsfolder/<letter>/<name>.txt` (token definitions are under
@@ -93,6 +95,11 @@ A seat never sees the engine.
 `view.Project` in `engine/view`): hidden zones are counts, other players'
 decisions are hidden. Clients and bots read state only through a view.
 
+**Projection.** Building a seat's `view.View` from the game state
+(`view.Project`, `view.ProjectFor`, and `view.RedactEvents` for the log).
+"Change a projection" means changing what some seat is shown, which lives in
+`engine/view/card.go` or `engine/view/stack.go`.
+
 **Replay.** Re-running a match from its `Config` plus recorded intents and
 checking the rebuilt event stream event for event (`engine/replay`,
 `make sim`'s `-verify`, `cmd/repro`). Because all mutation is in the log,
@@ -126,9 +133,84 @@ messages cite the rule a line enforces.
 
 **Known approximation.** A place where a registered primitive behaves more
 narrowly than the card text, listed in `AGENTS.md`'s *Known approximations*
-table. The table only shrinks.
+table. The table only shrinks (`TestKnownApproximationsOnlyShrinks`; see
+[Invariants](../architecture/invariants.md#ratchets-only-shrink)).
+Deliberate behaviour that only looks like an approximation is an *engine
+contract*, recorded in `docs/design/2026-09-22-engine-contracts.md`.
 
 **Forge, `FORGE_REF`, the fork.** [Forge](https://github.com/Card-Forge/forge)
 is an open-source Java Magic engine whose card scripts gorge compiles. gorge
 reads them from its fork [adams-shaun/forge](https://github.com/adams-shaun/forge)
 at the commit pinned by `FORGE_REF` in the `Makefile`.
+
+## Repositories, kernels and process
+
+**gorge-compliance.** The public companion repository that checks gorge card
+by card against XMage, Forge and hand-written Oracle-text scenarios, and
+holds the certification ratchet. It imports gorge; gorge never imports it.
+See [The three repositories](../repos/index.md).
+
+**four-yay.** The maintainers' private companion module: research, draft
+events, research bots, the dirty-dirac kernel and the demo's deployment
+tooling. It imports gorge at a pinned commit; nothing in gorge needs it.
+
+**`GORGE_PIN`.** A file at the root of each companion repository holding the
+full gorge commit SHA it builds against, mirrored by the gorge
+pseudo-version in its `go.mod`. Moving it is a pull request in the companion
+([Pinning](../repos/index.md#pinning)).
+
+**`develop` / `main`.** Changes land on `develop` by pull request. When CI is
+green there, the `promote` workflow opens a `develop → main` pull request,
+which a maintainer merges with a merge commit. `main` is what this site and
+the published coverage are built from ([Branch flow](../repos/index.md#branch-flow)).
+
+**dirty-dirac.** A second, much faster two-player rules kernel for a fixed
+set of cards. Its whole game is one fixed-size value (no pointers, maps or
+slices, so a copy is a clone) driven as a `Step`/`Apply` state machine, and
+its cards are tables of *kop* instructions, mostly generated ahead of time
+from gorge's compiled cards. It is checked
+against gorge by a *lockstep oracle*. See
+[the dirty-dirac kernel](../architecture/dirty-dirac/index.md).
+
+**kop.** dirty-dirac's card-effect vocabulary: a closed, append-only set of
+ops, and the tables (`kop.Table`, one entry per card) its interpreter runs.
+The generator that lowers a card's gorge IR into kop tables is `kgen`.
+
+**Lockstep oracle.** A check that plays the same game in two engines at once,
+feeding both the same answers, and at every decision compares their
+projected state and the options each offers; the first difference is
+reported as a divergence. dirty-dirac is
+held to gorge this way. (Distinct from the *compliance oracles*, which
+compare gorge with XMage and Forge scenario by scenario.)
+
+**Canonical projection.** The engine-neutral snapshot both sides of a
+lockstep run are reduced to before comparison: per object its card, zone,
+position, flags, counters and derived power/toughness, then life, the stack,
+turn, step and mana. Two engines agree at a decision when their projections
+are equal (`==` on fixed arrays) and they offer the same canonical options.
+See [Verification](../architecture/dirty-dirac/oracle.md).
+
+**Capacity stall.** A lockstep game dirty-dirac stops on purpose because the
+position no longer fits its fixed-size state (more objects, board slots or
+stack entries than the arrays hold). It is reported separately from a
+divergence: a stall is a known limit, not a rules disagreement.
+
+**kgen.** The generator that lowers gorge's compiled card IR into
+dirty-dirac's kop tables, one package per set. It reads every parameter of a
+card or refuses the card. A refused card stays out of every deck dirty-dirac
+accepts. See [Cards](../architecture/dirty-dirac/cards.md).
+
+**SpellBench v2.** An external, engine-neutral benchmark protocol for Magic
+agents ([jackmaiorino/spellbench](https://github.com/jackmaiorino/spellbench)).
+gorge serves it in both roles: as an environment
+(`server/spellbench`, `cmd/spellbench-gorge-env`) and as an agent wrapping any
+registered gorge bot (`cmd/spellbench-gorge-agent`). `gorged` and `mtgsim`
+can also seat a v2 agent as a bot (`-sb-agent`).
+
+**Seam.** An exported extension point other modules plug into without gorge
+importing them: `bots.Register`, `server/gorged.RegisterNetBot`,
+`server/gorged.Extensions`, and the exported oracle runner.
+
+**Golden / goldens.** Committed expected outputs a test compares against
+byte for byte: the chain heads in `engine/rules/testdata/heads/`, wire
+frames, replay fixtures. A golden moves only with a named cause.

@@ -100,10 +100,11 @@ its own card tests load (`engine/rules/testdata/oracle/`), played by
 
 ## Bot player training and adoption guidelines
 
-Moved to [docs/site/research/bots.md](docs/site/research/bots.md): the
-decision contract a bot answers, the engine's search and RL capabilities,
-what has been measured, and the adoption ladder a policy climbs before it
-plays real users.
+Moved to [docs/site/bots/training-and-adoption.md](docs/site/bots/training-and-adoption.md):
+the decision contract a bot answers, the engine's search and RL capabilities
+and the adoption ladder a policy climbs before it plays real users. Writing a
+bot in Go, Python or Java starts at [docs/site/bots/](docs/site/bots/index.md)
+(published at https://adams-shaun.github.io/gorge/bots/).
 
 ## License
 
