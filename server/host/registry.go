@@ -811,6 +811,22 @@ func (r *Registry) LobbyTables() []protocol.TableInfo {
 	return out
 }
 
+// PrivateTable reports whether id names a private on-demand play-vs-bot
+// table: the same predicate the stream's private-table fence applies. An
+// event table is on-demand too but publicly watchable, so it is not private.
+// An unknown id is not private; its route answers ErrNotFound from the lookup.
+func (r *Registry) PrivateTable(id TableID) bool {
+	r.mu.RLock()
+	t, ok := r.tables[id]
+	r.mu.RUnlock()
+	if !ok {
+		return false
+	}
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.cfg.OnDemand && t.cfg.Event == ""
+}
+
 // Matches lists a table's matches in ascending order; the live one last.
 // Finished matches known only from disk (archived sidecars) come first,
 // then in-memory history entries whose match index is not already

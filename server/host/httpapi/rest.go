@@ -121,7 +121,11 @@ func (h *handler) deckStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) matches(w http.ResponseWriter, r *http.Request) {
-	ms, err := h.reg.Matches(host.TableID(r.PathValue("t")))
+	t := host.TableID(r.PathValue("t"))
+	if !h.privateTableVisible(w, r, t) {
+		return
+	}
+	ms, err := h.reg.Matches(t)
 	if err != nil {
 		writeHostError(w, err)
 		return
@@ -154,6 +158,25 @@ func uintQuery(w http.ResponseWriter, r *http.Request, name string) (uint64, boo
 		return 0, false, false
 	}
 	return n, true, true
+}
+
+// privateTableVisible fences the table-scoped read routes. A private on-demand
+// play-vs-bot table answers the unknown-id not-found unless the request holds a
+// seat claim naming that table, so a guessed sequential gN id cannot confirm
+// the table exists. Public tables — including publicly watchable event
+// tables — need no claim. The same ErrNotFound is deliberate: a missing table
+// and a fenced one must be indistinguishable.
+func (h *handler) privateTableVisible(w http.ResponseWriter, r *http.Request, table host.TableID) bool {
+	if !h.reg.PrivateTable(table) {
+		return true
+	}
+	if h.opts.Seat != nil {
+		if claim, ok := h.opts.Seat(r); ok && claim.Table == table {
+			return true
+		}
+	}
+	writeHostError(w, host.ErrNotFound)
+	return false
 }
 
 // claimForTable is the one authorization fence every seat-authorised handler
@@ -218,6 +241,9 @@ func (h *handler) view(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !h.privateTableVisible(w, r, t) {
+		return
+	}
 	seat, scoped, ok := h.seatFromQuery(w, r, t)
 	if !ok {
 		return
@@ -262,6 +288,9 @@ func (h *handler) events(w http.ResponseWriter, r *http.Request) {
 	}
 	since, _, ok := uintQuery(w, r, "since")
 	if !ok {
+		return
+	}
+	if !h.privateTableVisible(w, r, t) {
 		return
 	}
 	seat, scoped, ok := h.seatFromQuery(w, r, t)
