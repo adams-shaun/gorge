@@ -95,8 +95,8 @@ func (b Board) tapWants(d *decision.Decision) bool {
 		}
 		// A1: a held removal spell is not a tap need -- chooseCast refuses
 		// it (removalNow false), so floating mana toward it only empties at
-		// step end. With the rule off removalHeld is false for every card.
-		if b.removalHeld(d, keys[i]) {
+		// step end. With every rule off castHeld is false for every card.
+		if b.castHeld(d, keys[i]) {
 			continue
 		}
 		if !tapTarget(d, keys[i]) {
@@ -252,9 +252,9 @@ func (b Board) bestUnpayable(d *decision.Decision, offered [5]bool) (state.ObjID
 		}
 		id, c := keys[i], cs[i]
 		// A1: a held removal spell is never the tap gate's intended spell
-		// (removalHeld); see tapWants. CastableNow and TapIntent both reach
+		// (castHeld); see tapWants. CastableNow and TapIntent both reach
 		// the card through this fold, so the skip covers them too.
-		if b.removalHeld(d, id) {
+		if b.castHeld(d, id) {
 			continue
 		}
 		if !tapTarget(d, id) {
@@ -382,6 +382,15 @@ func (b Board) chooseTap(d *decision.Decision) int {
 	if !ok {
 		return -1
 	}
+	return b.tapToward(d, c)
+}
+
+// tapToward picks the "activate" option that best advances card c toward
+// castability in this window. It is the tail of chooseTap extracted verbatim
+// (T1/T3 and the colour-need ranking), so a timing rule that has already
+// chosen its intended card (timedTap) uses the same tap ranking as the main
+// phase.
+func (b Board) tapToward(d *decision.Decision, c Card) int {
 	castOffered := false
 	for oi := range d.Options {
 		o := &d.Options[oi]
@@ -539,8 +548,8 @@ func (b Board) AnyCastableNow(player state.PlayerID, d *decision.Decision) bool 
 		}
 		// A1: a held removal spell is not a cast this policy would make, so
 		// it cannot be the stranded cast that justifies a plan-less window's
-		// tap (removalHeld; see tapWants).
-		if b.removalHeld(d, id) {
+		// tap (castHeld; see tapWants).
+		if b.castHeld(d, id) {
 			continue
 		}
 		if b.poolPays(id, c) {

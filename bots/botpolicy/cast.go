@@ -822,6 +822,11 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		if !b.removalNow(d, *o) {
 			continue
 		}
+		// A6: a timing rule that governs this card may hold the cast even
+		// though C8 and A1 allowed it. With every rule off this is a no-op.
+		if !b.timingNow(d, *o) {
+			continue
+		}
 		// CR1: price the command-zone tax on the commander's mana value, not
 		// a flat power-equivalent, so a costly commander is abandoned before
 		// a cheap one. CMC 0 (an unreadable commander, should not happen)
@@ -1166,6 +1171,11 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 			continue
 		}
 		if !b.removalNow(d, *o) {
+			continue
+		}
+		// A6: a timing rule that governs this card may hold the cast even
+		// though C8 and A1 allowed it. With every rule off this is a no-op.
+		if !b.timingNow(d, *o) {
 			continue
 		}
 		e := byObj[o.Obj]

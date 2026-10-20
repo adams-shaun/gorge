@@ -680,6 +680,12 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 		return nil
 	}
 	me := d.Player
+	// A6: a timing rule that names the only sensible target (a counter at
+	// the foreign spell on top of the stack) answers before the ordinary
+	// removal ranking; Clamp tops up any Min it leaves short.
+	if idx, ok := b.timingTargetPick(d); ok {
+		return []int{idx}
+	}
 
 	// R5: how many targets to produce, decided here independently of clamp.
 	pick := d.Min
