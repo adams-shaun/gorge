@@ -30,7 +30,12 @@ func main() {
 	listPolicies := flag.Bool("list-policies", false, "list registered policies and exit")
 	flag.Parse()
 	if *listPolicies {
-		for _, e := range bots.Entries() {
+		for _, name := range bots.Names() {
+			e, ok := bots.Lookup(name)
+			if !ok {
+				fmt.Fprintf(os.Stderr, "spellbench-gorge-agent: registry names %q but Lookup misses it\n", name)
+				os.Exit(1)
+			}
 			fmt.Printf("%s\t%s\t%s\n", e.Name, e.Label, e.Tier)
 		}
 		return

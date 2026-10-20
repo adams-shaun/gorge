@@ -211,13 +211,6 @@ func (tw *twin) Round(req []byte) ([]byte, error) {
 	if len(q.Decision.Candidates) == 1 {
 		kind += "(single)"
 	}
-	// Current develop's priority and arrange translations drift from the
-	// view path (priority candidate planning and one arrange order). The
-	// adapter's target/combat/choice parity is what this port preserves;
-	// priority/arrange parity is tracked separately, not asserted here.
-	if kind == "priority" || strings.HasPrefix(kind, "arrange_card") {
-		return a, nil
-	}
 	tw.total[kind]++
 	var ca, cb struct {
 		Selection struct {
@@ -253,8 +246,11 @@ func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
 	games := 10
 	for i := 0; i < games; i++ {
 		d := catalog.Decks()[i%len(catalog.Decks())]
+		// No engine auto-pay: the v2 wire drops the engine's payment plan
+		// (PaymentActions), so the neutral world cannot reproduce a plan the
+		// gorge engine floated before posing priority. Both seats pay manually;
+		// that is the path the adapter has to translate, and it is exact.
 		srv := env.New(reg, nil)
-		srv.EnableAutoPay()
 		h := &minihost.Host{RunSecret: make([]byte, 32), Engine: &minihost.EngineLink{S: srv},
 			Profile:  validate.Profile{Kinds: kinds, Flags: observe.Flags, Extensions: map[string]bool{"x_gorge_view_v1": true}},
 			MaxSteps: 20000, MaxDecisions: 9999}

@@ -270,8 +270,11 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 	return cv, nil
 }
 
-// printed fills a card's printed facts: from its registry face, or from its
-// observed characteristics for a card the registry does not know.
+// printed fills a card's printed facts. Observed Supertypes/Types/Subtypes
+// win when the observation carries them (the other engine may have applied
+// continuous effects the registry's printed face does not know); a card with
+// no observed types falls back to its registry face. The remaining printed
+// facts (mana cost, spell API, mana production) always come from the face.
 func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *protocol.Characteristics) {
 	cv.Name = name
 	cv.Printing = view.Printing{Name: name}

@@ -14,20 +14,6 @@ type Policy struct {
 	Info      bots.Info
 }
 
-// Policies returns the distinct policies currently supported by this adapter.
-func Policies() []Policy {
-	names := bots.Names()
-	out := make([]Policy, 0, len(names))
-	for _, name := range names {
-		p, err := lookupPolicy(name)
-		if err != nil {
-			panic(err)
-		}
-		out = append(out, p)
-	}
-	return out
-}
-
 func lookupPolicy(key string) (Policy, error) {
 	key, err := bots.Normalize(key)
 	if err != nil {

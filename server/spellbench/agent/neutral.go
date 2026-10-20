@@ -20,8 +20,6 @@ const NeutralVersion = "neutral-0.1.0"
 type neutralGame struct {
 	session *neutral.Session
 	line    []byte
-	// Gaps lists the cards of either public decklist gorge cannot play fully.
-	Gaps []neutral.Gap
 }
 
 // EnableNeutral makes the server read the v2 observation and candidates
@@ -49,11 +47,9 @@ func (s *Server) startNeutral(q request) error {
 		}
 		rows := make([]wire.DeckRow, len(d.Decklist))
 		copy(rows, d.Decklist)
-		deck, err := neutral.ResolveDeck(s.registry, rows)
-		if err != nil {
+		if _, err := neutral.ResolveDeck(s.registry, rows); err != nil {
 			return fmt.Errorf("deck %s: %w", d.Name, err)
 		}
-		g.Gaps = append(g.Gaps, neutral.Coverage(s.registry, deck)...)
 	}
 	s.neutral = g
 	return nil
@@ -74,12 +70,4 @@ func (s *Server) translate(q request) (xview.Payload, error) {
 		err = fmt.Errorf("%d ops for %d candidates", len(p.Ops), len(q.Decision.Candidates))
 	}
 	return p, err
-}
-
-// NeutralCounts reports the seat's untranslated decisions by candidate kind.
-func (s *Server) NeutralCounts() map[string]int {
-	if s.neutral == nil || s.neutral.session == nil {
-		return nil
-	}
-	return s.neutral.session.Counts
 }

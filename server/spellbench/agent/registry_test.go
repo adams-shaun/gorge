@@ -39,6 +39,29 @@ func TestAgentServesEveryEligibleRegistryPolicy(t *testing.T) {
 	}
 }
 
+// TestAgentHelloNamesRequestedPolicy pins that New actually serves the named
+// registry policy: a server that ignored name and always built "bot" would
+// still replay identically and pass the game test above.
+func TestAgentHelloNamesRequestedPolicy(t *testing.T) {
+	for _, name := range bots.Names() {
+		a, err := agent.New(name)
+		if err != nil {
+			t.Fatalf("agent.New(%q): %v", name, err)
+		}
+		var m map[string]any
+		if err := json.Unmarshal(a.Handle([]byte(`{"request_type":"hello","protocol":"spellbench/v2","request_id":"r-0"}`)), &m); err != nil {
+			t.Fatalf("%s hello: %v", name, err)
+		}
+		bot, ok := m["bot"].(map[string]any)
+		if !ok {
+			t.Fatalf("%s hello has no bot object: %v", name, m)
+		}
+		if got, want := bot["name"], "gorge-"+name; got != want {
+			t.Errorf("%s hello bot.name = %v, want %q", name, got, want)
+		}
+	}
+}
+
 func playPolicyGame(t *testing.T, name string, seed uint64) string {
 	t.Helper()
 	reg := testcorpus.Registry(t)

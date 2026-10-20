@@ -10,6 +10,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/mapping"
@@ -318,13 +319,30 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			idx := add(o)
 			n.casts[src.ObjectID], n.names[src.ObjectID] = []int{idx}, name(src)
 			ops[i] = mapping.NativeOp{Op: "choose", Option: idx}
-			if sem.Fields["method"] == nil && src.Zone == "hand" && s.altCost(sd, src) {
-				// gorge offers the alternative cost as a cast of its own,
-				// right after the plain cast; the method decision follows.
-				alt := add(decision.Option{Kind: "cast", Label: "Cast " + name(src) + " (alternative cost)",
-					Obj: o.Obj, AltCostIndex: 1})
-				n.casts[src.ObjectID] = append(n.casts[src.ObjectID], alt)
-				ops[i] = mapping.NativeOp{Op: "cast", Option: -1, Covers: []int{idx, alt}}
+			if (sem.Fields["method"] == nil || method == "normal") && src.Zone == "hand" {
+				// gorge offers the optional-cost variants (kicker and the
+				// like) as casts of their own, beside the plain cast. The
+				// v2 wire collapses them into this candidate and asks the
+				// optional_cost follow-up, so the inverse must put them
+				// back for the bot to rank them at priority.
+				var covers []int
+				if f := s.B.face(src.CardName, false, nil); f != nil && f.HasKeyword("Kicker") && s.kickerAffordable(v, f) {
+					kicked := add(decision.Option{Kind: "cast", Label: "Cast " + name(src) + " (kicked)",
+						Obj: o.Obj, Mode: "kicked"})
+					n.casts[src.ObjectID] = append(n.casts[src.ObjectID], kicked)
+					covers = append(covers, kicked)
+				}
+				if s.altCost(sd, src) {
+					// gorge offers the alternative cost as a cast of its own,
+					// right after the plain cast; the method decision follows.
+					alt := add(decision.Option{Kind: "cast", Label: "Cast " + name(src) + " (alternative cost)",
+						Obj: o.Obj, AltCostIndex: 1})
+					n.casts[src.ObjectID] = append(n.casts[src.ObjectID], alt)
+					covers = append(covers, alt)
+				}
+				if len(covers) > 0 {
+					ops[i] = mapping.NativeOp{Op: "cast", Option: -1, Covers: append([]int{idx}, covers...)}
+				}
 			}
 		case "activate_ability":
 			src, err := ref(sem, "source")
@@ -342,6 +360,30 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 		// exactly as its auto-pay policies drop mana activations.
 	}
 	return ops, n, nil
+}
+
+// kickerAffordable reports whether the printed cost plus the kicker cost
+// fits the mana already in this seat's pool. gorge's cast offer prices the
+// kicked variant against the floating pool, not against untapped sources it
+// would have to float first (the player can activate those separately), so a
+// pool-only test is the exact gate: adding producible mana would invent a
+// kicked option the engine does not offer.
+func (s *Session) kickerAffordable(v *view.View, f *cards.Face) bool {
+	kick, ok := f.KeywordParam("Kicker")
+	if !ok {
+		return false
+	}
+	need := f.ManaValue() + rules.ParseCost(kick).CMC()
+	var avail int32
+	for _, p := range v.Players {
+		if p.ID != s.seat {
+			continue
+		}
+		for _, n := range p.Pool {
+			avail += n
+		}
+	}
+	return avail >= need
 }
 
 // altCost reports whether src's own AlternativeCost static offers its cost
@@ -1253,11 +1295,14 @@ func (s *Session) order(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native,
 				return nil, nil, err
 			}
 			o := decision.Option{Index: len(n.d.Options), Kind: optKind, Label: "item"}
-			var obj struct {
-				Object *protocol.ObjectRef `json:"object"`
-			}
-			if json.Unmarshal(it, &obj) == nil && obj.Object != nil {
-				o.Obj, o.Label = s.B.IDs.Of(obj.Object.ObjectID), name(*obj.Object)
+			var item protocol.OrderItem
+			if json.Unmarshal(it, &item) == nil {
+				switch {
+				case item.Object != nil:
+					o.Obj, o.Label = s.B.IDs.Of(item.Object.ObjectID), name(*item.Object)
+				case item.Trigger != nil && item.Trigger.Source != nil:
+					o.Obj, o.Label = s.B.IDs.Of(item.Trigger.Source.ObjectID), name(*item.Trigger.Source)
+				}
 			}
 			n.options[string(it)] = o.Index
 			n.d.Options = append(n.d.Options, o)
@@ -1309,6 +1354,76 @@ func (s *Session) placed(sd *protocol.SeatDecision) ([]mapping.NativeOp, *native
 	return ops, n, nil
 }
 
+// lookedHow lists the acting seat's top count library cards the observation
+// shows with the given how ("looked_at", "revealed"), top first, or nil when
+// any is missing.
+func lookedHow(sd *protocol.SeatDecision, count int, how string) []string {
+	type card struct {
+		id  string
+		pos uint32
+	}
+	var cs []card
+	for _, k := range sd.Observation.Known {
+		if k.OwnerSeat == sd.ActingSeat && k.Zone == "library" && k.ObjectID != nil && k.PositionFromTop != nil &&
+			k.How == how && int(*k.PositionFromTop) < count {
+			cs = append(cs, card{*k.ObjectID, *k.PositionFromTop})
+		}
+	}
+	slices.SortFunc(cs, func(a, b card) int { return int(a.pos) - int(b.pos) })
+	if len(cs) != count {
+		return nil
+	}
+	ids := make([]string, count)
+	for i, c := range cs {
+		if int(c.pos) != i {
+			return nil
+		}
+		ids[i] = c.id
+	}
+	return ids
+}
+
+// otherDestination names the non-top destination an "other" arrangement
+// offers, in candidate order.
+func otherDestination(sd *protocol.SeatDecision) (string, bool) {
+	for _, c := range sd.Candidates {
+		if dst := str(c.Semantic, "destination"); dst != "" && dst != "top" {
+			return dst, true
+		}
+	}
+	return "", false
+}
+
+// explore translates the explore election: a KChoose whose options are the
+// revealed card's destinations, state-changing first (graveyard option 0,
+// top option 1), as gorge poses it.
+func (s *Session) explore(sd *protocol.SeatDecision, first protocol.Semantic, ids []string) ([]mapping.NativeOp, *native, error) {
+	d := decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Prompt: "explore"}
+	if src, err := optRef(first, "source"); err == nil && src != nil {
+		d.Source = s.B.IDs.Of(src.ObjectID)
+	}
+	for i, dst := range []string{"graveyard", "top"} {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: dst, Label: knownName(sd, ids[0]),
+			Obj: s.B.IDs.Of(ids[0]), Player: s.seat})
+	}
+	n := s.open("explore", d)
+	ops := make([]mapping.NativeOp, len(sd.Candidates))
+	for i, c := range sd.Candidates {
+		ops[i] = noOp
+		if c.Semantic.Kind != "arrange_card" {
+			continue
+		}
+		dst := str(c.Semantic, "destination")
+		for _, o := range d.Options {
+			if o.Kind == dst {
+				ops[i] = mapping.NativeOp{Op: "choose", Option: o.Index}
+				break
+			}
+		}
+	}
+	return ops, n, nil
+}
+
 // arrangeKinds maps an arrangement purpose to gorge's KArrange pile-B kind.
 var arrangeKinds = map[string]string{"scry": "bottom", "surveil": "graveyard", "look_at_top": "bottom"}
 
@@ -1324,6 +1439,17 @@ func (s *Session) arrange(sd *protocol.SeatDecision) ([]mapping.NativeOp, *nativ
 	if first.Kind == "arrange_card" && num(first, "card_index") == 0 && sd.Group.SubstepIndex == 0 {
 		purpose := str(first, "purpose")
 		other, ok := arrangeKinds[purpose]
+		if !ok && purpose == "other" {
+			// Explore ("put it back on top or into your graveyard") is the
+			// one KChoose among the arrangements; its revealed card is not
+			// a looked-at arrange. The other "other" shapes (a look whose
+			// pile B is exile or hand) are KArrange with a destination the
+			// candidates name.
+			if ids := lookedHow(sd, num(first, "card_count"), "revealed"); ids != nil {
+				return s.explore(sd, first, ids)
+			}
+			other, ok = otherDestination(sd)
+		}
 		if !ok {
 			return nil, nil, nil
 		}

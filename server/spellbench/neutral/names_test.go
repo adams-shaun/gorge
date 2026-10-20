@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/server/spellbench/catalog"
 	"github.com/adams-shaun/gorge/server/spellbench/internal/testcorpus"
 	"github.com/adams-shaun/gorge/server/spellbench/neutral"
@@ -49,6 +50,27 @@ func TestResolveNamesFacesAndRefusesNearMisses(t *testing.T) {
 		if ref, err := neutral.Resolve(reg, name); err == nil {
 			t.Errorf("%q resolved to %q", name, ref.Oracle)
 		}
+	}
+}
+
+func TestCoverageReportsUnsupportedCards(t *testing.T) {
+	reg := testcorpus.Registry(t)
+	for _, name := range []string{"Incinerate", "Vines of Vastwood"} {
+		c, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("%s not in the compiled corpus registry", name)
+		}
+		gaps := neutral.Coverage(reg, neutral.Deck{Cards: []*cards.Card{c}})
+		if len(gaps) != 1 || gaps[0].Name != name || len(gaps[0].Missing) == 0 {
+			t.Errorf("Coverage(%s) = %+v, want one gap naming its missing primitives", name, gaps)
+		}
+	}
+	bolt, ok := reg.Lookup("Lightning Bolt")
+	if !ok {
+		t.Fatal("Lightning Bolt not in the compiled corpus registry")
+	}
+	if gaps := neutral.Coverage(reg, neutral.Deck{Cards: []*cards.Card{bolt}}); len(gaps) != 0 {
+		t.Errorf("Coverage(Lightning Bolt) = %+v, want none", gaps)
 	}
 }
 
