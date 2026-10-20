@@ -3,6 +3,7 @@ package env_test
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/server/spellbench/catalog"
@@ -41,7 +43,7 @@ func TestGoldensProtocolV2Unchanged(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	files, _ := filepath.Glob(filepath.Join(dir, "*.transcript.jsonl"))
+	files, _ := filepath.Glob(filepath.Join(dir, "*.transcript.jsonl.gz"))
 	if len(files) != 27 {
 		t.Fatalf("%d golden files, want exactly 27", len(files))
 	}
@@ -55,7 +57,12 @@ func TestGoldensProtocolV2Unchanged(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		sc := bufio.NewScanner(fh)
+		gz, err := gzip.NewReader(fh)
+		if err != nil {
+			fh.Close()
+			t.Fatal(err)
+		}
+		sc := bufio.NewScanner(gz)
 		sc.Buffer(make([]byte, 1<<20), 9<<20)
 		var last []byte
 		var dig *wire.GameDigest // Section 11.8 over the engine lines, from the reset on
@@ -98,12 +105,39 @@ func TestGoldensProtocolV2Unchanged(t *testing.T) {
 				}
 			}
 		}
+		if err := sc.Err(); err != nil {
+			gz.Close()
+			fh.Close()
+			t.Fatal(err)
+		}
+		gz.Close()
 		fh.Close()
-		name := strings.TrimSuffix(filepath.Base(f), ".transcript.jsonl")
+		name := strings.TrimSuffix(filepath.Base(f), ".transcript.jsonl.gz")
 		if want, ok := digests[name]; ok && (dig == nil || dig.String() != want) {
 			t.Fatalf("%s: replayed digest %v, digests.json has %s", name, dig, want)
 		}
 	}
+}
+
+// gzipDeterministic compresses with every header field that would otherwise
+// vary (ModTime, Name, Comment, OS) held at its zero/default value, so
+// regenerating byte-identical content produces a byte-identical .gz file.
+func gzipDeterministic(data []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	w, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	if err != nil {
+		return nil, err
+	}
+	w.Header.ModTime = time.Time{}
+	w.Header.Name = ""
+	w.Header.Comment = ""
+	if _, err := w.Write(data); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func writeTranscript(path string, recs []record) error {
@@ -115,7 +149,11 @@ func writeTranscript(path string, recs []record) error {
 			return err
 		}
 	}
-	return os.WriteFile(path, b.Bytes(), 0o644)
+	gz, err := gzipDeterministic(b.Bytes())
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, gz, 0o644)
 }
 
 // recorder wraps a link and appends both directions of every exchange.
@@ -176,6 +214,13 @@ func firstGroup(recs []record, needle, exclude string, minSize uint64) (start, s
 func writeGoldens(t *testing.T, dir string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
+	}
+	// Drop the pre-gzip fixtures so a regeneration cannot leave both forms.
+	stale, _ := filepath.Glob(filepath.Join(dir, "*.transcript.jsonl"))
+	for _, f := range stale {
+		if err := os.Remove(f); err != nil {
+			return err
+		}
 	}
 	reg := testcorpus.Registry(t)
 	hello := []byte(`{"request_type":"hello","protocol":"spellbench/v2","request_id":"h-1","protocol_minor":0}`)
@@ -238,7 +283,7 @@ func writeGoldens(t *testing.T, dir string) error {
 			!bytes.Contains(last, []byte(`"code":"`+sc.name+`"`)) {
 			return fmt.Errorf("%s: last engine line does not record its error code: %s", sc.name, last)
 		}
-		if err := writeTranscript(filepath.Join(dir, sc.name+".transcript.jsonl"), recs); err != nil {
+		if err := writeTranscript(filepath.Join(dir, sc.name+".transcript.jsonl.gz"), recs); err != nil {
 			return err
 		}
 	}
@@ -248,51 +293,52 @@ func writeGoldens(t *testing.T, dir string) error {
 	if err != nil {
 		return err
 	}
-	if err := writeTranscript(filepath.Join(dir, "uniform_game_burn.transcript.jsonl"), recs); err != nil {
+	if err := writeTranscript(filepath.Join(dir, "uniform_game_burn.transcript.jsonl.gz"), recs); err != nil {
 		return err
 	}
 	digests["uniform_game_burn"] = res.Digest
-	// Group shapes: the first seeded game that reaches each, cut by max_steps
-	// right after that group (a cap never splits a group).
+	// Group shapes: the chosen seeded game that reaches each soonest, cut by
+	// max_steps right after that group (a cap never splits a group).
 	// Arrangements and order blocks need three substeps or more, so a scry 1
 	// or a one-card bottom block never stands in for a full group; an order
 	// block is one outside an arrangement, so the two goldens differ.
+	//
+	// The seeds and decks were measured as the earliest reach of each ask over
+	// seeds 0..19 and every catalog deck (mana_payment has no earlier reach;
+	// it first appears in seed 17's CawGates game at step 704). scan bounds the
+	// full-game pass that locates the group; it is larger than the known ask
+	// but far below the 3000 a whole game can run.
 	targets := []struct {
 		name, needle, exclude string
-		minSize               uint64
+		minSize, seed, scan   uint64
+		deck                  string
 	}{
-		{"arrangement", `"kind":"arrange_card"`, "", 3},
-		{"attack_declaration", `"kind":"declare_attack"`, "", 1},
-		{"order_pick", `"kind":"order_pick"`, `"purpose":"arrangement"`, 3},
-		{"mana_payment", `"purpose":"mana_payment"`, "", 1},
+		{"arrangement", `"kind":"arrange_card"`, "", 3, 8, 256, "CawGates"},
+		{"attack_declaration", `"kind":"declare_attack"`, "", 1, 4, 256, "Rally"},
+		{"order_pick", `"kind":"order_pick"`, `"purpose":"arrangement"`, 3, 1, 256, "Wildfire"},
+		{"mana_payment", `"purpose":"mana_payment"`, "", 1, 17, 1200, "CawGates"},
 	}
 	for _, tg := range targets {
-		found := false
-		for i := uint64(0); i < 20 && !found; i++ {
-			for _, d := range catalog.Decks() {
-				full, _, err := playRecorded(reg, i, d, 3000)
-				if err != nil {
-					return err
-				}
-				start, size, ok := firstGroup(full, tg.needle, tg.exclude, tg.minSize)
-				if !ok {
-					continue
-				}
-				cut, res, err := playRecorded(reg, i, d, start+size)
-				if err != nil {
-					return err
-				}
-				if err := writeTranscript(filepath.Join(dir, tg.name+".transcript.jsonl"), cut); err != nil {
-					return err
-				}
-				digests[tg.name] = res.Digest
-				found = true
-				break
-			}
+		d, ok := catalog.ByID(tg.deck)
+		if !ok {
+			return fmt.Errorf("no catalog deck %s for %s", tg.deck, tg.name)
 		}
-		if !found {
-			return fmt.Errorf("no seeded Uniform game reached %s", tg.name)
+		full, _, err := playRecorded(reg, tg.seed, d, tg.scan)
+		if err != nil {
+			return err
 		}
+		start, size, ok := firstGroup(full, tg.needle, tg.exclude, tg.minSize)
+		if !ok {
+			return fmt.Errorf("seed %d deck %s did not reach %s", tg.seed, tg.deck, tg.name)
+		}
+		cut, res, err := playRecorded(reg, tg.seed, d, start+size)
+		if err != nil {
+			return err
+		}
+		if err := writeTranscript(filepath.Join(dir, tg.name+".transcript.jsonl.gz"), cut); err != nil {
+			return err
+		}
+		digests[tg.name] = res.Digest
 	}
 	b, _ := json.MarshalIndent(digests, "", "  ")
 	return os.WriteFile(filepath.Join(dir, "digests.json"), append(b, '\n'), 0o644)
