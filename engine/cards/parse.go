@@ -124,6 +124,10 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 				diags = append(diags, Diag{path, "malformed SVar: " + val})
 				continue
 			}
+			if strings.EqualFold(name, "PlayMain1") {
+				name = "PlayMain1"
+				body = canonicalPlayMain1(body)
+			}
 			cur.SVars[name] = body
 		case "AI":
 			// The only AI: hints the policy reads are the closed deck-builder
@@ -163,6 +167,42 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 		f.derive()
 	}
 	return c, diags
+}
+
+// canonicalPlayMain1 folds Forge's PlayMain1 SVar spelling to the closed set
+// the opt-in cast policy reads. The parser canonicalises once, at the script
+// boundary, so Face.PlayMain1Hint is a lookup. Forge's castPermanentInMain1
+// treats every value except ALWAYS and OPPONENTCREATURES (and FALSE/empty) as
+// the own-creature condition, so Random/True and any future spelling become
+// TRUE.
+func canonicalPlayMain1(v string) string {
+	v = strings.TrimSpace(v)
+	switch {
+	case strings.EqualFold(v, PlayMain1Always):
+		return PlayMain1Always
+	case strings.EqualFold(v, PlayMain1OpponentCreatures):
+		return PlayMain1OpponentCreatures
+	case v == "" || strings.EqualFold(v, "FALSE"):
+		return ""
+	default:
+		return PlayMain1OwnCreatures
+	}
+}
+
+// canonicalRemoveDeck keeps the corpus spelling of the closed RemoveDeck
+// set, case-normalising only the three values Forge names.
+func canonicalRemoveDeck(v string) string {
+	v = strings.TrimSpace(v)
+	switch {
+	case strings.EqualFold(v, "All"):
+		return "All"
+	case strings.EqualFold(v, "Random"):
+		return "Random"
+	case strings.EqualFold(v, "NonCommander"):
+		return "NonCommander"
+	default:
+		return v
+	}
 }
 
 // parseSA turns "SP$ DealDamage | NumDmg$ 3" into an SA. The leading token is

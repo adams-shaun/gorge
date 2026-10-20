@@ -1,7 +1,5 @@
 package cards
 
-import "strings"
-
 // The AI-hint vocabulary. These are deck-builder hints in Forge card
 // scripts, not rules text: the engine never enforces them, and only the
 // opt-in botpolicy AIHints cast rules read them.
@@ -21,38 +19,23 @@ const (
 // PlayMain1Hint returns the canonical PlayMain1 mode for this face, or "".
 // It reads the existing SVar map rather than adding a parallel parse path:
 // PlayMain1 is an SVar, and the spellbench IR reader already reads it from
-// Face.SVars. Forge's castPermanentInMain1 treats every value except ALWAYS
-// and OPPONENTCREATURES (and FALSE/empty) as the own-creature condition, so
-// Random/True and any future spelling canonicalise to TRUE.
+// Face.SVars. The parser canonicalises the value once at the script
+// boundary (canonicalPlayMain1), so this reader is a lookup, not another
+// spelling table: Forge's castPermanentInMain1 treats every value except
+// ALWAYS and OPPONENTCREATURES (and FALSE/empty) as the own-creature
+// condition, so Random/True and any future spelling canonicalise to TRUE.
 func (f *Face) PlayMain1Hint() string {
 	if f == nil {
 		return ""
 	}
-	v := strings.TrimSpace(f.SVars["PlayMain1"])
-	switch {
-	case strings.EqualFold(v, PlayMain1Always):
+	switch f.SVars["PlayMain1"] {
+	case PlayMain1Always:
 		return PlayMain1Always
-	case strings.EqualFold(v, PlayMain1OpponentCreatures):
+	case PlayMain1OpponentCreatures:
 		return PlayMain1OpponentCreatures
-	case v == "" || strings.EqualFold(v, "FALSE"):
+	case "", "FALSE":
 		return ""
 	default:
 		return PlayMain1OwnCreatures
-	}
-}
-
-// canonicalRemoveDeck keeps the corpus spelling of the closed RemoveDeck
-// set, case-normalising only the three values Forge names.
-func canonicalRemoveDeck(v string) string {
-	v = strings.TrimSpace(v)
-	switch {
-	case strings.EqualFold(v, "All"):
-		return "All"
-	case strings.EqualFold(v, "Random"):
-		return "Random"
-	case strings.EqualFold(v, "NonCommander"):
-		return "NonCommander"
-	default:
-		return v
 	}
 }
