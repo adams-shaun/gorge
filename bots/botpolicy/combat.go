@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -387,6 +388,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				Produces:      f.ManaProduction(),
 				InstantSpeed:  instantSpeed,
 				Counter:       isCounterSpell(f),
+				RemovalKind:   effects.CastRemovalKind(f.SpellAbility()),
 			}
 		}
 	}
@@ -462,6 +464,7 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				ManaCost:    f.ManaCost,
 				Toughness:   toughness,
 				Activated:   o.ActivatedThisTurn,
+				RemovalKind: effects.CastRemovalKind(f.SpellAbility()),
 			}
 		}
 	}

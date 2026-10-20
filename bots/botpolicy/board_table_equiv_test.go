@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -240,6 +241,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				Produces:      f.ManaProduction(),
 				InstantSpeed:  instantSpeed,
 				Counter:       f.SpellAbility() != nil && f.SpellAbility().API == "Counter",
+				RemovalKind:   effects.CastRemovalKind(f.SpellAbility()),
 			}
 		}
 	}
@@ -309,6 +311,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				ManaCost:    f.ManaCost,
 				Toughness:   toughness,
 				Activated:   o.ActivatedThisTurn,
+				RemovalKind: effects.CastRemovalKind(f.SpellAbility()),
 			}
 		}
 	}

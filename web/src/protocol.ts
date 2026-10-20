@@ -303,6 +303,13 @@ export interface CardView {
    */
   spell_api?: string;
   /**
+   * RemovalKind names the one-shot removal shape of SpellAPI: "destroy",
+   * "damage", or "bounce". Empty means the card is not one of the shapes
+   * the cast policy holds. It is derived from the same printed ability
+   * SpellAPI names, so it is a visible card fact, never hidden information.
+   */
+  removal_kind?: string;
+  /**
    * ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
    * the printed cost's pips, the colour indicator and every colour-naming
    * mana symbol in the rules text -- CR 903.4's definition, the same one

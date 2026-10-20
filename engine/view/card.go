@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -66,6 +67,11 @@ type CardView struct {
 	// from any other cast. A hidden hand's cards are never projected as
 	// CardViews at all, so this never leaks hidden information.
 	SpellAPI string `json:"spell_api,omitempty"`
+	// RemovalKind names the one-shot removal shape of SpellAPI: "destroy",
+	// "damage", or "bounce". Empty means the card is not one of the shapes
+	// the cast policy holds. It is derived from the same printed ability
+	// SpellAPI names, so it is a visible card fact, never hidden information.
+	RemovalKind string `json:"removal_kind,omitempty"`
 	// ColourIdentity is the card's colour IDENTITY mask (cards.ColourMask:
 	// the printed cost's pips, the colour indicator and every colour-naming
 	// mana symbol in the rules text -- CR 903.4's definition, the same one
@@ -587,6 +593,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 		// with only activated abilities).
 		if sa := f.SpellAbility(); sa != nil {
 			cv.SpellAPI = sa.API
+			cv.RemovalKind = effects.CastRemovalKind(sa)
 		}
 		// The mana-production projection (Task dp2): what tapping this card
 		// puts in the pool, from its own abilities. A nil pointer keeps a card

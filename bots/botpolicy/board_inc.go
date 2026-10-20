@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -316,6 +317,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				Produces:      f.ManaProduction(),
 				InstantSpeed:  r.instant || r.flash,
 				Counter:       r.counter,
+				RemovalKind:   effects.CastRemovalKind(f.SpellAbility()),
 			}
 		}
 	}
@@ -351,6 +353,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				ManaCost:    f.ManaCost,
 				Toughness:   r.toughness,
 				Activated:   o.ActivatedThisTurn, // public; A5 (BoardFromGameInto's foreign walk)
+				RemovalKind: effects.CastRemovalKind(f.SpellAbility()),
 			}
 		}
 	}

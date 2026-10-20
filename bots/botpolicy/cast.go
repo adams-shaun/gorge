@@ -129,6 +129,14 @@ type Card struct {
 	// and is out of the cast-side rule's scope by design -- those route
 	// through the ability/trigger paths, not chooseCast.
 	Counter bool
+	// RemovalKind names the one-shot removal shape of this card's primary
+	// spell ability: "destroy", "damage", or "bounce". It is filled by both
+	// adapter halves from effects.CastRemovalKind -- the projected
+	// CardView.RemovalKind on the view half, the face's own SpellAbility on
+	// the game half -- so the A1 hold rule reads the same shape whichever
+	// host asks. Empty means the card is not a one-shot removal the rule
+	// holds.
+	RemovalKind string
 	// Toughness is the engine's derived toughness (ch.Toughness), the
 	// creature body's other half. It is a cast-scorer feature only -- the
 	// CreatureToughness weight in castScore -- never part of the shared base
@@ -787,6 +795,12 @@ func (b Board) chooseCast(d *decision.Decision) int {
 		if b.Cards.Get(o.Obj).Counter && !foreignSpell {
 			continue
 		}
+		// A1: hold a one-shot removal spell until the best opposing
+		// creature's threat clears the bar. With the rule off this is a
+		// no-op, so the default cast ranking is unchanged.
+		if !b.removalNow(d, *o) {
+			continue
+		}
 		// CR1: price the command-zone tax on the commander's mana value, not
 		// a flat power-equivalent, so a costly commander is abandoned before
 		// a cheap one. CMC 0 (an unreadable commander, should not happen)
@@ -1128,6 +1142,9 @@ func (b Board) castEntries(d *decision.Decision, foreignSpell bool) []castEntry 
 			continue
 		}
 		if b.Cards.Get(o.Obj).Counter && !foreignSpell {
+			continue
+		}
+		if !b.removalNow(d, *o) {
 			continue
 		}
 		e := byObj[o.Obj]
