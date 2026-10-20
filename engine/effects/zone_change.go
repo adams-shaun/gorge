@@ -741,9 +741,6 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if cz.DefinedDelayRemembered {
 		targets = dropDelayedRememberedMoved(h, c, targets)
 	}
-	// "You may shuffle ... into your library" (ShuffleNonMandatory$ on the
-	// object path): the election comes before any move; a decline (or no
-	// object to shuffle in) moves nothing and shuffles nothing.
 	if to == state.ZLibrary && objectPathShuffleOwed(cz) && cz.ShuffleNonMandatory &&
 		!objectPathMayShuffle(h, c, sa, targets) {
 		return

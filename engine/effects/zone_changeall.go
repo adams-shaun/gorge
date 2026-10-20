@@ -163,10 +163,6 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// resolves the pair; noShuffleBody only forces it on a body that named
 	// neither flag, so the two never actually co-occur.
 	shuffle := cza.ShuffleTrue && !cza.NoShuffle
-	type ownerMoved struct {
-		owner state.PlayerID
-		ids   []state.ObjID
-	}
 	var placements []ownerMoved
 	// AtEOT$'s affected set for ChangeZoneAll is the objects the sweep
 	// actually moved, collected in move order.
@@ -414,34 +410,46 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				Text: "LibraryPosition$ " + position + " is not implemented; the cards sit at the BOTTOM of their owners' libraries (the MoveZone append)"})
 		}
 	}
-	// Shuffle$ True shuffles each destination library that received a card,
-	// AFTER the placement (Gomazoa's "put on top ..., then those players
-	// shuffle" order), through the same Secret events.Shuffle every other
-	// library shuffle emits, and then -- CR 701.24d, "that library is
-	// shuffled even if there are no objects in that set" -- every library of
-	// an EXPLICIT player scope (Defined$ / ValidTgts$ / UseAllOriginZones$:
-	// Mnemonic Nexus's "each player", Timetwister, Blessed Respite's target
-	// player) that received nothing, in scope order. The unscoped
-	// all-players default (the "your graveyard" Card.YouOwn shapes) and the
-	// unresolved-scope fallback shuffle only the receiving libraries.
-	// NoShuffle$ True (the forced TwoPiles opt-out) suppresses it.
 	if to == state.ZLibrary && shuffle {
-		owed := make([]state.PlayerID, 0, len(placements)+len(players))
-		for _, pm := range placements {
-			owed = append(owed, pm.owner)
-		}
-		if scoped {
-			for _, p := range players {
-				if !slices.Contains(owed, p) {
-					owed = append(owed, p)
-				}
-			}
-		}
-		for _, p := range owed {
-			shuffleLibraryOrder(h, p)
-		}
+		changeZoneAllShuffleLibraries(h, placements, players, scoped)
 	}
 	scheduleAtEOT(h, c, sa, moved)
+}
+
+// ownerMoved is one destination library's share of a ChangeZoneAll sweep:
+// the receiving player and the objects that landed there, in settle order.
+type ownerMoved struct {
+	owner state.PlayerID
+	ids   []state.ObjID
+}
+
+// changeZoneAllShuffleLibraries is the ChangeZoneAll library-shuffle tail.
+// Shuffle$ True shuffles each destination library that received a card,
+// AFTER the placement (Gomazoa's "put on top ..., then those players
+// shuffle" order), through the same Secret events.Shuffle every other
+// library shuffle emits, and then -- CR 701.24d, "that library is
+// shuffled even if there are no objects in that set" -- every library of
+// an EXPLICIT player scope (Defined$ / ValidTgts$ / UseAllOriginZones$:
+// Mnemonic Nexus's "each player", Timetwister, Blessed Respite's target
+// player) that received nothing, in scope order. The unscoped
+// all-players default (the "your graveyard" Card.YouOwn shapes) and the
+// unresolved-scope fallback shuffle only the receiving libraries.
+// NoShuffle$ True (the forced TwoPiles opt-out) is the caller's gate.
+func changeZoneAllShuffleLibraries(h Host, placements []ownerMoved, players []state.PlayerID, scoped bool) {
+	owed := make([]state.PlayerID, 0, len(placements)+len(players))
+	for _, pm := range placements {
+		owed = append(owed, pm.owner)
+	}
+	if scoped {
+		for _, p := range players {
+			if !slices.Contains(owed, p) {
+				owed = append(owed, p)
+			}
+		}
+	}
+	for _, p := range owed {
+		shuffleLibraryOrder(h, p)
+	}
 }
 
 type effChangeZoneAllCode uint16
