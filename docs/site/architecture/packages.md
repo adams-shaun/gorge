@@ -1,5 +1,10 @@
 # Packages
 
+Every Go package in gorge, with its purpose, size, importers and status, for
+a contributor looking for where something lives or whether a package is
+load-bearing. The guided tour of the tree, the import rules and "where does
+my change go?" are on [Repository layout](../contributing/repo-layout.md).
+
 The tables below are generated from the source tree by
 [`cmd/pkgmap`](https://github.com/adams-shaun/gorge/tree/main/cmd/pkgmap) each
 time the site is built, so they never go stale. Tier and status come from one
@@ -25,8 +30,8 @@ Columns:
 The tier-dependency graph at the end is built from the actual imports, and
 flags any import from a tier into one listed after it.
 
-For where a given kind of change belongs, the contributor-facing repo map is
-[`docs/agents/repo-map.md`](https://github.com/adams-shaun/gorge/blob/main/docs/agents/repo-map.md).
+For where a given kind of change belongs, see
+[Repository layout](../contributing/repo-layout.md#where-does-my-change-go).
 
 To preview locally:
 
@@ -42,8 +47,10 @@ go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md
 |---|---|---|
 | `web/` | Svelte+Vite client | SUPP |
 | `scripts/` | contributor and CI helpers: CI sharding, smokes, enginebench, the docs sets renderer | TOOL |
-| `docs/` | agent guide (`docs/agents/`), design docs (`docs/design/`), decisions (`docs/decisions/`), this site (`docs/site/`) | SUPP |
+| `docs/` | design docs (`docs/design/`), decisions (`docs/decisions/`), this site (`docs/site/`), an internal guide for AI coding agents (`docs/agents/`) | SUPP |
+| `.githooks/` | opt-in git hooks: the package-classification check, the `RACE=1` race gate | TOOL |
+| `.github/` | the `ci`, `docs`, `coverage` and `promote` workflows, the PR template | TOOL |
 
-The training scripts and research packages that used to sit under `lab/`
-moved to a private companion repository on 2026-10-16, and the oracle drivers
-to the public [gorge-compliance](https://github.com/adams-shaun/gorge-compliance); neither is listed here.
+The research packages, draft events and the oracle pipelines are not in this
+repository and are not listed here; see
+[The three repositories](../repos/index.md).

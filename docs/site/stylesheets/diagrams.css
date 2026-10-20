@@ -1,0 +1,34 @@
+/* Shared classes for the inline-SVG infographics on the docs site.
+ * Every colour comes from Material's theme variables, so a diagram follows
+ * the light/dark toggle without its own palette. */
+
+/* Material's figure is fit-content, which shrinks a width="100%" svg to
+ * its intrinsic size; a diagram figure takes the full column instead. */
+.md-typeset figure:has(svg) { width: 100%; }
+
+figure svg {
+  max-width: 100%;
+  height: auto;
+  font-family: var(--md-text-font-family, sans-serif);
+}
+
+.dg-box        { fill: var(--md-code-bg-color); stroke: var(--md-default-fg-color--light); stroke-width: 1.2; }
+.dg-box-accent { fill: var(--md-accent-fg-color--transparent); stroke: var(--md-primary-fg-color); stroke-width: 1.6; }
+.dg-box-muted  { fill: none; stroke: var(--md-default-fg-color--lighter); stroke-width: 1; stroke-dasharray: 4 3; }
+.dg-box-solid  { fill: var(--md-primary-fg-color); stroke: none; }
+
+.dg-text       { fill: var(--md-default-fg-color); font-size: 13px; }
+.dg-text-bold  { fill: var(--md-default-fg-color); font-size: 13px; font-weight: 700; }
+.dg-text-muted { fill: var(--md-default-fg-color--light); font-size: 12px; }
+.dg-text-on    { fill: var(--md-primary-bg-color); font-size: 13px; font-weight: 700; }
+.dg-text-mono  { fill: var(--md-default-fg-color); font-size: 12px; font-family: var(--md-code-font-family, monospace); }
+
+.dg-line        { stroke: var(--md-default-fg-color--light); stroke-width: 1.4; fill: none; }
+.dg-line-accent { stroke: var(--md-primary-fg-color); stroke-width: 2; fill: none; }
+.dg-line-dashed { stroke: var(--md-default-fg-color--light); stroke-width: 1.2; fill: none; stroke-dasharray: 5 4; }
+.dg-arrow       { fill: var(--md-default-fg-color--light); }
+.dg-arrow-accent{ fill: var(--md-primary-fg-color); }
+
+/* Wide tables (support matrices, perf tables) scroll instead of overflowing. */
+.md-typeset__table { max-width: 100%; }
+.md-typeset table:not([class]) { font-size: 0.72rem; }

@@ -93,6 +93,12 @@ func (b Board) tapWants(d *decision.Decision) bool {
 		if c := &cs[i]; !c.Castable || c.CMC <= 0 {
 			continue
 		}
+		// AIHints: chooseCast refuses a RemoveDeck card while the rule is
+		// armed, so floating mana toward it is pure waste. Zero value reads
+		// no hint and leaves the gate untouched.
+		if b.aiHintsVetoCast(cs[i]) {
+			continue
+		}
 		// A1: a held removal spell is not a tap need -- chooseCast refuses
 		// it (removalNow false), so floating mana toward it only empties at
 		// step end. With every rule off castHeld is false for every card.
@@ -251,6 +257,12 @@ func (b Board) bestUnpayable(d *decision.Decision, offered [5]bool) (state.ObjID
 			continue
 		}
 		id, c := keys[i], cs[i]
+		// AIHints: a vetoed RemoveDeck card is never the tap gate's intended
+		// spell (see tapWants). CastableNow and TapIntent both reach the card
+		// through this fold, so the skip covers them too.
+		if b.aiHintsVetoCast(c) {
+			continue
+		}
 		// A1: a held removal spell is never the tap gate's intended spell
 		// (castHeld); see tapWants. CastableNow and TapIntent both reach
 		// the card through this fold, so the skip covers them too.
@@ -544,6 +556,11 @@ func (b Board) AnyCastableNow(player state.PlayerID, d *decision.Decision) bool 
 	offered := b.offeredColours(d)
 	for id, c := range b.Cards.All() {
 		if !c.Castable || c.CMC <= 0 || !tapTarget(d, id) {
+			continue
+		}
+		// AIHints: a vetoed RemoveDeck card is not a cast this policy would
+		// make, so it cannot justify a plan-less window's tap (see tapWants).
+		if b.aiHintsVetoCast(c) {
 			continue
 		}
 		// A1: a held removal spell is not a cast this policy would make, so

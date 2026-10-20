@@ -292,8 +292,11 @@ type cacheFile struct {
 // decoding below, so a newly added idempotent expansion does not force every
 // worktree to rewrite its corpus. Version 7 encodes each Face with the flat
 // face codec (cache_codec.go) and streams cacheFileWire directly instead of
-// one cacheFile GobEncode blob; the values are unchanged.
-const cacheVersion = 7
+// one cacheFile GobEncode blob; the values are unchanged. Version 8 carries
+// Face.RemoveDeck, the AI:RemoveDeck deck-builder hint the opt-in AIHints
+// cast policy reads; a v7 cache predates the field, so it must be recompiled
+// rather than serving every card with an empty hint.
+const cacheVersion = 8
 
 // CacheVersionError is returned by LoadRegistry when the cache file on disk
 // was written by a different cacheVersion than this build's. Callers detect

@@ -1,0 +1,621 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adams-shaun.github.io/gorge/api/schemas/spellbench-v2/common.schema.json",
+  "title": "SpellBench v2 shared definitions (gorge)",
+  "$defs": {
+    "protocol": {
+      "description": "The protocol string (protocol.Name).",
+      "const": "spellbench/v2"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "seat": {
+      "enum": [
+        "p0",
+        "p1"
+      ]
+    },
+    "u32": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "i32": {
+      "type": "integer",
+      "minimum": -2147483648,
+      "maximum": 2147483647
+    },
+    "u53": {
+      "description": "A non-negative integer inside strict JSON's |x| <= 2^53-1 bound.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "snake": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "sha256_id": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "game_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extension_name": {
+      "type": "string",
+      "pattern": "^x_[a-z0-9_]+$"
+    },
+    "card_name": {
+      "description": "A nonempty Oracle name in Unicode NFC.",
+      "type": "string",
+      "minLength": 1
+    },
+    "ObjectRef": {
+      "description": "Section 5.1 object reference (refShape).",
+      "type": "object",
+      "properties": {
+        "object_id": {
+          "type": "string"
+        },
+        "card_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "owner_seat": {
+          "$ref": "#/$defs/seat"
+        },
+        "controller_seat": {
+          "$ref": "#/$defs/seat"
+        },
+        "zone": {
+          "$ref": "semantic.schema.json#/$defs/vocab_zone"
+        }
+      },
+      "required": [
+        "object_id",
+        "card_name",
+        "owner_seat",
+        "controller_seat",
+        "zone"
+      ],
+      "additionalProperties": false
+    },
+    "TargetRef": {
+      "description": "Section 5.2 target reference: exactly one of a player and an object.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "player": {
+              "$ref": "#/$defs/seat"
+            }
+          },
+          "required": [
+            "player"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "object": {
+              "$ref": "#/$defs/ObjectRef"
+            }
+          },
+          "required": [
+            "object"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TriggerItem": {
+      "description": "order_pick.item's trigger form (triggerShape).",
+      "type": "object",
+      "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ability_index": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/u32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectRef"
+          }
+        },
+        "instance": {
+          "$ref": "#/$defs/u32"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "source_name",
+        "ability_index",
+        "event_objects",
+        "instance",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "OrderItem": {
+      "description": "order_pick.item: {\"object\": R} or {\"trigger\": {...}}.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "object": {
+              "$ref": "#/$defs/ObjectRef"
+            }
+          },
+          "required": [
+            "object"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "trigger": {
+              "$ref": "#/$defs/TriggerItem"
+            }
+          },
+          "required": [
+            "trigger"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DeckRow": {
+      "description": "Section 12.1 decklist row.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/card_name"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "name",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "Decklist": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DeckRow"
+      },
+      "minItems": 1,
+      "description": "At least one row; no name twice (checked by the decoder)."
+    },
+    "Engine": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "source_revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rules_snapshot_id": {
+          "type": "string"
+        },
+        "card_pool_identity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "source_revision",
+        "rules_snapshot_id",
+        "card_pool_identity"
+      ],
+      "additionalProperties": false
+    },
+    "Provenance": {
+      "type": "object",
+      "properties": {
+        "engine_name": {
+          "type": "string"
+        },
+        "engine_version": {
+          "type": "string"
+        },
+        "rules_snapshot_id": {
+          "type": "string"
+        },
+        "card_pool_identity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "engine_name",
+        "engine_version",
+        "rules_snapshot_id",
+        "card_pool_identity"
+      ],
+      "additionalProperties": false
+    },
+    "Extension": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/extension_name"
+        },
+        "native_ids": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "native_ids"
+      ],
+      "additionalProperties": false
+    },
+    "ObservationFlags": {
+      "description": "Section 6.9 observation flags.",
+      "type": "object",
+      "properties": {
+        "day_night": {
+          "type": "boolean"
+        },
+        "designations": {
+          "type": "boolean"
+        },
+        "exiled_by": {
+          "type": "boolean"
+        },
+        "full_name": {
+          "type": "boolean"
+        },
+        "keywords": {
+          "type": "boolean"
+        },
+        "known_cards": {
+          "type": "boolean"
+        },
+        "passed_seats": {
+          "type": "boolean"
+        },
+        "pending_triggers": {
+          "type": "boolean"
+        },
+        "permanent_details": {
+          "type": "boolean"
+        },
+        "player_counters": {
+          "type": "boolean"
+        },
+        "player_progress": {
+          "type": "boolean"
+        },
+        "poison": {
+          "type": "boolean"
+        },
+        "stack_text": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "day_night",
+        "designations",
+        "exiled_by",
+        "full_name",
+        "keywords",
+        "known_cards",
+        "passed_seats",
+        "pending_triggers",
+        "permanent_details",
+        "player_counters",
+        "player_progress",
+        "poison",
+        "stack_text"
+      ],
+      "additionalProperties": false
+    },
+    "EngineDefaults": {
+      "type": "object",
+      "properties": {
+        "combat_damage_assignment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mana_payment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replacement_order": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trigger_order": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "combat_damage_assignment",
+        "mana_payment",
+        "replacement_order",
+        "trigger_order"
+      ],
+      "additionalProperties": false
+    },
+    "RulesSupported": {
+      "type": "object",
+      "properties": {
+        "mulligan": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "london",
+              "none"
+            ]
+          }
+        },
+        "starting_player": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "host_assigned",
+              "toss_winner_chooses"
+            ]
+          }
+        }
+      },
+      "required": [
+        "mulligan",
+        "starting_player"
+      ],
+      "additionalProperties": false
+    },
+    "Group": {
+      "type": "object",
+      "properties": {
+        "group_id": {
+          "$ref": "#/$defs/u53"
+        },
+        "substep_index": {
+          "$ref": "#/$defs/u32"
+        },
+        "substep_count": {
+          "$ref": "#/$defs/u32"
+        }
+      },
+      "required": [
+        "group_id",
+        "substep_index",
+        "substep_count"
+      ],
+      "additionalProperties": false
+    },
+    "Context": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "priority",
+            "choice"
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purpose": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/snake"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rewind": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "purpose",
+        "text",
+        "rewind"
+      ],
+      "additionalProperties": false
+    },
+    "Candidate": {
+      "type": "object",
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/u32"
+        },
+        "semantic": {
+          "$ref": "semantic.schema.json"
+        },
+        "display_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "candidate_id",
+        "semantic",
+        "display_text"
+      ],
+      "additionalProperties": false
+    },
+    "SeatDecision": {
+      "description": "The seat decision: the engine's decision.seat_decision and the agent's choose.decision.",
+      "type": "object",
+      "properties": {
+        "acting_seat": {
+          "$ref": "#/$defs/seat"
+        },
+        "seat_step": {
+          "$ref": "#/$defs/u53"
+        },
+        "group": {
+          "$ref": "#/$defs/Group"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "observation": {
+          "$ref": "observation.schema.json"
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Candidate"
+          },
+          "minItems": 1
+        },
+        "extensions": {
+          "description": "Section 14 extensions: x_ keys only; {} when none, never null.",
+          "type": "object",
+          "patternProperties": {
+            "^x_[a-z0-9_]+$": {}
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "acting_seat",
+        "seat_step",
+        "group",
+        "context",
+        "observation",
+        "candidates",
+        "extensions"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorBody": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-facing only; compare code, never message.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
