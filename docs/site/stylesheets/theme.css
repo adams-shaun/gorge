@@ -1,0 +1,354 @@
+/* gorge docs theme: "strata". A gorge exposes rock in the order it was laid
+ * down; the engine lays a game down as an ordered event log. Cool shale and
+ * riverbed ink, one verdigris accent, and earth tones only where they encode
+ * something (the strata, the diagrams).
+ *
+ *   shale     #EEF0EC  light ground          basalt   #162026  dark ground
+ *   riverbed  #1C2B33  ink / header          verdigris #1F6F68 accent (dark: #7CC7BC)
+ *   ochre     #B98A2E  zone moves            oxide    #A2412E  combat and life
+ */
+
+:root {
+  --gg-shale: #eef0ec;
+  --gg-shale-2: #e3e7e1;
+  --gg-riverbed: #1c2b33;
+  --gg-basalt: #162026;
+  --gg-basalt-2: #1d2a31;
+  --gg-verdigris: #1f6f68;
+  --gg-verdigris-lit: #7cc7bc;
+  --gg-ochre: #b98a2e;
+  --gg-oxide: #a2412e;
+  --gg-slate: #4c6e91;
+}
+
+/* ---------- palette, light ---------- */
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: var(--gg-shale);
+  --md-default-fg-color: #1c2b33;
+  --md-default-fg-color--light: #46565e;
+  --md-default-fg-color--lighter: #8a979c;
+  --md-default-fg-color--lightest: #d3d9d4;
+  --md-primary-fg-color: var(--gg-riverbed);
+  --md-primary-fg-color--light: #2b3d47;
+  --md-primary-fg-color--dark: #121c21;
+  --md-primary-bg-color: #eef0ec;
+  --md-accent-fg-color: var(--gg-verdigris);
+  --md-accent-fg-color--transparent: rgba(31, 111, 104, 0.09);
+  --md-typeset-a-color: var(--gg-verdigris);
+  --md-code-bg-color: #e4e8e3;
+  --md-code-fg-color: #1c2b33;
+  --gg-rule: #c9d0ca;
+  --gg-sed: #c3cbc5;
+  --gg-stack: var(--gg-verdigris);
+  --gg-mana: var(--gg-slate);
+}
+
+/* ---------- palette, dark ---------- */
+[data-md-color-scheme="slate"] {
+  --md-hue: 200;
+  --md-default-bg-color: var(--gg-basalt);
+  --md-default-fg-color: #dfe6e3;
+  --md-default-fg-color--light: #a9b6b4;
+  --md-default-fg-color--lighter: #6f7f80;
+  --md-default-fg-color--lightest: #2c3a41;
+  --md-primary-fg-color: #0f171b;
+  --md-primary-fg-color--light: #1d2a31;
+  --md-primary-fg-color--dark: #0b1114;
+  --md-primary-bg-color: #dfe6e3;
+  --md-accent-fg-color: var(--gg-verdigris-lit);
+  --md-accent-fg-color--transparent: rgba(124, 199, 188, 0.1);
+  --md-typeset-a-color: var(--gg-verdigris-lit);
+  --md-code-bg-color: var(--gg-basalt-2);
+  --md-code-fg-color: #dfe6e3;
+  --md-footer-bg-color: #0f171b;
+  --gg-rule: #2c3a41;
+  --gg-sed: #33434b;
+  --gg-stack: var(--gg-verdigris-lit);
+  --gg-mana: #7f9fc2;
+}
+
+/* The diagrams draw their accent from --md-primary-fg-color, which is now
+ * the header's ink; point them at the verdigris accent instead. */
+.md-typeset figure svg {
+  --md-primary-fg-color: var(--md-accent-fg-color);
+}
+
+/* ---------- type ---------- */
+.md-typeset {
+  font-size: 0.8rem;
+  line-height: 1.65;
+  font-feature-settings: "ss01";
+}
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--md-default-fg-color);
+  letter-spacing: -0.02em;
+}
+.md-typeset h1 {
+  font-weight: 800;
+  font-size: 2.1em;
+  line-height: 1.1;
+  margin-bottom: 0.8em;
+}
+.md-typeset h2 {
+  font-weight: 750;
+  font-size: 1.45em;
+  margin-top: 2.2em;
+  padding-top: 0.9em;
+  border-top: 1px solid var(--gg-rule);
+}
+.md-typeset h3 {
+  font-weight: 700;
+  font-size: 1.12em;
+}
+.md-typeset h4 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+/* Prose measure: keep paragraphs readable on wide screens. */
+.md-typeset > p,
+.md-typeset > ul,
+.md-typeset > ol {
+  max-width: 44rem;
+}
+.md-typeset code {
+  font-size: 0.86em;
+  border-radius: 3px;
+}
+.md-typeset a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+/* ---------- header and tabs ---------- */
+.md-header,
+.md-tabs {
+  background-color: var(--md-primary-fg-color);
+}
+.md-header__title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.md-tabs__link {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+.md-tabs__item--active .md-tabs__link,
+.md-tabs__link:hover {
+  opacity: 1;
+}
+.md-tabs__item--active .md-tabs__link {
+  box-shadow: inset 0 -2px 0 var(--gg-verdigris-lit);
+}
+
+/* ---------- tables ---------- */
+.md-typeset table:not([class]) {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+}
+.md-typeset table:not([class]) th {
+  background: transparent;
+  font-weight: 700;
+  border-bottom: 2px solid var(--md-default-fg-color--light);
+}
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--gg-rule);
+}
+.md-typeset table:not([class]) tbody tr:hover {
+  background-color: var(--md-accent-fg-color--transparent);
+  box-shadow: none;
+}
+
+/* ---------- admonitions: a thin edge, no boxed card ---------- */
+.md-typeset .admonition,
+.md-typeset details {
+  border-width: 0 0 0 3px;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--md-accent-fg-color--transparent);
+  font-size: 0.78rem;
+}
+.md-typeset .admonition-title,
+.md-typeset summary {
+  background: transparent !important;
+  font-weight: 700;
+}
+
+/* ---------- code blocks ---------- */
+.md-typeset pre > code {
+  border-radius: 4px;
+}
+
+/* ---------- grid cards: flat, hairline, no shadow lift ---------- */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border: 1px solid var(--gg-rule);
+  border-radius: 6px;
+  box-shadow: none;
+  background: transparent;
+  transition: border-color 120ms ease;
+}
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid > .card:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: none;
+}
+.md-typeset .grid.cards > ul > li > hr {
+  display: none;
+}
+.md-typeset .grid.cards > ul > li > p:first-child {
+  font-size: 1.05em;
+  margin-bottom: 0.3em;
+}
+
+/* ---------- the strata (home hero) ---------- */
+.md-typeset figure svg.strata { display: block; width: 100%; height: clamp(130px, 22vw, 230px); }
+.st-sed    { fill: var(--gg-sed); }
+.st-zone   { fill: var(--gg-ochre); }
+.st-stack  { fill: var(--gg-stack); }
+.st-mana   { fill: var(--gg-mana); }
+.st-combat { fill: var(--gg-oxide); }
+
+.gg-hero {
+  margin: 0.5rem 0 2.5rem;
+}
+.md-typeset .gg-hero h1 {
+  font-size: clamp(3rem, 9vw, 5.6rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  margin: 0 0 0.25em;
+}
+.md-typeset .gg-hero .gg-lede {
+  font-size: 1.15rem;
+  line-height: 1.45;
+  max-width: 40rem;
+  color: var(--md-default-fg-color--light);
+  margin: 0 0 1.6rem;
+}
+.gg-core {
+  margin: 0;
+}
+.md-typeset .gg-core figcaption {
+  font-style: normal;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  justify-content: space-between;
+  max-width: none;
+  margin: 0.7rem 0 0;
+  font-size: 0.68rem;
+  color: var(--md-default-fg-color--light);
+  text-align: left;
+}
+.md-typeset ul.gg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.md-typeset ul.gg-legend li { margin-left: 0; }
+.md-typeset .gg-legend li {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.gg-legend i {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 1px;
+}
+.gg-head {
+  font-family: var(--md-code-font-family);
+}
+.md-typeset .gg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.8rem 0 0;
+}
+.md-typeset .gg-actions .md-button {
+  font-size: 0.75rem;
+  border-radius: 4px;
+  padding: 0.5em 1.1em;
+  border-width: 1.5px;
+}
+.md-typeset .gg-actions .md-button--primary {
+  background: var(--md-accent-fg-color);
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-default-bg-color);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .grid.cards > ul > li { transition: none; }
+}
+
+/* ---------- admonition hues from the palette ---------- */
+.md-typeset .admonition.note, .md-typeset details.note,
+.md-typeset .admonition.info, .md-typeset details.info,
+.md-typeset .admonition.tip, .md-typeset details.tip,
+.md-typeset .admonition.abstract, .md-typeset details.abstract,
+.md-typeset .admonition.example, .md-typeset details.example,
+.md-typeset .admonition.question, .md-typeset details.question {
+  border-color: var(--md-accent-fg-color);
+}
+.md-typeset .note > .admonition-title::before, .md-typeset .note > summary::before,
+.md-typeset .info > .admonition-title::before, .md-typeset .info > summary::before,
+.md-typeset .tip > .admonition-title::before, .md-typeset .tip > summary::before,
+.md-typeset .abstract > .admonition-title::before, .md-typeset .abstract > summary::before,
+.md-typeset .example > .admonition-title::before, .md-typeset .example > summary::before,
+.md-typeset .question > .admonition-title::before, .md-typeset .question > summary::before {
+  background-color: var(--md-accent-fg-color);
+}
+.md-typeset .admonition.warning, .md-typeset details.warning {
+  border-color: var(--gg-ochre);
+  background: color-mix(in srgb, var(--gg-ochre) 9%, transparent);
+}
+.md-typeset .warning > .admonition-title::before, .md-typeset .warning > summary::before {
+  background-color: var(--gg-ochre);
+}
+.md-typeset .admonition.danger, .md-typeset details.danger,
+.md-typeset .admonition.failure, .md-typeset details.failure,
+.md-typeset .admonition.bug, .md-typeset details.bug {
+  border-color: var(--gg-oxide);
+  background: color-mix(in srgb, var(--gg-oxide) 8%, transparent);
+}
+.md-typeset .danger > .admonition-title::before, .md-typeset .danger > summary::before,
+.md-typeset .failure > .admonition-title::before, .md-typeset .failure > summary::before,
+.md-typeset .bug > .admonition-title::before, .md-typeset .bug > summary::before {
+  background-color: var(--gg-oxide);
+}
+
+/* ---------- buttons: Material colours them with the primary (header ink),
+ * which vanishes on the dark ground; outline them in the text colour. ---------- */
+.md-typeset .md-button {
+  color: var(--md-default-fg-color);
+  border-color: var(--md-default-fg-color--light);
+}
+.md-typeset .md-button:focus,
+.md-typeset .md-button:hover {
+  color: var(--md-accent-fg-color);
+  border-color: var(--md-accent-fg-color);
+  background-color: transparent;
+}
+.md-typeset .md-button--primary,
+.md-typeset .md-button--primary:focus,
+.md-typeset .md-button--primary:hover {
+  background-color: var(--md-accent-fg-color);
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-default-bg-color);
+}
+.md-typeset .md-button--primary:hover { filter: brightness(1.08); }
+
+@media (max-width: 600px) {
+  .md-typeset .gg-hero .gg-lede { font-size: 1rem; }
+}
