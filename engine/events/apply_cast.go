@@ -6,6 +6,7 @@
 package events
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/state"
@@ -384,6 +385,47 @@ func foldChoose(g *state.Game, e *Event) {
 			// them later. Text is the WUBRG-ordered colour letters the
 			// payment spent; an empty Text degrades to a cleared note.
 			o.LastNotedMana = e.Text
+		case DivisionCounter:
+			o.Division = parseDivision(e.Text, len(o.Targets))
 		}
 	}
+}
+
+// DivisionCounter is the Counter of the Choose event that records a CR
+// 601.2d division onto a stack object. Text is the shares in Targets order
+// as comma-separated decimals ("2,1").
+const DivisionCounter = "divide"
+
+// FormatDivision renders shares as DivisionCounter's Text.
+func FormatDivision(shares []int32) string {
+	var b strings.Builder
+	for i, n := range shares {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(strconv.Itoa(int(n)))
+	}
+	return b.String()
+}
+
+// parseDivision decodes DivisionCounter's Text against a target list of
+// length n. A malformed text, a count other than n or a share below 1
+// (CR 601.2d) decodes to nil: no division, so the resolution-time path runs.
+func parseDivision(text string, n int) []int32 {
+	if n == 0 || text == "" {
+		return nil
+	}
+	parts := strings.Split(text, ",")
+	if len(parts) != n {
+		return nil
+	}
+	out := make([]int32, n)
+	for i, p := range parts {
+		v, err := strconv.Atoi(p)
+		if err != nil || v < 1 {
+			return nil
+		}
+		out[i] = int32(v)
+	}
+	return out
 }

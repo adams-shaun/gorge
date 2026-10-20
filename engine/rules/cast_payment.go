@@ -307,6 +307,8 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	switch castAnswerCodes.Code(kind) {
 	case castAnswerCostType:
 		e.answerChooseTypeCost(pc, chosen)
+	case castAnswerDivide:
+		e.answerCastDivision(pc, chosen)
 	case castAnswerNamedAnnounce:
 		if len(chosen) > 0 {
 			pc.namedN = int32(chosen[0].Amount)
@@ -548,6 +550,7 @@ const (
 	castAnswerUndoTap
 	castAnswerCancelCast
 	castAnswerCostType
+	castAnswerDivide
 )
 
 var castAnswerCodes = state.NewStrCodes(
@@ -578,4 +581,5 @@ var castAnswerCodes = state.NewStrCodes(
 	state.StrEntry[castAnswerCode]{Key: decision.OptUndoTap, Val: castAnswerUndoTap},
 	state.StrEntry[castAnswerCode]{Key: decision.OptCancelCast, Val: castAnswerCancelCast},
 	state.StrEntry[castAnswerCode]{Key: "type", Val: castAnswerCostType},
+	state.StrEntry[castAnswerCode]{Key: "divide", Val: castAnswerDivide},
 )

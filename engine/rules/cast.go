@@ -510,6 +510,15 @@ type pendingCast struct {
 	evidenceResolved bool          `clone:"deep"`
 	evidenceSettled  bool          `clone:"deep"`
 
+	// division / divisionDone / divisionRecorded carry the CR 601.2d
+	// division announcement (engine/rules/cast_division.go): division[i] is
+	// the share of targets[i], settled by divisionAsk or its answer;
+	// divisionDone marks the stage passed; divisionRecorded the one
+	// events.Choose "divide" emitted onto the stack object.
+	division         []int32 `clone:"deep"`
+	divisionDone     bool    `clone:"deep"`
+	divisionRecorded bool    `clone:"deep"`
+
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
 	// object). Zero until pushCast runs; handleTarget records the chosen

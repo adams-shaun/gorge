@@ -91,7 +91,10 @@ func TestKernelAskResolutionLoops(t *testing.T) {
 	kr7RunCtrSpellCases(t, 33000, []ctrSpellCase{
 		{name: "Ctr Blight", body: "A:SP$ Blight | Defined$ Player | Num$ 1",
 			board: two, served: 1},
-		{name: "Ctr Divide", body: "A:SP$ DealDamage | ValidTgts$ Any | TargetMin$ 2 | TargetMax$ 3 | NumDmg$ 4 | DividedAsYouChoose$ 4 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		// A root DealDamage's division is announced while casting (CR
+		// 601.2d, engine/rules/cast_division.go); a SubAbility$ link's
+		// division is still asked at resolution, which is the ask served here.
+		{name: "Ctr Divide", body: "A:SP$ GainLife | LifeAmount$ 2 | SubAbility$ DBDmg\nSVar:DBDmg:DB$ DealDamage | ValidTgts$ Any | TargetMin$ 2 | TargetMax$ 3 | NumDmg$ 4 | DividedAsYouChoose$ 4",
 			board: two, served: 1},
 		{name: "Ctr Clash", body: "A:SP$ Clash | WinSubAbility$ DBGain | OtherwiseSubAbility$ DBDraw\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2\nSVar:DBDraw:DB$ Draw | NumCards$ 1",
 			served: 2},
