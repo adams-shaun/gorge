@@ -181,6 +181,11 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/spellbench-gorge-env": {
+      "tier": "cmd",
+      "status": "EXT",
+      "purpose": "stdio entrypoint for the SpellBench Protocol v2 environment adapter."
+    },
     "cmd/testbudget": {
       "tier": "cmd",
       "status": "TOOL"
@@ -326,6 +331,66 @@
     "server/protocol/manabrew/internal/schemagen": {
       "tier": "server",
       "status": "TOOL"
+    },
+    "server/spellbench/catalog": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/env": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/gamecfg": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/identity": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/internal/testcorpus": {
+      "tier": "server",
+      "status": "TOOL"
+    },
+    "server/spellbench/internal/testgame": {
+      "tier": "server",
+      "status": "TOOL"
+    },
+    "server/spellbench/mapping": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/minihost": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/observe": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/protocol": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/secrets": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/session": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/validate": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/wire": {
+      "tier": "server",
+      "status": "EXT"
+    },
+    "server/spellbench/xview": {
+      "tier": "server",
+      "status": "EXT"
     },
     "testkit/bench": {
       "tier": "tooling",

@@ -189,7 +189,29 @@ func (b *resolveBoard) Checkpoint() resolve.Snapshot {
 			tapeHolders.Put(h)
 		}
 	}
-	return e.CloneInto(&e.tapeSpare)
+	cp := e.CloneInto(&e.tapeSpare)
+	// A checkpoint belongs to this engine's lineage and resumes it, so carry
+	// the hypothetical planner and its per-player ordinal counters: Clone
+	// deliberately drops them (a search world must not inherit the live
+	// game's planner), but Restore reinstalls them from here.
+	if e.rng != nil && e.rng.chance != nil && e.rng.chance.planner != nil && cp.rng.chance != nil {
+		cp.rng.chance.planner = e.rng.chance.planner
+		cp.rng.chance.shuffleOrdinals = cloneShuffleOrdinals(e.rng.chance.shuffleOrdinals)
+	}
+	return cp
+}
+
+// cloneShuffleOrdinals copies a planner's per-player shuffle counters so a
+// checkpoint and the engine it came from advance independently.
+func cloneShuffleOrdinals(in map[state.PlayerID]int) map[state.PlayerID]int {
+	if in == nil {
+		return nil
+	}
+	out := make(map[state.PlayerID]int, len(in))
+	for p, n := range in {
+		out[p] = n
+	}
+	return out
 }
 
 // Drop recycles S0 into the process-wide pool rather than into the engine,
@@ -254,6 +276,13 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	sp := e.Release()
 	l.Events, l.Intents = evs, ints
 	sc := s0.CloneInto(&sp)
+	// Resume the checkpoint's planner where it left off. Clone dropped it,
+	// and dropping it here would turn the lineage's next shuffle into an
+	// unplanned draw (Section 11.6).
+	if s0.rng != nil && s0.rng.chance != nil && s0.rng.chance.planner != nil && sc.rng.chance != nil {
+		sc.rng.chance.planner = s0.rng.chance.planner
+		sc.rng.chance.shuffleOrdinals = cloneShuffleOrdinals(s0.rng.chance.shuffleOrdinals)
+	}
 	sc.rng.forked = false
 	if w, ok := cp.World.(*rngSplice); ok {
 		sc.rng.splice = w
@@ -261,6 +290,10 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 		// requires a chance state); the splice replaces it with the world's
 		// own at the fork point, discarding the prefix's records.
 		sc.rng.chance = w.next.chance.clone()
+		if s0.rng != nil && s0.rng.chance != nil && s0.rng.chance.planner != nil {
+			sc.rng.chance.planner = s0.rng.chance.planner
+			sc.rng.chance.shuffleOrdinals = cloneShuffleOrdinals(s0.rng.chance.shuffleOrdinals)
+		}
 	}
 	l.RewindTo(s0.L, evEnd)
 	// A hypothetical world's card table and pool gates survive the restore:

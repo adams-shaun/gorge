@@ -64,5 +64,6 @@ The layering design for `engine/rules` is
 | `server/protocol` | Versioned wire types for host↔client. Types only; never imports `rules`. `server/protocol/manabrew` holds the ManaBrew wire types and codecs. |
 | `server/manabrew` (+`mbtest`) | The ManaBrew translator: projects a seat's `view.View` into ManaBrew state, plus a mock client for tests. |
 | `server/divergence` (+`shadow`) | Human-divergence capture records (`divergence-v1`, `triage-v1` JSONL), the materiality predicate, the shadow seed and the shadow answer. Design: [`docs/design/2026-10-10-human-divergence-design.md`](../design/2026-10-10-human-divergence-design.md). |
+| `server/spellbench` (+`cmd/spellbench-gorge-env`) | The SpellBench Protocol v2 environment adapter: catalog, protocol, mapping, session, validation, minihost and goldens. `cmd/spellbench-gorge-env` serves it over stdio. Engine auto-pay is the default (agents never see mana taps); `-manual-mana` restores interactive mana taps. Ported from SpellBench's gorge adapter; see `NOTICE`. |
 
 The draft stack moved to four-yay (private), which plugs it into `server/gorged` as an `EventsPlugin`.
