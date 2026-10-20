@@ -167,8 +167,9 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.MyriadCopy:
 		return obj(g, ev.Obj) + " creates a Myriad copy attacking " + player(g, state.PlayerID(firstID(ev.IDs)))
 	case events.TokenAttacks:
-		// A token that entered tapped and attacking (Mobilize, Kari Zev):
-		// Obj is the minted token, IDs[0] the player it is attacking.
+		// A token that entered attacking (Mobilize, Kari Zev); the tap is a
+		// separate entry event. Obj is the minted token, IDs[0] the player
+		// it is attacking.
 		if len(ev.IDs) > 0 {
 			return obj(g, ev.Obj) + " attacks " + player(g, state.PlayerID(firstID(ev.IDs)))
 		}

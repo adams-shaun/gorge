@@ -27,9 +27,9 @@ import (
 //     permanent's entry (ETB triggers, entry counters such as a meld
 //     planeswalker's loyalty, and entry replacements all see a normal
 //     entry), under controller's control;
-//  4. opts.Tapped / opts.Attacking deliver Mishra's "enters tapped and
-//     attacking" through the same Tap / TokenAttacks events every other
-//     entry rider uses.
+//  4. opts.Tapped taps the entry and opts.Attacking marks the attack through
+//     the same Tap / TokenAttacks events every other entry rider uses; the
+//     attack rider never taps on its own (CR 508.4/110.5b).
 //
 // ok is false when nothing melded: either permanent was not on the
 // battlefield (nothing happens), an exile did not land or the pair is not a
@@ -66,18 +66,16 @@ func Meld(h Host, controller state.PlayerID, a, b state.ObjID, opts state.MeldOp
 	if o == nil || o.Zone != state.ZBattlefield {
 		return 0, false
 	}
-	switch {
-	case opts.Attacking && int(opts.Defender) < len(g.Players) && opts.Defender != controller:
+	if opts.Tapped && !o.Tapped {
+		h.EmitTap(res, controller, true)
+	}
+	if opts.Attacking && int(opts.Defender) < len(g.Players) && opts.Defender != controller {
 		ids := []state.ObjID{state.ObjID(opts.Defender)}
 		if opts.DefenderBattle != 0 {
 			ids = append(ids, opts.DefenderBattle)
 		}
 		h.Emit(events.Event{Kind: events.TokenAttacks, Obj: res, Player: controller, IDs: ids,
 			Text: "entered attacking"})
-	case (opts.Tapped || opts.Attacking) && !o.Tapped:
-		// An "enters tapped and attacking" meld with no defender still
-		// enters tapped (attackingEntryNoDefender's shape).
-		h.EmitTap(res, controller, true)
 	}
 	return res, true
 }

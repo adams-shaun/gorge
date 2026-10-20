@@ -26,6 +26,10 @@ func TestAttackingEntryMarksDefender(t *testing.T) {
 	if o == nil || !o.IsAttacking || o.Attacking != 1 {
 		t.Fatalf("object attacking=%v defender=%d, want defender 1", o.IsAttacking, o.Attacking)
 	}
+	// CR 508.4 / 110.5b: Attacking$ True without Tapped$ enters untapped.
+	if o.Tapped {
+		t.Fatalf("object tapped with no Tapped$ rider; want it untapped (CR 110.5b)")
+	}
 	if len(h.log) != 2 || h.log[1].Kind != events.TokenAttacks {
 		t.Fatalf("log = %+v, want one TokenAttacks after setup", h.log)
 	}
@@ -36,8 +40,8 @@ func TestAttackingEntryWithoutDefenderDegradesOnce(t *testing.T) {
 	rider := classifyAttackingEntry(c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
 	rider.apply(h, c, id, 0, state.ZBattlefield)
 	o := h.g.Obj(id)
-	if o == nil || !o.Tapped || o.IsAttacking {
-		t.Fatalf("object = %+v, want it tapped and not attacking", o)
+	if o == nil || o.Tapped || o.IsAttacking {
+		t.Fatalf("object = %+v, want it untapped (no Tapped$) and not attacking", o)
 	}
 	notes := 0
 	for _, ev := range h.log {
@@ -194,8 +198,8 @@ func TestAttackingEntryMultiObjectNoDefenderNotesOnce(t *testing.T) {
 		"Destination": "Battlefield", "Attacking": "True"}})
 	for _, id := range []state.ObjID{1, 2} {
 		o := h.g.Obj(id)
-		if o == nil || o.Zone != state.ZBattlefield || !o.Tapped || o.IsAttacking {
-			t.Fatalf("object %d = %+v, want battlefield, tapped, NOT attacking", id, o)
+		if o == nil || o.Zone != state.ZBattlefield || o.Tapped || o.IsAttacking {
+			t.Fatalf("object %d = %+v, want battlefield, untapped (no Tapped$), NOT attacking", id, o)
 		}
 	}
 	if notes := countAttackingNotes(h); notes != 1 {
@@ -242,11 +246,38 @@ func TestAttackingEntryDigNoDefenderNotesOnce(t *testing.T) {
 		"DestinationZone": "Battlefield", "Attacking": "True"}})
 	for _, id := range dug {
 		o := h.g.Obj(id)
-		if o == nil || o.Zone != state.ZBattlefield || !o.Tapped || o.IsAttacking {
-			t.Fatalf("dug object %d = %+v, want battlefield, tapped, NOT attacking", id, o)
+		if o == nil || o.Zone != state.ZBattlefield || o.Tapped || o.IsAttacking {
+			t.Fatalf("dug object %d = %+v, want battlefield, untapped (no Tapped$), NOT attacking", id, o)
 		}
 	}
 	if notes := countAttackingNotes(h); notes != 1 {
 		t.Fatalf("Dig no-defender Notes = %d over a two-card take, want exactly 1; log=%+v", notes, h.log)
+	}
+}
+
+// TestAttackingEntryNoDefenderKeepsTappedRider is the guard for the degrade:
+// with no defender in context, a Tapped$ True rider still enters tapped
+// through the mover's own entry Tap (exactly one), and nothing attacks.
+func TestAttackingEntryNoDefenderKeepsTappedRider(t *testing.T) {
+	h, c := fixtureHost(t)
+	for _, id := range []state.ObjID{1, 2} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	}
+	effChangeZoneAll(h, c, &cards.SA{Params: map[string]string{"Origin": "Graveyard",
+		"Destination": "Battlefield", "Tapped": "True", "Attacking": "True"}})
+	for _, id := range []state.ObjID{1, 2} {
+		o := h.g.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield || !o.Tapped || o.IsAttacking {
+			t.Fatalf("object %d = %+v, want battlefield, tapped, NOT attacking", id, o)
+		}
+		taps := 0
+		for _, ev := range h.log {
+			if ev.Kind == events.Tap && ev.Obj == id {
+				taps++
+			}
+		}
+		if taps != 1 {
+			t.Fatalf("object %d logged %d Tap events, want exactly 1 (the Tapped$ entry)", id, taps)
+		}
 	}
 }

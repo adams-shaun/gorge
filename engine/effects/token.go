@@ -47,8 +47,9 @@ func init() { Register("Token", effToken) }
 // becoming tapped) lands right after each mint, so the token is on the
 // battlefield untapped for exactly one folded event and then tapped.
 // TokenAttacking$ True (Mobilize, Kari Zev) makes every token this call
-// creates enter tapped and attacking the combat's defending player through
-// the appended events.TokenAttacks kind; see the implementation comment at
+// creates enter attacking the combat's defending player through the appended
+// events.TokenAttacks kind (the tap is TokenTapped$'s, never this rider's);
+// see the implementation comment at
 // the read below for the no-defender degrade. The other TokenAttacking$
 // selector forms stay census-free gaps.
 //
@@ -588,8 +589,8 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// All selectors (owner, bearer and memory) have read the old set.
 	forgetOtherRemembered(h, c, sa)
 
-	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
-	// rider): every token this call creates enters attacking the combat's
+	// TokenAttacking$ True (Mobilize, Kari Zev): every token this call
+	// creates enters attacking the combat's
 	// DEFENDING player, read from the firing Attacks trigger's own referent
 	// capture (engine/rules/trigger_referents.go binds c.DefendingPlayer from the
 	// DeclareAttackers event; the defending player is ev.Player there --
