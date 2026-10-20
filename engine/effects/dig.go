@@ -45,10 +45,12 @@ import (
 // choice, unlike what an earlier note here claimed take-all (measured: the
 // unresolvable-value Num read degraded Any to 0 and those digs took
 // NOTHING). The look is recorded first as a Secret Note carrying the
-// window's ids (only the library's owner may know what sat on top; the same
-// channel effRearrangeTopOfLibrary uses, with the ids added so the owner's
-// client can render what was seen -- engine/view/redact.go rule (1) passes a Secret
-// event's payload to its own Player and strips it from everyone else). The
+// window's ids (only the chooser -- the resolving ability's controller unless
+// Choser$ names another player, CR 701.29a -- may know what sat on top; the
+// same channel effRearrangeTopOfLibrary uses, with the ids added so the
+// chooser's client can render what was seen -- engine/view/redact.go rule (1)
+// passes a Secret event's payload to its own Player and strips it from
+// everyone else). The
 // decision is a KChoose over the ELIGIBLE cards only, in library order: an
 // ineligible card must not be pickable, so it is not offered (the window
 // itself is on the look Note; the prompt names the card text). Min honours
@@ -95,11 +97,12 @@ import (
 //     corpus's default -- it is the library bottom (Ancient Stirrings' own
 //     Oracle: "put the rest on the bottom of your library in any order").
 //   - LibraryPosition2$ places a library DestinationZone2$: "0" = top,
-//     which leaves the cards exactly where they are, so the placement
-//     emits nothing; "-1" = bottom, the ordered-bottom KArrange ask (or,
-//     for a one-card remainder, the deterministic move -- one card has
-//     exactly one possible order); anything else is named in a loud Note
-//     and the card stays (the corpus carries only "0" and "-1").
+//     where two or more cards are ordered by the chooser (the top-order
+//     KArrange) and one card stays where it is; "-1" = bottom, the
+//     ordered-bottom KArrange ask (or, for a one-card remainder, the
+//     deterministic move -- one card has exactly one possible order);
+//     anything else is named in a loud Note and the card stays (the corpus
+//     carries only "0" and "-1").
 //   - SkipReorder$ True suppresses both the bottom default and a
 //     DestinationZone2$ remainder placement: the untaken cards never move,
 //     so they stay on top in their existing relative order (the corpus
@@ -250,6 +253,11 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	rider := classifyAttackingEntry(c, sa, dest)
 	for targetIndex, p := range players {
 		lib := zoneOf(g, state.ZLibrary, p)
+		chooser := digChooser(h, c, dp, p)
+		libPhrase := "your library"
+		if chooser != p {
+			libPhrase = "that player's library"
+		}
 		n := digNum
 		if int32(len(lib)) < n {
 			n = int32(len(lib))
@@ -364,9 +372,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				// "dig_arrange" is this ask's OWN continuation: reusing the
 				// take ask's "dig" would feed the answered order back through
 				// the "dig" arm as a TAKE answer and re-dig the next window.
-				d := &decision.Decision{Player: p, Kind: decision.KArrange, Min: len(ids), Max: len(ids), Source: c.Source,
+				d := &decision.Decision{Player: chooser, Kind: decision.KArrange, Min: len(ids), Max: len(ids), Source: c.Source,
 					ResumeKind: "dig_arrange", ResumeSA: sa, ResumeTarget: targetIndex,
-					Prompt:           "Put the remaining cards on the bottom of your library in any order",
+					Prompt:           "Put the remaining cards on the bottom of " + libPhrase + " in any order",
 					ResumeDigPrimary: append([]state.ObjID(nil), primaryMoved...),
 				}
 				for i, id := range ids {
@@ -390,6 +398,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				// the exact permutation botpolicy's clamp top-up answers, so the
 				// two deterministic readers cannot drift.
 				moveRestToBottom(h, g, p, ids, false)
+				return
+			}
+			if dest2 == state.ZLibrary && (pos2 == "" || pos2 == "0") && !restRandomOrder && !fromBottom && len(ids) >= 2 && libraryTopIs(g, p, ids) {
+				digTopOrderAsk(h, c, sa, chooser, p, ids, targetIndex, libPhrase, !noLooking || revealWin)
 				return
 			}
 			for _, id := range ids {
@@ -479,22 +491,16 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// deterministic take.
 		optionalChoice := (optional || promptToSkipOptional) && len(budgetEligible) > 0 && changeNum > 0
 		takeChoice := int32(len(budgetEligible)) > changeNum || anyNum && len(budgetEligible) > 0
-		chooser := p
-		if rawChooser := dp.Choser; rawChooser != "" {
-			if cp, ok := chooserPlayer(h, c, rawChooser); ok {
-				chooser = cp
-			}
-		}
 		allOrNothing := dp.ChangeNumAll && (optional || promptToSkipOptional) && !hasBudget && len(budgetEligible) > 0
 		if arrangeThrough < 0 && changeNum > 0 && (takeChoice || optionalChoice || askBudget) {
-			// A real choice: record the look, then ask the library's owner.
+			// A real choice: record the look, then ask the chooser.
 			// Reveal$ True makes the record a PUBLIC reveal of the window (the
 			// same non-Secret ids-Note shape effReveal's public arm emits);
-			// otherwise the look stays private to the library's owner.
+			// otherwise the look stays private to the chooser.
 			if revealWin {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 			} else if !noLooking {
-				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
+				emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
 			}
 			minv := int32(0)
 			if !optional && !promptToSkipOptional && !anyNum {
@@ -515,9 +521,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !optional && !promptToSkipOptional && !anyNum {
 				verb = "put "
 			}
-			look := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library"
+			look := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of " + libPhrase
 			if noLooking && !revealWin {
-				look = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library"
+				look = "Choose from the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of " + libPhrase
 			}
 			// A self-contained library move (Jace, the Mind Sculptor's "you
 			// may put it on the bottom" shape) is represented by an optional
@@ -531,7 +537,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if !optional && !promptToSkipOptional && !anyNum {
 					selectVerb = "Select "
 				}
-				prompt = look + ": " + selectVerb + strconv.Itoa(int(changeNum)) + " matching card(s) to put on the bottom of your library. Leave unselected card(s) on top."
+				prompt = look + ": " + selectVerb + strconv.Itoa(int(changeNum)) + " matching card(s) to put on the bottom of " + libPhrase + ". Leave unselected card(s) on top."
 			}
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
@@ -605,7 +611,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// Fuzz/no-engine host: the deterministic stand-in (R-9) takes the
 			// greedy affordable set -- the exact mirror of the budget-aware bot
 			// arm -- with the Note that records why the richer path did not run.
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
 			taken := make(map[state.ObjID]bool, len(greedy))
 			for _, id := range greedy {
@@ -636,9 +642,13 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if bottomRest && !revealWin && !noLooking && int32(len(top)-len(greedy)) >= 2 {
 			// The ordered-bottom ask is coming: the look that authorises it is
-			// recorded here, the same Secret owner's Note the take-ask path
+			// recorded here, the same Secret chooser's Note the take-ask path
 			// emits before ITS ask (a Reveal$ window is already public).
-			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
+			emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
+		} else if chooser != p && dest == state.ZLibrary && !revealWin && !noLooking && len(top) > 0 {
+			// A pure look (no take) at another player's library still records
+			// the look for the chooser (Rootwater Mystic, Moonring Island).
+			emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, top, lookText)
 		}
 		taken := make(map[state.ObjID]bool, len(greedy))
 		for _, id := range greedy {
@@ -657,6 +667,59 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// The walk completed: release the ride (the same boundary the search and
 	// hidden walks end at), so a later ability in the chain cannot inherit it.
 	endForgetOtherSnapshot(c)
+}
+
+// digChooser is the player who looks at, takes from and orders the library
+// p: a resolved Choser$ when the card names one, otherwise the resolving
+// spell or ability's controller (CR 701.29a -- "you" is the ability's
+// controller, not the library's owner).
+func digChooser(h Host, c *Ctx, dp *DigParams, owner state.PlayerID) state.PlayerID {
+	if rawChooser := dp.Choser; rawChooser != "" {
+		if cp, ok := chooserPlayer(h, c, rawChooser); ok {
+			return cp
+		}
+	}
+	if int(c.Controller) < len(h.Game().Players) {
+		return c.Controller
+	}
+	return owner
+}
+
+// libraryTopIs reports whether ids are exactly the owner's top cards in
+// window order, the shape a rest-on-top order ask can reorder.
+func libraryTopIs(g *state.Game, owner state.PlayerID, ids []state.ObjID) bool {
+	lib := zoneOf(g, state.ZLibrary, owner)
+	if len(ids) > len(lib) {
+		return false
+	}
+	for i, id := range ids {
+		if lib[i] != id {
+			return false
+		}
+	}
+	return true
+}
+
+// digTopOrderAsk poses the rest-on-top order ask (CR 701.29a: "the rest on
+// top of that library in any order"). The answer record applies it; an
+// unanswered ask keeps the offered order, which is where the cards already
+// sit, so it emits nothing.
+func digTopOrderAsk(h Host, c *Ctx, sa *cards.SA, chooser, owner state.PlayerID, ids []state.ObjID, targetIndex int, libPhrase string, named bool) {
+	g := h.Game()
+	d := &decision.Decision{Player: chooser, Kind: decision.KArrange, Min: len(ids), Max: len(ids), Source: c.Source,
+		ResumeKind: "dig_arrange", ResumeSA: sa, ResumeTarget: targetIndex,
+		Prompt: "Put the remaining cards back on top of " + libPhrase + " in any order; the first card you pick goes on top",
+	}
+	for i, id := range ids {
+		name := "a card"
+		if named {
+			if o := g.Obj(id); o != nil && o.Face() != nil {
+				name = o.Face().Name
+			}
+		}
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "top", Label: name, Obj: id, Player: owner})
+	}
+	AskTapeIntent(h, d)
 }
 
 // defaultDigChangeNum is one for an omitted ChangeNum$, or the full window
@@ -688,7 +751,8 @@ const (
 )
 
 var effDigCodes = state.NewStrCodes(
-	state.StrEntry[effDigCode]{Key: "", Val: effDigTop},
+	// An omitted LibraryPosition$ is the bottom (Forge's default -1).
+	state.StrEntry[effDigCode]{Key: "", Val: effDigBottom},
 	state.StrEntry[effDigCode]{Key: "0", Val: effDigTop},
 	state.StrEntry[effDigCode]{Key: "-1", Val: effDigBottom},
 )

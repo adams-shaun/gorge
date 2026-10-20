@@ -124,7 +124,8 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 	// len(lib)), so the remainder slice is always valid. A suspended
 	// resolution cannot have the library change underneath it, so d.Options'
 	// N and the live library still agree.
-	lib := e.G.Zone(state.ZLibrary, d.Player)
+	owner := arrangeLibraryOwner(e, d)
+	lib := e.G.Zone(state.ZLibrary, owner)
 	k := len(d.Options)
 	remainder := lib[k:]
 	if kind == "dig_bottom" && len(d.ResumeDigPrimary) > 0 {
@@ -149,7 +150,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 			}
 		}
 		newLib = append(newLib, pileA...)
-		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
 		return
 	}
@@ -163,7 +164,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		newLib := make([]state.ObjID, 0, len(remainder)+len(pileA))
 		newLib = append(newLib, remainder...)
 		newLib = append(newLib, pileA...)
-		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
 	case arrangeAnswerRecordBottom:
 		// Ruling J4: pile B goes to the END of the library, BELOW the
@@ -173,7 +174,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		newLib = append(newLib, pileA...)
 		newLib = append(newLib, remainder...)
 		newLib = append(newLib, pileB...)
-		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
 		// A completed Scry records its final bottom pile as the shared
 		// events.Scry marker (task scrybottom). The answer is known here, so
@@ -197,11 +198,11 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		newLib := make([]state.ObjID, 0, len(pileA)+len(remainder))
 		newLib = append(newLib, pileA...)
 		newLib = append(newLib, remainder...)
-		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
 		for _, id := range pileB {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZLibrary, To: state.ZGraveyard, Player: d.Player})
+				From: state.ZLibrary, To: state.ZGraveyard, Player: owner})
 		}
 		// RememberKept$ True (task surveil-remember-kept; LCI Starving
 		// Revenant's "for each card you put on top of your library, you
@@ -234,9 +235,24 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		newLib = append(newLib, pileA...)
 		newLib = append(newLib, pileB...)
 		newLib = append(newLib, remainder...)
-		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: owner,
 			IDs: newLib, Secret: true})
 	}
+}
+
+// arrangeLibraryOwner is the player whose library an answered arrange
+// reorders. It is the OWNER of the offered cards (CR 400.3: a library card is
+// in its owner's library), never d.Player: the record is handed the ACTING
+// view, whose Player a CR 722 redirect can re-seat. An own-library arrange
+// (Scry, Surveil, RearrangeTopOfLibrary, Hideaway, own Dig) has owner ==
+// d.Player, so its events are unchanged.
+func arrangeLibraryOwner(e *Engine, d *decision.Decision) state.PlayerID {
+	if len(d.Options) > 0 {
+		if o := e.G.Obj(d.Options[0].Obj); o != nil && o.Zone == state.ZLibrary {
+			return o.Owner
+		}
+	}
+	return d.Player
 }
 
 type arrangeAnswerRecordCode uint16
