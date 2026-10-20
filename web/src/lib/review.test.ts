@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { ReviewDecision } from '../protocol';
 import { initialDvr, type DvrState } from './dvr';
-import { resolveStart } from './replay';
+import { resolveStart, stepTarget } from './replay';
 import {
   bySeat,
+  decisionStops,
   duplicateLabels,
+  isPassOnly,
   entryAt,
   entryIndexAt,
   hasExplain,
@@ -43,6 +45,34 @@ const entry = (intent: number, ask: number, over: Partial<ReviewDecision> = {}):
 });
 
 const n = (x: Partial<ExplainNote>): ExplainNote => ({ seat: 0, source: 'policy', ...x });
+
+describe('pass-only decisions', () => {
+  const passOnly = (intent: number, ask: number) =>
+    entry(intent, ask, {
+      options: [
+        { index: 0, label: 'Pass priority', kind: 'pass' },
+        { index: 1, label: 'Concede', kind: 'concede' },
+      ],
+      options_total: 2,
+    });
+
+  it('a window offering only pass and concede is pass-only; a real option or a capped list is not', () => {
+    expect(isPassOnly(passOnly(0, 5))).toBe(true);
+    expect(isPassOnly(entry(0, 5))).toBe(false);
+    expect(isPassOnly({ ...passOnly(0, 5), options_total: 300 })).toBe(false);
+    expect(isPassOnly({ ...passOnly(0, 5), options: [] })).toBe(false);
+  });
+
+  it('decision stops leave the pass-only asks out, and stepping uses them', () => {
+    const entries = [entry(0, 5), passOnly(1, 15), passOnly(2, 25), entry(3, 35)];
+    const stops = decisionStops(entries);
+    expect(stops).toEqual([5, 35]);
+    const dvr: DvrState = { ...initialDvr, match: 't/1', head: 39, cursor: 5, live: false, events: [], turnStarts: [] };
+    expect(stepTarget(dvr, 'decision', 1, stops)).toBe(35);
+    expect(stepTarget({ ...dvr, cursor: 35 }, 'decision', -1, stops)).toBe(5);
+    expect(stepTarget({ ...dvr, cursor: 35 }, 'decision', 1, stops)).toBe(39);
+  });
+});
 
 /**
  * Six decisions asked at 5, 15, 25, 35, 45, 55:

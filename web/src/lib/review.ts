@@ -93,6 +93,25 @@ export function isSearched(e: ReviewDecision): boolean {
   return !!note(e)?.search;
 }
 
+/**
+ * isPassOnly: every option offered was "Pass priority" or "Concede" -- a
+ * priority window with nothing to do, which is most of a game's decisions.
+ * A capped option list (options_total above what was sent) is never
+ * pass-only: the unsent options were something else.
+ */
+export function isPassOnly(e: ReviewDecision): boolean {
+  return (
+    e.options.length > 0 &&
+    e.options.length === e.options_total &&
+    e.options.every((o) => o.kind === 'pass' || o.kind === 'concede')
+  );
+}
+
+/** decisionStops is the Decision step's stops when passes are skipped: every ask_seq but the pass-only ones'. */
+export function decisionStops(entries: readonly ReviewDecision[]): number[] {
+  return entries.filter((e) => !isPassOnly(e)).map((e) => e.ask_seq);
+}
+
 /** hasExplain: any entry of the index carries a note. */
 export function hasExplain(entries: readonly ReviewDecision[]): boolean {
   return entries.some((e) => note(e) !== null);

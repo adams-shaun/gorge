@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/manabrew"
@@ -59,6 +61,10 @@ func (o Options) withDefaults() Options {
 type handler struct {
 	reg  *host.Registry
 	opts Options
+	// submitIntentFn substitutes Registry.SubmitIntent in tests that need a
+	// deterministic refusal the live engine cannot produce (a stream
+	// auto-pass is always a legal pass). nil uses the registry.
+	submitIntentFn func(host.TableID, int, state.PlayerID, decision.Intent) error
 
 	mu    sync.Mutex
 	conns map[connKey]*seatConn // lazily created, never removed (bounded by real (table,match,seat) tuples)
