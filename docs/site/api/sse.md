@@ -47,8 +47,10 @@ sequenceDiagram
 ```
 
 1. **Open.** A connection without a usable `Last-Event-ID` gets a new session. Its first frame
-   is `hello`, carrying the session id (an unguessable `s` + 32 hex digits) and every table.
-   The session id is the capability that subscribing needs, so do not share it.
+   is `hello`, carrying the session id (an unguessable `s` + 32 hex digits) and the lobby's
+   tables. A private play-vs-bot table is omitted unless the request's seat token claims it;
+   event tables are public and stay watchable. The session id is the capability that
+   subscribing needs, so do not share it.
 2. **Subscribe.** `POST /api/subscribe {"session", "table", "mode"}` answers 204. Subscribing
    again to the same table replaces its mode. `POST /api/unsubscribe {"session", "table"}`
    removes it; unsubscribing a table you never subscribed is a 404.
@@ -127,8 +129,10 @@ data: {"v":1,"t":"match_end","id":2085,"table":"t2","match":5,"seq":1788,"body":
 | `table_halted` | yes | yes | The table crashed and stopped, with the reason |
 | `overflow` | yes | yes | The last frame of a session whose buffer filled |
 
-`table` `*` subscribes every table, present and future, in overview mode. Focus on `*` is a
-400: a client must pick which games it wants in full.
+`table` `*` subscribes every public table, present and future, in overview mode. Private
+play-vs-bot tables are included only for a session whose seat token claims them; a client
+without a claim must subscribe to one explicitly (which the server refuses with a 404).
+Focus on `*` is a 400: a client must pick which games it wants in full.
 
 A focus subscriber that joins mid-match never sees that match's `match_start`. The `snapshot`
 it receives carries the seat list (`seats`) for exactly that reason. Engine events from
