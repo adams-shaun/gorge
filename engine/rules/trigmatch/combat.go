@@ -328,7 +328,10 @@ func DamageMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 }
 
 func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev events.Event, remembered []state.Target) bool {
-	if ev.Kind != events.Damage {
+	// CR 120.8/603.2g: a non-positive Damage event is the marked-damage
+	// removal (cleanup, regeneration, HealDamage) or a hit reduced to zero --
+	// no damage was dealt.
+	if ev.Kind != events.Damage || ev.Amount <= 0 {
 		return false
 	}
 	// CombatDamage$ splits the mode between combat and noncombat damage

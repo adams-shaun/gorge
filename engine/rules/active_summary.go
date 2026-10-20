@@ -40,6 +40,10 @@ type activeSummary struct {
 	// hasRemoveAbilities: some entry is a layer-6 "loses all abilities"
 	// effect (abilityloss.go's gates answer "no loss" without one).
 	hasRemoveAbilities bool
+	// hasLandSubtypeSetter: some entry is a CR 305.7 land-subtype setter
+	// (state.SetsBasicLandSubtypes), which also costs its lands their rules
+	// text.
+	hasLandSubtypeSetter bool
 }
 
 // activeSummaryVerify: see derivedMemoVerify. Set by the rules test binary.
@@ -56,7 +60,8 @@ func (e *Engine) activeSummaryOf(ces []ContinuousEffect) activeSummary {
 	if s.valid && s.seq == e.activeBuildSeq && s.base == base && s.n == len(ces) {
 		if activeSummaryVerify {
 			if fresh := summarizeActive(ces); fresh.hasLType != s.hasLType || fresh.hasGrants != s.hasGrants || fresh.hasManaConvert != s.hasManaConvert ||
-				fresh.hasLColor != s.hasLColor || fresh.hasRemoveAbilities != s.hasRemoveAbilities {
+				fresh.hasLColor != s.hasLColor || fresh.hasRemoveAbilities != s.hasRemoveAbilities ||
+				fresh.hasLandSubtypeSetter != s.hasLandSubtypeSetter {
 				panic(fmt.Sprintf("rules: active summary at build %d disagrees with a rescan (%+v vs %+v)", s.seq, *s, fresh))
 			}
 		}
@@ -87,7 +92,10 @@ func summarizeActive(ces []ContinuousEffect) activeSummary {
 		if ce.Layer == LAbilities && ce.RemoveAbilities {
 			s.hasRemoveAbilities = true
 		}
-		if s.hasLType && s.hasGrants && s.hasManaConvert && s.hasLColor && s.hasRemoveAbilities {
+		if state.SetsBasicLandSubtypes(ce) {
+			s.hasLandSubtypeSetter = true
+		}
+		if s.hasLType && s.hasGrants && s.hasManaConvert && s.hasLColor && s.hasRemoveAbilities && s.hasLandSubtypeSetter {
 			break
 		}
 	}

@@ -22,7 +22,7 @@ import (
 //     28 corpus RevealHand lines — Gitaxian Probe, Glasses of Urza, Slayer's
 //     Bounty): the activator looks at the target's hand. CR 701.20e: a card
 //     looked at this way is shown only to the player the effect specifies.
-//   - effDig's ask-path look (the window the library's owner is choosing
+//   - effDig's ask-path look (the window the Dig's chooser is choosing
 //     from).
 //   - effRearrangeTopOfLibrary, effScry and effSurveil (the KArrange looks
 //     at the top of the library).

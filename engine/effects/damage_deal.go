@@ -107,13 +107,26 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	var split []int32
 
 	if divided {
+		var live []state.Target
 		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
 				divTargets = append(divTargets, divTarget{player: t.Player})
+				live = append(live, t)
 				continue
 			}
 			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
 				divTargets = append(divTargets, divTarget{obj: t.Obj})
+				live = append(live, t)
+			}
+		}
+		// CR 601.2d: a division announced while casting is final. Each still-
+		// legal target takes exactly its announced share; a target that left
+		// or became illegal (CR 608.2b) takes nothing and its share is not
+		// redistributed. No ask is posed.
+		if !c.DamageSplitDone {
+			if shares, ok := AnnouncedDivision(h, c, sa, live); ok {
+				split = shares
+				c.DamageSplitDone = true
 			}
 		}
 		if !c.DamageSplitDone {

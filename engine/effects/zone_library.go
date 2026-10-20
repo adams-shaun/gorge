@@ -8,14 +8,16 @@ import (
 )
 
 // shuffleLibrary applies the default hidden-library shuffle used by searches
-// and direct Defined$ fetches: the CR 701.23d shuffle, unless the SA opts out
-// (NoShuffle$ True / Shuffle$ False). A hand put-back is different: it
-// shuffles only when its own SA explicitly says Shuffle$ True, and uses
-// shuffleLibraryExplicit below. ShuffleNonMandatory$ True -- Forge's "Do you
-// want to shuffle the library?" confirm, an information-mercy so a player may
-// keep the library order a search just taught them -- is NOT read here: this
-// helper is the mandatory path, and the confirm belongs to the search's own
-// tail, searchShuffleTail below.
+// and direct Defined$ fetches: the CR 701.23 "then shuffle", unless the SA
+// opts out (NoShuffle$ True / Shuffle$ False). A hand put-back is different:
+// it shuffles only when its own SA explicitly says Shuffle$ True, and uses
+// shuffleLibraryExplicit below. ShuffleNonMandatory$ is never read here: on
+// a library search Forge reads it only to skip the shuffle when the player
+// was not allowed to search at all ("if you do, shuffle"), which gorge
+// expresses by not reaching the search tail (a declined Optional$ confirm,
+// an OptionalDecider$ trigger declined, a search whose zones exclude the
+// library). The object path's "you may shuffle" read is
+// objectPathShuffleTail's.
 func shuffleLibrary(h Host, cz *ChangeZoneParams, owner state.PlayerID) {
 	if cz.NoShuffle || cz.ShuffleFalse {
 		return
@@ -87,49 +89,17 @@ func objectPathShuffleOwners(h Host, moved []state.ObjID) {
 	}
 }
 
-// searchShuffleTail is a hidden-library search's shuffle-and-place tail, with
-// the ShuffleNonMandatory$ read (Path to Exile, Stoneforge Mystic, Squadron
-// Hawk, Boggart Harbinger -- 209 exact-Origin$ Library corpus lines carry the
-// flag). When the flag is set, even if the search moved no cards, the
-// searcher is offered Forge's may-shuffle confirm -- "Shuffle your
-// library?" -- instead of the unconditional shuffle: declining keeps the
-// library order the search's option list (offered in library order) just
-// taught them. The confirm is offered whether or not the search moved a
-// card (searchmay1): the fail-to-find shape asks too, because the search's
-// mandatory shuffle is exactly what the confirm may spare, and a player who
-// failed to find has just as much reason to keep the order they know. This
-// is also the tail an object-target ChangeZone into a library calls
-// (searchmay1), so a graveyard shuffle-in poses the same confirm.
-//
-// The confirm is answered in place via AskTape after the moves: "yes" emits
-// the same Secret events.Shuffle every library shuffle emits, "no" keeps the
-// order, and either way placeLibraryObjects runs after the shuffle point
-// exactly as the unconditional path ordered it. A host that cannot ask takes
-// the deterministic no-host stand-in (R-9): decline, keep the order -- the
-// same stand-in the arrange_mayshuffle confirm falls back to.
-func searchShuffleTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
-	if !cz.ShuffleNonMandatory {
-		shuffleLibrary(h, cz, owner)
-		placeLibraryObjects(h, c, cz, owner, moved, to)
-		return
-	}
-	d := &decision.Decision{Player: owner, Kind: decision.KChoose, Min: 1, Max: 1,
-		Source: c.Source, ResumeKind: "search_mayshuffle", ResumeSA: sa,
-		ResumeTarget: c.Search.Target,
-		Prompt:       "Shuffle your library?",
-		Options: []decision.Option{
-			{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: owner},
-			{Index: 1, Kind: "no", Label: "No — keep the order", Player: owner},
-		}}
-	if ans, ok := AskTape(h, d); ok {
-		// Answered in place: the answered tail.
-		if tapeAnswerYes(ans) {
-			shuffleLibraryOrder(h, owner)
-		}
-		placeLibraryObjects(h, c, cz, owner, moved, to)
-		return
-	}
-	// No-host stand-in (R-9): decline the shuffle, keep the order.
+// searchShuffleTail is a hidden-library search's shuffle-and-place tail. The
+// shuffle is mandatory (CR 701.23 "then shuffle"; CR 701.24c/d: even when
+// the search found nothing), so nobody is asked: ShuffleNonMandatory$ on a
+// library search (Path to Exile, Stoneforge Mystic, Squadron Hawk -- 210
+// Origin$ Library corpus lines) marks Forge's "if you do / each player who
+// searched shuffles" wording, not a "you may shuffle", and its "did not
+// search" half is already the caller's (the search tail runs only for a
+// library that was searched). placeLibraryObjects runs after the shuffle
+// point (Boggart Harbinger's "shuffle and put that card on top").
+func searchShuffleTail(h Host, c *Ctx, cz *ChangeZoneParams, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
+	shuffleLibrary(h, cz, owner)
 	placeLibraryObjects(h, c, cz, owner, moved, to)
 }
 

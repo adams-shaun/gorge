@@ -372,6 +372,23 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			// reset at TurnChange; it is cleared on leaving the battlefield
 			// with ExertSkipUntap (engine/events/apply_zone.go).
 			o.CantUntapNextStep = e.Amount >= 1
+		case AttrBestowed:
+			// CR 702.103e: a bestowed Aura spell whose target is illegal as
+			// it begins resolving ceases to be bestowed. Only the removal
+			// is modelled (rules' resolveTop emits Amount -1); clearing the
+			// pay-time provenance turns state.Object.BestowedAuraSpell off,
+			// so the spell is a creature spell to every type read from here
+			// on. A grant (Amount >= 1) folds nothing.
+			if e.Amount < 1 {
+				o.CastFlags &^= state.FlagBestowed
+			}
+		case AttrMutating:
+			// CR 702.140b: a mutating creature spell whose target is illegal
+			// as it begins resolving ceases to be a mutating creature spell
+			// and resolves as a creature spell. Removal only, as above.
+			if e.Amount < 1 {
+				o.CastFlags &^= state.FlagMutated | state.FlagMutatedTop
+			}
 		}
 	}
 }

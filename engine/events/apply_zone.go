@@ -869,6 +869,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.Targets = nil
 		o.SubTargets = nil
 		o.TargetStamps = nil
+		o.Division = nil
 		// o.Remembered is deliberately NOT reset on the DEPARTURE: a pending
 		// referent read belongs to the object that queued it (CR 400.7), and
 		// a leave trigger's body resolves only after the fold -- the source

@@ -146,6 +146,9 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// a new object, CR 400.7, is illegal for the copy too).
 	stamps := append([]state.TargetStamp(nil), src.TargetStamps...)
 	remembered := append([]state.Target(nil), src.Remembered...)
+	// CR 707.10: the announced division is a decision made for the spell,
+	// so the copy carries it; positional with Targets (CR 115.7f).
+	division := append([]int32(nil), src.Division...)
 	// Mode announcements are copiable characteristics (CR 707.10): a
 	// modal copy must resolve the same chosen modes, not ask for new ones.
 	chosenModes := state.CloneChosenModes(src.ChosenModes)
@@ -163,6 +166,9 @@ func foldStackCopy(g *state.Game, e *Event) {
 				stamps = append(stamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation})
 			}
 		}
+		if len(targets) != len(division) {
+			division = nil
+		}
 	}
 
 	o := g.AddObject(card, e.Player)
@@ -177,6 +183,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 		o.TargetStamps = stamps
 	}
 	o.Remembered = remembered
+	o.Division = division
 	o.ChosenModes = chosenModes
 	o.X, o.CastFlags, o.IsCopy = x, castFlags, true
 	o.TeamworkPaid = teamworkPaid

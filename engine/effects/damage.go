@@ -351,10 +351,13 @@ func payLifelinkRider(r damageRider, dealt int32) {
 // cannot discover the animation itself) so it gets marked damage as well as
 // loyalty loss; printed creatures and plain planeswalkers are unaffected by
 // the tag.
+//
+// A proposed amount <= 0 is no damage at all (CR 120.8; a negative fight
+// power is 0 by CR 107.1b): nothing is emitted and 0 is returned.
 func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 	h := r.h
 	o := h.Game().Obj(target)
-	if o == nil {
+	if o == nil || r.amount <= 0 {
 		return 0
 	}
 	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
@@ -398,6 +401,9 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
 // lifelink rider from the amount that survived replacement effects.
 func emitPlayerDamage(r damageRider, target state.PlayerID) {
+	if r.amount <= 0 {
+		return
+	}
 	ev := events.Event{Kind: events.Damage, Player: target, Amount: r.amount}
 	if r.hasInfect {
 		// CR 702.90b: damage from an infect source is dealt to a player in

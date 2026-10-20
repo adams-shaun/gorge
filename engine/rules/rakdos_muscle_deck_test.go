@@ -526,16 +526,7 @@ func TestFlamekinDeclinedSearchDoesNotShuffle(t *testing.T) {
 			shuffleCount++
 		}
 	}
-	submitChoices(t, e) // the empty answer: find none (CR 701.23b)
-	// searchmay1: the fail-to-find shape now poses the ShuffleNonMandatory$
-	// may-shuffle confirm. Accept it, so the pinned "the fail-to-find still
-	// shuffles" count below holds.
-	d = drainUntilAsk(t, e, 30)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search_mayshuffle" {
-		t.Fatalf("fail-to-find did not pose the may-shuffle confirm: %+v", d)
-	}
-	yes, _ := mayShuffleConfirm(t, e, 0)
-	submitChoices(t, e, yes)
+	submitChoices(t, e) // the empty answer: find none (CR 701.23b); the shuffle is mandatory (CR 701.24d)
 	if after := e.G.Zone(state.ZLibrary, 0); len(after) != len(before) {
 		t.Fatalf("library size changed on a fail-to-find search")
 	}

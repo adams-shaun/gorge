@@ -210,10 +210,11 @@ func kr0DigLibraries(t *testing.T, e *Engine, libs ...[]string) [][]state.ObjID 
 }
 
 // TestDigMultiPlayerResumeKeepsEveryLibraryKernel: Defined$ Player over
-// three libraries -- seat 0's no-choice window completes silently; seat 1's
-// take and then its two-card ordered bottom are asked and applied; the walk
-// then continues to seat 2 (never abandoned, never re-processing seat 0 or
-// 1), which ends with one land taken and its remainder bottomed.
+// three libraries -- seat 0's no-choice window completes silently; the
+// controller (seat 0) is asked for seat 1's take and then its two-card
+// ordered bottom, and those answers are applied; the walk then continues to
+// seat 2 (never abandoned, never re-processing seat 0 or 1), which ends with
+// one land taken and its remainder bottomed.
 func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 	t.Parallel()
 	e := kr0Engine(t, 3)
@@ -224,8 +225,8 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 		[]string{kr0DigIsle, kr0DigBear, kr0DigIsle})
 	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"),
 		func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }, nil)
-	if d == nil || d.Player != 1 || d.Kind != decision.KChoose {
-		t.Fatalf("first decision = %+v, want seat 1's take", d)
+	if d == nil || d.Player != 0 || d.ResumeTarget != 1 || d.Kind != decision.KChoose {
+		t.Fatalf("first decision = %+v, want seat 1's take, chosen by the controller (seat 0; CR 701.29a)", d)
 	}
 	if hand := e.G.Zone(state.ZHand, 0); !slices.Equal(hand, []state.ObjID{libs[0][0]}) {
 		t.Fatalf("seat 0 hand = %v, want its no-choice take [%d]", hand, libs[0][0])
@@ -238,8 +239,8 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 	}
 	picked := libs[1][2]
 	d = kr0Answer(t, e, kr0Opt(t, d, picked))
-	if d == nil || d.Kind != decision.KArrange || d.Player != 1 || d.Min != 2 || d.Max != 2 {
-		t.Fatalf("decision = %+v, want seat 1's 2/2 ordered-bottom arrange", d)
+	if d == nil || d.Kind != decision.KArrange || d.Player != 0 || d.ResumeTarget != 1 || d.Min != 2 || d.Max != 2 {
+		t.Fatalf("decision = %+v, want seat 1's 2/2 ordered-bottom arrange, chosen by seat 0", d)
 	}
 	if hand := e.G.Zone(state.ZHand, 0); len(hand) != 1 {
 		t.Fatalf("seat 0 was processed twice: hand %v", hand)
@@ -255,13 +256,13 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 	if lib := e.G.Zone(state.ZLibrary, 1); !slices.Equal(lib, order1) {
 		t.Fatalf("seat 1 library = %v, want the answered bottom order %v", lib, order1)
 	}
-	if d == nil || d.Player != 2 {
+	if d == nil || d.Player != 0 || d.ResumeTarget != 2 {
 		t.Fatalf("decision = %+v, want seat 2's own ask on the resumed walk", d)
 	}
 	// Answer every remaining ask of seat 2 with its first legal shape; seat
 	// 2 must end with exactly one land taken and its remainder bottomed.
 	for i := 0; d != nil && i < 4; i++ {
-		if d.Player != 2 {
+		if d.Player != 0 || d.ResumeTarget != 2 {
 			t.Fatalf("unexpected decision %+v after seat 2's walk began", d)
 		}
 		d = kr0Answer(t, e, tapePick(d)...)
@@ -279,8 +280,8 @@ func TestDigMultiPlayerResumeKeepsEveryLibraryKernel(t *testing.T) {
 
 // TestDigTakeResumeContinuesToLaterLibraryKernel: after an earlier
 // library's take is answered, a LATER library with a real choice poses its
-// own take ask (never a silent first-eligible take), and its answer is what
-// moves.
+// own take ask to the controller (seat 0; CR 701.29a), never a silent
+// first-eligible take, and its answer is what moves.
 func TestDigTakeResumeContinuesToLaterLibraryKernel(t *testing.T) {
 	t.Parallel()
 	e := kr0Engine(t, 3)
@@ -291,15 +292,15 @@ func TestDigTakeResumeContinuesToLaterLibraryKernel(t *testing.T) {
 		[]string{kr0DigIsle, kr0DigIsle})
 	d := kr0Run(t, e, kr0SA(t, "SP$ Dig | Defined$ Player | DigNum$ 2 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand"),
 		func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }, nil)
-	if d == nil || d.Player != 1 || d.ResumeTarget != 1 {
-		t.Fatalf("first decision = %+v, want seat 1's take at target index 1", d)
+	if d == nil || d.Player != 0 || d.ResumeTarget != 1 {
+		t.Fatalf("first decision = %+v, want seat 1's take at target index 1, chosen by seat 0", d)
 	}
 	if len(e.G.Zone(state.ZHand, 2)) != 0 {
 		t.Fatal("seat 2 was processed before seat 1's ask")
 	}
 	picked := libs[1][1]
 	d = kr0Answer(t, e, kr0Opt(t, d, picked))
-	if d == nil || d.Player != 2 || d.ResumeTarget != 2 || d.Kind != decision.KChoose {
+	if d == nil || d.Player != 0 || d.ResumeTarget != 2 || d.Kind != decision.KChoose {
 		t.Fatalf("later library did not get its own take ask: %+v", d)
 	}
 	if hand := e.G.Zone(state.ZHand, 1); !slices.Equal(hand, []state.ObjID{picked}) {

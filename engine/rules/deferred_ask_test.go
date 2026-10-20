@@ -115,11 +115,11 @@ func TestDeferredAskMassReturnOfTwoPayLifeLands(t *testing.T) {
 	}
 }
 
-// TestDeferredAskSearchShuffleConfirmAfterPayLifeLand: a sorcery searches
-// for the pay-2-life land, puts it onto the battlefield with the may-shuffle
-// confirm, then gains 5 life. The land's ask comes first, the shuffle confirm
-// second, the SubAbility$ last.
-func TestDeferredAskSearchShuffleConfirmAfterPayLifeLand(t *testing.T) {
+// TestDeferredAskSearchShufflesAfterPayLifeLand: a sorcery searches for the
+// pay-2-life land, puts it onto the battlefield, shuffles (mandatory, CR
+// 701.23), then gains 5 life. The land's ask is the only ask; the SubAbility$
+// runs exactly once after it.
+func TestDeferredAskSearchShufflesAfterPayLifeLand(t *testing.T) {
 	t.Parallel()
 	search := card(t, "Name:Deferred Ask Search\nManaCost:G\nTypes:Sorcery\n"+
 		"A:SP$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ Land.nonBasic | ChangeNum$ 1 | ShuffleNonMandatory$ True | SubAbility$ DBGain\n"+
@@ -130,6 +130,7 @@ func TestDeferredAskSearchShuffleConfirmAfterPayLifeLand(t *testing.T) {
 	tarn := o.ID
 	e.G.SetZone(state.ZLibrary, 0, append([]state.ObjID{tarn}, e.G.Zone(state.ZLibrary, 0)...))
 
+	mark := len(e.L.Events)
 	d := castDeferredAskSorcery(t, e)
 	if d.ResumeKind != "unless_pay" {
 		// The search's own pick comes first.
@@ -150,20 +151,18 @@ func TestDeferredAskSearchShuffleConfirmAfterPayLifeLand(t *testing.T) {
 	}
 	submitChoices(t, e, deferredOptionIndex(t, d, "Pay 2 life"))
 
-	d = e.Pending()
-	if d == nil || d.ResumeKind != "search_mayshuffle" {
-		t.Fatalf("after the land's answer, pending = %+v, want the deferred shuffle confirm", d)
+	if d := e.Pending(); d != nil && d.ResumeKind == "search_mayshuffle" {
+		t.Fatalf("after the land's answer, pending = %+v; the search's shuffle is mandatory", d)
 	}
-	if got := e.G.Players[0].Life; got != 18 {
-		t.Fatalf("life before the confirm = %d, want 18 (the SubAbility$ must wait for the confirm)", got)
+	if shuffles := shuffleCountFrom(e, mark, 0); shuffles != 1 {
+		t.Fatalf("seat-0 shuffles = %d, want exactly 1", shuffles)
 	}
-	submitChoices(t, e, deferredOptionIndex(t, d, "No — keep the order"))
 
 	if o := e.G.Obj(tarn); o.Zone != state.ZBattlefield || o.Tapped {
 		t.Fatalf("paid land: zone %v tapped %v, want untapped on the battlefield", o.Zone, o.Tapped)
 	}
 	if got := e.G.Players[0].Life; got != 23 {
-		t.Fatalf("life = %d, want 23 (the SubAbility$ ran exactly once, after the confirm)", got)
+		t.Fatalf("life = %d, want 23 (the SubAbility$ ran exactly once, after the land's answer)", got)
 	}
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack = %v, want the sorcery resolved", e.G.Stack)

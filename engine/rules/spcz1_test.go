@@ -23,6 +23,23 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// mayShuffleConfirm asserts the pending decision IS the object-path
+// "you may shuffle" confirm (ShuffleNonMandatory$ on a graveyard-origin
+// ChangeZone: Put Away, Cathartic Parting, Devious Cover-Up, Ghostly
+// Castigator) and returns the yes and no option indexes.
+func mayShuffleConfirm(t *testing.T, e *Engine, who state.PlayerID) (int, int) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search_mayshuffle" || d.Player != who {
+		t.Fatalf("pending = %+v, want the may-shuffle confirm for seat %d", d, who)
+	}
+	if d.Prompt != "Shuffle your library?" || len(d.Options) != 2 ||
+		d.Options[0].Kind != "yes" || d.Options[1].Kind != "no" {
+		t.Fatalf("confirm shape = %q options %+v, want \"Shuffle your library?\" with a yes then a no", d.Prompt, d.Options)
+	}
+	return d.Options[0].Index, d.Options[1].Index
+}
+
 // drainAfterAnswer passes every priority decision until the stack is empty,
 // failing if the sub's ask is RE-POSED after its answer was consumed (the
 // elected-zero non-re-ask contract) or any other unexpected ask appears.

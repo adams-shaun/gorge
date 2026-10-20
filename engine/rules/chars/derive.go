@@ -241,7 +241,14 @@ func Compute(b Board, s *Scratch, id state.ObjID, atStack state.Zone) effects.Ch
 	// Layer 4 runs first through Types (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
-	tyRaw, allCreatureTypes := TypesAndAllCreatureTypes(b, b.Active(), id, atStack)
+	tyRaw, allCreatureTypes, landSet := TypesAndLandSubtypeSet(b, b.Active(), id, atStack)
+	if landSet {
+		// CR 305.7: a land whose subtype an effect set loses the abilities
+		// its rules text generates -- its printed keywords, the prefix
+		// BaseKeywords put first. Counter keywords, statuses and every
+		// layer-6 grant from another effect stay.
+		kw = slices.Delete(kw, 0, min(len(f.Keywords), len(kw)))
+	}
 	ty = append(ty[:0], tyRaw...)
 	// A faced object's keyword and type lists are always BOUND, even when
 	// empty, from here through the layer walk to the returned Derived: a nil

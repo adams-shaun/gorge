@@ -557,21 +557,20 @@ func evalCountBodyDotted(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 					return 0, false, true
 				}
 			}
-			return devotionCount(g, c.Controller, col), true, true
+			return devotionCount(g, c.Controller, chromaColourBit(col)), true, true
 		case evalCountBodyDottedDevotionDual:
-			// CR 700.5's two-colour devotion head (14 corpus carriers: Mogis'
-			// Count$DevotionDual.Black.Red drain and the DevotionDual spellings
-			// the temples/god cycle print): the SUM of the devotion to both
-			// named colours -- each hybrid symbol counts once toward EACH of
-			// its colours, so the sum is the oracle's "devotion to <A> and
-			// <B>". An unreadable colour fails closed to the unresolvable
-			// verdict, the Devotion sibling's read.
+			// CR 700.5's two-colour devotion head (13 corpus lines: the
+			// two-colour gods' LT7 statics and March of the Canonized): the
+			// number of mana symbols that are <A>, <B> or both, so a symbol
+			// of both colours counts ONCE. One scan over the union mask, not
+			// a sum of two single-colour counts. An unreadable colour fails
+			// closed to the unresolvable verdict, the Devotion sibling's read.
 			aTok, bTok, found := strings.Cut(head[dot+1:], ".")
 			ca, cb := colourLetter(aTok), colourLetter(bTok)
 			if !found || ca == 0 || cb == 0 {
 				return 0, false, true
 			}
-			return devotionCount(g, c.Controller, ca) + devotionCount(g, c.Controller, cb), true, true
+			return devotionCount(g, c.Controller, chromaColourBit(ca)|chromaColourBit(cb)), true, true
 		}
 	}
 	return 0, false, false

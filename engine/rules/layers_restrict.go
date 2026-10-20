@@ -178,6 +178,30 @@ func (e *Engine) sacrificeBlockedForCost(id state.ObjID, cause pay.CostCause) bo
 }
 
 func (e *Engine) sacrificeBlocked(id state.ObjID, forCost bool, cause pay.CostCause) bool {
+	return e.sacrificeBlockedBy(id, func(sv staticView) bool {
+		return e.cantSacStaticBlocks(sv, id, forCost, cause)
+	})
+}
+
+// sacrificeBlockedBySBA is SacrificeBlocked for the CR 704.5s Saga state-based
+// action. An SBA has no cause: ValidCause$ names the spell or ability that
+// causes a sacrifice, and a state-based action is not one, so a cause-scoped
+// line (Sigarda, Host of Herons' "spells and abilities your opponents control
+// can't cause you to sacrifice permanents") must not consult actionCause() --
+// that would read whatever unrelated spell or ability happened to be on top of
+// the stack at the SBA check and wrongly spare the Saga. Blanket lines still
+// apply, including ForCost$ False and an absent ForCost$; a ForCost$ True line
+// does not, because an SBA is not a cost.
+func (e *Engine) sacrificeBlockedBySBA(id state.ObjID) bool {
+	return e.sacrificeBlockedBy(id, func(sv staticView) bool {
+		return e.cantSacStaticBlocksSBA(sv, id)
+	})
+}
+
+// sacrificeBlockedBy walks every CantSacrifice source -- the continuous
+// Effect-registered restrictions, then the face and granted statics -- and
+// reports whether any of them blocks id under blocks.
+func (e *Engine) sacrificeBlockedBy(id state.ObjID, blocks func(staticView) bool) bool {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.Restriction != "CantSacrifice" {
@@ -188,7 +212,7 @@ func (e *Engine) sacrificeBlocked(id state.ObjID, forCost bool, cause pay.CostCa
 		}
 	}
 	for _, sv := range e.activeStatics("CantSacrifice") {
-		if e.cantSacStaticBlocks(sv, id, forCost, cause) {
+		if blocks(sv) {
 			return true
 		}
 	}
@@ -197,7 +221,7 @@ func (e *Engine) sacrificeBlocked(id state.ObjID, forCost bool, cause pay.CostCa
 	// Warrior tokens you control have 'This token can't be sacrificed'"):
 	// the granted body's Card.Self resolves against its host, the token.
 	for _, sv := range e.grantedStatics("CantSacrifice") {
-		if e.cantSacStaticBlocks(sv, id, forCost, cause) {
+		if blocks(sv) {
 			return true
 		}
 	}
@@ -239,6 +263,28 @@ func (e *Engine) cantSacStaticBlocks(sv staticView, id state.ObjID, forCost bool
 		} else if !e.causeSpecAdmits(spec, sv.Source) {
 			return false
 		}
+	}
+	if spec := sv.ParamStr(cards.PKValidCard); spec != "" &&
+		e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
+		return true
+	}
+	return false
+}
+
+// cantSacStaticBlocksSBA is cantSacStaticBlocks for the SBA's provenance: no
+// cause and not a cost. A ForCost$ True line never applies (an SBA is not a
+// cost) and a ValidCause$ line never applies (an SBA is not caused by a spell
+// or ability); a ForCost$ False line and an absent ForCost$ still apply, and
+// the ValidCard$ match is the ordinary one.
+func (e *Engine) cantSacStaticBlocksSBA(sv staticView, id state.ObjID) bool {
+	if !effects.CantSacrificeRestrictionParamsReadable(sv.Params) {
+		return false
+	}
+	if sacrificeBlockedCodes.Code(string(sv.ParamStr(cards.PKForCost))) == sacrificeBlockedTrue {
+		return false
+	}
+	if sv.ParamStr(cards.PKValidCause) != "" {
+		return false
 	}
 	if spec := sv.ParamStr(cards.PKValidCard); spec != "" &&
 		e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
