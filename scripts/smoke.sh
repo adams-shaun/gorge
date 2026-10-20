@@ -235,6 +235,9 @@ if ! node --version 2>/dev/null | grep -q '^v24'; then
   exit 1
 fi
 
+echo "== smoke: ensuring Playwright Chromium =="
+bash "$REPO_ROOT/scripts/ensure-playwright.sh"
+
 # Vite writes a mutable cache; point it at our own scratch dir rather than
 # through web/node_modules, so the build never touches the shared install.
 export VITE_CACHE_DIR="${VITE_CACHE_DIR:-/tmp/gorge-smoke-vite-$$}"

@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint .",
+    "pretest": "bash ../scripts/ensure-playwright.sh",
     "test": "vitest run",
     "e2e": "playwright test"
   },
