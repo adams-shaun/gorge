@@ -26,14 +26,6 @@ import (
 
 const defaultMaxIntents = 400000
 
-// maxHumanIntentRefusals bounds how many times one parked human decision may
-// be answered with an engine-refused intent. A waiting registry submit gets
-// the final refusal as its 409 before the match gives up, so no handler is
-// stranded; the match then crashes with the reason instead of retrying a
-// client's rejected answer forever. A human is still asked again for every
-// refusal below this cap (D1b), never auto-answered.
-const maxHumanIntentRefusals = 16
-
 // DefaultMaxDecisionsPerTurn is the recommended value for
 // Options.MaxDecisionsPerTurn — the one gorged installs for its served
 // tables. The number is sized from measurement, not chosen round: the
@@ -475,6 +467,16 @@ func (pd *parkedDecision) reply(err error) {
 	}
 }
 
+// releaseUnanswered stops a parking play installed but never awaited from
+// accepting an answer or stranding a submit that already claimed its slot. It
+// is nil-safe (a match that ended has no parking) and a no-op for a bot
+// parking (which has no slot) or one whose verdict was already delivered.
+func (pd *parkedDecision) releaseUnanswered() {
+	if pd != nil && pd.hs != nil {
+		pd.hs.releaseUnanswered()
+	}
+}
+
 // parkedData is the projected shape of one pending decision, split out of the
 // park step so the projection — which touches the live engine — can be held
 // under the match's exclusive lock while the seat step runs without it.
@@ -890,6 +892,16 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// errors, the error is surfaced as a crash rather than masked by a stop
 	// abort that raced the first park.
 	var parked *parkedDecision
+	// Release a parking the loop installed but never awaited when play exits
+	// for any reason other than the normal answer path: the t.stop abort, the
+	// maxIntents guard, a crash, or a panic outside attempt. A submit that
+	// claimed that slot during the pace window is waiting for a verdict only
+	// this goroutine could produce; without this it waits forever even though
+	// Close has returned (D2). A parking whose verdict was already delivered
+	// is left alone: closing abandoned would let an accepted answer be
+	// reported as "no pending decision". Deferred after the recover defer, so
+	// it runs first and releases the parking before the crash is recorded.
+	defer func() { parked.releaseUnanswered() }()
 	var before int
 	// Task d2 (buffered reuse): one botpolicy.Board for the whole match,
 	// refilled for every decision a BoardSeat answers. projectNext fills it
@@ -970,7 +982,6 @@ playLoop:
 		var in decision.Intent
 		var next *parkedDecision
 		var nextData *parkedData
-		humanRefusals := 0
 		for {
 			var err error
 			in, err = parked.answer()
@@ -1100,16 +1111,18 @@ playLoop:
 			// human -- re-parking it would make the same caretaker answer the
 			// same refused decision forever -- so it falls through to the
 			// ordinary ladder/crash below.
+			//
+			// There is deliberately no refusal cap: each refusal is one
+			// client-initiated POST answered with a 409, and the decision stays
+			// pending for a legal answer. A client that never sends one is no
+			// worse than a client that never answers at all (the configured
+			// ThinkTimeout caretaker still applies), and crashing the whole
+			// match on the 17th bad POST would let one seat kill the table.
 			if parked.waitingHumanSubmit() {
 				m.mu.Lock()
 				m.refusals++
 				m.mu.Unlock()
-				humanRefusals++
 				refusedParking := parked
-				if humanRefusals >= maxHumanIntentRefusals {
-					refusedParking.reply(err)
-					return r.crash(t, m, fmt.Errorf("decision %d refused %d times: %w", n, humanRefusals, err))
-				}
 				parked = parkSeat(ctx, seats, refusedParking.data, m.undo.signal, gate, t.stop)
 				refusedParking.reply(err)
 				continue

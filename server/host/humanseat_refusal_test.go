@@ -166,7 +166,19 @@ func TestTwoDefenderAttackFromHumanSeatIsRefusedAndStaysPending(t *testing.T) {
 		}}
 	p := s.park(context.Background(), view.View{}, d, nil)
 	bad := decision.Intent{Seq: 12, Player: 0, Choices: []int{0, 1}}
-	if err := s.submitAdmitted(bad, nil, false); err == nil {
+	// submitAdmitted waits for the engine's verdict, so if the one-defender
+	// wire rule is ever reverted this call would block on a verdict nothing
+	// will deliver. Run it with a deadline so the regression is a named
+	// failure rather than a package timeout.
+	errc := make(chan error, 1)
+	go func() { errc <- s.submitAdmitted(bad, nil, false) }()
+	var err error
+	select {
+	case err = <-errc:
+	case <-time.After(10 * time.Second):
+		t.Fatal("two-defender submit hung: the seat did not reject it at the wire fence")
+	}
+	if err == nil {
 		t.Fatal("one attacker declared against two defenders was accepted by the seat")
 	} else if !strings.Contains(err.Error(), "more than one defender") {
 		t.Fatalf("seat error = %q, want the multi-defender reason", err)

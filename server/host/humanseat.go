@@ -170,6 +170,12 @@ type parking struct {
 	// then is there a submit waiting for a verdict; every other return path
 	// closes the slot's abandoned channel instead.
 	received bool
+	// replied records that the play loop delivered this answer's verdict to
+	// the waiting submit. play's deferred cleanup releases a parking that was
+	// never awaited, but must not close abandoned after a verdict: an accepted
+	// answer would then race that close and could be reported as "no pending
+	// decision".
+	replied bool
 }
 
 // park installs d as the seat's pending decision without blocking, returning
@@ -214,6 +220,20 @@ func (p *parking) abandon() {
 	// A submit that already claimed the slot may be waiting for a verdict this
 	// discarded parking will never produce; release it now.
 	p.slot.closeAbandoned()
+}
+
+// releaseUnanswered releases a parking the play loop installed but never
+// awaited (an abort, a crash, or a panic outside the Submit attempt). It must
+// not touch a parking whose verdict was already delivered: closing abandoned
+// then would race the buffered reply and could turn an accepted answer into
+// "no pending decision". Otherwise it abandons the parking exactly as the undo
+// path does, clearing the seat's slot and releasing a submit that claimed it
+// while the decision sat parked-but-unawaited.
+func (p *parking) releaseUnanswered() {
+	if p.replied {
+		return
+	}
+	p.abandon()
 }
 
 // await is the blocking second half of Decide: it waits until the parked
@@ -296,6 +316,7 @@ func (p *parking) reply(err error) {
 	if p.ack == nil {
 		return
 	}
+	p.replied = true
 	p.ack <- err
 }
 
@@ -380,7 +401,8 @@ func (s *HumanSeat) submitAdmitted(in decision.Intent, admit func(decision.Decis
 // Submit. The plain seat API passes false because a bare Decide has no match
 // goroutine to produce a verdict. Either way both the send and the wait select
 // on the slot's abandoned channel, so a match goroutine that vanished
-// (cancellation, undo) cannot strand the caller.
+// (cancellation, undo, or play returning with this parking not yet awaited)
+// cannot strand the caller: every one of those exits closes abandoned.
 func (s *HumanSeat) submitAdmittedWait(in decision.Intent, admit func(decision.Decision, decision.Intent) error, auto, wait bool) error {
 	in = decision.CloneIntent(in)
 	s.mu.Lock()
