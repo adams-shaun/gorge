@@ -2,8 +2,8 @@
 //
 // The policy is the production heuristic bot with the A2 target-selection
 // rules armed (LandPriority, ProminentColour, FilterFatalCopies), the A1
-// removal-now rule (HoldForBigger), the A6 counter timing rule
-// (CounterTop), the A3 Forge AI-hint rules (PlayMain1 timing and the
+// removal-now rule (HoldForBigger), the A6 timing rules (CounterTop and
+// DrawTokenLate), the A3 Forge AI-hint rules (PlayMain1 timing and the
 // RemoveDeck cast veto) and the A4 deck-shape posture (R2 aggro releases the
 // held blocker, R3 attack-sim life weights, R4 reserve scale). Those rules
 // are clean-room re-expressions of Forge's
@@ -20,8 +20,9 @@ package forgeheuristic
 
 import (
 	"github.com/adams-shaun/gorge/bots"
+	"github.com/adams-shaun/gorge/bots/bot"
 	"github.com/adams-shaun/gorge/bots/botpolicy"
-	"github.com/adams-shaun/gorge/bots/heuristic"
+	"github.com/adams-shaun/gorge/bots/sanity"
 	"github.com/adams-shaun/gorge/engine/seat"
 )
 
@@ -32,10 +33,10 @@ func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
 		Label:       "Forge heuristic",
-		Description: "The production heuristic bot with the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule, the A6 counter timing rule, the A3 Forge AI hints (PlayMain1 timing, RemoveDeck veto) and the A4 deck-shape posture (aggro releases the last blocker, sim life weights, reserve scale).",
+		Description: "The production bot (combat simulation, auto-pay mana, common-sense wrap) plus the Forge rules: the measured A2 Forge-derived target rules armed (land colour, prominent colour, fatal-copy filter), the A1 removal-now hold rule, the A6 counter and draw/token timing rules, the A3 Forge AI hints (PlayMain1 timing, RemoveDeck veto) and the A4 deck-shape posture (aggro releases the last blocker, sim life weights, reserve scale).",
 		Tier:        bots.Experimental,
 		Strength: []bots.Measurement{{
-			Claim:   "46.8% A [41.9, 51.6] vs bot over 400 games, indistinguishable from the 46.5% bot-vs-bot seat/deck control",
+			Claim:   "46.8% A [41.9, 51.6] vs bot over 400 games, indistinguishable from the 46.5% bot-vs-bot seat/deck control; measured before F0: no attack sim on auto-pay tables",
 			Versus:  "bot",
 			Setting: "constructed, seats traded each game, base seed 1000000",
 			Source:  "docs/design/2026-10-19-a2-target-rules.md",
@@ -45,26 +46,27 @@ func init() {
 	}, New: New})
 }
 
-// New builds the policy. The A2 rules are always armed; auto-pay mana is
-// enabled exactly when the host asks for it, matching the production bot's
-// payment-plan behaviour.
+// New builds the policy: the production bot's constructor (bot.Base, so the
+// combat simulation and auto-pay mana come exactly as they do for bot) with the
+// Forge rules armed, wrapped by the common-sense filter when the host asks.
 func New(o bots.Options) (seat.Seat, error) {
-	b := heuristic.NewBot(o.Seed).EnableTargetRules(botpolicy.TargetRules{
+	b := bot.Base(o).EnableTargetRules(botpolicy.TargetRules{
 		LandPriority:      true,
 		ProminentColour:   true,
 		FilterFatalCopies: true,
 	}).EnableRemovalRules(botpolicy.RemovalRules{
 		HoldForBigger: true,
 	}).EnableTimingRules(botpolicy.TimingRules{
-		CounterTop: true,
+		CounterTop:    true,
+		DrawTokenLate: true,
 	}).EnableAIHints(botpolicy.AIHints{
 		Enabled: true,
 	}).EnablePostureRules(botpolicy.PostureRules{
 		Attack:  true,
 		Reserve: true,
 	})
-	if o.AutoPayMana {
-		b.EnableAutoPayMana()
+	if o.CommonSense {
+		return sanity.Wrap(b), nil
 	}
 	return b, nil
 }

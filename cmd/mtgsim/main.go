@@ -195,7 +195,9 @@ func playOne(out io.Writer, seed uint64, names []string, decks [][]*cards.Card, 
 	defer func() {
 		result := bots.MatchResult{Classification: "halted", Reason: "not_finished"}
 		if e.G.Over {
-			result.Classification = "natural"
+			// A finished game has no halt reason: leaving "not_finished"
+			// here made every natural game_over say it did not finish.
+			result.Classification, result.Reason = "natural", ""
 			result.Outcome = "draw"
 			if !e.G.Draw {
 				result.Outcome = fmt.Sprintf("p%d_win", e.G.Winner)

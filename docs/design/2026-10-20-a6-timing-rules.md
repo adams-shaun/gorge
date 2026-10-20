@@ -1,7 +1,7 @@
-# A6b counter timing: opt-in, with firing evidence
+# A6 timing: counters and draw/token, opt-in, with firing evidence
 
 Date: 2026-10-20.
-Ticket: A6b of the A6 split
+Tickets: A6b and A6c of the A6 split
 (`docs/design/2026-10-19-forge-heuristics-go-port-design.md`).
 Outcome: **implemented and armed only on the experimental `forge-heuristic`
 policy.** The default `bot` is unchanged and no win rate is claimed.
@@ -47,6 +47,30 @@ Not ported: holding up mana for a counter in main 2 (Forge's main-2
 prediction skips counters, so "hold up mana for a counter" is not Forge
 behaviour), ability counters, and any probabilistic term.
 
+## The draw/token rule (A6c)
+
+`DrawTokenLate` is the second armed rule. `Card.Draw` and `Card.Token` are
+the card's primary `SP$` API ("Draw"/"Token"), filled on the deciding seat's
+own-zone entries by both adapters and left false on a foreign entry, exactly
+like `Card.Counter`.
+
+- A sorcery-speed draw or token is held in the seat's own first main; the
+  second main re-offers it, so it fires there.
+- An instant draw fires only at an opponent's end step, or when the seat's
+  hand is at most one card.
+- An instant token fires only on an opponent's turn from the declare
+  attackers step through the end step.
+
+The rule reads the same `Board.MyTurn`, `Board.Step`, `Board.FirstMain` and
+`Board.HandSize` facts the cast scorer already carries, so no new engine or
+view fact was needed. `timedCard` includes an instant draw/token so the
+out-of-main `timedTap` can float mana toward it in the allowed window;
+`sorcery-speed` draw/token is held by `timingNow` only.
+
+Approximations, recorded here rather than in AGENTS.md: a sorcery token with
+haste is deferred too, and in a multiplayer game any opponent's end step
+counts as "the turn before the AI's".
+
 ## Firing evidence
 
 The focused botpolicy tests pin both directions:
@@ -64,6 +88,19 @@ The focused botpolicy tests pin both directions:
   board.
 - `TestCounterTopHeldGetsNoMainTap`: a counter with no foreign spell on the
   stack draws a pass instead of a main-phase tap (the `castHeld` half).
+
+The A6c rule's focused tests pin both directions:
+
+- `TestDrawSorceryWaitsForMain2` and `TestTokenSorceryWaitsForMain2`: the
+  first main holds the spell, the second main casts it, and the rule-off
+  board casts it in the first main.
+- `TestInstantDrawWaitsForEndStep`: an opponent's upkeep holds the draw, the
+  end step fires it, and a one-card hand fires it early.
+- `TestInstantTokenWaitsForAttack`: an opponent's upkeep holds the token
+  spell, the declare-attackers step fires it.
+- `TestDrawTokenAdaptersAgree`: a parsed Divination and Raise the Alarm
+  classify as Draw and Token on the projected `CardView` and on both Board
+  halves, and Lightning Bolt as neither.
 
 ## Why it is opt-in
 

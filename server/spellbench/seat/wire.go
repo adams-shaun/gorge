@@ -171,7 +171,9 @@ func agentSeed(secret []byte, gameID, seat string) uint64 {
 	h.Write([]byte(seat))
 	var b [8]byte
 	copy(b[:], h.Sum(nil))
-	return binary.BigEndian.Uint64(b[:])
+	// Masked to 53 bits like secrets.go: the protocol's strict JSON
+	// integers stop at wire.MaxInt.
+	return binary.BigEndian.Uint64(b[:]) & (1<<53 - 1)
 }
 
 func domainNames(names []string, decks ...*deck.Manifest) []string {
