@@ -52,6 +52,11 @@ func TargetsOf(sa *cards.SA) *TargetParams { return params.TargetsOf(sa) }
 // dividedParam is DividedAsYouChoose$ as written (params.DividedParam).
 func dividedParam(sa *cards.SA) (ParamText, bool) { return params.DividedParam(sa) }
 
+// DividedParamText is DividedAsYouChoose$ as written; ok reports it
+// non-empty (params.DividedParam). The rules cast flow reads it to announce
+// a CR 601.2d division.
+func DividedParamText(sa *cards.SA) (ParamText, bool) { return params.DividedParam(sa) }
+
 // DividedTotal is the literal DividedAsYouChoose$ total (params.DividedTotal).
 func DividedTotal(sa *cards.SA) int { return params.DividedTotal(sa) }
 
