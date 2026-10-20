@@ -46,7 +46,10 @@ const (
 	// redeal, a deadline).
 	Heuristic Source = "heuristic"
 	// Forced: not searched, because the decision had fewer than two
-	// candidates.
+	// candidates in the search's vocabulary. azmcts counts here a bot answer
+	// the vocabulary cannot express (a land play or a mana tap at priority:
+	// its SkipFewCandidates), so a forced priority note is not always a
+	// pass-only window.
 	Forced Source = "forced"
 	// PriorSkip: the decision had more options than azmcts's
 	// PriorRankMaxOptions, so the network did not rank its candidates. In

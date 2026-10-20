@@ -429,7 +429,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 					FallbackTrace(cfg.Seed, int(d.Player), d, "honest root refused: "+reason)
 				}
 				if xt != nil {
-					xt.envRoute(fd, reason)
+					xt.envRoute(fd, feeds[d.Player], reason)
 				}
 				v := view.Project(e.G, e, d.Player, d)
 				v.Round = rounds.Of(e.G, e.L.Events)

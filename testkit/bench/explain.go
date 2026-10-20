@@ -101,12 +101,17 @@ func (x *explainTape) route(src explain.Source, reason string, rung int) {
 	x.src, x.reason, x.rung = src, reason, rung
 }
 
-// envRoute tags the Env branch's driver route: a stopped feed (fd nil) or a
-// refused honest root on a live feed. A built root is no route.
-func (x *explainTape) envRoute(fd *searchseat.Feed, reason string) {
+// envRoute tags the Env branch's driver route: a stopped feed (fd nil; own
+// is the seat's retired feed, for its stop reason) or a refused honest root
+// on a live feed. A built root is no route.
+func (x *explainTape) envRoute(fd, own *searchseat.Feed, reason string) {
 	switch {
 	case fd == nil:
-		x.route(explain.FallbackFeed, "feed stopped", 0)
+		why := "feed stopped"
+		if own != nil && own.StopReason() != "" {
+			why += ": " + own.StopReason()
+		}
+		x.route(explain.FallbackFeed, why, 0)
 	case reason != "":
 		x.route(explain.FallbackRoot, reason, 0)
 	}

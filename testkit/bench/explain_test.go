@@ -301,3 +301,72 @@ func TestRecordExplainsTheRefusalLadder(t *testing.T) {
 		}
 	}
 }
+
+// TestWriteExplainDemoRecords writes the reviewer's demo records -- the
+// hosted az-redeal config (100 simulations) and the teacher seat, each
+// against the bot on repo decks at fixed seeds -- into the directory
+// GORGE_EXPLAIN_DEMO_DIR names, and skips without it. A record holds every
+// hidden card, so the directory must be outside the repository:
+//
+//	GORGE_EXPLAIN_DEMO_DIR=/tmp/gorge-mr-t3/demo go test -run TestWriteExplainDemoRecords -v ./testkit/bench
+func TestWriteExplainDemoRecords(t *testing.T) {
+	dir := os.Getenv("GORGE_EXPLAIN_DEMO_DIR")
+	if dir == "" {
+		t.Skip("GORGE_EXPLAIN_DEMO_DIR not set")
+	}
+	reg := testutil.CorpusRegistry(t)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range []struct {
+		file   string
+		seed   uint64
+		decks  [2]string
+		pols   [2]string
+		seat0  func(seed uint64) seat.Seat
+		hooks  bench.Hooks
+		intent int
+	}{
+		{"az-redeal-vs-bot", 424242, [2]string{"mono-red-prowess", "mono-blue-tempo"}, [2]string{azredeal.Policy, "heuristic"},
+			func(s uint64) seat.Seat { return azSeat(t, s, azredeal.Hosted().Search.Sims) }, bench.Hooks{EnvSeats: true}, 6000},
+		{"az-redeal-vs-bot-2", 4101, [2]string{"uw-control", "mono-red-goblins"}, [2]string{azredeal.Policy, "heuristic"},
+			func(s uint64) seat.Seat { return azSeat(t, s, azredeal.Hosted().Search.Sims) }, bench.Hooks{EnvSeats: true}, 6000},
+		{"search-vs-bot", 30000000, [2]string{"mono-red-prowess", "mono-blue-tempo"}, [2]string{"search", "heuristic"},
+			func(s uint64) seat.Seat { return ss.NewSearchBot(s, ss.Defaults()) }, bench.Hooks{}, 6000},
+	} {
+		cfg := recordConfig(t, reg, g.seed, g.decks[0], g.decks[1])
+		path := filepath.Join(dir, g.file+matchrecord.Ext)
+		hooks := g.hooks
+		hooks.Record = &matchrecord.Sink{
+			Producer: matchrecord.Producer{Tool: "bench-explain-demo", ForgeRef: matchrecord.ForgeRef(testutil.CorpusDirOrSkip(t)), Policies: g.pols[:]},
+			Put:      func(r *matchrecord.Record) error { return matchrecord.Write(path, r) },
+		}
+		o, e, err := bench.PlayGame(cfg, []seat.Seat{g.seat0(g.seed ^ 1), heuristic.NewBot(g.seed ^ 2)}, 60, g.intent, hooks)
+		if err != nil {
+			t.Fatalf("%s: %v", g.file, err)
+		}
+		rec, rcfg, err := matchrecord.Load(path, reg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := matchrecord.Verify(rec, rcfg); err != nil {
+			t.Fatalf("%s: %v", g.file, err)
+		}
+		by := checkNotes(t, rec, notesOf(t, rec))
+		fi, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec.Explain = nil
+		bare := filepath.Join(t.TempDir(), "bare"+matchrecord.Ext)
+		if err := matchrecord.Write(bare, rec); err != nil {
+			t.Fatal(err)
+		}
+		bfi, err := os.Stat(bare)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("%s: seed %d %v, winner seat %d (draw %v, stall %q), %d turns, %d intents; sources %v; %d B gzipped (%d B without explain)",
+			path, g.seed, g.decks, o.WinnerSeat, o.Draw, o.StallOn, e.G.Turn, len(e.L.Intents), by, fi.Size(), bfi.Size())
+	}
+}
