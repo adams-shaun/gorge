@@ -20,12 +20,12 @@ import (
 // deliberate re-measure, so the supported boundary cannot widen (a new
 // parameter accepted into etbCloneWhitelist) or narrow silently.
 var etbCloneCleanNames = []string{
-	"Altered Ego", "Callidus Assassin", "Clever Impersonator", "Clone", "Copy Artifact", "Copy Enchantment", "Copy Land",
+	"Altered Ego", "Auton Soldier", "Callidus Assassin", "Clever Impersonator", "Clone", "Copy Artifact", "Copy Enchantment", "Copy Land",
 	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Flesh Duplicate", "Glasspool Mimic",
 	"Jwari Shapeshifter", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image",
 	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Naga Fleshcrafter", "Omni-Changeling",
-	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Sakashima of a Thousand Faces", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
-	"Stunt Double", "Synth Infiltrator", "Vesuva", "Visage Bandit", "Waxen Shapethief",
+	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
+	"Stunt Double", "Synth Infiltrator", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Waxen Shapethief",
 }
 
 // TestETBCloneWhitelistCensus walks every ETBReplacement:Copy Repl in the
@@ -96,6 +96,13 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		{"Cursed Mirror", false},        // Duration$ UntilEndOfTurn
 		{"Mirrorhall Mimic", false},     // ChoiceTitle$
 		{"Vizier of Many Faces", false}, // SetColor$/AddTypes$ + Embalm$ provenance
+		// The CopyExcept exceptions (CR 707.9b): a literal P/T, a parsed
+		// colour and NonLegendary$ True are offered; an entry-time P/T
+		// reader (Count$CardPower) is not.
+		{"Quicksilver Gargantuan", true},
+		{"Vesuvan Doppelganger", true},
+		{"Auton Soldier", true},
+		{"Hulking Metamorph", false},
 	}
 	for _, p := range pins {
 		c, ok := reg.Lookup(p.name)
