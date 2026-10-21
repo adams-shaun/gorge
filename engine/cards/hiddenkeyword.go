@@ -59,8 +59,30 @@ const HiddenUntapNextStepKeyword = "This card doesn't untap during your next unt
 // the untap step (rules, which consumes it) call, so a future equivalent
 // spelling is one arm here rather than two that can drift apart.
 func IsHiddenUntapNextStepKeyword(k string) bool {
+	return hiddenKeywordIs(k, HiddenUntapNextStepKeyword)
+}
+
+// hiddenKeywordIs reports whether one keyword line's head, with any leading
+// "HIDDEN " marker stripped, is sentence (case-insensitive) -- the one
+// reader of every runtime HIDDEN sentence.
+func hiddenKeywordIs(k, sentence string) bool {
 	head := strings.TrimSpace(strings.TrimPrefix(KeywordHead(k), "HIDDEN "))
-	return strings.EqualFold(head, HiddenUntapNextStepKeyword)
+	return strings.EqualFold(head, sentence)
+}
+
+// HiddenSwitchPTKeyword is the EXACT Forge sentence a Pump/PumpAll `KW$
+// HIDDEN ...` grant uses for CR 613.4d's power/toughness switch (Twisted
+// Image, Inside Out, Aquamoeba, Wandering Fumarole and the rest of the 28
+// corpus carriers). Like the untap sentence it exists only as runtime
+// keyword TEXT, never as a printed `K:` line; the Pump compiler turns it into
+// a layer-7 switching effect (effects.PumpGrant.SwitchPT) instead of a
+// keyword grant.
+const HiddenSwitchPTKeyword = "CARDNAME's power and toughness are switched"
+
+// IsHiddenSwitchPTKeyword reports whether one keyword line is Forge's P/T
+// switch sentence, with or without the leading "HIDDEN " marker.
+func IsHiddenSwitchPTKeyword(k string) bool {
+	return hiddenKeywordIs(k, HiddenSwitchPTKeyword)
 }
 
 // CanonicalKeywordLine rewrites a keyword line whose head is a known Forge

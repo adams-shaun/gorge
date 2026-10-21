@@ -445,6 +445,17 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 			AffectedZone: zone,
 		})
 	}
+	// CR 613.4d: a switch is its own layer-7 effect, applied after every
+	// set, modify and counter (chars.PT), with the pump's lifetime.
+	if g.SwitchPT {
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer: state.LPT, Sub: state.SubSwitch,
+			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT,
+			ExileOnMoved: exileOn, Remembered: remembered,
+			AffectedZone: zone,
+		})
+	}
 	if len(kws) > 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,

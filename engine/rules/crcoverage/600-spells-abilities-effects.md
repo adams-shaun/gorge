@@ -213,7 +213,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.4a | follows | `engine/rules/chars/derive.go#PT` `engine/rules/chars/derive.go#cdaPTLost` `engine/rules/chars/cda.go#CDASetPT` | `TestCR613_4aCDAPTLostUnderDressDown` `TestCR613_4aCDAPTLossKillsConsumingAberration` `TestCR613_4aCDAPTGuards` | - |
 | 613.4b | follows | `engine/rules/chars/derive.go#PT` | `TestSetBeforeModifyRegardlessOfTimestamp` `TestCardBasePowerStopsAtLayer7bAndDrivesCount` | - |
 | 613.4c | follows | `engine/rules/chars/derive.go#PT` | - | order-equivalent |
-| 613.4d | not-impl | `engine/state/continuous.go#SubSwitch` `engine/rules/chars/derive.go#PT` | - | SILENT; SubSwitch never consumed, 27 corpus cards (cr-g37) |
+| 613.4d | follows | `engine/rules/chars/derive.go#PT` `engine/effects/combatfx.go#registerPumpEffects` `engine/cards/hiddenkeyword.go#IsHiddenSwitchPTKeyword` | `TestCR613_4dTwistedImageSwitchesAfterCounters` `TestCR613_4dSwitchToZeroToughnessDies` `TestCR613_4dTwoSwitchesCancel` | switches applied after counters by parity; all 27 corpus carriers are Pump/PumpAll KW$ grants |
 | 613.5 | follows | `engine/rules/chars/derive.go#Compute` | - | derived on demand |
 | 613.6 | partial | `engine/rules/chars/derive.go#lockedLayer4Types` `engine/rules/abilityloss.go#Engine.removalApplies` | - | approximations per layer |
 | 613.7 | follows | `engine/rules/layers.go#compareContinuousPtr` | - | timestamp order; gaps in subrules |
