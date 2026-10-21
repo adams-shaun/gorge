@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -165,6 +166,12 @@ type triggeredEffectCost struct {
 	// (RemoveAnyCounter<3/QUEST/Permanent>) comes off, one entry per counter,
 	// recorded by subCounterAmongAsk and settled by subCounterSettle.
 	counterObjs []state.ObjID
+	// forageDone marks the Forage election (trigger_cost_forage.go) already
+	// posed or deterministically recorded, and forageFood is the elected
+	// Food (zero = the exile-three arm). Recorded by forageElectionAsk and
+	// settled by forageSettle.
+	forageDone bool
+	forageFood state.ObjID
 	// res is the pay-first funding state (respay.go): the pay/decline
 	// election is posed before any mana window, and a pay the pool does not
 	// cover is funded afterwards, by the planner or the manual window.
@@ -1138,6 +1145,13 @@ func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
 		// other shape keeps the decline-only ask.
 		return tc.subCounterPayable(e, rest)
 	}
+	if rest.Forage {
+		// The forage cost (trigger_cost_forage.go): payable through the
+		// either-or election (three graveyard cards or a controlled Food)
+		// beside a priceable mana/life half; any other shape keeps the
+		// decline-only ask.
+		return tc.foragePayable(e, rest)
+	}
 	if len(rest.Sac)+len(rest.Discard)+len(rest.Exile)+len(rest.MoveToGrave) > 0 || len(rest.Evidence) > 0 || len(rest.Blight) > 0 {
 		// A component-bearing cost is payable ONLY through the settle gate
 		// (trigcost2): the Draw arm alone would offer "pay" while silently
@@ -1203,17 +1217,20 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 		}
 	}
 	// Every component outside the settleable set keeps the decline-only ask
-	// (PayEnergy, SubCounter, AddCounter, Return, PutToLib, Behold, Reveal,
-	// Forage, the dyn-tap election, a dynamic life/counter value) -- never a
+	// (PayEnergy, AddCounter, Return, PutToLib, Behold, Reveal, the dyn-tap
+	// election, a dynamic life/counter value) -- never a
 	// half-paid commitment (the ParseUnlessCost hard-decline convention).
-	// AddCounter is parsed into the Cost (engine/rules/mana.go) but priced FREE for
+	// Forage (trigger_cost_forage.go) and the SubCounter arm
+	// (trigger_cost_subcounter.go) settle through their own gates before this
+	// one, so they are not rejected here. AddCounter is parsed into the Cost
+	// (engine/rules/mana.go) but priced FREE for
 	// planeswalker activations; no settle reads it here, so it is rejected
 	// structurally rather than by population -- the corpus carries no trigger
 	// body with one today, and if one lands it must not be silently skipped.
 	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.RevealChosen) > 0 || len(amt.Behold) > 0 ||
 		len(amt.TapPermanent) > 0 ||
 		len(amt.AddCounter) > 0 || len(amt.Return) > 0 || len(amt.PutToLib) > 0 ||
-		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || len(amt.GainLife) > 0 || len(amt.Exert) > 0 || amt.Forage {
+		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || len(amt.GainLife) > 0 || len(amt.Exert) > 0 {
 		return false
 	}
 	if _, ok := e.triggeredCostDrawCounts(tc); !ok {
@@ -1658,6 +1675,24 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		tc.counterPicks = append(tc.counterPicks, chosen[0].Counter)
 		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
 		return
+	case triggeredCostAnswerForageExile:
+		// The forage election's exile arm: record it (forageFood stays zero)
+		// and re-enter the pay arm, which settles.
+		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+		return
+	case triggeredCostAnswerForageFood:
+		// The forage election's Food arm: the named Food must still be a
+		// live candidate; record the pick and re-enter the pay arm, which
+		// settles. Anything else is the decline, with nothing yet moved to
+		// un-pay.
+		foods := pay.CostCandidates(asPayer(e), tc.player, tc.source, state.ZBattlefield, "Food.YouCtrl", false, false)
+		if !tc.forageDone || !slices.Contains(foods, chosen[0].Obj) {
+			e.triggeredCostDecline(tc)
+			return
+		}
+		tc.forageFood = chosen[0].Obj
+		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+		return
 	case triggeredCostAnswerPayPip:
 		// A flexible-pip announcement answer (the cast flow's own pay_W
 		// family): record the face the payer elected and advance to the next
@@ -1689,7 +1724,17 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		// charges is exactly the cost triggeredCostPayable proved. A cost with
 		// no announcement pip returns amount unchanged.
 		announced := tc.announcedCost()
-		if len(announced.SubCounter) > 0 {
+		if announced.Forage {
+			// The forage cost (trigger_cost_forage.go): pose the either-or
+			// election (a real KChoose when both arms are live, the
+			// single-arm cases deterministic), then settle. The gate offered
+			// "pay" only when the election was payable, and the window is
+			// synchronous, so the settle's re-proof never fails mid-payment.
+			if tc.forageElectionAsk(e, announced) {
+				return
+			}
+			paid = tc.forageSettle(e, announced)
+		} else if len(announced.SubCounter) > 0 {
 			// The counter-removal cost: pick the kind of every "Any" unit
 			// (an ask only when more than one kind is left), then settle.
 			if tc.subCounterKindAsk(e, announced) {
@@ -2453,6 +2498,8 @@ const (
 	triggeredCostAnswerPayPip
 	triggeredCostAnswerTriggerCostCounter
 	triggeredCostAnswerTriggerCostAmong
+	triggeredCostAnswerForageExile
+	triggeredCostAnswerForageFood
 )
 
 var triggeredCostAnswerCodes = state.NewStrCodes(
@@ -2463,6 +2510,8 @@ var triggeredCostAnswerCodes = state.NewStrCodes(
 	state.StrEntry[triggeredCostAnswerCode]{Key: "trigger_cost_x", Val: triggeredCostAnswerTriggerCostX},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "trigger_cost_counter", Val: triggeredCostAnswerTriggerCostCounter},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "trigger_cost_among", Val: triggeredCostAnswerTriggerCostAmong},
+	state.StrEntry[triggeredCostAnswerCode]{Key: "forage_exile", Val: triggeredCostAnswerForageExile},
+	state.StrEntry[triggeredCostAnswerCode]{Key: "forage_food", Val: triggeredCostAnswerForageFood},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_W", Val: triggeredCostAnswerPayPip},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_U", Val: triggeredCostAnswerPayPip},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_B", Val: triggeredCostAnswerPayPip},

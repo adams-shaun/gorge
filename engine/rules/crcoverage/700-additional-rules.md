@@ -169,7 +169,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.59c | follows | `engine/effects/conditions.go#conditionDefinedGroup` `engine/rules/cast_targets.go#castSubTargetsOwed` | - | linked via OptionalCost (traced shallowly) |
 | 701.60a | deviates | `engine/events/apply_player.go#foldControlChange` | - | suspected cleared on control change |
 | 701.60b-d | follows | `engine/rules/chars/derive.go#BaseKeywords` `engine/rules/combat/block.go#CanBlock` `engine/effects/misc.go#effAlterAttribute` | - |  |
-| 701.61a | follows | `engine/rules/cast_asks.go#Engine.forageAsk` `engine/rules/pay/castparts.go#NonManaCastableP` | - |  |
+| 701.61a | follows | `engine/rules/cast_asks.go#Engine.forageAsk` `engine/rules/pay/castparts.go#NonManaCastableP` `engine/rules/trigger_cost_forage.go#triggeredEffectCost.foragePayable` | `TestTriggeredForageCanBePaid` |  |
 | 701.62a | follows | `engine/effects/zone_manifest.go#effManifestDread` | - |  |
 | 701.62b | deviates | `engine/effects/zone_manifest.go#effManifestDread` `engine/effects/zone_manifest.go#manifestDreadMove` | - | empty library: no ManifestDread trigger |
 | 701.63a | partial | `engine/effects/endure.go#endureCreateSpirit` | - | Spirit is 0/0 + rider; copies 0/0 |
