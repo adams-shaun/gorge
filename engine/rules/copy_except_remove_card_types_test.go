@@ -33,15 +33,25 @@ func TestDinoDNACopyStripsCardTypesOnTheCopiableFace(t *testing.T) {
 
 	bearCard := e.G.Obj(bear).Card
 	cid := findTokenCopyOf(t, e, bearCard)
-	d := e.Derived(cid)
-	if !copyHasTypeWord(d.Types, "Creature") || !copyHasTypeWord(d.Types, "Dinosaur") {
-		t.Fatalf("Dino DNA copy types = %v, want Creature Dinosaur", d.Types)
+	// The exceptions are the copy's COPIABLE values (CR 707.9b), so assert
+	// the basis face, never Derived: a layer-4/7b effect would still produce
+	// the same derived characteristics while leaving the face unmodified,
+	// which is exactly the bug this pins.
+	f := e.G.Obj(cid).Face()
+	if f == nil {
+		t.Fatalf("Dino DNA copy %d has no copiable face", cid)
 	}
-	if copyHasTypeWord(d.Types, "Bear") {
-		t.Fatalf("Dino DNA copy types = %v still carry the printed Bear subtype; RemoveCardTypes$ must strip it", d.Types)
+	if !copyHasTypeWord(f.Types, "Creature") || !copyHasTypeWord(f.Types, "Dinosaur") {
+		t.Fatalf("Dino DNA copy copiable types = %v, want Creature Dinosaur", f.Types)
 	}
-	if d.Power != 6 || d.Toughness != 6 {
-		t.Fatalf("Dino DNA copy P/T = %d/%d, want 6/6", d.Power, d.Toughness)
+	if copyHasTypeWord(f.Types, "Bear") {
+		t.Fatalf("Dino DNA copy copiable types = %v still carry the printed Bear subtype; RemoveCardTypes$ must strip it", f.Types)
+	}
+	if f.Power() != 6 || f.Toughness() != 6 {
+		t.Fatalf("Dino DNA copy copiable P/T = %d/%d, want 6/6", f.Power(), f.Toughness())
+	}
+	if !hasWord(f.Keywords, "Trample") {
+		t.Fatalf("Dino DNA copy copiable keywords = %v, want Trample", f.Keywords)
 	}
 	noCopyPermanentModNote(t, e, "RemoveCardTypes", "RemoveSubTypes", "AddTypes", "SetPower", "SetToughness")
 	replayCheck(t, e, cfg)
