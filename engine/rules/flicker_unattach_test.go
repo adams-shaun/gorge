@@ -26,13 +26,12 @@ func TestFlickerUnattachesAura(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
 
-	t.Run("aura to graveyard", func(t *testing.T) {
-		e, cfg := manifestEngine(t, reg, "Feather of Flight", "Grizzly Bears")
-		bear := putCorpusPermanent(t, e, "Grizzly Bears")
-		aura := searchMoveByName(t, e, "Feather of Flight", state.ZHand)
-
-		// Cast the Aura onto the Bear ({1}{W}) and let it resolve and
-		// attach; its ETB draw trigger resolves too.
+	// castAuraOntoBear casts the on-hand Aura onto the battlefield Bear
+	// through the real cast path and asserts the attachment and the pumped
+	// 3/2 flying bearer, so a setup that never attached cannot reach the
+	// flicker assertions.
+	castAuraOntoBear := func(t *testing.T, e *Engine, aura, bear state.ObjID) {
+		t.Helper()
 		addMana(t, e, 0, "WW")
 		d := e.Pending()
 		idx := -1
@@ -42,7 +41,7 @@ func TestFlickerUnattachesAura(t *testing.T) {
 			}
 		}
 		if idx < 0 {
-			t.Fatalf("precondition: no cast option for Feather of Flight: %+v", d.Options)
+			t.Fatalf("precondition: no cast option for the Aura: %+v", d.Options)
 		}
 		submitChoices(t, e, idx)
 		if d = e.Pending(); d != nil && d.Kind == decision.KTarget {
@@ -52,25 +51,27 @@ func TestFlickerUnattachesAura(t *testing.T) {
 			submitChoices(t, e, d.Options[0].Index)
 		}
 		passUntilStackEmpty(t, e, 20)
-		if ao := e.G.Obj(aura); ao == nil || ao.Zone != state.ZBattlefield || ao.AttachedTo != bear {
+		ao := e.G.Obj(aura)
+		if ao == nil || ao.Zone != state.ZBattlefield || ao.AttachedTo != bear {
 			t.Fatalf("precondition: Aura must be on the battlefield attached to the Bear, got %+v", ao)
 		}
 		if !e.HasKeyword(bear, "Flying") || e.Power(bear) != 3 || e.Toughness(bear) != 2 {
 			t.Fatalf("precondition: enchanted Bear = %d/%d flying=%v, want 3/2 flying",
 				e.Power(bear), e.Toughness(bear), e.HasKeyword(bear, "Flying"))
 		}
+	}
 
-		// Flicker: exile and return under the owner's control, the same
-		// ObjID throughout (CR 400.7 makes the returned permanent a new
-		// object regardless).
-		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZExile})
-		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZExile, To: state.ZBattlefield})
-		e.checkStateBased()
-
-		if bo := e.G.Obj(bear); bo == nil || bo.Zone != state.ZBattlefield {
+	// assertFlickerOutcome pins the post-flicker board: the Aura is in its
+	// owner's graveyard, the returned Bear (same ObjID, CR 400.7 new object)
+	// is base 2/2 without flying, and the LastBearer record names the Bear.
+	assertFlickerOutcome := func(t *testing.T, e *Engine, aura, bear state.ObjID) {
+		t.Helper()
+		bo := e.G.Obj(bear)
+		if bo == nil || bo.Zone != state.ZBattlefield {
 			t.Fatalf("returned Bear zone = %v, want battlefield", bo)
 		}
-		if ao := e.G.Obj(aura); ao == nil || ao.Zone != state.ZGraveyard {
+		ao := e.G.Obj(aura)
+		if ao == nil || ao.Zone != state.ZGraveyard {
 			t.Fatalf("BROKE: flickered Aura is in %v, want its owner's graveyard (CR 704.5m)", ao)
 		}
 		if e.HasKeyword(bear, "Flying") || e.Power(bear) != 2 || e.Toughness(bear) != 2 {
@@ -80,6 +81,65 @@ func TestFlickerUnattachesAura(t *testing.T) {
 		if ao := e.G.Obj(aura); ao.LastBearer != bear {
 			t.Errorf("Aura LastBearer = %d, want the departed Bear %d", ao.LastBearer, bear)
 		}
+	}
+
+	t.Run("aura to graveyard", func(t *testing.T) {
+		e, cfg := manifestEngine(t, reg, "Feather of Flight", "Grizzly Bears")
+		bear := putCorpusPermanent(t, e, "Grizzly Bears")
+		aura := searchMoveByName(t, e, "Feather of Flight", state.ZHand)
+		castAuraOntoBear(t, e, aura, bear)
+
+		// Flicker: exile and return under the owner's control, the same
+		// ObjID throughout (CR 400.7 makes the returned permanent a new
+		// object regardless).
+		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZExile})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZExile, To: state.ZBattlefield})
+		e.checkStateBased()
+
+		assertFlickerOutcome(t, e, aura, bear)
+		replayCheck(t, e, cfg)
+	})
+
+	// The card-driven subtest plays the same flicker through a real corpus
+	// card: Ephemerate's one resolution (SP$ ChangeZone exiles the bearer,
+	// its SubAbility returns it), the shape Lilysplash Mentor's activation
+	// reports. It pins the fold against the real ChangeZone path, not just
+	// raw MoveZone events.
+	t.Run("card-driven flicker (Ephemerate)", func(t *testing.T) {
+		e, cfg := manifestEngine(t, reg, "Ephemerate", "Feather of Flight", "Grizzly Bears")
+		bear := putCorpusPermanent(t, e, "Grizzly Bears")
+		aura := searchMoveByName(t, e, "Feather of Flight", state.ZHand)
+		eph := searchMoveByName(t, e, "Ephemerate", state.ZHand)
+		castAuraOntoBear(t, e, aura, bear)
+
+		addMana(t, e, 0, "W")
+		d := e.Pending()
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "cast" && o.Obj == eph {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("precondition: no cast option for Ephemerate: %+v", d.Options)
+		}
+		submitChoices(t, e, idx)
+		if d = e.Pending(); d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("precondition: Ephemerate must ask a target, got %+v", d)
+		}
+		if len(d.Options) != 1 || d.Options[0].Obj != bear {
+			t.Fatalf("precondition: Ephemerate target options = %+v, want exactly the Bear", d.Options)
+		}
+		submitChoices(t, e, d.Options[0].Index)
+		passUntilStackEmpty(t, e, 30)
+
+		if bo := e.G.Obj(bear); bo == nil || bo.Zone != state.ZBattlefield || bo.ID != bear {
+			t.Fatalf("returned Bear = %+v, want the same ObjID back on the battlefield under its owner's control", bo)
+		}
+		if controller := e.G.Obj(bear).Controller; controller != e.G.Obj(bear).Owner {
+			t.Fatalf("returned Bear controller %d, want owner %d", controller, e.G.Obj(bear).Owner)
+		}
+		assertFlickerOutcome(t, e, aura, bear)
 		replayCheck(t, e, cfg)
 	})
 

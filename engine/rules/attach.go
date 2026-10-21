@@ -33,12 +33,17 @@ import (
 //     list, not the printed face: a Darksteel Mutation-shaped layer-4 static
 //     that strips the Land card type ends the attachment just as a printed
 //     nonland bearer would.
-//   - "anything attached to an object that left the battlefield": the same
-//     detached-for-Equipment, destroyed-Aura handling CR 704.5m's own
-//     "attached to nothing" already gives the Aura (once its bearer left,
-//     AttachedTo points at no battlefield permanent), so the Aura half does
-//     not need a separate clause -- but the case is listed here so the
-//     reader finds all five rules in one place.
+//   - "anything attached to an object that left the battlefield": broken AT
+//     the departure by events' Move fold (CR 400.7: a flicker can return the
+//     bearer under the same ObjID before any checkpoint), which queues the
+//     detach as UnattachPending; the pending arm at the top of this walk
+//     publishes it with the same Unattached / graveyard MoveZone the old
+//     bearer-left read produced.
+//
+// The bearer-left arm below (`bearer == nil || bearer.Zone != ZBattlefield`
+// with AttachedTo still non-zero) is therefore reachable only for a link the
+// fold never touched: the graveyard-enchant family, whose Aura attached to a
+// card that was ALREADY off the battlefield.
 //
 // Reports whether anything changed, so it plugs into checkStateBased's own
 // pass loop (a graveyard-bound Aura can itself trigger on its zone change,
@@ -68,6 +73,47 @@ func (e *Engine) attachmentSBAs() bool {
 			}
 			if n := len(e.L.Events); n != ltAt {
 				ltAt, anyLType = n, e.activeHasLType()
+			}
+			if o.UnattachPending && o.AttachedTo == 0 {
+				// CR 400.7/704.5m-n: the bearer-departure fold in events'
+				// Move (engine/events/apply_zone.go) broke this attachment's
+				// link AT the bearer's departure -- a flicker can return the
+				// bearer under the same ObjID before any SBA checkpoint, so
+				// the break must happen at the move -- and queued the detach
+				// for publication here. The publication is byte-identical
+				// with what the bearer-left arm below used to emit when it
+				// could still read AttachedTo, so Mode$ Unattached triggers
+				// (Grafted Exoskeleton) and the CR 702.114b bestowed detach
+				// log keep firing exactly as before. The graveyard-enchant
+				// exemption is deliberately NOT re-checked: a queued detach
+				// means the bearer DEPARTED the battlefield while this object
+				// was attached, and the exemption's window (this Aura entered
+				// attached to a card that was already in a graveyard, whose
+				// derived enchant still names that zone) can only exist while
+				// no such departure has happened -- Animate Dead's family
+				// rewrites its enchant to the remembered-bearer spec before
+				// it attaches to the reanimated creature, so a pending Aura
+				// is never in that window.
+				bestowed := false
+				if f := o.Face(); f != nil {
+					_, bestowed = f.KeywordParam("Bestow")
+				}
+				switch {
+				case bestowed:
+					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+						IDs:  []state.ObjID{o.LastBearer},
+						Text: "bestowed attachment ended"})
+				case e.isAura(o):
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZBattlefield, To: state.ZGraveyard,
+						Text: "attached to an object that left the battlefield"})
+				default:
+					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+						IDs:  []state.ObjID{o.LastBearer},
+						Text: "bearer left the battlefield"})
+				}
+				changed = true
+				continue
 			}
 			if o.HasAttachedPlayer {
 				// Enchant:Player Auras have no object bearer. A lost seat
@@ -114,22 +160,24 @@ func (e *Engine) attachmentSBAs() bool {
 				continue
 			}
 			if bearer == nil || bearer.Zone != state.ZBattlefield {
-				// The bearer left the battlefield: an Equipment detaches
-				// (CR 704.5n), an Aura goes to the graveyard (CR 704.5m).
-				//
-				// The graveyard-enchant family (Animate Dead, Dance of the
-				// Dead) is the measured exception: between the Aura entering
-				// (attached at resolution, while the spell was still on the
-				// stack) and its reanimate trigger resolving, the bearer is
-				// LEGALLY a creature card in a graveyard -- CR 704.5m sweeps
-				// an attachment that is no longer legal, and the Aura's
-				// current enchant spec still admits exactly this bearer here.
-				// The test is deliberately zone-POSITIVE (the spec must match
-				// the bearer AND carry an inZone<X> word whose X names the
-				// bearer's current zone), because MatchesSpecFrom's bare type
-				// words are zone-blind (spec `Creature` matches a graveyard
-				// bear too) and the exemption must never save an ordinary Aura
-				// whose bearer died.
+				// The bearer is off the battlefield while AttachedTo is still
+				// set: since the CR 400.7 departure fold broke every link AT
+				// its bearer's departure, this arm serves only the links the
+				// fold never touches -- the graveyard-enchant family (Animate
+				// Dead, Dance of the Dead), whose Aura attached to a card
+				// that was already in a graveyard at resolution. (A bearer
+				// that left the battlefield while attached detaches through
+				// the UnattachPending arm above instead.) The
+				// graveyard-enchant family is the measured exception: the
+				// Aura is LEGALLY a creature card in a graveyard -- CR 704.5m
+				// sweeps an attachment that is no longer legal, and the
+				// Aura's current enchant spec still admits exactly this
+				// bearer here. The test is deliberately zone-POSITIVE (the
+				// spec must match the bearer AND carry an inZone<X> word whose
+				// X names the bearer's current zone), because
+				// MatchesSpecFrom's bare type words are zone-blind (spec
+				// `Creature` matches a graveyard bear too) and the exemption
+				// must never save an ordinary Aura whose bearer died.
 				if e.isAura(o) && bearer != nil && e.auraEnchantZoneAdmits(o, bearer) {
 					continue
 				}

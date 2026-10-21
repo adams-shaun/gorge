@@ -370,6 +370,10 @@ func foldShuffle(g *state.Game, e *Event) {
 // foldAttach folds Kind Attach into state.
 func foldAttach(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil {
+		// Any Attach fold supersedes a queued bearer-departure detach: the
+		// object is re-attached here (or detached by this fold's own
+		// empty-IDs arm), so the pending publication must not fire.
+		o.UnattachPending = false
 		switch {
 		case e.Text == "attach to player" && validPlayer(g, e.Player):
 			moved := o.AttachedTo != 0 || !o.HasAttachedPlayer || o.AttachedPlayer != e.Player
@@ -425,6 +429,11 @@ func foldUnattached(g *state.Game, e *Event) {
 	// state fold depends on it.
 	if o := g.Obj(e.Obj); o != nil {
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
+		// An Unattached fold CONSUMES a queued bearer-departure detach
+		// (attachmentSBAs' pending arm publishes exactly this kind for it)
+		// or supersedes one another writer detached; either way the queue
+		// is spent.
+		o.UnattachPending = false
 		// IDs[0] is the former bearer: the attachmentSBAs detach arms
 		// carry it so a later trigger can still resolve "attached to
 		// that creature" after the sweep cleared AttachedTo
@@ -589,25 +598,31 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// object in its next zone, so nothing stays attached ACROSS the move:
 	// every attachment to the departing permanent is broken here, inside the
 	// fold, with the departed bearer recorded as LastBearer (the contract
-	// LKI readers of "objects that were attached to it" fall back to). The
-	// clearing must happen at the move itself, not in the attachment SBAs
-	// (engine/rules/attach.go), because a flicker (exile, then return under
-	// the same ObjID) puts the bearer back on the battlefield before the next
-	// SBA checkpoint runs -- the old code only cleared the MOVER's own
-	// AttachedTo, so a returned bearer carried its Aura and its bonuses
-	// across the trip. The rules-side SBAs then finish the job: an Aura
-	// whose AttachedTo is now 0 goes to its owner's graveyard (704.5m), an
-	// Equipment sits unattached on the battlefield (704.5n), a bestowed card
-	// re-arms as a plain creature through the type switch (its derived types
-	// lose Aura with BestowedAttached). The g.Objs walk is index-ordered, so
-	// the fold stays deterministic. An attachment to a PLAYER
-	// (HasAttachedPlayer) is not object-attached and is untouched.
+	// LKI readers of "objects that were attached to it" fall back to) and
+	// the detach queued as UnattachPending for the rules' attachmentSBAs to
+	// publish. The clearing must happen at the move itself, not in the
+	// attachment SBAs (engine/rules/attach.go), because a flicker (exile,
+	// then return under the same ObjID) puts the bearer back on the
+	// battlefield before the next SBA checkpoint runs -- the old code only
+	// cleared the MOVER's own AttachedTo, so a returned bearer carried its
+	// Aura and its bonuses across the trip. The queue matters as much as the
+	// clear: attachmentSBAs publishes each queued detach with the SAME
+	// Unattached ("bearer left the battlefield" for an Equipment/Fortification,
+	// "bestowed attachment ended" for a bestowed card) or the same graveyard
+	// MoveZone ("attached to an object that left the battlefield" for an
+	// Aura) the bearer-left arm used to emit when it could still read
+	// AttachedTo, so Mode$ Unattached triggers (Grafted Exoskeleton) and the
+	// CR 702.114b bestowed detach log keep firing exactly as before. The
+	// g.Objs walk is index-ordered, so the fold stays deterministic. An
+	// attachment to a PLAYER (HasAttachedPlayer) is not object-attached and
+	// is untouched.
 	if wasBattlefield && to != state.ZBattlefield {
 		for i := range g.Objs {
 			other := &g.Objs[i]
 			if other.AttachedTo == id {
 				other.LastBearer = id
 				other.AttachedTo = 0
+				other.UnattachPending = true
 			}
 		}
 	}
@@ -830,6 +845,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// arm above already preserved the old bearer as LastBearer for
 			// LKI; this is its reset on the next entry.
 			o.LastBearer = 0
+			// A queued detach cannot survive an entry either: the queue was
+			// either consumed before the departure or spent by the
+			// departure's own fold.
+			o.UnattachPending = false
 			// Riot's choice is made before this entry. The "haste" half grants
 			// a keyword (the "counter" half is placed by the engine's
 			// EntryCounterGrants path); consuming the election here makes every
@@ -1143,6 +1162,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		if o.AttachedTo != 0 {
 			o.LastBearer = o.AttachedTo
 		}
+		// Its own departure spends any queued bearer-departure detach: the
+		// look-back arm of Mode$ Unattached (engine/rules/
+		// trigmatch/unattached.go) already read this move's LKI snapshot,
+		// which carried the queue, so nothing is left to publish.
+		o.UnattachPending = false
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
 	}
 }
