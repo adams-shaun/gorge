@@ -831,7 +831,9 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	// in (cascade's chained tail then bottoms it). A play that cannot name
 	// a castable card is not an error -- CR 601.3 simply withholds the
 	// cast, and the Play's answer is consumed either way.
-	if e.castRestricted(p, id) {
+	// A free or PlayCost$ cast announces no {X} (CR 107.3b fixes it at 0),
+	// so CR 601.3a's X lookahead applies only to a printed-cost play.
+	if e.castRestrictedChoosingX(e.activeStatics("CantBeCast"), p, id, !withoutManaCost && playCost == "") {
 		e.emit(events.Event{Kind: events.Note, Player: p, Obj: id,
 			Text: "the play cannot cast a restricted card"})
 		return

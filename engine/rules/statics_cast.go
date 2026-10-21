@@ -130,6 +130,27 @@ func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
 }
 
 func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID) bool {
+	return e.castRestrictedChoosingX(statics, p, id, true)
+}
+
+// castRestrictionXLookahead is the largest {X} CR 601.3a's offer lookahead
+// tries (1..16). One escaping announcement is enough, and every corpus
+// mana-value prohibition is a parity/equality test (cmcEven, cmcEQChosen,
+// cmcEQX: escaped within two consecutive X), a literal threshold of at most
+// 4 (cmcLE3, cmcGE4), or a monotone count (cmcGT$ Land/Turns, which a larger
+// X never escapes); 16 covers every literal with room, and an X past it is
+// beyond any payable announcement, so offering on it would only reverse.
+const castRestrictionXLookahead = 16
+
+// castRestrictedChoosingX is castRestrictedUsing with CR 601.3a's lookahead
+// switchable: xChoice true lets a restriction that matches the card at its
+// current mana value (X = 0 off the stack, CR 202.3e) be ignored when some
+// announced X in 1..castRestrictionXLookahead makes the same ValidCard$ spec
+// no longer match; CR 601.2e's recheck (recheckIllegal) then enforces the
+// prohibition at the announced X, reversing a proposal whose X it still
+// covers (CR 733.1). xChoice false is for a cast whose X cannot be announced (a
+// free Play cast pays no mana cost, CR 107.3b fixes X at 0).
+func (e *Engine) castRestrictedChoosingX(statics []staticView, p state.PlayerID, id state.ObjID, xChoice bool) bool {
 	for _, sv := range e.castRestrictionSources(statics, id) {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
@@ -169,6 +190,34 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 		}
 		if e.matchesSpec(spec, id, e.spellSpecCtx(e.staticSpecCtx(sv), id)) &&
 			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
+			if xChoice && e.xAnnouncementEscapes(sv, spec, id) {
+				continue
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// xAnnouncementEscapes reports whether some announced X in
+// 1..castRestrictionXLookahead gives id a mana value at which the
+// restriction's spec no longer matches (CR 601.3a). Only a current face whose
+// printed mana cost carries {X} can change its mana value by announcement;
+// every other card answers false at once.
+func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	printed := e.faceCompiledCost(o.Face()).Cost
+	if printed.X <= 0 {
+		return false
+	}
+	for x := int32(1); x <= castRestrictionXLookahead; x++ {
+		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+		sc.HasManaValue = true
+		sc.ManaValue = printed.WithX(x).CMC()
+		if !e.matchesSpec(spec, id, sc) {
 			return true
 		}
 	}
