@@ -2835,11 +2835,8 @@ func (e *Engine) cleanupBody() {
 				}
 			}
 			if o.Damage > 0 && !keepDamage {
-				ev := events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage}
-				if f := o.Face(); e.IsCreature(id) && f != nil && f.IsPlaneswalker() && !f.IsCreature() {
-					ev.Counter = "creature"
-				}
-				e.emit(ev)
+				// recomputeWalkerCreatureMarker tags an animated walker's clear.
+				e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
 			}
 			if n := o.Counter("Shield"); n > 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: id,
