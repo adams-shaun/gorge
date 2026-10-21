@@ -860,6 +860,9 @@ func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 
 func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	lkiPower, lkiToughness int32, lkiPTValid bool) {
+	if e.holdEntryCheck(ev, lki) {
+		return
+	}
 	batch := e.triggerBefore != nil && ev.Kind == events.MoveZone &&
 		ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 	noop := batch && e.lookBackProvenNoop()
@@ -2373,6 +2376,9 @@ func (e *Engine) openZoneBatch() {
 func (e *Engine) closeZoneBatch() {
 	if e.zoneBatchDepth == 0 {
 		return
+	}
+	if e.zoneBatchDepth == 1 && len(e.entryHeld) > 0 {
+		e.flushHeldEntries()
 	}
 	e.zoneBatchDepth--
 	if e.zoneBatchDepth != 0 {
