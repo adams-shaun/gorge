@@ -193,8 +193,9 @@ type engineTriggerBatches struct {
 	// TokenCreatedOnce "one or more" latch: effects.Resolve opens it around a
 	// whole resolution, so a body that creates N tokens queues the line once,
 	// while a later, separate resolution queues again. A line that also prints
-	// OnlyFirst$ (Akim, the Soaring Wind) keeps its per-turn ActivationLimit
-	// on top of the batch latch. Deep for symmetry with the other action
+	// OnlyFirst$ (Akim, the Soaring Wind) is gated by
+	// trigmatch.tokenCreatedMatches' first-token-creation-of-the-turn test,
+	// not by a per-turn trigger cap. Deep for symmetry with the other action
 	// brackets; a resolution does not suspend under the resolution kernel.
 	tokenBatchOpen  bool                `clone:"deep"`
 	tokenBatchDepth int                 `clone:"deep"`
