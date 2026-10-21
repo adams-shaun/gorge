@@ -43,6 +43,25 @@ func ReplaceUmbraArmor(h Host, id state.ObjID) bool {
 	return true
 }
 
+// ReplaceShieldCounter applies CR 122.1c's destruction half: "If this
+// permanent would be destroyed as the result of an effect, instead remove a
+// shield counter from it." Consulted by the Destroy effects only (the
+// lethal-damage and deathtouch SBAs are not effects), after the
+// Indestructible skip and the regeneration shield and before umbra armor --
+// the deterministic stand-in for CR 616.1's controller choice: the
+// this-turn regeneration shield is spent before the lasting counter, and the
+// counter before the Aura. NoRegen$ does not gate it: it is not
+// regeneration. The counter kind is "SHIELD", never the engine's "Shield"
+// regeneration marker.
+func ReplaceShieldCounter(h Host, id state.ObjID) bool {
+	o := h.Game().Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Counter("SHIELD") <= 0 {
+		return false
+	}
+	h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "SHIELD", Amount: -1})
+	return true
+}
+
 // ReplaceDestruction consumes one regeneration shield (CR 701.16). Call only
 // for regenerable destruction, after checking indestructible and NoRegen,
 // never for other zone moves.

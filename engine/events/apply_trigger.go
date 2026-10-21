@@ -570,5 +570,5 @@ func foldMergedTriggerPush(g *state.Game, e *Event) {
 // a replay mint the identical ability.
 func StormGrantedBody() *cards.SA {
 	return &cards.SA{Kind: "DB", API: "CopySpellAbility", Params: map[string]string{
-		"Defined": "TriggeredSpellAbility", "Amount": "Count$ThisTurnCast/Minus1", "MayChooseTarget": "True"}}
+		"Defined": "TriggeredSpellAbility", "Amount": "TriggerCount$CurrentStormCount/Minus1", "MayChooseTarget": "True"}}
 }

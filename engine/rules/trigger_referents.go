@@ -244,6 +244,14 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// binding Defined$ TriggeredPlayer resolved to the empty
 		// Remembered fallback and the damage/sacrifice did nothing.
 		c.TriggerPlayer = player(ev.Player)
+		// CR 702.40a: storm copies the spell once per spell cast BEFORE it,
+		// a count fixed when the trigger fires (the cast is the latest
+		// PutOnStack in the log), not at resolution -- spells cast in
+		// response must not add copies. Only the storm keyword's trigger
+		// pays for the log walk.
+		if t.ParamStr(cards.PKKeyword) == "Storm" {
+			c.TriggerStormCount = int32(e.CastThisTurn())
+		}
 		// The activation arm (abcopy1): an AbilityPush event's Obj is the
 		// SOURCE PERMANENT -- the ability's stack wrapper is minted inside
 		// events.Apply and never travels on the event, so Remembered names the
