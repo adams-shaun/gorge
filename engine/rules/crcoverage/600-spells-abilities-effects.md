@@ -186,11 +186,11 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 611.3b | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` | - | source leaves: effect gone |
 | 611.3c | follows | `engine/rules/chars/derive.go#Compute` | - | no enter-then-change gap; derived on demand |
 | 611.3d | unknown | - | - | - |
-| 612.1 | deviates | `engine/rules/chars/derive.go#Compute` `engine/rules/chars/derive.go#substituteTextWord` | `TestChangeTextCarriersUnsupportedIsExact` | text change is cosmetic only (cr-g36) |
-| 612.2 | deviates | `engine/effects/changetext.go#registerTextSubstitution` `engine/rules/chars/derive.go#substituteTextWord` | `TestNewBloodChangeTextEndToEnd` | abilities never re-read changed words (cr-g36) |
+| 612.1 | follows | `engine/cards/textchange.go#Face.WithTextChanges` `engine/state/object.go#Object.faceSlow` | `TestCR612ChangedTypeWordDrivesTheLordStatic` `TestChangeTextCarriersUnsupportedIsExact` | the changed words reach abilities, keywords and the type line (cr-g36a) |
+| 612.2 | follows | `engine/cards/textchange.go#SubstituteTextWord` `engine/effects/changetext.go#effChangeText` | `TestSubstituteTextWordRules` `TestCR612ChangedLandWordRewritesLandwalk` `TestNewBloodChangeTextEndToEnd` | whole words with non- negation, landwalk/plural suffixes; names and script references kept |
 | 612.2a | unknown | - | - | token type text change not audited; likely as 612.2 |
 | 612.3 | follows | `engine/rules/chars/derive.go#Compute` | - | granted abilities untouched |
-| 612.4 | deviates | `engine/rules/chars/derive.go#Compute` | - | token text change cosmetic (cr-g36) |
+| 612.4 | partial | `engine/state/object.go#Object.faceSlow` | - | tokens take the same object path; not separately tested |
 | 612.5 | partial | `engine/effects/changetext.go#registerTextSet` `engine/effects/changetext.go#effExchangeTextBox` | - | Exchange of Words swaps text+keywords only |
 | 612.6 | not-impl | - | - | SILENT; GainTextOf$ unread, Volrath's Shapeshifter "playable" |
 | 612.7 | not-impl | - | - | SILENT; AddNames$ unread, Spy Kit names missing |
@@ -200,7 +200,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.1 | follows | `engine/rules/layers.go#compareContinuousPtr` `engine/rules/layers.go#continuousPtrsSorted` `engine/rules/chars/derive.go#Compute` | `TestCR613HumilitySetsBaseBeforePumpAndRemovesAbilities` |  |
 | 613.1a | partial | `engine/state/object.go#Object.CopyFace` | `TestCloneModifiersApplyAtTheirOwnLayers` | copy as face swap; see 707 slice |
 | 613.1b | follows | `engine/rules/control.go#Engine.RegisterControl` `engine/rules/control.go#Engine.expireControl` | - | grants in timestamp order |
-| 613.1c | deviates | `engine/rules/chars/derive.go#Compute` `engine/rules/chars/derive.go#substituteTextWord` | - | layer 3 = rendered text + name (cr-g36) |
+| 613.1c | follows | `engine/state/object.go#Object.faceSlow` `engine/events/copy_except.go#foldTextChange` | `TestCR612ChangedSpellTextOnTheStack` `TestCR612TextChangeIsNotCopiableAndEndsOnLeaving` | layer 3 rewrites Face(); not copiable (707.2); ends on a zone change except spell to permanent (400.7a) |
 | 613.1d | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/chars/types.go#applyTypeEffect` | - |  |
 | 613.1e | follows | `engine/rules/chars/derive.go#Compute` | `TestDerivedColorsLayerCompose` |  |
 | 613.1f | partial | `engine/rules/chars/derive.go#Compute` `engine/rules/abilityloss.go#Engine.abilityLoss` `engine/rules/abilityloss.go#Engine.grantLostTo` | `TestLayer6GrantsKeywords` `TestAbilityRemovalTimestampStillDominates` | gorge: keyword counters lost regardless of ts |
