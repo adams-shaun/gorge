@@ -132,10 +132,10 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// library_top (task inbox-paramcensus-static-grant-misc) IS a hidden-
 		// zone carrier — exactly the class this allowlist exists to gate —
 		// admitted deliberately: it is the Continuous MayLookAt grant's
-		// reveal (Oracle of Mul Daya), projected only for the grant's own
-		// controller's seat (Engine.MayLookAtLibraryTop evaluates the
-		// Affected$ spec), never a raw library order and never for another
-		// seat. The grant-gated reveal engine/rules/static_grants_test.go pins the
+		// reveal (Oracle of Mul Daya), projected for the grant's own
+		// controller's seat, and for every seat when the grant is a
+		// MayLookAt$ Player reveal (CR 401.5, Engine.LibraryTopRevealed).
+		// The grant-gated reveal engine/rules/static_grants_test.go pins the
 		// seat scoping end to end.
 		"library_top": true,
 		// library (own_library_list) IS a hidden-zone carrier — exactly the
