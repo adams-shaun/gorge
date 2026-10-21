@@ -3,6 +3,7 @@ package rules
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -150,14 +151,19 @@ func (e *Engine) attachmentSBAs() bool {
 				changed = true
 				continue
 			}
-			if e.isEquipment(o) && (bearer.ReconfiguredAttached() || bearer.ImpendingDormant() || !e.IsCreature(bearer.ID)) {
+			if e.isEquipment(o) && (bearer.ReconfiguredAttached() || bearer.ImpendingDormant() ||
+				(!e.IsCreature(bearer.ID) && !e.equipmentEquipSpecAdmits(o, bearer))) {
 				// CR 702.150c: an attached Reconfigure card is not a creature,
 				// so another Equipment riding it detaches like from any other
 				// non-creature bearer (CR 301.5c / 704.5n). The creature read
 				// is the DERIVED type list, as the Fortification arm below
 				// reads Land: an animated land (Soulstone Sanctuary after its
 				// {4}) is a creature and keeps its Equipment, a creature a
-				// layer-4 effect turned into a noncreature drops it.
+				// layer-4 effect turned into a noncreature drops it -- unless
+				// the Equipment says otherwise (CR 301.5c): a bearer its Equip
+				// keyword names (Luxior's "Equip planeswalker") stays equipped
+				// even after it stops being a creature, exactly as it was
+				// equipped while one.
 				e.emit(events.Event{Kind: events.Unattached, Obj: id,
 					IDs:  []state.ObjID{o.AttachedTo},
 					Text: "Equipment bearer is no longer a creature"})
@@ -186,9 +192,9 @@ func (e *Engine) attachmentSBAs() bool {
 // obj to bearerID would either do nothing (obj is already attached to that
 // permanent) or fasten it to something the attachment SBAs would at once
 // undo (an Aura whose current enchant spec does not admit the bearer, an
-// Equipment whose bearer is not a creature or is an attached Reconfigure or
-// an impending permanent, a Fortification whose bearer is not a land). The
-// predicates are the same ones attachmentSBAs reads below, so an attach the
+// Equipment whose bearer is not a creature its Equip keyword names or is an
+// attached Reconfigure or an impending permanent, a Fortification whose
+// bearer is not a land). The predicates are the same ones attachmentSBAs reads below, so an attach the
 // SBA would undo is exactly an attach that is refused. note is true when the
 // refusal is worth a Note (an illegal bearer) rather than silent (the
 // same-bearer no-op of CR 701.3b's "the effect does nothing"). The gate is
@@ -212,12 +218,44 @@ func (e *Engine) attachRefused(obj, bearerID state.ObjID) (refused, note bool) {
 		return !e.auraStillMatchesEnchant(o, bearer), true
 	case e.isEquipment(o):
 		// CR 702.150c: an attached Reconfigure card is not a creature, and
-		// an impending permanent is not yet a creature either.
-		return bearer.ReconfiguredAttached() || bearer.ImpendingDormant() || !e.IsCreature(bearer.ID), true
+		// an impending permanent is not yet a creature either. A bearer the
+		// Equipment's own Equip keyword names is legal anyway (CR 301.5c,
+		// equipmentEquipSpecAdmits): Luxior's "Equip planeswalker" attaches
+		// to a walker that is a creature only through Luxior's own static.
+		return bearer.ReconfiguredAttached() || bearer.ImpendingDormant() ||
+			(!e.IsCreature(bearer.ID) && !e.equipmentEquipSpecAdmits(o, bearer)), true
 	case e.isFortification(o):
 		return !e.IsLand(bearer.ID), true
 	}
 	return false, false
+}
+
+// equipmentEquipSpecAdmits is CR 301.5c's "unless the Equipment says
+// otherwise" exception: a bearer that is not a creature is still a legal
+// equip target when the Equipment's Equip keyword names it -- Luxior,
+// Giada's Gift's "Equip planeswalker" attaches to a walker that is not yet a
+// creature (the Equipment's own static makes the bearer one only once
+// attached). The read is the DERIVED Equip lines (a layer-6 removal of the
+// line removes the exception with it), each one's bearer restriction the
+// field engine/cards/kw_equip.go's expansion writes the activation's
+// ValidTgts$ from (cards.AttachBearerSpec); a line without one equips
+// creatures only (the expansion's defaultTgts). Fortify's land
+// restriction is not this exception -- a Fortification's bearer must be a
+// land regardless (CR 702.67b), checked by the Fortification arms.
+func (e *Engine) equipmentEquipSpecAdmits(o, bearer *state.Object) bool {
+	for _, k := range e.Derived(o.ID).Keywords {
+		if cardsKeywordHead(k) != kwhEquip.S {
+			continue
+		}
+		spec := cards.AttachBearerSpec(k)
+		if spec == "" {
+			spec = "Creature.YouCtrl"
+		}
+		if e.matchesSpecFrom(spec, bearer.ID, o.Controller, o.ID) {
+			return true
+		}
+	}
+	return false
 }
 
 // auraStillMatchesEnchant reports whether bearer still satisfies the Aura's

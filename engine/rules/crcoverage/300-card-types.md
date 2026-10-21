@@ -65,8 +65,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 306.5-306.5d | follows | `engine/rules/entry_counters.go#Engine.entryBodyCandidates` `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | - | - |
 | 306.6 | follows | `engine/rules/combat/attack.go#CanAttackPair` | `TestCreatureCanAttackPlaneswalkerAndCombatDamageRemovesLoyalty` | - |
 | 306.7 | n/a | - | - | REVISED: historical redirection rule, nothing to implement (was follows) |
-| 306.8 | partial | `engine/events/apply_combat.go#foldDamage` | - | gorge keys on printed face (probe); cr-g43 |
-| 306.9 | partial | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` | - | gorge keys on printed face; cr-g43 |
+| 306.8 | follows | `engine/events/apply_combat.go#foldDamage` `engine/rules/damage_planeswalker.go#Engine.markDamageNotPlaneswalker` | `TestCR306_8LuxiorWalkerBoltIsMarkedDamage` `TestCR306_8LuxiorWalkerUntaggedDamageIsMarked` `TestCR306_8PlaneswalkerGuards` | - |
+| 306.9 | follows | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` `engine/rules/layers_derived.go#Engine.IsPlaneswalker` | `TestCR306_9MoonedWalkerWithNoLoyaltyStays` `TestCR306_8PlaneswalkerGuards` | - |
 | 307.1 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | sorcery timing |
 | 307.2 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | sorcery resolves to graveyard |
 | 307.3 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |

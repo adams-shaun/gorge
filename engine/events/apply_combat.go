@@ -161,7 +161,13 @@ func foldDamage(g *state.Game, e *Event) {
 				o.AddCounter("DEFENSE", -e.Amount)
 			}
 		}
-		if f := o.Face(); f != nil && f.IsPlaneswalker() {
+		if f := o.Face(); f != nil && f.IsPlaneswalker() && e.Text != DamageNotPlaneswalker && e.Amount > 0 {
+			// CR 306.8 is keyed on the object BEING a planeswalker (a layer-4
+			// type): rules tags a printed walker that currently is not one
+			// (DamageNotPlaneswalker), and that hit takes the ordinary branch.
+			// The exchange is positive-only: a negative Damage event is the
+			// marked-damage removal heal/regeneration/cleanup emit (CR 701.19b),
+			// and it must clear marked damage rather than be swallowed here.
 			walker = true
 			// Cleanup represents removal of marked damage with a negative
 			// Damage event. It must never restore loyalty; only positive

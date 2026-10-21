@@ -1281,6 +1281,12 @@ func (e *Engine) planeswalkerZeroLoyalty(tried *sbaAttempts) bool {
 			if o.Counter("LOYALTY") > 0 {
 				continue
 			}
+			if !e.IsPlaneswalker(id) {
+				// CR 306.9/704.5i: only a planeswalker is put into the
+				// graveyard; a printed walker that is not one now (Imprisoned
+				// in the Moon's land, Luxior's creature) stays.
+				continue
+			}
 			if !exemptRead {
 				exempt, exemptRead = e.activeStatics("IgnorePlaneswalkerZeroLoyaltyRule"), true
 			}
