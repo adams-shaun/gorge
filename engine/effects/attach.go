@@ -32,28 +32,19 @@ func attachChoiceIDs(chosen []decision.Option) []state.ObjID {
 	return out
 }
 
-// emitAttach publishes "obj becomes attached to bearer" as events.Attach,
-// first publishing events.Unattached when obj was already attached to a
-// DIFFERENT permanent. CR 701.3b makes "becomes unattached" a real event
-// (the Mode$ Unattached family: Captain's Hook, Grafted Exoskeleton, Grafted
-// Wargear, Stitcher's Graft), and an Attach overwriting state.Object.AttachedTo
-// would otherwise drop the former bearer's detach entirely -- leaving the
-// Grafted Exoskeleton trigger silent when its Equipment is re-equipped from
-// one creature to another. Every Attach emit in this package goes through
-// here, so a future re-attaching site cannot reintroduce the omission.
-//
-// The former bearer is carried on Unattached.IDs[0], the same field
-// engine/rules/attach.go's attachmentSBAs detach arms use and the referent
-// engine/rules/trigger_match.go's triggerRemembered reads for
-// Defined$ TriggeredObjectLKICopy. A fresh attach (AttachedTo == 0) or a
-// redundant re-attach to the SAME bearer emits no Unattached: nothing became
-// unattached, so no trigger may fire.
+// emitAttach publishes "obj becomes attached to bearer" as events.Attach.
+// Everything around the raw attach -- the Unattached for a re-attach from a
+// DIFFERENT former bearer (the Mode$ Unattached family: Captain's Hook,
+// Grafted Exoskeleton, Grafted Wargear, Stitcher's Graft) and the CR
+// 701.3a/b refusals (a same-bearer attach does nothing, an attach to a
+// bearer the attachment SBAs would undo is refused with a Note) -- is
+// rules' Engine.emit's (engine/rules/emit.go, beside the protection guard):
+// every Attach path funnels through it, and effects.Host must not host
+// attach legality. The former bearer is carried on Unattached.IDs[0], the
+// same field engine/rules/attach.go's attachmentSBAs detach arms use and the
+// referent engine/rules/trigger_match.go's triggerRemembered reads for
+// Defined$ TriggeredObjectLKICopy.
 func emitAttach(h Host, obj, bearer state.ObjID) {
-	if o := h.Game().Obj(obj); o != nil && o.AttachedTo != 0 && o.AttachedTo != bearer {
-		h.Emit(events.Event{Kind: events.Unattached, Obj: obj,
-			IDs:  []state.ObjID{o.AttachedTo},
-			Text: "reattached to a new permanent"})
-	}
 	h.Emit(events.Event{Kind: events.Attach, Obj: obj, IDs: []state.ObjID{bearer}})
 }
 

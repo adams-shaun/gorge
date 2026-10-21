@@ -12,13 +12,21 @@ import (
 // Wargear, Stitcher's Graft -- all Equipment). The four lines share one
 // shape: `ValidAttachment$ Card.Self | ValidObject$ Permanent`.
 //
-// The event is events.Unattached (NOT an empty-IDs events.Attach): a distinct
-// Kind is what lets this mode fire while Mode$ Attached keeps ignoring a
-// detach, and the event carries the attachment in Obj and the FORMER BEARER
-// in IDs[0]. engine/rules/attach.go's attachmentSBAs is the one emit site for the
-// arms where the attachment stays on the battlefield (the bearer left, the
-// bearer stopped being a valid bearer, protection, the CR 702.114b bestowed
-// type switch) -- the same detach sites its own comment enumerates.
+// Two events carry a detach. The first is events.Unattached: a distinct Kind
+// is what lets this mode fire while Mode$ Attached keeps ignoring a detach,
+// and the event carries the attachment in Obj and the FORMER BEARER in
+// IDs[0]. engine/rules/attach.go's attachmentSBAs is the one emit site for
+// the arms where the attachment stays on the battlefield (the bearer left,
+// the bearer stopped being a valid bearer, protection, the CR 702.114b
+// bestowed type switch), plus rules' emit's re-attach detach (a re-attach to
+// a different permanent). The second is the attachment's own departure from
+// the battlefield (CR 701.3d, reached through the look-back walk whose split
+// gate trigger_match.go's looksBackOnDeparture admits): a MoveZone off the
+// battlefield whose LKI is the moving attachment still carrying its
+// pre-departure AttachedTo -- that bearer is the one it became unattached
+// from, and no Unattached event is logged for the departure. A departure
+// whose LKI carries no bearer (an unattached Equipment destroyed) is no
+// unattach at all and fires nothing.
 //
 // ValidAttachment$ names the ATTACHING object -- Forge's ValidSource$ for
 // the detach half -- which is the object that actually became unattached:
@@ -29,7 +37,7 @@ import (
 // the event names, or every Grafted Exoskeleton present would fire when an
 // unrelated Equipment detaches (the trigger would sacrifice that unrelated
 // event's former bearer). ValidObject$ names the bearer the attachment
-// became unattached from: ev.IDs[0]. On the bearer-left path that object has
+// became unattached from. On the bearer-left path that object has
 // already left the battlefield, so matchesUnattachedBearer reads a bare
 // `Permanent` base the way the rest of the engine reads a permanent CARD
 // away from the battlefield (the leading-token `PermanentCard` rewrite),
@@ -37,7 +45,8 @@ import (
 // naming neither parameter is treated as self-scoped: an attachment-only
 // line fires for its own source rather than silently never firing.
 func unattachedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if ev.Kind != events.Unattached || ev.Obj == 0 || len(ev.IDs) == 0 {
+	bearer, ok := unattachedBearer(ev, lki)
+	if !ok {
 		return false
 	}
 	if t.ParamStr(cards.PKStatic) == "True" {
@@ -58,9 +67,31 @@ func unattachedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 		}
 	}
 	if v, ok := t.Param(cards.PKValidObject); ok {
-		return matchesUnattachedBearer(e, v, ev.IDs[0], source, ctrl)
+		return matchesUnattachedBearer(e, v, bearer, source, ctrl)
 	}
 	return true
+}
+
+// unattachedBearer selects the bearer a detach event names: an Unattached's
+// IDs[0], or -- for the CR 701.3d departure arm -- the LKI's pre-departure
+// AttachedTo on a MoveZone off the battlefield of the object itself. ok is
+// false for every other shape (including a departure with no bearer).
+func unattachedBearer(ev events.Event, lki *state.Object) (state.ObjID, bool) {
+	switch {
+	case ev.Obj == 0:
+		return 0, false
+	case ev.Kind == events.Unattached:
+		if len(ev.IDs) == 0 {
+			return 0, false
+		}
+		return ev.IDs[0], true
+	case ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To != state.ZBattlefield:
+		if lki == nil || lki.ID != ev.Obj || lki.AttachedTo == 0 {
+			return 0, false
+		}
+		return lki.AttachedTo, true
+	}
+	return 0, false
 }
 
 // matchesUnattachedBearer evaluates a Mode$ Unattached ValidObject$ spec
