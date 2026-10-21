@@ -758,8 +758,20 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	var moved []state.ObjID
 	// The Attacking$ entry rider is classified ONCE for the whole call, before
 	// the mover loop: its degrades are one Note per ChangeZone, not one per
-	// moved object.
-	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to)
+	// moved object. CR 508.4's chooser is the entering permanent's controller:
+	// a single-object move's owner (or GainControl$ player); a multi-object
+	// move whose objects differ falls back to the resolving controller.
+	var entryOwners []state.PlayerID
+	for _, t := range targets {
+		if t.IsPlayer {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil {
+			entryOwners = append(entryOwners, o.Owner)
+		}
+	}
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
+		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, entryOwners, cz.Riders.GainControl))
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -1521,16 +1533,19 @@ type attackingEntry struct {
 	noted  bool
 }
 
-func classifyAttackingEntry(h Host, c *Ctx, sa *cards.SA, to state.Zone) attackingEntry {
+func classifyAttackingEntry(h Host, c *Ctx, sa *cards.SA, to state.Zone, controller state.PlayerID) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
-	return classifyAttackingEntryText(h, c, attackingParam(sa), to)
+	return classifyAttackingEntryText(h, c, attackingParam(sa), to, controller)
 }
 
 // classifyAttackingEntryText is classifyAttackingEntry over a compiled
-// Attacking$ text.
-func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone) attackingEntry {
+// Attacking$ text. controller is the seat that will control the entering
+// permanent: CR 508.4's chooser is that seat, which is the moved object's
+// owner (or the GainControl$ player) and not necessarily the resolving
+// source's controller -- Noctis returns a card under its owner's control.
+func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone, controller state.PlayerID) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
@@ -1538,7 +1553,7 @@ func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone) at
 		return attackingEntry{}
 	}
 	if strings.EqualFold(attack, "True") {
-		if d, ok := resolveEnteringDefender(h, c, c.Controller, true, "permanent"); ok {
+		if d, ok := resolveEnteringDefender(h, c, controller, true, "permanent"); ok {
 			return attackingEntry{kind: attackingEntryAttacks, defender: d.Player, battle: d.Obj}
 		}
 		return attackingEntry{kind: attackingEntryNoDefender,

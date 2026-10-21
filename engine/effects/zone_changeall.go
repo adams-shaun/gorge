@@ -216,7 +216,8 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// The Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
 	// and are not touched here.
 	randomOrder := cza.RandomOrder
-	rider := classifyAttackingEntryText(h, c, cza.Riders.Attacking, to)
+	rider := classifyAttackingEntryText(h, c, cza.Riders.Attacking, to,
+		enteringControllerForAttack(h, c, cza.Riders.Attacking, to, nil, cza.Riders.GainControl))
 	// A sweep off the battlefield is one simultaneous departure (CR 603.10a):
 	// every member's leaves-the-battlefield triggers look back at the same
 	// pre-sweep board. The id list is empty -- the sweep emits as it scans --

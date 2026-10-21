@@ -61,18 +61,20 @@ func enteringDefenders(h Host, controller state.PlayerID, objects bool) []enteri
 	return out
 }
 
-// resolveEnteringDefender is CR 508.4's defender for one "enters attacking"
-// effect call whose text does not name the defender (Attacking$ True,
-// TokenAttacking$ True). ok false means the creature enters but does not
-// attack (no combat defender exists for it). See the cr-g11b spec.
-func resolveEnteringDefender(h Host, c *Ctx, controller state.PlayerID, objects bool, noun string) (enteringDefender, bool) {
+// enteringDefenderFallback is the defender an "enters attacking" call uses
+// when no answer is served: the firing trigger's captured defender, or, with
+// no trigger context, the first CR 508.4 candidate during controller's own
+// combat. ok false means the creature enters but does not attack (no combat
+// defender exists for it). objects false lists players only, so the fallback
+// is a player too (CopyPermanent has no battle slot).
+func enteringDefenderFallback(h Host, c *Ctx, controller state.PlayerID, objects bool) (enteringDefender, bool) {
 	g := h.Game()
 	if c.DefendingPlayer.IsPlayer {
 		fb := enteringDefender{Player: c.DefendingPlayer.Player, Obj: c.DefendingBattle}
-		if c.DefenderFixed {
-			return fb, true
+		if !objects {
+			fb.Obj = 0
 		}
-		return chooseEnteringDefender(h, c, controller, fb, objects, noun), true
+		return fb, true
 	}
 	if g.Step < state.StepDeclareAttackers || g.Step > state.StepEndCombat || controller != g.Active {
 		return enteringDefender{}, false
@@ -81,7 +83,58 @@ func resolveEnteringDefender(h Host, c *Ctx, controller state.PlayerID, objects 
 	if len(cands) == 0 {
 		return enteringDefender{}, false
 	}
-	return chooseEnteringDefender(h, c, controller, cands[0], objects, noun), true
+	return cands[0], true
+}
+
+// resolveEnteringDefender is CR 508.4's defender for one "enters attacking"
+// effect call whose text does not name the defender (Attacking$ True,
+// TokenAttacking$ True). ok false means the creature enters but does not
+// attack (no combat defender exists for it). See the cr-g11b spec.
+func resolveEnteringDefender(h Host, c *Ctx, controller state.PlayerID, objects bool, noun string) (enteringDefender, bool) {
+	fb, ok := enteringDefenderFallback(h, c, controller, objects)
+	if !ok {
+		return enteringDefender{}, false
+	}
+	if c.DefenderFixed {
+		return fb, true
+	}
+	return chooseEnteringDefender(h, c, controller, fb, objects, noun), true
+}
+
+// uniformEnteringController resolves the controller the entering objects of
+// one move call belong to: the GainControl$ player when that rider names one,
+// otherwise the shared owner of the moved objects. A call whose objects have
+// different destination controllers (or names none) returns c.Controller, the
+// historical read; the mover then asks the resolving controller rather than
+// guessing per object.
+func uniformEnteringController(h Host, c *Ctx, owners []state.PlayerID, gain ParamText) state.PlayerID {
+	if gain.Present {
+		if p, ok, _ := gainControlOf(h, c, gain); ok {
+			return p
+		}
+	}
+	ctrl := c.Controller
+	for i, owner := range owners {
+		if i == 0 {
+			ctrl = owner
+		} else if owner != ctrl {
+			return c.Controller
+		}
+	}
+	return ctrl
+}
+
+// enteringControllerForAttack is uniformEnteringController gated on the
+// call actually carrying an Attacking$ rider to a battlefield entry. Without
+// the gate the owner/GainControl$ resolution (which can emit its own
+// diagnostic for an unread selector) would run for every ChangeZone call,
+// including the overwhelming majority that never put anything onto the
+// battlefield attacking.
+func enteringControllerForAttack(h Host, c *Ctx, attack string, to state.Zone, owners []state.PlayerID, gain ParamText) state.PlayerID {
+	if to != state.ZBattlefield || attack == "" {
+		return c.Controller
+	}
+	return uniformEnteringController(h, c, owners, gain)
 }
 
 // chooseEnteringDefender asks controller which candidate the entering

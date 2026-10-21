@@ -282,14 +282,16 @@ func tokenAttackingPlayers(h Host, c *Ctx, raw string) (seats []state.PlayerID, 
 // defender, a selector value resolves its player half through
 // tokenAttackingPlayers, and an unresolvable value degrades with ONE loud Note
 // naming the limitation -- never a guessed defender, never silence. noun is
-// the minted object's word ("token"/"copy") for the note text. The returned
-// bool is whether every mint should be marked attacking, state.PlayerID the
-// defender it attacks, and state.ObjID the planeswalker or battle defender
-// (zero for a player).
-func tokenAttackingRider(h Host, c *Ctx, attack, noun string) (bool, state.PlayerID, state.ObjID) {
+// the minted object's word ("token"/"copy") for the note text, and controller
+// is the seat that owns the mint the rider is for (CR 508.4's chooser: the
+// token's controller, not always the resolving source's controller).
+// The returned bool is whether every mint should be marked attacking,
+// state.PlayerID the defender it attacks, and state.ObjID the planeswalker or
+// battle defender (zero for a player).
+func tokenAttackingRider(h Host, c *Ctx, controller state.PlayerID, attack, noun string) (bool, state.PlayerID, state.ObjID) {
 	switch {
 	case strings.EqualFold(attack, "True"):
-		if d, ok := resolveEnteringDefender(h, c, c.Controller, noun == "token", noun); ok {
+		if d, ok := resolveEnteringDefender(h, c, controller, noun == "token", noun); ok {
 			return true, d.Player, d.Obj
 		}
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
@@ -617,8 +619,33 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	attackCtx := false
 	var attackDefender state.PlayerID
 	var attackBattle state.ObjID
+	var attackOwners []tokenAttackAssignment
 	if attack := tp.Attacking; attack != "" {
-		attackCtx, attackDefender, attackBattle = tokenAttackingRider(h, c, attack, "token")
+		if strings.EqualFold(attack, "True") {
+			// CR 508.4: each mint's own controller chooses. TokenOwner$ can
+			// name a seat other than the resolving controller (Najeela's
+			// TriggeredAttackerController), and a CreateToken replacement can
+			// move the mint again (Crafty Cutpurse); freeze one assignment per
+			// distinct original owner so the ask is that owner's.
+			seen := make(map[state.PlayerID]bool, len(owners))
+			for _, owner := range owners {
+				if seen[owner] {
+					continue
+				}
+				seen[owner] = true
+				ok, defender, battle := tokenAttackingRider(h, c, owner, attack, "token")
+				if !ok {
+					continue
+				}
+				a := tokenAttackAssignment{Owner: owner, Defender: defender, Battle: battle}
+				if fb, ok := enteringDefenderFallback(h, c, owner, true); ok {
+					a.Fallback, a.FallbackBattle, a.HasFallback = fb.Player, fb.Obj, true
+				}
+				attackOwners = append(attackOwners, a)
+			}
+		} else {
+			attackCtx, attackDefender, attackBattle = tokenAttackingRider(h, c, c.Controller, attack, "token")
+		}
 	}
 
 	job := TokenJob{
@@ -629,6 +656,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		PumpPermanent: pumpPermanent, PumpUntilEOT: pumpUntilEOT,
 		Tapped: tapped, TokenMemory: tokenMemory,
 		AttackCtx: attackCtx, AttackDefender: attackDefender, AttackBattle: attackBattle,
+		AttackOwners: attackOwners,
 	}
 	runTokenMints(h, c, sa, tp, &job)
 }
@@ -664,6 +692,48 @@ type TokenJob struct {
 	// AttackBattle is the planeswalker or battle the mint attacks, zero for
 	// a player defender.
 	AttackBattle state.ObjID
+	// AttackOwners is TokenAttacking$ True's per-owner CR 508.4 answer. It is
+	// keyed by the owner the mint was created for; when a replacement moved
+	// the mint to another controller, Fallback is the defender that owner
+	// would have attacked with no ask, and is skipped if it names the new
+	// controller (a token cannot attack itself).
+	AttackOwners []tokenAttackAssignment
+}
+
+// tokenAttackAssignment is one owner's frozen CR 508.4 answer for a
+// TokenAttacking$ True mint.
+type tokenAttackAssignment struct {
+	Owner          state.PlayerID
+	Defender       state.PlayerID
+	Battle         state.ObjID
+	Fallback       state.PlayerID
+	FallbackBattle state.ObjID
+	HasFallback    bool
+}
+
+// attackFor returns the assignment that applies to a mint created for owner
+// and now controlled by mintOwner. A replacement that changed the controller
+// keeps the owner's fallback (the trigger's captured defender or the first
+// candidate), never the answer served to a seat that no longer controls it;
+// a fallback that would attack mintOwner itself is dropped (CR 508.4 cannot
+// name the attacker's own controller as defender).
+func (job *TokenJob) attackFor(owner, mintOwner state.PlayerID) (state.PlayerID, state.ObjID, bool) {
+	if job.AttackCtx {
+		return job.AttackDefender, job.AttackBattle, true
+	}
+	for _, a := range job.AttackOwners {
+		if a.Owner != owner {
+			continue
+		}
+		if mintOwner == owner {
+			return a.Defender, a.Battle, true
+		}
+		if !a.HasFallback || a.Fallback == mintOwner {
+			return 0, 0, false
+		}
+		return a.Fallback, a.FallbackBattle, true
+	}
+	return 0, 0, false
 }
 
 // auraTokenWithheld reports whether a mint of token script key must not
@@ -816,10 +886,10 @@ func applyTokenMintRiders(h Host, c *Ctx, job *TokenJob, owner state.PlayerID, w
 	if job.Tapped {
 		h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: mintOwner, Text: "entered tapped"})
 	}
-	if job.AttackCtx {
-		ids := []state.ObjID{state.ObjID(job.AttackDefender)}
-		if job.AttackBattle != 0 {
-			ids = append(ids, job.AttackBattle)
+	if defender, battle, ok := job.attackFor(owner, mintOwner); ok {
+		ids := []state.ObjID{state.ObjID(defender)}
+		if battle != 0 {
+			ids = append(ids, battle)
 		}
 		h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: mintOwner,
 			IDs: ids, Text: "entered attacking"})

@@ -28,7 +28,7 @@ func TestEnteringDefenderAsksWithAWalkerAndFallsBackToTheTriggerDefender(t *test
 	h, c, id := attackingFixture(t)
 	pw := enteringDefenderWalker(t, h)
 	c.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
-	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
+	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield, c.Controller)
 	rider.apply(h, c, id, 0, state.ZBattlefield)
 	if h.askCount != 1 || h.lastAsk == nil || h.lastAsk.ResumeKind != "entering_defender" || h.lastAsk.Player != 0 {
 		t.Fatalf("asks=%d last=%+v, want one entering_defender ask of seat 0", h.askCount, h.lastAsk)
@@ -50,7 +50,7 @@ func TestEnteringDefenderFixedDefenderAsksNothing(t *testing.T) {
 	c.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
 	c.DefendingBattle = pw
 	c.DefenderFixed = true
-	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
+	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield, c.Controller)
 	rider.apply(h, c, id, 0, state.ZBattlefield)
 	if h.askCount != 0 {
 		t.Fatalf("asks=%d (%+v), want none for a fixed defender", h.askCount, h.lastAsk)
@@ -68,7 +68,7 @@ func TestEnteringDefenderNoContextInCombatAttacksTheOpponent(t *testing.T) {
 	h, c, id := attackingFixture(t)
 	h.g.Active = 0
 	h.g.Step = state.StepDeclareAttackers
-	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
+	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield, c.Controller)
 	rider.apply(h, c, id, 0, state.ZBattlefield)
 	if o := h.g.Obj(id); !o.IsAttacking || o.Attacking != 1 || o.Tapped {
 		t.Fatalf("object attacking=%v defender=%d tapped=%v, want attacking seat 1, untapped", o.IsAttacking, o.Attacking, o.Tapped)

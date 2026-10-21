@@ -20,7 +20,7 @@ func attackingFixture(t *testing.T) (*fakeHost, *Ctx, state.ObjID) {
 func TestAttackingEntryMarksDefender(t *testing.T) {
 	h, c, id := attackingFixture(t)
 	c.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
-	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
+	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield, c.Controller)
 	rider.apply(h, c, id, 0, state.ZBattlefield)
 	o := h.g.Obj(id)
 	if o == nil || !o.IsAttacking || o.Attacking != 1 {
@@ -37,7 +37,7 @@ func TestAttackingEntryMarksDefender(t *testing.T) {
 
 func TestAttackingEntryWithoutDefenderDegradesOnce(t *testing.T) {
 	h, c, id := attackingFixture(t)
-	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
+	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield, c.Controller)
 	rider.apply(h, c, id, 0, state.ZBattlefield)
 	o := h.g.Obj(id)
 	if o == nil || o.Tapped || o.IsAttacking {
@@ -101,7 +101,7 @@ func TestAttackingEntryRidesTheSharedSettleAndMovers(t *testing.T) {
 	c3.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
 	h3.Emit(events.Event{Kind: events.MoveZone, Obj: 2, From: state.ZBattlefield, To: state.ZHand})
 	sa3 := &cards.SA{Params: map[string]string{"Tapped": "True", "Attacking": "True"}}
-	rider3 := classifyAttackingEntry(h3, c3, sa3, state.ZBattlefield)
+	rider3 := classifyAttackingEntry(h3, c3, sa3, state.ZBattlefield, c3.Controller)
 	settleChangeZoneMoveAs(h3, c3, sa3, ChangeZoneOf(sa3), 2, state.ZHand, state.ZBattlefield, "", 0, 1, true, &rider3)
 	if o := h3.g.Obj(2); o == nil || !o.Tapped || !o.IsAttacking || o.Attacking != 1 {
 		t.Fatalf("hand settle with Attacking$ left object = %+v, want tapped and attacking 1", o)
@@ -160,7 +160,7 @@ func countTokenAttacks(h *fakeHost, obj state.ObjID) int {
 
 func TestAttackingEntryNonTrueSelectorDegradesOnce(t *testing.T) {
 	h, c, id := attackingFixture(t)
-	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "Remembered"}}, state.ZBattlefield)
+	rider := classifyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "Remembered"}}, state.ZBattlefield, c.Controller)
 	rider.apply(h, c, id, 0, state.ZBattlefield)
 	if h.g.Obj(id).IsAttacking {
 		t.Fatal("unsupported selector made the object attack")

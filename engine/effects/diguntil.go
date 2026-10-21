@@ -173,13 +173,15 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// revealed pile (the corpus oracles' "put all cards revealed this way
 	// that weren't put onto the battlefield ...").
 	declineDest := dp.DeclineDest
+	players := playerIDsFromTargets(h, c, dp.Defined.Raw, targets)
 	// One classification for the whole DigUntil call, before the player walk.
 	// The rider is only ever delivered on a battlefield entry (apply gates on
 	// the destination it is handed), so it is classified against that zone
 	// rather than against either of the two destinations the walk picks
-	// between.
-	rider := classifyAttackingEntry(h, c, sa, state.ZBattlefield)
-	players := playerIDsFromTargets(h, c, dp.Defined.Raw, targets)
+	// between. CR 508.4's chooser is the found card's owner (or the
+	// GainControl$ player), which is the scanned player.
+	rider := classifyAttackingEntry(h, c, sa, state.ZBattlefield,
+		enteringControllerForAttack(h, c, attackingParam(sa), state.ZBattlefield, players, gainControlParam(sa)))
 	selection := *c // Valid$ Card.IsRemembered uses the pre-clear set.
 	// The snapshot arms for any player count, a single library included.
 	initForgetOtherSnapshot(h, c, sa, players, 1)
