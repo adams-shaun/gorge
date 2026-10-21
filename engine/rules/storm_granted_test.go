@@ -68,6 +68,52 @@ func TestGrantedStormAbsentWithoutTheGrant(t *testing.T) {
 	}
 }
 
+// TestGrantedStormCountsSpellsCastBeforeIt: CR 702.40a's count is fixed when
+// the trigger fires, granted storm included (the fire-time capture keys on the
+// Keyword$ Storm stamp the synthesis carries). First Mend, then a second Mend
+// cast IN RESPONSE to the first's storm trigger: the first trigger's count is
+// one spell (itself), so it copies nothing; only the second trigger copies.
+// 1 + 1 + 1 life -- the response must not add a copy to the first trigger.
+func TestGrantedStormCountsSpellsCastBeforeIt(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Prismari, the Inspiration"), card(t, stormProbeSpell), card(t, stormProbeSpell))
+	hand := append([]state.ObjID(nil), e.G.Zone(state.ZHand, 0)...)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: hand[0], From: state.ZHand, To: state.ZBattlefield})
+	spells := hand[1:]
+	addMana(t, e, 0, "RR")
+	triggerStackObjects := func() int {
+		n := 0
+		for _, sid := range e.G.Stack {
+			if so := e.G.Obj(sid); so != nil && so.Ability != nil && (so.Source == spells[0] || so.Source == spells[1]) {
+				n++
+			}
+		}
+		return n
+	}
+	// First Mend; its storm trigger stays on the stack.
+	if opt := offeredCast(e, spells[0]); opt < 0 {
+		t.Fatalf("first Mend not offered")
+	} else {
+		submitChoices(t, e, opt)
+	}
+	if n := triggerStackObjects(); n != 1 {
+		t.Fatalf("CR 702.40a seq %d: want the granted storm trigger on the stack with the spell, got %d ability objects: %v", len(e.L.Events), n, e.G.Stack)
+	}
+	// Second Mend cast in response to the first's trigger.
+	if opt := offeredCast(e, spells[1]); opt < 0 {
+		t.Fatalf("second Mend not offered")
+	} else {
+		submitChoices(t, e, opt)
+	}
+	if n := triggerStackObjects(); n != 2 {
+		t.Fatalf("CR 702.40a seq %d: want both storm triggers on the stack with the second spell, got %d triggers: %v", len(e.L.Events), n, e.G.Stack)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if life := e.G.Players[0].Life; life != 23 {
+		t.Fatalf("life=%d, want 23 (two casts plus the second trigger's one copy; a response must not add a copy to the first trigger)", life)
+	}
+}
+
 // TestGrantedStormReplaysFromTheLog: the granted trigger's body crosses the
 // log as the __kwStorm: payload, so a log-only replay mints the identical
 // ability and copy.

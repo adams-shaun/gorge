@@ -8,19 +8,16 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestMadnessDiscardSuspendsTheResolvingRepeat pins cardfuzz batch8 line 1
+// TestMadnessDiscardDuringARepeatExilesInPlace pins cardfuzz batch8 line 1
 // on real corpus cards: Kindle the Carnage ("Discard a card at random ...
 // You may repeat this process any number of times") discards Violent
-// Eruption, whose Madness replacement asks its owner whether to exile it.
-// The madness ask was a plain e.ask, so the Repeat body kept running past
-// the park and its "Repeat this process?" election displaced the madness
-// question. The answer was never taken: the parked discard never moved,
-// Violent Eruption stayed in hand, and every repeat "discarded" it again
-// (4 damage to each creature per pass) -- a bot saying yes looped forever.
-//
-// The madness ask must suspend the resolution: it is the pending decision,
-// its answer moves the card, and only then does the Repeat election come.
-func TestMadnessDiscardSuspendsTheResolvingRepeat(t *testing.T) {
+// Eruption. Its madness replacement used to be an optional ask that the
+// Repeat body ran past (the parked discard never moved, and a bot saying
+// yes looped forever). Madness's replacement is mandatory (CR 702.35a;
+// cr-g29): the discard moves to exile at the point of the discard, Kindle
+// deals the discarded card's mana value, the Repeat election follows, and
+// once Kindle has resolved the madness trigger is on the stack.
+func TestMadnessDiscardDuringARepeatExilesInPlace(t *testing.T) {
 	t.Parallel()
 	kindle := tokenReplCorpusCard(t, "Kindle the Carnage")
 	eruption := tokenReplCorpusCard(t, "Violent Eruption")
@@ -61,19 +58,8 @@ func TestMadnessDiscardSuspendsTheResolvingRepeat(t *testing.T) {
 		passPriorityOnce(t, e)
 	}
 
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KReplacement || len(d.Options) == 0 || d.Options[0].Kind != "madness_exile" {
-		t.Fatalf("pending after the random discard = %+v, want the madness replacement ask", d)
-	}
-	graveyard := -1
-	for _, o := range d.Options {
-		if o.Kind == "madness_graveyard" {
-			graveyard = o.Index
-		}
-	}
-	submitChoices(t, e, graveyard)
-	if o := e.G.Obj(eruptionID); o.Zone != state.ZGraveyard {
-		t.Fatalf("Violent Eruption zone = %v after declining madness, want graveyard", o.Zone)
+	if o := e.G.Obj(eruptionID); o.Zone != state.ZExile {
+		t.Fatalf("Violent Eruption zone = %v after the madness discard, want exile (CR 702.35a)", o.Zone)
 	}
 	if got := e.G.Obj(bearID).Damage; got != 4 {
 		t.Fatalf("Grizzly Bears damage = %d, want 4 (Violent Eruption's mana value)", got)
@@ -83,14 +69,14 @@ func TestMadnessDiscardSuspendsTheResolvingRepeat(t *testing.T) {
 	// changes nothing, so the process ends and the spell leaves the stack.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Prompt != "Repeat this process?" {
-		t.Fatalf("pending after the madness answer = %+v, want the Repeat election", d)
+		t.Fatalf("pending after the madness discard = %+v, want the Repeat election", d)
 	}
 	submitChoices(t, e, 0)
 	if o := e.G.Obj(kindleID); o.Zone != state.ZGraveyard {
 		t.Fatalf("Kindle the Carnage zone = %v, want it resolved into the graveyard; pending %+v", o.Zone, e.Pending())
 	}
-	if len(e.G.Stack) != 0 {
-		t.Fatalf("stack = %v, want empty", e.G.Stack)
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Source != eruptionID {
+		t.Fatalf("stack = %v, want only Violent Eruption's madness trigger", e.G.Stack)
 	}
 	replayCheck(t, e, cfg)
 }
