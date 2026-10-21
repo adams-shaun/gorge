@@ -90,6 +90,86 @@ func setMaxHandSizeGrantFromLine(params map[string]string) (val, affected, zone 
 	return val, affected, strings.TrimSpace(params["AffectedZone"]), true
 }
 
+// hiddenKeywordGrantFromLine reports whether a Mode$ Continuous static body an
+// Effect SA registers carries an AddHiddenKeyword$ grant this build implements,
+// and resolves its readable fields. Every " & "-separated line must be in the
+// shared engine/cards vocabulary (the same reader the combat restrictions use,
+// so the printed-static and Effect-delivery routes cannot disagree). Only
+// display/placement metadata may sit alongside; a condition gate or another
+// grant parameter fails closed to the caller's honest unimplemented Note.
+func hiddenKeywordGrantFromLine(params map[string]string) (kws []string, affected, zone string, ok bool) {
+	raw := strings.TrimSpace(params["AddHiddenKeyword"])
+	if raw == "" {
+		return nil, "", "", false
+	}
+	for _, k := range cards.SplitKeywordList(raw) {
+		if cards.HiddenKeywordOf(k) == cards.HiddenKeywordNone {
+			return nil, "", "", false
+		}
+		kws = append(kws, k)
+	}
+	if len(kws) == 0 {
+		return nil, "", "", false
+	}
+	for key := range params {
+		if !hiddenKeywordGrantKeys.Has(key) {
+			return nil, "", "", false
+		}
+	}
+	affected = strings.TrimSpace(params["Affected"])
+	if affected == "" {
+		affected = "Card.Self"
+	}
+	return kws, affected, strings.TrimSpace(params["AffectedZone"]), true
+}
+
+var hiddenKeywordGrantKeys = state.NewNameSet(
+	"Mode", "Affected", "AffectedZone", "Description", "AddHiddenKeyword",
+)
+
+// adjustLandPlaysGrantFromLine reads an Effect-delivered AdjustLandPlays$
+// grant (Explore, Scale the Heights, Urban Evolution, Summer Bloom): the
+// Effect path cannot evaluate a condition gate, so only the grant's own
+// display/placement metadata is accepted. The value grammar is shared with
+// rules' printed-static read (AdjustLandPlaysValueOK).
+func adjustLandPlaysGrantFromLine(params map[string]string) (n int32, affected string, ok bool) {
+	raw, has := params["AdjustLandPlays"]
+	if !has {
+		return 0, "", false
+	}
+	n, ok = AdjustLandPlaysValueOK(raw)
+	if !ok {
+		return 0, "", false
+	}
+	for key := range params {
+		if !adjustLandPlaysEffectKeys.Has(key) {
+			return 0, "", false
+		}
+	}
+	affected = strings.TrimSpace(params["Affected"])
+	if affected == "" {
+		return 0, "", false
+	}
+	return n, affected, true
+}
+
+var adjustLandPlaysEffectKeys = state.NewNameSet(
+	"Mode", "AdjustLandPlays", "Affected", "Description",
+)
+
+// AdjustLandPlaysValueOK is the ONE AdjustLandPlays$ value grammar both the
+// printed-static read (rules' adjustLandPlaysGrant) and the Effect-delivery
+// whitelist consult: a plain positive integer. A value this build cannot
+// price as a count (Unlimited, an SVar token) reports false rather than
+// silently becoming a smaller grant.
+func AdjustLandPlaysValueOK(raw string) (int32, bool) {
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 0 {
+		return 0, false
+	}
+	return int32(n), true
+}
+
 // HandSizeValueOK is the ONE SetMaxHandSize$ value grammar both the
 // printed-static read (rules' maxHandSizeFor) and the Effect-delivery
 // whitelist (setMaxHandSizeGrantFromLine) consult, so the two registration

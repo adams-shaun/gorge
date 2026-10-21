@@ -32,72 +32,52 @@ type HiddenKeywordFlags struct {
 	CantBlockAlone  bool
 }
 
-// decayedHead is CR 702.147's keyword head. Named once so the switch below
-// compares against an identifier rather than a bare literal and the meaning
-// lives with the arm; Decayed shares the "can't block" meaning with the
-// sentence spelling.
-const decayedHead = "Decayed"
-
-// ParseHiddenKeyword reads one derived keyword line (already the head, via
-// cards.KeywordHead) into its combat meaning, normalising Forge's optional
-// "HIDDEN " marker away first because the corpus spells the SAME restriction
-// both ways. Only the three measured phrase shapes are recognised; any other
-// sentence contributes nothing (the deliberate fail-closed direction for a
-// per-keyword switch). The comparison is case-insensitive and the phrase is
-// matched whole -- a longer sentence that merely contains one of these (a
-// conditional rider) is a different grant and must not borrow the
-// unconditional meaning.
+// ParseHiddenKeyword reads one derived keyword line into its combat meaning.
+// The spelling vocabulary lives in engine/cards (HiddenKeywordOf), the ONE
+// place the printed canonical heads and the runtime sentence spellings are
+// named; this reader only maps the dense code to the combat flags. An
+// unrecognised line contributes nothing (the deliberate fail-closed
+// direction), and the phrase is matched whole -- a longer sentence that
+// merely contains one of these (a conditional rider) is a different grant
+// and must not borrow the unconditional meaning.
 func ParseHiddenKeyword(k string) HiddenKeywordFlags {
-	if cards.IsHiddenUntapNextStepKeyword(k) {
-		return HiddenKeywordFlags{UntapNextStep: true}
-	}
-	head := strings.TrimSpace(strings.TrimPrefix(cards.KeywordHead(k), "HIDDEN "))
-	switch {
-	case strings.EqualFold(head, "CARDNAME can't attack or block."),
-		strings.EqualFold(head, "CantAttackOrBlock"):
+	switch cards.HiddenKeywordOf(k) {
+	case cards.HiddenKeywordCantAttackOrBlock:
 		// The compound spelling imparts BOTH restrictions (Opportunistic
 		// Dragon, Extraction Specialist); it must satisfy the cant-block
-		// reader as well as the cant-attack one, so it is matched before
-		// either simple spelling. Printed K: lines are canonicalised to the
-		// head; runtime KW$ grants retain the sentence spelling.
+		// reader as well as the cant-attack one.
 		return HiddenKeywordFlags{CantAttack: true, CantBlock: true}
-	case strings.EqualFold(head, "CARDNAME can't attack."):
+	case cards.HiddenKeywordCantAttack:
 		return HiddenKeywordFlags{CantAttack: true}
-	case strings.EqualFold(head, "CARDNAME can't block."),
-		strings.EqualFold(head, decayedHead):
+	case cards.HiddenKeywordCantBlock:
 		// Decayed (CR 702.147a) is "This creature can't block" plus the
 		// attack-triggered end-of-combat sacrifice (the Decayed arm of
 		// checkGrantedAttackKeywordTriggers owns the sacrifice half). It
 		// reaches this reader as the canonical head from a printed
 		// K:Decayed line, from a decayed counter (cards.CounterKeyword,
 		// CR 122.1b) and from a KW$ Decayed grant; all three must forbid
-		// the block identically, so the arm sits beside the sentence
-		// spelling rather than in a printed-only path.
+		// the block identically.
 		return HiddenKeywordFlags{CantBlock: true}
-	case strings.EqualFold(head, "CARDNAME must be blocked if able."):
+	case cards.HiddenKeywordMustBlock:
+		// A printed K: line arrives as the canonical MustBlock head, while a
+		// runtime Pump/PumpAll grant keeps the sentence form. The head is
+		// distinct from the Mode$ MustBlock static (a BLOCKER's duty,
+		// MustBlockCandidates): a keyword head and a static mode are
+		// separate namespaces.
 		return HiddenKeywordFlags{MustBlock: true}
-	case strings.EqualFold(head, "MustBlock"):
-		// The canonical head engine/cards/parse.go rewrites the sentence form to
-		// (engine/cards/hiddenkeyword.go CanonicalKeywordLine). Both spellings must
-		// reach the reader: a printed K: line arrives here as "MustBlock",
-		// while a runtime Pump/PumpAll `KW$ HIDDEN CARDNAME must be blocked
-		// if able.` grant never passes through the parser and keeps the
-		// sentence form above. The head is distinct from the Mode$ MustBlock
-		// static (a BLOCKER's duty, MustBlockCandidates): a keyword head and a
-		// static mode are separate namespaces, so this arm cannot borrow the
-		// blocker-oriented meaning.
-		return HiddenKeywordFlags{MustBlock: true}
-	case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackOrBlockAlone:
+	case cards.HiddenKeywordUntapNextStep:
+		return HiddenKeywordFlags{UntapNextStep: true}
+	case cards.HiddenKeywordCantAttackOrBlockAlone:
 		// CR 506.5's compound: the creature can be declared as an attacker
 		// only beside another attacker AND as a blocker only beside another
-		// blocker. Matched before either sibling arm, and deliberately NOT
-		// folded into CantAttack/CantBlock: those forbid the declaration
-		// outright, while this forbids only a LONE one.
+		// blocker. Deliberately NOT folded into CantAttack/CantBlock: those
+		// forbid the declaration outright, while this forbids only a LONE
+		// one.
 		return HiddenKeywordFlags{CantAttackAlone: true, CantBlockAlone: true}
-	case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackAlone:
+	case cards.HiddenKeywordCantAttackAlone:
 		// CR 506.5's attack-only sibling: the lone BLOCK stays legal.
 		return HiddenKeywordFlags{CantAttackAlone: true}
-	case cards.AloneKeywordOf(head) == cards.AloneKeywordCantBlockAlone:
+	case cards.HiddenKeywordCantBlockAlone:
 		// CR 506.5's block-only sibling: the lone ATTACK stays legal.
 		return HiddenKeywordFlags{CantBlockAlone: true}
 	}

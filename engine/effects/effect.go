@@ -784,6 +784,63 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ImprintOnHost:     imprintOnHost,
 				})
 				registered = true
+			} else if kws, affected, zone, ok := hiddenKeywordGrantFromLine(params); ok {
+				// AddHiddenKeyword$ (Falter, Magmatic Chasm, Seismic Stomp,
+				// Barrage of Boulders, Order): the Effect-delivered combat
+				// restriction the layer-6 keyword walk reads through
+				// combat.DerivedHiddenFlags. The value grammar is the shared
+				// engine/cards vocabulary, so a sentence this build cannot read
+				// fails closed to the unimplemented Note below. The remembered
+				// sets ride the registration for Affected$ Card.IsRemembered and
+				// <base>.RememberedPlayerCtrl specs (Taunt from the Rampart,
+				// Mark for Death); lifetime is the Effect's own.
+				effectContinuous(h, state.ContinuousEffect{
+					Source:            c.Source,
+					Controller:        c.Controller,
+					Layer:             state.LAbilities,
+					Affects:           affected,
+					AffectedZone:      zone,
+					AddKeywords:       kws,
+					Name:              effectName,
+					UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
+					Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+					Duration:          dur,
+					Remembered:        remembered,
+					RememberedPlayers: effectRememberedPlayers(h, c, sa),
+					ForgetOnMoved:     forgetOn,
+					ExileOnMoved:      exileOn,
+					ForgetCounter:     forgetCounter,
+					ImprintOnHost:     imprintOnHost,
+					ForgetOnCast:      forgetOnCast,
+					ChosenNumber:      chosenNumber,
+				})
+				registered = true
+			} else if n, affected, ok := adjustLandPlaysGrantFromLine(params); ok {
+				// AdjustLandPlays$ (Explore, Scale the Heights, Urban
+				// Evolution, Summer Bloom): an additional-land-drops grant
+				// rules' adjustLandPlays sums from the active registry. It is
+				// a rules-mod, not a layer change, so no Layer is set. The
+				// value grammar is shared with rules' printed-static read; a
+				// condition gate this path cannot evaluate fails closed.
+				effectContinuous(h, state.ContinuousEffect{
+					Source:            c.Source,
+					Controller:        c.Controller,
+					Affects:           affected,
+					AdjustLandPlays:   n,
+					Name:              effectName,
+					UntilEOT:          effectUntilEOT(h, c.Source, rawDur),
+					Permanent:         strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
+					Duration:          dur,
+					Remembered:        remembered,
+					RememberedPlayers: effectRememberedPlayers(h, c, sa),
+					ForgetOnMoved:     forgetOn,
+					ExileOnMoved:      exileOn,
+					ForgetCounter:     forgetCounter,
+					ImprintOnHost:     imprintOnHost,
+					ForgetOnCast:      forgetOnCast,
+					ChosenNumber:      chosenNumber,
+				})
+				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
 				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
 				// cascade grant (TARDIS's GrantCascade, Dark Apostle's, Bigger
