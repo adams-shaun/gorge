@@ -1160,9 +1160,19 @@ type Object struct {
 	// (Captain Eberhart). A plain value copy in CloneDeep carries it.
 	DrawnTurn int32
 
-	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
-	// the object enters the battlefield.
+	// Timestamp is the object's CR 613.7d entry timestamp, assigned from
+	// Game.Clock whenever the object enters the battlefield. It doubles as the
+	// battlefield-stint identity (a ControlGrant's ObjStamp, the legend rule's
+	// youngest pick), so nothing but an entry ever moves it.
 	Timestamp uint32
+	// LayerStamp is the CR 613.7 timestamp the object's static abilities'
+	// continuous effects take (CR 613.7a). events.Apply sets it to Timestamp
+	// on entry and moves it to a fresh Game.Clock tick when the object, on the
+	// battlefield, becomes attached to a different object or player (CR
+	// 613.7e/701.3c), turns face up or face down (CR 613.7f), or transforms
+	// (CR 613.7g). Forge's layerTimestamp, as Timestamp is its gameTimestamp.
+	// Read it through LayerTimestamp.
+	LayerStamp uint32
 
 	// Cast-time metadata. X and CastFlags matter while this object is a
 	// spell on the stack and, once it resolves, on the permanent it becomes
@@ -2371,4 +2381,13 @@ func CloneChosenModes(m []string) []string {
 		return nil
 	}
 	return append(make([]string, 0, len(m)), m...)
+}
+
+// LayerTimestamp is the CR 613.7 timestamp o's static abilities' continuous
+// effects take (CR 613.7a): LayerStamp, never earlier than the entry
+// Timestamp. A restamp only ever moves LayerStamp later than the entry, so
+// the max is LayerStamp on every event-built object; it is Timestamp for an
+// object a test placed eventlessly (Timestamp written, LayerStamp left 0).
+func (o *Object) LayerTimestamp() uint32 {
+	return max(o.LayerStamp, o.Timestamp)
 }
