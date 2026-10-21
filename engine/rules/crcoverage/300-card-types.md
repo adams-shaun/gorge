@@ -50,9 +50,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 304.4 | not-impl | - | - | SILENT; gorge relies on script filters |
 | 304.5 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | - |
 | 305.1 | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | - |
-| 305.2-305.2a | partial | `engine/rules/cast_begin.go#Engine.beginPlay` | - | effect plays capped at one land regardless of extra drops; cr-g44 |
+| 305.2-305.2a | follows | `engine/rules/cast_begin.go#Engine.effectLandPlayRefusal` `engine/rules/legal_mayplay.go#Engine.adjustLandPlays` | `TestCR305_2aEffectLandPlayUsesExtraDrop` | effect plays use the 1+AdjustLandPlays allowance and count toward it |
 | 305.2b | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | - |
-| 305.3 | partial | `engine/rules/cast_begin.go#Engine.beginPlay` | - | effect-play path lacks the turn check (probe); cr-g44 |
+| 305.3 | follows | `engine/rules/cast_begin.go#Engine.effectLandPlayRefusal` `engine/rules/host_read.go#Engine.CastProhibited` | `TestCR305_3EffectLandPlayNeedsOwnTurn` | effect plays need the player's own turn; the Play election filters the same gate |
 | 305.4 | follows | `engine/events/apply_zone.go#foldLandPlayed` | - | - |
 | 305.5 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |
 | 305.6 | follows | `engine/cards/intrinsic.go#IntrinsicManaAbility` `engine/rules/mana_activation.go#Engine.appendAvailableManaAbilitiesGateCompute` | - |  |
