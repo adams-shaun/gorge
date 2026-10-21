@@ -322,8 +322,9 @@ func (e *Engine) targetAsk() bool {
 	// CR 115.5: a spell may not target itself (excludeSelf == the card); an
 	// activated ability CAN target its own Source permanent (Mother of Runes
 	// targeting itself). The Face-less ability stack object on the stack is
-	// never offered (legalTargetCandidates drops Face()-less stack objects),
-	// so the source permanent is still a legal target of its own ability.
+	// never offered (castTargetCandidates drops pc.stackObj, the ability
+	// pushed at CR 602.2a), so the source permanent is still a legal target
+	// of its own ability.
 	// An attach ability (the Equip/Reconfigure expansion mints AB$ Attach;
 	// a spell SA may carry API$ Attach directly) can never target its own
 	// source permanent: CR 701.3a attaches an object to ANOTHER permanent,
@@ -338,7 +339,7 @@ func (e *Engine) targetAsk() bool {
 	if !pc.isAbility() || sa.API == "Attach" {
 		excludeSelf = pc.card
 	}
-	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	candidates := e.castTargetCandidates(pc, excludeSelf, sa)
 	// CR 601.2e: a cast whose off-sorcery timing rests on a target-conditional
 	// CastWithFlash grant may only announce a target the grant covers. The
 	// offer admitted the cast because SOME qualifying target exists
@@ -500,7 +501,8 @@ func (e *Engine) targetAsk() bool {
 	// excludeSelf). For an activated ability the ability stack object is
 	// already pushed (CR 602.2a) but Source stays 0, so the source permanent
 	// remains a legal target of its own ability (Mother of Runes) via
-	// excludeSelf == 0. The prompt keeps the source permanent's name for
+	// excludeSelf == 0; castTargetCandidates drops the pushed object itself.
+	// The prompt keeps the source permanent's name for
 	// readability.
 	var src state.ObjID
 	if !pc.isAbility() || sa.API == "Attach" {
@@ -842,7 +844,7 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 		if pc.subStage > 0 {
 			e.subOfferParent = pc.subAns[pc.subStage-1]
 		}
-		candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sub)
+		candidates := e.castTargetCandidates(pc, excludeSelf, sub)
 		if effects.TargetUniqueRequested(sub) {
 			chosen := append([]state.Target(nil), pc.targets...)
 			for i := 0; i < pc.subStage; i++ {
@@ -1253,6 +1255,27 @@ func (e *Engine) evidenceAmount(pc *pendingCast) int32 {
 		}
 	}
 	return total
+}
+
+// castTargetCandidates is legalTargetCandidates for a cast or activation's
+// own target asks. CR 115.5: a spell or ability on the stack can't target
+// itself. A spell is excluded through excludeSelf (its card); an activated
+// ability's object is pushed before its targets are chosen (CR 602.2a), and
+// its source permanent stays targetable (excludeSelf == 0), so the pushed
+// object is dropped here. Every ask the flow poses, and so every answer
+// Validate accepts, goes through this one filter.
+func (e *Engine) castTargetCandidates(pc *pendingCast, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate {
+	cs := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
+	if !pc.isAbility() || !pc.pushed || pc.stackObj == 0 {
+		return cs
+	}
+	out := cs[:0]
+	for _, c := range cs {
+		if c.kind == "player" || c.obj != pc.stackObj {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // activationPushEvent names the replayable activation boundary for both

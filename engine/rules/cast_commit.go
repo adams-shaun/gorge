@@ -146,9 +146,10 @@ func (e *Engine) payCast() {
 	// answered, or the SA has no target), so a mana-window resume through
 	// continueCast must not re-ask for one.
 	pc.passedTarget = true
-	// alltargeted1: for a SPELL the stack object already exists (pushCast),
-	// so the chain's pre-asked sub-ability target answers install here; the
-	// ability arm installs after its AbilityPush mints the object.
+	// alltargeted1: the stack object already exists (pushCast for a spell,
+	// pushActivation for an ability, CR 602.2a), so the chain's pre-asked
+	// sub-ability target answers install here; the ability arm installs
+	// them again once the activation is paid (an idempotent overwrite).
 	e.installSubPreAsk(pc)
 	// CR 601.2e: the game checks that the proposed spell can legally be cast,
 	// once every announcement choice (the {X} value) is known. An illegal
