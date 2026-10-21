@@ -683,6 +683,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				look.ExileOnMoved = exileOn
 				look.ForgetCounter = forgetCounter
 				look.ImprintOnHost = imprintOnHost
+				look.Chosen, look.ChosenBound = effectChosenSnapshot(h, c, look.Affects)
 				effectContinuous(h, look)
 				registered = true
 				if !rest {

@@ -423,9 +423,10 @@ type ContinuousEffect struct {
 	// read for it -- and it expires with its source permanent (CR 611.3b)
 	// through the ordinary source-on-battlefield check in active().
 	MayPlay bool
-	// AffectedZone is the may-play grant's AffectedZone$ value (a single
-	// zone, a comma-separated list, or "All"), interpreted with
-	// effects.ParseZones. Meaningful only when MayPlay is set.
+	// AffectedZone is the grant's AffectedZone$ value (a single zone, a
+	// comma-separated list, or "All"), interpreted with effects.ParseZones.
+	// Meaningful when MayPlay or MayLookAt is set; a MayLookAt grant with a
+	// zone other than Exile cannot name a face-down exiled card.
 	AffectedZone string
 
 	// SetMaxHandSize is an Effect-delivered S:Mode$ Continuous | Affected$

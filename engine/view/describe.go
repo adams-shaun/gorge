@@ -915,11 +915,11 @@ func objController(g *state.Game, id state.ObjID) state.PlayerID {
 	return 0
 }
 
-// castInfoActor is the caster a CastInfo line names: the card's controller
-// normally, but a Secret CastInfo whose payload is redacted to this viewer
-// keeps Player and zeroes Obj (secretShape), so the actor is then the
-// event's own Player (cr-g62's foretell action, whose card is hidden from
-// every seat but the foreteller).
+// castInfoActor is the caster an ordinary CastInfo line names: the card's
+// controller. The one Secret CastInfo -- the foretell action -- returns its
+// "foretells" line in Describe's CastInfo branch before this helper is
+// reached (cr-g62/cr-g64); the ev.Obj == 0 guard is the generic redacted-
+// payload fallback.
 func castInfoActor(g *state.Game, ev events.Event) state.PlayerID {
 	if ev.Obj == 0 {
 		return ev.Player

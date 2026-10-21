@@ -124,12 +124,20 @@ const UnlimitedHandSize = 1 << 20
 // the effect's controller -- 13 + 1 raw lines at the pin) into a look-only
 // ContinuousEffect, and DELETES the MayLookAt key from params so the rest of
 // the line is read by the ordinary branches. rest reports whether any grant
-// key beyond Mode/Affected/AffectedZone/Description remains. Any other value
-// or zone reports !ok and leaves params untouched (cr-g64).
+// key beyond Mode/Affected/AffectedZone/Description remains. Any other value,
+// zone or an unread Condition$/CheckSVar$ gate reports !ok and leaves params
+// untouched (cr-g64).
 func mayLookAtExileGrantFromLine(params staticLineParams) (ce state.ContinuousEffect, rest, ok bool) {
 	v := strings.TrimSpace(params["MayLookAt"])
 	if !strings.EqualFold(v, "You") && !strings.EqualFold(v, "True") ||
 		!strings.EqualFold(strings.TrimSpace(params["AffectedZone"]), "Exile") || strings.TrimSpace(params["Affected"]) == "" {
+		return state.ContinuousEffect{}, false, false
+	}
+	// The look-only grant has no gate reader of its own: a Condition$ or
+	// CheckSVar$ line fails closed rather than granting unconditionally.
+	// (The may-play sibling reads Condition$ PlayerTurn; no corpus
+	// MayLookAt$ line carries either key today.)
+	if strings.TrimSpace(params["Condition"]) != "" || strings.TrimSpace(params["CheckSVar"]) != "" {
 		return state.ContinuousEffect{}, false, false
 	}
 	delete(params, "MayLookAt")

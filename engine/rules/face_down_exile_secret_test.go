@@ -1,13 +1,13 @@
 package rules
 
-// cr-g62: a ChangeZone face-down exile out of a hidden zone (CR 406.3:
-// a card "exiled face down" can't be examined by any player except when
-// instructions allow it) must not name the card on any seat's transcript
-// but the one seat the projection admits to its face (engine/view/card.go:
-// the exiled card's controller, i.e. its owner). Before the fix the move was
-// not Secret, so view.RedactEvent's rule (2) kept its Obj (exile is not a
-// hidden zone) and view.Describe named the card to every seat and to the
-// public spectator.
+// cr-g62/cr-g64: a ChangeZone face-down exile out of a hidden zone (CR
+// 406.3: a card "exiled face down" can't be examined by any player except
+// when instructions allow it) must not name the card on any seat's
+// transcript but a seat that may look at it -- the recorded looker, or
+// nobody for a blind exile (engine/view/card.go: projector.mayLookFaceDown).
+// Before cr-g62 the move was not Secret, so view.RedactEvent's rule (2) kept
+// its Obj (exile is not a hidden zone) and view.Describe named the card to
+// every seat and to the public spectator.
 
 import (
 	"strings"

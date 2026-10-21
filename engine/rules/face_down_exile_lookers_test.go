@@ -64,7 +64,13 @@ func assertFaceDownExileLookers(t *testing.T, e *Engine, ev events.Event, name s
 		}
 		got := view.RedactEventFor(e.G, ev, seat, view.Seat)
 		line := view.Describe(e.G, got)
-		if named := got.Obj != 0 || strings.Contains(line, name); named && !streamLookers[seat] {
+		if streamLookers[seat] {
+			if got.Obj != ev.Obj || !strings.Contains(line, name) {
+				t.Errorf("stream: seat %d may look but is served Obj %d, line %q for the face-down exile of %s", seat, got.Obj, line, name)
+			}
+			continue
+		}
+		if got.Obj != 0 || strings.Contains(line, name) {
 			t.Errorf("stream: seat %d is served Obj %d, line %q for the face-down exile of %s; it may not look", seat, got.Obj, line, name)
 		}
 	}
@@ -265,4 +271,54 @@ func TestHideawayControllerStillSeesTheHiddenFace(t *testing.T) {
 	lookers := map[state.PlayerID]bool{1: true}
 	assertFaceDownExileLookers(t, e, ev, "Clive's Hideaway", lookers, lookers)
 	replayCheck(t, e, cfg)
+}
+
+// TestPrintedMayLookAtIsZoneScoped: a printed S: MayLookAt$ static grants a
+// look only in its own AffectedZone$. Kheru Mind-Eater's exile grant shows
+// its controller the card it exiled; Enduring Renewal's "play with your hand
+// revealed" (AffectedZone$ Hand, Card.YouOwn) and Wisedrafter's Will's
+// opponent-hand reveal (Hand, Card.OppOwn) must not be read as a look at a
+// face-down exiled card (CR 406.3). Before the zone scope a blind exile was
+// shown to its owner by Enduring Renewal and to the opponent by Wisedrafter's
+// Will.
+func TestPrintedMayLookAtIsZoneScoped(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	kheru := lookup(t, reg, "Kheru Mind-Eater")
+	renewal := lookup(t, reg, "Enduring Renewal")
+	wisedrafters := lookup(t, reg, "Wisedrafter's Will")
+	e, _ := corpusEngineCfg(t, reg, []*cards.Card{kheru, renewal}, []*cards.Card{wisedrafters})
+	kheruID := moveByName(t, e, 0, "Kheru Mind-Eater", state.ZBattlefield)
+	moveByName(t, e, 0, "Enduring Renewal", state.ZBattlefield)
+	moveByName(t, e, 1, "Wisedrafter's Will", state.ZBattlefield)
+
+	lib := e.G.Zone(state.ZLibrary, 0)
+	if len(lib) < 2 {
+		t.Fatalf("precondition: seat 0's library has %d cards, want 2", len(lib))
+	}
+	blind, looked := e.G.Obj(lib[0]), e.G.Obj(lib[1])
+	blind.Zone, blind.FaceDown, blind.ExiledWith = state.ZExile, true, 0
+	looked.Zone, looked.FaceDown, looked.ExiledWith = state.ZExile, true, kheruID
+	e.G.Obj(kheruID).Remembered = []state.Target{{Obj: looked.ID}}
+	e.G.SetZone(state.ZLibrary, 0, lib[2:])
+	e.G.SetZone(state.ZExile, 0, []state.ObjID{blind.ID, looked.ID})
+
+	if !e.MayLookAtFaceDown(0, looked.ID) {
+		t.Errorf("Kheru Mind-Eater's controller is not shown the card it exiled face down")
+	}
+	if e.MayLookAtFaceDown(0, blind.ID) {
+		t.Errorf("Enduring Renewal's hand reveal (AffectedZone$ Hand) is read as a look at a face-down exiled card")
+	}
+	if e.MayLookAtFaceDown(1, blind.ID) {
+		t.Errorf("Wisedrafter's Will's opponent-hand reveal (AffectedZone$ Hand) is read as a look at a face-down exiled card")
+	}
+	if got := exiledFaceIn(t, e, 0, blind.Owner, view.Seat, blind.ID); got != "" {
+		t.Errorf("board: Enduring Renewal shows seat 0 the face %q of a blind face-down exile", got)
+	}
+	if got := exiledFaceIn(t, e, 1, blind.Owner, view.Seat, blind.ID); got != "" {
+		t.Errorf("board: Wisedrafter's Will shows seat 1 the face %q of a blind face-down exile", got)
+	}
+	if got := exiledFaceIn(t, e, 0, looked.Owner, view.Seat, looked.ID); got != "Mountain" {
+		t.Errorf("board: Kheru Mind-Eater's controller is shown face %q, want Mountain", got)
+	}
 }

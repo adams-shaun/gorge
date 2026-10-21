@@ -1277,11 +1277,9 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		ev.IDs = []state.ObjID{c.Source}
 		secretFaceDownMove(ev, c.Controller)
 	case to == state.ZExile && exileFaceDown:
-		if foretold {
-			ev.Counter = "exiled_with_face_down_foretold"
-		} else {
-			ev.Counter = "exiled_with_face_down"
-		}
+		// Reached only when neither WithMayLook$ nor Foretold$ is set: the
+		// may-look arm above owns both, so this is the blind plain marker.
+		ev.Counter = "exiled_with_face_down"
 		ev.Amount = int32(c.Source)
 		ev.IDs = nil
 		secretFaceDownMove(ev, movedCardOwner(h, ev))

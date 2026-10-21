@@ -295,6 +295,13 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 		if !ce.MayLookAt || ce.Controller != p {
 			continue
 		}
+		// A printed static may grant a look at another zone (Enduring
+		// Renewal's hand reveal, Oracle of Mul Daya's library top): only an
+		// exile-scoped grant can name a face-down exiled card. The
+		// Effect-delivered route sets AffectedZone Exile (cr-g64).
+		if ce.AffectedZone != "" && ce.AffectedZone != "Exile" {
+			continue
+		}
 		// An Effect-delivered grant (Praetor's Grasp's STPlay) names its cards
 		// through the effect's Remembered set: its Affected$ Card.IsRemembered
 		// matches under the same context the effect's may-play grant uses.
