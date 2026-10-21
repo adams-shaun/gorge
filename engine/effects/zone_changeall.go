@@ -278,7 +278,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		h.BeginZoneBatch()
 		defer h.EndZoneBatch()
 	}
-	emitMove :=func(id state.ObjID, z state.Zone, p state.PlayerID) {
+	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
 		// A CantExile restriction withholds the object from a battlefield exile
 		// before the MoveZone (and the moved bookkeeping) is produced -- the
 		// ChangeZoneAll half of the same guard effChangeZone's object loop and
