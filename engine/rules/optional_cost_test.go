@@ -170,9 +170,8 @@ func TestOptionalCostVoltageSurgeSacrificeDealsFour(t *testing.T) {
 	addMana(t, e, 0, "R")
 	paid := castModeOption(t, e, spell, "optionalcost")
 	submitChoices(t, e, paid)
-	// The ordinary sacrifice stage asks for the artifact.
-	choosePendingObject(t, e, relic)
-	// CR 601.2c: the target ask for the damage.
+	// CR 601.2c: the target ask for the damage precedes the ordinary
+	// sacrifice stage (601.2h: the artifact is chosen at payment).
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("no target ask pending: %+v", d)
@@ -187,6 +186,8 @@ func TestOptionalCostVoltageSurgeSacrificeDealsFour(t *testing.T) {
 		t.Fatalf("target ask did not offer the Giant: %+v", d.Options)
 	}
 	submitChoices(t, e, pick)
+	// The ordinary sacrifice stage asks for the artifact.
+	choosePendingObject(t, e, relic)
 	passUntilStackEmpty(t, e, 40)
 
 	if z := e.G.Obj(relic).Zone; z != state.ZGraveyard {

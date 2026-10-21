@@ -110,6 +110,12 @@ func TestRadiantLotusActivatesThroughTheOrdinaryPathAndAddsToTheTarget(t *testin
 	}
 	submitChoices(t, e, abilityOption(t, e, lotus, 0).Index)
 	submitChoices(t, e, gateOptionByLabel(t, e, "x", "X = 1").Index)
+	// CR 601.2c: the target-player ask precedes the one-artifact sacrifice
+	// pick (601.2h: chosen at payment).
+	if d := e.Pending(); d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected the target-player ask, got %+v", d)
+	}
+	submitChoices(t, e, gateOptionByLabel(t, e, "player", "b").Index)
 	if d := e.Pending(); d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 {
 		t.Fatalf("expected the one-artifact sacrifice ask, got %+v", d)
 	}
@@ -123,10 +129,6 @@ func TestRadiantLotusActivatesThroughTheOrdinaryPathAndAddsToTheTarget(t *testin
 		t.Fatalf("Sol Ring is not a sacrifice option: %+v", e.Pending().Options)
 	}
 	submitChoices(t, e, pick)
-	if d := e.Pending(); d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("expected the target-player ask, got %+v", d)
-	}
-	submitChoices(t, e, gateOptionByLabel(t, e, "player", "b").Index)
 	if len(e.G.Stack) != 1 {
 		t.Fatalf("stack depth after activation = %d, want the ability on the stack", len(e.G.Stack))
 	}

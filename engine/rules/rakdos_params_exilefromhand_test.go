@@ -54,6 +54,13 @@ func TestBountyOfTheHuntPaysItsExileFromHandAlternativeCost(t *testing.T) {
 		t.Fatalf("the {3}{G}{G} cast offered with an empty pool: %+v", d.Options)
 	}
 	submitChoices(t, e, alt)
+	// CR 601.2c before 601.2h: the divided target ask comes first; the exile
+	// pick is a cost object, chosen at payment.
+	td := e.Pending()
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("expected the target decision, got %+v", td)
+	}
+	submitChoices(t, e, td.Options[0].Index)
 	// The exile ask offers the GREEN hand card only (Card.Green+Other; Other
 	// excludes the spell itself).
 	de := e.Pending()
@@ -64,13 +71,6 @@ func TestBountyOfTheHuntPaysItsExileFromHandAlternativeCost(t *testing.T) {
 		t.Fatalf("exile options %+v, want exactly the green hand card", de.Options)
 	}
 	submitChoices(t, e, de.Options[0].Index)
-	// The spell still asks its target (DividedAsYouChoose 3) before the exile
-	// is executed.
-	td := e.Pending()
-	if td == nil || td.Kind != decision.KTarget {
-		t.Fatalf("expected the target decision, got %+v", td)
-	}
-	submitChoices(t, e, td.Options[0].Index)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(bear).Zone != state.ZBattlefield {
 		t.Fatalf("bear zone=%s", e.G.Obj(bear).Zone)

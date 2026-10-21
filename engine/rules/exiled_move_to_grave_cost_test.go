@@ -342,24 +342,9 @@ func TestProcessorAssaultSpellAdditionalCostMovesTheCard(t *testing.T) {
 	opt := castOptionFor(t, e, spell)
 	submitChoices(t, e, opt.Index)
 
-	// The additional-cost pick: a real KChoose over the exile zone.
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose {
-		t.Fatalf("expected the move-to-graveyard cost ask, got %+v", d)
-	}
-	found := -1
-	for _, o := range d.Options {
-		if o.Kind == "movetogravecost" && o.Obj == victim {
-			found = o.Index
-		}
-	}
-	if found < 0 {
-		t.Fatalf("cost ask does not offer the exiled card: %+v", d.Options)
-	}
-	submitChoices(t, e, found)
-
-	// The spell's target ask, then resolution.
-	d = passUntilNonPriority(t, e, 20)
+	// CR 601.2c before 601.2h: the damage target ask comes first; the
+	// move-to-graveyard cost pick is a cost object, chosen at payment.
+	d := passUntilNonPriority(t, e, 20)
 	if d.Kind != decision.KTarget {
 		t.Fatalf("expected the damage target ask, got %+v", d)
 	}
@@ -373,6 +358,22 @@ func TestProcessorAssaultSpellAdditionalCostMovesTheCard(t *testing.T) {
 		t.Fatalf("damage target ask does not offer the bear: %+v", d.Options)
 	}
 	submitChoices(t, e, tidx)
+
+	// The additional-cost pick: a real KChoose over the exile zone.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected the move-to-graveyard cost ask, got %+v", d)
+	}
+	found := -1
+	for _, o := range d.Options {
+		if o.Kind == "movetogravecost" && o.Obj == victim {
+			found = o.Index
+		}
+	}
+	if found < 0 {
+		t.Fatalf("cost ask does not offer the exiled card: %+v", d.Options)
+	}
+	submitChoices(t, e, found)
 	passUntilStackEmpty(t, e, 20)
 
 	if got := e.G.Obj(victim).Zone; got != state.ZGraveyard {

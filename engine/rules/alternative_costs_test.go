@@ -820,12 +820,8 @@ func TestDazeAltCostGatedOnAnIslandToReturn(t *testing.T) {
 		t.Fatalf("Daze with an Island in play: alt-cost options = %+v, want exactly one", alts)
 	}
 	e.beginCast(0, alts[0])
-	// The Return<1/Island> payment asks over the payer's battlefield...
-	if d := e.Pending(); d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "returncost" {
-		t.Fatalf("Daze alt-cost did not ask to return the Island: %+v", e.Pending())
-	}
-	submitChoices(t, e, 0)
-	// ...then the counter's target ask...
+	// CR 601.2c before 601.2h: the counter's target ask comes first; the
+	// Return<1/Island> payment ask is a cost-object ask, chosen at payment.
 	d := e.Pending()
 	targetChoice := -1
 	for i, o := range d.Options {
@@ -838,6 +834,11 @@ func TestDazeAltCostGatedOnAnIslandToReturn(t *testing.T) {
 		t.Fatalf("Daze target ask missing the stack spell: %+v", d)
 	}
 	submitChoices(t, e, targetChoice)
+	// The Return<1/Island> payment asks over the payer's battlefield...
+	if d := e.Pending(); d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "returncost" {
+		t.Fatalf("Daze alt-cost did not ask to return the Island: %+v", e.Pending())
+	}
+	submitChoices(t, e, 0)
 	// ...and the cast commits with the Island back in the payer's hand.
 	if got := e.G.Obj(land.ID).Zone; got != state.ZHand {
 		t.Fatalf("Daze alt-cost left the Island in %s, want hand", got)
