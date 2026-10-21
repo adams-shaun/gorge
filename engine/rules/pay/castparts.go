@@ -308,6 +308,10 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 	if !EnergyPayable(e.Game(), p, cost) {
 		return false
 	}
+	// Mill<N> parts: CR 701.17b, the library must hold the summed N.
+	if !MillCostPayable(e.Game(), p, cost.Mill) {
+		return false
+	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
 	// Forge's payCostFromSource) must be in play; otherwise the payer controls
 	// at least N distinct matching permanents, reserved against the Sac and
