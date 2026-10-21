@@ -105,6 +105,11 @@ func rememberedStampsFrom(g *state.Game, ids []state.ObjID) []state.TargetStamp 
 //
 //  2. "Whenever your Ring-bearer attacks, draw a card, then discard a card."
 //     The discard is TgtChoose (the discarding player's own choice).
+//  3. "Whenever your Ring-bearer becomes blocked by a creature, that
+//     creature's controller sacrifices it at end of combat." The body is the
+//     engine-only RingBlockerSacrifice primitive (engine/effects/ring.go),
+//     which registers one incarnation-tracked end-of-combat sacrifice per
+//     remembered blocker (the RingEmblemPush event's IDs).
 //  4. "Whenever your Ring-bearer deals combat damage to a player, each
 //     opponent loses 3 life."
 func ringEmblemAbility(level int) *cards.SA {
@@ -116,6 +121,8 @@ func ringEmblemAbility(level int) *cards.SA {
 		return &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
 			"Defined": "You", "NumCards": "1",
 		}, Sub: discard}
+	case 3:
+		return &cards.SA{Kind: "DB", API: "RingBlockerSacrifice"}
 	case 4:
 		return &cards.SA{Kind: "DB", API: "LoseLife", Params: map[string]string{
 			"Defined": "Opponent", "LifeAmount": "3",
