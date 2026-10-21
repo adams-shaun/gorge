@@ -356,6 +356,11 @@ func (e *Engine) resolveTop() {
 			// ordinary printed trigger.
 			EffectFrame: e.triggerEffectFrames[id]})
 		ctx.Grantor = o.GrantedBy
+		// CR 400.7 / 400.7e: a remembered object that changed zones between
+		// the trigger firing and the start of resolution is a new object the
+		// trigger's referents cannot find. Computed once here, so moves the
+		// resolution itself makes are never listed (CR 400.7j).
+		ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
 		// CR 608.2h: a source that left the battlefield (sacrificed as the
 		// cost) answers "the chosen type" from its last-known choices.
 		if snap, ok := e.sourceCharLKI[id]; ok && o.Source != 0 {
