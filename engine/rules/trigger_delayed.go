@@ -147,7 +147,7 @@ func (e *Engine) delayedRegistrationLive(dt *state.DelayedTrigger) bool {
 func (e *Engine) turnStartsFor(p state.PlayerID) []int32 {
 	if len(e.turnStartTurns) != len(e.G.Players) || e.turnStartEpoch != len(e.L.Events) {
 		starts := make([][]int32, len(e.G.Players))
-		for _, ev := range e.L.Events {
+		for _, ev := range e.L.Events[e.turnLedgerBase:] {
 			if ev.Kind == events.TurnChange && int(ev.Player) < len(starts) {
 				starts[ev.Player] = append(starts[ev.Player], ev.Amount)
 			}

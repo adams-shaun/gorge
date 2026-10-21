@@ -102,8 +102,9 @@ func (b Board) abilityScore(o decision.Option, me state.PlayerID) (score int32, 
 		return 0, false // A6: a skipped turn costs more than the ability gains.
 	}
 	if o.Loyalty != nil && o.Loyalty.Restart {
-		// A7: a game restart ends the engine's game as a draw (Karn
-		// Liberated's ultimate); the old label-tie rule never took it either.
+		// A7: a game restart starts a new game from scratch (CR 727, Karn
+		// Liberated's ultimate), discarding the position the policy has been
+		// playing; the old label-tie rule never took it either.
 		return 0, false
 	}
 	if o.Loyalty != nil {
