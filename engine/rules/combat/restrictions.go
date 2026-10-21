@@ -209,6 +209,20 @@ func DeclaresAlone(b Board, id state.ObjID, attack bool, declared []state.ObjID)
 	return CantBlockAloneKeyword(b, id)
 }
 
+// RingBearerOutpowers is the evasion half of the Ring emblem's first ability
+// (CR 701.54c: "Your Ring-bearer is legendary and can't be blocked by
+// creatures with greater power"): attacker is its controller's Ring-bearer
+// (CR 701.54e -- the designation exists only while the player has the
+// emblem) and blocker's current power is greater than the attacker's.
+func RingBearerOutpowers(b Board, blocker, attacker state.ObjID) bool {
+	g := b.Game()
+	o := g.Obj(attacker)
+	if o == nil || o.Zone != state.ZBattlefield || !g.IsRingBearer(o.Controller, attacker) {
+		return false
+	}
+	return b.Power(blocker) > b.Power(attacker)
+}
+
 // BlockRestricted reports whether blocker is forbidden from blocking
 // attacker (CantBlock, CantBlockBy, or a granted can't-block keyword).
 // Called from CanBlock, which rules' askBlockers and handleBlockers
@@ -218,6 +232,9 @@ func BlockRestricted(b Board, blocker, attacker state.ObjID) bool {
 	// layer-6 grant, not a static. Read it here so the same restriction
 	// governs offered blocks and validation, including Concussive Bolt.
 	if HasCantBlockKeyword(b, blocker) {
+		return true
+	}
+	if RingBearerOutpowers(b, blocker, attacker) {
 		return true
 	}
 	// The Effect-registered CantBlockBy grants walk FIRST, beside the
