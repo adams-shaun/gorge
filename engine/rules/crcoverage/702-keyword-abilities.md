@@ -121,7 +121,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.72a-c | not-impl | - | - | LOUD (12) |
 | 702.73a | follows | `engine/effects/filter_type.go#IntrinsicAllCreatureTypes` `engine/effects/filter_type.go#changelingType` | `TestCloneChangelingCDAAfterEarlierStrip` |  |
 | 702.74a | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/altcast.go#Engine.altCostEnter` | `TestEvokeCastPaysTheEvokeCostAndSacrifices` |  |
-| 702.75a,b | follows | `engine/cards/kw_hideaway.go#kwHideaway` | `TestRiotAndHideawayUseRealCorpusCards` |  |
+| 702.75a,b | partial | `engine/cards/kw_hideaway.go#kwHideaway` `engine/effects/cardflow.go#effHideaway` `engine/effects/cardflow.go#hideawayPicked` | `TestRiotAndHideawayUseRealCorpusCards` `TestHideawayExileIsSeatOnesSecretNotSeatZeros` `TestHideawayNoHostExileIsTheControllersSecret` | the exile is the controller's secret; the rest is ordered by an ask where the CR says random order (cr-g63) |
 | 702.76a | not-impl | - | - | LOUD (10); SILENT granted (Hunting Velociraptor) |
 | 702.77a,b | not-impl | - | - | LOUD (11) |
 | 702.78a,b | follows | `engine/cards/kw_conspire.go#kwConspire` `engine/rules/cast_asks.go#Engine.conspireAsk` | `TestConspirePrintedOfferPayAndCopy` |  |

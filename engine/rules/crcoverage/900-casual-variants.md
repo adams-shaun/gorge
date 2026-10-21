@@ -42,7 +42,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 903.7 | follows | `server/host/match.go#Registry.newMatchWith` `engine/rules/genesis.go#newEngineShell` | `TestCommanderTableDefaultsLife40` | 40 life |
 | 903.8 | follows | `engine/rules/mana.go#Engine.commanderTaxFor` `engine/rules/legal_walk_alt.go#legalWalk.commandZoneWalk` | `TestCommanderCastTaxesEveryCastBeyondTheFirst` `TestCommanderCastFromHandIsNeitherTaxedNorCounted` | - |
 | 903.9 | partial | `engine/rules/replacement_cmdzone.go#Engine.commanderZoneReplacementApplies` | `TestCommanderZone` | see 903.9a/b |
-| 903.9a | deviates | `engine/rules/replacement.go#Engine.applyReplacementsDispatch` `engine/rules/replacement_cmdzone.go#Engine.commanderZoneReplacementApplies` | `TestDestroyedCommanderOffersTheOwnerTheChoiceAndAcceptSendsItToTheCommandZone` | HIGH: replacement not SBA; dies triggers lost; cr-g01a |
+| 903.9a | follows | `engine/rules/replacement_cmdzone.go#Engine.commanderZoneSBA` `engine/rules/replacement_cmdzone.go#Engine.collectCommanderArrivals` | `TestCR903_9aDyingCommanderFiresDiesTriggersBeforeTheCommandZoneChoice` `TestCR903_9aCounteredCommanderIsAskedAtTheNextStateBasedCheck` `TestCR903_9aDeclinedCommanderMeetsDauthiVoidwalker` | a state-based action: the commander really dies first, then its owner may move it |
 | 903.9b | partial | `engine/rules/replacement_cmdzone.go#Engine.handleCmdZone` `engine/rules/emit.go#Engine.emit` | `TestOwnersCommanderInGraveyardReturnedToHandAsks` `TestCommanderReturnedToHandDeclinedKeepsTheHand` | always first; decline skips other replacements; cr-g01b cr-g50 |
 | 903.9c | unknown | - | - | not located |
 | 903.10 | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | - |

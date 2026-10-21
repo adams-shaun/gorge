@@ -30,7 +30,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 400.11a-c | follows | `engine/state/ids.go#ZSideboard` `engine/effects/zone.go#ParseZone` | `TestChangeZoneWishFindsSideboard` `TestBurningWishEmptySideboardKeepsSelfExile` |  |
 | 400.12 | follows | `engine/effects/zone_changeall.go#effChangeZoneAll` | `TestChangeZoneAllShufflesDestinationLibraries` |  |
 | 401.1 | follows | `engine/rules/genesis.go#New` | - |  |
-| 401.2 | follows | `engine/state/ids.go#Zone.Hidden` `engine/view/view.go#projector.unorderedLibrary` | - |  |
+| 401.2 | partial | `engine/view/view.go#projector.unorderedLibrary` `engine/effects/dig.go#digSecretTo` `engine/view/redact.go#RedactEvent` | `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` `TestDigOpponentLibraryMovesAreTheChoosersSecret` | a Secret LibraryOrder still gives the owner the whole library order (cr-g61) |
 | 401.3 | follows | `engine/view/view.go#PlayerView.LibrarySize` | - |  |
 | 401.4 | partial | `engine/effects/zone_library.go#placeTargetedLibraryObjects` | - | targeted path places in target order without asking (Plow Under) |
 | 401.5 | deviates | `engine/rules/layers.go#Engine.staticEffectsWalk` `engine/rules/layers_static.go#Engine.MayLookAtLibraryTop` | - | MayLookAt$ Player shown to owner only; cr-g28-maylookat-player-reveal |
@@ -63,7 +63,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 405.6h | follows | `engine/events/apply_player.go#foldPlayerLost` | - |  |
 | 406.1 | follows | `engine/state/ids.go#ZExile` `engine/events/apply_zone.go#move` | - |  |
 | 406.2 | definition | - | - | defines to exile / exiled card |
-| 406.3 | follows | `engine/state/object.go#Object.FaceDown` `engine/effects/zone_change.go#applyFaceDownMarker` | `TestLibrarySearchFaceDownExileIsHiddenFromOpponents` |  |
+| 406.3 | partial | `engine/state/object.go#Object.FaceDown` `engine/effects/zone_change.go#applyFaceDownMarker` `engine/effects/dig.go#digSecretTo` | `TestLibrarySearchFaceDownExileIsHiddenFromOpponents` `TestGontiFaceDownExileIsHiddenFromTheLibraryOwner` `TestDigBlindFaceDownExileStaysTheOwnersSecret` | a ChangeZone face-down exile from a library (Praetor's Grasp) is not Secret, so every seat sees the name (cr-g62) |
 | 406.3a-b | follows | `engine/effects/zone_change.go#applyFaceDownMarker` | `TestIxhelFaceDownExileIsVisibleOnlyToTheDigController` |  |
 | 406.4 | unknown | - | - | not reached |
 | 406.5 | follows | `engine/state/object.go#Object.ExileReturn` | - |  |
