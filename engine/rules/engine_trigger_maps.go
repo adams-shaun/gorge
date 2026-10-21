@@ -80,9 +80,10 @@ type engineTriggerMaps struct {
 	// (effects.Ctx.Exiled/Revealed) so the `Exiled$<Property>` /
 	// `Revealed$<Property>` count refs and `Defined$ Exiled`/`Revealed` read
 	// the exact paid cards, and removed with the stack object. A stack COPY
-	// inherits neither map -- referenced here is the deliberate reason the
-	// StackCopy branch does not carry them, unlike fuseTargets: a copy was
-	// never cast and paid no cost (CR 707.10).
+	// inherits every cost-paid record (this pair, sacrificedLKI and
+	// castCounterPut) from its original in emit's StackCopy branch: a copy
+	// pays no cost, but an effect of the copy that refers to the objects
+	// used to pay its costs uses the original's (CR 707.10).
 	castExiled   map[state.ObjID][]state.ObjID `clone:"deep"`
 	castRevealed map[state.ObjID][]state.ObjID `clone:"deep"`
 	// castCounterPut is the same discipline for the creatures a Blight<N>

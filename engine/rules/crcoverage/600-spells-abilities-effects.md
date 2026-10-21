@@ -56,7 +56,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.2 | partial | `engine/rules/trigger_match.go#maxTriggerFires` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | g silent 256-fires-per-match cap per trigger line |
 | 603.2a | follows | `engine/rules/trigger_match.go#Engine.triggerMatchesWithSVars` | - | no cast/activate gate on triggers |
 | 603.2b | follows | `engine/rules/trigger_match.go#Engine.checkTriggers` | - | beginning-of-step triggers |
-| 603.2c | follows | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | once per occurrence |
+| 603.2c | follows | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestCR603_2cRaiseThePastIsOneEntryEvent` | once per occurrence |
 | 603.2d | follows | `engine/rules/statics_echo.go#Engine.panharmoniconEchoes` | - | d no Panharmonicon-style cards |
 | 603.2e | follows | `engine/rules/trigmatch/tap.go#tapsMatches` `engine/effects/combatfx.go#effTap` | - | d not reached |
 | 603.2f | unknown | - | - | g no hidden-object gate found |
@@ -70,7 +70,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.4 | follows | `engine/rules/trigger_match.go#Engine.triggerMatchesWithSVars` `engine/rules/stack.go#Engine.resolveTop` | `TestCR603InterveningIfCheckedAtTriggerTime` `TestCR603InterveningIfRecheckedAtResolution` | checked at trigger and resolution |
 | 603.5 | follows | `engine/rules/trigger_queue.go#Engine.askOptionalAtResolution` | `TestCR603OptionalEffectWaitsForResolution` | may asked at resolution |
 | 603.6 | follows | `engine/rules/stack.go#Engine.resolveTop` `engine/rules/stack.go#Engine.targetBecameNewObject` | - | object found in new zone only |
-| 603.6a | deviates | `engine/rules/emit.go#Engine.emit` `engine/rules/trigger_match.go#Engine.checkTriggers` | - | simultaneous entrants enter one by one (cr-g24) |
+| 603.6a | partial | `engine/rules/entry_batch.go#Engine.holdEntryCheck` `engine/rules/entry_batch.go#Engine.flushHeldEntries` `engine/rules/trigger_match.go#Engine.closeZoneBatch` `engine/effects/zone_changeall.go#effChangeZoneAll` `engine/effects/zone_change.go#effChangeZone` | `TestCR603_6aRaiseThePastEntrantsSeeEachOther` `TestCR603_6aLivingDeathWardensSeeEachOther` `TestCR603_6aCopyTokenOwnEntryTriggerStillFires` | a zone batch's entries are checked after its last member enters (ChangeZoneAll and multi-object ChangeZone to the battlefield, Token, CopyPermanent, Dig, RepeatEach ChangeZoneTable); library-search fetches (effSearchLibrary, effHiddenPick) still enter one by one |
 | 603.6b | follows | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | untested for lose-all-abilities ETB |
 | 603.6c | follows | `engine/rules/trigger_kinds.go#Engine.faceLookBackZones` `engine/rules/trigger_snapshot_pool.go#Engine.lookBackObserver` | `TestCR704EveryDyingBloodArtistWitnessesWholeBatch` `TestCR704SimultaneousDeathsPreserveBloodArtistWitness` | LTB look-back for ChangesZone Origin Battlefield |
 | 603.6d | follows | `engine/rules/cast_etbchoice.go#Engine.entryETBChoice` `engine/effects/combatfx.go#effTap` | - | as-enters is static |

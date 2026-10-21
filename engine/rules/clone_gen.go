@@ -545,6 +545,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			}
 		}
 	}
+	c.entryHeld = cloneHeldEntryChecks(e.entryHeld)
 	c.millBatchOpen = e.millBatchOpen
 	c.millBatchDepth = e.millBatchDepth
 	if e.millBatchIdx != nil {
@@ -625,15 +626,15 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.triggerTurnResolved[k0] = v0
 		}
 	}
+}
+
+func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.triggerTurnDice != nil {
 		c.triggerTurnDice = make(map[triggerKey]turnFires, len(e.triggerTurnDice))
 		for k0, v0 := range e.triggerTurnDice {
 			c.triggerTurnDice[k0] = v0
 		}
 	}
-}
-
-func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.triggerTurnDiceTurn = e.triggerTurnDiceTurn
 }
 
