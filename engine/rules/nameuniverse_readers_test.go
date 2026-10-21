@@ -36,7 +36,7 @@ func TestNameUniverseReadersAreKnown(t *testing.T) {
 		"engine/rules/legal_walk_skip.go",  // the mana-walk skip mirrors the CR 305.6 gate
 		"engine/rules/mana_activation.go",  // CR 305.6 gate: len(landTypeWords) > 0
 		"engine/rules/oracle_run.go",       // sets Config.NameUniverse to the scenario-scoped universe; reads nothing
-		"engine/rules/restart.go",          // resetForRestart keeps landTypeWords across a CR 727 restart
+		"engine/rules/restart.go",          // CR 727 restart carries landTypeWords into the new game
 		"engine/state/game.go",             // Game fields
 	}
 	re := regexp.MustCompile(`\bNameUniverse\b|\blandTypeWords\b|NameUniverseNames`)
