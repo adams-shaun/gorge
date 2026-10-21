@@ -38,7 +38,8 @@ func TestManaAbilityTargetGateMovesTheTargetingCarriers(t *testing.T) {
 					continue
 				}
 				if !requiresTarget(a) {
-					if !IsManaAbilitySA(a) {
+					// A library-moving ability is the other CR 605.1a gate (TestCR605_1aManaAbilityLibraryGateMovesTheLibraryCarriers).
+					if !IsManaAbilitySA(a) && !movesLibraryCard(a) {
 						t.Errorf("%s: an untargeted %s ability no longer classifies: %s", name, a.API, a.Line)
 					}
 					continue

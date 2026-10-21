@@ -52,6 +52,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		return ev
 	}
 	if ev.Kind == events.EndTurn {
+		// CR 724.1a: the triggered abilities that triggered before the
+		// end-the-turn process began and are still waiting to be put onto
+		// the stack cease to exist. Dropped HERE, before the fold exiles the
+		// stack (724.1b), so an ability that triggers during the process
+		// survives into the cleanup step (724.1f; finishEndTurn).
+		e.pendingTriggers, e.orderedTriggers = nil, 0
 		e.endTurnRequested = true
 	}
 	// Task 15 (CR 702.16d/e): prevent protected Damage and Attach events before
@@ -740,6 +746,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		check := triggerCheckEvent(stored, tokenMintWant)
 		if !deferAttackTriggerCheck(stored.Kind, len(e.declaredAttackers) > 0) {
 			e.checkTriggers(&check, lki, lkiPower, lkiToughness, lkiPTValid)
+		}
+		if stored.Kind == events.EndTurn {
+			e.checkEndTurnExileTriggers(&stored)
 		}
 		// A pushed spell proposal's own target choice (CR 601.2c): remember
 		// which queue entries it produced so abortCast can drop them if the
