@@ -35,6 +35,10 @@ type PumpGrant struct {
 	// leave-exile helpers trim them).
 	Duration         string
 	LeaveBattlefield string
+	// SwitchPT is set when KW$ carries the CR 613.4d switch sentence
+	// (cards.IsHiddenSwitchPTKeyword); that entry is removed from KW, and
+	// registerPumpEffects registers a layer-7 SubSwitch effect instead.
+	SwitchPT bool
 }
 
 // PumpParams is one Pump ability's parameters, compiled once.
@@ -160,6 +164,10 @@ func compilePumpGrant(sa *cards.SA) PumpGrant {
 	var g PumpGrant
 	g.KWText = sa.ParamStr(cards.PKKW)
 	g.KW = slices.Clip(cards.SplitKeywordList(g.KWText))
+	if i := slices.IndexFunc(g.KW, cards.IsHiddenSwitchPTKeyword); i >= 0 {
+		g.SwitchPT = true
+		g.KW = slices.Clip(slices.DeleteFunc(slices.Clone(g.KW), cards.IsHiddenSwitchPTKeyword))
+	}
 	g.Duration = sa.ParamStr(cards.PKDuration)
 	g.LeaveBattlefield = sa.ParamStr(cards.PKLeaveBattlefield)
 	return g
