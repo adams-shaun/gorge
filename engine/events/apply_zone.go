@@ -469,6 +469,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	enteredFrom := o.Zone
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
+	o.SplitFrom = 0
 	// Forge's drawnThisTurn survives only the move onto the stack (a cast of
 	// the drawn card); any other move makes the card a new object that was
 	// not drawn. The Draw fold re-stamps it after this Move.
@@ -568,6 +569,9 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		for _, mc := range merged {
 			if mc.Obj != 0 {
 				Move(g, mc.Obj, state.ZCeased, to)
+				if m := g.Obj(mc.Obj); m != nil {
+					m.SplitFrom = id
+				}
 			}
 		}
 	}

@@ -1081,3 +1081,44 @@ func (g *Game) NextAlive(p PlayerID) PlayerID {
 	}
 	return p
 }
+
+// CommanderOf returns the commander card object that id stands for, or 0:
+// id itself when it is in some seat's Commanders list; otherwise, for a
+// battlefield permanent, its meld partner (CR 903.3b: the melded permanent
+// is that player's commander) or the first of its merged under-cards, in
+// pile order (CR 903.3c: a merged permanent with a commander component is
+// that player's commander). Walked by index over seats and lists -- never a
+// map -- so the answer is deterministic.
+func (g *Game) CommanderOf(id ObjID) ObjID {
+	if id == 0 {
+		return 0
+	}
+	if g.isCommanderID(id) {
+		return id
+	}
+	o := g.Obj(id)
+	if o == nil || o.Zone != ZBattlefield {
+		return 0
+	}
+	if o.MeldedWith != 0 && g.isCommanderID(o.MeldedWith) {
+		return o.MeldedWith
+	}
+	for i := range o.MergedCards {
+		if c := o.MergedCards[i].Obj; c != 0 && g.isCommanderID(c) {
+			return c
+		}
+	}
+	return 0
+}
+
+// isCommanderID reports whether id is in some seat's Commanders list.
+func (g *Game) isCommanderID(id ObjID) bool {
+	for p := range g.Players {
+		for _, c := range g.Players[p].Commanders {
+			if c == id {
+				return true
+			}
+		}
+	}
+	return false
+}

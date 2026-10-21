@@ -61,6 +61,7 @@ func unmeld(g *state.Game, o *state.Object, from, to state.Zone) {
 		return
 	}
 	p.EnteredFrom = from
+	p.SplitFrom = o.ID
 	for i := len(g.Entered) - 1; i >= 0; i-- {
 		if g.Entered[i].Obj == partnerID {
 			g.Entered[i].From = from

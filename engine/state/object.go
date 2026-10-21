@@ -1693,6 +1693,15 @@ type Object struct {
 	// melded. See state/meld.go.
 	MeldedWith ObjID
 
+	// SplitFrom names the battlefield permanent this card left the
+	// battlefield INSIDE of -- a melded permanent's partner card (CR 712.4)
+	// or a mutated pile's under-card (CR 702.140e) -- set by events.Move when
+	// that permanent's departure relocates it, so the card's arrival is
+	// attributable to the permanent's MoveZone (rules' CR 903.9a scan). Only
+	// events.Move writes it, and every move of this card clears it first. 0
+	// means the card's last move was its own.
+	SplitFrom ObjID
+
 	IsMyriad bool
 
 	// CopyMayChooseTarget is CR 707.10c's new-target permission for ONE copy
@@ -1779,7 +1788,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [14]byte
+	_ [6]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast

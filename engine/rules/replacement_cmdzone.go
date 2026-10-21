@@ -160,12 +160,34 @@ func (e *Engine) collectCommanderArrivals() {
 		if ev.Kind != events.MoveZone || (ev.To != state.ZGraveyard && ev.To != state.ZExile) {
 			continue
 		}
-		if slices.Contains(e.cmdZoneDue, ev.Obj) || !e.isCommander(ev.Obj) {
+		if !e.isCommander(ev.Obj) {
+			// CR 903.3b-c: a commander card that left the battlefield inside
+			// a melded or mutated permanent moved with that permanent's
+			// MoveZone (events.Move's SplitFrom stamp), not with one of its own.
+			if ev.From == state.ZBattlefield {
+				e.collectSplitCommanders(ev.Obj, ev.To)
+			}
+			continue
+		}
+		if slices.Contains(e.cmdZoneDue, ev.Obj) {
 			continue
 		}
 		e.cmdZoneDue = append(e.cmdZoneDue, ev.Obj)
 	}
 	e.cmdZoneScan = n
+}
+
+// collectSplitCommanders queues, in seat then Commanders order, every
+// commander card now in zone to whose last move was as a component of the
+// departed permanent from (Object.SplitFrom).
+func (e *Engine) collectSplitCommanders(from state.ObjID, to state.Zone) {
+	for p := range e.G.Players {
+		for _, c := range e.G.Players[p].Commanders {
+			if o := e.G.Obj(c); o != nil && o.SplitFrom == from && o.Zone == to && !slices.Contains(e.cmdZoneDue, c) {
+				e.cmdZoneDue = append(e.cmdZoneDue, c)
+			}
+		}
+	}
 }
 
 // commanderZoneSBA is CR 903.9a / 704.6d. It walks cmdZoneDue in arrival
