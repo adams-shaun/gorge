@@ -361,6 +361,16 @@ func (e *Engine) walkClassesCatchUp() {
 	e.staticZonesCatchUp()
 }
 
+// walkClassZone reports the zone the object's cached class was recorded in.
+func (e *Engine) walkClassZone(id state.ObjID) (state.Zone, bool) {
+	e.ownWalkClasses()
+	i := int(id) - 1
+	if i < 0 || i >= len(e.walkObjCls) || !e.walkObjCls[i].set {
+		return 0, false
+	}
+	return e.walkObjCls[i].fp.zone, true
+}
+
 // walkClassTouch refreshes the cached class of o, an object an event named
 // (staticZoneTouch's per-object half). It reports whether o's static-hot
 // classification is provably unchanged -- the class was cached and its
