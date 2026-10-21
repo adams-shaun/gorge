@@ -114,13 +114,13 @@ func changeZoneAllCap(h Host, c *Ctx, cza *ChangeZoneAllParams) int32 {
 // on-the-battlefield object reading. For a battlefield-excluding sweep every
 // scan is non-battlefield, which is exactly the whole-origin rewrite the
 // pre-per-zone matcher applied.
-func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet, preMatched map[state.ObjID]bool) func(state.Zone, state.ObjID) bool {
+func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet map[state.ObjID]bool, preMatched *map[state.ObjID]bool) func(state.Zone, state.ObjID) bool {
 	return func(zone state.Zone, id state.ObjID) bool {
 		switch {
 		case triggeredSet != nil:
 			return triggeredSet[id]
-		case preMatched != nil:
-			return preMatched[id]
+		case preMatched != nil && *preMatched != nil:
+			return (*preMatched)[id]
 		}
 		s := spec
 		if zone != state.ZBattlefield {
@@ -232,10 +232,12 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	players, scoped := changeZoneAllPlayers(h, c, sa, cza)
 	var preMatched map[state.ObjID]bool
 	// The one membership test, defined before the ForgetOtherRemembered$
-	// snapshot so the snapshot's own scan shares it: with preMatched still
-	// nil while it is being built, the matcher falls through to the zone
-	// filter, and every later call reads the snapshot.
-	matches := changeZoneAllMatcher(g, c, spec, triggeredSet, preMatched)
+	// snapshot so the snapshot's own scan shares it: preMatched is captured
+	// by POINTER (a nil value captured by copy would stay nil for the
+	// closure however the caller assigns it later), so while the snapshot is
+	// being built the matcher falls through to the zone filter, and every
+	// later call reads the published snapshot.
+	matches := changeZoneAllMatcher(g, c, spec, triggeredSet, &preMatched)
 	// ForgetOtherRemembered$ True (The Mimeoplasm's MimeoExile, 11 corpus
 	// ChangeZoneAll carriers): Forge forgets every previously remembered
 	// object before this effect resolves, so a setup that remembered its own
@@ -246,16 +248,20 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// the clear and the sweep below matches against the snapshot -- matching
 	// after the clear would sweep nothing.
 	if cza.Riders.ForgetOtherRemembered {
-		preMatched = make(map[state.ObjID]bool)
+		// The snapshot is built into a local and only then published: the
+		// matcher itself reads preMatched, so an empty map published before
+		// the snapshot would shadow the zone filter with all-false.
+		pre := make(map[state.ObjID]bool)
 		for _, z := range from {
 			for _, p := range players {
 				for _, id := range g.Zone(z, p) {
 					if matches(z, id) {
-						preMatched[id] = true
+						pre[id] = true
 					}
 				}
 			}
 		}
+		preMatched = pre
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
