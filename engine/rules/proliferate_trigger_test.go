@@ -124,62 +124,6 @@ func TestProliferateTriggerFiresOncePerAction(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestProliferateTriggerOncePerActionAtAmount2 pins the amount axis of the
-// same granularity: Contagion Engine's Amount$ 2 puts +2 of each kind in one
-// batch as ONE proliferate action -- one marker, one trigger, one 2-point
-// swing (a per-proliferation reading would swing 4).
-func TestProliferateTriggerOncePerActionAtAmount2(t *testing.T) {
-	t.Parallel()
-	reg := testutil.CorpusRegistry(t)
-	e, cfg := proliferateEngine(t, reg, "Scheming Aspirant", "Contagion Engine", "Grizzly Bears")
-	aspirant := searchMoveByName(t, e, "Scheming Aspirant", state.ZBattlefield)
-	aspirantWithProliferateTrigger(t, e, aspirant)
-	engineID := searchMoveByName(t, e, "Contagion Engine", state.ZBattlefield)
-	putNamedOnBattlefield(t, e, "Grizzly Bears")
-	carrier := putCountersOn(t, e, 0, "Grizzly Bears", "P1P1", 1)
-	e.priorityRound()
-	if got := e.G.Obj(carrier).Counter("P1P1"); got != 1 {
-		t.Fatalf("precondition: carrier P1P1 = %d, want 1", got)
-	}
-	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
-
-	addMana(t, e, 0, "CCCCCC")
-	opt, ok := findAbilityOption(e, engineID, 0)
-	if !ok {
-		t.Fatalf("Contagion Engine proliferate ability not offered: %+v", e.Pending().Options)
-	}
-	submitChoices(t, e, opt.Index)
-	d := passUntilNonPriority(t, e, 60)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "proliferate" {
-		t.Fatalf("decision = %+v, want the proliferate ask", d)
-	}
-	carrierOpt := -1
-	for i, o := range d.Options {
-		if o.Obj == carrier {
-			carrierOpt = i
-		}
-	}
-	if carrierOpt < 0 {
-		t.Fatalf("carrier not offered: %+v", d.Options)
-	}
-	answerProliferate(t, e, d, carrierOpt)
-
-	// The handler ran at Amount$ 2 (+2, not +1 or +4).
-	if got := e.G.Obj(carrier).Counter("P1P1"); got != 3 {
-		t.Fatalf("carrier P1P1 = %d, want 3 (+2)", got)
-	}
-	if n := countProliferateMarkers(e); n != 1 {
-		t.Fatalf("logged %d Proliferate markers, want 1 (one trigger per ACTION, not per amount step)", n)
-	}
-	if got := e.G.Players[0].Life; got != life0+2 {
-		t.Fatalf("seat 0 life = %d, want %d (one trigger for the Amount$ 2 action)", got, life0+2)
-	}
-	if got := e.G.Players[1].Life; got != life1-2 {
-		t.Fatalf("seat 1 life = %d, want %d (one trigger for the Amount$ 2 action)", got, life1-2)
-	}
-	replayCheck(t, e, cfg)
-}
-
 // TestProliferateTriggerFiresWithNoEligibleRecipient: a proliferate with
 // nothing carrying a counter still HAPPENED (the action completed, silently,
 // per the OnlyEmptyAnswer discipline), so the marker is recorded and the

@@ -75,11 +75,13 @@ func TestProliferateAmountAndRememberPut(t *testing.T) {
 		e.G.Obj(carrier).AddCounter("P1P1", 1)
 		spell := kr2Put(t, e, 0, kr2Sorcery(t, "Spread", "A:SP$ Proliferate | Amount$ 2"), state.ZHand, false)
 		d := kr2Want(t, kr2Cast(t, e, 0, spell), "proliferate")
+		// CR 701.34a: two proliferate actions, two asks.
+		d = kr2Want(t, kr2Answer(t, e, d, kr2ObjIdx(t, d, carrier)), "proliferate")
 		if d = kr2Answer(t, e, d, kr2ObjIdx(t, d, carrier)); d != nil {
 			t.Fatalf("unexpected ask: %+v", d)
 		}
 		if got := e.G.Obj(carrier).Counter("P1P1"); got != 3 {
-			t.Fatalf("carrier P1P1 = %d, want 3 (+2)", got)
+			t.Fatalf("carrier P1P1 = %d, want 3 (+1 twice)", got)
 		}
 	})
 	t.Run("RememberPut$", func(t *testing.T) {
