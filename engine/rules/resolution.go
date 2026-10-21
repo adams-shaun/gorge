@@ -98,7 +98,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		chainRoot = o.Ability
 		e.recheckCastSubTargets(rp.obj, o.Ability, o.Controller, o.Source)
 	} else if f := o.Face(); f != nil {
-		chainRoot = f.SpellAbility()
+		chainRoot = stackSpellSA(o, f)
 		e.recheckCastSubTargets(rp.obj, chainRoot, o.Controller, rp.obj)
 	}
 	// The list resolveTop resolved this object against (the overload census,
