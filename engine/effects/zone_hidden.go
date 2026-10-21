@@ -72,6 +72,13 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 	if budget < 0 {
 		budget = 0
 	}
+	// CR 508.4's chooser is the entering permanent's controller. `players` are
+	// the hidden zones' owners, which is the owner of every card in the
+	// ordinary case; a card OWNED by another player but sitting in this hidden
+	// zone would enter under its real owner (Move's default), so the ask here
+	// would name the zone owner instead. No corpus carrier exercises that
+	// shape (see the cr-g11b report's Issues); the pick's actual owner is only
+	// known after the hidden pick, which is asked below.
 	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
 		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, players, cz.Riders.GainControl))
 	// ChooseFromDefined$ narrows the offered pool to the objects a defined

@@ -216,8 +216,38 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// The Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
 	// and are not touched here.
 	randomOrder := cza.RandomOrder
+	// The Attacking$ rider's CR 508.4 chooser is the entering permanent's
+	// controller. Collect the matched candidates' owners with the sweep's own
+	// predicate so a single-owner sweep asks that owner; a mixed-owner sweep
+	// falls back to the resolving controller (uniformEnteringController).
+	var sweepOwners []state.PlayerID
+	for _, z := range from {
+		for qi, p := range players {
+			// The stack is shared; the sweep below snapshots it once, under
+			// the first scoped player.
+			if z == state.ZStack && qi > 0 {
+				continue
+			}
+			for _, id := range g.Zone(z, p) {
+				matched := false
+				switch {
+				case triggeredSet != nil:
+					matched = triggeredSet[id]
+				case preMatched != nil:
+					matched = preMatched[id]
+				default:
+					matched = MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller))
+				}
+				if matched {
+					if o := g.Obj(id); o != nil {
+						sweepOwners = append(sweepOwners, o.Owner)
+					}
+				}
+			}
+		}
+	}
 	rider := classifyAttackingEntryText(h, c, cza.Riders.Attacking, to,
-		enteringControllerForAttack(h, c, cza.Riders.Attacking, to, nil, cza.Riders.GainControl))
+		enteringControllerForAttack(h, c, cza.Riders.Attacking, to, sweepOwners, cza.Riders.GainControl))
 	// A sweep off the battlefield is one simultaneous departure (CR 603.10a):
 	// every member's leaves-the-battlefield triggers look back at the same
 	// pre-sweep board. The id list is empty -- the sweep emits as it scans --

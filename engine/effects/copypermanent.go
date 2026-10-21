@@ -515,6 +515,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// battle slot), so a captured DefendingBattle is zeroed rather than
 	// offered and discarded.
 	attacking := false
+	var selectorDefender state.PlayerID
 	var attackOwners []tokenAttackAssignment
 	if attack := cp.TokenAttacking; attack != "" {
 		if strings.EqualFold(attack, "True") {
@@ -535,7 +536,10 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				attackOwners = append(attackOwners, a)
 			}
 		} else {
-			attacking, _, _ = tokenAttackingRider(h, c, c.Controller, attack, "copy")
+			// A selector names its own defender (brief §7): keep it for the
+			// CopyToken fold. The copy has no battle slot, so the third
+			// return is always 0 here.
+			attacking, selectorDefender, _ = tokenAttackingRider(h, c, c.Controller, attack, "copy")
 		}
 	}
 	remember := cp.RememberTokens
@@ -550,7 +554,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// selector arm is the same defender for every mint.
 	copyAttack := func(destOwner state.PlayerID) (bool, []state.ObjID) {
 		if attacking {
-			return true, nil
+			return true, []state.ObjID{state.ObjID(selectorDefender)}
 		}
 		for _, a := range attackOwners {
 			if a.Owner != destOwner {

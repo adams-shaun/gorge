@@ -2,6 +2,7 @@ package effects
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -109,7 +110,7 @@ func resolveEnteringDefender(h Host, c *Ctx, controller state.PlayerID, objects 
 // guessing per object.
 func uniformEnteringController(h Host, c *Ctx, owners []state.PlayerID, gain ParamText) state.PlayerID {
 	if gain.Present {
-		if p, ok, _ := gainControlOf(h, c, gain); ok {
+		if p, ok, _, _ := resolveGainControl(h, c, gain); ok {
 			return p
 		}
 	}
@@ -125,13 +126,14 @@ func uniformEnteringController(h Host, c *Ctx, owners []state.PlayerID, gain Par
 }
 
 // enteringControllerForAttack is uniformEnteringController gated on the
-// call actually carrying an Attacking$ rider to a battlefield entry. Without
-// the gate the owner/GainControl$ resolution (which can emit its own
-// diagnostic for an unread selector) would run for every ChangeZone call,
-// including the overwhelming majority that never put anything onto the
-// battlefield attacking.
+// call actually carrying an unnamed ("True") Attacking$ rider to a
+// battlefield entry. A selector names its own defender, so the answer is
+// unused and the owner/GainControl$ resolution (which can emit its own
+// diagnostic for an unread selector) must not run. Without the gate it would
+// also run for every ChangeZone call, including the overwhelming majority
+// that never put anything onto the battlefield attacking.
 func enteringControllerForAttack(h Host, c *Ctx, attack string, to state.Zone, owners []state.PlayerID, gain ParamText) state.PlayerID {
-	if to != state.ZBattlefield || attack == "" {
+	if to != state.ZBattlefield || !strings.EqualFold(attack, "True") {
 		return c.Controller
 	}
 	return uniformEnteringController(h, c, owners, gain)

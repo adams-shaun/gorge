@@ -1393,30 +1393,42 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, id
 // rather than silently keeping the owner -- the same fail-closed convention
 // every unread parameter here follows.
 func gainControlOf(h Host, c *Ctx, gc ParamText) (state.PlayerID, bool, bool) {
+	p, ok, present, known := resolveGainControl(h, c, gc)
+	if present && !known {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unrecognised ChangeZone GainControl$ " + gc.Text})
+	}
+	return p, ok, present
+}
+
+// resolveGainControl is gainControlOf without the diagnostic: it reports the
+// resolved player, whether the value resolved, whether the parameter is
+// present, and whether its grammar was known. A caller that only CLASSIFIES a
+// move (CR 508.4's entering controller) reads it so the unrecognised-value
+// Note is emitted once, by the move's own emitEntryMove, not twice.
+func resolveGainControl(h Host, c *Ctx, gc ParamText) (state.PlayerID, bool, bool, bool) {
 	raw, present := gc.Text, gc.Present
 	if !present || strings.TrimSpace(raw) == "" {
-		return 0, false, true
+		return 0, false, true, true
 	}
 	if strings.EqualFold(raw, "True") || strings.EqualFold(raw, "You") {
-		return c.Controller, true, true
+		return c.Controller, true, true, true
 	}
 	targets, known := definedSpec(h, c, raw)
 	if !known {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "unrecognised ChangeZone GainControl$ " + raw})
-		return 0, false, true
+		return 0, false, true, false
 	}
 	for _, t := range targets {
 		if t.IsPlayer {
-			return t.Player, true, true
+			return t.Player, true, true, true
 		}
 		if o := h.Game().Obj(t.Obj); o != nil {
-			return o.Controller, true, true
+			return o.Controller, true, true, true
 		}
 	}
 	// The selector resolved (its grammar is known) but named no living
 	// player: nothing to hand control to, and no silent owner-keep either.
-	return 0, false, true
+	return 0, false, true, true
 }
 
 // digGainControl is the GainControl$ selector a Dig/DigUntil bool stands for:
