@@ -48,7 +48,7 @@ when a row stops matching the code.
 <!-- crcoverage:summary -->
 | file | rows | follows | partial | deviates | not-impl | definition | n/a | unknown |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| [100-game-concepts](100-game-concepts.md) | 165 | 98 | 8 | 8 | 9 | 0 | 17 | 25 |
+| [100-game-concepts](100-game-concepts.md) | 165 | 99 | 8 | 7 | 9 | 0 | 17 | 25 |
 | [200-parts-of-a-card](200-parts-of-a-card.md) | 81 | 39 | 13 | 3 | 6 | 3 | 14 | 3 |
 | [300-card-types](300-card-types.md) | 98 | 62 | 11 | 5 | 5 | 4 | 7 | 4 |
 | [400-zones](400-zones.md) | 70 | 43 | 8 | 1 | 4 | 4 | 3 | 7 |
