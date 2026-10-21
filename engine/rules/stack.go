@@ -503,7 +503,10 @@ func (e *Engine) resolveTop() {
 	}
 
 	f := o.Face()
-	sa := f.SpellAbility()
+	// Cleave (CR 702.148a): a cleaved cast resolves the bracket-free cleave
+	// ability (engine/rules/cleave.go's stackSpellSA); every other spell its
+	// face's own SpellAbility.
+	sa := stackSpellSA(o, f)
 	// Bestow (CR 702.114a): a cast paid for with the bestow cost resolves
 	// as the synthesized Aura attach spell -- the creature face itself has
 	// no SP -- so the whole ordinary Aura tail below runs unchanged:

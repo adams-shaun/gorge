@@ -90,7 +90,7 @@ var tokenKnownKeys = [...]string{
 	"ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed", "ImprintTokens",
 	"InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
-	"NewController", "OpponentTurn", "Planeswalker", "PlayCost", "PlayerTurn",
+	"NewController", "NonBasicSpell", "OpponentTurn", "Planeswalker", "PlayCost", "PlayerTurn",
 	"PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone",
 	"PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberOriginalTokens", "RememberTargets", "RememberTokens",

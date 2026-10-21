@@ -160,7 +160,7 @@ func tapeTextMayAsk(e *Engine) bool {
 	if f == nil {
 		return true
 	}
-	sa := f.SpellAbility()
+	sa := stackSpellSA(o, f) // a cleaved spell resolves its cleave ability (CR 702.148a)
 	if f.IsPermanent() {
 		// The spell's own entry text, and the board's entry replacements:
 		// two Moved replacements competing for the entering permanent pose

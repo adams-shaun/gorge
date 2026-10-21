@@ -252,7 +252,7 @@ var changeZoneKnownKeys = [...]string{
 	"KeywordLine", "LeaveBattlefield", "LibraryPosition", "LibraryPositionAlternative",
 	"Mandatory", "MaxRevealed", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"ModeCost", "Monstrosity", "NewController", "NoLooking", "NoReveal", "NoShuffle",
-	"OpponentTurn", "Optional",
+	"NonBasicSpell", "OpponentTurn", "Optional",
 	"OptionalPrompt", "Origin", "OriginAlternative", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "RandomNumTargets", "RandomOrder", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana",

@@ -525,6 +525,17 @@ func (w *legalWalk) handWalk() {
 			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
+		// Cleave (CR 702.148a, engine/rules/cleave.go): the cleave ability's
+		// Cost$ replaces the mana cost, and the offer's target census reads
+		// the cleave ability (its targets are the bracket-free text), so a
+		// Lunar Rejection with no Wolf to target is still offered cleaved.
+		if csa := cleaveSA(f); csa != nil {
+			if cc, ok := e.cleaveCost(f); ok && w.offerCastable(p, id, cc, spellScope(castModeCleavedWord), false) &&
+				e.castTargetsAvailable(p, id, csa) {
+				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+					Label: "Cast " + f.Name + " (cleave)", Obj: id, Mode: castModeCleavedWord})
+			}
+		}
 		// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the printed
 		// (or granted) web-slinging cost replaces the mana cost, and the cast
 		// carries the mandatory additional cost of returning a tapped creature
