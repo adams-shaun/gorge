@@ -13,7 +13,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 500.5b | follows | `engine/rules/layers_effect.go#Engine.EndOfTurnCleanup` | - |  |
 | 500.6 | follows | `engine/rules/trigmatch/actions.go#phaseTriggerMatches` | - |  |
 | 500.7 | follows | `engine/rules/turn.go#Engine.advanceStep` `engine/events/apply_turn.go#foldExtraTurn` | `TestFinalFortuneGrantsAndSpendsAnExtraTurn` |  |
-| 500.8 | deviates | `engine/rules/turn.go#Engine.extraPhaseBoundary` `engine/events/apply_turn.go#foldExtraPhase` | `TestAureliaExtraCombatSplicesASecondCombat` | FIFO not LIFO for phases added after same phase; cr-g27-extra-phase-lifo |
+| 500.8 | partial | `engine/rules/turn.go#Engine.extraPhaseBoundary` `engine/events/apply_turn.go#foldExtraPhase` | `TestCR500_8MostRecentExtraPhaseOccursFirst` `TestAureliaExtraCombatSplicesASecondCombat` | most recent first; a grant's FollowedBy$ main is skipped when an older grant at the same splice point follows it |
 | 500.9 | follows | `engine/effects/addphase.go#parseExtraPhaseValue` `engine/rules/turn.go#Engine.extraPhaseBoundary` | - | steps ride the AddPhase grant queue |
 | 500.10 | follows | `engine/effects/addphase.go#effAddPhase` | `TestAggravatedAssaultExtraCombatFollowedByMain2` |  |
 | 500.10a | not-impl | `engine/effects/addphase.go#effAddPhase` | - | SILENT; grant taken on another player's turn (Obeka) |
