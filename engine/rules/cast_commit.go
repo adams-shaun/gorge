@@ -669,12 +669,15 @@ func (e *Engine) payCast() {
 		// 406.3 hides a card exiled face down from every other player, and
 		// without Secret the exile is a public zone, so view.RedactEvent
 		// would keep the Obj and every transcript would name the card
-		// (cr-g62). The view redacts the face-down card to everyone but its
-		// owner, and any move NOT to exile clears FaceDown, so the later
-		// foretell-cost cast reveals automatically.
+		// (cr-g62). The move uses the may-look layout naming the foreteller
+		// (CR 702.143a: "That player may look at that card as long as it
+		// remains in exile"; Amount the looker, no IDs: no exiling source),
+		// so the view shows its face to the foreteller and nobody else
+		// (cr-g64); any move NOT to exile clears FaceDown and the look, so
+		// the later foretell-cost cast reveals automatically.
 		e.emit(events.Event{Kind: events.CastInfo, Player: pc.player, Obj: pc.card, Counter: events.FlagsString(state.FlagForetold), Secret: true})
 		e.emit(events.Event{Kind: events.MoveZone, Player: pc.player, Obj: pc.card, From: pc.from, To: state.ZExile,
-			Counter: "exiled_with_face_down", Amount: 0, Secret: true})
+			Counter: "exiled_with_face_down_maylook", Amount: int32(pc.player), Secret: true})
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}

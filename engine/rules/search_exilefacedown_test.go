@@ -71,10 +71,10 @@ func librarySearchExileFaceDown(t *testing.T, e *Engine) ([]events.Event, state.
 	}
 	var exiled []events.Event
 	for _, ev := range e.L.Events[start:] {
-		// The search's five finds carry the face-down marker; a sibling
+		// The search's five finds carry the face-down may-look marker (the searcher looked, cr-g64); a sibling
 		// non-face-down exile (the shuffle-the-pile rider's own move) is not
 		// part of this pin.
-		if ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down" {
+		if ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down_maylook" {
 			exiled = append(exiled, ev)
 		}
 	}
@@ -100,16 +100,15 @@ func TestLibrarySearchExilesFoundCardsFaceDown(t *testing.T) {
 
 	moved := make([]state.ObjID, 0, len(exiled))
 	for _, ev := range exiled {
-		// The one event field that carries the face-down exile: without it the
-		// replay folds the card into exile face up and the object state below
-		// cannot be face down.
-		if ev.Counter != "exiled_with_face_down" {
-			t.Errorf("exile MoveZone for %d has Counter=%q, want %q", ev.Obj, ev.Counter, "exiled_with_face_down")
-		}
-		// The exiling source rides Amount, so the object's ExiledWith is
+		// The searcher looked (CR 701.23a), so it is the may-look layout
+		// (cr-g64): the looker -- seat 0 -- rides Amount and the exiling
+		// source rides IDs, so the object's ExiledWith and MayLookPlayer are
 		// recoverable from the event alone (durable state, replay-safe).
-		if ev.Amount != int32(tome) {
-			t.Errorf("exile MoveZone for %d has Amount=%d, want the exiling source %d", ev.Obj, ev.Amount, tome)
+		if ev.Counter != "exiled_with_face_down_maylook" {
+			t.Errorf("exile MoveZone for %d has Counter=%q, want %q", ev.Obj, ev.Counter, "exiled_with_face_down_maylook")
+		}
+		if ev.Amount != 0 || len(ev.IDs) != 1 || ev.IDs[0] != tome {
+			t.Errorf("exile MoveZone for %d has Amount=%d IDs=%v, want the looker 0 and the exiling source %d", ev.Obj, ev.Amount, ev.IDs, tome)
 		}
 		moved = append(moved, ev.Obj)
 	}

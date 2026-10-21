@@ -112,12 +112,12 @@ func TestEtherealValkyrieMarksExiledHandCardForetold(t *testing.T) {
 		t.Fatalf("hand holds %d Mountains after the trigger, want exactly the drawn 1", mountains)
 	}
 	if got := countEvents(e, func(ev events.Event) bool {
-		return ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down_foretold"
+		return ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down_maylook_foretold"
 	}); got != 1 {
 		t.Fatalf("effect-granted foretelling emitted %d marker MoveZone events, want exactly 1", got)
 	}
 	if got := countEvents(e, func(ev events.Event) bool {
-		return ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down"
+		return ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down_maylook"
 	}); got != 0 {
 		t.Fatalf("the effect grant reused the {2} action's counter %d times, want 0 (log-distinguishable)", got)
 	}
@@ -172,7 +172,7 @@ func TestForetoldSoldierBattlefieldExileSurvivesFlagReset(t *testing.T) {
 			s.Zone, s.FaceDown, s.CastFlags)
 	}
 	if got := countEvents(e, func(ev events.Event) bool {
-		return ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down_foretold"
+		return ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Counter == "exiled_with_face_down_maylook_foretold"
 	}); got != 1 {
 		t.Fatalf("the soldier's self-exile emitted %d marker MoveZone events, want 1", got)
 	}
@@ -380,9 +380,9 @@ func TestForetellActionEventEncodingUnchanged(t *testing.T) {
 			continue
 		}
 		switch ev.Counter {
-		case "exiled_with_face_down_foretold":
+		case "exiled_with_face_down_foretold", "exiled_with_face_down_maylook_foretold":
 			marker++
-		case "exiled_with_face_down":
+		case "exiled_with_face_down_maylook":
 			if i > 0 {
 				prev := e.L.Events[i-1]
 				if prev.Kind == events.CastInfo && events.FlagsFrom(prev.Counter)&state.FlagForetold != 0 {

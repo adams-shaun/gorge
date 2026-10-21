@@ -665,6 +665,32 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
 		mode, params := parseStaticLine(c.SVars, name)
+		if cards.StaticModeOf(mode) == cards.StaticContinuous {
+			// MayLookAt$ over face-down exiled cards (Praetor's Grasp's "you
+			// may look at and play that card", Ugin, the Ineffable's MayLook,
+			// Mind Flayer, the Shadow): registered as its own look grant
+			// rules' MayLookAtFaceDown reads for the view (CR 406.3; cr-g64),
+			// with the Effect's lifetime and Remembered set. The key is then
+			// dropped, so a MayPlay$ rider on the same line registers through
+			// the ordinary may-play branch below; a look-only line is done.
+			if look, rest, ok := mayLookAtExileGrantFromLine(params); ok {
+				look.Source, look.Controller = c.Source, c.Controller
+				look.Name = effectName
+				look.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
+				look.Remembered = remembered
+				look.Duration = dur
+				look.ForgetOnMoved = forgetOn
+				look.ExileOnMoved = exileOn
+				look.ForgetCounter = forgetCounter
+				look.ImprintOnHost = imprintOnHost
+				look.Chosen, look.ChosenBound = effectChosenSnapshot(h, c, look.Affects)
+				effectContinuous(h, look)
+				registered = true
+				if !rest {
+					continue
+				}
+			}
+		}
 		switch cards.StaticModeOf(mode) {
 		case cards.StaticContinuous:
 			// GainsAbilitiesOfDefined$ is the dynamic Defined-set spelling of

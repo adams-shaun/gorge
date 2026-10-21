@@ -763,6 +763,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							if strings.EqualFold(raw, "You") || strings.EqualFold(raw, "Player") || strings.EqualFold(raw, "True") {
 								lv := base
 								lv.MayLookAt = true
+								lv.AffectedZone = st.ParamStr(cards.PKAffectedZone)
 								out = append(out, lv)
 							}
 						}

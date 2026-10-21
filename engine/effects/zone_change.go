@@ -1261,11 +1261,14 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		ev.Counter = events.UnearthEntryCounter
 	}
 	switch {
-	case to == state.ZExile && exileFaceDown && withMayLook:
+	case to == state.ZExile && exileFaceDown && (withMayLook || foretold):
 		// The may-look layout: Amount carries the looker (the exiling
 		// effect's controller), IDs carries the exiling source. The looker
-		// is authoritative, so the card's owner is NOT admitted by the
-		// view's default controller check.
+		// is the one seat the view admits to the face (CR 406.3); the card's
+		// owner is not admitted by default. A Foretold$ designation grants
+		// the same look (CR 702.143a: "That player may look at that card";
+		// Forge's ChangeZoneEffect adds the look for WithMayLook OR
+		// Foretold), so it rides this arm too (cr-g64).
 		ev.Counter = "exiled_with_face_down_maylook"
 		if foretold {
 			ev.Counter = "exiled_with_face_down_maylook_foretold"
@@ -1274,11 +1277,9 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		ev.IDs = []state.ObjID{c.Source}
 		secretFaceDownMove(ev, c.Controller)
 	case to == state.ZExile && exileFaceDown:
-		if foretold {
-			ev.Counter = "exiled_with_face_down_foretold"
-		} else {
-			ev.Counter = "exiled_with_face_down"
-		}
+		// Reached only when neither WithMayLook$ nor Foretold$ is set: the
+		// may-look arm above owns both, so this is the blind plain marker.
+		ev.Counter = "exiled_with_face_down"
 		ev.Amount = int32(c.Source)
 		ev.IDs = nil
 		secretFaceDownMove(ev, movedCardOwner(h, ev))
@@ -1300,10 +1301,10 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 }
 
 // secretFaceDownMove makes a face-down move out of a hidden zone (a hand,
-// library, sideboard or planar deck) Secret to looker, the one seat the
-// projection admits to the card's face (engine/view/card.go: the card's
-// controller -- its owner, in exile and on a face-down battlefield entry --
-// or the WithMayLook$ looker).
+// library, sideboard or planar deck) Secret to looker, the seat the payload
+// is addressed to (the plain-marker exile moves are served to nobody by
+// view.blindFaceDownExile; engine/view/card.go mayLookFaceDown decides the
+// board).
 // Without it a face-down exile keeps its Obj under view.RedactEvent's rule
 // (2) (exile is not a hidden zone) and every seat's transcript names the
 // card (CR 406.3), and a Secret move with no Player is served to seat 0. A
@@ -1327,6 +1328,25 @@ func movedCardOwner(h Host, ev *events.Event) state.PlayerID {
 		return o.Owner
 	}
 	return ev.Player
+}
+
+// seenFaceDownExile turns a face-down exile of a card the looker has LOOKED
+// at -- a Dig take after the walk's look, a library search's find (CR
+// 701.23a: to search is to look at the zone) -- into the may-look layout
+// naming looker: CR 406.3, "if a player is instructed to look at a card and
+// then exile it face down ... that player may continue to look at that
+// card". events.Apply folds the looker into Object.MayLookPlayer, the one
+// seat the view then shows the face to, and a Secret move is addressed to
+// it. A move already in the may-look layout, or not a plain face-down exile,
+// is unchanged (cr-g64).
+func seenFaceDownExile(ev *events.Event, looker state.PlayerID, source state.ObjID) {
+	if ev.To != state.ZExile || ev.Counter != "exiled_with_face_down" {
+		return
+	}
+	ev.Counter, ev.Amount, ev.IDs = "exiled_with_face_down_maylook", int32(looker), []state.ObjID{source}
+	if ev.Secret {
+		ev.Player = looker
+	}
 }
 
 // settleChangeZoneMove is the one settle path every ChangeZone mover shares:

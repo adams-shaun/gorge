@@ -284,7 +284,8 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 	// which the explicit zero makes hold even for a Board refilled from a
 	// previously filled state.
 	if !b.noOwnLibrary && !hideHand {
-		fillOwnLibrary(g, me, b.OwnDeck, &b.OwnLibrary)
+		look, _ := ch.(faceDownLooker)
+		fillOwnLibrary(g, look, me, b.OwnDeck, &b.OwnLibrary)
 	} else {
 		b.OwnLibrary = deck.LibraryComposition{}
 	}

@@ -114,8 +114,10 @@ import (
 //     (engine/effects/zone.go) on the primary move's MoveZone, so the Dig calls the
 //     one read every other face-down mover uses: the looker rides the
 //     "exiled_with_face_down_maylook" marker's Amount and the projection
-//     (view/cardViews) admits exactly that player. Absent the param the
-//     marker is unchanged, so every non-maylook Dig emits byte-identically.
+//     (view/cardViews) admits exactly that player. A take the chooser LOOKED
+//     at (saw: a real choice, a window reveal, or the ordered-bottom ask) is
+//     rewritten by seenFaceDownExile to the same marker, so the chooser keeps
+//     the look (CR 406.3); a blind take keeps the plain marker.
 //
 // RestRandomOrder$ True (the bottom pile returns shuffled from the engine's
 // seeded generator, with no ask) is read below. Still unread here: the
@@ -306,6 +308,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			applyFaceDownMarker(h, sa, c, &ev, dest)
+			if saw {
+				seenFaceDownExile(&ev, chooser, c.Source)
+			}
 			ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
 			if dest == state.ZLibrary {
 				primaryMoved = append(primaryMoved, id)
@@ -313,12 +318,13 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// ExileFaceDown$ True with an exile destination (Ugin, the
 			// Ineffable's [+1]: "Exile the top card of your library face down
 			// and look at it") carries the same face-down exile payload
-			// Hideaway's move uses -- the exiling source rides in Amount --
-			// so a replay derives FaceDown identically and a projection
-			// withholds the card.
-			// applyFaceDownMarker preserves ExileFaceDown$'s source-carrying
-			// payload (Counter, Amount and nil IDs), while also stamping
-			// battlefield FaceDown$ entries.
+			// Hideaway's move uses, so a replay derives FaceDown identically
+			// and a projection withholds the card. A blind take keeps the
+			// plain marker's payload (the exiling source in Amount, nil IDs);
+			// a take the chooser looked at (saw) is rewritten by
+			// seenFaceDownExile to the may-look layout, which puts the LOOKER
+			// in Amount and the exiling source in IDs. applyFaceDownMarker
+			// stamps battlefield FaceDown$ entries too.
 			emitEntryMove(h, c, digGainControl(dp.GainControl), dest, ev)
 			if dp.Imprint && c.Source != 0 {
 				if moved := g.Obj(id); moved != nil && moved.Zone == dest && !moved.IsToken {

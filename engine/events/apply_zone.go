@@ -178,25 +178,29 @@ func foldMoveZone(g *state.Game, e *Event) {
 		} else if e.To == state.ZExile {
 			switch moveCounter {
 			case "exiled_with_face_down", "exiled_with_face_down_foretold":
-				// Hideaway's face-down exile (CR 702.75): the exiling source
-				// rides in Amount, and FaceDown is state so a later projection
-				// knows not to reveal the card. The foretold variant also
-				// records the designation after Move has reset a battlefield
-				// object's cast flags.
+				// A blind face-down exile (Necropotence's top-card exile; a
+				// pre-cr-g64 Hideaway/foretold log): the exiling source rides
+				// in Amount and no looker is recorded, so FaceDown is state a
+				// later projection reads to withhold the face from everyone
+				// (CR 406.3). The foretold variant also records the
+				// designation after Move has reset a battlefield object's
+				// cast flags.
 				o.ExiledWith = state.ObjID(e.Amount)
 				o.FaceDown = true
 				if moveCounter == "exiled_with_face_down_foretold" {
 					o.CastFlags |= state.FlagForetold
 				}
 			case "exiled_with_face_down_maylook", "exiled_with_face_down_maylook_foretold":
-				// A WithMayLook$ True face-down exile (Ixhel, Scion of Atraxa):
-				// same state as the Hideaway spell, plus the look permission the
-				// exiling effect's controller holds. This marker's own layout
-				// puts the LOOKER in Amount and the exiling source in IDs, so
-				// both survive replay with no new event kind and no Event field
-				// change. MayLookPlayer replaces Object.Controller as the
-				// privileged viewer (view/cardViews), so the card's owner cannot
-				// read a face the owner never had the right to look at.
+				// A may-look face-down exile (WithMayLook$, a Foretold$
+				// designation, the Foretell action, Hideaway, a Dig take the
+				// chooser looked at, a library search's find): FaceDown plus
+				// the look permission that seat holds. This marker's own
+				// layout puts the LOOKER in Amount and the exiling source in
+				// IDs, so both survive replay with no new event kind and no
+				// Event field change. MayLookPlayer replaces Object.Controller
+				// as the privileged viewer (view/cardViews), so the card's
+				// owner cannot read a face the owner never had the right to
+				// look at.
 				o.FaceDown = true
 				o.MayLookPlayer = state.PlayerID(e.Amount)
 				o.HasMayLook = true
