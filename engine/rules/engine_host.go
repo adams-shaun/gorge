@@ -185,22 +185,19 @@ func (e *Engine) controlPlayerRedirect(d *decision.Decision) {
 	if d.Player < 0 || int(d.Player) >= len(e.G.Players) {
 		return
 	}
-	ctl, ok := e.G.ControlledBy[d.Player]
-	if !ok || ctl == d.Player {
-		return
-	}
-	// CR 720.2 scopes the control to the controlled player's NEXT turn: the
+	// CR 723.1 scopes the control to the controlled player's NEXT turn: the
 	// controller answers only decisions that seat would be offered DURING
 	// that turn, never a response priority on a turn that passes before it
 	// begins (the controller's own turn the grant resolved on, or another
-	// opponent's turn in between). This mirrors expirePlayerControl's
-	// arithmetic exactly: the grant armed on turn T is live only while the
-	// controlled seat is active on a strictly later turn (Turn > armed), the
-	// same Turn > armed test that expires it at that turn's end. Without this
-	// the redirect spilled across the whole interval -- the controlled seat's
-	// on-controller-turn response priority was handed to the controller before
-	// their controlled turn (findings-t2 MAJOR).
-	if e.G.Active != d.Player || e.G.Turn <= e.G.ControlArmedTurn[d.Player] {
+	// opponent's turn in between). state.Game.LiveController is the one home
+	// of that interval -- the grant armed on turn T is live only while the
+	// controlled seat is active on a strictly later turn, the same Turn >
+	// armed test expirePlayerControl uses -- and the view's CR 723.4 widening
+	// reads it too, so who answers and who may look cannot disagree (cr-g57).
+	// Without it the redirect spilled across the whole interval (findings-t2
+	// MAJOR).
+	ctl, ok := e.G.LiveController(d.Player)
+	if !ok {
 		return
 	}
 	// CR 720.6 keeps control acyclic; a corrupt or hand-built fold naming a

@@ -108,21 +108,37 @@ func TestProjectNextRevealsControlledHandToController(t *testing.T) {
 	}
 }
 
-// TestControlledSeatsIsSortedAndDirectional pins the host's fold reversal
-// directly: the controlled subjects are returned sorted for determinism, and
-// only subjects naming the viewer as controller are returned.
-func TestControlledSeatsIsSortedAndDirectional(t *testing.T) {
+// TestControlledSeatsIsTheLiveActiveSeatOnly pins the host's widening set
+// directly (cr-g57): at most one seat, the ACTIVE one, and only while its
+// control is live (state.Game.LiveController: a turn strictly after the armed
+// turn); only the viewer named as its controller gets it. Several grants can
+// be folded at once (seats 1 and 3 controlled by 0, seat 2 by 1), but only
+// the active seat's is live.
+func TestControlledSeatsIsTheLiveActiveSeatOnly(t *testing.T) {
 	t.Parallel()
 	g := state.NewGame([]string{"a", "b", "c", "d"})
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{3: 0, 1: 0, 2: 1}
-	got := controlledSeats(g, 0)
-	if len(got) != 2 || got[0] != 1 || got[1] != 3 {
-		t.Fatalf("controlledSeats(0) = %v, want sorted [1 3]", got)
+	g.ControlArmedTurn = map[state.PlayerID]int32{3: 1, 1: 1, 2: 1}
+	g.Active, g.Turn = 0, 1
+	if got := controlledSeats(g, 0); len(got) != 0 {
+		t.Fatalf("controlledSeats(0) on seat 0's turn = %v, want none (no controlled seat is active)", got)
 	}
-	if other := controlledSeats(g, 1); len(other) != 1 || other[0] != 2 {
-		t.Fatalf("controlledSeats(1) = %v, want [2]", other)
+	g.Active = 1
+	if got := controlledSeats(g, 0); len(got) != 0 {
+		t.Fatalf("controlledSeats(0) on the armed turn = %v, want none (CR 723.1: the NEXT turn)", got)
 	}
-	if none := controlledSeats(g, 2); len(none) != 0 {
-		t.Fatalf("controlledSeats(2) = %v, want none", none)
+	g.Turn = 2
+	if got := controlledSeats(g, 0); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("controlledSeats(0) on seat 1's next turn = %v, want [1]", got)
+	}
+	if got := controlledSeats(g, 1); len(got) != 0 {
+		t.Fatalf("controlledSeats(1) = %v on seat 1's own controlled turn, want none", got)
+	}
+	g.Active, g.Turn = 2, 3
+	if got := controlledSeats(g, 1); len(got) != 1 || got[0] != 2 {
+		t.Fatalf("controlledSeats(1) on seat 2's next turn = %v, want [2]", got)
+	}
+	if got := controlledSeats(g, 0); len(got) != 0 {
+		t.Fatalf("controlledSeats(0) on seat 2's turn = %v, want none", got)
 	}
 }
