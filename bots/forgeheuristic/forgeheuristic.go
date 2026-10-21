@@ -42,6 +42,11 @@ func init() {
 			Versus:  "bot",
 			Setting: "constructed, seats traded each game, base seed 1000000",
 			Source:  "docs/design/2026-10-19-a2-target-rules.md",
+		}, {
+			Claim:   "32.0% [27.6, 36.7] vs Forge AI over 400 games, +0.5 pp over bot with the same mulligan (inside noise)",
+			Versus:  "Forge AI (adams-shaun/forge oracle-harness 82a7d3a440)",
+			Setting: "Forge games over the stdio bridge, 12 Legacy decks, 144 ordered pairs, seats traded",
+			Source:  "Forge bridge run R1v3, 2026-10-20",
 		}},
 		Cost:    bots.Cost{Scope: "per decision", Note: "not measured; same policy shape as bot, INFERRED <1 ms", Source: "docs/design/2026-10-19-a2-target-rules.md"},
 		Formats: []string{"constructed", "commander"},
