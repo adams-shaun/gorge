@@ -122,7 +122,10 @@ func modifiedPermanent(g *state.Game, o *state.Object, _ state.PlayerID, _ state
 		return false
 	}
 	for _, c := range o.Counters {
-		if c.N > 0 {
+		// The engine's internal status markers ("Shield", "Deathtouched") ride
+		// Object.Counters but are not counters (CR 122.1), so they do not make
+		// a permanent modified (CR 700.9).
+		if c.N > 0 && !state.InternalCounterMarker(c.Kind) {
 			return true
 		}
 	}
