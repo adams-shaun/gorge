@@ -941,6 +941,36 @@ func (e *Engine) expireUntilEndOfCombat() {
 	e.continuousChanged()
 }
 
+// expireUntapStepEffects drops the UntilTheEndOfYourNextUntap registrations
+// whose controller's untap step is ENDING (CR 611.3b: the effect lasts until
+// the end of the controller's first NEXT untap step, even if nothing untapped
+// during it). finishStepBoundary calls it on the transition that leaves
+// StepUntap, with e.G.Active still the step's player; the dropped grants are
+// the ones registered by that player's own effects (Player.Activator /
+// Player.IsRemembered scopes) -- a printed UntilTheEndOfYourNextUntap line
+// does not exist in the corpus, so the controller match is the whole story.
+//
+// It rewrites e.continuous in place exactly like expireUntilEndOfCombat and
+// emits no event of its own: e.continuous is engine-runtime state rebuilt by
+// re-execution on replay, exactly like EndOfTurnCleanup and EndEffect. The
+// UntilTheEndOfYourNextUntap carriers are self-granted permanent-effect
+// registrations, never clone copies, so no clone expiry runs.
+func (e *Engine) expireUntapStepEffects() {
+	n0 := len(e.continuous)
+	kept := e.continuous[:0]
+	for _, ce := range e.continuous {
+		if effects.IsUntapStepDuration(ce.Duration) && ce.Controller == e.G.Active {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if len(kept) == n0 {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
 // continuousLive is active()'s duration-honouring filter over one registered
 // effect (see active()): whether it still exists right now. It is the one
 // predicate active() and anyLayer4Active's registered-effect check share, so
@@ -957,6 +987,16 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 	if untilEndOfCombat(ce) {
 		// CR 511.2: live from creation until expireUntilEndOfCombat drops it
 		// as the combat phase ends.
+		return true
+	}
+	if effects.IsUntapStepDuration(ce.Duration) {
+		// UntilTheEndOfYourNextUntap outlives its source -- a one-shot spell
+		// is already gone by the untap step the grant is read at (Kefnet's
+		// Last Word) -- and carries no UntilEOT/UntilTurn bookkeeping, so
+		// neither of the two checks below can keep it alive. It stays live
+		// until expireUntapStepEffects drops it at the end of the
+		// controller's first next untap step (CR 611.3b), which is exactly
+		// the lifetime the text grants.
 		return true
 	}
 	if ce.UntilEOT {

@@ -10,6 +10,23 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// replUntapStepControllerCode indexes the ValidStepTurnToController$ values
+// the ReplUntap matcher answers, through the same StrCodes table convention
+// the other card-value matchers use. Anything else fails closed.
+type replUntapStepControllerCode uint16
+
+const (
+	replUntapStepControllerYou replUntapStepControllerCode = iota + 1
+	replUntapStepControllerActivator
+	replUntapStepControllerIsRemembered
+)
+
+var replUntapStepControllerCodes = state.NewStrCodes(
+	state.StrEntry[replUntapStepControllerCode]{Key: "you", Val: replUntapStepControllerYou},
+	state.StrEntry[replUntapStepControllerCode]{Key: "player.activator", Val: replUntapStepControllerActivator},
+	state.StrEntry[replUntapStepControllerCode]{Key: "player.isremembered", Val: replUntapStepControllerIsRemembered},
+)
+
 // drawMatchAmount is the replacement-CONTEXT amount of a Draw event: a
 // per-card Draw carries no Amount, and the body view of "the number of cards
 // this draw would draw" is 1 (Quantum Riddler's NumCards$
@@ -295,22 +312,49 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		if ev.Kind != events.Untap {
 			return false
 		}
-		// ValidStepTurnToController$ You scopes the replacement to the untap
+		// ValidStepTurnToController$ scopes the replacement to the untap
 		// step's own turn-based action -- an activated or triggered untap
 		// outside that step is not replaced (Basalt Monolith can still pay {3}
-		// to untap itself). "Its controller's untap step" reads against the
-		// card being untapped, which is what every corpus description says
-		// (Sleep Paralysis's enchanted artifact vs. Basalt's itself); for a
-		// ValidCard$ Card.Self line the two are the same player. A value other
-		// than You fails closed.
-		if s, ok := r.Param(cards.PKValidStepTurnToController); ok {
-			if s != "You" || e.G.Step != state.StepUntap ||
-				e.G.Active != e.controllerOf(ev.Obj) {
+		// to untap itself). "You" scopes it to the untapped card's own
+		// controller's untap step -- "its controller's untap step", which is
+		// what every corpus description says (Sleep Paralysis's enchanted
+		// artifact vs. Basalt's itself); for a ValidCard$ Card.Self line the
+		// two are the same player. Player.Activator scopes it to the
+		// REGISTERING effect's controller's next untap step instead (you here
+		// is the controller frozen at the effect's resolution -- Vec
+		// Townships's "doesn't untap during your next untap step", where the
+		// activator who paid {T} is the player whose next untap step is
+		// skipped). Player.IsRemembered does the same against the effect's
+		// captured player set (Blinding Beam's RememberObjects$ TargetedPlayer
+		// carrier). An unknown spec fails closed.
+		if spec, ok := r.Param(cards.PKValidStepTurnToController); ok {
+			if e.G.Step != state.StepUntap {
+				return false
+			}
+			switch replUntapStepControllerCodes.Code(strings.ToLower(strings.TrimSpace(spec))) {
+			case replUntapStepControllerYou:
+				if e.G.Active != e.controllerOf(ev.Obj) {
+					return false
+				}
+			case replUntapStepControllerActivator:
+				if e.G.Active != you {
+					return false
+				}
+			case replUntapStepControllerIsRemembered:
+				if !restrictionPlayerSpecMatches(e.G, "IsRemembered", e.G.Active, you, source, rememberedPlayers) {
+					return false
+				}
+			default:
 				return false
 			}
 		}
+		// The ValidCard$ read carries the effect's remembered objects in
+		// scope, so a Card.IsRemembered object gate (Vec Townships's
+		// RememberObjects$ Self + ValidCard$ Card.IsRemembered) answers
+		// against the registration's own captured set instead of the
+		// no-remembered default context a printed replacement's read uses.
 		if v, ok := r.Param(cards.PKValidCard); ok &&
-			!e.matchesSpecFrom(v, ev.Obj, you, source) {
+			!e.matchesSpec(v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 			return false
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
