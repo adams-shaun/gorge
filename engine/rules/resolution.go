@@ -223,6 +223,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.damaging = src
 		effects.Resolve(e, ctx, rp.sa)
 		e.damaging = 0
+		if e.restart != nil {
+			e.finishRestart()
+			return
+		}
 		// A resumed EndTurn has already exiled the stack, including the
 		// resolving ability: enter cleanup just as resolveTop does.
 		if e.endTurnRequested {

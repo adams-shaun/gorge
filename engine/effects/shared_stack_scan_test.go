@@ -1,7 +1,6 @@
 package effects
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -90,33 +89,28 @@ func TestAnimateAllZoneAllVisitsSharedStackOnce(t *testing.T) {
 	}
 }
 
-// TestRestartGameAllVisitsSharedStackOnce: RestartGame's RestrictFromZone$ All
-// keep-set note walks the shared stack too. The stack card is kept (it does
-// not match the discard spec), so its name must appear exactly once in the
-// emitted Note on a 2-seat table. This pins the latent branch; no corpus
-// carrier uses All.
+// TestRestartGameAllVisitsSharedStackOnce: RestartGame's RestrictFromZone$
+// All keep set (restartKeepSet) walks the shared stack too. The stack card is
+// kept (it does not match the discard spec), so it must appear exactly once
+// on a 2-seat table. This pins the latent branch; no corpus carrier uses All.
 func TestRestartGameAllVisitsSharedStackOnce(t *testing.T) {
 	h, o := stackScanBoard(t, "DoomedSpell", "Instant")
 	if face := h.g.Obj(o.ID).Face(); face == nil || face.Name != "DoomedSpell" {
 		t.Fatalf("fixture precondition: stack object has no DoomedSpell face")
 	}
-	// RestrictFromValid$ names what the restart DISCARDS; "Creature" matches
+	// RestrictFromValid$ names what the restart TAKES; "Creature" matches
 	// neither the Instant stack card nor anything else here, so the stack
-	// card is in the keep-set.
-	Resolve(h, &Ctx{Controller: 0}, sa(t,
+	// card is in the keep set.
+	keep := restartKeepSet(h, &Ctx{Controller: 0}, sa(t,
 		"SP$ RestartGame | RestrictFromZone$ All | RestrictFromValid$ Creature"))
-
-	var note string
-	for _, ev := range h.log {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "restart would keep") {
-			note = ev.Text
+	n := 0
+	for _, id := range keep {
+		if id == o.ID {
+			n++
 		}
 	}
-	if note == "" {
-		t.Fatalf("no restart keep-set note emitted; log = %+v", h.log)
-	}
-	if n := strings.Count(note, "DoomedSpell"); n != 1 {
-		t.Fatalf("stack card named %d times in keep-set note, want 1: %q", n, note)
+	if n != 1 {
+		t.Fatalf("stack card %d listed %d times in the keep set %v, want 1", o.ID, n, keep)
 	}
 }
 

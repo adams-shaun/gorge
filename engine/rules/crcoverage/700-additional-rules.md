@@ -423,7 +423,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 726.3 | follows | `engine/events/apply_misc.go#foldInitiativeChange` | `TestInitiativeSimultaneousSameControllerOneTake` |  |
 | 726.4 | follows | `engine/rules/cantlose.go#Engine.initiativeHandoffOnDeparture` | `TestInitiativeHolderLeavesHandsOffToActivePlayer` `TestInitiativeActiveHolderLeavesHandsOffToNextInTurnOrder` `TestInitiativeHolderConcedingHandsOff` | handoff implemented; effects/initiative.go comment saying otherwise is stale |
 | 726.5 | follows | `engine/effects/initiative.go#effTakeInitiative` `engine/events/apply_misc.go#foldInitiativeChange` | - | holder retaking ventures again, one designation |
-| 727.1-727.7 | deviates | `engine/effects/game.go#effRestartGame` | `TestRestartGameEndsTheGame` | Karn restart ends game as a draw |
+| 727.1-727.7 | partial | `engine/rules/restart.go#Engine.finishRestart` `engine/state/restart.go#Game.Restart` `engine/effects/game.go#effRestartGame` | `TestCR727KarnRestartsTheGame` `TestCR727ResetForRestartKeepsOnlyConfig` | 727.4 (the restart's remaining instructions) is cr-g33b; 727.6/727.7 n/a |
 | 728.1 | partial | `engine/rules/turn.go#Engine.finishEnteredStep` `engine/effects/counters.go#effRadiationDrain` | `TestRadiationDrainIsSourceLessTriggeredAbility` `TestRadiationDrainMillsAndDrains` `TestRadiationDrainIsOnTheStackBeforeResolving` | source-less trigger |
 | 728.1a | not-impl | `engine/effects/counters.go#effRadiationDrain` | - | LOUD: stat:GainLifeRadiation unregistered |
 | 729.1-729.6 | not-impl | - | - |  |

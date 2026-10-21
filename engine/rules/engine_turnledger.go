@@ -17,6 +17,14 @@ type engineTurnLedger struct {
 	turnsTaken      []int32 `clone:"deep"`
 	turnsTakenEpoch int     `clone:"deep"`
 
+	// turnLedgerBase is the log index the restarted game begins at: CR 727's
+	// restart carries e.L across the restart (the event stream is append-only
+	// and replayable), but the new game's per-turn ledgers must count only the
+	// new game's events. Both lazy rebuilds (TurnsTaken, turnStartsFor) fold
+	// e.L.Events[turnLedgerBase:] and resetForRestart sets it to the log
+	// length at the reset. Zero for every ordinary engine.
+	turnLedgerBase int `clone:"deep"`
+
 	// turnStartTurns caches, per player, the sorted turn numbers at which that
 	// player's turn began (rules.turnStartsFor). delayedRegistrationLive reads
 	// it for the next-turn lifetime boundary; turnStartEpoch is the log length

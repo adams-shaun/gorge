@@ -539,8 +539,9 @@ type Loyalty struct {
 	Removal bool
 	// Dies is true when paying the cost leaves the walker with no loyalty.
 	Dies bool
-	// Restart marks a RestartGame effect (Karn Liberated's ultimate). The
-	// engine ends such a game as a draw, so the bot never takes it.
+	// Restart marks a RestartGame effect (Karn Liberated's ultimate). A
+	// restart starts a new game from scratch (CR 727), discarding the
+	// position the policy has been playing, so the bot never takes it (A7).
 	Restart bool
 }
 

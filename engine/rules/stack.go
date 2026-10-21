@@ -476,6 +476,10 @@ func (e *Engine) resolveTop() {
 		e.endTurnRequested = false
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
+		if e.restart != nil {
+			e.finishRestart()
+			return
+		}
 		if e.endTurnRequested {
 			e.finishEndTurn()
 			return
@@ -749,6 +753,10 @@ func (e *Engine) resolveTop() {
 		e.endTurnRequested = false
 		effects.Resolve(e, ctx, resolveSA)
 		e.damaging = 0
+		if e.restart != nil {
+			e.finishRestart()
+			return
+		}
 		if e.endTurnRequested {
 			e.finishEndTurn()
 			return

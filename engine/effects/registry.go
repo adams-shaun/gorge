@@ -487,6 +487,11 @@ type Ctx struct {
 	Draw DrawInputs
 	// ETB is which as-enters answers rules has already recorded on the entering object.
 	ETB ETBRecords
+	// Restarted is set by effRestartGame once the host accepted a CR 727
+	// restart: Resolve stops the chain there. The remainder is not followed
+	// yet -- CR 727.4's "finishes resolving just before the first turn's
+	// untap step" is cr-g33b.
+	Restarted bool
 }
 
 // VoteCount is one ballot subject's tally (see Ctx.VoteCounts).
@@ -1328,6 +1333,11 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				(len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
 				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
 			}
+		}
+		if c.Restarted {
+			// CR 727.4: the game restarted. The host performs the restart;
+			// the chain's remainder (cr-g33b) is not followed here.
+			return
 		}
 		if h.Suspended() {
 			// A sub-ability in this chain opened a resolution-time payment
