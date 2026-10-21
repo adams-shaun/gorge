@@ -231,13 +231,24 @@ func sacrificedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 // TokenCreate event -- one event per minted token (engine/effects/token.go's effToken
 // loop, engine/effects/amass.go, and the token-replacement mint path), so a
 // three-token spell fires the trigger three times and the Once mode's
-// once-per-turn latch (triggerActivationLimitAllows, actionTriggerModes
-// membership above) is what collapses a batch to one queueing. The would-be
-// token does not exist as a game object at match time: ValidToken$ is taken
-// against the same shallow tokenSnapshot the CreateToken replacement class
-// matches against -- an unknown token key fails closed -- with the You-side
-// predicates reading against the trigger source's controller while the
-// snapshot's controller is ev.Player, the token's creator ("you create").
+// per-batch latch (the tokenBatchFired gate in checkTriggers,
+// actionTriggerModes membership above) is what collapses a batch to one
+// queueing. The would-be token does not exist as a game object at match time:
+// ValidToken$ is taken against the same shallow tokenSnapshot the CreateToken
+// replacement class matches against -- an unknown token key fails closed --
+// with the You-side predicates reading against the trigger source's controller
+// while the snapshot's controller is ev.Player, the token's creator ("you
+// create").
+//
+// OnlyFirst$ on a TokenCreatedOnce line (Akim, the Soaring Wind) is Forge's
+// TriggerTokenCreatedOnce.performTest rider, NOT a per-turn trigger cap: the
+// line fires only when this mint is the named player's FIRST token creation
+// of the turn. The creator must match the OnlyFirst$ player spec (Akim's
+// "You"), and its TokensCreatedThisTurn -- already folded for this event by
+// events.Apply -- must be exactly 1. Turn history, not the line's own fire
+// count, is the referent: an opponent's first creation does not fire it, and
+// a controller who made tokens before the source entered does not fire it
+// later in the same turn.
 func tokenCreatedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.TokenCreate {
 		return false
@@ -245,6 +256,16 @@ func tokenCreatedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	ctrl := e.ControllerOf(source)
 	if v := t.ParamStr(cards.PKValidPlayer); v != "" && !effects.MatchesPlayerSpec(e.Game(), v, ev.Player, ctrl) {
 		return false
+	}
+	if v, ok := t.Param(cards.PKOnlyFirst); ok && v != "" && cards.TriggerModeOf(t.Mode) == cards.TriggerTokenCreatedOnce {
+		if !effects.MatchesPlayerSpec(e.Game(), v, ev.Player, ctrl) {
+			return false
+		}
+		g := e.Game()
+		if int(ev.Player) < 0 || int(ev.Player) >= len(g.Players) ||
+			g.Players[ev.Player].TokensCreatedThisTurn != 1 {
+			return false
+		}
 	}
 	if v, ok := t.Param(cards.PKValidToken); ok && v != "" {
 		tok := e.TokenSnapshot(ev)

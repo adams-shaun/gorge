@@ -496,8 +496,9 @@ var actionTriggerModes = map[string]bool{
 	// (engine/rules/trigmatch/zone.go's tokenCreatedMatches), so the trigger-level
 	// parameters Forge scopes to every event mode -- PlayerTurn$,
 	// ActivationLimit$, and an unevaluable CheckDefinedPlayer$ predicate
-	// failing closed -- apply from day one, and the Once mode's implicit
-	// once-per-turn latch rides the same queue-time gate.
+	// failing closed -- apply from day one, and the Once mode's per-batch
+	// latch rides the queue-time gate (its OnlyFirst$ rider is the
+	// first-token-creation-of-the-turn test in tokenCreatedMatches).
 	"TokenCreated": true, "TokenCreatedOnce": true,
 	// ChangesZoneAll joins them for the trigger-level parameters Forge scopes
 	// to every event mode: ActivationLimit$ ("triggers only once each turn"
@@ -680,22 +681,17 @@ func (e *Engine) reserveTriggerGameActivationLimit(t cards.Trigger, key triggerK
 }
 
 // triggerTurnLimitFor parses a trigger's effective per-turn limit: the
-// ActivationLimit$ param, or the implicit once-per-turn limit of a Mode$
-// TokenCreatedOnce line whose OnlyFirst$ names the "for the first time each
-// turn" rider (Akim, the Soaring Wind). A Once mode without that rider is
-// once per BATCH (CR 603.2c), latched by the sacrifice/token batch brackets
-// in checkTriggers, not capped here; an explicit ActivationLimit$ remains an
+// ActivationLimit$ param. A Mode$ TokenCreatedOnce line is once per BATCH
+// (CR 603.2c), latched by the token batch bracket in checkTriggers, not
+// capped here; its OnlyFirst$ rider (Akim, the Soaring Wind) is a
+// first-token-creation-of-the-turn test in trigmatch.tokenCreatedMatches,
+// not a per-turn trigger cap. An explicit ActivationLimit$ remains an
 // additional per-turn cap on every line. present is true only when a limit
 // applies; a malformed or negative value reports (0, true) so the gate denies
 // it (fail closed).
 func triggerTurnLimitFor(t cards.Trigger) (limit int, present bool) {
 	raw, ok := t.Param(cards.PKActivationLimit)
 	if !ok {
-		if raw, ok := t.Param(cards.PKOnlyFirst); ok && raw != "" {
-			if cards.TriggerModeOf(t.Mode) == cards.TriggerTokenCreatedOnce {
-				return 1, true
-			}
-		}
 		return 0, false
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
