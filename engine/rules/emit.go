@@ -281,6 +281,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.recomputeInfectMarker(&ev)
 		e.recomputeWitherMarker(&ev)
 		e.markDamageNotPlaneswalker(&ev)
+		e.recomputeWalkerCreatureMarker(&ev)
 	}
 	// CR 306.8's planeswalker loyalty exchange (and CR 120.3e's exception for
 	// a permanent that is also a creature) is folded directly into this

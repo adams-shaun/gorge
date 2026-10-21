@@ -25,6 +25,11 @@ func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 		return
 	}
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
+	if e.restartRest != nil {
+		// CR 727.4: a restart's remaining instructions, just before the new
+		// game's first untap step (engine/rules/restart.go).
+		e.runRestartRest()
+	}
 	// CR 500.7 riders apply to the particular queued extra turn, not every
 	// later turn of its controller. The variadic form keeps ordinary callers
 	// explicit-free while advanceStep supplies the pending grant's SkipUntap.
@@ -1703,6 +1708,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// drain to resume (an election answer is never handed out from
 		// inside one).
 		e.handleAsUnblockedElection(chosen)
+	case chooseBand:
+		// CR 702.22c: one band-declaration answer (engine/rules/banding.go);
+		// bandAnswer records it and asks the next, then resumes the exert
+		// election after the last.
+		e.bandAnswer(d, in)
 	case chooseExert:
 		// exert1: the declare-attackers step's exert election (CR 702.100a)
 		// was answered. exertAnswer emits the decline's nothing or the

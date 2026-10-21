@@ -48,7 +48,9 @@ import (
 //     events) to seq 3530, verdict still equivalent. CR 903.9a (cr-g01a,
 //     2026-10-20): a commander's graveyard/exile move is now a real move
 //     followed by a state-based command-zone ask, adding SBA asks and their
-//     answers ahead of it, moving the same cast to seq 3556.
+//     answers ahead of it, moving the same cast to seq 3556. CR 506.7
+//     (cr-g56): a declaration with a required attacker now logs
+//     one HadToAttack event, moving it to seq 3557.
 func TestRoundSixFindingsMirrorKernel(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -66,7 +68,7 @@ func TestRoundSixFindingsMirrorKernel(t *testing.T) {
 		{2138, []string{"vivi-ornitier-cedh", "hearthhull-worldseed-landfall", "pro-shaper", "foundations-keen-engineering"}, 0, ""},
 		{25, []string{"foundations-reign-of-dragons", "hearthhull-worldseed-landfall", "avengers-assemble", "rakdos-muscle-scam-exe"}, 282, ""},
 		{4139, []string{"foundations-wretched-ranks", "deadly-disguise", "foundations-reign-of-dragons", "ulalek-eldrazi"}, 0, ""},
-		{4129, []string{"rakdos-muscle-scam-exe", "pro-shaper", "foundations-reign-of-dragons", "foundations-wretched-ranks"}, 3556, ""},
+		{4129, []string{"rakdos-muscle-scam-exe", "pro-shaper", "foundations-reign-of-dragons", "foundations-wretched-ranks"}, 3557, ""},
 	} {
 		reports := round6Game(t, d, GameSpec{Seed: tc.seed, Decks: tc.decks, Commander: true, Policy: "bot"})
 		if len(reports) == 0 {

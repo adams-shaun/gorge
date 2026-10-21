@@ -18,8 +18,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 201.3c | n/a | - | - | print indicator |
 | 201.4 | follows | `engine/effects/namecard.go#NameChoices` `engine/cards/universe.go#Universe.Names` | - | universe = registry cards, no tokens |
 | 201.4a | follows | `engine/effects/namecard.go#nameChoicesFiltered` | - | ValidCards$ over printed face |
-| 201.4b | partial | `engine/cards/universe.go#Universe.Name` `engine/effects/namecard.go#nameChoicesFiltered` | - | only a split card's first half is nameable |
-| 201.4c-201.4f | partial | `engine/cards/universe.go#Universe.Name` | - | flip/back/meld/adventure names never offered |
+| 201.4b | follows | `engine/cards/universe.go#NameableFace` `engine/effects/namecard.go#nameChoicesFiltered` | `TestNameChoicesFilterEachFaceByItsOwnCharacteristics` | either half nameable; matched by that half alone |
+| 201.4c-201.4f | follows | `engine/cards/universe.go#NameableFace` `engine/cards/universe.go#Universe.Names` `engine/effects/namecard.go#nameChoicesFiltered` | `TestNameChoicesOfferEveryNameableFace` `TestCorpusNameUniverseHasEveryNameableFace` | flip, back, meld and adventure names offered and matched by that face |
 | 201.4g | not-impl | - | - | SILENT; no interchangeable-name model |
 | 201.5 | follows | `engine/effects/filter.go#predicates` | - | self-reference by name = this object (Self / RefSelf) |
 | 201.5a-201.5c | unknown | - | - | settle: Gutter Grime token + second Gutter Grime scenario |

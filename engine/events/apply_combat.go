@@ -35,9 +35,25 @@ func foldDeclareAttackers(g *state.Game, e *Event) {
 			o.AttackingBattle = e.Obj
 			o.AttacksThisTurn++
 			o.AttackedTurn, o.AttackedCombat = g.Turn, g.CombatsThisTurn
+			// A fresh declaration starts unconstrained; the HadToAttack event
+			// that follows it marks the attackers that were required.
+			o.HadToAttack = false
 		}
 	}
 	tallyAttack(g, e)
+}
+
+// foldHadToAttack folds Kind HadToAttack (CR 506.7): each named attacker
+// still on the battlefield and attacking had to attack in this combat. The
+// flag is read together with the AttackedTurn/AttackedCombat stamp (the
+// hadToAttackThisCombat filter), which TurnChange and a battlefield exit
+// clear, so it never outlives the combat it was declared in.
+func foldHadToAttack(g *state.Game, e *Event) {
+	for _, id := range e.IDs {
+		if o := g.Obj(id); o != nil && o.Zone == state.ZBattlefield && o.IsAttacking {
+			o.HadToAttack = true
+		}
+	}
 }
 
 // foldDeclareBlockers folds Kind DeclareBlockers into state.
@@ -566,6 +582,7 @@ func foldPhaseOut(g *state.Game, e *Event) {
 					other.IsAttacking = false
 					other.IsBlocking = false
 					other.AttackingBattle = 0
+					other.Band = 0
 					other.BlockedBy = nil
 					continue
 				}

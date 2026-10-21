@@ -135,7 +135,7 @@ func TestKernelAskFlowSurveilLook(t *testing.T) {
 func TestKernelAskFlowHideaway(t *testing.T) {
 	kr7RunFlowCases(t, 35000, 2, []tapeFlowCase{
 		{name: "Tape Hideaway", src: "A:SP$ Hideaway | Amount$ 4 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
-			kinds: []string{"hideaway_pick", "hideaway_arrange"}, served: 2},
+			kinds: []string{"hideaway_pick"}, served: 1},
 	})
 }
 

@@ -116,7 +116,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 606.1 | definition | - | - | loyalty abilities defined |
 | 606.2 | follows | `engine/rules/legal_loyalty.go#isLoyaltyAbility` | `TestLoyaltyOptionFacts` | - |
 | 606.3 | follows | `engine/rules/legal_loyalty.go#Engine.loyaltyAbilityLimit` `engine/rules/legal_loyalty.go#Engine.loyaltyActivationsThisTurn` `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | `TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly` | main phase, empty stack, once per turn |
-| 606.4-606.5 | follows | `engine/rules/pay/costmods.go#PlusRaiseExtra` | `TestRaiseCostCarthAddsALoyaltyCounter` `TestRaiseCostCarthNetsAMinusLoyaltyAbility` | d 606.5 N/A, no modifiers |
+| 606.4-606.5 | follows | `engine/rules/pay/costmods.go#PlusRaiseExtra` `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | `TestRaiseCostCarthAddsALoyaltyCounter` `TestRaiseCostCarthNetsAMinusLoyaltyAbility` `TestDoublingSeasonLeavesLoyaltyCostUndoubled` | a loyalty cost's counters are a cost, never doubled by EffectOnly; d 606.5 N/A, no modifiers |
 | 606.6 | follows | `engine/rules/pay/castparts.go#NonManaCastableP` | - | - |
 | 607.1 | partial | `engine/state/object.go#Object.Imprinted` `engine/state/object.go#Object.ExiledWith` | - | g links per object, not per ability pair |
 | 607.1a-607.1d | unknown | - | - | not audited |

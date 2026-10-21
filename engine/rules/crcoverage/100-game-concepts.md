@@ -141,7 +141,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 120.1 | follows | `engine/events/apply_combat.go#foldDamage` | - | - |
 | 120.1a | partial | `engine/events/apply_combat.go#foldDamage` | - | g fold marks damage on any non-PW/battle object |
 | 120.2-120.2b | follows | `engine/rules/combat.go#Engine.damageStep` | - | - |
-| 120.3-120.3h | follows | `engine/events/apply_combat.go#foldDamage` `engine/rules/emit.go#Engine.emit` | `TestBattleAttackDealsDefenseCounterDamage` `TestTwoLifelinkSourcesAreTwoLifeGainEvents` |  |
+| 120.3-120.3h | follows | `engine/events/apply_combat.go#foldDamage` `engine/rules/emit.go#Engine.emit` `engine/rules/damage_walker_creature.go#Engine.recomputeWalkerCreatureMarker` | `TestBattleAttackDealsDefenseCounterDamage` `TestTwoLifelinkSourcesAreTwoLifeGainEvents` `TestCombatDamageToAnimatedWalkerMarksDamageAndRemovesLoyalty` `TestHealingAnAnimatedWalkerClearsItsMarkedDamage` | 120.3c+e: an animated planeswalker loses loyalty and is marked, for every damage emitter |
 | 120.4-120.4d | follows | `engine/rules/emit.go#Engine.emit` | - |  |
 | 120.5-120.6 | follows | `engine/rules/sba.go#Engine.destroyLethalDamage` | - | damage marked until cleanup |
 | 120.7 | unknown | - | - | not reached |

@@ -56,7 +56,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 305.4 | follows | `engine/events/apply_zone.go#foldLandPlayed` | - | - |
 | 305.5 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |
 | 305.6 | follows | `engine/cards/intrinsic.go#IntrinsicManaAbility` `engine/rules/mana_activation.go#Engine.appendAvailableManaAbilitiesGateCompute` | - |  |
-| 305.7 | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/abilityloss.go#Engine.abilityLoss` | `TestBloodMoonStripsMutavaultRulesTextAbilities` `TestAddedBasicLandTypeKeepsRulesText` | REVISED: set land type strips rules-text abilities (cr-g40 merged); no Blood Moon in pools |
+| 305.7 | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/abilityloss.go#Engine.abilityLoss` `engine/effects/combatfx.go#parseAnimateGrant` | `TestBloodMoonStripsMutavaultRulesTextAbilities` `TestAddedBasicLandTypeKeepsRulesText` `TestCRAnimateRemoveLandTypesSetsBasicType` `TestCRAnimateAllRemoveLandTypesSetsBasicType` `TestCRAnimateChosenTypeResolvesStrips` `TestCRAnimateChosenTypeWithoutChoiceFailsClosed` | REVISED: set land type strips rules-text abilities (cr-g40 merged); Animate/AnimateAll RemoveLandTypes$ strips too, with a ChosenType element resolved against the source's recorded choice and no-choice failing closed (cr-g48); no Blood Moon in pools |
 | 305.8-305.9 | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | - |
 | 306.1 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | sorcery-speed cast |
 | 306.2 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | resolves onto the battlefield |

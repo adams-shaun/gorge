@@ -382,9 +382,9 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		// player hit is redirected onto a creature (and when a creature hit is
 		// redirected away from one).
 		ev.Counter = "wither"
-	} else if creature && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
-		ev.Counter = "creature"
 	}
+	// An animated planeswalker's "creature" tag (CR 120.3e) is derived for
+	// every Damage emitter by rules' recomputeWalkerCreatureMarker.
 	applied := h.EmitDamage(ev)
 	dealt := int32(0)
 	if applied.Kind == events.Damage {

@@ -346,6 +346,14 @@ var predicates = map[string]predFn{
 	"attackedThisCombat": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.AttackedCombat != 0 && o.AttackedTurn == g.Turn && o.AttackedCombat == g.CombatsThisTurn
 	},
+	// hadToAttackThisCombat is CR 506.7 (Firkraag, Cunning Instigator): the
+	// creature was declared as an attacker THIS combat while an effect was
+	// requiring it to attack -- the event-folded HadToAttack flag under the
+	// same attack stamp attackedThisCombat reads.
+	"hadToAttackThisCombat": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o != nil && o.HadToAttack && o.AttackedCombat != 0 &&
+			o.AttackedTurn == g.Turn && o.AttackedCombat == g.CombatsThisTurn
+	},
 	// attackedThisTurn is "declared as an attacker at any point this turn"
 	// (extra combats included): Erg Raiders' end-step gate, Full Throttle's
 	// UntapAll, Kratos's count. It reads the same event-folded stamp pair as

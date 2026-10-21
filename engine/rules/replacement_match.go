@@ -704,16 +704,24 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// placements that are the EFFECT of a resolving spell or ability ("If an
 		// EFFECT would put one or more counters ..."). It excludes a placement
 		// with no object on the stack: a turn-based action (a Saga's lore
-		// counter, engine/rules/saga.go advanceSagas) and a cost (a planeswalker's [+N]
-		// loyalty counter, pay.EmitChoiceCosts) are not effects, and admitting them
-		// doubled counters they must not touch. This is exactly the
-		// actionCause()==0 provenance the Moved case's EffectOnly$ gate reads
-		// (costs are paid before an activated ability exists on the stack, so
-		// they deliberately have no cause) -- one shared test, not a second
-		// hand-built identity stamp. A resolving TRIGGERED ability's instruction
-		// (a cumulative-upkeep age counter, engine/rules/cumulative.go) IS an effect
-		// (CR 609.1), so it still qualifies, as does a resolving Station
-		// ability's CHARGE counters (CR 702.184a, engine/rules/station.go).
+		// counter, engine/rules/saga.go advanceSagas) is not an effect, and
+		// admitting it doubled counters it must not touch. A resolving
+		// TRIGGERED ability's instruction (a cumulative-upkeep age counter,
+		// engine/rules/cumulative.go) IS an effect (CR 609.1), so it still
+		// qualifies, as does a resolving Station ability's CHARGE counters
+		// (CR 702.184a, engine/rules/station.go). The actionCause()==0
+		// provenance is one shared test, not a second hand-built identity
+		// stamp.
+		//
+		// A COST's counter placement (a planeswalker's [+N] loyalty counter,
+		// cast_commit.go; a mana ability's AddCounter part) is never an effect
+		// either, and costCounters marks it directly. actionCause() alone
+		// cannot: since CR 602.2a's push-first the ability being activated is
+		// on the stack while its [+N] is paid, and an instant-speed
+		// activation's cost is always paid above other objects.
+		if r.ParamStr(cards.PKEffectOnly) == "True" && e.costCounters > 0 {
+			return false
+		}
 		if r.ParamStr(cards.PKEffectOnly) == "True" && e.actionCause() == 0 {
 			// A replacement BODY's counter placement (the K:etbCounter entry
 			// body's DB$ PutCounter) also has no stack cause by the time it

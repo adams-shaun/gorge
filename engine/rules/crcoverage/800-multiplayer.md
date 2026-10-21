@@ -31,7 +31,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 802.2a | follows | `engine/state/object.go#Object.Attacking` | `TestKazuulDoesNotFireWhenAThirdSeatIsAttacked` | defending player per attacker |
 | 802.3 | follows | `engine/rules/combat.go#Engine.handleAttackers` | - | per-creature player/planeswalker/battle choice |
 | 802.3a | partial | `engine/rules/combat/attack.go#AttackRequirements` `engine/rules/combat.go#Engine.mustAttackRequired` | - | AGENTS.md Known approximation combatrestriction1 |
-| 802.3b | not-impl | - | - | LOUD: banding keyword unregistered, cards unsupported |
+| 802.3b | follows | `engine/rules/banding.go#Engine.bandCandidates` | `TestCR702_22cBandIsDeclaredAndABlockerBlocksTheWholeBand` | a band's members attack one player, planeswalker or battle |
 | 802.4 | follows | `engine/rules/combat.go#Engine.askBlockers` | `TestCR802BlockDeclarationsFollowAPNAP` | APNAP block declarations |
 | 802.4a | follows | `engine/rules/combat/block.go#CanBlock` | - | blocker controller must be attacked player |
 | 802.4b | follows | `engine/rules/combat.go#Engine.handleBlockers` | - | per-defender block legality |
