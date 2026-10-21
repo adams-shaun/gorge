@@ -1,12 +1,18 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+// adventureZoneMoveMarker is the MoveZone Counter value that marks the exile
+// of a RESOLVED Adventure spell (CR 715.3d). moveResolvedOffStack emits it on
+// the FlagAdventure branch, and adventureZoneAvailable requires it: a counter
+// -- including one whose graveyard move a replacement redirects to exile --
+// never carries it, so the play permission cannot be inferred from the
+// absence of a counter label.
+const adventureZoneMoveMarker = "adventure_zone"
 
 // adventure.go implements the Adventure spell face (CR 714, Forge's
 // AlternateMode:Adventure -- 151 corpus files: a permanent front and an
@@ -66,10 +72,14 @@ func adventureSpellFace(o *state.Object) *cards.Face {
 // scope), so the gate is the provenance itself, derived from the log exactly
 // like warpRecastAvailable: walking backwards from the log's end,
 //
-//  1. the most recent MoveZone taking id to exile, which must not be a
-//     counter -- CR 715.3d exiles the card "as it resolves", so a spell
-//     countered to exile (Dissipate, or a graveyard counter redirected by
-//     Leyline of the Void) never earns the play permission,
+//  1. the most recent MoveZone taking id to exile, which must be the
+//     resolved-Adventure move itself -- it carries adventureZoneMoveMarker,
+//     emitted by moveResolvedOffStack's FlagAdventure branch. CR 715.3d
+//     exiles the card "as it resolves", so a spell countered to exile
+//     (Dissipate) never earns the play permission, and neither does a
+//     countered card whose graveyard move a replacement redirects to exile
+//     (Rest in Peace, Leyline of the Void): the replacement's own move
+//     carries no marker,
 //  2. scanning back before it, the FIRST event of id encountered must be the
 //     adventure-flagged CastInfo -- any MoveZone of id in between (the card
 //     left exile and returned by some other route: a recast that resolved to
@@ -91,12 +101,14 @@ func (e *Engine) adventureZoneAvailable(id state.ObjID) bool {
 	if exileIdx < 0 {
 		return false
 	}
-	// Every counter path (engine/effects/resolve.go, target_ask.go,
-	// resolution_modes.go, misc.go's ward) labels its MoveZone "countered...";
-	// the resolved-spell move off the stack carries no Text. A replacement
-	// that redirects a countered card to exile (Leyline of the Void) keeps
-	// the counter's Text, so the prefix check covers it too.
-	if ev := log[exileIdx]; ev.From == state.ZStack && strings.HasPrefix(ev.Text, "countered") {
+	// The positive marker moveResolvedOffStack stamps on the resolved
+	// Adventure's stack->exile move is the only provenance accepted. Every
+	// counter path (engine/effects/resolve.go, target_ask.go,
+	// resolution_modes.go, misc.go's ward) emits an unmarked move, and a
+	// replacement that redirects a countered card's graveyard move to exile
+	// (Rest in Peace, Leyline of the Void) discards the original event and
+	// logs its own unmarked move, so neither can pass this check.
+	if ev := log[exileIdx]; ev.From != state.ZStack || ev.Counter != adventureZoneMoveMarker {
 		return false
 	}
 	for i := exileIdx - 1; i >= 0; i-- {
