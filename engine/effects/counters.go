@@ -107,11 +107,26 @@ func counterKinds(kind string, n int, at func(int) string, count func(int) int32
 
 // hasCounters reports whether a counter carrier holds at least one counter of
 // ANY kind, testing the COUNT and not the slice length (a drained slot stays in
-// the slice at N == 0). This is the CR 701.27a eligibility gate, shared by the
-// object and player walks.
+// the slice at N == 0). It includes the internal status markers; the CR 701.27a
+// proliferate gate is hasRealCounters, which excludes them.
 func hasCounters(kinds []state.Counter) bool {
 	for i := range kinds {
 		if kinds[i].N > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// hasRealCounters is hasCounters with the engine's internal status markers
+// ("Shield", "Deathtouched") excluded. They ride Object.Counters because the
+// engine has no per-object status field (state.InternalCounterMarker), but
+// they are not counters a spell or ability can see: CR 701.27a's proliferate
+// eligibility is "permanents and/or players that have a counter on them", so
+// a regeneration shield alone must not make a recipient choosable.
+func hasRealCounters(kinds []state.Counter) bool {
+	for i := range kinds {
+		if kinds[i].N > 0 && !state.InternalCounterMarker(kinds[i].Kind) {
 			return true
 		}
 	}
@@ -1084,13 +1099,13 @@ func proliferateOnce(h Host, c *Ctx, sa *cards.SA) {
 	var eligible []state.Target
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if o := g.Obj(id); o != nil && hasCounters(o.Counters) {
+			if o := g.Obj(id); o != nil && hasRealCounters(o.Counters) {
 				eligible = append(eligible, state.Target{Obj: id})
 			}
 		}
 	}
 	for _, p := range g.AliveFrom(0) {
-		if hasCounters(g.Players[p].Counters) {
+		if hasRealCounters(g.Players[p].Counters) {
 			eligible = append(eligible, state.Target{Player: p, IsPlayer: true})
 		}
 	}
@@ -1168,6 +1183,9 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target) {
 			pl := &g.Players[p]
 			kinds := counterKinds("", len(pl.Counters), func(i int) string { return pl.Counters[i].Kind }, func(i int) int32 { return pl.Counters[i].N })
 			for _, k := range kinds {
+				if state.InternalCounterMarker(k) {
+					continue
+				}
 				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
 					Counter: k, Amount: 1})
 			}
@@ -1180,6 +1198,9 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target) {
 		}
 		kinds := counterKinds("", len(o.Counters), func(i int) string { return o.Counters[i].Kind }, func(i int) int32 { return o.Counters[i].N })
 		for _, k := range kinds {
+			if state.InternalCounterMarker(k) {
+				continue
+			}
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: 1})
 		}
 		placed = append(placed, state.Target{Obj: o.ID})

@@ -116,7 +116,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.31a-d | deviates | `engine/rules/planar.go#Engine.currentPlane` `engine/events/apply_misc.go#foldPlanarWalk` | - | per-seat planes; no single planar controller |
 | 701.32a-c | n/a | - | - | Archenemy absent from gorge |
 | 701.33a-b | n/a | - | - | Archenemy absent |
-| 701.34a | follows | `engine/effects/counters.go#effProliferate` `engine/effects/counters.go#proliferateOnce` | `TestCR701_34aProliferateTwiceIsTwoProliferations` `TestContagionEngineProliferatesTwice` | - |
+| 701.34a | follows | `engine/effects/counters.go#effProliferate` `engine/effects/counters.go#proliferateOnce` | `TestCR701_34aProliferateTwiceIsTwoProliferations` `TestContagionEngineProliferatesTwice` `TestProliferateIgnoresInternalMarkers` | internal Shield/Deathtouched markers excluded |
 | 701.34b | n/a | - | - | no 2HG |
 | 701.35a | not-impl | `engine/effects/registry.go#Resolve` | - | Detain unregistered |
 | 701.36a | partial | `engine/effects/copypermanent.go#effCopyPermanent` | `TestGrowingRanksPopulatesTheCreatureTokenYouControl` | never asks; first token in zone order |
