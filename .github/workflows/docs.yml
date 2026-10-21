@@ -31,9 +31,11 @@ on:
       - scripts/docs_sets_test.py
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
-  # The perf-data branch changes many times a day; a daily rebuild picks it up.
+  # A daily rebuild picks up gorge-compliance's docs-data, written by its
+  # nightly job (cron 09:41 UTC; the first run finished at 14:50), so this
+  # runs well after it.
   schedule:
-    - cron: '17 9 * * *'
+    - cron: '17 17 * * *'
   workflow_dispatch:
 
 permissions:
