@@ -757,9 +757,11 @@ Oracle:x
 // A future change that legitimately adds or removes a call site now moves
 // the recorded baseline instead of forcing a hand-edited constant.
 //
-// Ward (seat 0, alive) turns any move from the battlefield into a 1-life
-// gain, so seat 0's life total counts blocked sweep attempts exactly. Victim belongs
-// to seat 1, who is eliminated, so the sweep keeps trying to exile it. Seat
+// Ward (seat 0, alive) turns any cessation or exile of another card into a
+// 1-life gain, so seat 0's life total counts blocked sweep attempts exactly
+// (two per firing: the cessation, then CR 800.4a's exile step on the permanent
+// that stayed). Victim belongs to seat 1, who is eliminated, so the sweep
+// keeps trying to remove it. Seat
 // 2 carries an N-link death chain (each link only becomes lethal once the
 // previous one has died) that forces the loop through N passes with nothing
 // to do with the sweep at all.
@@ -783,6 +785,7 @@ func TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain(t *testing.T) {
 ManaCost:1 W
 Types:Artifact
 R:Event$ Moved | Origin$ Battlefield | Destination$ Ceased | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
+R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
 SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
 Oracle:x
 `)
@@ -818,7 +821,10 @@ Oracle:x
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 				t.Fatalf("chain=%d submit=%d: %v", chain, submit, err)
 			}
-			got := e.G.Players[0].Life - before
+			// One firing is one intercepted cease plus one intercepted
+			// exile (CR 800.4a's last step), 1 life each.
+			const lifePerFiring = 2
+			got := (e.G.Players[0].Life - before) / lifePerFiring
 			// Flatness alone would not catch a UNIFORM inflation (every
 			// chain firing 9 times equally), which the old literal 2 did
 			// catch. maxSweepFiringsPerSubmit keeps that half of the
