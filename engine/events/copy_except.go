@@ -3,6 +3,7 @@ package events
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -31,11 +32,18 @@ type CopyExceptions struct {
 	NoManaCost bool `json:"no_mana_cost,omitempty"`
 	// Keywords are keyword lines the copy has (CR 707.9a), in grant order.
 	Keywords []string `json:"keywords,omitempty"`
+	// SVars are {name, body} pairs merged into the copy's SVar table, in
+	// grant order, BEFORE Triggers are linked against it.
+	SVars [][2]string `json:"svars,omitempty"`
+	// Triggers are raw trigger bodies the copy has (CR 707.9a), in grant
+	// order; each Execute$ is resolved against the merged SVar table.
+	Triggers []string `json:"triggers,omitempty"`
 }
 
 // Empty reports whether x carries no exception.
 func (x CopyExceptions) Empty() bool {
-	return !x.TypesSet && !x.ColorsSet && !x.PTSet && !x.NoManaCost && len(x.Keywords) == 0
+	return !x.TypesSet && !x.ColorsSet && !x.PTSet && !x.NoManaCost &&
+		len(x.Keywords) == 0 && len(x.SVars) == 0 && len(x.Triggers) == 0
 }
 
 // Text is the CopyExcept event's Text for x.
@@ -98,7 +106,7 @@ func foldCopyExcept(g *state.Game, e *Event) {
 		}
 		f.Statics = kept
 	}
-	if len(x.Keywords) > 0 {
+	if len(x.Keywords) > 0 || len(x.SVars) > 0 || len(x.Triggers) > 0 {
 		// Deep-copy every container a keyword expansion appends to or writes
 		// (the ClonePermanent "ifnew" discipline): f aliases the source face.
 		svars := make(map[string]string, len(f.SVars))
@@ -111,9 +119,20 @@ func foldCopyExcept(g *state.Game, e *Event) {
 		f.Triggers = append([]cards.Trigger(nil), f.Triggers...)
 		f.Repls = append([]cards.Repl(nil), f.Repls...)
 		f.Statics = append([]cards.Static(nil), f.Statics...)
+		for _, sv := range x.SVars {
+			f.SVars[sv[0]] = sv[1]
+		}
 		for _, k := range x.Keywords {
 			if !f.ApplyKeywordExpansion(k) {
 				f.Keywords = append(f.Keywords, k)
+			}
+		}
+		for _, raw := range x.Triggers {
+			if tr, ok := cards.ParseTriggerLine(raw); ok {
+				if ex := strings.TrimSpace(tr.ParamStr(cards.PKExecute)); ex != "" {
+					tr.Effect = cards.ResolveSVar(f.SVars, ex)
+				}
+				f.Triggers = append(f.Triggers, tr)
 			}
 		}
 	}

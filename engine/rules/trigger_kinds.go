@@ -85,20 +85,18 @@ func zoneMaskHas(m uint32, z state.Zone) bool { return z >= 32 || m&(1<<z) != 0 
 // listed although it has no fold: naming an object in a Note is the
 // documented way to announce an in-place write made outside Apply
 // (TestTrigZoneSkipSeesInPlaceChangeThroughReferent). trigZoneSkipVerify
-// touches the listed kinds anyway and panics if a summary changes.
-var touchFreeKinds = func() trigKinds {
-	var m trigKinds
-	for _, k := range []events.Kind{events.Tap, events.Untap, events.Damage, events.CounterChange,
-		events.LifeChange, events.Priority, events.DecisionAsk, events.DecisionMade,
-		events.StepChange, events.TurnChange, events.ManaAdd, events.ManaClear,
-		events.ClockTick, events.TargetsChosen, events.DeclareAttackers, events.DeclareBlockers,
-		events.DamageProvenance, events.EndCombatReset, events.Imprint, events.StoreSVar,
-		events.Choose, events.ModeChosen, events.CastInfo, events.Goad, events.Exert,
-		events.PlayerCounterChange, events.NoteNumber, events.CardNoted} {
-		m[k>>6] |= 1 << (k & 63)
-	}
-	return m
-}()
+// touches the listed kinds anyway and panics if a summary changes. It is an
+// exact 256-bit kindSet, not a trigKinds: trigKinds.has answers true for
+// every kind >= 128 (the conservative answer for a trigger signature), which
+// here would make every later-appended kind -- CopyExcept among them --
+// wrongly touch-free.
+var touchFreeKinds = newKindSet(events.Tap, events.Untap, events.Damage, events.CounterChange,
+	events.LifeChange, events.Priority, events.DecisionAsk, events.DecisionMade,
+	events.StepChange, events.TurnChange, events.ManaAdd, events.ManaClear,
+	events.ClockTick, events.TargetsChosen, events.DeclareAttackers, events.DeclareBlockers,
+	events.DamageProvenance, events.EndCombatReset, events.Imprint, events.StoreSVar,
+	events.Choose, events.ModeChosen, events.CastInfo, events.Goad, events.Exert,
+	events.PlayerCounterChange, events.NoteNumber, events.CardNoted)
 
 // zoneChangeKind: the kinds trigmatch.ZoneChangeMatchesWithCapture accepts.
 func zoneChangeKind(k events.Kind) bool {

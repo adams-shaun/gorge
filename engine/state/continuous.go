@@ -766,6 +766,9 @@ type ContinuousEffect struct {
 	// marker so a unit's expiry can re-base the become object onto a
 	// surviving clone unit and re-emit exactly the trigger it owns.
 	CloneTriggerIndex int32
+	// CloneExcept is the unit's CopyExcept payload (CR 707.9b exceptions as
+	// final values), re-emitted after a re-base so the survivor keeps them.
+	CloneExcept string
 
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
