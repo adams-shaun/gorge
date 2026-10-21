@@ -1378,7 +1378,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// (CR 603.10a, looksBackOnDeparture); destination triggers
 				// still use the post-event source/zone in the live walk.
 				// (split first: the Origin$ map read is only needed on a split
-				// leaves-the-battlefield walk.)
+				// leaves-the-battlefield walk.) Mode$ Unattached looks back the
+				// same way (CR 701.3d/603.10a): the attachment's own departure
+				// is its unattach.
 				if split && looksBackOnDeparture(&t) != leaving {
 					continue
 				}
@@ -2591,6 +2593,18 @@ func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source s
 	}
 	if ev.Kind == events.DeclareAttackers && t.ParamStr(cards.PKKeyword) == "Melee" {
 		return e.meleeRemembered(ev)
+	}
+	// CR 701.3d/603.10a: a Mode$ Unattached trigger fired by the attachment's
+	// own departure (a look-back match on the MoveZone; no Unattached event
+	// is logged for it) has the FORMER BEARER as its referent -- "that
+	// permanent" of "whenever GRAFTED WARGEAR becomes unattached from a
+	// permanent, sacrifice that permanent". The departure fold
+	// (engine/events/apply_zone.go) has just set LastBearer to the pre-move
+	// AttachedTo, so it names this move's bearer.
+	if t.Mode == "Unattached" && ev.Kind == events.MoveZone {
+		if o := e.G.Obj(ev.Obj); o != nil && o.LastBearer != 0 {
+			return []state.Target{{Obj: o.LastBearer}}
+		}
 	}
 	if ev.Kind == events.DeclareAttackers && trigmatch.AttackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
 		out := make([]state.Target, 0, len(e.declaredAttackers)+1)
