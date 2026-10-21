@@ -1265,10 +1265,18 @@ const (
 	// Appended after CopyExcept so every earlier ordinal, hash chain and golden
 	// replay is unchanged.
 	ActivationReversed
+	// TextChange is one CR 612 text-changing effect starting on Obj: every
+	// instance of the word Counter used as a color or subtype word reads as
+	// Text (api:ChangeText). The fold appends it to Object.TextChanges, so
+	// the object's Face() is rewritten from then on; the change ends when
+	// the object changes zones (CR 400.7), except a spell becoming a
+	// permanent (CR 400.7a). Appended after ActivationReversed so every
+	// earlier ordinal, hash chain and golden replay is unchanged.
+	TextChange
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(ActivationReversed) + 1
+	NumKinds = int(TextChange) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

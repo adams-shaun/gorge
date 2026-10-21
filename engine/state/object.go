@@ -891,6 +891,17 @@ type Object struct {
 	AttackedTurn   int32
 	AttackedCombat int32
 
+	// TextChanges are the CR 612 text-changing effects on this object, in
+	// timestamp (event) order, folded by events.TextChange and cleared when
+	// the object changes zones (CR 400.7). While any applies, Face() is the
+	// pre-text face rewritten through them (cards.Face.WithTextChanges) -- so
+	// every ability, static, trigger, keyword and type-line reader sees the
+	// changed words -- and CopiableFace() is NOT (CR 707.2).
+	TextChanges []cards.TextSub
+	// textFace caches Face()'s rewritten face; textBase is the pre-text face
+	// it was built from. Both are reset by SetTextChanges.
+	textFace, textBase *cards.Face
+
 	// Harnessed is the Infinity Stone designation (the `AlterAttribute |
 	// Attributes$ Harnessed` ability of The Mind Stone / The Soul Stone): once
 	// harnessed, the permanent's ∞ ability is active. A plain status field like
@@ -1769,7 +1780,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [14]byte
+	_ [38]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
@@ -1894,8 +1905,42 @@ func (o *Object) faceMiss() *cards.Face {
 	return f
 }
 
-// faceSlow is Face() derived from the source fields, without the cache.
+// faceSlow is Face() derived from the source fields, without the cache: the
+// pre-text face rewritten through TextChanges (CR 612, layer 3) when any
+// applies. The rewritten face is built once per (base face, TextChanges)
+// and reused, so the result is pointer-stable for the Face() cache check.
 func (o *Object) faceSlow() *cards.Face {
+	base := o.PreTextFace()
+	if len(o.TextChanges) == 0 || base == nil {
+		return base
+	}
+	if o.textFace == nil || o.textBase != base {
+		o.textFace, o.textBase = base.WithTextChanges(o.TextChanges), base
+	}
+	return o.textFace
+}
+
+// TextFace is the CR 612 text-changed face Face() returns while a text
+// change applies, or nil. Per-object face-set caches that enumerate the
+// faces Face() can resolve to (o.Card.Faces and o.CopyFace) add it.
+func (o *Object) TextFace() *cards.Face {
+	if len(o.TextChanges) == 0 {
+		return nil
+	}
+	return o.Face()
+}
+
+// SetTextChanges replaces the object's text changes and keeps the Face()
+// cache coherent. Only events.Apply calls it.
+func (o *Object) SetTextChanges(subs []cards.TextSub) {
+	o.TextChanges = subs
+	o.textFace, o.textBase = nil, nil
+	o.face = o.faceSlow()
+}
+
+// PreTextFace is the object's face before CR 612 text changes: its copy
+// face (CR 613.1a, layer 1) or its printed face.
+func (o *Object) PreTextFace() *cards.Face {
 	// CR 613.1a: a copy effect is the FIRST layer, so while one applies the
 	// object's characteristics come from the copied face. Routing it here is
 	// what makes every Face() reader in the tree see the copy by construction
@@ -2354,6 +2399,7 @@ func (o *Object) cloneDeepIntoArena(c *Object, a *cloneArena) {
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)
 	c.RuntimeSVars = cloneRuntimeSVars(o.RuntimeSVars)
+	c.TextChanges = append([]cards.TextSub(nil), o.TextChanges...)
 }
 
 // cloneRuntimeSVars deep-copies a runtime SVar table so a cloned game never

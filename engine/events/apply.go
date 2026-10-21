@@ -489,6 +489,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldClonePermanent(g, e)
 	case CopyExcept:
 		foldCopyExcept(g, e)
+	case TextChange:
+		foldTextChange(g, e)
 	case ActivationReversed:
 		foldActivationReversed(g, e)
 	case Exert:
