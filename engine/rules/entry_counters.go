@@ -789,6 +789,7 @@ func isolatePreviewScratch(p *Engine) {
 	p.discardBatchLog = slices.Clone(p.discardBatchLog)
 	p.millBatchLog = slices.Clone(p.millBatchLog)
 	p.zoneBatchLog = slices.Clone(p.zoneBatchLog)
+	p.entryHeld = slices.Clone(p.entryHeld)
 	p.declaredAttackers = slices.Clone(p.declaredAttackers)
 	p.declaredDefenders = slices.Clone(p.declaredDefenders)
 	p.subOfferParent = slices.Clone(p.subOfferParent)

@@ -273,6 +273,11 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		h.BatchDepartures(nil)
 		defer h.EndBatchDepartures()
 	}
+	// A sweep onto the battlefield is one entering event (CR 603.6a): the zone batch holds each entry's trigger check until the last card has entered, so the entrants see each other, and a "one or more" line triggers once (CR 603.2c).
+	if to == state.ZBattlefield {
+		h.BeginZoneBatch()
+		defer h.EndZoneBatch()
+	}
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
 		// A CantExile restriction withholds the object from a battlefield exile
 		// before the MoveZone (and the moved bookkeeping) is produced -- the

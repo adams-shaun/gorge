@@ -109,10 +109,11 @@ func TestElvishWarmasterTokenOncePerTurn(t *testing.T) {
 	e.BeginZoneBatch()
 	elfA := zallEnter(t, e, 0, "Llanowar Elves")
 	elfB := zallEnter(t, e, 0, "Llanowar Elves")
+	// The bracket holds both entries' trigger checks until it closes (CR 603.6a), so the count is read after EndZoneBatch.
+	e.EndZoneBatch()
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("two Elves entering queued %d trigger(s), want 1 (ActivationLimit$ 1 latch)", len(e.pendingTriggers))
 	}
-	e.EndZoneBatch()
 	if got := e.G.Obj(elfA).Zone; got != state.ZBattlefield {
 		t.Fatalf("precondition: first Llanowar Elves in %s, want Battlefield", got)
 	}
