@@ -31,6 +31,16 @@ import (
 // Policy is the registry name of the policy.
 const Policy = "forge-heuristic"
 
+// HoldPolicy is the registry name of the same policy with the A6
+// instant-speed hold rule forced on, so a bench can A/B it by policy name.
+const HoldPolicy = "forge-heuristic-hold"
+
+// OptHoldInstant is the declared option that arms the A6 instant-speed hold
+// rule on Policy.
+const OptHoldInstant = "hold-instant"
+
+const holdInstantHelp = "arm the A6 instant-speed hold rule (hold instants outside the respond / opponent post-combat / combat-trick windows)"
+
 func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name:        Policy,
@@ -50,7 +60,31 @@ func init() {
 		}},
 		Cost:    bots.Cost{Scope: "per decision", Note: "not measured; same policy shape as bot, INFERRED <1 ms", Source: "docs/design/2026-10-19-a2-target-rules.md"},
 		Formats: []string{"constructed", "commander"},
+		Options: []bots.OptionSpec{{
+			Key:     OptHoldInstant,
+			Type:    "bool",
+			Default: "false",
+			Help:    holdInstantHelp,
+		}},
 	}, New: New})
+	bots.Register(bots.Entry{Info: bots.Info{
+		Name:        HoldPolicy,
+		Label:       "Forge heuristic + hold",
+		Description: "Forge heuristic with the A6 instant-speed hold rule armed: it holds instants outside the respond, opponent post-combat and combat-trick windows.",
+		Tier:        bots.Experimental,
+		Strength: []bots.Measurement{{
+			Claim:  "not measured",
+			Source: "cli-20261021T151254Z-b05edce8",
+		}},
+		Cost:    bots.Cost{Scope: "per decision", Note: "not measured; same policy shape as forge-heuristic", Source: "cli-20261021T151254Z-b05edce8"},
+		Formats: []string{"constructed", "commander"},
+	}, New: func(o bots.Options) (seat.Seat, error) {
+		if o.Config == nil {
+			o.Config = map[string]string{}
+		}
+		o.Config[OptHoldInstant] = "true"
+		return New(o)
+	}})
 }
 
 // simParams is the production combat simulation's parameters with the A7
@@ -76,6 +110,7 @@ func New(o bots.Options) (seat.Seat, error) {
 		CounterTop:    true,
 		DrawTokenLate: true,
 		PumpInCombat:  true,
+		HoldInstant:   o.Bool(OptHoldInstant),
 	}).EnableAIHints(botpolicy.AIHints{
 		Enabled: true,
 	}).EnableAttachRules(botpolicy.AttachRules{

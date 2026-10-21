@@ -8,7 +8,7 @@ import (
 )
 
 func TestRegister(t *testing.T) {
-	for _, name := range []string{"bot", "lethal-pressure", "az-redeal", "sb-tactical", "forge-heuristic"} {
+	for _, name := range []string{"bot", "lethal-pressure", "az-redeal", "sb-tactical", "forge-heuristic", "forge-heuristic-hold"} {
 		if _, ok := bots.Lookup(name); !ok {
 			t.Fatalf("built-in %q was not registered", name)
 		}
@@ -29,11 +29,11 @@ func TestNormalize(t *testing.T) {
 
 func TestEntries(t *testing.T) {
 	entries := bots.Entries()
-	// gorge links five built-ins (bots/all); the research policies register
+	// gorge links six built-ins (bots/all); the research policies register
 	// from four-yay. The count pin and name-based blocks below move together
 	// with the built-in set; update this test deliberately on the next policy.
-	if len(entries) != 5 {
-		t.Fatalf("Entries() has %d entries, want 5", len(entries))
+	if len(entries) != 6 {
+		t.Fatalf("Entries() has %d entries, want 6", len(entries))
 	}
 	if entries[0].Name != "bot" || entries[0].Tier != bots.Production {
 		t.Fatalf("production entry is not first: %+v", entries[0])
