@@ -745,6 +745,33 @@ type LayerTables struct {
 	// that per-candidate bind, the same immutable value-slice shape as
 	// DerivedTypes/DerivedColors and nil on the common board.
 	DerivedKeywords []ObjectKeywords
+	// CDAPTs optionally supplies the current and base P/T of every object,
+	// in ANY zone, whose face prints a characteristic-defining P/T (a star,
+	// cards.Face.CharacteristicDefining): rules' Derived values, which apply
+	// the CDA wherever the card is (CR 604.3), so a filter's power predicate
+	// reads Consuming Aberration in a library as its CDA value and never its
+	// printed star as 0 (CR 208.2a). Consulted only when the candidate has no
+	// per-object DerivedPower/BasePower bind. The same immutable value-slice
+	// shape as DerivedTypes; built on demand (LayerCDAPT) and nil when no such
+	// object exists.
+	CDAPTs []ObjectPT
+}
+
+// ObjectPT binds one object to its current and base (through layer 7b)
+// power and toughness.
+type ObjectPT struct {
+	ID                                         state.ObjID
+	Power, Toughness, BasePower, BaseToughness int32
+}
+
+// cdaPT returns o's entry in the CDAPTs table.
+func (t *LayerTables) cdaPT(id state.ObjID) (*ObjectPT, bool) {
+	for i := range t.CDAPTs {
+		if t.CDAPTs[i].ID == id {
+			return &t.CDAPTs[i], true
+		}
+	}
+	return nil, false
 }
 
 // keywordPredicateMatches reads bare keyword predicates through keywordInCtx
