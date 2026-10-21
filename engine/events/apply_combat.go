@@ -382,9 +382,13 @@ func foldMyriadCopy(g *state.Game, e *Event) {
 	// events.MoveZone).
 	src := g.Obj(e.Obj)
 	if validPlayer(g, e.Player) && src != nil && src.Face() != nil {
-		o := g.AddObject(src.Card, e.Player)
+		card, faceIdx, basis := copyTokenBasis(src)
+		o := g.AddObject(card, e.Player)
 		tallyTokenCreated(g, e.Player)
-		o.SetFaceIdx(src.FaceIdx)
+		o.SetFaceIdx(faceIdx)
+		if basis != nil {
+			o.SetCopyFace(basis)
+		}
 		o.IsToken = true
 		o.IsCopy = true
 		o.IsMyriad = true
