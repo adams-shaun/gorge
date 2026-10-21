@@ -1323,7 +1323,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			if prefetchedRememberedSub {
 				c.PickedTargets = nil
 			}
-			recordParentLink(c, sa, nil, false)
+			// CR 608.2b: the root link's targeting answer is Ctx.Targets (the
+			// placement/announcement ask's rechecked set). Record it even when
+			// the recheck emptied it, so a later ParentTarget does not fall
+			// back to a Ctx.Targets the chain has since seeded with its own
+			// sub target (Infectious Bite's gone first target). A body that
+			// consumed its own answer through noteLinkAnswer keeps that answer.
+			rootTargets, rootAnswered := c.Targets, d == 0 && !c.linkAnswered
+			recordParentLink(c, sa, rootTargets, rootAnswered)
 			rememberChosenTargets(h, c, sa, nil, false)
 		}
 		imprint(h, c, sa)
