@@ -66,6 +66,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				Amount: ev.Amount, Text: "prevented: protection"})
 		}
 	}
+	// CR 701.3a/b: an Attach that would fasten the on-battlefield attachment
+	// to the bearer it is already attached to does nothing (no event at
+	// all), and one that would fasten it to a bearer the attachment SBAs
+	// (engine/rules/attach.go attachmentSBAs) would at once undo is refused
+	// with one Note, the object keeping its current bearer. The refusal runs
+	// BEFORE the protection guard so a refused attach never detaches.
+	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 {
+		if refused, note := e.attachRefused(ev.Obj, ev.IDs[0]); refused {
+			if !note {
+				return events.Event{}
+			}
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: illegal bearer"})
+		}
+	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
 		e.protectedFrom(ev.IDs[0], ev.Obj) {
 		// Defence in depth: current targeting rules make this unreachable, but
@@ -73,6 +87,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// targeting step may reach it. Keep the guard central; tests must prove
 		// a reachable game state rather than calling emit directly.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
+	}
+	// CR 701.3b: an attach that goes ahead from a DIFFERENT former bearer
+	// publishes the Unattached first (the Mode$ Unattached family: Captain's
+	// Hook, Grafted Exoskeleton, Grafted Wargear, Stitcher's Graft) so a
+	// refused attach never detaches. Moved here from engine/effects'
+	// emitAttach, which only effects-side attach paths reach: every Attach
+	// path (Living Weapon, token AttachedTo$, aura entry) funnels through
+	// this emit. A fresh attach (AttachedTo == 0) or the same-bearer no-op
+	// swallowed above emits none.
+	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 {
+		if o := e.G.Obj(ev.Obj); o != nil && o.AttachedTo != 0 && o.AttachedTo != ev.IDs[0] {
+			e.emit(events.Event{Kind: events.Unattached, Obj: ev.Obj,
+				IDs:  []state.ObjID{o.AttachedTo},
+				Text: "reattached to a new permanent"})
+		}
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && ev.Text == "attach to player" {
 		if attaching := e.G.Obj(ev.Obj); attaching != nil && e.isAura(attaching) &&

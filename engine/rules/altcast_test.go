@@ -608,7 +608,7 @@ func TestWarpCastsFromTheGraveyardExileAtEndStepAndRecastFromExile(t *testing.T)
 	replayCheck(t, e, cfg)
 }
 
-func TestMadnessEmrakulUsesOptionalReplacementAndRespondableTrigger(t *testing.T) {
+func TestMadnessEmrakulUsesMandatoryReplacementAndRespondableTrigger(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := altCostEngine(t, 918, []string{"Emrakul, the World Anew", "Mind Rot"}, []string{altRedSrc}, nil)
 	emrakul := findCardObj(t, e, 0, "Emrakul, the World Anew", state.ZHand)
@@ -641,13 +641,8 @@ func TestMadnessEmrakulUsesOptionalReplacementAndRespondableTrigger(t *testing.T
 		}
 	}
 	submitChoices(t, e, emrakulIdx, emberIdx)
-	// CR 702.35a: Madness first offers an optional replacement. Nothing has
-	// moved until the owner accepts it.
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KReplacement || e.G.Obj(emrakul).Zone != state.ZHand {
-		t.Fatalf("madness replacement: pending=%+v zone=%s", d, e.G.Obj(emrakul).Zone)
-	}
-	submitChoices(t, e, 0) // exile instead of putting it in the graveyard
+	// CR 702.35a: Madness's replacement is mandatory -- the discard goes
+	// straight to exile, with no replacement ask (cr-g29).
 	if e.G.Obj(emrakul).Zone != state.ZExile || e.G.Obj(ember).Zone != state.ZGraveyard {
 		t.Fatalf("discard destinations: Emrakul=%s Ember=%s", e.G.Obj(emrakul).Zone, e.G.Obj(ember).Zone)
 	}
@@ -694,7 +689,7 @@ func TestMadnessTriggerCanBeStifled(t *testing.T) {
 	addMana(t, e, 0, "U")
 	e.pending = nil
 	e.emit(events.Discard(emrakul, 0))
-	submitChoices(t, e, 0) // accept the exile replacement
+	e.priorityRound() // the mandatory exile queued the madness trigger (CR 702.35a)
 	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Ability.API != "MadnessCast" {
 		t.Fatalf("madness did not create one stack trigger: %v", e.G.Stack)
 	}
@@ -714,30 +709,6 @@ func TestMadnessTriggerCanBeStifled(t *testing.T) {
 	passUntilStackEmpty(t, e, 60)
 	if o := e.G.Obj(emrakul); o.Zone != state.ZExile {
 		t.Fatalf("Stifled madness trigger moved Emrakul to %s", o.Zone)
-	}
-	replayCheck(t, e, cfg)
-}
-
-func TestMadnessReplacementMayBeDeclined(t *testing.T) {
-	t.Parallel()
-	e, cfg, _ := altCostEngine(t, 934, []string{"Emrakul, the World Anew"}, nil, nil)
-	id := findCardObj(t, e, 0, "Emrakul, the World Anew", state.ZHand)
-	// This is the event every discard implementation proposes; the real
-	// Emrakul keyword supplies the replacement being tested.
-	e.pending = nil
-	e.emit(events.Discard(id, 0))
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KReplacement || e.G.Obj(id).Zone != state.ZHand {
-		t.Fatalf("optional madness replacement: pending=%+v zone=%s", d, e.G.Obj(id).Zone)
-	}
-	submitChoices(t, e, 1) // decline exile
-	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
-		t.Fatalf("declined madness replacement moved Emrakul to %s", o.Zone)
-	}
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.KeywordTriggerPush && ev.Obj == id {
-			t.Fatal("declined madness replacement created a trigger")
-		}
 	}
 	replayCheck(t, e, cfg)
 }

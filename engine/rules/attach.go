@@ -181,6 +181,45 @@ func (e *Engine) attachmentSBAs() bool {
 	return changed
 }
 
+// attachRefused implements the CR 701.3a/b refusal half of emit's Attach
+// gate: refused is true when an Attach fastening the on-battlefield object
+// obj to bearerID would either do nothing (obj is already attached to that
+// permanent) or fasten it to something the attachment SBAs would at once
+// undo (an Aura whose current enchant spec does not admit the bearer, an
+// Equipment whose bearer is not a creature or is an attached Reconfigure or
+// an impending permanent, a Fortification whose bearer is not a land). The
+// predicates are the same ones attachmentSBAs reads below, so an attach the
+// SBA would undo is exactly an attach that is refused. note is true when the
+// refusal is worth a Note (an illegal bearer) rather than silent (the
+// same-bearer no-op of CR 701.3b's "the effect does nothing"). The gate is
+// not judged for an attaching object off the battlefield (an Aura spell
+// attaching while it resolves from the stack), a bestowed attachment, an
+// off-battlefield bearer (Animate Dead's graveyard card) or a player bearer.
+func (e *Engine) attachRefused(obj, bearerID state.ObjID) (refused, note bool) {
+	o := e.G.Obj(obj)
+	if o == nil || o.Zone != state.ZBattlefield || o.BestowedAttached() {
+		return false, false
+	}
+	if o.AttachedTo == bearerID && !o.HasAttachedPlayer {
+		return true, false
+	}
+	bearer := e.G.Obj(bearerID)
+	if bearer == nil || bearer.Zone != state.ZBattlefield {
+		return false, false
+	}
+	switch {
+	case e.isAura(o):
+		return !e.auraStillMatchesEnchant(o, bearer), true
+	case e.isEquipment(o):
+		// CR 702.150c: an attached Reconfigure card is not a creature, and
+		// an impending permanent is not yet a creature either.
+		return bearer.ReconfiguredAttached() || bearer.ImpendingDormant() || !e.IsCreature(bearer.ID), true
+	case e.isFortification(o):
+		return !e.IsLand(bearer.ID), true
+	}
+	return false, false
+}
+
 // auraStillMatchesEnchant reports whether bearer still satisfies the Aura's
 // Enchant keyword's restriction (the "creature" of K:Enchant:Creature, or the
 // more specific "Creature.YouCtrl" a real card spells; the first field after

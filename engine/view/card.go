@@ -353,6 +353,12 @@ type projector struct {
 	looker interface {
 		MayLookAtFaceDown(state.PlayerID, state.ObjID) bool
 	}
+	// revealer is ch's optional "play with the top card revealed" read
+	// (rules.Engine.LibraryTopRevealed, CR 401.5), nil when ch lacks it --
+	// the top card is then shown only through MayLookAtLibraryTop.
+	revealer interface {
+		LibraryTopRevealed(state.PlayerID) bool
+	}
 }
 
 func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratch) projector {
@@ -363,6 +369,9 @@ func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratc
 	p.namer, _ = ch.(interface{ Name(state.ObjID) string })
 	p.looker, _ = ch.(interface {
 		MayLookAtFaceDown(state.PlayerID, state.ObjID) bool
+	})
+	p.revealer, _ = ch.(interface {
+		LibraryTopRevealed(state.PlayerID) bool
 	})
 	p.vchars, _ = ch.(interface {
 		ViewCharacteristics(state.ObjID) (string, bool, []string, int32, int32)

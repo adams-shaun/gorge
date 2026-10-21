@@ -6,13 +6,30 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// MillCostPayable reports whether payer p can pay every Mill<N> cost
+// component in full: CR 701.17b, "the player can't pay a cost that includes
+// milling a number of cards greater than the number of cards in their
+// library" (CR 118.3). The requirement is the SUM of the parts, so a composed
+// Mill<1> Mill<1> needs two cards. A cost with no Mill part is payable; a
+// negative part (MillCostTotal's !ok) never is. Every Mill offer gate --
+// NonManaCastableP, ManaCostPayableFull and unlessComponentsPayable -- reads
+// this one helper, so the three cannot disagree.
+func MillCostPayable(g *state.Game, p state.PlayerID, parts []costvocab.CostPart) bool {
+	if len(parts) == 0 {
+		return true
+	}
+	total, ok := costvocab.MillCostTotal(parts)
+	return ok && total <= int64(len(g.Zone(state.ZLibrary, p)))
+}
+
 // PayMillCost settles every Mill<N> cost component: the payer mills the SUM
 // of the parts' requirements from the top of their own library, one real
 // MoveZone event per card in deterministic top-first order. The moves share a
 // mill batch so MilledAll triggers once for this cost payment. No choice is
-// involved, so nothing is asked. A mill instruction moves all remaining cards
-// when its count exceeds the library size, so the snapshot clamps to the
-// available prefix.
+// involved, so nothing is asked. The offer gates (MillCostPayable) withhold a
+// cost the library cannot cover (CR 701.17b), so the clamp below is only a
+// guard for a library a mana ability shrank mid-payment; it never makes a
+// short library payable.
 func PayMillCost(e Engine, p state.PlayerID, parts []costvocab.CostPart) {
 	total, ok := costvocab.MillCostTotal(parts)
 	if !ok || total <= 0 {

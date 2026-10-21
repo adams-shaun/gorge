@@ -262,13 +262,38 @@ func (e *Engine) grantedSVarsFor(id state.ObjID) map[string]string {
 // mayLookAtObject: the spec matching is shared, the object here comes from a
 // zone lookup the battlefield read cannot do.
 func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
+	return e.libraryTopLook(p, false)
+}
+
+// LibraryTopRevealed reports whether the top card of p's library is
+// revealed to every player right now: a live MayLookAt$ Player grant
+// ("play with the top card of your library revealed", Courser of Kruphix;
+// CR 401.5) whose Affected$ spec matches it. The view's optional
+// LibraryTopRevealed capability shows that card to every seat; a MayLookAt$
+// You grant (Vizier of the Menagerie) stays the owner's private look.
+func (e *Engine) LibraryTopRevealed(p state.PlayerID) bool {
+	return e.libraryTopLook(p, true)
+}
+
+// libraryTopLook is the shared read: any live MayLookAt grant (all false)
+// or only a revealing one (all true) over the top of p's library.
+func (e *Engine) libraryTopLook(p state.PlayerID, all bool) bool {
 	lib := e.G.Zone(state.ZLibrary, p)
 	if len(lib) == 0 {
 		return false
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if ce.MayLookAt && e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
+		if !ce.MayLookAt || (all && !ce.MayLookAtAll) {
+			continue
+		}
+		// A hand-reveal grant (Telepathy, Enduring Renewal: MayLookAt$ over
+		// AffectedZone$ Hand) names no library card, whatever its Affected$
+		// spec would match on a library top.
+		if ce.AffectedZone != "" && ce.AffectedZone != "Library" {
+			continue
+		}
+		if e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
 			return true
 		}
 	}
@@ -281,7 +306,9 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 // remains exiled", MayLookAt$ You over Card.IsRemembered in exile): the
 // static's Affected$ spec matches id and its controller is p (every
 // exile-zone MayLookAt$ value in the corpus is You or True, the static's
-// controller -- layers.go's MayLookAt branch). The view's optional
+// controller -- layers.go's MayLookAt branch). The controller is the default
+// looker; a MayPlayPlayer$ Exiler value (Shared Fate) names the player
+// recorded in Object.ExiledBy instead. The view's optional
 // MayLookAtFaceDown capability (engine/view/card.go mayLookFaceDown), so the
 // face is shown to exactly the seat the grant names (CR 406.3; cr-g64). A
 // read over active()'s sorted slice; the answer is boolean.
@@ -292,7 +319,17 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if !ce.MayLookAt || ce.Controller != p {
+		if !ce.MayLookAt {
+			continue
+		}
+		you := ce.Controller
+		switch {
+		case mayPlayExiler(ce.MayPlayPlayer):
+			if !o.HasExiledBy || o.ExiledBy != p {
+				continue
+			}
+			you = p
+		case ce.Controller != p:
 			continue
 		}
 		// A printed static may grant a look at another zone (Enduring
@@ -306,12 +343,15 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 		// through the effect's Remembered set: its Affected$ Card.IsRemembered
 		// matches under the same context the effect's may-play grant uses.
 		if len(ce.Remembered) > 0 {
+			if you != ce.Controller {
+				continue
+			}
 			if e.matchesSpec(ce.Affects, id, e.effectGrantSpecContext(ce)) {
 				return true
 			}
 			continue
 		}
-		if e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
+		if e.matchesSpecFrom(ce.Affects, id, you, ce.Source) {
 			return true
 		}
 	}

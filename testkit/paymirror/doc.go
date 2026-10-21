@@ -186,7 +186,9 @@
 //	staticGates, staticGatesKnown      the static memo's gate records, carried only with a
 //	                                   copied memo
 //	renameObjs, renameDSeq,            the rename table's cache keys (the renames/* class)
-//	renameBFSeq
+//	renameBFSeq, renameBranchCounts    and the E2 measurement diagnostic counting
+//	                                   refreshRenames' exits (never read by rules;
+//	                                   Clone resets it)
 //	trigZeroNoopEp/Objs/Ver            checkFaceTriggers' zero-interest no-op memo key
 //	atkOffers, atkOffersEp/Ver/       attackOffers' layer-inert reuse: the last list and its key
 //	Objs/Active

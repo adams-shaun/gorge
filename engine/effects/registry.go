@@ -905,6 +905,8 @@ const (
 	LayerColors
 	// LayerKeywords asks for LayerTables.DerivedKeywords.
 	LayerKeywords
+	// LayerCDAPT asks for LayerTables.CDAPTs.
+	LayerCDAPT
 )
 
 // layerTablesHost is implemented by the rules engine to publish the board's
@@ -941,6 +943,9 @@ func layerTablesFor(h Host, sa *cards.SA) LayerTables {
 		if saMentionsKeywords(sa) {
 			want |= LayerKeywords
 		}
+		if saMentionsPT(sa) {
+			want |= LayerCDAPT
+		}
 	}
 	return lh.LayerTables(want)
 }
@@ -972,6 +977,21 @@ func saMentionsKeywords(sa *cards.SA) bool {
 	for depth := 0; sa != nil && depth < 32; depth++ {
 		for _, v := range sa.Params {
 			if strings.Contains(v, "with") || strings.Contains(v, "hasKeyword") {
+				return true
+			}
+		}
+		sa = sa.Sub
+	}
+	return false
+}
+
+// saMentionsPT reports whether any parameter of sa, or of a sub-ability
+// chained under it (the walk shares one Ctx), is a filter that reads a P/T
+// field (SpecReadsPT): only such a body can observe LayerTables.CDAPTs.
+func saMentionsPT(sa *cards.SA) bool {
+	for depth := 0; sa != nil && depth < 32; depth++ {
+		for _, v := range sa.Params {
+			if SpecReadsPT(v) {
 				return true
 			}
 		}

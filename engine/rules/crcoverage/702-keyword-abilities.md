@@ -32,7 +32,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.16k | unknown | - | - | protection from a player not located |
 | 702.16n,p | unknown | - | - | "doesn't remove" Auras not located |
 | 702.17a-c | follows | `engine/rules/combat/block.go#CanBlock` | - |  |
-| 702.18a,b | partial | `engine/rules/protection.go#Engine.shroudBlocksTarget` `engine/rules/playerkeywords.go#Engine.playerShroudBlocksTarget` | - | granted shroud enforced; 37 printed carriers gated (false gap) |
+| 702.18a,b | follows | `engine/rules/protection.go#Engine.shroudBlocksTarget` `engine/rules/playerkeywords.go#Engine.playerShroudBlocksTarget` | `TestPrintedShroudWithholdsCastWhenSoleTarget` `TestLightningGreavesGrantedShroudBlocksTargeting` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.19a,d | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.lethalDamageNeed` | - | blocked-with-no-blockers trample hits player |
 | 702.19b | partial | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.lethalDamageNeed` | - | excess split is never a choice: all to player |
 | 702.19c,e | deviates | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.combatDefenderTarget` `engine/cards/face.go#KeywordHead` | - | Thrasta treated as plain trample; silent |
@@ -46,7 +46,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.24b | follows | `engine/cards/keywords.go#Face.expandKeywords` `engine/rules/cumulative.go#Engine.startCumulativeUpkeep` | - | per-instance trigger; no two-instance test |
 | 702.25a | follows | `engine/cards/kw_flanking.go#kwFlanking` `engine/rules/trigger_blocks.go#isFlankingMarker` | `TestFlankingKnightOfTheHolyNimbusDebuffsBlockers` | one trigger per non-flanking blocker |
 | 702.25b | follows | `engine/cards/kw_flanking.go#kwFlanking` `engine/rules/trigger_blocks.go#Engine.flankingInstances` | `TestFlankingSecondInstanceTriggersSeparately` `TestFlankingChainedGrantsStackInstances` | kw_flanking.go:16-18 comment wrongly calls this out of scope |
-| 702.26a | partial | `engine/rules/turn.go#Engine.finishUntapStep` | `TestKatabaticWindsKeywordPhasesOutAndIn` | works; kw:Phasing unregistered gates 13 printed carriers |
+| 702.26a | follows | `engine/rules/turn.go#Engine.finishUntapStep` | `TestKatabaticWindsKeywordPhasesOutAndIn` `TestCR702PhasingKeywordTogglesAtUntapStep` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.26b | follows | `engine/rules/layers_types.go#Engine.matchesWithCharsPT` `engine/rules/combat/block.go#CanBlock` `engine/rules/walkcache.go#Engine.scanBoardStaticsPrintedLists` | `TestCR702PhasedOutAttackerIsRemovedFromCombat` `TestCR702PhasedOutPermanentActivatedAbilityNotOffered` `TestCR702PhasedOutPermanentIsNotATarget` | treated as nonexistent; removed from combat |
 | 702.26c | follows | `engine/events/apply_combat.go#foldPhaseOut` | - |  |
 | 702.26d | follows | `engine/events/apply_combat.go#foldPhaseOut` | - |  |
@@ -73,7 +73,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.33b,c,f | follows | `engine/rules/cast_altcost.go#twoPartKickerCosts` `engine/rules/cast_asks.go#Engine.multikickAsk` | - |  |
 | 702.33h | unknown | - | - | sticker kicker (Unfinity) not checked |
 | 702.34a | follows | `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` `engine/effects/resolve.go#effCounter` `engine/effects/misc.go#effWard` `engine/state/object.go#ExilesLeavingStack` | `TestCR702_34aFlashbackSpellExiledWhereverItWouldGo` `TestCR702_34aRemandOrdinarySpellStillGoesToHand` `TestCR702_34aReversedFlashbackCastReturnsToGraveyard` `TestFlashbackedSpellCounteredGoesToExile` | - |
-| 702.35a | deviates | `engine/rules/altcast.go#Engine.madnessReplacementApplies` `engine/rules/altcast.go#Engine.askMadnessReplacement` | `TestMadnessReplacementMayBeDeclined` | madness exile offered as optional; granted madness ignored (helper) |
+| 702.35a | partial | `engine/rules/altcast.go#Engine.madnessReplacementApplies` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` `engine/rules/altcast.go#Engine.offerMadness` | `TestCR702_35aMadnessExileIsMandatory` `TestMadnessEmrakulUsesMandatoryReplacementAndRespondableTrigger` `TestMadnessDiscardDuringARepeatExilesInPlace` | mandatory exile; granted madness ignored (printed face only) (helper) |
 | 702.35b | follows | `engine/rules/cast_init.go#init` | - | (helper) |
 | 702.35c | unknown | - | - | (helper) |
 | 702.36a-c | partial | `engine/rules/combat/block.go#CanBlock` | - | artifact test reads printed face (helper) |
@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.37g | n/a | - | - | cross-reference to 708 |
 | 702.38a,b | not-impl | - | - | LOUD (9) |
 | 702.39a,b | not-impl | - | - | LOUD printed (8); SILENT granted (Hunter Sliver) |
-| 702.40a | deviates | `engine/cards/kw_storm.go#kwStorm` `engine/rules/host_cast_ledger.go#Engine.CastThisTurn` | - | storm count read at resolution, responses inflate it (helper) |
+| 702.40a | follows | `engine/cards/kw_storm.go#kwStorm` `engine/rules/trigger_referents.go#Engine.triggerReferents` `engine/effects/count_ref.go#evalTriggerCountOK` `engine/rules/storm_granted.go#Engine.checkGrantedStormTriggers` `engine/events/apply_trigger.go#StormGrantedBody` | `TestCR702_40aStormCountsSpellsCastBeforeIt` `TestStormCopiesTheSpellOncePerSpellCastBefore` `TestGrantedStormCountsSpellsCastBeforeIt` | count fixed when the trigger fires, granted storm included (helper) |
 | 702.40b | follows | `engine/cards/keywords.go#Face.expandKeywords` | `TestGrantedStormCopiesForEachEarlierSpell` |  |
 | 702.41a,b | follows | `engine/cards/kw_affinity.go#kwAffinity` | - | Frogmite, Scales of Shale, Claws Out lowered |
 | 702.42a,b | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestEntwinePaidChoosesEveryModeAndCharges` |  |
@@ -109,7 +109,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.60a,b | not-impl | - | - | LOUD printed (5); SILENT granted (Thrumming Stone) |
 | 702.61a-c | follows | `engine/rules/split_second.go#Engine.splitSecondHolds` `engine/rules/split_second.go#Engine.filterSplitSecondActions` | `TestVATSSplitSecondWithholdsCastsAndActivations` | mana abilities, special actions kept |
 | 702.62a-d | follows | `engine/rules/cast_altcost.go#suspendCost` `engine/rules/resolution_suspend.go#Engine.Suspended` | - | not audited in depth |
-| 702.63a-c | partial | `engine/cards/kw_vanishing.go#kwVanishing` | `TestFleshDuplicateETBGrantedVanishing` | works; kw:Vanishing unregistered gates 21 printed |
+| 702.63a-c | follows | `engine/cards/kw_vanishing.go#kwVanishing` | `TestFleshDuplicateETBGrantedVanishing` `TestVanishingDeepForestHermitUpkeepAndLastCounter` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.64a-c | not-impl | - | - | SILENT (granted-only in corpus) |
 | 702.65a,b | not-impl | - | - | LOUD (1) |
 | 702.66a-c | follows | `engine/rules/cast_altcost.go#Engine.hasCastDelve` `engine/rules/cast_subcounter.go#Engine.delveAsk` `engine/rules/cast_altcost.go#Engine.delveCredit` | `TestGrantedDelveReachesTheCastSpell` |  |
@@ -135,7 +135,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.85b,c | follows | `engine/rules/cascade.go#Engine.queueCascadeTriggers` | - |  |
 | 702.86a,b | follows | `engine/cards/kw_annihilator.go#kwAnnihilator` | `TestAnnihilatorArtisanSacrificesThePrintedAmount` |  |
 | 702.87a-c | follows | `engine/cards/kw_levelup.go#kwLevelUp` | - |  |
-| 702.88a-c | partial | `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/resolution_chain.go#Engine.moveResolvedOffStack` | `TestReboundTargetRestrictionOnlyOffersPlayersKernel` | works incl. granted; kw:Rebound unregistered gates 35 printed |
+| 702.88a-c | follows | `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/resolution_chain.go#Engine.moveResolvedOffStack` | `TestReboundTargetRestrictionOnlyOffersPlayersKernel` `TestReboundCorpusCarrierExilesAndOffers` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.89a,b | partial | `engine/rules/umbra.go#Engine.UmbraArmorAura` | `TestBearUmbraSavesBearerFromDestroySpell` | two umbra Auras: first chosen, no CR 616.1 choice |
 | 702.90a-f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` | `TestInfectDamageToCreatureIsMinusOneCountersNotMarkedDamage` |  |
 | 702.91a,b | follows | `engine/cards/kw_battle_cry.go#kwBattleCry` | `TestBattleCryPumpsOtherAttackingCreatures` |  |
@@ -163,7 +163,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.109 | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/altcast.go#Engine.altCostEnter` | `TestDashCastsGainHasteAndReturnAtTheEndStep` `TestDashDelayedReturnDoesNotFollowABlinkedPermanent` |  |
 | 702.110 | follows | `engine/cards/kw_exploit.go#kwExploit` `engine/effects/exploit.go#effExploit` | `TestColonelAutumnExploitElectionSacrificesAndFiresItsOwnTrigger` `TestColonelAutumnExploitDeclineSacrificesNothing` | ETB optional sacrifice |
 | 702.111 | follows | `engine/rules/combat.go#Engine.validateBlockers` `engine/rules/combat.go#Engine.blockPairScopeFor` | `TestMenaceBlockDeclarationNeedsZeroOrAtLeastTwoBlockers` `TestMenaceAgainstOneLegalBlockerPosesNoPair` |  |
-| 702.112 | not-impl | `engine/cards/kw_renown.go#kwRenown` `engine/state/object.go#Object.Renowned` | `TestConstableOfTheRealmRenownPutsTwoCountersOnce` |  |
+| 702.112 | follows | `engine/cards/kw_renown.go#kwRenown` `engine/state/object.go#Object.Renowned` | `TestConstableOfTheRealmRenownPutsTwoCountersOnce` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.113 | not-impl | - | - |  |
 | 702.114 | follows | `engine/rules/chars/derive.go#Compute` | `TestDevoidCreatureIsColourless` `TestGrantedProtectionCountsAndDevoidIsColourless` |  |
 | 702.115 | not-impl | - | - |  |
@@ -210,10 +210,10 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.147 | follows | `engine/rules/combat/restrictions.go#ParseHiddenKeyword` `engine/rules/trigger_granted.go#Engine.checkGrantedAttackKeywordTriggers` | `TestDecayedCannotBlock` `TestDecayedCounterGrantsBothRules` | Can't block |
 | 702.148 | not-impl | `engine/cards/face.go#Face.SpellAbility` | - | SILENT (D4, cr-g35): second SP ignored; cleave cast never offered, carriers count playable |
 | 702.149 | follows | `engine/cards/kw_training.go#kwTraining` `engine/rules/trigger_granted.go#Engine.checkGrantedTrainingTriggers` | `TestTrainingCounterOnAttackWithABiggerCreature` `TestTrainingIgnoresAnEqualPowerAttacker` |  |
-| 702.150 | not-impl | `engine/events/entry_counters.go#EntryCounterGrants` `engine/state/object.go#Object.CompleatedLifePaid` | `TestCompleatedLoyaltyFollowsPhyrexianLifePaid` |  |
+| 702.150 | follows | `engine/events/entry_counters.go#EntryCounterGrants` `engine/state/object.go#Object.CompleatedLifePaid` | `TestCompleatedLoyaltyFollowsPhyrexianLifePaid` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.151 | follows | `engine/cards/kw_reconfigure.go#kwReconfigure` `engine/effects/attach.go#effAttach` | `TestRazorfieldRipperReconfigureAttachAndUnattach` `TestAttachedReconfigureIsNotACreature` | Sorcery-speed attach/unattach |
 | 702.152 | follows | `engine/rules/cast_altcost.go#Engine.blitzCosts` `engine/rules/blitz.go#Engine.blitzEnter` | `TestBlitzedCreatureIsSacrificedAtTheNextEndStep` `TestBlitzedCreatureDrawsWhenItDies` |  |
-| 702.153 | not-impl | `engine/rules/cast_altcost.go#Engine.casualtySpec` | `TestCasualtyPrintedSpellSacrificeCopiesTarget` |  |
+| 702.153 | follows | `engine/rules/cast_altcost.go#Engine.casualtySpec` | `TestCasualtyPrintedSpellSacrificeCopiesTarget` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.154 | deviates | `engine/rules/enlist.go#Engine.applyEnlist` `engine/rules/enlist.go#Engine.enlistOfferList` | `TestAradeshEnlistElectionPumpAndTrigger` | No reflexive trigger, X frozen |
 | 702.155 | not-impl | - | - |  |
 | 702.156 | follows | `engine/cards/kw_ravenous.go#kwRavenous` | `TestJackedRabbitRavenousX5CountersAndDraw` `TestJackedRabbitRavenousX3CountersNoDraw` | Enters with X counters |

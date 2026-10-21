@@ -8,7 +8,6 @@ Bands with other
 Battle Cry
 Bushido
 CantSearchLibrary
-Casualty
 Double team
 Foretell on any player's turn
 Freerunning
@@ -19,7 +18,6 @@ MustBeBlockedBy Creature.Dalek
 MustBeBlockedBy Creature.Eldrazi
 OnlyUntapChosen
 PayLifeInsteadOf
-Phasing
 Piracy
 Poisonous
 Protection from EachCMCAmongDefined
@@ -32,12 +30,8 @@ Provoke
 Prowl
 Rampage
 Read ahead
-Rebound
-Renown
 Ripple
 Scavenge
 Shaman's Trance
-Shroud
 Soulshift
 UntapAdjust
-Vanishing

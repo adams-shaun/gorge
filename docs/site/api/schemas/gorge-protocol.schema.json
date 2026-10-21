@@ -2863,7 +2863,7 @@
         },
         "library_top": {
           "$ref": "#/$defs/CardView",
-          "description": "LibraryTop is the player's own library's top card, revealed only when a live Continuous MayLookAt grant covers it (Oracle of Mul Daya's \"play with the top card of your library revealed\") and only to that player's own seat -- the CR 400.2 hidden-zone redaction the Hand field documents applies to it in full. nil (an omitted JSON key) for every other seat and whenever no grant is live."
+          "description": "LibraryTop is the player's own library's top card, revealed only when a live Continuous MayLookAt grant covers it (Vizier of the Menagerie's MayLookAt$ You look) and then only to that player's own seat -- the CR 400.2 hidden-zone redaction the Hand field documents applies to it -- or a MayLookAt$ Player \"play with the top card of your library revealed\" grant (Courser of Kruphix, Oracle of Mul Daya; CR 401.5) shows it to every seat. nil (an omitted JSON key) otherwise and whenever no grant is live."
         },
         "life": {
           "format": "int32",
