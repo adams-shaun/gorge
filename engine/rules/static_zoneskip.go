@@ -140,7 +140,9 @@ func objectStaticHotOn(o *state.Object) bool {
 	if o == nil {
 		return false
 	}
-	if len(o.MergedCards) > 0 {
+	// A hone counter's +1/+0 (CR 122.1j) is emitted by staticEffects from the
+	// counter, not from a face static.
+	if len(o.MergedCards) > 0 || o.Counter("HONE") > 0 {
 		return true
 	}
 	if o.CopyFace != nil && faceStaticHotOn(o.CopyFace) {
