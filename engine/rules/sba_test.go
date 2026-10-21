@@ -35,7 +35,12 @@ func TestZeroLifeEliminatesAPlayer(t *testing.T) {
 	}
 }
 
-func TestDepartureSweepUsesOwnershipOnBattlefield(t *testing.T) {
+// TestDepartureSweepExilesOpponentOwnedCardControlledByDepartedPlayer pins
+// CR 800.4a's two battlefield steps: the departed player's own owned card is
+// ceased, while an opponent-owned card the departed player controls is not
+// ceased but, as 800.4a's last step, exiled (its owner is still in the game,
+// so the move is an ordinary battlefield-to-exile MoveZone).
+func TestDepartureSweepExilesOpponentOwnedCardControlledByDepartedPlayer(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	owned := onBoard(t, e, 0, "Name:Owned\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
@@ -50,8 +55,11 @@ func TestDepartureSweepUsesOwnershipOnBattlefield(t *testing.T) {
 	if got := e.G.Obj(owned).Zone; got != state.ZCeased {
 		t.Fatalf("departed player's opponent-controlled card zone = %s, want ceased", got)
 	}
-	if got := e.G.Obj(controlled).Zone; got != state.ZBattlefield {
-		t.Fatalf("opponent-owned card controlled by departed player zone = %s, want battlefield", got)
+	if got := e.G.Obj(controlled).Zone; got != state.ZExile {
+		t.Fatalf("opponent-owned card controlled by departed player zone = %s, want exile (CR 800.4a's last step)", got)
+	}
+	if got := e.G.Obj(controlled).Owner; got != 1 {
+		t.Fatalf("exiled card owner = %d, want 1 (exile, not cessation: the owner is still in the game)", got)
 	}
 }
 
@@ -331,16 +339,21 @@ Oracle:x
 
 // TestDepartureSweepDoesNotAmplifyWhenAReplacementKeepsThePermanent is the
 // fix-round-1 regression test for the second instance of finding 1,
-// updated in fix round 3 for the tighter bound T22-n's swept set achieves.
-// An eliminated player's own permanent staying on the battlefield (via a
-// replacement effect an alive player's own permanent carries -- ValidCard$
-// on a replacement is matched against the MOVING object, not scoped to the
-// mover's controller, so an alive player's broad Moved replacement can
-// intercept a cessation) must not make checkLoseConditions' departure sweep
-// believe something changed on every pass either. Ward, played by player 0
-// (who stays alive), redirects any move from the battlefield into a 1-life
-// gain; Victim, owned by player 1 (who is eliminated), is what the sweep
-// tries and fails to cease.
+// updated in fix round 3 for the tighter bound T22-n's swept set achieves
+// and in fix round 4 for CR 800.4a's exile step. An eliminated player's own
+// permanent staying on the battlefield (via a replacement effect an alive
+// player's own permanent carries -- ValidCard$ on a replacement is matched
+// against the MOVING object, not scoped to the mover's controller, so an
+// alive player's broad Moved replacement can intercept a cessation) must not
+// make checkLoseConditions' departure sweep believe something changed on
+// every pass either. Ward, played by player 0 (who stays alive), redirects
+// any move of another card out of the battlefield into a 1-life gain -- both
+// the cessation move the sweep's first step emits and the battlefield-to-
+// exile move CR 800.4a's last step now emits for a permanent the departed
+// player controls (after the cease attempt is intercepted, Victim is still
+// on the battlefield under the departed seat, so the exile step attempts it
+// too); Victim, owned by player 1 (who is eliminated), is what the sweep
+// tries and fails to move off the battlefield.
 //
 // Against the unfixed 7b68be7 code (no bound at all) this scenario gains 32
 // life and grows the log by 36 events from one Submit. Fix round 1's
@@ -351,9 +364,10 @@ Oracle:x
 // set (T22-n, mirroring destroyLethalDamage's attempted from round 2)
 // remembers that player 1 was already swept on pass 1, so pass 2 skips the
 // attempt entirely instead of repeating it: exactly 1 blocked attempt per
-// player per checkStateBased call. The life delta below measures that bound;
-// the event count is no longer fixed because CR 800.4a now also emits one
-// cessation move for every other card that player owns.
+// player per checkStateBased call. The life delta below measures that bound
+// (one intercepted cease plus one intercepted exile, each 1 life); the event
+// count is no longer fixed because CR 800.4a now also emits one move for
+// every other card that player owns.
 func TestDepartureSweepDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 2)
@@ -361,6 +375,7 @@ func TestDepartureSweepDoesNotAmplifyWhenAReplacementKeepsThePermanent(t *testin
 ManaCost:1 W
 Types:Artifact
 R:Event$ Moved | Origin$ Battlefield | Destination$ Ceased | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
+R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
 SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
 Oracle:x
 `)
@@ -383,14 +398,16 @@ Oracle:x
 	}
 	beforeLife := e.G.Players[0].Life
 	beforeEvents := len(e.L.Events)
-	// CR 800.4a cessation emits one MoveZone per card the departing player
-	// owns, so the old fixed count of 5 no longer holds. It is still exactly
-	// determined, though, and dropping the assertion would retire the only
-	// tripwire that catches amplification in the LOG rather than in life
-	// totals -- so it is retargeted rather than deleted: one cessation per
-	// owned card, plus the same 4 non-cessation events the constant 5
-	// counted. Keyed to the measured owned count, not to a literal, so it
-	// survives a change to the deck this fixture is built from.
+	// CR 800.4a emits one move per card the departing player owns (the
+	// cessation of fix round 3's shape) plus the battlefield-to-exile move
+	// for anything it still controls, so the old fixed count of 5 no longer
+	// holds. It is still exactly determined, though, and dropping the
+	// assertion would retire the only tripwire that catches amplification in
+	// the LOG rather than in life totals -- so it is retargeted rather than
+	// deleted: one move per owned card, plus the same 4 non-sweep events the
+	// constant 5 counted and one more for the intercepted exile's life gain.
+	// Keyed to the measured owned count, not to a literal, so it survives a
+	// change to the deck this fixture is built from.
 	owned1 := 0
 	for k := range e.G.Objs {
 		if o := &e.G.Objs[k]; o.ID != 0 && o.Owner == 1 && o.Card != nil {
@@ -408,12 +425,13 @@ Oracle:x
 	if got := e.G.Obj(victim).Zone; got != state.ZBattlefield {
 		t.Fatalf("victim zone = %s, want battlefield: Ward's replacement keeps it there", got)
 	}
-	if gained := e.G.Players[0].Life - beforeLife; gained != 1 {
-		t.Fatalf("life gained after one Submit = %d, want exactly 1 (one swept attempt per player "+
-			"per checkStateBased call, not a re-attempt on every pass and not a 32-pass-amplified count)", gained)
+	if gained := e.G.Players[0].Life - beforeLife; gained != 2 {
+		t.Fatalf("life gained after one Submit = %d, want exactly 2 (one intercepted cease plus one intercepted exile, "+
+			"one swept attempt per player per checkStateBased call, not a re-attempt on every pass and not a 32-pass-amplified count)", gained)
 	}
-	if added, want := len(e.L.Events)-beforeEvents, owned1+4; added != want {
-		t.Fatalf("log grew by %d events after one Submit, want exactly %d (%d cessation moves for player 1's owned cards plus 4), not a 32x-amplified count", added, want, owned1)
+	if added, want := len(e.L.Events)-beforeEvents, owned1+5; added != want {
+		t.Fatalf("log grew by %d events after one Submit, want exactly %d (%d moves for player 1's owned cards plus 4, "+
+			"and one more for the intercepted exile's life gain), not a 32x-amplified count", added, want, owned1)
 	}
 }
 
@@ -739,9 +757,11 @@ Oracle:x
 // A future change that legitimately adds or removes a call site now moves
 // the recorded baseline instead of forcing a hand-edited constant.
 //
-// Ward (seat 0, alive) turns any move from the battlefield into a 1-life
-// gain, so seat 0's life total counts blocked sweep attempts exactly. Victim belongs
-// to seat 1, who is eliminated, so the sweep keeps trying to exile it. Seat
+// Ward (seat 0, alive) turns any cessation or exile of another card into a
+// 1-life gain, so seat 0's life total counts blocked sweep attempts exactly
+// (two per firing: the cessation, then CR 800.4a's exile step on the permanent
+// that stayed). Victim belongs to seat 1, who is eliminated, so the sweep
+// keeps trying to remove it. Seat
 // 2 carries an N-link death chain (each link only becomes lethal once the
 // previous one has died) that forces the loop through N passes with nothing
 // to do with the sweep at all.
@@ -765,6 +785,7 @@ func TestRemovalSweepFiringsDoNotScaleWithAnUnrelatedDeathChain(t *testing.T) {
 ManaCost:1 W
 Types:Artifact
 R:Event$ Moved | Origin$ Battlefield | Destination$ Ceased | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
+R:Event$ Moved | Origin$ Battlefield | Destination$ Exile | ValidCard$ Card.Other | ReplaceWith$ RepLife | Description$ x
 SVar:RepLife:DB$ GainLife | Defined$ You | LifeAmount$ 1
 Oracle:x
 `)
@@ -800,7 +821,10 @@ Oracle:x
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 				t.Fatalf("chain=%d submit=%d: %v", chain, submit, err)
 			}
-			got := e.G.Players[0].Life - before
+			// One firing is one intercepted cease plus one intercepted
+			// exile (CR 800.4a's last step), 1 life each.
+			const lifePerFiring = 2
+			got := (e.G.Players[0].Life - before) / lifePerFiring
 			// Flatness alone would not catch a UNIFORM inflation (every
 			// chain firing 9 times equally), which the old literal 2 did
 			// catch. maxSweepFiringsPerSubmit keeps that half of the

@@ -8,9 +8,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 800.2 | n/a | - | - | descriptive |
 | 800.3 | n/a | - | - | tournament rules, outside engine |
 | 800.4 | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/events/apply_player.go#foldPlayerLost` | `TestConcedeInFourSeatsLeavesTheRestPlayingOn` `TestThreeSeatGameContinuesWhenOnePlayerIsEliminatedMidTurn` | game continues past a departure |
-| 800.4a | partial | `engine/rules/sba.go#Engine.ceaseDepartedObjects` `engine/rules/cantlose.go#Engine.playerLoses` `engine/rules/control.go#Engine.expireControl` | `TestCR800DepartedOwnersCardsLeaveEveryZone` `TestCR800DepartedControllersStackObjectsCease` | leftover controlled objects never exiled (NOT-IMPL SILENT); cleanup waits for SBA pass; cr-g26 |
+| 800.4a | partial | `engine/rules/sba.go#Engine.ceaseDepartedObjects` `engine/rules/cantlose.go#Engine.playerLoses` `engine/rules/control.go#Engine.expireControl` | `TestCR800DepartedOwnersCardsLeaveEveryZone` `TestCR800DepartedControllersStackObjectsCease` `TestCR800_4aDepartedPlayersControlledObjectIsExiled` | leftover controlled permanents exiled; cleanup waits for SBA pass; controlled non-owned card spells cease instead of exile |
 | 800.4b | partial | `engine/rules/trigger_delayed.go#Engine.delayedRegistrationLive` `engine/events/apply_player.go#foldPlayerLost` | - | player-control ends; no central guard on control change/token/entry under departed |
-| 800.4c | deviates | `engine/rules/control.go#Engine.expireControl` | - | reverts to owner when base controller departed; CR exiles; cr-g26 |
+| 800.4c | follows | `engine/rules/control.go#Engine.expireControl` | `TestCR800_4cEndedControlEffectExilesWhenDefaultControllerLeft` | - |
 | 800.4d | partial | `engine/rules/trigger_queue.go#Engine.dropDepartedTriggers` `engine/rules/sba.go#Engine.ceaseDepartedObjects` | `TestATriggerWhoseControllerLeftIsNotPushedByItsDecider` `TestCR704DepartedTokenIsNotAnExiledObject` | triggers dropped; departed-owned new objects swept next SBA, not uncreated |
 | 800.4e | deviates | `engine/rules/sba.go#Engine.ceaseDepartedObjects` | `TestCR800NoCombatDamageToDepartedDefender` | damage correct, but attackers removed from combat (EndCombatReset) |
 | 800.4f | unknown | - | - | not located: no departed-payer guard in unlessPayerTargets |
