@@ -553,12 +553,14 @@ func TestOtawaraChannelReduceCost(t *testing.T) {
 		t.Fatalf("no Channel target option: %+v", d.Options)
 	}
 	submitChoices(t, e, ta.Index)
-	d = e.Pending()
-	da := viviOption(d, "discard", id)
-	if da == nil {
-		t.Fatalf("no discard cost option: %+v", d.Options)
+	// The Discard<1/CARDNAME> cost has one possible answer, so no discard
+	// ask is posed (CR 602.2b): the channel card is already in the graveyard.
+	if d = e.Pending(); d != nil && viviOption(d, "discard", id) != nil {
+		t.Fatalf("self-discard cost posed an ask: %+v", d.Options)
 	}
-	submitChoices(t, e, da.Index)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("channel card not discarded as the cost: %+v", o)
+	}
 	// The ability resolves (both seats pass): Krenko returns to hand.
 	viviPass(t, e)
 	viviPass(t, e)

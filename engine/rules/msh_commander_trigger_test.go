@@ -67,7 +67,8 @@ func TestCycledTriggerFiresOnTheCycleCostDiscard(t *testing.T) {
 		t.Fatal("cycling activation not offered")
 	}
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0) // discard the cycling card
+	e.pending = nil // as Submit does once an answer is taken
+	e.Advance()     // no self-discard ask: run on to the trigger flush
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
 		t.Fatalf("cycle discard zone = %s, want graveyard", got)
 	}

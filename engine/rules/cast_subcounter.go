@@ -1092,6 +1092,17 @@ func (e *Engine) discardAsk() bool {
 			continue
 		}
 
+		// CARDNAME and NICKNAME are source-object references (cycling,
+		// typecycling, channel: Discard<1/CARDNAME>). When the source is the
+		// sole candidate there is no player choice (CR 602.2b): record it and
+		// settle the next part. The candidate check above stays first, so a
+		// source no longer in hand still takes the unpayable-cost abort path.
+		if part.N == 1 && len(candidates) == 1 && candidates[0] == pc.card && pay.IsSelfDiscardSpec(part.Spec) {
+			pc.Discards = append(pc.Discards, pc.card)
+			pc.DiscardPart++
+			continue
+		}
+
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: n, Max: n,
 			Prompt: "Discard a card to pay the cost of " + e.G.Obj(pc.card).Face().Name,
 			Source: pc.card}

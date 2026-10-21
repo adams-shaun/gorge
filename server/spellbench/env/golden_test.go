@@ -305,7 +305,9 @@ func writeGoldens(t *testing.T, dir string) error {
 	//
 	// The seeds and decks were measured as the earliest reach of each ask over
 	// seeds 0..19 and every catalog deck (mana_payment has no earlier reach;
-	// it first appears in seed 17's CawGates game at step 704). scan bounds the
+	// it first appears in seed 128's CawGates game at step 339, the earliest
+	// over CawGates seeds 0..139 once a cycling cost stopped posing a choice
+	// for the card cycled). scan bounds the
 	// full-game pass that locates the group; it is larger than the known ask
 	// but far below the 3000 a whole game can run.
 	targets := []struct {
@@ -316,7 +318,7 @@ func writeGoldens(t *testing.T, dir string) error {
 		{"arrangement", `"kind":"arrange_card"`, "", 3, 8, 256, "CawGates"},
 		{"attack_declaration", `"kind":"declare_attack"`, "", 1, 4, 256, "Rally"},
 		{"order_pick", `"kind":"order_pick"`, `"purpose":"arrangement"`, 3, 1, 256, "Wildfire"},
-		{"mana_payment", `"purpose":"mana_payment"`, "", 1, 17, 1200, "CawGates"},
+		{"mana_payment", `"purpose":"mana_payment"`, "", 1, 128, 1200, "CawGates"},
 	}
 	for _, tg := range targets {
 		d, ok := catalog.ByID(tg.deck)

@@ -36,7 +36,6 @@ func TestTransmuteAndCyclingRealHandActivations(t *testing.T) {
 			t.Fatal("Dizzy Spell Transmute activation not offered")
 		}
 		e.beginActivation(0, opt)
-		submitChoices(t, e, 0) // discard Dizzy Spell
 		if e.G.Obj(id).Zone != state.ZGraveyard {
 			t.Fatalf("Transmute discard zone=%s", e.G.Obj(id).Zone)
 		}
@@ -76,7 +75,6 @@ func TestTransmuteAndCyclingRealHandActivations(t *testing.T) {
 			t.Fatal("Ziatora cycling activation not offered")
 		}
 		e.beginActivation(0, opt)
-		submitChoices(t, e, 0) // discard the cycling card
 		if e.G.Obj(id).Zone != state.ZGraveyard {
 			t.Fatalf("Cycling discard zone=%s", e.G.Obj(id).Zone)
 		}
@@ -114,7 +112,6 @@ func TestTypeCyclingSearchesTheNamedType(t *testing.T) {
 		t.Fatal("Monstrosity of the Lake Islandcycling activation not offered")
 	}
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0) // discard Monstrosity of the Lake
 	if e.G.Obj(id).Zone != state.ZGraveyard {
 		t.Fatalf("TypeCycling discard zone=%s, want graveyard", e.G.Obj(id).Zone)
 	}
@@ -175,8 +172,7 @@ func TestTypeCyclingBasicLandSearchesAnyBasic(t *testing.T) {
 		t.Fatal("Kree Sentinel basic landcycling activation not offered")
 	}
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0) // discard Kree Sentinel
-	e.pending = nil        // the kernel probe serves asks only with no decision posed
+	e.pending = nil // the kernel probe serves asks only with no decision posed
 	e.resolveTop()
 	d := e.Pending()
 	choice := -1
