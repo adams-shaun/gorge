@@ -1950,7 +1950,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		removeModelessTrigger(e, obj)
 		return true
 	}
-	e.ask(modeDecisionForChoices(p, source, sa, svars, eligible, min, max, repeat))
+	e.ask(modeDecisionForChoices(e, p, source, sa, svars, eligible, min, max, repeat))
 	return true
 }
 

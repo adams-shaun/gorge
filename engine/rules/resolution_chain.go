@@ -99,7 +99,11 @@ func chosenModeLabels(chosen []decision.Option) []string {
 // dense for the wire. repeat marks a CanRepeatModes$ Charm: the same eligible
 // mode may fill several slots, and the max clamp is skipped so a CharmNum$
 // larger than the eligible count is still satisfiable (by repetition).
-func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int, repeat bool) *decision.Decision {
+// CR 700.2i / CR 107.18: a pawprint budget (the BLB Seasons' root Pawprint$)
+// rides the ask as Decision.MaxSum over each option's Option.Value (the
+// mode body's own Pawprint$), so the answer's {P} sum is fenced by the same
+// wire rule the mid-resolution ask (effCharm) publishes.
+func modeDecisionForChoices(h effects.Host, p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int, repeat bool) *decision.Decision {
 	if !repeat && max > len(choices) {
 		max = len(choices)
 	}
@@ -112,6 +116,12 @@ func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, 
 		d.Options = append(d.Options, decision.Option{
 			Index: i, Kind: "mode", Label: effects.CharmModeLabel(cards.ResolveSVar(svars, name), name),
 			Obj: source, Player: p})
+	}
+	if budget, values, ok := effects.CharmPawprints(h, source, sa, svars, choices); ok {
+		d.MaxSum = budget
+		for i := range d.Options {
+			d.Options[i].Value = values[i]
+		}
 	}
 	return d
 }
@@ -128,10 +138,13 @@ func modeLabels(sa *cards.SA, svars map[string]string, names []string) []string 
 }
 
 // modeChoiceNames maps the chosen modal options back to the SVar names of
-// the Choices$ sub-abilities they pick, in the order chosen — the answer
-// effCharm reads (Ctx.Modes). eligible carries a filtered cast
-// decision's server-only vocabulary; nil falls back to the SA's full Choices$
-// list for placement and mid-resolution decisions. Out-of-range indices drop.
+// the Choices$ sub-abilities they pick, in RESOLUTION order -- CR 700.2i
+// (the BLB Seasons' Gatherer ruling): the instructions are followed in the
+// order the modes are written on the card, while repeated copies keep the
+// answer's relative order (effects.CharmResolveOrder). eligible carries a
+// filtered cast decision's server-only vocabulary; nil falls back to the
+// SA's full Choices$ list for placement and mid-resolution decisions.
+// Out-of-range indices drop.
 func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) []string {
 	if sa == nil {
 		return nil
@@ -146,7 +159,7 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 			names = append(names, choices[o.Index])
 		}
 	}
-	return names
+	return effects.CharmResolveOrder(choices, names)
 }
 
 // moveResolvedOffStack is the shared tail of resolveTop and

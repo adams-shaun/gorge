@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -46,6 +47,81 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 		min = 0
 	}
 	return min, max, repeat
+}
+
+// CharmPawprints prices a modal ability's pawprint budget (CR 700.2i, CR
+// 107.18) over the named mode bodies: budget is the root ability's Pawprint$
+// value, and values[i] is names[i]'s body's own Pawprint$ cost (0 when the
+// body carries none, the Forge default). ok is false when the ability
+// carries no Pawprint$ at all -- no budget exists and the ask stays
+// unbudgeted. The read of the mode bodies is gated on the root budget's
+// PRESENCE: a non-pawprint Charm's mode bodies never see it. A PRESENT but
+// unparseable budget is loud (one Note, then no budget applies -- a real
+// budget is never silently dropped, and an unbudgeted ask only ever WIDENS
+// what is legal), and so is an unparseable mode cost (noted, priced 0).
+// The budget rides the ONE covering KModes ask as Decision.MaxSum with each
+// option's Option.Value, so Decision.Validate's cumulative-budget rule --
+// the shared repair and the bot arm derive the same rule from those
+// published fields -- is the {P} legality check (four-yay's kernel, which
+// re-pins against gorge, copies this shape).
+func CharmPawprints(h Host, source state.ObjID, sa *cards.SA, svars map[string]string, names []string) (budget int, values []int, ok bool) {
+	p := CharmOf(sa)
+	if !p.Pawprint.Present {
+		return 0, nil, false
+	}
+	budget, good := literalInt(p.Pawprint)
+	if !good {
+		if h != nil {
+			h.Emit(events.Event{Kind: events.Note, Obj: source,
+				Text: "pawprint budget unread, modes unbudgeted: " + strings.TrimSpace(p.Pawprint.Text)})
+		}
+		return 0, nil, false
+	}
+	values = make([]int, len(names))
+	for i, name := range names {
+		v, good := modePawprint(cards.ResolveSVar(svars, name))
+		if !good {
+			if h != nil {
+				h.Emit(events.Event{Kind: events.Note, Obj: source,
+					Text: "mode " + name + "'s Pawprint$ value is not a plain integer; priced 0"})
+			}
+			continue
+		}
+		values[i] = v
+	}
+	return budget, values, true
+}
+
+// CharmResolveOrder orders chosen mode names for RESOLUTION (CR 700.2i, the
+// BLB Seasons' Gatherer ruling): the instructions are followed in the order
+// the modes are WRITTEN on the card, not the order the answer named them,
+// while repeated copies of one mode keep the answer's relative order (the
+// player "choose[s] their relative order as [they] cast the spell"). names
+// absent from choices -- never produced by the ask mappings -- keep the
+// answer's order after the known ones, so the sort cannot invent a pick.
+func CharmResolveOrder(choices, names []string) []string {
+	if len(names) < 2 {
+		return names
+	}
+	pos := make(map[string]int, len(choices))
+	for i, name := range choices {
+		if _, ok := pos[name]; !ok {
+			pos[name] = i
+		}
+	}
+	out := slices.Clone(names)
+	slices.SortStableFunc(out, func(a, b string) int {
+		pa, aOK := pos[a]
+		if !aOK {
+			pa = len(choices)
+		}
+		pb, bOK := pos[b]
+		if !bOK {
+			pb = len(choices)
+		}
+		return pa - pb
+	})
+	return out
 }
 
 // CharmChoiceRestriction returns a Charm SA's ChoiceRestriction$ value
@@ -775,6 +851,16 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		d.ResumeModes = append([]string(nil), choices...)
 		vocab = choices
 	}
+	// CR 700.2i / CR 107.18: a pawprint budget (the BLB Seasons) rides the
+	// covering ask as Decision.MaxSum over the modes' Option.Value prices,
+	// so the answer's {P} sum is fenced by the same wire rule every client
+	// and repair reads.
+	if budget, values, ok := CharmPawprints(h, c.Source, sa, c.SVars, choices); ok {
+		d.MaxSum = budget
+		for i := range d.Options {
+			d.Options[i].Value = values[i]
+		}
+	}
 	if ans, ok := AskTape(h, d); ok {
 		// The resolution kernel's answer in hand (its record wrote the
 		// ModeChosen marker): run the chosen modes, named in Choices$ order,
@@ -785,7 +871,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 				names = append(names, vocab[o.Index])
 			}
 		}
-		charmRunModes(h, c, sa, names)
+		charmRunModes(h, c, sa, CharmResolveOrder(vocab, names))
 		return
 	}
 

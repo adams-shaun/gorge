@@ -46,6 +46,18 @@ type CharmParams struct {
 	CharmNum     ParamText
 	MinCharmNum  ParamText
 	OptionalTrue bool
+	// Pawprint$ (CR 700.2i, CR 107.18): the root ability's {P} budget -- the
+	// BLB Seasons' "Choose up to five {P} worth of modes". Present marks a
+	// budget-carrying Charm; the ask sites price it through
+	// CharmPawprints (charm.go), which sums each chosen mode's own
+	// Pawprint$ (its mode body's, read through charm_modes.go) against it.
+	// The ask shape is the ONE covering KModes ask gorge already poses, with
+	// the budget published as Decision.MaxSum and each option's
+	// Option.Value -- Decision.Validate's cumulative-budget rule is the
+	// legality check, so a client, the shared repair (Clamp/FitRequired) and
+	// the bot arm all derive the same rule from the published fields
+	// (four-yay's kernel copies this shape when it re-pins).
+	Pawprint ParamText
 	// CanRepeatModes$ True.
 	CanRepeatModes bool
 	// ChoiceRestriction$ (ThisTurn / ThisGame / YourLastCombat).
@@ -138,6 +150,8 @@ func compileCharm(sa *cards.SA, dp *DefinedParams) *CharmParams {
 	p.Random = strings.TrimSpace(sa.ParamStr(cards.PKRandom))
 	p.RandomCompareSVar = sa.ParamStr(cards.PKRandomCompareSVar)
 	p.RandomCompare = sa.ParamStr(cards.PKRandomCompare)
+	pw, pwOK := sa.Param(cards.PKPawprint)
+	p.Pawprint = ParamText{Text: pw, Present: pwOK}
 
 	p.Defined = dp.Defined.Text
 	p.TempRemember = strings.TrimSpace(sa.ParamStr(cards.PKTempRemember)) != ""
@@ -179,7 +193,7 @@ var charmKnownKeys = [...]string{
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "MinCharmNum", "ModeCost",
 	"Monstrosity", "NewController", "NonBasicSpell", "NumRandomChoices", "OpponentTurn", "Optional",
-	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
+	"Pawprint", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
 	"PresentDefined", "PresentZone", "Random", "RandomCompare", "RandomCompareSVar", "RandomNumTargets",
 	"ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
