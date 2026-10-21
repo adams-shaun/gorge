@@ -55,7 +55,7 @@ func CastCombatTrick(sa *cards.SA) bool {
 		}
 		return pumpAllCanAffectOwnCreature(sa)
 	case cards.APIProtection:
-		if strings.TrimSpace(sa.ParamStr(cards.PKGains)) == "" {
+		if strings.TrimSpace(protectionGains(sa)) == "" {
 			return false
 		}
 		return targetCanNameOwnCreature(TargetsOf(sa).ValidTgts)
@@ -76,7 +76,7 @@ func CastCombatTrick(sa *cards.SA) bool {
 }
 
 func pumpAllCanAffectOwnCreature(sa *cards.SA) bool {
-	spec := strings.TrimSpace(sa.ParamStr(cards.PKValidCards))
+	spec := strings.TrimSpace(pumpAllFilter(sa))
 	if spec == "" {
 		return true
 	}

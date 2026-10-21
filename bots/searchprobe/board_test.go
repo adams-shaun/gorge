@@ -81,13 +81,18 @@ import (
 // byte-for-byte. Re-measured for cr-g67b (CR 602.2a): an activation's mint
 // now precedes its first decision, so the 126-frame history moves; the 1-, 2-
 // and 17-frame digests do not.
+//
+// Re-pinned for the instant-speed hold rule (view.CardView.CombatTrick): the
+// frame encoding gained one field, so every prefix that holds a card moves;
+// the fixture is still 126 frames, so no game moved. Attributed by tagging the
+// field json:"-": the previous digests return byte-for-byte.
 func TestHistoryDigestMatchesTheJSONBoardEncoding(t *testing.T) {
 	f := benchRoot(t)
 	golden := map[int]string{
-		1:   "da15cbe662d941fb1bd529d430b2e131c634633caed30b5ff4db49f70fef6a7d",
-		2:   "5ecc49c3f0979e6088f3f97853b6df1a02cde3d70f20a08485959936d86ddd34",
-		17:  "dc1736fa366fbfdb18833c99d0257f3376a201bb802c2652a32c615a40daa5e2",
-		126: "a50ccdd96d47d8c3a16e78ce8540f17458ec242b5e78173e4c021490f983180c",
+		1:   "652d54b01f75336512ccc6a57eddf924b4497473a05b01ecdaa2569d38e65afa",
+		2:   "b3cc6c3a63b0f87c34bfb625619a0b88b9caeb811bb8a0d9f1a37f47cbb007c4",
+		17:  "bb3739b59aa1a64618684de6d6bcc780ed2961a7ddd728015caee78e158abdb6",
+		126: "c10b43dcc7ce64a83208f5e0e5ec26003b35f08dde077f722ac694d8628ab271",
 	}
 	if len(f.h.Frames) != 126 {
 		t.Fatalf("bench fixture has %d frames, the goldens were measured on 126", len(f.h.Frames))

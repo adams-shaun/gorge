@@ -238,6 +238,10 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // inventing a new filter form. effPump itself lives in pump.go, its
 // parameters compiled once in pump_params.go.
 
+// pumpAllFilter is PumpAll's ValidCards$ text: the one read, shared by the
+// resolution sweep and CastCombatTrick's classifier.
+func pumpAllFilter(sa *cards.SA) string { return sa.ParamStr(cards.PKValidCards) }
+
 // effPumpAll bakes in the affected set at resolution time (CR 611.2c: such an
 // effect applies only to the permanents matching the filter when the ability
 // resolves, not to ones that start matching later), so it registers one
@@ -247,7 +251,7 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // filter-based effect that Derived would re-evaluate against the battlefield
 // forever.
 func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
-	spec := sa.ParamStr(cards.PKValidCards)
+	spec := pumpAllFilter(sa)
 	if spec == "" {
 		spec = "Creature"
 	}
@@ -1228,8 +1232,12 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	scheduleAtEOT(h, c, sa, ateotIDs)
 }
 
+// protectionGains is Protection's Gains$ text: the one read, shared by the
+// resolution and CastCombatTrick's classifier.
+func protectionGains(sa *cards.SA) string { return sa.ParamStr(cards.PKGains) }
+
 func effProtection(h Host, c *Ctx, sa *cards.SA) {
-	gains := resolveGains(sa.ParamStr(cards.PKGains), sa.ParamStr(cards.PKChoices), h.Game().Obj(c.Source))
+	gains := resolveGains(protectionGains(sa), sa.ParamStr(cards.PKChoices), h.Game().Obj(c.Source))
 	if gains == "" {
 		return
 	}
