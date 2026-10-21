@@ -17,9 +17,11 @@ how well they play.
       games per core-second. The AIs are not the same kind of player (see
       below), so this is the price of a game with the bot each engine ships,
       not engine speed alone.
-    - **dirty-dirac, the fixed-card-set kernel checked in lockstep against
+    - **dirty-dirac, the two-player kernel checked in lockstep against
       gorge, is another 15-20× faster than gorge** (0.6 ms a game, 23 µs a
-      turn), at the cost of playing only its generated card sets.
+      turn), at the cost of playing only its generated card pools. Its rows
+      were measured before the 2026-10-21 kernel redesign; see
+      [dirty-dirac's rows](#dirty-diracs-rows).
     - **mtg-kernel**, a public Rust kernel with a few hundred cards, is about
       as fast as gorge on its home Burn mirror (174 against 118-143 random
       games per core-second) and 6-13× slower per turn on FDN pair A, the
@@ -613,12 +615,24 @@ extending a line of play; the search itself is noise, and a small network
 leaf adds about a quarter on dirty-dirac. The per-simulation cost grows with
 the budget because deeper trees replay longer lines.
 
+## dirty-dirac's rows
+
+Every dirty-dirac figure on this page (the game rows, the FDN pair A table and
+the search rows) was measured on 2026-10-20 with the dirty-dirac source of
+that day, which pinned gorge `aa421da93`. That was before the kernel redesign
+of 2026-10-21 ([dirty-dirac](../architecture/dirty-dirac/index.md)). The rows
+have not been re-run since. The redesign's own A/B, the kernel's transition
+benchmark on one pinned core against the pre-redesign kernel, counts about
+4 % fewer instructions per transition on FDN and about 2 % fewer on BLB.
+Instruction counts are not CPU time, so treat the rows above as dated
+measurements of the earlier kernel, not as current figures.
+
 ## Caveats
 
 !!! warning "Not apples to apples"
     - **Card coverage differs.** XMage and Forge implement every card; gorge
       implements most of Forge's corpus; dirty-dirac plays only its generated
-      card sets, two players; mtg-kernel plays a few hundred cards. The main
+      card pools, two players; mtg-kernel plays a few hundred cards. The main
       workload is FDN because it is the pool the first four play; mtg-kernel
       plays only pair A of it.
     - **Policies differ.** The random players are close but not identical
@@ -644,7 +658,7 @@ the budget because deeper trees replay longer lines.
 | Cores | one per run: 24, 26, 28 (three reps at once); `GOMAXPROCS=1` for Go; JVMs pinned the same way (serial GC, `-Xmx2g`) |
 | Load | 1-minute load average 4.4-15 for the FDN A/B tables (per-row ranges in the per-pair table), 6-36 for the Burn rows, 17-32 for the search rows; no published rep had more than 10% of its core taken by other work except one XMage `mad` pair-A rep (28%), whose result sits inside the other two reps' spread |
 | gorge | `ad3777023` (develop), Go 1.26.3, `cmd/enginebench` |
-| dirty-dirac | private kernel, built from the companion module that pins gorge `aa421da93` |
+| dirty-dirac | private kernel, the source of 2026-10-20 (before the redesign), which pinned gorge `aa421da93` |
 | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance) |
 | Forge | gorge's Forge fork at `da1c712c31` (forge-core/game/ai 2.0.16-SNAPSHOT), JDK 17.0.20.1, driver `forge.oracle.GameReplay` |
 | mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3` (2026-10-20), Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode; FDN pair A from the `limited-fdn-fixtures` build, Burn from the default build |

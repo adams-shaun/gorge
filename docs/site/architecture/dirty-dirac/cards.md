@@ -1,22 +1,22 @@
 # Cards
 
-dirty-dirac does not parse card text and does not hand-write cards. Each
-supported set is a Go package generated from **gorge's** compiled card IR by
-a generator, `kgen`, into programs over a small integer op vocabulary, `kop`.
-This page explains that vocabulary, the lowering, what is generated and what
-is written by hand, how a card is refused, and how per-set packages are found
-at run time. It is for readers who know gorge's
+dirty-dirac does not parse card text and does not hand-write cards. Its
+generator, `kgen`, reads **gorge's** compiled card IR and lowers each card into
+programs over a small integer op vocabulary, `kop`; a card pool becomes a
+generated Go package. This page explains that vocabulary, the lowering and its
+refusal contract, how the card grammar is being closed across the whole
+corpus, the layer system, what is generated and what is written by hand, and
+how pool packages are found at run time. It is for readers who know gorge's
 [card pipeline](../../contributing/card-pipeline.md) and want to see how the
 same cards reach the fast kernel.
 
-*Counts on this page come from the generated packages of 2026-10-19 (their
-coverage reports) and from a scratch program run on 2026-10-20 that loads both
-sets through the `cardset` registry and counts each pool table.*
+*Counts on this page were read on 2026-10-21 from the dirty-dirac source of
+that day: the `kop` enums, and the acceptance ratchet's pinned counts.*
 
 ## The pipeline
 
 <figure markdown>
-<svg viewBox="0 0 760 420" width="100%" role="img" aria-label="Card pipeline: a Forge card script is compiled by gorge into IR; kgen loads a set's cards from the registry, lowers each one, refusing any unread parameter, builds side tables and emits a Go package per set; the cardset registry and a matchup builder turn that into a kop.Table the hand-written kernel interpreter runs">
+<svg viewBox="0 0 760 420" width="100%" role="img" aria-label="Card pipeline: a Forge card script is compiled by gorge into IR; kgen loads a pool's cards from the registry, lowers each one, refusing any unread parameter, builds side tables and emits a Go package per set; the cardset registry and a matchup builder turn that into a kop.Table the hand-written kernel interpreter runs">
   <defs>
     <marker id="cp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-arrow"/></marker>
     <marker id="cp-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-arrow-accent"/></marker>
@@ -42,8 +42,8 @@ sets through the `cardset` registry and counts each pool table.*
   <line x1="640" y1="100" x2="640" y2="144" class="dg-line-accent" marker-end="url(#cp-b)"/>
   <rect x="575" y="148" width="165" height="62" rx="8" class="dg-box-accent"/>
   <text x="657" y="170" text-anchor="middle" class="dg-text-bold">load the set</text>
-  <text x="657" y="188" text-anchor="middle" class="dg-text-muted">a deck pool or a</text>
-  <text x="657" y="202" text-anchor="middle" class="dg-text-muted">card list</text>
+  <text x="657" y="188" text-anchor="middle" class="dg-text-muted">a deck pool, a card</text>
+  <text x="657" y="202" text-anchor="middle" class="dg-text-muted">list or the corpus</text>
   <line x1="573" y1="179" x2="537" y2="179" class="dg-line-accent" marker-end="url(#cp-b)"/>
   <rect x="390" y="148" width="145" height="62" rx="8" class="dg-box-accent"/>
   <text x="462" y="170" text-anchor="middle" class="dg-text-bold">lower</text>
@@ -64,7 +64,7 @@ sets through the `cardset` registry and counts each pool table.*
 
   <line x1="92" y1="212" x2="92" y2="276" class="dg-line-accent" marker-end="url(#cp-b)"/>
   <rect x="10" y="280" width="230" height="96" rx="8" class="dg-box"/>
-  <text x="125" y="302" text-anchor="middle" class="dg-text-bold">cards_&lt;set&gt; package</text>
+  <text x="125" y="302" text-anchor="middle" class="dg-text-bold">cards_&lt;pool&gt; package</text>
   <text x="22" y="322" class="dg-text-mono">card_*.go, token_*.go</text>
   <text x="22" y="338" class="dg-text-mono">pool.go, matchup.go</text>
   <text x="22" y="354" class="dg-text-mono">ids.tsv  (stable CardIDs)</text>
@@ -72,7 +72,7 @@ sets through the `cardset` registry and counts each pool table.*
   <line x1="242" y1="328" x2="268" y2="328" class="dg-line" marker-end="url(#cp-a)"/>
   <rect x="272" y="296" width="140" height="64" rx="8" class="dg-box"/>
   <text x="342" y="320" text-anchor="middle" class="dg-text-bold">cardset</text>
-  <text x="342" y="338" text-anchor="middle" class="dg-text-muted">registry by set name</text>
+  <text x="342" y="338" text-anchor="middle" class="dg-text-muted">registry by pool name</text>
   <line x1="414" y1="328" x2="440" y2="328" class="dg-line" marker-end="url(#cp-a)"/>
   <rect x="444" y="296" width="140" height="64" rx="8" class="dg-box"/>
   <text x="514" y="320" text-anchor="middle" class="dg-text-bold">Matchup(a, b)</text>
@@ -96,19 +96,26 @@ behaviour) and avoids a second script parser. It also means a misreading in
 gorge is a misreading in dirty-dirac; see the
 [independence caveat](oracle.md#what-lockstep-cannot-see).
 
+kgen runs in two modes. Given a deck pool or a card list it generates a
+`cards_<pool>` package that a kernel game can play. Given any card list, the
+whole corpus included, it can also lower every card without writing a
+package and report which ones it would accept: that is how corpus and per-set
+acceptance are measured.
+
 ## The kop vocabulary
 
 A card is a `kop.CardDef`: printed cost, types, subtypes, keywords, colours,
-power and toughness, a few native fields (kicker and flashback costs, ward,
-equip cost, the Aura's enchant target) and a list of `kop.Ability`. An ability
-is one of seven kinds (spell, activated, mana, triggered, static, replacement,
-alternative cost) and carries its cost, its trigger subscription or static
-record, up to three target slots, modes, and a **program**: a flat slice of
-instructions.
+power, toughness and loyalty, a few native fields (kicker and flashback costs,
+ward, equip cost, the Aura's enchant target, protection, landwalk, the faces
+of a multi-face card) and a list of `kop.Ability`. An ability is one of seven
+kinds (spell, activated, mana, triggered, static, replacement, alternative
+cost) and carries its cost, its trigger subscription or static record, up to
+three target slots, modes, an optional threshold gate (a Class level band) and
+a **program**: a flat slice of instructions.
 
 ```go
 type Instr struct {
-    Op  Op        // one of 99 ops
+    Op  Op        // one of 128 ops
     Obj Ref       // who or what it acts on: a target slot, the source, the controller, each opponent, ...
     A   ValueRef  // an amount: a constant, X, a count of a filter, last damage, a power, a side-table expression
     B   ValueRef  // a second amount
@@ -140,18 +147,23 @@ var burstLightning = kop.CardDef{             // {R} instant, kicker {4}
 }
 ```
 
-What is in the vocabulary, counted on 2026-10-20:
+What is in the vocabulary:
 
 | Enum | Values | Examples |
 |---|---|---|
-| `Op` | 99 (61 in the original vocabulary, 38 appended by kgen) | `DealDamage`, `Draw`, `Destroy`, `CreateToken`, `Scry`, `Fight`, `Counter`, `Charm`; kgen's `SkipUnless`, `UnlessPaid`, `SearchEx`, `DigEx`, `Override`, `CopySpell`, `RepeatWhile` |
-| `TrigEvent` | 20 | enters, dies, leaves, to graveyard, attacks, phase, spell cast, life gained, damage dealt, becomes target, drawn, discarded, counters added, blocks |
-| `StaticKind` | 16 | continuous P/T and keywords, cost changes, can't block, may play from a zone, override, player hexproof |
-| `ReplKind` | 15 | enters tapped, enters with counters, as-enters choice, double damage, prevent noncombat damage, double tokens, double counters, graveyard-to-library |
+| `Op` (a `uint8`) | 128: 61 in the original vocabulary, the rest appended by kgen | `DealDamage`, `Draw`, `Destroy`, `CreateToken`, `Scry`, `Fight`, `Counter`, `Charm`; appended: `UnlessPaid`, `SearchEx`, `Override`, `CopySpell`, `GiveGift`, `ClassLevelUp`, `Proliferate`, `Explore`, `Saddle` |
+| `TrigEvent` | 25 | enters, dies, leaves, to graveyard, attacks, phase, spell cast, life gained, damage dealt, becomes target, drawn, discarded, counters added, blocks, sacrificed, taps, mana expended, gift given, token created |
+| `StaticKind` | 17 | continuous P/T and keywords, cost changes, can't block, may play from a zone, override, player hexproof, can't be cast, control (layer 2) |
+| `ReplKind` | 18 | enters tapped, enters with counters, as-enters choice, double damage, damage plus N, prevent noncombat damage, double tokens, double counters, life doubled, life plus N, graveyard-to-library |
+| `KwMask` (a `uint32`) | 32 of 32 bits used | flying, first strike, deathtouch, ward, protection from black or red, fear, shadow, ... |
+| `CounterKind` | 21 counter kinds plus a Class level | +1/+1, -1/-1, loyalty, stun, shield, flying, ...; named kinds with no rules meaning of their own (charge, oil, quest, ...) |
 
-Every enum is **append-only**: generated tables encode ops by ordinal, so a new
-op goes immediately above the count constant, never in the middle. The
-interpreter contract is in `kop`'s package doc:
+Every enum is **append-only**: generated tables encode values by ordinal, so a
+new op goes immediately above the count constant, never in the middle. The
+keyword mask is full and is not widened (that would grow every permanent):
+further keywords are either lowered into abilities, statics and effect
+records, or carried as card fields. The interpreter contract is in `kop`'s
+package doc:
 
 - A resolving ability runs its program front to back against the stack entry's
   source, controller, targets, modes, X and kicked flag.
@@ -171,14 +183,6 @@ tables kgen fills (value expressions, conditions, override records, emblems),
 plus the mapping from gorge's 362-word creature-type vocabulary to the table's
 subtypes.
 
-| Pool table (2026-10-20) | Cards (incl. tokens) | Filters | Expressions | Conditions | Override records | Emblems | Subtypes | Abilities | Instructions | Distinct ops |
-|---|---|---|---|---|---|---|---|---|---|---|
-| FDN | 310 | 127 | 27 | 23 | 9 | 2 | 95 | 404 | 435 | 74 |
-| BLB | 284 | 74 | 4 | 15 | 2 | 0 | 62 | 154 | 168 | 38 |
-
-(BLB's counts are low because a refused card contributes no abilities; see
-below.)
-
 ## Lowering: read every parameter or refuse
 
 kgen walks each card's IR: its abilities and their `SubAbility` chains, its
@@ -186,15 +190,21 @@ triggers, statics and replacement effects, its keywords and SVars. Each node's
 `$` parameters are wrapped in a tracker that records which ones the lowering
 read. When a node is done, any rules parameter left unread **refuses the
 card**, with the node and the reason. Only descriptive and AI-hint parameters
-(`SpellDescription`, `AILogic`, `TgtPrompt`, ...) are ignored by name. So a
-parameter is either implemented or it refuses; it is never dropped silently.
-This is the same principle as gorge's unread-parameter census, applied at
-generation time.
+(`SpellDescription`, `AILogic`, `TgtPrompt`, ...) are ignored by name.
 
-Typical refusals, from the BLB coverage report: a keyword with no lowering
-(`Class`, `Gift`, `Offspring`), a trigger mode with none (`ManaExpend`), a cost
-token (`Forage`), a filter property kgen does not know, a value head it cannot
-evaluate, or an unread parameter.
+The same rule holds inside a parameter's value. A filter property, a value
+head, a value modifier (`/Plus.Y`, `/Times.X`) or a cost token that kgen
+cannot parse is a refusal, never a default: kgen never lowers an unparsed
+amount as 0 or an unknown property as "anything". A test feeds every modifier,
+parameter and value-head switch an unknown token and asserts a refusal. This
+rule exists because the one class of silent mis-lowering found so far (a
+modifier that named an SVar and was read as +0) produced games that agreed
+with gorge until the missing amount mattered.
+
+Typical refusals, from the BLB coverage report: an unknown filter property
+(`HasCounters`, `TopLibrary`), an unread parameter (`Optional` on a mill, a
+`ClassBand` on a static), a value modifier it cannot evaluate, a replacement
+shape it does not model.
 
 A refused card is not dropped from the package. It is emitted as an **inert
 fallback**: printed cost, types, subtypes, colours and P/T, no abilities. Two
@@ -203,44 +213,82 @@ consequences:
 - `Matchup` refuses a deck that contains one, so a kernel game never plays a
   card as vanilla by accident.
 - The whole-pool table (`Pool`) still has a row for it, so a search world
-  that deals hidden cards from a belief over the set can deal it, as a
+  that deals hidden cards from a belief over the pool can deal it, as a
   placeholder.
 
 The generator also writes `OPS.md`, the interpreter contract for every op,
 enum value and field it appended, with the cards that use each one, and a test
-fails if an appended op has no entry. Another test regenerates every set into
+fails if an appended op has no entry. Another test regenerates every pool into
 a temporary directory and diffs it against the checked-in package, so the
 checked-in tables can never drift from the generator.
 
 **Stable card IDs.** `ids.tsv` is a checked-in index of every `CardID` ever
-assigned in the set. An ID never moves: a new card takes the next free ID, and
-a card that leaves the set keeps its ID as an inert placeholder. Recorded games
-and caches keyed by `CardID` stay valid across regenerations.
+assigned in the pool. An ID never moves: a new card takes the next free ID, and
+a card that leaves the pool keeps its ID as an inert placeholder. Recorded
+games and caches keyed by `CardID` stay valid across regenerations.
+
+## Growing the card grammar
+
+The kernel was built on FDN, and the first measurement over the whole corpus
+showed what that meant: most cards in other sets were refused, and what
+refused them was overwhelmingly **shared grammar** (filter properties,
+`Defined$` forms, parameters, value heads, common effects and trigger modes),
+not each set's named mechanics. Fixing a set at a time would re-pay that
+grammar for every set. So the grammar is closed once, corpus-wide:
+
+1. **Classify.** kgen normalises every refusal reason into a class (one per
+   filter property, parameter, effect, keyword, trigger mode, ...) and tags
+   each class with the kind of work it needs: generator-only, a keyword
+   desugaring, a new op or predicate arm in the interpreter, or a new rules
+   mechanism with its own `State` block. The coverage report prints
+   "Refusals by class and tier".
+2. **Close in greedy order.** Classes are closed in order of how many corpus
+   cards each unlocks. Most of the top classes are generator-only work or a
+   single new op; only a handful (multi-face cards, face-down cards,
+   Crew-style aggregate tap costs) need a mechanism.
+3. **Ratchet.** An acceptance test lowers the whole corpus and the card list
+   of each registered set, and pins each accepted count exactly. A change
+   that lowers any count fails; a rise is re-pinned in the same change, so
+   the pins are always the live numbers. Today they stand at **16,044 of
+   34,072** corpus cards; the per-set pins are on
+   [Card support by set](../../support/sets.md#per-set-matrix).
+4. **Keep the verified pools still.** A lowering change must leave the FDN
+   and BLB lockstep results unchanged. A change that moves them is a defect
+   in the lowering, not a new behaviour.
+
+An accepted card is lowered, not verified: it plays in lockstep only once it
+is in a pool that is fuzzed against gorge ([Verification](oracle.md)). When a
+card that is accepted turns out to differ from gorge in a later lockstep, the
+fix is a refusal or a corrected lowering; the ratchet may fall when a class is
+found to have been accepted too eagerly, and that fall is recorded rather than
+hidden.
 
 ## Generated and hand-written
 
 | Part | Generated by kgen | Written by hand |
 |---|---|---|
 | Card definitions, ability programs, filters, expressions, conditions, override records | yes, one Go file per card and token | |
-| Pool index, name table, `Matchup` and `Pool` builders, set registration | yes (`pool.go`, `matchup.go`) | |
+| Pool index, name table, `Matchup` and `Pool` builders, pool registration | yes (`pool.go`, `matchup.go`) | |
 | `ids.tsv`, coverage report, `OPS.md` | yes | |
 | The `kop` types and enums | kgen appends values and fields (append-only) | the original vocabulary and the types |
-| The interpreter and every rule (turns, priority, casting, combat, state-based actions, layers stand-in) | | yes, in `kernel` |
+| The interpreter and every rule (turns, priority, casting, combat, state-based actions, layers) | | yes, in `kernel` |
 | The generated-table extension: the code behind kgen's ops, statics, replacements and filter predicates | | yes, in `kernel`'s `*_gen.go` files (named for the tables they serve, not generated) |
 | A tiny test table (basic lands, vanilla and keyword creatures, a few spells) | | yes, package `vanilla` |
 
 The `*_gen.go` files are worth naming because the suffix misleads: they are
 hand-written kernel code that only runs on a generated table. Examples:
 
-- **Characteristics** (`chars_gen.go`): computing a permanent's types,
-  keywords and P/T in a fixed order (below).
-- **Spell copies** (`copy_gen.go`): a copy is a new card object on the stack
-  with the original's targets, modes, X and kicked status; it is not cast, and
-  it ceases to exist when it leaves the stack (CR 707.10, CR 704.5e).
-- Replacement effects (`repl_gen.go`), triggers, statics, legality of plays,
-  target slots taking several objects.
+- **Characteristics**: computing a permanent's types, keywords and P/T
+  through the layer system (below).
+- **Spell copies**: a copy is a new card object on the stack with the
+  original's targets, modes, X and kicked status; it is not cast, and it
+  ceases to exist when it leaves the stack (CR 707.10, CR 704.5e).
+- Replacement effects, triggers, statics, legality of plays, target slots
+  taking several objects.
 
-On a hand-written table every one of those hooks is skipped.
+On a hand-written table every one of those hooks is skipped. Each newer rules
+block sits behind its own per-table gate in the same way: a table with no card
+that needs it pays one predictable branch.
 
 ## Layers: the effect pool and the CR 613 walk
 
@@ -294,30 +342,18 @@ layer at a time:
 
 An override static that applied in layer 4 keeps applying in the later
 layers (CR 613.6). A permanent with at most one order-sensitive effect, or
-with records only, takes the old fixed-order path, which gives the same
+with records only, takes a fixed-order fast path, which gives the same
 answer. A table with nothing order-sensitive pays one predictable branch
-per read. That covers every FDN matchup.
+per read.
 
 **What kgen refuses instead.** A layer shape the walk does not implement is
-refused per card when kgen lowers it, never silently mis-ordered:
-
-- 7d P/T switching (Twisted Image) and layer-3 text changes (`ChangeText`,
-  Artificial Evolution);
-- dependency loops: a P/T set from a dynamic value (Opalescence's
-  "AffectedX") is refused, so Humility never meets Opalescence;
-- an override static whose filter reads P/T or keywords, and a
-  keyword-gated layer-6 static that grants or removes the keyword it reads
-  (it could form a 613.8 cycle);
-- global overrides that set a name, remove abilities from non-creatures
-  (Toxicrene), or carry a layer-6 condition other than the turn or the
-  source's own counters;
-- `CantHaveKeyword$`, and a one-shot `RemoveKeywords$`;
-- a copy exception with toughness below 1.
-
-At run time, a table that holds a global lose-all static and a subtype lord
-stalls at the start of the game. No matchup-level refusal remains: every
-pair of order-sensitive effects is ordered by the walk, and each ordering
-has a scenario whose expected answer comes from gorge's own oracle runner.
+refused per card when kgen lowers it, never silently mis-ordered: P/T
+switching (7d, Twisted Image), layer-3 text changes (Artificial Evolution),
+P/T set from a dynamic value (so Humility never meets Opalescence), and a
+few override shapes that could form a 613.8 cycle. Every pair of
+order-sensitive effects the kernel does accept is ordered by the walk, and
+each ordering has a scenario whose expected answer comes from gorge's own
+oracle runner.
 
 Cards that need behaviour no generic op expresses get it in one of three
 ways, in order of preference:
@@ -331,30 +367,30 @@ ways, in order of preference:
 No kernel code path branches on a card's name. A card's name is in its
 `CardDef` for reports only.
 
-## Per-set packages and the cardset registry
+## Pool packages and the cardset registry
 
-Each supported set is its own generated package, `cards_<set>` (today
-`cards_fdn` and `cards_blb`). A set is generated either from a deck pool (every
-distinct card in a directory of deck lists; FDN) or from a card list (BLB has no
-deck corpus, so its list is every distinct card name on the set's booster
-sheets).
+Each generated pool is its own package, `cards_<pool>`. A pool is generated
+either from a deck pool (every distinct card in a directory of deck lists;
+FDN) or from a card list (BLB's is every distinct card name on the set's
+booster sheets). Besides FDN and BLB there are small constructed pools, each
+chosen so that the cards a piece of grammar work unlocked come up in play
+under lockstep ([Verification](oracle.md#agreement-today)).
 
-Each package implements `cardset.Set` and registers itself under its set name
+Each package implements `cardset.Set` and registers itself under its pool name
 in `init`:
 
 | Method | Returns |
 |---|---|
-| `Name()` | the set name, the registry key |
+| `Name()` | the pool name, the registry key |
 | `Lookup(name)` | a card's pool index |
 | `Supported()` | per pool index (cards, then tokens), whether the generated table implements it |
 | `Matchup(a, b)` | a `kop.Table` for two decks plus each deck as `CardID`s; fails on an unsupported card |
-| `Pool()`, `PoolID(i)`, `InertID(id)`, `NumIDs()` | the whole-set table and its stable IDs |
+| `Pool()`, `PoolID(i)`, `InertID(id)`, `NumIDs()` | the whole-pool table and its stable IDs |
 | `AbilityOrigin(i, ab)` | which gorge ability (face ability or trigger index) a kop ability came from, for the oracle |
 | `Names()`, `Subtypes()` | the name and subtype vocabularies |
 
 The registry is a slice, not a map, so nothing can depend on map order. Tools
-select a set by name (`-set fdn`). Support per set is published on
-[Card support by set](../../support/sets.md).
+select a pool by name (`-set fdn`).
 
 ## Sizing the vocabulary: gorge's kcensus
 

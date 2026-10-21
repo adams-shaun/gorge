@@ -67,7 +67,7 @@ the same files every engine reads:
 
 They are 40-card decks of 17lands-sourced (CC BY 4.0) Premier Draft lists. FDN
 is used because it is the one card pool every engine here plays in full:
-dirty-dirac is generated for a fixed set of cards (FDN among them), while
+FDN is one of dirty-dirac's generated, lockstep-verified card pools, while
 gorge, XMage and Forge have every card.
 
 **mtg-kernel** implements 245 of FDN's 286 card names at the measured commit
@@ -77,7 +77,7 @@ cards it lacks (Goblin Negotiation, Leyline Axe, Drakuseth, Maw of Flames and
 Imprisoned in the Moon), so it has no pair-B row. A second workload is played
 for it: the **Burn mirror** (`burn.json`, the 60-card mono-red Pauper list
 from mtg-kernel's own pool, MIT), which is its home deck. gorge, XMage and
-Forge play Burn too; dirty-dirac does not (it has no Burn card set). Burn is
+Forge play Burn too; dirty-dirac does not (it has no generated pool for it). Burn is
 played as Pauper constructed: 60 cards, 20 life.
 
 Seats alternate every game, 20 life, 7-card hands, no mulligans except
@@ -169,7 +169,7 @@ writes a JSON line per game (about 1 KB) inside its measured window, while
     - **Rules coverage differs.** XMage and Forge implement every card and
       every format; gorge implements most of Forge's card corpus (the coverage
       ratchet is on the [support pages](../support/sets.md)); dirty-dirac is a
-      two-player kernel for a fixed card set. A faster engine that plays fewer
+      two-player kernel that plays only its generated card pools. A faster engine that plays fewer
       cards is not doing the same job.
     - **Decisions are split differently.** gorge asks for each mana tap and
       each target; XMage's counted decisions are priority, attack and block
@@ -257,7 +257,9 @@ written, and the warm-up games are dropped when the run is recorded.
 ### 4. dirty-dirac
 
 dirty-dirac is the maintainers' private kernel, so its row cannot be rerun
-from the public repositories. It was measured with the same script, which
+from the public repositories. Its published rows were measured on
+2026-10-20, before the kernel redesign of 2026-10-21
+([Performance](index.md#dirty-diracs-rows)), with the same script, which
 calls the kernel's game runner `kplay` when `KPLAY` names a binary built from
 the private module:
 
@@ -322,7 +324,7 @@ on one pinned core, three reps at once, 30 seconds, FDN pair A.
 |---|---|---|
 | gorge MCTS, heuristic leaf | `enginebench -row az -sims N` (build tag `enginebench_az`): the `azmcts` seat behind `az-redeal`, every simulation over a freshly re-dealt world of what the seat cannot see, a heuristic leaf value, gorge's heuristic bot playing every unsearched decision inside the search. It searches priority roots from turns 5-8 of seeded pair-A games | CPU time inside the search only, divided by simulations (`sims_per_cpu_s`) and by searched roots |
 | dirty-dirac MCTS, heuristic leaf | the kernel's game runner with an MCTS seat on both sides (`-a az:sims=N -b az:sims=N`): the same algorithm shape (re-dealt worlds, the native port of gorge's heuristic bot as the in-search player), heuristic leaf | process CPU over whole games (searched and unsearched decisions, the engine between searches), divided by completed simulations; so it slightly overstates the search's own cost against the gorge row |
-| dirty-dirac MCTS, network leaf | the same with `:gonet=<weights.dzgw>`: a small multilayer perceptron (one 64-wide layer, about 2.4 MB of weights) evaluated in-process on the CPU as the leaf value | as above |
+| dirty-dirac MCTS, network leaf | the same with `:gonet=<weights>`: a small multilayer perceptron (one 64-wide layer, about 2.4 MB of weights) evaluated in-process on the CPU as the leaf value | as above |
 
 No network leaf is measured for gorge, because `enginebench`'s `az` row has no
 network option. No mtg-kernel search row is published, for the reason given

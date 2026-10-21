@@ -7,7 +7,7 @@ written for Go developers who want to read or change the engine. If you only
 want to run a game, start at [Getting started](../getting-started.md); if you
 want to fix your first card, see [Your first card fix](../contributing/first-card-fix.md).
 
-*Figures on this page were measured on `develop` @ `ad3777023`, 2026-10-20.
+*Figures on this page were measured on `develop` @ `513a2a0c3`, 2026-10-21.
 Every number names the command that produced it, so you can re-measure.*
 
 ## The idea in one paragraph
@@ -29,7 +29,7 @@ machinery. Players never touch the engine: each seat gets a redacted
 
 gorge contains one rules engine. A second, much smaller kernel,
 **dirty-dirac**, lives in a private companion module and plays the same game
-for a restricted card pool much faster. They are designed for different jobs,
+much faster, for the cards its generator can lower. They are designed for different jobs,
 and the smaller one is held to the larger one.
 
 <figure markdown>
@@ -44,15 +44,15 @@ and the smaller one is held to the larger one.
   <text x="30" y="112" class="dg-text-muted">up to 8 seats, Constructed and Commander</text>
   <text x="30" y="132" class="dg-text-muted">state.Game: an object arena with pointers,</text>
   <text x="30" y="150" class="dg-text-muted">slices and maps; clone = deep copy</text>
-  <text x="30" y="170" class="dg-text-muted">event-sourced: 139 event kinds,</text>
+  <text x="30" y="170" class="dg-text-muted">event-sourced: 144 event kinds,</text>
   <text x="30" y="188" class="dg-text-muted">hash-chained log, replay by re-execution</text>
   <text x="30" y="208" class="dg-text-muted">13 decision kinds, redacted per-seat views</text>
   <text x="30" y="236" class="dg-text">Job: correctness for every card,</text>
   <text x="30" y="256" class="dg-text">hosting real games, the reference</text>
   <rect x="430" y="10" width="320" height="280" rx="10" class="dg-box"/>
   <text x="590" y="38" text-anchor="middle" class="dg-text-bold">dirty-dirac (companion module)</text>
-  <text x="450" y="68" class="dg-text">A 2-player microkernel</text>
-  <text x="450" y="92" class="dg-text-muted">supported sets only (FDN, BLB)</text>
+  <text x="450" y="68" class="dg-text">A 2-player kernel, still growing</text>
+  <text x="450" y="92" class="dg-text-muted">47% of the corpus lowers; FDN, BLB verified</text>
   <text x="450" y="112" class="dg-text-muted">exactly two players</text>
   <text x="450" y="132" class="dg-text-muted">State is one fixed-size value: no pointers,</text>
   <text x="450" y="150" class="dg-text-muted">maps, slices or strings; clone = assignment</text>
@@ -60,7 +60,7 @@ and the smaller one is held to the larger one.
   <text x="450" y="188" class="dg-text-muted">generated table of card operations</text>
   <text x="450" y="208" class="dg-text-muted">no event log; equal positions project ==</text>
   <text x="450" y="236" class="dg-text">Job: raw speed for self-play and</text>
-  <text x="450" y="256" class="dg-text">search on the supported sets</text>
+  <text x="450" y="256" class="dg-text">search on its verified pools</text>
   <line x1="332" y1="150" x2="428" y2="150" class="dg-line-accent" marker-start="url(#ix-arr)" marker-end="url(#ix-arr)"/>
   <text x="380" y="138" text-anchor="middle" class="dg-text-bold">lockstep</text>
   <text x="380" y="172" text-anchor="middle" class="dg-text-muted">same seed,</text>
@@ -75,7 +75,7 @@ the same canonical board projection after every action.</figcaption>
 
 | | gorge | dirty-dirac |
 |---|---|---|
-| Card pool | every Forge script; 32,082 of 34,074 (94.2 %) are playable (`forgec report`, 2026-10-20) | the cards of its supported sets |
+| Card pool | every Forge script; 32,246 of 34,074 (94.6 %) are playable (`make report`, 2026-10-21) | 16,044 of 34,072 corpus cards lower (47.1 %); FDN and BLB are verified in lockstep ([per set](../support/sets.md#per-set-matrix)) |
 | Players | up to 8 per hosted table (`server/host/table.go`); the golden games cover 2, 4, 6 and 8 | 2 |
 | Game state | `state.Game`: an arena of `state.Object` values plus maps and slices | a single fixed-size struct |
 | Mutation | events proposed by the engine, folded by `events.Apply`, hash-chained | `Apply(action)` on the value |
@@ -86,9 +86,10 @@ the same canonical board projection after every action.</figcaption>
 Why two? A general engine that handles every card in the corpus needs
 open-ended data: arbitrary card text, variable-length zones, continuous
 effects that come and go. That shape is what makes it correct for everything
-and also what makes it slower to copy and step. A kernel restricted to a known
-card pool can lay the whole game out as a fixed-size value and step it with
-generated code, which is what large-scale self-play and tree search want.
+and also what makes it slower to copy and step. A kernel that keeps every
+card's behaviour in a read-only generated table can lay the whole game out as
+a fixed-size value and step it cheaply, which is what large-scale self-play
+and tree search want.
 Keeping gorge as the oracle means the fast kernel never becomes a second
 source of rules truth. See [dirty-dirac](dirty-dirac/index.md) for its design: its
 [fixed-size State](dirty-dirac/state.md), the [Step/Apply loop](dirty-dirac/step-apply.md),
@@ -109,19 +110,19 @@ the root `go.mod` has no `require` lines at all.
   <rect x="10" y="10" width="740" height="56" rx="8" class="dg-box"/>
   <text x="30" y="34" class="dg-text-bold">cmd/</text>
   <text x="110" y="34" class="dg-text-mono">gorged  forgec  repro  mtgsim  pkgmap  ...</text>
-  <text x="30" y="54" class="dg-text-muted">18 packages, 10k lines: thin mains; nothing imports a command</text>
+  <text x="30" y="54" class="dg-text-muted">18 packages, 11k lines: thin mains; nothing imports a command</text>
   <rect x="10" y="82" width="360" height="96" rx="8" class="dg-box"/>
   <text x="30" y="106" class="dg-text-bold">server/</text>
   <text x="30" y="128" class="dg-text-mono">gorged  host  host/httpapi  protocol</text>
   <text x="30" y="146" class="dg-text-mono">divergence  manabrew  spellbench/...</text>
-  <text x="30" y="166" class="dg-text-muted">29 packages, 40k lines: tables, sessions, SSE</text>
+  <text x="30" y="166" class="dg-text-muted">30 packages, 42k lines: tables, sessions, SSE</text>
   <rect x="390" y="82" width="360" height="96" rx="8" class="dg-box"/>
   <text x="410" y="106" class="dg-text-bold">bots/</text>
   <text x="410" y="128" class="dg-text-mono">botpolicy  heuristic  registry</text>
   <text x="410" y="146" class="dg-text-mono">hosted bots, search seats</text>
-  <text x="410" y="166" class="dg-text-muted">21 packages, 49k lines: every bot a table can seat</text>
+  <text x="410" y="166" class="dg-text-muted">22 packages, 51k lines: every bot a table can seat</text>
   <rect x="10" y="196" width="740" height="174" rx="8" class="dg-box-accent"/>
-  <text x="30" y="220" class="dg-text-bold">engine/   19 packages, 285k lines (540k lines of tests)</text>
+  <text x="30" y="220" class="dg-text-bold">engine/   19 packages, 294k lines (559k lines of tests)</text>
   <rect x="30" y="234" width="130" height="40" rx="6" class="dg-box"/><text x="95" y="259" text-anchor="middle" class="dg-text-mono">seat</text>
   <rect x="170" y="234" width="130" height="40" rx="6" class="dg-box"/><text x="235" y="259" text-anchor="middle" class="dg-text-mono">view</text>
   <rect x="310" y="234" width="130" height="40" rx="6" class="dg-box"/><text x="375" y="259" text-anchor="middle" class="dg-text-mono">replay</text>
@@ -137,8 +138,8 @@ the root `go.mod` has no `require` lines at all.
   <line x1="380" y1="80" x2="380" y2="70" class="dg-line" marker-end="url(#ix-up)"/>
 </svg>
 <figcaption>Package counts from <code>go list ./&lt;group&gt;/...</code>; line counts are
-<code>wc -l</code> over non-test <code>.go</code> files (develop @ ad3777023,
-2026-10-20). An upper box may import a lower one, never the reverse.</figcaption>
+<code>wc -l</code> over non-test <code>.go</code> files (develop @ 513a2a0c3,
+2026-10-21). An upper box may import a lower one, never the reverse.</figcaption>
 </figure>
 
 Inside `engine/` the import graph is strictly layered. This is the real graph
@@ -162,11 +163,16 @@ flowchart BT
   combat["rules/combat"] --> effects
   pay["rules/pay"] --> chars
   resolve["rules/resolve<br/>(resolution kernel)"] --> events
+  scriptfacts["rules/scriptfacts"] --> cost
+  deck["deck"] --> cards
   rules["rules<br/>(Engine)"] --> pay
   rules --> trig
   rules --> combat
   rules --> resolve
+  rules --> scriptfacts
+  rules --> deck
   view["view<br/>(per-seat projection)"] --> effects
+  view --> deck
   seat["seat<br/>(the Seat contract)"] --> view
   replay["replay"] --> rules
 ```
@@ -223,7 +229,7 @@ Each step of that loop has its own page.
 
 | Page | What it covers |
 |---|---|
-| [Events and replay](gorge/events.md) | `events.Apply` as the only mutation path, the 139 event kinds, the hash chain and golden heads, replay by re-execution, clones and the resolution kernel's checkpoints |
+| [Events and replay](gorge/events.md) | `events.Apply` as the only mutation path, the 144 event kinds, the hash chain and golden heads, replay by re-execution, clones and the resolution kernel's checkpoints |
 | [Game loop and decisions](gorge/game-loop.md) | turns, steps and priority; the 13 decision kinds; how a decision is posed, answered and validated; mulligans, the starting player and concede; the `Seat` contract |
 | [Cards and primitives](gorge/cards.md) | Forge script to IR, keyword expansion, the IR cache and its fingerprint, how primitives are registered and how an unsupported one is caught; SVars, costs and payment |
 | [The rules core](gorge/rules.md) | casting (CR 601), the stack, state-based actions, triggers, replacement effects, the layer system (CR 613), combat, zones and object identity |
