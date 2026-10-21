@@ -93,51 +93,32 @@ func rememberedStampsFrom(g *state.Game, ids []state.ObjID) []state.TargetStamp 
 	return out
 }
 
-// ringEmblemAbility rebuilds one of the Ring emblem's four level abilities
-// (CR 701.54c) from its level alone. The emblem has no corpus script text
-// and no object in any zone, so these bodies are hand-built here in events,
-// exactly as the granted ward/afflict payloads (KeywordTriggerPush) are:
-// Apply rebuilds from the "__ring:<level>" payload so a log-only replay
-// mints the identical ability object a live game did. Level N is active iff
-// the tempted seat's RingTempted >= N; lower levels stay active as the count
-// rises (the emitter gates, this function only builds).
+// ringEmblemAbility rebuilds one of the Ring emblem's triggered level
+// abilities (CR 701.54c) from its level alone. The emblem has no corpus
+// script text and no object in any zone, so these bodies are hand-built here
+// in events, exactly as the granted ward/afflict payloads
+// (KeywordTriggerPush) are: Apply rebuilds from the "__ring:<level>" payload
+// so a log-only replay mints the identical ability object a live game did.
+// Level N is active iff the tempted seat's RingTempted >= N; lower levels
+// stay active as the count rises (the emitter gates, this function only
+// builds). A level with no triggered body returns nil and mints nothing.
 //
-//  1. "Whenever your Ring-bearer attacks, draw a card."
-//  2. "Whenever your Ring-bearer becomes blocked, discard a card. If you
-//     can't, sacrifice it." The discard is TgtChoose (the discarding
-//     player's own choice); its RememberDiscarded$ records what (if
-//     anything) went, and the chained Sacrifice is gated on that set being
-//     EMPTY (ConditionDefined$ Remembered | ConditionPresent$ Card |
-//     ConditionCompare$ EQ0) -- the corpus's exact "if you can't" shape
-//     (Davriel, Soul Broker). effDiscard's strict-supersets rule means an
-//     empty or too-small hand discards nothing and asks nothing, which IS
-//     the "can't" arm.
-//  3. "Whenever your Ring-bearer deals combat damage to a player,
-//     sacrifice it." The SacValid$ reads the LIVE designation, so a bearer
-//     already dead from the combat damage leaves nothing eligible: no ask,
-//     no-op ("sacrifice it" of something that no longer exists).
-//  4. "Whenever the Ring tempts you, each opponent loses 1 life."
+//  2. "Whenever your Ring-bearer attacks, draw a card, then discard a card."
+//     The discard is TgtChoose (the discarding player's own choice).
+//  4. "Whenever your Ring-bearer deals combat damage to a player, each
+//     opponent loses 3 life."
 func ringEmblemAbility(level int) *cards.SA {
 	switch level {
-	case 1:
-		return &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
-			"Defined": "You",
-		}}
 	case 2:
-		sac := &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
-			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
-			"ConditionDefined": "Remembered", "ConditionPresent": "Card", "ConditionCompare": "EQ0",
+		discard := &cards.SA{Kind: "DB", API: "Discard", Params: map[string]string{
+			"Defined": "You", "NumCards": "1", "Mode": "TgtChoose",
 		}}
-		return &cards.SA{Kind: "DB", API: "Discard", Params: map[string]string{
-			"Defined": "You", "NumCards": "1", "Mode": "TgtChoose", "RememberDiscarded": "True",
-		}, Sub: sac}
-	case 3:
-		return &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
-			"Defined": "You", "SacValid": "Card.IsRingbearer+YouCtrl", "Amount": "1",
-		}}
+		return &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+			"Defined": "You", "NumCards": "1",
+		}, Sub: discard}
 	case 4:
 		return &cards.SA{Kind: "DB", API: "LoseLife", Params: map[string]string{
-			"Defined": "Opponent", "LifeAmount": "1",
+			"Defined": "Opponent", "LifeAmount": "3",
 		}}
 	}
 	return nil
