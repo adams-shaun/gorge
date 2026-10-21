@@ -388,8 +388,9 @@ func (e *Engine) resolveTop() {
 		// CR 702.49b: a K:Ninjutsu permanent enters attacking the same player
 		// (planeswalker or battle) the returned creature was attacking. The
 		// activator captured that defender when the Return cost was paid
-		// (engine/rules/cast.go's returncost arm) and it rides the AbilityPush event's
-		// IDs, which events.Apply folded into o.Remembered as a player target.
+		// (engine/rules/cast.go's returncost arm) and it is folded into
+		// o.Remembered as a player target by foldNinjutsuDefender's Choose
+		// "remembered" event on the pushed ability (events.Apply).
 		// Re-bind it here so engine/effects/zone.go's Attacking$ True rider (which
 		// reads Ctx.DefendingPlayer) places the permanent against the right
 		// defender. Only a ninjutsu activation carries the tag, so no other

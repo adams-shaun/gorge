@@ -115,7 +115,8 @@ func init() {
 		// "unblocked" predicate) and whose body puts the card onto the
 		// battlefield tapped and attacking via ChangeZone's Attacking$ True
 		// rider, bound to the defender captured when the Return cost was paid
-		// (pendingCast.ninjutsuDefender -> AbilityPush IDs -> Ctx.DefendingPlayer,
+		// (pendingCast.ninjutsuDefender -> Choose "remembered" on the pushed
+		// ability -> Ctx.DefendingPlayer,
 		// CR 702.49b). Proof: rules/ninjutsu_test.go.
 		"kw:Ninjutsu",
 		// kw:Level up: CR 702.87, expanded by engine/cards/keywords.go into an

@@ -1316,7 +1316,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	// path or a resumed payCast). Keep its completed target bindings available
 	// while the deferred spend rider matches, then close it again before
 	// control returns to the host. A proposal still parked in the 601.2g mana
-	// window has minted no stack object yet, so the guard also keeps the
+	// window has not yet paid, so the guard also keeps the
 	// dispatch off a suspended payment.
 	if pc.isAbility() && pc.activationPaid {
 		e.cast = pc

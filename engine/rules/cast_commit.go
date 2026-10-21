@@ -464,7 +464,7 @@ func (e *Engine) payCast() {
 		// CR 601.2d / 602.2b: the announced division, after the root targets.
 		e.recordCastDivision(pc)
 		// The chain links' announced targets (CR 601.2c / 602.2b), after the
-		// root's: the ability object exists only now.
+		// root's: the chain targets are recorded only now.
 		e.recordCastSubTargets(pc)
 		if pc.rootOpts == nil && !pc.targetedFinish {
 			// No target-recording continuation: dispatch at the completed

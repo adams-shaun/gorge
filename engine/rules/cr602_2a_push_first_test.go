@@ -79,6 +79,9 @@ func TestCR602_2aAbortedActivationKeepsItsOncePerTurnUse(t *testing.T) {
 	if used := e.activationUsedCount(wall, 0, "", true); used != 0 {
 		t.Errorf("activationUsedCount = %d after the reversed activation, want 0", used)
 	}
+	if n, ok := e.AbilitiesActivatedThisTurnMatching(0, 0, nil, nil, "Activated.YouCtrl"); n != 0 || !ok {
+		t.Errorf("AbilitiesActivatedThisTurnMatching = (%d, %v) after the reversed activation, want (0, true)", n, ok)
+	}
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 3})
 	e.pending = nil
 	e.askPriority(0)
