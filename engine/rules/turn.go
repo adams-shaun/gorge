@@ -689,6 +689,14 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 		// CR 511.2: "until end of combat" continuous effects end with it.
 		e.expireUntilEndOfCombat()
 	}
+	if leaving == state.StepUntap && entering != leaving {
+		// CR 611.3b: "until the end of your next untap step" continuous
+		// effects end with that untap step itself, even when nothing untapped
+		// during it. Same eventless-runtime-state convention as the block
+		// above; the grants read here are the active player's own
+		// registrations (Player.Activator / Player.IsRemembered scopes).
+		e.expireUntapStepEffects()
+	}
 }
 
 // step performs the smallest unit of automatic engine work.

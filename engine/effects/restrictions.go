@@ -815,6 +815,40 @@ func IsUntilYourNextTurn(dur string) bool {
 	return strings.EqualFold(strings.TrimSpace(dur), "UntilYourNextTurn")
 }
 
+// untilUntapDurationCode indexes the one Duration$ spelling IsUntapStepDuration
+// answers, through the same StrCodes table convention the other duration
+// predicates use.
+type untilUntapDurationCode uint16
+
+const (
+	untilUntapDurationEndOfYourNextUntap untilUntapDurationCode = iota + 1
+)
+
+var untilUntapDurationCodes = state.NewStrCodes(
+	state.StrEntry[untilUntapDurationCode]{Key: "untiltheendofyournextuntap", Val: untilUntapDurationEndOfYourNextUntap},
+)
+
+// IsUntapStepDuration reports whether a Duration$ value names the
+// UntilTheEndOfYourNextUntap lifetime: the effect survives the current
+// turn's cleanup and is dropped at the end of the controller's first NEXT
+// untap step, even when nothing untapped that step (Vec Townships, Kefnet's
+// Last Word, Bontu's Last Reckoning; the corpus's only spelling). Such an
+// effect is neither UntilEOT (which would drop it at the end of the current
+// turn, before the untap step) nor source-leaves (which would never drop it,
+// so a sorcery source's registration would live forever). engine/rules owns
+// the drop: effectUntilEOT returns false for it so the registration stays
+// open, rules' continuousLive keeps it alive after the source leaves the
+// battlefield, and rules drops it itself at the untap-step boundary
+// (rules' expireUntapStepEffects). Exported so rules can recognise the same
+// spelling effEffect saw.
+func IsUntapStepDuration(dur string) bool {
+	switch untilUntapDurationCodes.Code(string(strings.ToLower(strings.TrimSpace(dur)))) {
+	case untilUntapDurationEndOfYourNextUntap:
+		return true
+	}
+	return false
+}
+
 // replacementLineWith reads ReplaceWith$ off a parseReplacementLine-built
 // static line -- the SVar name of the R: body's own ReplaceWith$ body, not a
 // card Params map. Factored into its own function so the paramcensus rot
@@ -1098,6 +1132,13 @@ func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
 		return true
 	}
 	if IsNextTurnDuration(dur) {
+		return false
+	}
+	// UntilTheEndOfYourNextUntap must survive THIS turn's cleanup (it is read
+	// at the controller's next untap step, after it), so it is not UntilEOT;
+	// it is also not source-leaves -- a sorcery's registration would never
+	// expire. It stays open until rules' untap-step expiry drops it.
+	if IsUntapStepDuration(dur) {
 		return false
 	}
 	if o := h.Game().Obj(source); o != nil {
