@@ -19,12 +19,12 @@ import (
 // classified once when the arena grows past it, and an object whose
 // classified faces may have changed in place is re-classified and OR-ed in.
 // objectReplMask reads only an object's Card (every face) and CopyFace, and
-// events.Apply never reassigns an existing object's Card; the one fold that
-// can install a new CopyFace on an existing object is ClonePermanent's
-// (CloneStatic only appends statics to it; the token and card-copy folds
-// mint new objects, which the arena growth classifies). So the catch-up
-// re-classifies only the referents of the replArenaTouchKinds events. Bits
-// are never cleared, so a stale bit costs
+// events.Apply never reassigns an existing object's Card; the folds that can
+// install a new CopyFace on an existing object are ClonePermanent's and
+// CopyExcept's (CloneStatic only appends statics to it; the token and
+// card-copy folds mint new objects, which the arena growth classifies). So
+// the catch-up re-classifies only the referents of the replArenaTouchKinds
+// events. Bits are never cleared, so a stale bit costs
 // only an ordinary walk. When the caller's bit is absent from the union no
 // zone summary of the current lists can carry it either (a valid summary's
 // mask is an OR over objects of this arena), so the walk would visit no

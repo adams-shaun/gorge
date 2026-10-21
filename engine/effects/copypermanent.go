@@ -280,9 +280,10 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 
 	// AddKeywords$ and PumpKeywords$ (the temporary-keyword body): both are
 	// ampersand-joined keyword lists cards.SplitKeywordList reads ("Flying &
-	// Haste" is two). RemoveKeywords$ names keywords lost at layer 6. All three
-	// ride ONE LAbilities effect per mint so RemoveKeywords applies BEFORE the
-	// same effect's AddKeywords, whatever the timestamps order neighbours.
+	// Haste" is two). RemoveKeywords$ names keywords lost at layer 6.
+	// AddKeywords$ rides the CopyExcept basis fold (CR 707.9a); RemoveKeywords$
+	// keeps its own layer-6 loss, so it still strips whatever the copy printed
+	// or gained.
 	addKeywords := cards.SplitKeywordList(cp.AddKeywords)
 	pumpKeywords := cards.SplitKeywordList(cp.PumpKeywords)
 	removeKeywords := cards.SplitKeywordList(cp.RemoveKeywords)
