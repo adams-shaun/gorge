@@ -342,10 +342,11 @@ func UnlessEnergyAffordable(e Engine, p state.PlayerID, cost costvocab.Cost, ctx
 // (unlessCandidatesFor) so the gate can never disagree with
 // beginUnlessPayment about what exists. The choice-bearing Sac/Discard/Reveal
 // parts must admit a system of distinct representatives (one card cannot pay
-// two parts); the synchronous parts (SubCounter/RevealChosen/Draw) are
+// two parts); the synchronous parts (Mill/SubCounter/RevealChosen/Draw) are
 // checked directly.
 func unlessComponentsPayable(e Engine, p state.PlayerID, cost costvocab.Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
-	return unlessChoiceComponentsPayable(e, p, cost, ctx) &&
+	return MillCostPayable(e.Game(), p, cost.Mill) &&
+		unlessChoiceComponentsPayable(e, p, cost, ctx) &&
 		UnlessCountersAffordableFor(e, cost, *ctx, stackObj) &&
 		UnlessRevealChosenDesignated(e.Game(), cost, *ctx) &&
 		unlessDrawsResolvable(e, p, cost, ctx)
