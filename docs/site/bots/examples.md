@@ -3,10 +3,12 @@
 This page walks through two complete bots that play gorge over the network,
 one in Python and one in Java, for authors who want to wire their own
 strategy to the engine in a language other than Go. Both are single files
-with no dependencies beyond the language's standard library, both played
-complete games against `gorged` on 2026-10-20 (`ad3777023`), and both are
+with no dependencies beyond the language's standard library, and both are
 structured so that you replace one function, `choose`, with your own
-strategy.
+strategy. CI plays one complete game with each against a throwaway `gorged`
+([`scripts/examples-smoke.sh`](https://github.com/adams-shaun/gorge/blob/main/scripts/examples-smoke.sh));
+the transcripts below were captured on 2026-10-20 (`ad3777023`), and the
+smoke script passed again at `513a2a0c3` on 2026-10-21.
 
 Source:
 [`examples/bots/python/gorge_agent.py`](https://github.com/adams-shaun/gorge/blob/main/examples/bots/python/gorge_agent.py)
@@ -232,8 +234,9 @@ the match state every tenth empty poll, and on a decision: read the view if
 the strategy wants it, then submit the candidates in order (the strategy's
 answer, eight random legal answers, the minimal answer) until one is
 accepted. A stale-`seq` refusal means the decision moved on, so it polls
-again. And it never answers the same `seq` twice: right after a `204`, the
-server can briefly still show the decision just answered.
+again. It also remembers the last `seq` it answered and skips a pending
+decision that is not newer: the server refuses a second answer to one
+decision with a `409` anyway, so this only saves a round trip.
 
 === "Python"
 

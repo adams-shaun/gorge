@@ -6,8 +6,7 @@ evaluate a policy honestly, and the ladder a policy climbs from a bench
 experiment to the default bot that plays real users. gorge ships the
 engine-side interfaces, the hosted bots and their inference code; training
 tools and research bots live outside this repository and are not covered
-here. (This page replaces the former "Bot training and adoption" research
-page and the README section of the same name.)
+here.
 
 ## The contract a policy answers
 
@@ -34,7 +33,7 @@ integration surfaces; [Writing a native Go bot](native-go.md) the
 | Terminal and reward | `View.Over`, `View.Winner`; `searchprobe.LeafValue`; the `policynet` value head | No shaped reward is built in: win or loss is the ground truth. |
 | Replay and audit | `events.Log` (SHA-256 chain, `Head()`), `replay.Replay`, `replay.ReplayTo` | Any game a policy plays can be re-run and checked event for event. |
 | Game runner | `testkit/bench`: `PlayGame`, `RunPairs` | Watchdogs, livelock recovery, no clock. |
-| Search | `bots/azmcts` (`azmcts.Search(root, worldSource, net, opts)`, the `azmcts.Env` seam), `bots/searchseat` | AlphaZero-style PUCT (single-perspective tree, value-scored leaves, no rollouts) and a determinized rollout seat. Clairvoyant worlds are refused unless the driving command opts in; no hosted path does. |
+| Search | `bots/azmcts` (`azmcts.Search(ctx, root, worldSource, net, opts)`, the `azmcts.Env` seam), `bots/searchseat` | AlphaZero-style PUCT (single-perspective tree, value-scored leaves, no rollouts) and a determinized rollout seat. Clairvoyant worlds are refused unless the driving command opts in; no hosted path does. |
 | Learned policies | `bots/policynet`, `heuristic.NewPolicyNetBot` | Pure-Go hashed features, an MLP scorer and an optional value head, hand-derived gradients; `.gpol` checkpoints refuse to load on an encoder-hash mismatch. Kinds the net does not answer go to the default bot. |
 
 Engine speed (turns per second, clone and step costs, search rates) is on
@@ -80,7 +79,9 @@ flowchart LR
    features) stay here.
 2. **Hosted, opt-in.** Registered in the bot registry (`bots.Register` from
    an `init`) and linked from `bots/all`, so `POST /api/games` can select it
-   with `bot_policy`. Requirements:
+   with `bot_policy` (unless it reads every seat's decklist, like
+   `sb-tactical` and `az-redeal`: those stay off tables with people).
+   `forge-heuristic` is a hosted, opt-in policy today. Requirements:
     - It is seat-honest: no clairvoyance, nothing the view does not show
       (an Env seat reads only its honest root).
     - It is deterministic from (match seed, seat).

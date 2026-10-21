@@ -4,7 +4,9 @@ This page is for authors of bots in any language who want to play a gorge
 seat over the network. It walks the decision round trip with real requests
 and responses captured from a live `gorged` on 2026-10-20 (`ad3777023`),
 explains how to answer each of the thirteen decision kinds, and lists the
-errors, timeouts and pitfalls. The field-by-field reference is the
+errors, timeouts and pitfalls. The routes, error bodies and refusal
+behaviour were rechecked against a live `gorged` at `513a2a0c3` on
+2026-10-21. The field-by-field reference is the
 [HTTP API reference](../api/http.md); the wire types are on
 [the protocol reference](../api/protocol.md). Working agents are on
 [Python and Java examples](examples.md).
@@ -72,9 +74,11 @@ sequenceDiagram
       H-->>B: 200 the seat's redacted view
     end
     B->>H: POST …/intent {"seq":38,"player":0,"choices":[0]}
-    H->>S: Validate, then hand the intent over
+    H->>S: Validate, claim the parked decision
+    S->>E: Submit
+    E-->>H: accepted (a refusal is a 409 and re-parks the decision)
     H-->>B: 204 No Content
-    S->>E: Submit: the game advances, the bot opponent plays
+    E->>E: the game advances, the bot opponent plays
     B->>H: GET …/pending?seat=0
     H-->>B: 409 nothing pending (yet): back off and retry
   end
@@ -82,11 +86,13 @@ sequenceDiagram
   H-->>B: 200 [{"state":"finished","winner":1,…}]
 ```
 
-A `204` means the intent was *admitted*: it passed validation and was handed
-to the parked seat. The engine applies it on the match goroutine a moment
-later, so the next `GET .../pending` may still answer `409` or, for a few
-microseconds, show the decision you just answered (see
-[Pitfalls](#pitfalls)).
+`POST .../intent` waits for the engine's verdict. A `204` means the engine
+accepted the answer and the game has moved past that decision. A `409`
+means it was refused, by the wire checks or by the rules engine itself; the
+decision stays pending, unchanged, and you can answer it again. The first
+`POST` for a decision claims it, so a duplicate or concurrent `POST` of the
+same answer is a `409`, never a second `204`. After a `204`, `GET .../pending`
+answers `409` until the game asks your seat something new.
 
 Instead of polling, a bot can open `GET /api/stream` (server-sent events),
 subscribe to its table, and wait for a `decision` frame naming its seat
@@ -122,7 +128,7 @@ network you trust, or behind TLS.
 | `POST /api/tables/{t}/matches/{k}/intent` | seat | answer the pending decision |
 | `GET /api/tables/{t}/matches` | none | match state, winner, turns |
 | `GET /api/tables/{t}/matches/{k}/events?seat=N&since=S` | seat | your seat's redacted event log |
-| `GET /api/stream`, `POST /api/subscribe` | none | server-sent events: push notifications |
+| `GET /api/stream`, `POST /api/subscribe` | seat token for a private table | server-sent events: push notifications |
 
 ### Create a game
 
@@ -290,12 +296,13 @@ Every error body is `{"code": …, "message": …}`. Captured:
 |---|---|---|---|
 | 400 | `bad_request` | malformed JSON, an unknown field, a missing `?seat=` on `/pending` | `malformed JSON body: json: unknown field "choice"` |
 | 401 | `unauthorized` | no token, or an unknown one | `request does not hold a seat claim` |
-| 403 | `forbidden` | the token is for another seat or table | `claim holds seat 0, not the requested seat 1` |
-| 404 | `not_found` | no such table or match (yet) | `host: not found` |
-| 409 | `conflict` | nothing pending; a stale `seq`; an answer the decision does not allow | `intent seq 22, pending decision seq 33` · `choice 7 out of range (2 options)` · `intent from player 1, decision is for player 0` |
+| 403 | `forbidden` | the token is for another seat or table | `claim holds seat 0, not the requested seat 1` · `claim does not hold a seat at this table` |
+| 404 | `not_found` | no such match (yet) | `host: not found` |
+| 409 | `conflict` | nothing pending; a stale `seq`; an answer the decision does not allow; an answer the rules engine refuses | `intent seq 1, pending decision seq 22` · `choice 7 out of range (2 options)` · `attacker 38 declared against more than one defender` |
 
 A refused intent leaves the decision pending and the game exactly where it
-was: read `/pending` again and send a different answer.
+was: read `/pending` again and send a different answer. That holds for a
+refusal from the rules engine too; it no longer ends the match.
 
 ## Timeouts and disconnects
 
@@ -312,7 +319,12 @@ the examples use a 30 s HTTP timeout of their own.
 `GET /api/stream` opens a server-sent-event stream. The first frame is
 `hello` with a session id; post it to `/api/subscribe` with your table and
 `"mode":"focus"`, and the stream carries a `snapshot`, every public `event`,
-and a `decision` frame whenever a decision is posed, naming the seat:
+and a `decision` frame whenever a decision is posed, naming the seat.
+
+A play-vs-bot table is private: open the stream with your seat's token
+(`Authorization: Bearer <token>` or `?token=`), or the subscribe is answered
+`404` (`host: not found`), exactly as for a table that does not exist. A
+`-humans` table is public and needs no token.
 
 ```text
 event: hello
@@ -324,11 +336,13 @@ data: {"v":1,"t":"decision","id":7,"table":"t1","match":1,"seq":38,"body":{"play
 ```
 
 ```console
-$ curl -s -X POST -d '{"session":"sc4947f140c989e0c79de167ffc8caac7","table":"t1","mode":"focus"}' $B/api/subscribe
+$ curl -sN -H "Authorization: Bearer $TOK" $B/api/stream      # keep this open
+$ curl -s -X POST -d '{"session":"sc4947f140c989e0c79de167ffc8caac7","table":"g2","mode":"focus"}' $B/api/subscribe
 ```
 
-The stream is a *spectator* stream: it needs no token and shows what the
-table's spectator visibility allows, so it never carries your options. Use
+The stream is a *spectator* stream: it shows what the table's spectator
+visibility allows, never your seat's options (the token only admits you to a
+private table). Use
 it as a wake-up: on a `decision` frame for your seat, `GET /pending`; on
 `match_end`, stop. The stream sends a `: ping` comment every 15 s, resumes
 from `Last-Event-ID` within 30 s of a disconnect, and closes with an
@@ -337,8 +351,8 @@ from `Last-Event-ID` within 30 s of a disconnect, and closes with an
 ## Latency
 
 `examples/bots/python/measure_latency.py` plays ten games answering every
-decision minimally and times each call. On 2026-10-20, loopback, Ryzen 9
-9950X, `gorged -pace 0`:
+decision minimally and times each call. On 2026-10-20 (`ad3777023`),
+loopback, Ryzen 9 9950X, `gorged -pace 0`:
 
 ```console
 $ python3 measure_latency.py http://127.0.0.1:8092 10
@@ -361,26 +375,22 @@ per decision over whole games. SSE costs one wake-up hop and nothing while
 idle. Sixteen agents on one server played 16 games, 4,156 decisions, in
 1.27 s of wall time.
 
+!!! note "The script's SSE run needs the token"
+    The `sse` lines above predate private play-vs-bot tables. At `513a2a0c3`
+    the script opens `/api/stream` without the seat's token, so its SSE run
+    stops at `subscribe: HTTP 404`; the poll run still works. Opening the
+    stream with `Authorization: Bearer <token>` is the fix.
+
 ## Pitfalls
 
-!!! warning "Never answer the same decision twice"
-    For a moment after a `204`, `/pending` can still return the decision
-    you just answered (the server clears it when the match goroutine picks
-    the answer up, not when it admits it). Remember the last `seq` you
-    answered and ignore a pending decision whose `seq` is not greater.
-    Two concurrent POSTs of the same intent were both answered `204` on
-    2026-10-20, and a third hung until the client gave up; the
-    [interface review](interfaces-review.md) has the fix.
-
-!!! danger "One creature, one defender"
-    An `attackers` decision has one option per (creature, defender) pair, and
-    the pairs of one creature share no `group`. An answer that picks the same
-    creature twice (say, at the player and at a planeswalker) passes the HTTP
-    layer's checks, is answered `204`, and is then refused by the rules
-    engine, which ends the match as crashed (observed 2026-10-20:
-    `intent 1258 rejected: attacker 38 declared against more than one
-    defender`). Pick at most one option per `obj`.
-
+- **One creature, one defender.** An `attackers` decision has one option
+  per (creature, defender) pair, and the pairs of one creature share no
+  `group`. Pick at most one option per `obj`; an answer that sends one
+  creature at two defenders is a `409` (`attacker 38 declared against more
+  than one defender`).
+- **Read a stream token-first.** A play-vs-bot table is private, so an
+  SSE subscribe without the seat's token is a `404`
+  ([above](#push-instead-of-poll-sse)).
 - **Spectator visibility.** On a `-humans` server the default spectator
   visibility is `public`, so `/api/stream` and a seat-less `/view` hide every
   hand. Do not pass `-spectator omniscient` on a table with people at it

@@ -6,10 +6,11 @@ watch them play. It covers the tools gorge ships for that, the registered
 policies, how to run a fair matchup with seeds and N games, how to read the
 result (and how many games a given difference needs), replay verification,
 reproducibility and speed. Wiring in a bot written in another language is
-covered in [External bots](../bots/index.md).
+covered in [Bots and strategies](../bots/index.md).
 
-*Every command and output here was run on 2026-10-20 at commit `ad3777023`
-(corpus pin `098b0553`), on a 32-core Linux box capped to 4 CPUs.*
+*Every command and output here was run on 2026-10-21 at commit `513a2a0c3`
+(corpus pin `FORGE_REF` `76fd7691`), on a shared 32-core Linux box capped to
+4 CPUs. The box was under load, so the wall times are upper bounds.*
 
 ## Which tool?
 
@@ -23,7 +24,7 @@ flowchart LR
   start -->|what does it look like?| watch["gorged -tables N -bot-policy A,<br/>watch in the browser"]
   start -->|does it beat me?| vs["gorged -vsbot,<br/>Play vs bot"]
   start -->|how fast is the engine?| eb["cmd/enginebench<br/>(Performance pages)"]
-  start -->|my bot is not written in Go| ext["External bots"]
+  start -->|my bot is not written in Go| ext["Bots and strategies:<br/>HTTP or SpellBench seat"]
 ```
 
 | Tool | Seats | Who plays | Fair seating | Use it for |
@@ -57,15 +58,17 @@ sb-tactical	sb-tactical (SpellBench tactical heuristic)	experimental
 ```
 
 A running server lists the subset it offers to humans, with descriptions and
-each policy's recorded strength claim, at `GET /api/bot-policies`.
+each policy's recorded strength claims, at `GET /api/bot-policies`.
+[Bots and strategies](../bots/index.md#the-bots-gorge-ships) describes each
+policy in full and how to pick one; in short:
 
 | Policy | Formats, seats | What it does |
 |---|---|---|
-| `bot` | constructed and commander, any | the production baseline heuristic. With automatic mana payment it simulates combat to choose attacks and blocks ([`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go)) |
-| `forge-heuristic` | constructed and commander, any | the heuristic bot plus targeting rules derived from Forge's AI (prefer land colours, prominent colour, skip copies that would die) and a rule to hold removal for a bigger threat; no combat simulation ([`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go)) |
-| `lethal-pressure` | constructed and commander, any | the heuristic with its own lethal-pressure decision rules; `gorged`'s default `-bot-policy` ([`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go)) |
-| `sb-tactical` | constructed, 2 seats | a scored tactical heuristic ported from the SpellBench project: values creatures, timing, races and removal from what the seat can see. Needs the card registry ([`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go)) |
-| `az-redeal` | constructed, 2 seats | Monte Carlo tree search: 100 simulations per searched decision over hidden cards redealt from its own observations, and `bot` everywhere else. About 250 ms per searched decision ([`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go)) |
+| `bot` | constructed and Commander, any | the production heuristic. With automatic mana payment it simulates combat to choose attacks and blocks; Forge's London mulligan rule ([`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go)) |
+| `forge-heuristic` | constructed and Commander, any | `bot` (same constructor, combat simulation and mulligan) plus every rule family re-expressed from Forge's AI: removal timing, targeting, AI hints, deck-shape posture, attachments, spell timing and gang blocks ([`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go)) |
+| `lethal-pressure` | constructed and Commander, any | the plain heuristic with the AR7 lethal-pressure attack rule, no combat simulation and the coin mulligan; `gorged`'s default `-bot-policy` ([`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go)) |
+| `sb-tactical` | constructed, 2 seats | a scored tactical heuristic from the SpellBench project: values creatures, timing, races and removal from what the seat can see. Needs the card registry ([`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go)) |
+| `az-redeal` | constructed, 2 seats | AlphaZero-style tree search with no network: 100 simulations per searched decision over hidden cards redealt from its own observations, and `bot` everywhere else. About 250 ms per searched decision (its registry entry) ([`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go)) |
 
 `sb-tactical` and `az-redeal` are *environment* policies: the driver hands
 them a rebuilt game to search or score, and that rebuild uses each seat's real
@@ -91,11 +94,11 @@ go run ./cmd/mtgsim -seats 2 -games 100 -seed 1 -a forge-heuristic -b bot -decks
 ```
 
 ```text
-seed 1: 2 seats,    348 intents,   1899 events,  13 turns, winner=mono-red-goblins, chain=2124efdf7be30c65
-seed 2: 2 seats,    223 intents,   1259 events,  10 turns, winner=mono-red-goblins, chain=a18fe2b836f122d9
-seed 3: 2 seats,    244 intents,   1409 events,  10 turns, winner=mono-red-goblins, chain=9c8e7ad5eee07bc5
+seed 1: 2 seats,    346 intents,   1894 events,  13 turns, winner=mono-red-goblins, chain=55e538bdc429bf4a
+seed 2: 2 seats,    223 intents,   1259 events,  10 turns, winner=mono-red-goblins, chain=2185ea670cb66f1a
+seed 3: 2 seats,    243 intents,   1397 events,  10 turns, winner=mono-red-goblins, chain=d2247facf6f5c926
 ...
-seed 100: 2 seats,    266 intents,   1470 events,  10 turns, winner=mono-red-goblins, chain=d43a07279ca9dd83
+seed 100: 2 seats,    356 intents,   1961 events,  14 turns, winner=mono-red-goblins, chain=1216b28774c3a6d0
 ```
 
 Each game prints one line naming the **winning deck**, not the winning
@@ -105,11 +108,11 @@ same seeds, then add up per policy:
 
 | Run | uw-tempo (seat 0) | mono-red-goblins (seat 1) | wins |
 |---|---|---|---|
-| `-a forge-heuristic -b bot` | forge-heuristic | bot | uw-tempo 13, mono-red-goblins 87 |
-| `-a bot -b forge-heuristic` | bot | forge-heuristic | uw-tempo 25, mono-red-goblins 75 |
+| `-a forge-heuristic -b bot` | forge-heuristic | bot | uw-tempo 12, mono-red-goblins 88 |
+| `-a bot -b forge-heuristic` | bot | forge-heuristic | uw-tempo 10, mono-red-goblins 90 |
 
-forge-heuristic won 13 + 75 = 88 of 200 (44%). Each 100-game run took about
-2 s and 340 MB. Tally the winners with
+forge-heuristic won 12 + 90 = 102 of 200 (51%). Each 100-game run took about
+3 s and 320 MB. Tally the winners with
 `... | grep -o 'winner=[a-z-]*' | sort | uniq -c`.
 
 `mtgsim`'s limits, all from its source:
@@ -121,9 +124,9 @@ forge-heuristic won 13 + 75 = 88 of 200 (44%). Each 100-game run took about
 - **Environment policies do not work.** `-a sb-tactical` fails with
   `Deps.Cards is nil`; `-a az-redeal` runs but never searches, because
   `mtgsim` calls the plain `Decide` and the policy falls back to `bot`.
-- **Seats without `-a`/`-b`** play the built-in heuristic with manual mana
-  tapping, which is `bot` without automatic payment. A named policy gets
-  automatic payment.
+- **Seats without `-a`/`-b`** play the plain heuristic (`heuristic.NewBot`)
+  with manual mana tapping and its coin mulligan, which is neither `bot`
+  nor any other registered policy. A named policy gets automatic payment.
 
 ## A fair matchup with `testkit/bench`
 
@@ -251,11 +254,11 @@ cd ../gorge
 ```
 
 ```text
-uw-tempo:mono-red-goblins                A  12  B   8  draws 0  stalls 0  seat0 wins 2
-forge-heuristic vs bot: A won 12 of 20 decided games = 60.0% (95% CI +/- 21.5 pp)
+uw-tempo:mono-red-goblins                A  10  B  10  draws 0  stalls 0  seat0 wins 2
+forge-heuristic vs bot: A won 10 of 20 decided games = 50.0% (95% CI +/- 21.9 pp)
 ```
 
-20 games, every one replay-verified, in 0.5 s. Note `seat0 wins 2`: the deck
+20 games, every one replay-verified, in 0.7 s. Note `seat0 wins 2`: the deck
 in seat 1 won 18 of 20. The deck pairing dominates a single pair, which is
 why the seats trade and why you want many pairs.
 
@@ -268,23 +271,23 @@ pair of the 12 pinned constructed decks (66 pairs):
 ```
 
 ```text
-forge-heuristic vs bot: A won 577 of 1320 decided games = 43.7% (95% CI +/- 2.7 pp)
-bot vs bot: A won 639 of 1320 decided games = 48.4% (95% CI +/- 2.7 pp)
+forge-heuristic vs bot: A won 636 of 1320 decided games = 48.2% (95% CI +/- 2.7 pp)
+bot vs bot: A won 630 of 1320 decided games = 47.7% (95% CI +/- 2.7 pp)
 ```
 
-Each run: 1,320 games in 6.5 s wall (24 s CPU) on 4 cores, 1.4 GB peak RSS.
-The control matters: `bot` against itself is 50% by symmetry, and 48.4% is
-what noise looks like at this size. forge-heuristic's 43.7% sits outside the
-control's interval, so on this run it is weaker than `bot` in 1v1
-constructed.
+Each run: 1,320 games in about 10 s wall (36-39 s CPU) on 4 cores, 1.3 GB
+peak RSS. The control matters: `bot` against itself is 50% by symmetry, and
+47.7% is what noise (and the seat order) looks like at this size.
+forge-heuristic's 48.2% sits inside the control's interval, so on this run
+the two are indistinguishable in 1v1 constructed.
 
 The other two policies run the same way. These are 20-game smoke runs, far
 too small to rank anything:
 
 | Command | Result | Wall time |
 |---|---|---|
-| `-a sb-tactical -b bot -games 20 -verify` | A 13, B 7 | 0.8 s |
-| `-a az-redeal -b bot -games 4 -verify` | A 2, B 2 | 3.7 s |
+| `-a sb-tactical -b bot -games 20 -verify` | A 14, B 6 | 1.3 s |
+| `-a az-redeal -b bot -games 4 -verify` | A 2, B 2 | 5.6 s |
 
 **Your own decks.** `testutil.LoadRepoDeck` reads only the embedded repo
 decks. To play deck files of your own (for example from
@@ -296,7 +299,7 @@ pair list yourself instead of calling `bench.ParsePairs`.
 [`seat.Seat`](https://github.com/adams-shaun/gorge/blob/main/engine/seat/seat.go),
 register it in an `init` with `bots.Register(bots.Entry{Info: ..., New: ...})`,
 and blank-import its package in `main.go`; `-a yourpolicy` then works. The
-[External bots](../bots/index.md) section covers the seat contract.
+[Bots and strategies](../bots/index.md) section covers the seat contract.
 
 ## Multiplayer games
 
@@ -309,13 +312,13 @@ go run ./cmd/mtgsim -seats 8 -games 2 -verify -a forge-heuristic
 ```
 
 ```text
-seed 0: 8 seats,   3691 intents,  17042 events,  48 turns, winner=mono-red-goblins, chain=d9188de47705f5ea
-  replay OK (chain d9188de47705f5ea)
-seed 1: 8 seats,   4020 intents,  18404 events,  53 turns, winner=mono-red-goblins, chain=fd1629b46e20cd5f
-  replay OK (chain fd1629b46e20cd5f)
+seed 0: 8 seats,   4120 intents,  19329 events,  59 turns, winner=death-n-taxes, chain=2722cd61609906f8
+  replay OK (chain 2722cd61609906f8)
+seed 1: 8 seats,   4021 intents,  18475 events,  54 turns, winner=mono-red-goblins, chain=002a811213c188eb
+  replay OK (chain 002a811213c188eb)
 ```
 
-Two 8-seat games in 2 s. To balance seats, rotate the deck list across runs
+Two 8-seat games in 2.4 s. To balance seats, rotate the deck list across runs
 so the policy under test meets every deck in every seat. `mtgsim` plays the
 Commander decks as 20-life constructed games; a Commander-format comparison
 needs a program that sets `rules.Config`'s format and commander fields
@@ -378,8 +381,8 @@ the answers the seats gave, which the event log records. `-verify` (in
 and compares the rebuilt event chain head with the live one:
 
 ```text
-seed 0: 4 seats,   1420 intents,   6944 events,  33 turns, winner=death-n-taxes, chain=c273bc17c18d495d
-  replay OK (chain c273bc17c18d495d)
+seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=3681b10f8c62ff99
+  replay OK (chain 3681b10f8c62ff99)
 ```
 
 A `replay diverged at event N` line is an engine bug: please report it with
@@ -404,9 +407,9 @@ Determinism also means a run is reproducible:
 
 | Measured | Result |
 |---|---|
-| `mtgsim`, 2 seats, heuristic policies | 100 games in about 2 s, one core, 340 MB |
-| `make sim` (20 verified 4-seat games) | 3.6 s |
-| matchup, 66 pairs × 20 games, 4 workers | 1,320 games in 6.5 s, 1.4 GB |
+| `mtgsim`, 2 seats, heuristic policies | 100 games in about 3 s, one core, 320 MB |
+| `make sim` (20 verified 4-seat games) | 6.1 s, 780 MB |
+| matchup, 66 pairs × 20 games, 4 workers | 1,320 games in about 10 s, 1.3 GB |
 | `az-redeal` | about 250 ms per searched decision (its registry entry) |
 
 Tips:
