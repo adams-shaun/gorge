@@ -742,6 +742,29 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	e.continuousChanged()
 }
 
+// expireUntilUntaps drops every Duration$ UntilUntaps registration whose host
+// is host: Forge ends the effect the first time the host untaps or leaves the
+// battlefield, and a host tapped again later must not revive it. Called after
+// an Untap of the host and after a MoveZone out of the battlefield. Like
+// effectMoveSweep it is an in-place rewrite of e.continuous that emits no
+// event; replay rebuilds it by re-executing the same registrations.
+func (e *Engine) expireUntilUntaps(host state.ObjID) {
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.UntilUntapOf == host {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
 // mayPlayRememberedLeftZone reports whether ev moves one of a may-play
 // grant's REMEMBERED cards out of a zone the grant names (AffectedZone$),
 // for a grant that spells no move-driven lifetime of its own. CR 400.7: a
@@ -978,6 +1001,14 @@ func (e *Engine) expireUntapStepEffects() {
 func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 	if ce.SourceZoneAnchored {
 		if source := e.G.Obj(ce.Source); source == nil || source.ZoneGen != ce.SourceZoneGen {
+			return false
+		}
+	}
+	if ce.UntilUntapOf != 0 {
+		// Duration$ UntilUntaps: only while the host is a tapped permanent.
+		// The first untap or departure drops the registration for good
+		// (expireUntilUntaps), so a retap cannot revive it.
+		if host := e.G.Obj(ce.UntilUntapOf); host == nil || host.Zone != state.ZBattlefield || !host.Tapped {
 			return false
 		}
 	}
