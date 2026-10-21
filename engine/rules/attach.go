@@ -40,9 +40,13 @@ import (
 //     UnattachPending at the move itself -- recording the departed bearer as
 //     LastBearer while deliberately leaving the live AttachedTo link
 //     standing, so the mid-resolution window before the next checkpoint
-//     still shows the attachment fastened -- and the pending arm at the top
-//     of this walk publishes the queued detach with the same Unattached /
-//     graveyard MoveZone the bearer-left read produces.
+//     still shows the attachment fastened -- and when the bearer RE-ENTERS
+//     the battlefield the entry arm breaks that link (the returned permanent
+//     is a new object nothing is attached to; the link must not survive to
+//     the SBA pass where destroyLethalDamage runs before this walk). The
+//     pending arm at the top of this walk then publishes the queued detach
+//     with the same Unattached / graveyard MoveZone the bearer-left read
+//     produces.
 //
 // The bearer-left arm below (`bearer == nil || bearer.Zone != ZBattlefield`
 // with AttachedTo still non-zero) is therefore reachable only for a link the
@@ -86,11 +90,14 @@ func (e *Engine) attachmentSBAs() bool {
 				// bearer under the same ObjID before any SBA checkpoint, so
 				// the bearer-left arm below, which reads the live link, can
 				// never see the departure; the queued mark survives the
-				// round trip and publishes here. The fold deliberately left
-				// the live AttachedTo link standing (the mid-resolution
-				// window before this checkpoint still shows the attachment
-				// fastened), so the publication below is what clears it --
-				// with the same Unattached / graveyard MoveZone the
+				// round trip and publishes here. The fold left the live
+				// AttachedTo link standing for the window while the bearer
+				// was off the battlefield (the Murderous Spoils /
+				// Witness Protection mid-chain read), and the bearer's
+				// re-entry -- when the flicker has one -- already broke it
+				// (breakQueuedAttachmentsOnEntry), so the publication below
+				// is what spends the queue either way, with the same
+				// Unattached / graveyard MoveZone the
 				// bearer-left arm emits, so Mode$ Unattached triggers
 				// (Grafted Exoskeleton) and the CR 702.114b bestowed detach
 				// log keep firing exactly as before. The graveyard-enchant
@@ -172,10 +179,11 @@ func (e *Engine) attachmentSBAs() bool {
 			if bearer == nil || bearer.Zone != state.ZBattlefield {
 				// The bearer is off the battlefield while AttachedTo is still
 				// set: since the CR 400.7 departure fold queues every
-				// departed-bearer link as UnattachPending (published by the
-				// pending arm above, which also leaves the live link for the
-				// publication to clear), this arm serves only the links the
-				// fold never marks -- the graveyard-enchant family (Animate
+				// departed-bearer link as UnattachPending -- published by the
+				// pending arm above, which the bearer's re-entry (when the
+				// flicker has one) reaches first after breaking the link --
+				// this arm serves only the links the fold never marks -- the
+				// graveyard-enchant family (Animate
 				// Dead, Dance of the Dead), whose Aura attached to a card
 				// that was already in a graveyard at resolution. (A bearer
 				// that left the battlefield while attached detaches through

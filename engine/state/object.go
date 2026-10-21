@@ -1671,8 +1671,12 @@ type Object struct {
 	// next checkpoint must still show the attachment fastened (Murderous
 	// Spoils' StealEquip resolves the Equipment of the creature its Destroy
 	// leg just killed) and a stale link cannot leak across zones because
-	// every cross-zone reader zone-gates -- so the pending publication is
-	// what clears it, emitting the same Unattached / graveyard MoveZone the
+	// every cross-zone reader zone-gates -- and when the bearer RE-ENTERS the
+	// battlefield the entry arm breaks that link (the returned permanent is a
+	// new object nothing is attached to, and the link must not survive to the
+	// SBA pass where destroyLethalDamage runs before attachmentSBAs). The
+	// pending publication spends the queue either way, emitting the same
+	// Unattached / graveyard MoveZone the
 	// bearer-left arm always did, so Mode$ Unattached triggers (Grafted
 	// Exoskeleton) and the CR 702.114b bestowed detach log keep firing. Like
 	// LastBearer it is written ONLY inside events.Apply: the departure fold

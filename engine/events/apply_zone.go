@@ -489,6 +489,30 @@ func detachAttachmentsOnDeparture(g *state.Game, id state.ObjID) {
 	}
 }
 
+// breakQueuedAttachmentsOnEntry completes the CR 400.7 attachment break when
+// the departed bearer RE-ENTERS the battlefield (a flicker's return leg, the
+// entry arm of move). While the bearer was off the battlefield the queued
+// attachment's live link was deliberately left standing (the Murderous
+// Spoils / Witness Protection mid-chain window); once the bearer is back, the
+// returned permanent is a NEW object (CR 400.7) and nothing is attached to
+// it, so the link must break NOW rather than at the next SBA checkpoint:
+// checkStateBased runs destroyLethalDamage before attachmentSBAs in a pass,
+// and CR 704.3's SBAs are simultaneous -- a toughness-changing Aura whose
+// stale link survived the re-entry would kill the returned creature it was
+// never attached to. The walk is the same index-ordered g.Objs fold as the
+// departure arm (deterministic, replay-safe), and it clears ONLY AttachedTo:
+// UnattachPending and LastBearer stay standing so engine/rules/attach.go's
+// pending arm -- which reads LastBearer, not AttachedTo -- still publishes
+// the queued detach with its usual Unattached / graveyard MoveZone.
+func breakQueuedAttachmentsOnEntry(g *state.Game, id state.ObjID) {
+	for i := range g.Objs {
+		other := &g.Objs[i]
+		if other.UnattachPending && other.AttachedTo == id {
+			other.AttachedTo = 0
+		}
+	}
+}
+
 func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain bool) {
 	o := g.Obj(id)
 	if o == nil || !o.Zone.Valid() || !to.Valid() {
@@ -634,8 +658,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// a flicker (exile, then return under the same ObjID) puts the bearer
 	// back on the battlefield before the next SBA checkpoint runs, so
 	// attachmentSBAs' bearer-left arm -- which reads the LIVE link -- could
-	// never see the departure; the queued mark survives the round trip and
-	// the pending arm publishes each queued detach with the SAME Unattached
+	// never see the departure; the queued mark survives the round trip, the
+	// bearer's re-entry breaks the live link (breakQueuedAttachmentsOnEntry:
+	// the returned permanent is a new object nothing is attached to, and the
+	// link must not survive to the SBA pass where destroyLethalDamage runs
+	// before attachmentSBAs), and the pending arm publishes each queued
+	// detach with the SAME Unattached
 	// ("bearer left the battlefield" for an Equipment/Fortification,
 	// "bestowed attachment ended" for a bestowed card) or the same graveyard
 	// MoveZone ("attached to an object that left the battlefield" for an
@@ -852,6 +880,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// Riot "haste" election (a keyword grant, not a counter) and the
 		// one-shot consumption of both elections.
 		if !wasBattlefield {
+			// The re-entry half of the CR 400.7/704.5m-n attachment break: a
+			// bearer the departure arm queued against is back on the
+			// battlefield as a new object, so its old attachments' links
+			// break here, before the next SBA pass (see
+			// breakQueuedAttachmentsOnEntry). First entries have nothing
+			// queued against them and the walk finds no match.
+			breakQueuedAttachmentsOnEntry(g, id)
 			o.AcqTurn = g.Turn
 			o.AcqStep = g.Step
 			// CR 400.7: a battlefield entry from another zone is a new

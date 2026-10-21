@@ -5,16 +5,18 @@
 // (engine/events/apply_zone.go) marks every attachment to the departing
 // permanent UnattachPending at the move itself — recording LastBearer while
 // deliberately leaving the live AttachedTo link standing, so the
-// mid-resolution window before the next checkpoint still shows the
-// attachment fastened — because the flickered bearer is back on the
-// battlefield under the same ObjID before the next SBA checkpoint: the
-// bearer-left arm in attachmentSBAs reads the live link and could never see
-// the departure, only the queued mark survives the round trip. The SBAs then
-// finish the job: the Aura goes to its owner's graveyard (704.5m) and the
-// Equipment sits unattached on the battlefield (704.5n), so the returned
-// bearer has its base characteristics. Before the fix the returned creature
-// carried its Aura, its +1/+0 and its flying across the flicker. All cards
-// are real compiled corpus cards; no Forge script text is committed here.
+// mid-resolution window while the bearer is off the battlefield still shows
+// the attachment fastened (Murderous Spoils' StealEquip) — and the bearer's
+// re-entry breaks that link (breakQueuedAttachmentsOnEntry: the returned
+// permanent is a new object nothing is attached to, and a link surviving to
+// the SBA pass would let destroyLethalDamage, which runs before
+// attachmentSBAs, kill the returned creature with a toughness-changing Aura
+// it was never attached to). The SBAs then finish the job: the Aura goes to
+// its owner's graveyard (704.5m) and the Equipment sits unattached on the
+// battlefield (704.5n), so the returned bearer has its base
+// characteristics. Before the fix the returned creature carried its Aura,
+// its +1/+0 and its flying across the flicker. All cards are real compiled
+// corpus cards; no Forge script text is committed here.
 package rules
 
 import (
@@ -185,6 +187,85 @@ func TestFlickerUnattachesAura(t *testing.T) {
 		}
 		if e.HasKeyword(bear, "Hexproof") || e.HasKeyword(bear, "Haste") {
 			t.Errorf("BROKE: returned Bear still has hexproof/haste from the unattached Boots")
+		}
+		replayCheck(t, e, cfg)
+	})
+
+	// The r3-review MAJOR: between the flicker's return and the next SBA
+	// pass, a stale AttachedTo link would make the OLD Aura's statics apply
+	// to the returned new object, and checkStateBased runs destroyLethalDamage
+	// BEFORE attachmentSBAs -- so Dead Weight's -2/-2 (applied through the
+	// stale link to a 2/2) read the returned Bear as 0/0 and killed a
+	// creature Dead Weight was never attached to (CR 704.3: the SBAs are
+	// simultaneous; the new object was never enchanted). The break belongs at
+	// the bearer's re-entry (breakQueuedAttachmentsOnEntry), not at the SBA.
+	t.Run("dead weight cannot kill the returned bearer", func(t *testing.T) {
+		e, cfg := manifestEngine(t, reg, "Dead Weight", "Grizzly Bears")
+		bear := putCorpusPermanent(t, e, "Grizzly Bears")
+		e.emit(events.Event{Kind: events.CounterChange, Obj: bear, Counter: "P1P1", Amount: 2})
+		dw := searchMoveByName(t, e, "Dead Weight", state.ZHand)
+		addMana(t, e, 0, "B")
+		d := e.Pending()
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "cast" && o.Obj == dw {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("precondition: no cast option for Dead Weight: %+v", d.Options)
+		}
+		submitChoices(t, e, idx)
+		if d = e.Pending(); d != nil && d.Kind == decision.KTarget {
+			if len(d.Options) != 1 || d.Options[0].Obj != bear {
+				t.Fatalf("precondition: target options = %+v, want exactly the Bear", d.Options)
+			}
+			submitChoices(t, e, d.Options[0].Index)
+		}
+		passUntilStackEmpty(t, e, 20)
+		do := e.G.Obj(dw)
+		if do == nil || do.Zone != state.ZBattlefield || do.AttachedTo != bear {
+			t.Fatalf("precondition: Dead Weight must be on the battlefield attached to the Bear, got %+v", do)
+		}
+		if e.Power(bear) != 2 || e.Toughness(bear) != 2 {
+			t.Fatalf("precondition: Bear with two counters under Dead Weight = %d/%d, want 2/2",
+				e.Power(bear), e.Toughness(bear))
+		}
+
+		// Flicker the counters-carrying Bear: the new object has no counters
+		// (CR 400.7), so the stale -2/-2 would read 0/0 mid-pass.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZExile})
+		if do := e.G.Obj(dw); do.Zone != state.ZBattlefield || do.AttachedTo != bear || !do.UnattachPending {
+			t.Fatalf("mid-window: Dead Weight zone=%v attached=%d queued=%v, want battlefield/%d/true (the link stands while the bearer is off the battlefield)",
+				do.Zone, do.AttachedTo, do.UnattachPending, bear)
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZExile, To: state.ZBattlefield})
+
+		// Between the return MoveZone and the SBA check the returned Bear
+		// must read its base 2/2: the re-entry fold broke the stale link, so
+		// Dead Weight's -2/-2 no longer applies and destroyLethalDamage (which
+		// runs before attachmentSBAs) cannot kill it.
+		if bo := e.G.Obj(bear); bo == nil || bo.Zone != state.ZBattlefield {
+			t.Fatalf("returned Bear zone = %v, want battlefield", bo)
+		}
+		if e.Power(bear) != 2 || e.Toughness(bear) != 2 {
+			t.Fatalf("BROKE: between the return and the SBA the Bear reads %d/%d, want base 2/2 (a stale Aura link survived the re-entry)",
+				e.Power(bear), e.Toughness(bear))
+		}
+		if do := e.G.Obj(dw); do.Zone != state.ZBattlefield || do.AttachedTo != 0 ||
+			!do.UnattachPending || do.LastBearer != bear {
+			t.Fatalf("after the re-entry: Dead Weight zone=%v attached=%d queued=%v lastBearer=%d, want battlefield/0/true/%d (the link broke at the re-entry, the queue is left for the SBA)",
+				do.Zone, do.AttachedTo, do.UnattachPending, do.LastBearer, bear)
+		}
+
+		e.checkStateBased()
+		if bo := e.G.Obj(bear); bo == nil || bo.Zone != state.ZBattlefield ||
+			e.Power(bear) != 2 || e.Toughness(bear) != 2 {
+			t.Fatalf("BROKE: the returned Bear is %v at %d/%d, want a surviving base 2/2 on the battlefield",
+				bo, e.Power(bear), e.Toughness(bear))
+		}
+		if do := e.G.Obj(dw); do == nil || do.Zone != state.ZGraveyard {
+			t.Fatalf("BROKE: Dead Weight is in %v, want its owner's graveyard (CR 704.5m)", do)
 		}
 		replayCheck(t, e, cfg)
 	})
