@@ -138,6 +138,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		cards.StringMapEqual(a.AddSVars, b.AddSVars) &&
 		a.GainControl == b.GainControl &&
 		a.MayLookAt == b.MayLookAt &&
+		a.MayPlayPlayer == b.MayPlayPlayer &&
 		a.MayPlayIgnoreType == b.MayPlayIgnoreType &&
 		a.ForgetOnMoved == b.ForgetOnMoved &&
 		a.ExileOnMoved == b.ExileOnMoved &&

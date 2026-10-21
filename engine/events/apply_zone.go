@@ -136,6 +136,8 @@ func foldMoveZone(g *state.Game, e *Event) {
 		// otherwise moved) would keep a stale looker and leak its face.
 		o.HasMayLook = false
 		o.MayLookPlayer = 0
+		o.HasExiledBy = false
+		o.ExiledBy = 0
 		if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
 			applyEntryCounterPairs(o, e.Pairs)
 		}
@@ -210,6 +212,24 @@ func foldMoveZone(g *state.Game, e *Event) {
 					o.ExiledWith = 0
 				}
 				if moveCounter == "exiled_with_face_down_maylook_foretold" {
+					o.CastFlags |= state.FlagForetold
+				}
+			case "exiled_with_face_down_exiler", "exiled_with_face_down_exiler_foretold":
+				// A DefinedExiler$ face-down exile (Shared Fate): same layout
+				// as the may-look marker -- the exiling player in Amount, the
+				// exiling source in IDs[0] -- and the exiler is also the
+				// looker, so the view admits them before any static is read.
+				o.FaceDown = true
+				o.ExiledBy = state.PlayerID(e.Amount)
+				o.HasExiledBy = true
+				o.MayLookPlayer = state.PlayerID(e.Amount)
+				o.HasMayLook = true
+				if len(e.IDs) > 0 {
+					o.ExiledWith = e.IDs[0]
+				} else {
+					o.ExiledWith = 0
+				}
+				if moveCounter == "exiled_with_face_down_exiler_foretold" {
 					o.CastFlags |= state.FlagForetold
 				}
 			case "face_down":
@@ -880,6 +900,8 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		}
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
+		o.HasExiledBy = false
+		o.ExiledBy = 0
 		o.FaceDown = false
 		o.FaceDownSetType = ""
 		o.FaceDownPower = 0

@@ -1265,6 +1265,21 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 	if to == state.ZBattlefield && r.Unearth {
 		ev.Counter = events.UnearthEntryCounter
 	}
+	if to == state.ZExile && (exileFaceDown || faceDown) && r.ExilerSpec != "" {
+		if exiler, ok := resolveExiler(h, c, r.ExilerSpec); ok {
+			// The DefinedExiler$ layout (Shared Fate): Amount carries the
+			// exiling player, IDs the exiling source; the exiler is also
+			// the one seat the view admits to the face.
+			ev.Counter = "exiled_with_face_down_exiler"
+			if foretold {
+				ev.Counter = "exiled_with_face_down_exiler_foretold"
+			}
+			ev.Amount = int32(exiler)
+			ev.IDs = []state.ObjID{c.Source}
+			secretFaceDownMove(ev, exiler)
+			return
+		}
+	}
 	switch {
 	case to == state.ZExile && exileFaceDown && (withMayLook || foretold):
 		// The may-look layout: Amount carries the looker (the exiling
@@ -1322,6 +1337,16 @@ func secretFaceDownMove(ev *events.Event, looker state.PlayerID) {
 		return
 	}
 	ev.Player, ev.Secret = looker, true
+}
+
+// resolveExiler is the first player a DefinedExiler$ spec names.
+func resolveExiler(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
+	for _, t := range DefinedSpec(h, c, spec) {
+		if t.IsPlayer {
+			return t.Player, true
+		}
+	}
+	return 0, false
 }
 
 // movedCardOwner is the owner of the card ev moves, the seat a face-down

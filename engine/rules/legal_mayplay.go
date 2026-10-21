@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -115,16 +116,32 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 		}
 		return true
 	}
-	for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
-		for _, id := range e.G.Zone(z, p) {
-			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil || !o.Face().IsLand() || o.Controller != p {
-				continue
-			}
-			if landGranted(id) && !contains(id) {
-				out = append(out, id)
+	// An Exiler grant (Shared Fate) names a card in the exiled-from seat's
+	// exile slice, not the exiler's own, and the card's controller is its
+	// owner: walk every seat with the controller test off; mayPlayStatic's
+	// ExiledBy gate is the real filter.
+	walk := func(q state.PlayerID, ownOnly bool) {
+		for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
+			for _, id := range e.G.Zone(z, q) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil || !o.Face().IsLand() {
+					continue
+				}
+				if ownOnly && o.Controller != p {
+					continue
+				}
+				if landGranted(id) && !contains(id) {
+					out = append(out, id)
+				}
 			}
 		}
+	}
+	if mayPlayExilerGrantOpen(e.activeStatics("Continuous")) {
+		for _, q := range e.G.AliveFrom(0) {
+			walk(q, false)
+		}
+	} else {
+		walk(p, true)
 	}
 	if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 {
 		if o := e.G.Obj(lib[0]); o != nil && o.Face() != nil && o.Face().IsLand() && o.Controller == p {
@@ -440,6 +457,9 @@ func (e *Engine) mayPlayLandAny(p state.PlayerID) bool {
 			return true
 		}
 	}
+	if mayPlayExilerGrantOpen(e.activeStatics("Continuous")) {
+		return true
+	}
 	for _, z := range [...]state.Zone{state.ZGraveyard, state.ZExile} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
@@ -456,6 +476,20 @@ func (e *Engine) mayPlayLandAny(p state.PlayerID) bool {
 			if e.mayPlayLandGranted(p, lib[0]) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// mayPlayExilerGrantOpen reports whether a live static grants play to the
+// card's exiler (MayPlayPlayer$ Exiler, Shared Fate).
+func mayPlayExilerGrantOpen(statics []staticView) bool {
+	for _, sv := range statics {
+		if strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)) != "True" {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlayPlayer)), "Exiler") {
+			return true
 		}
 	}
 	return false

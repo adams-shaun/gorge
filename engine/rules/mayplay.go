@@ -74,7 +74,7 @@ func (e *Engine) mayPlayGrant(p state.PlayerID, id state.ObjID) (free, ok bool) 
 // card (mayPlaySpellIds) can take through mayPlayGrantScoped.
 func (e *Engine) mayPlayBoardGrantsOpen(p state.PlayerID) bool {
 	for _, sv := range e.activeStatics("Continuous") {
-		if sv.Controller == p && strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)) == "True" {
+		if mayPlayStaticBenefits(p, sv.Controller, sv.Params) && strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)) == "True" {
 			return true
 		}
 	}
@@ -134,10 +134,10 @@ func (e *Engine) mayPlayGrantScoped(p state.PlayerID, id state.ObjID, board bool
 	}
 	// (b) Battlefield grants, in activeStatics' deterministic APNAP order.
 	for _, sv := range e.activeStatics("Continuous") {
-		if sv.Controller != p {
+		if !mayPlayStaticBenefits(p, sv.Controller, sv.Params) {
 			continue
 		}
-		_, grants, staticFree, _, _, _ := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source)
+		_, grants, staticFree, _, _, _ := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, sv.Controller, sv.Params), sv.Source)
 		if staticFree {
 			free = true
 		}
@@ -244,10 +244,10 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 	}
 	if board {
 		for _, sv := range e.activeStatics("Continuous") {
-			if sv.Controller != p {
+			if !mayPlayStaticBenefits(p, sv.Controller, sv.Params) {
 				continue
 			}
-			applies, grants, free, raise, hasRaise, priced := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source)
+			applies, grants, free, raise, hasRaise, priced := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, sv.Controller, sv.Params), sv.Source)
 			if !applies || !grants {
 				continue
 			}
@@ -333,10 +333,10 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 	// field-selector arguments keep the census's static-param attribution
 	// (a bare local map variable would be unclassifiable).
 	for _, sv := range e.activeStatics("Continuous") {
-		if sv.Controller != p {
+		if !mayPlayStaticBenefits(p, sv.Controller, sv.Params) {
 			continue
 		}
-		_, _, _, r, has, priced := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source)
+		_, _, _, r, has, priced := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, sv.Controller, sv.Params), sv.Source)
 		if !has {
 			continue
 		}
@@ -393,7 +393,9 @@ var mayPlayUnreadGates = [...]string{
 // mayPlayGateRejected reports whether a MayPlay$ static carries one of the
 // gates this build cannot evaluate -- the mayPlayUnreadGates family plus
 // MayPlayPlayer$ (a beneficiary other than the static's controller:
-// ActivePlayer, CardOwner, Exiler, Player). The static is withheld whole --
+// ActivePlayer, CardOwner, Player) -- except Exiler, which the printed path
+// consumes (mayPlayStatic's ExiledBy gate; it is never registered as a
+// ContinuousEffect). A rejected static is withheld whole --
 // withholding the offer is the conservative direction; both families are
 // named in the AGENTS.md audit. CheckSVar$/SVarCompare$ are NOT recognised
 // here any more: mayPlayConditionGateHolds evaluates them (fail closed on an
@@ -448,7 +450,32 @@ func mayPlayGateRejectedOther(params map[string]string) bool {
 		strings.TrimSpace(params["CharacteristicDefining"]) != "" {
 		return true
 	}
-	return strings.TrimSpace(params["MayPlayPlayer"]) != ""
+	if v := strings.TrimSpace(params["MayPlayPlayer"]); v != "" && !strings.EqualFold(v, "Exiler") {
+		return true
+	}
+	return false
+}
+
+// mayPlayStaticYou is the "you" a board static's Affected$ and gates read for
+// p: the static's controller, except a MayPlayPlayer$ Exiler grant, whose
+// beneficiary is whichever player exiled the card (mayPlayStatic's per-card
+// ExiledBy gate is the real filter).
+func mayPlayStaticYou(p, controller state.PlayerID, params map[string]string) state.PlayerID {
+	if strings.EqualFold(strings.TrimSpace(params["MayPlayPlayer"]), "Exiler") {
+		return p
+	}
+	return controller
+}
+
+// mayPlayStaticBenefits reports whether a board static is a candidate grant
+// for p. It over-approximates for an Exiler grant (every p); any other value
+// keeps the controller-alone rule and is rejected by
+// mayPlayGateRejectedOther.
+func mayPlayStaticBenefits(p, controller state.PlayerID, params map[string]string) bool {
+	if v := strings.TrimSpace(params["MayPlayPlayer"]); v != "" {
+		return strings.EqualFold(v, "Exiler")
+	}
+	return controller == p
 }
 
 // mayPlayConditionGateHolds evaluates a MayPlay$ static's CheckSVar$ /
@@ -523,10 +550,18 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 		}
 	}
 	// Fail closed on gates this build cannot evaluate: the
-	// mayPlayUnreadGates family plus MayPlayPlayer$ (see
-	// mayPlayGateRejected's doc -- a recognition, not a consumption).
+	// mayPlayUnreadGates family plus every MayPlayPlayer$ value but Exiler
+	// (see mayPlayGateRejected's doc; Exiler is consumed just below).
 	if mayPlayGateRejected(params) {
 		return false, false, false, Cost{}, false, false
+	}
+	// MayPlayPlayer$ Exiler (Shared Fate): the grant is the one player the
+	// card records as its exiler; any other value never reaches here.
+	if mp := strings.TrimSpace(params["MayPlayPlayer"]); mp != "" {
+		o := e.G.Obj(id)
+		if !strings.EqualFold(mp, "Exiler") || o == nil || !o.HasExiledBy || o.ExiledBy != you {
+			return false, false, false, Cost{}, false, false
+		}
 	}
 	// CheckSVar$/SVarCompare$ ("as long as an opponent controls more lands
 	// than you", Verge Rangers): a condition the grant is gated on, evaluated
@@ -753,8 +788,8 @@ func (e *Engine) mayPlayTypedLimitReached(source state.ObjID, text string, limit
 //
 //   - MayPlay$ True is required (the corpus pairs every MayPlayAltManaCost$
 //     with MayPlay$ True, 27 of 27 carrier files at the corpus pin).
-//   - the remaining mayPlayUnreadGates plus CheckSVar$/MayPlayPlayer$
-//     withhold the static whole (mayPlayGateRejected).
+//   - the remaining mayPlayUnreadGates plus CheckSVar$ and every
+//     MayPlayPlayer$ value but Exiler withhold the static whole (mayPlayGateRejected).
 //   - Condition$, IsPresent$, Affected$, AffectedZone$ and MayPlayLimit$
 //     are evaluated exactly as mayPlayStatic evaluates them.
 //   - the value is priced through altCostParse: the dynamic
@@ -825,8 +860,9 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 			continue
 		}
 		// A battlefield static's permission is its controller's alone (the
-		// mayPlayGrant rule): MayPlayPlayer$ is rejected above, so no
-		// static here grants another player anything, and an Affected$ with
+		// mayPlayGrant rule): every MayPlayPlayer$ value but Exiler is rejected
+		// above and Exiler is a board static (Shared Fate), so no static here
+		// grants another player anything, and an Affected$ with
 		// no YouOwn/YouCtrl qualifier (Fires of Invention's
 		// Card.nonLand+cmcLEX) must not reach an opponent's hand.
 		if i < len(bf) && sv.Controller != p {
@@ -949,13 +985,13 @@ func (e *Engine) mayPlayPlainGrant(p state.PlayerID, id state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("Continuous") {
-		if sv.Controller != p {
+		if !mayPlayStaticBenefits(p, sv.Controller, sv.Params) {
 			continue
 		}
 		if _, alt := sv.Params["MayPlayAltManaCost"]; alt {
 			continue
 		}
-		if _, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source); grants {
+		if _, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, sv.Controller, sv.Params), sv.Source); grants {
 			return true
 		}
 	}
@@ -1011,10 +1047,10 @@ func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate, 
 		}
 	}
 	for _, sv := range e.activeStatics("Continuous") {
-		if sv.Controller != p {
+		if !mayPlayStaticBenefits(p, sv.Controller, sv.Params) {
 			continue
 		}
-		if applies, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source); applies && grants {
+		if applies, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, sv.Controller, sv.Params), sv.Source); applies && grants {
 			pl, mu, bl, sn := e.mayPlayValidSAKinds(sv.ParamStr(cards.PKValidSA), o.Face(), id, sv.Source, p)
 			plain = plain || pl
 			mutate = mutate || mu
@@ -1215,10 +1251,10 @@ func (e *Engine) mayPlayGrantedBy(p state.PlayerID, id, host state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("Continuous") {
-		if sv.Controller != p || sv.Source != host {
+		if !mayPlayStaticBenefits(p, sv.Controller, sv.Params) || sv.Source != host {
 			continue
 		}
-		if _, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, sv.Controller, sv.Source); grants {
+		if _, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, mayPlayStaticYou(p, sv.Controller, sv.Params), sv.Source); grants {
 			return true
 		}
 	}
@@ -1263,7 +1299,7 @@ func (e *Engine) mayPlayHostsCovering(p state.PlayerID, id state.ObjID) []state.
 		out = append(out, id)
 	}
 	for _, sv := range e.activeStatics("Continuous") {
-		if sv.Controller == p && !seen(sv.Source) && e.mayPlayGrantedBy(p, id, sv.Source) {
+		if mayPlayStaticBenefits(p, sv.Controller, sv.Params) && !seen(sv.Source) && e.mayPlayGrantedBy(p, id, sv.Source) {
 			out = append(out, sv.Source)
 		}
 	}

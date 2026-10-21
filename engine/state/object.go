@@ -1611,6 +1611,12 @@ type Object struct {
 	// so replay rebuilds it with no new event kind and no Event field change.
 	MayLookPlayer PlayerID
 	HasMayLook    bool
+	// ExiledBy is the player a DefinedExiler$ exile instruction named (Shared
+	// Fate's "that player exiles the top card of their library face down").
+	// HasExiledBy distinguishes seat 0 from "no exiler recorded". Folded from
+	// the MoveZone marker's Amount; zero/absent on every other exile.
+	ExiledBy    PlayerID
+	HasExiledBy bool
 	// Cloaked records the cloak variant of the face-down battlefield entry
 	// (CR 708.5's cloak: a 2/2 creature with ward {2}, turn-face-up cost =
 	// the card's mana cost). It folds from the MoveZone Counter value
