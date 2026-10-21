@@ -566,6 +566,7 @@ func foldPhaseOut(g *state.Game, e *Event) {
 					other.IsAttacking = false
 					other.IsBlocking = false
 					other.AttackingBattle = 0
+					other.Band = 0
 					other.BlockedBy = nil
 					continue
 				}
