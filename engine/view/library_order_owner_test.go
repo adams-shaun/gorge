@@ -17,6 +17,7 @@ import (
 func TestLibraryOrderIsShapeOnlyForItsOwnerAndController(t *testing.T) {
 	g := state.NewGame([]string{"a", "b", "c"})
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 	order := events.Event{Seq: 3, Kind: events.LibraryOrder, Player: 1, IDs: []state.ObjID{9, 8, 7}, Secret: true}
 	look := events.Event{Seq: 4, Kind: events.Note, Player: 1, From: state.ZLibrary, Text: "looks at the top of the library", IDs: []state.ObjID{9}, Secret: true}
 	for _, viewer := range []state.PlayerID{1, 0, 2} {

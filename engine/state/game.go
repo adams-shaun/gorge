@@ -1030,6 +1030,25 @@ func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == 
 // (CR 726.1).
 func (g *Game) IsInitiative(p PlayerID) bool { return g.HasInitiative && g.Initiative == p }
 
+// LiveController returns the seat controlling subj under CR 723 while that
+// control is LIVE, and false otherwise. A ControlledBy entry is a grant
+// "during that player's next turn" (CR 723.1): it is folded the moment the
+// effect resolves but is live only while subj is the active player on a turn
+// strictly after the one it was armed on (ControlArmedTurn), and expires at
+// the end of that turn (engine/rules/turn.go expirePlayerControl). This is
+// the ONE home of that interval: the engine's decision redirect
+// (controlPlayerRedirect) and the view's CR 723.4 widening (controlsSeat, and
+// the host's controlledSeats) all read it, so who answers for subj and who
+// may see subj's hidden information cannot disagree (cr-g57). A self-control
+// entry is never live (CR 723.9).
+func (g *Game) LiveController(subj PlayerID) (PlayerID, bool) {
+	ctl, ok := g.ControlledBy[subj]
+	if !ok || ctl == subj || g.Active != subj || g.Turn <= g.ControlArmedTurn[subj] {
+		return 0, false
+	}
+	return ctl, true
+}
+
 // WasMonarchAtTurnStart reports whether p held the monarch designation when
 // the current turn began (the trig:BecomeMonarch BeginTurn$ intervening-if).
 func (g *Game) WasMonarchAtTurnStart(p PlayerID) bool {

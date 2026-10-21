@@ -201,8 +201,10 @@ func secretShape(e events.Event) events.Event {
 	}
 }
 
-// controlsSeat reports whether viewer controls seat under CR 720 -- that is,
-// seat's owner is controlled by viewer while the control is live. It is the
+// controlsSeat reports whether viewer controls seat under CR 723 -- that is,
+// seat is controlled by viewer while the control is LIVE: during seat's next
+// turn, never from the moment the grant resolves (state.Game.LiveController,
+// the interval the engine's decision redirect also reads; cr-g57). It is the
 // ONE home of the CR 720.4 view predicate ("you may look at all cards that
 // player could see"): project(), RedactEvent and visibleTo all consult it, so
 // the projection and the event stream cannot disagree about which seats the
@@ -212,12 +214,12 @@ func secretShape(e events.Event) events.Event {
 // its own seat through a bogus entry). The two-value map lookup is load-
 // bearing: a bare ControlledBy[seat] on an absent entry returns the zero
 // PlayerID, which would read as "seat is controlled by viewer 0" and hand
-// every seat's hidden zones to seat 0.
+// every seat's hidden zones to seat 0 (LiveController keeps that lookup).
 func controlsSeat(g *state.Game, viewer, seat state.PlayerID) bool {
 	if g == nil || seat == viewer {
 		return false
 	}
-	ctl, ok := g.ControlledBy[seat]
+	ctl, ok := g.LiveController(seat)
 	return ok && ctl == viewer
 }
 

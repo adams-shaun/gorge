@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
-	"sort"
 	"sync"
 
 	"github.com/adams-shaun/gorge/bots/heuristic"
@@ -624,27 +623,22 @@ func projectNextData(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedD
 	return &parkedData{p: d.Player, v: v, dc: dc}
 }
 
-// controlledSeats returns, sorted, every seat the viewer currently controls
-// under a CR 723 player-controlling effect. d.Player was already rewritten to
-// the controller by rules' controlPlayerRedirect, so this reverses
-// state.Game.ControlledBy: a seat subj with ControlledBy[subj] == viewer is one
-// whose hidden information CR 723.4 shows to the viewer too. Sorted for
-// determinism (the projection must not depend on map iteration order), and nil
-// when the viewer controls no one, so the ordinary projection is untouched.
-// Bots are deliberately not widened: a BoardSeat answers from botpolicy.Board,
-// which reads the engine directly and is built before this point, so control
-// only affects the projected human View. That is documented, not incidental.
+// controlledSeats returns the seats the viewer controls RIGHT NOW under a CR
+// 723 player-controlling effect: at most one, the active seat, and only while
+// that control is live (state.Game.LiveController -- the controlled player's
+// next turn, CR 723.1), nil otherwise. A grant folded on the controller's own
+// turn widens nothing until the controlled turn begins (cr-g57). d.Player was
+// already rewritten to the controller by rules' controlPlayerRedirect, which
+// reads the same predicate, so the seat answering the controlled turn's
+// decisions is exactly the seat this widens. Bots are deliberately not
+// widened: a BoardSeat answers from botpolicy.Board, which reads the engine
+// directly and is built before this point, so control only affects the
+// projected human View. That is documented, not incidental.
 func controlledSeats(g *state.Game, viewer state.PlayerID) []state.PlayerID {
-	var out []state.PlayerID
-	for subj, ctl := range g.ControlledBy {
-		if ctl == viewer {
-			out = append(out, subj)
-		}
+	if ctl, ok := g.LiveController(g.Active); ok && ctl == viewer {
+		return []state.PlayerID{g.Active}
 	}
-	if len(out) > 1 {
-		sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
-	}
-	return out
+	return nil
 }
 
 // parkSeat installs the answerable slot for a projected decision: for a

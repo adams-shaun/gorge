@@ -16,6 +16,7 @@ func TestControlPlayerSeesControlledSecretEvent(t *testing.T) {
 	g := state.NewGame([]string{"a", "b", "c"})
 	// Seat 0 controls seat 1 (control is keyed controlled -> controller).
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 
 	ev := events.Event{Seq: 9, Kind: events.Draw, Player: 1,
 		From: state.ZLibrary, To: state.ZHand, IDs: []state.ObjID{1, 2, 3}, Secret: true}
@@ -61,6 +62,7 @@ func TestControlPlayerSeesControlledHiddenCard(t *testing.T) {
 	}
 
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 	if !visibleTo(g, o.ID, 0) {
 		t.Fatal("controller of seat 1 cannot see seat 1's hidden card")
 	}
