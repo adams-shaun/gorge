@@ -723,6 +723,30 @@ func (w *legalWalk) exileCastsWalk() {
 			}
 			continue
 		}
+		// CR 715.3b: the owner may play the exiled card. When the main face
+		// is a LAND, "play it" is the land play, not a cast (CR 305.1), so
+		// the adventure_recast offer above deliberately withholds it. The
+		// provenance is the same log-derived adventure-zone check, and the
+		// play shares the ordinary land drop and honours CantPlayLand
+		// exactly as the hand walk does (handlePriority's play_land case
+		// moves it from its current zone).
+		if adventureSpellFace(o) != nil && o.FaceIdx == 0 && o.Card.Faces[0].IsLand() &&
+			e.adventureZoneAvailable(id) && sorcery &&
+			e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) &&
+			!playLandForbidden(e, p, state.ZExile, id) {
+			// A may-play grant over the same exile card already offered the
+			// play; never yield two identical options for one land.
+			dup := false
+			for _, prev := range *out {
+				if prev.Kind == optPlayLand && prev.Obj == id {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				w.add(optPlayLand, w.playLabel(f), id)
+			}
+		}
 		// Foretell cast (CR 702.126a): a card exiled face down by the {2}
 		// Foretell ACTION (not by any other effect -- the flag is the action's
 		// own provenance marker) may be cast from exile for its FORETELL cost
