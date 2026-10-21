@@ -42,6 +42,10 @@ type PlayerSpecCtx struct {
 	DefendingPlayer   state.Target
 	DelayedRemembered []state.Target
 	OpponentOf        []state.Target
+	// Replaced is the draw-er of the Draw replacement being resolved (the
+	// Ctx.Repl.Player a Player.OpponentOf ReplacedPlayer clause reads: Shared
+	// Fate's ChoosePlayer pool). Unbound (IsPlayer false) outside one.
+	Replaced state.Target
 	// Remembered, when RememberedBound, is the set a Player.IsRemembered
 	// clause (and a nested controlsCard.IsRemembered object filter) reads
 	// instead of the source object's own list. A delayed Phase registration
@@ -358,6 +362,10 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 						return true
 					}
 				}
+			}
+		case playerSpecQualifierOpponentOfReplaced:
+			if (base == "Player" || base == "Any") && pc.Replaced.IsPlayer && p != pc.Replaced.Player {
+				return true
 			}
 		case playerSpecQualifierIsCorrupted:
 			if playerIsCorrupted(g, p) {
@@ -850,6 +858,7 @@ func matchesPlayerSpecSVars(g *state.Game, h Host, eval CountEval, c *Ctx, spec 
 		if resolved && MatchesPlayerSpecCtx(g, strings.Join(clauses, "+"), p, you, PlayerSpecCtx{
 			Source:     c.Source,
 			OpponentOf: c.Remembered,
+			Replaced:   c.Repl.Player,
 		}) {
 			return true
 		}
@@ -981,10 +990,12 @@ const (
 	playerSpecQualifierTriggeredDefendingPlayer
 	playerSpecQualifierAttackedYouTheirCurrentTurn
 	playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn
+	playerSpecQualifierOpponentOfReplaced
 )
 
 var playerSpecQualifierCodes = state.NewStrCodes(
 	state.StrEntry[playerSpecQualifierCode]{Key: "OpponentOf Remembered", Val: playerSpecQualifierOpponentOfRemembered},
+	state.StrEntry[playerSpecQualifierCode]{Key: "OpponentOf ReplacedPlayer", Val: playerSpecQualifierOpponentOfReplaced},
 	state.StrEntry[playerSpecQualifierCode]{Key: "IsCorrupted", Val: playerSpecQualifierIsCorrupted},
 	state.StrEntry[playerSpecQualifierCode]{Key: "You", Val: playerSpecQualifierYou},
 	state.StrEntry[playerSpecQualifierCode]{Key: "Opponent", Val: playerSpecQualifierOpponent},

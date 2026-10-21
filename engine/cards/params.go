@@ -793,6 +793,10 @@ const (
 	// source's remembered set (Planetarium of Wan Shi Tong's "only once each
 	// turn"; append-only).
 	PKRememberPlayed
+	// Shared Fate's MayPlayPlayer$ Exiler rider and the DefinedExiler$ operand
+	// that records the exiling player. Appended: earlier ordinals stay stable.
+	PKMayPlayPlayer
+	PKDefinedExiler
 	paramKeyCount
 )
 
@@ -1173,6 +1177,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidBlockerAmount:               "ValidBlockerAmount",
 	PKExiledWithEffectSource:           "ExiledWithEffectSource",
 	PKRememberPlayed:                   "RememberPlayed",
+	PKMayPlayPlayer:                    "MayPlayPlayer",
+	PKDefinedExiler:                    "DefinedExiler",
 	PKInvalidTypes:                     "InvalidTypes",
 	PKKeywords:                         "Keywords",
 	PKLeftRightPile:                    "LeftRightPile",
