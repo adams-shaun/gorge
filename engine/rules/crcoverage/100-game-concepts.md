@@ -49,7 +49,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 104.4c | unknown | - | - | not reached |
 | 104.4d-104.4i | n/a | - | - | teams/range/Emperor/tournament |
 | 104.5 | follows | `engine/rules/sba.go#Engine.ceaseDepartedObjects` | `TestConcedeInFourSeatsLeavesTheRestPlayingOn` |  |
-| 104.6 | deviates | `engine/effects/game.go#effRestartGame` | - | restart degraded to a draw (LOUD Note); cr-g33 |
+| 104.6 | follows | `engine/rules/restart.go#Engine.finishRestart` | `TestCR727KarnRestartsTheGame` | - |
 | 105.1-105.3 | follows | `engine/rules/layer5colors.go#Engine.derivedColorTable` | - |  |
 | 105.4 | follows | `engine/effects/choose.go#effChooseColor` | - | - |
 | 105.5 | unknown | - | - | not reached |

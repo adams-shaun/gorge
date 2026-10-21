@@ -185,7 +185,7 @@ every later kind and change the hash of every recorded game. A new kind goes
 after the last one, above the `NumKinds` line.
 
 <figure markdown>
-<svg viewBox="0 0 780 200" width="100%" role="img" aria-label="A timeline of event kind ordinals 0 to 140: the core kinds 0 to 23, then later kinds appended in order, ending at ActivationReversed, ordinal 140">
+<svg viewBox="0 0 780 200" width="100%" role="img" aria-label="A timeline of event kind ordinals 0 to 141: the core kinds 0 to 23, then later kinds appended in order, ending at ActivationReversed, ordinal 141">
   <rect x="20.0" y="80" width="127.8" height="36" class="dg-box-accent"/>
   <rect x="147.8" y="80" width="26.6" height="36" class="dg-box"/>
   <rect x="174.4" y="80" width="37.3" height="36" class="dg-box-accent"/>
@@ -202,8 +202,8 @@ after the last one, above the `NumKinds` line.
   <line x1="193.0" y1="80" x2="193.0" y2="54" class="dg-line"/>
   <text x="197.0" y="50" class="dg-text-muted">29-35: CastInfo, Choose, TokenCreate, StackCopy, Attach, AbilityPush, ModeChosen</text>
   <text x="20" y="156" class="dg-text-muted">0-23: GameStart, Shuffle, MoveZone, Draw, Damage, Priority, DecisionAsk, Note, LandPlayed ...</text>
-  <text x="20" y="174" class="dg-text-muted">36-140: CmdDamage, DelayedRegister, ControlChange, Mutate, Scry, Surveil, Meld, SpellCastReversed ... ActivationReversed</text>
-  <text x="760" y="194" text-anchor="end" class="dg-text-bold">NumKinds = 141 (Kind is a uint8)</text>
+  <text x="20" y="174" class="dg-text-muted">36-141: CmdDamage, DelayedRegister, ControlChange, Mutate, Scry, Surveil, Meld, SpellCastReversed ... ActivationReversed</text>
+  <text x="760" y="194" text-anchor="end" class="dg-text-bold">NumKinds = 142 (Kind is a uint8)</text>
 </svg>
 <figcaption>Kinds are grouped by when they were appended, never by topic. The
 core kinds came first; every later mechanic appended its own kind at the end
@@ -211,7 +211,7 @@ so no earlier ordinal, hash or golden replay moved. The scale is
 proportional to ordinal.</figcaption>
 </figure>
 
-??? details "All 141 kinds by ordinal"
+??? details "All 142 kinds by ordinal"
     | Ordinals | Kinds |
     |---|---|
     | 0-9 | GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap, StepChange, TurnChange |
@@ -227,7 +227,9 @@ proportional to ordinal.</figcaption>
     | 100-109 | Evolved, DelayedForget, CardNoted, Cascade, Clash, PlanarDeckShuffle, PlanarReveal, PlanarWalk, Specialize, ChaosEnsues |
     | 110-119 | ManaUndo, EndTurn, DungeonCreate, DungeonRoom, DungeonComplete, DungeonRemove, InitiativeChange, SkipTurn, ControlPlayerChange, Crew |
     | 120-129 | ElementalBend, SetupEntered, DoorLock, Saddle, ClassLevelChange, MillProposal, Meld, ExcessDamage, ForageAction, ManifestDreadAction |
-    | 130-140 | CollectEvidenceAction, AbilityTriggered, CastBattlefield, DrawBatchProposal, SpellCastReversed, HiddenIdentity, DrawEmpty, SetupSettled, BlockedByEffect, CopyExcept, ActivationReversed |
+    | 130-139 | CollectEvidenceAction, AbilityTriggered, CastBattlefield, DrawBatchProposal, SpellCastReversed, HiddenIdentity, DrawEmpty, SetupSettled, BlockedByEffect, CopyExcept |
+    | 140 | GameRestart |
+    | 141 | ActivationReversed |
 
 A few kinds deserve a note because they show the design pressure:
 

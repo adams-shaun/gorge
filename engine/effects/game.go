@@ -24,71 +24,68 @@ func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 	h.Emit(events.Event{Kind: events.MonarchChange, Player: p})
 }
 
-// effRestartGame ends the game as a draw. Actually restarting (leaving
-// exiled permanents in play under the restarting player's control, per the
-// real card text) is out of M1's scope; ending the match honestly rather
-// than hanging or silently no-op-ing is the closest correct degradation.
-//
-// Ruling T22-k (fix round 2): Amount: 1 is required, not cosmetic --
-// engine/rules/sba.go's checkGameOver is not the only GameOver emitter in this
-// tree, and Amount is the shape discriminator events.Apply's GameOver case
-// reads (0 = win, 1 = draw; Task 22 fix round 1). Left at its zero value,
-// this event's own Amount reads as "Amount 0", a win -- and Player is also
-// left at its zero value, which validates as seat 0 -- so despite this
-// function's name, its own comment and its own Text all saying "draw", the
-// event it actually emitted a win for seat 0. Every other RestartGame-style
-// primitive in this file already carries no Player of its own, so seat 0
-// winning was never a deliberate choice anywhere in this file; it was
-// simply the one call site nobody had reason to re-examine once Amount
-// became meaningful.
+// restartHost is the optional Host half of a CR 727 restart (rules' Engine).
+// RequestRestart records the restart for the host to perform once this
+// resolution returns: keep is the CR 727.5 exempted set, and rest is the
+// rest of the chain. The remainder is NOT followed yet -- CR 727.4's
+// "finishes resolving just before the first turn's untap step" is cr-g33b,
+// so this ticket leaves the exempted cards where they are.
+type restartHost interface {
+	RequestRestart(c *Ctx, keep []state.ObjID, rest *cards.SA)
+}
+
+// effRestartGame restarts the game (CR 727.1, Karn Liberated's [-14]).
+// RestrictFromZone$/RestrictFromValid$ name what the restart takes: Forge's
+// RestartGame moves into the new game every card in RestrictFromZone that
+// matches RestrictFromValid, and leaves the rest of that zone where it is --
+// Karn keeps exactly the non-Aura permanent cards exiled with him (his
+// ReturnFromExile sub-ability will act on that keep set in the new game;
+// cr-g33b). A host
+// that implements restartHost performs the restart; the chain stops here
+// (Ctx.Restarted). A host without one (a bare effects test host) keeps the
+// R-9 degradation: the game ends as a draw (Amount 1, the GameOver draw
+// shape; Ruling T22-k).
 func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
-	// RestrictFromZone$/RestrictFromValid$ (Karn Liberated's [-14]): the
-	// objects the restart would KEEP. Forge's RestartGame discards everything
-	// in RestrictFromZone that matches RestrictFromValid and carries the rest
-	// into the restarted game — Karn keeps exactly the non-Aura permanents
-	// exiled with him (his ReturnFromExile sub-ability acts on that keep-set).
-	// A full restart needs game-loop machinery this engine does not have (see
-	// the draw degradation below), but the keep-set is real game state this
-	// build can name, so the log records it instead of leaving both keys
-	// silently inert.
-	if zonesRaw := strings.TrimSpace(sa.ParamStr(cards.PKRestrictFromZone)); zonesRaw != "" {
-		if spec := strings.TrimSpace(sa.ParamStr(cards.PKRestrictFromValid)); spec != "" {
-			zones, all, valid := ParseZones(zonesRaw)
-			g := h.Game()
-			if !valid {
-				all = true
+	keep := restartKeepSet(h, c, sa)
+	if rh, ok := h.(restartHost); ok {
+		rh.RequestRestart(c, keep, sa.Sub)
+		c.Restarted = true
+		return
+	}
+	h.Emit(events.Event{Kind: events.GameOver, Amount: 1, Text: "game restarted: ended as a draw"})
+}
+
+// restartKeepSet is the CR 727.5 exempted set: inside RestrictFromZone$ (All
+// or an invalid list: every zone), every object RestrictFromValid$ does NOT
+// match, in zone, seat and zone order. The shared stack is walked once, under
+// the first alive seat (engine/state/game.go Zone), so a stack object is never
+// listed twice on an N-seat table. Either parameter missing keeps nothing.
+func restartKeepSet(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
+	zonesRaw := strings.TrimSpace(sa.ParamStr(cards.PKRestrictFromZone))
+	spec := strings.TrimSpace(sa.ParamStr(cards.PKRestrictFromValid))
+	if zonesRaw == "" || spec == "" {
+		return nil
+	}
+	zones, all, valid := ParseZones(zonesRaw)
+	g := h.Game()
+	if !valid || all {
+		zones = []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield,
+			state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
+	}
+	var keep []state.ObjID
+	for _, z := range zones {
+		for si, p := range g.AliveFrom(0) {
+			if z == state.ZStack && si > 0 {
+				continue
 			}
-			if all {
-				zones = []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield,
-					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
-			}
-			var kept []string
-			for _, z := range zones {
-				// The shared stack is named once, under the first alive seat
-				// (engine/state/game.go Zone), so a stack card cannot appear in the
-				// keep-set note multiple times on an N-seat table.
-				for si, p := range g.AliveFrom(0) {
-					if z == state.ZStack && si > 0 {
-						continue
-					}
-					for _, id := range append([]state.ObjID(nil), g.Zone(z, p)...) {
-						// RestrictFromValid$ names what the restart DISCARDS; the
-						// complement inside the named zone is what it keeps.
-						if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-							if o := g.Obj(id); o != nil && o.Face() != nil {
-								kept = append(kept, o.Face().Name)
-							}
-						}
-					}
+			for _, id := range g.Zone(z, p) {
+				if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					keep = append(keep, id)
 				}
-			}
-			if len(kept) > 0 {
-				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-					Text: "restart would keep in " + zonesRaw + ": " + strings.Join(kept, ", ")})
 			}
 		}
 	}
-	h.Emit(events.Event{Kind: events.GameOver, Amount: 1, Text: "game restarted: ended as a draw"})
+	return keep
 }
 
 // effMana implements "AB$ Mana": add Amount mana of Produced's colour(s) to

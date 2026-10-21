@@ -572,6 +572,19 @@ var predicates = map[string]predFn{
 	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.ExertedThisTurn
 	},
+	// notTributed is CR 702.104's "if tribute wasn't paid" gate (task
+	// kw-tribute-expansion): the permanent has NOT been paid its tribute.
+	// The event-backed read is events.Apply's AlterAttribute "Tributed" fold
+	// (state.Object.Tributed), emitted by putCounterTribute's acceptance. The
+	// K:Tribute expansion's minted ETB trigger is the only carrier; the
+	// predicate is a recognised-shape entry (the compiled predicate layer
+	// marks an unlisted term `maybe` and falls through to this textual
+	// oracle, so no twin term is owed), and UnknownPredicates classifies it
+	// through the same predicates map, so the census and the matcher cannot
+	// disagree.
+	"notTributed": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return !o.Tributed
+	},
 	// enlistedThisCombat is CR 702.160's enlist marker (task enlist1): the
 	// creature enlisted another creature in the CURRENT combat. The stamp
 	// (state.Object.EnlistedTurn/EnlistedCombat, folded by events.Apply's

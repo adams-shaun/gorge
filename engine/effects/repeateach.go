@@ -315,6 +315,14 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			cc.Vote.PublishedSet = true
 		}
 		Resolve(h, &cc, sub)
+		if cc.Restarted {
+			// CR 727.4: the game restarted inside this iteration; the rest of
+			// the loop belongs to the new game, so stop here and let the
+			// resolving caller perform the restart (the loop's Ctx is a copy,
+			// so the flag must be carried back to the outer one).
+			c.Restarted = true
+			return
+		}
 		// A loop body runs on a Ctx copy. Its first FlipCoin may allocate
 		// the shared memory lazily, so retain that pointer on the outer Ctx
 		// before copying the next iteration.
@@ -336,6 +344,11 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		cc := *c
 		cc.Remembered = append([]state.Target(nil), c.Remembered...)
 		Resolve(h, &cc, sub)
+		if cc.Restarted {
+			// CR 727.4: see the per-subject loop above.
+			c.Restarted = true
+			return
+		}
 		if h.Suspended() {
 			return
 		}

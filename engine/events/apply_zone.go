@@ -137,6 +137,15 @@ func foldMoveZone(g *state.Game, e *Event) {
 		// otherwise moved) would keep a stale looker and leak its face.
 		o.HasMayLook = false
 		o.MayLookPlayer = 0
+		// CR 702.104: the tribute designation (kw_tribute-expansion's
+		// AlterAttribute "Tributed" fold) belongs to one battlefield stint.
+		// Clear it on every move that is not a battlefield entry -- not just
+		// on a departure -- so an entry a later replacement redirects off the
+		// battlefield cannot leave a stale flag that suppresses the unpaid
+		// trigger on a future entry.
+		if e.To != state.ZBattlefield {
+			o.Tributed = false
+		}
 		o.HasExiledBy = false
 		o.ExiledBy = 0
 		if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
