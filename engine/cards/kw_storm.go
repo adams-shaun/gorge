@@ -6,7 +6,7 @@ package cards
 
 func kwStorm(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	f.addKeywordTrigger(head, k, "Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | TriggerDescription$ Storm",
-		"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ Count$ThisTurnCast/Minus1 | MayChooseTarget$ True", has)
+		"DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ TriggerCount$CurrentStormCount/Minus1 | MayChooseTarget$ True", has)
 }
 
 func init() { registerKeyword(kwStorm, "Storm") }

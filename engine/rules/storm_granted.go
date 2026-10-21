@@ -36,8 +36,13 @@ func (e *Engine) checkGrantedStormTriggers(observer *Engine, id state.ObjID, o *
 	if !e.hasKeywordH(id, kwhStorm) || f.HasKeywordRef(kwRefStorm) {
 		return
 	}
+	// The Keyword$ Storm param is what triggerReferents' fire-time capture
+	// keys on (CR 702.40a: the copy count is fixed when the trigger fires,
+	// not at resolution) -- the same stamp addKeywordTrigger puts on the
+	// printed expansion's trigger.
 	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
 		"Mode": "SpellCast", "ValidCard": "Card.Self", "TriggerZones": "Stack", "TriggerDescription": "Storm",
+		"Keyword": "Storm",
 	}, Effect: stormGrantedBody()}
 	if !observer.triggerMatches(t, id, ev, objLKI) {
 		return
