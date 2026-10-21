@@ -36,7 +36,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 202.3a | follows | `engine/cards/face.go#cmcFromManaCost` | - | - |
 | 202.3b | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueTransformedBackFaceIsFrontFace` `TestSephirothTransformsOnlyOnFourthResolution` | copy of a back face reads its printed no cost |
 | 202.3c | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueMeldedPermanentSumsFrontFaces` |  |
-| 202.3d | deviates | `engine/effects/filter.go#nameCharacteristics` `engine/effects/filter_value.go#cmcValue` | - | split card off stack uses first half's MV (probe) |
+| 202.3d | follows | `engine/state/mana_value.go#manaValueAs` `engine/state/mana_value.go#Object.SplitHalves` `engine/state/mana_value.go#SpellManaValue` | `TestManaValueSplitCardCombinesHalvesOffTheStack` `TestCascadeSkipsSplitCardByCombinedManaValue` `TestSpellCostModifierReadsTheHalfBeingCast` |  |
 | 202.3e | follows | `engine/state/mana_value.go#stackX` `engine/effects/filter_value.go#cmcValue` | `TestManaValueXOnTheStackIsTheChosenValue` `TestVoidWinnowerRechecksChosenXOnTheStack` |  |
 | 202.3f | follows | `engine/cards/face.go#cmcFromManaCost` `engine/state/mana_value.go#faceManaValue` | `TestManaValueTwobridCountsTheGenericComponent` |  |
 | 202.3g | follows | `engine/cards/face.go#cmcFromManaCost` | - | - |

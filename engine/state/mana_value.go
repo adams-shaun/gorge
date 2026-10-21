@@ -26,6 +26,10 @@ import (
 //   - CR 712.8c/712.8e/202.3b: a transforming DFC with its back face up
 //     (FaceIdx != 0, on the battlefield or cast transformed) uses its front
 //     face's mana cost.
+//   - CR 709.4b/202.3d: a split card whose halves are combined
+//     (SplitHalves: off the stack and battlefield, or a fused spell, CR
+//     709.4d) is the sum of its two halves' printed values; on the stack
+//     unfused only the half cast counts (the current face).
 //   - otherwise the current face's printed value.
 //
 // CR 202.3e: on the stack each {X} in the counted cost adds the announced
@@ -40,8 +44,20 @@ func ManaValue(g *Game, o *Object) int32 {
 	return manaValueAs(g, o, o.Zone, o.X)
 }
 
+// SpellManaValue is the mana value o WOULD have as a spell on the stack with
+// its current face up and X = 0: the CR 601.3a offer-time read, where only
+// the half being cast is evaluated (CR 709.3a), not the combined card. The
+// cast-restriction and cost-modifier seams bind it while o is still in its
+// origin zone (rules' castRestrictedUsing and costStaticGateFull).
+func SpellManaValue(g *Game, o *Object) int32 {
+	if o == nil {
+		return 0
+	}
+	return manaValueAs(g, o, ZStack, 0)
+}
+
 // manaValueAs is ManaValue for o read as if it were in zone with announced
-// X.
+// X; the two exported reads differ only in those two inputs.
 func manaValueAs(g *Game, o *Object, zone Zone, x int32) int32 {
 	f := o.Face()
 	if f == nil || o.faceDownIn(zone) {
@@ -67,7 +83,32 @@ func manaValueAs(g *Game, o *Object, zone Zone, x int32) int32 {
 		front := c.Faces[0]
 		return faceManaValue(front) + stackX(zone, x, front)
 	}
+	if halves, ok := o.splitHalvesIn(zone); ok {
+		return faceManaValue(halves[0]) + faceManaValue(halves[1])
+	}
 	return faceManaValue(f) + stackX(zone, x, f)
+}
+
+// SplitHalves returns a split card's two halves when its characteristics
+// are those of both halves combined: in every zone but the stack and the
+// battlefield (CR 709.4), and on the stack when it was cast fused (CR
+// 709.4d, FlagFused). A battlefield Room is not combined (its doors decide,
+// CR 709.5), and a split spell cast as one half has only that half (CR
+// 709.3b). ok is false for every other object.
+func (o *Object) SplitHalves() ([]*cards.Face, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.splitHalvesIn(o.Zone)
+}
+
+func (o *Object) splitHalvesIn(zone Zone) ([]*cards.Face, bool) {
+	c := o.Card
+	if c == nil || c.AlternateMode != cards.AlternateSplit || len(c.Faces) != 2 || c.Faces[0] == nil || c.Faces[1] == nil ||
+		o.CopyFace != nil || zone == ZBattlefield || (zone == ZStack && o.CastFlags&FlagFused == 0) {
+		return nil, false
+	}
+	return c.Faces, true
 }
 
 // faceManaValue is a face's printed mana value: the load-time value while

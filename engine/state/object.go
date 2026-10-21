@@ -21,14 +21,22 @@ type Target struct {
 	IsPlayer bool
 }
 
-// TargetStamp records which incarnation of an object a stack object
-// targeted (CR 400.7): Obj's Incarnation at the moment the target was
-// chosen. It is kept beside Targets rather than inside Target so the
+// TargetStamp records which identity of an object a stack object
+// targeted (CR 400.7): Obj's Incarnation and ZoneGen at the moment the
+// target was chosen. It is kept beside Targets rather than inside Target so the
 // target value itself (compared and used as a map key across the effects
 // tier) is unchanged.
 type TargetStamp struct {
 	Obj         ObjID
 	Incarnation uint32
+	// ZoneGen is the target's CR 400.7 identity stamp when it was chosen:
+	// it advances on every zone change (not only the battlefield crossing
+	// Incarnation marks), so the resolution recheck drops a target that
+	// changed zones since, whatever zones it passed through. Only the
+	// target stamps (foldTargetsChosen, a StackCopy's named targets) and
+	// the trigger fire-time stamps set it; the remembered-list stamps that
+	// share the type leave it zero and nothing judges them by it.
+	ZoneGen uint32
 }
 
 // GoadEffect is one independently-lived CR 701.38 goad relationship.
@@ -939,6 +947,20 @@ type Object struct {
 	// actions snapshot this value when tied to that permanent incarnation.
 	Incarnation uint32
 
+	// ZoneGen is the object's CR 400.7 identity stamp: it advances on EVERY
+	// zone change (events.move, whenever the real pre-move zone differs from
+	// the destination), not only at the battlefield boundary Incarnation
+	// marks, so a card that leaves a graveyard and comes back is a new
+	// object to the readers that compare it (the CR 608.2b target recheck,
+	// the TriggeredCard referent family, a zone-scoped self grant off the
+	// battlefield). A CR 733.1 reversed cast restores the pre-proposal value
+	// (PreStackZoneGen). Folded only by events.Apply, so replay rebuilds it.
+	ZoneGen uint32
+
+	// PreStackZoneGen is ZoneGen just before the object's latest move onto
+	// the stack; a CR 733.1 reversal restores ZoneGen from it and clears it.
+	PreStackZoneGen uint32
+
 	// Stack-only.
 	Ability           *cards.SA
 	Source            ObjID
@@ -982,10 +1004,10 @@ type Object struct {
 	SubTargets []Target
 	// TargetStamps holds, for every object target folded into Targets or
 	// SubTargets (events.foldTargetsChosen, a StackCopy's inherited or
-	// named targets), the target's Incarnation when it was chosen. The CR
-	// 608.2b resolution recheck drops a target whose Incarnation has moved
-	// since: an object that left the battlefield and came back (or entered
-	// it) is a new object (CR 400.7) even though its ObjID is the same.
+	// named targets), the target's identity when it was chosen: its
+	// Incarnation and ZoneGen. The CR 608.2b resolution recheck drops a
+	// target whose ZoneGen has moved since: an object that changed zones
+	// (CR 400.7) is a new object even though its ObjID is the same.
 	// Cleared with Targets on a zone change.
 	TargetStamps []TargetStamp
 	// Division is the CR 601.2d division announced for Targets while the
@@ -1730,11 +1752,11 @@ type Object struct {
 	// DoorLock/DoorUnlock events alone update this per-face lock bitset.
 	LockedDoors uint8
 
-	// _ pads the Object to 1280 bytes (20 64-byte cache lines), so in the
+	// _ pads the Object to 1344 bytes (21 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [30]byte
+	_ [22]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
