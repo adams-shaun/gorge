@@ -95,4 +95,44 @@ func kwAttachCost(f *Face, i int, k, param string, has func(kind, line string) b
 	}
 }
 
+// AttachBearerSpec extracts a minted attach-cost keyword line's bearer
+// restriction (CR 301.5c): the space-free field after the cost, exactly the
+// field kwAttachCost writes the activation's ValidTgts$ from. A line with no
+// restriction field (or with prose where a spec would sit) answers "", the
+// expansion's creature default; the cost field itself carries no colon
+// (kwAttachCost's measured corpus invariant). The line is a fixed
+// "head:cost:spec:prose" shape, so a byte scan needs no string machinery.
+func AttachBearerSpec(k string) string {
+	colon, specStart, specEnd := 0, -1, -1
+	for i := 0; i < len(k); i++ {
+		if k[i] != ':' {
+			continue
+		}
+		colon++
+		switch colon {
+		case 1: // after the keyword head; the cost field follows
+		case 2:
+			specStart = i + 1
+		default:
+			specEnd = i
+		}
+		if specEnd >= 0 {
+			break
+		}
+	}
+	if specStart < 0 {
+		return ""
+	}
+	if specEnd < 0 {
+		specEnd = len(k)
+	}
+	spec := k[specStart:specEnd]
+	for i := 0; i < len(spec); i++ {
+		if spec[i] == ' ' || spec[i] == '\t' {
+			return ""
+		}
+	}
+	return spec
+}
+
 func init() { registerKeyword(kwEquip, "Equip") }

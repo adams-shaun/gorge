@@ -230,6 +230,16 @@ func IsSacrifice(ev Event) bool {
 // Battlefield_Creature heads (Morbid) read.
 const DepartureCreatureFlip state.Step = 1
 
+// DamageNotPlaneswalker is the Damage Text payload that records a CR 306.8
+// layer-4 fact the fold cannot read: the recipient's printed face is a
+// planeswalker, but its current types are not (Luxior's "isn't a
+// planeswalker", Imprisoned in the Moon's colourless land), so the damage
+// removes no loyalty counters and is marked as on any other permanent. Text
+// is otherwise unused on Damage, and rules' emit sets the payload only on
+// that rare recipient (Engine.markDamageNotPlaneswalker), so every other
+// Damage event's encoding and hash are unchanged.
+const DamageNotPlaneswalker = "__damage_not_planeswalker"
+
 // DepartureDefaultCreature is the creature reading of a departing
 // battlefield object that needs no layer system: face down (CR 708.2a's 2/2
 // creature) or a creature face. rules compares the layer-derived status
