@@ -1019,6 +1019,30 @@ func (e *Engine) continueCast() {
 	// choice (601.2b-i). Its "whenever you activate" triggers are held until
 	// payCast, exactly as the old end-of-payment mint fired them.
 	e.pushActivation()
+	// castprov3: a provenance-keyed cost modifier (Bilbo's
+	// "!wasCastFromYourHand" ReduceCost) is unresolvable before CR 601.2a's
+	// push — the offer and option-selection snapshots both denied it (full
+	// price, the fail-closed direction) because the priced card had no cast
+	// in the log yet. Now the PutOnStack is in the log: when the selection
+	// pass evaluated such a static (e.costProvenanceSeen, the
+	// noCounterSpend-style transient capture), re-price the pending cast so
+	// the payment takes the honest reduction. For every other cast the
+	// recompute is byte-identical to the offer snapshot (both are the
+	// nil-target base snapshot), so no existing price — and no chain head —
+	// moves.
+	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.CostProvenanceSeen {
+		pc.provenanceRepriced = true
+		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
+	}
+	// CR 601.2b: a modal spell announces its modes after reaching the stack
+	// and before targets are chosen or costs are paid — before every
+	// additional-cost announcement below, X and every cost choice (601.2h);
+	// the modes are the first announcement after the push. The answer is
+	// cached on the proposed spell so targetAsk can inspect the selected mode
+	// and resolution can execute it without asking again.
+	if e.castModeAsk() {
+		return
+	}
 	// Mutate (CR 702.140b): the over/under placement choice is announced
 	// before payment the same way the replicate count is, so the pay-time
 	// CastInfo can carry FlagMutatedTop.
@@ -1190,21 +1214,6 @@ func (e *Engine) continueCast() {
 		e.payCast()
 		return
 	}
-	// castprov3: a provenance-keyed cost modifier (Bilbo's
-	// "!wasCastFromYourHand" ReduceCost) is unresolvable before CR 601.2a's
-	// push — the offer and option-selection snapshots both denied it (full
-	// price, the fail-closed direction) because the priced card had no cast
-	// in the log yet. Now the PutOnStack is in the log: when the selection
-	// pass evaluated such a static (e.costProvenanceSeen, the
-	// noCounterSpend-style transient capture), re-price the pending cast so
-	// the payment takes the honest reduction. For every other cast the
-	// recompute is byte-identical to the offer snapshot (both are the
-	// nil-target base snapshot), so no existing price — and no chain head —
-	// moves.
-	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.CostProvenanceSeen {
-		pc.provenanceRepriced = true
-		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
-	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
 	// an old suspension. Plot needs no equivalent: its designation is
@@ -1213,13 +1222,6 @@ func (e *Engine) continueCast() {
 	if e.cast.mode == "suspend_cast" && !e.cast.suspendCastClear {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: e.cast.card})
 		e.cast.suspendCastClear = true
-	}
-	// CR 601.2b: a modal spell announces its modes after reaching the stack
-	// and before targets are chosen or costs are paid. The answer is cached on
-	// the proposed spell so targetAsk can inspect the selected mode and
-	// resolution can execute it without asking again.
-	if e.castModeAsk() {
-		return
 	}
 	// CR 601.2b: announce how each hybrid and Phyrexian pip is paid -- which
 	// half of a hybrid, whether a Phyrexian pip is paid with life -- before

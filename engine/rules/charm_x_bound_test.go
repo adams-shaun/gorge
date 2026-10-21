@@ -10,8 +10,9 @@ import (
 // A Charm sub-ability's dynamic TargetMin$/TargetMax$ X bound must resolve
 // against the cast's PAID X, not a hardcoded zero (the two charm ask sites
 // are the only ask sites that dropped the x). Both pins drive the real cast
-// flow -- cast choice, the X announcement (KChoose, Kind "x"), the charm
-// mode ask, then the sequential per-mode target asks -- on an inline
+// flow -- cast choice, the charm mode ask, the X announcement (KChoose,
+// Kind "x"; CR 601.2b), then the sequential per-mode target asks -- on an
+// inline
 // Kozilek's-Command-shaped fixture (script text written inline, never a
 // committed corpus file).
 
@@ -24,8 +25,9 @@ const charmXBoundSrc = "Name:X Charm\nManaCost:X R R\nTypes:Instant\n" +
 	"SVar:X:Count$xPaid\nOracle:x\n"
 
 // charmXCastFlow drives a cast of charmXBoundSrc through the real cast flow
-// -- X announce (xLabel picks it, e.g. "X = 2"), the charm mode ask, the
-// bolt slot's sequential ask, and the answer to that ask -- and returns the
+// -- the charm mode ask first (CR 601.2b), the X announce (xLabel picks it,
+// e.g. "X = 2"), the bolt slot's sequential ask, and the answer to that ask
+// -- and returns the
 // NEXT pending decision: the exile slot's own ask when the bound admits one,
 // the resolution priority round when the bound is a resolved zero. The caller
 // must have put the graveyard cards in place and funded the pool.
@@ -37,10 +39,18 @@ func charmXCastFlow(t *testing.T, e *Engine, xLabel string) *decision.Decision {
 		t.Fatal("X Charm must be castable from hand")
 	}
 	submitChoices(t, e, opt.Index)
-	// The X announcement is posed BEFORE the mode ask.
+	// CR 601.2b: the mode announcement is posed BEFORE X.
+	md := e.Pending()
+	if md == nil || md.Kind != decision.KModes || md.ResumeKind != "cast_modes" {
+		t.Fatalf("want the charm mode ask first, got %+v", md)
+	}
+	if len(md.Options) != 2 {
+		t.Fatalf("mode ask offers %d options, want both sub-abilities: %+v", len(md.Options), md.Options)
+	}
+	submitChoices(t, e, md.Options[0].Index, md.Options[1].Index)
 	xd := e.Pending()
 	if xd == nil || xd.Kind != decision.KChoose || len(xd.Options) == 0 || xd.Options[0].Kind != "x" {
-		t.Fatalf("want the X announce first, got %+v", xd)
+		t.Fatalf("want the X announce after the modes, got %+v", xd)
 	}
 	xidx := -1
 	for _, o := range xd.Options {
@@ -52,14 +62,6 @@ func charmXCastFlow(t *testing.T, e *Engine, xLabel string) *decision.Decision {
 		t.Fatalf("no %s option among the announce options: %+v", xLabel, xd.Options)
 	}
 	submitChoices(t, e, xidx)
-	md := e.Pending()
-	if md == nil || md.Kind != decision.KModes || md.ResumeKind != "cast_modes" {
-		t.Fatalf("want the charm mode ask after the announce, got %+v", md)
-	}
-	if len(md.Options) != 2 {
-		t.Fatalf("mode ask offers %d options, want both sub-abilities: %+v", len(md.Options), md.Options)
-	}
-	submitChoices(t, e, md.Options[0].Index, md.Options[1].Index)
 	// The bolt slot asks first (chosen-mode order), bounded 1..1 over the
 	// player candidates.
 	bd := e.Pending()
