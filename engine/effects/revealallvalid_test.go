@@ -227,7 +227,7 @@ func cmcOf(t *testing.T, h *fakeHost, id state.ObjID) int {
 	if o == nil || o.Face() == nil {
 		t.Fatalf("object %d has no face", id)
 	}
-	return int(parseCMC(o.Face().ManaCost))
+	return objectManaValue(h.g, o)
 }
 
 // isInstantOrSorcery reports whether o is an instant or sorcery, the class the

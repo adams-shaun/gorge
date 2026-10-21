@@ -266,7 +266,7 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	// object filter can safely guess.
 	if m := protectionCMC.FindStringSubmatch(q); m != nil {
 		n, _ := strconv.Atoi(m[2])
-		cmc := o.Face().Cmc()
+		cmc := state.ManaValue(e.G, o)
 		return (m[1] == "GE" && cmc >= int32(n)) || (m[1] == "LE" && cmc <= int32(n))
 	}
 	if m := protectionCounter.FindStringSubmatch(q); m != nil {

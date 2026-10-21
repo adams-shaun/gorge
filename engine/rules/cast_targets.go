@@ -1212,7 +1212,7 @@ func (e *Engine) evidenceAsk() bool {
 			" to cast " + e.targetName(pc.card), Source: pc.card}
 	for _, id := range ids {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "evidence",
-			Obj: id, Label: e.G.Obj(id).Face().Name, Value: int(e.G.Obj(id).Face().Cmc())})
+			Obj: id, Label: e.G.Obj(id).Face().Name, Value: int(state.ManaValue(e.G, e.G.Obj(id)))})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
