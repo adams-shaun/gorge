@@ -210,7 +210,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.2c | follows | `engine/state/object.go#Object.CopyFace` | - |  |
 | 613.3 | follows | `engine/rules/chars/types.go#TypesAndAllCreatureTypes` `engine/effects/colors.go#ColorMaskOf` | `TestChangelingTypeCDASettlesBeforeAbilityRemoval` |  |
 | 613.4 | partial | `engine/rules/chars/derive.go#PT` | - | layer 7 sublayers; g 7a/7d gaps |
-| 613.4a | deviates | `engine/rules/chars/derive.go#PT` `engine/rules/chars/cda.go#CDASetPT` | - | gorge keeps CDA P/T after ability loss (cr-g39) |
+| 613.4a | follows | `engine/rules/chars/derive.go#PT` `engine/rules/chars/derive.go#cdaPTLost` `engine/rules/chars/cda.go#CDASetPT` | `TestCR613_4aCDAPTLostUnderDressDown` `TestCR613_4aCDAPTLossKillsConsumingAberration` `TestCR613_4aCDAPTGuards` | - |
 | 613.4b | follows | `engine/rules/chars/derive.go#PT` | `TestSetBeforeModifyRegardlessOfTimestamp` `TestCardBasePowerStopsAtLayer7bAndDrivesCount` | - |
 | 613.4c | follows | `engine/rules/chars/derive.go#PT` | - | order-equivalent |
 | 613.4d | not-impl | `engine/state/continuous.go#SubSwitch` `engine/rules/chars/derive.go#PT` | - | SILENT; SubSwitch never consumed, 27 corpus cards (cr-g37) |
