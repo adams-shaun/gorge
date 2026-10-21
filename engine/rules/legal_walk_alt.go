@@ -7,6 +7,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// hasPlayLandOption reports whether out already offers the land play for id,
+// so a later play_land source never yields a duplicate option for one land.
+func hasPlayLandOption(out []decision.Option, id state.ObjID) bool {
+	for _, prev := range out {
+		if prev.Kind == "play_land" && prev.Obj == id {
+			return true
+		}
+	}
+	return false
+}
+
 // mayPlayLandWalk offers land plays through active may-play-from-zone grants.
 func (w *legalWalk) mayPlayLandWalk() {
 	e, p := w.e, w.p
@@ -43,14 +54,7 @@ func (w *legalWalk) mayhemLandWalk() {
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		dup := false
-		for _, prev := range *out {
-			if prev.Kind == "play_land" && prev.Obj == id {
-				dup = true
-				break
-			}
-		}
-		if dup {
+		if hasPlayLandOption(*out, id) {
 			continue
 		}
 		w.add("play_land", "Play "+o.Face().Name, id)
@@ -723,7 +727,7 @@ func (w *legalWalk) exileCastsWalk() {
 			}
 			continue
 		}
-		// CR 715.3b: the owner may play the exiled card. When the main face
+		// CR 715.3d: the owner may play the exiled card. When the main face
 		// is a LAND, "play it" is the land play, not a cast (CR 305.1), so
 		// the adventure_recast offer above deliberately withholds it. The
 		// provenance is the same log-derived adventure-zone check, and the
@@ -736,14 +740,7 @@ func (w *legalWalk) exileCastsWalk() {
 			!playLandForbidden(e, p, state.ZExile, id) {
 			// A may-play grant over the same exile card already offered the
 			// play; never yield two identical options for one land.
-			dup := false
-			for _, prev := range *out {
-				if prev.Kind == "play_land" && prev.Obj == id {
-					dup = true
-					break
-				}
-			}
-			if !dup {
+			if !hasPlayLandOption(*out, id) {
 				w.add("play_land", w.playLabel(f), id)
 			}
 		}

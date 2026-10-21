@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestLandFrontAdventurePlayFromExile pins CR 715.3b for a land-front
+// TestLandFrontAdventurePlayFromExile pins CR 715.3d for a land-front
 // Adventure: after the Adventure half resolves, the card rests in exile as
 // its main face, and because that face is a LAND the permission to "play it"
 // is a land play (CR 305.1), not a cast. The offer must appear on a later
@@ -119,10 +119,10 @@ func TestLandFrontAdventurePlayFromExile(t *testing.T) {
 }
 
 // TestLandFrontAdventureNotPlayableWithoutLandDrop pins the other half of CR
-// 715.3b's land play: the permission shares the turn's ordinary land drop
-// (CR 305.1), so when the drop was spent BEFORE the Adventure resolved the
-// exiled land must never be offered. Playing a different land first is the
-// precondition that makes the negative assertion meaningful.
+// 715.3d's land play: the permission shares the turn's ordinary land drop
+// (CR 305.1), so once the drop has been spent on another land the exiled land
+// must never be offered. Playing the other land first is the precondition that
+// makes the negative assertion meaningful.
 func TestLandFrontAdventureNotPlayableWithoutLandDrop(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

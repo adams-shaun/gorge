@@ -311,19 +311,23 @@ func (e *Engine) askCommandZone(owner state.PlayerID) {
 	parkAsk(e, d)
 }
 
-// exileCastPermission names the standing permission to cast id from exile
-// that a move to the command zone would end (CR 400.7: a new object), or "":
-// an Adventure spell that resolved (CR 715.3d), a card exiled by the Foretell
-// action (CR 702.143a) or a plotted card (CR 702.170). The strings are the
-// Mode values the exile walk offers those casts under, so a client can match
-// the CR 903.9a ask to the later cast. The later-turn gates of foretell and
-// plot are deliberately not read: the permission is held now and lost if moved.
+// exileCastPermission names the standing permission to cast (or, for a
+// land-front Adventure, play) id from exile that a move to the command zone
+// would end (CR 400.7: a new object), or "": an Adventure spell that resolved
+// (CR 715.3d), a card exiled by the Foretell action (CR 702.143a) or a plotted
+// card (CR 702.170). The strings are the Kind/Mode values the exile walk
+// offers those actions under, so a client can match the CR 903.9a ask to the
+// later cast. The later-turn gates of foretell and plot are deliberately not
+// read: the permission is held now and lost if moved.
 func (e *Engine) exileCastPermission(id state.ObjID) string {
 	o := e.G.Obj(id)
 	switch {
 	case o == nil || o.Zone != state.ZExile:
 		return ""
 	case adventureSpellFace(o) != nil && o.FaceIdx == 0 && e.adventureZoneAvailable(id):
+		if o.Card.Faces[0].IsLand() {
+			return "play_land"
+		}
 		return "adventure_recast"
 	case e.foretoldExileIndex(id) >= 0:
 		return "foretell_cast"

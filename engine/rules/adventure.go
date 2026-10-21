@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -28,7 +30,7 @@ import (
 // resolving Adventure spell makes -- no object flag can carry "this card
 // sits in the adventure zone". The walk mirrors warpRecastAvailable's
 // fixed-order backwards scan without warp's later-turn requirement: CR
-// 714.3a permits casting the main face from the adventure zone immediately.
+// 715.3d permits playing the card from exile immediately.
 
 // isAdventureSpellFace reports whether a face is an Adventure spell half:
 // an Instant or Sorcery carrying the Adventure type.
@@ -64,7 +66,10 @@ func adventureSpellFace(o *state.Object) *cards.Face {
 // scope), so the gate is the provenance itself, derived from the log exactly
 // like warpRecastAvailable: walking backwards from the log's end,
 //
-//  1. the most recent MoveZone taking id to exile,
+//  1. the most recent MoveZone taking id to exile, which must not be a
+//     counter -- CR 715.3d exiles the card "as it resolves", so a spell
+//     countered to exile (Dissipate, or a graveyard counter redirected by
+//     Leyline of the Void) never earns the play permission,
 //  2. scanning back before it, the FIRST event of id encountered must be the
 //     adventure-flagged CastInfo -- any MoveZone of id in between (the card
 //     left exile and returned by some other route: a recast that resolved to
@@ -84,6 +89,14 @@ func (e *Engine) adventureZoneAvailable(id state.ObjID) bool {
 		}
 	}
 	if exileIdx < 0 {
+		return false
+	}
+	// Every counter path (engine/effects/resolve.go, target_ask.go,
+	// resolution_modes.go, misc.go's ward) labels its MoveZone "countered...";
+	// the resolved-spell move off the stack carries no Text. A replacement
+	// that redirects a countered card to exile (Leyline of the Void) keeps
+	// the counter's Text, so the prefix check covers it too.
+	if ev := log[exileIdx]; ev.From == state.ZStack && strings.HasPrefix(ev.Text, "countered") {
 		return false
 	}
 	for i := exileIdx - 1; i >= 0; i-- {
