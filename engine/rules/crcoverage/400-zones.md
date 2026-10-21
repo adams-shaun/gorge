@@ -33,7 +33,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 401.2 | follows | `engine/view/view.go#projector.unorderedLibrary` `engine/view/redact.go#libraryOrderKind` `engine/effects/dig.go#digSecretTo` | `TestPonderLibraryOrderIsHiddenFromItsOwner` `TestGontiRemainderOrderIsHiddenFromTheLibraryOwner` `TestLibraryOrderIsShapeOnlyForItsOwnerAndController` `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` `TestDigOpponentLibraryMovesAreTheChoosersSecret` | a Secret LibraryOrder or Shuffle is served as its shape to every seat, the owner included (cr-g61) |
 | 401.3 | follows | `engine/view/view.go#PlayerView.LibrarySize` | - |  |
 | 401.4 | partial | `engine/effects/zone_library.go#placeTargetedLibraryObjects` | - | targeted path places in target order without asking (Plow Under) |
-| 401.5 | deviates | `engine/rules/layers.go#Engine.staticEffectsWalk` `engine/rules/layers_static.go#Engine.MayLookAtLibraryTop` | - | MayLookAt$ Player shown to owner only; cr-g28-maylookat-player-reveal |
+| 401.5 | partial | `engine/rules/layers.go#Engine.staticEffectsWalk` `engine/rules/layers_static.go#Engine.LibraryTopRevealed` `engine/view/view.go#projectInto` | `TestCR401_5PlayWithTopCardRevealedShowsEveryPlayer` `TestCR401_5MayLookAtYouStaysPrivate` `TestOracleOfMulDayaRevealsTopCard` | MayLookAt$ Player revealed to every seat; the new top card is not withheld while a spell is being cast |
 | 401.6 | follows | `engine/view/view.go#projectInto` | - |  |
 | 401.7 | follows | `engine/effects/zone_library.go#libraryOrderPlacementAt` | - |  |
 | 402.1 | follows | `engine/rules/engine.go#Engine.drawCard` | - |  |
