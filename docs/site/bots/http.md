@@ -375,12 +375,6 @@ per decision over whole games. SSE costs one wake-up hop and nothing while
 idle. Sixteen agents on one server played 16 games, 4,156 decisions, in
 1.27 s of wall time.
 
-!!! note "The script's SSE run needs the token"
-    The `sse` lines above predate private play-vs-bot tables. At `513a2a0c3`
-    the script opens `/api/stream` without the seat's token, so its SSE run
-    stops at `subscribe: HTTP 404`; the poll run still works. Opening the
-    stream with `Authorization: Bearer <token>` is the fix.
-
 ## Pitfalls
 
 - **One creature, one defender.** An `attackers` decision has one option

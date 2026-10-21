@@ -75,7 +75,7 @@ the same canonical board projection after every action.</figcaption>
 
 | | gorge | dirty-dirac |
 |---|---|---|
-| Card pool | every Forge script; 32,246 of 34,074 (94.6 %) are playable (`make report`, 2026-10-21) | 16,044 of 34,072 corpus cards lower (47.1 %); FDN and BLB are verified in lockstep ([per set](../support/sets.md#per-set-matrix)) |
+| Card pool | every Forge script; 32,246 of 34,074 (94.6 %) are playable (`make report`, 2026-10-21) | 16,044 of 34,072 corpus cards lower (47.1 %); FDN and BLB are verified in lockstep ([per set](../support/sets.md#per-set-support)) |
 | Players | up to 8 per hosted table (`server/host/table.go`); the golden games cover 2, 4, 6 and 8 | 2 |
 | Game state | `state.Game`: an arena of `state.Object` values plus maps and slices | a single fixed-size struct |
 | Mutation | events proposed by the engine, folded by `events.Apply`, hash-chained | `Apply(action)` on the value |

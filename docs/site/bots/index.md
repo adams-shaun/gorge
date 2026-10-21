@@ -179,9 +179,9 @@ a person and `-bot-policy` refuses a decklist-reading policy.
 
 - **A SpellBench v2 agent** registered with `-sb-agent name=/path/to/agent`
   becomes a policy like any other ([SpellBench v2 agents](spellbench.md)).
-- **Network-backed search bots.** `gorged` reserves the names `az-c3`,
-  `az-c4` and `az-c5` and their flags; a downstream binary links an
-  implementation in through `gorged.RegisterNetBot`
+- **Network-backed search bots.** `gorged` reserves a few policy names and
+  flags for search bots that need a trained network (see `gorged -h`); a
+  downstream binary links an implementation in through `gorged.RegisterNetBot`
   ([`server/gorged/netbots.go`](https://github.com/adams-shaun/gorge/blob/main/server/gorged/netbots.go)).
   gorge ships the inference code but no trained networks, so on a plain
   `gorged` those flags refuse to start.

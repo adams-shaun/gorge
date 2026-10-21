@@ -42,11 +42,12 @@ flowchart LR
 
 [`.github/workflows/docs.yml`](https://github.com/adams-shaun/gorge/blob/main/.github/workflows/docs.yml)
 builds the site on pushes to `main` and `develop` and on pull requests. It
-deploys from `main` on a push, on the daily 09:17 UTC rebuild, or on a manual
+deploys from `main` on a push, on the daily 17:17 UTC rebuild (after gorge-compliance's nightly job), or on a manual
 run. Before the build, it:
 
 1. generates the package map (`go run ./cmd/pkgmap`);
-2. fetches the engine-speed history from gorge's orphan `perf-data` branch;
+2. fetches the engine-speed history from gorge's orphan `perf-data` branch
+   when it exists (it does not yet);
 3. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
    reads the committed dirty-dirac snapshot and, when the fetch succeeds,
    **gorge-compliance's orphan `docs-data` branch** (`status-A.jsonl`,

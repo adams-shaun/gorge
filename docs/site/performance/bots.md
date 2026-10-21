@@ -95,7 +95,7 @@ Packages the hosted bots and outside policies build on:
 | `bots/sanity` | The common-sense decorator `bot`, `forge-heuristic` and `sb-tactical` apply when the host asks (`gorged -bot-common-sense`); it drops, for example, a hostile effect aimed only at the seat's own permanents |
 | `bots/azmcts` | The PUCT tree search behind `az-redeal`: one seat's searched decisions, a value leaf (a learned value head or a frozen heuristic) |
 | `bots/searchseat`, `bots/searchprobe` | A perfect-information Monte Carlo search seat, and an experimental history-conditioned search harness with a hidden-information world sampler; neither is a hosted policy |
-| `bots/policynet`, `bots/gonet`, `bots/netsimd` | A feature encoder for a learned per-option policy, a pure-Go forward pass for `.dzgw` MLP networks, and an AVX-512 version of that forward pass with a scalar fallback |
+| `bots/policynet`, `bots/gonet`, `bots/netsimd` | A feature encoder for a learned per-option policy, a pure-Go forward pass for MLP value networks, and an AVX-512 version of that forward pass with a scalar fallback |
 | `bots/spellbench` (+`builtins`, `payexec`) | gorge's side of the [SpellBench](https://github.com/jackmaiorino/spellbench) arena: benchmark deck catalogs, the ported builtin bots and `sb-tactical`, and `payexec`, which lowers a payment plan onto the manual mana surface |
 | `bots/traceboard` | The redacted per-seat board snapshot schema written into decision-trace records |
 

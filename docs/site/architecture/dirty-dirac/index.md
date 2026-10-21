@@ -79,7 +79,7 @@ the one before:
 | **Generated** | the card is in a generated `cards_<pool>` package, so a kernel game can deal it | the registered pools: FDN, BLB and a set of small constructed verification pools |
 | **Verified** | games over the pool have been played in lockstep with gorge, decision by decision, with no disagreement | FDN and BLB, plus the constructed pools ([Verification](oracle.md#agreement-today)) |
 
-Per-set lowering counts are on [Card support by set](../../support/sets.md#per-set-matrix).
+Per-set lowering counts are on [Card support by set](../../support/sets.md#per-set-support).
 A lowered card that is not yet in a verified pool is a claim about the
 generator, not about play: the [Cards](cards.md) page explains the refusal
 contract that makes the claim mean something.

@@ -195,7 +195,9 @@ See [Verification](../architecture/dirty-dirac/oracle.md).
 **Capacity stall.** A lockstep game dirty-dirac stops on purpose because the
 position no longer fits its fixed-size state (more objects, board slots or
 stack entries than the arrays hold). It is reported separately from a
-divergence: a stall is a known limit, not a rules disagreement.
+divergence: a stall is a known limit, not a rules disagreement. A few stall
+reasons mark interactions whose ordering dirty-dirac does not model yet,
+rather than capacity.
 
 **kgen.** The generator that lowers gorge's compiled card IR into
 dirty-dirac's kop tables, as generated Go card packages. It reads every

@@ -251,7 +251,7 @@ grammar for every set. So the grammar is closed once, corpus-wide:
    that lowers any count fails; a rise is re-pinned in the same change, so
    the pins are always the live numbers. Today they stand at **16,044 of
    34,072** corpus cards; the per-set pins are on
-   [Card support by set](../../support/sets.md#per-set-matrix).
+   [Card support by set](../../support/sets.md#per-set-support).
 4. **Keep the verified pools still.** A lowering change must leave the FDN
    and BLB lockstep results unchanged. A change that moves them is a defect
    in the lowering, not a new behaviour.
