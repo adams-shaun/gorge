@@ -79,8 +79,8 @@ func TestForgeHeuristicRegistered(t *testing.T) {
 	if !ok {
 		t.Fatalf("default bot is %T, want *heuristic.Bot", def)
 	}
-	if got := db.MulliganRule(); got != botpolicy.MulliganCoin {
-		t.Errorf("default bot MulliganRule = %s, want the coin (zero effect on bot)", got)
+	if got := db.MulliganRule(); got != botpolicy.MulliganForge {
+		t.Errorf("default bot MulliganRule = %s, want forge", got)
 	}
 }
 

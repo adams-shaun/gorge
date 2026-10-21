@@ -75,24 +75,18 @@ func mulliganConfig(t *testing.T, seed uint64) rules.Config {
 	return rules.Config{Seed: seed, Names: []string{"p0", "p1"}, Decks: decks, Mulligans: 2}
 }
 
-// TestCommonSenseOffMulliganIsTheCoin pins the off path: with CommonSense
-// false every London ask is answered exactly as a bare bot built the old way
-// answers it (the 1/3 coin off the bot's rng, chooseDiscard bottoming), for
-// both mana modes, over whole rounds.
-func TestCommonSenseOffMulliganIsTheCoin(t *testing.T) {
+// TestCommonSenseOffMulliganIsTheForgeRule pins the off path: with
+// CommonSense false every London ask is answered by MulliganForge, for both
+// mana modes, over whole rounds.
+func TestCommonSenseOffMulliganIsTheForgeRule(t *testing.T) {
 	ctx := context.Background()
 	var board botpolicy.Board
+	asks, differs := 0, 0
 	for _, auto := range []bool{false, true} {
 		for seed := uint64(1); seed <= 20; seed++ {
 			s, err := bots.New("bot", bots.Options{Seed: seed, AutoPayMana: auto})
 			if err != nil {
 				t.Fatal(err)
-			}
-			var ref *heuristic.Bot
-			if auto {
-				ref = heuristic.NewAttackSimBot(seed, botpolicy.DefaultAttackSimParams()).EnableAutoPayMana()
-			} else {
-				ref = heuristic.NewBot(seed)
 			}
 			e := rules.New(mulliganConfig(t, seed))
 			for step := 0; step < 400; step++ {
@@ -103,22 +97,30 @@ func TestCommonSenseOffMulliganIsTheCoin(t *testing.T) {
 				}
 				b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
 				got, err1 := s.(heuristic.BoardSeat).DecideBoard(ctx, b, *d)
-				want, err2 := ref.DecideBoard(ctx, b, *d)
-				if err1 != nil || err2 != nil || !slices.Equal(got.Choices, want.Choices) {
-					t.Fatalf("auto=%v seed %d: off answer %v (%v), bare bot %v (%v)", auto, seed, got.Choices, err1, want.Choices, err2)
+				want, ok := botpolicy.MulliganAnswer(b, botpolicy.MulliganForge, d)
+				if err1 != nil || !ok || !slices.Equal(got.Choices, want) {
+					t.Fatalf("auto=%v seed %d: off answer %v (%v), forge rule %v (ok %v)", auto, seed, got.Choices, err1, want, ok)
 				}
+				coin, _ := botpolicy.MulliganAnswer(b, botpolicy.MulliganCoin, d)
+				if !slices.Equal(want, coin) {
+					differs++
+				}
+				asks++
 				if err := e.Submit(got); err != nil {
 					t.Fatal(err)
 				}
 			}
 		}
 	}
+	if asks == 0 || differs == 0 {
+		t.Fatalf("asks %d, forge differs from the coin %d: the round never exercised the rule", asks, differs)
+	}
 }
 
-// TestCommonSenseOnMulliganIsTheConstructedRule drives real London rounds and
-// checks the guarded bot answers every ask with botpolicy.MulliganConstructed
-// on the same Board, and that the engine accepts it.
-func TestCommonSenseOnMulliganIsTheConstructedRule(t *testing.T) {
+// TestCommonSenseOnMulliganIsTheForgeRule drives real London rounds and
+// checks the guarded bot answers every ask with botpolicy.MulliganForge on
+// the same Board, and that the engine accepts it.
+func TestCommonSenseOnMulliganIsTheForgeRule(t *testing.T) {
 	ctx := context.Background()
 	var board botpolicy.Board
 	asks, mulls := 0, 0
@@ -140,7 +142,7 @@ func TestCommonSenseOnMulliganIsTheConstructedRule(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				want, ok := botpolicy.MulliganAnswer(b, botpolicy.MulliganConstructed, d)
+				want, ok := botpolicy.MulliganAnswer(b, botpolicy.MulliganForge, d)
 				if !ok || !slices.Equal(got.Choices, want) {
 					t.Fatalf("auto=%v seed %d: guarded %v, rule %v (ok %v)", auto, seed, got.Choices, want, ok)
 				}

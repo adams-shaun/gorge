@@ -421,7 +421,7 @@ func TestCommonSenseMulliganMatchesGameBoardRule(t *testing.T) {
 				t.Fatal(err)
 			}
 			b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
-			want, ok := botpolicy.MulliganAnswer(b, botpolicy.MulliganConstructed, d)
+			want, ok := botpolicy.MulliganAnswer(b, botpolicy.MulliganForge, d)
 			if !ok || !slices.Equal(got.Choices, want) {
 				t.Fatalf("seed %d: guarded answer %v, game-board rule %v (ok %v)", seed, got.Choices, want, ok)
 			}
