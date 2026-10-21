@@ -476,6 +476,25 @@ func (e *Engine) mayhemDiscardedThisTurn(p state.PlayerID, id state.ObjID) bool 
 }
 
 func (e *Engine) foretellCastAvailable(id state.ObjID) bool {
+	idx := e.foretoldExileIndex(id)
+	if idx < 0 {
+		return false
+	}
+	log := e.L.Events
+	for i := idx + 1; i < len(log); i++ {
+		if log[i].Kind == events.TurnChange {
+			return true
+		}
+	}
+	return false
+}
+
+// foretoldExileIndex is foretellCastAvailable's provenance half (steps 1 and 2,
+// and the effect-granted counter form): the log index of id's most recent
+// MoveZone to exile when that exile foretold it, or -1. It reads no "later
+// turn" gate, so the CR 903.9a ask (exileCastPermission) can name a foretold
+// commander in the same turn it was foretold.
+func (e *Engine) foretoldExileIndex(id state.ObjID) int {
 	log := e.L.Events
 	exileIdx := -1
 	for i := len(log) - 1; i >= 0; i-- {
@@ -485,39 +504,24 @@ func (e *Engine) foretellCastAvailable(id state.ObjID) bool {
 		}
 	}
 	if exileIdx < 0 {
-		return false
+		return -1
 	}
 	// Effect-granted foretelling uses one MoveZone event whose counter carries
 	// the designation; it must survive a battlefield departure's flag reset.
 	if c := log[exileIdx].Counter; c == "exiled_with_face_down_foretold" || c == "exiled_with_face_down_maylook_foretold" {
-		for i := exileIdx + 1; i < len(log); i++ {
-			if log[i].Kind == events.TurnChange {
-				return true
-			}
-		}
-		return false
+		return exileIdx
 	}
-	foretoldIdx := -1
 	for i := exileIdx - 1; i >= 0; i-- {
 		ev := log[i]
 		if ev.Kind == events.MoveZone && ev.Obj == id {
 			// An intervening move between the flag stamp and this exile:
 			// the exile is not the foretell action's own, whatever preceded it.
-			return false
+			return -1
 		}
 		if ev.Kind == events.CastInfo && ev.Obj == id &&
 			events.FlagsFrom(ev.Counter)&state.FlagForetold != 0 {
-			foretoldIdx = i
-			break
+			return exileIdx
 		}
 	}
-	if foretoldIdx < 0 {
-		return false
-	}
-	for i := exileIdx + 1; i < len(log); i++ {
-		if log[i].Kind == events.TurnChange {
-			return true
-		}
-	}
-	return false
+	return -1
 }
