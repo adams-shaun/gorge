@@ -8,11 +8,10 @@ import (
 )
 
 // TestLibraryOrderRedaction is the Ruling J1 redaction leaf: a LibraryOrder
-// event with Secret: true must be redacted from a non-owner's view (the
-// exact order of a hidden zone is private to its owner), while the owner's
-// own projection keeps the payload. Asserted against the OTHER seat, not the
-// owner, because the owner seeing their own secret is the case a naive
-// redaction test gets backwards.
+// event with Secret: true is redacted to its shape for EVERY seat, its owner
+// included -- CR 401.2: no player may know a library's order, and the
+// owner's projection lists the library's contents, so the IDs would name it
+// card by card (cr-g61).
 //
 // The Omniscient arm is the one this leaf watches: view.RedactEventFor
 // redacts a Secret event revealing library order -- and LibraryOrder was
@@ -35,10 +34,10 @@ func TestLibraryOrderRedaction(t *testing.T) {
 	ev := events.Event{Seq: 7, Kind: events.LibraryOrder, Player: 0,
 		To: state.ZHand, IDs: []state.ObjID{1, 2, 3}, Secret: true}
 
-	// The owner's OWN seat projection keeps the payload: their secret.
+	// The owner's OWN seat is served the shape too (CR 401.2, cr-g61).
 	owner := RedactEvent(g, ev, 0)
-	if len(owner.IDs) != 3 {
-		t.Fatalf("owner's own LibraryOrder redacted: got IDs %v, want the full order", owner.IDs)
+	if len(owner.IDs) != 0 || owner.Kind != events.LibraryOrder || owner.Player != 0 || !owner.Secret {
+		t.Fatalf("owner's own LibraryOrder = %+v, want its shape only (CR 401.2)", owner)
 	}
 
 	// The OTHER seat's projection strips the payload to the event's shape.

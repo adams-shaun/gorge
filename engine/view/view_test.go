@@ -406,14 +406,14 @@ func (c boostedChars) Toughness(id state.ObjID) int32 {
 // strengthened per the coordinator's fix-round item 1: the Secret event now
 // carries Amount/Counter/Pairs too, so the "keep ONLY the shape" allowlist
 // (rule 1) is proven to zero every payload field it names, not merely the
-// three the brief's own snippet happened to touch (IDs/Obj/Text). It uses
-// LibraryOrder rather than Shuffle because a Shuffle's IDs are now hidden
-// from its owner too (CR 701.20a); LibraryOrder remains the owner's own
-// private record.
+// three the brief's own snippet happened to touch (IDs/Obj/Text). It uses a
+// Secret Note (a private look) rather than a Shuffle or a LibraryOrder
+// because those library-order kinds are hidden from their owner too (CR
+// 701.20a, CR 401.2; cr-g61); a private look stays the owner's own record.
 func TestRedactStripsSecretPayloadsFromOtherSeats(t *testing.T) {
 	g := fourSeatBoard(t)
 	evs := []events.Event{
-		{Seq: 0, Kind: events.LibraryOrder, Player: 1, From: state.ZLibrary, To: state.ZLibrary,
+		{Seq: 0, Kind: events.Note, Player: 1, From: state.ZLibrary, To: state.ZLibrary,
 			Step: state.StepUpkeep, Obj: 4, Amount: 7, Counter: "R", Text: "secret",
 			IDs: []state.ObjID{4, 5, 6}, Pairs: [][2]state.ObjID{{4, 5}}, Secret: true},
 		{Seq: 1, Kind: events.Draw, Player: 1, Obj: 4, Secret: true},
@@ -435,7 +435,7 @@ func TestRedactStripsSecretPayloadsFromOtherSeats(t *testing.T) {
 		other[0].Text != "" || other[0].Pairs != nil {
 		t.Fatalf("a Secret event's payload field survived redaction for another seat: %+v", other[0])
 	}
-	if other[0].Kind != events.LibraryOrder || other[0].Player != 1 ||
+	if other[0].Kind != events.Note || other[0].Player != 1 ||
 		other[0].From != state.ZLibrary || other[0].To != state.ZLibrary || other[0].Step != state.StepUpkeep {
 		t.Fatalf("redaction must keep the event's shape, only drop the payload: %+v", other[0])
 	}
@@ -598,9 +598,10 @@ func TestRedactEventsWithNilGameAppliesOnlyTheSecretRule(t *testing.T) {
 //
 // Redacts a real 2-seat engine's whole log for seat 1 -- a real seat, not a
 // spectator, so it exercises the non-owner and default branches on seat 0's
-// events in the same pass -- plus one hand-built Secret LibraryOrder for
-// seat 1, the owner's-own-secret pass-through branch (a Shuffle no longer
-// passes its IDs through even to its owner, CR 701.20a). It mutates every
+// events in the same pass -- plus one hand-built Secret look Note for seat
+// 1, the owner's-own-secret pass-through branch (a Shuffle or a LibraryOrder
+// no longer passes its IDs through even to its owner, CR 701.20a, CR 401.2).
+// It mutates every
 // IDs/Pairs slice the redacted copy holds, and checks the live engine's log
 // both internally (Head still equals a fresh HeadAt) and externally
 // (replay.Replay, a wholly separate reconstruction from cfg+Log, still
@@ -617,10 +618,11 @@ func TestRedactEventsDoesNotAliasTheEngineLog(t *testing.T) {
 	}
 
 	// The owner's-own-secret pass-through branch needs an event whose
-	// payload survives: the log's own Shuffles no longer do.
-	ownOrder := events.Event{Seq: uint64(len(e.L.Events)), Kind: events.LibraryOrder,
-		Player: 1, IDs: append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 1)...), Secret: true}
-	evs := append(append([]events.Event(nil), e.L.Events...), ownOrder)
+	// payload survives: the log's own Shuffles no longer do, and neither
+	// does a LibraryOrder (cr-g61). A private look at the library does.
+	ownLook := events.Event{Seq: uint64(len(e.L.Events)), Kind: events.Note, From: state.ZLibrary,
+		Player: 1, Text: "looks at the top of the library", IDs: append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 1)[:3]...), Secret: true}
+	evs := append(append([]events.Event(nil), e.L.Events...), ownLook)
 	redacted := RedactEvents(e.G, evs, 1)
 	mutated := 0
 	for i := range redacted {
@@ -637,8 +639,8 @@ func TestRedactEventsDoesNotAliasTheEngineLog(t *testing.T) {
 	if mutated == 0 {
 		t.Fatal("no IDs/Pairs in the redacted copy to mutate -- this test would pass vacuously")
 	}
-	if ownOrder.IDs[0] == 999999 {
-		t.Fatal("the redacted copy aliased the owner's own LibraryOrder input")
+	if ownLook.IDs[0] == 999999 {
+		t.Fatal("the redacted copy aliased the owner's own look Note input")
 	}
 
 	if got := e.L.Head(); got != beforeHead {

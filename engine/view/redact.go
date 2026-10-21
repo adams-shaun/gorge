@@ -32,9 +32,11 @@ import (
 //     future Secret emitter that starts carrying Pairs or Amount is
 //     covered automatically, which an enumerated strip list is not.
 //     - Player == viewer: pass through untouched -- it is their own
-//     secret, EXCEPT Shuffle and PlanarDeckShuffle, whose ordered IDs
-//     must remain private even from the library's owner (CR 701.20a:
-//     a shuffled library is randomized, so no one knows its order).
+//     secret, EXCEPT the library-order kinds (libraryOrderKind: Shuffle,
+//     PlanarDeckShuffle, LibraryOrder), whose ordered IDs must remain
+//     private even from the library's owner (CR 401.2: no player may
+//     look at a library's order; CR 701.20a: a shuffled library is
+//     randomized, so no one knows its order).
 //  2. Not Secret, a zone-move kind (MoveZone, Draw, PutOnStack): its Obj is
 //     stripped when the move is entirely between hidden zones
 //     (From.Hidden() && To.Hidden()) and the moved object is not visible
@@ -119,17 +121,16 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 	e.IDs = append([]state.ObjID(nil), e.IDs...)
 	e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
 	if e.Secret {
-		// A shuffle randomizes a library: CR 701.20a means nobody knows the
-		// resulting order, so a library Shuffle's ordered IDs are hidden from
-		// every viewer, its owner and that owner's controller included. A
-		// planar-deck shuffle is the same story for its plane deck (CR 901.5).
-		// The event's shape survives so the "X shuffles their library" line
-		// still renders. CR 720.4 widens "the owner's own secret" to the
-		// player controlling that owner while the control is live: every
-		// OTHER Secret event emitted by a controlled seat reaches its
-		// controller unchanged.
-		if e.Kind == events.Shuffle || e.Kind == events.PlanarDeckShuffle ||
-			e.Player != viewer && !controlsSeat(g, viewer, e.Player) {
+		// A library's order is hidden from every viewer, its owner and that
+		// owner's controller included: CR 401.2 for a LibraryOrder's chosen
+		// order, CR 701.20a for a Shuffle's randomized one, CR 901.5 for a
+		// planar deck (libraryOrderKind). The event's shape survives so the
+		// "X shuffles their library" / "X rearranges the top of their
+		// library" line still renders. CR 720.4 widens "the owner's own
+		// secret" to the player controlling that owner while the control is
+		// live: every OTHER Secret event emitted by a controlled seat
+		// reaches its controller unchanged.
+		if libraryOrderKind(e.Kind) || e.Player != viewer && !controlsSeat(g, viewer, e.Player) {
 			return secretShape(e)
 		}
 		// The owner's own secret: rule 1 does not apply to them at all,
@@ -171,6 +172,20 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 		e.Pairs = filterVisiblePairs(g, e.Pairs, viewer)
 	}
 	return e
+}
+
+// libraryOrderKind reports whether a Secret event of kind k carries a
+// library's (or a planar deck's) whole order in its IDs: Shuffle,
+// PlanarDeckShuffle and LibraryOrder. RedactEvent serves each of them as its
+// shape to EVERY viewer, the library's owner included: CR 401.2 ("Players
+// can't look at or change the order of cards in a library") and CR 701.20a
+// hide the order from its owner too, and the owner's projection already lists
+// the library's contents (PlayerView.Library), so the ids alone would name
+// every card in order. What the owner legitimately knows about the cards an
+// arrange put back (a Scry, a Ponder, a Brainstorm put-back) is the decision
+// they were shown and the answer they gave, not this event (cr-g61).
+func libraryOrderKind(k events.Kind) bool {
+	return k == events.Shuffle || k == events.PlanarDeckShuffle || k == events.LibraryOrder
 }
 
 // secretShape is the shape a Secret event keeps when its payload is not for
