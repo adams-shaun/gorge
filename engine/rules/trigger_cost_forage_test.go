@@ -132,6 +132,18 @@ func forageActionCount(evs []events.Event, at int) int {
 	return n
 }
 
+// forageWindow drives to the forage cost ask and returns the window,
+// asserting the precondition that it is the Forage cost.
+func forageWindow(t *testing.T, e *Engine) *triggeredEffectCost {
+	t.Helper()
+	d := forageCostAsk(t, e)
+	tc := e.triggerCost
+	if tc == nil || !tc.amount.Forage {
+		t.Fatalf("precondition: pending window is not the Forage cost (ask %+v)", d)
+	}
+	return tc
+}
+
 func TestTriggeredForageCanBePaid(t *testing.T) {
 	t.Run("ExileArmExilesThreeAndBodyReturns", func(t *testing.T) {
 		// Both arms live: the pay arm poses the either-or election, the
@@ -219,6 +231,100 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 			t.Fatalf("returned card zone = %+v, want hand", got)
 		}
 		replayCheck(t, e, cfg)
+	})
+	t.Run("FoodArmPickedFromBothArms", func(t *testing.T) {
+		// Both arms live, and the payer elects the Food: the Food is
+		// sacrificed, the graveyard is untouched, one ForageAction marks the
+		// forage, and the body still returns a card.
+		e, cfg, bears, food := forageFixture(t, 4, true)
+		d := forageCostAsk(t, e)
+		payIdx := foragePayIndex(d)
+		if payIdx < 0 {
+			t.Fatalf("Forage cost with 4 graveyard cards and a Food offers no pay: %+v", d.Options)
+		}
+		submitChoices(t, e, payIdx)
+		el := e.Pending()
+		if el == nil || el.Kind != decision.KChoose {
+			t.Fatalf("after pay: %+v, want the forage election ask", el)
+		}
+		foodOpt := forageOption(el, "forage_food")
+		if foodOpt == nil || forageOption(el, "forage_exile") == nil {
+			t.Fatalf("forage election offered %v, want both arms", el.Options)
+		}
+		start := len(e.L.Events)
+		submitChoices(t, e, foodOpt.Index)
+		if f := e.G.Obj(food); f == nil || f.Zone != state.ZGraveyard {
+			t.Fatalf("Food zone after the Food arm = %+v, want sacrificed to the graveyard", f)
+		}
+		grave := e.G.Zone(state.ZGraveyard, 0)
+		if len(grave) != len(bears)+1 {
+			t.Fatalf("graveyard after the Food arm = %d cards, want the %d bears plus the Food", len(grave), len(bears))
+		}
+		if forageActionCount(e.L.Events, start) != 1 {
+			t.Fatalf("ForageAction count = %d, want 1", forageActionCount(e.L.Events, start))
+		}
+		d2 := e.Pending()
+		if d2 == nil || d2.Kind != decision.KTarget {
+			t.Fatalf("after paying %+v, want the body's target ask", d2)
+		}
+		returned := bears[0]
+		submitTarget(t, e, returned)
+		forageDrainReturn(t, e, returned)
+		if got := e.G.Obj(returned); got == nil || got.Zone != state.ZHand {
+			t.Fatalf("returned card zone = %+v, want hand", got)
+		}
+		replayCheck(t, e, cfg)
+	})
+	t.Run("PayEnergyBesideForageSettles", func(t *testing.T) {
+		// A Forage + PayEnergy<1> cost: the gate prices the forage on the
+		// energy-stripped cost, so with one energy in the pool pay is
+		// offered and paying spends the energy beside the Food sacrifice
+		// (the settle must not re-prove with the energy still in the cost).
+		e, cfg, _, food := forageFixture(t, 1, true)
+		tc := forageWindow(t, e)
+		tc.amount.Energy = []CostPart{{N: 1}}
+		if e.triggeredCostPayable(tc) {
+			t.Fatal("Forage + PayEnergy<1> with an empty pool gate says payable")
+		}
+		e.emit(events.Event{Kind: events.PlayerCounterChange, Player: tc.player, Counter: "ENERGY", Amount: 1})
+		if !e.triggeredCostPayable(tc) {
+			t.Fatal("Forage + PayEnergy<1> with one energy in the pool is not payable")
+		}
+		if tc.forageElectionAsk(e, tc.announcedCost()) {
+			t.Fatal("the lone Food arm posed an election")
+		}
+		start := len(e.L.Events)
+		if !tc.forageSettle(e, tc.announcedCost()) {
+			t.Fatal("the settle declined a forage the gate offered (its re-proof must read the energy-stripped cost)")
+		}
+		if got := e.G.Players[tc.player].Counter("ENERGY"); got != 0 {
+			t.Fatalf("energy pool after paying = %d, want 0 (the PayEnergy part spent)", got)
+		}
+		if f := e.G.Obj(food); f == nil || f.Zone != state.ZGraveyard {
+			t.Fatalf("Food zone after paying = %+v, want sacrificed to the graveyard", f)
+		}
+		if forageActionCount(e.L.Events, start) != 1 {
+			t.Fatalf("ForageAction count = %d, want 1", forageActionCount(e.L.Events, start))
+		}
+		replayCheck(t, e, cfg)
+	})
+	t.Run("ForageBesideEvidenceKeepsDeclineOnly", func(t *testing.T) {
+		// A Forage + CollectEvidence<1> cost: Evidence is outside the
+		// mana/life half, so the gate keeps the decline-only ask -- the
+		// Evidence part must never be silently skipped by the settle.
+		e, _, _, _ := forageFixture(t, 3, true)
+		tc := forageWindow(t, e)
+		d := e.Pending()
+		if foragePayIndex(d) < 0 {
+			t.Fatalf("precondition: the forage alone offered no pay: %+v", d.Options)
+		}
+		tc.amount.Evidence = []CostPart{{N: 1}}
+		e.pending = nil
+		e.triggeredCostPaymentAsk()
+		d2 := e.Pending()
+		if foragePayIndex(d2) >= 0 || len(d2.Options) != 1 || d2.Options[0].Kind != "trigger_cost_decline" {
+			t.Fatalf("Forage + CollectEvidence ask = %+v, want decline-only", d2.Options)
+		}
 	})
 	t.Run("NeitherResourceKeepsDeclineOnly", func(t *testing.T) {
 		// No graveyard cards, no Food: the ask is decline-only -- "pay" is

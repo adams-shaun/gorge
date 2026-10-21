@@ -21,30 +21,19 @@ import (
 // half-paid-commitment rule the rest of the window keeps).
 
 // foragePayable is the window gate's Forage arm: the either-or is payable
-// (three graveyard cards or a controlled Food, the cast path's
-// nonManaCastable read) and the rest of the cost is a priceable mana/life
-// half the pool covers right now (the same pricing the pay arm charges).
+// (three graveyard cards or a controlled Food, pay.ManaForagePayable's read)
+// and the rest of the cost is, WHOLE, a priceable mana/life half the pool
+// covers right now (the same pricing the pay arm charges).
 func (tc *triggeredEffectCost) foragePayable(e *Engine, rest Cost) bool {
 	other := rest
 	other.Forage = false
-	if !other.Priceable() {
+	if !other.PureManaLife() {
 		return false
 	}
-	if !triggerForagePayableNow(e, tc.player, tc.source) {
+	if !pay.ManaForagePayable(asPayer(e), tc.player, tc.source) {
 		return false
 	}
 	return e.triggeredCostManaHalfPayable(tc, other)
-}
-
-// triggerForagePayableNow reads CR 701.61a's either-or at the window: exile
-// three cards from the payer's graveyard, or sacrifice a Food they control.
-// The same read the cast path's forageAsk offers and pay.manaForagePayable
-// gates.
-func triggerForagePayableNow(e *Engine, p state.PlayerID, source state.ObjID) bool {
-	if len(e.G.Zone(state.ZGraveyard, p)) >= 3 {
-		return true
-	}
-	return len(pay.CostCandidates(asPayer(e), p, source, state.ZBattlefield, "Food.YouCtrl", false, false)) > 0
 }
 
 // forageElectionAsk poses the either-or election (exile three graveyard
@@ -95,9 +84,11 @@ func (tc *triggeredEffectCost) forageElectionAsk(e *Engine, announced Cost) bool
 // the top three graveyard cards exiled (the payer's graveyard order is
 // deterministic, the mana path's SettleManaForage read) -- and the
 // ForageAction marker the forage triggers key on. It re-proves payability
-// first, so a paid answer is never a partial payment.
+// first on the energy-stripped cost (the gate's own read: the energy half is
+// charged by ChargeEnergyCost below, never re-priced here), so a paid answer
+// is never a partial payment.
 func (tc *triggeredEffectCost) forageSettle(e *Engine, announced Cost) bool {
-	if !tc.forageDone || !tc.foragePayable(e, announced) {
+	if !tc.forageDone || !tc.foragePayable(e, announced.WithoutEnergy()) {
 		return false
 	}
 	if tc.forageFood != 0 {
@@ -110,7 +101,7 @@ func (tc *triggeredEffectCost) forageSettle(e *Engine, announced Cost) bool {
 	}
 	lower := announced.WithoutEnergy()
 	lower.Forage = false
-	if !lower.Priceable() || !pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, false)) {
+	if !lower.PureManaLife() || !pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, false)) {
 		return false
 	}
 	pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)
