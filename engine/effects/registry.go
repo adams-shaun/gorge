@@ -156,9 +156,10 @@ type Ctx struct {
 	// triggering spell, used by CanBeTargetedByTriggeredSpellAbility.
 	TargetableObjects []state.ObjID
 	Targets           []state.Target
-	// ModeTargets carries the target groups selected for a distinct modal
-	// Charm. Each entry is in target-bearing mode order; nil means the
-	// historical single-target-list path, including repeatable modes.
+	// ModeTargets carries the target groups selected for a modal Charm. Each
+	// entry is in target-bearing mode-instance order (a repeated mode has one
+	// group per occurrence, CR 700.2d); nil means the historical
+	// single-target-list path.
 	ModeTargets [][]state.Target
 	// CharmModeScope is the ONE mode's target group a distinct modal Charm
 	// scoped Ctx.Targets to while it dispatches that mode, plus the mode's own

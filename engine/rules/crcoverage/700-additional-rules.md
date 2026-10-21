@@ -9,7 +9,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.2a | partial | `engine/rules/cast_asks.go#Engine.castModeAsk` `engine/rules/legal_targets.go#Engine.charmTargetsAvailable` | `TestModalCastOmitsModesWithNoLegalTargets` | gorge: repeatable charm with zero legal modes not uncastable (latent) |
 | 700.2b | follows | `engine/rules/trigger_queue.go#Engine.askTriggerModes` | `TestModalTriggerWithNoTargetableModeIsRemoved` |  |
 | 700.2c | follows | `engine/rules/target_modes.go#charmTargetSlots` | `TestModalCastTargetsComeFromTheAnnouncedMode` | targets only for chosen modes |
-| 700.2d | follows | `engine/effects/charm.go#CharmModeBounds` | `TestMysticConfluenceRepeatsTargetedModeAsksPerInstance` |  |
+| 700.2d | follows | `engine/rules/target_modes.go#charmTargetSlots` `engine/effects/charm.go#CharmModeBounds` | `TestMysticConfluenceRepeatsTargetedModeAsksPerInstance` `TestRepeatedModeTargetsPerInstance` | each repeated mode is a separate instance with its own target group; the same target may fill two groups |
 | 700.2e | deviates | `engine/effects/charm_params.go#compileCharm` `engine/rules/cast_asks.go#Engine.castModeAsk` | - | caster picks mode for Fatal Lore etc.; Note only at resolution |
 | 700.2f | follows | `engine/state/object.go#Object.ChosenModes` | - | modes held apart from targets |
 | 700.2g | follows | `engine/rules/target_modes.go#copyCharmModes` | `TestCopyCharmAsksEveryChosenTargetMode` | copies keep modes |
