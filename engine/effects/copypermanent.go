@@ -167,13 +167,12 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	// Characteristic modifications (the Embalm/Eternalize family and the
-	// wider CopyPermanent mod census). The type, P/T and AddKeywords$
-	// exceptions are copiable values (CR 707.9a/b): one CopyExcept event
-	// writes their final values onto the minted token's basis face before it
-	// enters (exc below). SetColor$/AddColors$ are layer-5 continuous effects
-	// sourced to the token. A value this build cannot resolve is one loud
-	// Note per call and the modification is skipped -- never a silent wrong
-	// characteristic.
+	// wider CopyPermanent mod census). The type, colour, P/T, mana-cost and
+	// AddKeywords$ exceptions are copiable values (CR 707.9a/b): one
+	// CopyExcept event writes their final values onto the minted token's
+	// basis face before it enters (exc below). A value this build cannot
+	// resolve is one loud Note per call and the modification is skipped --
+	// never a silent wrong characteristic.
 	var addTypes []string
 	if raw, ok := cp.AddTypes.Text, cp.AddTypes.Present; ok {
 		// Forge's multi-type separator is " & " inside a comma-list element
@@ -299,8 +298,10 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	exc := copyExceptSpec{
 		addTypes:        append(append([]string(nil), addTypes...), setCreatureTypes...),
 		removeCardTypes: removeCardTypes, removeCreatureTypes: removeCreatureTypes, removeLegendary: removeLegendary,
+		setColors: addColors, setColorsPresent: setColor, addColors: extraColors,
 		setPower: setPow, setPowerPresent: hasSetPow, setToughness: setTgh, setToughnessPresent: hasSetTgh,
-		keywords: addKeywords,
+		noManaCost: cp.RemoveCost.Present && strings.EqualFold(strings.TrimSpace(cp.RemoveCost.Text), "True"),
+		keywords:   addKeywords,
 	}
 	// PumpDuration$ governs the PumpKeywords$ lifetime: absent means "for as
 	// long as the copy exists" (Permanent); EOT/EndOfTurn is dropped at this
@@ -689,23 +690,10 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		if withOK {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
 		}
-		// The type, P/T and keyword exceptions rode the CopyExcept before
-		// entry. The colour exceptions are still layer-5 effects scoped to
-		// the copy itself. RemoveKeywords$ is a layer-6 loss (Mirage Phalanx's copy loses
+		// The characteristic exceptions rode the CopyExcept before entry.
+		// RemoveKeywords$ is a layer-6 loss (Mirage Phalanx's copy loses
 		// Soulbond); PumpKeywords$ is the temporary body: its own effect
 		// carries the PumpDuration$ lifetime.
-		if setColor {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: want, Controller: owner, Affects: "Card.Self",
-				Layer: state.LColor, AddColors: addColors, OverwriteColors: true, Permanent: true,
-			})
-		}
-		if len(extraColors) > 0 {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: want, Controller: owner, Affects: "Card.Self",
-				Layer: state.LColor, AddColors: extraColors, Permanent: true,
-			})
-		}
 		if len(removeKeywords) > 0 {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: want, Controller: owner, Affects: "Card.Self",

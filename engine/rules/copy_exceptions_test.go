@@ -21,10 +21,16 @@ func eternalizeTimelessDragon(t *testing.T, e *Engine) state.ObjID {
 	return embalmToken(t, e, "Timeless Dragon")
 }
 
-// assertEternalizedDragon fails unless id is a 4/4 Zombie Dragon with the
-// copied Flying.
+// assertEternalizedDragon fails unless id is a 4/4 black Zombie Dragon with
+// no mana cost and the copied Flying.
 func assertEternalizedDragon(t *testing.T, e *Engine, id state.ObjID, what string) {
 	t.Helper()
+	if got := e.Colors(id); got != "B" {
+		t.Fatalf("%s has colours %q, want B (CR 707.9b)", what, got)
+	}
+	if f := e.G.Obj(id).Face(); f.ManaCost != "" || f.Cmc() != 0 {
+		t.Fatalf("%s mana cost %q (mana value %d), want none (CR 702.129a)", what, f.ManaCost, f.Cmc())
+	}
 	d := e.Derived(id)
 	if !hasWord(d.Types, "Zombie") || !hasWord(d.Types, "Dragon") {
 		t.Fatalf("%s types %v, want a Zombie Dragon (CR 707.9b)", what, d.Types)
@@ -40,7 +46,7 @@ func assertEternalizedDragon(t *testing.T, e *Engine, id state.ObjID, what strin
 // TestCloneOfAnEternalizedTokenCopiesTheExceptions: Clone entering as a copy of
 // Timeless Dragon's eternalize token copies the token's copiable values --
 // the printed Dragon as modified by the Eternalize exceptions -- so it is a
-// 4/4 Zombie Dragon, never the printed 5/5 Dragon.
+// 4/4 black Zombie Dragon, never the printed 5/5 white Dragon.
 func TestCloneOfAnEternalizedTokenCopiesTheExceptions(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := altCostEngine(t, 1405, []string{"Timeless Dragon", "Clone"}, nil, nil)
@@ -57,7 +63,7 @@ func TestCloneOfAnEternalizedTokenCopiesTheExceptions(t *testing.T) {
 }
 
 // TestTokenCopyOfAnEternalizedTokenKeepsTheExceptions is the token route:
-// Cackling Counterpart's copy of the eternalized token is a 4/4 Zombie
+// Cackling Counterpart's copy of the eternalized token is a 4/4 black Zombie
 // Dragon too.
 func TestTokenCopyOfAnEternalizedTokenKeepsTheExceptions(t *testing.T) {
 	t.Parallel()
@@ -76,5 +82,26 @@ func TestTokenCopyOfAnEternalizedTokenKeepsTheExceptions(t *testing.T) {
 		t.Fatal("no token copy of the eternalized Timeless Dragon")
 	}
 	assertEternalizedDragon(t, e, second, "token copy of the eternalized token")
+	replayCheck(t, e, cfg)
+}
+
+// TestEmbalmedTokenHasNoManaCost is CR 702.128a's "it has no mana cost": the
+// embalmed Angel of Sanctions token has mana value 0 (so Fatal Push can
+// target it) and is still white -- the colour is the exception's, not the
+// mana cost's.
+func TestEmbalmedTokenHasNoManaCost(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := altCostEngine(t, 1406, []string{"Angel of Sanctions"}, nil, nil)
+	id := findCardObj(t, e, 0, "Angel of Sanctions", state.ZGraveyard)
+	addMana(t, e, 0, "CCCCCW") // Embalm {5}{W}
+	submitChoices(t, e, embalmAbilityOption(t, e, id, "Embalm"))
+	passUntilStackEmpty(t, e, 40)
+	tok := embalmToken(t, e, "Angel of Sanctions")
+	if f := e.G.Obj(tok).Face(); f.ManaCost != "" || f.Cmc() != 0 {
+		t.Fatalf("embalmed Angel mana cost %q (mana value %d), want none (CR 702.128a)", f.ManaCost, f.Cmc())
+	}
+	if got := e.Colors(tok); got != "W" {
+		t.Fatalf("embalmed Angel colours %q, want W", got)
+	}
 	replayCheck(t, e, cfg)
 }
