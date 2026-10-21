@@ -882,8 +882,8 @@ func (e *Engine) activeBuild() []ContinuousEffect {
 	// Duration-honouring expiry. A Permanent one-shot lasts until the end of
 	// the game (CR 611.2a) regardless of where its source went; an
 	// UntilEndOfCombat one-shot lasts only through the combat phase (CR
-	// 511.2), so it is kept while the step is a combat step and dropped the
-	// moment play moves past end combat. These take precedence over the
+	// 511.2), so it is live from creation until expireUntilEndOfCombat removes
+	// it as the end of combat step ends. These take precedence over the
 	// UntilEOT/source-leaves rules below, which model the other two
 	// lifetimes.
 	//

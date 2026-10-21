@@ -462,10 +462,10 @@ func (e *Engine) EndOfTurnCleanup() {
 			}
 			continue
 		}
-		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
-			// CR 511.2: until-end-of-combat is an expired lifetime by the time
-			// this turn's cleanup runs, so it is reclaimed here rather than
-			// lingering in e.continuous forever.
+		if untilEndOfCombat(&ce) {
+			// Backstop: expireUntilEndOfCombat drops these as each combat phase
+			// ends (CR 511.2); one created after this turn's last combat, or a
+			// turn ended mid-combat, is reclaimed here.
 			if ce.Layer == LCopy && ce.CloneTarget != 0 {
 				dropClone(ce)
 			}
@@ -876,10 +876,47 @@ func objIDWithout(ids []state.ObjID, id state.ObjID) []state.ObjID {
 }
 
 // isCombatStep reports whether s is one of the combat phase's five steps
-// (begin-combat through end-combat). UntilEndOfCombat effects (CR 511.2) are
-// active for exactly this span and expire the moment play leaves end combat.
+// (begin-combat through end-combat). trigger_delayed.go's UntilEndOfCombat
+// delayed-trigger liveness reads it.
 func isCombatStep(s state.Step) bool {
 	return s >= state.StepBeginCombat && s <= state.StepEndCombat
+}
+
+// untilEndOfCombat reports whether ce carries the CR 511.2 "until end of
+// combat" duration.
+func untilEndOfCombat(ce *ContinuousEffect) bool {
+	return strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat")
+}
+
+// expireUntilEndOfCombat drops every registered "until end of combat"
+// continuous effect as the end of combat step ends (CR 511.2). It is called
+// from finishStepBoundary on the transition that leaves StepEndCombat, so a
+// later combat phase the same turn does not revive the effect.
+//
+// It emits no event of its own: e.continuous is engine-runtime state rebuilt
+// by re-execution on replay, exactly like EndOfTurnCleanup and EndEffect.
+func (e *Engine) expireUntilEndOfCombat() {
+	n0 := len(e.continuous)
+	kept := e.continuous[:0]
+	var expiredClones []cloneExpiry
+	for _, ce := range e.continuous {
+		if !untilEndOfCombat(&ce) {
+			kept = append(kept, ce)
+			continue
+		}
+		if ce.Layer == LCopy && ce.CloneTarget != 0 {
+			k := cloneExpiryOf(&ce)
+			if !cloneExpiryIn(expiredClones, k) {
+				expiredClones = append(expiredClones, k)
+			}
+		}
+	}
+	if len(kept) == n0 {
+		return
+	}
+	e.continuous = kept
+	e.settleExpiredClones(expiredClones)
+	e.continuousChanged()
 }
 
 // continuousLive is active()'s duration-honouring filter over one registered
@@ -890,8 +927,10 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 	if ce.Permanent {
 		return true
 	}
-	if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
-		return isCombatStep(e.G.Step)
+	if untilEndOfCombat(ce) {
+		// CR 511.2: live from creation until expireUntilEndOfCombat drops it
+		// as the combat phase ends.
+		return true
 	}
 	if ce.UntilEOT {
 		if ce.SourceIncarnation == 0 {
