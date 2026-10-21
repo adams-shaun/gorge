@@ -1542,7 +1542,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	// is a property of the card's printed mana cost -- never the alternative
 	// cost (flashback) it may be paid with. restrictionOnFace evaluates the
 	// same continuous-gate + ValidCard grammar the offer's
-	// castRestrictedUsing runs, against one face, with that face's mana
+	// castRestrictedCost runs, against one face, with that face's mana
 	// value: the offer reads the front face for the ordinary cast and, for a
 	// fuse cast, BOTH halves through castRestrictedAsFace (CR 709.5), so the
 	// recheck must answer with the same both-halves rule or an offered cast
@@ -1563,7 +1563,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 				if !e.actorMatches(sv, "Caster", pc.player) {
 					continue
 				}
-				// The same shared continuous gate castRestrictedUsing runs: the
+				// The same shared continuous gate castRestrictedCost runs: the
 				// CR 608.2b recheck must answer with the ONE grammar the offer
 				// answered with, or a cast offered under a false gate would abort
 				// here (and vice versa). It subsumes the checkSVarHolds the caller

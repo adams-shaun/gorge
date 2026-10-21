@@ -79,9 +79,14 @@ func (w *legalWalk) mayPlaySpellWalk() {
 		id := off.id
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || f.IsLand() || w.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil || f.IsLand() || e.castSuppressed(p, id) {
 			continue
 		}
+		// CR 601.3a's CantBeCast gate is per HALF below, not card-level: each
+		// half pays a different cost (printed, free, a sneak/mutate/blitz
+		// alternative), and the X lookahead follows the cost the half will
+		// pay -- a free or no-X alternative announces no X (CR 107.3b), so a
+		// printed-cost escape must not permit it.
 		// The permission's ValidSA$ decides which cast shapes it permits
 		// (Brokkos, Apex of Forever's `ValidSA$ Spell.Mutate` permits ONLY
 		// the mutate cast from the graveyard, CR 903.3d/702.140a). An empty
@@ -106,6 +111,9 @@ func (w *legalWalk) mayPlaySpellWalk() {
 		// permission; an untyped Ninja Teen permission is the only one).
 		if off.key == "" && sneak && e.sneakTimingOK(p) {
 			for _, sc := range e.sneakCosts(p, id) {
+				if w.castRestrictedCost(p, id, sc.cost) {
+					continue
+				}
 				if !w.offerCastable(p, id, sc.cost, spellScope(sc.mode), false) {
 					continue
 				}
@@ -164,7 +172,7 @@ func (w *legalWalk) mayPlaySpellWalk() {
 				}
 				base = base.Plus(off.raise)
 			}
-			if printed && w.mayPlayAffordable(p, id, f, base) {
+			if printed && !w.castRestrictedCost(p, id, base) && w.mayPlayAffordable(p, id, f, base) {
 				label := "Cast " + f.Name
 				if off.text != "" {
 					// MayPlayText$ is the permission's label, so a card matching
@@ -181,7 +189,8 @@ func (w *legalWalk) mayPlaySpellWalk() {
 			// Bargain reduction to make this one legal. Compose modifiers once,
 			// in Bargain scope (the prior plain cost was already composed in
 			// MayPlay scope and must not be fed back through offerCastable).
-			if bg := &optionalSacrifices[optSacBargain]; printed && e.stackKeywordPossibleH(id, kwhBargain) &&
+			if bg := &optionalSacrifices[optSacBargain]; printed && !w.castRestrictedCost(p, id, base) &&
+				e.stackKeywordPossibleH(id, kwhBargain) &&
 				len(e.optionalSacrificeCandidates(bg, p, id, 0)) > 0 {
 				bargainedCost := pay.WithSpellAbilityExtras(f,
 					w.offerCostFor(p, id, base, spellScope(bg.mode)))
@@ -204,6 +213,9 @@ func (w *legalWalk) mayPlaySpellWalk() {
 					raise = r
 				}
 				for i, alt := range e.mayPlayCastAlts(p, id, printed) {
+					if w.castRestrictedCost(p, id, alt.Plus(raise)) {
+						continue
+					}
 					if w.mayPlayAffordable(p, id, f, alt.Plus(raise)) {
 						*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 							Label: altCostLabel(f.Name, i), Obj: id, Mode: "mayplay", AltCostIndex: i + 1})
@@ -221,7 +233,8 @@ func (w *legalWalk) mayPlaySpellWalk() {
 		// exemption: MayPlayWithoutManaCost$ is a property of the permission,
 		// but the mutate cost IS the mana cost this cast pays.
 		if off.key == "" && mutate {
-			if mc, ok := mutateCost(f); ok && e.castTargetsAvailable(p, id, mutateTargetSA()) &&
+			if mc, ok := mutateCost(f); ok && !w.castRestrictedCost(p, id, mc) &&
+				e.castTargetsAvailable(p, id, mutateTargetSA()) &&
 				w.offerCastable(p, id, mc, spellScope("mutated"), false) {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Cast " + f.Name + " (mutated)", Obj: id, Mode: "mutated"})
@@ -235,7 +248,7 @@ func (w *legalWalk) mayPlaySpellWalk() {
 		// keywordAltCost the hand walk uses; beginCast's "blitzed" case charges
 		// exactly that cost, so offer and charge cannot drift.
 		if off.key == "" && blitz {
-			if bc, ok := keywordAltCost(f, "Blitz"); ok &&
+			if bc, ok := keywordAltCost(f, "Blitz"); ok && !w.castRestrictedCost(p, id, bc) &&
 				e.castTargetsAvailable(p, id, f.SpellAbility()) &&
 				w.offerCastable(p, id, bc, spellScope(altMode(altBlitz)), false) {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
@@ -395,7 +408,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 			continue
 		}
 		hc, ok := harmonizeCost(f)
-		if !ok || w.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if !ok || w.castRestrictedCost(p, id, hc) || e.castSuppressed(p, id) {
 			continue
 		}
 		if !w.spellTimingOK(p, id, f, sorcery) {
@@ -418,7 +431,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 		if f == nil || !e.hasKeywordH(id, kwhFlashback) {
 			continue
 		}
-		if w.castRestricted(p, id) {
+		if w.castRestrictedCost(p, id, e.flashbackCost(id)) {
 			continue
 		}
 		if e.castSuppressed(p, id) {
@@ -500,7 +513,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 			continue
 		}
 		wc, ok := keywordAltCost(f, "Warp")
-		if !ok || !warpGraveyardAllowed(f) || w.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if !ok || !warpGraveyardAllowed(f) || w.castRestrictedCost(p, id, wc) || e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.hasKeywordH(id, kwhFlash)
@@ -528,11 +541,14 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 	for _, id := range grave {
 		o := e.G.Obj(id)
 		f := o.Face()
-		if f == nil || !e.hasKeywordH(id, kwhEscape) || w.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if f == nil || !e.hasKeywordH(id, kwhEscape) || e.castSuppressed(p, id) {
 			continue
 		}
 		ec, ok := e.escapeCost(id)
-		if !ok || !w.spellTimingOK(p, id, f, sorcery) ||
+		if !ok || w.castRestrictedCost(p, id, ec) {
+			continue
+		}
+		if !w.spellTimingOK(p, id, f, sorcery) ||
 			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
@@ -629,7 +645,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 			continue
 		}
 		mc, ok := e.mayhemCastCost(id)
-		if !ok || w.castRestricted(p, id) || e.castSuppressed(p, id) || !e.mayhemDiscardedThisTurn(p, id) {
+		if !ok || w.castRestrictedCost(p, id, mc) || e.castSuppressed(p, id) || !e.mayhemDiscardedThisTurn(p, id) {
 			continue
 		}
 		if !w.spellTimingOK(p, id, f, sorcery) ||
@@ -715,17 +731,18 @@ func (w *legalWalk) exileCastsWalk() {
 		// follows the card's own timing (spellTimingOK) and targets. The block
 		// sits BEFORE the warp gate's continue: a non-warp card (every foretell
 		// carrier) would otherwise never reach it.
+		// The K:Foretell parameter prices the later cast (CR 702.126a);
+		// a face with no parameter falls back to the rule's action default
+		// {2} -- every corpus carrier carries one (measured 55/55), so the
+		// fallback is latent. The RAW parsed cost is offered here; cost
+		// modifiers (CR 601.2f) apply later, in manaToPay, exactly like
+		// the other alternative-cost recasts. CR 601.3a's gate follows that
+		// cost: the cast announces X only when the foretell cost carries it.
+		fc, fcOK := foretellCost(f)
 		if o.CastFlags&state.FlagForetold != 0 &&
-			e.foretellCastAvailable(id) && !w.castRestricted(p, id) && !e.castSuppressed(p, id) &&
+			e.foretellCastAvailable(id) && !w.castRestrictedCost(p, id, fc) && !e.castSuppressed(p, id) &&
 			w.spellTimingOK(p, id, f, sorcery) && e.castTargetsAvailable(p, id, f.SpellAbility()) {
-			// The K:Foretell parameter prices the later cast (CR 702.126a);
-			// a face with no parameter falls back to the rule's action default
-			// {2} -- every corpus carrier carries one (measured 55/55), so the
-			// fallback is latent. The RAW parsed cost is offered here; cost
-			// modifiers (CR 601.2f) apply later, in manaToPay, exactly like
-			// the other alternative-cost recasts.
-			fc, ok := foretellCost(f)
-			if ok && w.offerCastable(p, id, fc, spellScope("foretell_cast"), false) {
+			if fcOK && w.offerCastable(p, id, fc, spellScope("foretell_cast"), false) {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Cast " + f.Name + " (foretold)", Obj: id, Mode: "foretell_cast"})
 			}
@@ -744,7 +761,7 @@ func (w *legalWalk) exileCastsWalk() {
 		// round the permission holds. The offer sits BEFORE the warp gate's
 		// continue, the foretell block's own reason.
 		if o.PlottedTurn > 0 && e.G.Turn > o.PlottedTurn &&
-			!w.castRestricted(p, id) && !e.castSuppressed(p, id) &&
+			!w.castRestrictedCost(p, id, Cost{}) && !e.castSuppressed(p, id) &&
 			sorcery && w.spellTimingOK(p, id, f, true) &&
 			e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			if w.offerCastable(p, id, Cost{}, spellScope("plot_cast"), false) {
@@ -760,7 +777,7 @@ func (w *legalWalk) exileCastsWalk() {
 		// card's own timing and targets exactly like warp_recast. The block
 		// sits BEFORE the warp gate's continue: a non-warp card (every airbent
 		// card) would otherwise never reach it.
-		if airbendAvailable(id) && !w.castRestricted(p, id) && !e.castSuppressed(p, id) {
+		if airbendAvailable(id) && !w.castRestrictedCost(p, id, Cost{Generic: 2}) && !e.castSuppressed(p, id) {
 			instantSpeed := f.IsInstant() || e.hasKeywordH(id, kwhFlash)
 			if (instantSpeed || sorcery) && w.spellTimingOK(p, id, f, sorcery) &&
 				e.castTargetsAvailable(p, id, f.SpellAbility()) {
@@ -770,8 +787,8 @@ func (w *legalWalk) exileCastsWalk() {
 				}
 			}
 		}
-		_, ok := keywordAltCost(f, "Warp")
-		if !ok || !e.warpRecastAvailable(id) || w.castRestricted(p, id) || e.castSuppressed(p, id) {
+		wc, ok := keywordAltCost(f, "Warp")
+		if !ok || !e.warpRecastAvailable(id) || w.castRestrictedCost(p, id, wc) || e.castSuppressed(p, id) {
 			continue
 		}
 		instantSpeed := f.IsInstant() || e.hasKeywordH(id, kwhFlash)

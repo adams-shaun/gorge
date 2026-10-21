@@ -97,7 +97,9 @@ func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
 
 // CastProhibited is effects' optional castProhibitedHost read (task
 // play-prohibited-election): the same CantBeCast gate beginPlay enforces
-// (engine/rules/statics.go castRestricted), exposed so effPlay's Play election never
+// (engine/rules/statics_cast.go castRestrictedFree -- every Play election is
+// a free or PlayCost$ cast, CR 107.3b, so no CR 601.3a X lookahead),
+// exposed so effPlay's Play election never
 // OFFERS a cast that CR 601.3 would refuse. It is a pure read -- no event,
 // no state change -- and the beginPlay recheck stays the enforcement site.
 func (e *Engine) CastProhibited(p state.PlayerID, id state.ObjID) bool {
@@ -107,7 +109,7 @@ func (e *Engine) CastProhibited(p state.PlayerID, id state.ObjID) bool {
 	if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsLand() {
 		return e.effectLandPlayRefusal(p, id, o.Zone) != ""
 	}
-	return e.castRestricted(p, id)
+	return e.castRestrictedFree(p, id)
 }
 
 // CastTargetsUnavailable is effects' optional castTargetsHost read: the
