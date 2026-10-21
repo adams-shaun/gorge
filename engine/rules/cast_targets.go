@@ -34,6 +34,11 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagMayPlay)
 	case castModeHarmonize:
 		return events.FlagsString(state.FlagHarmonize)
+	case castModeCleaved:
+		// Cleave (CR 702.148a): the provenance resolveTop and
+		// resumeResolution read to resolve the cleave spell ability. Not a
+		// CastProvenanceFlag: a stack copy keeps it (CR 707.10).
+		return events.FlagsString(state.FlagCleaved)
 	case castModePreparedCopy:
 		// The CR 722.3c prepared-copy cast (engine/rules/legal_walk_alt.go's exile
 		// offer): the flag is the provenance the Card.prepared filter
