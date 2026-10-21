@@ -192,7 +192,7 @@ answer every kind. Adding one is a deliberate act, guarded by
 | `modes` | a modal spell or trigger, or an "unless pays" choice | the mode options, Min..Max |
 | `trigger_order` | two or more of one player's triggers fired together (CR 603.3b) | a permutation; index 0 goes on the stack first and resolves last |
 | `trigger_optional` | an optional ("you may") trigger, asked as it resolves (CR 603.5); Miracle is the one case asked at placement | `yes` or `no` |
-| `commander_zone` | a commander is about to change zones (CR 903.9) | `command_zone` or `leave`; always the owner answers |
+| `commander_zone` | a commander is in a graveyard or exile since the last state-based check (CR 903.9a), or would go to its owner's hand or library (CR 903.9b) | `command_zone` or `leave`; always the owner answers |
 | `choose` | a generic list pick; `Option.Kind` says what: `x`, `exile`, `sacrifice`, `discard`, `search`, `dig`, `name`, `type`, `number`, `yes`/`no`, `keep`, `dungeon`, `room` | Min..Max options |
 | `replacement` | competing replacement effects (CR 616.1), or an optional one | which applies next; `apply`/`decline` |
 | `arrange` | Scry, Surveil, rearranging the top of a library | an ordered subset (pile A, top first); the rest is pile B |

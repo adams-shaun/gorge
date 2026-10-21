@@ -257,7 +257,7 @@ games on 2026-10-20 (a random agent, constructed and Commander).
 | `trigger_order` | Order your simultaneous triggers | **all** options, as a permutation. The first you list goes on the stack first and so resolves **last** | `trigger` |
 | `arrange` | Scry, surveil, look-at-the-top orders | an ordered subset, pile A: the ones you pick stay on top, the first you list closest to the top. The rest go where the shared option kind says; `"rest":[…]` orders them when `restable` is true | `bottom`, `graveyard`, `exile`, `hand` |
 | `replacement` | Several replacement effects apply: which first? | one option | `replacement`, `apply`, `decline` |
-| `commander_zone` | Your commander would leave: to the command zone instead? | one option | `command_zone`, `leave` |
+| `commander_zone` | Your commander died or was exiled (or would go to hand/library): to the command zone? | one option | `command_zone`, `leave` |
 
 Real examples, trimmed to their first options:
 
@@ -271,9 +271,9 @@ Real examples, trimmed to their first options:
 {"seq":585,"player":0,"kind":"arrange","prompt":"Scry 1: pick the cards to keep on top, in order; the rest go to the bottom of your library in any order you give",
  "min":0,"max":1,"options":[{"index":0,"kind":"bottom","label":"Furycalm Snarl","obj":56,"player":0}],"source":66,"restable":true}
 
-{"seq":2240,"player":0,"kind":"commander_zone","prompt":"Giada, Font of Hope would go to the graveyard: put it into the command zone instead?",
+{"seq":2240,"player":0,"kind":"commander_zone","prompt":"Giada, Font of Hope is in the graveyard: put it into the command zone?",
  "min":1,"max":1,"options":[{"index":0,"kind":"command_zone","label":"Put Giada, Font of Hope into the command zone","obj":1,"player":0},
-                            {"index":1,"kind":"leave","label":"Let it go to the graveyard","obj":1,"player":0}],"source":1}
+                            {"index":1,"kind":"leave","label":"Leave it in the graveyard","obj":1,"player":0}],"source":1}
 ```
 
 A rules-ignorant fallback that is accepted almost always: at `priority` the

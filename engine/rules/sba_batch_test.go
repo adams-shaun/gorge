@@ -157,7 +157,12 @@ func TestSBABatchDoesNotLookBackForFromAnywhereTriggers(t *testing.T) {
 	}
 }
 
-func TestSBABatchParkedMovesRetainLookBackAcrossClone(t *testing.T) {
+// TestSBABatchCommanderDeathsKeepLookBackAcrossClone: two commanders that
+// die in one lethal-damage batch really die (CR 903.9a), so both witnesses
+// observe both departures at once -- four triggers queued before any
+// command-zone answer -- and the one-at-a-time command-zone asks that
+// follow resume identically on a clone.
+func TestSBABatchCommanderDeathsKeepLookBackAcrossClone(t *testing.T) {
 	t.Parallel()
 	src := strings.Replace(batchWitness, "Types:Creature", "Types:Legendary Creature", 1)
 	e, _ := cmdZoneGame(t, [][]string{{src}, {src}})
@@ -168,18 +173,24 @@ func TestSBABatchParkedMovesRetainLookBackAcrossClone(t *testing.T) {
 		e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: 1})
 	}
 	e.checkStateBased()
-	if len(e.cmdZone) != 2 {
-		t.Fatalf("parked %d moves, want 2", len(e.cmdZone))
+	if len(e.pendingTriggers) != 4 {
+		t.Fatalf("batch deaths queued %d triggers, want 4 (both witnesses observe both deaths)", len(e.pendingTriggers))
+	}
+	if len(e.cmdZone) != 1 || len(e.cmdZoneDue) != 1 {
+		t.Fatalf("command-zone queue %d / due %d, want one asked and one waiting", len(e.cmdZone), len(e.cmdZoneDue))
 	}
 	clone := e.Clone()
 	for _, engine := range []*Engine{e, clone} {
-		for len(engine.cmdZone) > 0 {
-			d := engine.Pending()
+		for d := engine.Pending(); d != nil && d.Kind == decision.KCommanderZone; d = engine.Pending() {
 			engine.pending = nil
 			engine.handleCmdZone(d, decision.Intent{Player: d.Player, Choices: []int{1}})
+			engine.checkStateBased()
+		}
+		if len(engine.cmdZone) != 0 || len(engine.cmdZoneDue) != 0 {
+			t.Fatalf("command-zone queue %d / due %d after both answers, want empty", len(engine.cmdZone), len(engine.cmdZoneDue))
 		}
 		if len(engine.pendingTriggers) != 4 {
-			t.Fatalf("resumed deaths queued %d triggers, want 4", len(engine.pendingTriggers))
+			t.Fatalf("after the answers %d triggers queued, want 4", len(engine.pendingTriggers))
 		}
 	}
 	if e.L.Head() != clone.L.Head() {

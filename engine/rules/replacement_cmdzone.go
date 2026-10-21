@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -86,54 +88,109 @@ func init() {
 		"api:ReplaceDamage")
 }
 
-// cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the
-// MoveZone event a commander is about to undergo, deferred until its owner
-// decides whether to put it into the command zone instead. The answer
-// re-emits the park as a real MoveZone -- to ZCommand on an accept, to the
-// parked destination verbatim on a decline -- so the event log always
-// carries the zone change that actually happened and a log-only replay
-// reproduces it. Plain value data (an events.Event plus the moving object's
-// id), so Clone copies the queue with one slice copy.
+// cmdZoneMove is one commander command-zone ask. For CR 903.9b it is a parked
+// zone change (Task m32): the MoveZone event a commander is about to undergo,
+// deferred until its owner decides whether to put it into the command zone
+// instead. The answer re-emits the park as a real MoveZone -- to ZCommand on
+// an accept, to the parked destination verbatim on a decline -- so the event
+// log always carries the zone change that actually happened and a log-only
+// replay reproduces it. For CR 903.9a (sba) the commander is already in the
+// graveyard or exile and nothing is deferred. Plain value data (an
+// events.Event plus the moving object's id), so Clone copies the queue with
+// one slice copy.
 type cmdZoneMove struct {
 	ev     events.Event
 	obj    state.ObjID
 	before *triggerSnapshot // immutable SBA look-back, safe to share in Clone
+	// sba marks a CR 903.9a state-based-action entry: the commander is
+	// already in ev.From (graveyard or exile) and nothing is deferred. An
+	// accept moves it ev.From -> command zone; a decline moves nothing.
+	sba bool
 }
 
-// commanderZoneReplacementApplies is CR 903.9's match predicate: a
+// commanderZoneReplacementApplies is CR 903.9b's match predicate: a
 // commander, in a Commander-format game, about to be put into its owner's
-// graveyard, hand or library -- from ANYWHERE -- or about to be exiled from
-// anywhere. The five points of the rule each live in exactly one place here
-// (mutation guards, Task m32 brief item 7):
+// hand or library -- from ANYWHERE. A graveyard or exile destination is
+// NOT replaced: CR 903.9a makes that a state-based action
+// (commanderZoneSBA), so the move happens and its triggers fire first.
 //
-//   - FormatCommander gate: no format check, no mechanic. A Constructed
-//     game never runs any of this.
-//   - The four destinations: graveyard, hand, library, exile -- a
-//     commander moving to the battlefield or the stack is not replaced.
-//   - "From anywhere": ev.From is never consulted. The battlefield, the
-//     stack, the graveyard, a hand a library or exile are all sources.
-//   - Ownership, not control: the lookup is the owner's Commanders list,
-//     not the controller's -- a commander stolen by an opponent goes to its
-//     owner's command zone and its owner is asked.
+//   - FormatCommander gate: a Constructed game never runs any of this.
+//   - The two destinations: hand and library.
+//   - "From anywhere": ev.From is never consulted.
+//   - Ownership, not control: the lookup is the owner's Commanders list
+//     (isCommander), and its owner is asked.
 func (e *Engine) commanderZoneReplacementApplies(ev events.Event) bool {
 	if e.format != FormatCommander {
 		return false
 	}
-	switch ev.To {
-	case state.ZGraveyard, state.ZHand, state.ZLibrary, state.ZExile:
-	default:
+	if ev.To != state.ZHand && ev.To != state.ZLibrary {
 		return false
 	}
-	o := e.G.Obj(ev.Obj)
+	return e.isCommander(ev.Obj)
+}
+
+// isCommander reports whether id is in its owner's Commanders list.
+func (e *Engine) isCommander(id state.ObjID) bool {
+	o := e.G.Obj(id)
 	if o == nil || int(o.Owner) >= len(e.G.Players) {
 		return false
 	}
 	for _, c := range e.G.Players[o.Owner].Commanders {
-		if c == ev.Obj {
+		if c == id {
 			return true
 		}
 	}
 	return false
+}
+
+// collectCommanderArrivals scans the log from cmdZoneScan for MoveZone events
+// that put a commander into a graveyard or exile and appends each such
+// commander to cmdZoneDue once (CR 903.9a's "put into that zone since the
+// last time state-based actions were checked").
+func (e *Engine) collectCommanderArrivals() {
+	n := len(e.L.Events)
+	if e.cmdZoneScan > n {
+		e.cmdZoneScan = n
+	}
+	for i := e.cmdZoneScan; i < n; i++ {
+		ev := &e.L.Events[i]
+		if ev.Kind != events.MoveZone || (ev.To != state.ZGraveyard && ev.To != state.ZExile) {
+			continue
+		}
+		if slices.Contains(e.cmdZoneDue, ev.Obj) || !e.isCommander(ev.Obj) {
+			continue
+		}
+		e.cmdZoneDue = append(e.cmdZoneDue, ev.Obj)
+	}
+	e.cmdZoneScan = n
+}
+
+// commanderZoneSBA is CR 903.9a / 704.6d. It walks cmdZoneDue in arrival
+// order, drops every entry that is no longer eligible (not in a graveyard or
+// exile any more, or its owner has left the game), and poses the choice for
+// the FIRST eligible one: queued on cmdZone as an sba entry and asked of its
+// owner. Entries behind it stay in cmdZoneDue for the check that follows the
+// answer (Submit's tail). Nothing is posed while another decision or flow is
+// outstanding -- the legend rule's guard -- and such a deferral marks the
+// run unquiet so the next check is never skipped.
+func (e *Engine) commanderZoneSBA() {
+	if e.pending != nil || e.choosing != chooseNone || e.legendBatch != nil || len(e.cmdZone) > 0 {
+		e.sbaUnquiet = true
+		return
+	}
+	for len(e.cmdZoneDue) > 0 {
+		id := e.cmdZoneDue[0]
+		e.cmdZoneDue = e.cmdZoneDue[1:]
+		o := e.G.Obj(id)
+		if o == nil || (o.Zone != state.ZGraveyard && o.Zone != state.ZExile) || e.G.Players[o.Owner].Lost {
+			continue
+		}
+		e.cmdZone = append(e.cmdZone, cmdZoneMove{
+			ev:  events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZCommand, Player: o.Owner},
+			obj: id, sba: true})
+		e.askCommandZone(o.Owner)
+		return
+	}
 }
 
 // parkCommanderZoneMove applies the CR 903.9 replacement to one matching
@@ -197,12 +254,19 @@ func (e *Engine) askCommandZone(owner state.PlayerID) {
 	}
 	dest := pm.ev.To.String()
 	into := "Put " + name + " into the command zone"
+	prompt := name + " would go to the " + dest + ": put it into the command zone instead?"
+	leave := "Let it go to the " + dest
+	if pm.sba {
+		dest = pm.ev.From.String()
+		prompt = name + " is in the " + dest + ": put it into the command zone?"
+		leave = "Leave it in the " + dest
+	}
 	d := &decision.Decision{Player: owner, Kind: decision.KCommanderZone, Min: 1, Max: 1,
-		Prompt: name + " would go to the " + dest + ": put it into the command zone instead?",
+		Prompt: prompt,
 		Source: pm.obj,
 		Options: []decision.Option{
 			{Index: 0, Kind: "command_zone", Label: into, Obj: pm.obj, Player: owner},
-			{Index: 1, Kind: "leave", Label: "Let it go to the " + dest, Obj: pm.obj, Player: owner},
+			{Index: 1, Kind: "leave", Label: leave, Obj: pm.obj, Player: owner},
 		}}
 	// Inside a tape run's resolution the choice is served from the tape and
 	// handled in place (the parked move applies where it happened), so a
@@ -212,11 +276,13 @@ func (e *Engine) askCommandZone(owner state.PlayerID) {
 	parkAsk(e, d)
 }
 
-// handleCmdZone applies an answered CR 903.9 decision: the front parked move
-// is emitted for real -- to the command zone if the owner chose
-// "command_zone", verbatim (the destination it was heading for) if they
-// chose "leave" -- and, if more moves are parked, the next one's owner is
-// asked. The de-park emit runs under applyingReplacement: the CR 903.9
+// handleCmdZone applies an answered CR 903.9 decision. For a CR 903.9a sba
+// entry an accept moves the commander from its graveyard or exile to the
+// command zone (an ordinary emit) and a decline moves nothing. For a CR
+// 903.9b entry the front parked move is emitted for real -- to the command
+// zone if the owner chose "command_zone", verbatim (the destination it was
+// heading for) if they chose "leave" -- and, if more moves are parked, the
+// next one's owner is asked. The de-park emit runs under applyingReplacement: the CR 903.9
 // replacement has already applied to this zone change, and CR 616.1 lets a
 // replacement effect apply only once, so the final move is never re-parked
 // and never re-asked -- a decline therefore cannot spin the engine by
@@ -239,15 +305,28 @@ func (e *Engine) handleCmdZone(d *decision.Decision, in decision.Intent) {
 	}
 	pm := e.cmdZone[0]
 	e.cmdZone = e.cmdZone[1:]
-	to := pm.ev.To
+	accept := false
 	if opts := d.Chosen(in); len(opts) == 1 && opts[0].Kind == "command_zone" {
-		to = state.ZCommand
+		accept = true
 	}
-	saved, before := e.applyingReplacement, e.triggerBefore
-	e.applyingReplacement, e.triggerBefore = true, pm.before
-	e.emit(events.Event{Kind: events.MoveZone, Obj: pm.ev.Obj, From: pm.ev.From,
-		To: to, Player: pm.ev.Player, Text: pm.ev.Text})
-	e.applyingReplacement, e.triggerBefore = saved, before
+	switch {
+	case pm.sba && accept:
+		if o := e.G.Obj(pm.obj); o != nil && o.Zone == pm.ev.From {
+			e.emit(pm.ev)
+		}
+	case pm.sba:
+		// Decline: the commander stays where it is.
+	default:
+		to := pm.ev.To
+		if accept {
+			to = state.ZCommand
+		}
+		saved, before := e.applyingReplacement, e.triggerBefore
+		e.applyingReplacement, e.triggerBefore = true, pm.before
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pm.ev.Obj, From: pm.ev.From,
+			To: to, Player: pm.ev.Player, Text: pm.ev.Text})
+		e.applyingReplacement, e.triggerBefore = saved, before
+	}
 	if len(e.cmdZone) > 0 && e.pending == nil {
 		// More commanders were parked in the same burst (a board wipe, a
 		// multiple-SBA pass): hand the front of the queue to its owner.

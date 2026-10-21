@@ -278,7 +278,10 @@ func (e *Engine) checkStateBased() {
 	// point without emitting anything, and nothing an SBA reads has moved
 	// since, so running it again would apply nothing.
 	ep0 := len(e.L.Events)
-	quiet := e.sbaQuietNow()
+	if e.format == FormatCommander {
+		e.collectCommanderArrivals()
+	}
+	quiet := len(e.cmdZoneDue) == 0 && e.sbaQuietNow()
 	if quiet && !sbaQuietVerify {
 		e.checkGameOver()
 		e.releasePendingDecisionOfDepartedPlayer()
@@ -291,6 +294,12 @@ func (e *Engine) checkStateBased() {
 	facts := &sbaBoardFacts{at: -1}
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		tried.skips = 0
+		if e.format == FormatCommander {
+			e.collectCommanderArrivals()
+			if len(e.cmdZoneDue) > 0 {
+				e.commanderZoneSBA()
+			}
+		}
 		changed := e.checkLoseConditions(tried)
 		if e.sbaFacts(facts).counterPair && e.annihilateOppositeCounters() {
 			changed = true
@@ -1481,6 +1490,30 @@ func (e *Engine) checkGameOver() {
 // priority: the proposal as a cast "in flight", the marker read by the next
 // KChoose answer's dispatch and by the legend-rule SBA gate.
 func (e *Engine) dropDepartedFlow(d *decision.Decision) {
+	if d.Kind == decision.KCommanderZone && len(e.cmdZone) > 0 {
+		// The released ask's own parked move goes with it (CR 800.4a), and so
+		// does every entry behind it whose owner has left the game: their
+		// cards leave too, so there is nothing left to move. A living owner's
+		// entry stays -- and since the released ask was the one that would
+		// have handed the queue on (handleCmdZone's tail runs only on an
+		// answer), the new front is posed here. Left parked it would block
+		// every later commander's ask forever: commanderZoneSBA refuses to
+		// pose while the queue is non-empty.
+		e.cmdZone = e.cmdZone[1:]
+		kept := e.cmdZone[:0]
+		for _, pm := range e.cmdZone {
+			o := e.G.Obj(pm.obj)
+			if o != nil && int(o.Owner) < len(e.G.Players) && !e.G.Players[o.Owner].Lost {
+				kept = append(kept, pm)
+			}
+		}
+		e.cmdZone = kept
+		if len(e.cmdZone) > 0 && e.pending == nil {
+			if o := e.G.Obj(e.cmdZone[0].obj); o != nil && int(o.Owner) < len(e.G.Players) {
+				e.askCommandZone(o.Owner)
+			}
+		}
+	}
 	if e.cast != nil && (e.cast.player == d.Player || e.cast.player == d.Acting()) {
 		e.cast = nil
 		e.deferredPush, e.deferredPushLKI = nil, nil
