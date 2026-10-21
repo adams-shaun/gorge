@@ -92,3 +92,60 @@ func TestCR601_3aFreeCastHasNoXChoice(t *testing.T) {
 		t.Fatalf("want the play's restriction Note for a free X cast with no X choice")
 	}
 }
+
+// TestCR601_3aEscapeMustBePayable: CR 601.3a only lets the offer look ahead
+// over X values the cast can actually pay (CR 601.2b: the announcement must
+// be one the payment can settle). With only {U}{U} floating, Mind Spring's
+// X = 1 escape ({1}{U}{U}) is unaffordable and X = 0 is prohibited, so Void
+// Winnower keeps the card from being offered at all.
+func TestCR601_3aEscapeMustBePayable(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, card(t, corpusCardText(t, "m/mind_spring.txt")))
+	spring := e.G.Zone(state.ZHand, 0)[0]
+	battlePerm(t, e, 1, corpusCardText(t, "v/void_winnower.txt"))
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 2})
+	e.askPriority(0)
+	if hasCastOptionFor(e, spring) {
+		t.Fatalf("Mind Spring is offered although its only escaping X (1) is unpayable from {U}{U}")
+	}
+}
+
+// TestCR601_3aFlashbackRouteAnnouncesNoX: a flashback cast pays the
+// FLASHBACK cost, not the printed one, so it announces no X (CR 107.3b) and
+// CR 601.3a's printed-cost lookahead must not permit it. Molten Note
+// ({X}{R}{W}) under an opponent's Void Winnower: its flashback cost
+// {6}{R}{W} has mana value 8, so the prohibition covers the cast and the
+// flashback option stays withheld even with the mana to pay it.
+func TestCR601_3aFlashbackRouteAnnouncesNoX(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, card(t, corpusCardText(t, "m/molten_note.txt")))
+	note := e.G.Zone(state.ZHand, 0)[0]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: note, From: state.ZHand, To: state.ZGraveyard})
+	// A creature so the flashback spell's mandatory target can be chosen --
+	// the gate must refuse on the restriction, never on the target census.
+	battlePerm(t, e, 0, corpusCardText(t, "g/grizzly_bears.txt"))
+	battlePerm(t, e, 1, corpusCardText(t, "v/void_winnower.txt"))
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 8})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "W", Amount: 2})
+	e.askPriority(0)
+	if hasCastOptionFor(e, note) {
+		t.Fatalf("Molten Note's flashback is offered under Void Winnower although the flashback cost {6}{R}{W} announces no X")
+	}
+}
+
+// TestCR601_3aFreeMayPlayOfferStillProhibited: the offer walk's free may-play
+// half (Omniscience's MayPlayWithoutManaCost$ grant) announces no X (CR
+// 107.3b), so CR 601.3a's printed-cost lookahead must not permit the free
+// cast: Mind Spring stays withheld under Void Winnower, not offered and then
+// reversed at the CR 601.2e recheck.
+func TestCR601_3aFreeMayPlayOfferStillProhibited(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, card(t, corpusCardText(t, "o/omniscience.txt")), card(t, corpusCardText(t, "m/mind_spring.txt")))
+	omni, spring := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: omni, From: state.ZHand, To: state.ZBattlefield})
+	battlePerm(t, e, 1, corpusCardText(t, "v/void_winnower.txt"))
+	e.askPriority(0)
+	if hasCastOptionFor(e, spring) {
+		t.Fatalf("Omniscience's free cast of Mind Spring is offered under Void Winnower although a free cast announces no X")
+	}
+}

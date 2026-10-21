@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -124,33 +125,44 @@ func (e *Engine) surveilNumValue(sv staticView) (int32, bool) {
 	return v, true
 }
 
-// castRestricted reports whether p is forbidden from casting id (CantBeCast).
+// castRestricted reports whether p is forbidden from casting id (CantBeCast)
+// as an ordinary cast at the current face's printed cost, the only cast whose
+// CR 601.3a announcement is the printed {X}.
 func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
-	return e.castRestrictedUsing(e.activeStatics("CantBeCast"), p, id)
+	return e.castRestrictedPrinted(e.activeStatics("CantBeCast"), p, id)
 }
 
-func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID) bool {
-	return e.castRestrictedChoosingX(statics, p, id, true)
+// castRestrictedFree is castRestricted for a cast that pays NO mana cost (a
+// free Play, Suspend's exiled cast, cascade's election, a plotted card): such
+// a cast announces no {X} (CR 107.3b fixes X at 0), so no choice can change
+// its mana value and CR 601.3a's lookahead cannot apply.
+func (e *Engine) castRestrictedFree(p state.PlayerID, id state.ObjID) bool {
+	return e.castRestrictedCost(e.activeStatics("CantBeCast"), p, id, Cost{})
 }
 
-// castRestrictionXLookahead is the largest {X} CR 601.3a's offer lookahead
-// tries (1..16). One escaping announcement is enough, and every corpus
-// mana-value prohibition is a parity/equality test (cmcEven, cmcEQChosen,
-// cmcEQX: escaped within two consecutive X), a literal threshold of at most
-// 4 (cmcLE3, cmcGE4), or a monotone count (cmcGT$ Land/Turns, which a larger
-// X never escapes); 16 covers every literal with room, and an X past it is
-// beyond any payable announcement, so offering on it would only reverse.
-const castRestrictionXLookahead = 16
+// castRestrictedPrinted gates a cast that will pay the current face's
+// printed cost.
+func (e *Engine) castRestrictedPrinted(statics []staticView, p state.PlayerID, id state.ObjID) bool {
+	var cost Cost
+	if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		cost = e.faceCompiledCost(o.Face()).Cost
+	}
+	return e.castRestrictedCost(statics, p, id, cost)
+}
 
-// castRestrictedChoosingX is castRestrictedUsing with CR 601.3a's lookahead
-// switchable: xChoice true lets a restriction that matches the card at its
-// current mana value (X = 0 off the stack, CR 202.3e) be ignored when some
-// announced X in 1..castRestrictionXLookahead makes the same ValidCard$ spec
-// no longer match; CR 601.2e's recheck (recheckIllegal) then enforces the
-// prohibition at the announced X, reversing a proposal whose X it still
-// covers (CR 733.1). xChoice false is for a cast whose X cannot be announced (a
-// free Play cast pays no mana cost, CR 107.3b fixes X at 0).
-func (e *Engine) castRestrictedChoosingX(statics []staticView, p state.PlayerID, id state.ObjID, xChoice bool) bool {
+// castRestrictedCost is the CantBeCast gate for a cast that will pay cost:
+// CR 601.3a's X lookahead applies only when the cast will ANNOUNCE an X --
+// i.e. only when cost itself carries {X} (CR 107.3b: a cast whose cost
+// carries no {X}, including every free cast and every alternative cost
+// without one, fixes X at 0) -- and the candidate X values it considers are
+// only those cost with X folded in can pay from the caster's pool (CR
+// 601.2b: the announcement must be one the payment can settle;
+// xAnnouncementEscapes prices them). CR 601.2e's recheck (recheckIllegal)
+// then enforces the prohibition at the announced X, reversing a proposal
+// whose X it still covers (CR 733.1). The restriction itself is still
+// matched at the card's current mana value (X = 0 off the stack, CR
+// 202.3e), as today.
+func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost) bool {
 	for _, sv := range e.castRestrictionSources(statics, id) {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
@@ -190,7 +202,7 @@ func (e *Engine) castRestrictedChoosingX(statics []staticView, p state.PlayerID,
 		}
 		if e.matchesSpec(spec, id, e.spellSpecCtx(e.staticSpecCtx(sv), id)) &&
 			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
-			if xChoice && e.xAnnouncementEscapes(sv, spec, id) {
+			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost) {
 				continue
 			}
 			return true
@@ -199,12 +211,23 @@ func (e *Engine) castRestrictedChoosingX(statics []staticView, p state.PlayerID,
 	return false
 }
 
-// xAnnouncementEscapes reports whether some announced X in
-// 1..castRestrictionXLookahead gives id a mana value at which the
-// restriction's spec no longer matches (CR 601.3a). Only a current face whose
-// printed mana cost carries {X} can change its mana value by announcement;
-// every other card answers false at once.
-func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, id state.ObjID) bool {
+// xAnnouncementEscapes reports whether some payable announced X gives id a
+// mana value at which the restriction's spec no longer matches (CR 601.3a).
+// Only a current face whose printed mana cost carries {X} can change its
+// mana value by announcement, and only a cost that itself announces X can
+// announce one, so either condition failing answers false at once. The
+// candidate X values are bounded by what the caster's mana pool can pay --
+// the same ceiling xAsk bounds its menu with, Delve's generic credit
+// included; the Convoke/Harmonize tap credit and CR 601.2f cost modifiers
+// are NOT priced, so an X affordable only through them does not enable the
+// escape (the offer's own affordability gate still binds every cast the
+// lookahead would begin). The mana value is read off the PRINTED cost with
+// X folded in (CR 202.3b), never off cost -- an alternative cost's non-mana
+// parts add no mana.
+func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.PlayerID, id state.ObjID, cost Cost) bool {
+	if cost.X <= 0 {
+		return false
+	}
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return false
@@ -213,7 +236,22 @@ func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, id state.ObjID
 	if printed.X <= 0 {
 		return false
 	}
-	for x := int32(1); x <= castRestrictionXLookahead; x++ {
+	pool := e.G.Players[p].Pool
+	// The generic budget the pool (plus id's possible Delve) can cover once
+	// the coloured requirement is reserved out of it.
+	budget := int64(pool.Total()) + int64(e.delveCredit(p, id, math.MaxInt32))
+	for i, n := range cost.Colored {
+		if pool[i] < n {
+			return false
+		}
+		budget -= int64(n)
+	}
+	budget -= int64(cost.Generic)
+	minX := int32(cost.XMin)
+	if minX < 1 {
+		minX = 1
+	}
+	for x := minX; int64(x) <= budget; x++ {
 		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
 		sc.HasManaValue = true
 		sc.ManaValue = printed.WithX(x).CMC()
@@ -264,7 +302,7 @@ func (sv staticView) numLimitEachTurn() (int, bool) {
 
 // castLimitBinds is the ONE per-turn cast-limit rule CantBeCast's
 // NumLimitEachTurn$ names ("can't cast more than N spells each turn"),
-// shared by the offer (castRestrictedUsing) and the CR 601.2e recheck
+// shared by the offer (castRestrictedCost) and the CR 601.2e recheck
 // (recheckIllegal). A static without the parameter always binds; with it the
 // static binds only once p has already cast N matching spells this turn,
 // the candidate's own in-flight PutOnStack excluded.

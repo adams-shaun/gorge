@@ -77,7 +77,15 @@ func (w *legalWalk) add(kind, label string, obj state.ObjID) {
 // and the cost composition (offerCostFor) is pool-independent, so the
 // two walks cannot drift inside the body they share.
 func (w *legalWalk) castRestricted(p state.PlayerID, id state.ObjID) bool {
-	return w.e.castRestrictedUsing(w.actionStatics.get().cantCast, p, id)
+	return w.e.castRestrictedPrinted(w.actionStatics.get().cantCast, p, id)
+}
+
+// castRestrictedCost is castRestricted for an alternative cast route whose
+// cast will pay cost: the CR 601.3a X lookahead applies only when cost
+// itself carries {X} (CR 107.3b), and the candidate X values are priced
+// over it (castRestrictedCost).
+func (w *legalWalk) castRestrictedCost(p state.PlayerID, id state.ObjID, cost Cost) bool {
+	return w.e.castRestrictedCost(w.actionStatics.get().cantCast, p, id, cost)
 }
 
 func (w *legalWalk) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
@@ -197,7 +205,7 @@ func (w *legalWalk) offerCastableAsFace(p state.PlayerID, id state.ObjID, face *
 func (w *legalWalk) castRestrictedAsFace(p state.PlayerID, id state.ObjID, face *cards.Face) bool {
 	statics := w.actionStatics.get().cantCast
 	return w.e.offerAsFace(id, face, func() bool {
-		return w.e.castRestrictedUsing(statics, p, id)
+		return w.e.castRestrictedPrinted(statics, p, id)
 	})
 }
 

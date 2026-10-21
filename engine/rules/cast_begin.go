@@ -833,7 +833,13 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	// cast, and the Play's answer is consumed either way.
 	// A free or PlayCost$ cast announces no {X} (CR 107.3b fixes it at 0),
 	// so CR 601.3a's X lookahead applies only to a printed-cost play.
-	if e.castRestrictedChoosingX(e.activeStatics("CantBeCast"), p, id, !withoutManaCost && playCost == "") {
+	var restricted bool
+	if withoutManaCost || playCost != "" {
+		restricted = e.castRestrictedFree(p, id)
+	} else {
+		restricted = e.castRestrictedPrinted(e.activeStatics("CantBeCast"), p, id)
+	}
+	if restricted {
 		e.emit(events.Event{Kind: events.Note, Player: p, Obj: id,
 			Text: "the play cannot cast a restricted card"})
 		return

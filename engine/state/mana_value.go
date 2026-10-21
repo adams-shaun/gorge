@@ -48,7 +48,7 @@ func ManaValue(g *Game, o *Object) int32 {
 // its current face up and X = 0: the CR 601.3a offer-time read, where only
 // the half being cast is evaluated (CR 709.3a), not the combined card. The
 // cast-restriction and cost-modifier seams bind it while o is still in its
-// origin zone (rules' castRestrictedUsing and costStaticGateFull).
+// origin zone (rules' castRestrictedCost and costStaticGateFull).
 func SpellManaValue(g *Game, o *Object) int32 {
 	if o == nil {
 		return 0

@@ -496,7 +496,7 @@ func (e *Engine) startSuspendedCast() bool {
 		// would incorrectly put the spell on the stack. An uncastable card is
 		// never offered: there is nothing to choose (CR 702.62a casts "if
 		// able"), so no decision is posed for it.
-		if e.castRestricted(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
+		if e.castRestrictedFree(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
 			continue
 		}
 		name := "it"
@@ -563,7 +563,7 @@ func (e *Engine) startDefeatedCast() bool {
 			o.FaceIdx != 0 || o.Card == nil || len(o.Card.Faces) < 2 || o.Counter("DEFENSE") != 0 {
 			continue
 		}
-		if e.castRestricted(o.Owner, id) {
+		if e.castRestrictedFree(o.Owner, id) {
 			continue
 		}
 		if back := o.Card.Faces[1]; back != nil && back.SpellAbility() != nil &&
