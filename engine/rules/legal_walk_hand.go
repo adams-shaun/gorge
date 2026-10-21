@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// appendAdventureAlt appends the hand's Adventure-face cast offer (CR 714.3a)
+// appendAdventureAlt appends the hand's Adventure-face cast offer (CR 715.3a)
 // when the card's own timing, targets, prohibition and cost allow it. It is
 // the ONE home of that offer, shared by the ordinary nonland walk and the
 // land-front branch: CR 715.3a evaluates only the alternative characteristics,

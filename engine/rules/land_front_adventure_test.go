@@ -67,6 +67,12 @@ func TestLandFrontAdventureCastable(t *testing.T) {
 				t.Fatalf("after %q resolved: zone=%s faceIdx=%d, want ZExile/0",
 					tc.spell, got.Zone, got.FaceIdx)
 			}
+			// CR 305.1: a land is not a spell, so the main face resting in the
+			// adventure zone must never be offered as a recast.
+			addMana(t, e, 0, "")
+			if recast := adventureOption(t, e, id, "adventure_recast"); recast != nil {
+				t.Fatalf("land main face offered as adventure_recast: %+v", recast)
+			}
 			replayCheck(t, e, cfg)
 		})
 	}
