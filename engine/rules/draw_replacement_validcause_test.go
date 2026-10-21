@@ -71,7 +71,6 @@ func TestUnpredictableCycloneCyclingDrawIsReplaced(t *testing.T) {
 	opt := cyclingOption(t, e, id)
 	draws := countDraw(e)
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0) // discard Violent Impact as the cycling cost
 	if e.G.Obj(id).Zone != state.ZGraveyard {
 		t.Fatalf("cycled card zone = %s, want graveyard", e.G.Obj(id).Zone)
 	}
@@ -135,7 +134,6 @@ func TestUnpredictableCycloneLandCyclingIsNotReplaced(t *testing.T) {
 	opt := cyclingOption(t, e, id)
 	draws := countDraw(e)
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0)
 	e.resolveTop()
 	if got := countDraw(e) - draws; got != 1 {
 		t.Fatalf("land-cycling draw events = %d, want 1 (nonLand withholds the replacement)", got)

@@ -75,7 +75,8 @@ func TestGrantedCyclingActivationFiresCycledTrigger(t *testing.T) {
 	}
 
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0) // the cost's Discard<1/CARDNAME>: the beast itself
+	e.pending = nil // as Submit does once an answer is taken
+	e.Advance()     // no self-discard ask: run on to the trigger flush
 	if got := e.G.Obj(beastID).Zone; got != state.ZGraveyard {
 		t.Fatalf("the granted cycle's discard left the beast in %s, want graveyard", got)
 	}
@@ -209,7 +210,8 @@ func TestGrantedCyclingTectonicReformationLandGrant(t *testing.T) {
 	}
 
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0) // the cost's Discard<1/CARDNAME>: the land itself
+	e.pending = nil // as Submit does once an answer is taken
+	e.Advance()     // no self-discard ask: run on to the trigger flush
 	if got := e.G.Obj(landID).Zone; got != state.ZGraveyard {
 		t.Fatalf("the granted land cycle's discard left the land in %s, want graveyard", got)
 	}
@@ -282,7 +284,8 @@ func TestGrantedCyclingJoGrantHistoricGrant(t *testing.T) {
 	}
 
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0) // the cost's Discard<1/CARDNAME>: the relic itself
+	e.pending = nil // as Submit does once an answer is taken
+	e.Advance()     // no self-discard ask: run on to the trigger flush
 	if got := e.G.Obj(relicID).Zone; got != state.ZGraveyard {
 		t.Fatalf("the granted historic cycle's discard left the relic in %s, want graveyard", got)
 	}
