@@ -347,7 +347,8 @@ func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjI
 // win when the observation carries them (the other engine may have applied
 // continuous effects the registry's printed face does not know); a card with
 // no observed types falls back to its registry face. The remaining printed
-// facts (mana cost, spell API, mana production) always come from the face.
+// facts (mana cost, spell API, mana production) come from the face, except
+// that an observed mana value of 0 clears a printed cost.
 func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *protocol.Characteristics) {
 	cv.Name = name
 	cv.Printing = view.Printing{Name: name}
@@ -368,6 +369,11 @@ func (b *Builder) printed(cv *view.CardView, f *cards.Face, name string, c *prot
 		cv.Types = strings.Join(f.Types, " ")
 	}
 	cv.ManaCost = f.ManaCost
+	// An observed mana value of 0 on a face whose printed cost is not 0 is
+	// a copy that has no mana cost (CR 707.9b: Embalm, Eternalize).
+	if c != nil && c.ManaValue == 0 && f.Cmc() > 0 {
+		cv.ManaCost = ""
+	}
 	if sa := f.SpellAbility(); sa != nil {
 		cv.SpellAPI = sa.API
 	}
