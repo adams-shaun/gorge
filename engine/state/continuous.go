@@ -61,6 +61,15 @@ type ContinuousEffect struct {
 	// zone change cannot inherit the old grant. Engine-runtime only, rebuilt
 	// by re-execution on replay.
 	SourceIncarnation uint32
+	// SourceZoneGen and SourceZoneAnchored anchor a ZONE-SCOPED self grant
+	// (AffectedZone$ set) registered on a source that is neither on the
+	// battlefield nor on the stack to that source's CR 400.7 identity
+	// (Object.ZoneGen): the grant ends once the source changes zones, even
+	// if it comes back (a spell on the stack is not anchored -- CR 400.7a
+	// carries such effects onto the permanent). Engine-runtime only, rebuilt
+	// by re-execution on replay.
+	SourceZoneGen      uint32
+	SourceZoneAnchored bool
 	// DurationSource is the permanent whose continued presence controls a
 	// source-scoped one-shot effect. Source remains the object used by Affects
 	// and layer derivation; this separate anchor handles effects such as

@@ -356,6 +356,11 @@ func (e *Engine) resolveTop() {
 			// ordinary printed trigger.
 			EffectFrame: e.triggerEffectFrames[id]})
 		ctx.Grantor = o.GrantedBy
+		// CR 400.7 / 400.7e: a remembered object that changed zones between
+		// the trigger firing and the start of resolution is a new object the
+		// trigger's referents cannot find. Computed once here, so moves the
+		// resolution itself makes are never listed (CR 400.7j).
+		ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
 		// CR 608.2h: a source that left the battlefield (sacrificed as the
 		// cost) answers "the chosen type" from its last-known choices.
 		if snap, ok := e.sourceCharLKI[id]; ok && o.Source != 0 {
@@ -1005,11 +1010,12 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		// response) is dropped here, and a target with no other legal target
 		// left fizzles the whole spell/ability through the existing fizzle
 		// machinery upstream of this recheck.
-		// CR 400.7 / 608.2b: an object that left the battlefield (or entered
-		// it) since it was targeted is a new object, even though it kept its
-		// ObjID -- Infernal Vessel or Reassembling Skeleton dying and
-		// returning before the haste grant aimed at it resolves. The stamp
-		// is the target's Incarnation when it was chosen.
+		// CR 400.7 / 608.2b: an object that changed zones since it was
+		// targeted is a new object, even though it kept its ObjID --
+		// Infernal Vessel or Reassembling Skeleton dying and returning, or
+		// a graveyard card Regrowth'd and discarded again, before the
+		// spell aimed at it resolves. The stamp is the target's ZoneGen
+		// when it was chosen.
 		if e.targetBecameNewObject(self, t.Obj) {
 			continue
 		}
@@ -1105,9 +1111,9 @@ func targetSpecForZone(spec string, z state.Zone) string {
 
 // zoneIn reports whether z is one of the zones in the set.
 // targetBecameNewObject reports that the stack object self stamped id as a
-// target (state.Object.TargetStamps) and id's Incarnation has advanced
-// since: it crossed the battlefield boundary and is a new object (CR
-// 400.7). An unstamped target (a rules-side record that never went through
+// target (state.Object.TargetStamps) and id's identity has moved since: it
+// changed zones and is a new object (CR 400.7), whatever zones it passed
+// through. An unstamped target (a rules-side record that never went through
 // a TargetsChosen fold) is not judged here.
 func (e *Engine) targetBecameNewObject(self, id state.ObjID) bool {
 	so := e.G.Obj(self)
@@ -1120,7 +1126,7 @@ func (e *Engine) targetBecameNewObject(self, id state.ObjID) bool {
 	}
 	for i := len(so.TargetStamps) - 1; i >= 0; i-- {
 		if so.TargetStamps[i].Obj == id {
-			return so.TargetStamps[i].Incarnation != t.Incarnation
+			return so.TargetStamps[i].ZoneGen != t.ZoneGen
 		}
 	}
 	return false

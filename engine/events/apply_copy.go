@@ -163,7 +163,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 		for _, id := range e.IDs {
 			if t := g.Obj(id); t != nil {
 				targets = append(targets, state.Target{Obj: id})
-				stamps = append(stamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation})
+				stamps = append(stamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation, ZoneGen: t.ZoneGen})
 			}
 		}
 		if len(targets) != len(division) {
