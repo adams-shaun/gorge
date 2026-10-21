@@ -21,7 +21,22 @@ func (e *Engine) fireTimeRememberedStamps(remembered []state.Target) []state.Tar
 			continue
 		}
 		if o := e.G.Obj(t.Obj); o != nil {
-			out = append(out, state.TargetStamp{Obj: t.Obj, Incarnation: o.Incarnation})
+			out = append(out, state.TargetStamp{Obj: t.Obj, Incarnation: o.Incarnation, ZoneGen: o.ZoneGen})
+		}
+	}
+	return out
+}
+
+// rememberedMovedSinceFire lists, in stamp order, the stamped objects whose
+// ZoneGen has moved since the trigger fired: each is a new object the
+// trigger's referents cannot find (CR 400.7). It is computed once as the
+// trigger starts to resolve, so moves the resolution itself makes (CR
+// 400.7j: "exile it, then return it") are never listed. nil when none.
+func (e *Engine) rememberedMovedSinceFire(stamps []state.TargetStamp) []state.ObjID {
+	var out []state.ObjID
+	for _, s := range stamps {
+		if o := e.G.Obj(s.Obj); o != nil && o.ZoneGen != s.ZoneGen {
+			out = append(out, s.Obj)
 		}
 	}
 	return out

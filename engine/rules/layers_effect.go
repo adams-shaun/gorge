@@ -62,6 +62,14 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	if ce.SourceIncarnation == 0 && strings.EqualFold(strings.TrimSpace(ce.Affects), "Card.Self") {
 		if source := e.G.Obj(ce.Source); source != nil && source.Zone == state.ZBattlefield {
 			ce.SourceIncarnation = source.Incarnation
+		} else if source != nil && source.Zone != state.ZStack && ce.AffectedZone != "" && !ce.SourceZoneAnchored {
+			// CR 400.7: a zone-scoped self grant on a card off the
+			// battlefield and off the stack ends when that card changes
+			// zones, even if it comes back -- the card in the graveyard
+			// after a round trip is a new object (CR 400.7a carries a
+			// spell-on-the-stack grant onto the permanent, so the stack
+			// is deliberately not anchored).
+			ce.SourceZoneGen, ce.SourceZoneAnchored = source.ZoneGen, true
 		}
 	}
 	if ce.Timestamp == 0 {
@@ -927,6 +935,11 @@ func (e *Engine) expireUntilEndOfCombat() {
 // predicate active() and anyLayer4Active's registered-effect check share, so
 // the two cannot disagree about which registered effects are live.
 func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
+	if ce.SourceZoneAnchored {
+		if source := e.G.Obj(ce.Source); source == nil || source.ZoneGen != ce.SourceZoneGen {
+			return false
+		}
+	}
 	if ce.Permanent {
 		return true
 	}

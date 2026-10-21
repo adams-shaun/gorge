@@ -9,7 +9,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 200.3 | follows | `engine/state/object.go#Object.CopyFace` `engine/state/object.go#Object.faceSlow` | - | copies/tokens carry characteristics only |
 | 201.1 | n/a | - | - | print layout |
 | 201.2 | follows | `engine/cards/ir.go#Face.Name` | - | English Oracle names from the corpus |
-| 201.2a | partial | `engine/effects/filter.go#nameCharacteristics` `engine/effects/filter.go#sharesName` | - | gorge: face-down permanent shares its printed name (probe) |
+| 201.2a | follows | `engine/effects/filter.go#nameCharacteristics` `engine/effects/filter.go#sharesName` `engine/state/mana_value.go#Object.FaceDownHidden` | `TestFaceDownPermanentHasNoName` |  |
 | 201.2b | partial | `engine/effects/count_zone_fold.go#zoneCountFold.visit` `engine/effects/count_ref_property.go#evalRefProperty` | - | gorge: face-down counted by printed name |
 | 201.2c | partial | `engine/effects/filter.go#sharesNameWithObject` | - | same root as 201.2a |
 | 201.3 | not-impl | - | - | SILENT: interchangeable names not modelled in play |
@@ -36,7 +36,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 202.3a | follows | `engine/cards/face.go#cmcFromManaCost` | - | - |
 | 202.3b | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueTransformedBackFaceIsFrontFace` `TestSephirothTransformsOnlyOnFourthResolution` | copy of a back face reads its printed no cost |
 | 202.3c | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueMeldedPermanentSumsFrontFaces` |  |
-| 202.3d | deviates | `engine/effects/filter.go#nameCharacteristics` `engine/effects/filter_value.go#cmcValue` | - | split card off stack uses first half's MV (probe) |
+| 202.3d | follows | `engine/state/mana_value.go#manaValueAs` `engine/state/mana_value.go#Object.SplitHalves` `engine/state/mana_value.go#SpellManaValue` | `TestManaValueSplitCardCombinesHalvesOffTheStack` `TestCascadeSkipsSplitCardByCombinedManaValue` `TestSpellCostModifierReadsTheHalfBeingCast` |  |
 | 202.3e | follows | `engine/state/mana_value.go#stackX` `engine/effects/filter_value.go#cmcValue` | `TestManaValueXOnTheStackIsTheChosenValue` `TestVoidWinnowerRechecksChosenXOnTheStack` |  |
 | 202.3f | follows | `engine/cards/face.go#cmcFromManaCost` `engine/state/mana_value.go#faceManaValue` | `TestManaValueTwobridCountsTheGenericComponent` |  |
 | 202.3g | follows | `engine/cards/face.go#cmcFromManaCost` | - | - |
