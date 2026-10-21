@@ -420,12 +420,17 @@ func (e *Engine) legendGroups(mayPair bool) []legendGroup {
 		return nil
 	}
 	exempt := e.activeStatics("IgnoreLegendRule")
+	anyLType := e.activeHasLType()
 	var all []legendGroup
 	for _, p := range e.G.AliveFrom(0) {
 		seen := make(map[string]int)
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil || !o.Face().IsLegendary() {
+			// The cheap gate is the derived Legendary read (sbaTypeFast): a
+			// layer-4 AddType$ Legendary (Leyline of Singularity) makes a
+			// printed nonlegendary permanent a legend-rule candidate
+			// (CR 205.4, 704.5j).
+			if o == nil || o.Face() == nil || !e.sbaTypeFast(o, sbaLegendary, anyLType) {
 				continue
 			}
 			if o.PhasedOut {
