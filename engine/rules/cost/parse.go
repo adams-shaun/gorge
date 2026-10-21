@@ -1368,10 +1368,10 @@ func ParseUnlessCost(s string) (Cost, bool) {
 			// "sacrifice CARDNAME unless you mill two cards", the only corpus
 			// UnlessCost$ carrying it). It parses through the SAME millCost
 			// grammar as the ordinary cast/activation Cost$ Mill<N> and, per
-			// CR 701.13a, is payable at ANY library size -- the payer mills
-			// every remaining card when fewer than N remain, so zero cards is
-			// not an unpayable cost. payUnlessCost settles it through the
-			// shared pay.PayMillCost, so the two payment sites cannot diverge.
+			// CR 701.17b, is payable only when the payer's library holds N
+			// cards; pay.MillCostPayable gates every offer. payUnlessCost
+			// settles it through the shared pay.PayMillCost, so the two
+			// payment sites cannot diverge.
 			// A dynamic or malformed spelling (Mill<X>, Mill<>, a prose head)
 			// never matches here and stays a hard decline.
 			if m, ok := matchMillCost(t); ok {
