@@ -967,6 +967,15 @@ func (e *Engine) continueCast() {
 	if e.cast == nil {
 		return
 	}
+	// CR 601.2a: a spell reaches the stack before any choice of the cast is
+	// made -- every announcement (601.2b), target (601.2c) and cost choice
+	// (601.2h) below runs with it already there, so no cost can pick the card
+	// being cast. For a spell the cast trigger (601.2i) is held back until
+	// payCast. pushCast is idempotent, so a re-entry after an answer is a
+	// no-op, and the special actions and abilities never push.
+	if e.pushCast() {
+		return
+	}
 	// Mutate (CR 702.140b): the over/under placement choice is announced
 	// before payment the same way the replicate count is, so the pay-time
 	// CastInfo can carry FlagMutatedTop.
@@ -983,6 +992,7 @@ func (e *Engine) continueCast() {
 	if e.giftAsk() {
 		return
 	}
+	e.foldGiftPromise(e.cast)
 	// A RaiseCost part counted by a named announcement (the March cycle,
 	// Explosive Singularity) announces its count before every stage that
 	// pays or prices it: the tap election below, xAsk's discounted X bound
@@ -1104,6 +1114,7 @@ func (e *Engine) continueCast() {
 	if e.returnAsk() {
 		return
 	}
+	e.foldSneakDefender(e.cast)
 	if e.putToLibAsk() {
 		return
 	}
@@ -1133,12 +1144,6 @@ func (e *Engine) continueCast() {
 	// timing.
 	if e.cast.mode == "plot" {
 		e.payCast()
-		return
-	}
-	// CR 601.2a: the object reaches the stack before the target choice
-	// (601.2c) and payment (601.2h). For a spell the cast trigger (601.2i)
-	// is held back until payCast; an ability's AbilityPush fires no trigger.
-	if e.pushCast() {
 		return
 	}
 	// castprov3: a provenance-keyed cost modifier (Bilbo's

@@ -3882,24 +3882,24 @@
     },
     {
       "seq": 630,
-      "kind": 20,
-      "player": 1,
-      "text": "choose"
-    },
-    {
-      "seq": 631,
-      "kind": 21,
-      "player": 1,
-      "text": "choose:[0]"
-    },
-    {
-      "seq": 632,
       "kind": 11,
       "player": 1,
       "obj": 108,
       "from": 1,
       "to": 5,
       "text": "Hangarback Walker"
+    },
+    {
+      "seq": 631,
+      "kind": 20,
+      "player": 1,
+      "text": "choose"
+    },
+    {
+      "seq": 632,
+      "kind": 21,
+      "player": 1,
+      "text": "choose:[0]"
     },
     {
       "seq": 633,
@@ -5518,7 +5518,7 @@
       ]
     },
     {
-      "seq": 630,
+      "seq": 631,
       "player": 1,
       "choices": [
         0
@@ -5693,7 +5693,7 @@
       ]
     }
   ],
-  "head": "e70551bf86833b4b",
+  "head": "5187d943dcc9b545",
   "intent_count": 142,
   "turn": 7,
   "step": "main1",

@@ -380,7 +380,7 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 	case castAnswerGiftDecline:
 		// CR 702.168: a declined gift is the plain cast -- no promise, and
-		// pushCast emits only the Amount-0 record. The byte-identical shape
+		// foldGiftPromise emits only the Amount-0 record. The byte-identical shape
 		// for every non-Gift carrier, which never reaches this ask at all.
 		pc.giftPromise = false
 	case castAnswerGiftPromise:
@@ -457,7 +457,7 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			// K:Sneak (CR 702.190b): the permanent the sneak cast puts onto
 			// the battlefield attacks the SAME defender the returned creature
 			// was attacking. Capture it while the chosen attacker is still a
-			// battlefield object; pushCast then folds it onto the spell's
+			// battlefield object; foldSneakDefender then folds it onto the spell's
 			// Remembered so the entry hook can bind it.
 			if pc.mode == "sneak" {
 				if o := e.G.Obj(o.Obj); o != nil {

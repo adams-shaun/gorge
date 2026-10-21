@@ -117,21 +117,12 @@ func objectBaseToughness(o *state.Object) int {
 	return f.Toughness()
 }
 
-// objectManaValue is the one mana-value read the extreme-CMC classifier
-// shares with the rest of the engine: a battlefield Room's CR 709.5 value
-// (the sum of its unlocked doors'), otherwise the compiled face's CMC -- the
-// same Face().Cmc() read manaValueOf, cascade and the Count$ walkers use. It
-// is the analogue of objectPower for greatestCMC/lowerCMC, so the two
-// extreme classifiers cannot drift on what a card's mana value is.
-func objectManaValue(o *state.Object) int {
-	if mv, room := roomManaValue(o); room {
-		return mv
-	}
-	f := o.Face()
-	if f == nil {
-		return 0
-	}
-	return int(f.Cmc())
+// objectManaValue is the effects tier's one object mana-value read. It
+// delegates to state.ManaValue, whose doc lists the CR 202.3 cases (a
+// transformed back face, a melded permanent, a battlefield Room and {X} on
+// the stack); effects must not re-derive any of them.
+func objectManaValue(g *state.Game, o *state.Object) int {
+	return int(state.ManaValue(g, o))
 }
 
 // cmcSetMember reports whether o is in the comparison set a greatestCMC_<prop>
@@ -165,7 +156,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if chosen != "odd" && chosen != "even" {
 			return false, true
 		}
-		same := (chosen == "odd") == isOdd(objectManaValue(o))
+		same := (chosen == "odd") == isOdd(objectManaValue(g, o))
 		return same == (name == "cmcChosenEvenOdd"), true
 	}
 	resolve := sc.Resolve
@@ -300,7 +291,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			return false, true
 		}
 		if field == numericFieldCmc {
-			return isOdd(cmcValue(o, sc)) == wantOdd, true
+			return isOdd(cmcValue(g, o, sc)) == wantOdd, true
 		}
 		if lacksPT(o, sc) {
 			return false, true
@@ -371,7 +362,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		case numericFieldBaseToughness:
 			have = baseToughnessValue()
 		case numericFieldCmc:
-			have = cmcValue(o, sc)
+			have = cmcValue(g, o, sc)
 		}
 		return applyCmp(cmp, have, n)
 	}
@@ -379,23 +370,15 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 }
 
 // cmcValue is the mana value a cmc predicate reads for an object with a
-// face. CR 202.3e: {X} counts as its chosen value in a spell's mana value.
-// A caller that has the chosen X in hand (the CR 601.2e post-announcement
-// cast-illegality recheck) passes it through SpecContext.ManaValue;
-// otherwise the printed cost is used, which counts an un-chosen X as 0,
-// exactly as the offer-time 601.3a check must.
-func cmcValue(o *state.Object, sc SpecContext) int {
+// face. A caller that has the chosen X in hand (the CR 601.2e
+// post-announcement cast-illegality recheck) passes the whole value through
+// SpecContext.ManaValue; otherwise it is objectManaValue, so the offer-time
+// 601.3a check of a card in hand still prices an unchosen X as 0.
+func cmcValue(g *state.Game, o *state.Object, sc SpecContext) int {
 	if sc.HasManaValue {
 		return int(sc.ManaValue)
 	}
-	if mv, room := roomManaValue(o); room {
-		// CR 709.5: a battlefield Room's mana value is its unlocked doors'
-		// sum. parseCMC stays the fallback: a face copy with a rewritten
-		// ManaCost must be priced from the current text (Face.Cmc is the
-		// load-time value and reports unbound).
-		return mv
-	}
-	return int(parseCMC(o.Face().ManaCost))
+	return objectManaValue(g, o)
 }
 
 // isOdd is mathematical parity, so a negative power is odd or even as its
@@ -416,27 +399,6 @@ func parityPredicate(name string) (field numericFieldCode, wantOdd, ok bool) {
 		return numericFieldPower, true, true
 	}
 	return 0, false, false
-}
-
-var cmcBraceNormalizer = strings.NewReplacer("{", " ", "}", " ")
-
-// parseCMC counts a mana cost's converted value without importing rules.
-func parseCMC(cost string) int32 {
-	cost = cmcBraceNormalizer.Replace(cost)
-	if strings.EqualFold(strings.TrimSpace(cost), "no cost") {
-		return 0
-	}
-	var n int32
-	for sym := range strings.FieldsSeq(cost) {
-		if v, err := strconv.Atoi(sym); err == nil {
-			n += int32(v)
-			continue
-		}
-		if sym != "X" {
-			n++
-		}
-	}
-	return n
 }
 
 // sameNameContextBase recognises only the three base-prefix forms which

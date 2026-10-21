@@ -1004,7 +1004,7 @@ func moveRestToBottom(h Host, g *state.Game, p state.PlayerID, ids []state.ObjID
 // cannot drift on what a card's mana value is.
 func manaValueOf(g *state.Game, id state.ObjID) int {
 	if o := g.Obj(id); o != nil {
-		return objectManaValue(o)
+		return objectManaValue(g, o)
 	}
 	return 0
 }

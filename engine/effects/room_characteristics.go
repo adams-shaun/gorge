@@ -6,7 +6,8 @@ import (
 )
 
 // This file is the effects tier's read of the CR 709.5 Room characteristics
-// rule -- name, mana value and rules text are those of the unlocked doors.
+// rule -- name and rules text are those of the unlocked doors (mana value is
+// state.ManaValue's roomManaValue).
 // The rules tier's chars.RoomName/RoomText are the display-string twins
 // (Compute uses them); effects cannot import engine/rules/chars (chars imports
 // effects), so the designation gate lives here too. The door bits themselves
@@ -20,14 +21,7 @@ import (
 // permanent, so it functions only on the battlefield; a Room card in any
 // other zone keeps its printed characteristics (CR 709.4).
 func roomFaces(o *state.Object) ([]*cards.Face, bool) {
-	if o == nil || o.Card == nil || len(o.Card.Faces) != 2 || o.Zone != state.ZBattlefield || o.FaceDown {
-		return nil, false
-	}
-	faces := o.Card.Faces
-	if faces[0] == nil || faces[1] == nil || !faces[0].IsRoom() || !faces[1].IsRoom() {
-		return nil, false
-	}
-	return faces, true
+	return o.BattlefieldRoomFaces()
 }
 
 // roomNames is the CR 709.5 name set of a battlefield Room permanent: the
@@ -49,23 +43,4 @@ func roomNames(o *state.Object) ([]string, bool) {
 		}
 	}
 	return names, true
-}
-
-// roomManaValue is the CR 709.5 mana value of a battlefield Room permanent:
-// the sum of the printed mana values of its unlocked doors. ok is false for
-// every other object, which then reads its face's printed value -- a Room
-// card in any other zone keeps its printed combined characteristics (CR
-// 709.4), which the printed reads already give it.
-func roomManaValue(o *state.Object) (int, bool) {
-	faces, ok := roomFaces(o)
-	if !ok {
-		return 0, false
-	}
-	n := 0
-	for fi, f := range faces {
-		if o.DoorUnlocked(fi) {
-			n += int(f.Cmc())
-		}
-	}
-	return n, true
 }
