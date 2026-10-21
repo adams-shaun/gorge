@@ -95,11 +95,29 @@ func divisionNeeding(obs protocol.Observation) (out []string) {
 // branch) and a combat damage division answered (the engine-order internal
 // answer, whose failure would halt the game), in uniform games of the five
 // catalog decks — not only in fixtures.
+
+// witnessSeeds is the audited uniform walk's seed list. The old single seed
+// (3, 7) never reached the CawGates transform; (4, 7) is the regression that
+// exposed the public printed-front name being scored as a hidden-name leak.
+var witnessSeeds = [][2]uint64{{3, 7}, {4, 7}}
+
+type witnessRun struct {
+	deck string
+	seed [2]uint64
+}
+
 func TestAuditedUniformGamesWitnessBlocksAndDivisions(t *testing.T) {
 	blocks, realizedBlocks, divisions := 0, 0, 0
+	var runs []witnessRun
 	for _, deck := range []string{"Wildfire", "Rally", "Spy", "Burn", "CawGates"} {
+		for _, seed := range witnessSeeds {
+			runs = append(runs, witnessRun{deck: deck, seed: seed})
+		}
+	}
+	for _, run := range runs {
+		deck, seed := run.deck, run.seed
 		g := startAudited(t, deck, 4000)
-		r := rand.New(rand.NewPCG(3, 7))
+		r := rand.New(rand.NewPCG(seed[0], seed[1]))
 		pending := map[string]bool{} // divisionNeeding attackers of this turn's last declare_blockers pose
 		turn := uint32(0)
 		blockedAttackers := map[string]bool{} // attackers this declare_blockers step already has a blocker for
@@ -166,7 +184,7 @@ func TestAuditedUniformGamesWitnessBlocksAndDivisions(t *testing.T) {
 			}
 		}
 		if g.Leaks() != 0 || g.Inconsistent() != 0 {
-			t.Fatalf("%s: %d leak-scan hits, %d inconsistent candidates", deck, g.Leaks(), g.Inconsistent())
+			t.Fatalf("%s seed %v: %d leak-scan hits, %d inconsistent candidates", deck, seed, g.Leaks(), g.Inconsistent())
 		}
 		realized := 0
 		for _, rl := range g.Realized() {
@@ -174,8 +192,8 @@ func TestAuditedUniformGamesWitnessBlocksAndDivisions(t *testing.T) {
 				realized++
 			}
 		}
-		t.Logf("%s: %d answered declare_block candidates, %d realized block decisions, %d answered divisions",
-			deck, deckBlocks, realized, deckDivisions)
+		t.Logf("%s seed %v: %d answered declare_block candidates, %d realized block decisions, %d answered divisions",
+			deck, seed, deckBlocks, realized, deckDivisions)
 		blocks += deckBlocks
 		realizedBlocks += realized
 		divisions += deckDivisions

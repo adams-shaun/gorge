@@ -85,6 +85,13 @@ func (s *Game) hiddenNames(seat state.PlayerID, obs protocol.Observation) map[st
 		switch {
 		case observe.Visible(seat, o) && (!o.FaceDown || observe.MayLook(seat, o)):
 			seen[name] = true
+			// A visible transformed or back-face permanent's printed front is
+			// public too: the view carries it as CardName, and the seat saw
+			// the card enter. Counting only the current face would score that
+			// public name as a leak whenever another copy sits in a library.
+			if o.Card != nil && len(o.Card.Faces) > 0 && o.Card.Faces[0] != nil {
+				seen[o.Card.Faces[0].Name] = true
+			}
 		case o.Zone == state.ZLibrary || o.Zone == state.ZHand || o.FaceDown:
 			hidden[name] = true
 		}
