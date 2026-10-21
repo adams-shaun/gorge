@@ -744,8 +744,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// CR 712.4d: a Modal DFC is front-face up in every non-battlefield
 	// zone. Its back face remains active while it is a permanent, but leaving
 	// the battlefield creates a new object whose characteristics are the
-	// front face. Keep this in the event fold so replay and live play agree.
-	if wasBattlefield && to != state.ZBattlefield && o.Card != nil &&
+	// front face. CR 712.8a: likewise a back-face spell leaving the stack
+	// (resolved, countered or reversed) is the front face again, unless it
+	// becomes a permanent. Keep this in the event fold so replay and live
+	// play agree.
+	if (wasBattlefield || wasStack) && to != state.ZBattlefield && o.Card != nil &&
 		o.Card.AlternateMode == "Modal" && len(o.Card.Faces) == 2 &&
 		o.Card.Faces[0] != nil && o.Card.Faces[1] != nil {
 		o.SetFaceIdx(0)
