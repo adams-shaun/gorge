@@ -1,6 +1,5 @@
 // Package searchseat is the PIMC search teacher's decision function, shared by
-// the label-corpus generator (four-yay cmd/searchteacher) and any seat that plays the
-// teacher's answer.
+// a label-corpus generator and any seat that plays the teacher's answer.
 //
 // It exists so the two cannot drift. Before it, the whole of candidate
 // building, world sampling, teacher scoring and root matching lived inside

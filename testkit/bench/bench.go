@@ -1,5 +1,5 @@
 // Package bench is the policy-agnostic, head-to-head game matrix shared by
-// four-yay cmd/botbench and cmd/policytune. It owns the three pieces both callers
+// the bot benchmark and policy-tuning tools. It owns the three pieces both callers
 // need and neither should re-implement:
 //
 //   - the engine drive loop (PlayGame), including the two watchdogs and the
