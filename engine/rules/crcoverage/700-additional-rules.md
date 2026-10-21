@@ -71,7 +71,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.15c-d | follows | `engine/rules/combat/goad.go#GoadedBy` `engine/events/apply_combat.go#foldGoad` | - |  |
 | 701.16a | follows | `engine/effects/investigate.go#effInvestigate` | - |  |
 | 701.17a | follows | `engine/effects/cardflow.go#effMill` | - |  |
-| 701.17b | deviates | `engine/effects/cardflow.go#effMill` `engine/rules/pay/costsettle.go#PayMillCost` | `TestOrdinaryAbilityMillCostMillsShortLibrary` `TestDeepSpawnUnlessMillCostShortLibrary` `TestDeepSpawnUnlessMillCostEmptyLibrary` | effect mills as many as possible; a mill cost is payable with a short library (tests pin it) |
+| 701.17b | follows | `engine/effects/cardflow.go#effMill` `engine/rules/pay/costsettle.go#MillCostPayable` | `TestCR701_17bMillCostShortLibraryNotOffered` `TestCR701_17bMillManaAbilityEmptyLibraryUnpayable` `TestCR701_17bDeepSpawnShortLibraryCannotPay` | effect mills as many as possible; a mill cost the library cannot cover is not offered |
 | 701.17c | follows | `engine/effects/cardflow.go#rememberMilled` | - |  |
 | 701.17d | unknown | `engine/effects/cardflow.go#effMill` | - | not reached |
 | 701.18a | follows | `engine/rules/legal.go#Engine.sorcerySpeed` `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | priority, main phase, empty stack, land limit |

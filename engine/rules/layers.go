@@ -137,6 +137,18 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 				// permanent's rules text is both halves' combined after the
 				// unlock (CR 309.6), each face's Statics its own scan. A room's
 				// unlocked face exists only on the battlefield.
+				// CR 122.1j: "A hone counter on an Equipment gives +1/+0 to any
+				// creature that Equipment is attached to." A counter's effect,
+				// not an ability of the permanent, so it is emitted before (and
+				// independently of) the face walk and is not stamped for
+				// ability loss. The count is read at scan time: a HONE
+				// CounterChange forces a rescan (layercache.go staticSafeSince).
+				if onBattlefield && o.AttachedTo != 0 {
+					if n := o.Counter("HONE"); n > 0 {
+						out = append(out, ContinuousEffect{Source: id, Timestamp: o.Timestamp, Controller: o.Controller,
+							Affects: "Creature.EquippedBy", Layer: LPT, Sub: SubModify, AddPower: n})
+					}
+				}
 				faces := staticRoomFaces(o, f, onBattlefield)
 				// CR 702.140d: a mutated pile's under-card statics are live too,
 				// exactly like the Rooms alternate face above. They are appended
@@ -755,14 +767,18 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						// matches -- in the corpus always the top card of the
 						// controller's own library (Affected$ Card.TopLibrary+YouCtrl,
 						// AffectedZone$ Library). The value names WHO may look:
-						// You/Player/True are all the static's controller in every
-						// corpus shape (73/34/1 raw lines at the pin); anything else
-						// fails closed. Consumed by Engine.MayLookAtLibraryTop, the
-						// view's reveal of that top card.
+						// You/True are the static's controller (73/1 raw lines at
+						// the pin); Player (34) reveals the card to every player
+						// (MayLookAtAll); anything else fails closed. Consumed by
+						// Engine.MayLookAtLibraryTop, the view's reveal of that top
+						// card.
 						if raw := strings.TrimSpace(st.ParamStr(cards.PKMayLookAt)); raw != "" {
-							if strings.EqualFold(raw, "You") || strings.EqualFold(raw, "Player") || strings.EqualFold(raw, "True") {
+							isPlayer := strings.EqualFold(raw, "Player")
+							if strings.EqualFold(raw, "You") || isPlayer || strings.EqualFold(raw, "True") {
 								lv := base
 								lv.MayLookAt = true
+								// MayLookAt$ Player is "play with ... revealed": every player sees the card (CR 401.5).
+								lv.MayLookAtAll = isPlayer
 								lv.AffectedZone = st.ParamStr(cards.PKAffectedZone)
 								lv.MayPlayPlayer = st.ParamStr(cards.PKMayPlayPlayer)
 								out = append(out, lv)
