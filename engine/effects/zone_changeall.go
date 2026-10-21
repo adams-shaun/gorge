@@ -103,6 +103,44 @@ func changeZoneAllCap(h Host, c *Ctx, cza *ChangeZoneAllParams) int32 {
 	return cap
 }
 
+// changeZoneAllMatcher is effChangeZoneAll's one membership test: the
+// trigger-captured set, the ForgetOtherRemembered$ snapshot, or the zone
+// filter, in that order of precedence.
+func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet, preMatched map[state.ObjID]bool) func(state.ObjID) bool {
+	return func(id state.ObjID) bool {
+		switch {
+		case triggeredSet != nil:
+			return triggeredSet[id]
+		case preMatched != nil:
+			return preMatched[id]
+		}
+		return MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller))
+	}
+}
+
+// changeZoneAllOwners lists the owner of every object the sweep would move,
+// with the sweep's own scan order and shared-stack guard (the stack is
+// visited once, under the first scoped player).
+func changeZoneAllOwners(g *state.Game, from []state.Zone, players []state.PlayerID, matches func(state.ObjID) bool) []state.PlayerID {
+	var owners []state.PlayerID
+	for _, z := range from {
+		for qi, p := range players {
+			if z == state.ZStack && qi > 0 {
+				continue
+			}
+			for _, id := range g.Zone(z, p) {
+				if !matches(id) {
+					continue
+				}
+				if o := g.Obj(id); o != nil {
+					owners = append(owners, o.Owner)
+				}
+			}
+		}
+	}
+	return owners
+}
+
 func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	cza := ChangeZoneAllOf(sa)
 	noteUnreadParams(h, c, "ChangeZoneAll", cza.Unread)
@@ -216,7 +254,16 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// The Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
 	// and are not touched here.
 	randomOrder := cza.RandomOrder
-	rider := classifyAttackingEntryText(c, cza.Riders.Attacking, to)
+	matches := changeZoneAllMatcher(g, c, spec, triggeredSet, preMatched)
+	// The Attacking$ rider's CR 508.4 chooser is the entering permanent's
+	// controller. A single-owner sweep asks that owner; a mixed-owner sweep
+	// falls back to the resolving controller (uniformEnteringController).
+	var sweepOwners []state.PlayerID
+	if strings.EqualFold(cza.Riders.Attacking, "True") && to == state.ZBattlefield {
+		sweepOwners = changeZoneAllOwners(g, from, players, matches)
+	}
+	rider := classifyAttackingEntryText(h, c, cza.Riders.Attacking, to,
+		enteringControllerForAttack(h, c, cza.Riders.Attacking, to, sweepOwners, cza.Riders.GainControl))
 	// A sweep off the battlefield is one simultaneous departure (CR 603.10a):
 	// every member's leaves-the-battlefield triggers look back at the same
 	// pre-sweep board. The id list is empty -- the sweep emits as it scans --
@@ -316,15 +363,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				// Snapshot the zone exactly like the emit loop does.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
-					if triggeredSet != nil {
-						if !triggeredSet[id] {
-							continue
-						}
-					} else if preMatched != nil {
-						if !preMatched[id] {
-							continue
-						}
-					} else if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					if !matches(id) {
 						continue
 					}
 					owner := p
@@ -370,16 +409,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 					if changeCap >= 0 && int32(len(moved)) >= changeCap {
 						break sweep
 					}
-					matched := false
-					switch {
-					case triggeredSet != nil:
-						matched = triggeredSet[id]
-					case preMatched != nil:
-						matched = preMatched[id]
-					default:
-						matched = MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller))
-					}
-					if matched {
+					if matches(id) {
 						emitMove(id, z, p)
 					}
 				}

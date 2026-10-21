@@ -54,7 +54,7 @@ func mobilizeCombat(t *testing.T, name string, seats int, extras ...string) (*En
 	e.emit(events.Event{Kind: events.MoveZone, Obj: did, From: state.ZLibrary, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{did}})
 	e.priorityRound()
-	passUntilStackEmpty(t, e, 30)
+	drainFirstEnteringDefender(t, e, 30) // multiplayer: CR 508.4 asks which opponent
 	return e, cfg, did
 }
 
@@ -180,7 +180,7 @@ func TestMobilizeXResolvesFromTheGraveyard(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{avenger}})
 	e.priorityRound()
-	passUntilStackEmpty(t, e, 30)
+	drainFirstEnteringDefender(t, e, 30) // multiplayer: CR 508.4 asks which opponent
 	toks := mobilizeTokens(t, e)
 	if len(toks) != 1 {
 		t.Fatalf("Mobilize X minted %d tokens with one creature card in the graveyard, want 1", len(toks))

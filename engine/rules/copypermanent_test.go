@@ -121,7 +121,7 @@ func TestFlamerushRiderCopiesTheOtherAttackerExiledAtEndOfCombat(t *testing.T) {
 		t.Fatalf("target options = %+v, want only the other attacking bear", d.Options)
 	}
 	crAbortAnswer(t, e, "Flamerush copy target", 0)
-	passUntilStackEmpty(t, e, 20)
+	drainFirstEnteringDefender(t, e, 20) // three seats: CR 508.4 asks which opponent
 
 	// The copy: a tapped, attacking battlefield token with the bear's
 	// printed characteristics, controller 0, flagged for end-of-combat
