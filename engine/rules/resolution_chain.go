@@ -145,10 +145,10 @@ func modeLabels(sa *cards.SA, svars map[string]string, names []string) []string 
 // effCharm reads (Ctx.Modes). eligible carries a filtered cast
 // decision's server-only vocabulary; nil falls back to the SA's full Choices$
 // list for placement and mid-resolution decisions. Out-of-range indices drop.
-// (CR 700.2i's printed-order execution for a pawprint Charm is applied where
-// the budgeted modes RUN -- effects.effCharm, gated on CharmPawprints -- not
-// here: ChosenModes also feeds the per-mode target ask, whose order a
-// non-pawprint Charm's tests pin.)
+// A budgeted Charm (CR 700.2i, effects.CharmBudgeted) returns its names in
+// printed Choices$ order: ChosenModes feeds the per-mode target ask, whose
+// positional ModeTargets groups must share the order the modes later run in.
+// A non-pawprint Charm keeps the answer's order, which its target asks pin.
 func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) []string {
 	if sa == nil {
 		return nil
@@ -162,6 +162,9 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 		if o.Index >= 0 && o.Index < len(choices) {
 			names = append(names, choices[o.Index])
 		}
+	}
+	if effects.CharmBudgeted(sa) {
+		names = effects.CharmResolveOrder(choices, names)
 	}
 	return names
 }

@@ -93,6 +93,21 @@ func CharmPawprints(h Host, source state.ObjID, sa *cards.SA, svars map[string]s
 	return budget, values, true
 }
 
+// CharmBudgeted reports whether the ability carries a WELL-FORMED pawprint
+// budget: the root Pawprint$ is present and a plain integer. It is the pure
+// gate for CR 700.2i's printed-order execution, so the ordering decisions --
+// before the per-mode target ask (modeChoiceNames) and where the budgeted
+// modes run (effCharm) -- cannot disagree, and neither emits the Notes
+// CharmPawprints raises for an unparseable value.
+func CharmBudgeted(sa *cards.SA) bool {
+	p := CharmOf(sa)
+	if !p.Pawprint.Present {
+		return false
+	}
+	_, ok := literalInt(p.Pawprint)
+	return ok
+}
+
 // CharmResolveOrder orders chosen mode names for RESOLUTION (CR 700.2i, the
 // BLB Seasons' Gatherer ruling): the instructions are followed in the order
 // the modes are WRITTEN on the card, not the order the answer named them,
@@ -766,9 +781,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		names := c.Modes
 		c.Modes = nil
 		// CR 700.2i's printed-order execution applies ONLY to a budgeted
-		// Charm (CharmPawprints ok): ChosenModes arrives in answer order and
-		// a non-pawprint Charm's target asks and resolution keep it.
-		if _, _, ok := CharmPawprints(h, c.Source, sa, c.SVars, choices); ok {
+		// Charm (CharmBudgeted): a non-pawprint Charm's target asks and
+		// resolution keep the answer's order.
+		if CharmBudgeted(sa) {
 			names = CharmResolveOrder(choices, names)
 		}
 		charmRunModes(h, c, sa, names)
@@ -861,8 +876,10 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	// CR 700.2i / CR 107.18: a pawprint budget (the BLB Seasons) rides the
 	// covering ask as Decision.MaxSum over the modes' Option.Value prices,
 	// so the answer's {P} sum is fenced by the same wire rule every client
-	// and repair reads.
-	if budget, values, ok := CharmPawprints(h, c.Source, sa, c.SVars, choices); ok {
+	// and repair reads. The result is read once and reused after the answer,
+	// so an unparseable budget/cost emits its Note exactly once per ask.
+	budget, values, budgeted := CharmPawprints(h, c.Source, sa, c.SVars, choices)
+	if budgeted {
 		d.MaxSum = budget
 		// Budgeted keeps a PRESENT zero budget live (HasBudget): a root
 		// Pawprint$ 0 fences the modes at 0 {P} instead of reading absent.
@@ -882,7 +899,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		ordered := names
-		if _, _, ok := CharmPawprints(h, c.Source, sa, c.SVars, vocab); ok {
+		if budgeted {
 			// CR 700.2i's printed-order execution, gated on the budget: a
 			// non-pawprint Charm keeps the answer's order.
 			ordered = CharmResolveOrder(vocab, names)
