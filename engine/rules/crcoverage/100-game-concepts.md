@@ -72,7 +72,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 108.1-108.2b | n/a | - | - | reference rules |
 | 108.3-108.4a | follows | `engine/state/object.go#Object.Owner` `engine/state/object.go#Object.Controller` | - | owner = starting deck holder |
 | 108.5-108.6 | n/a | - | - | nontraditional cards; cross-reference |
-| 109.1-109.5 | follows | `engine/state/object.go#Object` | - | structural; 109.2 not line-checked |
+| 109.1-109.5 | follows | `engine/state/object.go#Object` `engine/effects/cardflow.go#rearrangeChooser` | `TestCRRearrangeTargetLibraryCasterChooses` `TestCRRearrangePlayerNamesTheChooser` | structural; 109.2 not line-checked; RearrangeTopOfLibrary's "you" is the controller, RearrangePlayer$ names another chooser |
 | 110.1-110.3 | follows | `engine/state/object.go#Object` | - | permanents on the battlefield |
 | 110.4-110.4c | unknown | - | - | not reached |
 | 110.5-110.5d | follows | `engine/state/object.go#Object.Tapped` `engine/state/object.go#Object.PhasedOut` | - | status fields; not characteristics |
