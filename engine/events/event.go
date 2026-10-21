@@ -1245,10 +1245,18 @@ const (
 	// Appended after SetupSettled so every earlier ordinal, hash chain and
 	// golden replay is unchanged.
 	BlockedByEffect
+	// CopyExcept writes a copy effect's CR 707.9b exceptions onto a copy's
+	// layer-1 basis face, so they are part of its copiable values and a
+	// copy of the copy inherits them (CR 707.3). Obj is the copy and Text a
+	// CopyExceptions payload (copy_except.go) of FINAL values. Emitted right
+	// after the CopyToken that minted Obj, before its entry MoveZone.
+	// Appended after BlockedByEffect so every earlier ordinal, hash chain
+	// and golden replay is unchanged.
+	CopyExcept
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(BlockedByEffect) + 1
+	NumKinds = int(CopyExcept) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

@@ -167,13 +167,13 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	}
 
 	// Characteristic modifications (the Embalm/Eternalize family and the
-	// wider CopyPermanent mod census): AddTypes$, SetColor$, SetPower$ and
-	// SetToughness$. Each is applied as a tracked continuous effect sourced
-	// to the minted token itself (the effToken TokenPower$/TokenToughness$
-	// precedent), after the mint, so a replay re-derives the identical
-	// characteristics from the same AddContinuous calls. A value this build
-	// cannot resolve is one loud Note per call and the modification is
-	// skipped -- never a silent wrong characteristic.
+	// wider CopyPermanent mod census). The type, P/T and AddKeywords$
+	// exceptions are copiable values (CR 707.9a/b): one CopyExcept event
+	// writes their final values onto the minted token's basis face before it
+	// enters (exc below). SetColor$/AddColors$ are layer-5 continuous effects
+	// sourced to the token. A value this build cannot resolve is one loud
+	// Note per call and the modification is skipped -- never a silent wrong
+	// characteristic.
 	var addTypes []string
 	if raw, ok := cp.AddTypes.Text, cp.AddTypes.Present; ok {
 		// Forge's multi-type separator is " & " inside a comma-list element
@@ -280,15 +280,27 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 
 	// AddKeywords$ and PumpKeywords$ (the temporary-keyword body): both are
 	// ampersand-joined keyword lists cards.SplitKeywordList reads ("Flying &
-	// Haste" is two). RemoveKeywords$ names keywords lost at layer 6. All three
-	// ride ONE LAbilities effect per mint so RemoveKeywords applies BEFORE the
-	// same effect's AddKeywords, whatever the timestamps order neighbours.
+	// Haste" is two). RemoveKeywords$ names keywords lost at layer 6.
+	// AddKeywords$ rides the CopyExcept basis fold (CR 707.9a); RemoveKeywords$
+	// keeps its own layer-6 loss, so it still strips whatever the copy printed
+	// or gained.
 	addKeywords := cards.SplitKeywordList(cp.AddKeywords)
 	pumpKeywords := cards.SplitKeywordList(cp.PumpKeywords)
 	removeKeywords := cards.SplitKeywordList(cp.RemoveKeywords)
 	if ok := cp.AddKeywordsPresent; ok && len(addKeywords) == 0 {
 		emitNote(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "AddKeywords$ " + strings.TrimSpace(cp.AddKeywords) + " resolved to no keyword; none added"})
+	}
+	// The characteristic exceptions are part of the copy's copiable values
+	// (CR 707.9a/b): one CopyExcept per mint writes their final values onto
+	// the token's basis face BEFORE it enters, so it enters as (say) a
+	// Zombie and a copy of the token copies them (CR 707.3). RemoveKeywords$
+	// and PumpKeywords$ stay layer-6 effects (postEntry).
+	exc := copyExceptSpec{
+		addTypes:        append(append([]string(nil), addTypes...), setCreatureTypes...),
+		removeCardTypes: removeCardTypes, removeCreatureTypes: removeCreatureTypes, removeLegendary: removeLegendary,
+		setPower: setPow, setPowerPresent: hasSetPow, setToughness: setTgh, setToughnessPresent: hasSetTgh,
+		keywords: addKeywords,
 	}
 	// PumpDuration$ governs the PumpKeywords$ lifetime: absent means "for as
 	// long as the copy exists" (Permanent); EOT/EndOfTurn is dropped at this
@@ -677,23 +689,11 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		if withOK {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
 		}
-		// Characteristic modifications, scoped to the copy itself
-		// (Affects Card.Self, Source the token). Permanent so the effect
-		// outlives its one-shot resolution and lasts as long as the token;
-		// the layer system re-derives them from the same calls on replay.
-		// One LType effect carries every type modification so the
-		// strip-before-add order is guaranteed within the effect: the
-		// printed creature subtypes leave BEFORE SetCreatureTypes$/AddTypes$
-		// land, and RemoveCardTypes$/RemoveLegendary strip the base first.
-		allTypes := append(append([]string(nil), addTypes...), setCreatureTypes...)
-		if len(allTypes) > 0 || removeCardTypes || removeCreatureTypes || removeLegendary {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: want, Controller: owner, Affects: "Card.Self",
-				Layer: state.LType, AddTypes: allTypes,
-				RemoveCardTypes: removeCardTypes, RemoveCreatureTypes: removeCreatureTypes,
-				RemoveLegendary: removeLegendary, Permanent: true,
-			})
-		}
+		// The type, P/T and keyword exceptions rode the CopyExcept before
+		// entry. The colour exceptions are still layer-5 effects scoped to
+		// the copy itself. RemoveKeywords$ is a layer-6 loss (Mirage Phalanx's copy loses
+		// Soulbond); PumpKeywords$ is the temporary body: its own effect
+		// carries the PumpDuration$ lifetime.
 		if setColor {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: want, Controller: owner, Affects: "Card.Self",
@@ -706,33 +706,10 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				Layer: state.LColor, AddColors: extraColors, Permanent: true,
 			})
 		}
-		if hasSetPow || hasSetTgh {
-			pow, tgh := int32(0), int32(0)
-			if f := g.Obj(want).Face(); f != nil {
-				pow, tgh = int32(f.Power()), int32(f.Toughness())
-			}
-			if hasSetPow {
-				pow = setPow
-			}
-			if hasSetTgh {
-				tgh = setTgh
-			}
+		if len(removeKeywords) > 0 {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: want, Controller: owner, Affects: "Card.Self",
-				Layer: state.LPT, Sub: state.SubSet,
-				SetPower: pow, SetToughness: tgh, HasSet: true, Permanent: true,
-			})
-		}
-		// Keywords: RemoveKeywords$ applies BEFORE AddKeywords$ within
-		// this one effect (CR 613.1f), so Mirage Phalanx's copy loses
-		// Soulbond and gains Haste. PumpKeywords$ is the temporary body:
-		// its own effect carries the PumpDuration$ lifetime.
-		kwGrant := addKeywords
-		if len(kwGrant) > 0 || len(removeKeywords) > 0 {
-			h.AddContinuous(state.ContinuousEffect{
-				Source: want, Controller: owner, Affects: "Card.Self",
-				Layer: state.LAbilities, AddKeywords: kwGrant,
-				RemoveKeywords: removeKeywords, Permanent: true,
+				Layer: state.LAbilities, RemoveKeywords: removeKeywords, Permanent: true,
 			})
 		}
 		if len(pumpKeywords) > 0 {
@@ -796,6 +773,9 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			if g.Obj(want) == nil {
 				continue
+			}
+			if x := copyExceptions(g.Obj(want), exc); !x.Empty() {
+				h.Emit(events.Event{Kind: events.CopyExcept, Obj: want, Text: x.Text()})
 			}
 			if len(tokenMemory) > 0 {
 				remembered := make([]state.ObjID, 0, len(tokenMemory))
