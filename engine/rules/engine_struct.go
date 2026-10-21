@@ -23,6 +23,10 @@ type Engine struct {
 	// resolving caller has not yet performed (engine/rules/restart.go).
 	restart *restartRequest `clone:"reset"`
 
+	// restartRest is the restarting chain's remainder, run just before the
+	// new game's first untap step (CR 727.4; engine/rules/restart.go).
+	restartRest *restartRest `clone:"share"`
+
 	// ManaAbilityHook, when non-nil, is called once per mana ability
 	// activation the engine resolves (resolveManaAbilityRefOriginal, the one
 	// choke point every activation path -- the priority "activate" option,
