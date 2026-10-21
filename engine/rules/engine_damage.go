@@ -168,6 +168,10 @@ func (e *Engine) BatchDepartures(ids []state.ObjID) {
 	for _, id := range ids {
 		e.batchDamageKeywords[id] = e.damageKeywordsOf(id)
 	}
+	// The whole batch is also ONE sacrifice action for Mode$ SacrificedOnce
+	// (CR 603.2c). Destruction batches never emit a sacrifice, so sharing the
+	// bracket is harmless.
+	e.beginSacrificeBatch()
 	e.openZoneBatch()
 	e.beginReplBatch()
 	e.openBatchWindow()
@@ -181,6 +185,7 @@ func (e *Engine) EndBatchDepartures() {
 	e.closeBatchWindow()
 	e.endReplBatch()
 	e.closeZoneBatch()
+	e.endSacrificeBatch()
 }
 
 // captureSourceLifelinkLKI preserves CR 608.2h's pre-departure derived

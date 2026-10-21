@@ -249,6 +249,10 @@ func (pe *payer) Batch(kind pay.BatchKind, open bool) {
 		e.BeginActionBatch()
 	case kind == pay.BatchTap:
 		e.EndActionBatch()
+	case kind == pay.BatchSacrifice && open:
+		e.beginSacrificeBatch()
+	case kind == pay.BatchSacrifice:
+		e.endSacrificeBatch()
 	case open:
 		e.BeginDiscardBatch()
 	default:

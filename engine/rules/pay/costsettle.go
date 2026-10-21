@@ -64,6 +64,25 @@ func PayMillCost(e Engine, p state.PlayerID, parts []costvocab.CostPart) {
 // for one (CR 702.29), tagging each card's event for Mode$ Cycled; an empty
 // keyword emits the plain cost form. An absent object is skipped, exactly as
 // the triggered-cost site's own guard did.
+// PaySacrificeCost settles every sacrifice component of ONE cost payment as
+// one sacrifice action, so Mode$ SacrificedOnce ("whenever you sacrifice one
+// or more ...") queues once for the payment (CR 603.2c). Absent objects are
+// skipped, exactly as the direct emitters did. The bracket cannot suspend:
+// all choices were collected before settlement.
+func PaySacrificeCost(e Engine, ids []state.ObjID) {
+	if len(ids) == 0 {
+		return
+	}
+	e.Batch(BatchSacrifice, true)
+	for _, id := range ids {
+		if e.Game().Obj(id) == nil {
+			continue
+		}
+		e.Emit(events.Sacrifice(id))
+	}
+	e.Batch(BatchSacrifice, false)
+}
+
 func PayDiscardCost(e Engine, ids []state.ObjID, cycling string) {
 	if len(ids) == 0 {
 		return

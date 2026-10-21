@@ -190,9 +190,7 @@ func AdvanceUnless(e Engine) UnlessStep {
 			e.Emit(events.Event{Kind: events.Note, Player: u.Payer, Obj: u.Ctx.Source, Text: text})
 		}
 	}
-	for _, id := range u.Sacs {
-		e.Emit(events.Sacrifice(id))
-	}
+	PaySacrificeCost(e, u.Sacs)
 	// Bracket the settled Discard component's emissions as ONE discard action
 	// (CR 701.8), exactly as the cast flow's PayDiscardCost and effDiscard's
 	// api:Discard do: a call to discard two cards is one discard action, so a

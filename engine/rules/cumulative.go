@@ -2180,11 +2180,13 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 		}
 		e.sacrificedLKI[rp.obj] = append(e.sacrificedLKI[rp.obj], sacrificedLKI...)
 	}
+	e.beginSacrificeBatch()
 	for _, id := range tc.sacs {
 		if o := e.G.Obj(id); o != nil && o.Zone == state.ZBattlefield {
 			e.emit(events.Sacrifice(id))
 		}
 	}
+	e.endSacrificeBatch()
 	for _, id := range tc.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})

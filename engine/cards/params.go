@@ -178,6 +178,7 @@ const (
 	PKNumTurns
 	PKNumber
 	PKObject
+	PKOnlyFirst
 	PKOnlyFirstSpell
 	PKOpponentTurn
 	PKOptional
@@ -987,6 +988,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKNumTurns:                         "NumTurns",
 	PKNumber:                           "Number",
 	PKObject:                           "Object",
+	PKOnlyFirst:                        "OnlyFirst",
 	PKOnlyFirstSpell:                   "OnlyFirstSpell",
 	PKOpponentTurn:                     "OpponentTurn",
 	PKOptional:                         "Optional",

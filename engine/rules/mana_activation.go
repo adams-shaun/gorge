@@ -1078,9 +1078,7 @@ func (e *Engine) commitManaDiscard() {
 	pay.PayManaSourceParts(asPayer(e), md.Player, md.Source, md.Cost)
 	e.costCounters--
 	pay.SettleManaSubCounter(asPayer(e), md)
-	for _, id := range md.Sacs {
-		e.emit(events.Sacrifice(id))
-	}
+	e.emitSacrifices(md.Sacs)
 	pay.SettleManaForage(asPayer(e), md)
 	pay.SettleManaUntap(asPayer(e), md)
 	e.ManaCost = nil
@@ -1541,9 +1539,7 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	e.costCounters++
 	pay.PayManaSourceParts(asPayer(e), p, source, cost)
 	e.costCounters--
-	for _, id := range sacs {
-		e.emit(events.Sacrifice(id))
-	}
+	e.emitSacrifices(sacs)
 	// Return<1/CARDNAME>: the source goes to its OWNER's hand as part of the
 	// payment (the cast path's Return settle, engine/rules/cast.go), after the {T}
 	// tap so a tap-and-return cost never taps a hand card.
