@@ -200,6 +200,7 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 		o.IsAttacking = false
 		o.IsBlocking = false
 		o.AttackingBattle = 0
+		o.Band = 0
 		o.BlockedBy = nil
 		o.SummonSick = true
 		// kw:Echo's gate stamp (CR 702.35a): a battlefield control change is

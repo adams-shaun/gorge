@@ -80,5 +80,6 @@ var (
 	kwhUnleash          = newKWHead("Unleash")
 	kwhWebSlinging      = newKWHead("Web-slinging")
 	kwhVigilance        = newKWHead("Vigilance")
+	kwhBanding          = newKWHead("Banding")
 	kwhWither           = newKWHead("Wither")
 )

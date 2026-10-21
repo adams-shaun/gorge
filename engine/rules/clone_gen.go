@@ -209,6 +209,7 @@ func cloneFieldsEngineRounds(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	}
 	c.blockerRound = e.blockerRound
 	c.exertAskState = e.exertAskState
+	c.bandAskState = e.bandAskState
 	c.enlistAskState = e.enlistAskState
 	c.stationing = e.stationing
 	c.combatRound = e.combatRound

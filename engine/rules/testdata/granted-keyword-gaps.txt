@@ -3,7 +3,6 @@
 Absorb
 Assist
 At the beginning of your upkeep, destroy this creature unless you pay {1} for each music counter on it
-Banding
 Bands with other
 Battle Cry
 Bushido
