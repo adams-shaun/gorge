@@ -143,6 +143,10 @@ type Face struct {
 	// derived values below it stays unexported so a stale cache decodes it as
 	// zero and derive() repairs it immediately after decode.
 	colourIdentity uint8
+	// copyColours is a runtime copy basis's CR 707.9b colour exception
+	// (SetCopyColours, face_runtime.go): bit 7 = present, bits 0-4 the WUBRG
+	// set. Zero on every corpus face; never serialized.
+	copyColours uint8
 	// compiledTriggerInterests is bound from the immutable catalog at load
 	// time. Keeping this hot prefilter beside the legacy face avoids a catalog
 	// slice lookup during every trigger scan; it is not serialized.

@@ -54,7 +54,16 @@ func ColorMaskOf(o *state.Object) ColorMask {
 		return 0
 	}
 	f := o.Face()
-	if f == nil || f.HasKeywordRef(kwRefDevoid) {
+	if f == nil {
+		return 0
+	}
+	// CR 707.9b/707.9d: a copy exception's final colour set is part of the
+	// copy basis and overrides the mana cost, a colour indicator, Devoid and
+	// a colour-setting CDA alike.
+	if m, ok := f.CopyColours(); ok {
+		return ColorMask(m)
+	}
+	if f.HasKeywordRef(kwRefDevoid) {
 		return 0
 	}
 	var mask ColorMask

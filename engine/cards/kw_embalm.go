@@ -21,13 +21,10 @@ func kwEmbalm(f *Face, i int, k, head, param string, has func(kind, line string)
 	// cost Encore already uses, settled by the ordinary cast-flow
 	// exile stage; the whole keyword parameter is spliced verbatim
 	// into Cost$ so an extra cost component (Sinuous Striker's and
-	// Sunscourge Champion's "Discard<1/Card>") rides along. The
-	// token's "no mana cost" (Forge's RemoveCost$) is NOT modelled --
-	// this engine derives a copy's mana value from its printed card --
-	// so RemoveCost$ is deliberately not emitted (an unread param
-	// would only rot the parameter census); the divergence is recorded
-	// in the task report's Issues section.
-	body := "AB$ CopyPermanent | Cost$ " + param + " ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Defined$ Self | SetColor$ "
+	// Sunscourge Champion's "Discard<1/Card>") rides along. RemoveCost$
+	// True is the token's "no mana cost" (Forge's spelling); every
+	// exception is a copiable value of the token (CR 707.9b).
+	body := "AB$ CopyPermanent | Cost$ " + param + " ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Defined$ Self | RemoveCost$ True | SetColor$ "
 	if head == "Eternalize" {
 		body += "Black | AddTypes$ Zombie | SetPower$ 4 | SetToughness$ 4"
 	} else {

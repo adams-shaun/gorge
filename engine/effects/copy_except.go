@@ -19,9 +19,16 @@ type copyExceptSpec struct {
 	// removeLegendary drops Legendary; then addTypes append once each.
 	addTypes                                              []string
 	removeCardTypes, removeCreatureTypes, removeLegendary bool
+	// setColors (when setColorsPresent) replaces the colour set; addColors
+	// extends it. Letters are WUBRG.
+	setColors        []string
+	setColorsPresent bool
+	addColors        []string
 	// setPower/setToughness, each when present, replace that half of the P/T.
 	setPower, setToughness               int32
 	setPowerPresent, setToughnessPresent bool
+	// noManaCost is "it has no mana cost" (RemoveCost$ True).
+	noManaCost bool
 	// keywords are the AddKeywords$ lines (CR 707.9a).
 	keywords []string
 }
@@ -53,6 +60,18 @@ func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
 			}
 		}
 	}
+	if s.setColorsPresent || len(s.addColors) > 0 {
+		var m ColorMask
+		if !s.setColorsPresent {
+			m = ColorMaskOf(o)
+		}
+		for _, l := range append(append([]string(nil), s.setColors...), s.addColors...) {
+			if l != "" {
+				m |= colorBit(l[0])
+			}
+		}
+		x.Colors, x.ColorsSet = uint8(m), true
+	}
 	if s.setPowerPresent || s.setToughnessPresent {
 		x.Power, x.Toughness, x.PTSet = int32(f.Power()), int32(f.Toughness()), true
 		if s.setPowerPresent {
@@ -62,6 +81,7 @@ func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
 			x.Toughness = s.setToughness
 		}
 	}
+	x.NoManaCost = s.noManaCost
 	x.Keywords = append([]string(nil), s.keywords...)
 	return x
 }

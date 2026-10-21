@@ -19,17 +19,23 @@ type CopyExceptions struct {
 	// Types, when TypesSet, is the copy's whole type line.
 	Types    []string `json:"types,omitempty"`
 	TypesSet bool     `json:"types_set,omitempty"`
+	// Colors, when ColorsSet, is the copy's colour set (cards.Colour* bits;
+	// 0 is colourless).
+	Colors    uint8 `json:"colors,omitempty"`
+	ColorsSet bool  `json:"colors_set,omitempty"`
 	// Power/Toughness, when PTSet, are the copy's P/T.
 	Power     int32 `json:"power,omitempty"`
 	Toughness int32 `json:"toughness,omitempty"`
 	PTSet     bool  `json:"pt_set,omitempty"`
+	// NoManaCost is "it has no mana cost" (Embalm, Eternalize: RemoveCost$).
+	NoManaCost bool `json:"no_mana_cost,omitempty"`
 	// Keywords are keyword lines the copy has (CR 707.9a), in grant order.
 	Keywords []string `json:"keywords,omitempty"`
 }
 
 // Empty reports whether x carries no exception.
 func (x CopyExceptions) Empty() bool {
-	return !x.TypesSet && !x.PTSet && len(x.Keywords) == 0
+	return !x.TypesSet && !x.ColorsSet && !x.PTSet && !x.NoManaCost && len(x.Keywords) == 0
 }
 
 // Text is the CopyExcept event's Text for x.
@@ -69,6 +75,12 @@ func foldCopyExcept(g *state.Game, e *Event) {
 	f.ForgetCompiled()
 	if x.TypesSet {
 		f.Types = append([]string(nil), x.Types...)
+	}
+	if x.ColorsSet {
+		f.SetCopyColours(x.Colors)
+	}
+	if x.NoManaCost {
+		f.SetManaCost("")
 	}
 	if x.PTSet {
 		f.SetPT(strconv.Itoa(int(x.Power)) + "/" + strconv.Itoa(int(x.Toughness)))

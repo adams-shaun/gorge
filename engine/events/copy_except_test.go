@@ -9,7 +9,7 @@ import (
 // and a malformed payload fails closed.
 func TestCopyExceptionsRoundTrip(t *testing.T) {
 	x := CopyExceptions{Types: []string{"Creature", "Dragon", "Zombie"}, TypesSet: true,
-		Power: 4, Toughness: 4, PTSet: true, Keywords: []string{"Haste"}}
+		Colors: 1 << 2, ColorsSet: true, NoManaCost: true, Power: 4, Toughness: 4, PTSet: true, Keywords: []string{"Haste"}}
 	got, ok := ParseCopyExceptions(x.Text())
 	if !ok || !reflect.DeepEqual(got, x) {
 		t.Fatalf("round trip %+v -> %q -> %+v (ok %v)", x, x.Text(), got, ok)

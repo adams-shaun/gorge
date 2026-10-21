@@ -70,6 +70,8 @@ type CopyPermanentParams struct {
 	RemoveCreatureTypes ParamText
 	RemoveSubTypes      ParamText
 	NonLegendary        ParamText
+	// RemoveCost is "it has no mana cost" (Embalm, Eternalize; CR 707.9b).
+	RemoveCost ParamText
 	// AddKeywords, PumpKeywords and RemoveKeywords are the raw keyword lists
 	// (cards.SplitKeywordList's input); AddKeywordsPresent is AddKeywords$
 	// presence.
@@ -151,7 +153,7 @@ var copyPermanentKnownKeys = [...]string{
 	"Pawprint", "Planeswalker", "PlayCost", "PlayerTurn", "Populate", "PowerUp",
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PumpDuration",
 	"PumpKeywords", "RandomCopied", "RandomNum", "RandomNumTargets", "ReduceAmount", "ReduceCost",
-	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RememberTokens", "RemoveCardTypes",
+	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RememberTokens", "RemoveCardTypes", "RemoveCost",
 	"RemoveCreatureTypes", "RemoveKeywords", "RemoveSubTypes", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
 	"ReplaceType", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
@@ -282,6 +284,8 @@ func compileCopyPermanent(sa *cards.SA, dp *DefinedParams) *CopyPermanentParams 
 	p.RemoveSubTypes = rawParamText(sa, "RemoveSubTypes")
 	nonLegendary, ok := sa.Param(cards.PKNonLegendary)
 	p.NonLegendary = ParamText{Text: nonLegendary, Present: ok}
+	removeCost, ok := sa.Params["RemoveCost"]
+	p.RemoveCost = ParamText{Text: removeCost, Present: ok}
 	p.AddKeywords, p.AddKeywordsPresent = sa.Param(cards.PKAddKeywords)
 	p.PumpKeywords = sa.ParamStr(cards.PKPumpKeywords)
 	p.RemoveKeywords = sa.ParamStr(cards.PKRemoveKeywords)
