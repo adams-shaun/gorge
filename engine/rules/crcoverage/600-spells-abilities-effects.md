@@ -103,7 +103,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 604.5-604.6 | follows | `engine/rules/chars/cda.go#EffectZoneOK` `engine/rules/chars/cda.go#StaticZoneAdmitsStatic` | - | stack/hand-zone statics; untested in g |
 | 604.7 | unknown | - | - | g not traced |
 | 605.1 | definition | - | - | mana ability criteria header |
-| 605.1a | deviates | `engine/cards/ability_class.go#IsManaAbilitySA` | - | g ignores library-move criterion, Chromatic Sphere (cr-g34) |
+| 605.1a | follows | `engine/cards/ability_class.go#IsManaAbilitySA` `engine/cards/ability_class.go#movesLibraryCard` | `TestCR605_1aManaAbilityLibraryGateMovesTheLibraryCarriers` `TestCR605_1aLibraryMoveShapes` `TestCR605_1aLibraryMovingManaAbilitiesUseTheStack` | target, loyalty (rules-side `isLoyaltyAbility`) and library-move criteria |
 | 605.1b | partial | `engine/rules/mana_activation.go#Engine.isTriggeredManaAbility` | - | g only TapsForMana shape; d no triggered mana |
 | 605.2 | follows | `engine/cards/ability_class.go#IsManaAbilitySA` | - | - |
 | 605.3 | follows | `engine/rules/mana_activation.go#Engine.activateManaFor` | - | header; exceptions below |

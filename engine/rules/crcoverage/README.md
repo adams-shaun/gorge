@@ -53,10 +53,10 @@ when a row stops matching the code.
 | [300-card-types](300-card-types.md) | 98 | 62 | 11 | 5 | 5 | 4 | 7 | 4 |
 | [400-zones](400-zones.md) | 70 | 43 | 9 | 0 | 4 | 4 | 3 | 7 |
 | [500-turn-structure](500-turn-structure.md) | 125 | 85 | 22 | 3 | 8 | 0 | 5 | 2 |
-| [600-spells-abilities-effects](600-spells-abilities-effects.md) | 286 | 161 | 37 | 14 | 7 | 8 | 3 | 56 |
-| [700-additional-rules](700-additional-rules.md) | 437 | 246 | 55 | 47 | 34 | 0 | 33 | 22 |
+| [600-spells-abilities-effects](600-spells-abilities-effects.md) | 286 | 162 | 37 | 13 | 7 | 8 | 3 | 56 |
+| [700-additional-rules](700-additional-rules.md) | 437 | 247 | 55 | 46 | 34 | 0 | 33 | 22 |
 | [702-keyword-abilities](702-keyword-abilities.md) | 249 | 177 | 13 | 7 | 39 | 0 | 3 | 10 |
 | [800-multiplayer](800-multiplayer.md) | 43 | 18 | 6 | 4 | 11 | 0 | 3 | 1 |
 | [900-casual-variants](900-casual-variants.md) | 49 | 23 | 12 | 2 | 9 | 0 | 1 | 2 |
-| **all** | 1603 | 962 | 183 | 89 | 129 | 19 | 89 | 132 |
+| **all** | 1603 | 964 | 183 | 87 | 129 | 19 | 89 | 132 |
 <!-- /crcoverage:summary -->

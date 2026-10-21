@@ -88,7 +88,6 @@ var knownUnsupportedCreatureMana = map[string]string{
 	"Fanatic of Rhonas|A1":           "gate: IsPresent$ Creature.YouCtrl+powerGE4 (ferocious) is false",
 	"Whisperer of the Wilds|A1":      "gate: IsPresent$ Creature.YouCtrl+powerGE4 (ferocious) is false",
 	"Lavinia, Foil to Conspiracy|A0": "gate: OpponentTurn$ True; seat 0's own turn does not qualify",
-	"Rainbow Dash|A0":                "gate: CheckSVar RDCoolness GE5 is false",
 	"Vivi Ornitier|A0":               "gate: PlayerTurn$ True + ActivationLimit$ 1; not activatable on the audit turn",
 	// Board-dependent Amount$ that is legitimately zero on the audit board.
 	// The card is offered and resolves; the count it reads is zero.
