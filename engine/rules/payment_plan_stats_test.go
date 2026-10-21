@@ -12,13 +12,13 @@ import (
 // builder plans in one build -- a plannable {R} Shock, an {X}{R} spell the
 // cost classifier declines (cost:x), a Spree spell the shape gate declines
 // (shape:modal_cost), and a {C} spell whose only colourless source is a
-// Mill-costed mana ability the manual window may use but no V1 witness does
+// Discard-costed mana ability the manual window may use but no V1 witness does
 // (insufficient, naming that source's tier).
 const (
 	paymentStatsXSpell     = "Name:Stats X Spell\nManaCost:X R\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
 	paymentStatsSpreeSpell = "Name:Stats Spree Spell\nManaCost:R\nTypes:Instant\nK:Spree\nA:SP$ Charm | Choices$ DBOne | MinCharmNum$ 1\nSVar:DBOne:DB$ Draw | NumCards$ 1 | ModeCost$ R\nOracle:x\n"
 	paymentStatsCSpell     = "Name:Stats Colorless Spell\nManaCost:C\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
-	paymentStatsMillSource = "Name:Stats Millikin\nTypes:Artifact Creature Construct\nPT:0/1\nA:AB$ Mana | Cost$ T Mill<1> | Produced$ C\nOracle:x\n"
+	paymentStatsMillSource = "Name:Stats Millikin\nTypes:Artifact Creature Construct\nPT:0/1\nA:AB$ Mana | Cost$ T Discard<1/Card> | Produced$ C\nOracle:x\n"
 	paymentStatsTaxRelic   = "Name:Tax Relic\nTypes:Artifact\nS:Mode$ RaiseCost | ValidCard$ Card | Type$ Spell | Amount$ 1 | Description$ Spells cost {1} more.\nOracle:x\n"
 )
 
