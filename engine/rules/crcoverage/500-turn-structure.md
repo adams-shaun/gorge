@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 508.3c-508.3d | follows | `engine/rules/trigmatch/combat.go#AttacksMatches` `engine/rules/trigmatch/combat.go#AttackersDeclaredMatchedAttackers` | `TestAttackersDeclaredBatchFiresOnceOnSplitAttack` |  |
 | 508.3e | deviates | `engine/rules/trigmatch/combat.go#AttackersDeclaredMatchedAttackers` | - | REVISED from unknown: AttackedTarget$ player spec matches a planeswalker/battle attack event's seat |
 | 508.3f | follows | `engine/rules/trigger_blocks.go#Engine.checkAttackerUnblockedTriggers` | `TestAttackerUnblockedValidCardAndDefenderGates` |  |
-| 508.4 | partial | `engine/effects/token.go#tokenAttackingRider` `engine/events/apply_combat.go#foldTokenAttacks` | `TestAdelineTokenAttackingRememberedPlayerAttacksThatOpponent` `TestAttackingEntryWithoutDefenderDegradesOnce` | D2 cr-g11 always tapped; D10 no defender choice (LOUD Note without context) |
+| 508.4 | partial | `engine/effects/token.go#tokenAttackingRider` `engine/events/apply_combat.go#foldTokenAttacks` | `TestCR508_4SigiledSwordKnightEntersAttackingUntapped` `TestCR508_4HeroOfBladeholdSoldiersEnterTappedAndAttacking` `TestAdelineTokenAttackingRememberedPlayerAttacksThatOpponent` | enters tapped only when its text says so; the controller does not choose the defender yet (cr-g11b) |
 | 508.4a-508.4b | partial | `engine/events/apply_combat.go#foldTokenAttacks` `engine/events/apply_helpers.go#validPlayer` | - | REVISED: departed player not checked (index-only validPlayer) |
 | 508.4c | follows | `engine/events/apply_combat.go#foldTokenAttacks` | - | entry bypasses declaration validation |
 | 508.4d | follows | `engine/events/apply_combat.go#foldTokenAttacks` | - | no BlockedBy recorded, so unblocked |

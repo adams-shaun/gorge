@@ -80,7 +80,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.19a | follows | `engine/effects/regeneration.go#ReplaceDestruction` `engine/rules/combat.go#Engine.cleanupBody` | - | OpRegenerate unused by tables |
 | 701.19b | unknown | - | - | static regeneration not located |
 | 701.19c | follows | `engine/effects/regeneration.go#ReplaceDestruction` | - | Incinerate stat:CantRegenerate still on ratchet |
-| 701.20a-c,e | follows | `engine/effects/cardflow.go#effReveal` | - |  |
+| 701.20a-c,e | follows | `engine/effects/cardflow.go#effReveal` `engine/effects/dig.go#digSecretTo` | `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` |  |
 | 701.20d | unknown | - | - | not reached |
 | 701.21a | partial | `engine/effects/zone_bulk.go#sacrificeObjectEligible` `engine/effects/zone_bulk.go#effSacrifice` | - | gorge object path lacks controller check |
 | 701.22a | follows | `engine/effects/cardflow.go#effLookAndArrange` | - |  |
@@ -238,7 +238,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 704.6 | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | index rule |
 | 704.6a-704.6b | n/a | - | - | Two-Headed Giant not modelled |
 | 704.6c | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/combat.go#Engine.tallyCmdDamage` | `TestTwentyOneCommanderDamageLoses` `TestTwentyCommanderDamageDoesNotLose` `TestNonCombatCommanderDamageDoesNotTally` |  |
-| 704.6d | deviates | `engine/rules/replacement_cmdzone.go#Engine.commanderZoneReplacementApplies` `engine/rules/replacement_cmdzone.go#Engine.parkCommanderZoneMove` | `TestDestroyedCommanderOffersTheOwnerTheChoiceAndAcceptSendsItToTheCommandZone` `TestCommanderExiledAcceptsTheCommandZone` |  |
+| 704.6d | follows | `engine/rules/replacement_cmdzone.go#Engine.commanderZoneSBA` `engine/rules/sba.go` | `TestCR903_9aDyingCommanderFiresDiesTriggersBeforeTheCommandZoneChoice` `TestCR903_9aDepartedOwnersAskDoesNotBlockLaterCommanders` |  |
 | 704.6e | n/a | - | - | Archenemy not modelled |
 | 704.6f | not-impl | - | - |  |
 | 704.7 | partial | `engine/rules/cantlose.go#Engine.gameLossPrevented` `engine/rules/sba.go#Engine.checkLoseConditions` | - | CantHappen losses only; ReplaceWith GameLoss (Lich's Mirror) family out of scope, losses proposed per cause |
