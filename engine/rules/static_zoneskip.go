@@ -175,11 +175,22 @@ func (e *Engine) staticZoneTouch(id state.ObjID) {
 	}
 	// The object's cached class (walk_objclass.go) is refreshed here; when
 	// its static-hot bits are provably unchanged, every summary holding it
-	// keeps its recorded classification, so none is dropped.
-	if e.walkClassTouch(o) {
+	// keeps its recorded classification, so none is dropped -- unless the
+	// object changed zone since the class was recorded: the summary of the
+	// departed zone is the one holding the old classification, so it must
+	// be dropped too.
+	prev, hadClass := e.walkClassZone(id)
+	if e.walkClassTouch(o) && (!hadClass || prev == o.Zone) {
 		return
 	}
-	s := staticZoneSlot(o.Zone)
+	e.invalidateStaticZone(o.Zone)
+	if hadClass && prev != o.Zone {
+		e.invalidateStaticZone(prev)
+	}
+}
+
+func (e *Engine) invalidateStaticZone(z state.Zone) {
+	s := staticZoneSlot(z)
 	if s < 0 {
 		return
 	}

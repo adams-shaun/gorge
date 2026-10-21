@@ -680,3 +680,25 @@ func TestPouncingShoresharkUnderAForeignTopAsksItsOptionalDecider(t *testing.T) 
 	}
 	replayCheck(t, e, cfg)
 }
+
+const mutateTesterSrc = "Name:Apex Tester\nManaCost:2 G\nTypes:Legendary Creature Beast\nPT:3/3\nK:Mutate:1 G\nOracle:x\n"
+
+func TestMutatePileReanimateRefreshesStaticZone(t *testing.T) {
+	e, _ := tokenReplGame(t, 401, card(t, mutateTesterSrc))
+	mut := moveSeededCard(t, e, 0, card(t, mutateTesterSrc), state.ZHand)
+	bear := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
+	addMana(t, e, 0, "GG")
+	mutateCastOnto(t, e, mutatedCastOption(t, e, mut), bear, false)
+	if got := e.staticSourceIDs(0, state.ZBattlefield); len(got) != 1 {
+		t.Fatalf("precondition: battlefield static sources = %v, want [%d]", got, bear)
+	}
+	e.pending = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear,
+		From: state.ZBattlefield, To: state.ZGraveyard})
+	e.checkStateBased()
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear,
+		From: state.ZGraveyard, To: state.ZBattlefield})
+	if got := e.staticSourceIDs(0, state.ZBattlefield); len(got) != 0 {
+		t.Fatalf("battlefield static sources = %v, want none", got)
+	}
+}
