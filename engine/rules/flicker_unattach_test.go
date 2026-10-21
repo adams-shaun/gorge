@@ -2,16 +2,19 @@
 // CR 704.5m/n state-based actions: a permanent that leaves the battlefield
 // and returns under its owner's control (a flicker) is a NEW object, so
 // nothing stays attached across the trip. The move fold
-// (engine/events/apply_zone.go) breaks every attachment to the departing
-// permanent at the move itself — clearing AttachedTo and recording
-// LastBearer — because the flickered bearer is back on the battlefield under
-// the same ObjID before the next SBA checkpoint: clearing only in
-// attachmentSBAs would never see the departure. The SBAs then finish the
-// job: the Aura goes to its owner's graveyard (704.5m) and the Equipment
-// sits unattached on the battlefield (704.5n), so the returned bearer has
-// its base characteristics. Before the fix the returned creature carried its
-// Aura, its +1/+0 and its flying across the flicker. All cards are real
-// compiled corpus cards; no Forge script text is committed here.
+// (engine/events/apply_zone.go) marks every attachment to the departing
+// permanent UnattachPending at the move itself — recording LastBearer while
+// deliberately leaving the live AttachedTo link standing, so the
+// mid-resolution window before the next checkpoint still shows the
+// attachment fastened — because the flickered bearer is back on the
+// battlefield under the same ObjID before the next SBA checkpoint: the
+// bearer-left arm in attachmentSBAs reads the live link and could never see
+// the departure, only the queued mark survives the round trip. The SBAs then
+// finish the job: the Aura goes to its owner's graveyard (704.5m) and the
+// Equipment sits unattached on the battlefield (704.5n), so the returned
+// bearer has its base characteristics. Before the fix the returned creature
+// carried its Aura, its +1/+0 and its flying across the flicker. All cards
+// are real compiled corpus cards; no Forge script text is committed here.
 package rules
 
 import (
@@ -91,8 +94,15 @@ func TestFlickerUnattachesAura(t *testing.T) {
 
 		// Flicker: exile and return under the owner's control, the same
 		// ObjID throughout (CR 400.7 makes the returned permanent a new
-		// object regardless).
+		// object regardless). Between the two moves the fold's window
+		// contract holds: the Aura is still on the battlefield fastened to
+		// the departed bearer, with the detach queued for the next
+		// state-based check.
 		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZExile})
+		if ao := e.G.Obj(aura); ao.Zone != state.ZBattlefield || ao.AttachedTo != bear || !ao.UnattachPending {
+			t.Fatalf("mid-window: Aura zone=%v attached=%d queued=%v, want battlefield/%d/true (the link stands until the SBA publishes the queued detach)",
+				ao.Zone, ao.AttachedTo, ao.UnattachPending, bear)
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZExile, To: state.ZBattlefield})
 		e.checkStateBased()
 
@@ -157,6 +167,10 @@ func TestFlickerUnattachesAura(t *testing.T) {
 		}
 
 		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZExile})
+		if eo := e.G.Obj(boots); eo.Zone != state.ZBattlefield || eo.AttachedTo != bear || !eo.UnattachPending {
+			t.Fatalf("mid-window: Boots zone=%v attached=%d queued=%v, want battlefield/%d/true (the link stands until the SBA publishes the queued detach)",
+				eo.Zone, eo.AttachedTo, eo.UnattachPending, bear)
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZExile, To: state.ZBattlefield})
 		e.checkStateBased()
 

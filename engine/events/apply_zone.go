@@ -464,6 +464,31 @@ func MoveCountersRemain(g *state.Game, id state.ObjID, from, to state.Zone) {
 	move(g, id, from, to, true)
 }
 
+// detachAttachmentsOnDeparture queues the CR 400.7 / CR 704.5m-n break of
+// every attachment to the permanent id that is leaving the battlefield
+// (called only from move's wasBattlefield-and-leaving arm, so the
+// index-ordered g.Objs walk keeps the fold deterministic). It records the
+// departed bearer as LastBearer -- the contract LKI readers of "objects that
+// were attached to it" fall back to -- and marks each attachment
+// UnattachPending for engine/rules/attach.go's attachmentSBAs to publish,
+// but deliberately leaves the live AttachedTo link alone: the mid-resolution
+// window between this move and the next SBA checkpoint must still show the
+// attachment fastened (Murderous Spoils' StealEquip resolves the Equipment
+// of the creature its Destroy leg just killed), and a stale link cannot leak
+// across zones because every cross-zone reader zone-gates. Only
+// object-attached links queue; an attachment to a PLAYER
+// (HasAttachedPlayer) is untouched, and a re-Attach or the attachment's own
+// Unattached fold supersedes or spends the queue.
+func detachAttachmentsOnDeparture(g *state.Game, id state.ObjID) {
+	for i := range g.Objs {
+		other := &g.Objs[i]
+		if other.AttachedTo == id {
+			other.LastBearer = id
+			other.UnattachPending = true
+		}
+	}
+}
+
 func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain bool) {
 	o := g.Obj(id)
 	if o == nil || !o.Zone.Valid() || !to.Valid() {
@@ -595,36 +620,30 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		}
 	}
 	// CR 400.7 / 704.5m-n: a permanent that leaves the battlefield is a new
-	// object in its next zone, so nothing stays attached ACROSS the move:
-	// every attachment to the departing permanent is broken here, inside the
-	// fold, with the departed bearer recorded as LastBearer (the contract
-	// LKI readers of "objects that were attached to it" fall back to) and
-	// the detach queued as UnattachPending for the rules' attachmentSBAs to
-	// publish. The clearing must happen at the move itself, not in the
-	// attachment SBAs (engine/rules/attach.go), because a flicker (exile,
-	// then return under the same ObjID) puts the bearer back on the
-	// battlefield before the next SBA checkpoint runs -- the old code only
-	// cleared the MOVER's own AttachedTo, so a returned bearer carried its
-	// Aura and its bonuses across the trip. The queue matters as much as the
-	// clear: attachmentSBAs publishes each queued detach with the SAME
-	// Unattached ("bearer left the battlefield" for an Equipment/Fortification,
+	// object in its next zone, so nothing stays attached ACROSS the move.
+	// The departure itself only QUEUES the break: each attachment to the
+	// departing permanent is marked UnattachPending with the departed bearer
+	// recorded as LastBearer, while its live AttachedTo link stays exactly
+	// as it was. Keeping the link preserves the mid-resolution window
+	// (before any SBA checkpoint) sub-abilities and "enchanted"-style
+	// readers rely on: Murderous Spoils' StealEquip still resolves the
+	// Equipment attached to the creature its Destroy leg just killed, and a
+	// stale AttachedTo cannot leak across zones because every such reader
+	// zone-gates (CR 303.4/400.7: an off-battlefield card is not enchanted).
+	// The queue, not the clear, is what makes a flicker lose its attachments:
+	// a flicker (exile, then return under the same ObjID) puts the bearer
+	// back on the battlefield before the next SBA checkpoint runs, so
+	// attachmentSBAs' bearer-left arm -- which reads the LIVE link -- could
+	// never see the departure; the queued mark survives the round trip and
+	// the pending arm publishes each queued detach with the SAME Unattached
+	// ("bearer left the battlefield" for an Equipment/Fortification,
 	// "bestowed attachment ended" for a bestowed card) or the same graveyard
 	// MoveZone ("attached to an object that left the battlefield" for an
-	// Aura) the bearer-left arm used to emit when it could still read
-	// AttachedTo, so Mode$ Unattached triggers (Grafted Exoskeleton) and the
-	// CR 702.114b bestowed detach log keep firing exactly as before. The
-	// g.Objs walk is index-ordered, so the fold stays deterministic. An
-	// attachment to a PLAYER (HasAttachedPlayer) is not object-attached and
-	// is untouched.
+	// Aura) the bearer-left arm emits, so Mode$ Unattached triggers (Grafted
+	// Exoskeleton) and the CR 702.114b bestowed detach log keep firing
+	// exactly as before.
 	if wasBattlefield && to != state.ZBattlefield {
-		for i := range g.Objs {
-			other := &g.Objs[i]
-			if other.AttachedTo == id {
-				other.LastBearer = id
-				other.AttachedTo = 0
-				other.UnattachPending = true
-			}
-		}
+		detachAttachmentsOnDeparture(g, id)
 	}
 	// CR 712.4: a melded permanent that goes anywhere but the battlefield
 	// splits back into its two cards (engine/events/apply_meld.go).

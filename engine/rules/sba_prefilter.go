@@ -265,8 +265,8 @@ func (e *Engine) mayHaveLegendPair() bool {
 //   - counterPair: annihilateOppositeCounters' phased-in P1P1+M1M1 holder;
 //   - attach: attachmentSBAs' phased-in permanent that is attached (to an
 //     object or a player), is an Aura (sbaIsAura), or carries an
-//     UnattachPending queue (the bearer-departure fold's detach, published
-//     by attachmentSBAs even though the link is already broken);
+//     UnattachPending queue (the bearer-departure fold's queued detach,
+//     published by attachmentSBAs, which is also what clears the live link);
 //   - world: two or more World permanents (worldPermanents' derived test,
 //     answered through sbaTypeFast);
 //   - legend: mayHaveLegendPair's answer (some controller has two phased-in
