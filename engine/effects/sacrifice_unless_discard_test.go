@@ -21,7 +21,14 @@ const sacrificeUnlessDiscardSrc = "Name:Discard Warden\nManaCost:4\n" +
 // exactly at the beginning-of-upkeep trigger, with no turn driving.
 func sacrificeUnlessDiscardGame(t *testing.T, hand int) (*rules.Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
-	warden, diags := cards.ParseBytes("inline-discard-warden.txt", []byte(sacrificeUnlessDiscardSrc))
+	return sacrificeUnlessDiscardGameSrc(t, sacrificeUnlessDiscardSrc, hand)
+}
+
+// sacrificeUnlessDiscardGameSrc is sacrificeUnlessDiscardGame over a given
+// inline card script, so a test can vary the UnlessCost$ spec.
+func sacrificeUnlessDiscardGameSrc(t *testing.T, src string, hand int) (*rules.Engine, state.ObjID, []state.ObjID) {
+	t.Helper()
+	warden, diags := cards.ParseBytes("inline-discard-warden.txt", []byte(src))
 	if len(diags) != 0 {
 		t.Fatalf("fixture parse: %v", diags)
 	}
