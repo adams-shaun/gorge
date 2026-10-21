@@ -75,12 +75,18 @@ type ContinuousEffect struct {
 	// and layer derivation; this separate anchor handles effects such as
 	// Exchange of Words that modify other objects while its enchantment stays.
 	DurationSource ObjID
-	Timestamp      uint32
-	Layer          Layer
-	Sub            Sublayer
-	Affects        string
-	Controller     PlayerID
-	UntilEOT       bool
+	// UntilUntapOf is Duration$ UntilUntaps' host: the effect lasts only while
+	// that permanent is on the battlefield AND tapped, and ends for good the
+	// first time it untaps or leaves (rules' expireUntilUntaps; a later retap
+	// does not revive it). Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	UntilUntapOf ObjID
+	Timestamp    uint32
+	Layer        Layer
+	Sub          Sublayer
+	Affects      string
+	Controller   PlayerID
+	UntilEOT     bool
 
 	// FromEffect marks a registration created by the api:Effect primitive (the
 	// Ctx-side stand-in for Forge's implicit Command-zone effect object). The
