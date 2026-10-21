@@ -536,19 +536,23 @@ func eachFromSourceCounters(h Host, c *Ctx, id state.ObjID) []state.Counter {
 		}
 	}
 	for _, s := range c.Sacrificed {
-		if s.Obj == id && len(s.Counters) > 0 {
-			return s.Counters
+		if s.Obj == id {
+			if ks := positiveCounters(s.Counters); len(ks) > 0 {
+				return ks
+			}
 		}
 	}
 	return nil
 }
 
 // positiveCounters copies the kinds a counter slice holds at a POSITIVE
-// count, in slice order (deterministic; never a map walk).
+// count, in slice order (deterministic; never a map walk). It also excludes
+// the engine's internal status markers (Shield, Deathtouched), which are not
+// counters (CR 122.1).
 func positiveCounters(cs []state.Counter) []state.Counter {
 	var out []state.Counter
 	for i := range cs {
-		if cs[i].N > 0 {
+		if cs[i].N > 0 && !state.InternalCounterMarker(cs[i].Kind) {
 			out = append(out, cs[i])
 		}
 	}
