@@ -27,18 +27,36 @@ type restartRequest struct {
 	player state.PlayerID
 	// keep is the CR 727.5 exempted set, left where it is.
 	keep []state.ObjID
+	// rest is the restarting chain's remainder (Karn's ReturnFromExile),
+	// source the restarting effect's source object; see restartRest.
+	rest   *cards.SA
+	source state.ObjID
+}
+
+// restartRest is the rest of a restarting effect's chain, held across the
+// new game's deal and pregame rounds: CR 727.4, "The effect that restarts
+// the game finishes resolving just before the first turn's untap step. If
+// the spell or ability that generated that effect has additional
+// instructions, those instructions are followed at this time." beginTurn
+// runs it once, right after turn 1's TurnChange and before the untap step,
+// under the restarting player with the old source as its source (the
+// ExiledWithSource link the kept cards still carry). It is immutable once
+// built.
+type restartRest struct {
+	sa         *cards.SA
+	controller state.PlayerID
+	source     state.ObjID
 }
 
 // RequestRestart implements effects' restartHost: it records the restart for
 // the resolving caller. A second request in the same resolution (none in the
-// corpus) keeps the first. rest, the chain's remainder CR 727.4 runs just
-// before the new game's first untap step, is not yet followed (cr-g33b):
-// Karn's exempted cards stay in exile.
+// corpus) keeps the first.
 func (e *Engine) RequestRestart(c *effects.Ctx, keep []state.ObjID, rest *cards.SA) {
 	if e.restart != nil || c == nil {
 		return
 	}
-	e.restart = &restartRequest{player: c.Controller, keep: append([]state.ObjID(nil), keep...)}
+	e.restart = &restartRequest{player: c.Controller, keep: append([]state.ObjID(nil), keep...),
+		rest: rest, source: c.Source}
 }
 
 // finishRestart performs the pending restart (see the file comment).
@@ -47,6 +65,9 @@ func (e *Engine) finishRestart() {
 	e.restart = nil
 	e.emit(events.Event{Kind: events.GameRestart, Player: req.player, Amount: e.startingLife, IDs: req.keep})
 	e.resetForRestart()
+	if req.rest != nil {
+		e.restartRest = &restartRest{sa: req.rest, controller: req.player, source: req.source}
+	}
 	// The opening deal is one genesis operation, exactly as New's: a loss
 	// from an empty library is real immediately, but the terminal GameOver
 	// waits until every remaining short seat has been accounted for, so an
@@ -136,4 +157,14 @@ func (e *Engine) resetForRestart() {
 	e.trigGrant.free = true
 	e.trigGrant.replFree = true
 	e.staticEpoch, e.activeEpoch = -1, -1
+}
+
+// runRestartRest follows a restart's remaining instructions (CR 727.4; see
+// restartRest). Triggers they cause wait for the first priority, as any
+// trigger does.
+func (e *Engine) runRestartRest() {
+	r := e.restartRest
+	e.restartRest = nil
+	ctx := effects.NewCtxPtr(r.source, r.controller, effects.CtxInit{})
+	effects.Resolve(e, ctx, r.sa)
 }
