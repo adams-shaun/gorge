@@ -586,6 +586,14 @@ type ContinuousEffect struct {
 	// grants none.
 	MayLookAt bool
 
+	// MayLookAtAll marks a MayLookAt$ Player grant: "play with the top card
+	// of your library revealed" (Courser of Kruphix, Oracle of Mul Daya).
+	// Forge resolves the Player value to every player, so the matched card is
+	// revealed to all of them (CR 401.5, 701.20a), not only to the static's
+	// controller. Consumed by Engine.LibraryTopRevealed. Set only together
+	// with MayLookAt.
+	MayLookAtAll bool
+
 	// MayPlayIgnoreType marks the grant's MayPlayIgnoreType$ True rider
 	// (Rakdos, the Muscle's "mana of any type can be spent to cast those
 	// spells"): like MayPlayIgnoreColor it lets any colour pay a coloured

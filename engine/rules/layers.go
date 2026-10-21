@@ -755,14 +755,17 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						// matches -- in the corpus always the top card of the
 						// controller's own library (Affected$ Card.TopLibrary+YouCtrl,
 						// AffectedZone$ Library). The value names WHO may look:
-						// You/Player/True are all the static's controller in every
-						// corpus shape (73/34/1 raw lines at the pin); anything else
-						// fails closed. Consumed by Engine.MayLookAtLibraryTop, the
-						// view's reveal of that top card.
+						// You/True are the static's controller (73/1 raw lines at
+						// the pin); Player (34) reveals the card to every player
+						// (MayLookAtAll); anything else fails closed. Consumed by
+						// Engine.MayLookAtLibraryTop, the view's reveal of that top
+						// card.
 						if raw := strings.TrimSpace(st.ParamStr(cards.PKMayLookAt)); raw != "" {
 							if strings.EqualFold(raw, "You") || strings.EqualFold(raw, "Player") || strings.EqualFold(raw, "True") {
 								lv := base
 								lv.MayLookAt = true
+								// MayLookAt$ Player is "play with ... revealed": every player sees the card (CR 401.5).
+								lv.MayLookAtAll = strings.EqualFold(raw, "Player")
 								lv.AffectedZone = st.ParamStr(cards.PKAffectedZone)
 								out = append(out, lv)
 							}

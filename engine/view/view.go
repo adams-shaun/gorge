@@ -706,7 +706,10 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 		// sees nothing (the CR 400.2 hidden-zone rule the Hand field documents
 		// applies in full). A nil ch degrades to no reveal, the way it degrades
 		// every other derived fact.
-		if ownSeat && ch != nil && ch.MayLookAtLibraryTop(p.ID) {
+		// CR 401.5: a "play with the top card of your library revealed" grant
+		// (MayLookAt$ Player, the optional revealer capability) shows it to
+		// every seat.
+		if ch != nil && ((ownSeat && ch.MayLookAtLibraryTop(p.ID)) || (pr.revealer != nil && pr.revealer.LibraryTopRevealed(p.ID))) {
 			if lib := g.Zone(state.ZLibrary, p.ID); len(lib) > 0 {
 				top := prev.LibraryTop
 				if top == nil {
