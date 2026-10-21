@@ -883,8 +883,9 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
+	mp := compileMillParams(sa)
 	remember := strings.EqualFold(sa.ParamStr(cards.PKRememberMilled), "True")
-	imprint := compileMillParams(sa).Imprint
+	imprint := mp.Imprint
 	show := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKShowMilledCards)), "True")
 	// One api:Mill resolution is ONE mill action (Forge's one Mill call),
 	// so the Mode$ MilledAll batch ("whenever one or more cards are
@@ -894,11 +895,35 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 	// exactly as before.
 	defer beginActionBatch(h)()
 	g := h.Game()
-	for _, t := range actingPlayers(h, c, sa) {
+	noted := false
+	for idx, t := range actingPlayers(h, c, sa) {
 		p := t
 		// A zero-card instruction is not a mill action: Water Crystal's
 		// "one or more" replacement must not turn it into four cards.
 		count := n
+		if mp.Optional && count > 0 {
+			// Forge's MillEffect asks each affected player whether to mill when
+			// Optional$ is set ("you may mill N cards"). A no mills nothing; a
+			// host that cannot ask keeps the pre-ask mandatory mill (R-9), one
+			// loud Note per gated resolution.
+			d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+				ResumeKind: "mill_optional", ResumeSA: sa, ResumeTarget: idx,
+				Source: c.Source,
+				Prompt: "Mill " + strconv.Itoa(int(count)) + " card(s)?"}
+			d.Options = []decision.Option{
+				{Index: 0, Kind: "yes", Label: "Yes — mill", Player: p},
+				{Index: 1, Kind: "no", Label: "No", Player: p},
+			}
+			if ans, ok := AskTape(h, d); ok {
+				if !answerYes(ans) {
+					continue
+				}
+			} else if !noted {
+				noted = true
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "Mill: no host to ask the Optional$ election; mills (R-9 stand-in)"})
+			}
+		}
 		if count > 0 {
 			count = h.CountReplacementProposed(events.Event{Kind: events.MillProposal, Player: p, Obj: c.Source, Amount: count}).Amount
 		}
