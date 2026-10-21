@@ -58,5 +58,5 @@ when a row stops matching the code.
 | [702-keyword-abilities](702-keyword-abilities.md) | 249 | 166 | 16 | 12 | 42 | 0 | 3 | 10 |
 | [800-multiplayer](800-multiplayer.md) | 43 | 17 | 6 | 5 | 11 | 0 | 3 | 1 |
 | [900-casual-variants](900-casual-variants.md) | 49 | 23 | 12 | 2 | 9 | 0 | 1 | 2 |
-| **all** | 1603 | 923 | 183 | 120 | 137 | 19 | 89 | 132 |
+| **all** | 1603 | 924 | 183 | 119 | 137 | 19 | 89 | 132 |
 <!-- /crcoverage:summary -->
