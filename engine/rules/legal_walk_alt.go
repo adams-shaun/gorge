@@ -738,13 +738,13 @@ func (w *legalWalk) exileCastsWalk() {
 			// play; never yield two identical options for one land.
 			dup := false
 			for _, prev := range *out {
-				if prev.Kind == optPlayLand && prev.Obj == id {
+				if prev.Kind == "play_land" && prev.Obj == id {
 					dup = true
 					break
 				}
 			}
 			if !dup {
-				w.add(optPlayLand, w.playLabel(f), id)
+				w.add("play_land", w.playLabel(f), id)
 			}
 		}
 		// Foretell cast (CR 702.126a): a card exiled face down by the {2}
