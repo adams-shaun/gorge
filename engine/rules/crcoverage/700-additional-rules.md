@@ -35,10 +35,10 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.16 | follows | `engine/effects/filter_word.go#wordMatches` | - |  |
 | 701.1 | n/a | - | - | definitional |
 | 701.2a | follows | `engine/rules/legal_activation.go#Engine.activatorAllows` | - | controller-only unless Activator$ |
-| 701.3a | deviates | `engine/effects/attach.go#Attachable` | - | illegal attach moves, SBA bins it |
-| 701.3b | deviates | `engine/effects/attach.go#emitAttach` | - | re-attach to same bearer re-fires Attached triggers |
+| 701.3a | follows | `engine/rules/attach.go#Engine.attachRefused` `engine/rules/emit.go#Engine.emit` | `TestAttachToAnIllegalPermanentDoesNotMove` | an attach chooser may still offer an illegal bearer; the attach is refused |
+| 701.3b | partial | `engine/rules/attach.go#Engine.attachRefused` `engine/effects/attach.go#emitAttach` | `TestReEquipToTheSameCreatureDoesNothing` `TestAttachToAnIllegalPermanentDoesNotMove` | same-bearer and illegal-bearer attaches do nothing; the third sentence (a non-attachment object) is not checked |
 | 701.3c | follows | `engine/events/apply_zone.go#foldAttach` `engine/rules/layers.go#Engine.staticEffectsWalk` | `TestEquipAfterAbilityLossRestampsTheEquipment` `TestEquipBeforeAbilityLossStaysLost` | same-bearer attach keeps the stamp |
-| 701.3d | partial | `engine/events/apply_zone.go#move` `engine/rules/attach.go#Engine.attachmentSBAs` | - | no Unattached when the attachment leaves (Grafted Wargear) |
+| 701.3d | partial | `engine/rules/trigmatch/unattached.go#unattachedMatches` `engine/rules/trigger_kinds.go#looksBackOnDeparture` `engine/rules/attach.go#Engine.attachmentSBAs` | `TestAttachedEquipmentLeavingBecomesUnattached` | the attachment's own departure fires Mode$ Unattached by look-back (no event); a player leaving the game is not modelled |
 | 701.4a | follows | `engine/rules/cast_asks.go#Engine.beholdCostAsk` `engine/rules/pay/paidcost.go#EmitChoiceCosts` | - | no behold in pools |
 | 701.4b | unknown | - | - | not reached |
 | 701.5a-b | n/a | - | - | definitional; see 601 |
@@ -408,8 +408,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 723.8 | follows | `engine/rules/engine_host.go#Engine.controlPlayerRedirect` | `TestControlRedirectCensus` |  |
 | 723.9 | deviates | `engine/effects/choose_control.go#effControlPlayer` `engine/events/apply_player.go#foldControlPlayerChange` | `TestControlPlayerEffectRejectsSelfTarget` `TestControlPlayerChangeFoldsGrantExpiryAndSelf` |  |
 | 724.1 | follows | `engine/effects/endturn.go#effEndTurn` `engine/rules/turn.go#Engine.finishEndTurn` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` `TestEndTurnObekaActivePlayerMayDeclineOrAccept` |  |
-| 724.1a,724.1f | deviates | `engine/rules/turn.go#Engine.finishEndTurn` | - |  |
-| 724.1b | follows | `engine/events/apply_turn.go#foldEndTurn` `engine/effects/endturn.go#effEndTurn` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` |  |
+| 724.1a,724.1f | follows | `engine/rules/emit.go#Engine.emit` `engine/rules/turn.go#Engine.checkEndTurnExileTriggers` `engine/rules/turn.go#Engine.finishEndTurn` | `TestCR724_1fTriggerDuringEndTurnResolves` `TestCR724_1aTriggerBeforeEndTurnCeases` | - |
+| 724.1b | follows | `engine/events/apply_turn.go#foldEndTurn` `engine/effects/endturn.go#effEndTurn` `engine/rules/turn.go#Engine.checkEndTurnExileTriggers` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` `TestCR724_1fTriggerDuringEndTurnResolves` |  |
 | 724.1c | follows | `engine/rules/turn.go#Engine.finishCleanupStep` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` | unobservable with Time Stop |
 | 724.1d-724.1e | follows | `engine/rules/turn.go#Engine.finishEndTurn` `engine/events/apply_turn.go#foldEndTurn` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` |  |
 | 724.2-724.2g | not-impl | - | - |  |
