@@ -104,12 +104,10 @@ func (e *Engine) initiativeHandoffOnDeparture(p state.PlayerID) {
 }
 
 // playerWins is the one funnel for an alternate win ("you win the game", the
-// api:WinsGame family). A live GameWin CantHappen replacement for p swallows
-// the GameOver event and reports false. The last-player-standing win the
-// state-based sweep grants is deliberately NOT routed here: a game whose sole
-// survivor cannot win would never end (and the brief requires that conceding --
-// the one loss a GameLoss replacement cannot stop -- still ends the game), so
-// only an explicit win effect is replaced. See the ticket report.
+// api:WinsGame family, CR 104.2b). A live GameWin CantHappen replacement for p
+// swallows the GameOver event and reports false. The CR 104.2a
+// last-player-standing win checkGameOver grants is NOT routed here: it
+// overrides every effect that would preclude the win.
 func (e *Engine) playerWins(p state.PlayerID, text string) bool {
 	if int(p) < 0 || int(p) >= len(e.G.Players) || e.G.Players[p].Lost || e.G.Over {
 		return false

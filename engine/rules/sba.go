@@ -1425,20 +1425,13 @@ func (e *Engine) ceaseDeadTokens(tried *sbaAttempts) bool {
 }
 
 // gameEndsNow reports whether checkGameOver would end the game on the
-// current board: no player left (a draw), or one left whom no CR 104.3
-// "can't win" effect stops (CR 104.2a). It changes nothing.
+// current board: at most one player left (CR 104.2a's last-player win, which
+// overrides every "can't win" effect, or CR 104.4a's draw). It changes nothing.
 func (e *Engine) gameEndsNow() bool {
 	if e.deferGameOver || e.G.Over {
 		return false
 	}
-	alive := e.G.AliveFrom(0)
-	switch len(alive) {
-	case 0:
-		return true
-	case 1:
-		return !e.gameWinPrevented(alive[0])
-	}
-	return false
+	return len(e.G.AliveFrom(0)) <= 1
 }
 
 // checkGameOver ends the game once at most one seat remains (CR 104.2a's
@@ -1464,17 +1457,12 @@ func (e *Engine) checkGameOver() {
 		return
 	}
 	if len(alive) == 1 {
+		// CR 104.2a: the last player in the game wins immediately, and the
+		// win "overrides all effects that would preclude that player from
+		// winning the game". It is therefore NOT routed through playerWins:
+		// no GameWin CantHappen replacement (Abyssal Persecutor) can stop it.
 		w := alive[0]
-		// The CR 104.2a last-player-standing win is a win like any other, so a
-		// live GameWin CantHappen replacement for the survivor stops it (CR
-		// 104.3's "can't win"; Herald of Eternal Dawn, Platinum Angel). This
-		// runs after checkLoseConditions has swept every departed seat's
-		// objects, so a replacement whose source has just left with its
-		// controller no longer applies -- which is why a concession still ends
-		// the game (the Angel leaves the game, then the survivor wins).
-		if !e.playerWins(w, e.G.Players[w].Name) {
-			return
-		}
+		e.emit(events.Event{Kind: events.GameOver, Player: w, Text: e.G.Players[w].Name})
 	} else {
 		e.emit(events.Event{Kind: events.GameOver, Amount: 1, Text: "draw"})
 	}
