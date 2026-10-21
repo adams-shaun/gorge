@@ -13,7 +13,7 @@ the error codes, all as gorge implements them.
 *Everything here was read from the code at commit `ad3777023` (2026-10-20) and checked
 against the goldens in
 [`server/spellbench/testdata/goldens`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/testdata/goldens).
-The commands and outputs shown were run that day.*
+The `-h` outputs and the smoke test were re-run at `513a2a0c3` (2026-10-21).*
 
 !!! note "Where this comes from"
     gorge's SpellBench packages are ported from the SpellBench repository's gorge adapter
@@ -56,7 +56,7 @@ it should not see.
 ### Running the binaries
 
 Both commands need the compiled Forge card corpus (`make fetch-cards`; see
-[Getting started](../getting-started.md)). `-h` prints, at `ad3777023`:
+[Getting started](../getting-started.md)). `-h` prints, at `513a2a0c3`:
 
 ```text
 $ go build -o bin/ ./cmd/spellbench-gorge-env ./cmd/spellbench-gorge-agent

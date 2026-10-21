@@ -8,7 +8,8 @@ with its body, the vocabularies the bodies use, the versioning rule, and the tes
 the wire. It is for client authors in any language who want to decode frames without reading
 Go.
 
-*Read from the code at commit `ad3777023` (2026-10-20).*
+*Read from the code at commit `ad3777023` (2026-10-20); the event-kind list re-checked at
+`513a2a0c3` (2026-10-21).*
 
 !!! note "Why a separate package"
     `server/protocol` is types only. It never imports the rules engine or the bot packages
@@ -121,7 +122,7 @@ the end, so existing ordinals never move. Recorded logs, hash chains and golden 
 on them. A client must treat an unknown kind as displayable but opaque, and use
 `line`.
 
-??? info "The 139 event kinds at `ad3777023`"
+??? info "The 144 event kinds at `513a2a0c3`"
     `game_start` `shuffle` `move_zone` `draw` `life` `damage` `tap` `untap` `step` `turn`
     `priority` `stack_push` `stack_resolve` `mana_add` `mana_clear` `counter`
     `declare_attackers` `declare_blockers` `player_lost` `game_over` `decision_ask`

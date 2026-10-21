@@ -155,7 +155,7 @@ go run ./cmd/gorged review -art-dir /tmp/gorge-art \
   /tmp/gorge-records/*.match.json.gz
 ```
 
-It takes about 6 seconds and plays the same three games every time. The
+It takes about 8 seconds and plays the same three games every time. The
 screenshots on this page come from the first one, `az-redeal-vs-bot`.
 
 ## Moving through a game

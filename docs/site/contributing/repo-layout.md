@@ -6,8 +6,8 @@ and where a given kind of change belongs. The per-package detail (every
 package with its purpose, size and importers) is generated from the source on
 [Packages](../architecture/packages.md); this page is the guided tour.
 
-*Verified 2026-10-20 against `develop` @ `ad3777023`: `git ls-files`,
-`go list ./...` and `go run ./cmd/pkgmap` (97 Go packages).*
+*Verified 2026-10-21 against `develop` @ `513a2a0c3`: `git ls-files`,
+`go list ./...` and `go run ./cmd/pkgmap` (99 Go packages).*
 
 ## The tree at a glance
 
@@ -62,7 +62,7 @@ package with its purpose, size and importers) is generated from the source on
 <text x="574" y="326" class="dg-text-mono">.githooks/</text>
 <text x="574" y="350" class="dg-text-mono">.github/</text><text x="646" y="350" class="dg-text-muted">CI, docs</text>
 </svg>
-<figcaption>Arrows point from the importer to the imported layer. The numbers and names are from <code>go run ./cmd/pkgmap</code> at <code>ad3777023</code>.</figcaption>
+<figcaption>Arrows point from the importer to the imported layer. The numbers and names are from <code>go run ./cmd/pkgmap</code> at <code>513a2a0c3</code>.</figcaption>
 </figure>
 
 ## Top-level paths
@@ -70,8 +70,8 @@ package with its purpose, size and importers) is generated from the source on
 | Path | What it holds | Go packages |
 |---|---|--:|
 | `engine/` | The deterministic rules core: `cards` (the Forge-script compiler and card registry), `state`, `decision`, `events` (the event log and `events.Apply`), `effects`, `rules` (the engine, with sub-packages `chars`, `combat`, `cost`, `pay`, `resolve`, `scriptfacts`, `trigmatch`), `view`, `seat` (the `Seat` contract only), `replay`, `deck`. | 19 |
-| `bots/` | The bot registry (`bots`, linked by `bots/all`), the one heuristic policy (`botpolicy`), the default bot (`heuristic`), the hosted bots (`bot`, `lethalpressure`, `sbtactical`, `azredeal`, `forgeheuristic`) and their inference runtime (`azmcts`, `gonet`, `netsimd`, `policynet`, `searchprobe`, `searchseat`, `sanity`, `spellbench/*`, `traceboard`). | 21 |
-| `server/` | The reference server: `gorged` (importable: `Main`, `Serve`, the `Extensions` seam), `host` (tables, sessions, persistence) with `host/httpapi` (JSON + server-sent events) and `host/manabrewhttp`, `protocol` (the wire types the web client is generated from), `manabrew` (an alternate wire), `divergence` (human-vs-bot divergence records), `spellbench/*` (the SpellBench v2 environment and agent adapters). | 29 |
+| `bots/` | The bot registry (`bots`, linked by `bots/all`), the one heuristic policy (`botpolicy`), the default bot (`heuristic`), the hosted bots (`bot`, `lethalpressure`, `sbtactical`, `azredeal`, `forgeheuristic`) and their inference runtime (`azmcts`, `gonet`, `netsimd`, `policynet`, `searchprobe`, `searchseat`, `sanity`, `spellbench/*`, `traceboard`, `explain`: the per-decision notes a match record carries). | 22 |
+| `server/` | The reference server: `gorged` (importable: `Main`, `Serve`, the `Extensions` seam), `host` (tables, sessions, persistence) with `host/httpapi` (JSON + server-sent events) and `host/manabrewhttp`, `protocol` (the wire types the web client is generated from), `manabrew` (an alternate wire), `divergence` (human-vs-bot divergence records), `matchrecord` (the portable one-file record of a played game that `gorged review` serves), `spellbench/*` (the SpellBench v2 environment and agent adapters). | 30 |
 | `testkit/` | Public test support: `testutil` (the corpus registry, repo decks, the acceptance decks, `feedback` snapshot loading), `bench` (a policy-agnostic head-to-head game runner), `paymirror` (an A/B check of payment plans). | 4 |
 | `cli/` | The command-line layer: GNU-style flags, environment variables and JSON config files on the standard library. | 1 |
 | `internal/` | Module-private ratchets and generators: `archtest` (import-graph and determinism tests), `codeshape`, `corpusheap`, `testbudget`, `tsgen` (Go → TypeScript). | 5 |
@@ -110,7 +110,7 @@ draws the tier graph from the real imports with any back-edge in red.
 | Tooling | `internal/`, `testkit/`, `cli/` | `engine/`, `bots/`, other tooling packages (measured) |
 | Commands | `cmd/` | anything; no package imports a command |
 
-Measured on 2026-10-20, every arrow in the tier graph points down this table
+Measured on 2026-10-21, every arrow in the tier graph points down this table
 except one: `server/spellbench/internal/testcorpus` (test support for the
 SpellBench adapter) imports `testkit/testutil`. Tests may import anything;
 these rules are about non-test code.

@@ -6,7 +6,7 @@ change merged. It is written for a Go developer who does not yet know Magic
 engine internals or Forge. Unfamiliar words (IR, primitive, ratchet, chain
 head) are in the [glossary](glossary.md).
 
-*Commands on this page were run on `develop` @ `ad3777023`, 2026-10-20,
+*Commands on this page were run on `develop` @ `513a2a0c3`, 2026-10-21,
 unless marked otherwise.*
 
 ```mermaid
@@ -39,15 +39,8 @@ make compile-cards    # parse them into the IR cache, .cards/ir-<fingerprint>.go
 make report           # corpus coverage against the implemented primitives
 ```
 
-`make report` begins (2026-10-20):
-
-```text
-corpus: 098b055313459c4b36c9e1f1d4e81a2c8aef815e @ 098b055313459c4b36c9e1f1d4e81a2c8aef815e (GPL-3.0, 34074 files)
-cards: 34074  playable: 32082 (94.2%)
-tokens: 854
-```
-
-The scripts come from gorge's fork
+[Getting started](../getting-started.md#1-fetch-and-compile-the-card-corpus)
+shows what `make report` prints. The scripts come from gorge's fork
 [adams-shaun/forge](https://github.com/adams-shaun/forge) (`FORGE_REPO`) at
 the commit pinned by `FORGE_REF` in the `Makefile`; every coverage number and
 golden test is relative to that pin. They are GPL-3.0, gorge is Apache-2.0,
@@ -115,7 +108,7 @@ systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% \
   share fixtures, never trim what it checks. `cmd/testbudget` enforces it in
   the post-merge suite ([invariant 11](../architecture/invariants.md#every-test-fits-the-budget)).
 - **Do not use `go test ./...` as your inner loop.** `make test` runs exactly
-  that (with `-p=2`): the full suite, 11,506 top-level tests, which CI and
+  that (with `-p=2`): the full suite, over 12,000 top-level tests, which CI and
   the post-merge run cover.
 - **Never `-count=1`.** It defeats the test cache and buys nothing: Go
   already reruns a test whose inputs changed.
@@ -250,9 +243,10 @@ go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md   # the gene
 uvx --with mkdocs-material==9.7.7 mkdocs serve                        # or: pip install -r docs/site/requirements.txt
 ```
 
-The build is `--strict`: a broken link fails it. Link between pages with
-relative `.md` paths, and to code as
-`https://github.com/adams-shaun/gorge/blob/main/<path>`.
+The build is `--strict`: a broken link fails it. CI also parses every
+Mermaid diagram in a headless browser (`scripts/docs_mermaid_check.py`),
+because `--strict` does not. Link between pages with relative `.md` paths,
+and to code as `https://github.com/adams-shaun/gorge/blob/main/<path>`.
 
 ## Where next
 

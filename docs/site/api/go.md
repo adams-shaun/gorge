@@ -9,8 +9,10 @@ can change in any commit. Terms such as *seat*, *decision*, *intent*, *view*
 and *chain head* are defined in the [glossary](../contributing/glossary.md).
 
 !!! note "Verified against"
-    Every signature below was checked with `go doc` at commit `ad3777023`
-    (2026-10-20). The programs were run at that commit with Go 1.26.3.
+    Every signature below was checked against the source at commit
+    `513a2a0c3` (2026-10-21), and the first program was re-run there with
+    Go 1.26.3. The bot example and its contract test were run at `ad3777023`
+    (2026-10-20).
     gorge has no tagged releases, so pin a commit (see [Stability](#stability)).
 
 ## The layers you touch
@@ -372,16 +374,16 @@ func main() {
 It was built as its own module whose `go.mod` requires
 `github.com/adams-shaun/gorge` with a `replace` pointing at a local gorge
 checkout (an embedder without a checkout would `go get
-github.com/adams-shaun/gorge@<commit>` instead). Run on 2026-10-20 at
-`ad3777023`, from the gorge checkout, with `$P` the program's directory:
+github.com/adams-shaun/gorge@<commit>` instead). Run on 2026-10-21 at
+`513a2a0c3`, from the gorge checkout, with `$P` the program's directory:
 
 ```console
 $ go -C "$P" run . -cards "$PWD/.cards" \
     "$PWD/testkit/testutil/decks/mono-red-goblins.json" \
     "$PWD/testkit/testutil/decks/mono-green-stompy.json"
 winner: seat 0 (Mono-Red Goblins)
-turns: 8  intents: 189  events: 1097  head: 63fc5b7dd5dd8026
-replay head: 63fc5b7dd5dd8026
+turns: 8  intents: 189  events: 1092  head: fa3bb1cf9402af98
+replay head: fa3bb1cf9402af98
 ```
 
 A second run printed the same three lines: the game is a pure function of the
@@ -429,6 +431,7 @@ is what makes the policy exist; `bots/all` links every built-in one.
 | `MaxSeats int` | The most seats the policy plays at; the host refuses a bigger table. 0 means no limit. |
 | `Options []OptionSpec` | Configuration keys the factory reads: `{Key, Type, Default, Help, Required}`, `Type` one of `string`, `int`, `float`, `bool`, `path`. Read them in the factory with `Options.String/Int/Float/Bool`. |
 | `NeedsAutoPay bool` | The policy only plays through payment plans; the host refuses a table without them. |
+| `Caretaker string` | The registered policy that answers for this seat when a human seat's think timeout passes; `bots.Validate` checks it exists and is not an `Env` policy. |
 | `Env, Search, ClosedLists bool` | For search policies that build an engine from the decklists. A policy with `Env` and without `ClosedLists` reads every seat's real decklist, so the host never seats it against a human. |
 | `Strength []Measurement`, `Cost Cost` | Published claims about strength and per-decision cost, shown by `/api/bot-policies`. |
 
@@ -561,7 +564,8 @@ How gorged decides what to offer:
 
 `server/gorged` is the whole reference server as a library.
 [`cmd/gorged`](https://github.com/adams-shaun/gorge/blob/main/cmd/gorged/main.go)
-is a one-line `main` over it that links `bots/all` and passes no extensions.
+is a one-line `main` over it that links `bots/all` and passes only the
+`gorged review` loader.
 A binary that wants more (a bot, a plugin) is the same one line with
 something extra linked in, as above.
 
@@ -569,6 +573,7 @@ something extra linked in, as above.
 |---|---|
 | `func Main(args []string, ext Extensions) int` | Runs gorged: parses `args` (the command line after the program name), binds, serves, handles signals, returns the exit status. |
 | `func Serve(ctx context.Context, args []string, ln net.Listener, ext Extensions) error` | `Main` without signal handling or the bind: serves on `ln` until `ctx` is done. The entry point for a test that drives a real server. |
+| `func ServeReview(ctx context.Context, args []string, ln net.Listener, ext Extensions) error` | `gorged review` (which `Main` runs when `args[0]` is `review`) without signal handling or the bind: serves saved games read-only on `ln` until `ctx` is done. Needs `ext.Review`. |
 | `func ServeFlagSet() *flag.FlagSet` | A fresh copy of the flag set `Main` parses (`ContinueOnError`, no output), so a caller can check an argument list against the real flags. |
 | `func ServeFlagSetFor(ext Extensions) *flag.FlagSet` | The same, including the extensions' own flags. |
 | `func RegisterNetBot(policy string, nb NetBot)` | Links the implementation of a network-backed policy that gorged already names (its flags and deck-list handling live in gorged). Call before `Main`. |
@@ -582,10 +587,15 @@ type Extensions struct {
 	// Flags, when set, registers the extensions' own flags on gorged's
 	// command line; a flag name gorged already defines panics.
 	Flags func(fs *flag.FlagSet)
+	// Review, when set, is the loader `gorged review` turns each input path
+	// into a recorded match with. Without it review mode refuses to start;
+	// the live server ignores it entirely.
+	Review ReviewLoader
 }
 ```
 
-The zero `Extensions` is gorge's own server. `EventsPlugin`, `EventsWiring`,
+The zero `Extensions` is the live server without review mode; gorge's own
+`cmd/gorged` sets only `Review`. `EventsPlugin`, `EventsWiring`,
 `EventsEnv` and `EventRuntime` are the interfaces a draft-event runtime
 implements to be served under `/api/events`. A private companion module of
 the maintainers' links its draft events and network-backed policies through
@@ -748,7 +758,7 @@ versioned**. State the promise exactly:
 
 - **No releases.** The module has no semver tags (`git tag -l 'v*'` is empty,
   and `go list -m -versions github.com/adams-shaun/gorge` lists none, checked
-  2026-10-20). Depend on a commit's pseudo-version and move it deliberately.
+  2026-10-21). Depend on a commit's pseudo-version and move it deliberately.
   gorge's two companion modules do exactly that: they pin gorge by commit SHA.
 - **Go signatures can change in any commit.** Nothing checks exported Go
   signatures against a previous version. Field additions to `rules.Config`
@@ -787,7 +797,7 @@ means directly or transitively):
 | The module builds for a 32-bit word (`GOARCH=386`) | `TestEngineCompilesFor32Bit`, `arch_test.go` |
 
 One rule that holds but is not a test row: `engine/` imports nothing outside
-`engine/` (ADR 0001). At `ad3777023`, `go list -deps ./engine/...` names no
+`engine/` (ADR 0001). At `513a2a0c3`, `go list -deps ./engine/...` names no
 gorge package outside `engine/`, but no single `archtest` test asserts it
 as a blanket rule; it follows from the rows above plus review.
 
