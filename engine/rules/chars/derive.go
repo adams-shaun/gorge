@@ -102,6 +102,9 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		types, all = TypesAndAllCreatureTypes(b, b.Active(), id, 0)
 		types = effects.TypeMatchWords(types, all)
 	}
+	// switches counts the CR 613.4d switching effects that apply; they are
+	// applied after the 7d counters below, and an even number cancels.
+	switches := 0
 	// The CDA is an ability: a layer-6 "loses all abilities" effect removes
 	// it before layer 7a applies (CR 613.1f, 613.4a), so the printed value
 	// (a star read as 0, cards.parsePT) is the base instead. Checked after
@@ -198,12 +201,19 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 			}
 			power = addPT(power, addPower)
 			toughness = addPT(toughness, addToughness)
+		case state.SubSwitch:
+			switches++
 		}
 	}
-	// 7d: counters apply after every other layer-7 effect (CR 613.4). Every
+	// 7d: counters apply after every set and modify effect (CR 613.4). Every
 	// P/T counter kind contributes its CR 122.1a delta, summed once above.
 	power += counterDPower
 	toughness += counterDToughness
+	// CR 613.4d: switching applies last, in timestamp order; each switch
+	// exchanges the values the earlier layers (and earlier switches) left.
+	if switches%2 == 1 {
+		power, toughness = toughness, power
+	}
 	return power, toughness, basePower, baseToughness
 }
 
