@@ -126,6 +126,6 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 513.1a | n/a | - | - | errata note only |
 | 513.2 | follows | `engine/rules/trigmatch/actions.go#phaseTriggerMatches` | - | step triggers fire on the StepChange only |
 | 514.1 | follows | `engine/rules/combat.go#Engine.cleanupBody` `engine/rules/combat.go#Engine.discardCleanup` `engine/rules/combat.go#Engine.maxHandSizeFor` | `Test3141DiscardDownToSevenIsAsked` `Test3141OnlyActivePlayerDiscards` |  |
-| 514.2 | follows | `engine/rules/combat.go#Engine.cleanupBody` | `TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects` `TestEndOfTurnCleanupDropsUntilEOTEffects` |  |
+| 514.2 | follows | `engine/rules/combat.go#Engine.cleanupBody` `engine/rules/layers_effect.go#Engine.EndOfTurnCleanup` | `TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects` `TestEndOfTurnCleanupDropsUntilEOTEffects` `TestCR612UntilEndOfTurnTextChangeEndsAtCleanup` | until-end-of-turn text changes (ChangeText without Duration$ Permanent) end here too |
 | 514.3 | follows | `engine/rules/turn.go#Engine.finishCleanupStep` | `TestCleanupEmptyStackPassRepeatsCleanup` |  |
 | 514.3a | follows | `engine/rules/turn.go#Engine.finishCleanupStep` `engine/rules/turn.go#Engine.repeatCleanup` | `TestCleanupChecksStateBasedActionsAfterEndingEffects` `TestCleanupTriggerResolutionGivesActivePlayerPriority` `Test3143SecondCleanupStep` |  |

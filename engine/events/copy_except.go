@@ -65,12 +65,38 @@ func ParseCopyExceptions(s string) (x CopyExceptions, ok bool) {
 // Text joins Obj's text changes in event (timestamp) order.
 func foldTextChange(g *state.Game, e *Event) {
 	o := g.Obj(e.Obj)
-	if o == nil || e.Counter == "" || e.Text == "" {
+	if o == nil {
 		return
 	}
-	subs := append(append([]cards.TextSub(nil), o.TextChanges...), cards.TextSub{From: e.Counter, To: e.Text})
+	if e.Amount == TextChangeExpire {
+		// CR 514.2: the cleanup step ends Obj's until-end-of-turn changes.
+		kept := make([]cards.TextSub, 0, len(o.TextChanges))
+		for _, s := range o.TextChanges {
+			if !s.UntilEOT {
+				kept = append(kept, s)
+			}
+		}
+		if len(kept) == 0 {
+			kept = nil
+		}
+		o.SetTextChanges(kept)
+		return
+	}
+	if e.Counter == "" || e.Text == "" {
+		return
+	}
+	subs := append(append([]cards.TextSub(nil), o.TextChanges...),
+		cards.TextSub{From: e.Counter, To: e.Text, UntilEOT: e.Amount == TextChangeUntilEOT})
 	o.SetTextChanges(subs)
 }
+
+// TextChange's Amount values: 0 an indefinite change, TextChangeUntilEOT a
+// change that ends in the cleanup step, TextChangeExpire the cleanup-step
+// record that ends Obj's until-end-of-turn changes (Counter/Text empty).
+const (
+	TextChangeUntilEOT int32 = 1
+	TextChangeExpire   int32 = -1
+)
 
 // foldCopyExcept folds Kind CopyExcept into state. The copy's current face
 // (its CopyFace basis, or a just-minted token copy's printed face) is

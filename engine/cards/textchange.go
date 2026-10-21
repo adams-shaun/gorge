@@ -7,6 +7,9 @@ import "maps"
 // ChangeColorWord$/ChangeTypeWord$ pair).
 type TextSub struct {
 	From, To string
+	// UntilEOT marks a change that ends in the cleanup step (CR 514.2):
+	// api:ChangeText without Duration$ Permanent. WithTextChanges ignores it.
+	UntilEOT bool
 }
 
 // textLockedKeys are the parameters whose values are never text-changed:
