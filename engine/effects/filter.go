@@ -2402,7 +2402,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		if !inSet {
 			return false, true
 		}
-		mine := objectManaValue(o)
+		mine := objectManaValue(g, o)
 		for i := range g.Objs {
 			other := &g.Objs[i]
 			if other.ID == o.ID || other.Zone != state.ZBattlefield || !cmcSetMember(other, prop) {
@@ -2419,7 +2419,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 					continue
 				}
 			}
-			if objectManaValue(other) > mine {
+			if objectManaValue(g, other) > mine {
 				return false, true
 			}
 		}
@@ -2438,13 +2438,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// The candidate is compared even when it is a land (Forge has no
 		// candidate-in-set check here); every real carrier's base constrains
 		// it to a nonland permanent anyway, so no correct target is lost.
-		mine := objectManaValue(o)
+		mine := objectManaValue(g, o)
 		for i := range g.Objs {
 			other := &g.Objs[i]
 			if other.Zone != state.ZBattlefield || hasType(other, "Land") {
 				continue
 			}
-			if objectManaValue(other) < mine {
+			if objectManaValue(g, other) < mine {
 				return false, true
 			}
 		}

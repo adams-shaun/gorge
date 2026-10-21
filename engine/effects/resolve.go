@@ -409,9 +409,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, o.ID)
 		}
 		if rememberCMC {
-			if f := o.Face(); f != nil {
-				c.Num.RememberedCMC += f.Cmc()
-			}
+			c.Num.RememberedCMC += state.ManaValue(h.Game(), o)
 			c.Num.RememberedCMCBound = true
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,

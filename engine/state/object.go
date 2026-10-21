@@ -2358,7 +2358,7 @@ func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
 			counters = append(counters, o.Counters[i])
 		}
 	}
-	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc(),
+	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: ManaValue(g, o),
 		ManaCost: o.Face().ManaCost, FaceDown: o.FaceDown, Counters: counters,
 		Types: append([]string(nil), o.Face().Types...)}
 }

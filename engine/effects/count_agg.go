@@ -111,7 +111,7 @@ func aggregateCastProperty(h Host, ids []state.ObjID, prop string) (int32, bool)
 		switch aggregateCastPropertyCodes.Code(string(prop)) {
 		case aggregateCastPropertyCardManaCost:
 			if o := g.Obj(id); o != nil && o.Face() != nil {
-				n += int32(objectManaValue(o))
+				n += int32(objectManaValue(g, o))
 			}
 		case aggregateCastPropertyCardPower:
 			n += h.Power(id)
