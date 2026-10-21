@@ -126,6 +126,9 @@ func (e *Engine) commanderZoneReplacementApplies(ev events.Event) bool {
 	if ev.To != state.ZHand && ev.To != state.ZLibrary {
 		return false
 	}
+	if ev.Obj == e.cmdZoneDeclined {
+		return false
+	}
 	return e.isCommander(ev.Obj)
 }
 
@@ -214,8 +217,8 @@ func (e *Engine) commanderZoneSBA() {
 //
 // An owner who has left the game cannot exercise a "may" choice (CR 800.4a:
 // a departed player makes no choices), so the unexercised choice is a
-// decline: the original move happens unchanged, emitted here under
-// applyingReplacement so the commander check that just matched cannot
+// decline: the original move happens unchanged, emitted here with
+// cmdZoneDeclined set so the commander check that just matched cannot
 // re-park it (CR 616.1, a replacement applies only once).
 func (e *Engine) parkCommanderZoneMove(ev events.Event) {
 	o := e.G.Obj(ev.Obj)
@@ -224,10 +227,10 @@ func (e *Engine) parkCommanderZoneMove(ev events.Event) {
 	}
 	owner := o.Owner
 	if e.G.Players[owner].Lost {
-		saved := e.applyingReplacement
-		e.applyingReplacement = true
+		saved := e.cmdZoneDeclined
+		e.cmdZoneDeclined = ev.Obj
 		e.emit(ev)
-		e.applyingReplacement = saved
+		e.cmdZoneDeclined = saved
 		return
 	}
 	for _, pm := range e.cmdZone {
@@ -280,16 +283,16 @@ func (e *Engine) askCommandZone(owner state.PlayerID) {
 // entry an accept moves the commander from its graveyard or exile to the
 // command zone (an ordinary emit) and a decline moves nothing. For a CR
 // 903.9b entry the front parked move is emitted for real -- to the command
-// zone if the owner chose "command_zone", verbatim (the destination it was
-// heading for) if they chose "leave" -- and, if more moves are parked, the
-// next one's owner is asked. The de-park emit runs under applyingReplacement: the CR 903.9
-// replacement has already applied to this zone change, and CR 616.1 lets a
-// replacement effect apply only once, so the final move is never re-parked
-// and never re-asked -- a decline therefore cannot spin the engine by
-// re-offering the same choice, and the SBA pass that re-finds the commander
-// after this answer degrades the same way it would for any other completed
-// replacement (the dedup in parkCommanderZoneMove handled its in-flight
-// copy).
+// zone if the owner chose "command_zone", subject to every other replacement
+// effect, with only the CR 903.9b commander replacement skipped
+// (cmdZoneDeclined), if they chose "leave" -- and, if more moves are parked,
+// the next one's owner is asked. The CR 903.9b replacement has already been
+// offered for this zone change, and CR 616.1 lets a replacement effect apply
+// only once, so the final move is never re-parked and never re-asked -- a
+// decline therefore cannot spin the engine by re-offering the same choice,
+// and the SBA pass that re-finds the commander after this answer degrades the
+// same way it would for any other completed replacement (the dedup in
+// parkCommanderZoneMove handled its in-flight copy).
 //
 // The owner's choice is in the log as the Intents entry plus the
 // DecisionAsk/DecisionMade events every decision emits; the outcome is the
@@ -316,16 +319,18 @@ func (e *Engine) handleCmdZone(d *decision.Decision, in decision.Intent) {
 		}
 	case pm.sba:
 		// Decline: the commander stays where it is.
-	default:
-		to := pm.ev.To
-		if accept {
-			to = state.ZCommand
-		}
+	case accept:
 		saved, before := e.applyingReplacement, e.triggerBefore
 		e.applyingReplacement, e.triggerBefore = true, pm.before
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pm.ev.Obj, From: pm.ev.From,
-			To: to, Player: pm.ev.Player, Text: pm.ev.Text})
+			To: state.ZCommand, Player: pm.ev.Player, Text: pm.ev.Text})
 		e.applyingReplacement, e.triggerBefore = saved, before
+	default:
+		savedDeclined := e.cmdZoneDeclined
+		before := e.triggerBefore
+		e.triggerBefore, e.cmdZoneDeclined = pm.before, pm.obj
+		e.emit(pm.ev)
+		e.triggerBefore, e.cmdZoneDeclined = before, savedDeclined
 	}
 	if len(e.cmdZone) > 0 && e.pending == nil {
 		// More commanders were parked in the same burst (a board wipe, a

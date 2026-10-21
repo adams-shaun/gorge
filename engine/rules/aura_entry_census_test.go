@@ -265,7 +265,6 @@ var auraEntryCensusRules = map[string]string{
 	"oracle_run.go:oracleRun.do":                                "gate: oracle-audit scenario move op through e.emit",
 	"oracle_run.go:oraclePrelude":                               "attach: oracle-audit attach prelude for an existing battlefield permanent",
 	"oracle_setup_triggers.go:oracleRun.placeSetupCard":         "gate: oracle-audit scenario setup through e.emit",
-	"replacement_cmdzone.go:Engine.handleCmdZone":               "noentry: CR 903.9 command-zone redirect",
 	"replacement_copytoken.go:Engine.ProposeCopyTokens":         "token: CreateToken replacement copy mints",
 	"replacement_copytoken.go:Engine.continueCopyTokenProposal": "token: CreateToken replacement copy mints",
 	"replacement_etb.go:Engine.emitAttachedMove":                "attach: Attached replacement's parked Attach",
