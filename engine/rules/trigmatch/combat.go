@@ -62,26 +62,27 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 	// it a Mode$ Attacks trigger fires on every DeclareAttackers event at the
 	// table -- over-broad in every multiplayer game. DeclareAttackers already
 	// carries the defender in ev.Player, one event per defender, so the gate
-	// is evaluated against that seat with the trigger's own controller as the
-	// perspective. The spec goes through the shared player filter, so You /
-	// Opponent / Player.withMostLife / Player.isMonarch / Player.Chosen / the
-	// life-comparison qualifiers resolve and every unmodelled alternative
-	// (Planeswalker.YouCtrl, Battle.ProtectedBy, Player.EnchantedBy, ...)
-	// fails closed. Because the value is a comma list, a rule naming both a
-	// player and an unmodellable permanent ("You,Planeswalker.YouCtrl") still
-	// fires on the player half -- the engine models players-only defenders,
-	// so that is the whole of the attack it can represent.
-	if v := t.ParamStr(cards.PKAttacked); v != "" {
-		if !effects.MatchesPlayerSpecFrom(e.Game(), v, ev.Player, e.ControllerOf(source), source) {
-			return false
-		}
+	// is evaluated against that event's defender with the trigger's own
+	// controller as the perspective (attackedDefenderMatches): a player
+	// defender against the spec's player alternatives through the shared
+	// player filter (You / Opponent / Player.withMostLife / Player.isMonarch /
+	// Player.Chosen / the life-comparison qualifiers; an unmodelled player
+	// qualifier fails closed), a planeswalker or battle defender (ev.Obj)
+	// only against its Planeswalker./Battle alternatives as a card spec
+	// (CR 508.3a: attacking a planeswalker is not attacking its controller).
+	if v := t.ParamStr(cards.PKAttacked); v != "" && !attackedDefenderMatches(e, v, source, ev, func(players string) bool {
+		return effects.MatchesPlayerSpecFrom(e.Game(), players, ev.Player, e.ControllerOf(source), source)
+	}) {
+		return false
 	}
 	// Dethrone (CR 702.105) fires only when the attacked player has the
 	// greatest life total (tied is enough) among ALL players. Comparing only
 	// the attacker and its defender is wrong in multiplayer: a third player
 	// with more life prevents the trigger even though it was not attacked.
+	// The gate is about attacking a PLAYER: an event whose defender is a
+	// planeswalker or battle (ev.Obj set) never satisfies it (CR 508.3a).
 	if v, ok := t.Param(cards.PKDethrone); ok && strings.EqualFold(v, "True") {
-		if !PlayerHasMostLife(e, ev.Player) {
+		if ev.Obj != 0 || !PlayerHasMostLife(e, ev.Player) {
 			return false
 		}
 	}
@@ -97,7 +98,7 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 	// re-derive the attacked player from the event, the same scope every
 	// other event-relative matcher gate here keeps.
 	if strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKCondition)), "AttackedPlayerWithMostLife") {
-		if !PlayerHasMostLife(e, ev.Player) {
+		if ev.Obj != 0 || !PlayerHasMostLife(e, ev.Player) {
 			return false
 		}
 	}
@@ -169,6 +170,24 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 		}
 	}
 	return false
+}
+
+// attackedDefenderMatches evaluates an attacked-defender spec (Attacked$,
+// AttackedTarget$) against one DeclareAttackers event (CR 508.3a/508.3e,
+// 506.6). The event's defender is a planeswalker or battle when ev.Obj is
+// set (finishAttackers keys one event per player/permanent pair) and the
+// player ev.Player otherwise. A player defender is matched by the spec's
+// player alternatives through matchPlayers (the caller's player matcher,
+// unchanged); a permanent defender only by its Planeswalker./Battle
+// alternatives, as a card spec on that permanent from the trigger
+// controller's perspective. An attack on a planeswalker is never an attack
+// on its controller.
+func attackedDefenderMatches(e Board, spec string, source state.ObjID, ev events.Event, matchPlayers func(string) bool) bool {
+	players, permanents := effects.SplitDefenderSpec(spec)
+	if ev.Obj == 0 {
+		return players != "" && matchPlayers(players)
+	}
+	return permanents != "" && e.MatchesSpec(permanents, ev.Obj, source, e.ControllerOf(source), SpecOpts{})
 }
 
 // declaredAttackerCount is the number of creatures declared as attackers in
@@ -255,7 +274,9 @@ func AttackersDeclaredMatchedAttackers(e Board, t cards.Trigger, source state.Ob
 	if v := t.ParamStr(cards.PKAttackingPlayer); v != "" && !effects.MatchesPlayerSpecWithCounts(e.Game(), e.EvalCount, ctx, v, attacker, ctrl) {
 		return nil, false
 	}
-	if v := t.ParamStr(cards.PKAttackedTarget); v != "" && !effects.MatchesPlayerSpecWithCounts(e.Game(), e.EvalCount, ctx, v, ev.Player, ctrl) {
+	if v := t.ParamStr(cards.PKAttackedTarget); v != "" && !attackedDefenderMatches(e, v, source, ev, func(players string) bool {
+		return effects.MatchesPlayerSpecWithCounts(e.Game(), e.EvalCount, ctx, players, ev.Player, ctrl)
+	}) {
 		return nil, false
 	}
 	var capture []state.Target

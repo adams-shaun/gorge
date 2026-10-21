@@ -1023,3 +1023,36 @@ var playerHasMostCodes = state.NewStrCodes(
 	state.StrEntry[playerHasMostCode]{Key: "Life", Val: playerHasMostLife},
 	state.StrEntry[playerHasMostCode]{Key: "CardsInHand", Val: playerHasMostCardsInHand},
 )
+
+// SplitDefenderSpec splits an attacked-defender spec -- a trigger's Attacked$
+// or AttackedTarget$ comma list -- into its player alternatives and its
+// permanent alternatives (those whose first clause, past any leading "!",
+// names Planeswalker or Battle), each re-joined with commas in their
+// original order; either may be "". CR 508.3a/508.3e: a player alternative
+// is about an attack on that player, a permanent alternative about an
+// attack on that planeswalker or battle, so a DeclareAttackers event for a
+// planeswalker or battle is matched only by the permanent half and a player
+// event only by the player half.
+func SplitDefenderSpec(spec string) (players, permanents string) {
+	for alt := range strings.SplitSeq(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		first, _, _ := strings.Cut(alt, "+")
+		base, _, _ := strings.Cut(strings.TrimPrefix(first, "!"), ".")
+		if base == "Planeswalker" || base == "Battle" {
+			permanents = joinAlt(permanents, alt)
+		} else {
+			players = joinAlt(players, alt)
+		}
+	}
+	return players, permanents
+}
+
+func joinAlt(list, alt string) string {
+	if list == "" {
+		return alt
+	}
+	return list + "," + alt
+}
