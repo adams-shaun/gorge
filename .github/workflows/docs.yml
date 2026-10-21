@@ -2,10 +2,10 @@
 # to GitHub Pages. Every push to develop and every PR runs the same strict
 # build as a check; only main (push, cron, manual run) deploys.
 #
-# The set-support table is no longer measured here: the compliance oracle
-# that measures it (oraclediff) lives in gorge-compliance
-# (github.com/adams-shaun/gorge-compliance), so the set page shows its hand
-# snapshot (docs/decisions/0001-repo-layout.md, amendment 3).
+# The set-support tables are rendered here, not measured: the compliance
+# oracle (oraclediff) lives in gorge-compliance, whose nightly CI publishes its
+# per-set status to an orphan docs-data branch, and dirty-dirac's per-set
+# figures are a committed snapshot (docs/site/support/dirty-dirac-sets.json).
 #
 # The engine-speed chart reads history.jsonl from the orphan `perf-data`
 # branch when that branch exists; perf data never lands on main.
@@ -18,6 +18,7 @@ on:
       - docs/site/**
       - mkdocs.yml
       - scripts/docs_sets.py
+      - scripts/docs_sets_test.py
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
   # A PR (develop -> main above all) builds the site strictly but never
@@ -27,6 +28,7 @@ on:
       - docs/site/**
       - mkdocs.yml
       - scripts/docs_sets.py
+      - scripts/docs_sets_test.py
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
   # The perf-data branch changes many times a day; a daily rebuild picks it up.
@@ -78,20 +80,24 @@ jobs:
             echo "no perf-data branch yet; the tracking page shows 'no data yet'"
           fi
 
-      # gorge-compliance's nightly compliance job publishes its per-set status
-      # (Level A for every set, Level B for the printed sets) to its orphan
-      # docs-data branch. Without it the set page shows its hand snapshot.
-      - name: Fetch the per-set compliance status
+      # The per-set card-support tables (support/_generated_sets.md, included
+      # by sets.md): gorge-compliance's nightly compliance job publishes its
+      # per-set status (Level A for every set, Level B for the printed sets)
+      # to its orphan docs-data branch; dirty-dirac's per-set acceptance is
+      # the committed snapshot. Without docs-data the tables still render,
+      # with the gorge columns marked as not available.
+      - name: Render the per-set support tables
         run: |
+          python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
+          args=(--dirty-dirac docs/site/support/dirty-dirac-sets.json)
           if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
             d=$(mktemp -d)
             for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done
-            commit=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$d/meta.json")
-            date=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["date"])' "$d/meta.json")
-            python3 scripts/docs_sets.py "$d/status-A.jsonl" --level-b "$d/status-B.jsonl" --commit "$commit" --date "$date"
+            args+=("$d/status-A.jsonl" --level-b "$d/status-B.jsonl" --meta "$d/meta.json")
           else
-            echo "no gorge-compliance docs-data branch yet; the set page shows its hand snapshot"
+            echo "no gorge-compliance docs-data branch; the gorge columns render as not available"
           fi
+          python3 scripts/docs_sets.py "${args[@]}"
 
       - name: Build the site
         run: mkdocs build --strict
