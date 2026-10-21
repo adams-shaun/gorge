@@ -1989,7 +1989,7 @@ func destinationPhrase(kind string) string {
 // one, recorded now as the Choose event so the choice survives replay.
 // effHideaway implements CR 702.75: when a permanent with Hideaway enters,
 // its controller looks at the top N cards, exiles one face down, then puts
-// the rest on the bottom in the order they chose. Exile provenance is carried
+// the rest on the bottom in a random order (hideawayBottom). Exile provenance is carried
 // by MoveZone, so a later Play resolves Defined$ ExiledWith by identity.
 func effHideaway(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
@@ -2020,8 +2020,8 @@ func effHideaway(h Host, c *Ctx, sa *cards.SA) {
 		hideawayPicked(h, c, sa, id)
 		return
 	}
-	// The no-host degradation chooses the first card, then retains the offered
-	// order for the rest on the bottom.
+	// The no-host degradation chooses the first card; the rest go to the
+	// bottom in a random order exactly as on the answered path.
 	h.Emit(events.Event{Kind: events.MoveZone, Obj: lib[0], From: state.ZLibrary, To: state.ZExile,
 		Player: c.Controller, Counter: "exiled_with_face_down_maylook", Amount: int32(c.Controller),
 		IDs: []state.ObjID{c.Source}, Secret: true})
@@ -2056,19 +2056,10 @@ func hideawayBottom(h Host, c *Ctx, sa *cards.SA) {
 	if n == 0 {
 		return
 	}
-	d := &decision.Decision{Player: c.Controller, Kind: decision.KArrange, Min: n, Max: n,
-		Source: c.Source, ResumeKind: "hideaway_arrange", ResumeSA: sa,
-		Prompt: "Put the remaining Hideaway cards on the bottom in any order"}
-	for i, id := range lib[:n] {
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "hideaway_bottom", Label: objName(h.Game(), id), Obj: id, Player: c.Controller})
-	}
-	if _, ok := AskTapeIntent(h, d); ok {
-		// The resolution kernel served the order and its record (the
-		// KArrange answer record's hideaway_bottom) applied it: done.
-		return
-	}
-	newLib := append(append([]state.ObjID(nil), lib[n:]...), lib[:n]...)
-	h.Emit(events.Event{Kind: events.LibraryOrder, Player: c.Controller, IDs: newLib, Secret: true})
+	// CR 702.75a: "put the rest on the bottom of your library in a random
+	// order" -- the engine's seeded Fisher-Yates (moveRestToBottom's random
+	// arm, the RestRandomOrder$ idiom), never a player's choice.
+	moveRestToBottom(h, h.Game(), c.Controller, append([]state.ObjID(nil), lib[:n]...), true)
 }
 
 func containsObj(ids []state.ObjID, want state.ObjID) bool {

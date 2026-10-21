@@ -217,16 +217,11 @@ func kr7MosswortEngine(t *testing.T, reg *cards.Registry) (*Engine, Config, stat
 		t.Fatalf("the parked Bears %d is not among the Hideaway options: %+v", bearID, d.Options)
 	}
 	submitChoices(t, e, pick)
-	// The arrange ask over the remaining three window cards (Min == Max == 3).
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KArrange {
-		t.Fatalf("after the Hideaway pick: %+v, want the arrange ask", d)
+	// The remaining three window cards go to the bottom in a random order
+	// (CR 702.75a): no arrange ask follows the pick.
+	if d = e.Pending(); d != nil && d.Kind == decision.KArrange {
+		t.Fatalf("after the Hideaway pick: %+v, want no arrange ask (CR 702.75a random order)", d)
 	}
-	rest := []int{}
-	for _, o := range d.Options {
-		rest = append(rest, o.Index)
-	}
-	submitChoices(t, e, rest...)
 	// The Bridge entered tapped (ETBTapped). Untap it so the AB$ Play's
 	// {T} component is payable in the first leg too -- leg 2 untaps again
 	// after its own activation tapped it back.
