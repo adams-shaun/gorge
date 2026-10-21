@@ -248,6 +248,12 @@ func sacrificedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 // The creator is the token's owner (state.Game.AddObject sets it to the
 // effect's player), because the entry MoveZone carries no Player.
 //
+// Encore's CardToken is different: the fold mints the copy straight onto the
+// battlefield with no MoveZone, so the mint itself is the creation. By the
+// time the matcher runs, emit's triggerCheckEvent has rewritten ev.Obj to the
+// minted token's id, and ev.Player is the activator ("you create"), so the
+// token is read from the game and the creator from the event.
+//
 // OnlyFirst$ on a TokenCreatedOnce line (Akim, the Soaring Wind) is Forge's
 // TriggerTokenCreatedOnce.performTest rider, NOT a per-turn trigger cap: the
 // line fires only when this mint is the named player's FIRST token creation
@@ -262,6 +268,12 @@ func tokenCreatedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	var token *state.Object
 	switch ev.Kind {
 	case events.TokenCreate:
+		creator = ev.Player
+	case events.CardToken:
+		token = e.Game().Obj(ev.Obj)
+		if token == nil || !token.IsToken || token.Zone != state.ZBattlefield {
+			return false
+		}
 		creator = ev.Player
 	case events.MoveZone:
 		if ev.From != state.ZLibrary || ev.To != state.ZBattlefield {
