@@ -776,6 +776,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 								lv := base
 								lv.MayLookAt = true
 								lv.AffectedZone = st.ParamStr(cards.PKAffectedZone)
+								lv.MayPlayPlayer = st.ParamStr(cards.PKMayPlayPlayer)
 								out = append(out, lv)
 							}
 						}

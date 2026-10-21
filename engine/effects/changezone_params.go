@@ -241,7 +241,7 @@ var changeZoneKnownKeys = [...]string{
 	"ConditionCompare", "ConditionCompare2", "ConditionDefined", "ConditionDescription",
 	"ConditionFirstCombat", "ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases",
 	"ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost",
-	"CostDesc", "Defined", "DefinedCards",
+	"CostDesc", "Defined", "DefinedCards", "DefinedExiler",
 	"DefinedPlayer", "DefinedTarget", "Description", "DestAltSVar", "DestAltSVarCompare",
 	"Destination", "DestinationAlternative", "DifferentNames", "Duration",
 	"Exactly", "Exclude", "Exhaust", "ExileFaceDown", "ExiledWithEffectSource", "FaceDown", "FaceDownPower",
@@ -308,11 +308,14 @@ func (p *ChangeZoneParams) noteUnread(h Host, c *Ctx) {
 // FaceDownRiders are the face-down entry markers applyFaceDownMarker stamps:
 // ChangeZone compiles them once, Dig and ChangeZoneAll on the stack per call.
 type FaceDownRiders struct {
-	FaceDown          bool
-	ExileFaceDown     bool
-	WithMayLook       bool
-	Foretold          bool
-	Unearth           bool
+	FaceDown      bool
+	ExileFaceDown bool
+	WithMayLook   bool
+	Foretold      bool
+	Unearth       bool
+	// ExilerSpec is the DefinedExiler$ operand, kept only for ReplacedPlayer
+	// (Shared Fate); every other value leaves it empty.
+	ExilerSpec        string
 	FaceDownSetType   string
 	FaceDownPower     ParamText
 	FaceDownToughness ParamText
@@ -542,6 +545,9 @@ func compileFaceDownRiders(sa *cards.SA) FaceDownRiders {
 	r.WithMayLook = isTrue(sa.ParamStr(cards.PKWithMayLook))
 	r.Foretold = isTrue(sa.ParamStr(cards.PKForetold))
 	r.Unearth = isTrue(sa.ParamStr(cards.PKUnearth))
+	if v := strings.TrimSpace(sa.ParamStr(cards.PKDefinedExiler)); strings.EqualFold(v, "ReplacedPlayer") {
+		r.ExilerSpec = v
+	}
 	r.FaceDownSetType = strings.TrimSpace(sa.ParamStr(cards.PKFaceDownSetType))
 	fp, fpOK := sa.Param(cards.PKFaceDownPower)
 	r.FaceDownPower = paramText(fp, fpOK)

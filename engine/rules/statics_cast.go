@@ -176,14 +176,16 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 }
 
 // spellSpecCtx binds the mana value of the SPELL id is about to become
-// (state.SpellManaValue: its current face, X as 0) while id is still off the
-// stack. CR 601.3a/709.3a: a cast restriction or cost modifier evaluates only
-// the half being cast, so a split card in hand is not read with its combined
-// CR 709.4b value here. A context that already carries a mana value (the CR
+// (state.SpellManaValue: its current face, X as 0) and the AsSpellHalf
+// colour/type override while id is still off the stack. CR 601.3a/709.3a: a
+// cast restriction or cost modifier evaluates only the half being cast, so a
+// split card in hand is not read with its combined CR 709.4b mana value,
+// colours or types here. A context that already carries a mana value (the CR
 // 601.2e recheck) and an object already on the stack are left alone.
 func (e *Engine) spellSpecCtx(sc effects.SpecContext, id state.ObjID) effects.SpecContext {
 	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack && !sc.HasManaValue {
 		sc.HasManaValue, sc.ManaValue = true, state.SpellManaValue(e.G, o)
+		sc.AsSpellHalf = true
 	}
 	return sc
 }
