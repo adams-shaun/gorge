@@ -586,6 +586,11 @@ type ContinuousEffect struct {
 	// grants none.
 	MayLookAt bool
 
+	// MayPlayPlayer is the grant's MayPlayPlayer$ value as printed (Shared
+	// Fate's "Exiler"): with MayLookAt it names the looker as the player
+	// recorded in Object.ExiledBy instead of the static's controller.
+	MayPlayPlayer string
+
 	// MayPlayIgnoreType marks the grant's MayPlayIgnoreType$ True rider
 	// (Rakdos, the Muscle's "mana of any type can be spent to cast those
 	// spells"): like MayPlayIgnoreColor it lets any colour pay a coloured
