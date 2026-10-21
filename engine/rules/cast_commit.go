@@ -146,9 +146,10 @@ func (e *Engine) payCast() {
 	// answered, or the SA has no target), so a mana-window resume through
 	// continueCast must not re-ask for one.
 	pc.passedTarget = true
-	// alltargeted1: for a SPELL the stack object already exists (pushCast),
-	// so the chain's pre-asked sub-ability target answers install here; the
-	// ability arm installs after its AbilityPush mints the object.
+	// alltargeted1: the stack object already exists (pushCast for a spell,
+	// pushActivation for an ability, CR 602.2a), so the chain's pre-asked
+	// sub-ability target answers install here; the ability arm installs
+	// them again once the activation is paid (an idempotent overwrite).
 	e.installSubPreAsk(pc)
 	// CR 601.2e: the game checks that the proposed spell can legally be cast,
 	// once every announcement choice (the {X} value) is known. An illegal
@@ -189,8 +190,9 @@ func (e *Engine) payCast() {
 		// recorded; what differs from a spell here is the cost's remaining
 		// non-mana parts. Pay mana, then each Tap (a Tap event), each
 		// SubCounter part (a CounterChange of -N), and every chosen sacrifice.
-		// The ability object is minted after payment below; answered targets
-		// are recorded onto it after AbilityPush, including a window resume.
+		// The ability object was minted by pushActivation (CR 602.2a);
+		// answered targets are recorded onto it after payment, including a
+		// window resume.
 		// An activated ability may carry a Waterbend<N>/<X> cost (Giant
 		// Koi), whose announced taps (pc.convoke) pay {1} each of the generic
 		// (CR 701.67a). paymentMana folds them like a cast's Convoke
@@ -397,38 +399,13 @@ func (e *Engine) payCast() {
 				}
 			}
 		}
-		// AbilityPush mints the ability object onto the stack AFTER the cost
-		// settles, so an aborted activation leaves no stack object behind
-		// (CR 733.1). handleTarget records the chosen targets onto it. A
-		// GRANTED activation (task grantcost1) mints through the SAME three
-		// events beginGrantedActivation/beginKeywordGrantedActivation mint --
-		// the delayed-shape DelayedPush for a self-grant (Counter carries the
-		// SVar name; the ^uint32(0) registration id matches nothing) and
-		// GrantAbilityPush for a cross-object grant (IDs[0] carries the
-		// grantor; the minted ability's Source is the recipient) -- so
-		// resolution reads the SVar-anchored body exactly as it always has,
-		// while every cost part above (sacrifice, discard, counter, energy,
-		// draw, ...) is now paid by the shared flow too. A KEYWORD-GRANTED
-		// activation (the AddKeyword$ Cycling route, CR 613.1f) mints through
-		// KeywordAbilityPush, whose Counter carries the derived keyword line
-		// the body is synthesized from.
-		if pc.gainedFrom != 0 {
-			e.emit(events.Event{Kind: events.GainedAbilityPush, Player: pc.player, Obj: pc.card,
-				Amount: int32(pc.gainedIdx), IDs: []state.ObjID{pc.gainedFrom}})
-		} else if pc.grantSVar != "" {
-			if pc.grantSource == pc.card {
-				e.emit(events.Event{Kind: events.DelayedPush, Player: pc.player, Obj: pc.card,
-					Amount: -1, Counter: pc.grantSVar, Text: "granted ability"})
-			} else {
-				e.emit(events.Event{Kind: events.GrantAbilityPush, Player: pc.player, Obj: pc.card,
-					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
-			}
-		} else {
-			e.emit(pc.activationPushEvent(e))
-		}
-		if len(e.G.Stack) > 0 {
-			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
-		}
+		// CR 602.2i: the activation is complete now that its cost is paid, so
+		// the "whenever you activate" triggers the push (602.2a) held back fire
+		// here, at the point the old end-of-payment mint fired them. The
+		// ability object itself was minted by pushActivation; activationPaid is
+		// the "cost settled" marker the target-recording tail reads.
+		pc.activationPaid = true
+		e.fireDeferredActivationTrigger()
 		// alltargeted1: the chain's pre-asked sub-ability target answers are
 		// now bound to the minted ability object, so the resolution consumes
 		// them instead of re-posing the asks mid-resolution.
@@ -471,24 +448,24 @@ func (e *Engine) payCast() {
 			// CR 113.7a's other damage-relevant characteristics -- infect
 			// (CR 702.90b) and deathtouch (CR 702.2b) -- live in the named
 			// map, which Engine.emit's departure walk cannot seed here
-			// either, because AbilityPush is minted only after the cost is
-			// paid. Seed it with the same pre-cost snapshot, keyed on this
+			// either, because the cost may sacrifice the source after the
+			// push. Seed it with the same pre-cost snapshot, keyed on this
 			// ability and its own source, so a bearer sacrificed to pay for
 			// its own ability still deals damage in the granted form.
 			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
 		// A target answer can suspend payment in the 601.2g mana window.
-		// Record it only once the ability object actually exists, on either
-		// the immediate pay path or a resumed payCast; finishTargetedCast
-		// cannot do so if the window has not minted the stack object yet.
+		// The ability object was already minted by pushActivation (CR 602.2a);
+		// record the answer on either the immediate pay path or a resumed
+		// payCast, before finishTargetedCast's dispatch.
 		if pc.stackObj != 0 && pc.rootOpts != nil {
 			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
 		}
 		// CR 601.2d / 602.2b: the announced division, after the root targets.
 		e.recordCastDivision(pc)
 		// The chain links' announced targets (CR 601.2c / 602.2b), after the
-		// root's: the ability object exists only now.
+		// root's: the chain targets are recorded only now.
 		e.recordCastSubTargets(pc)
 		if pc.rootOpts == nil && !pc.targetedFinish {
 			// No target-recording continuation: dispatch at the completed
@@ -1068,9 +1045,9 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	// The reversal below and the push that preceded it are state-changing
 	// events to emit's suppression-clearing rule, but their NET effect is no
 	// progress -- the object returns to the zone it came from -- so the
-	// held-out no-progress state must survive. For a pushed spell that state
-	// is pc.preSuppress / pc.preAborts (captured before the push, which
-	// cleared it); for an ability (never pushed) it is the current maps. Both
+	// held-out no-progress state must survive. For a pushed spell or activated
+	// ability that state is pc.preSuppress / pc.preAborts (captured before the
+	// push, which cleared it). Both
 	// the held-out set and the per-card no-progress count are restored, so a
 	// no-progress decline of THIS object can be counted again across the
 	// push (F05-2).
@@ -1123,10 +1100,17 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	}
 	// CR 733.1: a pushed spell's PutOnStack stays in the append-only log, so
 	// the spell-cast turn watcher it folded (state.Player.SpellsCastThisTurn)
-	// is undone by a companion reversal event. An ability's AbilityPush folds
-	// no such watcher, so only a spell reverses one.
+	// is undone by a companion reversal event. A pushed activated ability's
+	// mint (CR 602.2a) folds the source's ActivatedThisTurn and the
+	// activation-count scans, so it gets the twin ActivationReversed carrying
+	// the mint's identity.
 	if pc.pushed && !pc.isAbility() {
 		e.emit(events.Event{Kind: events.SpellCastReversed, Player: pc.player})
+	}
+	if pc.pushed && pc.isAbility() {
+		m := pc.activationMintEvent(e)
+		e.emit(events.Event{Kind: events.ActivationReversed, Player: m.Player, Obj: m.Obj,
+			Amount: m.Amount, Counter: m.Counter, IDs: m.IDs, Text: m.Kind.String()})
 	}
 	if pc.faceBefore != nil {
 		if o := e.G.Obj(pc.card); o != nil && o.FaceIdx != *pc.faceBefore {
@@ -1176,6 +1160,24 @@ func (e *Engine) fireDeferredCastTrigger() {
 	lki := e.deferredPushLKI
 	e.deferredPushLKI = nil
 	e.sweepEffectDelayedCast(*ev)
+	push := *ev
+	e.checkTriggers(&push, lki, 0, 0, false)
+}
+
+// fireDeferredActivationTrigger re-walks the mint event pushActivation held
+// back (deferredPush) so the CR 602.2i "whenever you activate" triggers fire,
+// which is only after the activation's cost is paid. It deliberately does NOT
+// sweep effect-delayed cast lifetimes (sweepEffectDelayedCast): ForgetOnCast$
+// is a cast lifetime, and an AbilityPush's Obj is the SOURCE permanent, which
+// that sweep would mis-match. A no-op when nothing was deferred.
+func (e *Engine) fireDeferredActivationTrigger() {
+	if e.deferredPush == nil {
+		return
+	}
+	ev := e.deferredPush
+	e.deferredPush = nil
+	lki := e.deferredPushLKI
+	e.deferredPushLKI = nil
 	push := *ev
 	e.checkTriggers(&push, lki, 0, 0, false)
 }

@@ -15,9 +15,10 @@ import (
 // uses so nothing unpayable is ever offered (totality). Choosing one reaches
 // beginActivation here, which reuses the cast flow (cast.go's pendingCast /
 // continueCast / commitCast) -- an activated ability with an {X}, Sac, or
-// Discard part asks and pays those the same way a spell does, and commitCast's
-// ability branch pays the tap / SubCounter parts and pushes the ability onto
-// the stack via AbilityPush, then asks targets if the ability declares any.
+// Discard part asks and pays those the same way a spell does. pushActivation
+// moves the ability onto the stack at the head of continueCast (CR 602.2a);
+// commitCast's ability branch then pays the tap / SubCounter parts and asks
+// targets if the ability declares any.
 
 // beginActivation starts the activation flow for opt (an "ability" priority
 // option): parse the ability's own Cost$ into a pendingCast and run the same
@@ -195,11 +196,11 @@ func (e *Engine) abilityAlternateCost(ab *cards.SA) (Cost, bool) {
 
 // The activated-ability specifics that differ from a spell's commitCast live
 // in cast.go's commitCast under a `pc.ability >= 0` branch: after the shared
-// mana/Sac/Discard payment it emits a Tap event (the cost's T part), a CounterChange
-// per SubCounter part, the AbilityPush that mints the ability object onto the
-// stack, and -- when the ability declares ValidTgts$ -- asks its controller
-// for targets against the freshly minted stack object, exactly the shape
-// pushTrigger (engine/rules/trigger_queue.go) uses for a trigger's own target ask.
+// mana/Sac/Discard payment it emits a Tap event (the cost's T part) and a
+// CounterChange per SubCounter part, then -- when the ability declares
+// ValidTgts$ -- asks its controller for targets against the stack object
+// pushActivation already minted (CR 602.2a), exactly the shape pushTrigger
+// (engine/rules/trigger_queue.go) uses for a trigger's own target ask.
 
 type isAttachCostSACode uint16
 

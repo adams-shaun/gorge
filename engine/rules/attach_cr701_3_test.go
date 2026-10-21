@@ -107,7 +107,10 @@ func TestAttachToAnIllegalPermanentDoesNotMove(t *testing.T) {
 func attachActivateResolve(t *testing.T, e *Engine, obj state.ObjID, idx int) {
 	t.Helper()
 	submitChoices(t, e, abilityOption(t, e, obj, idx).Index)
-	for i := 0; i < 5 && len(e.G.Stack) == 0; i++ {
+	// CR 602.2a: the ability is on the stack before its target is chosen, so
+	// the loop runs until the activation's decisions are answered, not until
+	// the stack is non-empty.
+	for i := 0; i < 5; i++ {
 		d := e.Pending()
 		if d == nil || d.Kind == decision.KPriority {
 			break

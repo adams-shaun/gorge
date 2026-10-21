@@ -6863,34 +6863,34 @@
     },
     {
       "seq": 1253,
+      "kind": 34,
+      "player": 1,
+      "obj": 45
+    },
+    {
+      "seq": 1254,
       "kind": 20,
       "player": 1,
       "text": "target"
     },
     {
-      "seq": 1254,
+      "seq": 1255,
       "kind": 21,
       "player": 1,
       "text": "target:[2]"
     },
     {
-      "seq": 1255,
+      "seq": 1256,
       "kind": 6,
       "obj": 45
     },
     {
-      "seq": 1256,
+      "seq": 1257,
       "kind": 2,
       "obj": 45,
       "from": 2,
       "to": 3,
       "text": "sacrificed"
-    },
-    {
-      "seq": 1257,
-      "kind": 34,
-      "player": 1,
-      "obj": 45
     },
     {
       "seq": 1258,
@@ -11464,13 +11464,13 @@
     },
     {
       "seq": 2094,
-      "kind": 6,
+      "kind": 34,
+      "player": 1,
       "obj": 59
     },
     {
       "seq": 2095,
-      "kind": 34,
-      "player": 1,
+      "kind": 6,
       "obj": 59
     },
     {
@@ -13066,13 +13066,13 @@
     },
     {
       "seq": 2390,
-      "kind": 6,
+      "kind": 34,
+      "player": 1,
       "obj": 59
     },
     {
       "seq": 2391,
-      "kind": 34,
-      "player": 1,
+      "kind": 6,
       "obj": 59
     },
     {
@@ -13824,24 +13824,24 @@
     },
     {
       "seq": 2536,
+      "kind": 34,
+      "obj": 8
+    },
+    {
+      "seq": 2537,
       "kind": 20,
       "text": "target"
     },
     {
-      "seq": 2537,
+      "seq": 2538,
       "kind": 21,
       "text": "target:[0]"
     },
     {
-      "seq": 2538,
+      "seq": 2539,
       "kind": 13,
       "amount": -1,
       "counter": "W"
-    },
-    {
-      "seq": 2539,
-      "kind": 34,
-      "obj": 8
     },
     {
       "seq": 2540,
@@ -14739,13 +14739,13 @@
     },
     {
       "seq": 2704,
-      "kind": 6,
+      "kind": 34,
+      "player": 1,
       "obj": 59
     },
     {
       "seq": 2705,
-      "kind": 34,
-      "player": 1,
+      "kind": 6,
       "obj": 59
     },
     {
@@ -16681,7 +16681,7 @@
       ]
     },
     {
-      "seq": 1253,
+      "seq": 1254,
       "player": 1,
       "choices": [
         2
@@ -18358,7 +18358,7 @@
       ]
     },
     {
-      "seq": 2536,
+      "seq": 2537,
       "player": 0,
       "choices": [
         0
@@ -18629,7 +18629,7 @@
       ]
     }
   ],
-  "head": "1bf68a255e60ef80",
+  "head": "386beb65252e5006",
   "intent_count": 515,
   "turn": 20,
   "step": "main1",
