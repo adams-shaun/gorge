@@ -148,12 +148,13 @@ const ezuriBeastStem = "g_4_4_phyrexian_beast"
 // the selector's scan order, and that answering it still runs one iteration
 // per subject (two Beast tokens).
 //
-// The loop's token/fight PAIRING is not asserted here: this build's
-// api:Fight reads its opposing list from Ctx.Targets, which is empty for
-// Ezuri's `Defined$ Imprinted & Remembered` body, so no fight damage is
-// produced (reported under Issues). The order-dependent observable
-// behaviour ChooseOrder governs is pinned by the focused synthetic test
-// above, whose body (DealDamage Defined$ Imprinted) is unimpeded.
+// The loop's token/fight PAIRING is not asserted here: RepeatEach's
+// UseImprinted$ is unread, so Ezuri's `Defined$ Imprinted & Remembered`
+// body names one creature twice and api:Fight notes the mis-resolved
+// selector loudly and deals no damage (cr-g18a). The order-dependent
+// observable behaviour ChooseOrder governs is pinned by the focused
+// synthetic test above, whose body (DealDamage Defined$ Imprinted) is
+// unimpeded.
 func TestRepeatEachChooseOrderEzurisPredationAsksBeforeLoop(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
