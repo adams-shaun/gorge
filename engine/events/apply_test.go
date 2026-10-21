@@ -1527,7 +1527,7 @@ func TestRingEmblemPushMintsAnAbilityInApply(t *testing.T) {
 	if len(none.Stack) != 0 {
 		t.Fatalf("level 1 minted %d stack objects, want none", len(none.Stack))
 	}
-	for _, level := range []int32{2, 4} {
+	for _, level := range []int32{2, 3, 4} {
 		g1 := state.NewGame([]string{"Ann", "Bob"})
 		Apply(g1, Event{Kind: RingEmblemPush, Player: 0, Amount: level,
 			Counter: "__ring:" + itoa(int(level))})

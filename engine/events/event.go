@@ -518,8 +518,9 @@ const (
 	// Counter the canonical "__ring:<level>" payload events.Apply rebuilds
 	// the ability from, exactly as the granted ward/afflict
 	// KeywordTriggerPush payloads are rebuilt ("the same DB$ ... a printed
-	// trigger would have carried"). Obj carries the Ring-bearer the firing
-	// event named (0 for a level whose body needs no bearer). The mint lives
+	// trigger would have carried"). IDs carries level 3's blocking creature
+	// (folded into the ability's Remembered); the other levels carry none.
+	// The mint lives
 	// in Apply because a direct unlogged Game.AddObject call would name an
 	// ObjID a log-only replay never learns about (Ruling T20-a). Appended
 	// here, after RingTemptsYou, following every prior Kind's own
