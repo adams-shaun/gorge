@@ -49,9 +49,29 @@ func TypesAndAllCreatureTypes(b Board, act []state.ContinuousEffect, id state.Ob
 // every ability its rules text generates. Applicability is the walk's own test
 // against the types so far; the dependency simulation never sets it.
 func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjID, atStack state.Zone) ([]string, bool, bool) {
+	ty, all, landSet, _, _, _ := typesAndLandSubtypeSet(b, act, id, atStack, nil)
+	return ty, all, landSet
+}
+
+// typesBeforeEffect returns the layer-4 list as it stood immediately before
+// the first effect from target's static ability applied, plus that list's
+// all-creature-types marker and whether such an effect applied at all. CR
+// 613.6 keeps a later-layer part of that same ability on the set the ability
+// affected in layer 4, so this is the list its later layers must match.
+// target is matched on layer, source, timestamp, Affected$ and a non-empty
+// AddType$, the same sibling lockedLayer4Types identifies.
+func typesBeforeEffect(b Board, act []state.ContinuousEffect, id state.ObjID, atStack state.Zone, target *state.ContinuousEffect) ([]string, bool, bool) {
+	_, _, _, pre, preAll, found := typesAndLandSubtypeSet(b, act, id, atStack, target)
+	return pre, preAll, found
+}
+
+// typesAndLandSubtypeSet is TypesAndLandSubtypeSet with an optional capture
+// of the layer-4 list just before target's sibling applied (see
+// typesBeforeEffect). A nil target disables the capture.
+func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjID, atStack state.Zone, target *state.ContinuousEffect) (ty []string, allCreatureTypes bool, landSet bool, pre []string, preAll bool, found bool) {
 	o := b.Game().Obj(id)
 	if o == nil || o.Face() == nil {
-		return nil, false, false
+		return nil, false, false, nil, false, false
 	}
 	// CR 708.5: a face-down battlefield permanent's type set is exactly
 	// {Creature} -- its printed types do not exist while it is face down
@@ -100,9 +120,9 @@ func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 			break
 		}
 	}
-	allCreatureTypes := effects.IntrinsicAllCreatureTypes(o)
+	allCreatureTypes = effects.IntrinsicAllCreatureTypes(o)
 	if !anyLType {
-		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), !o.ImpendingDormant() && allCreatureTypes, false
+		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), !o.ImpendingDormant() && allCreatureTypes, false, nil, false, false
 	}
 	// A copy exception "...except it has changeling" is a copiable
 	// characteristic-defining ability (CR 707.9b): it applies before every
@@ -129,9 +149,9 @@ func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 	// applies to this object (most objects are untouched by the layer-4
 	// effects in play). Every modification below -- the in-place filters
 	// and the appends -- runs on the owned copy, never on the face's array.
-	ty := base
+	ty = base
 	owned := false
-	landSet := false
+	landSet = false
 	// full records that ty is KNOWN to carry every creature-type vocabulary
 	// word (an all-creature-types grant materialised it and nothing has
 	// shrunk the list since): the grant's dedup and the match list then
@@ -159,6 +179,18 @@ func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 		}
 		return true
 	}
+	capture := func(ce *state.ContinuousEffect) {
+		if target == nil || found {
+			return
+		}
+		if ce.Layer != state.LType || ce.Source != target.Source || ce.Timestamp != target.Timestamp ||
+			ce.Affects != target.Affects || len(ce.AddTypes) == 0 {
+			return
+		}
+		found = true
+		pre = append([]string(nil), ty...)
+		preAll = allCreatureTypes
+	}
 	apply := func(ce *state.ContinuousEffect) {
 		if !owned {
 			ty = append([]string(nil), ty...)
@@ -172,6 +204,7 @@ func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 	if hi-lo < 2 {
 		for i := lo; i < hi; i++ {
 			if ce := &act[i]; applies(ce, ty, allCreatureTypes, full) {
+				capture(ce)
 				apply(ce)
 			}
 		}
@@ -258,6 +291,7 @@ func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 			}
 			done[picked] = true
 			if ce := &act[lo+picked]; applies(ce, ty, allCreatureTypes, full) {
+				capture(ce)
 				apply(ce)
 			}
 		}
@@ -271,7 +305,7 @@ func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 		// Creature, so it also invalidates the semantic all-types marker.
 		allCreatureTypes = false
 	}
-	return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))), allCreatureTypes, landSet
+	return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))), allCreatureTypes, landSet, pre, preAll, found
 }
 
 // CorpusLandTypeWords derives the land-subtype vocabulary from the parsed

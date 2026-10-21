@@ -850,46 +850,41 @@ func isLetterByte(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
-// lockedLayer4Types approximates CR 613.6 for a layer-7 effect whose static
+// lockedLayer4Types applies CR 613.6 to a layer-7 effect whose static
 // ability began applying in layer 4 (March of the Machines, Opalescence:
 // "is a creature ... with P/T equal to its mana value"; Fowl Play, Frogify:
 // "...is a Bird creature with base power and toughness 1/1"): the ability
-// keeps applying in layer 7 to the set it applied to in layer 4, even though
+// keeps applying in layer 7 to the set it affected in layer 4, even though
 // its own type grant has since changed what its Affected$ spec reads
 // (`Artifact.nonCreature` no longer matches an artifact March made a
 // creature, and `Creature` no longer matches a Craw Wurm whose layer-4
-// sibling stripped its card types before re-adding Creature). The match list
-// is the types the object had BEFORE the ability's own layer-4 sibling (same
-// source, timestamp and Affected$) applied: that is the set the sibling's
-// own Affected$ test saw, and CR 613.6 keeps the effect on it in layer 7. A
-// type the object already had therefore stays even when the sibling re-adds
-// it. Without a sibling, or when none of the sibling's added types survives
-// in the finished list, the finished list is returned unchanged.
+// sibling stripped its card types before re-adding Creature). The locked
+// list is the layer-4 list as it stood immediately before the ability's own
+// layer-4 sibling (same source, timestamp and Affected$) applied: exactly
+// the set that sibling's Affected$ test saw. Types the object already had
+// therefore stay even when the sibling re-adds them. That list is whatever
+// the layer-4 walk produced by then -- CR 613.8's dependency order may have
+// applied another effect first -- so only effects applied AFTER the sibling
+// are excluded. Without a sibling, or when the sibling did not apply to this
+// object in layer 4 (Aerial Modification's layer-4 grant can make March's
+// `Artifact.nonCreature` sibling inapplicable first, CR 613.8a), the layer-7
+// part is not locked and the finished list is returned unchanged.
 func lockedLayer4Types(b Board, active []state.ContinuousEffect, ce *state.ContinuousEffect, id state.ObjID, types []string) []string {
+	hasSibling := false
 	for i := range active {
 		sib := &active[i]
 		if sib.Layer != state.LType || sib.Source != ce.Source || sib.Timestamp != ce.Timestamp || sib.Affects != ce.Affects || len(sib.AddTypes) == 0 {
 			continue
 		}
-		// Subtracting an added type is only observable when it is still in
-		// the finished list. If none survives, the old list is already the
-		// sibling's pre-application list and no walk is needed.
-		if !slices.ContainsFunc(sib.AddTypes, func(a string) bool {
-			return slices.ContainsFunc(types, func(t string) bool { return strings.EqualFold(a, t) })
-		}) {
-			return types
-		}
-		// Re-run the layer-4 walk without this ability's own type effect:
-		// the result is the list the sibling matched, with types the object
-		// already had (printed or granted by an earlier effect) intact.
-		without := make([]state.ContinuousEffect, 0, len(active)-1)
-		without = append(without, active[:i]...)
-		without = append(without, active[i+1:]...)
-		pre, all := TypesAndAllCreatureTypes(b, without, id, 0)
-		if pre == nil {
-			return types
-		}
-		return effects.TypeMatchWords(pre, all)
+		hasSibling = true
+		break
 	}
-	return types
+	if !hasSibling {
+		return types
+	}
+	pre, all, found := typesBeforeEffect(b, active, id, 0, ce)
+	if !found {
+		return types
+	}
+	return effects.TypeMatchWords(pre, all)
 }
