@@ -321,6 +321,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// (engine/rules/replacement_prevent_kw.go).
 	if ev.Kind == events.Damage {
 		matches = append(matches, e.grantedPreventMatches(ev)...)
+		// CR 122.1c: a shield counter's prevention (shield_counter.go).
+		matches = e.shieldCounterDamageMatches(ev, matches)
 	}
 	// A GRANTED static replacement (AddReplacementEffect$ on a Mode$
 	// Continuous static, engine/rules/replacement_granted.go): appended after the
@@ -499,8 +501,10 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 				// damaged player, the uniform shape every stored prevention
 				// Note keeps. The returned kind is still a Note, never a
 				// Damage: the combat assignment loop and speed.go read it.
-				return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
-					Amount: ev.Amount, Text: "damage prevented by replacement effect"}), true
+				prevented := e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Amount: ev.Amount, Text: "damage prevented by replacement effect"})
+				e.spendShieldCounter(m)
+				return prevented, true
 			}
 			// a ReplaceDamage body falls through to its subtracting arm below
 		}

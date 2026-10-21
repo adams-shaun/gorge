@@ -137,6 +137,18 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 				// permanent's rules text is both halves' combined after the
 				// unlock (CR 309.6), each face's Statics its own scan. A room's
 				// unlocked face exists only on the battlefield.
+				// CR 122.1j: "A hone counter on an Equipment gives +1/+0 to any
+				// creature that Equipment is attached to." A counter's effect,
+				// not an ability of the permanent, so it is emitted before (and
+				// independently of) the face walk and is not stamped for
+				// ability loss. The count is read at scan time: a HONE
+				// CounterChange forces a rescan (layercache.go staticSafeSince).
+				if onBattlefield && o.AttachedTo != 0 {
+					if n := o.Counter("HONE"); n > 0 {
+						out = append(out, ContinuousEffect{Source: id, Timestamp: o.Timestamp, Controller: o.Controller,
+							Affects: "Creature.EquippedBy", Layer: LPT, Sub: SubModify, AddPower: n})
+					}
+				}
 				faces := staticRoomFaces(o, f, onBattlefield)
 				// CR 702.140d: a mutated pile's under-card statics are live too,
 				// exactly like the Rooms alternate face above. They are appended
