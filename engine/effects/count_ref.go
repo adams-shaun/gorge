@@ -95,6 +95,8 @@ func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 		// ScryBottom is the events.Scry marker's Amount (the number put on
 		// the bottom), captured into TriggerAmount by rules for Mode$ Scry.
 		n = c.TriggerAmount
+	case evalTriggerCountOKStormCount:
+		n = c.TriggerStormCount
 	case evalTriggerCountOKResult:
 		if max {
 			n = c.TriggerResultMax
@@ -755,6 +757,7 @@ type evalTriggerCountOKCode uint16
 const (
 	evalTriggerCountOKAmount evalTriggerCountOKCode = iota + 1
 	evalTriggerCountOKResult
+	evalTriggerCountOKStormCount
 )
 
 var evalTriggerCountOKCodes = state.NewStrCodes(
@@ -763,6 +766,7 @@ var evalTriggerCountOKCodes = state.NewStrCodes(
 	state.StrEntry[evalTriggerCountOKCode]{Key: "Amount", Val: evalTriggerCountOKAmount},
 	state.StrEntry[evalTriggerCountOKCode]{Key: "ScryBottom", Val: evalTriggerCountOKAmount},
 	state.StrEntry[evalTriggerCountOKCode]{Key: "Result", Val: evalTriggerCountOKResult},
+	state.StrEntry[evalTriggerCountOKCode]{Key: "CurrentStormCount", Val: evalTriggerCountOKStormCount},
 )
 
 type evalSacrificedOKCode uint16
