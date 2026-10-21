@@ -8,13 +8,13 @@ who knows Magic can find the code for a rule, and one who does not can see how
 the pieces fit. It assumes you have read [Events and replay](events.md) and
 [Game loop and decisions](game-loop.md).
 
-*Facts on this page are from `develop` @ `ad3777023` (2026-10-20). Line
+*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Line
 counts are `wc -l` over non-test files. Code links point at `main`.*
 
 ## The shape of the package
 
-`engine/rules` is the largest package in the repository: 410 non-test files
-and 131,840 lines at the top level, plus 2,350 test files. Around it sit seven
+`engine/rules` is the largest package in the repository: 423 non-test files
+and 135,274 lines at the top level, plus 2,470 test files. Around it sit seven
 sub-packages that each compute one thing and never hold an engine:
 
 <figure markdown>
@@ -61,15 +61,15 @@ Where to look inside `rules` itself (non-test files by name prefix):
 
 | Mechanism | Files | Lines |
 |---|---|---|
-| Casting (`cast*`) | 22 | 13,439 |
-| Triggers (`trigger*`, `triggered_*`) | 28 | 13,920 |
-| Replacement effects (`replace*`) | 23 | 9,633 |
-| Layers (`layer*`) | 12 | 5,373 |
+| Casting (`cast*`) | 23 | 14,024 |
+| Triggers (`trigger*`, `triggered_*`) | 29 | 14,187 |
+| Replacement effects (`replace*`) | 23 | 9,837 |
+| Layers (`layer*`) | 12 | 5,683 |
 | Mana (`mana*`) | 11 | 4,071 |
-| Combat (`combat*`) | 4 | 3,334 |
-| State-based actions (`sba*`) | 3 | 2,299 |
-| Turn structure (`turn*`) | 3 | 2,209 |
-| The stack (`stack.go`) | 1 | 1,155 |
+| Combat (`combat*`) | 4 | 3,369 |
+| State-based actions (`sba*`) | 3 | 2,354 |
+| Turn structure (`turn*`) | 3 | 2,272 |
+| The stack (`stack.go`) | 1 | 1,204 |
 
 ## Casting (CR 601)
 
@@ -212,9 +212,9 @@ player would next receive priority (CR 117.5).</figcaption>
   trigger-interest class from `events/kindinfo.go`, so only faces whose
   triggers could care are examined. The per-mode verdict comes from
   `trigmatch.Match`: a dense table with one matcher per trigger `Mode$`,
-  registered from each mode's file in `rules/trigmatch` (97 modes have a
-  matcher there, counted from the `registerTrigMatcher` calls; a mode with no
-  matcher never fires). Leaves-the-battlefield triggers are matched against
+  registered from each mode's file in `rules/trigmatch` (97 of the 102 modes
+  in the `cards.TriggerMode` vocabulary have a matcher, counted with
+  `trigmatch.LookupMode`; a mode with no matcher never fires). Leaves-the-battlefield triggers are matched against
   a snapshot of the board from before the event (the CR 603.10a "look back").
 - **Queueing and order.** Matches wait in `pendingTriggers` until
   `priorityRound` calls `putTriggersOnStack`. That sorts them APNAP (active
@@ -259,7 +259,7 @@ sequenceDiagram
 
 - The replaceable events are the script's `R:Event$` vocabulary: 27 kinds,
   among them `Moved`, `DamageDone`, `Draw`, `GainLife`, `AddCounter`,
-  `CreateToken`, `ProduceMana`, `Untap` and `BeginPhase`, each with its own
+  `CreateToken`, `ProduceMana`, `Untap` and `BeginPhase`, most with their own
   `replacement_*.go` file.
 - When several apply, the affected player (the object's controller, or the
   player for a draw) chooses through a `replacement` decision, and the

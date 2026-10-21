@@ -8,7 +8,7 @@ non-trivial change, and come back when a ratchet or golden test fails and you
 want to know what it is protecting.
 
 *Every test named here was checked to exist, and the ones in the summary run
-green, on `develop` @ `ad3777023`, 2026-10-20.*
+green, on `develop` @ `513a2a0c3`, 2026-10-21.*
 
 Where a rule is held only by convention (nothing mechanical catches you at
 the point of writing), the page says so; the after-the-fact backstop is
@@ -198,7 +198,7 @@ for the named edges; `TestCostVocabularyIsALeaf`,
 `*BoardOnlyShrinks` tests for the sub-packages. The group rule itself
 (`engine/` → nothing outside) is **measured, not yet one test**:
 `go list -deps ./engine/...` showed no gorge package outside `engine/` and no
-non-standard-library package on 2026-10-20. `cmd/pkgmap` draws any tier
+non-standard-library package on 2026-10-21. `cmd/pkgmap` draws any tier
 back-edge in red on [Packages](packages.md).
 
 **To change.** Adding a forbidden edge is welcome. Removing one needs a
@@ -324,7 +324,7 @@ raises a ceiling.
 | test-budget exception lists | `cmd/testbudget` | see [invariant 11](#every-test-fits-the-budget) |
 
 *"Today" from `go test -v -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' ./engine/rules/`
-and `agentsdoc_test.go`'s `knownApproximationRows`, 2026-10-20.*
+and `agentsdoc_test.go`'s `knownApproximationRows`, 2026-10-21 at `513a2a0c3`.*
 
 **Why.** "Supported" should only ever mean more. A two-way ratchet makes the
 table the exact truth: it cannot silently understate a regression, and it
@@ -372,7 +372,7 @@ unexplained moved head is a bug, often nondeterminism
 wall time**. One that does not is a defect: split it into chunk tests that
 share fixtures; never trim its coverage.
 
-**Why.** The full suite (11,506 top-level `Test` functions on 2026-10-20) runs on shared machines after
+**Why.** The full suite (over 12,000 top-level `Test` functions on 2026-10-21) runs on shared machines after
 every merge. One unbounded test can stall or kill everything else running
 there.
 

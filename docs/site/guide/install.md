@@ -5,7 +5,7 @@ prerequisites, the card corpus, the binaries and the browser client. It is
 for anyone who wants to play against gorge's bots or run bot matches; a
 contributor needs the same steps, and then [Testing](../contributing/testing.md).
 
-*Verified 2026-10-20 on Linux (x86-64, Go 1.26.3) at commit `ad3777023`.
+*Verified 2026-10-21 on Linux (x86-64, Go 1.26.3) at commit `513a2a0c3`.
 Other platforms are not tested by the maintainers.*
 
 ## Prerequisites
@@ -36,7 +36,7 @@ in the [`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile).
 The pin matters: every game, replay and coverage number is a function of it.
 
 ```text
-fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at 098b0553 (098b055313459c4b36c9e1f1d4e81a2c8aef815e)
+fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at 76fd7691 (76fd7691ab45ab1b42cef19ad04b41bf364501f4)
 These scripts are licensed GPL-3.0. They are a build input only:
 never commit them, never include them in a published image.
 ```
@@ -62,7 +62,7 @@ version you build gets its own `ir-*` files and old ones pile up. They are
 safe to delete; the next run recompiles.
 
 `make report` prints the corpus coverage at the pin, for example
-`cards: 34074  playable: 32082 (94.2%)` (2026-10-20, `ad3777023`). See
+`cards: 34074  playable: 32246 (94.6%)` (2026-10-21, `513a2a0c3`). See
 [Card sets](../support/sets.md) for what "playable" means.
 
 ## 3. Build the binaries
@@ -122,13 +122,13 @@ heuristic bots, replaying each one and comparing the rebuilt event chain with
 the live one. Every game prints a result line and `replay OK`:
 
 ```text
-seed 0: 4 seats,   1420 intents,   6944 events,  33 turns, winner=death-n-taxes, chain=c273bc17c18d495d
-  replay OK (chain c273bc17c18d495d)
-seed 1: 4 seats,   1718 intents,   8413 events,  36 turns, winner=death-n-taxes, chain=7f8abe63f8e116ff
-  replay OK (chain 7f8abe63f8e116ff)
+seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=3681b10f8c62ff99
+  replay OK (chain 3681b10f8c62ff99)
+seed 1: 4 seats,   1717 intents,   8409 events,  36 turns, winner=death-n-taxes, chain=23863a66d71e0279
+  replay OK (chain 23863a66d71e0279)
 ```
 
-All 20 games verified in 3.6 s here. If you see `replay diverged` or a
+All 20 games verified in 5 s here. If you see `replay diverged` or a
 `FAILED` line, that is an engine bug worth [reporting](troubleshooting.md).
 
 Next: [Play in the browser](play.md) or [Bot-vs-bot games](bot-games.md).

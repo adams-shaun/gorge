@@ -5,18 +5,18 @@ the recommended direction. It is for contributors looking for safe cleanup
 work and for reviewers asking "is this still used?". It is a roadmap, not a
 commitment: each item is decided on its own.
 
-*Re-checked 2026-10-20 on `develop` @ `ad3777023` against `go run ./cmd/pkgmap`
-and the Makefile, scripts and workflows. The 2026-10-12 survey's closed items
-are summarised at the end. Confidence: **H** high, **M** medium, **L** low.*
+*Re-checked 2026-10-21 on `develop` @ `513a2a0c3` against `go run ./cmd/pkgmap`
+(99 packages, none classified SUSP or RED) and the Makefile, scripts and
+workflows. Closed items are summarised at the end. Confidence: **H** high,
+**M** medium, **L** low.*
 
 ## Open items
 
 | Item | Evidence | Direction |
 |---|---|---|
-| Four overlapping search stacks are down to two | gorge keeps the PIMC harness (`bots/searchprobe` + `bots/searchseat`, ~10.7k non-test lines) and the PUCT search (`bots/azmcts`, ~6k); `searchprobe` and `searchseat` are also linked into `server/host`. | Choose the survivor on benchmark evidence. (L) |
-| ManaBrew wire stack (~11.1k non-test lines across `server/manabrew`, `server/protocol/manabrew`, `server/host/manabrewhttp`) | Deprioritised; its tests build only with `-tags manabrew` (`make test-manabrew`) and are outside CI, but the code is compiled into `gorged` (`-manabrew`) and `cmd/cardfuzz` uses its mock client. | Keep; optionally tag the non-test code too. (L) |
-| `bots/botpolicy` vs `bots/spellbench/builtins` heuristics | Two heuristic policies; the second is an intentional port of an external benchmark's builtin bots. | Keep; say why in `builtins`' package doc. (M) |
-| SpellBench v2 adapters (`server/spellbench/*`, ~12.7k non-test lines; `cmd/spellbench-gorge-env`, `cmd/spellbench-gorge-agent`) | Ported back into gorge on 2026-10-19/20 as the environment and agent roles of the SpellBench v2 protocol; classified EXT. The earlier v1/v2 bridges left gorge on 2026-10-16. | Keep while the benchmark is in use; it imports `engine/`, `bots/` and `server/` packages, plus the one `testkit/` edge below. (M) |
+| Four overlapping search stacks are down to two | gorge keeps the PIMC harness (`bots/searchprobe` + `bots/searchseat`, ~10.8k non-test lines) and the PUCT search (`bots/azmcts`, ~6.2k); `searchprobe` and `searchseat` are also linked into `server/host`. | Choose the survivor on benchmark evidence. (L) |
+| ManaBrew wire stack (~11.2k non-test lines across `server/manabrew`, `server/protocol/manabrew`, `server/host/manabrewhttp`) | Deprioritised; its tests build only with `-tags manabrew` (`make test-manabrew`) and are outside CI, but the code is compiled into `gorged` (`-manabrew`) and `cmd/cardfuzz` uses its mock client. | Keep; optionally tag the non-test code too. (L) |
+| SpellBench v2 adapters (`server/spellbench/*`, ~12.8k non-test lines; `cmd/spellbench-gorge-env`, `cmd/spellbench-gorge-agent`) | Ported back into gorge on 2026-10-19/20 as the environment and agent roles of the SpellBench v2 protocol; classified EXT. The earlier v1/v2 bridges left gorge on 2026-10-16. | Keep while the benchmark is in use; it imports `engine/`, `bots/` and `server/` packages, plus the one `testkit/` edge below. (M) |
 | `cmd/kcensus` | A one-off mechanic census for the dirty-dirac kernel's card-set planning; no Makefile, script or workflow references it. | Keep while kernel set planning uses it; a candidate to retire afterwards. (L) |
 | One tier back-edge | `server/spellbench/internal/testcorpus` (test support) imports `testkit/testutil`, drawn red on [Packages](packages.md). | Harmless (test-only support), but could move under `testkit/`. (L) |
 | `codeshape` ratchets skipped | `TestCodeShapeOnlyShrinks` and `TestLongFunctionsOnlyShrink` have been skipped by the maintainers since 2026-10-06. | Re-enable by deleting the `t.Skip` lines once the ceilings are re-measured. (M) |
@@ -31,6 +31,13 @@ candidates:
 - `bots/gonet`, `bots/netsimd`, `bots/spellbench`: libraries imported by
   tests here and by companion modules (the network forward pass, its SIMD
   variant, the SpellBench deck catalogs).
+- `bots/gonet/gonettest`, `server/spellbench/internal/testcorpus`,
+  `server/spellbench/internal/testgame` and `server/spellbench/minihost`:
+  test support, imported only by tests.
+- `engine/cards/oracletext`: the printed-card renderer the Oracle-text
+  audit in gorge-compliance uses; a subpackage so it stays out of the IR
+  cache fingerprint.
+- `cli`: the command-line layer, for companion modules' commands.
 - Every `cmd/` package: nothing imports a command.
 
 ## Commands with no Makefile, script or workflow reference
@@ -44,14 +51,17 @@ are documented developer tools run by hand (`repro`, `headdiff`, `deckimport`,
 not candidates. `keywordbench` (keyword presence statistics) is the one with
 no current documented use. (L)
 
-## Closed since the 2026-10-12 survey
+## Closed
 
+- **Two heuristic policies** (`bots/botpolicy` and `bots/spellbench/builtins`):
+  `builtins`' package doc now says why it exists (a port of the SpellBench
+  builtin bots for a native SpellBench-style workup); both stay.
 - **Flat root, dead commands, stray root files** (`deck.list`,
   `benchmark.md`, `patches/`, `cmd/autopayaudit`, `cmd/manamodelstats`,
   `internal/hindsight`, `cmd/hindsight`): restructured or deleted on
   2026-10-16 ([ADR 0001](https://github.com/adams-shaun/gorge/blob/main/docs/decisions/0001-repo-layout.md)).
-- **Research code in gorge**: the research tree, draft events, the research
-  bots and the agent pipeline moved to the private companion module; the
+- **Research code in gorge**: the research tree, draft events and the research
+  bots moved to the private companion module; the
   compliance oracles and scenario corpora to
   [gorge-compliance](https://github.com/adams-shaun/gorge-compliance)
   ([The three repositories](../repos/index.md)).

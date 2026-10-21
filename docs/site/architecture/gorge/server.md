@@ -9,18 +9,18 @@ goroutines are, what is written to disk and how clients are fed. To run a
 server, see [Getting started](../../getting-started.md); the HTTP API and the
 bot interfaces have their own pages in the user's and bot author's guides.
 
-*Facts on this page are from `develop` @ `ad3777023` (2026-10-20). Line
+*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Line
 counts are `wc -l` over non-test files. Code links point at `main`.*
 
 ## Packages
 
 | Package | Lines | Role |
 |---|---|---|
-| [`server/host`](https://github.com/adams-shaun/gorge/blob/main/server/host/doc.go) | 8,666 | the table registry, the match loop, seats, persistence, fan-out, undo, history |
-| `server/host/httpapi` | 1,280 | REST routes and the server-sent event (SSE) stream over `host.Registry` |
-| `server/protocol` | 691 | wire types only: frames, snapshots, events; never imports `rules` |
-| `server/gorged` | 5,103 | the importable server: flags, wiring, seat tokens, extension points |
-| `cmd/gorged` | | a thin `main`: `os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{}))` |
+| [`server/host`](https://github.com/adams-shaun/gorge/blob/main/server/host/doc.go) | 9,422 | the table registry, the match loop, seats, persistence, fan-out, undo, history |
+| `server/host/httpapi` | 1,368 | REST routes and the server-sent event (SSE) stream over `host.Registry` |
+| `server/protocol` | 758 | wire types only: frames, snapshots, events; never imports `rules` |
+| `server/gorged` | 5,358 | the importable server: flags, wiring, seat tokens, extension points |
+| `cmd/gorged` | | a thin `main`: `os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{Review: reviewLoad}))`, plus the loader `gorged review` uses |
 
 The package doc of `server/host` is a good summary of its intent: "one
 goroutine per table that plays match after match with bot seats, sessions
@@ -172,8 +172,9 @@ flowchart LR
   ([Views](views.md#what-the-server-checks)).
 - **Frames** are a small closed set (`hello`, `widget`, `match_start`,
   `snapshot`, `event`, `decision`, `match_end`, `table_halted`,
-  `table_state`, `overflow`, `error`, `rewind`) in a versioned envelope; the
-  TypeScript client's types are generated from the Go structs.
+  `table_state`, `overflow`, `error`, `rewind`, plus four draft-event frames
+  that only an events plugin sends) in a versioned envelope; the TypeScript
+  client's types are generated from the Go structs.
 
 ## History and undo
 
@@ -199,8 +200,9 @@ binary:
 - `gorged.Main(args, ext)` parses flags, listens and serves until a signal;
   `Serve` is the same without signals or the bind, for tests.
 - `gorged.Extensions` is what a binary links in beyond the platform: an
-  events plugin (organised events such as drafts) and extra flags. The zero
-  value is gorge's own server.
+  events plugin (organised events such as drafts), extra flags, and the
+  loader `gorged review` uses to turn a saved game into a recorded match.
+  gorge's own `cmd/gorged` sets only the review loader.
 - `gorged.RegisterNetBot` and `RegisterClosedNetBot` link trained-network bot
   policies into the binary before `Main` runs; bot policies in general come
   from the `bots` registry.
