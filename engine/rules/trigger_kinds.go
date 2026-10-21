@@ -281,15 +281,20 @@ func selfOnlySpec(spec string) bool {
 // looksBackOnDeparture reports a trigger line the CR 603.10a look-back walk
 // matches against the board as it was immediately before a battlefield
 // departure: a leaves-the-battlefield line (Mode$ ChangesZone or
-// ChangesZoneAll with Origin$ exactly Battlefield) or a sacrifice line
-// (Mode$ Sacrificed). checkFaceTriggers' split gate and
+// ChangesZoneAll with Origin$ exactly Battlefield), a sacrifice line
+// (Mode$ Sacrificed), or Mode$ Unattached (CR 701.3d) -- "an attachment
+// that leaves the battlefield becomes unattached from its bearer", and a
+// "becomes unattached" trigger looks back in time the same way, seeing the
+// departure MoveZone's LKI (the attachment still carrying its
+// pre-departure AttachedTo). checkFaceTriggers' split gate and
 // computeFaceLookBackZones read this one predicate, so the walk and its
-// inert-board proof agree.
+// inert-board proof agree. The granted-trigger walks (trigger_granted.go)
+// never see an Unattached trigger, so they keep their own copies unchanged.
 func looksBackOnDeparture(t *cards.Trigger) bool {
 	switch t.ModeKind() {
 	case cards.TriggerChangesZone, cards.TriggerChangesZoneAll:
 		return t.ParamStr(cards.PKOrigin) == "Battlefield"
-	case cards.TriggerSacrificed:
+	case cards.TriggerSacrificed, cards.TriggerUnattached:
 		return true
 	}
 	return false

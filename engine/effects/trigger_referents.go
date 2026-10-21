@@ -174,6 +174,14 @@ type TriggerContext struct {
 	// which must survive the roll resolution like TriggerResult. Zero outside
 	// a RolledDie/RolledDieOnce trigger; a real result is always >= 1.
 	TriggerResultMax int32
+	// TriggerStormCount is the number of spells cast this turn, the
+	// triggering one included, when a storm trigger fired (CR 702.40a:
+	// "copy it for each other spell that was cast before it this turn").
+	// It is what the TriggerCount$CurrentStormCount head answers (Forge's
+	// name for the same fire-time count); captured at fire time so spells
+	// cast in response to the trigger do not add copies. Zero outside a
+	// storm trigger.
+	TriggerStormCount int32
 	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
 	// matched. CR 107.3m binds that value at trigger time: it must survive if
 	// the card later leaves the stack or battlefield before the ability

@@ -156,14 +156,14 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 121.6-121.9 | unknown | - | - | not reached |
 | 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` | - | P/T counters in layer 7c |
 | 122.1b | follows | `engine/cards/counter_keyword.go#CounterKeyword` | - |  |
-| 122.1c | not-impl | - | - | SHIELD counters have no reader; SILENT; test-verified; cr-g23 |
+| 122.1c | follows | `engine/effects/regeneration.go#ReplaceShieldCounter` `engine/rules/shield_counter.go#Engine.shieldCounterDamageMatches` | `TestCR122_1cShieldCounterReplacesDestruction` `TestCR122_1cShieldCounterPreventsDamage` | destruction order regen > shield > umbra is a deterministic CR 616.1 stand-in |
 | 122.1d | deviates | `engine/effects/untap.go#TryUntap` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` | stun spent on a doesn't-untap permanent |
 | 122.1e | follows | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` | `TestCombatDamageToPlaneswalkerAtZeroLoyaltyAppliesStateBasedAction` | - |
 | 122.1f | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | poison SBA; none in pools |
 | 122.1g | follows | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestBattleEntersWithPrintedDefense` | - |
 | 122.1h | deviates | `engine/rules/replacement.go#Engine.finalityReplacementApplies` | - | finality applies to creatures only |
 | 122.1i | follows | `engine/rules/turn.go#Engine.finishEnteredStep` | - | rad counters trigger |
-| 122.1j | not-impl | - | - | HONE counters no reader (Dwalin, Sting); SILENT; cr-g23 |
+| 122.1j | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` | `TestCR122_1jHoneCounterPumpsEquippedCreature` | layer 7c; reads attachment, not the Equipment subtype (as Forge) |
 | 122.2 | unknown | - | - | not line-checked |
 | 122.3 | follows | `engine/rules/sba.go#Engine.annihilateOppositeCounters` | `TestCR704RepoCreatureOppositeCountersAnnihilate` | - |
 | 122.4 | not-impl | - | - | stat:MaxCounter unregistered; LOUD (coverage report) |

@@ -262,13 +262,38 @@ func (e *Engine) grantedSVarsFor(id state.ObjID) map[string]string {
 // mayLookAtObject: the spec matching is shared, the object here comes from a
 // zone lookup the battlefield read cannot do.
 func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
+	return e.libraryTopLook(p, false)
+}
+
+// LibraryTopRevealed reports whether the top card of p's library is
+// revealed to every player right now: a live MayLookAt$ Player grant
+// ("play with the top card of your library revealed", Courser of Kruphix;
+// CR 401.5) whose Affected$ spec matches it. The view's optional
+// LibraryTopRevealed capability shows that card to every seat; a MayLookAt$
+// You grant (Vizier of the Menagerie) stays the owner's private look.
+func (e *Engine) LibraryTopRevealed(p state.PlayerID) bool {
+	return e.libraryTopLook(p, true)
+}
+
+// libraryTopLook is the shared read: any live MayLookAt grant (all false)
+// or only a revealing one (all true) over the top of p's library.
+func (e *Engine) libraryTopLook(p state.PlayerID, all bool) bool {
 	lib := e.G.Zone(state.ZLibrary, p)
 	if len(lib) == 0 {
 		return false
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if ce.MayLookAt && e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
+		if !ce.MayLookAt || (all && !ce.MayLookAtAll) {
+			continue
+		}
+		// A hand-reveal grant (Telepathy, Enduring Renewal: MayLookAt$ over
+		// AffectedZone$ Hand) names no library card, whatever its Affected$
+		// spec would match on a library top.
+		if ce.AffectedZone != "" && ce.AffectedZone != "Library" {
+			continue
+		}
+		if e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
 			return true
 		}
 	}

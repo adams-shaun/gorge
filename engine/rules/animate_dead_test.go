@@ -284,7 +284,6 @@ func TestAnimateDeadDerivedEnchantDrivesTheSBA(t *testing.T) {
 	if adID == 0 || bearID == 0 {
 		t.Fatalf("fixture setup failed: aura=%d bear=%d", adID, bearID)
 	}
-	e.emit(events.Event{Kind: events.Attach, Obj: adID, IDs: []state.ObjID{bearID}})
 	// The post-DBAnimate state, set up by hand: the layer grant (remove the
 	// stale enchant, grant the IsRemembered one -- the exact lists the card's
 	// DB$ Animate carries) and the bear durably remembered (the persistent
@@ -299,6 +298,9 @@ func TestAnimateDeadDerivedEnchantDrivesTheSBA(t *testing.T) {
 		Permanent:      true,
 	})
 	e.emit(events.Event{Kind: events.Choose, Obj: adID, Counter: "remembered", IDs: []state.ObjID{bearID}})
+	// Attached after the grant: CR 701.3b refuses an attach the Aura's
+	// current enchant does not admit.
+	e.emit(events.Event{Kind: events.Attach, Obj: adID, IDs: []state.ObjID{bearID}})
 	e.pending = nil
 
 	assertDerivedEnchantSwapped(t, e, adID)

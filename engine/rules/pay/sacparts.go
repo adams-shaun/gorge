@@ -239,6 +239,10 @@ func ManaCostPayableFull(e Engine, p state.PlayerID, o *state.Object, source sta
 	if energy > e.Game().Players[p].Counter("ENERGY") {
 		return false
 	}
+	// Mill<N> parts (Millikin): CR 701.17b, the library must hold the summed N.
+	if !MillCostPayable(e.Game(), p, cost.Mill) {
+		return false
+	}
 	// AddCounter<N/KIND> and Exert<1/CARDNAME> are source-anchored: the
 	// source must still be the permanent that receives the counter or the
 	// exert (a mana ability is activated from the battlefield).
