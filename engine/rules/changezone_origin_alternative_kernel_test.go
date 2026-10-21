@@ -31,7 +31,7 @@ func TestChangeZoneOriginAlternativeTowerWinderGraveyardKernel(t *testing.T) {
 	e.pending = nil
 	e.resolveTop()
 
-	d := e.Pending()
+	d := answerOriginAltAllZones(t, e)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
 		t.Fatalf("Tower Winder ETB search pending = %+v, want a search KChoose", d)
 	}

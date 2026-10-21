@@ -11,6 +11,44 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// originAlternativeZones is the OriginAlternative$ zone election ("search
+// your graveyard, hand, and/or library": Boonweaver Giant, Finale of
+// Devastation, the planeswalker-deck tutors). The searcher (searchChooser)
+// answers ONE KChoose, Min 1 and Max len(zones), with one option per origin
+// zone in the parsed Origin$-then-OriginAlternative$ order (Option.Kind
+// "zone", Label the zone name); the answer is the subset searched, kept in
+// that order. Without OriginAlternative$, with a single zone, or with no
+// answer (the R-9 no-host stand-in) every zone is searched -- the
+// pre-election behaviour, byte-identical.
+func originAlternativeZones(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner state.PlayerID, targetIndex int, zones []state.Zone) []state.Zone {
+	if !cz.OriginAltPresent || len(zones) < 2 {
+		return zones
+	}
+	chooser := searchChooser(h, c, cz, owner)
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+		Min: 1, Max: len(zones), Source: c.Source,
+		ResumeKind: "search_zones", ResumeSA: sa, ResumeTarget: targetIndex,
+		Prompt: "Choose the zones to search"}
+	for i, z := range zones {
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "zone",
+			Label: "Search the " + z.String(), Player: owner})
+	}
+	ans, ok := AskTape(h, d)
+	if !ok || len(ans) == 0 {
+		return zones
+	}
+	out := make([]state.Zone, 0, len(ans))
+	for i, z := range zones {
+		for _, o := range ans {
+			if o.Index == i {
+				out = append(out, z)
+				break
+			}
+		}
+	}
+	return out
+}
+
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.Zone, zones []state.Zone) {
 	players := searchPlayersFor(h, c, cz.fetch())
 	if c.Forget.Ready {
@@ -70,6 +108,11 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 				}
 			}
 		}
+		// OriginAlternative$ ("search your graveyard, hand, and/or library"):
+		// the chooser picks which of the named zones to search, so a search
+		// that skips the library neither offers its cards nor owes the
+		// "If you search your library this way, shuffle" tail.
+		zones := originAlternativeZones(h, c, sa, cz, owner, targetIndex, zones)
 		lib, lookWindow := searchLook(h, c, cz, owner, zones)
 
 		rawSpec := cz.ChangeType
@@ -1136,10 +1179,14 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// that models that fact scopes its FoundSearchingLibrary$ replacements
 	// and ControlOpponentsSearchingLibrary$ redirects to them. The optional
 	// hooks keep test hosts (which do not model the state) working.
+	// A search that left the library out (an OriginAlternative$ election
+	// of other zones only) is not a library search: no search scope, no
+	// SearchedLibrary record, no shuffle tail.
+	searchedLib := zoneIn(zones, state.ZLibrary)
 	if b, ok := h.(interface {
 		BeginLibrarySearch(owner state.PlayerID)
 		EndLibrarySearch()
-	}); ok {
+	}); ok && searchedLib {
 		b.BeginLibrarySearch(owner)
 		defer b.EndLibrarySearch()
 	}
@@ -1398,8 +1445,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// no eligible card. This marker is distinct from the searched cards' own
 	// MoveZone events so trig:SearchedLibrary cannot false-fire on ordinary
 	// library movement.
-	h.Emit(events.Event{Kind: events.SearchedLibrary, Obj: c.Source, Player: owner})
-
+	if searchedLib {
+		h.Emit(events.Event{Kind: events.SearchedLibrary, Obj: c.Source, Player: owner})
+	}
 	// The search's reveal (hiddenreveal1): Forge's changeHiddenOriginResolve
 	// reveals the moved cards when Reveal$ says so, and ALSO by default when
 	// the search's ChangeType$ states a quality (anything beyond the bare
@@ -1453,7 +1501,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// AtEOT$ rides the search's moved set too, scheduled BEFORE the
 	// library shuffle tail.
 	scheduleAtEOT(h, c, sa, moved)
-	if zoneIn(zones, state.ZLibrary) {
+	if searchedLib {
 		searchShuffleTail(h, c, cz, owner, moved, to)
 	}
 }

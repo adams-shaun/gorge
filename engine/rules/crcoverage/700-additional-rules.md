@@ -87,7 +87,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.22b | deviates | `engine/effects/cardflow.go#effLookAndArrange` | - | scry 0 fires scry triggers |
 | 701.22c | partial | `engine/effects/cardflow.go#effLookAndArrange` | - | players scry sequentially |
 | 701.22d | follows | `engine/rules/arrange.go#arrangeAnswerRecord` | - |  |
-| 701.23a | follows | `engine/effects/zone_search.go#effSearchLibrary` | - |  |
+| 701.23a | follows | `engine/effects/zone_search.go#effSearchLibrary` `engine/effects/zone_search.go#originAlternativeZones` | `TestCROriginAlternativeGraveyardOnlySkipsLibrary` `TestCROriginAlternativeLibraryOnlyOmitsGraveyard` | "and/or" origins: the searcher elects the zones; an unsearched library is not searched, recorded or shuffled |
 | 701.23b | follows | `engine/effects/filter.go#SearchStatesQuality` `engine/effects/zone_search.go#effSearchLibrary` | - | finding is optional for a stated quality |
 | 701.23c,e-j | unknown | - | - | not reached (23c undefined quality, 23h-j APNAP multi-search, outside the game) |
 | 701.23d | follows | `engine/effects/zone_search.go#effSearchLibrary` | `TestLibrarySearchMandatoryQualityRequiresFinding` | quantity search must find |

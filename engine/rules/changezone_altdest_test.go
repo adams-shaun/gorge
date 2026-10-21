@@ -50,7 +50,8 @@ func TestTheFiveDoctorsDestAltKickedBattlefieldUnkickedHand(t *testing.T) {
 	// Base {5}{G} + kicker {5} = 10 generic + G.
 	addMana(t, e, 0, "GCCCCCCCCCC")
 	submitChoices(t, e, castModeOption(t, e, id, "kicked"))
-	d := passUntilNonPriority(t, e, 30)
+	passUntilNonPriority(t, e, 30)
+	d := answerOriginAltAllZones(t, e)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
 		t.Fatalf("pending = %+v, want a search KChoose", d)
 	}
@@ -69,7 +70,8 @@ func TestTheFiveDoctorsDestAltUnkickedGoesToHand(t *testing.T) {
 	id := searchMoveByName(t, e, "The Five Doctors", state.ZHand)
 	addMana(t, e, 0, "GCCCCC") // base {5}{G} only
 	submitChoices(t, e, plainCastOption(t, e, id).Index)
-	d := passUntilNonPriority(t, e, 30)
+	passUntilNonPriority(t, e, 30)
+	d := answerOriginAltAllZones(t, e)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
 		t.Fatalf("pending = %+v, want a search KChoose", d)
 	}
