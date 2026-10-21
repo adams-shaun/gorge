@@ -278,10 +278,26 @@ func selfOnlySpec(spec string) bool {
 	return rest == "Self" || strings.HasPrefix(rest, "Self+")
 }
 
+// looksBackOnDeparture reports whether trigger line t is a
+// leaves-the-battlefield look-back trigger: the CR 603.10a ChangesZone /
+// Origin$ Battlefield shape, or Mode$ Unattached (CR 701.3d) -- "an
+// attachment that leaves the battlefield becomes unattached from its
+// bearer", and a "becomes unattached" trigger looks back in time the same
+// way, seeing the departure MoveZone's LKI (the attachment still carrying
+// its pre-departure AttachedTo). The look-back walk's split gate and
+// computeFaceLookBackZones both read this; the granted-trigger walks
+// (trigger_granted.go) never see an Unattached trigger, so they keep their
+// own copies unchanged.
+func looksBackOnDeparture(t *cards.Trigger) bool {
+	return t.Mode == "Unattached" ||
+		t.Mode == "ChangesZone" && t.ParamStr(cards.PKOrigin) == "Battlefield"
+}
+
 // computeFaceLookBackZones is the bit set (by trigZoneSlot) of the zones from
 // which some trigger line of f survives the leaves-the-battlefield look-back
-// walk's split gate -- Mode$ ChangesZone with Origin$ exactly Battlefield
-// (checkFaceTriggers' leaving test) -- for a source that is not the event's
+// walk's split gate -- a line that looks back on an object's departure
+// (looksBackOnDeparture: Mode$ ChangesZone with Origin$ exactly Battlefield,
+// or Mode$ Unattached) -- for a source that is not the event's
 // own object: zoneGate's spec for it (TriggerZones$, then ActiveZones$, then
 // Battlefield) must contain the source's zone. Phase$ diagnostics do not run
 // in the look-back walk, so they add nothing.
@@ -289,7 +305,7 @@ func computeFaceLookBackZones(f *cards.Face) uint8 {
 	var m uint8
 	for i := range f.Triggers {
 		t := &f.Triggers[i]
-		if t.Mode != "ChangesZone" || t.ParamStr(cards.PKOrigin) != "Battlefield" {
+		if !looksBackOnDeparture(t) {
 			continue
 		}
 		spec := t.ParamStr(cards.PKTriggerZones)

@@ -448,8 +448,13 @@ var triggerModeEventRows = [...]struct {
 	// mode here rather than letting it fall to the allTriggerEvents default
 	// keeps an Unattached-only face's mask narrow for every other kind, and
 	// keeps Mode$ Attached's mask exact (its bit is events.Attach, never
-	// events.Unattached).
-	{cards.TriggerUnattached, 0},
+	// events.Unattached). The MoveZone bit admits the CR 701.3d departure
+	// arm: an attachment that leaves the battlefield becomes unattached, and
+	// the trigger fires on the look-back match against the departure's
+	// MoveZone itself (no Unattached event is logged for it); the bearer
+	// selection in trigmatch.unattachedMatches rejects a departure whose
+	// pre-move AttachedTo was 0.
+	{cards.TriggerUnattached, 1 << events.MoveZone},
 	// The mode fires on the CR 702.100 exert itself (events.Exert with
 	// Amount >= 0); the Amount == -1 untap-step consume marker is the
 	// same Kind but rejected by trigmatch.ExertedMatches, so the mask stays exact.
