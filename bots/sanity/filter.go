@@ -1,6 +1,6 @@
 // Package sanity is the common-sense layer of the hand-written hosted bots.
 // It is a seat decorator, applied by the registry factories of the heuristic
-// policies only (bot, lethal-pressure, sb-tactical, sb-heuristic) and never by
+// policies only (bot, forge-heuristic, sb-tactical) and never by
 // the search or trained policies, nor by shared bot code the search policies
 // reuse as their fallback or opponent model.
 //

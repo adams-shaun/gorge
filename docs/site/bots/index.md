@@ -6,9 +6,10 @@ wiring an existing strategy to a server, or a benchmark harness. This page
 surveys the bots gorge ships and the three ways to plug one in, and helps you
 pick. The pages after it walk through each surface with working code.
 
-*Facts on this section's pages were read from the code at commit `ad3777023`
-(2026-10-20). Every latency was measured on 2026-10-20 on an AMD Ryzen 9
-9950X over loopback, with the command named next to it.*
+*Facts on this section's pages were checked against the code at commit
+`513a2a0c3` (2026-10-21). Unless a figure says otherwise, latencies were
+measured on 2026-10-20 at `ad3777023` on an AMD Ryzen 9 9950X over
+loopback, with the command named next to them.*
 
 ## The one contract every bot answers
 
@@ -31,37 +32,165 @@ order.
 
 ## The bots gorge ships
 
-These register themselves in the bot registry
+Five policies register themselves in the bot registry
 ([`bots/registry.go`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go))
-from packages that [`bots/all`](https://github.com/adams-shaun/gorge/blob/main/bots/all/all.go)
-links. `GET /api/bot-policies` on a running server lists the ones it offers,
-with each policy's recorded strength and cost; measured results are on
-[Bots and learned policies](../performance/bots.md).
+from the packages [`bots/all`](https://github.com/adams-shaun/gorge/blob/main/bots/all/all.go)
+links, so every gorge binary that imports `bots/all` (`gorged`, `mtgsim`,
+`cmd/spellbench-gorge-agent`, your own program) has all five. Each entry's
+`bots.Info` carries its label, tier, formats, seat limit, a description, its
+recorded strength claims and its cost. `GET /api/bot-policies` on a running
+server returns exactly that record for the policies the server offers.
 
-| Policy | How it decides | Where it can play |
-|---|---|---|
-| `bot` | The production heuristic ([`bots/heuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/heuristic), rules in [`bots/botpolicy`](https://github.com/adams-shaun/gorge/blob/main/bots/botpolicy)): scores each option with hand-written rules; on tables with automatic mana payment it simulates combat to pick attacks and blocks. Also the *caretaker* that answers for a disconnected human. | everywhere; the default |
-| `lethal-pressure` | The same heuristic with its own lethal-pressure combat rules instead of the combat simulation. | everywhere; `gorged`'s default for a play-vs-bot game that names no policy |
-| `forge-heuristic` | `bot` plus target-selection and removal-timing rules re-expressed from Forge's AI behaviour (land colour, prominent colour, fatal-copy filter, hold removal for a bigger threat). | everywhere |
-| `sb-tactical` | The SpellBench tactical heuristic: scores creature values, timing, the damage race and removal over what the seat can see, and prices its plays through a payment planner built on an *honest root* (a redeal of the hidden cards, never the real ones). | bench tools and bot-only tables: it builds its planner over every seat's real decklist, so `gorged` never seats it against a human |
-| `az-redeal` | AlphaZero-style tree search ([`bots/azmcts`](https://github.com/adams-shaun/gorge/blob/main/bots/azmcts)): 100 simulations per searched decision over worlds freshly redealt from its own observations, a heuristic leaf value, and `bot` for every decision it does not search. | as `sb-tactical`; about a quarter of a second per searched decision |
+| Name | Label | Tier | Formats, seats | Offered by `gorged` | Package |
+|---|---|---|---|---|---|
+| `bot` | Bot | production | constructed and Commander, any | yes; the caretaker of every built-in policy | [`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go) |
+| `forge-heuristic` | Forge heuristic | experimental | constructed and Commander, any | yes | [`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go) |
+| `lethal-pressure` | Lethal Pressure | experimental | constructed and Commander, any | yes; `gorged`'s default `-bot-policy` | [`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go) |
+| `sb-tactical` | sb-tactical (SpellBench tactical heuristic) | experimental | constructed, 2 | no: reads every seat's decklist | [`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go) |
+| `az-redeal` | az-redeal (AlphaZero search) | experimental | constructed, 2 | no: reads every seat's decklist | [`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go) |
 
-Three more kinds of policy appear at runtime:
+### What each one does
+
+**`bot`** is the production heuristic: hand-written rules
+([`bots/botpolicy`](https://github.com/adams-shaun/gorge/blob/main/bots/botpolicy),
+driven by [`bots/heuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/heuristic))
+that score each offered option. On a table with automatic mana payment (the
+default for hosted bots, `-bot-auto-mana`) it casts through the engine's
+payment plans and picks attacks and blocks with a two-ply combat simulation;
+on a manual-tap table it is the plain heuristic. It answers the London
+mulligan with a re-expression of Forge's keep/bottom rule
+(`botpolicy.MulliganForge`). It is the baseline every other policy is
+measured against, and the bot that answers for a human seat whose player is
+gone.
+
+**`forge-heuristic`** is `bot`, built by the same constructor
+(`bot.BaseWithSim`, so the same combat simulation, payment plans and
+mulligan), with every opt-in rule family re-expressed from Forge's AI
+switched on. Each family is a clean-room rule in gorge's own vocabulary,
+not translated Forge code:
+
+| Family | Rules armed |
+|---|---|
+| A1 removal timing | hold a one-shot destroy, damage or bounce spell until the best opposing creature is a real threat (about a 4/4, less with evasion), the spell is lethal to a face, or it could never hit a creature |
+| A2 targeting | prefer a land the opponent's colours depend on, prefer the opponent's prominent colour, skip a target that is a strictly worse copy of another of their creatures |
+| A3 Forge AI hints | a card's `PlayMain1` hint earns a first-main-phase bonus; a `RemoveDeck` card is never chosen |
+| A4 deck-shape posture | an aggro deck releases its last held-back blocker, the combat simulation weighs life by deck shape, and the mana reserve scales by shape (a control deck keeps instant mana up) |
+| A5 attachments | aim an Aura by its `AttachAILogic` hint (boons on its own creatures, curses on the opponent's), rank its own creatures as carriers, hold a boon Aura while nothing can carry it |
+| A6 timing | counter only the top foreign spell; hold draw and token spells for Forge's window (a sorcery until the second main phase, an instant draw until an opponent's end step, an instant token until an opponent attacks); cast an instant pump only at declare blockers, and only when it saves a creature, wins a fight or makes an unblocked attack lethal |
+| A7 combat (inside the simulation) | gang blocks, a gang-aware predicted reply, Double Strike in blocked combat |
+
+The rules live in `bots/botpolicy` (`TargetRules`, `RemovalRules`,
+`TimingRules`, `AIHints`, `AttachRules`, `PostureRules`, `CombatRules`), and
+`bots/forgeheuristic.New` shows how to arm any subset on a policy of your
+own.
+
+**`lethal-pressure`** is the older heuristic configuration: the plain
+heuristic plus the AR7 lethal-pressure attack rule (a creature whose
+unblocked power reaches the defender's life attacks even into a cheaper
+blocker). It has no combat simulation on any table, and it keeps the
+heuristic's original mulligan (a one-in-three coin, whatever the hand).
+
+**`sb-tactical`** is the scored tactical heuristic from the SpellBench
+project, in its hosted shape. It values creatures, timing, the damage race
+and removal over what its seat can see, reads printed card facts from the
+card registry, and at priority prices its plays through a payment planner
+built on an *honest root*: a copy of the game with every hidden card
+redealt from what the seat has seen. That redeal draws from each seat's real
+decklist, which is why the policy is marked `Env` and is never seated
+against a person.
+
+**`az-redeal`** is an AlphaZero-style tree search
+([`bots/azmcts`](https://github.com/adams-shaun/gorge/blob/main/bots/azmcts))
+with no network: a uniform prior and a heuristic leaf value. At each
+priority, attackers, blockers and target decision it runs 100 simulations,
+each over a freshly redealt world built from its own observations, and
+`bot` answers every other decision. Like `sb-tactical` it builds its worlds
+over every seat's real decklist (`Env`), so it plays only where a driver
+supplies those worlds (see below). A hosted search seat has a 2-second
+budget per decision (`hostedDecisionDeadlineMS`); a search that runs out
+plays `bot`'s answer.
+
+### Recorded strength
+
+These are the claims each registry entry records (`bots.Info.Strength`),
+with the setting and source it names; `GET /api/bot-policies` serves the
+same text. Percentages are win rates with 95% confidence intervals. Several
+were measured against an older `bot`, as noted.
+
+| Policy | Claim | Setting | Source |
+|---|---|---|---|
+| `bot` | 53.17% [52.68, 53.65] constructed, 53.69% [52.73, 54.64] Commander, against the plain auto-pay bot | held-out auto-pay tables, before the Forge mulligan became the default | commit `66aa546dd` |
+| `bot` | 31.5% [27.1, 36.2] against Forge's AI over 400 games (28.5% with the coin mulligan it replaced) | Forge games over a stdio bridge, the 12 Legacy decks, 144 ordered pairs, seats traded | Forge bridge runs, 2026-10-20 |
+| `forge-heuristic` | 32.0% [27.6, 36.7] against Forge's AI over 400 games, +0.5 points over `bot` with the same mulligan (inside noise) | as above | Forge bridge run, 2026-10-20 |
+| `forge-heuristic` | 46.8% [41.9, 51.6] against `bot` over 400 games, indistinguishable from the 46.5% bot-vs-bot control | constructed, seats traded; measured before it gained the combat simulation and the Forge mulligan | [A2 target rules](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-10-19-a2-target-rules.md) |
+| `lethal-pressure` | 51.65% [50.10, 53.20] against the bot before AR7 | held-out, manual mana | archived AR7 design note ([`docs/design/ARCHIVE.md`](https://github.com/adams-shaun/gorge/blob/main/docs/design/ARCHIVE.md)) |
+| `sb-tactical` | 110-18 against the SpellBench `bot` arm on the Pauper kernel decks (benchmark seed), 106-22 at seed 99991, 87-41 on FDN mirrors; Elo 1507 against `bot`'s 1242 | SpellBench's measured table | [SpellBench agent design](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-28-spellbench-agent-design.md) §3.4 |
+| `az-redeal` | 70.5% [68.5, 72.5] against `bot` over 2,000 games (+20.5 points over the 50.0% control); its 25-simulation variant rated 1382 against `bot`'s 1264 | UW Tempo against the five mono decks with true lists visible; SpellBench's eight-deck mirror pool | [SpellBench agent design](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-28-spellbench-agent-design.md) §12.5 |
+
+A current check, run for this page on 2026-10-21 at `513a2a0c3` with the
+matchup program on [Bot-vs-bot games](../guide/bot-games.md#a-fair-matchup-with-testkitbench)
+(every pair of the 12 Legacy decks, 20 games per pair, seats traded):
+`forge-heuristic` won 636 of 1,320 games against `bot` (48.2%, ±2.7
+points) where `bot` against itself won 630 (47.7%). Today the two are
+indistinguishable in 1v1 constructed. Cost per decision is on
+[Bots: cost and strength](../performance/bots.md).
+
+### How to select one
+
+| Where | How |
+|---|---|
+| `gorged`, play-vs-bot | `POST /api/games` with `"bot_policy": "<name>"`; omit it to get the server's `-bot-policy` (default `lethal-pressure`). `-bot-policies a,b,…` limits what the server offers (default: every registered policy that does not read decklists). |
+| `gorged`, bot-only tables | `-bot-policy <name>` seats that policy in every bot seat of the startup tables. |
+| `mtgsim` | `-a <name>` on seat 0, `-b <name>` on seat 1; every other seat plays the plain heuristic. |
+| A Go program | `bots.New(name, bots.Options{Seed, AutoPayMana, Deps: bots.Deps{Cards: reg}})` after a blank import of `bots/all`; [`testkit/bench`](https://github.com/adams-shaun/gorge/blob/main/testkit/bench/bench.go) drives it. |
+| SpellBench v2 | `spellbench-gorge-agent -policy <name>` serves it as a v2 agent ([SpellBench v2 agents](spellbench.md)). |
+
+`-bot-common-sense` (default off) wraps `bot`, `forge-heuristic` and
+`sb-tactical` in the `bots/sanity` guard, which drops hostile removal that
+could only hit the bot's own permanents.
+
+`sb-tactical` and `az-redeal` need a driver that supplies their honest roots
+and the card registry. `testkit/bench.PlayGame` with
+`Hooks{EnvSeats: true, HonestRoot: true}` does, so they play at full
+strength in your own Go program. `mtgsim` does not: `-a sb-tactical` fails
+with `Deps.Cards is nil`, and `-a az-redeal` runs but never searches. A
+`gorged` server never offers them, because a play-vs-bot table always seats
+a person and `-bot-policy` refuses a decklist-reading policy.
+
+### Which bot to pick
+
+- **To play against, or as the opponent for an HTTP bot:** `bot`. It is
+  the production policy, and no policy a server offers has measured
+  stronger. Start `gorged` with `-bot-policy bot` to make it the default;
+  the flag's own default is `lethal-pressure`.
+- **As the baseline for your own policy:** `bot`, with a `bot`-against-`bot`
+  control on the same seeds.
+- **A Forge-style opponent:** `forge-heuristic`. It plays like `bot` with
+  Forge's targeting, timing and attachment habits, and measures the same.
+- **A stronger two-player sparring partner in a bench:** `sb-tactical` (a
+  heuristic; its registry entry estimates about 1 ms per decision) or `az-redeal` (the strongest recorded
+  claim, at roughly a quarter of a second per searched decision). Both read
+  every seat's decklist, so use them only where that is acceptable.
+- **`lethal-pressure`** keeps the older heuristic configuration for
+  tables that want it. On an auto-pay table it does without the combat
+  simulation `bot` uses.
+
+### Other policies at runtime
 
 - **A SpellBench v2 agent** registered with `-sb-agent name=/path/to/agent`
   becomes a policy like any other ([SpellBench v2 agents](spellbench.md)).
-- **A network-backed search bot.** `gorged` reserves the names `az-c3`,
-  `az-c4` and `az-c5` and their flags; a downstream binary links an
-  implementation in through `gorged.RegisterNetBot`
+- **Network-backed search bots.** `gorged` reserves a few policy names and
+  flags for search bots that need a trained network (see `gorged -h`); a
+  downstream binary links an implementation in through `gorged.RegisterNetBot`
   ([`server/gorged/netbots.go`](https://github.com/adams-shaun/gorge/blob/main/server/gorged/netbots.go)).
-  gorge itself ships the inference code but no trained networks, so on a
-  plain `gorged` those flags refuse to start.
+  gorge ships the inference code but no trained networks, so on a plain
+  `gorged` those flags refuse to start.
 - **Your own Go policy**, linked into a binary of your own
   ([Writing a native Go bot](native-go.md)).
 
-`bots/searchseat` (a determinized rollout seat) and the learned-policy
-runtime in `bots/policynet` are engine-side building blocks used by the
-benches; they are not hosted policies.
+`bots/searchseat` (a determinized rollout seat), `bots/searchprobe` and the
+learned-policy runtime in `bots/policynet` are building blocks for benches;
+they are not registered policies.
 
 ## Three ways to plug a bot in
 
@@ -82,7 +211,7 @@ benches; they are not hosted policies.
   <line x1="111" y1="138" x2="111" y2="174" class="dg-line" marker-start="url(#bt-arr)" marker-end="url(#bt-arr)"/>
   <rect x="236" y="74" width="234" height="72" rx="6" class="dg-box-accent"/>
   <text x="353" y="98" text-anchor="middle" class="dg-text-bold">① native Go seats</text>
-  <text x="353" y="117" text-anchor="middle" class="dg-text-muted">bot, sb-tactical, az-redeal, yours</text>
+  <text x="353" y="117" text-anchor="middle" class="dg-text-muted">bot, forge-heuristic, az-redeal, yours</text>
   <text x="353" y="134" text-anchor="middle" class="dg-text-mono">Decide(ctx, View, Decision)</text>
   <rect x="236" y="176" width="234" height="72" rx="6" class="dg-box"/>
   <text x="353" y="200" text-anchor="middle" class="dg-text-bold">② HumanSeat + httpapi</text>

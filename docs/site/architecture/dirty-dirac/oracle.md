@@ -84,11 +84,12 @@ kernel's 8. The bytes in `source` and `target` are **canonical references**:
 | `0xF0 + p` | seat *p* |
 | `0xFF` | none |
 
-There are 20 action kinds (pass, land, cast, activate, attack, block, done,
+There are 21 action kinds (pass, land, cast, activate, attack, block, done,
 target, mode, keep, mulligan, bottom, order, yes, no, arrange, replacement,
-special, starting player, commander zone) and one more kind per `choose`
-option kind (`ActChoose + k` over a table of 55 kinds: x, sacrifice, discard,
-search, dig, colour, division, pile, tapcost, ...). A label-valued pick, such
+special, starting player, commander zone, cast a face) and one more kind per
+`choose` option kind (`ActChoose + k` over a table of 66 kinds: x,
+sacrifice, discard, search, dig, colour, division, pile, tapcost, gift,
+forage, proliferate, ...). A label-valued pick, such
 as a creature type, carries a 16-bit value: the label's index in gorge's
 creature-type vocabulary. Each decision's options are **sorted ascending**,
 and the kernel sorts its own options into the same order, so comparing two
@@ -128,7 +129,8 @@ differs.
 
 | Part | Fields |
 |---|---|
-| per card instance (up to 224) | name hash, deck table index, zone (with a "ceased" code for a token or copy that left), owner, controller, position (library from the top, battlefield in the controller's entry order, graveyard in arrival order), flags (tapped, summoning sick, attacking, blocking, face down, token, copy, phased out, monstrous), damage, counters (+1/+1, -1/-1, loyalty, other), layer-applied power and toughness of battlefield creatures, attached-to, the attacker it blocks |
+| per card instance (up to 224) | name hash, deck table index, the face up, zone (with a "ceased" code for a token or copy that left), owner, controller, position (library from the top, battlefield in the controller's entry order, graveyard in arrival order), flags (tapped, summoning sick, attacking, blocking, face down, token, copy, phased out, monstrous), damage, counters (+1/+1, -1/-1, loyalty, each named kind, and the sum of the rest), layer-applied power and toughness of battlefield creatures, attached-to, the attacker it blocks |
+| derived characteristics, per battlefield instance | types, subtypes, colours and keywords after the layer system, so a layer-ordering difference shows up as a projection difference, not only through its effects |
 | per seat | life, poison, lands played (active player), mana pool WUBRGC, hand and library sizes |
 | the stack, bottom first (up to 32) | kind, source, ability index (gorge's face ability index, or `0x80` + trigger index), controller, up to 4 targets |
 | the rest | turn, step (gorge's numbering), active player, RNG draw count, game over, winner |
@@ -207,8 +209,8 @@ When a game diverges:
    chosen", came from a kernel pair; gorge
    [`ff5b00f5e`](https://github.com/adams-shaun/gorge/commit/ff5b00f5e) added
    the state-based check after cleanup's CR 514.2 actions).
-5. **Pin.** The pair is added to a committed list of regression pairs (67 on
-   2026-10-19), each with a one-line reason. A test replays them. Most were
+5. **Pin.** The pair is added to a committed list of regression pairs,
+   each with a one-line reason. A test replays them. Most were
    re-verified by reverting the fix and watching the pair diverge again; a few
    are coverage pairs that only show a card plays to the end.
 
@@ -246,28 +248,45 @@ encoder at the same points.
 
 ## Agreement today
 
-Measured 2026-10-20 with `kfuzz` against gorge
-[`aa421da93`](https://github.com/adams-shaun/gorge/commit/aa421da93) (the gorge
-revision dirty-dirac pins) on the FDN set. Settings: uniformly random answers
-seeded per game, every decision posed (no elision), the 100-turn and
-20,000-decision caps, base seed 1, deck pairs drawn from a pool of FDN deck
-lists; one process pinned to four cores.
+Measured 2026-10-21 with `kfuzz` against gorge
+[`81dd3f940`](https://github.com/adams-shaun/gorge/commit/81dd3f940) (the gorge
+revision dirty-dirac pins). Settings: uniformly random answers seeded per
+game, every decision posed (no elision), base seed 1, one London mulligan
+allowed, `-autopay-surface` (neither side offers a plain cast that gorge's
+payment planner never prices), the 100-turn and
+20,000-decision caps. FDN pairs are drawn from a pool of FDN limited deck
+lists; the BLB pool is BLB limited decks in which the few cards the generator
+still refuses were replaced by basic lands.
 
-| Run | Pairs | Mulligans | Agreed to the end | Capacity stalls | Diverged |
-|---|---|---|---|---|---|
-| 1 | 0 – 1,999 | 0 | 1,981 | 5 | 14 |
-| 2 | 2,000 – 3,999 | 2 (London) | 1,979 | 11 | 10 |
-| **Total** | **4,000** | | **3,960 (99.0 %)** | **16** | **24 (0.6 %)** |
+| Pool | Games | Agreed to the end | Capacity stalls | Diverged |
+|---|--:|--:|--:|--:|
+| FDN, pairs 0 – 1,499 | 1,500 | 1,498 | 2 (full battlefield) | 0 |
+| FDN, pairs 0 – 3,999 | 4,000 | 3,987 | 13 (full battlefield) | 0 |
+| BLB, pairs 0 – 1,499 | 1,500 | 1,500 | 0 | 0 |
 
 "Agreed to the end" means every decision, option list and projection matched
-until the game ended or reached a cap. The 24 divergences by class: 10
-`projection Cards[].Zone`, 8 `options`, 4 `projection Cards[].Flags`, 1
-`projection Pool`, 1 `projection Cards[].Owner`. They are open findings, not
-known differences. BLB has no deck pool, so it has no lockstep figure yet.
+until the game ended or reached a cap. These counts are a regression gate: a
+kernel change may not turn a clean pair into a divergence, and each move of
+the gorge pin is measured on its own so a change in the counts names the gorge
+commit that caused it.
+
+Beside FDN and BLB, a set of small **constructed pools** is played in
+lockstep. Each is a handful of hand-picked decks whose cards exercise a piece
+of newly accepted grammar (aggregate tap costs such as Crew and Saddle,
+multi-face cards, pay-life costs, multi-target unions, ...). Each test counts
+on the gorge side how often the new card behaviour actually came up in play
+and asserts it, so the pool proves its own coverage rather than passing by
+never reaching the new code.
 
 Random answers are a strength here, not a weakness: they reach odd corners
 (declining every optional trigger, chump-blocking with everything, casting
 into a counterspell) that a sensible bot never visits.
+
+The kernel also keeps a rule-by-rule table of how it stands against the
+Comprehensive Rules (follows, partial, deviates, not implemented, not
+applicable), with a pointer to the code that decides each rule. A test fails
+the build when a row stops matching the code, so the table changes in the
+same commit as the behaviour.
 
 ## What lockstep cannot see
 

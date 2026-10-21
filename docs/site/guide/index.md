@@ -5,7 +5,7 @@ play Magic against its bots (or friends) in a browser, or to run bot-vs-bot
 games that compare bot strategies. It walks from a fresh clone to a running
 game, explains what each tool is for, and collects the failures you are
 likely to hit. If you want to change the engine itself, start at
-[Contributing](../contributing/testing.md); if you want to connect a bot
+[Contributing](../contributing/index.md); if you want to connect a bot
 written in another language, see [External bots](../bots/index.md).
 
 ## From clone to playing in five commands

@@ -9,7 +9,7 @@ paid. For the step-by-step contributor workflow (fetch, compile, find a
 missing primitive, fix a card), see [The card pipeline](../../contributing/card-pipeline.md)
 and [Your first card fix](../../contributing/first-card-fix.md).
 
-*Facts on this page are from `develop` @ `ad3777023` (2026-10-20). Code links
+*Facts on this page are from `develop` @ `513a2a0c3` (2026-10-21). Code links
 point at `main`.*
 
 ## From script to running effect
@@ -75,15 +75,15 @@ make report          # forgec report -dir .cards
 
 `fetch` does a sparse clone of the card and token folders from gorge's Forge
 fork at the pinned commit (`FORGE_REF` in the Makefile, currently
-`098b055313459c4b36c9e1f1d4e81a2c8aef815e`) and writes `.cards/cards.lock`.
+`76fd7691ab45ab1b42cef19ad04b41bf364501f4`) and writes `.cards/cards.lock`.
 Pinning matters: the corpus is input to every golden replay, so a corpus bump
 is a deliberate change, never a side effect of upstream moving.
 
-`make report` on `ad3777023` (2026-10-20) printed:
+`make report` on `513a2a0c3` (2026-10-21) printed:
 
 ```text
-corpus: 098b055313459c4b36c9e1f1d4e81a2c8aef815e @ 098b055313459c4b36c9e1f1d4e81a2c8aef815e (GPL-3.0, 34074 files)
-cards: 34074  playable: 32082 (94.2%)
+corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
+cards: 34074  playable: 32246 (94.6%)
 tokens: 854
 
 top missing primitives (cards unlocked):
@@ -206,7 +206,7 @@ func kwProwess(f *Face, i int, k, head, param string, has func(kind, line string
 func init() { registerKeyword(kwProwess, "Prowess") }
 ```
 
-There are 69 non-test `kw_*.go` files in `engine/cards`, one or two
+There are 70 non-test `kw_*.go` files in `engine/cards`, one or two
 expanders each (`ls engine/cards/kw_*.go | grep -v _test | wc -l`). The
 expansion is keyed per keyword *line instance*, so a card printing the same
 keyword twice gets two triggers (CR 702.108b), while running `Link` again adds
@@ -245,19 +245,19 @@ replacements and keywords and lists them as prefixed labels. The Ember
 Courier above needs `kw:Haste`, `trig:ChangesZone` and `api:DealDamage`.
 
 Measured by a scratch program that calls `effects.Supported()` with
-`engine/rules` linked in (2026-10-20, `ad3777023`):
+`engine/rules` linked in (2026-10-21, `513a2a0c3`):
 
 | Prefix | From | Implemented where | Registered |
 |---|---|---|---|
-| `api:` | `SP$`/`AB$`/`DB$ <Name>` | an `effects.Effect` function, `effects.Register` | 167 |
+| `api:` | `SP$`/`AB$`/`DB$ <Name>` | an `effects.Effect` function, `effects.Register` | 168 |
 | `trig:` | `T:Mode$ <Mode>` | `engine/rules` and `rules/trigmatch`, declared with `RegisterNonAPI` | 99 |
 | `stat:` | `S:Mode$ <Mode>` | `engine/rules` (statics, layers), `RegisterNonAPI` | 50 |
 | `repl:` | `R:Event$ <Event>` | `engine/rules` replacement code, `RegisterNonAPI` | 24 |
-| `kw:` | `K:<Keyword>` | `engine/rules`, or an expander in `engine/cards` | 173 |
+| `kw:` | `K:<Keyword>` | `engine/rules`, or an expander in `engine/cards` | 181 |
 | `count:` | a `Count$<Head>` value an SVar reads | the evaluator in `engine/effects/count*.go` | 200 |
-| | | **total** | **713** |
+| | | **total** | **722** |
 
-(164 of the 167 `api:` labels are `Register` calls in `engine/effects`; the
+(165 of the 168 `api:` labels are `Register` calls in `engine/effects`; the
 other three are replacement helpers in `engine/rules` declared with
 `RegisterNonAPI`.) `forgec report` also checks `shape:` labels: a script
 *shape* whose body the engine deliberately declines at run time.
@@ -357,7 +357,7 @@ it, and two ratchets in `engine/rules` hold the repository's own decks to it:
 - `TestEveryRepoDeckIsFullySupported` compares every repo deck card's gap
   with a per-card file in `engine/rules/testdata/known-unsupported/` **in
   both directions**: a newly unsupported card fails, and so does a stale entry
-  for a card that is now supported. On `ad3777023` the directory holds two
+  for a card that is now supported. On `513a2a0c3` the directory holds two
   files (Incinerate, `stat:CantRegenerate`; Vines of Vastwood,
   `stat:CantTarget`).
 - `TestEveryRepoDeckParamsAreRead` (the *param census*) catches the subtler

@@ -1,5 +1,5 @@
-// Package netsimd is a SIMD forward pass for the dzg mlp network
-// (bots/gonet's .dzgw file): the same arithmetic as gonet.Net.eval, with the
+// Package netsimd is a SIMD forward pass for the mlp value network
+// (bots/gonet's network file): the same arithmetic as gonet.Net.eval, with the
 // weights laid out transposed and padded to 64 bytes per row so every layer
 // runs as whole-layer AVX-512 kernels (kern_amd64.s), and a scalar Go
 // fallback (kern_generic.go) with identical semantics for every other CPU.

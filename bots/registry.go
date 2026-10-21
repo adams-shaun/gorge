@@ -89,7 +89,7 @@ type Options struct {
 	// is aborted by the search's own bail-out and the policy's non-searched
 	// fallback answers. See bots.BudgetedSeat.
 	DecisionDeadlineMS int
-	// CommonSense opts the `bot` and `sb-tactical` factories into the
+	// CommonSense opts the `bot`, `forge-heuristic` and `sb-tactical` factories into the
 	// bots/sanity guard (sanity.Wrap): hostile removal the engine says can
 	// only hit the seat's own permanents or player is dropped from the
 	// option list the policy sees, and the London mulligan ask is answered

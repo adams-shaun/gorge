@@ -1,4 +1,4 @@
-// Package gonettest writes a tiny, deterministic .dzgw network for tests.
+// Package gonettest writes a tiny, deterministic network file for tests.
 //
 // The real networks come from python -m dzg.export and are megabytes; a test
 // of the loader, the hosted bot that uses it, or the server that serves that

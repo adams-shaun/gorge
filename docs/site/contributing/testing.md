@@ -1,14 +1,14 @@
 # Testing
 
-gorge has a large test suite (11,506 top-level `Test` functions on
-2026-10-20). The full run happens in CI and after merge. Day to day you run
+gorge has a large test suite (over 12,000 top-level `Test` functions on
+2026-10-21). The full run happens in CI and after merge. Day to day you run
 **focused** tests and learn to read the handful of ratchet and golden tests
 that guard the whole engine. This page is for contributors writing or
 debugging tests; setup and the worktree workflow are on
 [Contributing](index.md), and the reasons behind each guard on
 [Invariants](../architecture/invariants.md).
 
-*Test names and paths re-checked on `develop` @ `ad3777023`, 2026-10-20.*
+*Test names and paths re-checked on `develop` @ `513a2a0c3`, 2026-10-21.*
 
 ## Focused runs
 
@@ -70,7 +70,7 @@ its printed text and the CR; gorge's runner (`engine/rules/oracle_run.go`)
 sets up a real game, drives it through player actions only, and asserts
 observable state. The scenario corpora (3,227 hand-authored audit
 scenarios in 1,001 files and 543 XMage-ported ones, counted at
-gorge-compliance `ec18426`, 2026-10-20) live in
+gorge-compliance `ae5a17f`, 2026-10-21) live in
 [gorge-compliance](https://github.com/adams-shaun/gorge-compliance)
 (`scenarios/oracle/`, `scenarios/xmageport/`), whose `audit/` drivers
 `TestOracleAudit` and `TestXMagePortScenarios` play them against a pinned

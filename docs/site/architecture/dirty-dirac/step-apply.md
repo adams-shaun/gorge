@@ -118,7 +118,7 @@ type Decision struct {
 ```
 
 A `Decision` is 1,544 bytes. `MaxOptions = 384` is sized for the two largest
-lists the supported sets can produce: an any-target choice over a full board,
+lists a game can produce: an any-target choice over a full board,
 and a creature-type choice over gorge's 362-word creature-type vocabulary. Like
 the state, a decision holds no slice, so a search can keep one per tree node
 without allocating.
@@ -171,7 +171,7 @@ compared field by field.</figcaption>
 |---|---|
 | `AkPass` | pass priority |
 | `AkPlayLand` | source = the land in hand |
-| `AkCast` | source = the card (hand, graveyard for flashback, another zone with a permission); mode bit 0 kicked, bit 1 flashback, bit 3 cast through a play permission, bit 4 without paying its mana cost |
+| `AkCast` | source = the card (hand, graveyard for flashback, another zone with a permission); mode bit 0 kicked (also an Offspring cast), bit 1 flashback, bit 2 a face of a multi-face card (target = the face), bit 3 cast through a play permission, bit 4 without paying its mana cost |
 | `AkActivate` | source = the permanent (or the graveyard card); mode = ability index, or `0x80` with target = the granting permanent for a granted ability |
 | `AkAttack` | source = an attacker, target = the defending player or a planeswalker |
 | `AkBlock` | source = a blocker, target = the attacker it blocks |
@@ -210,8 +210,8 @@ every answer is one pick.
 | `starting_player` | not posed | the toss winner takes the first turn, as with gorge's plain `rules.New` |
 | `commander_zone` | not applicable | no Commander |
 
-There are 17 base choice kinds and 25 more that only a generated card table
-raises. A search or a bot that only understands the base kinds can still answer
+There are 17 base choice kinds and 34 more that only a generated card table
+raises (a gift promise, a hybrid pip's colour, a proliferate pick, ...). A search or a bot that only understands the base kinds can still answer
 the generated ones generically, since every option is a complete `Action`.
 
 ## Mulligans and the opening

@@ -117,6 +117,7 @@ JSON 404 `no such endpoint`, and a non-API path falls through to the web client.
 | `-feedback DIR` | `POST /api/feedback`. The binary's default directory is `feedback`; an empty value disarms the route. |
 | `-pprof` | `/debug/pprof/…`. gorged refuses the flag unless `-addr` is a loopback address. |
 | `-events` | `/api/events…`. It needs a binary that links a draft-event runtime through [`server/gorged.Extensions`](go.md); gorge's own `cmd/gorged` refuses it at startup. |
+| `gorged review` | A separate, read-only mode: the lobby, match and stream routes over saved games, plus `GET …/decisions`. Every seat route answers 403. |
 | `-manabrew` | The ManaBrew adapter under `/api/manabrew/v0/tables/`. This is a separate, deprioritised protocol and is not covered here (see [below](#not-covered)). |
 
 Every other path (`/`, `/t/t1`, …) serves the embedded web client with an SPA fallback to
@@ -147,6 +148,7 @@ each, are in [`openapi.json`](openapi.json) and the [interactive reference](redo
 | `GET` | `/api/tables/{t}/matches` | The table's matches, finished ones first and the live one last (`MatchInfo[]`) | none | 200, 404 |
 | `GET` | `/api/tables/{t}/matches/{k}/view` | The board at `?seq=` (inclusive; default: the latest event). With `?seat=`, that seat's view, including its pending decision when `seq` is the live head (`View`). | spectator, or a seat token with `?seat=` | 200, 400, 401, 403, 404, 409 |
 | `GET` | `/api/tables/{t}/matches/{k}/events` | Redacted events from `?since=` (inclusive, default 0) to the head, each with its transcript line (`EventBody[]`) | spectator, or a seat token with `?seat=` | 200, 400, 401, 403, 404, 409 |
+| `GET` | `/api/tables/{t}/matches/{k}/decisions` | Only on a `gorged review` server: the recorded match's decision index, one entry per intent, with the options offered, the answer and the bot's explain note ([Replays](../guide/replays.md#reading-a-decision)) | none | 200, 400, 404 |
 
 `k` is the match index and counts from 1; 0 or a non-number is a 400. A `seq` or `since` past
 the head is a 409 `beyond_head`, and the body's `head` names the last valid seq so you can

@@ -2,8 +2,8 @@
 
 The failures people actually hit when running gorge's server and bot tools,
 each with the message you see, the cause and the fix. Most of them were
-reproduced while writing this guide (2026-10-20, commit `ad3777023`); the
-rest come from the code paths named beside them.
+reproduced while writing this guide (2026-10-20), and every message was
+re-checked against the code at commit `513a2a0c3` (2026-10-21).
 
 ## Starting up
 

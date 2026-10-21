@@ -79,7 +79,7 @@ trained network). Bots: a small built-in heuristic, and `hbot`, a native port
 of gorge's auto-pay heuristic bot from
 [`bots/heuristic`](https://github.com/adams-shaun/gorge/tree/main/bots/heuristic)
 that reads the kernel state through fixed arrays. `mull` ports gorge's named
-mulligan policies (`coin`, `lands`, `never`, `constructed`) the same way.
+mulligan policies (`coin`, `lands`, `never`, `constructed`, `forge`) the same way.
 
 ### One simulation
 
@@ -162,8 +162,8 @@ the base position; it is asserted equal to the full encoder.
 ## Network evaluation: `neteval`
 
 `neteval.Net` implements `search.Evaluator` by feeding `feat`'s encoding to
-gorge's `bots/netsimd`: a forward pass for gorge's `.dzgw` multilayer
-perceptron (MLP) format, with whole-layer AVX-512 kernels and a scalar fallback
+gorge's `bots/netsimd`: a forward pass for gorge's multilayer perceptron
+(MLP) weight format, with whole-layer AVX-512 kernels and a scalar fallback
 of identical semantics.
 
 - **Value** is the value head through a sigmoid; **Priors** are the option
@@ -184,7 +184,7 @@ of identical semantics.
 flowchart LR
   subgraph kernelside["dirty-dirac"]
     direction TB
-    k["kernel, kop, cardset,<br/>cards_fdn, cards_blb"]
+    k["kernel, kop, cardset,<br/>cards_&lt;pool&gt;"]
     fs["feat, search,<br/>search/hbot, search/mull"]
     ne["neteval"]
   end
@@ -202,9 +202,10 @@ flowchart LR
 ```
 
 The kernel packages (`kernel`, `kop`, `cardset`, the generated `cards_*`,
-`feat`, `search`, `search/hbot`, `search/mull`) import nothing from gorge;
-`neteval` imports only `bots/netsimd` and `bots/policynet`. Checked with
-`go list` on 2026-10-20. The behaviours ported from gorge (the search, the
+`feat`, `search`, `search/hbot`, `search/mull`) have no gorge package among
+their dependencies; `neteval`'s only gorge imports are `bots/netsimd` and
+`bots/policynet` (which itself links gorge's engine types; `neteval` calls
+none of the engine). Checked with `go list` on 2026-10-21. The behaviours ported from gorge (the search, the
 heuristic bot, the mulligan policies, the input encoding) are re-implemented on
 kernel types, not called, because a gorge `decision.Decision` or `view.View`
 does not exist on the kernel's hot path. Their agreement with gorge is

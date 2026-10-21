@@ -60,7 +60,7 @@
     "bots/forgeheuristic": {
       "tier": "bots",
       "status": "EXT",
-      "purpose": "Experimental registration of the heuristic bot with the A2 target rules armed."
+      "purpose": "Experimental registration of the heuristic bot with the Forge-derived rules armed."
     },
     "bots/gonet": {
       "tier": "bots",
@@ -69,7 +69,7 @@
     "bots/netsimd": {
       "tier": "bots",
       "status": "EXT",
-      "purpose": "SIMD forward pass for the dzg mlp network (the FDN microkernel plan's Phase 4 microbenchmark)."
+      "purpose": "SIMD forward pass for bots/gonet's network."
     },
     "bots/gonet/gonettest": {
       "tier": "bots",
@@ -164,7 +164,7 @@
     "cmd/kcensus": {
       "tier": "cmd",
       "status": "TOOL",
-      "purpose": "FDN microkernel Phase 0 mechanic census of a deck pool against the compiled IR."
+      "purpose": "Mechanic census of a deck pool against the compiled IR, for the dirty-dirac kernel's card planning."
     },
     "cmd/keywordbench": {
       "tier": "cmd",
