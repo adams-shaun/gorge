@@ -39,7 +39,32 @@ func (e *Engine) LayerTables(want effects.LayerTableSet) effects.LayerTables {
 	if want&effects.LayerKeywords != 0 {
 		t.DerivedKeywords = e.EffectiveKeywords()
 	}
+	if want&effects.LayerCDAPT != 0 {
+		t.CDAPTs = e.cdaPTTable()
+	}
 	return t
+}
+
+// cdaPTTable is LayerTables.CDAPTs: every object, in any zone, whose face
+// prints a characteristic-defining P/T, with its Derived current and base
+// P/T. Derived applies the CDA wherever the card is (CR 604.3), so a
+// resolving filter reads a library Consuming Aberration as its CDA value
+// instead of its printed star as 0 (CR 208.2a). Built in g.Objs order (no
+// map range); nil when no such object exists.
+func (e *Engine) cdaPTTable() []effects.ObjectPT {
+	var out []effects.ObjectPT
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if f := o.Face(); f == nil || !f.CharacteristicDefining() {
+			continue
+		}
+		p, t, bp, bt, ok := e.FilterDerivedPT(o.ID)
+		if !ok {
+			continue
+		}
+		out = append(out, effects.ObjectPT{ID: o.ID, Power: p, Toughness: t, BasePower: bp, BaseToughness: bt})
+	}
+	return out
 }
 
 // Chars is effects.HostRead's characteristics query: the object's current,
