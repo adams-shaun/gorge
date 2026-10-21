@@ -260,6 +260,10 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 		return false
 	}
 	firstTime := strings.EqualFold(t.ParamStr(cards.PKFirstTime), "True")
+	// Valiant$ True (CR 603.2's BLB ability word): the trigger's controller
+	// counts only the targetings of a spell or ability THEY control, so the
+	// once-each-turn gate needs the source's controller at hand.
+	valiant := strings.EqualFold(t.ParamStr(cards.PKValiant), "True")
 	if v, ok := t.Param(cards.PKValidSource); ok {
 		// ValidSource$ names the spell or ability doing the targeting: the
 		// TargetsChosen event's Obj, the stack object whose target decision
@@ -296,6 +300,9 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 					// later target of this same event may still be its first.
 					continue
 				}
+				if valiant && !valiantFirstTimeTargetedByYouThisTurn(e, ev, id, false, e.ControllerOf(source)) {
+					continue
+				}
 				return true
 			}
 		}
@@ -309,7 +316,8 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 		// only say for it.
 		if (ev.Amount == 1 || ev.Amount == 3) &&
 			effects.MatchesPlayerSpecCtx(e.Game(), v, ev.Player, e.ControllerOf(source), e.PlayerSpecCtx(source)) {
-			return !firstTime || firstTimeTargetedThisTurn(e, ev, 0, true)
+			return (!firstTime || firstTimeTargetedThisTurn(e, ev, 0, true)) &&
+				(!valiant || valiantFirstTimeTargetedByYouThisTurn(e, ev, 0, true, e.ControllerOf(source)))
 		}
 		return false
 	}
@@ -333,7 +341,8 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 		// own controller.
 		return false
 	}
-	return targeted && (!firstTime || firstTimeTargetedThisTurn(e, ev, source, false))
+	return targeted && (!firstTime || firstTimeTargetedThisTurn(e, ev, source, false)) &&
+		(!valiant || valiantFirstTimeTargetedByYouThisTurn(e, ev, source, false, e.ControllerOf(source)))
 }
 
 // firstTimeTargetedThisTurn answers FirstTime$ True on Mode$ BecomesTarget
@@ -354,6 +363,63 @@ func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player 
 			return true
 		}
 		if le.Kind != events.TargetsChosen || (ev.Obj != 0 && le.Obj == ev.Obj) {
+			continue
+		}
+		if player {
+			if (le.Amount == 1 || le.Amount == 3) && le.Player == ev.Player {
+				return false
+			}
+			continue
+		}
+		for _, t := range le.IDs {
+			if t == id {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// valiantFirstTimeTargetedByYouThisTurn answers Valiant$ True on Mode$
+// BecomesTarget (the BLB ability word: "becomes the target of a spell or
+// ability you control for the first time each turn", Seedglaive Mentor, the
+// Emberheart Challenger family): true when no EARLIER TargetsChosen event
+// this turn named the same object (or player) with a targeting spell or
+// ability whose stack object the trigger's controller put on the stack.
+// Unlike firstTimeTargetedThisTurn, the count is per CONTROLLER (the
+// ability-word condition reads "you control" inside the once-each-turn
+// clause, and XMage's ValiantTriggeredAbility and Forge's Card.isValiant
+// both check the first-time condition per controller): an opponent's
+// targeting neither fires nor disarms.
+//
+// Same replay-stable backwards log scan as firstTimeTargetedThisTurn -- no
+// new event kind, no engine field, survives Clone -- stopping at
+// TurnChange. The controller of the earlier targeting is read as its stack
+// object's OWNER: the scan runs while the targeting object may already have
+// left the stack (a resolution, counter or fizzle resets Controller to
+// Owner, CR 400.7's control reset), and the fold mints a stack object with
+// the player who put it there (PutOnStack the caster, AbilityPush the
+// activator), which is exactly the controller "you control" names except
+// for an on-stack control change (the current event's own source match
+// still reads the live Controller). Events recorded for the same stack
+// object ev.Obj are the SAME targeting (a spell's later target groups, the
+// event itself when the log already holds it) and never count as an earlier
+// time, matching firstTimeTargetedThisTurn. An event with no stack object
+// (a hand-built fixture emit) names no controller and is skipped.
+func valiantFirstTimeTargetedByYouThisTurn(e Board, ev events.Event, id state.ObjID, player bool, you state.PlayerID) bool {
+	for i := len(e.Log().Events) - 1; i >= 0; i-- {
+		le := e.Log().Events[i]
+		if le.Kind == events.TurnChange {
+			return true
+		}
+		if le.Kind != events.TargetsChosen || (ev.Obj != 0 && le.Obj == ev.Obj) {
+			continue
+		}
+		if le.Obj == 0 {
+			continue
+		}
+		o := e.Game().Obj(le.Obj)
+		if o == nil || o.Owner != you {
 			continue
 		}
 		if player {

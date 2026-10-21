@@ -53,7 +53,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.1 | follows | `engine/cards/parse.go#ParseTriggerLine` `engine/rules/trigger_match.go#Engine.checkTriggers` | - | trigger lines parsed; matched on events |
 | 603.1a | unknown | - | - | not audited |
 | 603.1b | unknown | - | - | not found in g |
-| 603.2 | partial | `engine/rules/trigger_match.go#maxTriggerFires` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | g silent 256-fires-per-match cap per trigger line |
+| 603.2 | partial | `engine/rules/trigger_match.go#maxTriggerFires` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` `engine/rules/trigmatch/actions.go#valiantFirstTimeTargetedByYouThisTurn` | `TestValiantFiresOncePerTurn` | g silent 256-fires-per-match cap per trigger line; the "for the first time each turn" once-per-turn gate (Valiant$ ability word, per-controller count) is real (cr-g74) |
 | 603.2a | follows | `engine/rules/trigger_match.go#Engine.triggerMatchesWithSVars` | - | no cast/activate gate on triggers |
 | 603.2b | follows | `engine/rules/trigger_match.go#Engine.checkTriggers` | - | beginning-of-step triggers |
 | 603.2c | follows | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestCR603_2cRaiseThePastIsOneEntryEvent` | once per occurrence |
