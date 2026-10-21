@@ -751,6 +751,11 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		h.BatchDepartures(departing)
 		defer h.EndBatchDepartures()
 	}
+	// Several objects moved onto the battlefield by one ChangeZone (Living Death's Defined$ Remembered return) enter together: one entering event (CR 603.6a), the ChangeZoneAll sweep's bracket. One object needs none.
+	if to == state.ZBattlefield && objectTargetCount(targets) > 1 {
+		h.BeginZoneBatch()
+		defer h.EndZoneBatch()
+	}
 	// The objects the move loop actually moved, in move order: ChangeZone's
 	// AtEOT$ affected set is the MOVED objects (some carriers carry
 	// RememberChanged$ and some do not, so the moved set is collected here
@@ -1780,4 +1785,15 @@ func recordExileReturnFor(h Host, c *Ctx, dur ParamText, id state.ObjID, from, t
 	}
 	h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id},
 		Amount: int32(from), Text: "until-host-leaves"})
+}
+
+// objectTargetCount counts the object (non-player) entries of targets.
+func objectTargetCount(targets []state.Target) int {
+	n := 0
+	for _, t := range targets {
+		if !t.IsPlayer {
+			n++
+		}
+	}
+	return n
 }
