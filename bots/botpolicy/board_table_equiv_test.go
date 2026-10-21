@@ -284,6 +284,7 @@ func refBoardFromGame(g *state.Game, ch Chars, me state.PlayerID) refBoard {
 				PumpPower:      pumpPower,
 				PumpToughness:  pumpToughness,
 				PumpOwn:        pumpOwnCombatants,
+				CombatTrick:    effects.CastCombatTrick(f.SpellAbility()),
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
 				AuraLogic:      effects.CastAuraLogic(f),

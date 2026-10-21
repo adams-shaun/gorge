@@ -1653,11 +1653,38 @@ type Object struct {
 	// resolves only AFTER the attachment sweep has cleared AttachedTo. Like
 	// LastNotedMana this field is written ONLY inside events.Apply: set by
 	// the Unattached fold from that event's former-bearer carrier, set by
-	// the Move-leaves-battlefield fold from the pre-clear AttachedTo, and
+	// the Move-leaves-battlefield fold from the pre-clear AttachedTo (both
+	// the mover's own pre-clear bearer and -- CR 400.7/704.5m-n -- the
+	// departed bearer each object attached to the mover records), and
 	// cleared by an Attach fold that re-attaches. It is a pure fold of
 	// already-recorded event bytes, so replay rebuilds it identically and no
 	// event encoding or chain head changes.
 	LastBearer ObjID
+
+	// UnattachPending marks an attachment whose bearer left the battlefield:
+	// the Move-leaves-battlefield fold queued the detach for publication by
+	// engine/rules/attach.go's attachmentSBAs (CR 400.7: a flicker can return
+	// the bearer under the same ObjID before any SBA checkpoint, so the
+	// bearer-left arm, which reads the live link, can never see the
+	// departure). The fold deliberately leaves the live AttachedTo link
+	// standing -- the mid-resolution window between the departure and the
+	// next checkpoint must still show the attachment fastened (Murderous
+	// Spoils' StealEquip resolves the Equipment of the creature its Destroy
+	// leg just killed) and a stale link cannot leak across zones because
+	// every cross-zone reader zone-gates -- and when the bearer RE-ENTERS the
+	// battlefield the entry arm breaks that link (the returned permanent is a
+	// new object nothing is attached to, and the link must not survive to the
+	// SBA pass where destroyLethalDamage runs before attachmentSBAs). The
+	// pending publication spends the queue either way, emitting the same
+	// Unattached / graveyard MoveZone the
+	// bearer-left arm always did, so Mode$ Unattached triggers (Grafted
+	// Exoskeleton) and the CR 702.114b bestowed detach log keep firing. Like
+	// LastBearer it is written ONLY inside events.Apply: the departure fold
+	// sets it on each attachment to the departing bearer, the Unattached fold
+	// consumes it, an Attach fold supersedes it, and the attachment's own
+	// departure and its next battlefield entry clear it. A pure fold of
+	// already-recorded event bytes, so replay rebuilds it identically.
+	UnattachPending bool
 
 	// ExiledWith is the object whose effect most recently put this card into
 	// exile. events.Apply derives it from a MoveZone event's existing IDs
@@ -1717,6 +1744,25 @@ type Object struct {
 	// partner when the melded permanent leaves the battlefield). 0 means not
 	// melded. See state/meld.go.
 	MeldedWith ObjID
+
+	// SplitFrom names the battlefield permanent this card left the
+	// battlefield INSIDE of -- a melded permanent's partner card (CR 712.4)
+	// or a mutated pile's under-card (CR 702.140e) -- set by events.Move when
+	// that permanent's departure relocates it, so the card's arrival is
+	// attributable to the permanent's MoveZone (rules' CR 903.9a scan). Only
+	// events.Move writes it, and every move of this card clears it first. 0
+	// means the card's last move was its own.
+	SplitFrom ObjID
+
+	// SplitDep is state.Game.DepSeq as of the departure that carried this
+	// card -- the global battlefield-departure ordinal that departure was --
+	// so the card's arrival is attributable to THAT departure only: rules'
+	// CR 903.9a scan compares it against its watermark, so a host that
+	// re-enters and leaves again (a later, higher ordinal) no longer matches,
+	// while a host that merely RETURNS to the battlefield (a blink: no
+	// departure, the ordinal does not move) still does. Meaningful only with
+	// a nonzero SplitFrom; cleared with it.
+	SplitDep uint32
 
 	IsMyriad bool
 
@@ -1804,7 +1850,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [38]byte
+	_ [26]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast

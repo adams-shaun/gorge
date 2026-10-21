@@ -32,6 +32,54 @@ func (e *Engine) closeTargetBatch() {
 	e.targetBatchFired = nil
 }
 
+// beginSacrificeBatch/endSacrificeBatch bracket ONE sacrifice action for the
+// Mode$ SacrificedOnce latch. Nested brackets (an effect sacrifice inside a
+// cost payment, or a replacement's own sacrifice) share the outer batch: only
+// the outermost open clears the fired set and only the outermost close drops
+// it, so every sacrifice the action caused is absorbed by one queued trigger.
+func (e *Engine) beginSacrificeBatch() {
+	if e.sacrificeBatchDepth == 0 {
+		e.sacrificeBatchOpen = true
+		e.sacrificeBatchFired = nil
+	}
+	e.sacrificeBatchDepth++
+}
+
+func (e *Engine) endSacrificeBatch() {
+	if e.sacrificeBatchDepth <= 0 {
+		return
+	}
+	e.sacrificeBatchDepth--
+	if e.sacrificeBatchDepth == 0 {
+		e.sacrificeBatchOpen = false
+		e.sacrificeBatchFired = nil
+	}
+}
+
+// BeginTokenBatch/EndTokenBatch are the engine half of effects.Resolve's
+// Mode$ TokenCreatedOnce bracket (engine/effects/token_batch.go's
+// tokenBatcher): one resolution's token creations are one batch. Exported
+// because the optional interface lives in engine/effects, which cannot name
+// an unexported rules method. Nested resolutions share the outer batch.
+func (e *Engine) BeginTokenBatch() {
+	if e.tokenBatchDepth == 0 {
+		e.tokenBatchOpen = true
+		e.tokenBatchFired = nil
+	}
+	e.tokenBatchDepth++
+}
+
+func (e *Engine) EndTokenBatch() {
+	if e.tokenBatchDepth <= 0 {
+		return
+	}
+	e.tokenBatchDepth--
+	if e.tokenBatchDepth == 0 {
+		e.tokenBatchOpen = false
+		e.tokenBatchFired = nil
+	}
+}
+
 type parsedPhase struct {
 	set   state.StepSet
 	valid bool

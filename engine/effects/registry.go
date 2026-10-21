@@ -156,9 +156,10 @@ type Ctx struct {
 	// triggering spell, used by CanBeTargetedByTriggeredSpellAbility.
 	TargetableObjects []state.ObjID
 	Targets           []state.Target
-	// ModeTargets carries the target groups selected for a distinct modal
-	// Charm. Each entry is in target-bearing mode order; nil means the
-	// historical single-target-list path, including repeatable modes.
+	// ModeTargets carries the target groups selected for a modal Charm. Each
+	// entry is in target-bearing mode-instance order (a repeated mode has one
+	// group per occurrence, CR 700.2d); nil means the historical
+	// single-target-list path.
 	ModeTargets [][]state.Target
 	// CharmModeScope is the ONE mode's target group a distinct modal Charm
 	// scoped Ctx.Targets to while it dispatches that mode, plus the mode's own
@@ -1075,6 +1076,10 @@ func prefetchRememberedChangeZoneTarget(h Host, c *Ctx, sa *cards.SA) ([]state.T
 }
 
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	// One resolution is one Mode$ TokenCreatedOnce batch (CR 603.2c), however
+	// many tokens its body creates. Nested Resolve calls share the outer
+	// bracket through the engine's depth counter.
+	defer beginTokenBatch(h)()
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
 	// of the walk, restoring the enclosing value on exit so nested walks and

@@ -746,6 +746,24 @@ func (c Cost) Priceable() bool {
 		len(c.MoveToGrave) == 0 && len(c.Mill) == 0
 }
 
+// PureManaLife reports whether the cost is, WHOLE, a mana/life half: every
+// part payMana charges (Priceable) and no component, announcement or report
+// field any other stage settles. It is the strict sibling of Priceable for
+// gates that settle ONE named component beside the mana/life half and must
+// reject every other field explicitly -- a half-paid commitment the settle
+// cannot honour is the one shape worse than the decline. Priceable reads
+// only the components its own charging skips, so it lets the free AddCounter
+// part (a planeswalker activation's [+N]), an Evidence part, an Exert part,
+// a ChooseType count, a RevealOrChoose part, a dynamic LifeHalfUp, a
+// RollDice part and the Withheld/Unknown report fields through; a gate
+// settling, say, Forage beside "the rest" would then silently drop them.
+func (c Cost) PureManaLife() bool {
+	return c.Priceable() &&
+		len(c.AddCounter) == 0 && len(c.Evidence) == 0 && len(c.Exert) == 0 &&
+		c.ChooseType == 0 && len(c.RevealOrChoose) == 0 && !c.LifeHalfUp &&
+		len(c.RollDice) == 0 && len(c.Withheld) == 0 && len(c.Unknown) == 0
+}
+
 // EnergyCostTotal returns the fixed energy a cost's PayEnergy<N> parts demand:
 // the SUM of every fixed part, so a composed cost carrying the part several
 // times (a replicated cast re-pays its PayEnergy cost once per payment) draws

@@ -903,16 +903,10 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		}
 		return false
 	case wordIsCommander:
-		// Forge's IsCommander: the object is one of a seat's commanders.
-		// The commander list lives on the Players at genesis.
-		for i := range g.Players {
-			for _, c := range g.Players[i].Commanders {
-				if c == o.ID {
-					return true
-				}
-			}
-		}
-		return false
+		// Forge's IsCommander: the object is one of a seat's commanders, or
+		// a melded/merged permanent with one among its cards (CR 903.3b-c,
+		// state.Game.CommanderOf).
+		return g.CommanderOf(o.ID) != 0
 	case wordBlockingSource, wordBlockedBySource, wordBlockedByValid, wordBlockedValid,
 		wordBlockedByRemembered, wordBlockedRemembered, wordBlockedBySourceLKI:
 		return blockHistoryMatches(kind, key, g, o, &sc)

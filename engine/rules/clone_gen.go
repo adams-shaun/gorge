@@ -587,6 +587,22 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.discardAllTurn[k0] = v0
 		}
 	}
+	c.sacrificeBatchOpen = e.sacrificeBatchOpen
+	c.sacrificeBatchDepth = e.sacrificeBatchDepth
+	if e.sacrificeBatchFired != nil {
+		c.sacrificeBatchFired = make(map[triggerKey]bool, len(e.sacrificeBatchFired))
+		for k0, v0 := range e.sacrificeBatchFired {
+			c.sacrificeBatchFired[k0] = v0
+		}
+	}
+	c.tokenBatchOpen = e.tokenBatchOpen
+	c.tokenBatchDepth = e.tokenBatchDepth
+	if e.tokenBatchFired != nil {
+		c.tokenBatchFired = make(map[triggerKey]bool, len(e.tokenBatchFired))
+		for k0, v0 := range e.tokenBatchFired {
+			c.tokenBatchFired[k0] = v0
+		}
+	}
 	if e.phaseUnknownNoted != nil {
 		c.phaseUnknownNoted = make(map[string]bool, len(e.phaseUnknownNoted))
 		for k0, v0 := range e.phaseUnknownNoted {
@@ -617,6 +633,9 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.triggerTurnFires[k0] = v0
 		}
 	}
+}
+
+func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.triggerGameFires != nil {
 		c.triggerGameFires = make(map[triggerKey]gameFires, len(e.triggerGameFires))
 		for k0, v0 := range e.triggerGameFires {
@@ -629,9 +648,6 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.triggerTurnResolved[k0] = v0
 		}
 	}
-}
-
-func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.triggerTurnDice != nil {
 		c.triggerTurnDice = make(map[triggerKey]turnFires, len(e.triggerTurnDice))
 		for k0, v0 := range e.triggerTurnDice {
@@ -992,6 +1008,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
 	c.cmdZoneDue = append([]state.ObjID(nil), e.cmdZoneDue...)
 	c.cmdZoneScan = e.cmdZoneScan
+	c.cmdZoneDep = e.cmdZoneDep
 	if e.legendBatch != nil {
 		p0 := *e.legendBatch
 		p0.group.ids = append([]state.ObjID(nil), e.legendBatch.group.ids...)

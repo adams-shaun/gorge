@@ -10,6 +10,7 @@ package rules
 // damage-opponents mode must deal 2 damage to each opponent three times.
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -203,20 +204,18 @@ func mysticConfluenceEngine(t *testing.T, seed uint64) (*Engine, Config, state.O
 	return e, cfg, id, bears
 }
 
-// TestMysticConfluenceRepeatsTargetedModeAsksPerInstance pins the finding the
-// Fiery Confluence pin could not reach: a REPEATED TARGET-BEARING mode. The
-// announcement ask covers the mode's FIRST instance (one creature target);
-// every later instance must keep its own targeting ask -- chosen per instance
-// -- rather than silently re-running against the one shared target (which
-// returned ONE bear for a three-pick answer). Three picks of the return mode
-// must return three distinct creatures.
+// TestMysticConfluenceRepeatsTargetedModeAsksPerInstance pins a REPEATED
+// TARGET-BEARING mode: three picks of the return mode are three separate
+// instances (CR 700.2d), so the cast announcement asks for three targets in
+// one decision -- one exclusive Group per instance (CR 115.3) -- and each
+// instance resolves against its OWN target. Pre-fix the repeated name dropped
+// the per-instance slots and the single first-mode ask shared one target.
 func TestMysticConfluenceRepeatsTargetedModeAsksPerInstance(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, bears := mysticConfluenceEngine(t, 1)
 	addMana(t, e, 0, "UUUUU") // 3 U U
 
-	// Cast through the priority window's own offer; the cast-time ask that
-	// follows the KModes announcement is the mode's FIRST instance target.
+	// Cast through the priority window's own offer.
 	d := castFixture(t, e, id, -1)
 	if d == nil || d.Kind != decision.KModes {
 		t.Fatalf("expected the cast-time KModes announcement, got %+v", d)
@@ -236,41 +235,29 @@ func TestMysticConfluenceRepeatsTargetedModeAsksPerInstance(t *testing.T) {
 	// Three picks of the SAME target-bearing mode.
 	submitChoices(t, e, ret, ret, ret)
 
-	// Instance 1: the cast announcement's own target ask (KTarget).
+	// One target slot per instance, in chosen-mode order.
 	dt := e.Pending()
 	if dt == nil || dt.Kind != decision.KTarget {
-		t.Fatalf("instance 1 ask = %+v, want the announcement KTarget", dt)
+		t.Fatalf("target ask = %+v, want the announcement KTarget", dt)
 	}
-	if dt.Min != 1 || dt.Max != 1 {
-		t.Fatalf("instance 1 bounds %d..%d, want 1..1 (single-target mode)", dt.Min, dt.Max)
+	if dt.Min != 3 || dt.Max != 3 {
+		t.Fatalf("target bounds %d..%d, want 3..3 (one per repeated instance)", dt.Min, dt.Max)
 	}
-	bearIdx := func(d *decision.Decision, bear state.ObjID) int {
-		for _, o := range d.Options {
-			if o.Obj == bear {
-				return o.Index
+	var picks []int
+	for i, bear := range bears {
+		group := "charm-mode-" + strconv.Itoa(i)
+		idx := -1
+		for _, o := range dt.Options {
+			if o.Obj == bear && o.Group == group {
+				idx = o.Index
 			}
 		}
-		return -1
-	}
-	i1 := bearIdx(dt, bears[0])
-	if i1 < 0 {
-		t.Fatalf("bear 0 not offered: %+v", dt.Options)
-	}
-	submitChoices(t, e, i1)
-
-	// Instances 2 and 3: their own mid-resolution asks (KChoose over the
-	// remaining battlefield creatures), one per instance, in walk order.
-	for k, bear := range []state.ObjID{bears[1], bears[2]} {
-		dc := passUntilAsk(t, e)
-		if dc == nil || dc.Kind != decision.KChoose {
-			t.Fatalf("instance %d ask = %+v, want a KChoose", k+2, dc)
-		}
-		idx := bearIdx(dc, bear)
 		if idx < 0 {
-			t.Fatalf("instance %d: bear %d not offered: %+v", k+2, k+1, dc.Options)
+			t.Fatalf("instance %d: bear %d not offered in group %s: %+v", i+1, bear, group, dt.Options)
 		}
-		submitChoices(t, e, idx)
+		picks = append(picks, idx)
 	}
+	submitChoices(t, e, picks...)
 
 	passUntilStackEmpty(t, e, 20)
 	// All three bears are back in seat 0's hand -- each instance returned its

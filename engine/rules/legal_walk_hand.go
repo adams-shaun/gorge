@@ -6,6 +6,28 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// appendAdventureAlt appends the hand's Adventure-face cast offer (CR 715.3a)
+// when the card's own timing, targets, prohibition and cost allow it. It is
+// the ONE home of that offer, shared by the ordinary nonland walk and the
+// land-front branch: CR 715.3a evaluates only the alternative characteristics,
+// so a land front (Midgar, Lindblum, Zanarkand) must still offer its Adventure
+// half even though the land itself is never cast from hand.
+func (w *legalWalk) appendAdventureAlt(o *state.Object, sorcery bool) {
+	if int(o.FaceIdx) != 0 {
+		return
+	}
+	e, p, id := w.e, w.p, o.ID
+	af := adventureSpellFace(o)
+	if af == nil || e.castSuppressed(p, id) || !w.spellTimingOK(p, id, af, sorcery) ||
+		!e.castTargetsAvailable(p, id, af.SpellAbility()) || w.castRestrictedAsFace(p, id, af) {
+		return
+	}
+	if w.offerCastableAsFace(p, id, af, pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
+		w.out = append(w.out, decision.Option{Index: len(w.out), Kind: "cast",
+			Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
+	}
+}
+
 // handWalk is the hand section of the priority walk: land plays and every
 // cast mode the printed (and alternate) faces offer.
 func (w *legalWalk) handWalk() {
@@ -64,6 +86,9 @@ func (w *legalWalk) handWalk() {
 						Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
 				}
 			}
+			// CR 715.3a: a land front is never cast, but its Adventure half
+			// still is -- only the alternative characteristics are evaluated.
+			w.appendAdventureAlt(o, sorcery)
 			continue
 		}
 		// CR 712.8/712.4d: a Modal DFC in hand may be played as its back
@@ -143,15 +168,7 @@ func (w *legalWalk) handWalk() {
 		// casts (castRestrictedAsFace), not the creature front the card-level
 		// continue below reads -- a restriction matching only one face must
 		// decide only that face's offer.
-		if int(o.FaceIdx) == 0 {
-			if af := adventureSpellFace(o); af != nil && w.spellTimingOK(p, id, af, sorcery) &&
-				e.castTargetsAvailable(p, id, af.SpellAbility()) && !w.castRestrictedAsFace(p, id, af) {
-				if w.offerCastableAsFace(p, id, af, pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
-					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
-				}
-			}
-		}
+		w.appendAdventureAlt(o, sorcery)
 		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
 		// consumed by beginCast, which records a FlipFace before the ordinary
 		// cast transaction; from then on every cost/target/resolution reader

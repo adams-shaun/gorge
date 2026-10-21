@@ -188,7 +188,7 @@ func ManaCostPayableFull(e Engine, p state.PlayerID, o *state.Object, source sta
 	// A Forage cost is payable when the payer's graveyard holds three cards OR
 	// they control a Food; the settle poses the two-arm election (the cast
 	// path's nonManaCastable read).
-	if cost.Forage && !manaForagePayable(e, p, source) {
+	if cost.Forage && !ManaForagePayable(e, p, source) {
 		return false
 	}
 	// untapYType<N/Spec> parts (Benthic Explorers): enough distinct TAPPED
@@ -348,10 +348,10 @@ func ManaSacrifices(e Engine, p state.PlayerID, source state.ObjID, cost costvoc
 	return chosen, true
 }
 
-// manaForagePayable is the offer gate's read: Forage is payable when the
+// ManaForagePayable is the offer gate's read: Forage is payable when the
 // payer's graveyard holds three cards OR a Food they control is on the
 // battlefield (the cast path's nonManaCastable read; CR 701.16a).
-func manaForagePayable(e Engine, p state.PlayerID, source state.ObjID) bool {
+func ManaForagePayable(e Engine, p state.PlayerID, source state.ObjID) bool {
 	if len(e.Game().Zone(state.ZGraveyard, p)) >= 3 {
 		return true
 	}

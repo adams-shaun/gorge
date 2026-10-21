@@ -228,26 +228,84 @@ func sacrificedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 
 // tokenCreatedMatches identifies Forge's "whenever you create a token"
 // trigger (Mode$ TokenCreated / TokenCreatedOnce) on the existing, replayed
-// TokenCreate event -- one event per minted token (engine/effects/token.go's effToken
-// loop, engine/effects/amass.go, and the token-replacement mint path), so a
-// three-token spell fires the trigger three times and the Once mode's
-// once-per-turn latch (triggerActivationLimitAllows, actionTriggerModes
-// membership above) is what collapses a batch to one queueing. The would-be
-// token does not exist as a game object at match time: ValidToken$ is taken
-// against the same shallow tokenSnapshot the CreateToken replacement class
-// matches against -- an unknown token key fails closed -- with the You-side
-// predicates reading against the trigger source's controller while the
-// snapshot's controller is ev.Player, the token's creator ("you create").
+// token-creation events. A plain mint is one TokenCreate event per token
+// (engine/effects/token.go's effToken loop, engine/effects/amass.go, and the
+// token-replacement mint path), so a three-token spell fires the trigger three
+// times and the Once mode's per-batch latch (the tokenBatchFired gate in
+// checkTriggers, actionTriggerModes membership above) is what collapses a
+// batch to one queueing. The would-be token does not exist as a game object at
+// match time: ValidToken$ is taken against the same shallow tokenSnapshot the
+// CreateToken replacement class matches against -- an unknown token key fails
+// closed -- with the You-side predicates reading against the trigger source's
+// controller while the snapshot's controller is ev.Player, the token's creator
+// ("you create").
+//
+// A copy effect's token (DB$ CopyPermanent, Myriad) is minted by CopyToken/
+// MyriadCopy in the library and enters with a genuine MoveZone, so the entry
+// event -- not the mint -- is its creation (CR 111.1, 707.2). Only a
+// Library -> Battlefield move of a token object qualifies: an ordinary card
+// reanimated or searched onto the battlefield is not a token being created.
+// The creator is the token's owner (state.Game.AddObject sets it to the
+// effect's player), because the entry MoveZone carries no Player.
+//
+// Encore's CardToken is different: the fold mints the copy straight onto the
+// battlefield with no MoveZone, so the mint itself is the creation. By the
+// time the matcher runs, emit's triggerCheckEvent has rewritten ev.Obj to the
+// minted token's id, and ev.Player is the activator ("you create"), so the
+// token is read from the game and the creator from the event.
+//
+// OnlyFirst$ on a TokenCreatedOnce line (Akim, the Soaring Wind) is Forge's
+// TriggerTokenCreatedOnce.performTest rider, NOT a per-turn trigger cap: the
+// line fires only when this mint is the named player's FIRST token creation
+// of the turn. The creator must match the OnlyFirst$ player spec (Akim's
+// "You"), and its TokensCreatedThisTurn -- already folded for this event by
+// events.Apply -- must be exactly 1. Turn history, not the line's own fire
+// count, is the referent: an opponent's first creation does not fire it, and
+// a controller who made tokens before the source entered does not fire it
+// later in the same turn.
 func tokenCreatedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	if ev.Kind != events.TokenCreate {
+	var creator state.PlayerID
+	var token *state.Object
+	switch ev.Kind {
+	case events.TokenCreate:
+		creator = ev.Player
+	case events.CardToken:
+		token = e.Game().Obj(ev.Obj)
+		if token == nil || !token.IsToken || token.Zone != state.ZBattlefield {
+			return false
+		}
+		creator = ev.Player
+	case events.MoveZone:
+		if ev.From != state.ZLibrary || ev.To != state.ZBattlefield {
+			return false
+		}
+		token = e.Game().Obj(ev.Obj)
+		if token == nil || !token.IsToken || token.Zone != state.ZBattlefield {
+			return false
+		}
+		creator = token.Owner
+	default:
 		return false
 	}
 	ctrl := e.ControllerOf(source)
-	if v := t.ParamStr(cards.PKValidPlayer); v != "" && !effects.MatchesPlayerSpec(e.Game(), v, ev.Player, ctrl) {
+	if v := t.ParamStr(cards.PKValidPlayer); v != "" && !effects.MatchesPlayerSpec(e.Game(), v, creator, ctrl) {
 		return false
 	}
+	if v, ok := t.Param(cards.PKOnlyFirst); ok && v != "" && cards.TriggerModeOf(t.Mode) == cards.TriggerTokenCreatedOnce {
+		if !effects.MatchesPlayerSpec(e.Game(), v, creator, ctrl) {
+			return false
+		}
+		g := e.Game()
+		if int(creator) < 0 || int(creator) >= len(g.Players) ||
+			g.Players[creator].TokensCreatedThisTurn != 1 {
+			return false
+		}
+	}
 	if v, ok := t.Param(cards.PKValidToken); ok && v != "" {
-		tok := e.TokenSnapshot(ev)
+		tok := token
+		if ev.Kind == events.TokenCreate {
+			tok = e.TokenSnapshot(ev)
+		}
 		if tok == nil || !e.MatchesObject(v, tok, source, ctrl, SpecOpts{}) {
 			return false
 		}

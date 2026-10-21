@@ -212,7 +212,7 @@ func modeTrigKinds(mode cards.TriggerMode) trigKinds {
 //	CounterAdded(Once)            CounterChange
 //	ClassLevelGained             ClassLevelChange (high kind; not rejected)
 //	Transformed                   trigmatch.TransformedMatches: FlipFace
-//	TokenCreated(Once)            trigmatch.tokenCreatedMatches: TokenCreate
+//	TokenCreated(Once)            trigmatch.tokenCreatedMatches: TokenCreate/MoveZone/CardToken
 //	Drawn                         trigmatch.drawnMatches: Draw
 //	LifeLost                      lifeLoss: Damage/LifeChange (LifeLostAll is not listed)
 //	LifeGained                    trigmatch.lifeGainedMatches: LifeChange

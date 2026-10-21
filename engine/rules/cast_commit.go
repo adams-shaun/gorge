@@ -387,9 +387,7 @@ func (e *Engine) payCast() {
 				selfChar, selfCharOK = e.sourceCharSnapshotOf(id), true
 			}
 		}
-		for _, id := range pc.Sacs {
-			e.emit(events.Sacrifice(id))
-		}
+		e.emitSacrifices(pc.Sacs)
 		if pc.cost.Forage {
 			e.emit(events.Event{Kind: events.ForageAction, Player: pc.player})
 		}
@@ -609,9 +607,7 @@ func (e *Engine) payCast() {
 			pc.casualtyX = e.Power(pc.casualtySac)
 		}
 	}
-	for _, id := range pc.Sacs {
-		e.emit(events.Sacrifice(id))
-	}
+	e.emitSacrifices(pc.Sacs)
 	if pc.cost.Forage {
 		e.emit(events.Event{Kind: events.ForageAction, Player: pc.player})
 	}

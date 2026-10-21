@@ -238,6 +238,10 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // inventing a new filter form. effPump itself lives in pump.go, its
 // parameters compiled once in pump_params.go.
 
+// pumpAllFilter is PumpAll's ValidCards$ text: the one read, shared by the
+// resolution sweep and CastCombatTrick's classifier.
+func pumpAllFilter(sa *cards.SA) string { return sa.ParamStr(cards.PKValidCards) }
+
 // effPumpAll bakes in the affected set at resolution time (CR 611.2c: such an
 // effect applies only to the permanents matching the filter when the ability
 // resolves, not to ones that start matching later), so it registers one
@@ -247,7 +251,7 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // filter-based effect that Derived would re-evaluate against the battlefield
 // forever.
 func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
-	spec := sa.ParamStr(cards.PKValidCards)
+	spec := pumpAllFilter(sa)
 	if spec == "" {
 		spec = "Creature"
 	}
@@ -351,6 +355,12 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 	}
 }
 
+// untilUntapsDuration reports Duration$ UntilUntaps: "for as long as CARDNAME
+// remains tapped" (CR 611.2b), anchored to the activating host.
+func untilUntapsDuration(dur string) bool {
+	return strings.EqualFold(strings.TrimSpace(dur), "UntilUntaps")
+}
+
 // registerPumpEffects is Pump and PumpAll's sole per-object registration
 // path. Its KW$/Duration$/LeaveBattlefield$ come from the one compiled
 // PumpGrant (compilePumpGrant, pump_params.go), so neither effect can
@@ -370,6 +380,18 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 // structural home, exactly as the Animate site registers through
 // registerAnimateEffects.
 func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doublePower, doubleToughness bool, g *PumpGrant, zone string, chosenKW []string) {
+	// Duration$ UntilUntaps (Zelyon Sword, Kill Switch's family): the grant
+	// lasts while the ACTIVATING host stays tapped. Forge applies nothing when
+	// the host is not already a tapped permanent (checkValidDuration), so the
+	// gate precedes every side effect; the registrations below carry the host
+	// so rules ends them on its untap or departure.
+	var untapHost state.ObjID
+	if untilUntapsDuration(g.Duration) {
+		if host := h.Game().Obj(c.Source); host == nil || host.Zone != state.ZBattlefield || !host.Tapped {
+			return
+		}
+		untapHost = c.Source
+	}
 	// g.KW is the compiled record's shared, capacity-clipped list: an
 	// answered KWChoice$ appends into a fresh slice, never into the record.
 	kws := g.KW
@@ -411,6 +433,9 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 		}
 	}
 	permanent, untilEOT := durationTiming(g.Duration)
+	if untapHost != 0 {
+		untilEOT = false
+	}
 	// The move-driven lifetime of a Duration$ Permanent pump: when the pumped
 	// object leaves the zone it was pumped in, the grant ends (CR 400.7 -- it
 	// is a new object on return), via the same ExileOnMoved$/Remembered pair
@@ -440,7 +465,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 			Layer: state.LPT, Sub: state.SubModify,
 			AddPower: att, AddToughness: def,
 			DoublePower: doublePower, DoubleToughness: doubleToughness,
-			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT,
+			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
@@ -451,7 +476,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubSwitch,
-			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT,
+			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
@@ -460,7 +485,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, doubleP
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: kws,
-			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT,
+			Duration: g.Duration, Permanent: permanent, UntilEOT: untilEOT, UntilUntapOf: untapHost,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
@@ -1228,8 +1253,12 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	scheduleAtEOT(h, c, sa, ateotIDs)
 }
 
+// protectionGains is Protection's Gains$ text: the one read, shared by the
+// resolution and CastCombatTrick's classifier.
+func protectionGains(sa *cards.SA) string { return sa.ParamStr(cards.PKGains) }
+
 func effProtection(h Host, c *Ctx, sa *cards.SA) {
-	gains := resolveGains(sa.ParamStr(cards.PKGains), sa.ParamStr(cards.PKChoices), h.Game().Obj(c.Source))
+	gains := resolveGains(protectionGains(sa), sa.ParamStr(cards.PKChoices), h.Game().Obj(c.Source))
 	if gains == "" {
 		return
 	}

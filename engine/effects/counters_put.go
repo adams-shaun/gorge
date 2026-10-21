@@ -536,19 +536,23 @@ func eachFromSourceCounters(h Host, c *Ctx, id state.ObjID) []state.Counter {
 		}
 	}
 	for _, s := range c.Sacrificed {
-		if s.Obj == id && len(s.Counters) > 0 {
-			return s.Counters
+		if s.Obj == id {
+			if ks := positiveCounters(s.Counters); len(ks) > 0 {
+				return ks
+			}
 		}
 	}
 	return nil
 }
 
 // positiveCounters copies the kinds a counter slice holds at a POSITIVE
-// count, in slice order (deterministic; never a map walk).
+// count, in slice order (deterministic; never a map walk). It also excludes
+// the engine's internal status markers (Shield, Deathtouched), which are not
+// counters (CR 122.1).
 func positiveCounters(cs []state.Counter) []state.Counter {
 	var out []state.Counter
 	for i := range cs {
-		if cs[i].N > 0 {
+		if cs[i].N > 0 && !state.InternalCounterMarker(cs[i].Kind) {
 			out = append(out, cs[i])
 		}
 	}
@@ -1004,14 +1008,15 @@ func putCounterPickApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, pic
 	rememberPlaced(c, sa, placed)
 }
 
-// putCounterBolster implements PutCounter's Bolster$ parameter (CR 701.36's
+// putCounterBolster implements PutCounter's Bolster$ parameter (CR 701.39a's
 // bolster keyword action): the bolstering player -- the resolving controller;
 // every corpus carrier bolsters "creatures you control" -- chooses a creature
 // with the LEAST toughness among their creatures and puts N +1/+1 counters
-// on it. The toughness read is the engine's effects-side P/T convention
-// (face toughness plus P1P1 counters, the Count$CardToughness read --
-// layer-derived toughness is not visible below rules). A tie at the minimum
-// is a real election (CR 701.36's "choose"): a KChoose over the tied
+// on it. The toughness read is the CURRENT, layer-derived toughness
+// (CR 208.3/613: Host.Toughness, the same characteristic the layer walk,
+// combat damage and the SBAs read), so an anthem, an Aura or a pump moves
+// the election. A tie at the minimum
+// is a real election (CR 701.39a's "choose"): a KChoose over the tied
 // creatures with the shared "counter_pick" decision shape, answered in place;
 // botpolicy's "counter_pick" arm takes the first option, so a
 // bot-answered game emits the same events the R-9 no-host fallback (the
@@ -1030,11 +1035,10 @@ func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string) {
 		if o == nil || o.Face() == nil || !hasType(o, "Creature") {
 			continue
 		}
-		// The election reads the object's net toughness from its counters of
-		// EVERY P/T kind (CR 122.1a/613.7d): a -0/-1 or -1/-1 counter shrinks
-		// the candidate just as a +1/+1 one grows it.
-		_, dt := o.CounterPTTotals()
-		t := int32(o.Face().Toughness()) + dt
+		// The election reads current toughness after every continuous effect
+		// and every P/T counter (CR 701.39a with CR 208.3/613): an anthem's
+		// +1/+1 or a -2/-2 pump moves the candidate exactly as a counter does.
+		t := h.Toughness(id)
 		if len(cands) == 0 || t < best {
 			best, cands = t, []state.ObjID{id}
 			continue

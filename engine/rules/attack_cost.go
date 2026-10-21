@@ -840,9 +840,7 @@ func (e *Engine) payCombatExtras(p state.PlayerID, c blockCharge, taps, sacs, re
 	if total := c.life + lifeExtra; total > 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -total, Text: "paylife proposal"})
 	}
-	for _, id := range sacs {
-		e.emit(events.Sacrifice(id))
-	}
+	e.emitSacrifices(sacs)
 	for _, id := range returns {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.ReturnCost(id, o.Zone))

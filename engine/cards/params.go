@@ -178,6 +178,7 @@ const (
 	PKNumTurns
 	PKNumber
 	PKObject
+	PKOnlyFirst
 	PKOnlyFirstSpell
 	PKOpponentTurn
 	PKOptional
@@ -272,6 +273,7 @@ const (
 	PKUpTo
 	PKUpcomingTurn
 	PKDelayedTriggerDefinedPlayer
+	PKValiant
 	PKValid
 	PKValidActivatingPlayer
 	PKValidActivator
@@ -986,6 +988,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKNumTurns:                         "NumTurns",
 	PKNumber:                           "Number",
 	PKObject:                           "Object",
+	PKOnlyFirst:                        "OnlyFirst",
 	PKOnlyFirstSpell:                   "OnlyFirstSpell",
 	PKOpponentTurn:                     "OpponentTurn",
 	PKOptional:                         "Optional",
@@ -1081,6 +1084,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKUpTo:                             "UpTo",
 	PKUpcomingTurn:                     "UpcomingTurn",
 	PKDelayedTriggerDefinedPlayer:      "DelayedTriggerDefinedPlayer",
+	PKValiant:                          "Valiant",
 	PKValid:                            "Valid",
 	PKValidActivatingPlayer:            "ValidActivatingPlayer",
 	PKValidActivator:                   "ValidActivator",

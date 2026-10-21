@@ -29,6 +29,26 @@ func modeUnlessCost(sub *cards.SA) string {
 	return strings.TrimSpace(ActivationOf(sub).UnlessCost)
 }
 
+// modePawprint prices one mode body's own Pawprint$ (CR 700.2i, CR 107.18):
+// the {P} the mode charges against its Charm's root budget (the BLB Seasons'
+// "up to five {P} worth of modes"). The second result is false when the body
+// carries a Pawprint$ that is not a plain integer -- the caller notes it and
+// prices the mode 0 rather than fabricating a price. A body with no
+// Pawprint$ is free (0, true), the Forge default
+// (getParamOrDefault("Pawprint", "0")). Only a budget-carrying Charm's mode
+// bodies are read at all (charm.go's CharmPawprints gates on the root), so a
+// non-pawprint Charm's mode bodies never see the read.
+func modePawprint(sub *cards.SA) (int, bool) {
+	if sub == nil {
+		return 0, true
+	}
+	pw, ok := sub.Param(cards.PKPawprint)
+	if !ok {
+		return 0, true
+	}
+	return literalInt(ParamText{Text: pw, Present: ok})
+}
+
 // charmUniqueBounds mirrors rules' targetBounds for the single-target check:
 // absent TargetMin$/TargetMax$ mean 1..1 (the M1 single-target contract).
 // Anything a caller set explicitly beyond 1..1 keeps the mode out of the

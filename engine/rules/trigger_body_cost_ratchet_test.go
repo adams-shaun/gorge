@@ -130,7 +130,7 @@ bringer_of_the_black_dawn.txt|T|TrigChange|PayLife<2>|window-settled
 bristlebud_farmer.txt|T|TrigMill|Sac<1/Food>|window-settled
 brood_astronomer.txt|T|TrigDraft|Sac<1/Land>|window-settled
 burning_tree_vandal.txt|T|TrigDraw|Discard<1/Card>|window-settled
-bushy_bodyguard.txt|T|TrigPutCounter|Forage|decline-only
+bushy_bodyguard.txt|T|TrigPutCounter|Forage|window-settled
 buzzard_wasp_colony.txt|T|TrigDraw|Sac<1/Artifact;Creature/artifact or creature>|window-settled
 byway_barterer.txt|T|TrigDraw|Discard<1/Hand>|window-settled
 cabal_therapist.txt|T|DBImmediateTrigger|Sac<1/Creature>|window-settled
@@ -167,7 +167,7 @@ consuls_shieldguard.txt|T|TrigPump|PayEnergy<1>|window-settled
 cool_but_rude.txt|T|TrigDraw|Discard<1/Card>|window-settled
 copy_catchers.txt|T|TrigCopy|1 U|window-settled
 cornered_crook.txt|T|TrigImmediateTrig|Sac<1/Artifact>|window-settled
-corpseberry_cultivator.txt|T|TrigPump|Forage|decline-only
+corpseberry_cultivator.txt|T|TrigPump|Forage|window-settled
 corpses_of_the_lost.txt|T|TrigReturn|PayLife<1>|window-settled
 councils_deliberation.txt|T|DBDraw|ExileFromGrave<1/CARDNAME>|window-settled
 cradle_of_vitality.txt|T|TrigPutCounter|1 W|window-settled
@@ -176,7 +176,7 @@ crosis_the_purger.txt|T|TrigChoose|2 B|window-settled
 crossway_troublemakers.txt|T|TrigDraw|PayLife<2>|window-settled
 crucias_titan_of_the_waves.txt|T|TrigToken|Discard<1/Card>|window-settled
 crystal_rod.txt|T|TrigGainLife|1|window-settled
-curious_forager.txt|T|TrigImmediateTrig|Forage|decline-only
+curious_forager.txt|T|TrigImmediateTrig|Forage|window-settled
 curse_of_silence.txt|T|TrigDraw|Sac<1/CARDNAME>|window-settled
 customs_depot.txt|T|TrigLoot|1|window-settled
 cyclops_superconductor.txt|T|DBTrigger|PayEnergy<3>|window-settled
@@ -245,7 +245,7 @@ escape_protocol.txt|T|TrigImmediateTrig|1|window-settled
 esoteric_duplicator.txt|T|TrigDelayedTrig|2|window-settled
 estwald_shieldbasher.txt|T|TrigPump|1|window-settled
 eternal_taskmaster.txt|T|TrigChange|2 B|window-settled
-euru_acorn_scrounger.txt|T|TrigImmediateTrig|Forage|decline-only
+euru_acorn_scrounger.txt|T|TrigImmediateTrig|Forage|window-settled
 euru_acorn_scrounger.txt|T|TrigPutCounterAll|Sac<1/Permanent.token/token>|window-settled
 evereth_viceroy_of_plunder.txt|T|TrigImmediateTrig|1 BR|window-settled
 every_last_vestige_shall_rot.txt|T|MoveToBottom|X|window-settled
@@ -789,7 +789,7 @@ toph_hardheaded_teacher.txt|T|TrigChangeZone|Discard<1/Card>|window-settled
 trail_of_crumbs.txt|T|TrigDig|1|window-settled
 tranquil_frillback.txt|T|TrigPay|Mana<G\NumTimes>|window-settled
 transplant_theorist.txt|T|TrigLoot|Draw<1/You>|window-settled
-treetop_sentries.txt|T|TrigDraw|Forage|decline-only
+treetop_sentries.txt|T|TrigDraw|Forage|window-settled
 treva_the_renewer.txt|T|TrigChoose|2 W|window-settled
 tribute_to_horobi_echo_of_deaths_wail.txt|T|TrigDraw|Sac<1/Creature.Other/another creature>|window-settled
 trudge_garden.txt|T|TrigToken|2|window-settled
@@ -913,7 +913,7 @@ func triggerCostRoute(row string) string {
 	if len(families) == 1 && families["tapXType"] {
 		return "window-settled"
 	}
-	settleable := map[string]bool{"Sac": true, "Discard": true, "Draw": true, "PayEnergy": true, "PayLife": true, "ExileFromGrave": true, "Exile": true, "ExileAnyGrave": true, "ExiledMoveToGrave": true, "Blight": true, "CollectEvidence": true, "Mana": true}
+	settleable := map[string]bool{"Sac": true, "Discard": true, "Draw": true, "PayEnergy": true, "PayLife": true, "ExileFromGrave": true, "Exile": true, "ExileAnyGrave": true, "ExiledMoveToGrave": true, "Blight": true, "CollectEvidence": true, "Mana": true, "Forage": true}
 	for family := range families {
 		if !settleable[family] {
 			return "decline-only"
@@ -1074,7 +1074,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(familyDrift) > 0 {
 		t.Fatalf("Cost$ family occurrence drift: %s", strings.Join(familyDrift, ", "))
 	}
-	wantRoutes := map[string]int{"window-settled": 816, "decline-only": 39}
+	wantRoutes := map[string]int{"window-settled": 821, "decline-only": 34}
 	for route, want := range wantRoutes {
 		if got := routes[route]; got != want {
 			routeDrift = append(routeDrift, fmt.Sprintf("%s=%d (want %d)", route, got, want))

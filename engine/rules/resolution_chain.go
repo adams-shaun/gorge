@@ -99,7 +99,11 @@ func chosenModeLabels(chosen []decision.Option) []string {
 // dense for the wire. repeat marks a CanRepeatModes$ Charm: the same eligible
 // mode may fill several slots, and the max clamp is skipped so a CharmNum$
 // larger than the eligible count is still satisfiable (by repetition).
-func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int, repeat bool) *decision.Decision {
+// CR 700.2i / CR 107.18: a pawprint budget (the BLB Seasons' root Pawprint$)
+// rides the ask as Decision.MaxSum over each option's Option.Value (the
+// mode body's own Pawprint$), so the answer's {P} sum is fenced by the same
+// wire rule the mid-resolution ask (effCharm) publishes.
+func modeDecisionForChoices(h effects.Host, p state.PlayerID, source state.ObjID, sa *cards.SA, svars map[string]string, choices []string, min, max int, repeat bool) *decision.Decision {
 	if !repeat && max > len(choices) {
 		max = len(choices)
 	}
@@ -112,6 +116,15 @@ func modeDecisionForChoices(p state.PlayerID, source state.ObjID, sa *cards.SA, 
 		d.Options = append(d.Options, decision.Option{
 			Index: i, Kind: "mode", Label: effects.CharmModeLabel(cards.ResolveSVar(svars, name), name),
 			Obj: source, Player: p})
+	}
+	if budget, values, ok := effects.CharmPawprints(h, source, sa, svars, choices); ok {
+		d.MaxSum = budget
+		// Budgeted keeps a PRESENT zero budget live (HasBudget): a root
+		// Pawprint$ 0 fences the modes at 0 {P} instead of reading absent.
+		d.Budgeted = true
+		for i := range d.Options {
+			d.Options[i].Value = values[i]
+		}
 	}
 	return d
 }
@@ -132,6 +145,10 @@ func modeLabels(sa *cards.SA, svars map[string]string, names []string) []string 
 // effCharm reads (Ctx.Modes). eligible carries a filtered cast
 // decision's server-only vocabulary; nil falls back to the SA's full Choices$
 // list for placement and mid-resolution decisions. Out-of-range indices drop.
+// A budgeted Charm (CR 700.2i, effects.CharmBudgeted) returns its names in
+// printed Choices$ order: ChosenModes feeds the per-mode target ask, whose
+// positional ModeTargets groups must share the order the modes later run in.
+// A non-pawprint Charm keeps the answer's order, which its target asks pin.
 func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) []string {
 	if sa == nil {
 		return nil
@@ -145,6 +162,9 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 		if o.Index >= 0 && o.Index < len(choices) {
 			names = append(names, choices[o.Index])
 		}
+	}
+	if effects.CharmBudgeted(sa) {
+		names = effects.CharmResolveOrder(choices, names)
 	}
 	return names
 }

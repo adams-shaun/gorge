@@ -886,6 +886,7 @@ func BoardFromView(v view.View) botpolicy.Board {
 				PumpPower:      cv.PumpPower,
 				PumpToughness:  cv.PumpToughness,
 				PumpOwn:        cv.PumpOwn,
+				CombatTrick:    cv.CombatTrick,
 				PlayMain1:      cv.PlayMain1,
 				RemoveDeck:     cv.RemoveDeck,
 				AuraLogic:      cv.AuraLogic,

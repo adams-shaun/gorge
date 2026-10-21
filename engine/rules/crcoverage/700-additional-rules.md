@@ -9,12 +9,12 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.2a | partial | `engine/rules/cast_asks.go#Engine.castModeAsk` `engine/rules/legal_targets.go#Engine.charmTargetsAvailable` | `TestModalCastOmitsModesWithNoLegalTargets` | gorge: repeatable charm with zero legal modes not uncastable (latent) |
 | 700.2b | follows | `engine/rules/trigger_queue.go#Engine.askTriggerModes` | `TestModalTriggerWithNoTargetableModeIsRemoved` |  |
 | 700.2c | follows | `engine/rules/target_modes.go#charmTargetSlots` | `TestModalCastTargetsComeFromTheAnnouncedMode` | targets only for chosen modes |
-| 700.2d | follows | `engine/effects/charm.go#CharmModeBounds` | `TestMysticConfluenceRepeatsTargetedModeAsksPerInstance` |  |
+| 700.2d | follows | `engine/rules/target_modes.go#charmTargetSlots` `engine/effects/charm.go#CharmModeBounds` | `TestMysticConfluenceRepeatsTargetedModeAsksPerInstance` `TestRepeatedModeTargetsPerInstance` | each repeated mode is a separate instance with its own target group; the same target may fill two groups |
 | 700.2e | deviates | `engine/effects/charm_params.go#compileCharm` `engine/rules/cast_asks.go#Engine.castModeAsk` | - | caster picks mode for Fatal Lore etc.; Note only at resolution |
 | 700.2f | follows | `engine/state/object.go#Object.ChosenModes` | - | modes held apart from targets |
 | 700.2g | follows | `engine/rules/target_modes.go#copyCharmModes` | `TestCopyCharmAsksEveryChosenTargetMode` | copies keep modes |
 | 700.2h | follows | `engine/rules/cast_asks.go#Engine.castModeAsk` | `TestRequisitionRaidSpreeChargesEachChosenMode` `TestMetamorphicBlastSpreeUnaffordableModeNotOffered` |  |
-| 700.2i | deviates | `engine/effects/charm_params.go#compileCharm` `engine/effects/charm.go#effCharm` | - | pawprint budget unread: any 5 modes |
+| 700.2i | follows | `engine/effects/charm.go#CharmPawprints` `engine/effects/charm.go#CharmResolveOrder` | `TestPawprintBudget` `TestPawprintModesResolveInPrintedOrder` `TestPawprintBurrowTargetOrder` `TestModeDecisionPublishesPresentZeroBudget` `TestCharmPawprintPresenceAndPricing` | root `Pawprint$` publishes Decision.MaxSum over the modes' Option.Value; chosen modes resolve in printed order, repeats stable |
 | 700.3 | partial | `engine/effects/twopiles.go#effTwoPiles` | - | gorge: Zone$/DefinedPiles$/LeftRight shapes move nothing, LOUD |
 | 700.3a-c | follows | `engine/effects/twopiles.go#effTwoPiles` | - | piles are choices; cards stay until pick |
 | 700.3d | partial | `engine/effects/twopiles.go#effTwoPiles` | - | one-card set forced into pile A |
@@ -116,7 +116,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.31a-d | deviates | `engine/rules/planar.go#Engine.currentPlane` `engine/events/apply_misc.go#foldPlanarWalk` | - | per-seat planes; no single planar controller |
 | 701.32a-c | n/a | - | - | Archenemy absent from gorge |
 | 701.33a-b | n/a | - | - | Archenemy absent |
-| 701.34a | follows | `engine/effects/counters.go#effProliferate` `engine/effects/counters.go#proliferateOnce` | `TestCR701_34aProliferateTwiceIsTwoProliferations` `TestContagionEngineProliferatesTwice` | - |
+| 701.34a | follows | `engine/effects/counters.go#effProliferate` `engine/effects/counters.go#proliferateOnce` | `TestCR701_34aProliferateTwiceIsTwoProliferations` `TestContagionEngineProliferatesTwice` `TestProliferateIgnoresInternalMarkers` | internal Shield/Deathtouched markers excluded |
 | 701.34b | n/a | - | - | no 2HG |
 | 701.35a | not-impl | `engine/effects/registry.go#Resolve` | - | Detain unregistered |
 | 701.36a | partial | `engine/effects/copypermanent.go#effCopyPermanent` | `TestGrowingRanksPopulatesTheCreatureTokenYouControl` | never asks; first token in zone order |
@@ -125,7 +125,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.37b | partial | `engine/effects/counters_put.go#effPutCounter` | - | Monstrosity X=0 never marks monstrous |
 | 701.38a-c | follows | `engine/effects/vote_effect.go#effVote` `engine/effects/vote_effect.go#voteWinner` | `TestCouncilsJudgmentExilesTheMostVoted` |  |
 | 701.38d | not-impl | - | - | Brago's Representative inert |
-| 701.39a | deviates | `engine/effects/counters_put.go#putCounterBolster` | - | least toughness from printed+counters, ignores layer 7 |
+| 701.39a | follows | `engine/effects/counters_put.go#putCounterBolster` | `TestBolsterReadsCurrentToughness` |  |
 | 701.40a,e | follows | `engine/effects/zone_manifest.go#effManifest` | - |  |
 | 701.40b-d | not-impl | `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | - | no turn-face-up special action |
 | 701.40f | unknown | `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | - | Cage-vs-manifest test would settle |
@@ -169,7 +169,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.59c | follows | `engine/effects/conditions.go#conditionDefinedGroup` `engine/rules/cast_targets.go#castSubTargetsOwed` | - | linked via OptionalCost (traced shallowly) |
 | 701.60a | deviates | `engine/events/apply_player.go#foldControlChange` | - | suspected cleared on control change |
 | 701.60b-d | follows | `engine/rules/chars/derive.go#BaseKeywords` `engine/rules/combat/block.go#CanBlock` `engine/effects/misc.go#effAlterAttribute` | - |  |
-| 701.61a | follows | `engine/rules/cast_asks.go#Engine.forageAsk` `engine/rules/pay/castparts.go#NonManaCastableP` | - |  |
+| 701.61a | follows | `engine/rules/cast_asks.go#Engine.forageAsk` `engine/rules/pay/castparts.go#NonManaCastableP` `engine/rules/pay/sacparts.go#ManaForagePayable` `engine/rules/trigger_cost_forage.go#triggeredEffectCost.foragePayable` | `TestTriggeredForageCanBePaid` |  |
 | 701.62a | follows | `engine/effects/zone_manifest.go#effManifestDread` | - |  |
 | 701.62b | deviates | `engine/effects/zone_manifest.go#effManifestDread` `engine/effects/zone_manifest.go#manifestDreadMove` | - | empty library: no ManifestDread trigger |
 | 701.63a | partial | `engine/effects/endure.go#endureCreateSpirit` | - | Spirit is 0/0 + rider; copies 0/0 |
@@ -224,8 +224,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 704.5i | follows | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` | `TestFaceDownPlaneswalkerSurvivesZeroLoyaltySBA` `TestFaceUpPlaneswalkerWithoutLoyaltyStillSwept` `TestPlaneswalkerSBABatchUsesPreDepartureBoard` `TestCR306_9MoonedWalkerWithNoLoyaltyStays` | - |
 | 704.5j | follows | `engine/rules/sba.go#Engine.legendGroups` `engine/rules/sba_prefilter.go#Engine.mayHaveLegendPair` `engine/rules/sba_prefilter.go#Engine.sbaTypeFast` `engine/rules/sba.go#Engine.legendAnswer` | `TestCR704CorpusLegendDuplicatesCannotReachPriority` `TestFaceDownPlaneswalkerIsNotLegendaryForTheLegendRule` `TestIgnoreLegendRuleExemptsMatchingCreatures` `TestCR704_5jGrantedLegendaryCountsForLegendRule` `TestCR704_5jGrantedLegendaryGuards` | - |
 | 704.5k | follows | `engine/rules/sba.go#Engine.worldRule` `engine/rules/sba.go#Engine.worldPermanents` | `TestWorldRuleNewestSurvives` `TestWorldRuleTieSendsAll` `TestWorldRuleReadsDerivedSupertype` |  |
-| 704.5m | follows | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/rules/attach.go#Engine.auraStillMatchesEnchant` | `TestCR704AuraBecomesIllegalAfterProtection` |  |
-| 704.5n | partial | `engine/rules/attach.go#Engine.attachmentSBAs` | `TestFortificationDetachesWhenBearerStopsBeingALand` `TestFortifiedLandThatGainsATypeStaysAttached` | SILENT: protection from the Equipment ignored |
+| 704.5m | follows | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/rules/attach.go#Engine.auraStillMatchesEnchant` `engine/events/apply_zone.go#move` | `TestCR704AuraBecomesIllegalAfterProtection` `TestFlickerUnattachesAura` | the bearer-departure fold queues the detach as UnattachPending (the live AttachedTo link stays while the bearer is off the battlefield, so the mid-resolution window still shows the attachment fastened; the bearer's re-entry breaks it before the SBA pass, where destroyLethalDamage would otherwise read the stale -2/-2 first); attachmentSBAs' pending arm publishes the same graveyard MoveZone and clears the link |
+| 704.5n | partial | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/events/apply_zone.go#move` | `TestFortificationDetachesWhenBearerStopsBeingALand` `TestFortifiedLandThatGainsATypeStaysAttached` `TestFlickerUnattachesAura` | SILENT: protection from the Equipment ignored; the bearer-departure fold queues the detach as UnattachPending (the live AttachedTo link stays while the bearer is off the battlefield; the bearer's re-entry breaks it before the SBA pass) and attachmentSBAs' pending arm publishes the same events.Unattached ("bearer left the battlefield") |
 | 704.5p | not-impl | - | - |  |
 | 704.5q | follows | `engine/rules/sba.go#Engine.annihilateOppositeCounters` | `TestCR704RepoCreatureOppositeCountersAnnihilate` | ordering vs deaths: see 704.3/704.8 |
 | 704.5r | not-impl | - | - |  |

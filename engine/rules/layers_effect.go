@@ -742,6 +742,29 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	e.continuousChanged()
 }
 
+// expireUntilUntaps drops every Duration$ UntilUntaps registration whose host
+// is host: Forge ends the effect the first time the host untaps or leaves the
+// battlefield, and a host tapped again later must not revive it. Called after
+// an Untap of the host and after a MoveZone out of the battlefield. Like
+// effectMoveSweep it is an in-place rewrite of e.continuous that emits no
+// event; replay rebuilds it by re-executing the same registrations.
+func (e *Engine) expireUntilUntaps(host state.ObjID) {
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.UntilUntapOf == host {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
 // mayPlayRememberedLeftZone reports whether ev moves one of a may-play
 // grant's REMEMBERED cards out of a zone the grant names (AffectedZone$),
 // for a grant that spells no move-driven lifetime of its own. CR 400.7: a
@@ -941,6 +964,36 @@ func (e *Engine) expireUntilEndOfCombat() {
 	e.continuousChanged()
 }
 
+// expireUntapStepEffects drops the UntilTheEndOfYourNextUntap registrations
+// whose controller's untap step is ENDING (CR 611.3b: the effect lasts until
+// the end of the controller's first NEXT untap step, even if nothing untapped
+// during it). finishStepBoundary calls it on the transition that leaves
+// StepUntap, with e.G.Active still the step's player; the dropped grants are
+// the ones registered by that player's own effects (Player.Activator /
+// Player.IsRemembered scopes) -- a printed UntilTheEndOfYourNextUntap line
+// does not exist in the corpus, so the controller match is the whole story.
+//
+// It rewrites e.continuous in place exactly like expireUntilEndOfCombat and
+// emits no event of its own: e.continuous is engine-runtime state rebuilt by
+// re-execution on replay, exactly like EndOfTurnCleanup and EndEffect. The
+// UntilTheEndOfYourNextUntap carriers are self-granted permanent-effect
+// registrations, never clone copies, so no clone expiry runs.
+func (e *Engine) expireUntapStepEffects() {
+	n0 := len(e.continuous)
+	kept := e.continuous[:0]
+	for _, ce := range e.continuous {
+		if effects.IsUntapStepDuration(ce.Duration) && ce.Controller == e.G.Active {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if len(kept) == n0 {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
 // continuousLive is active()'s duration-honouring filter over one registered
 // effect (see active()): whether it still exists right now. It is the one
 // predicate active() and anyLayer4Active's registered-effect check share, so
@@ -951,12 +1004,30 @@ func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
 			return false
 		}
 	}
+	if ce.UntilUntapOf != 0 {
+		// Duration$ UntilUntaps: only while the host is a tapped permanent.
+		// The first untap or departure drops the registration for good
+		// (expireUntilUntaps), so a retap cannot revive it.
+		if host := e.G.Obj(ce.UntilUntapOf); host == nil || host.Zone != state.ZBattlefield || !host.Tapped {
+			return false
+		}
+	}
 	if ce.Permanent {
 		return true
 	}
 	if untilEndOfCombat(ce) {
 		// CR 511.2: live from creation until expireUntilEndOfCombat drops it
 		// as the combat phase ends.
+		return true
+	}
+	if effects.IsUntapStepDuration(ce.Duration) {
+		// UntilTheEndOfYourNextUntap outlives its source -- a one-shot spell
+		// is already gone by the untap step the grant is read at (Kefnet's
+		// Last Word) -- and carries no UntilEOT/UntilTurn bookkeeping, so
+		// neither of the two checks below can keep it alive. It stays live
+		// until expireUntapStepEffects drops it at the end of the
+		// controller's first next untap step (CR 611.3b), which is exactly
+		// the lifetime the text grants.
 		return true
 	}
 	if ce.UntilEOT {

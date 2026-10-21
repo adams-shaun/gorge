@@ -23,14 +23,14 @@ func charmTargetSlots(svars map[string]string, root *cards.SA, modes []string) [
 	if root == nil || root.API != "Charm" || len(modes) < 2 {
 		return nil
 	}
-	seen := make(map[string]bool, len(modes))
+	// One slot per chosen mode INSTANCE, not per distinct name: a
+	// CanRepeatModes$ Charm may choose the same mode more than once, and CR
+	// 700.2d makes each pick a separate instruction with its own targets (CR
+	// 115.3). Keying by name would drop the repeated instances and fall back
+	// to the single first-mode target ask, sharing one target between them.
 	var slots []string
 	for _, name := range modes {
 		name = strings.TrimSpace(name)
-		if seen[name] {
-			return nil
-		}
-		seen[name] = true
 		if sub := cards.ResolveSVar(svars, name); sub != nil && effects.TargetsOf(sub).Targeted() {
 			slots = append(slots, name)
 		}
@@ -60,7 +60,8 @@ func (e *Engine) charmBoundX(source state.ObjID) int32 {
 	return 0
 }
 
-// askCharmModeTargets is the ordinary distinct-mode target ask (CR 601.2c).
+// askCharmModeTargets is the ordinary per-mode-instance target ask (CR
+// 601.2c, CR 700.2d).
 // Every target-bearing chosen mode declares its own targets, so one option
 // group per mode is allocated with each mode's OWN bounds. When every mode is
 // exactly 1..1 the single combined decision is kept -- Min == Max == number of

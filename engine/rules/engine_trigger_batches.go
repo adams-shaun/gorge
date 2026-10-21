@@ -175,6 +175,31 @@ type engineTriggerBatches struct {
 	// is entirely within one emit sequence, never across a drain).
 	targetBatchOpen  bool                `clone:"reset"`
 	targetBatchFired map[triggerKey]bool `clone:"reset"`
+	// sacrificeBatch brackets ONE sacrifice action (a cost payment's Sac part
+	// or an effect's api:Sacrifice/SacrificeAll) for the Mode$ SacrificedOnce
+	// "one or more" latch (CR 603.2c): the first matching sacrifice of the
+	// action queues the line and every later matching sacrifice of the same
+	// action is absorbed. A later, separate action opens a new bracket and
+	// queues again -- the cadence Forge's GameAction.triggerSacrificedOnce and
+	// XMage's SACRIFICED_PERMANENT_BATCH use. The bracket is opened by
+	// BatchDepartures (every effect sacrifice batch), by emitSacrifices (the
+	// rules-side cost sites) and by pay.BatchSacrifice; nested brackets nest by
+	// depth. Deep like the zone batch it rides, since an effect batch can stay
+	// open across a replacement's ask.
+	sacrificeBatchOpen  bool                `clone:"deep"`
+	sacrificeBatchDepth int                 `clone:"deep"`
+	sacrificeBatchFired map[triggerKey]bool `clone:"deep"`
+	// tokenBatch brackets ONE token-creation resolution for the Mode$
+	// TokenCreatedOnce "one or more" latch: effects.Resolve opens it around a
+	// whole resolution, so a body that creates N tokens queues the line once,
+	// while a later, separate resolution queues again. A line that also prints
+	// OnlyFirst$ (Akim, the Soaring Wind) is gated by
+	// trigmatch.tokenCreatedMatches' first-token-creation-of-the-turn test,
+	// not by a per-turn trigger cap. Deep for symmetry with the other action
+	// brackets; a resolution does not suspend under the resolution kernel.
+	tokenBatchOpen  bool                `clone:"deep"`
+	tokenBatchDepth int                 `clone:"deep"`
+	tokenBatchFired map[triggerKey]bool `clone:"deep"`
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (engine/rules/trigmatch/actions.go's PhaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how

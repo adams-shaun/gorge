@@ -321,6 +321,16 @@ type Game struct {
 	preparedSources int
 	// crewedObjects counts objects with a non-empty CrewedVehicles list.
 	crewedObjects int
+	// DepSeq counts the battlefield departures every event fold has applied
+	// (events.Move's battlefield-leaving arm): its value IS the ordinal of
+	// the most recent departure. A card that left the battlefield inside a
+	// melded or mutated permanent stamps it (Object.SplitDep), and rules' CR
+	// 903.9a scan compares stamps against its own watermark, so a departure
+	// an earlier check already consumed is never re-offered. A return to the
+	// battlefield is not a departure and leaves the ordinal alone. A pure
+	// function of the applied events, so replay rebuilds it; Clone copies it
+	// with the struct.
+	DepSeq uint32
 
 	Players []Player
 	// Objs is a dense arena: Objs[i] has ID i+1, so ObjID 0 is "no object".
@@ -1080,4 +1090,45 @@ func (g *Game) NextAlive(p PlayerID) PlayerID {
 		}
 	}
 	return p
+}
+
+// CommanderOf returns the commander card object that id stands for, or 0:
+// id itself when it is in some seat's Commanders list; otherwise, for a
+// battlefield permanent, its meld partner (CR 903.3b: the melded permanent
+// is that player's commander) or the first of its merged under-cards, in
+// pile order (CR 903.3c: a merged permanent with a commander component is
+// that player's commander). Walked by index over seats and lists -- never a
+// map -- so the answer is deterministic.
+func (g *Game) CommanderOf(id ObjID) ObjID {
+	if id == 0 {
+		return 0
+	}
+	if g.isCommanderID(id) {
+		return id
+	}
+	o := g.Obj(id)
+	if o == nil || o.Zone != ZBattlefield {
+		return 0
+	}
+	if o.MeldedWith != 0 && g.isCommanderID(o.MeldedWith) {
+		return o.MeldedWith
+	}
+	for i := range o.MergedCards {
+		if c := o.MergedCards[i].Obj; c != 0 && g.isCommanderID(c) {
+			return c
+		}
+	}
+	return 0
+}
+
+// isCommanderID reports whether id is in some seat's Commanders list.
+func (g *Game) isCommanderID(id ObjID) bool {
+	for p := range g.Players {
+		for _, c := range g.Players[p].Commanders {
+			if c == id {
+				return true
+			}
+		}
+	}
+	return false
 }

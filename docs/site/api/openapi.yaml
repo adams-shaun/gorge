@@ -343,6 +343,9 @@ components:
           maximum: 255
           minimum: 0
           type: "integer"
+        combat_trick:
+          description: "CombatTrick reports whether the primary spell ability is a combat trick (effects.CastCombatTrick)."
+          type: "boolean"
         controller:
           description: "Controller and Owner can differ (a stolen permanent, a stack object created for someone else's turn); a client needs both. Battlefield zone lists are keyed by controller, every hidden/graveyard/exile list by owner (engine/events/apply.go's zoneOwner), so a CardView carries both regardless of which zone list it came from."
           maximum: 255

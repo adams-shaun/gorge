@@ -370,6 +370,10 @@ func foldShuffle(g *state.Game, e *Event) {
 // foldAttach folds Kind Attach into state.
 func foldAttach(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil {
+		// Any Attach fold supersedes a queued bearer-departure detach: the
+		// object is re-attached here (or detached by this fold's own
+		// empty-IDs arm), so the pending publication must not fire.
+		o.UnattachPending = false
 		switch {
 		case e.Text == "attach to player" && validPlayer(g, e.Player):
 			moved := o.AttachedTo != 0 || !o.HasAttachedPlayer || o.AttachedPlayer != e.Player
@@ -425,6 +429,11 @@ func foldUnattached(g *state.Game, e *Event) {
 	// state fold depends on it.
 	if o := g.Obj(e.Obj); o != nil {
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
+		// An Unattached fold CONSUMES a queued bearer-departure detach
+		// (attachmentSBAs' pending arm publishes exactly this kind for it)
+		// or supersedes one another writer detached; either way the queue
+		// is spent.
+		o.UnattachPending = false
 		// IDs[0] is the former bearer: the attachmentSBAs detach arms
 		// carry it so a later trigger can still resolve "attached to
 		// that creature" after the sweep cleared AttachedTo
@@ -455,6 +464,55 @@ func MoveCountersRemain(g *state.Game, id state.ObjID, from, to state.Zone) {
 	move(g, id, from, to, true)
 }
 
+// detachAttachmentsOnDeparture queues the CR 400.7 / CR 704.5m-n break of
+// every attachment to the permanent id that is leaving the battlefield
+// (called only from move's wasBattlefield-and-leaving arm, so the
+// index-ordered g.Objs walk keeps the fold deterministic). It records the
+// departed bearer as LastBearer -- the contract LKI readers of "objects that
+// were attached to it" fall back to -- and marks each attachment
+// UnattachPending for engine/rules/attach.go's attachmentSBAs to publish,
+// but deliberately leaves the live AttachedTo link alone: the mid-resolution
+// window between this move and the next SBA checkpoint must still show the
+// attachment fastened (Murderous Spoils' StealEquip resolves the Equipment
+// of the creature its Destroy leg just killed), and a stale link cannot leak
+// across zones because every cross-zone reader zone-gates. Only
+// object-attached links queue; an attachment to a PLAYER
+// (HasAttachedPlayer) is untouched, and a re-Attach or the attachment's own
+// Unattached fold supersedes or spends the queue.
+func detachAttachmentsOnDeparture(g *state.Game, id state.ObjID) {
+	for i := range g.Objs {
+		other := &g.Objs[i]
+		if other.AttachedTo == id {
+			other.LastBearer = id
+			other.UnattachPending = true
+		}
+	}
+}
+
+// breakQueuedAttachmentsOnEntry completes the CR 400.7 attachment break when
+// the departed bearer RE-ENTERS the battlefield (a flicker's return leg, the
+// entry arm of move). While the bearer was off the battlefield the queued
+// attachment's live link was deliberately left standing (the Murderous
+// Spoils / Witness Protection mid-chain window); once the bearer is back, the
+// returned permanent is a NEW object (CR 400.7) and nothing is attached to
+// it, so the link must break NOW rather than at the next SBA checkpoint:
+// checkStateBased runs destroyLethalDamage before attachmentSBAs in a pass,
+// and CR 704.3's SBAs are simultaneous -- a toughness-changing Aura whose
+// stale link survived the re-entry would kill the returned creature it was
+// never attached to. The walk is the same index-ordered g.Objs fold as the
+// departure arm (deterministic, replay-safe), and it clears ONLY AttachedTo:
+// UnattachPending and LastBearer stay standing so engine/rules/attach.go's
+// pending arm -- which reads LastBearer, not AttachedTo -- still publishes
+// the queued detach with its usual Unattached / graveyard MoveZone.
+func breakQueuedAttachmentsOnEntry(g *state.Game, id state.ObjID) {
+	for i := range g.Objs {
+		other := &g.Objs[i]
+		if other.UnattachPending && other.AttachedTo == id {
+			other.AttachedTo = 0
+		}
+	}
+}
+
 func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain bool) {
 	o := g.Obj(id)
 	if o == nil || !o.Zone.Valid() || !to.Valid() {
@@ -469,6 +527,17 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	enteredFrom := o.Zone
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
+	o.SplitFrom, o.SplitDep = 0, 0
+	// The battlefield-departure ordinal: the split stamps below (a mutated
+	// pile's under-card, a meld partner) record THIS departure's number, and
+	// rules' CR 903.9a scan compares stamps against its watermark, so a
+	// departure an earlier state-based check already consumed is never
+	// re-offered. A RETURN to the battlefield is not a departure and leaves
+	// the ordinal alone, so a blink (exile and back in one resolution) does
+	// not invalidate the card's arrival in exile.
+	if wasBattlefield && to != state.ZBattlefield {
+		g.DepSeq++
+	}
 	// Forge's drawnThisTurn survives only the move onto the stack (a cast of
 	// the drawn card); any other move makes the card a new object that was
 	// not drawn. The Draw fold re-stamps it after this Move.
@@ -568,8 +637,41 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		for _, mc := range merged {
 			if mc.Obj != 0 {
 				Move(g, mc.Obj, state.ZCeased, to)
+				if m := g.Obj(mc.Obj); m != nil {
+					m.SplitFrom, m.SplitDep = id, g.DepSeq
+				}
 			}
 		}
+	}
+	// CR 400.7 / 704.5m-n: a permanent that leaves the battlefield is a new
+	// object in its next zone, so nothing stays attached ACROSS the move.
+	// The departure itself only QUEUES the break: each attachment to the
+	// departing permanent is marked UnattachPending with the departed bearer
+	// recorded as LastBearer, while its live AttachedTo link stays exactly
+	// as it was. Keeping the link preserves the mid-resolution window
+	// (before any SBA checkpoint) sub-abilities and "enchanted"-style
+	// readers rely on: Murderous Spoils' StealEquip still resolves the
+	// Equipment attached to the creature its Destroy leg just killed, and a
+	// stale AttachedTo cannot leak across zones because every such reader
+	// zone-gates (CR 303.4/400.7: an off-battlefield card is not enchanted).
+	// The queue, not the clear, is what makes a flicker lose its attachments:
+	// a flicker (exile, then return under the same ObjID) puts the bearer
+	// back on the battlefield before the next SBA checkpoint runs, so
+	// attachmentSBAs' bearer-left arm -- which reads the LIVE link -- could
+	// never see the departure; the queued mark survives the round trip, the
+	// bearer's re-entry breaks the live link (breakQueuedAttachmentsOnEntry:
+	// the returned permanent is a new object nothing is attached to, and the
+	// link must not survive to the SBA pass where destroyLethalDamage runs
+	// before attachmentSBAs), and the pending arm publishes each queued
+	// detach with the SAME Unattached
+	// ("bearer left the battlefield" for an Equipment/Fortification,
+	// "bestowed attachment ended" for a bestowed card) or the same graveyard
+	// MoveZone ("attached to an object that left the battlefield" for an
+	// Aura) the bearer-left arm emits, so Mode$ Unattached triggers (Grafted
+	// Exoskeleton) and the CR 702.114b bestowed detach log keep firing
+	// exactly as before.
+	if wasBattlefield && to != state.ZBattlefield {
+		detachAttachmentsOnDeparture(g, id)
 	}
 	// CR 712.4: a melded permanent that goes anywhere but the battlefield
 	// splits back into its two cards (engine/events/apply_meld.go).
@@ -642,8 +744,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// CR 712.4d: a Modal DFC is front-face up in every non-battlefield
 	// zone. Its back face remains active while it is a permanent, but leaving
 	// the battlefield creates a new object whose characteristics are the
-	// front face. Keep this in the event fold so replay and live play agree.
-	if wasBattlefield && to != state.ZBattlefield && o.Card != nil &&
+	// front face. CR 712.8a: likewise a back-face spell leaving the stack
+	// (resolved, countered or reversed) is the front face again, unless it
+	// becomes a permanent. Keep this in the event fold so replay and live
+	// play agree.
+	if (wasBattlefield || wasStack) && to != state.ZBattlefield && o.Card != nil &&
 		o.Card.AlternateMode == "Modal" && len(o.Card.Faces) == 2 &&
 		o.Card.Faces[0] != nil && o.Card.Faces[1] != nil {
 		o.SetFaceIdx(0)
@@ -778,6 +883,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// Riot "haste" election (a keyword grant, not a counter) and the
 		// one-shot consumption of both elections.
 		if !wasBattlefield {
+			// The re-entry half of the CR 400.7/704.5m-n attachment break: a
+			// bearer the departure arm queued against is back on the
+			// battlefield as a new object, so its old attachments' links
+			// break here, before the next SBA pass (see
+			// breakQueuedAttachmentsOnEntry). First entries have nothing
+			// queued against them and the walk finds no match.
+			breakQueuedAttachmentsOnEntry(g, id)
 			o.AcqTurn = g.Turn
 			o.AcqStep = g.Step
 			// CR 400.7: a battlefield entry from another zone is a new
@@ -790,6 +902,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// arm above already preserved the old bearer as LastBearer for
 			// LKI; this is its reset on the next entry.
 			o.LastBearer = 0
+			// A queued detach cannot survive an entry either: the queue was
+			// either consumed before the departure or spent by the
+			// departure's own fold.
+			o.UnattachPending = false
 			// Riot's choice is made before this entry. The "haste" half grants
 			// a keyword (the "counter" half is placed by the engine's
 			// EntryCounterGrants path); consuming the election here makes every
@@ -1103,6 +1219,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		if o.AttachedTo != 0 {
 			o.LastBearer = o.AttachedTo
 		}
+		// Its own departure spends any queued bearer-departure detach: the
+		// look-back arm of Mode$ Unattached (engine/rules/
+		// trigmatch/unattached.go) already read this move's LKI snapshot,
+		// which carried the queue, so nothing is left to publish.
+		o.UnattachPending = false
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
 	}
 }
