@@ -664,13 +664,17 @@ func (e *Engine) payCast() {
 		// no exiling source permanent exists for Foretell, so Amount 0). Do
 		// NOT route through effects' applyExileFaceDown: it is unexported and
 		// binds an ability source that does not exist here -- the raw event
-		// encoding is emitted directly, the suspend branch's own pattern. The
-		// view redacts the face-down exile to everyone but the exiler (the
-		// owner, for Foretell), and any move NOT to exile clears FaceDown, so
-		// the later foretell-cost cast reveals automatically.
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Counter: events.FlagsString(state.FlagForetold)})
-		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile,
-			Counter: "exiled_with_face_down", Amount: 0})
+		// encoding is emitted directly, the suspend branch's own pattern.
+		// Both events are the foreteller's Secret (Player pc.player): CR
+		// 406.3 hides a card exiled face down from every other player, and
+		// without Secret the exile is a public zone, so view.RedactEvent
+		// would keep the Obj and every transcript would name the card
+		// (cr-g62). The view redacts the face-down card to everyone but its
+		// owner, and any move NOT to exile clears FaceDown, so the later
+		// foretell-cost cast reveals automatically.
+		e.emit(events.Event{Kind: events.CastInfo, Player: pc.player, Obj: pc.card, Counter: events.FlagsString(state.FlagForetold), Secret: true})
+		e.emit(events.Event{Kind: events.MoveZone, Player: pc.player, Obj: pc.card, From: pc.from, To: state.ZExile,
+			Counter: "exiled_with_face_down", Amount: 0, Secret: true})
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
