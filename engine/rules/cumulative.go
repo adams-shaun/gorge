@@ -2114,7 +2114,7 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	// Blight is paid on a creature while it is still on the battlefield.
 	// A cost can select the same creature for Blight and a zone-changing
 	// component, so place its counters before settling sacrifices/exiles.
-	pay.EmitBlightCounters(asPayer(e), tc.blights, &tc.amount, tc.xPaid)
+	e.emitBlightCostCounters(tc.blights, &tc.amount, tc.xPaid)
 	// The blighted creatures are this body's "CounterPut" paid list (the
 	// castCounterPut discipline): `Defined$ CounterPutCards` reads them.
 	if len(tc.blights) > 0 {

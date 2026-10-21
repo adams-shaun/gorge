@@ -318,6 +318,7 @@ func (e *Engine) payCast() {
 		}
 		pay.EmitChoiceCosts(asPayer(e), &pc.PaidCost, pc.player, pc.card, &pc.cost, pc.x,
 			func() *cards.SA { return e.pcAbility(pc) })
+		e.emitBlightCostCounters(pc.Blights, &pc.cost, pc.x)
 		if pc.cost.Untap {
 			e.emit(events.Event{Kind: events.Untap, Obj: pc.card, Player: pc.player, Text: "untapped as a cost"})
 		}
@@ -579,6 +580,7 @@ func (e *Engine) payCast() {
 	e.settleSubCounterParts(pc)
 	pay.EmitChoiceCosts(asPayer(e), &pc.PaidCost, pc.player, pc.card, &pc.cost, pc.x,
 		func() *cards.SA { return e.pcAbility(pc) })
+	e.emitBlightCostCounters(pc.Blights, &pc.cost, pc.x)
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.
 	var sacrificedLKI []state.SacrificedInfo
@@ -1348,3 +1350,13 @@ var payCastCodes = state.NewStrCodes(
 	state.StrEntry[payCastCode]{Key: "kicked2", Val: payCastKicked},
 	state.StrEntry[payCastCode]{Key: "kickedboth", Val: payCastKickedboth},
 )
+
+// emitBlightCostCounters places a paid Blight cost's -1/-1 counters.
+// Blight is a COST (CR 701.68a / 118.12), never an effect, so the
+// EffectOnly$ AddCounter gate (replacement_match.go) must refuse it
+// exactly like the [+N] loyalty cost: costCounters marks it.
+func (e *Engine) emitBlightCostCounters(blights []state.ObjID, cost *pay.Cost, x int32) {
+	e.costCounters++
+	pay.EmitBlightCounters(asPayer(e), blights, cost, x)
+	e.costCounters--
+}
