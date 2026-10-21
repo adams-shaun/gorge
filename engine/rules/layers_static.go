@@ -299,7 +299,7 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 		}
 		you := ce.Controller
 		switch {
-		case strings.EqualFold(strings.TrimSpace(ce.MayPlayPlayer), "Exiler"):
+		case mayPlayExiler(ce.MayPlayPlayer):
 			if !o.HasExiledBy || o.ExiledBy != p {
 				continue
 			}

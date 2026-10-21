@@ -184,7 +184,7 @@ func (e *Engine) quietStaticHit(p state.PlayerID, o *state.Object, sf *cards.Fac
 	// grant any seat (the per-card ExiledBy gate is the real filter) -- and an AddAbility$ static whose Affected$ cannot reach
 	// an object p controls (and grants no Activator$ ability) gives p nothing.
 	if h&qbhMayPlay != 0 && o.Controller != p && e.controllerOf(o.ID) != p &&
-		!strings.EqualFold(strings.TrimSpace(st.ParamStr(cards.PKMayPlayPlayer)), "Exiler") {
+		!mayPlayExiler(st.ParamStr(cards.PKMayPlayPlayer)) {
 		h &^= qbhMayPlay
 	}
 	if h&qbhAddAbility != 0 && e.quietAddAbilityStaticClears(p, o, sf, st) {
@@ -228,7 +228,7 @@ func (e *Engine) quietBoardStaticGuard(p state.PlayerID) {
 	check(len(e.activeStatics("PlotZone")) > 0, qbhPlotZone, "a PlotZone static")
 	mayPlay := false
 	for _, sv := range e.activeStatics("Continuous") {
-		if mayPlayStaticBenefits(p, sv.Controller, sv.Params) && strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)), "True") {
+		if mayPlayStaticBenefits(p, &sv) && strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)), "True") {
 			mayPlay = true
 			break
 		}
