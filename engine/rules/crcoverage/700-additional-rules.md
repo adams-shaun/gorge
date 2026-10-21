@@ -125,7 +125,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.37b | partial | `engine/effects/counters_put.go#effPutCounter` | - | Monstrosity X=0 never marks monstrous |
 | 701.38a-c | follows | `engine/effects/vote_effect.go#effVote` `engine/effects/vote_effect.go#voteWinner` | `TestCouncilsJudgmentExilesTheMostVoted` |  |
 | 701.38d | not-impl | - | - | Brago's Representative inert |
-| 701.39a | deviates | `engine/effects/counters_put.go#putCounterBolster` | - | least toughness from printed+counters, ignores layer 7 |
+| 701.39a | follows | `engine/effects/counters_put.go#putCounterBolster` | `TestBolsterReadsCurrentToughness` |  |
 | 701.40a,e | follows | `engine/effects/zone_manifest.go#effManifest` | - |  |
 | 701.40b-d | not-impl | `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | - | no turn-face-up special action |
 | 701.40f | unknown | `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | - | Cage-vs-manifest test would settle |
