@@ -121,6 +121,6 @@ func (e *Engine) grantedPreventMatches(ev events.Event) []replMatch {
 		}
 	}
 	add(ev.Obj, true)
-	add(e.damaging, false)
+	add(e.inFlightDamageSource(), false)
 	return out
 }

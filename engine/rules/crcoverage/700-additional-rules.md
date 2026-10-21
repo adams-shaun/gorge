@@ -62,7 +62,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.12g | partial | `engine/rules/life_exchange.go#Engine.ExchangeLifeVariant` `engine/rules/life_exchange.go#Engine.finishLifeExchange` | - | ExchangePower unregistered (LOUD) |
 | 701.12h | partial | `engine/effects/changetext.go#effExchangeTextBox` | - | triggered/activated abilities not swapped |
 | 701.13a | follows | `engine/state/ids.go#ZExile` | - |  |
-| 701.14a | deviates | `engine/effects/damage.go#emitFightHit` `engine/effects/damage.go#effFight` `engine/rules/replacement_damage.go#Engine.damageReplacementMatches` | `TestRepeatEachChooseOrderEzurisPredationAsksBeforeLoop` | source is the spell; hits sequential; Defined-only fights deal nothing (SILENT) |
+| 701.14a | deviates | `engine/effects/damage.go#effFight` `engine/effects/damage.go#emitFightHit` `engine/rules/replacement_damage.go#Engine.damageReplacementMatches` `engine/rules/engine_damage.go#Engine.inFlightDamageSource` | `TestRepeatEachChooseOrderEzurisPredationAsksBeforeLoop` `TestCR701_14aFightDamageSourceIsTheCreature` `TestFightParkedReplacementChoiceKeepsTheFighter` `TestFightReplacedSourceIsTheFighter` `TestFightGrantedPreventByReadsTheFighter` `TestFightCantPreventReadsTheFighter` | Open: Defined-only fights deal nothing (SILENT, cr-g18a); each hit reads power after the previous hit landed and a fighter's wither is not read (cr-g18b) |
 | 701.14b | partial | `engine/effects/damage.go#effFight` | - | gorge doesn't recheck still-a-creature |
 | 701.14c | deviates | `engine/effects/damage.go#effFight` | - | gorge: self-fight deals 0 |
 | 701.14d | follows | `engine/effects/damage.go#emitObjectDamage` | - |  |
