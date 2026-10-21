@@ -1346,9 +1346,13 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	}
 }
 
-// pushCast implements CR 601.2a: the card reaches the stack BEFORE the
-// target choice (601.2c) and payment (601.2h), which is what makes the
-// transaction match the CR's ordered list. The cast trigger (601.2i) is held
+// pushCast implements CR 601.2a: the card reaches the stack BEFORE every
+// announcement (601.2b), the target choice (601.2c) and the cost choices and
+// payment (601.2h), which is what makes the transaction match the CR's
+// ordered list. It is the first stage of continueCast, so no cost of the
+// cast can choose the card itself (a delve exile, an exile-from-graveyard
+// cost). The special actions that share the cast flow (suspend, foretell,
+// plot) and a land play never push. The cast trigger (601.2i) is held
 // back by emit (deferCastTrigger) because it fires only once the spell is
 // actually cast -- after payment; payCast's fireDeferredCastTrigger re-walks
 // the held PutOnStack. CastInfo (the X / mode-flag recording) is deferred to
@@ -1364,7 +1368,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.isAbility() {
+	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.mode == "foretell" || pc.isAbility() {
 		return false
 	}
 	if pc.pushed {
@@ -1410,22 +1414,6 @@ func (e *Engine) pushCast() bool {
 	if fz, ok := castBattlefieldEvent(e.G, e, pc.card, pc.player); ok {
 		e.emit(fz)
 	}
-	// CR 702.190b: a sneak cast captured the defender its returned attacker
-	// was attacking. Fold it onto the now-existing stack object's dedicated
-	// SneakDefender field (a Choose "sneak-defender" event, NOT the generic
-	// Remembered channel -- card memory can otherwise carry a stale player),
-	// and the stack->battlefield move preserves it, so altCostEnter's entry
-	// hook can place the permanent tapped and attacking that defender. Only a
-	// sneak cast that actually paid the Return cost emits; every unrelated
-	// cast stays byte-identical.
-	if pc.sneakHasDefender {
-		ids := []state.ObjID{state.PlayerRef(pc.sneakDefender)}
-		if pc.sneakDefenderObject != 0 {
-			ids = append(ids, pc.sneakDefenderObject)
-		}
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Player: pc.player,
-			Counter: "sneak-defender", IDs: ids})
-	}
 	e.deferCastTrigger = false
 	// CR 722.3c: the prepared permanent loses its designation "at the time
 	// the spell becomes cast" (CR 601.2i) -- here, as the copy reaches the
@@ -1449,19 +1437,6 @@ func (e *Engine) pushCast() bool {
 	}
 	pc.stackObj = pc.card
 	pc.pushed = true
-	// CR 702.168: the Gift election was announced before CR 601.2a, so fold
-	// it onto the now-existing stack object here -- the target ask that
-	// follows reads Count$PromisedGift off it, and events.Move carries the
-	// promise across the stack->battlefield move for a permanent's ETB. Only
-	// a cast that actually reached the Gift ask emits (Amount 1 for a
-	// promise, 0 for a decline); every unrelated cast stays byte-identical.
-	if pc.giftDone {
-		amt := int32(0)
-		if pc.giftPromise {
-			amt = 1
-		}
-		e.emit(events.Event{Kind: events.GiftPromise, Obj: pc.card, Player: pc.giftTo, Amount: amt})
-	}
 	// CR 903.8: the cast counter increments the INSTANT the spell is put on
 	// the stack, never when it resolves -- so a commander spell that is later
 	// countered still raises the next cast's tax. Only a cast FROM the
@@ -1671,3 +1646,43 @@ var modeFlagsCodes = state.NewStrCodes(
 	state.StrEntry[modeFlagsCode]{Key: "megamorphed", Val: modeFlagsMegamorphed},
 	state.StrEntry[modeFlagsCode]{Key: "disguised", Val: modeFlagsDisguised},
 )
+
+// foldGiftPromise records the CR 702.168 Gift election on the spell's stack
+// object as soon as giftAsk has settled it: the target ask that follows reads
+// Count$PromisedGift off the object, and events.Move carries the promise
+// across the stack->battlefield move for a permanent's ETB. Only a cast that
+// actually reached the Gift ask emits (Amount 1 for a promise, 0 for a
+// decline); every unrelated cast stays byte-identical. It is a no-op until the
+// spell is pushed and after the first fold.
+func (e *Engine) foldGiftPromise(pc *pendingCast) {
+	if pc == nil || !pc.giftDone || pc.giftFolded || !pc.pushed {
+		return
+	}
+	pc.giftFolded = true
+	amt := int32(0)
+	if pc.giftPromise {
+		amt = 1
+	}
+	e.emit(events.Event{Kind: events.GiftPromise, Obj: pc.card, Player: pc.giftTo, Amount: amt})
+}
+
+// foldSneakDefender implements CR 702.190b: a sneak cast captured the
+// defender its returned attacker was attacking when the Return cost was
+// chosen. It is folded onto the stack object's dedicated SneakDefender field
+// (a Choose "sneak-defender" event, NOT the generic Remembered channel --
+// card memory can otherwise carry a stale player), and the stack->battlefield
+// move preserves it, so altCostEnter's entry hook can place the permanent
+// tapped and attacking that defender. Only a sneak cast that actually paid the
+// Return cost emits; every unrelated cast stays byte-identical.
+func (e *Engine) foldSneakDefender(pc *pendingCast) {
+	if pc == nil || !pc.sneakHasDefender || pc.sneakFolded || !pc.pushed {
+		return
+	}
+	pc.sneakFolded = true
+	ids := []state.ObjID{state.PlayerRef(pc.sneakDefender)}
+	if pc.sneakDefenderObject != 0 {
+		ids = append(ids, pc.sneakDefenderObject)
+	}
+	e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Player: pc.player,
+		Counter: "sneak-defender", IDs: ids})
+}

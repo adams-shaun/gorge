@@ -100,7 +100,9 @@ func TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy(t *testing.T) {
 	if d := e.Derived(id); d.Power != 2 || d.Toughness != 3 {
 		t.Fatalf("after cleanup P/T %d/%d, want the Ox's 2/3", d.Power, d.Toughness)
 	}
-	// The permanent unit's marker and modifier are still registered.
+	// The permanent unit's marker is still registered; its AddKeywords$
+	// exception is a copiable value on the re-based face (CR 707.9a), not a
+	// modifier effect.
 	var markers, mods int
 	for _, ce := range e.continuous {
 		if ce.CloneTarget != id {
@@ -112,8 +114,8 @@ func TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy(t *testing.T) {
 			mods++
 		}
 	}
-	if markers != 1 || mods != 1 {
-		t.Fatalf("after cleanup %d markers / %d modifiers for the object, want 1/1", markers, mods)
+	if markers != 1 || mods != 0 {
+		t.Fatalf("after cleanup %d markers / %d modifiers for the object, want 1/0", markers, mods)
 	}
 	replayCheck(t, e, cfg)
 }

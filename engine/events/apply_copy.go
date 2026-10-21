@@ -405,14 +405,11 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	// CR 613.1a's layer-1 copy basis (DB$ Clone, api:Clone). Obj is the
 	// object that becomes the copy and IDs[0] the object copied from; an
 	// empty or zero id CLEARS the basis. The synthetic face is a value
-	// copy of the source's PRINTED face taken here, inside Apply, so a
-	// replay derives the identical characteristics from the same event.
-	// Modifier parameters (AddTypes$/SetColor$/AddKeywords$/SetPower$/
-	// SetToughness$/RemoveCardTypes$/RemoveCreatureTypes$) are separate
-	// layer-4/5/6/7 continuous effects the primitive registered; they are
-	// deliberately NOT folded into this face, so the CR 613 layer walk
-	// stays the one place exceptions settle. NewName$ rides Text and the
-	// GainThisAbility$ rider rides Counter.
+	// copy of the source's COPIABLE face (state.Object.CopiableFace) taken
+	// here, inside Apply, so a replay derives the identical characteristics
+	// from the same event. The copy effect's exceptions follow as a
+	// CopyExcept event (copy_except.go) that edits this basis. NewName$ rides
+	// Text and the GainThisAbility$ rider rides Counter.
 	o := g.Obj(e.Obj)
 	if o == nil {
 		return

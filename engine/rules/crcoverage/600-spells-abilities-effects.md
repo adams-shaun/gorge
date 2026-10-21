@@ -7,7 +7,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 601.1 | definition | - | - | casting a spell defined |
 | 601.1a | n/a | - | - | terminology only |
 | 601.2 | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` `engine/rules/cast_begin.go#Engine.continueCast` | - | cast step machine; subrule order deviations below |
-| 601.2a | deviates | `engine/rules/cast_begin.go#Engine.continueCast` `engine/rules/cast_targets.go#Engine.pushCast` | - | pushed after cost-object picks, not first |
+| 601.2a | follows | `engine/rules/cast_begin.go#Engine.continueCast` `engine/rules/cast_targets.go#Engine.pushCast` | `TestCR601_2aDelveCannotExileTheSpellBeingCast` `TestCR601_2aSpellIsOnTheStackAtItsFirstCostChoice` | spells pushed before every 601.2b-h choice; abilities: 602.2a |
 | 601.2b | deviates | `engine/rules/cast_begin.go#Engine.continueCast` `engine/rules/cast_asks.go#Engine.castModeAsk` `engine/rules/cast_subcounter.go#Engine.xAsk` | `TestCR601ModesAnnouncedBeforePayment` | modes after X and cost picks; low impact |
 | 601.2c | follows | `engine/rules/cast_targets.go#Engine.targetAsk` | `TestCR601TargetsPrecedeManaPayment` | targets before payment; per-word uniqueness |
 | 601.2d | partial | `engine/rules/cast_division.go#Engine.divisionDecision` `engine/rules/cast_division.go#castDivisionAPI` `engine/effects/division.go#AnnouncedDivision` | `TestArcLightningAnnouncesDivisionWhileCasting` `TestArcLightningIllegalTargetLosesItsShare` `TestMoggMobActivationAnnouncesDivision` | REVISED: g DealDamage divided at cast min 1 (cr-g04a); counters/prevent/triggers pending g04b/c; d resolution-time |
