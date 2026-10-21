@@ -178,7 +178,7 @@ var charmKnownKeys = [...]string{
 	"ForgetOtherTargets", "GameActivationLimit", "Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "MinCharmNum", "ModeCost",
-	"Monstrosity", "NewController", "NumRandomChoices", "OpponentTurn", "Optional",
+	"Monstrosity", "NewController", "NonBasicSpell", "NumRandomChoices", "OpponentTurn", "Optional",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
 	"PresentDefined", "PresentZone", "Random", "RandomCompare", "RandomCompareSVar", "RandomNumTargets",
 	"ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",
