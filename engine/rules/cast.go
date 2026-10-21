@@ -137,7 +137,7 @@ type pendingCast struct {
 	// giftDone / giftPromise / giftTo are the CR 702.168 Gift election
 	// (Bloomburrow): the caster's optional promise of a gift to an opponent,
 	// announced as a free cast-time choice (giftAsk) and folded onto the
-	// stack object as an events.GiftPromise by pushCast so the target ask and
+	// stack object as an events.GiftPromise by foldGiftPromise so the target ask and
 	// resolution read one event-backed home. giftDone marks the one ask
 	// already posed (the forageDone/replicateDone shape), giftPromise is the
 	// answer (false = declined, the plain-cast direction) and giftTo names
@@ -645,6 +645,12 @@ type pendingCast struct {
 	sneakDefender       state.PlayerID `clone:"deep"`
 	sneakDefenderObject state.ObjID    `clone:"deep"`
 	sneakHasDefender    bool           `clone:"deep"`
+
+	// giftFolded / sneakFolded mark the GiftPromise and sneak-defender events
+	// already emitted by foldGiftPromise / foldSneakDefender, so a re-entry of
+	// continueCast folds each onto the stack object once.
+	giftFolded  bool `clone:"deep"`
+	sneakFolded bool `clone:"deep"`
 }
 
 // subCounterPay is one counter removed to pay a SubCounter cost part
