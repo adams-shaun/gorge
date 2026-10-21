@@ -657,8 +657,6 @@ func TestKr8ConvertMadness(t *testing.T) {
 			asked := false
 			pick := func(d *decision.Decision) []int {
 				switch {
-				case d.Kind == decision.KReplacement:
-					return []int{0}
 				case d.ResumeKind == "madness":
 					asked = true
 					for _, o := range d.Options {
@@ -674,10 +672,10 @@ func TestKr8ConvertMadness(t *testing.T) {
 				}
 				return tapePick(d)
 			}
-			// Served: the discard pick, the discard's madness replacement
-			// election (answered in place) and the madness choice.
+			// Served: the discard pick and the madness choice (the madness
+			// replacement itself is mandatory, CR 702.35a: no election).
 			var mad state.ObjID
-			e, _ := kr8Run(t, 2, 14100+uint64(i), 3, func(t *testing.T, e *Engine) {
+			e, _ := kr8Run(t, 2, 14100+uint64(i), 2, func(t *testing.T, e *Engine) {
 				mad = fixtureInHand(t, e, "Tape Mad Bear")
 				tapeUnlessScenario("Tape Rot", "BB", 0, pick)(t, e)
 			}, rot, bear)

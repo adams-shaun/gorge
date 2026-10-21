@@ -35,10 +35,10 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.16 | follows | `engine/effects/filter_word.go#wordMatches` | - |  |
 | 701.1 | n/a | - | - | definitional |
 | 701.2a | follows | `engine/rules/legal_activation.go#Engine.activatorAllows` | - | controller-only unless Activator$ |
-| 701.3a | deviates | `engine/effects/attach.go#Attachable` | - | illegal attach moves, SBA bins it |
-| 701.3b | deviates | `engine/effects/attach.go#emitAttach` | - | re-attach to same bearer re-fires Attached triggers |
+| 701.3a | follows | `engine/rules/attach.go#Engine.attachRefused` `engine/rules/emit.go#Engine.emit` | `TestAttachToAnIllegalPermanentDoesNotMove` | an attach chooser may still offer an illegal bearer; the attach is refused |
+| 701.3b | partial | `engine/rules/attach.go#Engine.attachRefused` `engine/effects/attach.go#emitAttach` | `TestReEquipToTheSameCreatureDoesNothing` `TestAttachToAnIllegalPermanentDoesNotMove` | same-bearer and illegal-bearer attaches do nothing; the third sentence (a non-attachment object) is not checked |
 | 701.3c | follows | `engine/events/apply_zone.go#foldAttach` `engine/rules/layers.go#Engine.staticEffectsWalk` | `TestEquipAfterAbilityLossRestampsTheEquipment` `TestEquipBeforeAbilityLossStaysLost` | same-bearer attach keeps the stamp |
-| 701.3d | partial | `engine/events/apply_zone.go#move` `engine/rules/attach.go#Engine.attachmentSBAs` | - | no Unattached when the attachment leaves (Grafted Wargear) |
+| 701.3d | partial | `engine/rules/trigmatch/unattached.go#unattachedMatches` `engine/rules/trigger_kinds.go#looksBackOnDeparture` `engine/rules/attach.go#Engine.attachmentSBAs` | `TestAttachedEquipmentLeavingBecomesUnattached` | the attachment's own departure fires Mode$ Unattached by look-back (no event); a player leaving the game is not modelled |
 | 701.4a | follows | `engine/rules/cast_asks.go#Engine.beholdCostAsk` `engine/rules/pay/paidcost.go#EmitChoiceCosts` | - | no behold in pools |
 | 701.4b | unknown | - | - | not reached |
 | 701.5a-b | n/a | - | - | definitional; see 601 |
@@ -71,7 +71,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.15c-d | follows | `engine/rules/combat/goad.go#GoadedBy` `engine/events/apply_combat.go#foldGoad` | - |  |
 | 701.16a | follows | `engine/effects/investigate.go#effInvestigate` | - |  |
 | 701.17a | follows | `engine/effects/cardflow.go#effMill` | - |  |
-| 701.17b | deviates | `engine/effects/cardflow.go#effMill` `engine/rules/pay/costsettle.go#PayMillCost` | `TestOrdinaryAbilityMillCostMillsShortLibrary` `TestDeepSpawnUnlessMillCostShortLibrary` `TestDeepSpawnUnlessMillCostEmptyLibrary` | effect mills as many as possible; a mill cost is payable with a short library (tests pin it) |
+| 701.17b | follows | `engine/effects/cardflow.go#effMill` `engine/rules/pay/costsettle.go#MillCostPayable` | `TestCR701_17bMillCostShortLibraryNotOffered` `TestCR701_17bMillManaAbilityEmptyLibraryUnpayable` `TestCR701_17bDeepSpawnShortLibraryCannotPay` | effect mills as many as possible; a mill cost the library cannot cover is not offered |
 | 701.17c | follows | `engine/effects/cardflow.go#rememberMilled` | - |  |
 | 701.17d | unknown | `engine/effects/cardflow.go#effMill` | - | not reached |
 | 701.18a | follows | `engine/rules/legal.go#Engine.sorcerySpeed` `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | priority, main phase, empty stack, land limit |

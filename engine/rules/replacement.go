@@ -145,12 +145,15 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		e.unearthReplacementApplies(ev.Obj) {
 		ev.To = state.ZExile
 	}
-	// Madness is an optional discard replacement and must park before either
-	// destination is logged. The guarded re-emit still permits ordinary card
-	// and format replacements to redirect the chosen destination.
-	if ev.Kind == events.MoveZone && !e.applyingMadnessChoice && e.madnessReplacementApplies(ev) {
-		e.parkMadnessDiscard(ev)
-		return ev, true
+	// CR 702.35a: madness is a MANDATORY discard replacement -- "that player
+	// discards it, but exiles it instead of putting it into their
+	// graveyard". The move is rewritten in place, like finality's above, so
+	// ordinary card and format replacements still see (and may redirect) the
+	// exile move; the marked Text is what offerMadness keys the cast trigger
+	// on. Only the trigger's cast is optional (askMadnessCast).
+	if ev.Kind == events.MoveZone && e.madnessReplacementApplies(ev) {
+		ev.To = state.ZExile
+		ev.Text = "discarded (madness exile)"
 	}
 	// All card-defined as-enters choices (including Riot and Unleash) are
 	// parked through the shared mid-resolution ETB path below.
@@ -321,6 +324,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// (engine/rules/replacement_prevent_kw.go).
 	if ev.Kind == events.Damage {
 		matches = append(matches, e.grantedPreventMatches(ev)...)
+		// CR 122.1c: a shield counter's prevention (shield_counter.go).
+		matches = e.shieldCounterDamageMatches(ev, matches)
 	}
 	// A GRANTED static replacement (AddReplacementEffect$ on a Mode$
 	// Continuous static, engine/rules/replacement_granted.go): appended after the
@@ -499,8 +504,10 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 				// damaged player, the uniform shape every stored prevention
 				// Note keeps. The returned kind is still a Note, never a
 				// Damage: the combat assignment loop and speed.go read it.
-				return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
-					Amount: ev.Amount, Text: "damage prevented by replacement effect"}), true
+				prevented := e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Amount: ev.Amount, Text: "damage prevented by replacement effect"})
+				e.spendShieldCounter(m)
+				return prevented, true
 			}
 			// a ReplaceDamage body falls through to its subtracting arm below
 		}

@@ -48,15 +48,15 @@ when a row stops matching the code.
 <!-- crcoverage:summary -->
 | file | rows | follows | partial | deviates | not-impl | definition | n/a | unknown |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| [100-game-concepts](100-game-concepts.md) | 165 | 99 | 8 | 7 | 9 | 0 | 17 | 25 |
+| [100-game-concepts](100-game-concepts.md) | 165 | 101 | 8 | 7 | 7 | 0 | 17 | 25 |
 | [200-parts-of-a-card](200-parts-of-a-card.md) | 81 | 46 | 10 | 0 | 5 | 3 | 14 | 3 |
 | [300-card-types](300-card-types.md) | 98 | 62 | 11 | 5 | 5 | 4 | 7 | 4 |
-| [400-zones](400-zones.md) | 70 | 43 | 8 | 1 | 4 | 4 | 3 | 7 |
+| [400-zones](400-zones.md) | 70 | 43 | 9 | 0 | 4 | 4 | 3 | 7 |
 | [500-turn-structure](500-turn-structure.md) | 125 | 85 | 22 | 3 | 8 | 0 | 5 | 2 |
 | [600-spells-abilities-effects](600-spells-abilities-effects.md) | 286 | 161 | 37 | 13 | 8 | 8 | 3 | 56 |
-| [700-additional-rules](700-additional-rules.md) | 437 | 244 | 54 | 50 | 34 | 0 | 33 | 22 |
-| [702-keyword-abilities](702-keyword-abilities.md) | 249 | 176 | 12 | 9 | 39 | 0 | 3 | 10 |
-| [800-multiplayer](800-multiplayer.md) | 43 | 17 | 6 | 5 | 11 | 0 | 3 | 1 |
+| [700-additional-rules](700-additional-rules.md) | 437 | 246 | 55 | 47 | 34 | 0 | 33 | 22 |
+| [702-keyword-abilities](702-keyword-abilities.md) | 249 | 177 | 13 | 7 | 39 | 0 | 3 | 10 |
+| [800-multiplayer](800-multiplayer.md) | 43 | 18 | 6 | 4 | 11 | 0 | 3 | 1 |
 | [900-casual-variants](900-casual-variants.md) | 49 | 23 | 12 | 2 | 9 | 0 | 1 | 2 |
-| **all** | 1603 | 956 | 180 | 95 | 132 | 19 | 89 | 132 |
+| **all** | 1603 | 962 | 183 | 88 | 130 | 19 | 89 | 132 |
 <!-- /crcoverage:summary -->
