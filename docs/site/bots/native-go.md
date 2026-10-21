@@ -5,7 +5,7 @@ interface it implements, registering it with options, playing it against the
 default bot in-process, testing it with the harness gorge runs on its own
 policies, and serving it from a `gorged` binary. The code is in
 [`examples/bots/go`](https://github.com/adams-shaun/gorge/blob/main/examples/bots/go),
-and every command below was run on 2026-10-20 at `ad3777023`.
+and every command below was run on 2026-10-21 at `513a2a0c3`.
 
 A native seat is the fastest way to play (tens of microseconds per decision,
 engine included) and the only one that can search, because it lives in the
@@ -207,16 +207,18 @@ card corpus (`make fetch-cards compile-cards` in the repository root).
 ```console
 $ cd examples/bots/go
 $ go run ./cmd/duel -cards ../../../.cards -a allin -b bot -games 40
-allin (mono-green-stompy) 15 - 25 bot (mono-red-goblins), 0 draws, 0 stalls
-40 games, 11845 decisions in 0.40s: 34.0 µs per decision, both seats, engine included
+allin (mono-green-stompy) 17 - 23 bot (mono-red-goblins), 0 draws, 0 stalls
+40 games, 12279 decisions in 0.63s: 51.7 µs per decision, both seats, engine included
 $ go run ./cmd/duel -cards ../../../.cards -a bot -b bot -games 40
-bot (mono-green-stompy) 26 - 14 bot (mono-red-goblins), 0 draws, 0 stalls
-40 games, 14135 decisions in 0.29s: 20.7 µs per decision, both seats, engine included
+bot (mono-green-stompy) 28 - 12 bot (mono-red-goblins), 0 draws, 0 stalls
+40 games, 14045 decisions in 0.45s: 32.3 µs per decision, both seats, engine included
 ```
 
-Always run the control: on the same seeds and decks, `bot` takes 26 of 40
-with the green deck and `allin` only 15, so attacking with everything is
-worse than the heuristic's attack simulation. Forty games is a smoke test
+Always run the control: on the same seeds and decks, `bot` takes 28 of 40
+with the green deck and `allin` only 17, so attacking with everything is
+worse than `bot`'s combat simulation. (These timings were taken on a shared
+machine under load; unloaded, on 2026-10-20, the same two runs took 34 and
+21 µs per decision.) Forty games is a smoke test
 (about ±15 percentage points); [Bot-vs-bot games](../guide/bot-games.md)
 covers how many games a real comparison needs.
 
@@ -250,12 +252,12 @@ $ go test -v ./allin/
 --- PASS: TestRegistered (0.00s)
 === RUN   TestPlaysAgainstTheBot
     allin_test.go:58: allin won 0 of 10 against bot
---- PASS: TestPlaysAgainstTheBot (0.67s)
+--- PASS: TestPlaysAgainstTheBot (1.15s)
 === RUN   TestHostContract
     allin_test.go:67: allin: finished turn 20 intents 634 events 3310 rootRefusals 0 feeds false reason ""
 --- PASS: TestHostContract (0.03s)
 PASS
-ok  	github.com/adams-shaun/gorge/examples/bots/go/allin	0.708s
+ok  	github.com/adams-shaun/gorge/examples/bots/go/allin	1.189s
 ```
 
 (Inside the gorge repository, run tests under the
@@ -297,14 +299,14 @@ the browser's play-vs-bot picker. The Python example agent played it:
 
 ```console
 $ python3 gorge_agent.py --server http://127.0.0.1:8093 --bot-policy allin --policy simple
-created table g1 match 1, seat 0 vs allin
-decisions answered: 229 (0 answers refused and retried)
+created table g2 match 1, seat 0 vs allin
+decisions answered: 446 (0 answers refused and retried)
 ...
-match finished after 20 turns in 0.7 s: winner us (seat 0, mono-blue-tempo)
+match finished after 34 turns in 2.0 s: winner us (seat 0, mono-black-aggro)
 ```
 
-`gorged.Extensions` also carries extra flags (`Flags`) and a draft-event
-runtime (`Events`); `gorged.Serve` runs the same server on a listener you
+`gorged.Extensions` also carries extra flags (`Flags`), a draft-event
+runtime (`Events`) and a match-review loader (`Review`); `gorged.Serve` runs the same server on a listener you
 supply, which is how a test drives it. The full Go embedding surface is on
 the [Go API reference](../api/go.md).
 

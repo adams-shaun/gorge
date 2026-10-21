@@ -1,66 +1,184 @@
 # Regenerating the tables
 
-This page says exactly how each number on [Card support by set](sets.md) is
-produced, so a contributor can re-measure it and a reviewer can check it. Every
-command below was run on 2026-10-20 at gorge `ad3777023` and gorge-compliance
-`736a826f5190`; the timings are on 4 cores. It also says how the docs build gets
-the numbers today, and what it does not do yet.
+This page says how each number on [Card support by set](sets.md) is produced,
+so a contributor can re-measure it and a reviewer can check it. Most of the
+page is generated at every docs build. The rest is a hand measurement that
+names the commit it was taken at.
 
 ## Where each number comes from
 
-| Number on the page | Source | Command | Cost |
-|---|---|---|---|
-| corpus cards, playable, tokens, top missing primitives | gorge | `make report` | ~3 s |
-| playable by card type | gorge | `make coverage` | ~3 s |
-| parse diagnostics | gorge | `bin/forgec compile` (see the warning below) | ~2 s |
-| repo-deck ratchet and parameter census | gorge | `go test ./engine/rules/ -run '…'` | ~2 s |
-| per-set playable, Level A, roll-ups, estimates | gorge-compliance | `oraclediff status -all -json -level A` | ~1 min 50 s |
-| per-set Level B | gorge-compliance | `oraclediff status -all -json -level B -sets …` | ~20 s |
-| verdict counts | gorge-compliance | count the rows in `oracle/compliance/verdicts/*.jsonl` | instant |
-| dirty-dirac per-pool counts | the private companion module | its card generator's coverage report | maintainers only |
-| XMage's card-count claim | the XMage README | read by hand | — |
-
-None of these needs XMage or Forge to be built. Only *writing new verdicts*
-does (`make compliance-pass` in gorge-compliance, a heavy JVM run); the status
-commands read the verdicts already committed.
+| Number on the page | Source | How it reaches the page |
+|---|---|---|
+| per-set playable, Level A, Level B, roll-ups, every-set table | gorge-compliance's `oraclediff status` | nightly, through its `docs-data` branch; rendered at every docs build |
+| certified-set and Level A/B headline rows | the same status | the same |
+| dirty-dirac per-set accepted / cards, corpus-wide accepted, lockstep games | dirty-dirac's acceptance ratchet and lockstep runs (private) | a committed snapshot, `docs/site/support/dirty-dirac-sets.json`, edited by a maintainer |
+| corpus cards, playable, tokens, top missing primitives | gorge, `make report` | by hand |
+| playable by card type | gorge, `make coverage` | by hand |
+| parse diagnostics | gorge, `forgec compile` | by hand |
+| repo-deck ratchet and parameter census | gorge, `go test ./engine/rules/ -run …` | by hand |
+| verdict counts | gorge-compliance, `oracle/compliance/verdicts/*.jsonl` | by hand |
+| XMage's card-count claim | the XMage README | by hand |
 
 ```mermaid
 flowchart LR
-  subgraph gorge
-    R["make report<br/>make coverage"] --> P1["corpus figures"]
-    T["go test ./engine/rules"] --> P2["repo-deck ratchets"]
+  subgraph gc["gorge-compliance (nightly CI)"]
+    SA["oraclediff status -level A"] --> DD[("docs-data branch<br/>status-A.jsonl, status-B.jsonl, meta.json")]
+    SB["oraclediff status -level B"] --> DD
   end
-  subgraph gorge-compliance["gorge-compliance (nightly CI)"]
-    SA["oraclediff status -level A"] --> JA["status-A.jsonl"]
-    SB["oraclediff status -level B"] --> JB["status-B.jsonl"]
-    JA --> DD[("docs-data branch")]
-    JB --> DD
+  subgraph priv["private companion module"]
+    RK["acceptance ratchet<br/>lockstep runs"]
   end
-  DD -->|"gorge docs.yml fetches"| DS["scripts/docs_sets.py"]
-  DS --> FR["support/_generated_sets.md<br/>(gitignored)"]
-  P1 --> H["sets.md<br/>hand snapshot"]
-  P2 --> H
-  JA --> H
-  JB --> H
-  FR -->|"pymdownx.snippets"| H
+  RK -->|"maintainer edits"| SNAP["support/dirty-dirac-sets.json<br/>(committed)"]
+  subgraph build["gorge docs.yml"]
+    DS["scripts/docs_sets.py"] --> FR["support/_generated_sets.md<br/>(gitignored)"]
+  end
+  DD -->|fetched| DS
+  SNAP --> DS
+  FR -->|"pymdownx.snippets"| SETS["sets.md"]
+  R["make report / make coverage<br/>go test ./engine/rules"] -->|"by hand"| SETS
 ```
+
+## How the docs build gets the numbers
+
+[`.github/workflows/docs.yml`](https://github.com/adams-shaun/gorge/blob/main/.github/workflows/docs.yml)
+builds the site on pushes to `main` and `develop` and on pull requests. It
+deploys from `main` on a push, on the daily 17:17 UTC rebuild (after gorge-compliance's nightly job), or on a manual
+run. Before the build, it:
+
+1. generates the package map (`go run ./cmd/pkgmap`);
+2. fetches the engine-speed history from gorge's orphan `perf-data` branch
+   when it exists (it does not yet);
+3. runs `scripts/docs_sets_test.py`, then `scripts/docs_sets.py`. The renderer
+   reads the committed dirty-dirac snapshot and, when the fetch succeeds,
+   **gorge-compliance's orphan `docs-data` branch** (`status-A.jsonl`,
+   `status-B.jsonl`, `meta.json`).
+
+gorge-compliance's nightly `compliance` job (09:41 UTC) writes `docs-data`.
+After `make compliance-status`, it runs two status commands. The first covers
+Level A over every set. The second covers Level B over the sets whose Level A
+row says `"printed": true`. The job then force-pushes the results as one
+commit, so only the latest state is kept. gorge-compliance is public, so the
+docs build needs no token. If the branch is missing or the fetch fails, the
+tables still render from the dirty-dirac snapshot, and the gorge columns say
+the data was not available.
+
+## The renderer: `scripts/docs_sets.py`
+
+gorge keeps the renderer. It writes `docs/site/support/_generated_sets.md`,
+which is gitignored and never committed. The file has three sections marked
+for `pymdownx.snippets`, and `sets.md` includes each one by name:
+
+| Section | Contents |
+|---|---|
+| `headline` | one row per engine and measure, with the commits measured |
+| `sets` | the per-set table: every set gorge-compliance audits against a printed list, plus every set in dirty-dirac's snapshot, joined by set code |
+| `rollup` | the roll-up by set type, then every one of the 589 sets |
+
+To render and build locally:
+
+```sh
+python3 scripts/docs_sets.py status-A.jsonl --level-b status-B.jsonl --meta meta.json \
+  --dirty-dirac docs/site/support/dirty-dirac-sets.json
+uvx --with mkdocs-material==9.7.7 mkdocs build --strict -d /tmp/gorge-site
+python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
+```
+
+Every input is optional, but the renderer needs at least one of the status
+file and the snapshot. A set code that only one source has still gets a row.
+`--commit` and `--date` override `meta.json`'s values, and `-o PATH` writes
+somewhere else. The renderer uses only the Python standard library, skips any
+input line that isn't a JSON object, and publishes only counts and
+percentages, never card text.
+
+It computes **playable %** as `1 − (unsupported + not in corpus) / cards`,
+and **Level A %** (or **Level B %**) as the share of cards with no problem at
+that level. `no printed list` is a per-set pseudo-problem, not a card, so it
+isn't subtracted. For a set without a printed list, Level A is shown as a
+lower bound (≥).
+
+## gorge-compliance: the per-set status
+
+To reproduce `docs-data` by hand, clone
+[gorge-compliance](https://github.com/adams-shaun/gorge-compliance). It
+measures the gorge commit in its `GORGE_PIN`, not your checkout, and resolves
+that commit through `go.mod`. It reads gorge's corpus through a `.cards` link:
+
+```sh
+git clone https://github.com/adams-shaun/gorge-compliance.git
+cd gorge-compliance
+make cards GORGE_ROOT=../gorge      # links ../gorge/.cards here
+
+# Level A over all 589 XMage set manifests: one JSON line per set
+go run ./cmd/oraclediff status -all -json -level A -procs 4 > status-A.jsonl
+
+# Level B over the sets with a printed card list
+sets=$(python3 -c 'import json,sys; print(",".join(r["set"] for r in map(json.loads, open(sys.argv[1])) if r.get("printed")))' status-A.jsonl)
+go run ./cmd/oraclediff status -all -json -level B -procs 4 -sets "$sets" > status-B.jsonl
+```
+
+`-procs` caps the gate's child processes. Neither command needs XMage or
+Forge to be built: both read the committed verdicts. Only *writing new
+verdicts* needs the engines (`make compliance-pass`, a heavy JVM run). Each
+output line is one set:
+
+| Field | Meaning |
+|---|---|
+| `set`, `name`, `set_type`, `released`, `formats` | set code, name, XMage set type, release date, formats it is legal in |
+| `level`, `declared` | the level checked; the level the set is declared at, if any |
+| `printed` | whether gorge-compliance has a full printed card list for the set |
+| `cards` | cards the claim covers |
+| `outstanding`, `problem_cards` | problems, and distinct cards with at least one |
+| `buckets` | problems by reason: `unsupported`, `not in corpus`, `template gap`, `no verdict`, `diverge`, `harness`, `stale verdict`, `no printed list`, … |
+
+`make compliance-status` in gorge-compliance writes the same data as a
+dashboard, `oracle/compliance/status.md`.
+
+**Verdict counts** come from counting the committed verdict rows:
+
+```sh
+cat oracle/compliance/verdicts/*.jsonl | python3 -c '
+import sys, json, collections
+rows = [json.loads(l) for l in sys.stdin if l.startswith("{")]
+print(len(rows), "verdicts over", len({r["card"] for r in rows}), "cards")
+print(collections.Counter(r["status"] for r in rows).most_common())'
+```
+
+## dirty-dirac: refreshing the snapshot
+
+dirty-dirac's source is private, so no public job can re-measure it. Its
+per-set figures live in a small committed file,
+[`docs/site/support/dirty-dirac-sets.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/support/dirty-dirac-sets.json),
+which holds:
+
+- the snapshot date;
+- the private module's commit and the gorge commit it pins;
+- the corpus-wide accepted / cards count;
+- accepted / cards for each set in its acceptance ratchet;
+- the games, agreements, stalls and disagreements of each lockstep-verified
+  set.
+
+To refresh it, a maintainer re-runs dirty-dirac's acceptance ratchet and its
+lockstep runs in the private module. They then copy the counts into this file
+and open a pull request. The ratchet's pins are always the live counts, so the
+copy is mechanical. The renderer checks that every accepted count is within
+its card count and that each lockstep row adds up. `docs_sets_test.py` loads
+the committed file.
 
 ## gorge: corpus coverage
 
-You need the Forge corpus once (`make fetch-cards compile-cards`, about 140 MB on disk,
-pinned to `FORGE_REF` in the
-[Makefile](https://github.com/adams-shaun/gorge/blob/main/Makefile)). Then:
+You need the Forge corpus once (`make fetch-cards compile-cards`, about 140 MB
+on disk, pinned to `FORGE_REF` in the
+[Makefile](https://github.com/adams-shaun/gorge/blob/main/Makefile)). Then
+run:
 
 ```sh
 make report      # cards / playable / tokens, then the top 25 missing primitives
 make coverage    # .coverage/summary.md and .coverage/coverage.md: by type, colour, mana value
 ```
 
-`make report` prints the corpus pin, then
-`cards: 34074  playable: 32082 (94.2%)` and `tokens: 854`, then the
-missing-primitive ranking the page reproduces. `make coverage` writes the
-by-type table. Both read the IR cache in `.cards/` and take a few seconds.
-
+`make report` prints the corpus pin, the `cards: … playable: …` line, the
+`tokens:` line, and then the missing-primitive ranking. `make coverage` writes
+the by-type table. Both read the IR cache in `.cards/` and take a few seconds.
 The [card coverage](https://github.com/adams-shaun/gorge/blob/main/.github/workflows/coverage.yml)
 workflow also publishes `make coverage`'s tables as a job summary and artifact
 on every push to `main`.
@@ -71,8 +189,8 @@ total (`compiled 34074 cards, 854 tokens, 2 diagnostics`).
 !!! warning "Compile into a copy if `.cards` is shared"
     `forgec compile` rewrites the IR cache and prunes every other cache file in
     the directory. If several checkouts share one `.cards` (a symlinked
-    worktree), compile into a scratch copy instead. The walker does not
-    follow symlinks, so copy the folders:
+    worktree), compile into a scratch copy instead. The walker doesn't follow
+    symlinks, so copy the folders:
 
     ```sh
     mkdir -p /tmp/corpus-copy
@@ -87,116 +205,10 @@ total (`compiled 34074 cards, 854 tokens, 2 diagnostics`).
 go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v
 ```
 
-The two log lines are the live counts (`ratchet: 2 of 1123 …`,
+The two log lines are the live counts (`ratchet: 2 of 1123 …` and
 `param census: 16 of 1123 …`). The named cards are the files in
 [`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported)
 and
 [`engine/rules/testdata/paramcensus/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/paramcensus),
-one JSON file per card. Without `.cards` both tests skip and the package still
-prints `ok`: check that the log lines are there.
-
-## gorge-compliance: the per-set status
-
-[gorge-compliance](https://github.com/adams-shaun/gorge-compliance) measures
-the gorge commit in its `GORGE_PIN`, not your checkout, and resolves it through
-`go.mod`. It reads gorge's corpus through a `.cards` link:
-
-```sh
-git clone https://github.com/adams-shaun/gorge-compliance.git
-cd gorge-compliance
-make cards GORGE_ROOT=../gorge      # links ../gorge/.cards here
-
-# Level A over all 589 XMage set manifests: one JSON line per set
-go run ./cmd/oraclediff status -all -json -level A -procs 4 > status-A.jsonl
-
-# Level B over the sets that have a printed card list (21 today)
-go run ./cmd/oraclediff status -all -json -level B -procs 4 \
-  -sets "$(ls oracle/compliance/printed | sed 's/\.json$//' | paste -sd,)" > status-B.jsonl
-```
-
-`-procs` caps the gate's child processes (at most 4). Each line is one set:
-
-| Field | Meaning |
-|---|---|
-| `set`, `name`, `set_type`, `released`, `formats` | set code, name, XMage set type, release date, formats it is legal in |
-| `level`, `declared` | the level checked; the level the set is declared at, if any |
-| `printed` | whether gorge-compliance has a full printed card list for the set |
-| `cards` | cards the claim covers |
-| `outstanding`, `problem_cards` | problems, and distinct cards with at least one |
-| `buckets` | problems by reason: `unsupported`, `not in corpus`, `template gap`, `no verdict`, `diverge`, `harness`, `stale verdict`, `no printed list`, … |
-
-The Level B run also prints a ratchet line to stderr when a set has improved
-past its recorded floor (on 2026-10-20: BIG, EOE, FDN and FRA).
-`make compliance-status` in gorge-compliance writes the same data as a
-dashboard, `oracle/compliance/status.md`.
-
-**Verdict counts** are a count over the committed verdict rows:
-
-```sh
-cat oracle/compliance/verdicts/*.jsonl | python3 -c '
-import sys, json, collections
-rows = [json.loads(l) for l in sys.stdin if l.startswith("{")]
-print(len(rows), "verdicts over", len({r["card"] for r in rows}), "cards")
-print(collections.Counter(r["status"] for r in rows).most_common())'
-```
-
-## The renderer: `scripts/docs_sets.py`
-
-gorge keeps the renderer. It turns the status JSONL into
-`docs/site/support/_generated_sets.md`, which `sets.md` includes at its end
-through `pymdownx.snippets`. The fragment is gitignored; when it is absent the
-page shows only its hand snapshot. Only counts and percentages are published,
-never card text.
-
-```sh
-python3 scripts/docs_sets.py status-A.jsonl --level-b status-B.jsonl \
-  --commit "$(git -C ../gorge-compliance rev-parse HEAD)" --date "$(date +%F)"
-uvx --with mkdocs-material==9.7.7 mkdocs build --strict -d /tmp/gorge-site
-```
-
-`docs_sets.py` needs only the Python standard library and skips any line that
-is not a JSON object. `--level-b` is optional; without it the audited-sets
-table shows Level A problem counts instead of Level B. Options: `-o PATH`,
-`--commit SHA`, `--date YYYY-MM-DD` (both shown in the fragment's header).
-
-It computes **playable %** as `1 − (unsupported + not in corpus) / cards`, and
-**Level A %** (or **Level B %**) as the share of cards with no problem at that
-level. `no printed list` is a per-set pseudo-problem, not a card, so it is not
-subtracted.
-
-## dirty-dirac
-
-dirty-dirac's card tables are generated in gorge's private companion module.
-Its generator writes a coverage report per pool (cards in the pool, cards
-lowered, and every refusal with its reason), and a maintainer copies the
-per-pool counts onto the page. Pool membership on the page was checked against
-Forge's edition files at `FORGE_REF` (`res/editions/Foundations.txt` and
-`Bloomburrow.txt`, the `[cards]` and `[special guests]` sections). Nothing
-public regenerates these numbers.
-
-## How the docs build gets the numbers
-
-[`.github/workflows/docs.yml`](https://github.com/adams-shaun/gorge/blob/main/.github/workflows/docs.yml)
-builds the site on pushes to `main` and `develop` and on pull requests, and
-deploys from `main` (push, the daily 09:17 UTC rebuild, or a manual run). Before
-the build it:
-
-1. generates the package map (`go run ./cmd/pkgmap`);
-2. fetches the engine-speed history from gorge's orphan `perf-data` branch;
-3. fetches **gorge-compliance's orphan `docs-data` branch**
-   (`status-A.jsonl`, `status-B.jsonl`, `meta.json`) and runs
-   `scripts/docs_sets.py` on it, which writes the automated per-set table at the
-   end of [Support by set](sets.md).
-
-gorge-compliance's nightly `compliance` job writes `docs-data`. After
-`make compliance-status` it runs the two status commands above (Level A over
-every set, then Level B over the sets with a printed list, about 2 minutes
-together) and force-pushes them as one commit, the way `perf-data` works: only
-the latest state is kept. gorge-compliance is public, so the docs build needs no
-token. When the branch is missing or a fetch fails, the fragment is absent and
-the page shows only its hand snapshot.
-
-The hand-written figures at the top of `sets.md` (the headline table, the
-funnel, the corpus and ratchet numbers, dirty-dirac's pools) are still a dated
-snapshot. Refresh them with the commands above when they drift from the
-automated table.
+one JSON file per card. Without `.cards`, both tests skip and the package
+still prints `ok`, so check that the log lines are there.

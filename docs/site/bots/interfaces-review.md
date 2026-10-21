@@ -3,9 +3,10 @@
 This is an assessment, for the operator, of every surface a bot can use to
 play gorge, written while building the [Python and Java examples](examples.md)
 and the [native Go example](native-go.md) against commit `ad3777023` on
-2026-10-20. It states what each surface is today, measures it, lists the
-defects found on the way, and ends with a ranked set of decisions on what to
-build next for remote agents. Field-level detail is in the
+2026-10-20. It states what each surface is, measures it, lists the defects
+found on the way, and ends with a ranked set of decisions on what to build
+next for remote agents. The status of each item was rechecked against the
+code at `513a2a0c3` on 2026-10-21. Field-level detail is in the
 [HTTP API reference](../api/http.md) and the
 [SpellBench v2 reference](../api/spellbench-v2.md).
 
@@ -13,29 +14,30 @@ build next for remote agents. Field-level detail is in the
 
 The HTTP seat is the right foundation for remote agents: two endpoints, any
 language's standard library, a server-enforced seat boundary, and about
-0.25 ms of overhead per decision on loopback. It is not yet safe to point
-untrusted or merely buggy agents at, because two of its defects can crash or
-wedge a match, and it has no deadline, no client-side reproducibility and no
-schema version. Fix those first (P0, P1 below), add a long-poll so an agent
-needs one round trip per decision, and leave WebSocket and multi-game
+0.25 ms of overhead per decision on loopback. The P0 defects that let a
+buggy agent crash or wedge a match are fixed: a refused answer is now a
+`409` and the decision stays pending, and a decision can be answered only
+once. What remains is that it has no deadline, no client-side
+reproducibility and no schema version (P1, P2 below). Add a long-poll so an
+agent needs one round trip per decision, and leave WebSocket and multi-game
 batching until a user needs them. SpellBench v2 stays as it is: stdio is its
 specification, and it is a compatibility surface, not a remote-agent
 transport.
 
-| Rank | Decision | Cost |
-|---|---|---|
-| P0-1 | An intent the rules refuse after a `204` must not crash the match: validate "one defender per attacker" on the wire, and re-park any other refusal as a `409` | S |
-| P0-2 | Clear the parked decision when an intent is admitted, so a duplicate POST is a `409`, never a second `204` or a hung handler | XS |
-| P0-3 | Default spectator visibility to `public` on any server with human or HTTP seats | XS |
-| P1-1 | Per-decision deadlines for HTTP seats, announced in the decision, answered by the caretaker on expiry; reap abandoned on-demand tables | S |
-| P1-2 | Long-poll: `GET .../pending?seat=N&wait_ms=…` blocks until a decision exists | S |
-| P1-3 | Authentication: an optional server key for `POST /api/games`; tokens stay per-seat capabilities; TLS by reverse proxy | S |
-| P2-1 | A versioned decision schema: JSON Schema generated from the Go types, a schema-version field, and a grow-only ratchet | M |
-| P2-2 | Client-chosen seeds and decks on `POST /api/games`, for reproducible remote experiments | S |
-| P2-3 | Keep the Python and Java examples as the reference SDKs, with a CI job that plays one game with each | S |
-| P3-1 | SpellBench v2: find why the neutral translation costs the default bot most of its strength; make `game_over` wait for its `ack` | M |
-| P3-2 | Multi-seat batching endpoints, only when a training user needs more than about 10,000 decisions per second from outside Go | M |
-| — | Rejected: gRPC (third-party dependency), WebSocket now (hand-written RFC 6455 for a gain long-poll already captures), a stdio transport for new bots | — |
+| Rank | Decision | Cost | Status at `513a2a0c3` |
+|---|---|---|---|
+| P0-1 | An intent the rules refuse must not crash the match: validate "one defender per attacker" on the wire, and re-park any other refusal as a `409` | S | done |
+| P0-2 | Claim the parked decision when an intent is admitted, so a duplicate POST is a `409`, never a second `204` or a hung handler | XS | done |
+| P0-3 | Default spectator visibility to `public` on any server with human or HTTP seats | XS | done |
+| P1-1 | Per-decision deadlines for HTTP seats, announced in the decision, answered by the caretaker on expiry; reap abandoned on-demand tables | S | open |
+| P1-2 | Long-poll: `GET .../pending?seat=N&wait_ms=…` blocks until a decision exists | S | open |
+| P1-3 | Authentication: an optional server key for `POST /api/games`; tokens stay per-seat capabilities; TLS by reverse proxy | S | open |
+| P2-1 | A versioned decision schema: JSON Schema generated from the Go types, a schema-version field, and a grow-only ratchet | M | open |
+| P2-2 | Client-chosen seeds on `POST /api/games`, for reproducible remote experiments (decks can already be chosen) | S | open |
+| P2-3 | Keep the Python and Java examples as the reference SDKs, with a CI job that plays one game with each | S | done (`scripts/examples-smoke.sh` in CI) |
+| P3-1 | SpellBench v2: find why the neutral translation costs the default bot most of its strength; make `game_over` wait for its `ack` | M | open (still 1 of 20 against 17 of 20 on 2026-10-21) |
+| P3-2 | Multi-seat batching endpoints, only when a training user needs more than about 10,000 decisions per second from outside Go | M | not needed yet |
+| — | Rejected: gRPC (third-party dependency), WebSocket now (hand-written RFC 6455 for a gain long-poll already captures), a stdio transport for new bots | — | — |
 
 Costs: XS under half a day, S one to two days, M about a week, all
 including tests.
@@ -47,12 +49,12 @@ including tests.
 | **Code** | `engine/seat`, `bots/registry.go` | `server/host/httpapi/rest.go`, `server/host/humanseat.go`, `server/gorged/seats.go` | `server/host/httpapi/sse.go`, `server/host/fanout.go` | `server/spellbench/seat` | `cmd/spellbench-gorge-agent`, `cmd/spellbench-gorge-env` |
 | **Transport** | function call | HTTP/1.1, JSON bodies | HTTP/1.1 `text/event-stream` | child-process stdin/stdout | stdin/stdout |
 | **Framing** | Go values | one JSON document per request; intent body ≤ 64 KiB, unknown fields refused | SSE `id:`/`event:`/`data:` frames, a `{v,t,id,table,match,seq,body}` envelope | one strict JSON object per line, ≤ 8 MiB, integers only, depth ≤ 64 | same |
-| **Auth** | none needed (trusted code) | per-seat bearer token (16 random bytes), header or `?token=`; the claim names table and seat; process memory only | none: a spectator stream | the host spawns the process; no auth | none |
+| **Auth** | none needed (trusted code) | per-seat bearer token (16 random bytes), header or `?token=`; the claim names table and seat; process memory only | none for a public table; a private play-vs-bot table needs the seat's token on the stream | the host spawns the process; no auth | none |
 | **Hidden information** | View only by contract; `MatchContext.Engine` (live engine, read-only by convention) reaches any seat implementing `MatchSeat` | enforced server-side: `?seat=` must equal the token's seat; views are seat-projected | whatever the table's spectator visibility allows: **everything** on an `omniscient` table | neutral observation for the agent's seat only | as the host provides |
 | **Versioning** | Go API, compiled together | `protocol.Version = 1` covers SSE frame bodies only; the decision and intent shapes are `engine/decision` structs that grow by `omitempty` fields, unversioned | `v` field in every frame | `protocol: "spellbench/v2"`, `protocol_minor` | same |
 | **Deadlines** | hosted search seats: 2 s per decision (`hostedDecisionDeadlineMS`), then their heuristic fallback | **none** in `gorged` (`ThinkTimeout` 0); the caretaker answers only at table shutdown | 15 s keep-alive; 30 s resume grace | the host's budget: 2 s in `gorged`, none in `mtgsim`; startup 300 s | — |
 | **Concurrency** | goroutines; `-bot-search-slots` bounds concurrent searches | one token per seat; games limited by `-max-on-demand-tables` (default 32 retained) | one session per connection, 256-frame ring | one process per seat per match | one process per caller |
-| **Failure behaviour** | a returned error crashes the match; `RefusalAnswerer` and the fallback ladder catch refused answers | a `409` leaves the decision pending; but see defects D1, D2 | overflow closes the session with an `overflow` frame | timeout, crash, bad JSON or bad candidate forfeits: concede at the next priority, default bot until then | `error` responses with a closed code list |
+| **Failure behaviour** | a returned error crashes the match; `RefusalAnswerer` and the fallback ladder catch refused answers | `POST /intent` waits for the engine's verdict; any refusal is a `409` and leaves the decision pending | overflow closes the session with an `overflow` frame | timeout, crash, bad JSON or bad candidate forfeits: concede at the next priority, default bot until then | `error` responses with a closed code list |
 | **Observed latency** | 21–34 µs per decision, engine and both seats (`cmd/duel`, 40 games) | `GET /pending` 0.12 ms, `POST /intent` 0.11 ms, `GET /view` 0.50 ms median; next decision visible 0.13 ms after the answer (busy poll) | wake-up to visible decision: 0.24 ms median | `choose` 0.05 ms (Python minimal agent) to 0.18 ms (gorge bot, neutral world); 0.41 s process start per match | — |
 
 All latencies: 2026-10-20, loopback, Ryzen 9 9950X, `gorged -pace 0`;
@@ -68,7 +70,10 @@ network-backed policies and inherits the native column.
 
 ## Defects found while writing the examples
 
-### D1: a rules-refused HTTP intent crashes the match
+D1, D2 and D3 are fixed. Their write-ups stay here as the record of what an
+HTTP client could do to a match before `513a2a0c3`.
+
+### D1: a rules-refused HTTP intent crashed the match (fixed)
 
 **Observed.** A random Python agent declared one creature (Strangleroot
 Geist, object 38) as attacking both the opponent and the opponent's Jace.
@@ -95,16 +100,14 @@ that does not implement `bots.RefusalAnswerer` goes straight to
 `HumanSeat` does not implement it, so every HTTP client, and the browser,
 is one rules-only refusal away from crashing its game.
 
-**Decision.** Two changes. (1) `Decision.Validate` rejects two chosen
-`attackers` options with the same `Obj` (CR 508.1a: a creature attacks one
-player, planeswalker or battle); it is a universal rule, so it belongs in
-the validator a client can trust, and `botpolicy.Clamp` inherits it. (2)
-`HumanSeat` gets the refusal path: on an engine refusal the host re-parks the
-same decision and records the reason, which the next `GET /pending` returns
-(an additive `refused` field), instead of crashing. Cost S. The examples
-already avoid the case client-side.
+**Fix.** (1) `Decision.Validate` rejects two chosen `attackers` options
+with the same `Obj` (CR 508.1a: a creature attacks one player, planeswalker
+or battle), so the answer is a `409` before it reaches the engine. (2)
+`POST /intent` waits for the engine's verdict, and on a refusal the host
+re-parks the same decision and answers the `POST` with a `409` carrying the
+engine's reason (`server/host/match.go`), instead of crashing.
 
-### D2: a duplicate POST is admitted twice, and a third hangs
+### D2: a duplicate POST was admitted twice, and a third hung (fixed)
 
 **Observed.** Three concurrent identical `POST /intent` requests against
 one pending decision, repeated six times:
@@ -129,10 +132,11 @@ second answer; once the buffer is full, a third blocks forever on a channel
 nobody will read, holding an HTTP handler goroutine. The same window lets a
 single client's `GET /pending` return the decision it has just answered.
 
-**Decision.** Clear `s.slot` under the mutex in `submitAdmitted` before the
-send, so the window closes and any later submit is a `409`. Cost XS.
+**Fix.** `HumanSeat.submitAdmittedWait` claims the slot under the mutex
+before the send, so any later submit is a `409`. Rechecked 2026-10-21: three
+concurrent identical POSTs got one `204` and two `409`s, none hung.
 
-### D3: the default spectator visibility shows hidden cards
+### D3: the default spectator visibility showed hidden cards (fixed)
 
 `gorged -spectator` used to default to `omniscient`. On a `-humans` server,
 every unauthenticated client could open `/api/stream` or `GET .../view`
@@ -158,11 +162,14 @@ against. (Play-vs-bot tables default to `public` through
   -world gorge` requires the `x_gorge_view_v1` extension, which the
   `-sb-agent` seat never offers (`agent requirement not offered:
   extensions`); only `-world neutral` works there.
-- **Stale help**: `gorged -bot-policy`'s help names `cast-profile`, which is
-  not a registered policy in gorge.
-- **`mtgsim` reports `reason: not_finished`** in the `game_over` of a game
-  that ended naturally (`cmd/mtgsim/main.go` initialises the reason and
-  never clears it).
+- **SSE on a private table needs the token.** Since play-vs-bot tables
+  became private, a subscribe from a stream opened without the seat's token
+  is a `404`. `examples/bots/python/measure_latency.py` opens its stream
+  without one, so its SSE run stops at `subscribe: HTTP 404` (its poll run
+  works).
+- Fixed since: `gorged -bot-policy`'s help now lists the registered
+  policies, and `mtgsim` no longer reports `reason: not_finished` for a game
+  that ended naturally.
 
 ## The gaps, and what to do about each
 
@@ -244,9 +251,9 @@ reproducible experiments need now.
 
 **Decision:** the two example files are the reference clients. They are
 standard-library only, about 400 (Python) and 570 (Java) lines, and cover
-the whole surface including payment plans. Add a CI job that starts
-`gorged -vsbot` and plays one game with each, so a wire change that breaks
-them fails the build. Publishing packages (PyPI, Maven) waits for P2-1's
+the whole surface including payment plans. CI runs
+`scripts/examples-smoke.sh`, which starts `gorged -vsbot` and plays one
+game with each, so a wire change that breaks them fails the build. Publishing packages (PyPI, Maven) waits for P2-1's
 versioned schema; a package without a version contract would promise more
 than gorge does.
 

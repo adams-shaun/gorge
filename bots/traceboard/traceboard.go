@@ -1,6 +1,6 @@
 // Package traceboard is the decision-trace board schema: the redacted,
-// deterministic per-seat board snapshot `four-yay cmd/botbench` writes into every
-// decision-trace record and `four-yay cmd/searchteacher` writes into every label
+// deterministic per-seat board snapshot the bot benchmark writes into every
+// decision-trace record and the search teacher writes into every label
 // record. It is deliberately ONE shared type so a consumer can decode both
 // corpora with the same Go type; the schema (field names, tags, ordering
 // guarantees) is v1 and must not drift between the two writers.

@@ -1,20 +1,24 @@
 # Tracking engine speed over time
 
-This page charts gorge's engine speed relative to a fixed **anchor**
-revision, one chart per scenario and metric, so a slowdown shows up as a step
-in a line rather than as a number someone has to remember. It is for
-contributors checking whether a change moved the engine's speed. The data
-comes from the `perf-data` branch's `history.jsonl`, which the docs build
-(`.github/workflows/docs.yml`) copies to `perf/history.jsonl` on this site
-when the branch exists.
+This page is meant to chart gorge's engine speed relative to a fixed
+**anchor** revision, one chart per scenario and metric, so that a slowdown
+shows up as a step in a line rather than as a number someone has to remember.
+It is for contributors checking whether a change moved the engine's speed.
 
-!!! info "Status, 2026-10-20: no data yet"
-    The `perf-data` branch and the `perf-anchor-1` tag do not exist yet
-    (`git ls-remote origin perf-data` is empty), so the charts below show
-    "no data". The recording plan and what is left before the first point
-    are at the end of this page. Until then, the latest numbers are on
-    [Engine speed](engine.md) and the cross-engine comparison on
-    [Performance](index.md).
+!!! warning "Status, 2026-10-21: not live"
+    No speed history is recorded yet, so the charts below show "no data".
+
+    | Piece | State |
+    |---|---|
+    | The chart on this page (`javascripts/perf-tracking.js`) | **live**: it renders `perf/history.jsonl` when the site has one |
+    | The docs build step that copies `history.jsonl` from the `perf-data` branch (`.github/workflows/docs.yml`, also rebuilt daily) | **live**, but it finds nothing to copy |
+    | The `perf-data` branch and the `perf-anchor-1` tag | **do not exist** (`git ls-remote origin perf-data 'refs/tags/perf-anchor*'` prints nothing) |
+    | Provenance on every `enginebench` result line (commit, Go version, CPU, `GOGC`, core pin) and `PIN=` in `enginebench-pair.sh` | **done** |
+    | A converter from pair output to the record schema below, and a scheduled run | **not built** |
+
+    Until then, the latest numbers are on [Engine speed](engine.md) and the
+    cross-engine comparison on [Performance](index.md). To compare two
+    revisions yourself, run `make enginebench-pair BASE=<rev> CAND=.`.
 
 <div id="perf-charts">
   <p id="perf-status"><em>Loading performance history…</em></p>
@@ -67,8 +71,7 @@ metric.
 
 Planned metrics: random play (pairs A, B, Burn), bot play (pair A, manual and
 auto-pay), clone µs and allocation, MCTS at 100 sims, the sampler, and live
-heap. An optional separate series would track bot strength, measured outside
-gorge.
+heap.
 
 ## How the series is produced (plan)
 
@@ -76,7 +79,7 @@ gorge.
 flowchart LR
   A["anchor revision<br/>(tag perf-anchor-N)"] --> P["enginebench-pair.sh<br/>ABBA, pinned, REPS=3"]
   C["candidate<br/>(origin/main)"] --> P
-  P -->|"pair JSONL"| V["converter<br/>(outside this repo)"]
+  P -->|"pair JSONL"| V["converter<br/>(not built yet)"]
   V -->|"append rows"| H["perf-data branch<br/>history.jsonl"]
   H -->|"docs build copies"| S["this page:<br/>perf-tracking.js charts"]
 ```
@@ -92,22 +95,15 @@ ROWS="-row random -pair A;-row random -pair B;-row random -pair burn;-row bot -p
   scripts/enginebench-pair.sh "$ANCHOR" "$REV" "$OUT"
 ```
 
-A small converter, kept outside this repository, turns the pair output into
-the schema above and appends it to `history.jsonl` on the orphan `perf-data`
-branch, so performance data never lands on `main`.
+A converter would turn the pair output into the schema above and append it
+to `history.jsonl` on the orphan `perf-data` branch, so performance data
+never lands on `main`.
 
-Work remaining before the first published point (checked 2026-10-20 at
-`ad3777023`):
+What is left before the first published point:
 
-1. ~~`enginebench` records the commit, Go version, CPU, `GOGC` and core
-   pin.~~ Done: every result line carries `commit` (stamped with
-   `-ldflags -X main.commit=` by `scripts/enginebench-build.sh`, since a
-   `git archive` build has no VCS stamp), `go_version`, `cpu_model`, `gogc`
-   and `pin` (`cmd/enginebench/provenance.go`). The binary's SHA-256 is not
-   recorded yet; the converter would have to hash the binary itself.
-2. ~~A `PIN=` option in `enginebench-pair.sh`.~~ Done: `PIN=<cpu>` runs every
-   rep as `taskset -c $PIN env GOMAXPROCS=1`.
-3. The JSON converter's first run against a real pair output.
-4. Tag `perf-anchor-1` on or after 2026-10-06 and create the `perf-data`
-   branch.
-5. Optionally, an overnight backfill and a weekly bot-strength series.
+1. a converter that turns the pair output into the schema above (it would
+   also hash the benchmark binary, which `enginebench` does not record);
+2. the `perf-anchor-1` tag, on or after 2026-10-06, and the orphan
+   `perf-data` branch;
+3. a scheduled run on the benchmark machine; optionally an overnight
+   backfill.

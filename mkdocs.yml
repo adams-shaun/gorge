@@ -1,7 +1,6 @@
 # Public documentation site, published to GitHub Pages by
-# .github/workflows/docs.yml. Only docs/site/ is published: docs/agents/ and
-# docs/design/ holds the living design documents and are linked on GitHub
-# instead.
+# .github/workflows/docs.yml. Only docs/site/ is published: docs/agents/,
+# docs/decisions/ and docs/design/ are linked on GitHub instead.
 #
 # Local preview (needs only uv or a virtualenv):
 #   uvx --with mkdocs-material==9.7.7 mkdocs serve

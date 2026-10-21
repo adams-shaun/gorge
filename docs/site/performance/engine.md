@@ -168,5 +168,5 @@ the archived `2026-09-30-gorge-engine-speed.md`
 
 ## Tracking over time
 
-A plan to record a nightly anchored series and chart it on this site is
-described on [Tracking over time](tracking.md).
+A nightly series anchored to a fixed revision is planned but not recorded
+yet; [Tracking over time](tracking.md) says which parts exist.

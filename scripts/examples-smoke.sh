@@ -26,7 +26,7 @@ echo "== examples/bots/go: vet, test, build"
 
 echo "== gorged on 127.0.0.1:$port"
 go build -o "$work/gorged" "$root/cmd/gorged"
-(cd "$root" && "$work/gorged" -addr "127.0.0.1:$port" -dir "$work/data" -feedback "$work/feedback" \
+(cd "$root" && exec "$work/gorged" -addr "127.0.0.1:$port" -dir "$work/data" -feedback "$work/feedback" \
 	-tables 0 -vsbot -max-on-demand-tables 0 -pace 0 -prewarm=false -bot-policy bot \
 	>"$work/gorged.log" 2>&1) &
 pid=$!

@@ -7,8 +7,8 @@ filing a bug report from a game, and the security you do (and do not) get if
 you open the server to a network. It assumes you finished
 [Install and build](install.md), including the browser client build.
 
-*Every command and response on this page was run against `gorged` built from
-commit `ad3777023` on 2026-10-20, except where marked.*
+*The commands and responses on this page were run against `gorged` built from
+commit `513a2a0c3` on 2026-10-21; the screenshots are from 2026-10-20.*
 
 ## Play against a bot in five minutes
 
@@ -276,9 +276,9 @@ an option a policy does not declare is an error:
 gorged: -bot-opt "bot.depth=3": bot policy "bot" declares no options
 ```
 
-The `-az-c3-*`, `-az-c4-*` and `-az-c5-*` flags host trained-network bots
-whose weight files are not distributed with gorge; without the files they do
-nothing. `-events` (draft pods) needs an extension that the public `gorged`
+A few flags host trained-network bots whose weight files are not distributed
+with gorge (`gorged -h` lists them); without the files they do nothing.
+`-events` (draft pods) needs an extension that the public `gorged`
 binary does not link, so the lobby's *Draft* button does not work on a plain
 build. `-manabrew` mounts an adapter for a third-party client protocol; leave
 the lobby's *Protocol* switch on *Native*.
@@ -425,7 +425,7 @@ writing a bot that way is covered in [External bots](../bots/index.md).
 | People | `-humans`, `-seat-token`, `-vsbot`, `-vsbot-spectator`, `-max-on-demand-tables`, `-auto-mana` |
 | Bots | `-bot-policy`, `-bot-policies`, `-bot-opt`, `-bot-config`, `-bot-auto-mana`, `-bot-common-sense`, `-bot-search-slots`, `-bot-search-parallelism`, `-max-search-tables`, `-sb-agent` |
 | Card art | `-prewarm`, `-prewarm-art-only`, `-prewarm-art-budget`, `-prewarm-art-max-consecutive-failures` |
-| Optional extras | `-pprof`, `-manabrew`, `-manabrew-addr`, `-manabrew-think`, `-events`, `-max-events`, `-allow-decklist-bots`, `-az-c3-*`, `-az-c4-*`, `-az-c5-*` |
+| Optional extras | `-pprof`, `-manabrew`, `-manabrew-addr`, `-manabrew-think`, `-events`, `-max-events`, `-allow-decklist-bots`, and the trained-network bot flags |
 
 The flags are defined in
 [`server/gorged/gorged.go`](https://github.com/adams-shaun/gorge/blob/main/server/gorged/gorged.go)

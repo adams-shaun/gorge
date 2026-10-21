@@ -6,8 +6,8 @@ change a card, a parser or a primitive. The runtime internals (the IR types
 in depth, how the engine dispatches primitives during play) are in
 [the card pipeline architecture page](../architecture/gorge/cards.md).
 
-*Function names and files re-checked on `develop` @ `ad3777023`,
-2026-10-20.*
+*Function names and files re-checked on `develop` @ `513a2a0c3`,
+2026-10-21.*
 
 ```mermaid
 flowchart LR
@@ -114,7 +114,7 @@ is a card's missing primitives. An empty result means the card is
 *playable*. `Registry.Coverage` aggregates that over the corpus.
 
 ```sh
-make report     # cards: 34074  playable: 32082 (94.2%) on 2026-10-20, then the top missing primitives
+make report     # cards: 34074  playable: 32246 (94.6%) on 2026-10-21, then the top missing primitives
 make coverage   # the same as markdown tables in .coverage/ (gitignored), by type, colour, mana value
 ```
 

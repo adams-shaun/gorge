@@ -8,7 +8,7 @@ focused test run. It is for anyone trying gorge for the first time; the
 gorge needs Go (the version in `go.mod`, `go 1.25.8`), `make`, `git` and
 `bash`. Node is needed only to build the browser client.
 
-*Commands checked on `develop` @ `ad3777023`, 2026-10-20.*
+*Commands checked on `develop` @ `513a2a0c3`, 2026-10-21.*
 
 ## 1. Fetch and compile the card corpus
 
@@ -25,8 +25,8 @@ card scripts at the commit pinned by `FORGE_REF` in the `Makefile`
 are always relative to that pin. `make report` begins:
 
 ```text
-corpus: 098b055313459c4b36c9e1f1d4e81a2c8aef815e @ 098b055313459c4b36c9e1f1d4e81a2c8aef815e (GPL-3.0, 34074 files)
-cards: 34074  playable: 32082 (94.2%)
+corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
+cards: 34074  playable: 32246 (94.6%)
 tokens: 854
 ```
 
@@ -52,8 +52,8 @@ bin/mtgsim -seats 2 -games 3 -seed 42 -verify
 ```
 
 ```text
-seed 42: 2 seats,    662 intents,   3426 events,  19 turns, winner=death-n-taxes, chain=0111df6855c1f017
-  replay OK (chain 0111df6855c1f017)
+seed 42: 2 seats,    661 intents,   3423 events,  19 turns, winner=death-n-taxes, chain=99228a9168f4832f
+  replay OK (chain 99228a9168f4832f)
 ...
 ```
 
@@ -89,7 +89,7 @@ go test -run 'TestOracleRunnerContract' ./engine/rules/
 ```
 
 Avoid `make test` (`go test ./...`) as an everyday command: the full suite
-has over 11,000 top-level tests and runs in CI and after merge. Never add
+has over 12,000 top-level tests and runs in CI and after merge. Never add
 `-count=1`; it only defeats the test cache. Tests that need the corpus
 **skip** when `.cards/` is missing, so a fast green run without the corpus
 has tested very little. Every test must fit 4 GB RSS, 4 vCPU and one minute

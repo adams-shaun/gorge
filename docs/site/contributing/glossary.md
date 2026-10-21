@@ -164,12 +164,14 @@ green there, the `promote` workflow opens a `develop → main` pull request,
 which a maintainer merges with a merge commit. `main` is what this site and
 the published coverage are built from ([Branch flow](../repos/index.md#branch-flow)).
 
-**dirty-dirac.** A second, much faster two-player rules kernel for a fixed
-set of cards. Its whole game is one fixed-size value (no pointers, maps or
-slices, so a copy is a clone) driven as a `Step`/`Apply` state machine, and
-its cards are tables of *kop* instructions, mostly generated ahead of time
-from gorge's compiled cards. It is checked
-against gorge by a *lockstep oracle*. See
+**dirty-dirac.** A second, much faster rules kernel, in the private
+companion module. Its whole game is one fixed-size value (no pointers, maps
+or slices, so a copy is a clone) driven as a `Step`/`Apply` state machine,
+and its cards are tables of *kop* instructions, mostly generated ahead of
+time from gorge's compiled cards. It began as a two-player microkernel for
+two fixed card pools and is growing toward a full engine: `kgen` now lowers
+cards from the whole corpus, and play is checked against gorge by a
+*lockstep oracle*. Work in progress. See
 [the dirty-dirac kernel](../architecture/dirty-dirac/index.md).
 
 **kop.** dirty-dirac's card-effect vocabulary: a closed, append-only set of
@@ -193,12 +195,15 @@ See [Verification](../architecture/dirty-dirac/oracle.md).
 **Capacity stall.** A lockstep game dirty-dirac stops on purpose because the
 position no longer fits its fixed-size state (more objects, board slots or
 stack entries than the arrays hold). It is reported separately from a
-divergence: a stall is a known limit, not a rules disagreement.
+divergence: a stall is a known limit, not a rules disagreement. A few stall
+reasons mark interactions whose ordering dirty-dirac does not model yet,
+rather than capacity.
 
 **kgen.** The generator that lowers gorge's compiled card IR into
-dirty-dirac's kop tables, one package per set. It reads every parameter of a
-card or refuses the card. A refused card stays out of every deck dirty-dirac
-accepts. See [Cards](../architecture/dirty-dirac/cards.md).
+dirty-dirac's kop tables, as generated Go card packages. It reads every
+parameter of a card or refuses the card. A refused card stays out of every
+deck dirty-dirac accepts. A card kgen *accepts* has lowered without a
+refusal; that is weaker than a card verified in lockstep. See [Cards](../architecture/dirty-dirac/cards.md).
 
 **SpellBench v2.** An external, engine-neutral benchmark protocol for Magic
 agents ([jackmaiorino/spellbench](https://github.com/jackmaiorino/spellbench)).

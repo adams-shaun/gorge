@@ -8,7 +8,8 @@ in this repository. It covers what each repository holds, which way the
 imports run and what enforces that, licensing, how the companions pin gorge,
 and how changes reach `main`.
 
-*Verified 2026-10-20 against gorge `develop` @ `ad3777023`.*
+*Verified 2026-10-21 against gorge `develop` @ `513a2a0c3` and the two
+companions as they stood that day.*
 
 ## At a glance
 
@@ -104,16 +105,24 @@ scenario files that its own card tests load
 runner's contract check. A scenario file lives in exactly one of the two
 repositories.
 
-gorge does **not** gate on gorge-compliance. The per-set compliance figures
-on [Card support](../support/sets.md) come from it.
+gorge does **not** gate on gorge-compliance, but its published figures come
+from there. A nightly job on gorge-compliance's `main` measures every set's
+compliance status at the pinned gorge and force-pushes it as one commit to an
+orphan **`docs-data`** branch: per-set status rows for Level A and Level B,
+and a `meta.json` naming the gorge-compliance commit, the gorge pin,
+`FORGE_REF` and the date. gorge's docs build fetches that branch and renders
+the per-set table on [Card support](../support/sets.md); if the branch is
+missing, the page falls back to its committed snapshot. The same nightly
+workflow runs the `drift` check described under [Pinning](#pinning).
 
 ## four-yay
 
 four-yay is the maintainers' **private** companion module. It holds work
 built on top of gorge that is not part of the public surface: research,
 draft events, research bots, the dirty-dirac kernel, and the tooling that
-deploys the public demo. It imports gorge at a pinned commit; gorge never
-imports it, and nothing in gorge needs it to build or test. The
+deploys the public demo. It imports gorge at a pinned commit, the same way
+gorge-compliance does ([Pinning](#pinning)); gorge never imports it, and
+nothing in gorge needs it to build or test. The
 [dirty-dirac pages](../architecture/dirty-dirac/index.md) describe that
 kernel's design.
 
@@ -186,9 +195,10 @@ and **reports** what would change without failing.
 Pinning gorge also pins the card corpus: the companions read `FORGE_REF` from
 the pinned gorge's `Makefile`.
 
-To try a companion against unmerged gorge work locally, gorge-compliance
-accepts a gitignored `go.work` that points at your gorge checkout; never
-commit one, because it overrides the pin.
+Neither companion commits a `go.work` or a `replace` directive for gorge:
+the pin is the only way gorge reaches them. To try gorge-compliance against
+unmerged gorge work locally, a gitignored `go.work` that points at your gorge
+checkout works; never commit one, because it overrides the pin.
 
 ## Branch flow
 

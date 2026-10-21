@@ -31,7 +31,7 @@ def sse_wakeups(server, client, q):
     """Open /api/stream, subscribe to the table, and put a wake-up on q for
     every decision frame addressed to our seat (and once at match end)."""
     conn = http.client.HTTPConnection(server.split("//", 1)[1])
-    conn.request("GET", "/api/stream")
+    conn.request("GET", "/api/stream", headers={"Authorization": "Bearer " + client.token})
     resp = conn.getresponse()
 
     def reader():

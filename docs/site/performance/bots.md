@@ -4,8 +4,10 @@ gorge ships a handful of bot policies that a host can seat at a table. This
 page lists them with what each costs to run and the strongest measured claim
 about how well it plays, so a host operator can pick one and a bot author
 knows the baselines to beat. Every strength claim below is the one the bot
-registers in code, with the design note that measured it; every cost marked
-*measured 2026-10-20* was measured for this page.
+registers in code, with the source it names; every cost marked
+*measured 2026-10-20* was measured for this page at `ad3777023`. What each
+policy does and how to choose one is on
+[Bots and strategies](../bots/index.md#the-bots-gorge-ships).
 
 ## Where the numbers come from
 
@@ -13,8 +15,9 @@ Each policy registers itself in the bot registry
 ([`bots/registry.go`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go))
 with a `bots.Info` record: a tier, a description, `Strength` claims (each with
 the opponent, the setting and a source) and a `Cost`. `bots/all` imports the
-policies a host offers. The registry is the source of truth; this page is a
-readable copy of it as of `ad3777023` (2026-10-20).
+policies a host offers. The registry is the source of truth (a running
+server serves it at `GET /api/bot-policies`); this page is a readable copy
+of it as of `513a2a0c3` (2026-10-21).
 
 ```mermaid
 flowchart LR
@@ -27,7 +30,7 @@ flowchart LR
   end
   bp["bots/botpolicy<br/>+ bots/heuristic"] --> bot
   bp --> lp
-  bp --> fh
+  bot -- "same constructor<br/>+ Forge rule families" --> fh
   sb["bots/spellbench/builtins"] --> sbt
   mcts["bots/azmcts"] --> az
   bot -. "plays every unsearched<br/>decision" .-> az
@@ -37,18 +40,21 @@ flowchart LR
 
 | Policy | Tier | What it is | Strongest registered claim | Cost |
 |---|---|---|---|---|
-| `bot` | production | The default heuristic bot (`bots/bot`, built on `bots/heuristic` and `bots/botpolicy`). On auto-pay tables it simulates combat for attacks and blocks. It is also the opponent model inside the search seats. | 53.17% [52.68, 53.65] constructed and 53.69% [52.73, 54.64] Commander against the plain auto-pay bot, on held-out auto-pay tables (commit `66aa546dd`) | **measured 2026-10-20:** 7.5 ms per FDN game with manual taps, 9.7 ms with auto-pay, both seats, one core (134 and 103 games per core-second); about 15-22 µs per decision |
-| `lethal-pressure` | experimental | The manual-tap hosted policy with its own decision rules on auto-pay tables instead of the production bot's combat simulation | 51.65% [50.10, 53.20] against the pre-AR7 bot, held-out, manual mana | as `bot` |
-| `forge-heuristic` | experimental | The production bot with clean-room re-expressions of Forge's target-selection rules (land colour, prominent colour, fatal-copy filter) and a removal-now hold rule | 46.8% [41.9, 51.6] against `bot` over 400 games, indistinguishable from the 46.5% bot-vs-bot seat/deck control: measured inert, so it stays opt-in | as `bot` (same policy shape; not measured separately) |
-| `sb-tactical` | experimental | The SpellBench scored heuristic in its hosted shape: it prices its plays through a payment planner and scores creature values, timing, races and removal from what its seat can see | 110-18 against the SpellBench bot on the Pauper kernel benchmark seed, 87-41 on FDN mirrors; Elo 1507 against `bot`'s 1242 on the Pauper kernel | about 80 ms per game against `bot` on 8 workers (registered); per-decision time not measured |
+| `bot` | production | The default heuristic bot (`bots/bot`, built on `bots/heuristic` and `bots/botpolicy`). On auto-pay tables it simulates combat for attacks and blocks; it answers the London mulligan with Forge's rule. It is also the opponent model inside the search seats. | 53.17% [52.68, 53.65] constructed and 53.69% [52.73, 54.64] Commander against the plain auto-pay bot, on held-out auto-pay tables (commit `66aa546dd`, before the Forge mulligan); 31.5% [27.1, 36.2] against Forge's AI over 400 games (Forge bridge runs, 2026-10-20) | **measured 2026-10-20:** 7.5 ms per FDN game with manual taps, 9.7 ms with auto-pay, both seats, one core (134 and 103 games per core-second); about 15-22 µs per decision |
+| `lethal-pressure` | experimental | The plain heuristic with the AR7 lethal-pressure attack rule; no combat simulation on any table, coin mulligan | 51.65% [50.10, 53.20] against the pre-AR7 bot, held-out, manual mana | as `bot` |
+| `forge-heuristic` | experimental | The production bot's constructor with every Forge-derived rule family armed: removal timing, targeting, AI hints, deck-shape posture, attachments, spell timing, gang blocks | 32.0% [27.6, 36.7] against Forge's AI over 400 games, +0.5 points over `bot` (inside noise; Forge bridge run, 2026-10-20); 46.8% [41.9, 51.6] against `bot` before it gained the combat simulation. Rechecked 2026-10-21: 48.2% against `bot` over 1,320 games, with the bot-vs-bot control at 47.7% | as `bot` (same policy shape; not measured separately) |
+| `sb-tactical` | experimental | The SpellBench scored heuristic in its hosted shape: it prices its plays through a payment planner and scores creature values, timing, races and removal from what its seat can see | 110-18 against the SpellBench `bot` arm on the Pauper kernel decks (benchmark seed), 87-41 on FDN mirrors; Elo 1507 against `bot`'s 1242 on the Pauper kernel | about 80 ms per game against `bot` on 8 workers (registered); per-decision time not measured |
 | `az-redeal` | experimental | AlphaZero-style tree search: at each searched decision, 100 MCTS simulations over freshly re-dealt worlds rebuilt from the seat's own observations; `bot` plays every other decision | 70.5% [68.5, 72.5] against `bot` over 2,000 games (+20.5 pp over the 50.0% control); 25-simulation variant rated 1382 against `bot`'s 1264 on the Pauper kernel | 216-278 ms mean per searched decision at 100 sims, p95 380-550 ms (registered); **measured 2026-10-20:** see the MCTS row below |
 
 The strength sources are gorge design notes:
 [hosted bot packages](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-28-hosted-bot-packages.md),
 [SpellBench agent design](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-28-spellbench-agent-design.md)
 (§3.4, §12.5) and the
-[A2 target rules](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-10-19-a2-target-rules.md).
-Percentages are win rates with 95% confidence intervals.
+[A2 target rules](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-10-19-a2-target-rules.md);
+the Forge AI claims cite their bridge runs. The 2026-10-21 recheck is the
+matchup program on [Bot-vs-bot games](../guide/bot-games.md#a-fair-matchup-with-testkitbench)
+(`-pairs all -games 20`). Percentages are win rates with 95% confidence
+intervals.
 
 ## Measured cost, 2026-10-20
 
@@ -86,10 +92,10 @@ Packages the hosted bots and outside policies build on:
 | Package | What it is |
 |---|---|
 | `bots/botpolicy`, `bots/heuristic` | The one heuristic decision policy, and the bot types built on it (`NewBot`, the attack-simulation bot, the lethal-pressure bot) |
-| `bots/sanity` | The common-sense decorator the hand-written hosted bots apply (it drops, for example, a hostile effect aimed only at the seat's own permanents) |
+| `bots/sanity` | The common-sense decorator `bot`, `forge-heuristic` and `sb-tactical` apply when the host asks (`gorged -bot-common-sense`); it drops, for example, a hostile effect aimed only at the seat's own permanents |
 | `bots/azmcts` | The PUCT tree search behind `az-redeal`: one seat's searched decisions, a value leaf (a learned value head or a frozen heuristic) |
 | `bots/searchseat`, `bots/searchprobe` | A perfect-information Monte Carlo search seat, and an experimental history-conditioned search harness with a hidden-information world sampler; neither is a hosted policy |
-| `bots/policynet`, `bots/gonet`, `bots/netsimd` | A feature encoder for a learned per-option policy, a pure-Go forward pass for `.dzgw` MLP networks, and an AVX-512 version of that forward pass with a scalar fallback |
+| `bots/policynet`, `bots/gonet`, `bots/netsimd` | A feature encoder for a learned per-option policy, a pure-Go forward pass for MLP value networks, and an AVX-512 version of that forward pass with a scalar fallback |
 | `bots/spellbench` (+`builtins`, `payexec`) | gorge's side of the [SpellBench](https://github.com/jackmaiorino/spellbench) arena: benchmark deck catalogs, the ported builtin bots and `sb-tactical`, and `payexec`, which lowers a payment plan onto the manual mana surface |
 | `bots/traceboard` | The redacted per-seat board snapshot schema written into decision-trace records |
 

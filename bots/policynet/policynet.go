@@ -1,5 +1,5 @@
-// Package policynet is the feature layer of the learned per-option policy
-// (plan L9a): a deterministic, dependency-light encoder from one seat's
+// Package policynet is the feature layer of the learned per-option policy:
+// a deterministic, dependency-light encoder from one seat's
 // view.View plus its decision surface into fixed-width dense scalars and
 // hashed sparse rows, and a streaming loader for the search-teacher label
 // corpus (four-yay cmd/searchteacher -labels).
