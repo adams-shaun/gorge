@@ -55,6 +55,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 			PreCounterToughness: preCounterToughness,
 		}
 	}
+	cdaClaim := false
 	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
 		// CR 708.5's base: a face-down battlefield permanent is a 2/2
 		// creature; its printed P/T and any printed characteristic-defining
@@ -80,6 +81,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		// modify still stacks on it. staticEffects withholds the resolvable CDAs
 		// from its emission exactly so this read is not applied twice.
 		if p, tp, hp, ht := CDASetPT(b, o); hp || ht {
+			cdaClaim = true
 			if hp {
 				power = p
 			}
@@ -99,6 +101,16 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		var all bool
 		types, all = TypesAndAllCreatureTypes(b, b.Active(), id, 0)
 		types = effects.TypeMatchWords(types, all)
+	}
+	// The CDA is an ability: a layer-6 "loses all abilities" effect removes
+	// it before layer 7a applies (CR 613.1f, 613.4a), so the printed value
+	// (a star read as 0, cards.parsePT) is the base instead. Checked after
+	// the 7a basis is framed and the layer-4 types are known, and only for a
+	// face whose CDA claimed a value, so every other walk is unchanged.
+	if cdaClaim && cdaPTLost(b, active, id, o, types) {
+		power, toughness = int32(f.Power()), int32(f.Toughness())
+		basePower, baseToughness = power, toughness
+		setFrame()
 	}
 	for i := range active {
 		ce := &active[i]
@@ -193,6 +205,40 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 	power += counterDPower
 	toughness += counterDToughness
 	return power, toughness, basePower, baseToughness
+}
+
+// cdaPTLost reports whether a layer-6 "loses all abilities" effect
+// (RemoveAbilities) applies to the battlefield permanent o, so its
+// characteristic-defining P/T ability no longer exists when layer 7a is
+// applied (CR 613.1f before 613.4a; a removal takes printed abilities
+// whatever the timestamps). It is the engine's removalApplies test
+// (engine/rules/abilityloss.go) over the same active list: the shared
+// Affected$ match with the layer-4 types bound and no keyword list, then the
+// AffectedZone$ qualifier. Off the battlefield it reports false, as the
+// engine's abilityLoss does.
+func cdaPTLost(b Board, active []state.ContinuousEffect, id state.ObjID, o *state.Object, types []string) bool {
+	if o.Zone != state.ZBattlefield {
+		return false
+	}
+	if types == nil {
+		types = []string{} // bound even when empty: nil is "read the printed face"
+	}
+	for i := range active {
+		ce := &active[i]
+		if ce.Layer != state.LAbilities || !ce.RemoveAbilities {
+			continue
+		}
+		if !matchesWithChars(b, ce, id, types, nil, 0) {
+			continue
+		}
+		if ce.AffectedZone != "" && !ce.MayPlay {
+			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, state.ZBattlefield)) {
+				continue
+			}
+		}
+		return true
+	}
+	return false
 }
 
 // Compute is the full layer walk (CR 613): the object's printed values, then

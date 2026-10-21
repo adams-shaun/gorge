@@ -275,7 +275,7 @@ func foldTargetsChosen(g *state.Game, e *Event) {
 // reader takes the last; a missing object records nothing.
 func stampTarget(g *state.Game, o *state.Object, id state.ObjID) {
 	if t := g.Obj(id); t != nil {
-		o.TargetStamps = append(o.TargetStamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation})
+		o.TargetStamps = append(o.TargetStamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation, ZoneGen: t.ZoneGen})
 	}
 }
 

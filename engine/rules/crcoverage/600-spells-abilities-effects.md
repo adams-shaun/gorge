@@ -86,7 +86,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.8 | follows | `engine/rules/trigger_condition.go#Engine.stateTriggerOutstanding` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestCR603StateTriggerFiresWhenConditionBecomesTrue` | d no state triggers in pool |
 | 603.9 | follows | `engine/rules/trigmatch/ordinary.go#losesGameMatches` | - | d two players: loss ends game |
 | 603.10 | follows | `engine/rules/trigger_match.go#Engine.checkTriggers` | - | post-event state by default |
-| 603.10a | deviates | `engine/rules/trigger_kinds.go#computeFaceLookBackZones` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | g ChangesZoneAll/Sacrificed lines no look-back (cr-g24) |
+| 603.10a | partial | `engine/rules/trigger_kinds.go#looksBackOnDeparture` `engine/rules/trigger_kinds.go#computeFaceLookBackZones` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestCR603_10aMorbidOpportunistSeesItsOwnWrath` `TestCR603_10aMayhemDevilSeesSacrificesWithIt` | ChangesZone/ChangesZoneAll Origin$ Battlefield and Sacrificed lines look back at a battlefield departure; a card leaving a graveyard and a public object put into a hand or library are still matched on the board after the event |
 | 603.10b | deviates | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | d no phasing |
 | 603.10c | unknown | `engine/rules/trigmatch/unattached.go#unattachedMatches` | - | not verified |
 | 603.10d | deviates | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | g thief controls Kharn-style trigger; d none in pool |
@@ -136,7 +136,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 608.1 | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | all pass in succession |
 | 608.2 | follows | `engine/rules/stack.go#Engine.resolveTop` `engine/effects/registry.go#Resolve` | - | instant/sorcery/ability resolution steps |
 | 608.2a | follows | `engine/rules/stack.go#Engine.resolveTop` | `TestCR603InterveningIfRecheckedAtResolution` | intervening-if recheck |
-| 608.2b | partial | `engine/rules/stack.go#Engine.resolveTop` `engine/rules/stack.go#Engine.targetBecameNewObject` `engine/rules/target_legal.go#Engine.protectionSource` | `TestCR608ResolutionRechecksVinesTargetRestriction` | fizzle and partial skip follow; new-object test bumps only across battlefield (cr-g15); protection reads live source, not LKI |
+| 608.2b | partial | `engine/rules/stack.go#Engine.resolveTop` `engine/rules/stack.go#Engine.targetBecameNewObject` `engine/rules/target_legal.go#Engine.protectionSource` | `TestCR608ResolutionRechecksVinesTargetRestriction` `TestCR400_7GraveyardTargetThatLeftAndReturnedIsANewObject` `TestCR400_7AnimateDeadTargetThatLeftAndReturnedIsANewObject` | fizzle, partial skip and the new-object test (any zone change) follow; protection reads live source, not LKI |
 | 608.2c | follows | `engine/effects/registry.go#Resolve` | - | order written |
 | 608.2d | follows | `engine/rules/unless_payment.go#Engine.UnlessCostPayableFromCtx` | - | divided-untargeted half not audited |
 | 608.2e | deviates | `engine/effects/zone_bulk.go#effSacrifice` | - | per-player choose-then-act |
@@ -204,13 +204,13 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.1d | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/chars/types.go#applyTypeEffect` | - |  |
 | 613.1e | follows | `engine/rules/chars/derive.go#Compute` | `TestDerivedColorsLayerCompose` |  |
 | 613.1f | partial | `engine/rules/chars/derive.go#Compute` `engine/rules/abilityloss.go#Engine.abilityLoss` `engine/rules/abilityloss.go#Engine.grantLostTo` | `TestLayer6GrantsKeywords` `TestAbilityRemovalTimestampStillDominates` | gorge: keyword counters lost regardless of ts |
-| 613.1g | partial | `engine/rules/chars/derive.go#PT` | - | layer 7; g gaps at 613.4a/d |
+| 613.1g | partial | `engine/rules/chars/derive.go#PT` | - | layer 7; g gaps at 613.4d |
 | 613.2-613.2a | partial | `engine/state/object.go#Object.CopyFace` | - | "as enters" copiable P/T not checked |
 | 613.2b | follows | `engine/rules/chars/derive.go#Compute` `engine/rules/chars/types.go#TypesAndLandSubtypeSet` | - |  |
 | 613.2c | follows | `engine/state/object.go#Object.CopyFace` | - |  |
 | 613.3 | follows | `engine/rules/chars/types.go#TypesAndAllCreatureTypes` `engine/effects/colors.go#ColorMaskOf` | `TestChangelingTypeCDASettlesBeforeAbilityRemoval` |  |
-| 613.4 | partial | `engine/rules/chars/derive.go#PT` | - | layer 7 sublayers; g 7a/7d gaps |
-| 613.4a | deviates | `engine/rules/chars/derive.go#PT` `engine/rules/chars/cda.go#CDASetPT` | - | gorge keeps CDA P/T after ability loss (cr-g39) |
+| 613.4 | partial | `engine/rules/chars/derive.go#PT` | - | layer 7 sublayers; g 7d gap |
+| 613.4a | follows | `engine/rules/chars/derive.go#PT` `engine/rules/chars/derive.go#cdaPTLost` `engine/rules/chars/cda.go#CDASetPT` | `TestCR613_4aCDAPTLostUnderDressDown` `TestCR613_4aCDAPTLossKillsConsumingAberration` `TestCR613_4aCDAPTGuards` | - |
 | 613.4b | follows | `engine/rules/chars/derive.go#PT` | `TestSetBeforeModifyRegardlessOfTimestamp` `TestCardBasePowerStopsAtLayer7bAndDrivesCount` | - |
 | 613.4c | follows | `engine/rules/chars/derive.go#PT` | - | order-equivalent |
 | 613.4d | not-impl | `engine/state/continuous.go#SubSwitch` `engine/rules/chars/derive.go#PT` | - | SILENT; SubSwitch never consumed, 27 corpus cards (cr-g37) |
@@ -221,9 +221,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.7b | follows | `engine/rules/layers_effect.go#Engine.AddContinuous` | - | - |
 | 613.7c | partial | `engine/rules/chars/derive.go#BaseKeywords` | - | keyword counters at base; P/T counters order-irrelevant |
 | 613.7d | follows | `engine/events/apply_zone.go#move` | - |  |
-| 613.7e | deviates | `engine/events/apply_zone.go#foldAttach` `engine/events/apply_zone.go#move` | - |  |
-| 613.7f | deviates | `engine/events/apply_copy.go#foldTurnFaceUp` `engine/events/apply_copy.go#foldTurnFaceDown` | - | no restamp on face change (cr-g38) |
-| 613.7g | deviates | `engine/events/apply_copy.go#foldFlipFace` | - | no restamp on transform; another engine does (cr-g38) |
+| 613.7e | follows | `engine/events/apply_zone.go#foldAttach` `engine/events/apply_zone.go#restampLayer` `engine/state/object.go#Object.LayerTimestamp` | `TestEquipAfterAbilityLossRestampsTheEquipment` `TestEquipBeforeAbilityLossStaysLost` | restamps LayerStamp; entry Timestamp kept as identity |
+| 613.7f | follows | `engine/events/apply_copy.go#foldTurnFaceUp` `engine/events/apply_copy.go#foldTurnFaceDown` `engine/events/apply_zone.go#restampLayer` | `TestTurnFaceUpRestampsThePermanent` |  |
+| 613.7g | follows | `engine/events/apply_copy.go#foldFlipFace` `engine/events/apply_zone.go#restampLayer` | `TestTransformRestampsThePermanent` | transforming DFC on the battlefield only |
 | 613.7h | unknown | - | - | variant cards |
 | 613.7i | unknown | - | - | - |
 | 613.7j | unknown | - | - | - |

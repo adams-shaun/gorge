@@ -1374,7 +1374,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// A "from anywhere" graveyard trigger is NOT a leaves-the-
 				// battlefield trigger (CR 603.6c), even when this particular
 				// move happens to leave the battlefield. Only the explicit
-				// battlefield-origin shape looks back; destination triggers
+				// battlefield-origin shapes and the sacrifice line look back
+				// (CR 603.10a, looksBackOnDeparture); destination triggers
 				// still use the post-event source/zone in the live walk.
 				// (split first: the Origin$ map read is only needed on a split
 				// leaves-the-battlefield walk.) Mode$ Unattached looks back the

@@ -163,7 +163,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 		for _, id := range e.IDs {
 			if t := g.Obj(id); t != nil {
 				targets = append(targets, state.Target{Obj: id})
-				stamps = append(stamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation})
+				stamps = append(stamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation, ZoneGen: t.ZoneGen})
 			}
 		}
 		if len(targets) != len(division) {
@@ -526,7 +526,14 @@ func foldClonePermanent(g *state.Game, e *Event) {
 func foldFlipFace(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil && o.Card != nil &&
 		e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
+		turned := o.FaceIdx != uint8(e.Amount)
 		o.SetFaceIdx(uint8(e.Amount))
+		// CR 613.7g: a transforming double-faced permanent that changes face
+		// on the battlefield transformed. A flip card (CR 710) and a face
+		// chosen off the battlefield are not transforms.
+		if turned && o.Card.IsTransformingDFC() {
+			restampLayer(g, o)
+		}
 	}
 }
 
@@ -538,6 +545,7 @@ func foldTurnFaceDown(g *state.Game, e *Event) {
 		o.FaceDownSetType = setType
 		o.FaceDownPower, o.FaceDownToughness = power, toughness
 		o.FaceDownHasPT = hasPT
+		restampLayer(g, o) // CR 613.7f
 	}
 }
 
@@ -555,5 +563,6 @@ func foldTurnFaceUp(g *state.Game, e *Event) {
 		o.FaceDownPower = 0
 		o.FaceDownToughness = 0
 		o.FaceDownHasPT = false
+		restampLayer(g, o) // CR 613.7f
 	}
 }

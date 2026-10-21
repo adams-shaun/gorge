@@ -7,6 +7,9 @@ package cards
 const (
 	AlternateDoubleFaced = "DoubleFaced"
 	AlternateModal       = "Modal"
+
+	// AlternateSplit is a split card (CR 709), Rooms and Aftermath included.
+	AlternateSplit = "Split"
 )
 
 // BackFaceIsBattlefieldOnly reports whether c is a two-faced card of either

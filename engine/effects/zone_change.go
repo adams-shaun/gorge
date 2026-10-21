@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -269,6 +270,27 @@ func dropDelayedRememberedMoved(h Host, c *Ctx, targets []state.Target) []state.
 		if moved && out == nil {
 			out = append(make([]state.Target, 0, len(targets)), targets[:i]...)
 		} else if !moved && out != nil {
+			out = append(out, t)
+		}
+	}
+	if out == nil {
+		return targets
+	}
+	return out
+}
+
+// dropTriggerRememberedMoved removes from a Defined$ TriggeredCard mover's
+// list every non-player target listed in c.TriggerRememberedMoved: the
+// object changed zones between the trigger firing and the start of its
+// resolution, so it is a new object the trigger cannot find (CR 400.7).
+// Moves the resolution itself makes are never listed (CR 400.7j).
+func dropTriggerRememberedMoved(c *Ctx, targets []state.Target) []state.Target {
+	var out []state.Target
+	for i, t := range targets {
+		drop := !t.IsPlayer && slices.Contains(c.TriggerRememberedMoved, t.Obj)
+		if drop && out == nil {
+			out = append(make([]state.Target, 0, len(targets)), targets[:i]...)
+		} else if !drop && out != nil {
 			out = append(out, t)
 		}
 	}
@@ -740,6 +762,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if cz.DefinedDelayRemembered {
 		targets = dropDelayedRememberedMoved(h, c, targets)
+	}
+	if cz.DefinedTriggered && len(c.TriggerRememberedMoved) > 0 {
+		targets = dropTriggerRememberedMoved(c, targets)
 	}
 	if to == state.ZLibrary && objectPathShuffleOwed(cz) && cz.ShuffleNonMandatory &&
 		!objectPathMayShuffle(h, c, sa, targets) {
