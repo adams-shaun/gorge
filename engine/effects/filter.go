@@ -1947,16 +1947,16 @@ func nameCharacteristics(o *state.Object) []string {
 	if names, room := roomNames(o); room {
 		return names
 	}
-	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
-	if offPlay && o.Card.AlternateMode == "Split" {
+	if halves, ok := o.SplitHalves(); ok {
 		var names []string
-		for _, f := range o.Card.Faces {
-			if f != nil && f.Name != "" {
+		for _, f := range halves {
+			if f.Name != "" {
 				names = append(names, f.Name)
 			}
 		}
 		return names
 	}
+	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
 	f := o.Face()
 	if offPlay && len(o.Card.Faces) != 0 {
 		f = o.Card.Faces[0]
@@ -2507,7 +2507,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// Colour predicates must use the layer-5 derived colours when rules
 	// supplies them: the map's legacy colour functions carry no SpecContext,
 	// so with a table bound they fall through to the word path below.
-	if fn, ok := predicates[p]; ok && !(len(sc.Layers.DerivedColors) != 0 && colourMapPredicate(p)) {
+	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc)) && colourMapPredicate(p)) {
 		return fn(g, o, sc.You, sc.Source), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
@@ -2714,6 +2714,12 @@ type SpecContext struct {
 	// announced spell as the cast spell it is; nothing else reads it, and it
 	// is absent from every resolution- and target-time evaluation.
 	AsStack bool
+	// AsSpellHalf is the same class of DERIVED-CHARACTERISTICS override:
+	// rules' spellSpecCtx sets it while a cast restriction or cost modifier
+	// reads a card still in its origin zone as the spell its current face
+	// would be (CR 601.3a/709.3a), so a split card's halves are not combined
+	// (CR 709.4) for that read. Absent from every other evaluation.
+	AsSpellHalf bool
 	// AsFaceDown is the same class of DERIVED-CHARACTERISTICS override for
 	// the faceDown predicate: a Moved replacement's ValidCard$ is evaluated
 	// ahead of the Move it intercepts, so the entering object is not yet
@@ -2994,8 +3000,10 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	// discipline the layer walk keeps for ExtraTypes (engine/rules/layers.go), scoped
 	// here to the one object that actually carries a change.
 	cs := compiledSpecFor(spec)
+	// A split card read as the spell being cast (splitReadAsSpell) is the
+	// same kind of override: the programs read its combined colours.
 	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
-		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) {
+		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
 		case PredicateYes:
 			return true
