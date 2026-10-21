@@ -71,21 +71,24 @@ func (w *legalWalk) add(kind, label string, obj state.ObjID) {
 
 // hyp is the pricing mode the walk runs in: nil is the ordinary real-pool
 // offer walk; non-nil is the potential-action walk's hypothetical bound.
-// The two affordability gates below are the ONLY pricing difference:
+// The three affordability gates below are the ONLY pricing difference:
 // every non-mana part (Sac/Discard/SubCounter/Tap) is checked against the
 // REAL state in both modes -- floating mana never satisfies a sacrifice --
 // and the cost composition (offerCostFor) is pool-independent, so the
-// two walks cannot drift inside the body they share.
+// two walks cannot drift inside the body they share. The CantBeCast gate
+// prices CR 601.3a's candidate X announcements against the same pool, so
+// each read is counted: a block whose restriction answer depends on the
+// pool must never be served to the other walk (walk_block_reuse.go).
 func (w *legalWalk) castRestricted(p state.PlayerID, id state.ObjID) bool {
-	return w.e.castRestrictedPrinted(w.actionStatics.get().cantCast, p, id)
+	return w.e.castRestrictedPrinted(w.actionStatics.get().cantCast, p, id, w.pricing())
 }
 
 // castRestrictedCost is castRestricted for an alternative cast route whose
 // cast will pay cost: the CR 601.3a X lookahead applies only when cost
 // itself carries {X} (CR 107.3b), and the candidate X values are priced
-// over it (castRestrictedCost).
+// over it (castRestrictedCost) against the walk's pricing pool.
 func (w *legalWalk) castRestrictedCost(p state.PlayerID, id state.ObjID, cost Cost) bool {
-	return w.e.castRestrictedCost(w.actionStatics.get().cantCast, p, id, cost)
+	return w.e.castRestrictedCost(w.actionStatics.get().cantCast, p, id, cost, w.pricing())
 }
 
 func (w *legalWalk) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
@@ -204,8 +207,13 @@ func (w *legalWalk) offerCastableAsFace(p state.PlayerID, id state.ObjID, face *
 // recheckIllegal sees it after the real flip.
 func (w *legalWalk) castRestrictedAsFace(p state.PlayerID, id state.ObjID, face *cards.Face) bool {
 	statics := w.actionStatics.get().cantCast
+	// The CR 601.3a X lookahead prices against the walk's pricing pool, so
+	// the read is counted before the probe (walk_block_reuse.go): a
+	// restriction answer that depends on the pool must not be reused across
+	// walks.
+	hyp := w.pricing()
 	return w.e.offerAsFace(id, face, func() bool {
-		return w.e.castRestrictedPrinted(statics, p, id)
+		return w.e.castRestrictedPrinted(statics, p, id, hyp)
 	})
 }
 

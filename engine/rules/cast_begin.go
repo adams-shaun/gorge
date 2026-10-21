@@ -837,7 +837,7 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	if withoutManaCost || playCost != "" {
 		restricted = e.castRestrictedFree(p, id)
 	} else {
-		restricted = e.castRestrictedPrinted(e.activeStatics("CantBeCast"), p, id)
+		restricted = e.castRestrictedPrinted(e.activeStatics("CantBeCast"), p, id, nil)
 	}
 	if restricted {
 		e.emit(events.Event{Kind: events.Note, Player: p, Obj: id,
