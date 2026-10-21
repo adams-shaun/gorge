@@ -145,6 +145,25 @@ func TestCR508_4NajeelaTokenOwnerIsTheChooser(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// moveSeededCardInStep is moveSeededCard without its toMain1 drive: the
+// combat tests must stay in the declare-attackers step while they seed the
+// battlefield.
+func moveSeededCardInStep(t *testing.T, e *Engine, p state.PlayerID, c *cards.Card, to state.Zone) state.ObjID {
+	t.Helper()
+	name := c.Faces[0].Name
+	for _, z := range []state.Zone{state.ZLibrary, state.ZHand} {
+		for _, id := range e.G.Zone(z, p) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+				e.pending = nil
+				return id
+			}
+		}
+	}
+	t.Fatalf("seeded card %q not found in seat %d's library or hand", name, p)
+	return 0
+}
+
 // tokenForgeAttackingSrc is the authored maker whose token enters attacking
 // without naming a defender, so the CR 508.4 chooser path runs.
 func tokenForgeAttackingSrc(script string) string {
@@ -164,11 +183,18 @@ func TestCR508_4CraftyCutpurseRedirectedTokenDoesNotAttackItself(t *testing.T) {
 	jace := lookup(t, searchTestRegistry(t), "Jace, the Mind Sculptor")
 	maker := cardByName(t, tokenForgeAttackingSrc("g_1_1_squirrel"))
 	e, cfg := tokenReplGameSeats(t, 1391, []*cards.Card{cutpurse, jace}, []*cards.Card{maker})
-	driveToTurn(t, e, e.G.Turn+1, 1)
-	toMain1(t, e)
-	jaceID := moveSeededCard(t, e, 0, jace, state.ZBattlefield)
+	// The maker is activated during seat 1's declare-attackers step: only
+	// there does the no-trigger-context arm have a combat to enter.
+	driveToStep(t, e, 2, 1, state.StepDeclareAttackers)
+	if d := e.Pending(); d != nil && d.Kind == decision.KAttackers {
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player}); err != nil {
+			t.Fatalf("submit no attackers: %v", err)
+		}
+	}
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0})
+	jaceID := moveSeededCardInStep(t, e, 0, jace, state.ZBattlefield)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: jaceID, Counter: "LOYALTY", Amount: 3})
-	cutID := moveSeededCard(t, e, 0, cutpurse, state.ZBattlefield)
+	cutID := moveSeededCardInStep(t, e, 0, cutpurse, state.ZBattlefield)
 	if o := e.G.Obj(cutID); o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 {
 		t.Fatalf("precondition: Crafty Cutpurse = %+v, want battlefield under seat 0", o)
 	}
@@ -180,8 +206,8 @@ func TestCR508_4CraftyCutpurseRedirectedTokenDoesNotAttackItself(t *testing.T) {
 		t.Fatal("Crafty Cutpurse's ETB trigger did not reach the stack")
 	}
 	passUntilStackEmpty(t, e, 30)
-	m := moveSeededCard(t, e, 1, maker, state.ZBattlefield)
-	addMana(t, e, 1, "")
+	m := moveSeededCardInStep(t, e, 1, maker, state.ZBattlefield)
+	e.Advance()
 	submitChoices(t, e, abilityOption(t, e, m, 0).Index)
 	drainAnsweringEnteringDefender(t, e, 40, func(d *decision.Decision) int {
 		return d.Options[0].Index
