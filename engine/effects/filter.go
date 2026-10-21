@@ -1910,7 +1910,9 @@ func startsFilterAlternative(s string) bool {
 // they reach here -- see hasEffectiveName for why it cannot be folded into
 // this function's return value.
 func nameCharacteristics(o *state.Object) []string {
-	if o == nil || o.Card == nil {
+	// CR 708.2a/201.2a: a face-down permanent or spell has no name, so it
+	// shares a name with nothing.
+	if o == nil || o.Card == nil || o.FaceDownHidden() {
 		return nil
 	}
 	// CR 709.5: a battlefield Room's names are its unlocked doors' names --
@@ -1960,9 +1962,6 @@ func namePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 func hasNoName(o *state.Object, sc SpecContext) bool {
 	if o == nil || o.Card == nil || hasEffectiveName(o, sc) {
 		return false
-	}
-	if o.FaceDown && (o.Zone == state.ZBattlefield || o.Zone == state.ZStack) {
-		return true
 	}
 	return len(nameCharacteristics(o)) == 0
 }
