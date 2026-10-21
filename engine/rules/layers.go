@@ -768,6 +768,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 								// MayLookAt$ Player is "play with ... revealed": every player sees the card (CR 401.5).
 								lv.MayLookAtAll = isPlayer
 								lv.AffectedZone = st.ParamStr(cards.PKAffectedZone)
+								lv.MayPlayPlayer = st.ParamStr(cards.PKMayPlayPlayer)
 								out = append(out, lv)
 							}
 						}

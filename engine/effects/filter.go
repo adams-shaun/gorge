@@ -745,6 +745,33 @@ type LayerTables struct {
 	// that per-candidate bind, the same immutable value-slice shape as
 	// DerivedTypes/DerivedColors and nil on the common board.
 	DerivedKeywords []ObjectKeywords
+	// CDAPTs optionally supplies the current and base P/T of every object,
+	// in ANY zone, whose face prints a characteristic-defining P/T (a star,
+	// cards.Face.CharacteristicDefining): rules' Derived values, which apply
+	// the CDA wherever the card is (CR 604.3), so a filter's power predicate
+	// reads Consuming Aberration in a library as its CDA value and never its
+	// printed star as 0 (CR 208.2a). Consulted only when the candidate has no
+	// per-object DerivedPower/BasePower bind. The same immutable value-slice
+	// shape as DerivedTypes; built on demand (LayerCDAPT) and nil when no such
+	// object exists.
+	CDAPTs []ObjectPT
+}
+
+// ObjectPT binds one object to its current and base (through layer 7b)
+// power and toughness.
+type ObjectPT struct {
+	ID                                         state.ObjID
+	Power, Toughness, BasePower, BaseToughness int32
+}
+
+// cdaPT returns o's entry in the CDAPTs table.
+func (t *LayerTables) cdaPT(id state.ObjID) (*ObjectPT, bool) {
+	for i := range t.CDAPTs {
+		if t.CDAPTs[i].ID == id {
+			return &t.CDAPTs[i], true
+		}
+	}
+	return nil, false
 }
 
 // keywordPredicateMatches reads bare keyword predicates through keywordInCtx
@@ -1920,16 +1947,16 @@ func nameCharacteristics(o *state.Object) []string {
 	if names, room := roomNames(o); room {
 		return names
 	}
-	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
-	if offPlay && o.Card.AlternateMode == "Split" {
+	if halves, ok := o.SplitHalves(); ok {
 		var names []string
-		for _, f := range o.Card.Faces {
-			if f != nil && f.Name != "" {
+		for _, f := range halves {
+			if f.Name != "" {
 				names = append(names, f.Name)
 			}
 		}
 		return names
 	}
+	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
 	f := o.Face()
 	if offPlay && len(o.Card.Faces) != 0 {
 		f = o.Card.Faces[0]
@@ -2480,7 +2507,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// Colour predicates must use the layer-5 derived colours when rules
 	// supplies them: the map's legacy colour functions carry no SpecContext,
 	// so with a table bound they fall through to the word path below.
-	if fn, ok := predicates[p]; ok && !(len(sc.Layers.DerivedColors) != 0 && colourMapPredicate(p)) {
+	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc)) && colourMapPredicate(p)) {
 		return fn(g, o, sc.You, sc.Source), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
@@ -2687,6 +2714,12 @@ type SpecContext struct {
 	// announced spell as the cast spell it is; nothing else reads it, and it
 	// is absent from every resolution- and target-time evaluation.
 	AsStack bool
+	// AsSpellHalf is the same class of DERIVED-CHARACTERISTICS override:
+	// rules' spellSpecCtx sets it while a cast restriction or cost modifier
+	// reads a card still in its origin zone as the spell its current face
+	// would be (CR 601.3a/709.3a), so a split card's halves are not combined
+	// (CR 709.4) for that read. Absent from every other evaluation.
+	AsSpellHalf bool
 	// AsFaceDown is the same class of DERIVED-CHARACTERISTICS override for
 	// the faceDown predicate: a Moved replacement's ValidCard$ is evaluated
 	// ahead of the Move it intercepts, so the entering object is not yet
@@ -2967,8 +3000,10 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	// discipline the layer walk keeps for ExtraTypes (engine/rules/layers.go), scoped
 	// here to the one object that actually carries a change.
 	cs := compiledSpecFor(spec)
+	// A split card read as the spell being cast (splitReadAsSpell) is the
+	// same kind of override: the programs read its combined colours.
 	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
-		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) {
+		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
 		case PredicateYes:
 			return true
