@@ -102,6 +102,15 @@ func (o *Object) SplitHalves() ([]*cards.Face, bool) {
 	return o.splitHalvesIn(o.Zone)
 }
 
+// SplitHalvesAsSpell is SplitHalves for o read as the spell its current face
+// would be (CR 601.3a/709.3a): combined only when it is fused.
+func (o *Object) SplitHalvesAsSpell() ([]*cards.Face, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.splitHalvesIn(ZStack)
+}
+
 func (o *Object) splitHalvesIn(zone Zone) ([]*cards.Face, bool) {
 	c := o.Card
 	if c == nil || c.AlternateMode != cards.AlternateSplit || len(c.Faces) != 2 || c.Faces[0] == nil || c.Faces[1] == nil ||

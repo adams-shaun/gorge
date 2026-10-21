@@ -128,6 +128,15 @@ func hasTypePrinted(o *state.Object, t string, id cards.TypeWordID) (typeDecisio
 	if f.TypeLineHas(t, id) {
 		return typeYes, f
 	}
+	// CR 709.4c: a split card whose halves are combined has each card type
+	// on either half (Commit // Memory is an instant and a sorcery card).
+	if halves, ok := o.SplitHalves(); ok {
+		for _, h := range halves {
+			if h != f && h.TypeLineHas(t, id) {
+				return typeYes, f
+			}
+		}
+	}
 	return typeUndecided, f
 }
 
@@ -253,7 +262,12 @@ func hasTypeCtxPtrID(o *state.Object, t string, id cards.TypeWordID, sc *SpecCon
 		}
 		return d.AllCreatureTypes && changelingType(t)
 	}
-	// No derived entry: the printed face plus intrinsic CDAs, as before.
+	// No derived entry: the printed face plus intrinsic CDAs, as before. A
+	// split card read as the spell being cast has its current half's types
+	// only (CR 709.3a).
+	if splitReadAsSpell(o, sc) {
+		return o.Face().TypeLineHas(t, id) || IntrinsicAllCreatureTypes(o) && changelingType(t)
+	}
 	return hasTypeID(o, t, id)
 }
 
@@ -279,6 +293,9 @@ func hasTypeCtxSub(o *state.Object, t string, id cards.TypeWordID, sub bool, sc 
 			}
 		}
 		return sub && d.AllCreatureTypes
+	}
+	if splitReadAsSpell(o, sc) {
+		return o.Face().TypeLineHas(t, id) || sub && IntrinsicAllCreatureTypes(o)
 	}
 	return hasTypeSub(o, t, id, sub)
 }
