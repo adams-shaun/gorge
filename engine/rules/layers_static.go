@@ -281,7 +281,9 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 // remains exiled", MayLookAt$ You over Card.IsRemembered in exile): the
 // static's Affected$ spec matches id and its controller is p (every
 // exile-zone MayLookAt$ value in the corpus is You or True, the static's
-// controller -- layers.go's MayLookAt branch). The view's optional
+// controller -- layers.go's MayLookAt branch). The controller is the default
+// looker; a MayPlayPlayer$ Exiler value (Shared Fate) names the player
+// recorded in Object.ExiledBy instead. The view's optional
 // MayLookAtFaceDown capability (engine/view/card.go mayLookFaceDown), so the
 // face is shown to exactly the seat the grant names (CR 406.3; cr-g64). A
 // read over active()'s sorted slice; the answer is boolean.
@@ -292,7 +294,17 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if !ce.MayLookAt || ce.Controller != p {
+		if !ce.MayLookAt {
+			continue
+		}
+		you := ce.Controller
+		switch {
+		case mayPlayExiler(ce.MayPlayPlayer):
+			if !o.HasExiledBy || o.ExiledBy != p {
+				continue
+			}
+			you = p
+		case ce.Controller != p:
 			continue
 		}
 		// A printed static may grant a look at another zone (Enduring
@@ -306,12 +318,15 @@ func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
 		// through the effect's Remembered set: its Affected$ Card.IsRemembered
 		// matches under the same context the effect's may-play grant uses.
 		if len(ce.Remembered) > 0 {
+			if you != ce.Controller {
+				continue
+			}
 			if e.matchesSpec(ce.Affects, id, e.effectGrantSpecContext(ce)) {
 				return true
 			}
 			continue
 		}
-		if e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
+		if e.matchesSpecFrom(ce.Affects, id, you, ce.Source) {
 			return true
 		}
 	}

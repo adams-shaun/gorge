@@ -274,13 +274,15 @@ func (e *Engine) sbaQuietEvent(ev *events.Event) bool {
 //     controller has a legend pair: legendGroups reads the statics only past
 //     its mayHaveLegendPair gate, and no quiet kind can form a pair (a quiet
 //     entry is never printed Legendary, and phasing and control moves are
-//     not quiet);
+//     not quiet); sbaQuietEntry rejects a derived-Legendary entry, so a
+//     granted Legendary cannot form one either);
 //   - no Aura is attached to a player, and every Aura attached to an object
 //     has a local derived Enchant spec (specLocal: attachmentSBAs matches it
 //     against the bearer, and a non-local spec -- tapped, a count -- could
 //     flip on a quiet event).
 func (e *Engine) sbaQuietKindsSafe() bool {
 	pair := false
+	anyLType := e.activeHasLType()
 	for _, p := range e.G.AliveFrom(0) {
 		legends := 0
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -289,7 +291,7 @@ func (e *Engine) sbaQuietKindsSafe() bool {
 				continue
 			}
 			// mayHaveLegendPair's own count, fused into this scan.
-			if !pair && !o.PhasedOut && o.Face() != nil && o.Face().IsLegendary() {
+			if !pair && !o.PhasedOut && o.Face() != nil && e.sbaTypeFast(o, sbaLegendary, anyLType) {
 				if legends++; legends >= 2 {
 					pair = true
 				}
@@ -372,7 +374,8 @@ func (e *Engine) verifySBAQuiet(ep0 int) {
 //     read: an unattached Aura is binned);
 //   - not printed Legendary, World, planeswalker, battle or Saga (the legend
 //     and world rules and the loyalty/defense/chapter walks read the printed
-//     face, or the derived World with a layer-4 effect live -- hasType);
+//     face, or the derived Legendary/World with a layer-4 effect live --
+//     hasType);
 //   - not a creature, or a creature whose toughness is above zero.
 //
 // No later quiet event can change any of these (each would need a counter,
@@ -393,7 +396,7 @@ func (e *Engine) sbaQuietEntry(id state.ObjID) bool {
 	if n, _ := chapterSpec(f); n != 0 {
 		return false
 	}
-	if e.isAura(o) || e.hasType(o, "World") {
+	if e.isAura(o) || e.hasType(o, "World") || e.hasType(o, "Legendary") {
 		return false
 	}
 	return !e.IsCreature(id) || e.Toughness(id) > 0

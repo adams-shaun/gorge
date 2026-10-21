@@ -698,7 +698,8 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 // (cr-g47; CR 401.2, CR 406.3, CR 701.20e).
 func digSecretTo(ev *events.Event, chooser, owner state.PlayerID, saw bool) state.PlayerID {
 	switch ev.Counter {
-	case "exiled_with_face_down_maylook", "exiled_with_face_down_maylook_foretold":
+	case "exiled_with_face_down_maylook", "exiled_with_face_down_maylook_foretold",
+		"exiled_with_face_down_exiler", "exiled_with_face_down_exiler_foretold":
 		return state.PlayerID(ev.Amount)
 	}
 	if saw {
