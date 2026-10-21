@@ -193,82 +193,9 @@ func (e *Engine) madnessReplacementApplies(ev events.Event) bool {
 	return ok
 }
 
-func (e *Engine) parkMadnessDiscard(ev events.Event) {
-	o := e.G.Obj(ev.Obj)
-	if o == nil {
-		return
-	}
-	owner := o.Owner
-	if int(owner) >= len(e.G.Players) || e.G.Players[owner].Lost {
-		e.applyingMadnessChoice = true
-		e.emit(ev)
-		e.applyingMadnessChoice = false
-		return
-	}
-	e.madnessChoices = append(e.madnessChoices, ev)
-	if e.pending == nil {
-		e.askMadnessReplacement(owner)
-	}
-}
-
-func (e *Engine) askMadnessReplacement(owner state.PlayerID) {
-	ev := e.madnessChoices[0]
-	name := "this card"
-	if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil {
-		name = o.Face().Name
-	}
-	d := &decision.Decision{Player: owner, Kind: decision.KReplacement,
-		Min: 1, Max: 1, Source: ev.Obj,
-		Prompt: "Exile " + name + " instead of discarding it to use madness?",
-		Options: []decision.Option{
-			{Index: 0, Kind: "madness_exile", Label: "Exile it (madness)", Obj: ev.Obj},
-			{Index: 1, Kind: "madness_graveyard", Label: "Discard it normally", Obj: ev.Obj},
-		}}
-	// A discard made by a RESOLVING spell or ability (Kindle the Carnage's
-	// random discard, a Repeat body) must suspend that resolution on the
-	// madness ask, exactly as askReplacementChoice and tokenElectionAsk do.
-	// A bare e.ask left the effect chain running past the park: the next
-	// sub-ability's own question (Kindle's "Repeat this process?") went
-	// through Engine.Ask and displaced the madness ask, whose answer was
-	// then never taken -- the parked discard never moved, the card stayed
-	// in hand and was "discarded" again on every repeat, and the bot
-	// repeated forever (cardfuzz batch8 line 1). Through Engine.Ask the
-	// effects.Resolve loops record their continuation, and the last madness
-	// answer resumes it (handleMadnessReplacement). A pose already under a
-	// resume record, or with nothing resolving, keeps the plain ask.
-	if e.pending == nil && (e.resolvingObj != 0 || e.applyingReplacement) {
-		d.ResumeKind = "replacement"
-		// Under the resolution kernel the election is answered in place (W3
-		// step 5): the discard moves, to exile or the graveyard, at the point
-		// of the discard.
-		if in, ok := parkTapeAnswer(e, d); ok {
-			e.handle(d, in)
-			return
-		}
-	}
-	e.ask(d)
-}
-
-func (e *Engine) handleMadnessReplacement(d *decision.Decision, in decision.Intent) {
-	if len(e.madnessChoices) == 0 {
-		return
-	}
-	ev := e.madnessChoices[0]
-	e.madnessChoices = e.madnessChoices[1:]
-	chosen := d.Chosen(in)
-	if len(chosen) == 1 && chosen[0].Kind == "madness_exile" {
-		ev.To = state.ZExile
-		ev.Text = "discarded (madness exile)"
-	}
-	e.applyingMadnessChoice = true
-	e.emit(ev)
-	e.applyingMadnessChoice = false
-	e.askNextReplacementChoice()
-}
-
-// offerMadness queues the triggered ability created by accepting madness's
-// optional discard replacement (CR 702.35a-b). The accepted replacement emits
-// a marked hand-to-exile move; matching both that marker and the zone pair
+// offerMadness queues the triggered ability created by madness's mandatory
+// discard replacement (CR 702.35a-b). The replacement emits a marked
+// hand-to-exile move; matching both that marker and the zone pair
 // prevents an unrelated exile from creating the cast window.
 func (e *Engine) offerMadness(ev events.Event) {
 	o := e.G.Obj(ev.Obj)
@@ -549,6 +476,25 @@ func (e *Engine) mayhemDiscardedThisTurn(p state.PlayerID, id state.ObjID) bool 
 }
 
 func (e *Engine) foretellCastAvailable(id state.ObjID) bool {
+	idx := e.foretoldExileIndex(id)
+	if idx < 0 {
+		return false
+	}
+	log := e.L.Events
+	for i := idx + 1; i < len(log); i++ {
+		if log[i].Kind == events.TurnChange {
+			return true
+		}
+	}
+	return false
+}
+
+// foretoldExileIndex is foretellCastAvailable's provenance half (steps 1 and 2,
+// and the effect-granted counter form): the log index of id's most recent
+// MoveZone to exile when that exile foretold it, or -1. It reads no "later
+// turn" gate, so the CR 903.9a ask (exileCastPermission) can name a foretold
+// commander in the same turn it was foretold.
+func (e *Engine) foretoldExileIndex(id state.ObjID) int {
 	log := e.L.Events
 	exileIdx := -1
 	for i := len(log) - 1; i >= 0; i-- {
@@ -558,39 +504,24 @@ func (e *Engine) foretellCastAvailable(id state.ObjID) bool {
 		}
 	}
 	if exileIdx < 0 {
-		return false
+		return -1
 	}
 	// Effect-granted foretelling uses one MoveZone event whose counter carries
 	// the designation; it must survive a battlefield departure's flag reset.
-	if log[exileIdx].Counter == "exiled_with_face_down_foretold" {
-		for i := exileIdx + 1; i < len(log); i++ {
-			if log[i].Kind == events.TurnChange {
-				return true
-			}
-		}
-		return false
+	if c := log[exileIdx].Counter; c == "exiled_with_face_down_foretold" || c == "exiled_with_face_down_maylook_foretold" {
+		return exileIdx
 	}
-	foretoldIdx := -1
 	for i := exileIdx - 1; i >= 0; i-- {
 		ev := log[i]
 		if ev.Kind == events.MoveZone && ev.Obj == id {
 			// An intervening move between the flag stamp and this exile:
 			// the exile is not the foretell action's own, whatever preceded it.
-			return false
+			return -1
 		}
 		if ev.Kind == events.CastInfo && ev.Obj == id &&
 			events.FlagsFrom(ev.Counter)&state.FlagForetold != 0 {
-			foretoldIdx = i
-			break
+			return exileIdx
 		}
 	}
-	if foretoldIdx < 0 {
-		return false
-	}
-	for i := exileIdx + 1; i < len(log); i++ {
-		if log[i].Kind == events.TurnChange {
-			return true
-		}
-	}
-	return false
+	return -1
 }

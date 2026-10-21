@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -124,12 +125,57 @@ func (e *Engine) surveilNumValue(sv staticView) (int32, bool) {
 	return v, true
 }
 
-// castRestricted reports whether p is forbidden from casting id (CantBeCast).
+// castRestricted reports whether p is forbidden from casting id (CantBeCast)
+// as an ordinary cast at the current face's printed cost, the only cast whose
+// CR 601.3a announcement is the printed {X}.
 func (e *Engine) castRestricted(p state.PlayerID, id state.ObjID) bool {
-	return e.castRestrictedUsing(e.activeStatics("CantBeCast"), p, id)
+	return e.castRestrictedPrinted(e.activeStatics("CantBeCast"), p, id, nil)
 }
 
-func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id state.ObjID) bool {
+// castRestrictedFree is castRestricted for a cast that pays NO mana cost (a
+// free Play, Suspend's exiled cast, cascade's election, a plotted card): such
+// a cast announces no {X} (CR 107.3b fixes X at 0), so no choice can change
+// its mana value and CR 601.3a's lookahead cannot apply.
+func (e *Engine) castRestrictedFree(p state.PlayerID, id state.ObjID) bool {
+	return e.castRestrictedCost(e.activeStatics("CantBeCast"), p, id, Cost{}, nil)
+}
+
+// castRestrictedPrinted gates a cast that will pay the current face's
+// printed cost. pool is the mana-pricing pool CR 601.3a's X lookahead prices
+// its candidate announcements against: nil is the seat's restriction-
+// adjusted floating pool (the real walk and every direct offer), a
+// potential walk's hypothetical bound prices the projection (see
+// castRestrictedCost).
+func (e *Engine) castRestrictedPrinted(statics []staticView, p state.PlayerID, id state.ObjID, pool *state.Mana) bool {
+	var cost Cost
+	if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		cost = e.faceCompiledCost(o.Face()).Cost
+	}
+	return e.castRestrictedCost(statics, p, id, cost, pool)
+}
+
+// castRestrictedCost is the CantBeCast gate for a cast that will pay cost:
+// CR 601.3a's X lookahead applies only when the cast will ANNOUNCE an X --
+// i.e. only when cost itself carries {X} (CR 107.3b: a cast whose cost
+// carries no {X}, including every free cast and every alternative cost
+// without one, fixes X at 0) -- and the candidate X values it considers are
+// only those cost with X folded in can pay from pool (CR 601.2b: the
+// announcement must be one the payment can settle; xAnnouncementEscapes
+// prices them through the offer's own affordability helper). pool nil is
+// the seat's restriction-adjusted floating pool; a potential walk passes
+// its hypothetical bound, so the projection sees an escape the caster can
+// reach by floating untapped mana. CR 601.2e's recheck (recheckIllegal)
+// then enforces the prohibition at the announced X, reversing a proposal
+// whose X it still covers (CR 733.1). The restriction itself is still
+// matched at the card's current mana value (X = 0 off the stack, CR
+// 202.3e), as today. The gate also carries CR 205.4e's legendary lock
+// (legendarySpellLocked) ahead of the restriction scan: no announcement can
+// lift it, so it is checked before the loop, on every cast route that
+// reaches here.
+func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
+	if e.legendarySpellLocked(p, id) {
+		return true
+	}
 	for _, sv := range e.castRestrictionSources(statics, id) {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
@@ -167,12 +213,135 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 				spec = s
 			}
 		}
-		if e.matchesSpec(spec, id, e.staticSpecCtx(sv)) &&
+		if e.matchesSpec(spec, id, e.spellSpecCtx(e.staticSpecCtx(sv), id)) &&
 			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
+			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost, pool) {
+				continue
+			}
 			return true
 		}
 	}
 	return false
+}
+
+// xAnnouncementEscapes reports whether some payable announced X gives id a
+// mana value at which the restriction's spec no longer matches (CR 601.3a).
+// Only a current face whose printed mana cost carries {X} can change its
+// mana value by announcement, and only a cost that itself announces X can
+// announce one, so either condition failing answers false at once. The
+// candidate X values are priced with the SAME helper the offer's
+// affordability gate runs -- castable against the seat's restriction-
+// adjusted floating pool (pool nil), castablePriced against the potential
+// walk's hypothetical bound -- so EVERY mana part (hybrid, Phyrexian, snow,
+// the coloured pips, Delve's generic credit) is settled the way the payment
+// will settle it, and an X the payment cannot afford never enables the
+// escape. The Convoke/Harmonize tap credit and CR 601.2f cost modifiers are
+// NOT priced, so an X affordable only through them does not enable the
+// escape (the offer's own affordability gate still binds every cast the
+// lookahead would begin). The mana value is read off the PRINTED cost with
+// X folded in (CR 202.3b), never off cost -- an alternative cost's
+// non-mana parts add no mana.
+func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
+	if cost.X <= 0 {
+		return false
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	printed := e.faceCompiledCost(o.Face()).Cost
+	if printed.X <= 0 {
+		return false
+	}
+	// Each announced X unit is one more generic to pay, so the pricing
+	// pool's raw tally plus Delve's graveyard credit bounds every payable X
+	// from above; the priced loop below refuses inside it the announcements
+	// the payment cannot settle. The raw tally is only a ceiling, never the
+	// priced pool: RestrictedMana provenance is honoured by castable's own
+	// AvailableFor read, and the bound is a pure mana ceiling (castablePriced).
+	bound := e.G.Players[p].Pool
+	if pool != nil {
+		bound = *pool
+	}
+	ceiling := int64(bound.Total()) + int64(e.delveCredit(p, id, math.MaxInt32))
+	minX := int32(cost.XMin)
+	if minX < 1 {
+		minX = 1
+	}
+	for x := minX; int64(x) <= ceiling; x++ {
+		paid := cost.WithX(x)
+		// pool nil prices the real cast (castable, the restriction-adjusted
+		// floating pool); the potential walk's hypothetical bound prices
+		// through castablePriced -- the same split legalWalk.affordable runs,
+		// so a potential action and the offer it mirrors cannot disagree.
+		if pool == nil {
+			if !e.castable(p, id, paid, false) {
+				continue
+			}
+		} else if !e.castablePriced(p, id, paid, false, *pool) {
+			continue
+		}
+		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+		sc.HasManaValue = true
+		sc.ManaValue = printed.WithX(x).CMC()
+		if !e.matchesSpec(spec, id, sc) {
+			return true
+		}
+	}
+	return false
+}
+
+// spellSpecCtx binds the mana value of the SPELL id is about to become
+// (state.SpellManaValue: its current face, X as 0) and the AsSpellHalf
+// colour/type override while id is still off the stack. CR 601.3a/709.3a: a
+// cast restriction or cost modifier evaluates only the half being cast, so a
+// split card in hand is not read with its combined CR 709.4b mana value,
+// colours or types here. A context that already carries a mana value (the CR
+// 601.2e recheck) and an object already on the stack are left alone.
+func (e *Engine) spellSpecCtx(sc effects.SpecContext, id state.ObjID) effects.SpecContext {
+	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack && !sc.HasManaValue {
+		sc.HasManaValue, sc.ManaValue = true, state.SpellManaValue(e.G, o)
+		sc.AsSpellHalf = true
+	}
+	return sc
+}
+
+// legendarySpellLocked reports CR 205.4e: "A player can't cast a legendary
+// instant or sorcery spell unless that player controls a legendary creature or
+// a legendary planeswalker." It reads the CURRENT face (o.Face()), so an
+// Adventure/split/MDFC half is judged as the half being cast, matching the
+// alternate-face probes, which pass the probed face through offerAsFace. The
+// battlefield walk reads layer-derived types (typeCharacteristics), so a
+// permanent made legendary by a layer-4 effect counts and a phased-out one
+// does not. An opponent's legend is never on p's battlefield list.
+func (e *Engine) legendarySpellLocked(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil {
+		return false
+	}
+	f := o.Face()
+	if f == nil || !f.IsLegendary() || !(f.IsInstant() || f.IsSorcery()) {
+		return false
+	}
+	for _, pid := range e.G.Zone(state.ZBattlefield, p) {
+		perm := e.G.Obj(pid)
+		if perm == nil || perm.PhasedOut {
+			continue
+		}
+		legend, legendKind := false, false
+		for _, t := range e.typeCharacteristics(pid, 0) {
+			switch t {
+			case "Legendary":
+				legend = true
+			case "Creature", "Planeswalker":
+				legendKind = true
+			}
+		}
+		if legend && legendKind {
+			return false
+		}
+	}
+	return true
 }
 
 // castValidCardSpec is a CantBeCast static's ValidCard$ with an absent one
@@ -200,7 +369,7 @@ func (sv staticView) numLimitEachTurn() (int, bool) {
 
 // castLimitBinds is the ONE per-turn cast-limit rule CantBeCast's
 // NumLimitEachTurn$ names ("can't cast more than N spells each turn"),
-// shared by the offer (castRestrictedUsing) and the CR 601.2e recheck
+// shared by the offer (castRestrictedCost) and the CR 601.2e recheck
 // (recheckIllegal). A static without the parameter always binds; with it the
 // static binds only once p has already cast N matching spells this turn,
 // the candidate's own in-flight PutOnStack excluded.

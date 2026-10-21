@@ -657,8 +657,6 @@ func TestKr8ConvertMadness(t *testing.T) {
 			asked := false
 			pick := func(d *decision.Decision) []int {
 				switch {
-				case d.Kind == decision.KReplacement:
-					return []int{0}
 				case d.ResumeKind == "madness":
 					asked = true
 					for _, o := range d.Options {
@@ -674,10 +672,10 @@ func TestKr8ConvertMadness(t *testing.T) {
 				}
 				return tapePick(d)
 			}
-			// Served: the discard pick, the discard's madness replacement
-			// election (answered in place) and the madness choice.
+			// Served: the discard pick and the madness choice (the madness
+			// replacement itself is mandatory, CR 702.35a: no election).
 			var mad state.ObjID
-			e, _ := kr8Run(t, 2, 14100+uint64(i), 3, func(t *testing.T, e *Engine) {
+			e, _ := kr8Run(t, 2, 14100+uint64(i), 2, func(t *testing.T, e *Engine) {
 				mad = fixtureInHand(t, e, "Tape Mad Bear")
 				tapeUnlessScenario("Tape Rot", "BB", 0, pick)(t, e)
 			}, rot, bear)
@@ -711,9 +709,9 @@ func TestKr8ConvertZone(t *testing.T) {
 			src: tapeZoneSorcery("Tape Tutor", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 2 | SubAbility$ DBGain"+gain)},
 		{name: "Tape Each Tutor", seats: 3, served: 3, kinds: []string{"search"},
 			src: tapeZoneSorcery("Tape Each Tutor", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Library | Destination$ Graveyard | ChangeType$ Land | ChangeNum$ 1")},
-		{name: "Tape May Shuffle", seats: 2, served: 2, kinds: []string{"search", "search_mayshuffle"},
+		{name: "Tape May Shuffle", seats: 2, served: 1, kinds: []string{"search"},
 			src: tapeZoneSorcery("Tape May Shuffle", "A:SP$ ChangeZone | Origin$ Library | Destination$ Library | LibraryPosition$ 0 | ChangeType$ Land | ChangeNum$ 1 | ShuffleNonMandatory$ True | SubAbility$ DBGain"+gain)},
-		{name: "Tape Each May Shuffle", seats: 3, served: 6, kinds: []string{"search", "search_mayshuffle"},
+		{name: "Tape Each May Shuffle", seats: 3, served: 3, kinds: []string{"search"},
 			src: tapeZoneSorcery("Tape Each May Shuffle", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | ShuffleNonMandatory$ True")},
 		{name: "Tape Confirm Tutor", seats: 3, served: 3, kinds: []string{"search_confirm"},
 			src: tapeZoneSorcery("Tape Confirm Tutor", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | Optional$ True | SubAbility$ DBGain"+gain)},
@@ -781,7 +779,6 @@ func TestKr8ConvertZone(t *testing.T) {
 func TestKr8ConvertZoneElectionsBothWays(t *testing.T) {
 	cases := []struct{ name, src, kind string }{
 		{"Tape Sweep Confirm", tapeZoneSorcery("Tape Sweep Confirm", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | Optional$ True"), "search_confirm"},
-		{"Tape Sweep Shuffle", tapeZoneSorcery("Tape Sweep Shuffle", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | ShuffleNonMandatory$ True"), "search_mayshuffle"},
 		{"Tape Sweep Fetch", tapeZoneSorcery("Tape Sweep Fetch", "A:SP$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Graveyard | Optional$ True"), "defined_library_optional"},
 		{"Tape Sweep Hand", tapeZoneSorcery("Tape Sweep Hand", "A:SP$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeNum$ 1 | Optional$ True"), "hand_move_confirm"},
 		{"Tape Sweep Hidden", tapeZoneSorcery("Tape Sweep Hidden", "A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Exile | Hidden$ True | ChangeType$ Card | ChangeNum$ 1 | Optional$ True"), "hidden_pick_confirm"},

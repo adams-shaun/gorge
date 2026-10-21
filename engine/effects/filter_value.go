@@ -34,6 +34,9 @@ func objectPowerInContext(o *state.Object, sc SpecContext) int {
 	if sc.HasDerivedPT {
 		return int(sc.DerivedPower)
 	}
+	if d, ok := sc.Layers.cdaPT(o.ID); ok {
+		return int(d.Power)
+	}
 	return objectPower(o)
 }
 
@@ -117,21 +120,12 @@ func objectBaseToughness(o *state.Object) int {
 	return f.Toughness()
 }
 
-// objectManaValue is the one mana-value read the extreme-CMC classifier
-// shares with the rest of the engine: a battlefield Room's CR 709.5 value
-// (the sum of its unlocked doors'), otherwise the compiled face's CMC -- the
-// same Face().Cmc() read manaValueOf, cascade and the Count$ walkers use. It
-// is the analogue of objectPower for greatestCMC/lowerCMC, so the two
-// extreme classifiers cannot drift on what a card's mana value is.
-func objectManaValue(o *state.Object) int {
-	if mv, room := roomManaValue(o); room {
-		return mv
-	}
-	f := o.Face()
-	if f == nil {
-		return 0
-	}
-	return int(f.Cmc())
+// objectManaValue is the effects tier's one object mana-value read. It
+// delegates to state.ManaValue, whose doc lists the CR 202.3 cases (a
+// transformed back face, a melded permanent, a battlefield Room and {X} on
+// the stack); effects must not re-derive any of them.
+func objectManaValue(g *state.Game, o *state.Object) int {
+	return int(state.ManaValue(g, o))
 }
 
 // cmcSetMember reports whether o is in the comparison set a greatestCMC_<prop>
@@ -153,7 +147,11 @@ func cmcSetMember(o *state.Object, prop string) bool {
 }
 
 func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (result, ok bool) {
-	if name == "cmcChosenEvenOdd" {
+	// cmcChosenEvenOdd / cmcNotChosenEvenOdd: the candidate's mana value
+	// has (or, for the Not form, lacks) the parity the spec source chose as
+	// it entered (Lavabrink Venturer, Ashling's Prerogative). With no
+	// choice recorded neither form matches, as in Forge.
+	if name == "cmcChosenEvenOdd" || name == "cmcNotChosenEvenOdd" {
 		if g == nil || o == nil {
 			return false, true
 		}
@@ -161,8 +159,8 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if chosen != "odd" && chosen != "even" {
 			return false, true
 		}
-		odd := objectManaValue(o)%2 == 1
-		return (chosen == "odd") == odd, true
+		same := (chosen == "odd") == isOdd(objectManaValue(g, o))
+		return same == (name == "cmcChosenEvenOdd"), true
 	}
 	resolve := sc.Resolve
 	if resolve == nil {
@@ -177,17 +175,11 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if err != nil {
 			return false, false
 		}
-		switch CmpOpOf(rest[:2]) {
-		case CmpLT:
-			return o.ClassLevel() < int32(n), true
-		case CmpLE:
-			return o.ClassLevel() <= int32(n), true
-		case CmpEQ:
-			return o.ClassLevel() == int32(n), true
-		case CmpGE:
-			return o.ClassLevel() >= int32(n), true
+		op := CmpOpOf(rest[:2])
+		if op == CmpNone {
+			return false, false
 		}
-		return false, false
+		return op.Apply(int(o.ClassLevel()), n), true
 	}
 	// counters_<CMP><n>_<KIND>: a counter-kind comparison, e.g. counters_EQ0_P1P1
 	// ("no +1/+1 counters", the Undying condition). Reads the object's current
@@ -201,9 +193,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if len(rest) < 4 {
 			return false, false
 		}
-		cmp := rest[:2]
+		op := CmpOpOf(rest[:2])
 		numStr, kind, okSplit := strings.Cut(rest[2:], "_")
-		if !okSplit || kind == "" {
+		if op == CmpNone || !okSplit || kind == "" {
 			return false, false
 		}
 		n, err := strconv.Atoi(numStr)
@@ -214,21 +206,7 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			}
 			n = int(v)
 		}
-		have := o.Counter(kind)
-		target := int32(n)
-		switch CmpOpOf(cmp) {
-		case CmpLE:
-			return have <= target, true
-		case CmpGE:
-			return have >= target, true
-		case CmpEQ:
-			return have == target, true
-		case CmpLT:
-			return have < target, true
-		case CmpGT:
-			return have > target, true
-		}
-		return false, false
+		return op.Apply(int(o.Counter(kind)), n), true
 	}
 	// The four characteristic operands a power/toughness comparison may name, on
 	// the candidate object this spec is matched against. `power`/`toughness`
@@ -240,9 +218,16 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	// unbound context -- a direct filter call or the census probe -- keeps the
 	// object-alone read the power predicates always had (printed face plus
 	// P1P1 counters for current, printed face alone for base).
+	// A face with a characteristic-defining P/T reads the published CDA
+	// value (LayerTables.CDAPTs) in every zone when no per-object bind is
+	// present: its printed star is not 0 (CR 208.2a, 604.3).
+	cda, hasCDA := sc.Layers.cdaPT(o.ID)
 	currentPower := func() int {
 		if sc.HasDerivedPT {
 			return int(sc.DerivedPower)
+		}
+		if hasCDA {
+			return int(cda.Power)
 		}
 		return objectPower(o)
 	}
@@ -250,17 +235,26 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if sc.HasDerivedPT {
 			return int(sc.DerivedToughness)
 		}
+		if hasCDA {
+			return int(cda.Toughness)
+		}
 		return objectToughness(o)
 	}
 	basePowerValue := func() int {
 		if sc.HasBasePT {
 			return int(sc.BasePower)
 		}
+		if hasCDA {
+			return int(cda.BasePower)
+		}
 		return objectBasePower(o)
 	}
 	baseToughnessValue := func() int {
 		if sc.HasBasePT {
 			return int(sc.BaseToughness)
+		}
+		if hasCDA {
+			return int(cda.BaseToughness)
 		}
 		return objectBaseToughness(o)
 	}
@@ -299,10 +293,29 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			return lhs < rhs, true
 		case numericCmpOrNotGT:
 			return lhs > rhs, true
-		case numericCmpOrNotNOT:
+		case numericCmpOrNotNOT, numericCmpOrNotNE:
 			return lhs != rhs, true
+		case numericCmpOrNotM2:
+			return isOdd(lhs) == isOdd(rhs), true
 		}
 		return false, false
+	}
+	// cmcEven/cmcOdd/powerEven/powerOdd: Forge's parity card properties
+	// (Void Winnower, Desecrate Reality, Kianne, Zimone's Hypothesis). They
+	// carry no comparator, so they are matched whole BEFORE the
+	// <field><CMP><rhs> split below, which would read "Even" as comparator
+	// "Ev". CR 202.3a: zero is even.
+	if field, wantOdd, ok := parityPredicate(name); ok {
+		if o.Face() == nil {
+			return false, true
+		}
+		if field == numericFieldCmc {
+			return isOdd(cmcValue(g, o, sc)) == wantOdd, true
+		}
+		if lacksPT(o, sc) {
+			return false, true
+		}
+		return isOdd(currentPower()) == wantOdd, true
 	}
 	for _, field := range [...]string{"power", "toughness", "cmc", "basePower", "baseToughness"} {
 		// The P/T half of this vocabulary is ptNumericFields, which
@@ -321,6 +334,12 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			if numStr == "" {
 				return false, false
 			}
+		}
+		// An unrecognised comparator is not this shape, whatever the RHS
+		// and whatever object is probed: it must reach UnknownPredicates
+		// (and fail closed) rather than read as a recognised never-match.
+		if numericCmpOrNotCodes.Code(cmp) == 0 {
+			return false, false
 		}
 		// powerLTtoughness / powerGTbasePower / powerNOTbasePower (and the
 		// mirrors): compare two characteristics instead of a numeric RHS
@@ -362,48 +381,43 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		case numericFieldBaseToughness:
 			have = baseToughnessValue()
 		case numericFieldCmc:
-			// CR 202.3e: {X} counts as its chosen value in a spell's mana
-			// value. A caller that has the chosen X in hand (the CR 601.2e
-			// post-announcement cast-illegality recheck) passes it through
-			// SpecContext.ManaValue; otherwise the printed cost is used,
-			// which counts an un-chosen X as 0, exactly as the offer-time
-			// 601.3a check must.
-			if sc.HasManaValue {
-				have = int(sc.ManaValue)
-			} else if mv, room := roomManaValue(o); room {
-				// CR 709.5: a battlefield Room's mana value is its unlocked
-				// doors' sum. parseCMC stays the fallback: a face copy with a
-				// rewritten ManaCost must be priced from the current text
-				// (Face.Cmc is the load-time value and reports unbound).
-				have = mv
-			} else {
-				have = int(parseCMC(f.ManaCost))
-			}
+			have = cmcValue(g, o, sc)
 		}
 		return applyCmp(cmp, have, n)
 	}
 	return false, false
 }
 
-var cmcBraceNormalizer = strings.NewReplacer("{", " ", "}", " ")
+// cmcValue is the mana value a cmc predicate reads for an object with a
+// face. A caller that has the chosen X in hand (the CR 601.2e
+// post-announcement cast-illegality recheck) passes the whole value through
+// SpecContext.ManaValue; otherwise it is objectManaValue, so the offer-time
+// 601.3a check of a card in hand still prices an unchosen X as 0.
+func cmcValue(g *state.Game, o *state.Object, sc SpecContext) int {
+	if sc.HasManaValue {
+		return int(sc.ManaValue)
+	}
+	return objectManaValue(g, o)
+}
 
-// parseCMC counts a mana cost's converted value without importing rules.
-func parseCMC(cost string) int32 {
-	cost = cmcBraceNormalizer.Replace(cost)
-	if strings.EqualFold(strings.TrimSpace(cost), "no cost") {
-		return 0
+// isOdd is mathematical parity, so a negative power is odd or even as its
+// magnitude is (-1 is odd); Go's % keeps the dividend's sign.
+func isOdd(n int) bool { return n%2 != 0 }
+
+// parityPredicate recognises the four whole-token parity properties and
+// names the field each reads.
+func parityPredicate(name string) (field numericFieldCode, wantOdd, ok bool) {
+	switch name {
+	case "cmcEven":
+		return numericFieldCmc, false, true
+	case "cmcOdd":
+		return numericFieldCmc, true, true
+	case "powerEven":
+		return numericFieldPower, false, true
+	case "powerOdd":
+		return numericFieldPower, true, true
 	}
-	var n int32
-	for sym := range strings.FieldsSeq(cost) {
-		if v, err := strconv.Atoi(sym); err == nil {
-			n += int32(v)
-			continue
-		}
-		if sym != "X" {
-			n++
-		}
-	}
-	return n
+	return 0, false, false
 }
 
 // sameNameContextBase recognises only the three base-prefix forms which
@@ -526,6 +540,8 @@ const (
 	numericCmpOrNotLT
 	numericCmpOrNotGT
 	numericCmpOrNotNOT
+	numericCmpOrNotNE
+	numericCmpOrNotM2
 )
 
 var numericCmpOrNotCodes = state.NewStrCodes(
@@ -535,6 +551,8 @@ var numericCmpOrNotCodes = state.NewStrCodes(
 	state.StrEntry[numericCmpOrNotCode]{Key: "LT", Val: numericCmpOrNotLT},
 	state.StrEntry[numericCmpOrNotCode]{Key: "GT", Val: numericCmpOrNotGT},
 	state.StrEntry[numericCmpOrNotCode]{Key: "NOT", Val: numericCmpOrNotNOT},
+	state.StrEntry[numericCmpOrNotCode]{Key: "NE", Val: numericCmpOrNotNE},
+	state.StrEntry[numericCmpOrNotCode]{Key: "M2", Val: numericCmpOrNotM2},
 )
 
 type numericFieldCode uint16

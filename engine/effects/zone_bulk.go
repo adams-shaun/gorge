@@ -71,6 +71,10 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if sa.ParamStr(cards.PKNoRegen) != "True" && ReplaceDestruction(h, id) {
 			continue
 		}
+		// CR 122.1c: a shield counter replaces the destruction.
+		if ReplaceShieldCounter(h, id) {
+			continue
+		}
 		// Umbra armor (CR 702.90) applies even when NoRegen$ suppresses
 		// regeneration — it is its own replacement, not a shield. Consuming
 		// the Aura leaves it in the graveyard; when the loop reaches the Aura
@@ -160,6 +164,9 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		if zone == state.ZBattlefield {
 			// NoRegen$ != "True", not == "": see effDestroy's note above.
 			if sa.ParamStr(cards.PKNoRegen) != "True" && ReplaceDestruction(h, id) {
+				continue
+			}
+			if ReplaceShieldCounter(h, id) {
 				continue
 			}
 			// Umbra armor after the shield: see effDestroy's note.

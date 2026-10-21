@@ -129,16 +129,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		// object, so the line names the level's rules text (ringEmblemLabel's
 		// wording, duplicated here because view cannot import rules).
 		switch ev.Amount {
-		case 1:
-			return player(g, ev.Player) + " is tempted: the Ring emblem draws a card (Ring-bearer attacks)"
 		case 2:
-			return player(g, ev.Player) + " is tempted: the Ring emblem discards (Ring-bearer blocked)"
+			return player(g, ev.Player) + "'s Ring emblem: draw a card, then discard a card (Ring-bearer attacks)"
 		case 3:
-			return player(g, ev.Player) + " is tempted: the Ring emblem sacrifices its Ring-bearer (combat damage)"
+			return player(g, ev.Player) + "'s Ring emblem: the blocking creature is sacrificed at end of combat (Ring-bearer blocked)"
 		case 4:
-			return player(g, ev.Player) + " is tempted: the Ring emblem drains each opponent (the Ring tempts you)"
+			return player(g, ev.Player) + "'s Ring emblem: each opponent loses 3 life (Ring-bearer dealt combat damage to a player)"
 		}
-		return player(g, ev.Player) + " is tempted: a Ring emblem ability"
+		return player(g, ev.Player) + "'s Ring emblem ability"
 	case events.ControlPlayerChange:
 		// CR 720: Player is the controlling seat and IDs[0] the controlled
 		// seat. A +1 grant names who now controls whom; the -1 expiry is the
@@ -167,8 +165,9 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.MyriadCopy:
 		return obj(g, ev.Obj) + " creates a Myriad copy attacking " + player(g, state.PlayerID(firstID(ev.IDs)))
 	case events.TokenAttacks:
-		// A token that entered tapped and attacking (Mobilize, Kari Zev):
-		// Obj is the minted token, IDs[0] the player it is attacking.
+		// A token that entered attacking (Mobilize, Kari Zev); the tap is a
+		// separate entry event. Obj is the minted token, IDs[0] the player
+		// it is attacking.
 		if len(ev.IDs) > 0 {
 			return obj(g, ev.Obj) + " attacks " + player(g, state.PlayerID(firstID(ev.IDs)))
 		}
@@ -573,8 +572,10 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the kicker are the caster's own decisions and nothing else in the
 		// transcript shows them (mana-spend lines record totals, not what
 		// they paid for), and the line is self-contained, so a DVR scrub
-		// landing on it needs no neighbouring line. It carries no Player
-		// field, so the caster is the card's controller. The two lines read
+		// landing on it needs no neighbouring line. The caster is the card's
+		// controller; when the event is a Secret whose payload is not for
+		// this viewer, RedactEvent zeroes Obj and keeps Player, so the caster
+		// is then that Player (cr-g62). The two lines read
 		// as one cast: the how, then the fact. The same event also records an
 		// activated ability's paid {X} on the ability's stack object
 		// (engine/rules/cast.go commitCast's ability arm), and that object must not
@@ -583,6 +584,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		// spell. The triggered/activated split is state.TriggerOf, the one
 		// classifier StackView.Kind (view.go) also uses, so the transcript
 		// and the stack view cannot disagree.
+		if ev.Secret {
+			// The one Secret CastInfo is the Foretell special action's
+			// provenance marker (engine/rules/cast_commit.go; cr-g62): CR
+			// 702.143b makes it a special action, not a cast, so it reads
+			// "foretells". Redacted for another seat it keeps Player and
+			// Secret, so that seat reads "a foretells a card" (cr-g64).
+			return player(g, ev.Player) + " foretells " + obj(g, ev.Obj)
+		}
 		verb := "casts"
 		if g != nil {
 			if o := g.Obj(ev.Obj); o != nil && o.Ability != nil {
@@ -591,7 +600,7 @@ func Describe(g *state.Game, ev events.Event) string {
 				}
 			}
 		}
-		cast := player(g, objController(g, ev.Obj)) + " " + verb + " " + obj(g, ev.Obj)
+		cast := player(g, castInfoActor(g, ev)) + " " + verb + " " + obj(g, ev.Obj)
 		how := make([]string, 0, 2)
 		if ev.Amount != 0 {
 			how = append(how, "X = "+itoa(int64(ev.Amount)))
@@ -625,6 +634,9 @@ func Describe(g *state.Game, ev events.Event) string {
 			what = "the type " + ev.Text
 		case "number":
 			what = "the number " + itoa(int64(ev.Amount))
+		case events.DivisionCounter:
+			// CR 601.2d: the announced shares, in target order.
+			what = "the division " + strings.ReplaceAll(ev.Text, ",", "/")
 		}
 		return player(g, objController(g, ev.Obj)) + " chooses " + what + " for " + obj(g, ev.Obj)
 	case events.TokenCreate:
@@ -890,9 +902,9 @@ func objs(g *state.Game, ids []state.ObjID) string {
 }
 
 // objController is the player who controls id, or seat 0 when g cannot
-// resolve it. CastInfo and Choose carry no Player field of their own (a
-// card's controller is its caster/chooser at cast time), so their lines
-// derive it from the object rather than reading the event's zero Player.
+// resolve it. Choose carries no Player field of its own (a card's controller
+// is its chooser at cast time), so its line derives it from the object rather
+// than reading the event's zero Player.
 func objController(g *state.Game, id state.ObjID) state.PlayerID {
 	if g == nil {
 		return 0
@@ -901,6 +913,18 @@ func objController(g *state.Game, id state.ObjID) state.PlayerID {
 		return o.Controller
 	}
 	return 0
+}
+
+// castInfoActor is the caster an ordinary CastInfo line names: the card's
+// controller. The one Secret CastInfo -- the foretell action -- returns its
+// "foretells" line in Describe's CastInfo branch before this helper is
+// reached (cr-g62/cr-g64); the ev.Obj == 0 guard is the generic redacted-
+// payload fallback.
+func castInfoActor(g *state.Game, ev events.Event) state.PlayerID {
+	if ev.Obj == 0 {
+		return ev.Player
+	}
+	return objController(g, ev.Obj)
 }
 
 // player is the seat's display name (an independent PlayerName when one was

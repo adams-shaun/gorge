@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 115
+	continuousEffectFieldCount = 120
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -52,6 +52,8 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 	return true &&
 		a.Source == b.Source &&
 		a.SourceIncarnation == b.SourceIncarnation &&
+		a.SourceZoneGen == b.SourceZoneGen &&
+		a.SourceZoneAnchored == b.SourceZoneAnchored &&
 		a.DurationSource == b.DurationSource &&
 		a.Timestamp == b.Timestamp &&
 		a.Layer == b.Layer &&
@@ -138,6 +140,8 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		cards.StringMapEqual(a.AddSVars, b.AddSVars) &&
 		a.GainControl == b.GainControl &&
 		a.MayLookAt == b.MayLookAt &&
+		a.MayLookAtAll == b.MayLookAtAll &&
+		a.MayPlayPlayer == b.MayPlayPlayer &&
 		a.MayPlayIgnoreType == b.MayPlayIgnoreType &&
 		a.ForgetOnMoved == b.ForgetOnMoved &&
 		a.ExileOnMoved == b.ExileOnMoved &&
@@ -164,6 +168,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.CloneGainThisAbility == b.CloneGainThisAbility &&
 		a.CloneAbilityIndex == b.CloneAbilityIndex &&
 		a.CloneTriggerIndex == b.CloneTriggerIndex &&
+		a.CloneExcept == b.CloneExcept &&
 		a.UntilTurn == b.UntilTurn
 }
 

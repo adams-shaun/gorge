@@ -29,7 +29,7 @@ func TestTriggeredDefendingPlayerDoesNotBindNoncombatRecipient(t *testing.T) {
 	e.combatDamaging = false
 	e.dmgSrcOverride = source
 
-	if trigmatch.DamageMatches(boardOf(e), trig, source, events.Event{Kind: events.Damage, Player: 1}) {
+	if trigmatch.DamageMatches(boardOf(e), trig, source, events.Event{Kind: events.Damage, Player: 1, Amount: 2}) {
 		t.Fatal("noncombat damage recipient must not be treated as a defending player")
 	}
 }

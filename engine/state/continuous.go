@@ -61,6 +61,15 @@ type ContinuousEffect struct {
 	// zone change cannot inherit the old grant. Engine-runtime only, rebuilt
 	// by re-execution on replay.
 	SourceIncarnation uint32
+	// SourceZoneGen and SourceZoneAnchored anchor a ZONE-SCOPED self grant
+	// (AffectedZone$ set) registered on a source that is neither on the
+	// battlefield nor on the stack to that source's CR 400.7 identity
+	// (Object.ZoneGen): the grant ends once the source changes zones, even
+	// if it comes back (a spell on the stack is not anchored -- CR 400.7a
+	// carries such effects onto the permanent). Engine-runtime only, rebuilt
+	// by re-execution on replay.
+	SourceZoneGen      uint32
+	SourceZoneAnchored bool
 	// DurationSource is the permanent whose continued presence controls a
 	// source-scoped one-shot effect. Source remains the object used by Affects
 	// and layer derivation; this separate anchor handles effects such as
@@ -423,9 +432,10 @@ type ContinuousEffect struct {
 	// read for it -- and it expires with its source permanent (CR 611.3b)
 	// through the ordinary source-on-battlefield check in active().
 	MayPlay bool
-	// AffectedZone is the may-play grant's AffectedZone$ value (a single
-	// zone, a comma-separated list, or "All"), interpreted with
-	// effects.ParseZones. Meaningful only when MayPlay is set.
+	// AffectedZone is the grant's AffectedZone$ value (a single zone, a
+	// comma-separated list, or "All"), interpreted with effects.ParseZones.
+	// Meaningful when MayPlay or MayLookAt is set; a MayLookAt grant with a
+	// zone other than Exile cannot name a face-down exiled card.
 	AffectedZone string
 
 	// SetMaxHandSize is an Effect-delivered S:Mode$ Continuous | Affected$
@@ -575,6 +585,19 @@ type ContinuousEffect struct {
 	// it contributes no CR 613 characteristic. False on every effect that
 	// grants none.
 	MayLookAt bool
+
+	// MayLookAtAll marks a MayLookAt$ Player grant: "play with the top card
+	// of your library revealed" (Courser of Kruphix, Oracle of Mul Daya).
+	// Forge resolves the Player value to every player, so the matched card is
+	// revealed to all of them (CR 401.5, 701.20a), not only to the static's
+	// controller. Consumed by Engine.LibraryTopRevealed. Set only together
+	// with MayLookAt.
+	MayLookAtAll bool
+
+	// MayPlayPlayer is the grant's MayPlayPlayer$ value as printed (Shared
+	// Fate's "Exiler"): with MayLookAt it names the looker as the player
+	// recorded in Object.ExiledBy instead of the static's controller.
+	MayPlayPlayer string
 
 	// MayPlayIgnoreType marks the grant's MayPlayIgnoreType$ True rider
 	// (Rakdos, the Muscle's "mana of any type can be spent to cast those
@@ -765,6 +788,9 @@ type ContinuousEffect struct {
 	// marker so a unit's expiry can re-base the become object onto a
 	// surviving clone unit and re-emit exactly the trigger it owns.
 	CloneTriggerIndex int32
+	// CloneExcept is the unit's CopyExcept payload (CR 707.9b exceptions as
+	// final values), re-emitted after a re-base so the survivor keeps them.
+	CloneExcept string
 
 	// UntilTurn is the turn number at whose END (its cleanup step) this
 	// effect expires, for a Duration$ that spans the controller's NEXT turn
@@ -801,4 +827,25 @@ func (ce ContinuousEffect) ReplacementParam(k cards.ParamKey) string {
 // CostStaticParam is CostStaticParams[k].
 func (ce ContinuousEffect) CostStaticParam(k cards.ParamKey) string {
 	return ce.CostStaticParams[k.String()]
+}
+
+// SetsBasicLandSubtypes reports whether ce is a CR 305.7 land-subtype
+// setter: a layer-4 effect that strips the land subtypes (RemoveLandTypes)
+// and adds at least one basic land type (Plains, Island, Swamp, Mountain,
+// Forest, or Forge's AllBasicLandType token) -- Blood Moon, Spreading Seas.
+// A land it applies to loses every ability its rules text generates. An
+// effect that adds a basic land type WITHOUT the strip ("in addition to its
+// other types", Urborg) is not one, and neither is a strip with no basic
+// type added (Alpine Moon's, which removes abilities on its own).
+func SetsBasicLandSubtypes(ce *ContinuousEffect) bool {
+	if ce.Layer != LType || !ce.RemoveLandTypes {
+		return false
+	}
+	for _, t := range ce.AddTypes {
+		switch t {
+		case "Plains", "Island", "Swamp", "Mountain", "Forest", "AllBasicLandType":
+			return true
+		}
+	}
+	return false
 }

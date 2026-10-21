@@ -94,19 +94,12 @@ func Answer(e *rules.Engine, feed *searchseat.Feed, setup searchprobe.PublicGame
 	return s.Decide(ctx, v, dc)
 }
 
-// controlledSeats mirrors host's helper of the same name: sorted, every seat
-// viewer controls under a CR 723 player-controlling effect, nil otherwise.
+// controlledSeats mirrors host's helper of the same name: the live CR 723
+// controlled seat the viewer answers for (state.Game.LiveController), nil
+// otherwise (cr-g57).
 func controlledSeats(g *state.Game, viewer state.PlayerID) []state.PlayerID {
-	var out []state.PlayerID
-	for subj, ctl := range g.ControlledBy {
-		if ctl == viewer {
-			out = append(out, subj)
-		}
+	if ctl, ok := g.LiveController(g.Active); ok && ctl == viewer {
+		return []state.PlayerID{g.Active}
 	}
-	for i := 1; i < len(out); i++ {
-		for j := i; j > 0 && out[j] < out[j-1]; j-- {
-			out[j], out[j-1] = out[j-1], out[j]
-		}
-	}
-	return out
+	return nil
 }

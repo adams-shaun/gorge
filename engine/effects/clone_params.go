@@ -149,12 +149,11 @@ var cloneKnownKeys = [...]string{
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "CopyFromChosenName", "Cost", "CostDesc", "Defined",
-	"DefinedCards", "DefinedTarget", "Description", "Duration", "Exclude", "ExcludeChosen",
-	"Execute", "Exhaust", "FaceDown", "ForgetOtherTargets", "GainThisAbility", "GameActivationLimit", "Image",
+	"DefinedCards", "DefinedTarget", "Description", "Duration", "Exclude", "ExcludeChosen", "Exhaust", "FaceDown", "ForgetOtherTargets", "GainThisAbility", "GameActivationLimit", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",
 	"IsPresent", "KW", "KeepFacedown", "Keyword", "KeywordLine", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController", "NewName",
-	"NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
+	"NonBasicSpell", "NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RemoveCardTypes",
@@ -280,7 +279,8 @@ func CloneIfNew(sa *cards.SA) []string { return CloneOf(sa).IfNew }
 // cloneETBShapeOK is ETBShapeOK's computation: rules' etbCloneWhitelist's
 // POSITIVE key whitelist (Choices$, AddKeywords$, AddTypes$,
 // SpellDescription$, AddStaticAbilities$, IntoPlayTapped$, AddTriggers$,
-// AddSVars$) plus its
+// AddSVars$, SetPower$/SetToughness$ (literal), SetColor$/AddColors$ and
+// NonLegendary$ True -- the CR 707.9b exceptions CopyExcept writes) plus its
 // text-only value checks. The key scan only answers a boolean, so the map's
 // iteration order cannot reach an event.
 func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
@@ -328,6 +328,23 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	if _, ok := sa.Param(cards.PKIntoPlayTapped); ok && !p.IntoPlayTappedTrue {
 		return false
 	}
+	// The characteristic exceptions ride the copy's CopyExcept (CR 707.9b),
+	// so the as-enters route carries them exactly as the becomes-a-copy
+	// route does. Only values the body resolves without an entry-time
+	// reader are offered: a literal P/T (Quicksilver Gargantuan's 7/7, not
+	// Hulking Metamorph's Count$CardPower), a colour list this build parses
+	// (Vesuvan Doppelganger's SetColor$ Blue), and NonLegendary$ True.
+	for _, pt := range [...]ParamText{p.SetPower, p.SetToughness} {
+		if n, ok := literalInt(pt); pt.Present && (!ok || n < 0) {
+			return false
+		}
+	}
+	if (p.SetColor != "" && !p.SetColorOK) || (p.AddColors != "" && !p.AddColorsOK) {
+		return false
+	}
+	if _, ok := sa.Param(cards.PKNonLegendary); ok && !p.NonLegendary {
+		return false
+	}
 	return true
 }
 
@@ -358,4 +375,5 @@ func CloneKnownKeys() []string { return slices.Clone(cloneKnownKeys[:]) }
 var cloneETBShapeKeys = state.NewNameSet(
 	"Choices", "AddKeywords", "AddTypes", "SpellDescription",
 	"AddStaticAbilities", "IntoPlayTapped", "AddTriggers", "AddSVars", "SubAbility",
+	"SetPower", "SetToughness", "SetColor", "AddColors", "NonLegendary",
 )

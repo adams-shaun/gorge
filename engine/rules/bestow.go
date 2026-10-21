@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // Bestow (CR 702.114) — the alternative-cost cast of a card printed with
@@ -73,6 +74,14 @@ func bestowedAttachSA() *cards.SA {
 		"Object":    "Self",
 		"Keyword":   "Bestow",
 	}}
+}
+
+// bestowTargetIllegal is CR 702.103e's resolution-start check for a
+// bestowed Aura spell: true when none of its targets is still legal for the
+// synthesized enchant-creature attach SA, revalidated with the same
+// legalTargets helper resolveTop's CR 608.2b recheck uses for every spell.
+func (e *Engine) bestowTargetIllegal(o *state.Object, sa *cards.SA) bool {
+	return len(e.legalTargets(o.Targets, sa, targetZones(sa), o.Controller, o.ID, o.ID)) == 0
 }
 
 func init() {

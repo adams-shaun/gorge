@@ -36,6 +36,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.PreStackEntryThisTurn = o.EnteredThisTurn
 			o.PreStackEntryFrom = o.EnteredFrom
 			o.PreStackEnteredLen = len(g.Entered)
+			o.PreStackZoneGen = o.ZoneGen
 			o.HasPreStackEntry = true
 		}
 	}
@@ -136,6 +137,17 @@ func foldMoveZone(g *state.Game, e *Event) {
 		// otherwise moved) would keep a stale looker and leak its face.
 		o.HasMayLook = false
 		o.MayLookPlayer = 0
+		// CR 702.104: the tribute designation (kw_tribute-expansion's
+		// AlterAttribute "Tributed" fold) belongs to one battlefield stint.
+		// Clear it on every move that is not a battlefield entry -- not just
+		// on a departure -- so an entry a later replacement redirects off the
+		// battlefield cannot leave a stale flag that suppresses the unpaid
+		// trigger on a future entry.
+		if e.To != state.ZBattlefield {
+			o.Tributed = false
+		}
+		o.HasExiledBy = false
+		o.ExiledBy = 0
 		if e.Kind == MoveZone && e.To == state.ZBattlefield && !wasBattlefield {
 			applyEntryCounterPairs(o, e.Pairs)
 		}
@@ -178,25 +190,29 @@ func foldMoveZone(g *state.Game, e *Event) {
 		} else if e.To == state.ZExile {
 			switch moveCounter {
 			case "exiled_with_face_down", "exiled_with_face_down_foretold":
-				// Hideaway's face-down exile (CR 702.75): the exiling source
-				// rides in Amount, and FaceDown is state so a later projection
-				// knows not to reveal the card. The foretold variant also
-				// records the designation after Move has reset a battlefield
-				// object's cast flags.
+				// A blind face-down exile (Necropotence's top-card exile; a
+				// pre-cr-g64 Hideaway/foretold log): the exiling source rides
+				// in Amount and no looker is recorded, so FaceDown is state a
+				// later projection reads to withhold the face from everyone
+				// (CR 406.3). The foretold variant also records the
+				// designation after Move has reset a battlefield object's
+				// cast flags.
 				o.ExiledWith = state.ObjID(e.Amount)
 				o.FaceDown = true
 				if moveCounter == "exiled_with_face_down_foretold" {
 					o.CastFlags |= state.FlagForetold
 				}
 			case "exiled_with_face_down_maylook", "exiled_with_face_down_maylook_foretold":
-				// A WithMayLook$ True face-down exile (Ixhel, Scion of Atraxa):
-				// same state as the Hideaway spell, plus the look permission the
-				// exiling effect's controller holds. This marker's own layout
-				// puts the LOOKER in Amount and the exiling source in IDs, so
-				// both survive replay with no new event kind and no Event field
-				// change. MayLookPlayer replaces Object.Controller as the
-				// privileged viewer (view/cardViews), so the card's owner cannot
-				// read a face the owner never had the right to look at.
+				// A may-look face-down exile (WithMayLook$, a Foretold$
+				// designation, the Foretell action, Hideaway, a Dig take the
+				// chooser looked at, a library search's find): FaceDown plus
+				// the look permission that seat holds. This marker's own
+				// layout puts the LOOKER in Amount and the exiling source in
+				// IDs, so both survive replay with no new event kind and no
+				// Event field change. MayLookPlayer replaces Object.Controller
+				// as the privileged viewer (view/cardViews), so the card's
+				// owner cannot read a face the owner never had the right to
+				// look at.
 				o.FaceDown = true
 				o.MayLookPlayer = state.PlayerID(e.Amount)
 				o.HasMayLook = true
@@ -206,6 +222,24 @@ func foldMoveZone(g *state.Game, e *Event) {
 					o.ExiledWith = 0
 				}
 				if moveCounter == "exiled_with_face_down_maylook_foretold" {
+					o.CastFlags |= state.FlagForetold
+				}
+			case "exiled_with_face_down_exiler", "exiled_with_face_down_exiler_foretold":
+				// A DefinedExiler$ face-down exile (Shared Fate): same layout
+				// as the may-look marker -- the exiling player in Amount, the
+				// exiling source in IDs[0] -- and the exiler is also the
+				// looker, so the view admits them before any static is read.
+				o.FaceDown = true
+				o.ExiledBy = state.PlayerID(e.Amount)
+				o.HasExiledBy = true
+				o.MayLookPlayer = state.PlayerID(e.Amount)
+				o.HasMayLook = true
+				if len(e.IDs) > 0 {
+					o.ExiledWith = e.IDs[0]
+				} else {
+					o.ExiledWith = 0
+				}
+				if moveCounter == "exiled_with_face_down_exiler_foretold" {
 					o.CastFlags |= state.FlagForetold
 				}
 			case "face_down":
@@ -247,6 +281,9 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.FaceDown = false
 		}
 		if e.Text == "reversed" && o.HasPreStackEntry {
+			// The reversal undoes the cast proposal (CR 733.1): the card
+			// keeps the identity it had before the push.
+			o.ZoneGen = o.PreStackZoneGen
 			o.EnteredThisTurn = o.PreStackEntryThisTurn
 			o.EnteredFrom = o.PreStackEntryFrom
 			if o.PreStackEnteredLen <= len(g.Entered) {
@@ -255,11 +292,13 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.PreStackEntryThisTurn = false
 			o.PreStackEntryFrom = state.ZLibrary
 			o.PreStackEnteredLen = 0
+			o.PreStackZoneGen = 0
 			o.HasPreStackEntry = false
 		} else if wasStack && e.To != state.ZStack {
 			o.PreStackEntryThisTurn = false
 			o.PreStackEntryFrom = state.ZLibrary
 			o.PreStackEnteredLen = 0
+			o.PreStackZoneGen = 0
 			o.HasPreStackEntry = false
 		}
 	}
@@ -333,12 +372,20 @@ func foldAttach(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil {
 		switch {
 		case e.Text == "attach to player" && validPlayer(g, e.Player):
+			moved := o.AttachedTo != 0 || !o.HasAttachedPlayer || o.AttachedPlayer != e.Player
 			o.AttachedTo = 0
 			o.AttachedPlayer, o.HasAttachedPlayer = e.Player, true
+			if moved {
+				restampLayer(g, o)
+			}
 		case len(e.IDs) == 0:
 			o.AttachedTo, o.HasAttachedPlayer = 0, false
 		case g.Obj(e.IDs[0]) != nil:
+			moved := o.AttachedTo != e.IDs[0] || o.HasAttachedPlayer
 			o.AttachedTo, o.HasAttachedPlayer = e.IDs[0], false
+			if moved {
+				restampLayer(g, o)
+			}
 			// A re-attach supersedes any earlier bearer: the object is
 			// now "attached to" the new one, so a later "was attached
 			// to X" read must not still name the old X (state.Object.
@@ -346,6 +393,25 @@ func foldAttach(g *state.Game, e *Event) {
 			o.LastBearer = 0
 		}
 	}
+}
+
+// restampLayer gives battlefield object o a new CR 613.7 layer timestamp: one
+// Game.Clock tick, as an entry takes, written to LayerStamp only (Timestamp
+// is the entry identity and stays). The callers are the three CR 613.7e-g
+// events -- an attach to a different object or player (613.7e/701.3c), a
+// turn face up or down (613.7f) and a transform (613.7g) -- each folded
+// AFTER its own state change, so the new stamp is later than every effect
+// that existed when the event happened. An object off the battlefield (a
+// face chosen on the stack or in hand) keeps its stamp: its entry stamps it
+// anyway. An Aura entering attached (rules' settleAuraEntry emits its Attach
+// right after the entry fold) takes one more tick than its entry, as Forge's
+// attachToEntity does.
+func restampLayer(g *state.Game, o *state.Object) {
+	if o.Zone != state.ZBattlefield {
+		return
+	}
+	g.Clock++
+	o.LayerStamp = g.Clock
 }
 
 // foldUnattached folds Kind Unattached into state.
@@ -602,6 +668,17 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	if enteredFrom != to && (enteredFrom == state.ZBattlefield || to == state.ZBattlefield) {
 		o.Incarnation++
 	}
+	// CR 400.7: every REAL zone change makes a new object, whatever zones it
+	// passed through (a CR 733.1 reversal below restores PreStackZoneGen: the
+	// reversal undoes the proposal, it does not make a new object).
+	if enteredFrom != to {
+		o.ZoneGen++
+	}
+	// CR 400.7: a text change ends with the object it changed -- except
+	// CR 400.7a, a spell's text change carries onto the permanent it becomes.
+	if enteredFrom != to && len(o.TextChanges) > 0 && !(enteredFrom == state.ZStack && to == state.ZBattlefield) {
+		o.SetTextChanges(nil)
+	}
 	// A new object in a new zone has its owner's default control. The old
 	// controller is needed above to remove it from the battlefield/stack, so
 	// reset only after removal and placement have used that zone ownership.
@@ -662,6 +739,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.Damage = 0
 		g.Clock++
 		o.Timestamp = g.Clock
+		o.LayerStamp = g.Clock
 		// CR 707.10g: a copy of a permanent spell becomes a token. The pair
 		// enteredFrom == ZStack + o.IsCopy uniquely identifies a StackCopy
 		// mint resolving onto the battlefield (every other token mint routes
@@ -828,6 +906,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.IsAttacking = false
 		o.IsBlocking = false
 		o.AttackingBattle = 0
+		o.Band = 0
 		o.BlockedBy = nil
 		// CR 400.7: the this-turn block history is battlefield-stint state
 		// too, so a creature that leaves and returns is a new object that
@@ -848,6 +927,8 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		}
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
+		o.HasExiledBy = false
+		o.ExiledBy = 0
 		o.FaceDown = false
 		o.FaceDownSetType = ""
 		o.FaceDownPower = 0
@@ -869,6 +950,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.Targets = nil
 		o.SubTargets = nil
 		o.TargetStamps = nil
+		o.Division = nil
 		// o.Remembered is deliberately NOT reset on the DEPARTURE: a pending
 		// referent read belongs to the object that queued it (CR 400.7), and
 		// a leave trigger's body resolves only after the fold -- the source

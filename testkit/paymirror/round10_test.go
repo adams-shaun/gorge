@@ -55,7 +55,9 @@ import (
 //     sacrifice as its activation (harness gap, activationProduction).
 //     botmanual (2026-10-14: the auto-pay bot's tap gate reads the engine's cast census, and flashback and fixed-discard casts get payment plans) moves the cast to seq 4900,
 //     the combat priority fixes (rules e7aaf1530, 93b6057e4) to seq 5134,
-//     and the CR 510.3 post-damage round (rules 24bbba791) to seq 5198, where run A's witness is clean and the float route is the expected
+//     and the CR 510.3 post-damage round (rules 24bbba791) to seq 5198, and
+//     the mandatory library-search shuffle (cr-g09: the may-shuffle ask is
+//     gone, two fewer events) to seq 5196, where run A's witness is clean and the float route is the expected
 //     cast_blocked_by_float_trigger (floating at priority puts a mana
 //     trigger on the stack first).
 //
@@ -82,7 +84,7 @@ var roundTenWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key (
 	12468: {},
 	11828: {},
 	12603: {2409: ""},
-	10877: {5198: "expected:float_then_cast:cast_blocked_by_float_trigger"},
+	10877: {5196: "expected:float_then_cast:cast_blocked_by_float_trigger"},
 }
 
 const (

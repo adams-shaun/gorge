@@ -275,7 +275,7 @@ func foldTargetsChosen(g *state.Game, e *Event) {
 // reader takes the last; a missing object records nothing.
 func stampTarget(g *state.Game, o *state.Object, id state.ObjID) {
 	if t := g.Obj(id); t != nil {
-		o.TargetStamps = append(o.TargetStamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation})
+		o.TargetStamps = append(o.TargetStamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation, ZoneGen: t.ZoneGen})
 	}
 }
 
@@ -348,6 +348,12 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			// CR 702.112b: renowned persists only for this battlefield
 			// permanent; Amount carries the Renown count for listeners.
 			o.Renowned = e.Amount >= 1
+		case "Tributed":
+			// CR 702.104: the tribute designation (task kw-tribute-expansion).
+			// putCounterTribute's acceptance emits the grant after the chosen
+			// opponent confirmed; the Move fold's leaving-battlefield block is
+			// its one clear. The paying opponent rides Player for listeners.
+			o.Tributed = e.Amount >= 1
 		case "Suspend":
 			o.SuspendGranted = e.Amount >= 1
 		case "Plotted":
@@ -372,6 +378,23 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			// reset at TurnChange; it is cleared on leaving the battlefield
 			// with ExertSkipUntap (engine/events/apply_zone.go).
 			o.CantUntapNextStep = e.Amount >= 1
+		case AttrBestowed:
+			// CR 702.103e: a bestowed Aura spell whose target is illegal as
+			// it begins resolving ceases to be bestowed. Only the removal
+			// is modelled (rules' resolveTop emits Amount -1); clearing the
+			// pay-time provenance turns state.Object.BestowedAuraSpell off,
+			// so the spell is a creature spell to every type read from here
+			// on. A grant (Amount >= 1) folds nothing.
+			if e.Amount < 1 {
+				o.CastFlags &^= state.FlagBestowed
+			}
+		case AttrMutating:
+			// CR 702.140b: a mutating creature spell whose target is illegal
+			// as it begins resolving ceases to be a mutating creature spell
+			// and resolves as a creature spell. Removal only, as above.
+			if e.Amount < 1 {
+				o.CastFlags &^= state.FlagMutated | state.FlagMutatedTop
+			}
 		}
 	}
 }

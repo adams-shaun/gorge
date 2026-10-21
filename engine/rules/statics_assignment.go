@@ -12,7 +12,7 @@ import (
 // AssignCombatDamageAsUnblocked static applies to candidate creature id, and
 // whether the matching static is MANDATORY (no Optional$, the auto-accept
 // reading) rather than the election-bearing Optional$ True every printed
-// corpus carrier spells. The match follows castRestrictedUsing's pattern:
+// corpus carrier spells. The match follows castRestrictedPrinted's pattern:
 // ValidCard$ is resolved against the CANDIDATE (the attacking creature) with
 // the static's host as the spec SOURCE (Indomitable Might's Aura resolves
 // Creature.EnchantedBy against its own bearer), and the shared

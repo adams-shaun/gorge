@@ -19,22 +19,16 @@ A:AB$ Mana | Cost$ Sac<1/Creature> | Produced$ Any | SpellDescription$ Add one m
 Oracle:Sacrifice a creature: Add one mana of any color.
 `
 
-// TestManaAbilitySacrificingCommanderWaitsForCommandZoneChoice is the
-// botbench livelock (commander, foundations-reign-of-dragons vs
+// TestManaAbilitySacrificingCommanderAsksTheCommandZoneAfterTheMana is the
+// botbench livelock board (commander, foundations-reign-of-dragons vs
 // rakdos-muscle-scam-exe, seed 105 game 1): Phyrexian Altar sacrificing
 // Rakdos, the Muscle -- the controller's own commander and its only
-// creature. The sacrifice cost parks the CR 903.9 commander-zone move and
-// asks the owner, but the mana ability then posed its colour choice on top,
-// overwriting the commander-zone decision. The parked move was never
-// emitted, so the commander stayed on the battlefield, every later
-// activation's park was dropped by the queue's dedup, and the altar made
-// free mana forever (the bot activated it until the livelock watcher
-// aborted the game).
-//
-// The fix: a mana ability whose cost payment posed a decision (the
-// commander-zone ask) waits for it, and resolves its mana effect -- the
-// colour choice -- once that answer lands.
-func TestManaAbilitySacrificingCommanderWaitsForCommandZoneChoice(t *testing.T) {
+// creature. Under CR 903.9a the sacrifice puts the commander into the
+// graveyard at once (nothing is parked, so nothing can strand it on the
+// battlefield), the mana ability's colour choice follows, and the owner's
+// command-zone choice is the state-based action checked when the activating
+// player next receives priority (CR 117.3c).
+func TestManaAbilitySacrificingCommanderAsksTheCommandZoneAfterTheMana(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name   string
@@ -54,24 +48,26 @@ func TestManaAbilitySacrificingCommanderWaitsForCommandZoneChoice(t *testing.T) 
 			activateMana(t, e, altar)
 
 			d := e.Pending()
-			if d == nil || d.Kind != decision.KCommanderZone {
-				t.Fatalf("pending after the altar's sacrifice = %v, want the commander-zone choice (the colour ask must not overwrite it)", pendingKind(d))
-			}
-			if got := e.G.Players[0].Pool.Total(); got != 0 {
-				t.Fatalf("pool = %d before the commander-zone answer, want 0 (the mana effect waits for the cost)", got)
-			}
-			submit(t, e, tc.choice)
-
-			if got := e.G.Obj(cmd).Zone; got != tc.want {
-				t.Fatalf("commander zone after answer = %v, want %v", got, tc.want)
-			}
-			d = e.Pending()
 			if d == nil || d.Kind != decision.KChoose {
-				t.Fatalf("pending after the commander-zone answer = %v, want the altar's colour choice", pendingKind(d))
+				t.Fatalf("pending after the altar's sacrifice = %v, want the altar's colour choice", pendingKind(d))
+			}
+			if got := e.G.Obj(cmd).Zone; got != state.ZGraveyard {
+				t.Fatalf("sacrificed commander zone = %v, want graveyard (CR 903.9a: the sacrifice is not replaced)", got)
 			}
 			submit(t, e, 2) // Add B
 			if got := e.G.Players[0].Pool[state.MB]; got != 1 {
 				t.Fatalf("pool B = %d, want 1", got)
+			}
+			d = e.Pending()
+			if d == nil || d.Kind != decision.KCommanderZone || d.Player != 0 {
+				t.Fatalf("pending after the colour answer = %v, want seat 0's commander-zone choice", pendingKind(d))
+			}
+			submit(t, e, tc.choice)
+			if got := e.G.Obj(cmd).Zone; got != tc.want {
+				t.Fatalf("commander zone after answer = %v, want %v", got, tc.want)
+			}
+			if got := e.G.Players[0].Pool[state.MB]; got != 1 {
+				t.Fatalf("pool B after the commander-zone answer = %d, want 1 (the mana stays)", got)
 			}
 			d = e.Pending()
 			if d == nil || d.Kind != decision.KPriority {

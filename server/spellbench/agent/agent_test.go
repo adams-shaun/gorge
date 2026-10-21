@@ -76,8 +76,8 @@ func gameStart(a *agent.Server, seed uint64) {
 	a.Handle([]byte(fmt.Sprintf(`{"request_type":"game_start","protocol":"spellbench/v2","request_id":"r-0","game_id":"g","seat":"p0","agent_seed":%d}`, seed)))
 }
 
-// mulliganChoose poses a keep/mulligan native decision, the one policy path
-// that consumes the bot's own PCG (mulligan with probability 1/3).
+// mulliganChoose poses a keep/mulligan native decision, which a coin-mulligan
+// policy answers from its own PCG (mulligan with probability 1/3).
 func mulliganChoose(native uint64) []byte {
 	return []byte(fmt.Sprintf(`{"request_type":"choose","protocol":"spellbench/v2","request_id":"c-%d","game_id":"g","decision":{"candidates":[{"candidate_id":0,"semantic":{"kind":"keep"}},{"candidate_id":1,"semantic":{"kind":"mulligan"}}],"extensions":{"x_gorge_view_v1":{"version":1,"native_index":%d,"view":{},"decision":{"player":0,"kind":"mulligan","min":1,"max":1,"options":[{"index":0,"kind":"keep","label":"Keep"},{"index":1,"kind":"mulligan","label":"Mulligan"}]},"policy_facts":{},"ops":[{"op":"choose","option":0},{"op":"choose","option":1}]}}}}`, native, native))
 }
@@ -93,10 +93,14 @@ func TestAgentHelloRequiresTheViewExtension(t *testing.T) {
 }
 
 // The bot is gorge's own PCG seeded from agent_seed: two seeds must give
-// observably different bots, visible in the recorded intents.
+// observably different bots, visible in the recorded intents. The probe is
+// lethal-pressure, which still mulligans on the coin: since FORGE-M1 `bot`
+// answers mulligans with the deterministic MulliganForge and draws its PCG
+// only on AIRandom asks, which the wire does not carry. Every policy is built
+// through the same bots.New(..., Seed: agent_seed) call.
 func TestAgentSeedsBotsFromAgentSeed(t *testing.T) {
 	answers := func(seed uint64) [][]int {
-		a, _ := agent.New("bot")
+		a, _ := agent.New("lethal-pressure")
 		gameStart(a, seed)
 		var out [][]int
 		for n := uint64(0); n < 12; n++ {

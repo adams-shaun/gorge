@@ -272,13 +272,13 @@ func TestMonstrousEmergencePaidRevealSizesDamage(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestCostPaidListsAreNotInheritedByAStackCopy pins the copy boundary: a
-// StackCopy of a spell is a new object that paid no cost, so its
-// Exiled$CardManaCost reads zero even though the original cast's paid list is
-// live for the original object. The original is moved off the stack first so
-// only the copy resolves; the receiver's damage then proves the copy read
-// zero rather than inheriting the exiled Lightning Bolt's mana value.
-func TestCostPaidListsAreNotInheritedByAStackCopy(t *testing.T) {
+// TestCostPaidListsAreInheritedByAStackCopy pins the copy boundary (CR
+// 707.10): a StackCopy of a spell paid no cost, but an effect of the copy that
+// refers to the objects used to pay its costs uses the original's, so its
+// Exiled$CardManaCost reads the exiled Lightning Bolt's mana value. The
+// original is moved off the stack first so only the copy resolves; the
+// receiver's damage then proves the copy read the inherited paid card.
+func TestCostPaidListsAreInheritedByAStackCopy(t *testing.T) {
 	t.Parallel()
 	e, _ := paidCostEngine(t, []string{"Draconic Intervention", "Lightning Bolt"}, []string{"Ancient Brontodon"})
 	fuel := paidCostMoveTo(t, e, 0, "Lightning Bolt", state.ZGraveyard)
@@ -299,15 +299,15 @@ func TestCostPaidListsAreNotInheritedByAStackCopy(t *testing.T) {
 	if copyID == spell {
 		t.Fatal("precondition: StackCopy must mint a new object")
 	}
-	if len(e.castExiled[copyID]) != 0 {
-		t.Fatalf("copy inherited the paid list %v", e.castExiled[copyID])
+	if got := e.castExiled[copyID]; len(got) != 1 || got[0] != fuel {
+		t.Fatalf("copy paid list = %v, want [%d] (inherited from the original, CR 707.10)", got, fuel)
 	}
 	// Counter the original so only the copy's resolution is observed.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spell, From: state.ZStack, To: state.ZGraveyard, Text: "countered"})
 	passUntilStackEmpty(t, e, 30)
 
-	if got := e.G.Obj(receiver).Damage; got != 0 {
-		t.Fatalf("copy dealt %d damage, want 0 (a copy paid no exile cost)", got)
+	if got := e.G.Obj(receiver).Damage; got != 1 {
+		t.Fatalf("copy dealt %d damage, want 1 (the original's exiled Lightning Bolt, mana value 1)", got)
 	}
 }
 
@@ -424,14 +424,15 @@ func TestDreadDefilerPaidExileSizesLifeLoss(t *testing.T) {
 	}
 	addMana(t, e, 0, "CCCC")
 	activateRevealAbility(t, e, 0, defiler)
-	answerPaidCostAsk(t, e, "exilecost", fuel)
-	// The ability targets an opponent: the only offered target.
+	// CR 601.2c before 601.2h: the ability's target is chosen first; the
+	// exile pick is a cost object, chosen at payment.
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
 		if len(d.Options) == 0 {
 			t.Fatalf("target ask with no options: %+v", d)
 		}
 		submitChoices(t, e, d.Options[0].Index)
 	}
+	answerPaidCostAsk(t, e, "exilecost", fuel)
 	if o := e.G.Obj(fuel); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("precondition: paid exile fuel zone = %+v, want exile", o)
 	}
@@ -468,7 +469,8 @@ func TestSoulExchangePaidExileValidTracksThrull(t *testing.T) {
 	}
 
 	paidCostCast(t, e, spell, "BB")
-	answerPaidCostAsk(t, e, "exilecost", thrull)
+	// CR 601.2c before 601.2h: the spell's target comes first; the exile
+	// pick is a cost object, chosen at payment.
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
 		for _, o := range d.Options {
 			if o.Obj == returned {
@@ -476,6 +478,7 @@ func TestSoulExchangePaidExileValidTracksThrull(t *testing.T) {
 			}
 		}
 	}
+	answerPaidCostAsk(t, e, "exilecost", thrull)
 	passUntilStackEmpty(t, e, 30)
 	if o := e.G.Obj(thrull); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("precondition: paid exile zone = %+v, want exile", o)

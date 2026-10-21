@@ -123,6 +123,7 @@ func resetCombat(g *state.Game, only state.ObjID) {
 			o.IsAttacking = false
 			o.IsBlocking = false
 			o.AttackingBattle = 0
+			o.Band = 0
 			o.BlockedBy = nil
 		} else {
 			for j, id := range o.BlockedBy {
@@ -487,6 +488,16 @@ func applyKind(g *state.Game, e *Event) {
 		foldCloneStatic(g, e)
 	case ClonePermanent:
 		foldClonePermanent(g, e)
+	case CopyExcept:
+		foldCopyExcept(g, e)
+	case GameRestart:
+		g.Restart(e.Amount, e.IDs)
+	case TextChange:
+		foldTextChange(g, e)
+	case ActivationReversed:
+		foldActivationReversed(g, e)
+	case HadToAttack:
+		foldHadToAttack(g, e)
 	case Exert:
 		foldExert(g, e)
 	case KeywordTriggerPush:

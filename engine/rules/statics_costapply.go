@@ -118,7 +118,11 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 			// `Permanent.AdventureCard` was otherwise dead.
 			spec = trigmatch.SpellCastPermanentSpec(spec)
 		}
-		if !e.matchesSpec(spec, id, e.costStaticSpecCtx(sv, id)) {
+		sc := e.costStaticSpecCtx(sv, id)
+		if scope.Kind == "Spell" {
+			sc = e.spellSpecCtx(sc, id)
+		}
+		if !e.matchesSpec(spec, id, sc) {
 			return false, true
 		}
 	}

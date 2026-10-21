@@ -53,7 +53,7 @@ func (e *Engine) ask(d *decision.Decision) {
 	}
 	// CR 903.9 ordering: a commander's zone change parked mid-chain asks its
 	// owner at once (parkCommanderZoneMove), but the chain that parked it
-	// keeps running -- Path to Exile's exile parks Rakdos, then the same
+	// keeps running -- a bounce parks the commander's hand-bound move, then the same
 	// resolution's "its controller may search" poses its own choice. Posing
 	// that choice here would OVERWRITE the unanswered commander-zone ask: the
 	// parked move is never emitted, the commander stays on the battlefield,

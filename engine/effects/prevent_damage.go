@@ -119,6 +119,7 @@ func effPreventDamage(h Host, c *Ctx, sa *cards.SA) {
 		share    int32
 	}
 	var recs []recipient
+	var live []state.Target
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			p := t.Player
@@ -126,6 +127,7 @@ func effPreventDamage(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			recs = append(recs, recipient{player: p, isPlayer: true})
+			live = append(live, t)
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
@@ -133,6 +135,7 @@ func effPreventDamage(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		recs = append(recs, recipient{obj: t.Obj})
+		live = append(live, t)
 	}
 	// The rider's targets, by scope. c.Targets at this sub's dispatch are
 	// the PARENT SA's chosen targets (resolveAbility binds them to the whole
@@ -171,7 +174,13 @@ func effPreventDamage(h Host, c *Ctx, sa *cards.SA) {
 	// DividedAsYouChoose$ N: the total is divided round-robin over the
 	// recipients in answer order (the DealDamage/PutCounter stand-in). The
 	// undivided shape gives every recipient the full Amount$.
-	if div, ok := dividedParam(sa); ok {
+	if shares, ok := AnnouncedDivision(h, c, sa, live); ok {
+		// CR 601.2d: the division announced while casting; a recipient the
+		// CR 608.2b recheck dropped loses its share.
+		for i := range recs {
+			recs[i].share = shares[i]
+		}
+	} else if div, ok := dividedParam(sa); ok {
 		divTotal := numText(h, c, div, 0)
 		if divTotal < 0 {
 			divTotal = 0

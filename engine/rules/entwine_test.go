@@ -407,23 +407,24 @@ func TestEntwineNonManaCostFormSacrificesLands(t *testing.T) {
 	}
 	addMana(t, e, 0, "1111WW") // printed {4}{W}{W}; the entwine cost is the sacrifice
 	castEntwinedOption(t, e, fixEntwineTideN)
-	// The Sac<2/Land> part surfaces FIRST (continueCast's non-mana part pass
-	// runs ahead of the mode announcement) as ONE sacrifice choose ask
-	// (Min == Max == 2, the last-Sac-part shape) whose options name the
-	// candidate lands.
+	// CR 601.2b: the modes are the first announcement after the push, so the
+	// forced all-modes announcement (both DestroyAll modes, targetless) is
+	// posed before the entwine cost's non-mana part.
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Min != 2 || d.Max != 2 ||
-		len(d.Options) < 2 || d.Options[0].Kind != "sacrifice" {
-		t.Fatalf("pending = %+v, want the Sac<2/Land> sacrifice ask (Min=Max=2)", d)
-	}
-	submitChoices(t, e, 0, 1)
-	// The forced all-modes announcement (both DestroyAll modes, targetless).
-	d = e.Pending()
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "cast_modes" {
 		t.Fatalf("pending = %+v, want the cast_modes KModes ask", d)
 	}
 	if d.Min != 2 || d.Max != 2 {
 		t.Fatalf("entwined mode ask Min=%d Max=%d, want 2/2", d.Min, d.Max)
+	}
+	submitChoices(t, e, 0, 1)
+	// The Sac<2/Land> part follows as ONE sacrifice choose ask
+	// (Min == Max == 2, the last-Sac-part shape) whose options name the
+	// candidate lands.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 2 || d.Max != 2 ||
+		len(d.Options) < 2 || d.Options[0].Kind != "sacrifice" {
+		t.Fatalf("pending = %+v, want the Sac<2/Land> sacrifice ask (Min=Max=2)", d)
 	}
 	submitChoices(t, e, 0, 1)
 	passUntilStackEmpty(t, e, 30)

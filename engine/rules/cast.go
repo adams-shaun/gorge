@@ -137,7 +137,7 @@ type pendingCast struct {
 	// giftDone / giftPromise / giftTo are the CR 702.168 Gift election
 	// (Bloomburrow): the caster's optional promise of a gift to an opponent,
 	// announced as a free cast-time choice (giftAsk) and folded onto the
-	// stack object as an events.GiftPromise by pushCast so the target ask and
+	// stack object as an events.GiftPromise by foldGiftPromise so the target ask and
 	// resolution read one event-backed home. giftDone marks the one ask
 	// already posed (the forageDone/replicateDone shape), giftPromise is the
 	// answer (false = declined, the plain-cast direction) and giftTo names
@@ -510,6 +510,15 @@ type pendingCast struct {
 	evidenceResolved bool          `clone:"deep"`
 	evidenceSettled  bool          `clone:"deep"`
 
+	// division / divisionDone / divisionRecorded carry the CR 601.2d
+	// division announcement (engine/rules/cast_division.go): division[i] is
+	// the share of targets[i], settled by divisionAsk or its answer;
+	// divisionDone marks the stage passed; divisionRecorded the one
+	// events.Choose "divide" emitted onto the stack object.
+	division         []int32 `clone:"deep"`
+	divisionDone     bool    `clone:"deep"`
+	divisionRecorded bool    `clone:"deep"`
+
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
 	// object). Zero until pushCast runs; handleTarget records the chosen
@@ -605,9 +614,11 @@ type pendingCast struct {
 	// K:Ninjutsu activation paid its Return cost. ninjutsuHasDefender
 	// discriminates the capture: seat 0 is a legal defending player, so
 	// ninjutsuDefender == 0 on its own cannot mean "not captured" (the same
-	// hazard documented at combat.go's mustAttackRequired). It rides the
-	// AbilityPush event's IDs, which events.Apply folds into the minted
-	// ability's Remembered, and engine/rules/stack.go re-binds it to the resolving
+	// hazard documented at combat.go's mustAttackRequired). foldNinjutsuDefender
+	// records it on the pushed ability with a Choose "remembered" event
+	// (CR 602.2a moved the push ahead of the Return cost), which events.Apply
+	// folds into the minted ability's Remembered, and engine/rules/stack.go
+	// re-binds it to the resolving
 	// Ctx's DefendingPlayer so engine/effects/zone.go's Attacking$ True rider places
 	// the permanent tapped and attacking that same defender. Plain data, so a
 	// Clone copies it.
@@ -615,8 +626,9 @@ type pendingCast struct {
 	// ninjutsuDefenderObject is the planeswalker or battle the returned
 	// creature was attacking (CR 702.49b's non-player defender), captured
 	// beside ninjutsuDefender. Zero when the returned creature attacked a
-	// player. It rides the AbilityPush event's IDs as a real object id,
-	// which events.Apply's rememberedFrom decodes to a {Obj} target, and
+	// player. foldNinjutsuDefender records it on the pushed ability as a real
+	// object id in a Choose "remembered" event, which events.Apply's
+	// rememberedFrom decodes to a {Obj} target, and
 	// engine/rules/stack.go re-binds it to the resolving Ctx's DefendingBattle so
 	// engine/effects/zone.go's Attacking$ True rider places the permanent attacking
 	// that same object. Plain data, so a Clone copies it.
@@ -636,6 +648,25 @@ type pendingCast struct {
 	sneakDefender       state.PlayerID `clone:"deep"`
 	sneakDefenderObject state.ObjID    `clone:"deep"`
 	sneakHasDefender    bool           `clone:"deep"`
+
+	// giftFolded / sneakFolded mark the GiftPromise and sneak-defender events
+	// already emitted by foldGiftPromise / foldSneakDefender, so a re-entry of
+	// continueCast folds each onto the stack object once.
+	giftFolded  bool `clone:"deep"`
+	sneakFolded bool `clone:"deep"`
+
+	// activationPaid is true once payCast has paid an activated ability's
+	// cost, which is when the old AbilityPush mint ran. The ability object
+	// itself is now minted by pushActivation at the head of continueCast (CR
+	// 602.2a), so stackObj != 0 no longer means "paid": a target answer that
+	// parks in the 601.2g mana window has the object on the stack already.
+	activationPaid bool `clone:"deep"`
+
+	// ninjutsuFolded marks the Choose "remembered" event foldNinjutsuDefender
+	// emitted onto the pushed ability object, so a re-entry of continueCast
+	// folds the captured defender once. The push now precedes the Return cost
+	// that captures it, so it can no longer ride the AbilityPush's IDs.
+	ninjutsuFolded bool `clone:"deep"`
 }
 
 // subCounterPay is one counter removed to pay a SubCounter cost part

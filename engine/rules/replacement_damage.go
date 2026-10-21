@@ -47,7 +47,7 @@ func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMat
 		if !matched {
 			continue
 		}
-		if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
+		if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
 			continue
 		}
 		out = append(out, m)
@@ -338,11 +338,14 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		// OWN source object. Source-specific rather than the resolution's
 		// Ctx.Chosen: the damage replacement fires while some later object
 		// resolves, and the promise belongs to the object that chose.
-		if e.damaging == 0 ||
+		// The source is the one the damage emitter published (CR 120.2b,
+		// 701.14a: a fighting or biting creature), not the resolving spell.
+		src := e.inFlightDamageSource()
+		if src == 0 ||
 			// nil remembered: only the chosen half is added here, so an
 			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
 			// exact match it had before ChooseSource landed.
-			!e.matchesSpec(v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
+			!e.matchesSpec(v, src, e.rememberedSpecContext(ctrl, source, nil)) {
 			return false
 		}
 	}
@@ -371,7 +374,7 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 // handleReplacement's resumption for how the queue hands from one choice to
 // the next.
 func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatch, p state.PlayerID) {
-	source := e.protectionSource(e.damaging)
+	source := e.protectionSource(e.inFlightDamageSource())
 	e.replChoices = append(e.replChoices, replChoice{
 		kind: replChoiceDamage, ev: ev, cands: matches, before: e.retainTriggerBefore(), player: p,
 		damaging: source, combat: e.combatDamaging,
@@ -387,9 +390,9 @@ func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatc
 // another genuine order choice pending; true means the parked damage event is
 // fully prevented/replaced or has landed with all riders.
 func (e *Engine) handleDamageReplacementChoice(rc replChoice, selected int) bool {
-	savedDamaging, savedCombat := e.damaging, e.combatDamaging
-	e.damaging, e.combatDamaging = rc.damaging, rc.combat
-	defer func() { e.damaging, e.combatDamaging = savedDamaging, savedCombat }()
+	savedDamaging, savedCombat, savedOverride := e.damaging, e.combatDamaging, e.dmgSrcOverride
+	e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combat, 0
+	defer func() { e.damaging, e.combatDamaging, e.dmgSrcOverride = savedDamaging, savedCombat, savedOverride }()
 	var m replMatch
 	if selected == len(rc.cands) {
 		// This is the explicit "do not apply" answer for an Optional$ True
@@ -477,7 +480,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 				chosen: ce.ChosenNumber,
 				key:    "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
 			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) &&
-				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
+				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj)) {
 				out = append(out, m)
 			}
 		} else if ce.ReplacementBody == "" && ce.ReplacementEvent == "DamageDone" &&
@@ -493,7 +496,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 				remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
 			if !alreadyUsed(m) && e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) &&
-				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj)) {
+				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj)) {
 				out = append(out, m)
 			}
 		}
@@ -508,14 +511,14 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			if alreadyUsed(replMatch{id: id, repl: r}) || !e.replacementMatches(*r, id, ev) {
 				continue
 			}
-			if damageReplacementPrevents(*r) && e.cantPreventDamage(e.damaging, ev.Obj) {
+			if damageReplacementPrevents(*r) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
 				continue
 			}
 			out = append(out, replMatch{id: id, repl: r})
 		}
 	})
-	for _, m := range e.grantedPreventMatches(ev) {
-		if !alreadyUsed(m) && !e.cantPreventDamage(e.damaging, ev.Obj) {
+	for _, m := range e.shieldCounterDamageMatches(ev, e.grantedPreventMatches(ev)) {
+		if !alreadyUsed(m) && !e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
 			out = append(out, m)
 		}
 	}
@@ -532,7 +535,7 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 	// leak. A skipped body is nonterminal, so the caller recomputes the
 	// remaining candidates against the still-standing event (m is in
 	// rc.used, so it cannot be picked twice).
-	if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.damaging, ev.Obj) {
+	if damageReplacementPrevents(*m.repl) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
 		return false
 	}
 	if strings.EqualFold(m.repl.ParamStr(cards.PKPrevent), "True") {
@@ -547,6 +550,7 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 		// prevention prevented.
 		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 			Amount: ev.Amount, Text: "damage prevented by replacement effect"})
+		e.spendShieldCounter(m)
 		return true
 	}
 	if m.repl.With == nil {
@@ -563,10 +567,10 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 }
 
 func (e *Engine) finishChosenDamage(rc replChoice) {
-	savedDamaging, savedCombat, savedApplying := e.damaging, e.combatDamaging, e.applyingReplacement
-	e.damaging, e.combatDamaging, e.applyingReplacement = rc.damaging, rc.combat, true
+	savedDamaging, savedCombat, savedApplying, savedOverride := e.damaging, e.combatDamaging, e.applyingReplacement, e.dmgSrcOverride
+	e.damaging, e.combatDamaging, e.applyingReplacement, e.dmgSrcOverride = rc.damaging, rc.combat, true, 0
 	applied := e.emit(rc.ev)
-	e.damaging, e.combatDamaging, e.applyingReplacement = savedDamaging, savedCombat, savedApplying
+	e.damaging, e.combatDamaging, e.applyingReplacement, e.dmgSrcOverride = savedDamaging, savedCombat, savedApplying, savedOverride
 	if applied.Kind != events.Damage || applied.Amount <= 0 {
 		return
 	}
@@ -575,7 +579,12 @@ func (e *Engine) finishChosenDamage(rc replChoice) {
 			Counter: "Deathtouched", Amount: 1})
 	}
 	if rc.lifelink {
-		e.emit(events.Event{Kind: events.LifeChange, Player: e.controllerOf(rc.damaging), Amount: applied.Amount})
+		// CR 702.15e: a parked hit pays through the same accumulator as every
+		// other hit of its batch. Combat's batch is still open across the
+		// answer, and a non-combat batch whose close kept lifelinkBatchOpen
+		// set merges this hit with the ones that already landed; either way
+		// one source's simultaneous damage is ONE life-gain event.
+		e.gainFromLifelink(rc.damaging, e.controllerOf(rc.damaging), applied.Amount, rc.combat)
 	}
 	if rc.combat && applied.Obj == 0 {
 		if e.format == FormatCommander {

@@ -231,9 +231,10 @@ const (
 	// (RearrangeTopOfLibrary, Ponder; later Scry/Surveil/Dig) and the
 	// discard half of a bottoming ask. Player names whose library, IDs the
 	// COMPLETE new order (the top cards reordered, then the untouched
-	// remainder beneath them). Secret is always true: the exact order of a
-	// hidden zone must not leak to another seat, so view redaction drops the
-	// payload for anyone but Player.
+	// remainder beneath them). Secret is always true: CR 401.2 hides a
+	// library's order from every player, its owner included, so view
+	// redaction serves every viewer the event's shape only (cr-g61); the
+	// IDs exist for events.Apply and replay.
 	//
 	// Appended here, after DelayedPush, following the named precedents of
 	// TargetsChosen (Ruling T14-b), FlipFace (T18-a) and ClockTick (T19-a)
@@ -369,8 +370,9 @@ const (
 	// chain or golden replay is affected.
 	ManaActivate
 	// TokenAttacks marks an already-existing permanent that entered the
-	// battlefield TAPPED AND ATTACKING (TokenAttacking$ or a move body's
-	// Attacking$ True rider). It is NOT a mint: events.Apply's TokenCreate or
+	// battlefield attacking (TokenAttacking$ or a move body's Attacking$ True
+	// rider); it never taps -- the effect's Tapped$/TokenTapped$ owns that.
+	// It is NOT a mint: events.Apply's TokenCreate or
 	// MoveZone case already made the object, and Obj here is that battlefield
 	// object, Player its controller and IDs[0] the defender it attacks.
 	// MyriadCopy must not be reused for this: it
@@ -508,16 +510,17 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	RingTemptsYou
-	// RingEmblemPush mints one of the Ring emblem's four level abilities
-	// (CR 701.54c), which are engine-side abilities with no corpus script
-	// text and no object in any zone -- the temptation count folded by
+	// RingEmblemPush mints one of the Ring emblem's triggered level
+	// abilities (CR 701.54c), which are engine-side abilities with no corpus
+	// script text and no object in any zone -- the temptation count folded by
 	// RingTemptsYou is their only state (state.Player.RingTempted). Player
-	// is the emblem's owner (the tempted seat), Amount the level (1..4) and
+	// is the emblem's owner (the tempted seat), Amount the level (2..4) and
 	// Counter the canonical "__ring:<level>" payload events.Apply rebuilds
 	// the ability from, exactly as the granted ward/afflict
 	// KeywordTriggerPush payloads are rebuilt ("the same DB$ ... a printed
-	// trigger would have carried"). Obj carries the Ring-bearer the firing
-	// event named (0 for a level whose body needs no bearer). The mint lives
+	// trigger would have carried"). IDs carries level 3's blocking creature
+	// (folded into the ability's Remembered); the other levels carry none.
+	// The mint lives
 	// in Apply because a direct unlogged Game.AddObject call would name an
 	// ObjID a log-only replay never learns about (Ruling T20-a). Appended
 	// here, after RingTemptsYou, following every prior Kind's own
@@ -1242,10 +1245,61 @@ const (
 	// Appended after SetupSettled so every earlier ordinal, hash chain and
 	// golden replay is unchanged.
 	BlockedByEffect
+	// CopyExcept writes a copy effect's CR 707.9b exceptions onto a copy's
+	// layer-1 basis face, so they are part of its copiable values and a
+	// copy of the copy inherits them (CR 707.3). Obj is the copy and Text a
+	// CopyExceptions payload (copy_except.go) of FINAL values. Emitted right
+	// after the CopyToken that minted Obj, before its entry MoveZone.
+	// Appended after BlockedByEffect so every earlier ordinal, hash chain
+	// and golden replay is unchanged.
+	CopyExcept
+	// GameRestart restarts the game (CR 727.1, Karn Liberated): the fold
+	// (state.Game.Restart) ends the old game's board and starts the new one's
+	// -- every card its owner's player still in the game owns becomes a new
+	// object in its owner's library, except the IDs in IDs, which an effect
+	// exempted (CR 727.5) and which stay where they are; every player's life
+	// is Amount (the starting life) and every per-game field is cleared.
+	// Player is the controller of the restarting effect, the new game's
+	// starting player (CR 727.1a), whom rules' StartingPlayerChange records
+	// right after. Rules shuffles and deals with the ordinary Shuffle and Draw
+	// events that follow. Appended after CopyExcept so every earlier
+	// ordinal, hash chain and golden replay is unchanged.
+	GameRestart
+	// ActivationReversed reverses the activation census of one CR 733.1
+	// aborted activated ability: the ability object was already pushed
+	// (CR 602.2a), so its AbilityPush / GainedAbilityPush / GrantAbilityPush /
+	// KeywordAbilityPush / DelayedPush fold incremented the source's
+	// ActivatedThisTurn and the activation-count scans. Player, Obj, Amount,
+	// Counter and IDs carry the reversed mint's identity; Text is that mint's
+	// Kind.String(). The fold decrements ActivatedThisTurn, and every
+	// activation-count scan subtracts the reversal. It is emitted only from
+	// rules' abortCast, so no bot game and no golden replay contains it.
+	// Appended after GameRestart so every earlier ordinal, hash chain and golden
+	// replay is unchanged.
+	ActivationReversed
+	// TextChange is one CR 612 text-changing effect starting on Obj: every
+	// instance of the word Counter used as a color or subtype word reads as
+	// Text (api:ChangeText). The fold appends it to Object.TextChanges, so
+	// the object's Face() is rewritten from then on; the change ends when
+	// the object changes zones (CR 400.7), except a spell becoming a
+	// permanent (CR 400.7a). Amount TextChangeUntilEOT marks a change that
+	// ends in the cleanup step; Amount TextChangeExpire (no words) is that
+	// cleanup-step end (CR 514.2). Appended after ActivationReversed so every
+	// earlier ordinal, hash chain and golden replay is unchanged.
+	TextChange
+	// HadToAttack records CR 506.7's "had to attack": IDs are the attackers
+	// just declared that one or more effects were requiring to attack at the
+	// time attackers were declared (combat.AttackRequirements). Emitted
+	// right after a declaration's DeclareAttackers events, only when at least
+	// one such attacker exists, so an unconstrained declaration logs nothing
+	// new. Appended after TextChange (its branch-side twin claimed this slot
+	// first; neither kind fires in a golden replay, so the swap is replay-safe)
+	// so every earlier ordinal, hash chain and golden replay is unchanged.
+	HadToAttack
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(BlockedByEffect) + 1
+	NumKinds = int(HadToAttack) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
@@ -1922,6 +1976,10 @@ var flagNames = [...]struct {
 	// sources ride the same event's IDs into Object.ManaSpentSources.
 	// Appended at the end per the table's own ordering rule.
 	{"manasources", state.FlagManaSourcesSpent},
+	// Cleave's alternative-cost cast (CR 702.148a); the flag is the
+	// provenance rules' resolution reader uses to substitute the cleave
+	// spell ability. Appended at the end per the table's own ordering rule.
+	{"cleaved", state.FlagCleaved},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

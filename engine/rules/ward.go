@@ -216,7 +216,7 @@ func wardManaValue(g *state.Game, ids []state.ObjID) int32 {
 	var n int32
 	for _, id := range ids {
 		if o := g.Obj(id); o != nil && o.Face() != nil {
-			n += o.Face().Cmc()
+			n += state.ManaValue(g, o)
 		}
 	}
 	return n

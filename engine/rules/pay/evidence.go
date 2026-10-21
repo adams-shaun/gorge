@@ -41,7 +41,7 @@ func EvidenceGraveCandidates(g *state.Game, player state.PlayerID, reserved map[
 func EvidenceOrder(g *state.Game, ids []state.ObjID) []state.ObjID {
 	ordered := append([]state.ObjID(nil), ids...)
 	sort.Slice(ordered, func(i, j int) bool {
-		mi, mj := g.Obj(ordered[i]).Face().Cmc(), g.Obj(ordered[j]).Face().Cmc()
+		mi, mj := state.ManaValue(g, g.Obj(ordered[i])), state.ManaValue(g, g.Obj(ordered[j]))
 		if mi != mj {
 			return mi > mj
 		}
@@ -55,7 +55,7 @@ func EvidenceManaValue(g *state.Game, p state.PlayerID, ids []state.ObjID) int32
 	var n int32
 	for _, id := range ids {
 		if o := g.Obj(id); o != nil && o.Face() != nil && o.Owner == p {
-			n = costvocab.AddClampedGeneric(n, int64(o.Face().Cmc()))
+			n = costvocab.AddClampedGeneric(n, int64(state.ManaValue(g, o)))
 		}
 	}
 	return n
@@ -74,7 +74,7 @@ func EvidenceGreedyMin(g *state.Game, ids []state.ObjID, need int32) int {
 		if remaining <= 0 {
 			return i
 		}
-		remaining -= g.Obj(id).Face().Cmc()
+		remaining -= state.ManaValue(g, g.Obj(id))
 	}
 	return len(ids)
 }
@@ -180,7 +180,7 @@ func manaCostEvidenceStage(e Engine, md *ManaCostActivation) ManaCostStep {
 			" to pay the mana ability cost", Source: md.Source}
 	for _, id := range ids {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "evidence",
-			Obj: id, Label: TargetName(g, id), Value: int(g.Obj(id).Face().Cmc())})
+			Obj: id, Label: TargetName(g, id), Value: int(state.ManaValue(g, g.Obj(id)))})
 	}
 	md.EvidenceAsked = true
 	e.Ask(AskManaEvidence, d)

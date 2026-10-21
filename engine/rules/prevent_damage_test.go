@@ -81,6 +81,18 @@ func drainPendingTargetThenResolve(t *testing.T, e *Engine, targets []state.ObjI
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
 		answerTargetAsk(t, e, targets)
 	}
+	// A divided ability announces its division as it is put on the stack
+	// (CR 603.3d, 601.2d): answer it round-robin over the targets in answer
+	// order, the split these drains' assertions were written around.
+	if d := e.Pending(); isCastDivision(d) {
+		choices := make([]int, 0, d.Min)
+		for i := 0; i < d.Min; i++ {
+			choices = append(choices, d.Options[i%len(d.Options)].Index)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+			t.Fatalf("submit division: %v", err)
+		}
+	}
 	for i := 0; i < 20 && len(e.G.Stack) > 0; i++ {
 		e.resolveTop()
 	}

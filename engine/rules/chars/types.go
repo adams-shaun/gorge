@@ -39,9 +39,19 @@ func Types(b Board, act []state.ContinuousEffect, id state.ObjID, atStack state.
 // marker. The marker is captured at the same point as the expansion so
 // snapshots need not infer rules state from today's subtype vocabulary.
 func TypesAndAllCreatureTypes(b Board, act []state.ContinuousEffect, id state.ObjID, atStack state.Zone) ([]string, bool) {
+	ty, all, _ := TypesAndLandSubtypeSet(b, act, id, atStack)
+	return ty, all
+}
+
+// TypesAndLandSubtypeSet is TypesAndAllCreatureTypes plus CR 305.7's verdict:
+// landSet is true when the walk APPLIED a land-subtype setter
+// (state.SetsBasicLandSubtypes) to id -- the land lost its old land types and
+// every ability its rules text generates. Applicability is the walk's own test
+// against the types so far; the dependency simulation never sets it.
+func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjID, atStack state.Zone) ([]string, bool, bool) {
 	o := b.Game().Obj(id)
 	if o == nil || o.Face() == nil {
-		return nil, false
+		return nil, false, false
 	}
 	// CR 708.5: a face-down battlefield permanent's type set is exactly
 	// {Creature} -- its printed types do not exist while it is face down
@@ -92,7 +102,7 @@ func TypesAndAllCreatureTypes(b Board, act []state.ContinuousEffect, id state.Ob
 	}
 	allCreatureTypes := effects.IntrinsicAllCreatureTypes(o)
 	if !anyLType {
-		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), !o.ImpendingDormant() && allCreatureTypes
+		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), !o.ImpendingDormant() && allCreatureTypes, false
 	}
 	// A copy exception "...except it has changeling" is a copiable
 	// characteristic-defining ability (CR 707.9b): it applies before every
@@ -121,6 +131,7 @@ func TypesAndAllCreatureTypes(b Board, act []state.ContinuousEffect, id state.Ob
 	// and the appends -- runs on the owned copy, never on the face's array.
 	ty := base
 	owned := false
+	landSet := false
 	// full records that ty is KNOWN to carry every creature-type vocabulary
 	// word (an all-creature-types grant materialised it and nothing has
 	// shrunk the list since): the grant's dedup and the match list then
@@ -154,6 +165,9 @@ func TypesAndAllCreatureTypes(b Board, act []state.ContinuousEffect, id state.Ob
 			owned = true
 		}
 		ty, allCreatureTypes, full = applyTypeEffect(b, ce, ty, allCreatureTypes, full)
+		if state.SetsBasicLandSubtypes(ce) {
+			landSet = true
+		}
 	}
 	if hi-lo < 2 {
 		for i := lo; i < hi; i++ {
@@ -257,12 +271,18 @@ func TypesAndAllCreatureTypes(b Board, act []state.ContinuousEffect, id state.Ob
 		// Creature, so it also invalidates the semantic all-types marker.
 		allCreatureTypes = false
 	}
-	return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))), allCreatureTypes
+	return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))), allCreatureTypes, landSet
 }
 
 // CorpusLandTypeWords derives the land-subtype vocabulary from the parsed
 // compiled corpus supplied as the game's NameUniverse. Card and supertype
-// words, plus creature subtypes printed on creature lands, are excluded.
+// words, plus creature subtypes printed on creature lands, are excluded, and
+// so is a word a land face prints for ANOTHER card type it carries (CR
+// 205.3i: land types only; CR 305.7 removes no other subtype): Saga (Urza's
+// Saga, an Enchantment), Clue (Scene of the Crime, an Artifact), Vehicle,
+// Wrenn (Wrenn and One, a Planeswalker). The test is that the same word is
+// printed on some non-land face with that card type. Planet stays: it also
+// rides a Plane, a card type no land face carries.
 // Sorting makes the derived layer list deterministic. The universe is
 // immutable and shared by every game an embedder starts from one registry,
 // so the walk is memoised on it and runs once per universe; the list is
@@ -272,14 +292,45 @@ func CorpusLandTypeWords(universe *cards.Universe) []string {
 }
 
 func buildCorpusLandTypeWords(universe *cards.Universe) []string {
-	words := make(map[string]struct{})
+	isLand := func(types []string) bool {
+		return slices.ContainsFunc(types, func(t string) bool { return strings.EqualFold(t, "Land") })
+	}
+	// other: "cardtype\x00subtype" for every subtype a NON-land face prints
+	// beside one of its card types.
+	var other []string
 	universe.EachFaceTypes(func(types []string) {
-		if !slices.ContainsFunc(types, func(t string) bool { return strings.EqualFold(t, "Land") }) {
+		if isLand(types) {
 			return
 		}
+		for _, ct := range types {
+			if !IsCardType(ct) {
+				continue
+			}
+			for _, typ := range types {
+				if !IsCardType(typ) && !IsSupertype(typ) {
+					other = append(other, ct+"\x00"+typ)
+				}
+			}
+		}
+	})
+	slices.Sort(other)
+	other = slices.Compact(other)
+	words := make(map[string]struct{})
+	universe.EachFaceTypes(func(types []string) {
+		if !isLand(types) {
+			return
+		}
+	word:
 		for _, typ := range types {
 			if strings.EqualFold(typ, "Land") || IsSupertype(typ) || IsCardType(typ) || effects.CreatureTypeWords(typ) {
 				continue
+			}
+			for _, ct := range types {
+				if !strings.EqualFold(ct, "Land") && IsCardType(ct) {
+					if _, found := slices.BinarySearch(other, ct+"\x00"+typ); found {
+						continue word
+					}
+				}
 			}
 			words[typ] = struct{}{}
 		}

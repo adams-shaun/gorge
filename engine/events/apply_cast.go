@@ -6,6 +6,7 @@
 package events
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/state"
@@ -310,6 +311,21 @@ func foldChoose(g *state.Game, e *Event) {
 				// retains exactly this pick.
 				o.CurCombatTurn, o.CurCombatCombat = g.Turn, g.CombatsThisTurn
 			}
+		case "band":
+			// CR 702.22c: Obj (the band's leader, an attacking creature
+			// with banding) and each IDs entry, attacking the same
+			// defender, are in one attacking band. A member not attacking
+			// that defender is not added.
+			if !o.IsAttacking || o.Zone != state.ZBattlefield {
+				break
+			}
+			o.Band = o.ID
+			for _, id := range e.IDs {
+				if m := g.Obj(id); m != nil && m.IsAttacking && m.Zone == state.ZBattlefield &&
+					m.Controller == o.Controller && m.Attacking == o.Attacking && m.AttackingBattle == o.AttackingBattle {
+					m.Band = o.ID
+				}
+			}
 		case "protector":
 			// CR 310.10: the Siege protector chosen as this Battle
 			// entered. Player carries the chosen opponent's seat.
@@ -384,6 +400,47 @@ func foldChoose(g *state.Game, e *Event) {
 			// them later. Text is the WUBRG-ordered colour letters the
 			// payment spent; an empty Text degrades to a cleared note.
 			o.LastNotedMana = e.Text
+		case DivisionCounter:
+			o.Division = parseDivision(e.Text, len(o.Targets))
 		}
 	}
+}
+
+// DivisionCounter is the Counter of the Choose event that records a CR
+// 601.2d division onto a stack object. Text is the shares in Targets order
+// as comma-separated decimals ("2,1").
+const DivisionCounter = "divide"
+
+// FormatDivision renders shares as DivisionCounter's Text.
+func FormatDivision(shares []int32) string {
+	var b strings.Builder
+	for i, n := range shares {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(strconv.Itoa(int(n)))
+	}
+	return b.String()
+}
+
+// parseDivision decodes DivisionCounter's Text against a target list of
+// length n. A malformed text, a count other than n or a share below 1
+// (CR 601.2d) decodes to nil: no division, so the resolution-time path runs.
+func parseDivision(text string, n int) []int32 {
+	if n == 0 || text == "" {
+		return nil
+	}
+	parts := strings.Split(text, ",")
+	if len(parts) != n {
+		return nil
+	}
+	out := make([]int32, n)
+	for i, p := range parts {
+		v, err := strconv.Atoi(p)
+		if err != nil || v < 1 {
+			return nil
+		}
+		out[i] = int32(v)
+	}
+	return out
 }

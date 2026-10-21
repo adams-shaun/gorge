@@ -130,7 +130,7 @@
 //	MayDiffer/Touch/Act/Visited/       cache keyed by log length, continuousVersion and object
 //	IncrBuilds, typesProbe/True/       count; Clone copies none (zero = whole-board rebuild);
 //	Epoch/Version/Objs                 Visited/IncrBuilds count rebuild work, not the game
-//	ascend, storied                    incremental arena scans ("a pure cache, zero = rescan")
+//	ascend, storied, cmdZoneScan      incremental scans keyed by log length ("a pure cache, zero = rescan")
 //	turnsTaken/Epoch, turnStartTurns/  TurnChange census caches keyed by log length
 //	Epoch
 //	continuousVersion                  cache-invalidation counter over e.continuous (which is
@@ -186,7 +186,9 @@
 //	staticGates, staticGatesKnown      the static memo's gate records, carried only with a
 //	                                   copied memo
 //	renameObjs, renameDSeq,            the rename table's cache keys (the renames/* class)
-//	renameBFSeq
+//	renameBFSeq, renameBranchCounts    and the E2 measurement diagnostic counting
+//	                                   refreshRenames' exits (never read by rules;
+//	                                   Clone resets it)
 //	trigZeroNoopEp/Objs/Ver            checkFaceTriggers' zero-interest no-op memo key
 //	atkOffers, atkOffersEp/Ver/       attackOffers' layer-inert reuse: the last list and its key
 //	Objs/Active

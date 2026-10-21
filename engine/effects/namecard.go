@@ -18,9 +18,9 @@ import (
 //
 // The universe is the compiled corpus the embedder supplied as
 // state.Game.NameUniverse, so an unseen land (Pithing Needle) or an unseen
-// opponent card is offered. Order is the sorted distinct primary-face name;
-// a nil or face-less universe yields nil and each caller keeps its own R-9
-// deterministic stand-in.
+// opponent card is offered. Order is the sorted distinct nameable face name
+// (cards.NameableFace); a nil or face-less universe yields nil and each
+// caller keeps its own R-9 deterministic stand-in.
 //
 // spec is the SA's ValidCards$ filter, evaluated through the engine's own
 // predicate grammar (MatchesObjectCtx) against each card's printed face, so
@@ -165,20 +165,33 @@ func nameChoicesFiltered(g *state.Game, spec, chooseFromList string, strict bool
 	o := new(state.Object)
 	for i, n := 0, g.NameUniverse.Len(); i < n; i++ {
 		c := g.NameUniverse.Card(i)
-		if c == nil || len(c.Faces) == 0 || c.Faces[0] == nil {
+		if c == nil {
 			continue
 		}
-		*o = state.Object{Card: c}
-		if !MatchesObjectCtx(g, spec, o, specCtx(sc)) {
-			continue
-		}
-		name := c.Faces[0].Name
-		if allowed != nil && !allowed[name] {
-			continue
-		}
-		if name != "" && !seen[name] {
-			seen[name] = true
-			filtered = append(filtered, name)
+		for j, f := range c.Faces {
+			if f == nil || !cards.NameableFace(c.AlternateMode, j) {
+				continue
+			}
+			// A name "with certain characteristics" is judged by that
+			// face's characteristics alone (CR 201.4b-f): a back face,
+			// an alternative name and EITHER split half read as that face
+			// (the copy-face slot, which also keeps a split card's
+			// combined characteristics, CR 709.4, out of the match).
+			*o = state.Object{Card: c}
+			if j > 0 || c.AlternateMode == cards.AlternateSplit {
+				o.SetCopyFace(f)
+			}
+			if !MatchesObjectCtx(g, spec, o, specCtx(sc)) {
+				continue
+			}
+			name := f.Name
+			if allowed != nil && !allowed[name] {
+				continue
+			}
+			if name != "" && !seen[name] {
+				seen[name] = true
+				filtered = append(filtered, name)
+			}
 		}
 	}
 	if len(filtered) == 0 {

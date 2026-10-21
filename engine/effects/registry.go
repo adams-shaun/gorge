@@ -487,6 +487,11 @@ type Ctx struct {
 	Draw DrawInputs
 	// ETB is which as-enters answers rules has already recorded on the entering object.
 	ETB ETBRecords
+	// Restarted is set by effRestartGame once the host accepted a CR 727
+	// restart: Resolve stops the chain there. The remainder is not followed
+	// yet -- CR 727.4's "finishes resolving just before the first turn's
+	// untap step" is cr-g33b.
+	Restarted bool
 }
 
 // VoteCount is one ballot subject's tally (see Ctx.VoteCounts).
@@ -905,6 +910,8 @@ const (
 	LayerColors
 	// LayerKeywords asks for LayerTables.DerivedKeywords.
 	LayerKeywords
+	// LayerCDAPT asks for LayerTables.CDAPTs.
+	LayerCDAPT
 )
 
 // layerTablesHost is implemented by the rules engine to publish the board's
@@ -941,6 +948,9 @@ func layerTablesFor(h Host, sa *cards.SA) LayerTables {
 		if saMentionsKeywords(sa) {
 			want |= LayerKeywords
 		}
+		if saMentionsPT(sa) {
+			want |= LayerCDAPT
+		}
 	}
 	return lh.LayerTables(want)
 }
@@ -972,6 +982,21 @@ func saMentionsKeywords(sa *cards.SA) bool {
 	for depth := 0; sa != nil && depth < 32; depth++ {
 		for _, v := range sa.Params {
 			if strings.Contains(v, "with") || strings.Contains(v, "hasKeyword") {
+				return true
+			}
+		}
+		sa = sa.Sub
+	}
+	return false
+}
+
+// saMentionsPT reports whether any parameter of sa, or of a sub-ability
+// chained under it (the walk shares one Ctx), is a filter that reads a P/T
+// field (SpecReadsPT): only such a body can observe LayerTables.CDAPTs.
+func saMentionsPT(sa *cards.SA) bool {
+	for depth := 0; sa != nil && depth < 32; depth++ {
+		for _, v := range sa.Params {
+			if SpecReadsPT(v) {
 				return true
 			}
 		}
@@ -1308,6 +1333,11 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				(len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
 				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
 			}
+		}
+		if c.Restarted {
+			// CR 727.4: the game restarted. The host performs the restart;
+			// the chain's remainder (cr-g33b) is not followed here.
+			return
 		}
 		if h.Suspended() {
 			// A sub-ability in this chain opened a resolution-time payment

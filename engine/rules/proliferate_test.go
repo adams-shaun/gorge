@@ -236,8 +236,8 @@ func TestKarnsBastionActivationProliferates(t *testing.T) {
 }
 
 // TestContagionEngineProliferatesTwice pins the Amount$ 2 shape on a real
-// carrier: the answer adds +2 of each kind (one ask, the documented
-// single-batch read).
+// carrier: two proliferate actions (CR 701.34a), two asks, and the carrier
+// chosen in both takes +1 of each kind from each.
 func TestContagionEngineProliferatesTwice(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -265,9 +265,16 @@ func TestContagionEngineProliferatesTwice(t *testing.T) {
 	if carrierOpt < 0 {
 		t.Fatalf("carrier not offered: %+v", d.Options)
 	}
+	d = answerProliferate(t, e, d, carrierOpt)
+	if d == nil || d.ResumeKind != "proliferate" {
+		t.Fatalf("decision = %+v, want the second proliferate ask", d)
+	}
+	if got := e.G.Obj(carrier).Counter("P1P1"); got != 2 {
+		t.Fatalf("carrier P1P1 = %d after the first proliferation, want 2 (+1)", got)
+	}
 	answerProliferate(t, e, d, carrierOpt)
 	if got := e.G.Obj(carrier).Counter("P1P1"); got != 3 {
-		t.Fatalf("carrier P1P1 = %d, want 3 (+2)", got)
+		t.Fatalf("carrier P1P1 = %d, want 3 (+1 twice)", got)
 	}
 	replayCheck(t, e, cfg)
 }

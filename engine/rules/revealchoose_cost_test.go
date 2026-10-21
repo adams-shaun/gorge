@@ -57,6 +57,27 @@ func revealChooseHasType(f *cards.Face, want string) bool {
 	return false
 }
 
+// revealChooseTargetFirst answers the cast's pending target ask (CR 601.2c)
+// with the receiver; the reveal-or-choose cost objects are chosen at payment
+// (CR 601.2h), after it.
+func revealChooseTargetFirst(t *testing.T, e *Engine, receiver state.ObjID) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("no target ask pending: %+v", d)
+	}
+	pick := -1
+	for _, o := range d.Options {
+		if o.Obj == receiver {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("target ask did not offer the receiver: %+v", d.Options)
+	}
+	submitChoices(t, e, pick)
+}
+
 // TestMonstrousEmergenceChooseCreatureSizesDamage pins the CHOOSE arm alone:
 // with a creature on the battlefield and NO creature card in hand, Monstrous
 // Emergence is legal, elects that creature, deals damage equal to ITS power,
@@ -83,20 +104,9 @@ func TestMonstrousEmergenceChooseCreatureSizesDamage(t *testing.T) {
 	}
 
 	paidCostCast(t, e, spell, "G1")
-	// The choose arm is the only payable arm: it is settled without an ask.
-	// The spell targets; answer the target ask.
-	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
-		pick := -1
-		for _, o := range d.Options {
-			if o.Obj == receiver {
-				pick = o.Index
-			}
-		}
-		if pick < 0 {
-			t.Fatalf("target ask did not offer the receiver: %+v", d.Options)
-		}
-		submitChoices(t, e, pick)
-	}
+	// The choose arm is the only payable arm: it is settled without an ask,
+	// at payment (CR 601.2h). The spell targets; answer the target ask.
+	revealChooseTargetFirst(t, e, receiver)
 	passUntilStackEmpty(t, e, 30)
 
 	if got := e.G.Obj(chosen).Zone; got != state.ZBattlefield {
@@ -136,6 +146,7 @@ func TestMonstrousEmergenceOffersRevealAndChoose(t *testing.T) {
 	}
 
 	paidCostCast(t, e, spell, "G1")
+	revealChooseTargetFirst(t, e, receiver)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("no either-or KChoose pending: %+v", d)
@@ -198,6 +209,7 @@ func TestMonstrousEmergenceChooseArmLeavesHandCardRevealDistinct(t *testing.T) {
 	receiver := paidCostMoveTo(t, e, 1, "Ancient Brontodon", state.ZBattlefield)
 
 	paidCostCast(t, e, spell, "G1")
+	revealChooseTargetFirst(t, e, receiver)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("no either-or KChoose pending: %+v", d)
@@ -375,13 +387,13 @@ func TestDragonsFirePlainDealsThree(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestRevealOrChooseChooseArmIsNotInheritedByAStackCopy pins the copy
-// boundary for the new scratch state: the chosen permanent is recorded on the
-// cast's own stack object in e.castRevealed, so a StackCopy -- which paid no
-// cost -- reads an EMPTY paid list and deals zero, exactly like the reveal
-// arm's existing copy test. The original is moved off the stack first so only
-// the copy resolves.
-func TestRevealOrChooseChooseArmIsNotInheritedByAStackCopy(t *testing.T) {
+// TestRevealOrChooseChooseArmIsInheritedByAStackCopy pins the copy boundary
+// for the new scratch state: the chosen permanent is recorded on the cast's
+// own stack object in e.castRevealed, and a StackCopy -- which paid no cost --
+// still uses the objects that paid the ORIGINAL's costs (CR 707.10), so it
+// reads the chosen Hill Giant and deals 3, exactly like the reveal arm's copy
+// test. The original is moved off the stack first so only the copy resolves.
+func TestRevealOrChooseChooseArmIsInheritedByAStackCopy(t *testing.T) {
 	t.Parallel()
 	e, _ := revealChooseEngine(t, []string{"Monstrous Emergence", "Hill Giant"}, []string{"Ancient Brontodon"})
 	chosen := paidCostMoveTo(t, e, 0, "Hill Giant", state.ZBattlefield)
@@ -389,13 +401,7 @@ func TestRevealOrChooseChooseArmIsNotInheritedByAStackCopy(t *testing.T) {
 	receiver := paidCostMoveTo(t, e, 1, "Ancient Brontodon", state.ZBattlefield)
 
 	paidCostCast(t, e, spell, "G1")
-	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
-		for _, o := range d.Options {
-			if o.Obj == receiver {
-				submitChoices(t, e, o.Index)
-			}
-		}
-	}
+	revealChooseTargetFirst(t, e, receiver)
 	// Precondition: the original carries the chosen-arm paid list.
 	if len(e.castRevealed[spell]) != 1 || e.castRevealed[spell][0] != chosen {
 		t.Fatalf("precondition: original paid list = %v, want [%d]", e.castRevealed[spell], chosen)
@@ -405,15 +411,15 @@ func TestRevealOrChooseChooseArmIsNotInheritedByAStackCopy(t *testing.T) {
 	if copyID == spell {
 		t.Fatal("precondition: StackCopy must mint a new object")
 	}
-	if len(e.castRevealed[copyID]) != 0 {
-		t.Fatalf("copy inherited the chosen-arm paid list %v", e.castRevealed[copyID])
+	if got := e.castRevealed[copyID]; len(got) != 1 || got[0] != chosen {
+		t.Fatalf("copy chosen-arm paid list = %v, want [%d] (inherited from the original, CR 707.10)", got, chosen)
 	}
 	// Counter the original so only the copy's resolution is observed.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spell, From: state.ZStack, To: state.ZGraveyard, Text: "countered"})
 	passUntilStackEmpty(t, e, 30)
 
-	if got := e.G.Obj(receiver).Damage; got != 0 {
-		t.Fatalf("copy dealt %d damage, want 0 (a copy paid no choose cost)", got)
+	if got := e.G.Obj(receiver).Damage; got != 3 {
+		t.Fatalf("copy dealt %d damage, want 3 (the original's chosen Hill Giant)", got)
 	}
 }
 
@@ -430,11 +436,15 @@ func TestRevealOrChooseAskSurvivesAClone(t *testing.T) {
 	receiver := paidCostMoveTo(t, e, 1, "Ancient Brontodon", state.ZBattlefield)
 
 	paidCostCast(t, e, spell, "G1")
-	if d := e.Pending(); d == nil || d.Kind != decision.KChoose {
+	// The either-or ask is at payment (CR 601.2h); the target was answered
+	// first by the cast (CR 601.2c).
+	revealChooseTargetFirst(t, e, receiver)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("no either-or KChoose pending before clone: %+v", d)
 	}
 	clone := e.Clone()
-	d := clone.Pending()
+	d = clone.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("clone lost the pending either-or ask: %+v", d)
 	}

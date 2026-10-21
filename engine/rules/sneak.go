@@ -173,14 +173,17 @@ func sneakDefenderFrom(o *state.Object) (state.PlayerID, state.ObjID, bool) {
 // paid enters tapped and attacking the same defender the returned creature
 // was attacking. It is called from altCostEnter, which runs for every
 // battlefield MoveZone, so the permanent is already on the battlefield and
-// the TokenAttacks event's apply sees it there. A sneak cast with no
-// captured defender (a malformed path) is left untapped: entering tapped is
-// part of the same CR 702.190b sentence, and without a recorded defender we
-// cannot place the attack.
+// the TokenAttacks event's apply sees it there. The tapped half is emitted
+// here, before the defender check: CR 702.190b's "tapped and attacking" does
+// not depend on a defender, so a sneak cast with no captured defender (a
+// malformed path) still enters tapped, just not attacking.
 func (e *Engine) sneakEnter(id state.ObjID, controller state.PlayerID) {
 	o := e.G.Obj(id)
+	if o != nil && !o.Tapped {
+		e.emitTap(id, controller, true)
+	}
 	defender, battle, ok := sneakDefenderFrom(o)
-	if !ok {
+	if !ok || !effects.EnteringAttackLegal(e, defender, battle) {
 		return
 	}
 	ids := []state.ObjID{state.PlayerRef(defender)}

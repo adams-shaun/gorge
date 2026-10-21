@@ -35,9 +35,25 @@ func foldDeclareAttackers(g *state.Game, e *Event) {
 			o.AttackingBattle = e.Obj
 			o.AttacksThisTurn++
 			o.AttackedTurn, o.AttackedCombat = g.Turn, g.CombatsThisTurn
+			// A fresh declaration starts unconstrained; the HadToAttack event
+			// that follows it marks the attackers that were required.
+			o.HadToAttack = false
 		}
 	}
 	tallyAttack(g, e)
+}
+
+// foldHadToAttack folds Kind HadToAttack (CR 506.7): each named attacker
+// still on the battlefield and attacking had to attack in this combat. The
+// flag is read together with the AttackedTurn/AttackedCombat stamp (the
+// hadToAttackThisCombat filter), which TurnChange and a battlefield exit
+// clear, so it never outlives the combat it was declared in.
+func foldHadToAttack(g *state.Game, e *Event) {
+	for _, id := range e.IDs {
+		if o := g.Obj(id); o != nil && o.Zone == state.ZBattlefield && o.IsAttacking {
+			o.HadToAttack = true
+		}
+	}
 }
 
 // foldDeclareBlockers folds Kind DeclareBlockers into state.
@@ -80,7 +96,7 @@ func foldCombatRetarget(g *state.Game, e *Event) {
 	// attacker, Player the NEW defender. Deliberately narrower than
 	// DeclareAttackers (which must not be reused here -- its Apply case
 	// increments AttacksThisTurn and would refire every Attacks trigger on
-	// a reselect, and TokenAttacks taps too): IsAttacking is already true
+	// a reselect): IsAttacking is already true
 	// and stays true, only the defender and the block list move. The same
 	// defensive shape as DeclareAttackers' own case: the defender must be
 	// a valid seat, still in the game, and the attacker still on the
@@ -161,7 +177,13 @@ func foldDamage(g *state.Game, e *Event) {
 				o.AddCounter("DEFENSE", -e.Amount)
 			}
 		}
-		if f := o.Face(); f != nil && f.IsPlaneswalker() {
+		if f := o.Face(); f != nil && f.IsPlaneswalker() && e.Text != DamageNotPlaneswalker && e.Amount > 0 {
+			// CR 306.8 is keyed on the object BEING a planeswalker (a layer-4
+			// type): rules tags a printed walker that currently is not one
+			// (DamageNotPlaneswalker), and that hit takes the ordinary branch.
+			// The exchange is positive-only: a negative Damage event is the
+			// marked-damage removal heal/regeneration/cleanup emit (CR 701.19b),
+			// and it must clear marked damage rather than be swallowed here.
 			walker = true
 			// Cleanup represents removal of marked damage with a negative
 			// Damage event. It must never restore loyalty; only positive
@@ -335,8 +357,9 @@ func foldDamageProvenance(g *state.Game, e *Event) {
 
 // foldTokenAttacks folds Kind TokenAttacks into state.
 func foldTokenAttacks(g *state.Game, e *Event) {
-	// A permanent that entered tapped and attacking (TokenAttacking$ or a
-	// move body's Attacking$ True rider). Unlike MyriadCopy -- which MINTS
+	// A permanent marked attacking (TokenAttacking$ or a move body's
+	// Attacking$ True rider); it taps only when the effect says so, through
+	// its own entry Tap. Unlike MyriadCopy -- which MINTS
 	// a copy of the source card and flags IsMyriad, which MyriadCleanup
 	// exiles at end of combat -- this marks an ALREADY-EXISTING battlefield
 	// object: Obj is the permanent, Player its controller and IDs[0] the
@@ -353,7 +376,6 @@ func foldTokenAttacks(g *state.Game, e *Event) {
 			}
 			battle = b.ID
 		}
-		o.Tapped = true
 		o.IsAttacking = true
 		o.Attacking = state.PlayerID(e.IDs[0])
 		o.AttackingBattle = battle
@@ -382,9 +404,13 @@ func foldMyriadCopy(g *state.Game, e *Event) {
 	// events.MoveZone).
 	src := g.Obj(e.Obj)
 	if validPlayer(g, e.Player) && src != nil && src.Face() != nil {
-		o := g.AddObject(src.Card, e.Player)
+		card, faceIdx, basis := copyTokenBasis(src)
+		o := g.AddObject(card, e.Player)
 		tallyTokenCreated(g, e.Player)
-		o.SetFaceIdx(src.FaceIdx)
+		o.SetFaceIdx(faceIdx)
+		if basis != nil {
+			o.SetCopyFace(basis)
+		}
 		o.IsToken = true
 		o.IsCopy = true
 		o.IsMyriad = true
@@ -556,6 +582,7 @@ func foldPhaseOut(g *state.Game, e *Event) {
 					other.IsAttacking = false
 					other.IsBlocking = false
 					other.AttackingBattle = 0
+					other.Band = 0
 					other.BlockedBy = nil
 					continue
 				}

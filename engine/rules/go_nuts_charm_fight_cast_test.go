@@ -37,19 +37,20 @@ func TestGoNutsTeamworkedCharmAnnouncesFightTargetBeforePayment(t *testing.T) {
 	}
 	addMana(t, e, 0, "G")
 	cr601Cast(t, e, spell, "teamworked")
-	d := teamworkAskOptions(t, e)
-	if !d.AllowNone || d.MinSum != 3 || len(d.Options) < 2 {
-		t.Fatalf("precondition: Go Nuts! Teamwork must be payable and declinable: %+v", d)
-	}
-	submitChoices(t, e, teamworkOption(t, d, paymentA), teamworkOption(t, d, paymentB))
-	d = e.Pending()
+	d := e.Pending()
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "cast_modes" {
-		t.Fatalf("pending=%+v, want cast KModes after paying-choice declaration", d)
+		t.Fatalf("pending=%+v, want cast KModes as the first announcement", d)
 	}
 	if d.Min != 2 || d.Max != 2 {
 		t.Fatalf("paid Teamwork mode bounds=%d..%d, want both Charm modes (offered %d modes)", d.Min, d.Max, len(d.Options))
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
+
+	d = teamworkAskOptions(t, e)
+	if !d.AllowNone || d.MinSum != 3 || len(d.Options) < 2 {
+		t.Fatalf("precondition: Go Nuts! Teamwork must be payable and declinable: %+v", d)
+	}
+	submitChoices(t, e, teamworkOption(t, d, paymentA), teamworkOption(t, d, paymentB))
 
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget || d.ResumeKind == "cast_sub" || d.Min != 2 || d.Max != 2 {

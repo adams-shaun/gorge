@@ -675,7 +675,7 @@ func (e *Engine) settleTurnUp(tp *turnUpPay) {
 // is covered by adding it here rather than by a per-handler resume call.
 func (e *Engine) turnUpCostIdle() bool {
 	return e.pending == nil && len(e.cmdZone) == 0 && len(e.replChoices) == 0 &&
-		len(e.madnessChoices) == 0 && len(e.deferredAsks) == 0 && !e.Suspended()
+		len(e.deferredAsks) == 0 && !e.Suspended()
 }
 
 // resumeTurnUpAfterCost is the single continuation point of a turn-up whose

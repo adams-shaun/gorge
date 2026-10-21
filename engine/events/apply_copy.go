@@ -146,6 +146,9 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// a new object, CR 400.7, is illegal for the copy too).
 	stamps := append([]state.TargetStamp(nil), src.TargetStamps...)
 	remembered := append([]state.Target(nil), src.Remembered...)
+	// CR 707.10: the announced division is a decision made for the spell,
+	// so the copy carries it; positional with Targets (CR 115.7f).
+	division := append([]int32(nil), src.Division...)
 	// Mode announcements are copiable characteristics (CR 707.10): a
 	// modal copy must resolve the same chosen modes, not ask for new ones.
 	chosenModes := state.CloneChosenModes(src.ChosenModes)
@@ -160,8 +163,11 @@ func foldStackCopy(g *state.Game, e *Event) {
 		for _, id := range e.IDs {
 			if t := g.Obj(id); t != nil {
 				targets = append(targets, state.Target{Obj: id})
-				stamps = append(stamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation})
+				stamps = append(stamps, state.TargetStamp{Obj: id, Incarnation: t.Incarnation, ZoneGen: t.ZoneGen})
 			}
+		}
+		if len(targets) != len(division) {
+			division = nil
 		}
 	}
 
@@ -177,6 +183,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 		o.TargetStamps = stamps
 	}
 	o.Remembered = remembered
+	o.Division = division
 	o.ChosenModes = chosenModes
 	o.X, o.CastFlags, o.IsCopy = x, castFlags, true
 	o.TeamworkPaid = teamworkPaid
@@ -257,6 +264,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 	// identically.
 	var card *cards.Card
 	var faceIdx uint8
+	var basis *cards.Face
 	srcAtEOTTrigBody := ""
 	if e.Obj == 0 {
 		if e.Text == "" {
@@ -271,7 +279,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 		if src == nil || src.Card == nil {
 			return
 		}
-		card, faceIdx = src.Card, src.FaceIdx
+		card, faceIdx, basis = copyTokenBasis(src)
 		srcAtEOTTrigBody = src.AtEOTTrigBody
 	}
 	o := g.AddObject(card, e.Player)
@@ -279,6 +287,9 @@ func foldCopyToken(g *state.Game, e *Event) {
 	o.IsToken = true
 	o.IsCopy = true
 	o.SetFaceIdx(faceIdx)
+	if basis != nil {
+		o.SetCopyFace(basis)
+	}
 	// AtEOTTrig$ is a copiable value (CR 707.2): the mint's own body when
 	// the copying spell carries one (Counter), else the source object's --
 	// a token copy of an AtEOTTrig$ token still sacrifices itself at the
@@ -300,6 +311,31 @@ func foldCopyToken(g *state.Game, e *Event) {
 	if e.Amount&CopyTokenExileCombat != 0 {
 		o.IsMyriad = true
 	}
+}
+
+// faceDownCopyCard is the card a token copy of a face-down permanent is
+// minted on: one empty face (no name, no types, no text), never written. Its
+// characteristics come from the token's CopyFace. One shared pointer, so a
+// live game and its log-only replay hold the identical Card.
+var faceDownCopyCard = &cards.Card{Faces: []*cards.Face{{SVars: map[string]string{}}}}
+
+// copyTokenBasis is what a token copy of src is minted from (CR 707.2,
+// 707.3): its card and face index, plus a private value copy of src's
+// layer-1 copy basis when src is itself copying something (nil otherwise,
+// so a token copy of an ordinary permanent reads its printed face exactly as
+// before). A face-down src is copied as its face-down characteristic set
+// (CR 708.2a) over faceDownCopyCard, so the face-up token never carries the
+// hidden card (a projection reads a token's printed name off its Card). Read
+// before AddObject, which may reallocate g.Objs.
+func copyTokenBasis(src *state.Object) (*cards.Card, uint8, *cards.Face) {
+	if src.CopiesFaceDown() {
+		return faceDownCopyCard, 0, src.CopiableFace()
+	}
+	if src.CopyFace == nil {
+		return src.Card, src.FaceIdx, nil
+	}
+	cf := *src.CopyFace
+	return src.Card, src.FaceIdx, &cf
 }
 
 // foldCardToken folds Kind CardToken into state.
@@ -369,14 +405,11 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	// CR 613.1a's layer-1 copy basis (DB$ Clone, api:Clone). Obj is the
 	// object that becomes the copy and IDs[0] the object copied from; an
 	// empty or zero id CLEARS the basis. The synthetic face is a value
-	// copy of the source's PRINTED face taken here, inside Apply, so a
-	// replay derives the identical characteristics from the same event.
-	// Modifier parameters (AddTypes$/SetColor$/AddKeywords$/SetPower$/
-	// SetToughness$/RemoveCardTypes$/RemoveCreatureTypes$) are separate
-	// layer-4/5/6/7 continuous effects the primitive registered; they are
-	// deliberately NOT folded into this face, so the CR 613 layer walk
-	// stays the one place exceptions settle. NewName$ rides Text and the
-	// GainThisAbility$ rider rides Counter.
+	// copy of the source's COPIABLE face (state.Object.CopiableFace) taken
+	// here, inside Apply, so a replay derives the identical characteristics
+	// from the same event. The copy effect's exceptions follow as a
+	// CopyExcept event (copy_except.go) that edits this basis. NewName$ rides
+	// Text and the GainThisAbility$ rider rides Counter.
 	o := g.Obj(e.Obj)
 	if o == nil {
 		return
@@ -388,11 +421,13 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	}
 	var face *cards.Face
 	if e.Counter == "chosen-name" {
-		if i, ok := g.NameUniverse.FirstByName(e.Text); ok {
-			face = g.NameUniverse.Card(i).Faces[0]
+		// The chosen name may be a back face's or an alternative name
+		// (CR 201.4b-f): copy THAT face.
+		if i, j, ok := g.NameUniverse.FaceByName(e.Text); ok {
+			face = g.NameUniverse.Card(i).Faces[j]
 		}
 	} else if src := g.Obj(e.IDs[0]); src != nil {
-		face = src.Face()
+		face = src.CopiableFace()
 	}
 	if face == nil {
 		return
@@ -493,7 +528,14 @@ func foldClonePermanent(g *state.Game, e *Event) {
 func foldFlipFace(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil && o.Card != nil &&
 		e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
+		turned := o.FaceIdx != uint8(e.Amount)
 		o.SetFaceIdx(uint8(e.Amount))
+		// CR 613.7g: a transforming double-faced permanent that changes face
+		// on the battlefield transformed. A flip card (CR 710) and a face
+		// chosen off the battlefield are not transforms.
+		if turned && o.Card.IsTransformingDFC() {
+			restampLayer(g, o)
+		}
 	}
 }
 
@@ -505,6 +547,7 @@ func foldTurnFaceDown(g *state.Game, e *Event) {
 		o.FaceDownSetType = setType
 		o.FaceDownPower, o.FaceDownToughness = power, toughness
 		o.FaceDownHasPT = hasPT
+		restampLayer(g, o) // CR 613.7f
 	}
 }
 
@@ -522,5 +565,6 @@ func foldTurnFaceUp(g *state.Game, e *Event) {
 		o.FaceDownPower = 0
 		o.FaceDownToughness = 0
 		o.FaceDownHasPT = false
+		restampLayer(g, o) // CR 613.7f
 	}
 }

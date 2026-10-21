@@ -102,11 +102,11 @@ func TestPlayerSpecFx20MissHighwaterPlayerCounters(t *testing.T) {
 	e.combatDamaging = true
 	e.dmgSrcOverride = mhw
 
-	if !trigmatch.DamageMatches(boardOf(e), trig, mhw, events.Event{Kind: events.Damage, Player: 1}) {
+	if !trigmatch.DamageMatches(boardOf(e), trig, mhw, events.Event{Kind: events.Damage, Player: 1, Amount: 2}) {
 		t.Fatal("combat damage to a player with no contract counter must match")
 	}
 	e.G.Players[1].AddCounter("Contract", 1)
-	if trigmatch.DamageMatches(boardOf(e), trig, mhw, events.Event{Kind: events.Damage, Player: 1}) {
+	if trigmatch.DamageMatches(boardOf(e), trig, mhw, events.Event{Kind: events.Damage, Player: 1, Amount: 2}) {
 		t.Fatal("combat damage to a player WITH a contract counter must not match")
 	}
 }
@@ -131,7 +131,7 @@ func TestPlayerSpecFx20LatullasOrdersDefendingPlayer(t *testing.T) {
 	e.combatDamaging = true
 	e.dmgSrcOverride = bear
 
-	if !trigmatch.DamageMatches(boardOf(e), trig, aura, events.Event{Kind: events.Damage, Player: 1}) {
+	if !trigmatch.DamageMatches(boardOf(e), trig, aura, events.Event{Kind: events.Damage, Player: 1, Amount: 2}) {
 		t.Fatal("combat damage to seat 1 must read seat 1 as the defending player")
 	}
 }

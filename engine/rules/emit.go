@@ -28,6 +28,18 @@ func triggerCheckEvent(stored events.Event, tokenMintWant state.ObjID) events.Ev
 	return stored
 }
 
+// deferredPushKind reports the mint events pushCast and pushActivation emit
+// under deferCastTrigger: a spell's PutOnStack and an activated ability's five
+// mint kinds. Their cast/activate triggers fire only after payment.
+func deferredPushKind(k events.Kind) bool {
+	switch k {
+	case events.PutOnStack, events.AbilityPush, events.KeywordAbilityPush,
+		events.GrantAbilityPush, events.GainedAbilityPush, events.DelayedPush:
+		return true
+	}
+	return false
+}
+
 func (e *Engine) emit(ev events.Event) events.Event {
 	// E1 (emit-action.md): objects minted during this event are compared
 	// against this count to raise the pool gates (the mint scan below).
@@ -40,13 +52,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		return ev
 	}
 	if ev.Kind == events.EndTurn {
+		// CR 724.1a: the triggered abilities that triggered before the
+		// end-the-turn process began and are still waiting to be put onto
+		// the stack cease to exist. Dropped HERE, before the fold exiles the
+		// stack (724.1b), so an ability that triggers during the process
+		// survives into the cleanup step (724.1f; finishEndTurn).
+		e.pendingTriggers, e.orderedTriggers = nil, 0
 		e.endTurnRequested = true
 	}
 	// Task 15 (CR 702.16d/e): prevent protected Damage and Attach events before
 	// replacement, reporting prevention as a Note. Damage uses the published
 	// source (or e.damaging); zero means no source. This precedes planeswalker
 	// loyalty conversion, and CantPreventDamage bypasses the prevention gate.
-	if ev.Kind == events.Damage {
+	// A non-positive Damage event removes marked damage; it is not damage, so
+	// protection never stops it.
+	if ev.Kind == events.Damage && ev.Amount > 0 {
 		src := e.inFlightDamageSource()
 		protected := ev.Obj != 0 && e.protectedFrom(ev.Obj, src)
 		if ev.Obj == 0 && int(ev.Player) < len(e.G.Players) {
@@ -58,6 +78,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				Amount: ev.Amount, Text: "prevented: protection"})
 		}
 	}
+	// CR 701.3a/b: an Attach that would fasten the on-battlefield attachment
+	// to the bearer it is already attached to does nothing (no event at
+	// all), and one that would fasten it to a bearer the attachment SBAs
+	// (engine/rules/attach.go attachmentSBAs) would at once undo is refused
+	// with one Note, the object keeping its current bearer. The refusal runs
+	// BEFORE the protection guard so a refused attach never detaches.
+	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 {
+		if refused, note := e.attachRefused(ev.Obj, ev.IDs[0]); refused {
+			if !note {
+				return events.Event{}
+			}
+			return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: illegal bearer"})
+		}
+	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 &&
 		e.protectedFrom(ev.IDs[0], ev.Obj) {
 		// Defence in depth: current targeting rules make this unreachable, but
@@ -65,6 +99,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// targeting step may reach it. Keep the guard central; tests must prove
 		// a reachable game state rather than calling emit directly.
 		return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Text: "cannot attach: protected"})
+	}
+	// CR 701.3b: an attach that goes ahead from a DIFFERENT former bearer
+	// publishes the Unattached first (the Mode$ Unattached family: Captain's
+	// Hook, Grafted Exoskeleton, Grafted Wargear, Stitcher's Graft) so a
+	// refused attach never detaches. Moved here from engine/effects'
+	// emitAttach, which only effects-side attach paths reach: every Attach
+	// path (Living Weapon, token AttachedTo$, aura entry) funnels through
+	// this emit. A fresh attach (AttachedTo == 0) or the same-bearer no-op
+	// swallowed above emits none.
+	if ev.Kind == events.Attach && ev.Obj != 0 && len(ev.IDs) > 0 {
+		if o := e.G.Obj(ev.Obj); o != nil && o.AttachedTo != 0 && o.AttachedTo != ev.IDs[0] {
+			e.emit(events.Event{Kind: events.Unattached, Obj: ev.Obj,
+				IDs:  []state.ObjID{o.AttachedTo},
+				Text: "reattached to a new permanent"})
+		}
 	}
 	if ev.Kind == events.Attach && ev.Obj != 0 && ev.Text == "attach to player" {
 		if attaching := e.G.Obj(ev.Obj); attaching != nil && e.isAura(attaching) &&
@@ -129,6 +178,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			return events.Event{}
 		}
 	}
+	// CR 702.34a and its family: a keyword-cast spell leaving the stack is
+	// exiled wherever it would go, before any replacement sees the move.
+	e.keywordExileDeparture(&ev)
 	if prepareEmitReplacement(e, &ev, e.applyingReplacement, e.replAction, e.replReplaced) {
 		return events.Event{}
 	}
@@ -228,6 +280,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.Damage {
 		e.recomputeInfectMarker(&ev)
 		e.recomputeWitherMarker(&ev)
+		e.markDamageNotPlaneswalker(&ev)
+		e.recomputeWalkerCreatureMarker(&ev)
 	}
 	// CR 306.8's planeswalker loyalty exchange (and CR 120.3e's exception for
 	// a permanent that is also a creature) is folded directly into this
@@ -524,6 +578,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.fuseTargets[copyID] = cp
 		}
+		// CR 707.10: "If an effect of the copy refers to objects used to pay
+		// its costs, it uses the objects used to pay the costs of the
+		// original spell or ability" (a copied Fling deals the ORIGINAL's
+		// sacrificed creature's power). The copy takes its own copy of each
+		// cost-paid record the original's resolution Ctx reads (Forge
+		// SpellAbility.copy shares the paid hash the same way).
+		inheritCopyRecord(e.sacrificedLKI, ev.Obj, copyID)
+		inheritCopyRecord(e.castExiled, ev.Obj, copyID)
+		inheritCopyRecord(e.castRevealed, ev.Obj, copyID)
+		inheritCopyRecord(e.castCounterPut, ev.Obj, copyID)
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
 		}
@@ -659,14 +723,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// already the batch total. A prevented Damage never reaches here (emit
 	// returned the prevention Note above), and the deferred cast-trigger arm
 	// skips the trigger check entirely, so neither needs a batch.
-	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
-		// CR 601.2i: the cast trigger must not fire at the up-front push
-		// (601.2a), because the spell is not yet cast -- targets (601.2c) and
-		// payment (601.2h) still lie ahead. Hold the event and its LKI so
-		// payCast's fireDeferredCastTrigger re-walks it after payment.
-		// Deferring here (rather than queueing the trigger and removing it
-		// later) means the held event is never double-checked: the first
-		// pass skipped it entirely, and exactly one later pass fires it.
+	if e.deferCastTrigger && deferredPushKind(ev.Kind) {
+		// CR 601.2i / 602.2i: the cast/activate trigger must not fire at the
+		// up-front push (601.2a / 602.2a), because the spell or ability is not
+		// yet cast/activated -- targets (601.2c) and payment (601.2h) still lie
+		// ahead. Hold the event and its LKI so payCast's
+		// fireDeferredCastTrigger / fireDeferredActivationTrigger re-walks it
+		// after payment. Deferring here (rather than queueing the trigger and
+		// removing it later) means the held event is never double-checked: the
+		// first pass skipped it entirely, and exactly one later pass fires it.
 		cp, lp := stored, lki
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
@@ -683,6 +748,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		check := triggerCheckEvent(stored, tokenMintWant)
 		if !deferAttackTriggerCheck(stored.Kind, len(e.declaredAttackers) > 0) {
 			e.checkTriggers(&check, lki, lkiPower, lkiToughness, lkiPTValid)
+		}
+		if stored.Kind == events.EndTurn {
+			e.checkEndTurnExileTriggers(&stored)
 		}
 		// A pushed spell proposal's own target choice (CR 601.2c): remember
 		// which queue entries it produced so abortCast can drop them if the
@@ -866,4 +934,13 @@ func (e *Engine) emitBookkeeping(ev *events.Event) {
 		e.refreshDerivedTypes()
 	}
 	e.checkTriggers(ev, nil, 0, 0, false)
+}
+
+// inheritCopyRecord gives the stack copy `to` its own copy of the original
+// `from`'s entry in m, when there is one (CR 707.10's cost-paid objects). A
+// present entry means m is non-nil.
+func inheritCopyRecord[T any](m map[state.ObjID][]T, from, to state.ObjID) {
+	if s, ok := m[from]; ok {
+		m[to] = append([]T(nil), s...)
+	}
 }

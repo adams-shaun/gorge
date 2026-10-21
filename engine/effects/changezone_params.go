@@ -208,6 +208,11 @@ type changeZoneTargeting struct {
 	DefinedRemembered      bool // Defined$ Remembered
 	DefinedLibraryPosition bool // Defined$ TopOfLibrary / BottomOfLibrary
 	DefinedDelayRemembered bool // Defined$ DelayTriggerRemembered[LKI]
+	// DefinedTriggered is Defined$ TriggeredCard and its family
+	// (definedSpecTriggeredCard): the mover skips an object the trigger's
+	// fire-time capture saw that has since changed zones (CR 400.7,
+	// Ctx.TriggerRememberedMoved).
+	DefinedTriggered bool
 }
 
 // changeZoneKnownKeys is every parameter key a ChangeZone ability's
@@ -236,7 +241,7 @@ var changeZoneKnownKeys = [...]string{
 	"ConditionCompare", "ConditionCompare2", "ConditionDefined", "ConditionDescription",
 	"ConditionFirstCombat", "ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases",
 	"ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost",
-	"CostDesc", "Defined", "DefinedCards",
+	"CostDesc", "Defined", "DefinedCards", "DefinedExiler",
 	"DefinedPlayer", "DefinedTarget", "Description", "DestAltSVar", "DestAltSVarCompare",
 	"Destination", "DestinationAlternative", "DifferentNames", "Duration",
 	"Exactly", "Exclude", "Exhaust", "ExileFaceDown", "ExiledWithEffectSource", "FaceDown", "FaceDownPower",
@@ -247,7 +252,7 @@ var changeZoneKnownKeys = [...]string{
 	"KeywordLine", "LeaveBattlefield", "LibraryPosition", "LibraryPositionAlternative",
 	"Mandatory", "MaxRevealed", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
 	"ModeCost", "Monstrosity", "NewController", "NoLooking", "NoReveal", "NoShuffle",
-	"OpponentTurn", "Optional",
+	"NonBasicSpell", "OpponentTurn", "Optional",
 	"OptionalPrompt", "Origin", "OriginAlternative", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "RandomNumTargets", "RandomOrder", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana",
@@ -303,11 +308,14 @@ func (p *ChangeZoneParams) noteUnread(h Host, c *Ctx) {
 // FaceDownRiders are the face-down entry markers applyFaceDownMarker stamps:
 // ChangeZone compiles them once, Dig and ChangeZoneAll on the stack per call.
 type FaceDownRiders struct {
-	FaceDown          bool
-	ExileFaceDown     bool
-	WithMayLook       bool
-	Foretold          bool
-	Unearth           bool
+	FaceDown      bool
+	ExileFaceDown bool
+	WithMayLook   bool
+	Foretold      bool
+	Unearth       bool
+	// ExilerSpec is the DefinedExiler$ operand, kept only for ReplacedPlayer
+	// (Shared Fate); every other value leaves it empty.
+	ExilerSpec        string
 	FaceDownSetType   string
 	FaceDownPower     ParamText
 	FaceDownToughness ParamText
@@ -537,6 +545,9 @@ func compileFaceDownRiders(sa *cards.SA) FaceDownRiders {
 	r.WithMayLook = isTrue(sa.ParamStr(cards.PKWithMayLook))
 	r.Foretold = isTrue(sa.ParamStr(cards.PKForetold))
 	r.Unearth = isTrue(sa.ParamStr(cards.PKUnearth))
+	if v := strings.TrimSpace(sa.ParamStr(cards.PKDefinedExiler)); strings.EqualFold(v, "ReplacedPlayer") {
+		r.ExilerSpec = v
+	}
 	r.FaceDownSetType = strings.TrimSpace(sa.ParamStr(cards.PKFaceDownSetType))
 	fp, fpOK := sa.Param(cards.PKFaceDownPower)
 	r.FaceDownPower = paramText(fp, fpOK)
@@ -556,6 +567,8 @@ func compileChangeZoneTargeting(tp *TargetParams, dp *DefinedParams) changeZoneT
 	switch definedSpecCodes.Code(dp.Defined.Text) {
 	case definedSpecDelayTriggerRemembered, definedSpecDelayTriggerRememberedLKI:
 		t.DefinedDelayRemembered = true
+	case definedSpecTriggeredCard:
+		t.DefinedTriggered = true
 	}
 	t.ValidTgts = ParamText{Text: tp.ValidTgts, Present: tp.Has(TgtValidPresent)}
 	t.TargetMin = paramText(tp.Min.Text, tp.Min.Present)

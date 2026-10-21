@@ -516,19 +516,18 @@ func TestAlternativeCostWithSacPartIsGatedOnCastable(t *testing.T) {
 		t.Fatal("alt cost not offered with a creature to sacrifice")
 	}
 	submitChoices(t, e2, alt.Index)
+	// CR 601.2c before 601.2h: the target (601.2c) is chosen before the
+	// sacrifice part (601.2h, at payment).
+	td := e2.Pending()
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", td)
+	}
+	submitChoices(t, e2, indexOfPlayerOption(td, 1))
 	d := e2.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "sacrifice" || d.Options[0].Obj != bear {
 		t.Fatalf("sacrifice choice %+v", d)
 	}
 	submitChoices(t, e2, 0)
-	// CR 601.2c-before-601.2h: the sacrifice is part of paying the cost
-	// (601.2h), so it is executed only once the target is chosen (601.2c).
-	// Answer the target, then assert the bear was sacrificed.
-	td := e2.Pending()
-	if td == nil || td.Kind != decision.KTarget {
-		t.Fatalf("expected a target decision after the sacrifice choice, got %+v", td)
-	}
-	submitChoices(t, e2, indexOfPlayerOption(td, 1))
 	if e2.G.Obj(bear).Zone != state.ZGraveyard {
 		t.Fatalf("bear %s, want graveyard", e2.G.Obj(bear).Zone)
 	}

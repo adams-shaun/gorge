@@ -28,6 +28,7 @@ func cloneEngineFields(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	cloneFieldsEngineDrain(c, e, sp, remap)
 	cloneFieldsEngineTokenMint(c, e, sp, remap)
 	cloneFieldsEngineTriggerBatches(c, e, sp, remap)
+	cloneFieldsEngineTriggerBatches2(c, e, sp, remap)
 	cloneFieldsEngineContinuation(c, e, sp, remap)
 	cloneFieldsEngineContinuation2(c, e, sp, remap)
 	cloneFieldsEngineParked(c, e, sp, remap)
@@ -59,6 +60,7 @@ func cloneFieldsEngine(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.deckManifests = e.deckManifests
 	c.compiledText = e.compiledText
 	c.landTypeWords = e.landTypeWords
+	c.restartRest = e.restartRest
 	c.format = e.format
 	if e.pending != nil {
 		c.pending = cloneDecision(e.pending)
@@ -152,6 +154,7 @@ func cloneFieldsEngine(c, e *Engine, sp *Spare, remap *cloneRemap) {
 func cloneFieldsEngineTurnLedger(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.turnsTaken = append([]int32(nil), e.turnsTaken...)
 	c.turnsTakenEpoch = e.turnsTakenEpoch
+	c.turnLedgerBase = e.turnLedgerBase
 	if e.turnStartTurns != nil {
 		c.turnStartTurns = make([][]int32, len(e.turnStartTurns))
 		for i0 := range e.turnStartTurns {
@@ -207,6 +210,7 @@ func cloneFieldsEngineRounds(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	}
 	c.blockerRound = e.blockerRound
 	c.exertAskState = e.exertAskState
+	c.bandAskState = e.bandAskState
 	c.enlistAskState = e.enlistAskState
 	c.stationing = e.stationing
 	c.combatRound = e.combatRound
@@ -525,6 +529,8 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 	}
 	c.excessBatch = e.excessBatch
 	c.excessBatch.entries = append([]excessBatchEntry(nil), e.excessBatch.entries...)
+	c.lifelinkBatch = append([]lifelinkGain(nil), e.lifelinkBatch...)
+	c.lifelinkBatchOpen = e.lifelinkBatchOpen
 	if e.zoneBatchOpen {
 		c.zoneBatchOpen = e.zoneBatchOpen
 		c.zoneBatchDepth = e.zoneBatchDepth
@@ -542,6 +548,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			}
 		}
 	}
+	c.entryHeld = cloneHeldEntryChecks(e.entryHeld)
 	c.millBatchOpen = e.millBatchOpen
 	c.millBatchDepth = e.millBatchDepth
 	if e.millBatchIdx != nil {
@@ -622,6 +629,9 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 			c.triggerTurnResolved[k0] = v0
 		}
 	}
+}
+
+func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	if e.triggerTurnDice != nil {
 		c.triggerTurnDice = make(map[triggerKey]turnFires, len(e.triggerTurnDice))
 		for k0, v0 := range e.triggerTurnDice {
@@ -724,6 +734,7 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		}
 		p0.rootOpts = append([]decision.Option(nil), e.cast.rootOpts...)
 		p0.evidence = append([]state.ObjID(nil), e.cast.evidence...)
+		p0.division = append([]int32(nil), e.cast.division...)
 		if e.cast.preSuppress != nil {
 			p0.preSuppress = make(map[state.ObjID]bool, len(e.cast.preSuppress))
 			for k1, v1 := range e.cast.preSuppress {
@@ -979,6 +990,8 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		c.blockPay = &p0
 	}
 	c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
+	c.cmdZoneDue = append([]state.ObjID(nil), e.cmdZoneDue...)
+	c.cmdZoneScan = e.cmdZoneScan
 	if e.legendBatch != nil {
 		p0 := *e.legendBatch
 		p0.group.ids = append([]state.ObjID(nil), e.legendBatch.group.ids...)
@@ -1116,8 +1129,6 @@ func cloneFieldsEngineCastWindows(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		c.untapResume = &p0
 	}
 	c.untapChoiceObj = e.untapChoiceObj
-	c.madnessChoices = append([]events.Event(nil), e.madnessChoices...)
-	c.madnessSuspended = e.madnessSuspended
 	if e.suppressedCast != nil {
 		c.suppressedCast = make(map[state.ObjID]bool, len(e.suppressedCast))
 		for k0, v0 := range e.suppressedCast {

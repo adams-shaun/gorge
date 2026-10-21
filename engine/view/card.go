@@ -346,6 +346,19 @@ type projector struct {
 	// memo (projScratch).
 	types *typeCache
 	text  *textMemo
+	// looker is ch's optional MayLookAt$ read over a face-down exiled card
+	// (rules.Engine.MayLookAtFaceDown: a live Continuous MayLookAt$ static
+	// whose Affected$ spec matches the card names that seat), nil when ch
+	// lacks it -- the face is then shown only to the object's own looker.
+	looker interface {
+		MayLookAtFaceDown(state.PlayerID, state.ObjID) bool
+	}
+	// revealer is ch's optional "play with the top card revealed" read
+	// (rules.Engine.LibraryTopRevealed, CR 401.5), nil when ch lacks it --
+	// the top card is then shown only through MayLookAtLibraryTop.
+	revealer interface {
+		LibraryTopRevealed(state.PlayerID) bool
+	}
 }
 
 func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratch) projector {
@@ -354,6 +367,12 @@ func newProjector(g *state.Game, ch Chars, viewer state.PlayerID, sc *projScratc
 		SpellEffectiveCost(state.PlayerID, state.ObjID) string
 	})
 	p.namer, _ = ch.(interface{ Name(state.ObjID) string })
+	p.looker, _ = ch.(interface {
+		MayLookAtFaceDown(state.PlayerID, state.ObjID) bool
+	})
+	p.revealer, _ = ch.(interface {
+		LibraryTopRevealed(state.PlayerID) bool
+	})
 	p.vchars, _ = ch.(interface {
 		ViewCharacteristics(state.ObjID) (string, bool, []string, int32, int32)
 	})
@@ -451,31 +470,17 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 		// cannot hide a card in a hidden zone.
 		return false
 	}
-	// A face-down exiled card is public as a distinct object but its face is
-	// visible only to its controller (or an omniscient projection). Keep
-	// every printed field blank for other viewers; Secret on the original
-	// MoveZone was only event redaction and cannot carry this lasting fact.
-	//
-	// A WithMayLook$ True face-down exile (Ixhel, Scion of Atraxa) names the
-	// exiling effect's controller as the ONE player who may look, so it
-	// REPLACES the controller default: the card's owner may not read a face
-	// the owner was never granted, and the looker may. o.MayLookPlayer is
-	// the single read of that permission here, so this projection and any
-	// later one cannot disagree about it.
+	// A face-down card is public as a distinct object but its face is
+	// redacted from every viewer who may not look at it (p.mayLookFaceDown).
+	// Secret on the original MoveZone was only event redaction and cannot
+	// carry this lasting fact. A face-down planar-deck card is unknown to
+	// every seat, including its owner; only the face-up current plane is
+	// public.
 	//
 	// The redacted card is decided first and never built: none of the
 	// derived facts the full card would read survives the blanking, so asking
 	// Chars for them would only spend storage the blank card then drops.
-	hidden := false
-	if o.FaceDown {
-		looker := o.Controller
-		if o.HasMayLook {
-			looker = o.MayLookPlayer
-		}
-		// A face-down planar-deck card is unknown to every seat, including
-		// its owner. Only the face-up current plane is public.
-		hidden = o.Zone == state.ZPlanarDeck || (!revealFaceDown && p.viewer != looker && !alsoVisible.has(looker))
-	}
+	hidden := o.FaceDown && (o.Zone == state.ZPlanarDeck || (!revealFaceDown && !p.mayLookFaceDown(o, alsoVisible)))
 	if hidden {
 		*cv = CardView{ID: id, FaceDown: true, Token: p.token(id),
 			Controller: o.Controller, Owner: o.Owner}
@@ -496,6 +501,48 @@ func (p *projector) zoneCard(cv *CardView, id state.ObjID, includeAbilityCosts b
 		}
 	}
 	return true
+}
+
+// mayLookFaceDown reports whether the viewer may see face-down o's face.
+//
+// On the battlefield and the stack the face is its controller's (CR 708.5,
+// 708.4). In exile (CR 406.3: a card "exiled face down" can't be examined by
+// any player except when instructions allow it) the face belongs to exactly
+// the seats that may look -- never its owner by default (Necropotence's
+// blind exile shows it to nobody):
+//   - o.MayLookPlayer, the one looker the exiling instruction named
+//     (WithMayLook$, a Foretold$ designation and the Foretell action -- CR
+//     702.143a -- Hideaway, CR 702.75a, a looked-at Dig take and a library
+//     search's find; events.Apply folds it from the
+//     "exiled_with_face_down_maylook" marker);
+//   - a seat a live MayLookAt$ static names (Praetor's Grasp's "you may look
+//     at that card"), through ch's optional MayLookAtFaceDown.
+//
+// Either way CR 723.4 widens it to a seat controlling that looker (the
+// alsoVisible set or a live control, controlsSeat). Forge's
+// CardView.canBeShownTo is the same rule (cr-g64).
+func (p *projector) mayLookFaceDown(o *state.Object, alsoVisible *seatSet) bool {
+	if o.Zone != state.ZExile {
+		return p.seesFor(o.Controller, alsoVisible)
+	}
+	if o.HasMayLook && p.seesFor(o.MayLookPlayer, alsoVisible) {
+		return true
+	}
+	if p.looker == nil {
+		return false
+	}
+	for s := range p.g.Players {
+		if seat := state.PlayerID(s); p.seesFor(seat, alsoVisible) && p.looker.MayLookAtFaceDown(seat, o.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+// seesFor reports whether the viewer sees what seat sees: it is seat, or
+// controls seat (CR 723.4: the alsoVisible set, or a live control).
+func (p *projector) seesFor(seat state.PlayerID, alsoVisible *seatSet) bool {
+	return p.viewer == seat || alsoVisible.has(seat) || controlsSeat(p.g, p.viewer, seat)
 }
 
 // tokenSuppressor is a Chars whose caller discards every CardView.Token it

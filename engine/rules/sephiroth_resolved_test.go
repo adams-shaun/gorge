@@ -78,11 +78,14 @@ func TestSephirothTransformsOnlyOnFourthResolution(t *testing.T) {
 			t.Fatalf("after 4 resolutions face = %q, want the back face (never transformed)", face)
 		}
 	}
-	// Symptom 2's cause: once transformed, the back face prints
-	// "ManaCost:no cost", so every mana-value read is 0. That is the printed
-	// rule, and the fix is the gate above, not the value.
+	// The back face prints "ManaCost:no cost" (a face-level 0), but the
+	// transformed permanent's mana value is its front face's 3 (CR 712.8e,
+	// 202.3b): every object-level read goes through state.ManaValue.
 	if mv := e.G.Obj(sep).Face().ManaValue(); mv != 0 {
-		t.Fatalf("back-face mana value = %d, want 0 (ManaCost:no cost)", mv)
+		t.Fatalf("back-face printed mana value = %d, want 0 (ManaCost:no cost)", mv)
+	}
+	if mv := state.ManaValue(e.G, e.G.Obj(sep)); mv != 3 {
+		t.Fatalf("transformed Sephiroth mana value = %d, want the front face's 3 (CR 712.8e)", mv)
 	}
 }
 

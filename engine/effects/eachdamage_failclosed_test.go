@@ -43,8 +43,8 @@ func TestEachDamageUnresolvableAmountIsLoudAndZero(t *testing.T) {
 	Resolve(h, &Ctx{Source: damager, Controller: 0, Targets: []state.Target{{Obj: target}}}, sa(t,
 		"DB$ EachDamage | ValidCards$ Creature.YouCtrl | Defined$ Targeted | NumDmg$ NoSuchSVar"))
 	got := damageEvents(h)
-	if len(got) != 1 || got[0].Amount != 0 {
-		t.Fatalf("damage events = %+v, want one zero-amount event for unresolved NumDmg$", got)
+	if len(got) != 0 {
+		t.Fatalf("damage events = %+v, want none for unresolved NumDmg$ (CR 120.8: 0 damage is no event)", got)
 	}
 	if !eachDamageHasNote(h) {
 		t.Fatalf("log = %+v, want a replay-visible Note for unresolved NumDmg$", h.log)

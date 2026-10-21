@@ -356,6 +356,11 @@ func (e *Engine) resolveTop() {
 			// ordinary printed trigger.
 			EffectFrame: e.triggerEffectFrames[id]})
 		ctx.Grantor = o.GrantedBy
+		// CR 400.7 / 400.7e: a remembered object that changed zones between
+		// the trigger firing and the start of resolution is a new object the
+		// trigger's referents cannot find. Computed once here, so moves the
+		// resolution itself makes are never listed (CR 400.7j).
+		ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
 		// CR 608.2h: a source that left the battlefield (sacrificed as the
 		// cost) answers "the chosen type" from its last-known choices.
 		if snap, ok := e.sourceCharLKI[id]; ok && o.Source != 0 {
@@ -383,8 +388,9 @@ func (e *Engine) resolveTop() {
 		// CR 702.49b: a K:Ninjutsu permanent enters attacking the same player
 		// (planeswalker or battle) the returned creature was attacking. The
 		// activator captured that defender when the Return cost was paid
-		// (engine/rules/cast.go's returncost arm) and it rides the AbilityPush event's
-		// IDs, which events.Apply folded into o.Remembered as a player target.
+		// (engine/rules/cast.go's returncost arm) and it is folded into
+		// o.Remembered as a player target by foldNinjutsuDefender's Choose
+		// "remembered" event on the pushed ability (events.Apply).
 		// Re-bind it here so engine/effects/zone.go's Attacking$ True rider (which
 		// reads Ctx.DefendingPlayer) places the permanent against the right
 		// defender. Only a ninjutsu activation carries the tag, so no other
@@ -470,6 +476,10 @@ func (e *Engine) resolveTop() {
 		e.endTurnRequested = false
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
+		if e.restart != nil {
+			e.finishRestart()
+			return
+		}
 		if e.endTurnRequested {
 			e.finishEndTurn()
 			return
@@ -498,7 +508,10 @@ func (e *Engine) resolveTop() {
 	}
 
 	f := o.Face()
-	sa := f.SpellAbility()
+	// Cleave (CR 702.148a): a cleaved cast resolves the bracket-free cleave
+	// ability (engine/rules/cleave.go's stackSpellSA); every other spell its
+	// face's own SpellAbility.
+	sa := stackSpellSA(o, f)
 	// Bestow (CR 702.114a): a cast paid for with the bestow cost resolves
 	// as the synthesized Aura attach spell -- the creature face itself has
 	// no SP -- so the whole ordinary Aura tail below runs unchanged:
@@ -506,8 +519,23 @@ func (e *Engine) resolveTop() {
 	// and moveResolvedOffStack enters the permanent attached (the entry
 	// keeps an Attach set on the stack). The flag is the pay-time CastInfo
 	// provenance modeFlags("bestowed") rode.
+	//
+	// CR 608.3b / 702.103e: as a bestowed Aura spell begins resolving, if
+	// its target is illegal it ceases to be bestowed and continues
+	// resolving as a creature spell. The AlterAttribute removal clears
+	// FlagBestowed (so BestowedAuraSpell reads false and every type read,
+	// entry replacements included, sees a creature spell), sa stays the
+	// face's own (nil: no bestow carrier has an SP), and the ordinary
+	// permanent tail below moves it to the battlefield unattached.
+	unbestowed := false
 	if o.CastFlags&state.FlagBestowed != 0 {
-		sa = bestowedAttachSA()
+		if bsa := bestowedAttachSA(); e.bestowTargetIllegal(o, bsa) {
+			e.emit(events.Event{Kind: events.AlterAttribute, Obj: id, Text: events.AttrBestowed, Amount: -1})
+			o = e.G.Obj(id)
+			unbestowed = true
+		} else {
+			sa = bsa
+		}
 	}
 	// Morph / Megamorph / Disguise (CR 702.37a/702.168a/702.169a via
 	// CR 708.4): a face-down cast resolves as a vanilla creature spell --
@@ -527,9 +555,21 @@ func (e *Engine) resolveTop() {
 	// the battlefield): resolveMutate emits the Mutate fold, which parks this
 	// object off the stack. A mutate card carries no SP, so the spell block
 	// below would resolve nothing anyway.
+	//
+	// CR 608.3b / 702.140b: if the target is illegal as the spell begins
+	// resolving, it ceases to be a mutating creature spell (the
+	// AlterAttribute removal clears FlagMutated/FlagMutatedTop) and falls
+	// through to the ordinary permanent tail, entering the battlefield as
+	// its own creature under its controller's control.
+	unmutated := false
 	if o.CastFlags&state.FlagMutated != 0 {
-		e.resolveMutate(o, o.Targets)
-		return
+		if victim := e.mutateVictim(o); victim != 0 {
+			e.resolveMutate(o, victim)
+			return
+		}
+		e.emit(events.Event{Kind: events.AlterAttribute, Obj: id, Text: events.AttrMutating, Amount: -1})
+		o = e.G.Obj(id)
+		unmutated = true
 	}
 	// Fuse (CR 702.101b): a fused split spell is one spell whose BOTH halves'
 	// spell abilities resolve in sequence. The card stays at its front face;
@@ -544,6 +584,10 @@ func (e *Engine) resolveTop() {
 		return
 	}
 	targets := o.Targets
+	if unbestowed || unmutated {
+		// The creature spell it became has no target (CR 702.103e/702.140b).
+		targets = nil
+	}
 	charmModeTargets, charmFlatTargets, charmHandled := e.recheckCharmTargets(o)
 	if charmHandled {
 		targets = charmFlatTargets
@@ -709,6 +753,10 @@ func (e *Engine) resolveTop() {
 		e.endTurnRequested = false
 		effects.Resolve(e, ctx, resolveSA)
 		e.damaging = 0
+		if e.restart != nil {
+			e.finishRestart()
+			return
+		}
 		if e.endTurnRequested {
 			e.finishEndTurn()
 			return
@@ -974,11 +1022,12 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		// response) is dropped here, and a target with no other legal target
 		// left fizzles the whole spell/ability through the existing fizzle
 		// machinery upstream of this recheck.
-		// CR 400.7 / 608.2b: an object that left the battlefield (or entered
-		// it) since it was targeted is a new object, even though it kept its
-		// ObjID -- Infernal Vessel or Reassembling Skeleton dying and
-		// returning before the haste grant aimed at it resolves. The stamp
-		// is the target's Incarnation when it was chosen.
+		// CR 400.7 / 608.2b: an object that changed zones since it was
+		// targeted is a new object, even though it kept its ObjID --
+		// Infernal Vessel or Reassembling Skeleton dying and returning, or
+		// a graveyard card Regrowth'd and discarded again, before the
+		// spell aimed at it resolves. The stamp is the target's ZoneGen
+		// when it was chosen.
 		if e.targetBecameNewObject(self, t.Obj) {
 			continue
 		}
@@ -1074,9 +1123,9 @@ func targetSpecForZone(spec string, z state.Zone) string {
 
 // zoneIn reports whether z is one of the zones in the set.
 // targetBecameNewObject reports that the stack object self stamped id as a
-// target (state.Object.TargetStamps) and id's Incarnation has advanced
-// since: it crossed the battlefield boundary and is a new object (CR
-// 400.7). An unstamped target (a rules-side record that never went through
+// target (state.Object.TargetStamps) and id's identity has moved since: it
+// changed zones and is a new object (CR 400.7), whatever zones it passed
+// through. An unstamped target (a rules-side record that never went through
 // a TargetsChosen fold) is not judged here.
 func (e *Engine) targetBecameNewObject(self, id state.ObjID) bool {
 	so := e.G.Obj(self)
@@ -1089,7 +1138,7 @@ func (e *Engine) targetBecameNewObject(self, id state.ObjID) bool {
 	}
 	for i := len(so.TargetStamps) - 1; i >= 0; i-- {
 		if so.TargetStamps[i].Obj == id {
-			return so.TargetStamps[i].Incarnation != t.Incarnation
+			return so.TargetStamps[i].ZoneGen != t.ZoneGen
 		}
 	}
 	return false

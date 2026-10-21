@@ -25,14 +25,12 @@ import (
 // a name or TriggerDescription$ from, so the label is the rules text itself.
 func ringEmblemLabel(level int) string {
 	switch level {
-	case ringEmblemLevelDraw:
-		return "The Ring emblem: whenever your Ring-bearer attacks, draw a card"
-	case ringEmblemLevelBlocked:
-		return "The Ring emblem: whenever your Ring-bearer becomes blocked, discard a card; if you can't, sacrifice it"
+	case ringEmblemLevelLoot:
+		return "The Ring emblem: whenever your Ring-bearer attacks, draw a card, then discard a card"
+	case ringEmblemLevelBlockedBy:
+		return "The Ring emblem: whenever your Ring-bearer becomes blocked by a creature, that creature's controller sacrifices it at end of combat"
 	case ringEmblemLevelCombatHit:
-		return "The Ring emblem: whenever your Ring-bearer deals combat damage to a player, sacrifice it"
-	case ringEmblemLevelTempted:
-		return "The Ring emblem: whenever the Ring tempts you, each opponent loses 1 life"
+		return "The Ring emblem: whenever your Ring-bearer deals combat damage to a player, each opponent loses 3 life"
 	}
 	return "The Ring emblem ability"
 }
@@ -902,10 +900,28 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
-		e.emit(events.Event{Kind: events.RingEmblemPush, Player: pt.Controller,
+		ev := events.Event{Kind: events.RingEmblemPush, Player: pt.Controller,
 			Amount:  int32(pt.RingEmblem),
 			Counter: "__ring:" + strconv.Itoa(pt.RingEmblem),
-			Text:    ringEmblemLabel(pt.RingEmblem)})
+			Text:    ringEmblemLabel(pt.RingEmblem)}
+		if b := pt.Ctx.TriggerBlocker; b != 0 {
+			// Level 3: the blocking creature rides IDs, which Apply folds
+			// into the minted ability's Remembered (RingBlockerSacrifice
+			// reads it).
+			ev.IDs = []state.ObjID{b}
+		}
+		e.emit(ev)
+		if b := pt.Ctx.TriggerBlocker; b != 0 && len(e.G.Stack) > 0 {
+			// Carry the blocker's queue-time Incarnation stamp to the
+			// resolving ability (CR 400.7). The event log does not need it:
+			// the promise's registration is an event, and a skipped one
+			// emits nothing.
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

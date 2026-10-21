@@ -278,7 +278,10 @@ func (e *Engine) checkStateBased() {
 	// point without emitting anything, and nothing an SBA reads has moved
 	// since, so running it again would apply nothing.
 	ep0 := len(e.L.Events)
-	quiet := e.sbaQuietNow()
+	if e.format == FormatCommander {
+		e.collectCommanderArrivals()
+	}
+	quiet := len(e.cmdZoneDue) == 0 && e.sbaQuietNow()
 	if quiet && !sbaQuietVerify {
 		e.checkGameOver()
 		e.releasePendingDecisionOfDepartedPlayer()
@@ -291,6 +294,12 @@ func (e *Engine) checkStateBased() {
 	facts := &sbaBoardFacts{at: -1}
 	for pass := 0; pass < maxSBAPasses; pass++ {
 		tried.skips = 0
+		if e.format == FormatCommander {
+			e.collectCommanderArrivals()
+			if len(e.cmdZoneDue) > 0 {
+				e.commanderZoneSBA()
+			}
+		}
 		changed := e.checkLoseConditions(tried)
 		if e.sbaFacts(facts).counterPair && e.annihilateOppositeCounters() {
 			changed = true
@@ -411,12 +420,17 @@ func (e *Engine) legendGroups(mayPair bool) []legendGroup {
 		return nil
 	}
 	exempt := e.activeStatics("IgnoreLegendRule")
+	anyLType := e.activeHasLType()
 	var all []legendGroup
 	for _, p := range e.G.AliveFrom(0) {
 		seen := make(map[string]int)
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
-			if o == nil || o.Face() == nil || !o.Face().IsLegendary() {
+			// The cheap gate is the derived Legendary read (sbaTypeFast): a
+			// layer-4 AddType$ Legendary (Leyline of Singularity) makes a
+			// printed nonlegendary permanent a legend-rule candidate
+			// (CR 205.4, 704.5j).
+			if o == nil || o.Face() == nil || !e.sbaTypeFast(o, sbaLegendary, anyLType) {
 				continue
 			}
 			if o.PhasedOut {
@@ -944,9 +958,10 @@ func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 // ceaseDepartedObjects applies CR 800.4a and 800.4e in stable arena order. A
 // departed player's card-backed owned objects leave regardless of their current
 // zone; stack objects that player controls cease whether card-backed or
-// cardless. Ownership is deliberate on the battlefield: an opponent-owned card
-// does not leave merely because the departed player controlled it. ZCeased
-// retains the replay-stable arena tombstone without adding it to a zone.
+// cardless. On the battlefield ownership decides the first step: an
+// opponent-owned card the departed player controls is not ceased but, as
+// CR 800.4a's last step, exiled. ZCeased retains the replay-stable arena
+// tombstone without adding it to a zone.
 //
 // Moving an owned attacker clears its combat state, so that case continues
 // before the 800.4e check rather than emitting a redundant EndCombatReset. The
@@ -985,6 +1000,20 @@ func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
 		}
 		e.emit(events.Event{Kind: events.EndCombatReset, Obj: o.ID})
 	}
+	// CR 800.4a's last step: "if there are any objects still controlled by
+	// that player, those objects are exiled." Every owned object and every
+	// stack object p controls has left above, and every effect giving p
+	// control ended when p left (grantEnded; expireControl runs on the
+	// PlayerLost emit), so what remains is a permanent p controls with no
+	// effect involved (Reanimate on another player's card). It is moved, not
+	// ceased: its owner is still in the game.
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Zone == state.ZBattlefield && o.Controller == p {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+				From: state.ZBattlefield, To: state.ZExile, Text: "player left the game"})
+		}
+	}
 }
 
 // ceaseSweepLeavesBattlefield reports whether ceaseDepartedObjects(p) will
@@ -993,7 +1022,7 @@ func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
 func (e *Engine) ceaseSweepLeavesBattlefield(p state.PlayerID) bool {
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
-		if o.Zone == state.ZBattlefield && o.Owner == p && o.Card != nil {
+		if o.Zone == state.ZBattlefield && ((o.Owner == p && o.Card != nil) || o.Controller == p) {
 			return true
 		}
 	}
@@ -1252,6 +1281,12 @@ func (e *Engine) planeswalkerZeroLoyalty(tried *sbaAttempts) bool {
 			if o.Counter("LOYALTY") > 0 {
 				continue
 			}
+			if !e.IsPlaneswalker(id) {
+				// CR 306.9/704.5i: only a planeswalker is put into the
+				// graveyard; a printed walker that is not one now (Imprisoned
+				// in the Moon's land, Luxior's creature) stays.
+				continue
+			}
 			if !exemptRead {
 				exempt, exemptRead = e.activeStatics("IgnorePlaneswalkerZeroLoyaltyRule"), true
 			}
@@ -1416,20 +1451,13 @@ func (e *Engine) ceaseDeadTokens(tried *sbaAttempts) bool {
 }
 
 // gameEndsNow reports whether checkGameOver would end the game on the
-// current board: no player left (a draw), or one left whom no CR 104.3
-// "can't win" effect stops (CR 104.2a). It changes nothing.
+// current board: at most one player left (CR 104.2a's last-player win, which
+// overrides every "can't win" effect, or CR 104.4a's draw). It changes nothing.
 func (e *Engine) gameEndsNow() bool {
 	if e.deferGameOver || e.G.Over {
 		return false
 	}
-	alive := e.G.AliveFrom(0)
-	switch len(alive) {
-	case 0:
-		return true
-	case 1:
-		return !e.gameWinPrevented(alive[0])
-	}
-	return false
+	return len(e.G.AliveFrom(0)) <= 1
 }
 
 // checkGameOver ends the game once at most one seat remains (CR 104.2a's
@@ -1455,17 +1483,12 @@ func (e *Engine) checkGameOver() {
 		return
 	}
 	if len(alive) == 1 {
+		// CR 104.2a: the last player in the game wins immediately, and the
+		// win "overrides all effects that would preclude that player from
+		// winning the game". It is therefore NOT routed through playerWins:
+		// no GameWin CantHappen replacement (Abyssal Persecutor) can stop it.
 		w := alive[0]
-		// The CR 104.2a last-player-standing win is a win like any other, so a
-		// live GameWin CantHappen replacement for the survivor stops it (CR
-		// 104.3's "can't win"; Herald of Eternal Dawn, Platinum Angel). This
-		// runs after checkLoseConditions has swept every departed seat's
-		// objects, so a replacement whose source has just left with its
-		// controller no longer applies -- which is why a concession still ends
-		// the game (the Angel leaves the game, then the survivor wins).
-		if !e.playerWins(w, e.G.Players[w].Name) {
-			return
-		}
+		e.emit(events.Event{Kind: events.GameOver, Player: w, Text: e.G.Players[w].Name})
 	} else {
 		e.emit(events.Event{Kind: events.GameOver, Amount: 1, Text: "draw"})
 	}
@@ -1481,6 +1504,30 @@ func (e *Engine) checkGameOver() {
 // priority: the proposal as a cast "in flight", the marker read by the next
 // KChoose answer's dispatch and by the legend-rule SBA gate.
 func (e *Engine) dropDepartedFlow(d *decision.Decision) {
+	if d.Kind == decision.KCommanderZone && len(e.cmdZone) > 0 {
+		// The released ask's own parked move goes with it (CR 800.4a), and so
+		// does every entry behind it whose owner has left the game: their
+		// cards leave too, so there is nothing left to move. A living owner's
+		// entry stays -- and since the released ask was the one that would
+		// have handed the queue on (handleCmdZone's tail runs only on an
+		// answer), the new front is posed here. Left parked it would block
+		// every later commander's ask forever: commanderZoneSBA refuses to
+		// pose while the queue is non-empty.
+		e.cmdZone = e.cmdZone[1:]
+		kept := e.cmdZone[:0]
+		for _, pm := range e.cmdZone {
+			o := e.G.Obj(pm.obj)
+			if o != nil && int(o.Owner) < len(e.G.Players) && !e.G.Players[o.Owner].Lost {
+				kept = append(kept, pm)
+			}
+		}
+		e.cmdZone = kept
+		if len(e.cmdZone) > 0 && e.pending == nil {
+			if o := e.G.Obj(e.cmdZone[0].obj); o != nil && int(o.Owner) < len(e.G.Players) {
+				e.askCommandZone(o.Owner)
+			}
+		}
+	}
 	if e.cast != nil && (e.cast.player == d.Player || e.cast.player == d.Acting()) {
 		e.cast = nil
 		e.deferredPush, e.deferredPushLKI = nil, nil

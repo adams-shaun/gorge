@@ -7,15 +7,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// exileThenSearchFixtureSrc is Path to Exile's shape, authored freely: exile
-// a target creature, then a SECOND step of the same resolution poses a
-// decision -- the exiled creature's controller may search for a basic land.
-const exileThenSearchFixtureSrc = `Name:Fixture Banish Then Search
+// bounceThenSearchFixtureSrc is a bounce-then-fetch spell, authored freely:
+// return a target creature to its owner's hand (a CR 903.9b commander
+// replacement parks there), then a SECOND step of the same resolution poses
+// a decision -- the bounced creature's controller may search for a basic
+// land.
+const bounceThenSearchFixtureSrc = `Name:Fixture Bounce Then Search
 ManaCost:0
 Types:Instant
-A:SP$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Creature | SubAbility$ DBFetch | SpellDescription$ Banish a creature; its controller may fetch a basic land.
+A:SP$ ChangeZone | Origin$ Battlefield | Destination$ Hand | ValidTgts$ Creature | SubAbility$ DBFetch | SpellDescription$ Bounce a creature; its controller may fetch a basic land.
 SVar:DBFetch:DB$ ChangeZone | Optional$ True | Origin$ Library | Destination$ Battlefield | Tapped$ True | ChangeType$ Land.Basic | DefinedPlayer$ TargetedController | ShuffleNonMandatory$ True
-Oracle:Banish a creature; its controller may fetch a basic land.
+Oracle:Bounce a creature; its controller may fetch a basic land.
 `
 
 // moveToHandByName moves the named seeded deck card from the library to

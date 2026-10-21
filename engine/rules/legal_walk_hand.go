@@ -55,7 +55,10 @@ func (w *legalWalk) handWalk() {
 			// turn-face-up cost).
 			if ph.has(phMorph | phMegamorph | phDisguise) {
 				if fam := morphDownFamily(f); fam != "" && !e.castSuppressed(p, id) &&
-					!w.castRestricted(p, id) && w.spellTimingOK(p, id, f, sorcery) &&
+					// The face-down cast pays the fixed {3}, never the printed
+					// cost, so it announces no X (CR 107.3b) and CR 601.3a's X
+					// lookahead does not apply to it.
+					!w.castRestrictedCost(p, id, Cost{Generic: 3}) && w.spellTimingOK(p, id, f, sorcery) &&
 					w.offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
 					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 						Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
@@ -232,13 +235,19 @@ func (w *legalWalk) handWalk() {
 		// whose return cannot be paid must never be offered (the offerCastable
 		// ruling). castRestricted/castSuppressed bind the offer exactly as they
 		// do the plain cast.
-		if e.sneakTimingOK(p) && !w.castRestricted(p, id) && !e.castSuppressed(p, id) {
+		if e.sneakTimingOK(p) && !e.castSuppressed(p, id) {
 			// sneakCosts is computed BEFORE the target census so a hand card
 			// with no Sneak instance (the overwhelming majority of cards in
 			// this window) never pays for castTargetsAvailable's walk; the
 			// census is only meaningful when there is a sneak offer to gate.
+			// CR 601.3a's gate follows the sneak cost, not the printed cost:
+			// the sneak cast announces X only when the sneak cost carries it
+			// (CR 107.3b).
 			if scs := e.sneakCosts(p, id); len(scs) > 0 && e.castTargetsAvailable(p, id, f.SpellAbility()) {
 				for _, sc := range scs {
+					if w.castRestrictedCost(p, id, sc.cost) {
+						continue
+					}
 					if !w.offerCastable(p, id, sc.cost, spellScope(sc.mode), false) {
 						continue
 					}
@@ -354,6 +363,12 @@ func (w *legalWalk) handWalk() {
 				if len(e.altCostXCandidates(p, id, alt)) == 0 {
 					continue
 				}
+			}
+			// CR 601.3a's CantBeCast gate follows the alternative cost the
+			// cast will pay, not the printed one: the cast announces X only
+			// when this cost carries it (CR 107.3b).
+			if w.castRestrictedCost(p, id, gate) {
+				continue
 			}
 			// Ruling (Task 9 fix round 1, Important 1): this used to gate on
 			// mana-only alt.CanPay, but ParseCost now produces Sac/SubCounter/
@@ -518,12 +533,24 @@ func (w *legalWalk) handWalk() {
 				continue
 			}
 			alt, ok := ka.faceCost(f, w.e.walkFaceFactsOf(f))
-			if !ok || !w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
+			if !ok || w.castRestrictedCost(p, id, alt) ||
+				!w.offerCastable(p, id, alt, spellScope(ka.mode), false) ||
 				(!ka.untargeted && !targetsAvailable()) {
 				continue
 			}
 			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
+		}
+		// Cleave (CR 702.148a, engine/rules/cleave.go): the cleave ability's
+		// Cost$ replaces the mana cost, and the offer's target census reads
+		// the cleave ability (its targets are the bracket-free text), so a
+		// Lunar Rejection with no Wolf to target is still offered cleaved.
+		if csa := cleaveSA(f); csa != nil {
+			if cc, ok := e.cleaveCost(f); ok && w.offerCastable(p, id, cc, spellScope(castModeCleavedWord), false) &&
+				e.castTargetsAvailable(p, id, csa) {
+				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+					Label: "Cast " + f.Name + " (cleave)", Obj: id, Mode: castModeCleavedWord})
+			}
 		}
 		// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the printed
 		// (or granted) web-slinging cost replaces the mana cost, and the cast
@@ -537,7 +564,8 @@ func (w *legalWalk) handWalk() {
 		// whose return cannot be paid must never be offered (the offerCastable
 		// ruling).
 		for _, wc := range e.webSlingingCosts(p, id) {
-			if !w.offerCastable(p, id, wc.cost, spellScope(wc.mode), false) || !targetsAvailable() {
+			if w.castRestrictedCost(p, id, wc.cost) ||
+				!w.offerCastable(p, id, wc.cost, spellScope(wc.mode), false) || !targetsAvailable() {
 				continue
 			}
 			label := "web-slinging"
@@ -549,7 +577,8 @@ func (w *legalWalk) handWalk() {
 		}
 		if blitzes := e.blitzCosts(p, id); len(blitzes) > 0 {
 			for _, blitz := range blitzes {
-				if !w.offerCastable(p, id, blitz.cost, spellScope(blitz.mode), false) || !targetsAvailable() {
+				if w.castRestrictedCost(p, id, blitz.cost) ||
+					!w.offerCastable(p, id, blitz.cost, spellScope(blitz.mode), false) || !targetsAvailable() {
 					continue
 				}
 				label := altMode(altBlitz)
@@ -618,7 +647,8 @@ func (w *legalWalk) handWalk() {
 		// owns. Like bestow, the gate is the SYNTHESIZED target SA's
 		// feasibility -- the creature face has no SP for the mutation.
 		if ph.has(phMutate) {
-			if mc, ok := mutateCost(f); ok && e.castTargetsAvailable(p, id, mutateTargetSA()) &&
+			if mc, ok := mutateCost(f); ok && !w.castRestrictedCost(p, id, mc) &&
+				e.castTargetsAvailable(p, id, mutateTargetSA()) &&
 				w.offerCastable(p, id, mc, spellScope("mutated"), false) {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Cast " + f.Name + " (mutated)", Obj: id, Mode: "mutated"})

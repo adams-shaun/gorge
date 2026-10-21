@@ -141,6 +141,7 @@ var excluded = map[excludedField]bool{
 	// compared; the version only invalidates caches built over it).
 	{"rules.Engine", "ascend"}:            true,
 	{"rules.Engine", "storied"}:           true,
+	{"rules.Engine", "cmdZoneScan"}:       true, // CR 903.9a arrival-scan cursor: a pure function of the log
 	{"rules.Engine", "turnsTaken"}:        true,
 	{"rules.Engine", "turnsTakenEpoch"}:   true,
 	{"rules.Engine", "turnStartTurns"}:    true,
@@ -304,10 +305,13 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "derivedPrevEntered"}: true,
 	{"rules.Engine", "activeList"}:         true,
 	// The rename table's arena-size key and its derivedSeq stamp
-	// (setname.go), the renames/* cache keys.
-	{"rules.Engine", "renameObjs"}:  true,
-	{"rules.Engine", "renameDSeq"}:  true,
-	{"rules.Engine", "renameBFSeq"}: true,
+	// (setname.go), the renames/* cache keys, and the E2 measurement
+	// diagnostic counting refreshRenames' exits (never read by rules; Clone
+	// resets it, so the live run's tally and a clone's cannot agree).
+	{"rules.Engine", "renameObjs"}:         true,
+	{"rules.Engine", "renameDSeq"}:         true,
+	{"rules.Engine", "renameBFSeq"}:        true,
+	{"rules.Engine", "renameBranchCounts"}: true,
 	// checkFaceTriggers' zero-interest no-op memo key (log length, arena
 	// size, registry version); Clone leaves it zero.
 	{"rules.Engine", "trigZeroNoopEp"}:    true,

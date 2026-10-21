@@ -360,6 +360,9 @@ func saChainMayAsk(sa *SA, svars map[string]string, self *Face, root bool, depth
 		tgts := s.ParamStr(PKValidTgts)
 		switch s.API {
 		case "ChangeZone":
+			if s.HasParam(PKAttacking) {
+				return true // CR 508.4: which defender the entering creature attacks
+			}
 			if changeZoneMayAsk(s, self) {
 				if cond == nil || !first || !changeZoneTargetEntryOnly(s, self) {
 					return true
@@ -402,12 +405,15 @@ func saChainMayAsk(sa *SA, svars map[string]string, self *Face, root bool, depth
 				}
 			}
 		case "CopyPermanent":
-			if copyEntryMayAsk(s, self) {
+			if copyEntryMayAsk(s, self) || s.HasParam(PKTokenAttacking) {
 				return true
 			}
 		case "Token":
 			if strings.Contains(s.ParamStr(PKTokenScript), ",") {
 				return true // a token-kind pick
+			}
+			if s.HasParam(PKTokenAttacking) {
+				return true // CR 508.4: which defender the entering token attacks
 			}
 		}
 		if !first && !spell && tgts != "" {

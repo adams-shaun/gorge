@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -269,6 +270,27 @@ func dropDelayedRememberedMoved(h Host, c *Ctx, targets []state.Target) []state.
 		if moved && out == nil {
 			out = append(make([]state.Target, 0, len(targets)), targets[:i]...)
 		} else if !moved && out != nil {
+			out = append(out, t)
+		}
+	}
+	if out == nil {
+		return targets
+	}
+	return out
+}
+
+// dropTriggerRememberedMoved removes from a Defined$ TriggeredCard mover's
+// list every non-player target listed in c.TriggerRememberedMoved: the
+// object changed zones between the trigger firing and the start of its
+// resolution, so it is a new object the trigger cannot find (CR 400.7).
+// Moves the resolution itself makes are never listed (CR 400.7j).
+func dropTriggerRememberedMoved(c *Ctx, targets []state.Target) []state.Target {
+	var out []state.Target
+	for i, t := range targets {
+		drop := !t.IsPlayer && slices.Contains(c.TriggerRememberedMoved, t.Obj)
+		if drop && out == nil {
+			out = append(make([]state.Target, 0, len(targets)), targets[:i]...)
+		} else if !drop && out != nil {
 			out = append(out, t)
 		}
 	}
@@ -741,11 +763,23 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if cz.DefinedDelayRemembered {
 		targets = dropDelayedRememberedMoved(h, c, targets)
 	}
+	if cz.DefinedTriggered && len(c.TriggerRememberedMoved) > 0 {
+		targets = dropTriggerRememberedMoved(c, targets)
+	}
+	if to == state.ZLibrary && objectPathShuffleOwed(cz) && cz.ShuffleNonMandatory &&
+		!objectPathMayShuffle(h, c, sa, targets) {
+		return
+	}
 	// The battlefield departures of the move loop below are one simultaneous
 	// departure batch; see changeZoneDepartureBatch.
 	if departing := changeZoneDepartureBatch(h, cz, targets, to, originAll); len(departing) > 0 {
 		h.BatchDepartures(departing)
 		defer h.EndBatchDepartures()
+	}
+	// Several objects moved onto the battlefield by one ChangeZone (Living Death's Defined$ Remembered return) enter together: one entering event (CR 603.6a), the ChangeZoneAll sweep's bracket. One object needs none.
+	if to == state.ZBattlefield && objectTargetCount(targets) > 1 {
+		h.BeginZoneBatch()
+		defer h.EndZoneBatch()
 	}
 	// The objects the move loop actually moved, in move order: ChangeZone's
 	// AtEOT$ affected set is the MOVED objects (some carriers carry
@@ -754,8 +788,11 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	var moved []state.ObjID
 	// The Attacking$ entry rider is classified ONCE for the whole call, before
 	// the mover loop: its degrades are one Note per ChangeZone, not one per
-	// moved object.
-	rider := classifyAttackingEntryText(c, cz.Riders.Attacking, to)
+	// moved object. CR 508.4's chooser is the entering permanent's controller:
+	// a single-object move's owner (or GainControl$ player); a multi-object
+	// move whose objects differ falls back to the resolving controller.
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
+		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, targetOwners(h.Game(), targets), cz.Riders.GainControl))
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -884,25 +921,23 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// AtEOT$ (Puppeteer Clique's reanimation: "at the beginning of your next
 	// end step, exile it"): schedule the end-step departure for every object
-	// this move actually moved. Scheduled BEFORE the library shuffle tail,
-	// which returns early after an answered confirm -- the same order
-	// applyLibrarySearch uses for its own hidden-origin tail.
+	// this move actually moved. Scheduled BEFORE the library shuffle tail --
+	// the same order applyLibrarySearch uses for its own hidden-origin tail.
 	scheduleAtEOT(h, c, sa, moved)
-	// Object-path library shuffle tail (searchmay1): a ChangeZone that moved
-	// objects INTO a library and states Shuffle$ True now shuffles. This is
-	// the tail the AGENTS.md row named as "the object-path shuffle": the
-	// path previously shuffled nothing at all. Four corpus lines also set
-	// ShuffleNonMandatory$; three SP-parented DB subs (Cathartic Parting,
-	// Devious Cover-Up, Put Away) still inherit the parent's targets and
-	// cannot reach this tail until sub-ability targeting is separated. The 76
-	// mandatory carriers (Turn the Earth, Quandrix Command, Rite of Renewal,
-	// Stream of Consciousness, the death-trigger "shuffle CARDNAME into its
-	// owner's library" family) shuffled nothing either and now shuffle. Only
-	// the explicit Shuffle$ True is read: the corpus's LibraryPosition$
-	// "put it on top" movers state no Shuffle$ and must NOT shuffle. Each
-	// distinct card owner's library is shuffled once (a cross-graveyard mover
-	// like Turn the Earth touches several players), in first-move order so
-	// the event stream stays deterministic.
+	// Object-path library shuffle tail (searchmay1): a ChangeZone INTO a
+	// library that states Shuffle$ True shuffles the library of every owner
+	// of its object referents -- even when an object was not in the Origin$
+	// zone and so did not move (CR 701.24c). The four ShuffleNonMandatory$
+	// carriers (Cathartic Parting, Devious Cover-Up, Put Away, Ghostly
+	// Castigator) were asked before the moves (objectPathMayShuffle above)
+	// and reach this tail only on "yes". The mandatory carriers (Turn the
+	// Earth, Quandrix Command, Rite of Renewal, Stream of Consciousness, the
+	// death-trigger "shuffle CARDNAME into its owner's library" family)
+	// shuffle with no ask. Only the explicit Shuffle$ True is read: the
+	// corpus's LibraryPosition$ "put it on top" movers state no Shuffle$ and
+	// must NOT shuffle. Each distinct card owner's library is shuffled once
+	// (a cross-graveyard mover like Turn the Earth touches several players),
+	// in referent order so the event stream stays deterministic.
 	// LibraryPosition$ placement tail on the object-target path
 	// (golgari_thug1): every targeted mover -- a ValidTgts$ ask, a
 	// changeZoneChosenTargets answer, or a Defined$ that names concrete
@@ -921,10 +956,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if to == state.ZLibrary && len(moved) > 0 && !altEngaged {
 		placeTargetedLibraryObjects(h, c, cz, moved)
 	}
-	if to == state.ZLibrary && len(moved) > 0 && objectPathShuffleOwed(cz) {
-		if objectPathShuffleTail(h, c, sa, cz, moved) {
-			return
-		}
+	if to == state.ZLibrary && objectPathShuffleOwed(cz) {
+		objectPathShuffleOwners(h, targets)
 	}
 	if altEngaged && len(moved) > 0 {
 		position := int32(0)
@@ -1257,30 +1290,49 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 	if to == state.ZBattlefield && r.Unearth {
 		ev.Counter = events.UnearthEntryCounter
 	}
+	if to == state.ZExile && (exileFaceDown || faceDown) && r.ExilerSpec != "" {
+		if exiler, ok := resolveExiler(h, c, r.ExilerSpec); ok {
+			// The DefinedExiler$ layout (Shared Fate): Amount carries the
+			// exiling player, IDs the exiling source; the exiler is also
+			// the one seat the view admits to the face.
+			ev.Counter = "exiled_with_face_down_exiler"
+			if foretold {
+				ev.Counter = "exiled_with_face_down_exiler_foretold"
+			}
+			ev.Amount = int32(exiler)
+			ev.IDs = []state.ObjID{c.Source}
+			secretFaceDownMove(ev, exiler)
+			return
+		}
+	}
 	switch {
-	case to == state.ZExile && exileFaceDown && withMayLook:
+	case to == state.ZExile && exileFaceDown && (withMayLook || foretold):
 		// The may-look layout: Amount carries the looker (the exiling
 		// effect's controller), IDs carries the exiling source. The looker
-		// is authoritative, so the card's owner is NOT admitted by the
-		// view's default controller check.
+		// is the one seat the view admits to the face (CR 406.3); the card's
+		// owner is not admitted by default. A Foretold$ designation grants
+		// the same look (CR 702.143a: "That player may look at that card";
+		// Forge's ChangeZoneEffect adds the look for WithMayLook OR
+		// Foretold), so it rides this arm too (cr-g64).
 		ev.Counter = "exiled_with_face_down_maylook"
 		if foretold {
 			ev.Counter = "exiled_with_face_down_maylook_foretold"
 		}
 		ev.Amount = int32(c.Controller)
 		ev.IDs = []state.ObjID{c.Source}
+		secretFaceDownMove(ev, c.Controller)
 	case to == state.ZExile && exileFaceDown:
-		if foretold {
-			ev.Counter = "exiled_with_face_down_foretold"
-		} else {
-			ev.Counter = "exiled_with_face_down"
-		}
+		// Reached only when neither WithMayLook$ nor Foretold$ is set: the
+		// may-look arm above owns both, so this is the blind plain marker.
+		ev.Counter = "exiled_with_face_down"
 		ev.Amount = int32(c.Source)
 		ev.IDs = nil
+		secretFaceDownMove(ev, movedCardOwner(h, ev))
 	case to == state.ZExile && faceDown:
 		ev.Counter = "face_down"
 		ev.Amount = 0
 		ev.IDs = nil
+		secretFaceDownMove(ev, movedCardOwner(h, ev))
 	case to == state.ZBattlefield && faceDown:
 		setType := r.FaceDownSetType
 		power, hasPower := numResolvedText(h, c, r.FaceDownPower, 0)
@@ -1288,8 +1340,67 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		hasPT := hasPower || hasTough
 		ev.Counter = events.FaceDownEntryCounterFor(setType, power, toughness, hasPT)
 		if ev.From == state.ZHand || ev.From == state.ZLibrary {
-			ev.Secret = true
+			secretFaceDownMove(ev, movedCardOwner(h, ev))
 		}
+	}
+}
+
+// secretFaceDownMove makes a face-down move out of a hidden zone (a hand,
+// library, sideboard or planar deck) Secret to looker, the seat the payload
+// is addressed to (the plain-marker exile moves are served to nobody by
+// view.blindFaceDownExile; engine/view/card.go mayLookFaceDown decides the
+// board).
+// Without it a face-down exile keeps its Obj under view.RedactEvent's rule
+// (2) (exile is not a hidden zone) and every seat's transcript names the
+// card (CR 406.3), and a Secret move with no Player is served to seat 0. A
+// move out of a public zone is left public: every seat already saw that
+// card. An emitter that has already made the move Secret owns its Player,
+// so it is left alone; effDig's take re-addresses its moves after this runs
+// (digSecretTo) (cr-g62).
+func secretFaceDownMove(ev *events.Event, looker state.PlayerID) {
+	if ev.Secret || !ev.From.Hidden() {
+		return
+	}
+	ev.Player, ev.Secret = looker, true
+}
+
+// resolveExiler is the first player a DefinedExiler$ spec names.
+func resolveExiler(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
+	for _, t := range DefinedSpec(h, c, spec) {
+		if t.IsPlayer {
+			return t.Player, true
+		}
+	}
+	return 0, false
+}
+
+// movedCardOwner is the owner of the card ev moves, the seat a face-down
+// move's payload belongs to (events.Apply resets an exiled card's controller
+// to its owner, and a face-down entry enters under its owner's control). An
+// unresolvable Obj keeps the event's own Player.
+func movedCardOwner(h Host, ev *events.Event) state.PlayerID {
+	if o := h.Game().Obj(ev.Obj); o != nil {
+		return o.Owner
+	}
+	return ev.Player
+}
+
+// seenFaceDownExile turns a face-down exile of a card the looker has LOOKED
+// at -- a Dig take after the walk's look, a library search's find (CR
+// 701.23a: to search is to look at the zone) -- into the may-look layout
+// naming looker: CR 406.3, "if a player is instructed to look at a card and
+// then exile it face down ... that player may continue to look at that
+// card". events.Apply folds the looker into Object.MayLookPlayer, the one
+// seat the view then shows the face to, and a Secret move is addressed to
+// it. A move already in the may-look layout, or not a plain face-down exile,
+// is unchanged (cr-g64).
+func seenFaceDownExile(ev *events.Event, looker state.PlayerID, source state.ObjID) {
+	if ev.To != state.ZExile || ev.Counter != "exiled_with_face_down" {
+		return
+	}
+	ev.Counter, ev.Amount, ev.IDs = "exiled_with_face_down_maylook", int32(looker), []state.ObjID{source}
+	if ev.Secret {
+		ev.Player = looker
 	}
 }
 
@@ -1348,30 +1459,56 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, id
 // rather than silently keeping the owner -- the same fail-closed convention
 // every unread parameter here follows.
 func gainControlOf(h Host, c *Ctx, gc ParamText) (state.PlayerID, bool, bool) {
+	p, ok, present, known := resolveGainControl(h, c, gc)
+	if present && !known {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unrecognised ChangeZone GainControl$ " + gc.Text})
+	}
+	return p, ok, present
+}
+
+// targetOwners lists the owner of each object target, in target order.
+func targetOwners(g *state.Game, targets []state.Target) []state.PlayerID {
+	var owners []state.PlayerID
+	for _, t := range targets {
+		if t.IsPlayer {
+			continue
+		}
+		if o := g.Obj(t.Obj); o != nil {
+			owners = append(owners, o.Owner)
+		}
+	}
+	return owners
+}
+
+// resolveGainControl is gainControlOf without the diagnostic: it reports the
+// resolved player, whether the value resolved, whether the parameter is
+// present, and whether its grammar was known. A caller that only CLASSIFIES a
+// move (CR 508.4's entering controller) reads it so the unrecognised-value
+// Note is emitted once, by the move's own emitEntryMove, not twice.
+func resolveGainControl(h Host, c *Ctx, gc ParamText) (state.PlayerID, bool, bool, bool) {
 	raw, present := gc.Text, gc.Present
 	if !present || strings.TrimSpace(raw) == "" {
-		return 0, false, true
+		return 0, false, true, true
 	}
 	if strings.EqualFold(raw, "True") || strings.EqualFold(raw, "You") {
-		return c.Controller, true, true
+		return c.Controller, true, true, true
 	}
 	targets, known := definedSpec(h, c, raw)
 	if !known {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "unrecognised ChangeZone GainControl$ " + raw})
-		return 0, false, true
+		return 0, false, true, false
 	}
 	for _, t := range targets {
 		if t.IsPlayer {
-			return t.Player, true, true
+			return t.Player, true, true, true
 		}
 		if o := h.Game().Obj(t.Obj); o != nil {
-			return o.Controller, true, true
+			return o.Controller, true, true, true
 		}
 	}
 	// The selector resolved (its grammar is known) but named no living
 	// player: nothing to hand control to, and no silent owner-keep either.
-	return 0, false, true
+	return 0, false, true, true
 }
 
 // digGainControl is the GainControl$ selector a Dig/DigUntil bool stands for:
@@ -1488,16 +1625,19 @@ type attackingEntry struct {
 	noted  bool
 }
 
-func classifyAttackingEntry(c *Ctx, sa *cards.SA, to state.Zone) attackingEntry {
+func classifyAttackingEntry(h Host, c *Ctx, sa *cards.SA, to state.Zone, controller state.PlayerID) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
-	return classifyAttackingEntryText(c, attackingParam(sa), to)
+	return classifyAttackingEntryText(h, c, attackingParam(sa), to, controller)
 }
 
 // classifyAttackingEntryText is classifyAttackingEntry over a compiled
-// Attacking$ text.
-func classifyAttackingEntryText(c *Ctx, attack string, to state.Zone) attackingEntry {
+// Attacking$ text. controller is the seat that will control the entering
+// permanent: CR 508.4's chooser is that seat, which is the moved object's
+// owner (or the GainControl$ player) and not necessarily the resolving
+// source's controller -- Noctis returns a card under its owner's control.
+func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone, controller state.PlayerID) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
@@ -1505,11 +1645,11 @@ func classifyAttackingEntryText(c *Ctx, attack string, to state.Zone) attackingE
 		return attackingEntry{}
 	}
 	if strings.EqualFold(attack, "True") {
-		if c.DefendingPlayer.IsPlayer {
-			return attackingEntry{kind: attackingEntryAttacks, defender: c.DefendingPlayer.Player, battle: c.DefendingBattle}
+		if d, ok := resolveEnteringDefender(h, c, controller, true, "permanent"); ok {
+			return attackingEntry{kind: attackingEntryAttacks, defender: d.Player, battle: d.Obj}
 		}
 		return attackingEntry{kind: attackingEntryNoDefender,
-			note: "Attacking$ with no defending player in context; the permanent enters tapped but does not attack"}
+			note: "Attacking$ with no defending player in context; the permanent enters but does not attack"}
 	}
 	return attackingEntry{kind: attackingEntryUnsupported,
 		note: "Attacking$ " + attack + " is not implemented; the permanent enters but does not attack"}
@@ -1522,6 +1662,9 @@ func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.Play
 		return
 	}
 	if a.kind == attackingEntryAttacks {
+		if !EnteringAttackLegal(h, a.defender, a.battle) {
+			return
+		}
 		ids := []state.ObjID{state.ObjID(a.defender)}
 		if a.battle != 0 {
 			ids = append(ids, a.battle)
@@ -1531,13 +1674,8 @@ func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.Play
 		return
 	}
 	if a.kind == attackingEntryNoDefender {
-		// An "enters attacking" object must enter TAPPED even when the
-		// trigger context cannot identify a defender. Keep that entry state
-		// while degrading only the attack assignment; callers that already
-		// emitted their Tapped$ entry event do not get a duplicate Tap.
-		if o := h.Game().Obj(id); o != nil && !o.Tapped {
-			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: player, Text: "entered tapped"})
-		}
+		// No defender in context, so degrade only the attack assignment; the
+		// mover's own Tapped$ entry Tap (if the script has one) is untouched.
 	}
 	if a.noted {
 		return
@@ -1700,4 +1838,15 @@ func recordExileReturnFor(h Host, c *Ctx, dur ParamText, id state.ObjID, from, t
 	}
 	h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id},
 		Amount: int32(from), Text: "until-host-leaves"})
+}
+
+// objectTargetCount counts the object (non-player) entries of targets.
+func objectTargetCount(targets []state.Target) int {
+	n := 0
+	for _, t := range targets {
+		if !t.IsPlayer {
+			n++
+		}
+	}
+	return n
 }

@@ -14,6 +14,23 @@ import (
 
 func teamworkAskOptions(t *testing.T, e *Engine) *decision.Decision {
 	t.Helper()
+	// CR 601.2b: a modal Teamwork spell announces its modes BEFORE the
+	// teamwork tap choice (the modes are the first announcement after the
+	// push), so a pending mode ask is answered with its required count first.
+	if d := e.Pending(); d != nil && d.Kind == decision.KModes {
+		need := d.Min
+		if need < 1 {
+			need = 1
+		}
+		choices := make([]int, 0, need)
+		for _, o := range d.Options {
+			choices = append(choices, o.Index)
+			if len(choices) == need {
+				break
+			}
+		}
+		submitChoices(t, e, choices...)
+	}
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || len(d.Options) < 2 {
 		t.Fatalf("expected Teamwork KChoose, got %+v", d)

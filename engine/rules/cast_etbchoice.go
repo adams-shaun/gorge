@@ -526,7 +526,9 @@ func etbChoicePrompt(kind string) string {
 // etbCloneWhitelist reports whether a DB$ Clone ETB body's rider set is
 // entirely inside the supported scope: Choices$ (the copy-template selector),
 // AddTypes$ and AddKeywords$ (the CR 707.9e copy modifiers),
-// AddTriggers$/AddSVars$ (named grants) and SpellDescription$. This is a POSITIVE whitelist over the parsed parameter
+// AddTriggers$/AddSVars$ (named grants), SetPower$/SetToughness$ (literal),
+// SetColor$/AddColors$ and NonLegendary$ True (CR 707.9b exceptions, written
+// by CopyExcept) and SpellDescription$. This is a POSITIVE whitelist over the parsed parameter
 // keys -- the param census's case-whitelist range shape -- never a blacklist:
 // an explicit key list cannot keep up with the corpus. The round-1 blacklist
 // missed IntoPlayTapped$ (Vesuva), ChoiceTitle$ (Mirrorhall Mimic),

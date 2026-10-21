@@ -25,7 +25,8 @@ import (
 //     and resolved as an ordinary triggered ability.
 //   - Once it carries its final chapter counter and that chapter ability has
 //     left the stack, it is sacrificed (engine/rules/sba.go's checkSagas -- the
-//     CR 704.5v state-based action).
+//     CR 704.5s state-based action; events.Sacrifice, so sacrifice triggers
+//     see it).
 //
 // Determinism: the chapter SVar list is the keyword parameter's own left-to-
 // right order (cards.SagaChapters, the one parser both sides read); the
@@ -37,11 +38,28 @@ import (
 // same way the other keyword helpers here do.
 func chapterSpec(f *cards.Face) (int, []string) { return cards.SagaChapters(f) }
 
-// chapterCount is the face's chapter number, or 0 when this face is not a
-// Saga (or the parameter does not parse).
-func chapterCount(o *state.Object) int {
-	n, _ := chapterSpec(o.Face())
-	return n
+// sagaChapters is the one gate for "this Saga's CURRENT chapter abilities":
+// the printed chapter list, or (0, nil) when the face is not a Saga or the
+// object's printed abilities are gone (CR 714.2d / 714.3c / 703.4f -- a Saga
+// that has lost all abilities has no chapter abilities and a final chapter
+// number of 0). printedAbilitiesGone is only consulted after a nonzero printed
+// count, so non-Sagas pay nothing.
+func (e *Engine) sagaChapters(o *state.Object) (int, []string) {
+	n, names := chapterSpec(o.Face())
+	if n == 0 || e.printedAbilitiesGone(o) {
+		return 0, nil
+	}
+	return n, names
+}
+
+// isChapterAbilityObject reports whether sid is a chapter ability on the
+// stack. recordTriggerLine stores an empty trigger marker only for a chapter
+// push (pt.Trigger.Mode == "" && pt.Chapter), so an entry with an empty Mode
+// is exactly a chapter ability; StackCopy copies the marker onto a copy and
+// the entry is deleted when the object leaves the stack.
+func (e *Engine) isChapterAbilityObject(sid state.ObjID) bool {
+	t, ok := e.triggerLines[sid]
+	return ok && t.Mode == ""
 }
 
 // advanceSagas adds one lore counter to every Saga p controls (CR 505.4 /
@@ -56,7 +74,10 @@ func (e *Engine) advanceSagas(p state.PlayerID) {
 	ids := append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, p)...)
 	for _, id := range ids {
 		o := e.G.Obj(id)
-		if o == nil || chapterCount(o) == 0 {
+		if o == nil {
+			continue
+		}
+		if n, _ := e.sagaChapters(o); n == 0 {
 			continue
 		}
 		e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "LORE", Amount: 1})
@@ -97,7 +118,7 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 	if o == nil || o.Zone != state.ZBattlefield {
 		return
 	}
-	n, names := chapterSpec(o.Face())
+	n, names := e.sagaChapters(o)
 	if n == 0 || len(names) == 0 {
 		return
 	}
@@ -138,18 +159,23 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 	}
 }
 
-// checkSagas is the CR 704.5v state-based action: a Saga with a lore counter
-// greater than or equal to its final chapter number, whose final chapter
-// ability has left the stack, is put into its owner's graveyard. "Left the
-// stack" is checked as "no ability object of this Saga is pending or on the
-// stack" -- the chapter ability is minted as a stack object with
-// Source = the Saga, so the scan below covers both the pending queue and the
-// stack. A Saga with no chapter list never triggers this (a script defect,
-// not a Saga). Reports whether anything was sacrificed, for the SBA loop's
-// fixed-point test. One attempt per Saga per checkStateBased call (tried),
-// re-armed on an alive-set shrink like every other pass here, so a
-// replacement that permanently blocks the move burns one attempt, not the
-// whole pass budget.
+// checkSagas is the CR 704.5s state-based action: a Saga with a lore counter
+// greater than or equal to its final chapter number, which is not the source
+// of a chapter ability that has triggered but not yet left the stack, is
+// SACRIFICED (events.Sacrifice, so "whenever a player sacrifices" triggers and
+// the this-turn sacrifice record see it) by its controller. Only chapter
+// abilities make the Saga busy: a pending trigger with Chapter, or a stack
+// object that is a chapter ability -- an activated, granted or non-chapter
+// triggered ability of the Saga does not. A Saga that can't be sacrificed
+// (CR 701.21a) stays. The final chapter number and the chapter list are the
+// Saga's CURRENT abilities (sagaChapters), so a Saga that has lost all
+// abilities is never sacrificed by this rule. A Saga with no chapter list
+// never triggers this (a script defect, not a Saga). Reports whether anything
+// was sacrificed, for the SBA loop's fixed-point test. One attempt per Saga
+// per checkStateBased call (tried),
+// re-armed on an alive-set shrink like every other pass here, so a replacement
+// or a can't-be-sacrificed restriction that permanently blocks the move burns
+// one attempt, not the whole pass budget.
 func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 	changed := false
 	// The battlefield snapshot the walk ranges (emit moves objects out
@@ -164,20 +190,20 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 			if o == nil {
 				continue
 			}
-			n, _ := chapterSpec(o.Face())
+			n, _ := e.sagaChapters(o)
 			if n == 0 || o.Counter("LORE") < int32(n) {
 				continue
 			}
 			busy := false
 			for i := range e.pendingTriggers {
-				if e.pendingTriggers[i].Source == id {
+				if e.pendingTriggers[i].Source == id && e.pendingTriggers[i].Chapter {
 					busy = true
 					break
 				}
 			}
 			if !busy {
 				for _, sid := range e.G.Stack {
-					if so := e.G.Obj(sid); so != nil && so.Source == id {
+					if so := e.G.Obj(sid); so != nil && so.Source == id && e.isChapterAbilityObject(sid) {
 						busy = true
 						break
 					}
@@ -196,8 +222,10 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 				continue
 			}
 			markTried(&tried.sagas, id)
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZBattlefield, To: state.ZGraveyard, Text: "saga concluded"})
+			if e.sacrificeBlockedBySBA(id) {
+				continue
+			}
+			e.emit(events.Sacrifice(id))
 			changed = true
 		}
 	}

@@ -36,13 +36,14 @@ func init() { Register("Clone", effClone) }
 // the copied characteristics by construction (CR 707.2) instead of each call
 // site having to consult the layer system.
 //
-// The characteristic EXCEPTIONS are separate continuous effects at their own
-// CR 613 layers, registered against the become object, so the copied face
-// stays the source's printed face and the walk settles the exceptions in
-// order: AddTypes$/RemoveCardTypes$/RemoveCreatureTypes$ are layer 4,
-// SetColor$ is layer 5, AddKeywords$ is layer 6, SetPower$/SetToughness$ are
-// layer 7b. NewName$ rides the event (the copy's name) and GainThisAbility$
-// True keeps the resolving ability and its source face's SVar table on the copy.
+// The characteristic EXCEPTIONS (AddTypes$/RemoveCardTypes$/
+// RemoveCreatureTypes$/RemoveSubTypes$/NonLegendary$, SetColor$/AddColors$,
+// SetPower$/SetToughness$, AddKeywords$) and the AddSVars$/AddTriggers$
+// grants are copiable values (CR 707.9a/b): one CopyExcept event writes their
+// final values onto the copied basis face, so a copy of this copy inherits
+// them (CR 707.3). NewName$ rides the ClonePermanent event (the copy's name)
+// and GainThisAbility$ True keeps the resolving ability and its source face's
+// SVar table on the copy.
 //
 // Duration$ is honoured through the ordinary continuous-effect lifetime: a
 // permanent copy (no Duration$, or Permanent) is cleared by the become
@@ -96,7 +97,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		if o := g.Obj(c.Source); o != nil {
 			chosenName = o.ChosenName
 		}
-		if _, found := g.NameUniverse.FirstByName(chosenName); !found {
+		if _, _, found := g.NameUniverse.FaceByName(chosenName); !found {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "Clone CopyFromChosenName$ has no matching named card in the universe; no copy"})
 			return
 		}
@@ -357,15 +358,6 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			grantSVars[name] = raw
 		}
 	}
-	var grantTriggers []*cards.Trigger
-	for _, name := range cp.AddTriggers {
-		if raw, ok := grantTable[name]; ok {
-			if tr, ok := cards.ParseTriggerLine(raw); ok {
-				linkGrantedTrigger(&tr, grantTable)
-				grantTriggers = append(grantTriggers, &tr)
-			}
-		}
-	}
 	addKeywords := cp.AddKeywords
 	// PumpKeywords$ is the Clone sibling of CopyPermanent's temporary-keyword
 	// rider: the copy gains the named keywords for the PumpDuration$ window,
@@ -520,6 +512,40 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// The characteristic exceptions and the AddSVars$/AddTriggers$ grants are
+	// part of the copy's copiable values (CR 707.9a/b): one CopyExcept per
+	// become object writes their final values onto its basis face right after
+	// the ClonePermanent, so a copy of this copy inherits them (CR 707.3).
+	// Three riders stay continuous effects: PumpKeywords$ (temporary, not an
+	// exception), AddAbilities$, and a Changeling grant -- "except it has
+	// changeling" is a characteristic-defining ability, which rules' type walk
+	// must seed ahead of every ordinary layer-4 effect (CDAAllCreatureTypes,
+	// CR 707.9d/613.3), so it keeps its layer-4 marker and layer-6 keyword.
+	exc := copyExceptSpec{addTypes: addTypes, removeCardTypes: removeCardTypes,
+		removeCreatureTypes: removeCreatureTypes || cp.SetCreatureTypes, removeSubTypes: removeSubTypes,
+		removeLegendary: nonLegendary, setColors: setColors, setColorsPresent: setColorPresent,
+		addColors: addColorsL, setPower: setPower, setPowerPresent: setPowerPresent,
+		setToughness: setTough, setToughnessPresent: setToughPresent}
+	var changeling []string
+	for _, k := range addKeywords {
+		if cards.KeywordHeadIDOf(k) == cards.KeywordHeadIDOf("Changeling") {
+			changeling = append(changeling, k)
+		} else {
+			exc.keywords = append(exc.keywords, k)
+		}
+	}
+	for _, name := range cp.AddSVars {
+		if raw, ok := grantSVars[name]; ok {
+			exc.svars = append(exc.svars, [2]string{name, raw})
+		}
+	}
+	for _, name := range cp.AddTriggers {
+		if raw, ok := grantTable[name]; ok {
+			if _, ok := cards.ParseTriggerLine(raw); ok {
+				exc.triggers = append(exc.triggers, raw)
+			}
+		}
+	}
 	for _, p := range pairs {
 		t := p.src
 		srcObj := g.Obj(t.Obj)
@@ -562,6 +588,11 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		for _, raw := range staticBodies {
 			h.Emit(events.Event{Kind: events.CloneStatic, Obj: b.Obj, Text: raw})
 		}
+		exceptText := ""
+		if x := copyExceptions(g.Obj(b.Obj), exc); !x.Empty() {
+			exceptText = x.Text()
+			h.Emit(events.Event{Kind: events.CopyExcept, Obj: b.Obj, Text: exceptText})
+		}
 
 		// Modifier layers, scoped to the become object (Card.Self with
 		// Source = its own id, the effPump convention). The lifetime is
@@ -588,17 +619,9 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		reg := func(ce state.ContinuousEffect) {
 			regDur(ce, dur, untilEOT, untilTurn)
 		}
-		if ce, ok := cloneTypeEffect(cp, addTypes, addKeywords, removeCardTypes, removeCreatureTypes, nonLegendary, removeSubTypes); ok {
-			reg(ce)
-		}
-		if len(grantSVars) > 0 || len(grantTriggers) > 0 {
-			reg(state.ContinuousEffect{Layer: state.LAbilities, AddSVars: grantSVars,
-				SVars: grantTable, TriggerGrantor: b.Obj})
-			for _, tr := range grantTriggers {
-				copy := *tr
-				reg(state.ContinuousEffect{Layer: state.LAbilities, AddTrigger: &copy,
-					SVars: grantTable, TriggerGrantor: b.Obj})
-			}
+		if len(changeling) > 0 {
+			reg(state.ContinuousEffect{Layer: state.LType, CDAAllCreatureTypes: true})
+			reg(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: slices.Clone(changeling)})
 		}
 		if len(addAbilities) > 0 {
 			// The source table belongs to the become object's original face,
@@ -607,23 +630,8 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			reg(state.ContinuousEffect{Layer: state.LAbilities, AddAbilities: slices.Clone(addAbilities),
 				SVars: abilitySVars})
 		}
-		if setColorPresent {
-			reg(state.ContinuousEffect{Layer: state.LColor, AddColors: slices.Clone(setColors), OverwriteColors: true})
-		}
-		if len(addColorsL) > 0 {
-			reg(state.ContinuousEffect{Layer: state.LColor, AddColors: slices.Clone(addColorsL)})
-		}
-		if len(addKeywords) > 0 {
-			reg(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: slices.Clone(addKeywords)})
-		}
 		if len(pumpKeywords) > 0 {
 			regDur(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: slices.Clone(pumpKeywords)}, pumpDur, pumpEOT, pumpTurn)
-		}
-		if setPowerPresent || setToughPresent {
-			reg(state.ContinuousEffect{Layer: state.LPT, Sub: state.SubSet, HasSet: true,
-				SetPower: setPower, SetToughness: setTough,
-				SetPowerPresent: setPowerPresent, SetToughnessPresent: setToughPresent,
-				StaticSet: true})
 		}
 		if raw := cp.AttachedTo; raw != "" {
 			attached := false
@@ -668,7 +676,8 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		reg(state.ContinuousEffect{Layer: state.LCopy, CloneSource: t.Obj,
 			CloneName: newName, CloneChosenName: chosenName,
 			CloneStaticBodies: staticBodies, CloneGainThisAbility: gainThisAbility,
-			CloneAbilityIndex: cloneAbilityIndex, CloneTriggerIndex: cloneTriggerIndex})
+			CloneAbilityIndex: cloneAbilityIndex, CloneTriggerIndex: cloneTriggerIndex,
+			CloneExcept: exceptText})
 	}
 }
 
@@ -950,23 +959,3 @@ var cloneDurationCodes = state.NewStrCodes(
 	state.StrEntry[cloneDurationCode]{Key: "untilfacedown", Val: cloneDurationUntilEvent},
 	state.StrEntry[cloneDurationCode]{Key: "untiltargeteduntaps", Val: cloneDurationUntilEvent},
 )
-
-// cloneTypeEffect is a Clone copy's layer-four modifier, if any. A copy
-// exception "except it has changeling" (Omni-Changeling, Moritte) is a
-// copiable value, so its characteristic-defining ability applies in layer four
-// before EVERY ordinary layer-four effect, regardless of timestamps -- an
-// earlier creature-type strip or setter must survive it (CR 707.9b,
-// 613.2/613.3). It is therefore marked CDAAllCreatureTypes, which rules' type
-// walk seeds ahead of the walk, not AddAllCreatureTypes, which would apply at
-// the copy's timestamp after an older strip.
-func cloneTypeEffect(cp *CloneParams, addTypes, addKeywords []string, removeCardTypes, removeCreatureTypes, nonLegendary, removeSubTypes bool) (state.ContinuousEffect, bool) {
-	grantsChangeling := slices.ContainsFunc(addKeywords, func(k string) bool {
-		return cards.KeywordHeadIDOf(k) == cards.KeywordHeadIDOf("Changeling")
-	})
-	if len(addTypes) == 0 && !removeCardTypes && !removeCreatureTypes && !nonLegendary && !removeSubTypes && !cp.SetCreatureTypes && !grantsChangeling {
-		return state.ContinuousEffect{}, false
-	}
-	return state.ContinuousEffect{Layer: state.LType, AddTypes: slices.Clone(addTypes), CDAAllCreatureTypes: grantsChangeling,
-		RemoveCardTypes: removeCardTypes, RemoveCreatureTypes: removeCreatureTypes, SetCreatureTypes: cp.SetCreatureTypes,
-		RemoveLegendary: nonLegendary, RemoveSubTypes: removeSubTypes}, true
-}

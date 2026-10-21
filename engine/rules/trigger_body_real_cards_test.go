@@ -288,13 +288,6 @@ func TestSpringbloomDruidCostPaysThenSearches(t *testing.T) {
 	}
 	landsBefore := len(e2.G.Zone(state.ZBattlefield, 0))
 	submitChoices(t, e2, search.Options[0].Index, search.Options[1].Index)
-	// ShuffleNonMandatory$ True: the moved cards pose the may-shuffle confirm
-	// (searchmay1); accept it, then drain.
-	ms := e2.Pending()
-	if ms == nil || ms.ResumeKind != "search_mayshuffle" {
-		t.Fatalf("expected the may-shuffle confirm after the search, got %+v", ms)
-	}
-	submitChoices(t, e2, ms.Options[0].Index) // yes — shuffle
 	passUntilStackEmpty(t, e2, 20)
 
 	if o := e2.G.Obj(land2); o == nil || o.Zone != state.ZGraveyard {

@@ -2,6 +2,7 @@ package effects
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -1004,10 +1005,10 @@ func moveCounterKindsFor(kind string, o *state.Object, dests []state.Target, g *
 // literal, an SVar or an inline Count$ expression). A value Num cannot resolve
 // (the corpus's X-on-a-non-cast and `Number$2/Minus.Y` bodies) loud-degrades
 // with one Note and proliferates nothing -- the documented fail-closed
-// direction, never a silent 1. Because proliferation adds +1 of each EXISTING
-// kind, N proliferations over one fixed recipient set equal one batch of +N;
-// this build poses ONE ask and applies +Amount per recipient (deterministic
-// and documented) rather than N sequential asks.
+// direction, never a silent 1. A resolved N runs N separate proliferate
+// actions (CR 701.34a; Forge loops the same way): each recomputes the eligible
+// set, poses its own ask, adds +1 per kind and emits its own Proliferate
+// marker.
 //
 // The pick is answered in place (ResumeKind "proliferate"); its options carry
 // BOTH shapes -- an object recipient (Obj) and a player recipient (Player
@@ -1015,7 +1016,6 @@ func moveCounterKindsFor(kind string, o *state.Object, dests []state.Target, g *
 // deliberately not reused. RememberPut$ True (Ripples of
 // Potential) remembers exactly the recipients that took a counter.
 func effProliferate(h Host, c *Ctx, sa *cards.SA) {
-	g := h.Game()
 	// Loud-fail-closed on any parameter outside the whitelist (the effBlight
 	// case-whitelist shape): Amount$/RememberPut$ read here, Defined$/
 	// ValidTgts$ are inert on every corpus carrier, Cost$/SorcerySpeed$/
@@ -1065,7 +1065,20 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	if n <= 0 {
 		return
 	}
+	// CR 701.34a: "proliferate N times" is N proliferate actions, each a fresh
+	// choice over the then-current counters, each giving +1 per kind and each
+	// completing with its own Proliferate marker (so a "whenever you
+	// proliferate" trigger fires N times).
+	for i := int32(0); i < n; i++ {
+		proliferateOnce(h, c, sa)
+	}
+}
 
+// proliferateOnce is one CR 701.34a proliferate action: the eligible set, the
+// any-number ask, +1 of each existing kind per chosen recipient, and the
+// completed-action marker.
+func proliferateOnce(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
 	// The eligible set: battlefield recipients in seat/zone order, then alive
 	// players with a counter. Both walks are deterministic slices.
 	var eligible []state.Target
@@ -1121,7 +1134,7 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 			Kind: "proliferate", Label: label, Obj: t.Obj, Player: owner})
 	}
 	if ans, ok := AskTape(h, d); ok {
-		applyProliferate(h, c, sa, proliferateAnswer(ans), n)
+		applyProliferate(h, c, sa, proliferateAnswer(ans))
 		h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 		return
 	}
@@ -1131,17 +1144,18 @@ func effProliferate(h Host, c *Ctx, sa *cards.SA) {
 	// emits the same events the silent build would.
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 		Text: "proliferate resolved without a choice (no engine host to ask)"})
-	applyProliferate(h, c, sa, eligible, n)
+	applyProliferate(h, c, sa, eligible)
 	h.Emit(events.Event{Kind: events.Proliferate, Obj: c.Source, Player: c.Controller})
 }
 
-// applyProliferate gives each live chosen recipient +n of each kind of
+// applyProliferate gives each live chosen recipient +1 of each kind of
 // counter it already carries, one event per kind (objects -> CounterChange,
 // players -> PlayerCounterChange), then remembers the recipients when the SA
-// carries RememberPut$ True. A recipient that left the battlefield (or died)
+// carries RememberPut$ True (each recipient once, however many of the N
+// proliferations chose it). A recipient that left the battlefield (or died)
 // while the decision was outstanding takes nothing -- the putCounterPickApply
 // zone-guard stance.
-func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target, n int32) {
+func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target) {
 	g := h.Game()
 	remember := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberPut)), "True")
 	var placed []state.Target
@@ -1155,7 +1169,7 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target, n int3
 			kinds := counterKinds("", len(pl.Counters), func(i int) string { return pl.Counters[i].Kind }, func(i int) int32 { return pl.Counters[i].N })
 			for _, k := range kinds {
 				h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
-					Counter: k, Amount: n})
+					Counter: k, Amount: 1})
 			}
 			placed = append(placed, state.Target{Player: p, IsPlayer: true})
 			continue
@@ -1166,12 +1180,16 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target, n int3
 		}
 		kinds := counterKinds("", len(o.Counters), func(i int) string { return o.Counters[i].Kind }, func(i int) int32 { return o.Counters[i].N })
 		for _, k := range kinds {
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: n})
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: 1})
 		}
 		placed = append(placed, state.Target{Obj: o.ID})
 	}
-	if remember && len(placed) > 0 {
-		c.Remembered = append(c.Remembered, placed...)
+	if remember {
+		for _, t := range placed {
+			if !slices.Contains(c.Remembered, t) {
+				c.Remembered = append(c.Remembered, t)
+			}
+		}
 	}
 }
 

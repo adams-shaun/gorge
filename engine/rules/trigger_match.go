@@ -299,7 +299,7 @@ type pendingTrigger struct {
 	// are unset for it; unlike Ward/Afflict it carries no Ctx roles (the
 	// trigger reads only the permanent and its controller).
 	Cumulative string
-	// RingEmblem is one of the Ring emblem's four level abilities (CR
+	// RingEmblem is one of the Ring emblem's triggered level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
 	// only the LEVEL: pushTrigger mints a RingEmblemPush whose __ring:<level>
@@ -860,6 +860,9 @@ func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 
 func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	lkiPower, lkiToughness int32, lkiPTValid bool) {
+	if e.holdEntryCheck(ev, lki) {
+		return
+	}
 	batch := e.triggerBefore != nil && ev.Kind == events.MoveZone &&
 		ev.From == state.ZBattlefield && ev.To != state.ZBattlefield
 	noop := batch && e.lookBackProvenNoop()
@@ -998,14 +1001,13 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	if ev.Kind == events.Exert && ev.Amount >= 0 {
 		e.checkExertTriggers(*ev)
 	}
-	// The Ring emblem's four level abilities (CR 701.54c): engine-side
+	// The Ring emblem's triggered level abilities (CR 701.54c): engine-side
 	// "whenever" abilities with no corpus script text and no object in any
 	// zone, so the ordinary per-face walk above can never see them. The
-	// scan reads state.Player.RingTempted (the fold RingTemptsYou just made
-	// renders here BEFORE any trigger check, so level 4 sees its own
-	// temptation) and queues one entry per firing seat.
+	// scan reads state.Player.RingTempted and queues one entry per firing
+	// seat (one per blocking creature for level 3).
 	switch ev.Kind {
-	case events.DeclareAttackers, events.DeclareBlockers, events.Damage, events.RingTemptsYou:
+	case events.DeclareAttackers, events.DeclareBlockers, events.Damage:
 		e.checkRingEmblemTriggers(*ev)
 	}
 	// A chaos-ensues marker (CR 901.9, task planar-verbs): the current
@@ -1024,36 +1026,35 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	}
 }
 
-// The Ring emblem's four level gates (CR 701.54c). Level N is active iff the
-// tempted seat's RingTempted >= N; the count is uncapped, so lower levels
-// stay active as it rises.
+// The Ring emblem's triggered level gates (CR 701.54c). Level N is active
+// iff the tempted seat's RingTempted >= N; the count is uncapped, so lower
+// levels stay active as it rises.
 const (
-	ringEmblemLevelDraw      = 1 // whenever your Ring-bearer attacks, draw a card
-	ringEmblemLevelBlocked   = 2 // whenever your Ring-bearer becomes blocked, discard a card; if you can't, sacrifice it
-	ringEmblemLevelCombatHit = 3 // whenever your Ring-bearer deals combat damage to a player, sacrifice it
-	ringEmblemLevelTempted   = 4 // whenever the Ring tempts you, each opponent loses 1 life
+	ringEmblemLevelLoot      = 2 // whenever your Ring-bearer attacks, draw a card, then discard a card
+	ringEmblemLevelBlockedBy = 3 // whenever your Ring-bearer becomes blocked by a creature, that creature's controller sacrifices it at end of combat
+	ringEmblemLevelCombatHit = 4 // whenever your Ring-bearer deals combat damage to a player, each opponent loses 3 life
 )
 
-// checkRingEmblemTriggers queues the Ring emblem's level abilities (CR
-// 701.54c) for one event. The emblem is not an object in any zone, so the
+// checkRingEmblemTriggers queues the Ring emblem's triggered level abilities
+// (CR 701.54c) for one event. The emblem is not an object in any zone, so the
 // ordinary per-face walk cannot reach it; this is the per-event synthetic
 // scan site (the checkAttackerBlockedTriggers / checkChapterTriggers
 // precedent). Each level names one event shape:
 //
-//	1  DeclareAttackers whose attacker list holds a seat's Ring-bearer
-//	2  DeclareBlockers whose blocked-attacker pairs hold a seat's Ring-bearer
-//	3  a COMBAT Damage event whose source is a seat's Ring-bearer and whose
+//	2  DeclareAttackers whose attacker list holds a seat's Ring-bearer
+//	3  DeclareBlockers: one entry per (Ring-bearer, blocker) pair -- "becomes
+//	   blocked BY A CREATURE" triggers once per blocking creature (Forge's
+//	   Mode$ AttackerBlockedByCreature), and the entry remembers that blocker
+//	4  a COMBAT Damage event whose source is a seat's Ring-bearer and whose
 //	   recipient is a player (Obj 0 -- a hit redirected onto a permanent is
 //	   not "damage to a player")
-//	4  the RingTemptsYou event itself, for the tempted seat
 //
-// Because RingTemptsYou's own fold runs before checkTriggers, level 4's gate
-// reads the POST-fold count: the 4th temptation fires it and the 3rd does
-// not. The entries carry no Source (there is no permanent): pushTrigger mints
-// a RingEmblemPush whose payload events.Apply rebuilds the ability from.
+// A temptation itself triggers nothing here: no level reads RingTemptsYou.
+// The entries carry no Source (there is no permanent): pushTrigger mints a
+// RingEmblemPush whose payload events.Apply rebuilds the ability from.
 func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
 	switch ev.Kind {
-	case events.DeclareAttackers, events.DeclareBlockers, events.Damage, events.RingTemptsYou:
+	case events.DeclareAttackers, events.DeclareBlockers, events.Damage:
 	default:
 		return
 	}
@@ -1062,43 +1063,53 @@ func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
 			continue
 		}
 		tempted := e.G.Players[p].RingTempted
-		if tempted <= 0 {
+		bearer := e.G.Players[p].RingBearer
+		if tempted < ringEmblemLevelLoot || bearer == 0 {
 			continue
 		}
-		bearer := e.G.Players[p].RingBearer
 		switch ev.Kind {
-		case events.RingTemptsYou:
-			if ev.Player == p && tempted >= ringEmblemLevelTempted {
-				e.queueRingEmblem(p, ringEmblemLevelTempted, bearer)
-			}
 		case events.DeclareAttackers:
-			if tempted >= ringEmblemLevelDraw && bearer != 0 && objIDIn(ev.IDs, bearer) {
-				e.queueRingEmblem(p, ringEmblemLevelDraw, bearer)
+			if objIDIn(ev.IDs, bearer) {
+				e.queueRingEmblem(p, ringEmblemLevelLoot, bearer, 0)
 			}
 		case events.DeclareBlockers:
-			if tempted >= ringEmblemLevelBlocked && bearer != 0 && blockedAttackerIn(ev.Pairs, bearer) {
-				e.queueRingEmblem(p, ringEmblemLevelBlocked, bearer)
+			if tempted < ringEmblemLevelBlockedBy {
+				continue
+			}
+			for _, pr := range ev.Pairs {
+				if pr[0] == bearer && pr[1] != 0 {
+					e.queueRingEmblem(p, ringEmblemLevelBlockedBy, bearer, pr[1])
+				}
 			}
 		case events.Damage:
-			if tempted >= ringEmblemLevelCombatHit && bearer != 0 && ev.Obj == 0 &&
+			if tempted >= ringEmblemLevelCombatHit && ev.Obj == 0 &&
 				e.combatDamaging && e.damaging == bearer {
-				e.queueRingEmblem(p, ringEmblemLevelCombatHit, bearer)
+				e.queueRingEmblem(p, ringEmblemLevelCombatHit, bearer, 0)
 			}
 		}
 	}
 }
 
 // queueRingEmblem appends one emblem level ability to the pending queue. The
-// TriggerCard role names the Ring-bearer the firing event was about so a
-// chained body that ever wants it can read it; the hand-built bodies read
-// only Defined$ You/Opponent and the live designation.
-func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer state.ObjID) {
+// TriggerCard role names the Ring-bearer the firing event was about, and
+// TriggerBlocker (level 3 only, 0 otherwise) the blocking creature, which
+// pushTrigger logs in the RingEmblemPush event's IDs so the minted ability
+// remembers it.
+func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer, blocker state.ObjID) {
+	ctx := effects.NewCtx(0, p, effects.CtxInit{
+		TriggerContext: effects.TriggerContext{TriggerCard: bearer, TriggerBlocker: blocker},
+	})
+	if blocker != 0 {
+		// CR 400.7: the promise names the blocking creature that existed when
+		// the Ring-bearer became blocked. Stamp its Incarnation HERE, at queue
+		// time, so a blocker that leaves and returns before the ability
+		// resolves is a new object the promise does not sacrifice.
+		ctx.TriggerRememberedStamps = e.fireTimeRememberedStamps([]state.Target{{Obj: blocker}})
+	}
 	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 		Controller: p,
 		RingEmblem: level,
-		Ctx: effects.NewCtx(0, p, effects.CtxInit{
-			TriggerContext: effects.TriggerContext{TriggerCard: bearer},
-		}),
+		Ctx:        ctx,
 	})
 }
 
@@ -1363,11 +1374,14 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// A "from anywhere" graveyard trigger is NOT a leaves-the-
 				// battlefield trigger (CR 603.6c), even when this particular
 				// move happens to leave the battlefield. Only the explicit
-				// battlefield-origin shape looks back; destination triggers
+				// battlefield-origin shapes and the sacrifice line look back
+				// (CR 603.10a, looksBackOnDeparture); destination triggers
 				// still use the post-event source/zone in the live walk.
 				// (split first: the Origin$ map read is only needed on a split
-				// leaves-the-battlefield walk.)
-				if split && (t.Mode == "ChangesZone" && t.ParamStr(cards.PKOrigin) == "Battlefield") != leaving {
+				// leaves-the-battlefield walk.) Mode$ Unattached looks back the
+				// same way (CR 701.3d/603.10a): the attachment's own departure
+				// is its unattach.
+				if split && looksBackOnDeparture(&t) != leaving {
 					continue
 				}
 				// CR 603.8 state trigger: its condition is checked against the
@@ -2155,6 +2169,20 @@ func (e *Engine) closeDamageBatch() {
 	e.damageBatchLog = nil
 	e.excessDamageBaseline = nil
 	flushExcessBatch(&e.excessBatch, e.emit)
+	// CR 702.15e: the batch's per-(source, player) lifelink totals are one
+	// LifeChange each, emitted after every Damage event of the batch. Combat
+	// already flushed at the end of its pass, so this is a no-op there; for
+	// effects this is the only flush. A damage replacement still parked here
+	// has not paid its lifelink yet, so keep the accumulation open: the
+	// parked hit must merge into the same event when its answer lands
+	// (Battletide Alchemist's optional prevention). handleReplacement's
+	// drain flushes it.
+	if e.parkedDamageReplacement() {
+		e.lifelinkBatchOpen = true
+		return
+	}
+	e.lifelinkBatchOpen = false
+	e.flushLifelinkBatch(false)
 }
 
 // batchAppendSource appends id to a DamageAll entry's deduplicated source
@@ -2351,6 +2379,9 @@ func (e *Engine) openZoneBatch() {
 func (e *Engine) closeZoneBatch() {
 	if e.zoneBatchDepth == 0 {
 		return
+	}
+	if e.zoneBatchDepth == 1 && len(e.entryHeld) > 0 {
+		e.flushHeldEntries()
 	}
 	e.zoneBatchDepth--
 	if e.zoneBatchDepth != 0 {
@@ -2562,6 +2593,18 @@ func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source s
 	}
 	if ev.Kind == events.DeclareAttackers && t.ParamStr(cards.PKKeyword) == "Melee" {
 		return e.meleeRemembered(ev)
+	}
+	// CR 701.3d/603.10a: a Mode$ Unattached trigger fired by the attachment's
+	// own departure (a look-back match on the MoveZone; no Unattached event
+	// is logged for it) has the FORMER BEARER as its referent -- "that
+	// permanent" of "whenever GRAFTED WARGEAR becomes unattached from a
+	// permanent, sacrifice that permanent". The departure fold
+	// (engine/events/apply_zone.go) has just set LastBearer to the pre-move
+	// AttachedTo, so it names this move's bearer.
+	if t.Mode == "Unattached" && ev.Kind == events.MoveZone {
+		if o := e.G.Obj(ev.Obj); o != nil && o.LastBearer != 0 {
+			return []state.Target{{Obj: o.LastBearer}}
+		}
 	}
 	if ev.Kind == events.DeclareAttackers && trigmatch.AttackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
 		out := make([]state.Target, 0, len(e.declaredAttackers)+1)

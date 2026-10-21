@@ -26,5 +26,12 @@ func effBecomesBlocked(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.BlockedByEffect, Obj: o.ID, Player: o.Attacking})
+		// CR 702.22i: if one member of a band would become blocked due to
+		// an effect, the entire band becomes blocked.
+		for _, m := range g.BandMates(o.ID) {
+			if mo := g.Obj(m); mo != nil && len(mo.BlockedBy) == 0 {
+				h.Emit(events.Event{Kind: events.BlockedByEffect, Obj: m, Player: mo.Attacking})
+			}
+		}
 	}
 }

@@ -43,8 +43,11 @@ type TriggerContext struct {
 	// TokenAttacks event's IDs[1] slot carries the object. Zero when the
 	// defender was a player, which is every non-ninjutsu binding.
 	DefendingBattle state.ObjID
-	TriggerPlayer   state.Target
-	TriggerCard     state.ObjID
+	// DefenderFixed is the effect itself names the defender (K:Ninjutsu's
+	// CR 702.49c), so CR 508.4's controller choice is not offered.
+	DefenderFixed bool
+	TriggerPlayer state.Target
+	TriggerCard   state.ObjID
 	// DelayedObject is the causing event's object for a delayed trigger:
 	// the fire-time object TriggeredObject names.
 	DelayedObject state.ObjID
@@ -74,6 +77,13 @@ type TriggerContext struct {
 	// TriggerPaidX/TriggerConverge; the stamp a registration keeps rides the
 	// DelayedRegister event's Text (the established suffix channel).
 	TriggerRememberedStamps []state.TargetStamp
+	// TriggerRememberedMoved lists the objects of TriggerRememberedStamps
+	// whose ZoneGen moved between the trigger firing and the start of its
+	// resolution (rules.rememberedMovedSinceFire): each is a new object the
+	// trigger's referents cannot find (CR 400.7), so ChangeZone's
+	// Defined$ Triggered* mover skips it. Not serialized into events.Event,
+	// like its neighbour: replay re-derives the queue-time capture.
+	TriggerRememberedMoved []state.ObjID
 	// SourceRemembered is the fire-time snapshot of the source's persistent
 	// event-backed Remembered list, with SourceIncarnation its Incarnation
 	// stamp at the same instant. A pending trigger belongs to the object that
@@ -164,6 +174,14 @@ type TriggerContext struct {
 	// which must survive the roll resolution like TriggerResult. Zero outside
 	// a RolledDie/RolledDieOnce trigger; a real result is always >= 1.
 	TriggerResultMax int32
+	// TriggerStormCount is the number of spells cast this turn, the
+	// triggering one included, when a storm trigger fired (CR 702.40a:
+	// "copy it for each other spell that was cast before it this turn").
+	// It is what the TriggerCount$CurrentStormCount head answers (Forge's
+	// name for the same fire-time count); captured at fire time so spells
+	// cast in response to the trigger do not add copies. Zero outside a
+	// storm trigger.
+	TriggerStormCount int32
 	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
 	// matched. CR 107.3m binds that value at trigger time: it must survive if
 	// the card later leaves the stack or battlefield before the ability

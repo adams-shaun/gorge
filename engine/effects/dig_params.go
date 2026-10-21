@@ -98,7 +98,7 @@ var digKnownKeys = [...]string{
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
-	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards",
+	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards", "DefinedExiler",
 	"DefinedTarget", "Description", "DestinationZone", "DestinationZone2", "DigNum",
 	"Exclude", "Exhaust", "ExileFaceDown", "FaceDown", "FaceDownPower", "FaceDownSetType",
 	"FaceDownToughness", "ForceRevealToController", "Foretold", "ForgetOtherRemembered",
@@ -106,7 +106,7 @@ var digKnownKeys = [...]string{
 	"ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"LibraryPosition", "LibraryPosition2", "MaxTotalTargetCMC", "MaxTotalTargetPower",
 	"Mentor", "ModeCost", "Monstrosity", "NewController", "NoLooking", "NoReveal",
-	"OpponentTurn", "Optional", "OptionalAbilityPrompt", "Planeswalker", "PlayCost",
+	"NonBasicSpell", "OpponentTurn", "Optional", "OptionalAbilityPrompt", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PromptToSkipOptionalAbility", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",
@@ -195,11 +195,15 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.PrimaryPos = strings.TrimSpace(sa.ParamStr(cards.PKLibraryPosition))
 	p.Dest2Name = strings.TrimSpace(rawParamText(sa, "DestinationZone2").Text)
 	p.Pos2 = strings.TrimSpace(rawParamText(sa, "LibraryPosition2").Text)
-	// Forge's omitted second destination means bottom-of-library remainder;
-	// an explicit DestinationZone2$ Library with no LibraryPosition2$ is the
-	// same bottom default (see effDig).
+	// An omitted DestinationZone2$ is the library; its LibraryPosition2$
+	// defaults to -1 (bottom) only when it too is omitted; an explicit
+	// LibraryPosition2$ 0 keeps the rest on top (Jace, the Mind Sculptor;
+	// Goblin Guide).
 	if p.Dest2Name == "" {
-		p.Dest2Name, p.Pos2 = "Library", "-1"
+		p.Dest2Name = "Library"
+		if p.Pos2 == "" {
+			p.Pos2 = "-1"
+		}
 	} else if strings.EqualFold(p.Dest2Name, "Library") && p.Pos2 == "" {
 		p.Pos2 = "-1"
 	}

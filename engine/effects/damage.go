@@ -306,17 +306,31 @@ func newDamageRider(h Host, c *Ctx, spec string, amount int32) damageRider {
 		hasWither: hasWither, hasDeathtouch: hasDeathtouch}
 }
 
+// lifelinkGainer is the optional rules-side hook for CR 702.15a/702.15e:
+// inside a damage batch the host sums the gain per source and emits ONE
+// LifeChange when the batch ends, so one source's simultaneous damage to
+// several recipients is one life-gain event (CR 119.9). It is optional, like
+// the BeginLifeLossBatch hook, so effects stay below rules and test hosts
+// need no change.
+type lifelinkGainer interface {
+	GainFromLifelink(source state.ObjID, player state.PlayerID, amount int32)
+}
+
 // payLifelinkRider is CR 702.15a's life gain for NON-COMBAT damage: when
 // damage from a source with lifelink actually landed, the source's controller
-// gains `r.amount` life. Lifelink is not a trigger (CR 702.15a) -- the
-// LifeChange rides the damage emit itself, so the gain is visible at the same
-// instant the damage is, with no stack, no trigger queue and no ask.
+// gains `r.amount` life. The gain is not a trigger: inside a damage batch the
+// host sums it per source and emits ONE LifeChange when the batch ends
+// (CR 702.15e, 119.9); outside one it is emitted at once.
 //
 // dealt is the amount on the Damage event that actually landed after
 // replacement effects. It is zero for prevention, and may differ from the
 // proposed amount for a multiplier or other amount-changing replacement.
 func payLifelinkRider(r damageRider, dealt int32) {
 	if dealt <= 0 || !r.hasLifelink {
+		return
+	}
+	if g, ok := r.h.(lifelinkGainer); ok {
+		g.GainFromLifelink(r.source, r.controller, dealt)
 		return
 	}
 	r.h.Emit(events.Event{Kind: events.LifeChange, Player: r.controller,
@@ -337,10 +351,13 @@ func payLifelinkRider(r damageRider, dealt int32) {
 // cannot discover the animation itself) so it gets marked damage as well as
 // loyalty loss; printed creatures and plain planeswalkers are unaffected by
 // the tag.
+//
+// A proposed amount <= 0 is no damage at all (CR 120.8; a negative fight
+// power is 0 by CR 107.1b): nothing is emitted and 0 is returned.
 func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 	h := r.h
 	o := h.Game().Obj(target)
-	if o == nil {
+	if o == nil || r.amount <= 0 {
 		return 0
 	}
 	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
@@ -365,9 +382,9 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		// player hit is redirected onto a creature (and when a creature hit is
 		// redirected away from one).
 		ev.Counter = "wither"
-	} else if creature && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
-		ev.Counter = "creature"
 	}
+	// An animated planeswalker's "creature" tag (CR 120.3e) is derived for
+	// every Damage emitter by rules' recomputeWalkerCreatureMarker.
 	applied := h.EmitDamage(ev)
 	dealt := int32(0)
 	if applied.Kind == events.Damage {
@@ -384,6 +401,9 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
 // lifelink rider from the amount that survived replacement effects.
 func emitPlayerDamage(r damageRider, target state.PlayerID) {
+	if r.amount <= 0 {
+		return
+	}
 	ev := events.Event{Kind: events.Damage, Player: target, Amount: r.amount}
 	if r.hasInfect {
 		// CR 702.90b: damage from an infect source is dealt to a player in
@@ -458,49 +478,26 @@ func excessConditionHolds(h Host, c *Ctx, cond string, o *state.Object) bool {
 	}
 }
 
-// effFight implements "SP$/AB$/DB$ Fight" (CR 701.12): each fighter deals
-// damage equal to its power to the creature(s) it fights, and each fought
-// creature deals its power back, SIMULTANEOUSLY -- one Damage emission per
-// direction, both inside ONE BeginDamageBatch/EndDamageBatch bracket so
-// DamageDealtOnce/DamageDoneOnce triggers latch the whole exchange the way
-// effDealDamage's multi-target batch does. The damage is NOT combat damage
-// (CR 701.12a): the ordinary effects-path EmitDamage below is already
+// effFight implements "SP$/AB$/DB$ Fight" (CR 701.14). fightPairs names the
+// pairs of creatures that fight; each creature of a pair deals damage equal
+// to its power to the other (CR 701.14a), and a creature that fights itself
+// deals twice its power to itself, as one hit (CR 701.14c). The hits are
+// simultaneous: every hit's amount is read before ANY hit lands, so an
+// infect or wither hit's -1/-1 counters never shrink the hit back (Boggart
+// Ram-Gang), and every hit is emitted inside ONE BeginDamageBatch/
+// EndDamageBatch bracket so DamageDealtOnce/DamageDoneOnce triggers latch the
+// whole exchange the way effDealDamage's multi-target batch does. Fight
+// damage is not combat damage (CR 701.14d): the effects-path EmitDamage is
 // non-combat, and Fight is never routed through rules' combat step.
 //
-// Fight is the one primitive whose SA carries TWO independent target lists:
-// Defined$ names the FIGHTER(S) (resolved through the ordinary Defined
-// resolver -- every corpus Fight Defined$ selector is already supported),
-// ValidTgts$ names the creatures they fight. The generic machinery conflates
-// them, so the opponents come from the CHOSEN targets: the pre-ask's answered
-// set (c.PickedTargets, non-nil only while the pre-asked body dispatches)
-// outranks the placement ask's Ctx.Targets, the same precedence Defined's own
-// ValidTgts fallthrough uses. An SA with NO Defined$ (Blood Feud's "Target
-// creature fights another target creature", the four SP$ Fight lines) is the
-// degenerate case where both lists are the chosen targets: the pairwise walk
-// below pairs them against each other, which is exactly that card text. The
-// pre-ask for those already ran in effects.Resolve's dispatch (no Defined$
-// means the ordinary ValidTgts$ ask), and the Defined$-carrying sub-shaped
-// Fight (Kraul Harpooner) gets its own ask from chosenTargetsFor's Fight
-// carve-out; the execute-shaped ones (Warbriar Blessing) and modal Charm-mode
-// ones (Voracious Hydra) had their placement ask cover them.
-//
-// Per-side damage source: each hit's source is the FIGHTING CREATURE, not the
-// resolving spell/ability -- a lifelinked fighter's controller gains its
-// power, a deathtouched wound tags the victim, and DamageDone triggers see
-// the creature. One damageRider per fighter (built off the fighter's LIVE
-// controller -- both sides are battlefield objects by the guard below, so no
-// LKI path is reachable), with SetDamageSource toggled around each emission
-// and restored, since one batch here spans two sources (a shape one
-// effDealDamage call never reaches).
-//
-// Power is the DERIVED power (h.Power) per the Host contract; zero power is a
-// legal deal (the effDealDamage n<=0 shape -- the event emits with Amount 0,
-// prevention and both riders naturally no-op). A fighter or opponent no
-// longer on the battlefield at resolution is skipped; an empty opponent set
-// (the optional-target decline, or no eligible creature at all) is a silent
-// no-op -- no note, no event. ReplaceDyingDefined$ (faunsbane_troll's "if
-// that creature would die this turn, exile it instead") reuses the shared
-// registerReplaceDying helper over everything this exchange damaged.
+// Each hit's source is the FIGHTING CREATURE, not the resolving spell or
+// ability (CR 701.14a, "each of those creatures deals damage"): see
+// emitFightHit. Power is the DERIVED power (h.Power); a hit of zero or less
+// is no damage event (emitObjectDamage, CR 120.8). An empty pair list (the
+// optional-target decline, a fighter that left) is a silent no-op.
+// ReplaceDyingDefined$ (faunsbane_troll's "if that creature would die this
+// turn, exile it instead") reuses the shared registerReplaceDying helper over
+// every creature that fought.
 func effFight(h Host, c *Ctx, sa *cards.SA) {
 	// Unread flags stay loud, never silent: TargetsWithoutSameCreatureType$
 	// (Rivals' Duel -- the pairwise share-no-types legality is not expressible
@@ -510,51 +507,141 @@ func effFight(h Host, c *Ctx, sa *cards.SA) {
 	fightUnreadNote(h, c, sa, "TargetsWithoutSameCreatureType")
 	fightUnreadNote(h, c, sa, "ExcessSVar")
 	fightUnreadNote(h, c, sa, "ExcessSVarCondition")
-	fighters := Defined(h, c, sa)
-	opponents := c.PickedTargets
-	if opponents == nil {
-		opponents = c.Targets
+	pairs := fightPairs(h, c, sa)
+	hits := make([]fightHit, 0, 2*len(pairs))
+	for _, p := range pairs {
+		if p[0] == p[1] {
+			hits = append(hits, fightHit{src: p[0], dst: p[0], amount: 2 * h.Power(p[0])})
+			continue
+		}
+		hits = append(hits, fightHit{src: p[0], dst: p[1], amount: h.Power(p[0])},
+			fightHit{src: p[1], dst: p[0], amount: h.Power(p[1])})
 	}
-	// One fight is ONE simultaneous damage batch.
 	h.BeginDamageBatch()
 	var dying []state.Target
 	defer func() { registerReplaceDying(h, c, replaceDyingParam(sa), dying) }()
-	seen := make(map[[2]state.ObjID]bool)
-	for _, f := range fighters {
-		if f.IsPlayer {
-			continue
-		}
-		fo := h.Game().Obj(f.Obj)
-		if fo == nil || fo.Zone != state.ZBattlefield {
-			continue
-		}
-		for _, t := range opponents {
-			if t.IsPlayer || t.Obj == f.Obj {
-				continue
-			}
-			to := h.Game().Obj(t.Obj)
-			if to == nil || to.Zone != state.ZBattlefield {
-				continue
-			}
-			// Each (fighter, opponent) pair is one mutual fight: each deals its
-			// power to the other, one emission per direction. A creature in BOTH
-			// lists (the no-Defined$ pair shape) meets its partner from both
-			// walks, so the ordered-pair set dedups the exchange to one mutual
-			// pair instead of double-hitting.
-			pair := [2]state.ObjID{f.Obj, t.Obj}
-			if pair[0] > pair[1] {
-				pair[0], pair[1] = pair[1], pair[0]
-			}
-			if seen[pair] {
-				continue
-			}
-			seen[pair] = true
-			emitFightHit(h, f.Obj, t.Obj)
-			emitFightHit(h, t.Obj, f.Obj)
-			dying = append(dying, state.Target{Obj: f.Obj}, state.Target{Obj: t.Obj})
+	for _, x := range hits {
+		emitFightHit(h, x.src, x.dst, x.amount)
+	}
+	for _, p := range pairs {
+		dying = append(dying, state.Target{Obj: p[0]})
+		if p[1] != p[0] {
+			dying = append(dying, state.Target{Obj: p[1]})
 		}
 	}
 	h.EndDamageBatch()
+}
+
+// fightHit is one direction of a fight: src deals amount to dst. amount is
+// read before any hit of the exchange lands (CR 701.14a).
+type fightHit struct {
+	src, dst state.ObjID
+	amount   int32
+}
+
+// fightPairs resolves the creatures a Fight instructs to fight, by the SA's
+// shape (TestFightCorpusShapeCensus pins every corpus Fight line to one of
+// the first three; Forge's FightEffect.getFighters pairs the same way):
+//
+//   - Defined$ and ValidTgts$ (Prey Upon's `Defined$ ParentTarget`, Warbriar
+//     Blessing's `Defined$ Enchanted`): each Defined$ fighter fights each
+//     chosen target. The chosen targets are the pre-ask's answered set
+//     (c.PickedTargets, non-nil only while the pre-asked body dispatches),
+//     else the placement ask's Ctx.Targets -- the precedence Defined's own
+//     ValidTgts fallthrough uses. A fighter that is also the chosen target
+//     fights itself (CR 701.14c).
+//   - ValidTgts$ only (Blood Feud's "target creature fights another target
+//     creature"): the first two chosen targets fight each other.
+//   - Defined$ only (Hans Eriksson's `Remembered & Self`, Guild Feud, Tunnel
+//     of Love, Skophos Maze-Warden, Arena's `Targeted`): the first two
+//     Defined$ objects fight each other. More than two is a loud Note and only
+//     the first two fight. The same object named twice is a loud Note and no
+//     fight: no corpus targetless line can name one creature twice, so it is
+//     a mis-resolved selector (Grothama's OriginalHost, Ezuri's Predation's
+//     unread UseImprinted$), never a self-fight.
+//   - neither: a loud Note and no fight.
+//
+// A pair is dropped -- neither member deals damage -- unless both members
+// are creatures on the battlefield at resolution (CR 701.14b). An unordered
+// pair is listed once.
+func fightPairs(h Host, c *Ctx, sa *cards.SA) [][2]state.ObjID {
+	targeted, defined := TargetsOf(sa).Has(TgtValidPresent), DefinedRefOf(sa).Set()
+	chosen := c.PickedTargets
+	if chosen == nil {
+		chosen = c.Targets
+	}
+	var cand [][2]state.ObjID
+	switch {
+	case targeted && defined:
+		for _, f := range Defined(h, c, sa) {
+			for _, t := range chosen {
+				cand = appendFightPair(cand, fightObj(f), fightObj(t))
+			}
+		}
+	case targeted:
+		if len(chosen) >= 2 {
+			cand = appendFightPair(cand, fightObj(chosen[0]), fightObj(chosen[1]))
+		}
+	case defined:
+		list := Defined(h, c, sa)
+		if len(list) > 2 {
+			fightNote(h, c, "Fight Defined$ named more than two creatures: only the first two fight")
+		}
+		if len(list) >= 2 {
+			a, b := fightObj(list[0]), fightObj(list[1])
+			if a != 0 && a == b {
+				fightNote(h, c, "Fight Defined$ named the same creature twice: no fight")
+				return nil
+			}
+			cand = appendFightPair(cand, a, b)
+		}
+	default:
+		fightNote(h, c, "Fight names no creatures: neither Defined$ nor ValidTgts$")
+		return nil
+	}
+	out := cand[:0]
+	for _, p := range cand {
+		if fightMemberOK(h, p[0]) && fightMemberOK(h, p[1]) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// fightObj is a fight member's object id; a player member is 0, which
+// fightMemberOK rejects.
+func fightObj(t state.Target) state.ObjID {
+	if t.IsPlayer {
+		return 0
+	}
+	return t.Obj
+}
+
+// appendFightPair appends (a, b) unless the unordered pair is already listed:
+// a creature in both lists meets its partner from both walks, and the
+// exchange happens once.
+func appendFightPair(pairs [][2]state.ObjID, a, b state.ObjID) [][2]state.ObjID {
+	for _, p := range pairs {
+		if (p[0] == a && p[1] == b) || (p[0] == b && p[1] == a) {
+			return pairs
+		}
+	}
+	return append(pairs, [2]state.ObjID{a, b})
+}
+
+// fightMemberOK is CR 701.14b's check on one member: an object on the
+// battlefield that is a creature (derived types).
+func fightMemberOK(h Host, id state.ObjID) bool {
+	if id == 0 {
+		return false
+	}
+	o := h.Game().Obj(id)
+	return o != nil && o.Zone == state.ZBattlefield && h.IsCreature(id)
+}
+
+// fightNote is a Fight's loud, replay-visible Note.
+func fightNote(h Host, c *Ctx, text string) {
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: text})
 }
 
 // fightUnreadNote is the loud unread-Fight-parameter note (the key is a real
@@ -566,13 +653,12 @@ func fightUnreadNote(h Host, c *Ctx, sa *cards.SA, key string) {
 	}
 }
 
-// emitFightHit lands one direction of a fight: src deals its DERIVED power
-// to dst, through a per-fighter rider whose source is the fighter itself and
-// with SetDamageSource toggled around the emission so rules' protection check
-// and DamageDone triggers read the creature, then restored (one batch spans
-// two sources).
-func emitFightHit(h Host, src, dst state.ObjID) {
-	amount := h.Power(src)
+// emitFightHit lands one direction of a fight: src deals amount to dst,
+// through a per-fighter rider whose source is the fighter itself and with
+// SetDamageSource toggled around the emission so rules' protection check and
+// DamageDone triggers read the creature, then restored (one batch spans two
+// sources).
+func emitFightHit(h Host, src, dst state.ObjID, amount int32) {
 	rider := fightRider(h, src, amount)
 	prev := h.SetDamageSource(rider.source)
 	emitObjectDamage(rider, dst)
@@ -582,9 +668,9 @@ func emitFightHit(h Host, src, dst state.ObjID) {
 // fightRider builds the per-fighter damage rider: source is the fighter
 // (unwrapped through resolveSourceObject, the effDealDamage convention), the
 // controller its LIVE controller, lifelink/infect/deathtouch read DERIVED off
-// the fighter. effFight guards both sides onto the battlefield before
-// emitting, so the live branch of newDamageRider's LKI ladder is the only
-// reachable one and no DamageSourceLKI capture exists for a fight hit.
+// the fighter. fightPairs keeps only battlefield creatures, so the live
+// branch of newDamageRider's LKI ladder is the only reachable one and no
+// DamageSourceLKI capture exists for a fight hit.
 func fightRider(h Host, fighter state.ObjID, amount int32) damageRider {
 	source := resolveSourceObject(h, fighter)
 	controller := state.PlayerID(0)
@@ -594,6 +680,7 @@ func fightRider(h Host, fighter state.ObjID, amount int32) damageRider {
 	return damageRider{h: h, source: source, controller: controller,
 		amount: amount, hasLifelink: h.HasKeyword(source, "Lifelink"),
 		hasInfect:     h.HasKeyword(source, "Infect"),
+		hasWither:     h.HasKeyword(source, "Wither"),
 		hasDeathtouch: h.HasKeyword(source, "Deathtouch")}
 }
 

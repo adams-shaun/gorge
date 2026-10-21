@@ -53,8 +53,33 @@ func ColorMaskOf(o *state.Object) ColorMask {
 	if o == nil {
 		return 0
 	}
-	f := o.Face()
-	if f == nil || f.HasKeywordRef(kwRefDevoid) {
+	// CR 708.2a: a face-down permanent or spell has no mana cost and no
+	// colour indicator, so it is colourless.
+	if o.FaceDownHidden() {
+		return 0
+	}
+	// CR 709.4b/709.4d: a split card's colours come from its combined mana
+	// cost wherever its halves are combined (state.Object.SplitHalves).
+	if halves, ok := o.SplitHalves(); ok {
+		return faceColorMask(halves[0]) | faceColorMask(halves[1])
+	}
+	return faceColorMask(o.Face())
+}
+
+// faceColorMask is one face's colours: a copy exception's colour set, else
+// its mana cost's colour symbols, else its Colors: line, then its CDA
+// SetColor$ claim; Devoid and a nil face are colourless.
+func faceColorMask(f *cards.Face) ColorMask {
+	if f == nil {
+		return 0
+	}
+	// CR 707.9b/707.9d: a copy exception's final colour set is part of the
+	// copy basis and overrides the mana cost, a colour indicator, Devoid and
+	// a colour-setting CDA alike.
+	if m, ok := f.CopyColours(); ok {
+		return ColorMask(m)
+	}
+	if f.HasKeywordRef(kwRefDevoid) {
 		return 0
 	}
 	var mask ColorMask
@@ -294,8 +319,27 @@ func colorMaskCtx(o *state.Object, sc *SpecContext) ColorMask {
 				return sc.Layers.DerivedColors[i].Mask
 			}
 		}
+		if splitReadAsSpell(o, sc) {
+			if halves, ok := o.SplitHalvesAsSpell(); ok {
+				return faceColorMask(halves[0]) | faceColorMask(halves[1])
+			}
+			return faceColorMask(o.Face())
+		}
 	}
 	return ColorMaskOf(o)
+}
+
+// splitReadAsSpell reports whether sc reads o as the spell being cast (CR
+// 601.3a/709.3a: SpecContext.AsSpellHalf, or the AsStack announced-spell
+// override) while o is a split card whose halves are otherwise combined
+// (state.Object.SplitHalves). Such a read sees only the current half, or
+// both when the spell is fused.
+func splitReadAsSpell(o *state.Object, sc *SpecContext) bool {
+	if !sc.AsSpellHalf && !sc.AsStack {
+		return false
+	}
+	_, combined := o.SplitHalves()
+	return combined
 }
 
 // colorsCtx is colorMaskCtx as WUBRG letters.

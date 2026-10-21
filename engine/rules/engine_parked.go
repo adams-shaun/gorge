@@ -79,20 +79,37 @@ type engineParked struct {
 	// blockPay holds the declare-blockers CantBlockUnless payment window.
 	blockPay *blockPayWindow `clone:"deep"`
 
-	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
-	// m32, engine/rules/replacement.go): MoveZone events a commander is about to
-	// undergo, deferred until its owner answers the KCommanderZone decision
-	// for the FRONT entry. Multiple commanders can be parked by one burst (a
-	// board wipe, one state-based-action pass), but only one decision can be
-	// pending at a time, so the queue hands from one answer to the next
-	// (handleCmdZone asks the new front after emitting the old one). Entries
-	// are deduplicated by object id, so a re-offered SBA pass can never
-	// enqueue the same commander twice (the no-progress failure shape a
-	// replacement must not spin on). Never mutated while e.pending is nil
-	// except by a park that also asks; Clone deep-copies it (clone.go) so a
-	// clone taken with a decision outstanding carries the same queue. It is
-	// always empty in a non-Commander game: nothing ever parks there.
+	// cmdZone is the queue of commander command-zone asks (CR 903.9, Task m32,
+	// engine/rules/replacement.go): the CR 903.9b parked hand/library moves a
+	// commander is about to undergo, deferred until its owner answers the
+	// KCommanderZone decision for the FRONT entry, plus at most one CR 903.9a
+	// sba entry, the one being asked (commanderZoneSBA). Multiple commanders
+	// can be parked by one burst (a bounce sweep, one state-based-action
+	// pass), but only one decision can be pending at a time, so the queue
+	// hands from one answer to the next (handleCmdZone asks the new front
+	// after emitting the old one). Entries are deduplicated by object id, so
+	// a re-offered SBA pass can never enqueue the same commander twice (the
+	// no-progress failure shape a replacement must not spin on). Never
+	// mutated while e.pending is nil except by a park that also asks; Clone
+	// deep-copies it (clone.go) so a clone taken with a decision outstanding
+	// carries the same queue. It is always empty in a non-Commander game:
+	// nothing ever parks there.
 	cmdZone []cmdZoneMove `clone:"deep"`
+	// cmdZoneDue is the CR 903.9a arrival list: commanders a logged MoveZone
+	// put into a graveyard or exile since the last state-based check, in log
+	// order, each once (collectCommanderArrivals). commanderZoneSBA asks the
+	// owner of the first still-eligible entry and drops the rest of the
+	// ineligible prefix; a commander not taken stays wherever it is and is
+	// not re-offered until it arrives anew. cmdZoneScan is the log index the
+	// scan has reached. Both are a pure function of the log; Clone copies
+	// them. Always empty/zero in a non-Commander game.
+	cmdZoneDue  []state.ObjID `clone:"deep"`
+	cmdZoneScan int           `clone:"deep"`
+	// cmdZoneDeclined is the commander whose CR 903.9b ask was just declined
+	// (or whose owner has left), set only for the one synchronous re-emit of
+	// that move so commanderZoneReplacementApplies skips it while every other
+	// replacement still applies. Zero otherwise; Clone resets it.
+	cmdZoneDeclined state.ObjID `clone:"reset"`
 	// legendBatch is the parked CR 704.5j legend-rule application (engine/rules/
 	// sba.go): the duplicate legendary set whose controller is choosing which
 	// member to keep, the lethal-damage casualties found in the same SBA pass,

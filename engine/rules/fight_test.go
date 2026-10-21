@@ -314,9 +314,9 @@ func TestFightDeathtouchNamesTheFighter(t *testing.T) {
 }
 
 // TestFightZeroPowerAndOffBattlefieldNoWedge pins the as-much-as-possible
-// edges at the SA level: a zero-power fighter deals its (zero) damage like
-// effDealDamage's n<=0 shape, and a fighter or opponent that has already left
-// the battlefield is skipped — both sides no-op cleanly, no wedge, no panic.
+// edges at the SA level: a zero-power fighter deals no damage at all (CR
+// 120.8: no event), and a fighter or opponent that has already left the
+// battlefield is skipped — both sides no-op cleanly, no wedge, no panic.
 func TestFightZeroPowerAndOffBattlefieldNoWedge(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, card(t, "Name:Vanisher\nManaCost:U\nTypes:Creature\nPT:0/1\nOracle:x\n"))
@@ -326,14 +326,14 @@ func TestFightZeroPowerAndOffBattlefieldNoWedge(t *testing.T) {
 		"Defined": "Self", "ValidTgts": "Creature",
 		"TargetMin": "0", "TargetMax": "1", "TgtPrompt": "x"}}
 
-	// Zero power is a legal deal: the 0-power fighter's hit emits Amount 0,
-	// and the Bear's 2-power hit lands.
+	// Zero power is a legal deal: the 0-power fighter's hit emits nothing
+	// (CR 120.8), and the Bear's 2-power hit lands.
 	before := len(fightDamageEvents(e))
 	effects.Resolve(e, &effects.Ctx{Source: ox, Controller: 0,
 		Targets: []state.Target{{Obj: bear}}, TargetsOffered: true}, sa)
 	dmg := fightDamageEvents(e)[before:]
-	if len(dmg) != 2 || dmg[0].Obj != bear || dmg[0].Amount != 0 || dmg[1].Obj != ox || dmg[1].Amount != 2 {
-		t.Fatalf("zero-power fight = %+v, want bear taking 0 and ox taking 2", dmg)
+	if len(dmg) != 1 || dmg[0].Obj != ox || dmg[0].Amount != 2 {
+		t.Fatalf("zero-power fight = %+v, want only ox taking 2 (CR 120.8: the 0-power hit is no event)", dmg)
 	}
 
 	// An opponent no longer on the battlefield is skipped: no damage at all.

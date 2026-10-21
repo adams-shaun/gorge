@@ -27,15 +27,17 @@ func TestAuroraShifterCloneGrantsNamedTriggerAndSVars(t *testing.T) {
 	if e.G.Obj(shifter).Face().Name != "Grizzly Bears" {
 		t.Fatal("clone did not replace face")
 	}
-	if _, ok := e.grantedSVarsFor(shifter)["TrigEnergy"]; !ok {
+	// The grants are copiable values (CR 707.9a): on the copy's basis face.
+	f := e.G.Obj(shifter).Face()
+	if _, ok := f.SVars["TrigEnergy"]; !ok {
 		t.Fatal("clone lost the granted energy SVar")
 	}
-	if _, ok := e.grantedSVarsFor(shifter)["TrigDamage"]; !ok {
+	if _, ok := f.SVars["TrigDamage"]; !ok {
 		t.Fatal("clone lost the granted damage SVar")
 	}
 	found := false
-	for _, ce := range e.continuous {
-		if ce.Source == shifter && ce.AddTrigger != nil && ce.AddTrigger.Mode == "DamageDone" {
+	for _, tr := range f.Triggers {
+		if tr.Mode == "DamageDone" && tr.Effect != nil {
 			found = true
 		}
 	}

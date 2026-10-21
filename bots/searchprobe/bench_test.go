@@ -213,14 +213,19 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// that field (json:"-"): the previous digests return byte-for-byte.
 		// Measured after: frames 126, attempts 64, accepted 9, worlds 8,
 		// ESS 9 (land exclusion: accepted 32, ESS 32).
-		{"pre-optimisation sampler", true, "c4106450e02ab1b54aa845298b3f86a61df62370904a861198a9c6335874f9d8"},
+		// Re-measured for cr-g67b (CR 602.2a): an activation's mint now
+		// precedes its first decision, so the captured frames' stack moves.
+		// Measured after: frames 126, attempts 64, accepted 4, worlds 8, ESS 4
+		// (land exclusion: accepted 25, ESS 25).
+		{"pre-optimisation sampler", true, "5cbca69d2b2d9c0f271447fcbb93ac66a407a107c66d670d5a3e7b3d8be9cf2a"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment) and
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
-		{"land exclusion", false, "fbf76731e28413f73e10f5b4d5a0da46a7efbc81ed1e72471328a96ad1cb92d4"},
+		// Re-measured for cr-g67b (CR 602.2a): frames 126, accepted 25, ESS 25.
+		{"land exclusion", false, "e13d17d9eb931450f0855efeba1489b08407f9c4f99834498d1b6f786acff1ff"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -466,7 +471,10 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Index 0, Values [1,1,1,1], Rollouts 32, Submits 3309, Terminal 32,
 	// Capped 0, WinsByCandidate [8,8,8,8], TerminalByCandidate [8,8,8,8],
 	// WinsOverBaseline [0,0,0,0], LossesToBaseline [0,0,0,0].
-	const want = "61334ee7b83b1185828eb735630ee95eae597a7c3149f5b8a8e724efdfac6476"
+	// Re-measured for cr-g67b (CR 602.2a): the captured frames' stack moves
+	// when an activation's mint precedes its first decision, so the teacher's
+	// decoded frames and rollouts move with them.
+	const want = "05186f6f906ecc08f3dc803cd0cdfbddb77b1963cdb67dbf45dd890954f62599"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

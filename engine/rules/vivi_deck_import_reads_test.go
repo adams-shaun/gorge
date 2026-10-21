@@ -300,6 +300,14 @@ func TestBlazingShoalAnnouncesXFromExileCandidates(t *testing.T) {
 		}
 	}
 	submitChoices(t, e, two)
+	// CR 601.2c before 601.2h: the pump's target ask comes first; the exile
+	// pick is a cost object, chosen at payment. Aim at bear2.
+	d = e.Pending()
+	ta := viviOption(d, "permanent", bear2)
+	if ta == nil {
+		t.Fatalf("no target option for the bear: %+v", d.Options)
+	}
+	submitChoices(t, e, ta.Index)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Player != 0 {
 		t.Fatalf("expected the exile ask, got %+v", d)
@@ -308,13 +316,6 @@ func TestBlazingShoalAnnouncesXFromExileCandidates(t *testing.T) {
 		t.Fatalf("exile candidates %+v, want exactly Ember Hauler (cmcEQ2 at the announced X)", d.Options)
 	}
 	submitChoices(t, e, d.Options[0].Index)
-	// The pump's target ask: aim at bear2.
-	d = e.Pending()
-	ta := viviOption(d, "permanent", bear2)
-	if ta == nil {
-		t.Fatalf("no target option for the bear: %+v", d.Options)
-	}
-	submitChoices(t, e, ta.Index)
 	// The spell resolves (both seats pass) and the bear reads +2 power.
 	viviPass(t, e)
 	viviPass(t, e)
@@ -544,19 +545,20 @@ func TestOtawaraChannelReduceCost(t *testing.T) {
 		t.Fatalf("the Channel ability is not offered from hand: %+v", d)
 	}
 	submitChoices(t, e, ao.Index)
-	// The Discard<1/CARDNAME> cost part asks first: the Otawara itself.
-	d = e.Pending()
-	da := viviOption(d, "discard", id)
-	if da == nil {
-		t.Fatalf("no discard cost option: %+v", d.Options)
-	}
-	submitChoices(t, e, da.Index)
+	// CR 601.2c before 601.2h: the Channel target comes first; the
+	// Discard<1/CARDNAME> pick is a cost object, chosen at payment.
 	d = e.Pending()
 	ta := viviOption(d, "permanent", ugin)
 	if ta == nil {
 		t.Fatalf("no Channel target option: %+v", d.Options)
 	}
 	submitChoices(t, e, ta.Index)
+	d = e.Pending()
+	da := viviOption(d, "discard", id)
+	if da == nil {
+		t.Fatalf("no discard cost option: %+v", d.Options)
+	}
+	submitChoices(t, e, da.Index)
 	// The ability resolves (both seats pass): Krenko returns to hand.
 	viviPass(t, e)
 	viviPass(t, e)

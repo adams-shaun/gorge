@@ -55,6 +55,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 			PreCounterToughness: preCounterToughness,
 		}
 	}
+	cdaClaim := false
 	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
 		// CR 708.5's base: a face-down battlefield permanent is a 2/2
 		// creature; its printed P/T and any printed characteristic-defining
@@ -80,6 +81,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		// modify still stacks on it. staticEffects withholds the resolvable CDAs
 		// from its emission exactly so this read is not applied twice.
 		if p, tp, hp, ht := CDASetPT(b, o); hp || ht {
+			cdaClaim = true
 			if hp {
 				power = p
 			}
@@ -99,6 +101,19 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		var all bool
 		types, all = TypesAndAllCreatureTypes(b, b.Active(), id, 0)
 		types = effects.TypeMatchWords(types, all)
+	}
+	// switches counts the CR 613.4d switching effects that apply; they are
+	// applied after the 7d counters below, and an even number cancels.
+	switches := 0
+	// The CDA is an ability: a layer-6 "loses all abilities" effect removes
+	// it before layer 7a applies (CR 613.1f, 613.4a), so the printed value
+	// (a star read as 0, cards.parsePT) is the base instead. Checked after
+	// the 7a basis is framed and the layer-4 types are known, and only for a
+	// face whose CDA claimed a value, so every other walk is unchanged.
+	if cdaClaim && cdaPTLost(b, active, id, o, types) {
+		power, toughness = int32(f.Power()), int32(f.Toughness())
+		basePower, baseToughness = power, toughness
+		setFrame()
 	}
 	for i := range active {
 		ce := &active[i]
@@ -186,13 +201,54 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 			}
 			power = addPT(power, addPower)
 			toughness = addPT(toughness, addToughness)
+		case state.SubSwitch:
+			switches++
 		}
 	}
-	// 7d: counters apply after every other layer-7 effect (CR 613.4). Every
+	// 7d: counters apply after every set and modify effect (CR 613.4). Every
 	// P/T counter kind contributes its CR 122.1a delta, summed once above.
 	power += counterDPower
 	toughness += counterDToughness
+	// CR 613.4d: switching applies last, in timestamp order; each switch
+	// exchanges the values the earlier layers (and earlier switches) left.
+	if switches%2 == 1 {
+		power, toughness = toughness, power
+	}
 	return power, toughness, basePower, baseToughness
+}
+
+// cdaPTLost reports whether a layer-6 "loses all abilities" effect
+// (RemoveAbilities) applies to the battlefield permanent o, so its
+// characteristic-defining P/T ability no longer exists when layer 7a is
+// applied (CR 613.1f before 613.4a; a removal takes printed abilities
+// whatever the timestamps). It is the engine's removalApplies test
+// (engine/rules/abilityloss.go) over the same active list: the shared
+// Affected$ match with the layer-4 types bound and no keyword list, then the
+// AffectedZone$ qualifier. Off the battlefield it reports false, as the
+// engine's abilityLoss does.
+func cdaPTLost(b Board, active []state.ContinuousEffect, id state.ObjID, o *state.Object, types []string) bool {
+	if o.Zone != state.ZBattlefield {
+		return false
+	}
+	if types == nil {
+		types = []string{} // bound even when empty: nil is "read the printed face"
+	}
+	for i := range active {
+		ce := &active[i]
+		if ce.Layer != state.LAbilities || !ce.RemoveAbilities {
+			continue
+		}
+		if !matchesWithChars(b, ce, id, types, nil, 0) {
+			continue
+		}
+		if ce.AffectedZone != "" && !ce.MayPlay {
+			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, state.ZBattlefield)) {
+				continue
+			}
+		}
+		return true
+	}
+	return false
 }
 
 // Compute is the full layer walk (CR 613): the object's printed values, then
@@ -241,7 +297,14 @@ func Compute(b Board, s *Scratch, id state.ObjID, atStack state.Zone) effects.Ch
 	// Layer 4 runs first through Types (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
-	tyRaw, allCreatureTypes := TypesAndAllCreatureTypes(b, b.Active(), id, atStack)
+	tyRaw, allCreatureTypes, landSet := TypesAndLandSubtypeSet(b, b.Active(), id, atStack)
+	if landSet {
+		// CR 305.7: a land whose subtype an effect set loses the abilities
+		// its rules text generates -- its printed keywords, the prefix
+		// BaseKeywords put first. Counter keywords, statuses and every
+		// layer-6 grant from another effect stay.
+		kw = slices.Delete(kw, 0, min(len(f.Keywords), len(kw)))
+	}
 	ty = append(ty[:0], tyRaw...)
 	// A faced object's keyword and type lists are always BOUND, even when
 	// empty, from here through the layer walk to the returned Derived: a nil

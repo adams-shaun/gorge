@@ -145,12 +145,15 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		e.unearthReplacementApplies(ev.Obj) {
 		ev.To = state.ZExile
 	}
-	// Madness is an optional discard replacement and must park before either
-	// destination is logged. The guarded re-emit still permits ordinary card
-	// and format replacements to redirect the chosen destination.
-	if ev.Kind == events.MoveZone && !e.applyingMadnessChoice && e.madnessReplacementApplies(ev) {
-		e.parkMadnessDiscard(ev)
-		return ev, true
+	// CR 702.35a: madness is a MANDATORY discard replacement -- "that player
+	// discards it, but exiles it instead of putting it into their
+	// graveyard". The move is rewritten in place, like finality's above, so
+	// ordinary card and format replacements still see (and may redirect) the
+	// exile move; the marked Text is what offerMadness keys the cast trigger
+	// on. Only the trigger's cast is optional (askMadnessCast).
+	if ev.Kind == events.MoveZone && e.madnessReplacementApplies(ev) {
+		ev.To = state.ZExile
+		ev.Text = "discarded (madness exile)"
 	}
 	// All card-defined as-enters choices (including Riot and Unleash) are
 	// parked through the shared mid-resolution ETB path below.
@@ -172,23 +175,16 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if e.applySiegeProtector(ev) {
 		return ev, true
 	}
-	// CR 903.9 (Task m32): a commander about to be put into its owner's
-	// graveyard, hand or library from anywhere, or exiled from anywhere, may
-	// instead be put into the command zone by its OWNER. This is a
-	// replacement effect exactly like the R: lines below -- it applies before
-	// the object would change zones, so the commander never touches the
-	// destination -- but it is a construct rule, not a card line, so it is
-	// matched first (before any card-text replacement the same move might
-	// also match, which per CR 616.1 would then apply to whichever zone
-	// change actually happens). Matching parks the event: the owner is asked
-	// (decision.KCommanderZone) and the parked move is emitted for real only
-	// when the answer arrives -- to the command zone on an accept, verbatim
-	// on a decline -- so the log always carries the zone change that actually
-	// happened and a log-only replay reproduces it. The choice itself is a
-	// player decision recorded as an Intent plus the DecisionAsk/DecisionMade
-	// events every ask produces. Returning handled discards the original
-	// event, which is exactly right: nothing has happened yet, and whatever
-	// happens is the owner's answer, not this park.
+	// CR 903.9b (Task m32, narrowed by cr-g01a): a commander about to be put
+	// into its owner's hand or library from anywhere may instead be put into
+	// the command zone by its OWNER. A construct-rule replacement, matched
+	// before any card-text replacement; matching parks the event and asks
+	// the owner (decision.KCommanderZone), and the parked move is emitted
+	// for real only when the answer arrives -- to the command zone on an
+	// accept, verbatim on a decline. A commander bound for a GRAVEYARD or
+	// EXILE is not replaced at all (CR 903.9a): that move goes through every
+	// card replacement below and fires its triggers, and the state-based
+	// check that follows offers the command zone (commanderZoneSBA).
 	if ev.Kind == events.MoveZone && e.commanderZoneReplacementApplies(ev) {
 		e.parkCommanderZoneMove(ev)
 		return ev, true
@@ -328,6 +324,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// (engine/rules/replacement_prevent_kw.go).
 	if ev.Kind == events.Damage {
 		matches = append(matches, e.grantedPreventMatches(ev)...)
+		// CR 122.1c: a shield counter's prevention (shield_counter.go).
+		matches = e.shieldCounterDamageMatches(ev, matches)
 	}
 	// A GRANTED static replacement (AddReplacementEffect$ on a Mode$
 	// Continuous static, engine/rules/replacement_granted.go): appended after the
@@ -491,7 +489,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 			continue
 		}
 		if ev.Kind == events.Damage && damageReplacementPrevents(*m.repl) {
-			if e.cantPreventDamage(e.damaging, ev.Obj) {
+			if e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
 				// Neither a Prevent$ True line nor a DB$ ReplaceDamage body
 				// may touch damage that cannot be prevented (Spider-Punk).
 				continue
@@ -506,8 +504,10 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 				// damaged player, the uniform shape every stored prevention
 				// Note keeps. The returned kind is still a Note, never a
 				// Damage: the combat assignment loop and speed.go read it.
-				return e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
-					Amount: ev.Amount, Text: "damage prevented by replacement effect"}), true
+				prevented := e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Amount: ev.Amount, Text: "damage prevented by replacement effect"})
+				e.spendShieldCounter(m)
+				return prevented, true
 			}
 			// a ReplaceDamage body falls through to its subtracting arm below
 		}
@@ -898,11 +898,18 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if ev.Kind == events.Damage && ev.Obj == 0 {
 		target = state.Target{Player: ev.Player, IsPlayer: true}
 	}
+	// A Damage event's source is the one its emitter published (CR 120.2b,
+	// 701.14a: a fighting creature, a DamageSource$ biter); every other
+	// event's is the resolving object e.damaging carries.
+	src := e.damaging
+	if ev.Kind == events.Damage {
+		src = e.inFlightDamageSource()
+	}
 	if o == nil {
 		// No live source object: no controller (seat 0).
 		ctx := effects.NewCtxPtr(m.id, 0, effects.CtxInit{})
 		ctx.Repl.Target = target
-		ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(e.damaging), drawMatchAmount(ev)
+		ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(src), drawMatchAmount(ev)
 		if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 			ctx.Repl.ExcludeFromBattlefieldCount = ev.Obj
 		}
@@ -923,7 +930,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		X:        o.X,
 		Captured: []state.Target{{Obj: ev.Obj}}})
 	ctx.Repl.Target = target
-	ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(e.damaging), drawMatchAmount(ev)
+	ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(src), drawMatchAmount(ev)
 	// Replaced names the object the replaced event (ev) was about, so a
 	// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 	// Dryad Militant / Leyline of the Void shape: "exile it instead") can

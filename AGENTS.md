@@ -210,7 +210,7 @@ and bottoming round `Config.Mulligans` runs between the deal and turn 1, and
 `modes`, the modal pick and unless-pay ask a mid-resolution answer serves
 (the `ModeChosen` event carries the answer into the log) -- and the four
 kinds the later card work added: `commander_zone` (a commander's OWNER's
-CR 903.9 command-zone replacement choice), `replacement` (the CR 616.1
+CR 903.9 command-zone choice), `replacement` (the CR 616.1
 order choice over competing replacement effects) and `arrange` (the ordered
 subset ask `Scry`/`Surveil`/`RearrangeTopOfLibrary` share, Ruling J0), and
 `starting_player` (CR 103.1's second half: the toss winner's choice of who

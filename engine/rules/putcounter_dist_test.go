@@ -195,6 +195,13 @@ func TestPutCounterDividedAmongTargetsSplitsTheTotal(t *testing.T) {
 	// (b2, b1) is 2 and 2 -- indistinguishable from zone order here by size,
 	// but the per-recipient CounterChange events carry it.
 	submitChoices(t, e, tgt[b2], tgt[b1])
+	// CR 601.2d: the distribution is announced while casting. Each target
+	// takes 1; one pick each places the other 2 as 2 and 2.
+	dd := e.Pending()
+	if !isCastDivision(dd) || dd.Min != 2 || dd.Max != 2 {
+		t.Fatalf("after the targets: %+v, want the 2-pick distribution ask", dd)
+	}
+	submitChoices(t, e, optForObj(t, dd, b2), optForObj(t, dd, b1))
 	passUntilStackEmpty(t, e, 20)
 	if got := e.G.Obj(b2).Counter("P1P1"); got != 2 {
 		t.Fatalf("b2 took %d counters, want 2 (a split, not 4-per-target)", got)

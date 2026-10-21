@@ -32,9 +32,11 @@ import (
 //     future Secret emitter that starts carrying Pairs or Amount is
 //     covered automatically, which an enumerated strip list is not.
 //     - Player == viewer: pass through untouched -- it is their own
-//     secret, EXCEPT Shuffle and PlanarDeckShuffle, whose ordered IDs
-//     must remain private even from the library's owner (CR 701.20a:
-//     a shuffled library is randomized, so no one knows its order).
+//     secret, EXCEPT the library-order kinds (libraryOrderKind: Shuffle,
+//     PlanarDeckShuffle, LibraryOrder), whose ordered IDs must remain
+//     private even from the library's owner (CR 401.2: no player may
+//     look at a library's order; CR 701.20a: a shuffled library is
+//     randomized, so no one knows its order).
 //  2. Not Secret, a zone-move kind (MoveZone, Draw, PutOnStack): its Obj is
 //     stripped when the move is entirely between hidden zones
 //     (From.Hidden() && To.Hidden()) and the moved object is not visible
@@ -119,17 +121,19 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 	e.IDs = append([]state.ObjID(nil), e.IDs...)
 	e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
 	if e.Secret {
-		// A shuffle randomizes a library: CR 701.20a means nobody knows the
-		// resulting order, so a library Shuffle's ordered IDs are hidden from
-		// every viewer, its owner and that owner's controller included. A
-		// planar-deck shuffle is the same story for its plane deck (CR 901.5).
-		// The event's shape survives so the "X shuffles their library" line
-		// still renders. CR 720.4 widens "the owner's own secret" to the
-		// player controlling that owner while the control is live: every
-		// OTHER Secret event emitted by a controlled seat reaches its
-		// controller unchanged.
-		if e.Kind == events.Shuffle || e.Kind == events.PlanarDeckShuffle ||
-			e.Player != viewer && !controlsSeat(g, viewer, e.Player) {
+		if blindFaceDownExile(e) {
+			return secretShape(e)
+		}
+		// A library's order is hidden from every viewer, its owner and that
+		// owner's controller included: CR 401.2 for a LibraryOrder's chosen
+		// order, CR 701.20a for a Shuffle's randomized one, CR 901.5 for a
+		// planar deck (libraryOrderKind). The event's shape survives so the
+		// "X shuffles their library" / "X rearranges the top of their
+		// library" line still renders. CR 720.4 widens "the owner's own
+		// secret" to the player controlling that owner while the control is
+		// live: every OTHER Secret event emitted by a controlled seat
+		// reaches its controller unchanged.
+		if libraryOrderKind(e.Kind) || e.Player != viewer && !controlsSeat(g, viewer, e.Player) {
 			return secretShape(e)
 		}
 		// The owner's own secret: rule 1 does not apply to them at all,
@@ -173,6 +177,20 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 	return e
 }
 
+// libraryOrderKind reports whether a Secret event of kind k carries a
+// library's (or a planar deck's) whole order in its IDs: Shuffle,
+// PlanarDeckShuffle and LibraryOrder. RedactEvent serves each of them as its
+// shape to EVERY viewer, the library's owner included: CR 401.2 ("Players
+// can't look at or change the order of cards in a library") and CR 701.20a
+// hide the order from its owner too, and the owner's projection already lists
+// the library's contents (PlayerView.Library), so the ids alone would name
+// every card in order. What the owner legitimately knows about the cards an
+// arrange put back (a Scry, a Ponder, a Brainstorm put-back) is the decision
+// they were shown and the answer they gave, not this event (cr-g61).
+func libraryOrderKind(k events.Kind) bool {
+	return k == events.Shuffle || k == events.PlanarDeckShuffle || k == events.LibraryOrder
+}
+
 // secretShape is the shape a Secret event keeps when its payload is not for
 // the viewer: Seq, Kind, Player, From, To, Step and Secret survive, every
 // payload field (Obj, Amount, Counter, Text, IDs, Pairs) is zero -- the same
@@ -186,8 +204,30 @@ func secretShape(e events.Event) events.Event {
 	}
 }
 
-// controlsSeat reports whether viewer controls seat under CR 720 -- that is,
-// seat's owner is controlled by viewer while the control is live. It is the
+// blindFaceDownExile reports whether e is a Secret move into exile face down
+// that names NO looker: the plain face-down exile markers, which every
+// emitter that knows a looker replaces with the may-look layout (WithMayLook$,
+// a Foretold$ designation, the Foretell action, Hideaway, a Dig take the
+// chooser looked at, a library search's find). CR 406.3: no player may
+// examine such a card, its owner included, so its payload is served to no
+// viewer -- the board hides the face from everyone too (card.go
+// mayLookFaceDown). A MayLookAt$ grant made after the move (Tezzeret's
+// Reckoning) shows the face on the board; the move itself stays shape (cr-g64).
+func blindFaceDownExile(e events.Event) bool {
+	if e.Kind != events.MoveZone || e.To != state.ZExile {
+		return false
+	}
+	switch e.Counter {
+	case "exiled_with_face_down", "exiled_with_face_down_foretold", "face_down":
+		return true
+	}
+	return false
+}
+
+// controlsSeat reports whether viewer controls seat under CR 723 -- that is,
+// seat is controlled by viewer while the control is LIVE: during seat's next
+// turn, never from the moment the grant resolves (state.Game.LiveController,
+// the interval the engine's decision redirect also reads; cr-g57). It is the
 // ONE home of the CR 720.4 view predicate ("you may look at all cards that
 // player could see"): project(), RedactEvent and visibleTo all consult it, so
 // the projection and the event stream cannot disagree about which seats the
@@ -197,12 +237,12 @@ func secretShape(e events.Event) events.Event {
 // its own seat through a bogus entry). The two-value map lookup is load-
 // bearing: a bare ControlledBy[seat] on an absent entry returns the zero
 // PlayerID, which would read as "seat is controlled by viewer 0" and hand
-// every seat's hidden zones to seat 0.
+// every seat's hidden zones to seat 0 (LiveController keeps that lookup).
 func controlsSeat(g *state.Game, viewer, seat state.PlayerID) bool {
 	if g == nil || seat == viewer {
 		return false
 	}
-	ctl, ok := g.ControlledBy[seat]
+	ctl, ok := g.LiveController(seat)
 	return ok && ctl == viewer
 }
 

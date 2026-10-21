@@ -39,7 +39,32 @@ func (e *Engine) LayerTables(want effects.LayerTableSet) effects.LayerTables {
 	if want&effects.LayerKeywords != 0 {
 		t.DerivedKeywords = e.EffectiveKeywords()
 	}
+	if want&effects.LayerCDAPT != 0 {
+		t.CDAPTs = e.cdaPTTable()
+	}
 	return t
+}
+
+// cdaPTTable is LayerTables.CDAPTs: every object, in any zone, whose face
+// prints a characteristic-defining P/T, with its Derived current and base
+// P/T. Derived applies the CDA wherever the card is (CR 604.3), so a
+// resolving filter reads a library Consuming Aberration as its CDA value
+// instead of its printed star as 0 (CR 208.2a). Built in g.Objs order (no
+// map range); nil when no such object exists.
+func (e *Engine) cdaPTTable() []effects.ObjectPT {
+	var out []effects.ObjectPT
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if f := o.Face(); f == nil || !f.CharacteristicDefining() {
+			continue
+		}
+		p, t, bp, bt, ok := e.FilterDerivedPT(o.ID)
+		if !ok {
+			continue
+		}
+		out = append(out, effects.ObjectPT{ID: o.ID, Power: p, Toughness: t, BasePower: bp, BaseToughness: bt})
+	}
+	return out
 }
 
 // Chars is effects.HostRead's characteristics query: the object's current,
@@ -72,11 +97,19 @@ func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
 
 // CastProhibited is effects' optional castProhibitedHost read (task
 // play-prohibited-election): the same CantBeCast gate beginPlay enforces
-// (engine/rules/statics.go castRestricted), exposed so effPlay's Play election never
+// (engine/rules/statics_cast.go castRestrictedFree -- every Play election is
+// a free or PlayCost$ cast, CR 107.3b, so no CR 601.3a X lookahead),
+// exposed so effPlay's Play election never
 // OFFERS a cast that CR 601.3 would refuse. It is a pure read -- no event,
 // no state change -- and the beginPlay recheck stays the enforcement site.
 func (e *Engine) CastProhibited(p state.PlayerID, id state.ObjID) bool {
-	return e.castRestricted(p, id)
+	// A land is played, not cast: its offer follows beginPlay's land gate
+	// (CR 305.2a/305.3), so the election never offers a land play the
+	// hand-off would refuse.
+	if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsLand() {
+		return e.effectLandPlayRefusal(p, id, o.Zone) != ""
+	}
+	return e.castRestrictedFree(p, id)
 }
 
 // CastTargetsUnavailable is effects' optional castTargetsHost read: the

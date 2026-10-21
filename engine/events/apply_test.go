@@ -1517,10 +1517,17 @@ func TestRingTemptsYouFoldsCountBearerAndClears(t *testing.T) {
 func TestRingEmblemPushMintsAnAbilityInApply(t *testing.T) {
 	build := func() *state.Game {
 		g := state.NewGame([]string{"Ann", "Bob"})
-		Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:1"})
+		Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 2, Counter: "__ring:2"})
 		return g
 	}
-	for _, level := range []int32{1, 2, 3, 4} {
+	// Level 1 is the emblem's static ability: it has no triggered body, so
+	// a push naming it mints nothing.
+	none := state.NewGame([]string{"Ann", "Bob"})
+	Apply(none, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:1"})
+	if len(none.Stack) != 0 {
+		t.Fatalf("level 1 minted %d stack objects, want none", len(none.Stack))
+	}
+	for _, level := range []int32{2, 3, 4} {
 		g1 := state.NewGame([]string{"Ann", "Bob"})
 		Apply(g1, Event{Kind: RingEmblemPush, Player: 0, Amount: level,
 			Counter: "__ring:" + itoa(int(level))})
@@ -1538,7 +1545,7 @@ func TestRingEmblemPushMintsAnAbilityInApply(t *testing.T) {
 	// The payload is the source of truth (the emblem has no face to rebuild
 	// from): a Counter naming a different level than Amount overrides Amount.
 	g := state.NewGame([]string{"Ann", "Bob"})
-	Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 1, Counter: "__ring:4"})
+	Apply(g, Event{Kind: RingEmblemPush, Player: 0, Amount: 2, Counter: "__ring:4"})
 	o := g.Obj(g.Stack[0])
 	if o == nil || o.Ability == nil || o.Ability.API != "LoseLife" {
 		t.Fatalf("Counter-named level did not rebuild the level-4 body: %+v", o)

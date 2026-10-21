@@ -119,8 +119,8 @@ func TestFDNCastability(t *testing.T) {
 			t.Fatalf("missing additional-cost ask: %+v", d)
 		}
 		submitChoices(t, e, d.Options[0].Index)
-		fdnResolveCost(t, e, fodder)
 		fdnTarget(t, e, victim)
+		fdnResolveCost(t, e, fodder)
 		fdnResolve(t, e)
 		if e.G.Obj(victim).Zone != state.ZExile || e.G.Obj(fodder).Zone != state.ZGraveyard {
 			t.Fatalf("victim %s fodder %s", e.G.Obj(victim).Zone, e.G.Obj(fodder).Zone)

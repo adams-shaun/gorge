@@ -157,16 +157,16 @@ func TestAftermathAdditionalCostFoldsAndIsCharged(t *testing.T) {
 		t.Fatal("aftermath with a Sac additional cost not offered")
 	}
 	submitChoices(t, e2, am.Index)
-	// The Sac cost part is asked BEFORE the 601.2c target choice (the
-	// cast-flow's cost-first ask order), then the target -- target the bear.
+	// CR 601.2c before 601.2h: the target (601.2c) is chosen first; the Sac
+	// cost part is picked at payment (601.2h).
 	d := e2.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "sacrifice" {
-		t.Fatalf("sacrifice decision %+v", d)
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("target decision %+v", d)
 	}
 	submitChoices(t, e2, 0)
 	d = e2.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("target decision %+v", d)
+	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "sacrifice" {
+		t.Fatalf("sacrifice decision %+v", d)
 	}
 	submitChoices(t, e2, 0)
 	if e2.G.Obj(card2).Zone != state.ZStack || e2.G.Obj(card2).Face().Name != "Finish" ||

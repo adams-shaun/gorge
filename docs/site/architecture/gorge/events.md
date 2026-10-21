@@ -170,8 +170,8 @@ proposed.
 
 ## Event kinds
 
-`events.Kind` is a `uint8`. There are **139** kinds, ordinals 0 to 138
-(`events.NumKinds == 139`, measured by printing the constant from a scratch
+`events.Kind` is a `uint8`. There are **141** kinds, ordinals 0 to 140
+(`events.NumKinds == 141`, measured by printing the constant from a scratch
 program that imports `engine/events`). Each kind has exactly one entry in the
 `kindInfo` table in
 [`engine/events/kindinfo.go`](https://github.com/adams-shaun/gorge/blob/main/engine/events/kindinfo.go),
@@ -185,7 +185,7 @@ every later kind and change the hash of every recorded game. A new kind goes
 after the last one, above the `NumKinds` line.
 
 <figure markdown>
-<svg viewBox="0 0 780 200" width="100%" role="img" aria-label="A timeline of event kind ordinals 0 to 138: the core kinds 0 to 23, then later kinds appended in order, ending at BlockedByEffect, ordinal 138">
+<svg viewBox="0 0 780 200" width="100%" role="img" aria-label="A timeline of event kind ordinals 0 to 141: the core kinds 0 to 23, then later kinds appended in order, ending at ActivationReversed, ordinal 141">
   <rect x="20.0" y="80" width="127.8" height="36" class="dg-box-accent"/>
   <rect x="147.8" y="80" width="26.6" height="36" class="dg-box"/>
   <rect x="174.4" y="80" width="37.3" height="36" class="dg-box-accent"/>
@@ -194,16 +194,16 @@ after the last one, above the `NumKinds` line.
   <text x="147.8" y="132" text-anchor="middle" class="dg-text-mono">24</text>
   <text x="174.4" y="132" text-anchor="middle" class="dg-text-mono">29</text>
   <text x="211.7" y="132" text-anchor="middle" class="dg-text-mono">36</text>
-  <text x="760.0" y="132" text-anchor="middle" class="dg-text-mono">139</text>
+  <text x="760.0" y="132" text-anchor="middle" class="dg-text-mono">140</text>
   <text x="83.9" y="103" text-anchor="middle" class="dg-text-mono">core</text>
-  <text x="483.2" y="103" text-anchor="middle" class="dg-text-mono">36-138: every later mechanic, appended in landing order</text>
+  <text x="483.2" y="103" text-anchor="middle" class="dg-text-mono">36-140: every later mechanic, appended in landing order</text>
   <line x1="161.1" y1="80" x2="161.1" y2="26" class="dg-line"/>
   <text x="165.1" y="22" class="dg-text-muted">24-28: TargetsChosen, FlipFace, ClockTick, TriggerPush, EndCombatReset</text>
   <line x1="193.0" y1="80" x2="193.0" y2="54" class="dg-line"/>
   <text x="197.0" y="50" class="dg-text-muted">29-35: CastInfo, Choose, TokenCreate, StackCopy, Attach, AbilityPush, ModeChosen</text>
   <text x="20" y="156" class="dg-text-muted">0-23: GameStart, Shuffle, MoveZone, Draw, Damage, Priority, DecisionAsk, Note, LandPlayed ...</text>
-  <text x="20" y="174" class="dg-text-muted">36-138: CmdDamage, DelayedRegister, ControlChange, Mutate, Scry, Surveil, Meld, SpellCastReversed ... BlockedByEffect</text>
-  <text x="760" y="194" text-anchor="end" class="dg-text-bold">NumKinds = 139 (Kind is a uint8)</text>
+  <text x="20" y="174" class="dg-text-muted">36-141: CmdDamage, DelayedRegister, ControlChange, Mutate, Scry, Surveil, Meld, SpellCastReversed ... ActivationReversed</text>
+  <text x="760" y="194" text-anchor="end" class="dg-text-bold">NumKinds = 142 (Kind is a uint8)</text>
 </svg>
 <figcaption>Kinds are grouped by when they were appended, never by topic. The
 core kinds came first; every later mechanic appended its own kind at the end
@@ -211,7 +211,7 @@ so no earlier ordinal, hash or golden replay moved. The scale is
 proportional to ordinal.</figcaption>
 </figure>
 
-??? details "All 139 kinds by ordinal"
+??? details "All 142 kinds by ordinal"
     | Ordinals | Kinds |
     |---|---|
     | 0-9 | GameStart, Shuffle, MoveZone, Draw, LifeChange, Damage, Tap, Untap, StepChange, TurnChange |
@@ -227,7 +227,9 @@ proportional to ordinal.</figcaption>
     | 100-109 | Evolved, DelayedForget, CardNoted, Cascade, Clash, PlanarDeckShuffle, PlanarReveal, PlanarWalk, Specialize, ChaosEnsues |
     | 110-119 | ManaUndo, EndTurn, DungeonCreate, DungeonRoom, DungeonComplete, DungeonRemove, InitiativeChange, SkipTurn, ControlPlayerChange, Crew |
     | 120-129 | ElementalBend, SetupEntered, DoorLock, Saddle, ClassLevelChange, MillProposal, Meld, ExcessDamage, ForageAction, ManifestDreadAction |
-    | 130-138 | CollectEvidenceAction, AbilityTriggered, CastBattlefield, DrawBatchProposal, SpellCastReversed, HiddenIdentity, DrawEmpty, SetupSettled, BlockedByEffect |
+    | 130-139 | CollectEvidenceAction, AbilityTriggered, CastBattlefield, DrawBatchProposal, SpellCastReversed, HiddenIdentity, DrawEmpty, SetupSettled, BlockedByEffect, CopyExcept |
+    | 140 | GameRestart |
+    | 141 | ActivationReversed |
 
 A few kinds deserve a note because they show the design pressure:
 

@@ -743,7 +743,7 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 		if source == nil || source.Face() == nil {
 			continue
 		}
-		if lost && lossStamp > source.Timestamp {
+		if lost && lossStamp > source.LayerTimestamp() {
 			continue
 		}
 		ma := cards.ResolveSVar(source.Face().SVars, name)
@@ -1074,7 +1074,9 @@ func (e *Engine) commitManaDiscard() {
 	if md.Cost.Untap {
 		e.emit(events.Event{Kind: events.Untap, Obj: md.Source, Player: md.Player, Text: "untapped as a cost"})
 	}
+	e.costCounters++
 	pay.PayManaSourceParts(asPayer(e), md.Player, md.Source, md.Cost)
+	e.costCounters--
 	pay.SettleManaSubCounter(asPayer(e), md)
 	for _, id := range md.Sacs {
 		e.emit(events.Sacrifice(id))
@@ -1536,7 +1538,9 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 	if cost.Untap {
 		e.emit(events.Event{Kind: events.Untap, Obj: source, Player: p, Text: "untapped as a cost"})
 	}
+	e.costCounters++
 	pay.PayManaSourceParts(asPayer(e), p, source, cost)
+	e.costCounters--
 	for _, id := range sacs {
 		e.emit(events.Sacrifice(id))
 	}

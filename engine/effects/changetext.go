@@ -199,11 +199,24 @@ func effChangeText(h Host, c *Ctx, sa *cards.SA) {
 			Text: "api:ChangeText refuses the forbidden new text \"" + to + "\"; nothing changed"})
 		return
 	}
+	// CR 612.1/612.2: the change rewrites the object's text itself
+	// (events.TextChange -> Object.TextChanges -> a rewritten Face()), so
+	// its abilities, statics, triggers, keywords and type line read the new
+	// word -- not just its rendered text. It lasts until the object changes
+	// zones (CR 400.7; a spell's carries onto its permanent, CR 400.7a).
+	// Only Duration$ Permanent is indefinite ("This effect lasts
+	// indefinitely"); Crystal Spray, Trait Doctoring and Whim of Volrath
+	// print "until end of turn" and carry no Duration$ (Forge's
+	// ChangeTextEffect: permanent iff Duration$ is "Permanent").
+	untilEOT := events.TextChangeUntilEOT
+	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKDuration)), "Permanent") {
+		untilEOT = 0
+	}
 	for _, t := range Defined(h, c, sa) {
-		if t.IsPlayer {
+		if t.IsPlayer || t.Obj == 0 {
 			continue
 		}
-		registerTextSubstitution(h, c, t.Obj, from, to, sa.ParamStr(cards.PKDuration))
+		h.Emit(events.Event{Kind: events.TextChange, Obj: t.Obj, Counter: from, Text: to, Amount: untilEOT})
 	}
 }
 
@@ -233,30 +246,6 @@ func forbiddenAdmits(forbidden, word string) bool {
 		}
 	}
 	return false
-}
-
-// registerTextSubstitution registers one layer-3 from->to substitution on id.
-// A Duration$ Permanent change ends when id leaves the battlefield (its
-// ExileOnMoved$ + Remembered pair), so a blink returns the printed text; every
-// other duration is honoured by continuousLive/EndOfTurnCleanup. Source is id
-// itself with Affects Card.Self, the same shape Pump/Animate use to bind a
-// continuous effect to a chosen object.
-func registerTextSubstitution(h Host, c *Ctx, id state.ObjID, from, to, dur string) {
-	permanent, untilEOT := textChangeDuration(dur, true)
-	ce := state.ContinuousEffect{
-		Source: id, Affects: "Card.Self", Controller: c.Controller,
-		Layer: state.LText, TextFrom: from, TextTo: to,
-		Duration: dur, Permanent: permanent, UntilEOT: untilEOT,
-	}
-	if permanent {
-		if o := h.Game().Obj(id); o != nil {
-			if w := ZoneWord(o.Zone); w != "" {
-				ce.ExileOnMoved = w
-				ce.Remembered = []state.ObjID{id}
-			}
-		}
-	}
-	h.AddContinuous(ce)
 }
 
 // effExchangeTextBox implements api:ExchangeTextBox: two objects swap their

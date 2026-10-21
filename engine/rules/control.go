@@ -162,8 +162,9 @@ func (e *Engine) expireControl(m controlMoment) {
 			return
 		}
 		type change struct {
-			obj state.ObjID
-			to  state.PlayerID
+			obj   state.ObjID
+			to    state.PlayerID
+			exile bool // exile: CR 800.4c, the default controller has left the game.
 		}
 		var changes []change
 		type objKey struct {
@@ -204,13 +205,18 @@ func (e *Engine) expireControl(m controlMoment) {
 				first.Previous = base
 				old[remaining[0]] = first
 			}
-			if int(want) >= len(e.G.Players) || e.G.Players[want].Lost {
+			if int(want) >= len(e.G.Players) {
 				want = o.Owner
 			}
+			// CR 800.4c: no surviving effect gives the object to a player
+			// in the game (a grant to a departed player has ended, see
+			// grantEnded) and the default controller has left: the object is
+			// exiled, not handed to its owner.
+			departed := e.G.Players[want].Lost
 			// Only the visible effect changing moves control, and never
 			// over a change this tracker did not make.
-			if ended[all[len(all)-1]] && o.Controller == last.Controller && want != o.Controller {
-				changes = append(changes, change{obj: g.Obj, to: want})
+			if ended[all[len(all)-1]] && o.Controller == last.Controller && (departed || want != o.Controller) {
+				changes = append(changes, change{obj: g.Obj, to: want, exile: departed})
 			}
 		}
 		for i, g := range old {
@@ -221,6 +227,11 @@ func (e *Engine) expireControl(m controlMoment) {
 		e.controlGrants = live
 		e.dropControlKeywords(old, ended)
 		for _, ch := range changes {
+			if ch.exile {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: ch.obj,
+					From: state.ZBattlefield, To: state.ZExile, Text: "player left the game"})
+				continue
+			}
 			e.emit(events.Event{Kind: events.ControlChange, Obj: ch.obj, Player: ch.to})
 		}
 		if m != controlOnEvent {

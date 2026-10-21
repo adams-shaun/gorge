@@ -23,7 +23,11 @@ var ownLibraryZones = [...]state.Zone{state.ZBattlefield, state.ZGraveyard, stat
 // Ephemeral, phased out) is not seen; a face-down object whose looker is not
 // me is the redacted CardView (SeeHidden); a face-down stack spell another
 // seat controls projects no card and no owner, so it is not seen at all.
-func fillOwnLibrary(g *state.Game, me state.PlayerID, m *deck.Manifest, lc *deck.LibraryComposition) {
+//
+// look is ch's optional MayLookAt$ read (rules.Engine.MayLookAtFaceDown), the
+// same capability the view consults for a face-down exiled card; nil when ch
+// lacks it, exactly as the view degrades.
+func fillOwnLibrary(g *state.Game, look faceDownLooker, me state.PlayerID, m *deck.Manifest, lc *deck.LibraryComposition) {
 	lc.Begin(m)
 	if int(me) >= len(g.Players) {
 		lc.Begin(nil)
@@ -31,13 +35,13 @@ func fillOwnLibrary(g *state.Game, me state.PlayerID, m *deck.Manifest, lc *deck
 		return
 	}
 	for _, id := range g.Zone(state.ZHand, me) {
-		seeOwnObject(g.Obj(id), me, lc)
+		seeOwnObject(g.Obj(id), look, me, lc)
 	}
 	for i := range g.Players {
 		p := g.Players[i].ID
 		for _, z := range ownLibraryZones {
 			for _, id := range g.Zone(z, p) {
-				seeOwnObject(g.Obj(id), me, lc)
+				seeOwnObject(g.Obj(id), look, me, lc)
 			}
 		}
 	}
@@ -51,7 +55,7 @@ func fillOwnLibrary(g *state.Game, me state.PlayerID, m *deck.Manifest, lc *deck
 		if o == nil || o.Owner != me || o.Ability != nil || o.Face() == nil || (o.FaceDown && o.Controller != me) {
 			continue
 		}
-		seeOwnCard(o, me, lc)
+		seeOwnCard(o, look, me, lc)
 	}
 	lc.Finish(len(g.Zone(state.ZLibrary, me)))
 }
@@ -60,30 +64,46 @@ func fillOwnLibrary(g *state.Game, me state.PlayerID, m *deck.Manifest, lc *deck
 // object with no face, an Ephemeral one and a phased-out one, and the fold
 // then reads only a card the seat owns. The owner test runs first: most
 // objects on a multi-seat board are someone else's.
-func seeOwnObject(o *state.Object, me state.PlayerID, lc *deck.LibraryComposition) {
+func seeOwnObject(o *state.Object, look faceDownLooker, me state.PlayerID, lc *deck.LibraryComposition) {
 	if o == nil || o.Owner != me || o.PhasedOut || o.Face() == nil || o.Ephemeral() {
 		return
 	}
-	seeOwnCard(o, me, lc)
+	seeOwnCard(o, look, me, lc)
+}
+
+// faceDownLooker is the optional MayLookAt$ capability (rules.Engine) the
+// view's face-down rule reads (engine/view/card.go mayLookFaceDown).
+type faceDownLooker interface {
+	MayLookAtFaceDown(state.PlayerID, state.ObjID) bool
+}
+
+// mayLookFaceDown mirrors the view's face rule for a face-down own object:
+// its controller on the battlefield and the stack (CR 708.5); in exile only
+// the recorded looker (Object.MayLookPlayer) or a live MayLookAt$ grant --
+// never the owner by default (CR 406.3; cr-g64). The view's CR 723.4
+// widening is not mirrored: a bot's Board is never widened (host
+// controlledSeats).
+func mayLookFaceDown(o *state.Object, look faceDownLooker, me state.PlayerID) bool {
+	if o.Zone != state.ZExile {
+		return o.Controller == me
+	}
+	if o.HasMayLook && o.MayLookPlayer == me {
+		return true
+	}
+	return look != nil && look.MayLookAtFaceDown(me, o.ID)
 }
 
 // seeOwnCard applies view.OwnLibrary's per-card rules to an own object the
 // projection shows: tokens and copies are no deck card; a face-down card
 // whose looker is not me is the redacted CardView; otherwise the printed
 // front-face name.
-func seeOwnCard(o *state.Object, me state.PlayerID, lc *deck.LibraryComposition) {
+func seeOwnCard(o *state.Object, look faceDownLooker, me state.PlayerID, lc *deck.LibraryComposition) {
 	if o.IsToken || o.IsCopy || o.Card == nil {
 		return
 	}
-	if o.FaceDown {
-		looker := o.Controller
-		if o.HasMayLook {
-			looker = o.MayLookPlayer
-		}
-		if o.Zone == state.ZPlanarDeck || looker != me {
-			lc.SeeHidden()
-			return
-		}
+	if o.FaceDown && (o.Zone == state.ZPlanarDeck || !mayLookFaceDown(o, look, me)) {
+		lc.SeeHidden()
+		return
 	}
 	if len(o.Card.Faces) > 0 && o.Card.Faces[0] != nil {
 		lc.See(o.Card.Faces[0].Name)

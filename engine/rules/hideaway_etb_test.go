@@ -60,12 +60,9 @@ func TestClivesHideawayETBTrigger(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: pick.Seq, Player: pick.Player, Choices: []int{pick.Options[1].Index}}); err != nil {
 		t.Fatalf("submit Hideaway choice: %v", err)
 	}
-	bottom := e.Pending()
-	if bottom == nil || bottom.Kind != decision.KArrange || len(bottom.Options) != 3 {
-		t.Fatalf("Hideaway bottom order = %+v, want three-card arrangement", bottom)
-	}
-	if err := e.Submit(decision.Intent{Seq: bottom.Seq, Player: bottom.Player, Choices: []int{2, 0, 1}}); err != nil {
-		t.Fatalf("submit Hideaway bottom order: %v", err)
+	// CR 702.75a: the rest go to the bottom in a random order; nothing is asked.
+	if bottom := e.Pending(); bottom != nil && bottom.Kind == decision.KArrange {
+		t.Fatalf("Hideaway asked for a bottom order %+v; CR 702.75a randomises it", bottom)
 	}
 
 	exiled := e.G.Zone(state.ZExile, 0)

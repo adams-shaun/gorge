@@ -35,6 +35,7 @@ func TestControlPlayerSeesControlledSeatHand(t *testing.T) {
 	}
 
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 
 	v := view.Project(g, e, 0, nil)
 	if got, want := len(v.Players[1].Hand), len(g.Zone(state.ZHand, 1)); got != want {

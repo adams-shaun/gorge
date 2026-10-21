@@ -21,14 +21,22 @@ type Target struct {
 	IsPlayer bool
 }
 
-// TargetStamp records which incarnation of an object a stack object
-// targeted (CR 400.7): Obj's Incarnation at the moment the target was
-// chosen. It is kept beside Targets rather than inside Target so the
+// TargetStamp records which identity of an object a stack object
+// targeted (CR 400.7): Obj's Incarnation and ZoneGen at the moment the
+// target was chosen. It is kept beside Targets rather than inside Target so the
 // target value itself (compared and used as a map key across the effects
 // tier) is unchanged.
 type TargetStamp struct {
 	Obj         ObjID
 	Incarnation uint32
+	// ZoneGen is the target's CR 400.7 identity stamp when it was chosen:
+	// it advances on every zone change (not only the battlefield crossing
+	// Incarnation marks), so the resolution recheck drops a target that
+	// changed zones since, whatever zones it passed through. Only the
+	// target stamps (foldTargetsChosen, a StackCopy's named targets) and
+	// the trigger fire-time stamps set it; the remembered-list stamps that
+	// share the type leave it zero and nothing judges them by it.
+	ZoneGen uint32
 }
 
 // GoadEffect is one independently-lived CR 701.38 goad relationship.
@@ -510,6 +518,13 @@ const (
 	// never cast (CR 707.10) -- must not inherit it. Appended after
 	// FlagPreparedCopy to preserve all bits already in main.
 	FlagManaSourcesSpent
+	// FlagCleaved marks a cast paid for with the card's cleave cost (CR
+	// 702.148a): rules' resolution substitutes the bracket-free cleave spell
+	// ability (engine/rules/cleave.go's stackSpellSA). NOT a
+	// CastProvenanceFlag: a stack copy copies the alternative-cost decision
+	// and its text change (CR 707.10). Appended after FlagManaSourcesSpent to
+	// preserve all bits already in main.
+	FlagCleaved
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -876,6 +891,24 @@ type Object struct {
 	AttackedTurn   int32
 	AttackedCombat int32
 
+	// TextChanges are the CR 612 text-changing effects on this object, in
+	// timestamp (event) order, folded by events.TextChange and cleared when
+	// the object changes zones (CR 400.7). While any applies, Face() is the
+	// pre-text face rewritten through them (cards.Face.WithTextChanges) -- so
+	// every ability, static, trigger, keyword and type-line reader sees the
+	// changed words -- and CopiableFace() is NOT (CR 707.2).
+	TextChanges []cards.TextSub
+	// textFace caches Face()'s rewritten face; textBase is the pre-text face
+	// it was built from. Both are reset by SetTextChanges.
+	textFace, textBase *cards.Face
+	// HadToAttack is CR 506.7's "had to attack" for the declaration that set
+	// AttackedTurn/AttackedCombat: an effect was requiring this creature to
+	// attack when attackers were declared. Cleared by every DeclareAttackers
+	// fold that declares the creature and set by the HadToAttack event that
+	// follows; the hadToAttackThisCombat filter reads it only while the
+	// attack stamp names the current combat.
+	HadToAttack bool
+
 	// Harnessed is the Infinity Stone designation (the `AlterAttribute |
 	// Attributes$ Harnessed` ability of The Mind Stone / The Soul Stone): once
 	// harnessed, the permanent's ∞ ability is active. A plain status field like
@@ -939,6 +972,20 @@ type Object struct {
 	// actions snapshot this value when tied to that permanent incarnation.
 	Incarnation uint32
 
+	// ZoneGen is the object's CR 400.7 identity stamp: it advances on EVERY
+	// zone change (events.move, whenever the real pre-move zone differs from
+	// the destination), not only at the battlefield boundary Incarnation
+	// marks, so a card that leaves a graveyard and comes back is a new
+	// object to the readers that compare it (the CR 608.2b target recheck,
+	// the TriggeredCard referent family, a zone-scoped self grant off the
+	// battlefield). A CR 733.1 reversed cast restores the pre-proposal value
+	// (PreStackZoneGen). Folded only by events.Apply, so replay rebuilds it.
+	ZoneGen uint32
+
+	// PreStackZoneGen is ZoneGen just before the object's latest move onto
+	// the stack; a CR 733.1 reversal restores ZoneGen from it and clears it.
+	PreStackZoneGen uint32
+
 	// Stack-only.
 	Ability           *cards.SA
 	Source            ObjID
@@ -982,12 +1029,19 @@ type Object struct {
 	SubTargets []Target
 	// TargetStamps holds, for every object target folded into Targets or
 	// SubTargets (events.foldTargetsChosen, a StackCopy's inherited or
-	// named targets), the target's Incarnation when it was chosen. The CR
-	// 608.2b resolution recheck drops a target whose Incarnation has moved
-	// since: an object that left the battlefield and came back (or entered
-	// it) is a new object (CR 400.7) even though its ObjID is the same.
+	// named targets), the target's identity when it was chosen: its
+	// Incarnation and ZoneGen. The CR 608.2b resolution recheck drops a
+	// target whose ZoneGen has moved since: an object that changed zones
+	// (CR 400.7) is a new object even though its ObjID is the same.
 	// Cleared with Targets on a zone change.
 	TargetStamps []TargetStamp
+	// Division is the CR 601.2d division announced for Targets while the
+	// spell was cast or the ability activated: Division[i] is the amount
+	// Targets[i] receives (each >= 1). Positional, so a target changed in
+	// place keeps the original share (CR 115.7f). Folded by events.Choose
+	// "divide"; cleared with Targets on a zone change; nil when nothing was
+	// announced (the resolution-time path then applies).
+	Division []int32
 	// Remembered carries a triggered ability's Ctx.Remembered from the
 	// moment it was queued (rules.checkTriggers) through to resolution. An
 	// ability object has no Face (Ruling F3) and therefore no card-script
@@ -1021,7 +1075,14 @@ type Object struct {
 	// events.Apply's DeclareAttackers case from the event's Obj and cleared
 	// wherever IsAttacking is.
 	AttackingBattle ObjID
-	BlockedBy       []ObjID
+	// Band names the attacking band this creature is in (CR 702.22c): the
+	// ObjID of the band's first banding member (its leader), 0 when it is in
+	// no band. Written only by events.Apply (the Choose "band" fold) and
+	// cleared wherever IsAttacking is (CR 702.22f: a creature removed from
+	// combat leaves its band). A band lasts for the rest of combat even if
+	// banding is later lost (CR 702.22e), so no reader re-checks the keyword.
+	Band      ObjID
+	BlockedBy []ObjID
 	// IsBlocking marks a creature declared as a blocker this combat (CR
 	// 509.1g), recorded on the BLOCKER so it survives its attacker leaving
 	// combat: CR 506.4 / 509.1h keep a creature blocking after the creature
@@ -1124,6 +1185,16 @@ type Object struct {
 	// only by an events.AlterAttribute fold.
 	Renowned bool
 
+	// Tributed is CR 702.104's tribute designation (the K:Tribute expansion,
+	// task kw-tribute-expansion): the chosen opponent ACCEPTED the tribute
+	// offer, so the "if tribute wasn't paid" ETB trigger the expansion minted
+	// must not fire. It lasts for this battlefield stint only -- the Move
+	// fold clears it on leaving (a later entry is a new permanent) -- and it
+	// is a plain status field copied by CloneDeep and set only by an
+	// events.AlterAttribute "Tributed" fold (putCounterTribute's acceptance;
+	// Forge's CountersPutEffect setTributed(true) on the confirmAction).
+	Tributed bool
+
 	// WontPhaseInNormal is the CR 702.25d exception carried by a Phases
 	// effect; its phase-in must come from that effect's return instruction.
 	WontPhaseInNormal bool
@@ -1153,9 +1224,19 @@ type Object struct {
 	// (Captain Eberhart). A plain value copy in CloneDeep carries it.
 	DrawnTurn int32
 
-	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
-	// the object enters the battlefield.
+	// Timestamp is the object's CR 613.7d entry timestamp, assigned from
+	// Game.Clock whenever the object enters the battlefield. It doubles as the
+	// battlefield-stint identity (a ControlGrant's ObjStamp, the legend rule's
+	// youngest pick), so nothing but an entry ever moves it.
 	Timestamp uint32
+	// LayerStamp is the CR 613.7 timestamp the object's static abilities'
+	// continuous effects take (CR 613.7a). events.Apply sets it to Timestamp
+	// on entry and moves it to a fresh Game.Clock tick when the object, on the
+	// battlefield, becomes attached to a different object or player (CR
+	// 613.7e/701.3c), turns face up or face down (CR 613.7f), or transforms
+	// (CR 613.7g). Forge's layerTimestamp, as Timestamp is its gameTimestamp.
+	// Read it through LayerTimestamp.
+	LayerStamp uint32
 
 	// Cast-time metadata. X and CastFlags matter while this object is a
 	// spell on the stack and, once it resolves, on the permanent it becomes
@@ -1594,6 +1675,12 @@ type Object struct {
 	// so replay rebuilds it with no new event kind and no Event field change.
 	MayLookPlayer PlayerID
 	HasMayLook    bool
+	// ExiledBy is the player a DefinedExiler$ exile instruction named (Shared
+	// Fate's "that player exiles the top card of their library face down").
+	// HasExiledBy distinguishes seat 0 from "no exiler recorded". Folded from
+	// the MoveZone marker's Amount; zero/absent on every other exile.
+	ExiledBy    PlayerID
+	HasExiledBy bool
 	// Cloaked records the cloak variant of the face-down battlefield entry
 	// (CR 708.5's cloak: a 2/2 creature with ward {2}, turn-face-up cost =
 	// the card's mana cost). It folds from the MoveZone Counter value
@@ -1713,11 +1800,11 @@ type Object struct {
 	// DoorLock/DoorUnlock events alone update this per-face lock bitset.
 	LockedDoors uint8
 
-	// _ pads the Object to 1280 bytes (20 64-byte cache lines), so in the
+	// _ pads the Object to 1344 bytes (21 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [54]byte
+	_ [38]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
@@ -1842,8 +1929,42 @@ func (o *Object) faceMiss() *cards.Face {
 	return f
 }
 
-// faceSlow is Face() derived from the source fields, without the cache.
+// faceSlow is Face() derived from the source fields, without the cache: the
+// pre-text face rewritten through TextChanges (CR 612, layer 3) when any
+// applies. The rewritten face is built once per (base face, TextChanges)
+// and reused, so the result is pointer-stable for the Face() cache check.
 func (o *Object) faceSlow() *cards.Face {
+	base := o.PreTextFace()
+	if len(o.TextChanges) == 0 || base == nil {
+		return base
+	}
+	if o.textFace == nil || o.textBase != base {
+		o.textFace, o.textBase = base.WithTextChanges(o.TextChanges), base
+	}
+	return o.textFace
+}
+
+// TextFace is the CR 612 text-changed face Face() returns while a text
+// change applies, or nil. Per-object face-set caches that enumerate the
+// faces Face() can resolve to (o.Card.Faces and o.CopyFace) add it.
+func (o *Object) TextFace() *cards.Face {
+	if len(o.TextChanges) == 0 {
+		return nil
+	}
+	return o.Face()
+}
+
+// SetTextChanges replaces the object's text changes and keeps the Face()
+// cache coherent. Only events.Apply calls it.
+func (o *Object) SetTextChanges(subs []cards.TextSub) {
+	o.TextChanges = subs
+	o.textFace, o.textBase = nil, nil
+	o.face = o.faceSlow()
+}
+
+// PreTextFace is the object's face before CR 612 text changes: its copy
+// face (CR 613.1a, layer 1) or its printed face.
+func (o *Object) PreTextFace() *cards.Face {
 	// CR 613.1a: a copy effect is the FIRST layer, so while one applies the
 	// object's characteristics come from the copied face. Routing it here is
 	// what makes every Face() reader in the tree see the copy by construction
@@ -2267,6 +2388,7 @@ func (o *Object) cloneDeepIntoArena(c *Object, a *cloneArena) {
 	c.Targets = carveClone(&a.tgs, o.Targets)
 	c.SubTargets = carveClone(&a.tgs, o.SubTargets)
 	c.TargetStamps = carveClone(&a.stm, o.TargetStamps)
+	c.Division = append([]int32(nil), o.Division...)
 	c.Remembered = carveClone(&a.tgs, o.Remembered)
 	c.BlockedBy = carveClone(&a.ids, o.BlockedBy)
 	c.BlockedByThisTurn = carveClone(&a.ids, o.BlockedByThisTurn)
@@ -2301,6 +2423,7 @@ func (o *Object) cloneDeepIntoArena(c *Object, a *cloneArena) {
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)
 	c.RuntimeSVars = cloneRuntimeSVars(o.RuntimeSVars)
+	c.TextChanges = append([]cards.TextSub(nil), o.TextChanges...)
 }
 
 // cloneRuntimeSVars deep-copies a runtime SVar table so a cloned game never
@@ -2350,7 +2473,7 @@ func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
 			counters = append(counters, o.Counters[i])
 		}
 	}
-	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc(),
+	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: ManaValue(g, o),
 		ManaCost: o.Face().ManaCost, FaceDown: o.FaceDown, Counters: counters,
 		Types: append([]string(nil), o.Face().Types...)}
 }
@@ -2363,4 +2486,13 @@ func CloneChosenModes(m []string) []string {
 		return nil
 	}
 	return append(make([]string, 0, len(m)), m...)
+}
+
+// LayerTimestamp is the CR 613.7 timestamp o's static abilities' continuous
+// effects take (CR 613.7a): LayerStamp, never earlier than the entry
+// Timestamp. A restamp only ever moves LayerStamp later than the entry, so
+// the max is LayerStamp on every event-built object; it is Timestamp for an
+// object a test placed eventlessly (Timestamp written, LayerStamp left 0).
+func (o *Object) LayerTimestamp() uint32 {
+	return max(o.LayerStamp, o.Timestamp)
 }

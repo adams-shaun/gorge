@@ -117,6 +117,12 @@ flowchart TD
   N -- no --> F["each object id the viewer<br/>cannot see is removed"]
 ```
 
+A secret that carries a library's order (a shuffle, or a `LibraryOrder`
+recording a chosen new order) is shape-only for every seat, the library's
+owner included: no player may know a library's order (CR 401.2). What an
+owner knows about the cards they arranged comes from the decision they
+answered, not from the event.
+
 Redaction is *state-aware*, not just flag-aware, because an event's `Player`
 field does not always name the seat whose secret it carries (a trigger's
 controller and the owner of the card it remembered can differ). A `Note` is

@@ -76,15 +76,20 @@ func linkBoard(t *testing.T, reg *cards.Registry, p0, p1 []string) (*Engine, Con
 
 // activateAnswers the decisions activating an ability with a sacrifice cost
 // poses, in whatever order they arrive: a KChoose sacrifice cost (answered
-// with sacObj) and/or the KTarget announcement (answered with targetObj, or
-// targetPlayer when the subject targets players). Returns after the target is
-// answered, with the ability sitting on the stack.
+// with sacObj; CR 601.2h chooses it at payment, after the target) and/or the
+// KTarget announcement (answered with targetObj, or targetPlayer when the
+// subject targets players). Returns once payment has completed and the next
+// KPriority decision appears, with the ability on the stack.
 func activateAnswers(t *testing.T, e *Engine, sacObj, targetObj state.ObjID, targetPlayer state.PlayerID) {
 	t.Helper()
-	for i := 0; i < 4; i++ {
+	answered := false
+	for i := 0; i < 8; i++ {
 		d := e.Pending()
 		if d == nil {
 			t.Fatalf("no pending decision while activating (sac %d, target %d)", sacObj, targetObj)
+		}
+		if answered && d.Kind == decision.KPriority {
+			return
 		}
 		switch d.Kind {
 		case decision.KChoose:
@@ -101,14 +106,14 @@ func activateAnswers(t *testing.T, e *Engine, sacObj, targetObj state.ObjID, tar
 		case decision.KTarget:
 			if targetObj != 0 {
 				targetObject(t, e, targetObj)
-				return
+			} else {
+				idx := indexOfPlayerOption(d, targetPlayer)
+				if idx < 0 {
+					t.Fatalf("no target option for player %d: %+v", targetPlayer, d.Options)
+				}
+				submitChoices(t, e, idx)
 			}
-			idx := indexOfPlayerOption(d, targetPlayer)
-			if idx < 0 {
-				t.Fatalf("no target option for player %d: %+v", targetPlayer, d.Options)
-			}
-			submitChoices(t, e, idx)
-			return
+			answered = true
 		default:
 			t.Fatalf("unexpected decision kind %q while activating: %+v", d.Kind, d.Options)
 		}
@@ -309,8 +314,9 @@ func TestLifelinkAbilityDamageToCreatureGainsLife(t *testing.T) {
 // TestLifelinkDeathSweepSumsLife pins DamageAll on the real corpus card the
 // defect was found beside: Piru, the Volatile has printed lifelink, and when
 // it dies its sweep deals 7 to each nonlegendary creature -- two Grizzly
-// Bears means two landed 7s, and the controller gains the SUM (14), not one
-// rider for the resolution.
+// Bears means two landed 7s, and the controller gains the SUM (14) as ONE
+// life-gain event (CR 702.15e: one source, one event), not one rider per
+// recipient.
 func TestLifelinkDeathSweepSumsLife(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -352,8 +358,11 @@ func TestLifelinkDeathSweepSumsLife(t *testing.T) {
 	if got := e.G.Players[0].Life; got != 34 {
 		t.Fatalf("Piru's controller life = %d, want 34 (20 + 7 + 7 lifelink)", got)
 	}
-	if n := countLifeChanges(t, e, 0, 7); n != 2 {
-		t.Fatalf("logged %d lifelink LifeChange(0, +7) events, want 2 (one per landed hit)", n)
+	if n := countLifeChanges(t, e, 0, 14); n != 1 {
+		t.Fatalf("logged %d lifelink LifeChange(0, +14) events, want 1 (CR 702.15e: one source, one event)", n)
+	}
+	if n := countLifeChanges(t, e, 0, 7); n != 0 {
+		t.Fatalf("logged %d lifelink LifeChange(0, +7) events, want 0 per-recipient events", n)
 	}
 	if got := e.G.Players[1].Life; got != 20 {
 		t.Fatalf("opponent life = %d, want 20 (the sweep hurts creatures, not players)", got)

@@ -230,13 +230,15 @@ func TestEquipAlternateCostDiscardOfferedAndChargedOnBloodthornFlail(t *testing.
 		t.Fatal("Bloodthorn Flail's alternate-cost equip option not offered with a card in hand")
 	}
 	submitChoices(t, e, opt.Index)
+	// CR 601.2c: the equip target precedes the discard cost ask (601.2h:
+	// the discard is chosen at payment).
+	targetObject(t, e, bear)
 	// The discard cost stage asks which card to discard.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("want a discard KChoose after choosing the alternate cost, got %+v", d)
 	}
 	submitChoices(t, e, d.Options[0].Index)
-	targetObject(t, e, bear)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(flail).AttachedTo != bear {
 		t.Fatalf("Flail attached to %d, want creature %d", e.G.Obj(flail).AttachedTo, bear)

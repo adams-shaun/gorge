@@ -24,6 +24,7 @@ func init() {
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RingTemptsYou", effRingTemptsYou)
+	Register("RingBlockerSacrifice", effRingBlockerSacrifice)
 	Register("RestartGame", effRestartGame)
 	Register("Goad", effGoad)
 	Register("AlterAttribute", effAlterAttribute)

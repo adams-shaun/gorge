@@ -1146,6 +1146,13 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		if pkg == "effects" && fname == "saMentionsKeywords" {
 			return
 		}
+		// saMentionsPT is the same recognition for a P/T-reading filter
+		// (SpecReadsPT) along the Sub chain, so effects can ask rules for the
+		// characteristic-defining P/T table. Recognition only; it consumes
+		// no SA parameter.
+		if pkg == "effects" && fname == "saMentionsPT" {
+			return
+		}
 		// abilityReferencesX (engine/effects/flipcoin.go) recognizes the standalone
 		// token "X" in any parameter value along an ability's Sub chain, so a
 		// NoCall$ True coin-flip outcome branch fires once with the total
@@ -3803,14 +3810,17 @@ func TestParamCensusScopesTheMayPlayStaticFamily(t *testing.T) {
 	// CR 613.4a CDA sublayer (Tarmogoyf, Krovikan Mist now derive their
 	// announced P/T), so the read is genuine on the generic bucket.
 	// ValidAfterStack$ is consumed by mayPlayStatic as a derived spell filter
-	// (task mayplay-validafterstack); MayPlayPlayer$ remains fail-closed.
+	// (task mayplay-validafterstack); MayPlayPlayer$ is consumed for Exiler only.
 	if !d.stat["Continuous.MayPlay"]["ValidAfterStack"] {
 		t.Error(`d.stat["Continuous.MayPlay"]["ValidAfterStack"] = false -- MayPlay characteristic gate lost its read`)
 	}
+	// MayPlayPlayer$ Exiler is now consumed (Shared Fate: mayPlayStatic's
+	// ExiledBy gate, the look half in layers.go); every other value is still
+	// rejected by mayPlayGateRejectedOther, so the key is a genuine read.
 	for _, key := range []string{"MayPlayPlayer"} {
 		for _, mode := range []string{"Continuous", "Continuous.MayPlay"} {
-			if d.stat[mode][key] {
-				t.Errorf("d.stat[%q][%q] = true -- the fail-closed recognition read still over-suppresses this key", mode, key)
+			if !d.stat[mode][key] {
+				t.Errorf("d.stat[%q][%q] = false -- the Exiler consumption lost its read", mode, key)
 			}
 		}
 	}

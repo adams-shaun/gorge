@@ -411,6 +411,15 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 				cost = c
 			}
 		}
+	case castModeCleaved:
+		// Cleave (CR 702.148a, engine/rules/cleave.go): the cleave ability's
+		// Cost$ in place of the mana cost, through the ONE reader the offer
+		// gate used. A stale option whose cleave ability is gone falls back
+		// to the empty cost like the keyword family above.
+		cost = Cost{}
+		if c, ok := e.cleaveCost(f); ok {
+			cost = c
+		}
 	case castModeWebSlinging:
 		// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the
 		// web-slinging cost replaces the mana cost AND the composed Cost
@@ -790,6 +799,27 @@ func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
 	return c, true
 }
 
+// effectLandPlayRefusal is CR 305.2a/305.3 for a land played by an effect
+// (Djinn of Wishes' "you may play that card"): the play is legal only on
+// p's own turn, only while p has a land play left -- the same
+// 1+adjustLandPlays allowance the hand walk offers against, so Exploration's
+// additional land counts and the effect play itself counts toward
+// LandsPlayed -- and only when no CantPlayLand static forbids it
+// (playLandForbidden, the hand walk's gate). It returns the Note text of the
+// first failing limit, or "" when the play is legal. Timing beyond the turn
+// is NOT checked: an effect may play a land during any step of p's turn.
+func (e *Engine) effectLandPlayRefusal(p state.PlayerID, id state.ObjID, from state.Zone) string {
+	switch {
+	case int(p) >= len(e.G.Players) || e.G.Active != p:
+		return "Play cannot play a land on another player's turn"
+	case e.G.Players[p].LandsPlayed >= int32(1+e.adjustLandPlays(p)):
+		return "Play cannot use an additional land drop"
+	case playLandForbidden(e, p, from, id):
+		return "Play cannot play a land a CantPlayLand static forbids"
+	}
+	return ""
+}
+
 // beginPlay is the rules' hand-off for an answered Play effect. It starts a
 // cast from the card's current zone and uses its printed cost unless that
 // specific Play SA said WithoutManaCost$ True (Spinerock Knoll grants a free
@@ -810,9 +840,10 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	}
 	if o.Face().IsLand() {
 		// A "play" permission can play a land, but it does not grant an
-		// additional land drop. Lands never become spells or enter the stack.
-		if int(p) >= len(e.G.Players) || e.G.Players[p].LandsPlayed >= 1 {
-			e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play cannot use an additional land drop"})
+		// additional land play, and it never lifts CR 305.3's turn and count
+		// limits. Lands never become spells or enter the stack.
+		if why := e.effectLandPlayRefusal(p, id, o.Zone); why != "" {
+			e.emit(events.Event{Kind: events.Note, Player: p, Obj: id, Text: why})
 			return
 		}
 		e.cast = e.newCast(p, id, o.Zone, "land", -1)
@@ -831,7 +862,15 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	// in (cascade's chained tail then bottoms it). A play that cannot name
 	// a castable card is not an error -- CR 601.3 simply withholds the
 	// cast, and the Play's answer is consumed either way.
-	if e.castRestricted(p, id) {
+	// A free or PlayCost$ cast announces no {X} (CR 107.3b fixes it at 0),
+	// so CR 601.3a's X lookahead applies only to a printed-cost play.
+	var restricted bool
+	if withoutManaCost || playCost != "" {
+		restricted = e.castRestrictedFree(p, id)
+	} else {
+		restricted = e.castRestrictedPrinted(e.activeStatics("CantBeCast"), p, id, nil)
+	}
+	if restricted {
 		e.emit(events.Event{Kind: events.Note, Player: p, Obj: id,
 			Text: "the play cannot cast a restricted card"})
 		return
@@ -967,6 +1006,43 @@ func (e *Engine) continueCast() {
 	if e.cast == nil {
 		return
 	}
+	// CR 601.2a: a spell reaches the stack before any choice of the cast is
+	// made -- every announcement (601.2b), target (601.2c) and cost choice
+	// (601.2h) below runs with it already there, so no cost can pick the card
+	// being cast. For a spell the cast trigger (601.2i) is held back until
+	// payCast. pushCast is idempotent, so a re-entry after an answer is a
+	// no-op, and the special actions and abilities never push.
+	if e.pushCast() {
+		return
+	}
+	// CR 602.2a: an activated ability is moved to the stack before any 602.2b
+	// choice (601.2b-i). Its "whenever you activate" triggers are held until
+	// payCast, exactly as the old end-of-payment mint fired them.
+	e.pushActivation()
+	// castprov3: a provenance-keyed cost modifier (Bilbo's
+	// "!wasCastFromYourHand" ReduceCost) is unresolvable before CR 601.2a's
+	// push — the offer and option-selection snapshots both denied it (full
+	// price, the fail-closed direction) because the priced card had no cast
+	// in the log yet. Now the PutOnStack is in the log: when the selection
+	// pass evaluated such a static (e.costProvenanceSeen, the
+	// noCounterSpend-style transient capture), re-price the pending cast so
+	// the payment takes the honest reduction. For every other cast the
+	// recompute is byte-identical to the offer snapshot (both are the
+	// nil-target base snapshot), so no existing price — and no chain head —
+	// moves.
+	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.CostProvenanceSeen {
+		pc.provenanceRepriced = true
+		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
+	}
+	// CR 601.2b: a modal spell announces its modes after reaching the stack
+	// and before targets are chosen or costs are paid — before every
+	// additional-cost announcement below, X and every cost choice (601.2h);
+	// the modes are the first announcement after the push. The answer is
+	// cached on the proposed spell so targetAsk can inspect the selected mode
+	// and resolution can execute it without asking again.
+	if e.castModeAsk() {
+		return
+	}
 	// Mutate (CR 702.140b): the over/under placement choice is announced
 	// before payment the same way the replicate count is, so the pay-time
 	// CastInfo can carry FlagMutatedTop.
@@ -983,6 +1059,7 @@ func (e *Engine) continueCast() {
 	if e.giftAsk() {
 		return
 	}
+	e.foldGiftPromise(e.cast)
 	// A RaiseCost part counted by a named announcement (the March cycle,
 	// Explosive Singularity) announces its count before every stage that
 	// pays or prices it: the tap election below, xAsk's discounted X bound
@@ -990,7 +1067,11 @@ func (e *Engine) continueCast() {
 	if e.namedAnnounceAsk() {
 		return
 	}
-	if e.forageAsk() || e.revealCostAsk() || e.revealCostOrChooseAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+	// CR 601.2b: the tap-untapped-permanents election is announced before the
+	// counted additional costs and X, because its count can BE X (601.2b).
+	// Every other cost-object ask is deferred to payment (costObjectAsks,
+	// CR 601.2h).
+	if e.tapPermanentCostAsk() {
 		return
 	}
 	// CR 601.2b: the replicate count (CR 702.55a's optional additional cost,
@@ -1070,47 +1151,15 @@ func (e *Engine) continueCast() {
 	if e.xAsk() {
 		return
 	}
-	// An announced Blight<X> part's count is the announced X, so its pick is
-	// deferred past xAsk (the Sac<X/Spec> / SubCounter<X/Kind> shape) -- the
-	// pre-xAsk blightCostAsk above skips it while !pc.xDone.
-	if e.blightCostAsk() {
-		return
-	}
-	// CR 601.2h: a ChooseCreatureType<N> part is paid with the other costs,
-	// after the 601.2b announcements (X); a Behold of the chosen type in the
-	// same cost was deferred past the early behold stage until now.
-	if e.chooseTypeCostAsk() || e.beholdCostAsk() {
-		return
-	}
+	// CR 601.2b: Delve exiles its cards before the targets -- the exile is
+	// the announced reduction of the total cost (601.2f).
 	if e.delveAsk() {
 		return
 	}
-	if e.sacAsk() {
-		return
-	}
-	// The SubCounter cost parts whose removal-target field names a filter ask
-	// their payer which permanent the counters come off (Ghave's "remove a
-	// +1/+1 counter from a creature you control"), after the announced X
-	// exists so the candidate set can require that many counters.
-	if e.subCounterAsk() {
-		return
-	}
-	if e.discardAsk() {
-		return
-	}
-	if e.exAsk() {
-		return
-	}
-	if e.returnAsk() {
-		return
-	}
-	if e.putToLibAsk() {
-		return
-	}
-	// CR 601.2b: the ExiledMoveToGrave cost pick (Shelob's "put a creature
-	// card exiled with Shelob into its owner's graveyard") runs beside the
-	// other non-mana component asks, after the PutToLib ask.
-	if e.moveGraveAsk() {
+	// Emerge's sacrifice (CR 702.118a) reduces the total cost (601.2f), so it
+	// is announced before the targets like the other reductions. Every other
+	// cost object is chosen at payment (costObjectAsks, CR 601.2h).
+	if pc := e.cast; pc != nil && pc.emerge && e.sacAsk() {
 		return
 	}
 	// Suspend does not put a spell on the stack: its alternate action pays
@@ -1135,27 +1184,6 @@ func (e *Engine) continueCast() {
 		e.payCast()
 		return
 	}
-	// CR 601.2a: the object reaches the stack before the target choice
-	// (601.2c) and payment (601.2h). For a spell the cast trigger (601.2i)
-	// is held back until payCast; an ability's AbilityPush fires no trigger.
-	if e.pushCast() {
-		return
-	}
-	// castprov3: a provenance-keyed cost modifier (Bilbo's
-	// "!wasCastFromYourHand" ReduceCost) is unresolvable before CR 601.2a's
-	// push — the offer and option-selection snapshots both denied it (full
-	// price, the fail-closed direction) because the priced card had no cast
-	// in the log yet. Now the PutOnStack is in the log: when the selection
-	// pass evaluated such a static (e.costProvenanceSeen, the
-	// noCounterSpend-style transient capture), re-price the pending cast so
-	// the payment takes the honest reduction. For every other cast the
-	// recompute is byte-identical to the offer snapshot (both are the
-	// nil-target base snapshot), so no existing price — and no chain head —
-	// moves.
-	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.CostProvenanceSeen {
-		pc.provenanceRepriced = true
-		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
-	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
 	// an old suspension. Plot needs no equivalent: its designation is
@@ -1164,13 +1192,6 @@ func (e *Engine) continueCast() {
 	if e.cast.mode == "suspend_cast" && !e.cast.suspendCastClear {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: e.cast.card})
 		e.cast.suspendCastClear = true
-	}
-	// CR 601.2b: a modal spell announces its modes after reaching the stack
-	// and before targets are chosen or costs are paid. The answer is cached on
-	// the proposed spell so targetAsk can inspect the selected mode and
-	// resolution can execute it without asking again.
-	if e.castModeAsk() {
-		return
 	}
 	// CR 601.2b: announce how each hybrid and Phyrexian pip is paid -- which
 	// half of a hybrid, whether a Phyrexian pip is paid with life -- before
@@ -1197,6 +1218,43 @@ func (e *Engine) continueCast() {
 		return
 	}
 	e.payCast()
+}
+
+// costObjectAsks poses the cost-object choices CR 601.2h defers to payment:
+// "The player pays the total cost" -- the objects a cost sacrifices, discards,
+// exiles, returns or taps are chosen as the cost is paid, after the targets
+// (601.2c), the division (601.2d), the evidence ask, the 601.2e recheck and
+// the 601.2g mana abilities. One object pays one cost, so a permanent a mana
+// ability of the window already used is no longer a candidate; a cost that
+// became unpayable that way aborts inside its own ask (CR 733.1). The
+// reductions that ARE the announced total (delve, an emerge sacrifice,
+// convoke/harmonize/waterbend taps, the tap-X election) stay pre-target in
+// continueCast. Each ask is idempotent through its own done flag / part
+// index, so the re-entry an answer makes (castAnswer -> continueCast ->
+// payCast) resumes at the next unsettled part.
+func (e *Engine) costObjectAsks() bool {
+	if e.forageAsk() || e.revealCostAsk() || e.revealCostOrChooseAsk() || e.beholdCostAsk() || e.blightCostAsk() {
+		return true
+	}
+	// A ChooseCreatureType<N> part is paid with the other costs; a Behold of
+	// the chosen type in the same cost waits for the type.
+	if e.chooseTypeCostAsk() || e.beholdCostAsk() {
+		return true
+	}
+	if e.sacAsk() || e.subCounterAsk() || e.discardAsk() || e.exAsk() {
+		return true
+	}
+	if e.returnAsk() {
+		return true
+	}
+	// The sneak and ninjutsu defenders are folded right after the Return cost
+	// is chosen, now at payment.
+	e.foldSneakDefender(e.cast)
+	e.foldNinjutsuDefender(e.cast)
+	if e.putToLibAsk() || e.moveGraveAsk() {
+		return true
+	}
+	return false
 }
 
 type castModeCode uint16
@@ -1238,6 +1296,7 @@ const (
 	castModeEmerged
 	castModeLand
 	castModeOptionalcost
+	castModeCleaved
 )
 
 var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
@@ -1284,6 +1343,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	// the dispatch code, so the cost-composition election derives from the
 	// table and not an eighth `== "optionalcost"` literal compare.
 	state.StrEntry[castModeCode]{Key: "optionalcost", Val: castModeOptionalcost},
+	state.StrEntry[castModeCode]{Key: castModeCleavedWord, Val: castModeCleaved},
 }, append(altCastModeEntries(),
 	// The Bargain row's mode word lives in rules/optional_sacrifice.go.
 	state.StrEntry[castModeCode]{Key: optionalSacrifices[optSacBargain].mode, Val: castModeBargained})...)...)

@@ -70,8 +70,29 @@ func TestWrapMulliganUsesGivenRule(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(in.Choices) != 1 || in.Choices[0] != 0 {
+		t.Fatalf("Wrap (forge) = %+v, want keep [0]", in)
+	}
+	if inner.got.Kind != "" {
+		t.Fatal("the wrapped seat was consulted for a mulligan ask")
+	}
+}
+
+func TestWrapMulliganUsesGivenRuleWhenItDiffers(t *testing.T) {
+	b := floodBoard()
+	d := floodAsk()
+
+	inner := &recBoard{recSeat{pick: "never"}}
+	bs, ok := WrapMulligan(inner, botpolicy.MulliganConstructed).(heuristic.BoardSeat)
+	if !ok {
+		t.Fatal("a BoardSeat inner must stay a BoardSeat")
+	}
+	in, err := bs.DecideBoard(context.Background(), b, d)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(in.Choices) != 1 || in.Choices[0] != 1 {
-		t.Fatalf("Wrap (constructed) = %+v, want mulligan [1]", in)
+		t.Fatalf("WrapMulligan(constructed) = %+v, want mulligan [1]", in)
 	}
 	if inner.got.Kind != "" {
 		t.Fatal("the wrapped seat was consulted for a mulligan ask")

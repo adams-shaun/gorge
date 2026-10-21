@@ -49,6 +49,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Shadow":         "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Horsemanship":   "TestHorsemanshipCanBlockOnlyHorsemanshipAttackers",
 		"kw:Skulk":          "TestSkulkBlocksOnlyGreaterPowerBlockers",
+		"kw:Banding":        "TestCR702_22cBandIsDeclaredAndABlockerBlocksTheWholeBand",
 		"kw:Intimidate":     "TestIntimidateBlocksOnlyArtifactsAndSharedColors",
 		"kw:Landwalk":       "TestLandwalkEvadesDefenderLands",
 		"kw:Protection":     "TestProtectionUsesAllLiveColourQualities",
@@ -62,6 +63,13 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Battle cry":     "TestBattleCryPumpsOtherAttackingCreatures",
 		"kw:Graft":          "TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt",
 		"kw:Backup":         "TestSaibaCryptomancerBackup",
+		"kw:Renown":         "TestConstableOfTheRealmRenownPutsTwoCountersOnce",
+		"kw:Shroud":         "TestPrintedShroudWithholdsCastWhenSoleTarget",
+		"kw:Phasing":        "TestCR702PhasingKeywordTogglesAtUntapStep",
+		"kw:Vanishing":      "TestVanishingDeepForestHermitUpkeepAndLastCounter",
+		"kw:Rebound":        "TestReboundCorpusCarrierExilesAndOffers",
+		"kw:Compleated":     "TestCompleatedLoyaltyFollowsPhyrexianLifePaid",
+		"kw:Casualty":       "TestCasualtyPrintedSpellSacrificeCopiesTarget",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)

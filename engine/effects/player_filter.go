@@ -42,6 +42,10 @@ type PlayerSpecCtx struct {
 	DefendingPlayer   state.Target
 	DelayedRemembered []state.Target
 	OpponentOf        []state.Target
+	// Replaced is the draw-er of the Draw replacement being resolved (the
+	// Ctx.Repl.Player a Player.OpponentOf ReplacedPlayer clause reads: Shared
+	// Fate's ChoosePlayer pool). Unbound (IsPlayer false) outside one.
+	Replaced state.Target
 	// Remembered, when RememberedBound, is the set a Player.IsRemembered
 	// clause (and a nested controlsCard.IsRemembered object filter) reads
 	// instead of the source object's own list. A delayed Phase registration
@@ -358,6 +362,10 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 						return true
 					}
 				}
+			}
+		case playerSpecQualifierOpponentOfReplaced:
+			if (base == "Player" || base == "Any") && pc.Replaced.IsPlayer && p != pc.Replaced.Player {
+				return true
 			}
 		case playerSpecQualifierIsCorrupted:
 			if playerIsCorrupted(g, p) {
@@ -850,6 +858,7 @@ func matchesPlayerSpecSVars(g *state.Game, h Host, eval CountEval, c *Ctx, spec 
 		if resolved && MatchesPlayerSpecCtx(g, strings.Join(clauses, "+"), p, you, PlayerSpecCtx{
 			Source:     c.Source,
 			OpponentOf: c.Remembered,
+			Replaced:   c.Repl.Player,
 		}) {
 			return true
 		}
@@ -981,10 +990,12 @@ const (
 	playerSpecQualifierTriggeredDefendingPlayer
 	playerSpecQualifierAttackedYouTheirCurrentTurn
 	playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn
+	playerSpecQualifierOpponentOfReplaced
 )
 
 var playerSpecQualifierCodes = state.NewStrCodes(
 	state.StrEntry[playerSpecQualifierCode]{Key: "OpponentOf Remembered", Val: playerSpecQualifierOpponentOfRemembered},
+	state.StrEntry[playerSpecQualifierCode]{Key: "OpponentOf ReplacedPlayer", Val: playerSpecQualifierOpponentOfReplaced},
 	state.StrEntry[playerSpecQualifierCode]{Key: "IsCorrupted", Val: playerSpecQualifierIsCorrupted},
 	state.StrEntry[playerSpecQualifierCode]{Key: "You", Val: playerSpecQualifierYou},
 	state.StrEntry[playerSpecQualifierCode]{Key: "Opponent", Val: playerSpecQualifierOpponent},
@@ -1012,3 +1023,56 @@ var playerHasMostCodes = state.NewStrCodes(
 	state.StrEntry[playerHasMostCode]{Key: "Life", Val: playerHasMostLife},
 	state.StrEntry[playerHasMostCode]{Key: "CardsInHand", Val: playerHasMostCardsInHand},
 )
+
+// SplitDefenderSpec splits an attacked-defender spec -- a trigger's Attacked$
+// or AttackedTarget$ comma list -- into its player alternatives and its
+// permanent alternatives (every alternative that is not player grammar: a
+// Planeswalker./Battle spec, or the trigger's own permanent as
+// Card.EffectSource/Card.Self), each re-joined with commas in their original
+// order; either may be "". CR 508.3a/508.3e: a player alternative is about
+// an attack on that player, a permanent alternative about an attack on that
+// planeswalker or battle, so a DeclareAttackers event for a planeswalker or
+// battle is matched only by the permanent half and a player event only by
+// the player half.
+func SplitDefenderSpec(spec string) (players, permanents string) {
+	// Split exactly as the filter grammar does: a comma inside a
+	// named<Name>/notnamed<Name> argument is part of the name, not an
+	// alternative boundary.
+	for alt := range filterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		if defenderAltIsPlayer(alt) {
+			players = joinAlt(players, alt)
+		} else {
+			permanents = joinAlt(permanents, alt)
+		}
+	}
+	return players, permanents
+}
+
+// defenderAltIsPlayer reports whether one attacked-defender alternative is a
+// player spec rather than a permanent one. The player grammar's bases
+// (Player/Any/You/Opponent/Other), its bare property spellings and its bare
+// qualifiers are player alternatives; every other alternative is a card spec
+// -- Planeswalker.*, Battle, and Card.EffectSource/Card.Self (the trigger's
+// own permanent, which an attack on that permanent must still match).
+func defenderAltIsPlayer(alt string) bool {
+	first, _, _ := strings.Cut(alt, "+")
+	clause := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(first), "!"))
+	base, _, qualified := strings.Cut(clause, ".")
+	if qualified {
+		return playerSpecBaseCodes.Code(base) != 0
+	}
+	return playerSpecBaseCodes.Code(base) != 0 ||
+		isBarePlayerProperty(base) ||
+		playerSpecQualifierCodes.Code(base) != 0
+}
+
+func joinAlt(list, alt string) string {
+	if list == "" {
+		return alt
+	}
+	return list + "," + alt
+}

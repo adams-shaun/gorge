@@ -31,14 +31,14 @@ import (
 // a card we DO understand is correctly restricted. `Origin$` handling is not
 // touched -- ParseZones already splits `Hand,Graveyard` into two zones and the
 // Any/All wildcard is resolved by the caller before this runs.
-func changeZoneAllPlayers(h Host, c *Ctx, sa *cards.SA, p *ChangeZoneAllParams) []state.PlayerID {
+func changeZoneAllPlayers(h Host, c *Ctx, sa *cards.SA, p *ChangeZoneAllParams) (players []state.PlayerID, scoped bool) {
 	g := h.Game()
 	if p.UseAllOriginZones {
-		return g.AliveFrom(0)
+		return g.AliveFrom(0), true
 	}
 	targeting := p.Targeting
 	if !targeting && !p.DefinedPresent {
-		return g.AliveFrom(0)
+		return g.AliveFrom(0), false
 	}
 	var chosen []state.Target
 	if targeting {
@@ -69,9 +69,9 @@ func changeZoneAllPlayers(h Host, c *Ctx, sa *cards.SA, p *ChangeZoneAllParams) 
 		}
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "ChangeZoneAll could not resolve a player scope from " + sel + "; sweeping all players"})
-		return g.AliveFrom(0)
+		return g.AliveFrom(0), false
 	}
-	return out
+	return out, true
 }
 
 const ashiokPayLifeChangeType = "Card.NotDefinedReplacedSimultaneousETB"
@@ -103,6 +103,56 @@ func changeZoneAllCap(h Host, c *Ctx, cza *ChangeZoneAllParams) int32 {
 	return cap
 }
 
+// changeZoneAllMatcher is effChangeZoneAll's one membership test: the
+// trigger-captured set, the ForgetOtherRemembered$ snapshot, or the zone
+// filter, in that order of precedence. The zone filter is zone-aware: a scan
+// of any zone OTHER than the battlefield reads a leading Permanent base as
+// Forge's "permanent card" (permanentCardSpec, the Dig/search rule), so a
+// mixed Origin$ that includes the battlefield still takes graveyard cards as
+// permanent cards (Once More with Feeling's "Exile all permanents and all
+// cards from all graveyards") while the battlefield scan keeps the
+// on-the-battlefield object reading. For a battlefield-excluding sweep every
+// scan is non-battlefield, which is exactly the whole-origin rewrite the
+// pre-per-zone matcher applied.
+func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet map[state.ObjID]bool, preMatched *map[state.ObjID]bool) func(state.Zone, state.ObjID) bool {
+	return func(zone state.Zone, id state.ObjID) bool {
+		switch {
+		case triggeredSet != nil:
+			return triggeredSet[id]
+		case preMatched != nil && *preMatched != nil:
+			return (*preMatched)[id]
+		}
+		s := spec
+		if zone != state.ZBattlefield {
+			s = permanentCardSpec(s)
+		}
+		return MatchesSpecCtx(g, s, id, c.SpecContext(c.Controller))
+	}
+}
+
+// changeZoneAllOwners lists the owner of every object the sweep would move,
+// with the sweep's own scan order and shared-stack guard (the stack is
+// visited once, under the first scoped player).
+func changeZoneAllOwners(g *state.Game, from []state.Zone, players []state.PlayerID, matches func(state.Zone, state.ObjID) bool) []state.PlayerID {
+	var owners []state.PlayerID
+	for _, z := range from {
+		for qi, p := range players {
+			if z == state.ZStack && qi > 0 {
+				continue
+			}
+			for _, id := range g.Zone(z, p) {
+				if !matches(z, id) {
+					continue
+				}
+				if o := g.Obj(id); o != nil {
+					owners = append(owners, o.Owner)
+				}
+			}
+		}
+	}
+	return owners
+}
+
 func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	cza := ChangeZoneAllOf(sa)
 	noteUnreadParams(h, c, "ChangeZoneAll", cza.Unread)
@@ -117,6 +167,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 	to := cza.Destination
 	spec := changeZoneAllTypeLimitSpec(cza.ChangeType)
+	// The leading-Permanent base rewrite now happens per scan zone, inside
+	// changeZoneAllMatcher -- a mixed Origin$ that includes the battlefield
+	// still reads the base as a permanent card in its non-battlefield scans.
 	// ChangeType$ Card.TriggeredCards (Hedge Shredder's "Whenever one or more
 	// land cards are put into your graveyard from your library, put them onto
 	// the battlefield tapped", Toluz, Clever Conductor's exile sweep): the
@@ -163,10 +216,6 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// resolves the pair; noShuffleBody only forces it on a body that named
 	// neither flag, so the two never actually co-occur.
 	shuffle := cza.ShuffleTrue && !cza.NoShuffle
-	type ownerMoved struct {
-		owner state.PlayerID
-		ids   []state.ObjID
-	}
 	var placements []ownerMoved
 	// AtEOT$'s affected set for ChangeZoneAll is the objects the sweep
 	// actually moved, collected in move order.
@@ -180,7 +229,15 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		placements = append(placements, ownerMoved{owner: owner})
 		return &placements[len(placements)-1]
 	}
-	players := changeZoneAllPlayers(h, c, sa, cza)
+	players, scoped := changeZoneAllPlayers(h, c, sa, cza)
+	var preMatched map[state.ObjID]bool
+	// The one membership test, defined before the ForgetOtherRemembered$
+	// snapshot so the snapshot's own scan shares it: preMatched is captured
+	// by POINTER (a nil value captured by copy would stay nil for the
+	// closure however the caller assigns it later), so while the snapshot is
+	// being built the matcher falls through to the zone filter, and every
+	// later call reads the published snapshot.
+	matches := changeZoneAllMatcher(g, c, spec, triggeredSet, &preMatched)
 	// ForgetOtherRemembered$ True (The Mimeoplasm's MimeoExile, 11 corpus
 	// ChangeZoneAll carriers): Forge forgets every previously remembered
 	// object before this effect resolves, so a setup that remembered its own
@@ -190,18 +247,21 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// very memory the clear drops, so the matched set is snapshotted BEFORE
 	// the clear and the sweep below matches against the snapshot -- matching
 	// after the clear would sweep nothing.
-	var preMatched map[state.ObjID]bool
 	if cza.Riders.ForgetOtherRemembered {
-		preMatched = make(map[state.ObjID]bool)
+		// The snapshot is built into a local and only then published: the
+		// matcher itself reads preMatched, so an empty map published before
+		// the snapshot would shadow the zone filter with all-false.
+		pre := make(map[state.ObjID]bool)
 		for _, z := range from {
 			for _, p := range players {
 				for _, id := range g.Zone(z, p) {
-					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-						preMatched[id] = true
+					if matches(z, id) {
+						pre[id] = true
 					}
 				}
 			}
 		}
+		preMatched = pre
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
@@ -220,7 +280,15 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// The Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
 	// and are not touched here.
 	randomOrder := cza.RandomOrder
-	rider := classifyAttackingEntryText(c, cza.Riders.Attacking, to)
+	// The Attacking$ rider's CR 508.4 chooser is the entering permanent's
+	// controller. A single-owner sweep asks that owner; a mixed-owner sweep
+	// falls back to the resolving controller (uniformEnteringController).
+	var sweepOwners []state.PlayerID
+	if strings.EqualFold(cza.Riders.Attacking, "True") && to == state.ZBattlefield {
+		sweepOwners = changeZoneAllOwners(g, from, players, matches)
+	}
+	rider := classifyAttackingEntryText(h, c, cza.Riders.Attacking, to,
+		enteringControllerForAttack(h, c, cza.Riders.Attacking, to, sweepOwners, cza.Riders.GainControl))
 	// A sweep off the battlefield is one simultaneous departure (CR 603.10a):
 	// every member's leaves-the-battlefield triggers look back at the same
 	// pre-sweep board. The id list is empty -- the sweep emits as it scans --
@@ -229,6 +297,11 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	if to != state.ZBattlefield && slices.Contains(from, state.ZBattlefield) {
 		h.BatchDepartures(nil)
 		defer h.EndBatchDepartures()
+	}
+	// A sweep onto the battlefield is one entering event (CR 603.6a): the zone batch holds each entry's trigger check until the last card has entered, so the entrants see each other, and a "one or more" line triggers once (CR 603.2c).
+	if to == state.ZBattlefield {
+		h.BeginZoneBatch()
+		defer h.EndZoneBatch()
 	}
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
 		// A CantExile restriction withholds the object from a battlefield exile
@@ -320,15 +393,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				// Snapshot the zone exactly like the emit loop does.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
-					if triggeredSet != nil {
-						if !triggeredSet[id] {
-							continue
-						}
-					} else if preMatched != nil {
-						if !preMatched[id] {
-							continue
-						}
-					} else if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					if !matches(z, id) {
 						continue
 					}
 					owner := p
@@ -374,16 +439,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 					if changeCap >= 0 && int32(len(moved)) >= changeCap {
 						break sweep
 					}
-					matched := false
-					switch {
-					case triggeredSet != nil:
-						matched = triggeredSet[id]
-					case preMatched != nil:
-						matched = preMatched[id]
-					default:
-						matched = MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller))
-					}
-					if matched {
+					if matches(z, id) {
 						emitMove(id, z, p)
 					}
 				}
@@ -413,18 +469,47 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 				Text: "LibraryPosition$ " + position + " is not implemented; the cards sit at the BOTTOM of their owners' libraries (the MoveZone append)"})
 		}
-		// Shuffle$ True shuffles each destination library that received a card,
-		// AFTER the placement (Gomazoa's "put on top ..., then those players
-		// shuffle" order), through the same Secret events.Shuffle every other
-		// library shuffle emits. NoShuffle$ True (the forced TwoPiles opt-out)
-		// suppresses it.
-		if shuffle {
-			for _, pm := range placements {
-				shuffleLibraryOrder(h, pm.owner)
+	}
+	if to == state.ZLibrary && shuffle {
+		changeZoneAllShuffleLibraries(h, placements, players, scoped)
+	}
+	scheduleAtEOT(h, c, sa, moved)
+}
+
+// ownerMoved is one destination library's share of a ChangeZoneAll sweep:
+// the receiving player and the objects that landed there, in settle order.
+type ownerMoved struct {
+	owner state.PlayerID
+	ids   []state.ObjID
+}
+
+// changeZoneAllShuffleLibraries is the ChangeZoneAll library-shuffle tail.
+// Shuffle$ True shuffles each destination library that received a card,
+// AFTER the placement (Gomazoa's "put on top ..., then those players
+// shuffle" order), through the same Secret events.Shuffle every other
+// library shuffle emits, and then -- CR 701.24d, "that library is
+// shuffled even if there are no objects in that set" -- every library of
+// an EXPLICIT player scope (Defined$ / ValidTgts$ / UseAllOriginZones$:
+// Mnemonic Nexus's "each player", Timetwister, Blessed Respite's target
+// player) that received nothing, in scope order. The unscoped
+// all-players default (the "your graveyard" Card.YouOwn shapes) and the
+// unresolved-scope fallback shuffle only the receiving libraries.
+// NoShuffle$ True (the forced TwoPiles opt-out) is the caller's gate.
+func changeZoneAllShuffleLibraries(h Host, placements []ownerMoved, players []state.PlayerID, scoped bool) {
+	owed := make([]state.PlayerID, 0, len(placements)+len(players))
+	for _, pm := range placements {
+		owed = append(owed, pm.owner)
+	}
+	if scoped {
+		for _, p := range players {
+			if !slices.Contains(owed, p) {
+				owed = append(owed, p)
 			}
 		}
 	}
-	scheduleAtEOT(h, c, sa, moved)
+	for _, p := range owed {
+		shuffleLibraryOrder(h, p)
+	}
 }
 
 type effChangeZoneAllCode uint16

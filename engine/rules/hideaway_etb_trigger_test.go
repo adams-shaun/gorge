@@ -57,12 +57,15 @@ func TestHideawayETBTriggerClivesHideaway(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: pick.Seq, Player: pick.Player, Choices: []int{pick.Options[1].Index}}); err != nil {
 		t.Fatalf("submit Hideaway pick: %v", err)
 	}
-	bottom := e.Pending()
-	if bottom == nil || bottom.Kind != decision.KArrange || len(bottom.Options) != 3 {
-		t.Fatalf("Clive's Hideaway bottom order = %+v, want arrangement of remaining three", bottom)
+	rest := map[state.ObjID]bool{}
+	for i, o := range pick.Options {
+		if i != 1 {
+			rest[o.Obj] = true
+		}
 	}
-	if err := e.Submit(decision.Intent{Seq: bottom.Seq, Player: bottom.Player, Choices: []int{2, 0, 1}}); err != nil {
-		t.Fatalf("submit Hideaway bottom order: %v", err)
+	// CR 702.75a: the rest go to the bottom in a random order; nothing is asked.
+	if bottom := e.Pending(); bottom != nil && bottom.Kind == decision.KArrange {
+		t.Fatalf("Clive's Hideaway asked for a bottom order %+v; CR 702.75a randomises it", bottom)
 	}
 	if got := e.G.Zone(state.ZExile, 0); len(got) != 1 || got[0] != chosen {
 		t.Fatalf("Clive's Hideaway exile = %v, want chosen card %d", got, chosen)
@@ -71,10 +74,9 @@ func TestHideawayETBTriggerClivesHideaway(t *testing.T) {
 		t.Fatalf("chosen Hideaway card = %+v, want face down with provenance %d", o, land)
 	}
 	library := e.G.Zone(state.ZLibrary, 0)
-	wantBottom := []state.ObjID{bottom.Options[2].Obj, bottom.Options[0].Obj, bottom.Options[1].Obj}
-	for i, id := range wantBottom {
-		if library[len(library)-len(wantBottom)+i] != id {
-			t.Fatalf("Clive's Hideaway bottom[%d] = %d, want %d", i, library[len(library)-len(wantBottom)+i], id)
+	for i, id := range library[len(library)-len(rest):] {
+		if !rest[id] {
+			t.Fatalf("Clive's Hideaway bottom[%d] = %d, want one of the three unexiled looked-at cards", i, id)
 		}
 	}
 }

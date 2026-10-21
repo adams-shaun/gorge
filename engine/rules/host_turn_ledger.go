@@ -212,7 +212,7 @@ func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
 	}
 	if len(e.turnsTaken) != len(e.G.Players) || e.turnsTakenEpoch != len(e.L.Events) {
 		e.turnsTaken = make([]int32, len(e.G.Players))
-		for _, ev := range e.L.Events {
+		for _, ev := range e.L.Events[e.turnLedgerBase:] {
 			if ev.Kind == events.TurnChange && int(ev.Player) < len(e.turnsTaken) {
 				e.turnsTaken[ev.Player]++
 			}

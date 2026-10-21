@@ -346,6 +346,14 @@ var predicates = map[string]predFn{
 	"attackedThisCombat": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.AttackedCombat != 0 && o.AttackedTurn == g.Turn && o.AttackedCombat == g.CombatsThisTurn
 	},
+	// hadToAttackThisCombat is CR 506.7 (Firkraag, Cunning Instigator): the
+	// creature was declared as an attacker THIS combat while an effect was
+	// requiring it to attack -- the event-folded HadToAttack flag under the
+	// same attack stamp attackedThisCombat reads.
+	"hadToAttackThisCombat": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o != nil && o.HadToAttack && o.AttackedCombat != 0 &&
+			o.AttackedTurn == g.Turn && o.AttackedCombat == g.CombatsThisTurn
+	},
 	// attackedThisTurn is "declared as an attacker at any point this turn"
 	// (extra combats included): Erg Raiders' end-step gate, Full Throttle's
 	// UntapAll, Kratos's count. It reads the same event-folded stamp pair as
@@ -572,6 +580,19 @@ var predicates = map[string]predFn{
 	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.ExertedThisTurn
 	},
+	// notTributed is CR 702.104's "if tribute wasn't paid" gate (task
+	// kw-tribute-expansion): the permanent has NOT been paid its tribute.
+	// The event-backed read is events.Apply's AlterAttribute "Tributed" fold
+	// (state.Object.Tributed), emitted by putCounterTribute's acceptance. The
+	// K:Tribute expansion's minted ETB trigger is the only carrier; the
+	// predicate is a recognised-shape entry (the compiled predicate layer
+	// marks an unlisted term `maybe` and falls through to this textual
+	// oracle, so no twin term is owed), and UnknownPredicates classifies it
+	// through the same predicates map, so the census and the matcher cannot
+	// disagree.
+	"notTributed": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return !o.Tributed
+	},
 	// enlistedThisCombat is CR 702.160's enlist marker (task enlist1): the
 	// creature enlisted another creature in the CURRENT combat. The stamp
 	// (state.Object.EnlistedTurn/EnlistedCombat, folded by events.Apply's
@@ -745,6 +766,33 @@ type LayerTables struct {
 	// that per-candidate bind, the same immutable value-slice shape as
 	// DerivedTypes/DerivedColors and nil on the common board.
 	DerivedKeywords []ObjectKeywords
+	// CDAPTs optionally supplies the current and base P/T of every object,
+	// in ANY zone, whose face prints a characteristic-defining P/T (a star,
+	// cards.Face.CharacteristicDefining): rules' Derived values, which apply
+	// the CDA wherever the card is (CR 604.3), so a filter's power predicate
+	// reads Consuming Aberration in a library as its CDA value and never its
+	// printed star as 0 (CR 208.2a). Consulted only when the candidate has no
+	// per-object DerivedPower/BasePower bind. The same immutable value-slice
+	// shape as DerivedTypes; built on demand (LayerCDAPT) and nil when no such
+	// object exists.
+	CDAPTs []ObjectPT
+}
+
+// ObjectPT binds one object to its current and base (through layer 7b)
+// power and toughness.
+type ObjectPT struct {
+	ID                                         state.ObjID
+	Power, Toughness, BasePower, BaseToughness int32
+}
+
+// cdaPT returns o's entry in the CDAPTs table.
+func (t *LayerTables) cdaPT(id state.ObjID) (*ObjectPT, bool) {
+	for i := range t.CDAPTs {
+		if t.CDAPTs[i].ID == id {
+			return &t.CDAPTs[i], true
+		}
+	}
+	return nil, false
 }
 
 // keywordPredicateMatches reads bare keyword predicates through keywordInCtx
@@ -1910,7 +1958,9 @@ func startsFilterAlternative(s string) bool {
 // they reach here -- see hasEffectiveName for why it cannot be folded into
 // this function's return value.
 func nameCharacteristics(o *state.Object) []string {
-	if o == nil || o.Card == nil {
+	// CR 708.2a/201.2a: a face-down permanent or spell has no name, so it
+	// shares a name with nothing.
+	if o == nil || o.Card == nil || o.FaceDownHidden() {
 		return nil
 	}
 	// CR 709.5: a battlefield Room's names are its unlocked doors' names --
@@ -1918,16 +1968,16 @@ func nameCharacteristics(o *state.Object) []string {
 	if names, room := roomNames(o); room {
 		return names
 	}
-	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
-	if offPlay && o.Card.AlternateMode == "Split" {
+	if halves, ok := o.SplitHalves(); ok {
 		var names []string
-		for _, f := range o.Card.Faces {
-			if f != nil && f.Name != "" {
+		for _, f := range halves {
+			if f.Name != "" {
 				names = append(names, f.Name)
 			}
 		}
 		return names
 	}
+	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
 	f := o.Face()
 	if offPlay && len(o.Card.Faces) != 0 {
 		f = o.Card.Faces[0]
@@ -1960,9 +2010,6 @@ func namePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 func hasNoName(o *state.Object, sc SpecContext) bool {
 	if o == nil || o.Card == nil || hasEffectiveName(o, sc) {
 		return false
-	}
-	if o.FaceDown && (o.Zone == state.ZBattlefield || o.Zone == state.ZStack) {
-		return true
 	}
 	return len(nameCharacteristics(o)) == 0
 }
@@ -2402,7 +2449,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		if !inSet {
 			return false, true
 		}
-		mine := objectManaValue(o)
+		mine := objectManaValue(g, o)
 		for i := range g.Objs {
 			other := &g.Objs[i]
 			if other.ID == o.ID || other.Zone != state.ZBattlefield || !cmcSetMember(other, prop) {
@@ -2419,7 +2466,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 					continue
 				}
 			}
-			if objectManaValue(other) > mine {
+			if objectManaValue(g, other) > mine {
 				return false, true
 			}
 		}
@@ -2438,13 +2485,13 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// The candidate is compared even when it is a land (Forge has no
 		// candidate-in-set check here); every real carrier's base constrains
 		// it to a nonland permanent anyway, so no correct target is lost.
-		mine := objectManaValue(o)
+		mine := objectManaValue(g, o)
 		for i := range g.Objs {
 			other := &g.Objs[i]
 			if other.Zone != state.ZBattlefield || hasType(other, "Land") {
 				continue
 			}
-			if objectManaValue(other) < mine {
+			if objectManaValue(g, other) < mine {
 				return false, true
 			}
 		}
@@ -2481,7 +2528,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// Colour predicates must use the layer-5 derived colours when rules
 	// supplies them: the map's legacy colour functions carry no SpecContext,
 	// so with a table bound they fall through to the word path below.
-	if fn, ok := predicates[p]; ok && !(len(sc.Layers.DerivedColors) != 0 && colourMapPredicate(p)) {
+	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc)) && colourMapPredicate(p)) {
 		return fn(g, o, sc.You, sc.Source), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
@@ -2688,6 +2735,12 @@ type SpecContext struct {
 	// announced spell as the cast spell it is; nothing else reads it, and it
 	// is absent from every resolution- and target-time evaluation.
 	AsStack bool
+	// AsSpellHalf is the same class of DERIVED-CHARACTERISTICS override:
+	// rules' spellSpecCtx sets it while a cast restriction or cost modifier
+	// reads a card still in its origin zone as the spell its current face
+	// would be (CR 601.3a/709.3a), so a split card's halves are not combined
+	// (CR 709.4) for that read. Absent from every other evaluation.
+	AsSpellHalf bool
 	// AsFaceDown is the same class of DERIVED-CHARACTERISTICS override for
 	// the faceDown predicate: a Moved replacement's ValidCard$ is evaluated
 	// ahead of the Move it intercepts, so the entering object is not yet
@@ -2968,8 +3021,10 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	// discipline the layer walk keeps for ExtraTypes (engine/rules/layers.go), scoped
 	// here to the one object that actually carries a change.
 	cs := compiledSpecFor(spec)
+	// A split card read as the spell being cast (splitReadAsSpell) is the
+	// same kind of override: the programs read its combined colours.
 	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
-		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) {
+		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
 		case PredicateYes:
 			return true
@@ -3402,10 +3457,16 @@ func predicateNeedsResolver(name string) bool {
 		_, err := strconv.Atoi(numStr)
 		return err != nil
 	}
+	if _, _, parity := parityPredicate(name); parity {
+		return false
+	}
 	for _, field := range [...]string{"power", "toughness", "cmc"} {
 		rest, ok := strings.CutPrefix(name, field)
 		if !ok || len(rest) < 3 {
 			continue
+		}
+		if numericCmpOrNotCodes.Code(rest[:2]) == 0 && !strings.HasPrefix(rest, "NOT") {
+			return false
 		}
 		numStr := rest[2:]
 		// The characteristic-vs-characteristic shapes need no resolver.

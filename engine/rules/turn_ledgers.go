@@ -50,6 +50,20 @@ func (e *Engine) recordTurnLedgers(stored events.Event, abilityMintWant state.Ob
 				stack: o.ID, source: o.Source, activator: stored.Player, ab: o.Ability})
 		}
 	}
+	// CR 602.2a/733.1: the activation's ledger entry is appended at its
+	// up-front push (the mint above); a proposal reversed before payment
+	// never became an activation, so its ActivationReversed — which carries
+	// the mint's source and player, not the minted stack id, and whose abort
+	// is synchronous — drops the LAST matching entry.
+	if stored.Kind == events.ActivationReversed {
+		for i := len(e.activationsThisTurn) - 1; i >= 0; i-- {
+			r := e.activationsThisTurn[i]
+			if r.source == stored.Obj && r.activator == stored.Player {
+				e.activationsThisTurn = slices.Delete(e.activationsThisTurn, i, i+1)
+				break
+			}
+		}
+	}
 	if stored.Kind != events.TargetsChosen {
 		return
 	}

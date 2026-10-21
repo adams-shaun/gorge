@@ -466,9 +466,22 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 		}
 		return keys[i].battle < keys[j].battle
 	})
+	// CR 506.7: the attackers an effect was requiring to attack at the time
+	// attackers are declared, read before the declaration folds (Forge's
+	// AttackRequirement.hasRequirement; a requirement counts whether or not
+	// the chosen defender discharged it).
+	var hadTo []state.ObjID
+	for _, opt := range chosen {
+		if combat.AttackRequirements(asBoard(e), opt.Obj).Any() {
+			hadTo = append(hadTo, opt.Obj)
+		}
+	}
 	attackEventStart := len(e.L.Events)
 	for _, k := range keys {
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: k.player, Obj: k.battle, IDs: byDef[k]})
+	}
+	if len(hadTo) > 0 {
+		e.emit(events.Event{Kind: events.HadToAttack, IDs: hadTo})
 	}
 	// Every defender-specific event has now folded, so intervening-if checks
 	// observe the complete simultaneous declaration (including attackers in
@@ -496,7 +509,12 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 	// declare-blockers step begins. The election is one KChoose per
 	// offerable attacker in the declaration's own option order (chosen
 	// order, deduped) -- deterministic, and the re-derivation a replay runs
-	// when it answers the recorded intents again.
+	// when it answers the recorded intents again. The CR 702.22c band
+	// declaration, when a banding creature attacks, is asked first; its last
+	// answer resumes the exert election (askNextBand).
+	if e.startBandAsks(chosen) {
+		return
+	}
 	e.startExertAsks(chosen)
 }
 
@@ -1387,6 +1405,7 @@ func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	for _, opt := range chosen {
 		pairs = append(pairs, [2]state.ObjID{opt.Attacker, opt.Obj})
 	}
+	pairs = e.bandBlockPairs(pairs)
 	// Empty is a real declaration and is also the replay-derived marker that
 	// this defender answered; the cursor determines whether every defender
 	// in a multiplayer declaration round has answered.
@@ -1661,7 +1680,7 @@ func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
 		}
 		out = append(out, id)
 	}
-	return out
+	return e.appendBandBlockerDivisions(out, pass)
 }
 
 // maxDivisionOptions bounds the number of damage-division options offered for
@@ -1829,9 +1848,10 @@ func (e *Engine) askNextDivision() bool {
 	e.combatRound.askAttacker = a
 	e.combatRound.askOptions = table
 	e.choosing = chooseDamageDivision
-	e.ask(&decision.Decision{Player: e.G.Active, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: fmt.Sprintf("turn %d — divide %s's combat damage among its blockers", e.G.Turn,
-			e.G.Obj(a).Face().Name), Options: opts, Source: a})
+	chooser, among := e.divisionChooser(a)
+	e.ask(&decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: fmt.Sprintf("turn %d — divide %s's combat damage among %s", e.G.Turn,
+			e.G.Obj(a).Face().Name, among), Options: opts, Source: a})
 	return true
 }
 
@@ -1842,7 +1862,7 @@ func (e *Engine) askNextDivision() bool {
 // the declaration-order assignment rule), so the options enumerate them all;
 // the split table lets the answer handler recover the chosen amounts.
 func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
-	blockers := e.liveBlockers(e.G.Obj(a))
+	blockers := e.divisionRecipients(a)
 	pw := e.combatDamageAmount(a)
 	n := len(blockers)
 	var splits [][]int32
@@ -1862,6 +1882,7 @@ func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 		}
 	}
 	rec(pw, 0)
+	chooser, _ := e.divisionChooser(a)
 	opts := make([]decision.Option, 0, len(splits))
 	for i, sp := range splits {
 		label := make([]byte, 0, 64)
@@ -1872,7 +1893,7 @@ func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 			label = append(label, fmt.Sprintf("%d to %s", sp[j], e.G.Obj(bid).Face().Name)...)
 		}
 		opts = append(opts, decision.Option{Index: i, Kind: "division",
-			Label: string(label), Obj: a, Player: e.G.Active, Amount: int(sp[0])})
+			Label: string(label), Obj: a, Player: chooser, Amount: int(sp[0])})
 	}
 	return opts, splits
 }
@@ -2316,6 +2337,9 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue
 			}
+			if a.Band != 0 && len(e.bandBlockedAttackers(bid)) > 1 {
+				continue // CR 510.1d / 702.22k: divided below, once per blocker
+			}
 			if bp := e.combatDamageAmount(bid); bp > 0 {
 				as = append(as, assignment{toObj: aid, amount: bp,
 					lifelink: e.G.Obj(bid).Controller, hasLink: e.hasKeywordH(bid, kwhLifelink),
@@ -2324,6 +2348,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 			}
 		}
 	}
+	as = e.bandBlockerAssignments(as, firstStrike)
 	// One damage pass is ONE damage batch (CR 510.4): every Damage event the
 	// emit loop below produces latches the DamageDealtOnce/DamageDoneOnce
 	// triggers together and accumulates their referent amounts, closed (and
@@ -2558,7 +2583,7 @@ func (e *Engine) runCombatAssignments() {
 			}
 		}
 		if x.hasLink && !prevented {
-			e.emit(events.Event{Kind: events.LifeChange, Player: x.lifelink, Amount: dealt})
+			e.gainFromLifelink(x.from, x.lifelink, dealt, true)
 		}
 		e.damaging = 0
 		e.combatDamaging = false
@@ -2566,6 +2591,10 @@ func (e *Engine) runCombatAssignments() {
 			e.combatRound.damageNext = i + 1
 			return
 		}
+	}
+	if !e.flushLifelinkBatch(true) {
+		e.combatRound.damageNext = len(e.combatRound.assignments)
+		return
 	}
 	// CR 726.2, the one adjudication of this simultaneous pass (see the
 	// collection block above): among the distinct controllers whose creatures
@@ -2806,11 +2835,8 @@ func (e *Engine) cleanupBody() {
 				}
 			}
 			if o.Damage > 0 && !keepDamage {
-				ev := events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage}
-				if f := o.Face(); e.IsCreature(id) && f != nil && f.IsPlaneswalker() && !f.IsCreature() {
-					ev.Counter = "creature"
-				}
-				e.emit(ev)
+				// recomputeWalkerCreatureMarker tags an animated walker's clear.
+				e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
 			}
 			if n := o.Counter("Shield"); n > 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: id,
@@ -2951,6 +2977,10 @@ func init() {
 		"kw:Infect", "kw:Wither", "kw:Backup",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
 		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
+		// kw:Banding (CR 702.22, engine/rules/banding.go): band declaration,
+		// block propagation and the 702.22j-k damage choosers. "Bands with
+		// other" (702.22b) is a separate head and stays unregistered.
+		"kw:Banding",
 		// kw:Intimidate (CR 702.13a): an Intimidate attacker is blocked only
 		// by artifact creatures and/or creatures sharing a colour with it --
 		// read directly in combat.CanBlock as a colour-intersection generalisation

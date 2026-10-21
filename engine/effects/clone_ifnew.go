@@ -37,10 +37,10 @@ func cloneIfNewPayload(h Host, c *Ctx, cp *CloneParams, src state.ObjID) string 
 		return ""
 	}
 	o := h.Game().Obj(src)
-	if o == nil || o.Face() == nil {
+	if o == nil || o.CopiableFace() == nil {
 		return ""
 	}
-	f := o.Face()
+	f := o.CopiableFace()
 	granted := make([]string, 0, len(cp.IfNew))
 	for _, kw := range cp.IfNew {
 		// CR 707.9b compares the copied template's COPIABLE characteristics,

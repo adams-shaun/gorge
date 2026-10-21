@@ -23,6 +23,23 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// mayShuffleConfirm asserts the pending decision IS the object-path
+// "you may shuffle" confirm (ShuffleNonMandatory$ on a graveyard-origin
+// ChangeZone: Put Away, Cathartic Parting, Devious Cover-Up, Ghostly
+// Castigator) and returns the yes and no option indexes.
+func mayShuffleConfirm(t *testing.T, e *Engine, who state.PlayerID) (int, int) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search_mayshuffle" || d.Player != who {
+		t.Fatalf("pending = %+v, want the may-shuffle confirm for seat %d", d, who)
+	}
+	if d.Prompt != "Shuffle your library?" || len(d.Options) != 2 ||
+		d.Options[0].Kind != "yes" || d.Options[1].Kind != "no" {
+		t.Fatalf("confirm shape = %q options %+v, want \"Shuffle your library?\" with a yes then a no", d.Prompt, d.Options)
+	}
+	return d.Options[0].Index, d.Options[1].Index
+}
+
 // drainAfterAnswer passes every priority decision until the stack is empty,
 // failing if the sub's ask is RE-POSED after its answer was consumed (the
 // elected-zero non-re-ask contract) or any other unexpected ask appears.
@@ -95,12 +112,13 @@ func chooseObj(t *testing.T, e *Engine, kind string, obj state.ObjID) {
 // target ask WITH THE CAST (CR 601.2c: a cast_sub KTarget, not a resolution
 // KChoose), the answered card -- deliberately a DIFFERENT card than the
 // countered spell, proving the answer decoupled from Ctx.Targets -- moves to
-// the library, and the may-shuffle confirm appears and is honoured on both
-// branches.
+// the library on "yes", and the may-shuffle election appears and is honoured
+// on both branches: "no" leaves the card in the graveyard (the "may" covers
+// the whole shuffle-in, cr-g09).
 func TestPutAwaySubAsksGraveyardTarget(t *testing.T) {
 	t.Parallel()
 	for _, accept := range []bool{true, false} {
-		name := "decline keeps order, no shuffle"
+		name := "decline leaves the card, no shuffle"
 		if accept {
 			name = "accept shuffles once"
 		}
@@ -184,11 +202,16 @@ func TestPutAwaySubAsksGraveyardTarget(t *testing.T) {
 			}
 			drainAfterAnswer(t, e)
 
-			// The ANSWERED card is in the library; the countered spell's card
-			// (Put Away sends it to the graveyard) stayed exactly where the
-			// counter put it -- the answer was the ask's, not Ctx.Targets'.
-			if o := e.G.Obj(forest); o == nil || o.Zone != state.ZLibrary {
-				t.Fatalf("after resolution: the answered graveyard card is %+v, want it in seat 0's library", o)
+			// On "yes" the ANSWERED card is in the library; on "no" it never
+			// left the graveyard. The countered spell's card (Put Away sends it
+			// to the graveyard) stayed exactly where the counter put it -- the
+			// answer was the ask's, not Ctx.Targets'.
+			wantZone := state.ZGraveyard
+			if accept {
+				wantZone = state.ZLibrary
+			}
+			if o := e.G.Obj(forest); o == nil || o.Zone != wantZone {
+				t.Fatalf("after resolution: the answered graveyard card is %+v, want it in seat 0's %v", o, wantZone)
 			}
 			if o := e.G.Obj(bearStack); o == nil || o.Zone != state.ZGraveyard {
 				t.Fatalf("after resolution: the countered spell is %+v, want it in the graveyard untouched by the sub", o)

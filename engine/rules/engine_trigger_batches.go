@@ -74,6 +74,19 @@ type engineTriggerBatches struct {
 	// card type and the batch's summed damage, published as ExcessDamage
 	// history events when the outermost batch closes (CR 120.10).
 	excessBatch excessTally `clone:"deep"`
+	// lifelinkBatch is the per-(source, player) lifelink total for the open
+	// damage batch (CR 702.15e, 119.9): one source's simultaneous damage to
+	// several recipients is ONE life-gain event of the sum. Deep because a
+	// combat pass parked on a replacement-order ask carries it across the
+	// decision, and a clone taken there must resume with it. Nil = nothing
+	// pending.
+	lifelinkBatch []lifelinkGain `clone:"deep"`
+	// lifelinkBatchOpen keeps that accumulation alive past closeDamageBatch
+	// while a CR 616.1 damage replacement is still parked: the parked hit has
+	// not paid its lifelink yet, and when it lands it must merge with the
+	// hits that already did (CR 702.15e). handleReplacement flushes it once
+	// the parked damage queue drains. False outside that window.
+	lifelinkBatchOpen bool `clone:"deep"`
 	// zoneBatch (RepeatEach's ChangeZoneTable$ True): the zone changes every
 	// loop iteration's body causes are ONE ChangesZoneAll batch, presented
 	// once after the loop completes. Same shape as the damage batch above:
@@ -89,6 +102,9 @@ type engineTriggerBatches struct {
 	zoneBatchDepth int                  `clone:"deep"`
 	zoneBatchIdx   map[zoneBatchKey]int `clone:"deep"`
 	zoneBatchLog   []zoneBatchEntry     `clone:"deep"`
+	// entryHeld is CR 603.6a's entering batch: while a zone batch is open, each battlefield entry's trigger check (a MoveZone onto the battlefield from another zone, or a token mint) is held here in emit order instead of running at the event, and closeZoneBatch runs every held check, in order, once the batch's last member has entered, so each entrant's "whenever another ... enters" sees the whole batch. Deep like the zone batch it rides: a RepeatEach ChangeZoneTable bracket can stay open across a pending decision. entryFlushing is set while those held checks run, so they are not held again.
+	entryHeld     []heldEntryCheck `clone:"deep,copy=cloneHeldEntryChecks"`
+	entryFlushing bool             `clone:"reset"`
 	// millBatch is the shared "one or more" ACTION batch: one api:Mill
 	// resolution (Mode$ MilledAll), one api TapAll/UntapAll resolution or
 	// turn-based tapping/untapping action (Mode$ TapAll/UntapAll, task

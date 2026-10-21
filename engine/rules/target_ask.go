@@ -488,6 +488,17 @@ func (e *Engine) OpponentPickAsk(c *effects.Ctx, sa *cards.SA) (state.PlayerID, 
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
+	// CR 603.3d / 601.2d: each target of a division receives at least 1, so
+	// at most the divided total may be targeted; a total below the minimum
+	// leaves no legal choice and the ability is removed (the exit below).
+	divisionShort := false
+	if total, ok := e.placedDivisionTotal(source, sa); ok && int(total) < max {
+		if int(total) < min {
+			divisionShort = true
+		} else {
+			max = int(total)
+		}
+	}
 	if max == 0 {
 		// A dynamic bound RESOLVED to zero: this stage takes no targets, so
 		// pose no ask (the effects-side askTargets has the same max <= 0 arm).
@@ -565,7 +576,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		if len(d.Options) == 0 {
 			return
 		}
-	} else if len(d.Options) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity) || (setMode != decision.SetPropNone && min > setCapacity) {
+	} else if divisionShort || len(d.Options) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity) || (setMode != decision.SetPropNone && min > setCapacity) {
 		// A target-hungry subject with fewer legal targets than Min -- or one
 		// whose per-controller constraint admits fewer distinct controllers
 		// than Min (exclusive && min > distinct: two mandatory targets, both
@@ -640,8 +651,14 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				e.payCast()
 			} else {
 				pc.rootOpts = append([]decision.Option(nil), ordered...)
+				// This arm dispatches itself after payCast (below), so
+				// payment that completes here -- including on a later cost
+				// answer's resumed payCast (CR 601.2h) -- must not dispatch
+				// from payCast's arm as well.
+				pc.targetedFinish = true
 				e.payCast()
-				if pc.stackObj != 0 {
+				pc.targetedFinish = false
+				if pc.activationPaid {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
 					e.cast = pc
 					e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
@@ -680,8 +697,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// trigger -- via payCast. For a spell the stack object is the card
 	// itself, already on the stack (pushCast), so targets are recorded before
 	// payment (601.2c before 601.2h); for an activated ability the stack
-	// object is minted by payCast's AbilityPush, so targets are recorded
-	// AFTER it. Targets are never written directly (they go through
+	// object is pushed by pushActivation (CR 602.2a) but its targets are still
+	// recorded after the cost is paid. Targets are never written directly (they go through
 	// TargetsChosen events) and always after the push, because a zone change
 	// clears them.
 	if e.cast != nil {
@@ -732,8 +749,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				}
 			}
 		} else {
-			// The ability object does not exist until payCast's AbilityPush, so
-			// the root answer's options ride pc.rootOpts for the payment tail's
+			// The ability object is already pushed (CR 602.2a), but the root
+			// answer's options ride pc.rootOpts for the payment tail's
 			// recordChosenTargets; the post-target stages (alltargeted1's sub
 			// pre-asks, the CollectEvidence ask) run BEFORE payment (CR 601.2c).
 			pc.rootOpts = append([]decision.Option(nil), chosen...)
@@ -746,8 +763,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		}
 		e.finishTargetedCast(pc, pc.player)
 		// tpc1: pin the answering seat against the resolving object. For a
-		// spell pc.stackObj is already the pushed object; for an activation
-		// payCast's AbilityPush has just minted it. The CR 608.2b recheck
+		// spell and an activation pc.stackObj is already the pushed object
+		// (pushCast / pushActivation, CR 602.2a). The CR 608.2b recheck
 		// (legalTargets) reads this record off the resolving object.
 		if po := e.G.Obj(pc.card); po != nil {
 			if tsa := e.castStageSA(pc, po, po.Face()); tsa != nil {
@@ -758,9 +775,22 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	}
 	e.recordTpControlsChooser(d.Source, d.ResumeSA, in.Player)
 	e.recordChosenTargets(d.Source, chosen, false)
+	// CR 603.3d: a divided ability announces its division (601.2d) right
+	// after its root targets; the answer continues through finishPlacedTargets.
+	if e.placedDivisionAsk(d.Source, d.ResumeSA) {
+		return
+	}
+	e.finishPlacedTargets(d.Source, in.Player)
+}
+
+// finishPlacedTargets is the tail of a placed ability's root target answer
+// (handleTarget) and of its division answer (answerPlacedDivision): the
+// chain-link announcement, then the drain's resume or the answering
+// player's priority.
+func (e *Engine) finishPlacedTargets(obj state.ObjID, player state.PlayerID) {
 	// The root's answer opens a placed trigger's chain-link announcement
 	// (CR 603.3d); the last link's answer resumes the drain instead.
-	if e.trigSub != nil && e.trigSub.obj == d.Source && e.askTriggerSubTargets() {
+	if e.trigSub != nil && e.trigSub.obj == obj && e.askTriggerSubTargets() {
 		return
 	}
 	// A target decision asked by a trigger drain (putTriggersOnStack's
@@ -778,14 +808,15 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	}
 	// Ruling T14-e: the submitting player, not e.G.Active -- CR 117.3c, the
 	// player who chose the target (the caster) keeps priority.
-	e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+	e.emit(events.Event{Kind: events.Priority, Player: player, Amount: 0})
 }
 
 // targetOptions converts a target decision's selected options to the
 // proposal-local target representation used while its cost is still being
 // assembled. Events remain the source of truth once the stack object exists;
 // this short-lived copy is only what lets an activated ability evaluate a
-// ValidTarget$ cost modifier before its AbilityPush object is minted.
+// ValidTarget$ cost modifier before its cost is paid (the object is already
+// pushed by pushActivation, CR 602.2a).
 func targetOptions(chosen []decision.Option) []state.Target {
 	out := make([]state.Target, 0, len(chosen))
 	for _, opt := range chosen {

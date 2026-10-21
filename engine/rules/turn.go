@@ -25,6 +25,11 @@ func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 		return
 	}
 	e.emit(events.Event{Kind: events.TurnChange, Player: active, Amount: e.G.Turn + 1})
+	if e.restartRest != nil {
+		// CR 727.4: a restart's remaining instructions, just before the new
+		// game's first untap step (engine/rules/restart.go).
+		e.runRestartRest()
+	}
 	// CR 500.7 riders apply to the particular queued extra turn, not every
 	// later turn of its controller. The variadic form keeps ordinary callers
 	// explicit-free while advanceStep supplies the pending grant's SkipUntap.
@@ -496,7 +501,7 @@ func (e *Engine) startSuspendedCast() bool {
 		// would incorrectly put the spell on the stack. An uncastable card is
 		// never offered: there is nothing to choose (CR 702.62a casts "if
 		// able"), so no decision is posed for it.
-		if e.castRestricted(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
+		if e.castRestrictedFree(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
 			continue
 		}
 		name := "it"
@@ -563,7 +568,7 @@ func (e *Engine) startDefeatedCast() bool {
 			o.FaceIdx != 0 || o.Card == nil || len(o.Card.Faces) < 2 || o.Counter("DEFENSE") != 0 {
 			continue
 		}
-		if e.castRestricted(o.Owner, id) {
+		if e.castRestrictedFree(o.Owner, id) {
 			continue
 		}
 		if back := o.Card.Faces[1]; back != nil && back.SpellAbility() != nil &&
@@ -681,6 +686,8 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 		// CR 511.3: "until end of combat" control effects end with the step.
 		e.expireControl(controlAtEndOfCombat)
 		e.reconcileControlStatics()
+		// CR 511.2: "until end of combat" continuous effects end with it.
+		e.expireUntilEndOfCombat()
 	}
 }
 
@@ -1095,6 +1102,28 @@ func (e *Engine) askPriority(p state.PlayerID) {
 	e.notePriorityWalk(p, d, ep, ver, objs)
 }
 
+// checkEndTurnExileTriggers is the trigger check for CR 724.1b's exile of
+// the stack: foldEndTurn moves every stack object named in ev.IDs to exile
+// inside the one EndTurn event, so the ordinary per-event check never sees a
+// zone change. Each CARD it exiled (a spell, not an ability object, which
+// simply ceases to exist) is checked as a Stack-to-Exile move, all of them in
+// one zone batch (they are exiled simultaneously, so a ChangesZoneAll
+// trigger fires once). The abilities that trigger here triggered DURING the
+// end-the-turn process, so they survive into the cleanup step (CR 724.1f).
+// The checks read the post-fold board; no event is emitted.
+func (e *Engine) checkEndTurnExileTriggers(ev *events.Event) {
+	e.openZoneBatch()
+	for _, id := range ev.IDs {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZExile || o.Ability != nil || o.Face() == nil {
+			continue
+		}
+		mv := events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile, Player: o.Owner}
+		e.checkTriggers(&mv, nil, 0, 0, false)
+	}
+	e.closeZoneBatch()
+}
+
 // finishEndTurn applies CR 723.1d/e after the EndTurn event has removed the
 // entire stack. The skipped steps/phases are never entered, so their
 // beginning-of-step triggers are never queued and the end step's own StepChange
@@ -1110,8 +1139,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 // middle of a split-attack blocker round must not leak that round into the
 // next turn.
 func (e *Engine) finishEndTurn() {
-	e.pendingTriggers = nil
-	e.orderedTriggers = 0
 	e.combatRound = combatRound{}
 	e.blockerRound = blockerRound{}
 	e.endTurnRequested = false
@@ -1238,11 +1265,11 @@ func (e *Engine) advanceStep() {
 //  1. every CONSUMED grant whose extra phase ends at L (RangeEnd) completes
 //     here -- one -2 ExtraPhase event per entry, the entry removed from the
 //     fold;
-//  2. then the earliest-created PENDING grant spliced at L -- or, when step
-//     1 completed grants, at the same insertion point they spliced at
-//     (Obeka's N upkeeps all splice after the same end-of-combat step, and
-//     each next upkeep is spliced there, not after the last one) -- is
-//     consumed (-1) and its extra phase entered;
+//  2. then the most recently created PENDING grant (CR 500.8) spliced at L
+//     -- or, when step 1 completed grants, at the same insertion point they
+//     spliced at (Obeka's N upkeeps all splice after the same end-of-combat
+//     step, and each next upkeep is spliced there, not after the last one)
+//     -- is consumed (-1) and its extra phase entered;
 //  3. when step 1 completed grants but step 2 found nothing to splice, the
 //     walk jumps to the LAST completed grant's resume point (FollowedBy$, or
 //     AfterStep+1 when absent);
@@ -1288,10 +1315,11 @@ func (e *Engine) extraPhaseBoundary() (state.Step, bool) {
 			resume = ep.AfterStep + 1
 		}
 	}
-	// 2. Splicing the next pending grant: earliest created first, spliced at
-	// the leaving step -- or, when this boundary completed grants, at their
-	// insertion point too.
-	for i := range e.G.ExtraPhases {
+	// 2. Splicing the next pending grant: MOST RECENTLY created first (CR
+	// 500.8; the queue is in creation order, so scan from the back), spliced
+	// at the leaving step -- or, when this boundary completed grants, at
+	// their insertion point too.
+	for i := len(e.G.ExtraPhases) - 1; i >= 0; i-- {
 		ep := e.G.ExtraPhases[i]
 		if ep.Consumed {
 			continue
@@ -1345,9 +1373,10 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 	case decision.KCommanderZone:
 		// The CR 903.9 "put it into the command zone instead" choice (Task
 		// m32): the answered decision emits the parked MoveZone for real --
-		// to the command zone on an accept, verbatim on a decline -- and
-		// hands the queue to the next parked commander if any. See
-		// handleCmdZone (engine/rules/replacement.go).
+		// to the command zone on an accept, verbatim on a decline (a CR 903.9a
+		// sba entry: graveyard/exile -> command zone on an accept, nothing on
+		// a decline) -- and hands the queue to the next parked commander if
+		// any. See handleCmdZone (engine/rules/replacement.go).
 		e.handleCmdZone(d, in)
 	case decision.KReplacement:
 		// The CR 616.1 order choice among competing replacement effects
@@ -1411,6 +1440,13 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// The entry-boundary ask was posed from inside emit (replacement.go's
 		// applyETBChoiceReplacement).
 		e.resumeETBEntry(chosen)
+		return
+	}
+	if e.choosing == chooseTrigDivision {
+		// The CR 603.3d division of an ability being put on the stack
+		// (engine/rules/cast_division.go placedDivisionAsk).
+		e.choosing = chooseNone
+		e.answerPlacedDivision(d, chosen)
 		return
 	}
 	if e.choosing == chooseOppPick {
@@ -1672,6 +1708,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// drain to resume (an election answer is never handed out from
 		// inside one).
 		e.handleAsUnblockedElection(chosen)
+	case chooseBand:
+		// CR 702.22c: one band-declaration answer (engine/rules/banding.go);
+		// bandAnswer records it and asks the next, then resumes the exert
+		// election after the last.
+		e.bandAnswer(d, in)
 	case chooseExert:
 		// exert1: the declare-attackers step's exert election (CR 702.100a)
 		// was answered. exertAnswer emits the decline's nothing or the
