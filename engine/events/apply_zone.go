@@ -585,6 +585,32 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			}
 		}
 	}
+	// CR 400.7 / 704.5m-n: a permanent that leaves the battlefield is a new
+	// object in its next zone, so nothing stays attached ACROSS the move:
+	// every attachment to the departing permanent is broken here, inside the
+	// fold, with the departed bearer recorded as LastBearer (the contract
+	// LKI readers of "objects that were attached to it" fall back to). The
+	// clearing must happen at the move itself, not in the attachment SBAs
+	// (engine/rules/attach.go), because a flicker (exile, then return under
+	// the same ObjID) puts the bearer back on the battlefield before the next
+	// SBA checkpoint runs -- the old code only cleared the MOVER's own
+	// AttachedTo, so a returned bearer carried its Aura and its bonuses
+	// across the trip. The rules-side SBAs then finish the job: an Aura
+	// whose AttachedTo is now 0 goes to its owner's graveyard (704.5m), an
+	// Equipment sits unattached on the battlefield (704.5n), a bestowed card
+	// re-arms as a plain creature through the type switch (its derived types
+	// lose Aura with BestowedAttached). The g.Objs walk is index-ordered, so
+	// the fold stays deterministic. An attachment to a PLAYER
+	// (HasAttachedPlayer) is not object-attached and is untouched.
+	if wasBattlefield && to != state.ZBattlefield {
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.AttachedTo == id {
+				other.LastBearer = id
+				other.AttachedTo = 0
+			}
+		}
+	}
 	// CR 712.4: a melded permanent that goes anywhere but the battlefield
 	// splits back into its two cards (engine/events/apply_meld.go).
 	if to != state.ZBattlefield && o.MeldedWith != 0 {
