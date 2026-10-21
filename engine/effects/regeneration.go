@@ -45,9 +45,9 @@ func ReplaceUmbraArmor(h Host, id state.ObjID) bool {
 
 // ReplaceShieldCounter applies CR 122.1c's destruction half: "If this
 // permanent would be destroyed as the result of an effect, instead remove a
-// shield counter from it." Consulted by the Destroy effects only (the
-// lethal-damage and deathtouch SBAs are not effects), after the
-// Indestructible skip and the regeneration shield and before umbra armor --
+// shield counter from it." Consulted by the Destroy effects and by the
+// lethal-damage SBA (engine/rules/sba.go), after the Indestructible skip and
+// the regeneration shield and before umbra armor --
 // the deterministic stand-in for CR 616.1's controller choice: the
 // this-turn regeneration shield is spent before the lasting counter, and the
 // counter before the Aura. NoRegen$ does not gate it: it is not

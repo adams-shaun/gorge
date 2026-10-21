@@ -9,7 +9,8 @@ import (
 // CR 122.1c: one or more shield counters on a permanent create a single
 // prevention effect, "If damage would be dealt to this permanent, prevent
 // that damage and remove a shield counter from it." (The destruction half
-// is effects.ReplaceShieldCounter, consulted by the Destroy effects.)
+// is effects.ReplaceShieldCounter, consulted by the Destroy effects and the
+// lethal-damage SBA path.)
 //
 // The prevention is one more DamageDone replacement, collected beside the
 // granted Prevent keywords so it competes under CR 616.1 like any other and

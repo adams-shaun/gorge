@@ -627,6 +627,12 @@ func (e *Engine) applyLegendBatch(kept state.ObjID) {
 		if c.text == "lethal damage" && effects.ReplaceDestruction(e, c.id) {
 			continue
 		}
+		// CR 122.1c: a shield counter replaces the destruction (the Destroy
+		// effects consult the same replacement; SBA lethal damage is the
+		// other destruction path).
+		if c.text == "lethal damage" && effects.ReplaceShieldCounter(e, c.id) {
+			continue
+		}
 		// Umbra armor (CR 702.90) after the regeneration shield, the same
 		// deterministic shield-first stand-in the Destroy effects use. A
 		// bearer saved here has had all its damage removed inside the
@@ -1190,6 +1196,12 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts, facts *sbaBoardFacts) b
 	for _, c := range dead {
 		markTried(&tried.objs, c.id)
 		if c.text == "lethal damage" && effects.ReplaceDestruction(e, c.id) {
+			continue
+		}
+		// CR 122.1c: a shield counter replaces the destruction (the Destroy
+		// effects consult the same replacement; SBA lethal damage is the
+		// other destruction path).
+		if c.text == "lethal damage" && effects.ReplaceShieldCounter(e, c.id) {
 			continue
 		}
 		// Umbra armor (CR 702.90) after the regeneration shield, the same
