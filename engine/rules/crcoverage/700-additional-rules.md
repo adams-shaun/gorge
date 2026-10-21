@@ -62,9 +62,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.12g | partial | `engine/rules/life_exchange.go#Engine.ExchangeLifeVariant` `engine/rules/life_exchange.go#Engine.finishLifeExchange` | - | ExchangePower unregistered (LOUD) |
 | 701.12h | partial | `engine/effects/changetext.go#effExchangeTextBox` | - | triggered/activated abilities not swapped |
 | 701.13a | follows | `engine/state/ids.go#ZExile` | - |  |
-| 701.14a | deviates | `engine/effects/damage.go#emitFightHit` `engine/effects/damage.go#effFight` `engine/rules/replacement_damage.go#Engine.damageReplacementMatches` | `TestRepeatEachChooseOrderEzurisPredationAsksBeforeLoop` | source is the spell; hits sequential; Defined-only fights deal nothing (SILENT) |
-| 701.14b | partial | `engine/effects/damage.go#effFight` | - | gorge doesn't recheck still-a-creature |
-| 701.14c | deviates | `engine/effects/damage.go#effFight` | - | gorge: self-fight deals 0 |
+| 701.14a | partial | `engine/effects/damage.go#effFight` `engine/effects/damage.go#fightPairs` `engine/effects/damage.go#emitFightHit` `engine/rules/replacement_damage.go#Engine.damageReplacementMatches` | `TestCR701_14aHansErikssonFightsTheRevealedCreature` `TestFightArenaDefinedTargetedGuard` `TestCR701_14aBloodFeudPairGuard` `TestFightTargetlessDefinedMisresolutionIsLoud` `TestFightCorpusShapeCensus` | Defined-only fights pair the first two Defined$ creatures; a selector that names one creature twice (Grothama, Ezuri's Predation) is a loud Note and no fight. Open: each hit reads power after the previous hit landed and a fighter's wither is not read (cr-g18b); damage replacements and prevention read the resolving spell as the source (cr-g18c) |
+| 701.14b | follows | `engine/effects/damage.go#fightPairs` `engine/effects/damage.go#fightMemberOK` | `TestCR701_14bNoncreatureFighterDealsNothing` |  |
+| 701.14c | follows | `engine/effects/damage.go#effFight` | `TestCR701_14cSelfFightDealsTwicePower` |  |
 | 701.14d | follows | `engine/effects/damage.go#emitObjectDamage` | - |  |
 | 701.15a | follows | `engine/effects/misc.go#effGoad` `engine/events/apply_state_helpers.go#expireTurnGoads` | - | no goad in pools |
 | 701.15b | deviates | `engine/rules/combat/goad.go#GoadMayAttack` `engine/rules/attack_cost.go#Engine.attackOffersCompute` | - | goader banned outright, not a requirement (multiplayer) |
