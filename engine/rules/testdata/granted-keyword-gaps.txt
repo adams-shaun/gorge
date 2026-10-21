@@ -1,0 +1,43 @@
+"Left" pile
+"Right" pile
+Absorb
+Assist
+At the beginning of your upkeep, destroy this creature unless you pay {1} for each music counter on it
+Banding
+Bands with other
+Battle Cry
+Bushido
+CantSearchLibrary
+Casualty
+Double team
+Foretell on any player's turn
+Freerunning
+LimitSearchLibrary
+Modular
+MustBeBlockedBy Creature
+MustBeBlockedBy Creature.Dalek
+MustBeBlockedBy Creature.Eldrazi
+OnlyUntapChosen
+PayLifeInsteadOf
+Phasing
+Piracy
+Poisonous
+Protection from EachCMCAmongDefined
+Protection from NotCommanderColorID
+Protection from cardColors
+Protection from colorsYouCtrl
+Protection from each color
+ProtectionColor
+Provoke
+Prowl
+Rampage
+Read ahead
+Rebound
+Renown
+Ripple
+Scavenge
+Shaman's Trance
+Shroud
+Soulshift
+UntapAdjust
+Vanishing
