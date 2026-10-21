@@ -761,11 +761,12 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						// Engine.MayLookAtLibraryTop, the view's reveal of that top
 						// card.
 						if raw := strings.TrimSpace(st.ParamStr(cards.PKMayLookAt)); raw != "" {
-							if strings.EqualFold(raw, "You") || strings.EqualFold(raw, "Player") || strings.EqualFold(raw, "True") {
+							isPlayer := strings.EqualFold(raw, "Player")
+							if strings.EqualFold(raw, "You") || isPlayer || strings.EqualFold(raw, "True") {
 								lv := base
 								lv.MayLookAt = true
 								// MayLookAt$ Player is "play with ... revealed": every player sees the card (CR 401.5).
-								lv.MayLookAtAll = strings.EqualFold(raw, "Player")
+								lv.MayLookAtAll = isPlayer
 								lv.AffectedZone = st.ParamStr(cards.PKAffectedZone)
 								out = append(out, lv)
 							}
