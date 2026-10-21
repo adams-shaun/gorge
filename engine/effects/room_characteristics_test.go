@@ -78,15 +78,15 @@ func TestRoomCharacteristicsFollowDoors(t *testing.T) {
 		t.Fatalf("re-locked objectManaValue = %d, want 3", got)
 	}
 
-	// Off the battlefield the rule does not function: the card reads its
-	// printed front face, and an off-play split card still has both printed
-	// names (CR 709.4).
+	// Off the battlefield the rule does not function: the card is an
+	// ordinary split card with both printed names and the combined mana
+	// value of its halves (CR 709.4, 709.4b: 2+3).
 	o.Zone = state.ZHand
 	if _, room := roomNames(o); room {
 		t.Fatal("a hand Room took the battlefield-only CR 709.5 rule")
 	}
-	if got := objectManaValue(h.g, o); got != int(o.Face().Cmc()) {
-		t.Fatalf("hand objectManaValue = %d, want the printed front value %d", got, int(o.Face().Cmc()))
+	if got := objectManaValue(h.g, o); got != 5 {
+		t.Fatalf("hand objectManaValue = %d, want the combined halves 5 (CR 709.4b)", got)
 	}
 	if got := nameCharacteristics(o); !slices.Equal(got, []string{"Front Door", "Back Door"}) {
 		t.Fatalf("hand nameCharacteristics = %v, want both printed halves", got)

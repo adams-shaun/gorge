@@ -167,12 +167,25 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 				spec = s
 			}
 		}
-		if e.matchesSpec(spec, id, e.staticSpecCtx(sv)) &&
+		if e.matchesSpec(spec, id, e.spellSpecCtx(e.staticSpecCtx(sv), id)) &&
 			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
 			return true
 		}
 	}
 	return false
+}
+
+// spellSpecCtx binds the mana value of the SPELL id is about to become
+// (state.SpellManaValue: its current face, X as 0) while id is still off the
+// stack. CR 601.3a/709.3a: a cast restriction or cost modifier evaluates only
+// the half being cast, so a split card in hand is not read with its combined
+// CR 709.4b value here. A context that already carries a mana value (the CR
+// 601.2e recheck) and an object already on the stack are left alone.
+func (e *Engine) spellSpecCtx(sc effects.SpecContext, id state.ObjID) effects.SpecContext {
+	if o := e.G.Obj(id); o != nil && o.Zone != state.ZStack && !sc.HasManaValue {
+		sc.HasManaValue, sc.ManaValue = true, state.SpellManaValue(e.G, o)
+	}
+	return sc
 }
 
 // castValidCardSpec is a CantBeCast static's ValidCard$ with an absent one
