@@ -25,14 +25,10 @@ import (
 // a name or TriggerDescription$ from, so the label is the rules text itself.
 func ringEmblemLabel(level int) string {
 	switch level {
-	case ringEmblemLevelDraw:
-		return "The Ring emblem: whenever your Ring-bearer attacks, draw a card"
-	case ringEmblemLevelBlocked:
-		return "The Ring emblem: whenever your Ring-bearer becomes blocked, discard a card; if you can't, sacrifice it"
+	case ringEmblemLevelLoot:
+		return "The Ring emblem: whenever your Ring-bearer attacks, draw a card, then discard a card"
 	case ringEmblemLevelCombatHit:
-		return "The Ring emblem: whenever your Ring-bearer deals combat damage to a player, sacrifice it"
-	case ringEmblemLevelTempted:
-		return "The Ring emblem: whenever the Ring tempts you, each opponent loses 1 life"
+		return "The Ring emblem: whenever your Ring-bearer deals combat damage to a player, each opponent loses 3 life"
 	}
 	return "The Ring emblem ability"
 }

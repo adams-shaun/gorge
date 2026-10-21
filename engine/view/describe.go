@@ -129,16 +129,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		// object, so the line names the level's rules text (ringEmblemLabel's
 		// wording, duplicated here because view cannot import rules).
 		switch ev.Amount {
-		case 1:
-			return player(g, ev.Player) + " is tempted: the Ring emblem draws a card (Ring-bearer attacks)"
 		case 2:
-			return player(g, ev.Player) + " is tempted: the Ring emblem discards (Ring-bearer blocked)"
-		case 3:
-			return player(g, ev.Player) + " is tempted: the Ring emblem sacrifices its Ring-bearer (combat damage)"
+			return player(g, ev.Player) + "'s Ring emblem: draw a card, then discard a card (Ring-bearer attacks)"
 		case 4:
-			return player(g, ev.Player) + " is tempted: the Ring emblem drains each opponent (the Ring tempts you)"
+			return player(g, ev.Player) + "'s Ring emblem: each opponent loses 3 life (Ring-bearer dealt combat damage to a player)"
 		}
-		return player(g, ev.Player) + " is tempted: a Ring emblem ability"
+		return player(g, ev.Player) + "'s Ring emblem ability"
 	case events.ControlPlayerChange:
 		// CR 720: Player is the controlling seat and IDs[0] the controlled
 		// seat. A +1 grant names who now controls whom; the -1 expiry is the

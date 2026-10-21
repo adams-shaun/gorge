@@ -935,12 +935,3 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 		}
 	})
 }
-
-func blockedAttackerIn(pairs [][2]state.ObjID, id state.ObjID) bool {
-	for _, pr := range pairs {
-		if pr[0] == id {
-			return true
-		}
-	}
-	return false
-}
