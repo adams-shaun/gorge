@@ -809,6 +809,11 @@ const (
 	// "That player looks at the top three cards of your library";
 	// append-only).
 	PKRearrangePlayer
+	// RemoveCounterAll's AllCounterTypes$ flag (Aether Snap): remove every
+	// counter kind from each valid permanent, the corpus spelling of "all
+	// counters of all kinds" (CR 122.8). Appended: earlier ordinals stay
+	// stable.
+	PKAllCounterTypes
 	paramKeyCount
 )
 
@@ -1125,6 +1130,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKAfterPhase:                       "AfterPhase",
 	PKAllCards:                         "AllCards",
 	PKAllCounters:                      "AllCounters",
+	PKAllCounterTypes:                  "AllCounterTypes",
 	PKAmountByChosenMap:                "AmountByChosenMap",
 	PKAnnihilator:                      "Annihilator",
 	PKAtEOT:                            "AtEOT",
