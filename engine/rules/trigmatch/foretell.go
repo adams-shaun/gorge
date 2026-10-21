@@ -39,10 +39,10 @@ import (
 // foretellMatches implements Mode$ Foretell. The foretelling player is the
 // foretold card's controller -- in a hand a card is controlled by its owner,
 // and CR 702.126a's action is the owner's own, so the read is the same seat
-// the action's {2} came from (the action's CastInfo carries no Player field
-// by its pinned wire encoding, engine/rules/foretell_adjacent_test.go's
-// TestForetellActionEventEncodingUnchanged, so the controller is the
-// replay-stable way to name the foreteller). An effect that designates an
+// the action's {2} came from. The action's CastInfo names the foreteller in
+// Player only to address its Secret payload (cr-g62); the controller stays
+// the read, so an effect-designation MoveZone, which names no foreteller,
+// resolves the same way. An effect that designates an
 // exiled card foretold from someone else's hand therefore names THAT hand's
 // owner, never the exiling effect's controller.
 func foretellMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
