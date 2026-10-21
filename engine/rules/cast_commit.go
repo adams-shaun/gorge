@@ -164,6 +164,14 @@ func (e *Engine) payCast() {
 	if e.manaWindowAsk() {
 		return
 	}
+	// CR 601.2h: the objects the cost parts move are chosen as the total cost
+	// is paid -- after the targets (601.2c), the division (601.2d) and the
+	// 601.2e recheck, and after the mana abilities of 601.2g. One object pays
+	// one cost; a cost that became unpayable that way aborts inside its ask
+	// (CR 733.1).
+	if e.costObjectAsks() {
+		return
+	}
 	// Mana abilities can draw/reorder the library. Resolve the aggregate
 	// ExileFromTop prefix only now, before any cost is paid, so the IDs moved
 	// are still the actual top cards and insufficient cards abort without
@@ -470,7 +478,12 @@ func (e *Engine) payCast() {
 		// The chain links' announced targets (CR 601.2c / 602.2b), after the
 		// root's: the chain targets are recorded only now.
 		e.recordCastSubTargets(pc)
-		if pc.rootOpts == nil && !pc.targetedFinish {
+		// CR 601.2h: payment can now complete on a later cost answer (the
+		// cost-object asks are posed from here), so the dispatch fires on
+		// every payCast outside a target answer's continuation -- the
+		// targetedFinish guard keeps the continuation's own dispatch from
+		// doubling it.
+		if !pc.targetedFinish {
 			// No target-recording continuation: dispatch at the completed
 			// AbilityPush boundary while the spent-source capture is still live.
 			e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
