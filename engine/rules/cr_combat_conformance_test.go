@@ -260,6 +260,10 @@ func TestCR511UntilEndCombatPumpExpiresBeforeMain(t *testing.T) {
 		t.Fatal("CR 511.2 Murk Dwellers seq 0: real until-end-of-combat +2/+0 fixture changed")
 	}
 	// Isolate expiry, not the separate AttackerUnblocked trigger dispatcher.
+	// The fixture's main-phase priority decision is cleared: advanceStep runs
+	// only once every player has passed, and setStep defers the step-boundary
+	// cleanup while a decision is pending.
+	e.pending = nil
 	e.resolveAbility(a, 0, nil, f.Triggers[0].Effect, f.SVars)
 	e.setStep(state.StepEndCombat)
 	if e.Power(a) != 4 {

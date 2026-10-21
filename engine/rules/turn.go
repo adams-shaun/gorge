@@ -681,6 +681,8 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 		// CR 511.3: "until end of combat" control effects end with the step.
 		e.expireControl(controlAtEndOfCombat)
 		e.reconcileControlStatics()
+		// CR 511.2: "until end of combat" continuous effects end with it.
+		e.expireUntilEndOfCombat()
 	}
 }
 
