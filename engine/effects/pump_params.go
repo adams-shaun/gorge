@@ -210,7 +210,7 @@ var pumpKnownKeys = [...]string{
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "KWChoice", "Keyword", "KeywordLine", "LeaveBattlefield",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
-	"NewController", "NoteCards", "NoteCardsFor", "NoteNumber", "NumAtt", "NumDef",
+	"NewController", "NonBasicSpell", "NoteCards", "NoteCardsFor", "NoteNumber", "NumAtt", "NumDef",
 	"OpponentTurn", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp",
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PumpZone", "RandomNumTargets",
 	"ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberPumped",

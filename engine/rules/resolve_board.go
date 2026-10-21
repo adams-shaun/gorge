@@ -514,7 +514,7 @@ func tapeShape(e *Engine) string {
 	if f.IsPermanent() {
 		kind = "perm:"
 	}
-	if sa := f.SpellAbility(); sa != nil {
+	if sa := stackSpellSA(o, f); sa != nil {
 		return kind + saChainShape(sa)
 	}
 	return kind

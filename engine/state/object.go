@@ -518,6 +518,13 @@ const (
 	// never cast (CR 707.10) -- must not inherit it. Appended after
 	// FlagPreparedCopy to preserve all bits already in main.
 	FlagManaSourcesSpent
+	// FlagCleaved marks a cast paid for with the card's cleave cost (CR
+	// 702.148a): rules' resolution substitutes the bracket-free cleave spell
+	// ability (engine/rules/cleave.go's stackSpellSA). NOT a
+	// CastProvenanceFlag: a stack copy copies the alternative-cost decision
+	// and its text change (CR 707.10). Appended after FlagManaSourcesSpent to
+	// preserve all bits already in main.
+	FlagCleaved
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
