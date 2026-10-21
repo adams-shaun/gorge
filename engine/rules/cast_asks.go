@@ -1098,7 +1098,7 @@ func (e *Engine) castModeAsk() bool {
 		e.abortCast(pc, "cast aborted: no affordable modal choice", true)
 		return true
 	}
-	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
+	d := modeDecisionForChoices(e, pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
 	d.ResumeKind = "cast_modes"
 	if effects.OnlyEmptyAnswer(d) {
 		// "Choose up to N" (MinCharmNum$ 0) with no mode that has a legal

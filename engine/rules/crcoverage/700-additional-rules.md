@@ -14,7 +14,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.2f | follows | `engine/state/object.go#Object.ChosenModes` | - | modes held apart from targets |
 | 700.2g | follows | `engine/rules/target_modes.go#copyCharmModes` | `TestCopyCharmAsksEveryChosenTargetMode` | copies keep modes |
 | 700.2h | follows | `engine/rules/cast_asks.go#Engine.castModeAsk` | `TestRequisitionRaidSpreeChargesEachChosenMode` `TestMetamorphicBlastSpreeUnaffordableModeNotOffered` |  |
-| 700.2i | deviates | `engine/effects/charm_params.go#compileCharm` `engine/effects/charm.go#effCharm` | - | pawprint budget unread: any 5 modes |
+| 700.2i | follows | `engine/effects/charm.go#CharmPawprints` `engine/effects/charm.go#CharmResolveOrder` | `TestPawprintBudget` `TestPawprintModesResolveInPrintedOrder` `TestPawprintBurrowTargetOrder` `TestModeDecisionPublishesPresentZeroBudget` `TestCharmPawprintPresenceAndPricing` | root `Pawprint$` publishes Decision.MaxSum over the modes' Option.Value; chosen modes resolve in printed order, repeats stable |
 | 700.3 | partial | `engine/effects/twopiles.go#effTwoPiles` | - | gorge: Zone$/DefinedPiles$/LeftRight shapes move nothing, LOUD |
 | 700.3a-c | follows | `engine/effects/twopiles.go#effTwoPiles` | - | piles are choices; cards stay until pick |
 | 700.3d | partial | `engine/effects/twopiles.go#effTwoPiles` | - | one-card set forced into pile A |
