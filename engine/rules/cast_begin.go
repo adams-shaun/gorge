@@ -799,6 +799,27 @@ func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
 	return c, true
 }
 
+// effectLandPlayRefusal is CR 305.2a/305.3 for a land played by an effect
+// (Djinn of Wishes' "you may play that card"): the play is legal only on
+// p's own turn, only while p has a land play left -- the same
+// 1+adjustLandPlays allowance the hand walk offers against, so Exploration's
+// additional land counts and the effect play itself counts toward
+// LandsPlayed -- and only when no CantPlayLand static forbids it
+// (playLandForbidden, the hand walk's gate). It returns the Note text of the
+// first failing limit, or "" when the play is legal. Timing beyond the turn
+// is NOT checked: an effect may play a land during any step of p's turn.
+func (e *Engine) effectLandPlayRefusal(p state.PlayerID, id state.ObjID, from state.Zone) string {
+	switch {
+	case int(p) >= len(e.G.Players) || e.G.Active != p:
+		return "Play cannot play a land on another player's turn"
+	case e.G.Players[p].LandsPlayed >= int32(1+e.adjustLandPlays(p)):
+		return "Play cannot use an additional land drop"
+	case playLandForbidden(e, p, from, id):
+		return "Play cannot play a land a CantPlayLand static forbids"
+	}
+	return ""
+}
+
 // beginPlay is the rules' hand-off for an answered Play effect. It starts a
 // cast from the card's current zone and uses its printed cost unless that
 // specific Play SA said WithoutManaCost$ True (Spinerock Knoll grants a free
@@ -819,9 +840,10 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	}
 	if o.Face().IsLand() {
 		// A "play" permission can play a land, but it does not grant an
-		// additional land drop. Lands never become spells or enter the stack.
-		if int(p) >= len(e.G.Players) || e.G.Players[p].LandsPlayed >= 1 {
-			e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play cannot use an additional land drop"})
+		// additional land play, and it never lifts CR 305.3's turn and count
+		// limits. Lands never become spells or enter the stack.
+		if why := e.effectLandPlayRefusal(p, id, o.Zone); why != "" {
+			e.emit(events.Event{Kind: events.Note, Player: p, Obj: id, Text: why})
 			return
 		}
 		e.cast = e.newCast(p, id, o.Zone, "land", -1)
@@ -985,6 +1007,10 @@ func (e *Engine) continueCast() {
 	if e.pushCast() {
 		return
 	}
+	// CR 602.2a: an activated ability is moved to the stack before any 602.2b
+	// choice (601.2b-i). Its "whenever you activate" triggers are held until
+	// payCast, exactly as the old end-of-payment mint fired them.
+	e.pushActivation()
 	// Mutate (CR 702.140b): the over/under placement choice is announced
 	// before payment the same way the replicate count is, so the pay-time
 	// CastInfo can carry FlagMutatedTop.
@@ -1124,6 +1150,7 @@ func (e *Engine) continueCast() {
 		return
 	}
 	e.foldSneakDefender(e.cast)
+	e.foldNinjutsuDefender(e.cast)
 	if e.putToLibAsk() {
 		return
 	}

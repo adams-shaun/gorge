@@ -228,6 +228,7 @@ var kindInfo = [NumKinds]KindInfo{
 	SetupSettled:          {Name: "setup_settled", Trigger: TriggerNone, Describe: "{obj} has been under its controller's control since the game began"}, // oracle harness setup (CR 302.6); no trigger
 	BlockedByEffect:       {Name: "blocked_by_effect", Trigger: TriggerAttackDeclaration, Describe: "{obj} becomes blocked"},                             // CR 509.1h; fires "becomes blocked" (CR 509.3c)
 	CopyExcept:            {Name: "copy_except", Trigger: TriggerNone, Describe: "{obj} takes its copy exceptions"},                                      // CR 707.9b characteristic change, like ClonePermanent
+	ActivationReversed:    {Name: "activation_reversed", Trigger: TriggerNone, Describe: "{player} reverses an activation"},                              // a CR 733.1 reversal: it decrements the source's activation census, nothing triggers
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

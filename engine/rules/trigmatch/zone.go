@@ -48,6 +48,18 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 	// a shape appears, a mint must match only Origin$ Any). The minted object
 	// id is set on the event copy emit hands the trigger walk, so ev.Obj and
 	// the ValidCard$ block below already read the entering token.
+	// An ABILITY object leaving the stack (a resolved, fizzled or ceased
+	// triggered/activated ability: no Card, an Ability) is not a card
+	// changing zones (CR 113.7a: an ability on the stack is not a card, and
+	// it ceases to exist rather than moving). Without this, a resolved
+	// ability's stack exit -- emitted as a Stack -> Exile move -- matches a
+	// "card put into exile" ValidCards$ such as The War Doctor's
+	// Card.Other+!token+!copiedSpell and retriggers it forever.
+	if ev.Kind == events.MoveZone && ev.From == state.ZStack {
+		if o := e.Game().Obj(ev.Obj); o != nil && o.Card == nil && o.Ability != nil {
+			return false
+		}
+	}
 	from, to := ev.From, ev.To
 	if ev.Kind == events.TokenCreate || ev.Kind == events.CardToken {
 		from, to = state.ZLibrary, state.ZBattlefield

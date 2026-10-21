@@ -38,7 +38,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 602.1d | n/a | - | - | Oracle errata terminology |
 | 602.1e | unknown | - | - | not traced |
 | 602.2 | follows | `engine/rules/legal_activation.go#Engine.activatorAllows` | - | controller-only unless Activator$ |
-| 602.2a | deviates | `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/activate.go#Engine.beginActivationPaid` | - | ability created after targets and costs; no outcome found |
+| 602.2a | follows | `engine/rules/cast_targets.go#Engine.pushActivation` `engine/rules/cast_commit.go#Engine.abortCast` | `TestCR602_2aAbilityIsOnTheStackBeforeItsTarget` `TestCR602_2aAbortedActivationKeepsItsOncePerTurnUse` | ability pushed before every 602.2b choice; reversal undoes the census (ActivationReversed) |
 | 602.2b | follows | `engine/rules/activate.go#Engine.beginActivationPaid` `engine/rules/cast_begin.go#Engine.continueCast` | `TestCR602ActivationTargetsPrecedePayment` `TestCR602ManaWindowDuringActivation` `TestCR602ActivationCostIncludesReduction` | shared build path |
 | 602.3 | follows | `engine/rules/target_ask.go#Engine.targetAskChooser` | - | d none in pool |
 | 602.3a | follows | `engine/rules/target_ask.go#Engine.opponentPicker` | - | as 601.7a; d two players |
@@ -213,7 +213,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.4a | follows | `engine/rules/chars/derive.go#PT` `engine/rules/chars/derive.go#cdaPTLost` `engine/rules/chars/cda.go#CDASetPT` | `TestCR613_4aCDAPTLostUnderDressDown` `TestCR613_4aCDAPTLossKillsConsumingAberration` `TestCR613_4aCDAPTGuards` | - |
 | 613.4b | follows | `engine/rules/chars/derive.go#PT` | `TestSetBeforeModifyRegardlessOfTimestamp` `TestCardBasePowerStopsAtLayer7bAndDrivesCount` | - |
 | 613.4c | follows | `engine/rules/chars/derive.go#PT` | - | order-equivalent |
-| 613.4d | not-impl | `engine/state/continuous.go#SubSwitch` `engine/rules/chars/derive.go#PT` | - | SILENT; SubSwitch never consumed, 27 corpus cards (cr-g37) |
+| 613.4d | follows | `engine/rules/chars/derive.go#PT` `engine/effects/combatfx.go#registerPumpEffects` `engine/cards/hiddenkeyword.go#IsHiddenSwitchPTKeyword` | `TestCR613_4dTwistedImageSwitchesAfterCounters` `TestCR613_4dSwitchToZeroToughnessDies` `TestCR613_4dTwoSwitchesCancel` | switches applied after counters by parity; all 27 corpus carriers are Pump/PumpAll KW$ grants |
 | 613.5 | follows | `engine/rules/chars/derive.go#Compute` | - | derived on demand |
 | 613.6 | partial | `engine/rules/chars/derive.go#lockedLayer4Types` `engine/rules/abilityloss.go#Engine.removalApplies` | - | approximations per layer |
 | 613.7 | follows | `engine/rules/layers.go#compareContinuousPtr` | - | timestamp order; gaps in subrules |

@@ -28,6 +28,18 @@ func triggerCheckEvent(stored events.Event, tokenMintWant state.ObjID) events.Ev
 	return stored
 }
 
+// deferredPushKind reports the mint events pushCast and pushActivation emit
+// under deferCastTrigger: a spell's PutOnStack and an activated ability's five
+// mint kinds. Their cast/activate triggers fire only after payment.
+func deferredPushKind(k events.Kind) bool {
+	switch k {
+	case events.PutOnStack, events.AbilityPush, events.KeywordAbilityPush,
+		events.GrantAbilityPush, events.GainedAbilityPush, events.DelayedPush:
+		return true
+	}
+	return false
+}
+
 func (e *Engine) emit(ev events.Event) events.Event {
 	// E1 (emit-action.md): objects minted during this event are compared
 	// against this count to raise the pool gates (the mint scan below).
@@ -710,14 +722,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// already the batch total. A prevented Damage never reaches here (emit
 	// returned the prevention Note above), and the deferred cast-trigger arm
 	// skips the trigger check entirely, so neither needs a batch.
-	if ev.Kind == events.PutOnStack && e.deferCastTrigger {
-		// CR 601.2i: the cast trigger must not fire at the up-front push
-		// (601.2a), because the spell is not yet cast -- targets (601.2c) and
-		// payment (601.2h) still lie ahead. Hold the event and its LKI so
-		// payCast's fireDeferredCastTrigger re-walks it after payment.
-		// Deferring here (rather than queueing the trigger and removing it
-		// later) means the held event is never double-checked: the first
-		// pass skipped it entirely, and exactly one later pass fires it.
+	if e.deferCastTrigger && deferredPushKind(ev.Kind) {
+		// CR 601.2i / 602.2i: the cast/activate trigger must not fire at the
+		// up-front push (601.2a / 602.2a), because the spell or ability is not
+		// yet cast/activated -- targets (601.2c) and payment (601.2h) still lie
+		// ahead. Hold the event and its LKI so payCast's
+		// fireDeferredCastTrigger / fireDeferredActivationTrigger re-walks it
+		// after payment. Deferring here (rather than queueing the trigger and
+		// removing it later) means the held event is never double-checked: the
+		// first pass skipped it entirely, and exactly one later pass fires it.
 		cp, lp := stored, lki
 		e.deferredPush, e.deferredPushLKI = &cp, lp
 	} else {
