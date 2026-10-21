@@ -66,8 +66,9 @@ type Chars interface {
 	// MayLookAtLibraryTop is the Continuous MayLookAt grant's read (Oracle
 	// of Mul Daya): whether p may look at the top card of their own library
 	// right now. The view uses it to reveal that top card to p's own seat
-	// only; a nil ch degrades to false, the same way it degrades every
-	// other derived fact.
+	// only (a MayLookAt$ Player reveal shows it to every seat through the
+	// optional LibraryTopRevealed capability, CR 401.5); a nil ch degrades to
+	// false, the same way it degrades every other derived fact.
 	MayLookAtLibraryTop(state.PlayerID) bool
 	// PotentialActions is the seat's own "what could I still do after tapping
 	// out" projection: the engine's legal-offer walk priced against the
@@ -211,11 +212,13 @@ type PlayerView struct {
 	PlanarDeck            []CardView `json:"planar_deck,omitempty"`
 	GraveyardSize         int        `json:"graveyard_size"`
 	// LibraryTop is the player's own library's top card, revealed only when
-	// a live Continuous MayLookAt grant covers it (Oracle of Mul Daya's
-	// "play with the top card of your library revealed") and only to that
-	// player's own seat -- the CR 400.2 hidden-zone redaction the Hand field
-	// documents applies to it in full. nil (an omitted JSON key) for every
-	// other seat and whenever no grant is live.
+	// a live Continuous MayLookAt grant covers it (Vizier of the Menagerie's
+	// MayLookAt$ You look) and then only to that player's own seat -- the
+	// CR 400.2 hidden-zone redaction the Hand field documents applies to it
+	// -- or a MayLookAt$ Player "play with the top card of your library
+	// revealed" grant (Courser of Kruphix, Oracle of Mul Daya; CR 401.5)
+	// shows it to every seat. nil (an omitted JSON key) otherwise and
+	// whenever no grant is live.
 	LibraryTop *CardView `json:"library_top,omitempty"`
 	// Library is the viewer's own library as an UNORDERED list of cards:
 	// the contents a human knows about their own deck, without the secret
@@ -706,7 +709,10 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 		// sees nothing (the CR 400.2 hidden-zone rule the Hand field documents
 		// applies in full). A nil ch degrades to no reveal, the way it degrades
 		// every other derived fact.
-		if ownSeat && ch != nil && ch.MayLookAtLibraryTop(p.ID) {
+		// CR 401.5: a "play with the top card of your library revealed" grant
+		// (MayLookAt$ Player, the optional revealer capability) shows it to
+		// every seat.
+		if ch != nil && ((ownSeat && ch.MayLookAtLibraryTop(p.ID)) || (pr.revealer != nil && pr.revealer.LibraryTopRevealed(p.ID))) {
 			if lib := g.Zone(state.ZLibrary, p.ID); len(lib) > 0 {
 				top := prev.LibraryTop
 				if top == nil {
