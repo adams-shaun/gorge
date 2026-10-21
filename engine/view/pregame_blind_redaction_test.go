@@ -104,6 +104,7 @@ func TestPregameBlindRedactsControlledSeatSecrets(t *testing.T) {
 	// secret to the controller unchanged -- and the blind must strip it.
 	g := e.G
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 	if open := view.RedactEventFor(e.G, draw, 0, view.Seat); open.Obj != draw.Obj {
 		t.Fatalf("control: controller-visible redaction no longer passes the controlled seat's secret through (Obj %d -> %d)", draw.Obj, open.Obj)
 	}

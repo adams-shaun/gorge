@@ -27,6 +27,7 @@ func TestControllerSeesControlledHandNotThirdSeat(t *testing.T) {
 			len(g.Zone(state.ZHand, 1)), len(g.Zone(state.ZHand, 2)))
 	}
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 
 	v := ProjectForControlled(g, flatChars{g}, 0, Seat, []state.PlayerID{1}, nil)
 	var pv0, pv1, pv2 *PlayerView
@@ -73,6 +74,7 @@ func TestControllerSeesControlledHandNotThirdSeat(t *testing.T) {
 func TestOrdinaryProjectionRevealsControlledSeatToItsController(t *testing.T) {
 	g := fourSeatBoard(t)
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 	v := Project(g, flatChars{g}, 0, nil)
 	for _, pv := range v.Players {
 		switch pv.ID {
@@ -118,6 +120,7 @@ func TestControllerSeesControlledFaceDownFace(t *testing.T) {
 		t.Fatalf("precondition: seat 2 face-down permanent = %+v", o2)
 	}
 	g.ControlledBy = map[state.PlayerID]state.PlayerID{1: 0}
+	g.Active, g.Turn = 1, 1 // cr-g57: the grant (armed turn 0) is live only during seat 1's turn
 
 	v := ProjectForControlled(g, flatChars{g}, 0, Seat, []state.PlayerID{1}, nil)
 	faceOf := func(pv PlayerView, id state.ObjID) *CardView {
