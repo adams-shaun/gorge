@@ -1730,7 +1730,7 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			// single-arm cases deterministic), then settle. The gate offered
 			// "pay" only when the election was payable, and the window is
 			// synchronous, so the settle's re-proof never fails mid-payment.
-			if tc.forageElectionAsk(e, announced) {
+			if tc.forageElectionAsk(e) {
 				return
 			}
 			paid = tc.forageSettle(e, announced)

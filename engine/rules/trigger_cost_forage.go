@@ -4,7 +4,6 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -41,7 +40,7 @@ func (tc *triggeredEffectCost) foragePayable(e *Engine, rest Cost) bool {
 // bot's existing arms answer it. A single live arm settles without an ask.
 // It reports whether an ask was posed; the answer (forage_exile /
 // forage_food) records the arm and re-enters the pay arm.
-func (tc *triggeredEffectCost) forageElectionAsk(e *Engine, announced Cost) bool {
+func (tc *triggeredEffectCost) forageElectionAsk(e *Engine) bool {
 	if tc.forageDone {
 		return false
 	}
@@ -67,14 +66,7 @@ func (tc *triggeredEffectCost) forageElectionAsk(e *Engine, announced Cost) bool
 	}
 	d := &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to forage", Source: tc.source}
-	if graveOK {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_exile",
-			Label: "Exile three cards from your graveyard"})
-	}
-	for _, id := range foods {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_food", Obj: id,
-			Label: "Sacrifice " + e.targetName(id)})
-	}
+	d.Options = pay.ForageOptions(asPayer(e), tc.player, tc.source)
 	windowAsk(e, d, chooseTriggeredCost)
 	return true
 }
@@ -105,21 +97,7 @@ func (tc *triggeredEffectCost) forageSettle(e *Engine, announced Cost) bool {
 		return false
 	}
 	pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)
-	if tc.forageFood != 0 {
-		e.emit(events.Sacrifice(tc.forageFood))
-	} else {
-		n := 0
-		for _, id := range e.G.Zone(state.ZGraveyard, tc.player) {
-			if n >= 3 {
-				break
-			}
-			if o := e.G.Obj(id); o != nil {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile,
-					Text: "exiled as a forage cost"})
-				n++
-			}
-		}
-	}
-	e.emit(events.Event{Kind: events.ForageAction, Player: tc.player})
+	pay.SettleManaForage(asPayer(e), &pay.ManaCostActivation{
+		Player: tc.player, ForagePay: true, ForageFood: tc.forageFood})
 	return true
 }

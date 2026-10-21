@@ -113,13 +113,7 @@ func (e *Engine) forageAsk() bool {
 	pc.forageDone = true
 	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to forage", Source: pc.card}
-	if len(e.G.Zone(state.ZGraveyard, pc.player)) >= 3 {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_exile", Label: "Exile three cards from your graveyard"})
-	}
-	for _, id := range pay.CostCandidates(asPayer(e), pc.player, pc.card, state.ZBattlefield, "Food.YouCtrl", false, false) {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_food", Obj: id,
-			Label: "Sacrifice " + e.targetName(id)})
-	}
+	d.Options = pay.ForageOptions(asPayer(e), pc.player, pc.card)
 	if len(d.Options) == 0 {
 		e.abortCast(pc, "forage no longer payable; cast aborted", true)
 		return true

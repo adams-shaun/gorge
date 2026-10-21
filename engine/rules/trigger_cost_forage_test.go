@@ -290,7 +290,7 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 		if !e.triggeredCostPayable(tc) {
 			t.Fatal("Forage + PayEnergy<1> with one energy in the pool is not payable")
 		}
-		if tc.forageElectionAsk(e, tc.announcedCost()) {
+		if tc.forageElectionAsk(e) {
 			t.Fatal("the lone Food arm posed an election")
 		}
 		start := len(e.L.Events)
