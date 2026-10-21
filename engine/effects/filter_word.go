@@ -1456,6 +1456,12 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "Worthy", Val: wordPredicateWordWorthy},
 	state.StrEntry[wordPredicateWordCode]{Key: "ChosenColor", Val: wordPredicateWordChosenColor},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCast", Val: wordPredicateWordWasCast},
+	// copiedSpell is Forge's own spelling (CardProperty's
+	// startsWith("copiedSpell")), so Card.copiedSpell and its '!' negation
+	// (Stonebinder's Familiar, The War Doctor) resolve; CopiedSpell is the
+	// capitalised form the generic non<X> negation reaches (nonCopiedSpell,
+	// The Heron Moon).
+	state.StrEntry[wordPredicateWordCode]{Key: "copiedSpell", Val: wordPredicateWordCopiedSpell},
 	state.StrEntry[wordPredicateWordCode]{Key: "CopiedSpell", Val: wordPredicateWordCopiedSpell},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastFromYourHandByYou", Val: wordPredicateWordCastProvenance},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasCastByYou", Val: wordPredicateWordCastProvenance},

@@ -84,7 +84,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 113.1-113.3d | follows | `engine/cards/ir.go#SA` | - | ability IR categories |
 | 113.4 | follows | `engine/rules/mana_activation.go#Engine.activateMana` | - |  |
 | 113.5 | follows | `engine/rules/legal_loyalty.go#Engine.loyaltyAbilityLimit` | `TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly` | - |
-| 113.6-113.12 | unknown | - | - | not reached |
+| 113.6 | unknown | - | - | not reached |
+| 113.7a | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` | `TestNegatedCopiedSpellTriggersCountExiledCard` | an ability object's stack exit is not a card changing zones |
+| 113.7b-113.12 | unknown | - | - | not reached |
 | 114.1-114.5 | follows | `engine/effects/effect.go#effEffect` | `TestKaitoEmblemOutlivesKaito` |  |
 | 115.1 | partial | `engine/rules/cast_targets.go#Engine.subTargetAsk` `engine/effects/targets_ask.go#poseTargetsAsk` | - | gorge: depth-2+ chain targets asked at resolution |
 | 115.1a-115.1e | follows | `engine/rules/cast_targets.go#Engine.targetAsk` `engine/rules/aura_entry.go#auraEnchantSpec` | - | targeted spells/Auras/abilities/keywords |
