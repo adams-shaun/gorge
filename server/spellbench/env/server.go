@@ -27,10 +27,13 @@ type cached struct {
 }
 
 type Server struct {
-	reg     *cards.Registry
-	engine  protocol.Engine
-	game    *session.Game
-	gameIDs map[string]bool
+	reg    *cards.Registry
+	engine protocol.Engine
+	// identityOverride, when set, replaces the live engine identity. Only the
+	// golden replay sets it (NewForGoldens); production never does.
+	identityOverride *protocol.Engine
+	game             *session.Game
+	gameIDs          map[string]bool
 	// cache holds every response since the last accepted reset, by request
 	// id (Section 4.1): an identical retransmission of any of them returns
 	// its bytes, a changed payload is request_id_reuse_mismatch. Clearing it
@@ -41,7 +44,17 @@ type Server struct {
 }
 
 func New(reg *cards.Registry, sourceRevision *string) *Server {
-	return &Server{reg: reg, engine: engineIdentity(sourceRevision, reg), gameIDs: map[string]bool{}, cache: map[string]cached{}}
+	return newServer(reg, sourceRevision, nil)
+}
+
+func newServer(reg *cards.Registry, sourceRevision *string, identityOverride *protocol.Engine) *Server {
+	s := &Server{reg: reg, identityOverride: identityOverride, gameIDs: map[string]bool{}, cache: map[string]cached{}}
+	if s.identityOverride != nil {
+		s.engine = *s.identityOverride
+	} else {
+		s.engine = engineIdentity(sourceRevision, reg)
+	}
+	return s
 }
 
 // EnableAutoPay must be called before hello/reset. It adds the upstream
