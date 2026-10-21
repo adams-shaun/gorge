@@ -173,22 +173,21 @@ func (e *Engine) collectCommanderArrivals() {
 		e.cmdZoneDue = append(e.cmdZoneDue, ev.Obj)
 	}
 	e.cmdZoneScan = n
+	e.cmdZoneDep = e.G.DepSeq
 }
 
 // collectSplitCommanders queues, in seat then Commanders order, every
-// commander card now in zone to whose last move was as a component of the
-// departed permanent from (Object.SplitFrom) in its CURRENT departure: the
-// stamp's SplitInc must equal from's Incarnation, so a commander left in the
-// zone by an earlier departure (declined, then from reanimated and dying
-// again) is not asked about a second time.
+// commander card whose last move was as a component of the departed permanent
+// from (Object.SplitFrom), put into to by a departure the scan has not yet
+// checked (SplitDep above the cmdZoneDep watermark). A commander left in the
+// zone by an EARLIER departure (declined, then from reanimated and dying
+// again) stays below the watermark and is not asked a second time, while a
+// host that only returned to the battlefield since (a blink: no departure,
+// the ordinal does not move) does not invalidate the ask.
 func (e *Engine) collectSplitCommanders(from state.ObjID, to state.Zone) {
-	h := e.G.Obj(from)
-	if h == nil {
-		return
-	}
 	for p := range e.G.Players {
 		for _, c := range e.G.Players[p].Commanders {
-			if o := e.G.Obj(c); o != nil && o.SplitFrom == from && o.SplitInc == h.Incarnation && o.Zone == to && !slices.Contains(e.cmdZoneDue, c) {
+			if o := e.G.Obj(c); o != nil && o.SplitFrom == from && o.SplitDep > e.cmdZoneDep && o.Zone == to && !slices.Contains(e.cmdZoneDue, c) {
 				e.cmdZoneDue = append(e.cmdZoneDue, c)
 			}
 		}

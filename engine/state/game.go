@@ -321,6 +321,16 @@ type Game struct {
 	preparedSources int
 	// crewedObjects counts objects with a non-empty CrewedVehicles list.
 	crewedObjects int
+	// DepSeq counts the battlefield departures every event fold has applied
+	// (events.Move's battlefield-leaving arm): its value IS the ordinal of
+	// the most recent departure. A card that left the battlefield inside a
+	// melded or mutated permanent stamps it (Object.SplitDep), and rules' CR
+	// 903.9a scan compares stamps against its own watermark, so a departure
+	// an earlier check already consumed is never re-offered. A return to the
+	// battlefield is not a departure and leaves the ordinal alone. A pure
+	// function of the applied events, so replay rebuilds it; Clone copies it
+	// with the struct.
+	DepSeq uint32
 
 	Players []Player
 	// Objs is a dense arena: Objs[i] has ID i+1, so ObjID 0 is "no object".

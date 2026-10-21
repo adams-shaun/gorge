@@ -469,7 +469,17 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	enteredFrom := o.Zone
 	wasBattlefield := enteredFrom == state.ZBattlefield
 	wasStack := enteredFrom == state.ZStack
-	o.SplitFrom, o.SplitInc = 0, 0
+	o.SplitFrom, o.SplitDep = 0, 0
+	// The battlefield-departure ordinal: the split stamps below (a mutated
+	// pile's under-card, a meld partner) record THIS departure's number, and
+	// rules' CR 903.9a scan compares stamps against its watermark, so a
+	// departure an earlier state-based check already consumed is never
+	// re-offered. A RETURN to the battlefield is not a departure and leaves
+	// the ordinal alone, so a blink (exile and back in one resolution) does
+	// not invalidate the card's arrival in exile.
+	if wasBattlefield && to != state.ZBattlefield {
+		g.DepSeq++
+	}
 	// Forge's drawnThisTurn survives only the move onto the stack (a cast of
 	// the drawn card); any other move makes the card a new object that was
 	// not drawn. The Draw fold re-stamps it after this Move.
@@ -570,7 +580,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			if mc.Obj != 0 {
 				Move(g, mc.Obj, state.ZCeased, to)
 				if m := g.Obj(mc.Obj); m != nil {
-					m.SplitFrom, m.SplitInc = id, o.Incarnation+1
+					m.SplitFrom, m.SplitDep = id, g.DepSeq
 				}
 			}
 		}

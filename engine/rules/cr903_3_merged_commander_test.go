@@ -75,6 +75,9 @@ func TestCR903_3cMutatedCommanderStaysTheCommander(t *testing.T) {
 	t.Parallel()
 	for _, top := range []bool{true, false} {
 		e, _, pile := mutatedCommanderGame(t, top)
+		if !effects.MatchesSpec(e.G, "Creature.IsCommander", pile, 0) {
+			t.Fatalf("top=%v: the mutated pile %d did not match the IsCommander filter (CR 903.3c, 903.3d)", top, pile)
+		}
 		swing(t, e, pile)
 		if got := e.G.Players[1].CmdDamage[0]; got != e.Power(pile) || got == 0 {
 			t.Errorf("top=%v: commander damage after the pile hit = %d, want its power %d (CR 903.3c, 903.10a)", top, got, e.Power(pile))
@@ -136,9 +139,15 @@ func TestCR903_3bMeldedCommanderIsTheCommander(t *testing.T) {
 	e, _ := cmdZoneGame(t, [][]string{{corpusCardText(t, "b/bruna_the_fading_light.txt")}, {}})
 	bruna := fieldCommander(t, e, 0, 0)
 	gisela := onBoardCard(t, e, 0, corpusCard(t, "Gisela, the Broken Blade"))
+	if effects.MatchesSpec(e.G, "Creature.IsCommander", gisela, 0) {
+		t.Fatalf("precondition: Gisela (%d) already matched the IsCommander filter before the meld", gisela)
+	}
 	res, ok := effects.Meld(e, 0, gisela, bruna, state.MeldOptions{ResultName: "Brisela, Voice of Nightmares"})
 	if !ok || res != gisela {
 		t.Fatalf("Meld = %d,%v; want Gisela's object %d", res, ok, gisela)
+	}
+	if !effects.MatchesSpec(e.G, "Creature.IsCommander", res, 0) {
+		t.Fatalf("the melded permanent %d did not match the IsCommander filter (CR 903.3b, 903.3d)", res)
 	}
 	swing(t, e, res)
 	if got := e.G.Players[1].CmdDamage[0]; got != 9 {
@@ -147,6 +156,38 @@ func TestCR903_3bMeldedCommanderIsTheCommander(t *testing.T) {
 	src, name := askedCommanderCard(t, e, res)
 	if src != bruna || name != "Bruna, the Fading Light" {
 		t.Fatalf("CR 903.9a asked about %d %q, want Bruna (%d)", src, name, bruna)
+	}
+}
+
+// TestCR903_3bMeldedPileBlinkedStillAsks: the melded permanent is exiled and
+// returned to the battlefield in ONE resolution (a blink). Bruna was put into
+// exile since the last state-based check, so she is still offered the command
+// zone (CR 903.9a); the host's return is not a battlefield departure and must
+// not invalidate her arrival.
+func TestCR903_3bMeldedPileBlinkedStillAsks(t *testing.T) {
+	t.Parallel()
+	e, _ := cmdZoneGame(t, [][]string{{corpusCardText(t, "b/bruna_the_fading_light.txt")}, {}})
+	bruna := fieldCommander(t, e, 0, 0)
+	gisela := onBoardCard(t, e, 0, corpusCard(t, "Gisela, the Broken Blade"))
+	res, ok := effects.Meld(e, 0, gisela, bruna, state.MeldOptions{ResultName: "Brisela, Voice of Nightmares"})
+	if !ok || res != gisela {
+		t.Fatalf("Meld = %d,%v; want Gisela's object %d", res, ok, gisela)
+	}
+	e.checkStateBased() // consumes the meld's own events; nothing to ask for yet
+	e.pending = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: res, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: res, From: state.ZExile, To: state.ZBattlefield})
+	e.pending = nil
+	e.checkStateBased()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KCommanderZone {
+		t.Fatalf("CR 903.9a: after the blink, pending = %+v, want Bruna's commander_zone ask", d)
+	}
+	if d.Source != bruna {
+		t.Fatalf("ask source %d, want Bruna (%d)", d.Source, bruna)
+	}
+	if z := e.G.Obj(bruna).Zone; z != state.ZExile {
+		t.Fatalf("Bruna zone = %v, want exile (precondition: she left inside the pile)", z)
 	}
 }
 

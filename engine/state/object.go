@@ -1702,12 +1702,15 @@ type Object struct {
 	// means the card's last move was its own.
 	SplitFrom ObjID
 
-	// SplitInc is SplitFrom's Incarnation as of that departure (after the
-	// battlefield-leaving advance), so the card's arrival is attributable to
-	// THAT departure only: a host that re-enters and leaves again has a
-	// larger Incarnation and no longer matches. Meaningful only with a
-	// nonzero SplitFrom; cleared with it.
-	SplitInc uint32
+	// SplitDep is state.Game.DepSeq as of the departure that carried this
+	// card -- the global battlefield-departure ordinal that departure was --
+	// so the card's arrival is attributable to THAT departure only: rules'
+	// CR 903.9a scan compares it against its watermark, so a host that
+	// re-enters and leaves again (a later, higher ordinal) no longer matches,
+	// while a host that merely RETURNS to the battlefield (a blink: no
+	// departure, the ordinal does not move) still does. Meaningful only with
+	// a nonzero SplitFrom; cleared with it.
+	SplitDep uint32
 
 	IsMyriad bool
 
