@@ -101,3 +101,62 @@ func CanonicalKeywordLine(k string) string {
 	}
 	return canon
 }
+
+// HiddenKeyword is the dense code for one derived keyword line's combat
+// meaning. It is the ONE boundary conversion for the combat restriction
+// reader (engine/rules/combat.ParseHiddenKeyword) and for the Effect-delivery
+// whitelist (engine/effects): Forge delivers these as keyword TEXT, either as
+// a printed K: line canonicalised by canonicalKeywordHeads or as a runtime
+// KW$/AddHiddenKeyword$ grant that keeps the sentence spelling. Both spellings
+// are matched here, once, and every reader dispatches on the code.
+type HiddenKeyword uint16
+
+const (
+	HiddenKeywordNone HiddenKeyword = iota
+	HiddenKeywordCantAttackOrBlock
+	HiddenKeywordCantAttack
+	HiddenKeywordCantBlock
+	HiddenKeywordMustBlock
+	HiddenKeywordUntapNextStep
+	HiddenKeywordCantAttackOrBlockAlone
+	HiddenKeywordCantAttackAlone
+	HiddenKeywordCantBlockAlone
+	HiddenKeywordCount
+)
+
+// hiddenKeywordHeadCodes resolves one already-lower-cased, trimmed head to its
+// code. The table carries the canonical heads and the printed Forge sentence
+// spellings; the "HIDDEN " marker is stripped before the lookup.
+var hiddenKeywordHeadCodes = NewStrCodes(
+	StrEntry[HiddenKeyword]{Key: "cantattackorblock", Val: HiddenKeywordCantAttackOrBlock},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack or block.", Val: HiddenKeywordCantAttackOrBlock},
+	StrEntry[HiddenKeyword]{Key: "cantattack", Val: HiddenKeywordCantAttack},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack.", Val: HiddenKeywordCantAttack},
+	StrEntry[HiddenKeyword]{Key: "cantblock", Val: HiddenKeywordCantBlock},
+	StrEntry[HiddenKeyword]{Key: "cardname can't block.", Val: HiddenKeywordCantBlock},
+	StrEntry[HiddenKeyword]{Key: "decayed", Val: HiddenKeywordCantBlock},
+	StrEntry[HiddenKeyword]{Key: "mustblock", Val: HiddenKeywordMustBlock},
+	StrEntry[HiddenKeyword]{Key: "cardname must be blocked if able.", Val: HiddenKeywordMustBlock},
+	StrEntry[HiddenKeyword]{Key: "this card doesn't untap during your next untap step.", Val: HiddenKeywordUntapNextStep},
+	StrEntry[HiddenKeyword]{Key: "cantattackorblockalone", Val: HiddenKeywordCantAttackOrBlockAlone},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack or block alone.", Val: HiddenKeywordCantAttackOrBlockAlone},
+	StrEntry[HiddenKeyword]{Key: "cantattackalone", Val: HiddenKeywordCantAttackAlone},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack alone.", Val: HiddenKeywordCantAttackAlone},
+	StrEntry[HiddenKeyword]{Key: "cantblockalone", Val: HiddenKeywordCantBlockAlone},
+	StrEntry[HiddenKeyword]{Key: "cardname can't block alone.", Val: HiddenKeywordCantBlockAlone},
+)
+
+// HiddenKeywordOf resolves one keyword line to its HiddenKeyword code,
+// case-insensitively, or HiddenKeywordNone when the line is outside the
+// vocabulary. The optional leading "HIDDEN " marker is stripped without a
+// strings call (the codeshape ratchet).
+func HiddenKeywordOf(k string) HiddenKeyword {
+	head := KeywordHead(k)
+	if len(head) >= len("HIDDEN ") && head[:len("HIDDEN ")] == "HIDDEN " {
+		head = head[len("HIDDEN "):]
+	}
+	if head == "" {
+		return HiddenKeywordNone
+	}
+	return hiddenKeywordHeadCodes.Code(lowerASCIIString(head))
+}
