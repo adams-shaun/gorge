@@ -119,6 +119,15 @@ type engineContinuation struct {
 	// cloned stack no longer holds the entrant (engine/rules/entry_counters.go).
 	// Zero on every live engine.
 	causePin state.ObjID `clone:"reset"`
+	// costCounters is non-zero while a cost's own counter placement is being
+	// emitted (an activation's AddCounter<N/KIND> part -- a planeswalker's
+	// [+N] -- and a mana ability's AddCounter part). Such a placement is a
+	// COST, never an effect, whatever is on the stack: since CR 602.2a's
+	// push-first the ability being activated is itself on the stack while it
+	// is paid for, and an instant-speed activation always paid above other
+	// objects. The AddCounter replacement's EffectOnly$ gate reads it
+	// (replacement_match.go). Set and cleared synchronously around the emit.
+	costCounters int `clone:"reset"`
 	// etbLandPlay identifies the land whose LandPlayed event must wait for its
 	// final battlefield entry. A replacement can suspend and later re-emit the
 	// move, so the object id is needed to avoid consuming this continuation on

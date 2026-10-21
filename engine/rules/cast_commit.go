@@ -344,11 +344,13 @@ func (e *Engine) payCast() {
 		// no gate -- so this is the only thing the activation does with it.
 		// A 0-count part (the [0] abilities) emits nothing: a CounterChange of
 		// 0 would be a no-op folded into state but a spurious log entry.
+		e.costCounters++
 		for _, part := range pc.cost.AddCounter {
 			if part.N != 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: part.N})
 			}
 		}
+		e.costCounters--
 		// Exert<1/CARDNAME> (CR 701.39a): one Exert event on the source, the
 		// same fold the declare-attackers election emits, so the untap skip
 		// and "whenever you exert" triggers read one path.
