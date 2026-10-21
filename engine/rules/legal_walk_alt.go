@@ -712,7 +712,8 @@ func (w *legalWalk) exileCastsWalk() {
 		// face the recast casts. The adventure-zone entry from a
 		// non-resolution path (CR 714.3b) is out of scope, and
 		// adventureZoneAvailable refuses it.
-		if adventureSpellFace(o) != nil && o.FaceIdx == 0 && e.adventureZoneAvailable(id) &&
+		if adventureSpellFace(o) != nil && o.FaceIdx == 0 && !o.Card.Faces[0].IsLand() &&
+			e.adventureZoneAvailable(id) &&
 			!w.castRestrictedAsFace(p, id, o.Card.Faces[0]) && !e.castSuppressed(p, id) {
 			front := o.Card.Faces[0]
 			if w.spellTimingOK(p, id, front, sorcery) && e.castTargetsAvailable(p, id, front.SpellAbility()) &&
