@@ -118,6 +118,25 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 	}
 	units := e.paymentPlanManaUnitsOnly(pc.player, only)
 	e.idsRelease(only)
+	// A permanent elected to a tap cost (pc.Taps) or committed to a
+	// Convoke-family contribution cannot also pay the mana: one permanent may
+	// not pay two costs of the same cast/activation (CR 601.2g-h, 602.2b).
+	// The election runs before this window, so a witness armed earlier may
+	// still name it. Reject a step that would tap the committed permanent or
+	// consume it (sacrifice/return); a step that only spends life or deals
+	// damage leaves it untapped on the battlefield and stays legal.
+	for _, pa := range plan.Activations {
+		if !e.convokeCommitted(pc, pa.Source) {
+			continue
+		}
+		step, ok := pay.PaymentPlanStepAlternative(asPayer(e), units, pa)
+		if !ok || step.Ma == nil || pay.AbilityCompiledCost(asPayer(e), step.Ma).Cost.Tap {
+			return paymentFallbackSourceChanged, units, pay.Alt{}, false
+		}
+		if c := step.Consequence; c.Sacrifice || c.ReturnToHand {
+			return paymentFallbackSourceChanged, units, pay.Alt{}, false
+		}
+	}
 	pool := e.G.Players[pc.player].Pool
 	var first pay.Alt
 	for i, pa := range plan.Activations {
