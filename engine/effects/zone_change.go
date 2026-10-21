@@ -1296,10 +1296,11 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 	}
 }
 
-// secretFaceDownMove makes a face-down move out of a hidden zone (a hand or
-// a library) Secret to looker, the one seat the projection admits to the
-// card's face (engine/view/card.go: the card's controller -- its owner, in
-// exile and on a face-down battlefield entry -- or the WithMayLook$ looker).
+// secretFaceDownMove makes a face-down move out of a hidden zone (a hand,
+// library, sideboard or planar deck) Secret to looker, the one seat the
+// projection admits to the card's face (engine/view/card.go: the card's
+// controller -- its owner, in exile and on a face-down battlefield entry --
+// or the WithMayLook$ looker).
 // Without it a face-down exile keeps its Obj under view.RedactEvent's rule
 // (2) (exile is not a hidden zone) and every seat's transcript names the
 // card (CR 406.3), and a Secret move with no Player is served to seat 0. A

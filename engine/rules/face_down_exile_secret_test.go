@@ -152,6 +152,7 @@ func TestNecropotenceFaceDownExileIsSeatOnesSecret(t *testing.T) {
 func TestForetellActionNamesNoCardToTheOpponent(t *testing.T) {
 	t.Parallel()
 	voyage := corpusAlternativeCard(t, "Haunting Voyage")
+	names := []string{"a", "b"}
 	for _, p := range []state.PlayerID{0, 1} {
 		e := New(Config{Seed: 1, Names: []string{"a", "b"},
 			Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
@@ -183,10 +184,22 @@ func TestForetellActionNamesNoCardToTheOpponent(t *testing.T) {
 				if named != (viewer == p) {
 					t.Fatalf("foreteller seat %d: seat %d is served %v Obj %d, line %q (raw %+v); want the card named to the foreteller only", p, viewer, ev.Kind, got.Obj, line, ev)
 				}
+				// The redacted CastInfo keeps the foreteller in Player, so
+				// its line must attribute the public action to the
+				// foreteller, not to seat 0 (review MAJOR, cr-g62).
+				if ev.Kind == events.CastInfo && viewer != p {
+					if want := names[p] + " casts"; !strings.HasPrefix(line, want) {
+						t.Fatalf("foreteller seat %d: seat %d is served %q, want it to name the foreteller %q", p, viewer, line, want)
+					}
+				}
 			}
 			pub := view.RedactEventFor(e.G, ev, view.NoSeat, view.Public)
 			if line := view.Describe(e.G, pub); pub.Obj != 0 || strings.Contains(line, "Haunting Voyage") {
 				t.Fatalf("foreteller seat %d: the spectator is served %v Obj %d, line %q", p, ev.Kind, pub.Obj, line)
+			} else if ev.Kind == events.CastInfo {
+				if want := names[p] + " casts"; !strings.HasPrefix(line, want) {
+					t.Fatalf("foreteller seat %d: the spectator is served %q, want it to name the foreteller %q", p, line, want)
+				}
 			}
 		}
 		if seen != 2 {
