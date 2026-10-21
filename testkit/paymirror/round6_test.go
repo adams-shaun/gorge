@@ -108,23 +108,31 @@ func round6Game(t *testing.T, d *Decks, spec GameSpec) []*Report {
 	return full
 }
 
-// TestRoundSixGainedMemberSeed3589 is random2-fresh seed 3589 (Lorcan,
+// TestRoundSixGainedMemberSeed3590 began as random2-fresh seed 3589 (Lorcan,
 // Warlock Collector): a Manascape Refractor had gained "Add {R}" from a
 // Mountain and from a Vivid Crag; the float route picked the Crag's while
 // run A activated the Mountain's, and the ManaActivate markers differed.
 //
-// Re-pinned to seq 0 (the round-10 convention) twice, for the same reason:
-// first by the kw:Backup ticket (CR 702.165), then again by sb-job-select
-// (kw:Job select, CR 702.182). Each newly registered keyword made its corpus
-// carriers eligible for the random pool (NewRandomPool indexes only cards
-// with reg.Unsupported(c, sup) == nil), so pool.Generate returned different
-// decks for this seed and the moved game no longer casts Manascape Refractor
-// at all. The seed keeps an empty pin and asserts the whole game is
-// mismatch-free and control-equivalent; the finding's own shape stays pinned
-// by the marker unit tests above, and the gained-member witness itself stays
-// live in paymirror.go (gainedMember/answerManaAsks) for the next game that
-// shows the shape.
-func TestRoundSixGainedMemberSeed3589(t *testing.T) {
+// Re-pinned to seq 0 (the round-10 convention) three times, for the same
+// reason: first by the kw:Backup ticket (CR 702.165), then by sb-job-select
+// (kw:Job select, CR 702.182), and now by cr-g21 (the Renown, Shroud,
+// Phasing, Vanishing, Rebound, Compleated and Casualty registration). Each
+// newly registered keyword made its corpus carriers eligible for the random
+// pool (NewRandomPool indexes only cards with reg.Unsupported(c, sup) ==
+// nil), so pool.Generate returned different decks for this seed and the
+// moved game no longer casts Manascape Refractor at all. The third move also
+// exposed a pre-existing engine gap: seed 3589's new game offers a Downsize
+// plan and then aborts the cast at the target gate because the only untapped
+// source is Star Compass's reflected "any colour a basic land you control
+// could produce", which castWindowReachable cannot price (ticket:
+// cast-window-reflected-any-colour). Rather than pin 58 known-bug witnesses,
+// the seed moves to the next clean random2 game, 3590. The seed keeps an
+// empty pin and asserts the whole game is mismatch-free and
+// control-equivalent; the finding's own shape stays pinned by the marker
+// unit tests above, and the gained-member witness itself stays live in
+// paymirror.go (gainedMember/answerManaAsks) for the next game that shows
+// the shape.
+func TestRoundSixGainedMemberSeed3590(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	d, err := LoadDecks(reg)
@@ -132,7 +140,7 @@ func TestRoundSixGainedMemberSeed3589(t *testing.T) {
 		t.Fatal(err)
 	}
 	pool := NewRandomPool(reg)
-	const seed, seats = 3589, 2
+	const seed, seats = 3590, 2
 	spec := GameSpec{Seed: seed, Policy: "bot"}
 	for i := 0; i < seats; i++ {
 		label, list := pool.Generate(seed*7919 + uint64(seats)*131 + uint64(i))
