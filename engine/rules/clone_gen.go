@@ -992,6 +992,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.cmdZone = append([]cmdZoneMove(nil), e.cmdZone...)
 	c.cmdZoneDue = append([]state.ObjID(nil), e.cmdZoneDue...)
 	c.cmdZoneScan = e.cmdZoneScan
+	c.cmdZoneDep = e.cmdZoneDep
 	if e.legendBatch != nil {
 		p0 := *e.legendBatch
 		p0.group.ids = append([]state.ObjID(nil), e.legendBatch.group.ids...)

@@ -48,6 +48,21 @@ func foldMutate(g *state.Game, e *Event) {
 			return
 		}
 		survivor.SetCard(srcCard, srcFace)
+		// The cards changed objects: the survivor's ID now carries the
+		// mutating card and parkedID the demoted one. A commander's
+		// designation is an attribute of the card (CR 903.3), so a
+		// Commanders entry follows its card: the mutating spell's ID to the
+		// survivor's, the survivor's old ID to parkedID.
+		for p := range g.Players {
+			for k, c := range g.Players[p].Commanders {
+				switch c {
+				case e.Obj:
+					g.Players[p].Commanders[k] = parkedID
+				case src.ID:
+					g.Players[p].Commanders[k] = e.Obj
+				}
+			}
+		}
 		under := state.MergedCard{Obj: parkedID, Card: oldCard, FaceIdx: oldFace}
 		survivor.MergedCards = append([]state.MergedCard{under}, survivor.MergedCards...)
 		// The mutating spell's object is now redundant (its card data was

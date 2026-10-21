@@ -105,6 +105,13 @@ type engineParked struct {
 	// them. Always empty/zero in a non-Commander game.
 	cmdZoneDue  []state.ObjID `clone:"deep"`
 	cmdZoneScan int           `clone:"deep"`
+	// cmdZoneDep is the DepSeq watermark the CR 903.9a split scan has checked
+	// through (collectCommanderArrivals): a split stamp at or below it is a
+	// departure an earlier state-based check already consumed, so that
+	// commander is not offered again; a stamp above it is a fresh arrival.
+	// Set to Game.DepSeq at every scan's end. A pure function of the log like
+	// cmdZoneScan; Clone copies it.
+	cmdZoneDep uint32 `clone:"deep"`
 	// cmdZoneDeclined is the commander whose CR 903.9b ask was just declined
 	// (or whose owner has left), set only for the one synchronous re-emit of
 	// that move so commanderZoneReplacementApplies skips it while every other

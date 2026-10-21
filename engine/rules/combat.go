@@ -2177,6 +2177,11 @@ func (e *Engine) collectFirstStrikers(dst []state.ObjID) []state.ObjID {
 // (and answers "carried in an event of its own"). It also keeps every state
 // mutation on the events.Apply path, the build's standing invariant.
 func (e *Engine) tallyCmdDamage(p state.PlayerID, from state.ObjID, amount int32) {
+	// CR 903.3b-c: a melded or merged permanent with a commander among its
+	// cards is that commander; the event names the commander card's object.
+	if c := e.G.CommanderOf(from); c != 0 {
+		from = c
+	}
 	e.emit(events.Event{Kind: events.CmdDamage, Player: p, Obj: from, Amount: amount})
 }
 
