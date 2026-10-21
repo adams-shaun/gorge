@@ -37,6 +37,16 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	if n < 0 {
 		n = 0
 	}
+	// Tribute$ (CR 702.104; task kw-tribute-expansion): the put is the
+	// tribute offer the K:Tribute expansion mints -- two asks, then the
+	// counters on acceptance. It is dispatched before every other shape: a
+	// tribute body carries none of the Optional$/Bolster$/Support$ modifiers,
+	// and its ETB$ True must never reach the entry fold (the compiled
+	// EntryFoldBlocked keeps it on this ordinary body path).
+	if pc.Tribute {
+		putCounterTribute(h, c, sa, pc, n)
+		return
+	}
 	adapt := pc.AdaptSet
 	mono := pc.MonstrositySet
 	renown := pc.RenownSet

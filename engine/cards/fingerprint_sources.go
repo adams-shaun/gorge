@@ -104,6 +104,7 @@ import "embed"
 //go:embed kw_sunburst.go
 //go:embed kw_training.go
 //go:embed kw_transmute.go
+//go:embed kw_tribute.go
 //go:embed kw_typecycling.go
 //go:embed kw_undaunted.go
 //go:embed kw_undying.go
