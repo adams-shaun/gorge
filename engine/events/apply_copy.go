@@ -264,6 +264,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 	// identically.
 	var card *cards.Card
 	var faceIdx uint8
+	var basis *cards.Face
 	srcAtEOTTrigBody := ""
 	if e.Obj == 0 {
 		if e.Text == "" {
@@ -278,7 +279,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 		if src == nil || src.Card == nil {
 			return
 		}
-		card, faceIdx = src.Card, src.FaceIdx
+		card, faceIdx, basis = copyTokenBasis(src)
 		srcAtEOTTrigBody = src.AtEOTTrigBody
 	}
 	o := g.AddObject(card, e.Player)
@@ -286,6 +287,9 @@ func foldCopyToken(g *state.Game, e *Event) {
 	o.IsToken = true
 	o.IsCopy = true
 	o.SetFaceIdx(faceIdx)
+	if basis != nil {
+		o.SetCopyFace(basis)
+	}
 	// AtEOTTrig$ is a copiable value (CR 707.2): the mint's own body when
 	// the copying spell carries one (Counter), else the source object's --
 	// a token copy of an AtEOTTrig$ token still sacrifices itself at the
@@ -307,6 +311,31 @@ func foldCopyToken(g *state.Game, e *Event) {
 	if e.Amount&CopyTokenExileCombat != 0 {
 		o.IsMyriad = true
 	}
+}
+
+// faceDownCopyCard is the card a token copy of a face-down permanent is
+// minted on: one empty face (no name, no types, no text), never written. Its
+// characteristics come from the token's CopyFace. One shared pointer, so a
+// live game and its log-only replay hold the identical Card.
+var faceDownCopyCard = &cards.Card{Faces: []*cards.Face{{SVars: map[string]string{}}}}
+
+// copyTokenBasis is what a token copy of src is minted from (CR 707.2,
+// 707.3): its card and face index, plus a private value copy of src's
+// layer-1 copy basis when src is itself copying something (nil otherwise,
+// so a token copy of an ordinary permanent reads its printed face exactly as
+// before). A face-down src is copied as its face-down characteristic set
+// (CR 708.2a) over faceDownCopyCard, so the face-up token never carries the
+// hidden card (a projection reads a token's printed name off its Card). Read
+// before AddObject, which may reallocate g.Objs.
+func copyTokenBasis(src *state.Object) (*cards.Card, uint8, *cards.Face) {
+	if src.CopiesFaceDown() {
+		return faceDownCopyCard, 0, src.CopiableFace()
+	}
+	if src.CopyFace == nil {
+		return src.Card, src.FaceIdx, nil
+	}
+	cf := *src.CopyFace
+	return src.Card, src.FaceIdx, &cf
 }
 
 // foldCardToken folds Kind CardToken into state.
@@ -399,7 +428,7 @@ func foldClonePermanent(g *state.Game, e *Event) {
 			face = g.NameUniverse.Card(i).Faces[0]
 		}
 	} else if src := g.Obj(e.IDs[0]); src != nil {
-		face = src.Face()
+		face = src.CopiableFace()
 	}
 	if face == nil {
 		return
