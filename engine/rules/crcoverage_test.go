@@ -21,11 +21,13 @@ import (
 // implements (or deviates from) each rule lives. TestCRCoverageIsCurrent keeps
 // them honest: every row parses, every code reference names a file and a
 // declaration that exist, every test reference names a test that exists, and
-// the README's summary counts match the tables. A rename that orphans a
-// reference fails here, so the table is fixed in the same change.
+// the test logs the summary counts. A rename that orphans a reference fails
+// here, so the table is fixed in the same change.
 //
-// GORGE_UPDATE_CRCOVERAGE=1 rewrites the README summary block from the
-// tables; references are never rewritten automatically.
+// The counts are not committed (2026-10-21): every CR ticket changed the same
+// summary lines, so any two open CR tickets conflicted at landing. Run this
+// test with -v to read them. GORGE_UPDATE_CRCOVERAGE=1 deletes a stale summary
+// block that an older branch still carries; references are never rewritten.
 
 const (
 	crCoverageDir       = "crcoverage"
@@ -291,33 +293,34 @@ func crTestNames(t *testing.T, root string) map[string]bool {
 	return names
 }
 
-// checkCRSummary compares README.md's summary block with the tables' counts.
+// checkCRSummary logs the tables' counts. README.md must not carry the old
+// generated summary block: a branch from before 2026-10-21 still does, and
+// GORGE_UPDATE_CRCOVERAGE=1 deletes it.
 func checkCRSummary(t *testing.T, rows []crRow) {
 	t.Helper()
+	t.Logf("CR coverage summary:%s", renderCRSummary(rows))
 	readme := filepath.Join(crCoverageDir, "README.md")
 	data, err := os.ReadFile(readme)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := renderCRSummary(rows)
 	text := string(data)
 	b, e := strings.Index(text, crSummaryBegin), strings.Index(text, crSummaryEnd)
-	if b < 0 || e < b {
-		t.Fatalf("%s: no %s ... %s block", readme, crSummaryBegin, crSummaryEnd)
-	}
-	got := text[b+len(crSummaryBegin) : e]
-	if got == want {
+	if b < 0 && e < 0 {
 		return
 	}
+	if b < 0 || e < b {
+		t.Fatalf("%s: unbalanced %s ... %s markers", readme, crSummaryBegin, crSummaryEnd)
+	}
 	if os.Getenv(crCoverageUpdateEnv) == "1" {
-		text = text[:b+len(crSummaryBegin)] + want + text[e:]
+		text = text[:b] + text[e+len(crSummaryEnd):]
 		if err := os.WriteFile(readme, []byte(text), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("rewrote %s summary", readme)
+		t.Logf("deleted the %s summary block", readme)
 		return
 	}
-	t.Errorf("%s summary is stale; rerun with %s=1, or replace the block with:\n%s", readme, crCoverageUpdateEnv, want)
+	t.Errorf("%s carries the old generated summary block; the counts are no longer committed. Delete it (rerun with %s=1)", readme, crCoverageUpdateEnv)
 }
 
 func renderCRSummary(rows []crRow) string {
