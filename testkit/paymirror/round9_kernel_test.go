@@ -18,8 +18,9 @@ import "testing"
 //     bots' trajectory, same card and verdict; then 4637 until the combat
 //     priority fixes (rules e7aaf1530 and 93b6057e4, CR 510.4/117.3a: more
 //     priority windows in combat) moved it to seq 4897, and the CR 510.3
-//     post-damage round (rules 24bbba791) to seq 4929, same card and
-//     verdict);
+//     post-damage round (rules 24bbba791) to seq 4929, and cr-g69 (CR
+//     601.2h: one duplicate Priority event fewer when a cost answer completes
+//     a cast) to seq 4928, same card and verdict);
 //   - 11056: the Artisan finding is no longer reached; a clean,
 //     control-equivalent game;
 //   - 10056: Lagomos, Hand of Hatred was equivalent at seq 6750 (the
@@ -33,7 +34,7 @@ import "testing"
 //
 // roundNineWant holds those pins.
 var roundNineWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key ("" = equivalent)
-	10860: {4929: ""},
+	10860: {4928: ""},
 	11056: {},
 	10056: {},
 	8175:  {},

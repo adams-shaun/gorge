@@ -122,7 +122,10 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	// Re-pinned after cr-g67a (CR 601.2a: the spell is on the stack at its
 	// cast-time decisions): the GAME's views changed, not an encoding; 298
 	// decisions.
-	want := []uint64{0x978ad7e1cbbf317b, 0xc2aa34b6383c6117, 0xff0bebfc860f13cb}
+	// Re-pinned after cr-g69 (CR 601.2h): the game's decisions answer in a
+	// different order (cost objects are chosen at payment), not an encoding;
+	// 298 decisions.
+	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b}
 	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x", decisions, digests[0], digests[1], digests[2])
 	if decisions < 200 {
 		t.Fatalf("only %d decisions encoded; the pin is too thin", decisions)
