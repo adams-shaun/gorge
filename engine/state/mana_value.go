@@ -14,6 +14,8 @@ import (
 // OBJECT's mana value right now", which differs from its current face's
 // printed cost in exactly these cases, checked in this order:
 //
+//   - CR 708.2a/708.4: a face-down permanent or face-down spell has no mana
+//     cost, so its mana value is 0 (FaceDownHidden).
 //   - CR 707.2/202.3b/202.3c: a copy reads its copied face (CopyFace) as
 //     printed -- the copy of a transformed back face or of a melded
 //     permanent prints "no cost" and is 0, exactly as the rules say.
@@ -42,7 +44,7 @@ func ManaValue(g *Game, o *Object) int32 {
 // X.
 func manaValueAs(g *Game, o *Object, zone Zone, x int32) int32 {
 	f := o.Face()
-	if f == nil {
+	if f == nil || o.faceDownIn(zone) {
 		return 0
 	}
 	if o.CopyFace != nil {
@@ -127,4 +129,17 @@ func (o *Object) BattlefieldRoomFaces() ([]*cards.Face, bool) {
 		return nil, false
 	}
 	return faces, true
+}
+
+// FaceDownHidden reports whether o is face down where its face-down
+// characteristics apply (CR 708.2a/708.4): a face-down permanent on the
+// battlefield or a face-down spell on the stack. Such an object has no name,
+// no mana cost and no colour; a FaceDown marker stranded on a card in any
+// other zone hides nothing.
+func (o *Object) FaceDownHidden() bool {
+	return o != nil && o.faceDownIn(o.Zone)
+}
+
+func (o *Object) faceDownIn(zone Zone) bool {
+	return o.FaceDown && (zone == ZBattlefield || zone == ZStack)
 }
