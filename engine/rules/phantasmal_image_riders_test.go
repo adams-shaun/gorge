@@ -50,18 +50,15 @@ func TestPhantasmalImageETBCopyKeepsRiders(t *testing.T) {
 	if e.hasType(e.G.Obj(bear), "Illusion") {
 		t.Fatal("the copied template must not gain Illusion")
 	}
-	trig, svar := false, false
-	for _, ce := range e.active() {
-		if ce.TriggerGrantor != img {
-			continue
-		}
-		if ce.AddTrigger != nil && ce.AddTrigger.Mode == "BecomesTarget" {
+	// The riders are copiable values (CR 707.9a): they live on the copy's
+	// basis face, not in a granted continuous effect.
+	trig := false
+	for _, tr := range o.Face().Triggers {
+		if tr.Mode == "BecomesTarget" && tr.Effect != nil {
 			trig = true
 		}
-		if _, ok := ce.AddSVars["PhantasmalImageSac"]; ok {
-			svar = true
-		}
 	}
+	_, svar := o.Face().SVars["PhantasmalImageSac"]
 	if !trig {
 		t.Fatal("copy carries no granted BecomesTarget trigger (AddTriggers$)")
 	}

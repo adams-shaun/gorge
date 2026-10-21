@@ -16,9 +16,11 @@ type copyExceptSpec struct {
 	// The type exceptions, applied in the order engine/rules/chars'
 	// applyTypeEffect applies one effect's strips: removeCardTypes keeps only
 	// the supertypes; removeCreatureTypes drops the creature subtypes;
-	// removeLegendary drops Legendary; then addTypes append once each.
-	addTypes                                              []string
-	removeCardTypes, removeCreatureTypes, removeLegendary bool
+	// removeSubTypes (Clone's RemoveSubTypes$) keeps card types and
+	// supertypes; removeLegendary drops Legendary; then addTypes append once
+	// each.
+	addTypes                                                              []string
+	removeCardTypes, removeCreatureTypes, removeSubTypes, removeLegendary bool
 	// setColors (when setColorsPresent) replaces the colour set; addColors
 	// extends it. Letters are WUBRG.
 	setColors        []string
@@ -31,6 +33,10 @@ type copyExceptSpec struct {
 	noManaCost bool
 	// keywords are the AddKeywords$ lines (CR 707.9a).
 	keywords []string
+	// svars and triggers are the AddSVars$/AddTriggers$ grants as {name,
+	// body} pairs and raw bodies, in grant order (CR 707.9a).
+	svars    [][2]string
+	triggers []string
 }
 
 // copyExceptions settles spec against o, the object that has just become the
@@ -43,12 +49,13 @@ func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
 	if f == nil {
 		return x
 	}
-	if s.removeCardTypes || s.removeCreatureTypes || s.removeLegendary || len(s.addTypes) > 0 {
+	if s.removeCardTypes || s.removeCreatureTypes || s.removeSubTypes || s.removeLegendary || len(s.addTypes) > 0 {
 		x.TypesSet = true
 		for _, t := range f.Types {
 			switch {
 			case s.removeCardTypes && !copySupertype(t):
 			case s.removeCreatureTypes && CreatureTypeWords(t):
+			case s.removeSubTypes && !CardTypeWord(t) && !copySupertype(t):
 			case s.removeLegendary && strings.EqualFold(t, "Legendary"):
 			default:
 				x.Types = append(x.Types, t)
@@ -83,6 +90,8 @@ func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
 	}
 	x.NoManaCost = s.noManaCost
 	x.Keywords = append([]string(nil), s.keywords...)
+	x.SVars = append([][2]string(nil), s.svars...)
+	x.Triggers = append([]string(nil), s.triggers...)
 	return x
 }
 

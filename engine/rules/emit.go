@@ -527,6 +527,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.fuseTargets[copyID] = cp
 		}
+		// CR 707.10: "If an effect of the copy refers to objects used to pay
+		// its costs, it uses the objects used to pay the costs of the
+		// original spell or ability" (a copied Fling deals the ORIGINAL's
+		// sacrificed creature's power). The copy takes its own copy of each
+		// cost-paid record the original's resolution Ctx reads (Forge
+		// SpellAbility.copy shares the paid hash the same way).
+		inheritCopyRecord(e.sacrificedLKI, ev.Obj, copyID)
+		inheritCopyRecord(e.castExiled, ev.Obj, copyID)
+		inheritCopyRecord(e.castRevealed, ev.Obj, copyID)
+		inheritCopyRecord(e.castCounterPut, ev.Obj, copyID)
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
 		}
@@ -869,4 +879,13 @@ func (e *Engine) emitBookkeeping(ev *events.Event) {
 		e.refreshDerivedTypes()
 	}
 	e.checkTriggers(ev, nil, 0, 0, false)
+}
+
+// inheritCopyRecord gives the stack copy `to` its own copy of the original
+// `from`'s entry in m, when there is one (CR 707.10's cost-paid objects). A
+// present entry means m is non-nil.
+func inheritCopyRecord[T any](m map[state.ObjID][]T, from, to state.ObjID) {
+	if s, ok := m[from]; ok {
+		m[to] = append([]T(nil), s...)
+	}
 }

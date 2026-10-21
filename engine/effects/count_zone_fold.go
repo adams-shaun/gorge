@@ -243,7 +243,7 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		_, dt := o.CounterPTTotals()
 		f.n += int32(o.Face().Toughness()) + dt
 	case zoneFoldPropCardManaCost:
-		f.n += int32(objectManaValue(o))
+		f.n += int32(objectManaValue(f.h.Game(), o))
 	case zoneFoldPropCardTypes:
 		vocab := cardTypeWords
 		if f.prop == "CardTypesPermanent" {
@@ -353,7 +353,7 @@ func differentPropertyValue(h Host, o *state.Object, kind differentPropertyKind)
 		// nothing rather than panicking the match. objectManaValue applies
 		// the CR 709.5 Room rule for a battlefield Room.
 		if o.Face() != nil {
-			return int32(objectManaValue(o)), true
+			return int32(objectManaValue(h.Game(), o)), true
 		}
 		return 0, false
 	case diffPower:
@@ -395,7 +395,7 @@ func extremePropertyValue(h Host, o *state.Object, prop string) int32 {
 	case extremePropertyValueGreatestCardToughness:
 		return h.Toughness(o.ID)
 	case extremePropertyValueGreatestCardManaCost:
-		return o.Face().ManaValue()
+		return int32(objectManaValue(h.Game(), o))
 	}
 	return 0
 }

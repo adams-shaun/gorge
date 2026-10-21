@@ -35,7 +35,7 @@ func evidenceGraveCandidates(g *state.Game, player state.PlayerID, reserved map[
 func evidenceReserveOrder(g *state.Game, ids []state.ObjID) []state.ObjID {
 	ordered := append([]state.ObjID(nil), ids...)
 	sort.Slice(ordered, func(i, j int) bool {
-		mi, mj := g.Obj(ordered[i]).Face().Cmc(), g.Obj(ordered[j]).Face().Cmc()
+		mi, mj := state.ManaValue(g, g.Obj(ordered[i])), state.ManaValue(g, g.Obj(ordered[j]))
 		if mi != mj {
 			return mi < mj
 		}
@@ -211,7 +211,7 @@ func (tc *triggeredEffectCost) evidenceStage(e *Engine) {
 		Source: tc.source}
 	for _, id := range ids {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "evidence",
-			Obj: id, Label: e.targetName(id), Value: int(e.G.Obj(id).Face().Cmc())})
+			Obj: id, Label: e.targetName(id), Value: int(state.ManaValue(e.G, e.G.Obj(id)))})
 	}
 	windowAsk(e, d, chooseTriggeredMandatory)
 }

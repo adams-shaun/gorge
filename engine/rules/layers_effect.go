@@ -647,6 +647,9 @@ func (e *Engine) settleExpiredClones(expired []cloneExpiry) {
 		for _, raw := range survivor.CloneStaticBodies {
 			e.emit(events.Event{Kind: events.CloneStatic, Obj: k.Target, Text: raw})
 		}
+		if survivor.CloneExcept != "" {
+			e.emit(events.Event{Kind: events.CopyExcept, Obj: k.Target, Text: survivor.CloneExcept})
+		}
 	}
 }
 

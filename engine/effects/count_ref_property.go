@@ -143,8 +143,8 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 				}
 			}
 		case ref == "TriggerObjectsCards" && prop == "GreatestCardManaCost":
-			if f != nil && int32(objectManaValue(o)) > n {
-				n = int32(objectManaValue(o))
+			if f != nil && int32(objectManaValue(h.Game(), o)) > n {
+				n = int32(objectManaValue(h.Game(), o))
 			}
 		case prop == "CardPower":
 			if f != nil {
@@ -197,7 +197,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// the same number the plain spelling does. One shared case, so
 			// the two cannot disagree.
 			if f != nil {
-				n += int32(objectManaValue(o))
+				n += int32(objectManaValue(h.Game(), o))
 			}
 		case prop == "NumTimesChoseMode":
 			// TriggeredSpellAbility$NumTimesChoseMode (Riku of Many Paths'
