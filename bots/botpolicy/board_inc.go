@@ -335,6 +335,7 @@ func (b *Board) fillTablesInc(g *state.Game, ch Chars, me state.PlayerID, hideHa
 				PumpPower:      pumpPower,
 				PumpToughness:  pumpToughness,
 				PumpOwn:        pumpOwnCombatants,
+				CombatTrick:    effects.CastCombatTrick(f.SpellAbility()),
 				PlayMain1:      f.PlayMain1Hint(),
 				RemoveDeck:     f.RemoveDeck != "",
 				AuraLogic:      effects.CastAuraLogic(f),

@@ -366,6 +366,11 @@ export interface CardView {
    */
   pump_own_combatants?: boolean;
   /**
+   * CombatTrick reports whether the primary spell ability is a combat
+   * trick (effects.CastCombatTrick).
+   */
+  combat_trick?: boolean;
+  /**
    * PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
    * "ALWAYS", "TRUE" (cast in the first main while the caster controls a
    * creature) or "OPPONENTCREATURES" (while an opponent does), and "" for

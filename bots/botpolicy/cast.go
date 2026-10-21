@@ -191,6 +191,10 @@ type Card struct {
 	// scope -- answers false, and the A6 pump rule holds the cast rather
 	// than aiming at a creature the card cannot name.
 	PumpOwn bool
+	// CombatTrick reports whether the primary spell ability is a pump,
+	// mass pump, protection grant, or +1/+1 counter put that can affect a
+	// creature the caster controls (effects.CastCombatTrick).
+	CombatTrick bool
 	// Toughness is the engine's derived toughness (ch.Toughness), the
 	// creature body's other half. It is a cast-scorer feature only -- the
 	// CreatureToughness weight in castScore -- never part of the shared base
