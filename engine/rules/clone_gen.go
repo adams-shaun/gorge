@@ -1126,8 +1126,6 @@ func cloneFieldsEngineCastWindows(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		c.untapResume = &p0
 	}
 	c.untapChoiceObj = e.untapChoiceObj
-	c.madnessChoices = append([]events.Event(nil), e.madnessChoices...)
-	c.madnessSuspended = e.madnessSuspended
 	if e.suppressedCast != nil {
 		c.suppressedCast = make(map[state.ObjID]bool, len(e.suppressedCast))
 		for k0, v0 := range e.suppressedCast {
