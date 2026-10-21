@@ -34,6 +34,9 @@ func objectPowerInContext(o *state.Object, sc SpecContext) int {
 	if sc.HasDerivedPT {
 		return int(sc.DerivedPower)
 	}
+	if d, ok := sc.Layers.cdaPT(o.ID); ok {
+		return int(d.Power)
+	}
 	return objectPower(o)
 }
 
@@ -215,9 +218,16 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	// unbound context -- a direct filter call or the census probe -- keeps the
 	// object-alone read the power predicates always had (printed face plus
 	// P1P1 counters for current, printed face alone for base).
+	// A face with a characteristic-defining P/T reads the published CDA
+	// value (LayerTables.CDAPTs) in every zone when no per-object bind is
+	// present: its printed star is not 0 (CR 208.2a, 604.3).
+	cda, hasCDA := sc.Layers.cdaPT(o.ID)
 	currentPower := func() int {
 		if sc.HasDerivedPT {
 			return int(sc.DerivedPower)
+		}
+		if hasCDA {
+			return int(cda.Power)
 		}
 		return objectPower(o)
 	}
@@ -225,17 +235,26 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if sc.HasDerivedPT {
 			return int(sc.DerivedToughness)
 		}
+		if hasCDA {
+			return int(cda.Toughness)
+		}
 		return objectToughness(o)
 	}
 	basePowerValue := func() int {
 		if sc.HasBasePT {
 			return int(sc.BasePower)
 		}
+		if hasCDA {
+			return int(cda.BasePower)
+		}
 		return objectBasePower(o)
 	}
 	baseToughnessValue := func() int {
 		if sc.HasBasePT {
 			return int(sc.BaseToughness)
+		}
+		if hasCDA {
+			return int(cda.BaseToughness)
 		}
 		return objectBaseToughness(o)
 	}
