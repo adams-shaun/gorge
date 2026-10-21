@@ -1653,11 +1653,38 @@ type Object struct {
 	// resolves only AFTER the attachment sweep has cleared AttachedTo. Like
 	// LastNotedMana this field is written ONLY inside events.Apply: set by
 	// the Unattached fold from that event's former-bearer carrier, set by
-	// the Move-leaves-battlefield fold from the pre-clear AttachedTo, and
+	// the Move-leaves-battlefield fold from the pre-clear AttachedTo (both
+	// the mover's own pre-clear bearer and -- CR 400.7/704.5m-n -- the
+	// departed bearer each object attached to the mover records), and
 	// cleared by an Attach fold that re-attaches. It is a pure fold of
 	// already-recorded event bytes, so replay rebuilds it identically and no
 	// event encoding or chain head changes.
 	LastBearer ObjID
+
+	// UnattachPending marks an attachment whose bearer left the battlefield:
+	// the Move-leaves-battlefield fold queued the detach for publication by
+	// engine/rules/attach.go's attachmentSBAs (CR 400.7: a flicker can return
+	// the bearer under the same ObjID before any SBA checkpoint, so the
+	// bearer-left arm, which reads the live link, can never see the
+	// departure). The fold deliberately leaves the live AttachedTo link
+	// standing -- the mid-resolution window between the departure and the
+	// next checkpoint must still show the attachment fastened (Murderous
+	// Spoils' StealEquip resolves the Equipment of the creature its Destroy
+	// leg just killed) and a stale link cannot leak across zones because
+	// every cross-zone reader zone-gates -- and when the bearer RE-ENTERS the
+	// battlefield the entry arm breaks that link (the returned permanent is a
+	// new object nothing is attached to, and the link must not survive to the
+	// SBA pass where destroyLethalDamage runs before attachmentSBAs). The
+	// pending publication spends the queue either way, emitting the same
+	// Unattached / graveyard MoveZone the
+	// bearer-left arm always did, so Mode$ Unattached triggers (Grafted
+	// Exoskeleton) and the CR 702.114b bestowed detach log keep firing. Like
+	// LastBearer it is written ONLY inside events.Apply: the departure fold
+	// sets it on each attachment to the departing bearer, the Unattached fold
+	// consumes it, an Attach fold supersedes it, and the attachment's own
+	// departure and its next battlefield entry clear it. A pure fold of
+	// already-recorded event bytes, so replay rebuilds it identically.
+	UnattachPending bool
 
 	// ExiledWith is the object whose effect most recently put this card into
 	// exile. events.Apply derives it from a MoveZone event's existing IDs

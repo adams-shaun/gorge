@@ -16,17 +16,23 @@ import (
 // is what lets this mode fire while Mode$ Attached keeps ignoring a detach,
 // and the event carries the attachment in Obj and the FORMER BEARER in
 // IDs[0]. engine/rules/attach.go's attachmentSBAs is the one emit site for
-// the arms where the attachment stays on the battlefield (the bearer left,
-// the bearer stopped being a valid bearer, protection, the CR 702.114b
-// bestowed type switch), plus rules' emit's re-attach detach (a re-attach to
-// a different permanent). The second is the attachment's own departure from
-// the battlefield (CR 701.3d, reached through the look-back walk whose split
-// gate trigger_match.go's looksBackOnDeparture admits): a MoveZone off the
-// battlefield whose LKI is the moving attachment still carrying its
-// pre-departure AttachedTo -- that bearer is the one it became unattached
-// from, and no Unattached event is logged for the departure. A departure
-// whose LKI carries no bearer (an unattached Equipment destroyed) is no
-// unattach at all and fires nothing.
+// the arms where the attachment stays on the battlefield -- including the
+// bearer-left detach, which the CR 400.7 departure fold in events' Move
+// queues as UnattachPending at the move itself for attachmentSBAs to publish
+// (a flicker can return the bearer under the same ObjID before any SBA
+// checkpoint; the fold leaves the live link standing, so only the queue can
+// carry the departure across it) -- plus the bestowed detach (CR 702.114b)
+// and rules' emit's re-attach detach (a re-attach to a different permanent).
+// The second is the attachment's own departure from the battlefield (CR
+// 701.3d, reached through the look-back walk whose split gate
+// trigger_match.go's looksBackOnDeparture admits): a MoveZone off the
+// battlefield of the attachment itself -- either still carrying its
+// pre-departure AttachedTo (which the queue-marked link also is: the fold
+// never cleared it), or carrying the fold's UnattachPending queue with
+// LastBearer naming the bearer an earlier departure queued the detach from
+// -- that bearer is the one it became unattached from. A departure whose LKI
+// carries neither (an unattached Equipment destroyed) is no unattach at all
+// and fires nothing.
 //
 // ValidAttachment$ names the ATTACHING object -- Forge's ValidSource$ for
 // the detach half -- which is the object that actually became unattached:
@@ -74,8 +80,13 @@ func unattachedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 
 // unattachedBearer selects the bearer a detach event names: an Unattached's
 // IDs[0], or -- for the CR 701.3d departure arm -- the LKI's pre-departure
-// AttachedTo on a MoveZone off the battlefield of the object itself. ok is
-// false for every other shape (including a departure with no bearer).
+// AttachedTo on a MoveZone off the battlefield of the object itself. When the
+// LKI instead carries the bearer-departure queue (the CR 400.7 fold queued
+// this attachment's detach at an EARLIER move -- the bearer left first, the
+// link stayed standing, and this MoveZone is the attachment's own departure
+// before any SBA checkpoint published it), the queued LastBearer names the
+// former bearer. ok is false for every other shape (including a departure
+// with no bearer and no queue).
 func unattachedBearer(ev events.Event, lki *state.Object) (state.ObjID, bool) {
 	switch {
 	case ev.Obj == 0:
@@ -86,10 +97,16 @@ func unattachedBearer(ev events.Event, lki *state.Object) (state.ObjID, bool) {
 		}
 		return ev.IDs[0], true
 	case ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To != state.ZBattlefield:
-		if lki == nil || lki.ID != ev.Obj || lki.AttachedTo == 0 {
+		if lki == nil || lki.ID != ev.Obj {
 			return 0, false
 		}
-		return lki.AttachedTo, true
+		if lki.AttachedTo != 0 {
+			return lki.AttachedTo, true
+		}
+		if lki.UnattachPending && lki.LastBearer != 0 {
+			return lki.LastBearer, true
+		}
+		return 0, false
 	}
 	return 0, false
 }

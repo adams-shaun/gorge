@@ -264,7 +264,9 @@ func (e *Engine) mayHaveLegendPair() bool {
 //   - saga: checkSagas' face with a chapter count;
 //   - counterPair: annihilateOppositeCounters' phased-in P1P1+M1M1 holder;
 //   - attach: attachmentSBAs' phased-in permanent that is attached (to an
-//     object or a player) or is an Aura (sbaIsAura);
+//     object or a player), is an Aura (sbaIsAura), or carries an
+//     UnattachPending queue (the bearer-departure fold's queued detach,
+//     published by attachmentSBAs, which is also what clears the live link);
 //   - world: two or more World permanents (worldPermanents' derived test,
 //     answered through sbaTypeFast);
 //   - legend: mayHaveLegendPair's answer (some controller has two phased-in
@@ -325,7 +327,8 @@ func (e *Engine) sbaFacts(f *sbaBoardFacts) *sbaBoardFacts {
 				if !f.counterPair && o.Counter("P1P1") > 0 && o.Counter("M1M1") > 0 {
 					f.counterPair = true
 				}
-				if !f.attach && (o.HasAttachedPlayer || o.AttachedTo != 0 || e.sbaIsAura(o, anyLType)) {
+				if !f.attach && (o.HasAttachedPlayer || o.AttachedTo != 0 ||
+					o.UnattachPending || e.sbaIsAura(o, anyLType)) {
 					f.attach = true
 				}
 			}
