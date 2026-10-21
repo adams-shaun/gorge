@@ -168,8 +168,14 @@ func (e *Engine) castRestrictedPrinted(statics []staticView, p state.PlayerID, i
 // then enforces the prohibition at the announced X, reversing a proposal
 // whose X it still covers (CR 733.1). The restriction itself is still
 // matched at the card's current mana value (X = 0 off the stack, CR
-// 202.3e), as today.
+// 202.3e), as today. The gate also carries CR 205.4e's legendary lock
+// (legendarySpellLocked) ahead of the restriction scan: no announcement can
+// lift it, so it is checked before the loop, on every cast route that
+// reaches here.
 func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
+	if e.legendarySpellLocked(p, id) {
+		return true
+	}
 	for _, sv := range e.castRestrictionSources(statics, id) {
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
@@ -298,6 +304,44 @@ func (e *Engine) spellSpecCtx(sc effects.SpecContext, id state.ObjID) effects.Sp
 		sc.AsSpellHalf = true
 	}
 	return sc
+}
+
+// legendarySpellLocked reports CR 205.4e: "A player can't cast a legendary
+// instant or sorcery spell unless that player controls a legendary creature or
+// a legendary planeswalker." It reads the CURRENT face (o.Face()), so an
+// Adventure/split/MDFC half is judged as the half being cast, matching the
+// alternate-face probes, which pass the probed face through offerAsFace. The
+// battlefield walk reads layer-derived types (typeCharacteristics), so a
+// permanent made legendary by a layer-4 effect counts and a phased-out one
+// does not. An opponent's legend is never on p's battlefield list.
+func (e *Engine) legendarySpellLocked(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil {
+		return false
+	}
+	f := o.Face()
+	if f == nil || !f.IsLegendary() || !(f.IsInstant() || f.IsSorcery()) {
+		return false
+	}
+	for _, pid := range e.G.Zone(state.ZBattlefield, p) {
+		perm := e.G.Obj(pid)
+		if perm == nil || perm.PhasedOut {
+			continue
+		}
+		legend, legendKind := false, false
+		for _, t := range e.typeCharacteristics(pid, 0) {
+			switch t {
+			case "Legendary":
+				legend = true
+			case "Creature", "Planeswalker":
+				legendKind = true
+			}
+		}
+		if legend && legendKind {
+			return false
+		}
+	}
+	return true
 }
 
 // castValidCardSpec is a CantBeCast static's ValidCard$ with an absent one
