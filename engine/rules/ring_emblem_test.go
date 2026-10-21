@@ -93,6 +93,7 @@ func TestRingEmblemAbilitiesReplayByteIdentically(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := layerEngine(t)
 	bear := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Grizzly Bears"))
+	blocker := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
 
 	base := e.G.Clone()
 	mark := len(e.L.Events)
@@ -111,6 +112,13 @@ func TestRingEmblemAbilitiesReplayByteIdentically(t *testing.T) {
 		submitChoices(t, e, 0)
 	}
 
+	// Level 3: the bearer becomes blocked; the blocker is sacrificed when
+	// the end of combat step begins (after the damage below).
+	e.emit(events.Event{Kind: events.DeclareBlockers, Player: 1,
+		Pairs: [][2]state.ObjID{{bear, blocker}}})
+	e.putTriggersOnStack()
+	e.resolveTop()
+
 	// Level 4: the bearer deals combat damage to a player; each opponent
 	// loses 3 life.
 	e.damaging = bear
@@ -122,9 +130,17 @@ func TestRingEmblemAbilitiesReplayByteIdentically(t *testing.T) {
 	for len(e.G.Stack) > 0 {
 		e.resolveTop()
 	}
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepEndCombat})
+	e.putTriggersOnStack()
+	for len(e.G.Stack) > 0 {
+		e.resolveTop()
+	}
+	if o := e.G.Obj(blocker); o.Zone != state.ZGraveyard {
+		t.Fatalf("level 3: blocker zone %v after end of combat, want graveyard", o.Zone)
+	}
 
-	if n := countEvents(e, func(ev events.Event) bool { return ev.Kind == events.RingEmblemPush }); n != 2 {
-		t.Fatalf("RingEmblemPush events = %d, want 2 (one per triggered level)", n)
+	if n := countEvents(e, func(ev events.Event) bool { return ev.Kind == events.RingEmblemPush }); n != 3 {
+		t.Fatalf("RingEmblemPush events = %d, want 3 (one per triggered level)", n)
 	}
 
 	replayed := base.Clone()
@@ -138,7 +154,8 @@ func TestRingEmblemAbilitiesReplayByteIdentically(t *testing.T) {
 
 // TestRingEmblemLevelsRequireALiveBearer pins that the triggered levels name
 // "your Ring-bearer": a seat tempted with no creature (Obj 0, CR 701.54d) has
-// a count but no bearer, so attacking and combat damage fire nothing.
+// a count but no bearer, so attacking, being blocked and combat damage fire
+// nothing.
 func TestRingEmblemLevelsRequireALiveBearer(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -212,7 +229,7 @@ func TestRingEmblemLevel4DrainsEvenWhenTheBearerDied(t *testing.T) {
 func TestRingEmblemPendingTriggerIntegration(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	for _, lvl := range []int{ringEmblemLevelLoot, ringEmblemLevelCombatHit} {
+	for _, lvl := range []int{ringEmblemLevelLoot, ringEmblemLevelBlockedBy, ringEmblemLevelCombatHit} {
 		pt := pendingTrigger{RingEmblem: lvl}
 		if got := e.triggerLabel(pt); got == "" || got == ringEmblemLabel(0) {
 			t.Fatalf("level %d has no level-specific trigger label (%q)", lvl, got)

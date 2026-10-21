@@ -131,6 +131,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		switch ev.Amount {
 		case 2:
 			return player(g, ev.Player) + "'s Ring emblem: draw a card, then discard a card (Ring-bearer attacks)"
+		case 3:
+			return player(g, ev.Player) + "'s Ring emblem: the blocking creature is sacrificed at end of combat (Ring-bearer blocked)"
 		case 4:
 			return player(g, ev.Player) + "'s Ring emblem: each opponent loses 3 life (Ring-bearer dealt combat damage to a player)"
 		}

@@ -158,3 +158,43 @@ func ringDefaultBearer(h Host, p state.PlayerID, g *state.Game) state.ObjID {
 	}
 	return 0
 }
+
+// ringBlockerSacrificeBody is the builtin SVar body each level-3
+// registration resolves on its blocker: "DB$ Sacrifice | Defined$ Self"
+// (engine/cards/link.go's builtinSVars). It is the decayed family's body,
+// reused rather than duplicated because engine/cards/link.go is part of the
+// IR-compiler fingerprint (engine/cards/fingerprint_sources.go): the
+// "__kwDecayed" prefix makes the registration incarnation-tracked
+// (events.Apply's DelayedRegister fold), so a blocker that left the
+// battlefield and returned before end of combat is a new object the promise
+// no longer names (CR 400.7). A creature with decayed can't block (CR
+// 702.147a), so decayed's own one-promise-per-attacker dedup
+// (rules.checkGrantedAttackKeywordTriggers) never meets a Ring promise.
+const ringBlockerSacrificeBody = "__kwDecayedSacrifice"
+
+// effRingBlockerSacrifice is the Ring emblem's level-3 body (CR 701.54c:
+// "Whenever your Ring-bearer becomes blocked by a creature, the blocking
+// creature's controller sacrifices it at end of combat"). It is an
+// engine-only API (the SpeedIncrease/RadiationDrain precedent): no corpus
+// line names it, and events.Apply's ringEmblemAbility is its only builder.
+// The blocking creature rides the RingEmblemPush event's IDs, folded into
+// the ability's Remembered; this registers one end-of-combat delayed
+// sacrifice on it (CR 603.7: created on resolution, so a countered trigger
+// sacrifices nothing). The registration's Source is the blocker, so the
+// builtin body's Defined$ Self names it and the sacrifice is its
+// controller's at fire time; the delayed trigger itself is controlled by the
+// emblem's owner (CR 603.7d). An end-of-combat promise is scoped to this
+// turn (thisTurn, the SacrificeCombat rider's rule).
+func effRingBlockerSacrifice(h Host, c *Ctx, _ *cards.SA) {
+	var blockers []state.ObjID
+	for _, t := range c.Remembered {
+		if t.IsPlayer || t.Obj == 0 {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			blockers = append(blockers, t.Obj)
+		}
+	}
+	scheduleAtEOTRider(h, c.Controller, atEOTRider{body: ringBlockerSacrificeBody,
+		step: state.StepEndCombat, thisTurn: true}, blockers)
+}
