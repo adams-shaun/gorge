@@ -1253,6 +1253,18 @@ const (
 	// Appended after BlockedByEffect so every earlier ordinal, hash chain
 	// and golden replay is unchanged.
 	CopyExcept
+	// GameRestart restarts the game (CR 727.1, Karn Liberated): the fold
+	// (state.Game.Restart) ends the old game's board and starts the new one's
+	// -- every card its owner's player still in the game owns becomes a new
+	// object in its owner's library, except the IDs in IDs, which an effect
+	// exempted (CR 727.5) and which stay where they are; every player's life
+	// is Amount (the starting life) and every per-game field is cleared.
+	// Player is the controller of the restarting effect, the new game's
+	// starting player (CR 727.1a), whom rules' StartingPlayerChange records
+	// right after. Rules shuffles and deals with the ordinary Shuffle and Draw
+	// events that follow. Appended after CopyExcept so every earlier
+	// ordinal, hash chain and golden replay is unchanged.
+	GameRestart
 	// ActivationReversed reverses the activation census of one CR 733.1
 	// aborted activated ability: the ability object was already pushed
 	// (CR 602.2a), so its AbilityPush / GainedAbilityPush / GrantAbilityPush /
@@ -1262,7 +1274,7 @@ const (
 	// Kind.String(). The fold decrements ActivatedThisTurn, and every
 	// activation-count scan subtracts the reversal. It is emitted only from
 	// rules' abortCast, so no bot game and no golden replay contains it.
-	// Appended after CopyExcept so every earlier ordinal, hash chain and golden
+	// Appended after GameRestart so every earlier ordinal, hash chain and golden
 	// replay is unchanged.
 	ActivationReversed
 	// NumKinds is the explicit upper bound for the append-only event kind

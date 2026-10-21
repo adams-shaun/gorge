@@ -49,7 +49,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 104.4c | unknown | - | - | not reached |
 | 104.4d-104.4i | n/a | - | - | teams/range/Emperor/tournament |
 | 104.5 | follows | `engine/rules/sba.go#Engine.ceaseDepartedObjects` | `TestConcedeInFourSeatsLeavesTheRestPlayingOn` |  |
-| 104.6 | deviates | `engine/effects/game.go#effRestartGame` | - | restart degraded to a draw (LOUD Note); cr-g33 |
+| 104.6 | follows | `engine/rules/restart.go#Engine.finishRestart` | `TestCR727KarnRestartsTheGame` | - |
 | 105.1-105.3 | follows | `engine/rules/layer5colors.go#Engine.derivedColorTable` | - |  |
 | 105.4 | follows | `engine/effects/choose.go#effChooseColor` | - | - |
 | 105.5 | unknown | - | - | not reached |
@@ -72,7 +72,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 108.1-108.2b | n/a | - | - | reference rules |
 | 108.3-108.4a | follows | `engine/state/object.go#Object.Owner` `engine/state/object.go#Object.Controller` | - | owner = starting deck holder |
 | 108.5-108.6 | n/a | - | - | nontraditional cards; cross-reference |
-| 109.1-109.5 | follows | `engine/state/object.go#Object` | - | structural; 109.2 not line-checked |
+| 109.1-109.5 | follows | `engine/state/object.go#Object` `engine/effects/cardflow.go#rearrangeChooser` | `TestCRRearrangeTargetLibraryCasterChooses` `TestCRRearrangePlayerNamesTheChooser` | structural; 109.2 not line-checked; RearrangeTopOfLibrary's "you" is the controller, RearrangePlayer$ names another chooser |
 | 110.1-110.3 | follows | `engine/state/object.go#Object` | - | permanents on the battlefield |
 | 110.4-110.4c | unknown | - | - | not reached |
 | 110.5-110.5d | follows | `engine/state/object.go#Object.Tapped` `engine/state/object.go#Object.PhasedOut` | - | status fields; not characteristics |

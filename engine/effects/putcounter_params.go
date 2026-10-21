@@ -55,6 +55,11 @@ type PutCounterParams struct {
 	Placer string
 	// Optional$ True.
 	OptionalTrue bool
+	// Tribute$ True (CR 702.104's tribute, kw_tribute.go's expansion): the
+	// put is the tribute offer -- the entering creature's controller picks
+	// the opponent, the chosen opponent elects pay/decline, and an
+	// acceptance folds the events.AlterAttribute "Tributed" designation.
+	Tribute bool
 	// Bolster$ and Support$ (presence selects the shape).
 	Bolster ParamText
 	Support ParamText
@@ -161,7 +166,7 @@ var putCounterKnownKeys = [...]string{
 	"TargetsWithRelatedProperty", "TargetsWithSameCardType", "TargetsWithSameController",
 	"TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript",
-	"TriggerDescription", "Type", "Ultimate",
+	"Tribute", "TriggerDescription", "Type", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
 	"ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "VoteMessage",
@@ -290,10 +295,12 @@ func compilePutCounter(sa *cards.SA) *PutCounterParams {
 	p.CounterNumPerDefined = strings.TrimSpace(perNum)
 	p.RememberPut = isTrue(sa.ParamStr(cards.PKRememberPut))
 	p.RememberCards = isTrue(sa.ParamStr(cards.PKRememberCards))
+	tribute, tributeOK := sa.Param(cards.PKTribute)
+	p.Tribute = isTrue(tribute)
 
 	p.EntryFoldBlocked = optionalOK || choicesOK || rawParamText(sa, "Divided").Present || divided.Present || dividedRandomlyOK ||
 		randomOK || bolsterOK || supportOK || p.Adapt.Present || p.Monstrosity.Present || renownOK ||
-		perNumOK || perTypeOK || eachFromOK || rawParamText(sa, "PerDefined").Present
+		perNumOK || perTypeOK || eachFromOK || rawParamText(sa, "PerDefined").Present || tributeOK
 
 	p.Unread = unreadKeys(sa, putCounterKnownKeys[:])
 	return p

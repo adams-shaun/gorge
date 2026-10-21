@@ -153,6 +153,11 @@ var expandedHeads = []string{
 	// the PersistentUntilEndOfCombat$ form). Added after the split; the
 	// pre-split switch never expanded it.
 	"Firebending",
+	// Tribute (CR 702.104): an ETB replacement putting N +1/+1 counters on
+	// ReplacedCard (the Tribute$ marker) plus the face's own TrigNotTribute ETB
+	// trigger (engine/cards/kw_tribute.go). Added after the split; the
+	// pre-split switch never expanded it.
+	"Tribute",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

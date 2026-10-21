@@ -1601,8 +1601,11 @@ func revealPickSelected(pool, picks []state.ObjID) []state.ObjID {
 // Min == Max == k (pile B is empty for a full reorder), one option per top
 // card in top-down order, each Option.Kind "bottom" (nothing goes there for
 // a reorder, but the vocabulary stays uniform so Scry/Surveil reuse it
-// unchanged). Decision.Player is p, the library's owner — the player who is
-// looking at and reordering their own top cards.
+// unchanged). Decision.Player is the chooser (rearrangeChooser): the
+// resolving controller, or RearrangePlayer$'s player -- NOT the library's
+// owner, who differs for "target player's library" (Natural Selection,
+// Portent); handleArrange reorders the offered cards' owner's library
+// (arrangeLibraryOwner).
 func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 	// MayShuffle$ True (Ponder's "You may shuffle."): after the arrange is
 	// applied, an optional shuffle. The ask is posed only once the arrange
@@ -1614,6 +1617,12 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		n = 0
 	}
 	g := h.Game()
+	chooser, ok := rearrangeChooser(h, c, sa)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Player: c.Controller, Obj: c.Source,
+			Text: "RearrangeTopOfLibrary: RearrangePlayer$ names no player; nothing is rearranged"})
+		return
+	}
 	for targetIndex, t := range actingPlayers(h, c, sa) {
 		c.Search.Target = targetIndex
 		p := t
@@ -1622,8 +1631,8 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		if int32(len(lib)) < k {
 			k = int32(len(lib))
 		}
-		emitLook(h, []state.PlayerID{p}, state.ZLibrary, nil, "looks at the top of the library")
-		d := &decision.Decision{Player: p, Kind: decision.KArrange,
+		emitLook(h, []state.PlayerID{chooser}, state.ZLibrary, nil, "looks at the top of the library")
+		d := &decision.Decision{Player: chooser, Kind: decision.KArrange,
 			Min:          int(k),
 			Max:          int(k),
 			Source:       c.Source,
@@ -1649,7 +1658,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 			// the arrangement (the KArrange answer record handleArrange
 			// shares); the MayShuffle$ election follows here.
 			if mayShuffle {
-				rearrangeMayShuffleTape(h, c, sa, p, targetIndex)
+				rearrangeMayShuffleTape(h, c, sa, chooser, p, targetIndex)
 			}
 			continue
 		}
@@ -1663,16 +1672,40 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// rearrangeChooser is the player who looks at, orders and (MayShuffle$)
+// decides the shuffle for a RearrangeTopOfLibrary: the resolving ability's
+// controller ("you", CR 109.5 -- Natural Selection's "target player's
+// library ... You may have that player shuffle"), or the first player
+// RearrangePlayer$ names (Tahngarth's Glare's "That player looks at the top
+// three cards of your library"). ok is false when RearrangePlayer$ is set
+// and names nobody (the reference engine then rearranges nothing).
+func rearrangeChooser(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
+	raw := strings.TrimSpace(sa.ParamStr(cards.PKRearrangePlayer))
+	if raw == "" {
+		return c.Controller, true
+	}
+	ps := definedPlayerIDs(h, c, raw)
+	if len(ps) == 0 {
+		return 0, false
+	}
+	return ps[0], true
+}
+
 // rearrangeMayShuffleTape is effRearrangeTopOfLibrary's MayShuffle$ election
 // on the resolution kernel's path, after the arrange answer for target
 // index i was served, answered in place via AskTape (no answer: no shuffle).
-func rearrangeMayShuffleTape(h Host, c *Ctx, sa *cards.SA, p state.PlayerID, i int) {
-	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+// chooser answers; p's library is the one shuffled.
+func rearrangeMayShuffleTape(h Host, c *Ctx, sa *cards.SA, chooser, p state.PlayerID, i int) {
+	prompt := "Shuffle your library?"
+	if chooser != p {
+		prompt = "Have that player shuffle their library?"
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: c.Source, ResumeKind: "arrange_mayshuffle", ResumeSA: sa,
-		ResumeTarget: i, Prompt: "Shuffle your library?",
+		ResumeTarget: i, Prompt: prompt,
 		Options: []decision.Option{
-			{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: p},
-			{Index: 1, Kind: "no", Label: "No — keep the order", Player: p},
+			{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: chooser},
+			{Index: 1, Kind: "no", Label: "No — keep the order", Player: chooser},
 		}}
 	if ans, ok := AskTape(h, d); ok {
 		if len(ans) > 0 && ans[0].Kind == "yes" {

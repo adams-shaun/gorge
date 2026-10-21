@@ -64,7 +64,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 205.4b | follows | `engine/rules/chars/types.go#applyTypeEffect` | - | - |
 | 205.4c | follows | `engine/cards/face.go#Face.IsBasic` | - | basic land |
 | 205.4d | follows | `engine/rules/sba.go#Engine.legendGroups` | - | legend rule |
-| 205.4e | not-impl | - | - | SILENT (probe); cr-g41 |
+| 205.4e | follows | `engine/rules/statics_cast.go#Engine.legendarySpellLocked` `engine/rules/statics_cast.go#Engine.castRestrictedCost` | `TestCR205_4eLegendarySorceryNeedsALegend` `TestCR205_4eNonlegendarySorceryUnaffected` | every cast route via castRestrictedCost; no pool card |
 | 205.4f | follows | `engine/rules/sba.go#Engine.worldRule` | `TestWorldRuleNewestSurvives` `TestWorldRuleTieSendsAll` | - |
 | 205.4g | follows | `engine/effects/filter_type.go#hasType` | - | no snow in pools |
 | 205.4h | n/a | - | - | no Archenemy |

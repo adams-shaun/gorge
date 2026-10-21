@@ -19,6 +19,10 @@ type Engine struct {
 	compiledText     *compiledText   `clone:"share"`
 	landTypeWords    []string        `clone:"share"`
 
+	// restart is a CR 727 restart effRestartGame requested and the
+	// resolving caller has not yet performed (engine/rules/restart.go).
+	restart *restartRequest `clone:"reset"`
+
 	// ManaAbilityHook, when non-nil, is called once per mana ability
 	// activation the engine resolves (resolveManaAbilityRefOriginal, the one
 	// choke point every activation path -- the priority "activate" option,

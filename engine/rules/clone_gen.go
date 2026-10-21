@@ -153,6 +153,7 @@ func cloneFieldsEngine(c, e *Engine, sp *Spare, remap *cloneRemap) {
 func cloneFieldsEngineTurnLedger(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.turnsTaken = append([]int32(nil), e.turnsTaken...)
 	c.turnsTakenEpoch = e.turnsTakenEpoch
+	c.turnLedgerBase = e.turnLedgerBase
 	if e.turnStartTurns != nil {
 		c.turnStartTurns = make([][]int32, len(e.turnStartTurns))
 		for i0 := range e.turnStartTurns {

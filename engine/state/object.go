@@ -1160,6 +1160,16 @@ type Object struct {
 	// only by an events.AlterAttribute fold.
 	Renowned bool
 
+	// Tributed is CR 702.104's tribute designation (the K:Tribute expansion,
+	// task kw-tribute-expansion): the chosen opponent ACCEPTED the tribute
+	// offer, so the "if tribute wasn't paid" ETB trigger the expansion minted
+	// must not fire. It lasts for this battlefield stint only -- the Move
+	// fold clears it on leaving (a later entry is a new permanent) -- and it
+	// is a plain status field copied by CloneDeep and set only by an
+	// events.AlterAttribute "Tributed" fold (putCounterTribute's acceptance;
+	// Forge's CountersPutEffect setTributed(true) on the confirmAction).
+	Tributed bool
+
 	// WontPhaseInNormal is the CR 702.25d exception carried by a Phases
 	// effect; its phase-in must come from that effect's return instruction.
 	WontPhaseInNormal bool

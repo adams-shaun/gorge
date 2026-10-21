@@ -793,10 +793,20 @@ const (
 	// source's remembered set (Planetarium of Wan Shi Tong's "only once each
 	// turn"; append-only).
 	PKRememberPlayed
+	// PutCounter's Tribute$ marker (CR 702.104's tribute keyword expansion,
+	// kw_tribute.go): the put is the tribute offer -- the entering creature's
+	// controller picks the opponent, the chosen opponent elects to pay the
+	// tribute, and an acceptance folds the events.AlterAttribute "Tributed"
+	// designation (append-only).
+	PKTribute
 	// Shared Fate's MayPlayPlayer$ Exiler rider and the DefinedExiler$ operand
 	// that records the exiling player. Appended: earlier ordinals stay stable.
 	PKMayPlayPlayer
 	PKDefinedExiler
+	// RearrangeTopOfLibrary's RearrangePlayer$ chooser (Tahngarth's Glare's
+	// "That player looks at the top three cards of your library";
+	// append-only).
+	PKRearrangePlayer
 	paramKeyCount
 )
 
@@ -1177,8 +1187,10 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidBlockerAmount:               "ValidBlockerAmount",
 	PKExiledWithEffectSource:           "ExiledWithEffectSource",
 	PKRememberPlayed:                   "RememberPlayed",
+	PKTribute:                          "Tribute",
 	PKMayPlayPlayer:                    "MayPlayPlayer",
 	PKDefinedExiler:                    "DefinedExiler",
+	PKRearrangePlayer:                  "RearrangePlayer",
 	PKInvalidTypes:                     "InvalidTypes",
 	PKKeywords:                         "Keywords",
 	PKLeftRightPile:                    "LeftRightPile",

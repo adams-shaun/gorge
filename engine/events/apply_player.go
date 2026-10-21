@@ -348,6 +348,12 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			// CR 702.112b: renowned persists only for this battlefield
 			// permanent; Amount carries the Renown count for listeners.
 			o.Renowned = e.Amount >= 1
+		case "Tributed":
+			// CR 702.104: the tribute designation (task kw-tribute-expansion).
+			// putCounterTribute's acceptance emits the grant after the chosen
+			// opponent confirmed; the Move fold's leaving-battlefield block is
+			// its one clear. The paying opponent rides Player for listeners.
+			o.Tributed = e.Amount >= 1
 		case "Suspend":
 			o.SuspendGranted = e.Amount >= 1
 		case "Plotted":
