@@ -37,6 +37,12 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 	// this shape -- it stays out deliberately.
 	p := c.Controller
 	g := h.Game()
+	if g.Players[p].RingTempted == 0 {
+		// CR 701.54c: a player without the emblem gets The Ring BEFORE
+		// choosing a Ring-bearer, so its static is registered (and
+		// timestamped) ahead of the RingTemptsYou event below.
+		h.AddContinuous(ringEmblemLegendary(p))
+	}
 
 	emit := func(bearer state.ObjID) {
 		h.Emit(events.Event{
@@ -125,6 +131,25 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 		Text: "designates the default Ring-bearer (no engine host to ask)", Secret: true})
 	emit(defaultBearer)
+}
+
+// ringEmblemLegendary is the type half of the Ring emblem's first ability
+// (CR 701.54c: "Your Ring-bearer is legendary and can't be blocked by
+// creatures with greater power"): one permanent layer-4 effect, registered
+// once per player when that player first gets the emblem. The emblem is not
+// an object, so the effect has no Source; Affects reads the LIVE
+// designation (Card.IsRingbearer, CR 701.54e) scoped to the emblem's owner,
+// so it follows each new Ring-bearer and lapses when the designation does.
+// The blocking half is combat.RingBearerOutpowers, read by
+// combat.BlockRestricted.
+func ringEmblemLegendary(p state.PlayerID) state.ContinuousEffect {
+	return state.ContinuousEffect{
+		Controller: p,
+		Affects:    "Card.IsRingbearer+YouCtrl",
+		Layer:      state.LType,
+		AddTypes:   []string{"Legendary"},
+		Permanent:  true,
+	}
 }
 
 // ringAnsweredBearer is the bearer an answered Ring-bearer choice
