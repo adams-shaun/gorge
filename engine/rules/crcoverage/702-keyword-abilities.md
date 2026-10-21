@@ -73,7 +73,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.33b,c,f | follows | `engine/rules/cast_altcost.go#twoPartKickerCosts` `engine/rules/cast_asks.go#Engine.multikickAsk` | - |  |
 | 702.33h | unknown | - | - | sticker kicker (Unfinity) not checked |
 | 702.34a | follows | `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` `engine/effects/resolve.go#effCounter` `engine/effects/misc.go#effWard` `engine/state/object.go#ExilesLeavingStack` | `TestCR702_34aFlashbackSpellExiledWhereverItWouldGo` `TestCR702_34aRemandOrdinarySpellStillGoesToHand` `TestCR702_34aReversedFlashbackCastReturnsToGraveyard` `TestFlashbackedSpellCounteredGoesToExile` | - |
-| 702.35a | deviates | `engine/rules/altcast.go#Engine.madnessReplacementApplies` `engine/rules/altcast.go#Engine.askMadnessReplacement` | `TestMadnessReplacementMayBeDeclined` | madness exile offered as optional; granted madness ignored (helper) |
+| 702.35a | partial | `engine/rules/altcast.go#Engine.madnessReplacementApplies` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` `engine/rules/altcast.go#Engine.offerMadness` | `TestCR702_35aMadnessExileIsMandatory` `TestMadnessEmrakulUsesMandatoryReplacementAndRespondableTrigger` `TestMadnessDiscardDuringARepeatExilesInPlace` | mandatory exile; granted madness ignored (printed face only) (helper) |
 | 702.35b | follows | `engine/rules/cast_init.go#init` | - | (helper) |
 | 702.35c | unknown | - | - | (helper) |
 | 702.36a-c | partial | `engine/rules/combat/block.go#CanBlock` | - | artifact test reads printed face (helper) |
@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.37g | n/a | - | - | cross-reference to 708 |
 | 702.38a,b | not-impl | - | - | LOUD (9) |
 | 702.39a,b | not-impl | - | - | LOUD printed (8); SILENT granted (Hunter Sliver) |
-| 702.40a | deviates | `engine/cards/kw_storm.go#kwStorm` `engine/rules/host_cast_ledger.go#Engine.CastThisTurn` | - | storm count read at resolution, responses inflate it (helper) |
+| 702.40a | follows | `engine/cards/kw_storm.go#kwStorm` `engine/rules/trigger_referents.go#Engine.triggerReferents` `engine/effects/count_ref.go#evalTriggerCountOK` | `TestCR702_40aStormCountsSpellsCastBeforeIt` `TestStormCopiesTheSpellOncePerSpellCastBefore` | count fixed when the trigger fires (helper) |
 | 702.40b | follows | `engine/cards/keywords.go#Face.expandKeywords` | `TestGrantedStormCopiesForEachEarlierSpell` |  |
 | 702.41a,b | follows | `engine/cards/kw_affinity.go#kwAffinity` | - | Frogmite, Scales of Shale, Claws Out lowered |
 | 702.42a,b | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestEntwinePaidChoosesEveryModeAndCharges` |  |

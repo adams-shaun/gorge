@@ -24,19 +24,6 @@ type engineCastWindows struct {
 	// election is pending. The answer is folded onto the object before this
 	// cursor resumes, so clones and replay preserve the same choice.
 	untapChoiceObj state.ObjID `clone:"deep"`
-	// madnessChoices parks discard moves while the card's owner decides whether
-	// to apply Madness's optional hand-to-exile replacement.
-	madnessChoices []events.Event `clone:"deep"`
-	// madnessSuspended marks that the FRONT madness ask was posed through
-	// Engine.Ask and so suspended the stack resolution whose discard it
-	// interrupted (e.resume is that suspension's frame). The last answer of
-	// the queue resumes it. A bool rather than the frame pointer so a clone,
-	// whose resume chain is deep-copied, still resumes its own frame.
-	madnessSuspended bool `clone:"deep"`
-	// applyingMadnessChoice suppresses only the Madness interposition while an
-	// answered choice emits its selected destination.
-	applyingMadnessChoice bool `clone:"reset"`
-
 	// suppressedCast holds the card object ids whose cast option is held out
 	// of the current priority window because their cast attempt aborted
 	// unpayable with no state change (E2 round 2, tightened by F05-2/CR
