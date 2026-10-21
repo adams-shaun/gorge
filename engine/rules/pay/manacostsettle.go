@@ -133,7 +133,7 @@ func SettleManaForage(e Engine, md *ManaCostActivation) {
 		return
 	}
 	if md.ForageFood != 0 {
-		e.Emit(events.Sacrifice(md.ForageFood))
+		PaySacrificeCost(e, []state.ObjID{md.ForageFood})
 		e.Emit(events.Event{Kind: events.ForageAction, Player: md.Player})
 		return
 	}

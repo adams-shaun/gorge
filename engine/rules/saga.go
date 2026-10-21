@@ -185,6 +185,7 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 	e.sbaIDBuf = nil
 	for _, p := range e.G.AliveFrom(0) {
 		ids = append(ids[:0], e.G.Zone(state.ZBattlefield, p)...)
+		e.beginSacrificeBatch()
 		for _, id := range ids {
 			o := e.G.Obj(id)
 			if o == nil {
@@ -228,6 +229,7 @@ func (e *Engine) checkSagas(tried *sbaAttempts) bool {
 			e.emit(events.Sacrifice(id))
 			changed = true
 		}
+		e.endSacrificeBatch()
 	}
 	e.sbaIDBuf = ids[:0]
 	return changed

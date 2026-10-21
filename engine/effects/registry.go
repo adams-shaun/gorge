@@ -1076,6 +1076,10 @@ func prefetchRememberedChangeZoneTarget(h Host, c *Ctx, sa *cards.SA) ([]state.T
 }
 
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	// One resolution is one Mode$ TokenCreatedOnce batch (CR 603.2c), however
+	// many tokens its body creates. Nested Resolve calls share the outer
+	// bracket through the engine's depth counter.
+	defer beginTokenBatch(h)()
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
 	// of the walk, restoring the enclosing value on exit so nested walks and

@@ -680,38 +680,27 @@ func (e *Engine) reserveTriggerGameActivationLimit(t cards.Trigger, key triggerK
 }
 
 // triggerTurnLimitFor parses a trigger's effective per-turn limit: the
-// ActivationLimit$ param, or the implicit once-per-turn limit of Mode$
-// TokenCreatedOnce (Akim, the Soaring Wind: "whenever you create one or more
-// tokens for the first time each turn"). present is true only when a limit
+// ActivationLimit$ param, or the implicit once-per-turn limit of a Mode$
+// TokenCreatedOnce line whose OnlyFirst$ names the "for the first time each
+// turn" rider (Akim, the Soaring Wind). A Once mode without that rider is
+// once per BATCH (CR 603.2c), latched by the sacrifice/token batch brackets
+// in checkTriggers, not capped here; an explicit ActivationLimit$ remains an
+// additional per-turn cap on every line. present is true only when a limit
 // applies; a malformed or negative value reports (0, true) so the gate denies
 // it (fail closed).
 func triggerTurnLimitFor(t cards.Trigger) (limit int, present bool) {
 	raw, ok := t.Param(cards.PKActivationLimit)
 	if !ok {
-		// The Once modes' implicit limit reuses triggerTurnFires (which Clone
-		// already deep-copies) instead of a second latch field, keeping the
-		// per-turn trigger counts structurally identical. Mode$
-		// SacrificedOnce is the "whenever you sacrifice one or more ..."
-		// cadence: once per TURN (the sanctioned minimal alternative to a
-		// per-action batch, which would need a sacrifice batch open/close the
-		// engine does not have), so a second separate sacrifice action in the
-		// same turn is also collapsed. It rides the same read-at-gate /
-		// reserve-at-queue pair as ActivationLimit$, so a matched event a
-		// later gate rejects does not consume the turn.
-		if mode := cards.TriggerModeOf(t.Mode); mode == cards.TriggerTokenCreatedOnce || mode == cards.TriggerSacrificedOnce {
-			return 1, true
+		if raw, ok := t.Param(cards.PKOnlyFirst); ok && raw != "" {
+			if cards.TriggerModeOf(t.Mode) == cards.TriggerTokenCreatedOnce {
+				return 1, true
+			}
 		}
 		return 0, false
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || limit < 0 {
 		return 0, true // malformed: present, denies
-	}
-	// The Once modes' meaning is once per turn; an explicit ActivationLimit$
-	// above 1 on such a line cannot raise it.
-	mode := cards.TriggerModeOf(t.Mode)
-	if (mode == cards.TriggerTokenCreatedOnce || mode == cards.TriggerSacrificedOnce) && limit > 1 {
-		limit = 1
 	}
 	return limit, true
 }
@@ -1739,6 +1728,33 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						e.targetBatchFired = map[triggerKey]bool{}
 					}
 					e.targetBatchFired[key] = true
+				}
+				// Mode$ SacrificedOnce and Mode$ TokenCreatedOnce are the "one
+				// or more" BATCH readings (CR 603.2c): one sacrifice action, or
+				// one token-creation resolution, queues the line once even when
+				// it moves/creates several objects; a later, separate action is
+				// a new batch and queues again. The batch brackets live in the
+				// engine (beginSacrificeBatch/endSacrificeBatch and
+				// BeginTokenBatch/EndTokenBatch), so no state survives a close.
+				// Outside an open bracket each event is its own batch-of-one, the
+				// DamageAll/ChangesZoneAll reading of a missing bracket.
+				if mk == cards.TriggerSacrificedOnce && e.sacrificeBatchOpen {
+					if e.sacrificeBatchFired[key] {
+						continue // already queued once for this sacrifice action.
+					}
+					if e.sacrificeBatchFired == nil {
+						e.sacrificeBatchFired = map[triggerKey]bool{}
+					}
+					e.sacrificeBatchFired[key] = true
+				}
+				if mk == cards.TriggerTokenCreatedOnce && e.tokenBatchOpen {
+					if e.tokenBatchFired[key] {
+						continue // already queued once for this token-creation resolution.
+					}
+					if e.tokenBatchFired == nil {
+						e.tokenBatchFired = map[triggerKey]bool{}
+					}
+					e.tokenBatchFired[key] = true
 				}
 				// GameActivationLimit$/ActivationLimit$ counts commit HERE, at the
 				// queue point, after every later-rejected gate (a nil Execute$ body,
