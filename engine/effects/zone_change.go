@@ -1269,6 +1269,7 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		}
 		ev.Amount = int32(c.Controller)
 		ev.IDs = []state.ObjID{c.Source}
+		secretFaceDownMove(ev, c.Controller)
 	case to == state.ZExile && exileFaceDown:
 		if foretold {
 			ev.Counter = "exiled_with_face_down_foretold"
@@ -1277,10 +1278,12 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		}
 		ev.Amount = int32(c.Source)
 		ev.IDs = nil
+		secretFaceDownMove(ev, movedCardOwner(h, ev))
 	case to == state.ZExile && faceDown:
 		ev.Counter = "face_down"
 		ev.Amount = 0
 		ev.IDs = nil
+		secretFaceDownMove(ev, movedCardOwner(h, ev))
 	case to == state.ZBattlefield && faceDown:
 		setType := r.FaceDownSetType
 		power, hasPower := numResolvedText(h, c, r.FaceDownPower, 0)
@@ -1288,9 +1291,39 @@ func applyMoveFaceDown(h Host, c *Ctx, r *FaceDownRiders, ev *events.Event, to s
 		hasPT := hasPower || hasTough
 		ev.Counter = events.FaceDownEntryCounterFor(setType, power, toughness, hasPT)
 		if ev.From == state.ZHand || ev.From == state.ZLibrary {
-			ev.Secret = true
+			secretFaceDownMove(ev, movedCardOwner(h, ev))
 		}
 	}
+}
+
+// secretFaceDownMove makes a face-down move out of a hidden zone (a hand,
+// library, sideboard or planar deck) Secret to looker, the one seat the
+// projection admits to the card's face (engine/view/card.go: the card's
+// controller -- its owner, in exile and on a face-down battlefield entry --
+// or the WithMayLook$ looker).
+// Without it a face-down exile keeps its Obj under view.RedactEvent's rule
+// (2) (exile is not a hidden zone) and every seat's transcript names the
+// card (CR 406.3), and a Secret move with no Player is served to seat 0. A
+// move out of a public zone is left public: every seat already saw that
+// card. An emitter that has already made the move Secret owns its Player,
+// so it is left alone; effDig's take re-addresses its moves after this runs
+// (digSecretTo) (cr-g62).
+func secretFaceDownMove(ev *events.Event, looker state.PlayerID) {
+	if ev.Secret || !ev.From.Hidden() {
+		return
+	}
+	ev.Player, ev.Secret = looker, true
+}
+
+// movedCardOwner is the owner of the card ev moves, the seat a face-down
+// move's payload belongs to (events.Apply resets an exiled card's controller
+// to its owner, and a face-down entry enters under its owner's control). An
+// unresolvable Obj keeps the event's own Player.
+func movedCardOwner(h Host, ev *events.Event) state.PlayerID {
+	if o := h.Game().Obj(ev.Obj); o != nil {
+		return o.Owner
+	}
+	return ev.Player
 }
 
 // settleChangeZoneMove is the one settle path every ChangeZone mover shares:
