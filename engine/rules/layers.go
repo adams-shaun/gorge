@@ -259,7 +259,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 						emitFrom := len(out)
 						base := ContinuousEffect{
 							Source:     id,
-							Timestamp:  o.Timestamp,
+							Timestamp:  o.LayerTimestamp(),
 							Controller: o.Controller,
 							Affects:    affects,
 							SVars:      faceSVars,

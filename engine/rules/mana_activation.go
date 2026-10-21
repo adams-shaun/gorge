@@ -743,7 +743,7 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 		if source == nil || source.Face() == nil {
 			continue
 		}
-		if lost && lossStamp > source.Timestamp {
+		if lost && lossStamp > source.LayerTimestamp() {
 			continue
 		}
 		ma := cards.ResolveSVar(source.Face().SVars, name)

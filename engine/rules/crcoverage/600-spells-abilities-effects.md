@@ -221,9 +221,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.7b | follows | `engine/rules/layers_effect.go#Engine.AddContinuous` | - | - |
 | 613.7c | partial | `engine/rules/chars/derive.go#BaseKeywords` | - | keyword counters at base; P/T counters order-irrelevant |
 | 613.7d | follows | `engine/events/apply_zone.go#move` | - |  |
-| 613.7e | deviates | `engine/events/apply_zone.go#foldAttach` `engine/events/apply_zone.go#move` | - |  |
-| 613.7f | deviates | `engine/events/apply_copy.go#foldTurnFaceUp` `engine/events/apply_copy.go#foldTurnFaceDown` | - | no restamp on face change (cr-g38) |
-| 613.7g | deviates | `engine/events/apply_copy.go#foldFlipFace` | - | no restamp on transform; another engine does (cr-g38) |
+| 613.7e | follows | `engine/events/apply_zone.go#foldAttach` `engine/events/apply_zone.go#restampLayer` `engine/state/object.go#Object.LayerTimestamp` | `TestEquipAfterAbilityLossRestampsTheEquipment` `TestEquipBeforeAbilityLossStaysLost` | restamps LayerStamp; entry Timestamp kept as identity |
+| 613.7f | follows | `engine/events/apply_copy.go#foldTurnFaceUp` `engine/events/apply_copy.go#foldTurnFaceDown` `engine/events/apply_zone.go#restampLayer` | `TestTurnFaceUpRestampsThePermanent` |  |
+| 613.7g | follows | `engine/events/apply_copy.go#foldFlipFace` `engine/events/apply_zone.go#restampLayer` | `TestTransformRestampsThePermanent` | transforming DFC on the battlefield only |
 | 613.7h | unknown | - | - | variant cards |
 | 613.7i | unknown | - | - | - |
 | 613.7j | unknown | - | - | - |
