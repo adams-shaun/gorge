@@ -95,6 +95,16 @@ func simParams() botpolicy.AttackSimParams {
 	return p
 }
 
+// holdInstant reads the declared option, defaulting to off when New is called
+// directly with a Config that does not carry it (bots.New always supplies the
+// declared default).
+func holdInstant(o bots.Options) bool {
+	if _, ok := o.Config[OptHoldInstant]; !ok {
+		return false
+	}
+	return o.Bool(OptHoldInstant)
+}
+
 // New builds the policy: the production bot's constructor (bot.BaseWithSim, so
 // the combat simulation and auto-pay mana come as they do for bot, plus the A7
 // combat rules) with the Forge rules armed, wrapped by the common-sense filter
@@ -110,7 +120,7 @@ func New(o bots.Options) (seat.Seat, error) {
 		CounterTop:    true,
 		DrawTokenLate: true,
 		PumpInCombat:  true,
-		HoldInstant:   o.Bool(OptHoldInstant),
+		HoldInstant:   holdInstant(o),
 	}).EnableAIHints(botpolicy.AIHints{
 		Enabled: true,
 	}).EnableAttachRules(botpolicy.AttachRules{
