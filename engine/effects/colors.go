@@ -54,7 +54,9 @@ func ColorMaskOf(o *state.Object) ColorMask {
 		return 0
 	}
 	f := o.Face()
-	if f == nil {
+	// CR 708.2a: a face-down permanent or spell has no mana cost and no
+	// colour indicator, so it is colourless.
+	if f == nil || o.FaceDownHidden() {
 		return 0
 	}
 	// CR 707.9b/707.9d: a copy exception's final colour set is part of the
