@@ -58,17 +58,17 @@ func TestPaymentPlanDoesNotDoubleCountDualAndKeepsColorlessDistinct(t *testing.T
 // V1 payment witnesses only describe tapping a source.  A mana ability with
 // an extra cost is still legal for manual payment, but must never appear in a
 // suggested plan because the witness cannot carry or execute that cost.
-func TestPaymentPlanExcludesManaAbilityWithMillCost(t *testing.T) {
+func TestPaymentPlanExcludesManaAbilityWithDiscardCost(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9110, "Name:Colorless Plan Spell\nManaCost:C\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
-	source := onBoard(t, e, 0, "Name:Millikin Shape\nTypes:Artifact Creature Construct\nA:AB$ Mana | Cost$ T Mill<1> | Produced$ C\nOracle:x\n")
+	source := onBoard(t, e, 0, "Name:Millikin Shape\nTypes:Artifact Creature Construct\nA:AB$ Mana | Cost$ T Discard<1/Card> | Produced$ C\nOracle:x\n")
 	e.G.Obj(source).SummonSick = false
 	ma := e.G.Obj(source).Face().Abilities[0]
-	if got := e.parseCost(ma.Params["Cost"]); !got.Tap || len(got.Mill) != 1 {
-		t.Fatalf("mana cost = %+v, want tap plus Mill<1>", got)
+	if got := e.parseCost(ma.Params["Cost"]); !got.Tap || len(got.Discard) != 1 {
+		t.Fatalf("mana cost = %+v, want tap plus Discard<1/Card>", got)
 	}
 	if got := e.PlanCastPayment(0, paymentCast(spell)); got.Plan != nil || got.Reason != "insufficient" {
-		t.Fatalf("plan with Mill<1> source = %#v, want insufficient", got)
+		t.Fatalf("plan with Discard<1/Card> source = %#v, want insufficient", got)
 	}
 	// The strict plan gate must not remove the legitimate manual action.
 	found := false
@@ -79,7 +79,7 @@ func TestPaymentPlanExcludesManaAbilityWithMillCost(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatal("Mill<1> mana activation disappeared from manual actions")
+		t.Fatal("Discard<1/Card> mana activation disappeared from manual actions")
 	}
 }
 

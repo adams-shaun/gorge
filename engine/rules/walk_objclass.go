@@ -155,6 +155,12 @@ func (e *Engine) computeWalkObjClass(o *state.Object) walkObjClass {
 		}
 	}
 	for _, ct := range o.Counters {
+		if ct.Kind == "HONE" {
+			// CR 122.1j: a hone counter makes the object static-hot on the
+			// battlefield (objectStaticHotOn), and its amount moves that.
+			c.ctrDep = true
+			c.staticOn = c.staticOn || ct.N > 0
+		}
 		if kwName, ok := cards.CounterKeyword(ct.Kind); ok {
 			c.ctrDep = true
 			if ct.N > 0 && grantedKWHeadMatch(kwName) {

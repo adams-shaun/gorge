@@ -2883,16 +2883,16 @@
     },
     {
       "seq": 499,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 500,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 500,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 501,
@@ -2918,16 +2918,16 @@
     },
     {
       "seq": 505,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 506,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 506,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 507,
@@ -2953,16 +2953,16 @@
     },
     {
       "seq": 511,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 512,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 512,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 513,
@@ -4669,16 +4669,16 @@
     },
     {
       "seq": 835,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 836,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 836,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 837,
@@ -4704,16 +4704,16 @@
     },
     {
       "seq": 841,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 842,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 842,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 843,
@@ -4739,16 +4739,16 @@
     },
     {
       "seq": 847,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 848,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 848,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 849,
@@ -4774,16 +4774,16 @@
     },
     {
       "seq": 853,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 854,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 854,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 855,
@@ -6617,16 +6617,16 @@
     },
     {
       "seq": 1198,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 1199,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 1199,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 1200,
@@ -6652,16 +6652,16 @@
     },
     {
       "seq": 1204,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 1205,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 1205,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 1206,
@@ -6687,16 +6687,16 @@
     },
     {
       "seq": 1210,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 1211,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 1211,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 1212,
@@ -6722,16 +6722,16 @@
     },
     {
       "seq": 1216,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 1217,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 1217,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 1218,
@@ -10337,16 +10337,16 @@
     },
     {
       "seq": 1895,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 1896,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 1896,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 1897,
@@ -12406,16 +12406,16 @@
     },
     {
       "seq": 2276,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 2277,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 2277,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 2278,
@@ -14447,16 +14447,16 @@
     },
     {
       "seq": 2654,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 2655,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 2655,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 2656,
@@ -14482,16 +14482,16 @@
     },
     {
       "seq": 2660,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 2661,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 2661,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 2662,
@@ -14517,16 +14517,16 @@
     },
     {
       "seq": 2666,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 2667,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 2667,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 2668,
@@ -14552,16 +14552,16 @@
     },
     {
       "seq": 2672,
+      "kind": 34,
+      "player": 1,
+      "obj": 116
+    },
+    {
+      "seq": 2673,
       "kind": 13,
       "player": 1,
       "amount": -1,
       "counter": "R"
-    },
-    {
-      "seq": 2673,
-      "kind": 34,
-      "player": 1,
-      "obj": 116
     },
     {
       "seq": 2674,
@@ -19477,16 +19477,16 @@
     },
     {
       "seq": 3596,
+      "kind": 34,
+      "obj": 37
+    },
+    {
+      "seq": 3597,
       "kind": 2,
       "obj": 37,
       "from": 2,
       "to": 3,
       "text": "sacrificed"
-    },
-    {
-      "seq": 3597,
-      "kind": 34,
-      "obj": 37
     },
     {
       "seq": 3598,
@@ -24429,7 +24429,7 @@
       ]
     }
   ],
-  "head": "6d7b5325284ddbc4",
+  "head": "2e3af8d60ab16f38",
   "intent_count": 664,
   "turn": 22,
   "step": "main1",

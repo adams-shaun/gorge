@@ -73,3 +73,14 @@ func foldSpellCastReversed(g *state.Game, e *Event) {
 		g.Players[e.Player].SpellsCastThisTurn--
 	}
 }
+
+// foldActivationReversed undoes one activation-census tally for a CR 733.1
+// reversed activated ability (rules' abortCast). The mint increments
+// Object.ActivatedThisTurn only while its source is on the battlefield, so
+// the reversal decrements under the same condition; the guard at zero keeps
+// a log that reverses without a preceding mint from underflowing the count.
+func foldActivationReversed(g *state.Game, e *Event) {
+	if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && o.ActivatedThisTurn > 0 {
+		o.ActivatedThisTurn--
+	}
+}

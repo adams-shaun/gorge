@@ -718,26 +718,26 @@
     },
     {
       "seq": 69,
+      "kind": 34,
+      "obj": 80
+    },
+    {
+      "seq": 70,
       "kind": 4,
       "amount": -1
     },
     {
-      "seq": 70,
+      "seq": 71,
       "kind": 6,
       "obj": 80
     },
     {
-      "seq": 71,
+      "seq": 72,
       "kind": 2,
       "obj": 80,
       "from": 2,
       "to": 3,
       "text": "sacrificed"
-    },
-    {
-      "seq": 72,
-      "kind": 34,
-      "obj": 80
     },
     {
       "seq": 73,
@@ -5693,7 +5693,7 @@
       ]
     }
   ],
-  "head": "5187d943dcc9b545",
+  "head": "ef4aead016941d90",
   "intent_count": 142,
   "turn": 7,
   "step": "main1",

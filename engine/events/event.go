@@ -1253,10 +1253,22 @@ const (
 	// Appended after BlockedByEffect so every earlier ordinal, hash chain
 	// and golden replay is unchanged.
 	CopyExcept
+	// ActivationReversed reverses the activation census of one CR 733.1
+	// aborted activated ability: the ability object was already pushed
+	// (CR 602.2a), so its AbilityPush / GainedAbilityPush / GrantAbilityPush /
+	// KeywordAbilityPush / DelayedPush fold incremented the source's
+	// ActivatedThisTurn and the activation-count scans. Player, Obj, Amount,
+	// Counter and IDs carry the reversed mint's identity; Text is that mint's
+	// Kind.String(). The fold decrements ActivatedThisTurn, and every
+	// activation-count scan subtracts the reversal. It is emitted only from
+	// rules' abortCast, so no bot game and no golden replay contains it.
+	// Appended after CopyExcept so every earlier ordinal, hash chain and golden
+	// replay is unchanged.
+	ActivationReversed
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(CopyExcept) + 1
+	NumKinds = int(ActivationReversed) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
@@ -1933,6 +1945,10 @@ var flagNames = [...]struct {
 	// sources ride the same event's IDs into Object.ManaSpentSources.
 	// Appended at the end per the table's own ordering rule.
 	{"manasources", state.FlagManaSourcesSpent},
+	// Cleave's alternative-cost cast (CR 702.148a); the flag is the
+	// provenance rules' resolution reader uses to substitute the cleave
+	// spell ability. Appended at the end per the table's own ordering rule.
+	{"cleaved", state.FlagCleaved},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

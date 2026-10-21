@@ -20,11 +20,14 @@ import (
 )
 
 // restampActivate activates obj's ability idx, answers every non-priority
-// ask (the equip target) with its first option, and resolves the stack.
+// ask (the equip target) with its first option, and resolves the stack. The
+// ability is already on the stack while its target is asked (CR 602.2a), so
+// the asks are answered until the proposal completes rather than until the
+// stack gains the object.
 func restampActivate(t *testing.T, e *Engine, obj state.ObjID, idx int) {
 	t.Helper()
 	submitChoices(t, e, abilityOption(t, e, obj, idx).Index)
-	for i := 0; i < 5 && len(e.G.Stack) == 0; i++ {
+	for i := 0; i < 5; i++ {
 		d := e.Pending()
 		if d == nil || d.Kind == decision.KPriority {
 			break

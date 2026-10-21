@@ -136,12 +136,12 @@ func TestWaytaPreasksFightTargetAndReduces(t *testing.T) {
 
 		// THE fix: the DBFight victim ask is posed at CAST time, before any
 		// payment -- Wayta still untapped, the pool still holds both G, and
-		// no ability object is on the stack yet.
+		// the ability object itself is already on the stack (CR 602.2a).
 		d = e.Pending()
 		if d == nil || d.Kind != decision.KTarget || d.ResumeKind != "cast_sub" {
 			t.Fatalf("the chained Fight victim was not pre-asked at cast time: %+v", d)
 		}
-		if e.G.Obj(wayta).Tapped || e.G.Players[0].Pool.Total() != 3 || len(e.G.Stack) != 0 {
+		if e.G.Obj(wayta).Tapped || e.G.Players[0].Pool.Total() != 3 || len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Source != wayta {
 			t.Fatalf("payment ran before the cast_sub ask: tapped=%v pool=%d stack=%v",
 				e.G.Obj(wayta).Tapped, e.G.Players[0].Pool.Total(), e.G.Stack)
 		}

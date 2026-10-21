@@ -174,8 +174,8 @@ func (e *Engine) answerCastDivision(pc *pendingCast, chosen []decision.Option) {
 }
 
 // recordCastDivision emits the settled division onto the stack object once:
-// at the announcement for a spell (already on the stack), after payCast's
-// AbilityPush for an activated ability.
+// at the announcement for a spell (already on the stack), after payment
+// (payCast's ability arm) for an activated ability.
 func (e *Engine) recordCastDivision(pc *pendingCast) {
 	if pc.divisionRecorded || pc.division == nil || pc.stackObj == 0 {
 		return

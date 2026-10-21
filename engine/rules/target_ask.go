@@ -652,7 +652,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			} else {
 				pc.rootOpts = append([]decision.Option(nil), ordered...)
 				e.payCast()
-				if pc.stackObj != 0 {
+				if pc.activationPaid {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
 					e.cast = pc
 					e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
@@ -691,8 +691,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// trigger -- via payCast. For a spell the stack object is the card
 	// itself, already on the stack (pushCast), so targets are recorded before
 	// payment (601.2c before 601.2h); for an activated ability the stack
-	// object is minted by payCast's AbilityPush, so targets are recorded
-	// AFTER it. Targets are never written directly (they go through
+	// object is pushed by pushActivation (CR 602.2a) but its targets are still
+	// recorded after the cost is paid. Targets are never written directly (they go through
 	// TargetsChosen events) and always after the push, because a zone change
 	// clears them.
 	if e.cast != nil {
@@ -743,8 +743,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				}
 			}
 		} else {
-			// The ability object does not exist until payCast's AbilityPush, so
-			// the root answer's options ride pc.rootOpts for the payment tail's
+			// The ability object is already pushed (CR 602.2a), but the root
+			// answer's options ride pc.rootOpts for the payment tail's
 			// recordChosenTargets; the post-target stages (alltargeted1's sub
 			// pre-asks, the CollectEvidence ask) run BEFORE payment (CR 601.2c).
 			pc.rootOpts = append([]decision.Option(nil), chosen...)
@@ -757,8 +757,8 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		}
 		e.finishTargetedCast(pc, pc.player)
 		// tpc1: pin the answering seat against the resolving object. For a
-		// spell pc.stackObj is already the pushed object; for an activation
-		// payCast's AbilityPush has just minted it. The CR 608.2b recheck
+		// spell and an activation pc.stackObj is already the pushed object
+		// (pushCast / pushActivation, CR 602.2a). The CR 608.2b recheck
 		// (legalTargets) reads this record off the resolving object.
 		if po := e.G.Obj(pc.card); po != nil {
 			if tsa := e.castStageSA(pc, po, po.Face()); tsa != nil {
@@ -809,7 +809,8 @@ func (e *Engine) finishPlacedTargets(obj state.ObjID, player state.PlayerID) {
 // proposal-local target representation used while its cost is still being
 // assembled. Events remain the source of truth once the stack object exists;
 // this short-lived copy is only what lets an activated ability evaluate a
-// ValidTarget$ cost modifier before its AbilityPush object is minted.
+// ValidTarget$ cost modifier before its cost is paid (the object is already
+// pushed by pushActivation, CR 602.2a).
 func targetOptions(chosen []decision.Option) []state.Target {
 	out := make([]state.Target, 0, len(chosen))
 	for _, opt := range chosen {

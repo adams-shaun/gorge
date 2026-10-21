@@ -190,21 +190,22 @@ func zoneMovingKind(k events.Kind) bool {
 func activationUsedIn(evs []events.Event, id state.ObjID, ability int, svar string) int {
 	used := 0
 	for i := range evs {
-		ev := &evs[i]
+		ev := evs[i]
 		if ev.Obj != id {
 			continue
 		}
+		ev, sign := activationCounted(ev)
 		switch ev.Kind {
 		case events.AbilityPush, events.ManaActivate:
 			if ev.Kind == events.ManaActivate && len(ev.IDs) > 0 {
 				continue
 			}
 			if ability >= 0 && ev.Amount == int32(ability) {
-				used++
+				used += sign
 			}
 		case events.DelayedPush, events.GrantAbilityPush:
 			if svar != "" && ev.Counter == svar {
-				used++
+				used += sign
 			}
 		}
 	}

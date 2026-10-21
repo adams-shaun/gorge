@@ -650,10 +650,6 @@ func replacementAnswerInvalid(chosen []decision.Option, rc replChoice) bool {
 // hand-built decision and degrades to a Note, the same totality stance as
 // handleCmdZone.
 func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
-	if len(d.Options) > 0 && strings.HasPrefix(d.Options[0].Kind, "madness_") {
-		e.handleMadnessReplacement(d, in)
-		return
-	}
 	if len(e.replChoices) == 0 {
 		e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "replacement decision answered with no event parked"})
 		return
@@ -983,8 +979,8 @@ func continueLoseManaBoundary(b *manaBoundaryContinuation, pending func() bool, 
 	}
 }
 
-// askNextReplacementChoice hands over to either an ordinary replacement
-// competition or a simultaneous Madness choice after the current answer.
+// askNextReplacementChoice hands over to an ordinary replacement competition
+// after the current answer.
 func (e *Engine) askNextReplacementChoice() {
 	if e.pending != nil {
 		return
@@ -994,11 +990,6 @@ func (e *Engine) askNextReplacementChoice() {
 			e.askReplacementChoice(p)
 		}
 		return
-	}
-	if len(e.madnessChoices) > 0 {
-		if o := e.G.Obj(e.madnessChoices[0].Obj); o != nil && int(o.Owner) < len(e.G.Players) {
-			e.askMadnessReplacement(o.Owner)
-		}
 	}
 	// No replacement-order decision remains outstanding: an exchange
 	// transaction parked by a suspension (a consumed GainLife→Draw body whose

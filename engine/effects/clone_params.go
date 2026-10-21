@@ -153,7 +153,7 @@ var cloneKnownKeys = [...]string{
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",
 	"IsPresent", "KW", "KeepFacedown", "Keyword", "KeywordLine", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController", "NewName",
-	"NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
+	"NonBasicSpell", "NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects", "RememberTargets", "RemoveCardTypes",

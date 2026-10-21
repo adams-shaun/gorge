@@ -103,6 +103,12 @@ func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
 // OFFERS a cast that CR 601.3 would refuse. It is a pure read -- no event,
 // no state change -- and the beginPlay recheck stays the enforcement site.
 func (e *Engine) CastProhibited(p state.PlayerID, id state.ObjID) bool {
+	// A land is played, not cast: its offer follows beginPlay's land gate
+	// (CR 305.2a/305.3), so the election never offers a land play the
+	// hand-off would refuse.
+	if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsLand() {
+		return e.effectLandPlayRefusal(p, id, o.Zone) != ""
+	}
 	return e.castRestrictedFree(p, id)
 }
 

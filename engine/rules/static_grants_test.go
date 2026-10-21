@@ -323,8 +323,9 @@ func TestSwordOfFireAndIceGrantsSVarToEquipped(t *testing.T) {
 
 // TestOracleOfMulDayaRevealsTopCard is Continuous.MayLookAt's leaf: the
 // grant's controller may look at the top card of their own library -- the
-// seat's own projection carries LibraryTop, every other seat's carries
-// nothing (CR 400.2).
+// seat's own projection carries LibraryTop, and because the grant is
+// MayLookAt$ Player ("play with ... revealed") every seat's projection
+// carries it too (CR 401.5).
 func TestOracleOfMulDayaRevealsTopCard(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -345,9 +346,11 @@ func TestOracleOfMulDayaRevealsTopCard(t *testing.T) {
 	if own.Players[0].LibraryTop == nil || own.Players[0].LibraryTop.ID != top {
 		t.Fatalf("seat 0's view carries no revealed top card (want %d): %+v", top, own.Players[0].LibraryTop)
 	}
+	// "Play with the top card of your library revealed" (MayLookAt$ Player):
+	// revealed to every player (CR 401.5; cr-g28), so seat 1 sees it too.
 	other := view.Project(e.G, e, 1, e.Pending())
-	if other.Players[0].LibraryTop != nil {
-		t.Fatalf("seat 1's view leaks seat 0's revealed top card: %+v", other.Players[0].LibraryTop)
+	if lt := other.Players[0].LibraryTop; lt == nil || lt.ID != top {
+		t.Fatalf("seat 1's view does not carry seat 0's revealed top card (want %d): %+v", top, lt)
 	}
 }
 

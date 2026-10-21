@@ -124,7 +124,16 @@ func crAbortUnchanged(t *testing.T, e *Engine, before *state.Game, start int, na
 			}
 		}
 	}
-	if !slices.Equal(before.Stack, e.G.Stack) || len(before.Objs) != len(e.G.Objs) || e.cast != nil || e.choosing != chooseNone || len(e.pendingTriggers) != 0 || e.drainAwaitsTarget {
+	// CR 602.2a pushes an activated ability first, so its reversed
+	// proposal leaves one Face-less ability object behind in the arena
+	// (Objs never shrinks): it ceased to exist (Zone exile, in no zone's
+	// membership, CR 113.7a). Any OTHER new object is a leak.
+	for i := len(before.Objs); i < len(e.G.Objs); i++ {
+		if o := &e.G.Objs[i]; o.Card != nil || o.Ability == nil || o.Zone != state.ZExile || slices.Contains(e.G.Zone(state.ZExile, o.Controller), o.ID) {
+			t.Errorf("CR 733.1 %s seq %d: new object %d is not a ceased ability object: %+v", name, start, o.ID, o)
+		}
+	}
+	if !slices.Equal(before.Stack, e.G.Stack) || len(e.G.Objs) > len(before.Objs)+1 || e.cast != nil || e.choosing != chooseNone || len(e.pendingTriggers) != 0 || e.drainAwaitsTarget {
 		t.Errorf("CR 733.1 %s seq %d: stack %v -> %v objects %d -> %d cast=%t choosing=%d queue=%d drain=%t", name, start, before.Stack, e.G.Stack, len(before.Objs), len(e.G.Objs), e.cast != nil, e.choosing, len(e.pendingTriggers), e.drainAwaitsTarget)
 	}
 	if d := e.Pending(); d == nil || d.Kind != decision.KPriority || d.Player != before.Priority || e.G.Priority != before.Priority || e.G.Over {

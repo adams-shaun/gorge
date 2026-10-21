@@ -18,6 +18,8 @@ import (
 // pin that timing and its consequences on the cast flow's chain ask
 // (subTargetAsk): the offer census, the targeting events, the CR 608.2b
 // recheck, and the shapes that are deliberately still asked at resolution.
+// The ability's object is already on the stack while the target is chosen
+// (CR 602.2a); and the target is recorded on it.
 
 // cr601Board deals each seat the named corpus cards (moved to the given
 // zones) over a Mountain deck and stops at seat 0's first main-phase
@@ -318,8 +320,8 @@ func TestAbilityChainTargetIsAnnouncedOnActivation(t *testing.T) {
 	if got := e.G.Players[0].Pool.Total(); got != 1 {
 		t.Fatalf("the activation cost was paid before the target was chosen: pool %d, want 1", got)
 	}
-	if len(e.G.Stack) != 0 {
-		t.Fatalf("an ability object exists before its targets were chosen: stack %v", e.G.Stack)
+	if n := len(e.G.Stack); n != 1 || e.G.Obj(e.G.Stack[0]).Source != pinger {
+		t.Fatalf("CR 602.2a: the ability object is not on the stack while its target is chosen: stack %v", e.G.Stack)
 	}
 	answerCastSubObj(t, e, ogre)
 	if len(e.G.Stack) != 1 {
