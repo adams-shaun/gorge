@@ -36,6 +36,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.PreStackEntryThisTurn = o.EnteredThisTurn
 			o.PreStackEntryFrom = o.EnteredFrom
 			o.PreStackEnteredLen = len(g.Entered)
+			o.PreStackZoneGen = o.ZoneGen
 			o.HasPreStackEntry = true
 		}
 	}
@@ -251,6 +252,9 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.FaceDown = false
 		}
 		if e.Text == "reversed" && o.HasPreStackEntry {
+			// The reversal undoes the cast proposal (CR 733.1): the card
+			// keeps the identity it had before the push.
+			o.ZoneGen = o.PreStackZoneGen
 			o.EnteredThisTurn = o.PreStackEntryThisTurn
 			o.EnteredFrom = o.PreStackEntryFrom
 			if o.PreStackEnteredLen <= len(g.Entered) {
@@ -259,11 +263,13 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.PreStackEntryThisTurn = false
 			o.PreStackEntryFrom = state.ZLibrary
 			o.PreStackEnteredLen = 0
+			o.PreStackZoneGen = 0
 			o.HasPreStackEntry = false
 		} else if wasStack && e.To != state.ZStack {
 			o.PreStackEntryThisTurn = false
 			o.PreStackEntryFrom = state.ZLibrary
 			o.PreStackEnteredLen = 0
+			o.PreStackZoneGen = 0
 			o.HasPreStackEntry = false
 		}
 	}
@@ -632,6 +638,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// must restore byte-identical state and is not a permanent incarnation.
 	if enteredFrom != to && (enteredFrom == state.ZBattlefield || to == state.ZBattlefield) {
 		o.Incarnation++
+	}
+	// CR 400.7: every REAL zone change makes a new object, whatever zones it
+	// passed through (a CR 733.1 reversal below restores PreStackZoneGen: the
+	// reversal undoes the proposal, it does not make a new object).
+	if enteredFrom != to {
+		o.ZoneGen++
 	}
 	// A new object in a new zone has its owner's default control. The old
 	// controller is needed above to remove it from the battlefield/stack, so

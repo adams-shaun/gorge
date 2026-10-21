@@ -30,9 +30,9 @@ import (
 // Alone$ True (Exalted's expansion, engine/cards/keywords.go -- Ruling FL-48, which
 // was previously a known approximation here) gates the trigger to "exactly
 // one attacker declared this combat": Exalted must pump only a single lone
-// attacker, and with several declared it must not fire at all. Because this
-// fires once per event, the lone-attacker check is len(IDs)==1 and the rest
-// of the matching selects that one attacker against ValidCard.
+// attacker, and with several declared it must not fire at all -- counted
+// across the WHOLE declaration (declaredAttackerCount), not per defender
+// event, so attackers split across defenders are not each "alone".
 func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.DeclareAttackers {
 		return false
@@ -52,7 +52,7 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 			return false
 		}
 	}
-	if v, ok := t.Param(cards.PKAlone); ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
+	if v, ok := t.Param(cards.PKAlone); ok && strings.EqualFold(v, "True") && declaredAttackerCount(e, ev) != 1 {
 		return false
 	}
 	// Attacked$ scopes "whenever a creature attacks <defender>" (CR 508.1c's
@@ -169,6 +169,19 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 		}
 	}
 	return false
+}
+
+// declaredAttackerCount is the number of creatures declared as attackers in
+// the declaration ev belongs to (CR 506.5: a creature attacks alone only if
+// it is the ONLY creature declared as an attacker during the declare
+// attackers step). finishAttackers emits one DeclareAttackers event per
+// defender while Facts().DeclaredAttackers holds the whole declaration; a
+// DeclareAttackers emitted outside a declaration (no batch) counts its own IDs.
+func declaredAttackerCount(e Board, ev events.Event) int {
+	if batch := e.Facts().DeclaredAttackers; len(batch) > 0 {
+		return len(batch)
+	}
+	return len(ev.IDs)
 }
 
 // PlayerHasMostLife reports whether p is alive and their life total is

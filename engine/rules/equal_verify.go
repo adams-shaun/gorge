@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 116
+	continuousEffectFieldCount = 118
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -52,6 +52,8 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 	return true &&
 		a.Source == b.Source &&
 		a.SourceIncarnation == b.SourceIncarnation &&
+		a.SourceZoneGen == b.SourceZoneGen &&
+		a.SourceZoneAnchored == b.SourceZoneAnchored &&
 		a.DurationSource == b.DurationSource &&
 		a.Timestamp == b.Timestamp &&
 		a.Layer == b.Layer &&

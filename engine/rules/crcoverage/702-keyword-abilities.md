@@ -72,7 +72,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.33a,d,e,g | follows | `engine/rules/cast_altcost.go#kickerCost` `engine/rules/cast_targets.go#modeIsKicked` `engine/rules/cast_targets.go#modeFlags` | - | kicked-only targets gated; copies stay kicked |
 | 702.33b,c,f | follows | `engine/rules/cast_altcost.go#twoPartKickerCosts` `engine/rules/cast_asks.go#Engine.multikickAsk` | - |  |
 | 702.33h | unknown | - | - | sticker kicker (Unfinity) not checked |
-| 702.34a | deviates | `engine/effects/resolve.go#effCounter` `engine/effects/misc.go#effWard` | - | gorge: Remanded flashback card returns to hand |
+| 702.34a | follows | `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` `engine/effects/resolve.go#effCounter` `engine/effects/misc.go#effWard` `engine/state/object.go#ExilesLeavingStack` | `TestCR702_34aFlashbackSpellExiledWhereverItWouldGo` `TestCR702_34aRemandOrdinarySpellStillGoesToHand` `TestCR702_34aReversedFlashbackCastReturnsToGraveyard` `TestFlashbackedSpellCounteredGoesToExile` | - |
 | 702.35a | deviates | `engine/rules/altcast.go#Engine.madnessReplacementApplies` `engine/rules/altcast.go#Engine.askMadnessReplacement` | `TestMadnessReplacementMayBeDeclined` | madness exile offered as optional; granted madness ignored (helper) |
 | 702.35b | follows | `engine/rules/cast_init.go#init` | - | (helper) |
 | 702.35c | unknown | - | - | (helper) |
@@ -184,13 +184,13 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.124n | follows | `engine/deck/partner.go#partnerHead` | - |  |
 | 702.125 | follows | `engine/cards/kw_undaunted.go#kwUndaunted` | `TestUndauntedReducesGenericAndNotColoredCost` `TestUndauntedDoesNotReducePlainSpell` |  |
 | 702.126 | follows | `engine/rules/cast_altcost.go#Engine.improviseCost` `engine/rules/cast_altcost.go#Engine.hasCastImprovise` | `TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice` `TestImproviseArtifactCreatureQualifies` |  |
-| 702.127 | follows | `engine/rules/legal.go#aftermathAlternateFace` `engine/state/object.go#ExilesLeavingStack` | `TestAftermathCastsAlternateFaceFromGraveyardAndExiles` `TestAftermathCounteredGoesToExile` | Second half from graveyard only |
+| 702.127 | follows | `engine/rules/legal.go#aftermathAlternateFace` `engine/state/object.go#ExilesLeavingStack` `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` | `TestAftermathCastsAlternateFaceFromGraveyardAndExiles` `TestAftermathCounteredGoesToExile` | Second half from graveyard only |
 | 702.128 | follows | `engine/cards/kw_embalm.go#kwEmbalm` `engine/effects/copypermanent.go#effCopyPermanent` `engine/events/copy_except.go#foldCopyExcept` | `TestAngelOfSanctionsEmbalmExilesAndMintsAWhiteZombieCopy` `TestEmbalmOnlyOfferedFromTheGraveyard` `TestEmbalmedTokenHasNoManaCost` | white, no mana cost and Zombie are the token's copiable values |
 | 702.129 | follows | `engine/cards/kw_embalm.go#kwEmbalm` `engine/effects/copypermanent.go#effCopyPermanent` `engine/events/copy_except.go#foldCopyExcept` | `TestTimelessDragonEternalizeExilesAndMintsAFourFourBlackZombieCopy` `TestCloneOfAnEternalizedTokenCopiesTheExceptions` | black, 4/4, no mana cost and Zombie are the token's copiable values |
 | 702.130 | follows | `engine/cards/kw_afflict.go#kwAfflict` `engine/rules/trigger_granted.go#Engine.checkGrantedAfflictTriggers` | `TestPrintedAfflictDrainsTheDefender` `TestUnblockedAfflictDrainsNothing` |  |
 | 702.131 | follows | `engine/rules/ascend.go#Engine.ascendPossible` `engine/rules/ascend.go#Engine.grantSpellBlessing` `engine/rules/ascend.go#Engine.checkBlessingGrants` | `TestAscendPermanentGrantsTheBlessingAtTenPermanents` `TestAscendSpellResolutionGrantsTheBlessing` | City's blessing at ten permanents |
 | 702.132 | not-impl | - | - |  |
-| 702.133 | follows | `engine/rules/cast_altcost.go#jumpstartExtra` `engine/state/object.go#ExilesLeavingStack` | `TestRadicalIdeaJumpstartCastsDiscardsAndExiles` `TestJumpstartedSpellCounteredGoesToExile` | Graveyard cast plus discard |
+| 702.133 | follows | `engine/rules/cast_altcost.go#jumpstartExtra` `engine/state/object.go#ExilesLeavingStack` `engine/rules/stack_keyword_exile.go#Engine.keywordExileDeparture` | `TestRadicalIdeaJumpstartCastsDiscardsAndExiles` `TestJumpstartedSpellCounteredGoesToExile` | Graveyard cast plus discard |
 | 702.134 | follows | `engine/cards/kw_mentor.go#kwMentor` `engine/rules/mentor.go#Engine.mentorAdmits` | `TestMentorCounterOnLesserPowerAttacker` `TestGrantedMentorFiresAndDoesNotStackWithAPrintedKeyword` |  |
 | 702.135 | follows | `engine/cards/kw_afterlife.go#kwAfterlife` | `TestAfterlifeTitheTakerMintsSpiritTokens` `TestAfterlifeCountScalesWithTheKeyword` |  |
 | 702.136 | follows | `engine/rules/cast_etbchoice.go#Engine.entryETBChoice` `engine/events/entry_counters.go#EntryCounterGrants` | `TestRiotAndHideawayUseRealCorpusCards` `TestRiotCopyKeepsTokenEffectRiders` |  |
