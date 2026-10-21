@@ -120,7 +120,11 @@ func rememberChosenTargets(h Host, c *Ctx, sa *cards.SA, targets []state.Target,
 // recordParentLink records the targets the just-dispatched link chose.
 // fromPreAsk is the generic pre-ask's answer (nil when the pre-ask did not
 // handle the link); a body-consumed answer (noteLinkAnswer) is taken
-// otherwise. A link that declares no ValidTgts$ never records.
+// otherwise. A link that declares no ValidTgts$ never records. The root
+// link's answer is Ctx.Targets (the placement/announcement ask's rechecked
+// set), recorded even when CR 608.2b emptied it: leaving it unrecorded would
+// let a later ParentTarget fall back to a Ctx.Targets the chain has since
+// seeded with its own sub target (Infectious Bite's destroyed first target).
 func recordParentLink(c *Ctx, sa *cards.SA, fromPreAsk []state.Target, preAsked bool) {
 	answer, answered := fromPreAsk, preAsked
 	if c.linkAnswered {
