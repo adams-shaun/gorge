@@ -337,12 +337,20 @@ func foldAttach(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil {
 		switch {
 		case e.Text == "attach to player" && validPlayer(g, e.Player):
+			moved := o.AttachedTo != 0 || !o.HasAttachedPlayer || o.AttachedPlayer != e.Player
 			o.AttachedTo = 0
 			o.AttachedPlayer, o.HasAttachedPlayer = e.Player, true
+			if moved {
+				restampLayer(g, o)
+			}
 		case len(e.IDs) == 0:
 			o.AttachedTo, o.HasAttachedPlayer = 0, false
 		case g.Obj(e.IDs[0]) != nil:
+			moved := o.AttachedTo != e.IDs[0] || o.HasAttachedPlayer
 			o.AttachedTo, o.HasAttachedPlayer = e.IDs[0], false
+			if moved {
+				restampLayer(g, o)
+			}
 			// A re-attach supersedes any earlier bearer: the object is
 			// now "attached to" the new one, so a later "was attached
 			// to X" read must not still name the old X (state.Object.
@@ -350,6 +358,25 @@ func foldAttach(g *state.Game, e *Event) {
 			o.LastBearer = 0
 		}
 	}
+}
+
+// restampLayer gives battlefield object o a new CR 613.7 layer timestamp: one
+// Game.Clock tick, as an entry takes, written to LayerStamp only (Timestamp
+// is the entry identity and stays). The callers are the three CR 613.7e-g
+// events -- an attach to a different object or player (613.7e/701.3c), a
+// turn face up or down (613.7f) and a transform (613.7g) -- each folded
+// AFTER its own state change, so the new stamp is later than every effect
+// that existed when the event happened. An object off the battlefield (a
+// face chosen on the stack or in hand) keeps its stamp: its entry stamps it
+// anyway. An Aura entering attached (rules' settleAuraEntry emits its Attach
+// right after the entry fold) takes one more tick than its entry, as Forge's
+// attachToEntity does.
+func restampLayer(g *state.Game, o *state.Object) {
+	if o.Zone != state.ZBattlefield {
+		return
+	}
+	g.Clock++
+	o.LayerStamp = g.Clock
 }
 
 // foldUnattached folds Kind Unattached into state.
@@ -666,6 +693,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.Damage = 0
 		g.Clock++
 		o.Timestamp = g.Clock
+		o.LayerStamp = g.Clock
 		// CR 707.10g: a copy of a permanent spell becomes a token. The pair
 		// enteredFrom == ZStack + o.IsCopy uniquely identifies a StackCopy
 		// mint resolving onto the battlefield (every other token mint routes

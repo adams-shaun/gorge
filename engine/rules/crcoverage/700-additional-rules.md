@@ -37,7 +37,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.2a | follows | `engine/rules/legal_activation.go#Engine.activatorAllows` | - | controller-only unless Activator$ |
 | 701.3a | deviates | `engine/effects/attach.go#Attachable` | - | illegal attach moves, SBA bins it |
 | 701.3b | deviates | `engine/effects/attach.go#emitAttach` | - | re-attach to same bearer re-fires Attached triggers |
-| 701.3c | not-impl | `engine/events/apply_zone.go#foldAttach` `engine/rules/layers.go#Engine.staticEffectsWalk` | - | no new timestamp on attach |
+| 701.3c | follows | `engine/events/apply_zone.go#foldAttach` `engine/rules/layers.go#Engine.staticEffectsWalk` | `TestEquipAfterAbilityLossRestampsTheEquipment` `TestEquipBeforeAbilityLossStaysLost` | same-bearer attach keeps the stamp |
 | 701.3d | partial | `engine/events/apply_zone.go#move` `engine/rules/attach.go#Engine.attachmentSBAs` | - | no Unattached when the attachment leaves (Grafted Wargear) |
 | 701.4a | follows | `engine/rules/cast_asks.go#Engine.beholdCostAsk` `engine/rules/pay/paidcost.go#EmitChoiceCosts` | - | no behold in pools |
 | 701.4b | unknown | - | - | not reached |
