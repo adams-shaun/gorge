@@ -911,6 +911,17 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			ev.IDs = []state.ObjID{b}
 		}
 		e.emit(ev)
+		if b := pt.Ctx.TriggerBlocker; b != 0 && len(e.G.Stack) > 0 {
+			// Carry the blocker's queue-time Incarnation stamp to the
+			// resolving ability (CR 400.7). The event log does not need it:
+			// the promise's registration is an event, and a skipped one
+			// emits nothing.
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

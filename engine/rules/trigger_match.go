@@ -1093,12 +1093,20 @@ func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
 // pushTrigger logs in the RingEmblemPush event's IDs so the minted ability
 // remembers it.
 func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer, blocker state.ObjID) {
+	ctx := effects.NewCtx(0, p, effects.CtxInit{
+		TriggerContext: effects.TriggerContext{TriggerCard: bearer, TriggerBlocker: blocker},
+	})
+	if blocker != 0 {
+		// CR 400.7: the promise names the blocking creature that existed when
+		// the Ring-bearer became blocked. Stamp its Incarnation HERE, at queue
+		// time, so a blocker that leaves and returns before the ability
+		// resolves is a new object the promise does not sacrifice.
+		ctx.TriggerRememberedStamps = e.fireTimeRememberedStamps([]state.Target{{Obj: blocker}})
+	}
 	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 		Controller: p,
 		RingEmblem: level,
-		Ctx: effects.NewCtx(0, p, effects.CtxInit{
-			TriggerContext: effects.TriggerContext{TriggerCard: bearer, TriggerBlocker: blocker},
-		}),
+		Ctx:        ctx,
 	})
 }
 

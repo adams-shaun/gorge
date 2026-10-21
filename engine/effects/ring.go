@@ -186,14 +186,30 @@ const ringBlockerSacrificeBody = "__kwDecayedSacrifice"
 // emblem's owner (CR 603.7d). An end-of-combat promise is scoped to this
 // turn (thisTurn, the SacrificeCombat rider's rule).
 func effRingBlockerSacrifice(h Host, c *Ctx, _ *cards.SA) {
+	var stamps map[state.ObjID]uint32
+	if len(c.TriggerRememberedStamps) > 0 {
+		stamps = make(map[state.ObjID]uint32, len(c.TriggerRememberedStamps))
+		for _, s := range c.TriggerRememberedStamps {
+			stamps[s.Obj] = s.Incarnation
+		}
+	}
 	var blockers []state.ObjID
 	for _, t := range c.Remembered {
 		if t.IsPlayer || t.Obj == 0 {
 			continue
 		}
-		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
-			blockers = append(blockers, t.Obj)
+		o := h.Game().Obj(t.Obj)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
 		}
+		// CR 400.7: a blocker that left and returned is a NEW object. The
+		// stamp captured when the trigger was queued names the incarnation
+		// the Ring-bearer actually became blocked by; skip a live object
+		// whose Incarnation has moved past it.
+		if inc, ok := stamps[t.Obj]; ok && inc != o.Incarnation {
+			continue
+		}
+		blockers = append(blockers, t.Obj)
 	}
 	scheduleAtEOTRider(h, c.Controller, atEOTRider{body: ringBlockerSacrificeBody,
 		step: state.StepEndCombat, thisTurn: true}, blockers)
