@@ -1026,28 +1026,48 @@ var playerHasMostCodes = state.NewStrCodes(
 
 // SplitDefenderSpec splits an attacked-defender spec -- a trigger's Attacked$
 // or AttackedTarget$ comma list -- into its player alternatives and its
-// permanent alternatives (those whose first clause, past any leading "!",
-// names Planeswalker or Battle), each re-joined with commas in their
-// original order; either may be "". CR 508.3a/508.3e: a player alternative
-// is about an attack on that player, a permanent alternative about an
-// attack on that planeswalker or battle, so a DeclareAttackers event for a
-// planeswalker or battle is matched only by the permanent half and a player
-// event only by the player half.
+// permanent alternatives (every alternative that is not player grammar: a
+// Planeswalker./Battle spec, or the trigger's own permanent as
+// Card.EffectSource/Card.Self), each re-joined with commas in their original
+// order; either may be "". CR 508.3a/508.3e: a player alternative is about
+// an attack on that player, a permanent alternative about an attack on that
+// planeswalker or battle, so a DeclareAttackers event for a planeswalker or
+// battle is matched only by the permanent half and a player event only by
+// the player half.
 func SplitDefenderSpec(spec string) (players, permanents string) {
-	for alt := range strings.SplitSeq(spec, ",") {
+	// Split exactly as the filter grammar does: a comma inside a
+	// named<Name>/notnamed<Name> argument is part of the name, not an
+	// alternative boundary.
+	for alt := range filterAlternatives(spec) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
 		}
-		first, _, _ := strings.Cut(alt, "+")
-		base, _, _ := strings.Cut(strings.TrimPrefix(first, "!"), ".")
-		if base == "Planeswalker" || base == "Battle" {
-			permanents = joinAlt(permanents, alt)
-		} else {
+		if defenderAltIsPlayer(alt) {
 			players = joinAlt(players, alt)
+		} else {
+			permanents = joinAlt(permanents, alt)
 		}
 	}
 	return players, permanents
+}
+
+// defenderAltIsPlayer reports whether one attacked-defender alternative is a
+// player spec rather than a permanent one. The player grammar's bases
+// (Player/Any/You/Opponent/Other), its bare property spellings and its bare
+// qualifiers are player alternatives; every other alternative is a card spec
+// -- Planeswalker.*, Battle, and Card.EffectSource/Card.Self (the trigger's
+// own permanent, which an attack on that permanent must still match).
+func defenderAltIsPlayer(alt string) bool {
+	first, _, _ := strings.Cut(alt, "+")
+	clause := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(first), "!"))
+	base, _, qualified := strings.Cut(clause, ".")
+	if qualified {
+		return playerSpecBaseCodes.Code(base) != 0
+	}
+	return playerSpecBaseCodes.Code(base) != 0 ||
+		isBarePlayerProperty(base) ||
+		playerSpecQualifierCodes.Code(base) != 0
 }
 
 func joinAlt(list, alt string) string {

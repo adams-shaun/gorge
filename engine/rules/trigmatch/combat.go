@@ -68,8 +68,10 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 	// player filter (You / Opponent / Player.withMostLife / Player.isMonarch /
 	// Player.Chosen / the life-comparison qualifiers; an unmodelled player
 	// qualifier fails closed), a planeswalker or battle defender (ev.Obj)
-	// only against its Planeswalker./Battle alternatives as a card spec
-	// (CR 508.3a: attacking a planeswalker is not attacking its controller).
+	// only against its permanent alternatives (Planeswalker./Battle, and
+	// Card.EffectSource/Card.Self for the trigger's own permanent) as a card
+	// spec (CR 508.3a: attacking a planeswalker is not attacking its
+	// controller).
 	if v := t.ParamStr(cards.PKAttacked); v != "" && !attackedDefenderMatches(e, v, source, ev, func(players string) bool {
 		return effects.MatchesPlayerSpecFrom(e.Game(), players, ev.Player, e.ControllerOf(source), source)
 	}) {
@@ -178,8 +180,9 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 // set (finishAttackers keys one event per player/permanent pair) and the
 // player ev.Player otherwise. A player defender is matched by the spec's
 // player alternatives through matchPlayers (the caller's player matcher,
-// unchanged); a permanent defender only by its Planeswalker./Battle
-// alternatives, as a card spec on that permanent from the trigger
+// unchanged); a permanent defender only by its permanent alternatives
+// (Planeswalker./Battle, and Card.EffectSource/Card.Self for the trigger's
+// own permanent), as a card spec on that permanent from the trigger
 // controller's perspective. An attack on a planeswalker is never an attack
 // on its controller.
 func attackedDefenderMatches(e Board, spec string, source state.ObjID, ev events.Event, matchPlayers func(string) bool) bool {
