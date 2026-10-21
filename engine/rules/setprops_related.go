@@ -39,7 +39,7 @@ func (e *Engine) relatedPropertyAdmits(prop string, obj, ref state.ObjID) bool {
 		if o.Face() == nil || r.Face() == nil {
 			return false
 		}
-		return o.Face().Cmc() <= r.Face().Cmc()
+		return state.ManaValue(e.G, o) <= state.ManaValue(e.G, r)
 	case relatedPropertyLEPower:
 		return e.Power(obj) <= e.Power(ref)
 	}

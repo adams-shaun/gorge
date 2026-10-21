@@ -32,14 +32,14 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 202.2d | follows | `engine/effects/colors.go#ColorMaskOf` | - | hybrid/Phyrexian colours |
 | 202.2e | follows | `engine/effects/colors.go#ColorMaskOf` | - | indicator read only when cost colourless |
 | 202.2f | follows | `engine/rules/layer5colors.go#Engine.derivedColorTable` | - | - |
-| 202.3 | partial | `engine/cards/face.go#cmcFromManaCost` `engine/effects/filter_value.go#cmcValue` | - | subrule gaps below |
+| 202.3 | partial | `engine/state/mana_value.go#ManaValue` `engine/cards/face.go#cmcFromManaCost` | - | subrule gaps below |
 | 202.3a | follows | `engine/cards/face.go#cmcFromManaCost` | - | - |
-| 202.3b | deviates | `engine/effects/filter_value.go#objectManaValue` `engine/effects/filter_value.go#cmcValue` | - | transformed back face reads MV 0 |
-| 202.3c | not-impl | - | - | SILENT; melded permanent MV 0 |
+| 202.3b | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueTransformedBackFaceIsFrontFace` `TestSephirothTransformsOnlyOnFourthResolution` | copy of a back face reads its printed no cost |
+| 202.3c | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueMeldedPermanentSumsFrontFaces` |  |
 | 202.3d | deviates | `engine/effects/filter.go#nameCharacteristics` `engine/effects/filter_value.go#cmcValue` | - | split card off stack uses first half's MV (probe) |
-| 202.3e | partial | `engine/effects/filter_value.go#cmcValue` `engine/effects/resolve.go#effCounter` | `TestVoidWinnowerRechecksChosenXOnTheStack` | X counted 0 on the stack except cast recheck/cascade |
-| 202.3f | deviates | `engine/effects/filter_value.go#parseCMC` | - | gorge cmc filter prices {2/B} as 1; still at develop after cr-g03 |
-| 202.3g | follows | `engine/effects/filter_value.go#parseCMC` `engine/cards/face.go#cmcFromManaCost` | - | - |
+| 202.3e | follows | `engine/state/mana_value.go#stackX` `engine/effects/filter_value.go#cmcValue` | `TestManaValueXOnTheStackIsTheChosenValue` `TestVoidWinnowerRechecksChosenXOnTheStack` |  |
+| 202.3f | follows | `engine/cards/face.go#cmcFromManaCost` `engine/state/mana_value.go#faceManaValue` | `TestManaValueTwobridCountsTheGenericComponent` |  |
+| 202.3g | follows | `engine/cards/face.go#cmcFromManaCost` | - | - |
 | 202.4 | follows | `engine/cards/face.go#cmcFromManaCost` | - | additional costs not in mana value |
 | 203.1 | n/a | - | - | no game effect |
 | 204.1 | n/a | - | - | layout |

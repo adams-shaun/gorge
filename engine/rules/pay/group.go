@@ -18,7 +18,7 @@ func GroupValue(o *state.Object, g costvocab.GroupTotal) int32 {
 	}
 	switch g.Prop {
 	case costvocab.GroupCMC:
-		return o.Face().Cmc()
+		return state.ManaValue(nil, o)
 	case costvocab.GroupManaSymbols:
 		return costvocab.ManaSymbolsOfColor(costvocab.ParseCost(o.Face().ManaCost), g.Color)
 	}

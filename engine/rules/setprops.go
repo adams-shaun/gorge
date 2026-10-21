@@ -70,7 +70,7 @@ func (e *Engine) setPropTokens(kind string, obj state.ObjID) []string {
 	case setPropTokensToughness:
 		return []string{strconv.Itoa(int(e.Toughness(obj)))}
 	case setPropTokensCmc:
-		return []string{strconv.Itoa(int(o.Face().Cmc()))}
+		return []string{strconv.Itoa(int(state.ManaValue(e.G, o)))}
 	case setPropTokensName:
 		return []string{strings.ToLower(strings.TrimSpace(o.Face().Name))}
 	case setPropTokensColor:
@@ -329,7 +329,7 @@ func (e *Engine) targetControllerPropertyAdmits(kind string, obj state.ObjID) bo
 		if o.Face() == nil {
 			return false
 		}
-		return int(o.Face().Cmc()) <= n
+		return int(state.ManaValue(e.G, o)) <= n
 	}
 	return int(e.Power(obj)) <= n
 }

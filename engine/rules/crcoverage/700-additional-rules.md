@@ -305,7 +305,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 709.4a | follows | `engine/effects/filter.go#nameCharacteristics` | `TestNamedSplitCardBothNamesOffBattlefield` |  |
 | 709.4b-709.4c | deviates | `engine/effects/filter_value.go#objectManaValue` `engine/effects/filter_value.go#cmcValue` `engine/effects/colors.go#ColorMaskOf` | - | off the stack only the left half MV, colour and types (cr-g13) |
 | 709.4d | deviates | `engine/rules/split.go#Engine.resolveFused` | `TestSplitFusePaysCombinedCostAndResolvesBothHalves` | fused spell stays front face: MV and colour of one half (cr-g13) |
-| 709.5-709.5b | follows | `engine/rules/chars/room_name.go#RoomName` `engine/effects/room_characteristics.go#roomManaValue` | `TestRoomCharacteristicsFollowDoors` `TestRoomNameByDoorState` `TestOracleRoomPlacedBothLockedHasNoName` | Room characteristics follow doors; 709.5b copy case unverified |
+| 709.5-709.5b | follows | `engine/rules/chars/room_name.go#RoomName` `engine/state/mana_value.go#roomManaValue` | `TestRoomCharacteristicsFollowDoors` `TestRoomNameByDoorState` `TestOracleRoomPlacedBothLockedHasNoName` | Room characteristics follow doors; 709.5b copy case unverified |
 | 709.5c-709.5g | follows | `engine/state/object.go#Object.DoorUnlocked` `engine/rules/rooms.go#Engine.unlockRoomFaceCost` `engine/effects/unlockdoor.go#effUnlockDoor` | `TestPaidRoomUnlockPaysAndUnlocksSelectedDoor` `TestNonCastRoomHasNoLiveDoorsAndCastEntryDesignatesFace` `TestRoomRelockCastFaceThenUnlock` | designations, sorcery-timed unlock special action, lock via DoorLock |
 | 709.5h-709.5i | follows | `engine/rules/rooms.go#Engine.checkUnlockTriggers` `engine/rules/trigmatch/room.go#fullyUnlockMatches` | `TestFearOfSleepParalysisFullyUnlockTapsOnceOnFinalDoor` `TestRoomRepeatFaceUnlockDoesNotQueueUnlockDoorTrigger` | - |
 | 709.5j | follows | `engine/effects/unlockdoor.go#countUnlockedDoors` | `TestCountUnlockedDoorsCountsFacesNotRooms` | door is a half |
@@ -325,9 +325,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.8a | partial | `engine/events/apply_zone.go#move` | `TestTransformDFCLeavesBattlefieldFrontFace` `TestCR712ModalDFCLandBackResetsToFrontOnExit` | reset only on leaving battlefield; back-face spell leaving stack keeps back face |
 | 712.8b | follows | `engine/events/apply_meld.go#unmeld` | - | - |
 | 712.8c | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestDefeatedBattleOffersTransformedCast` | defeat cast flips before the stack |
-| 712.8d,f | follows | `engine/state/object.go#Object.Face` `engine/state/object.go#Object.faceSlow` | - | Face()=Faces[FaceIdx] |
-| 712.8e | deviates | `engine/effects/filter_value.go#objectManaValue` `engine/effects/filter_value.go#cmcValue` | - | back-face MV 0; a Sephiroth test pins the wrong value (cr-g13) |
-| 712.8g | deviates | `engine/events/apply_meld.go#foldMeld` `engine/effects/filter_value.go#objectManaValue` | - | melded MV = result face (0), not sum (cr-g13) |
+| 712.8d,f | follows | `engine/state/object.go#Object.Face` `engine/state/object.go#Object.faceSlow` | `TestManaValueModalDFCBackFaceIsItsOwn` | Face()=Faces[FaceIdx] |
+| 712.8e | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueTransformedBackFaceIsFrontFace` `TestSephirothTransformsOnlyOnFourthResolution` |  |
+| 712.8g | follows | `engine/events/apply_meld.go#foldMeld` `engine/state/mana_value.go#manaValueAs` | `TestManaValueMeldedPermanentSumsFrontFaces` |  |
 | 712.9-712.10 | deviates | `engine/effects/resolve.go#effSetState` `engine/effects/zone_change.go#applyTransformed` | - | any 2-face card transforms; no DFC, face-down or instant-face gate |
 | 712.11-712.11a | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestDefeatedBattleOffersTransformedCast` | front face by default; transformed cast puts back face up |
 | 712.11b-712.11c | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | `TestModalSpellBackFaceRestrictionWithholdsOffer` `TestModalSpellOfferSurvivesFrontFaceRestriction` | - |

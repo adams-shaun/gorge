@@ -9,7 +9,7 @@ import (
 )
 
 // TestRoomCharacteristicsFollowDoors is the effects tier's CR 709.5 gate:
-// name comparisons, mana value and the roomNames/roomManaValue helpers follow
+// name comparisons, mana value and the roomNames helper follow
 // the door designations on the battlefield (none, one, both unlocked; a
 // DoorLock narrows them again), and every helper declines off the battlefield
 // so the card keeps its printed (combined, CR 709.4) characteristics.
@@ -26,10 +26,7 @@ func TestRoomCharacteristicsFollowDoors(t *testing.T) {
 	if names, room := roomNames(o); !room || len(names) != 0 {
 		t.Fatalf("both-locked roomNames = %v room=%v, want no names on a governed object", names, room)
 	}
-	if mv, room := roomManaValue(o); !room || mv != 0 {
-		t.Fatalf("both-locked roomManaValue = %d room=%v, want 0 true", mv, room)
-	}
-	if got := objectManaValue(o); got != 0 {
+	if got := objectManaValue(h.g, o); got != 0 {
 		t.Fatalf("both-locked objectManaValue = %d, want 0", got)
 	}
 	if got := nameCharacteristics(o); len(got) != 0 {
@@ -47,10 +44,7 @@ func TestRoomCharacteristicsFollowDoors(t *testing.T) {
 	if names, _ := roomNames(o); !slices.Equal(names, []string{"Front Door"}) {
 		t.Fatalf("front-door roomNames = %v, want [Front Door]", names)
 	}
-	if mv, _ := roomManaValue(o); mv != 2 {
-		t.Fatalf("front-door roomManaValue = %d, want 2", mv)
-	}
-	if got := objectManaValue(o); got != 2 {
+	if got := objectManaValue(h.g, o); got != 2 {
 		t.Fatalf("front-door objectManaValue = %d, want 2", got)
 	}
 	if !sharesName(o, "Front Door", SpecContext{}) || sharesName(o, "Back Door", SpecContext{}) {
@@ -65,10 +59,7 @@ func TestRoomCharacteristicsFollowDoors(t *testing.T) {
 	if names, _ := roomNames(o); !slices.Equal(names, []string{"Front Door", "Back Door"}) {
 		t.Fatalf("both-door roomNames = %v, want both doors", names)
 	}
-	if mv, _ := roomManaValue(o); mv != 5 {
-		t.Fatalf("both-door roomManaValue = %d, want 5 (2+3)", mv)
-	}
-	if got := objectManaValue(o); got != 5 {
+	if got := objectManaValue(h.g, o); got != 5 {
 		t.Fatalf("both-door objectManaValue = %d, want 5", got)
 	}
 	if !sharesName(o, "Front Door", SpecContext{}) || !sharesName(o, "Back Door", SpecContext{}) {
@@ -83,8 +74,8 @@ func TestRoomCharacteristicsFollowDoors(t *testing.T) {
 	if names, _ := roomNames(o); !slices.Equal(names, []string{"Back Door"}) {
 		t.Fatalf("re-locked roomNames = %v, want [Back Door]", names)
 	}
-	if mv, _ := roomManaValue(o); mv != 3 {
-		t.Fatalf("re-locked roomManaValue = %d, want 3", mv)
+	if got := objectManaValue(h.g, o); got != 3 {
+		t.Fatalf("re-locked objectManaValue = %d, want 3", got)
 	}
 
 	// Off the battlefield the rule does not function: the card reads its
@@ -94,10 +85,7 @@ func TestRoomCharacteristicsFollowDoors(t *testing.T) {
 	if _, room := roomNames(o); room {
 		t.Fatal("a hand Room took the battlefield-only CR 709.5 rule")
 	}
-	if mv, room := roomManaValue(o); room || mv != 0 {
-		t.Fatalf("hand roomManaValue = %d room=%v, want 0 false", mv, room)
-	}
-	if got := objectManaValue(o); got != int(o.Face().Cmc()) {
+	if got := objectManaValue(h.g, o); got != int(o.Face().Cmc()) {
 		t.Fatalf("hand objectManaValue = %d, want the printed front value %d", got, int(o.Face().Cmc()))
 	}
 	if got := nameCharacteristics(o); !slices.Equal(got, []string{"Front Door", "Back Door"}) {

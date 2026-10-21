@@ -94,7 +94,7 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary,
 			To: state.ZExile, Text: "discovered"})
 		exiled = append(exiled, id)
-		if !o.Face().IsLand() && int(o.Face().Cmc()) <= int(value) {
+		if !o.Face().IsLand() && objectManaValue(g, o) <= int(value) {
 			found = id
 			break
 		}
