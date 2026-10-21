@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.37g | n/a | - | - | cross-reference to 708 |
 | 702.38a,b | not-impl | - | - | LOUD (9) |
 | 702.39a,b | not-impl | - | - | LOUD printed (8); SILENT granted (Hunter Sliver) |
-| 702.40a | follows | `engine/cards/kw_storm.go#kwStorm` `engine/rules/trigger_referents.go#Engine.triggerReferents` `engine/effects/count_ref.go#evalTriggerCountOK` | `TestCR702_40aStormCountsSpellsCastBeforeIt` `TestStormCopiesTheSpellOncePerSpellCastBefore` | count fixed when the trigger fires (helper) |
+| 702.40a | follows | `engine/cards/kw_storm.go#kwStorm` `engine/rules/trigger_referents.go#Engine.triggerReferents` `engine/effects/count_ref.go#evalTriggerCountOK` `engine/rules/storm_granted.go#Engine.checkGrantedStormTriggers` `engine/events/apply_trigger.go#StormGrantedBody` | `TestCR702_40aStormCountsSpellsCastBeforeIt` `TestStormCopiesTheSpellOncePerSpellCastBefore` `TestGrantedStormCountsSpellsCastBeforeIt` | count fixed when the trigger fires, granted storm included (helper) |
 | 702.40b | follows | `engine/cards/keywords.go#Face.expandKeywords` | `TestGrantedStormCopiesForEachEarlierSpell` |  |
 | 702.41a,b | follows | `engine/cards/kw_affinity.go#kwAffinity` | - | Frogmite, Scales of Shale, Claws Out lowered |
 | 702.42a,b | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestEntwinePaidChoosesEveryModeAndCharges` |  |
