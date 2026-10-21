@@ -33,6 +33,35 @@ func xMinAbilityParam(ab *cards.SA) int32 {
 	return int32(n)
 }
 
+// chosenModesTargetableAt answers whether every mode the cast announced (CR
+// 601.2b) still has its required targets at candidate X: X is announced
+// after the modes, and only at an X at which every chosen mode remains
+// targetable (a mode whose filter is X-bounded, Kozilek's Command's
+// Creature.cmcLEX exile, needs X >= the cheapest legal target). Vacuously
+// true for an ability, a missing object/face or an empty announcement.
+func (e *Engine) chosenModesTargetableAt(pc *pendingCast, x int32) bool {
+	if pc.isAbility() {
+		return true
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil || len(o.ChosenModes) == 0 {
+		return true
+	}
+	f := o.Face()
+	// The target filters read the in-flight X through the cast, not through
+	// the argument alone: park it on pc for the probe and restore after.
+	saved := pc.x
+	pc.x = x
+	defer func() { pc.x = saved }()
+	for _, name := range o.ChosenModes {
+		sub := cards.ResolveSVar(f.SVars, name)
+		if !modeTargetsAvailable(e, pc.player, pc.card, sub, x, false) {
+			return false
+		}
+	}
+	return true
+}
+
 // xAsk asks a value for {X} if pc.cost carries one, offering 0..max where
 // max is the largest value the mana pool (crediting the best possible
 // Delve) can still pay. Runs at most once (xDone).
@@ -320,6 +349,7 @@ func (e *Engine) xAsk() bool {
 	// the rest of the loop.
 	var xStatics costStaticViews
 	xStaticsLoaded := false
+	modeBlocked := false
 	for x := min; x <= bound; x++ {
 		// The offer sweep and the announcement must agree on whether the
 		// SAME X can settle every Sac part without reusing an object.
@@ -398,7 +428,20 @@ func (e *Engine) xAsk() bool {
 		if waterbendTaps(pc.Convoke) > waterbendCap(pc.mods, x) {
 			continue
 		}
+		// CR 601.2b: X is announced after the modes, so this X is offered
+		// only while every chosen mode still has its required targets at it.
+		if !e.chosenModesTargetableAt(pc, x) {
+			modeBlocked = true
+			continue
+		}
 		legal = append(legal, x)
+	}
+	if len(legal) == 0 && modeBlocked {
+		// Some X was payable but none keeps the chosen modes targetable: the
+		// announcement cannot be completed, so reverse the cast (CR 733.1),
+		// the note the mode ask itself uses.
+		e.abortCast(pc, "cast aborted: no legal modal choice", true)
+		return true
 	}
 	vals := legal
 	if len(vals) == 0 {

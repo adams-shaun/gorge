@@ -985,7 +985,10 @@ func (e *Engine) castModeAsk() bool {
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
 		sub := cards.ResolveSVar(f.SVars, name)
-		if sub != nil && !modeTargetsAvailable(e, pc.player, pc.card, sub, pc.x, false) {
+		// CR 601.2b: X is announced after the modes, so an X-bounded mode
+		// (Kozilek's Command's Creature.cmcLEX exile) is judged with X
+		// pending here, not as X = 0; xAsk re-filters at the announced X.
+		if sub != nil && !modeTargetsAvailable(e, pc.player, pc.card, sub, pc.x, !pc.xDone) {
 			continue
 		}
 		// CR 601.2b/702.171b: a Spree/Tiered mode's own ModeCost$ is an

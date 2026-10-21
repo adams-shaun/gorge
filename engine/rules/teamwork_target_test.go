@@ -47,6 +47,16 @@ func TestTeamworkTargetAnnouncementEligibility(t *testing.T) {
 				addMana(t, e, 0, tc.mana)
 				opt := castOptMode(t, e.Pending().Options, spell, "teamworked")
 				submitChoices(t, e, opt.Index)
+				// CR 601.2b: a modal Teamwork spell announces its modes BEFORE
+				// the teamwork tap choice (the modes are the first
+				// announcement after the push).
+				if tc.card == "Atlantis Attacks" {
+					modes := e.Pending()
+					if modes == nil || modes.Kind != decision.KModes || modes.ResumeKind != "cast_modes" || modes.Min != 2 || modes.Max != 2 || len(modes.Options) != 2 {
+						t.Fatalf("Teamwork-intent Charm announcement (payment accepted=%v) = %+v, want both modes required", paid, modes)
+					}
+					submitChoices(t, e, modes.Options[0].Index, modes.Options[1].Index)
+				}
 				d := teamworkAskOptions(t, e)
 				if e.cast == nil || e.cast.card != spell || castAnswerCodes.Code(e.cast.mode) != castAnswerTeamworkMode {
 					t.Fatalf("precondition: expected pending real Teamwork cast: %+v", e.cast)
@@ -171,13 +181,8 @@ func TestTeamworkTargetAnnouncementEligibility(t *testing.T) {
 					}
 				}
 				if tc.card == "Atlantis Attacks" {
-					modes := e.Pending()
-					if modes == nil || modes.Kind != decision.KModes || modes.ResumeKind != "cast_modes" || modes.Min != 2 || modes.Max != 2 || len(modes.Options) != 2 {
-						t.Fatalf("Teamwork-intent Charm announcement (payment accepted=%v) = %+v, want both modes required", paid, modes)
-					}
-					// DBCreate targets a player and DBBounce targets 1..2
-					// nonland permanents; both declarations belong to this cast.
-					submitChoices(t, e, modes.Options[0].Index, modes.Options[1].Index)
+					// The mode announcement was answered before the teamwork
+					// choice (CR 601.2b); only the target declarations follow.
 					seenBounce := false
 					for i := 0; i < 3; i++ {
 						ask := e.Pending()
