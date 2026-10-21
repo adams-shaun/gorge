@@ -204,12 +204,12 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.1d | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/chars/types.go#applyTypeEffect` | - |  |
 | 613.1e | follows | `engine/rules/chars/derive.go#Compute` | `TestDerivedColorsLayerCompose` |  |
 | 613.1f | partial | `engine/rules/chars/derive.go#Compute` `engine/rules/abilityloss.go#Engine.abilityLoss` `engine/rules/abilityloss.go#Engine.grantLostTo` | `TestLayer6GrantsKeywords` `TestAbilityRemovalTimestampStillDominates` | gorge: keyword counters lost regardless of ts |
-| 613.1g | partial | `engine/rules/chars/derive.go#PT` | - | layer 7; g gaps at 613.4a/d |
+| 613.1g | partial | `engine/rules/chars/derive.go#PT` | - | layer 7; g gaps at 613.4d |
 | 613.2-613.2a | partial | `engine/state/object.go#Object.CopyFace` | - | "as enters" copiable P/T not checked |
 | 613.2b | follows | `engine/rules/chars/derive.go#Compute` `engine/rules/chars/types.go#TypesAndLandSubtypeSet` | - |  |
 | 613.2c | follows | `engine/state/object.go#Object.CopyFace` | - |  |
 | 613.3 | follows | `engine/rules/chars/types.go#TypesAndAllCreatureTypes` `engine/effects/colors.go#ColorMaskOf` | `TestChangelingTypeCDASettlesBeforeAbilityRemoval` |  |
-| 613.4 | partial | `engine/rules/chars/derive.go#PT` | - | layer 7 sublayers; g 7a/7d gaps |
+| 613.4 | partial | `engine/rules/chars/derive.go#PT` | - | layer 7 sublayers; g 7d gap |
 | 613.4a | follows | `engine/rules/chars/derive.go#PT` `engine/rules/chars/derive.go#cdaPTLost` `engine/rules/chars/cda.go#CDASetPT` | `TestCR613_4aCDAPTLostUnderDressDown` `TestCR613_4aCDAPTLossKillsConsumingAberration` `TestCR613_4aCDAPTGuards` | - |
 | 613.4b | follows | `engine/rules/chars/derive.go#PT` | `TestSetBeforeModifyRegardlessOfTimestamp` `TestCardBasePowerStopsAtLayer7bAndDrivesCount` | - |
 | 613.4c | follows | `engine/rules/chars/derive.go#PT` | - | order-equivalent |

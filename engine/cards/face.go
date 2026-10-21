@@ -347,8 +347,9 @@ func (f *Face) PrintedManaValue() (int32, bool) {
 }
 
 // CharacteristicDefining reports whether the face's printed P/T is a
-// characteristic-defining value ("*", "1+*"): Power()/Toughness() return 0
-// for these and layer 7a (in rules) supplies the real value.
+// characteristic-defining value ("*", "1+*"): a starred side reads its fixed
+// term with the star as 0 (CR 208.2a), and layer 7a (in rules) supplies the
+// real value.
 func (f *Face) CharacteristicDefining() bool { return f.characteristicDefining }
 
 // AllCreatureTypesCDA reports whether the face prints its own

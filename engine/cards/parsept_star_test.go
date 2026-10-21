@@ -4,7 +4,7 @@ import "testing"
 
 // TestParsePTReadsTheStarAsZero: CR 208.2a -- a printed star is the
 // characteristic-defining ability's value, so with no CDA applying it is 0
-// and a side like "1+*" is its fixed term. Every shape the corpus prints.
+// and a side like "1+*" is its fixed term. Each parse branch the corpus uses.
 func TestParsePTReadsTheStarAsZero(t *testing.T) {
 	t.Parallel()
 	for _, c := range []struct {
