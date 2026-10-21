@@ -242,39 +242,93 @@ hand-written kernel code that only runs on a generated table. Examples:
 
 On a hand-written table every one of those hooks is skipped.
 
-## The override record: a fixed-order stand-in for layers
+## Layers: the effect pool and the CR 613 walk
 
-gorge implements the CR 613 layer system. dirty-dirac does not. Effects that
-change what a permanent *is* are lowered to an **override record**: a small
-record that can set types, subtypes and colours, remove abilities, add types,
-subtypes and keywords, set base P/T, and grant an ability. A permanent's
-characteristics are then computed in one fixed order:
+dirty-dirac derives a permanent's characteristics with a small, fixed-size
+version of gorge's CR 613 layer system. The derivation applies layers 1 to 7
+in order. Within each layer it applies effects in timestamp order and uses
+gorge's dependency rules. It allocates nothing, and every mutable byte lives
+in `State`.
 
-```mermaid
-flowchart LR
-  card["printed card<br/>(or copy-of)"] --> cda["characteristic-<br/>defining P/T"]
-  cda --> own["own override records<br/>(in application order)"]
-  own --> stat["override statics<br/>(e.g. an Aura's)"]
-  stat --> ctr["counters"]
-  ctr --> eot["until-end-of-turn<br/>pumps and grants"]
-  eot --> cont["continuous statics<br/>(anthems)"]
-```
+**The effect pool.** An ability that resolved (CR 611.2) records its
+continuous effect as an 8-byte `fxRec` in a fixed pool of 16 in
+`State`. A record names its object, because the affected set is fixed at
+resolution (CR 611.2c).
 
-That collapses layers 4 to 7b into a fixed sequence, and it is correct only as
-far as the supported sets go: for every card in them the fixed order gives the
-same result as gorge's layer system, and the oracle compares every
-battlefield creature's derived power and toughness at every position. FDN's
-users are Fake Your Own Death, Kellan, Mild-Mannered Librarian, Soulstone
-Sanctuary, Infernal Vessel, Valkyrie's Call, Witness Protection and Imprisoned
-in the Moon. A new set whose result depends on layer dependencies or
-timestamps has to extend this or refuse the card.
+- Records are appended, and `State.tick()` is monotonic, so pool order is
+  timestamp order and nothing is ever sorted.
+- Cleanup drops until-end-of-turn records. The controller's next cleanup
+  drops "until your next turn" records.
+- A full pool stalls the game (`StallTables`). It never drops an effect
+  silently.
 
-Cards that need behaviour no generic op expresses get it in one of three ways,
-in order of preference: a new append-only op or enum value with its contract in
-`OPS.md`; an override record; or kernel-native code keyed by a `kop` kind (ward
-and granted prowess are kernel-native triggers; Twinflame Tyrant, Crystal
-Barricade, Doubling Season and Progenitus are fixed replacement kinds). No
-kernel code path branches on a card's name; a card's name is in its
+The record kinds are:
+
+| kind | layer | what it holds |
+|---|---|---|
+| `fxCopyExc` | 1 | a copy's exceptions (Offspring's "except it's 1/1", an added subtype or keyword), copiable by a later copy (CR 707.9b) |
+| `fxControl` | 2 | a control change and its duration (end of turn, your next turn, while the source stays, permanent), settled eagerly into the controller |
+| `fxOverride` | 3-7b | a `kop.Override`: set or add types, subtypes and colours, a name, lose all abilities, add or remove keywords, set base P/T |
+| `fxLoseAll` | 6 | a one-shot "loses all abilities" and its timestamp |
+| `fxKwGrant` | 6 | an until-end-of-turn keyword grant's timestamp, kept only when the table has a static removal (Starforged Sword) or a global lose-all |
+
+**Statics stay live.** Battlefield statics are not copied into the pool.
+The walk reads them in place and stamps each one with its source's layer
+timestamp. An Aura or Equipment is restamped when it becomes attached (CR
+613.7e), and an emblem's timestamp is 0. Commutative effects keep their
+cheap accumulators: +N/+N pumps, counters and anthems (7c) add in any order.
+
+**The walk.** `chars(k, slot, upTo)` builds a stack-local `dchars`, one
+layer at a time:
+
+| layer | applied |
+|---|---|
+| 1 | the card or its copy-of, plus the copy exceptions |
+| 2 | control, already settled from the `fxControl` records |
+| 3 | the newest rename whose filter matches the finished layer-4 types (Witness Protection's name) |
+| 4 | the changeling CDA first (CR 613.3), then override records, override statics and static subtype grants in gorge's CR 613.8 dependency order (timestamp order unless one effect changes what another applies to; a cycle falls back to timestamp order). Each static's filter is matched against the types built so far. |
+| 5 | colour setters by timestamp |
+| 6 | printed keywords, keyword counters and copy keywords as the base; then losses, removals and grants by timestamp, with a removal before an addition on a tie, reordered by gorge's `abilityDependencyOrder` |
+| 7a / 7b | the CDA P/T, the copy's set P/T, then base-P/T setters by timestamp |
+| 7c | counters, pumps and anthems |
+
+An override static that applied in layer 4 keeps applying in the later
+layers (CR 613.6). A permanent with at most one order-sensitive effect, or
+with records only, takes the old fixed-order path, which gives the same
+answer. A table with nothing order-sensitive pays one predictable branch
+per read. That covers every FDN matchup.
+
+**What kgen refuses instead.** A layer shape the walk does not implement is
+refused per card when kgen lowers it, never silently mis-ordered:
+
+- 7d P/T switching (Twisted Image) and layer-3 text changes (`ChangeText`,
+  Artificial Evolution);
+- dependency loops: a P/T set from a dynamic value (Opalescence's
+  "AffectedX") is refused, so Humility never meets Opalescence;
+- an override static whose filter reads P/T or keywords, and a
+  keyword-gated layer-6 static that grants or removes the keyword it reads
+  (it could form a 613.8 cycle);
+- global overrides that set a name, remove abilities from non-creatures
+  (Toxicrene), or carry a layer-6 condition other than the turn or the
+  source's own counters;
+- `CantHaveKeyword$`, and a one-shot `RemoveKeywords$`;
+- a copy exception with toughness below 1.
+
+At run time, a table that holds a global lose-all static and a subtype lord
+stalls at the start of the game. No matchup-level refusal remains: every
+pair of order-sensitive effects is ordered by the walk, and each ordering
+has a scenario whose expected answer comes from gorge's own oracle runner.
+
+Cards that need behaviour no generic op expresses get it in one of three
+ways, in order of preference:
+
+1. a new append-only op or enum value, with its contract in `OPS.md`;
+2. an override record;
+3. kernel-native code keyed by a `kop` kind. Ward and granted prowess are
+   kernel-native triggers. Twinflame Tyrant, Crystal Barricade, Doubling
+   Season and Progenitus are fixed replacement kinds.
+
+No kernel code path branches on a card's name. A card's name is in its
 `CardDef` for reports only.
 
 ## Per-set packages and the cardset registry
