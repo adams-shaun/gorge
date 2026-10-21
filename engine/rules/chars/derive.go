@@ -128,7 +128,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		setFrame()
 		matchTypes := types
 		if ce.SourceAbilityLayer == state.LType {
-			matchTypes = lockedLayer4Types(active, ce, types)
+			matchTypes = lockedLayer4Types(b, active, ce, id, types)
 		}
 		if !b.Matches(ce, id, matchTypes, kw, 0, PTBind{Power: power, Toughness: toughness, BasePower: basePower, BaseToughness: baseToughness, Has: true}) {
 			continue
@@ -852,28 +852,44 @@ func isLetterByte(c byte) bool {
 
 // lockedLayer4Types approximates CR 613.6 for a layer-7 effect whose static
 // ability began applying in layer 4 (March of the Machines, Opalescence:
-// "is a creature ... with P/T equal to its mana value"): the ability keeps
-// applying in layer 7 to the set it applied to in layer 4, even though its
-// own type grant has since changed what its Affected$ spec reads
+// "is a creature ... with P/T equal to its mana value"; Fowl Play, Frogify:
+// "...is a Bird creature with base power and toughness 1/1"): the ability
+// keeps applying in layer 7 to the set it applied to in layer 4, even though
+// its own type grant has since changed what its Affected$ spec reads
 // (`Artifact.nonCreature` no longer matches an artifact March made a
-// creature). The finished list is read with the types the ability's own
-// layer-4 sibling (same source, timestamp and Affected$) added taken back
-// out, which is the list that sibling matched whenever no other effect
-// supplied the same word. Without a sibling the finished list is returned
-// unchanged, so only an affected object's derivation allocates.
-func lockedLayer4Types(active []state.ContinuousEffect, ce *state.ContinuousEffect, types []string) []string {
+// creature, and `Creature` no longer matches a Craw Wurm whose layer-4
+// sibling stripped its card types before re-adding Creature). The match list
+// is the types the object had BEFORE the ability's own layer-4 sibling (same
+// source, timestamp and Affected$) applied: that is the set the sibling's
+// own Affected$ test saw, and CR 613.6 keeps the effect on it in layer 7. A
+// type the object already had therefore stays even when the sibling re-adds
+// it. Without a sibling, or when none of the sibling's added types survives
+// in the finished list, the finished list is returned unchanged.
+func lockedLayer4Types(b Board, active []state.ContinuousEffect, ce *state.ContinuousEffect, id state.ObjID, types []string) []string {
 	for i := range active {
 		sib := &active[i]
 		if sib.Layer != state.LType || sib.Source != ce.Source || sib.Timestamp != ce.Timestamp || sib.Affects != ce.Affects || len(sib.AddTypes) == 0 {
 			continue
 		}
-		out := make([]string, 0, len(types))
-		for _, t := range types {
-			if !slices.ContainsFunc(sib.AddTypes, func(a string) bool { return strings.EqualFold(a, t) }) {
-				out = append(out, t)
-			}
+		// Subtracting an added type is only observable when it is still in
+		// the finished list. If none survives, the old list is already the
+		// sibling's pre-application list and no walk is needed.
+		if !slices.ContainsFunc(sib.AddTypes, func(a string) bool {
+			return slices.ContainsFunc(types, func(t string) bool { return strings.EqualFold(a, t) })
+		}) {
+			return types
 		}
-		return out
+		// Re-run the layer-4 walk without this ability's own type effect:
+		// the result is the list the sibling matched, with types the object
+		// already had (printed or granted by an earlier effect) intact.
+		without := make([]state.ContinuousEffect, 0, len(active)-1)
+		without = append(without, active[:i]...)
+		without = append(without, active[i+1:]...)
+		pre, all := TypesAndAllCreatureTypes(b, without, id, 0)
+		if pre == nil {
+			return types
+		}
+		return effects.TypeMatchWords(pre, all)
 	}
 	return types
 }
