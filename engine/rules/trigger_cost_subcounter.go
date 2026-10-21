@@ -138,7 +138,7 @@ func (tc *triggeredEffectCost) subCounterPayable(e *Engine, rest Cost) bool {
 	}
 	other := rest
 	other.SubCounter = nil
-	return other.Priceable() && e.triggeredCostManaHalfPayable(tc, other)
+	return other.PureManaLife() && e.triggeredCostManaHalfPayable(tc, other)
 }
 
 // subCounterKindAsk records the kind of every "Any" unit, posing the
@@ -192,7 +192,7 @@ func (tc *triggeredEffectCost) subCounterSettle(e *Engine, announced Cost) bool 
 	}
 	lower := announced.WithoutEnergy()
 	lower.SubCounter = nil
-	if !lower.Priceable() || !pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, false)) {
+	if !lower.PureManaLife() || !pay.PayManaConv(asPayer(e), tc.player, lower, asEval(e).Conv(tc.player, tc.source, false)) {
 		return false
 	}
 	pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)

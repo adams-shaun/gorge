@@ -271,14 +271,7 @@ func manaCostForageStage(e Engine, md *ManaCostActivation) ManaCostStep {
 	}
 	d := &decision.Decision{Player: md.Player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to forage", Source: md.Source}
-	if graveOK {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_exile",
-			Label: "Exile three cards from your graveyard"})
-	}
-	for _, id := range foods {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "forage_food", Obj: id,
-			Label: "Sacrifice " + TargetName(e.Game(), id)})
-	}
+	d.Options = ForageOptions(e, md.Player, md.Source)
 	if len(d.Options) == 0 {
 		e.Session().ManaCost = nil
 		return ManaCostDropped
