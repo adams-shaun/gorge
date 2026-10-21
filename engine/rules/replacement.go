@@ -891,11 +891,18 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if ev.Kind == events.Damage && ev.Obj == 0 {
 		target = state.Target{Player: ev.Player, IsPlayer: true}
 	}
+	// A Damage event's source is the one its emitter published (CR 120.2b,
+	// 701.14a: a fighting creature, a DamageSource$ biter); every other
+	// event's is the resolving object e.damaging carries.
+	src := e.damaging
+	if ev.Kind == events.Damage {
+		src = e.inFlightDamageSource()
+	}
 	if o == nil {
 		// No live source object: no controller (seat 0).
 		ctx := effects.NewCtxPtr(m.id, 0, effects.CtxInit{})
 		ctx.Repl.Target = target
-		ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(e.replEventSource(ev)), drawMatchAmount(ev)
+		ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(src), drawMatchAmount(ev)
 		if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 			ctx.Repl.ExcludeFromBattlefieldCount = ev.Obj
 		}
@@ -916,7 +923,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		X:        o.X,
 		Captured: []state.Target{{Obj: ev.Obj}}})
 	ctx.Repl.Target = target
-	ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(e.replEventSource(ev)), drawMatchAmount(ev)
+	ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(src), drawMatchAmount(ev)
 	// Replaced names the object the replaced event (ev) was about, so a
 	// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 	// Dryad Militant / Leyline of the Void shape: "exile it instead") can
@@ -994,17 +1001,6 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	}
 	e.seedEffectReplCtx(ctx, m)
 	return ctx
-}
-
-// replEventSource is the source a replacement context names for ev: a Damage
-// event's source is the one its emitter published (CR 120.2b, 701.14a -- a
-// fighting creature, a DamageSource$ biter), every other event's the
-// resolving object e.damaging carries.
-func (e *Engine) replEventSource(ev events.Event) state.ObjID {
-	if ev.Kind == events.Damage {
-		return e.inFlightDamageSource()
-	}
-	return e.damaging
 }
 
 // seedEffectReplCtx threads an Effect-created match's own bindings into the
