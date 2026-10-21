@@ -77,6 +77,13 @@ type TriggerContext struct {
 	// TriggerPaidX/TriggerConverge; the stamp a registration keeps rides the
 	// DelayedRegister event's Text (the established suffix channel).
 	TriggerRememberedStamps []state.TargetStamp
+	// TriggerRememberedMoved lists the objects of TriggerRememberedStamps
+	// whose ZoneGen moved between the trigger firing and the start of its
+	// resolution (rules.rememberedMovedSinceFire): each is a new object the
+	// trigger's referents cannot find (CR 400.7), so ChangeZone's
+	// Defined$ Triggered* mover skips it. Not serialized into events.Event,
+	// like its neighbour: replay re-derives the queue-time capture.
+	TriggerRememberedMoved []state.ObjID
 	// SourceRemembered is the fire-time snapshot of the source's persistent
 	// event-backed Remembered list, with SourceIncarnation its Incarnation
 	// stamp at the same instant. A pending trigger belongs to the object that
