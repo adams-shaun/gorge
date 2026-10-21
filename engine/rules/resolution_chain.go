@@ -119,6 +119,9 @@ func modeDecisionForChoices(h effects.Host, p state.PlayerID, source state.ObjID
 	}
 	if budget, values, ok := effects.CharmPawprints(h, source, sa, svars, choices); ok {
 		d.MaxSum = budget
+		// Budgeted keeps a PRESENT zero budget live (HasBudget): a root
+		// Pawprint$ 0 fences the modes at 0 {P} instead of reading absent.
+		d.Budgeted = true
 		for i := range d.Options {
 			d.Options[i].Value = values[i]
 		}
@@ -138,13 +141,14 @@ func modeLabels(sa *cards.SA, svars map[string]string, names []string) []string 
 }
 
 // modeChoiceNames maps the chosen modal options back to the SVar names of
-// the Choices$ sub-abilities they pick, in RESOLUTION order -- CR 700.2i
-// (the BLB Seasons' Gatherer ruling): the instructions are followed in the
-// order the modes are written on the card, while repeated copies keep the
-// answer's relative order (effects.CharmResolveOrder). eligible carries a
-// filtered cast decision's server-only vocabulary; nil falls back to the
-// SA's full Choices$ list for placement and mid-resolution decisions.
-// Out-of-range indices drop.
+// the Choices$ sub-abilities they pick, in the order chosen — the answer
+// effCharm reads (Ctx.Modes). eligible carries a filtered cast
+// decision's server-only vocabulary; nil falls back to the SA's full Choices$
+// list for placement and mid-resolution decisions. Out-of-range indices drop.
+// (CR 700.2i's printed-order execution for a pawprint Charm is applied where
+// the budgeted modes RUN -- effects.effCharm, gated on CharmPawprints -- not
+// here: ChosenModes also feeds the per-mode target ask, whose order a
+// non-pawprint Charm's tests pin.)
 func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) []string {
 	if sa == nil {
 		return nil
@@ -159,7 +163,7 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 			names = append(names, choices[o.Index])
 		}
 	}
-	return effects.CharmResolveOrder(choices, names)
+	return names
 }
 
 // moveResolvedOffStack is the shared tail of resolveTop and

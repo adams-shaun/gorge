@@ -129,6 +129,43 @@ func TestPawprintBudget(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestModeDecisionPublishesPresentZeroBudget pins the budget's PRESENCE, not
+// just its value (CR 700.2i): a root Pawprint$ 0 is a real budget -- the ask
+// publishes Decision.Budgeted with MaxSum 0, HasBudget holds, and the shared
+// cumulative-budget rule refuses any priced pick -- while an absent root
+// Pawprint$ publishes no budget at all. Pre-fix a present zero read as
+// absent (MaxSum 0 alone means "no budget").
+func TestModeDecisionPublishesPresentZeroBudget(t *testing.T) {
+	t.Parallel()
+	svars := map[string]string{
+		"mA": "DB$ Draw | NumCards$ 1 | Pawprint$ 1",
+		"mB": "DB$ Draw | NumCards$ 2 | Pawprint$ 0",
+	}
+	zero := &cards.SA{API: "Charm", Params: map[string]string{
+		"Choices": "mA,mB", "Pawprint": "0",
+		"CharmNum": "5", "MinCharmNum": "0", "CanRepeatModes": "True"}}
+	d := modeDecisionForChoices(nil, 0, 1, zero, svars, []string{"mA", "mB"}, 0, 5, true)
+	d.Seq = 7
+	if d.MaxSum != 0 || !d.Budgeted || !d.HasBudget() {
+		t.Fatalf("Pawprint$ 0 ask: MaxSum %d Budgeted %v HasBudget %v -- a present zero budget must stay live", d.MaxSum, d.Budgeted, d.HasBudget())
+	}
+	if d.Options[0].Value != 1 || d.Options[1].Value != 0 {
+		t.Fatalf("Pawprint$ 0 ask option values = %v, want [1 0]", d.Options)
+	}
+	if err := d.Validate(decision.Intent{Seq: 7, Player: 0, Choices: []int{0}}); err == nil {
+		t.Fatal("a 1-{P} pick was accepted against a present zero budget")
+	}
+	if err := d.Validate(decision.Intent{Seq: 7, Player: 0, Choices: []int{1, 1}}); err != nil {
+		t.Fatalf("two free picks were refused against a present zero budget: %v", err)
+	}
+	absent := &cards.SA{API: "Charm", Params: map[string]string{
+		"Choices": "mA,mB", "CharmNum": "5", "MinCharmNum": "0", "CanRepeatModes": "True"}}
+	d2 := modeDecisionForChoices(nil, 0, 1, absent, svars, []string{"mA", "mB"}, 0, 5, true)
+	if d2.HasBudget() || d2.Budgeted || d2.MaxSum != 0 {
+		t.Fatalf("absent Pawprint$ ask: MaxSum %d Budgeted %v HasBudget %v -- want no budget", d2.MaxSum, d2.Budgeted, d2.HasBudget())
+	}
+}
+
 // TestPawprintModesResolveInPrintedOrder pins CR 700.2i's resolution order:
 // the instructions are followed in the order the modes are WRITTEN on the
 // card, not the order the answer named them. The answer names the 2-{P}

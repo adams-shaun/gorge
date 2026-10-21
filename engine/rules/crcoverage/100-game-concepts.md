@@ -68,7 +68,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 107.15-107.15b | follows | `engine/rules/saga.go#Engine.checkSagas` `engine/rules/saga.go#Engine.sagaChapters` | `TestSagaThatLostItsAbilitiesHasNoChapters` `TestSagaConclusionIsASacrifice` | chapter symbols; cr-g07 merged |
 | 107.16-107.16a | follows | `engine/rules/class_level.go#Engine.classBandGateHolds` | `TestClassLevelActivatorIsExactNMinusOne` `TestClassLevelDesignationIsNotACounter` |  |
 | 107.17-107.17a | n/a | - | - | Unfinity ticket counters |
-| 107.18 | follows | `engine/effects/charm.go#CharmPawprints` | `TestPawprintBudget` | root `Pawprint$` budget on the covering KModes ask |
+| 107.18 | follows | `engine/effects/charm.go#CharmPawprints` | `TestPawprintBudget` | root `Pawprint$` budget on the covering KModes ask (MaxSum + Budgeted, options` Value) |
 | 108.1-108.2b | n/a | - | - | reference rules |
 | 108.3-108.4a | follows | `engine/state/object.go#Object.Owner` `engine/state/object.go#Object.Controller` | - | owner = starting deck holder |
 | 108.5-108.6 | n/a | - | - | nontraditional cards; cross-reference |

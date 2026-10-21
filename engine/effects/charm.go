@@ -60,7 +60,8 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 // budget is never silently dropped, and an unbudgeted ask only ever WIDENS
 // what is legal), and so is an unparseable mode cost (noted, priced 0).
 // The budget rides the ONE covering KModes ask as Decision.MaxSum with each
-// option's Option.Value, so Decision.Validate's cumulative-budget rule --
+// option's Option.Value (and Decision.Budgeted, so a PRESENT zero budget
+// stays live), so Decision.Validate's cumulative-budget rule --
 // the shared repair and the bot arm derive the same rule from those
 // published fields -- is the {P} legality check (four-yay's kernel, which
 // re-pins against gorge, copies this shape).
@@ -764,6 +765,12 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// to the Charm that asked for it.
 		names := c.Modes
 		c.Modes = nil
+		// CR 700.2i's printed-order execution applies ONLY to a budgeted
+		// Charm (CharmPawprints ok): ChosenModes arrives in answer order and
+		// a non-pawprint Charm's target asks and resolution keep it.
+		if _, _, ok := CharmPawprints(h, c.Source, sa, c.SVars, choices); ok {
+			names = CharmResolveOrder(choices, names)
+		}
 		charmRunModes(h, c, sa, names)
 		return
 	}
@@ -857,6 +864,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	// and repair reads.
 	if budget, values, ok := CharmPawprints(h, c.Source, sa, c.SVars, choices); ok {
 		d.MaxSum = budget
+		// Budgeted keeps a PRESENT zero budget live (HasBudget): a root
+		// Pawprint$ 0 fences the modes at 0 {P} instead of reading absent.
+		d.Budgeted = true
 		for i := range d.Options {
 			d.Options[i].Value = values[i]
 		}
@@ -871,7 +881,13 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 				names = append(names, vocab[o.Index])
 			}
 		}
-		charmRunModes(h, c, sa, CharmResolveOrder(vocab, names))
+		ordered := names
+		if _, _, ok := CharmPawprints(h, c.Source, sa, c.SVars, vocab); ok {
+			// CR 700.2i's printed-order execution, gated on the budget: a
+			// non-pawprint Charm keeps the answer's order.
+			ordered = CharmResolveOrder(vocab, names)
+		}
+		charmRunModes(h, c, sa, ordered)
 		return
 	}
 
