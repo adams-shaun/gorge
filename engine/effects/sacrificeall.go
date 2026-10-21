@@ -2,6 +2,7 @@ package effects
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -30,6 +31,22 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Permanent"
 	}
 	remember := sa.ParamStr(cards.PKRememberSacrificed) != ""
+	// Controller$ keeps only the objects a named player controls, judged
+	// against the board as it stands before the sacrifice (Forge filters
+	// after the LKI refresh, before moving anything).
+	var controllers []state.PlayerID
+	ctlSpec := compileSacrificeAllParams(sa).Controller
+	ctlFiltered := ctlSpec != ""
+	if ctlFiltered {
+		controllers = definedPlayerIDs(h, c, ctlSpec)
+	}
+	controlledOK := func(id state.ObjID) bool {
+		if !ctlFiltered {
+			return true
+		}
+		o := g.Obj(id)
+		return o != nil && slices.Contains(controllers, o.Controller)
+	}
 	sacrifice := func(id state.ObjID) {
 		if h.SacrificeBlocked(id, false) {
 			// A CantSacrifice restriction (Call for Aid) or face static: the
@@ -79,7 +96,9 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 						Text: fmt.Sprintf("SacrificeAll target %d is not on the battlefield (zone %s); skipped", o.ID, o.Zone)})
 					continue
 				}
-				sacrifice(t.Obj)
+				if controlledOK(t.Obj) {
+					sacrifice(t.Obj)
+				}
 			}
 		}
 		return
@@ -89,7 +108,7 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 	var victims []state.ObjID
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if controlledOK(id) && MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				victims = append(victims, id)
 			}
 		}
