@@ -183,7 +183,7 @@ func (e *Engine) sneakEnter(id state.ObjID, controller state.PlayerID) {
 		e.emitTap(id, controller, true)
 	}
 	defender, battle, ok := sneakDefenderFrom(o)
-	if !ok {
+	if !ok || !effects.EnteringAttackLegal(e, defender, battle) {
 		return
 	}
 	ids := []state.ObjID{state.PlayerRef(defender)}

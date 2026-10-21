@@ -929,7 +929,7 @@ func applyTokenMintRiders(h Host, c *Ctx, job *TokenJob, owner state.PlayerID, w
 	if job.Tapped {
 		h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: mintOwner, Text: "entered tapped"})
 	}
-	if defender, battle, ok := job.attackFor(owner, mintOwner); ok {
+	if defender, battle, ok := job.attackFor(owner, mintOwner); ok && EnteringAttackLegal(h, defender, battle) {
 		ids := []state.ObjID{state.ObjID(defender)}
 		if battle != 0 {
 			ids = append(ids, battle)

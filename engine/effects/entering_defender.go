@@ -62,6 +62,37 @@ func enteringDefenders(h Host, controller state.PlayerID, objects bool) []enteri
 	return out
 }
 
+// EnteringAttackLegal reports whether a permanent put onto the battlefield
+// attacking defender -- battle the attacked planeswalker or battle, 0 for
+// the player -- is an attacking creature (CR 506.3c, 508.4a-b): the defender
+// is still in the game, and a named planeswalker is still on the
+// battlefield, still a planeswalker and controlled by defender, or a named
+// battle is still a battle protected by defender. false means the permanent
+// enters but is never an attacking creature, so the caller emits no
+// TokenAttacks. Every "enters attacking" emitter checks it at the moment of
+// entry, after its defender was chosen or captured.
+func EnteringAttackLegal(h Host, defender state.PlayerID, battle state.ObjID) bool {
+	g := h.Game()
+	if int(defender) >= len(g.Players) || g.Players[defender].Lost {
+		return false
+	}
+	if battle == 0 {
+		return true
+	}
+	o := g.Obj(battle)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return false
+	}
+	types := h.Chars(battle).Types
+	switch {
+	case slices.Contains(types, "Planeswalker"):
+		return o.Controller == defender
+	case slices.Contains(types, "Battle"):
+		return o.ProtectorValid && o.Protector == defender
+	}
+	return false
+}
+
 // enteringDefenderFallback is the defender an "enters attacking" call uses
 // when no answer is served: the firing trigger's captured defender, or, with
 // no trigger context, the first CR 508.4 candidate during controller's own

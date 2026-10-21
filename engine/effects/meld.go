@@ -69,7 +69,8 @@ func Meld(h Host, controller state.PlayerID, a, b state.ObjID, opts state.MeldOp
 	if opts.Tapped && !o.Tapped {
 		h.EmitTap(res, controller, true)
 	}
-	if opts.Attacking && int(opts.Defender) < len(g.Players) && opts.Defender != controller {
+	if opts.Attacking && int(opts.Defender) < len(g.Players) && opts.Defender != controller &&
+		EnteringAttackLegal(h, opts.Defender, opts.DefenderBattle) {
 		ids := []state.ObjID{state.ObjID(opts.Defender)}
 		if opts.DefenderBattle != 0 {
 			ids = append(ids, opts.DefenderBattle)
