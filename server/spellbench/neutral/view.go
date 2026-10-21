@@ -70,10 +70,22 @@ type Builder struct {
 	refs map[string]Ref
 	// tokens lists the registry's token scripts by face name, stems sorted.
 	tokens map[string][]string
+	// blocked and blockTurn are rememberBlocks' per-combat memory: each
+	// attacker's blocker count, keyed by its v2 id.
+	blocked   map[string]blockMemo
+	blockTurn uint32
+}
+
+// blockMemo is one attacker's blocker count in the current combat and the
+// attack target it had when the count was taken.
+type blockMemo struct {
+	n      int
+	target string
 }
 
 func NewBuilder(reg *cards.Registry) *Builder {
-	b := &Builder{Reg: reg, IDs: NewIDs(), refs: map[string]Ref{}, tokens: map[string][]string{}}
+	b := &Builder{Reg: reg, IDs: NewIDs(), refs: map[string]Ref{}, tokens: map[string][]string{},
+		blocked: map[string]blockMemo{}}
 	for stem, c := range reg.Tokens {
 		if len(c.Faces) > 0 {
 			b.tokens[c.Faces[0].Name] = append(b.tokens[c.Faces[0].Name], stem)
@@ -170,6 +182,7 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 			}
 		}
 	}
+	b.rememberBlocks(o, state.Step(i), blockers)
 	for _, p := range o.Players {
 		seat, err := Seat(p.Seat)
 		if err != nil {
@@ -215,6 +228,66 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 		v.Stack = append(v.Stack, sv)
 	}
 	return v, nil
+}
+
+// rememberBlocks restores blocks the observation no longer shows. An attacker
+// stays blocked when its blocker leaves the battlefield or phases out (CR
+// 509.1h), and gorge's view keeps a zero tombstone in BlockedBy for each such
+// blocker; a v2 observation lists blocks only from the blocker's side, so a
+// departed blocker drops out of it. The builder remembers each attacker's
+// blocker count across one combat's observations and pads the live list with
+// zero tombstones up to it. The memory resets on a new turn and at any step
+// outside declare_blockers..end_of_combat, and an attacker's entry goes when
+// it stops attacking or its attack target changes (gorge clears a re-pointed
+// attacker's blocks).
+func (b *Builder) rememberBlocks(o *protocol.Observation, step state.Step, blockers map[string][]state.ObjID) {
+	if o.Turn != b.blockTurn || step < state.StepDeclareBlockers || step > state.StepEndCombat {
+		clear(b.blocked)
+		b.blockTurn = o.Turn
+		if step < state.StepDeclareBlockers || step > state.StepEndCombat {
+			return
+		}
+	}
+	attacking := map[string]bool{}
+	for _, p := range o.Players {
+		for _, r := range p.Battlefield {
+			if r.Permanent == nil || !r.Permanent.Attacking {
+				continue
+			}
+			id, target := r.ObjectID, attackTargetKey(r.Permanent.AttackTarget)
+			attacking[id] = true
+			m, ok := b.blocked[id]
+			if ok && m.target != target {
+				ok = false
+			}
+			live := len(blockers[id])
+			switch {
+			case ok && m.n > live:
+				blockers[id] = append(blockers[id], make([]state.ObjID, m.n-live)...)
+			case live > 0:
+				b.blocked[id] = blockMemo{n: live, target: target}
+			default:
+				delete(b.blocked, id)
+			}
+		}
+	}
+	for id := range b.blocked {
+		if !attacking[id] {
+			delete(b.blocked, id)
+		}
+	}
+}
+
+func attackTargetKey(t *protocol.TargetRef) string {
+	switch {
+	case t == nil:
+		return ""
+	case t.Player != nil:
+		return "p:" + *t.Player
+	case t.Object != nil:
+		return "o:" + t.Object.ObjectID
+	}
+	return ""
 }
 
 func (b *Builder) card(r protocol.ObjectRecord, blockers map[string][]state.ObjID) (view.CardView, error) {
