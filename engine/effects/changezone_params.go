@@ -236,7 +236,7 @@ var changeZoneKnownKeys = [...]string{
 	"ConditionCompare", "ConditionCompare2", "ConditionDefined", "ConditionDescription",
 	"ConditionFirstCombat", "ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases",
 	"ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost",
-	"CostDesc", "Defined", "DefinedCards",
+	"CostDesc", "Defined", "DefinedCards", "DefinedExiler",
 	"DefinedPlayer", "DefinedTarget", "Description", "DestAltSVar", "DestAltSVarCompare",
 	"Destination", "DestinationAlternative", "DifferentNames", "Duration",
 	"Exactly", "Exclude", "Exhaust", "ExileFaceDown", "ExiledWithEffectSource", "FaceDown", "FaceDownPower",
