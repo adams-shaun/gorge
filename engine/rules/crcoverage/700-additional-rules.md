@@ -87,7 +87,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.22b | deviates | `engine/effects/cardflow.go#effLookAndArrange` | - | scry 0 fires scry triggers |
 | 701.22c | partial | `engine/effects/cardflow.go#effLookAndArrange` | - | players scry sequentially |
 | 701.22d | follows | `engine/rules/arrange.go#arrangeAnswerRecord` | - |  |
-| 701.23a | follows | `engine/effects/zone_search.go#effSearchLibrary` | - |  |
+| 701.23a | follows | `engine/effects/zone_search.go#effSearchLibrary` `engine/effects/zone_search.go#originAlternativeZones` | `TestCROriginAlternativeGraveyardOnlySkipsLibrary` `TestCROriginAlternativeLibraryOnlyOmitsGraveyard` | "and/or" origins: the searcher elects the zones; an unsearched library is not searched, recorded or shuffled |
 | 701.23b | follows | `engine/effects/filter.go#SearchStatesQuality` `engine/effects/zone_search.go#effSearchLibrary` | - | finding is optional for a stated quality |
 | 701.23c,e-j | unknown | - | - | not reached (23c undefined quality, 23h-j APNAP multi-search, outside the game) |
 | 701.23d | follows | `engine/effects/zone_search.go#effSearchLibrary` | `TestLibrarySearchMandatoryQualityRequiresFinding` | quantity search must find |
@@ -268,7 +268,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 707.8 | follows | `engine/events/apply_copy.go#foldClonePermanent` | - | copies the face currently up (FaceIdx) |
 | 707.8a | follows | `engine/events/apply_copy.go#foldCopyToken` | - | token copy keeps the whole card and its face index |
 | 707.9 | follows | `engine/effects/clone_params.go#compileClone` `engine/effects/copypermanent_params.go` | `TestCompileClone` | copy effects carry exception parameters |
-| 707.9a-b | partial | `engine/events/copy_except.go#foldCopyExcept` `engine/effects/copy_except.go#copyExceptions` `engine/effects/copypermanent.go#effCopyPermanent` `engine/effects/clone.go#effClone` | `TestCloneOfAnEternalizedTokenCopiesTheExceptions` `TestTokenCopyOfAnEternalizedTokenKeepsTheExceptions` `TestCloneOfAPhantasmalImageKeepsItsExceptions` | type, colour, P/T, mana-cost, keyword and AddSVars/AddTriggers exceptions are copiable values; still layer effects: Changeling, AddAbilities$, RemoveKeywords$, CopyPermanent grants |
+| 707.9a-b | partial | `engine/events/copy_except.go#foldCopyExcept` `engine/effects/copy_except.go#copyExceptions` `engine/effects/copypermanent.go#effCopyPermanent` `engine/effects/clone.go#effClone` `engine/effects/clone_params.go#cloneETBShapeOK` | `TestCloneOfAnEternalizedTokenCopiesTheExceptions` `TestTokenCopyOfAnEternalizedTokenKeepsTheExceptions` `TestCloneOfAPhantasmalImageKeepsItsExceptions` `TestQuicksilverGargantuanEntersAsA77Copy` `TestVesuvanDoppelgangerEntersBlueWithItsUpkeepCopy` `TestAutonSoldierCopyIsNotLegendary` | type, colour, P/T, mana-cost, keyword and AddSVars/AddTriggers exceptions are copiable values; still layer effects: Changeling, AddAbilities$, RemoveKeywords$, CopyPermanent grants; the ETB copy route offers SetPower/SetToughness (literal), SetColor/AddColors and NonLegendary bodies |
 | 707.9c-d | follows | `engine/events/copy_except.go#foldCopyExcept` `engine/effects/clone.go#effClone` `engine/effects/clone.go#clonePT` | `TestCloneChangelingExceptionIsAllCreatureTypesUntilStripped` `TestCloneChangelingCDAAfterEarlierStrip` | a P/T or colour exception drops the copied CDA; a Changeling exception stays a CDA marker seeded ahead of layer 4 |
 | 707.9e | partial | `engine/effects/clone_etb_sub.go#CloneETBNoCopy` `engine/rules/replacement.go#Engine.runReplaceWith` | `TestMalleableImpostorCopy` `TestFleshDuplicateETBDeclineEntersAsItself` | rider skipped on decline; no check for a later copy effect (Altered Ego copying Clone) |
 | 707.9f | partial | `engine/effects/clone_ifnew.go#cloneIfNewPayload` `engine/effects/clone_etb_sub.go#CloneETBSubChainOK` | `TestFleshDuplicateConditionalSilentOnVanishingTemplate` | Flesh Duplicate conditional rider real; Moritte's if-creature exception fails closed out of the election |
@@ -313,7 +313,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 710.2 | deviates | `engine/events/apply_zone.go#move` | - | flipped card never resets on leaving battlefield |
 | 710.3 | n/a | - | - | physical |
 | 710.4 | deviates | `engine/effects/resolve.go#effSetState` | - | flip is (FaceIdx+1)%2: a second flip unflips |
-| 710.5 | deviates | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | - | name universe lists primary face names only: flipped name not offered |
+| 710.5 | follows | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` | flipped name offered |
 | 711.1-711.6 | follows | `engine/cards/kw_levelup.go#kwLevelUp` | `TestCoralhelmCommanderLevelsIntoThe23Band` `TestLevelUpKeywordIsSupported` | sorcery-speed level up; bands are ordinary statics |
 | 711.7 | follows | `engine/state/object.go#Object.ClassLevel` | `TestClassLevelDesignationIsNotACounter` | designation, not counters |
 | 712.1-712.3c | n/a | - | - | definitional/physical |
@@ -343,7 +343,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.16 | deviates | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceDown` | - | DFC can be turned face down |
 | 712.17 | n/a | - | - | physical |
 | 712.18 | follows | `engine/events/apply_copy.go#foldFlipFace` | `TestIncubatorTokenTransformsIntoThePhyrexianFace` | FaceIdx change only, same object |
-| 712.19 | deviates | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | - | name universe lists primary face names only: back-face and meld names not offered |
+| 712.19 | follows | `engine/cards/universe.go#Universe.Names` `engine/cards/universe.go#Universe.FaceByName` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` `TestCloneKillerCosplayCopiesANamedBackFace` | back-face and combined meld names offered; a chosen back-face name copies that face |
 | 712.20 | follows | `engine/rules/replacement_phase.go#Engine.applyTransformReplacement` | `TestSephirothTransformRunsTheDestinationFaceReplacement` | destination-face as-transforms replacement applied during the flip |
 | 712.21 | follows | `engine/events/apply_meld.go#unmeld` | `TestMeldTwoOwners` `TestMeldFoldPairsAndSplits` |  |
 | 712.21a-712.21b | partial | `engine/events/apply_meld.go#unmeld` | - | fixed order result then partner; no arrange or timestamp choice |
@@ -365,7 +365,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 715.3c | follows | `engine/events/apply_copy.go#foldStackCopy` | - | code-read: copy keeps FaceIdx and FlagAdventure; untested |
 | 715.3d | follows | `engine/rules/stack.go#spellRestZone` `engine/rules/legal_walk_alt.go#legalWalk.exileCastsWalk` | `TestAdventureSpellCounteredGoesToGraveyard` | controller vs owner unverified |
 | 715.4 | follows | `engine/events/apply_zone.go#move` | `TestAdventureCardIsMainFaceOffTheStack` | - |
-| 715.5 | deviates | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | - | name universe lists primary face names only: Adventure name not offered |
+| 715.5 | follows | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` `TestNameChoicesOfferEveryNameableFace` | Adventure name offered |
 | 716.1 | n/a | - | - | definitional |
 | 716.2-716.2a | follows | `engine/cards/kw_class.go#kwClass` `engine/effects/class_level.go#effClassLevelUp` | `TestClassLevelActivatorIsExactNMinusOne` `TestPaladinClassBandUpIsSorcerySpeed` | exactly N-1, sorcery speed |
 | 716.2b | follows | `engine/state/object.go#Object.ClassLevelValue` | - | code-read: object field outside copiable values; untested |
@@ -382,7 +382,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 720.1 | n/a | - | - |  |
 | 720.2-720.2b,720.3-720.3d | not-impl | - | - | SILENT: AlternateMode Omen has no cast path |
 | 720.2c,720.4 | follows | `engine/cards/ir.go#Card` | - |  |
-| 720.5 | deviates | `engine/cards/universe.go#Universe.Names` | - | SILENT: name universe offers primary-face names only |
+| 720.5 | follows | `engine/cards/universe.go#Universe.Names` | `TestCorpusNameUniverseHasEveryNameableFace` | Omen name offered |
 | 721.1,721.3 | n/a | - | - |  |
 | 721.2-721.2b | follows | `engine/effects/filter_value.go#numericPred` | `TestEveryStationCarrierStationsThroughTheStack` |  |
 | 721.2c | deviates | `engine/rules/chars/derive.go#PT` | - | REVISED: SILENT |
@@ -394,7 +394,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 722.3c | partial | `engine/events/apply_helpers.go#grantPreparedCopy` `engine/rules/legal_walk_alt.go#legalWalk.exileCastsWalk` `engine/rules/cast_targets.go#Engine.pushCast` | `TestPrepareStubBackPreparedCopyCastable` `TestPreparedExileCopyCeasesAfterCast` `TestPreparedExileCopyCeasesWhenSourceLeavesBattlefield` | REVISED: exile copy minted on grant only |
 | 722.3d | partial | `engine/state/object.go#CastProvenanceFlags` `engine/effects/filter.go#predicates` | - |  |
 | 722.4 | follows | `engine/events/apply_helpers.go#grantPreparedCopy` | - | card always uses its main face |
-| 722.5 | deviates | `engine/cards/universe.go#Universe.Names` | - | REVISED: SILENT |
+| 722.5 | follows | `engine/cards/universe.go#Universe.Names` | `TestCorpusNameUniverseHasEveryNameableFace` | prepare name offered |
 | 723.1 | follows | `engine/effects/choose_control.go#effControlPlayer` `engine/state/game.go#Game.LiveController` `engine/rules/engine_host.go#Engine.controlPlayerRedirect` `engine/rules/turn.go#Engine.expirePlayerControl` | `TestControlPlayerGrantRedirectsThenExpires` `TestControlPlayerRedirectDoesNotSpillBeforeControlledTurn` `TestMindslaverControlPlayerPrintedAbility` `TestControlGrantedDuringTheControlledSeatsTurnWaitsForItsNextTurn` | live only on the controlled seat's next turn |
 | 723.1a | follows | `engine/events/apply_player.go#foldControlPlayerChange` | `TestControlPlayerChangeFoldsGrantExpiryAndSelf` |  |
 | 723.1b | follows | `engine/rules/turn.go#Engine.expirePlayerControl` `engine/rules/engine_host.go#Engine.controlPlayerRedirect` | `TestControlPlayerRedirectDoesNotSpillBeforeControlledTurn` |  |
@@ -423,7 +423,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 726.3 | follows | `engine/events/apply_misc.go#foldInitiativeChange` | `TestInitiativeSimultaneousSameControllerOneTake` |  |
 | 726.4 | follows | `engine/rules/cantlose.go#Engine.initiativeHandoffOnDeparture` | `TestInitiativeHolderLeavesHandsOffToActivePlayer` `TestInitiativeActiveHolderLeavesHandsOffToNextInTurnOrder` `TestInitiativeHolderConcedingHandsOff` | handoff implemented; effects/initiative.go comment saying otherwise is stale |
 | 726.5 | follows | `engine/effects/initiative.go#effTakeInitiative` `engine/events/apply_misc.go#foldInitiativeChange` | - | holder retaking ventures again, one designation |
-| 727.1-727.7 | partial | `engine/rules/restart.go#Engine.finishRestart` `engine/state/restart.go#Game.Restart` `engine/effects/game.go#effRestartGame` | `TestCR727KarnRestartsTheGame` `TestCR727ResetForRestartKeepsOnlyConfig` | 727.4 (the restart's remaining instructions) is cr-g33b; 727.6/727.7 n/a |
+| 727.1-727.7 | follows | `engine/rules/restart.go#Engine.finishRestart` `engine/rules/restart.go#Engine.runRestartRest` `engine/state/restart.go#Game.Restart` | `TestCR727KarnRestartsTheGame` `TestCR727KarnReturnsTheExiledCardsJustBeforeTheFirstUntap` `TestCR727ResetForRestartKeepsOnlyConfig` | 727.6/727.7 have no subject (no subgames, no limited range) |
 | 728.1 | partial | `engine/rules/turn.go#Engine.finishEnteredStep` `engine/effects/counters.go#effRadiationDrain` | `TestRadiationDrainIsSourceLessTriggeredAbility` `TestRadiationDrainMillsAndDrains` `TestRadiationDrainIsOnTheStackBeforeResolving` | source-less trigger |
 | 728.1a | not-impl | `engine/effects/counters.go#effRadiationDrain` | - | LOUD: stat:GainLifeRadiation unregistered |
 | 729.1-729.6 | not-impl | - | - |  |

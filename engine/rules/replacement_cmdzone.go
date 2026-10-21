@@ -285,17 +285,23 @@ func (e *Engine) askCommandZone(owner state.PlayerID) {
 	into := "Put " + name + " into the command zone"
 	prompt := name + " would go to the " + dest + ": put it into the command zone instead?"
 	leave := "Let it go to the " + dest
+	keep := ""
 	if pm.sba {
 		dest = pm.ev.From.String()
 		prompt = name + " is in the " + dest + ": put it into the command zone?"
 		leave = "Leave it in the " + dest
+		if pm.ev.From == state.ZExile {
+			if keep = e.exileCastPermission(pm.obj); keep != "" {
+				leave += " (it can still be cast from there)"
+			}
+		}
 	}
 	d := &decision.Decision{Player: owner, Kind: decision.KCommanderZone, Min: 1, Max: 1,
 		Prompt: prompt,
 		Source: pm.obj,
 		Options: []decision.Option{
 			{Index: 0, Kind: "command_zone", Label: into, Obj: pm.obj, Player: owner},
-			{Index: 1, Kind: "leave", Label: leave, Obj: pm.obj, Player: owner},
+			{Index: 1, Kind: "leave", Label: leave, Obj: pm.obj, Player: owner, Mode: keep},
 		}}
 	// Inside a tape run's resolution the choice is served from the tape and
 	// handled in place (the parked move applies where it happened), so a
@@ -303,6 +309,28 @@ func (e *Engine) askCommandZone(owner state.PlayerID) {
 	// served too instead of being defaulted behind an outstanding decision.
 	// Elsewhere it is posed as the engine flow's own decision.
 	parkAsk(e, d)
+}
+
+// exileCastPermission names the standing permission to cast id from exile
+// that a move to the command zone would end (CR 400.7: a new object), or "":
+// an Adventure spell that resolved (CR 715.3d), a card exiled by the Foretell
+// action (CR 702.143a) or a plotted card (CR 702.170). The strings are the
+// Mode values the exile walk offers those casts under, so a client can match
+// the CR 903.9a ask to the later cast. The later-turn gates of foretell and
+// plot are deliberately not read: the permission is held now and lost if moved.
+func (e *Engine) exileCastPermission(id state.ObjID) string {
+	o := e.G.Obj(id)
+	switch {
+	case o == nil || o.Zone != state.ZExile:
+		return ""
+	case adventureSpellFace(o) != nil && o.FaceIdx == 0 && e.adventureZoneAvailable(id):
+		return "adventure_recast"
+	case e.foretoldExileIndex(id) >= 0:
+		return "foretell_cast"
+	case o.PlottedTurn > 0:
+		return "plot_cast"
+	}
+	return ""
 }
 
 // handleCmdZone applies an answered CR 903.9 decision. For a CR 903.9a sba

@@ -164,6 +164,14 @@ func (e *Engine) payCast() {
 	if e.manaWindowAsk() {
 		return
 	}
+	// CR 601.2h: the objects the cost parts move are chosen as the total cost
+	// is paid -- after the targets (601.2c), the division (601.2d) and the
+	// 601.2e recheck, and after the mana abilities of 601.2g. One object pays
+	// one cost; a cost that became unpayable that way aborts inside its ask
+	// (CR 733.1).
+	if e.costObjectAsks() {
+		return
+	}
 	// Mana abilities can draw/reorder the library. Resolve the aggregate
 	// ExileFromTop prefix only now, before any cost is paid, so the IDs moved
 	// are still the actual top cards and insufficient cards abort without
@@ -318,6 +326,7 @@ func (e *Engine) payCast() {
 		}
 		pay.EmitChoiceCosts(asPayer(e), &pc.PaidCost, pc.player, pc.card, &pc.cost, pc.x,
 			func() *cards.SA { return e.pcAbility(pc) })
+		e.emitBlightCostCounters(pc.Blights, &pc.cost, pc.x)
 		if pc.cost.Untap {
 			e.emit(events.Event{Kind: events.Untap, Obj: pc.card, Player: pc.player, Text: "untapped as a cost"})
 		}
@@ -344,11 +353,13 @@ func (e *Engine) payCast() {
 		// no gate -- so this is the only thing the activation does with it.
 		// A 0-count part (the [0] abilities) emits nothing: a CounterChange of
 		// 0 would be a no-op folded into state but a spurious log entry.
+		e.costCounters++
 		for _, part := range pc.cost.AddCounter {
 			if part.N != 0 {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: part.N})
 			}
 		}
+		e.costCounters--
 		// Exert<1/CARDNAME> (CR 701.39a): one Exert event on the source, the
 		// same fold the declare-attackers election emits, so the untap skip
 		// and "whenever you exert" triggers read one path.
@@ -467,7 +478,12 @@ func (e *Engine) payCast() {
 		// The chain links' announced targets (CR 601.2c / 602.2b), after the
 		// root's: the chain targets are recorded only now.
 		e.recordCastSubTargets(pc)
-		if pc.rootOpts == nil && !pc.targetedFinish {
+		// CR 601.2h: payment can now complete on a later cost answer (the
+		// cost-object asks are posed from here), so the dispatch fires on
+		// every payCast outside a target answer's continuation -- the
+		// targetedFinish guard keeps the continuation's own dispatch from
+		// doubling it.
+		if !pc.targetedFinish {
 			// No target-recording continuation: dispatch at the completed
 			// AbilityPush boundary while the spent-source capture is still live.
 			e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
@@ -577,6 +593,7 @@ func (e *Engine) payCast() {
 	e.settleSubCounterParts(pc)
 	pay.EmitChoiceCosts(asPayer(e), &pc.PaidCost, pc.player, pc.card, &pc.cost, pc.x,
 		func() *cards.SA { return e.pcAbility(pc) })
+	e.emitBlightCostCounters(pc.Blights, &pc.cost, pc.x)
 	// Capture the sacrifice LKI before the MoveZones (see the ability branch's
 	// comment): the sacrificed permanents are still on the battlefield here.
 	var sacrificedLKI []state.SacrificedInfo
@@ -1346,3 +1363,13 @@ var payCastCodes = state.NewStrCodes(
 	state.StrEntry[payCastCode]{Key: "kicked2", Val: payCastKicked},
 	state.StrEntry[payCastCode]{Key: "kickedboth", Val: payCastKickedboth},
 )
+
+// emitBlightCostCounters places a paid Blight cost's -1/-1 counters.
+// Blight is a COST (CR 701.68a / 118.12), never an effect, so the
+// EffectOnly$ AddCounter gate (replacement_match.go) must refuse it
+// exactly like the [+N] loyalty cost: costCounters marks it.
+func (e *Engine) emitBlightCostCounters(blights []state.ObjID, cost *pay.Cost, x int32) {
+	e.costCounters++
+	pay.EmitBlightCounters(asPayer(e), blights, cost, x)
+	e.costCounters--
+}

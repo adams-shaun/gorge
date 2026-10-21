@@ -539,6 +539,10 @@ type animateGrant struct {
 	removeTypes         []string
 	allCreatureTypes    bool
 	removeCardTypes     bool
+	// removeLandTypes is RemoveLandTypes$ True: strip every land subtype
+	// before this animation's Types$ apply (CR 305.7 "becomes a Swamp";
+	// state.ContinuousEffect.RemoveLandTypes, the Blood Moon field).
+	removeLandTypes bool
 	// name is the Name$ rider: the animated object's derived NAME for the
 	// animation's own lifetime (CR 613.1d, layer 3). It is registered as a
 	// real layer-3 SetName ContinuousEffect -- the same characteristic the
@@ -733,6 +737,39 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// Darksteel Mutation strip) keeps only the object's supertypes in the
 	// layer-4 walk -- one line on the shared path, so both primitives read it.
 	ag.removeCardTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveCardTypes)), "True")
+	// RemoveLandTypes$ True ("target land becomes a Swamp", Nightcreep's
+	// "all lands become Swamps"): the layer-4 land-subtype strip the
+	// printed-static family (Blood Moon) registers, on the same LType effect.
+	ag.removeLandTypes = strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRemoveLandTypes)), "True")
+	// A "ChosenType" element in Types$ resolves against the resolving
+	// source's recorded type choice (Elsewhere Flask's AB$ ChooseType
+	// SubAbility$ DBAnimate chain -- choose.go records the choice on the
+	// SOURCE, the same direction registerStaticEffectGrant resolves its own
+	// ChosenType element in), never the literal word. An element with no
+	// recorded choice is dropped, and the RemoveLandTypes$ strip is not
+	// applied with it: CR 305.7's strip is only meaningful as "the land
+	// becomes <the chosen type>", and stripping every land subtype while
+	// adding nothing would leave the land unable to tap for mana -- worse
+	// than the no-op it replaces. A loud Note keeps the drop visible.
+	types := make([]string, 0, len(ag.types))
+	chosenMissing := false
+	for _, t := range ag.types {
+		if !strings.EqualFold(t, "ChosenType") {
+			types = append(types, t)
+			continue
+		}
+		if o := h.Game().Obj(c.Source); o != nil && o.ChosenType != "" {
+			types = append(types, o.ChosenType)
+		} else {
+			chosenMissing = true
+		}
+	}
+	ag.types = types
+	if chosenMissing {
+		ag.removeLandTypes = false
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "Animate$ ChosenType names a card with no recorded choice"})
+	}
 	// Abilities$ names the SVar bodies (comma-separated, on THIS face's table)
 	// the animated object gains -- Urza's Saga's chapters ("CARDNAME gains
 	// '{T}: Add {C}'.") are the corpus's flagship shape. The grant is a
@@ -953,13 +990,14 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
-	if len(ag.types) > 0 || ag.removeCreatureTypes || len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes {
+	if len(ag.types) > 0 || ag.removeCreatureTypes || len(ag.removeTypes) > 0 || ag.allCreatureTypes || ag.removeCardTypes || ag.removeLandTypes {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LType, AddTypes: ag.types,
 			RemoveCreatureTypes: ag.removeCreatureTypes, RemoveTypes: ag.removeTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
-			Duration: ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
+			RemoveLandTypes: ag.removeLandTypes,
+			Duration:        ag.duration, Permanent: permanent, UntilEOT: untilEOT, DurationSource: durSource,
 			ExileOnMoved: exileOn, ExileOnMovedAlso: exileAlso, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -1081,7 +1119,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
 // that neither Animate nor AnimateAll reads (RemoveKeywords$/RemoveAllAbilities$/
-// staticAbilities$/Triggers$/Replacements$/CantHaveKeyword$/RemoveLandTypes$ --
+// staticAbilities$/Triggers$/Replacements$/CantHaveKeyword$ --
 // the shared pre-existing Animate gaps, so the gap stays visible instead of
 // silently doing nothing), then the supported parameters still apply.
 func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
@@ -1092,7 +1130,6 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 		{"HiddenKeywords$", sa.ParamStr(cards.PKHiddenKeywords)},
 		{"Replacements$", sa.ParamStr(cards.PKReplacements)},
 		{"CantHaveKeyword$", sa.ParamStr(cards.PKCantHaveKeyword)},
-		{"RemoveLandTypes$", sa.ParamStr(cards.PKRemoveLandTypes)},
 	} {
 		if strings.TrimSpace(key.val) != "" {
 			unread = append(unread, key.name)

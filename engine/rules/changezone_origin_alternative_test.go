@@ -46,7 +46,8 @@ func TestChangeZoneOriginAlternativeSearchesEveryNamedZone(t *testing.T) {
 		}
 		submitChoices(t, e, d.Options[0].Index)
 	}
-	d := passUntilNonPriority(t, e, 20)
+	passUntilNonPriority(t, e, 20)
+	d := answerOriginAltAllZones(t, e)
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
 		t.Fatalf("origin-alternative search pending = %+v, want a search KChoose", d)
 	}

@@ -18,7 +18,8 @@ func (o *Object) CopiableFace() *cards.Face {
 	if o.faceDownEffective() {
 		return o.faceDownCopiableFace()
 	}
-	return o.Face()
+	// CR 707.2: text-changing effects are not copiable values.
+	return o.PreTextFace()
 }
 
 // CopiesFaceDown reports whether CopiableFace is o's face-down

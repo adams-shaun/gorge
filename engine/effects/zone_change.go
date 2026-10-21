@@ -1662,6 +1662,9 @@ func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.Play
 		return
 	}
 	if a.kind == attackingEntryAttacks {
+		if !EnteringAttackLegal(h, a.defender, a.battle) {
+			return
+		}
 		ids := []state.ObjID{state.ObjID(a.defender)}
 		if a.battle != 0 {
 			ids = append(ids, a.battle)

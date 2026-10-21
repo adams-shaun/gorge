@@ -803,6 +803,10 @@ const (
 	// that records the exiling player. Appended: earlier ordinals stay stable.
 	PKMayPlayPlayer
 	PKDefinedExiler
+	// RearrangeTopOfLibrary's RearrangePlayer$ chooser (Tahngarth's Glare's
+	// "That player looks at the top three cards of your library";
+	// append-only).
+	PKRearrangePlayer
 	paramKeyCount
 )
 
@@ -1186,6 +1190,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKTribute:                          "Tribute",
 	PKMayPlayPlayer:                    "MayPlayPlayer",
 	PKDefinedExiler:                    "DefinedExiler",
+	PKRearrangePlayer:                  "RearrangePlayer",
 	PKInvalidTypes:                     "InvalidTypes",
 	PKKeywords:                         "Keywords",
 	PKLeftRightPile:                    "LeftRightPile",

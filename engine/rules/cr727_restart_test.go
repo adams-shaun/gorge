@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -208,4 +209,58 @@ func TestCR727ResetForRestartKeepsOnlyConfig(t *testing.T) {
 		}
 	}
 	walk(reflect.ValueOf(e).Elem(), "")
+}
+
+// TestCR727KarnReturnsTheExiledCardsJustBeforeTheFirstUntap: CR 727.4 --
+// the restarting effect finishes resolving just before the new game's first
+// untap step, so Karn's "Then put those cards onto the battlefield under your
+// control" puts seat 1's Mountain onto the battlefield under seat 0's
+// control, owned by seat 1, after turn 1's TurnChange and before its untap.
+func TestCR727KarnReturnsTheExiledCardsJustBeforeTheFirstUntap(t *testing.T) {
+	t.Parallel()
+	e, cfg, _, mountain := karnRestartBoard(t)
+	o := e.G.Obj(mountain)
+	if o.Zone != state.ZBattlefield || o.Controller != 0 || o.Owner != 1 {
+		t.Fatalf("CR 727.4 seq %d: Mountain zone %s controller %d owner %d, want Battlefield under seat 0, owned by seat 1", len(e.L.Events), o.Zone, o.Controller, o.Owner)
+	}
+	turn, untap, entered := -1, -1, -1
+	restart := -1
+	for i, ev := range e.L.Events {
+		switch {
+		case ev.Kind == events.GameRestart:
+			restart = i
+		case restart >= 0 && ev.Kind == events.TurnChange && turn < 0:
+			turn = i
+		case turn >= 0 && ev.Kind == events.MoveZone && ev.Obj == mountain && ev.To == state.ZBattlefield && entered < 0:
+			entered = i
+		case turn >= 0 && ev.Kind == events.StepChange && ev.Step == state.StepUntap && untap < 0:
+			untap = i
+		}
+	}
+	if !(restart >= 0 && turn > restart && entered > turn && untap > entered) {
+		t.Errorf("CR 727.4 seq %d: GameRestart %d, turn 1 TurnChange %d, Mountain entry %d, untap StepChange %d; want them in that order", len(e.L.Events), restart, turn, entered, untap)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestChangeZoneAllPermanentOffTheBattlefieldIsAPermanentCard: a
+// ChangeZoneAll whose Origin$ excludes the battlefield reads a leading
+// Permanent base as "permanent card" (Forge's CardType reading, the Dig and
+// search permanentCardSpec rule), so it moves Grizzly Bears (a creature card)
+// from the graveyard and leaves Lightning Bolt (an instant card). Karn's
+// "non-Aura permanent cards exiled with Karn" and 12 other corpus lines use it.
+func TestChangeZoneAllPermanentOffTheBattlefieldIsAPermanentCard(t *testing.T) {
+	t.Parallel()
+	e, cfg, ids := edrBoard(t, testutil.CorpusRegistry(t), 7271, map[string]state.Zone{
+		"Grizzly Bears": state.ZGraveyard, "Lightning Bolt": state.ZGraveyard})
+	bears, bolt := ids["Grizzly Bears"], ids["Lightning Bolt"]
+	sweep := card(t, "Name:Permanent Sweep\nManaCost:0\nTypes:Sorcery\nA:SP$ ChangeZoneAll | ChangeType$ Permanent | Origin$ Graveyard | Destination$ Hand | SpellDescription$ x\nOracle:x\n")
+	effects.Resolve(e, effects.NewCtxPtr(0, 0, effects.CtxInit{}), sweep.Faces[0].Abilities[0])
+	if z := e.G.Obj(bears).Zone; z != state.ZHand {
+		t.Errorf("ChangeZoneAll Permanent from Graveyard seq %d: Grizzly Bears zone = %s, want Hand", len(e.L.Events), z)
+	}
+	if z := e.G.Obj(bolt).Zone; z != state.ZGraveyard {
+		t.Errorf("ChangeZoneAll Permanent from Graveyard seq %d: Lightning Bolt zone = %s, want Graveyard (an instant is no permanent card)", len(e.L.Events), z)
+	}
+	replayCheck(t, e, cfg)
 }

@@ -73,6 +73,10 @@ func TestChangeZoneOriginAlternativeGraveyardAuraEntersAttached(t *testing.T) {
 		case decision.KTriggerOptional, decision.KModes:
 			submitChoices(t, e, 0)
 		case decision.KChoose:
+			if d.ResumeKind == "search_zones" {
+				d = answerOriginAltAllZones(t, e)
+				continue
+			}
 			if d.ResumeKind != "search" {
 				t.Fatalf("unexpected %v ask: %+v", d.ResumeKind, d)
 			}

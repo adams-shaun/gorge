@@ -1277,10 +1277,29 @@ const (
 	// Appended after GameRestart so every earlier ordinal, hash chain and golden
 	// replay is unchanged.
 	ActivationReversed
+	// TextChange is one CR 612 text-changing effect starting on Obj: every
+	// instance of the word Counter used as a color or subtype word reads as
+	// Text (api:ChangeText). The fold appends it to Object.TextChanges, so
+	// the object's Face() is rewritten from then on; the change ends when
+	// the object changes zones (CR 400.7), except a spell becoming a
+	// permanent (CR 400.7a). Amount TextChangeUntilEOT marks a change that
+	// ends in the cleanup step; Amount TextChangeExpire (no words) is that
+	// cleanup-step end (CR 514.2). Appended after ActivationReversed so every
+	// earlier ordinal, hash chain and golden replay is unchanged.
+	TextChange
+	// HadToAttack records CR 506.7's "had to attack": IDs are the attackers
+	// just declared that one or more effects were requiring to attack at the
+	// time attackers were declared (combat.AttackRequirements). Emitted
+	// right after a declaration's DeclareAttackers events, only when at least
+	// one such attacker exists, so an unconstrained declaration logs nothing
+	// new. Appended after TextChange (its branch-side twin claimed this slot
+	// first; neither kind fires in a golden replay, so the swap is replay-safe)
+	// so every earlier ordinal, hash chain and golden replay is unchanged.
+	HadToAttack
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(ActivationReversed) + 1
+	NumKinds = int(HadToAttack) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

@@ -76,15 +76,20 @@ func linkBoard(t *testing.T, reg *cards.Registry, p0, p1 []string) (*Engine, Con
 
 // activateAnswers the decisions activating an ability with a sacrifice cost
 // poses, in whatever order they arrive: a KChoose sacrifice cost (answered
-// with sacObj) and/or the KTarget announcement (answered with targetObj, or
-// targetPlayer when the subject targets players). Returns after the target is
-// answered, with the ability sitting on the stack.
+// with sacObj; CR 601.2h chooses it at payment, after the target) and/or the
+// KTarget announcement (answered with targetObj, or targetPlayer when the
+// subject targets players). Returns once payment has completed and the next
+// KPriority decision appears, with the ability on the stack.
 func activateAnswers(t *testing.T, e *Engine, sacObj, targetObj state.ObjID, targetPlayer state.PlayerID) {
 	t.Helper()
-	for i := 0; i < 4; i++ {
+	answered := false
+	for i := 0; i < 8; i++ {
 		d := e.Pending()
 		if d == nil {
 			t.Fatalf("no pending decision while activating (sac %d, target %d)", sacObj, targetObj)
+		}
+		if answered && d.Kind == decision.KPriority {
+			return
 		}
 		switch d.Kind {
 		case decision.KChoose:
@@ -101,14 +106,14 @@ func activateAnswers(t *testing.T, e *Engine, sacObj, targetObj state.ObjID, tar
 		case decision.KTarget:
 			if targetObj != 0 {
 				targetObject(t, e, targetObj)
-				return
+			} else {
+				idx := indexOfPlayerOption(d, targetPlayer)
+				if idx < 0 {
+					t.Fatalf("no target option for player %d: %+v", targetPlayer, d.Options)
+				}
+				submitChoices(t, e, idx)
 			}
-			idx := indexOfPlayerOption(d, targetPlayer)
-			if idx < 0 {
-				t.Fatalf("no target option for player %d: %+v", targetPlayer, d.Options)
-			}
-			submitChoices(t, e, idx)
-			return
+			answered = true
 		default:
 			t.Fatalf("unexpected decision kind %q while activating: %+v", d.Kind, d.Options)
 		}

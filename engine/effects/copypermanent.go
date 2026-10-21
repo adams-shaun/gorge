@@ -744,7 +744,8 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			// increments it) -- the effToken/effMyriad prediction pattern.
 			want := g.NextID
 			amt, ids := amount, []state.ObjID(nil)
-			if atk, atkIDs := copyAttackIDs(attacking, selectorDefender, attackOwners, owner); atk {
+			if atk, atkIDs := copyAttackIDs(attacking, selectorDefender, attackOwners, owner); atk &&
+				len(atkIDs) > 0 && EnteringAttackLegal(h, state.PlayerID(atkIDs[0]), 0) {
 				amt |= events.CopyTokenAttacking
 				ids = atkIDs
 			}

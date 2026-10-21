@@ -1022,13 +1022,15 @@ func TestAlternateAdditionalCostSpecialPayments(t *testing.T) {
 		addMana(t, e, 0, "CB")
 		submitChoices(t, e, castModeOption(t, e, spell, ""))
 		chooseKind(t, e, "altaddcost")
+		// CR 601.2c before 601.2h: the spell's target comes before the
+		// forage exile pick.
+		chooseObj(t, e, bear)
 		chooseKind(t, e, "forage_exile")
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KChoose || d.Min != 3 {
 			t.Fatalf("forage exile ask: %+v", d)
 		}
 		submitChoices(t, e, d.Options[0].Index, d.Options[1].Index, d.Options[2].Index)
-		chooseObj(t, e, bear)
 		for _, id := range fuel {
 			if e.G.Obj(id).Zone != state.ZExile {
 				t.Fatalf("forage fuel %d not exiled", id)

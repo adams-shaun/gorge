@@ -651,7 +651,13 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				e.payCast()
 			} else {
 				pc.rootOpts = append([]decision.Option(nil), ordered...)
+				// This arm dispatches itself after payCast (below), so
+				// payment that completes here -- including on a later cost
+				// answer's resumed payCast (CR 601.2h) -- must not dispatch
+				// from payCast's arm as well.
+				pc.targetedFinish = true
 				e.payCast()
+				pc.targetedFinish = false
 				if pc.activationPaid {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
 					e.cast = pc

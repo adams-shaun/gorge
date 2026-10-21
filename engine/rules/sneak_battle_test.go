@@ -28,6 +28,10 @@ func TestSneakPreservesBattleDefenderThroughEntry(t *testing.T) {
 	if b := e.G.Obj(battle.ID); b == nil || b.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Battle is not on battlefield: %+v", b)
 	}
+	// Record seat 1 as the Battle's protector (CR 310.10's Choose "protector"
+	// event): an attack on a battle is an attack on the player protecting it,
+	// and the entry check (effects.EnteringAttackLegal, CR 508.4a) reads it.
+	e.emit(events.Event{Kind: events.Choose, Obj: battle.ID, Counter: "protector", Player: 1})
 	attacker := e.G.AddObject(card(t, ninjutsuBearSrc), 0)
 	e.emit(events.Event{Kind: events.MoveZone, Obj: attacker.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, Obj: battle.ID, IDs: []state.ObjID{attacker.ID}})

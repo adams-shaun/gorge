@@ -125,9 +125,9 @@ func TestAnimateAllPermanentDurationIsPermanent(t *testing.T) {
 }
 
 // TestAnimateAllUnreadParametersNoteLoudly: the remaining AnimateAll gaps
-// (RemoveKeywords$/RemoveAllAbilities$/Replacements$/CantHaveKeyword$/
-// RemoveLandTypes$) must be LOUD — one note naming every unread parameter
-// present — while the supported parameters still apply. staticAbilities$ is
+// (RemoveKeywords$/RemoveAllAbilities$/Replacements$/CantHaveKeyword$) must
+// be LOUD — one note naming every unread parameter present — while the
+// supported parameters still apply. staticAbilities$ is
 // tested through the shared Animate registration path below.
 // Triggers$ is READ since the Animate Triggers$ ticket: a named body the
 // parser refuses (no SVar table here, so TrigSomething resolves to

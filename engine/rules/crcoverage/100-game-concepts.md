@@ -72,7 +72,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 108.1-108.2b | n/a | - | - | reference rules |
 | 108.3-108.4a | follows | `engine/state/object.go#Object.Owner` `engine/state/object.go#Object.Controller` | - | owner = starting deck holder |
 | 108.5-108.6 | n/a | - | - | nontraditional cards; cross-reference |
-| 109.1-109.5 | follows | `engine/state/object.go#Object` | - | structural; 109.2 not line-checked |
+| 109.1-109.5 | follows | `engine/state/object.go#Object` `engine/effects/cardflow.go#rearrangeChooser` | `TestCRRearrangeTargetLibraryCasterChooses` `TestCRRearrangePlayerNamesTheChooser` | structural; 109.2 not line-checked; RearrangeTopOfLibrary's "you" is the controller, RearrangePlayer$ names another chooser |
 | 110.1-110.3 | follows | `engine/state/object.go#Object` | - | permanents on the battlefield |
 | 110.4-110.4c | unknown | - | - | not reached |
 | 110.5-110.5d | follows | `engine/state/object.go#Object.Tapped` `engine/state/object.go#Object.PhasedOut` | - | status fields; not characteristics |
@@ -141,7 +141,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 120.1 | follows | `engine/events/apply_combat.go#foldDamage` | - | - |
 | 120.1a | partial | `engine/events/apply_combat.go#foldDamage` | - | g fold marks damage on any non-PW/battle object |
 | 120.2-120.2b | follows | `engine/rules/combat.go#Engine.damageStep` | - | - |
-| 120.3-120.3h | follows | `engine/events/apply_combat.go#foldDamage` `engine/rules/emit.go#Engine.emit` | `TestBattleAttackDealsDefenseCounterDamage` `TestTwoLifelinkSourcesAreTwoLifeGainEvents` |  |
+| 120.3-120.3h | follows | `engine/events/apply_combat.go#foldDamage` `engine/rules/emit.go#Engine.emit` `engine/rules/damage_walker_creature.go#Engine.recomputeWalkerCreatureMarker` | `TestBattleAttackDealsDefenseCounterDamage` `TestTwoLifelinkSourcesAreTwoLifeGainEvents` `TestCombatDamageToAnimatedWalkerMarksDamageAndRemovesLoyalty` `TestHealingAnAnimatedWalkerClearsItsMarkedDamage` | 120.3c+e: an animated planeswalker loses loyalty and is marked, for every damage emitter |
 | 120.4-120.4d | follows | `engine/rules/emit.go#Engine.emit` | - |  |
 | 120.5-120.6 | follows | `engine/rules/sba.go#Engine.destroyLethalDamage` | - | damage marked until cleanup |
 | 120.7 | unknown | - | - | not reached |

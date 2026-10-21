@@ -8,13 +8,13 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 601.1a | n/a | - | - | terminology only |
 | 601.2 | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` `engine/rules/cast_begin.go#Engine.continueCast` | - | cast step machine; subrule order deviations below |
 | 601.2a | follows | `engine/rules/cast_begin.go#Engine.continueCast` `engine/rules/cast_targets.go#Engine.pushCast` | `TestCR601_2aDelveCannotExileTheSpellBeingCast` `TestCR601_2aSpellIsOnTheStackAtItsFirstCostChoice` | spells pushed before every 601.2b-h choice; abilities: 602.2a |
-| 601.2b | deviates | `engine/rules/cast_begin.go#Engine.continueCast` `engine/rules/cast_asks.go#Engine.castModeAsk` `engine/rules/cast_subcounter.go#Engine.xAsk` | `TestCR601ModesAnnouncedBeforePayment` | modes after X and cost picks; low impact |
+| 601.2b | follows | `engine/rules/cast_begin.go#Engine.continueCast` `engine/rules/cast_asks.go#Engine.castModeAsk` `engine/rules/cast_subcounter.go#Engine.chosenModesTargetableAt` | `TestCR601ModesAnnouncedBeforePayment` `TestCR601_2bModesAreAnnouncedBeforeX` | modes first, then additional costs, then X (bounded by the chosen modes); kicker/entwine intent rides the cast option |
 | 601.2c | follows | `engine/rules/cast_targets.go#Engine.targetAsk` | `TestCR601TargetsPrecedeManaPayment` | targets before payment; per-word uniqueness |
 | 601.2d | partial | `engine/rules/cast_division.go#Engine.divisionDecision` `engine/rules/cast_division.go#castDivisionAPI` `engine/effects/division.go#AnnouncedDivision` | `TestArcLightningAnnouncesDivisionWhileCasting` `TestArcLightningIllegalTargetLosesItsShare` `TestMoggMobActivationAnnouncesDivision` | REVISED: g DealDamage divided at cast min 1 (cr-g04a); counters/prevent/triggers pending g04b/c; d resolution-time |
 | 601.2e | follows | `engine/rules/cast_targets.go#Engine.recheckIllegal` | `TestCR601RecheckAfterXAndLegalTarget` | illegal proposal reversed |
 | 601.2f | follows | `engine/rules/cast_pricing.go#Engine.manaToPay` `engine/rules/cast_pricing.go#Engine.repriceForTargets` | `TestCR601TotalCostIncludesModifiers` `TestCR601AdditionalSacrificeIsPartOfTotalCost` | total locked; reduction order fixed, not player-chosen |
 | 601.2g | partial | `engine/rules/cast_paymentplan.go#Engine.manaWindowAsk` | `TestCR601ManaWindowBeforePayment` | g window only when pool short; d no manual mana, autopayer ignores hand reserve |
-| 601.2h | partial | `engine/rules/cast_subcounter.go#Engine.sacAsk` `engine/rules/cast_commit.go#Engine.payCast` | - | cost objects chosen pre-targets; random/mill order; d autopay sources |
+| 601.2h | partial | `engine/rules/cast_begin.go#Engine.costObjectAsks` `engine/rules/cast_commit.go#Engine.payCast` | `TestCR601_2hTargetsAreChosenBeforeTheSacrifice` `TestCR601_2hOneObjectPaysOneCost` | h objects chosen at payment, after the targets (c) and the g mana window; random/mill order; d autopay sources |
 | 601.2i | follows | `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/cast_commit.go#Engine.fireDeferredCastTrigger` | `TestCR601CastTriggerWaitsForCompletedProposal` | cast triggers after payment, caster priority |
 | 601.3 | partial | `engine/rules/statics_cast.go#Engine.castRestricted` `engine/effects/filter_value.go#numericPred` `engine/effects/filter_value.go#parityPredicate` | `TestVoidWinnowerForbidsOpponentEvenManaValueSpells` | REVISED note: cmcEven fixed (cr-g03); Effect-delivered CantBeCast still a Note (LOUD) |
 | 601.3a | follows | `engine/rules/statics_cast.go#Engine.castRestrictedCost` `engine/rules/statics_cast.go#Engine.xAnnouncementEscapes` `engine/rules/cast_targets.go#Engine.recheckIllegal` | `TestCR601_3aXSpellEscapesManaValueProhibition` `TestCR601_3aFreeCastHasNoXChoice` `TestCR601_3aEscapeMustBePayable` `TestCR601_3aFlashbackRouteAnnouncesNoX` `TestCR601_3aFreeMayPlayOfferStillProhibited` `TestCR601_3aPotentialWalkSeesPayableEscape` `TestVoidWinnowerRechecksChosenXOnTheStack` | offer looks ahead only over payable announced X (cost carries {X}, printed face carries {X}, priced through the offer's affordability helper against the walk's pricing pool); 601.2e recheck enforces the announced X; d no prohibition statics in pool |
@@ -116,7 +116,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 606.1 | definition | - | - | loyalty abilities defined |
 | 606.2 | follows | `engine/rules/legal_loyalty.go#isLoyaltyAbility` | `TestLoyaltyOptionFacts` | - |
 | 606.3 | follows | `engine/rules/legal_loyalty.go#Engine.loyaltyAbilityLimit` `engine/rules/legal_loyalty.go#Engine.loyaltyActivationsThisTurn` `engine/rules/legal_walk_battlefield.go#legalWalk.battlefieldWalk` | `TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly` | main phase, empty stack, once per turn |
-| 606.4-606.5 | follows | `engine/rules/pay/costmods.go#PlusRaiseExtra` | `TestRaiseCostCarthAddsALoyaltyCounter` `TestRaiseCostCarthNetsAMinusLoyaltyAbility` | d 606.5 N/A, no modifiers |
+| 606.4-606.5 | follows | `engine/rules/pay/costmods.go#PlusRaiseExtra` `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | `TestRaiseCostCarthAddsALoyaltyCounter` `TestRaiseCostCarthNetsAMinusLoyaltyAbility` `TestDoublingSeasonLeavesLoyaltyCostUndoubled` | a loyalty cost's counters are a cost, never doubled by EffectOnly; d 606.5 N/A, no modifiers |
 | 606.6 | follows | `engine/rules/pay/castparts.go#NonManaCastableP` | - | - |
 | 607.1 | partial | `engine/state/object.go#Object.Imprinted` `engine/state/object.go#Object.ExiledWith` | - | g links per object, not per ability pair |
 | 607.1a-607.1d | unknown | - | - | not audited |
@@ -186,11 +186,11 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 611.3b | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` | - | source leaves: effect gone |
 | 611.3c | follows | `engine/rules/chars/derive.go#Compute` | - | no enter-then-change gap; derived on demand |
 | 611.3d | unknown | - | - | - |
-| 612.1 | deviates | `engine/rules/chars/derive.go#Compute` `engine/rules/chars/derive.go#substituteTextWord` | `TestChangeTextCarriersUnsupportedIsExact` | text change is cosmetic only (cr-g36) |
-| 612.2 | deviates | `engine/effects/changetext.go#registerTextSubstitution` `engine/rules/chars/derive.go#substituteTextWord` | `TestNewBloodChangeTextEndToEnd` | abilities never re-read changed words (cr-g36) |
+| 612.1 | follows | `engine/cards/textchange.go#Face.WithTextChanges` `engine/state/object.go#Object.faceSlow` | `TestCR612ChangedTypeWordDrivesTheLordStatic` `TestChangeTextCarriersUnsupportedIsExact` | the changed words reach abilities, keywords and the type line (cr-g36a) |
+| 612.2 | follows | `engine/cards/textchange.go#SubstituteTextWord` `engine/effects/changetext.go#effChangeText` | `TestSubstituteTextWordRules` `TestCR612ChangedLandWordRewritesLandwalk` `TestNewBloodChangeTextEndToEnd` | whole words with non- negation, landwalk/plural suffixes; names and script references kept |
 | 612.2a | unknown | - | - | token type text change not audited; likely as 612.2 |
 | 612.3 | follows | `engine/rules/chars/derive.go#Compute` | - | granted abilities untouched |
-| 612.4 | deviates | `engine/rules/chars/derive.go#Compute` | - | token text change cosmetic (cr-g36) |
+| 612.4 | partial | `engine/state/object.go#Object.faceSlow` | - | tokens take the same object path; not separately tested |
 | 612.5 | partial | `engine/effects/changetext.go#registerTextSet` `engine/effects/changetext.go#effExchangeTextBox` | - | Exchange of Words swaps text+keywords only |
 | 612.6 | not-impl | - | - | SILENT; GainTextOf$ unread, Volrath's Shapeshifter "playable" |
 | 612.7 | not-impl | - | - | SILENT; AddNames$ unread, Spy Kit names missing |
@@ -200,7 +200,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 613.1 | follows | `engine/rules/layers.go#compareContinuousPtr` `engine/rules/layers.go#continuousPtrsSorted` `engine/rules/chars/derive.go#Compute` | `TestCR613HumilitySetsBaseBeforePumpAndRemovesAbilities` |  |
 | 613.1a | partial | `engine/state/object.go#Object.CopyFace` | `TestCloneModifiersApplyAtTheirOwnLayers` | copy as face swap; see 707 slice |
 | 613.1b | follows | `engine/rules/control.go#Engine.RegisterControl` `engine/rules/control.go#Engine.expireControl` | - | grants in timestamp order |
-| 613.1c | deviates | `engine/rules/chars/derive.go#Compute` `engine/rules/chars/derive.go#substituteTextWord` | - | layer 3 = rendered text + name (cr-g36) |
+| 613.1c | follows | `engine/state/object.go#Object.faceSlow` `engine/events/copy_except.go#foldTextChange` | `TestCR612ChangedSpellTextOnTheStack` `TestCR612TextChangeIsNotCopiableAndEndsOnLeaving` | layer 3 rewrites Face(); not copiable (707.2); ends on a zone change except spell to permanent (400.7a) |
 | 613.1d | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/chars/types.go#applyTypeEffect` | - |  |
 | 613.1e | follows | `engine/rules/chars/derive.go#Compute` | `TestDerivedColorsLayerCompose` |  |
 | 613.1f | partial | `engine/rules/chars/derive.go#Compute` `engine/rules/abilityloss.go#Engine.abilityLoss` `engine/rules/abilityloss.go#Engine.grantLostTo` | `TestLayer6GrantsKeywords` `TestAbilityRemovalTimestampStillDominates` | gorge: keyword counters lost regardless of ts |

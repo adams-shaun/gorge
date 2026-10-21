@@ -60,6 +60,7 @@ func cloneFieldsEngine(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.deckManifests = e.deckManifests
 	c.compiledText = e.compiledText
 	c.landTypeWords = e.landTypeWords
+	c.restartRest = e.restartRest
 	c.format = e.format
 	if e.pending != nil {
 		c.pending = cloneDecision(e.pending)
@@ -209,6 +210,7 @@ func cloneFieldsEngineRounds(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	}
 	c.blockerRound = e.blockerRound
 	c.exertAskState = e.exertAskState
+	c.bandAskState = e.bandAskState
 	c.enlistAskState = e.enlistAskState
 	c.stationing = e.stationing
 	c.combatRound = e.combatRound

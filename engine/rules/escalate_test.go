@@ -396,25 +396,9 @@ func TestEscalateDiscardCarrier(t *testing.T) {
 	castSpellOption(t, e, fixBrutN)
 	// Two modes: DBDiscard and DBDrain (both target the opponent).
 	submitModes(t, e, 0, 2)
-	// The escalate discard ask comes before the target ask (continueCast's
-	// part-ask pass runs ahead of it).
+	// CR 601.2c: the two per-mode target slots come first; the escalate
+	// discard ask is a cost-object ask, chosen at payment (601.2h).
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "discard" {
-		t.Fatalf("pending = %+v, want the escalate discard ask", d)
-	}
-	pebbleIdx := -1
-	for _, o := range d.Options {
-		if o.Obj != 0 && e.G.Obj(o.Obj) != nil && e.G.Obj(o.Obj).Face() != nil &&
-			e.G.Obj(o.Obj).Face().Name == "Fix Pebble" {
-			pebbleIdx = o.Index
-		}
-	}
-	if pebbleIdx < 0 {
-		t.Fatalf("Fix Pebble not offered as the escalate discard: %+v", d.Options)
-	}
-	submitChoices(t, e, pebbleIdx)
-	// The two modes both choose seat 1, but through separate target slots.
-	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget || d.Min != 2 || d.Max != 2 {
 		t.Fatalf("pending = %+v, want two per-mode target slots", d)
 	}
@@ -433,6 +417,22 @@ func TestEscalateDiscardCarrier(t *testing.T) {
 		t.Fatalf("seat 1 not offered for both modes: %+v", d.Options)
 	}
 	submitChoices(t, e, modeTargets[0], modeTargets[1])
+	// The escalate discard ask, at payment (CR 601.2h): Fix Pebble.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "discard" {
+		t.Fatalf("pending = %+v, want the escalate discard ask", d)
+	}
+	pebbleIdx := -1
+	for _, o := range d.Options {
+		if o.Obj != 0 && e.G.Obj(o.Obj) != nil && e.G.Obj(o.Obj).Face() != nil &&
+			e.G.Obj(o.Obj).Face().Name == "Fix Pebble" {
+			pebbleIdx = o.Index
+		}
+	}
+	if pebbleIdx < 0 {
+		t.Fatalf("Fix Pebble not offered as the escalate discard: %+v", d.Options)
+	}
+	submitChoices(t, e, pebbleIdx)
 	// Both seats pass priority so the spell resolves; DBDiscard's
 	// RevealYouChoose then asks the caster to pick an instant/sorcery from
 	// the opponent's hand (the ask surfaces mid-resolution, after the passes).

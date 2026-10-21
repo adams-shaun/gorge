@@ -244,6 +244,24 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 		if d == nil {
 			t.Fatalf("no decision while draining the stack (stack depth %d)", len(e.G.Stack))
 		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "search_zones" {
+			// An OriginAlternative$ zone election suspended mid-resolution
+			// (cr-g51: "search your library and/or graveyard" now asks which
+			// zones). These drains were written around the pre-election
+			// engine, which always searched every named zone, so answer with
+			// every offered zone -- Min 1 makes all of them a legal answer --
+			// and keep exactly the board those assertions were written
+			// against. A test that wants a narrower election answers the ask
+			// itself before draining.
+			choices := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				choices = append(choices, o.Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+				t.Fatalf("submit search zone election: %v", err)
+			}
+			continue
+		}
 		if d.Kind == decision.KChoose && d.ResumeKind == "dig" {
 			// A Dig look-and-take ask suspended mid-resolution (Jace, the
 			// Mind Sculptor's [+2] is the live shape: ChangeNum$ Any makes

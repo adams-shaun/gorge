@@ -94,18 +94,20 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	if pick == nil || pick.Kind != decision.KChoose || len(pick.Options) != 4 {
 		t.Fatalf("Hideaway pick = %+v, want four-card choice", pick)
 	}
-	// Exile the second card, then put the other three on the bottom in the
-	// answer's order. This resolves Spinerock Knoll's real Hideaway trigger.
+	// Exile the second card; the other three go to the bottom in a random
+	// order (CR 702.75a). This resolves Spinerock Knoll's real Hideaway trigger.
 	exiledID := pick.Options[1].Obj
+	rest := map[state.ObjID]bool{}
+	for i, o := range pick.Options {
+		if i != 1 {
+			rest[o.Obj] = true
+		}
+	}
 	if err := e2.Submit(decision.Intent{Seq: pick.Seq, Player: 0, Choices: []int{1}}); err != nil {
 		t.Fatalf("submit Hideaway pick: %v", err)
 	}
-	bottom := e2.Pending()
-	if bottom == nil || bottom.Kind != decision.KArrange || len(bottom.Options) != 3 {
-		t.Fatalf("Hideaway bottom order = %+v, want three-card arrangement", bottom)
-	}
-	if err := e2.Submit(decision.Intent{Seq: bottom.Seq, Player: 0, Choices: []int{2, 0, 1}}); err != nil {
-		t.Fatalf("submit Hideaway bottom order: %v", err)
+	if bottom := e2.Pending(); bottom != nil && bottom.Kind == decision.KArrange {
+		t.Fatalf("Hideaway asked for a bottom order %+v; CR 702.75a randomises it", bottom)
 	}
 	exiled := e2.G.Zone(state.ZExile, 0)
 	if len(exiled) != 1 || exiled[0] != exiledID {
@@ -126,10 +128,9 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 		t.Fatalf("opponent Hideaway view leaked its face: %+v", opponent)
 	}
 	lib := e2.G.Zone(state.ZLibrary, 0)
-	wantBottom := []state.ObjID{bottom.Options[2].Obj, bottom.Options[0].Obj, bottom.Options[1].Obj}
-	for i, id := range wantBottom {
-		if lib[len(lib)-len(wantBottom)+i] != id {
-			t.Fatalf("Hideaway bottom[%d] = %d, want %d", i, lib[len(lib)-len(wantBottom)+i], id)
+	for i, id := range lib[len(lib)-3:] {
+		if !rest[id] {
+			t.Fatalf("Hideaway bottom[%d] = %d, want one of the three unexiled looked-at cards", i, id)
 		}
 	}
 }
@@ -188,12 +189,8 @@ func TestPlayUsesRealCorpusCard(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: pick.Seq, Player: 0, Choices: []int{0}}); err != nil {
 		t.Fatalf("submit Hideaway pick: %v", err)
 	}
-	bottom := e.Pending()
-	if bottom == nil || bottom.Kind != decision.KArrange || len(bottom.Options) != 3 {
-		t.Fatalf("Hideaway bottom order = %+v, want three-card arrangement", bottom)
-	}
-	if err := e.Submit(decision.Intent{Seq: bottom.Seq, Player: 0, Choices: []int{0, 1, 2}}); err != nil {
-		t.Fatalf("submit Hideaway bottom order: %v", err)
+	if bottom := e.Pending(); bottom != nil && bottom.Kind == decision.KArrange {
+		t.Fatalf("Hideaway asked for a bottom order %+v; CR 702.75a randomises it", bottom)
 	}
 	if len(e.G.Zone(state.ZExile, 0)) != 1 {
 		t.Fatalf("Hideaway should exile one card, got %d", len(e.G.Zone(state.ZExile, 0)))

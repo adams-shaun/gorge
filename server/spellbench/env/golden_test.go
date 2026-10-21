@@ -52,7 +52,7 @@ func TestGoldensProtocolV2Unchanged(t *testing.T) {
 		t.Fatalf("digests.json: %v, %d entries, want 5", err, len(digests))
 	}
 	for _, f := range files {
-		s := env.New(testcorpus.Registry(t), nil)
+		s := env.NewForGoldens(testcorpus.Registry(t))
 		fh, err := os.Open(f)
 		if err != nil {
 			t.Fatal(err)
@@ -176,7 +176,7 @@ func playRecorded(reg *cards.Registry, i uint64, deck catalog.Deck, maxSteps uin
 		kinds[k] = true
 	}
 	h := &minihost.Host{RunSecret: make([]byte, 32),
-		Engine:   &recorder{inner: &minihost.EngineLink{S: env.New(reg, nil)}, to: "host_to_engine", from: "engine_to_host", recs: &recs},
+		Engine:   &recorder{inner: &minihost.EngineLink{S: env.NewForGoldens(reg)}, to: "host_to_engine", from: "engine_to_host", recs: &recs},
 		Profile:  validate.Profile{Kinds: kinds, Flags: observe.Flags, Extensions: map[string]bool{}},
 		MaxSteps: maxSteps, MaxDecisions: maxSteps}
 	agents := [2]minihost.Link{
@@ -268,7 +268,7 @@ func writeGoldens(t *testing.T, dir string) error {
 		}{"reset_first_decision_" + strings.ToLower(d.CatalogID), [][]byte{reset("r-1", "g-1", d.CatalogID, noExt)}})
 	}
 	for _, sc := range scenarios {
-		s := env.New(reg, nil)
+		s := env.NewForGoldens(reg)
 		var recs []record
 		for _, l := range sc.lines {
 			in := record{Dir: "host_to_engine", Message: l}

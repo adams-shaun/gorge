@@ -97,7 +97,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		if o := g.Obj(c.Source); o != nil {
 			chosenName = o.ChosenName
 		}
-		if _, found := g.NameUniverse.FirstByName(chosenName); !found {
+		if _, _, found := g.NameUniverse.FaceByName(chosenName); !found {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "Clone CopyFromChosenName$ has no matching named card in the universe; no copy"})
 			return
 		}
