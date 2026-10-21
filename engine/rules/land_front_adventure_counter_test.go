@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -106,6 +107,12 @@ func TestCounteredAdventureExiledIsNotPlayable(t *testing.T) {
 		}
 
 		driveToStep(t, e, 1, 0, state.StepMain2)
+		// Fund the recast's {1}{U}{U} in main2 itself: mana added in main1
+		// empties on the step change, and addMana would drive back to main1.
+		for _, r := range "CUU" {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: string(r), Amount: 1})
+		}
+		e.priorityRound()
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KPriority || d.Player != 0 {
 			t.Fatalf("expected seat 0's priority in main2, got %+v", d)
