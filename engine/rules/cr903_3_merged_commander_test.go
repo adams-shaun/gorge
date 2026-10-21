@@ -24,6 +24,12 @@ const mutateCmdSrc = "Name:Apex Tester\nManaCost:2 G\nTypes:Legendary Creature B
 // commander in the guard test.
 const mutateRiderSrc = "Name:Pile Rider\nManaCost:G\nTypes:Creature Beast\nPT:1/1\nK:Mutate:G\nOracle:x\n"
 
+// The two-commanders-in-one-pile pair: a legal commander PAIR (CR 903.13a
+// needs a Partner-family ability on both) that each carry Mutate, so one can
+// mutate onto the other and both cards end up in one pile.
+const mutateCmdPairASrc = "Name:Apex Tester\nManaCost:2 G\nTypes:Legendary Creature Beast\nPT:3/3\nK:Mutate:1 G\nK:Partner\nOracle:x\n"
+const mutateCmdPairBSrc = "Name:Second Apex\nManaCost:2 G\nTypes:Legendary Creature Beast\nPT:2/2\nK:Mutate:1 G\nK:Partner\nOracle:x\n"
+
 // mutatedCommanderGame casts seat 0's mutate commander from the command zone
 // onto a Mutate Bear seat 0 controls, on top or under, and returns the
 // engine, the commander's original object and the pile (the Bear's object).
@@ -141,5 +147,111 @@ func TestCR903_3bMeldedCommanderIsTheCommander(t *testing.T) {
 	src, name := askedCommanderCard(t, e, res)
 	if src != bruna || name != "Bruna, the Fading Light" {
 		t.Fatalf("CR 903.9a asked about %d %q, want Bruna (%d)", src, name, bruna)
+	}
+}
+
+// declineThenHostDiesAgain dies the melded permanent host, declines the
+// CR 903.9a ask for the commander card inside it, brings host back to the
+// battlefield and kills it alone. The commander card stayed in the graveyard
+// from the first death, so the second death is no new arrival of it.
+func declineThenHostDiesAgain(t *testing.T, e *Engine, host state.ObjID, wantName string) {
+	t.Helper()
+	src, name := askedCommanderCard(t, e, host)
+	if name != wantName {
+		t.Fatalf("first death asked about %q, want %q", name, wantName)
+	}
+	submit(t, e, 1) // decline: the commander card stays in the graveyard
+	if z := e.G.Obj(src).Zone; z != state.ZGraveyard {
+		t.Fatalf("declined commander card zone = %v, want graveyard", z)
+	}
+	e.pending = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: host, From: state.ZGraveyard, To: state.ZBattlefield})
+	if z := e.G.Obj(host).Zone; z != state.ZBattlefield {
+		t.Fatalf("host zone = %v, want battlefield (precondition: it re-entered)", z)
+	}
+	e.checkStateBased()
+	e.pending = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: host, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.checkStateBased()
+	if d := e.Pending(); d != nil && d.Kind == decision.KCommanderZone {
+		t.Fatalf("CR 903.9a re-asked about %d after the host alone died again; the commander card did not arrive with it", d.Source)
+	}
+}
+
+// TestCR903_3bDeclinedMeldPartnerIsNotAskedWhenTheHostDiesAgain: Bruna melds
+// into Brisela, Brisela dies, the player declines, Gisela returns and dies.
+func TestCR903_3bDeclinedMeldPartnerIsNotAskedWhenTheHostDiesAgain(t *testing.T) {
+	t.Parallel()
+	e, _ := cmdZoneGame(t, [][]string{{corpusCardText(t, "b/bruna_the_fading_light.txt")}, {}})
+	bruna := fieldCommander(t, e, 0, 0)
+	gisela := onBoardCard(t, e, 0, corpusCard(t, "Gisela, the Broken Blade"))
+	if _, ok := effects.Meld(e, 0, gisela, bruna, state.MeldOptions{ResultName: "Brisela, Voice of Nightmares"}); !ok {
+		t.Fatal("meld failed")
+	}
+	declineThenHostDiesAgain(t, e, gisela, "Bruna, the Fading Light")
+}
+
+// TestCR903_3cBothCommandersInOnePileAreAsked: a commander mutated ON TOP of
+// another commander makes one pile carrying BOTH commander cards (the top
+// card's object is itself a commander, the demoted under-card is the other).
+// The pile's damage is commander damage, and on its death both cards are
+// offered the command zone: the under-card through the split scan, the top
+// card through its own commander identity.
+func TestCR903_3cBothCommandersInOnePileAreAsked(t *testing.T) {
+	t.Parallel()
+	e, _ := cmdZoneGame(t, [][]string{{mutateCmdPairASrc, mutateCmdPairBSrc}, {}})
+	e.Advance()
+	driveToStep(t, e, 1, 0, state.StepMain1)
+	cz := e.G.Zone(state.ZCommand, 0)
+	if len(cz) != 2 {
+		t.Fatalf("command zone = %v, want both commanders parked", cz)
+	}
+	under := fieldCommander(t, e, 0, 0)
+	top := e.G.Zone(state.ZCommand, 0)[0] // the second commander stays parked
+	addMana(t, e, 0, "GG")
+	mutateCastOnto(t, e, mutatedCastOption(t, e, top), under, true)
+	pile := e.G.Obj(under)
+	if pile == nil || pile.Zone != state.ZBattlefield || pile.Face().Name != "Second Apex" || len(pile.MergedCards) != 1 {
+		t.Fatalf("pile after the mutate = %+v, want Second Apex on top of one under-card", pile)
+	}
+	swing(t, e, under)
+	// The pile is the SECOND commander (the mutate rekey moved the top card's
+	// entry onto the pile object), so its damage lands in that slot.
+	if got := e.G.Players[1].CmdDamage[1]; got != 2 || got != e.Power(under) {
+		t.Errorf("commander damage after the pile hit = %d, want its power %d", got, e.Power(under))
+	}
+	if e.G.Players[1].CmdDamage[0] != 0 {
+		t.Errorf("the other commander's damage slot = %d, want 0", e.G.Players[1].CmdDamage[0])
+	}
+	e.pending = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: under, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.checkStateBased()
+	var asked []string
+	for {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KCommanderZone {
+			break
+		}
+		o := e.G.Obj(d.Source)
+		if o == nil || o.Face() == nil {
+			t.Fatalf("ask source %d is not a card: %+v", d.Source, o)
+		}
+		asked = append(asked, o.Face().Name)
+		submitChoices(t, e, 0) // accept
+	}
+	if len(asked) != 2 {
+		t.Fatalf("CR 903.9a asked %q (2 asks), want both commander cards", asked)
+	}
+	if asked[0] != "Apex Tester" || asked[1] != "Second Apex" {
+		t.Errorf("CR 903.9a asked %q, want the under-card Apex Tester then the top Second Apex", asked)
+	}
+	got := e.G.Zone(state.ZCommand, 0)
+	if len(got) != 2 {
+		t.Fatalf("command zone = %v, want both commander cards back", got)
+	}
+	for _, id := range got {
+		if n := e.G.Obj(id).Face().Name; n != "Apex Tester" && n != "Second Apex" {
+			t.Errorf("command zone holds %q, want only the two commander cards", n)
+		}
 	}
 }

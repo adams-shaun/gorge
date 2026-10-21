@@ -160,16 +160,14 @@ func (e *Engine) collectCommanderArrivals() {
 		if ev.Kind != events.MoveZone || (ev.To != state.ZGraveyard && ev.To != state.ZExile) {
 			continue
 		}
-		if !e.isCommander(ev.Obj) {
-			// CR 903.3b-c: a commander card that left the battlefield inside
-			// a melded or mutated permanent moved with that permanent's
-			// MoveZone (events.Move's SplitFrom stamp), not with one of its own.
-			if ev.From == state.ZBattlefield {
-				e.collectSplitCommanders(ev.Obj, ev.To)
-			}
-			continue
+		// CR 903.3b-c: a commander card that left the battlefield inside a
+		// melded or mutated permanent moved with that permanent's MoveZone
+		// (events.Move's SplitFrom stamp), not with one of its own. The
+		// permanent may itself be a commander (a partner pair in one pile).
+		if ev.From == state.ZBattlefield {
+			e.collectSplitCommanders(ev.Obj, ev.To)
 		}
-		if slices.Contains(e.cmdZoneDue, ev.Obj) {
+		if !e.isCommander(ev.Obj) || slices.Contains(e.cmdZoneDue, ev.Obj) {
 			continue
 		}
 		e.cmdZoneDue = append(e.cmdZoneDue, ev.Obj)
@@ -179,11 +177,18 @@ func (e *Engine) collectCommanderArrivals() {
 
 // collectSplitCommanders queues, in seat then Commanders order, every
 // commander card now in zone to whose last move was as a component of the
-// departed permanent from (Object.SplitFrom).
+// departed permanent from (Object.SplitFrom) in its CURRENT departure: the
+// stamp's SplitInc must equal from's Incarnation, so a commander left in the
+// zone by an earlier departure (declined, then from reanimated and dying
+// again) is not asked about a second time.
 func (e *Engine) collectSplitCommanders(from state.ObjID, to state.Zone) {
+	h := e.G.Obj(from)
+	if h == nil {
+		return
+	}
 	for p := range e.G.Players {
 		for _, c := range e.G.Players[p].Commanders {
-			if o := e.G.Obj(c); o != nil && o.SplitFrom == from && o.Zone == to && !slices.Contains(e.cmdZoneDue, c) {
+			if o := e.G.Obj(c); o != nil && o.SplitFrom == from && o.SplitInc == h.Incarnation && o.Zone == to && !slices.Contains(e.cmdZoneDue, c) {
 				e.cmdZoneDue = append(e.cmdZoneDue, c)
 			}
 		}

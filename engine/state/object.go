@@ -1702,6 +1702,13 @@ type Object struct {
 	// means the card's last move was its own.
 	SplitFrom ObjID
 
+	// SplitInc is SplitFrom's Incarnation as of that departure (after the
+	// battlefield-leaving advance), so the card's arrival is attributable to
+	// THAT departure only: a host that re-enters and leaves again has a
+	// larger Incarnation and no longer matches. Meaningful only with a
+	// nonzero SplitFrom; cleared with it.
+	SplitInc uint32
+
 	IsMyriad bool
 
 	// CopyMayChooseTarget is CR 707.10c's new-target permission for ONE copy
@@ -1788,7 +1795,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [6]byte
+	_ [2]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
