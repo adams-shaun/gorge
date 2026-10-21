@@ -13,12 +13,10 @@ import (
 )
 
 // Mulligan is the London-mulligan rule the guard answers keep/mulligan and
-// bottoming asks with (botpolicy.MulliganConstructed, measured in the
-// 2026-10-09 evaluation, "Mulligan" section). The coin the unwrapped `bot`
-// and `sb-tactical` fall back to mulligans a third of all hands whatever
-// they hold, and loses about two points to this rule. The guard answers the
-// ask itself and does not consult the wrapped seat, so no rng is drawn.
-const Mulligan = botpolicy.MulliganConstructed
+// bottoming asks with: botpolicy.MulliganForge, Forge's own keep/bottom rule
+// (FORGE-M1). The guard answers the ask itself and does not consult the
+// wrapped seat, so no rng is drawn.
+const Mulligan = botpolicy.MulliganForge
 
 // answerMulligan answers a KMulligan ask under rule from the deciding seat's
 // own board; ok is false for any other decision or a shape the rule leaves to
@@ -38,7 +36,8 @@ func answerMulligan(b func() botpolicy.Board, d *decision.Decision, rule botpoli
 	return in, true
 }
 
-// Wrap decorates inner with the guard answering mulligans under Mulligan. The
+// Wrap decorates inner with the guard answering mulligans under Mulligan
+// (MulliganForge). The
 // wrapper keeps inner's surfaces: a BoardSeat inner stays a BoardSeat (the
 // host still hands it the Board, never a View), an EnvSeat inner stays an
 // EnvSeat and RefusalAnswerer, and the payment opt-in is delegated. It also
@@ -48,8 +47,8 @@ func answerMulligan(b func() botpolicy.Board, d *decision.Decision, rule botpoli
 func Wrap(inner seat.Seat) seat.Seat { return WrapMulligan(inner, Mulligan) }
 
 // WrapMulligan is Wrap with the London-mulligan rule chosen by the caller, so
-// a policy whose mulligan differs from the guard's default (forge-heuristic's
-// MulliganForge) is not silently overridden by the common-sense wrap.
+// a policy whose mulligan differs from the guard's default is not silently
+// overridden by the common-sense wrap.
 func WrapMulligan(inner seat.Seat, rule botpolicy.MulliganRule) seat.Seat {
 	base := guarded{inner: inner, mulligan: rule}
 	if _, ok := inner.(heuristic.BoardSeat); ok {
