@@ -749,19 +749,25 @@ func ManaCostChroma(s string, colour uint8) int32 {
 
 // parsePT splits a printed P/T ("2/2") into power and toughness. A face with
 // no P/T yields 0,0 and flag false; a face whose P/T carries a
-// characteristic-defining value ("*", "1+*") yields 0 for the affected side
-// (exactly what pt used to return) and sets the flag, because layer 7a owns
-// that value.
+// characteristic-defining value sets the flag, because layer 7a owns that
+// value, and yields the side's value with the star read as 0 (CR 208.2a):
+// "*" is 0 and "1+*", "7-*" and "*+1" are their fixed term -- what the
+// creature is when no CDA applies (Tarmogoyf that lost all abilities is 0/1).
+// Forge's CardFace.parsePT normalises the same way.
 func parsePT(pt string) (pow, tgh int32, cd bool) {
 	parts := strings.SplitN(pt, "/", 2)
 	if len(parts) != 2 {
 		return 0, 0, false
 	}
 	for i, s := range parts {
-		n, err := strconv.Atoi(strings.TrimSpace(s))
+		s = strings.TrimSpace(s)
+		n, err := strconv.Atoi(s)
 		if err != nil {
 			cd = true
-			continue // 0 for this side; layer 7a owns characteristic-defining values
+			var ok bool
+			if n, ok = starTerm(s); !ok {
+				continue // a side outside the star shapes stays 0
+			}
 		}
 		if i == 0 {
 			pow = int32(n)
@@ -770,6 +776,34 @@ func parsePT(pt string) (pow, tgh int32, cd bool) {
 		}
 	}
 	return pow, tgh, cd
+}
+
+// starTerm is a starred P/T side with the star read as 0 (CR 208.2a): a bare
+// "*" is 0, and "N+*", "N-*" and "*+N" are N. Any other text reports false.
+// It is a hand scan, not a strings/strconv call (internal/codeshape's
+// ratchet on engine/cards has no headroom).
+func starTerm(s string) (int, bool) {
+	switch {
+	case s == "*":
+		return 0, true
+	case len(s) > 2 && s[len(s)-1] == '*' && (s[len(s)-2] == '+' || s[len(s)-2] == '-'):
+		return ptDigits(s[:len(s)-2])
+	case len(s) > 2 && s[0] == '*' && s[1] == '+':
+		return ptDigits(s[2:])
+	}
+	return 0, false
+}
+
+// ptDigits parses a non-empty run of decimal digits.
+func ptDigits(s string) (int, bool) {
+	n := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return 0, false
+		}
+		n = n*10 + int(s[i]-'0')
+	}
+	return n, s != ""
 }
 
 // cmcFromManaCost is cards' own conversion of a printed ManaCost string to a
