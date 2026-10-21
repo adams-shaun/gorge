@@ -10,6 +10,7 @@
 package trigmatch
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -385,41 +386,83 @@ func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player 
 // ability you control for the first time each turn", Seedglaive Mentor, the
 // Emberheart Challenger family): true when no EARLIER TargetsChosen event
 // this turn named the same object (or player) with a targeting spell or
-// ability whose stack object the trigger's controller put on the stack.
-// Unlike firstTimeTargetedThisTurn, the count is per CONTROLLER (the
-// ability-word condition reads "you control" inside the once-each-turn
-// clause, and XMage's ValiantTriggeredAbility and Forge's Card.isValiant
-// both check the first-time condition per controller): an opponent's
-// targeting neither fires nor disarms.
+// ability the trigger's controller controls. Unlike firstTimeTargetedThisTurn,
+// the count is per CONTROLLER (the ability-word condition reads "you control"
+// inside the once-each-turn clause; Forge's TriggerBecomesTarget.Valiant /
+// Card.isValiant is the per-controller reference -- XMage's
+// BecomesTargetSourceFirstTimeTriggeredAbility is a different, count-all-
+// targetings shape): an opponent's targeting neither fires nor disarms.
 //
 // Same replay-stable backwards log scan as firstTimeTargetedThisTurn -- no
 // new event kind, no engine field, survives Clone -- stopping at
-// TurnChange. The controller of the earlier targeting is read as its stack
-// object's OWNER: the scan runs while the targeting object may already have
-// left the stack (a resolution, counter or fizzle resets Controller to
-// Owner, CR 400.7's control reset), and the fold mints a stack object with
-// the player who put it there (PutOnStack the caster, AbilityPush the
-// activator), which is exactly the controller "you control" names except
-// for an on-stack control change (the current event's own source match
-// still reads the live Controller). Events recorded for the same stack
-// object ev.Obj are the SAME targeting (a spell's later target groups, the
-// event itself when the log already holds it) and never count as an earlier
-// time, matching firstTimeTargetedThisTurn. An event with no stack object
-// (a hand-built fixture emit) names no controller and is skipped.
+// TurnChange. The controller of the earlier targeting is read from
+// replay-derived state (stackObjControllerAt), not from the stack object's
+// live Controller or a spell card's Owner: the scan runs while the targeting
+// object may already have left the stack (a resolution, counter or fizzle
+// resets Controller to Owner, CR 400.7's control reset), a spell card's Owner
+// is the card's owner and never the caster (a spell cast from a card its
+// caster does not own -- Gonti's taken card -- would misread), and the fold
+// mints an ability's stack object with the player who put it there as its
+// Owner (PutOnStack the caster, AbilityPush the activator). An on-stack
+// control change after the mint is the one shape the derivation cannot see
+// for a spell; the current event's own source match still reads the live
+// Controller, and no corpus Valiant line pairs with a spell-steal effect.
+//
+// Per-spell dedupe (Forge fires Valiant once per targeting spell, its
+// distinct-target check): an EARLIER TargetsChosen of the SAME stack object
+// that names the same target and was yours rejects this event too -- a
+// spell's later target group or a second modal answer re-naming the creature
+// is still the same spell targeting it once. firstTimeTargetedThisTurn keeps
+// the plain skip instead: FirstTime$ is a per-OBJECT count and the corpus
+// lines it answers all fire per targeting event (a multi-clause spell may
+// fire it once per clause, the reading its landed cases pin). The event
+// itself never counts: the matcher runs inside the event's own emit, so the
+// log's last entry is this very event whenever it is already appended
+// (emit's fold appends before checkTriggers; checkTriggers is only ever
+// re-entered with a TargetsChosen synchronously, so no later event can
+// precede the scan) and the skip matches it by its identifying fields.
+// An event with no stack object (a hand-built fixture emit) names no
+// controller and is skipped.
 func valiantFirstTimeTargetedByYouThisTurn(e Board, ev events.Event, id state.ObjID, player bool, you state.PlayerID) bool {
-	for i := len(e.Log().Events) - 1; i >= 0; i-- {
-		le := e.Log().Events[i]
+	log := e.Log().Events
+	skipLast := false
+	if n := len(log); n > 0 {
+		last := log[n-1]
+		skipLast = last.Kind == ev.Kind && last.Obj == ev.Obj &&
+			last.Amount == ev.Amount && last.Player == ev.Player &&
+			slices.Equal(last.IDs, ev.IDs)
+	}
+	for i := len(log) - 1; i >= 0; i-- {
+		if i == len(log)-1 && skipLast {
+			continue
+		}
+		le := log[i]
 		if le.Kind == events.TurnChange {
 			return true
 		}
-		if le.Kind != events.TargetsChosen || (ev.Obj != 0 && le.Obj == ev.Obj) {
+		if le.Kind != events.TargetsChosen || le.Obj == 0 {
 			continue
 		}
-		if le.Obj == 0 {
+		caster, ok := stackObjControllerAt(e, le.Obj, i)
+		if !ok || caster != you {
 			continue
 		}
-		o := e.Game().Obj(le.Obj)
-		if o == nil || o.Owner != you {
+		if ev.Obj != 0 && le.Obj == ev.Obj {
+			// The same spell or ability instance: only an earlier group
+			// naming the SAME target rejects this one (the per-spell dedupe
+			// above); a group naming another target is no first time for it
+			// either way.
+			if player {
+				if (le.Amount == 1 || le.Amount == 3) && le.Player == ev.Player {
+					return false
+				}
+			} else {
+				for _, t := range le.IDs {
+					if t == id {
+						return false
+					}
+				}
+			}
 			continue
 		}
 		if player {
@@ -435,6 +478,35 @@ func valiantFirstTimeTargetedByYouThisTurn(e Board, ev events.Event, id state.Ob
 		}
 	}
 	return true
+}
+
+// stackObjControllerAt answers, off replay-derived state only, the player
+// who controlled the stack object while it sat on the stack. PutOnStack is
+// the one mint kind whose Obj IS the stack object (the card itself moved),
+// and its Player is the caster, so the log answers for spells directly --
+// including a spell cast from a card its caster does not own, whose object
+// Owner is the card's owner and would misread (Gonti's taken card). Every
+// other mint (AbilityPush/KeywordAbilityPush/GainedAbilityPush/GrantAbilityPush,
+// the TriggerPush family, DelayedPush, StackCopy) names its SOURCE on Obj and
+// the fold mints the stack object itself with the minting player as its
+// Owner (foldAbilityPush's AddObject(nil, e.Player) shape); that Owner is
+// the activator/trigger-controller/copier and, unlike a spell card's, is
+// never re-pointed afterwards (a Move's CR 400.7 reset re-derives Controller
+// from it), so the live object answers for those. No evidence at all (a
+// hand-built fixture id the log never pushed) reports not found, and the
+// caller skips the event.
+func stackObjControllerAt(e Board, obj state.ObjID, before int) (state.PlayerID, bool) {
+	log := e.Log().Events
+	for i := before; i >= 0; i-- {
+		if le := log[i]; le.Obj == obj && le.Kind == events.PutOnStack {
+			return le.Player, true
+		}
+	}
+	o := e.Game().Obj(obj)
+	if o == nil {
+		return 0, false
+	}
+	return o.Owner, true
 }
 
 // becomesTargetOnceMatches implements Mode$ BecomesTargetOnce (Forge's
