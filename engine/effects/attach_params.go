@@ -97,7 +97,7 @@ var attachKnownKeys = [...]string{
 	"Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
 	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
-	"NewController", "Object",
+	"NewController", "NonBasicSpell", "Object",
 	"OpponentTurn", "Optional", "Origin", "Planeswalker", "PlayCost", "PlayerChoices",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberAttached",

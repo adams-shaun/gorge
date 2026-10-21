@@ -197,16 +197,6 @@ func effAddTurn(h Host, c *Ctx, sa *cards.SA) {
 			phase = p
 		}
 	}
-	// NonBasicSpell$ True (Alchemist's Gambit's cleave leg): Forge marks the
-	// alternate-cost cast as NONBASIC — the bracketed words are removed, and
-	// rules that key on the basic cast (the "cast a spell" triggers that
-	// inspect what was cast) see the reduced spell. This build applies no
-	// rule that distinguishes a nonbasic cast yet, so the read documents the
-	// marker with the Note the MayChooseTarget$ precedent gates.
-	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKNonBasicSpell)), "True") {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: player,
-			Text: "cast nonbasic (cleave): bracketed words removed"})
-	}
 	h.Emit(events.Event{Kind: events.ExtraTurn, Player: player, Amount: n,
 		Obj: c.Source, Counter: sa.ParamStr(cards.PKExtraTurnDelayedTriggerExecute), Text: text,
 		IDs: []state.ObjID{state.ObjID(phase)}})

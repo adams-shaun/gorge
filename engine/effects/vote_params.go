@@ -75,7 +75,7 @@ var voteKnownKeys = [...]string{
 	"DefinedTarget", "Description", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW",
 	"Keyword", "KeywordLine", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor",
-	"ModeCost", "Monstrosity", "NewController", "OpponentTurn", "Planeswalker",
+	"ModeCost", "Monstrosity", "NewController", "NonBasicSpell", "OpponentTurn", "Planeswalker",
 	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana",
 	"RememberObjects", "RememberTargets", "RememberVotedObjects", "ReplaceColor", "ReplaceGraveyard",
