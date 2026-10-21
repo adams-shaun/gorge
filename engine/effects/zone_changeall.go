@@ -155,6 +155,15 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	}
 	to := cza.Destination
 	spec := changeZoneAllTypeLimitSpec(cza.ChangeType)
+	// A sweep that never reads the battlefield reads a leading Permanent base
+	// as Forge's "permanent card" (permanentCardSpec, the Dig/search rule):
+	// Karn Liberated's "non-Aura permanent cards exiled with Karn", Pyxis of
+	// Pandemonium's "permanent cards exiled with Pyxis". The bare base means
+	// an on-the-battlefield object and matched nothing in exile or a
+	// graveyard.
+	if !slices.Contains(from, state.ZBattlefield) {
+		spec = permanentCardSpec(spec)
+	}
 	// ChangeType$ Card.TriggeredCards (Hedge Shredder's "Whenever one or more
 	// land cards are put into your graveyard from your library, put them onto
 	// the battlefield tapped", Toluz, Clever Conductor's exile sweep): the
