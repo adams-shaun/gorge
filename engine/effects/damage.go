@@ -481,12 +481,14 @@ func excessConditionHolds(h Host, c *Ctx, cond string, o *state.Object) bool {
 // effFight implements "SP$/AB$/DB$ Fight" (CR 701.14). fightPairs names the
 // pairs of creatures that fight; each creature of a pair deals damage equal
 // to its power to the other (CR 701.14a), and a creature that fights itself
-// deals twice its power to itself, as one hit (CR 701.14c). Every hit of the
-// exchange is emitted inside ONE BeginDamageBatch/EndDamageBatch bracket so
-// DamageDealtOnce/DamageDoneOnce triggers latch the whole exchange the way
-// effDealDamage's multi-target batch does. Fight damage is not combat damage
-// (CR 701.14d): the effects-path EmitDamage is non-combat, and Fight is
-// never routed through rules' combat step.
+// deals twice its power to itself, as one hit (CR 701.14c). The hits are
+// simultaneous: every hit's amount is read before ANY hit lands, so an
+// infect or wither hit's -1/-1 counters never shrink the hit back (Boggart
+// Ram-Gang), and every hit is emitted inside ONE BeginDamageBatch/
+// EndDamageBatch bracket so DamageDealtOnce/DamageDoneOnce triggers latch the
+// whole exchange the way effDealDamage's multi-target batch does. Fight
+// damage is not combat damage (CR 701.14d): the effects-path EmitDamage is
+// non-combat, and Fight is never routed through rules' combat step.
 //
 // Each hit's source is the FIGHTING CREATURE, not the resolving spell or
 // ability (CR 701.14a, "each of those creatures deals damage"): see
@@ -506,20 +508,35 @@ func effFight(h Host, c *Ctx, sa *cards.SA) {
 	fightUnreadNote(h, c, sa, "ExcessSVar")
 	fightUnreadNote(h, c, sa, "ExcessSVarCondition")
 	pairs := fightPairs(h, c, sa)
+	hits := make([]fightHit, 0, 2*len(pairs))
+	for _, p := range pairs {
+		if p[0] == p[1] {
+			hits = append(hits, fightHit{src: p[0], dst: p[0], amount: 2 * h.Power(p[0])})
+			continue
+		}
+		hits = append(hits, fightHit{src: p[0], dst: p[1], amount: h.Power(p[0])},
+			fightHit{src: p[1], dst: p[0], amount: h.Power(p[1])})
+	}
 	h.BeginDamageBatch()
 	var dying []state.Target
 	defer func() { registerReplaceDying(h, c, replaceDyingParam(sa), dying) }()
+	for _, x := range hits {
+		emitFightHit(h, x.src, x.dst, x.amount)
+	}
 	for _, p := range pairs {
-		if p[0] == p[1] {
-			emitFightHit(h, p[0], p[0], 2*h.Power(p[0]))
-			dying = append(dying, state.Target{Obj: p[0]})
-			continue
+		dying = append(dying, state.Target{Obj: p[0]})
+		if p[1] != p[0] {
+			dying = append(dying, state.Target{Obj: p[1]})
 		}
-		emitFightHit(h, p[0], p[1], h.Power(p[0]))
-		emitFightHit(h, p[1], p[0], h.Power(p[1]))
-		dying = append(dying, state.Target{Obj: p[0]}, state.Target{Obj: p[1]})
 	}
 	h.EndDamageBatch()
+}
+
+// fightHit is one direction of a fight: src deals amount to dst. amount is
+// read before any hit of the exchange lands (CR 701.14a).
+type fightHit struct {
+	src, dst state.ObjID
+	amount   int32
 }
 
 // fightPairs resolves the creatures a Fight instructs to fight, by the SA's
@@ -663,6 +680,7 @@ func fightRider(h Host, fighter state.ObjID, amount int32) damageRider {
 	return damageRider{h: h, source: source, controller: controller,
 		amount: amount, hasLifelink: h.HasKeyword(source, "Lifelink"),
 		hasInfect:     h.HasKeyword(source, "Infect"),
+		hasWither:     h.HasKeyword(source, "Wither"),
 		hasDeathtouch: h.HasKeyword(source, "Deathtouch")}
 }
 
