@@ -375,13 +375,13 @@ func TestDragonsFirePlainDealsThree(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestRevealOrChooseChooseArmIsNotInheritedByAStackCopy pins the copy
-// boundary for the new scratch state: the chosen permanent is recorded on the
-// cast's own stack object in e.castRevealed, so a StackCopy -- which paid no
-// cost -- reads an EMPTY paid list and deals zero, exactly like the reveal
-// arm's existing copy test. The original is moved off the stack first so only
-// the copy resolves.
-func TestRevealOrChooseChooseArmIsNotInheritedByAStackCopy(t *testing.T) {
+// TestRevealOrChooseChooseArmIsInheritedByAStackCopy pins the copy boundary
+// for the new scratch state: the chosen permanent is recorded on the cast's
+// own stack object in e.castRevealed, and a StackCopy -- which paid no cost --
+// still uses the objects that paid the ORIGINAL's costs (CR 707.10), so it
+// reads the chosen Hill Giant and deals 3, exactly like the reveal arm's copy
+// test. The original is moved off the stack first so only the copy resolves.
+func TestRevealOrChooseChooseArmIsInheritedByAStackCopy(t *testing.T) {
 	t.Parallel()
 	e, _ := revealChooseEngine(t, []string{"Monstrous Emergence", "Hill Giant"}, []string{"Ancient Brontodon"})
 	chosen := paidCostMoveTo(t, e, 0, "Hill Giant", state.ZBattlefield)
@@ -405,15 +405,15 @@ func TestRevealOrChooseChooseArmIsNotInheritedByAStackCopy(t *testing.T) {
 	if copyID == spell {
 		t.Fatal("precondition: StackCopy must mint a new object")
 	}
-	if len(e.castRevealed[copyID]) != 0 {
-		t.Fatalf("copy inherited the chosen-arm paid list %v", e.castRevealed[copyID])
+	if got := e.castRevealed[copyID]; len(got) != 1 || got[0] != chosen {
+		t.Fatalf("copy chosen-arm paid list = %v, want [%d] (inherited from the original, CR 707.10)", got, chosen)
 	}
 	// Counter the original so only the copy's resolution is observed.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spell, From: state.ZStack, To: state.ZGraveyard, Text: "countered"})
 	passUntilStackEmpty(t, e, 30)
 
-	if got := e.G.Obj(receiver).Damage; got != 0 {
-		t.Fatalf("copy dealt %d damage, want 0 (a copy paid no choose cost)", got)
+	if got := e.G.Obj(receiver).Damage; got != 3 {
+		t.Fatalf("copy dealt %d damage, want 3 (the original's chosen Hill Giant)", got)
 	}
 }
 
