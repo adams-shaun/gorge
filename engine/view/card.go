@@ -112,6 +112,9 @@ type CardView struct {
 	// ranking. Only meaningful when PumpPower or PumpToughness is
 	// positive; a false answer there means "not a pump the rule governs".
 	PumpOwn bool `json:"pump_own_combatants,omitempty"`
+	// CombatTrick reports whether the primary spell ability is a combat
+	// trick (effects.CastCombatTrick).
+	CombatTrick bool `json:"combat_trick,omitempty"`
 	// PlayMain1 is the canonical Forge `SVar:PlayMain1` timing hint:
 	// "ALWAYS", "TRUE" (cast in the first main while the caster controls a
 	// creature) or "OPPONENTCREATURES" (while an opponent does), and "" for
@@ -705,6 +708,7 @@ func (p *projector) cardView(cv *CardView, id state.ObjID) {
 			cv.RemovalDamage = effects.CastRemovalDamage(sa)
 			cv.PumpPower, cv.PumpToughness = effects.CastPumpBonus(sa)
 			cv.PumpOwn = effects.CastPumpOwnCombatants(sa)
+			cv.CombatTrick = effects.CastCombatTrick(sa)
 			cv.AuraLogic = effects.CastAuraLogic(f)
 		}
 		// The mana-production projection (Task dp2): what tapping this card

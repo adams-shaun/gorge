@@ -26,10 +26,16 @@ type TimingRules struct {
 	// lets one kill an opposing creature that would otherwise survive, or
 	// makes an unblocked attack lethal.
 	PumpInCombat bool
+	// HoldInstant holds an instant-speed card outside the windows where it
+	// is worth casting: an opponent's top of stack, an opponent's main 2 or
+	// end step, or a combat trick during combat.
+	HoldInstant bool
 }
 
 // Enabled reports whether any A6 timing rule is armed.
-func (r TimingRules) Enabled() bool { return r.CounterTop || r.DrawTokenLate || r.PumpInCombat }
+func (r TimingRules) Enabled() bool {
+	return r.CounterTop || r.DrawTokenLate || r.PumpInCombat || r.HoldInstant
+}
 
 // counterSkipCMC is the mana value the counter rule refuses: Forge counters
 // a CMC-1 spell only 30% of the time, so the deterministic reading holds
@@ -64,7 +70,29 @@ func (b Board) timingNow(d *decision.Decision, o decision.Option) bool {
 			return false
 		}
 	}
+	if b.Timing.HoldInstant && !b.instantNow(d, c) {
+		return false
+	}
 	return true
+}
+
+func (b Board) instantNow(d *decision.Decision, c Card) bool {
+	if !c.InstantSpeed || c.Land {
+		return true
+	}
+	if b.lethalFace(d.Player, c) {
+		return true
+	}
+	if top, ok := b.stackTop(0); ok && top.Controller != d.Player {
+		return true
+	}
+	if c.Counter {
+		return false
+	}
+	if !b.MyTurn && (b.Step == state.StepMain2 || b.Step == state.StepEnd) {
+		return true
+	}
+	return c.CombatTrick && b.Step >= state.StepDeclareBlockers && b.Step <= state.StepEndCombat
 }
 
 // isTimedPump reports whether c is a castable instant-speed creature pump
@@ -265,7 +293,8 @@ func (b Board) castHeld(d *decision.Decision, id state.ObjID) bool {
 func (b Board) timedCard(c Card) bool {
 	return b.Timing.CounterTop && c.Counter ||
 		b.Timing.DrawTokenLate && c.InstantSpeed && (c.Draw || c.Token) ||
-		b.Timing.PumpInCombat && b.isTimedPump(c)
+		b.Timing.PumpInCombat && b.isTimedPump(c) ||
+		b.Timing.HoldInstant && c.InstantSpeed
 }
 
 // timedTap is the out-of-main tap gate for the timing rules. It is the

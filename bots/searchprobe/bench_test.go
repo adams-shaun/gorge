@@ -217,7 +217,7 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// precedes its first decision, so the captured frames' stack moves.
 		// Measured after: frames 126, attempts 64, accepted 4, worlds 8, ESS 4
 		// (land exclusion: accepted 25, ESS 25).
-		{"pre-optimisation sampler", true, "5cbca69d2b2d9c0f271447fcbb93ac66a407a107c66d670d5a3e7b3d8be9cf2a"},
+		{"pre-optimisation sampler", true, "1e7df4d6ca1595dd000618c11501418d3e7879612ae105d2cde94b8134e1727b"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
@@ -225,7 +225,7 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// again for the damage-provenance fact (see above); see the
 		// pre-optimisation entry for the archetype-posterior re-measure.
 		// Re-measured for cr-g67b (CR 602.2a): frames 126, accepted 25, ESS 25.
-		{"land exclusion", false, "e13d17d9eb931450f0855efeba1489b08407f9c4f99834498d1b6f786acff1ff"},
+		{"land exclusion", false, "bba783b430332248182a73dc58e3dba12c31bea0d4d0556b28b592d66318cc76"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -474,7 +474,7 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// Re-measured for cr-g67b (CR 602.2a): the captured frames' stack moves
 	// when an activation's mint precedes its first decision, so the teacher's
 	// decoded frames and rollouts move with them.
-	const want = "05186f6f906ecc08f3dc803cd0cdfbddb77b1963cdb67dbf45dd890954f62599"
+	const want = "52f8e0b29b017f836f4649fcd00c5ac4516c84cb464c8bfec88012358114faba"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {
