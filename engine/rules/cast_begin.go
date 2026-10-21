@@ -411,6 +411,15 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 				cost = c
 			}
 		}
+	case castModeCleaved:
+		// Cleave (CR 702.148a, engine/rules/cleave.go): the cleave ability's
+		// Cost$ in place of the mana cost, through the ONE reader the offer
+		// gate used. A stale option whose cleave ability is gone falls back
+		// to the empty cost like the keyword family above.
+		cost = Cost{}
+		if c, ok := e.cleaveCost(f); ok {
+			cost = c
+		}
 	case castModeWebSlinging:
 		// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the
 		// web-slinging cost replaces the mana cost AND the composed Cost
@@ -1248,6 +1257,7 @@ const (
 	castModeEmerged
 	castModeLand
 	castModeOptionalcost
+	castModeCleaved
 )
 
 var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
@@ -1294,6 +1304,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	// the dispatch code, so the cost-composition election derives from the
 	// table and not an eighth `== "optionalcost"` literal compare.
 	state.StrEntry[castModeCode]{Key: "optionalcost", Val: castModeOptionalcost},
+	state.StrEntry[castModeCode]{Key: castModeCleavedWord, Val: castModeCleaved},
 }, append(altCastModeEntries(),
 	// The Bargain row's mode word lives in rules/optional_sacrifice.go.
 	state.StrEntry[castModeCode]{Key: optionalSacrifices[optSacBargain].mode, Val: castModeBargained})...)...)

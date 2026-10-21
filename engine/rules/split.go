@@ -81,6 +81,13 @@ func (e *Engine) castStageSA(pc *pendingCast, o *state.Object, f *cards.Face) *c
 		return nil
 	}
 	sa := f.SpellAbility()
+	if pc.mode == castModeCleavedWord {
+		// Cleave (CR 702.148a): the cleaved cast targets with the
+		// bracket-free cleave ability (engine/rules/cleave.go).
+		if csa := cleaveSA(f); csa != nil {
+			sa = csa
+		}
+	}
 	if sa == nil && altCastIs(pc.mode, altBestow) {
 		sa = bestowedAttachSA()
 	}

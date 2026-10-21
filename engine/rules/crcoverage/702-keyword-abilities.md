@@ -208,7 +208,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.145 | not-impl | - | - | LOUD: Daybound/Nightbound unregistered, 0/36 carriers playable |
 | 702.146 | not-impl | - | - |  |
 | 702.147 | follows | `engine/rules/combat/restrictions.go#ParseHiddenKeyword` `engine/rules/trigger_granted.go#Engine.checkGrantedAttackKeywordTriggers` | `TestDecayedCannotBlock` `TestDecayedCounterGrantsBothRules` | Can't block |
-| 702.148 | not-impl | `engine/cards/face.go#Face.SpellAbility` | - | SILENT (D4, cr-g35): second SP ignored; cleave cast never offered, carriers count playable |
+| 702.148 | follows | `engine/rules/cleave.go#cleaveSA` `engine/rules/cleave.go#stackSpellSA` `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | `TestCR702_148aPathOfPerilCleaveDestroysEveryCreature` `TestCR702_148aLunarRejectionCleaveTargetsAnyCreature` `TestCR702_148aDigUpCleaveSearchesForAnyCard` | cleave cost offered from hand; the bracket-free text is Forge's second NonBasicSpell$ SP |
 | 702.149 | follows | `engine/cards/kw_training.go#kwTraining` `engine/rules/trigger_granted.go#Engine.checkGrantedTrainingTriggers` | `TestTrainingCounterOnAttackWithABiggerCreature` `TestTrainingIgnoresAnEqualPowerAttacker` |  |
 | 702.150 | follows | `engine/events/entry_counters.go#EntryCounterGrants` `engine/state/object.go#Object.CompleatedLifePaid` | `TestCompleatedLoyaltyFollowsPhyrexianLifePaid` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.151 | follows | `engine/cards/kw_reconfigure.go#kwReconfigure` `engine/effects/attach.go#effAttach` | `TestRazorfieldRipperReconfigureAttachAndUnattach` `TestAttachedReconfigureIsNotACreature` | Sorcery-speed attach/unattach |

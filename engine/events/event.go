@@ -1945,6 +1945,10 @@ var flagNames = [...]struct {
 	// sources ride the same event's IDs into Object.ManaSpentSources.
 	// Appended at the end per the table's own ordering rule.
 	{"manasources", state.FlagManaSourcesSpent},
+	// Cleave's alternative-cost cast (CR 702.148a); the flag is the
+	// provenance rules' resolution reader uses to substitute the cleave
+	// spell ability. Appended at the end per the table's own ordering rule.
+	{"cleaved", state.FlagCleaved},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
