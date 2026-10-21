@@ -1708,6 +1708,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// drain to resume (an election answer is never handed out from
 		// inside one).
 		e.handleAsUnblockedElection(chosen)
+	case chooseBand:
+		// CR 702.22c: one band-declaration answer (engine/rules/banding.go);
+		// bandAnswer records it and asks the next, then resumes the exert
+		// election after the last.
+		e.bandAnswer(d, in)
 	case chooseExert:
 		// exert1: the declare-attackers step's exert election (CR 702.100a)
 		// was answered. exertAnswer emits the decline's nothing or the
