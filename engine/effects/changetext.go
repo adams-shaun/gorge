@@ -204,11 +204,19 @@ func effChangeText(h Host, c *Ctx, sa *cards.SA) {
 	// its abilities, statics, triggers, keywords and type line read the new
 	// word -- not just its rendered text. It lasts until the object changes
 	// zones (CR 400.7; a spell's carries onto its permanent, CR 400.7a).
+	// Only Duration$ Permanent is indefinite ("This effect lasts
+	// indefinitely"); Crystal Spray, Trait Doctoring and Whim of Volrath
+	// print "until end of turn" and carry no Duration$ (Forge's
+	// ChangeTextEffect: permanent iff Duration$ is "Permanent").
+	untilEOT := events.TextChangeUntilEOT
+	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKDuration)), "Permanent") {
+		untilEOT = 0
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer || t.Obj == 0 {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.TextChange, Obj: t.Obj, Counter: from, Text: to})
+		h.Emit(events.Event{Kind: events.TextChange, Obj: t.Obj, Counter: from, Text: to, Amount: untilEOT})
 	}
 }
 

@@ -424,6 +424,17 @@ func (e *Engine) EndOfTurnCleanup() {
 	e.rescheduleNextTurnBoundaries()
 	e.expireControl(controlAtCleanup)
 	e.reconcileControlStatics()
+	// CR 514.2: until-end-of-turn text changes end now, one TextChange
+	// expiry per changed object in arena order.
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		for _, s := range o.TextChanges {
+			if s.UntilEOT {
+				e.emit(events.Event{Kind: events.TextChange, Obj: o.ID, Amount: events.TextChangeExpire})
+				break
+			}
+		}
+	}
 	n0 := len(e.continuous)
 	kept := e.continuous[:0]
 	// expiredClones collects the clone UNITS whose LCopy marker this cleanup

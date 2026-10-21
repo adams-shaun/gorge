@@ -1282,7 +1282,9 @@ const (
 	// Text (api:ChangeText). The fold appends it to Object.TextChanges, so
 	// the object's Face() is rewritten from then on; the change ends when
 	// the object changes zones (CR 400.7), except a spell becoming a
-	// permanent (CR 400.7a). Appended after ActivationReversed so every
+	// permanent (CR 400.7a). Amount TextChangeUntilEOT marks a change that
+	// ends in the cleanup step; Amount TextChangeExpire (no words) is that
+	// cleanup-step end (CR 514.2). Appended after ActivationReversed so every
 	// earlier ordinal, hash chain and golden replay is unchanged.
 	TextChange
 	// HadToAttack records CR 506.7's "had to attack": IDs are the attackers
