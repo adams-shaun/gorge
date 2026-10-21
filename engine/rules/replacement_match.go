@@ -22,9 +22,9 @@ const (
 )
 
 var replUntapStepControllerCodes = state.NewStrCodes(
-	state.StrEntry[replUntapStepControllerCode]{Key: "you", Val: replUntapStepControllerYou},
-	state.StrEntry[replUntapStepControllerCode]{Key: "player.activator", Val: replUntapStepControllerActivator},
-	state.StrEntry[replUntapStepControllerCode]{Key: "player.isremembered", Val: replUntapStepControllerIsRemembered},
+	state.StrEntry[replUntapStepControllerCode]{Key: "You", Val: replUntapStepControllerYou},
+	state.StrEntry[replUntapStepControllerCode]{Key: "Player.Activator", Val: replUntapStepControllerActivator},
+	state.StrEntry[replUntapStepControllerCode]{Key: "Player.IsRemembered", Val: replUntapStepControllerIsRemembered},
 )
 
 // drawMatchAmount is the replacement-CONTEXT amount of a Draw event: a
@@ -331,7 +331,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			if e.G.Step != state.StepUntap {
 				return false
 			}
-			switch replUntapStepControllerCodes.Code(strings.ToLower(strings.TrimSpace(spec))) {
+			switch replUntapStepControllerCodes.Code(strings.TrimSpace(spec)) {
 			case replUntapStepControllerYou:
 				if e.G.Active != e.controllerOf(ev.Obj) {
 					return false
