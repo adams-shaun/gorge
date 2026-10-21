@@ -142,8 +142,9 @@ func EmitConvokeTaps(e Engine, card state.ObjID, player state.PlayerID, convoke 
 // (moved from rules' emitChoiceCosts): the revealed and chosen cards, the
 // revealed RevealChosen designations, the beheld cards (exiling a
 // BeholdExile part's), the tapped creatures (a Crew activation's crewers,
-// CR 702.122) and the Blight counters. ability is read lazily, after the
-// earlier emits, exactly where the Crew tag is tested.
+// CR 702.122). The Blight counters are NOT emitted here: the caller places
+// them through EmitBlightCounters under its cost-counter bracket. ability is
+// read lazily, after the earlier emits, exactly where the Crew tag is tested.
 func EmitChoiceCosts(e Engine, paid *PaidCost, player state.PlayerID, card state.ObjID, cost *Cost, x int32, ability func() *cards.SA) {
 	names := func(ids []state.ObjID) string {
 		out := make([]string, 0, len(ids))
@@ -264,7 +265,6 @@ func EmitChoiceCosts(e Engine, paid *PaidCost, player state.PlayerID, card state
 				IDs: []state.ObjID{card}})
 		}
 	}
-	EmitBlightCounters(e, paid.Blights, cost, x)
 }
 
 // EmitBlightCounters places the counters for each paid Blight part. Both
