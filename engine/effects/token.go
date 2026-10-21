@@ -616,37 +616,6 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// the call (and, for an out-of-scope value, its one loud Note) is per
 	// resolution, never per mint -- a multi-token body with an out-of-scope
 	// value must not emit one Note per token.
-	attackCtx := false
-	var attackDefender state.PlayerID
-	var attackBattle state.ObjID
-	var attackOwners []tokenAttackAssignment
-	if attack := tp.Attacking; attack != "" {
-		if strings.EqualFold(attack, "True") {
-			// CR 508.4: each mint's own controller chooses. TokenOwner$ can
-			// name a seat other than the resolving controller (Najeela's
-			// TriggeredAttackerController), and a CreateToken replacement can
-			// move the mint again (Crafty Cutpurse); freeze one assignment per
-			// distinct original owner so the ask is that owner's.
-			seen := make(map[state.PlayerID]bool, len(owners))
-			for _, owner := range owners {
-				if seen[owner] {
-					continue
-				}
-				seen[owner] = true
-				ok, defender, battle := tokenAttackingRider(h, c, owner, attack, "token")
-				if !ok {
-					continue
-				}
-				a := tokenAttackAssignment{Owner: owner, Defender: defender, Battle: battle}
-				if fb, ok := enteringDefenderFallback(h, c, owner, true); ok {
-					a.Fallback, a.FallbackBattle, a.HasFallback = fb.Player, fb.Obj, true
-				}
-				attackOwners = append(attackOwners, a)
-			}
-		} else {
-			attackCtx, attackDefender, attackBattle = tokenAttackingRider(h, c, c.Controller, attack, "token")
-		}
-	}
 
 	job := TokenJob{
 		N: n, Owners: owners, Remember: remember, AttachTo: attachTo, AttachNamed: attachedTo != "",
@@ -655,9 +624,8 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		PumpKeywords: pumpKeywords, PumpDuration: pumpDuration,
 		PumpPermanent: pumpPermanent, PumpUntilEOT: pumpUntilEOT,
 		Tapped: tapped, TokenMemory: tokenMemory,
-		AttackCtx: attackCtx, AttackDefender: attackDefender, AttackBattle: attackBattle,
-		AttackOwners: attackOwners,
 	}
+	job.resolveAttack(h, c, tp.Attacking, owners)
 	runTokenMints(h, c, sa, tp, &job)
 }
 
@@ -709,6 +677,81 @@ type tokenAttackAssignment struct {
 	Fallback       state.PlayerID
 	FallbackBattle state.ObjID
 	HasFallback    bool
+}
+
+// tokenAttackAssignments freezes TokenAttacking$ True's CR 508.4 answer for
+// each distinct original owner of a Token/CopyPermanent call: each mint's own
+// controller chooses. TokenOwner$ can name a seat other than the resolving
+// controller (Najeela's TriggeredAttackerController), and a CreateToken
+// replacement can move the mint again (Crafty Cutpurse), so the ask is that
+// owner's. noun is "token" (players, planeswalkers and battles) or "copy"
+// (players only: CopyToken has no planeswalker slot).
+func tokenAttackAssignments(h Host, c *Ctx, owners []state.PlayerID, attack, noun string) []tokenAttackAssignment {
+	var out []tokenAttackAssignment
+	seen := make(map[state.PlayerID]bool, len(owners))
+	for _, owner := range owners {
+		if seen[owner] {
+			continue
+		}
+		seen[owner] = true
+		ok, defender, battle := tokenAttackingRider(h, c, owner, attack, noun)
+		if !ok {
+			continue
+		}
+		a := tokenAttackAssignment{Owner: owner, Defender: defender, Battle: battle}
+		if fb, ok := enteringDefenderFallback(h, c, owner, noun == "token"); ok {
+			a.Fallback, a.FallbackBattle, a.HasFallback = fb.Player, fb.Obj, true
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// copyAttackRider resolves a CopyPermanent's TokenAttacking$ once its owners
+// are known (True's CR 508.4 chooser is each copy's controller). True yields
+// per-owner assignments, players only: a copy has no battle slot. A selector
+// names its own defender, kept for the CopyToken fold.
+func copyAttackRider(h Host, c *Ctx, owners []state.PlayerID, attack string) (attacking bool, selectorDefender state.PlayerID, assigns []tokenAttackAssignment) {
+	switch {
+	case attack == "":
+	case strings.EqualFold(attack, "True"):
+		assigns = tokenAttackAssignments(h, c, owners, attack, "copy")
+	default:
+		attacking, selectorDefender, _ = tokenAttackingRider(h, c, c.Controller, attack, "copy")
+	}
+	return
+}
+
+// copyAttackIDs is a CopyToken's CR 508.4 attack ids for a mint whose
+// destination controller is destOwner: the selector arm's one defender for
+// every mint, else that owner's frozen answer (IDs[1] is the battle).
+func copyAttackIDs(attacking bool, selectorDefender state.PlayerID, owners []tokenAttackAssignment, destOwner state.PlayerID) (bool, []state.ObjID) {
+	if attacking {
+		return true, []state.ObjID{state.ObjID(selectorDefender)}
+	}
+	for _, a := range owners {
+		if a.Owner != destOwner {
+			continue
+		}
+		ids := []state.ObjID{state.ObjID(a.Defender)}
+		if a.Battle != 0 {
+			ids = append(ids, a.Battle)
+		}
+		return true, ids
+	}
+	return false, nil
+}
+
+// resolveAttack freezes the TokenAttacking$ rider into the job: True becomes
+// one CR 508.4 assignment per owner, a selector one shared defender.
+func (job *TokenJob) resolveAttack(h Host, c *Ctx, attack string, owners []state.PlayerID) {
+	switch {
+	case attack == "":
+	case strings.EqualFold(attack, "True"):
+		job.AttackOwners = tokenAttackAssignments(h, c, owners, attack, "token")
+	default:
+		job.AttackCtx, job.AttackDefender, job.AttackBattle = tokenAttackingRider(h, c, c.Controller, attack, "token")
+	}
 }
 
 // attackFor returns the assignment that applies to a mint created for owner

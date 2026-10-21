@@ -761,17 +761,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// moved object. CR 508.4's chooser is the entering permanent's controller:
 	// a single-object move's owner (or GainControl$ player); a multi-object
 	// move whose objects differ falls back to the resolving controller.
-	var entryOwners []state.PlayerID
-	for _, t := range targets {
-		if t.IsPlayer {
-			continue
-		}
-		if o := h.Game().Obj(t.Obj); o != nil {
-			entryOwners = append(entryOwners, o.Owner)
-		}
-	}
 	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
-		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, entryOwners, cz.Riders.GainControl))
+		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, targetOwners(h.Game(), targets), cz.Riders.GainControl))
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -1399,6 +1390,20 @@ func gainControlOf(h Host, c *Ctx, gc ParamText) (state.PlayerID, bool, bool) {
 			Text: "unrecognised ChangeZone GainControl$ " + gc.Text})
 	}
 	return p, ok, present
+}
+
+// targetOwners lists the owner of each object target, in target order.
+func targetOwners(g *state.Game, targets []state.Target) []state.PlayerID {
+	var owners []state.PlayerID
+	for _, t := range targets {
+		if t.IsPlayer {
+			continue
+		}
+		if o := g.Obj(t.Obj); o != nil {
+			owners = append(owners, o.Owner)
+		}
+	}
+	return owners
 }
 
 // resolveGainControl is gainControlOf without the diagnostic: it reports the

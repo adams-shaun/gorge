@@ -508,40 +508,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	if !multiOwner {
 		owners = []state.PlayerID{owner}
 	}
-	// Entry-state riders resolve AFTER the controller is known: TokenAttacking$
-	// True's CR 508.4 chooser is the copy's controller (Controller$ can name a
-	// seat other than the resolving source's), and a CreateToken replacement
-	// can move the mint again. The fallback lists players only (a copy has no
-	// battle slot), so a captured DefendingBattle is zeroed rather than
-	// offered and discarded.
-	attacking := false
-	var selectorDefender state.PlayerID
-	var attackOwners []tokenAttackAssignment
-	if attack := cp.TokenAttacking; attack != "" {
-		if strings.EqualFold(attack, "True") {
-			seen := make(map[state.PlayerID]bool, len(owners))
-			for _, o := range owners {
-				if seen[o] {
-					continue
-				}
-				seen[o] = true
-				ok, defender, battle := tokenAttackingRider(h, c, o, attack, "copy")
-				if !ok {
-					continue
-				}
-				a := tokenAttackAssignment{Owner: o, Defender: defender, Battle: battle}
-				if fb, ok := enteringDefenderFallback(h, c, o, false); ok {
-					a.Fallback, a.FallbackBattle, a.HasFallback = fb.Player, fb.Obj, true
-				}
-				attackOwners = append(attackOwners, a)
-			}
-		} else {
-			// A selector names its own defender (brief §7): keep it for the
-			// CopyToken fold. The copy has no battle slot, so the third
-			// return is always 0 here.
-			attacking, selectorDefender, _ = tokenAttackingRider(h, c, c.Controller, attack, "copy")
-		}
-	}
+	attacking, selectorDefender, attackOwners := copyAttackRider(h, c, owners, cp.TokenAttacking)
 	remember := cp.RememberTokens
 	var amount int32
 	if tapped {
@@ -549,24 +516,6 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if atEOT == "ExileCombat" {
 		amount |= events.CopyTokenExileCombat
-	}
-	// copyAttack is this destination owner's frozen CR 508.4 answer. The
-	// selector arm is the same defender for every mint.
-	copyAttack := func(destOwner state.PlayerID) (bool, []state.ObjID) {
-		if attacking {
-			return true, []state.ObjID{state.ObjID(selectorDefender)}
-		}
-		for _, a := range attackOwners {
-			if a.Owner != destOwner {
-				continue
-			}
-			ids := []state.ObjID{state.ObjID(a.Defender)}
-			if a.Battle != 0 {
-				ids = append(ids, a.Battle)
-			}
-			return true, ids
-		}
-		return false, nil
 	}
 	// The same capture+re-remember duplication reaches TokenRemembered$
 	// Remembered (resolvedRemembered returns Ctx.Remembered raw when the
@@ -830,7 +779,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			// increments it) -- the effToken/effMyriad prediction pattern.
 			want := g.NextID
 			amt, ids := amount, []state.ObjID(nil)
-			if atk, atkIDs := copyAttack(owner); atk {
+			if atk, atkIDs := copyAttackIDs(attacking, selectorDefender, attackOwners, owner); atk {
 				amt |= events.CopyTokenAttacking
 				ids = atkIDs
 			}
