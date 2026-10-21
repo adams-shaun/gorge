@@ -43,8 +43,11 @@ type TriggerContext struct {
 	// TokenAttacks event's IDs[1] slot carries the object. Zero when the
 	// defender was a player, which is every non-ninjutsu binding.
 	DefendingBattle state.ObjID
-	TriggerPlayer   state.Target
-	TriggerCard     state.ObjID
+	// DefenderFixed is the effect itself names the defender (K:Ninjutsu's
+	// CR 702.49c), so CR 508.4's controller choice is not offered.
+	DefenderFixed bool
+	TriggerPlayer state.Target
+	TriggerCard   state.ObjID
 	// DelayedObject is the causing event's object for a delayed trigger:
 	// the fire-time object TriggeredObject names.
 	DelayedObject state.ObjID

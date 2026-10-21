@@ -1240,11 +1240,11 @@ func (e *Engine) advanceStep() {
 //  1. every CONSUMED grant whose extra phase ends at L (RangeEnd) completes
 //     here -- one -2 ExtraPhase event per entry, the entry removed from the
 //     fold;
-//  2. then the earliest-created PENDING grant spliced at L -- or, when step
-//     1 completed grants, at the same insertion point they spliced at
-//     (Obeka's N upkeeps all splice after the same end-of-combat step, and
-//     each next upkeep is spliced there, not after the last one) -- is
-//     consumed (-1) and its extra phase entered;
+//  2. then the most recently created PENDING grant (CR 500.8) spliced at L
+//     -- or, when step 1 completed grants, at the same insertion point they
+//     spliced at (Obeka's N upkeeps all splice after the same end-of-combat
+//     step, and each next upkeep is spliced there, not after the last one)
+//     -- is consumed (-1) and its extra phase entered;
 //  3. when step 1 completed grants but step 2 found nothing to splice, the
 //     walk jumps to the LAST completed grant's resume point (FollowedBy$, or
 //     AfterStep+1 when absent);
@@ -1290,10 +1290,11 @@ func (e *Engine) extraPhaseBoundary() (state.Step, bool) {
 			resume = ep.AfterStep + 1
 		}
 	}
-	// 2. Splicing the next pending grant: earliest created first, spliced at
-	// the leaving step -- or, when this boundary completed grants, at their
-	// insertion point too.
-	for i := range e.G.ExtraPhases {
+	// 2. Splicing the next pending grant: MOST RECENTLY created first (CR
+	// 500.8; the queue is in creation order, so scan from the back), spliced
+	// at the leaving step -- or, when this boundary completed grants, at
+	// their insertion point too.
+	for i := len(e.G.ExtraPhases) - 1; i >= 0; i-- {
 		ep := e.G.ExtraPhases[i]
 		if ep.Consumed {
 			continue

@@ -758,8 +758,11 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	var moved []state.ObjID
 	// The Attacking$ entry rider is classified ONCE for the whole call, before
 	// the mover loop: its degrades are one Note per ChangeZone, not one per
-	// moved object.
-	rider := classifyAttackingEntryText(c, cz.Riders.Attacking, to)
+	// moved object. CR 508.4's chooser is the entering permanent's controller:
+	// a single-object move's owner (or GainControl$ player); a multi-object
+	// move whose objects differ falls back to the resolving controller.
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
+		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, targetOwners(h.Game(), targets), cz.Riders.GainControl))
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -1381,30 +1384,56 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, id
 // rather than silently keeping the owner -- the same fail-closed convention
 // every unread parameter here follows.
 func gainControlOf(h Host, c *Ctx, gc ParamText) (state.PlayerID, bool, bool) {
+	p, ok, present, known := resolveGainControl(h, c, gc)
+	if present && !known {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "unrecognised ChangeZone GainControl$ " + gc.Text})
+	}
+	return p, ok, present
+}
+
+// targetOwners lists the owner of each object target, in target order.
+func targetOwners(g *state.Game, targets []state.Target) []state.PlayerID {
+	var owners []state.PlayerID
+	for _, t := range targets {
+		if t.IsPlayer {
+			continue
+		}
+		if o := g.Obj(t.Obj); o != nil {
+			owners = append(owners, o.Owner)
+		}
+	}
+	return owners
+}
+
+// resolveGainControl is gainControlOf without the diagnostic: it reports the
+// resolved player, whether the value resolved, whether the parameter is
+// present, and whether its grammar was known. A caller that only CLASSIFIES a
+// move (CR 508.4's entering controller) reads it so the unrecognised-value
+// Note is emitted once, by the move's own emitEntryMove, not twice.
+func resolveGainControl(h Host, c *Ctx, gc ParamText) (state.PlayerID, bool, bool, bool) {
 	raw, present := gc.Text, gc.Present
 	if !present || strings.TrimSpace(raw) == "" {
-		return 0, false, true
+		return 0, false, true, true
 	}
 	if strings.EqualFold(raw, "True") || strings.EqualFold(raw, "You") {
-		return c.Controller, true, true
+		return c.Controller, true, true, true
 	}
 	targets, known := definedSpec(h, c, raw)
 	if !known {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "unrecognised ChangeZone GainControl$ " + raw})
-		return 0, false, true
+		return 0, false, true, false
 	}
 	for _, t := range targets {
 		if t.IsPlayer {
-			return t.Player, true, true
+			return t.Player, true, true, true
 		}
 		if o := h.Game().Obj(t.Obj); o != nil {
-			return o.Controller, true, true
+			return o.Controller, true, true, true
 		}
 	}
 	// The selector resolved (its grammar is known) but named no living
 	// player: nothing to hand control to, and no silent owner-keep either.
-	return 0, false, true
+	return 0, false, true, true
 }
 
 // digGainControl is the GainControl$ selector a Dig/DigUntil bool stands for:
@@ -1521,16 +1550,19 @@ type attackingEntry struct {
 	noted  bool
 }
 
-func classifyAttackingEntry(c *Ctx, sa *cards.SA, to state.Zone) attackingEntry {
+func classifyAttackingEntry(h Host, c *Ctx, sa *cards.SA, to state.Zone, controller state.PlayerID) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
-	return classifyAttackingEntryText(c, attackingParam(sa), to)
+	return classifyAttackingEntryText(h, c, attackingParam(sa), to, controller)
 }
 
 // classifyAttackingEntryText is classifyAttackingEntry over a compiled
-// Attacking$ text.
-func classifyAttackingEntryText(c *Ctx, attack string, to state.Zone) attackingEntry {
+// Attacking$ text. controller is the seat that will control the entering
+// permanent: CR 508.4's chooser is that seat, which is the moved object's
+// owner (or the GainControl$ player) and not necessarily the resolving
+// source's controller -- Noctis returns a card under its owner's control.
+func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone, controller state.PlayerID) attackingEntry {
 	if to != state.ZBattlefield {
 		return attackingEntry{}
 	}
@@ -1538,8 +1570,8 @@ func classifyAttackingEntryText(c *Ctx, attack string, to state.Zone) attackingE
 		return attackingEntry{}
 	}
 	if strings.EqualFold(attack, "True") {
-		if c.DefendingPlayer.IsPlayer {
-			return attackingEntry{kind: attackingEntryAttacks, defender: c.DefendingPlayer.Player, battle: c.DefendingBattle}
+		if d, ok := resolveEnteringDefender(h, c, controller, true, "permanent"); ok {
+			return attackingEntry{kind: attackingEntryAttacks, defender: d.Player, battle: d.Obj}
 		}
 		return attackingEntry{kind: attackingEntryNoDefender,
 			note: "Attacking$ with no defending player in context; the permanent enters but does not attack"}

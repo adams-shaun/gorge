@@ -64,6 +64,7 @@ func bindNinjutsuDefender(ctx *effects.Ctx, o *state.Object) {
 	if ab == nil || !pay.SaHasKeyword(ab, "Ninjutsu") {
 		return
 	}
+	ctx.DefenderFixed = true
 	for _, rem := range o.Remembered {
 		if rem.IsPlayer {
 			ctx.DefendingPlayer = rem
