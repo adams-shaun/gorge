@@ -3,6 +3,7 @@ package rules
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -234,29 +235,23 @@ func (e *Engine) attachRefused(obj, bearerID state.ObjID) (refused, note bool) {
 // equip target when the Equipment's Equip keyword names it -- Luxior,
 // Giada's Gift's "Equip planeswalker" attaches to a walker that is not yet a
 // creature (the Equipment's own static makes the bearer one only once
-// attached). The read is the DERIVED Equip parameters, the same list the
-// equip activation's ValidTgts$ is minted from (a layer-6 removal of the
-// line removes the exception with it): each entry's first colon field is the
-// cost and the next space-free field the bearer restriction, exactly the
-// field engine/cards/kw_equip.go's expansion claims; a line without one
-// equips creatures only (the expansion's defaultTgts). Fortify's land
+// attached). The read is the DERIVED Equip lines (a layer-6 removal of the
+// line removes the exception with it), each one's bearer restriction the
+// field engine/cards/kw_equip.go's expansion writes the activation's
+// ValidTgts$ from (cards.AttachBearerSpec); a line without one equips
+// creatures only (the expansion's defaultTgts). Fortify's land
 // restriction is not this exception -- a Fortification's bearer must be a
 // land regardless (CR 702.67b), checked by the Fortification arms.
 func (e *Engine) equipmentEquipSpecAdmits(o, bearer *state.Object) bool {
 	for _, k := range e.Derived(o.ID).Keywords {
-		if !strings.EqualFold(cardsKeywordHead(k), kwhEquip.S) {
+		if cardsKeywordHead(k) != kwhEquip.S {
 			continue
 		}
-		param := ""
-		if i := strings.IndexByte(k, ':'); i >= 0 {
-			param = k[i+1:]
+		spec := cards.AttachBearerSpec(k)
+		if spec == "" {
+			spec = "Creature.YouCtrl"
 		}
-		fields := strings.Split(param, ":")
-		spec := "Creature.YouCtrl"
-		if len(fields) > 1 && fields[1] != "" {
-			spec = fields[1]
-		}
-		if e.matchesSpecFrom(strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID) {
+		if e.matchesSpecFrom(spec, bearer.ID, o.Controller, o.ID) {
 			return true
 		}
 	}
