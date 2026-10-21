@@ -517,7 +517,7 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			out = append(out, replMatch{id: id, repl: r})
 		}
 	})
-	for _, m := range e.grantedPreventMatches(ev) {
+	for _, m := range e.shieldCounterDamageMatches(ev, e.grantedPreventMatches(ev)) {
 		if !alreadyUsed(m) && !e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj) {
 			out = append(out, m)
 		}
@@ -550,6 +550,7 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 		// prevention prevented.
 		e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 			Amount: ev.Amount, Text: "damage prevented by replacement effect"})
+		e.spendShieldCounter(m)
 		return true
 	}
 	if m.repl.With == nil {

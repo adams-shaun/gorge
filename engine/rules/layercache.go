@@ -168,6 +168,11 @@ func (e *Engine) staticSafeSince(epoch, oldObjs int, gatesRechecked bool) static
 			if !quiet || !staticQuietKinds.has(k) {
 				return staticRun{}
 			}
+			// CR 122.1j: a hone counter's +1/+0 is emitted by the scan
+			// (staticEffectsWalk), so a HONE change is not static-quiet.
+			if k == events.CounterChange && ev.Counter == "HONE" {
+				return staticRun{}
+			}
 		}
 		run.inert = false
 		run.seen[k>>6] |= 1 << (k & 63)
