@@ -230,14 +230,16 @@ func (e *Engine) mayHaveWorldPair() bool {
 }
 
 // mayHaveLegendPair reports whether some controller has two or more
-// phased-in permanents with a printed Legendary supertype -- legendGroups'
-// own first filter, so with no such pair it provably returns no group.
+// phased-in permanents with the Legendary supertype -- printed, or granted
+// by a layer-4 effect (sbaTypeFast) -- legendGroups' own first filter, so
+// with no such pair it provably returns no group.
 func (e *Engine) mayHaveLegendPair() bool {
+	anyLType := e.activeHasLType()
 	for _, p := range e.G.AliveFrom(0) {
 		n := 0
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
-			if o == nil || o.PhasedOut || o.Face() == nil || !o.Face().IsLegendary() {
+			if o == nil || o.PhasedOut || o.Face() == nil || !e.sbaTypeFast(o, sbaLegendary, anyLType) {
 				continue
 			}
 			if n++; n >= 2 {
@@ -307,7 +309,7 @@ func (e *Engine) sbaFacts(f *sbaBoardFacts) *sbaBoardFacts {
 				if o.PhasedOut {
 					continue
 				}
-				if face != nil && !f.legend && face.IsLegendary() {
+				if face != nil && !f.legend && e.sbaTypeFast(o, sbaLegendary, anyLType) {
 					if legends++; legends >= 2 {
 						f.legend = true
 					}

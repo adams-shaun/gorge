@@ -97,7 +97,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.12 | partial | `engine/rules/reflexive.go#Engine.QueueReflexiveTrigger` `engine/effects/immediate.go#effImmediateTrigger` | - | g granted reflexive bodies resolve inline, silently |
 | 603.12a | unknown | - | - | not traced |
 | 604.1-604.2 | follows | `engine/rules/chars/cda.go#StaticZoneAdmits` `engine/rules/chars/cda.go#EffectZoneOK` | - | statics always on in their zone |
-| 604.3 | follows | `engine/rules/chars/cda.go#CDAPTStatic` `engine/rules/chars/cda.go#CDASetPT` | - | d CDA P/T only on battlefield |
+| 604.3 | follows | `engine/rules/chars/cda.go#CDAPTStatic` `engine/rules/chars/cda.go#CDASetPT` `engine/rules/host_read.go#Engine.cdaPTTable` | `TestCR208_2aDigReadsLibraryCDAPower` | - |
 | 604.3a | unknown | - | - | not traced |
 | 604.4 | follows | `engine/effects/filter_attachment.go#attachedBy` | - | attachment statics don't target |
 | 604.5-604.6 | follows | `engine/rules/chars/cda.go#EffectZoneOK` `engine/rules/chars/cda.go#StaticZoneAdmitsStatic` | - | stack/hand-zone statics; untested in g |

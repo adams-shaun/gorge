@@ -1,7 +1,7 @@
 {
-  "arrangement": "sha256:85a263a6a0f7e03cbdb7417e95e3e8b059bd8268b3a684c8f82d3b4d3cc83a22",
-  "attack_declaration": "sha256:1003b64916785a611a09923b3ba48873e8b7ac0ad144900cede1b9a97c4374e9",
-  "mana_payment": "sha256:a2968a54a262520821ac8cf649b0497e349acaf610bf877088d036e0438ae3f1",
-  "order_pick": "sha256:5c9f081dabe9006c51cca5a8fc5f5f5f91ef3dff62c89835675889335f25d76b",
-  "uniform_game_burn": "sha256:1ae8a2c759508a763a4d7629d8f3d57129aad094531ea38ae6bf28bb752b5294"
+  "arrangement": "sha256:8b089a9827b5774630b190de229617668d95f1e52fc94469c55d2b1c3c3d9ab0",
+  "attack_declaration": "sha256:bf35d28e3ab626b2b1d3366f2c190fb2e1ef2677631b6e4f49e1a5b6bc16639f",
+  "mana_payment": "sha256:68f8dae52ad0ba8c20451d2db1d02d555b076381942b413cad4b6eb971ea17f4",
+  "order_pick": "sha256:80c9e6bbcced33890cf17f46a5eca4eabe8e7cfaf26d8c050ec538a6d4a6cc24",
+  "uniform_game_burn": "sha256:9cfafdb75ab4b4d534931536e617abe172a6bdf4ae77cdf634910c7756302154"
 }
