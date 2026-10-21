@@ -73,7 +73,7 @@ func (e *Engine) replArenaMaskFor(bit uint32) bool {
 
 // replArenaTouchKinds are the kinds whose fold can change an existing
 // object's objectReplMask (see the file comment).
-var replArenaTouchKinds = newKindSet(events.ClonePermanent, events.CloneStatic)
+var replArenaTouchKinds = newKindSet(events.ClonePermanent, events.CloneStatic, events.CopyExcept)
 
 // replArenaTouchEvent ORs in the current class of every object ev's fold
 // may have rewritten in place.

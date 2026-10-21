@@ -487,6 +487,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldCloneStatic(g, e)
 	case ClonePermanent:
 		foldClonePermanent(g, e)
+	case CopyExcept:
+		foldCopyExcept(g, e)
 	case Exert:
 		foldExert(g, e)
 	case KeywordTriggerPush:
