@@ -891,6 +891,14 @@ type Object struct {
 	AttackedTurn   int32
 	AttackedCombat int32
 
+	// HadToAttack is CR 506.7's "had to attack" for the declaration that set
+	// AttackedTurn/AttackedCombat: an effect was requiring this creature to
+	// attack when attackers were declared. Cleared by every DeclareAttackers
+	// fold that declares the creature and set by the HadToAttack event that
+	// follows; the hadToAttackThisCombat filter reads it only while the
+	// attack stamp names the current combat.
+	HadToAttack bool
+
 	// Harnessed is the Infinity Stone designation (the `AlterAttribute |
 	// Attributes$ Harnessed` ability of The Mind Stone / The Soul Stone): once
 	// harnessed, the permanent's ∞ ability is active. A plain status field like

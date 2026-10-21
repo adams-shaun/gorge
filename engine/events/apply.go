@@ -494,6 +494,8 @@ func applyKind(g *state.Game, e *Event) {
 		g.Restart(e.Amount, e.IDs)
 	case ActivationReversed:
 		foldActivationReversed(g, e)
+	case HadToAttack:
+		foldHadToAttack(g, e)
 	case Exert:
 		foldExert(g, e)
 	case KeywordTriggerPush:

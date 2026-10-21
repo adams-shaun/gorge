@@ -466,9 +466,22 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 		}
 		return keys[i].battle < keys[j].battle
 	})
+	// CR 506.7: the attackers an effect was requiring to attack at the time
+	// attackers are declared, read before the declaration folds (Forge's
+	// AttackRequirement.hasRequirement; a requirement counts whether or not
+	// the chosen defender discharged it).
+	var hadTo []state.ObjID
+	for _, opt := range chosen {
+		if combat.AttackRequirements(asBoard(e), opt.Obj).Any() {
+			hadTo = append(hadTo, opt.Obj)
+		}
+	}
 	attackEventStart := len(e.L.Events)
 	for _, k := range keys {
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: k.player, Obj: k.battle, IDs: byDef[k]})
+	}
+	if len(hadTo) > 0 {
+		e.emit(events.Event{Kind: events.HadToAttack, IDs: hadTo})
 	}
 	// Every defender-specific event has now folded, so intervening-if checks
 	// observe the complete simultaneous declaration (including attackers in

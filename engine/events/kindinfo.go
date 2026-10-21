@@ -230,6 +230,7 @@ var kindInfo = [NumKinds]KindInfo{
 	CopyExcept:            {Name: "copy_except", Trigger: TriggerNone, Describe: "{obj} takes its copy exceptions"},                                      // CR 707.9b characteristic change, like ClonePermanent
 	GameRestart:           {Name: "game_restart", Trigger: TriggerNone, Describe: "The game restarts"},                                                   // CR 727.1; the new game's deal follows as ordinary events
 	ActivationReversed:    {Name: "activation_reversed", Trigger: TriggerNone, Describe: "{player} reverses an activation"},                              // a CR 733.1 reversal: it decrements the source's activation census, nothing triggers
+	HadToAttack:           {Name: "had_to_attack", Trigger: TriggerNone, Describe: "the attackers that had to attack are recorded"},                      // CR 506.7 bookkeeping; no trigger
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

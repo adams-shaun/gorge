@@ -1277,10 +1277,18 @@ const (
 	// Appended after GameRestart so every earlier ordinal, hash chain and golden
 	// replay is unchanged.
 	ActivationReversed
+	// HadToAttack records CR 506.7's "had to attack": IDs are the attackers
+	// just declared that one or more effects were requiring to attack at the
+	// time attackers were declared (combat.AttackRequirements). Emitted
+	// right after a declaration's DeclareAttackers events, only when at least
+	// one such attacker exists, so an unconstrained declaration logs nothing
+	// new. Appended after ActivationReversed so every earlier ordinal, hash
+	// chain and golden replay is unchanged.
+	HadToAttack
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(ActivationReversed) + 1
+	NumKinds = int(HadToAttack) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
