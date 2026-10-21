@@ -84,6 +84,7 @@ type walkObjClass struct {
 type walkObjFP struct {
 	card     *cards.Card
 	copyFace *cards.Face
+	textFace *cards.Face
 	faceIdx  uint8
 	flags    uint8
 	zone     state.Zone
@@ -102,7 +103,7 @@ const (
 )
 
 func walkObjFPOf(o *state.Object) walkObjFP {
-	fp := walkObjFP{card: o.Card, copyFace: o.CopyFace, faceIdx: o.FaceIdx, zone: o.Zone, ctl: o.Controller,
+	fp := walkObjFP{card: o.Card, copyFace: o.CopyFace, textFace: o.TextFace(), faceIdx: o.FaceIdx, zone: o.Zone, ctl: o.Controller,
 		merged: int32(len(o.MergedCards)), keywords: int32(len(o.IntrinsicKeywords)), counters: int32(len(o.Counters))}
 	if o.FaceDown {
 		fp.flags |= fpFaceDown
@@ -171,6 +172,9 @@ func (e *Engine) computeWalkObjClass(o *state.Object) walkObjClass {
 	if o.CopyFace != nil {
 		e.classifyWalkFace(&c, o.CopyFace)
 	}
+	if tf := o.TextFace(); tf != nil {
+		e.classifyWalkFace(&c, tf)
+	}
 	if o.Card != nil {
 		for _, f := range o.Card.Faces {
 			if f != nil {
@@ -214,6 +218,9 @@ func (e *Engine) walkFacesEdited(o *state.Object) bool {
 		return ff == nil || !ff.fullyCurrent(f)
 	}
 	if o.CopyFace != nil && edited(o.CopyFace) {
+		return true
+	}
+	if tf := o.TextFace(); tf != nil && edited(tf) {
 		return true
 	}
 	if o.Card != nil {

@@ -146,7 +146,7 @@ on them. A client must treat an unknown kind as displayable but opaque, and use
     `setup_entered` `door_lock` `saddle` `class_level` `mill_proposal` `meld` `excess_damage`
     `forage_action` `manifest_dread_action` `collect_evidence_action` `ability_triggered`
     `cast_battlefield` `draw_batch_proposal` `spell_cast_reversed` `hidden_identity`
-    `draw_empty` `setup_settled` `blocked_by_effect` `copy_except` `game_restart` `activation_reversed` `had_to_attack`
+    `draw_empty` `setup_settled` `blocked_by_effect` `copy_except` `game_restart` `activation_reversed` `text_change` `had_to_attack`
 
     (Listed in ordinal order, from `events.Kind.String()` over 0..255.)
 

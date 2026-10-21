@@ -61,6 +61,17 @@ func ParseCopyExceptions(s string) (x CopyExceptions, ok bool) {
 	return x, true
 }
 
+// foldTextChange folds Kind TextChange (CR 612): the substitution Counter ->
+// Text joins Obj's text changes in event (timestamp) order.
+func foldTextChange(g *state.Game, e *Event) {
+	o := g.Obj(e.Obj)
+	if o == nil || e.Counter == "" || e.Text == "" {
+		return
+	}
+	subs := append(append([]cards.TextSub(nil), o.TextChanges...), cards.TextSub{From: e.Counter, To: e.Text})
+	o.SetTextChanges(subs)
+}
+
 // foldCopyExcept folds Kind CopyExcept into state. The copy's current face
 // (its CopyFace basis, or a just-minted token copy's printed face) is
 // value-copied and edited -- never mutated in place, since it may be the

@@ -674,6 +674,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	if enteredFrom != to {
 		o.ZoneGen++
 	}
+	// CR 400.7: a text change ends with the object it changed -- except
+	// CR 400.7a, a spell's text change carries onto the permanent it becomes.
+	if enteredFrom != to && len(o.TextChanges) > 0 && !(enteredFrom == state.ZStack && to == state.ZBattlefield) {
+		o.SetTextChanges(nil)
+	}
 	// A new object in a new zone has its owner's default control. The old
 	// controller is needed above to remove it from the battlefield/stack, so
 	// reset only after removal and placement have used that zone ownership.

@@ -492,6 +492,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldCopyExcept(g, e)
 	case GameRestart:
 		g.Restart(e.Amount, e.IDs)
+	case TextChange:
+		foldTextChange(g, e)
 	case ActivationReversed:
 		foldActivationReversed(g, e)
 	case HadToAttack:
