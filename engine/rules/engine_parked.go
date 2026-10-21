@@ -105,6 +105,11 @@ type engineParked struct {
 	// them. Always empty/zero in a non-Commander game.
 	cmdZoneDue  []state.ObjID `clone:"deep"`
 	cmdZoneScan int           `clone:"deep"`
+	// cmdZoneDeclined is the commander whose CR 903.9b ask was just declined
+	// (or whose owner has left), set only for the one synchronous re-emit of
+	// that move so commanderZoneReplacementApplies skips it while every other
+	// replacement still applies. Zero otherwise; Clone resets it.
+	cmdZoneDeclined state.ObjID `clone:"reset"`
 	// legendBatch is the parked CR 704.5j legend-rule application (engine/rules/
 	// sba.go): the duplicate legendary set whose controller is choosing which
 	// member to keep, the lethal-damage casualties found in the same SBA pass,

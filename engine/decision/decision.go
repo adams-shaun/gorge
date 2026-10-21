@@ -62,7 +62,7 @@ const (
 	// the last check (it is already there; option 1 leaves it there), and
 	// CR 903.9b, the replacement for a commander that would be put into its
 	// owner's hand or library from anywhere (the move waits for the answer;
-	// option 1 lets it happen). Min == Max == 1 over exactly two options, in
+	// option 1 lets it happen, subject to every other replacement effect). Min == Max == 1 over exactly two options, in
 	// this order: index 0 Kind "command_zone", index 1 Kind "leave". It is
 	// the OWNER who answers, never the controller -- a stolen commander is
 	// sent to its owner's command zone by its owner's choice -- so Player is
