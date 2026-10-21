@@ -149,7 +149,8 @@ func crAbortUnchanged(t *testing.T, e *Engine, before *state.Game, start int, na
 // TestCR733EarlyAbortSitesPreserveResources covers four sites that are
 // CORRECT, which refutes the premise that sent the audit looking for defects in
 // them. cast.go:437 (sacrifice unpayable), cast.go:800 (spell mana unpayable),
-// cast.go:747 (activation mana unpayable) and cast.go:708 (source moved) each
+// cast.go:747 (activation mana unpayable) and a mana abort after the X suspension (the spell
+// already on the stack, CR 601.2a) each
 // preserve every zone, pool, life total, object characteristic, the stack and
 // priority -- and fire NO Young Pyromancer trigger, which is the measurement
 // that killed an earlier cheap fix for the illegal-cast path. They belong in the
@@ -161,7 +162,7 @@ func crAbortUnchanged(t *testing.T, e *Engine, before *state.Game, start int, na
 // its original four correct sites.
 func TestCR733EarlyAbortSitesPreserveResources(t *testing.T) {
 	t.Parallel()
-	crAbortSites(t, []string{"sacrifice", "spell_mana", "activation_mana", "source_moved"})
+	crAbortSites(t, []string{"sacrifice", "spell_mana", "activation_mana", "after_x_suspension"})
 }
 
 func TestCR733AbortAfterAsEntersChoiceKeepsChosenNumber(t *testing.T) {
@@ -218,7 +219,7 @@ func crAbortSites(t *testing.T, sites []string) {
 				name = "Dread Return"
 			case "activation_mana":
 				name = "Stoneforge Mystic"
-			case "source_moved":
+			case "after_x_suspension":
 				name = "Entreat the Angels"
 			case "spell_mana_after_choice":
 				name = "Sanctum Prelate"
@@ -280,16 +281,17 @@ func crAbortSites(t *testing.T, sites []string) {
 					t.Fatalf("CR 602.2b/733.1 %s seq %d: missing real activation", name, start)
 				}
 				e.beginActivation(0, decision.Option{Kind: "ability", Obj: id, Ability: idx})
-			case "source_moved":
+			case "after_x_suspension":
+				// CR 601.2a: the spell is on the stack before its X is
+				// announced, so the X suspension parks a PUSHED proposal; the
+				// unpayable answer then reverses the push (CR 733.1).
 				e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
 				if d := e.Pending(); d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "x" {
 					t.Fatalf("CR 733.1 %s seq %d: missing X suspension", name, start)
 				}
-				// Explicit fault injection, NOT a reachable opponent action
-				// during casting. Only continuation effects should be undone;
-				// the external move is excluded from the snapshot oracle.
-				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZExile})
-				before, start = e.G.Clone(), len(e.L.Events)
+				if z := e.G.Obj(id).Zone; z != state.ZStack {
+					t.Fatalf("CR 601.2a %s seq %d: spell in %s at its X announcement, want the stack", name, start, z)
+				}
 				crAbortAnswer(t, e, name, 0)
 			}
 			e.Advance()
