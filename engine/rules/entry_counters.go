@@ -783,7 +783,6 @@ func isolatePreviewScratch(p *Engine) {
 	p.defeatedCasts = slices.Clone(p.defeatedCasts)
 	p.deferredAsks = slices.Clone(p.deferredAsks)
 	p.suspendedCasts = slices.Clone(p.suspendedCasts)
-	p.madnessChoices = slices.Clone(p.madnessChoices)
 	p.manaExpended = slices.Clone(p.manaExpended)
 	p.damageBatchLog = slices.Clone(p.damageBatchLog)
 	p.discardBatchLog = slices.Clone(p.discardBatchLog)
