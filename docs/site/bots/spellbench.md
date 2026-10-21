@@ -6,7 +6,9 @@ what SpellBench is, the messages its v2 protocol exchanges, and the three ways
 gorge speaks it: seating an external v2 agent at a gorge table, serving a
 gorge bot as a v2 agent, and serving gorge as a v2 environment. Message and
 field reference: [SpellBench v2 reference](../api/spellbench-v2.md).
-Everything shown was run on 2026-10-20 at `ad3777023`.
+Everything shown was run on 2026-10-20 at `ad3777023`; the `mtgsim` and
+environment examples, the policy listing and the fidelity check below were
+run again on 2026-10-21 at `513a2a0c3` with the same results.
 
 ## What SpellBench is
 
@@ -129,8 +131,8 @@ into v2 candidates and the answer back into an intent.
 ```console
 $ go run ./cmd/mtgsim -seats 2 -games 1 -verify -a sb-min \
     -sb-agent sb-min=server/spellbench/seat/testdata/minimal_bot.py
-seed 0: 2 seats,    691 intents,   3577 events,  30 turns, winner=dimir-tempo, chain=b03df3bfecebe291
-  replay OK (chain b03df3bfecebe291)
+seed 0: 2 seats,    691 intents,   3577 events,  30 turns, winner=dimir-tempo, chain=6766ab2087f96884
+  replay OK (chain 6766ab2087f96884)
 ```
 
 In `gorged` the agent becomes one more offered policy, so a play-vs-bot
@@ -194,9 +196,10 @@ $ go run ./cmd/mtgsim -seats 2 -games 20 -a sb-gorge -sb-agent sb-gorge=./gorge-
 ```
 
 That runs gorge's `bot` through the full v2 round trip against gorge's own
-`bot`. It is a useful fidelity check: on 2026-10-20, over seeds 0–19 with
-Death & Taxes against Dimir Tempo, the bot won **17 of 20 games natively**
-(`-a bot`) and **1 of 20 through the neutral v2 translation**. Something the
+`bot`. It is a useful fidelity check: over seeds 0–19 with Death & Taxes
+against Dimir Tempo, the bot won **17 of 20 games natively** (`-a bot`) and
+**1 of 20 through the neutral v2 translation** (2026-10-20, and again on
+2026-10-21 at `513a2a0c3`; 20 games took 17 s). Something the
 bot relies on does not survive the trip through the neutral observation;
 until that is found, compare v2-served policies with each other, not with
 native ones.
@@ -221,8 +224,10 @@ SpellBench harness drives. Its requests are `hello` (answered with
 `hello_ok` and the deck catalog), `validate_deck` (`deck_ok` or an error),
 `reset` (start a game; answered with the first `decision`), `step`
 (submit a candidate, with `expected_step` and a `semantic_echo` the
-environment checks; answered with the next `decision` or the `terminal`),
-and `probe_resample`.
+environment checks; answered with the next `decision` or the `terminal`).
+`probe_resample` is answered `unsupported_request`: gorge's environment has
+no probe. `validate_deck` accepts only the `pauper-bo1` format and the decks
+of the environment's own catalog.
 
 ```console
 $ go build -o spellbench-gorge-env ./cmd/spellbench-gorge-env
