@@ -284,7 +284,16 @@ func (e *Engine) libraryTopLook(p state.PlayerID, all bool) bool {
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if ce.MayLookAt && (!all || ce.MayLookAtAll) && e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
+		if !ce.MayLookAt || (all && !ce.MayLookAtAll) {
+			continue
+		}
+		// A hand-reveal grant (Telepathy, Enduring Renewal: MayLookAt$ over
+		// AffectedZone$ Hand) names no library card, whatever its Affected$
+		// spec would match on a library top.
+		if ce.AffectedZone != "" && !strings.EqualFold(ce.AffectedZone, "Library") {
+			continue
+		}
+		if e.matchesSpecFrom(ce.Affects, lib[0], ce.Controller, ce.Source) {
 			return true
 		}
 	}
