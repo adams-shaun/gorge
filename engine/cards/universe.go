@@ -89,28 +89,93 @@ func (u *Universe) Name(i int) string {
 	return c.Faces[0].Name
 }
 
-// Names is the sorted, distinct, non-empty primary-face-name list (what a
-// live match snapshots at genesis). Memoised and SHARED: read-only.
+// NameableFace reports whether face i of a card whose AlternateMode is mode
+// is a card name a player may choose (CR 201.4): the primary face always;
+// the other half of a split card (CR 201.4b, 709), a flip card's alternative
+// name (201.4c, 710.5), a transforming or modal DFC's back face (201.4d,
+// 712.19), a meld pair's combined back face (201.4e), and an adventurer,
+// omen or preparation card's alternative name (201.4f, 715.5, 720.5,
+// 722.5). A specialize face (Alchemy) is not a separately nameable card.
+func NameableFace(mode string, i int) bool {
+	if i == 0 {
+		return true
+	}
+	switch mode {
+	case AlternateSplit, AlternateDoubleFaced, AlternateModal, "Flip", "Meld", "Adventure", "Omen", "Prepare":
+		return true
+	}
+	return false
+}
+
+// eachNameableFace calls fn(ord, face, name) for every non-nil nameable face
+// (NameableFace) of every card, in ordinal then face order. It never
+// materializes an imaged universe.
+func (u *Universe) eachNameableFace(fn func(ord, face int, name string)) {
+	if u.lz != nil {
+		im := u.lz.img
+		for i, r := range im.Cards {
+			mode := im.str(r.AlternateMode)
+			a, z := im.slice(r.Faces, len(im.Faces))
+			for j := a; j < z; j++ {
+				if f := im.Faces[j]; f.Nil == 0 && NameableFace(mode, j-a) {
+					fn(i, j-a, im.str(f.Name))
+				}
+			}
+		}
+		return
+	}
+	for i, c := range u.cs {
+		if c == nil {
+			continue
+		}
+		for j, f := range c.Faces {
+			if f != nil && NameableFace(c.AlternateMode, j) {
+				fn(i, j, f.Name)
+			}
+		}
+	}
+}
+
+// Names is the sorted, distinct, non-empty list of every nameable face name
+// (NameableFace; what a live match snapshots at genesis). Memoised and
+// SHARED: read-only.
 func (u *Universe) Names() []string {
 	if u == nil {
 		return []string{}
 	}
 	u.namesOnce.Do(func() {
-		n := u.Len()
-		seen := make(map[string]bool, n)
-		out := make([]string, 0, n)
-		for i := 0; i < n; i++ {
-			name := u.Name(i)
+		seen := make(map[string]bool, u.Len())
+		out := make([]string, 0, u.Len())
+		u.eachNameableFace(func(_, _ int, name string) {
 			if name == "" || seen[name] {
-				continue
+				return
 			}
 			seen[name] = true
 			out = append(out, name)
-		}
+		})
 		sort.Strings(out)
 		u.names = out[:len(out):len(out)]
 	})
 	return u.names
+}
+
+// FaceByName is the first (ordinal, face) whose nameable face is named
+// exactly name, in ordinal then face order: the face a chosen name names
+// (a back-face name names that back face, CR 712.19).
+func (u *Universe) FaceByName(name string) (ord, face int, ok bool) {
+	if u == nil || name == "" {
+		return 0, 0, false
+	}
+	if i, found := u.FirstByName(name); found {
+		return i, 0, true
+	}
+	ord, face = -1, -1
+	u.eachNameableFace(func(i, j int, n string) {
+		if ord < 0 && j > 0 && n == name {
+			ord, face = i, j
+		}
+	})
+	return ord, face, ord >= 0
 }
 
 // FirstByName is the first ordinal whose primary-face name is exactly name.

@@ -313,7 +313,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 710.2 | deviates | `engine/events/apply_zone.go#move` | - | flipped card never resets on leaving battlefield |
 | 710.3 | n/a | - | - | physical |
 | 710.4 | deviates | `engine/effects/resolve.go#effSetState` | - | flip is (FaceIdx+1)%2: a second flip unflips |
-| 710.5 | deviates | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | - | name universe lists primary face names only: flipped name not offered |
+| 710.5 | follows | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` | flipped name offered |
 | 711.1-711.6 | follows | `engine/cards/kw_levelup.go#kwLevelUp` | `TestCoralhelmCommanderLevelsIntoThe23Band` `TestLevelUpKeywordIsSupported` | sorcery-speed level up; bands are ordinary statics |
 | 711.7 | follows | `engine/state/object.go#Object.ClassLevel` | `TestClassLevelDesignationIsNotACounter` | designation, not counters |
 | 712.1-712.3c | n/a | - | - | definitional/physical |
@@ -343,7 +343,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.16 | deviates | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceDown` | - | DFC can be turned face down |
 | 712.17 | n/a | - | - | physical |
 | 712.18 | follows | `engine/events/apply_copy.go#foldFlipFace` | `TestIncubatorTokenTransformsIntoThePhyrexianFace` | FaceIdx change only, same object |
-| 712.19 | deviates | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | - | name universe lists primary face names only: back-face and meld names not offered |
+| 712.19 | follows | `engine/cards/universe.go#Universe.Names` `engine/cards/universe.go#Universe.FaceByName` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` `TestCloneKillerCosplayCopiesANamedBackFace` | back-face and combined meld names offered; a chosen back-face name copies that face |
 | 712.20 | follows | `engine/rules/replacement_phase.go#Engine.applyTransformReplacement` | `TestSephirothTransformRunsTheDestinationFaceReplacement` | destination-face as-transforms replacement applied during the flip |
 | 712.21 | follows | `engine/events/apply_meld.go#unmeld` | `TestMeldTwoOwners` `TestMeldFoldPairsAndSplits` |  |
 | 712.21a-712.21b | partial | `engine/events/apply_meld.go#unmeld` | - | fixed order result then partner; no arrange or timestamp choice |
@@ -365,7 +365,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 715.3c | follows | `engine/events/apply_copy.go#foldStackCopy` | - | code-read: copy keeps FaceIdx and FlagAdventure; untested |
 | 715.3d | follows | `engine/rules/stack.go#spellRestZone` `engine/rules/legal_walk_alt.go#legalWalk.exileCastsWalk` | `TestAdventureSpellCounteredGoesToGraveyard` | controller vs owner unverified |
 | 715.4 | follows | `engine/events/apply_zone.go#move` | `TestAdventureCardIsMainFaceOffTheStack` | - |
-| 715.5 | deviates | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | - | name universe lists primary face names only: Adventure name not offered |
+| 715.5 | follows | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` `TestNameChoicesOfferEveryNameableFace` | Adventure name offered |
 | 716.1 | n/a | - | - | definitional |
 | 716.2-716.2a | follows | `engine/cards/kw_class.go#kwClass` `engine/effects/class_level.go#effClassLevelUp` | `TestClassLevelActivatorIsExactNMinusOne` `TestPaladinClassBandUpIsSorcerySpeed` | exactly N-1, sorcery speed |
 | 716.2b | follows | `engine/state/object.go#Object.ClassLevelValue` | - | code-read: object field outside copiable values; untested |
@@ -382,7 +382,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 720.1 | n/a | - | - |  |
 | 720.2-720.2b,720.3-720.3d | not-impl | - | - | SILENT: AlternateMode Omen has no cast path |
 | 720.2c,720.4 | follows | `engine/cards/ir.go#Card` | - |  |
-| 720.5 | deviates | `engine/cards/universe.go#Universe.Names` | - | SILENT: name universe offers primary-face names only |
+| 720.5 | follows | `engine/cards/universe.go#Universe.Names` | `TestCorpusNameUniverseHasEveryNameableFace` | Omen name offered |
 | 721.1,721.3 | n/a | - | - |  |
 | 721.2-721.2b | follows | `engine/effects/filter_value.go#numericPred` | `TestEveryStationCarrierStationsThroughTheStack` |  |
 | 721.2c | deviates | `engine/rules/chars/derive.go#PT` | - | REVISED: SILENT |
@@ -394,7 +394,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 722.3c | partial | `engine/events/apply_helpers.go#grantPreparedCopy` `engine/rules/legal_walk_alt.go#legalWalk.exileCastsWalk` `engine/rules/cast_targets.go#Engine.pushCast` | `TestPrepareStubBackPreparedCopyCastable` `TestPreparedExileCopyCeasesAfterCast` `TestPreparedExileCopyCeasesWhenSourceLeavesBattlefield` | REVISED: exile copy minted on grant only |
 | 722.3d | partial | `engine/state/object.go#CastProvenanceFlags` `engine/effects/filter.go#predicates` | - |  |
 | 722.4 | follows | `engine/events/apply_helpers.go#grantPreparedCopy` | - | card always uses its main face |
-| 722.5 | deviates | `engine/cards/universe.go#Universe.Names` | - | REVISED: SILENT |
+| 722.5 | follows | `engine/cards/universe.go#Universe.Names` | `TestCorpusNameUniverseHasEveryNameableFace` | prepare name offered |
 | 723.1 | follows | `engine/effects/choose_control.go#effControlPlayer` `engine/state/game.go#Game.LiveController` `engine/rules/engine_host.go#Engine.controlPlayerRedirect` `engine/rules/turn.go#Engine.expirePlayerControl` | `TestControlPlayerGrantRedirectsThenExpires` `TestControlPlayerRedirectDoesNotSpillBeforeControlledTurn` `TestMindslaverControlPlayerPrintedAbility` `TestControlGrantedDuringTheControlledSeatsTurnWaitsForItsNextTurn` | live only on the controlled seat's next turn |
 | 723.1a | follows | `engine/events/apply_player.go#foldControlPlayerChange` | `TestControlPlayerChangeFoldsGrantExpiryAndSelf` |  |
 | 723.1b | follows | `engine/rules/turn.go#Engine.expirePlayerControl` `engine/rules/engine_host.go#Engine.controlPlayerRedirect` | `TestControlPlayerRedirectDoesNotSpillBeforeControlledTurn` |  |
