@@ -697,8 +697,17 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		return Clamp(d, in)
 
 	case decision.KCommanderZone:
-		// Share CR1's CMC-scaled penalty and its nonnegative acceptance
-		// boundary. Leaving does not guarantee access from the destination.
+		// A "leave" whose Mode is set keeps a cast-from-exile permission
+		// (adventure_recast, foretell_cast, plot_cast); the command zone would
+		// end it and add the CR 903.8 tax, so take it. Otherwise share CR1's
+		// CMC-scaled penalty and its nonnegative acceptance boundary. Leaving
+		// does not guarantee access from the destination.
+		for _, o := range d.Options {
+			if o.Kind == "leave" && o.Mode != "" {
+				in.Choices = []int{o.Index}
+				return Clamp(d, in)
+			}
+		}
 		if len(d.Options) > 0 && d.Options[0].Kind == "command_zone" {
 			src := d.Options[0].Obj
 			if b.cardWorth(src)-b.commandTax(src) >= 0 {

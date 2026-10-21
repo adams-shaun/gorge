@@ -257,7 +257,7 @@ games on 2026-10-20 (a random agent, constructed and Commander).
 | `trigger_order` | Order your simultaneous triggers | **all** options, as a permutation. The first you list goes on the stack first and so resolves **last** | `trigger` |
 | `arrange` | Scry, surveil, look-at-the-top orders | an ordered subset, pile A: the ones you pick stay on top, the first you list closest to the top. The rest go where the shared option kind says; `"rest":[…]` orders them when `restable` is true | `bottom`, `graveyard`, `exile`, `hand` |
 | `replacement` | Several replacement effects apply: which first? | one option | `replacement`, `apply`, `decline` |
-| `commander_zone` | Your commander died or was exiled (or would go to hand/library): to the command zone? | one option | `command_zone`, `leave` |
+| `commander_zone` | Your commander died or was exiled (or would go to hand/library): to the command zone? | one option; on an exile ask, a `leave` whose `mode` is `adventure_recast` / `foretell_cast` / `plot_cast` keeps that cast-from-exile permission | `command_zone`, `leave` |
 
 Real examples, trimmed to their first options:
 

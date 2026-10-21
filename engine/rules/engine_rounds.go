@@ -69,6 +69,14 @@ type engineRounds struct {
 	// re-runs the recorded KAttackers answer through handleAttackers.
 	exertAskState exertAsk `clone:"share"`
 
+	// bandAskState is the declare-attackers band declaration's resumable
+	// state (engine/rules/banding.go, CR 702.22c): the banding attackers in
+	// declaration order, the cursor of the leader currently asked, and the
+	// answered declaration the exert election resumes with. Plain-value
+	// state, so Clone copies it like exertAskState; a replay re-derives it
+	// when it re-runs the recorded KAttackers answer.
+	bandAskState bandAsk `clone:"share"`
+
 	// enlistAskState is the declare-attackers enlist election's resumable
 	// state (engine/rules/enlist.go, task enlist1): the answered KAttackers
 	// declaration, the declaring player, the deterministic offer list
