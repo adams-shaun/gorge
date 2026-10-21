@@ -92,13 +92,19 @@ func effMultiplyCounter(h Host, c *Ctx, sa *cards.SA) {
 // (CR 701.27a) and the eligibility gate below would offer a recipient with no
 // counters at all. Callers pass the per-index count so the one helper is the
 // single place that filters.
+//
+// An every-kind walk also skips the engine's internal status markers
+// ("Shield", "Deathtouched", state.InternalCounterMarker): they ride
+// Object.Counters because the engine has no per-object status field, but they
+// are not counters (CR 122.1), so "each kind the carrier has" must not name
+// them. An explicitly named kind is returned as-is.
 func counterKinds(kind string, n int, at func(int) string, count func(int) int32) []string {
 	if kind != "" {
 		return []string{kind}
 	}
 	out := make([]string, 0, n)
 	for i := 0; i < n; i++ {
-		if count(i) > 0 {
+		if count(i) > 0 && !state.InternalCounterMarker(at(i)) {
 			out = append(out, at(i))
 		}
 	}
