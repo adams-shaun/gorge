@@ -1325,9 +1325,9 @@ func nonTriggeredControllerAdmits(o *state.Object, controller state.PlayerID, ok
 	return ok && o != nil && o.Zone == state.ZBattlefield && o.Controller != controller
 }
 
-// charmTargetSlots returns the selected DISTINCT target-bearing mode bodies.
-// Repeated mode instances deliberately return nil: their later occurrences
-// retain the established per-instance ask path.
+// charmTargetSlots returns one slot per selected target-bearing mode INSTANCE,
+// so a CanRepeatModes$ mode repeated in the chosen list gets its own target
+// ask for every occurrence (CR 700.2d, CR 115.3).
 
 type targetRemovalDestCode uint16
 

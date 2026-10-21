@@ -467,11 +467,11 @@ type pendingCast struct {
 	// misaligns the slices. A Fuse-only field; always empty for every other
 	// cast. Published to Engine.fuseTargets at payment.
 	stageTargets [][]state.Target `clone:"deep"`
-	// charmTargets records one target slice for each distinct target-bearing
-	// mode selected by a modal spell. The stack object's ordinary Targets is
-	// retained as the flat event-sourced view; this scratch preserves the
-	// per-mode bindings for resolution and is rebuilt by the same answer path
-	// during replay.
+	// charmTargets records one target slice for each selected target-bearing
+	// mode INSTANCE of a modal spell (a repeated mode has one per occurrence,
+	// CR 700.2d). The stack object's ordinary Targets is retained as the flat
+	// event-sourced view; this scratch preserves the per-mode bindings for
+	// resolution and is rebuilt by the same answer path during replay.
 	charmTargets [][]state.Target `clone:"deep"`
 
 	// subAsks / subAns / subStage carry the CAST-TIME pre-ask of the chain's

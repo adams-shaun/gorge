@@ -448,9 +448,9 @@ func villainousRunChoice(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 	return false
 }
 
-// charmDistinctTargetRun runs a distinct modal Charm with one target group
-// per selected target-bearing mode. ModeTargets is aligned to those modes;
-// non-targeting modes still run with the ordinary shared context.
+// charmDistinctTargetRun runs a modal Charm with one target group per
+// selected target-bearing mode instance. ModeTargets is aligned to those
+// modes; non-targeting modes still run with the ordinary shared context.
 func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 	if len(c.ModeTargets) < 2 {
 		return false
