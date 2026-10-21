@@ -86,7 +86,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.8 | follows | `engine/rules/trigger_condition.go#Engine.stateTriggerOutstanding` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestCR603StateTriggerFiresWhenConditionBecomesTrue` | d no state triggers in pool |
 | 603.9 | follows | `engine/rules/trigmatch/ordinary.go#losesGameMatches` | - | d two players: loss ends game |
 | 603.10 | follows | `engine/rules/trigger_match.go#Engine.checkTriggers` | - | post-event state by default |
-| 603.10a | deviates | `engine/rules/trigger_kinds.go#computeFaceLookBackZones` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | g ChangesZoneAll/Sacrificed lines no look-back (cr-g24) |
+| 603.10a | partial | `engine/rules/trigger_kinds.go#looksBackOnDeparture` `engine/rules/trigger_kinds.go#computeFaceLookBackZones` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestCR603_10aMorbidOpportunistSeesItsOwnWrath` `TestCR603_10aMayhemDevilSeesSacrificesWithIt` | ChangesZone/ChangesZoneAll Origin$ Battlefield and Sacrificed lines look back at a battlefield departure; a card leaving a graveyard and a public object put into a hand or library are still matched on the board after the event |
 | 603.10b | deviates | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | d no phasing |
 | 603.10c | unknown | `engine/rules/trigmatch/unattached.go#unattachedMatches` | - | not verified |
 | 603.10d | deviates | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | g thief controls Kharn-style trigger; d none in pool |
