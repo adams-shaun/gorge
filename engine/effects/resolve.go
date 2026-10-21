@@ -391,18 +391,16 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 					Text: "counter destination " + dest + " is not a hand-off or library zone; the card goes to the graveyard"})
 			}
 		}
-		// CR 702.34a: a flashback spell is exiled instead of going anywhere
-		// else when it leaves the stack -- but an explicit non-graveyard
-		// destination (Remand's hand) is that anywhere-else, so the override
-		// applies only on the graveyard/default path. CR 702.85a: the same
-		// "then exile it" covers an Aftermath half's cast, CR 702.84a a
-		// jump-start cast, and harmonize's "exile it instead of putting it
-		// into your graveyard" -- every way the spell leaves the stack,
-		// including being countered. One shared predicate (state.
-		// ExilesLeavingStack) so a new keyword in this family cannot be
-		// added to rules' readers and missed here.
-		if state.ExilesLeavingStack(o.CastFlags) && to == state.ZGraveyard {
-			to = state.ZExile
+		// CR 702.34a: a flashback spell is exiled "instead of putting it
+		// anywhere else any time it would leave the stack" -- a named
+		// destination (Remand's hand, Memory Lapse's library) included.
+		// CR 702.127a (aftermath), 702.133a (jump-start) and 702.180a
+		// (harmonize) say the same. One shared predicate (state.
+		// ExilesLeavingStack); rules' emit applies the same rewrite to every
+		// stack departure, and resolving it here too keeps the library
+		// placement below from running for a card that went to exile.
+		if state.ExilesLeavingStack(o.CastFlags) {
+			to, libraryDest = state.ZExile, false
 		}
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
