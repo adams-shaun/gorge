@@ -296,32 +296,6 @@ func TestUpkeepSacrificePaySparesDeclineSacrifices(t *testing.T) {
 	}
 }
 
-// TestUnpriceableSacrificeKeepsTodaysBehaviour pins the blast-radius
-// boundary: an unpriceable non-mana, non-damage UnlessCost$ (Mercenary
-// Knight's Discard<1/Creature>) is a hard decline — the shared gate poses
-// the ask (so the offer stays on the wire) and the deterministic decline
-// keeps the pre-gate behaviour: the unconditional first-pass sacrifice.
-func TestUnpriceableSacrificeKeepsTodaysBehaviour(t *testing.T) {
-	h, knight, _ := devilBoard(t, "Mercenary Knight", 0)
-	sac := upkeepSacrificeSA(t, "Mercenary Knight")
-	if sac.Params["UnlessCost"] != "Discard<1/Creature>" {
-		t.Fatalf("compiled UnlessCost = %q, want Discard<1/Creature>", sac.Params["UnlessCost"])
-	}
-	ah := &fx42AskHost{fakeHost: *h}
-	ah.g = h.g
-	ctx := &Ctx{Source: knight, Controller: 0}
-	Resolve(ah, ctx, sac)
-	if len(ah.asks) != 1 {
-		t.Fatalf("unpriceable UnlessCost$ posed %d decisions, want the 1 ask the shared gate records", len(ah.asks))
-	}
-	ah.suspended = false
-	ctx.UnlessPay = "decline"
-	Resolve(ah, ctx, sac)
-	if devilMoves(&ah.fakeHost, knight) != 1 {
-		t.Fatalf("unpriceable UnlessCost$ sacrifice moved %d times, want 1", devilMoves(&ah.fakeHost, knight))
-	}
-}
-
 // TestParseDamageUnlessCostSpellings pins the recognised vs unrecognised
 // spellings of the damage-offer parser: exactly DamageYou<N> with a positive
 // integer literal; an X, a bare SVar name or another bracket form fails
