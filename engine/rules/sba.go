@@ -953,9 +953,10 @@ func (e *Engine) checkLoseConditions(tried *sbaAttempts) bool {
 // ceaseDepartedObjects applies CR 800.4a and 800.4e in stable arena order. A
 // departed player's card-backed owned objects leave regardless of their current
 // zone; stack objects that player controls cease whether card-backed or
-// cardless. Ownership is deliberate on the battlefield: an opponent-owned card
-// does not leave merely because the departed player controlled it. ZCeased
-// retains the replay-stable arena tombstone without adding it to a zone.
+// cardless. On the battlefield ownership decides the first step: an
+// opponent-owned card the departed player controls is not ceased but, as
+// CR 800.4a's last step, exiled. ZCeased retains the replay-stable arena
+// tombstone without adding it to a zone.
 //
 // Moving an owned attacker clears its combat state, so that case continues
 // before the 800.4e check rather than emitting a redundant EndCombatReset. The
@@ -994,6 +995,20 @@ func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
 		}
 		e.emit(events.Event{Kind: events.EndCombatReset, Obj: o.ID})
 	}
+	// CR 800.4a's last step: "if there are any objects still controlled by
+	// that player, those objects are exiled." Every owned object and every
+	// stack object p controls has left above, and every effect giving p
+	// control ended when p left (grantEnded; expireControl runs on the
+	// PlayerLost emit), so what remains is a permanent p controls with no
+	// effect involved (Reanimate on another player's card). It is moved, not
+	// ceased: its owner is still in the game.
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Zone == state.ZBattlefield && o.Controller == p {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
+				From: state.ZBattlefield, To: state.ZExile, Text: "player left the game"})
+		}
+	}
 }
 
 // ceaseSweepLeavesBattlefield reports whether ceaseDepartedObjects(p) will
@@ -1002,7 +1017,7 @@ func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
 func (e *Engine) ceaseSweepLeavesBattlefield(p state.PlayerID) bool {
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
-		if o.Zone == state.ZBattlefield && o.Owner == p && o.Card != nil {
+		if o.Zone == state.ZBattlefield && ((o.Owner == p && o.Card != nil) || o.Controller == p) {
 			return true
 		}
 	}
