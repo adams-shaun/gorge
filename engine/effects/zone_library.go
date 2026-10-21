@@ -261,8 +261,8 @@ func randomizeLibraryPile(h Host, ids []state.ObjID) {
 // them at the bottom, in settle order); this one Secret LibraryOrder makes
 // position exact: bottom=false puts the chosen cards on TOP in chosen order,
 // bottom=true leaves them at the bottom in that same order, with the rest of
-// the library beneath/above them respectively. Secret so the full order is
-// visible only to the library's owner (redaction rule (1)).
+// the library beneath/above them respectively. Secret, so view redaction
+// serves the full order to no seat, the library's owner included (CR 401.2).
 func libraryOrderPlacement(h Host, owner state.PlayerID, moved []state.ObjID, bottom bool) {
 	selected := make(map[state.ObjID]bool, len(moved))
 	for _, id := range moved {

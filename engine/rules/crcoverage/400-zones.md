@@ -30,7 +30,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 400.11a-c | follows | `engine/state/ids.go#ZSideboard` `engine/effects/zone.go#ParseZone` | `TestChangeZoneWishFindsSideboard` `TestBurningWishEmptySideboardKeepsSelfExile` |  |
 | 400.12 | follows | `engine/effects/zone_changeall.go#effChangeZoneAll` | `TestChangeZoneAllShufflesDestinationLibraries` |  |
 | 401.1 | follows | `engine/rules/genesis.go#New` | - |  |
-| 401.2 | partial | `engine/view/view.go#projector.unorderedLibrary` `engine/effects/dig.go#digSecretTo` `engine/view/redact.go#RedactEvent` | `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` `TestDigOpponentLibraryMovesAreTheChoosersSecret` | a Secret LibraryOrder still gives the owner the whole library order (cr-g61) |
+| 401.2 | follows | `engine/view/view.go#projector.unorderedLibrary` `engine/view/redact.go#libraryOrderKind` `engine/effects/dig.go#digSecretTo` | `TestPonderLibraryOrderIsHiddenFromItsOwner` `TestGontiRemainderOrderIsHiddenFromTheLibraryOwner` `TestLibraryOrderIsShapeOnlyForItsOwnerAndController` `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` `TestDigOpponentLibraryMovesAreTheChoosersSecret` | a Secret LibraryOrder or Shuffle is served as its shape to every seat, the owner included (cr-g61) |
 | 401.3 | follows | `engine/view/view.go#PlayerView.LibrarySize` | - |  |
 | 401.4 | partial | `engine/effects/zone_library.go#placeTargetedLibraryObjects` | - | targeted path places in target order without asking (Plow Under) |
 | 401.5 | deviates | `engine/rules/layers.go#Engine.staticEffectsWalk` `engine/rules/layers_static.go#Engine.MayLookAtLibraryTop` | - | MayLookAt$ Player shown to owner only; cr-g28-maylookat-player-reveal |

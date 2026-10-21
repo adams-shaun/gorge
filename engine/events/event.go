@@ -231,9 +231,10 @@ const (
 	// (RearrangeTopOfLibrary, Ponder; later Scry/Surveil/Dig) and the
 	// discard half of a bottoming ask. Player names whose library, IDs the
 	// COMPLETE new order (the top cards reordered, then the untouched
-	// remainder beneath them). Secret is always true: the exact order of a
-	// hidden zone must not leak to another seat, so view redaction drops the
-	// payload for anyone but Player.
+	// remainder beneath them). Secret is always true: CR 401.2 hides a
+	// library's order from every player, its owner included, so view
+	// redaction serves every viewer the event's shape only (cr-g61); the
+	// IDs exist for events.Apply and replay.
 	//
 	// Appended here, after DelayedPush, following the named precedents of
 	// TargetsChosen (Ruling T14-b), FlipFace (T18-a) and ClockTick (T19-a)
