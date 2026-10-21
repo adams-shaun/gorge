@@ -651,6 +651,19 @@ type pendingCast struct {
 	// continueCast folds each onto the stack object once.
 	giftFolded  bool `clone:"deep"`
 	sneakFolded bool `clone:"deep"`
+
+	// activationPaid is true once payCast has paid an activated ability's
+	// cost, which is when the old AbilityPush mint ran. The ability object
+	// itself is now minted by pushActivation at the head of continueCast (CR
+	// 602.2a), so stackObj != 0 no longer means "paid": a target answer that
+	// parks in the 601.2g mana window has the object on the stack already.
+	activationPaid bool `clone:"deep"`
+
+	// ninjutsuFolded marks the Choose "remembered" event foldNinjutsuDefender
+	// emitted onto the pushed ability object, so a re-entry of continueCast
+	// folds the captured defender once. The push now precedes the Return cost
+	// that captures it, so it can no longer ride the AbilityPush's IDs.
+	ninjutsuFolded bool `clone:"deep"`
 }
 
 // subCounterPay is one counter removed to pay a SubCounter cost part

@@ -138,6 +138,37 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 	return used
 }
 
+// activationCounted maps an ActivationReversed event (a CR 733.1 abort of an
+// already-pushed activated ability) back to the mint it reverses and returns
+// the sign its activation census contributes. A normal event is (+1); a
+// reversal is (-1) with Kind decoded from its Text (the mint's Kind.String())
+// and Text cleared, so each scan's ordinary identity test applies unchanged. A
+// reversal naming no known mint kind contributes 0 and is left as-is; no scan
+// matches it. A sum is exact for the backward scans too, because a reversal
+// always follows its own mint inside the same turn and object stint.
+func activationCounted(ev events.Event) (events.Event, int) {
+	if ev.Kind != events.ActivationReversed {
+		return ev, 1
+	}
+	m := ev
+	m.Text = ""
+	switch ev.Text {
+	case events.AbilityPush.String():
+		m.Kind = events.AbilityPush
+	case events.ManaActivate.String():
+		m.Kind = events.ManaActivate
+	case events.DelayedPush.String():
+		m.Kind = events.DelayedPush
+	case events.GrantAbilityPush.String():
+		m.Kind = events.GrantAbilityPush
+	case events.GainedAbilityPush.String():
+		m.Kind = events.GainedAbilityPush
+	default:
+		return ev, 0
+	}
+	return m, -1
+}
+
 // loyaltyActivationsFrom is loyaltyActivationsThisTurn's fold over the log
 // from index from, starting at the given stint and face.
 func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield bool, faceIdx int) int {
@@ -153,7 +184,8 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 		// ends it below.
 		onBattlefield = true
 	}
-	for _, ev := range e.L.Events[from:] {
+	for i := range e.L.Events[from:] {
+		ev, sign := activationCounted(e.L.Events[from+i])
 		switch ev.Kind {
 		case events.TurnChange:
 			// CR 606.3's window is a turn, not a player's own turn.
@@ -186,7 +218,7 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 			// face and bounds that events.Apply used at push time.
 			f := o.Card.Faces[faceIdx]
 			if f != nil && int(ev.Amount) < len(f.Abilities) && e.isLoyaltyAbility(f.Abilities[int(ev.Amount)]) {
-				used++
+				used += sign
 			}
 
 		case events.GainedAbilityPush:
@@ -207,7 +239,7 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 				continue
 			}
 			if e.isLoyaltyAbility(abilities[int(ev.Amount)]) {
-				used++
+				used += sign
 			}
 
 		case events.GrantAbilityPush:
@@ -222,7 +254,7 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 				continue
 			}
 			if body := e.grantedSAFrom(ev.IDs[0], id, ev.Counter); body != nil && e.isLoyaltyAbility(body) {
-				used++
+				used += sign
 			}
 
 		case events.FlipFace:
@@ -332,6 +364,7 @@ func (e *Engine) activationUsedCount(id state.ObjID, ability int, svar string, t
 		if ev.Obj != id {
 			continue
 		}
+		ev, sign := activationCounted(ev)
 		switch ev.Kind {
 		case events.AbilityPush, events.ManaActivate:
 			// A ManaActivate carrying IDs is a GAINED mana activation
@@ -341,11 +374,11 @@ func (e *Engine) activationUsedCount(id state.ObjID, ability int, svar string, t
 				continue
 			}
 			if ability >= 0 && ev.Amount == int32(ability) {
-				used++
+				used += sign
 			}
 		case events.DelayedPush, events.GrantAbilityPush:
 			if svar != "" && ev.Counter == svar {
-				used++
+				used += sign
 			}
 		}
 	}
@@ -500,10 +533,11 @@ func (e *Engine) boastGateOK(id state.ObjID, ability int, svar string) bool {
 		if ev.Obj != id {
 			continue
 		}
+		ev, sign := activationCounted(ev)
 		switch ev.Kind {
 		case events.AbilityPush:
 			if svar == "" && ev.Amount == int32(ability) {
-				used++
+				used += sign
 			}
 		case events.DelayedPush, events.GrantAbilityPush:
 			// A granted activation's identity is its SVar name. A self-grant
@@ -514,7 +548,7 @@ func (e *Engine) boastGateOK(id state.ObjID, ability int, svar string) bool {
 			// name. Reading only DelayedPush would leave the granted Boast
 			// re-offered in every priority window of the turn it was used.
 			if svar != "" && ev.Counter == svar {
-				used++
+				used += sign
 			}
 		}
 	}

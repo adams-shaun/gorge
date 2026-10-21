@@ -497,12 +497,11 @@ func (e *Engine) targetAsk() bool {
 	}
 	// The decision's Source is the object that must not be offered as its own
 	// target (CR 115.5). For a spell that is the card (excluded via
-	// excludeSelf). For an activated ability the object that may not target
-	// itself is the ability stack object, which is not minted yet (the push
-	// is a no-op for an ability; payCast's AbilityPush creates it), so Source
-	// is 0 and the source permanent remains a legal target of its own ability
-	// (Mother of Runes) via excludeSelf == 0. The prompt keeps the source
-	// permanent's name for readability.
+	// excludeSelf). For an activated ability the ability stack object is
+	// already pushed (CR 602.2a) but Source stays 0, so the source permanent
+	// remains a legal target of its own ability (Mother of Runes) via
+	// excludeSelf == 0. The prompt keeps the source permanent's name for
+	// readability.
 	var src state.ObjID
 	if !pc.isAbility() || sa.API == "Attach" {
 		src = pc.card
@@ -1082,8 +1081,9 @@ func (e *Engine) answerCastSubTarget(pc *pendingCast, chosen []decision.Option) 
 	e.repriceForTargets(pc)
 	// A spell is already on the stack (pushCast), so the chain target is
 	// recorded now, before payment (601.2c before 601.2h) -- exactly when the
-	// root's is. An activated ability's object is minted by payCast's
-	// AbilityPush; recordCastSubTargets runs there for it.
+	// root's is. An activated ability's object is pushed by pushActivation
+	// (CR 602.2a), but its chain targets are still recorded at the end of
+	// payment by recordCastSubTargets, exactly as before.
 	if !pc.isAbility() && pc.stackObj != 0 {
 		e.recordSubTargets(pc.stackObj, pc.subAns[pc.subStage-1])
 	}
@@ -1124,9 +1124,9 @@ func (e *Engine) recordCastSubTargets(pc *pendingCast) {
 }
 
 // installSubPreAsk publishes the answered sub-ask record onto the stack
-// object that will resolve the chain (spells: pushed by pushCast, so the id
-// exists at payCast entry; abilities: minted by payCast's AbilityPush, so
-// the ability arm installs after it). The record is Engine.castSubTargets;
+// object that will resolve the chain (spells: pushed by pushCast; abilities:
+// pushed by pushActivation at the head of continueCast, CR 602.2a, so both
+// ids exist at payCast entry). The record is Engine.castSubTargets;
 // resolution attaches it through Ctx.SubPreAsk and chosenTargetsFor consumes
 // it line by line. Empty slices are real answered-zero records and must
 // install too, or the resolution would re-ask the sub.
@@ -1259,26 +1259,16 @@ func (e *Engine) evidenceAmount(pc *pendingCast) int32 {
 // printed and keyword-granted abilities. Use it for spend riders too: a
 // synthetic AbilityPush with ability=-1 cannot describe a granted body.
 //
-// A K:Ninjutsu activation's captured defender (pc.ninjutsuDefender) rides the
-// event's IDs: events.Apply's AbilityPush arm decodes a PlayerRef sentinel
-// into the ability object's Remembered, and engine/rules/stack.go re-binds it to the
-// resolving Ctx's DefendingPlayer so the ChangeZone body's Attacking$ True
-// rider places the permanent attacking the returned creature's defender.
+// A K:Ninjutsu activation's captured defender no longer rides this event: the
+// push (CR 602.2a) precedes the Return cost that captures it, so
+// foldNinjutsuDefender records it on the already-pushed object instead.
 func (pc *pendingCast) activationPushEvent(e *Engine) events.Event {
 	if pc.grantKeyword != "" {
 		return events.Event{Kind: events.KeywordAbilityPush, Player: pc.player,
 			Obj: pc.card, Counter: pc.grantKeyword}
 	}
-	ev := events.Event{Kind: events.AbilityPush, Obj: pc.card,
+	return events.Event{Kind: events.AbilityPush, Obj: pc.card,
 		Player: pc.player, Amount: int32(pc.ability)}
-	if e.activationIsNinjutsu(pc) && pc.ninjutsuHasDefender {
-		ids := []state.ObjID{state.PlayerRef(pc.ninjutsuDefender)}
-		if pc.ninjutsuDefenderObject != 0 {
-			ids = append(ids, pc.ninjutsuDefenderObject)
-		}
-		ev.IDs = ids
-	}
-	return ev
 }
 
 // activationIsNinjutsu reports whether pc is a K:Ninjutsu activation: the
@@ -1303,8 +1293,9 @@ func (e *Engine) activationIsNinjutsu(pc *pendingCast) bool {
 
 // finishTargetedCast is the completion tail every cast-flow target answer
 // converges on once no post-target ask is outstanding. payCast records an
-// ability's root targets once its stack object is minted (possibly after a
-// mana window); a spell's targets were already recorded before the park.
+// ability's root targets once its cost is paid (possibly after a mana
+// window; the object itself is pushed by pushActivation, CR 602.2a); a
+// spell's targets were already recorded before the park.
 // The tail carries the CR 117.3c priority discipline the root arm
 // always owned: the caster keeps priority only once no announcement decision
 // is outstanding, and a trigger drain parked on the target ask resumes
@@ -1327,7 +1318,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	// control returns to the host. A proposal still parked in the 601.2g mana
 	// window has minted no stack object yet, so the guard also keeps the
 	// dispatch off a suspended payment.
-	if pc.isAbility() && pc.stackObj != 0 {
+	if pc.isAbility() && pc.activationPaid {
 		e.cast = pc
 		e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
 		e.cast = nil
@@ -1357,11 +1348,9 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 // actually cast -- after payment; payCast's fireDeferredCastTrigger re-walks
 // the held PutOnStack. CastInfo (the X / mode-flag recording) is deferred to
 // payCast too, so an aborted proposal leaves no cast-time trace on the card.
-// An activated ability is a no-op here: CR 602.2b imports 601.2 but its
-// stack object is minted by payCast's AbilityPush AFTER the target and cost
-// settle, and an aborted activation must reverse with no stack object left
-// behind (CR 733.1) -- pushing it first would strand a Face-less object in
-// exile. A land play never goes on the stack.
+// An activated ability is a no-op here: pushActivation mints its stack object
+// at the same point in continueCast (CR 602.2a). A land play never goes on
+// the stack.
 //
 // It returns true when the cast cannot proceed at all (the card left its
 // zone before the push) and was aborted; in that case nothing was pushed, so
@@ -1446,6 +1435,61 @@ func (e *Engine) pushCast() bool {
 		e.recordCmdCast(pc.player, pc.card)
 	}
 	return false
+}
+
+// pushActivation implements CR 602.2a: "To propose the activation of an
+// ability, the player first moves that ability from where it is to the stack
+// ... It becomes the topmost object on the stack." CR 602.2b then imports
+// 601.2b-i, so every X, target and cost choice below is posed with the
+// ability already on the stack. The mint is emitted under deferCastTrigger so
+// the "whenever you activate" triggers (AbilityCast / SpellAbilityCast) stay
+// held until the cost is paid, exactly where the old payCast mint fired them;
+// fireDeferredActivationTrigger re-walks it after payment. It is idempotent
+// (pc.pushed) and never aborts.
+func (e *Engine) pushActivation() {
+	pc := e.cast
+	if pc == nil || !pc.isAbility() || pc.pushed {
+		return
+	}
+	// Capture the no-progress suppression state before the push, the same way
+	// pushCast does: the mint is a state-changing event to emit's
+	// suppression-clearing rule, but an aborted activation is net no progress.
+	pc.preSuppress = e.suppressedCast
+	pc.preAborts = e.castAborts
+	e.deferCastTrigger = true
+	e.emit(pc.activationMintEvent(e))
+	e.deferCastTrigger = false
+	if len(e.G.Stack) > 0 {
+		pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
+	}
+	pc.pushed = true
+}
+
+// activationMintEvent returns the event that mints an activated ability's
+// stack object. It is the event the old payCast ability arm emitted, field for
+// field: a GRANTED activation (task grantcost1) mints through the SAME three
+// events beginGrantedActivation/beginKeywordGrantedActivation mint -- the
+// delayed-shape DelayedPush for a self-grant (Counter carries the SVar name;
+// the ^uint32(0) registration id matches nothing) and GrantAbilityPush for a
+// cross-object grant (IDs[0] carries the grantor; the minted ability's Source
+// is the recipient). A KEYWORD-GRANTED activation (the AddKeyword$ Cycling
+// route, CR 613.1f) mints through KeywordAbilityPush, whose Counter carries
+// the derived keyword line the body is synthesized from. abortCast calls it
+// again to name the mint its ActivationReversed event undoes.
+func (pc *pendingCast) activationMintEvent(e *Engine) events.Event {
+	if pc.gainedFrom != 0 {
+		return events.Event{Kind: events.GainedAbilityPush, Player: pc.player, Obj: pc.card,
+			Amount: int32(pc.gainedIdx), IDs: []state.ObjID{pc.gainedFrom}}
+	}
+	if pc.grantSVar != "" {
+		if pc.grantSource == pc.card {
+			return events.Event{Kind: events.DelayedPush, Player: pc.player, Obj: pc.card,
+				Amount: -1, Counter: pc.grantSVar, Text: "granted ability"}
+		}
+		return events.Event{Kind: events.GrantAbilityPush, Player: pc.player, Obj: pc.card,
+			Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}}
+	}
+	return pc.activationPushEvent(e)
 }
 
 // recheckIllegal implements CR 601.2e: once every announcement choice (the
@@ -1685,4 +1729,26 @@ func (e *Engine) foldSneakDefender(pc *pendingCast) {
 	}
 	e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Player: pc.player,
 		Counter: "sneak-defender", IDs: ids})
+}
+
+// foldNinjutsuDefender implements CR 702.49b for a K:Ninjutsu activation: the
+// defender its returned attacker was attacking is captured when the Return
+// cost is answered, but the ability object was already pushed (CR 602.2a), so
+// the capture is recorded on that object with a Choose "remembered" event.
+// events.Apply's rememberedFrom decodes the PlayerRef sentinel, and
+// engine/rules/stack.go re-binds it to the resolving Ctx's DefendingPlayer so
+// the ChangeZone body's Attacking$ True rider places the permanent attacking
+// the returned creature's defender. It is a no-op until the push exists and
+// after the first fold.
+func (e *Engine) foldNinjutsuDefender(pc *pendingCast) {
+	if pc == nil || !pc.isAbility() || !pc.ninjutsuHasDefender || pc.ninjutsuFolded || !pc.pushed || pc.stackObj == 0 {
+		return
+	}
+	pc.ninjutsuFolded = true
+	ids := []state.ObjID{state.PlayerRef(pc.ninjutsuDefender)}
+	if pc.ninjutsuDefenderObject != 0 {
+		ids = append(ids, pc.ninjutsuDefenderObject)
+	}
+	e.emit(events.Event{Kind: events.Choose, Obj: pc.stackObj, Player: pc.player,
+		Counter: "remembered", IDs: ids})
 }

@@ -296,7 +296,9 @@ func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int
 	used := 0
 	// CR 400.7: a recipient that changed zones is a new object with its own
 	// per-turn allowance, so only its current stint's activations count.
-	for _, ev := range e.L.Events[e.objectStintStart(id):] {
+	from := e.objectStintStart(id)
+	for i := range e.L.Events[from:] {
+		ev, sign := activationCounted(e.L.Events[from+i])
 		switch ev.Kind {
 		case events.TurnChange:
 			if int(ev.Player) < len(e.G.Players) {
@@ -308,7 +310,7 @@ func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int
 			// (recipient, foreign card, index) triple (gainedManaRef); a
 			// printed mana marker carries no IDs and never matches.
 			if ev.Obj == id && len(ev.IDs) > 0 && ev.IDs[0] == foreign && int(ev.Amount) == idx {
-				used++
+				used += sign
 			}
 		}
 	}

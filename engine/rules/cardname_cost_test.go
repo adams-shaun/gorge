@@ -137,9 +137,21 @@ func TestCardnameSacrificeCostCannotUseAnotherCopy(t *testing.T) {
 	if e.cast != nil || e.Pending() != nil || len(e.G.Stack) != 0 {
 		t.Fatal("payment accepted another copy")
 	}
+	pushes, reversals := 0, 0
 	for _, ev := range e.L.Events[start:] {
-		if ev.Kind == events.MoveZone || ev.Kind == events.AbilityPush {
-			t.Fatal("aborted payment mutated the board")
+		if ev.Kind == events.AbilityPush && ev.Obj == source {
+			pushes++
 		}
+		if ev.Kind == events.ActivationReversed && ev.Obj == source {
+			reversals++
+		}
+		if ev.Kind == events.MoveZone {
+			if o := e.G.Obj(ev.Obj); o == nil || o.Card != nil || ev.Text != "reversed" {
+				t.Fatalf("aborted payment moved a card: %+v", ev)
+			}
+		}
+	}
+	if pushes != 1 || reversals != 1 {
+		t.Fatalf("aborted activation pushed %d and reversed %d times, want exactly one each (CR 602.2a/733.1)", pushes, reversals)
 	}
 }

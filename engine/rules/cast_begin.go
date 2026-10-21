@@ -976,6 +976,10 @@ func (e *Engine) continueCast() {
 	if e.pushCast() {
 		return
 	}
+	// CR 602.2a: an activated ability is moved to the stack before any 602.2b
+	// choice (601.2b-i). Its "whenever you activate" triggers are held until
+	// payCast, exactly as the old end-of-payment mint fired them.
+	e.pushActivation()
 	// Mutate (CR 702.140b): the over/under placement choice is announced
 	// before payment the same way the replicate count is, so the pay-time
 	// CastInfo can carry FlagMutatedTop.
@@ -1115,6 +1119,7 @@ func (e *Engine) continueCast() {
 		return
 	}
 	e.foldSneakDefender(e.cast)
+	e.foldNinjutsuDefender(e.cast)
 	if e.putToLibAsk() {
 		return
 	}
