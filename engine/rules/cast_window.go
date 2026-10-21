@@ -65,6 +65,7 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 	p := pc.player
 	windowUnits := e.windowManaUnits(p)
 	windowUnits = e.castWindowProbeUnits(pc, windowUnits)
+	windowUnits = e.castWindowReflectedUnits(pc, windowUnits)
 	// SUPERSET GUARD (the anti-abort invariant): a source this cast already
 	// committed to Convoke/Harmonize/Improvise (pc.convoke) or Conspire
 	// (pc.taps) is NOT offered by manaWindowAsk (cast.go's convokeCommitted
@@ -79,6 +80,63 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 		out = append(out, u)
 	}
 	return out
+}
+
+// castWindowReflectedUnits is castWindowUnits' reflected-mana pass: for each
+// unit the census and probe already admitted, the alts of a
+// pay.PaymentPlanReflectedShape ability (Star Compass, Exotic Orchard) are
+// replaced by one concrete alt per colour paymentPlanReflectedAlt names --
+// the same colours the payment planner expands, so the target and face gates
+// agree with the plan by construction. The shared census lists such an
+// ability as its colourless {C} stand-in (and the probe splits that blank
+// again), which a reflected tap never produces. When the reflection names no
+// colour right now the unit stays as it was (fail closed). Each rebuilt unit
+// gets a fresh Alts slice: census spans are capped and may share backing.
+func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUnit) []windowManaUnit {
+	for ui := range units {
+		u := &units[ui]
+		expanded := map[*cards.SA][]windowManaAlt{}
+		rebuilt := false
+		for _, a := range u.Alts {
+			if _, seen := expanded[a.Ma]; seen || a.Ma == nil || a.Amt <= 0 || !pay.PaymentPlanReflectedShape(a.Ma) {
+				continue
+			}
+			alt, ok := paymentPlanReflectedAlt(e, pc.player, u.ID, a.Ma, a.Amt)
+			if !ok {
+				expanded[a.Ma] = nil
+				continue
+			}
+			var concrete []windowManaAlt
+			for i, n := range alt.Counts {
+				if n <= 0 {
+					continue
+				}
+				c := windowManaAlt{Ma: a.Ma, Amt: a.Amt, Life: a.Life, LifeKeep: a.LifeKeep, CostGeneric: a.CostGeneric}
+				c.Counts[i] = 1
+				concrete = append(concrete, c)
+			}
+			expanded[a.Ma] = concrete
+			rebuilt = rebuilt || concrete != nil
+		}
+		if !rebuilt {
+			continue
+		}
+		alts := make([]windowManaAlt, 0, len(u.Alts))
+		placed := map[*cards.SA]bool{}
+		for _, a := range u.Alts {
+			concrete, ok := expanded[a.Ma]
+			if !ok || concrete == nil {
+				alts = append(alts, a)
+				continue
+			}
+			if !placed[a.Ma] {
+				placed[a.Ma] = true
+				alts = append(alts, concrete...)
+			}
+		}
+		u.Alts = alts
+	}
+	return units
 }
 
 // castWindowProbeUnits is castWindowUnits' cast-only activation-cost layer.
