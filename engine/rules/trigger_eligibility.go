@@ -546,8 +546,12 @@ var triggerModeEventRows = [...]struct {
 	// allTriggerEvents default keeps a TurnFaceUp-only face's mask narrow
 	// for every other kind.
 	{cards.TriggerTurnFaceUp, 0},
-	{cards.TriggerTokenCreated, 1 << events.TokenCreate},
-	{cards.TriggerTokenCreatedOnce, 1 << events.TokenCreate},
+	// A token-creation trigger fires on a plain TokenCreate mint, and on the
+	// MoveZone that seats a copy effect's token (DB$ CopyPermanent, Myriad:
+	// events.CopyToken/MyriadCopy mint in the library). The matcher admits
+	// only a Library -> Battlefield move of a token object.
+	{cards.TriggerTokenCreated, 1<<events.TokenCreate | 1<<events.MoveZone},
+	{cards.TriggerTokenCreatedOnce, 1<<events.TokenCreate | 1<<events.MoveZone},
 	{cards.TriggerDrawn, 1 << events.Draw},
 	{cards.TriggerLifeLost, 1<<events.Damage | 1<<events.LifeChange},
 	{cards.TriggerLifeGained, 1 << events.LifeChange},
