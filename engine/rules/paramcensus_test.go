@@ -1146,6 +1146,13 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		if pkg == "effects" && fname == "saMentionsKeywords" {
 			return
 		}
+		// saMentionsPT is the same recognition for a P/T-reading filter
+		// (SpecReadsPT) along the Sub chain, so effects can ask rules for the
+		// characteristic-defining P/T table. Recognition only; it consumes
+		// no SA parameter.
+		if pkg == "effects" && fname == "saMentionsPT" {
+			return
+		}
 		// abilityReferencesX (engine/effects/flipcoin.go) recognizes the standalone
 		// token "X" in any parameter value along an ability's Sub chain, so a
 		// NoCall$ True coin-flip outcome branch fires once with the total
