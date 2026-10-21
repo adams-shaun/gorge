@@ -353,12 +353,6 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				Text: "TokenTapped$ " + v + " is not implemented; the copy enters untapped"})
 		}
 	}
-	var attacking bool
-	var defender state.PlayerID
-	if attack := cp.TokenAttacking; attack != "" {
-		attacking, defender = tokenAttackingRider(h, c, attack, "copy")
-	}
-
 	// Copy count: a literal or resolvable NumCopies$ is honoured; an
 	// unresolvable one (X/Y/Wins without a binding) is one copy under a Note.
 	n := int32(1)
@@ -514,20 +508,14 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	if !multiOwner {
 		owners = []state.PlayerID{owner}
 	}
+	attacking, selectorDefender, attackOwners := copyAttackRider(h, c, owners, cp.TokenAttacking)
 	remember := cp.RememberTokens
 	var amount int32
 	if tapped {
 		amount |= events.CopyTokenTapped
 	}
-	if attacking {
-		amount |= events.CopyTokenAttacking
-	}
 	if atEOT == "ExileCombat" {
 		amount |= events.CopyTokenExileCombat
-	}
-	var ids []state.ObjID
-	if attacking {
-		ids = []state.ObjID{state.ObjID(defender)}
 	}
 	// The same capture+re-remember duplication reaches TokenRemembered$
 	// Remembered (resolvedRemembered returns Ctx.Remembered raw when the
@@ -790,16 +778,21 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			// actually mints one (state.Game.AddObject assigns NextID then
 			// increments it) -- the effToken/effMyriad prediction pattern.
 			want := g.NextID
+			amt, ids := amount, []state.ObjID(nil)
+			if atk, atkIDs := copyAttackIDs(attacking, selectorDefender, attackOwners, owner); atk {
+				amt |= events.CopyTokenAttacking
+				ids = atkIDs
+			}
 			if definedName != "" {
 				// A named-card copy: the source is the card definition, so the
 				// event carries the name in Text and leaves Obj zero. The fold
 				// resolves it through the same state.Game.NamedCard the reach
 				// check above used.
 				h.Emit(events.Event{Kind: events.CopyToken, Obj: 0, Player: owner,
-					Amount: amount, IDs: ids, Counter: atEOTTrigBody, Text: definedName})
+					Amount: amt, IDs: ids, Counter: atEOTTrigBody, Text: definedName})
 			} else {
 				h.Emit(events.Event{Kind: events.CopyToken, Obj: t.Obj, Player: owner,
-					Amount: amount, IDs: ids, Counter: atEOTTrigBody})
+					Amount: amt, IDs: ids, Counter: atEOTTrigBody})
 			}
 			if g.Obj(want) == nil {
 				continue
