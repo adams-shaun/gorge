@@ -112,7 +112,7 @@ func noteExcessHit(t *excessTally, h excessHost, lki map[state.ObjID]map[state.O
 			fresh.types |= excessTypeCreature
 			fresh.creatureLethal = h.Toughness(ev.Obj) - o.Damage
 		}
-		if f := o.Face(); f != nil && f.IsPlaneswalker() {
+		if f := o.Face(); f != nil && f.IsPlaneswalker() && ev.Text != events.DamageNotPlaneswalker {
 			fresh.types |= excessTypePlaneswalker
 			fresh.loyalty = o.Counter("LOYALTY")
 		}
