@@ -111,7 +111,8 @@ func (f ownLibFixture) counts(t *testing.T, lc deck.LibraryComposition) map[stri
 // TestOwnLibraryFoldRules pins every per-card rule on a hand-built board
 // (both halves): printed front-face identity (a transformed card, a copy),
 // ownership (a stolen card each way), tokens ignored, a face-down exile
-// counted when the seat may look at it and Unknown when it may not.
+// counted when the seat may look at it and Unknown when it may not (an
+// opponent's look, or a blind exile no one may look at).
 func TestOwnLibraryFoldRules(t *testing.T) {
 	f := newOwnLibFixture(t)
 	got := f.folds(t)
@@ -139,8 +140,15 @@ func TestOwnLibraryFoldRules(t *testing.T) {
 	// A Hideaway-style face-down exile we may look at is still counted.
 	f.g.SetZone(state.ZLibrary, 0, slices.DeleteFunc(slices.Clone(f.g.Zone(state.ZLibrary, 0)), func(id state.ObjID) bool { return id == f.libBeta }))
 	f.g.SetZone(state.ZExile, 0, append(slices.Clone(f.g.Zone(state.ZExile, 0)), f.libBeta))
+	// Hideaway records its controller as the looker (cr-g64: the may-look
+	// layout); a blind face-down exile (Necropotence) names no looker, so
+	// not even its owner may read it.
 	o := f.g.Obj(f.libBeta)
 	o.Zone, o.FaceDown = state.ZExile, true
+	if got := f.folds(t); got.Known || got.Unknown != deck.UnknownHiddenOwnCard {
+		t.Fatalf("blind face-down exile: %+v", got)
+	}
+	o.HasMayLook, o.MayLookPlayer = true, 0
 	if got := f.folds(t); !got.Known || f.counts(t, got)["Beta"] != 0 || got.Size != 3 {
 		t.Fatalf("own-looker face-down exile: %+v", got)
 	}
@@ -170,8 +178,8 @@ func maps(a, b map[string]int32) bool {
 func TestOwnLibraryRefillDoesNotAllocate(t *testing.T) {
 	f := newOwnLibFixture(t)
 	var lc deck.LibraryComposition
-	fillOwnLibrary(f.g, 0, &f.m, &lc)
-	if allocs := testing.AllocsPerRun(100, func() { fillOwnLibrary(f.g, 0, &f.m, &lc) }); allocs != 0 {
+	fillOwnLibrary(f.g, nil, 0, &f.m, &lc)
+	if allocs := testing.AllocsPerRun(100, func() { fillOwnLibrary(f.g, nil, 0, &f.m, &lc) }); allocs != 0 {
 		t.Fatalf("fillOwnLibrary allocates %.1f per refill", allocs)
 	}
 	if !lc.Known {

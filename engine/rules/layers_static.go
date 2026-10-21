@@ -275,6 +275,42 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 	return false
 }
 
+// MayLookAtFaceDown reports whether p may look at the face-down exiled card
+// id right now through a live Continuous MayLookAt$ static (Praetor's
+// Grasp's Effect: "You may look at and play that card for as long as it
+// remains exiled", MayLookAt$ You over Card.IsRemembered in exile): the
+// static's Affected$ spec matches id and its controller is p (every
+// exile-zone MayLookAt$ value in the corpus is You or True, the static's
+// controller -- layers.go's MayLookAt branch). The view's optional
+// MayLookAtFaceDown capability (engine/view/card.go mayLookFaceDown), so the
+// face is shown to exactly the seat the grant names (CR 406.3; cr-g64). A
+// read over active()'s sorted slice; the answer is boolean.
+func (e *Engine) MayLookAtFaceDown(p state.PlayerID, id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZExile || !o.FaceDown {
+		return false
+	}
+	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
+		ce := &ceL[ceI]
+		if !ce.MayLookAt || ce.Controller != p {
+			continue
+		}
+		// An Effect-delivered grant (Praetor's Grasp's STPlay) names its cards
+		// through the effect's Remembered set: its Affected$ Card.IsRemembered
+		// matches under the same context the effect's may-play grant uses.
+		if len(ce.Remembered) > 0 {
+			if e.matchesSpec(ce.Affects, id, e.effectGrantSpecContext(ce)) {
+				return true
+			}
+			continue
+		}
+		if e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
+			return true
+		}
+	}
+	return false
+}
+
 // continuousGateHolds evaluates the "as long as" condition gates a Mode$
 // Continuous static can carry, the intervening-if that decides whether the
 // grant lives at this instant: IsPresent$/IsPresent2$ (an existence count over

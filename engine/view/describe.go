@@ -584,6 +584,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		// spell. The triggered/activated split is state.TriggerOf, the one
 		// classifier StackView.Kind (view.go) also uses, so the transcript
 		// and the stack view cannot disagree.
+		if ev.Secret {
+			// The one Secret CastInfo is the Foretell special action's
+			// provenance marker (engine/rules/cast_commit.go; cr-g62): CR
+			// 702.143b makes it a special action, not a cast, so it reads
+			// "foretells". Redacted for another seat it keeps Player and
+			// Secret, so that seat reads "a foretells a card" (cr-g64).
+			return player(g, ev.Player) + " foretells " + obj(g, ev.Obj)
+		}
 		verb := "casts"
 		if g != nil {
 			if o := g.Obj(ev.Obj); o != nil && o.Ability != nil {

@@ -562,7 +562,7 @@ func (e *Engine) foretellCastAvailable(id state.ObjID) bool {
 	}
 	// Effect-granted foretelling uses one MoveZone event whose counter carries
 	// the designation; it must survive a battlefield departure's flag reset.
-	if log[exileIdx].Counter == "exiled_with_face_down_foretold" {
+	if c := log[exileIdx].Counter; c == "exiled_with_face_down_foretold" || c == "exiled_with_face_down_maylook_foretold" {
 		for i := exileIdx + 1; i < len(log); i++ {
 			if log[i].Kind == events.TurnChange {
 				return true

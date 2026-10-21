@@ -308,7 +308,7 @@ func (e *Engine) firstForetellUsed(p state.PlayerID) bool {
 			break
 		}
 		if ev.Kind != events.MoveZone || ev.To != state.ZExile ||
-			ev.Counter != "exiled_with_face_down" || i == 0 {
+			ev.Counter != "exiled_with_face_down_maylook" || i == 0 {
 			continue
 		}
 		o := e.G.Obj(ev.Obj)

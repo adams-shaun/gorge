@@ -121,6 +121,9 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 	e.IDs = append([]state.ObjID(nil), e.IDs...)
 	e.Pairs = append([][2]state.ObjID(nil), e.Pairs...)
 	if e.Secret {
+		if blindFaceDownExile(e) {
+			return secretShape(e)
+		}
 		// A library's order is hidden from every viewer, its owner and that
 		// owner's controller included: CR 401.2 for a LibraryOrder's chosen
 		// order, CR 701.20a for a Shuffle's randomized one, CR 901.5 for a
@@ -199,6 +202,26 @@ func secretShape(e events.Event) events.Event {
 		Seq: e.Seq, Kind: e.Kind, Player: e.Player,
 		From: e.From, To: e.To, Step: e.Step, Secret: e.Secret,
 	}
+}
+
+// blindFaceDownExile reports whether e is a Secret move into exile face down
+// that names NO looker: the plain face-down exile markers, which every
+// emitter that knows a looker replaces with the may-look layout (WithMayLook$,
+// a Foretold$ designation, the Foretell action, Hideaway, a Dig take the
+// chooser looked at, a library search's find). CR 406.3: no player may
+// examine such a card, its owner included, so its payload is served to no
+// viewer -- the board hides the face from everyone too (card.go
+// mayLookFaceDown). A MayLookAt$ grant made after the move (Tezzeret's
+// Reckoning) shows the face on the board; the move itself stays shape (cr-g64).
+func blindFaceDownExile(e events.Event) bool {
+	if e.Kind != events.MoveZone || e.To != state.ZExile {
+		return false
+	}
+	switch e.Counter {
+	case "exiled_with_face_down", "exiled_with_face_down_foretold", "face_down":
+		return true
+	}
+	return false
 }
 
 // controlsSeat reports whether viewer controls seat under CR 723 -- that is,

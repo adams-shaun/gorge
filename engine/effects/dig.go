@@ -306,6 +306,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			applyFaceDownMarker(h, sa, c, &ev, dest)
+			if saw {
+				seenFaceDownExile(&ev, chooser, c.Source)
+			}
 			ev.Player, ev.Secret = digSecretTo(&ev, chooser, p, saw), true
 			if dest == state.ZLibrary {
 				primaryMoved = append(primaryMoved, id)

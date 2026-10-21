@@ -119,6 +119,30 @@ func HandSizeValueOK(raw string) (int, bool) {
 // constant; both are tested to agree by TestHandSizeValueGrammarIsShared.
 const UnlimitedHandSize = 1 << 20
 
+// mayLookAtExileGrantFromLine reads an Effect-delivered MayLookAt$ over
+// exiled cards (AffectedZone$ Exile; every such corpus value is You or True,
+// the effect's controller -- 13 + 1 raw lines at the pin) into a look-only
+// ContinuousEffect, and DELETES the MayLookAt key from params so the rest of
+// the line is read by the ordinary branches. rest reports whether any grant
+// key beyond Mode/Affected/AffectedZone/Description remains. Any other value
+// or zone reports !ok and leaves params untouched (cr-g64).
+func mayLookAtExileGrantFromLine(params staticLineParams) (ce state.ContinuousEffect, rest, ok bool) {
+	v := strings.TrimSpace(params["MayLookAt"])
+	if !strings.EqualFold(v, "You") && !strings.EqualFold(v, "True") ||
+		!strings.EqualFold(strings.TrimSpace(params["AffectedZone"]), "Exile") || strings.TrimSpace(params["Affected"]) == "" {
+		return state.ContinuousEffect{}, false, false
+	}
+	delete(params, "MayLookAt")
+	for key := range params {
+		switch key {
+		case "Mode", "Affected", "AffectedZone", "Description":
+		default:
+			rest = true
+		}
+	}
+	return state.ContinuousEffect{Affects: params["Affected"], AffectedZone: "Exile", MayLookAt: true}, rest, true
+}
+
 func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
 	ignoreColor, ignoreType, limit, playerTurn, afterStack, ok := mayPlayEffectParams(params, false)
 	if !ok {

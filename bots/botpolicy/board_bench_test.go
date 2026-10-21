@@ -94,6 +94,6 @@ func BenchmarkFillOwnLibrary(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		k := i % len(snaps)
 		e := snaps[k]
-		botpolicy.FillOwnLibrary(e.G, e.Pending().Player, ms[k], &lc)
+		botpolicy.FillOwnLibrary(e.G, e, e.Pending().Player, ms[k], &lc)
 	}
 }
