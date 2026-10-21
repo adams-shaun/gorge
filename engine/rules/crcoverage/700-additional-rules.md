@@ -408,8 +408,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 723.8 | follows | `engine/rules/engine_host.go#Engine.controlPlayerRedirect` | `TestControlRedirectCensus` |  |
 | 723.9 | deviates | `engine/effects/choose_control.go#effControlPlayer` `engine/events/apply_player.go#foldControlPlayerChange` | `TestControlPlayerEffectRejectsSelfTarget` `TestControlPlayerChangeFoldsGrantExpiryAndSelf` |  |
 | 724.1 | follows | `engine/effects/endturn.go#effEndTurn` `engine/rules/turn.go#Engine.finishEndTurn` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` `TestEndTurnObekaActivePlayerMayDeclineOrAccept` |  |
-| 724.1a,724.1f | deviates | `engine/rules/turn.go#Engine.finishEndTurn` | - |  |
-| 724.1b | follows | `engine/events/apply_turn.go#foldEndTurn` `engine/effects/endturn.go#effEndTurn` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` |  |
+| 724.1a,724.1f | follows | `engine/rules/emit.go#Engine.emit` `engine/rules/turn.go#Engine.checkEndTurnExileTriggers` `engine/rules/turn.go#Engine.finishEndTurn` | `TestCR724_1fTriggerDuringEndTurnResolves` `TestCR724_1aTriggerBeforeEndTurnCeases` | - |
+| 724.1b | follows | `engine/events/apply_turn.go#foldEndTurn` `engine/effects/endturn.go#effEndTurn` `engine/rules/turn.go#Engine.checkEndTurnExileTriggers` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` `TestCR724_1fTriggerDuringEndTurnResolves` |  |
 | 724.1c | follows | `engine/rules/turn.go#Engine.finishCleanupStep` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` | unobservable with Time Stop |
 | 724.1d-724.1e | follows | `engine/rules/turn.go#Engine.finishEndTurn` `engine/events/apply_turn.go#foldEndTurn` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` |  |
 | 724.2-724.2g | not-impl | - | - |  |

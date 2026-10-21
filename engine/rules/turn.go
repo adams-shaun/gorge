@@ -1097,6 +1097,28 @@ func (e *Engine) askPriority(p state.PlayerID) {
 	e.notePriorityWalk(p, d, ep, ver, objs)
 }
 
+// checkEndTurnExileTriggers is the trigger check for CR 724.1b's exile of
+// the stack: foldEndTurn moves every stack object named in ev.IDs to exile
+// inside the one EndTurn event, so the ordinary per-event check never sees a
+// zone change. Each CARD it exiled (a spell, not an ability object, which
+// simply ceases to exist) is checked as a Stack-to-Exile move, all of them in
+// one zone batch (they are exiled simultaneously, so a ChangesZoneAll
+// trigger fires once). The abilities that trigger here triggered DURING the
+// end-the-turn process, so they survive into the cleanup step (CR 724.1f).
+// The checks read the post-fold board; no event is emitted.
+func (e *Engine) checkEndTurnExileTriggers(ev *events.Event) {
+	e.openZoneBatch()
+	for _, id := range ev.IDs {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZExile || o.Ability != nil || o.Face() == nil {
+			continue
+		}
+		mv := events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZExile, Player: o.Owner}
+		e.checkTriggers(&mv, nil, 0, 0, false)
+	}
+	e.closeZoneBatch()
+}
+
 // finishEndTurn applies CR 723.1d/e after the EndTurn event has removed the
 // entire stack. The skipped steps/phases are never entered, so their
 // beginning-of-step triggers are never queued and the end step's own StepChange
@@ -1112,8 +1134,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 // middle of a split-attack blocker round must not leak that round into the
 // next turn.
 func (e *Engine) finishEndTurn() {
-	e.pendingTriggers = nil
-	e.orderedTriggers = 0
 	e.combatRound = combatRound{}
 	e.blockerRound = blockerRound{}
 	e.endTurnRequested = false
