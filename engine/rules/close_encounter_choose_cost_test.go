@@ -74,11 +74,27 @@ func TestCloseEncounterRaiseCostChooseCard(t *testing.T) {
 			} else {
 				paidCostCast(t, e, spell, "G1")
 			}
+			// CR 601.2c before 601.2h: the receiver target comes first; the
+			// choosecost pick is a cost object, chosen at payment.
 			d := e.Pending()
+			if d == nil || d.Kind != decision.KTarget {
+				t.Fatalf("expected target choice: %+v", d)
+			}
+			pick := -1
+			for _, opt := range d.Options {
+				if opt.Obj == receiver {
+					pick = opt.Index
+				}
+			}
+			if pick < 0 {
+				t.Fatalf("receiver not targetable: %+v", d.Options)
+			}
+			submitChoices(t, e, pick)
+			d = e.Pending()
 			if d == nil || d.Kind != decision.KChoose {
 				t.Fatalf("expected multiple-candidate choice: %+v", d)
 			}
-			pick := -1
+			pick = -1
 			for _, opt := range d.Options {
 				if opt.Obj == chosen && opt.Kind == "choosecost" {
 					pick = opt.Index
@@ -89,20 +105,6 @@ func TestCloseEncounterRaiseCostChooseCard(t *testing.T) {
 			}
 			if pick < 0 || len(d.Options) < 2 {
 				t.Fatalf("chosen candidate not offered among alternatives: %+v", d.Options)
-			}
-			submitChoices(t, e, pick)
-			d = e.Pending()
-			if d == nil || d.Kind != decision.KTarget {
-				t.Fatalf("expected target choice after cost: %+v", d)
-			}
-			pick = -1
-			for _, opt := range d.Options {
-				if opt.Obj == receiver {
-					pick = opt.Index
-				}
-			}
-			if pick < 0 {
-				t.Fatalf("receiver not targetable: %+v", d.Options)
 			}
 			submitChoices(t, e, pick)
 			paid := false

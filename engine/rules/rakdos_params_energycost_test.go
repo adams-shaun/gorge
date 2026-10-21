@@ -77,14 +77,8 @@ func TestChthonianNightmarePaysEnergySacsAndReturns(t *testing.T) {
 		t.Fatalf("PayEnergy<X> did not announce an X ask: %+v", d)
 	}
 	submitChoices(t, e, 2)
-	// The Sac<1/Creature> ask: the fodder creature.
-	d = e.Pending()
-	if d == nil || len(d.Options) == 0 || d.Options[0].Kind != "sacrifice" {
-		t.Fatalf("sacrifice ask missing: %+v", d)
-	}
-	submitChoices(t, e, 0)
-	// Return<1/CARDNAME> is the source itself: no ask (the singleton rule).
-	// The target ask follows: the MV-2 creature card in the graveyard.
+	// CR 601.2h: the target ask (601.2c) precedes the Sac<1/Creature> pick,
+	// which is now chosen at payment.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("target ask missing: %+v", d)
@@ -99,6 +93,13 @@ func TestChthonianNightmarePaysEnergySacsAndReturns(t *testing.T) {
 		t.Fatalf("no option for the MV-2 graveyard card (cmcEQX with X=2): %+v", d.Options)
 	}
 	submitChoices(t, e, tgt)
+	// The Sac<1/Creature> ask: the fodder creature.
+	d = e.Pending()
+	if d == nil || len(d.Options) == 0 || d.Options[0].Kind != "sacrifice" {
+		t.Fatalf("sacrifice ask missing: %+v", d)
+	}
+	submitChoices(t, e, 0)
+	// Return<1/CARDNAME> is the source itself: no ask (the singleton rule).
 	passUntilStackEmpty(t, e, 20)
 
 	if n := e.G.Players[0].Counter("ENERGY"); n != 1 {

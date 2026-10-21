@@ -1067,7 +1067,11 @@ func (e *Engine) continueCast() {
 	if e.namedAnnounceAsk() {
 		return
 	}
-	if e.forageAsk() || e.revealCostAsk() || e.revealCostOrChooseAsk() || e.beholdCostAsk() || e.tapPermanentCostAsk() || e.blightCostAsk() {
+	// CR 601.2b: the tap-untapped-permanents election is announced before the
+	// counted additional costs and X, because its count can BE X (601.2b).
+	// Every other cost-object ask is deferred to payment (costObjectAsks,
+	// CR 601.2h).
+	if e.tapPermanentCostAsk() {
 		return
 	}
 	// CR 601.2b: the replicate count (CR 702.55a's optional additional cost,
@@ -1147,49 +1151,15 @@ func (e *Engine) continueCast() {
 	if e.xAsk() {
 		return
 	}
-	// An announced Blight<X> part's count is the announced X, so its pick is
-	// deferred past xAsk (the Sac<X/Spec> / SubCounter<X/Kind> shape) -- the
-	// pre-xAsk blightCostAsk above skips it while !pc.xDone.
-	if e.blightCostAsk() {
-		return
-	}
-	// CR 601.2h: a ChooseCreatureType<N> part is paid with the other costs,
-	// after the 601.2b announcements (X); a Behold of the chosen type in the
-	// same cost was deferred past the early behold stage until now.
-	if e.chooseTypeCostAsk() || e.beholdCostAsk() {
-		return
-	}
+	// CR 601.2b: Delve exiles its cards before the targets -- the exile is
+	// the announced reduction of the total cost (601.2f).
 	if e.delveAsk() {
 		return
 	}
-	if e.sacAsk() {
-		return
-	}
-	// The SubCounter cost parts whose removal-target field names a filter ask
-	// their payer which permanent the counters come off (Ghave's "remove a
-	// +1/+1 counter from a creature you control"), after the announced X
-	// exists so the candidate set can require that many counters.
-	if e.subCounterAsk() {
-		return
-	}
-	if e.discardAsk() {
-		return
-	}
-	if e.exAsk() {
-		return
-	}
-	if e.returnAsk() {
-		return
-	}
-	e.foldSneakDefender(e.cast)
-	e.foldNinjutsuDefender(e.cast)
-	if e.putToLibAsk() {
-		return
-	}
-	// CR 601.2b: the ExiledMoveToGrave cost pick (Shelob's "put a creature
-	// card exiled with Shelob into its owner's graveyard") runs beside the
-	// other non-mana component asks, after the PutToLib ask.
-	if e.moveGraveAsk() {
+	// Emerge's sacrifice (CR 702.118a) reduces the total cost (601.2f), so it
+	// is announced before the targets like the other reductions. Every other
+	// cost object is chosen at payment (costObjectAsks, CR 601.2h).
+	if pc := e.cast; pc != nil && pc.emerge && e.sacAsk() {
 		return
 	}
 	// Suspend does not put a spell on the stack: its alternate action pays
@@ -1248,6 +1218,43 @@ func (e *Engine) continueCast() {
 		return
 	}
 	e.payCast()
+}
+
+// costObjectAsks poses the cost-object choices CR 601.2h defers to payment:
+// "The player pays the total cost" -- the objects a cost sacrifices, discards,
+// exiles, returns or taps are chosen as the cost is paid, after the targets
+// (601.2c), the division (601.2d), the evidence ask, the 601.2e recheck and
+// the 601.2g mana abilities. One object pays one cost, so a permanent a mana
+// ability of the window already used is no longer a candidate; a cost that
+// became unpayable that way aborts inside its own ask (CR 733.1). The
+// reductions that ARE the announced total (delve, an emerge sacrifice,
+// convoke/harmonize/waterbend taps, the tap-X election) stay pre-target in
+// continueCast. Each ask is idempotent through its own done flag / part
+// index, so the re-entry an answer makes (castAnswer -> continueCast ->
+// payCast) resumes at the next unsettled part.
+func (e *Engine) costObjectAsks() bool {
+	if e.forageAsk() || e.revealCostAsk() || e.revealCostOrChooseAsk() || e.beholdCostAsk() || e.blightCostAsk() {
+		return true
+	}
+	// A ChooseCreatureType<N> part is paid with the other costs; a Behold of
+	// the chosen type in the same cost waits for the type.
+	if e.chooseTypeCostAsk() || e.beholdCostAsk() {
+		return true
+	}
+	if e.sacAsk() || e.subCounterAsk() || e.discardAsk() || e.exAsk() {
+		return true
+	}
+	if e.returnAsk() {
+		return true
+	}
+	// The sneak and ninjutsu defenders are folded right after the Return cost
+	// is chosen, now at payment.
+	e.foldSneakDefender(e.cast)
+	e.foldNinjutsuDefender(e.cast)
+	if e.putToLibAsk() || e.moveGraveAsk() {
+		return true
+	}
+	return false
 }
 
 type castModeCode uint16

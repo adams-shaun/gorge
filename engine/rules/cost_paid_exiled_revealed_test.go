@@ -424,14 +424,15 @@ func TestDreadDefilerPaidExileSizesLifeLoss(t *testing.T) {
 	}
 	addMana(t, e, 0, "CCCC")
 	activateRevealAbility(t, e, 0, defiler)
-	answerPaidCostAsk(t, e, "exilecost", fuel)
-	// The ability targets an opponent: the only offered target.
+	// CR 601.2c before 601.2h: the ability's target is chosen first; the
+	// exile pick is a cost object, chosen at payment.
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
 		if len(d.Options) == 0 {
 			t.Fatalf("target ask with no options: %+v", d)
 		}
 		submitChoices(t, e, d.Options[0].Index)
 	}
+	answerPaidCostAsk(t, e, "exilecost", fuel)
 	if o := e.G.Obj(fuel); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("precondition: paid exile fuel zone = %+v, want exile", o)
 	}
@@ -468,7 +469,8 @@ func TestSoulExchangePaidExileValidTracksThrull(t *testing.T) {
 	}
 
 	paidCostCast(t, e, spell, "BB")
-	answerPaidCostAsk(t, e, "exilecost", thrull)
+	// CR 601.2c before 601.2h: the spell's target comes first; the exile
+	// pick is a cost object, chosen at payment.
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
 		for _, o := range d.Options {
 			if o.Obj == returned {
@@ -476,6 +478,7 @@ func TestSoulExchangePaidExileValidTracksThrull(t *testing.T) {
 			}
 		}
 	}
+	answerPaidCostAsk(t, e, "exilecost", thrull)
 	passUntilStackEmpty(t, e, 30)
 	if o := e.G.Obj(thrull); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("precondition: paid exile zone = %+v, want exile", o)

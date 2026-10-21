@@ -101,7 +101,8 @@ func TestNecropolisFiendAnnouncedExilePayment(t *testing.T) {
 		t.Fatalf("Fiend X max = %d, want 2", m)
 	}
 	chooseX(t, e, 2)
-	exileCostChoices(t, e, fodder)
+	// CR 601.2c before 601.2h: the target comes first; the exile pick is a
+	// cost object, chosen at payment.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("target decision = %+v", d)
@@ -116,6 +117,7 @@ func TestNecropolisFiendAnnouncedExilePayment(t *testing.T) {
 		t.Fatalf("4/4 not offered as target: %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
+	exileCostChoices(t, e, fodder)
 	assertExilePayments(t, e, fodder...)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(target).Zone != state.ZBattlefield || e.Power(target) != 2 || e.Toughness(target) != 2 {
@@ -170,7 +172,8 @@ func TestChillHauntingExileOnlyAnnouncesX(t *testing.T) {
 		t.Fatalf("exile-only X max = %d, want 2 matching creatures, not mana or total graveyard", m)
 	}
 	chooseX(t, e, 2)
-	exileCostChoices(t, e, fodder)
+	// CR 601.2c before 601.2h: the target comes first; the exile pick is a
+	// cost object, chosen at payment.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("target ask = %+v", d)
@@ -185,6 +188,7 @@ func TestChillHauntingExileOnlyAnnouncesX(t *testing.T) {
 		t.Fatalf("4/4 not offered as target: %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
+	exileCostChoices(t, e, fodder)
 	assertExilePayments(t, e, fodder...)
 	if e.G.Obj(nonmatch).Zone != state.ZGraveyard {
 		t.Fatal("nonmatching Mountain was exiled")
