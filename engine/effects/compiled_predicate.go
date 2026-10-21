@@ -364,10 +364,9 @@ func (ps *PredicatePrograms) evaluateCS(cs *compiledSpec, spec string, g *state.
 			}
 			// A colour-bearing term on a face-down battlefield permanent
 			// (CR 708.5: its printed characteristics do not exist) is left to
-			// the textual oracle: the compiled colour path and the text colour
-			// path both read ColorsOf's printed face today, so a definite
-			// answer here would be a new printed-colour claim for a context
-			// that has no colours. Maybe keeps that answer textual.
+			// the textual oracle: the textual path reads ColorsOf, which
+			// reports it colourless (CR 708.2a). Maybe keeps that answer
+			// textual.
 			if (term.kind == predicateTermColor || term.kind == predicateTermColorless) &&
 				o.FaceDown && o.Zone == state.ZBattlefield {
 				altMaybe = true
