@@ -43,7 +43,8 @@ func IsManaAbilityAPI(api string) bool { return api == "Mana" || api == "ManaRef
 // stay on the ordinary stack path (the corpus population is pinned by
 // TestManaAbilityTargetGateMovesTheTargetingCarriers). The walk is the one
 // isTriggeredManaAbility makes for a triggered mana ability, bounded by
-// manaChainDepth.
+// manaChainDepth. An ability whose cost or effect moves a card to or from a
+// library is not a mana ability either (CR 605.1a; movesLibraryCard).
 func IsManaAbilitySA(sa *SA) bool {
 	if sa == nil || !sa.IsActivated() {
 		return false
@@ -51,7 +52,112 @@ func IsManaAbilitySA(sa *SA) bool {
 	if !IsManaAbilityAPI(sa.API) && !(sa.API == "ChooseColor" && ManaChainProduction(sa) != nil) {
 		return false
 	}
-	return !requiresTarget(sa)
+	return !requiresTarget(sa) && !movesLibraryCard(sa)
+}
+
+// movesLibraryCard reports whether sa's cost or effect moves a card to or
+// from a library, which disqualifies a mana ability (CR 605.1a: "its cost and
+// effect don't move any card to or from a library"; Forge's
+// SpellAbility.isManaAbility makes the same cost-and-chain test). The answer
+// is a pure function of the script, never of the board (CR 605.1a disregards
+// replacement effects), so the compiled mana list may cache it. The cost is
+// the head's own Cost$ (a sub-ability carries none); the effect is every node
+// of the SubAbility$ chain, bounded by manaChainDepth. Measured at the base
+// pin, the carriers are Chromatic Sphere, the five Eggs and Rainbow Dash
+// (DB$ Draw), Chandra, Flameshaper (DB$ Dig) and the four Mill<1> cost
+// carriers (TestCR605_1aManaAbilityLibraryGateMovesTheLibraryCarriers).
+func movesLibraryCard(sa *SA) bool {
+	if costMovesLibraryCard(sa.ParamStr(PKCost)) {
+		return true
+	}
+	for s, d := sa, 0; s != nil && d < manaChainDepth; s, d = s.Sub, d+1 {
+		if effectMovesLibraryCard(s) {
+			return true
+		}
+	}
+	return false
+}
+
+// costMovesLibraryCard reports whether a raw Cost$ carries a part that mills
+// (Mill<N>), draws (Draw<N/...>), exiles from the top of a library
+// (ExileFromTop<N/...>) or puts a card into a library (the four
+// PutCardToLibFrom<Zone> heads; Forge's Cost.parseCostPart spelling). The
+// cost is split on spaces and each part's head (the text before '<') is
+// switched on, so the walk neither allocates nor calls strings.
+func costMovesLibraryCard(cost string) bool {
+	for cost != "" {
+		end := 0
+		for end < len(cost) && cost[end] != ' ' {
+			end++
+		}
+		part := cost[:end]
+		if end < len(cost) {
+			end++
+		}
+		cost = cost[end:]
+		lt := 0
+		for lt < len(part) && part[lt] != '<' {
+			lt++
+		}
+		if lt == len(part) {
+			continue // a bare token ({T}, a mana symbol) never moves a card
+		}
+		switch part[:lt] {
+		case "Mill", "Draw", "ExileFromTop",
+			"PutCardToLibFromHand", "PutCardToLibFromGrave", "PutCardToLibFromSameGrave", "PutCardToLibFromBattlefield":
+			return true
+		}
+	}
+	return false
+}
+
+// effectMovesLibraryCard reports whether one chain node's effect moves a card
+// to or from a library: an API that always does (draw, mill, surveil, dig,
+// explore, connive, discover, learn, heist, seek, manifest dread), a zone
+// change whose Origin$ or Destination$ lists Library (or All), a Play whose
+// ValidZone$ lists Library, and a Manifest/Cloak unless its ChoiceZone$
+// names a zone list without the library.
+func effectMovesLibraryCard(s *SA) bool {
+	switch s.API {
+	case "Draw", "Mill", "Surveil", "Dig", "DigMultiple", "DigUntil", "Explore", "Connive",
+		"Discover", "Learn", "Heist", "Seek", "ManifestDread":
+		return true
+	case "Manifest", "Cloak":
+		z := s.ParamStr(PKChoiceZone)
+		return z == "" || zoneListHasLibrary(z)
+	case "ChangeZone", "ChangeZoneAll":
+		return zoneListHasLibrary(s.ParamStr(PKOrigin)) || zoneListHasLibrary(s.ParamStr(PKDestination))
+	case "Play":
+		return zoneListHasLibrary(s.ParamStr(PKValidZone))
+	}
+	return false
+}
+
+// zoneListHasLibrary reports whether a comma-separated zone list names the
+// library, either as Library or as All (which expands to every zone). Like
+// costMovesLibraryCard it splits by hand: no allocation, no strings call.
+func zoneListHasLibrary(list string) bool {
+	for list != "" {
+		end := 0
+		for end < len(list) && list[end] != ',' {
+			end++
+		}
+		z := list[:end]
+		for z != "" && z[0] == ' ' {
+			z = z[1:]
+		}
+		for z != "" && z[len(z)-1] == ' ' {
+			z = z[:len(z)-1]
+		}
+		if z == "Library" || z == "All" {
+			return true
+		}
+		if end < len(list) {
+			end++
+		}
+		list = list[end:]
+	}
+	return false
 }
 
 // requiresTarget reports whether sa, or any SubAbility$ below it, declares

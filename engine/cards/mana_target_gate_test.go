@@ -37,12 +37,13 @@ func TestManaAbilityTargetGateMovesTheTargetingCarriers(t *testing.T) {
 				if a == nil || !a.IsActivated() || !IsManaAbilityAPI(a.API) {
 					continue
 				}
-				if !requiresTarget(a) {
-					if !IsManaAbilitySA(a) {
-						t.Errorf("%s: an untargeted %s ability no longer classifies: %s", name, a.API, a.Line)
-					}
-					continue
+			if !requiresTarget(a) {
+				// A library-moving ability is the other CR 605.1a gate (TestCR605_1aManaAbilityLibraryGateMovesTheLibraryCarriers).
+				if !IsManaAbilitySA(a) && !movesLibraryCard(a) {
+					t.Errorf("%s: an untargeted %s ability no longer classifies: %s", name, a.API, a.Line)
 				}
+				continue
+			}
 				if IsManaAbilitySA(a) {
 					t.Errorf("%s: a targeting %s ability still classifies as a mana ability: %s", name, a.API, a.Line)
 					ungated = append(ungated, name)
