@@ -131,6 +131,8 @@ func Describe(g *state.Game, ev events.Event) string {
 		switch ev.Amount {
 		case 2:
 			return player(g, ev.Player) + "'s Ring emblem: draw a card, then discard a card (Ring-bearer attacks)"
+		case 3:
+			return player(g, ev.Player) + "'s Ring emblem: the blocking creature is sacrificed at end of combat (Ring-bearer blocked)"
 		case 4:
 			return player(g, ev.Player) + "'s Ring emblem: each opponent loses 3 life (Ring-bearer dealt combat damage to a player)"
 		}
@@ -570,8 +572,10 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the kicker are the caster's own decisions and nothing else in the
 		// transcript shows them (mana-spend lines record totals, not what
 		// they paid for), and the line is self-contained, so a DVR scrub
-		// landing on it needs no neighbouring line. It carries no Player
-		// field, so the caster is the card's controller. The two lines read
+		// landing on it needs no neighbouring line. The caster is the card's
+		// controller; when the event is a Secret whose payload is not for
+		// this viewer, RedactEvent zeroes Obj and keeps Player, so the caster
+		// is then that Player (cr-g62). The two lines read
 		// as one cast: the how, then the fact. The same event also records an
 		// activated ability's paid {X} on the ability's stack object
 		// (engine/rules/cast.go commitCast's ability arm), and that object must not
@@ -588,7 +592,7 @@ func Describe(g *state.Game, ev events.Event) string {
 				}
 			}
 		}
-		cast := player(g, objController(g, ev.Obj)) + " " + verb + " " + obj(g, ev.Obj)
+		cast := player(g, castInfoActor(g, ev)) + " " + verb + " " + obj(g, ev.Obj)
 		how := make([]string, 0, 2)
 		if ev.Amount != 0 {
 			how = append(how, "X = "+itoa(int64(ev.Amount)))
@@ -890,9 +894,9 @@ func objs(g *state.Game, ids []state.ObjID) string {
 }
 
 // objController is the player who controls id, or seat 0 when g cannot
-// resolve it. CastInfo and Choose carry no Player field of their own (a
-// card's controller is its caster/chooser at cast time), so their lines
-// derive it from the object rather than reading the event's zero Player.
+// resolve it. Choose carries no Player field of its own (a card's controller
+// is its chooser at cast time), so its line derives it from the object rather
+// than reading the event's zero Player.
 func objController(g *state.Game, id state.ObjID) state.PlayerID {
 	if g == nil {
 		return 0
@@ -901,6 +905,18 @@ func objController(g *state.Game, id state.ObjID) state.PlayerID {
 		return o.Controller
 	}
 	return 0
+}
+
+// castInfoActor is the caster a CastInfo line names: the card's controller
+// normally, but a Secret CastInfo whose payload is redacted to this viewer
+// keeps Player and zeroes Obj (secretShape), so the actor is then the
+// event's own Player (cr-g62's foretell action, whose card is hidden from
+// every seat but the foreteller).
+func castInfoActor(g *state.Game, ev events.Event) state.PlayerID {
+	if ev.Obj == 0 {
+		return ev.Player
+	}
+	return objController(g, ev.Obj)
 }
 
 // player is the seat's display name (an independent PlayerName when one was

@@ -1002,9 +1002,9 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 	// "whenever" abilities with no corpus script text and no object in any
 	// zone, so the ordinary per-face walk above can never see them. The
 	// scan reads state.Player.RingTempted and queues one entry per firing
-	// seat.
+	// seat (one per blocking creature for level 3).
 	switch ev.Kind {
-	case events.DeclareAttackers, events.Damage:
+	case events.DeclareAttackers, events.DeclareBlockers, events.Damage:
 		e.checkRingEmblemTriggers(*ev)
 	}
 	// A chaos-ensues marker (CR 901.9, task planar-verbs): the current
@@ -1028,6 +1028,7 @@ func (e *Engine) checkTriggers(ev *events.Event, lki *state.Object,
 // levels stay active as it rises.
 const (
 	ringEmblemLevelLoot      = 2 // whenever your Ring-bearer attacks, draw a card, then discard a card
+	ringEmblemLevelBlockedBy = 3 // whenever your Ring-bearer becomes blocked by a creature, that creature's controller sacrifices it at end of combat
 	ringEmblemLevelCombatHit = 4 // whenever your Ring-bearer deals combat damage to a player, each opponent loses 3 life
 )
 
@@ -1038,6 +1039,9 @@ const (
 // precedent). Each level names one event shape:
 //
 //	2  DeclareAttackers whose attacker list holds a seat's Ring-bearer
+//	3  DeclareBlockers: one entry per (Ring-bearer, blocker) pair -- "becomes
+//	   blocked BY A CREATURE" triggers once per blocking creature (Forge's
+//	   Mode$ AttackerBlockedByCreature), and the entry remembers that blocker
 //	4  a COMBAT Damage event whose source is a seat's Ring-bearer and whose
 //	   recipient is a player (Obj 0 -- a hit redirected onto a permanent is
 //	   not "damage to a player")
@@ -1047,7 +1051,7 @@ const (
 // RingEmblemPush whose payload events.Apply rebuilds the ability from.
 func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
 	switch ev.Kind {
-	case events.DeclareAttackers, events.Damage:
+	case events.DeclareAttackers, events.DeclareBlockers, events.Damage:
 	default:
 		return
 	}
@@ -1063,28 +1067,46 @@ func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
 		switch ev.Kind {
 		case events.DeclareAttackers:
 			if objIDIn(ev.IDs, bearer) {
-				e.queueRingEmblem(p, ringEmblemLevelLoot, bearer)
+				e.queueRingEmblem(p, ringEmblemLevelLoot, bearer, 0)
+			}
+		case events.DeclareBlockers:
+			if tempted < ringEmblemLevelBlockedBy {
+				continue
+			}
+			for _, pr := range ev.Pairs {
+				if pr[0] == bearer && pr[1] != 0 {
+					e.queueRingEmblem(p, ringEmblemLevelBlockedBy, bearer, pr[1])
+				}
 			}
 		case events.Damage:
 			if tempted >= ringEmblemLevelCombatHit && ev.Obj == 0 &&
 				e.combatDamaging && e.damaging == bearer {
-				e.queueRingEmblem(p, ringEmblemLevelCombatHit, bearer)
+				e.queueRingEmblem(p, ringEmblemLevelCombatHit, bearer, 0)
 			}
 		}
 	}
 }
 
 // queueRingEmblem appends one emblem level ability to the pending queue. The
-// TriggerCard role names the Ring-bearer the firing event was about so a
-// chained body that ever wants it can read it; the hand-built bodies read
-// only Defined$ You/Opponent and the live designation.
-func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer state.ObjID) {
+// TriggerCard role names the Ring-bearer the firing event was about, and
+// TriggerBlocker (level 3 only, 0 otherwise) the blocking creature, which
+// pushTrigger logs in the RingEmblemPush event's IDs so the minted ability
+// remembers it.
+func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer, blocker state.ObjID) {
+	ctx := effects.NewCtx(0, p, effects.CtxInit{
+		TriggerContext: effects.TriggerContext{TriggerCard: bearer, TriggerBlocker: blocker},
+	})
+	if blocker != 0 {
+		// CR 400.7: the promise names the blocking creature that existed when
+		// the Ring-bearer became blocked. Stamp its Incarnation HERE, at queue
+		// time, so a blocker that leaves and returns before the ability
+		// resolves is a new object the promise does not sacrifice.
+		ctx.TriggerRememberedStamps = e.fireTimeRememberedStamps([]state.Target{{Obj: blocker}})
+	}
 	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 		Controller: p,
 		RingEmblem: level,
-		Ctx: effects.NewCtx(0, p, effects.CtxInit{
-			TriggerContext: effects.TriggerContext{TriggerCard: bearer},
-		}),
+		Ctx:        ctx,
 	})
 }
 

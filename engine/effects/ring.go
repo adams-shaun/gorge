@@ -37,6 +37,12 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 	// this shape -- it stays out deliberately.
 	p := c.Controller
 	g := h.Game()
+	if g.Players[p].RingTempted == 0 {
+		// CR 701.54c: a player without the emblem gets The Ring BEFORE
+		// choosing a Ring-bearer, so its static is registered (and
+		// timestamped) ahead of the RingTemptsYou event below.
+		h.AddContinuous(ringEmblemLegendary(p))
+	}
 
 	emit := func(bearer state.ObjID) {
 		h.Emit(events.Event{
@@ -127,6 +133,25 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 	emit(defaultBearer)
 }
 
+// ringEmblemLegendary is the type half of the Ring emblem's first ability
+// (CR 701.54c: "Your Ring-bearer is legendary and can't be blocked by
+// creatures with greater power"): one permanent layer-4 effect, registered
+// once per player when that player first gets the emblem. The emblem is not
+// an object, so the effect has no Source; Affects reads the LIVE
+// designation (Card.IsRingbearer, CR 701.54e) scoped to the emblem's owner,
+// so it follows each new Ring-bearer and lapses when the designation does.
+// The blocking half is combat.RingBearerOutpowers, read by
+// combat.BlockRestricted.
+func ringEmblemLegendary(p state.PlayerID) state.ContinuousEffect {
+	return state.ContinuousEffect{
+		Controller: p,
+		Affects:    "Card.IsRingbearer+YouCtrl",
+		Layer:      state.LType,
+		AddTypes:   []string{"Legendary"},
+		Permanent:  true,
+	}
+}
+
 // ringAnsweredBearer is the bearer an answered Ring-bearer choice
 // designates: the pick when it is still a creature p controls on the
 // battlefield, else (a stale or stray answer) the deterministic default.
@@ -157,4 +182,60 @@ func ringDefaultBearer(h Host, p state.PlayerID, g *state.Game) state.ObjID {
 		}
 	}
 	return 0
+}
+
+// ringBlockerSacrificeBody is the builtin SVar body each level-3
+// registration resolves on its blocker: "DB$ Sacrifice | Defined$ Self"
+// (engine/cards/link.go's builtinSVars). It is the decayed family's body,
+// reused rather than duplicated because engine/cards/link.go is part of the
+// IR-compiler fingerprint (engine/cards/fingerprint_sources.go): the
+// "__kwDecayed" prefix makes the registration incarnation-tracked
+// (events.Apply's DelayedRegister fold), so a blocker that left the
+// battlefield and returned before end of combat is a new object the promise
+// no longer names (CR 400.7). A creature with decayed can't block (CR
+// 702.147a), so decayed's own one-promise-per-attacker dedup
+// (rules.checkGrantedAttackKeywordTriggers) never meets a Ring promise.
+const ringBlockerSacrificeBody = "__kwDecayedSacrifice"
+
+// effRingBlockerSacrifice is the Ring emblem's level-3 body (CR 701.54c:
+// "Whenever your Ring-bearer becomes blocked by a creature, the blocking
+// creature's controller sacrifices it at end of combat"). It is an
+// engine-only API (the SpeedIncrease/RadiationDrain precedent): no corpus
+// line names it, and events.Apply's ringEmblemAbility is its only builder.
+// The blocking creature rides the RingEmblemPush event's IDs, folded into
+// the ability's Remembered; this registers one end-of-combat delayed
+// sacrifice on it (CR 603.7: created on resolution, so a countered trigger
+// sacrifices nothing). The registration's Source is the blocker, so the
+// builtin body's Defined$ Self names it and the sacrifice is its
+// controller's at fire time; the delayed trigger itself is controlled by the
+// emblem's owner (CR 603.7d). An end-of-combat promise is scoped to this
+// turn (thisTurn, the SacrificeCombat rider's rule).
+func effRingBlockerSacrifice(h Host, c *Ctx, _ *cards.SA) {
+	var stamps map[state.ObjID]uint32
+	if len(c.TriggerRememberedStamps) > 0 {
+		stamps = make(map[state.ObjID]uint32, len(c.TriggerRememberedStamps))
+		for _, s := range c.TriggerRememberedStamps {
+			stamps[s.Obj] = s.Incarnation
+		}
+	}
+	var blockers []state.ObjID
+	for _, t := range c.Remembered {
+		if t.IsPlayer || t.Obj == 0 {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		// CR 400.7: a blocker that left and returned is a NEW object. The
+		// stamp captured when the trigger was queued names the incarnation
+		// the Ring-bearer actually became blocked by; skip a live object
+		// whose Incarnation has moved past it.
+		if inc, ok := stamps[t.Obj]; ok && inc != o.Incarnation {
+			continue
+		}
+		blockers = append(blockers, t.Obj)
+	}
+	scheduleAtEOTRider(h, c.Controller, atEOTRider{body: ringBlockerSacrificeBody,
+		step: state.StepEndCombat, thisTurn: true}, blockers)
 }
