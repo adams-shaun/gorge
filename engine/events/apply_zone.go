@@ -901,6 +901,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.IsAttacking = false
 		o.IsBlocking = false
 		o.AttackingBattle = 0
+		o.Band = 0
 		o.BlockedBy = nil
 		// CR 400.7: the this-turn block history is battlefield-stint state
 		// too, so a creature that leaves and returns is a new object that

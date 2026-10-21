@@ -311,6 +311,21 @@ func foldChoose(g *state.Game, e *Event) {
 				// retains exactly this pick.
 				o.CurCombatTurn, o.CurCombatCombat = g.Turn, g.CombatsThisTurn
 			}
+		case "band":
+			// CR 702.22c: Obj (the band's leader, an attacking creature
+			// with banding) and each IDs entry, attacking the same
+			// defender, are in one attacking band. A member not attacking
+			// that defender is not added.
+			if !o.IsAttacking || o.Zone != state.ZBattlefield {
+				break
+			}
+			o.Band = o.ID
+			for _, id := range e.IDs {
+				if m := g.Obj(id); m != nil && m.IsAttacking && m.Zone == state.ZBattlefield &&
+					m.Controller == o.Controller && m.Attacking == o.Attacking && m.AttackingBattle == o.AttackingBattle {
+					m.Band = o.ID
+				}
+			}
 		case "protector":
 			// CR 310.10: the Siege protector chosen as this Battle
 			// entered. Player carries the chosen opponent's seat.

@@ -1057,7 +1057,14 @@ type Object struct {
 	// events.Apply's DeclareAttackers case from the event's Obj and cleared
 	// wherever IsAttacking is.
 	AttackingBattle ObjID
-	BlockedBy       []ObjID
+	// Band names the attacking band this creature is in (CR 702.22c): the
+	// ObjID of the band's first banding member (its leader), 0 when it is in
+	// no band. Written only by events.Apply (the Choose "band" fold) and
+	// cleared wherever IsAttacking is (CR 702.22f: a creature removed from
+	// combat leaves its band). A band lasts for the rest of combat even if
+	// banding is later lost (CR 702.22e), so no reader re-checks the keyword.
+	Band      ObjID
+	BlockedBy []ObjID
 	// IsBlocking marks a creature declared as a blocker this combat (CR
 	// 509.1g), recorded on the BLOCKER so it survives its attacker leaving
 	// combat: CR 506.4 / 509.1h keep a creature blocking after the creature
@@ -1779,7 +1786,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [14]byte
+	_ [6]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
