@@ -11,6 +11,7 @@ package gonettest
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -41,6 +42,17 @@ func Write(dir, name string) (string, error) { return WriteWith(dir, name, nil) 
 // WriteWith is Write with extra header fields set (or overridden), for
 // example {"encoder_hash": "..."}.
 func WriteWith(dir, name string, extra map[string]any) (string, error) {
+	return WriteRaw(dir, name, policynet.EntityRawWidth, extra)
+}
+
+// WriteRaw is WriteWith with an explicit entity raw width. card_raw is always
+// DRAWN with EntityRawWidthV1 columns (so every later tensor's pseudo-random
+// sequence is what Write produced before the relational slots), then written
+// with rawW columns; the extra columns are zero.
+func WriteRaw(dir, name string, rawW int, extra map[string]any) (string, error) {
+	if rawW < policynet.EntityRawWidthV1 {
+		return "", fmt.Errorf("gonettest: rawW %d is below the format-1 width %d", rawW, policynet.EntityRawWidthV1)
+	}
 	var ts []tensor
 	rng := uint64(0x9E3779B97F4A7C15)
 	next := func() float32 {
@@ -81,8 +93,18 @@ func WriteWith(dir, name string, extra map[string]any) (string, error) {
 		fill(name+".weight", 1, w)
 		fill(name+".bias", 0, w)
 	}
+	rawRand := func(name string, out, in int) {
+		f := make([]float32, out*in)
+		for o := 0; o < out; o++ {
+			for i := 0; i < policynet.EntityRawWidthV1; i++ {
+				f[o*in+i] = next()
+			}
+		}
+		ts = append(ts, tensor{name, []int{out, in}, f})
+	}
 	rand("table.weight", policynet.TableRows, e)
-	lin("card_raw", policynet.EntityRawWidth, cd, true)
+	rawRand("card_raw.weight", cd, rawW)
+	rand("card_raw.bias", cd)
 	lin("card_rows", e, cd, false)
 	lin("card_phi", cd, cd, true)
 	lin("dense_in", policynet.DenseWidth, d, true)
@@ -114,7 +136,7 @@ func WriteWith(dir, name string, extra map[string]any) (string, error) {
 			body = binary.LittleEndian.AppendUint32(body, math.Float32bits(v))
 		}
 	}
-	header, err := Header(table, extra)
+	header, err := headerRaw(table, rawW, extra)
 	if err != nil {
 		return "", err
 	}
@@ -141,12 +163,17 @@ type Entry struct {
 // bots/gonet/testdata/contracts/dzgw_header.json is Header with a short
 // table and an encoder_hash).
 func Header(tensors []Entry, extra map[string]any) ([]byte, error) {
+	return headerRaw(tensors, policynet.EntityRawWidth, extra)
+}
+
+// headerRaw is Header with an explicit RAW_W const.
+func headerRaw(tensors []Entry, rawW int, extra map[string]any) ([]byte, error) {
 	h := map[string]any{
 		"format": "dzgw-1",
 		"arch":   "mlp",
 		"config": map[string]float64{"d": d, "ff": ff, "d_emb": e, "card_d": cd, "head_hidden": hh,
 			"layers": 1, "policy_layers": 1, "value_layers": 1},
-		"consts": map[string]int{"DENSE_W": policynet.DenseWidth, "RAW_W": policynet.EntityRawWidth,
+		"consts": map[string]int{"DENSE_W": policynet.DenseWidth, "RAW_W": rawW,
 			"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": policynet.TableRows,
 			"SLOT_ROWS": policynet.OptionSlotWidth, "GROUPS": grps},
 		"layernorm_eps": map[string]float64{"blocks.0.norm": 1e-5, "norm": 1e-5, "opt_norm": 1e-5},

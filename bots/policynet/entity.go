@@ -83,7 +83,28 @@ const (
 	entFaceDown   = 66
 	entOne        = 67 // constant 1: a card's presence
 
-	EntityRawWidth = 68
+	// Relational slots (entity format 2): what the stack targets and, on a
+	// stack card, what it targets. Slots 78-82 are declared for ENTREL-B.
+	entTgtByMe      = 68 // viewer-controlled stack entries targeting it
+	entTgtByOpp     = 69 // other seats' stack entries targeting it
+	entTgtPermMe    = 70 // its entry's object targets on my battlefield
+	entTgtPermOpp   = 71 // its entry's object targets on their battlefield
+	entTgtPlayerMe  = 72 // its entry's player targets naming me
+	entTgtPlayerOpp = 73 // its entry's player targets naming another seat
+	entTgtStack     = 74 // its entry's targets that are stack objects
+	entTgtGrave     = 75 // its entry's targets that are graveyard cards
+	entStackX       = 76 // X / 5
+	entStackKicked  = 77 // kicked at least once
+	entCombatFoes   = 78 // ENTREL-B: foes / 2
+	entCombatFoePow = 79 // ENTREL-B: sum of foe power / 4
+	entCombatFoeTgh = 80 // ENTREL-B: sum of foe remaining toughness / 4
+	entCombatDies   = 81 // ENTREL-B
+	entCombatKills  = 82 // ENTREL-B
+	entReserved83   = 83 // pads the width to 84
+
+	EntityRawWidth   = 84
+	EntityRawWidthV1 = 68
+	entityFormat     = 2
 )
 
 // entityTypes is the entity type vocabulary (index = entTypeOff + i).
@@ -97,10 +118,52 @@ var entityTypeMasks = [len(entityTypes)]cards.TypeMask{cards.TypeCreature, cards
 	cards.TypeEnchantment, cards.TypePlaneswalker, cards.TypeInstant, cards.TypeSorcery, cards.TypeBattle,
 	cards.TypeLegendary, cards.TypeBasic}
 
+// entRelNames names the relational slots EntityRawWidthV1..EntityRawWidth-1.
+var entRelNames = [16]string{"tgt-by-me", "tgt-by-opp", "tgt-perm-me", "tgt-perm-opp",
+	"tgt-player-me", "tgt-player-opp", "tgt-stack", "tgt-grave", "stack-x", "stack-kicked",
+	"combat-foes", "combat-foe-pow", "combat-foe-tgh", "combat-dies", "combat-kills", "reserved"}
+
+// EntityRelNames returns a copy of the relational slot names; index i is
+// slot EntityRawWidthV1 + i.
+func EntityRelNames() []string {
+	out := make([]string, len(entRelNames))
+	copy(out, entRelNames[:])
+	return out
+}
+
 // entityHashSuffix is the entity contract's part of EncoderHashFor.
-func entityHashSuffix() string {
-	return fmt.Sprintf("\x1fentity-format=1\x1fgroups=%d\x1fraw=%d\x1fsum=%g\x1ftypes=%s\x1fpins=%d",
-		EntityGroups, EntityRawWidth, entSumScale, strings.Join(entityTypes[:], ","), hashID("ent|name|Swords to Plowshares"))
+func entityHashSuffix() string { return entityHashSuffixFor(entityFormat, EntityRawWidth, true) }
+
+// entityHashSuffixV1 is the format-1 entity contract's suffix: the 68-wide
+// layout every network exported before the relational slots.
+func entityHashSuffixV1() string { return entityHashSuffixFor(1, EntityRawWidthV1, false) }
+
+// entityHashSuffixFor builds the entity suffix for one format and width.
+func entityHashSuffixFor(format, raw int, rel bool) string {
+	relPart := ""
+	if rel {
+		relPart = "\x1frel=" + joinComma(entRelNames[:])
+	}
+	return fmt.Sprintf("\x1fentity-format=%d\x1fgroups=%d\x1fraw=%d\x1fsum=%g\x1ftypes=%s\x1fpins=%d%s",
+		format, EntityGroups, raw, entSumScale, strings.Join(entityTypes[:], ","),
+		hashID("ent|name|Swords to Plowshares"), relPart)
+}
+
+// joinComma joins ss with commas without strings.Join (the codeshape
+// ratchet holds bots/policynet's strings.* count at its pre-change level).
+func joinComma(ss []string) string {
+	n := 0
+	for _, s := range ss {
+		n += len(s) + 1
+	}
+	b := make([]byte, 0, n)
+	for i, s := range ss {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		b = append(b, s...)
+	}
+	return string(b)
 }
 
 // EntityCard is one visible card's entity input.
@@ -112,12 +175,12 @@ type EntityCard struct {
 
 // entityCards builds the view's entity list and the ObjID → list index map.
 // Order: my battlefield, every other battlefield (seat order), my hand, the
-// stack (top first, as the view lists it).
+// stack (bottom first, as the view lists it).
 func entityCards(v view.View, seat state.PlayerID) ([]EntityCard, map[state.ObjID]int) {
 	out := entityCardList(nil, &v, seat)
 	idx := make(map[state.ObjID]int, len(out))
 	n := 0
-	walkEntityOrder(&v, seat, func(cv *view.CardView, _ uint8, _ int) {
+	walkEntityOrder(&v, seat, func(cv *view.CardView, _ uint8, _ int, _ *view.StackView) {
 		if _, dup := idx[cv.ID]; !dup {
 			idx[cv.ID] = n
 			n++
@@ -128,7 +191,7 @@ func entityCards(v view.View, seat state.PlayerID) ([]EntityCard, map[state.ObjI
 
 // walkEntityOrder visits the entity order's cards, duplicates included:
 // my battlefield, every other battlefield (seat order), my hand, the stack.
-func walkEntityOrder(v *view.View, seat state.PlayerID, f func(cv *view.CardView, group uint8, zone int)) {
+func walkEntityOrder(v *view.View, seat state.PlayerID, f func(cv *view.CardView, group uint8, zone int, sv *view.StackView)) {
 	var me *view.PlayerView
 	for i := range v.Players {
 		if v.Players[i].ID == seat {
@@ -137,7 +200,7 @@ func walkEntityOrder(v *view.View, seat state.PlayerID, f func(cv *view.CardView
 	}
 	if me != nil {
 		for i := range me.Battlefield {
-			f(&me.Battlefield[i], entGroupBfMe, entZoneBf)
+			f(&me.Battlefield[i], entGroupBfMe, entZoneBf, nil)
 		}
 	}
 	for i := range v.Players {
@@ -145,17 +208,17 @@ func walkEntityOrder(v *view.View, seat state.PlayerID, f func(cv *view.CardView
 			continue
 		}
 		for j := range v.Players[i].Battlefield {
-			f(&v.Players[i].Battlefield[j], entGroupBfOpp, entZoneBf)
+			f(&v.Players[i].Battlefield[j], entGroupBfOpp, entZoneBf, nil)
 		}
 	}
 	if me != nil {
 		for i := range me.Hand {
-			f(&me.Hand[i], entGroupHand, entZoneHand)
+			f(&me.Hand[i], entGroupHand, entZoneHand, nil)
 		}
 	}
 	for i := range v.Stack {
 		if sv := &v.Stack[i]; sv.Card != nil {
-			f(sv.Card, entGroupStack, entZoneStack)
+			f(sv.Card, entGroupStack, entZoneStack, sv)
 		}
 	}
 }
@@ -178,6 +241,8 @@ type entityBoard struct {
 	v        *view.View
 	blockers []state.ObjID
 	attached []state.ObjID
+	tgts     []entTarget
+	pairs    []entPair // ENTREL-B fills it
 }
 
 func (b *entityBoard) blocking(id state.ObjID) bool {
@@ -222,7 +287,8 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 		}
 	}
 	var blkBuf, attBuf [16]state.ObjID
-	b := entityBoard{v: v, blockers: blkBuf[:0], attached: attBuf[:0]}
+	var tgtBuf [16]entTarget
+	b := entityBoard{v: v, blockers: blkBuf[:0], attached: attBuf[:0], tgts: tgtBuf[:0]}
 	total := len(v.Stack)
 	for i := range v.Players {
 		pv := &v.Players[i]
@@ -238,6 +304,26 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 			}
 		}
 	}
+	for i := range v.Stack {
+		sv := &v.Stack[i]
+		mine := sv.Controller == seat
+		start := len(b.tgts)
+		for _, t := range sv.Targets {
+			if t.IsPlayer || t.Obj == 0 {
+				continue
+			}
+			dup := false
+			for _, e := range b.tgts[start:] {
+				if e.obj == t.Obj {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				b.tgts = append(b.tgts, entTarget{obj: t.Obj, mine: mine})
+			}
+		}
+	}
 	var avail int32
 	if me != nil {
 		avail = seatAvailable(me)
@@ -250,7 +336,7 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 		sc.gen = 1
 	}
 	out, raw, rows := buf.entitySlabs(total)
-	walkEntityOrder(v, seat, func(cv *view.CardView, group uint8, zone int) {
+	walkEntityOrder(v, seat, func(cv *view.CardView, group uint8, zone int, sv *view.StackView) {
 		if !sc.markNew(cv.ID) {
 			return
 		}
@@ -262,6 +348,7 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 		if len(rows) > start {
 			cr = rows[start:len(rows):len(rows)]
 		}
+		entityRelations(r, cv, zone, sv, seat, &b)
 		out = append(out, EntityCard{Group: group, Raw: r, Rows: cr})
 	})
 	entityScratches.Put(sc)

@@ -54,7 +54,7 @@ import (
 //	                             policy gave the recorded answer (TemperedLogProb);
 //	                             PPO's ratio reads it instead of logp_old
 //	state.cards                  the entity list (FeaturesEntity):
-//	                             {"g":group,"raw":[68 floats],"r":[rows],"v":[vals]}
+//	                             {"g":group,"raw":[EntityRawWidth floats],"r":[rows],"v":[vals]}
 //	options[].ent_a / ent_b      the option's entity references (1 + card index)
 //
 // The encoder hash is EncoderHashFor(the recording checkpoint's feature set):

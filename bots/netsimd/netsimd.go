@@ -41,6 +41,7 @@ type norm struct {
 // kernels assume d == hh == 64 and e == cd == 32 (Load refuses others).
 type Net struct {
 	d, ff, e, cd, hh int
+	rawW             int // entity raw width the card_raw layer reads
 
 	table               []float32 // rows×e
 	cardRaw, cardRows   lin       // rawW→cd, e→cd
@@ -158,7 +159,11 @@ func Load(path string, cardCache int) (*Net, error) {
 	if h.Format != "dzgw-1" || h.Arch != "mlp" {
 		return nil, fmt.Errorf("netsimd %s: format %q arch %q, want dzgw-1 mlp", path, h.Format, h.Arch)
 	}
-	want := map[string]int{"DENSE_W": denseW, "RAW_W": rawW, "OPT_DENSE_W": optDense, "TABLE_ROWS": tableRows, "SLOT_ROWS": slotRows, "GROUPS": groups}
+	rawIn := h.Consts["RAW_W"]
+	if rawIn != policynet.EntityRawWidth && rawIn != policynet.EntityRawWidthV1 {
+		return nil, fmt.Errorf("netsimd %s: RAW_W = %d, this build reads %d or %d", path, rawIn, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
+	}
+	want := map[string]int{"DENSE_W": denseW, "OPT_DENSE_W": optDense, "TABLE_ROWS": tableRows, "SLOT_ROWS": slotRows, "GROUPS": groups}
 	for k, v := range want {
 		if h.Consts[k] != v {
 			return nil, fmt.Errorf("netsimd %s: %s = %d, this build has %d", path, k, h.Consts[k], v)
@@ -189,7 +194,7 @@ func Load(path string, cardCache int) (*Net, error) {
 		tensors[t.Name], shapes[t.Name] = f, t.Shape
 	}
 	cfg := func(k string) int { return int(h.Config[k]) }
-	g := &Net{d: cfg("d"), ff: cfg("ff"), e: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
+	g := &Net{d: cfg("d"), ff: cfg("ff"), e: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden"), rawW: rawIn}
 	if g.d != 64 || g.hh != 64 || g.e != 32 || g.cd != 32 || g.ff%32 != 0 || cfg("layers") != 1 {
 		return nil, fmt.Errorf("netsimd %s: shape d=%d ff=%d e=%d cd=%d hh=%d layers=%d: the kernels want d=hh=64, e=cd=32, ff%%32=0, one block", path, g.d, g.ff, g.e, g.cd, g.hh, cfg("layers"))
 	}
@@ -244,7 +249,7 @@ func Load(path string, cardCache int) (*Net, error) {
 	}
 	d, e, cd, hh := g.d, g.e, g.cd, g.hh
 	g.table = get("table.weight", tableRows, e)
-	g.cardRaw = linear("card_raw", rawW, cd, true)
+	g.cardRaw = linear("card_raw", rawIn, cd, true)
 	g.cardRows = linear("card_rows", e, cd, false)
 	g.cardPhi = linear("card_phi", cd, cd, true)
 	g.denseIn = linear("dense_in", denseW, d, true)
@@ -304,6 +309,10 @@ func Load(path string, cardCache int) (*Net, error) {
 	return g, nil
 }
 
+// RawWidth is the entity raw width the network's card_raw layer reads: 68
+// for a format-1 network, policynet.EntityRawWidth for the current encoding.
+func (g *Net) RawWidth() int { return g.rawW }
+
 // Eval runs the network on st, writes each option's logit into scores
 // (len(opts)) and returns the value logit — gonet.Net.Eval's contract.
 func (g *Net) Eval(sc *Scratch, st *policynet.State, opts []policynet.Option, scores []float32) float32 {
@@ -341,12 +350,12 @@ func (g *Net) Eval(sc *Scratch, st *policynet.State, opts []policynet.Option, sc
 // u = relu(card_raw(raw) + card_rows(bag(rows))); c = relu(card_phi(u)).
 func (g *Net) cardFull(sc *Scratch, raw []float32, rows []policynet.Feature, ent *float32) {
 	cd, e := g.cd, g.e
-	sc.raw = growF(sc.raw, rawW)
+	sc.raw = growF(sc.raw, g.rawW)
 	sc.u = growF(sc.u, cd)
 	sc.bag32 = growF(sc.bag32, e)
 	n := copy(sc.raw, raw)
 	clear(sc.raw[n:])
-	gemvT(&g.cardRaw.wt[0], &sc.raw[0], &g.cardRaw.b[0], &sc.u[0], rawW, cd, false)
+	gemvT(&g.cardRaw.wt[0], &sc.raw[0], &g.cardRaw.b[0], &sc.u[0], g.rawW, cd, false)
 	clear(sc.bag32)
 	if len(rows) > 0 {
 		bag(&sc.bag32[0], &g.table[0], (*feat)(unsafe.Pointer(&rows[0])), len(rows), tableRows, e)

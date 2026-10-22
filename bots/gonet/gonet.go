@@ -212,6 +212,10 @@ type gnHeader struct {
 // loads, unchecked, and the caller decides whether to warn.
 func (g *Net) EncoderHashChecked() bool { return g.hashChecked }
 
+// RawWidth is the entity raw width the network's card_raw layer reads: 68
+// for a format-1 network, EntityRawWidth for the current encoding.
+func (g *Net) RawWidth() int { return g.cardRaw.in }
+
 // Load reads a .dzgw file (contract dzgw, docs/contracts.md).
 func Load(path string) (*Net, error) {
 	raw, err := os.ReadFile(path)
@@ -233,21 +237,35 @@ func Load(path string) (*Net, error) {
 	if h.Format != "dzgw-1" {
 		return nil, fmt.Errorf("gonet %s: format %q, want dzgw-1", path, h.Format)
 	}
+	rawW := h.Consts["RAW_W"]
+	if rawW != policynet.EntityRawWidth && rawW != policynet.EntityRawWidthV1 {
+		return nil, fmt.Errorf("gonet %s: RAW_W = %d, this build reads %d or %d", path, rawW, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
+	}
 	hashChecked := false
 	if h.EncoderHash != "" {
 		got, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
 		if err != nil {
 			return nil, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
 		}
-		if want := policynet.EncoderHashFor(policynet.FeaturesEntity); got != want {
-			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, want)
+		live := policynet.EncoderHashFor(policynet.FeaturesEntity)
+		v1 := policynet.EncoderHashEntityV1()
+		switch {
+		case got == live && rawW == policynet.EntityRawWidth, got == v1 && rawW == policynet.EntityRawWidthV1:
+			hashChecked = true
+		case got == live, got == v1:
+			wantW := policynet.EntityRawWidthV1
+			if got == live {
+				wantW = policynet.EntityRawWidth
+			}
+			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match RAW_W = %d (that encoder is %d wide)", path, got, rawW, wantW)
+		default:
+			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, live)
 		}
-		hashChecked = true
 	}
 	if h.Arch != "mlp" {
 		return nil, fmt.Errorf("gonet %s: arch %q: only mlp has a Go forward pass", path, h.Arch)
 	}
-	want := map[string]int{"DENSE_W": policynet.DenseWidth, "RAW_W": policynet.EntityRawWidth,
+	want := map[string]int{"DENSE_W": policynet.DenseWidth,
 		"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": gnRows, "SLOT_ROWS": gnSlotRow, "GROUPS": gnGroups}
 	for k, v := range want {
 		if h.Consts[k] != v {
@@ -318,7 +336,7 @@ func Load(path string) (*Net, error) {
 	}
 	d, e, cd, hh := g.d, g.dEmb, g.cd, g.hh
 	g.table = get("table.weight", gnRows, e)
-	g.cardRaw = lin("card_raw", policynet.EntityRawWidth, cd, true)
+	g.cardRaw = lin("card_raw", rawW, cd, true)
 	g.cardRows = lin("card_rows", e, cd, false)
 	g.cardPhi = lin("card_phi", cd, cd, true)
 	g.denseIn = lin("dense_in", policynet.DenseWidth, d, true)
@@ -714,13 +732,14 @@ func (g *Net) cardVectors(sc *gnScratch, cards []policynet.EntityCard) {
 		return
 	}
 	m := len(sc.miss)
+	rw := g.cardRaw.in
 	sc.u = grow(sc.u, m*cd)
 	sc.bags = grow(sc.bags, m*e)
-	sc.t = grow(sc.t, m*policynet.EntityRawWidth)
+	sc.t = grow(sc.t, m*rw)
 	raw := sc.t
 	for i, k := range sc.miss {
 		c := &cards[k]
-		r := raw[i*policynet.EntityRawWidth : (i+1)*policynet.EntityRawWidth]
+		r := raw[i*rw : (i+1)*rw]
 		n := copy(r, c.Raw)
 		clear(r[n:])
 		g.bag(sc.bags[i*e:(i+1)*e], c.Rows)
