@@ -51,11 +51,11 @@ func (g *Net) CardVector(sc *Scratch, raw, ident, dst []float32) {
 // once, so u + ident is bit-identical.
 func (g *Net) cardSplit(sc *Scratch, raw, ident []float32, ent *float32) {
 	cd := g.cd
-	sc.raw = growF(sc.raw, rawW)
+	sc.raw = growF(sc.raw, g.rawW)
 	sc.u = growF(sc.u, cd)
 	n := copy(sc.raw, raw)
 	clear(sc.raw[n:])
-	gemvT(&g.cardRaw.wt[0], &sc.raw[0], &g.cardRaw.b[0], &sc.u[0], rawW, cd, false)
+	gemvT(&g.cardRaw.wt[0], &sc.raw[0], &g.cardRaw.b[0], &sc.u[0], g.rawW, cd, false)
 	u := sc.u[:cd]
 	for i := range u {
 		v := u[i] + ident[i]

@@ -45,11 +45,12 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	board := botpolicy.NewBoard(len(names))
 
 	sets := []policynet.FeatureSet{policynet.FeaturesV1, policynet.FeaturesMZ, policynet.FeaturesEntity}
-	digests := make([]uint64, len(sets))
+	// One extra digest for the untruncated entity state ("entity-full").
+	digests := make([]uint64, len(sets)+1)
 	hs := make([]interface {
 		Write([]byte) (int, error)
 		Sum64() uint64
-	}, len(sets))
+	}, len(sets)+1)
 	for i := range hs {
 		hs[i] = fnv.New64a()
 	}
@@ -66,6 +67,16 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 		}
 		hs[i].Write(b)
 	}
+	truncate := func(st policynet.State) policynet.State {
+		out := st
+		out.Cards = make([]policynet.EntityCard, len(st.Cards))
+		for i := range st.Cards {
+			out.Cards[i] = st.Cards[i]
+			out.Cards[i].Raw = st.Cards[i].Raw[:policynet.EntityRawWidthV1]
+		}
+		return out
+	}
+	relDecisions := 0
 	decisions := 0
 	for n := 0; n < 1500 && !e.G.Over; n++ {
 		d := e.Pending()
@@ -82,13 +93,26 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 			t.Fatal(err)
 		}
 		for i, fs := range sets {
-			for _, vv := range []view.View{v, rt} {
+			for j, vv := range []view.View{v, rt} {
 				st := policynet.EncodeStateWith(fs, vv, d.Player, nil)
-				writeJSON(i, st)
 				opts := make([]policynet.Option, len(d.Options))
 				for k := range d.Options {
 					opts[k] = policynet.EncodeOptionWith(fs, vv, d.Player, d.Kind, d.Options[k], k, len(d.Options))
 				}
+				if fs == policynet.FeaturesEntity {
+					if j == 0 {
+						for k := range st.Cards {
+							if anyNonZero(st.Cards[k].Raw[policynet.EntityRawWidthV1:]) {
+								relDecisions++
+								break
+							}
+						}
+					}
+					writeJSON(len(sets), st)
+					writeJSON(len(sets), opts)
+					st = truncate(st)
+				}
+				writeJSON(i, st)
 				writeJSON(i, opts)
 				if m := models[fs]; m != nil {
 					var b [4]byte
@@ -106,7 +130,7 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for i := range sets {
+	for i := range digests {
 		digests[i] = hs[i].Sum64()
 	}
 	// Re-pinned at 0e5196eb7 (CR 103.8a: the starting player skips the whole
@@ -125,8 +149,11 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	// Re-pinned after cr-g69 (CR 601.2h): the game's decisions answer in a
 	// different order (cost objects are chosen at payment), not an encoding;
 	// 298 decisions.
-	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b}
-	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x", decisions, digests[0], digests[1], digests[2])
+	// entity-full is the untruncated format-2 encoding: it moves whenever the
+	// relational slots do (ENTREL-A sets it; ENTREL-B re-pins it).
+	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0xa42df105e74898ef}
+	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x entity-full=%#016x relDecisions=%d",
+		decisions, digests[0], digests[1], digests[2], digests[3], relDecisions)
 	if decisions < 200 {
 		t.Fatalf("only %d decisions encoded; the pin is too thin", decisions)
 	}
@@ -135,4 +162,19 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 			t.Errorf("feature set %s: digest %#016x, pinned %#016x -- an existing feature set's encoding (or a model's output over it) moved", fs, digests[i], want[i])
 		}
 	}
+	if digests[len(sets)] != want[len(sets)] {
+		t.Errorf("feature set entity-full: digest %#016x, pinned %#016x -- the relational slots moved", digests[len(sets)], want[len(sets)])
+	}
+	if relDecisions < 1 {
+		t.Errorf("only %d decisions encoded a non-zero relational slot; the game no longer exercises them", relDecisions)
+	}
+}
+
+func anyNonZero(fs []float32) bool {
+	for _, f := range fs {
+		if f != 0 {
+			return true
+		}
+	}
+	return false
 }
