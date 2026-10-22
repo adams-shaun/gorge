@@ -83,8 +83,8 @@ const (
 	entFaceDown   = 66
 	entOne        = 67 // constant 1: a card's presence
 
-	// Relational slots (entity format 2): what the stack targets and, on a
-	// stack card, what it targets. Slots 78-82 are declared for ENTREL-B.
+	// Relational slots (entity format 2: what the stack targets and, on a
+	// stack card, what it targets; format 3 adds the combat slots 78-82).
 	entTgtByMe      = 68 // viewer-controlled stack entries targeting it
 	entTgtByOpp     = 69 // other seats' stack entries targeting it
 	entTgtPermMe    = 70 // its entry's object targets on my battlefield
@@ -95,16 +95,16 @@ const (
 	entTgtGrave     = 75 // its entry's targets that are graveyard cards
 	entStackX       = 76 // X / 5
 	entStackKicked  = 77 // kicked at least once
-	entCombatFoes   = 78 // ENTREL-B: foes / 2
-	entCombatFoePow = 79 // ENTREL-B: sum of foe power / 4
-	entCombatFoeTgh = 80 // ENTREL-B: sum of foe remaining toughness / 4
-	entCombatDies   = 81 // ENTREL-B
-	entCombatKills  = 82 // ENTREL-B
+	entCombatFoes   = 78 // foes / 2
+	entCombatFoePow = 79 // sum of foe power / 4
+	entCombatFoeTgh = 80 // sum of foe remaining toughness / 4
+	entCombatDies   = 81 // could die in this combat (approximated, no first strike etc.)
+	entCombatKills  = 82 // could kill a foe this combat
 	entReserved83   = 83 // pads the width to 84
 
 	EntityRawWidth   = 84
 	EntityRawWidthV1 = 68
-	entityFormat     = 2
+	entityFormat     = 3
 )
 
 // entityTypes is the entity type vocabulary (index = entTypeOff + i).
@@ -242,7 +242,7 @@ type entityBoard struct {
 	blockers []state.ObjID
 	attached []state.ObjID
 	tgts     []entTarget
-	pairs    []entPair // ENTREL-B fills it
+	pairs    []entPair // attacker/blocker relations, in battlefield order
 }
 
 func (b *entityBoard) blocking(id state.ObjID) bool {
@@ -288,7 +288,9 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 	}
 	var blkBuf, attBuf [16]state.ObjID
 	var tgtBuf [16]entTarget
-	b := entityBoard{v: v, blockers: blkBuf[:0], attached: attBuf[:0], tgts: tgtBuf[:0]}
+	var pairBuf [16]entPair
+	var foeBuf [8]state.ObjID
+	b := entityBoard{v: v, blockers: blkBuf[:0], attached: attBuf[:0], tgts: tgtBuf[:0], pairs: pairBuf[:0]}
 	total := len(v.Stack)
 	for i := range v.Players {
 		pv := &v.Players[i]
@@ -299,6 +301,19 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 		for j := range pv.Battlefield {
 			cv := &pv.Battlefield[j]
 			b.blockers = append(b.blockers, cv.BlockedBy...)
+			start := len(b.pairs)
+			for _, blk := range cv.BlockedBy {
+				dup := false
+				for _, p := range b.pairs[start:] {
+					if p.blk == blk {
+						dup = true
+						break
+					}
+				}
+				if !dup {
+					b.pairs = append(b.pairs, entPair{att: cv.ID, blk: blk})
+				}
+			}
 			if cv.AttachedTo != 0 {
 				b.attached = append(b.attached, cv.AttachedTo)
 			}
@@ -348,7 +363,7 @@ func entityCardList(buf *StateBuf, v *view.View, seat state.PlayerID) []EntityCa
 		if len(rows) > start {
 			cr = rows[start:len(rows):len(rows)]
 		}
-		entityRelations(r, cv, zone, sv, seat, &b)
+		entityRelations(r, cv, zone, sv, seat, &b, foeBuf[:0])
 		out = append(out, EntityCard{Group: group, Raw: r, Rows: cr})
 	})
 	entityScratches.Put(sc)

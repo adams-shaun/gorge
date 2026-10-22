@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"math"
 	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
@@ -77,6 +78,8 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 		return out
 	}
 	relDecisions := 0
+	combatDecisions := 0
+	combatFoesSlot := policynet.EntityRawWidthV1 + slices.Index(policynet.EntityRelNames(), "combat-foes")
 	decisions := 0
 	for n := 0; n < 1500 && !e.G.Over; n++ {
 		d := e.Pending()
@@ -101,11 +104,21 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 				}
 				if fs == policynet.FeaturesEntity {
 					if j == 0 {
+						anyRel, anyCombat := false, false
 						for k := range st.Cards {
-							if anyNonZero(st.Cards[k].Raw[policynet.EntityRawWidthV1:]) {
-								relDecisions++
-								break
+							r := st.Cards[k].Raw
+							if !anyRel && anyNonZero(r[policynet.EntityRawWidthV1:]) {
+								anyRel = true
 							}
+							if !anyCombat && r[combatFoesSlot] != 0 {
+								anyCombat = true
+							}
+						}
+						if anyRel {
+							relDecisions++
+						}
+						if anyCombat {
+							combatDecisions++
 						}
 					}
 					writeJSON(len(sets), st)
@@ -149,11 +162,12 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	// Re-pinned after cr-g69 (CR 601.2h): the game's decisions answer in a
 	// different order (cost objects are chosen at payment), not an encoding;
 	// 298 decisions.
-	// entity-full is the untruncated format-2 encoding: it moves whenever the
-	// relational slots do (ENTREL-A sets it; ENTREL-B re-pins it).
-	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0xa42df105e74898ef}
-	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x entity-full=%#016x relDecisions=%d",
-		decisions, digests[0], digests[1], digests[2], digests[3], relDecisions)
+	// entity-full is the untruncated entity encoding: it moves whenever the
+	// relational slots do (ENTREL-A sets it; ENTREL-B re-pins it with the
+	// combat slots, format 3).
+	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0x1bf3a9be90afea43}
+	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x entity-full=%#016x relDecisions=%d combatDecisions=%d",
+		decisions, digests[0], digests[1], digests[2], digests[3], relDecisions, combatDecisions)
 	if decisions < 200 {
 		t.Fatalf("only %d decisions encoded; the pin is too thin", decisions)
 	}
@@ -167,6 +181,9 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	}
 	if relDecisions < 1 {
 		t.Errorf("only %d decisions encoded a non-zero relational slot; the game no longer exercises them", relDecisions)
+	}
+	if combatDecisions < 1 {
+		t.Errorf("only %d decisions encoded a combat-foes slot; the game no longer exercises them", combatDecisions)
 	}
 }
 
