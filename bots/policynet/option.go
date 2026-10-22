@@ -146,10 +146,12 @@ var keywordBits = [...]string{
 
 // keywordBits indices the encoders test by name.
 const (
-	kwFlying   = 0
-	kwHaste    = 2
-	kwFlash    = 9
-	kwDefender = 12
+	kwFlying         = 0
+	kwHaste          = 2
+	kwFlash          = 9
+	kwDefender       = 12
+	kwDeathtouch     = 4  // ENTREL-B: entity combat slots (entCombatDies/Kills)
+	kwIndestructible = 10 // ENTREL-B: entity combat slots (entCombatDies)
 )
 
 // keywordBit is the index of the keywordBits word k equals under
