@@ -55,7 +55,8 @@ func TestGrantedTypeCyclingCrossSeatActivationFiresCycledTrigger(t *testing.T) {
 	}
 
 	e.beginActivation(1, opt)
-	submitChoices(t, e, 0) // the cost's Discard<1/CARDNAME>: the sliver itself
+	e.pending = nil // as Submit does once an answer is taken
+	e.Advance()     // no self-discard ask: run on to the trigger flush
 	if got := e.G.Obj(sliverID).Zone; got != state.ZGraveyard {
 		t.Fatalf("the granted slivercycling's discard left the sliver in %s, want graveyard", got)
 	}

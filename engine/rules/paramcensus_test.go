@@ -1490,6 +1490,13 @@ var stringMapParams = map[string]string{
 	// Goad-static helpers inspect map arguments copied from parsed SVar
 	// statics, not card SA Params; their callers classify the actual source.
 	"effects:goadStaticGrantReadable:params": "parsed Goad static-line Params map, not a card SA Params map",
+	// engine/effects/staticline.go hiddenKeywordGrantFromLine and
+	// adjustLandPlaysGrantFromLine: params is a parseStaticLine-built static
+	// line (an SVar body) passed from effEffect, not a card SA Params map.
+	// Their card-parameter reads are the AddHiddenKeyword$/AdjustLandPlays$
+	// values the census already attributes at the primitive site.
+	"effects:hiddenKeywordGrantFromLine:params":   "parseStaticLine-built static line (an SVar body), not a card Params map",
+	"effects:adjustLandPlaysGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
 	// engine/effects/restrictions.go replacementRedirectsToExile: params is one
 	// ReplaceWith$ line parseReplacementLine built from the face's SVar
 	// table (the Fizzle$ rider the exile-redirect admission reads), not a

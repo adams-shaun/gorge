@@ -137,11 +137,25 @@ func EncoderHashFor(fs FeatureSet) uint64 {
 	if fs == FeaturesV1 {
 		return EncoderHash()
 	}
+	if fs == FeaturesEntity {
+		return encoderHashWith(fs, entityHashSuffix())
+	}
+	return encoderHashWith(fs, "")
+}
+
+// EncoderHashEntityV1 is the encoder digest of the format-1 (68-wide) entity
+// encoding: the hash every network and training corpus recorded before the
+// relational slots existed. It is not a checkpointable feature set for
+// training (FeaturesForHash refuses it), only a load path.
+func EncoderHashEntityV1() uint64 { return encoderHashWith(FeaturesEntity, entityHashSuffixV1()) }
+
+// encoderHashWith is EncoderHashFor's body with the entity suffix supplied by
+// the caller, so the format-1 and format-2 entity hashes share one string
+// shape.
+func encoderHashWith(fs FeatureSet, entSuffix string) uint64 {
 	s := fmt.Sprintf("gorge-policynet-features\x1fbase=%#016x\x1fset=%s\x1fmz-format=1\x1fpins=%d,%d",
 		EncoderHash(), fs, hashID("mz|bf-opp|canblock"), hashID("mz|me|avail"))
-	if fs == FeaturesEntity {
-		s += entityHashSuffix()
-	}
+	s += entSuffix
 	if fs == FeaturesMZOwnLib {
 		s += ownLibHashSuffix()
 	}

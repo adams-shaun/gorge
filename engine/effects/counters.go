@@ -339,13 +339,18 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 // effRemoveCounterAll sweeps ValidCards$ (default "Permanent") on the
 // battlefield and removes CounterType$ counters from each match: CounterNum$
 // (default 1) of them, or every counter of that kind the object actually has
-// when AllCounters$ is "True". state.Object.AddCounter already clamps at
-// zero, so removing more than an object has is harmless either way; the
-// AllCounters$ case reads the object's own count first purely to avoid an
+// when AllCounters$ is "True". AllCounterTypes$ True names EVERY kind instead
+// of one (Aether Snap's "remove all counters from all permanents", the corpus
+// spelling of CR 122.8's all counters of all kinds), so no CounterType$ is
+// needed; the internal status markers are not counters and stay
+// (counterKinds' exclusion). state.Object.AddCounter already clamps at zero,
+// so removing more than an object has is harmless either way; the every-kind
+// and AllCounters$ cases read the object's own count first purely to avoid an
 // event whose Amount overstates what changed.
 func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 	kind := sa.ParamStr(cards.PKCounterType)
-	if kind == "" {
+	allTypes := sa.ParamStr(cards.PKAllCounterTypes) == "True"
+	if kind == "" && !allTypes {
 		return
 	}
 	spec := sa.ParamStr(cards.PKValidCards)
@@ -363,9 +368,22 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
+			o := g.Obj(id)
+			if kind == "" || allTypes {
+				for _, k := range counterKinds("", len(o.Counters),
+					func(i int) string { return o.Counters[i].Kind },
+					func(i int) int32 { return o.Counters[i].N }) {
+					amt := o.Counter(k)
+					if amt <= 0 {
+						continue
+					}
+					h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: k, Amount: -amt})
+				}
+				continue
+			}
 			amt := n
 			if all {
-				amt = g.Obj(id).Counter(kind)
+				amt = o.Counter(kind)
 			}
 			if amt <= 0 {
 				continue

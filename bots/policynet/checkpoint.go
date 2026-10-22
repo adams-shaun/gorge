@@ -148,6 +148,14 @@ func WriteOracleCheckpoint(m *Model, w io.Writer) error {
 }
 
 func writeCheckpoint(m *Model, w io.Writer) error {
+	return writeCheckpointAs(m, w, EncoderHashFor(m.Features), EntityRawWidth, m.EntW)
+}
+
+// writeCheckpointAs writes a checkpoint under an explicit encoder hash and
+// entity raw width, with entW as the entity encoder block. The legacy
+// (format-1) writer uses it to emit a 68-wide body under
+// EncoderHashEntityV1; the ordinary path is writeCheckpoint.
+func writeCheckpointAs(m *Model, w io.Writer, hash uint64, entRaw int, entW []float32) error {
 	bw := bufio.NewWriter(w)
 	var hdr [24]byte
 	copy(hdr[0:4], CheckpointMagic)
@@ -156,7 +164,7 @@ func writeCheckpoint(m *Model, w io.Writer) error {
 		version = CheckpointVersionEntity
 	}
 	binary.LittleEndian.PutUint32(hdr[4:8], version)
-	binary.LittleEndian.PutUint64(hdr[8:16], EncoderHashFor(m.Features))
+	binary.LittleEndian.PutUint64(hdr[8:16], hash)
 	binary.LittleEndian.PutUint32(hdr[16:20], uint32(m.Rows))
 	binary.LittleEndian.PutUint32(hdr[20:24], uint32(m.H))
 	if _, err := bw.Write(hdr[:]); err != nil {
@@ -171,8 +179,8 @@ func writeCheckpoint(m *Model, w io.Writer) error {
 	geom := []uint32{uint32(m.Hidden), uint32(DenseWidth), uint32(OptionSlotWidth), uint32(OptionDenseWidth), uint32(m.ValueHidden)}
 	blocks := [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW, {m.OutB}, {m.ResidualW}, m.VHidW, m.VHidB, m.VOutW, {m.VOutB}}
 	if m.EntK > 0 {
-		geom = append(geom, uint32(m.EntK), uint32(EntityRawWidth))
-		blocks = append(blocks, m.EntW, m.EntB, m.EntP)
+		geom = append(geom, uint32(m.EntK), uint32(entRaw))
+		blocks = append(blocks, entW, m.EntB, m.EntP)
 	}
 	for _, v := range geom {
 		if err := put32(v); err != nil {
@@ -261,6 +269,10 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		}
 	}
 	features, ok := FeaturesForHash(h)
+	legacyEnt := false
+	if !ok && !oracle && h == EncoderHashEntityV1() {
+		features, ok, legacyEnt = FeaturesEntity, true, true
+	}
 	if oracle {
 		features, ok = oracleFeaturesForHash(h)
 	}
@@ -300,16 +312,20 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		return nil, err
 	}
 	entK := 0
+	entRaw := EntityRawWidth
 	if version == CheckpointVersionEntity {
 		if entK, err = get32("entity width"); err != nil {
 			return nil, err
 		}
-		entRaw, err := get32("entity raw width")
-		if err != nil {
+		if entRaw, err = get32("entity raw width"); err != nil {
 			return nil, err
 		}
-		if entRaw != EntityRawWidth {
-			return nil, fmt.Errorf("checkpoint geometry: entity raw width %d, want %d", entRaw, EntityRawWidth)
+		wantRaw := EntityRawWidth
+		if legacyEnt {
+			wantRaw = EntityRawWidthV1
+		}
+		if entRaw != wantRaw {
+			return nil, fmt.Errorf("checkpoint geometry: entity raw width %d, want %d", entRaw, wantRaw)
 		}
 		if entK < 1 || entK > 1<<12 {
 			return nil, fmt.Errorf("checkpoint geometry: entity width %d", entK)
@@ -370,7 +386,7 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 			n    int
 			set  func(fs []float32)
 		}{
-			{"entity encoder", entK * (EntityRawWidth + hh), func(fs []float32) { m.EntW = fs }},
+			{"entity encoder", entK * (entRaw + hh), func(fs []float32) { m.EntW = widenEntW(fs, entK, entRaw, hh) }},
 			{"entity encoder bias", entK, func(fs []float32) { m.EntB = fs }},
 			{"entity projection", EntityGroups * 2 * entK * hh, func(fs []float32) { m.EntP = fs }},
 		}...)
@@ -394,6 +410,26 @@ func loadCheckpoint(r io.Reader, oracle bool) (*Model, error) {
 		return nil, fmt.Errorf("oracle checkpoint: no value head")
 	}
 	return m, nil
+}
+
+// widenEntW turns a loaded entity encoder block of raw width entRaw into the
+// build's EntityRawWidth layout. A row is [raw | emb]; the new raw columns
+// are zero, so the loaded weights score exactly as they did at entRaw (the
+// extra inputs multiply by zero). A block already at the build width is
+// returned as is.
+func widenEntW(fs []float32, entK, entRaw, hh int) []float32 {
+	if entRaw == EntityRawWidth {
+		return fs
+	}
+	inW, outW := entRaw+hh, EntityRawWidth+hh
+	out := make([]float32, entK*outW)
+	for q := 0; q < entK; q++ {
+		src := fs[q*inW : (q+1)*inW]
+		dst := out[q*outW : (q+1)*outW]
+		copy(dst[:entRaw], src[:entRaw])
+		copy(dst[EntityRawWidth:], src[entRaw:])
+	}
+	return out
 }
 
 func readFloats(r io.Reader, n int) ([]float32, error) {

@@ -83,14 +83,14 @@ func BenchmarkStageSparseBag(b *testing.B) {
 func BenchmarkStageCard(b *testing.B) {
 	g := loadBreakdownNet(b)
 	r := rand.New(rand.NewPCG(5, 6))
-	raw, u, bg, ent := aligned(rawW), aligned(32), aligned(32), aligned(32)
+	raw, u, bg, ent := aligned(g.rawW), aligned(32), aligned(32), aligned(32)
 	for i := range raw {
 		raw[i] = float32(r.NormFloat64())
 	}
 	fs := randFeats(r, 1, tableRows)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gemvT(&g.cardRaw.wt[0], &raw[0], &g.cardRaw.b[0], &u[0], rawW, 32, false)
+		gemvT(&g.cardRaw.wt[0], &raw[0], &g.cardRaw.b[0], &u[0], g.rawW, 32, false)
 		clear(bg)
 		bag(&bg[0], &g.table[0], &fs[0], 1, tableRows, 32)
 		gemvT(&g.cardRows.wt[0], &bg[0], &u[0], &u[0], 32, 32, true)
@@ -102,7 +102,7 @@ func BenchmarkStageCard(b *testing.B) {
 // sparse_proj, the block, the final norm and the value head.
 func BenchmarkStageTrunk(b *testing.B) {
 	g := loadBreakdownNet(b)
-	pool, dense, sp := aligned(256), aligned(rawW), aligned(32)
+	pool, dense, sp := aligned(256), aligned(g.rawW), aligned(32)
 	s, t, h, vh := aligned(64), aligned(64), aligned(g.ff), aligned(64)
 	var v float32
 	b.ResetTimer()

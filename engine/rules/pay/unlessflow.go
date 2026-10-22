@@ -74,8 +74,28 @@ func AdvanceUnless(e Engine) UnlessStep {
 	for u.Part < u.PaymentPartCount() {
 		part, zone, kind := UnlessPartAt(u.Cost, u.Part)
 		eligible := UnlessPaymentCandidates(e, u, zone, kind, part)
+		if kind == "discard" && IsHandDiscardSpec(part.Spec) {
+			// Discard<N/Hand> is the whole hand, never a pick; an empty hand
+			// pays by discarding nothing.
+			RecordUnlessPaymentPick(e, u, kind, eligible)
+			u.Part++
+			continue
+		}
 		if int32(len(eligible)) < part.N {
 			return unlessDeclined()
+		}
+		if kind == "discard" && IsRandomDiscardSpec(part.Spec) {
+			// The engine's seeded RNG picks, never the payer; drawn even when
+			// the hand holds exactly N cards (the cast flow's discardAsk).
+			picks := make([]state.ObjID, 0, part.N)
+			for i := int32(0); i < part.N; i++ {
+				pick := e.Rand(len(eligible))
+				picks = append(picks, eligible[pick])
+				eligible = append(eligible[:pick], eligible[pick+1:]...)
+			}
+			RecordUnlessPaymentPick(e, u, kind, picks)
+			u.Part++
+			continue
 		}
 		if kind == "exilecost" && costvocab.IsWholeZoneExileSpec(part.Spec) {
 			// ExileFromGrave<1/All> names the WHOLE zone: every matching

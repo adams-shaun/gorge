@@ -45,7 +45,8 @@ func TestGrantedCyclingActivationFiresAbilityCastWatchers(t *testing.T) {
 		t.Fatalf("precondition: granted activation not offered: %+v, %v", opt, ok)
 	}
 	e.beginActivation(0, opt)
-	submitChoices(t, e, 0)
+	e.pending = nil // as Submit does once an answer is taken
+	e.Advance()     // no self-discard ask: run on to the trigger flush
 	if got := e.G.Obj(id).Zone; got != state.ZGraveyard {
 		t.Fatalf("precondition: paid cycling cost did not discard card: %s", got)
 	}

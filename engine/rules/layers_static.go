@@ -467,8 +467,8 @@ func adjustLandPlaysGrant(params map[string]string) (int32, bool) {
 	if !ok {
 		return 0, false
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(raw))
-	if err != nil || n <= 0 {
+	n, ok := effects.AdjustLandPlaysValueOK(raw)
+	if !ok {
 		// A value this build cannot price as a count (Unlimited, an SVar
 		// token) must not silently become a smaller grant.
 		return 0, false
@@ -479,7 +479,7 @@ func adjustLandPlaysGrant(params map[string]string) (int32, bool) {
 			return 0, false
 		}
 	}
-	return int32(n), true
+	return n, true
 }
 
 // mayPlayGrant reports whether a Mode$ Continuous static carries the

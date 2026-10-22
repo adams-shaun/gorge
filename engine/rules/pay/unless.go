@@ -374,7 +374,15 @@ func unlessChoiceComponentsPayable(e Engine, p state.PlayerID, cost costvocab.Co
 		}
 	}
 	add(state.ZBattlefield, "sacrifice", cost.Sac)
-	add(state.ZHand, "discard", cost.Discard)
+	// A Hand discard part takes the whole hand (no slots); it is consumed
+	// into used below, like a whole-zone Exile part.
+	var pickDiscards []costvocab.CostPart
+	for _, part := range cost.Discard {
+		if !IsHandDiscardSpec(part.Spec) {
+			pickDiscards = append(pickDiscards, part)
+		}
+	}
+	add(state.ZHand, "discard", pickDiscards)
 	add(state.ZHand, "revealcost", cost.Reveal)
 	add(state.ZBattlefield, "beholdcost", cost.Behold)
 	add(state.ZBattlefield, "returncost", cost.Return)
@@ -382,6 +390,11 @@ func unlessChoiceComponentsPayable(e Engine, p state.PlayerID, cost costvocab.Co
 	// marked used first; an ordinary Exile part then joins the bipartite
 	// match like any other pick.
 	var used []state.ObjID
+	for _, part := range cost.Discard {
+		if IsHandDiscardSpec(part.Spec) {
+			used = append(used, UnlessCandidatesFor(e, p, *ctx, state.ZHand, "discard", part, used)...)
+		}
+	}
 	for _, part := range cost.Exile {
 		if !costvocab.IsWholeZoneExileSpec(part.Spec) {
 			continue
@@ -486,11 +499,33 @@ func UnlessCandidatesFor(e Engine, payer state.PlayerID, ctx effects.Ctx, zone s
 			}
 			continue
 		}
+		// Random and Hand are selection methods, not card characteristics, so
+		// MatchesSpec matches no card: every still-available hand card is a
+		// candidate, as pay.DiscardCandidates reads them for the cast flow.
+		if kind == "discard" && IsAllHandDiscardSpec(part.Spec) {
+			if !seen[id] {
+				out = append(out, id)
+			}
+			continue
+		}
 		if !seen[id] && e.Eval().MatchesSpec(part.Spec, id, sc) {
 			out = append(out, id)
 		}
 	}
 	return out
+}
+
+// IsHandDiscardSpec reports Forge's "discard your hand" Discard spec.
+func IsHandDiscardSpec(spec string) bool { return strings.EqualFold(spec, "Hand") }
+
+// IsRandomDiscardSpec reports a Discard<N/Random> spec: the engine's RNG, not
+// the payer, picks the cards.
+func IsRandomDiscardSpec(spec string) bool { return strings.EqualFold(spec, "Random") }
+
+// IsAllHandDiscardSpec reports a Discard spec that names a selection method
+// over the whole hand (Random or Hand) rather than a card filter.
+func IsAllHandDiscardSpec(spec string) bool {
+	return IsHandDiscardSpec(spec) || IsRandomDiscardSpec(spec)
 }
 
 // UnlessRevealChosenDesignated is the shared RevealChosen check: the offer

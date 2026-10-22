@@ -161,6 +161,16 @@ func LastDrawnThisTurn(e Engine, p state.PlayerID) state.ObjID {
 	return 0
 }
 
+// IsSelfDiscardSpec reports whether a Discard cost spec is the bare
+// source-object reference (CARDNAME, or Forge's NICKNAME alias of it).
+func IsSelfDiscardSpec(spec string) bool {
+	switch strings.ToUpper(spec) {
+	case "CARDNAME", "NICKNAME":
+		return true
+	}
+	return false
+}
+
 // DiscardCandidates returns the still-available cards that can pay one
 // Discard cost part. Random names a selection method rather than a card
 // characteristic, and a Hand spec is Forge's "discard your hand" shape
