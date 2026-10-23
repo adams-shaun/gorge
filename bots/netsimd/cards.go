@@ -125,16 +125,20 @@ func (g *Net) BagAdd(dst []float32, rows []policynet.Feature) {
 }
 
 // SumRows adds Σ value·table[row·width : (row+1)·width] over rows to dst
-// (width floats): the bag kernel over a caller's own table (width 32 or
-// 64, the table width·rows long). A caller keeping per-part
-// sums in one table adds them up with it (value 1: exactly dst + row, in
-// order).
+// (width floats): the bag kernel over a caller's own table (the table
+// width·rows long). A caller keeping per-part sums in one table adds them up
+// with it (value 1: exactly dst + row, in order). Any width >= 1 works; the
+// assembly applies at the bag kernels' own widths (32, 64) and the
+// width-generic kernel serves the rest.
 func SumRows(dst, table []float32, width int, rows []policynet.Feature) {
-	if width != 32 && width != 64 {
-		panic("netsimd: SumRows width must be 32 or 64")
+	if width < 1 {
+		panic("netsimd: SumRows width must be positive")
 	}
 	if len(rows) == 0 {
 		return
+	}
+	if len(dst) < width || len(table) < width*int(rows[0].Row+1) {
+		panic("netsimd: SumRows destination or table too small for width")
 	}
 	bag(&dst[0], &table[0], (*feat)(unsafe.Pointer(&rows[0])), len(rows), len(table)/width, width)
 }
