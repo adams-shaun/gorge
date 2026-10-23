@@ -234,7 +234,16 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 		rest = state.ZExile
 	}
 	controller := o.Controller
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest})
+	// CR 715.3d: stamp the resolved-Adventure exile positively. The card
+	// sits in the adventure zone only because this resolution put it there;
+	// adventureZoneAvailable requires the marker, so a counter (or a
+	// replacement that redirects a countered card to exile) never earns the
+	// play permission.
+	marker := ""
+	if rest == state.ZExile && o.CastFlags&state.FlagAdventure != 0 {
+		marker = adventureZoneMoveMarker
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest, Counter: marker})
 	if rebound && rest == state.ZExile {
 		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZExile {
 			e.registerRebound(id, controller)
