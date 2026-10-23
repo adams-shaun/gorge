@@ -167,8 +167,8 @@ func Load(path string, cardCache int) (*Net, error) {
 		return nil, fmt.Errorf("netsimd %s: format %q arch %q, want dzgw-1 mlp", path, h.Format, h.Arch)
 	}
 	rawIn := h.Consts["RAW_W"]
-	if rawIn != policynet.EntityRawWidth && rawIn != policynet.EntityRawWidthV1 {
-		return nil, fmt.Errorf("netsimd %s: RAW_W = %d, this build reads %d or %d", path, rawIn, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
+	if rawIn != policynet.EntityRawWidth && rawIn != policynet.EntityRawWidthV1 && rawIn != policynet.EntityRawWidthV3 {
+		return nil, fmt.Errorf("netsimd %s: RAW_W = %d, this build reads %d, %d or %d", path, rawIn, policynet.EntityRawWidthV1, policynet.EntityRawWidthV3, policynet.EntityRawWidth)
 	}
 	want := map[string]int{"DENSE_W": denseW, "OPT_DENSE_W": optDense, "TABLE_ROWS": tableRows, "SLOT_ROWS": slotRows, "GROUPS": groups}
 	for k, v := range want {
