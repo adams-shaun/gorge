@@ -102,9 +102,23 @@ const (
 	entCombatKills  = 82 // could kill a foe this combat
 	entReserved83   = 83 // pads the width to 84
 
-	EntityRawWidth   = 84
+	// The v2 block, appended so nothing at 0..83 moves: mana colour (one per
+	// WUBRG colour), the pip counts (not the mana value) and a coarse
+	// category. A v2 network reads them; a v1 or v3 network does not have
+	// them and still loads (netsimd accepts both widths).
+	entColourOff = 84 // W U B R G C, one each
+	entPipsOff   = 90 // W U B R G generic, the pip counts / pipMax
+	entCategory  = 96 // removal, creature, ramp, trick (coarse, overlapping)
+
+	EntityRawWidth   = 100
 	EntityRawWidthV1 = 68
-	entityFormat     = 3
+	// EntityRawWidthV3 is the format-3 width the trained v1/v2 networks were
+	// built at (84): the v2 colour/pips/category block is appended above it.
+	EntityRawWidthV3 = 84
+	// EntityRawWidthRelEnd is the end of the relational block the v1 checks
+	// range over (68..83); the v2 block starts above it.
+	EntityRawWidthRelEnd = 84
+	entityFormat         = 3
 )
 
 // entityTypes is the entity type vocabulary (index = entTypeOff + i).

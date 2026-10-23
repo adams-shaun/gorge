@@ -197,11 +197,14 @@ func TestEntityCombatSlots(t *testing.T) {
 }
 
 func TestEntityRelationalLayoutAndHashes(t *testing.T) {
-	if EntityRawWidth != 84 || EntityRawWidthV1 != 68 {
-		t.Fatalf("widths %d/%d, want 84/68", EntityRawWidth, EntityRawWidthV1)
+	// The v2 block (colour/pips/category) is appended at EntityRawWidthRelEnd,
+	// so the relational block is still 68..83 and this test's ranges cover
+	// exactly those slots.
+	if EntityRawWidth != 100 || EntityRawWidthV1 != 68 || EntityRawWidthRelEnd != 84 {
+		t.Fatalf("widths %d/%d relEnd %d, want 100/68 relEnd 84", EntityRawWidth, EntityRawWidthV1, EntityRawWidthRelEnd)
 	}
-	if len(entRelNames) != EntityRawWidth-EntityRawWidthV1 {
-		t.Fatalf("%d relational names for %d slots", len(entRelNames), EntityRawWidth-EntityRawWidthV1)
+	if len(entRelNames) != EntityRawWidthRelEnd-EntityRawWidthV1 {
+		t.Fatalf("%d relational names for %d slots", len(entRelNames), EntityRawWidthRelEnd-EntityRawWidthV1)
 	}
 	if entReserved83 != 83 {
 		t.Fatalf("entReserved83 = %d", entReserved83)
