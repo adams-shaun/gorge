@@ -166,10 +166,11 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	// relational slots do (ENTREL-A sets it; ENTREL-B re-pins it with the
 	// combat slots, format 3).
 	// Re-pinned after the v2 block (colour, pip counts, coarse category at
-	// 84..99): only entity-full moves. v1, mz and entity keep their pins
-	// because the block is appended above every slot those sets read, which
-	// this test's other three digests prove.
-	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0x9563358848e5fe43}
+	// 84..99) began writing values, not just reserving the slots: only
+	// entity-full moves. v1, mz and entity keep their pins because the block
+	// is appended above every slot those sets read, which this test's other
+	// three digests prove.
+	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0xaf64d95f4b2b2145}
 	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x entity-full=%#016x relDecisions=%d combatDecisions=%d",
 		decisions, digests[0], digests[1], digests[2], digests[3], relDecisions, combatDecisions)
 	if decisions < 200 {

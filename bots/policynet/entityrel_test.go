@@ -61,7 +61,7 @@ func relCard(t *testing.T, st State, idx int) []float32 {
 
 func wantRel(t *testing.T, raw []float32, want map[int]float32) {
 	t.Helper()
-	for i := EntityRawWidthV1; i < EntityRawWidth; i++ {
+	for i := EntityRawWidthV1; i < EntityRawWidthRelEnd; i++ {
 		w := want[i]
 		if raw[i] != w {
 			t.Errorf("slot %d (%s) = %v, want %v", i, entRelNames[i-EntityRawWidthV1], raw[i], w)
@@ -115,12 +115,15 @@ func TestEntityTargetSlots(t *testing.T) {
 	}
 	for k := range st.Cards {
 		a, b := relCard(t, st, k), relCard(t, base, k)
-		for i := 0; i < EntityRawWidthV1; i++ {
+		for i := 0; i < EntityRawWidth; i++ {
+			if i >= EntityRawWidthV1 && i < EntityRawWidthRelEnd {
+				continue // relational: the point of this test
+			}
 			if a[i] != b[i] {
 				t.Fatalf("card %d slot %d moved when targets were removed: %v vs %v", k, i, a[i], b[i])
 			}
 		}
-		for i := EntityRawWidthV1; i < EntityRawWidth; i++ {
+		for i := EntityRawWidthV1; i < EntityRawWidthRelEnd; i++ {
 			if b[i] != 0 {
 				t.Fatalf("card %d: relational slot %d = %v without targets", k, i, b[i])
 			}
