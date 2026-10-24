@@ -1715,6 +1715,17 @@ type Object struct {
 	// -- no new event kind, no Event field change -- and is cleared wherever
 	// FaceDown is (leaving the battlefield; a future turn-face-up path).
 	Cloaked bool
+	// Manifested records that this battlefield permanent entered face down
+	// through the manifest procedure (CR 701.40), so a creature card among
+	// its printed faces may be turned face up for its mana cost as a special
+	// action (CR 701.40b). It folds from a MoveZone whose Counter carries the
+	// FaceDownEntryCounter marker (bare, or with the folded face-down
+	// set-type/PT payload) and whose Secret bit is set: only the manifest and
+	// cloak paths emit a SECRET face-down battlefield move (a generic
+	// ChangeZone FaceDown$ True entry is public), and a cloak is told apart by
+	// Cloaked. No new event kind, no Event field change. Cleared with FaceDown
+	// on leaving the battlefield and on either turn-face-up procedure.
+	Manifested bool
 
 	// FaceDownSetType is the face-down set type a ChangeZone FaceDownSetType$
 	// named (Yedora's "Land & Forest", Missy's "Artifact & Creature &

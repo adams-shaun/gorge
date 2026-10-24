@@ -69,6 +69,13 @@ func foldMoveZone(g *state.Game, e *Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			o.FaceDown = true
 			o.Cloaked = e.Counter == CloakEntryCounter
+			// A SECRET face-down battlefield entry (bare, or carrying the folded
+			// face-down set-type/PT payload) is the manifest procedure's
+			// (CR 701.40); the generic ChangeZone FaceDown$ True entry is
+			// public, and a cloak carries its own marker. This provenance is
+			// what lets a creature card be turned face up for its mana cost
+			// later (CR 701.40b).
+			o.Manifested = e.Secret && moveCounter != CloakEntryCounter
 			o.FaceDownSetType = setType
 			o.FaceDownPower = fdPower
 			o.FaceDownToughness = fdTough
@@ -186,6 +193,10 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.ExiledWith = 0
 			o.FaceDown = true
 			o.Cloaked = moveCounter == CloakEntryCounter
+			// A face-down CAST is the morph/megamorph/disguise procedure, not
+			// a manifest: its turn-face-up cost is the keyword cost, so the
+			// manifest provenance must not be set here.
+			o.Manifested = false
 			o.FaceDownSetType, o.FaceDownPower, o.FaceDownToughness, o.FaceDownHasPT = "", 0, 0, false
 		} else if e.To == state.ZExile {
 			switch moveCounter {
@@ -276,6 +287,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.FaceDownToughness = fdTough
 			o.FaceDownHasPT = fdHasPT
 			o.Cloaked = e.Counter == CloakEntryCounter
+			o.Manifested = e.Secret && moveCounter != CloakEntryCounter
 		} else {
 			o.ExiledWith = 0
 			o.FaceDown = false
@@ -1051,6 +1063,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.FaceDownToughness = 0
 		o.FaceDownHasPT = false
 		o.Cloaked = false
+		o.Manifested = false
 		o.RiotChoice = ""
 		o.UntapChoice = ""
 		o.UnleashChoice = ""

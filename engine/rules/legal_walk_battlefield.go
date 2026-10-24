@@ -868,30 +868,33 @@ func (w *legalWalk) battlefieldWalk() {
 			}
 		}
 		offBattlefieldGrantedWalk(w)
-		// Morph-family turn face up (CR 708.6 / CR 116.2b, engine/rules/morph_turnup.go):
-		// a face-down permanent its controller cast with Morph, Megamorph or
-		// Disguise may be turned face up as a SPECIAL ACTION any time they have
-		// priority -- it is not sorcery-gated, does not use the stack, and its
-		// only cost is the keyword's own printed parameter. The offer is gated on
-		// the same floating pool the action pays, so the charge cannot disagree
-		// with what was offered; a manifest or cloak carrier (no family flag) is
-		// never offered here -- its turn-up is a separate subsystem.
+		// Turn face up (CR 708.6 / CR 116.2b, engine/rules/morph_turnup.go):
+		// a face-down permanent may be turned face up as a SPECIAL ACTION any
+		// time its controller has priority -- it is not sorcery-gated, does not
+		// use the stack, and its cost is the keyword's printed parameter (a
+		// Morph/Megamorph/Disguise cast) or, for a manifested/cloaked creature
+		// card, its mana cost (CR 701.40b, 701.58c). A manifested/cloaked card
+		// with Morph or Disguise offers that keyword procedure as well
+		// (CR 701.40c-d, 701.58d), so one permanent can carry several offers.
+		// Each offer is gated on the same floating pool the action pays, so the
+		// charge cannot disagree with what was offered.
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			// morphFaceUpCost answers false for any object that is not face
-			// down; test that flag before building its cost.
-			if o := e.G.Obj(id); o == nil || !o.FaceDown {
+			// Every pricing path answers false for an object that is not face
+			// down; test that flag before building its costs.
+			o := e.G.Obj(id)
+			if o == nil || !o.FaceDown {
 				continue
 			}
-			mf, ok := morphFaceUpCost(e.G.Obj(id))
-			if !ok {
-				continue
+			offers := make([]morphFaceUp, 0, 3)
+			if mf, ok := morphFaceUpCost(o); ok {
+				offers = append(offers, mf)
+			} else if o.Manifested || o.Cloaked {
+				if mf, ok := e.manifestFaceUpCost(o); ok {
+					offers = append(offers, mf)
+				}
+				offers = append(offers, manifestKeywordFaceUpCosts(o)...)
 			}
-			// morphTurnUpPayablePriced: hyp nil is the floating-pool gate the
-			// action itself re-reads; the potential walk prices the same cost
-			// against its hypothetical bound, so a float-gated turn-up is a
-			// potential play like every other mana-costed offer.
-			mods, ok := e.morphTurnUpMods(p, id, mf)
-			if !ok || !e.morphTurnUpPayablePriced(p, id, mf.cost, mods, w.pricing()) {
+			if len(offers) == 0 {
 				continue
 			}
 			if e.turnFaceUpCantHappen(id) {
@@ -904,7 +907,20 @@ func (w *legalWalk) battlefieldWalk() {
 				// the same helper.
 				continue
 			}
-			w.add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
+			for _, mf := range offers {
+				// morphTurnUpPayablePriced: hyp nil is the floating-pool gate the
+				// action itself re-reads; the potential walk prices the same cost
+				// against its hypothetical bound, so a float-gated turn-up is a
+				// potential play like every other mana-costed offer.
+				mods, ok := e.morphTurnUpMods(p, id, mf)
+				if !ok || !e.morphTurnUpPayablePriced(p, id, mf.cost, mods, w.pricing()) {
+					continue
+				}
+				w.add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
+				if mode := mf.mode(); mode != "" {
+					(*out)[len(*out)-1].Mode = mode
+				}
+			}
 		}
 
 		// Specialize is a no-stack special action and may be taken only as a
