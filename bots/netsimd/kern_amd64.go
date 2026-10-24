@@ -58,8 +58,11 @@ func gemvT(wt, x, acc, y *float32, n, outPad int, relu bool) {
 	gemvTScalar(wt, x, acc, y, n, outPad, relu)
 }
 
+// bag adds weighted table rows into y. The assembly implements exactly two
+// widths (32 and 64) and its fallthrough would treat any other width as 32,
+// so anything else takes the width-generic kernel.
 func bag(y, table *float32, feats *feat, n, rowLimit, width int) {
-	if hasAVX512 && !ForceScalar {
+	if hasAVX512 && !ForceScalar && (width == 32 || width == 64) {
 		bagAVX512(y, table, feats, n, rowLimit, width)
 		return
 	}

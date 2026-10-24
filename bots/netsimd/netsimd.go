@@ -36,12 +36,19 @@ type norm struct {
 	eps  float32
 }
 
-// Net is the loaded network. Shape: d=64 state/option width, ff block
-// width, e=32 embedding width, cd=32 card width, hh=64 head hidden; the
-// kernels assume d == hh == 64 and e == cd == 32 (Load refuses others).
+// Net is the loaded network. Shape: d is the state/option width, ff the
+// block width, e the embedding width, cd the card width and hh the head
+// hidden width.
+//
+// The AVX-512 kernels are 64-lane (ln64/dot64/addv64), so a net with
+// d == hh == 64 lands on the assembly fast path and every other shape runs
+// the width-generic Go kernels (lnN/dotN/addvN). d, ff, hh and cd must be
+// multiples of 32 (gemvT pads every output to 32 lanes). A wide net is
+// slower per lane but the same code path; see fast.
 type Net struct {
 	d, ff, e, cd, hh int
-	rawW             int // entity raw width the card_raw layer reads
+	rawW             int  // entity raw width the card_raw layer reads
+	fast             bool // d == hh == 64: the 64-lane assembly applies
 
 	table               []float32 // rows×e
 	cardRaw, cardRows   lin       // rawW→cd, e→cd
@@ -160,8 +167,8 @@ func Load(path string, cardCache int) (*Net, error) {
 		return nil, fmt.Errorf("netsimd %s: format %q arch %q, want dzgw-1 mlp", path, h.Format, h.Arch)
 	}
 	rawIn := h.Consts["RAW_W"]
-	if rawIn != policynet.EntityRawWidth && rawIn != policynet.EntityRawWidthV1 {
-		return nil, fmt.Errorf("netsimd %s: RAW_W = %d, this build reads %d or %d", path, rawIn, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
+	if rawIn != policynet.EntityRawWidth && rawIn != policynet.EntityRawWidthV1 && rawIn != policynet.EntityRawWidthV3 {
+		return nil, fmt.Errorf("netsimd %s: RAW_W = %d, this build reads %d, %d or %d", path, rawIn, policynet.EntityRawWidthV1, policynet.EntityRawWidthV3, policynet.EntityRawWidth)
 	}
 	want := map[string]int{"DENSE_W": denseW, "OPT_DENSE_W": optDense, "TABLE_ROWS": tableRows, "SLOT_ROWS": slotRows, "GROUPS": groups}
 	for k, v := range want {
@@ -195,9 +202,11 @@ func Load(path string, cardCache int) (*Net, error) {
 	}
 	cfg := func(k string) int { return int(h.Config[k]) }
 	g := &Net{d: cfg("d"), ff: cfg("ff"), e: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden"), rawW: rawIn}
-	if g.d != 64 || g.hh != 64 || g.e != 32 || g.cd != 32 || g.ff%32 != 0 || cfg("layers") != 1 {
-		return nil, fmt.Errorf("netsimd %s: shape d=%d ff=%d e=%d cd=%d hh=%d layers=%d: the kernels want d=hh=64, e=cd=32, ff%%32=0, one block", path, g.d, g.ff, g.e, g.cd, g.hh, cfg("layers"))
+	if g.d <= 0 || g.hh <= 0 || g.e <= 0 || g.cd <= 0 ||
+		g.d%32 != 0 || g.ff%32 != 0 || g.hh%32 != 0 || g.cd%32 != 0 {
+		return nil, fmt.Errorf("netsimd %s: shape d=%d ff=%d e=%d cd=%d hh=%d: need d,hh,e,cd > 0 and d,ff,hh,cd multiples of 32", path, g.d, g.ff, g.e, g.cd, g.hh)
 	}
+	g.fast = g.d == 64 && g.hh == 64
 	var errs []error
 	get := func(name string, shape ...int) []float32 {
 		t, ok := tensors[name]
@@ -268,7 +277,10 @@ func Load(path string, cardCache int) (*Net, error) {
 	noneA, noneB := get("none_a", cd), get("none_b", cd)
 	g.onorm = nrm("opt_norm", d)
 	if cfg("policy_layers") != 2 || cfg("value_layers") != 1 {
-		errs = append(errs, fmt.Errorf("policy_layers %d value_layers %d: the kernels want 2 and 1", cfg("policy_layers"), cfg("value_layers")))
+		errs = append(errs, fmt.Errorf("policy_layers %d value_layers %d: this build reads 2 and 1", cfg("policy_layers"), cfg("value_layers")))
+	}
+	if cfg("layers") != 1 {
+		errs = append(errs, fmt.Errorf("layers %d: this build reads one trunk block", cfg("layers")))
 	}
 	p0w := get("policy.0.weight", hh, 2*d)
 	p0b := get("policy.0.bias", hh)
@@ -310,7 +322,8 @@ func Load(path string, cardCache int) (*Net, error) {
 }
 
 // RawWidth is the entity raw width the network's card_raw layer reads: 68
-// for a format-1 network, policynet.EntityRawWidth for the current encoding.
+// for a format-1 network, 84 for a format-3 one, policynet.EntityRawWidth
+// for the current encoding.
 func (g *Net) RawWidth() int { return g.rawW }
 
 // Eval runs the network on st, writes each option's logit into scores
@@ -382,7 +395,7 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 	clear(sc.pool)
 	for k := 0; k < nc; k++ {
 		if gr := int(sc.groups[k]); gr < groups {
-			poolAcc(&sc.pool[gr*cd], &sc.pool[(groups+gr)*cd], &sc.ent[k*cd])
+			poolAccW(&sc.pool[gr*cd], &sc.pool[(groups+gr)*cd], &sc.ent[k*cd], cd)
 		}
 	}
 	sc.s = growF(sc.s, d)
@@ -394,7 +407,7 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 	n := copy(sc.dense, dense)
 	clear(sc.dense[n:])
 	gemvT(&g.denseIn.wt[0], &sc.dense[0], s, s, denseW, d, false)
-	addv64(s, &g.denseIn.b[0])
+	g.addv(s, &g.denseIn.b[0])
 	if bagIn != nil {
 		copy(sc.bag32, bagIn[:e])
 	} else {
@@ -407,16 +420,16 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 	// block: s += fc2(relu(fc1(LN(s))))
 	sc.t = growF(sc.t, d)
 	sc.h = growF(sc.h, g.ff)
-	ln64(&sc.t[0], s, &g.bnorm.w[0], &g.bnorm.b[0], g.bnorm.eps)
+	g.ln(&sc.t[0], s, &g.bnorm.w[0], &g.bnorm.b[0], g.bnorm.eps)
 	gemvT(&g.fc1.wt[0], &sc.t[0], &g.fc1.b[0], &sc.h[0], d, g.ff, true)
 	gemvT(&g.fc2.wt[0], &sc.h[0], s, s, g.ff, d, false)
-	addv64(s, &g.fc2.b[0])
-	ln64(s, s, &g.fnorm.w[0], &g.fnorm.b[0], g.fnorm.eps)
+	g.addv(s, &g.fc2.b[0])
+	g.ln(s, s, &g.fnorm.w[0], &g.fnorm.b[0], g.fnorm.eps)
 
 	// value head
 	sc.vh = growF(sc.vh, g.hh)
 	gemvT(&g.val0.wt[0], s, &g.val0.b[0], &sc.vh[0], d, g.hh, true)
-	v := g.val2b + dot64(&g.val2w[0], &sc.vh[0])
+	v := g.val2b + g.dot(&g.val2w[0], &sc.vh[0], g.hh)
 	if len(opts) == 0 {
 		return v
 	}
@@ -447,7 +460,7 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 			bag(o, &g.htab[0], (*feat)(unsafe.Pointer(&op.Hashed[0])), len(op.Hashed), tableRows, d)
 		}
 		if op.BotPick {
-			addv64(o, &g.bot[0])
+			g.addv(o, &g.bot[0])
 		}
 		if k := int(op.EntA) - 1; k >= 0 && k < nc {
 			p := &sc.pa[k*d]
@@ -455,9 +468,9 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 				gemvT(&g.eaProj.wt[0], &sc.ent[k*cd], &g.eaProj.b[0], p, cd, d, false)
 				sc.paOK[k] = true
 			}
-			addv64(o, p)
+			g.addv(o, p)
 		} else {
-			addv64(o, &g.noneA[0])
+			g.addv(o, &g.noneA[0])
 		}
 		if k := int(op.EntB) - 1; k >= 0 && k < nc {
 			p := &sc.pb[k*d]
@@ -465,15 +478,15 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 				gemvT(&g.ebProj.wt[0], &sc.ent[k*cd], &g.ebProj.b[0], p, cd, d, false)
 				sc.pbOK[k] = true
 			}
-			addv64(o, p)
+			g.addv(o, p)
 		} else {
-			addv64(o, &g.noneB[0])
+			g.addv(o, &g.noneB[0])
 		}
-		ln64(o, o, &g.onorm.w[0], &g.onorm.b[0], g.onorm.eps)
+		g.ln(o, o, &g.onorm.w[0], &g.onorm.b[0], g.onorm.eps)
 		// policy head: relu(hs + W_o·o), relu(policy.2), policy.4
 		gemvT(&g.pol0o.wt[0], o, &sc.hs[0], &sc.oh[0], d, hh, true)
 		gemvT(&g.pol2.wt[0], &sc.oh[0], &g.pol2.b[0], &sc.oh2[0], hh, hh, true)
-		scores[j] = g.pol4b + dot64(&g.pol4w[0], &sc.oh2[0])
+		scores[j] = g.pol4b + g.dot(&g.pol4w[0], &sc.oh2[0], g.hh)
 	}
 	return v
 }
@@ -540,4 +553,32 @@ func hashCard(buf *[]byte, c *policynet.EntityCard) uint64 {
 		h ^= h >> 31
 	}
 	return h
+}
+
+// ln applies a layernorm over the net's d lanes: the 64-lane assembly when
+// the shape is the fast path, the width-generic kernel otherwise.
+func (g *Net) ln(y, x, w, b *float32, eps float32) {
+	if g.fast {
+		ln64(y, x, w, b, eps)
+		return
+	}
+	lnN(y, x, w, b, eps, g.d)
+}
+
+// dot is a dot product over the net's head width (d for the option head's
+// input, hh for the two scoring heads).
+func (g *Net) dot(a, b *float32, n int) float32 {
+	if g.fast && n == 64 {
+		return dot64(a, b)
+	}
+	return dotN(a, b, n)
+}
+
+// addv adds a bias vector over the net's d lanes.
+func (g *Net) addv(y, x *float32) {
+	if g.fast {
+		addv64(y, x)
+		return
+	}
+	addvN(y, x, g.d)
 }

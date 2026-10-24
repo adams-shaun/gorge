@@ -61,7 +61,7 @@ func relCard(t *testing.T, st State, idx int) []float32 {
 
 func wantRel(t *testing.T, raw []float32, want map[int]float32) {
 	t.Helper()
-	for i := EntityRawWidthV1; i < EntityRawWidth; i++ {
+	for i := EntityRawWidthV1; i < EntityRawWidthRelEnd; i++ {
 		w := want[i]
 		if raw[i] != w {
 			t.Errorf("slot %d (%s) = %v, want %v", i, entRelNames[i-EntityRawWidthV1], raw[i], w)
@@ -115,12 +115,15 @@ func TestEntityTargetSlots(t *testing.T) {
 	}
 	for k := range st.Cards {
 		a, b := relCard(t, st, k), relCard(t, base, k)
-		for i := 0; i < EntityRawWidthV1; i++ {
+		for i := 0; i < EntityRawWidth; i++ {
+			if i >= EntityRawWidthV1 && i < EntityRawWidthRelEnd {
+				continue // relational: the point of this test
+			}
 			if a[i] != b[i] {
 				t.Fatalf("card %d slot %d moved when targets were removed: %v vs %v", k, i, a[i], b[i])
 			}
 		}
-		for i := EntityRawWidthV1; i < EntityRawWidth; i++ {
+		for i := EntityRawWidthV1; i < EntityRawWidthRelEnd; i++ {
 			if b[i] != 0 {
 				t.Fatalf("card %d: relational slot %d = %v without targets", k, i, b[i])
 			}
@@ -197,11 +200,14 @@ func TestEntityCombatSlots(t *testing.T) {
 }
 
 func TestEntityRelationalLayoutAndHashes(t *testing.T) {
-	if EntityRawWidth != 84 || EntityRawWidthV1 != 68 {
-		t.Fatalf("widths %d/%d, want 84/68", EntityRawWidth, EntityRawWidthV1)
+	// The v2 block (colour/pips/category) is appended at EntityRawWidthRelEnd,
+	// so the relational block is still 68..83 and this test's ranges cover
+	// exactly those slots.
+	if EntityRawWidth != 100 || EntityRawWidthV1 != 68 || EntityRawWidthRelEnd != 84 {
+		t.Fatalf("widths %d/%d relEnd %d, want 100/68 relEnd 84", EntityRawWidth, EntityRawWidthV1, EntityRawWidthRelEnd)
 	}
-	if len(entRelNames) != EntityRawWidth-EntityRawWidthV1 {
-		t.Fatalf("%d relational names for %d slots", len(entRelNames), EntityRawWidth-EntityRawWidthV1)
+	if len(entRelNames) != EntityRawWidthRelEnd-EntityRawWidthV1 {
+		t.Fatalf("%d relational names for %d slots", len(entRelNames), EntityRawWidthRelEnd-EntityRawWidthV1)
 	}
 	if entReserved83 != 83 {
 		t.Fatalf("entReserved83 = %d", entReserved83)

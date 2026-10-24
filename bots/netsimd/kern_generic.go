@@ -140,3 +140,75 @@ func poolAccScalar(sum, mx, c *float32) {
 		}
 	}
 }
+
+// poolAccN: sum[:n] += 0.25·c, mx[:n] = max(mx, c), over a width-generic n.
+func poolAccN(sum, mx, c *float32, n int) {
+	S := f32s(sum, n)
+	M := f32s(mx, n)
+	C := f32s(c, n)
+	for i := range C {
+		S[i] = fma32(0.25, C[i], S[i])
+		if C[i] > M[i] {
+			M[i] = C[i]
+		}
+	}
+}
+
+// poolAccW pools a cd-wide card vector: the 32-lane assembly kernel is the
+// fast path, every other width takes the generic kernel.
+func poolAccW(sum, mx, c *float32, cd int) {
+	if cd == 32 {
+		poolAcc(sum, mx, c)
+		return
+	}
+	poolAccN(sum, mx, c, cd)
+}
+
+// Width-generic variants. The 64-lane kernels above are the fast path, tuned
+// against the assembly; these serve every other width (a wide MLP's d=128, a
+// GNN's 128/384) and the fast path's own scalar reference. They accumulate in
+// float64 so a wide vector's layernorm does not drift with length; the 64-lane
+// kernels keep their fp32 quarter sums because the assembly reduces that way
+// and kern_test.go compares them bit-for-bit.
+//
+// lnN: y = ((x - mean(x)) / sqrt(var(x) + eps)) * w + b over n lanes.
+func lnN(y, x, w, b *float32, eps float32, n int) {
+	X := f32s(x, n)
+	Y := f32s(y, n)
+	Wv := f32s(w, n)
+	Bv := f32s(b, n)
+	var sum float64
+	for _, v := range X {
+		sum += float64(v)
+	}
+	m := sum / float64(n)
+	var sq float64
+	for _, v := range X {
+		d := float64(v) - m
+		sq += d * d
+	}
+	inv := 1 / math.Sqrt(sq/float64(n)+float64(eps))
+	for i, v := range X {
+		Y[i] = float32((float64(v)-m)*inv*float64(Wv[i])) + Bv[i]
+	}
+}
+
+// dotN: the sum of a[i]*b[i] over n lanes, accumulated in float64.
+func dotN(a, b *float32, n int) float32 {
+	A := f32s(a, n)
+	B := f32s(b, n)
+	var s float64
+	for i := range A {
+		s += float64(A[i]) * float64(B[i])
+	}
+	return float32(s)
+}
+
+// addvN: y[i] += x[i] over n lanes.
+func addvN(y, x *float32, n int) {
+	Y := f32s(y, n)
+	X := f32s(x, n)
+	for i := range Y {
+		Y[i] += X[i]
+	}
+}
