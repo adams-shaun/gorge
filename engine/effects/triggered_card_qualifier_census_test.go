@@ -39,7 +39,8 @@ func TestTriggeredCardQualifiedDefinedCensus(t *testing.T) {
 				if !dotted || !strings.HasPrefix(base, "Triggered") {
 					continue
 				}
-				if definedSpecCodes.Code(base) != definedSpecTriggeredCard {
+				code := definedSpecCodes.Code(base)
+				if code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker {
 					continue
 				}
 				got = append(got, face.Name+"/"+name)
