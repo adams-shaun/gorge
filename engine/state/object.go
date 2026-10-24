@@ -1711,20 +1711,22 @@ type Object struct {
 	// Cloaked records the cloak variant of the face-down battlefield entry
 	// (CR 708.5's cloak: a 2/2 creature with ward {2}, turn-face-up cost =
 	// the card's mana cost). It folds from the MoveZone Counter value
-	// "entered_cloaked" exactly as FaceDown folds from "entered_face_down"
-	// -- no new event kind, no Event field change -- and is cleared wherever
-	// FaceDown is (leaving the battlefield; a future turn-face-up path).
+	// events.CloakEntryCounter exactly as FaceDown folds from the generic
+	// face-down marker -- no new event kind, no Event field change -- and is
+	// cleared wherever FaceDown is (leaving the battlefield; either
+	// turn-face-up procedure).
 	Cloaked bool
 	// Manifested records that this battlefield permanent entered face down
 	// through the manifest procedure (CR 701.40), so a creature card among
 	// its printed faces may be turned face up for its mana cost as a special
-	// action (CR 701.40b). It folds from a MoveZone whose Counter carries the
-	// FaceDownEntryCounter marker (bare, or with the folded face-down
-	// set-type/PT payload) and whose Secret bit is set: only the manifest and
-	// cloak paths emit a SECRET face-down battlefield move (a generic
-	// ChangeZone FaceDown$ True entry is public), and a cloak is told apart by
-	// Cloaked. No new event kind, no Event field change. Cleared with FaceDown
-	// on leaving the battlefield and on either turn-face-up procedure.
+	// action (CR 701.40b). It folds from the manifest-only MoveZone Counter
+	// value events.ManifestEntryCounter; the generic ChangeZone FaceDown$
+	// True entry uses the bare FaceDownEntryCounter (often Secret from a hand
+	// or library) and does NOT set this bit, because it grants no turn-up
+	// (Tezzeret, Cruel Machinist; Cybership). A cloak is told apart by
+	// Cloaked. No new event kind, no Event field change. Cleared with
+	// FaceDown on leaving the battlefield and on either turn-face-up
+	// procedure.
 	Manifested bool
 
 	// FaceDownSetType is the face-down set type a ChangeZone FaceDownSetType$

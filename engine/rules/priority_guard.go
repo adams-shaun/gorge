@@ -156,7 +156,7 @@ func (e *Engine) priorityOptionStale(p state.PlayerID, opt decision.Option) stri
 		// face-down battlefield permanent offering the procedure the option's
 		// mode names (a morph-family cast, a manifested/cloaked creature card's
 		// mana cost, or a manifested/cloaked card's Morph/Disguise keyword).
-		if _, ok := e.turnUpCostForMode(o, opt.Mode); !ok {
+		if _, ok := turnUpCostForMode(o, opt.Mode, e.faceCost); !ok {
 			return "the permanent no longer offers that turn-face-up procedure"
 		}
 		if e.turnFaceUpCantHappen(o.ID) {

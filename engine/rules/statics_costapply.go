@@ -640,10 +640,14 @@ func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.
 // kind, which predates specialActionScope); Plotting is the plot action,
 // which rides the cast flow under the "plot" mode (Doc Aurlock); Unlock is
 // the Room unlock (Inquisitive Glimmer); MorphUp is Forge's isMorphUp -- the
-// Morph and Megamorph turn-face-up (Exiled Doomsayer) -- ManifestUp and
-// CloakUp are the manifest and cloak turn-face-up procedures (Qarsi Deceiver),
-// and isTurnFaceUp is Forge's union of all four (Harrowing Swarm's granted
-// reduction). Anything else denies.
+// Morph and Megamorph turn-face-up (Exiled Doomsayer) -- and ManifestUp and
+// CloakUp are Forge's isManifestUp/isCloakUp scope names for the manifest and
+// cloak turn-face-up procedures. isTurnFaceUp is Forge's union of all four
+// (Harrowing Swarm's granted reduction). The manifest/cloak arms are named
+// for the union's exactness; no corpus cost modifier carries a
+// ValidSpell$ Static.ManifestUp/CloakUp at the pin (Qarsi Deceiver's
+// Static.ManifestUp+Creature restriction is evaluated by RestrictValidMatches,
+// which rejects Static.* -- the known approximation). Anything else denies.
 func staticConstraintMatches(scope costScope, constraint string) bool {
 	switch staticConstraintMatchesCodes.Code(string(strings.TrimSpace(constraint))) {
 	case staticConstraintMatchesForetelling:

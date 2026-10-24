@@ -57,25 +57,29 @@ func foldMoveZone(g *state.Game, e *Event) {
 	if !countersRemain {
 		moveCounter = e.Counter
 	}
-	setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
+	setType, fdPower, fdTough, fdHasPT, faceDownEntry := "", int32(0), int32(0), false, false
+	manifested := false
 	if e.Kind == MoveZone && e.To == state.ZBattlefield {
-		if moveCounter == CloakEntryCounter {
-			manifesting = true
-		} else {
-			setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(moveCounter)
+		switch {
+		case moveCounter == CloakEntryCounter:
+			faceDownEntry = true
+		case moveCounter == ManifestEntryCounter:
+			faceDownEntry, manifested = true, true
+		default:
+			setType, fdPower, fdTough, fdHasPT, faceDownEntry = FaceDownEntryFields(moveCounter)
 		}
 	}
-	if manifesting {
+	if faceDownEntry {
 		if o := g.Obj(e.Obj); o != nil {
 			o.FaceDown = true
 			o.Cloaked = e.Counter == CloakEntryCounter
-			// A SECRET face-down battlefield entry (bare, or carrying the folded
-			// face-down set-type/PT payload) is the manifest procedure's
-			// (CR 701.40); the generic ChangeZone FaceDown$ True entry is
-			// public, and a cloak carries its own marker. This provenance is
-			// what lets a creature card be turned face up for its mana cost
-			// later (CR 701.40b).
-			o.Manifested = e.Secret && moveCounter != CloakEntryCounter
+			// Manifested is the manifest procedure's own marker (CR 701.40),
+			// never the Secret bit: a generic ChangeZone FaceDown$ True entry
+			// from a hand or library is Secret too (Tezzeret, Cruel Machinist;
+			// Cybership) but does not grant the CR 701.40b turn-up. This
+			// provenance is what lets a manifested creature card be turned face
+			// up for its mana cost later.
+			o.Manifested = manifested
 			o.FaceDownSetType = setType
 			o.FaceDownPower = fdPower
 			o.FaceDownToughness = fdTough
@@ -275,10 +279,10 @@ func foldMoveZone(g *state.Game, e *Event) {
 				}
 				o.FaceDown = false
 			}
-		} else if manifesting {
-			// CR 708.5: the manifested or cloaked card stays state-face-down
-			// while it is on the battlefield (the view redacts it to everyone
-			// but its controller); leaving the battlefield clears it (CR 708.9)
+		} else if faceDownEntry {
+			// CR 708.5: a face-down card stays state-face-down while it is on
+			// the battlefield (the view redacts it to everyone but its
+			// controller); leaving the battlefield clears it (CR 708.9)
 			// through Move's own leave reset and the default branch.
 			o.ExiledWith = 0
 			o.FaceDown = true
@@ -287,7 +291,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.FaceDownToughness = fdTough
 			o.FaceDownHasPT = fdHasPT
 			o.Cloaked = e.Counter == CloakEntryCounter
-			o.Manifested = e.Secret && moveCounter != CloakEntryCounter
+			o.Manifested = manifested
 		} else {
 			o.ExiledWith = 0
 			o.FaceDown = false

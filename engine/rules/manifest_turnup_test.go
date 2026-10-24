@@ -22,7 +22,7 @@ import (
 
 // manifestCard moves the named real corpus card from seat p's hand or library
 // onto p's battlefield with the exact logged MoveZone the manifest primitive
-// emits (Counter entered_face_down, Secret), returning its id.
+// emits (Counter events.ManifestEntryCounter, Secret), returning its id.
 func manifestCard(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
 	t.Helper()
 	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
@@ -31,7 +31,7 @@ func manifestCard(t *testing.T, e *Engine, p state.PlayerID, name string) state.
 			if o != nil && o.Face() != nil && o.Face().Name == name {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p,
 					From: z, To: state.ZBattlefield,
-					Counter: events.FaceDownEntryCounter, Secret: true})
+					Counter: events.ManifestEntryCounter, Secret: true})
 				return id
 			}
 		}
@@ -315,6 +315,52 @@ func TestManifestTurnUpFiresTurnFaceUpTrigger(t *testing.T) {
 
 	if got := counterCount(e.G.Obj(dragon), "P1P1"); got != 1 {
 		t.Fatalf("other Dragon +1/+1 counters = %d, want 1 (Belltoll's TurnFaceUp trigger)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestManifestedPayloadFaceDownEntryNeverTurnsUp pins the marker boundary the
+// review broke: Secret is not manifest-only. A generic ChangeZone FaceDown$
+// True entry from a hand or library is Secret too (Tezzeret, Cruel Machinist;
+// Cybership's Dig) and may carry a payload marker, and a plain bare marker is
+// the generic face-down encoding. Neither is a manifest, so neither grants the
+// CR 701.40b turn-up even when the hidden card is a creature.
+func TestManifestedPayloadFaceDownEntryNeverTurnsUp(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	e, cfg := manifestEngine(t, reg, "Grizzly Bears", "Grizzly Bears")
+	var bears []state.ObjID
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, 0) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil && o.Face().Name == "Grizzly Bears" {
+				bears = append(bears, id)
+			}
+		}
+	}
+	if len(bears) < 2 {
+		t.Fatalf("test precondition: only %d Grizzly Bears available", len(bears))
+	}
+	// Tezzeret/Cybership shape: a payload-bearing generic face-down entry.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bears[0], Player: 0,
+		From: state.ZHand, To: state.ZBattlefield,
+		Counter: events.FaceDownEntryCounterFor("Artifact & Creature", 5, 5, true), Secret: true})
+	// Plain generic face-down entry: the bare marker, also Secret from hand.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bears[1], Player: 0,
+		From: state.ZHand, To: state.ZBattlefield,
+		Counter: events.FaceDownEntryCounter, Secret: true})
+	addMana(t, e, 0, "CCGG")
+	for _, id := range bears[:2] {
+		o := e.G.Obj(id)
+		if o == nil || !o.FaceDown {
+			t.Fatalf("precondition: %d is not face down: %+v", id, o)
+		}
+		if o.Manifested || o.Cloaked {
+			t.Fatalf("generic face-down entry %d folded Manifested=%v Cloaked=%v, want both false", id, o.Manifested, o.Cloaked)
+		}
+		if opts := manifestTurnUpOptions(t, e, id); len(opts) != 0 {
+			t.Fatalf("generic face-down entry %d offers turn_face_up: %+v", id, opts)
+		}
 	}
 	replayCheck(t, e, cfg)
 }

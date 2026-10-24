@@ -203,7 +203,7 @@ func TestRealityShiftManifestsFaceDown(t *testing.T) {
 
 	// The manifest move is Secret: another seat's transcript names no card.
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.MoveZone && ev.Obj == top && ev.Counter == "entered_face_down" {
+		if ev.Kind == events.MoveZone && ev.Obj == top && ev.Counter == events.ManifestEntryCounter {
 			if !ev.Secret || ev.Player != 1 {
 				t.Fatalf("manifest move Secret=%v Player=%d, want Secret for seat 1", ev.Secret, ev.Player)
 			}
@@ -369,7 +369,7 @@ func TestManifestOutOfScopeShapesStayLoud(t *testing.T) {
 	manifestedOnBf := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.MoveZone && ev.From == state.ZLibrary &&
-			ev.To == state.ZBattlefield && ev.Counter == "entered_face_down" {
+			ev.To == state.ZBattlefield && ev.Counter == events.ManifestEntryCounter {
 			manifestedOnBf = true
 		}
 	}

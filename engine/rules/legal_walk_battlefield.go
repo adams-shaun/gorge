@@ -879,48 +879,7 @@ func (w *legalWalk) battlefieldWalk() {
 		// Each offer is gated on the same floating pool the action pays, so the
 		// charge cannot disagree with what was offered.
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			// Every pricing path answers false for an object that is not face
-			// down; test that flag before building its costs.
-			o := e.G.Obj(id)
-			if o == nil || !o.FaceDown {
-				continue
-			}
-			offers := make([]morphFaceUp, 0, 3)
-			if mf, ok := morphFaceUpCost(o); ok {
-				offers = append(offers, mf)
-			} else if o.Manifested || o.Cloaked {
-				if mf, ok := e.manifestFaceUpCost(o); ok {
-					offers = append(offers, mf)
-				}
-				offers = append(offers, manifestKeywordFaceUpCosts(o)...)
-			}
-			if len(offers) == 0 {
-				continue
-			}
-			if e.turnFaceUpCantHappen(id) {
-				// CR 614.1a: a live CantHappen turn-up replacement (Karlov
-				// Watchdog's "permanents your opponents control can't be turned
-				// face up during your turn") makes the special action illegal, so
-				// the option is never offered -- and never paid for. The one match
-				// predicate lives in engine/rules/replacement.go (turnFaceUpCantHappen);
-				// the submitted-option guard in engine/rules/priority_guard.go re-reads
-				// the same helper.
-				continue
-			}
-			for _, mf := range offers {
-				// morphTurnUpPayablePriced: hyp nil is the floating-pool gate the
-				// action itself re-reads; the potential walk prices the same cost
-				// against its hypothetical bound, so a float-gated turn-up is a
-				// potential play like every other mana-costed offer.
-				mods, ok := e.morphTurnUpMods(p, id, mf)
-				if !ok || !e.morphTurnUpPayablePriced(p, id, mf.cost, mods, w.pricing()) {
-					continue
-				}
-				w.add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
-				if mode := mf.mode(); mode != "" {
-					(*out)[len(*out)-1].Mode = mode
-				}
-			}
+			w.turnFaceUpOffers(p, id)
 		}
 
 		// Specialize is a no-stack special action and may be taken only as a

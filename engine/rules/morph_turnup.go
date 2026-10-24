@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -26,7 +27,8 @@ import (
 // Morph or Disguise may instead use that keyword's procedure (CR 701.40c-d,
 // 701.58d). manifestFaceUpCost prices the mana-cost procedure and
 // manifestKeywordFaceUpCosts the keyword alternatives; both read the
-// Manifested/Cloaked provenance folded from the entry marker. The cast side
+// Manifested/Cloaked provenance folded from the manifest and cloak entry
+// markers (events.ManifestEntryCounter / events.CloakEntryCounter). The cast side
 // (engine/rules/cast.go's modeFlags and moveResolvedOffStack) is the family
 // provenance source -- the family flag survives onto the battlefield
 // permanent, and the printed face (which is retained on the object even
@@ -143,6 +145,9 @@ func morphFaceUpCost(o *state.Object) (morphFaceUp, bool) {
 // (morphFaceUpCost) and by the keyword alternative a manifested or cloaked
 // card may use (CR 701.40c-d).
 func keywordFaceUp(o *state.Object, head string) (morphFaceUp, bool) {
+	if o == nil {
+		return morphFaceUp{}, false
+	}
 	f := o.Face()
 	if f == nil {
 		return morphFaceUp{}, false
@@ -185,7 +190,7 @@ func keywordFaceUp(o *state.Object, head string) (morphFaceUp, bool) {
 // mana cost (CR 701.40b), or the cost carries a component this special-action
 // flow cannot settle. A cast-provenance permanent is owned by the keyword path
 // instead.
-func (e *Engine) manifestFaceUpCost(o *state.Object) (morphFaceUp, bool) {
+func manifestFaceUpCost(o *state.Object, faceCost func(*cards.Face) Cost) (morphFaceUp, bool) {
 	if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
 		return morphFaceUp{}, false
 	}
@@ -202,7 +207,7 @@ func (e *Engine) manifestFaceUpCost(o *state.Object) (morphFaceUp, bool) {
 	if strings.TrimSpace(f.ManaCost) == "" {
 		return morphFaceUp{}, false
 	}
-	c := e.faceCost(f)
+	c := faceCost(f)
 	if len(c.Unknown) > 0 || !morphTurnUpCostSupported(c) || morphTurnUpCountAnnounced(c) {
 		return morphFaceUp{}, false
 	}
@@ -242,13 +247,31 @@ func manifestKeywordFaceUpCosts(o *state.Object) []morphFaceUp {
 
 // turnUpCostForMode resolves the turn-up offer a decision option names. The
 // empty mode is the historical cast-provenance offer; the named modes select
-// the manifest/cloak mana-cost procedure or a keyword alternative.
-func (e *Engine) turnUpCostForMode(o *state.Object, mode string) (morphFaceUp, bool) {
+// the manifest/cloak mana-cost procedure or a keyword alternative. faceCost
+// prices the printed face (the Engine dependency the free func needs). A
+// keyword mode is offered only to the same provenance the offer walk uses: a
+// manifested or cloaked card that was not cast face down. The nil check makes
+// a stale option for a removed object refuse rather than panic.
+func turnUpCostForMode(o *state.Object, mode string, faceCost func(*cards.Face) Cost) (morphFaceUp, bool) {
+	if o == nil {
+		return morphFaceUp{}, false
+	}
 	switch mode {
 	case "":
 		return morphFaceUpCost(o)
 	case "manifest", "cloak":
-		return e.manifestFaceUpCost(o)
+		return manifestFaceUpCost(o, faceCost)
+	}
+	if o.Zone != state.ZBattlefield || !o.FaceDown {
+		return morphFaceUp{}, false
+	}
+	if o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed|state.FlagDisguised) != 0 {
+		return morphFaceUp{}, false
+	}
+	if !o.Manifested && !o.Cloaked {
+		return morphFaceUp{}, false
+	}
+	switch mode {
 	case "morph":
 		return keywordFaceUp(o, "Morph")
 	case "megamorph":
@@ -257,6 +280,54 @@ func (e *Engine) turnUpCostForMode(o *state.Object, mode string) (morphFaceUp, b
 		return keywordFaceUp(o, "Disguise")
 	}
 	return morphFaceUp{}, false
+}
+
+// turnFaceUpOffers appends the turn-face-up special-action offers one
+// face-down battlefield permanent carries: the Morph-family cast procedure,
+// the manifested/cloaked creature card's mana-cost procedure (CR 701.40b,
+// 701.58c), and the Morph/Megamorph/Disguise alternative a manifested or
+// cloaked card may use instead (CR 701.40c-d, 701.58d). Each offer is gated
+// on the same payability predicate the action re-reads, so a stale offer is
+// never charged.
+func (w *legalWalk) turnFaceUpOffers(p state.PlayerID, id state.ObjID) {
+	e := w.e
+	o := e.G.Obj(id)
+	if o == nil || !o.FaceDown {
+		return
+	}
+	offers := make([]morphFaceUp, 0, 3)
+	if mf, ok := morphFaceUpCost(o); ok {
+		offers = append(offers, mf)
+	} else if o.Manifested || o.Cloaked {
+		if mf, ok := manifestFaceUpCost(o, e.faceCost); ok {
+			offers = append(offers, mf)
+		}
+		offers = append(offers, manifestKeywordFaceUpCosts(o)...)
+	}
+	if len(offers) == 0 {
+		return
+	}
+	if e.turnFaceUpCantHappen(id) {
+		// CR 614.1a: a live CantHappen turn-up replacement (Karlov
+		// Watchdog's "permanents your opponents control can't be turned
+		// face up during your turn") makes the special action illegal, so
+		// the option is never offered -- and never paid for.
+		return
+	}
+	for _, mf := range offers {
+		// morphTurnUpPayablePriced: hyp nil is the floating-pool gate the
+		// action itself re-reads; the potential walk prices the same cost
+		// against its hypothetical bound, so a float-gated turn-up is a
+		// potential play like every other mana-costed offer.
+		mods, ok := e.morphTurnUpMods(p, id, mf)
+		if !ok || !e.morphTurnUpPayablePriced(p, id, mf.cost, mods, w.pricing()) {
+			continue
+		}
+		w.add("turn_face_up", "Turn face up ("+costPhrase(mf.cost)+")", id)
+		if mode := mf.mode(); mode != "" {
+			w.out[len(w.out)-1].Mode = mode
+		}
+	}
 }
 
 // morphTurnUpCostSupported is a positive allowlist for the components this
@@ -398,7 +469,7 @@ type turnUpPay struct {
 // a no-op, and the inert backstop holds it out of the re-offer.
 func (e *Engine) turnFaceUp(p state.PlayerID, opt decision.Option) {
 	o := e.G.Obj(opt.Obj)
-	mf, ok := e.turnUpCostForMode(o, opt.Mode)
+	mf, ok := turnUpCostForMode(o, opt.Mode, e.faceCost)
 	if !ok || o.Controller != p {
 		return
 	}

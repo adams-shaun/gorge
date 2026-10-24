@@ -6,20 +6,29 @@ import (
 )
 
 // FaceDownEntryCounter is the MoveZone Counter value that marks a card
-// entering the battlefield face down (CR 708.5). It set the fold for the
-// Manifest work: a MoveZone whose To is the battlefield and whose Counter
-// names this marker folds Object.FaceDown before the move and re-asserts it
-// after, so entry grants (loyalty/lore) and later projections see the
-// face-down state. A ChangeZone carrying FaceDown$ True (Yedora, Grave
-// Gardener's "return it ... face down. It's a Forest land.") uses the same
-// marker, optionally carrying the face-down set type and power/toughness the
-// card text names (FaceDownSetType$, FaceDownPower$, FaceDownToughness$).
+// entering the battlefield face down (CR 708.5) through a generic
+// ChangeZone FaceDown$ True (Yedora, Grave Gardener's "return it ... face
+// down. It's a Forest land."), optionally carrying the face-down set type
+// and power/toughness the card text names (FaceDownSetType$,
+// FaceDownPower$, FaceDownToughness$). A MoveZone whose To is the
+// battlefield and whose Counter names this marker folds Object.FaceDown
+// before the move and re-asserts it after, so entry grants (loyalty/lore)
+// and later projections see the face-down state. It is deliberately NOT the
+// manifest marker: ManifestEntryCounter is, because only the manifest
+// procedure grants the CR 701.40b mana-cost turn-up.
 const FaceDownEntryCounter = "entered_face_down"
+
+// ManifestEntryCounter is the MoveZone Counter value that marks a card
+// entering the battlefield face down through the manifest procedure
+// (CR 701.40). It is distinct from FaceDownEntryCounter because a generic
+// ChangeZone FaceDown$ True entry shares that bare marker and does not grant
+// the manifest turn-face-up (CR 701.40b), and from CloakEntryCounter because
+// a cloak's turn-up is CR 701.58c. It carries no payload.
+const ManifestEntryCounter = "entered_manifested"
 
 // FaceDownEntryCounterFor builds the battlefield face-down marker for a move
 // that carries a folded set type and/or P/T. The empty set type and absent
-// P/T produce the bare FaceDownEntryCounter, exactly the Manifest encoding, so
-// a plain face-down entry is byte-identical to what the Manifest path emits.
+// P/T produce the bare FaceDownEntryCounter (the generic face-down entry).
 //
 // The payload rides the Counter field (no Event struct change -- it is frozen
 // and hash-chained) with a deterministic, replay-parsed grammar:
@@ -88,8 +97,8 @@ func FaceDownEntryFields(counter string) (setType string, power, toughness int32
 
 // CloakEntryCounter is the MoveZone Counter value that marks a card entering
 // the battlefield face down via Cloak (CR 708.5's cloak variant: a 2/2 with
-// ward {2}). It is the second of the two battlefield face-down entry markers;
-// unlike FaceDownEntryCounter it carries no payload grammar, so it is compared
+// ward {2}). It is the cloak battlefield face-down entry marker; unlike
+// FaceDownEntryCounter it carries no payload grammar, so it is compared
 // exactly rather than by prefix.
 const CloakEntryCounter = "entered_cloaked"
 
@@ -103,16 +112,17 @@ const CloakEntryCounter = "entered_cloaked"
 // the keyword with FaceDown$/ExileFaceDown$.
 const UnearthEntryCounter = "entered_unearthed"
 
-// IsFaceDownEntry reports whether a MoveZone Counter value is EITHER of the
-// two battlefield face-down entry markers -- the manifest/FaceDown$ marker
-// FaceDownEntryFields parses (bare or payload-bearing) or the cloak marker.
-// It is the one predicate every consumer that only needs "did this entry put
-// the card onto the battlefield face down?" must use, so the fold in Apply and
-// the rules-side guards that must skip a face-down entry cannot disagree about
-// which markers count. Callers that need the folded set type or P/T still call
-// FaceDownEntryFields; a cloak entry carries neither.
+// IsFaceDownEntry reports whether a MoveZone Counter value is ANY of the
+// battlefield face-down entry markers -- the generic FaceDown$ marker
+// FaceDownEntryFields parses (bare or payload-bearing), the manifest marker,
+// or the cloak marker. It is the one predicate every consumer that only needs
+// "did this entry put the card onto the battlefield face down?" must use, so
+// the fold in Apply and the rules-side guards that must skip a face-down
+// entry cannot disagree about which markers count. Callers that need the
+// folded set type or P/T still call FaceDownEntryFields; a manifest or cloak
+// entry carries neither.
 func IsFaceDownEntry(counter string) bool {
-	if counter == CloakEntryCounter {
+	if counter == ManifestEntryCounter || counter == CloakEntryCounter {
 		return true
 	}
 	_, _, _, _, ok := FaceDownEntryFields(counter)

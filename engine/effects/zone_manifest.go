@@ -33,8 +33,9 @@ import (
 // body (Y, or X outside a cast's own X-value) -- emits the SAME loud
 // "unimplemented API Manifest" note the unimplemented-API fallback emits
 // and moves nothing: fail loud, never silently move the wrong card.
-// Turning a face-down permanent face up (CR 708.6) is not implemented
-// anywhere (AGENTS.md's manifest row).
+// Turning a manifested creature card face up (CR 701.40b/708.6) is the
+// special action engine/rules/morph_turnup.go offers from the Manifested
+// marker this primitive emits.
 func effManifest(h Host, c *Ctx, sa *cards.SA) {
 	if DefinedRefOf(sa).Set() ||
 		strings.TrimSpace(sa.ParamStr(cards.PKChoices)) != "" ||
@@ -80,7 +81,7 @@ func effManifest(h Host, c *Ctx, sa *cards.SA) {
 			top := g.Zone(state.ZLibrary, p)[0]
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: top, Player: p,
 				From: state.ZLibrary, To: state.ZBattlefield,
-				Counter: "entered_face_down", Secret: true})
+				Counter: events.ManifestEntryCounter, Secret: true})
 		}
 	}
 }
@@ -198,7 +199,7 @@ func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, c
 	for _, id := range window {
 		if id == chosen {
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary,
-				To: state.ZBattlefield, Counter: "entered_face_down", Secret: true})
+				To: state.ZBattlefield, Counter: events.ManifestEntryCounter, Secret: true})
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
@@ -219,8 +220,8 @@ func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, c
 // CR 708.5's cloak variant -- the named card objects move onto the
 // battlefield FACE DOWN as 2/2 creatures with ward {2}. The move is the REAL
 // card object, the effManifest shape with a different Counter value (one
-// Secret MoveZone per card, "entered_cloaked" instead of
-// "entered_face_down" -- the marker engine/events/apply.go folds into
+// Secret MoveZone per card, events.CloakEntryCounter instead of
+// events.ManifestEntryCounter -- the marker engine/events/apply.go folds into
 // state.Object.Cloaked, which engine/rules/layers.go and engine/rules/trigger_match.go
 // read for the ward {2}; the view's FaceDown redaction covers both
 // variants). A cloak's Defined$ names card objects that may sit in the
@@ -242,8 +243,9 @@ func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, c
 // unresolvable Amount$ body -- emits the SAME loud
 // "unimplemented API Cloak" note the unimplemented fallback emits and moves
 // nothing: fail loud, never silently move the wrong card. Turning a cloaked
-// card face up (CR 708.6) is not implemented anywhere (the
-// Morph/Megamorph/Disguise ticket owns the shared turn-face-up path).
+// creature card face up (CR 701.58c/708.6) is the special action
+// engine/rules/morph_turnup.go offers from the Cloaked marker this primitive
+// emits.
 func effCloak(h Host, c *Ctx, sa *cards.SA) {
 	loud := func() {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -305,7 +307,7 @@ func effCloak(h Host, c *Ctx, sa *cards.SA) {
 		// controller (CR 708.5).
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, Player: cloaker,
 			From: from, To: state.ZBattlefield,
-			Counter: "entered_cloaked", Secret: true})
+			Counter: events.CloakEntryCounter, Secret: true})
 		if remember {
 			// RememberCloaked$ is ctx level (the cryptic_coat attach chain
 			// reads it within the same resolution); the persistent list is
