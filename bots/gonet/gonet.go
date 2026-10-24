@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/adams-shaun/gorge/bots/internal/simdk"
 	"github.com/adams-shaun/gorge/bots/policynet"
 )
 
@@ -131,8 +132,9 @@ func Stats() map[string]any {
 
 type gnLinear struct {
 	in, out int
-	w       []float32 // out×in, row-major (a PyTorch Linear's weight)
-	b       []float32 // out, nil without a bias
+	w       []float32     // out×in, row-major (a PyTorch Linear's weight)
+	b       []float32     // out, nil without a bias
+	pk      *simdk.Packed // w and b as GEMM panels (the graph network's layers only)
 }
 
 type gnNorm struct {

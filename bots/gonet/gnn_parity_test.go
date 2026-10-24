@@ -133,8 +133,23 @@ func loadGNNRef(tb testing.TB) (*Net, []gnnCase) {
 }
 
 // TestGNNParity is the contract for the graph forward: every option logit and
-// the value logit within 1e-3 of PyTorch's, on real encoded states.
+// the value logit within 1e-3 of PyTorch's, on real encoded states, through
+// the SIMD kernels and through their scalar twins (ForceScalar).
 func TestGNNParity(t *testing.T) {
+	for _, scalar := range []bool{false, true} {
+		name := "simd"
+		if scalar {
+			name = "scalar"
+		}
+		t.Run(name, func(t *testing.T) {
+			ForceScalar = scalar
+			defer func() { ForceScalar = false }()
+			gnnParity(t)
+		})
+	}
+}
+
+func gnnParity(t *testing.T) {
 	g, cases := loadGNNRef(t)
 	var worstScore, worstValue float64
 	optsChecked := 0
