@@ -49,13 +49,13 @@ var conditionSupportedDefined = newConditionNames(
 	"TriggeredSourceLKICopy", "RememberedLKI", "ParentTarget", "Sacrificed",
 	"ThisTargetedCard", "TriggeredSpellAbility",
 	"Collected", "CastSA>Collected", "TriggeredTargetLKICopy",
+	"TriggeredAttackerLKICopy",
 )
 
 // conditionUnmodelledDefined is every ConditionDefined$ group the corpus
 // carries that conditionMetCore cannot enumerate. Each entry is a real
 // carrier (counts measured 2026-10-04); a new value fails the census test.
 var conditionUnmodelledDefined = newConditionNames(
-	"TriggeredAttackerLKICopy",  // 7
 	"DelayTriggerRememberedLKI", // 6
 	"Equipped",                  // 5
 	"DelayTriggerRemembered",    // 5

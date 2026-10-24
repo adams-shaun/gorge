@@ -870,6 +870,28 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 		}
 		group = []state.Target{{Obj: c.TriggerCard}}
 	}
+	if defined == "TriggeredAttackerLKICopy" {
+		// The SINGLE attacking creature an Attacks trigger captured -- the
+		// TriggerContext.TriggerCard role rules' triggerReferents sets only
+		// when exactly one event ID matches the trigger's ValidCard$
+		// (Card.Self / Card.AttachedBy / Card.EquippedBy for all seven corpus
+		// carriers). NOT the whole Remembered batch: a DeclareAttackers event
+		// carries every attacker declared together, so reading it would let a
+		// different power-4 creature satisfy Viv Vision's gate, or a different
+		// three-counter attacker satisfy an Ordeal's. The group carries object
+		// identity, so the member matcher reads the object as it now stands:
+		// the Ordeals' own PutCounter sub has just added the +1/+1 counter,
+		// and CR 608.2c has the ability follow its instructions in order, so
+		// the `Card.counters_GE3_P1P1` gate must see it. An ABSENT role (a
+		// hand-built context, a batched declaration with no single match)
+		// leaves the gate UNSUPPORTED -- this file's documented fail-open
+		// convention -- never a resolved-false that would stop subs that ran
+		// before this group was enumerable.
+		if c.TriggerCard == 0 {
+			return nil, false
+		}
+		group = []state.Target{{Obj: c.TriggerCard}}
+	}
 	if defined == "TriggeredTargetLKICopy" {
 		// The object (or player) the triggering event happened TO -- the
 		// TriggerContext.TriggerTarget role rules' triggerReferents captures
