@@ -139,12 +139,21 @@ type gnGNN struct {
 // makes a forward allocation-free.
 type gnnScratch struct {
 	leaves, card, zone, play, root, kids []float32
-	leafSeg, kidSeg, segAll              []int
+	leafSeg, segAll                      []int
+	cardOff, kidOff, tOff, kvOff         []int
+	rseg, pseg, zoneSeg                  []int
+	dense, dl, pc, rx, flat              []float32
 	heavy, qkv, kv, out, tmp, ln, hid    []float32
-	x, zc, fit                           []float32
+	x, zc                                []float32
 	sum                                  []float64
 	o, ha, hb, q, q2, z, ha1, hb1        []float32
 	raws, rl, od, ta, v1, s32, mx32      []float32
+
+	// evalGNN's batch of one, without allocating slices per call
+	oneSt     [1]*policynet.State
+	oneOpts   [1][]policynet.Option
+	oneScores [1][]float32
+	oneVal    [1]float32
 }
 
 func takeF(p *[]float32, n int) []float32 {
@@ -416,11 +425,13 @@ func localLayer(g *gnGNN, l *gnLocalLayer, sc *gnnScratch, node, child []float32
 	ffn(sc, &l.n2, &l.fc1, &l.fc2, node, S, d)
 }
 
-// globalPass runs the pre-norm transformer blocks over one state's tokens
-// x [T, d] (every token real: one state needs no padding mask), then the final
-// LayerNorm, in place.
-func globalPass(g *gnGNN, sc *gnnScratch, x []float32, T int) {
+// globalPass runs the pre-norm transformer blocks over a batch's tokens x
+// [T, d], state b's at rows tOff[b]..tOff[b+1] (every token real; attention
+// stays within a state, so no padding mask), then the final LayerNorm, in
+// place.
+func globalPass(g *gnGNN, sc *gnnScratch, x []float32, tOff []int) {
 	d, heads, dh := g.d, g.heads, g.d/g.heads
+	T := tOff[len(tOff)-1]
 	inv := 1 / math.Sqrt(float64(dh))
 	for bi := range g.blocks {
 		b := &g.blocks[bi]
@@ -429,7 +440,11 @@ func globalPass(g *gnGNN, sc *gnnScratch, x []float32, T int) {
 		qkv := takeF(&sc.qkv, T*3*d)
 		b.qkv.gemm(qkv, ln, T)
 		out := takeF(&sc.out, T*d)
-		attend(qkv, 3*d, qkv[d:], qkv[2*d:], 3*d, T, T, heads, dh, inv, out, d, sc)
+		for b := 0; b+1 < len(tOff); b++ {
+			t0, nb := tOff[b], tOff[b+1]-tOff[b]
+			q := qkv[t0*3*d:]
+			attend(q, 3*d, q[d:], q[2*d:], 3*d, nb, nb, heads, dh, inv, out[t0*d:], d, sc)
+		}
 		tmp := takeF(&sc.tmp, T*d)
 		b.out.gemm(tmp, out, T)
 		addRow(x[:T*d], tmp)
@@ -489,122 +504,196 @@ func attend(q []float32, qs int, k, v []float32, ks, nq, nk, heads, dh int, inv 
 	}
 }
 
-// evalGNN is GraphNet.forward in eval mode: st's state and opts -> the option
-// logits (written into scores) and the value logit.
+// evalGNN is GraphNet.forward in eval mode for one state: the batch of one.
 func (g *Net) evalGNN(gsc *gnScratch, st *policynet.State, opts []policynet.Option, scores []float32) float32 {
+	sc := &gsc.gnn
+	sc.oneSt[0], sc.oneOpts[0], sc.oneScores[0] = st, opts, scores
+	g.evalGNNBatch(gsc, sc.oneSt[:], sc.oneOpts[:], sc.oneScores[:], sc.oneVal[:])
+	sc.oneSt[0], sc.oneOpts[0], sc.oneScores[0] = nil, nil, nil
+	return sc.oneVal[0]
+}
+
+// evalGNNBatch is GraphNet.forward in eval mode over B states at once: the
+// states' rows are stacked, so every Linear runs as one GEMM over all of them
+// (each weight panel streams once per batch, not once per state), while
+// attention stays inside a state (the local layers by their parent segments,
+// the global and cross blocks by each state's token range). Every per-row
+// kernel is independent of the row's neighbours, so a state's results are
+// bit-identical to evaluating it alone.
+//
+// opts may be nil, and opts[b] nil or empty (value only); scores[b] receives
+// len(opts[b]) logits; values[b] the value logit.
+func (g *Net) evalGNNBatch(gsc *gnScratch, sts []*policynet.State, opts [][]policynet.Option, scores [][]float32, values []float32) {
 	n := g.gnn
 	sc := &gsc.gnn
 	d := n.d
-	nc := len(st.Cards)
+	B := len(sts)
 	et := func(t int) []float32 { return n.edgeType[t*d : (t+1)*d] }
 	nt := func(t int) []float32 { return n.nodeType[t*d : (t+1)*d] }
 
-	// ---- leaves: a card's children are one leaf per identity row and its raw leaf
-	nl := nc
-	for i := range st.Cards {
-		nl += len(st.Cards[i].Rows)
+	// ---- per-state offsets: cards, root kids, global tokens
+	cardOff := takeI(&sc.cardOff, B+1)
+	kidOff := takeI(&sc.kidOff, B+1)
+	tOff := takeI(&sc.tOff, B+1)
+	nc, nl, nk := 0, 0, 0
+	for b, st := range sts {
+		cardOff[b], kidOff[b], tOff[b] = nc, nk, nc+b*gnFixed
+		nc += len(st.Cards)
+		for i := range st.Cards {
+			nl += len(st.Cards[i].Rows)
+		}
+		nk += 4 + len(st.Sparse)
 	}
+	cardOff[B], kidOff[B], tOff[B] = nc, nk, nc+B*gnFixed
+	nl += nc
+
+	// ---- leaves: a card's children are one leaf per identity row and its raw leaf
 	leaves := takeF(&sc.leaves, nl*d)
 	leafSeg := takeI(&sc.leafSeg, nl)
 	// every card's raw leaf in one GEMM (Raw zero-padded or truncated to rawW)
 	rw := n.rawW
 	raws := takeF(&sc.raws, nc*rw)
-	for i := range st.Cards {
-		r := raws[i*rw : (i+1)*rw]
-		clear(r[copy(r, st.Cards[i].Raw):])
+	for b, st := range sts {
+		for i := range st.Cards {
+			r := raws[(cardOff[b]+i)*rw : (cardOff[b]+i+1)*rw]
+			clear(r[copy(r, st.Cards[i].Raw):])
+		}
 	}
 	rl := takeF(&sc.rl, nc*d)
 	n.rawLeaf.gemm(rl, raws, nc)
 	li := 0
-	for i := range st.Cards {
-		c := &st.Cards[i]
-		for _, f := range c.Rows {
-			leaf(leaves[li*d:(li+1)*d], n.ltab, int(f.Row), f.Value, et(gnEdgeIdent))
-			leafSeg[li] = i
+	for b, st := range sts {
+		for i := range st.Cards {
+			c := &st.Cards[i]
+			gi := cardOff[b] + i
+			for _, f := range c.Rows {
+				leaf(leaves[li*d:(li+1)*d], n.ltab, int(f.Row), f.Value, et(gnEdgeIdent))
+				leafSeg[li] = gi
+				li++
+			}
+			dst := leaves[li*d : (li+1)*d]
+			copy(dst, rl[gi*d:(gi+1)*d])
+			addRow(dst, et(gnEdgeRaw))
+			leafSeg[li] = gi
 			li++
 		}
-		dst := leaves[li*d : (li+1)*d]
-		copy(dst, rl[i*d:(i+1)*d])
-		addRow(dst, et(gnEdgeRaw))
-		leafSeg[li] = i
-		li++
 	}
-	// the root's leaves: DENSE, then one per sparse row, after 3 node kids
-	nk := 3 + 1 + len(st.Sparse)
+	// the root's children per state: me, opp, the stack zone (filled per
+	// pass), DENSE, then one leaf per sparse row; every DENSE in one GEMM
+	const dw = policynet.DenseWidth
+	dense := takeF(&sc.dense, B*dw)
+	for b, st := range sts {
+		r := dense[b*dw : (b+1)*dw]
+		clear(r[copy(r, st.Dense):])
+	}
+	dl := takeF(&sc.dl, B*d)
+	n.denseLeaf.gemm(dl, dense, B)
 	kids := takeF(&sc.kids, nk*d)
-	dl := kids[3*d : 4*d]
-	n.denseLeaf.gemm(dl, fit(&sc.fit, st.Dense, policynet.DenseWidth), 1)
-	addRow(dl, et(gnEdgeDense))
-	for i, f := range st.Sparse {
-		leaf(kids[(4+i)*d:(5+i)*d], n.ltab, int(f.Row), f.Value, et(gnEdgeSparse))
+	rseg := takeI(&sc.rseg, nk)
+	for b, st := range sts {
+		k := kidOff[b]
+		dst := kids[(k+3)*d : (k+4)*d]
+		copy(dst, dl[b*d:(b+1)*d])
+		addRow(dst, et(gnEdgeDense))
+		for i, f := range st.Sparse {
+			leaf(kids[(k+4+i)*d:(k+5+i)*d], n.ltab, int(f.Row), f.Value, et(gnEdgeSparse))
+		}
+		for j := k; j < kidOff[b+1]; j++ {
+			rseg[j] = b
+		}
 	}
-	kidSeg := takeI(&sc.kidSeg, max(nk, nc)) // the zone layer's segments, then the root's (all 0)
+	// player children: zones 0, 2 under me, zone 1 under the opponent
+	pc := takeF(&sc.pc, 3*B*d)
+	pseg := takeI(&sc.pseg, 3*B)
+	for b := 0; b < B; b++ {
+		for i, p := range gnPlayerOfZones {
+			pseg[3*b+i] = 2*b + p
+		}
+	}
 
 	// ---- typed initial nodes
 	card := takeF(&sc.card, nc*d)
 	for i := 0; i < nc; i++ {
 		copy(card[i*d:(i+1)*d], nt(gnNodeCard))
 	}
-	zone := takeF(&sc.zone, 4*d)
-	copy(zone, n.nodeType[gnNodeMyBF*d:(gnNodeStack+1)*d])
-	play := takeF(&sc.play, 2*d)
-	copy(play, n.nodeType[gnNodeMe*d:(gnNodeOpp+1)*d])
-	root := takeF(&sc.root, d)
-	copy(root, nt(gnNodeRoot))
+	zone := takeF(&sc.zone, 4*B*d)
+	play := takeF(&sc.play, 2*B*d)
+	root := takeF(&sc.root, B*d)
+	for b := 0; b < B; b++ {
+		copy(zone[4*b*d:4*(b+1)*d], n.nodeType[gnNodeMyBF*d:(gnNodeStack+1)*d])
+		copy(play[2*b*d:2*(b+1)*d], n.nodeType[gnNodeMe*d:(gnNodeOpp+1)*d])
+		copy(root[b*d:(b+1)*d], nt(gnNodeRoot))
+	}
 
 	// zone children: every card whose group is a zone, plus the edge type
 	zc := takeF(&sc.zc, nc*d)
+	zoneSeg := takeI(&sc.zoneSeg, nc)
 	for p := range n.local {
 		lay := &n.local[p]
 		localLayer(n, &lay[0], sc, card, leaves, leafSeg, nc, nl)
 		ne := 0
-		zoneSeg := kidSeg[:0]
-		for i := range st.Cards {
-			gr := int(st.Cards[i].Group)
-			if gr >= 4 {
-				continue
+		for b, st := range sts {
+			for i := range st.Cards {
+				gr := int(st.Cards[i].Group)
+				if gr >= 4 {
+					continue
+				}
+				gi := cardOff[b] + i
+				copy(zc[ne*d:(ne+1)*d], card[gi*d:(gi+1)*d])
+				addRow(zc[ne*d:(ne+1)*d], et(gnEdgeCardZone))
+				zoneSeg[ne] = 4*b + gr
+				ne++
 			}
-			copy(zc[ne*d:(ne+1)*d], card[i*d:(i+1)*d])
-			addRow(zc[ne*d:(ne+1)*d], et(gnEdgeCardZone))
-			zoneSeg = append(zoneSeg, gr)
-			ne++
 		}
-		localLayer(n, &lay[1], sc, zone, zc, zoneSeg, 4, ne)
-		// player children: zones 0, 2 under me, zone 1 under the opponent
-		pc := kids[:3*d] // the root's node kids are rebuilt after this layer
-		for i, z := range gnPlayerZones {
-			copy(pc[i*d:(i+1)*d], zone[z*d:(z+1)*d])
-			addRow(pc[i*d:(i+1)*d], et(gnEdgeZonePlayer))
+		localLayer(n, &lay[1], sc, zone, zc, zoneSeg, 4*B, ne)
+		for b := 0; b < B; b++ {
+			for i, z := range gnPlayerZones {
+				dst := pc[(3*b+i)*d : (3*b+i+1)*d]
+				copy(dst, zone[(4*b+z)*d:(4*b+z+1)*d])
+				addRow(dst, et(gnEdgeZonePlayer))
+			}
 		}
-		localLayer(n, &lay[2], sc, play, pc, gnPlayerOfZones[:], 2, 3)
-		// root children: the two players, the stack zone, DENSE, the sparse rows
-		for i := 0; i < 2; i++ {
-			copy(kids[i*d:(i+1)*d], play[i*d:(i+1)*d])
-			addRow(kids[i*d:(i+1)*d], et(gnEdgePlayerRoot))
+		localLayer(n, &lay[2], sc, play, pc, pseg, 2*B, 3*B)
+		// root children: the two players, the stack zone (DENSE and the sparse rows stay)
+		for b := 0; b < B; b++ {
+			k := kidOff[b]
+			for i := 0; i < 2; i++ {
+				copy(kids[(k+i)*d:(k+i+1)*d], play[(2*b+i)*d:(2*b+i+1)*d])
+				addRow(kids[(k+i)*d:(k+i+1)*d], et(gnEdgePlayerRoot))
+			}
+			copy(kids[(k+2)*d:(k+3)*d], zone[(4*b+3)*d:(4*b+4)*d])
+			addRow(kids[(k+2)*d:(k+3)*d], et(gnEdgeStackRoot))
 		}
-		copy(kids[2*d:3*d], zone[3*d:4*d])
-		addRow(kids[2*d:3*d], et(gnEdgeStackRoot))
-		rseg := kidSeg[:nk]
-		clear(rseg)
-		localLayer(n, &lay[3], sc, root, kids, rseg, 1, nk)
+		localLayer(n, &lay[3], sc, root, kids, rseg, B, nk)
 	}
 
-	// ---- global tokens [root, me, opp, 4 zones, cards]
-	T := gnFixed + nc
+	// ---- global tokens per state [root, me, opp, 4 zones, cards]
+	T := tOff[B]
 	x := takeF(&sc.x, T*d)
-	copy(x[0:d], root)
-	copy(x[d:3*d], play)
-	copy(x[3*d:7*d], zone)
-	copy(x[gnFixed*d:], card)
-	globalPass(n, sc, x, T)
-
-	v1 := takeF(&sc.v1, 1)
-	gnnHead(n.value, x[:d], 1, v1, sc)
-	value := v1[0]
-	if len(opts) > 0 {
-		gnnOptions(n, sc, x, T, opts, scores)
+	for b := 0; b < B; b++ {
+		t0 := tOff[b] * d
+		copy(x[t0:t0+d], root[b*d:(b+1)*d])
+		copy(x[t0+d:t0+3*d], play[2*b*d:2*(b+1)*d])
+		copy(x[t0+3*d:t0+7*d], zone[4*b*d:4*(b+1)*d])
+		copy(x[t0+gnFixed*d:tOff[b+1]*d], card[cardOff[b]*d:cardOff[b+1]*d])
 	}
-	return value
+	globalPass(n, sc, x, tOff)
+
+	// ---- value = MLP(root), every state's root in one batch
+	rx := takeF(&sc.rx, B*d)
+	for b := 0; b < B; b++ {
+		copy(rx[b*d:(b+1)*d], x[tOff[b]*d:(tOff[b]+1)*d])
+	}
+	vals := takeF(&sc.v1, B)
+	gnnHead(n.value, rx, B, vals, sc)
+	copy(values[:B], vals)
+	no := 0
+	for b := range opts {
+		no += len(opts[b])
+	}
+	if no > 0 {
+		gnnOptions(n, sc, x, tOff, opts, scores, no)
+	}
 }
 
 // gnnHead runs a head (Linear, ReLU, ..., Linear to 1) on n rows of x,
@@ -626,50 +715,69 @@ func gnnHead(layers []gnLinear, x []float32, n int, out []float32, sc *gnnScratc
 	}
 }
 
-// gnnOptions writes the logit of each option (_Net._option_scores).
-func gnnOptions(n *gnGNN, sc *gnnScratch, x []float32, T int, opts []policynet.Option, scores []float32) {
+// gnnOptions writes the logit of each option (_Net._option_scores) for every
+// state in the batch with options: no options in all, the states' final
+// tokens in x at tOff.
+func gnnOptions(n *gnGNN, sc *gnnScratch, x []float32, tOff []int, opts [][]policynet.Option, scores [][]float32, no int) {
 	d, heads, dh := n.d, n.heads, n.d/n.heads
-	nc, no := T-gnFixed, len(opts)
 	o := takeF(&sc.o, no*d)
 	ha := takeF(&sc.ha, no*d)
 	hb := takeF(&sc.hb, no*d)
 	// o = opt_in.dense(dense) + slots + hashed bag + bot, every option's dense row in one GEMM
 	const ow = policynet.OptionDenseWidth
 	od := takeF(&sc.od, no*ow)
-	for j := range opts {
-		r := od[j*ow : (j+1)*ow]
-		clear(r[copy(r, opts[j].Dense):])
+	j := 0
+	for b := range opts {
+		for i := range opts[b] {
+			r := od[j*ow : (j+1)*ow]
+			clear(r[copy(r, opts[b][i].Dense):])
+			j++
+		}
 	}
 	n.odense.gemm(o, od, no)
-	for j := range opts {
-		op := &opts[j]
-		dst := o[j*d : (j+1)*d]
-		for _, f := range op.Slots {
-			if r := int(f.Row); r < gnSlotRow {
-				axpy(dst, n.slots[r*d:(r+1)*d], f.Value)
+	// the cross block's keys: only the states that have options, compacted
+	kvOff := takeI(&sc.kvOff, len(opts)+1)
+	tc := 0
+	j = 0
+	for b := range opts {
+		kvOff[b] = tc
+		if len(opts[b]) > 0 {
+			tc += tOff[b+1] - tOff[b]
+		}
+		t0 := tOff[b]
+		nc := tOff[b+1] - t0 - gnFixed
+		for i := range opts[b] {
+			op := &opts[b][i]
+			dst := o[j*d : (j+1)*d]
+			for _, f := range op.Slots {
+				if r := int(f.Row); r < gnSlotRow {
+					axpy(dst, n.slots[r*d:(r+1)*d], f.Value)
+				}
 			}
-		}
-		for _, f := range op.Hashed {
-			if r := int(f.Row); r < gnRows {
-				axpy(dst, n.htab[r*d:(r+1)*d], f.Value)
+			for _, f := range op.Hashed {
+				if r := int(f.Row); r < gnRows {
+					axpy(dst, n.htab[r*d:(r+1)*d], f.Value)
+				}
 			}
-		}
-		if op.BotPick {
-			addRow(dst, n.bot)
-		}
-		// h_ea/h_eb: the referenced cards' final tokens, or none_a/none_b
-		a, b := ha[j*d:(j+1)*d], hb[j*d:(j+1)*d]
-		if k := int(op.EntA) - 1; k >= 0 && k < nc {
-			copy(a, x[(gnFixed+k)*d:(gnFixed+k+1)*d])
-		} else {
-			copy(a, n.noneA)
-		}
-		if k := int(op.EntB) - 1; k >= 0 && k < nc {
-			copy(b, x[(gnFixed+k)*d:(gnFixed+k+1)*d])
-		} else {
-			copy(b, n.noneB)
+			if op.BotPick {
+				addRow(dst, n.bot)
+			}
+			// h_ea/h_eb: the referenced cards' final tokens, or none_a/none_b
+			a, bb := ha[j*d:(j+1)*d], hb[j*d:(j+1)*d]
+			if k := int(op.EntA) - 1; k >= 0 && k < nc {
+				copy(a, x[(t0+gnFixed+k)*d:(t0+gnFixed+k+1)*d])
+			} else {
+				copy(a, n.noneA)
+			}
+			if k := int(op.EntB) - 1; k >= 0 && k < nc {
+				copy(bb, x[(t0+gnFixed+k)*d:(t0+gnFixed+k+1)*d])
+			} else {
+				copy(bb, n.noneB)
+			}
+			j++
 		}
 	}
+	kvOff[len(opts)] = tc
 	// + ea_proj(h_ea) + eb_proj(h_eb)
 	ta := takeF(&sc.ta, no*d)
 	n.eaProj.gemm(ta, ha, no)
@@ -678,15 +786,30 @@ func gnnOptions(n *gnGNN, sc *gnnScratch, x []float32, T int, opts []policynet.O
 	addRow(o, ta)
 
 	// the cross block: q = Q(nq(o)) over K, V = KV(nkv(x)); h = o + out(attn); h += FFN(n2(h))
-	ln := takeF(&sc.ln, max(T, no)*d)
-	n.crossNKV.rows(ln, x, T, d)
-	kv := takeF(&sc.kv, T*2*d)
-	n.crossKV.gemm(kv, ln, T)
+	ln := takeF(&sc.ln, max(tc, no)*d)
+	for b := range opts {
+		if len(opts[b]) > 0 {
+			nb := tOff[b+1] - tOff[b]
+			n.crossNKV.rows(ln[kvOff[b]*d:], x[tOff[b]*d:], nb, d)
+		}
+	}
+	kv := takeF(&sc.kv, tc*2*d)
+	n.crossKV.gemm(kv, ln, tc)
 	n.crossNQ.rows(ln, o, no, d)
 	q := takeF(&sc.q, no*d)
 	n.crossQ.gemm(q, ln, no)
 	q2 := takeF(&sc.q2, no*d)
-	attend(q, d, kv, kv[d:], 2*d, no, T, heads, dh, 1/math.Sqrt(float64(dh)), q2, d, sc)
+	inv := 1 / math.Sqrt(float64(dh))
+	j = 0
+	for b := range opts {
+		nq := len(opts[b])
+		if nq == 0 {
+			continue
+		}
+		k0 := kvOff[b] * 2 * d
+		attend(q[j*d:], d, kv[k0:], kv[k0+d:], 2*d, nq, tOff[b+1]-tOff[b], heads, dh, inv, q2[j*d:], d, sc)
+		j += nq
+	}
 	h := takeF(&sc.out, no*d)
 	n.crossOut.gemm(h, q2, no)
 	addRow(h, o)
@@ -694,12 +817,22 @@ func gnnOptions(n *gnGNN, sc *gnnScratch, x []float32, T int, opts []policynet.O
 
 	// score = MLP([root ‖ h ‖ h_ea ‖ h_eb]), every option in one batch
 	z := takeF(&sc.z, no*4*d)
-	for j := 0; j < no; j++ {
-		zj := z[j*4*d : (j+1)*4*d]
-		copy(zj[:d], x[:d])
-		copy(zj[d:2*d], h[j*d:(j+1)*d])
-		copy(zj[2*d:3*d], ha[j*d:(j+1)*d])
-		copy(zj[3*d:], hb[j*d:(j+1)*d])
+	j = 0
+	for b := range opts {
+		r0 := tOff[b] * d
+		for range opts[b] {
+			zj := z[j*4*d : (j+1)*4*d]
+			copy(zj[:d], x[r0:r0+d])
+			copy(zj[d:2*d], h[j*d:(j+1)*d])
+			copy(zj[2*d:3*d], ha[j*d:(j+1)*d])
+			copy(zj[3*d:], hb[j*d:(j+1)*d])
+			j++
+		}
 	}
-	gnnHead(n.policy, z, no, scores, sc)
+	flat := takeF(&sc.flat, no)
+	gnnHead(n.policy, z, no, flat, sc)
+	j = 0
+	for b := range opts {
+		j += copy(scores[b][:len(opts[b])], flat[j:j+len(opts[b])])
+	}
 }

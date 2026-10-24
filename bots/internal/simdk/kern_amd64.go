@@ -39,6 +39,11 @@ var AVX512 = detectAVX512()
 //go:noescape
 func gemm6x64AVX512(w, x *float32, xs, k int, y *float32, ys, rows int, mask uint64, bias, pf *float32)
 
+// gemm4x64AVX512 is gemm6x64AVX512 for rows <= 4 (16 accumulators).
+//
+//go:noescape
+func gemm4x64AVX512(w, x *float32, xs, k int, y *float32, ys, rows int, mask uint64, bias, pf *float32)
+
 //go:noescape
 func lnAVX512(y, x, w, b *float32, n int, eps, invN float32)
 
@@ -67,7 +72,12 @@ func gemmAVX512(y []float32, ys int, x []float32, xs int, n int, p *Packed) {
 			pf = &p.W[(pan+1)*in*NR]
 		}
 		for r := 0; r < n; r += MR {
-			gemm6x64AVX512(w, &x[r*xs], xs*4, in, &y[r*ys+pan*NR], ys*4, min(MR, n-r), mask, b, pf)
+			rows := min(MR, n-r)
+			if rows <= 4 {
+				gemm4x64AVX512(w, &x[r*xs], xs*4, in, &y[r*ys+pan*NR], ys*4, rows, mask, b, pf)
+				continue
+			}
+			gemm6x64AVX512(w, &x[r*xs], xs*4, in, &y[r*ys+pan*NR], ys*4, rows, mask, b, pf)
 		}
 	}
 }

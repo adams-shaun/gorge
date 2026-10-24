@@ -111,14 +111,23 @@ func LayerNorm(y, x, w, b []float32, eps float64, simd bool) {
 
 // Gelu applies F.gelu (the erf form) in place. The scalar path calls
 // math.Erf; the SIMD path uses a rational erf approximation (Eigen's
-// generic_fast_erf_float, |error| < 5e-7) over the 16-aligned prefix.
+// generic_fast_erf_float, |error| < 5e-7) on every lane, the ragged tail
+// through a padded block, so a lane's result never depends on its position.
 func Gelu(x []float32, simd bool) {
-	i := 0
-	if simd && AVX512 && len(x) >= 16 {
-		i = len(x) &^ 15
-		geluAVX512(&x[0], i, &geluConst[0])
+	if simd && AVX512 && len(x) > 0 {
+		i := len(x) &^ 15
+		if i > 0 {
+			geluAVX512(&x[0], i, &geluConst[0])
+		}
+		if i < len(x) {
+			var t [16]float32
+			m := copy(t[:], x[i:])
+			geluAVX512(&t[0], 16, &geluConst[0])
+			copy(x[i:], t[:m])
+		}
+		return
 	}
-	for ; i < len(x); i++ {
+	for i := range x {
 		v := float64(x[i])
 		x[i] = float32(0.5 * v * (1 + math.Erf(v/math.Sqrt2)))
 	}
@@ -126,14 +135,23 @@ func Gelu(x []float32, simd bool) {
 
 // Exp replaces x with exp(x) in place (softmax numerators: callers shift by
 // the max first). The scalar path calls math.Exp; the SIMD path is Cephes
-// expf (relative error ~1e-7) over the 16-aligned prefix.
+// expf (relative error ~1e-7) on every lane, the ragged tail through a
+// padded block, so a lane's result never depends on its position.
 func Exp(x []float32, simd bool) {
-	i := 0
-	if simd && AVX512 && len(x) >= 16 {
-		i = len(x) &^ 15
-		expAVX512(&x[0], i, &expConst[0])
+	if simd && AVX512 && len(x) > 0 {
+		i := len(x) &^ 15
+		if i > 0 {
+			expAVX512(&x[0], i, &expConst[0])
+		}
+		if i < len(x) {
+			var t [16]float32
+			m := copy(t[:], x[i:])
+			expAVX512(&t[0], 16, &expConst[0])
+			copy(x[i:], t[:m])
+		}
+		return
 	}
-	for ; i < len(x); i++ {
+	for i := range x {
 		x[i] = float32(math.Exp(float64(x[i])))
 	}
 }

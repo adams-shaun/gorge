@@ -475,6 +475,39 @@ func (g *Net) Eval(st *policynet.State, opts []policynet.Option, scores []float3
 	return g.eval(sc, st, opts, scores)
 }
 
+// EvalBatch runs the network once over len(sts) states with no result
+// cache: values[i] gets state i's value logit (as Eval returns it) and, when
+// opts is non-nil and opts[i] non-empty, scores[i] gets its len(opts[i])
+// option logits. A graph network evaluates the whole batch in one forward
+// (every Linear one GEMM over all states' rows), each state's results
+// bit-identical to Eval's; an mlp network loops Eval's path. Allocation-free
+// once a scratch has seen a batch this large.
+func (g *Net) EvalBatch(sts []*policynet.State, opts [][]policynet.Option, scores [][]float32, values []float32) {
+	if len(sts) == 0 {
+		return
+	}
+	sc := g.pool.Get().(*gnScratch)
+	defer g.pool.Put(sc)
+	if g.gnn != nil {
+		if opts != nil && len(opts) != len(sts) {
+			panic(fmt.Sprintf("gonet: EvalBatch: %d states, %d option lists", len(sts), len(opts)))
+		}
+		g.evalGNNBatch(sc, sts, opts, scores, values[:len(sts)])
+		return
+	}
+	for i, st := range sts {
+		var o []policynet.Option
+		var s []float32
+		if opts != nil {
+			o = opts[i]
+		}
+		if len(o) > 0 {
+			s = scores[i]
+		}
+		values[i] = g.eval(sc, st, o, s)
+	}
+}
+
 // SetCardCaches turns the card-vector caches off (false) or back on with the
 // default capacity (true); a benchmark compares a cold and a warm network.
 func (g *Net) SetCardCaches(on bool) {

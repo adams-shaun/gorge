@@ -19,6 +19,7 @@ package gonet
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"slices"
@@ -183,6 +184,97 @@ func gnnParity(t *testing.T) {
 		t.Errorf("empty state: value %v", v)
 	}
 	t.Logf("%d states, %d option logits: worst |d| score %.3g, value logit %.3g (tol %g)", len(cases), optsChecked, worstScore, worstValue, gnnParityTol)
+}
+
+// TestGNNEvalBatchMatchesEval holds the batched forward to the single-state
+// one: every state's value and option logits, at B = 1, 3 and 8 over a mix
+// of card counts (a state with no cards, states with no options), equal
+// Eval's within 1e-5, and in practice bit for bit.
+func TestGNNEvalBatchMatchesEval(t *testing.T) {
+	for _, scalar := range []bool{false, true} {
+		ForceScalar = scalar
+		g, cases := loadGNNRef(t)
+		var pool []gnnCase
+		for i, c := range cases {
+			pool = append(pool, c)
+			// a value-only twin of each, and (once) a state with no cards
+			pool = append(pool, gnnCase{state: c.state})
+			if i == 0 {
+				st := c.state
+				st.Cards = nil
+				pool = append(pool, gnnCase{state: st, opts: dropEntities(c.opts)})
+			}
+		}
+		worst, exact, total := 0.0, 0, 0
+		for _, B := range []int{1, 3, 8} {
+			for start := 0; start < len(pool); start += B {
+				sts := make([]*policynet.State, B)
+				opts := make([][]policynet.Option, B)
+				scores := make([][]float32, B)
+				values := make([]float32, B)
+				for i := range sts {
+					c := pool[(start+i)%len(pool)]
+					st := c.state
+					sts[i], opts[i], scores[i] = &st, c.opts, make([]float32, len(c.opts))
+				}
+				g.EvalBatch(sts, opts, scores, values)
+				for i := range sts {
+					want := make([]float32, len(opts[i]))
+					wv := g.Eval(sts[i], opts[i], want)
+					cmp := func(what string, got, w float32) {
+						total++
+						if got == w {
+							exact++
+						}
+						d := math.Abs(float64(got - w))
+						worst = max(worst, d)
+						if d > 1e-5 {
+							t.Errorf("scalar=%v B=%d state %d %s: batch %v, Eval %v", scalar, B, i, what, got, w)
+						}
+					}
+					cmp("value", values[i], wv)
+					for j := range want {
+						cmp("score", scores[i][j], want[j])
+					}
+				}
+			}
+		}
+		t.Logf("scalar=%v: %d/%d outputs bit-identical, worst |d| %.3g", scalar, exact, total, worst)
+	}
+	ForceScalar = false
+}
+
+// dropEntities clears the options' card references (for a state without cards).
+func dropEntities(opts []policynet.Option) []policynet.Option {
+	out := slices.Clone(opts)
+	for i := range out {
+		out[i].EntA, out[i].EntB = 0, 0
+	}
+	return out
+}
+
+// BenchmarkGNNEvalBatch is one uncached batched forward over B states (the
+// reference states reused cyclically), reported per state.
+func BenchmarkGNNEvalBatch(b *testing.B) {
+	g, cases := loadGNNRef(b)
+	for _, B := range []int{1, 4, 8} {
+		b.Run(fmt.Sprintf("B%d", B), func(b *testing.B) {
+			sts := make([]*policynet.State, B)
+			opts := make([][]policynet.Option, B)
+			scores := make([][]float32, B)
+			values := make([]float32, B)
+			for i := range sts {
+				c := cases[i%len(cases)]
+				st := c.state
+				sts[i], opts[i], scores[i] = &st, c.opts, make([]float32, len(c.opts))
+			}
+			b.ReportAllocs()
+			for b.Loop() {
+				g.EvalBatch(sts, opts, scores, values)
+			}
+			b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N*B)/1e6, "ms/state")
+		})
+	}
 }
 
 // BenchmarkGNNEval is one uncached forward (trunk and every option) on the

@@ -62,6 +62,33 @@ func TestGemm(t *testing.T) {
 	}
 }
 
+// A row's GEMM result is bit-identical whichever microkernel and block
+// position computed it: batching rows never changes a row's answer.
+func TestGemmRowInvariance(t *testing.T) {
+	r := rand.New(rand.NewPCG(11, 12))
+	in, out, n := 96, 130, 23
+	p := Pack(randF(r, out*in), randF(r, out), in, out)
+	x := randF(r, n*in)
+	for _, simd := range []bool{false, true} {
+		all := make([]float32, n*out)
+		Gemm(all, out, x, in, n, p, simd)
+		for i := 0; i < n; i++ {
+			for _, m := range []int{1, 4, 5} { // the row alone, and leading small blocks
+				if i+m > n {
+					continue
+				}
+				part := make([]float32, m*out)
+				Gemm(part, out, x[i*in:], in, m, p, simd)
+				for o := 0; o < out; o++ {
+					if math.Float32bits(part[o]) != math.Float32bits(all[i*out+o]) {
+						t.Fatalf("simd %v row %d (block of %d) col %d: %g vs %g in the full batch", simd, i, m, o, part[o], all[i*out+o])
+					}
+				}
+			}
+		}
+	}
+}
+
 func TestLayerNorm(t *testing.T) {
 	r := rand.New(rand.NewPCG(3, 4))
 	for _, n := range []int{16, 32, 48, 128, 256, 20} {

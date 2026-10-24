@@ -382,3 +382,91 @@ eloop:
 	JNZ  eloop
 	VZEROUPPER
 	RET
+
+// func gemm4x64AVX512(w, x *float32, xs, k int, y *float32, ys, rows int, mask uint64, bias, pf *float32)
+//
+// gemm6x64AVX512 for rows <= 4: 16 accumulators, the same per-row
+// arithmetic in the same order (so a row's result does not depend on which
+// kernel ran it), two fewer broadcast-and-FMA rows per k.
+TEXT ·gemm4x64AVX512(SB), NOSPLIT, $0-80
+	MOVQ pf+72(FP), DI
+	MOVQ w+0(FP), AX
+	MOVQ x+8(FP), R8
+	MOVQ xs+16(FP), DX
+	MOVQ k+24(FP), BX
+	MOVQ rows+48(FP), CX
+	LEAQ (R8)(DX*1), R9
+	CMPQ CX, $1
+	CMOVQLE R8, R9
+	LEAQ (R9)(DX*1), R10
+	CMPQ CX, $2
+	CMOVQLE R9, R10
+	LEAQ (R10)(DX*1), R11
+	CMPQ CX, $3
+	CMOVQLE R10, R11
+
+	VPXORD Z0, Z0, Z0
+	VPXORD Z1, Z1, Z1
+	VPXORD Z2, Z2, Z2
+	VPXORD Z3, Z3, Z3
+	VPXORD Z4, Z4, Z4
+	VPXORD Z5, Z5, Z5
+	VPXORD Z6, Z6, Z6
+	VPXORD Z7, Z7, Z7
+	VPXORD Z8, Z8, Z8
+	VPXORD Z9, Z9, Z9
+	VPXORD Z10, Z10, Z10
+	VPXORD Z11, Z11, Z11
+	VPXORD Z12, Z12, Z12
+	VPXORD Z13, Z13, Z13
+	VPXORD Z14, Z14, Z14
+	VPXORD Z15, Z15, Z15
+	XORQ SI, SI
+
+k4loop:
+	PREFETCHT1 (DI)
+	PREFETCHT1 64(DI)
+	PREFETCHT1 128(DI)
+	PREFETCHT1 192(DI)
+	ADDQ $256, DI
+	VMOVUPS (AX), Z24
+	VMOVUPS 64(AX), Z25
+	VMOVUPS 128(AX), Z26
+	VMOVUPS 192(AX), Z27
+	FMAROW(R8, Z28, Z0, Z1, Z2, Z3)
+	FMAROW(R9, Z29, Z4, Z5, Z6, Z7)
+	FMAROW(R10, Z30, Z8, Z9, Z10, Z11)
+	FMAROW(R11, Z31, Z12, Z13, Z14, Z15)
+	ADDQ $256, AX
+	ADDQ $4, SI
+	DECQ BX
+	JNZ  k4loop
+
+	MOVQ y+32(FP), DI
+	MOVQ ys+40(FP), DX
+	MOVQ bias+64(FP), R8
+	KMOVQ mask+56(FP), K1
+	KSHIFTRQ $16, K1, K2
+	KSHIFTRQ $32, K1, K3
+	KSHIFTRQ $48, K1, K4
+	VMOVUPS (R8), Z24
+	VMOVUPS 64(R8), Z25
+	VMOVUPS 128(R8), Z26
+	VMOVUPS 192(R8), Z27
+	STROW(Z0, Z1, Z2, Z3)
+	CMPQ CX, $1
+	JLE  g4done
+	ADDQ DX, DI
+	STROW(Z4, Z5, Z6, Z7)
+	CMPQ CX, $2
+	JLE  g4done
+	ADDQ DX, DI
+	STROW(Z8, Z9, Z10, Z11)
+	CMPQ CX, $3
+	JLE  g4done
+	ADDQ DX, DI
+	STROW(Z12, Z13, Z14, Z15)
+
+g4done:
+	VZEROUPPER
+	RET
