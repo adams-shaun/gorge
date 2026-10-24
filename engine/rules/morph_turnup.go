@@ -23,9 +23,9 @@ import (
 // A manifested card (CR 701.40) and a cloaked card (CR 701.58) carry none of
 // the three family flags, but they may still be turned face up: a manifested
 // or cloaked CREATURE CARD with a mana cost may be turned face up for its
-// mana cost (CR 701.40b, 701.58c), and a manifested or cloaked card with
+// mana cost (CR 701.40b, 701.58b), and a manifested or cloaked card with
 // Morph or Disguise may instead use that keyword's procedure (CR 701.40c-d,
-// 701.58d). manifestFaceUpCost prices the mana-cost procedure and
+// 701.58c-d). manifestFaceUpCost prices the mana-cost procedure and
 // manifestKeywordFaceUpCosts the keyword alternatives; both read the
 // Manifested/Cloaked provenance folded from the manifest and cloak entry
 // markers (events.ManifestEntryCounter / events.CloakEntryCounter). The cast side
@@ -184,12 +184,17 @@ func keywordFaceUp(o *state.Object, head string) (morphFaceUp, bool) {
 	}, true
 }
 
-// manifestFaceUpCost prices the CR 701.40b / 701.58c turn-face-up procedure a
+// manifestFaceUpCost prices the CR 701.40b / 701.58b turn-face-up procedure a
 // manifested or cloaked creature card offers: its printed mana cost, with any
 // {X} announced as 0. It returns false when the card is not a creature, has no
 // mana cost (CR 701.40b), or the cost carries a component this special-action
 // flow cannot settle. A cast-provenance permanent is owned by the keyword path
 // instead.
+//
+// CR 701.40b gates on the printed CARD: a non-creature card merely animated
+// into a creature is still not a creature card, so f.IsCreature() reads the
+// printed face and the "becomes a creature" corner is deliberately not
+// offered.
 func manifestFaceUpCost(o *state.Object, faceCost func(*cards.Face) Cost) (morphFaceUp, bool) {
 	if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
 		return morphFaceUp{}, false
@@ -222,7 +227,7 @@ func manifestFaceUpCost(o *state.Object, faceCost func(*cards.Face) Cost) (morph
 }
 
 // manifestKeywordFaceUpCosts returns the keyword turn-up alternatives a
-// manifested or cloaked card offers under CR 701.40c-d / 701.58d. Megamorph
+// manifested or cloaked card offers under CR 701.40c-d / 701.58c-d. Megamorph
 // is a morph variant (CR 702.37b), so a manifested megamorph card offers it
 // too. The cast path's family flag owns its own offer, so this is empty for a
 // cast-provenance permanent.
@@ -285,8 +290,8 @@ func turnUpCostForMode(o *state.Object, mode string, faceCost func(*cards.Face) 
 // turnFaceUpOffers appends the turn-face-up special-action offers one
 // face-down battlefield permanent carries: the Morph-family cast procedure,
 // the manifested/cloaked creature card's mana-cost procedure (CR 701.40b,
-// 701.58c), and the Morph/Megamorph/Disguise alternative a manifested or
-// cloaked card may use instead (CR 701.40c-d, 701.58d). Each offer is gated
+// 701.58b), and the Morph/Megamorph/Disguise alternative a manifested or
+// cloaked card may use instead (CR 701.40c-d, 701.58c-d). Each offer is gated
 // on the same payability predicate the action re-reads, so a stale offer is
 // never charged.
 func (w *legalWalk) turnFaceUpOffers(p state.PlayerID, id state.ObjID) {

@@ -1,10 +1,10 @@
-// manifest_turnup_test.go — CR 701.40b/701.58c/708.6: a manifested or cloaked
+// manifest_turnup_test.go — CR 701.40b/701.58b/708.6: a manifested or cloaked
 // creature card may be turned face up for its printed mana cost as a special
 // action (CR 116.2b). The offer rides the same priority walk and the same
 // turnUpPay/TurnFaceUp path as the Morph-family action, so TurnFaceUp
 // triggers and the face-down characteristic set behave identically. A
 // manifested or cloaked card with Morph/Disguise also offers that keyword's
-// procedure (CR 701.40c-d, 701.58d).
+// procedure (CR 701.40c-d, 701.58c-d).
 //
 // The decks are compiled corpus cards only; the direct-event setups use the
 // exact logged MoveZone the manifest/cloak primitives emit, the precedent
@@ -192,7 +192,7 @@ func TestManifestedNoncreatureNeverTurnsUp(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestCloakedCreatureTurnsFaceUp pins CR 701.58c through the cloak marker: the
+// TestCloakedCreatureTurnsFaceUp pins CR 701.58b through the cloak marker: the
 // cloaked bear turns up for its mana cost, and the cloak ward is gone once it
 // is face up.
 func TestCloakedCreatureTurnsFaceUp(t *testing.T) {

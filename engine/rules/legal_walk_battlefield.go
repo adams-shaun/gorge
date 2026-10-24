@@ -873,9 +873,9 @@ func (w *legalWalk) battlefieldWalk() {
 		// time its controller has priority -- it is not sorcery-gated, does not
 		// use the stack, and its cost is the keyword's printed parameter (a
 		// Morph/Megamorph/Disguise cast) or, for a manifested/cloaked creature
-		// card, its mana cost (CR 701.40b, 701.58c). A manifested/cloaked card
+		// card, its mana cost (CR 701.40b, 701.58b). A manifested/cloaked card
 		// with Morph or Disguise offers that keyword procedure as well
-		// (CR 701.40c-d, 701.58d), so one permanent can carry several offers.
+		// (CR 701.40c-d, 701.58c-d), so one permanent can carry several offers.
 		// Each offer is gated on the same floating pool the action pays, so the
 		// charge cannot disagree with what was offered.
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {

@@ -23,7 +23,7 @@ const FaceDownEntryCounter = "entered_face_down"
 // (CR 701.40). It is distinct from FaceDownEntryCounter because a generic
 // ChangeZone FaceDown$ True entry shares that bare marker and does not grant
 // the manifest turn-face-up (CR 701.40b), and from CloakEntryCounter because
-// a cloak's turn-up is CR 701.58c. It carries no payload.
+// a cloak's turn-up is CR 701.58b. It carries no payload.
 const ManifestEntryCounter = "entered_manifested"
 
 // FaceDownEntryCounterFor builds the battlefield face-down marker for a move

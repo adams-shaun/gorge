@@ -10,8 +10,8 @@
 // enforced while face down and is gone once face up, and the whole game
 // replays byte-identically from the log.
 //
-// The manifest and cloak turn-up procedures (CR 701.40b/701.58c and the
-// keyword alternatives in CR 701.40c-d/701.58d) live in manifest_turnup_test.go;
+// The manifest and cloak turn-up procedures (CR 701.40b/701.58b and the
+// keyword alternatives in CR 701.40c-d/701.58c-d) live in manifest_turnup_test.go;
 // this file covers the cast-provenance family.
 //
 // The decks are compiled corpus cards only (no Forge script text is

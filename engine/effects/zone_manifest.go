@@ -243,7 +243,7 @@ func manifestDreadMove(h Host, c *Ctx, p state.PlayerID, window []state.ObjID, c
 // unresolvable Amount$ body -- emits the SAME loud
 // "unimplemented API Cloak" note the unimplemented fallback emits and moves
 // nothing: fail loud, never silently move the wrong card. Turning a cloaked
-// creature card face up (CR 701.58c/708.6) is the special action
+// creature card face up (CR 701.58b/708.6) is the special action
 // engine/rules/morph_turnup.go offers from the Cloaked marker this primitive
 // emits.
 func effCloak(h Host, c *Ctx, sa *cards.SA) {
