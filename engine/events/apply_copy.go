@@ -210,6 +210,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	if morphFlags != 0 {
 		o.FaceDown = true
 		o.Cloaked = morphFlags&state.FlagDisguised != 0
+		o.Manifested = false
 	}
 	// CR 707.10c: Amount is the creating CopySpellAbility's
 	// MayChooseTarget$ discriminator (1 = true). It rides the event so the
@@ -559,6 +560,10 @@ func foldTurnFaceDown(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && !o.FaceDown {
 		setType, power, toughness, hasPT, _ := FaceDownEntryFields(e.Counter)
 		o.FaceDown = true
+		// A SetState TurnFaceDown (Ixidron, Cyber Conversion) is not a
+		// manifest: the permanent was not put onto the battlefield face down
+		// by the manifest procedure, so it has no mana-cost turn-up.
+		o.Manifested = false
 		o.FaceDownSetType = setType
 		o.FaceDownPower, o.FaceDownToughness = power, toughness
 		o.FaceDownHasPT = hasPT
@@ -576,6 +581,11 @@ func foldTurnFaceUp(g *state.Game, e *Event) {
 	// the battlefield is not a turn-up.
 	if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 		o.FaceDown = false
+		o.Manifested = false
+		// The cloak status (CR 708.5's ward {2}) is a face-down property:
+		// once the card is face up it is no longer cloaked, so the bit must
+		// not keep feeding the face-down readers.
+		o.Cloaked = false
 		o.FaceDownSetType = ""
 		o.FaceDownPower = 0
 		o.FaceDownToughness = 0

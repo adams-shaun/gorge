@@ -137,11 +137,10 @@ func TestETBReplacementFilterVeiledAscension(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestETBReplacementFilterVeiledAscensionFaceDown$TrueShape pins the
-// manifest marker too, not only the cloak literal: a plain "entered_face_down"
-// MoveZone entry must match the same filter. A third face-down marker cannot
-// be missed because the matcher reads events.IsFaceDownEntry, the one
-// predicate covering both.
+// TestETBReplacementFilterVeiledAscensionManifestMarker pins the manifest
+// marker too, not only the cloak literal: a manifest MoveZone entry must match
+// the same filter. A third face-down marker cannot be missed because the
+// matcher reads events.IsFaceDownEntry, the one predicate covering all of them.
 func TestETBReplacementFilterVeiledAscensionManifestMarker(t *testing.T) {
 	t.Parallel()
 	reg := freshCorpusRegistry(t,
@@ -157,7 +156,7 @@ func TestETBReplacementFilterVeiledAscensionManifestMarker(t *testing.T) {
 				bear = id
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: 0,
 					From: z, To: state.ZBattlefield,
-					Counter: events.FaceDownEntryCounter, Secret: true})
+					Counter: events.ManifestEntryCounter, Secret: true})
 				break
 			}
 		}

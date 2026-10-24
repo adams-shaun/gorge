@@ -10,10 +10,9 @@
 // enforced while face down and is gone once face up, and the whole game
 // replays byte-identically from the log.
 //
-// A manifest or cloak carrier (no morph family flag) is deliberately never
-// offered this action, so the existing manifest/cloak turn-up rules are
-// untouched: the family flag is the gate, and morphFaceUpCost reports false
-// for a face-down permanent the morph family did not put down.
+// The manifest and cloak turn-up procedures (CR 701.40b/701.58b and the
+// keyword alternatives in CR 701.40c-d/701.58c-d) live in manifest_turnup_test.go;
+// this file covers the cast-provenance family.
 //
 // The decks are compiled corpus cards only (no Forge script text is
 // committed here). The helpers come from morph_test.go, cast_test.go,

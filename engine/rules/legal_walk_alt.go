@@ -7,6 +7,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// hasPlayLandOption reports whether out already offers the land play for id,
+// so a later play_land source never yields a duplicate option for one land.
+func hasPlayLandOption(out []decision.Option, id state.ObjID) bool {
+	for _, prev := range out {
+		if prev.Kind == "play_land" && prev.Obj == id {
+			return true
+		}
+	}
+	return false
+}
+
 // mayPlayLandWalk offers land plays through active may-play-from-zone grants.
 func (w *legalWalk) mayPlayLandWalk() {
 	e, p := w.e, w.p
@@ -43,14 +54,7 @@ func (w *legalWalk) mayhemLandWalk() {
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		dup := false
-		for _, prev := range *out {
-			if prev.Kind == "play_land" && prev.Obj == id {
-				dup = true
-				break
-			}
-		}
-		if dup {
+		if hasPlayLandOption(*out, id) {
 			continue
 		}
 		w.add("play_land", "Play "+o.Face().Name, id)
@@ -722,6 +726,23 @@ func (w *legalWalk) exileCastsWalk() {
 					Label: "Cast " + front.Name + " (from adventure zone)", Obj: id, Mode: "adventure_recast"})
 			}
 			continue
+		}
+		// CR 715.3d: the owner may play the exiled card. When the main face
+		// is a LAND, "play it" is the land play, not a cast (CR 305.1), so
+		// the adventure_recast offer above deliberately withholds it. The
+		// provenance is the same log-derived adventure-zone check, and the
+		// play shares the ordinary land drop and honours CantPlayLand
+		// exactly as the hand walk does (handlePriority's play_land case
+		// moves it from its current zone).
+		if adventureSpellFace(o) != nil && o.FaceIdx == 0 && o.Card.Faces[0].IsLand() &&
+			e.adventureZoneAvailable(id) && sorcery &&
+			e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) &&
+			!playLandForbidden(e, p, state.ZExile, id) {
+			// A may-play grant over the same exile card already offered the
+			// play; never yield two identical options for one land.
+			if !hasPlayLandOption(*out, id) {
+				w.add("play_land", w.playLabel(f), id)
+			}
 		}
 		// Foretell cast (CR 702.126a): a card exiled face down by the {2}
 		// Foretell ACTION (not by any other effect -- the flag is the action's

@@ -372,6 +372,19 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		return c.Targets, true
 	case refTargetsTriggeredCard:
 		return c.Remembered, true
+	case refTargetsTriggeredAttacker:
+		// The singular attacker spellings (trig:Attacks and the
+		// AttackersDeclared family): prefer the fire-time TriggerCard role,
+		// which triggerReferents' TriggerAttacks case binds only when exactly
+		// one declared attacker matched. A batched DeclareAttackers seeds
+		// Remembered with every attacker, so the role-absent fallback keeps
+		// the old Remembered read for hand-built contexts and multi-match
+		// triggers; the plural TriggeredAttackers spelling stays on the batch
+		// case above.
+		if c.TriggerCard != 0 {
+			return []state.Target{{Obj: c.TriggerCard}}, true
+		}
+		return c.Remembered, true
 	case refTargetsRememberedLKI:
 		// The LKI spelling of the Remembered$ group names the SAME objects
 		// (Forge's remembered list, which never contains the event object the
@@ -794,6 +807,7 @@ const (
 	refTargetsParentTarget
 	refTargetsAllTargeted
 	refTargetsTriggeredCard
+	refTargetsTriggeredAttacker
 	refTargetsRememberedLKI
 	refTargetsTriggerRemembered
 	refTargetsTriggeredExploited
@@ -823,8 +837,8 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "TriggeredCardLKICopy", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredNewCard", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredNewCardLKICopy", Val: refTargetsTriggeredCard},
-	state.StrEntry[refTargetsCode]{Key: "TriggeredAttacker", Val: refTargetsTriggeredCard},
-	state.StrEntry[refTargetsCode]{Key: "TriggeredAttackerLKICopy", Val: refTargetsTriggeredCard},
+	state.StrEntry[refTargetsCode]{Key: "TriggeredAttacker", Val: refTargetsTriggeredAttacker},
+	state.StrEntry[refTargetsCode]{Key: "TriggeredAttackerLKICopy", Val: refTargetsTriggeredAttacker},
 	state.StrEntry[refTargetsCode]{Key: "TriggeredTargetLKICopy", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "DelayTriggerRemembered", Val: refTargetsTriggeredCard},
 	state.StrEntry[refTargetsCode]{Key: "DelayTriggerRememberedLKI", Val: refTargetsTriggeredCard},

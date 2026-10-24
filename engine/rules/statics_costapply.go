@@ -640,11 +640,14 @@ func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.
 // kind, which predates specialActionScope); Plotting is the plot action,
 // which rides the cast flow under the "plot" mode (Doc Aurlock); Unlock is
 // the Room unlock (Inquisitive Glimmer); MorphUp is Forge's isMorphUp -- the
-// Morph and Megamorph turn-face-up (Exiled Doomsayer) -- and isTurnFaceUp its
-// union with the Disguise turn-up (Harrowing Swarm's granted reduction).
-// Forge's isTurnFaceUp also covers the manifest and cloak turn-ups; this
-// build models no turn-up action for either, so there is nothing more for it
-// to match. Anything else denies.
+// Morph and Megamorph turn-face-up (Exiled Doomsayer) -- and ManifestUp and
+// CloakUp are Forge's isManifestUp/isCloakUp scope names for the manifest and
+// cloak turn-face-up procedures. isTurnFaceUp is Forge's union of all four
+// (Harrowing Swarm's granted reduction). The manifest/cloak arms are named
+// for the union's exactness; no corpus cost modifier carries a
+// ValidSpell$ Static.ManifestUp/CloakUp at the pin (Qarsi Deceiver's
+// Static.ManifestUp+Creature restriction is evaluated by RestrictValidMatches,
+// which rejects Static.* -- the known approximation). Anything else denies.
 func staticConstraintMatches(scope costScope, constraint string) bool {
 	switch staticConstraintMatchesCodes.Code(string(strings.TrimSpace(constraint))) {
 	case staticConstraintMatchesForetelling:
@@ -655,8 +658,13 @@ func staticConstraintMatches(scope costScope, constraint string) bool {
 		return scope.Kind == "Static" && scope.Mode == "unlock"
 	case staticConstraintMatchesMorphUp:
 		return scope.Kind == "Static" && scope.Mode == "morphup"
+	case staticConstraintMatchesManifestUp:
+		return scope.Kind == "Static" && scope.Mode == "manifestup"
+	case staticConstraintMatchesCloakUp:
+		return scope.Kind == "Static" && scope.Mode == "cloakup"
 	case staticConstraintMatchesIsTurnFaceUp:
-		return scope.Kind == "Static" && (scope.Mode == "morphup" || scope.Mode == "disguiseup")
+		return scope.Kind == "Static" && (scope.Mode == "morphup" || scope.Mode == "disguiseup" ||
+			scope.Mode == "manifestup" || scope.Mode == "cloakup")
 	}
 	return false
 }
@@ -887,6 +895,8 @@ const (
 	staticConstraintMatchesPlotting
 	staticConstraintMatchesUnlock
 	staticConstraintMatchesMorphUp
+	staticConstraintMatchesManifestUp
+	staticConstraintMatchesCloakUp
 	staticConstraintMatchesIsTurnFaceUp
 )
 
@@ -895,6 +905,8 @@ var staticConstraintMatchesCodes = state.NewStrCodes(
 	state.StrEntry[staticConstraintMatchesCode]{Key: "Plotting", Val: staticConstraintMatchesPlotting},
 	state.StrEntry[staticConstraintMatchesCode]{Key: "Unlock", Val: staticConstraintMatchesUnlock},
 	state.StrEntry[staticConstraintMatchesCode]{Key: "MorphUp", Val: staticConstraintMatchesMorphUp},
+	state.StrEntry[staticConstraintMatchesCode]{Key: "ManifestUp", Val: staticConstraintMatchesManifestUp},
+	state.StrEntry[staticConstraintMatchesCode]{Key: "CloakUp", Val: staticConstraintMatchesCloakUp},
 	state.StrEntry[staticConstraintMatchesCode]{Key: "isTurnFaceUp", Val: staticConstraintMatchesIsTurnFaceUp},
 )
 

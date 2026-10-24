@@ -429,8 +429,8 @@ func TestManifestedCardGetsNoWard(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
 	e, cfg := manifestEngine(t, reg, "Lightning Bolt")
-	// Manifest seat 1's Grizzly Bears with the pre-existing marker value (a
-	// creature face, so the bolt's printed-face Creature filter offers it).
+	// Manifest seat 1's Grizzly Bears with the manifest marker (a creature
+	// face, so the bolt's printed-face Creature filter offers it).
 	var top state.ObjID
 	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
 		for _, id := range e.G.Zone(z, 1) {
@@ -438,7 +438,7 @@ func TestManifestedCardGetsNoWard(t *testing.T) {
 				top = id
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: 1,
 					From: z, To: state.ZBattlefield,
-					Counter: "entered_face_down", Secret: true})
+					Counter: events.ManifestEntryCounter, Secret: true})
 				break
 			}
 		}

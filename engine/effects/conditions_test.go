@@ -246,6 +246,9 @@ func TestResolveSkipsAnUnmetConditionGate(t *testing.T) {
 	// A two-faced source so SetState has something to flip.
 	src := mkCard(t, "Name:Front\nTypes:Creature\nPT:1/1\nOracle:x\n\nALTERNATE\n\nName:Back\nTypes:Creature\nPT:3/3\nOracle:x\n")
 	srcID := h.g.AddObject(src, 0).ID
+	// Transform is battlefield-only (CR 701.27a); this pin is about the
+	// condition gate, so put the source where the mode applies.
+	toBattlefield(h, srcID)
 	chain := "DB$ SetState | Defined$ Self | Mode$ Transform | ConditionDefined$ Remembered | ConditionPresent$ Card.Instant,Card.Sorcery | ConditionCompare$ EQ1 | SubAbility$ DBCleanup\nSVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True"
 	sa := sa(t, chain)
 
@@ -265,6 +268,7 @@ func TestResolveSkipsAnUnmetConditionGate(t *testing.T) {
 	// Instant remembered: exactly one flip.
 	h2, ids2 := conditionBoard(t)
 	srcID2 := h2.g.AddObject(src, 0).ID
+	toBattlefield(h2, srcID2)
 	ctx2 := &Ctx{Controller: 0, Source: srcID2, Remembered: []state.Target{{Obj: ids2[0]}}}
 	Resolve(h2, ctx2, sa)
 	flips = 0

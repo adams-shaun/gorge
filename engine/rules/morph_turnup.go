@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -19,14 +20,19 @@ import (
 // face-down one; the colon parameter is the turn-up one). Megamorph's rider
 // adds a +1/+1 counter as the permanent turns face up.
 //
-// A manifested card (Choices$ Manifest) and a cloaked card have their own
-// turn-up rules and carry none of the three family flags, so morphFaceUpCost
-// reports false for them and this action is never offered: their turn-up is
-// a separate subsystem. The cast side (engine/rules/cast.go's modeFlags and
-// moveResolvedOffStack) is the provenance source -- the family flag survives
-// onto the battlefield permanent, and the printed face (which is retained on
-// the object even while face down, CR 708.8 only hides it from the RULES)
-// carries the cost.
+// A manifested card (CR 701.40) and a cloaked card (CR 701.58) carry none of
+// the three family flags, but they may still be turned face up: a manifested
+// or cloaked CREATURE CARD with a mana cost may be turned face up for its
+// mana cost (CR 701.40b, 701.58b), and a manifested or cloaked card with
+// Morph or Disguise may instead use that keyword's procedure (CR 701.40c-d,
+// 701.58c-d). manifestFaceUpCost prices the mana-cost procedure and
+// manifestKeywordFaceUpCosts the keyword alternatives; both read the
+// Manifested/Cloaked provenance folded from the manifest and cloak entry
+// markers (events.ManifestEntryCounter / events.CloakEntryCounter). The cast side
+// (engine/rules/cast.go's modeFlags and moveResolvedOffStack) is the family
+// provenance source -- the family flag survives onto the battlefield
+// permanent, and the printed face (which is retained on the object even
+// while face down, CR 708.8 only hides it from the RULES) carries the cost.
 //
 // The turn-up cost is the FULL keyword parameter: mana, life, and the
 // non-mana components the corpus prints (Reveal, Sac, Discard, Return, and an
@@ -45,19 +51,46 @@ func init() {
 
 type morphFaceUp struct {
 	cost Cost
-	// family is the printed keyword head ("Morph", "Megamorph", "Disguise"),
-	// used only for the offer label and diagnostics.
+	// family is the procedure's name ("Morph", "Megamorph", "Disguise",
+	// "Manifest", "Cloak"), used for diagnostics.
 	family string
+	// procedure is "cast" (a face-down cast's own keyword), "manifest",
+	// "cloak", or "keyword" (the Morph/Disguise alternative a manifested or
+	// cloaked card may use, CR 701.40c-d). It distinguishes the two offers a
+	// manifested Morph card carries.
+	procedure string
 	// megamorph is true when the turn-up must also put a +1/+1 counter.
 	megamorph bool
+}
+
+// mode is the decision.Option.Mode that identifies this offer when a
+// permanent carries more than one turn-up procedure. The cast path keeps the
+// historical empty mode; manifest/cloak and the keyword alternatives name
+// themselves.
+func (mf morphFaceUp) mode() string {
+	switch mf.procedure {
+	case "manifest":
+		return "manifest"
+	case "cloak":
+		return "cloak"
+	case "keyword":
+		return strings.ToLower(mf.family)
+	}
+	return ""
 }
 
 // scope is the special-action cost scope the turn-up is priced under, so the
 // CR 601.2f modifiers a ValidSpell$ Static.MorphUp / Static.isTurnFaceUp
 // static names reach it: Morph and Megamorph turn up under "morphup" (Forge's
-// abilityTurnFaceUp stamps MorphUp$ on both), Disguise under "disguiseup".
+// abilityTurnFaceUp stamps MorphUp$ on both), Disguise under "disguiseup",
+// and manifest/cloak under their own "manifestup"/"cloakup" scopes.
 func (mf morphFaceUp) scope() costScope {
-	if mf.family == "Disguise" {
+	switch {
+	case mf.procedure == "manifest":
+		return specialActionScope("manifestup")
+	case mf.procedure == "cloak":
+		return specialActionScope("cloakup")
+	case mf.family == "Disguise":
 		return specialActionScope("disguiseup")
 	}
 	return specialActionScope("morphup")
@@ -75,7 +108,7 @@ func (e *Engine) morphTurnUpMods(p state.PlayerID, id state.ObjID, mf morphFaceU
 	return mods, true
 }
 
-// morphFaceUpCost resolves the turn-face-up action a face-down battlefield
+// morphFaceUpCost resolves the turn-face-up action a face-down CAST
 // permanent offers, or ok=false when it offers none: not face down, not a
 // creature the morph family put down (no family flag), or a face that
 // carries no keyword parameter to price the action.
@@ -87,10 +120,6 @@ func morphFaceUpCost(o *state.Object) (morphFaceUp, bool) {
 	if fam == 0 {
 		return morphFaceUp{}, false
 	}
-	f := o.Face()
-	if f == nil {
-		return morphFaceUp{}, false
-	}
 	var head string
 	switch {
 	case fam&state.FlagMorphed != 0:
@@ -99,6 +128,29 @@ func morphFaceUpCost(o *state.Object) (morphFaceUp, bool) {
 		head = "Megamorph"
 	case fam&state.FlagDisguised != 0:
 		head = "Disguise"
+	}
+	mf, ok := keywordFaceUp(o, head)
+	if !ok {
+		return morphFaceUp{}, false
+	}
+	// The cast path keeps the historical empty decision mode: the family flag
+	// alone identifies it, and the megamorph rider comes from that flag.
+	mf.procedure = "cast"
+	mf.megamorph = fam&state.FlagMegamorphed != 0
+	return mf, true
+}
+
+// keywordFaceUp prices the Morph/Megamorph/Disguise procedure head on a
+// face-down permanent's printed face. It is shared by the cast path
+// (morphFaceUpCost) and by the keyword alternative a manifested or cloaked
+// card may use (CR 701.40c-d).
+func keywordFaceUp(o *state.Object, head string) (morphFaceUp, bool) {
+	if o == nil {
+		return morphFaceUp{}, false
+	}
+	f := o.Face()
+	if f == nil {
+		return morphFaceUp{}, false
 	}
 	// The cost is the first colon-field of the keyword parameter (Forge's
 	// KeywordWithCost rule): a shaped line like
@@ -127,8 +179,112 @@ func morphFaceUpCost(o *state.Object) (morphFaceUp, bool) {
 	return morphFaceUp{
 		cost:      c,
 		family:    head,
-		megamorph: fam&state.FlagMegamorphed != 0,
+		procedure: "keyword",
+		megamorph: head == "Megamorph",
 	}, true
+}
+
+// manifestFaceUpCost prices the CR 701.40b / 701.58b turn-face-up procedure a
+// manifested or cloaked creature card offers: its printed mana cost, with any
+// {X} announced as 0. It returns false when the card is not a creature, has no
+// mana cost (CR 701.40b), or the cost carries a component this special-action
+// flow cannot settle. A cast-provenance permanent is owned by the keyword path
+// instead.
+//
+// CR 701.40b gates on the printed CARD: a non-creature card merely animated
+// into a creature is still not a creature card, so f.IsCreature() reads the
+// printed face and the "becomes a creature" corner is deliberately not
+// offered.
+func manifestFaceUpCost(o *state.Object, faceCost func(*cards.Face) Cost) (morphFaceUp, bool) {
+	if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+		return morphFaceUp{}, false
+	}
+	if o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed|state.FlagDisguised) != 0 {
+		return morphFaceUp{}, false
+	}
+	if !o.Manifested && !o.Cloaked {
+		return morphFaceUp{}, false
+	}
+	f := o.Face()
+	if f == nil || !f.IsCreature() {
+		return morphFaceUp{}, false
+	}
+	if strings.TrimSpace(f.ManaCost) == "" {
+		return morphFaceUp{}, false
+	}
+	c := faceCost(f)
+	if len(c.Unknown) > 0 || !morphTurnUpCostSupported(c) || morphTurnUpCountAnnounced(c) {
+		return morphFaceUp{}, false
+	}
+	// CR 701.40b: the cost is the card's mana cost; an {X} in it is 0.
+	if c.X != 0 {
+		c = c.WithX(0)
+	}
+	if o.Cloaked {
+		return morphFaceUp{cost: c, family: "Cloak", procedure: "cloak"}, true
+	}
+	return morphFaceUp{cost: c, family: "Manifest", procedure: "manifest"}, true
+}
+
+// manifestKeywordFaceUpCosts returns the keyword turn-up alternatives a
+// manifested or cloaked card offers under CR 701.40c-d / 701.58c-d. Megamorph
+// is a morph variant (CR 702.37b), so a manifested megamorph card offers it
+// too. The cast path's family flag owns its own offer, so this is empty for a
+// cast-provenance permanent.
+func manifestKeywordFaceUpCosts(o *state.Object) []morphFaceUp {
+	if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+		return nil
+	}
+	if o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed|state.FlagDisguised) != 0 {
+		return nil
+	}
+	if !o.Manifested && !o.Cloaked {
+		return nil
+	}
+	var out []morphFaceUp
+	for _, head := range []string{"Morph", "Megamorph", "Disguise"} {
+		if mf, ok := keywordFaceUp(o, head); ok {
+			out = append(out, mf)
+		}
+	}
+	return out
+}
+
+// turnUpCostForMode resolves the turn-up offer a decision option names. The
+// empty mode is the historical cast-provenance offer; the named modes select
+// the manifest/cloak mana-cost procedure or a keyword alternative. faceCost
+// prices the printed face (the Engine dependency the free func needs). A
+// keyword mode is offered only to the same provenance the offer walk uses: a
+// manifested or cloaked card that was not cast face down. The nil check makes
+// a stale option for a removed object refuse rather than panic.
+func turnUpCostForMode(o *state.Object, mode string, faceCost func(*cards.Face) Cost) (morphFaceUp, bool) {
+	if o == nil {
+		return morphFaceUp{}, false
+	}
+	switch mode {
+	case "":
+		return morphFaceUpCost(o)
+	case "manifest", "cloak":
+		return manifestFaceUpCost(o, faceCost)
+	}
+	if o.Zone != state.ZBattlefield || !o.FaceDown {
+		return morphFaceUp{}, false
+	}
+	if o.CastFlags&(state.FlagMorphed|state.FlagMegamorphed|state.FlagDisguised) != 0 {
+		return morphFaceUp{}, false
+	}
+	if !o.Manifested && !o.Cloaked {
+		return morphFaceUp{}, false
+	}
+	switch mode {
+	case "morph":
+		return keywordFaceUp(o, "Morph")
+	case "megamorph":
+		return keywordFaceUp(o, "Megamorph")
+	case "disguise":
+		return keywordFaceUp(o, "Disguise")
+	}
+	return morphFaceUp{}, false
 }
 
 // morphTurnUpCostSupported is a positive allowlist for the components this
@@ -238,6 +394,10 @@ type turnUpPay struct {
 	// announcement) at every payability read and at settlement, captured
 	// once when the action is taken -- the snapshot the offer priced.
 	mods costMods
+	// megamorph is the procedure's +1/+1 rider, captured with the cost so a
+	// manifested card using its printed Megamorph procedure still gets the
+	// counter.
+	megamorph bool
 	// x is the announced value of the cost's {X}, folded into the payment at
 	// settle time; xDone marks the announcement already answered.
 	x     int32
@@ -266,7 +426,7 @@ type turnUpPay struct {
 // a no-op, and the inert backstop holds it out of the re-offer.
 func (e *Engine) turnFaceUp(p state.PlayerID, opt decision.Option) {
 	o := e.G.Obj(opt.Obj)
-	mf, ok := morphFaceUpCost(o)
+	mf, ok := turnUpCostForMode(o, opt.Mode, e.faceCost)
 	if !ok || o.Controller != p {
 		return
 	}
@@ -283,7 +443,7 @@ func (e *Engine) turnFaceUp(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-	e.turnUp = &turnUpPay{player: p, card: opt.Obj, cost: mf.cost, mods: mods}
+	e.turnUp = &turnUpPay{player: p, card: opt.Obj, cost: mf.cost, mods: mods, megamorph: mf.megamorph}
 	e.advanceTurnUp()
 }
 
@@ -706,13 +866,10 @@ func (e *Engine) finishTurnUp(tp *turnUpPay) {
 		return
 	}
 	e.turnUp = nil
-	// Read the megamorph rider BEFORE the TurnFaceUp event: its Apply leaves
-	// CastFlags untouched, but the read belongs to the cast provenance the
-	// action is priced from, so it is taken once here.
-	megamorph := false
-	if mf, ok := morphFaceUpCost(e.G.Obj(tp.card)); ok {
-		megamorph = mf.megamorph
-	}
+	// The megamorph rider was captured with the cost when the action was
+	// taken, so a manifested card using its printed Megamorph procedure keeps
+	// the +1/+1 counter even though it carries no family cast flag.
+	megamorph := tp.megamorph
 	// The TurnFaceUp event is also the CR 107.3m trigger binding point for
 	// an X paid as this permanent turns face up (Bane of the Living's
 	// Count$xPaid trigger). Amount is already part of the event encoding; the
