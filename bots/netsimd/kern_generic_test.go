@@ -15,6 +15,7 @@ import (
 // is exact; unset, it compares assembly against the same scalar reference the
 // existing kern_test.go compares it to, with its documented ~1e-6 tolerance.
 func TestWidthGenericMatchesFastPath(t *testing.T) {
+	t.Cleanup(func() { ForceScalar = false })
 	rng := rand.New(rand.NewSource(7))
 	mk := func(n int) []float32 {
 		v := make([]float32, n)
@@ -99,6 +100,7 @@ func TestWidthGenericOtherWidths(t *testing.T) {
 // kernel and agree with the scalar reference: the assembly's fallthrough
 // treats an unknown width as 32, which would read past each row.
 func TestSumRowsWideWidth(t *testing.T) {
+	t.Cleanup(func() { ForceScalar = false })
 	rng := rand.New(rand.NewSource(3))
 	const width, rowsN = 128, 16
 	table := make([]float32, width*rowsN)
@@ -114,6 +116,9 @@ func TestSumRowsWideWidth(t *testing.T) {
 	}
 
 	for _, force := range []bool{true, false} {
+		if !force && !hasAVX512 {
+			continue // without AVX-512 both arms are the same scalar kernel
+		}
 		ForceScalar = force
 		got := make([]float32, width)
 		SumRows(got, table, width, feats)

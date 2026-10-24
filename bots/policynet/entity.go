@@ -132,7 +132,7 @@ var entityTypeMasks = [len(entityTypes)]cards.TypeMask{cards.TypeCreature, cards
 	cards.TypeEnchantment, cards.TypePlaneswalker, cards.TypeInstant, cards.TypeSorcery, cards.TypeBattle,
 	cards.TypeLegendary, cards.TypeBasic}
 
-// entRelNames names the relational slots EntityRawWidthV1..EntityRawWidth-1.
+// entRelNames names the relational slots EntityRawWidthV1..EntityRawWidthRelEnd-1.
 var entRelNames = [16]string{"tgt-by-me", "tgt-by-opp", "tgt-perm-me", "tgt-perm-opp",
 	"tgt-player-me", "tgt-player-opp", "tgt-stack", "tgt-grave", "stack-x", "stack-kicked",
 	"combat-foes", "combat-foe-pow", "combat-foe-tgh", "combat-dies", "combat-kills", "reserved"}
@@ -820,8 +820,8 @@ func pipCounts(cost string) [6]int {
 }
 
 // addPips adds one mana-cost token's pips to n: a numeric token is generic,
-// a hybrid counts each one-letter face, and any other token counts every
-// WUBRG C letter it names (a Phyrexian's colour, a twobrid's colour half).
+// a slash token (hybrid, twobrid, Phyrexian) counts each one-letter face and
+// nothing else, and any other token counts every WUBRG C letter it names.
 func addPips(n *[6]int, tok string) {
 	if equalFoldASCII(tok, "X") {
 		return
@@ -835,7 +835,6 @@ func addPips(n *[6]int, tok string) {
 		return
 	}
 	if byteIndex(tok, '/') >= 0 {
-		counted := false
 		for start := 0; start <= len(tok); {
 			end := start
 			for end < len(tok) && tok[end] != '/' {
@@ -844,7 +843,6 @@ func addPips(n *[6]int, tok string) {
 			if end-start == 1 {
 				if k := pipIndexByte(tok[start]); k >= 0 {
 					n[k]++
-					counted = true
 				}
 			}
 			if end == len(tok) {
@@ -852,9 +850,7 @@ func addPips(n *[6]int, tok string) {
 			}
 			start = end + 1
 		}
-		if counted {
-			return
-		}
+		return
 	}
 	for i := 0; i < len(tok); i++ {
 		if k := pipIndexByte(tok[i]); k >= 0 {

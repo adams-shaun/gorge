@@ -42,9 +42,9 @@ type norm struct {
 //
 // The AVX-512 kernels are 64-lane (ln64/dot64/addv64), so a net with
 // d == hh == 64 lands on the assembly fast path and every other shape runs
-// the width-generic Go kernels (lnN/dotN/addvN). ff must still be a multiple
-// of 32 (gemvT pads the output to 32). A wide net is slower per lane but the
-// same code path; see fast.
+// the width-generic Go kernels (lnN/dotN/addvN). d, ff, hh and cd must be
+// multiples of 32 (gemvT pads every output to 32 lanes). A wide net is
+// slower per lane but the same code path; see fast.
 type Net struct {
 	d, ff, e, cd, hh int
 	rawW             int  // entity raw width the card_raw layer reads
@@ -202,8 +202,9 @@ func Load(path string, cardCache int) (*Net, error) {
 	}
 	cfg := func(k string) int { return int(h.Config[k]) }
 	g := &Net{d: cfg("d"), ff: cfg("ff"), e: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden"), rawW: rawIn}
-	if g.d <= 0 || g.hh <= 0 || g.e <= 0 || g.cd <= 0 || g.ff%32 != 0 {
-		return nil, fmt.Errorf("netsimd %s: shape d=%d ff=%d e=%d cd=%d hh=%d: need d,hh,e,cd > 0 and ff%%32==0", path, g.d, g.ff, g.e, g.cd, g.hh)
+	if g.d <= 0 || g.hh <= 0 || g.e <= 0 || g.cd <= 0 ||
+		g.d%32 != 0 || g.ff%32 != 0 || g.hh%32 != 0 || g.cd%32 != 0 {
+		return nil, fmt.Errorf("netsimd %s: shape d=%d ff=%d e=%d cd=%d hh=%d: need d,hh,e,cd > 0 and d,ff,hh,cd multiples of 32", path, g.d, g.ff, g.e, g.cd, g.hh)
 	}
 	g.fast = g.d == 64 && g.hh == 64
 	var errs []error
@@ -321,7 +322,8 @@ func Load(path string, cardCache int) (*Net, error) {
 }
 
 // RawWidth is the entity raw width the network's card_raw layer reads: 68
-// for a format-1 network, policynet.EntityRawWidth for the current encoding.
+// for a format-1 network, 84 for a format-3 one, policynet.EntityRawWidth
+// for the current encoding.
 func (g *Net) RawWidth() int { return g.rawW }
 
 // Eval runs the network on st, writes each option's logit into scores
@@ -393,7 +395,7 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 	clear(sc.pool)
 	for k := 0; k < nc; k++ {
 		if gr := int(sc.groups[k]); gr < groups {
-			poolAcc(&sc.pool[gr*cd], &sc.pool[(groups+gr)*cd], &sc.ent[k*cd])
+			poolAccW(&sc.pool[gr*cd], &sc.pool[(groups+gr)*cd], &sc.ent[k*cd], cd)
 		}
 	}
 	sc.s = growF(sc.s, d)

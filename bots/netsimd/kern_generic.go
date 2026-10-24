@@ -141,6 +141,29 @@ func poolAccScalar(sum, mx, c *float32) {
 	}
 }
 
+// poolAccN: sum[:n] += 0.25·c, mx[:n] = max(mx, c), over a width-generic n.
+func poolAccN(sum, mx, c *float32, n int) {
+	S := f32s(sum, n)
+	M := f32s(mx, n)
+	C := f32s(c, n)
+	for i := range C {
+		S[i] = fma32(0.25, C[i], S[i])
+		if C[i] > M[i] {
+			M[i] = C[i]
+		}
+	}
+}
+
+// poolAccW pools a cd-wide card vector: the 32-lane assembly kernel is the
+// fast path, every other width takes the generic kernel.
+func poolAccW(sum, mx, c *float32, cd int) {
+	if cd == 32 {
+		poolAcc(sum, mx, c)
+		return
+	}
+	poolAccN(sum, mx, c, cd)
+}
+
 // Width-generic variants. The 64-lane kernels above are the fast path, tuned
 // against the assembly; these serve every other width (a wide MLP's d=128, a
 // GNN's 128/384) and the fast path's own scalar reference. They accumulate in
