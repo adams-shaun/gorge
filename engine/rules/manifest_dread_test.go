@@ -118,7 +118,7 @@ func TestZimoneManifestDreadLooksAndChooses(t *testing.T) {
 	var faceDownMove *events.Event
 	for i := range e.L.Events {
 		ev := &e.L.Events[i]
-		if ev.Kind == events.MoveZone && ev.Obj == selected && ev.To == state.ZBattlefield && ev.Counter == "entered_face_down" {
+		if ev.Kind == events.MoveZone && ev.Obj == selected && ev.To == state.ZBattlefield && ev.Counter == events.ManifestEntryCounter {
 			faceDownMove = ev
 		}
 	}
@@ -332,7 +332,7 @@ func TestZimoneManifestDreadEmptyLibrary(t *testing.T) {
 	before := len(e.L.Events)
 	dreadDriveToResolution(t, e, nil)
 	for _, ev := range e.L.Events[before:] {
-		if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && ev.Counter == "entered_face_down" {
+		if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && ev.Counter == events.ManifestEntryCounter {
 			t.Fatalf("an empty library still manifested a card: %+v", ev)
 		}
 		if ev.Kind == events.Note && ev.Text == "looks at the top two cards of the library" {
@@ -383,7 +383,7 @@ func TestManifestDreadOutOfScopeShapesStayLoud(t *testing.T) {
 			manifestedOnBf := false
 			for _, ev := range e.L.Events {
 				if ev.Kind == events.MoveZone && ev.From == state.ZLibrary &&
-					ev.To == state.ZBattlefield && ev.Counter == "entered_face_down" {
+					ev.To == state.ZBattlefield && ev.Counter == events.ManifestEntryCounter {
 					manifestedOnBf = true
 				}
 			}

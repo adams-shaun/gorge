@@ -231,7 +231,7 @@ func TestUnleashFaceDownEntryPosesNothing(t *testing.T) {
 	e := New(cfg)
 	id := e.G.Objs[0].ID
 	for _, tc := range []struct{ name, counter string }{
-		{"manifest", events.FaceDownEntryCounter},
+		{"manifest", events.ManifestEntryCounter},
 		{"cloak", events.CloakEntryCounter},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -271,7 +271,7 @@ func TestRiotFaceDownEntryPosesNothing(t *testing.T) {
 	e := New(cfg)
 	id := e.G.Objs[0].ID
 	for _, tc := range []struct{ name, counter string }{
-		{"manifest", events.FaceDownEntryCounter},
+		{"manifest", events.ManifestEntryCounter},
 		{"cloak", events.CloakEntryCounter},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -315,7 +315,7 @@ func TestRiotFaceDownEntryDoesNotDisableTheNextRiotAsk(t *testing.T) {
 	}
 	cfg := seatZeroStart(Config{Seed: 408, Names: []string{"vandal", "other"}, Decks: [][]*cards.Card{deck, deck}})
 	for _, tc := range []struct{ name, counter string }{
-		{"manifest", events.FaceDownEntryCounter},
+		{"manifest", events.ManifestEntryCounter},
 		{"cloak", events.CloakEntryCounter},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

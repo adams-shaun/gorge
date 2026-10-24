@@ -111,6 +111,12 @@ var quietCoveredSections = map[string]bool{
 	"recordAbilityBlock":        true,
 	"maxSpeedBoastHolds":        true,
 	"pricing":                   true,
+	// turnFaceUpOffers is the face-down permanent's turn-up special-action
+	// loop. It only ever narrows the battlefield blocker's over-approximation:
+	// the qbBattlefieldFace blocker already treats a face-down permanent as
+	// possibly offering a face-up action (and qbBadObject fails closed on one),
+	// so the section is covered by the same blocker the inline loop used.
+	"turnFaceUpOffers": true,
 	// autoPayOffer (the paid-cost census, legal_walk_autopay.go) offers a
 	// pool-short printed ability the planner can pay by tapping sources. The
 	// proof's ability blocker prices against the seat's whole mana ceiling
