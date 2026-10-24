@@ -12,7 +12,8 @@ import (
 // ThisTargetedCard name the resolving ability's chosen targets, AllTargeted
 // the whole root/sub-ability chain union (Ctx.AllTargets when the cost site
 // bound it, Ctx.Targets otherwise; see refTargets);
-// TriggeredCard (and its LKI spellings) and TriggeredAttacker name the
+// TriggeredCard (and its LKI spellings) and TriggeredAttacker (the singular
+// attacker spelling, which prefers the bound TriggerCard role) name the
 // objects the firing trigger remembered; Remembered is the plain form. A
 // property this build does not model (or a body with no $ at all -- every
 // other head in this evaluator) returns false, and the caller degrades to

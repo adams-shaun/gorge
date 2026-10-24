@@ -209,7 +209,8 @@ type changeZoneTargeting struct {
 	DefinedLibraryPosition bool // Defined$ TopOfLibrary / BottomOfLibrary
 	DefinedDelayRemembered bool // Defined$ DelayTriggerRemembered[LKI]
 	// DefinedTriggered is Defined$ TriggeredCard and its family
-	// (definedSpecTriggeredCard): the mover skips an object the trigger's
+	// (definedSpecTriggeredCard), plus the singular attacker spellings
+	// (definedSpecTriggeredAttacker): the mover skips an object the trigger's
 	// fire-time capture saw that has since changed zones (CR 400.7,
 	// Ctx.TriggerRememberedMoved).
 	DefinedTriggered bool
@@ -567,7 +568,7 @@ func compileChangeZoneTargeting(tp *TargetParams, dp *DefinedParams) changeZoneT
 	switch definedSpecCodes.Code(dp.Defined.Text) {
 	case definedSpecDelayTriggerRemembered, definedSpecDelayTriggerRememberedLKI:
 		t.DefinedDelayRemembered = true
-	case definedSpecTriggeredCard:
+	case definedSpecTriggeredCard, definedSpecTriggeredAttacker:
 		t.DefinedTriggered = true
 	}
 	t.ValidTgts = ParamText{Text: tp.ValidTgts, Present: tp.Has(TgtValidPresent)}
