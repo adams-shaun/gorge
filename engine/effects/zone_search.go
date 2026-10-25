@@ -1368,6 +1368,13 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 		applyMoveFaceDown(h, c, &cz.Riders.FaceDownRiders, &ev, to)
 		seenFaceDownExile(&ev, c.Controller, c.Source)
 		markChangeZoneAttach(h, c, sa, cz, &ev)
+		withKind := ""
+		var withAmt int32
+		if cz.WithCountersType != "" && counterDestination(to) {
+			withKind = cz.WithCountersType
+			withAmt = withCounterAmount(h, c, cz)
+		}
+		entryCounters := withKind != "" && entryWithCounters(&ev, to, withKind, withAmt)
 		emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
 		if to == state.ZExile && c.Source != 0 {
 			if o := g.Obj(id); o != nil && !o.IsToken {
@@ -1393,9 +1400,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			}
 		}
 		moved = append(moved, id)
-		if cz.WithCountersType != "" && counterDestination(to) {
+		if !entryCounters && withKind != "" {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
-				Counter: cz.WithCountersType, Amount: withCounterAmount(h, c, cz)})
+				Counter: withKind, Amount: withAmt})
 		}
 		// GainControl$ on a library search (Act on Impulse's "you may play
 		// those cards" family's put-onto-battlefield relatives): same settle

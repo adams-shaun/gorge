@@ -58,12 +58,13 @@ const incubatorTokenKey = "incubator_c_0_0_a_phyrexian"
 //
 // The mint is the ordinary TokenCreate event (so token-replacement
 // machinery -- Doubling Season, Anointed Procession -- sees it exactly as it
-// sees every other mint) and the counters are the ordinary CounterChange
-// event. Because a CreateToken replacement can rewrite one would-be token
-// into several mints, the mint goes through h.EmitTokenCreate and the
-// counters land on EVERY mint the plan produced, not just the first: each
-// mint's CounterChange is its own event, so an AddCounter replacement
-// doubles that mint's counters independently (CR 614.5/616.1e).
+// sees every other mint) and its +1/+1 counters are folded into that same
+// entry (entryWithCounters), so the Incubator ENTERS with them (CR 122.6,
+// 614.1c): an entry trigger sees the counters, and the rules entry plan
+// settles them through the AddCounter replacements. Because a CreateToken
+// replacement can rewrite one would-be token into several mints, the mint
+// goes through h.EmitTokenCreate and the payload is carried onto EVERY mint
+// the plan produced, not just the first.
 func effIncubate(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "Amount", 1)
@@ -99,30 +100,29 @@ func effIncubate(h Host, c *Ctx, sa *cards.SA) {
 	incubateLoop(h, c, owner, key, n, times)
 }
 
-// incubateLoop is effIncubate's create-and-counter repeat. EmitTokenCreate
-// returns EVERY object the emit created -- an ordinary emit the single mint,
-// a CreateToken replacement the whole rewritten plan (Doubling Season's
-// pair, Anointed Procession's pair) -- so the counters land on every mint
-// the resolution actually produced.
+// incubateLoop is effIncubate's create-and-counter repeat. The +1/+1 counters
+// are folded into each mint's TokenCreate (entryWithCounters), so the
+// Incubator ENTERS with them (CR 122.6, 614.1c) and an entry trigger sees
+// them; EmitTokenCreate returns EVERY object the emit created -- an ordinary
+// emit the single mint, a CreateToken replacement the whole rewritten plan
+// (Doubling Season's pair, Anointed Procession's pair) -- and the payload is
+// carried onto every plan mint, so each one enters with the counters.
 func incubateLoop(h Host, c *Ctx, owner state.PlayerID, key string, n, times int32) {
 	g := h.Game()
 	for i := int32(0); i < times; i++ {
 		wasSuspended := h.Suspended()
-		minted := h.EmitTokenCreate(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
+		ev := events.Event{Kind: events.TokenCreate, Player: owner, Text: key}
+		entryWithCounters(&ev, state.ZBattlefield, "P1P1", n)
+		minted := h.EmitTokenCreate(ev)
 		if !wasSuspended && h.Suspended() {
 			// A resolution-time window opened: every mint that landed takes
-			// its counters (each its own event, so an AddCounter replacement
-			// doubles it independently); with none landed the repeat stops.
+			// its counters as part of its entry; with none landed the repeat
+			// stops.
 			var landed []state.ObjID
 			for _, id := range minted {
-				if g.Obj(id) == nil {
-					continue
+				if g.Obj(id) != nil {
+					landed = append(landed, id)
 				}
-				if n > 0 {
-					h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
-						Counter: "P1P1", Amount: n})
-				}
-				landed = append(landed, id)
 			}
 			if len(landed) > 0 {
 				continue
@@ -130,18 +130,9 @@ func incubateLoop(h Host, c *Ctx, owner state.PlayerID, key string, n, times int
 			return
 		}
 		if len(minted) == 0 {
-			// The mint folded nowhere (an invalid owner): nothing to
-			// counter, and stopping the repeat keeps the loop total.
+			// The mint folded nowhere (an invalid owner): stopping the repeat
+			// keeps the loop total.
 			return
-		}
-		for _, want := range minted {
-			if g.Obj(want) == nil {
-				continue
-			}
-			if n > 0 {
-				h.Emit(events.Event{Kind: events.CounterChange, Obj: want,
-					Counter: "P1P1", Amount: n})
-			}
 		}
 	}
 }

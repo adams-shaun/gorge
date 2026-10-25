@@ -506,22 +506,23 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// WithCountersType$/WithCountersAmount$ (Printlifter Ooze's "create a
 	// 0/0 ... token ... The token enters with X +1/+1 counters on it"): every
 	// token this call creates enters with that many of the named counter
-	// kind, emitted as ONE CounterChange per mint right after the mint -- the
-	// ChangeZone entry counters' exact shape (zone.go's WithCounters read),
-	// so AddCounter replacements (Doubling Season) and every CounterAdded
-	// trigger see an entry counter the way they see a ChangeZone one. The
-	// amount resolves through the ordinary Num grammar: a signed literal
-	// (incubob's WithCountersAmount$ 1), an SVar name on the resolving face
-	// (Printlifter Ooze's WithCountersAmount$ X over SVar:X:Count$Valid
-	// Creature.YouCtrl), or an inline Count$... -- the same resolution the
-	// TokenPower$/TokenToughness$ read above uses. A WithCountersType$ with
-	// no WithCountersAmount$ defaults to 1; an amount the grammar cannot
-	// resolve is loud (one Note for the whole call, never per mint) and the
-	// set is skipped -- the token enters WITHOUT the counters, the honest
-	// degrade that for a 0/0 script means the zero-toughness SBA sweeps it
-	// visibly rather than a silent wrong count. The riders below run once per
-	// mint EmitTokenCreate returned, so a CreateToken replacement's extras
-	// each enter with the counters too -- not just the first mint.
+	// kind. The counters are folded into each mint's own TokenCreate entry
+	// (effects.entryWithCounters), so they are part of the entry (CR 122.6,
+	// 614.1c) -- an entry trigger sees them, and AddCounter replacements
+	// (Doubling Season) and every CounterAdded trigger see an entry counter
+	// the way they see a ChangeZone one. The amount resolves through the
+	// ordinary Num grammar: a signed literal (incubob's WithCountersAmount$
+	// 1), an SVar name on the resolving face (Printlifter Ooze's
+	// WithCountersAmount$ X over SVar:X:Count$Valid Creature.YouCtrl), or an
+	// inline Count$... -- the same resolution the TokenPower$/TokenToughness$
+	// read above uses. A WithCountersType$ with no WithCountersAmount$
+	// defaults to 1; an amount the grammar cannot resolve is loud (one Note
+	// for the whole call, never per mint) and the set is skipped -- the token
+	// enters WITHOUT the counters, the honest degrade that for a 0/0 script
+	// means the zero-toughness SBA sweeps it visibly rather than a silent
+	// wrong count. tokenMintEvent folds the rider into every mint
+	// EmitTokenCreate returns, so a CreateToken replacement's extras each
+	// enter with the counters too -- not just the first mint.
 	withKind := tp.WithCountersType
 	var withAmt int32
 	var withOK bool
@@ -806,6 +807,20 @@ func auraTokenWithheld(g *state.Game, job *TokenJob, key string) bool {
 	return false
 }
 
+// tokenMintEvent builds one mint's TokenCreate. A WithCountersType$/
+// WithCountersAmount$ rider is folded into the mint's own entry event
+// (effects.entryWithCounters) rather than emitted as a post-mint
+// CounterChange, so the token ENTERS with the counters (CR 122.6, 614.1c):
+// an entry trigger sees them, and the rules entry plan settles them through
+// the AddCounter replacements exactly once.
+func tokenMintEvent(owner state.PlayerID, key string, job *TokenJob) events.Event {
+	ev := events.Event{Kind: events.TokenCreate, Player: owner, Text: key}
+	if job.WithOK {
+		entryWithCounters(&ev, state.ZBattlefield, job.WithKind, job.WithAmt)
+	}
+	return ev
+}
+
 // runTokenMints is effToken's mint loop: one mint per owner per job.N for
 // each known script, one Note for each unknown one, then the post-loop
 // ImprintTokens$/AtEOT$ work over every object the loop minted.
@@ -841,7 +856,7 @@ func runTokenMints(h Host, c *Ctx, sa *cards.SA, tp *TokenParams, job *TokenJob)
 				}
 				want := g.NextID
 				wasSuspended := h.Suspended()
-				mints := h.EmitTokenCreate(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
+				mints := h.EmitTokenCreate(tokenMintEvent(owner, key, job))
 				if !wasSuspended && h.Suspended() {
 					// The mint opened a resolution-time window: what landed
 					// takes its riders, and the predicted-id fallback below
@@ -915,9 +930,6 @@ func applyTokenMintRiders(h Host, c *Ctx, job *TokenJob, owner state.PlayerID, w
 	if job.Remember {
 		c.Remembered = append(c.Remembered, state.Target{Obj: want})
 		eventRemember(h, c, want)
-	}
-	if job.WithOK {
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: job.WithKind, Amount: job.WithAmt})
 	}
 	if len(job.PumpKeywords) > 0 {
 		h.AddContinuous(state.ContinuousEffect{

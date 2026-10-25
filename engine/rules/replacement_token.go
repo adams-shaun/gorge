@@ -466,6 +466,11 @@ func (e *Engine) emitTokenPlanMints(ev events.Event, plan []tokenPlanMint) event
 			continue
 		}
 		mintEv := events.Event{Kind: events.TokenCreate, Player: tokenMintPlayer(mint, ev), Text: mint.script}
+		// The plan may have rewritten the mint, but the original's entry
+		// counters (WithCountersType$/WithCountersAmount$, folded onto the
+		// TokenCreate by effects.entryWithCounters) belong to every mint the
+		// plan produces: carry the payload so each one ENTERS with them.
+		mintEv.Pairs = append([][2]state.ObjID(nil), ev.Pairs...)
 		// This plan has already passed token-creation replacements. Keep that
 		// no-rematch boundary while routing the actual mint through the entry
 		// staging/fold path (which may park for entry-counter order).
@@ -511,8 +516,13 @@ func (e *Engine) emitChosenCopyToken(ev events.Event, src state.ObjID, player st
 	// MoveZone's entry actually completes (publishTokenEntry) -- never here:
 	// the move may park behind an entry-counter order or an as-enters
 	// election, and the id must not reach a rider before it has entered.
-	return e.emit(events.Event{Kind: events.MoveZone, Obj: want,
-		From: state.ZLibrary, To: state.ZBattlefield})
+	entry := events.Event{Kind: events.MoveZone, Obj: want,
+		From: state.ZLibrary, To: state.ZBattlefield}
+	// A chosen copy is still the original mint's token: the entry counters
+	// folded onto that TokenCreate (WithCountersType$/WithCountersAmount$)
+	// ride this MoveZone so the copy ENTERS with them.
+	entry.Pairs = append([][2]state.ObjID(nil), ev.Pairs...)
+	return e.emit(entry)
 }
 
 // tokenChosenCandidates resolves one chosen-copy body's ValidChoices$ spec
