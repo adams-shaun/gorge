@@ -403,6 +403,12 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		// printed cost plus any grant raise (Bargain adds only a sacrifice).
 		code = potentialModeBaseCostMayplay
 	}
+	if strings.HasPrefix(mode, "sneaked_grant_") {
+		// beginCast canonicalises a granted Sneak offer mode to "sneak" and
+		// charges the canonical instance's cost (the first derived Sneak
+		// keyword), so the witness must read the same one.
+		code = potentialModeBaseCostSneak
+	}
 	switch code {
 	case potentialModeBaseCostEmpty:
 		return pay.WithSpellAbilityExtras(f, cost), true
@@ -446,6 +452,74 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return ParseCost(mc), true
+	case potentialModeBaseCostOmenAlt:
+		// CR 720.3: the offer flips to the Omen face and prices that face's
+		// printed cost (appendAlternateSpellFace's base), not the front's.
+		af := omenSpellFace(e.G.Obj(id))
+		if af == nil {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), true
+	case potentialModeBaseCostAdventureAlt:
+		// CR 715.3a: the same flip for the Adventure spell face.
+		af := adventureSpellFace(e.G.Obj(id))
+		if af == nil {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), true
+	case potentialModeBaseCostModalSpell:
+		// CR 712.8: the nonland back face's own printed cost.
+		af := modalSpellBack(e.G.Obj(id))
+		if af == nil {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(af, e.faceCost(af)), true
+	case potentialModeBaseCostSplitAlt:
+		// CR 709.4: the alternate half's own printed cost.
+		af := splitAlternateCastFace(e.G.Obj(id))
+		if af == nil {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(af, e.faceCost(af)), true
+	case potentialModeBaseCostRoomAlt:
+		// CR 309.4b: the selected door's own printed cost.
+		af := roomAlternateCastFace(e.G.Obj(id))
+		if af == nil {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(af, e.faceCost(af)), true
+	case potentialModeBaseCostAftermath:
+		// CR 702.85a: the Aftermath half's own printed cost.
+		af := aftermathAlternateFace(e.G.Obj(id))
+		if af == nil {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), true
+	case potentialModeBaseCostAdventureRecast:
+		// CR 714.3a: the main face is already the object's face off the
+		// stack, and the offer prices it without spell-ability extras.
+		return cost, true
+	case potentialModeBaseCostPreparedCopy:
+		// CR 722.3c: the exile copy is cast as a copy of the prepare spell and
+		// pays that spell's own printed cost (the offer's RawBaseCost).
+		o := e.G.Obj(id)
+		if o == nil || !o.IsCopy || o.PreparedSource == 0 {
+			return Cost{}, false
+		}
+		return cost, true
+	case potentialModeBaseCostSneak:
+		// CR 702.190a: the sneak cost, including its mandatory Return part,
+		// through the ONE reader the offer and beginCast use.
+		want := mode
+		if strings.HasPrefix(want, "sneaked_grant_") {
+			want = "sneak"
+		}
+		for _, sc := range e.sneakCosts(p, id) {
+			if sc.mode == want {
+				return sc.cost, true
+			}
+		}
+		return Cost{}, false
 	}
 	if m := altCastFor(string(mode)); m != nil && m.potential {
 		// The alternative-cost keyword family (engine/rules/altcast_modes.go): the
@@ -1056,6 +1130,15 @@ const (
 	potentialModeBaseCostEntwined
 	potentialModeBaseCostSurged
 	potentialModeBaseCostMiracle
+	potentialModeBaseCostOmenAlt
+	potentialModeBaseCostAdventureAlt
+	potentialModeBaseCostModalSpell
+	potentialModeBaseCostSplitAlt
+	potentialModeBaseCostRoomAlt
+	potentialModeBaseCostAftermath
+	potentialModeBaseCostAdventureRecast
+	potentialModeBaseCostPreparedCopy
+	potentialModeBaseCostSneak
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -1068,4 +1151,13 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "entwined", Val: potentialModeBaseCostEntwined},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "surged", Val: potentialModeBaseCostSurged},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "miracle", Val: potentialModeBaseCostMiracle},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "omen_alt", Val: potentialModeBaseCostOmenAlt},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "adventure_alt", Val: potentialModeBaseCostAdventureAlt},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "modal_spell", Val: potentialModeBaseCostModalSpell},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "split_alt", Val: potentialModeBaseCostSplitAlt},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "room_alt", Val: potentialModeBaseCostRoomAlt},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "aftermath", Val: potentialModeBaseCostAftermath},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "adventure_recast", Val: potentialModeBaseCostAdventureRecast},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
 )
