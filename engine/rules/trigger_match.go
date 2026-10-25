@@ -2480,9 +2480,10 @@ func (e *Engine) closeZoneBatch() {
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
 // seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker now prefers
-// the TriggerCard role triggerReferents' TriggerAttacks case binds when
-// exactly one declared attacker matched, falling back to Remembered -- every
-// declared attacker plus the defending player -- only when the role is absent.
+// the TriggerCard role triggerReferents' TriggerAttacks case binds for the
+// attacker that instance was queued for, falling back to Remembered -- every
+// declared attacker plus the defending player -- only when the role is absent
+// (the AttackersDeclared batch family).
 // On top of FL-48 (task 16),
 // trigmatch.AttacksMatches honours Alone$ True, so the trigger now fires only when
 // exactly one attacker is declared and pumps that single attacker -- which is
