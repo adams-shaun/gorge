@@ -17,7 +17,7 @@ pure Go. Card behaviour is not hand-written per card: gorge compiles
 intermediate representation (IR), and the engine implements the primitives
 that IR references (effects, triggers, keywords, statics, value expressions).
 A card is playable when every primitive it uses is implemented; today that is
-about 94% of Forge's ~34,000 scripts (`make report` prints the live figure).
+about 95% of Forge's ~34,000 scripts (`make report` prints the live figure).
 
 Around the engine sit a reference server (`gorged`: bot tables, play-vs-bot,
 HTTP + server-sent events, a Svelte browser client), baseline and hosted bot
@@ -56,7 +56,7 @@ two servers at one `-dir`.
 |---|---|---|
 | `engine/` | The deterministic rules core: `cards` (script → IR compiler), `state`, `decision`, `events`, `effects`, `rules`, `view`, `replay`, `deck`, and `seat` (the `Seat` contract only) | Anyone fixing a card or a rule |
 | `server/` | The reference server: `gorged` (the importable server, with an `Extensions` seam and `RegisterNetBot`), `host` (tables, sessions, persistence) with `host/httpapi` and `host/manabrewhttp`, `protocol` (the wire types), `manabrew`, `divergence` | Server and client work |
-| `bots/` | Bot players: `botpolicy`, `heuristic` (the default bot), the `registry`, and the hosted bots (`bot`, `lethal-pressure`, `sb-tactical`, `az-redeal`) with their inference code | Bot authors |
+| `bots/` | Bot players: `botpolicy`, `heuristic` (the default bot), the `registry`, and the hosted bots (`bot`, `lethal-pressure`, `forge-heuristic`, `forge-heuristic-hold`, `sb-tactical`, `az-redeal`) with their inference code | Bot authors |
 | `web/` | The TypeScript/Svelte browser client | Front-end work |
 | `cmd/` | Product and developer binaries: `gorged`, `forgec`, `repro`, `mtgsim`, `gentypes`, `pkgmap`, `headdiff`, `enginebench`, `cardfuzz`, `deckimport`, … | Everyone |
 | `testkit/`, `cli/` | Public support packages for outside modules: `testkit/testutil` (fixtures, corpus registry), `testkit/bench` (the game runner), `testkit/paymirror`, and `cli` (command-line flags, env and config) | Contributors, downstream modules |

@@ -78,36 +78,39 @@ Knobs: `BUDGET` (wall seconds for the whole measured phase, default 60),
 
 ## Current numbers
 
-Measured 2026-10-20 at `ad3777023`, Go 1.26.3, `GOMAXPROCS=1`, each run
+Measured 2026-10-25 at `87ed64d3b`, Go 1.26.3, `GOMAXPROCS=1`, each run
 pinned to one core (24, 26 or 28; three reps of a row at once), 30 CPU-seconds
-per run, load average 5-7, by `scripts/xengine-bench.sh gorge` (the play rows)
-and single `enginebench` runs (the rest). Median of three reps, min-max in
+per run, load average 0.5-4, by `scripts/xengine-bench.sh gorge` (the play rows)
+and single `enginebench` runs pinned to core 24 (the rest). Median of three reps, min-max in
 brackets.
 
 | Row | Pair A | Pair B |
 |---|---|---|
-| `random -autopay`, games per core-second | 92.3 (91.9-93.9) | 86.8 (85.4-86.8) |
-| `random -autopay`, µs per turn / per decision | 471 / 19.7 | 445 / 18.9 |
-| `random` (manual taps), games per core-second | 103 (102-103) | 108 (106-108) |
-| `random`, µs per turn / per decision | 232 / 8.5 | 233 / 8.5 |
-| `bot -autopay`, games per core-second | 103 (102-103) | 111 (110-112) |
-| `bot -autopay`, µs per turn / per decision | 540 / 21.5 | 509 / 21.0 |
-| `bot` (manual taps), games per core-second | 134 (132-136) | 144 (144-145) |
-| `bot`, µs per turn / per decision | 412 / 14.7 | 388 / 14.0 |
+| `random -autopay`, games per core-second | 92.0 (91.1-93.4) | 84.6 (83.2-84.8) |
+| `random -autopay`, µs per turn / per decision | 475 / 19.8 | 457 / 19.4 |
+| `random` (manual taps), games per core-second | 97.0 (96.6-97.6) | 101 (99.3-102) |
+| `random`, µs per turn / per decision | 246 / 9.0 | 249 / 9.0 |
+| `bot -autopay`, games per core-second | 97.4 (95.8-97.5) | 105 (104-105) |
+| `bot -autopay`, µs per turn / per decision | 572 / 22.8 | 538 / 22.1 |
+| `bot` (manual taps), games per core-second | 124 (122-126) | 134 (134-135) |
+| `bot`, µs per turn / per decision | 446 / 15.9 | 416 / 15.1 |
 | Turns per game: `random -autopay` / `random` / bots | 22.9 / 41.9 / 18 | 26.0 / 39.8 / 18 |
-| Peak RSS of a play run (corpus loaded) | 346-355 MB | 347-348 MB |
+| Peak RSS of a play run (corpus loaded) | 346-347 MB | 348-394 MB |
 
 | Row (pair A, one run each, same date and build) | Value |
 |---|---|
-| `clone`, mid-game roots (turns 5-8) | 13.6 µs per clone without GC, 28.3 µs with GC; 181 KB and 50 mallocs per clone |
-| `step` (clone + submit one candidate) | 39.3 µs without GC, 59.0 µs with GC; 357 KB and 132 mallocs per step |
-| `az -sims 100` (azmcts, honest re-deal, heuristic leaf) | 1,129 simulations per core-second, 88.6 ms per searched root (332 roots) |
-| `sampler` (the older rollout sampler) | 109 rollouts per core-second, 242 ms per root |
+| `clone`, mid-game roots (turns 5-8) | 10.8 µs per clone without GC, 22.5 µs with GC; 191 KB and 50 mallocs per clone |
+| `step` (clone + submit one candidate) | 36.3 µs without GC, 53.3 µs with GC; 367 KB and 132 mallocs per step |
+| `az -sims 100` (azmcts, honest re-deal, heuristic leaf) | 1,090 simulations per core-second, 91.8 ms per searched root (322 roots) |
+| `sampler` (the older rollout sampler) | 104 rollouts per core-second, 253 ms per root |
 | Live heap after the corpus loads | 36 MB |
 
-Running the three reps of a row at once costs little: a `random -autopay`
-pair-A run alone on core 24 the same afternoon gave 95.6 games per
-core-second, 3.5% above the concurrent median. The 2026-10-07 single-core row
+Running the three reps of a row at once costs little: on 2026-10-20 a
+`random -autopay` pair-A run alone on core 24 came out 3.5% above the
+concurrent median of the same afternoon. Against the 2026-10-20 run at
+`ad3777023` (a busier machine, load 5-7), the play rows above are 0-8%
+slower and `clone` and `step` are faster; only `make enginebench-pair`
+separates the code's share from the machine's. The 2026-10-07 single-core row
 set (random A 75.7 games/s, bot A 121 games/s, clone 16.5 µs, MCTS-100 595
 sims per CPU-second) ran with `GOMAXPROCS=1` at load 34-80, so the change
 since then mixes the machine's load with the code's; use `make enginebench-pair` to compare
@@ -116,7 +119,7 @@ revisions.
 ## Where the time goes
 
 CPU profiles of one 20-second pair-A run each (`enginebench -cpuprofile`,
-same build, core 24/26), flat time grouped by package (packages under 1%
+2026-10-20 at `ad3777023`, core 24/26; not re-run for the numbers above), flat time grouped by package (packages under 1%
 omitted; `engine/rules` includes `engine/rules/pay`):
 
 | Package | `random -autopay` | `bot -autopay` |
@@ -160,7 +163,8 @@ not comparable with later ones (see the baseline break).
 | 2026-10-07 | ~`49c8224ce` | `enginebench`, `GOMAXPROCS=1` | vs 2026-09-30: random A 4.3×, Burn 2.9×, bot A 3.5×, auto-pay 2.3×, MCTS-100 1.8×, MCTS-1000 2.7× (crosses the baseline break; directional only) |
 | 2026-10-07 | heap-attack branch | self-play | +10.8% combined; allocated objects −30% |
 | 2026-10-09/10 | quiet-machine series | MCTS-100 | +10.4% median |
-| 2026-10-20 | `ad3777023` | `enginebench`, pinned, 3 reps (this page) | see Current numbers; live heap 36 MB |
+| 2026-10-20 | `ad3777023` | `enginebench`, pinned, 3 reps | random A 103, bot A 134 games/core-s; clone 13.6 µs; MCTS-100 1,129 sims/core-s; live heap 36 MB |
+| 2026-10-25 | `87ed64d3b` | `enginebench`, pinned, 3 reps (this page) | see Current numbers; live heap 36 MB |
 
 The engine-speed method and the first pinned comparison are written up in
 the archived `2026-09-30-gorge-engine-speed.md`

@@ -205,7 +205,7 @@ The kernel packages (`kernel`, `kop`, `cardset`, the generated `cards_*`,
 `feat`, `search`, `search/hbot`, `search/mull`) have no gorge package among
 their dependencies; `neteval`'s only gorge imports are `bots/netsimd` and
 `bots/policynet` (which itself links gorge's engine types; `neteval` calls
-none of the engine). Checked with `go list` on 2026-10-21. The behaviours ported from gorge (the search, the
+none of the engine). Checked with `go list` on 2026-10-25. The behaviours ported from gorge (the search, the
 heuristic bot, the mulligan policies, the input encoding) are re-implemented on
 kernel types, not called, because a gorge `decision.Decision` or `view.View`
 does not exist on the kernel's hot path. Their agreement with gorge is

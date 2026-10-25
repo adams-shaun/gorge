@@ -161,7 +161,7 @@ cannot support fails, named together with its missing primitives. A table
 entry the build now supports is stale and fails too. **The test's log line is
 the live count.**
 
-Measured 2026-10-20 on `develop` ad3777023 (`go test ./engine/rules/ -run
+Measured 2026-10-25 on `develop` 87ed64d3b (`go test ./engine/rules/ -run
 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v`,
 `make report`, `engine/rules/testdata/heads/*.txt`). The live, regenerated numbers
 are on the docs site, https://adams-shaun.github.io/gorge/; prefer it over
@@ -172,10 +172,10 @@ this snapshot.
   decks and 15 100-card Commander decks. The two are:
   - Incinerate (`stat:CantRegenerate`)
   - Vines of Vastwood (`stat:CantTarget`)
-- **Param census: 16 of 1123.** `TestEveryRepoDeckParamsAreRead`
+- **Param census: 15 of 1123.** `TestEveryRepoDeckParamsAreRead`
   (`engine/rules/paramcensus_test.go`) is the companion ratchet over the same decks'
-  parameters. Its per-card files in `engine/rules/testdata/paramcensus/` hold 16 cards that carry an
-  unread param or an unmodelled cost token: 12 distinct param labels and 1
+  parameters. Its per-card files in `engine/rules/testdata/paramcensus/` hold 15 cards that carry an
+  unread param or an unmodelled cost token: 11 distinct param labels and 1
   cost label.
 - **Golden games.** The 12 pinned Legacy decks (`legacyDeckNames`, which
   deliberately excludes the Commander decks) round-robin across 2/4/6/8 seats
@@ -186,12 +186,12 @@ this snapshot.
 
   | seats | 2 | 4 | 6 | 8 |
   |---|---|---|---|---|
-  | chain head | `8217b4d928faaff6` | `d9121c4d664ce04e` | `854c981f520b1c5e` | `4142eea449d63de1` |
+  | chain head | `9a22e5122a3d436a` | `554f63c3593a585f` | `44753f92b24b32e5` | `c2c73be4093774fe` |
 
-- **`make sim`:** 20/20 `replay OK` over 20 verified 4-seat games (last
-  measured 2026-09-28; not re-run for this snapshot).
+- **`make sim`:** 20/20 `replay OK` over 20 verified 4-seat games
+  (re-run for this snapshot, 2026-10-25).
 - **Corpus coverage** at the pin `76fd7691ab45ab1b42cef19ad04b41bf364501f4`
-  (`FORGE_REF`): `make report` prints `cards: 34074  playable: 32082 (94.2%)`
+  (`FORGE_REF`): `make report` prints `cards: 34074  playable: 32265 (94.7%)`
   and `tokens: 854`. Since
   fuzz-cov3 (2026-09-24) the gate also counts the `count:<head>` value heads
   that a card's SVars read (`effects.modelledValueHeads`, held to the

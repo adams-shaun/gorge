@@ -139,7 +139,7 @@ Every answer is one `uint32`:
   <rect x="380" y="54" width="170" height="44" class="dg-box"/>
   <rect x="550" y="54" width="170" height="44" class="dg-box"/>
   <text x="125" y="74" text-anchor="middle" class="dg-text-bold">kind</text>
-  <text x="125" y="90" text-anchor="middle" class="dg-text-muted">ActionKind, 13 values</text>
+  <text x="125" y="90" text-anchor="middle" class="dg-text-muted">ActionKind, 18 values</text>
   <text x="295" y="74" text-anchor="middle" class="dg-text-bold">source</text>
   <text x="295" y="90" text-anchor="middle" class="dg-text-muted">an Obj (the actor)</text>
   <text x="465" y="74" text-anchor="middle" class="dg-text-bold">target</text>
@@ -171,7 +171,7 @@ compared field by field.</figcaption>
 |---|---|
 | `AkPass` | pass priority |
 | `AkPlayLand` | source = the land in hand |
-| `AkCast` | source = the card (hand, graveyard for flashback, another zone with a permission); mode bit 0 kicked (also an Offspring cast), bit 1 flashback, bit 2 a face of a multi-face card (target = the face), bit 3 cast through a play permission, bit 4 without paying its mana cost |
+| `AkCast` | source = the card (hand, graveyard for flashback, another zone with a permission); mode bit 0 kicked (also an Offspring cast), bit 1 flashback, bit 2 a face of a multi-face card (target = the face), bit 3 cast through a play permission, bit 4 without paying its mana cost, bits 5 and 6 a warp cast from hand or a warped card recast from exile, bit 7 face down (morph, megamorph, disguise) |
 | `AkActivate` | source = the permanent (or the graveyard card); mode = ability index, or `0x80` with target = the granting permanent for a granted ability |
 | `AkAttack` | source = an attacker, target = the defending player or a planeswalker |
 | `AkBlock` | source = a blocker, target = the attacker it blocks |
@@ -181,6 +181,8 @@ compared field by field.</figcaption>
 | `AkChoose` | an answer to a `DkChoose`; `Decision.Sub` says which fields carry it |
 | `AkKeep`, `AkMulligan` | the mulligan answer |
 | `AkOrder` | trigger order: source = the trigger's source, target = its pending index, mode = its occurrence among triggers from that source |
+| `AkTurnFaceUp`, `AkPlot`, `AkUnlock` | special actions: turn a face-down permanent face up, plot a card from hand, unlock a Room's door (mode = the door) |
+| `AkCastCasualty`, `AkSneak` | source = a hand card cast with its casualty sacrifice, or for its sneak cost |
 
 Packing everything into one word has two payoffs. A search tree's edges are
 just `Action`s, so expanding a node never allocates. And because the oracle's
@@ -196,7 +198,7 @@ every answer is one pick.
 
 | gorge kind | dirty-dirac | How it is posed |
 |---|---|---|
-| `priority` | `DkPriority` | pass, land plays, casts, activations. No mana abilities (every cast is paid by the auto-pay planner) and no concede |
+| `priority` | `DkPriority` | pass, land plays, casts, activations, special actions. No mana abilities (every cast is paid by the auto-pay planner) and no concede |
 | `target` | `DkTarget` | one pick per target; a multi-object slot is one pick per object, closed by `AkDone` once its minimum is met |
 | `attackers` | `DkAttackers` | one `AkAttack` per (attacker, defender), in any order, closed by `AkDone`; only picks after which the declaration can still be completed are offered |
 | `blockers` | `DkBlockers` | one `AkBlock` per (blocker, attacker), closed by `AkDone`; a menace attacker that fewer than two blockers could block is never offered |
@@ -210,8 +212,8 @@ every answer is one pick.
 | `starting_player` | not posed | the toss winner takes the first turn, as with gorge's plain `rules.New` |
 | `commander_zone` | not applicable | no Commander |
 
-There are 17 base choice kinds and 34 more that only a generated card table
-raises (a gift promise, a hybrid pip's colour, a proliferate pick, ...). A search or a bot that only understands the base kinds can still answer
+There are 18 base choice kinds and 45 more (two of them reserved or retired)
+that only a generated card table raises (a gift promise, a hybrid pip's colour, a proliferate pick, ...). A search or a bot that only understands the base kinds can still answer
 the generated ones generically, since every option is a complete `Action`.
 
 ## Mulligans and the opening

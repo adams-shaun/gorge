@@ -256,9 +256,10 @@ written, and the warm-up games are dropped when the run is recorded.
 
 ### 4. dirty-dirac
 
-dirty-dirac is the maintainers' private kernel, so its row cannot be rerun
-from the public repositories. Its published rows were measured on
-2026-10-20, before the kernel redesign of 2026-10-21
+dirty-dirac is the maintainers' private kernel, under active development
+toward a full engine, so its row cannot be rerun from the public
+repositories. Its published game rows were measured on 2026-10-25, after the
+kernel redesign, and its search rows on 2026-10-20, before it
 ([Performance](index.md#dirty-diracs-rows)), with the same script, which
 calls the kernel's game runner `kplay` when `KPLAY` names a binary built from
 the private module:
