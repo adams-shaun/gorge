@@ -1482,10 +1482,11 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // player (handleAttackers emits one event per defender since Task m34), in
 // event order, so Remembered[0] is whichever creature attacking that defender
 // was declared first, not necessarily pt.Source. For TriggeredSourceController
-// the captured role now wins whenever the Attacks capture bound one (the
-// single-matching-attacker case, engine/rules/trigger_referents.go sets
-// c.TriggerSource = c.TriggerCard); the multi-attacker case leaves the role
-// absent and still reads Remembered[0]. No repo-deck T: line combines Mode$
+// the captured role now wins because every Attacks instance binds one (the
+// queue point's attacksTriggerInstances sets TriggerSource = TriggerCard to
+// each matching attacker, CR 508.3a/603.2c); only a delayed registration or
+// the AttackersDeclared batch family leaves the role absent and still reads
+// Remembered[0]. No repo-deck T: line combines Mode$
 // Attacks with OptionalDecider$ TriggeredCardController/
 // TriggeredSourceController today (measured against the same corpus the table
 // above was), so this is a latent gap, not a live one -- but a future card

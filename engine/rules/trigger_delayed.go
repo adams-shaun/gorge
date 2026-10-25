@@ -600,15 +600,33 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// Mode$ Phase registration (never re-parsed), so it is carried from
 		// state rather than read from t.Params here.
 		refs.OptionalSpec = dt.OptionalSpec
-		fires = append(fires, delayedSpellCastFire{
-			dt:         *dt,
-			sa:         sa,
-			trigger:    t,
-			remembered: remembered,
-			referents:  refs,
-			svars:      src.Face().SVars,
-			static:     strings.TrimSpace(t.ParamStr(cards.PKStatic)) != "",
-		})
+		makeFire := func(r effects.TriggerContext) delayedSpellCastFire {
+			return delayedSpellCastFire{
+				dt:         *dt,
+				sa:         sa,
+				trigger:    t,
+				remembered: remembered,
+				referents:  r,
+				svars:      src.Face().SVars,
+				static:     strings.TrimSpace(t.ParamStr(cards.PKStatic)) != "",
+			}
+		}
+		// CR 508.3a/603.2c: an event-matched delayed Mode$ Attacks
+		// registration is the singular "whenever [a creature] attacks" form
+		// too, so it fires once per matching attacker, each copy binding that
+		// one attacker as TriggeredAttacker.
+		if t.ModeKind() == cards.TriggerAttacks {
+			if matched := trigmatch.AttacksMatchedAttackers(boardOf(e), t, dt.Source, ev); len(matched) > 0 {
+				for _, attacker := range matched {
+					r := refs
+					r.TriggerCard = attacker
+					r.TriggerSource = attacker
+					fires = append(fires, makeFire(r))
+				}
+				continue
+			}
+		}
+		fires = append(fires, makeFire(refs))
 	}
 	// The LAST registration the loop processed leaves its scope armed
 	// (clearEffectMatchScope runs before each registration's own matching, so

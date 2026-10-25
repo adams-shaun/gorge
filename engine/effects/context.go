@@ -944,13 +944,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return objectsOf(c.Remembered), true
 	case definedSpecTriggeredAttacker:
 		// The singular attacker spellings (trig:Attacks and the
-		// AttackersDeclared family): prefer the fire-time TriggerCard role,
-		// which triggerReferents' TriggerAttacks case binds only when exactly
-		// one declared attacker matched the trigger's ValidCard$. A batched
-		// DeclareAttackers seeds Remembered with every attacker (plus the
-		// defending player), so the role-absent fallback keeps the old
-		// Remembered read for hand-built contexts and for the multi-match
-		// case (the plural TriggeredAttackers spelling is the batch read).
+		// AttackersDeclared family): prefer the fire-time TriggerCard role.
+		// For Attacks the queue point binds it to that instance's own
+		// attacker (CR 508.3a/603.2c), so the read names exactly one. For the
+		// AttackersDeclared family triggerReferents still zeroes it when
+		// several declared attackers matched, because one queued batch
+		// trigger cannot name a singular attacker: the role-absent fallback
+		// keeps the old Remembered read for that multi-match case and for
+		// hand-built contexts (the plural TriggeredAttackers spelling is the
+		// batch read).
 		if c.TriggerCard != 0 {
 			return []state.Target{{Obj: c.TriggerCard}}, true
 		}

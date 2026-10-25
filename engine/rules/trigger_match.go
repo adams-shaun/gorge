@@ -1856,7 +1856,6 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						e.pendingTriggers = append(e.pendingTriggers, pt)
 					}
 				}
-				e.pendingTriggers = append(e.pendingTriggers, pt)
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
 				// ... permanent you control triggers, that ability triggers an
 				// additional time." Each battlefield Panharmonicon-shaped static
@@ -1867,7 +1866,23 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// the copy again: the copy is not an event). Panharmonicon's own
 				// trigger is excluded by the spec's Other predicate, which is
 				// relative to the Panharmonicon permanent itself.
-				for k := 0; k < e.panharmoniconEchoes(observer, id, *ev); k++ {
+				echoes := e.panharmoniconEchoes(observer, id, *ev)
+				// CR 508.3a/603.2c: a Mode$ Attacks line is the SINGULAR
+				// "whenever [a creature] attacks" form, so it triggers once for
+				// EACH attacker its ValidCard$ matched, in declaration order,
+				// and each instance binds that one attacker as its
+				// TriggeredAttacker. The AttackersDeclared batch modes keep
+				// their one-per-declaration latch above. The matched set is the
+				// same walk the boolean matcher ran, so no instance can name an
+				// attacker the match did not admit.
+				if mk == cards.TriggerAttacks {
+					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoes); len(insts) > 0 {
+						e.pendingTriggers = append(e.pendingTriggers, insts...)
+						continue
+					}
+				}
+				e.pendingTriggers = append(e.pendingTriggers, pt)
+				for k := 0; k < echoes; k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
 				}
 			}
@@ -2457,9 +2472,10 @@ func (e *Engine) closeZoneBatch() {
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
 // seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker now prefers
-// the TriggerCard role triggerReferents' TriggerAttacks case binds when
-// exactly one declared attacker matched, falling back to Remembered -- every
-// declared attacker plus the defending player -- only when the role is absent.
+// the TriggerCard role the queue point (attacksTriggerInstances) binds for the
+// attacker that instance was queued for, falling back to Remembered -- every
+// declared attacker plus the defending player -- only when the role is absent
+// (a delayed registration, or the AttackersDeclared batch family).
 // On top of FL-48 (task 16),
 // trigmatch.AttacksMatches honours Alone$ True, so the trigger now fires only when
 // exactly one attacker is declared and pumps that single attacker -- which is
