@@ -281,6 +281,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 	var card *cards.Card
 	var faceIdx uint8
 	var basis *cards.Face
+	var src *state.Object
 	srcAtEOTTrigBody := ""
 	if e.Obj == 0 {
 		if e.Text == "" {
@@ -291,7 +292,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 			return
 		}
 	} else {
-		src := g.Obj(e.Obj)
+		src = g.Obj(e.Obj)
 		if src == nil || src.Card == nil {
 			return
 		}
@@ -305,6 +306,11 @@ func foldCopyToken(g *state.Game, e *Event) {
 	o.SetFaceIdx(faceIdx)
 	if basis != nil {
 		o.SetCopyFace(basis)
+	}
+	// CR 718.3c/d: a token copy of a prototyped permanent is also
+	// prototyped. A named-card copy has no source, so it is not.
+	if src != nil {
+		o.CastFlags = src.CastFlags & state.FlagPrototype
 	}
 	// AtEOTTrig$ is a copiable value (CR 707.2): the mint's own body when
 	// the copying spell carries one (Counter), else the source object's --
@@ -432,17 +438,19 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	}
 	if e.Counter != "chosen-name" && (len(e.IDs) == 0 || e.IDs[0] == 0) {
 		o.SetCopyFace(nil)
+		o.CastFlags &^= state.FlagPrototype
 		o.CopyGainThisAbility = false
 		return
 	}
 	var face *cards.Face
+	var src *state.Object
 	if e.Counter == "chosen-name" {
 		// The chosen name may be a back face's or an alternative name
 		// (CR 201.4b-f): copy THAT face.
 		if i, j, ok := g.NameUniverse.FaceByName(e.Text); ok {
 			face = g.NameUniverse.Card(i).Faces[j]
 		}
-	} else if src := g.Obj(e.IDs[0]); src != nil {
+	} else if src = g.Obj(e.IDs[0]); src != nil {
 		face = src.CopiableFace()
 	}
 	if face == nil {
@@ -538,6 +546,12 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		sf.ForgetCompiled()
 	}
 	o.SetCopyFace(&sf)
+	// CR 718.3c/d: a permanent that becomes a copy of a prototyped permanent
+	// is prototyped; a chosen-name copy has no prototyped source.
+	o.CastFlags &^= state.FlagPrototype
+	if src != nil {
+		o.CastFlags |= src.CastFlags & state.FlagPrototype
+	}
 }
 
 // foldFlipFace folds Kinds FlipFace, Specialize into state.

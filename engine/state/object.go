@@ -534,6 +534,13 @@ const (
 	// is exile via spellRestZone's IsCopy arm anyway). Appended after
 	// FlagCleaved to preserve all bits already in main.
 	FlagOmen
+	// FlagPrototype marks a spell cast for its prototype cost (CR 718.3a)
+	// and the permanent it becomes. The inset cost, colour and P/T are read
+	// from the face's K:Prototype line, so this bit is the whole designation.
+	// NOT a CastProvenanceFlag: CR 718.3c/d says a copy of a prototyped
+	// spell or permanent is also prototyped, so a stack copy inherits it.
+	// Appended after FlagOmen to preserve all bits already in main.
+	FlagPrototype
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader

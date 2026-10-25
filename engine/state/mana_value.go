@@ -63,8 +63,14 @@ func manaValueAs(g *Game, o *Object, zone Zone, x int32) int32 {
 	if f == nil || o.faceDownIn(zone) {
 		return 0
 	}
+	// CR 718.3a: a prototyped spell or permanent uses its inset mana cost.
+	// Checked before CopyFace because a copy of a prototyped object carries
+	// the designation (CR 718.3c/d) and its CopyFace is the prototype face.
+	if cost, _, _, ok := o.prototypeIn(zone); ok {
+		return cards.ManaValueOfCost(cost) + stackX(zone, x, cost)
+	}
 	if o.CopyFace != nil {
-		return faceManaValue(f) + stackX(zone, x, f)
+		return faceManaValue(f) + stackX(zone, x, f.ManaCost)
 	}
 	if mv, ok := roomManaValue(o); ok {
 		return mv
@@ -81,12 +87,12 @@ func manaValueAs(g *Game, o *Object, zone Zone, x int32) int32 {
 	}
 	if c != nil && c.IsTransformingDFC() && o.FaceIdx != 0 && c.Faces[0] != nil {
 		front := c.Faces[0]
-		return faceManaValue(front) + stackX(zone, x, front)
+		return faceManaValue(front) + stackX(zone, x, front.ManaCost)
 	}
 	if halves, ok := o.splitHalvesIn(zone); ok {
 		return faceManaValue(halves[0]) + faceManaValue(halves[1])
 	}
-	return faceManaValue(f) + stackX(zone, x, f)
+	return faceManaValue(f) + stackX(zone, x, f.ManaCost)
 }
 
 // SplitHalves returns a split card's two halves when its characteristics
@@ -133,12 +139,12 @@ func faceManaValue(f *cards.Face) int32 {
 // stackX is CR 202.3e's on-stack term: the announced x once per {X} symbol
 // in f's mana cost while the object is on the stack, 0 elsewhere. A spell
 // without an {X} adds nothing, whatever Object.X holds.
-func stackX(zone Zone, x int32, f *cards.Face) int32 {
+func stackX(zone Zone, x int32, cost string) int32 {
 	if zone != ZStack || x == 0 {
 		return 0
 	}
 	var n int32
-	for sym := range strings.FieldsFuncSeq(f.ManaCost, isCostSeparator) {
+	for sym := range strings.FieldsFuncSeq(cost, isCostSeparator) {
 		if sym == "X" {
 			n++
 		}

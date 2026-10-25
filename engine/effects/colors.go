@@ -58,12 +58,37 @@ func ColorMaskOf(o *state.Object) ColorMask {
 	if o.FaceDownHidden() {
 		return 0
 	}
+	// CR 718.3a: a prototyped spell or permanent has the colours of its
+	// inset mana cost, not its printed cost.
+	if cost, _, _, ok := o.PrototypeCharacteristics(); ok {
+		return prototypeColorMask(o.Face(), cost)
+	}
 	// CR 709.4b/709.4d: a split card's colours come from its combined mana
 	// cost wherever its halves are combined (state.Object.SplitHalves).
 	if halves, ok := o.SplitHalves(); ok {
 		return faceColorMask(halves[0]) | faceColorMask(halves[1])
 	}
 	return faceColorMask(o.Face())
+}
+
+// prototypeColorMask is the colour set of a prototyped object's inset mana
+// cost (CR 718.3a). A copy exception's colour set still overrides it, and
+// Devoid still makes the object colourless (CR 702.114).
+func prototypeColorMask(f *cards.Face, cost string) ColorMask {
+	if f == nil {
+		return 0
+	}
+	if m, ok := f.CopyColours(); ok {
+		return ColorMask(m)
+	}
+	if f.HasKeywordRef(kwRefDevoid) {
+		return 0
+	}
+	var mask ColorMask
+	for i := 0; i < len(cost); i++ {
+		mask |= colorBit(cost[i])
+	}
+	return mask
 }
 
 // faceColorMask is one face's colours: a copy exception's colour set, else

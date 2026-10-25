@@ -39,6 +39,11 @@ func modeFlags(mode string) string {
 		// resumeResolution read to resolve the cleave spell ability. Not a
 		// CastProvenanceFlag: a stack copy keeps it (CR 707.10).
 		return events.FlagsString(state.FlagCleaved)
+	case castModePrototype:
+		// CR 718.3a: the prototype designation. NOT a CastProvenanceFlag:
+		// a copy of a prototyped spell or permanent is also prototyped
+		// (CR 718.3c/d).
+		return events.FlagsString(state.FlagPrototype)
 	case castModePreparedCopy:
 		// The CR 722.3c prepared-copy cast (engine/rules/legal_walk_alt.go's exile
 		// offer): the flag is the provenance the Card.prepared filter
@@ -1434,6 +1439,14 @@ func (e *Engine) pushCast() bool {
 		ev.Secret = true
 	}
 	e.emit(ev)
+	if castModeCodes.Code(pc.mode) == castModePrototype {
+		// CR 718.3a: stamp the prototype designation as the spell reaches the
+		// stack, before targets and payment, so the characteristics (and the
+		// targets' mana-value reads) already use the inset cost. payCast's
+		// CastInfo re-states it after payment; both assign the flags wholesale.
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Player: pc.player,
+			Counter: events.FlagsString(state.FlagPrototype)})
+	}
 	if fz, ok := castBattlefieldEvent(e.G, e, pc.card, pc.player); ok {
 		e.emit(fz)
 	}
