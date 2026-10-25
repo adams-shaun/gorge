@@ -7,6 +7,7 @@ package rules
 // ask order, and the pawprint (CR 700.2i) guard.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -53,6 +54,12 @@ func TestCharmModesResolveInPrintedOrder(t *testing.T) {
 		t.Fatalf("pending = %+v, want the cast mode announcement", d)
 	}
 	submitChoices(t, e, 1, 0) // DestroyMode first, ReanimateMode second
+	// The append-only ModeChosen payload keeps the answer's order: only the
+	// execution order is normalised.
+	if labels := modeChosenLabels(t, e); len(labels) != 2 ||
+		!strings.Contains(labels[0], "Destroy") || !strings.Contains(labels[1], "Return") {
+		t.Fatalf("ModeChosen labels = %v, want the answer order [Destroy..., Return...]", labels)
+	}
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("pending = %+v, want ReanimateMode's target ask", d)
