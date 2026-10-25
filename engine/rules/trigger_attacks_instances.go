@@ -13,17 +13,20 @@ import (
 // CR 603.2c: one event with several occurrences triggers repeatedly). The
 // matched set is the same walk the boolean matcher ran, so no instance can
 // name an attacker the match did not admit. Attackers stay in declaration
-// order, and each instance carries its own Panharmonicon echoes.
+// order, and each instance carries its own Panharmonicon echoes: echoes is
+// called once per attacker with that attacker as the sole cause, so a static
+// whose ValidCause$ matches only some attackers doubles only those instances.
+// A nil echoes function contributes none.
 //
 // A nil result means the event admitted no attacker, and the caller keeps its
 // generic single-instance append with TriggerCard absent (the historical
 // Remembered fallback).
-func attacksTriggerInstances(board trigmatch.Board, t *cards.Trigger, id state.ObjID, ev events.Event, pt pendingTrigger, echoes int) []pendingTrigger {
+func attacksTriggerInstances(board trigmatch.Board, t *cards.Trigger, id state.ObjID, ev events.Event, pt pendingTrigger, echoes func(state.ObjID) int) []pendingTrigger {
 	matched := trigmatch.AttacksMatchedAttackers(board, *t, id, ev)
 	if len(matched) == 0 {
 		return nil
 	}
-	insts := make([]pendingTrigger, 0, len(matched)*(echoes+1))
+	insts := make([]pendingTrigger, 0, len(matched))
 	for _, attacker := range matched {
 		inst := pt
 		inst.Ctx.TriggerContext.TriggerCard = attacker
@@ -35,7 +38,11 @@ func attacksTriggerInstances(board trigmatch.Board, t *cards.Trigger, id state.O
 		if inst.cause.set && attacker != id {
 			inst.cause.own = false
 		}
-		for k := 0; k <= echoes; k++ {
+		n := 0
+		if echoes != nil {
+			n = echoes(attacker)
+		}
+		for k := 0; k <= n; k++ {
 			insts = append(insts, inst)
 		}
 	}

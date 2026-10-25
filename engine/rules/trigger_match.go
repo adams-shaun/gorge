@@ -1866,7 +1866,6 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// the copy again: the copy is not an event). Panharmonicon's own
 				// trigger is excluded by the spec's Other predicate, which is
 				// relative to the Panharmonicon permanent itself.
-				echoes := e.panharmoniconEchoes(observer, id, *ev)
 				// CR 508.3a/603.2c: a Mode$ Attacks line is the SINGULAR
 				// "whenever [a creature] attacks" form, so it triggers once for
 				// EACH attacker its ValidCard$ matched, in declaration order,
@@ -1874,13 +1873,26 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// TriggeredAttacker. The AttackersDeclared batch modes keep
 				// their one-per-declaration latch above. The matched set is the
 				// same walk the boolean matcher ran, so no instance can name an
-				// attacker the match did not admit.
+				// attacker the match did not admit. The Panharmonicon echo is
+				// computed per instance with that attacker as the sole cause.
 				if mk == cards.TriggerAttacks {
-					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoes); len(insts) > 0 {
+					echoFor := func(attacker state.ObjID) int {
+						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker})
+					}
+					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoFor); len(insts) > 0 {
 						e.pendingTriggers = append(e.pendingTriggers, insts...)
 						continue
 					}
 				}
+				// A batch AttackersDeclared trigger is one placement for the
+				// whole declaration, but finishAttackers emits one event per
+				// defending player. Its ValidCause$ must see every declared
+				// attacker, not only the group of the event that latched it.
+				var causes []state.ObjID
+				if ev.Kind == events.DeclareAttackers && trigmatch.AttackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
+					causes = e.declaredAttackers
+				}
+				echoes := e.panharmoniconEchoes(observer, id, *ev, causes)
 				e.pendingTriggers = append(e.pendingTriggers, pt)
 				for k := 0; k < echoes; k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
