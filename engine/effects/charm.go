@@ -93,21 +93,6 @@ func CharmPawprints(h Host, source state.ObjID, sa *cards.SA, svars map[string]s
 	return budget, values, true
 }
 
-// CharmBudgeted reports whether the ability carries a WELL-FORMED pawprint
-// budget: the root Pawprint$ is present and a plain integer. Printed-order
-// execution (CR 608.2c / CR 700.2a) no longer depends on this predicate --
-// every Charm orders through CharmResolveOrder -- but callers pricing a
-// budget still use it to avoid the Notes CharmPawprints raises for an
-// unparseable value.
-func CharmBudgeted(sa *cards.SA) bool {
-	p := CharmOf(sa)
-	if !p.Pawprint.Present {
-		return false
-	}
-	_, ok := literalInt(p.Pawprint)
-	return ok
-}
-
 // CharmResolveOrder orders chosen mode names for RESOLUTION (CR 608.2c,
 // CR 700.2a): the controller follows the instructions in the order written,
 // so the modes are executed -- and their targets asked -- in printed order,
