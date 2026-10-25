@@ -240,7 +240,20 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	if rest == state.ZExile && o.CastFlags&state.FlagAdventure != 0 {
 		marker = adventureZoneMoveMarker
 	}
+	// CR 720.3d: an Omen spell is shuffled into its owner's library as it
+	// resolves. The shuffle follows the move, and only when the card actually
+	// reached the library -- a replacement that redirected the move leaves it
+	// elsewhere and nothing is shuffled (the same gate the Rebound promise
+	// uses below). A countered or fizzled Omen never reaches this tail
+	// (spellFizzleZone names the graveyard), so it never shuffles.
+	omen := rest == state.ZLibrary && o.CastFlags&state.FlagOmen != 0 && !o.IsCopy
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest, Counter: marker})
+	if omen {
+		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZLibrary {
+			order := e.ShuffleLibrary(cur.Owner, e.G.Zone(state.ZLibrary, cur.Owner))
+			e.emit(events.Event{Kind: events.Shuffle, Player: cur.Owner, IDs: order, Secret: true})
+		}
+	}
 	if rebound && rest == state.ZExile {
 		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZExile {
 			e.registerRebound(id, controller)

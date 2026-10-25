@@ -545,8 +545,9 @@ type pendingCast struct {
 	// flight (an ability, or a spell aborted before the push).
 	preSuppress map[state.ObjID]bool `clone:"deep"`
 
-	// faceBefore is non-nil only for a CR 309.4b alternate Room cast or a CR
-	// 714 Adventure-face cast (adventure_alt / adventure_recast). The
+	// faceBefore is non-nil only for a CR 309.4b alternate Room cast, a CR
+	// 714 Adventure-face cast (adventure_alt / adventure_recast) or a CR 720
+	// Omen-face cast (omen_alt). The
 	// proposal begins with an event-sourced FlipFace so all ordinary cast
 	// stages read the chosen door; an aborted proposal flips it back.
 	faceBefore *uint8 `clone:"share"`

@@ -65,6 +65,35 @@ func adventureSpellFace(o *state.Object) *cards.Face {
 	return o.Card.Faces[1]
 }
 
+// isOmenSpellFace reports whether a face is an Omen spell half: an Instant or
+// Sorcery carrying the Omen type (CR 720.2).
+func isOmenSpellFace(f *cards.Face) bool {
+	if f == nil || (!f.IsInstant() && !f.IsSorcery()) {
+		return false
+	}
+	for _, t := range f.Types {
+		if t == "Omen" {
+			return true
+		}
+	}
+	return false
+}
+
+// omenSpellFace returns the Omen spell face (face 1 -- ALTERNATE starts face
+// 1 in engine/cards/parse.go) of a card whose AlternateMode is Omen, or nil
+// when the object is not a well-formed Omen card. CR 720.4: the card has only
+// its normal characteristics in every zone except the stack, so this face is
+// reachable only while the card is being cast as an Omen.
+func omenSpellFace(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || o.Card.AlternateMode != "Omen" || len(o.Card.Faces) != 2 {
+		return nil
+	}
+	if !isOmenSpellFace(o.Card.Faces[1]) {
+		return nil
+	}
+	return o.Card.Faces[1]
+}
+
 // adventureZoneAvailable reports whether id -- which the caller has
 // established is in exile (as its main face, CR 715.4) -- got there by
 // RESOLVING an adventure_alt cast. That is the only adventure-zone entry this

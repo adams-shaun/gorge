@@ -525,6 +525,15 @@ const (
 	// and its text change (CR 707.10). Appended after FlagManaSourcesSpent to
 	// preserve all bits already in main.
 	FlagCleaved
+	// FlagOmen marks a cast of an Omen card's inset Omen spell face (CR
+	// 720.3). It is the provenance the resolution reader (spellRestZone)
+	// uses to send the resolving spell to its owner's library instead of the
+	// graveyard, after which moveResolvedOffStack shuffles that library (CR
+	// 720.3d). NOT a CastProvenanceFlag: CR 720.3c says a copy of an Omen
+	// spell is also an Omen, so a stack copy inherits the bit (its rest zone
+	// is exile via spellRestZone's IsCopy arm anyway). Appended after
+	// FlagCleaved to preserve all bits already in main.
+	FlagOmen
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader

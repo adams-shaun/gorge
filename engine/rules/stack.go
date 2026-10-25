@@ -775,6 +775,17 @@ func spellRestZone(o *state.Object) state.Zone {
 		o.CastFlags&state.FlagRebound != 0) {
 		return state.ZExile
 	}
+	// CR 720.3d: a resolving Omen spell is shuffled into its owner's library
+	// instead of going to the graveyard. The IsCopy arm above already took
+	// copies to exile (CR 720.3c makes a copy an Omen too, but a copy ceases
+	// to exist rather than shuffling anywhere). This arm sits before Buyback:
+	// an Omen cast pays its printed cost, never Buyback, and no corpus Omen
+	// carries the keyword. The exile arms above still win: omen_alt is
+	// hand-only and pays no alternative cost, so none of their flags can be
+	// set on this cast, but the precedence is pinned here rather than assumed.
+	if o != nil && o.CastFlags&state.FlagOmen != 0 {
+		return state.ZLibrary
+	}
 	if o != nil && o.CastFlags&state.FlagBuyback != 0 {
 		return state.ZHand
 	}
