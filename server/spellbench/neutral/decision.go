@@ -271,6 +271,20 @@ var castModes = map[string]string{"normal": "", "flashback": "flashback", "escap
 	"plot": "plot_cast", "foretell": "foretell_cast", "adventure": "adventure_alt", "split_right": "split_alt",
 	"mdfc_back": "modal_spell", "miracle": "miracle", "suspend": "suspend_cast"}
 
+// hasOmenFace reports whether src names a card whose inset face is an Omen
+// spell (CR 720). It is the guard for the protocol's catch-all "other"
+// method: mapping.CastMethod maps gorge's omen_alt to "other" because CR 720
+// has no Section 7.4 method of its own, so only such a card may invert that
+// method back to omen_alt.
+func (s *Session) hasOmenFace(src protocol.ObjectRef) bool {
+	r := s.B.ref(src.CardName)
+	if r.Card == nil || r.Card.AlternateMode != "Omen" || len(r.Card.Faces) != 2 {
+		return false
+	}
+	f := r.Card.Faces[1]
+	return (f.IsInstant() || f.IsSorcery()) && slices.Contains(f.Types, "Omen")
+}
+
 func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.NativeOp, *native, error) {
 	n := s.open("priority", decision.Decision{Kind: decision.KPriority, Min: 1, Max: 1})
 	n.casts, n.names = map[string][]int{}, map[string]string{}
@@ -312,7 +326,10 @@ func (s *Session) priority(sd *protocol.SeatDecision, v *view.View) ([]mapping.N
 			default:
 				mode, ok := castModes[method]
 				if !ok {
-					continue
+					if method != "other" || !s.hasOmenFace(src) {
+						continue
+					}
+					mode = "omen_alt"
 				}
 				o.Mode = mode
 			}

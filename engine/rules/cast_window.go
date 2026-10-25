@@ -10,6 +10,16 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// flipProposalFace records the proposal's pre-flip face in *faceBefore and
+// emits the FlipFace that puts the alternate face on the stack. It is the
+// shape an alternate-face cast proposal uses before its ordinary cast
+// transaction; an aborted proposal restores *faceBefore (CR 733.1).
+func (e *Engine) flipProposalFace(o *state.Object, faceBefore **uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32) {
+	before := o.FaceIdx
+	*faceBefore = &before
+	e.emitProposalFlip(o.ID, before, preSuppress, preAborts)
+}
+
 // emitProposalFlip records the FlipFace an alternate-face cast proposal
 // (room_alt, adventure_alt, adventure_recast, aftermath, split_alt,
 // omen_alt, defeat_cast) makes before its ordinary cast transaction, WITHOUT letting

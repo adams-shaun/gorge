@@ -97,9 +97,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if omenSpellFace(o) == nil {
 			return
 		}
-		before := o.FaceIdx
-		faceBefore = &before
-		e.emitProposalFlip(id, before, preSuppress, preAborts)
+		e.flipProposalFace(o, &faceBefore, preSuppress, preAborts)
 	}
 	// CR 702.85a: the Aftermath half -- the alternate face of a Split card --
 	// is cast only from its owner's graveyard. From the graveyard the cast
