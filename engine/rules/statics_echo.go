@@ -41,11 +41,13 @@ func (e *Engine) panharmoniconStatics() []staticView {
 //     event belongs to (panharmoniconModes); a static naming modes the event
 //     is not in contributes nothing.
 //   - ValidCause$: the event's causing OBJECT -- the moved/cast card for a
-//     zone change or cast, the single attacker of a one-attacker declare
-//     (a multi-attacker event has no singular cause and fails closed, the
-//     same convention triggerReferents' Attacks case applies) -- matched as
-//     a filter spec. Origin$/Destination$ scope a ChangesZone cause to the
-//     move's own zones exactly as the trigger grammar does.
+//     zone change or cast, or the candidate set the caller passes for a
+//     declare: the attacker bound to a per-attacker Mode$ Attacks instance,
+//     or the whole declaration for a batch AttackersDeclared trigger -- any
+//     one candidate matching is enough. With a nil candidate set the cause
+//     is derived from the event (a zone change/cast's object, or every ID
+//     of a DeclareAttackers event). Origin$/Destination$ scope a ChangesZone
+//     cause to the move's own zones exactly as the trigger grammar does.
 //   - ValidSource$: the in-flight damage source (e.damaging -- combat
 //     damage's dealing creature; absent for any other event), a filter spec.
 //   - ValidTarget$: the event's target -- the damage recipient (object or
@@ -69,7 +71,7 @@ func (e *Engine) panharmoniconStatics() []staticView {
 // against the turn-up event's own object. Params this build cannot evaluate
 // (IsPresent/PresentCompare, Condition) fail closed: the static does not
 // double, never over-applies.
-func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event) int {
+func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event, causes []state.ObjID) int {
 	g := observer.G
 	o := g.Obj(src)
 	if o == nil {
@@ -119,21 +121,30 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 				continue
 			}
 		}
-		// ValidCause$: the causing object per event family. A zone change or
-		// cast's cause is the moved/cast card; an attack's is the single
-		// declared attacker (a multi-attacker event has no singular cause);
-		// a damage event's cause is not modelled -- fail closed.
+		// ValidCause$: the causing object(s) per event family. A zone change
+		// or cast's cause is the moved/cast card; an attack's is the
+		// candidate set the caller supplied (one attacker for a per-attacker
+		// Mode$ Attacks instance, the whole declaration for a batch trigger),
+		// falling back to the event's own IDs; a damage event's cause is not
+		// modelled -- fail closed.
 		if spec := sv.ParamStr(cards.PKValidCause); spec != "" {
-			cause := state.ObjID(0)
-			switch ev.Kind {
-			case events.MoveZone, events.Draw, events.PutOnStack:
-				cause = ev.Obj
-			case events.DeclareAttackers:
-				if len(ev.IDs) == 1 {
-					cause = ev.IDs[0]
+			candidates := causes
+			if candidates == nil {
+				switch ev.Kind {
+				case events.MoveZone, events.Draw, events.PutOnStack:
+					candidates = []state.ObjID{ev.Obj}
+				case events.DeclareAttackers:
+					candidates = ev.IDs
 				}
 			}
-			if cause == 0 || !observer.matchesSpecFrom(spec, cause, sv.Controller, sv.Source) {
+			matched := false
+			for _, cause := range candidates {
+				if cause != 0 && observer.matchesSpecFrom(spec, cause, sv.Controller, sv.Source) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
 				continue
 			}
 		}

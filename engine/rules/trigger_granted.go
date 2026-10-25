@@ -872,7 +872,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 					}),
 				}
 				if t.ModeKind() == cards.TriggerAttacks {
-					if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, 0); len(insts) > 0 {
+					if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, nil); len(insts) > 0 {
 						e.appendReservedTriggers(key, insts)
 						continue
 					}
@@ -963,7 +963,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			}),
 		}
 		if t.ModeKind() == cards.TriggerAttacks {
-			if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, 0); len(insts) > 0 {
+			if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, nil); len(insts) > 0 {
 				e.appendReservedTriggers(key, insts)
 				continue
 			}
