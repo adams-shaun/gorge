@@ -2,7 +2,10 @@
 """Helpers and the summary table for scripts/xengine-bench.sh (stdlib only).
 
   xengine-bench-summarize.py RUNS.jsonl
-      print the per-row table: median and min-max over reps
+      print the per-row table: median and min-max over reps; peak RSS as its
+      median plus every rep sorted (a distribution: see RSS_NOTE)
+  xengine-bench-summarize.py --json RUNS.jsonl
+      print the same rows as JSON lines, with rss_mb {min, median, max, reps}
   xengine-bench-summarize.py --record ENGINE ROW PAIR REP CORE LOAD0 TIMEFILE RESULT KIND LOAD1
       print one normalised run line (KIND: enginebench, xmage, kplay, mtgkernel, forge:WARM:SECS)
   xengine-bench-summarize.py --forge-games DECKS DECK_A DECK_B SEED N
@@ -142,23 +145,61 @@ def spread(vals):
     return "%s (%s-%s)" % (fmt(statistics.median(vals)), fmt(min(vals)), fmt(max(vals)))
 
 
-def summary(path):
+RSS_NOTE = ("Peak RSS is a distribution, not one number: a Go process's peak is set by when the "
+            "garbage collector runs during corpus load and deck setup, so one row's reps can fall "
+            "into two clusters (the dirty-dirac rows' do). 'peak RSS MB' is the median; "
+            "'RSS reps MB' lists every rep, sorted. Compare distributions, not medians.")
+
+
+def groups_of(path):
     runs = [json.loads(l) for l in open(path) if l.strip()]
     groups = {}
     for r in runs:
         groups.setdefault((r["engine"], r["row"], r["pair"]), []).append(r)
-    print("| engine | policy | pair | reps | games/core-s | ms/game | µs/turn | µs/decision | turns/game | peak RSS MB | load1 | other busy |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|---|")
-    for (e, row, pair), rs in groups.items():
+    return groups
+
+
+def stats(vals):
+    vals = sorted(v for v in vals if v is not None)
+    if not vals:
+        return None
+    return {"min": vals[0], "median": statistics.median(vals), "max": vals[-1], "reps": vals}
+
+
+def summary_json(path):
+    keys = ("games_per_cpu_s", "ms_per_game", "us_per_turn", "us_per_decision")
+    for (e, row, pair), rs in groups_of(path).items():
+        out = {"engine": e, "row": row, "pair": pair, "reps": len(rs)}
+        for k in keys:
+            out[k] = stats([r.get(k) for r in rs])
+        tpg = [r["turns"] / r["games"] for r in rs if r.get("games") and r.get("turns")]
+        out["turns_per_game"] = statistics.median(tpg) if tpg else None
+        out["rss_mb"] = stats([r.get("maxrss_mb") for r in rs])
+        if out["rss_mb"]:
+            out["rss_mb"]["median"] = round(out["rss_mb"]["median"], 1)
+        loads = [x for r in rs for x in (r["load1_before"], r["load1_after"])]
+        out["load1"] = {"min": min(loads), "max": max(loads)}
+        ob = [r["other_busy"] for r in rs if r.get("other_busy") is not None]
+        out["other_busy_max"] = max(ob) if ob else None
+        print(json.dumps(out))
+
+
+def summary(path):
+    print("| engine | policy | pair | reps | games/core-s | ms/game | µs/turn | µs/decision | turns/game | peak RSS MB | load1 | other busy | RSS reps MB |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for (e, row, pair), rs in groups_of(path).items():
         loads = [x for r in rs for x in (r["load1_before"], r["load1_after"])]
         tpg = [r["turns"] / r["games"] for r in rs if r.get("games") and r.get("turns")]
         ob = [r["other_busy"] for r in rs if r.get("other_busy") is not None]
-        print("| %s | %s | %s | %d | %s | %s | %s | %s | %s | %s | %.0f-%.0f | %s |" % (
+        print("| %s | %s | %s | %d | %s | %s | %s | %s | %s | %s | %.0f-%.0f | %s | %s |" % (
             e, row, pair, len(rs), spread([r.get("games_per_cpu_s") for r in rs]),
             spread([r.get("ms_per_game") for r in rs]), spread([r.get("us_per_turn") for r in rs]),
             spread([r.get("us_per_decision") for r in rs]), fmt(statistics.median(tpg)) if tpg else "n/a",
             fmt(statistics.median([r["maxrss_mb"] for r in rs])), min(loads), max(loads),
-            "max %.0f%%" % (100 * max(ob)) if ob else "n/a"))
+            "max %.0f%%" % (100 * max(ob)) if ob else "n/a",
+            " ".join("%.0f" % v for v in sorted(r["maxrss_mb"] for r in rs))))
+    print()
+    print(RSS_NOTE)
 
 
 def main(argv):
@@ -168,6 +209,8 @@ def main(argv):
         forge_games(*argv[2:7])
     elif len(argv) >= 2 and argv[1] == "--kplay-decks":
         kplay_decks(*argv[2:8])
+    elif len(argv) == 3 and argv[1] == "--json":
+        summary_json(argv[2])
     elif len(argv) == 2:
         summary(argv[1])
     else:
