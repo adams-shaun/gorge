@@ -336,12 +336,33 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		// what the payment taps or sacrifices: not composed here.
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
 	}
+	// An alternate-face mode casts with the object flipped to that face, so
+	// its CR 601.2f modifiers must be composed there too: a face-dependent
+	// tax (Thalia's ValidCard$ Card.nonCreature) otherwise prices the live
+	// face's cost, the offer gate prices the cast face's, and the witness is
+	// rejected -- the cast is never offered from untapped sources.
+	castFace := potentialModeCastFace(obj, o.Mode)
+	compose := func(c Cost) (Cost, bool) {
+		if castFace == nil {
+			return e.offerCostFor(p, id, c, scope), true
+		}
+		var composed Cost
+		ok := e.offerAsFace(id, castFace, func() bool {
+			composed = e.offerCostFor(p, id, c, scope)
+			return true
+		})
+		return composed, ok
+	}
 	plan := func(x int32) PaymentPlanOutcome {
 		c := base
 		if base.X != 0 {
 			c = base.WithX(x)
 		}
-		return e.planComposedCost(p, id, e.offerCostFor(p, id, c, scope), false, false)
+		composed, ok := compose(c)
+		if !ok {
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}
+		}
+		return e.planComposedCost(p, id, composed, false, false)
 	}
 	lo := base.XMin
 	best := plan(lo)
@@ -527,6 +548,29 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		return m.faceCost(f, e.walkFaceFactsOf(f))
 	}
 	return Cost{}, false
+}
+
+// potentialModeCastFace is the face beginCast flips to for the modes that
+// cast an alternate face, or nil for a mode that stays on the live face.
+// potentialModeBaseCost already reads the same face's printed cost; this
+// names it for the CR 601.2f composition, which must run with the object
+// showing that face (faceprobe.go).
+func potentialModeCastFace(o *state.Object, mode string) *cards.Face {
+	switch potentialModeBaseCostCodes.Code(string(mode)) {
+	case potentialModeBaseCostOmenAlt:
+		return omenSpellFace(o)
+	case potentialModeBaseCostAdventureAlt:
+		return adventureSpellFace(o)
+	case potentialModeBaseCostModalSpell:
+		return modalSpellBack(o)
+	case potentialModeBaseCostSplitAlt:
+		return splitAlternateCastFace(o)
+	case potentialModeBaseCostRoomAlt:
+		return roomAlternateCastFace(o)
+	case potentialModeBaseCostAftermath:
+		return aftermathAlternateFace(o)
+	}
+	return nil
 }
 
 // potentialWitnessOffers reports whether the potential walk, priced with
