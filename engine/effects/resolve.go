@@ -101,7 +101,10 @@ func hasChosenPlayers(ts []state.Target) bool {
 // without transforming. The face walk advances to the next face, wrapping to
 // 0, which is correct for the
 // overwhelmingly common two-face case and a no-op for anything with fewer
-// than two faces (a token, or a single-faced card).
+// than two faces (a token, or a single-faced card). Transform itself is
+// battlefield-only (CR 701.27a): an object that left the battlefield before
+// this resolves is not a permanent and is left untouched, while Flip and the
+// other modes keep their unconditional walk.
 //
 // Mode$ Unspecialize is the other face-SELECTING mode: Forge's Specialize
 // alternate mode (Bloomburrow Commander's Lukamina family) exits back to the
@@ -131,6 +134,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
 	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
 	unspecialize := strings.EqualFold(strings.TrimSpace(mode), "Unspecialize")
+	transform := strings.EqualFold(strings.TrimSpace(mode), "Transform")
 	optional := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True")
 	if optional {
 		// Pose the yes/no election -- but only when the change would
@@ -139,7 +143,7 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		// gate). No served answer ends the effect (R-9); the clamp-answered
 		// bot path answers option 0 = "yes", so a bot game stays
 		// byte-identical to the pre-ask always-change.
-		if setStateWouldChange(h, c, sa, turnUp, turnDown, unspecialize) {
+		if setStateWouldChange(h, c, sa, turnUp, turnDown, unspecialize, transform) {
 			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 				Source: c.Source, ResumeKind: "setstate_optional", ResumeSA: sa,
 				Prompt: "Change this permanent's face?",
@@ -210,11 +214,20 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if o.Card == nil || len(o.Card.Faces) < 2 {
 			continue
 		}
+		// CR 701.27a: only a permanent can be transformed. The object may
+		// have left the battlefield in response to the ability (an Incubator
+		// token removed before its {2} transform resolves, a DFC that died
+		// before its transform trigger), and a card in a graveyard or exile
+		// is not a permanent -- the mode is a no-op there. The entering-
+		// transformed path is ChangeZone's applyTransformed, not this arm.
+		if transform && o.Zone != state.ZBattlefield {
+			continue
+		}
 		next := (int(o.FaceIdx) + 1) % len(o.Card.Faces)
 		h.Emit(events.Event{Kind: events.Note, Obj: o.ID,
 			Text: "flips to face " + strconv.Itoa(next) + " (" + mode + ")"})
 		flip := events.Event{Kind: events.FlipFace, Obj: o.ID, Amount: int32(next)}
-		if strings.EqualFold(strings.TrimSpace(mode), "Transform") && o.Zone == state.ZBattlefield {
+		if transform {
 			flip.Text = "Transformed"
 		}
 		h.Emit(flip)
@@ -244,7 +257,7 @@ func setstateRememberChanged(c *Ctx, sa *cards.SA, id state.ObjID) {
 // ask from being posed when decline and accept are the same outcome. It is the
 // exact per-object predicate the emitting loop below applies, so the gate can
 // never disagree with what the loop would do.
-func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspecialize bool) bool {
+func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspecialize, transform bool) bool {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -272,6 +285,12 @@ func setStateWouldChange(h Host, c *Ctx, sa *cards.SA, turnUp, turnDown, unspeci
 			if o.Card != nil && len(o.Card.Faces) >= 2 && o.FaceIdx != 0 {
 				return true
 			}
+			continue
+		}
+		// The Transform arm's CR 701.27a battlefield gate (effSetState): an
+		// off-battlefield object would not change, so an Optional$ ask must
+		// not be posed for it either.
+		if transform && o.Zone != state.ZBattlefield {
 			continue
 		}
 		if o.Card != nil && len(o.Card.Faces) >= 2 {

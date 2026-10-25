@@ -141,14 +141,14 @@ func modeLabels(sa *cards.SA, svars map[string]string, names []string) []string 
 }
 
 // modeChoiceNames maps the chosen modal options back to the SVar names of
-// the Choices$ sub-abilities they pick, in the order chosen — the answer
-// effCharm reads (Ctx.Modes). eligible carries a filtered cast
-// decision's server-only vocabulary; nil falls back to the SA's full Choices$
-// list for placement and mid-resolution decisions. Out-of-range indices drop.
-// A budgeted Charm (CR 700.2i, effects.CharmBudgeted) returns its names in
-// printed Choices$ order: ChosenModes feeds the per-mode target ask, whose
-// positional ModeTargets groups must share the order the modes later run in.
-// A non-pawprint Charm keeps the answer's order, which its target asks pin.
+// the Choices$ sub-abilities they pick, in printed Choices$ order (CR 608.2c,
+// CR 700.2a) — the answer effCharm reads (Ctx.Modes). eligible carries a
+// filtered cast decision's server-only vocabulary; nil falls back to the SA's
+// full Choices$ list for placement and mid-resolution decisions. Out-of-range
+// indices drop. ChosenModes feeds the per-mode target ask, whose positional
+// ModeTargets groups must share the order the modes later run in, so both
+// sides order through effects.CharmResolveOrder. The choice SET is unchanged;
+// only its order is normalised.
 func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) []string {
 	if sa == nil {
 		return nil
@@ -163,10 +163,7 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 			names = append(names, choices[o.Index])
 		}
 	}
-	if effects.CharmBudgeted(sa) {
-		names = effects.CharmResolveOrder(choices, names)
-	}
-	return names
+	return effects.CharmResolveOrder(choices, names)
 }
 
 // moveResolvedOffStack is the shared tail of resolveTop and
@@ -234,7 +231,29 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 		rest = state.ZExile
 	}
 	controller := o.Controller
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest})
+	// CR 715.3d: stamp the resolved-Adventure exile positively. The card
+	// sits in the adventure zone only because this resolution put it there;
+	// adventureZoneAvailable requires the marker, so a counter (or a
+	// replacement that redirects a countered card to exile) never earns the
+	// play permission.
+	marker := ""
+	if rest == state.ZExile && o.CastFlags&state.FlagAdventure != 0 {
+		marker = adventureZoneMoveMarker
+	}
+	// CR 720.3d: an Omen spell is shuffled into its owner's library as it
+	// resolves. The shuffle follows the move, and only when the card actually
+	// reached the library -- a replacement that redirected the move leaves it
+	// elsewhere and nothing is shuffled (the same gate the Rebound promise
+	// uses below). A countered or fizzled Omen never reaches this tail
+	// (spellFizzleZone names the graveyard), so it never shuffles.
+	omen := rest == state.ZLibrary && o.CastFlags&state.FlagOmen != 0 && !o.IsCopy
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest, Counter: marker})
+	if omen {
+		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZLibrary {
+			order := e.ShuffleLibrary(cur.Owner, e.G.Zone(state.ZLibrary, cur.Owner))
+			e.emit(events.Event{Kind: events.Shuffle, Player: cur.Owner, IDs: order, Secret: true})
+		}
+	}
 	if rebound && rest == state.ZExile {
 		if cur := e.G.Obj(id); cur != nil && cur.Zone == state.ZExile {
 			e.registerRebound(id, controller)

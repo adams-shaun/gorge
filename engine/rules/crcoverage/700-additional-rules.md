@@ -374,14 +374,16 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 716.3 | follows | `engine/cards/kw_class.go#kwClass` | `TestClassGrantKeepsTheBodysOwnIsPresent` | - |
 | 716.4 | follows | `engine/effects/filter_value.go#numericPred` | `TestClassLevelDesignationIsNotACounter` | classLevel_ reads designation, not counters |
 | 717.1-717.6a | not-impl | `engine/rules/trigmatch/actions.go#rolledDieCommon` | - | LOUD: no Attraction deck |
-| 718.1-718.5 | not-impl | - | - |  |
+| 718.1-718.5 | follows | `engine/state/prototype.go#PrototypeParams` `engine/state/mana_value.go#ManaValue` `engine/effects/colors.go#ColorMaskOf` `engine/rules/chars/derive.go#PT` `engine/events/apply_copy.go#foldCopyToken` | `TestPrototypeCharacteristicsOnStackAndBattlefield` `TestPrototypeNormalElsewhere` `TestPrototypeCopyIsPrototyped` | The inset values are derived from the face's K:Prototype param; the designation is a CastFlag outside the copiable values but copied by CR 718.3c/d |
 | 719.1-719.2 | n/a | - | - |  |
 | 719.3-719.3a | follows | `engine/effects/misc.go#effAlterAttribute` `engine/effects/filter.go#predicates` | `TestCaseBecomesSolvedAtEndStepAndAuditorTriggers` |  |
 | 719.3b | follows | `engine/state/object.go#Object.Solved` `engine/events/apply_player.go#foldAlterAttribute` | `TestCaseSolvedClearsWhenTheCaseLeaves` | stays solved |
 | 719.3c | follows | `engine/effects/filter.go#predicates` `engine/rules/legal_activation.go#Engine.activationConditionOK` | `TestCaseSolvedCorpusCensus` | IsSolved gates Solved statics/triggers |
 | 720.1 | n/a | - | - |  |
-| 720.2-720.2b,720.3-720.3d | not-impl | - | - | SILENT: AlternateMode Omen has no cast path |
-| 720.2c,720.4 | follows | `engine/cards/ir.go#Card` | - |  |
+| 720.2-720.2b,720.3-720.3b | follows | `engine/rules/adventure.go#omenSpellFace` `engine/rules/legal_walk_hand.go#legalWalk.appendOmenAlt` | `TestOmenFaceOfferedFromHandAndShuffledOnResolve` `TestOmenUsesOmenTimingAndCost` | hand-only Omen cast, as 715; other-zone permissions out of scope |
+| 720.3c | follows | `engine/rules/stack.go#spellRestZone` `engine/state/object.go#CastProvenanceFlags` | - | code-read: FlagOmen is NOT a provenance bit, so a copy inherits it; the IsCopy arm still exiles |
+| 720.3d | follows | `engine/rules/stack.go#spellRestZone` `engine/rules/resolution_chain.go#Engine.moveResolvedOffStack` | `TestOmenFaceOfferedFromHandAndShuffledOnResolve` `TestOmenCounteredGoesToGraveyard` | shuffle only on resolution; countered Omen goes to the graveyard |
+| 720.2c,720.4 | follows | `engine/cards/ir.go#Card` `engine/events/apply_zone.go#move` | `TestOmenCardIsMainFaceOffTheStack` | face reset on every non-battlefield stack exit |
 | 720.5 | follows | `engine/cards/universe.go#Universe.Names` | `TestCorpusNameUniverseHasEveryNameableFace` | Omen name offered |
 | 721.1,721.3 | n/a | - | - |  |
 | 721.2-721.2b | follows | `engine/effects/filter_value.go#numericPred` | `TestEveryStationCarrierStationsThroughTheStack` |  |

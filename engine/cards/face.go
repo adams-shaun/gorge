@@ -813,6 +813,11 @@ func ptDigits(s string) (int, bool) {
 // import neither botpolicy nor rules.
 func (f *Face) ManaValue() int32 { return cmcFromManaCost(f.ManaCost) }
 
+// ManaValueOfCost is cmcFromManaCost for a cost string that is not a face's
+// current ManaCost, such as a prototype's inset cost (CR 718.3a). The parse
+// is the same one Face.ManaValue uses, so the two cannot drift.
+func ManaValueOfCost(mc string) int32 { return cmcFromManaCost(mc) }
+
 func cmcFromManaCost(mc string) int32 {
 	mc = manaBraceForm.Replace(mc)
 	mc = strings.TrimSpace(mc)

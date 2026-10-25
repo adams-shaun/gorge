@@ -152,7 +152,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if ev.Obj == 0 {
 			c.TriggerTarget = player(ev.Player)
 		}
-	case cards.TriggerAttacks, cards.TriggerAttackersDeclaredOneTarget, cards.TriggerAttackersDeclared:
+	case cards.TriggerAttacks:
+		c.DefendingPlayer = player(ev.Player)
+		c.AttackedTarget = player(ev.Player)
+		if len(ev.IDs) > 0 {
+			c.AttackingPlayer = player(e.controllerOf(ev.IDs[0]))
+		}
+		// CR 508.3a: an Attacks line is the singular "whenever [a creature]
+		// attacks" form, so the queue point expands it into one instance per
+		// matching attacker and binds TriggerCard/TriggerSource to that ONE
+		// attacker (attacksTriggerInstances). The role stays absent here so
+		// the per-instance binding is the only one; a hand-built context that
+		// does not expand keeps the historical absent-role fallback to
+		// Remembered.
+	case cards.TriggerAttackersDeclaredOneTarget, cards.TriggerAttackersDeclared:
 		c.DefendingPlayer = player(ev.Player)
 		c.AttackedTarget = player(ev.Player)
 		if len(ev.IDs) > 0 {
@@ -163,9 +176,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// several matching attackers caused this one queued trigger.
 		matches := 0
 		for _, id := range ev.IDs {
-			// Attacks reads ValidCard$; the AttackersDeclared family reads
-			// ValidAttackers$ -- the same per-attacker filter under its own
-			// name.
+			// The AttackersDeclared family reads ValidAttackers$ -- the same
+			// per-attacker filter under its own name.
 			spec := t.ParamStr(cards.PKValidCard)
 			if spec == "" && t.Mode == "AttackersDeclared" {
 				spec = t.ParamStr(cards.PKValidAttackers)

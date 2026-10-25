@@ -123,12 +123,14 @@ func TestPluralCharmModeGetsItsOwnTargetAsk(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestPluralCharmModeChosenFirstKeepsSingletonAsk flips the announcement order:
-// the plural mode is chosen first. With only the 1..1-only gate, the first
-// target-bearing mode's declaration is used for the whole flat ask, so the
-// 1..1 mode would silently lose its own target. Each mode must still get its
-// own ask.
-func TestPluralCharmModeChosenFirstKeepsSingletonAsk(t *testing.T) {
+// TestPluralCharmModeChosenFirstStillAsksBothModes flips the announcement
+// order: the plural mode is chosen first. CR 608.2c/700.2a still asks and
+// resolves the modes in PRINTED order, so the singleton (printed first) asks
+// first even though it was named second. With only the 1..1-only gate, the
+// first target-bearing mode's declaration is used for the whole flat ask, so
+// the 1..1 mode would silently lose its own target. Each mode must still get
+// its own ask.
+func TestPluralCharmModeChosenFirstStillAsksBothModes(t *testing.T) {
 	t.Parallel()
 	charm := pluralCharmScript()
 	e, cfg, id := newFixtureDeck(t, 6313, charm, vanillaCreatureScript, otherCreatureScript)
@@ -147,23 +149,13 @@ func TestPluralCharmModeChosenFirstKeepsSingletonAsk(t *testing.T) {
 	if d == nil || d.Kind != decision.KModes {
 		t.Fatalf("pending = %+v, want the cast mode announcement", d)
 	}
-	submitChoices(t, e, 1, 0) // ExileMode (plural) FIRST, then LoseMode
+	submitChoices(t, e, 1, 0) // answer ExileMode (plural) FIRST, then LoseMode
 
-	// Plural mode first: 0..2 over the graveyard Bear.
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KTarget || d.Min != 0 || d.Max != 2 {
-		t.Fatalf("pending = %+v, want the plural mode's 0..2 ask first", d)
-	}
-	opts := charmModeOptions(d, bear)
-	if len(opts) == 0 {
-		t.Fatalf("plural-first ask did not offer the Bear: %+v", d.Options)
-	}
-	submitChoices(t, e, opts[0])
-
-	// The 1..1 mode must still ask.
+	// Printed order wins: LoseMode (mode 0) asks first despite being named
+	// second.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget || d.Min != 1 || d.Max != 1 {
-		t.Fatalf("pending = %+v, want the singleton mode's 1..1 ask", d)
+		t.Fatalf("pending = %+v, want the singleton mode's 1..1 ask first", d)
 	}
 	seat1 := -1
 	for _, o := range d.Options {
@@ -176,9 +168,20 @@ func TestPluralCharmModeChosenFirstKeepsSingletonAsk(t *testing.T) {
 	}
 	submitChoices(t, e, seat1)
 
+	// The plural mode must still ask: 0..2 over the graveyard Bear.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget || d.Min != 0 || d.Max != 2 {
+		t.Fatalf("pending = %+v, want the plural mode's 0..2 ask", d)
+	}
+	opts := charmModeOptions(d, bear)
+	if len(opts) == 0 {
+		t.Fatalf("plural ask did not offer the Bear: %+v", d.Options)
+	}
+	submitChoices(t, e, opts[0])
+
 	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZExile {
-		t.Fatalf("Bear zone = %+v, want exile (plural-first mode landed)", o)
+		t.Fatalf("Bear zone = %+v, want exile (plural mode landed)", o)
 	}
 	if got := e.G.Players[1].Life; got != 18 {
 		t.Fatalf("seat 1 life = %d, want 18 (singleton mode still landed)", got)

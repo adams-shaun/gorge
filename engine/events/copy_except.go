@@ -126,9 +126,11 @@ func foldCopyExcept(g *state.Game, e *Event) {
 	}
 	if x.NoManaCost {
 		f.SetManaCost("")
+		f.SetCopyNoManaCost()
 	}
 	if x.PTSet {
 		f.SetPT(strconv.Itoa(int(x.Power)) + "/" + strconv.Itoa(int(x.Toughness)))
+		f.SetCopyPTSet()
 		// CR 707.9d: a copy effect that provides a specific P/T does not copy
 		// a characteristic-defining ability that defines P/T (Quicksilver
 		// Gargantuan copying Tarmogoyf is 7/7).

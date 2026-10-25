@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/adams-shaun/gorge/bots/internal/simdk"
 	"github.com/adams-shaun/gorge/bots/policynet"
 )
 
@@ -131,8 +132,9 @@ func Stats() map[string]any {
 
 type gnLinear struct {
 	in, out int
-	w       []float32 // out×in, row-major (a PyTorch Linear's weight)
-	b       []float32 // out, nil without a bias
+	w       []float32     // out×in, row-major (a PyTorch Linear's weight)
+	b       []float32     // out, nil without a bias
+	pk      *simdk.Packed // w and b as GEMM panels (the graph network's layers only)
 }
 
 type gnNorm struct {
@@ -166,8 +168,12 @@ type Net struct {
 	polRest             []gnLinear // policy.2, policy.4, ... (the last has out 1)
 	value               []gnLinear // value.0, value.2, ... (the last has out 1)
 
-	htab  []float32 // TableRows×d: hproj(table[r])
-	pool  sync.Pool // *gnScratch
+	htab []float32 // TableRows×d: hproj(table[r])
+	pool sync.Pool // *gnScratch
+
+	// gnn is the graph network's weights when the file's arch is "gnn"; nil for
+	// the mlp, whose weights are the fields above. One Net is one architecture.
+	gnn   *gnGNN
 	cache *EvalCache
 	cards *cardCache // card entries [c ‖ W_sum(group)·c]
 	pas   *cardCache // ea_proj(c)
@@ -214,7 +220,12 @@ func (g *Net) EncoderHashChecked() bool { return g.hashChecked }
 
 // RawWidth is the entity raw width the network's card_raw layer reads: 68
 // for a format-1 network, EntityRawWidth for the current encoding.
-func (g *Net) RawWidth() int { return g.cardRaw.in }
+func (g *Net) RawWidth() int {
+	if g.gnn != nil {
+		return g.gnn.rawW
+	}
+	return g.cardRaw.in
+}
 
 // Load reads a .dzgw file (contract dzgw, docs/contracts.md).
 func Load(path string) (*Net, error) {
@@ -262,8 +273,10 @@ func Load(path string) (*Net, error) {
 			return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, live)
 		}
 	}
-	if h.Arch != "mlp" {
-		return nil, fmt.Errorf("gonet %s: arch %q: only mlp has a Go forward pass", path, h.Arch)
+	switch h.Arch {
+	case "mlp", "gnn":
+	default:
+		return nil, fmt.Errorf("gonet %s: arch %q: no Go forward pass (this build reads mlp and gnn)", path, h.Arch)
 	}
 	want := map[string]int{"DENSE_W": policynet.DenseWidth,
 		"OPT_DENSE_W": policynet.OptionDenseWidth, "TABLE_ROWS": gnRows, "SLOT_ROWS": gnSlotRow, "GROUPS": gnGroups}
@@ -299,6 +312,9 @@ func Load(path string) (*Net, error) {
 		tensors[t.Name], shapes[t.Name] = f, t.Shape
 	}
 	cfg := func(k string) int { return int(h.Config[k]) }
+	if h.Arch == "gnn" {
+		return loadGNN(path, h, tensors, shapes, rawW, hashChecked)
+	}
 	g := &Net{path: path, hashChecked: hashChecked, d: cfg("d"), ff: cfg("ff"), dEmb: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
 	var errs []error
 	get := func(name string, shape ...int) []float32 {
@@ -459,6 +475,39 @@ func (g *Net) Eval(st *policynet.State, opts []policynet.Option, scores []float3
 	return g.eval(sc, st, opts, scores)
 }
 
+// EvalBatch runs the network once over len(sts) states with no result
+// cache: values[i] gets state i's value logit (as Eval returns it) and, when
+// opts is non-nil and opts[i] non-empty, scores[i] gets its len(opts[i])
+// option logits. A graph network evaluates the whole batch in one forward
+// (every Linear one GEMM over all states' rows), each state's results
+// bit-identical to Eval's; an mlp network loops Eval's path. Allocation-free
+// once a scratch has seen a batch this large.
+func (g *Net) EvalBatch(sts []*policynet.State, opts [][]policynet.Option, scores [][]float32, values []float32) {
+	if len(sts) == 0 {
+		return
+	}
+	sc := g.pool.Get().(*gnScratch)
+	defer g.pool.Put(sc)
+	if g.gnn != nil {
+		if opts != nil && len(opts) != len(sts) {
+			panic(fmt.Sprintf("gonet: EvalBatch: %d states, %d option lists", len(sts), len(opts)))
+		}
+		g.evalGNNBatch(sc, sts, opts, scores, values[:len(sts)])
+		return
+	}
+	for i, st := range sts {
+		var o []policynet.Option
+		var s []float32
+		if opts != nil {
+			o = opts[i]
+		}
+		if len(o) > 0 {
+			s = scores[i]
+		}
+		values[i] = g.eval(sc, st, o, s)
+	}
+}
+
 // SetCardCaches turns the card-vector caches off (false) or back on with the
 // default capacity (true); a benchmark compares a cold and a warm network.
 func (g *Net) SetCardCaches(on bool) {
@@ -485,6 +534,8 @@ type gnScratch struct {
 	miss         []int
 	keys         []uint64
 	buf          []byte
+
+	gnn gnnScratch // the graph network's working set (gnn.go)
 }
 
 func grow(s []float32, n int) []float32 {
@@ -506,8 +557,12 @@ func growB(s []bool, n int) []bool {
 func Sigmoid32(x float32) float32 { return float32(1 / (1 + math.Exp(-float64(x)))) }
 
 // eval runs the network on st, writes the option logits into scores (len(opts)) and
-// returns the value logit.
+// returns the value logit. A graph network (g.gnn != nil) dispatches to evalGNN;
+// every other field and the caching around this call are shared.
 func (g *Net) eval(sc *gnScratch, st *policynet.State, opts []policynet.Option, scores []float32) float32 {
+	if g.gnn != nil {
+		return g.evalGNN(sc, st, opts, scores)
+	}
 	var t0 int64
 	if Clock != nil {
 		t0 = Clock()

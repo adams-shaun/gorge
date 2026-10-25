@@ -1856,7 +1856,6 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						e.pendingTriggers = append(e.pendingTriggers, pt)
 					}
 				}
-				e.pendingTriggers = append(e.pendingTriggers, pt)
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
 				// ... permanent you control triggers, that ability triggers an
 				// additional time." Each battlefield Panharmonicon-shaped static
@@ -1867,7 +1866,35 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// the copy again: the copy is not an event). Panharmonicon's own
 				// trigger is excluded by the spec's Other predicate, which is
 				// relative to the Panharmonicon permanent itself.
-				for k := 0; k < e.panharmoniconEchoes(observer, id, *ev); k++ {
+				// CR 508.3a/603.2c: a Mode$ Attacks line is the SINGULAR
+				// "whenever [a creature] attacks" form, so it triggers once for
+				// EACH attacker its ValidCard$ matched, in declaration order,
+				// and each instance binds that one attacker as its
+				// TriggeredAttacker. The AttackersDeclared batch modes keep
+				// their one-per-declaration latch above. The matched set is the
+				// same walk the boolean matcher ran, so no instance can name an
+				// attacker the match did not admit. The Panharmonicon echo is
+				// computed per instance with that attacker as the sole cause.
+				if mk == cards.TriggerAttacks {
+					echoFor := func(attacker state.ObjID) int {
+						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker})
+					}
+					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoFor); len(insts) > 0 {
+						e.pendingTriggers = append(e.pendingTriggers, insts...)
+						continue
+					}
+				}
+				// A batch AttackersDeclared trigger is one placement for the
+				// whole declaration, but finishAttackers emits one event per
+				// defending player. Its ValidCause$ must see every declared
+				// attacker, not only the group of the event that latched it.
+				var causes []state.ObjID
+				if ev.Kind == events.DeclareAttackers && trigmatch.AttackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
+					causes = e.declaredAttackers
+				}
+				echoes := e.panharmoniconEchoes(observer, id, *ev, causes)
+				e.pendingTriggers = append(e.pendingTriggers, pt)
+				for k := 0; k < echoes; k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
 				}
 			}
@@ -2456,9 +2483,12 @@ func (e *Engine) closeZoneBatch() {
 // Knight of Infamy's intrinsic Exalted keyword trigger (engine/cards/keywords.go
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
-// seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker resolves
-// through engine/effects/context.go's objectsOf(c.Remembered): Remembered is every
-// declared attacker (plus the defending player). On top of FL-48 (task 16),
+// seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker now prefers
+// the TriggerCard role the queue point (attacksTriggerInstances) binds for the
+// attacker that instance was queued for, falling back to Remembered -- every
+// declared attacker plus the defending player -- only when the role is absent
+// (a delayed registration, or the AttackersDeclared batch family).
+// On top of FL-48 (task 16),
 // trigmatch.AttacksMatches honours Alone$ True, so the trigger now fires only when
 // exactly one attacker is declared and pumps that single attacker -- which is
 // the measured cause of the four-seat chain-head move 81a8a100641b5442's

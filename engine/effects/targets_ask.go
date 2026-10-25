@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -309,9 +310,62 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 		if TargetUniqueRequested(sa) {
 			c.TargetsUnique = append(c.TargetsUnique, ts...)
 		}
+		recordActivatedCharmTargets(h, c, ts)
 		return ts, true, true
 	}
-	return candidates[:max], true, false
+	ts = candidates[:max]
+	recordActivatedCharmTargets(h, c, ts)
+	return ts, true, false
+}
+
+// recordActivatedCharmTargets records the targets a modal ACTIVATED ability
+// asks for while its modes resolve. A modal ability's modes are chosen at
+// resolution, not at activation (rules' castModeAsk skips abilities), so the
+// targets its modes name are never covered by the activation-time target ask
+// and the ability would otherwise leave the stack with no TargetsChosen event
+// at all -- no CR 700.13 crime and no BecomesTarget trigger.
+//
+// Only an activated Charm stack object qualifies: a spell or triggered
+// ability announces its modes (and their targets) at placement, and every
+// other activated ability's own ValidTgts$ was recorded when it was
+// activated, so re-recording here would double it. A later mode's ask
+// appends (shape 2/3) once the ability already carries a root target, which
+// keeps a multi-mode crime to one event for commitCrimeMatches' prior-target
+// inspection.
+func recordActivatedCharmTargets(h Host, c *Ctx, ts []state.Target) {
+	if len(ts) == 0 || c.Source == 0 {
+		return
+	}
+	g := h.Game()
+	if len(g.Stack) == 0 {
+		return
+	}
+	// The resolving ability is the top of the stack. c.Source is the ability's
+	// SOURCE PERMANENT, not the stack object, so the activation shape lives on
+	// the top wrapper.
+	top := g.Obj(g.Stack[len(g.Stack)-1])
+	if top == nil || !top.StackKindKnown || top.StackKind != state.StackKindActivated ||
+		top.Source != c.Source || top.Ability == nil || top.Ability.API != "Charm" {
+		return
+	}
+	appendFirst := len(top.Targets) > 0
+	for i, t := range ts {
+		ev := events.Event{Kind: events.TargetsChosen, Obj: top.ID}
+		appendThis := i > 0 || appendFirst
+		if t.IsPlayer {
+			ev.Amount = 1
+			if appendThis {
+				ev.Amount = 3
+			}
+			ev.Player = t.Player
+		} else {
+			if appendThis {
+				ev.Amount = 2
+			}
+			ev.IDs = []state.ObjID{t.Obj}
+		}
+		h.Emit(ev)
+	}
 }
 
 var definedIsTargetReuseSet = state.NewNameSet(

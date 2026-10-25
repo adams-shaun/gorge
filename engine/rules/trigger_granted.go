@@ -851,15 +851,8 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 					continue
 				}
 				key := triggerKey{Source: id, Idx: -1}
-				if e.triggerFireCount == nil {
-					e.triggerFireCount = map[triggerKey]int32{}
-				}
-				if e.triggerFireCount[key] >= maxTriggerFires {
-					continue
-				}
-				e.triggerFireCount[key]++
 				tc := observer.triggerReferents(t, id, ev, objLKI)
-				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				pt := pendingTrigger{
 					Source:       id,
 					Controller:   o.Controller,
 					Idx:          ti,
@@ -877,7 +870,14 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 						Snap:           effects.LKISnapshots{Power: lkiPower, Toughness: lkiToughness, PTValid: objLKI != nil && lkiPTValid},
 						TriggerContext: tc,
 					}),
-				})
+				}
+				if t.ModeKind() == cards.TriggerAttacks {
+					if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, nil); len(insts) > 0 {
+						e.appendReservedTriggers(key, insts)
+						continue
+					}
+				}
+				e.appendReservedTriggers(key, []pendingTrigger{pt})
 			}
 		}
 	}
@@ -943,15 +943,8 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			continue
 		}
 		key := triggerKey{Source: id, Idx: -1}
-		if e.triggerFireCount == nil {
-			e.triggerFireCount = map[triggerKey]int32{}
-		}
-		if e.triggerFireCount[key] >= maxTriggerFires {
-			continue // cascade bound: see maxTriggerFires.
-		}
-		e.triggerFireCount[key]++
 		tc := observer.triggerReferents(t, id, ev, objLKI)
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		pt := pendingTrigger{
 			Source:       id,
 			Controller:   o.Controller,
 			Idx:          -1,
@@ -968,7 +961,14 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				Snap:           effects.LKISnapshots{Power: lkiPower, Toughness: lkiToughness, PTValid: objLKI != nil && lkiPTValid},
 				TriggerContext: tc,
 			}),
-		})
+		}
+		if t.ModeKind() == cards.TriggerAttacks {
+			if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, nil); len(insts) > 0 {
+				e.appendReservedTriggers(key, insts)
+				continue
+			}
+		}
+		e.appendReservedTriggers(key, []pendingTrigger{pt})
 	}
 	// A keyword-granted triggered ability (CR 613.1f): a layer-6 AddKeyword$
 	// grant of a keyword whose rules text is a triggered ability (Prowess --

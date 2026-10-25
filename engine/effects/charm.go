@@ -94,11 +94,10 @@ func CharmPawprints(h Host, source state.ObjID, sa *cards.SA, svars map[string]s
 }
 
 // CharmBudgeted reports whether the ability carries a WELL-FORMED pawprint
-// budget: the root Pawprint$ is present and a plain integer. It is the pure
-// gate for CR 700.2i's printed-order execution, so the ordering decisions --
-// before the per-mode target ask (modeChoiceNames) and where the budgeted
-// modes run (effCharm) -- cannot disagree, and neither emits the Notes
-// CharmPawprints raises for an unparseable value.
+// budget: the root Pawprint$ is present and a plain integer. It is the silent
+// predicate CharmPawprints' callers can consult without emitting the Note an
+// unparseable value raises. Execution order no longer depends on it: every
+// Charm resolves in printed order (CR 608.2c / CR 700.2a).
 func CharmBudgeted(sa *cards.SA) bool {
 	p := CharmOf(sa)
 	if !p.Pawprint.Present {
@@ -108,13 +107,15 @@ func CharmBudgeted(sa *cards.SA) bool {
 	return ok
 }
 
-// CharmResolveOrder orders chosen mode names for RESOLUTION (CR 700.2i, the
-// BLB Seasons' Gatherer ruling): the instructions are followed in the order
-// the modes are WRITTEN on the card, not the order the answer named them,
-// while repeated copies of one mode keep the answer's relative order (the
-// player "choose[s] their relative order as [they] cast the spell"). names
-// absent from choices -- never produced by the ask mappings -- keep the
-// answer's order after the known ones, so the sort cannot invent a pick.
+// CharmResolveOrder orders chosen mode names for RESOLUTION (CR 608.2c,
+// CR 700.2a): the controller follows the instructions in the order written,
+// so the modes are executed -- and their targets asked -- in printed order,
+// not the order the answer named them. This holds for every modal spell,
+// pawprint (CR 700.2i) or not. Repeated copies of one mode keep the answer's
+// relative order (CR 700.2d treats them as appearing that many times in
+// sequence); names absent from choices -- never produced by the ask mappings
+// -- keep the answer's order after the known ones, so the sort cannot invent
+// a pick.
 func CharmResolveOrder(choices, names []string) []string {
 	if len(names) < 2 {
 		return names
@@ -780,12 +781,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// to the Charm that asked for it.
 		names := c.Modes
 		c.Modes = nil
-		// CR 700.2i's printed-order execution applies ONLY to a budgeted
-		// Charm (CharmBudgeted): a non-pawprint Charm's target asks and
-		// resolution keep the answer's order.
-		if CharmBudgeted(sa) {
-			names = CharmResolveOrder(choices, names)
-		}
+		// CR 608.2c / CR 700.2a: follow the chosen modes in printed order,
+		// whatever order the answer named them (pawprint or not).
+		names = CharmResolveOrder(choices, names)
 		charmRunModes(h, c, sa, names)
 		return
 	}
@@ -898,13 +896,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 				names = append(names, vocab[o.Index])
 			}
 		}
-		ordered := names
-		if budgeted {
-			// CR 700.2i's printed-order execution, gated on the budget: a
-			// non-pawprint Charm keeps the answer's order.
-			ordered = CharmResolveOrder(vocab, names)
-		}
-		charmRunModes(h, c, sa, ordered)
+		// CR 608.2c / CR 700.2a: execute the chosen modes in printed order,
+		// whatever order the answer named them.
+		charmRunModes(h, c, sa, CharmResolveOrder(vocab, names))
 		return
 	}
 

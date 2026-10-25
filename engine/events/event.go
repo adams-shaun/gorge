@@ -1980,6 +1980,16 @@ var flagNames = [...]struct {
 	// provenance rules' resolution reader uses to substitute the cleave
 	// spell ability. Appended at the end per the table's own ordering rule.
 	{"cleaved", state.FlagCleaved},
+	// The Omen spell face's cast (CR 720.3): the flag is the provenance the
+	// resolution reader uses to send the resolved spell to its owner's
+	// library and shuffle it (CR 720.3d). Appended at the end per the table's
+	// own ordering rule.
+	{"omen", state.FlagOmen},
+	// The prototype alternative-cost cast (CR 718.3a); the flag is the
+	// provenance the mana-value, colour and power/toughness readers use to
+	// substitute the inset characteristics. Appended at the end per the
+	// table's own ordering rule.
+	{"prototype", state.FlagPrototype},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

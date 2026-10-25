@@ -19,7 +19,10 @@ var castMethods = map[string]string{"": "normal", "mayplay": "normal", "mayflash
 	"plot_cast": "plot", "bestowed": "alternative", "surged": "alternative", "blitzed": "alternative",
 	"emerged": "alternative", "mutated": "alternative", "escape": "escape", "madness": "madness", "miracle": "miracle",
 	"foretell_cast": "foretell", "adventure_alt": "adventure", "split_alt": "split_right", "fuse": "fuse",
-	"suspend_cast": "suspend", "modal_spell": "mdfc_back"}
+	"suspend_cast": "suspend", "modal_spell": "mdfc_back",
+	// The Omen cast (CR 720.3) has no Section 7.4 method of its own, so it
+	// rides the protocol's catch-all "other".
+	"omen_alt": "other"}
 
 // optionalCostModes maps a Mode that adds an optional cost to the normal cast
 // to its Section 7.4 optional_cost.cost word. gorge's optionalcost is a card's
@@ -45,10 +48,9 @@ func CastMethod(o decision.Option, alternateMode string) (method, optional, spec
 	if o.AltCostIndex > 0 {
 		return "alternative", "", "", true
 	}
-	// An Omen face (Roost Seek) has no v2 method but "other". This cannot
-	// fire at the pinned gorge: it offers adventure_alt only for AlternateMode
-	// Adventure (rules/adventure.go) and has no Omen cast path, so Roost Seek
-	// is never offered.
+	// An Adventure face offered for a non-Adventure card is not a v2
+	// adventure: fail closed as "other". (The Omen cast is its own mode,
+	// omen_alt, mapped to "other" in castMethods above.)
 	if o.Mode == "adventure_alt" && alternateMode != "Adventure" {
 		return "other", "", "", true
 	}

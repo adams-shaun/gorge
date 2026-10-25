@@ -9,12 +9,13 @@ import (
 // ALTERNATE spell face of a physical card. A scenario deals the physical
 // card under its parent (front) name -- the name both engines deal it by --
 // and a cast step may name the face it casts ("p0:Stomp" for a Bonecrusher
-// Giant in hand). Only the Adventure spell face is bound (CR 715): it is cast
-// from the hand through the engine's own "adventure_alt" offer
-// (engine/rules/adventure.go), so the runner chooses exactly the offer a player
-// would. Setup names stay physical-card names; a setup that names an
-// Adventure face is still "not dealt". A Room's other door (CR 709.5) binds
-// the same way and is cast through the engine's "room_alt" offer.
+// Giant in hand). The Adventure (CR 715) and Omen (CR 720) spell faces are
+// bound: each is cast from the hand through the engine's own "adventure_alt"
+// / "omen_alt" offer (engine/rules/adventure.go), so the runner chooses
+// exactly the offer a player would. Setup names stay physical-card names; a
+// setup that names an Adventure or Omen face is still "not dealt". A Room's
+// other door (CR 709.5) binds the same way and is cast through the engine's
+// "room_alt" offer.
 
 // oracleAltFaceMode returns the cast mode that casts name as an alternate
 // spell face of o's card, or "" when name is not such a face of o (or is
@@ -25,6 +26,9 @@ func oracleAltFaceMode(o *state.Object, name string) string {
 	}
 	if f := adventureSpellFace(o); f != nil && f.Name == name {
 		return "adventure_alt"
+	}
+	if f := omenSpellFace(o); f != nil && f.Name == name {
+		return "omen_alt"
 	}
 	if f := roomAlternateCastFace(o); f != nil && f.Name == name {
 		return "room_alt"

@@ -42,3 +42,20 @@ func (f *Face) SetCopyColours(mask uint8) { f.copyColours = copyColoursSet | mas
 func (f *Face) CopyColours() (uint8, bool) {
 	return f.copyColours &^ copyColoursSet, f.copyColours&copyColoursSet != 0
 }
+
+// SetCopyPTSet records that a copy exception supplied the face's P/T
+// (CR 707.9b). A prototyped copy's inset P/T read honours this marker: the
+// exception's value is the copiable one.
+func (f *Face) SetCopyPTSet() { f.copyPTSet = true }
+
+// CopyPTSet reports whether a copy exception supplied the face's P/T.
+func (f *Face) CopyPTSet() bool { return f.copyPTSet }
+
+// SetCopyNoManaCost records that a copy exception removed the face's mana
+// cost (CR 707.9b). A prototyped copy's inset mana-cost read honours this
+// marker.
+func (f *Face) SetCopyNoManaCost() { f.copyNoManaCost = true }
+
+// CopyNoManaCost reports whether a copy exception removed the face's mana
+// cost.
+func (f *Face) CopyNoManaCost() bool { return f.copyNoManaCost }

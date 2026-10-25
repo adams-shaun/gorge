@@ -36,9 +36,17 @@ func entityFixture(t *testing.T, seed uint64) (*Model, Example, LossConfig) {
 	for i := range m.EntB {
 		m.EntB[i] = float32(rng.NormFloat64()) * 0.1
 	}
+	// mkCard fills the slots the fixture's features occupy (0..83, where a
+	// trained network's raw vector lives) and leaves the appended v2 block
+	// (colour/pips/category above EntityRawWidthRelEnd) zero. Filling every
+	// slot made the fixture's encoding depend on the raw WIDTH: widening the
+	// vector shifted the RNG stream, so every later draw -- the name rows,
+	// the options -- changed too, and the finite-difference check failed on
+	// coordinates that had nothing to do with the new slots. A real trained
+	// card's appended block is mostly zero anyway.
 	mkCard := func(g uint8) EntityCard {
 		raw := make([]float32, EntityRawWidth)
-		for i := range raw {
+		for i := 0; i < EntityRawWidthRelEnd; i++ {
 			if rng.IntN(3) == 0 {
 				raw[i] = float32(rng.NormFloat64())
 			}

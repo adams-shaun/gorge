@@ -102,9 +102,23 @@ const (
 	entCombatKills  = 82 // could kill a foe this combat
 	entReserved83   = 83 // pads the width to 84
 
-	EntityRawWidth   = 84
+	// The v2 block, appended so nothing at 0..83 moves: mana colour (one per
+	// WUBRG colour), the pip counts (not the mana value) and a coarse
+	// category. A v2 network reads them; a v1 or v3 network does not have
+	// them and still loads (netsimd accepts both widths).
+	entColourOff = 84 // W U B R G C, one each
+	entPipsOff   = 90 // W U B R G generic, the pip counts / pipMax
+	entCategory  = 96 // removal, creature, ramp, trick (coarse, overlapping)
+
+	EntityRawWidth   = 100
 	EntityRawWidthV1 = 68
-	entityFormat     = 3
+	// EntityRawWidthV3 is the format-3 width the trained v1/v2 networks were
+	// built at (84): the v2 colour/pips/category block is appended above it.
+	EntityRawWidthV3 = 84
+	// EntityRawWidthRelEnd is the end of the relational block the v1 checks
+	// range over (68..83); the v2 block starts above it.
+	EntityRawWidthRelEnd = 84
+	entityFormat         = 3
 )
 
 // entityTypes is the entity type vocabulary (index = entTypeOff + i).
@@ -118,7 +132,7 @@ var entityTypeMasks = [len(entityTypes)]cards.TypeMask{cards.TypeCreature, cards
 	cards.TypeEnchantment, cards.TypePlaneswalker, cards.TypeInstant, cards.TypeSorcery, cards.TypeBattle,
 	cards.TypeLegendary, cards.TypeBasic}
 
-// entRelNames names the relational slots EntityRawWidthV1..EntityRawWidth-1.
+// entRelNames names the relational slots EntityRawWidthV1..EntityRawWidthRelEnd-1.
 var entRelNames = [16]string{"tgt-by-me", "tgt-by-opp", "tgt-perm-me", "tgt-perm-opp",
 	"tgt-player-me", "tgt-player-opp", "tgt-stack", "tgt-grave", "stack-x", "stack-kicked",
 	"combat-foes", "combat-foe-pow", "combat-foe-tgh", "combat-dies", "combat-kills", "reserved"}
@@ -483,6 +497,36 @@ func entityCard(raw []float32, rows []Feature, cv *view.CardView, zone int, seat
 		set(entFaceDown, 1)
 	}
 	set(entOne, 1)
+	// The v2 block: printed mana colour, the pip counts, and a coarse
+	// category. Colour was absent from the entity vector before -- the option
+	// encoding reads it, the entity encoding did not -- so on the battlefield
+	// a card's colours were visible only through its opaque name hash.
+	if !cv.FaceDown {
+		colours, _ := manaCostBits(cv.ManaCost)
+		for k := 0; k < 6; k++ {
+			if colours[k] {
+				set(entColourOff+k, 1)
+			}
+		}
+		pips := pipCounts(cv.ManaCost)
+		for k := 0; k < 6; k++ {
+			if pips[k] != 0 {
+				set(entPipsOff+k, float32(pips[k])/float32(pipMax))
+			}
+		}
+		if removalSpell(cv, fold) {
+			set(entCategory, 1)
+		}
+		if creature {
+			set(entCategory+1, 1)
+		}
+		if rampCard(cv) {
+			set(entCategory+2, 1)
+		}
+		if fold&cards.TypeInstant != 0 && !removalSpell(cv, fold) {
+			set(entCategory+3, 1)
+		}
+	}
 	if cv.Name != "" && !cv.FaceDown {
 		rows = append(rows, Feature{Row: fnvRow(fnvAdd(fnvAdd(fnvOffset, "ent|name|"), cv.Name)), Value: 1})
 	}
@@ -720,3 +764,197 @@ func (sc *entityScratch) seenSlow(id state.ObjID) bool {
 	sc.huge = append(sc.huge, id)
 	return false
 }
+
+// ---- the v2 block's helpers --------------------------------------------
+
+// pipMax caps one pip count, as feat's encoder does: a card with more pips of
+// one colour than this is saturated (the distinction is not meaningful).
+const pipMax = 5
+
+// pipCounts counts a mana cost's pips per colour (WUBRG then generic), from
+// the same token walk manaCostBits takes so the two cannot disagree. A hybrid
+// pip counts for every colour it names; {X} counts for nothing. Deliberately
+// mirrors four-yay kernel/feat's costPips: both encoders write the same slots
+// and the oracle compares them.
+//
+// The token walk is local rather than strings.Split/TrimSpace/EqualFold so
+// the per-card encode adds no string machinery (the codeshape ratchet).
+func pipCounts(cost string) [6]int {
+	var n [6]int
+	cost = manaBraceForm.Replace(cost)
+	start, end := 0, len(cost)
+	for start < end && isSpaceByte(cost[start]) {
+		start++
+	}
+	for end > start && isSpaceByte(cost[end-1]) {
+		end--
+	}
+	cost = cost[start:end]
+	if cost == "" || equalFoldASCII(cost, "no cost") {
+		return n
+	}
+	for i := 0; i < len(cost); {
+		if isSpaceByte(cost[i]) {
+			i++
+			continue
+		}
+		start, depth := i, 0
+		for i < len(cost) {
+			if cost[i] == '<' {
+				depth++
+			} else if cost[i] == '>' && depth > 0 {
+				depth--
+			} else if isSpaceByte(cost[i]) && depth == 0 {
+				break
+			}
+			i++
+		}
+		addPips(&n, cost[start:i])
+	}
+	for i := range n {
+		if n[i] > pipMax {
+			n[i] = pipMax
+		}
+	}
+	return n
+}
+
+// addPips adds one mana-cost token's pips to n: a numeric token is generic,
+// a slash token (hybrid, twobrid, Phyrexian) counts each one-letter face and
+// nothing else, and any other token counts every WUBRG C letter it names.
+func addPips(n *[6]int, tok string) {
+	if equalFoldASCII(tok, "X") {
+		return
+	}
+	if isPlainDigits(tok) {
+		v := 0
+		for i := 0; i < len(tok); i++ {
+			v = v*10 + int(tok[i]-'0')
+		}
+		n[5] += v
+		return
+	}
+	if byteIndex(tok, '/') >= 0 {
+		for start := 0; start <= len(tok); {
+			end := start
+			for end < len(tok) && tok[end] != '/' {
+				end++
+			}
+			if end-start == 1 {
+				if k := pipIndexByte(tok[start]); k >= 0 {
+					n[k]++
+				}
+			}
+			if end == len(tok) {
+				break
+			}
+			start = end + 1
+		}
+		return
+	}
+	for i := 0; i < len(tok); i++ {
+		if k := pipIndexByte(tok[i]); k >= 0 {
+			n[k]++
+		}
+	}
+}
+
+// pipIndexByte maps a colour letter to its v2 pip slot (WUBRG C), or -1.
+func pipIndexByte(b byte) int {
+	switch b {
+	case 'W':
+		return 0
+	case 'U':
+		return 1
+	case 'B':
+		return 2
+	case 'R':
+		return 3
+	case 'G':
+		return 4
+	case 'C':
+		return 5
+	}
+	return -1
+}
+
+func byteIndex(s string, b byte) int {
+	for i := 0; i < len(s); i++ {
+		if s[i] == b {
+			return i
+		}
+	}
+	return -1
+}
+
+func lowerASCII(b byte) byte {
+	if b >= 'A' && b <= 'Z' {
+		return b + ('a' - 'A')
+	}
+	return b
+}
+
+func equalFoldASCII(s, t string) bool {
+	if len(s) != len(t) {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if lowerASCII(s[i]) != lowerASCII(t[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// containsFoldASCII reports whether sub (lowercase) occurs in s, folding
+// ASCII case, without strings.ToLower/Contains on the per-card path.
+func containsFoldASCII(s, sub string) bool {
+	if sub == "" {
+		return true
+	}
+	for i := 0; i+len(sub) <= len(s); i++ {
+		ok := true
+		for j := 0; j < len(sub); j++ {
+			if lowerASCII(s[i+j]) != sub[j] {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// removalSpell reports a non-creature, non-land card whose spell API reads
+// like removal. Coarse on purpose: the marker is evidence of a role, and
+// under-tagging leaves the net where it already was.
+func removalSpell(cv *view.CardView, fold cards.TypeMask) bool {
+	if fold&cards.TypeCreature != 0 || fold&cards.TypeLand != 0 {
+		return false
+	}
+	for _, k := range removalAPIMarkers {
+		if containsFoldASCII(cv.SpellAPI, k) {
+			return true
+		}
+	}
+	return false
+}
+
+var removalAPIMarkers = []string{"destroy", "exile", "damage", "deals", "sacrifices", "counter target"}
+
+// rampCard reports a land or a name that reads like a mana rock.
+func rampCard(cv *view.CardView) bool {
+	if fold, _ := typeMasks(cv); fold&cards.TypeLand != 0 {
+		return true
+	}
+	for _, k := range rampNameMarkers {
+		if containsFoldASCII(cv.Name, k) {
+			return true
+		}
+	}
+	return false
+}
+
+var rampNameMarkers = []string{"signet", "talisman", "lantern", "monument", "orb", "prism", "keyrune"}

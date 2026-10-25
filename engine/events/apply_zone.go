@@ -57,18 +57,29 @@ func foldMoveZone(g *state.Game, e *Event) {
 	if !countersRemain {
 		moveCounter = e.Counter
 	}
-	setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
+	setType, fdPower, fdTough, fdHasPT, faceDownEntry := "", int32(0), int32(0), false, false
+	manifested := false
 	if e.Kind == MoveZone && e.To == state.ZBattlefield {
-		if moveCounter == CloakEntryCounter {
-			manifesting = true
-		} else {
-			setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(moveCounter)
+		switch {
+		case moveCounter == CloakEntryCounter:
+			faceDownEntry = true
+		case moveCounter == ManifestEntryCounter:
+			faceDownEntry, manifested = true, true
+		default:
+			setType, fdPower, fdTough, fdHasPT, faceDownEntry = FaceDownEntryFields(moveCounter)
 		}
 	}
-	if manifesting {
+	if faceDownEntry {
 		if o := g.Obj(e.Obj); o != nil {
 			o.FaceDown = true
 			o.Cloaked = e.Counter == CloakEntryCounter
+			// Manifested is the manifest procedure's own marker (CR 701.40),
+			// never the Secret bit: a generic ChangeZone FaceDown$ True entry
+			// from a hand or library is Secret too (Tezzeret, Cruel Machinist;
+			// Cybership) but does not grant the CR 701.40b turn-up. This
+			// provenance is what lets a manifested creature card be turned face
+			// up for its mana cost later.
+			o.Manifested = manifested
 			o.FaceDownSetType = setType
 			o.FaceDownPower = fdPower
 			o.FaceDownToughness = fdTough
@@ -186,6 +197,10 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.ExiledWith = 0
 			o.FaceDown = true
 			o.Cloaked = moveCounter == CloakEntryCounter
+			// A face-down CAST is the morph/megamorph/disguise procedure, not
+			// a manifest: its turn-face-up cost is the keyword cost, so the
+			// manifest provenance must not be set here.
+			o.Manifested = false
 			o.FaceDownSetType, o.FaceDownPower, o.FaceDownToughness, o.FaceDownHasPT = "", 0, 0, false
 		} else if e.To == state.ZExile {
 			switch moveCounter {
@@ -264,10 +279,10 @@ func foldMoveZone(g *state.Game, e *Event) {
 				}
 				o.FaceDown = false
 			}
-		} else if manifesting {
-			// CR 708.5: the manifested or cloaked card stays state-face-down
-			// while it is on the battlefield (the view redacts it to everyone
-			// but its controller); leaving the battlefield clears it (CR 708.9)
+		} else if faceDownEntry {
+			// CR 708.5: a face-down card stays state-face-down while it is on
+			// the battlefield (the view redacts it to everyone but its
+			// controller); leaving the battlefield clears it (CR 708.9)
 			// through Move's own leave reset and the default branch.
 			o.ExiledWith = 0
 			o.FaceDown = true
@@ -276,6 +291,7 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.FaceDownToughness = fdTough
 			o.FaceDownHasPT = fdHasPT
 			o.Cloaked = e.Counter == CloakEntryCounter
+			o.Manifested = manifested
 		} else {
 			o.ExiledWith = 0
 			o.FaceDown = false
@@ -737,8 +753,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// face) characteristics, so an Adventure spell leaving the stack --
 	// resolved into the adventure zone, countered, or reversed to hand -- is
 	// its main face again. The adventure-zone recast reads the log, not the face.
+	// CR 720.4: the same rule for an Omen card -- in every zone except the
+	// stack, and while on the stack not as an Omen, it has only its normal
+	// characteristics. So a resolved (now in the library), countered or
+	// reversed Omen is its creature front again.
 	if wasStack && to != state.ZBattlefield && o.Card != nil &&
-		o.Card.AlternateMode == "Adventure" && o.FaceIdx != 0 {
+		(o.Card.AlternateMode == "Adventure" || o.Card.AlternateMode == "Omen") && o.FaceIdx != 0 {
 		o.SetFaceIdx(0)
 	}
 	// CR 712.4d: a Modal DFC is front-face up in every non-battlefield
@@ -1051,6 +1071,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.FaceDownToughness = 0
 		o.FaceDownHasPT = false
 		o.Cloaked = false
+		o.Manifested = false
 		o.RiotChoice = ""
 		o.UntapChoice = ""
 		o.UnleashChoice = ""

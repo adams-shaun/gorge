@@ -91,6 +91,13 @@ func (w *legalWalk) castRestrictedCost(p state.PlayerID, id state.ObjID, cost Co
 	return w.e.castRestrictedCost(w.actionStatics.get().cantCast, p, id, cost, w.pricing())
 }
 
+// castRestrictedCostPrototype is castRestrictedCost for the prototyped cast
+// route, whose restriction specs read the K:Prototype inset characteristics
+// (CR 718.3a).
+func (w *legalWalk) castRestrictedCostPrototype(p state.PlayerID, id state.ObjID, cost Cost) bool {
+	return w.e.castRestrictedCostPrototype(w.actionStatics.get().cantCast, p, id, cost, w.pricing())
+}
+
 func (w *legalWalk) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
 	return w.e.abilityRestrictedUsing(w.actionStatics.get().cantActivate, p, id, ab)
 }
@@ -164,7 +171,7 @@ func (w *legalWalk) offerFloorRefuses(statics *costStaticViews, p state.PlayerID
 }
 
 // offerCastableAsFace is offerCastable for an alternate-face cast route
-// (adventure_alt, adventure_recast, room_alt, split_alt, aftermath):
+// (adventure_alt, adventure_recast, room_alt, split_alt, aftermath, omen_alt):
 // beginCast flips the object to `face` before pricing, so the gate prices
 // with the object showing that face too (faceprobe.go) -- otherwise a
 // modifier reading the card's characteristics (Thalia's

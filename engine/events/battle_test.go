@@ -49,15 +49,16 @@ func TestEntryCounterGrantsBattleDefense(t *testing.T) {
 
 // TestEntryCounterGrantsFaceDownGrantsNothing is the manifest/cloak
 // boundary: a face-down entry (CR 708.5) is a 2/2 creature, not a Battle,
-// and grants no defense counters -- nor any other entry counter. Both
-// battlefield face-down entry markers reach the same gate, via the shared
+// and grants no defense counters -- nor any other entry counter. Every
+// battlefield face-down entry marker reaches the same gate, via the shared
 // IsFaceDownEntry predicate the rules snapshot uses.
 func TestEntryCounterGrantsFaceDownGrantsNothing(t *testing.T) {
 	for _, tc := range []struct {
 		name, counter string
 		cloaked       bool
 	}{
-		{"manifest", FaceDownEntryCounter, false},
+		{"plain face-down", FaceDownEntryCounter, false},
+		{"manifest", ManifestEntryCounter, false},
 		{"cloak", CloakEntryCounter, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -82,13 +83,15 @@ func TestEntryCounterGrantsFaceDownGrantsNothing(t *testing.T) {
 }
 
 // TestIsFaceDownEntryCoversBothMarkers pins the shared predicate the rules
-// side reads when it must skip a face-down battlefield entry: BOTH markers
-// count (the payload-bearing manifest spellings too), and no other MoveZone
-// Counter value does. Without this, a consumer reaching only for
-// FaceDownEntryFields silently misses every cloak entry.
+// side reads when it must skip a face-down battlefield entry: every marker
+// counts (the payload-bearing generic spellings and the dedicated manifest
+// and cloak markers too), and no other MoveZone Counter value does. Without
+// this, a consumer reaching only for FaceDownEntryFields silently misses the
+// cloak and manifest entries.
 func TestIsFaceDownEntryCoversBothMarkers(t *testing.T) {
 	for _, c := range []string{
 		FaceDownEntryCounter,
+		ManifestEntryCounter,
 		CloakEntryCounter,
 		FaceDownEntryCounterFor("Land & Forest", 0, 0, false),
 		FaceDownEntryCounterFor("", 3, 3, true),

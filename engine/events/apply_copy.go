@@ -210,6 +210,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	if morphFlags != 0 {
 		o.FaceDown = true
 		o.Cloaked = morphFlags&state.FlagDisguised != 0
+		o.Manifested = false
 	}
 	// CR 707.10c: Amount is the creating CopySpellAbility's
 	// MayChooseTarget$ discriminator (1 = true). It rides the event so the
@@ -280,6 +281,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 	var card *cards.Card
 	var faceIdx uint8
 	var basis *cards.Face
+	var src *state.Object
 	srcAtEOTTrigBody := ""
 	if e.Obj == 0 {
 		if e.Text == "" {
@@ -290,7 +292,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 			return
 		}
 	} else {
-		src := g.Obj(e.Obj)
+		src = g.Obj(e.Obj)
 		if src == nil || src.Card == nil {
 			return
 		}
@@ -304,6 +306,11 @@ func foldCopyToken(g *state.Game, e *Event) {
 	o.SetFaceIdx(faceIdx)
 	if basis != nil {
 		o.SetCopyFace(basis)
+	}
+	// CR 718.3c/d: a token copy of a prototyped permanent is also
+	// prototyped. A named-card copy has no source, so it is not.
+	if src != nil {
+		o.CastFlags = src.CastFlags & state.FlagPrototype
 	}
 	// AtEOTTrig$ is a copiable value (CR 707.2): the mint's own body when
 	// the copying spell carries one (Counter), else the source object's --
@@ -431,17 +438,19 @@ func foldClonePermanent(g *state.Game, e *Event) {
 	}
 	if e.Counter != "chosen-name" && (len(e.IDs) == 0 || e.IDs[0] == 0) {
 		o.SetCopyFace(nil)
+		o.CastFlags &^= state.FlagPrototype
 		o.CopyGainThisAbility = false
 		return
 	}
 	var face *cards.Face
+	var src *state.Object
 	if e.Counter == "chosen-name" {
 		// The chosen name may be a back face's or an alternative name
 		// (CR 201.4b-f): copy THAT face.
 		if i, j, ok := g.NameUniverse.FaceByName(e.Text); ok {
 			face = g.NameUniverse.Card(i).Faces[j]
 		}
-	} else if src := g.Obj(e.IDs[0]); src != nil {
+	} else if src = g.Obj(e.IDs[0]); src != nil {
 		face = src.CopiableFace()
 	}
 	if face == nil {
@@ -537,6 +546,12 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		sf.ForgetCompiled()
 	}
 	o.SetCopyFace(&sf)
+	// CR 718.3c/d: a permanent that becomes a copy of a prototyped permanent
+	// is prototyped; a chosen-name copy has no prototyped source.
+	o.CastFlags &^= state.FlagPrototype
+	if src != nil {
+		o.CastFlags |= src.CastFlags & state.FlagPrototype
+	}
 }
 
 // foldFlipFace folds Kinds FlipFace, Specialize into state.
@@ -559,6 +574,10 @@ func foldTurnFaceDown(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && !o.FaceDown {
 		setType, power, toughness, hasPT, _ := FaceDownEntryFields(e.Counter)
 		o.FaceDown = true
+		// A SetState TurnFaceDown (Ixidron, Cyber Conversion) is not a
+		// manifest: the permanent was not put onto the battlefield face down
+		// by the manifest procedure, so it has no mana-cost turn-up.
+		o.Manifested = false
 		o.FaceDownSetType = setType
 		o.FaceDownPower, o.FaceDownToughness = power, toughness
 		o.FaceDownHasPT = hasPT
@@ -576,6 +595,11 @@ func foldTurnFaceUp(g *state.Game, e *Event) {
 	// the battlefield is not a turn-up.
 	if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 		o.FaceDown = false
+		o.Manifested = false
+		// The cloak status (CR 708.5's ward {2}) is a face-down property:
+		// once the card is face up it is no longer cloaked, so the bit must
+		// not keep feeding the face-down readers.
+		o.Cloaked = false
 		o.FaceDownSetType = ""
 		o.FaceDownPower = 0
 		o.FaceDownToughness = 0

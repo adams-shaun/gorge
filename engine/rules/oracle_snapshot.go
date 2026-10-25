@@ -405,16 +405,17 @@ func stackTriggerSlot(src *state.Object, sa *cards.SA) string {
 // "Left // Right" name is replaced by the cast door's name, whichever door
 // that is (FaceIdx 0 included).
 //
-// An Adventure spell on the stack is the same case (CR 715.3b, 715.4): the
-// card was cast as its Adventure face and has only that face's
-// characteristics, so XMage names the stack object by the Adventure's own
-// name ("Stomp"), not the card's.
+// An Adventure spell on the stack is the same case (CR 715.3b, 715.4), and an
+// Omen spell is its Omen twin (CR 720.3b, 720.4): the card was cast as its
+// alternate face and has only that face's characteristics, so XMage names the
+// stack object by the alternate face's own name ("Stomp", "Charring Bite"),
+// not the card's.
 func stackSourceRef(ref string, o *state.Object) string {
 	if o == nil || o.CopyFace != nil || o.Face() == nil {
 		return ref
 	}
 	onStackRoom := o.Zone == state.ZStack && o.Ability == nil &&
-		(chars.IsRoomCard(o) || adventureSpellFace(o) == o.Face())
+		(chars.IsRoomCard(o) || adventureSpellFace(o) == o.Face() || omenSpellFace(o) == o.Face())
 	if !onStackRoom && (o.Zone != state.ZBattlefield || o.FaceIdx == 0) {
 		return ref
 	}

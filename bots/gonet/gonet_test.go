@@ -193,3 +193,27 @@ func TestRealNetworkLoadsAndAnswers(t *testing.T) {
 		t.Errorf("real network: value %v not in (0,1)", v)
 	}
 }
+
+// EvalBatch on an mlp network loops the serial forward: each state's value
+// and logits equal Eval's, and a nil option list is value only.
+func TestEvalBatchMLPMatchesEval(t *testing.T) {
+	st, opts := sampleState()
+	empty := policynet.State{Dense: make([]float32, policynet.DenseWidth)}
+	g := load(t)
+	sts := []*policynet.State{&st, &empty, &st}
+	bo := [][]policynet.Option{opts, nil, opts[:1]}
+	scores := [][]float32{make([]float32, 3), nil, make([]float32, 1)}
+	values := make([]float32, 3)
+	g.EvalBatch(sts, bo, scores, values)
+	for i := range sts {
+		want := make([]float32, len(bo[i]))
+		if v := g.Eval(sts[i], bo[i], want); v != values[i] || !slices.Equal(want, scores[i][:len(bo[i])]) {
+			t.Errorf("state %d: batch %v %v, Eval %v %v", i, values[i], scores[i], v, want)
+		}
+	}
+	vals := make([]float32, 2)
+	g.EvalBatch(sts[:2], nil, nil, vals) // value only
+	if vals[0] != values[0] || vals[1] != values[1] {
+		t.Errorf("value-only batch %v, want %v", vals, values[:2])
+	}
+}

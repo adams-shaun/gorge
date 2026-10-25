@@ -71,6 +71,11 @@
       "status": "EXT",
       "purpose": "SIMD forward pass for bots/gonet's network."
     },
+    "bots/internal/simdk": {
+      "tier": "bots",
+      "status": "EXT",
+      "purpose": "Shared AVX-512 kernels (packed GEMM, LayerNorm, GELU, exp, attention heads) with scalar twins, for bots/gonet and bots/netsimd."
+    },
     "bots/gonet/gonettest": {
       "tier": "bots",
       "status": "TOOL"

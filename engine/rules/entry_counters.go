@@ -165,13 +165,21 @@ func (e *Engine) entryCounterGrants(ev *events.Event) []events.EntryCounterGrant
 		}
 		return append(grants, requested...)
 	case events.TokenCreate:
-		return events.EntryCounterGrants(e.tokenSnapshot(*ev), false)
+		// A token mint can carry the same requested entry counters a
+		// ChangeZone does (effects.entryWithCounters on the TokenCreate):
+		// WithCountersType$/WithCountersAmount$ are part of the mint, so they
+		// settle with the token's intrinsic grants before it enters.
+		_, requested := events.SplitEntryCounterPairs(ev.Pairs)
+		return append(events.EntryCounterGrants(e.tokenSnapshot(*ev), false), requested...)
 	case events.CardToken:
-		if src := e.G.Obj(ev.Obj); src != nil {
-			// CardToken copies the card and face, not the source object's
-			// counters, elections or compleated payment.
-			return events.EntryCounterGrants(&state.Object{Card: src.Card, FaceIdx: src.FaceIdx}, false)
+		_, requested := events.SplitEntryCounterPairs(ev.Pairs)
+		src := e.G.Obj(ev.Obj)
+		if src == nil {
+			return nil
 		}
+		// CardToken copies the card and face, not the source object's
+		// counters, elections or compleated payment.
+		return append(events.EntryCounterGrants(&state.Object{Card: src.Card, FaceIdx: src.FaceIdx}, false), requested...)
 	}
 	return nil
 }
@@ -1163,7 +1171,8 @@ func (e *Engine) foldEntryWithPlaced(ev *events.Event, placed []events.EntryCoun
 // already read them into the entry's grant plan, and the plan's settled
 // amounts are what the fold installs, so the request must not fold too.
 func stripEntryRequests(ev *events.Event) {
-	if ev.Kind == events.MoveZone {
+	switch ev.Kind {
+	case events.MoveZone, events.TokenCreate, events.CardToken:
 		ev.Pairs, _ = events.SplitEntryCounterPairs(ev.Pairs)
 	}
 }

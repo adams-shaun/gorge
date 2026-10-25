@@ -264,6 +264,18 @@ func gateSpecParse(spec string) gateSpec {
 	return g
 }
 
+// printedPTBase is the printed P/T basis, except for a prototyped spell or
+// permanent, whose base is its K:Prototype inset pair (CR 718.3a). It is the
+// fast-path twin of chars' basePT so the printed and derived answers agree.
+func printedPTBase(o *state.Object, f *cards.Face) (int32, int32) {
+	if o != nil {
+		if _, p, t, ok := o.PrototypeCharacteristics(); ok {
+			return p, t
+		}
+	}
+	return int32(f.Power()), int32(f.Toughness())
+}
+
 // printedCharacteristics answers Characteristics without the layer walk when
 // the argument above proves no continuous effect can reach id; ok is false
 // whenever the full derivation must run instead.
@@ -293,7 +305,8 @@ func (e *Engine) printedCharacteristics(id state.ObjID, scratchOK bool) (power, 
 		e.charsWalk.KW = kw
 	}
 	dp, dt := o.CounterPTTotals()
-	power, toughness = int32(f.Power())+dp, int32(f.Toughness())+dt
+	power, toughness = printedPTBase(o, f)
+	power, toughness = power+dp, toughness+dt
 	if printedCharsVerify {
 		got := append([]string{}, kw...)
 		e.verifyPrintedChars(id, power, toughness, got, "")
@@ -372,7 +385,8 @@ func (e *Engine) printedKeywordsOnly(id state.ObjID) ([]string, bool) {
 	kw, own := printedKeywords(o, f)
 	if own && printedCharsVerify {
 		dp, dt := o.CounterPTTotals()
-		e.verifyPrintedChars(id, int32(f.Power())+dp, int32(f.Toughness())+dt, kw, "")
+		p, t := printedPTBase(o, f)
+		e.verifyPrintedChars(id, p+dp, t+dt, kw, "")
 	}
 	return kw, own
 }
@@ -390,7 +404,8 @@ func (e *Engine) printedViewCharacteristics(id state.ObjID) (name string, keywor
 		return "", nil, 0, 0, false
 	}
 	dp, dt := o.CounterPTTotals()
-	power, toughness = int32(f.Power())+dp, int32(f.Toughness())+dt
+	power, toughness = printedPTBase(o, f)
+	power, toughness = power+dp, toughness+dt
 	if printedCharsVerify {
 		e.verifyPrintedChars(id, power, toughness, kw, f.Name)
 	}
@@ -413,7 +428,8 @@ func (e *Engine) printedPT(o *state.Object, f *cards.Face, active []ContinuousEf
 		return 0, 0, false
 	}
 	dp, dt := o.CounterPTTotals()
-	power, toughness = int32(f.Power())+dp, int32(f.Toughness())+dt
+	power, toughness = printedPTBase(o, f)
+	power, toughness = power+dp, toughness+dt
 	if printedCharsVerify {
 		if want := e.derivedCompute(o.ID, 0); want.Power != power || want.Toughness != toughness {
 			msg := fmt.Sprintf("rules: printed P/T for obj %d: fast %d/%d, full %d/%d", o.ID, power, toughness, want.Power, want.Toughness)

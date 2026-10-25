@@ -40,7 +40,7 @@ func jaceEngine(t *testing.T) (*Engine, [2]state.ObjID) {
 func TestFaceDownPlaneswalkerSurvivesZeroLoyaltySBA(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, counter string }{
-		{"manifest", events.FaceDownEntryCounter},
+		{"manifest", events.ManifestEntryCounter},
 		{"cloak", events.CloakEntryCounter},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

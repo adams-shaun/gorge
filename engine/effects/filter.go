@@ -2528,7 +2528,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// Colour predicates must use the layer-5 derived colours when rules
 	// supplies them: the map's legacy colour functions carry no SpecContext,
 	// so with a table bound they fall through to the word path below.
-	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc)) && colourMapPredicate(p)) {
+	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc) || sc.AsPrototype) && colourMapPredicate(p)) {
 		return fn(g, o, sc.You, sc.Source), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
@@ -2741,6 +2741,13 @@ type SpecContext struct {
 	// would be (CR 601.3a/709.3a), so a split card's halves are not combined
 	// (CR 709.4) for that read. Absent from every other evaluation.
 	AsSpellHalf bool
+	// AsPrototype is the same class of DERIVED-CHARACTERISTICS override: a
+	// prototype card in hand is offered and priced for its inset
+	// characteristics (CR 718.3a), so a cast restriction or cost modifier
+	// that reads its mana value, colours or P/T must read the K:Prototype
+	// inset rather than the printed face. rules' spellSpecCtx sets it for a
+	// "prototype" cast mode; absent from every other evaluation.
+	AsPrototype bool
 	// AsFaceDown is the same class of DERIVED-CHARACTERISTICS override for
 	// the faceDown predicate: a Moved replacement's ValidCard$ is evaluated
 	// ahead of the Move it intercepts, so the entering object is not yet
@@ -3024,7 +3031,8 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	// A split card read as the spell being cast (splitReadAsSpell) is the
 	// same kind of override: the programs read its combined colours.
 	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
-		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) {
+		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) &&
+		!sc.AsPrototype {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
 		case PredicateYes:
 			return true

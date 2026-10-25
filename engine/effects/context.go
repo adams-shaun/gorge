@@ -942,6 +942,21 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBlocker}}, true
 		}
 		return objectsOf(c.Remembered), true
+	case definedSpecTriggeredAttacker:
+		// The singular attacker spellings (trig:Attacks and the
+		// AttackersDeclared family): prefer the fire-time TriggerCard role.
+		// For Attacks the queue point binds it to that instance's own
+		// attacker (CR 508.3a/603.2c), so the read names exactly one. For the
+		// AttackersDeclared family triggerReferents still zeroes it when
+		// several declared attackers matched, because one queued batch
+		// trigger cannot name a singular attacker: the role-absent fallback
+		// keeps the old Remembered read for that multi-match case and for
+		// hand-built contexts (the plural TriggeredAttackers spelling is the
+		// batch read).
+		if c.TriggerCard != 0 {
+			return []state.Target{{Obj: c.TriggerCard}}, true
+		}
+		return objectsOf(c.Remembered), true
 	case definedSpecDelayTriggerRememberedLKI:
 		// The registration's own capture (objects only, the LKI spelling's
 		// read), with the pre-field fallback to Remembered for a context
@@ -2497,6 +2512,7 @@ const (
 	definedSpecParentTargetedController
 	definedSpecThisTargetedCard
 	definedSpecTriggeredAttackers
+	definedSpecTriggeredAttacker
 	definedSpecTriggeredTargetLKICopy
 	definedSpecTriggeredObject
 	definedSpecTriggeredCard
@@ -2589,8 +2605,8 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "TriggeredNewCard", Val: definedSpecTriggeredCard},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredNewCardLKICopy", Val: definedSpecTriggeredCard},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredSourceSA", Val: definedSpecTriggeredCard},
-	state.StrEntry[definedSpecCode]{Key: "TriggeredAttacker", Val: definedSpecTriggeredCard},
-	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackerLKICopy", Val: definedSpecTriggeredCard},
+	state.StrEntry[definedSpecCode]{Key: "TriggeredAttacker", Val: definedSpecTriggeredAttacker},
+	state.StrEntry[definedSpecCode]{Key: "TriggeredAttackerLKICopy", Val: definedSpecTriggeredAttacker},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredCards", Val: definedSpecTriggeredCard},
 	state.StrEntry[definedSpecCode]{Key: "RememberedLKI", Val: definedSpecRememberedLKI},
 	state.StrEntry[definedSpecCode]{Key: "TriggeredBlocker", Val: definedSpecTriggeredBlocker},
@@ -2688,12 +2704,14 @@ var exiledWithSourceKeyCodes = state.NewStrCodes(
 )
 
 // triggeredCardQualified resolves `<base>.<qualifier>` when base is one of the
-// Triggered-card family spellings (definedSpecTriggeredCard): the base's
-// objects filtered by definedCardQualifierMatches. A compound (" & ") value
-// is not this shape and is left to the callers that split it.
+// Triggered-card family spellings (definedSpecTriggeredCard) or the singular
+// attacker spellings (definedSpecTriggeredAttacker): the base's objects
+// filtered by definedCardQualifierMatches. A compound (" & ") value is not
+// this shape and is left to the callers that split it.
 func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	base, qual, dotted := strings.Cut(spec, ".")
-	if !dotted || strings.Contains(spec, " & ") || definedSpecCodes.Code(base) != definedSpecTriggeredCard {
+	code := definedSpecCodes.Code(base)
+	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker) {
 		return nil, false
 	}
 	ts, _ := definedSpec(h, c, base)

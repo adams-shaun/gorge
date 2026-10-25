@@ -151,12 +151,13 @@ func (e *Engine) priorityOptionStale(p state.PlayerID, opt decision.Option) stri
 			return "the card no longer exists"
 		}
 	case optTurnFaceUp:
-		// engine/rules/morph_turnup.go's morphFaceUpCost, the same predicate the
-		// offer and the handler run: the permanent must still be a face-down
-		// battlefield permanent the morph family put down (the family flag),
-		// with a printed keyword parameter to price the action.
-		if _, ok := morphFaceUpCost(o); !ok {
-			return "the permanent is no longer a face-down morph-family permanent"
+		// engine/rules/morph_turnup.go's turnUpCostForMode, the same predicate
+		// the offer and the handler run: the permanent must still be a
+		// face-down battlefield permanent offering the procedure the option's
+		// mode names (a morph-family cast, a manifested/cloaked creature card's
+		// mana cost, or a manifested/cloaked card's Morph/Disguise keyword).
+		if _, ok := turnUpCostForMode(o, opt.Mode, e.faceCost); !ok {
+			return "the permanent no longer offers that turn-face-up procedure"
 		}
 		if e.turnFaceUpCantHappen(o.ID) {
 			return "the turn-up is prevented by a CantHappen replacement effect (CR 614.1a)"

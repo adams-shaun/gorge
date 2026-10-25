@@ -525,6 +525,22 @@ const (
 	// and its text change (CR 707.10). Appended after FlagManaSourcesSpent to
 	// preserve all bits already in main.
 	FlagCleaved
+	// FlagOmen marks a cast of an Omen card's inset Omen spell face (CR
+	// 720.3). It is the provenance the resolution reader (spellRestZone)
+	// uses to send the resolving spell to its owner's library instead of the
+	// graveyard, after which moveResolvedOffStack shuffles that library (CR
+	// 720.3d). NOT a CastProvenanceFlag: CR 720.3c says a copy of an Omen
+	// spell is also an Omen, so a stack copy inherits the bit (its rest zone
+	// is exile via spellRestZone's IsCopy arm anyway). Appended after
+	// FlagCleaved to preserve all bits already in main.
+	FlagOmen
+	// FlagPrototype marks a spell cast for its prototype cost (CR 718.3a)
+	// and the permanent it becomes. The inset cost, colour and P/T are read
+	// from the face's K:Prototype line, so this bit is the whole designation.
+	// NOT a CastProvenanceFlag: CR 718.3c/d says a copy of a prototyped
+	// spell or permanent is also prototyped, so a stack copy inherits it.
+	// Appended after FlagOmen to preserve all bits already in main.
+	FlagPrototype
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -1711,10 +1727,23 @@ type Object struct {
 	// Cloaked records the cloak variant of the face-down battlefield entry
 	// (CR 708.5's cloak: a 2/2 creature with ward {2}, turn-face-up cost =
 	// the card's mana cost). It folds from the MoveZone Counter value
-	// "entered_cloaked" exactly as FaceDown folds from "entered_face_down"
-	// -- no new event kind, no Event field change -- and is cleared wherever
-	// FaceDown is (leaving the battlefield; a future turn-face-up path).
+	// events.CloakEntryCounter exactly as FaceDown folds from the generic
+	// face-down marker -- no new event kind, no Event field change -- and is
+	// cleared wherever FaceDown is (leaving the battlefield; either
+	// turn-face-up procedure).
 	Cloaked bool
+	// Manifested records that this battlefield permanent entered face down
+	// through the manifest procedure (CR 701.40), so a creature card among
+	// its printed faces may be turned face up for its mana cost as a special
+	// action (CR 701.40b). It folds from the manifest-only MoveZone Counter
+	// value events.ManifestEntryCounter; the generic ChangeZone FaceDown$
+	// True entry uses the bare FaceDownEntryCounter (often Secret from a hand
+	// or library) and does NOT set this bit, because it grants no turn-up
+	// (Tezzeret, Cruel Machinist; Cybership). A cloak is told apart by
+	// Cloaked. No new event kind, no Event field change. Cleared with
+	// FaceDown on leaving the battlefield and on either turn-face-up
+	// procedure.
+	Manifested bool
 
 	// FaceDownSetType is the face-down set type a ChangeZone FaceDownSetType$
 	// named (Yedora's "Land & Forest", Missy's "Artifact & Creature &
