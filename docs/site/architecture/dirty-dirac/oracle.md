@@ -43,8 +43,10 @@ flowchart LR
   cmp -->|"first difference"| div["Divergence<br/>+ repro JSON"]
 ```
 
-Both engines sit behind one four-method interface over the canonical
-vocabulary:
+Both engines sit behind one interface over the canonical vocabulary. Its
+core is four methods (the others report a decided result, the turn number,
+an internal error, and whether a side has changed since it was last
+projected):
 
 ```go
 type Side interface {
@@ -63,6 +65,9 @@ type Side interface {
 - Two self-check sides run gorge against a second copy of gorge, directly and
   through the kernel-shaped interface, so the harness itself can be tested
   with no kernel involved.
+
+Either side can lead a run: the leader poses the decision the policy answers,
+and the follower mirrors it.
 
 The **policy** answers each decision for both sides; it sees only the
 canonical decision. The oracle's policies are a seeded uniform-random one
@@ -84,12 +89,12 @@ kernel's 8. The bytes in `source` and `target` are **canonical references**:
 | `0xF0 + p` | seat *p* |
 | `0xFF` | none |
 
-There are 21 action kinds (pass, land, cast, activate, attack, block, done,
+There are 22 action kinds (pass, land, cast, activate, attack, block, done,
 target, mode, keep, mulligan, bottom, order, yes, no, arrange, replacement,
-special, starting player, commander zone, cast a face) and one more kind per
-`choose` option kind (`ActChoose + k` over a table of 66 kinds: x,
-sacrifice, discard, search, dig, colour, division, pile, tapcost, gift,
-forage, proliferate, ...). A label-valued pick, such
+special, starting player, commander zone, cast a face, casualty cast) and one
+more kind per `choose` option kind (`ActChoose + k` over a table of 70
+kinds: x, sacrifice, discard, search, dig, colour, division, pile, tapcost,
+gift, forage, proliferate, station, casualty, ...). A label-valued pick, such
 as a creature type, carries a 16-bit value: the label's index in gorge's
 creature-type vocabulary. Each decision's options are **sorted ascending**,
 and the kernel sorts its own options into the same order, so comparing two
@@ -131,7 +136,7 @@ differs.
 |---|---|
 | per card instance (up to 224) | name hash, deck table index, the face up, zone (with a "ceased" code for a token or copy that left), owner, controller, position (library from the top, battlefield in the controller's entry order, graveyard in arrival order), flags (tapped, summoning sick, attacking, blocking, face down, token, copy, phased out, monstrous), damage, counters (+1/+1, -1/-1, loyalty, each named kind, and the sum of the rest), layer-applied power and toughness of battlefield creatures, attached-to, the attacker it blocks |
 | derived characteristics, per battlefield instance | types, subtypes, colours and keywords after the layer system, so a layer-ordering difference shows up as a projection difference, not only through its effects |
-| per seat | life, poison, lands played (active player), mana pool WUBRGC, hand and library sizes |
+| per seat | life, poison, speed, lands played (active player), mana pool WUBRGC, hand and library sizes |
 | the stack, bottom first (up to 32) | kind, source, ability index (gorge's face ability index, or `0x80` + trigger index), controller, up to 4 targets |
 | the rest | turn, step (gorge's numbering), active player, RNG draw count, game over, winner |
 
@@ -248,9 +253,9 @@ encoder at the same points.
 
 ## Agreement today
 
-Measured 2026-10-21 with `kfuzz` against gorge
-[`81dd3f940`](https://github.com/adams-shaun/gorge/commit/81dd3f940) (the gorge
-revision dirty-dirac pins). Settings: uniformly random answers seeded per
+Measured 2026-10-25 with `kfuzz` against gorge
+[`bb026728d`](https://github.com/adams-shaun/gorge/commit/bb026728d) (the gorge
+revision dirty-dirac pinned on that date). Settings: uniformly random answers seeded per
 game, every decision posed (no elision), base seed 1, one London mulligan
 allowed, `-autopay-surface` (neither side offers a plain cast that gorge's
 payment planner never prices), the 100-turn and
@@ -260,8 +265,8 @@ still refuses were replaced by basic lands.
 
 | Pool | Games | Agreed to the end | Capacity stalls | Diverged |
 |---|--:|--:|--:|--:|
-| FDN, pairs 0 – 1,499 | 1,500 | 1,498 | 2 (full battlefield) | 0 |
-| FDN, pairs 0 – 3,999 | 4,000 | 3,987 | 13 (full battlefield) | 0 |
+| FDN, pairs 0 – 1,499 | 1,500 | 1,500 | 0 | 0 |
+| FDN, pairs 0 – 3,999 | 4,000 | 3,999 | 1 (last-known-information records) | 0 |
 | BLB, pairs 0 – 1,499 | 1,500 | 1,500 | 0 | 0 |
 
 "Agreed to the end" means every decision, option list and projection matched

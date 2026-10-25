@@ -62,7 +62,7 @@ version you build gets its own `ir-*` files and old ones pile up. They are
 safe to delete; the next run recompiles.
 
 `make report` prints the corpus coverage at the pin, for example
-`cards: 34074  playable: 32246 (94.6%)` (2026-10-21, `513a2a0c3`). See
+`cards: 34074  playable: 32265 (94.7%)` (2026-10-25, `87ed64d3b`). See
 [Card sets](../support/sets.md) for what "playable" means.
 
 ## 3. Build the binaries

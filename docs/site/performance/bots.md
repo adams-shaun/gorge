@@ -5,7 +5,7 @@ page lists them with what each costs to run and the strongest measured claim
 about how well it plays, so a host operator can pick one and a bot author
 knows the baselines to beat. Every strength claim below is the one the bot
 registers in code, with the source it names; every cost marked
-*measured 2026-10-20* was measured for this page at `ad3777023`. What each
+*measured 2026-10-25* was measured for this page at `87ed64d3b`. What each
 policy does and how to choose one is on
 [Bots and strategies](../bots/index.md#the-bots-gorge-ships).
 
@@ -17,7 +17,7 @@ with a `bots.Info` record: a tier, a description, `Strength` claims (each with
 the opponent, the setting and a source) and a `Cost`. `bots/all` imports the
 policies a host offers. The registry is the source of truth (a running
 server serves it at `GET /api/bot-policies`); this page is a readable copy
-of it as of `513a2a0c3` (2026-10-21).
+of it as of `87ed64d3b` (2026-10-25).
 
 ```mermaid
 flowchart LR
@@ -25,12 +25,14 @@ flowchart LR
     bot["bot<br/>(production)"]
     lp["lethal-pressure"]
     fh["forge-heuristic"]
+    fhh["forge-heuristic-hold"]
     sbt["sb-tactical"]
     az["az-redeal"]
   end
   bp["bots/botpolicy<br/>+ bots/heuristic"] --> bot
   bp --> lp
   bot -- "same constructor<br/>+ Forge rule families" --> fh
+  fh -- "+ instant hold rule" --> fhh
   sb["bots/spellbench/builtins"] --> sbt
   mcts["bots/azmcts"] --> az
   bot -. "plays every unsearched<br/>decision" .-> az
@@ -40,11 +42,12 @@ flowchart LR
 
 | Policy | Tier | What it is | Strongest registered claim | Cost |
 |---|---|---|---|---|
-| `bot` | production | The default heuristic bot (`bots/bot`, built on `bots/heuristic` and `bots/botpolicy`). On auto-pay tables it simulates combat for attacks and blocks; it answers the London mulligan with Forge's rule. It is also the opponent model inside the search seats. | 53.17% [52.68, 53.65] constructed and 53.69% [52.73, 54.64] Commander against the plain auto-pay bot, on held-out auto-pay tables (commit `66aa546dd`, before the Forge mulligan); 31.5% [27.1, 36.2] against Forge's AI over 400 games (Forge bridge runs, 2026-10-20) | **measured 2026-10-20:** 7.5 ms per FDN game with manual taps, 9.7 ms with auto-pay, both seats, one core (134 and 103 games per core-second); about 15-22 µs per decision |
+| `bot` | production | The default heuristic bot (`bots/bot`, built on `bots/heuristic` and `bots/botpolicy`). On auto-pay tables it simulates combat for attacks and blocks; it answers the London mulligan with Forge's rule. Of the Forge-style timing rules it arms only the combat-pump rule (an instant pump only in declare-blockers, and only when it saves or wins a fight). It is also the opponent model inside the search seats. | 53.17% [52.68, 53.65] constructed and 53.69% [52.73, 54.64] Commander against the plain auto-pay bot, on held-out auto-pay tables (commit `66aa546dd`, before the Forge mulligan); 31.5% [27.1, 36.2] against Forge's AI over 400 games (Forge bridge runs, 2026-10-20); with the combat-pump rule armed, 51.64% against a 50.21% bot-vs-bot control over 7,680 games per arm on the FDN Limited suite, and +1.24 points against `forge-heuristic` | **measured 2026-10-25:** 7.7 ms per FDN game with manual taps, 9.9 ms with auto-pay, both seats, one core (130 and 101 games per core-second); about 15-23 µs per decision |
 | `lethal-pressure` | experimental | The plain heuristic with the AR7 lethal-pressure attack rule; no combat simulation on any table, coin mulligan | 51.65% [50.10, 53.20] against the pre-AR7 bot, held-out, manual mana | as `bot` |
 | `forge-heuristic` | experimental | The production bot's constructor with every Forge-derived rule family armed: removal timing, targeting, AI hints, deck-shape posture, attachments, spell timing, gang blocks | 32.0% [27.6, 36.7] against Forge's AI over 400 games, +0.5 points over `bot` (inside noise; Forge bridge run, 2026-10-20); 46.8% [41.9, 51.6] against `bot` before it gained the combat simulation. Rechecked 2026-10-21: 48.2% against `bot` over 1,320 games, with the bot-vs-bot control at 47.7% | as `bot` (same policy shape; not measured separately) |
+| `forge-heuristic-hold` | experimental | `forge-heuristic` with the instant-speed hold rule forced on: it holds instants outside the respond, opponent post-combat and combat-trick windows (the same rule is the `hold-instant` option on `forge-heuristic`) | not measured | as `forge-heuristic` (not measured) |
 | `sb-tactical` | experimental | The SpellBench scored heuristic in its hosted shape: it prices its plays through a payment planner and scores creature values, timing, races and removal from what its seat can see | 110-18 against the SpellBench `bot` arm on the Pauper kernel decks (benchmark seed), 87-41 on FDN mirrors; Elo 1507 against `bot`'s 1242 on the Pauper kernel | about 80 ms per game against `bot` on 8 workers (registered); per-decision time not measured |
-| `az-redeal` | experimental | AlphaZero-style tree search: at each searched decision, 100 MCTS simulations over freshly re-dealt worlds rebuilt from the seat's own observations; `bot` plays every other decision | 70.5% [68.5, 72.5] against `bot` over 2,000 games (+20.5 pp over the 50.0% control); 25-simulation variant rated 1382 against `bot`'s 1264 on the Pauper kernel | 216-278 ms mean per searched decision at 100 sims, p95 380-550 ms (registered); **measured 2026-10-20:** see the MCTS row below |
+| `az-redeal` | experimental | AlphaZero-style tree search: at each searched decision, 100 MCTS simulations over freshly re-dealt worlds rebuilt from the seat's own observations; `bot` plays every other decision | 70.5% [68.5, 72.5] against `bot` over 2,000 games (+20.5 pp over the 50.0% control); 25-simulation variant rated 1382 against `bot`'s 1264 on the Pauper kernel | 216-278 ms mean per searched decision at 100 sims, p95 380-550 ms (registered); **measured 2026-10-25:** see the MCTS row below |
 
 The strength sources are gorge design notes:
 [hosted bot packages](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-28-hosted-bot-packages.md),
@@ -56,20 +59,20 @@ matchup program on [Bot-vs-bot games](../guide/bot-games.md#a-fair-matchup-with-
 (`-pairs all -games 20`). Percentages are win rates with 95% confidence
 intervals.
 
-## Measured cost, 2026-10-20
+## Measured cost, 2026-10-25
 
-From `cmd/enginebench` at `ad3777023`, Go 1.26.3, one pinned core
-(`GOMAXPROCS=1`) of a Ryzen 9 9950X, load average 5-7, three reps run
+From `cmd/enginebench` at `87ed64d3b`, Go 1.26.3, one pinned core
+(`GOMAXPROCS=1`) of a Ryzen 9 9950X, load average 0.5-4, three reps run
 concurrently on cores 24, 26 and 28, FDN pairs A and B pooled (median and
 min-max of six runs). The rows are the same runs as the
 [cross-engine comparison](index.md#the-numbers).
 
 | Policy (both seats) | FDN pair A | FDN pair B |
 |---|---|---|
-| `bot`, manual taps | 7.45 ms per game (134 games per core-second), 14.7 µs per decision | 6.95 ms (144), 14.0 µs |
-| `bot`, auto-pay | 9.70 ms per game (103), 21.5 µs per decision | 9.02 ms (111), 21.0 µs |
-| random legal action, auto-pay, for comparison | 10.8 ms per game (92.3), 19.7 µs per decision | 11.5 ms (86.8), 18.9 µs |
-| `az -sims 100` (the `azmcts` search behind `az-redeal`, honest re-deal, heuristic leaf), pair A only | 88.6 ms of CPU per searched decision, 1,129 simulations per core-second | - |
+| `bot`, manual taps | 8.05 ms per game (124 games per core-second), 15.9 µs per decision | 7.47 ms (134), 15.1 µs |
+| `bot`, auto-pay | 10.3 ms per game (97.4), 22.8 µs per decision | 9.52 ms (105), 22.1 µs |
+| random legal action, auto-pay, for comparison | 10.9 ms per game (92.0), 19.8 µs per decision | 11.8 ms (84.6), 19.4 µs |
+| `az -sims 100` (the `azmcts` search behind `az-redeal`, honest re-deal, heuristic leaf), pair A only | 91.8 ms of CPU per searched decision, 1,090 simulations per core-second | - |
 
 The `az` row is `enginebench -row az -sims 100` (build tag
 `enginebench_az`), one 30-second run on one core; it times the search alone,
@@ -79,7 +82,7 @@ taken over whole hosted games with other decks.
 
 The cost of the heuristic bot is mostly the engine, not the policy: a game
 between two bots takes about the same CPU as a game between two random
-players (9.6-11.5 ms), because the bot ends games in fewer turns (18
+players (9.9-11.8 ms), because the bot ends games in fewer turns (18
 against 23-42); about 15% of a bot game's CPU is the bot's own code
 ([Engine speed](engine.md#where-the-time-goes)). The search
 seat's cost is the engine too, many times over: each simulation clones and

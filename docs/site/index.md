@@ -76,11 +76,12 @@ undo, search clones and bug reproduction are all one mechanism.
 
 ## At a glance
 
-**94.6%** of Forge's 34,074 card scripts are playable in gorge at the pinned
-corpus commit (`make report`, 2026-10-21, `513a2a0c3`). Every Standard set is
+**94.7%** of Forge's 34,074 card scripts are playable in gorge at the pinned
+corpus commit (`make report`, 2026-10-25, `87ed64d3b`). Every Standard set is
 certified against XMage at Level A or better. dirty-dirac, the second kernel,
-lowers 47% of the corpus and is lockstep-verified against gorge on
-Foundations and Bloomburrow. [Card support](support/sets.md) has the figures
+lowers 50% of the corpus and is lockstep-verified against gorge on
+Foundations and Bloomburrow; it is under active development toward a full
+engine, its card support is still growing, and gorge is the reference engine. [Card support](support/sets.md) has the figures
 by engine and by set, regenerated at every docs build, and
 [Performance](performance/index.md) has engine speed. Golden bot games at 2,
 4, 6 and 8 seats replay byte-identically, and the root `go.mod` has no
@@ -153,8 +154,8 @@ dependencies and no cgo.
 
     ---
 
-    A fixed-size, much faster second kernel, growing toward a full engine
-    and checked decision by decision against gorge.
+    A fixed-size, much faster second kernel, in active development toward a
+    full engine and checked decision by decision against gorge.
 
 -   **[Contributing](contributing/index.md)**
 

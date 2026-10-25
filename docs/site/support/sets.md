@@ -11,9 +11,9 @@ the most leverage.
       table and the roll-ups. They join gorge-compliance's nightly per-set
       status with dirty-dirac's committed per-set snapshot. Each table's
       caption names the commits it measured.
-    - **Measured by hand on 2026-10-21:** the corpus figures, the leverage
+    - **Measured by hand on 2026-10-25:** the corpus figures, the leverage
       ranking and the repo-deck ratchets. These were measured at gorge
-      `develop` @ `513a2a0c3` with the Forge corpus pin (`FORGE_REF`)
+      `develop` @ `87ed64d3b` with the Forge corpus pin (`FORGE_REF`)
       `76fd7691ab45ab1b42cef19ad04b41bf364501f4`.
 
     [Regenerating the tables](regenerating.md) gives the command behind each
@@ -21,16 +21,16 @@ the most leverage.
 
 ## Headline
 
-**gorge, playable:** **32,246 of 34,074** Forge card scripts (**94.6%**) at the
-corpus pin. All 34,074 compile into gorge's IR (`make report`, 2026-10-21,
-`513a2a0c3`).
+**gorge, playable:** **32,265 of 34,074** Forge card scripts (**94.7%**) at the
+corpus pin. All 34,074 compile into gorge's IR (`make report`, 2026-10-25,
+`87ed64d3b`).
 
 --8<-- "support/_generated_sets.md:headline"
 
 ## What "supported" means, engine by engine
 
 Each tier certifies more than the one before it, and each has its own test.
-Don't read a number from one tier as a claim at another. For example, 94.6%
+Don't read a number from one tier as a claim at another. For example, 94.7%
 of the corpus is *playable* in gorge. That says which primitives are
 implemented. It doesn't say the cards behave correctly.
 
@@ -101,14 +101,16 @@ holds every other set's problem count, and that count may only fall. All of
 these targets describe the pinned gorge commit. Bumping the pin is a pull
 request that re-measures them.
 
-At gorge-compliance `671efbb30` (2026-10-20), the committed verdicts number
+At gorge-compliance `ae5a17f` (`main`, 2026-10-21), the committed verdicts number
 13,183 over 5,278 cards: 13,131 agree, 37 `xmage_wrong` (a ruled XMage error
 with a CR citation), 11 harness and 4 diverge.
 
 ### dirty-dirac: lowered and lockstep-verified
 
-dirty-dirac is a second, much faster rules kernel. It lives in gorge's private
-companion module, but its supported sets are public. It doesn't interpret card
+dirty-dirac is a second, much faster rules kernel. It is under active
+development toward a full engine, its card support is still growing, and
+gorge is the reference engine it is checked against. It lives in gorge's
+private companion module, but its supported sets are public. It doesn't interpret card
 scripts. Instead, a generator (`kgen`) **lowers** each card's gorge IR into
 fixed op tables. A card it cannot lower is *refused* with a named reason. kgen
 runs over the whole Forge corpus. An acceptance ratchet pins the number of
@@ -183,17 +185,17 @@ certifications.
    see. *Special Guests*, the one audited set not yet declared, sits below its
    playable figure at Levels A and B. Expect an unaudited set to land below
    its playable figure in the same way.
-4. **Corpus-wide versus per-set.** The corpus-wide 94.6% counts distinct
+4. **Corpus-wide versus per-set.** The corpus-wide 94.7% counts distinct
    cards, including Un-sets and Alchemy. The roll-up counts each printing in
    each set. Both are correct. They answer different questions.
 
 ## Corpus coverage at the pin
 
-`make report` at gorge `513a2a0c3` (2026-10-21):
+`make report` at gorge `87ed64d3b` (2026-10-25):
 
 ```text
 corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32246 (94.6%)
+cards: 34074  playable: 32265 (94.7%)
 tokens: 854
 ```
 
@@ -203,7 +205,7 @@ unsupported Specialize rider. Here is the breakdown by card type
 
 | Card type | Cards | Playable | % |
 |---|---:|---:|---:|
-| Creature | 18,754 | 17,856 | 95.2 |
+| Creature | 18,754 | 17,875 | 95.3 |
 | Instant | 3,810 | 3,679 | 96.6 |
 | Sorcery | 3,551 | 3,401 | 95.8 |
 | Enchantment | 3,470 | 3,345 | 96.4 |
@@ -266,14 +268,14 @@ file per card:
 ```text
 $ go test ./engine/rules/ -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead' -v
 acceptance_test.go:72: ratchet: 2 of 1123 distinct cards across the repo decks are not fully supported
-paramcensus_test.go:3299: param census: 16 of 1123 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 12 distinct param labels, 1 distinct cost labels
+paramcensus_test.go:3306: param census: 15 of 1123 distinct repo-deck cards carry at least one unread param or unmodelled cost token; 11 distinct param labels, 1 distinct cost labels
 ```
 
-- **Not fully supported** (2 on 2026-10-21: Incinerate, missing
+- **Not fully supported** (2 on 2026-10-25: Incinerate, missing
   `stat:CantRegenerate`, and Vines of Vastwood, missing `stat:CantTarget`).
   One file per card is in
   [`engine/rules/testdata/known-unsupported/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/known-unsupported).
-- **Parameter census** (16). These cards are playable, but their script has
+- **Parameter census** (15). These cards are playable, but their script has
   at least one `$` parameter or cost token that isn't read yet. One file per
   card, naming the unread labels, is in
   [`engine/rules/testdata/paramcensus/`](https://github.com/adams-shaun/gorge/tree/main/engine/rules/testdata/paramcensus).
