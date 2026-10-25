@@ -8,25 +8,25 @@ measured and how to rerun it, [Engine speed](engine.md) covers gorge's own
 benchmark and profile, and [Bots](bots.md) covers what gorge's bots cost and
 how well they play.
 
-!!! abstract "The short version (2026-10-20, one core, FDN limited decks)"
-    - **gorge plays a random-policy game in about 10 ms, about 40× as many
-      games per core-second as XMage** (89 against 2.4 games per
-      core-second; 29× cheaper per turn).
-    - **With each engine's own AI on both seats, a gorge game costs 7-9 ms,
-      against about 1 s for Forge and XMage's default AI**: 100-150× more
+!!! abstract "The short version (one core, FDN limited decks; gorge and dirty-dirac measured 2026-10-25, the other engines 2026-10-20)"
+    - **gorge plays a random-policy game in about 10-11 ms, about 37× as
+      many games per core-second as XMage** (88 against 2.4 games per
+      core-second; 28× cheaper per turn).
+    - **With each engine's own AI on both seats, a gorge game costs 8-10 ms,
+      against about 1 s for Forge and XMage's default AI**: 100-140× more
       games per core-second. The AIs are not the same kind of player (see
       below), so this is the price of a game with the bot each engine ships,
       not engine speed alone.
     - **dirty-dirac, the two-player kernel checked in lockstep against
-      gorge, is another 15-20× faster than gorge** (0.6 ms a game, 23 µs a
-      turn), at the cost of playing only its generated card pools. Its rows
-      were measured before the 2026-10-21 kernel redesign; see
-      [dirty-dirac's rows](#dirty-diracs-rows).
+      gorge, is another 14-16× faster than gorge** (0.7 ms a game, 29 µs a
+      turn), at the cost of playing only its generated card pools. It is
+      under active development toward a full engine, so its rows move as it
+      grows; see [dirty-dirac's rows](#dirty-diracs-rows).
     - **mtg-kernel**, a public Rust kernel with a few hundred cards, is about
       as fast as gorge on its home Burn mirror (174 against 118-143 random
       games per core-second) and 6-13× slower per turn on FDN pair A, the
       FDN pair it plays ([details](#a-second-comparison-decks-mtg-kernel-plays)).
-    - **Search:** one MCTS simulation costs 57-108 µs on dirty-dirac with a
+    - **Search** (2026-10-20, the pre-redesign kernel): one MCTS simulation costs 57-108 µs on dirty-dirac with a
       heuristic leaf, 90-177 µs with a small network leaf, and 0.9-1.6 ms on
       gorge, at 25-1,000 simulations per decision; almost all of it is the
       rules engine ([details](#search-bots-cost-per-simulation)).
@@ -60,41 +60,41 @@ and spread.
 <text class="dg-text-muted" x="594.0" y="336" text-anchor="middle">1,000</text>
 <line class="dg-line-dashed" x1="690.0" y1="28" x2="690.0" y2="322"/>
 <text class="dg-text-muted" x="690.0" y="336" text-anchor="middle">10,000</text>
-<g><title>dirty-dirac · random: 1,722 games/core-s (min 1,580, max 1,848)</title>
+<g><title>dirty-dirac · random: 1,386 games/core-s (min 1,307, max 1,467)</title>
 <text class="dg-text" x="202" y="48" text-anchor="end">dirty-dirac · random</text>
-<rect class="dg-box-solid" x="210" y="34" width="406.7" height="20" rx="3"/>
-<line class="dg-line" x1="613.1" y1="44" x2="619.6" y2="44"/>
-<text class="dg-text" x="625.6" y="48">1,722</text></g>
-<g><title>gorge · random (auto-pay): 89.4 games/core-s (min 85.4, max 93.9)</title>
+<rect class="dg-box-solid" x="210" y="34" width="397.6" height="20" rx="3"/>
+<line class="dg-line" x1="605.2" y1="44" x2="610.0" y2="44"/>
+<text class="dg-text" x="616.0" y="48">1,386</text></g>
+<g><title>gorge · random (auto-pay): 87.9 games/core-s (min 83.2, max 93.4)</title>
 <text class="dg-text" x="202" y="76" text-anchor="end">gorge · random (auto-pay)</text>
-<rect class="dg-box-solid" x="210" y="62" width="283.3" height="20" rx="3"/>
-<line class="dg-line" x1="491.4" y1="72" x2="495.4" y2="72"/>
-<text class="dg-text" x="501.4" y="76">89.4</text></g>
-<g><title>gorge · random (manual): 105 games/core-s (min 102, max 108)</title>
+<rect class="dg-box-solid" x="210" y="62" width="282.6" height="20" rx="3"/>
+<line class="dg-line" x1="490.4" y1="72" x2="495.1" y2="72"/>
+<text class="dg-text" x="501.1" y="76">87.9</text></g>
+<g><title>gorge · random (manual): 98.5 games/core-s (min 96.6, max 102)</title>
 <text class="dg-text" x="202" y="104" text-anchor="end">gorge · random (manual)</text>
-<rect class="dg-box-solid" x="210" y="90" width="289.9" height="20" rx="3"/>
-<line class="dg-line" x1="498.9" y1="100" x2="501.4" y2="100"/>
-<text class="dg-text" x="507.4" y="104">105</text></g>
+<rect class="dg-box-solid" x="210" y="90" width="287.4" height="20" rx="3"/>
+<line class="dg-line" x1="496.6" y1="100" x2="498.7" y2="100"/>
+<text class="dg-text" x="504.7" y="104">98.5</text></g>
 <g><title>XMage · random: 2.38 games/core-s (min 2.16, max 2.58)</title>
 <text class="dg-text" x="202" y="132" text-anchor="end">XMage · random</text>
 <rect class="dg-box-solid" x="210" y="118" width="132.1" height="20" rx="3"/>
 <line class="dg-line" x1="338.2" y1="128" x2="345.6" y2="128"/>
 <text class="dg-text" x="351.6" y="132">2.38</text></g>
-<g><title>dirty-dirac · hbot: 1,607 games/core-s (min 1,439, max 1,763)</title>
+<g><title>dirty-dirac · hbot: 1,511 games/core-s (min 1,361, max 1,668)</title>
 <text class="dg-text" x="202" y="160" text-anchor="end">dirty-dirac · hbot</text>
-<rect class="dg-box-accent" x="210" y="146" width="403.8" height="20" rx="3"/>
-<line class="dg-line" x1="609.2" y1="156" x2="617.6" y2="156"/>
-<text class="dg-text" x="623.6" y="160">1,607</text></g>
-<g><title>gorge · bot (auto-pay): 107 games/core-s (min 102, max 112)</title>
+<rect class="dg-box-accent" x="210" y="146" width="401.2" height="20" rx="3"/>
+<line class="dg-line" x1="606.9" y1="156" x2="615.3" y2="156"/>
+<text class="dg-text" x="621.3" y="160">1,511</text></g>
+<g><title>gorge · bot (auto-pay): 101 games/core-s (min 95.8, max 105)</title>
 <text class="dg-text" x="202" y="188" text-anchor="end">gorge · bot (auto-pay)</text>
-<rect class="dg-box-accent" x="210" y="174" width="290.8" height="20" rx="3"/>
-<line class="dg-line" x1="498.7" y1="184" x2="502.6" y2="184"/>
-<text class="dg-text" x="508.6" y="188">107</text></g>
-<g><title>gorge · bot (manual): 140 games/core-s (min 132, max 145)</title>
+<rect class="dg-box-accent" x="210" y="174" width="288.4" height="20" rx="3"/>
+<line class="dg-line" x1="496.2" y1="184" x2="500.2" y2="184"/>
+<text class="dg-text" x="506.2" y="188">101</text></g>
+<g><title>gorge · bot (manual): 130 games/core-s (min 122, max 135)</title>
 <text class="dg-text" x="202" y="216" text-anchor="end">gorge · bot (manual)</text>
-<rect class="dg-box-accent" x="210" y="202" width="301.9" height="20" rx="3"/>
-<line class="dg-line" x1="509.6" y1="212" x2="513.6" y2="212"/>
-<text class="dg-text" x="519.6" y="216">140</text></g>
+<rect class="dg-box-accent" x="210" y="202" width="298.8" height="20" rx="3"/>
+<line class="dg-line" x1="506.3" y1="212" x2="510.6" y2="212"/>
+<text class="dg-text" x="516.6" y="216">130</text></g>
 <g><title>XMage · simple AI: 19.3 games/core-s (min 18.6, max 19.7)</title>
 <text class="dg-text" x="202" y="244" text-anchor="end">XMage · simple AI</text>
 <rect class="dg-box-accent" x="210" y="230" width="219.4" height="20" rx="3"/>
@@ -112,7 +112,7 @@ and spread.
 <text class="dg-text" x="320.1" y="300">1.02</text></g>
 <line class="dg-line" x1="210" y1="28" x2="210" y2="322"/>
 </svg>
-<figcaption>Games per core-second, log scale. FDN pairs A and B pooled, median of 6 runs, thin line = min-max. 2026-10-20, gorge <code>ad3777023</code>, one pinned core per run (24/26/28), load average 4.4-15; <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
+<figcaption>Games per core-second, log scale. FDN pairs A and B pooled, median of 6 runs, thin line = min-max. gorge and dirty-dirac rows 2026-10-25 (gorge <code>87ed64d3b</code>, load average 0.5-5); XMage and Forge rows 2026-10-20 (load average 4.4-15). One pinned core per run (24/26/28); <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
 </figure>
 
 <figure markdown>
@@ -132,41 +132,41 @@ and spread.
 <text class="dg-text-muted" x="594.0" y="336" text-anchor="middle">100,000</text>
 <line class="dg-line-dashed" x1="690.0" y1="28" x2="690.0" y2="322"/>
 <text class="dg-text-muted" x="690.0" y="336" text-anchor="middle">1,000,000</text>
-<g><title>dirty-dirac · random: 23.3 µs/turn (min 22.8, max 24.0)</title>
+<g><title>dirty-dirac · random: 28.9 µs/turn (min 28.8, max 29.0)</title>
 <text class="dg-text" x="202" y="48" text-anchor="end">dirty-dirac · random</text>
-<rect class="dg-box-solid" x="210" y="34" width="35.3" height="20" rx="3"/>
-<line class="dg-line" x1="244.4" y1="44" x2="246.5" y2="44"/>
-<text class="dg-text" x="252.5" y="48">23.3</text></g>
-<g><title>gorge · random (auto-pay): 459 µs/turn (min 443, max 473)</title>
+<rect class="dg-box-solid" x="210" y="34" width="44.2" height="20" rx="3"/>
+<line class="dg-line" x1="254.1" y1="44" x2="254.3" y2="44"/>
+<text class="dg-text" x="260.3" y="48">28.9</text></g>
+<g><title>gorge · random (auto-pay): 466 µs/turn (min 454, max 475)</title>
 <text class="dg-text" x="202" y="76" text-anchor="end">gorge · random (auto-pay)</text>
-<rect class="dg-box-solid" x="210" y="62" width="159.5" height="20" rx="3"/>
-<line class="dg-line" x1="368.0" y1="72" x2="370.8" y2="72"/>
-<text class="dg-text" x="376.8" y="76">459</text></g>
-<g><title>gorge · random (manual): 233 µs/turn (min 232, max 236)</title>
+<rect class="dg-box-solid" x="210" y="62" width="160.2" height="20" rx="3"/>
+<line class="dg-line" x1="369.0" y1="72" x2="371.0" y2="72"/>
+<text class="dg-text" x="377.0" y="76">466</text></g>
+<g><title>gorge · random (manual): 247 µs/turn (min 244, max 252)</title>
 <text class="dg-text" x="202" y="104" text-anchor="end">gorge · random (manual)</text>
-<rect class="dg-box-solid" x="210" y="90" width="131.3" height="20" rx="3"/>
-<line class="dg-line" x1="341.0" y1="100" x2="341.8" y2="100"/>
-<text class="dg-text" x="347.8" y="104">233</text></g>
+<rect class="dg-box-solid" x="210" y="90" width="133.7" height="20" rx="3"/>
+<line class="dg-line" x1="343.2" y1="100" x2="344.6" y2="100"/>
+<text class="dg-text" x="350.6" y="104">247</text></g>
 <g><title>XMage · random: 13,193 µs/turn (min 12,774, max 13,751)</title>
 <text class="dg-text" x="202" y="132" text-anchor="end">XMage · random</text>
 <rect class="dg-box-solid" x="210" y="118" width="299.6" height="20" rx="3"/>
 <line class="dg-line" x1="508.2" y1="128" x2="511.3" y2="128"/>
 <text class="dg-text" x="517.3" y="132">13,193</text></g>
-<g><title>dirty-dirac · hbot: 35.0 µs/turn (min 31.8, max 38.6)</title>
+<g><title>dirty-dirac · hbot: 37.2 µs/turn (min 33.6, max 40.8)</title>
 <text class="dg-text" x="202" y="160" text-anchor="end">dirty-dirac · hbot</text>
-<rect class="dg-box-accent" x="210" y="146" width="52.2" height="20" rx="3"/>
-<line class="dg-line" x1="258.2" y1="156" x2="266.3" y2="156"/>
-<text class="dg-text" x="272.3" y="160">35.0</text></g>
-<g><title>gorge · bot (auto-pay): 525 µs/turn (min 507, max 544)</title>
+<rect class="dg-box-accent" x="210" y="146" width="54.8" height="20" rx="3"/>
+<line class="dg-line" x1="260.5" y1="156" x2="268.6" y2="156"/>
+<text class="dg-text" x="274.6" y="160">37.2</text></g>
+<g><title>gorge · bot (auto-pay): 556 µs/turn (min 536, max 577)</title>
 <text class="dg-text" x="202" y="188" text-anchor="end">gorge · bot (auto-pay)</text>
-<rect class="dg-box-accent" x="210" y="174" width="165.2" height="20" rx="3"/>
-<line class="dg-line" x1="373.7" y1="184" x2="376.6" y2="184"/>
-<text class="dg-text" x="382.6" y="188">525</text></g>
-<g><title>gorge · bot (manual): 400 µs/turn (min 385, max 417)</title>
+<rect class="dg-box-accent" x="210" y="174" width="167.6" height="20" rx="3"/>
+<line class="dg-line" x1="376.0" y1="184" x2="379.1" y2="184"/>
+<text class="dg-text" x="385.1" y="188">556</text></g>
+<g><title>gorge · bot (manual): 431 µs/turn (min 414, max 450)</title>
 <text class="dg-text" x="202" y="216" text-anchor="end">gorge · bot (manual)</text>
-<rect class="dg-box-accent" x="210" y="202" width="153.8" height="20" rx="3"/>
-<line class="dg-line" x1="362.2" y1="212" x2="365.5" y2="212"/>
-<text class="dg-text" x="371.5" y="216">400</text></g>
+<rect class="dg-box-accent" x="210" y="202" width="156.9" height="20" rx="3"/>
+<line class="dg-line" x1="365.2" y1="212" x2="368.7" y2="212"/>
+<text class="dg-text" x="374.7" y="216">431</text></g>
 <g><title>XMage · simple AI: 761 µs/turn (min 743, max 791)</title>
 <text class="dg-text" x="202" y="244" text-anchor="end">XMage · simple AI</text>
 <rect class="dg-box-accent" x="210" y="230" width="180.6" height="20" rx="3"/>
@@ -184,7 +184,7 @@ and spread.
 <text class="dg-text" x="585.9" y="300">54,513</text></g>
 <line class="dg-line" x1="210" y1="28" x2="210" y2="322"/>
 </svg>
-<figcaption>CPU µs per turn, log scale (turns count both players' turns). FDN pairs A and B pooled, median of 6 runs, thin line = min-max. 2026-10-20, gorge <code>ad3777023</code>, one pinned core per run (24/26/28), load average 4.4-15; <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
+<figcaption>CPU µs per turn, log scale (turns count both players' turns). FDN pairs A and B pooled, median of 6 runs, thin line = min-max. gorge and dirty-dirac rows 2026-10-25 (gorge <code>87ed64d3b</code>, load average 0.5-5); XMage and Forge rows 2026-10-20 (load average 4.4-15). One pinned core per run (24/26/28); <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
 </figure>
 
 <figure markdown>
@@ -198,41 +198,41 @@ and spread.
 <text class="dg-text-muted" x="374.8" y="336" text-anchor="middle">500</text>
 <line class="dg-line-dashed" x1="539.7" y1="28" x2="539.7" y2="322"/>
 <text class="dg-text-muted" x="539.7" y="336" text-anchor="middle">1,000</text>
-<g><title>dirty-dirac · random: 356 MB (min 353, max 485)</title>
+<g><title>dirty-dirac · random: 559 MB (min 555, max 583)</title>
 <text class="dg-text" x="202" y="48" text-anchor="end">dirty-dirac · random</text>
-<rect class="dg-box-solid" x="210" y="34" width="117.4" height="20" rx="3"/>
-<line class="dg-line" x1="326.5" y1="44" x2="370.0" y2="44"/>
-<text class="dg-text" x="376.0" y="48">356</text></g>
-<g><title>gorge · random (auto-pay): 351 MB (min 347, max 354)</title>
+<rect class="dg-box-solid" x="210" y="34" width="184.3" height="20" rx="3"/>
+<line class="dg-line" x1="393.0" y1="44" x2="402.2" y2="44"/>
+<text class="dg-text" x="408.2" y="48">559</text></g>
+<g><title>gorge · random (auto-pay): 347 MB (min 346, max 394)</title>
 <text class="dg-text" x="202" y="76" text-anchor="end">gorge · random (auto-pay)</text>
-<rect class="dg-box-solid" x="210" y="62" width="115.7" height="20" rx="3"/>
-<line class="dg-line" x1="324.4" y1="72" x2="326.7" y2="72"/>
-<text class="dg-text" x="332.7" y="76">351</text></g>
-<g><title>gorge · random (manual): 349 MB (min 348, max 393)</title>
+<rect class="dg-box-solid" x="210" y="62" width="114.3" height="20" rx="3"/>
+<line class="dg-line" x1="324.0" y1="72" x2="340.0" y2="72"/>
+<text class="dg-text" x="346.0" y="76">347</text></g>
+<g><title>gorge · random (manual): 370 MB (min 346, max 395)</title>
 <text class="dg-text" x="202" y="104" text-anchor="end">gorge · random (manual)</text>
-<rect class="dg-box-solid" x="210" y="90" width="114.9" height="20" rx="3"/>
-<line class="dg-line" x1="324.7" y1="100" x2="339.7" y2="100"/>
-<text class="dg-text" x="345.7" y="104">349</text></g>
+<rect class="dg-box-solid" x="210" y="90" width="122.1" height="20" rx="3"/>
+<line class="dg-line" x1="324.2" y1="100" x2="340.1" y2="100"/>
+<text class="dg-text" x="346.1" y="104">370</text></g>
 <g><title>XMage · random: 1,228 MB (min 1,227, max 1,240)</title>
 <text class="dg-text" x="202" y="132" text-anchor="end">XMage · random</text>
 <rect class="dg-box-solid" x="210" y="118" width="404.8" height="20" rx="3"/>
 <line class="dg-line" x1="614.5" y1="128" x2="618.9" y2="128"/>
 <text class="dg-text" x="624.9" y="132">1,228</text></g>
-<g><title>dirty-dirac · hbot: 485 MB (min 383, max 583)</title>
+<g><title>dirty-dirac · hbot: 570 MB (min 568, max 583)</title>
 <text class="dg-text" x="202" y="160" text-anchor="end">dirty-dirac · hbot</text>
-<rect class="dg-box-accent" x="210" y="146" width="159.8" height="20" rx="3"/>
-<line class="dg-line" x1="336.3" y1="156" x2="402.2" y2="156"/>
-<text class="dg-text" x="408.2" y="160">485</text></g>
-<g><title>gorge · bot (auto-pay): 348 MB (min 346, max 395)</title>
+<rect class="dg-box-accent" x="210" y="146" width="187.8" height="20" rx="3"/>
+<line class="dg-line" x1="397.4" y1="156" x2="402.3" y2="156"/>
+<text class="dg-text" x="408.3" y="160">570</text></g>
+<g><title>gorge · bot (auto-pay): 347 MB (min 346, max 351)</title>
 <text class="dg-text" x="202" y="188" text-anchor="end">gorge · bot (auto-pay)</text>
-<rect class="dg-box-accent" x="210" y="174" width="114.6" height="20" rx="3"/>
-<line class="dg-line" x1="323.9" y1="184" x2="340.2" y2="184"/>
-<text class="dg-text" x="346.2" y="188">348</text></g>
-<g><title>gorge · bot (manual): 355 MB (min 346, max 356)</title>
+<rect class="dg-box-accent" x="210" y="174" width="114.4" height="20" rx="3"/>
+<line class="dg-line" x1="324.1" y1="184" x2="325.6" y2="184"/>
+<text class="dg-text" x="331.6" y="188">347</text></g>
+<g><title>gorge · bot (manual): 354 MB (min 346, max 394)</title>
 <text class="dg-text" x="202" y="216" text-anchor="end">gorge · bot (manual)</text>
-<rect class="dg-box-accent" x="210" y="202" width="117.0" height="20" rx="3"/>
-<line class="dg-line" x1="324.1" y1="212" x2="327.2" y2="212"/>
-<text class="dg-text" x="333.2" y="216">355</text></g>
+<rect class="dg-box-accent" x="210" y="202" width="116.8" height="20" rx="3"/>
+<line class="dg-line" x1="324.0" y1="212" x2="339.9" y2="212"/>
+<text class="dg-text" x="345.9" y="216">354</text></g>
 <g><title>XMage · simple AI: 1,219 MB (min 1,212, max 1,232)</title>
 <text class="dg-text" x="202" y="244" text-anchor="end">XMage · simple AI</text>
 <rect class="dg-box-accent" x="210" y="230" width="401.9" height="20" rx="3"/>
@@ -250,18 +250,18 @@ and spread.
 <text class="dg-text" x="518.7" y="300">882</text></g>
 <line class="dg-line" x1="210" y1="28" x2="210" y2="322"/>
 </svg>
-<figcaption>Peak RSS of one game-playing process, card database included; JVMs capped at -Xmx2g. FDN pairs A and B pooled, median of 6 runs, thin line = min-max. 2026-10-20, gorge <code>ad3777023</code>, one pinned core per run (24/26/28), load average 4.4-15; <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
+<figcaption>Peak RSS of one game-playing process, card database included; JVMs capped at -Xmx2g. FDN pairs A and B pooled, median of 6 runs, thin line = min-max. gorge and dirty-dirac rows 2026-10-25 (gorge <code>87ed64d3b</code>, load average 0.5-5); XMage and Forge rows 2026-10-20 (load average 4.4-15). One pinned core per run (24/26/28); <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
 </figure>
 
 | Engine · policy | games / core-s | ms / game | µs / turn | µs / decision | turns / game | peak RSS (MB) |
 |---|--:|--:|--:|--:|--:|--:|
-| dirty-dirac · random | 1,722 <small>(1,580–1,848)</small> | 0.584 <small>(0.541–0.633)</small> | 23.3 <small>(22.8–24.0)</small> | 4.62 <small>(4.54–4.75)</small> | 25 | 356 |
-| gorge · random (auto-pay) | 89.4 <small>(85.4–93.9)</small> | 11.2 <small>(10.7–11.7)</small> | 459 <small>(443–473)</small> | 19.3 <small>(18.8–19.7)</small> | 24 | 351 |
-| gorge · random (manual) | 105 <small>(102–108)</small> | 9.56 <small>(9.23–9.78)</small> | 233 <small>(232–236)</small> | 8.49 <small>(8.46–8.54)</small> | 41 | 349 |
+| dirty-dirac · random | 1,386 <small>(1,307–1,467)</small> | 0.723 <small>(0.682–0.765)</small> | 28.9 <small>(28.8–29.0)</small> | 5.72 <small>(5.70–5.77)</small> | 25 | 559 |
+| gorge · random (auto-pay) | 87.9 <small>(83.2–93.4)</small> | 11.4 <small>(10.7–12.0)</small> | 466 <small>(454–475)</small> | 19.6 <small>(19.3–19.8)</small> | 24 | 347 |
+| gorge · random (manual) | 98.5 <small>(96.6–102)</small> | 10.2 <small>(9.82–10.3)</small> | 247 <small>(244–252)</small> | 9.02 <small>(8.94–9.12)</small> | 41 | 370 |
 | XMage · random | 2.38 <small>(2.16–2.58)</small> | 420 <small>(387–462)</small> | 13,193 <small>(12,774–13,751)</small> | 499 <small>(487–518)</small> | 32 | 1,228 |
-| dirty-dirac · hbot | 1,607 <small>(1,439–1,763)</small> | 0.628 <small>(0.567–0.695)</small> | 35.0 <small>(31.8–38.6)</small> | 6.35 <small>(5.94–6.84)</small> | 18 | 485 |
-| gorge · bot (auto-pay) | 107 <small>(102–112)</small> | 9.36 <small>(8.96–9.83)</small> | 525 <small>(507–544)</small> | 21.3 <small>(20.9–21.7)</small> | 18 | 348 |
-| gorge · bot (manual) | 140 <small>(132–145)</small> | 7.16 <small>(6.88–7.58)</small> | 400 <small>(385–417)</small> | 14.4 <small>(14.0–14.9)</small> | 18 | 355 |
+| dirty-dirac · hbot | 1,511 <small>(1,361–1,668)</small> | 0.668 <small>(0.600–0.735)</small> | 37.2 <small>(33.6–40.8)</small> | 6.75 <small>(6.28–7.23)</small> | 18 | 570 |
+| gorge · bot (auto-pay) | 101 <small>(95.8–105)</small> | 9.92 <small>(9.50–10.4)</small> | 556 <small>(536–577)</small> | 22.5 <small>(22.1–23.0)</small> | 18 | 347 |
+| gorge · bot (manual) | 130 <small>(122–135)</small> | 7.72 <small>(7.39–8.20)</small> | 431 <small>(414–450)</small> | 15.5 <small>(15.0–16.1)</small> | 18 | 354 |
 | XMage · simple AI | 19.3 <small>(18.6–19.7)</small> | 51.9 <small>(50.7–53.9)</small> | 761 <small>(743–791)</small> | 48.3 <small>(47.1–50.2)</small> | 68 | 1,219 |
 | XMage · mad AI | 0.947 <small>(0.552–1.25)</small> | 1,121 <small>(801–1,813)</small> | 62,343 <small>(49,069–101,733)</small> | 2,902 <small>(2,292–4,782)</small> | 17 | 1,288 |
 | Forge · Forge AI | 1.02 <small>(0.723–1.22)</small> | 983 <small>(823–1,383)</small> | 54,513 <small>(45,904–71,387)</small> | n/a | 18 | 882 |
@@ -269,18 +269,18 @@ and spread.
 ??? note "Per-pair detail (the summary table `xengine-bench.sh` prints)"
     | engine | policy | pair | reps | games/core-s | ms/game | µs/turn | µs/decision | turns/game | peak RSS MB | load1 | other busy |
     |---|---|---|---|---|---|---|---|---|---|---|---|
-    | gorge | random-autopay | A | 3 | 92.3 (91.9-93.9) | 10.8 (10.7-10.9) | 471 (468-473) | 19.7 (19.5-19.7) | 22.9 | 351 | 7-7 | max 0% |
-    | gorge | random | A | 3 | 103 (102-103) | 9.74 (9.70-9.78) | 232 (232-233) | 8.50 (8.48-8.54) | 41.9 | 349 | 7-7 | max 0% |
-    | gorge | bot-autopay | A | 3 | 103 (102-103) | 9.70 (9.68-9.83) | 540 (538-544) | 21.5 (21.4-21.7) | 18.0 | 346 | 6-7 | max 0% |
-    | gorge | bot | A | 3 | 134 (132-136) | 7.45 (7.37-7.58) | 412 (410-417) | 14.7 (14.7-14.9) | 18.1 | 355 | 6-6 | max 0% |
-    | gorge | random-autopay | B | 3 | 86.8 (85.4-86.8) | 11.5 (11.5-11.7) | 445 (443-450) | 18.9 (18.8-19.0) | 26.0 | 347 | 6-6 | max 0% |
-    | gorge | random | B | 3 | 108 (106-108) | 9.28 (9.23-9.42) | 233 (233-236) | 8.46 (8.46-8.54) | 39.8 | 348 | 6-6 | max 0% |
-    | gorge | bot-autopay | B | 3 | 111 (110-112) | 9.02 (8.96-9.05) | 509 (507-512) | 21.0 (20.9-21.1) | 17.7 | 348 | 5-6 | max 0% |
-    | gorge | bot | B | 3 | 144 (144-145) | 6.95 (6.88-6.96) | 388 (385-390) | 14.0 (14.0-14.1) | 17.9 | 348 | 5-6 | max 0% |
-    | dirty-dirac | random | A | 3 | 1,848 (1,845-1,848) | 0.54 (0.54-0.54) | 22.9 (22.8-22.9) | 4.55 (4.54-4.56) | 23.7 | 361 | 5-6 | max 0% |
-    | dirty-dirac | hbot | A | 3 | 1,457 (1,439-1,462) | 0.69 (0.68-0.69) | 38.1 (38.1-38.6) | 6.76 (6.75-6.84) | 18.0 | 490 | 5-5 | max 0% |
-    | dirty-dirac | random | B | 3 | 1,587 (1,580-1,598) | 0.63 (0.63-0.63) | 23.8 (23.7-24.0) | 4.71 (4.69-4.75) | 26.4 | 356 | 5-5 | max 0% |
-    | dirty-dirac | hbot | B | 3 | 1,763 (1,751-1,763) | 0.57 (0.57-0.57) | 31.8 (31.8-31.9) | 5.95 (5.94-5.95) | 17.9 | 480 | 4-5 | max 0% |
+    | gorge | random-autopay | A | 3 | 92.0 (91.1-93.4) | 10.9 (10.7-11.0) | 475 (471-475) | 19.8 (19.6-19.8) | 22.9 | 346 | 1-2 | max 0% |
+    | gorge | random | A | 3 | 97.0 (96.6-97.6) | 10.3 (10.2-10.3) | 246 (244-246) | 9.00 (8.94-9.04) | 41.9 | 347 | 2-2 | max 0% |
+    | gorge | bot-autopay | A | 3 | 97.4 (95.8-97.5) | 10.3 (10.3-10.4) | 572 (570-577) | 22.8 (22.7-23.0) | 18.0 | 347 | 2-3 | max 0% |
+    | gorge | bot | A | 3 | 124 (122-126) | 8.05 (7.96-8.20) | 446 (443-450) | 15.9 (15.9-16.1) | 18.1 | 347 | 3-3 | max 0% |
+    | gorge | random-autopay | B | 3 | 84.6 (83.2-84.8) | 11.8 (11.8-12.0) | 457 (454-462) | 19.4 (19.3-19.5) | 26.0 | 348 | 3-3 | max 0% |
+    | gorge | random | B | 3 | 101 (99.3-102) | 9.93 (9.82-10.1) | 249 (248-252) | 9.03 (9.00-9.12) | 39.8 | 394 | 3-3 | max 0% |
+    | gorge | bot-autopay | B | 3 | 105 (104-105) | 9.52 (9.50-9.59) | 538 (536-543) | 22.1 (22.1-22.3) | 17.7 | 350 | 3-3 | max 0% |
+    | gorge | bot | B | 3 | 134 (134-135) | 7.47 (7.39-7.48) | 416 (414-419) | 15.1 (15.0-15.2) | 17.9 | 355 | 3-4 | max 0% |
+    | dirty-dirac | random | A | 3 | 1,464 (1,459-1,467) | 0.68 (0.68-0.69) | 28.8 (28.8-29.0) | 5.73 (5.72-5.77) | 23.7 | 559 | 4-4 | max 0% |
+    | dirty-dirac | hbot | A | 3 | 1,364 (1,361-1,367) | 0.73 (0.73-0.73) | 40.7 (40.7-40.8) | 7.22 (7.21-7.23) | 18.0 | 569 | 4-4 | max 0% |
+    | dirty-dirac | random | B | 3 | 1,312 (1,307-1,314) | 0.76 (0.76-0.77) | 28.9 (28.8-28.9) | 5.71 (5.70-5.72) | 26.4 | 570 | 4-5 | max 0% |
+    | dirty-dirac | hbot | B | 3 | 1,667 (1,656-1,668) | 0.60 (0.60-0.60) | 33.6 (33.6-33.7) | 6.29 (6.28-6.29) | 17.9 | 570 | 4-5 | max 0% |
     | xmage | random | A | 3 | 2.50 (2.40-2.58) | 400 (387-416) | 13,063 (12,774-13,145) | 495 (487-496) | 30.6 | 1,228 | 4-5 | max 0% |
     | xmage | simple | A | 3 | 19.6 (19.5-19.7) | 50.9 (50.7-51.3) | 747 (743-753) | 47.4 (47.1-47.8) | 68.2 | 1,218 | 5-5 | max 0% |
     | xmage | mad | A | 3 | 1.22 (1.18-1.25) | 822 (801-850) | 51,169 (49,069-51,492) | 2,349 (2,292-2,391) | 16.3 | 1,286 | 5-12 | max 28% |
@@ -294,9 +294,9 @@ and spread.
 
 **Engine cost.** The random rows measure each engine with a policy that costs
 almost nothing, so they are as close to pure engine cost as each engine
-allows. Per turn, dirty-dirac (23 µs) is about 20× cheaper than gorge with
-auto-pay (459 µs), which is about 29× cheaper than XMage (13.2 ms). gorge's
-manual-tap random row is cheaper per turn (233 µs) but plays twice as many
+allows. Per turn, dirty-dirac (29 µs) is about 16× cheaper than gorge with
+auto-pay (466 µs), which is about 28× cheaper than XMage (13.2 ms). gorge's
+manual-tap random row is cheaper per turn (247 µs) but plays twice as many
 turns per game, because a random player tapping lands one at a time wastes
 mana. Forge has no random player, so it has no row here.
 
@@ -311,7 +311,7 @@ and costs 50-100 ms a turn; Forge's AI costs 46-68 ms a turn.
 
 **Search.** Search bots clone and step the engine many times per decision, so
 the per-operation costs matter more than per-game ones: gorge clones a
-mid-game state in 14 µs (28 µs with GC) and clones-and-steps in 39 µs, and
+mid-game state in 11 µs (23 µs with GC) and clones-and-steps in 36 µs, and
 its MCTS search runs about 1,000-1,100 simulations per core-second at 25-100
 simulations a decision (see [Engine speed](engine.md#current-numbers) and
 [Search bots](#search-bots-cost-per-simulation) below, which compares it with
@@ -362,21 +362,21 @@ plays. mtg-kernel has no standalone built-in bot, so it has a random row only
 <text class="dg-text-muted" x="570.0" y="364" text-anchor="middle">10,000</text>
 <line class="dg-line-dashed" x1="690.0" y1="28" x2="690.0" y2="350"/>
 <text class="dg-text-muted" x="690.0" y="364" text-anchor="middle">100,000</text>
-<g><title>dirty-dirac · random: 22.9 µs/turn (min 22.8, max 22.9)</title>
+<g><title>dirty-dirac · random: 28.8 µs/turn (min 28.8, max 29.0)</title>
 <text class="dg-text" x="202" y="48" text-anchor="end">dirty-dirac · random</text>
-<rect class="dg-box-solid" x="210" y="34" width="43.1" height="20" rx="3"/>
-<line class="dg-line" x1="253.1" y1="44" x2="253.2" y2="44"/>
-<text class="dg-text" x="259.2" y="48">22.9</text></g>
-<g><title>gorge · random (auto-pay): 471 µs/turn (min 468, max 473)</title>
+<rect class="dg-box-solid" x="210" y="34" width="55.1" height="20" rx="3"/>
+<line class="dg-line" x1="265.1" y1="44" x2="265.4" y2="44"/>
+<text class="dg-text" x="271.4" y="48">28.8</text></g>
+<g><title>gorge · random (auto-pay): 475 µs/turn (min 471, max 475)</title>
 <text class="dg-text" x="202" y="76" text-anchor="end">gorge · random (auto-pay)</text>
-<rect class="dg-box-solid" x="210" y="62" width="200.8" height="20" rx="3"/>
-<line class="dg-line" x1="410.5" y1="72" x2="411.0" y2="72"/>
-<text class="dg-text" x="417.0" y="76">471</text></g>
-<g><title>gorge · random (manual): 232 µs/turn (min 232, max 233)</title>
+<rect class="dg-box-solid" x="210" y="62" width="201.3" height="20" rx="3"/>
+<line class="dg-line" x1="410.8" y1="72" x2="411.3" y2="72"/>
+<text class="dg-text" x="417.3" y="76">475</text></g>
+<g><title>gorge · random (manual): 246 µs/turn (min 244, max 246)</title>
 <text class="dg-text" x="202" y="104" text-anchor="end">gorge · random (manual)</text>
-<rect class="dg-box-solid" x="210" y="90" width="163.9" height="20" rx="3"/>
-<line class="dg-line" x1="373.8" y1="100" x2="374.0" y2="100"/>
-<text class="dg-text" x="380.0" y="104">232</text></g>
+<rect class="dg-box-solid" x="210" y="90" width="166.9" height="20" rx="3"/>
+<line class="dg-line" x1="376.5" y1="100" x2="377.0" y2="100"/>
+<text class="dg-text" x="383.0" y="104">246</text></g>
 <g><title>mtg-kernel · random: 3,075 µs/turn (min 3,011, max 3,113)</title>
 <text class="dg-text" x="202" y="132" text-anchor="end">mtg-kernel · random</text>
 <rect class="dg-box-solid" x="210" y="118" width="298.5" height="20" rx="3"/>
@@ -387,21 +387,21 @@ plays. mtg-kernel has no standalone built-in bot, so it has a random row only
 <rect class="dg-box-solid" x="210" y="146" width="373.9" height="20" rx="3"/>
 <line class="dg-line" x1="582.8" y1="156" x2="584.2" y2="156"/>
 <text class="dg-text" x="590.2" y="160">13,063</text></g>
-<g><title>dirty-dirac · hbot: 38.1 µs/turn (min 38.1, max 38.6)</title>
+<g><title>dirty-dirac · hbot: 40.7 µs/turn (min 40.7, max 40.8)</title>
 <text class="dg-text" x="202" y="188" text-anchor="end">dirty-dirac · hbot</text>
-<rect class="dg-box-accent" x="210" y="174" width="69.8" height="20" rx="3"/>
-<line class="dg-line" x1="279.7" y1="184" x2="280.4" y2="184"/>
-<text class="dg-text" x="286.4" y="188">38.1</text></g>
-<g><title>gorge · bot (auto-pay): 540 µs/turn (min 538, max 544)</title>
+<rect class="dg-box-accent" x="210" y="174" width="73.2" height="20" rx="3"/>
+<line class="dg-line" x1="283.2" y1="184" x2="283.3" y2="184"/>
+<text class="dg-text" x="289.3" y="188">40.7</text></g>
+<g><title>gorge · bot (auto-pay): 572 µs/turn (min 570, max 577)</title>
 <text class="dg-text" x="202" y="216" text-anchor="end">gorge · bot (auto-pay)</text>
-<rect class="dg-box-accent" x="210" y="202" width="207.9" height="20" rx="3"/>
-<line class="dg-line" x1="417.7" y1="212" x2="418.3" y2="212"/>
-<text class="dg-text" x="424.3" y="216">540</text></g>
-<g><title>gorge · bot (manual): 412 µs/turn (min 410, max 417)</title>
+<rect class="dg-box-accent" x="210" y="202" width="210.9" height="20" rx="3"/>
+<line class="dg-line" x1="420.7" y1="212" x2="421.4" y2="212"/>
+<text class="dg-text" x="427.4" y="216">572</text></g>
+<g><title>gorge · bot (manual): 446 µs/turn (min 443, max 450)</title>
 <text class="dg-text" x="202" y="244" text-anchor="end">gorge · bot (manual)</text>
-<rect class="dg-box-accent" x="210" y="230" width="193.8" height="20" rx="3"/>
-<line class="dg-line" x1="403.6" y1="240" x2="404.4" y2="240"/>
-<text class="dg-text" x="410.4" y="244">412</text></g>
+<rect class="dg-box-accent" x="210" y="230" width="197.9" height="20" rx="3"/>
+<line class="dg-line" x1="407.6" y1="240" x2="408.4" y2="240"/>
+<text class="dg-text" x="414.4" y="244">446</text></g>
 <g><title>XMage · simple AI: 747 µs/turn (min 743, max 753)</title>
 <text class="dg-text" x="202" y="272" text-anchor="end">XMage · simple AI</text>
 <rect class="dg-box-accent" x="210" y="258" width="224.8" height="20" rx="3"/>
@@ -419,19 +419,19 @@ plays. mtg-kernel has no standalone built-in bot, so it has a random row only
 <text class="dg-text" x="678.4" y="328">67,548</text></g>
 <line class="dg-line" x1="210" y1="28" x2="210" y2="350"/>
 </svg>
-<figcaption>CPU µs per turn on FDN pair A, log scale. Median of 3 runs, thin line = min-max. 2026-10-20 (17:45-18:07 UTC; mtg-kernel 18:50 UTC), gorge <code>ad3777023</code>, mtg-kernel <code>058d075e3</code>, one pinned core per run (24/26/28); <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
+<figcaption>CPU µs per turn on FDN pair A, log scale. Median of 3 runs, thin line = min-max. gorge and dirty-dirac rows 2026-10-25 (gorge <code>87ed64d3b</code>); XMage and Forge rows 2026-10-20 17:45-18:07 UTC and mtg-kernel 18:50 UTC (mtg-kernel <code>058d075e3</code>); one pinned core per run (24/26/28); <code>scripts/xengine-bench.sh</code>. Filled bars: random legal action; outlined bars: the engine's own AI.</figcaption>
 </figure>
 
 | Engine · policy | games / core-s | ms / game | µs / turn | µs / decision | turns / game | peak RSS (MB) |
 |---|--:|--:|--:|--:|--:|--:|
-| dirty-dirac · random | 1,848 <small>(1,845–1,848)</small> | 0.541 <small>(0.541–0.542)</small> | 22.9 <small>(22.8–22.9)</small> | 4.55 <small>(4.54–4.56)</small> | 24 | 361 |
-| gorge · random (auto-pay) | 92.3 <small>(91.9–93.9)</small> | 10.8 <small>(10.7–10.9)</small> | 471 <small>(468–473)</small> | 19.7 <small>(19.5–19.7)</small> | 23 | 351 |
-| gorge · random (manual) | 103 <small>(102–103)</small> | 9.74 <small>(9.70–9.78)</small> | 232 <small>(232–233)</small> | 8.50 <small>(8.48–8.54)</small> | 42 | 349 |
+| dirty-dirac · random | 1,464 <small>(1,459–1,467)</small> | 0.683 <small>(0.682–0.685)</small> | 28.8 <small>(28.8–29.0)</small> | 5.73 <small>(5.72–5.77)</small> | 24 | 559 |
+| gorge · random (auto-pay) | 92.0 <small>(91.1–93.4)</small> | 10.9 <small>(10.7–11.0)</small> | 475 <small>(471–475)</small> | 19.8 <small>(19.6–19.8)</small> | 23 | 346 |
+| gorge · random (manual) | 97.0 <small>(96.6–97.6)</small> | 10.3 <small>(10.2–10.3)</small> | 246 <small>(244–246)</small> | 9.00 <small>(8.94–9.04)</small> | 42 | 347 |
 | mtg-kernel · random | 18.6 <small>(18.4–19.4)</small> | 53.8 <small>(51.6–54.5)</small> | 3,075 <small>(3,011–3,113)</small> | 57.2 <small>(56.3–57.7)</small> | 17 | 15.7 |
 | XMage · random | 2.50 <small>(2.40–2.58)</small> | 400 <small>(387–416)</small> | 13,063 <small>(12,774–13,145)</small> | 495 <small>(487–496)</small> | 31 | 1,228 |
-| dirty-dirac · hbot | 1,457 <small>(1,439–1,462)</small> | 0.686 <small>(0.684–0.695)</small> | 38.1 <small>(38.1–38.6)</small> | 6.76 <small>(6.75–6.84)</small> | 18 | 490 |
-| gorge · bot (auto-pay) | 103 <small>(102–103)</small> | 9.70 <small>(9.68–9.83)</small> | 540 <small>(538–544)</small> | 21.5 <small>(21.4–21.7)</small> | 18 | 346 |
-| gorge · bot (manual) | 134 <small>(132–136)</small> | 7.45 <small>(7.37–7.58)</small> | 412 <small>(410–417)</small> | 14.7 <small>(14.7–14.9)</small> | 18 | 355 |
+| dirty-dirac · hbot | 1,364 <small>(1,361–1,367)</small> | 0.733 <small>(0.732–0.735)</small> | 40.7 <small>(40.7–40.8)</small> | 7.22 <small>(7.21–7.23)</small> | 18 | 569 |
+| gorge · bot (auto-pay) | 97.4 <small>(95.8–97.5)</small> | 10.3 <small>(10.3–10.4)</small> | 572 <small>(570–577)</small> | 22.8 <small>(22.7–23.0)</small> | 18 | 347 |
+| gorge · bot (manual) | 124 <small>(122–126)</small> | 8.05 <small>(7.96–8.20)</small> | 446 <small>(443–450)</small> | 15.9 <small>(15.9–16.1)</small> | 18 | 347 |
 | XMage · simple AI | 19.6 <small>(19.5–19.7)</small> | 50.9 <small>(50.7–51.3)</small> | 747 <small>(743–753)</small> | 47.4 <small>(47.1–47.8)</small> | 68 | 1,218 |
 | XMage · mad AI | 1.22 <small>(1.18–1.25)</small> | 822 <small>(801–850)</small> | 51,169 <small>(49,069–51,492)</small> | 2,349 <small>(2,292–2,391)</small> | 16 | 1,286 |
 | Forge · Forge AI | 0.807 <small>(0.723–0.966)</small> | 1,239 <small>(1,035–1,383)</small> | 67,548 <small>(58,991–71,387)</small> | n/a | 18 | 868 |
@@ -509,7 +509,7 @@ plays. mtg-kernel has no standalone built-in bot, so it has a random row only
 | XMage · mad AI | 0.259 <small>(0.179–0.282)</small> | 3,864 <small>(3,547–5,597)</small> | 272,821 <small>(226,484–345,899)</small> | 13,226 <small>(11,010–17,280)</small> | 16 | 1,336 |
 | Forge · Forge AI | 1.58 <small>(1.45–1.64)</small> | 633 <small>(609–688)</small> | 35,533 <small>(33,783–36,489)</small> | n/a | 18 | 892 |
 
-On FDN pair A, gorge's random players spend 233-471 µs a turn against
+On FDN pair A, gorge's random players spend 246-475 µs a turn against
 mtg-kernel's 3,075 µs; on its home Burn mirror mtg-kernel is close to gorge
 (367 µs a turn against 240-267 µs), and its games are shorter, so it plays
 174 games per core-second against gorge's 118-143. dirty-dirac remains
@@ -617,15 +617,32 @@ the budget because deeper trees replay longer lines.
 
 ## dirty-dirac's rows
 
-Every dirty-dirac figure on this page (the game rows, the FDN pair A table and
-the search rows) was measured on 2026-10-20 with the dirty-dirac source of
-that day, which pinned gorge `aa421da93`. That was before the kernel redesign
-of 2026-10-21 ([dirty-dirac](../architecture/dirty-dirac/index.md)). The rows
-have not been re-run since. The redesign's own A/B, the kernel's transition
-benchmark on one pinned core against the pre-redesign kernel, counts about
-4 % fewer instructions per transition on FDN and about 2 % fewer on BLB.
-Instruction counts are not CPU time, so treat the rows above as dated
-measurements of the earlier kernel, not as current figures.
+dirty-dirac is under active development toward a full engine and its card
+support is still growing, so its speed moves as it grows; gorge is the
+reference engine it is checked against.
+
+The game rows and the FDN pair A table were re-measured on 2026-10-25 with the
+dirty-dirac source of that day (after the kernel redesign, pinning gorge
+`bb026728d`), by the same `scripts/xengine-bench.sh` run as gorge's rows. They
+are 6-20% slower per game than the pre-redesign kernel measured on
+2026-10-20 (random 1,722 → 1,386 and hbot 1,607 → 1,511 games per
+core-second), and a process now peaks at about 560-570 MB rather than
+360-490 MB: the redesign doubled the battlefield and grew the game state from
+9,960 to 15,240 bytes ([State](../architecture/dirty-dirac/state.md)). The
+search rows were not re-run and are still the pre-redesign kernel's.
+
+The kernel's own transition benchmark (one `Step` plus one `Apply` of a random
+policy, single-option decisions elided, 64 real deck pairings per set),
+pinned to one core on the same machine on 2026-10-25:
+
+| Benchmark | ns per transition (median of 5) | instructions per transition | allocations |
+|---|--:|--:|--:|
+| Foundations (FDN) | 2,548 (2,527-2,585) | 45.4 k | 0 |
+| Bloomburrow (BLB) | 2,674 (2,665-2,687) | 51.0 k | 0 |
+
+`go test -run X -bench 'BenchmarkTransition(FDN|BLB)$' -count 5 -benchtime 2s`
+with `GOMAXPROCS=1` on core 26; instructions from `perf stat -e instructions:u`
+over two run lengths, differenced so setup cancels.
 
 ## Caveats
 
@@ -653,16 +670,16 @@ measurements of the earlier kernel, not as current figures.
 
 | | |
 |---|---|
-| Date | 2026-10-20: FDN pairs A and B 17:45-18:07 UTC; search rows 18:35-18:41 UTC; mtg-kernel and the Burn mirror 18:50-19:00 UTC |
+| Date | gorge and dirty-dirac FDN rows: 2026-10-25 22:10-22:16 UTC. XMage and Forge FDN rows: 2026-10-20 17:45-18:07 UTC; search rows 18:35-18:41 UTC; mtg-kernel and the Burn mirror 18:50-19:00 UTC |
 | Machine | AMD Ryzen 9 9950X (16 cores, 32 threads), 120 GB, Linux 6.17, `performance` governor |
 | Cores | one per run: 24, 26, 28 (three reps at once); `GOMAXPROCS=1` for Go; JVMs pinned the same way (serial GC, `-Xmx2g`) |
-| Load | 1-minute load average 4.4-15 for the FDN A/B tables (per-row ranges in the per-pair table), 6-36 for the Burn rows, 17-32 for the search rows; no published rep had more than 10% of its core taken by other work except one XMage `mad` pair-A rep (28%), whose result sits inside the other two reps' spread |
-| gorge | `ad3777023` (develop), Go 1.26.3, `cmd/enginebench` |
-| dirty-dirac | private kernel, the source of 2026-10-20 (before the redesign), which pinned gorge `aa421da93` |
+| Load | 1-minute load average 0.5-5 for the 2026-10-25 gorge and dirty-dirac rows, 4.4-15 for the 2026-10-20 XMage and Forge rows (per-row ranges in the per-pair table), 6-36 for the Burn rows, 17-32 for the search rows; no published rep had more than 10% of its core taken by other work except one XMage `mad` pair-A rep (28%), whose result sits inside the other two reps' spread |
+| gorge | FDN rows `87ed64d3b` (develop, 2026-10-25); Burn and search rows `ad3777023` (2026-10-20); Go 1.26.3, `cmd/enginebench` |
+| dirty-dirac | private kernel, in development. FDN rows: the source of 2026-10-25 (after the redesign), which pins gorge `bb026728d`. Search rows: the source of 2026-10-20 (before the redesign), which pinned gorge `aa421da93` |
 | XMage | `magefree/mage` `6b602a1c85` (1.4.61), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance) |
 | Forge | gorge's Forge fork at `da1c712c31` (forge-core/game/ai 2.0.16-SNAPSHOT), JDK 17.0.20.1, driver `forge.oracle.GameReplay` |
 | mtg-kernel | `jackmaiorino/mtg-kernel` `058d075e3` (2026-10-20), Rust 1.94.1, release build of `examples/bench_kernel` with gorge's `--xengine-json` mode; FDN pair A from the `limited-fdn-fixtures` build, Burn from the default build |
-| Command | `SECS=30 scripts/xengine-bench.sh gorge dirty-dirac`, then `SECS=60 WARM=40 scripts/xengine-bench.sh xmage forge`, with `CORES="24 26 28"`; the Burn rows the same with `PAIRS=burn`; mtg-kernel with `MTGKERNEL_BENCH=… MK_PAIRS=A` (FDN build) and `MK_PAIRS=burn` (default build); search rows as in [Methodology](methodology.md#search-bots) |
+| Command | `SECS=30 CORES="24 26 28" scripts/xengine-bench.sh gorge dirty-dirac` (2026-10-25), then `SECS=60 WARM=40 scripts/xengine-bench.sh xmage forge`, with `CORES="24 26 28"`; the Burn rows the same with `PAIRS=burn`; mtg-kernel with `MTGKERNEL_BENCH=… MK_PAIRS=A` (FDN build) and `MK_PAIRS=burn` (default build); search rows as in [Methodology](methodology.md#search-bots) |
 | Measured time | 30 CPU-s per gorge and dirty-dirac run; 40 s warm-up + 60 CPU-s per XMage and Forge run |
 | Errors | no stalled, unfinished or failed game in any published row. XMage's base AI on the Burn mirror ended every game at the 100-turn cap without a winner (it never casts its burn spells), so that row is left out |
 

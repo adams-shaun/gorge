@@ -7,7 +7,8 @@ written for Go developers who want to read or change the engine. If you only
 want to run a game, start at [Getting started](../getting-started.md); if you
 want to fix your first card, see [Your first card fix](../contributing/first-card-fix.md).
 
-*Figures on this page were measured on `develop` @ `513a2a0c3`, 2026-10-21.
+*Figures on this page were measured on `develop` @ `513a2a0c3`, 2026-10-21;
+the card-pool row was re-measured on `87ed64d3b`, 2026-10-25.
 Every number names the command that produced it, so you can re-measure.*
 
 ## The idea in one paragraph
@@ -51,8 +52,8 @@ and the smaller one is held to the larger one.
   <text x="30" y="256" class="dg-text">hosting real games, the reference</text>
   <rect x="430" y="10" width="320" height="280" rx="10" class="dg-box"/>
   <text x="590" y="38" text-anchor="middle" class="dg-text-bold">dirty-dirac (companion module)</text>
-  <text x="450" y="68" class="dg-text">A 2-player kernel, still growing</text>
-  <text x="450" y="92" class="dg-text-muted">47% of the corpus lowers; FDN, BLB verified</text>
+  <text x="450" y="68" class="dg-text">A 2-player kernel, in development</text>
+  <text x="450" y="92" class="dg-text-muted">50% of the corpus lowers; FDN, BLB verified</text>
   <text x="450" y="112" class="dg-text-muted">exactly two players</text>
   <text x="450" y="132" class="dg-text-muted">State is one fixed-size value: no pointers,</text>
   <text x="450" y="150" class="dg-text-muted">maps, slices or strings; clone = assignment</text>
@@ -75,7 +76,7 @@ the same canonical board projection after every action.</figcaption>
 
 | | gorge | dirty-dirac |
 |---|---|---|
-| Card pool | every Forge script; 32,246 of 34,074 (94.6 %) are playable (`make report`, 2026-10-21) | 16,044 of 34,072 corpus cards lower (47.1 %); FDN and BLB are verified in lockstep ([per set](../support/sets.md#per-set-support)) |
+| Card pool | every Forge script; 32,265 of 34,074 (94.7 %) are playable (`make report`, 2026-10-25) | 17,126 of 34,072 corpus cards lower (50.3 %); FDN and BLB are verified in lockstep ([per set](../support/sets.md#per-set-support)). It is under active development toward a full engine, and its card support is still growing |
 | Players | up to 8 per hosted table (`server/host/table.go`); the golden games cover 2, 4, 6 and 8 | 2 |
 | Game state | `state.Game`: an arena of `state.Object` values plus maps and slices | a single fixed-size struct |
 | Mutation | events proposed by the engine, folded by `events.Apply`, hash-chained | `Apply(action)` on the value |
@@ -91,7 +92,8 @@ card's behaviour in a read-only generated table can lay the whole game out as
 a fixed-size value and step it cheaply, which is what large-scale self-play
 and tree search want.
 Keeping gorge as the oracle means the fast kernel never becomes a second
-source of rules truth. See [dirty-dirac](dirty-dirac/index.md) for its design: its
+source of rules truth: gorge is the reference engine, and dirty-dirac is still
+being grown toward a full engine. See [dirty-dirac](dirty-dirac/index.md) for its design: its
 [fixed-size State](dirty-dirac/state.md), the [Step/Apply loop](dirty-dirac/step-apply.md),
 how [cards are compiled](dirty-dirac/cards.md) for it and the
 [lockstep oracle](dirty-dirac/oracle.md) that holds it to gorge.

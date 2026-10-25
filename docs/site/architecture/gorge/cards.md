@@ -79,11 +79,11 @@ fork at the pinned commit (`FORGE_REF` in the Makefile, currently
 Pinning matters: the corpus is input to every golden replay, so a corpus bump
 is a deliberate change, never a side effect of upstream moving.
 
-`make report` on `513a2a0c3` (2026-10-21) printed:
+`make report` on `87ed64d3b` (2026-10-25) printed:
 
 ```text
 corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32246 (94.6%)
+cards: 34074  playable: 32265 (94.7%)
 tokens: 854
 
 top missing primitives (cards unlocked):

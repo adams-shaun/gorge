@@ -26,7 +26,7 @@ are always relative to that pin. `make report` begins:
 
 ```text
 corpus: 76fd7691ab45ab1b42cef19ad04b41bf364501f4 @ 76fd7691ab45ab1b42cef19ad04b41bf364501f4 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32246 (94.6%)
+cards: 34074  playable: 32265 (94.7%)
 tokens: 854
 ```
 

@@ -10,7 +10,7 @@ how pool packages are found at run time. It is for readers who know gorge's
 [card pipeline](../../contributing/card-pipeline.md) and want to see how the
 same cards reach the fast kernel.
 
-*Counts on this page were read on 2026-10-21 from the dirty-dirac source of
+*Counts on this page were read on 2026-10-25 from the dirty-dirac source of
 that day: the `kop` enums, and the acceptance ratchet's pinned counts.*
 
 ## The pipeline
@@ -115,7 +115,7 @@ a **program**: a flat slice of instructions.
 
 ```go
 type Instr struct {
-    Op  Op        // one of 128 ops
+    Op  Op        // one of 148 ops
     Obj Ref       // who or what it acts on: a target slot, the source, the controller, each opponent, ...
     A   ValueRef  // an amount: a constant, X, a count of a filter, last damage, a power, a side-table expression
     B   ValueRef  // a second amount
@@ -151,12 +151,12 @@ What is in the vocabulary:
 
 | Enum | Values | Examples |
 |---|---|---|
-| `Op` (a `uint8`) | 128: 61 in the original vocabulary, the rest appended by kgen | `DealDamage`, `Draw`, `Destroy`, `CreateToken`, `Scry`, `Fight`, `Counter`, `Charm`; appended: `UnlessPaid`, `SearchEx`, `Override`, `CopySpell`, `GiveGift`, `ClassLevelUp`, `Proliferate`, `Explore`, `Saddle` |
-| `TrigEvent` | 25 | enters, dies, leaves, to graveyard, attacks, phase, spell cast, life gained, damage dealt, becomes target, drawn, discarded, counters added, blocks, sacrificed, taps, mana expended, gift given, token created |
+| `Op` (a `uint8`) | 148: 61 in the original vocabulary, the rest appended by kgen | `DealDamage`, `Draw`, `Destroy`, `CreateToken`, `Scry`, `Fight`, `Counter`, `Charm`, `Proliferate`; appended: `UnlessPaid`, `SearchEx`, `Override`, `CopySpell`, `GiveGift`, `ClassLevelUp`, `Explore`, `Saddle` |
+| `TrigEvent` | 30 | enters, dies, leaves, to graveyard, attacks, phase, spell cast, life gained, damage dealt, becomes target, drawn, discarded, counters added, blocks, becomes blocked, sacrificed, taps, untaps, mana expended, gift given, token created, becomes monstrous, turned face up, transformed, crime committed, door unlocked |
 | `StaticKind` | 17 | continuous P/T and keywords, cost changes, can't block, may play from a zone, override, player hexproof, can't be cast, control (layer 2) |
-| `ReplKind` | 18 | enters tapped, enters with counters, as-enters choice, double damage, damage plus N, prevent noncombat damage, double tokens, double counters, life doubled, life plus N, graveyard-to-library |
+| `ReplKind` | 21 | enters tapped, enters with counters, as-enters choice, double damage, damage plus N, prevent noncombat damage, double tokens, double counters, life doubled, life plus N, graveyard-to-library, exiled instead of dying, counters of one kind doubled or increased |
 | `KwMask` (a `uint32`) | 32 of 32 bits used | flying, first strike, deathtouch, ward, protection from black or red, fear, shadow, ... |
-| `CounterKind` | 21 counter kinds plus a Class level | +1/+1, -1/-1, loyalty, stun, shield, flying, ...; named kinds with no rules meaning of their own (charge, oil, quest, ...) |
+| `CounterKind` | 38 counter kinds plus a Class level | +1/+1, -1/-1, loyalty, stun, shield, flying, lore, defense, ...; keyword counters (first strike, deathtouch, trample, ...); named kinds with no rules meaning of their own (charge, oil, quest, ...) |
 
 Every enum is **append-only**: generated tables encode values by ordinal, so a
 new op goes immediately above the count constant, never in the middle. The
@@ -202,7 +202,7 @@ modifier that named an SVar and was read as +0) produced games that agreed
 with gorge until the missing amount mattered.
 
 Typical refusals, from the BLB coverage report: an unknown filter property
-(`HasCounters`, `TopLibrary`), an unread parameter (`Optional` on a mill, a
+(`TopLibrary`, `greatestPowerControlledByTargeted`), an unread parameter (`Optional` on a mill, a
 `ClassBand` on a static), a value modifier it cannot evaluate, a replacement
 shape it does not model.
 
@@ -249,7 +249,7 @@ grammar for every set. So the grammar is closed once, corpus-wide:
 3. **Ratchet.** An acceptance test lowers the whole corpus and the card list
    of each registered set, and pins each accepted count exactly. A change
    that lowers any count fails; a rise is re-pinned in the same change, so
-   the pins are always the live numbers. Today they stand at **16,044 of
+   the pins are always the live numbers. Today (2026-10-25) they stand at **17,126 of
    34,072** corpus cards; the per-set pins are on
    [Card support by set](../../support/sets.md#per-set-support).
 4. **Keep the verified pools still.** A lowering change must leave the FDN
@@ -299,7 +299,7 @@ gorge's dependency rules. It allocates nothing, and every mutable byte lives
 in `State`.
 
 **The effect pool.** An ability that resolved (CR 611.2) records its
-continuous effect as an 8-byte `fxRec` in a fixed pool of 16 in
+continuous effect as a 12-byte `fxRec` in a fixed pool of 16 in
 `State`. A record names its object, because the affected set is fixed at
 resolution (CR 611.2c).
 
@@ -372,7 +372,7 @@ No kernel code path branches on a card's name. A card's name is in its
 Each generated pool is its own package, `cards_<pool>`. A pool is generated
 either from a deck pool (every distinct card in a directory of deck lists;
 FDN) or from a card list (BLB's is every distinct card name on the set's
-booster sheets). Besides FDN and BLB there are small constructed pools, each
+booster sheets). Besides FDN and BLB there are 74 small constructed pools, each
 chosen so that the cards a piece of grammar work unlocked come up in play
 under lockstep ([Verification](oracle.md#agreement-today)).
 

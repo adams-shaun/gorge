@@ -9,18 +9,23 @@ page says what it is, how it relates to gorge, what it covers today and where
 it is going. It is for contributors who want to understand the two-kernel
 design and for bot authors who want to know what a "kernel game" is.
 
+!!! warning "In development"
+    dirty-dirac is under active development toward a full engine and is not
+    finished: its card support is still growing, and gorge is the reference
+    engine it is checked against.
+
 !!! info "Snapshot"
     Figures in this section were read from the dirty-dirac source of
-    2026-10-21, which pins gorge
-    [`81dd3f940`](https://github.com/adams-shaun/gorge/commit/81dd3f940).
+    2026-10-25, which pins gorge
+    [`bb026728d`](https://github.com/adams-shaun/gorge/commit/bb026728d).
     Each page says how its figures were produced.
 
 !!! note "Where the code lives"
     dirty-dirac lives in **four-yay**, the maintainers' private companion
     module (see [The three repositories](../../repos/index.md)). Its Go
     package is `kernel`, with sub-packages `kop`, `cardset`, `feat`,
-    `search`, `neteval`, `oracle` and one generated `cards_<pool>` package
-    per card pool, and the commands `kgen` (the card generator), `kfuzz` (the
+    `search`, `neteval`, `oracle`, `vanilla` (a hand-written test table) and
+    one generated `cards_<pool>` package per card pool, and the commands `kgen` (the card generator), `kfuzz` (the
     lockstep fuzzer) and `kplay` (the game runner). The source is not public;
     these pages describe its design, what it supports and how it is
     verified. Its speed is on the [Performance](../../performance/index.md)
@@ -48,7 +53,7 @@ fixed-size Go value**:
   game names by a 16-bit index, not by a pointer.
 
 Then **cloning a game is a plain assignment** (`w := *root`, one copy of
-9,960 bytes), the garbage collector never scans game state, and two equal
+15,240 bytes), the garbage collector never scans game state, and two equal
 positions compare equal with `==`. That is the whole idea; the rest of these
 pages are the details that make it hold up.
 
@@ -75,7 +80,7 @@ the one before:
 
 | Step | What it means | Today |
 |---|---|---|
-| **Lowered** | the generator, `kgen`, reads every rules parameter of the card's compiled IR and lowers it to kernel ops with no refusal | **16,044 of 34,072** corpus cards (47.1 %) |
+| **Lowered** | the generator, `kgen`, reads every rules parameter of the card's compiled IR and lowers it to kernel ops with no refusal | **17,126 of 34,072** corpus cards (50.3 %) |
 | **Generated** | the card is in a generated `cards_<pool>` package, so a kernel game can deal it | the registered pools: FDN, BLB and a set of small constructed verification pools |
 | **Verified** | games over the pool have been played in lockstep with gorge, decision by decision, with no disagreement | FDN and BLB, plus the constructed pools ([Verification](oracle.md#agreement-today)) |
 
@@ -94,17 +99,17 @@ dirty-dirac deliberately does much less than gorge.
 | Cards | cards in a generated pool; a matchup is built from one pool | a deck with a refused card is refused when the matchup table is built |
 | Deck size | 60 cards per seat (`MaxDeck`) | rejected when the game is set up |
 | Card instances | 192: both decks plus tokens and copies (`MaxObj`) | the game ends as a draw, reason `board` |
-| Battlefield | 64 permanents (`MaxPerm`) | draw, `board` |
+| Battlefield | 128 permanents (`MaxPerm`) | draw, `board` |
 | Stack | 24 entries (`MaxStack`) | draw, `stack` |
 | Waiting triggers | 24 (`MaxPending`) | draw, `pending` |
 | Triggers resolved in one turn | 2,000 | draw, `loop` (an endless mandatory loop, CR 104.4b) |
-| Every other bounded pool | delayed triggers 8, remembered objects 12, continuous-effect records 16, last-known-information records 16, general counter kinds per permanent 3, ... | draw, with that pool's own reason |
+| Every other bounded pool | delayed triggers 16, remembered objects 12, continuous-effect records 16, last-known-information records 16, general counter kinds per permanent 3, ... | draw, with that pool's own reason |
 
 A game that outgrows a fixed capacity is a *capacity stall*: it ends as a draw
-and `State.StallReason` names the pool. There are 28 reasons, one per bounded
-pool, so no insert is ever dropped silently. A few reasons are not about
+and `State.StallReason` names the pool. There are 46 reasons. Most name a
+bounded pool, so no insert is ever dropped silently. The rest are not about
 capacity: they mark a combination of cards whose interaction the kernel knows
-it does not yet order the way gorge does (two replacement effects gorge would
+it does not yet handle the way gorge does (two replacement effects gorge would
 ask about, for example), and the game stalls at that point rather than play
 on with a known difference. gorge has no such caps, so the oracle counts a
 stall as a stall, never as a rules disagreement.
@@ -155,7 +160,7 @@ flowchart LR
 
 - `kernel`, `kop`, `cardset`, the generated `cards_<pool>` packages, `feat`
   and `search` have no gorge package among their dependencies
-  (`go list -deps`, 2026-10-21).
+  (`go list -deps`, 2026-10-25).
 - `neteval` is the one bounded exception in the run-time path: its only
   gorge imports are
   [`bots/netsimd`](https://github.com/adams-shaun/gorge/tree/main/bots/netsimd)
@@ -173,11 +178,11 @@ not a test.
 
 | | gorge | dirty-dirac |
 |---|---|---|
-| **State model** | `state.Game`: an object arena addressed by `ObjID`, with slices for zones and maps for effects and memos | one `State` struct of 9,960 bytes: fixed arrays only; no pointers, maps, slices, strings or interfaces ([State](state.md)) |
+| **State model** | `state.Game`: an object arena addressed by `ObjID`, with slices for zones and maps for effects and memos | one `State` struct of 15,240 bytes: fixed arrays only; no pointers, maps, slices, strings or interfaces ([State](state.md)) |
 | **Mutation** | the engine proposes `events.Event`s; `events.Apply` folds each into the state and appends it to a SHA-256 hash chain | `Apply(action)` writes the value directly; no log |
-| **Clone cost** | `Engine.Clone`: a deep copy of the game plus a shared log prefix | assignment: one 9,960-byte copy, nothing for the garbage collector |
+| **Clone cost** | `Engine.Clone`: a deep copy of the game plus a shared log prefix | assignment: one 15,240-byte copy, nothing for the garbage collector |
 | **Players** | up to 8 | exactly 2 |
-| **Card coverage** | the whole Forge corpus: 32,246 of 34,074 scripts (94.6 %) playable ([Card support](../../support/sets.md)) | 47 % of the corpus lowers; play is per generated pool ([What it covers](#what-it-covers)) |
+| **Card coverage** | the whole Forge corpus: 32,265 of 34,074 scripts (94.7 %) playable ([Card support](../../support/sets.md)) | 50 % of the corpus lowers; play is per generated pool ([What it covers](#what-it-covers)) |
 | **Rules source** | Forge scripts compiled to gorge's IR, plus gorge's hand-written primitives and rules core | the same IR lowered by `kgen` into integer op programs, plus a hand-written interpreter that mirrors gorge's rules code ([Cards](cards.md)) |
 | **Decisions** | 13 decision kinds, multi-select answers | 8 decision kinds, every answer a single pick ([Step and Apply](step-apply.md)) |
 | **Verification** | golden replays and chain heads, census ratchets, the XMage and Forge compliance oracles | lockstep against gorge on every decision and every position ([Verification](oracle.md)) |
@@ -218,7 +223,7 @@ costs data, not a redesign:
 
 | Page | What it covers |
 |---|---|
-| [State](state.md) | the fixed-size `State` value and its memory layout, the 64-slot battlefield and its slot masks, object identity and versioning (CR 400.7), the size budget, the canonical `Projection` |
+| [State](state.md) | the fixed-size `State` value and its memory layout, the 128-slot battlefield and its slot masks, object identity and versioning (CR 400.7), the size budget, the canonical `Projection` |
 | [Step and Apply](step-apply.md) | the control-state machine, the `Decision` and `Action` encodings, decision kinds against gorge's, mulligans, and why the RNG is bit-compatible with gorge's |
 | [Cards](cards.md) | the `kop` op vocabulary, how `kgen` lowers gorge's compiled IR, the refusal contract, the acceptance ratchets, the layer system, what is generated and what is hand-written |
 | [Verification](oracle.md) | the lockstep oracle against gorge, the canonical vocabulary and projection, how a divergence is found, shrunk and classified, the verified pools, and what lockstep cannot see |
