@@ -404,9 +404,11 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		code = potentialModeBaseCostMayplay
 	}
 	if strings.HasPrefix(mode, "sneaked_grant_") {
-		// beginCast canonicalises a granted Sneak offer mode to "sneak" and
-		// charges the canonical instance's cost (the first derived Sneak
-		// keyword), so the witness must read the same one.
+		// A granted Sneak instance is its own offer mode. beginCast keeps the
+		// ORIGINAL mode in selectedMode while it canonicalises only opt.Mode
+		// for dispatch, and its castModeSneak arm charges the sneakCosts entry
+		// whose mode is selectedMode -- so the witness must read that same
+		// instance, not the first (printed) one.
 		code = potentialModeBaseCostSneak
 	}
 	switch code {
@@ -509,13 +511,11 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		return cost, true
 	case potentialModeBaseCostSneak:
 		// CR 702.190a: the sneak cost, including its mandatory Return part,
-		// through the ONE reader the offer and beginCast use.
-		want := mode
-		if strings.HasPrefix(want, "sneaked_grant_") {
-			want = "sneak"
-		}
+		// through the ONE reader the offer and beginCast use. The mode names
+		// the exact instance beginCast charges (a granted one is
+		// "sneaked_grant_N", never canonicalised in selectedMode).
 		for _, sc := range e.sneakCosts(p, id) {
-			if sc.mode == want {
+			if sc.mode == mode {
 				return sc.cost, true
 			}
 		}
