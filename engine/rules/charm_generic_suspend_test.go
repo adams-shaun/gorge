@@ -176,7 +176,7 @@ func TestGenericCharmModesSurviveTheMidModeSuspension(t *testing.T) {
 // recorded" degradation Note either.
 func TestGenericCharmSuspendsAfterAnEarlierModeAlreadyRan(t *testing.T) {
 	t.Parallel()
-	e, lifeBefore := genericCharmAtPick(t, 6412, genericCharmLifeFirstScript(), 1, 0) // answer MLife, MReturn; printed MLife first
+	e, lifeBefore := genericCharmAtPick(t, 6412, genericCharmLifeFirstScript(), 1, 0) // answer MReturn, MLife; printed MLife first
 	d := e.Pending()
 	lifeAfterFirstMode := e.G.Players[0].Life
 	// Precondition: MLife ran before the suspension, so the value the
