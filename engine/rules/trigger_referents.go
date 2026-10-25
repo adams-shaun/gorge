@@ -161,9 +161,10 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// CR 508.3a: an Attacks line is the singular "whenever [a creature]
 		// attacks" form, so the queue point expands it into one instance per
 		// matching attacker and binds TriggerCard/TriggerSource to that ONE
-		// attacker (attacksTriggerInstances). The role stays absent here so a
-		// queue site that does not expand -- a delayed registration -- keeps
-		// the historical absent-role fallback to Remembered.
+		// attacker (attacksTriggerInstances). The role stays absent here so
+		// the per-instance binding is the only one; a hand-built context that
+		// does not expand keeps the historical absent-role fallback to
+		// Remembered.
 	case cards.TriggerAttackersDeclaredOneTarget, cards.TriggerAttackersDeclared:
 		c.DefendingPlayer = player(ev.Player)
 		c.AttackedTarget = player(ev.Player)

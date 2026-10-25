@@ -16,9 +16,8 @@ import (
 // order, and each instance carries its own Panharmonicon echoes.
 //
 // A nil result means the event admitted no attacker, and the caller keeps its
-// generic single-instance append. A queue site that does not expand (a
-// delayed registration) leaves TriggerCard absent and keeps the historical
-// Remembered fallback.
+// generic single-instance append with TriggerCard absent (the historical
+// Remembered fallback).
 func attacksTriggerInstances(board trigmatch.Board, t *cards.Trigger, id state.ObjID, ev events.Event, pt pendingTrigger, echoes int) []pendingTrigger {
 	matched := trigmatch.AttacksMatchedAttackers(board, *t, id, ev)
 	if len(matched) == 0 {
