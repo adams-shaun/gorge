@@ -659,7 +659,10 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				e.payCast()
 				pc.targetedFinish = false
 				if pc.activationPaid {
-					e.recordChosenTargets(pc.stackObj, ordered, false)
+					// The targets were recorded once by cast_commit's
+					// activationPaid tail (recordChosenTargets on
+					// pc.stackObj); recording them here as well would emit a
+					// second TargetsChosen set for one activation.
 					e.cast = pc
 					e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
 					e.cast = nil
