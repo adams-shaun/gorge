@@ -35,7 +35,14 @@ flowchart LR
 | ms per game | the inverse, in milliseconds | easier to read for the slow engines |
 | µs per turn | CPU µs ÷ turns played | normalises game length; *turn* is each engine's own turn counter, which counts both players' turns in all four engines |
 | µs per decision | CPU µs ÷ decisions answered | normalises game length per choice, but each engine splits a game into decisions differently (below), so compare it within one engine, not across |
-| peak RSS | the process's maximum resident set size (`/usr/bin/time %M`) | memory cost of one game-playing process, card database included |
+| peak RSS | the process's maximum resident set size (`/usr/bin/time %M`), reported per row as a distribution over reps (median, then every rep) | memory cost of one game-playing process, card database included |
+
+**Peak RSS is a distribution.** A Go process's peak is set by when the garbage
+collector happens to run during corpus load and deck setup, so the reps of one
+row can fall into two clusters rather than scatter around one value (the
+dirty-dirac rows do, roughly 100 MB apart). The summary table therefore keeps
+the median in `peak RSS MB` and lists every rep, sorted, in `RSS reps MB`;
+compare the distributions, not the medians.
 
 **CPU time** is the process's user + system time over the measured window, so
 it includes every thread of the process: for the Go engines the garbage
@@ -159,7 +166,20 @@ state after warm-up**. Start-up (loading the card database: 8-10 s for XMage,
 6 s for Forge) and warm-up are excluded from the per-game numbers but included
 in peak RSS. The Go engines need no warm-up; `enginebench` plays a few games
 before its timer starts, and its corpus load (and `kplay`'s, about 1-3 s) is
-excluded the same way. One asymmetry works against dirty-dirac: `kplay`
+excluded the same way.
+
+**The card cache is private and pre-warmed.** gorge and dirty-dirac both read
+gorge's card corpus through its compiled IR cache (`ir-<fingerprint>.gob.gz`
+beside the corpus, one per compiler build), and every compile prunes other
+builds' caches from the same directory. On a `.cards` directory that other
+builds share, a timed run could therefore find its cache evicted and pay a
+whole-corpus recompile, costing seconds and several hundred MB of peak RSS.
+The harness never points an engine at the shared directory: each invocation
+makes a private copy of the corpus (a hardlink farm of the scripts plus the
+lock file, under `$OUT/work`), warms each engine's cache there with one
+untimed run before its first timed rep, and records in `run.txt` any batch
+whose reps changed the private cache. Nothing is written into the shared
+corpus. The copy is deleted at exit unless `KEEP_CARDS=1`. One asymmetry works against dirty-dirac: `kplay`
 writes a JSON line per game (about 1 KB) inside its measured window, while
 `enginebench` writes only its summary.
 
@@ -313,7 +333,11 @@ up for `MK_WARM` (default 5) CPU-seconds, reads its CPU time from
 `cpu_s`, `games_per_cpu_s`, `ms_per_game`, `us_per_turn`, `us_per_decision`,
 `warmup_games`, `errors` (stalls, unfinished or harness-failed games) and
 `other_busy` (the core contention above). Rerun the table with
-`python3 scripts/xengine-bench-summarize.py $OUT/runs.jsonl`.
+`python3 scripts/xengine-bench-summarize.py $OUT/runs.jsonl`. The table's last
+column, `RSS reps MB`, is every rep's peak RSS, sorted. `$OUT/summary.jsonl`
+(`--json`) holds the same rows as JSON, with `min`, `median`, `max` and `reps`
+for each rate and for `rss_mb`. `run.txt` records where the private corpus copy
+was made and which IR caches each warm-up compiled.
 
 ## Search bots
 
