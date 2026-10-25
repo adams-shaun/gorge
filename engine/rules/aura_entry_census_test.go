@@ -237,6 +237,7 @@ var auraEntryCensusEffects = map[string]string{
 	"resolve.go:effCounter":                     "stack: countered spell leaves the stack",
 	"token.go:applyTokenMintRiders":             "token: AttachedTo$ rider after the mint; auraTokenWithheld refuses an Aura token whose named bearer is gone",
 	"token.go:runTokenMints":                    "token: TokenCreate mint loop",
+	"token.go:tokenMintEvent":                   "token: builds one mint's TokenCreate; runTokenMints emits it",
 	"zone.go:effSeek":                           "gate: Seek's battlefield destination",
 	"zone_change.go:changeZoneAttachedTo":       "attach: AttachedTo$ helper (callers mark before the move)",
 	"zone_change.go:changeZoneAttachedToPlayer": "attach: AttachedToPlayer$ helper (callers mark before the move)",
