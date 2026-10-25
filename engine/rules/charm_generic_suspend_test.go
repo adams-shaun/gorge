@@ -32,9 +32,21 @@ import (
 // CharmCrossModeShape classifies it None and effCharm takes the generic
 // shared-target loop rather than charmCrossModeRun.
 func genericCharmScript() string {
+	return genericCharmScriptOrdered("MReturn,MLife")
+}
+
+// genericCharmLifeFirstScript is the same carrier with the observable
+// LoseLife mode printed FIRST. CR 608.2c/700.2a executes chosen modes in
+// printed order, so the mirror test needs the printed order to put the
+// observable mode ahead of the suspending one.
+func genericCharmLifeFirstScript() string {
+	return genericCharmScriptOrdered("MLife,MReturn")
+}
+
+func genericCharmScriptOrdered(choices string) string {
 	return "Name:GenCharm\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:2/2\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When NICKNAME enters, ABILITY\n" +
-		"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Choices$ MReturn,MLife\n" +
+		"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Choices$ " + choices + "\n" +
 		"SVar:MReturn:DB$ ChangeZone | Hidden$ True | Mandatory$ True | ChangeType$ Creature.YouOwn | ChangeTypeDesc$ creature card | ChangeNum$ 1 | Origin$ Graveyard | Destination$ Hand | SpellDescription$ Return a creature card from your graveyard to your hand.\n" +
 		"SVar:MLife:DB$ LoseLife | Defined$ You | LifeAmount$ 3 | SpellDescription$ You lose 3 life.\n" +
 		"Oracle:x\n"
@@ -45,9 +57,9 @@ func genericCharmScript() string {
 // returns the engine with that pick pending plus the seat-0 life recorded
 // immediately before the modes were answered. m0/m1 are the mode indices in
 // the chosen order.
-func genericCharmAtPick(t *testing.T, seed uint64, m0, m1 int) (*Engine, int32) {
+func genericCharmAtPick(t *testing.T, seed uint64, script string, m0, m1 int) (*Engine, int32) {
 	t.Helper()
-	gen := genericCharmScript()
+	gen := script
 	e, _ := charmTwoSeatDeck(t, seed, gen)
 	putCreature(t, e, 0, gen)
 	// Precondition: the hidden graveyard pick has exactly one eligible card
@@ -132,7 +144,7 @@ func drainCharm(t *testing.T, e *Engine) (extraPicks, degradedResumes int) {
 // re-posed and the LoseLife lands exactly once.
 func TestGenericCharmModesSurviveTheMidModeSuspension(t *testing.T) {
 	t.Parallel()
-	e, life0 := genericCharmAtPick(t, 6411, 0, 1) // MReturn, MLife
+	e, life0 := genericCharmAtPick(t, 6411, genericCharmScript(), 0, 1) // MReturn, MLife
 	d := e.Pending()
 	submitChoices(t, e, d.Options[0].Index)
 	extra, degraded := drainCharm(t, e)
@@ -156,13 +168,15 @@ func TestGenericCharmModesSurviveTheMidModeSuspension(t *testing.T) {
 
 // TestGenericCharmSuspendsAfterAnEarlierModeAlreadyRan is the mirror-order
 // pin the row's "ask N times" wording names directly: the OBSERVABLE mode
-// runs first, the SUSPENDING mode second. With the guard, MLife lands once,
-// MReturn's pick suspends, and the answered pick completes the charm without
-// re-running MLife -- and, because this suspended mode was the LAST chosen
-// one, with no "no sub-ability recorded" degradation Note either.
+// runs first, the SUSPENDING mode second. CR 608.2c/700.2a orders execution
+// by the card, so this carrier PRINTS MLife first and the answer names it
+// second. With the guard, MLife lands once, MReturn's pick suspends, and the
+// answered pick completes the charm without re-running MLife -- and, because
+// this suspended mode was the LAST chosen one, with no "no sub-ability
+// recorded" degradation Note either.
 func TestGenericCharmSuspendsAfterAnEarlierModeAlreadyRan(t *testing.T) {
 	t.Parallel()
-	e, lifeBefore := genericCharmAtPick(t, 6412, 1, 0) // MLife, MReturn
+	e, lifeBefore := genericCharmAtPick(t, 6412, genericCharmLifeFirstScript(), 1, 0) // answer MLife, MReturn; printed MLife first
 	d := e.Pending()
 	lifeAfterFirstMode := e.G.Players[0].Life
 	// Precondition: MLife ran before the suspension, so the value the
