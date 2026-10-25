@@ -8,7 +8,7 @@ import (
 // faceprobe.go: pricing an alternate-face cast offer AS the face it casts.
 //
 // Every alternate-face cast route (adventure_alt, adventure_recast, room_alt,
-// split_alt, aftermath) is consumed by beginCast, which emits a FlipFace to
+// split_alt, aftermath, omen_alt) is consumed by beginCast, which emits a FlipFace to
 // the chosen face BEFORE the ordinary cast transaction. From that point on
 // every cost reader -- the CR 601.2f cost-modifier gates (a RaiseCost's
 // ValidCard$ Card.nonCreature, a ValidSpell$ type/cmc/colour read), the

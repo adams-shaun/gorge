@@ -12,7 +12,7 @@ import (
 
 // emitProposalFlip records the FlipFace an alternate-face cast proposal
 // (room_alt, adventure_alt, adventure_recast, aftermath, split_alt,
-// defeat_cast) makes before its ordinary cast transaction, WITHOUT letting
+// omen_alt, defeat_cast) makes before its ordinary cast transaction, WITHOUT letting
 // that flip count as game progress. emit clears the held-out no-progress
 // state (suppressedCast/castAborts) on every state-changing event; the flip
 // is one, but it is net no progress when the proposal is then reversed

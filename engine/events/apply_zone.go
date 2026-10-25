@@ -753,8 +753,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// face) characteristics, so an Adventure spell leaving the stack --
 	// resolved into the adventure zone, countered, or reversed to hand -- is
 	// its main face again. The adventure-zone recast reads the log, not the face.
+	// CR 720.4: the same rule for an Omen card -- in every zone except the
+	// stack, and while on the stack not as an Omen, it has only its normal
+	// characteristics. So a resolved (now in the library), countered or
+	// reversed Omen is its creature front again.
 	if wasStack && to != state.ZBattlefield && o.Card != nil &&
-		o.Card.AlternateMode == "Adventure" && o.FaceIdx != 0 {
+		(o.Card.AlternateMode == "Adventure" || o.Card.AlternateMode == "Omen") && o.FaceIdx != 0 {
 		o.SetFaceIdx(0)
 	}
 	// CR 712.4d: a Modal DFC is front-face up in every non-battlefield

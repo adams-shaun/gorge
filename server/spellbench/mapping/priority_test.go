@@ -239,9 +239,12 @@ func TestCastMethodTable(t *testing.T) {
 		{decision.Option{Kind: "cast", Mode: "split_alt"}, "", "split_right", "", ""},
 		{decision.Option{Kind: "cast", Mode: "fuse"}, "", "fuse", "", ""},
 		{decision.Option{Kind: "cast", Mode: "modal_spell"}, "", "mdfc_back", "", ""},
+		// An Omen face (Roost Seek) has no Section 7.4 method, so it maps to
+		// the protocol's catch-all "other".
+		{decision.Option{Kind: "cast", Mode: "omen_alt"}, "Omen", "other", "", ""}, // Roost Seek
 		// These rows cannot fire at the pinned gorge (see priority.go); they
 		// pin the kept branches for a later pin.
-		{decision.Option{Kind: "cast", Mode: "adventure_alt"}, "Omen", "other", "", ""}, // Roost Seek
+		{decision.Option{Kind: "cast", Mode: "adventure_alt"}, "Omen", "other", "", ""},
 		{decision.Option{Kind: "cast", Mode: "madness"}, "", "madness", "", ""},
 		{decision.Option{Kind: "cast", Mode: "miracle"}, "", "miracle", "", ""},
 		{decision.Option{Kind: "cast", Mode: "suspend_cast"}, "", "suspend", "", ""},

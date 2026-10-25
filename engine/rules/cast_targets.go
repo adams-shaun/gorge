@@ -114,6 +114,12 @@ func modeFlags(mode string) string {
 	// ordinary cast, exactly like warp_recast.
 	case modeFlagsAdventureAlt:
 		return events.FlagsString(state.FlagAdventure)
+	// The Omen spell face's cast (CR 720.3): the flag is what the resolution
+	// reader (spellRestZone) uses to send the resolved spell to its owner's
+	// library instead of the graveyard, where moveResolvedOffStack shuffles it
+	// (CR 720.3d). There is no recast mode: the card is not exiled.
+	case modeFlagsOmenAlt:
+		return events.FlagsString(state.FlagOmen)
 	case modeFlagsBuyback:
 		return events.FlagsString(state.FlagBuyback)
 	// Offspring (CR 702.175a): the mode marks the intent to pay the optional
@@ -1687,6 +1693,7 @@ const (
 	modeFlagsMorphed
 	modeFlagsMegamorphed
 	modeFlagsDisguised
+	modeFlagsOmenAlt
 )
 
 var modeFlagsCodes = state.NewStrCodes(
@@ -1717,6 +1724,7 @@ var modeFlagsCodes = state.NewStrCodes(
 	state.StrEntry[modeFlagsCode]{Key: "morphed", Val: modeFlagsMorphed},
 	state.StrEntry[modeFlagsCode]{Key: "megamorphed", Val: modeFlagsMegamorphed},
 	state.StrEntry[modeFlagsCode]{Key: "disguised", Val: modeFlagsDisguised},
+	state.StrEntry[modeFlagsCode]{Key: "omen_alt", Val: modeFlagsOmenAlt},
 )
 
 // foldGiftPromise records the CR 702.168 Gift election on the spell's stack

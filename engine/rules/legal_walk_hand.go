@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -13,18 +14,32 @@ import (
 // so a land front (Midgar, Lindblum, Zanarkand) must still offer its Adventure
 // half even though the land itself is never cast from hand.
 func (w *legalWalk) appendAdventureAlt(o *state.Object, sorcery bool) {
+	w.appendAlternateSpellFace(o, sorcery, adventureSpellFace(o), "adventure_alt")
+}
+
+// appendOmenAlt appends the hand's Omen-face cast offer (CR 720.3). CR
+// 720.3a evaluates only the alternative characteristics, so the offer carries
+// exactly the Adventure gate on the OMEN face -- its own timing, targets,
+// prohibition and cost -- and, like Adventure, is hand-only (the card has no
+// Omen cast path from any other zone; CR 720.4).
+func (w *legalWalk) appendOmenAlt(o *state.Object, sorcery bool) {
+	w.appendAlternateSpellFace(o, sorcery, omenSpellFace(o), "omen_alt")
+}
+
+// appendAlternateSpellFace is the ONE home of the hand's alternate-spell-face
+// offer, shared by the Adventure (CR 715.3a) and Omen (CR 720.3a) routes.
+func (w *legalWalk) appendAlternateSpellFace(o *state.Object, sorcery bool, af *cards.Face, mode string) {
 	if int(o.FaceIdx) != 0 {
 		return
 	}
 	e, p, id := w.e, w.p, o.ID
-	af := adventureSpellFace(o)
 	if af == nil || e.castSuppressed(p, id) || !w.spellTimingOK(p, id, af, sorcery) ||
 		!e.castTargetsAvailable(p, id, af.SpellAbility()) || w.castRestrictedAsFace(p, id, af) {
 		return
 	}
 	if w.offerCastableAsFace(p, id, af, pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
 		w.out = append(w.out, decision.Option{Index: len(w.out), Kind: "cast",
-			Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
+			Label: "Cast " + af.Name, Obj: id, Mode: mode})
 	}
 }
 
@@ -89,6 +104,7 @@ func (w *legalWalk) handWalk() {
 			// CR 715.3a: a land front is never cast, but its Adventure half
 			// still is -- only the alternative characteristics are evaluated.
 			w.appendAdventureAlt(o, sorcery)
+			w.appendOmenAlt(o, sorcery)
 			continue
 		}
 		// CR 712.8/712.4d: a Modal DFC in hand may be played as its back
@@ -169,6 +185,7 @@ func (w *legalWalk) handWalk() {
 		// continue below reads -- a restriction matching only one face must
 		// decide only that face's offer.
 		w.appendAdventureAlt(o, sorcery)
+		w.appendOmenAlt(o, sorcery)
 		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
 		// consumed by beginCast, which records a FlipFace before the ordinary
 		// cast transaction; from then on every cost/target/resolution reader

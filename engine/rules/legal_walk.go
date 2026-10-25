@@ -164,7 +164,7 @@ func (w *legalWalk) offerFloorRefuses(statics *costStaticViews, p state.PlayerID
 }
 
 // offerCastableAsFace is offerCastable for an alternate-face cast route
-// (adventure_alt, adventure_recast, room_alt, split_alt, aftermath):
+// (adventure_alt, adventure_recast, room_alt, split_alt, aftermath, omen_alt):
 // beginCast flips the object to `face` before pricing, so the gate prices
 // with the object showing that face too (faceprobe.go) -- otherwise a
 // modifier reading the card's characteristics (Thalia's
