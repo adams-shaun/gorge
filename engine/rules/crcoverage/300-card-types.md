@@ -43,7 +43,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 303.4m | follows | `engine/effects/filter_attachment.go#canEnchantEquippedBy` | - |  |
 | 303.5-303.6 | definition | - | - | cross-references to 714 Saga / 716 Class |
 | 303.7 | definition | - | - | Role subtype |
-| 303.7a | deviates | `engine/rules/emit.go#Engine.emit` | - | gorge sweeps any other Role, ignores "same controller" condition |
+| 303.7a | follows | `engine/rules/attach.go#Engine.roleSBA` | `TestRoleExclusivityPerController` `TestRoleExclusivityIsStateBased` `TestRoleExclusivityControlChange` | CR 704.5z state-based action, grouped by the Roles' current controller |
 | 304.1 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | instant timing |
 | 304.2 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | instant resolves to graveyard |
 | 304.3 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |
