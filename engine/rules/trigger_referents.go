@@ -159,15 +159,11 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.AttackingPlayer = player(e.controllerOf(ev.IDs[0]))
 		}
 		// CR 508.3a: an Attacks line is the singular "whenever [a creature]
-		// attacks" form, so the queue point binds one TriggerCard per matching
-		// attacker. The matched set is the SAME walk the boolean matcher ran
-		// (trigmatch.AttacksMatchedAttackers), so the role can never name an
-		// attacker the match did not admit; the first entry is the base role,
-		// which the queue point overrides per attacker.
-		if matched := trigmatch.AttacksMatchedAttackers(boardOf(e), t, source, ev); len(matched) > 0 {
-			c.TriggerCard = matched[0]
-		}
-		c.TriggerSource = c.TriggerCard
+		// attacks" form, so the queue point expands it into one instance per
+		// matching attacker and binds TriggerCard/TriggerSource to that ONE
+		// attacker (attacksTriggerInstances). The role stays absent here so a
+		// queue site that does not expand -- a delayed registration -- keeps
+		// the historical absent-role fallback to Remembered.
 	case cards.TriggerAttackersDeclaredOneTarget, cards.TriggerAttackersDeclared:
 		c.DefendingPlayer = player(ev.Player)
 		c.AttackedTarget = player(ev.Player)

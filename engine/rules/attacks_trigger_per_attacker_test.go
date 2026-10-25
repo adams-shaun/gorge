@@ -125,3 +125,111 @@ func TestAttackersDeclaredStillBatches(t *testing.T) {
 		t.Fatalf("batch trigger drew %d cards for one declaration, want 1", got)
 	}
 }
+
+// TestGainedAttacksTriggerPerMatchingAttacker pins the has-all-abilities-of
+// queue site (GainsTriggerAbsOf$): a foreign non-self "whenever a creature you
+// control attacks" line gained by a non-attacking carrier must fire once per
+// matching attacker, exactly like a printed line.
+func TestGainedAttacksTriggerPerMatchingAttacker(t *testing.T) {
+	t.Parallel()
+	foreign := card(t, "Name:Gains Attacker\nManaCost:2\nTypes:Artifact\n"+
+		"T:Mode$ Attacks | ValidCard$ Creature.YouCtrl | Execute$ TrigGain | TriggerDescription$ Whenever a creature you control attacks, you gain 1 life.\n"+
+		"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n")
+	a := card(t, "Name:Bear A\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	b := card(t, "Name:Bear B\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e, _, carrier, _, ids := gainsBoardWith(t, foreign, a, b)
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+	// Precondition: the carrier is not an attacker, so every instance comes
+	// from the gained non-self line, not from the carrier's own attack.
+	if o := e.G.Obj(carrier); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: carrier = %+v, want on the battlefield", o)
+	}
+	if ids["Bear A"] == ids["Bear B"] {
+		t.Fatalf("precondition: want two distinct attackers, got %v", ids)
+	}
+	life := e.G.Players[0].Life
+
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{ids["Bear A"], ids["Bear B"]}})
+	drainTriggers(t, e)
+
+	pushes := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.GainedTriggerPush && ev.Obj == carrier {
+			pushes++
+		}
+	}
+	if pushes != 2 {
+		t.Fatalf("gained attack trigger pushed %d times for two attackers, want 2", pushes)
+	}
+	if got := e.G.Players[0].Life; got != life+2 {
+		t.Fatalf("gained attack trigger gained %d life, want 2", got-life)
+	}
+}
+
+// TestGrantedAttacksTriggerPerMatchingAttacker pins the AddTrigger$ queue
+// site: a non-self "whenever a creature you control attacks" line granted to
+// a non-attacking self-granting creature fires once per matching attacker.
+func TestGrantedAttacksTriggerPerMatchingAttacker(t *testing.T) {
+	t.Parallel()
+	e := layerEngine(t)
+	banner := onBoard(t, e, 0, "Name:Banner Bear\nManaCost:2 G\nTypes:Creature Bear\nPT:2/2\n"+
+		"S:Mode$ Continuous | Affected$ Card.Self | AddTrigger$ AtkGain | Description$x\n"+
+		"SVar:AtkGain:Mode$ Attacks | ValidCard$ Creature.YouCtrl | Execute$ TrigGain | TriggerDescription$ x\n"+
+		"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n")
+	a := onBoardReady(t, e, 0, "Name:Bear A\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	b := onBoardReady(t, e, 0, "Name:Bear B\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	// Precondition: the grantee is on the battlefield and is NOT one of the
+	// attackers, so every instance comes from its granted non-self line.
+	if o := e.G.Obj(banner); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: grantee = %+v, want on the battlefield", o)
+	}
+	if banner == a || banner == b || a == b {
+		t.Fatalf("precondition: want a distinct non-attacking grantee, got %d/%d/%d", banner, a, b)
+	}
+	life := e.G.Players[0].Life
+
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{a, b}})
+	drainTriggers(t, e)
+
+	pushes := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.GrantTriggerPush && ev.Obj == banner {
+			pushes++
+		}
+	}
+	if pushes != 2 {
+		t.Fatalf("granted attack trigger pushed %d times for two attackers, want 2", pushes)
+	}
+	if got := e.G.Players[0].Life; got != life+2 {
+		t.Fatalf("granted attack trigger gained %d life, want 2", got-life)
+	}
+}
+
+// TestAttacksTriggerOwnCausePerInstance pins the AbilityTriggered "own" bit
+// per queued instance: for a self-inclusive non-self spec
+// (Creature.YouCtrl on an attacking creature), only the instance its own
+// attacker caused is "own"; the instance another attacker caused is not.
+func TestAttacksTriggerOwnCausePerInstance(t *testing.T) {
+	t.Parallel()
+	e, fb := atTable(t)
+	selfSpec := onBoardReady(t, e, 0, "Name:Self Spec\nManaCost:1 R\nTypes:Creature Human\nPT:1/1\n"+
+		"T:Mode$ Attacks | ValidCard$ Creature.YouCtrl | Execute$ TrigGain | TriggerDescription$ x\n"+
+		"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n")
+	plain := onBoardReady(t, e, 0, atPlain)
+	life := e.G.Players[0].Life
+
+	atAttackOrdered(t, e, false, selfSpec, plain)
+
+	// Precondition: the self-inclusive line matched BOTH attackers, so it
+	// queued two instances from the one source.
+	if e.G.Players[0].Life != life+2 {
+		t.Fatalf("precondition: both per-attacker instances must resolve, life %d want %d", e.G.Players[0].Life, life+2)
+	}
+	if n, own := atMarkers(e); n != 2 || own != 1 {
+		t.Fatalf("markers = %d (own %d), want 2 with 1 own (only the self-caused instance)", n, own)
+	}
+	if got := e.G.Obj(fb).Counter("QUEST"); got != 1 {
+		t.Fatalf("quest counters = %d, want 1 (the other instance is not the source's own)", got)
+	}
+}

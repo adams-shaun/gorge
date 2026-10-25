@@ -1876,16 +1876,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// same walk the boolean matcher ran, so no instance can name an
 				// attacker the match did not admit.
 				if mk == cards.TriggerAttacks {
-					if matched := trigmatch.AttacksMatchedAttackers(boardOf(observer), t, id, *ev); len(matched) > 0 {
-						for _, attacker := range matched {
-							inst := pt
-							inst.Ctx.TriggerContext.TriggerCard = attacker
-							inst.Ctx.TriggerContext.TriggerSource = attacker
-							e.pendingTriggers = append(e.pendingTriggers, inst)
-							for k := 0; k < echoes; k++ {
-								e.pendingTriggers = append(e.pendingTriggers, inst)
-							}
-						}
+					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoes); len(insts) > 0 {
+						e.pendingTriggers = append(e.pendingTriggers, insts...)
 						continue
 					}
 				}
@@ -2480,10 +2472,10 @@ func (e *Engine) closeZoneBatch() {
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
 // seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker now prefers
-// the TriggerCard role triggerReferents' TriggerAttacks case binds for the
+// the TriggerCard role the queue point (attacksTriggerInstances) binds for the
 // attacker that instance was queued for, falling back to Remembered -- every
 // declared attacker plus the defending player -- only when the role is absent
-// (the AttackersDeclared batch family).
+// (a delayed registration, or the AttackersDeclared batch family).
 // On top of FL-48 (task 16),
 // trigmatch.AttacksMatches honours Alone$ True, so the trigger now fires only when
 // exactly one attacker is declared and pumps that single attacker -- which is
