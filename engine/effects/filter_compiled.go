@@ -242,7 +242,7 @@ func compiledPositive(c *compiledPred, g *state.Game, o *state.Object, sc *SpecC
 	if c.named {
 		return namePredicate(c.pos, g, o, *sc)
 	}
-	if c.fn != nil && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, sc)) && colourMapPredicate(c.pos)) {
+	if c.fn != nil && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, sc) || sc.AsPrototype) && colourMapPredicate(c.pos)) {
 		return c.fn(g, o, sc.You, sc.Source), true
 	}
 	if c.num {

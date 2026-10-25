@@ -173,6 +173,17 @@ func (e *Engine) castRestrictedPrinted(statics []staticView, p state.PlayerID, i
 // lift it, so it is checked before the loop, on every cast route that
 // reaches here.
 func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
+	return e.castRestrictedCostAs(statics, p, id, cost, pool, false)
+}
+
+// castRestrictedCostPrototype is castRestrictedCost for the prototyped cast
+// route: every restriction spec reads the card's K:Prototype inset mana
+// value, colours and P/T (CR 718.3a) instead of its printed face.
+func (e *Engine) castRestrictedCostPrototype(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
+	return e.castRestrictedCostAs(statics, p, id, cost, pool, true)
+}
+
+func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana, asPrototype bool) bool {
 	if e.legendarySpellLocked(p, id) {
 		return true
 	}
@@ -213,9 +224,13 @@ func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id s
 				spec = s
 			}
 		}
-		if e.matchesSpec(spec, id, e.spellSpecCtx(e.staticSpecCtx(sv), id)) &&
+		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+		if asPrototype {
+			sc = e.prototypeSpellSpecCtx(sc, id)
+		}
+		if e.matchesSpec(spec, id, sc) &&
 			castLimitBinds(e.L.Events, sv, p, id, func(oid state.ObjID) bool { return e.matchesSpec(countSpec, oid, e.staticSpecCtx(sv)) }) {
-			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost, pool) {
+			if cost.X > 0 && e.xAnnouncementEscapes(sv, spec, p, id, cost, pool, asPrototype) {
 				continue
 			}
 			return true
@@ -241,7 +256,7 @@ func (e *Engine) castRestrictedCost(statics []staticView, p state.PlayerID, id s
 // lookahead would begin). The mana value is read off the PRINTED cost with
 // X folded in (CR 202.3b), never off cost -- an alternative cost's
 // non-mana parts add no mana.
-func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana) bool {
+func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.PlayerID, id state.ObjID, cost Cost, pool *state.Mana, asPrototype bool) bool {
 	if cost.X <= 0 {
 		return false
 	}
@@ -250,6 +265,13 @@ func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.Player
 		return false
 	}
 	printed := e.faceCompiledCost(o.Face()).Cost
+	if asPrototype {
+		raw, _, _, ok := state.PrototypeParams(o.Face())
+		if !ok {
+			return false
+		}
+		printed = ParseCost(raw)
+	}
 	if printed.X <= 0 {
 		return false
 	}
@@ -282,6 +304,9 @@ func (e *Engine) xAnnouncementEscapes(sv staticView, spec string, p state.Player
 			continue
 		}
 		sc := e.spellSpecCtx(e.staticSpecCtx(sv), id)
+		if asPrototype {
+			sc = e.prototypeSpellSpecCtx(sc, id)
+		}
 		sc.HasManaValue = true
 		sc.ManaValue = printed.WithX(x).CMC()
 		if !e.matchesSpec(spec, id, sc) {
@@ -303,6 +328,25 @@ func (e *Engine) spellSpecCtx(sc effects.SpecContext, id state.ObjID) effects.Sp
 		sc.HasManaValue, sc.ManaValue = true, state.SpellManaValue(e.G, o)
 		sc.AsSpellHalf = true
 	}
+	return sc
+}
+
+// prototypeSpellSpecCtx binds the K:Prototype inset cost's mana value and the
+// AsPrototype characteristic override for a cast restriction or cost modifier
+// reading the prototyped cast route (CR 718.3a). A face without the keyword is
+// left exactly as spellSpecCtx returned it.
+func (e *Engine) prototypeSpellSpecCtx(sc effects.SpecContext, id state.ObjID) effects.SpecContext {
+	o := e.G.Obj(id)
+	if o == nil {
+		return sc
+	}
+	cost, _, _, ok := state.PrototypeParams(o.Face())
+	if !ok {
+		return sc
+	}
+	sc.AsPrototype = true
+	sc.HasManaValue = true
+	sc.ManaValue = cards.ManaValueOfCost(cost)
 	return sc
 }
 

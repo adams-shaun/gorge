@@ -121,6 +121,11 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 		sc := e.costStaticSpecCtx(sv, id)
 		if scope.Kind == "Spell" {
 			sc = e.spellSpecCtx(sc, id)
+			if scope.Mode == "prototype" {
+				// CR 718.3a: a cost modifier gated on the card's mana value,
+				// colours or P/T reads the K:Prototype inset for this cast.
+				sc = e.prototypeSpellSpecCtx(sc, id)
+			}
 		}
 		if !e.matchesSpec(spec, id, sc) {
 			return false, true

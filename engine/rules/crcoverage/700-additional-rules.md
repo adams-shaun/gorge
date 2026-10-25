@@ -374,7 +374,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 716.3 | follows | `engine/cards/kw_class.go#kwClass` | `TestClassGrantKeepsTheBodysOwnIsPresent` | - |
 | 716.4 | follows | `engine/effects/filter_value.go#numericPred` | `TestClassLevelDesignationIsNotACounter` | classLevel_ reads designation, not counters |
 | 717.1-717.6a | not-impl | `engine/rules/trigmatch/actions.go#rolledDieCommon` | - | LOUD: no Attraction deck |
-| 718.1-718.5 | not-impl | - | - |  |
+| 718.1-718.5 | follows | `engine/state/prototype.go#PrototypeParams` `engine/state/mana_value.go#ManaValue` `engine/effects/colors.go#ColorMaskOf` `engine/rules/chars/derive.go#PT` `engine/events/apply_copy.go#foldCopyToken` | `TestPrototypeCharacteristicsOnStackAndBattlefield` `TestPrototypeNormalElsewhere` `TestPrototypeCopyIsPrototyped` | The inset values are derived from the face's K:Prototype param; the designation is a CastFlag outside the copiable values but copied by CR 718.3c/d |
 | 719.1-719.2 | n/a | - | - |  |
 | 719.3-719.3a | follows | `engine/effects/misc.go#effAlterAttribute` `engine/effects/filter.go#predicates` | `TestCaseBecomesSolvedAtEndStepAndAuditorTriggers` |  |
 | 719.3b | follows | `engine/state/object.go#Object.Solved` `engine/events/apply_player.go#foldAlterAttribute` | `TestCaseSolvedClearsWhenTheCaseLeaves` | stays solved |

@@ -218,7 +218,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.155 | not-impl | - | - |  |
 | 702.156 | follows | `engine/cards/kw_ravenous.go#kwRavenous` | `TestJackedRabbitRavenousX5CountersAndDraw` `TestJackedRabbitRavenousX3CountersNoDraw` | Enters with X counters |
 | 702.157 | follows | `engine/cards/kw_squad.go#kwSquad` `engine/rules/cast_altcost.go#squadCost` | `TestSquadKeywordExpansionAddsTheETBTrigger` `TestSquadNonManaCostsParse` | Repeatable additional cost |
-| 702.158-702.162 | not-impl | - | - |  |
+| 702.158-702.159,702.161-702.162 | not-impl | - | - |  |
+| 702.160 | follows | `engine/state/prototype.go#PrototypeParams` `engine/state/mana_value.go#ManaValue` `engine/rules/cast_begin.go#Engine.beginCastWith` `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | `TestPrototypeOffersInsetCast` `TestPrototypeCharacteristicsOnStackAndBattlefield` `TestPrototypeNormalCastStaysPrinted` `TestPrototypeNormalElsewhere` `TestPrototypeCopyIsPrototyped` `TestPrototypeReversalClears` | Inset cost, colour and P/T only on the stack and battlefield; a copy keeps the designation |
 | 702.163 | follows | `engine/cards/kw_formirrodin.go#kwForMirrodin` | `TestGlimmerLensForMirrodinCreatesARebelAndAttaches` |  |
 | 702.164 | follows | `engine/rules/layers_derived.go#Engine.ToxicValue` `engine/rules/combat.go#Engine.runCombatAssignments` | `TestToxicIxhelAddsPoisonOnCombatDamage` `TestToxicInstancesCumulate` | Combat damage to player adds N poison |
 | 702.165 | follows | `engine/cards/kw_backup.go#kwBackup` | `TestGuardianScalelordBackupCountersAndCopiesAbilities` `TestGuardianScalelordBackupSelfTargetGrantsNothing` | ETB counters |

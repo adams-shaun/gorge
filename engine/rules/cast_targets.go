@@ -39,6 +39,11 @@ func modeFlags(mode string) string {
 		// resumeResolution read to resolve the cleave spell ability. Not a
 		// CastProvenanceFlag: a stack copy keeps it (CR 707.10).
 		return events.FlagsString(state.FlagCleaved)
+	case castModePrototype:
+		// CR 718.3a: the prototype designation. NOT a CastProvenanceFlag:
+		// a copy of a prototyped spell or permanent is also prototyped
+		// (CR 718.3c/d).
+		return events.FlagsString(state.FlagPrototype)
 	case castModePreparedCopy:
 		// The CR 722.3c prepared-copy cast (engine/rules/legal_walk_alt.go's exile
 		// offer): the flag is the provenance the Card.prepared filter
@@ -1381,7 +1386,9 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 // back by emit (deferCastTrigger) because it fires only once the spell is
 // actually cast -- after payment; payCast's fireDeferredCastTrigger re-walks
 // the held PutOnStack. CastInfo (the X / mode-flag recording) is deferred to
-// payCast too, so an aborted proposal leaves no cast-time trace on the card.
+// payCast too, so an aborted proposal leaves no cast-time trace on the card
+// -- except the prototype designation stamped below, which must be live
+// before targets are announced (CR 718.3a); a reversal clears it again.
 // An activated ability is a no-op here: pushActivation mints its stack object
 // at the same point in continueCast (CR 602.2a). A land play never goes on
 // the stack.
@@ -1434,6 +1441,14 @@ func (e *Engine) pushCast() bool {
 		ev.Secret = true
 	}
 	e.emit(ev)
+	if castModeCodes.Code(pc.mode) == castModePrototype {
+		// CR 718.3a: stamp the prototype designation as the spell reaches the
+		// stack, before targets and payment, so the characteristics (and the
+		// targets' mana-value reads) already use the inset cost. payCast's
+		// CastInfo re-states it after payment; both assign the flags wholesale.
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Player: pc.player,
+			Counter: events.FlagsString(state.FlagPrototype)})
+	}
 	if fz, ok := castBattlefieldEvent(e.G, e, pc.card, pc.player); ok {
 		e.emit(fz)
 	}
@@ -1555,6 +1570,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	// would abort here (or a prohibited one would slip through). offerAsFace
 	// is the scoped read the offer probes with; for the front face it is a
 	// no-op.
+	asPrototype := pc.mode == "prototype"
 	restrictionOnFace := func(face *cards.Face) bool {
 		if face == nil {
 			return false
@@ -1578,8 +1594,12 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 					continue
 				}
 				sc := e.specCtx(sv.Source, sv.Controller)
-				sc.HasManaValue = true
-				sc.ManaValue = mv
+				if asPrototype {
+					sc = e.prototypeSpellSpecCtx(sc, pc.card)
+				} else {
+					sc.HasManaValue = true
+					sc.ManaValue = mv
+				}
 				spec := castValidCardSpec(sv)
 				if e.matchesSpec(spec, pc.card, sc) &&
 					castLimitBinds(e.L.Events, sv, pc.player, pc.card, func(oid state.ObjID) bool { return e.matchesSpec(spec, oid, e.staticSpecCtx(sv)) }) {

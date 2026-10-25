@@ -456,6 +456,15 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return ParseCost(raw), true
+	case potentialModeBaseCostPrototype:
+		// CR 718.3a: the prototyped cast pays the K:Prototype inset cost,
+		// with the spell's own additional costs folded exactly as beginCast
+		// folds them.
+		raw, _, _, ok := state.PrototypeParams(f)
+		if !ok {
+			return Cost{}, false
+		}
+		return pay.WithSpellAbilityExtras(f, ParseCost(raw)), true
 	case potentialModeBaseCostFlashback:
 		return pay.WithSpellAbilityExtras(f, e.flashbackCostFor(id, o)), true
 	case potentialModeBaseCostKicked:
@@ -1183,6 +1192,7 @@ const (
 	potentialModeBaseCostAdventureRecast
 	potentialModeBaseCostPreparedCopy
 	potentialModeBaseCostSneak
+	potentialModeBaseCostPrototype
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -1204,4 +1214,5 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "adventure_recast", Val: potentialModeBaseCostAdventureRecast},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "prototype", Val: potentialModeBaseCostPrototype},
 )

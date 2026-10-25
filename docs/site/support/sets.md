@@ -251,8 +251,7 @@ further down.
 | 21 | `kw:Visit` | 23 | Unfinity attractions |
 | 22 | `api:AssembleContraption` | 22 | Unstable |
 | 23 | `api:OpenAttraction` | 22 | Unfinity attractions |
-| 24 | `kw:Prototype` | 21 | The Brothers' War |
-| 25 | `api:Abandon` | 20 | Archenemy |
+| 24 | `api:Abandon` | 20 | Archenemy |
 
 A card can miss several primitives, so the counts don't add up. Implementing
 one primitive unlocks only the cards that miss nothing else.

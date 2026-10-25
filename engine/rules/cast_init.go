@@ -207,5 +207,11 @@ func init() {
 		// gate, the `bargained` predicate and the Spell.Bargain constraint.
 		// Proof: rules/bargain_test.go.
 		"kw:Bargain",
+		// kw:Prototype: CR 702.160/718.3a, the hand-origin alternative cast
+		// paying the K:Prototype inset cost and giving the spell and the
+		// permanent it becomes that cost's colour and the line's P/T. The
+		// keyword is read directly (no expansion), and the designation is
+		// state.FlagPrototype. Proof: rules/prototype_test.go.
+		"kw:Prototype",
 		"kw:Plot")
 }

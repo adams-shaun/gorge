@@ -9,6 +9,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// basePT is the printed P/T basis, except for a prototyped spell or
+// permanent, whose base is its K:Prototype inset pair (CR 718.3a).
+func basePT(o *state.Object, f *cards.Face) (int32, int32) {
+	if o != nil {
+		if _, p, t, ok := o.PrototypeCharacteristics(); ok {
+			return p, t
+		}
+	}
+	return int32(f.Power()), int32(f.Toughness())
+}
+
 // PT is the layer-7 P/T walk proper. kw is the object's
 // FINISHED layer-6 keyword list (printed, intrinsic, marker-counter, status
 // and every applied layer-6 grant) bound through matchesWithChars the way
@@ -71,7 +82,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 			power, toughness = o.FaceDownPower, o.FaceDownToughness
 		}
 	} else {
-		power, toughness = int32(f.Power()), int32(f.Toughness())
+		power, toughness = basePT(o, f)
 		// Layer 7a (CR 613.4a): the object's own characteristic-defining ability
 		// (CharacteristicDefining$ True) sets the base P/T that every later
 		// layer applies on top of, in EVERY zone (CR 604.3/208.2 -- Master of
@@ -111,7 +122,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 	// the 7a basis is framed and the layer-4 types are known, and only for a
 	// face whose CDA claimed a value, so every other walk is unchanged.
 	if cdaClaim && cdaPTLost(b, active, id, o, types) {
-		power, toughness = int32(f.Power()), int32(f.Toughness())
+		power, toughness = basePT(o, f)
 		basePower, baseToughness = power, toughness
 		setFrame()
 	}
