@@ -1,0 +1,838 @@
+package gonet
+
+import (
+	"fmt"
+	"math"
+
+	"github.com/adams-shaun/gorge/bots/internal/simdk"
+	"github.com/adams-shaun/gorge/bots/policynet"
+)
+
+// The graph network's forward pass (dzg/models.py GraphNet), the second
+// architecture a .dzgw file can carry. Everything structural is fixed; only
+// the widths come from the header, so the same code reads a 128-wide research
+// network and a wider one without a new loader.
+//
+// The graph, per state:
+//
+//	root -> players (me, opponent) -> zones (my battlefield and hand under me,
+//	the opponent's battlefield under them, the stack under the root) -> cards
+//	-> leaves (ONE LEAF PER IDENTITY ROW, table[row]·value through leaf_proj,
+//	plus a Linear(raw) leaf); the root's other children are the DENSE leaf and
+//	one leaf per sparse row.
+//
+// A bottom-up pass of local attention layers (card, zone, player, root) per
+// `passes`, then pre-norm transformer layers over [root, me, opp, 4 zones,
+// cards] and a final LayerNorm; value = MLP(root). An option's query is
+// opt_in(o) + ea_proj(h_ea) + eb_proj(h_eb), where h_ea/h_eb are the referenced
+// cards' FINAL tokens (or the learned none_a/none_b); it cross-attends over the
+// final tokens and scores MLP([root ‖ q' ‖ h_ea ‖ h_eb]) with h_ea/h_eb
+// UNPROJECTED.
+//
+// Numerics: every Linear is a batched GEMM over pre-packed weight panels
+// (bots/internal/simdk: AVX-512 when the CPU has it, a scalar twin
+// otherwise), LayerNorm and GELU are vector kernels too, and attention
+// logits and softmax run in float64 (the reference uses fp32 with a
+// log-sum-exp). Every loop has a fixed summation order, so a forward is
+// deterministic on a given CPU and kernel choice.
+
+// ForceScalar routes the graph forward's kernels through their scalar twins
+// (tests compare the two paths; a benchmark measures the gap).
+var ForceScalar bool
+
+// gemm: Y[r] = W·X[r] + b for n contiguous rows, through the packed panels.
+func (l *gnLinear) gemm(Y, X []float32, n int) {
+	simdk.Gemm(Y, l.out, X, l.in, n, l.pk, !ForceScalar)
+}
+
+// rows: y[r] = LN(x[r]) for n rows of width d (y may be x).
+func (nm *gnNorm) rows(y, x []float32, n, d int) {
+	simd := !ForceScalar
+	for r := 0; r < n; r++ {
+		simdk.LayerNorm(y[r*d:(r+1)*d], x[r*d:(r+1)*d], nm.w, nm.b, nm.eps, simd)
+	}
+}
+
+// Graph node types and edge types (GraphNet's ROOT..CARD and E_* constants).
+const (
+	gnNodeRoot = iota
+	gnNodeMe
+	gnNodeOpp
+	gnNodeMyBF
+	gnNodeOppBF
+	gnNodeHand
+	gnNodeStack
+	gnNodeCard
+	gnNumNodeTypes
+)
+
+const (
+	gnEdgeIdent = iota
+	gnEdgeRaw
+	gnEdgeDense
+	gnEdgeSparse
+	gnEdgeCardZone
+	gnEdgeZonePlayer
+	gnEdgeStackRoot
+	gnEdgePlayerRoot
+	gnNumEdgeTypes
+)
+
+// gnFixed is GraphNet's N_FIXED: per state, the root, the two players and the
+// four zone nodes, in that order, ahead of the cards.
+const gnFixed = 7
+
+// The zones under the players (GraphNet's zone_ids / zone_player buffers,
+// non-persistent, so constants of the architecture rather than tensors): zone
+// 0 (my battlefield) and zone 2 (my hand) under me, zone 1 (the opponent's
+// battlefield) under the opponent. Zone 3, the stack, is a child of the root.
+var (
+	gnPlayerZones   = [3]int{0, 2, 1}
+	gnPlayerOfZones = [3]int{0, 0, 1}
+)
+
+// gnLocalLayer is LocalLayer: pre-norm attention from each node to [itself ‖
+// its children], grouped by parent, then a pre-norm FFN. kv is qkv's k and v
+// rows alone (w and b a view of qkv's; its packed panels its own): a child
+// contributes keys and values only.
+type gnLocalLayer struct {
+	n1, n2   gnNorm
+	qkv, kv  gnLinear // d -> 3d; d -> 2d (rows d..3d of qkv)
+	out      gnLinear // d -> d
+	fc1, fc2 gnLinear // d -> ff -> d
+}
+
+// gnSABlock is _SABlock: a pre-norm transformer encoder layer.
+type gnSABlock struct {
+	n1, n2   gnNorm
+	qkv, out gnLinear
+	fc1, fc2 gnLinear
+}
+
+// gnGNN holds the graph network's weights, separate from Net's MLP fields so
+// a Net is exactly one architecture.
+type gnGNN struct {
+	d, heads, ff, hh, dEmb, rawW int
+
+	nodeType, edgeType []float32         // types×d
+	ltab               []float32         // TableRows×d: leaf_proj(table[r]) (leaf_proj has no bias)
+	rawLeaf, denseLeaf gnLinear          // rawW -> d, DenseWidth -> d
+	local              [][4]gnLocalLayer // [pass][card, zone, player, root]
+	blocks             []gnSABlock
+	norm               gnNorm
+
+	slots          []float32 // OptionSlotWidth×d
+	htab           []float32 // TableRows×d: opt_in.hproj(table[r])
+	odense         gnLinear  // OptionDenseWidth -> d
+	bot            []float32 // d
+	eaProj, ebProj gnLinear  // d -> d
+	noneA, noneB   []float32 // the learned "no card" vectors (unprojected)
+
+	crossNQ, crossNKV, crossN2 gnNorm
+	crossQ, crossKV, crossOut  gnLinear
+	crossFF1, crossFF2         gnLinear
+
+	policy, value []gnLinear
+}
+
+// gnnScratch is the graph forward's reusable working set; a warm scratch
+// makes a forward allocation-free.
+type gnnScratch struct {
+	leaves, card, zone, play, root, kids []float32
+	leafSeg, segAll                      []int
+	cardOff, kidOff, tOff, kvOff         []int
+	rseg, pseg, zoneSeg                  []int
+	dense, dl, pc, rx, flat              []float32
+	heavy, qkv, kv, out, tmp, ln, hid    []float32
+	x, zc                                []float32
+	sum                                  []float64
+	o, ha, hb, q, q2, z, ha1, hb1        []float32
+	raws, rl, od, ta, v1, s32, mx32      []float32
+
+	// evalGNN's batch of one, without allocating slices per call
+	oneSt     [1]*policynet.State
+	oneOpts   [1][]policynet.Option
+	oneScores [1][]float32
+	oneVal    [1]float32
+}
+
+func takeF(p *[]float32, n int) []float32 {
+	if cap(*p) < n {
+		*p = make([]float32, n, n+n/4)
+	}
+	*p = (*p)[:n]
+	return *p
+}
+
+func takeI(p *[]int, n int) []int {
+	if cap(*p) < n {
+		*p = make([]int, n, n+n/4)
+	}
+	*p = (*p)[:n]
+	return *p
+}
+
+func takeD(p *[]float64, n int) []float64 {
+	if cap(*p) < n {
+		*p = make([]float64, n, n+n/4)
+	}
+	*p = (*p)[:n]
+	return *p
+}
+
+// loadGNN interprets a .dzgw's tensors as GraphNet's weights. Every tensor is
+// fetched by name at the shape GraphNet gives it, so a mismatch is an error
+// rather than a silently misread weight.
+func loadGNN(path string, h gnHeader, tensors map[string][]float32, shapes map[string][]int, rawW int, hashChecked bool) (*Net, error) {
+	cfg := func(k string) int { return int(h.Config[k]) }
+	d, e := cfg("d"), cfg("d_emb")
+	heads, ff, passes, gl, hh := cfg("heads"), cfg("ff"), cfg("passes"), cfg("global_layers"), cfg("head_hidden")
+	if d <= 0 || e <= 0 || heads <= 0 || ff <= 0 || passes <= 0 || gl < 0 || hh <= 0 {
+		return nil, fmt.Errorf("gonet %s: gnn config: d=%d d_emb=%d heads=%d ff=%d passes=%d global_layers=%d head_hidden=%d", path, d, e, heads, ff, passes, gl, hh)
+	}
+	if d%heads != 0 {
+		return nil, fmt.Errorf("gonet %s: d=%d is not a multiple of heads=%d", path, d, heads)
+	}
+	var errs []error
+	get := func(name string, shape ...int) []float32 {
+		t, ok := tensors[name]
+		if !ok {
+			errs = append(errs, fmt.Errorf("missing tensor %s", name))
+			return make([]float32, prod(shape))
+		}
+		s := shapes[name]
+		bad := len(s) != len(shape)
+		for i := 0; !bad && i < len(s); i++ {
+			bad = s[i] != shape[i]
+		}
+		if bad {
+			errs = append(errs, fmt.Errorf("tensor %s: shape %v, want %v", name, s, shape))
+			return make([]float32, prod(shape))
+		}
+		return t
+	}
+	lin := func(name string, in, out int, bias bool) gnLinear {
+		l := gnLinear{in: in, out: out, w: get(name+".weight", out, in)}
+		if bias {
+			l.b = get(name+".bias", out)
+		}
+		l.pk = simdk.Pack(l.w, l.b, in, out)
+		return l
+	}
+	norm := func(name string, n int) gnNorm {
+		eps, ok := h.Eps[name]
+		if !ok {
+			errs = append(errs, fmt.Errorf("no layernorm_eps for %s", name))
+		}
+		return gnNorm{w: get(name+".weight", n), b: get(name+".bias", n), eps: eps}
+	}
+	head := func(name string, dIn, layers int) []gnLinear {
+		var out []gnLinear
+		in := dIn
+		for i := 0; i <= layers; i++ {
+			o := hh
+			if i == layers {
+				o = 1
+			}
+			out = append(out, lin(fmt.Sprintf("%s.%d", name, 2*i), in, o, true))
+			in = o
+		}
+		return out
+	}
+	g := &gnGNN{d: d, heads: heads, ff: ff, hh: hh, dEmb: e, rawW: rawW,
+		nodeType:  get("node_type.weight", gnNumNodeTypes, d),
+		edgeType:  get("edge_type.weight", gnNumEdgeTypes, d),
+		rawLeaf:   lin("raw_leaf", rawW, d, true),
+		denseLeaf: lin("dense_leaf", policynet.DenseWidth, d, true),
+		norm:      norm("norm", d),
+		slots:     get("opt_in.slots.weight", gnSlotRow, d),
+		odense:    lin("opt_in.dense", policynet.OptionDenseWidth, d, true),
+		bot:       get("opt_in.bot", d),
+		eaProj:    lin("ea_proj", d, d, true),
+		ebProj:    lin("eb_proj", d, d, true),
+		noneA:     get("none_a", d),
+		noneB:     get("none_b", d),
+		policy:    head("policy", 4*d, cfg("policy_layers")),
+		value:     head("value", d, cfg("value_layers")),
+	}
+	table := get("table.weight", gnRows, e)
+	leafProj := lin("leaf_proj", e, d, false)
+	hproj := lin("opt_in.hproj", e, d, false)
+	for p := 0; p < passes; p++ {
+		var l [4]gnLocalLayer
+		for i, name := range [4]string{"card", "zone", "player", "root"} {
+			pre := fmt.Sprintf("local.%d.%s", p, name)
+			qkv := lin(pre+".qkv", d, 3*d, true)
+			kv := gnLinear{in: d, out: 2 * d, w: qkv.w[d*d:], b: qkv.b[d:]}
+			kv.pk = simdk.Pack(kv.w, kv.b, d, 2*d)
+			l[i] = gnLocalLayer{n1: norm(pre+".n1", d), n2: norm(pre+".n2", d), qkv: qkv, kv: kv,
+				out: lin(pre+".out", d, d, true), fc1: lin(pre+".ff1", d, ff, true), fc2: lin(pre+".ff2", ff, d, true)}
+		}
+		g.local = append(g.local, l)
+	}
+	for i := 0; i < gl; i++ {
+		p := fmt.Sprintf("blocks.%d", i)
+		g.blocks = append(g.blocks, gnSABlock{n1: norm(p+".n1", d), qkv: lin(p+".qkv", d, 3*d, true),
+			out: lin(p+".out", d, d, true), n2: norm(p+".n2", d), fc1: lin(p+".ff1", d, ff, true), fc2: lin(p+".ff2", ff, d, true)})
+	}
+	g.crossNQ, g.crossNKV, g.crossN2 = norm("cross.nq", d), norm("cross.nkv", d), norm("cross.n2", d)
+	g.crossQ, g.crossKV, g.crossOut = lin("cross.q", d, d, true), lin("cross.kv", d, 2*d, true), lin("cross.out", d, d, true)
+	g.crossFF1, g.crossFF2 = lin("cross.ff1", d, ff, true), lin("cross.ff2", ff, d, true)
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("gonet %s: %v", path, errs)
+	}
+	// Both bias-free projections of the shared table, once: an identity or
+	// sparse leaf, and an option's hashed bag, become row gathers.
+	g.ltab = make([]float32, gnRows*d)
+	leafProj.applyN(g.ltab, table, gnRows, true)
+	g.htab = make([]float32, gnRows*d)
+	hproj.applyN(g.htab, table, gnRows, true)
+	p := &Net{path: path, hashChecked: hashChecked, d: d, ff: ff, dEmb: e, hh: hh, gnn: g}
+	if CacheSize > 0 {
+		p.cache = NewEvalCache(CacheSize)
+	}
+	p.pool.New = func() any { return new(gnScratch) }
+	return p, nil
+}
+
+func prod(s []int) int {
+	n := 1
+	for _, v := range s {
+		n *= v
+	}
+	return n
+}
+
+func addRow(dst, src []float32) {
+	src = src[:len(dst)]
+	for i := range dst {
+		dst[i] += src[i]
+	}
+}
+
+// leaf writes val·tab[r] + edge into dst (a row past the table is the edge alone).
+func leaf(dst, tab []float32, r int, val float32, edge []float32) {
+	d := len(dst)
+	if r < 0 || r >= gnRows {
+		copy(dst, edge)
+		return
+	}
+	src := tab[r*d : (r+1)*d]
+	for i := range dst {
+		dst[i] = val*src[i] + edge[i]
+	}
+}
+
+// ffn is x += ff2(gelu(ff1(n2(x)))) over n rows of x, in place.
+func ffn(sc *gnnScratch, n2 *gnNorm, fc1, fc2 *gnLinear, x []float32, n, d int) {
+	ln := takeF(&sc.ln, n*d)
+	n2.rows(ln, x, n, d)
+	hid := takeF(&sc.hid, n*fc1.out)
+	fc1.gemm(hid, ln, n)
+	simdk.Gelu(hid, !ForceScalar)
+	tmp := takeF(&sc.tmp, n*d)
+	fc2.gemm(tmp, hid, n)
+	addRow(x[:n*d], tmp)
+}
+
+// localLayer is LocalLayer.forward for one state.
+//
+//	node  [S, d]  the parent nodes (updated in place)
+//	child [E, d]  one row per edge
+//	seg   [E]     each edge's parent index
+//
+// Each parent's query attends over {itself} ∪ {its children}.
+func localLayer(g *gnGNN, l *gnLocalLayer, sc *gnnScratch, node, child []float32, seg []int, S, E int) {
+	d, heads, dh := g.d, g.heads, g.d/g.heads
+	heavy := takeF(&sc.heavy, max(S, E)*d)
+	l.n1.rows(heavy, node, S, d)
+	qkv := takeF(&sc.qkv, S*3*d)
+	l.qkv.gemm(qkv, heavy, S)
+	l.n1.rows(heavy, child, E, d)
+	kv := takeF(&sc.kv, E*2*d)
+	l.kv.gemm(kv, heavy, E)
+
+	// logits: row r < S is node r's own key; row S+e is child e's
+	simd := !ForceScalar
+	total := S + E
+	segAll := takeI(&sc.segAll, total)
+	for i := 0; i < S; i++ {
+		segAll[i] = i
+	}
+	copy(segAll[S:], seg[:E])
+	score := takeF(&sc.s32, total*heads)
+	for r := 0; r < total; r++ {
+		p := segAll[r]
+		var k []float32
+		if r < S {
+			k = qkv[r*3*d+d : r*3*d+2*d]
+		} else {
+			k = kv[(r-S)*2*d : (r-S)*2*d+d]
+		}
+		simdk.DotHeads(score[r*heads:(r+1)*heads], qkv[p*3*d:p*3*d+d], k, heads, dh, simd)
+	}
+	// segment softmax: every segment holds its own node, so none is empty
+	inv := float32(1 / math.Sqrt(float64(dh)))
+	mx := takeF(&sc.mx32, S*heads)
+	for i := range mx {
+		mx[i] = float32(math.Inf(-1))
+	}
+	for r := 0; r < total; r++ {
+		b := segAll[r] * heads
+		for h := 0; h < heads; h++ {
+			v := score[r*heads+h] * inv
+			score[r*heads+h] = v
+			mx[b+h] = max(mx[b+h], v)
+		}
+	}
+	for r := 0; r < total; r++ {
+		b := segAll[r] * heads
+		for h := 0; h < heads; h++ {
+			score[r*heads+h] -= mx[b+h]
+		}
+	}
+	simdk.Exp(score, simd)
+	sum := takeD(&sc.sum, S*heads)
+	clear(sum)
+	for r := 0; r < total; r++ {
+		b := segAll[r] * heads
+		for h := 0; h < heads; h++ {
+			sum[b+h] += float64(score[r*heads+h])
+		}
+	}
+	// the weights in place, then every row's value into its parent
+	for r := 0; r < total; r++ {
+		b := segAll[r] * heads
+		for h := 0; h < heads; h++ {
+			score[r*heads+h] = float32(float64(score[r*heads+h]) / sum[b+h])
+		}
+	}
+	out := takeF(&sc.out, S*d)
+	clear(out)
+	for r := 0; r < total; r++ {
+		p := segAll[r]
+		var v []float32
+		if r < S {
+			v = qkv[r*3*d+2*d : (r+1)*3*d]
+		} else {
+			v = kv[(r-S)*2*d+d : (r-S+1)*2*d]
+		}
+		simdk.AxpyHeads(out[p*d:(p+1)*d], v, score[r*heads:(r+1)*heads], heads, dh, simd)
+	}
+	tmp := takeF(&sc.tmp, S*d)
+	l.out.gemm(tmp, out, S)
+	addRow(node[:S*d], tmp)
+	ffn(sc, &l.n2, &l.fc1, &l.fc2, node, S, d)
+}
+
+// globalPass runs the pre-norm transformer blocks over a batch's tokens x
+// [T, d], state b's at rows tOff[b]..tOff[b+1] (every token real; attention
+// stays within a state, so no padding mask), then the final LayerNorm, in
+// place.
+func globalPass(g *gnGNN, sc *gnnScratch, x []float32, tOff []int) {
+	d, heads, dh := g.d, g.heads, g.d/g.heads
+	T := tOff[len(tOff)-1]
+	inv := 1 / math.Sqrt(float64(dh))
+	for bi := range g.blocks {
+		b := &g.blocks[bi]
+		ln := takeF(&sc.ln, T*d)
+		b.n1.rows(ln, x, T, d)
+		qkv := takeF(&sc.qkv, T*3*d)
+		b.qkv.gemm(qkv, ln, T)
+		out := takeF(&sc.out, T*d)
+		for b := 0; b+1 < len(tOff); b++ {
+			t0, nb := tOff[b], tOff[b+1]-tOff[b]
+			q := qkv[t0*3*d:]
+			attend(q, 3*d, q[d:], q[2*d:], 3*d, nb, nb, heads, dh, inv, out[t0*d:], d, sc)
+		}
+		tmp := takeF(&sc.tmp, T*d)
+		b.out.gemm(tmp, out, T)
+		addRow(x[:T*d], tmp)
+		ffn(sc, &b.n2, &b.fc1, &b.fc2, x, T, d)
+	}
+	g.norm.rows(x, x, T, d)
+}
+
+// attend is softmax(q·kᵀ·inv)·v per head for nq queries over nk keys. Row i
+// of q starts at q[i*qs], row t of k and v at k[t*ks], v[t*ks]; the result's
+// row i is out[i*os : i*os+heads*dh].
+func attend(q []float32, qs int, k, v []float32, ks, nq, nk, heads, dh int, inv float64, out []float32, os int, sc *gnnScratch) {
+	simd := !ForceScalar
+	n := heads * dh
+	s := takeF(&sc.s32, nk*heads) // [t][h]: the logits, then the weights
+	m := takeF(&sc.mx32, heads)
+	z := takeD(&sc.sum, heads)
+	sc32 := float32(inv)
+	for i := 0; i < nq; i++ {
+		qi := q[i*qs : i*qs+n]
+		for t := 0; t < nk; t++ {
+			simdk.DotHeads(s[t*heads:(t+1)*heads], qi, k[t*ks:t*ks+n], heads, dh, simd)
+		}
+		for h := range m {
+			m[h] = float32(math.Inf(-1))
+			z[h] = 0
+		}
+		for t := 0; t < nk; t++ {
+			st := s[t*heads : (t+1)*heads]
+			for h := range st {
+				st[h] *= sc32
+				m[h] = max(m[h], st[h])
+			}
+		}
+		for t := 0; t < nk; t++ {
+			st := s[t*heads : (t+1)*heads]
+			for h := range st {
+				st[h] -= m[h]
+			}
+		}
+		simdk.Exp(s, simd)
+		for t := 0; t < nk; t++ {
+			for h := 0; h < heads; h++ {
+				z[h] += float64(s[t*heads+h])
+			}
+		}
+		for t := 0; t < nk; t++ {
+			for h := 0; h < heads; h++ {
+				s[t*heads+h] = float32(float64(s[t*heads+h]) / z[h])
+			}
+		}
+		o := out[i*os : i*os+n]
+		clear(o)
+		for t := 0; t < nk; t++ {
+			simdk.AxpyHeads(o, v[t*ks:t*ks+n], s[t*heads:(t+1)*heads], heads, dh, simd)
+		}
+	}
+}
+
+// evalGNN is GraphNet.forward in eval mode for one state: the batch of one.
+func (g *Net) evalGNN(gsc *gnScratch, st *policynet.State, opts []policynet.Option, scores []float32) float32 {
+	sc := &gsc.gnn
+	sc.oneSt[0], sc.oneOpts[0], sc.oneScores[0] = st, opts, scores
+	g.evalGNNBatch(gsc, sc.oneSt[:], sc.oneOpts[:], sc.oneScores[:], sc.oneVal[:])
+	sc.oneSt[0], sc.oneOpts[0], sc.oneScores[0] = nil, nil, nil
+	return sc.oneVal[0]
+}
+
+// evalGNNBatch is GraphNet.forward in eval mode over B states at once: the
+// states' rows are stacked, so every Linear runs as one GEMM over all of them
+// (each weight panel streams once per batch, not once per state), while
+// attention stays inside a state (the local layers by their parent segments,
+// the global and cross blocks by each state's token range). Every per-row
+// kernel is independent of the row's neighbours, so a state's results are
+// bit-identical to evaluating it alone.
+//
+// opts may be nil, and opts[b] nil or empty (value only); scores[b] receives
+// len(opts[b]) logits; values[b] the value logit.
+func (g *Net) evalGNNBatch(gsc *gnScratch, sts []*policynet.State, opts [][]policynet.Option, scores [][]float32, values []float32) {
+	n := g.gnn
+	sc := &gsc.gnn
+	d := n.d
+	B := len(sts)
+	et := func(t int) []float32 { return n.edgeType[t*d : (t+1)*d] }
+	nt := func(t int) []float32 { return n.nodeType[t*d : (t+1)*d] }
+
+	// ---- per-state offsets: cards, root kids, global tokens
+	cardOff := takeI(&sc.cardOff, B+1)
+	kidOff := takeI(&sc.kidOff, B+1)
+	tOff := takeI(&sc.tOff, B+1)
+	nc, nl, nk := 0, 0, 0
+	for b, st := range sts {
+		cardOff[b], kidOff[b], tOff[b] = nc, nk, nc+b*gnFixed
+		nc += len(st.Cards)
+		for i := range st.Cards {
+			nl += len(st.Cards[i].Rows)
+		}
+		nk += 4 + len(st.Sparse)
+	}
+	cardOff[B], kidOff[B], tOff[B] = nc, nk, nc+B*gnFixed
+	nl += nc
+
+	// ---- leaves: a card's children are one leaf per identity row and its raw leaf
+	leaves := takeF(&sc.leaves, nl*d)
+	leafSeg := takeI(&sc.leafSeg, nl)
+	// every card's raw leaf in one GEMM (Raw zero-padded or truncated to rawW)
+	rw := n.rawW
+	raws := takeF(&sc.raws, nc*rw)
+	for b, st := range sts {
+		for i := range st.Cards {
+			r := raws[(cardOff[b]+i)*rw : (cardOff[b]+i+1)*rw]
+			clear(r[copy(r, st.Cards[i].Raw):])
+		}
+	}
+	rl := takeF(&sc.rl, nc*d)
+	n.rawLeaf.gemm(rl, raws, nc)
+	li := 0
+	for b, st := range sts {
+		for i := range st.Cards {
+			c := &st.Cards[i]
+			gi := cardOff[b] + i
+			for _, f := range c.Rows {
+				leaf(leaves[li*d:(li+1)*d], n.ltab, int(f.Row), f.Value, et(gnEdgeIdent))
+				leafSeg[li] = gi
+				li++
+			}
+			dst := leaves[li*d : (li+1)*d]
+			copy(dst, rl[gi*d:(gi+1)*d])
+			addRow(dst, et(gnEdgeRaw))
+			leafSeg[li] = gi
+			li++
+		}
+	}
+	// the root's children per state: me, opp, the stack zone (filled per
+	// pass), DENSE, then one leaf per sparse row; every DENSE in one GEMM
+	const dw = policynet.DenseWidth
+	dense := takeF(&sc.dense, B*dw)
+	for b, st := range sts {
+		r := dense[b*dw : (b+1)*dw]
+		clear(r[copy(r, st.Dense):])
+	}
+	dl := takeF(&sc.dl, B*d)
+	n.denseLeaf.gemm(dl, dense, B)
+	kids := takeF(&sc.kids, nk*d)
+	rseg := takeI(&sc.rseg, nk)
+	for b, st := range sts {
+		k := kidOff[b]
+		dst := kids[(k+3)*d : (k+4)*d]
+		copy(dst, dl[b*d:(b+1)*d])
+		addRow(dst, et(gnEdgeDense))
+		for i, f := range st.Sparse {
+			leaf(kids[(k+4+i)*d:(k+5+i)*d], n.ltab, int(f.Row), f.Value, et(gnEdgeSparse))
+		}
+		for j := k; j < kidOff[b+1]; j++ {
+			rseg[j] = b
+		}
+	}
+	// player children: zones 0, 2 under me, zone 1 under the opponent
+	pc := takeF(&sc.pc, 3*B*d)
+	pseg := takeI(&sc.pseg, 3*B)
+	for b := 0; b < B; b++ {
+		for i, p := range gnPlayerOfZones {
+			pseg[3*b+i] = 2*b + p
+		}
+	}
+
+	// ---- typed initial nodes
+	card := takeF(&sc.card, nc*d)
+	for i := 0; i < nc; i++ {
+		copy(card[i*d:(i+1)*d], nt(gnNodeCard))
+	}
+	zone := takeF(&sc.zone, 4*B*d)
+	play := takeF(&sc.play, 2*B*d)
+	root := takeF(&sc.root, B*d)
+	for b := 0; b < B; b++ {
+		copy(zone[4*b*d:4*(b+1)*d], n.nodeType[gnNodeMyBF*d:(gnNodeStack+1)*d])
+		copy(play[2*b*d:2*(b+1)*d], n.nodeType[gnNodeMe*d:(gnNodeOpp+1)*d])
+		copy(root[b*d:(b+1)*d], nt(gnNodeRoot))
+	}
+
+	// zone children: every card whose group is a zone, plus the edge type
+	zc := takeF(&sc.zc, nc*d)
+	zoneSeg := takeI(&sc.zoneSeg, nc)
+	for p := range n.local {
+		lay := &n.local[p]
+		localLayer(n, &lay[0], sc, card, leaves, leafSeg, nc, nl)
+		ne := 0
+		for b, st := range sts {
+			for i := range st.Cards {
+				gr := int(st.Cards[i].Group)
+				if gr >= 4 {
+					continue
+				}
+				gi := cardOff[b] + i
+				copy(zc[ne*d:(ne+1)*d], card[gi*d:(gi+1)*d])
+				addRow(zc[ne*d:(ne+1)*d], et(gnEdgeCardZone))
+				zoneSeg[ne] = 4*b + gr
+				ne++
+			}
+		}
+		localLayer(n, &lay[1], sc, zone, zc, zoneSeg, 4*B, ne)
+		for b := 0; b < B; b++ {
+			for i, z := range gnPlayerZones {
+				dst := pc[(3*b+i)*d : (3*b+i+1)*d]
+				copy(dst, zone[(4*b+z)*d:(4*b+z+1)*d])
+				addRow(dst, et(gnEdgeZonePlayer))
+			}
+		}
+		localLayer(n, &lay[2], sc, play, pc, pseg, 2*B, 3*B)
+		// root children: the two players, the stack zone (DENSE and the sparse rows stay)
+		for b := 0; b < B; b++ {
+			k := kidOff[b]
+			for i := 0; i < 2; i++ {
+				copy(kids[(k+i)*d:(k+i+1)*d], play[(2*b+i)*d:(2*b+i+1)*d])
+				addRow(kids[(k+i)*d:(k+i+1)*d], et(gnEdgePlayerRoot))
+			}
+			copy(kids[(k+2)*d:(k+3)*d], zone[(4*b+3)*d:(4*b+4)*d])
+			addRow(kids[(k+2)*d:(k+3)*d], et(gnEdgeStackRoot))
+		}
+		localLayer(n, &lay[3], sc, root, kids, rseg, B, nk)
+	}
+
+	// ---- global tokens per state [root, me, opp, 4 zones, cards]
+	T := tOff[B]
+	x := takeF(&sc.x, T*d)
+	for b := 0; b < B; b++ {
+		t0 := tOff[b] * d
+		copy(x[t0:t0+d], root[b*d:(b+1)*d])
+		copy(x[t0+d:t0+3*d], play[2*b*d:2*(b+1)*d])
+		copy(x[t0+3*d:t0+7*d], zone[4*b*d:4*(b+1)*d])
+		copy(x[t0+gnFixed*d:tOff[b+1]*d], card[cardOff[b]*d:cardOff[b+1]*d])
+	}
+	globalPass(n, sc, x, tOff)
+
+	// ---- value = MLP(root), every state's root in one batch
+	rx := takeF(&sc.rx, B*d)
+	for b := 0; b < B; b++ {
+		copy(rx[b*d:(b+1)*d], x[tOff[b]*d:(tOff[b]+1)*d])
+	}
+	vals := takeF(&sc.v1, B)
+	gnnHead(n.value, rx, B, vals, sc)
+	copy(values[:B], vals)
+	no := 0
+	for b := range opts {
+		no += len(opts[b])
+	}
+	if no > 0 {
+		gnnOptions(n, sc, x, tOff, opts, scores, no)
+	}
+}
+
+// gnnHead runs a head (Linear, ReLU, ..., Linear to 1) on n rows of x,
+// writing each row's logit to out.
+func gnnHead(layers []gnLinear, x []float32, n int, out []float32, sc *gnnScratch) {
+	cur := x
+	a, b := &sc.ha1, &sc.hb1
+	for i := range layers {
+		l := &layers[i]
+		y := takeF(a, n*l.out)
+		l.gemm(y, cur, n)
+		if i == len(layers)-1 {
+			copy(out[:n], y) // the last layer has one output
+			return
+		}
+		relu(y)
+		cur = y
+		a, b = b, a
+	}
+}
+
+// gnnOptions writes the logit of each option (_Net._option_scores) for every
+// state in the batch with options: no options in all, the states' final
+// tokens in x at tOff.
+func gnnOptions(n *gnGNN, sc *gnnScratch, x []float32, tOff []int, opts [][]policynet.Option, scores [][]float32, no int) {
+	d, heads, dh := n.d, n.heads, n.d/n.heads
+	o := takeF(&sc.o, no*d)
+	ha := takeF(&sc.ha, no*d)
+	hb := takeF(&sc.hb, no*d)
+	// o = opt_in.dense(dense) + slots + hashed bag + bot, every option's dense row in one GEMM
+	const ow = policynet.OptionDenseWidth
+	od := takeF(&sc.od, no*ow)
+	j := 0
+	for b := range opts {
+		for i := range opts[b] {
+			r := od[j*ow : (j+1)*ow]
+			clear(r[copy(r, opts[b][i].Dense):])
+			j++
+		}
+	}
+	n.odense.gemm(o, od, no)
+	// the cross block's keys: only the states that have options, compacted
+	kvOff := takeI(&sc.kvOff, len(opts)+1)
+	tc := 0
+	j = 0
+	for b := range opts {
+		kvOff[b] = tc
+		if len(opts[b]) > 0 {
+			tc += tOff[b+1] - tOff[b]
+		}
+		t0 := tOff[b]
+		nc := tOff[b+1] - t0 - gnFixed
+		for i := range opts[b] {
+			op := &opts[b][i]
+			dst := o[j*d : (j+1)*d]
+			for _, f := range op.Slots {
+				if r := int(f.Row); r < gnSlotRow {
+					axpy(dst, n.slots[r*d:(r+1)*d], f.Value)
+				}
+			}
+			for _, f := range op.Hashed {
+				if r := int(f.Row); r < gnRows {
+					axpy(dst, n.htab[r*d:(r+1)*d], f.Value)
+				}
+			}
+			if op.BotPick {
+				addRow(dst, n.bot)
+			}
+			// h_ea/h_eb: the referenced cards' final tokens, or none_a/none_b
+			a, bb := ha[j*d:(j+1)*d], hb[j*d:(j+1)*d]
+			if k := int(op.EntA) - 1; k >= 0 && k < nc {
+				copy(a, x[(t0+gnFixed+k)*d:(t0+gnFixed+k+1)*d])
+			} else {
+				copy(a, n.noneA)
+			}
+			if k := int(op.EntB) - 1; k >= 0 && k < nc {
+				copy(bb, x[(t0+gnFixed+k)*d:(t0+gnFixed+k+1)*d])
+			} else {
+				copy(bb, n.noneB)
+			}
+			j++
+		}
+	}
+	kvOff[len(opts)] = tc
+	// + ea_proj(h_ea) + eb_proj(h_eb)
+	ta := takeF(&sc.ta, no*d)
+	n.eaProj.gemm(ta, ha, no)
+	addRow(o, ta)
+	n.ebProj.gemm(ta, hb, no)
+	addRow(o, ta)
+
+	// the cross block: q = Q(nq(o)) over K, V = KV(nkv(x)); h = o + out(attn); h += FFN(n2(h))
+	ln := takeF(&sc.ln, max(tc, no)*d)
+	for b := range opts {
+		if len(opts[b]) > 0 {
+			nb := tOff[b+1] - tOff[b]
+			n.crossNKV.rows(ln[kvOff[b]*d:], x[tOff[b]*d:], nb, d)
+		}
+	}
+	kv := takeF(&sc.kv, tc*2*d)
+	n.crossKV.gemm(kv, ln, tc)
+	n.crossNQ.rows(ln, o, no, d)
+	q := takeF(&sc.q, no*d)
+	n.crossQ.gemm(q, ln, no)
+	q2 := takeF(&sc.q2, no*d)
+	inv := 1 / math.Sqrt(float64(dh))
+	j = 0
+	for b := range opts {
+		nq := len(opts[b])
+		if nq == 0 {
+			continue
+		}
+		k0 := kvOff[b] * 2 * d
+		attend(q[j*d:], d, kv[k0:], kv[k0+d:], 2*d, nq, tOff[b+1]-tOff[b], heads, dh, inv, q2[j*d:], d, sc)
+		j += nq
+	}
+	h := takeF(&sc.out, no*d)
+	n.crossOut.gemm(h, q2, no)
+	addRow(h, o)
+	ffn(sc, &n.crossN2, &n.crossFF1, &n.crossFF2, h, no, d)
+
+	// score = MLP([root ‖ h ‖ h_ea ‖ h_eb]), every option in one batch
+	z := takeF(&sc.z, no*4*d)
+	j = 0
+	for b := range opts {
+		r0 := tOff[b] * d
+		for range opts[b] {
+			zj := z[j*4*d : (j+1)*4*d]
+			copy(zj[:d], x[r0:r0+d])
+			copy(zj[d:2*d], h[j*d:(j+1)*d])
+			copy(zj[2*d:3*d], ha[j*d:(j+1)*d])
+			copy(zj[3*d:], hb[j*d:(j+1)*d])
+			j++
+		}
+	}
+	flat := takeF(&sc.flat, no)
+	gnnHead(n.policy, z, no, flat, sc)
+	j = 0
+	for b := range opts {
+		j += copy(scores[b][:len(opts[b])], flat[j:j+len(opts[b])])
+	}
+}
