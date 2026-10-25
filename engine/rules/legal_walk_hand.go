@@ -202,6 +202,24 @@ func (w *legalWalk) handWalk() {
 				}
 			}
 		}
+		// CR 702.160/718.3a: a card printed with K:Prototype may also be cast
+		// for its inset cost. The offer sits ABOVE the printed-face
+		// castRestricted continue below because CR 718.3a makes the prototyped
+		// cast's characteristics the inset: a prohibition keyed to the printed
+		// mana value, colours or P/T must not withhold it, while a prohibition
+		// keyed to the inset must. It repeats the ordinary timing gate because
+		// it precedes the one below. The cast is otherwise ordinary -- the same
+		// targets and spell-scope cost modifiers -- and beginCast stamps the
+		// designation at the push (pushCast), before targets and payment.
+		if raw, _, _, ok := state.PrototypeParams(f); ok && w.spellTimingOK(p, id, f, sorcery) {
+			protoCost := ParseCost(raw)
+			if !w.castRestrictedCostPrototype(p, id, protoCost) &&
+				w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, protoCost), spellScope("prototype"), false) &&
+				e.castTargetsAvailable(p, id, f.SpellAbility()) {
+				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
+					Label: "Cast " + f.Name + " (prototype)", Obj: id, Mode: "prototype"})
+			}
+		}
 		// The card-level continue withholds the ORDINARY front-face cast (and
 		// every front-face alternative below it -- foretell, mayflash, kicker,
 		// ...) when a CantBeCast restriction matches the front face. The
@@ -372,21 +390,6 @@ func (w *legalWalk) handWalk() {
 			}
 		} else if w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, convokeBase), spellScope(""), false) && targetsAvailable() {
 			w.add("cast", w.castLabel(f), id)
-		}
-		// CR 702.160/718.3a: a card printed with K:Prototype may also be cast
-		// for its inset cost. The cast is otherwise ordinary -- the same
-		// timing gate, targets, prohibitions and spell-scope cost modifiers --
-		// so it sits beside the plain cast and is priced through the same
-		// offer gate beginCast charges. The designation itself is stamped at
-		// the push (pushCast), before targets and payment.
-		if raw, _, _, ok := state.PrototypeParams(f); ok {
-			protoCost := ParseCost(raw)
-			if !w.castRestrictedCost(p, id, protoCost) &&
-				w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, protoCost), spellScope("prototype"), false) &&
-				targetsAvailable() {
-				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-					Label: "Cast " + f.Name + " (prototype)", Obj: id, Mode: "prototype"})
-			}
 		}
 		if views := e.optionalCostViews(costStatics.get(), p, id); len(views) > 0 {
 			for i, extra := range views {

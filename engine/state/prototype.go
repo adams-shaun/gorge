@@ -60,5 +60,14 @@ func (o *Object) PrototypeCharacteristics() (cost string, power, toughness int32
 	if o == nil {
 		return "", 0, 0, false
 	}
-	return o.prototypeIn(o.Zone)
+	cost, power, toughness, ok = o.prototypeIn(o.Zone)
+	if !ok {
+		return "", 0, 0, false
+	}
+	// CR 707.9b: a copy exception that supplied the P/T is the copiable
+	// value, so the inset P/T does not override it.
+	if f := o.Face(); f != nil && f.CopyPTSet() {
+		power, toughness = int32(f.Power()), int32(f.Toughness())
+	}
+	return cost, power, toughness, true
 }

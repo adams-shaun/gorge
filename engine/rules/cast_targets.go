@@ -1386,7 +1386,9 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 // back by emit (deferCastTrigger) because it fires only once the spell is
 // actually cast -- after payment; payCast's fireDeferredCastTrigger re-walks
 // the held PutOnStack. CastInfo (the X / mode-flag recording) is deferred to
-// payCast too, so an aborted proposal leaves no cast-time trace on the card.
+// payCast too, so an aborted proposal leaves no cast-time trace on the card
+// -- except the prototype designation stamped below, which must be live
+// before targets are announced (CR 718.3a); a reversal clears it again.
 // An activated ability is a no-op here: pushActivation mints its stack object
 // at the same point in continueCast (CR 602.2a). A land play never goes on
 // the stack.
@@ -1568,6 +1570,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	// would abort here (or a prohibited one would slip through). offerAsFace
 	// is the scoped read the offer probes with; for the front face it is a
 	// no-op.
+	asPrototype := pc.mode == "prototype"
 	restrictionOnFace := func(face *cards.Face) bool {
 		if face == nil {
 			return false
@@ -1591,8 +1594,12 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 					continue
 				}
 				sc := e.specCtx(sv.Source, sv.Controller)
-				sc.HasManaValue = true
-				sc.ManaValue = mv
+				if asPrototype {
+					sc = e.prototypeSpellSpecCtx(sc, pc.card)
+				} else {
+					sc.HasManaValue = true
+					sc.ManaValue = mv
+				}
 				spec := castValidCardSpec(sv)
 				if e.matchesSpec(spec, pc.card, sc) &&
 					castLimitBinds(e.L.Events, sv, pc.player, pc.card, func(oid state.ObjID) bool { return e.matchesSpec(spec, oid, e.staticSpecCtx(sv)) }) {

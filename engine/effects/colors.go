@@ -350,6 +350,11 @@ func colorMaskCtx(o *state.Object, sc *SpecContext) ColorMask {
 			}
 			return faceColorMask(o.Face())
 		}
+		if sc.AsPrototype {
+			if cost, _, _, ok := state.PrototypeParams(o.Face()); ok {
+				return prototypeColorMask(o.Face(), cost)
+			}
+		}
 	}
 	return ColorMaskOf(o)
 }

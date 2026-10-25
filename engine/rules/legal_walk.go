@@ -91,6 +91,13 @@ func (w *legalWalk) castRestrictedCost(p state.PlayerID, id state.ObjID, cost Co
 	return w.e.castRestrictedCost(w.actionStatics.get().cantCast, p, id, cost, w.pricing())
 }
 
+// castRestrictedCostPrototype is castRestrictedCost for the prototyped cast
+// route, whose restriction specs read the K:Prototype inset characteristics
+// (CR 718.3a).
+func (w *legalWalk) castRestrictedCostPrototype(p state.PlayerID, id state.ObjID, cost Cost) bool {
+	return w.e.castRestrictedCostPrototype(w.actionStatics.get().cantCast, p, id, cost, w.pricing())
+}
+
 func (w *legalWalk) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
 	return w.e.abilityRestrictedUsing(w.actionStatics.get().cantActivate, p, id, ab)
 }

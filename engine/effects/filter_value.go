@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -226,6 +227,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if sc.HasDerivedPT {
 			return int(sc.DerivedPower)
 		}
+		if _, p, _, ok := prototypePT(o, sc); ok {
+			return int(p)
+		}
 		if hasCDA {
 			return int(cda.Power)
 		}
@@ -234,6 +238,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	currentToughness := func() int {
 		if sc.HasDerivedPT {
 			return int(sc.DerivedToughness)
+		}
+		if _, _, t, ok := prototypePT(o, sc); ok {
+			return int(t)
 		}
 		if hasCDA {
 			return int(cda.Toughness)
@@ -244,6 +251,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 		if sc.HasBasePT {
 			return int(sc.BasePower)
 		}
+		if _, p, _, ok := prototypePT(o, sc); ok {
+			return int(p)
+		}
 		if hasCDA {
 			return int(cda.BasePower)
 		}
@@ -252,6 +262,9 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 	baseToughnessValue := func() int {
 		if sc.HasBasePT {
 			return int(sc.BaseToughness)
+		}
+		if _, _, t, ok := prototypePT(o, sc); ok {
+			return int(t)
 		}
 		if hasCDA {
 			return int(cda.BaseToughness)
@@ -397,7 +410,21 @@ func cmcValue(g *state.Game, o *state.Object, sc SpecContext) int {
 	if sc.HasManaValue {
 		return int(sc.ManaValue)
 	}
+	if cost, _, _, ok := prototypePT(o, sc); ok {
+		return int(cards.ManaValueOfCost(cost))
+	}
 	return objectManaValue(g, o)
+}
+
+// prototypePT is the K:Prototype inset cost and P/T while sc reads o as the
+// card about to be cast prototyped (CR 718.3a). It is nil for every other
+// context and for a face without the keyword, so the ordinary printed reads
+// stay authoritative.
+func prototypePT(o *state.Object, sc SpecContext) (cost string, power, toughness int32, ok bool) {
+	if !sc.AsPrototype || o == nil {
+		return "", 0, 0, false
+	}
+	return state.PrototypeParams(o.Face())
 }
 
 // isOdd is mathematical parity, so a negative power is odd or even as its
@@ -584,6 +611,9 @@ var numericFieldCodes = state.NewStrCodes(
 func lacksPT(o *state.Object, sc SpecContext) bool {
 	f := o.Face()
 	if f == nil || f.PT != "" {
+		return false
+	}
+	if _, _, _, ok := prototypePT(o, sc); ok {
 		return false
 	}
 	if sc.ExtraTypesOwner == o.ID && sc.ExtraTypes != nil {

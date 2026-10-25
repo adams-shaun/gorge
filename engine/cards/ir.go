@@ -147,6 +147,11 @@ type Face struct {
 	// (SetCopyColours, face_runtime.go): bit 7 = present, bits 0-4 the WUBRG
 	// set. Zero on every corpus face; never serialized.
 	copyColours uint8
+	// copyPTSet and copyNoManaCost mark a copy exception's CR 707.9b P/T and
+	// "no mana cost" overrides so a prototyped copy's CR 718.3a inset read
+	// does not override them back to the prototype values.
+	copyPTSet      bool
+	copyNoManaCost bool
 	// compiledTriggerInterests is bound from the immutable catalog at load
 	// time. Keeping this hot prefilter beside the legacy face avoids a catalog
 	// slice lookup during every trigger scan; it is not serialized.

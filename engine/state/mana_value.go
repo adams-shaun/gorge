@@ -66,7 +66,7 @@ func manaValueAs(g *Game, o *Object, zone Zone, x int32) int32 {
 	// CR 718.3a: a prototyped spell or permanent uses its inset mana cost.
 	// Checked before CopyFace because a copy of a prototyped object carries
 	// the designation (CR 718.3c/d) and its CopyFace is the prototype face.
-	if cost, _, _, ok := o.prototypeIn(zone); ok {
+	if cost, _, _, ok := o.prototypeIn(zone); ok && !f.CopyNoManaCost() {
 		return cards.ManaValueOfCost(cost) + stackX(zone, x, cost)
 	}
 	if o.CopyFace != nil {
