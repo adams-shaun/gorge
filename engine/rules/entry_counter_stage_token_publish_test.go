@@ -390,7 +390,11 @@ func TestNoTokenRiderPrecedesItsStagedEntry(t *testing.T) {
 				return spellGame(t, 1039, tokenReplCorpusCard(t, "Eyes of Gitaxias"), "UUU",
 					[]string{"incubator_c_0_0_a_phyrexian"}, nil, nil, "")
 			},
-			entered: named(grantName), riders: positiveCounters, perToken: 1, tokens: 1,
+			// Incubate's +1/+1 counters are folded into the token's entry
+			// (CR 122.6), so they are an EntryCounterNotice, not a rider: the
+			// producer still stages behind the entry-counter order ask, but it
+			// owes no post-entry rider.
+			entered: named(grantName), riders: positiveCounters, perToken: 0, tokens: 1,
 		},
 		{
 			name: "amass",

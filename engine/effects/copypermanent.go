@@ -329,13 +329,14 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// WithCountersType$/WithCountersAmount$ (littjara_mirrorlake's "a token
 	// that's a copy ... enters with an additional +1/+1 counter on it",
 	// Ochre Jelly's split half "enters with half that many +1/+1 counters"):
-	// every copy this call mints enters with that many of the named counter
-	// kind, one CounterChange per mint right after the CopyToken+MoveZone --
-	// the ChangeZone entry counters' exact shape, so AddCounter replacements
-	// and CounterAdded triggers see the copy's entry counter the way they see
-	// any other placement. The amount resolves through the ordinary Num
-	// grammar (absent WithCountersAmount$ = 1 -- littjara's shape; an SVar
-	// name -- Ochre Jelly's WithCountersAmount$ Y over
+	// every copy this call mints ENTERS with that many of the named counter
+	// kind -- the payload is folded into the copy's own entry MoveZone
+	// (entryWithCounters), so an entry trigger sees the counters and
+	// AddCounter replacements and CounterAdded triggers see the copy's entry
+	// counter the way they see any other placement (CR 122.6, 614.1c). The
+	// amount resolves through the ordinary Num grammar (absent
+	// WithCountersAmount$ = 1 -- littjara's shape; an SVar name -- Ochre
+	// Jelly's WithCountersAmount$ Y over
 	// SVar:Y:TriggerRemembered$CardCounters.P1P1/HalfDown); an unresolvable
 	// value is one loud Note per call and the counters are skipped -- the
 	// copy enters without them, never a silent wrong count.
@@ -687,9 +688,6 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				emitAttach(h, want, attachTo)
 			}
 		}
-		if withOK {
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
-		}
 		// The characteristic exceptions rode the CopyExcept before entry.
 		// RemoveKeywords$ is a layer-6 loss (Mirage Phalanx's copy loses
 		// Soulbond); PumpKeywords$ is the temporary body: its own effect
@@ -812,6 +810,9 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			// battlefield (rules' publishTokenEntry).
 			entry := events.Event{Kind: events.MoveZone, Obj: want,
 				From: state.ZLibrary, To: state.ZBattlefield}
+			if withOK {
+				entryWithCounters(&entry, state.ZBattlefield, withKind, withAmt)
+			}
 			if attachedToNamed {
 				// AttachedTo$ names the copy's bearer: a copied Aura is
 				// settled by the engine as it enters (CR 303.4f/g) --
