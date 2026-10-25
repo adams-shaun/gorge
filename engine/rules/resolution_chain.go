@@ -141,14 +141,14 @@ func modeLabels(sa *cards.SA, svars map[string]string, names []string) []string 
 }
 
 // modeChoiceNames maps the chosen modal options back to the SVar names of
-// the Choices$ sub-abilities they pick, in the order chosen — the answer
-// effCharm reads (Ctx.Modes). eligible carries a filtered cast
-// decision's server-only vocabulary; nil falls back to the SA's full Choices$
-// list for placement and mid-resolution decisions. Out-of-range indices drop.
-// A budgeted Charm (CR 700.2i, effects.CharmBudgeted) returns its names in
-// printed Choices$ order: ChosenModes feeds the per-mode target ask, whose
-// positional ModeTargets groups must share the order the modes later run in.
-// A non-pawprint Charm keeps the answer's order, which its target asks pin.
+// the Choices$ sub-abilities they pick, in printed Choices$ order (CR 608.2c,
+// CR 700.2a) — the answer effCharm reads (Ctx.Modes). eligible carries a
+// filtered cast decision's server-only vocabulary; nil falls back to the SA's
+// full Choices$ list for placement and mid-resolution decisions. Out-of-range
+// indices drop. ChosenModes feeds the per-mode target ask, whose positional
+// ModeTargets groups must share the order the modes later run in, so both
+// sides order through effects.CharmResolveOrder. The choice SET is unchanged;
+// only its order is normalised.
 func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) []string {
 	if sa == nil {
 		return nil
@@ -163,10 +163,7 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 			names = append(names, choices[o.Index])
 		}
 	}
-	if effects.CharmBudgeted(sa) {
-		names = effects.CharmResolveOrder(choices, names)
-	}
-	return names
+	return effects.CharmResolveOrder(choices, names)
 }
 
 // moveResolvedOffStack is the shared tail of resolveTop and
