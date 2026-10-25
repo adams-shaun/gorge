@@ -22,10 +22,14 @@ import (
 
 // AttacksMatches implements Mode$ Attacks against a DeclareAttackers event.
 // DeclareAttackers carries the attackers declared against ONE defending
-// player in one event (IDs; Task m34 emits one event per defender), so like
-// every other mode here it fires at most once per event -- a creature
-// attacking a single opponent therefore fires exactly once, in its own
-// defender's event.
+// player in one event (IDs; Task m34 emits one event per defender).
+//
+// A Mode$ Attacks line is the SINGULAR "whenever [a creature] attacks" form
+// (CR 508.3a): it triggers once for each attacker the line's ValidCard$
+// matched, so the rules queue point (checkFaceTriggers) queues one trigger
+// per matching attacker (CR 603.2c). This matcher answers whether ANY
+// attacker matched; AttacksMatchedAttackers hands back the ordered set that
+// answer and the queue point share.
 //
 // Alone$ True (Exalted's expansion, engine/cards/keywords.go -- Ruling FL-48, which
 // was previously a known approximation here) gates the trigger to "exactly
@@ -34,8 +38,17 @@ import (
 // across the WHOLE declaration (declaredAttackerCount), not per defender
 // event, so attackers split across defenders are not each "alone".
 func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	return len(AttacksMatchedAttackers(e, t, source, ev)) > 0
+}
+
+// AttacksMatchedAttackers is AttacksMatches's shared walk, handing back the
+// attackers that passed the line's own gates, in declaration order. The
+// boolean matcher delegates here, and rules' queue point calls the SAME
+// function for the per-attacker instances, so the queue can never name an
+// attacker the boolean match did not admit. An empty result means no match.
+func AttacksMatchedAttackers(e Board, t cards.Trigger, source state.ObjID, ev events.Event) []state.ObjID {
 	if ev.Kind != events.DeclareAttackers {
-		return false
+		return nil
 	}
 	if strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKMyriad)), "True") {
 		// Myriad$ True is the myriad keyword expansion's own marker
@@ -45,15 +58,15 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 		// mismatched or unresolvable expansion must not fire.
 		src := e.Game().Obj(source)
 		if src == nil || src.Face() == nil {
-			return false
+			return nil
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, t.ParamStr(cards.PKExecute))
 		if sa == nil || sa.API != "Myriad" {
-			return false
+			return nil
 		}
 	}
 	if v, ok := t.Param(cards.PKAlone); ok && strings.EqualFold(v, "True") && declaredAttackerCount(e, ev) != 1 {
-		return false
+		return nil
 	}
 	// Attacked$ scopes "whenever a creature attacks <defender>" (CR 508.1c's
 	// declared-defender half): Forge puts the ATTACKED player in this
@@ -75,7 +88,7 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 	if v := t.ParamStr(cards.PKAttacked); v != "" && !attackedDefenderMatches(e, v, source, ev, func(players string) bool {
 		return effects.MatchesPlayerSpecFrom(e.Game(), players, ev.Player, e.ControllerOf(source), source)
 	}) {
-		return false
+		return nil
 	}
 	// Dethrone (CR 702.105) fires only when the attacked player has the
 	// greatest life total (tied is enough) among ALL players. Comparing only
@@ -85,7 +98,7 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 	// planeswalker or battle (ev.Obj set) never satisfies it (CR 508.3a).
 	if v, ok := t.Param(cards.PKDethrone); ok && strings.EqualFold(v, "True") {
 		if ev.Obj != 0 || !PlayerHasMostLife(e, ev.Player) {
-			return false
+			return nil
 		}
 	}
 	// Condition$ AttackedPlayerWithMostLife (Scourge of the Throne, the
@@ -101,7 +114,7 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 	// other event-relative matcher gate here keeps.
 	if strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKCondition)), "AttackedPlayerWithMostLife") {
 		if ev.Obj != 0 || !PlayerHasMostLife(e, ev.Player) {
-			return false
+			return nil
 		}
 	}
 	// Training (CR 702.70) fires only when the attacking source attacks
@@ -131,7 +144,7 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 			}
 		}
 		if !bigger {
-			return false
+			return nil
 		}
 	}
 	// FirstAttack$ True (Aurelia the Warleader, Godo Bandit Warlord, Scourge
@@ -147,12 +160,16 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 	if !ok {
 		for _, id := range ev.IDs {
 			if id == source {
-				return firstAttackOK(e, t, id)
+				if firstAttackOK(e, t, id) {
+					return []state.ObjID{id}
+				}
+				return nil
 			}
 		}
-		return false
+		return nil
 	}
 	ctrl := e.ControllerOf(source)
+	var matched []state.ObjID
 	for _, id := range ev.IDs {
 		// The matched attacker's DERIVED types ride ExtraTypes (the mechanism
 		// the layer walk binds): the printed-face-only filter read would miss
@@ -168,10 +185,10 @@ func AttacksMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Even
 		// installed here and answers the same derived types the textual oracle
 		// does -- the fast path is restored rather than discarded.
 		if e.MatchesSpec(spec, id, source, ctrl, opts) && firstAttackOK(e, t, id) {
-			return true
+			matched = append(matched, id)
 		}
 	}
-	return false
+	return matched
 }
 
 // attackedDefenderMatches evaluates an attacked-defender spec (Attacked$,

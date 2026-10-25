@@ -1856,7 +1856,6 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						e.pendingTriggers = append(e.pendingTriggers, pt)
 					}
 				}
-				e.pendingTriggers = append(e.pendingTriggers, pt)
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
 				// ... permanent you control triggers, that ability triggers an
 				// additional time." Each battlefield Panharmonicon-shaped static
@@ -1867,7 +1866,31 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// the copy again: the copy is not an event). Panharmonicon's own
 				// trigger is excluded by the spec's Other predicate, which is
 				// relative to the Panharmonicon permanent itself.
-				for k := 0; k < e.panharmoniconEchoes(observer, id, *ev); k++ {
+				echoes := e.panharmoniconEchoes(observer, id, *ev)
+				// CR 508.3a/603.2c: a Mode$ Attacks line is the SINGULAR
+				// "whenever [a creature] attacks" form, so it triggers once for
+				// EACH attacker its ValidCard$ matched, in declaration order,
+				// and each instance binds that one attacker as its
+				// TriggeredAttacker. The AttackersDeclared batch modes keep
+				// their one-per-declaration latch above. The matched set is the
+				// same walk the boolean matcher ran, so no instance can name an
+				// attacker the match did not admit.
+				if mk == cards.TriggerAttacks {
+					if matched := trigmatch.AttacksMatchedAttackers(boardOf(observer), t, id, *ev); len(matched) > 0 {
+						for _, attacker := range matched {
+							inst := pt
+							inst.Ctx.TriggerContext.TriggerCard = attacker
+							inst.Ctx.TriggerContext.TriggerSource = attacker
+							e.pendingTriggers = append(e.pendingTriggers, inst)
+							for k := 0; k < echoes; k++ {
+								e.pendingTriggers = append(e.pendingTriggers, inst)
+							}
+						}
+						continue
+					}
+				}
+				e.pendingTriggers = append(e.pendingTriggers, pt)
+				for k := 0; k < echoes; k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
 				}
 			}

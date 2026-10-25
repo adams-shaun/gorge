@@ -152,7 +152,23 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if ev.Obj == 0 {
 			c.TriggerTarget = player(ev.Player)
 		}
-	case cards.TriggerAttacks, cards.TriggerAttackersDeclaredOneTarget, cards.TriggerAttackersDeclared:
+	case cards.TriggerAttacks:
+		c.DefendingPlayer = player(ev.Player)
+		c.AttackedTarget = player(ev.Player)
+		if len(ev.IDs) > 0 {
+			c.AttackingPlayer = player(e.controllerOf(ev.IDs[0]))
+		}
+		// CR 508.3a: an Attacks line is the singular "whenever [a creature]
+		// attacks" form, so the queue point binds one TriggerCard per matching
+		// attacker. The matched set is the SAME walk the boolean matcher ran
+		// (trigmatch.AttacksMatchedAttackers), so the role can never name an
+		// attacker the match did not admit; the first entry is the base role,
+		// which the queue point overrides per attacker.
+		if matched := trigmatch.AttacksMatchedAttackers(boardOf(e), t, source, ev); len(matched) > 0 {
+			c.TriggerCard = matched[0]
+		}
+		c.TriggerSource = c.TriggerCard
+	case cards.TriggerAttackersDeclaredOneTarget, cards.TriggerAttackersDeclared:
 		c.DefendingPlayer = player(ev.Player)
 		c.AttackedTarget = player(ev.Player)
 		if len(ev.IDs) > 0 {
@@ -163,9 +179,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// several matching attackers caused this one queued trigger.
 		matches := 0
 		for _, id := range ev.IDs {
-			// Attacks reads ValidCard$; the AttackersDeclared family reads
-			// ValidAttackers$ -- the same per-attacker filter under its own
-			// name.
+			// The AttackersDeclared family reads ValidAttackers$ -- the same
+			// per-attacker filter under its own name.
 			spec := t.ParamStr(cards.PKValidCard)
 			if spec == "" && t.Mode == "AttackersDeclared" {
 				spec = t.ParamStr(cards.PKValidAttackers)
