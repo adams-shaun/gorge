@@ -58,9 +58,9 @@ func suppressPhaseEvent(e cantPhaseEngine, ev events.Event) bool {
 // the mode whose gate holds and whose ValidCard$ (absent: a blanket
 // prohibition, the restrictive direction a "can't" takes) selects id.
 func phaseBlocked(e cantPhaseEngine, id state.ObjID, in bool) bool {
-	mode := effects.ModeCantPhaseOut
+	mode, statics := effects.ModeCantPhaseOut, e.activeStatics("CantPhaseOut")
 	if in {
-		mode = effects.ModeCantPhaseIn
+		mode, statics = effects.ModeCantPhaseIn, e.activeStatics("CantPhaseIn")
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
@@ -68,7 +68,7 @@ func phaseBlocked(e cantPhaseEngine, id state.ObjID, in bool) bool {
 			return true
 		}
 	}
-	for _, sv := range e.activeStatics(mode) {
+	for _, sv := range statics {
 		if !e.staticGateHolds(sv) {
 			continue
 		}
