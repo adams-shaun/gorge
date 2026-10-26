@@ -36,13 +36,13 @@ func attachRuleDecision() decision.Decision {
 
 // TestBotAppliesAttachRules pins that the A5 rules travel on the Board for
 // every entry point: the armed bot aims the pump Aura at its own creature,
-// the default bot at the opponent's.
+// a bot with every rule switched off at the opponent's.
 func TestBotAppliesAttachRules(t *testing.T) {
 	r := botpolicy.AttachRules{AuraPolarity: true, Carrier: true}
 	if got := NewBot(1).EnableAttachRules(r).AttachRules(); got != r {
 		t.Fatalf("AttachRules() = %+v, want %+v", got, r)
 	}
-	plain, err := NewBot(1).DecideBoard(context.Background(), attachRuleBoard(), attachRuleDecision())
+	plain, err := NewBot(1).EnableAttachRules(botpolicy.AttachRules{}).DecideBoard(context.Background(), attachRuleBoard(), attachRuleDecision())
 	if err != nil {
 		t.Fatal(err)
 	}
