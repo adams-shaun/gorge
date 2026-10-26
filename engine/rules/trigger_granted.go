@@ -518,10 +518,11 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	// Firebending branch below (an object may hold both keywords). Its
 	// resolution registers the promise, once per live promise (an extra
 	// combat phase can declare the same attacker again).
+	attacksSelf := cards.Trigger{Mode: "Attacks", Params: map[string]string{
+		"Mode": "Attacks", "ValidCard": "Card.Self",
+	}}
 	if e.hasKeywordH(id, kwhDecayed) {
-		t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
-			"Mode": "Attacks", "ValidCard": "Card.Self",
-		}}
+		t := attacksSelf
 		if observer.triggerMatches(t, id, ev, objLKI) {
 			key := triggerKey{Source: id, Idx: -1}
 			if e.triggerFireCount == nil {
@@ -543,11 +544,10 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	if !ok || param == "" {
 		return
 	}
-	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
-		"Mode": "Attacks", "ValidCard": "Card.Self",
-	}, Effect: &cards.SA{Kind: "DB", API: "Mana", Params: map[string]string{
+	t := attacksSelf
+	t.Effect = &cards.SA{Kind: "DB", API: "Mana", Params: map[string]string{
 		"Produced": "R", "Amount": param, "PersistentUntilEndOfCombat": "True",
-	}}}
+	}}
 	if observer.triggerMatches(t, id, ev, objLKI) {
 		key := triggerKey{Source: id, Idx: -1}
 		if e.triggerFireCount == nil {
