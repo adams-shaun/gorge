@@ -602,7 +602,9 @@ type ContinuousEffect struct {
 
 	// MayPlayPlayer is the grant's MayPlayPlayer$ value as printed (Shared
 	// Fate's "Exiler"): with MayLookAt it names the looker as the player
-	// recorded in Object.ExiledBy instead of the static's controller.
+	// recorded in Object.ExiledBy instead of the static's controller. With
+	// MayPlay it is "CardOwner" (Soul Partition) or empty: a CardOwner grant
+	// benefits each affected card's owner instead of the controller.
 	MayPlayPlayer string
 
 	// MayPlayIgnoreType marks the grant's MayPlayIgnoreType$ True rider
