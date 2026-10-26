@@ -13,6 +13,7 @@
 package trigmatch
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -40,10 +41,13 @@ func stackCauseAdmits(g *state.Game, spec string, o *state.Object, you state.Pla
 		if !state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(g, o), o, o.Controller, you) {
 			continue
 		}
-		if tok.SingleTarget && len(o.Targets) != 1 {
+		// A chain link's targets (Arc Trail's second target) are the spell's
+		// targets too, though they ride SubTargets, not Targets.
+		n := len(o.Targets) + len(o.SubTargets)
+		if tok.SingleTarget && n != 1 {
 			continue
 		}
-		if tok.NumTargetsOp != "" && !numTargetsCompare(len(o.Targets), tok.NumTargetsOp, tok.NumTargets) {
+		if tok.NumTargetsOp != "" && !numTargetsCompare(n, tok.NumTargetsOp, tok.NumTargets) {
 			continue
 		}
 		return true
@@ -144,7 +148,8 @@ func damageCauseMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 	}
 	co := e.Game().Obj(cause)
 	return ev.Obj != 0 && co != nil &&
-		e.MatchesSpec(relative, ev.Obj, cause, ctrl, SpecOpts{TargetsBound: true, Targets: co.Targets})
+		e.MatchesSpec(relative, ev.Obj, cause, ctrl,
+			SpecOpts{TargetsBound: true, Targets: append(slices.Clone(co.Targets), co.SubTargets...)})
 }
 
 // whileKeywordAdmits is Exiled/Sacrificed's WhileKeyword$ (Forge

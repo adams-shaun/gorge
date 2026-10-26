@@ -37,6 +37,24 @@ func TestImodaneSweeperDoesNotTrigger(t *testing.T) {
  "expect":[{"card":"p1:Llanowar Elves","zone":"graveyard"},{"card":"p1:Fyndhorn Elves","zone":"graveyard"},{"stack_size":0},{"life":{"p1":20}}]}`)
 }
 
+// Each half of the cause clause excludes a different spell. Arc Trail targets
+// two creatures: both are "targeted by" it, but it is not a spell "that
+// targets only a single creature" (ValidCause$ Spell.numTargets EQ1). Flame
+// Wave targets one player and damages that player's creatures: a single
+// target, but the damaged creatures are not what it targets
+// (TargetRelativeToCause$ Creature.targetedBy).
+func TestImodaneEachCauseClauseExcludes(t *testing.T) {
+	t.Parallel()
+	runCauseScenario(t, `{"name":"imodane-two-targets","cr":["603.2"],"why":"a two-target spell is not a single-target spell",
+ "setup":{"p0":{"battlefield":["Imodane, the Pyrohammer"],"hand":["Arc Trail"]},"p1":{"battlefield":["Llanowar Elves","Fyndhorn Elves"]}},
+ "steps":[{"op":"cast","seat":0,"card":"p0:Arc Trail","mana":"CR","targets":["p1:Llanowar Elves","p1:Fyndhorn Elves"]},{"op":"resolve"}],
+ "expect":[{"card":"p1:Llanowar Elves","zone":"graveyard"},{"card":"p1:Fyndhorn Elves","zone":"graveyard"},{"stack_size":0},{"life":{"p1":20}}]}`)
+	runCauseScenario(t, `{"name":"imodane-splash","cr":["603.2"],"why":"a creature the spell does not target is not damaged by the spell relative to its target",
+ "setup":{"p0":{"battlefield":["Imodane, the Pyrohammer"],"hand":["Flame Wave"]},"p1":{"battlefield":["Llanowar Elves","Fyndhorn Elves"]}},
+ "steps":[{"op":"cast","seat":0,"card":"p0:Flame Wave","mana":"CCCRRRR","targets":["p1"]},{"op":"resolve"}],
+ "expect":[{"card":"p1:Llanowar Elves","zone":"graveyard"},{"card":"p1:Fyndhorn Elves","zone":"graveyard"},{"stack_size":0},{"life":{"p1":16}}]}`)
+}
+
 // A Lightning Bolt on one creature is the single-target spell the card names:
 // Imodane deals 3 to the opponent as well. Bolt to the face is not damage to
 // a creature.
