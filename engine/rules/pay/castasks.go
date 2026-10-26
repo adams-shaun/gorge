@@ -39,6 +39,12 @@ type ConvokeOffer struct {
 	WaterbendOpen bool
 }
 
+// harmonizePaymentGroup is the one exclusivity group every harmonize option
+// shares: CR 702.180a lets the caster tap at most one creature, so the
+// Decision.Validate per-Group cap (and the Clamp/bot fill that reads the same
+// GroupCapFor) must reject a second harmonize pick without a second rule.
+const harmonizePaymentGroup = "payment:harmonize"
+
 // ConvokeAsk poses the announcement of every permanent used for Convoke,
 // Harmonize, Improvise or a waterbend cost. It is deliberately before the
 // mana window: tapping is part of paying, so a chosen creature cannot first
@@ -74,7 +80,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 			// printed 4/4 reduced to 1 funds only one.
 			if p := r.Power(id); p > 0 {
 				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "harmonize", Obj: id,
-					Group: group, Amount: int(p), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(p)) + ")"})
+					Group: harmonizePaymentGroup, Amount: int(p), Label: "Tap " + o.Face().Name + " (reduce by " + strconv.Itoa(int(p)) + ")"})
 				sawCreature = true
 			}
 		}
@@ -158,6 +164,22 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 		// Waterbend<X> amount is not known until X is announced, so its cap
 		// is left open.
 		d.Max = int(in.WaterbendN)
+	}
+	// A harmonize-only announcement may tap at most one creature (CR
+	// 702.180a, "tapping up to one untapped creature you control"), even
+	// though the generic slots it could absorb exceed one. Min stays 0:
+	// declining the tap and paying the full cost is legal ("up to one").
+	// A mixed list keeps the slot Max above; the shared harmonize group
+	// still caps the harmonize picks at one.
+	harmonizeOnly := true
+	for _, o := range d.Options {
+		if o.Kind != "harmonize" {
+			harmonizeOnly = false
+			break
+		}
+	}
+	if harmonizeOnly {
+		d.Max = 1
 	}
 	e.Ask(AskCast, d)
 	return true
