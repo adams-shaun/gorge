@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -329,6 +330,11 @@ type Descriptor struct {
 	// paymentForCast. Offer and payment must agree about an X cost, never
 	// drift.
 	XAnnounced bool
+	// Face, when set, is the face an alternate-face cast flips to: a
+	// RestrictValid$ restriction reads the spell as that face (CR 712.11:
+	// a Modal DFC's back-face spell has only that face's characteristics),
+	// though the card in hand still shows its front.
+	Face *cards.Face
 }
 
 // DescriptorFor is the descriptor for paying cost for id (a spell, or an
@@ -564,6 +570,11 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // (activated abilities, cumulative upkeep, other costs) free, matching Forge's
 // !sa.isSpell() reading.
 func RestrictValidMatches(e Engine, p state.PlayerID, d Descriptor, valid string, src state.ObjID) bool {
+	if d.Face != nil {
+		f := d.Face
+		d.Face = nil
+		return e.AsFace(d.ID, f, func() bool { return RestrictValidMatches(e, p, d, valid, src) })
+	}
 	for term := range strings.SplitSeq(strings.TrimSpace(valid), ",") {
 		if restrictValidTermMatches(e, p, d, strings.TrimSpace(term), src) {
 			return true

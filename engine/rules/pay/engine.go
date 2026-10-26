@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/chars"
@@ -28,6 +29,9 @@ type Engine interface {
 	// MatchesSpecFrom evaluates a ValidCard$-style filter against the live
 	// object id from source's perspective with you as its controller.
 	MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool
+	// AsFace runs fn with object id showing face (the face an alternate-face
+	// cast flips to; rules faceprobe.go offerAsFace), a scoped read.
+	AsFace(id state.ObjID, face *cards.Face, fn func() bool) bool
 	// CastProvenanceAdmitsPending splits the cast-provenance qualifiers out
 	// of spec and evaluates them for objID, pending-cast aware: the rest of
 	// the spec, and whether the provenance admits.
