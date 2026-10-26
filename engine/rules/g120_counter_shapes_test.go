@@ -154,6 +154,11 @@ func TestPutCounterUpToAsksAmount(t *testing.T) {
 	if got := e.G.Obj(saga).Counter("LORE"); got != 1 {
 		t.Fatalf("LORE after answering 1 = %d, want 1", got)
 	}
+	// The copy stays on the battlefield after the answer: a full three would
+	// not have been the difference, but a sacrifice at once would be.
+	if o := e.G.Obj(saga); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Saga copy left the battlefield after the 1-lore answer: %+v", o)
+	}
 }
 
 // g120RhysBoard seats Rhys and a Grizzly Bears with the given counters.

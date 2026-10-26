@@ -70,35 +70,8 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	if pc.OptionalTrue {
-		// Pose the yes/no election -- but only when the put would actually
-		// place something (at least one live recipient and n > 0); with
-		// nothing legal to put on, decline and accept are the same, so no ask
-		// (the Attach precedent's len(legal) == 0 gate).
-		if n > 0 && putCounterWouldPlace(h, c, sa) {
-			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
-				Source: c.Source, ResumeKind: "put_optional", ResumeSA: sa,
-				Prompt: "Put a counter on it?",
-				Options: []decision.Option{
-					{Index: 0, Kind: "yes", Label: "Yes — put the counter", Player: c.Controller},
-					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
-				}}
-			if ans, ok := AskTape(h, d); ok {
-				// A decline places nothing and emits no Note; the chained
-				// SubAbility$ STILL RUNS -- the chain is owned by Resolve, not
-				// by this body (the Attach.Optional precedent). Black Widow's
-				// "If you don't, ..." sub gates itself on its own Condition$
-				// read of the (empty) Remembered set. A yes falls through to
-				// the placement paths.
-				if len(ans) == 0 || ans[0].Kind != "yes" {
-					return
-				}
-			} else {
-				// No answer: the deterministic decline stand-in (R-9) — the
-				// same class the Attach election falls back to.
-				return
-			}
-		}
+	if pc.OptionalTrue && putCounterOptionalDeclined(h, c, sa, n) {
+		return
 	}
 	// Bolster$ (CR 701.36's bolster keyword action; 24 raw corpus lines, every
 	// one of them a PutCounter SA -- SP/AB/DB heads alike -- so no separate
@@ -194,10 +167,6 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	counterKinds := pc.Kinds
 	perKind := pc.CounterTypePerDefined
 	if pc.Choices != "" {
-		if pc.ForColor {
-			putCounterForColor(h, c, sa, n, kind, counterKinds)
-			return
-		}
 		putCounterChoose(h, c, sa, n, kind, counterKinds)
 		return
 	}
@@ -267,10 +236,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var placed []state.Target
-	// RememberAmount$ (Earthbender Ascension, Wishing Well): one remembered
-	// entry per counter that actually landed, read off the fold's result.
-	var amountPlaced []state.Target
-	g := h.Game()
+	var amountPlaced []state.Target // RememberAmount$: see putCounterLanded
 	for ti, t := range Defined(h, c, sa) {
 		if perKind && len(counterKinds) > 1 {
 			if ti >= len(kindAnswers) || kindAnswers[ti] == "" {
@@ -298,22 +264,16 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			// behaviour) silently dropped the whole instruction -- the corpus
 			// carries 156 player-targeted PutCounter lines.
 			if p := PlayerOf(h, c, t); int(p) >= 0 && int(p) < len(h.Game().Players) {
-				pn := n
-				if pc.UpTo && !etb {
-					pn = putCounterUpToAmount(h, c, sa, pc, n, ti)
-				}
-				before := playerCounterTotal(&g.Players[p])
+				pn := putCounterAmount(h, c, sa, pc, etb, n, ti)
+				pt := state.Target{Player: p, IsPlayer: true}
+				before := putCounterHeld(h.Game(), pt)
 				for _, k := range putCounterKindsFor(pc, kind) {
 					emitPutCounterChange(h, c, sa, events.Event{Kind: events.PlayerCounterChange, Player: p,
 						Counter: k, Amount: pn})
 				}
-				if pc.RememberAmount {
-					for i := playerCounterTotal(&g.Players[p]) - before; i > 0; i-- {
-						amountPlaced = append(amountPlaced, state.Target{Player: p, IsPlayer: true})
-					}
-				}
+				amountPlaced = append(amountPlaced, putCounterLanded(h.Game(), pt, before)...)
 				if pn > 0 && pc.RememberPut {
-					placed = append(placed, state.Target{Player: p, IsPlayer: true})
+					placed = append(placed, pt)
 				}
 			}
 			continue
@@ -383,11 +343,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 				amount = 0
 			}
 		}
-		if pc.UpTo && !etb {
-			// CR 608.2d: "up to N" is the amount the controller picks on
-			// resolution, per recipient.
-			amount = putCounterUpToAmount(h, c, sa, pc, amount, ti)
-		}
+		amount = putCounterAmount(h, c, sa, pc, etb, amount, ti)
 		totalBefore := o.Counter("ALL")
 		if len(kindsAns) > 0 {
 			for _, chosenKind := range kindsAns {
@@ -402,15 +358,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			emitPutCounterChange(h, c, sa, events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
 		}
-		if pc.RememberAmount {
-			// Re-read the object: the fold (replacements, prevention) decides
-			// how many counters landed, not CounterNum$.
-			if now := g.Obj(o.ID); now != nil {
-				for i := now.Counter("ALL") - totalBefore; i > 0; i-- {
-					amountPlaced = append(amountPlaced, state.Target{Obj: o.ID})
-				}
-			}
-		}
+		amountPlaced = append(amountPlaced, putCounterLanded(h.Game(), state.Target{Obj: o.ID}, totalBefore)...)
 		// The mark (CR 701.31b: "...and it becomes monstrous"): one
 		// AlterAttribute per placed object, emitted AFTER its counters so the
 		// BecomeMonstrous triggers see the counters already landed. Amount is
@@ -444,9 +392,33 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	rememberPlaced(c, sa, placed)
-	if len(amountPlaced) > 0 {
+	if pc.RememberAmount {
 		c.Remembered = append(c.Remembered, amountPlaced...)
 	}
+}
+
+// putCounterOptionalDeclined poses Optional$'s yes/no election and reports
+// whether the put is declined (or has no answer, the R-9 stand-in): the
+// election is posed only when the put would actually place something (at
+// least one live recipient and n > 0); with nothing legal to put on, decline
+// and accept are the same, so no ask (the Attach precedent's len(legal) == 0
+// gate). A decline places nothing and emits no Note; the chained SubAbility$
+// STILL RUNS -- the chain is owned by Resolve, not by this body (the
+// Attach.Optional precedent). Black Widow's "If you don't, ..." sub gates
+// itself on its own Condition$ read of the (empty) Remembered set.
+func putCounterOptionalDeclined(h Host, c *Ctx, sa *cards.SA, n int32) bool {
+	if n <= 0 || !putCounterWouldPlace(h, c, sa) {
+		return false
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "put_optional", ResumeSA: sa,
+		Prompt: "Put a counter on it?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Yes — put the counter", Player: c.Controller},
+			{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+		}}
+	ans, ok := AskTape(h, d)
+	return !ok || len(ans) == 0 || ans[0].Kind != "yes"
 }
 
 // putCounterKindsFor is the ONE home for "which counter kinds does this
@@ -922,6 +894,10 @@ func objTargets(ids []state.ObjID) []state.Target {
 // chooses ONE creature" asks exactly when that player controls two or more
 // eligible creatures.
 func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, kinds []string) {
+	if PutCounterOf(sa).ForColor {
+		putCounterForColor(h, c, sa, n, kind, kinds)
+		return
+	}
 	putCounterChooseTitled(h, c, sa, n, kind, kinds, PutCounterOf(sa).ChoiceTitle)
 }
 
@@ -1093,13 +1069,40 @@ func putCounterUpToAmount(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, ma
 	return max
 }
 
-// playerCounterTotal is the sum of a player's counters of every kind.
-func playerCounterTotal(p *state.Player) int32 {
-	var n int32
-	for _, c := range p.Counters {
-		n += c.N
+// putCounterAmount is the per-recipient amount: n, or the controller's
+// UpTo$ pick (CR 608.2d) when the put is a resolution-time one. An ETB$ entry
+// fold keeps n.
+func putCounterAmount(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, etb bool, n int32, ti int) int32 {
+	if pc.UpTo && !etb {
+		return putCounterUpToAmount(h, c, sa, pc, n, ti)
 	}
 	return n
+}
+
+// putCounterHeld is the number of counters of every kind on t.
+func putCounterHeld(g *state.Game, t state.Target) int32 {
+	if t.IsPlayer {
+		var n int32
+		for _, c := range g.Players[t.Player].Counters {
+			n += c.N
+		}
+		return n
+	}
+	if o := g.Obj(t.Obj); o != nil {
+		return o.Counter("ALL")
+	}
+	return 0
+}
+
+// putCounterLanded is RememberAmount$'s entries for t: one per counter added
+// since `before`, read off the fold (replacements and prevention decide how
+// many landed, not CounterNum$).
+func putCounterLanded(g *state.Game, t state.Target, before int32) []state.Target {
+	var out []state.Target
+	for i := putCounterHeld(g, t) - before; i > 0; i-- {
+		out = append(out, t)
+	}
+	return out
 }
 
 // putCounterChooseApply resolves the counter-kind half of a bare Choices$

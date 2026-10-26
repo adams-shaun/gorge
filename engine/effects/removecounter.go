@@ -2,6 +2,7 @@ package effects
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -401,7 +402,7 @@ func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) 
 		Source:     c.Source,
 		ResumeKind: "counter_pick",
 		ResumeSA:   sa,
-		Prompt:     "Choose card(s) to remove " + kind + " counters from"}
+		Prompt:     removeCounterChoosePrompt(kind)}
 	for _, id := range eligible {
 		name := "a card"
 		if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -494,4 +495,14 @@ func rememberRemoved(h Host, c *Ctx, rp *RemoveCounterParams, id state.ObjID, re
 		ids = append(ids, id)
 	}
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered", IDs: ids})
+}
+
+// removeCounterChoosePrompt names the kind the recipient pick removes; the
+// Any kind (the controller picks the kind per recipient afterwards) is
+// "counters", not "Any counters".
+func removeCounterChoosePrompt(kind string) string {
+	if strings.EqualFold(kind, "Any") {
+		return "Choose card(s) to remove counters from"
+	}
+	return "Choose card(s) to remove " + kind + " counters from"
 }
