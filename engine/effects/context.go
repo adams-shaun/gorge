@@ -2194,6 +2194,13 @@ func effectiveSourceRemembered(g *state.Game, tc TriggerContext, src *state.Obje
 	return src.Remembered
 }
 
+// SourceRemembered is effectiveSourceRemembered for callers outside effects
+// (rules' trigger-condition gate) that must ask the same pending-referent
+// question without re-deriving it.
+func SourceRemembered(g *state.Game, tc TriggerContext, src *state.Object) []state.Target {
+	return effectiveSourceRemembered(g, tc, src)
+}
+
 // sourceRemembered is the resolving source's persistent, event-backed
 // Remembered list (nil for a departed source). A pending trigger that queued
 // a fire-time snapshot (TriggerContext.SourceRemembered, the CR 400.7
