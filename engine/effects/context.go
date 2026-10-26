@@ -404,12 +404,16 @@ func exiledBySource(g *state.Game, o *state.Object, src state.ObjID) bool {
 // ref resolver (engine/effects/count.go's refTargets) and the Defined$ selector
 // (definedSpec below), so a count body and a Defined$ body can never disagree
 // about which cards the paid list holds. ref is "Exiled" (Forge's
-// CostExile row key, HashLKIListKey) or "Revealed" (CostReveal.doPayment);
-// an absent binding is an empty list -- a legitimate zero, never a fallback.
+// CostExile row key, HashLKIListKey), "Revealed" (CostReveal.doPayment), or
+// "Discarded" (CostDiscard); an absent binding is an empty list -- a
+// legitimate zero, never a fallback.
 func paidCostTargets(c *Ctx, ref string) []state.Target {
 	ids := c.Paid.Exiled
-	if ref == "Revealed" {
+	switch ref {
+	case "Revealed":
 		ids = c.Paid.Revealed
+	case "Discarded":
+		ids = c.Paid.Discarded
 	}
 	out := make([]state.Target, 0, len(ids))
 	for _, id := range ids {

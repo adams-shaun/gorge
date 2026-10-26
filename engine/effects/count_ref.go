@@ -494,14 +494,15 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		return nil, false
 	case refTargetsDiscarded:
 		// The cards the resolving spell's or ability's own Discard<...> cost
-		// (or settled unless-payment) discarded: Grab the Prize's
-		// X:Discarded$Valid Card.nonLand/Times.2. The same group
-		// ConditionDefined$ Discarded enumerates, so the gate and the value
-		// read cannot disagree. By resolution the card is in the graveyard
-		// and the filter reads it there (last-known information); no
-		// discard is a resolved zero.
-		out, _ := discardedGroup(h, c)
-		return out, true
+		// discarded: Grab the Prize's X:Discarded$Valid Card.nonLand/Times.2.
+		// This is Forge's "Discarded" paid-list row, carried on Ctx.Paid and
+		// keyed by the stack object the cost paid for -- NOT the cost-move log
+		// window discardedGroup scans for ConditionDefined$ Discarded, which
+		// another spell's PutOnStack truncates and a mana ability's discard
+		// enters. By resolution the card is in the graveyard and the filter
+		// reads it there (last-known information); no discard is a resolved
+		// zero.
+		return paidCostTargets(c, "Discarded"), true
 	case refTargetsCollected:
 		// The cards the cast collected as evidence (CR 701.59a), the count
 		// spelling of the ConditionDefined$ Collected group: Behind the
