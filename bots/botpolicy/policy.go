@@ -925,6 +925,13 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
+		case "tap":
+			// A Tap's CardChoices$ pick (tapChoices): the R-9 stand-in is
+			// the minimum, so an AnyNumber$ (Min 0) ask answers none and a
+			// fixed count takes the first Min offers in battlefield order.
+			for i := 0; i < len(d.Options) && i < d.Min; i++ {
+				in.Choices = append(in.Choices, d.Options[i].Index)
+			}
 		case "counter_kinds":
 			for i := 0; i < len(d.Options) && i < 2; i++ {
 				in.Choices = append(in.Choices, d.Options[i].Index)
