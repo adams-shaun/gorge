@@ -1028,7 +1028,7 @@ func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, 
 	if !ok {
 		return false
 	}
-	return !needFlash || e.castWithFlash(p, id) || mayPlayFlashGranted(e, e.G.Obj(id), p)
+	return !needFlash || e.castWithFlash(p, id) || mayPlayFlashGranted(e.activeStatics("Continuous"), mayPlayGrantsOf(e), e.G.Obj(id), p)
 }
 
 // spellTimingPre is spellTimingOK's decision up to the CastWithFlash lookup:

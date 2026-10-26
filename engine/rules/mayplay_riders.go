@@ -25,11 +25,15 @@ func mayPlaySeatBeneficiary(v string) bool {
 	return mayPlayPerCardBeneficiary(v) || mayPlayAnySeat(v) || mayPlayActiveSeat(v)
 }
 
-// mayPlayFlashBoard is the narrow board read mayPlayFlashGranted needs: the
-// battlefield statics and the shared may-play gate chain. *Engine satisfies it.
-type mayPlayFlashBoard interface {
-	activeStatics(mode string) []staticView
-	mayPlayStatic(params map[string]string, id state.ObjID, you state.PlayerID, source state.ObjID) (applies, grants, free bool, raise Cost, hasRaise, priced bool)
+// mayPlayGrantFn reports whether the may-play static sv opens card id's zone
+// for you (mayPlayStatic's grants answer). mayPlayGrantsOf binds it to e.
+type mayPlayGrantFn func(sv *staticView, id state.ObjID, you state.PlayerID) bool
+
+func mayPlayGrantsOf(e *Engine) mayPlayGrantFn {
+	return func(sv *staticView, id state.ObjID, you state.PlayerID) bool {
+		_, grants, _, _, _, _ := e.mayPlayStatic(sv.Params, id, you, sv.Source)
+		return grants
+	}
 }
 
 // mayPlayFlashGranted reports whether a printed MayPlay$ static carrying
@@ -44,7 +48,7 @@ type mayPlayFlashBoard interface {
 // alternative cost (Aluren's free cast, Primal Prayers' {E}) belongs to that
 // alternative-cost option alone (altCostView.flash), not to the ordinary cast
 // of the same card. A pure read.
-func mayPlayFlashGranted(b mayPlayFlashBoard, o *state.Object, p state.PlayerID) bool {
+func mayPlayFlashGranted(bf []staticView, grants mayPlayGrantFn, o *state.Object, p state.PlayerID) bool {
 	if o == nil || o.Face() == nil || o.Zone == state.ZHand {
 		return false
 	}
@@ -52,15 +56,16 @@ func mayPlayFlashGranted(b mayPlayFlashBoard, o *state.Object, p state.PlayerID)
 		if st.Mode != "Continuous" || !strings.EqualFold(st.ParamStr(cards.PKMayPlayWithFlash), "True") {
 			continue
 		}
-		if _, grants, _, _, _, _ := b.mayPlayStatic(st.Params, o.ID, o.Controller, o.ID); grants {
+		own := staticView{Params: st.Params, PS: st.ParamSetOf(), Source: o.ID, Controller: o.Controller}
+		if grants(&own, o.ID, o.Controller) {
 			return true
 		}
 	}
-	for _, sv := range b.activeStatics("Continuous") {
+	for _, sv := range bf {
 		if !strings.EqualFold(sv.ParamStr(cards.PKMayPlayWithFlash), "True") || !mayPlayStaticBenefits(p, &sv) {
 			continue
 		}
-		if _, grants, _, _, _, _ := b.mayPlayStatic(sv.Params, o.ID, mayPlayStaticYou(p, &sv), sv.Source); grants {
+		if grants(&sv, o.ID, mayPlayStaticYou(p, &sv)) {
 			return true
 		}
 	}

@@ -2020,7 +2020,8 @@ var apiSpecificRulesStat = map[string]string{
 	// The MayPlayWithFlash$ timing rider (engine/rules/mayplay_riders.go): it
 	// reads MayPlay statics' MayPlayWithFlash$ live and runs mayPlayStatic over
 	// the same sources, so it is family-attributed like the grant path.
-	"Engine.mayPlayWithFlash": "Continuous.MayPlay",
+	"mayPlayFlashGranted": "Continuous.MayPlay",
+	"mayPlayGrantsOf":     "Continuous.MayPlay",
 	// quietStaticMayPlay (engine/rules/quiet_facts.go), the quiet-seat proof's
 	// per-face may-play scan: quietCastOpen and quietSelfReducePipFloor call
 	// it over a face's own Statics slice to detect any may-play cost key
