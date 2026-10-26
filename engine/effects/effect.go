@@ -1209,6 +1209,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ce.Permanent = true
 				ce.UntilEOT = false
 			}
+			if mode == "CantBlockBy" {
+				freezeChosenColor(h, c, &ce)
+			}
 			effectContinuous(h, ce)
 			registered = true
 		case cards.StaticCombatDamageToughness:

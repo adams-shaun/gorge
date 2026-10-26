@@ -707,6 +707,7 @@ const (
 	PKRepeatTargeted
 	PKRepeatTypesFrom
 	PKReplaceDyingDefined
+	PKDefinedKW
 	PKReplacementEffects
 	PKSetChosenNumber
 	PKShareLandType
@@ -1538,6 +1539,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRepeatTargeted:                   "RepeatTargeted",
 	PKRepeatTypesFrom:                  "RepeatTypesFrom",
 	PKReplaceDyingDefined:              "ReplaceDyingDefined",
+	PKDefinedKW:                        "DefinedKW",
 	PKReplacementEffects:               "ReplacementEffects",
 	PKSetChosenNumber:                  "SetChosenNumber",
 	PKShareLandType:                    "ShareLandType",
