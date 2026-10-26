@@ -304,3 +304,61 @@ func TestEffectCantBeActivatedUntilUntapsNeedsRemembered(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestEffectCantBeActivatedBraidedNetOutlivesTurnAndSource: CR 611.2b's "for
+// as long as it remains tapped" is the lock's only lifetime. Seat 0 nets its
+// OWN artifact, so seat 1's untap step leaves it tapped: the lock must hold
+// through the end of the turn it was made and after Braided Net leaves the
+// battlefield (crafted into Braided Quipu), and end at seat 0's next untap.
+func TestEffectCantBeActivatedBraidedNetOutlivesTurnAndSource(t *testing.T) {
+	t.Parallel()
+	netCard := corpusAlternativeCard(t, "Braided Net")
+	artifactCard := card(t, cbaArtifactSrc)
+	e, cfg := cbaEngine(t, 17, []*cards.Card{netCard, artifactCard}, nil)
+	net := moveByName(t, e, 0, "Braided Net", state.ZBattlefield)
+	art := moveByName(t, e, 0, cbaArtifactName, state.ZBattlefield)
+	e.pending = nil
+	e.Advance()
+	ab := cbaAbility(t, e, art)
+	opt := abilityOption(t, e, net, 0)
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Braided Net target ask = %+v", d)
+	}
+	targetIdx := -1
+	for _, o := range d.Options {
+		if o.Obj == art {
+			targetIdx = o.Index
+		}
+	}
+	if targetIdx < 0 {
+		t.Fatalf("own artifact absent from Braided Net's targets: %+v", d.Options)
+	}
+	submitChoices(t, e, targetIdx)
+	passUntilStackEmpty(t, e, 20)
+	if !e.G.Obj(art).Tapped || !e.abilityRestricted(0, art, ab) {
+		t.Fatal("precondition: the netted artifact is not tapped and locked")
+	}
+	// Seat 1's turn: seat 0's artifact stays tapped, so the lock outlives the
+	// end of the turn it was created in.
+	driveToStep(t, e, 2, 1, state.StepMain1)
+	if !e.G.Obj(art).Tapped {
+		t.Fatal("precondition: seat 0's artifact untapped during seat 1's turn")
+	}
+	if !e.abilityRestricted(0, art, ab) {
+		t.Fatal("the UntilTargetedUntaps lock ended at end of turn while its object stayed tapped")
+	}
+	// Braided Net leaves the battlefield; the lock is the resolved ability's
+	// effect, not the Net's, and stays.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: net, From: state.ZBattlefield, To: state.ZExile})
+	if !e.abilityRestricted(0, art, ab) {
+		t.Fatal("the UntilTargetedUntaps lock ended when Braided Net left the battlefield")
+	}
+	// Seat 0's untap step untaps the artifact and ends the lock.
+	driveToStep(t, e, 3, 0, state.StepMain1)
+	if e.G.Obj(art).Tapped || e.abilityRestricted(0, art, ab) {
+		t.Fatal("the lock survived its object's untap")
+	}
+	replayCheck(t, e, cfg)
+}
