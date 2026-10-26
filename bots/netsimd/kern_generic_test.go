@@ -96,9 +96,9 @@ func TestWidthGenericOtherWidths(t *testing.T) {
 	}
 }
 
-// SumRows at a width the assembly does not implement must take the generic
-// kernel and agree with the scalar reference: the assembly's fallthrough
-// treats an unknown width as 32, which would read past each row.
+// SumRows at a width past the fixed 32/64 bag kernel must take the
+// width-generic one and agree with the scalar reference: bagAVX512's
+// fallthrough treats an unknown width as 32, which would read past each row.
 func TestSumRowsWideWidth(t *testing.T) {
 	t.Cleanup(func() { ForceScalar = false })
 	rng := rand.New(rand.NewSource(3))

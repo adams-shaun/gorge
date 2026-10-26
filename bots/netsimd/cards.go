@@ -86,7 +86,10 @@ type CardIn struct {
 // card cache Load was given is not consulted.
 func (g *Net) EvalCards(sc *Scratch, cards []CardIn, dense []float32, sparse []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
 	nc := g.cardsIn(sc, cards)
-	return g.trunk(sc, nc, dense, sparse, opts, scores)
+	if g.one {
+		return g.trunkBag1(sc, nc, dense, sparse, nil, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, dense, sparse, nil, opts, scores)
 }
 
 // cardsIn fills sc's card vectors and groups from cards.
@@ -128,8 +131,8 @@ func (g *Net) BagAdd(dst []float32, rows []policynet.Feature) {
 // (width floats): the bag kernel over a caller's own table (the table
 // width·rows long). A caller keeping per-part sums in one table adds them up
 // with it (value 1: exactly dst + row, in order). Any width >= 1 works; the
-// assembly applies at the bag kernels' own widths (32, 64) and the
-// width-generic kernel serves the rest.
+// assembly applies at every multiple of 16 (bit-identical to the scalar
+// kernel, which serves the rest).
 func SumRows(dst, table []float32, width int, rows []policynet.Feature) {
 	if width < 1 {
 		panic("netsimd: SumRows width must be positive")
@@ -149,7 +152,10 @@ func SumRows(dst, table []float32, width int, rows []policynet.Feature) {
 // float rounding, not bit for bit.
 func (g *Net) EvalBag(sc *Scratch, cards []CardIn, dense, bagSum []float32, opts []policynet.Option, scores []float32) float32 {
 	nc := g.cardsIn(sc, cards)
-	return g.trunkBag(sc, nc, dense, nil, bagSum, opts, scores)
+	if g.one {
+		return g.trunkBag1(sc, nc, dense, nil, bagSum, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, dense, nil, bagSum, opts, scores)
 }
 
 // CardVec is card k's vector from the last evaluation on sc (CardWidth

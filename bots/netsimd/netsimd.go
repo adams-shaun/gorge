@@ -36,15 +36,25 @@ type norm struct {
 	eps  float32
 }
 
+// block is one pre-norm trunk block: s += fc2(relu(fc1(LN(s)))).
+type block struct {
+	norm     norm
+	fc1, fc2 lin // d→ff, ff→d
+}
+
 // Net is the loaded network. Shape: d is the state/option width, ff the
 // block width, e the embedding width, cd the card width and hh the head
-// hidden width.
+// hidden width; the trunk has any number of blocks (the trainer's
+// `layers`), the policy head any number of hidden layers after policy.0
+// (`policy_layers`) and the value head likewise (`value_layers`).
 //
-// The AVX-512 kernels are 64-lane (ln64/dot64/addv64), so a net with
-// d == hh == 64 lands on the assembly fast path and every other shape runs
-// the width-generic Go kernels (lnN/dotN/addvN). d, ff, hh and cd must be
-// multiples of 32 (gemvT pads every output to 32 lanes). A wide net is
-// slower per lane but the same code path; see fast.
+// d, ff, hh and cd must be multiples of 32 (gemvT pads every output to 32
+// lanes). A net with d == hh == 64 (the production shape) takes the
+// dedicated 64-lane kernels (ln64/dot64/addv64); every other width takes the
+// width-generic ones (lnN/dotN/addvN, bag at any width), which are AVX-512
+// at every multiple of 16 and bit-identical to their scalar twins. The bag
+// kernel (the option slot and hashed bags run at width d, the sparse and
+// identity bags at d_emb) is AVX-512 at any multiple of 16 too.
 type Net struct {
 	d, ff, e, cd, hh int
 	rawW             int  // entity raw width the card_raw layer reads
@@ -55,8 +65,7 @@ type Net struct {
 	cardPhi             lin       // cd→cd
 	denseIn, sparseProj lin       // denseW→d, e→d
 	poolProj            lin       // poolW·cd→d
-	bnorm               norm
-	fc1, fc2            lin // d→ff, ff→d
+	blocks              []block
 	fnorm               norm
 	slots               []float32 // slotRows×d
 	htab                []float32 // rows×d: hproj(table[r])
@@ -66,12 +75,23 @@ type Net struct {
 	noneA, noneB        []float32 // d: ea_proj(none_a), eb_proj(none_b)
 	onorm               norm
 	pol0s, pol0o        lin       // d→hh (pol0s carries policy.0's bias)
-	pol2                lin       // hh→hh
-	pol4w               []float32 // hh
-	pol4b               float32
-	val0                lin // d→hh
-	val2w               []float32
-	val2b               float32
+	polHid              []lin     // policy.2, policy.4, ...: hh→hh, relu
+	polOutW             []float32 // hh: the last policy Linear (hh→1)
+	polOutB             float32
+	val0                lin   // d→hh
+	valHid              []lin // value.2, ...: hh→hh, relu
+	valOutW             []float32
+	valOutB             float32
+
+	// one: the production layout (one block, policy_layers 2,
+	// value_layers 1), decided at Load; trunkBag1 reads these aliases of
+	// blocks[0], polHid[0], polOut* and valOut*.
+	one          bool
+	bnorm        norm
+	fc1, fc2     lin
+	pol2         lin
+	pol4w, val2w []float32
+	pol4b, val2b float32
 
 	cache *cardCache
 	zero  []float32 // d zeros (an accumulator for a bias-free gemv)
@@ -264,9 +284,15 @@ func Load(path string, cardCache int) (*Net, error) {
 	g.denseIn = linear("dense_in", denseW, d, true)
 	g.sparseProj = linear("sparse_proj", e, d, false)
 	g.poolProj = linear("pool_proj", poolW*cd, d, true)
-	g.bnorm = nrm("blocks.0.norm", d)
-	g.fc1 = linear("blocks.0.fc1", d, g.ff, true)
-	g.fc2 = linear("blocks.0.fc2", g.ff, d, true)
+	layers := cfg("layers")
+	if layers < 1 || layers > 64 {
+		errs = append(errs, fmt.Errorf("layers %d: want 1..64 trunk blocks", layers))
+		layers = max(1, min(layers, 64))
+	}
+	for i := 0; i < layers; i++ {
+		p := fmt.Sprintf("blocks.%d", i)
+		g.blocks = append(g.blocks, block{norm: nrm(p+".norm", d), fc1: linear(p+".fc1", d, g.ff, true), fc2: linear(p+".fc2", g.ff, d, true)})
+	}
 	g.fnorm = nrm("norm", d)
 	g.slots = get("opt_in.slots.weight", slotRows, d)
 	hproj := linear("opt_in.hproj", e, d, false)
@@ -276,23 +302,29 @@ func Load(path string, cardCache int) (*Net, error) {
 	g.ebProj = linear("eb_proj", cd, d, true)
 	noneA, noneB := get("none_a", cd), get("none_b", cd)
 	g.onorm = nrm("opt_norm", d)
-	if cfg("policy_layers") != 2 || cfg("value_layers") != 1 {
-		errs = append(errs, fmt.Errorf("policy_layers %d value_layers %d: this build reads 2 and 1", cfg("policy_layers"), cfg("value_layers")))
-	}
-	if cfg("layers") != 1 {
-		errs = append(errs, fmt.Errorf("layers %d: this build reads one trunk block", cfg("layers")))
+	// heads: the trainer's _mlp(d_in, hh, L) -- Linear at 0, 2, ..., 2L, a
+	// relu after every one but the last (hh→1)
+	pl, vl := cfg("policy_layers"), cfg("value_layers")
+	if pl < 1 || vl < 1 || pl > 64 || vl > 64 {
+		errs = append(errs, fmt.Errorf("policy_layers %d value_layers %d: want 1..64 each", pl, vl))
+		pl, vl = max(1, min(pl, 64)), max(1, min(vl, 64))
 	}
 	p0w := get("policy.0.weight", hh, 2*d)
 	p0b := get("policy.0.bias", hh)
-	g.pol2 = linear("policy.2", hh, hh, true)
-	g.pol4w = get("policy.4.weight", 1, hh)
-	g.val0 = linear("value.0", d, hh, true)
-	g.val2w = get("value.2.weight", 1, hh)
-	if b := get("policy.4.bias", 1); b != nil {
-		g.pol4b = b[0]
+	for i := 1; i < pl; i++ {
+		g.polHid = append(g.polHid, linear(fmt.Sprintf("policy.%d", 2*i), hh, hh, true))
 	}
-	if b := get("value.2.bias", 1); b != nil {
-		g.val2b = b[0]
+	g.polOutW = get(fmt.Sprintf("policy.%d.weight", 2*pl), 1, hh)
+	g.val0 = linear("value.0", d, hh, true)
+	for i := 1; i < vl; i++ {
+		g.valHid = append(g.valHid, linear(fmt.Sprintf("value.%d", 2*i), hh, hh, true))
+	}
+	g.valOutW = get(fmt.Sprintf("value.%d.weight", 2*vl), 1, hh)
+	if b := get(fmt.Sprintf("policy.%d.bias", 2*pl), 1); b != nil {
+		g.polOutB = b[0]
+	}
+	if b := get(fmt.Sprintf("value.%d.bias", 2*vl), 1); b != nil {
+		g.valOutB = b[0]
 	}
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("netsimd %s: %v", path, errs)
@@ -302,6 +334,12 @@ func Load(path string, cardCache int) (*Net, error) {
 	for o := 0; o < hh; o++ {
 		copy(ws[o*d:(o+1)*d], p0w[o*2*d:o*2*d+d])
 		copy(wo[o*d:(o+1)*d], p0w[o*2*d+d:(o+1)*2*d])
+	}
+	if len(g.blocks) == 1 && len(g.polHid) == 1 && len(g.valHid) == 0 {
+		g.one = true
+		g.bnorm, g.fc1, g.fc2 = g.blocks[0].norm, g.blocks[0].fc1, g.blocks[0].fc2
+		g.pol2, g.pol4w, g.pol4b = g.polHid[0], g.polOutW, g.polOutB
+		g.val2w, g.val2b = g.valOutW, g.valOutB
 	}
 	g.pol0s = mk(ws, d, hh, p0b)
 	g.pol0o = mk(wo, d, hh, nil)
@@ -356,7 +394,10 @@ func (g *Net) Eval(sc *Scratch, st *policynet.State, opts []policynet.Option, sc
 			g.cache.put(sc.keys[k], ent)
 		}
 	}
-	return g.trunk(sc, nc, st.Dense, st.Sparse, opts, scores)
+	if g.one { // the production layout, straight-line (trunkBag1)
+		return g.trunkBag1(sc, nc, st.Dense, st.Sparse, nil, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, st.Dense, st.Sparse, nil, opts, scores)
 }
 
 // cardFull writes the card vector of (raw, rows) to ent:
@@ -377,15 +418,22 @@ func (g *Net) cardFull(sc *Scratch, raw []float32, rows []policynet.Feature, ent
 	gemvT(&g.cardPhi.wt[0], &sc.u[0], &g.cardPhi.b[0], ent, cd, cd, true)
 }
 
-// trunk is the network after the card vectors: sc.ent holds nc card
-// vectors and sc.groups their groups.
-func (g *Net) trunk(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, opts []policynet.Option, scores []float32) float32 {
-	return g.trunkBag(sc, nc, dense, sparse, nil, opts, scores)
+// trunkBag is the network after the card vectors (sc.ent holds nc card
+// vectors and sc.groups their groups), with the sparse bag's row sum given
+// (bagIn, e wide) instead of computed from sparse when bagIn is non-nil.
+// The production layout runs the straight-line trunkBag1, every other
+// layout trunkBagN. The Eval entry points branch on g.one themselves: this
+// dispatcher does not inline, and its call would cost every eval.
+func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
+	if g.one {
+		return g.trunkBag1(sc, nc, dense, sparse, bagIn, opts, scores)
+	}
+	return g.trunkBagN(sc, nc, dense, sparse, bagIn, opts, scores)
 }
 
-// trunkBag is trunk with the sparse bag's row sum given (bagIn, e wide)
-// instead of computed from sparse when bagIn is non-nil.
-func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
+// trunkBagN is trunkBag for any layout: the blocks and the heads' hidden
+// layers in loops.
+func (g *Net) trunkBagN(sc *Scratch, nc int, dense []float32, sparse []policynet.Feature, bagIn []float32, opts []policynet.Option, scores []float32) float32 {
 	d, cd, e := g.d, g.cd, g.e
 	sc.bag32 = growF(sc.bag32, e)
 
@@ -417,30 +465,42 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 		}
 	}
 	gemvT(&g.sparseProj.wt[0], &sc.bag32[0], s, s, e, d, false)
-	// block: s += fc2(relu(fc1(LN(s))))
+	// blocks: s += fc2(relu(fc1(LN(s))))
 	sc.t = growF(sc.t, d)
 	sc.h = growF(sc.h, g.ff)
-	g.ln(&sc.t[0], s, &g.bnorm.w[0], &g.bnorm.b[0], g.bnorm.eps)
-	gemvT(&g.fc1.wt[0], &sc.t[0], &g.fc1.b[0], &sc.h[0], d, g.ff, true)
-	gemvT(&g.fc2.wt[0], &sc.h[0], s, s, g.ff, d, false)
-	g.addv(s, &g.fc2.b[0])
+	for i := range g.blocks {
+		b := &g.blocks[i]
+		g.ln(&sc.t[0], s, &b.norm.w[0], &b.norm.b[0], b.norm.eps)
+		gemvT(&b.fc1.wt[0], &sc.t[0], &b.fc1.b[0], &sc.h[0], d, g.ff, true)
+		gemvT(&b.fc2.wt[0], &sc.h[0], s, s, g.ff, d, false)
+		g.addv(s, &b.fc2.b[0])
+	}
 	g.ln(s, s, &g.fnorm.w[0], &g.fnorm.b[0], g.fnorm.eps)
 
 	// value head
-	sc.vh = growF(sc.vh, g.hh)
-	gemvT(&g.val0.wt[0], s, &g.val0.b[0], &sc.vh[0], d, g.hh, true)
-	v := g.val2b + g.dot(&g.val2w[0], &sc.vh[0], g.hh)
+	hh := g.hh
+	sc.vh = growF(sc.vh, hh)
+	sc.oh = growF(sc.oh, hh)
+	sc.oh2 = growF(sc.oh2, hh)
+	gemvT(&g.val0.wt[0], s, &g.val0.b[0], &sc.vh[0], d, hh, true)
+	// the hidden layers (hh→hh, relu) ping-pong between two buffers; the
+	// loops are spelled out here rather than in a helper, since a call per
+	// option is measurable on the d=64 path
+	vx, vy := &sc.vh[0], &sc.oh[0]
+	for i := range g.valHid {
+		l := &g.valHid[i]
+		gemvT(&l.wt[0], vx, &l.b[0], vy, hh, hh, true)
+		vx, vy = vy, vx
+	}
+	v := g.valOutB + g.dot(&g.valOutW[0], vx, hh)
 	if len(opts) == 0 {
 		return v
 	}
 
 	// options
-	hh := g.hh
 	sc.hs = growF(sc.hs, hh)
 	gemvT(&g.pol0s.wt[0], s, &g.pol0s.b[0], &sc.hs[0], d, hh, false)
 	sc.o = growF(sc.o, d)
-	sc.oh = growF(sc.oh, hh)
-	sc.oh2 = growF(sc.oh2, hh)
 	sc.od = growF(sc.od, optDense)
 	sc.pa = growF(sc.pa, max(nc, 1)*d)
 	sc.pb = growF(sc.pb, max(nc, 1)*d)
@@ -483,10 +543,16 @@ func (g *Net) trunkBag(sc *Scratch, nc int, dense []float32, sparse []policynet.
 			g.addv(o, &g.noneB[0])
 		}
 		g.ln(o, o, &g.onorm.w[0], &g.onorm.b[0], g.onorm.eps)
-		// policy head: relu(hs + W_o·o), relu(policy.2), policy.4
+		// policy head: relu(hs + W_o·o), the hidden layers (relu), the
+		// output Linear
 		gemvT(&g.pol0o.wt[0], o, &sc.hs[0], &sc.oh[0], d, hh, true)
-		gemvT(&g.pol2.wt[0], &sc.oh[0], &g.pol2.b[0], &sc.oh2[0], hh, hh, true)
-		scores[j] = g.pol4b + g.dot(&g.pol4w[0], &sc.oh2[0], g.hh)
+		px, py := &sc.oh[0], &sc.oh2[0]
+		for i := range g.polHid {
+			l := &g.polHid[i]
+			gemvT(&l.wt[0], px, &l.b[0], py, hh, hh, true)
+			px, py = py, px
+		}
+		scores[j] = g.polOutB + g.dot(&g.polOutW[0], px, hh)
 	}
 	return v
 }
