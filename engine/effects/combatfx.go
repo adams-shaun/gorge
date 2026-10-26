@@ -1235,7 +1235,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 					continue
 				}
 				for _, id := range g.Zone(z, p) {
-					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) && inSweepScope(g, id, scope) {
+					if matchesInOwnZone(g, spec, g.Obj(id), c.SpecContext(c.Controller)) && inSweepScope(g, id, scope) {
 						registerAnimateEffects(h, c, id, ag)
 						ateotIDs = append(ateotIDs, id)
 					}

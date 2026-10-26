@@ -388,7 +388,7 @@ func randomChoices(h Host, choices []state.Target, n int) []state.Target {
 func choiceMatches(h Host, g *state.Game, c *Ctx, spec string, o *state.Object) bool {
 	sc := c.SpecContext(c.Controller)
 	sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, spec, h)...)
-	return MatchesObjectCtx(g, spec, o, sc)
+	return matchesInOwnZone(g, spec, o, sc)
 }
 
 func choiceChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {

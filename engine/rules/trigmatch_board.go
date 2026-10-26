@@ -80,6 +80,11 @@ func (b *trigBoard) MatchesSpec(spec string, id, source state.ObjID, you state.P
 	sc := e.specCtx(source, you)
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
 	sc.ExtraTypesOwner = id
+	// A zone-scoped candidate reads a bare Permanent base as a permanent
+	// card; any other spec keeps the derived-bound ordinary match.
+	if o.InZone && effects.SpecMentionsPermanent(spec) {
+		return effects.MatchesSpecInZone(e.G, spec, id, sc, o.Zone)
+	}
 	return e.matchesSpec(spec, id, sc)
 }
 

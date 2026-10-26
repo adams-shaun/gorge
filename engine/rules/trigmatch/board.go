@@ -159,6 +159,11 @@ type SpecOpts struct {
 	ExtraTypes []string
 	// StaticGoads is the statically goaded set an IsGoaded term reads.
 	StaticGoads map[state.ObjID]bool
+	// InZone names the non-battlefield zone the candidate sits in (Zone), so a
+	// bare Permanent base reads as the permanent-card type test (CR 110.4a).
+	// A flag, not a zero Zone: ZLibrary is the zero value.
+	InZone bool
+	Zone   state.Zone
 }
 
 // Activation is an in-flight activation's facts while its cast flow is open:

@@ -438,7 +438,7 @@ func discardMayPrompt(sa *cards.SA, max int) string {
 func discardEligible(g *state.Game, c *Ctx, hand []state.ObjID, valid string) []state.ObjID {
 	out := make([]state.ObjID, 0, len(hand))
 	for _, id := range hand {
-		if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
+		if matchesInOwnZone(g, valid, g.Obj(id), c.SpecContext(c.Controller)) {
 			out = append(out, id)
 		}
 	}
@@ -556,7 +556,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// is presented to p.
 			eligible := make([]state.ObjID, 0, len(hand))
 			for _, id := range hand {
-				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
+				if matchesInOwnZone(g, valid, g.Obj(id), c.SpecContext(c.Controller)) {
 					eligible = append(eligible, id)
 				}
 			}
@@ -729,7 +729,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// the target's hand that DiscardValid$ allows, no matter what
 			// NumCards$ says. No ask.
 			for _, id := range hand {
-				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
+				if matchesInOwnZone(g, valid, g.Obj(id), c.SpecContext(c.Controller)) {
 					discardAndRemember(h, c, riders, id, p)
 				}
 			}
