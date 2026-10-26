@@ -19,19 +19,21 @@ import (
 
 var wardSpecialCost = regexp.MustCompile(`^(AddCounterYou|Blight|CollectEvidence|Waterbend)<([0-9]+)(?:/[^>]*)?>$`)
 
+var wardPayLifeX = regexp.MustCompile(`^PayLife<X/`)
+
 // wardCostShapeKnown reports whether raw (a Ward UnlessCost$ value) has a
 // shape beginWardPayment pays: the ">:" discard-or-pay alternative whose
 // discard part parses with exactly one Discard and whose mana part parses
 // clean, a wardSpecialCost match, the PayLife<X/ ward (life = the ward
 // permanent's power), or a strict ParseUnlessCost reading. It is read-only
 // and mirrors beginWardPayment's arms in order (the ">:" arm returns on its
-// own); the cost-census reads it so it does not re-type this grammar.
+// own); raw is the trimmed value. The cost-census reads it so it does not
+// re-type this grammar.
 func wardCostShapeKnown(raw string) bool {
-	raw = strings.TrimSpace(raw)
 	if i := strings.LastIndex(raw, ">:"); i >= 0 {
 		return len(ParseCost(raw[:i+1]).Discard) == 1 && len(ParseCost(raw[i+2:]).Unknown) == 0
 	}
-	if wardSpecialCost.MatchString(raw) || strings.HasPrefix(raw, "PayLife<X/") {
+	if wardSpecialCost.MatchString(raw) || wardPayLifeX.MatchString(raw) {
 		return true
 	}
 	_, ok := ParseUnlessCost(raw)

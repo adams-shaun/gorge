@@ -89,7 +89,7 @@ func censusCostUnknown(f *cards.Face, owner, key, value string) []string {
 		if unlessNamesFaceSVar(f, key, value) {
 			return nil
 		}
-		if owner == "api:Ward" && wardCostShapeKnown(value) {
+		if owner == "api:Ward" && wardCostShapeKnown(strings.TrimSpace(value)) {
 			return nil
 		}
 		// DamageYou<N> is the unless-pay arm's own damage path
