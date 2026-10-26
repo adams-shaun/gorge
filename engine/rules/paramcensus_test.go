@@ -2865,10 +2865,6 @@ var abilityPresentationSecondary = []string{
 	"ChangeZone", "CopySpellAbility", "DealDamage", "Draw", "ImmediateTrigger",
 	"DelayedTrigger", "Mana", "Pump", "PumpAll", "PutCounter", "Regenerate",
 	"Token",
-var ignoredAbilityParams = map[string]string{
-	"Effect.PumpZone":          "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
-	"GenericChoice.ShowChoice": "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
-	"PeekAndReveal.NoPeek":     "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
 }
 
 // unlessNamesFaceSVar reports a Cost$-family parameter whose WHOLE trimmed
@@ -2906,7 +2902,9 @@ var ignoredAbilityParams = func() map[string]string {
 	const cite = "SA text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179, forge-game/src/main/java/forge/game/card/Card.java:3013 (text renderer only)"
 	const pawprintCite = "mode price read by the parent Charm: engine/effects/charm_modes.go:41 (modePawprint); forge-game/src/main/java/forge/game/ability/effects/CharmEffect.java:183"
 	m := map[string]string{
-		"Effect.PumpZone": "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+		"Effect.PumpZone":          "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+		"GenericChoice.ShowChoice": "UI notify of the chosen value; forge-game/src/main/java/forge/game/ability/effects/ChooseGenericEffect.java:113 (notifyOfValue); gorge's ModeChosen is public (engine/view/describe.go:715)",
+		"PeekAndReveal.NoPeek":     "skips the private look before a public reveal; forge-game/src/main/java/forge/game/ability/effects/PeekAndRevealEffect.java:55,78",
 	}
 	for _, api := range abilityPresentationSecondary {
 		m[api+".Secondary"] = cite
