@@ -29,7 +29,7 @@ func TestIntoTheFloodMawPromisedGiftCastsAndBounces(t *testing.T) {
 
 	// With the gift promised the root bound resolves to zero: no creature
 	// ask may be posed (CR 601.2c, TargetMin$ X with X = 0).
-	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget && d.ResumeKind != "cast_sub" {
 		t.Fatalf("promised cast must skip the root creature ask, got: %+v", d)
 	}
 

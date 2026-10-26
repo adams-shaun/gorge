@@ -27,7 +27,6 @@ var (
 	kwRefRiot        = cards.NewKeywordRef("Riot")
 	kwRefStorm       = cards.NewKeywordRef("Storm")
 	kwRefSunburst    = cards.NewKeywordRef("Sunburst")
-	kwRefTeamwork    = cards.NewKeywordRef("Teamwork")
 	kwRefTraining    = cards.NewKeywordRef("Training")
 	kwRefUnleash     = cards.NewKeywordRef("Unleash")
 )
