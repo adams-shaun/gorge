@@ -78,6 +78,10 @@ const (
 	// cloaked card). The game/state-aware family -- needs the object's own
 	// zone, classified here so matcher and UnknownPredicates agree.
 	wordFaceDown
+	// Forge's faceUp: the object is NOT face down (the negation Forge's
+	// Card.isFaceDown answers, in any zone -- the exile carriers read it).
+	// Game/state-aware, same family.
+	wordFaceUp
 	// Forge's IsRingbearer (CR 701.54e): the object is its controller's
 	// Ring-bearer. Game/state-aware -- needs the object's zone and the
 	// players' designations -- classified here so matcher and
@@ -487,6 +491,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBottomLibrary, ""
 	case wordPredicateWordFaceDown:
 		return wordFaceDown, ""
+	case wordPredicateWordFaceUp:
+		return wordFaceUp, ""
 	case wordPredicateWordCanBeTurnedFaceUp:
 		return wordCanBeTurnedFaceUp, ""
 	case wordPredicateWordIsRingbearer:
@@ -837,6 +843,14 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// the very entry it names. engine/rules/replacement.go sets this bit when the
 		// intercepted move is a face-down battlefield entry.
 		return sc.AsFaceDown || (o.FaceDown && o.Zone == state.ZBattlefield)
+	case wordFaceUp:
+		// Forge's faceUp: the negation of Card.isFaceDown, in ANY zone (the
+		// exile carriers -- riftsweeper, ashiok_nightmare_muse -- target
+		// face-up exiled cards; Expose the Culprit's
+		// Creature.faceUp+YouCtrl+withDisguise reads the battlefield). The
+		// AsFaceDown override a face-down ENTRY carries (see wordFaceDown)
+		// keeps a card about to land face down from matching.
+		return !o.FaceDown && !sc.AsFaceDown
 	case wordRingBearer:
 		// Forge's IsRingbearer (CR 701.54e): the object is its controller's
 		// Ring-bearer -- true exactly while it is on the battlefield under
@@ -1449,6 +1463,7 @@ const (
 	wordPredicateWordDealtDamageToAny
 	wordPredicateWordDealtCombatDamageToAny
 	wordPredicateWordBottomLibrary
+	wordPredicateWordFaceUp
 )
 
 var wordPredicateWordCodes = state.NewStrCodes(
@@ -1511,6 +1526,7 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "RememberedPlayerOwn", Val: wordPredicateWordRememberedPlayerOwn},
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtDamagetoAny", Val: wordPredicateWordDealtDamageToAny},
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtCombatDamagetoAny", Val: wordPredicateWordDealtCombatDamageToAny},
+	state.StrEntry[wordPredicateWordCode]{Key: "faceUp", Val: wordPredicateWordFaceUp},
 )
 
 type wordPredicateSharesCode uint16
