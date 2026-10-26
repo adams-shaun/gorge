@@ -550,6 +550,14 @@ const (
 	// spell or permanent is also prototyped, so a stack copy inherits it.
 	// Appended after FlagOmen to preserve all bits already in main.
 	FlagPrototype
+	// FlagAddsKeywords marks a cast whose payment spent mana produced by an
+	// ability carrying an AddsKeywords$ rider (Carnelian Orb of Dragonkind:
+	// "if that mana is spent on a Dragon creature spell, it gains haste").
+	// The grants ride the event's Text into Object.ManaAddsKeywordGrants and
+	// rules' entry hook applies them as the spell enters (CR 106.6, 400.7a).
+	// A CastProvenanceFlag: a stack copy was never cast (CR 707.10).
+	// Appended after FlagPrototype to preserve all bits already in main.
+	FlagAddsKeywords
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -601,7 +609,7 @@ const (
 // statement about the cast, and the prepared designation's exile copy is the
 // only object that was CAST with the grant; a copy OF that copy is put on the
 // stack, never cast (CR 707.10), so it must not re-fire Codie's trigger.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent | FlagAddsKeywords
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -1410,6 +1418,10 @@ type Object struct {
 	// copy was never cast and reads empty (the flag is stripped by
 	// CastProvenanceFlags and the field is cleared at the mint).
 	ManaAddsCounterGrants []ManaAddsCounterGrant
+	// ManaAddsKeywordGrants are the AddsKeywords$ rider keywords this cast
+	// earned (FlagAddsKeywords Text payload); same provenance window and
+	// resets as ManaAddsCounterGrants.
+	ManaAddsKeywordGrants []ManaAddsKeywordGrant
 	// ManaArtifactSpent is the ARTIFACT-sourced part of ManaSpent (task
 	// mayplay-mfa): how many of the mana units the cast's payment spent were
 	// produced by an Artifact permanent -- Sol Ring, Arcane Signet, the whole
@@ -1895,11 +1907,11 @@ type Object struct {
 	// DoorLock/DoorUnlock events alone update this per-face lock bitset.
 	LockedDoors uint8
 
-	// _ pads the Object to 1344 bytes (21 64-byte cache lines), so in the
+	// _ pads the Object to 1472 bytes (23 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [14]byte
+	_ [56]byte
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast

@@ -88,6 +88,10 @@ func foldCastInfo(g *state.Game, e *Event) {
 		if FlagsFrom(e.Counter)&state.FlagAddsCounters != 0 {
 			o.ManaAddsCounterGrants = ManaAddsCounterGrantsFromText(e.Text)
 		}
+		// AddsKeywords$ (Carnelian Orb): the same structured-payload fold.
+		if FlagsFrom(e.Counter)&state.FlagAddsKeywords != 0 {
+			o.ManaAddsKeywordGrants = ManaAddsKeywordGrantsFromText(e.Text)
+		}
 		// The per-colour spend vector (Adamant, CR 702.5) is a
 		// structured-payload fold: the six state.Mana slots ride the
 		// CastInfo's Text payload into Object.ManaColorSpent, alongside the
@@ -126,6 +130,9 @@ func foldCastInfo(g *state.Game, e *Event) {
 			// deliberately unused (the Conspired arm's consume shape)
 		case FlagsFrom(e.Counter)&state.FlagAddsCounters != 0:
 			// the rider-source id list was folded above; the Amount is
+			// deliberately unused (the Conspired arm's consume shape)
+		case FlagsFrom(e.Counter)&state.FlagAddsKeywords != 0:
+			// the keyword grants were folded above; the Amount is
 			// deliberately unused (the Conspired arm's consume shape)
 		case FlagsFrom(e.Counter)&state.FlagManaColorSpent != 0:
 			// the per-colour spend vector was folded above; the Amount is

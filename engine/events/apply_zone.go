@@ -1170,6 +1170,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.Convoked = nil
 			o.ManaSpentSources = nil
 			o.ManaAddsCounterGrants = nil
+			o.ManaAddsKeywordGrants = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
@@ -1244,6 +1245,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.Convoked = nil
 			o.ManaSpentSources = nil
 			o.ManaAddsCounterGrants = nil
+			o.ManaAddsKeywordGrants = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
