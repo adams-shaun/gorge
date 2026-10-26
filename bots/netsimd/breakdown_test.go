@@ -41,7 +41,7 @@ func BenchmarkKernelGemv64x64(b *testing.B) {
 	g := loadBreakdownNet(b)
 	x, y := aligned(64), aligned(64)
 	for i := 0; i < b.N; i++ {
-		gemvT(&g.pol2.wt[0], &x[0], &g.pol2.b[0], &y[0], 64, 64, true)
+		gemvT(&g.polHid[0].wt[0], &x[0], &g.polHid[0].b[0], &y[0], 64, 64, true)
 	}
 }
 
@@ -111,13 +111,13 @@ func BenchmarkStageTrunk(b *testing.B) {
 		gemvT(&g.denseIn.wt[0], &dense[0], &s[0], &s[0], denseW, 64, false)
 		addv64(&s[0], &g.denseIn.b[0])
 		gemvT(&g.sparseProj.wt[0], &sp[0], &s[0], &s[0], 32, 64, false)
-		ln64(&t[0], &s[0], &g.bnorm.w[0], &g.bnorm.b[0], g.bnorm.eps)
-		gemvT(&g.fc1.wt[0], &t[0], &g.fc1.b[0], &h[0], 64, g.ff, true)
-		gemvT(&g.fc2.wt[0], &h[0], &s[0], &s[0], g.ff, 64, false)
-		addv64(&s[0], &g.fc2.b[0])
+		ln64(&t[0], &s[0], &g.blocks[0].norm.w[0], &g.blocks[0].norm.b[0], g.blocks[0].norm.eps)
+		gemvT(&g.blocks[0].fc1.wt[0], &t[0], &g.blocks[0].fc1.b[0], &h[0], 64, g.ff, true)
+		gemvT(&g.blocks[0].fc2.wt[0], &h[0], &s[0], &s[0], g.ff, 64, false)
+		addv64(&s[0], &g.blocks[0].fc2.b[0])
 		ln64(&s[0], &s[0], &g.fnorm.w[0], &g.fnorm.b[0], g.fnorm.eps)
 		gemvT(&g.val0.wt[0], &s[0], &g.val0.b[0], &vh[0], 64, 64, true)
-		v += g.val2b + dot64(&g.val2w[0], &vh[0])
+		v += g.valOutB + dot64(&g.valOutW[0], &vh[0])
 	}
 	_ = v
 }
@@ -140,8 +140,8 @@ func BenchmarkStageOption(b *testing.B) {
 		addv64(&o[0], &g.noneB[0])
 		ln64(&o[0], &o[0], &g.onorm.w[0], &g.onorm.b[0], g.onorm.eps)
 		gemvT(&g.pol0o.wt[0], &o[0], &hs[0], &oh[0], 64, 64, true)
-		gemvT(&g.pol2.wt[0], &oh[0], &g.pol2.b[0], &oh2[0], 64, 64, true)
-		v += g.pol4b + dot64(&g.pol4w[0], &oh2[0])
+		gemvT(&g.polHid[0].wt[0], &oh[0], &g.polHid[0].b[0], &oh2[0], 64, 64, true)
+		v += g.polOutB + dot64(&g.polOutW[0], &oh2[0])
 	}
 	_ = v
 }
