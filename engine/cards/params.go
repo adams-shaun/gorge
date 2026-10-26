@@ -835,6 +835,10 @@ const (
 	// ValidTgtsDesc$: the script's noun for the legal target set; presentation
 	// only (append-only).
 	PKValidTgtsDesc
+	// ReduceColor$ on an OptionalCost static (the Defiler cycle): the colour
+	// whose one pip the paid optional cost removes. Appended: earlier ordinals
+	// stay stable.
+	PKReduceColor
 	paramKeyCount
 )
 
@@ -1630,6 +1634,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidSpellAbility:                "ValidSpellAbility",
 	PKAddReplacementEffect:             "AddReplacementEffect",
 	PKValidTgtsDesc:                    "ValidTgtsDesc",
+	PKReduceColor:                      "ReduceColor",
 }
 
 // String is the key's Forge text.

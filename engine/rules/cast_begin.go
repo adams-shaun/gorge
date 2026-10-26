@@ -1113,6 +1113,11 @@ func (e *Engine) continueCast() {
 	if e.multikickAsk() {
 		return
 	}
+	// CR 601.2b: each Defiler's optional "pay 2 life, {G} less" (a
+	// ReduceColor$ OptionalCost static) is announced the same way.
+	if e.defilerAsk() {
+		return
+	}
 	// CR 601.2b: the squad count (CR 702.66's optional additional cost, paid
 	// any number of times) is announced the same way. No corpus carrier pairs
 	// Squad with Replicate/Multikicker/Kicker (measured over the 15 K:Squad

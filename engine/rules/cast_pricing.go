@@ -177,6 +177,7 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		}
 	}
 	pc.mods = e.costModifiersForTargets(pc.player, pc.card, scope, pc.targets)
+	pc.foldDefilerMods()
 }
 
 // foldStriveCost prices the Strive keyword's per-extra-target additional

@@ -189,6 +189,13 @@ func (e *Engine) offerCastablePotential(p state.PlayerID, id state.ObjID, base C
 // base is read in place and never written: a step that reshapes the cost
 // (fixLifeXCost, the XMin$ floor) works on a local copy.
 func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base *Cost, scope costScope, ability bool, hyp *state.Mana) bool {
+	return e.offerCastableUsingExtra(statics, p, id, base, scope, ability, hyp, nil)
+}
+
+// offerCastableUsingExtra is offerCastableUsing priced with extra reductions
+// appended to the composed modifiers: the cast-time optional reductions
+// (defilerAsk) the caster may still elect, which the statics cannot know.
+func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.PlayerID, id state.ObjID, base *Cost, scope costScope, ability bool, hyp *state.Mana, extra []costMod) bool {
 	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) shapes the cost the
 	// gate prices into the exact cost the payment will store (beginCast and
 	// beginActivation convert through the same helper), so an offered cost and
@@ -228,6 +235,9 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 	mayApply := false
 	mods := e.costModifiersCompose(statics, p, id, scope, nil, false, 0, &mayApply)
 	provenance := e.CostProvenanceSeen
+	if len(extra) > 0 {
+		mods.Reduces = append(slices.Clone(mods.Reduces), extra...)
+	}
 	// A Waterbend<N>/<X> part carried by the cost itself (an ability's own
 	// Cost$ like Giant Koi's, or a spell's optional-cost part) credits the
 	// same taps a RaiseCost Waterbend does (mods.waterbend), so the offer is
@@ -280,6 +290,9 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 		potentialOK := false
 		if futile := pay.OfferRetryFutile(scope, &mods, mayApply, provenance); statics.validTarget && (!futile || walkSkipVerify) {
 			potential, potentialOK = e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
+				if len(extra) > 0 {
+					m.Reduces = append(slices.Clone(m.Reduces), extra...)
+				}
 				if !e.manaFeasiblePriced(p, id, ability, *base, m, tax, delve, hyp) {
 					return false
 				}
@@ -293,6 +306,9 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 		}
 		if potentialOK {
 			mods = potential
+			if len(extra) > 0 {
+				mods.Reduces = append(slices.Clone(mods.Reduces), extra...)
+			}
 		} else if accepted, ok := e.offerSacXModsGated(p, id, ability, base, statics, scope, tax, delve, hyp); ok {
 			// The cost announces a Sac<X/Spec> count whose resulting X-dependent
 			// reduction (Dargo's "{2} less for each permanent sacrificed this
