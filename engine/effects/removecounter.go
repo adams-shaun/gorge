@@ -31,6 +31,10 @@ import (
 // deterministic slice order (the counterKinds helper this file already
 // shares with MultiplyCounter), one CounterChange per kind present.
 //
+// CounterType$ Any is the per-counter kind election removeCounterAny runs:
+// the controller picks the kind for each counter removed, up to CounterNum$;
+// UpTo$ True adds a Done option so the controller may stop early.
+//
 // RememberRemoved$ True records one remembered entry per removed counter on
 // the source's persistent (event-backed) remembered list -- one Choose
 // "remembered" event per (object, kind) batch, the object's id repeated once
@@ -42,9 +46,9 @@ import (
 // list again), so one entry per counter is the honest encoding.
 //
 // Exotic shapes stay LOUD (the effPutCounterAll exotic pattern -- one Note
-// naming the shape, nothing moves): CounterType$ Any (a choose-which-kind
-// ask), ChoiceOptional$ without Choices$ (a malformed mid-resolution pick),
-// UpTo$ (a bounded election), CounterNum$ Any, CounterNumShared$, and a
+// naming the shape, nothing moves): ChoiceOptional$ without Choices$ (a
+// malformed mid-resolution pick), UpTo$ on a named kind (a bounded election),
+// CounterNum$ Any, CounterNumShared$, and a
 // TgtZone$ naming anything but the battlefield (the suspended-TIME-counter
 // family), RememberAmount$
 // (a removed NUMBER the remembered list has no honest channel for) and
@@ -70,6 +74,13 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if rp.ExoticNote != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: rp.ExoticNote})
+		return
+	}
+	if rp.AnyKinds {
+		// CounterType$ Any: the controller picks one counter at a time from
+		// the kinds still present (Glissa Sunslayer, Mabel, Heartless Act,
+		// Price of Betrayal). UpTo$ adds a Done option at every step.
+		removeCounterAny(h, c, sa, rp)
 		return
 	}
 	kind := rp.Kind
@@ -144,6 +155,116 @@ func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: -removed})
 			rememberRemoved(h, c, rp, o.ID, removed)
 		}
+	}
+}
+
+// removeCounterAny is the defined path's CounterType$ Any walk: the
+// controller removes one counter at a time, choosing the kind from the kinds
+// still present on the carrier, until CounterNum$ counters are gone (or the
+// carrier is drained). UpTo$ True offers Done at every step, so the election
+// may stop early -- down to zero -- as Glissa Sunslayer's, Mabel's,
+// Heartless Act's and Price of Betrayal's "up to N" text requires.
+//
+// With no UpTo$ the election is mandatory: a single present kind needs no
+// ask (nobody could answer differently), a multi-kind carrier asks. With
+// UpTo$ even a single present kind is a real ask (remove another or Done).
+// Each selection is applied immediately through events.Apply, so the next
+// step reads the updated carrier. The no-answer fallback is the first present
+// kind -- the same pick botpolicy's "counter_kind" arm takes -- so the R-9
+// no-host path and a bot-answered ask emit the same events.
+func removeCounterAny(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams) {
+	g := h.Game()
+	n := int32(1)
+	if rp.NumAll {
+		n = -1 // every counter, one election at a time
+	} else if rp.NumSet {
+		n = numText(h, c, rp.CounterNum, 1)
+		if n < 0 {
+			n = 0
+		}
+	}
+	for _, t := range DefinedRef(h, c, rp.Defined, sa) {
+		if t.IsPlayer {
+			p := PlayerOf(h, c, t)
+			if int(p) < 0 || int(p) >= len(g.Players) {
+				continue
+			}
+			pl := &g.Players[p]
+			removeCounterAnyCarrier(h, c, sa, rp, n,
+				func() []string {
+					return dedupeKinds(counterKinds("", len(pl.Counters),
+						func(i int) string { return pl.Counters[i].Kind },
+						func(i int) int32 { return pl.Counters[i].N }))
+				},
+				func(kind string) int32 { return pl.Counter(kind) },
+				func(kind string) {
+					h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p, Counter: kind, Amount: -1})
+					rememberRemoved(h, c, rp, state.PlayerRef(p), 1)
+				})
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: fmt.Sprintf("RemoveCounter target %d no longer exists; skipped", t.Obj)})
+			continue
+		}
+		if o.Zone != state.ZBattlefield && o.Zone != state.ZExile {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: fmt.Sprintf("RemoveCounter target %d is not on the battlefield (zone %s); skipped", o.ID, o.Zone)})
+			continue
+		}
+		removeCounterAnyCarrier(h, c, sa, rp, n,
+			func() []string {
+				return dedupeKinds(counterKinds("", len(o.Counters),
+					func(i int) string { return o.Counters[i].Kind },
+					func(i int) int32 { return o.Counters[i].N }))
+			},
+			func(kind string) int32 { return o.Counter(kind) },
+			func(kind string) {
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: -1})
+				rememberRemoved(h, c, rp, o.ID, 1)
+			})
+	}
+}
+
+// removeCounterAnyCarrier runs removeCounterAny's election loop over one
+// counter carrier. present returns the carrier's positive-count kinds in its
+// deterministic slice order; count re-reads one kind after each event;
+// removeOne logs the single-counter removal (and its RememberRemoved$ rider).
+func removeCounterAnyCarrier(h Host, c *Ctx, sa *cards.SA, rp *RemoveCounterParams, n int32,
+	present func() []string, count func(string) int32, removeOne func(string)) {
+	var removed int32
+	for n < 0 || removed < n {
+		kinds := present()
+		if len(kinds) == 0 {
+			return
+		}
+		chosen := kinds[0]
+		if len(kinds) > 1 || rp.UpTo {
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+				Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa,
+				Prompt: "Choose a counter kind to remove"}
+			for i, k := range kinds {
+				d.Options = append(d.Options, decision.Option{Index: i,
+					Kind: "counter", Label: k, Player: c.Controller})
+			}
+			if rp.UpTo {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+					Kind: "remove_counter_done", Label: "Done", Player: c.Controller})
+			}
+			if ans, ok := AskTape(h, d); ok {
+				if len(ans) == 0 || ans[0].Kind == "remove_counter_done" {
+					return
+				}
+				chosen = ans[0].Label
+			}
+		}
+		if chosen == "" || count(chosen) <= 0 {
+			return // a stale answer cannot invent a counter
+		}
+		removeOne(chosen)
+		removed++
 	}
 }
 
