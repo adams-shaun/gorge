@@ -104,7 +104,7 @@ var drawKnownKeys = [...]string{
 	"InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword",
 	"KeywordLine", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost",
 	"Monstrosity", "NewController", "NonBasicSpell", "NumCards", "OpponentTurn",
-	"OptionalDecider", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
+	"OptionalDecider", "Pawprint", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberDrawn", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
