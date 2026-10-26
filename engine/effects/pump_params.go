@@ -282,7 +282,7 @@ var pumpKnownKeys = [...]string{
 	"Keyword",
 	"KeywordLine",
 	"LeaveBattlefield",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"MaxTotalTargetCMC",
 	"MaxTotalTargetPower",
 	"Mentor",

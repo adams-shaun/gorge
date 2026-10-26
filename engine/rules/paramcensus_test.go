@@ -2855,7 +2855,13 @@ func (s *scan) reachFromRoots(b bucket, fn string) bool {
 // measured.
 var structuralKeys = func() map[string]map[string]bool {
 	m := map[string]map[string]bool{
-		"sa":   {"SubAbility": true},
+		// LockInText is consumed by Face.WithTextChanges
+		// (engine/cards/textchange.go), which leaves such an ability, SVar
+		// body or static verbatim: Forge's
+		// AbilityUtils.applyAbilityTextChangeEffects returns the text
+		// unchanged for an ability with hasParam("LockInText")
+		// (forge-game/src/main/java/forge/game/ability/AbilityUtils.java:3081).
+		"sa":   {"SubAbility": true, "LockInText": true},
 		"trig": {"Mode": true, "Execute": true},
 		"stat": {"Mode": true},
 		"repl": {"Event": true, "ReplaceWith": true},

@@ -203,7 +203,7 @@ var digKnownKeys = [...]string{
 	"KeywordLine",
 	"LibraryPosition",
 	"LibraryPosition2",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"MaxTotalTargetCMC",
 	"MaxTotalTargetPower",
 	"Mentor",

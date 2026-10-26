@@ -154,7 +154,7 @@ var cloneKnownKeys = [...]string{
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "CopyFromChosenName", "Cost", "CostDesc", "Defined",
 	"DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration", "Exclude", "ExcludeChosen", "Exhaust", "FaceDown", "ForgetOtherTargets", "GainThisAbility", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IntoPlayTapped", "IsCurse",
-	"IsPresent", "KW", "KeepFacedown", "Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC",
+	"IsPresent", "KW", "KeepFacedown", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController", "NewName",
 	"NoPutDesc", "NonBasicSpell", "NonLegendary", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",

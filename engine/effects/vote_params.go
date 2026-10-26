@@ -133,7 +133,7 @@ var voteKnownKeys = [...]string{
 	"KW",
 	"Keyword",
 	"KeywordLine",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"MaxTotalTargetCMC",
 	"MaxTotalTargetPower",
 	"Mentor",

@@ -152,7 +152,7 @@ var attachKnownKeys = [...]string{
 	"KW",
 	"Keyword",
 	"KeywordLine",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"MaxTotalTargetCMC",
 	"MaxTotalTargetPower",
 	"Mentor",

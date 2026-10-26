@@ -90,7 +90,7 @@ var dealDamageKnownKeys = [...]string{
 	"Description", "DividedAsYouChoose", "ExcessSVar",
 	"ExcessSVarCondition", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit", "GiftDescription", "IfDesc", "Image",
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
-	"IsPresent", "KW", "Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC",
+	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",
 	"NoPrevention", "NoPutDesc", "NonBasicSpell", "NumDmg", "OpponentTurn", "OptionalDecider", "Planeswalker",
 	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",

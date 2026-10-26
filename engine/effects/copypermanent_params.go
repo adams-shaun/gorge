@@ -222,7 +222,7 @@ var copyPermanentKnownKeys = [...]string{
 	"KW",
 	"Keyword",
 	"KeywordLine",
-	"ManaConversion",
+	"LockInText", "ManaConversion",
 	"MaxTotalTargetCMC",
 	"MaxTotalTargetPower",
 	"Mentor",
