@@ -659,10 +659,25 @@ func abilitySourceQualifiersHold(quals []string, o *state.Object, you state.Play
 	return true
 }
 
+// landPlayedMayPlaySourceClause is the LandPlayed spelling of the may-play
+// provenance clause (validSAMayPlaySourceClause is the SpellCast one).
+const landPlayedMayPlaySourceClause = "SpellAbility.MayPlaySource"
+
 // landPlayedMatches implements Mode$ LandPlayed. This fires on the MoveZone
 // hand->battlefield of a land specifically -- not on the separate LandPlayed
 // event legal.go's "play_land" case also emits, which carries only a Player
 // (no Obj), and so has nothing ValidCard$ could ever match against.
+//
+// ValidSA$ SpellAbility.MayPlaySource (Share the Spoils, The Fourth / Eighth
+// Doctor, Serra Paragon: "When they do ...") scopes the trigger to a land
+// played through a may-play permission. A land play carries no provenance
+// flag, so the clause is answered from the zone: a play from a non-hand zone
+// can only be a play under a permission to play from there (CR 305.1). Known
+// approximation: that is "played from a non-hand zone", not "played through
+// THIS card's grant" (the stand-in scanMayPlaysThisTurn and the SpellCast
+// arm's FlagMayPlay already make), so a land played from the graveyard under
+// Crucible of Worlds would also fire the rider, and a hand land played under
+// a hand-zone grant fails closed (no rider).
 func landPlayedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield {
 		return false
@@ -682,6 +697,12 @@ func landPlayedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 	// of the Goblin's Ante) only drops that zone; it does not void the list.
 	if o, ok := t.ParamCode(cards.PKOrigin); ok {
 		if zl := effects.ZoneList(o); !zl.All() && !zl.Has(ev.From) {
+			return false
+		}
+	}
+	if v, ok := t.Param(cards.PKValidSA); ok {
+		// Any other spelling is unmodelled: fail closed, as ValidSAMatches does.
+		if v != landPlayedMayPlaySourceClause || ev.From == state.ZHand {
 			return false
 		}
 	}
