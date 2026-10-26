@@ -2851,11 +2851,32 @@ var statPresentationSecondary = []string{
 	"CantBeActivated", "CantSacrifice", "CantBeCast", "CantAttack",
 	"CastWithFlash", "CantGainLife", "CantTarget", "Panharmonicon",
 	"RaiseCost", "ReduceCost", "DisableTriggers",
+	"CantBeSuspected", "CantPutCounter", "CombatDamageToughness",
 }
 
-var ignoredAbilityParams = map[string]string{
-	"Effect.PumpZone": "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+// abilityPresentationSecondary lists the REGISTERED api primitives the corpus
+// carries `Secondary$ True` on (measured over the full corpus at the current
+// pin; every AB$/SP$/DB$ line with the key, uniq'd by api). Meld is
+// deliberately absent: api:Meld's `Secondary` is the partner card's NAME
+// (forge-game MeldEffect.java:26, mirrored by engine/effects/meld_api.go
+// MeldOf) -- a genuine rules read that must stay measurable, so it can never
+// join a text-dedup list.
+var abilityPresentationSecondary = []string{
+	"ChangeZone", "CopySpellAbility", "DealDamage", "Draw", "ImmediateTrigger",
+	"DelayedTrigger", "Mana", "Pump", "PumpAll", "PutCounter", "Regenerate",
+	"Token",
 }
+
+var ignoredAbilityParams = func() map[string]string {
+	const cite = "SA text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179, forge-game/src/main/java/forge/game/card/Card.java:3013 (text renderer only)"
+	m := map[string]string{
+		"Effect.PumpZone": "inert on api:Effect (EffectEffect.java reads no PumpZone; only PumpEffect.java:439 does)",
+	}
+	for _, api := range abilityPresentationSecondary {
+		m[api+".Secondary"] = cite
+	}
+	return m
+}()
 
 var ignoredStatParams = func() map[string]string {
 	const cite = "static text-dedup marker; forge-game/src/main/java/forge/game/CardTraitBase.java:179 (Card.java getText callers only)"
@@ -3447,11 +3468,15 @@ func TestParamCensusDetectsADeletedConsumer(t *testing.T) {
 // TestParamCensusScopesSecondaryByPrimitive pins the Secondary$ scoping:
 // on a stat the key is Forge's text-dedup marker, ignored mode-scoped via
 // ignoredStatParams (so a synthetic Secondary$ Continuous static labels
-// nothing even when the scan is told its read was deleted), while the
-// trigger read (engine/rules/trigger_match.go secondaryYields) stays measurable --
-// dropping that read makes a synthetic Secondary$ trigger label. A bare
-// ignoredParamKeys["Secondary"] entry would have suppressed BOTH halves;
-// this probe fails if either side regresses.
+// nothing even when the scan is told its read was deleted), and on a
+// registered api primitive ignored api-scoped via ignoredAbilityParams
+// (abilityPresentationSecondary). Meanwhile the trigger read
+// (engine/rules/trigger_match.go secondaryYields) stays measurable --
+// dropping that read makes a synthetic Secondary$ trigger label -- and so
+// does api:Meld's Secondary read (the partner card's NAME, MeldEffect.java:26)
+// and the Continuous.MayPlay family's fail-closed Secondary recognition
+// (layers.go mayPlayGrant). A bare ignoredParamKeys["Secondary"] entry would
+// have suppressed every one of these; this probe fails if any side regresses.
 func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	t.Parallel()
 	_, d := measureParamCensus(t, nil)
@@ -3488,6 +3513,55 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	}
 	if !hit {
 		t.Errorf("dropped trigger Secondary read did not label param:trig:Phase.Secondary -- trigger Secondary$ measurability is broken")
+	}
+	// (a) api-side scoping: a Secondary$ True on a registered ability
+	// primitive is Forge's SA text-dedup marker, suppressed by the
+	// abilityPresentationSecondary entry even when the read is dropped.
+	if d.api["Draw"] == nil {
+		t.Fatalf("api:Draw is no longer a registered primitive -- the api-side Secondary scoping probe cannot fail")
+	}
+	drawCard, diags := cards.ParseBytes("census-probe-draw.txt", []byte(
+		"Name: Census Probe Draw\nTypes: Creature\nA:AB$ Draw | Cost$ T | Defined$ Self | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("draw probe card failed to parse: %v", diags)
+	}
+	for _, l := range cardCensusLabels(drawCard, d, map[string]map[string]bool{
+		"api:Draw": {"Secondary": true},
+	}) {
+		if l == "param:api:Draw.Secondary" {
+			t.Errorf("api:Draw Secondary$ labelled despite the api-scoped ignore -- the classification is not consulted")
+		}
+	}
+	// (b) Meld's Secondary read is the partner card's NAME (MeldEffect.java:26
+	// / engine/effects/meld_api.go MeldOf), a genuine rules read: it must
+	// stay measurable, and Meld must never join abilityPresentationSecondary.
+	if !d.api["Meld"]["Secondary"] {
+		t.Fatalf("api:Meld no longer derives a Secondary$ read -- the MeldOf partner-name read is gone for real; re-classify or fix the census")
+	}
+	if ignoredParam("api:Meld", "Secondary") {
+		t.Errorf("api:Meld Secondary is classified ignored -- the Meld partner-name read is no longer measurable")
+	}
+	// (c) the Continuous.MayPlay family's whitelist still fail-closes a
+	// Secondary$-carrying grant -- a genuine recognition (mayPlayGrant /
+	// mayPlayParamsScan, layers.go's mayPlayShape), not the text marker, so
+	// the family's Secondary label must stay live (the seven MayPlay
+	// carriers keep theirs) rather than join the ignored list.
+	mayPlayCard, diags := cards.ParseBytes("census-probe-mayplay.txt", []byte(
+		"Name: Census Probe MayPlay\nTypes: Creature\nS:Mode$ Continuous | MayPlay$ True | Affected$ Card.Self | AffectedZone$ Exile | Secondary$ True\n"))
+	if len(diags) != 0 {
+		t.Fatalf("mayplay probe card failed to parse: %v", diags)
+	}
+	if statCensusMode(mayPlayCard.Faces[0].Statics[0].Mode, mayPlayCard.Faces[0].Statics[0].Params) != "Continuous.MayPlay" {
+		t.Fatal("mayplay probe static did not map to Continuous.MayPlay -- the probe measures nothing")
+	}
+	hit = false
+	for _, l := range cardCensusLabels(mayPlayCard, d, nil) {
+		if l == "param:stat:Continuous.MayPlay.Secondary" {
+			hit = true
+		}
+	}
+	if !hit {
+		t.Errorf("MayPlay Secondary$ carrier did not label param:stat:Continuous.MayPlay.Secondary -- the MayPlay family's Secondary recognition is no longer measurable")
 	}
 }
 

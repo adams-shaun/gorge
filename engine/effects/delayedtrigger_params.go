@@ -100,6 +100,8 @@ var delayedTriggerKnownKeys = [...]string{
 	"Exclude", "ExcludedOrigins", "Execute", "Exhaust", "ForgetOtherTargets", "GameActivationLimit",
 	"GiftDescription", "Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine", "MaxTotalTargetCMC",
+	"Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
+	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "Mode", "ModeCost", "Monstrosity",
 	"NewController", "NextTurn", "NonBasicSpell", "OncePerSource", "OpponentTurn", "Origin", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",

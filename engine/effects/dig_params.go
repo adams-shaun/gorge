@@ -117,7 +117,7 @@ var digKnownKeys = [...]string{
 	"FaceDownToughness", "ForceRevealToController", "Foretold", "ForgetOtherRemembered",
 	"ForgetOtherTargets", "FromBottom", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "GiftDescription", "Image", "Imprint", "ImprintCards",
 	"ImprintPlayed", "InstantSpeed", "IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
-	"LibraryPosition", "LibraryPosition2", "MaxTotalTargetCMC", "MaxTotalTargetPower",
+	"LibraryPosition", "LibraryPosition2", "ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower",
 	"Mentor", "ModeCost", "Monstrosity", "NewController", "NoLooking", "NoReveal",
 	"NonBasicSpell", "OpponentTurn", "Optional", "OptionalAbilityPrompt", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",

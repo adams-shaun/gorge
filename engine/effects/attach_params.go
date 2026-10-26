@@ -96,7 +96,7 @@ var attachKnownKeys = [...]string{
 	"Description", "Exclude", "Exhaust", "ForgetOtherTargets", "GameActivationLimit",
 	"GiftDescription", "Image", "ImprintCards", "ImprintPlayed", "InstantSpeed",
 	"IsCurse", "IsPresent", "KW", "Keyword", "KeywordLine",
-	"MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
+	"ManaConversion", "MaxTotalTargetCMC", "MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity",
 	"NewController", "NonBasicSpell", "Object",
 	"OpponentTurn", "Optional", "Origin", "Planeswalker", "PlayCost", "PlayerChoices",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",

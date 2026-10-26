@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -310,6 +311,11 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 		}
 	})
 	e.checkGrantedAttackerBlockedTriggers(ev, byEffect)
+	if byEffect {
+		e.checkEffectCombatTriggers(ev, "AttackerBlocked")
+	} else {
+		e.checkEffectCombatTriggers(ev, "AttackerBlocked", "AttackerBlockedByCreature")
+	}
 }
 
 // queueAttackerBlockedTrigger queues the instances one become-blocked trigger
@@ -547,6 +553,7 @@ func (e *Engine) checkAttackerUnblockedTriggers() {
 		}
 	})
 	e.checkGrantedAttackerUnblockedTriggers(ev)
+	e.checkEffectCombatTriggers(ev, "AttackerUnblocked")
 }
 
 // checkGrantedAttackerUnblockedTriggers is the AddTrigger$ half of the
@@ -859,7 +866,6 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 	if ev.Kind != events.DeclareBlockers {
 		return
 	}
-	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
 		if o == nil {
@@ -879,59 +885,132 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 			if t.Mode != "Blocks" {
 				continue
 			}
-			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
-				continue
-			}
-			if !e.triggerConditionHoldsAs(t, id, o.Controller) {
-				continue
-			}
-			key := triggerKey{Source: id, Idx: ti}
-			if e.triggerFireCount == nil {
-				e.triggerFireCount = map[triggerKey]int32{}
-			}
-			if e.triggerFireCount[key] >= maxTriggerFires {
-				continue // cascade bound: see maxTriggerFires.
-			}
-			if !e.triggerGameActivationLimitAllows(t, key) {
-				continue // GameActivationLimit$: already triggered enough this game.
-			}
-			if !e.triggerActivationLimitAllows(t, key) {
-				continue
-			}
-			// The two limit gates above are READ-ONLY: a DeclareBlockers event
-			// whose pairs match nothing queues nothing and must not consume a
-			// use of either limit. The counts commit below, at the first pair
-			// instance actually appended.
-			reserved := false
-			for _, pr := range e.blocksCandidates(t, id, ev) {
-				if t.Effect == nil {
-					break
-				}
-				attacker := pr[0]
-				defender := pt(ev.Player)
-				if !reserved {
-					reserved = true
-					e.reserveTriggerLimits(t, key)
-				}
-				e.triggerFireCount[key]++
-				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-					Source:     id,
-					Controller: o.Controller,
-					Idx:        ti,
-					SA:         t.Effect,
-					Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
-						Remembered: []state.Target{{Obj: attacker}},
-						Captured:   []state.Target{{Obj: attacker}},
-						TriggerContext: effects.TriggerContext{
-							TriggerCard:     attacker,
-							TriggerSource:   attacker,
-							TriggerBlocker:  pr[1],
-							AttackingPlayer: pt(e.controllerOf(attacker)),
-							DefendingPlayer: defender,
-						},
-					}),
-				})
-			}
+			e.queueBlocksTrigger(t, id, o.Controller, ti, ev)
 		}
 	})
+	e.checkEffectCombatTriggers(ev, "Blocks")
+}
+
+// queueBlocksTrigger queues the instances one Mode$ Blocks line fires for a
+// DeclareBlockers event: a printed face trigger (id its carrier, idx its face
+// index) and an Effect-delivered registration (checkEffectCombatTriggers; id
+// the registration's source, idx -1) share it so their gates and referent
+// capture cannot drift apart.
+func (e *Engine) queueBlocksTrigger(t cards.Trigger, id state.ObjID, controller state.PlayerID, ti int, ev events.Event) {
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
+		return
+	}
+	if !e.triggerConditionHoldsAs(t, id, controller) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: ti}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	if e.triggerFireCount[key] >= maxTriggerFires {
+		return // cascade bound: see maxTriggerFires.
+	}
+	if !e.triggerGameActivationLimitAllows(t, key) {
+		return // GameActivationLimit$: already triggered enough this game.
+	}
+	if !e.triggerActivationLimitAllows(t, key) {
+		return
+	}
+	// The two limit gates above are READ-ONLY: a DeclareBlockers event
+	// whose pairs match nothing queues nothing and must not consume a
+	// use of either limit. The counts commit below, at the first pair
+	// instance actually appended.
+	reserved := false
+	for _, pr := range e.blocksCandidates(t, id, ev) {
+		if t.Effect == nil {
+			break
+		}
+		attacker := pr[0]
+		defender := pt(ev.Player)
+		if !reserved {
+			reserved = true
+			e.reserveTriggerLimits(t, key)
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     id,
+			Controller: controller,
+			Idx:        ti,
+			SA:         t.Effect,
+			Ctx: effects.NewCtx(id, controller, effects.CtxInit{
+				Remembered: []state.Target{{Obj: attacker}},
+				Captured:   []state.Target{{Obj: attacker}},
+				TriggerContext: effects.TriggerContext{
+					TriggerCard:     attacker,
+					TriggerSource:   attacker,
+					TriggerBlocker:  pr[1],
+					AttackingPlayer: pt(e.controllerOf(attacker)),
+					DefendingPlayer: defender,
+				},
+			}),
+		})
+	}
+}
+
+// checkEffectCombatTriggers queues the combat-declaration triggers an Effect
+// delivered ("Whenever a creature blocks this turn, ...": Battle Cry, Gaze of
+// Pain, Barreling Attack, Goblin Flotilla). The registration is an |EF
+// DelayedRegister whose EventMode is one of modes; checkEventDelayedTriggers
+// cannot match it (these modes have no trigmatch matcher: they need one
+// instance per matching pair), so each live registration is parsed exactly as
+// that walk does and queued through the same per-instance helper a printed
+// trigger uses, under the registration's effect-match scope so Card.IsRemembered
+// and Card.EffectSource resolve against the Effect itself. Registrations are
+// walked by index, so queue order is registration order.
+func (e *Engine) checkEffectCombatTriggers(ev events.Event, modes ...string) {
+	for i := 0; i < len(e.G.Delayed); i++ {
+		dt := e.G.Delayed[i]
+		if !dt.EffectRepeat || !slices.Contains(modes, dt.EventMode) || dt.Trigger == "" ||
+			(dt.MaxTurn > 0 && e.G.Turn > dt.MaxTurn) || !e.delayedRegistrationLive(&dt) {
+			continue
+		}
+		src := e.G.Obj(dt.Source)
+		if src == nil || src.Face() == nil {
+			continue
+		}
+		t, ok := cards.ParseTriggerLine(events.SVarAcrossFaces(src, dt.Trigger))
+		if !ok || t.Mode != dt.EventMode {
+			continue
+		}
+		t.Effect = events.ResolveSVarAcrossFaces(src, dt.Execute)
+		if t.Effect == nil {
+			continue
+		}
+		e.clearEffectMatchScope()
+		e.effectMatchSource = dt.Source
+		e.effectMatchController = dt.Controller
+		e.effectMatchRemembered = dt.Remembered
+		e.effectMatchOverride = true
+		n := len(e.pendingTriggers)
+		switch t.Mode {
+		case "Blocks":
+			e.queueBlocksTrigger(t, dt.Source, dt.Controller, -1, ev)
+		case "AttackerUnblocked":
+			e.queueAttackerUnblockedTrigger(t, dt.Source, dt.Controller, -1, false, 0, src.Face().SVars, ev)
+		default:
+			e.queueAttackerBlockedTrigger(t, dt.Source, dt.Controller, -1, false, 0, ev)
+		}
+		e.clearEffectMatchScope()
+		// The queued instances resolve as the registration's own ability
+		// (DelayedPush with the Execute$ body); the registration is recurring,
+		// so nothing consumes it.
+		for j := n; j < len(e.pendingTriggers); j++ {
+			pt := &e.pendingTriggers[j]
+			pt.Delayed = true
+			pt.DelayedID = dt.ID
+			pt.Execute = dt.Execute
+			pt.Trigger = t
+			pt.TriggerSVars = src.Face().SVars
+			pt.Ctx.EffectFrame = effectDelayedFrame(&dt)
+			pt.Ctx.DelayedRemembered = append([]state.Target(nil), dt.Remembered...)
+			pt.Ctx.DelayedRememberedStamps = dt.RememberedStamps
+			pt.Ctx.OptionalSpec = dt.OptionalSpec
+		}
+	}
 }
