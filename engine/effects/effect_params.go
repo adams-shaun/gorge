@@ -98,7 +98,7 @@ var effectKnownKeys = [...]string{
 	"PresentCompare", "PresentDefined", "PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "ReplacementEffects", "SVarCompare",
+	"ReplaceType", "ReplacementEffects", "ReturnAbility", "ReturnValid", "SVarCompare",
 	"SelectPrompt", "SetChosenMode", "SetChosenNumber", "SetColor", "ShowCards",
 	"SorcerySpeed", "SpellDescription", "StackDescription", "Stackable", "Static",
 	"StaticAbilities", "SubAbility", "TargetMax", "TargetMin", "TargetType",

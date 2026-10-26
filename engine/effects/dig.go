@@ -400,6 +400,29 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if skipReorder {
 				return
 			}
+			if dp.DestZone2Optional && len(ids) > 0 {
+				// DestZone2Optional$ True (Kellan, Daring Traveler: "Otherwise,
+				// you may put it into your graveyard"; Nylea, Keen-Eyed): the
+				// remainder's move is the digging player's may election.
+				// Option 0 is today's behaviour (move), so the bot clamp keeps
+				// every bot game byte-identical. A host that cannot ask (R-9)
+				// keeps the mandatory move and emits one Note.
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+					Source: c.Source, ResumeKind: "dig_destzone2_optional", ResumeSA: sa,
+					Prompt: "Put the remaining card(s) into " + dest2Name + "?",
+					Options: []decision.Option{
+						{Index: 0, Kind: "yes", Label: "Yes — move", Player: p},
+						{Index: 1, Kind: "no", Label: "No", Player: p},
+					}}
+				if ans, ok := AskTape(h, d); ok {
+					if !answerYes(ans) {
+						return
+					}
+				} else {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+						Text: "Dig: no host to ask the DestZone2Optional$ election; moves (R-9 stand-in)"})
+				}
+			}
 			dest2 := ParseZone(dest2Name)
 			if dest2 == state.ZLibrary && pos2 == "-1" {
 				if len(ids) == 0 {

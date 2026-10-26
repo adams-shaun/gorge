@@ -2,11 +2,61 @@ package effects
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+// dealDamageDecider resolves an OptionalDecider$ spec to the seat that makes
+// the may election: You/True is the resolving controller, every other spelling
+// goes through the shared DefinedSpec grammar (TargetedController,
+// ParentTargetedController, ...). A spec that does not yield a player fails
+// closed to the caller's Note + mandatory damage.
+func dealDamageDecider(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
+	if strings.EqualFold(spec, "True") || strings.EqualFold(spec, "You") {
+		return c.Controller, true
+	}
+	resolved := DefinedSpec(h, c, spec)
+	if len(resolved) == 0 || !resolved[0].IsPlayer {
+		return 0, false
+	}
+	return resolved[0].Player, true
+}
+
+// damageHasRecipient reports whether the damage would reach anything at all:
+// a player target, or a permanent still on the battlefield (CR 608.2b). With
+// nothing to damage the election is a no-op, so no ask is posed.
+func damageHasRecipient(h Host, c *Ctx, sa *cards.SA) bool {
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			return true
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			return true
+		}
+	}
+	return false
+}
+
+// damageOptionalPrompt names the source, amount and first recipient in the
+// election's prompt ("Have Requiem Monolith deal 1 damage to Grizzly Bears?").
+func damageOptionalPrompt(h Host, c *Ctx, sa *cards.SA, n int32) string {
+	target := "it"
+	if ts := Defined(h, c, sa); len(ts) > 0 {
+		t := ts[0]
+		if t.IsPlayer {
+			if g := h.Game(); int(t.Player) < len(g.Players) {
+				target = g.Players[t.Player].Name
+			}
+		} else {
+			target = objName(h.Game(), t.Obj)
+		}
+	}
+	return "Have " + objName(h.Game(), c.Source) + " deal " + strconv.Itoa(int(n)) + " damage to " + target + "?"
+}
 
 // effDealDamage implements "SP$/AB$/DB$ DealDamage" against players and
 // permanents. Absorbed from Task 14's stopgap (formerly primitives.go, now
@@ -37,6 +87,35 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	n := numText(h, c, dp.NumDmg, 0)
 	if n < 0 {
 		n = 0
+	}
+	// OptionalDecider$ <spec> (Requiem Monolith: "That creature's controller
+	// may have this artifact deal 1 damage to it"): the damage itself is a
+	// may election made by the NAMED player, resolved through the same
+	// selector grammar Draw's OptionalDecider$ arm uses. Option 0 is today's
+	// behaviour (yes), so the bot clamp keeps every bot game byte-identical.
+	// An unresolvable spec fails closed: one Note and the damage stays (the
+	// pre-ask behaviour); a host that cannot ask (R-9) does the same.
+	if dp.OptionalDecider != "" && n > 0 && damageHasRecipient(h, c, sa) {
+		if seat, ok := dealDamageDecider(h, c, dp.OptionalDecider); ok {
+			d := &decision.Decision{Player: seat, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source: c.Source, ResumeKind: "dealdamage_optional", ResumeSA: sa,
+				Prompt: damageOptionalPrompt(h, c, sa, n),
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — deal damage", Player: seat},
+					{Index: 1, Kind: "no", Label: "No", Player: seat},
+				}}
+			if ans, served := AskTape(h, d); served {
+				if !answerYes(ans) {
+					return
+				}
+			} else {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "DealDamage: no host to ask the OptionalDecider$ election; deals (R-9 stand-in)"})
+			}
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unmodelled DealDamage OptionalDecider$ " + dp.OptionalDecider})
+		}
 	}
 	// ReplaceDyingDefined$ <list> (Chandra, Awakened Inferno's "If a permanent
 	// dealt damage this way would die this turn, exile it instead", Wilt in

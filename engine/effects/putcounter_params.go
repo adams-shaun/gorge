@@ -166,7 +166,7 @@ var putCounterKnownKeys = [...]string{
 	"ReduceCost", "RememberAmount", "RememberAnimated", "RememberCards", "RememberCostMana", "RememberObjects",
 	"RememberPut", "RememberTargets", "Renown", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType",
-	"SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
+	"ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
 	"ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"SubAbility", "Support", "TargetMax", "TargetMin",
 	"TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",

@@ -67,6 +67,9 @@ type ManaParams struct {
 	TriggersWhenSpent          string
 	// HasDefined: a non-blank Defined$ names the recipients (ManaRecipients).
 	HasDefined bool
+	// Chooser is Chooser$, trimmed (Radiant Lotus's "Chooser$ You": the
+	// activator makes the colour choice even though the mana goes elsewhere).
+	Chooser string
 
 	// PlainSym/PlainAmt: the parameter set is a plain production -- one
 	// W/U/B/R/G/C Produced$ symbol, an absent or literal Amount$ in
@@ -138,6 +141,7 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 	p.PersistentUntilEndOfCombat = strings.TrimSpace(sa.ParamStr(cards.PKPersistentUntilEndOfCombat))
 	p.TriggersWhenSpent = strings.TrimSpace(sa.ParamStr(cards.PKTriggersWhenSpent))
 	p.HasDefined = dp.Defined.Set()
+	p.Chooser = strings.TrimSpace(sa.ParamStr(cards.PKChooser))
 
 	p.PlainSym, p.PlainAmt = plainManaParams(sa, p)
 	if sa.API == "Mana" {
@@ -203,7 +207,7 @@ var manaKnownKeys = [...]string{
 	"AddTypes", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsNoCounter",
 	"Affected", "AlternateCost", "AlternativeCost", "Amount", "Announce", "AnnounceTitle",
 	"Boast", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
-	"ChoiceZone", "Choices", "ChooseFromList", "ClearImprinted", "Condition",
+	"ChoiceZone", "Choices", "ChooseFromList", "Chooser", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
@@ -216,7 +220,7 @@ var manaKnownKeys = [...]string{
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "Produced",
 	"RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects",
 	"RememberTargets", "ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
-	"ReplaceOnly", "ReplaceType", "RestrictValid", "SVarCompare", "SelectPrompt",
+	"ReplaceOnly", "ReplaceType", "RestrictValid", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt",
 	"SetChosenMode", "SetColor", "ShowCards", "SorcerySpeed", "SpellDescription",
 	"StackDescription", "SubAbility", "TargetMax", "TargetMin", "TargetType",
 	"TargetUnique", "TargetValidTargeting", "TargetingPlayer", "TargetingPlayerControls",

@@ -107,6 +107,43 @@ func alterAttributeHeld(o *state.Object, code int) bool {
 	return false
 }
 
+// alterAttributeWouldChange reports whether applying code to any Defined$
+// object would actually flip the designation. An already-suspected creature
+// (or a solved Case, or a permanent with no prepare spell) is a no-op, so an
+// Optional$ election that could not change anything is not posed.
+func alterAttributeWouldChange(h Host, c *Ctx, sa *cards.SA, code int, activate bool) bool {
+	zone := state.ZBattlefield
+	if code == alterAttributePlotted {
+		zone = state.ZExile
+	}
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil || o.Zone != zone {
+			continue
+		}
+		held := alterAttributeHeld(o, code)
+		if !activate {
+			if held {
+				return true
+			}
+			continue
+		}
+		if code == alterAttributePrepared && !o.HasPrepareSpell() {
+			continue
+		}
+		if code == alterAttributeSolved && o.Solved {
+			continue
+		}
+		if !held {
+			return true
+		}
+	}
+	return false
+}
+
 // effAlterAttribute applies Forge's AlterAttribute effect: it flips a
 // designation attribute on each resolved target (task alterattr1). Targets
 // come through the ordinary Defined path, so a body with no Defined$ asks
@@ -143,6 +180,7 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	activate := !strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKActivate)), "False")
+	optional := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True")
 	rememberAltered := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberAltered)), "True")
 	for _, name := range strings.FieldsFunc(attr, func(r rune) bool { return r == ',' || r == ' ' }) {
 		code := -1
@@ -158,6 +196,27 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		text := alterAttributeNames[code]
+		if optional && alterAttributeWouldChange(h, c, sa, code, activate) {
+			// CR 608.2d: "you may suspect it" is the controller's election at
+			// resolution. Option 0 is today's behaviour (yes), so the bot
+			// clamp keeps every bot game byte-identical; a host that cannot
+			// ask (R-9) keeps the mandatory apply and emits one Note.
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source: c.Source, ResumeKind: "alterattribute_optional", ResumeSA: sa,
+				Prompt: "Apply " + text + "?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}}
+			if ans, ok := AskTape(h, d); ok {
+				if !answerYes(ans) {
+					continue
+				}
+			} else {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "AlterAttribute: no host to ask the Optional$ election; applies (R-9 stand-in)"})
+			}
+		}
 		prepared, solved := code == alterAttributePrepared, code == alterAttributeSolved
 		zone := state.ZBattlefield
 		if code == alterAttributePlotted {

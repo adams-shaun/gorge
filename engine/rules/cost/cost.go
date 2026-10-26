@@ -243,6 +243,11 @@ type Cost struct {
 	// offer gate can credit the taps and the payment can offer them.
 	Waterbend  int32
 	WaterbendX bool
+	// NumTimes marks a `Mana<unit\NumTimes>` part (Announce$ NumTimes: the
+	// adversary cycle, Tranquil Frillback, Hawkeye): the mana fields hold ONE
+	// repetition of the unit, and the trigger-cost window multiplies it by the
+	// announced count.
+	NumTimes   bool
 	Tap        bool
 	Untap      bool
 	Sac        []CostPart
@@ -630,6 +635,7 @@ func (c Cost) Plus(d Cost) Cost {
 	c.Forage = c.Forage || d.Forage
 	c.Waterbend = AddClampedGeneric(c.Waterbend, int64(d.Waterbend))
 	c.WaterbendX = c.WaterbendX || d.WaterbendX
+	c.NumTimes = c.NumTimes || d.NumTimes
 	if len(d.Withheld) > 0 {
 		c.Withheld = append(append([]string(nil), c.Withheld...), d.Withheld...)
 	}

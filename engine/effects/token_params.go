@@ -95,7 +95,7 @@ var tokenKnownKeys = [...]string{
 	"PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberObjects", "RememberOriginalTokens", "RememberTargets", "RememberTokens",
 	"ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
-	"ReplaceOnly", "ReplaceType", "SVarCompare", "SelectPrompt", "SetChosenMode",
+	"ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode",
 	"SetColor", "ShowCards", "SorcerySpeed", "SpellDescription", "StackDescription",
 	"SubAbility", "TargetMax", "TargetMin", "TargetType", "TargetUnique",
 	"TargetValidTargeting", "TargetingPlayer", "TargetingPlayerControls", "TargetsAtRandom",

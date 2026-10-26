@@ -185,6 +185,7 @@ const (
 	PKOptional
 	PKOptionalDecider
 	PKOptionalPrompt
+	PKOptionQuestion
 	PKOrigin
 	PKPhase
 	PKPlacer
@@ -823,6 +824,11 @@ const (
 	// counters of all kinds" (CR 122.8). Appended: earlier ordinals stay
 	// stable.
 	PKAllCounterTypes
+	// ChangeZone's Duration$ UntilHostLeavesPlay return rider (Lagrella, the
+	// Magpie): ReturnAbility$ names the SVar run on each returned card that
+	// ReturnValid$ matches. Appended: earlier ordinals stay stable.
+	PKReturnAbility
+	PKReturnValid
 	paramKeyCount
 )
 
@@ -1009,6 +1015,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKOptional:                         "Optional",
 	PKOptionalDecider:                  "OptionalDecider",
 	PKOptionalPrompt:                   "OptionalPrompt",
+	PKOptionQuestion:                   "OptionQuestion",
 	PKOrigin:                           "Origin",
 	PKPhase:                            "Phase",
 	PKPlacer:                           "Placer",
@@ -1141,6 +1148,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKAllCards:                         "AllCards",
 	PKAllCounters:                      "AllCounters",
 	PKAllCounterTypes:                  "AllCounterTypes",
+	PKReturnAbility:                    "ReturnAbility",
+	PKReturnValid:                      "ReturnValid",
 	PKAmountByChosenMap:                "AmountByChosenMap",
 	PKAnnihilator:                      "Annihilator",
 	PKAtEOT:                            "AtEOT",

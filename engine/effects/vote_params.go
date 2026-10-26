@@ -79,7 +79,7 @@ var voteKnownKeys = [...]string{
 	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
 	"PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana",
 	"RememberObjects", "RememberTargets", "RememberVotedObjects", "ReplaceColor", "ReplaceGraveyard",
-	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "SVarCompare",
+	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare",
 	"Secretly", "SelectPrompt", "SetChosenMode", "SetColor", "ShowCards", "SorcerySpeed",
 	"SpellDescription", "StackDescription", "StoreVoteNum", "SubAbility", "TargetMax",
 	"TargetMin", "TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",

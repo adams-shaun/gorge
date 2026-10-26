@@ -50,6 +50,10 @@ type DealDamageParams struct {
 	DamageSource string
 	// DamageMap is DamageMap$ True: mark the damage for a DamageResolve.
 	DamageMap bool
+	// OptionalDecider is OptionalDecider$ (Forge's "that creature's
+	// controller may have this deal damage"), trimmed: the spec the damage
+	// resolution resolves to the player who makes the may election.
+	OptionalDecider string
 	// RelativeTarget is a non-empty RelativeTarget$ (the multi-source arm
 	// re-resolves the recipients per source).
 	RelativeTarget bool
@@ -85,12 +89,12 @@ var dealDamageKnownKeys = [...]string{
 	"ImprintCards", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",
-	"NonBasicSpell", "NumDmg", "OpponentTurn", "Planeswalker",
+	"NonBasicSpell", "NumDmg", "OpponentTurn", "OptionalDecider", "Planeswalker",
 	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
 	"PresentDefined", "PresentZone", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RelativeTarget",
 	"RememberAnimated", "RememberCostMana", "RememberDamaged", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceDyingDefined", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
-	"ReplaceOnly", "ReplaceType", "SVarCompare", "SelectPrompt",
+	"ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt",
 	"SetChosenMode", "SetColor", "ShowCards", "SorcerySpeed", "SpellDescription",
 	"StackDescription", "SubAbility", "TargetMax", "TargetMin",
 	"TargetType", "TargetUnique", "TargetValidTargeting", "TargetingPlayer",
@@ -153,6 +157,7 @@ func compileDealDamage(sa *cards.SA) *DealDamageParams {
 	p.DamageMap = isTrue(sa.ParamStr(cards.PKDamageMap))
 	p.RelativeTarget = strings.TrimSpace(sa.ParamStr(cards.PKRelativeTarget)) != ""
 	p.ReplaceDyingDefined = ReplaceDyingParam(sa)
+	p.OptionalDecider = strings.TrimSpace(sa.ParamStr(cards.PKOptionalDecider))
 	p.Unread = unreadKeys(sa, dealDamageKnownKeys[:])
 	return p
 }

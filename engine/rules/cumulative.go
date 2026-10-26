@@ -158,6 +158,13 @@ type triggeredEffectCost struct {
 	// the flag also keeps a payer-chooses ask from re-posing if a future
 	// call path re-enters while the announcement is still unanswered.
 	xDone bool
+	// numTimes is the Announce$ NumTimes repeat-payment announcement (Tranquil
+	// Frillback's `Cost$ Mana<G\NumTimes> | Announce$ NumTimes | AnnounceMax$ 3`):
+	// unit is the single-repetition mana text, max the AnnounceMax$ cap (0 =
+	// none), done marks the answered ask. The announced count folds the cost
+	// to the unit repeated that many times and rides xPaid into the body,
+	// where the NumTimes SVar reads it (resolution.go).
+	numTimes triggerNumTimes
 	// counterPicks is the kind of each counter unit an "Any" SubCounter part
 	// removes (RemoveAnyCounter<N/Any/CARDNAME>), recorded in cost order by
 	// subCounterKindAsk and settled by subCounterSettle.
@@ -490,10 +497,15 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	} else {
 		remembered = e.resolvingRemembered(o)
 	}
+	var nt triggerNumTimes
+	if amount.NumTimes {
+		nt = triggerNumTimes{active: true, unit: amount}
+		amount = Cost{}
+	}
 	e.triggerCost = &triggeredEffectCost{resume: rp, source: source,
 		player: o.Controller, amount: amount, costLabel: costPhrase(amount),
 		mandatory: strings.HasPrefix(label, "Mandatory"), trig: e.triggerContexts[rp.obj],
-		costRemembered: remembered}
+		costRemembered: remembered, numTimes: nt}
 	if e.triggerCost.mandatory {
 		e.advanceTriggeredMandatory(e.triggerCost)
 		return
@@ -960,6 +972,26 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			bound = energy
 		}
 	}
+	// XMax$ (Shanna, Purifying Blade's "X can't be greater than the amount of
+	// life you gained this turn"): the body's own cap on the announced X, read
+	// with the same context a fixed X body sees (cast_etbchoice.go's
+	// etbPayLifeBound reads it the same way). An unresolvable cap fails
+	// closed to no extra bound, the pre-XMax behaviour.
+	if sa := tc.resume.sa; sa.ParamStr(cards.PKXMax) != "" {
+		ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{SVars: o.Face().SVars})
+		if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
+			ctx.TriggerContext = tcx
+		}
+		ctx.Remembered = tc.costRemembered
+		if cap, ok := effects.NumResolved(e, ctx, sa, "XMax", 0); ok {
+			if cap < 0 {
+				cap = 0
+			}
+			if bound < 0 || cap < bound {
+				bound = cap
+			}
+		}
+	}
 	if bound < 0 {
 		return false
 	}
@@ -1400,6 +1432,9 @@ func (e *Engine) triggeredCostPaymentAsk() {
 			}
 		}
 	}
+	if e.triggeredCostNumTimesAsk(tc) {
+		return
+	}
 	if e.triggeredCostXAsk(tc) {
 		return
 	}
@@ -1650,6 +1685,25 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		e.triggeredCostDecline(tc)
 		return
 	case triggeredCostAnswerTriggerCostX:
+		if tc.numTimes.active && !tc.numTimes.done {
+			// The NumTimes announcement's answer: zero repetitions pays
+			// nothing and is the decline; n >= 1 folds the cost to n copies
+			// of the unit and re-opens the payment ask on it.
+			n := 0
+			if len(chosen) > 0 {
+				n = chosen[0].Amount
+			}
+			tc.numTimes.done = true
+			if n <= 0 {
+				e.triggeredCostDecline(tc)
+				return
+			}
+			tc.amount = tc.numTimes.times(int32(n))
+			tc.costLabel = costPhrase(tc.amount)
+			tc.xPaid = int32(n)
+			e.triggeredCostPaymentAsk()
+			return
+		}
 		// The X announcement's answer (the payer-chooses fold): the chosen
 		// value folds into the cost and the payment ask re-opens, now pricing
 		// the folded cost -- CR 601.2b's announce-then-activate ordering. The
@@ -2523,3 +2577,64 @@ var triggeredCostAnswerCodes = state.NewStrCodes(
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_life", Val: triggeredCostAnswerPayPip},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_generic", Val: triggeredCostAnswerPayPip},
 )
+
+// triggerNumTimes is the Announce$ NumTimes state of a triggered-cost window:
+// unit is the parsed single repetition (Cost.NumTimes), done marks the
+// answered ask.
+type triggerNumTimes struct {
+	active, done bool
+	unit         Cost
+}
+
+// times returns the unit paid n times over.
+func (nt triggerNumTimes) times(n int32) Cost {
+	var out Cost
+	for i := int32(0); i < n; i++ {
+		out = out.Plus(nt.unit)
+	}
+	return out
+}
+
+// triggeredCostNumTimesAsk poses the repeat-count announcement (CR 601.2b's
+// announce step for "pay this cost any number of times"): a choose over
+// 0..N in ascending order, N bounded by AnnounceMax$ (else xFoldBoundCap) and
+// by how many repetitions the payer's potential mana can cover, so option 0
+// stays the decline-equivalent. Returns true when the ask was posed.
+func (e *Engine) triggeredCostNumTimesAsk(tc *triggeredEffectCost) bool {
+	if !tc.numTimes.active || tc.numTimes.done {
+		return false
+	}
+	bound := xFoldBoundCap
+	if sa := tc.resume.sa; sa != nil && sa.HasParam(cards.PKAnnounce) {
+		ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{})
+		if m, ok := effects.NumResolved(e, ctx, sa, "AnnounceMax", 0); ok && m > 0 && m < bound {
+			bound = m
+		}
+	}
+	pot := e.PotentialMana(tc.player)
+	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_x", Label: "0 times", Amount: 0, Obj: tc.source}}
+	for n := int32(1); n <= bound; n++ {
+		v := tc.numTimes.times(n)
+		if !v.Priceable() || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, false, v, pot, e.G.Players[tc.player].ManaUnits()) {
+			break
+		}
+		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
+			Label: capitaliseFirst(costPhrase(v)), Amount: int(n), Obj: tc.source})
+	}
+	if len(opts) == 1 {
+		// Not even one repetition is payable: the ordinary decline-only ask
+		// is the honest shape, with the unit as the priced cost.
+		tc.numTimes.done = true
+		tc.amount = tc.numTimes.unit
+		tc.costLabel = costPhrase(tc.amount)
+		return false
+	}
+	name := "triggered ability"
+	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	windowAsk(e, &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: name + " — how many times to " + costPhrase(tc.numTimes.unit) + "?",
+		Source: tc.source, Options: opts}, chooseTriggeredCost)
+	return true
+}

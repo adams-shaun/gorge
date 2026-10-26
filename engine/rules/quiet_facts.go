@@ -747,7 +747,7 @@ func quietCostFloor(c *Cost) (floor int32, tap, nonMana bool) {
 	floor, tap = quietManaFloor(c)
 	nonMana = c.X != 0 || c.Life != 0 || len(c.Sac) > 0 || len(c.Discard) > 0 ||
 		len(c.SubCounter) > 0 || len(c.Exile) > 0 || len(c.TapPermanent) > 0 ||
-		quietCostUnclassified(c)
+		c.NumTimes || quietCostUnclassified(c)
 	return floor, tap, nonMana
 }
 
@@ -1071,4 +1071,5 @@ var quietCostFieldNames = map[string]bool{
 	"LifeX":      true, "LifeHalfUp": true, "DamageYou": true, "GainLife": true,
 	"Return": true, "PutToLib": true, "MoveToGrave": true, "Mill": true,
 	"Evidence": true, "RollDice": true, "Withheld": true, "Unknown": true,
+	"NumTimes": true,
 }

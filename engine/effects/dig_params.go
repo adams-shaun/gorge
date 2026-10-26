@@ -77,6 +77,10 @@ type DigParams struct {
 	Pos2      string
 	// Choser is Choser$.
 	Choser string
+	// DestZone2Optional is DestinationZone2Optional$ True (Kellan, Daring
+	// Traveler: "Otherwise, you may put it into your graveyard"): the
+	// remainder move is a may election.
+	DestZone2Optional bool
 	// WithCounters is WithCounters$ (a counter kind) and WithCountersAmount$
 	// its Num-grammar amount (default 1): a battlefield take enters with them.
 	WithCounters       string
@@ -108,7 +112,7 @@ var digKnownKeys = [...]string{
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn", "ConditionPresent", "ConditionPresent2",
 	"ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc", "Defined", "DefinedCards", "DefinedExiler",
-	"DefinedTarget", "Description", "DestinationZone", "DestinationZone2", "DigNum",
+	"DefinedTarget", "Description", "DestZone2Optional", "DestinationZone", "DestinationZone2", "DigNum",
 	"Exclude", "Exhaust", "ExileFaceDown", "FaceDown", "FaceDownPower", "FaceDownSetType",
 	"FaceDownToughness", "ForceRevealToController", "Foretold", "ForgetOtherRemembered",
 	"ForgetOtherTargets", "FromBottom", "GainControl", "GainsAbilitiesOf", "GainsTriggerAbsOf", "GameActivationLimit", "Image", "Imprint", "ImprintCards",
@@ -120,7 +124,7 @@ var digKnownKeys = [...]string{
 	"PresentZone", "PromptToSkipOptionalAbility", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberChanged", "RememberCostMana", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
-	"ReplaceType", "RestRandomOrder", "Reveal", "SVarCompare", "SelectPrompt",
+	"ReplaceType", "RestRandomOrder", "ReturnAbility", "ReturnValid", "Reveal", "SVarCompare", "SelectPrompt",
 	"SetChosenMode", "SetColor", "SharedRestrictions", "ShowCards", "SkipReorder", "SorcerySpeed",
 	"SpellDescription", "StackDescription", "StaticEffect", "StaticEffectCheckSVar",
 	"StaticEffectSVarCompare", "SubAbility", "Tapped", "TargetMax", "TargetMin",
@@ -217,6 +221,7 @@ func compileDig(sa *cards.SA) *DigParams {
 		p.Pos2 = "-1"
 	}
 	p.Choser = strings.TrimSpace(rawParamText(sa, "Choser").Text)
+	p.DestZone2Optional = isTrue(rawParamText(sa, "DestZone2Optional").Text)
 	p.WithCounters = strings.TrimSpace(rawParamText(sa, "WithCounters").Text)
 	p.WithCountersAmount = rawParamText(sa, "WithCountersAmount")
 	p.WithDifferentPowers = isTrue(rawParamText(sa, "WithDifferentPowers").Text)

@@ -349,7 +349,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 		rider.apply(h, c, id, p, to)
 		if to == state.ZExile {
-			recordExileReturnFor(h, c, cza.Riders.Duration, id, z, to)
+			recordExileReturnFor(h, c, sa, cza.Riders.Duration, id, z, to)
 		}
 		// GainControl$ hands the moved object to the named player
 		// (Karn Liberated's ReturnFromExile, Cold Storage, Ghost
