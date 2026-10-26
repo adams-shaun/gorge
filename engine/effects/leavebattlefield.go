@@ -160,6 +160,21 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 				}
 			}
 		}
+		if cards.StaticModeOf(mode) == cards.StaticContinuous {
+			if ce, ok := animateSelfMayPlayGrant(h, c, id, params); ok {
+				// A granted self may-play static (Case of the Uneaten Feast's
+				// "creature cards in your graveyard gain 'You may cast this card
+				// from your graveyard'"): the animated card HAS the static, so it
+				// registers as the Effect route's may-play grant scoped to the
+				// card itself and riding the animation's own lifetime, read by
+				// rules' mayPlaySpellIds like any other effect-delivered grant.
+				ce.Source, ce.Controller = id, c.Controller
+				ce.Duration, ce.Permanent, ce.UntilEOT, ce.DurationSource = dur, permanent, untilEOT, durSource
+				ce.ExileOnMoved, ce.ExileOnMovedAlso, ce.Remembered = exileOn, exileAlso, remembered
+				effectContinuous(h, ce)
+				continue
+			}
+		}
 		if mode == ModeNoCleanupDamage && len(params["ValidCard"]) > 0 &&
 			staticKeysReadable(params, "Mode", "ValidCard", "Description") {
 			h.AddContinuous(state.ContinuousEffect{
@@ -333,3 +348,32 @@ var registerLeaveExileCodes = state.NewStrCodes(
 	state.StrEntry[registerLeaveExileCode]{Key: "", Val: registerLeaveExileEmpty},
 	state.StrEntry[registerLeaveExileCode]{Key: "Exile", Val: registerLeaveExileExile},
 )
+
+// animateSelfMayPlayGrant builds the may-play ContinuousEffect an Animate
+// staticAbilities$ body grants the animated card: a Mode$ Continuous static
+// that is MayPlay$ True over Card.Self (optionally +nonLand) and nothing
+// else this build cannot read (no ValidAfterStack$, MayPlayPlayer$ or free
+// cast). A card off the battlefield and off the stack anchors the zone-scoped
+// grant to its CR 400.7 identity (state.ContinuousEffect.SourceZoneGen), so
+// the permission ends when the card leaves the zone it was granted in even
+// though the same ObjID returns; the caller owns every other lifetime field.
+func animateSelfMayPlayGrant(h Host, c *Ctx, id state.ObjID, params map[string]string) (state.ContinuousEffect, bool) {
+	if c == nil || params["AffectedZone"] == "" {
+		return state.ContinuousEffect{}, false
+	}
+	switch strings.TrimSpace(params["Affected"]) {
+	case "Card.Self", "Card.Self+nonLand":
+	default:
+		return state.ContinuousEffect{}, false
+	}
+	ce, ok := mayPlayGrantFromLine(params)
+	if !ok || ce.MayPlayValidAfterStack != "" || ce.MayPlayPlayer != "" {
+		return state.ContinuousEffect{}, false
+	}
+	if o := h.Game().Obj(id); o == nil {
+		return state.ContinuousEffect{}, false
+	} else if o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+		ce.SourceZoneGen, ce.SourceZoneAnchored = o.ZoneGen, true
+	}
+	return ce, true
+}

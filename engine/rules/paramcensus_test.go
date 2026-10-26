@@ -1497,6 +1497,7 @@ var stringMapParams = map[string]string{
 	// values the census already attributes at the primitive site.
 	"effects:hiddenKeywordGrantFromLine:params":   "parseStaticLine-built static line (an SVar body), not a card Params map",
 	"effects:adjustLandPlaysGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
+	"effects:animateSelfMayPlayGrant:params":      "parseStaticLine-built static line (an SVar body) from Animate staticAbilities$, not a card Params map",
 	// engine/effects/restrictions.go replacementRedirectsToExile: params is one
 	// ReplaceWith$ line parseReplacementLine built from the face's SVar
 	// table (the Fizzle$ rider the exile-redirect admission reads), not a
