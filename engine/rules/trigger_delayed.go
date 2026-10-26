@@ -319,6 +319,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				TriggerContext: effects.TriggerContext{
 					DelayedRemembered:       append([]state.Target(nil), dt.Remembered...),
 					DelayedRememberedStamps: dt.RememberedStamps,
+					DelayedManaSpent:        dt.RememberedManaSpent,
 					OptionalSpec:            dt.OptionalSpec,
 					// RememberNumber$ True's remembered Integer (Mana
 					// Drain): Count$TriggerRememberAmount reads it.

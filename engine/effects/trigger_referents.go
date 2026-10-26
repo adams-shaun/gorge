@@ -70,6 +70,11 @@ type TriggerContext struct {
 	// ChangeZone's Defined$ DelayTriggerRemembered[LKI] mover skips an object
 	// that has become a new object since (CR 400.7).
 	DelayedRememberedStamps []state.TargetStamp
+	// DelayedManaSpent is the registration's carried cast-time spend of each
+	// remembered spell that had left the stack by the time the body fires
+	// (state.DelayedTrigger.RememberedManaSpent): targetManaSpentLKI answers
+	// Count$CastTotalManaSpent for such a spell from it (CR 608.2h).
+	DelayedManaSpent []state.ManaSpentLKI
 	// TriggerRememberedStamps is the fire-time Incarnation stamp of each
 	// object in the trigger's own remembered capture (Ctx.Remembered, what
 	// the TriggeredCard referent family resolves): captured by rules when the

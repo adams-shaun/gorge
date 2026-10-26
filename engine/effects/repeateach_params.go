@@ -35,7 +35,8 @@ type RepeatEachParams struct {
 	SubAbility string
 	// DamageMap, ChangeZoneTable, AmountFromVotes, ClearRemembered and
 	// OptionalForEach are DamageMap$, ChangeZoneTable$, AmountFromVotes$,
-	// ClearRememberedBeforeLoop$ and RepeatOptionalForEachPlayer$ True.
+	// ClearRememberedBeforeLoop$ (or ClearRemembered$) and
+	// RepeatOptionalForEachPlayer$ True.
 	DamageMap       bool
 	ChangeZoneTable bool
 	AmountFromVotes bool
@@ -82,7 +83,7 @@ var repeatEachKnownKeys = [...]string{
 	"AmountFromVotes", "Announce", "AnnounceTitle", "Boast", "ChangeTypeDesc",
 	"ChangeZoneTable", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
 	"ChoiceZone", "Choices", "ChooseFromList", "ChooseOrder", "ClassBand",
-	"ClearImprinted", "ClearRememberedBeforeLoop", "Condition",
+	"ClearImprinted", "ClearRemembered", "ClearRememberedBeforeLoop", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
 	"ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
@@ -164,7 +165,8 @@ func compileRepeatEach(sa *cards.SA, dr *DefinedParams) *RepeatEachParams {
 	p.DamageMap = isTrue(sa.ParamStr(cards.PKDamageMap))
 	p.ChangeZoneTable = isTrue(sa.ParamStr(cards.PKChangeZoneTable))
 	p.AmountFromVotes = isTrue(sa.ParamStr(cards.PKAmountFromVotes))
-	p.ClearRemembered = isTrue(sa.ParamStr(cards.PKClearRememberedBeforeLoop))
+	p.ClearRemembered = isTrue(sa.ParamStr(cards.PKClearRememberedBeforeLoop)) ||
+		isTrue(sa.ParamStr(cards.PKClearRemembered))
 	p.OptionalForEach = isTrue(sa.ParamStr(cards.PKRepeatOptionalForEachPlayer))
 	p.OptionalMessage = strings.TrimSpace(sa.ParamStr(cards.PKRepeatOptionalMessage))
 	p.Players = sa.ParamStr(cards.PKRepeatPlayers)

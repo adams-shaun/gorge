@@ -784,11 +784,22 @@ func targetPTLKI(c *Ctx, o *state.Object) (TargetPT, bool) {
 // keeps its live spend across the stack->battlefield move, so the live read
 // stays authoritative there too.
 func targetManaSpentLKI(c *Ctx, o *state.Object) (castManaSpentTotals, bool) {
-	if c == nil || c.Snap.TargetManaSpent == nil || o == nil || o.Zone == state.ZStack {
+	if c == nil || o == nil || o.Zone == state.ZStack {
 		return castManaSpentTotals{}, false
 	}
-	t, ok := c.Snap.TargetManaSpent[o.ID]
-	return t, ok
+	if c.Snap.TargetManaSpent != nil {
+		if t, ok := c.Snap.TargetManaSpent[o.ID]; ok {
+			return t, true
+		}
+	}
+	// A delayed body's registration carried the spend of a spell it
+	// remembered (Mana Sculpt's countered spell).
+	for _, s := range c.DelayedManaSpent {
+		if s.Obj == o.ID {
+			return castManaSpentTotals{total: s.Total, snow: s.Snow, typed: s.Typed}, true
+		}
+	}
+	return castManaSpentTotals{}, false
 }
 
 // captureStackTargetSnapshots records the resolution-start stack-kind and

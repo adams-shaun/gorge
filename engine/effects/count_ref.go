@@ -419,7 +419,18 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// instance read is unchanged. The members the corpus writes (Amount/
 		// CardPower/CardToughness/CardManaCost/CardManaCostLKI/
 		// CardCounters.*) read through the one property switch below.
-		return rememberedExcludingCapture(h, c), true
+		//
+		// A DELAYED body's capture IS its registration's remembered set
+		// (checkDelayedTriggers seeds Remembered = Captured =
+		// DelayedRemembered), so the exclusion above empties it and the
+		// read answers nothing; Forge's delayed trigger remembers exactly
+		// that set, and Mana Sculpt's "TriggerRemembered$CastTotalManaSpent"
+		// reads the countered spell from it. Fall back to the registration's
+		// set only when the exclusion left nothing.
+		if rem := rememberedExcludingCapture(h, c); len(rem) > 0 || len(c.DelayedRemembered) == 0 {
+			return rem, true
+		}
+		return c.DelayedRemembered, true
 	case refTargetsTriggeredExploited:
 		// The exploited creature (CR 702.58c's "that creature"): the Exploit
 		// marker's triggerReferents case binds ev.IDs[0] to TriggerCard at

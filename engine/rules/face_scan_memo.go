@@ -40,7 +40,9 @@ const (
 	// (faceHasModeCost).
 	faceScanModalCost
 	// faceScanTargetedCastSpend: the face mentions
-	// Targeted$CastTotalManaSpent (targetedCastSpendReaderOut).
+	// Targeted$CastTotalManaSpent, or TriggerRemembered$CastTotalManaSpent
+	// (Mana Sculpt's delayed read of the spell it countered)
+	// (targetedCastSpendReaderOut).
 	faceScanTargetedCastSpend
 	// faceScanAscend: faceMentionsGrantWord(f, "Ascend") (ascendPossible).
 	faceScanAscend
@@ -74,7 +76,7 @@ func computeFaceScan(f *cards.Face) faceScan {
 	if faceHasModeCost(f) {
 		s |= faceScanModalCost
 	}
-	if f.Mentions("Targeted$CastTotalManaSpent") {
+	if f.Mentions("Targeted$CastTotalManaSpent") || f.Mentions("TriggerRemembered$CastTotalManaSpent") {
 		s |= faceScanTargetedCastSpend
 	}
 	if faceMentionsGrantWord(f, "Ascend") {

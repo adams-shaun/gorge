@@ -156,7 +156,9 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					}
 				}
 			}
-		case ref == "TriggerObjectsCards" && prop == "GreatestCardManaCost":
+		case (ref == "TriggerObjectsCards" || ref == "TriggerRemembered") && prop == "GreatestCardManaCost":
+			// TriggerRemembered: Ill-Timed Explosion's reflexive "X is the
+			// highest mana value among the discarded cards".
 			if f != nil && int32(objectManaValue(h.Game(), o)) > n {
 				n = int32(objectManaValue(h.Game(), o))
 			}
