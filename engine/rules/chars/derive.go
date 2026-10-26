@@ -271,6 +271,26 @@ func cdaPTLost(b Board, active []state.ContinuousEffect, id state.ObjID, o *stat
 // it on a miss (and on every hit in verify mode) and copies the result into
 // owned storage. A malformed or missing object degrades to the zero record.
 func Compute(b Board, s *Scratch, id state.ObjID, atStack state.Zone) effects.Chars {
+	return ComputeWith(b, s, id, atStack, nil)
+}
+
+// Layer4 is one finished layer-4 answer for an object: TypesAndLandSubtypeSet's
+// three results. Types is borrowed (the caller's owned copy); Compute only
+// copies out of it.
+type Layer4 struct {
+	Types            []string
+	AllCreatureTypes bool
+	LandSet          bool
+}
+
+// ComputeWith is Compute with the layer-4 walk's answer optionally supplied
+// by the caller (pre != nil): rules' derived-types memo (types_memo.go)
+// hands in the answer it already holds for id at the same board, so the
+// walk below skips TypesAndLandSubtypeSet. pre must be exactly what
+// TypesAndLandSubtypeSet(b, b.Active(), id, atStack) returns at this call's
+// depth and board; rules' verify mode holds every served answer to a fresh
+// walk.
+func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) effects.Chars {
 	o := b.Game().Obj(id)
 	if o == nil || o.Face() == nil {
 		return effects.Chars{}
@@ -308,7 +328,13 @@ func Compute(b Board, s *Scratch, id state.ObjID, atStack state.Zone) effects.Ch
 	// Layer 4 runs first through Types (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
-	tyRaw, allCreatureTypes, landSet := TypesAndLandSubtypeSet(b, b.Active(), id, atStack)
+	var tyRaw []string
+	var allCreatureTypes, landSet bool
+	if pre != nil {
+		tyRaw, allCreatureTypes, landSet = pre.Types, pre.AllCreatureTypes, pre.LandSet
+	} else {
+		tyRaw, allCreatureTypes, landSet = TypesAndLandSubtypeSet(b, b.Active(), id, atStack)
+	}
 	if landSet {
 		// CR 305.7: a land whose subtype an effect set loses the abilities
 		// its rules text generates -- its printed keywords, the prefix

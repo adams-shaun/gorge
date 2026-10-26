@@ -244,6 +244,7 @@ func (e *Engine) derivedRebuildTransparent(prev, fresh []ContinuousEffect, same,
 		if m := e.derivedMemoStack.at(id); m != nil {
 			m.seq = 0
 		}
+		e.typesMemo.retire(id)
 	}
 	if other {
 		e.derivedBFSeq++

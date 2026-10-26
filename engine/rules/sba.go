@@ -341,6 +341,12 @@ func (e *Engine) checkStateBased() {
 		if e.sbaFacts(facts).attach && e.attachmentSBAs() {
 			changed = true
 		}
+		// CR 704.5z / 303.7a: Role exclusivity per Role controller. It runs
+		// after attachmentSBAs so a Role whose bearer just left the
+		// battlefield goes by CR 704.5m first.
+		if e.sbaFacts(facts).role && e.roleSBA() {
+			changed = true
+		}
 		if e.sbaFacts(facts).saga && e.checkSagas(tried) {
 			changed = true
 		}

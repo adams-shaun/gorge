@@ -388,7 +388,7 @@ func memoOwned(buf *[]string, src []string) []string {
 }
 
 func (e *Engine) verifyDerivedMemo(id state.ObjID, atStack state.Zone, got Derived) {
-	want := e.derivedCompute(id, atStack)
+	want := e.derivedComputeFresh(id, atStack)
 	if (got.Keywords == nil) != (want.Keywords == nil) || (got.Types == nil) != (want.Types == nil) ||
 		got.Power != want.Power || got.Toughness != want.Toughness ||
 		got.BasePower != want.BasePower || got.BaseToughness != want.BaseToughness ||

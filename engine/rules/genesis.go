@@ -346,6 +346,7 @@ func newEngineShell(cfg Config, random *rng) *Engine {
 	// the intent array waits for the first Submit (the log's Intents stays
 	// nil until an intent exists, as it always has).
 	e.derivedMemo, e.derivedMemoStack = spare.memo, spare.memoStack
+	e.typesMemo = spare.typesMemo
 	e.adoptSnapshotObjs(spare.snapObjs)
 	e.adoptArena(spare.arena)
 	e.adoptHypPool(spare.hyp)

@@ -234,7 +234,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 704.5u | not-impl | - | - |  |
 | 704.5v-704.5w | deviates | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestDefeatedBattleIsExiledNotGraveyarded` `TestDefeatedBattleOffersTransformedCast` | battle exiled inside the SBA, not graveyarded |
 | 704.5x-704.5y | partial | `engine/rules/replacement_etb.go#Engine.rechooseDepartedBattleProtector` `engine/rules/replacement_etb.go#Engine.protectorOpponents` | `TestSiegeBattleProtectorIsRechosenWhenProtectorLeaves` `TestNonSiegeBattleProtectorIsRechosenWhenProtectorLeaves` | protector re-derived (first opponent) without a choice |
-| 704.5z | deviates | `engine/rules/emit.go#Engine.emit` | `TestRoleExclusivityOldRoleGoesToGraveyard` `TestRoleExclusivityDifferentKindSweepsOldRole` | sweep at attach time ignores Role controller |
+| 704.5z | follows | `engine/rules/attach.go#Engine.roleSBA` | `TestRoleExclusivityOldRoleGoesToGraveyard` `TestRoleExclusivityDifferentKindSweepsOldRole` `TestRoleExclusivityPerController` `TestRoleExclusivityIsStateBased` `TestRoleExclusivityControlChange` | grouped per bearer by current controller; newest LayerTimestamp survives; plain graveyard move, not destruction |
 | 704.6 | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | index rule |
 | 704.6a-704.6b | n/a | - | - | Two-Headed Giant not modelled |
 | 704.6c | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/combat.go#Engine.tallyCmdDamage` | `TestTwentyOneCommanderDamageLoses` `TestTwentyCommanderDamageDoesNotLose` `TestNonCombatCommanderDamageDoesNotTally` |  |

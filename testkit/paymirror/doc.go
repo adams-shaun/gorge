@@ -112,6 +112,8 @@
 //	boardStaticsCache,
 //	activeStaticsCache, mayPlaysCache,
 //	combatStatics
+//	typesMemo*                         the derived-types layer-4 memo and its locality probe,
+//	                                   keyed like derivedMemo; Clone resets it
 //	charsScratch                       Engine.Chars's answer record, valid until the next
 //	                                   Chars call; Clone resets it
 //	potentialWalk, potentialAskSerial, a posed decision's shared potential walk, keyed by

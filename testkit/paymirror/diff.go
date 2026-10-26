@@ -56,6 +56,14 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "derivedMemoTail"}:      true,
 	{"rules.Engine", "derivedMemoAliasFrom"}: true,
 	{"rules.Engine", "derivedMemoAliasTo"}:   true,
+	// The derived-types memo (engine/rules/types_memo.go): a per-object
+	// layer-4 cache keyed on the Derived memo's cross-walk key, plus its
+	// locality probe; Clone resets all of it.
+	{"rules.Engine", "typesMemo"}:         true,
+	{"rules.Engine", "typesMemoLocalSeq"}: true,
+	{"rules.Engine", "typesMemoLocal"}:    true,
+	{"rules.Engine", "typesMemoAny"}:      true,
+	{"rules.Engine", "typesMemoLocalOK"}:  true,
 	// The engine/rules/chars layer walk's per-call scratch (chars.Scratch: keyword
 	// and type buffers, re-entry depth, in-progress P/T frames, colour
 	// stash): rebuilt every call; Clone copies none.

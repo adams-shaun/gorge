@@ -267,6 +267,8 @@ func (e *Engine) mayHaveLegendPair() bool {
 //     object or a player), is an Aura (sbaIsAura), or carries an
 //     UnattachPending queue (the bearer-departure fold's queued detach,
 //     published by attachmentSBAs, which is also what clears the live link);
+//   - role: roleSBA's gate -- some battlefield permanent carries the Role
+//     subtype, so there can be a Role attached to a bearer at all;
 //   - world: two or more World permanents (worldPermanents' derived test,
 //     answered through sbaTypeFast);
 //   - legend: mayHaveLegendPair's answer (some controller has two phased-in
@@ -276,7 +278,7 @@ func (e *Engine) mayHaveLegendPair() bool {
 type sbaBoardFacts struct {
 	at                                    int
 	pw, battle, saga, counterPair, attach bool
-	world, legend, combat                 bool
+	role, world, legend, combat           bool
 }
 
 // sbaFacts refreshes f when the log has moved since it was taken.
@@ -330,6 +332,9 @@ func (e *Engine) sbaFacts(f *sbaBoardFacts) *sbaBoardFacts {
 				if !f.attach && (o.HasAttachedPlayer || o.AttachedTo != 0 ||
 					o.UnattachPending || e.sbaIsAura(o, anyLType)) {
 					f.attach = true
+				}
+				if !f.role && !o.PhasedOut && e.isRole(o) {
+					f.role = true
 				}
 			}
 		}
