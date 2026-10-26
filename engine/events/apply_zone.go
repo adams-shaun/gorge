@@ -296,6 +296,13 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.ExiledWith = 0
 			o.FaceDown = false
 		}
+		// CR 400.7: remember which incarnation of the source exiled this card.
+		o.ExiledWithInc = 0
+		if o.ExiledWith != 0 {
+			if src := g.Obj(o.ExiledWith); src != nil {
+				o.ExiledWithInc = src.Incarnation + 1
+			}
+		}
 		if e.Text == "reversed" && o.HasPreStackEntry {
 			// The reversal undoes the cast proposal (CR 733.1): the card
 			// keeps the identity it had before the push.
@@ -998,6 +1005,26 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 				}
 			}
 			o.RememberedStackBase = 0
+			// CR 400.7: a battlefield entry is a new object, so the cards
+			// the previous incarnation exiled are no longer its own -- except
+			// where the object continues: a spell becoming its permanent, and
+			// Craft's in-place transform (CR 702.167a), rendered as a
+			// self-exile plus a Transformed$ re-entry. Those carry the links.
+			craft := o.Card != nil && o.Card.IsTransformingDFC() && o.FaceIdx != 0
+			if enteredFrom == state.ZStack || craft {
+				prev := o.Incarnation - 1
+				if craft && enteredFrom != state.ZStack {
+					prev = o.Incarnation - 2
+				}
+				for i := range g.Objs {
+					m := &g.Objs[i]
+					if m.ExiledWith == id && m.ExiledWithInc == prev+1 {
+						m.ExiledWithInc = o.Incarnation + 1
+					}
+				}
+			} else {
+				o.ExiledCards = nil
+			}
 		}
 		// A face-down entry (a manifest) is a 2/2 creature with no abilities
 		// (CR 708.5), so it grants none of the entry counters above; the

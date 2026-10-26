@@ -660,7 +660,7 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			case effectRememberedParentTarget:
 				out = appendEffectRememberedObjects(h, out, parentLinkTargets(c))
 			case effectRememberedRemembered:
-				out = appendEffectRememberedObjects(h, out, c.Remembered)
+				out = appendEffectRememberedObjects(h, out, resolvedRemembered(h, c))
 			case effectRememberedImprinted:
 				// Effect RememberObjects$ Imprinted captures the source's persistent
 				// Dig/ChangeZone imprint list (Synth Eradicator's may-play rider).

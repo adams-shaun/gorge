@@ -466,6 +466,12 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.SourceRemembered = append([]state.Target(nil), src.Remembered...)
 		c.SourceIncarnation = src.Incarnation
 	}
+	// The fire-time Incarnation alone (no list) lets Defined$ ExiledWith and
+	// Card.ExiledWithSource keep finding what the OLD object exiled after a
+	// re-entry (CR 400.7); effectiveSourceRemembered ignores it without a list.
+	if src := e.G.Obj(source); src != nil && src.Incarnation != 0 {
+		c.SourceIncarnation = src.Incarnation
+	}
 	c.SelfLeaves = t.Mode == "ChangesZone" && t.ParamStr(cards.PKOrigin) == "Battlefield" &&
 		t.ParamStr(cards.PKValidCard) == "Card.Self"
 	return c

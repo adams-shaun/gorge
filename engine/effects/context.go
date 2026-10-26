@@ -362,7 +362,7 @@ func exiledWithSet(g *state.Game, c *Ctx) []state.Target {
 	var out []state.Target
 	for p := state.PlayerID(0); p < state.PlayerID(len(g.Players)); p++ {
 		for _, id := range g.Zone(state.ZExile, p) {
-			if exiledBySource(g, g.Obj(id), c.Source) {
+			if exiledBySourceAt(g, g.Obj(id), c.Source, c.TriggerContext.SourceIncarnation) {
 				out = append(out, state.Target{Obj: id})
 			}
 		}
@@ -380,15 +380,32 @@ func exiledWithSet(g *state.Game, c *Ctx) []state.Target {
 // `ExiledWith$` count head (count_ref.go, via exiledWithSet) and
 // type_choices.go's SharedTypeLabels.
 func exiledBySource(g *state.Game, o *state.Object, src state.ObjID) bool {
+	return exiledBySourceAt(g, o, src, 0)
+}
+
+// exiledBySourceAt is exiledBySource for a resolving pending trigger: fireInc
+// is the source's Incarnation when the trigger fired (TriggerContext.
+// SourceIncarnation, 0 when none). A trigger belongs to the object that
+// existed when it fired (CR 400.7), so when the source has since re-entered
+// the battlefield it still finds the cards that OLD incarnation exiled.
+func exiledBySourceAt(g *state.Game, o *state.Object, src state.ObjID, fireInc uint32) bool {
 	if o == nil || src == 0 {
 		return false
-	}
-	if o.ExiledWith == src {
-		return true
 	}
 	s := g.Obj(src)
 	if s == nil {
 		return false
+	}
+	// CR 400.7: the link is to the incarnation that exiled the card.
+	// ExiledWithInc is the source's Incarnation + 1 at the exile; 0 is a link
+	// no event stamped (a hand-built fixture), which names no incarnation.
+	if o.ExiledWith == src && (o.ExiledWithInc == 0 || o.ExiledWithInc == s.Incarnation+1 ||
+		(o.ExiledWithInc == s.Incarnation && s.Zone != state.ZBattlefield)) {
+		return true
+	}
+	if o.ExiledWith == src && fireInc != 0 && fireInc != s.Incarnation &&
+		(o.ExiledWithInc == fireInc+1 || o.ExiledWithInc == fireInc) {
+		return true
 	}
 	for _, id := range s.ExiledCards {
 		if id == o.ID {
