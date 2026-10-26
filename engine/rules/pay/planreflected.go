@@ -14,7 +14,8 @@ import (
 // over the payer's OWN permanents (Reflecting Pool, Gond Gate), a colour read
 // ("Is": Mox Amber, Meteor Crater) and the Defined.* selectors no payment
 // step can shrink (Chrome Mox's imprint, Pit of Offerings' exiled cards, a
-// graveyard scan: a step only ever adds to a graveyard). The reflected
+// graveyard scan: a step only ever adds to a graveyard) and the source's own
+// colours (Katilda's granted "any of this creature's colors"). The reflected
 // colours are a finite choice the census resolves with the resolution's own
 // object walk (effects.ManaReflectedObjects). ReflectProperty$ Produce reads
 // printed mana abilities and Is reads colours, never tapped state, so a
@@ -33,20 +34,21 @@ func PaymentPlanReflectedShape(ma *cards.SA) bool {
 		mr.RestrictValid != "" || mr.ClassBand != "" || mr.IsPresent != "" {
 		return false
 	}
-	return reflectsStableObjects(mr.Valid)
+	return reflectsStableObjects(mr.Valid, mr.ReflectProperty)
 }
 
 // reflectsStableObjects reports whether the Valid$ spec names objects no
 // planned payment step can add or (apart from a consuming mana ability the
-// census filters) remove: a Defined.<selector> on the allow-list, or object
-// alternatives that each carry OppCtrl or YouCtrl.
-func reflectsStableObjects(spec string) bool {
+// census filters) remove: a Defined.<selector> on the allow-list, Defined.Self
+// under a colour read (a mana ability never changes its source's colours), or
+// object alternatives that each carry OppCtrl or YouCtrl.
+func reflectsStableObjects(spec, property string) bool {
 	if spec == "" {
 		return false
 	}
 	if rest, ok := strings.CutPrefix(spec, "Defined."); ok {
 		sel, _, _ := strings.Cut(strings.TrimSpace(rest), " ")
-		return paymentPlanReflectedDefined.Has(sel)
+		return paymentPlanReflectedDefined.Has(sel) || (sel == "Self" && property == "Is")
 	}
 	for alt := range strings.SplitSeq(spec, ",") {
 		_, props, ok := strings.Cut(strings.TrimSpace(alt), ".")
