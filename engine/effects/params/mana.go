@@ -206,7 +206,7 @@ var manaKnownKeys = [...]string{
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
 	"AddTypes", "AdditionalDesc", "AdditionalDescription", "AddsCounters", "AddsNoCounter",
 	"Affected", "AlternateCost", "AlternativeCost", "Amount", "Announce", "AnnounceTitle",
-	"Boast", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
+	"Boast", "CantCopy", "ChangeTypeDesc", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
 	"ChoiceZone", "Choices", "ChooseFromList", "Chooser", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",

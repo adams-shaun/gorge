@@ -84,7 +84,7 @@ var repeatEachKnownKeys = [...]string{
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases",
 	"ActivationZone", "Activator", "AddType", "AddTypes", "AdditionalDesc",
 	"AdditionalDescription", "Affected", "AlternateCost", "AlternativeCost",
-	"AmountFromVotes", "Announce", "AnnounceTitle", "Boast", "ChangeTypeDesc",
+	"AmountFromVotes", "Announce", "AnnounceTitle", "Boast", "CantCopy", "ChangeTypeDesc",
 	"ChangeZoneTable", "CharacteristicDefining", "CheckSVar", "ChoiceTitle",
 	"ChoiceZone", "Choices", "ChooseFromList", "ChooseOrder", "ClassBand",
 	"ClearImprinted", "ClearRemembered", "ClearRememberedBeforeLoop", "Condition",

@@ -117,7 +117,7 @@ var manaReflectedKnownKeys = [...]string{
 	"Activation", "ActivationAfterBlockers", "ActivationFirstCombat", "ActivationGameTypes",
 	"ActivationLimit", "ActivationPhases", "ActivationZone", "Activator", "AddType",
 	"AddTypes", "AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
-	"AlternativeCost", "Amount", "Announce", "AnnounceTitle", "Boast", "ChangeTypeDesc",
+	"AlternativeCost", "Amount", "Announce", "AnnounceTitle", "Boast", "CantCopy", "ChangeTypeDesc",
 	"CharacteristicDefining", "CheckSVar", "ChoiceTitle", "ChoiceZone", "Choices",
 	"ChooseFromList", "ClassBand", "ClearImprinted", "ColorOrType", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",

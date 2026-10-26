@@ -11,12 +11,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// SpellCopyAllowed reports whether no live CantBeCopied static names id.
+// SpellCopyAllowed reports whether id may be copied: false when the stack
+// object's own ability carries CantCopy$ True ("This ability can't be
+// copied"), or when a live CantBeCopied static names it.
 // The source-zone walk follows staticSourceZones, so Stack-scoped spell
 // statics and broader EffectZone statics share the normal static filter path.
 func (e *Engine) SpellCopyAllowed(id state.ObjID) bool {
 	candidate := e.G.Obj(id)
 	if candidate == nil || candidate.Zone != state.ZStack {
+		return false
+	}
+	if a := candidate.Ability; a != nil && (a.Params["CantCopy"] == "True" || a.Params["CantCopy"] == "true") {
 		return false
 	}
 	for pi, p := range e.G.AliveFrom(0) {

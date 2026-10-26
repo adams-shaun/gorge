@@ -181,7 +181,7 @@ var charmKnownKeys = [...]string{
 	"Activator", "AddType", "AddTypes",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
 	"AlternativeCost", "Announce", "AnnounceTitle", "AtRandom", "Boast", "CanRepeatModes",
-	"ChangeTypeDesc", "CharacteristicDefining", "CharmNum", "CheckSVar",
+	"CantCopy", "ChangeTypeDesc", "CharacteristicDefining", "CharmNum", "CheckSVar",
 	"ChoiceRestriction", "ChoiceTitle", "ChoiceZone", "Choices", "ChooseFromList",
 	"ClassBand", "ClearImprinted", "Condition", "ConditionActivationLimit",
 	"ConditionCheckSVar", "ConditionCompare", "ConditionCompare2", "ConditionDefined", "ConditionDescription",
