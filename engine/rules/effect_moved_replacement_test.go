@@ -296,3 +296,24 @@ func TestEffectReplacementUnreadValidCauseStaysLoud(t *testing.T) {
 		t.Fatalf("Moved registrations = %d, want 0", n)
 	}
 }
+
+// Due Respect's ValidCard$ Permanent does not match an entering object, so
+// registering it live would be silently wrong; it keeps the loud Note.
+func TestEffectReplacementPermanentValidCardStaysLoud(t *testing.T) {
+	t.Parallel()
+	f := &cards.Face{SVars: map[string]string{
+		"DBEffect":  "DB$ Effect | ReplacementEffects$ RepETB",
+		"RepETB":    "Event$ Moved | ValidCard$ Permanent | Destination$ Battlefield | ReplaceWith$ ETBTapped | ReplacementResult$ Updated | Description$ Permanents enter tapped this turn.",
+		"ETBTapped": "DB$ Tap | ETB$ True | Defined$ ReplacedCard",
+	}}
+	e := mayPlayBase(t)
+	src := e.G.AddObject(corpusAlternativeCard(t, "Jorn, God of Winter"), 0)
+	src.Zone = state.ZBattlefield
+	emrRegister(e, f, src.ID)
+	if !emrReplacementNotes(e) {
+		t.Fatal("ValidCard$ Permanent enters-tapped line lost its loud Note")
+	}
+	if n := emrMovedRepls(e); n != 0 {
+		t.Fatalf("Moved registrations = %d, want 0", n)
+	}
+}

@@ -959,6 +959,12 @@ func replacementMovedBodyLiveKind(params map[string]string, body string, svars m
 	case "ChangeZone":
 		return !updated && redirectExileBody(replacementBodyParams(body), svars, redirectLineRemembered(params), allowLibrary)
 	case "Tap":
+		// ValidCard$ Permanent does not match a card that is not yet on the
+		// battlefield, so an enters-tapped line on it would register and
+		// never apply; it stays on the loud-Note path.
+		if strings.SplitN(strings.TrimSpace(params["ValidCard"]), ".", 2)[0] == "Permanent" {
+			return false
+		}
 		return allowLibrary && updated && redirectTapBody(replacementBodyParams(body), svars, redirectLineRemembered(params))
 	}
 	return false
